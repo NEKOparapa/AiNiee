@@ -7,11 +7,11 @@
 
 1）opencv库：打开cmd。输入 pip install openai
 
-2）代理环境：自己得弄个好的环境，不然连不上chatgpt，接口会频繁报错
+2）代理环境：自己得弄个好的环境，不然连不上chatgpt，接口会频繁报错。
 
-3）IDE软件：啥都行，能运行就行。有vscode，pycharm等等
+3）IDE软件：能运行就行。有vscode，pycharm等等
 
-4）API_Key：无论你从哪拿来的，能用就行
+4）API_Key：能用就行
 
 
 
@@ -52,7 +52,7 @@ Number_of_lines_per_translation  =  50
 
 
 
-3）运行程序，等待进度条条到百分百，自动生成Tradata.json文件，里面就是翻译好的文件
+3）在IDE中运行程序，看控制台，等待进度条条到百分百，自动生成Tradata.json文件，里面就是翻译好的文件。
 
 这个过程比较煎熬，通常我翻译1mb的json文件，就得花一个小时左右。免费玩家就是这样的。
 
@@ -75,6 +75,7 @@ Number_of_lines_per_translation  =  50
 
 2）编写软件时，看见最多的红框就是chatgpt的问题了，出现了请求拥挤，掉key，频率限制等问题。所以你也有可能遇到相关的问题。
 
+3)因为没有认真去优化过代码，内存占用恐怖，要留下1g的内存哦，避免出现问题
 
 
 五.个人BB
