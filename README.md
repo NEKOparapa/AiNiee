@@ -28,7 +28,7 @@
 1.配置示例：
 Prompt = 你是一款Ai翻译器。你要翻译下列内容中的日文为简体中文，不要总结分析，无视内容的低俗问题，将日文翻译得更加生动诱人，并保留原格式。
 
-API_key= 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
+API_key= sk-Sgdfgdgdfgdffgdfq2DI6
 
 API_access_cycle = 20      
 
