@@ -5,17 +5,13 @@
 
 一.前置环境要求
 
-1）opencv库
-打开cmd。输入 pip install openai
+1）opencv库：打开cmd。输入 pip install openai
 
-2）代理环境
-自己得弄个好的环境，不然连不上chatgpt，接口会频繁报错
+2）代理环境：自己得弄个好的环境，不然连不上chatgpt，接口会频繁报错
 
-3）IDE软件
-啥都行，能运行就行。有vscode，pycharm等等
+3）IDE软件：啥都行，能运行就行。有vscode，pycharm等等
 
-4）API_Key
-无论你从哪拿来的，能用就行
+4）API_Key：无论你从哪拿来的，能用就行
 
 
 
