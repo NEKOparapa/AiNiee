@@ -30,14 +30,14 @@ Prompt = 你是一款Ai翻译器。你要翻译下列内容中的日文为简体
 
 API_key= sk-Sgdfgdgdfgdffgdfq2DI6
 
-API_access_cycle = 30      
+API_access_cycle = 35      
 
 Number_of_lines_per_translation  =  50
 
 
 ##### **配置说明**
 
-第一个是系统提示词，用于告诉chatgpt任务目标的命令语。如果改变命令词，记得后面一定要求保留原格式，不然AI酱乱回复就翻译不了了
+第一个是系统提示词，用于告诉chatgpt任务目标的命令语。建议不要修改，如果想改变命令词，记得后面一定要求保留原格式，不然AI酱乱回复就翻译不了了
 
 第二个是你的api_key
 
