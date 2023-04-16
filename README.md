@@ -16,7 +16,7 @@
 
 
 
-**）可选配置，用于自己修改调试程序：能运行python的IDE软件如vscode（https://code.visualstudio.com/），pycharm等等
+**）可选配置，用于自己修改调试程序：能运行python的IDE软件如vscode https://code.visualstudio.com/    pycharm等等  
 
 
 
