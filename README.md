@@ -12,7 +12,10 @@
 
 4）能运行python的IDE软件：如vscode，pycharm等等
 
-5）API_Key：能用就行
+5）mtool工具：https://afdian.net/a/AdventCirno
+
+6）API_Key：能用就行
+
 
 
 
