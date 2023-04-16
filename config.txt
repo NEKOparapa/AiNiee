@@ -2,6 +2,6 @@ Prompt = 你是一款Ai翻译器。你要翻译下列内容中的日文为简体
 
 API_key= sk-0npfOekpS4gfgfghfghfgfgfg
 
-API_access_cycle = 35      
+API_access_cycle = 34      
 
 Number_of_lines_per_translation  =  50
