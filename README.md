@@ -58,9 +58,9 @@ Number_of_lines_per_translation  =  50
 
 3）—————————配置好代理环境，然后在IDE中运行AiNiee-chatgpt.py程序，看控制台输出日志。之后等待进度条到百分百，自动生成Tradata.json文件，里面就是翻译好的文件。
 
-| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1.png" width="400" height="300">  |
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
-|   运行中输出的日志            |   翻译完成输出的日志（暂未上传）            |
+|   运行中输出的日志            |   翻译完成输出的日志            |
 
 
 这个过程比较煎熬，通常我翻译1mb的json文件，就得花一个小时左右，免费玩家就是这样的。你可以多开将原文件拆分成几份，然后使用多个key并行处理，后面自己再拼回去，不过听说容易封号，我不清楚。当然付费玩家也可以直接调高访问速度，翻译行数，刷刷翻完。
