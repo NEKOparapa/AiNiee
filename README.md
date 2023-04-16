@@ -56,7 +56,7 @@ Number_of_lines_per_translation  =  50
 
 
 
-3）—————————在IDE中运行AiNiee-chatgpt.py程序，看控制台输出日志，等待进度条条到百分百，自动生成Tradata.json文件，里面就是翻译好的文件。
+3）—————————配置好代理环境，然后在IDE中运行AiNiee-chatgpt.py程序，看控制台输出日志。之后等待进度条到百分百，自动生成Tradata.json文件，里面就是翻译好的文件。
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/2-1.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
