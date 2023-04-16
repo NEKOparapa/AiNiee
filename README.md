@@ -59,7 +59,7 @@ Number_of_lines_per_translation  =  50
 
 #### **第三步：配置好代理环境，然后选择【直接执行AiNiee-chatgpt.exe】或者【在IDE中运行AiNiee-chatgpt.py程序】，看控制台输出日志。之后等待进度条到百分百，自动生成Tradata.json文件，里面就是翻译好的文件。**
 
-##### **直接执行AiNiee-chatgpt.exe情况下**
+##### **1.直接执行AiNiee-chatgpt.exe情况下**
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
@@ -71,7 +71,7 @@ Number_of_lines_per_translation  =  50
 翻译完成后，一定要进行格式检查，用IDE软件打开Tradata.json看看，有没有标红的地方。特别是在类似游戏道具，技能名，UI文本地方容易出现错误。
 
 
-##### **在IDE中运行AiNiee-chatgpt.py程序情况下**
+##### **2.在IDE中运行AiNiee-chatgpt.py程序情况下**
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-2-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
