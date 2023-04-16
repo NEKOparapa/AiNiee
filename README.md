@@ -1,7 +1,7 @@
 # AiNiee-chatgpt
 基于mtool导出的json文件，chatgpt自动批量翻译工具，主要是用来翻译各种RPG游戏。
 
-教程视频：https://www.bilibili.com/video/BV1i24y1F7tM
+教程视频：
 
 
 ### **———————————————————前置环境要求——————————————**
