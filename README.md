@@ -22,14 +22,14 @@
 
 ### **———————————————————使用说明——————————————**
 
-1）—————————首先利用mtool软件打开你喜欢的rpg游戏，并将在翻译功能界面，选择导出需要被翻译的文本，将ManualTransFile.json文件导出，放到与程序同一个目录下。
+#### **第一步：首先利用mtool软件打开你喜欢的rpg游戏，并将在翻译功能界面，选择导出需要被翻译的文本，将ManualTransFile.json文件导出，放到与程序同一个目录下。**
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/2-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/2-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
 |   打开mtool的翻译界面            |   导出游戏内文本文件            |
 
 
-2）—————————填写配置文件config.txt。
+#### **第二步：填写配置文件config.txt。**
 
 
 ##### **配置示例**
@@ -56,7 +56,9 @@ Number_of_lines_per_translation  =  50
 
 
 
-3）—————————配置好代理环境，然后在IDE中运行AiNiee-chatgpt.py程序，看控制台输出日志。之后等待进度条到百分百，自动生成Tradata.json文件，里面就是翻译好的文件。
+#### **第三步：配置好代理环境，然后选择【直接执行AiNiee-chatgpt.exe】或者【在IDE中运行AiNiee-chatgpt.py程序】，看控制台输出日志。之后等待进度条到百分百，自动生成Tradata.json文件，里面就是翻译好的文件。**
+
+##### **直接执行AiNiee-chatgpt.exe情况下**
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
@@ -68,7 +70,14 @@ Number_of_lines_per_translation  =  50
 翻译完成后，一定要进行格式检查，用IDE软件打开Tradata.json看看，有没有标红的地方。特别是在类似游戏道具，技能名，UI文本地方容易出现错误。
 
 
-4）—————————回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。
+##### **在IDE中运行AiNiee-chatgpt.py程序情况下**
+
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-2.png" width="400" height="300">  |
+| :--------------------------: | :--------------------------: |
+|   运行中输出的日志            |   翻译完成输出的日志            |
+
+
+#### **第四步：回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。**
 
 
 
