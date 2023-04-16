@@ -10,12 +10,13 @@
 
 3）代理环境：自己得弄个好的环境，不然连不上chatgpt，api接口会频繁报错。
 
-4）能运行python的IDE软件：如vscode：https://code.visualstudio.com/    pycharm等等
+4）mtool工具：https://afdian.net/a/AdventCirno  免费版本就可以。
 
-5）mtool工具：https://afdian.net/a/AdventCirno  免费版本就可以。
+5）API_Key：能用就行
 
-6）API_Key：能用就行
 
+
+**）可选配置，用于自己修改调试程序：能运行python的IDE软件：如vscode（https://code.visualstudio.com/）    pycharm等等
 
 
 
