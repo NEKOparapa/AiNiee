@@ -21,7 +21,7 @@
 
 1）—————————首先利用mtool软件打开你喜欢的rpg游戏，并将在翻译功能界面，选择导出需要被翻译的文本，将ManualTransFile.json文件导出，放到与程序同一个目录下。
 
-![示例图片]([./Example image/使用说明2-1.png](https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E2-1.png))
+![示例图片]((https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/2-1.png))
 
 2）—————————填写配置文件config.txt。
 
