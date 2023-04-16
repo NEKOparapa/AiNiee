@@ -79,7 +79,7 @@ Number_of_lines_per_translation  =  50
 
 
 #### **第四步：回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。**
-
+<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1.png" width="400" height="300"> 
 
 
 ### **———————————————————功能说明——————————————**
