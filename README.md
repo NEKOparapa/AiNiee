@@ -16,7 +16,7 @@
 
 
 
-**）可选配置，用于自己修改调试程序：能运行python的IDE软件：如vscode（https://code.visualstudio.com/）    pycharm等等
+**）可选配置，用于自己修改调试程序：能运行python的IDE软件如vscode（https://code.visualstudio.com/），pycharm等等
 
 
 
@@ -39,7 +39,7 @@ Prompt = 你是一款Ai翻译器。你要翻译下列内容中的日文为简体
 
 API_key= sk-Sgdfgdgdfgdffgdfq2DI6
 
-API_access_cycle = 35      
+API_access_cycle = 40      
 
 Number_of_lines_per_translation  =  50
 
