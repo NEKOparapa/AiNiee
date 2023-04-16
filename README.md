@@ -61,7 +61,7 @@ Number_of_lines_per_translation  =  50
 
 ##### **1.直接执行AiNiee-chatgpt.exe情况下**
 
-| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-2.png" width="400" height="300">  |
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-1.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
 |   运行中输出的日志            |   翻译完成输出的日志            |
 
@@ -73,7 +73,7 @@ Number_of_lines_per_translation  =  50
 
 ##### **2.在IDE中运行AiNiee-chatgpt.py程序情况下**
 
-| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-2-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-2.png" width="400" height="300">  |
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-2-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-2-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
 |   运行中输出的日志            |   翻译完成输出的日志            |
 
