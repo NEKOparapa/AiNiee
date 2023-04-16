@@ -6,11 +6,11 @@
 
 1）opencv库：打开cmd。输入 pip install openai
 
-2）pyhone环境：到官网下载合适的版本安装，我编程时是3.10.7版本，所以也建议安装3.10.7，其他不是太老应该也没有问题
+2）pyhone环境：到官网https://www.python.org/downloads/windows/ 下载合适的版本安装，我编程时是3.10.7版本，所以也建议安装3.10.7，其他不是太老应该也没有问题
 
 3）代理环境：自己得弄个好的环境，不然连不上chatgpt，api接口会频繁报错。
 
-4）能运行python的IDE软件：如vscode，pycharm等等
+4）能运行python的IDE软件：如vscode：https://code.visualstudio.com/    pycharm等等
 
 5）mtool工具：https://afdian.net/a/AdventCirno
 
