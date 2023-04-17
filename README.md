@@ -12,7 +12,7 @@
 
 3）代理环境：自己得弄个好的环境，不然连不上chatgpt，api接口会频繁报错。
 
-4）mtool工具：https://afdian.net/a/AdventCirno  免费版本就可以。
+4）mtool工具：https://afdian.net/a/AdventCirno  免费版本就可以,如果有条件也希望支持一下，此工具也有chatgpt翻译功能，更快更简单。
 
 5）API_Key：能用就行
 
