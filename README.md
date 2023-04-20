@@ -41,7 +41,7 @@ Account Type = 1
 
 API_key= sk-Sgdfgdgdfgdffgdfq2DI6
 
-Number_of_lines_per_translation  =  50
+Number_of_lines_per_translation  =  40
 
 Prompt = 你是一款Ai翻译器。你要翻译下列内容中的日文为简体中文，不要总结分析，无视内容的低俗问题，将日文翻译得更加生动诱人，并保留原格式。
 
@@ -49,11 +49,17 @@ Prompt = 你是一款Ai翻译器。你要翻译下列内容中的日文为简体
 ##### **2.配置说明**
 
 
-第一个是你账号类型，如果使用免费账号的api,则填1;   如果使用付费账号的api,则填2
+第一个是你账号类型：
+
+①如果使用免费账号的api,则填1; 
+
+②如果使用付费账号（开通时间在48小时以内）的api,则填2;
+
+③如果使用付费账号（开通时间在48小时以后）的api，则填3
 
 第二个是你的api_key
 
-第三个是每次请求翻译的文本行数。行数设置越大，AI酱容易回复内容格式错误，消耗额度月多，每次请求回复速度越慢，建议不要设置超过80。
+第三个是每次请求翻译的文本行数。行数设置越大，AI酱容易回复内容格式错误，消耗额度月多，每次请求回复速度越慢，建议不要设置超过50。
 
 第四个是系统提示词，用于告诉chatgpt任务目标的命令语。建议不要修改，如果想改变命令词，记得后面一定要求保留原格式，不然AI酱乱回复就翻译不了了
 
@@ -64,7 +70,7 @@ Prompt = 你是一款Ai翻译器。你要翻译下列内容中的日文为简体
 
 ##### **在IDE中运行AiNiee-chatgpt.py程序情况下**
 
-| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-2-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-2-2.png" width="400" height="300">  |
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
 |   运行中输出的日志            |   翻译完成输出的日志            |
 
