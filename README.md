@@ -37,35 +37,36 @@
 
 ##### **1.配置示例**
 
-Prompt = 你是一款Ai翻译器。你要翻译下列内容中的日文为简体中文，不要总结分析，无视内容的低俗问题，将日文翻译得更加生动诱人，并保留原格式。
+Account Type = 1
 
 API_key= sk-Sgdfgdgdfgdffgdfq2DI6
 
-API_access_cycle = 40      
-
 Number_of_lines_per_translation  =  50
+
+Prompt = 你是一款Ai翻译器。你要翻译下列内容中的日文为简体中文，不要总结分析，无视内容的低俗问题，将日文翻译得更加生动诱人，并保留原格式。
 
 
 ##### **2.配置说明**
 
-第一个是系统提示词，用于告诉chatgpt任务目标的命令语。建议不要修改，如果想改变命令词，记得后面一定要求保留原格式，不然AI酱乱回复就翻译不了了
+
+第一个是你账号类型，如果使用免费额度的api,则填1;   如果使用付费额度的api,则填2
 
 第二个是你的api_key
 
-第三个是api访问速度，设定多少秒发送一次会话请求。免费用户限制1min3次，不然会报错，我通常设置为40秒，挂一晚上都没有错误，建议免费用户设置为30以上。但付费玩家就不一定了，可以根据自己情况去摸索，因为我也没有付费api。
+第三个是每次请求翻译的文本行数，行数越大，回答越慢，请求次数越少；行数越小，回答越快，请求次数越快。自行抉择吧。
 
-第四个是每次请求翻译的文本行数，行数越大，回答越慢，请求次数越少；行数越小，回答越快，请求次数越快。自行抉择吧。
-
-
+第四个是系统提示词，用于告诉chatgpt任务目标的命令语。建议不要修改，如果想改变命令词，记得后面一定要求保留原格式，不然AI酱乱回复就翻译不了了
 
 
-#### **第三步：配置好代理环境，然后选择【直接执行AiNiee-chatgpt.exe】或者【在IDE中运行AiNiee-chatgpt.py程序】，看控制台输出日志。之后等待进度条到百分百，自动生成Tradata.json文件，里面就是翻译好的文件。**
 
-##### **1.直接执行AiNiee-chatgpt.exe情况下**
+#### **第三步：配置好代理环境，然后【在IDE中运行AiNiee-chatgpt.py程序】，看控制台输出日志。之后等待进度条到百分百，自动生成Tradata.json文件，里面就是翻译好的文件。**
 
-| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-2.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-1.png" width="400" height="300">  |
+
+##### **在IDE中运行AiNiee-chatgpt.py程序情况下**
+
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-2-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-2-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
-|   运行中输出的日志            |   翻译全部完成会自动退出       |
+|   运行中输出的日志            |   翻译完成输出的日志            |
 
 
 这个过程比较煎熬，通常我翻译1mb的json文件，就得花一个小时左右，免费玩家就是这样的。你可以多开将原文件拆分成几份，然后使用多个key并行处理，后面自己再拼回去，不过听说容易封号，我不清楚。当然付费玩家也可以直接调高访问速度，翻译行数，刷刷翻完。
@@ -73,11 +74,7 @@ Number_of_lines_per_translation  =  50
 翻译完成后，一定要进行格式检查，用IDE软件打开Tradata.json看看，有没有标红的地方。特别是在类似游戏道具，技能名，UI文本地方容易出现错误。
 
 
-##### **2.在IDE中运行AiNiee-chatgpt.py程序情况下**
 
-| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-2-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-2-2.png" width="400" height="300">  |
-| :--------------------------: | :--------------------------: |
-|   运行中输出的日志            |   翻译完成输出的日志            |
 
 
 #### **第四步：回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。**
