@@ -2,6 +2,6 @@ Account_Type = 1
 
 API_key= sk-3ew5FjkjhhkhkjU1
 
-Number_of_lines_per_translation  =  50
+Number_of_lines_per_translation  =  40
 
 Prompt = 你是一款Ai翻译器。你要翻译下列内容中的日文为简体中文，不要总结分析，无视内容的低俗问题，将日文翻译得更加生动诱人，并保留原格式。
