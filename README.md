@@ -12,11 +12,11 @@
 
 3）pyhone环境：到官网https://www.python.org/downloads/windows/ 下载合适的版本安装，我编程时是3.10.7版本，所以也建议安装3.10.7，其他不是太老应该也没有问题
 
-4）代理环境：自己得弄个好的环境，不然连不上chatgpt，api接口会频繁报错。
+4）代理环境：自己得弄个好的代理环境，设置全局代理或者其他方式，不然连不上chatgpt，api接口会频繁报错或者一直没有回复。
 
 5）mtool工具：https://afdian.net/a/AdventCirno  免费版本就可以,如果有条件也希望支持一下，此工具也有chatgpt翻译功能，更快更简单。
 
-6）API_Key：能用就行
+6）API_Key：新建一个,并且最好在使用期间不要和其他程序一起使用，不然容易达到请求次数限制
 
 7）IDE软件：能运行python的IDE软件如vscode https://code.visualstudio.com/    pycharm等等  
 
