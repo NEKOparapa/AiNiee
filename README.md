@@ -6,11 +6,11 @@
 
 ### **———————————————————依赖环境要求——————————————**
 
-1）openai库：打开cmd。输入 pip install openai
+1）pyhone环境：到官网https://www.python.org/downloads/windows/ 下载合适的版本安装，我编程时是3.10.7版本，所以也建议安装3.10.7，其他不是太老应该也没有问题
 
-2）tiktoken库：打开cmd。输入 pip install tiktoken
+2）openai库：打开cmd。输入 pip install openai
 
-3）pyhone环境：到官网https://www.python.org/downloads/windows/ 下载合适的版本安装，我编程时是3.10.7版本，所以也建议安装3.10.7，其他不是太老应该也没有问题
+3）tiktoken库：打开cmd。输入 pip install tiktoken
 
 4）代理环境：自己得弄个好的代理环境，设置全局代理或者其他方式，不然连不上chatgpt，api接口会频繁报错或者一直没有回复。
 
