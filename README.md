@@ -1,11 +1,14 @@
 # AiNiee-chatgpt
+
+***
+
 基于mtool导出的json文件，chatgpt自动批量翻译工具，主要是用来翻译各种RPG游戏。
 
 教程视频：https://www.bilibili.com/video/BV12V4y1R7PG
 
 
-### **———————————————————依赖环境要求——————————————**
-
+### **依赖环境要求**
+---
 1）pyhone环境：到官网https://www.python.org/downloads/windows/ 下载合适的版本安装，我编程时是3.10.7版本，所以也建议安装3.10.7，其他不是太老应该也没有问题
 
 2）AI相关库和UI相关库：打开cmd，分别输入下面每行代码后回车。
@@ -32,8 +35,8 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 
 
-### **———————————————————工具使用说明——————————————**
-
+### **工具使用说明**
+---
 #### **第一步：首先利用mtool软件打开你喜欢的rpg游戏，并将在翻译功能界面，选择导出需要被翻译的文本，将ManualTransFile.json文件导出，放到与程序同一个目录下。**
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/1-2.png" width="400" height="300">  |
@@ -100,8 +103,8 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/5-1.png" width="400" height="300"> 
 
 
-### **———————————————————工具功能说明——————————————**
-
+### **工具功能说明**
+---
 1）仅仅支持mtool导出的json文件格式的json文件自动翻译，如果其他json文件格式一致，可以考虑使用。
 
 2）如果希望翻译从其他语言到中文，可以尝试修改Prompt词，把“日语”换成源语言。
@@ -109,8 +112,8 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 3）工具现在能够并发任务处理翻译文本啦，速度大幅度提升，不过由于openai的限制，基本只有付费账号才能享受到。
 
 
-### **———————————————————程序问题说明——————————————**
-
+### **程序问题说明**
+---
 
 1）因为chatgpt回答经常不按格式来，所以你会经常看见同样内容问几次，或者卡在这里一直循环问。建议去裁剪一下原文文本，分成小文件，翻译完成各文件后，再拼接回来。
 
@@ -121,12 +124,13 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 4）关于翻译花费的问题，我还没有细说。因为AI酱容易在翻译时，不按照格式来回答，所以有较高的错误率。按照我的经验大概翻译500kb大小的json文件就花费1刀左右，各位掂量着自己的余额。
 
 
-### **———————————————————个人BB——————————————**
-
+### **个人BB**
+---
 1）虽然有点编程基础，但还是第一次用python写程序，不是相关从业者，写法奇奇怪怪莫要怪。后续我不知道有没有时间去更新维护。既然已经开源了，就交给其他大佬了
 
 2）AI酱实在太厉害啦，一边写一边问她，什么都能回答，帮我写，帮我改bug，heart，heart，heart。
 
-### **———————————————————感谢——————————————**
+### **感谢**
+---
 如果没有这么好看的UI控件，我也不会写图形界面
 https://github.com/zhiyiYo/PyQt-Fluent-Widgets
