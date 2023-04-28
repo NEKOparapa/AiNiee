@@ -28,7 +28,7 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 5）API_Key：新建一个,并且最好在使用期间不要和其他程序一起使用，不然容易达到请求次数限制
 
-6）IDE软件：能运行python的IDE软件如vscode https://code.visualstudio.com/    pycharm等等  
+6）IDE软件：能运行python的IDE软件如vscode https://code.visualstudio.com/    pycharm等等 。
 
 
 
@@ -41,37 +41,28 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 |   打开mtool的翻译界面            |   导出游戏内文本文件            |
 
 
-#### **第二步：填写配置文件config.txt。**
+#### **第二步：填写配置信息。**
 
 
-##### **1.配置示例**
+##### **1.配置界面**
 
-Account Type = 1
 
-API_key= sk-Sgdfgdgdfgdffgdfq2DI6
-
-Number_of_lines_per_translation  =  40
-
-Prompt = 你是一款Ai翻译器。你要翻译下列内容中的日文为简体中文，不要总结分析，无视内容的低俗问题，将日文翻译得更加生动诱人，并保留原格式。
 
 
 ##### **2.配置说明**
 
 
-第一个是你账号类型：
+【账号类型】是你账号类型，免费用户基本只能并发两三个线程翻译任务，而付费用户可以并发几十个，大大缩减翻译时间。
 
-①如果使用免费账号的api,则填1; 
+【API KEY】填入你的api_key
 
-②如果使用付费账号（开通时间在48小时以内）的api,则填2;
+【Lines】是每次请求翻译的文本行数。行数设置越大，AI酱容易回复内容格式错误，消耗额度月多，每次请求回复速度越慢，建议不要设置超过50。
 
-③如果使用付费账号（开通时间在48小时以后）的api，则填3
+【Prompt】是系统提示词，用于告诉chatgpt任务目标的命令语。建议不要修改，如果想改变命令词，记得后面一定要求保留原格式，不然AI酱乱回复就翻译不了了
 
-第二个是你的api_key
+【文件位置】是选择你需要翻译的原文文件，也是ManualTransFile.json文件
 
-第三个是每次请求翻译的文本行数。行数设置越大，AI酱容易回复内容格式错误，消耗额度月多，每次请求回复速度越慢，建议不要设置超过50。
-
-第四个是系统提示词，用于告诉chatgpt任务目标的命令语。建议不要修改，如果想改变命令词，记得后面一定要求保留原格式，不然AI酱乱回复就翻译不了了
-
+【输出文件夹】是选择翻译好文件的存储文件夹
 
 
 #### **第三步：配置好代理环境，然后【在IDE中运行AiNiee-chatgpt.py程序】，看控制台输出日志。之后等待进度条到百分百，自动生成Tradata.json文件，里面就是翻译好的文件。**
