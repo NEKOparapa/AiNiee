@@ -124,3 +124,6 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 2）AI酱实在太厉害啦，一边写一边问她，什么都能回答，帮我写，帮我改bug，heart，heart，heart。
 
+### **———————————————————感谢——————————————**
+如果没有这么好看的UI控件，我也不会写图形界面
+https://github.com/zhiyiYo/PyQt-Fluent-Widgets
