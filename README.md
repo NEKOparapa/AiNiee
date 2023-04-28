@@ -44,7 +44,7 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 #### **第二步：填写配置信息。**
 
 
-##### **1.配置界面**
+##### **1.配置示例**
 
 
 
@@ -65,14 +65,17 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 【输出文件夹】是选择翻译好文件的存储文件夹
 
 
-#### **第三步：配置好代理环境，然后【在IDE中运行AiNiee-chatgpt.py程序】，看控制台输出日志。之后等待进度条到百分百，自动生成Tradata.json文件，里面就是翻译好的文件。**
+#### **第三步：配置好代理环境，然后【在IDE中运行AiNiee-chatgpt3.py程序】，点击【测试请求】按钮，测试当前网络环境**
 
 
-##### **在IDE中运行AiNiee-chatgpt.py程序情况下**
+#### **第四步：点击【开始翻译】按钮，看控制台输出日志或者进度条。之后等待翻译进度到百分百，自动生成翻译好的文件Tradata.json在输出文件夹中。**
+
+
+##### **正在进行翻译**
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
-|   运行中输出的日志            |   翻译完成输出的日志            |
+|   控制台输出的日志            |     UI界面显示情况            |
 
 
 这个过程比较煎熬，通常我翻译1mb的json文件，就得花一个小时左右，免费玩家就是这样的，而付费玩家，使用多线程功能，可以很快翻译完成。
@@ -82,9 +85,15 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 未能成功翻译的文本会输出为Failure_to_translate.json文件，打开看看哪里还没有翻译。全英文可以不用理会，一般是程序的注释说明，如果有未能翻译的日文可以去手动翻译，然后在Tradata.json搜索并手动修改。
 
 
+##### **已经完成翻译**
+
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-2.png" width="400" height="300">  |
+| :--------------------------: | :--------------------------: |
+|   控制台输出的日志            |   UI界面显示情况            |
 
 
-#### **第四步：回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。**
+
+#### **第五步：回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。**
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-1.png" width="400" height="300"> 
 
 
