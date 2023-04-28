@@ -36,7 +36,7 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 #### **第一步：首先利用mtool软件打开你喜欢的rpg游戏，并将在翻译功能界面，选择导出需要被翻译的文本，将ManualTransFile.json文件导出，放到与程序同一个目录下。**
 
-| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/2-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/2-2.png" width="400" height="300">  |
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/1-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
 |   打开mtool的翻译界面            |   导出游戏内文本文件            |
 
@@ -46,7 +46,7 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 ##### **1.配置示例**
 
-
+<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/2-1.png" width="400" height="300"> 
 
 
 ##### **2.配置说明**
@@ -73,7 +73,7 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 ##### **正在进行翻译**
 
-| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-2.png" width="400" height="300">  |
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-1-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
 |   控制台输出的日志            |     UI界面显示情况            |
 
@@ -87,14 +87,14 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 ##### **已经完成翻译**
 
-| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1-2.png" width="400" height="300">  |
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-2-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-2-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
 |   控制台输出的日志            |   UI界面显示情况            |
 
 
 
 #### **第五步：回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。**
-<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-1.png" width="400" height="300"> 
+<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/5-1.png" width="400" height="300"> 
 
 
 ### **———————————————————工具功能说明——————————————**
