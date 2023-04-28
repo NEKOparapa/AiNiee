@@ -37,7 +37,7 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 ### **工具使用说明**
 ---
-#### **第一步：首先利用mtool软件打开你喜欢的rpg游戏，并将在翻译功能界面，选择导出需要被翻译的文本，将ManualTransFile.json文件导出，放到与程序同一个目录下。**
+#### **第一步：首先利用mtool软件打开你喜欢的rpg游戏，并将在翻译功能界面，选择导出需要被翻译的文本，将ManualTransFile.json文件导出。**
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/1-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
@@ -68,7 +68,7 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 【  文件位置  】是选择你需要翻译的原文文件，也是ManualTransFile.json文件
 
-【  输出文件夹】是选择翻译好文件的存储文件夹
+【  输出文件夹】是选择翻译后文件的存储文件夹
 
 
 #### **第三步：配置好代理环境，点击【测试请求】按钮，测试当前网络环境**
