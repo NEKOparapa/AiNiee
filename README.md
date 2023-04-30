@@ -37,7 +37,7 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 ### **工具使用说明**
 ---
-#### **第一步：首先利用mtool软件打开你喜欢的rpg游戏，并将在翻译功能界面，选择导出需要被翻译的文本，将ManualTransFile.json文件导出。**
+* #### **第一步：首先利用mtool软件打开你喜欢的rpg游戏，并将在翻译功能界面，选择导出需要被翻译的文本，将ManualTransFile.json文件导出。**
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/1-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
@@ -47,7 +47,7 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 
 
-#### **第二步：使用IDE运行AiNiee-chatgpt3.py程序,然后填写配置信息。**
+* #### **第二步：使用IDE运行AiNiee-chatgpt3.py程序,然后填写配置信息。**
 
 
 ##### **1.配置示例**
@@ -71,10 +71,10 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 【  输出文件夹】是选择翻译后文件的存储文件夹
 
 
-#### **第三步：配置好代理环境，点击【测试请求】按钮，测试当前网络环境**
+* #### **第三步：配置好代理环境，点击【测试请求】按钮，测试当前网络环境**
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1.png" width="400" height="300"> 
 
-#### **第四步：点击【开始翻译】按钮，看控制台输出日志或者进度条。之后等待翻译进度到百分百，自动生成翻译好的文件Tradata.json在输出文件夹中。**
+* #### **第四步：点击【开始翻译】按钮，看控制台输出日志或者进度条。之后等待翻译进度到百分百，自动生成翻译好的文件Tradata.json在输出文件夹中。**
 
 
 ##### **正在进行翻译**
@@ -99,7 +99,7 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 
 
-#### **第五步：回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。**
+* #### **第五步：回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。**
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/5-1.png" width="400" height="300"> 
 
 
