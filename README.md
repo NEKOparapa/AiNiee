@@ -32,9 +32,6 @@
 pip install openai                       
 ```
 ```python
-pip install tiktoken
-```
-```python
 pip3 install PyQt5
 ```
 ```python
