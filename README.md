@@ -73,7 +73,7 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 【  Lines    】是每次请求翻译的文本行数。行数设置越大，AI酱容易回复内容格式错误，消耗额度月多，每次请求回复速度越慢，建议不要设置超过50。
 
-【  Prompt   】是系统提示词，用于告诉chatgpt任务目标的命令语。建议不要修改，如果想改变命令词，记得后面一定要求保留原格式，不然AI酱乱回复就翻译不了了
+【  Prompt   】是系统提示词，用于告诉chatgpt任务目标的命令语。
 
 【  文件位置  】是选择你需要翻译的原文文件，也是ManualTransFile.json文件
 
