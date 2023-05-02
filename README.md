@@ -101,7 +101,6 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 |   控制台输出的日志            |   UI界面显示情况            |
 
 
-未能成功翻译的文本会输出为Failure_to_translate.json文件，打开看看哪里还没有翻译。如果有未能翻译的日文可以去手动翻译，然后在Tradata.json搜索并手动修改。
 
 
 * #### **第五步：回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。**
