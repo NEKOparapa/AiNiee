@@ -127,7 +127,7 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 * AI酱实在太厉害啦，一边写一边问她，什么都能回答，帮我写，帮我改bug，heart，heart，heart。
 
-* 建了一个QQ交流群821624890，群里只用于反应bug，功能建议，以及prompt词交流，不要分享各种资源，发黄键镇
+* 建了一个QQ交流群821624890，群里只用于反应bug，功能建议，以及prompt词交流，不要分享各种游戏资源，发黄键镇
 
 ### **感谢**
 ---
