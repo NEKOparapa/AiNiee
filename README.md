@@ -41,7 +41,7 @@ pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 pip install openpyxl
 ```
 ```python
-pip install pip install -U sentence-transformers
+pip install -U sentence-transformers
 ```
 
 
