@@ -55,7 +55,7 @@ pip install -U sentence-transformers
 安装完成后会自动生成一个【启动AiNiee-chatgpt4.cmd】文件在根目录下。
 
 
-### **（2）双击启动“AiNiee-chatgpt4.cmd”，在账号设置页面配置你的账号信息以及API KEY。**
+### **（2）双击“启动AiNiee-chatgpt4.cmd”，在账号设置页面配置你的账号信息以及API KEY。**
 
 #### **1.配置示例**
 
