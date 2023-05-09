@@ -131,7 +131,6 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 | :--------------------------: | :--------------------------: |
 |   控制台输出日志            |     UI界面输出状态            |
 
-运行中会实时输出TrsData.json和ManualTransFile.json存储在Backup Folder文件夹里，Backup Folder文件夹里面的ManualTransFile.json是还没有翻译的数据，TrsData.json是现在已经翻译好的数据。如果因为意外中断了，把文件夹里的文件A（TrsData.json）放置其他地方保存，再选择备份文件夹里面的ManualTransFile.json开始翻译，生成新的文件B（TrsData.json）。然后把文件B里的数据复制粘贴到文件A里面。
 
 
 * #### **回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。**
@@ -231,6 +230,8 @@ if (this.tags) {
 * 经过几个版本的优化，从以前的翻译1mb大小json文件花费3刀左右，已经减少到1.5刀左右，所以大家在进行翻译前，掂量一下自己的账号余额。
 
 * 特别注意，在翻译到最后99%时，因为要处理难翻译的文本，所以要处理蛮长一段时间，输出日志更新很慢，要保持耐心等待。除非频繁报错。
+
+* 关于实时备份功能，运行中会实时输出TrsData.json和ManualTransFile.json存储在Backup Folder文件夹里，Backup Folder文件夹里面的ManualTransFile.json是还没有翻译的数据，TrsData.json是现在已经翻译好的数据。如果因为意外中断了，把文件夹里的文件A（TrsData.json）放置其他地方保存，再选择备份文件夹里面的ManualTransFile.json开始翻译，生成新的文件B（TrsData.json）。然后把文件B里的数据复制粘贴到文件A里面。
 
 ## **个人BB**
 ---
