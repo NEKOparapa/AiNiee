@@ -78,10 +78,11 @@ pip install -U sentence-transformers
 ### **（3）如果使用Mtool进行翻译请根据以下步骤操作**
 
 
-
 * #### **使用Mtool导出游戏原文文件：ManualTransFile.json**
 
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1.png" width="400" height="300"> 
+
+
 
 * #### **在工具界面选择Mtool项目，并配置翻译设置**
 
@@ -92,7 +93,6 @@ pip install -U sentence-transformers
 
 ##### **2.配置说明**
 
-
 【  Lines    】是每次请求翻译的文本行数。行数设置越大，整体的翻译效果会更好，上下文更加流畅，但每次请求回复速度会越慢，回复的内容越容易出错，建议gpt3.5模型不要设置超过50，gpt4模型不超过90。
 
 【  Prompt   】是系统提示词，用于告诉chatgpt任务目标的命令语。希望大家有空去探索一下Prompt的写法，如果写得越好，AI酱就能更能准确回复译文格式，以你想要的写作风格进行翻译。只要在Prompt里加上"以json文件格式回复译文"，程序就能够处理。
@@ -102,10 +102,10 @@ pip install -U sentence-transformers
 【  输出文件夹】是选择翻译后文件的存储文件夹
 
 
+
 * #### **点击【开始翻译】按钮，看控制台输出日志或者进度条。之后等待翻译进度到百分百，自动生成翻译好的文件Tradata.json在输出文件夹中。**
 
-
-#### **正在进行翻译**
+#### **1.正在进行翻译**
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-1-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
@@ -116,7 +116,7 @@ pip install -U sentence-transformers
 
 
 
-#### **已经完成翻译**
+#### **2.已经完成翻译**
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-2-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-2-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
