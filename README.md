@@ -125,15 +125,15 @@ pip install -U sentence-transformers
 
 #### **2.已经完成翻译**
 
-| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-2-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-2-2.png" width="400" height="300">  |
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/控制台翻译完成.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/UI界面翻译完成.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
-|   控制台输出的日志            |   UI界面显示情况            |
+|   控制台输出日志            |     UI界面输出状态            |
 
 运行中会实时输出TrsData.json和ManualTransFile.json存储在Backup Folder文件夹里，Backup Folder文件夹里面的ManualTransFile.json是还没有翻译的数据，TrsData.json是现在已经翻译好的数据。如果因为意外中断了，把文件夹里的文件A（TrsData.json）放置其他地方保存，再选择备份文件夹里面的ManualTransFile.json开始翻译，生成新的文件B（TrsData.json）。然后把文件B里的数据复制粘贴到文件A里面。
 
 
 * #### **回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。**
-<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/5-1.png" width="400" height="300"> 
+<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/导入译文.png" width="400" height="300"> 
 
 
 
