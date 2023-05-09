@@ -79,11 +79,11 @@ pip install -U sentence-transformers
 
 
 
-* #### **（1）使用Mtool导出游戏原文文件：ManualTransFile.json**
+* #### **使用Mtool导出游戏原文文件：ManualTransFile.json**
 
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1.png" width="400" height="300"> 
 
-* #### **（2）在工具界面选择Mtool项目，并配置翻译设置**
+* #### **在工具界面选择Mtool项目，并配置翻译设置**
 
 ##### **1.配置示例**
 
@@ -102,7 +102,7 @@ pip install -U sentence-transformers
 【  输出文件夹】是选择翻译后文件的存储文件夹
 
 
-* #### **（3）点击【开始翻译】按钮，看控制台输出日志或者进度条。之后等待翻译进度到百分百，自动生成翻译好的文件Tradata.json在输出文件夹中。**
+* #### **点击【开始翻译】按钮，看控制台输出日志或者进度条。之后等待翻译进度到百分百，自动生成翻译好的文件Tradata.json在输出文件夹中。**
 
 
 #### **正在进行翻译**
@@ -125,7 +125,7 @@ pip install -U sentence-transformers
 运行中会实时输出TrsData.json和ManualTransFile.json存储在Backup Folder文件夹里，Backup Folder文件夹里面的ManualTransFile.json是还没有翻译的数据，TrsData.json是现在已经翻译好的数据。如果因为意外中断了，把文件夹里的文件A（TrsData.json）放置其他地方保存，再选择备份文件夹里面的ManualTransFile.json开始翻译，生成新的文件B（TrsData.json）。然后把文件B里的数据复制粘贴到文件A里面。
 
 
-* #### **（4）回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。**
+* #### **回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。**
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/5-1.png" width="400" height="300"> 
 
 
