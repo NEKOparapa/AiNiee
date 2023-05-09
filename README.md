@@ -129,6 +129,10 @@ pip install -U sentence-transformers
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/5-1.png" width="400" height="300"> 
 
 
+
+### **（3）如果使用Translator++进行翻译请根据以下步骤操作**
+
+
 ## **工具功能说明**
 ---
 * 仅仅支持mtool导出的json文件格式的json文件自动翻译，如果其他json文件格式一致，可以考虑使用。
