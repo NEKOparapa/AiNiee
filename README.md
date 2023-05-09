@@ -13,7 +13,7 @@
 
 #### **运行必备环境**
 
-* pyhone环境：到官网https://www.python.org/downloads/windows/ 下载合适的版本安装，建议安装3.8以上
+* pyhone环境：到官网https://www.python.org/downloads/windows/ 下载合适的版本安装，建议安装3.7以上
 
 * 代理工具：自己得弄个好的代理环境，设置全局代理或者其他方式，不然api接口会频繁报错无法连接，错误代码443或者一直没有回复。
 
