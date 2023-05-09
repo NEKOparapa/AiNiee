@@ -102,6 +102,8 @@ pip install -U sentence-transformers
 
 【  Lines    】是每次请求翻译的文本行数。行数设置越大，整体的翻译效果会更好，上下文更加流畅，但每次请求回复速度会越慢，回复的内容越容易出错，建议gpt3.5模型不要设置超过50，gpt4模型不超过90。
 
+【  词义检查  】编辑中
+
 【  Prompt   】是系统提示词，用于告诉chatgpt任务目标的命令语。希望大家有空去探索一下Prompt的写法，如果写得越好，AI酱就能更能准确回复译文格式，以你想要的写作风格进行翻译。只要在Prompt里加上"以json文件格式回复译文"，程序就能够处理。
 
 【  文件位置  】是选择你需要翻译的原文文件，也是ManualTransFile.json文件
@@ -139,6 +141,11 @@ pip install -U sentence-transformers
 
 ### **（5）如果使用Translator++进行翻译请根据以下步骤操作**
 * #### **打开Translator++，选择“start a new project”，根据你的游戏图标来选择对应的游戏引擎**
+
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/新建工程.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/新建工程2.png" width="400" height="300">  |
+| :--------------------------: | :--------------------------: |
+|   新建工程1            |     新建工程2            |
+
 * #### **选择你的游戏文件，创建新工程，软件会自动解包和导入游戏数据**
 当弹出提示框，问你：“Do you  also want to load JavaScript files ”时，选择“Cancel”
 * #### **点击“Options”，选择“Preferences",选择“UI Language”，选择简体中文，方便之后操作 **
@@ -153,6 +160,8 @@ pip install -U sentence-transformers
 ##### **2.配置说明**
 
 【  Lines    】是每次请求翻译的文本行数。行数设置越大，整体的翻译效果会更好，上下文更加流畅，但每次请求回复速度会越慢，回复的内容越容易出错，建议gpt3.5模型不要设置超过50，gpt4模型不超过90。
+
+【  词义检查  】编辑中
 
 【  Prompt   】是系统提示词，用于告诉chatgpt任务目标的命令语。希望大家有空去探索一下Prompt的写法，如果写得越好，AI酱就能更能准确回复译文格式，以你想要的写作风格进行翻译。只要在Prompt里加上"以json文件格式回复译文"，程序就能够处理。
 
