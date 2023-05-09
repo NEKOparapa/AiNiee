@@ -35,7 +35,7 @@ pip install openai -i https://pypi.tuna.tsinghua.edu.cn/simple
 pip3 install PyQt5 -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 ```python
-pip install PyQt-Fluent-Widgets -i https://pypi.org/simple/
+pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 ```
 ```python
 pip install openpyxl -i https://pypi.tuna.tsinghua.edu.cn/simple
