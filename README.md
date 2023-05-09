@@ -95,7 +95,7 @@ pip install -U sentence-transformers
 
 ##### **1.配置示例**
 
-<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/2-1.png" width="400" height="300"> 
+<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/翻译配置Mtool.png" width="400" height="300"> 
 
 
 ##### **2.配置说明**
@@ -114,9 +114,9 @@ pip install -U sentence-transformers
 
 #### **1.正在进行翻译**
 
-| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-1-2.png" width="400" height="300">  |
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/控制台正在翻译.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/UI界面正在翻译.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
-|   控制台输出的日志            |     UI界面显示情况            |
+|   控制台输出日志            |     UI界面输出状态            |
 
 
 这个过程比较煎熬，通常我翻译1mb的json文件，就得花一个小时左右，免费玩家就是这样的，而付费玩家，使用多线程功能，可以基本在20分钟左右翻译完成。
