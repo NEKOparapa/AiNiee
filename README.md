@@ -55,7 +55,7 @@ pip install -U sentence-transformers
 安装完成后会自动生成一个【启动AiNiee-chatgpt4.cmd】文件在根目录下。
 
 
-* ### **第二步：首先利用mtool软件打开你喜欢的rpg游戏，并将在翻译功能界面，选择导出需要被翻译的文本，将ManualTransFile.json文件导出。**
+* ### **第二步：双击启动AiNiee-chatgpt4.cmd，在账号设置页面配置你的账号信息以及API KEY。**
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/1-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
