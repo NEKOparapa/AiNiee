@@ -189,7 +189,7 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 
 
-* #### **点击【开始翻译】按钮，等待翻译进度到百分百，生成翻译好的data文件夹在输出文件夹中。**
+* #### ** 点击【开始翻译】按钮，等待翻译进度到百分百，生成翻译好的data文件夹在输出文件夹中。 **
 
 翻译中的备份会在在Backup Folder文件夹的data里。
 * #### **回到Translator++，点击导入工程，选择从电子表格导入翻译，点击“Import Folder”，选择输出文件夹里的data文件夹，点击导入**
