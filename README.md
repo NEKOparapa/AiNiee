@@ -95,7 +95,7 @@ pip install -U sentence-transformers
 
 ##### **1.配置示例**
 
-<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/翻译配置Mtool.png" width="400" height="300"> 
+<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/翻译设置Mtool.png" width="400" height="300"> 
 
 
 ##### **2.配置说明**
