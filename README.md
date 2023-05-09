@@ -85,9 +85,9 @@ pip install -U sentence-transformers
 
 * #### **使用Mtool打开游戏，并在翻译功能界面，选择导出游戏原文文件，会在游戏根目录生成：ManualTransFile.json**
 
-| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-1-2.png" width="400" height="300">  |
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/导出原文1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/导出原文2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
-|   控制台输出的日志            |     UI界面显示情况            |
+|   导出原文1            |     导出原文2            |
 
 
 
