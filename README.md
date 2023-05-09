@@ -80,13 +80,13 @@ pip install -U sentence-transformers
 ### **（3）如果使用Mtool进行翻译请根据以下步骤操作**
 
 
-* #### **使用Mtool导出游戏原文文件：ManualTransFile.json**
+* #### **使用Mtool打开游戏，并在翻译功能界面，选择导出游戏原文文件，会在游戏根目录生成：ManualTransFile.json**
 
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1.png" width="400" height="300"> 
 
 
 
-* #### **在工具界面选择Mtool项目，并配置翻译设置**
+* #### **在AiNiee-chatgpt界面选择Mtool项目，并配置翻译设置**
 
 ##### **1.配置示例**
 
