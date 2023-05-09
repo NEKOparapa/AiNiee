@@ -61,7 +61,7 @@ pip install -U sentence-transformers
 
 #### **1.配置示例**
 
-<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/2-1.png" width="400" height="300"> 
+<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/账号设置.png" width="400" height="300"> 
 
 
 #### **2.配置说明**
@@ -78,7 +78,7 @@ pip install -U sentence-transformers
 
 ### **（3）点击请求测试，测试网络是否通畅，请求是否成功。**
 
-
+<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/请求成功.png" width="400" height="300"> 
 
 ### **（4）如果使用Mtool进行翻译请根据以下步骤操作**
 
