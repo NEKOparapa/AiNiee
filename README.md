@@ -1,4 +1,4 @@
-# AiNiee-chatgpt（施工中！！！！！！！！！！！！）
+# AiNiee-chatgpt（教程施工中！！！！！！！！！）
 
 ***
 
