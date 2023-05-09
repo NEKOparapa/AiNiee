@@ -148,9 +148,9 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 * #### **选择你的游戏文件，创建新工程，软件会自动解包和导入游戏数据**
 
-| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/新建工程.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/新建工程2.png" width="400" height="300">  |
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/新建工程3.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/新建工程4.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
-|   新建工程1            |     新建工程2            |
+|   新建工程3           |     新建工程4            |
 
 当弹出提示框，问你：“Do you  also want to load JavaScript files ”时，选择“Cancel”
 * #### **点击“Options”，选择“Preferences",选择“UI Language”，选择简体中文，方便之后操作 **
