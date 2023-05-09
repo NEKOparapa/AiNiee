@@ -27,7 +27,7 @@
 
 * IDE软件：能运行python的IDE软件如vscode https://code.visualstudio.com/    pycharm等等 。
 
-* AI相关库和UI相关库：打开cmd，分别输入下面每行代码后回车。
+* AI相关库和UI相关库：打开cmd，分别输入下面每行代码后回车，这里都使用清华源来下载。
 ```python
 pip install openai -i https://pypi.tuna.tsinghua.edu.cn/simple                      
 ```
