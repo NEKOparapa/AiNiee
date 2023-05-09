@@ -57,9 +57,23 @@ pip install -U sentence-transformers
 
 * ### **第二步：双击启动AiNiee-chatgpt4.cmd，在账号设置页面配置你的账号信息以及API KEY。**
 
-| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/1-2.png" width="400" height="300">  |
-| :--------------------------: | :--------------------------: |
-|   打开mtool的翻译界面            |   导出游戏内文本文件            |
+#### **1.配置示例**
+
+<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/2-1.png" width="400" height="300"> 
+
+
+#### **2.配置说明**
+
+
+【  账号类型 】是你账号类型，免费用户基本只能并发两三个线程翻译任务，而付费用户可以并发几十个，大幅缩减翻译时间。
+
+【  模型选择 】默认都是GPT3.5,如果你的账号获得了GPT4的使用资格，请选择付费账号（48h后）和模型gpt-4来进行翻译，并且可以把Lines设置为80。
+
+【  API KEY  】填入你的api_key
+
+【  代理地址  】可以不输入，如果需要设置代理时，再则填入http://<代理ip>:<代理端口>，示例：http://127.0.0.1:10081
+
+
 
 
 
