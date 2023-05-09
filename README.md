@@ -51,8 +51,8 @@ pip install -U sentence-transformers
 
 ### **（1）首先双击运行“初始化依赖环境.cmd”，安装完成后会自动生成一个“启动AiNiee-chatgpt4.cmd”文件在根目录下。**
 
-第一次使用该工具，会自动安装上面的依赖库，如果已经安装了，则会很快结束。
 
+第一次使用该工具，会自动安装上面的依赖库，如果已经安装了，则会很快结束。
 
 安装过程中如果报错了，可重新运行，还是无法解决，请根据报错内容进行解决，或者手动安装AI相关库和UI相关库。
 
@@ -76,13 +76,18 @@ pip install -U sentence-transformers
 【  代理地址  】可以不输入，如果需要设置代理时，再则填入http://<代理ip>:<代理端口>，示例：http://127.0.0.1:10081
 
 
+### **（3）点击请求测试，测试网络是否通畅，请求是否成功。**
 
-### **（3）如果使用Mtool进行翻译请根据以下步骤操作**
+
+
+### **（4）如果使用Mtool进行翻译请根据以下步骤操作**
 
 
 * #### **使用Mtool打开游戏，并在翻译功能界面，选择导出游戏原文文件，会在游戏根目录生成：ManualTransFile.json**
 
-<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1.png" width="400" height="300"> 
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/4-1-2.png" width="400" height="300">  |
+| :--------------------------: | :--------------------------: |
+|   控制台输出的日志            |     UI界面显示情况            |
 
 
 
@@ -132,7 +137,7 @@ pip install -U sentence-transformers
 
 
 
-### **（4）如果使用Translator++进行翻译请根据以下步骤操作**
+### **（5）如果使用Translator++进行翻译请根据以下步骤操作**
 * #### **打开Translator++，选择“start a new project”，根据你的游戏图标来选择对应的游戏引擎**
 * #### **选择你的游戏文件，创建新工程，软件会自动解包和导入游戏数据**
 当弹出提示框，问你：“Do you  also want to load JavaScript files ”时，选择“Cancel”
