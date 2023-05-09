@@ -169,7 +169,7 @@ pip install -U sentence-transformers
 * #### **在AiNiee界面，选择Translator++项目，配置翻译设置**
 ##### **1.配置示例**
 
-<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/翻译设置Tpp.png" width="400" height="300"> 
+<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/翻译配置Tpp.png" width="400" height="300"> 
 
 
 ##### **2.配置说明**
