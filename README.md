@@ -47,7 +47,15 @@ pip install -U sentence-transformers
 
 ## **工具使用说明**
 ---
-* ### **第一步：首先利用mtool软件打开你喜欢的rpg游戏，并将在翻译功能界面，选择导出需要被翻译的文本，将ManualTransFile.json文件导出。**
+
+
+* ### **第一步：首先运行CDM命令文件【双击运行】初始化依赖环境.cmd，第一次使用该工具，会自动安装上面的依赖库，如果已经安装了，则会很快结束。**
+
+安装过程中如果报错了，可重新运行，还是无法解决，请根据报错内容进行解决，或者手动安装AI相关库和UI相关库。
+安装完成后会自动生成一个【启动AiNiee-chatgpt4.cmd】文件在根目录下。
+
+
+* ### **第二步：首先利用mtool软件打开你喜欢的rpg游戏，并将在翻译功能界面，选择导出需要被翻译的文本，将ManualTransFile.json文件导出。**
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/1-1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/1-2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
