@@ -180,11 +180,6 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 ##### **2.配置说明**
 
-【  Lines    】是每次请求翻译的文本行数。行数设置越大，整体的翻译效果会更好，上下文更加流畅，但每次请求回复速度会越慢，回复的内容越容易出错，建议gpt3.5模型不要设置超过50，gpt4模型不超过90。
-
-【  词义检查  】是原文与译文的词义相似度检测功能，用来判断译文是否翻译错误，以解决AI翻译时错行的问题。开启这个功能会耗费一段时间进行检查，而且会将错误内容进行重翻译，也会增加开销，请慎重开启。这个功能使用到了huggingface上的开源模型multilingual-MiniLM-L12-v2，第一次使用时会下载500mb的模型文件在C盘的.cache文件夹中，之后使用就不用了。
-
-【  Prompt   】是系统提示词，用于告诉chatgpt任务目标的命令语。希望大家有空去探索一下Prompt的写法，如果写得越好，AI酱就能更能准确回复译文格式，以你想要的写作风格进行翻译。只要在Prompt里加上"以json文件格式回复译文"，程序就能够处理。
 
 【  项目文件夹】 选择之前T++导出的项目文件夹data
 
@@ -194,6 +189,7 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 * #### **点【开始翻译】按钮，等待翻译进度到百分百，生成翻译好的data文件夹在输出文件夹中**
 
 翻译中的备份会在在Backup Folder文件夹的data里。
+
 * #### **回到Translator++，点击导入工程，选择从电子表格导入翻译，点击“Import Folder”，选择输出文件夹里的data文件夹，点击导入**
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/导入工程1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/导入工程2.png" width="400" height="300">  |
