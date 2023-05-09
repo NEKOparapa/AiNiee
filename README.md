@@ -170,7 +170,7 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 | :--------------------------: | :--------------------------: |
 |   导出工程1            |     导出工程2            |
 
-当弹出提示框，问如何处理标记列，就点击红色和选择“Do not process row with selected tag”
+当弹出提示框，问如何处理标记列，就点击红色和选择“Do not process row with selected tag”，或者不设置，直接导出，因为这工具暂时存在bug，无法过滤标记内容。
 * #### **在AiNiee界面，选择Translator++项目，配置翻译设置**
 ##### **1.配置示例**
 
@@ -225,7 +225,6 @@ if (this.tags) {
 
 ## **工具功能说明**
 ---
-* 仅仅支持mtool导出的json文件格式的json文件自动翻译，如果其他json文件格式一致，可以考虑使用。
 
 * 如果希望翻译从其他语言到中文，可以尝试修改Prompt词，把“日语”换成源语言，英语除外，因为已经被设置过滤了。
 
