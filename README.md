@@ -133,10 +133,13 @@ pip install -U sentence-transformers
 
 
 ### **（4）如果使用Translator++进行翻译请根据以下步骤操作**
-* #### **打开Translator++，新建工程**
-* #### **打开设置页面，选择软件的语言为中文，方便之后操作**
-* #### **点击右上角的T++按钮，选择导出工程，并选择导出格式为.xlsl**
-* #### **回到AiNiee软件，选择Translator++项目，配置翻译设置**
+* #### **打开Translator++，选择“start a new project”，根据你的游戏图标来选择对应的游戏引擎**
+* #### **选择你的游戏文件，创建新工程，软件会自动解包和导入游戏数据**
+当弹出提示框，问你：“Do you  also want to load JavaScript files ”时，选择“Cancel”
+* #### **点击“Options”，选择“Preferences",选择“UI Language”，选择简体中文，方便之后操作 **
+* #### **点击左上角的导出工程，选择导出格式为XML格式到你指定的文件夹，生成data文件夹**
+当弹出提示框，问如何处理标记列，就点击红色和选择“Do not process row with selected tag”
+* #### **在AiNiee界面，选择Translator++项目，配置翻译设置**
 ##### **1.配置示例**
 
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/2-1.png" width="400" height="300"> 
@@ -154,8 +157,18 @@ pip install -U sentence-transformers
 
 
 
-* #### **点击【开始翻译】按钮，看控制台输出日志或者进度条。之后等待翻译进度到百分百，自动生成翻译好的项目文件夹data在输出文件夹中。**
-* #### **回到Translator++，点击右上角的T++按钮，选择导入工程，选择导如格式为.xlsl，选择输出文件夹里的data文件夹**
+* #### **点击【开始翻译】按钮，等待翻译进度到百分百，生成翻译好的data文件夹在输出文件夹中。**
+翻译中的备份会在在Backup Folder文件夹的data里。
+* #### **回到Translator++，点击导入工程，选择从电子表格导入翻译，点击“Import Folder”，选择输出文件夹里的data文件夹，点击导入**
+* #### **右键左侧区域，移到“全部选择”，选择“Create Automation”，选择“对每行”，复制粘贴下面的代码**
+1.右键左侧区域，移到“全部选择”，选择“Create Automation”，选择“对每行”，复制粘贴下面的代码
+```JavaScript
+if (this.tags) {
+    if (this.tags.includes("red")) this.cells[1]=this.cells[0];
+}
+2.查看左边文件有哪个没有到达百分百的，寻找到空行并自行翻译
+
+```
 
 ## **工具功能说明**
 ---
