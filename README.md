@@ -207,7 +207,7 @@ if (this.tags) {
 }
 ```
 2.查看左边文件有哪个没有到达百分百的，寻找到空行并自行翻译
-* #### **最后选择导出工程，选择导出到文件夹，指定你的游戏根目录里的www文件夹，原文件会被替换，请注意保存**
+* #### **最后选择导出工程，选择导出到文件夹，指定【你的游戏目录里的www文件夹的上一级文件夹】，原文件会被替换，请注意保存**
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/修改游戏1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/修改游戏2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
