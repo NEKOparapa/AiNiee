@@ -156,13 +156,15 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 |   新建工程3           |     新建工程4            |
 
 当弹出提示框，问你：“Do you  also want to load JavaScript files ”时，选择“Cancel”
-* #### ** 点击“Options”，选择“Preferences",选择“UI Language”，选择简体中文，方便之后操作 **
+
+* #### **点“Options”按钮，选择“Preferences",选择“UI Language”，选择简体中文，方便之后操作**
+
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/汉化设置1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/汉化设置2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
 |   汉化设置1            |     汉化设置2            |
 
-* #### **点击左上角的导出工程，选择导出格式为XML格式到你指定的文件夹，生成data文件夹**
+* #### **点左上角的导出工程，选择导出格式为XML格式到你指定的文件夹，生成data文件夹**
 
 | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/导出工程1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/导出工程2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
@@ -189,7 +191,7 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 
 
-* #### ** 点击【开始翻译】按钮，等待翻译进度到百分百，生成翻译好的data文件夹在输出文件夹中。 **
+* #### **点【开始翻译】按钮，等待翻译进度到百分百，生成翻译好的data文件夹在输出文件夹中。 **
 
 翻译中的备份会在在Backup Folder文件夹的data里。
 * #### **回到Translator++，点击导入工程，选择从电子表格导入翻译，点击“Import Folder”，选择输出文件夹里的data文件夹，点击导入**
