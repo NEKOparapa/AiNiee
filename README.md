@@ -141,7 +141,7 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 ### **（5）如果使用Translator++进行翻译请根据以下步骤操作**
 * #### **打开Translator++，选择“start a new project”，根据你的游戏图标来选择对应的游戏引擎**
 
-| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/新建工程.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/新建工程2.png" width="400" height="300">  |
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/新建工程1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/新建工程2.png" width="400" height="300">  |
 | :--------------------------: | :--------------------------: |
 |   新建工程1            |     新建工程2            |
 
