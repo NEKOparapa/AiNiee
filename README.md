@@ -75,6 +75,9 @@ pip install -U sentence-transformers
 
 
 
+* ### **第三步：配置好代理环境，点击【测试请求】按钮，测试当前网络环境**
+<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1.png" width="400" height="300"> 
+
 
 
 
