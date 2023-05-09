@@ -29,19 +29,19 @@
 
 * AI相关库和UI相关库：打开cmd，分别输入下面每行代码后回车。
 ```python
-pip install openai                       
+pip install openai -i https://pypi.tuna.tsinghua.edu.cn/simple                      
 ```
 ```python
-pip3 install PyQt5
+pip3 install PyQt5 -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 ```python
-pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
+pip install PyQt-Fluent-Widgets -i https://pypi.org/simple/
 ```
 ```python
-pip install openpyxl
+pip install openpyxl -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 ```python
-pip install -U sentence-transformers
+pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 
