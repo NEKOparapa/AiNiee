@@ -139,8 +139,6 @@ pip install -U sentence-transformers
 
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/2-1.png" width="400" height="300"> 
 
-* #### **点击【开始翻译】按钮，看控制台输出日志或者进度条。之后等待翻译进度到百分百，自动生成翻译好的项目文件夹data在输出文件夹中。**
-* #### **回到Translator++，点击右上角的T++按钮，选择导入工程，选择导如格式为.xlsl，选择输出文件夹里的data文件夹**
 
 ##### **2.配置说明**
 
@@ -151,6 +149,11 @@ pip install -U sentence-transformers
 【  文件位置  】是选择你需要翻译的原文文件，也是ManualTransFile.json文件
 
 【  输出文件夹】是选择翻译后文件的存储文件夹
+
+
+
+* #### **点击【开始翻译】按钮，看控制台输出日志或者进度条。之后等待翻译进度到百分百，自动生成翻译好的项目文件夹data在输出文件夹中。**
+* #### **回到Translator++，点击右上角的T++按钮，选择导入工程，选择导如格式为.xlsl，选择输出文件夹里的data文件夹**
 
 ## **工具功能说明**
 ---
