@@ -61,9 +61,9 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 #### **1.配置示例**
 
-<div align="center">
+
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/账号设置.png" width="400" height="300"> 
-</div>
+
 
 #### **2.配置说明**
 
@@ -79,9 +79,9 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 ### **（3）点击请求测试，测试网络是否通畅，请求是否成功。**
 
-<div align="center">
+
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/请求成功.png" width="400" height="300"> 
-</div>
+
 
 ### **（4）如果使用Mtool进行翻译请根据以下步骤操作**
 
@@ -98,9 +98,9 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 ##### **1.配置示例**
 
-<div align="center">
+
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/翻译设置Mtool.png" width="400" height="300"> 
-</div>
+
 
 ##### **2.配置说明**
 
