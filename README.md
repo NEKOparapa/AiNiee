@@ -75,31 +75,23 @@ pip install -U sentence-transformers
 
 
 
-* ### **第三步：配置好代理环境，点击【测试请求】按钮，测试当前网络环境**
+* ### **如果使用Mtool进行翻译请根据以下步骤操作**
+
+
+
+* #### **（1）使用Mtool导出游戏原文文件：ManualTransFile.json**
+
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1.png" width="400" height="300"> 
 
-
-
-
-
-* ### **第二步：右键管理员运行AiNiee-chatgpt3.exe程序,然后填写配置信息。**
-
+* #### **（2）在工具界面选择Mtool项目，并配置翻译设置**
 
 ##### **1.配置示例**
 
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/2-1.png" width="400" height="300"> 
 
 
-#### **2.配置说明**
+##### **2.配置说明**
 
-
-【  账号类型 】是你账号类型，免费用户基本只能并发两三个线程翻译任务，而付费用户可以并发几十个，大幅缩减翻译时间。
-
-【  模型选择 】默认都是GPT3.5,如果你的账号获得了GPT4的使用资格，请选择付费账号（48h后）和模型gpt-4来进行翻译，并且可以把Lines设置为80。
-
-【  API KEY  】填入你的api_key
-
-【  代理地址  】可以不输入，如果需要设置代理时，再则填入http://<代理ip>:<代理端口>，示例：http://127.0.0.1:10081
 
 【  Lines    】是每次请求翻译的文本行数。行数设置越大，整体的翻译效果会更好，上下文更加流畅，但每次请求回复速度会越慢，回复的内容越容易出错，建议gpt3.5模型不要设置超过50，gpt4模型不超过90。
 
@@ -110,10 +102,7 @@ pip install -U sentence-transformers
 【  输出文件夹】是选择翻译后文件的存储文件夹
 
 
-* ### **第三步：配置好代理环境，点击【测试请求】按钮，测试当前网络环境**
-<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/3-1.png" width="400" height="300"> 
-
-* ### **第四步：点击【开始翻译】按钮，看控制台输出日志或者进度条。之后等待翻译进度到百分百，自动生成翻译好的文件Tradata.json在输出文件夹中。**
+* #### **（3）点击【开始翻译】按钮，看控制台输出日志或者进度条。之后等待翻译进度到百分百，自动生成翻译好的文件Tradata.json在输出文件夹中。**
 
 
 #### **正在进行翻译**
@@ -136,7 +125,7 @@ pip install -U sentence-transformers
 运行中会实时输出TrsData.json和ManualTransFile.json存储在Backup Folder文件夹里，Backup Folder文件夹里面的ManualTransFile.json是还没有翻译的数据，TrsData.json是现在已经翻译好的数据。如果因为意外中断了，把文件夹里的文件A（TrsData.json）放置其他地方保存，再选择备份文件夹里面的ManualTransFile.json开始翻译，生成新的文件B（TrsData.json）。然后把文件B里的数据复制粘贴到文件A里面。
 
 
-* #### **第五步：回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。**
+* #### **（4）回到mtool工具，依然在翻译功能界面，选择加载翻译文件，选择Tradata.json文件即可。**
 <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/5-1.png" width="400" height="300"> 
 
 
