@@ -147,14 +147,29 @@ pip install -U sentence-transformers
 |   新建工程1            |     新建工程2            |
 
 * #### **选择你的游戏文件，创建新工程，软件会自动解包和导入游戏数据**
+
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/新建工程.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/新建工程2.png" width="400" height="300">  |
+| :--------------------------: | :--------------------------: |
+|   新建工程1            |     新建工程2            |
+
 当弹出提示框，问你：“Do you  also want to load JavaScript files ”时，选择“Cancel”
 * #### **点击“Options”，选择“Preferences",选择“UI Language”，选择简体中文，方便之后操作 **
+
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/汉化设置1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/汉化设置2.png" width="400" height="300">  |
+| :--------------------------: | :--------------------------: |
+|   汉化设置1            |     汉化设置2            |
+
 * #### **点击左上角的导出工程，选择导出格式为XML格式到你指定的文件夹，生成data文件夹**
+
+| <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/导出工程1.png" width="400" height="300">  | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/导出工程2.png" width="400" height="300">  |
+| :--------------------------: | :--------------------------: |
+|   导出工程1            |     导出工程2            |
+
 当弹出提示框，问如何处理标记列，就点击红色和选择“Do not process row with selected tag”
 * #### **在AiNiee界面，选择Translator++项目，配置翻译设置**
 ##### **1.配置示例**
 
-<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/2-1.png" width="400" height="300"> 
+<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/翻译设置Tpp.png" width="400" height="300"> 
 
 
 ##### **2.配置说明**
@@ -165,9 +180,9 @@ pip install -U sentence-transformers
 
 【  Prompt   】是系统提示词，用于告诉chatgpt任务目标的命令语。希望大家有空去探索一下Prompt的写法，如果写得越好，AI酱就能更能准确回复译文格式，以你想要的写作风格进行翻译。只要在Prompt里加上"以json文件格式回复译文"，程序就能够处理。
 
-【  文件位置  】是选择你需要翻译的原文文件，也是ManualTransFile.json文件
+【  项目文件夹】 选择之前T++导出的项目文件夹data
 
-【  输出文件夹】是选择翻译后文件的存储文件夹
+【  输出文件夹】 选择翻译后项目文件夹的存储文件夹
 
 
 
