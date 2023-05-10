@@ -15,7 +15,7 @@
 
 * pyhone环境：到官网https://www.python.org/downloads/windows/ 下载合适的版本安装，建议安装3.10及以上（不要安装3.8，会无法兼容，出自某位群友的经历）
 
-* 代理工具：自己得弄个好的代理环境，设置全局代理或者其他方式，不然api接口会频繁报错无法连接，错误代码443或者一直没有回复。
+* 魔法工具：自己得弄个好的代理环境，设置全局代理或者其他方式，不然api接口会频繁报错无法连接，错误代码443或者一直没有回复。
 
 * 【Mtool】或者【Translator++】：   【Mtool】下载地址：https://afdian.net/a/AdventCirno?tab=feed  ··· 【Translator++】 下载地址：https://dreamsavior.net/download/    两者免费版本就可以，新人推荐mtool，如果希望获得更好的效果推荐Translator++
 
