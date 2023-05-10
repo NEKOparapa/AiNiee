@@ -156,7 +156,7 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 | :--------------------------: | :--------------------------: |
 |   新建工程3           |     新建工程4            |
 
-当弹出提示框，问你：“Do you  also want to load JavaScript files ”时，选择“Cancel”
+当弹出提示框，问你：“Do you  also want to load JavaScript files ”时，选择“Cancel”，加载脚本里的文本修改容易出错，而且大多都是脚本注释，翻译了也没用
 
 * #### **点“Options”按钮，选择“Preferences",选择“UI Language”，选择简体中文，方便之后操作**
 
