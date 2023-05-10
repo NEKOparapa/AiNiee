@@ -55,7 +55,7 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 第一次使用该工具，会自动安装上面的依赖库，如果已经安装了，则会很快结束。
 
-安装过程中如果报错了，可重新运行，还是无法解决，请根据报错内容进行解决，或者手动安装AI相关库和UI相关库。
+安装过程中如果报错了，可重新运行，还是无法解决，请根据报错内容进行解决，或者手动安装上面的AI相关库和UI相关库。
 
 
 ### **（2）双击“启动AiNiee-chatgpt4.cmd”，在账号设置页面配置你的账号信息以及API KEY。**
