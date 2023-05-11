@@ -68,6 +68,7 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 #### **2.官方账号配置说明**
 
+【 启用该平台】 如果使用该平台的AI进行翻译，请勾上
 
 【  账号类型 】是你账号类型，免费用户基本只能并发两三个线程翻译任务，而付费用户可以并发几十个，大幅缩减翻译时间。
 
