@@ -17,7 +17,7 @@
 
 * 魔法工具：自己得弄个好的代理环境，设置全局代理或者其他方式，不然api接口会频繁报错无法连接，错误代码443或者一直没有回复。
 
-* 【Mtool】或者【Translator++】：   【Mtool】下载地址：https://afdian.net/a/AdventCirno?tab=feed  ··· 【Translator++】 下载地址：https://dreamsavior.net/download/    两者免费版本就可以，新人推荐mtool，如果希望获得更好的效果推荐Translator++
+* 【Mtool】或者【Translator++】：   【Mtool】下载地址：https://afdian.net/a/AdventCirno?tab=feed  ··· 【Translator++】 下载地址：https://dreamsavior.net/download/    两者免费版本就可以，新人推荐mtool，如果希望能够自行校正，构建用户词典，获得更好的翻译效果，推荐Translator++
 
 * API_Key：新建一个,并且最好在使用期间不要和其他程序一起使用，不然容易达到请求次数限制
 
