@@ -1049,7 +1049,10 @@ def Main():
         for i, key in enumerate(result_dict.keys()):
             sentences[0] = source_mid[key]
             sentences[1] = result_dict[key]
-
+            if sentences[0] is None or sentences[1] is None: 
+                Translation_Status_List[i]  = 0
+                print("[INFO] 语义相似度检查结果：", "0%", "，需要重翻译")
+                continue
 
             #计算语义相似度
             cosine_scores = util.pytorch_cos_sim(T2T_model.encode(sentences[0]), T2T_model.encode(sentences[1]))
@@ -1058,7 +1061,7 @@ def Main():
             #输出sentence里的两个文本 和 语义相似度检查结果
             print("[INFO] 原文是：", sentences[0])
             print("[INFO] 译文是：", sentences[1])
-
+            
             #将语义相似度转换为百分比
             percentage = cosine_scores.item() * 100
             #如果语义相似度小于于等于阈值，则将 Translation_Status_List[i]中的数值改为0，表示需要重翻译
