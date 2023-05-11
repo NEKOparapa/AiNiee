@@ -60,13 +60,13 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 ### **（2）双击“启动AiNiee-chatgpt4.cmd”，在账号设置页面配置你的账号信息以及API KEY。**
 
-#### **1.配置示例**
+#### **1.官方账号配置示例**
 
 
-<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/账号设置.png" width="400" height="300"> 
+<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/官方账号设置.png" width="400" height="300"> 
 
 
-#### **2.配置说明**
+#### **2.官方账号配置说明**
 
 
 【  账号类型 】是你账号类型，免费用户基本只能并发两三个线程翻译任务，而付费用户可以并发几十个，大幅缩减翻译时间。
@@ -76,6 +76,18 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 【  API KEY  】填入你的api_key
 
 【  代理地址  】可以不输入，如果需要设置代理时，再则填入http://<代理ip>:<代理端口>，示例：http://127.0.0.1:10081
+
+
+#### **1.代理账号配置示例**
+
+<img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/代理账号设置.png" width="400" height="300"> 
+
+
+#### **2.代理账号配置说明**
+
+【  API KEY  】填入代理平台给你生成的API KEY
+
+【  域名地址  】填入国内代理平台提供的请求地址，如OpenAI-sb平台提供的请求地址是api.openai-sb.com，则填入：https://api.openai-sb.com/v1
 
 
 ### **（3）点击请求测试，测试网络是否通畅，请求是否成功。**
