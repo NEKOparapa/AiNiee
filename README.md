@@ -86,7 +86,7 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 #### **2.代理账号配置说明**
 
-【  API KEY  】填入代理平台给你生成的API KEY
+【  API KEY  】填入国内代理平台给你生成的API KEY
 
 【  域名地址  】填入国内代理平台提供的请求地址，如OpenAI-sb平台提供的请求地址是api.openai-sb.com，则填入：https://api.openai-sb.com/v1
 
