@@ -54,7 +54,6 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 ### **（1）首先双击运行“初始化依赖环境.cmd”，安装完成后会自动生成一个“启动AiNiee-chatgpt4.cmd”文件在根目录下。**
 
 
-工具不要放在C盘运行，不要用管理员运行
 
 第一次使用该工具，会自动安装上面的依赖库，如果已经安装了，则会很快结束。
 
