@@ -20,7 +20,7 @@
 
 * 【Mtool】或者【Translator++】：   【Mtool】下载地址：https://afdian.net/a/AdventCirno?tab=feed  ··· 【Translator++】 下载地址：https://dreamsavior.net/download/    两者免费版本就可以，新人推荐mtool，如果希望能够自行校正，构建用户词典，获得更好的翻译效果，推荐Translator++
 
-* API_Key：新建一个,并且最好在使用期间不要和其他程序一起使用，不然容易达到请求次数限制
+* API_Key：新建一个,并且最好在使用期间不要和其他程序一起使用，不然容易达到请求次数限制。现在有很多店铺卖10-30的120美元余额的key或者账号，可以翻译十几个游戏（我没有店铺，别找我买）
 
 
 
