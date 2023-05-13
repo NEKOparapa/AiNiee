@@ -6,6 +6,7 @@
 
 教程视频：https://www.bilibili.com/video/BV12V4y1R7PG
 
+下载地址：https://github.com/NEKOparapa/AiNiee-chatgpt/releases
 
 ## **依赖环境要求**
 ---
