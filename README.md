@@ -4,7 +4,7 @@
 
 一款基于【mtool】或【Translator++】，chatgpt自动批量翻译工具，主要是用来翻译各种RPG游戏。
 
-教程视频：https://www.bilibili.com/video/BV12V4y1R7PG
+教程视频：https://www.bilibili.com/video/BV18c411K7WN
 
 下载地址：https://github.com/NEKOparapa/AiNiee-chatgpt/releases
 
