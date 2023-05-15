@@ -122,8 +122,6 @@ pip install -U sentence-transformers -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 【  Lines    】是每次请求翻译的文本行数。行数设置越大，整体的翻译效果会更好，上下文更加流畅，但每次请求回复速度会越慢，回复的内容越容易出错，建议gpt3.5模型不要设置超过50，gpt4模型不超过90。
 
-【  词义检查  】是原文与译文的词义相似度检测功能，用来判断译文是否翻译错误，以解决AI翻译时错行的问题。开启这个功能会耗费一段不短的时间进行检查，而且会将错误内容进行重翻译，也会增加开销，而非常非常吃性能，性能越好，速度越快，CPU利用率会达到100%，请慎重开启！！！！！！！这个功能使用到了huggingface上的开源模型multilingual-MiniLM-L12-v2，第一次使用时会下载500mb的模型文件在C盘的.cache文件夹中，之后使用就不用了。
-
 【  Prompt   】是系统提示词，用于告诉chatgpt任务目标的命令语。希望大家有空去探索一下Prompt的写法，如果写得越好，AI酱就能更能准确回复译文格式，以你想要的写作风格进行翻译。只要在Prompt里加上"以json文件格式回复译文"，程序就能够处理。
 
 【  文件位置  】是选择你需要翻译的原文文件，也是ManualTransFile.json文件
@@ -239,7 +237,12 @@ if (this.tags) {
 ---
 
 * 如果希望翻译从其他语言到中文，可以尝试修改Prompt词，把“日语”换成源语言，英语除外，因为已经被设置过滤了。
-* 工具有实时备份功能，Mtool项目和T++项目的备份都是在Backup Folder文件夹里面，出现意外可以去取备份文件。
+
+* 关于Mtool项目的实时备份功能。进行Mtool项目翻译时，运行中会实时输出TrsData.json和ManualTransFile.json存储在Backup Folder文件夹里，Backup Folder文件夹里面的ManualTransFile.json是还没有翻译的数据，TrsData.json是现在已经翻译好的数据。如果因为意外中断了，把文件夹里的文件A（TrsData.json）放置其他地方保存，再选择备份文件夹里面的ManualTransFile.json开始翻译，生成新的文件B（TrsData.json）。然后把文件B里的数据复制粘贴到文件A里面。
+
+* 关于Translator++项目的实时备份功能。运行中会实时输出data文件夹存储在Backup Folder文件夹里，在每个表格里，如果原文文本已经被翻译，译文会写在第二列，如果没有被翻译，则第二列继续为空。所以出现意外时，可直接选择备份文件夹里data文件夹来继续翻译。
+
+* 词义检查。是原文与译文的词义相似度检测功能，用来判断译文是否翻译错误，以解决AI翻译时错行的问题。开启这个功能会耗费一段不短的时间进行检查，而且会将错误内容进行重翻译，也会增加开销，而非常非常吃性能，性能越好，速度越快，CPU利用率会达到100%，请慎重使用！！！！！！！这个功能使用到了huggingface上的开源模型multilingual-MiniLM-L12-v2，第一次使用时会下载500mb的模型文件在C盘的.cache文件夹中，之后使用就不用了。
 
 
 ## **常见问题建议**
@@ -249,7 +252,7 @@ if (this.tags) {
 
 * 特别注意，在翻译到最后99%时，因为要处理难翻译的文本，所以要处理蛮长一段时间，输出日志更新很慢，要保持耐心等待。除非频繁报错。
 
-* 关于实时备份功能，进行Mtool项目翻译时，运行中会实时输出TrsData.json和ManualTransFile.json存储在Backup Folder文件夹里，Backup Folder文件夹里面的ManualTransFile.json是还没有翻译的数据，TrsData.json是现在已经翻译好的数据。如果因为意外中断了，把文件夹里的文件A（TrsData.json）放置其他地方保存，再选择备份文件夹里面的ManualTransFile.json开始翻译，生成新的文件B（TrsData.json）。然后把文件B里的数据复制粘贴到文件A里面。
+
 
 ## **个人BB**
 ---
