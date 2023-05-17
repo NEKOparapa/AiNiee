@@ -45,8 +45,6 @@ Pay_TPM_limit3 = 90000    # 付费用户速率限制每分钟token数，2tokens�
 Pay_RPM_limit4 = 200       # GPT-4-8K每分钟请求数
 Pay_TPM_limit4 = 40000    # GPT-4-8K速率限制每分钟token数
 
-
-
 API_key_list = []      #存放key的列表
 key_list_index = 0    #列表的索引
 Number_of_requested = 0 #记录请求数量，方便轮询key
