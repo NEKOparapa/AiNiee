@@ -14,7 +14,7 @@
 
 #### **运行必备环境**
 
-* pyhone环境：到官网https://www.python.org/downloads/windows/ 下载合适的版本安装，建议安装3.10及以上，记得安装到最后勾选“Add Python to PATH”（不要安装3.8，会无法兼容，出自某位群友的经历）
+* pyhone环境：到官网https://www.python.org/downloads/windows/ 下载合适的版本安装，建议安装3.10及以上，记得安装到最后勾选“Add Python to PATH”或其他类似意思选项（不要安装3.8，会无法兼容，出自某位群友的经历）
 
 * 魔法工具：自己得弄个好的代理环境，设置全局代理或者其他方式，不然api接口会频繁报错无法连接，错误代码443或者一直没有回复。
 
