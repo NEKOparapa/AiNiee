@@ -265,7 +265,7 @@ if (this.tags) {
 * 建了一个QQ交流群821624890，群里只用于反应bug，功能建议，以及prompt词交流，不要分享各种游戏资源，发黄键镇
 
 
-## **类似AI翻译工具**
+## **类似工具**
 ---
 一个根据MTool导出其翻译结果用GPT翻译的项目
 https://github.com/XHXJ/json-GPT-translator
