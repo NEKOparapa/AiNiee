@@ -273,7 +273,6 @@ https://github.com/XHXJ/json-GPT-translator
 对已解包的GalGame脚本文件实行ChatGPT自动化翻译
 https://github.com/Lilyltt/GalUpTs
 
-## **感谢**
+## **声明**
 ---
-如果没有这么好看的UI控件，我也不会写图形界面
-https://github.com/zhiyiYo/PyQt-Fluent-Widgets
+该款AI翻译工具仅供合法用途。任何使用该工具进行非法活动的行为，均不属于授权范围，也不受到支持和认可
