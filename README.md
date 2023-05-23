@@ -14,7 +14,7 @@
 
 #### **运行必备环境**
 
-* pyhone环境：到官网https://www.python.org/downloads/windows/ 下载合适的版本安装，建议安装3.10及以上（不要安装3.8，会无法兼容，出自某位群友的经历）
+* python环境：到官网https://www.python.org/downloads/windows/ 下载合适的版本安装，建议安装3.10及以上，记得安装到最后勾选“Add Python to PATH”或其他类似意思选项（不要安装3.8，会无法兼容，出自某位群友的经历）
 
 * 魔法工具：自己得弄个好的代理环境，设置全局代理或者其他方式，不然api接口会频繁报错无法连接，错误代码443或者一直没有回复。
 
@@ -265,7 +265,7 @@ if (this.tags) {
 * 建了一个QQ交流群821624890，群里只用于反应bug，功能建议，以及prompt词交流，不要分享各种游戏资源，发黄键镇
 
 
-## **类似AI翻译工具**
+## **类似工具**
 ---
 一个根据MTool导出其翻译结果用GPT翻译的项目
 https://github.com/XHXJ/json-GPT-translator
@@ -273,7 +273,6 @@ https://github.com/XHXJ/json-GPT-translator
 对已解包的GalGame脚本文件实行ChatGPT自动化翻译
 https://github.com/Lilyltt/GalUpTs
 
-## **感谢**
+## **声明**
 ---
-如果没有这么好看的UI控件，我也不会写图形界面
-https://github.com/zhiyiYo/PyQt-Fluent-Widgets
+该款AI翻译工具仅供个人合法用途。任何使用该工具进行直接或者间接非法盈利活动的行为，均不属于授权范围，也不受到任何支持和认可

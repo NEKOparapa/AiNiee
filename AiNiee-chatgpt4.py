@@ -1,6 +1,10 @@
 # coding:utf-8
+<<<<<<< HEAD
 import math
 import numpy as np   #需要安装库pip install numpy
+=======
+import string
+>>>>>>> 70a2c80d88e316d7eaa13040cbe982a356ddaa12
 import openai        #需要安装库pip install openai                       
 import json
 import re
@@ -22,7 +26,11 @@ from qfluentwidgets import CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, Inf
 from qfluentwidgets import FluentIcon as FIF#需要安装库pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 
+<<<<<<< HEAD
 Software_Version = "AiNiee-chatgpt4.46"  #软件版本号
+=======
+Software_Version = "AiNiee-chatgpt4.45"  #软件版本号
+>>>>>>> 70a2c80d88e316d7eaa13040cbe982a356ddaa12
 
 OpenAI_model="gpt-3.5-turbo"   #调用api的模型,默认3.5-turbo
 OpenAI_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
@@ -46,6 +54,10 @@ Pay_RPM_limit4 = 200       # GPT-4-8K每分钟请求数
 Pay_TPM_limit4 = 40000    # GPT-4-8K速率限制每分钟token数
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 70a2c80d88e316d7eaa13040cbe982a356ddaa12
 API_key_list = []      #存放key的列表
 key_list_index = 0    #列表的索引
 Number_of_requested = 0 #记录请求数量，方便轮询key
@@ -465,6 +477,7 @@ def Read_Write_Config(mode):
         OpenAI_presence_penalty = Window.Interface18.slider3.value()                 #获取OpenAI top_k
         OpenAI_frequency_penalty = Window.Interface18.slider4.value()    #获取OpenAI repetition_penalty
 
+<<<<<<< HEAD
         #获取语义检查Mtool界面
         Semantic_weight_Mtool = Window.Interface19.doubleSpinBox1.value()
         Symbolic_weight_Mtool = Window.Interface19.doubleSpinBox2.value()
@@ -476,6 +489,13 @@ def Read_Write_Config(mode):
         Symbolic_weight_Tpp = Window.Interface20.doubleSpinBox2.value()
         Word_count_weight_Tpp = Window.Interface20.doubleSpinBox3.value()
         similarity_threshold_Tpp = Window.Interface20.spinBox1.value()
+=======
+        #获取语义检查界面
+        Semantic_weight = Window.Interface17.doubleSpinBox1.value()
+        Symbolic_weight = Window.Interface17.doubleSpinBox2.value()
+        Word_count_weight = Window.Interface17.doubleSpinBox3.value()
+        similarity_threshold = Window.Interface17.spinBox1.value()
+>>>>>>> 70a2c80d88e316d7eaa13040cbe982a356ddaa12
 
 
         #将变量名作为key，变量值作为value，写入字典config.json
@@ -506,6 +526,7 @@ def Read_Write_Config(mode):
         config_dict["OpenAI_presence_penalty"] = OpenAI_presence_penalty
         config_dict["OpenAI_frequency_penalty"] = OpenAI_frequency_penalty
 
+<<<<<<< HEAD
         config_dict["Semantic_weight_Mtool"] = Semantic_weight_Mtool
         config_dict["Symbolic_weight_Mtool"] = Symbolic_weight_Mtool
         config_dict["Word_count_weight_Mtool"] = Word_count_weight_Mtool
@@ -515,6 +536,12 @@ def Read_Write_Config(mode):
         config_dict["Symbolic_weight_Tpp"] = Symbolic_weight_Tpp
         config_dict["Word_count_weight_Tpp"] = Word_count_weight_Tpp
         config_dict["similarity_threshold_Tpp"] = similarity_threshold_Tpp
+=======
+        config_dict["Semantic_weight"] = Semantic_weight
+        config_dict["Symbolic_weight"] = Symbolic_weight
+        config_dict["Word_count_weight"] = Word_count_weight
+        config_dict["similarity_threshold"] = similarity_threshold
+>>>>>>> 70a2c80d88e316d7eaa13040cbe982a356ddaa12
 
         #写入config.json
         with open(os.path.join(resource_dir, "config.json"), "w", encoding="utf-8") as f:
@@ -598,6 +625,7 @@ def Read_Write_Config(mode):
                 OpenAI_frequency_penalty = config_dict["OpenAI_frequency_penalty"]
                 Window.Interface18.slider4.setValue(OpenAI_frequency_penalty)
 
+<<<<<<< HEAD
             if "Semantic_weight_Mtool" in config_dict:
                 Semantic_weight_Mtool = config_dict["Semantic_weight_Mtool"]
                 Window.Interface19.doubleSpinBox1.setValue(Semantic_weight_Mtool)
@@ -610,6 +638,20 @@ def Read_Write_Config(mode):
             if "similarity_threshold_Mtool" in config_dict:
                 similarity_threshold_Mtool = config_dict["similarity_threshold_Mtool"]
                 Window.Interface19.spinBox1.setValue(similarity_threshold_Mtool)
+=======
+            if "Semantic_weight" in config_dict:
+                Semantic_weight = config_dict["Semantic_weight"]
+                Window.Interface17.doubleSpinBox1.setValue(Semantic_weight)
+            if "Symbolic_weight" in config_dict:
+                Symbolic_weight = config_dict["Symbolic_weight"]
+                Window.Interface17.doubleSpinBox2.setValue(Symbolic_weight)
+            if "Word_count_weight" in config_dict:
+                Word_count_weight = config_dict["Word_count_weight"]
+                Window.Interface17.doubleSpinBox3.setValue(Word_count_weight)
+            if "similarity_threshold" in config_dict:
+                similarity_threshold = config_dict["similarity_threshold"]
+                Window.Interface17.spinBox1.setValue(similarity_threshold)
+>>>>>>> 70a2c80d88e316d7eaa13040cbe982a356ddaa12
               
             if "Semantic_weight_Tpp" in config_dict:
                 Semantic_weight_Tpp = config_dict["Semantic_weight_Tpp"]
@@ -2112,7 +2154,160 @@ def Check_wrong_Main():
 
 
 
+<<<<<<< HEAD
    # —————————————————————————————————————开始重新翻译——————————————————————————————————————————
+=======
+    # ——————————————————————————————————————————进行语义相似度检查，并重翻译—————————————————————————————————————————
+    #进行语义相似度检查----------------------------------------------------
+    print("\033[1;33mWarning:\033[0m 正在检查译文中翻译错误的内容，请耐心等待-----------------------------------")
+
+    T2T_model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')  #这个模型快点
+    sentences = ["", ""]  #这里是两个空字符串，后面会被替换
+
+    #存储错误文本的字典
+    error_txt_dict = {}
+    #创建存储错误文本的文件夹
+    ErrorTxt_folder = os.path.join(DEBUG_folder, 'ErrorTxt Folder')
+    #使用`os.makedirs()`函数创建新文件夹，设置`exist_ok=True`参数表示如果文件夹已经存在，不会抛出异常
+    os.makedirs(ErrorTxt_folder, exist_ok=True)
+        
+    #错误文本计数变量
+    count_error = 0
+
+    #循环检测文本，如果语义相似度小于阈值，则将 Translation_Status_List[i]中的数值改为0，表示需要重翻
+    for i, key in enumerate(result_dict.keys()):
+        sentences[0] = source_mid[key]
+        sentences[1] = result_dict[key]
+
+
+        Haved_Error = 0 #错误标志位，0为没有错误，1为有错误
+        #检查sentence[1]是不是为null----------------------------------------
+        if sentences[1] is None:
+            Haved_Error = 1
+
+        # 检查sentences[1]是不是空字符串，因为AI回回复空字符串，但是json.loads()会把空字符串转化为""----------------------------------------
+        if sentences[1] == "":
+            Haved_Error = 1
+
+        #检查sentences[1]是不是回复纯符号----------------------------------------
+        A,B,C,D= count_japanese_chinese_korean(sentences[1])
+        if A+B+C+D == 0:
+            Haved_Error = 1
+
+        #检测sentence[0]与sentence[1]是不是为null，如果是null，则跳过，因为null是无法计算语义相似度的，而且报错，主要因为AI回复时会出现null回答
+        if Haved_Error == 1:
+            Translation_Status_List[i]  = 0
+            count_error = count_error + 1
+            print("[INFO] 译文文本中出现空行或者纯符号，需要重翻译")
+            print("\033[1;33mWarning:\033[0m 当前错误文本数量：", count_error)
+            continue
+
+        #将sentence[0]与sentence[1]转换成字符串数据，确保能够被语义相似度检查模型识别，防止数字型数据导致报错
+        sentences[0] = str(sentences[0])
+        sentences[1] = str(sentences[1])
+
+
+
+
+        #计算语义相似度----------------------------------------
+        cosine_scores = util.pytorch_cos_sim(T2T_model.encode(sentences[0]), T2T_model.encode(sentences[1]))
+        #cos_sim = vec1.dot(vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+
+        #输出sentence里的两个文本 和 语义相似度检查结果
+        print("[INFO] 原文是：", sentences[0])
+        print("[INFO] 译文是：", sentences[1])
+
+        #将语义相似度转换为百分比
+        Semantic_similarity = cosine_scores.item() * 100
+        print("[INFO] 语义相似度：", Semantic_similarity, "%")
+
+
+        #计算符号相似度----------------------------------------
+        # 用正则表达式匹配原文与译文中的标点符号
+        k_syms = re.findall(r'[。！？…♡♥=★]', sentences[0])
+        v_syms = re.findall(r'[。！？…♡♥=★]', sentences[1])
+
+        #假如v_syms与k_syms都不为空
+        if len(v_syms) != 0 and len(k_syms) != 0:
+            #计算v_syms中的符号在k_syms中存在相同符号数量，再除以v_syms的符号总数，得到相似度
+            Symbolic_similarity = len([sym for sym in v_syms if sym in k_syms]) / len(v_syms) * 100
+        #假如v_syms与k_syms都为空，即原文和译文都没有标点符号
+        elif len(v_syms) == 0 and len(k_syms) == 0:
+            Symbolic_similarity = 1 * 100
+        else:
+            Symbolic_similarity = 0
+
+        print("[INFO] 符号相似度：", Symbolic_similarity, "%")
+
+
+        #计算字数相似度----------------------------------------
+        # 计算k中的日文、中文,韩文，英文字母的个数
+        Q, W, E, R = count_japanese_chinese_korean(sentences[0])
+        # 计算v中的日文、中文,韩文，英文字母的个数
+        A, S, D, F = count_japanese_chinese_korean(sentences[1])
+        
+
+
+        # 计算每个总字数
+        len1 = Q + W + E + R
+        len2 = A + S + D + F
+
+        #设定基准字数差距，暂时靠经验设定
+        if len1  <= 25:
+            Base_word_count = 15
+        else:
+            Base_word_count = 25
+
+        #计算字数差值
+        Word_count_difference = abs((len1 - len2) )
+        if Word_count_difference > Base_word_count:
+            Word_count_difference = Base_word_count
+    
+        # 计算字数相差程度
+        Word_count_similarity =(1- Word_count_difference / Base_word_count) * 100
+        print("[INFO] 字数相似度：", Word_count_similarity, "%")
+
+
+
+
+        #给不同相似度权重，计算总相似度 ----------------------------------------
+        Semantic_weight = Window.Interface17.doubleSpinBox1.value()
+        Symbolic_weight = Window.Interface17.doubleSpinBox2.value()
+        Word_count_weight = Window.Interface17.doubleSpinBox3.value()
+        #计算总相似度
+        similarity = Semantic_similarity * Semantic_weight + Symbolic_similarity * Symbolic_weight + Word_count_similarity * Word_count_weight
+        #输出各权重值
+        print("[INFO] 语义权重：", Semantic_weight,"符号权重：", Symbolic_weight,"字数权重：", Word_count_weight)
+
+
+        #如果语义相似度小于于等于阈值，则将 Translation_Status_List[i]中的数值改为0，表示需要重翻译
+        similarity_threshold = Window.Interface17.spinBox1.value()
+        if similarity <= similarity_threshold:
+            Translation_Status_List[i]  = 0
+            count_error = count_error + 1
+            print("[INFO] 总相似度结果：", similarity, "%，小于相似度阈值", similarity_threshold,"%，需要重翻译")
+            #错误文本计数提醒
+            print("\033[1;33mWarning:\033[0m 当前错误文本数量：", count_error)
+
+            #将错误文本存储到字典里
+            error_txt_dict[sentences[0]] = sentences[1]
+
+
+        else :
+            print("[INFO] 总相似度结果：", similarity, "%", "，不需要重翻译")
+            
+        #输出遍历进度，转换成百分百进度
+        print("[INFO] 当前检查进度：", round((i+1)/len(result_dict.keys())*100,2), "% \n")
+
+    #将错误文本字典写入json文件
+    with open(os.path.join(ErrorTxt_folder, "error_txt_dict.json"), 'w', encoding='utf-8') as f:
+        json.dump(error_txt_dict, f, ensure_ascii=False, indent=4)
+
+                
+            
+    #重新翻译需要重翻译的文本----------------------------------------------------
+    print("\033[1;33mWarning:\033[0m 针对错误译文进行重新翻译-----------------------------------")
+>>>>>>> 70a2c80d88e316d7eaa13040cbe982a356ddaa12
 
     #计算需要翻译文本的数量
     count_not_Translate = Translation_Status_List.count(0)
@@ -3197,7 +3392,408 @@ class Widget16(QFrame):#Tpp项目界面
             self.SwitchButton1.setText("Off")
 
 
+<<<<<<< HEAD
 class Widget18(QFrame):#实时调教界面
+=======
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+
+
+
+
+        # -----创建第0-1个组，添加多个组件-----
+        box0_1 = QGroupBox()
+        box0_1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout0_1 = QHBoxLayout()
+
+        #设置“语义权重”标签
+        label0_1 = QLabel( flags=Qt.WindowFlags())  
+        label0_1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label0_1.setText("语义权重")
+
+        #设置“语义权重”输入
+        self.doubleSpinBox1 = DoubleSpinBox(self)
+        self.doubleSpinBox1.setMaximum(1.0)
+        self.doubleSpinBox1.setMinimum(0.0)
+        self.doubleSpinBox1.setValue(0.4)
+
+        #设置“符号权重”标签
+        label0_2 = QLabel( flags=Qt.WindowFlags())  
+        label0_2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label0_2.setText("符号权重")
+
+        #设置“符号权重”输入
+        self.doubleSpinBox2 = DoubleSpinBox(self)
+        self.doubleSpinBox2.setMaximum(1.0)
+        self.doubleSpinBox2.setMinimum(0.0)
+        self.doubleSpinBox2.setValue(0.2)
+
+        #设置“字数权重”标签
+        label0_3 = QLabel( flags=Qt.WindowFlags())  
+        label0_3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label0_3.setText("字数权重")
+
+        #设置“字数权重”输入
+        self.doubleSpinBox3 = DoubleSpinBox(self)
+        self.doubleSpinBox3.setMaximum(1.0)
+        self.doubleSpinBox3.setMinimum(0.0)
+        self.doubleSpinBox3.setValue(0.4)
+
+
+        layout0_1.addWidget(label0_1)
+        layout0_1.addWidget(self.doubleSpinBox1)
+        layout0_1.addStretch(1)  # 添加伸缩项
+        layout0_1.addWidget(label0_2)
+        layout0_1.addWidget(self.doubleSpinBox2)
+        layout0_1.addStretch(1)  # 添加伸缩项
+        layout0_1.addWidget(label0_3)
+        layout0_1.addWidget(self.doubleSpinBox3)
+
+        box0_1.setLayout(layout0_1)
+
+
+        # -----创建第0-2个组，添加多个组件-----
+        box0_2 = QGroupBox()
+        box0_2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout0_2 = QHBoxLayout()
+
+        #设置“相似度阈值”标签
+        label0_4 = QLabel( flags=Qt.WindowFlags())  
+        label0_4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label0_4.setText("相似度阈值")
+
+        #设置“相似度阈值”输入
+        self.spinBox1 = SpinBox(self)
+        self.spinBox1.setMaximum(100)
+        self.spinBox1.setMinimum(0)
+        self.spinBox1.setValue(60)
+
+        layout0_2.addWidget(label0_4)
+        layout0_2.addStretch(1)  # 添加伸缩项
+        layout0_2.addWidget(self.spinBox1)
+        box0_2.setLayout(layout0_2)
+
+
+
+
+        # -----创建第1个组，添加多个组件-----
+        box1 = QGroupBox()
+        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1 = QHBoxLayout()
+
+        #设置“项目文件夹”标签
+        label1 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label1.setText("项目文件夹")
+
+        #设置“项目文件夹”显示
+        self.label3 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label3.setText("请选择已翻译的T++项目文件夹“data”")
+
+        #设置打开文件夹按钮
+        self.pushButton2 = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton2.clicked.connect(On_button_clicked2) #按钮绑定槽函数
+
+
+        layout1.addWidget(label1)
+        layout1.addWidget(self.label3)
+        layout1.addStretch(1)  # 添加伸缩项
+        layout1.addWidget(self.pushButton2)
+        box1.setLayout(layout1)
+
+
+
+        # -----创建第2个组，添加多个组件-----
+        box2 = QGroupBox()
+        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout2 = QHBoxLayout()
+
+        #设置“输出文件夹”标签
+        label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label4.setText("输出文件夹")
+
+        #设置“输出文件夹”显示
+        self.label6 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label6.setText("请选择检查重翻存储文件夹，不要与原文件夹相同")
+
+
+        #设置输出文件夹按钮
+        self.pushButton5 = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton5.clicked.connect(On_button_clicked3) #按钮绑定槽函数
+
+
+        layout2.addWidget(label4)
+        layout2.addWidget(self.label6)
+        layout2.addStretch(1)  # 添加伸缩项
+        layout2.addWidget(self.pushButton5)
+        box2.setLayout(layout2)
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box3 = QGroupBox()
+        box3.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout3 = QHBoxLayout()
+
+
+        #设置“开始检查”的按钮
+        self.primaryButton7 = PrimaryPushButton('开始检查T++项目', self, FIF.UPDATE)
+        self.primaryButton7.clicked.connect(self.onChecked1) #按钮绑定槽函数
+
+        
+
+
+        layout3.addStretch(1)  # 添加伸缩项
+        layout3.addWidget(self.primaryButton7)
+        layout3.addStretch(1)  # 添加伸缩项
+        box3.setLayout(layout3)
+
+
+
+
+
+        # -----创建第4个组，添加多个组件-----
+        box4 = QGroupBox()
+        box4.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout4 = QHBoxLayout()
+
+
+        #设置“文件位置”标签
+        label8 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label8.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label8.setText("文件位置")
+
+        #设置“文件位置”显示
+        self.label9 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label9.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label9.setText("请选择需要已经翻译好的json文件")
+
+        #设置打开文件按钮
+        self.pushButton1 = PushButton('选择文件', self, FIF.DOCUMENT)
+        self.pushButton1.clicked.connect(On_button_clicked1) #按钮绑定槽函数
+
+
+
+
+        layout4.addWidget(label8)
+        layout4.addWidget(self.label9)
+        layout4.addStretch(1)  # 添加伸缩项
+        layout4.addWidget(self.pushButton1)
+        box4.setLayout(layout4)
+
+
+
+
+        # -----创建第5个组，添加多个组件-----
+        box5 = QGroupBox()
+        box5.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout5 = QHBoxLayout()
+
+        #设置“输出文件夹”标签
+        label10 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label10.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label10.setText("输出文件夹")
+
+        #设置“输出文件夹”显示
+        self.label11 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label11.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label11.resize(500, 20)
+        self.label11.setText("请选择检查重翻文件存储文件夹") 
+
+        #设置输出文件夹按钮
+        self.pushButton2 = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton2.clicked.connect(On_button_clicked3) #按钮绑定槽函数
+
+
+
+
+        layout5.addWidget(label10)
+        layout5.addWidget(self.label11)
+        layout5.addStretch(1)  # 添加伸缩项
+        layout5.addWidget(self.pushButton2)
+        box5.setLayout(layout5)
+
+
+
+        # -----创建第6个组，添加多个组件-----
+        box6 = QGroupBox()
+        box6.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout6 = QHBoxLayout()
+
+
+        #设置“开始检查”的按钮
+        self.primaryButton1 = PrimaryPushButton('开始检查Mtool项目', self, FIF.UPDATE)
+        self.primaryButton1.clicked.connect(self.onChecked2) #按钮绑定槽函数
+        
+
+
+        layout6.addStretch(1)  # 添加伸缩项
+        layout6.addWidget(self.primaryButton1)
+        layout6.addStretch(1)  # 添加伸缩项
+        box6.setLayout(layout6)
+
+
+
+        # -----创建第7个组，添加多个组件-----
+        box7 = QGroupBox()
+        box7.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout7 = QVBoxLayout()
+
+
+
+        box7_1 = QGroupBox()
+        box7_1.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout7_1 = QHBoxLayout()
+
+        #设置“已花费”标签
+        self.label12 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label12.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        self.label12.setText("已花费")
+        self.label12.hide()  #先隐藏控件
+
+        #设置“已花费金额”具体标签
+        self.label13 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label13.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        self.label13.resize(500, 20)#设置标签大小
+        self.label13.setText("0＄")
+        self.label13.hide()  #先隐藏控件
+
+        layout7_1.addWidget(self.label12)
+        layout7_1.addWidget(self.label13)
+        layout7_1.addStretch(1)  # 添加伸缩项
+        box7_1.setLayout(layout7_1)
+
+
+
+
+        #设置翻译进度条控件
+        self.progressBar = QProgressBar(self)
+        self.progressBar.setMinimum(0)
+        self.progressBar.setMaximum(100)
+        self.progressBar.setValue(0)
+        self.progressBar.setFixedHeight(30)   # 设置进度条控件的固定宽度为30像素
+        self.progressBar.setStyleSheet("QProgressBar::chunk { text-align: center; } QProgressBar { text-align: left; }")#使用setStyleSheet()方法设置了进度条块的文本居中对齐，并且设置了进度条的文本居左对齐
+        self.progressBar.setFormat("已翻译: %p%")
+        self.progressBar.hide()  #先隐藏控件
+
+
+
+        layout7.addWidget(box7_1)
+        layout7.addWidget(self.progressBar)
+        box7.setLayout(layout7)
+
+
+        # 把内容添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box0_1)
+        container.addWidget(box0_2)
+        container.addWidget(box1)
+        container.addWidget(box2)
+        container.addWidget(box3)
+        container.addWidget(box4)
+        container.addWidget(box5)
+        container.addWidget(box6)
+        container.addWidget(box7)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+
+    def onChecked1(self):
+        global Running_status,money_used,Translation_Progress
+
+        if Running_status == 0:
+            
+            Inspection_results = Config(2)   #读取配置信息，设置系统参数，并进行检查
+
+            if Inspection_results == 0 :  #配置没有完全填写
+                CreateErrorInfoBar("请正确填入配置信息,不要留空")
+                Running_status = 0  #修改运行状态
+
+            elif Inspection_results == 1 :  #账号类型和模型类型组合错误
+                print("\033[1;31mError:\033[0m 请正确选择账号类型以及模型类型")
+                Ui_signal.update_signal.emit("Wrong type selection")
+
+            else :  
+                #清空花销与进度，更新UI
+                money_used = 0
+                Translation_Progress = 0 
+
+                Running_status = 5  #修改运行状态
+                on_update_signal("Update_ui")
+                OnButtonClicked("正在语义检查中" , "客官请耐心等待哦~~")
+
+                #显示隐藏控件
+                Window.Interface17.progressBar.show() 
+                Window.Interface17.label12.show()
+                Window.Interface17.label13.show() 
+
+
+                #创建子线程
+                thread = My_Thread()
+                thread.start()
+
+
+
+        elif Running_status == 1 or 2 or 3 or 4 or 5:
+            CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+
+    def onChecked2(self):
+        global Running_status,money_used,Translation_Progress
+
+        if Running_status == 0:
+            
+            Inspection_results = Config(1)   #读取配置信息，设置系统参数，并进行检查
+
+            if Inspection_results == 0 :  #配置没有完全填写
+                CreateErrorInfoBar("请正确填入配置信息,不要留空")
+                Running_status = 0  #修改运行状态
+
+            elif Inspection_results == 1 :  #账号类型和模型类型组合错误
+                print("\033[1;31mError:\033[0m 请正确选择账号类型以及模型类型")
+                Ui_signal.update_signal.emit("Wrong type selection")
+
+            else :  
+                #清空花销与进度，更新UI
+                money_used = 0
+                Translation_Progress = 0 
+
+                Running_status = 4  #修改运行状态
+                on_update_signal("Update_ui")
+                OnButtonClicked("正在语义检查中" , "客官请耐心等待哦~~")
+
+                #显示隐藏控件
+                Window.Interface17.progressBar.show() 
+                Window.Interface17.label12.show()
+                Window.Interface17.label13.show() 
+
+
+                #创建子线程
+                thread = My_Thread()
+                thread.start()
+
+
+
+        elif Running_status == 1 or 2 or 3 or 4 or 5:
+            CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+
+
+class Widget18(QFrame):#自定义的widget内容界面
+>>>>>>> 70a2c80d88e316d7eaa13040cbe982a356ddaa12
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
