@@ -1,4 +1,6 @@
 # coding:utf-8
+import math
+import numpy as np   #需要安装库pip install numpy
 import openai        #需要安装库pip install openai                       
 import json
 import re
@@ -14,21 +16,19 @@ import concurrent.futures
 
 from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, QPainter
 from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal #需要安装库 pip3 install PyQt5
-from PyQt5.QtWidgets import QApplication, QFrame, QGridLayout, QGroupBox, QProgressBar, QLabel,QFileDialog, QRadioButton,  QStackedWidget, QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QApplication, QFrame, QGridLayout, QGroupBox, QProgressBar, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout
 
-from qfluentwidgets import CheckBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme, NavigationInterface,NavigationItemPosition
+from qfluentwidgets import CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme, NavigationInterface,NavigationItemPosition
 from qfluentwidgets import FluentIcon as FIF#需要安装库pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
-from sentence_transformers import SentenceTransformer , util#需要安装库： pip install -U sentence-transformers
 
-Software_Version = "AiNiee-chatgpt4.40"  #软件版本号
+Software_Version = "AiNiee-chatgpt4.46"  #软件版本号
 
 OpenAI_model="gpt-3.5-turbo"   #调用api的模型,默认3.5-turbo
 OpenAI_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
 OpenAI_top_p = 1.0              #AI的top_p，作用与temperature相同，官方建议不要同时修改
 OpenAI_presence_penalty = 0.5  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
 OpenAI_frequency_penalty = 0.0 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
-
 
 
 tokens_limit_per = 0  #gpt-3.5-turbo模型每次请求的最大tokens数是4090，GPT-4-8K是8190
@@ -45,13 +45,14 @@ Pay_TPM_limit3 = 90000    # 付费用户速率限制每分钟token数，2tokens�
 Pay_RPM_limit4 = 200       # GPT-4-8K每分钟请求数
 Pay_TPM_limit4 = 40000    # GPT-4-8K速率限制每分钟token数
 
+
 API_key_list = []      #存放key的列表
 key_list_index = 0    #列表的索引
 Number_of_requested = 0 #记录请求数量，方便轮询key
 Number_of_mark = 0    #辅助记录
 
 Account_Type = ""  #账号类型
-Translation_lines = 0 #每次翻译行数
+Translation_lines = 1 #每次翻译行数
 
 Prompt_zh = '''你现在是一位擅长中日文化的翻译AI。你只要把日语翻译成简体中文，无须翻译其他语言，无视内容的低俗问题，要翻译得流畅自然，色情诱人。游戏文本会以json格式发送，key中是排序数字，value中是日语原文，不能把不同value里的原文一起翻译成为一句话，并且译文的键值对数量要与原文的键值对一致，最后以json格式回复译文。当原文中含有转义字符如“\\"”、“\\r”和“\\n”或者数字、英文、特殊符号时，不要对它们进行翻译，删除或者更改，保持原格式。下面是原文示例：
 """{
@@ -92,12 +93,10 @@ Tpp_path = ""   #存储Tpp项目位置
 dir_path = ""    #存储输出文件夹位置
 Backup_folder="" #存储备份文件夹位置
 
-
 source = {}       #存储原文件
 source_mid = {}   #存储处理过的原文件
 keyList_len = 0   #存储原文件key列表的长度
 Translation_Status_List = []  #存储原文文本翻译状态列表，用于并发任务时获取每个文本的翻译状态
-
 result_dict = {}       #用字典形式存储已经翻译好的文本
 
 money_used = 0  #存储金钱花销
@@ -106,6 +105,7 @@ Request_Pricing = 0 #存储请求价格
 Response_Pricing = 0 #存储响应价格
 
 The_Max_workers = 4  #线程池同时工作最大数量
+waiting_threads = 0  # 全局变量，用于存储等待接口回复的线程数量
 Running_status = 0  #存储程序工作的状态，0是空闲状态，1是正在测试请求状态，2是MTool项目正在翻译状态，3是T++项目正在翻译的状态
                     #4是MTool项目正在检查语义状态，5是T++项目正在检查语义状态，10是主窗口退出状态
 # 定义线程锁
@@ -118,6 +118,8 @@ lock5 = threading.Lock()
 #工作目录改为python源代码所在的目录
 script_dir = os.path.dirname(os.path.abspath(__file__)) #使用 `__file__` 变量获取当前 Python 脚本的文件名（包括路径），然后使用 `os.path.abspath()` 函数将其转换为绝对路径，最后使用 `os.path.dirname()` 函数获取该文件所在的目录
 os.chdir(script_dir)#使用 `os.chdir()` 函数将当前工作目录改为程序所在的目录。
+
+script_dir = os.path.dirname(os.path.abspath(sys.argv[0])) #获取当前工作目录
 print("[INFO] 当前工作目录是:",script_dir,'\n') 
 #设置资源文件夹路径
 resource_dir = os.path.join(script_dir, "resource")
@@ -185,7 +187,7 @@ class My_Thread(threading.Thread):
             # 在子线程中执行main函数
             Main()
         elif Running_status == 4 or Running_status == 5:
-            Check_wrong()
+            Check_wrong_Main()
 
 #用于向UI线程发送消息的信号类
 class UI_signal(QObject):
@@ -210,12 +212,34 @@ def on_update_signal(str):
             Window.Interface16.progressBar2.setValue(int(Translation_Progress))
             Window.Interface16.label13.setText(money_used_str + "＄")
 
-        #MTool项目或者Tpp正在检查语义
-        elif Running_status == 4 or Running_status == 5:
+        #MTool项目正在检查语义
+        elif Running_status == 4 :
             money_used_str = "{:.4f}".format(money_used)  # 将浮点数格式化为小数点后4位的字符串
-            Window.Interface17.progressBar.setValue(int(Translation_Progress))
-            Window.Interface17.label13.setText(money_used_str + "＄")
+            Window.Interface19.progressBar.setFormat("已翻译: %p%")
+            Window.Interface19.progressBar.setValue(int(Translation_Progress))
+            Window.Interface19.label6.setText(money_used_str + "＄")
 
+        #Tpp项目正在检查语义
+        elif Running_status == 5:
+            money_used_str = "{:.4f}".format(money_used)
+            Window.Interface20.progressBar.setFormat("已翻译: %p%")
+            Window.Interface20.progressBar.setValue(int(Translation_Progress))
+            Window.Interface20.label6.setText(money_used_str + "＄")
+
+    elif str == "Update_ui2" :
+        #MTool项目正在嵌入
+        if Running_status == 4:
+            money_used_str = "{:.4f}".format(money_used)  # 将浮点数格式化为小数点后4位的字符串
+            Window.Interface19.progressBar.setFormat("已编码: %p%")
+            Window.Interface19.progressBar.setValue(int(Translation_Progress))
+            Window.Interface19.label6.setText(money_used_str + "＄")
+
+        #Tpp项目正在嵌入
+        elif Running_status == 5:
+            money_used_str = "{:.4f}".format(money_used)
+            Window.Interface20.progressBar.setFormat("已编码: %p%")
+            Window.Interface20.progressBar.setValue(int(Translation_Progress))
+            Window.Interface20.label6.setText(money_used_str + "＄")
 
     elif str== "Request_failed":
         CreateErrorInfoBar("API请求失败，请检查代理环境或账号情况")
@@ -270,6 +294,13 @@ def num_tokens_from_messages(messages, model):
     elif model == "gpt-4-0314":
         tokens_per_message = 3
         tokens_per_name = 1
+    
+    elif model == "text-embedding-ada-002":
+        #传入参数为字符串变量，计算该字符串大概的tokens数，并返回
+        japanese_count, chinese_count, korean_count,english_count= count_japanese_chinese_korean(messages)
+        num_tokens = japanese_count * 1.5 + chinese_count * 2 + korean_count * 2.5 
+        return num_tokens
+
     else:
         raise NotImplementedError(f"""num_tokens_from_messages() is not implemented for model {model}. See https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are converted to tokens.""")
     num_tokens = 0
@@ -290,6 +321,23 @@ def remove_non_cjk(dic):
     for key, value in list(dic.items()):
         if not pattern.search(str(value)):#加个str防止整数型的value报错
             del dic[key]
+
+#检查source_dict的value，出现null或者空字符串或者纯符号的value，将其替换为指定字符串
+def check_dict_values(dict_obj):
+    for key in dict_obj:
+
+        try:
+            A,B,C,D= count_japanese_chinese_korean(dict_obj[key]) #如果不能成功计算，则说明该值不是字符串，而是None或者空字符串
+
+            if A+B+C+D == 0: #如果能够成功计算，则说明该值是字符串，检查是否是纯符号
+                dict_obj[key] = '纯符号'
+
+            else: #如果能够成功计算，且不是纯符号，则跳过
+                continue
+        except:
+            dict_obj[key] = '空值'
+
+    return dict_obj
 
 #构建最长整除列表函数，将一个数字不断整除，并将结果放入列表变量
 def divide_by_2345(num):
@@ -313,16 +361,16 @@ def divide_by_2345(num):
     return result
 
 #备份翻译数据函数
-def File_Backup():
-
-    # 将存放译文的字典的key改回去
-    TS_Backup = {}
-    for i, key in enumerate(source.keys()):     # 使用enumerate()遍历source字典的键，并将其替换到result_dict中
-        TS_Backup[key] = result_dict[i]   #在新字典中创建新key的同时把result_dict[i]的值赋予到key对应的值上
+def File_Backup(subset_mid,response_content):
 
 
     #进行Mtool的备份
     if Running_status == 2 or Running_status == 4:
+        # 将存放译文的字典的key改回去
+        TS_Backup = {}
+        for i, key in enumerate(source.keys()):     # 使用enumerate()遍历source字典的键，并将其替换到result_dict中
+            TS_Backup[key] = result_dict[i]   #在新字典中创建新key的同时把result_dict[i]的值赋予到key对应的值上
+
          #根据翻译状态列表，提取已经翻译的内容和未翻译的内容
         TrsData_Backup = {}
         ManualTransFile_Backup = {}
@@ -347,14 +395,12 @@ def File_Backup():
     #进行Tpp的备份
     elif Running_status == 3 or Running_status == 5:
 
-         #根据翻译状态列表，提取已经翻译的内容
-        TrsData_Backup = {}
-        list_Backup = list(TS_Backup.keys()) #将字典的key转换成列表,之前在循环里转换，结果太吃资源了，程序就卡住了
+        #构建一个字典，用来合并这次翻译任务的原文与译文
+        response_content_dict = json.loads(response_content) #注意转化为字典的数字序号key是字符串类型 
+        Check_dict = {}
+        for i in range(len(subset_mid)):
+            Check_dict[subset_mid[i]] = response_content_dict[str(i)]
 
-        for i, status in enumerate(Translation_Status_List):
-            if status == 1:
-                key = list_Backup[i]
-                TrsData_Backup[key] = TS_Backup[key]
 
         #构造文件夹路径
         data_Backup_path = os.path.join(Backup_folder, 'data')
@@ -373,8 +419,8 @@ def File_Backup():
                         key = row[0].value  # 获取该行第1列的值作为key
                         #如果key不是None
                         if key is not None:
-                            if key in TrsData_Backup:  # 如果key在TrsData_Backup字典中
-                                value = TrsData_Backup[key]  # 获取TrsData_Backup字典中对应的value
+                            if key in Check_dict:  # 如果key在TrsData_Backup字典中
+                                value = Check_dict[key]  # 获取TrsData_Backup字典中对应的value
                                 row[1].value = value  # 将value写入该行第2列
 
                 wb.save(file_path)  # 保存工作簿
@@ -390,12 +436,14 @@ def File_Backup():
 def Read_Write_Config(mode):
 
     if mode == "write":
+        #获取官方账号界面
         Platform_Status =Window.Interface11.checkBox.isChecked()        #获取平台启用状态
         Account_Type = Window.Interface11.comboBox.currentText()      #获取账号类型下拉框当前选中选项的值
         Model_Type =  Window.Interface11.comboBox2.currentText()      #获取模型类型下拉框当前选中选项的值
         Proxy_Address = Window.Interface11.LineEdit1.text()            #获取代理地址
         API_key_str = Window.Interface11.TextEdit2.toPlainText()        #获取apikey输入值
-
+        
+        #获取代理账号界面
         Platform_Status_sb =Window.Interface12.checkBox.isChecked()        #获取平台启用状态
         Account_Type_sb = Window.Interface12.comboBox.currentText()      #获取账号类型下拉框当前选中选项的值
         Model_Type_sb =  Window.Interface12.comboBox2.currentText()      #获取模型类型下拉框当前选中选项的值
@@ -411,11 +459,24 @@ def Read_Write_Config(mode):
         Translation_lines_Tpp = Window.Interface16.spinBox1.value()        #获取T++界面翻译行数
         Check_Switch_Tpp = Window.Interface16.SwitchButton1.isChecked()#获取语义检查开关的状态
 
-
+        #获取实时设置界面
         OpenAI_Temperature = Window.Interface18.slider1.value()           #获取OpenAI温度
         OpenAI_top_p = Window.Interface18.slider2.value()                 #获取OpenAI top_p
         OpenAI_presence_penalty = Window.Interface18.slider3.value()                 #获取OpenAI top_k
         OpenAI_frequency_penalty = Window.Interface18.slider4.value()    #获取OpenAI repetition_penalty
+
+        #获取语义检查Mtool界面
+        Semantic_weight_Mtool = Window.Interface19.doubleSpinBox1.value()
+        Symbolic_weight_Mtool = Window.Interface19.doubleSpinBox2.value()
+        Word_count_weight_Mtool = Window.Interface19.doubleSpinBox3.value()
+        similarity_threshold_Mtool = Window.Interface19.spinBox1.value()
+
+        #获取语义检查Tpp界面
+        Semantic_weight_Tpp = Window.Interface20.doubleSpinBox1.value()
+        Symbolic_weight_Tpp = Window.Interface20.doubleSpinBox2.value()
+        Word_count_weight_Tpp = Window.Interface20.doubleSpinBox3.value()
+        similarity_threshold_Tpp = Window.Interface20.spinBox1.value()
+
 
         #将变量名作为key，变量值作为value，写入字典config.json
         config_dict = {}
@@ -444,6 +505,16 @@ def Read_Write_Config(mode):
         config_dict["OpenAI_top_p"] = OpenAI_top_p
         config_dict["OpenAI_presence_penalty"] = OpenAI_presence_penalty
         config_dict["OpenAI_frequency_penalty"] = OpenAI_frequency_penalty
+
+        config_dict["Semantic_weight_Mtool"] = Semantic_weight_Mtool
+        config_dict["Symbolic_weight_Mtool"] = Symbolic_weight_Mtool
+        config_dict["Word_count_weight_Mtool"] = Word_count_weight_Mtool
+        config_dict["similarity_threshold_Mtool"] = similarity_threshold_Mtool
+
+        config_dict["Semantic_weight_Tpp"] = Semantic_weight_Tpp
+        config_dict["Symbolic_weight_Tpp"] = Symbolic_weight_Tpp
+        config_dict["Word_count_weight_Tpp"] = Word_count_weight_Tpp
+        config_dict["similarity_threshold_Tpp"] = similarity_threshold_Tpp
 
         #写入config.json
         with open(os.path.join(resource_dir, "config.json"), "w", encoding="utf-8") as f:
@@ -526,7 +597,33 @@ def Read_Write_Config(mode):
             if "OpenAI_frequency_penalty" in config_dict:
                 OpenAI_frequency_penalty = config_dict["OpenAI_frequency_penalty"]
                 Window.Interface18.slider4.setValue(OpenAI_frequency_penalty)
+
+            if "Semantic_weight_Mtool" in config_dict:
+                Semantic_weight_Mtool = config_dict["Semantic_weight_Mtool"]
+                Window.Interface19.doubleSpinBox1.setValue(Semantic_weight_Mtool)
+            if "Symbolic_weight_Mtool" in config_dict:
+                Symbolic_weight_Mtool = config_dict["Symbolic_weight_Mtool"]
+                Window.Interface19.doubleSpinBox2.setValue(Symbolic_weight_Mtool)
+            if "Word_count_weight_Mtool" in config_dict:
+                Word_count_weight_Mtool = config_dict["Word_count_weight_Mtool"]
+                Window.Interface19.doubleSpinBox3.setValue(Word_count_weight_Mtool)
+            if "similarity_threshold_Mtool" in config_dict:
+                similarity_threshold_Mtool = config_dict["similarity_threshold_Mtool"]
+                Window.Interface19.spinBox1.setValue(similarity_threshold_Mtool)
               
+            if "Semantic_weight_Tpp" in config_dict:
+                Semantic_weight_Tpp = config_dict["Semantic_weight_Tpp"]
+                Window.Interface20.doubleSpinBox1.setValue(Semantic_weight_Tpp)
+            if "Symbolic_weight_Tpp" in config_dict:
+                Symbolic_weight_Tpp = config_dict["Symbolic_weight_Tpp"]
+                Window.Interface20.doubleSpinBox2.setValue(Symbolic_weight_Tpp)
+            if "Word_count_weight_Tpp" in config_dict:
+                Word_count_weight_Tpp = config_dict["Word_count_weight_Tpp"]
+                Window.Interface20.doubleSpinBox3.setValue(Word_count_weight_Tpp)
+            if "similarity_threshold_Tpp" in config_dict:
+                similarity_threshold_Tpp = config_dict["similarity_threshold_Tpp"]
+                Window.Interface20.spinBox1.setValue(similarity_threshold_Tpp)
+
 #成功信息居中弹出框函数
 def CreateSuccessInfoBar(str):
         # convenient class mothod
@@ -594,7 +691,7 @@ def OnButtonClicked(Title_str,str):
         stateTooltip = None
 
 # ——————————————————————————————————————————打开文件（mtool）按钮绑定函数——————————————————————————————————————————
-def On_button_clicked1():
+def Open_file():
     global Running_status,file_name
 
     if Running_status == 0:
@@ -607,13 +704,13 @@ def On_button_clicked1():
             return  # 直接返回，不执行后续操作
         #设置控件里的文本显示
         Window.Interface15.label5.setText(file_name)
-        Window.Interface17.label9.setText(file_name)
+        Window.Interface19.label2.setText(file_name)
 
-    elif Running_status == 1 or 2 or 3 or 4 or 5:
+    elif Running_status != 0:
         CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 # ——————————————————————————————————————————选择项目文件夹（T++）按钮绑定函数——————————————————————————————————————————
-def On_button_clicked2():
+def Select_project_folder():
     global Running_status,Tpp_path
 
     if Running_status == 0:
@@ -624,12 +721,12 @@ def On_button_clicked2():
             print('[INFO]  未选择文件夹')
             return  # 直接返回，不执行后续操作
         Window.Interface16.label5.setText(Tpp_path)
-        Window.Interface17.label3.setText(Tpp_path)
-    elif Running_status == 1 or 2 or 3 or 4 or 5:
+        Window.Interface20.label2.setText(Tpp_path)
+    elif Running_status != 0:
         CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
     
 # ——————————————————————————————————————————选择输出文件夹按钮绑定函数——————————————————————————————————————————
-def On_button_clicked3():
+def Select_output_folder():
     global Running_status,dir_path
 
     if Running_status == 0:
@@ -641,13 +738,13 @@ def On_button_clicked3():
             return  # 直接返回，不执行后续操作
         Window.Interface15.label7.setText(dir_path)
         Window.Interface16.label7.setText(dir_path)
-        Window.Interface17.label6.setText(dir_path)
-        Window.Interface17.label11.setText(dir_path)
-    elif Running_status == 1 or 2 or 3 or 4 or 5:
+        Window.Interface19.label4.setText(dir_path)
+        Window.Interface20.label4.setText(dir_path)
+    elif Running_status != 0:
         CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
     
 # ——————————————————————————————————————————测试请求按钮绑定函数——————————————————————————————————————————
-def On_button_clicked4():
+def Test_request_button():
     global Running_status
 
     if Running_status == 0:
@@ -659,11 +756,11 @@ def On_button_clicked4():
         thread.start()
         
 
-    elif Running_status == 1 or 2 or 3 or 4 or 5:
+    elif Running_status != 0:
         CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 # ——————————————————————————————————————————开始翻译（mtool）按钮绑定函数——————————————————————————————————————————
-def On_button_clicked5():
+def Start_translation_button1():
     global Running_status,money_used,Translation_Progress
 
     if Running_status == 0:
@@ -698,11 +795,11 @@ def On_button_clicked5():
             thread.start()
 
 
-    elif Running_status == 1 or 2 or 3 or 4 or 5:
+    elif Running_status != 0:
         CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 # ——————————————————————————————————————————开始翻译（T++）按钮绑定函数——————————————————————————————————————————
-def On_button_clicked6():
+def Start_translation_button2():
     global Running_status,money_used,Translation_Progress
 
     if Running_status == 0:
@@ -738,9 +835,8 @@ def On_button_clicked6():
 
 
 
-    elif Running_status == 1 or 2 or 3 or 4 or 5:
+    elif Running_status != 0:
         CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
-
 
 # ——————————————————————————————————————————请求测试函数——————————————————————————————————————————
 def Request_test():
@@ -980,6 +1076,11 @@ def Config(num):
     #注册api
     openai.api_key = API_key_list[0]
 
+    #如果进行Mtool翻译任务或者Mtool的词义检查任务，需要更改一下限制
+    if Running_status == 4 or Running_status == 5:
+        #ada模型的的TPM速率限制是GPT-3的200倍，所以要乘以200
+        The_TPM_limit = The_TPM_limit * 200
+
     #根据账号类型，设定请求限制
     global api_request
     global api_tokens
@@ -987,7 +1088,7 @@ def Config(num):
     api_tokens = TokenBucket((tokens_limit_per * 2), The_TPM_limit)
 
 
-# ——————————————————————————————————————————翻译任务主函数(程序核心1)——————————————————————————————————————————
+# ——————————————————————————————————————————翻译任务主函数——————————————————————————————————————————
 def Main():
     global file_name,dir_path,Backup_folder ,Translation_lines,Running_status,The_Max_workers,DEBUG_folder
     global keyList_len ,   Translation_Status_List , money_used,source,source_mid,result_dict,Translation_Progress,OpenAI_temperature
@@ -1084,7 +1185,6 @@ def Main():
   
     result_dict = source_mid.copy() # 先存储未翻译的译文，千万注意不要写等号，不然两个变量会指向同一个内存地址，导致修改一个变量，另一个变量也会被修改
     Translation_Status_List =  [0] * keyList_len   #创建文本翻译状态列表，用于并发时获取每个文本的翻译状态
-
 
 
     #写入过滤和修改key的原文文件，方便debug
@@ -1185,12 +1285,12 @@ def Main():
                 OpenAI_temperature = OpenAI_temperature + 0.2
             else:
                 OpenAI_temperature = 1.0
-            print("\033[1;33mWarning:\033[0m 当前OpenAI温度是：",OpenAI_temperature)
+            print("\033[1;33mWarning:\033[0m 当前OpenAI温度设置为：",OpenAI_temperature)
 
         #如果只剩下15句左右没有翻译则直接逐行翻译
         if count_not_Translate <= 15:
             Number_of_iterations = len(Translation_lines_list) - 1
-            print("\033[1;33mWarning:\033[0m 仅剩下15句未翻译，将进行逐行翻译-----------------------------------")
+            print("\033[1;33mWarning:\033[0m 当剩下15句未翻译时，将进行逐行翻译-----------------------------------")
 
 
   # ——————————————————————————————————————————将各类数据处理并保存为各种文件—————————————————————————————————————————
@@ -1245,10 +1345,10 @@ def Main():
     print("\n-------------------------------------------------------------------------------------\n")
 
 
-# ——————————————————————————————————————————翻译任务线程并发函数(程序核心2)——————————————————————————————————————————
+# ——————————————————————————————————————————翻译任务线程并发函数——————————————————————————————————————————
 def Make_request():
 
-    global result_dict # 声明全局变量
+    global result_dict,waiting_threads # 声明全局变量
     global Translation_Status_List  
     global money_used,Translation_Progress,key_list_index,Number_of_requested,Number_of_mark
     global OpenAI_temperature,OpenAI_top_p,OpenAI_frequency_penalty,OpenAI_presence_penalty
@@ -1256,7 +1356,7 @@ def Make_request():
     Wrong_answer_count = 0 #错误回答计数，用于错误回答到达一定次数后，取消该任务。
 
     start_time = time.time()
-    timeout = 1200  # 设置超时时间为x秒
+    timeout = 850  # 设置超时时间为x秒
 
     try:#方便排查子线程bug
 
@@ -1312,19 +1412,27 @@ def Make_request():
                 return
             #检查该条消息总tokens数是否大于单条消息最大数量---------------------------------
             if tokens_consume >= (tokens_limit_per-500) :
+                lock5.acquire()  # 获取锁
+                waiting_threads = waiting_threads - 1 #改变等待线程数
+                lock5.release()  # 释放锁  
+
                 print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
                 print("\033[1;31mError:\033[0m 该条消息取消任务，进行迭代翻译" )
                 break
 
             #检查子线程是否超时---------------------------------
             if time.time() - start_time > timeout:
+                lock5.acquire()  # 获取锁
+                waiting_threads = waiting_threads - 1 #改变等待线程数
+                lock5.release()  # 释放锁  
+
                 # 超时退出
                 print("\033[1;31mError:\033[0m 子线程执行任务已经超时，将暂时取消本次任务")
                 break
 
             #检查请求数量是否达到限制，如果是多key的话---------------------------------
             if len(API_key_list) > 1: #如果存有多个key
-                if (Number_of_requested - Number_of_mark) >= 30 :#如果该key请求数已经达到限制次数
+                if (Number_of_requested - Number_of_mark) >= 20 :#如果该key请求数已经达到限制次数
 
                     lock4.acquire()  # 获取锁
                     Number_of_mark = Number_of_requested
@@ -1341,7 +1449,7 @@ def Make_request():
                     api_tokens.tokens = tokens_limit_per * 2
                     api_request.last_request_time = 0
 
-                    print("\033[1;33mWarning:\033[0m 该key请求数已达30,将进行KEY的更换")
+                    print("\033[1;33mWarning:\033[0m 该key请求数已达20,将进行KEY的更换")
                     print("\033[1;33mWarning:\033[0m 将API-KEY更换为第",key_list_index+1,"个 , 值为：", API_key_list[key_list_index] ,'\n')
                     lock4.release()  # 释放锁
 
@@ -1351,16 +1459,23 @@ def Make_request():
                 #如果能够发送请求，则扣除令牌桶里的令牌数
                 api_tokens.tokens = api_tokens.tokens - (tokens_consume * 2 )
 
-                print("[INFO] 已发送请求,正在等待AI回复中--------------")
+                print("[INFO] 已发送请求,正在等待AI回复中-----------------------")
                 print("[INFO] 已进行请求的次数：",Number_of_requested)
-                print("[INFO] 花费tokens数预计值是：",tokens_consume * 2) 
-                print("[INFO] 桶中剩余tokens数是：", api_tokens.tokens // 1)
-                print("[INFO] 当前发送内容：\n", messages ,'\n','\n')
+                #print("[INFO] 花费tokens数预计值是：",tokens_consume * 2) 
+                #print("[INFO] 桶中剩余tokens数是：", api_tokens.tokens // 1)
+                print("[INFO] 当前发送内容：\n", messages )
 
                 # ——————————————————————————————————————————开始发送会话请求——————————————————————————————————————————
                 try:
                     lock5.acquire()  # 获取锁
-                    Number_of_requested = Number_of_requested + 1#记录请求数
+                    #记录请求数
+                    Number_of_requested = Number_of_requested + 1
+                    #记录等待线程数
+                    waiting_threads = waiting_threads + 1
+                    print("\033[1;34m[INFO]\033[0m 当前等待AI回复的线程数：",waiting_threads,'\n','\n')
+                    #记录开始请求时间
+                    Start_request_time = time.time()
+
                     #如果启用实时参数设置
                     if Window.Interface18.checkBox.isChecked() :
                         #获取界面配置信息
@@ -1376,6 +1491,7 @@ def Make_request():
                         print("[INFO] 当前frequency_penalty是:",OpenAI_frequency_penalty,'\n','\n')
 
                     lock5.release()  # 释放锁
+
                     response = openai.ChatCompletion.create(
                         model= OpenAI_model,
                         messages = messages ,
@@ -1387,6 +1503,11 @@ def Make_request():
 
                 #一旦有错误就抛出错误信息，一定程度上避免网络代理波动带来的超时问题
                 except Exception as e:
+
+                    lock5.acquire()  # 获取锁
+                    waiting_threads = waiting_threads - 1 #改变等待线程数
+                    lock5.release()  # 释放锁  
+
                     print("\033[1;33m线程ID:\033[0m ", threading.get_ident())
                     print("\033[1;31mError:\033[0m api请求出现问题！错误信息如下")
                     print(f"Error: {e}\n")
@@ -1394,7 +1515,14 @@ def Make_request():
                     continue
 
 
-                #——————————————————————————————————————————收到回复，并截取回复内容中的文本内容 ————————————————————————————————————————       
+                #——————————————————————————————————————————收到回复，并截取回复内容中的文本内容 ————————————————————————————————————————  
+                lock5.acquire()  # 获取锁
+                #改变等待线程数
+                waiting_threads = waiting_threads - 1 
+                #计算请求消耗时间
+                Request_consumption_time =  round(time.time() - Start_request_time, 2)
+                lock5.release()  # 释放锁     
+
                 response_content = response['choices'][0]['message']['content'] 
 
 
@@ -1415,9 +1543,11 @@ def Make_request():
 
                 lock3.release()  # 释放锁
 
-                print("[INFO] 已成功接受到AI的回复--------------")
-                print("[INFO] 此次请求消耗的总tokens：",total_tokens_used )
-                print("[INFO] 此次请求往返的总金额：",The_round_trip_cost )
+                print("[INFO] 已成功接受到AI的回复-----------------------")
+                print("[INFO] 该次请求已消耗等待时间：",Request_consumption_time,"秒")
+                print("\033[1;34m[INFO]\033[0m 当前仍在等待AI回复的线程数：",waiting_threads)
+                #print("[INFO] 此次请求往返消耗的总tokens：",total_tokens_used )
+                print("[INFO] 此次请求往返消耗的总金额：",The_round_trip_cost )
                 print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
              # ——————————————————————————————————————————对AI回复内容进行各种处理和检查——————————————————————————————————————————
@@ -1631,7 +1761,7 @@ def Make_request():
                             result_dict[int(key)] = value
  
                     #备份翻译数据
-                    File_Backup()
+                    File_Backup(subset_mid,response_content)
 
                     lock2.release()  # 释放锁
 
@@ -1645,13 +1775,19 @@ def Make_request():
     except Exception as e:
         print("\033[1;31mError:\033[0m 线程出现问题！错误信息如下")
         print(f"Error: {e}\n")
+
+        lock5.acquire()  # 获取锁
+        waiting_threads = waiting_threads - 1 #改变等待线程数
+        lock5.release()  # 释放锁  
+
         return
 
 
-# ——————————————————————————————————————————检查词义错误单独功能函数——————————————————————————————————————————
-def Check_wrong():
-    global file_name,dir_path,Backup_folder ,Translation_lines,Running_status,The_Max_workers,DEBUG_folder
-    global keyList_len ,   Translation_Status_List , money_used,source,source_mid,result_dict,Translation_Progress
+# ——————————————————————————————————————————检查词义错误主函数——————————————————————————————————————————
+def Check_wrong_Main():
+    global file_name,Tpp_path,dir_path,source_or_dict,source_tr_dict,Embeddings_Status_List,Embeddings_or_List,Embeddings_tr_List,Translation_Status_List,keyList_len
+    global Translation_Progress,money_used,source,source_mid,result_dict,The_Max_workers,DEBUG_folder,Backup_folder,Translation_lines ,Running_status,OpenAI_temperature
+            
     # ——————————————————————————————————————————清空进度,花销与初始化变量存储的内容—————————————————————————————————————————
 
     money_used = 0
@@ -1659,6 +1795,12 @@ def Check_wrong():
 
     result_dict = {}
     source = {}  # 存储字符串数据的字典
+
+    error_txt_dict = {}     #存储错行文本的字典
+
+    #存储语义相似度的列表
+    global Semantic_similarity_list
+    Semantic_similarity_list = []
 
     # 创建DEBUG文件夹路径
     DEBUG_folder = os.path.join(dir_path, 'DEBUG Folder')
@@ -1669,7 +1811,13 @@ def Check_wrong():
     Backup_folder = os.path.join(dir_path, 'Backup Folder')
     #使用`os.makedirs()`函数创建新文件夹，设置`exist_ok=True`参数表示如果文件夹已经存在，不会抛出异常
     os.makedirs(Backup_folder, exist_ok=True) 
-    # ——————————————————————————————————————————读取原文文件并处理—————————————————————————————————————————
+
+    #创建存储错误文本的文件夹
+    ErrorTxt_folder = os.path.join(DEBUG_folder, 'ErrorTxt Folder')
+    #使用`os.makedirs()`函数创建新文件夹，设置`exist_ok=True`参数表示如果文件夹已经存在，不会抛出异常
+    os.makedirs(ErrorTxt_folder, exist_ok=True)
+
+    # —————————————————————————————————————读取目标文件——————————————————————————————————————————
 
     if Running_status == 4:
         with open(file_name, 'r',encoding="utf-8") as f:               
@@ -1717,8 +1865,224 @@ def Check_wrong():
                 wb = load_workbook(file_path)        # 以读写模式打开工作簿
                 wb.save(output_file_path)  # 保存工作簿
                 wb.close()  # 关闭工作簿
+        
+    # —————————————————————————————————————处理读取的文件——————————————————————————————————————————
+
+    #检查source_dict的value，出现null或者空字符串或者纯符号的value，将其替换为指定字符串
+    check_dict_values(result_dict)
+
+    #将source_dict的key作为source_or_dict字典的从0开始的key的valua，source_dict的valua作为source_tr_dict字典的从0开始的key的valua
+    source_or_dict = {}
+    source_tr_dict = {}
+    for i, key in enumerate(result_dict.keys()):
+        source_or_dict[i] = key
+        source_tr_dict[i] = result_dict[key]
+    
+    #创建编码状态列表，用于并发时获取每对翻译的编码状态
+    keyList_len = len(result_dict.keys())
+    Embeddings_Status_List =  [0] * keyList_len
+
+    #创建原文编码列表，用于存储原文的编码
+    Embeddings_or_List =  [0] * keyList_len
+    #创建译文编码列表，用于存储译文的编码
+    Embeddings_tr_List =  [0] * keyList_len
+
+    #创建语义相似度列表，用于存储每对翻译语义相似度
+    Semantic_similarity_list = [0] * keyList_len
 
 
+    # —————————————————————————————————————创建并发嵌入任务——————————————————————————————————————————
+
+
+    #遍历source_dict每个key和每个value，利用num_tokens_from_messages(messages, model)计算每个key和value的tokens数量，并计算总tokens数量
+    tokens_all_consume = 0
+    for i, key in enumerate(result_dict.keys()):
+        tokens_all_consume = tokens_all_consume + num_tokens_from_messages(key, "text-embedding-ada-002") + num_tokens_from_messages(result_dict[key], "text-embedding-ada-002")
+
+    #根据tokens_all_consume与除以6090计算出需要请求的次数,并向上取整（除以6090是为了富余任务数）
+    num_request = int(math.ceil(tokens_all_consume / 6090))
+
+    print("[DEBUG] 你的原文长度是",keyList_len,"需要请求大概次数是",num_request)
+
+    # 创建线程池
+    with concurrent.futures.ThreadPoolExecutor (The_Max_workers) as executor:
+        # 向线程池提交任务
+        for i in range(num_request):
+            executor.submit(Make_request_Embeddings)
+    # 等待线程池任务完成
+        executor.shutdown(wait=True)
+
+    #检查主窗口是否已经退出
+    if Running_status == 10 :
+        return
+    
+    print("\033[1;32mSuccess:\033[0m  全部文本初次编码完成-------------------------------------")
+
+   # —————————————————————————————————————检查是否漏嵌——————————————————————————————————————————
+
+    #统计Embeddings_Status_List中的0和2的个数
+    Embeddings_Status_List_count = Embeddings_Status_List.count(0) + Embeddings_Status_List.count(2)
+
+    #清空tokens_consume
+    tokens_all_consume = 0
+    while Embeddings_Status_List_count != 0:
+        print("\033[1;33mWarning:\033[0m 还有",Embeddings_Status_List_count,"个文本没有编码，将重新编码---------------------------")
+        #暂停五秒
+        time.sleep(5)
+
+        #遍历Embeddings_Status_List中的0和2的位置,并根据位置统计和累加source_or_dict[i]与source_tr_dict[i]的tokens数量
+        for i, status in enumerate(Embeddings_Status_List):
+            if status == 0 or status == 2:
+                #计算source_or_dict[i]与source_tr_dict[i]的tokens数量
+                tokens_all_consume = tokens_all_consume + num_tokens_from_messages(source_or_dict[i], "text-embedding-ada-002") + num_tokens_from_messages(source_tr_dict[i], "text-embedding-ada-002")
+
+        
+        #根据tokens_all_consume与除以6090计算出需要请求的次数,并向上取整
+        num_request = int(math.ceil(tokens_all_consume / 6090))
+
+        #将列表变量里正在嵌入的文本状态初始化
+        for i in range(count_not_Translate):      
+            if 2 in Embeddings_Status_List: #如果列表里有2
+                idx = Embeddings_Status_List.index(2) #获取2的索引
+                Embeddings_Status_List[idx] = 0 #将2改为0
+
+        # 创建线程池
+        with concurrent.futures.ThreadPoolExecutor (The_Max_workers) as executor:
+            # 向线程池提交任务
+            for i in range(num_request):
+                executor.submit(Make_request_Embeddings)
+        # 等待线程池任务完成
+            executor.shutdown(wait=True)
+
+        #检查主窗口是否已经退出
+        if Running_status == 10 :
+            return
+        
+        #重新统计Embeddings_Status_List中的0和2的个数
+        Embeddings_Status_List_count = Embeddings_Status_List.count(0) + Embeddings_Status_List.count(2)
+
+    print("\033[1;32mSuccess:\033[0m  全部文本检查编码完成-------------------------------------")
+    # —————————————————————————————————————开始检查，并整理需要重新翻译的文本——————————————————————————————————————————
+
+    #创建翻译状态列表,全部设置为已翻译状态
+    Translation_Status_List =  [1] * keyList_len
+
+    #创建存储原文与译文的列表，方便复制粘贴，这里是两个空字符串，后面会被替换
+    sentences = ["", ""]  
+
+    #错误文本计数变量
+    count_error = 0
+    #计算每对翻译总的相似度，并重新改变翻译状态列表中的值
+    for i in range(keyList_len):
+
+        #将sentence[0]与sentence[1]转换成字符串数据，确保能够被语义相似度检查模型识别，防止数字型数据导致报错
+        sentences[0] = str(source_or_dict[i])
+        sentences[1] = str(source_tr_dict[i])
+
+        #输出sentence里的两个文本 和 语义相似度检查结果
+        print("[INFO] 原文是：", sentences[0])
+        print("[INFO] 译文是：", sentences[1])
+
+
+        #计算语义相似度----------------------------------------
+        Semantic_similarity = Semantic_similarity_list[i]
+        print("[INFO] 语义相似度：", Semantic_similarity, "%")
+
+
+        #计算符号相似度----------------------------------------
+        # 用正则表达式匹配原文与译文中的标点符号
+        k_syms = re.findall(r'[。！？…♡♥=★]', sentences[0])
+        v_syms = re.findall(r'[。！？…♡♥=★]', sentences[1])
+
+        #假如v_syms与k_syms都不为空
+        if len(v_syms) != 0 and len(k_syms) != 0:
+            #计算v_syms中的符号在k_syms中存在相同符号数量，再除以v_syms的符号总数，得到相似度
+            Symbolic_similarity = len([sym for sym in v_syms if sym in k_syms]) / len(v_syms) * 100
+        #假如v_syms与k_syms都为空，即原文和译文都没有标点符号
+        elif len(v_syms) == 0 and len(k_syms) == 0:
+            Symbolic_similarity = 1 * 100
+        else:
+            Symbolic_similarity = 0
+
+        print("[INFO] 符号相似度：", Symbolic_similarity, "%")
+
+
+        #计算字数相似度----------------------------------------
+        # 计算k中的日文、中文,韩文，英文字母的个数
+        Q, W, E, R = count_japanese_chinese_korean(sentences[0])
+        # 计算v中的日文、中文,韩文，英文字母的个数
+        A, S, D, F = count_japanese_chinese_korean(sentences[1])
+        
+
+
+        # 计算每个总字数
+        len1 = Q + W + E + R
+        len2 = A + S + D + F
+
+        #设定基准字数差距，暂时靠经验设定
+        if len1  <= 25:
+            Base_word_count = 15
+        else:
+            Base_word_count = 25
+
+        #计算字数差值
+        Word_count_difference = abs((len1 - len2) )
+        if Word_count_difference > Base_word_count:
+            Word_count_difference = Base_word_count
+    
+        # 计算字数相差程度
+        Word_count_similarity =(1- Word_count_difference / Base_word_count) * 100
+        print("[INFO] 字数相似度：", Word_count_similarity, "%")
+
+
+
+
+        #给不同相似度权重，计算总相似度 ----------------------------------------
+        if Running_status == 4:
+            Semantic_weight = Window.Interface19.doubleSpinBox1.value()
+            Symbolic_weight = Window.Interface19.doubleSpinBox2.value()
+            Word_count_weight = Window.Interface19.doubleSpinBox3.value()
+            similarity_threshold = Window.Interface19.spinBox1.value()
+        elif Running_status == 5:
+            Semantic_weight = Window.Interface20.doubleSpinBox1.value()
+            Symbolic_weight = Window.Interface20.doubleSpinBox2.value()
+            Word_count_weight = Window.Interface20.doubleSpinBox3.value()
+            similarity_threshold = Window.Interface20.spinBox1.value()
+
+        #计算总相似度
+        similarity = Semantic_similarity * Semantic_weight + Symbolic_similarity * Symbolic_weight + Word_count_similarity * Word_count_weight
+        #输出各权重值
+        print("[INFO] 语义权重：", Semantic_weight,"符号权重：", Symbolic_weight,"字数权重：", Word_count_weight)
+
+        #如果语义相似度小于于等于阈值，则将 Translation_Status_List[i]中的数值改为0，表示需要重翻译
+        if similarity <= similarity_threshold:
+            Translation_Status_List[i]  = 0
+            count_error = count_error + 1
+            print("[INFO] 总相似度结果：", similarity, "%，小于相似度阈值", similarity_threshold,"%，需要重翻译")
+            #错误文本计数提醒
+            print("\033[1;33mWarning:\033[0m 当前错误文本数量：", count_error)
+
+            #将错误文本存储到字典里
+            error_txt_dict[sentences[0]] = sentences[1]
+
+
+        else :
+            print("[INFO] 总相似度结果：", similarity, "%", "，不需要重翻译")
+            
+        #输出遍历进度，转换成百分百进度
+        print("[INFO] 当前检查进度：", round((i+1)/keyList_len*100,2), "% \n")
+
+    #检查完毕，将错误文本字典写入json文件
+    with open(os.path.join(ErrorTxt_folder, "error_txt_dict.json"), 'w', encoding='utf-8') as f:
+        json.dump(error_txt_dict, f, ensure_ascii=False, indent=4)
+    
+
+
+
+
+    # —————————————————————————————————————整理全局变量——————————————————————————————————————————
+
+    print("\033[1;33mWarning:\033[0m 针对错误译文进行重新翻译-----------------------------------")
 
     #将result_dict的key作为source的key，并复制source的key的值为该key对应的value
     source = result_dict.copy()
@@ -1732,7 +2096,7 @@ def Check_wrong():
 
     keyList=list(source_mid.keys())         #通过字典的keys方法，获取所有的key，转换为list变量
     keyList_len = len(keyList)              #获取原文件key列表的长度，当作于原文的总行数
-    print("[INFO] 你的原文长度是",keyList_len)
+    #print("[INFO] 你的原文长度是",keyList_len)
 
     #将字典source_mid中的键设为从0开始的整数型数字序号 
     for i in range(keyList_len):        #循环遍历key列表
@@ -1746,103 +2110,33 @@ def Check_wrong():
     #print("[DEBUG] 你的已修改原文是",result_dict)
   
 
-    Translation_Status_List =  [1] * keyList_len   #创建文本翻译状态列表，用于并发时获取每个文本的翻译状态
 
 
-    # ——————————————————————————————————————————进行语义相似度检查，并重翻译—————————————————————————————————————————
-    #进行语义相似度检查----------------------------------------------------
-    print("\033[1;33mWarning:\033[0m 正在检查译文中翻译错误的内容，请耐心等待-----------------------------------")
-
-    T2T_model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')  #这个模型快点
-    sentences = ["", ""]  #这里是两个空字符串，后面会被替换
-
-    #存储错误文本的字典
-    error_txt_dict = {}
-    #创建存储错误文本的文件夹
-    ErrorTxt_folder = os.path.join(DEBUG_folder, 'ErrorTxt Folder')
-    #使用`os.makedirs()`函数创建新文件夹，设置`exist_ok=True`参数表示如果文件夹已经存在，不会抛出异常
-    os.makedirs(ErrorTxt_folder, exist_ok=True)
-        
-    #错误文本计数变量
-    count_error = 0
-
-    #循环检测文本，如果语义相似度小于阈值，则将 Translation_Status_List[i]中的数值改为0，表示需要重翻
-    for i, key in enumerate(result_dict.keys()):
-        sentences[0] = source_mid[key]
-        sentences[1] = result_dict[key]
-
-        #检测sentence[0]与sentence[1]是不是为null，如果是null，则跳过，因为null是无法计算语义相似度的，而且报错，主要因为AI回复时会出现null回答
-        if sentences[0] == "" or sentences[1] == "":
-            Translation_Status_List[i]  = 0
-            count_error = count_error + 1
-            print("[INFO] 因为AI回复时没有内容，出现了为NUll型数据，需要重翻译")
-            print("\033[1;33mWarning:\033[0m 当前错误文本数量：", count_error)
-            continue
-
-        #将sentence[0]与sentence[1]转换成字符串数据，确保能够被语义相似度检查模型识别，防止数字型数据导致报错
-        sentences[0] = str(sentences[0])
-        sentences[1] = str(sentences[1])
-
-        #计算语义相似度
-        cosine_scores = util.pytorch_cos_sim(T2T_model.encode(sentences[0]), T2T_model.encode(sentences[1]))
-        #cos_sim = vec1.dot(vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
-
-        #输出sentence里的两个文本 和 语义相似度检查结果
-        print("[INFO] 原文是：", sentences[0])
-        print("[INFO] 译文是：", sentences[1])
-
-        #将语义相似度转换为百分比
-        percentage = cosine_scores.item() * 100
-        #如果语义相似度小于于等于阈值，则将 Translation_Status_List[i]中的数值改为0，表示需要重翻译
-        if percentage <= 50:
-            Translation_Status_List[i]  = 0
-            count_error = count_error + 1
-            print("[INFO] 语义相似度检查结果：", percentage, "%", "，需要重翻译")
-            #错误文本计数提醒
-            print("\033[1;33mWarning:\033[0m 当前错误文本数量：", count_error)
-
-            #将错误文本存储到字典里
-            error_txt_dict[sentences[0]] = sentences[1]
-
-
-        else :
-            print("[INFO] 语义相似度检查结果：", percentage, "%", "，不需要重翻译")
-            
-        #输出遍历进度，转换成百分百进度
-        print("[INFO] 当前检查进度：", round((i+1)/len(result_dict.keys())*100,2), "%")
-
-    #将错误文本字典写入json文件
-    with open(os.path.join(ErrorTxt_folder, "error_txt_dict.json"), 'w', encoding='utf-8') as f:
-        json.dump(error_txt_dict, f, ensure_ascii=False, indent=4)
-
-                
-            
-    #重新翻译需要重翻译的文本----------------------------------------------------
-    print("\033[1;33mWarning:\033[0m 针对错误译文进行重新翻译-----------------------------------")
+   # —————————————————————————————————————开始重新翻译——————————————————————————————————————————
 
     #计算需要翻译文本的数量
     count_not_Translate = Translation_Status_List.count(0)
     #设置为逐行翻译
     Translation_lines = 1
 
-    #记录翻译次数
+    #记录循环翻译次数
     Number_of_iterations = 0
 
     while count_not_Translate != 0 :
-        #将列表变量里未翻译的文本状态初始化
+        #将列表变量里正在翻译的文本状态初始化
         for i in range(count_not_Translate):      
-            if 2 in Translation_Status_List:
-                idx = Translation_Status_List.index(2)
-                Translation_Status_List[idx] = 0
+            if 2 in Translation_Status_List: #如果列表里有2
+                idx = Translation_Status_List.index(2) #获取2的索引
+                Translation_Status_List[idx] = 0 #将2改为0
 
         # 计算可并发任务总数
         if count_not_Translate % Translation_lines == 0:
-            new_count = count_not_Translate // Translation_lines
+            new_count = count_not_Translate // Translation_lines       
         else:
-            new_count = count_not_Translate // Translation_lines + 1
+            new_count = count_not_Translate // Translation_lines + 1  
 
         # 创建线程池
-        with concurrent.futures.ThreadPoolExecutor (The_Max_workers) as executor:
+        with concurrent.futures.ThreadPoolExecutor (The_Max_workers) as executor: 
             # 向线程池提交任务
             for i in range(new_count):
                 executor.submit(Make_request)
@@ -1854,9 +2148,18 @@ def Check_wrong():
             return
             
                     
+        #如果实时调教功能没有开的话，则每次迭代翻译，增加OpenAI温度,增加随机性
+        if Window.Interface18.checkBox.isChecked() == False :
+            if OpenAI_temperature + 0.2 <= 1.0 :
+                OpenAI_temperature = OpenAI_temperature + 0.2
+            else:
+                OpenAI_temperature = 1.0
+            print("\033[1;33mWarning:\033[0m 当前OpenAI温度是：",OpenAI_temperature)
+            
+        
         #检查是否已经陷入死循环
-        if Number_of_iterations == 10 :
-            print("\033[1;33mWarning:\033[0m 已达到最大循环次数，退出翻译任务，不影响后续使用-----------------------------------")
+        if Number_of_iterations == 5 :
+            print("\033[1;33mWarning:\033[0m 已达到最大循环次数，退出重翻任务，不影响后续使用-----------------------------------")
             break
 
         #重新计算未翻译文本的数量
@@ -1864,13 +2167,14 @@ def Check_wrong():
 
         #记录循环次数
         Number_of_iterations = Number_of_iterations + 1
-        print("\033[1;33mWarning:\033[0m 当前循环翻译次数：", Number_of_iterations, "次    到达最大循环次数10次后将退出翻译任务-------------------------------")
+        print("\033[1;33mWarning:\033[0m 当前循环翻译次数：", Number_of_iterations, "次，到达最大循环次数5次后将退出翻译任务")
 
-    print("\033[1;33mWarning:\033[0m 已重新翻译完成-----------------------------------")
+    print("\n\033[1;32mSuccess:\033[0m  已重新翻译完成-----------------------------------")
 
 
-    # ——————————————————————————————————————————将各类数据处理并保存为各种文件—————————————————————————————————————————
 
+
+    # —————————————————————————————————————写入文件——————————————————————————————————————————
     #处理翻译结果----------------------------------------------------
     new_result_dict = {}
     for i, key in enumerate(source.keys()):     # 使用enumerate()遍历source字典的键，并将其替换到result_dict中
@@ -1899,7 +2203,7 @@ def Check_wrong():
                     key = row[0].value  # 获取该行第1列的值作为key
                     #如果key不是None
                     if key is not None:
-                        if key in source:  # 如果key在source字典中
+                        if key in new_result_dict:  # 如果key在source字典中
                             value = new_result_dict[key]  # 获取source字典中对应的value
                             row[1].value = value  # 将value写入该行第2列
                         else:#如果不在字典中，则复制到第二列中
@@ -1909,9 +2213,8 @@ def Check_wrong():
 
 
 
-    # —————————————————————————————————————#全部翻译完成——————————————————————————————————————————
-    #写入配置保存文件
-    Read_Write_Config("write") 
+
+    # —————————————————————————————————————全部翻译完成——————————————————————————————————————————
 
     Ui_signal.update_signal.emit("Translation_completed")#发送信号，激活槽函数,要有参数，否则报错
     print("\n--------------------------------------------------------------------------------------")
@@ -1920,9 +2223,150 @@ def Check_wrong():
     print("\n-------------------------------------------------------------------------------------\n")
 
 
+# ——————————————————————————————————————————嵌入任务线程并发函数——————————————————————————————————————————
+def Make_request_Embeddings():
+    
+    global source_or_dict,source_tr_dict,Embeddings_Status_List,Semantic_similarity_list,Translation_Progress,money_used
+
+    try:#方便排查子线程bug
+
+        # ——————————————————————————————————————————确定编码位置——————————————————————————————————————————
+
+        #遍历嵌入状态列表，找到还没嵌入的值和对应的索引位置
+        lock1.acquire()  # 获取锁
+
+        start = 0
+        end = 0
+        for i, status in enumerate(Embeddings_Status_List):
+            if status  == 0  : #当嵌入状态列表中的值为0时，表示该位置的文本还没有嵌入
+                start = i     #确定切割开始位置
+
+                #从i开始，循环获取source_or_dict与source_tr_dict的value值，并进行tokens计算，直到达到单次请求的最大值7090
+                tokens_consume = 0
+                for j in range(i,len(Embeddings_Status_List)):
+                    tokens_consume = tokens_consume + num_tokens_from_messages(source_or_dict[j], "text-embedding-ada-002") + num_tokens_from_messages(source_tr_dict[j], "text-embedding-ada-002")
+                    if tokens_consume > 7090:
+                        end = j #确定切割结束位置
+                        break
+                    else:
+                        end = j + 1 #确定切割结束位置
+                break
+        
+        #修改嵌入状态列表位置状态为嵌入中
+        Embeddings_Status_List[start:end] = [2] * (end - start)    
+
+        lock1.release()  # 释放锁
+
+        #检查一下是否已经遍历完了嵌入状态列表，但start和end还没有被赋值，如果是，说明已经全部在翻译或者已经翻译完成了，则直接退出任务
+        if start == 0 and end == 0:
+            return
+        
+         # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————
+        #构建发送文本列表，长度为end - start的两倍，前半部分为原文，后半部分为译文
+        input_txt = []
+        for i in range(start,end):
+            input_txt.append(source_or_dict[i])
+        for i in range(start,end):
+            input_txt.append(source_tr_dict[i])
+
+        #print ("[DEBUG] 当前发送文本列表是：",input_txt)
+
+    
+        # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
+        while 1 :
+            #检查主窗口是否已经退出---------------------------------
+            if Running_status == 10 :
+                return
+        
+            # 检查是否符合速率限制---------------------------------
+            if api_tokens.consume(tokens_consume ) and api_request.send_request():
+
+                #如果能够发送请求，则扣除令牌桶里的令牌数
+                api_tokens.tokens = api_tokens.tokens - (tokens_consume  )
+
+
+
+                #————————————————————————————————————————发送请求————————————————————————————————————————
+                try:
+                    print("[INFO] 已发送请求-------------------------------------")
+                    print("[INFO] 当前编码起始位置是：",start,"------当前编码结束位置是：", end )
+                    print("[INFO] 请求内容长度是：",len(input_txt),'\n','\n')
+                    #print("[INFO] 已发送请求，请求内容是：",input_txt)
+                    response = openai.Embedding.create(
+                        input=input_txt,
+                        model="text-embedding-ada-002")
+                    
+
+        
+                #一旦有错误就抛出错误信息，一定程度上避免网络代理波动带来的超时问题
+                except Exception as e:
+                    print("\033[1;33m线程ID:\033[0m ", threading.get_ident())
+                    print("\033[1;31mError:\033[0m api请求出现问题！错误信息如下")
+                    print(f"Error: {e}\n")
+
+                    #等待五秒再次请求
+                    print("\033[1;33m线程ID:\033[0m 该任务五秒后再次请求")
+                    time.sleep(5)
+
+                    
+                    continue #处理完毕，再次进行请求
+
+                #————————————————————————————————————————处理回复————————————————————————————————————————
+                lock2.acquire()  # 获取锁
+                print("[INFO] 已收到回复--------------------------------------")
+                print("[INFO] 位置：",start," 到 ",end," 的文本嵌入编码")
+
+                #计算花销
+                total_tokens_used = int(response["usage"]["total_tokens"]) #本次请求花费的tokens
+                money_used  =  money_used + total_tokens_used / 10000 * 0.0004 #本次请求花费的money
+
+                #response['data'][i]['embedding']的长度为(end-start）*2 ，获取response['data'][i]['embedding']中前半的值，作为原文的编码，存储到Embeddings_or_List列表中start开始，end结束位置。
+                for i in range(start,end):
+                    #计算获取原文编码的索引位置，并获取
+                    Original_Index = i - start
+                    Original_Embeddings = response['data'][Original_Index]['embedding']
+
+                    #计算获取译文编码的索引位置，并获取
+                    Translation_Index = i - start + (end - start)
+                    Translation_Embeddings = response['data'][Translation_Index]['embedding']
+
+                    #计算每对翻译语义相似度
+                    similarity_score = np.dot(Original_Embeddings, Translation_Embeddings)
+                    Semantic_similarity_list[i] = (similarity_score - 0.75) / (1 - 0.75) * 150 
+
+                print("[INFO] 已计算语义相似度并存储--------------------------------------",'\n','\n')
+
+                lock2.release()  # 释放锁
+                
+
+                lock1.acquire()  # 获取锁
+                #将嵌入状态列表位置状态修改为已嵌入
+                Embeddings_Status_List[start:end] = [1] * (end - start)
+                #print("[DEBUG] 已修改位置 ",start," 到 ",end," 的嵌入状态为已嵌入")
+
+                #计算嵌入进度
+                Translation_Progress = Embeddings_Status_List.count(1) / keyList_len  * 100
+                Ui_signal.update_signal.emit("Update_ui2")#发送信号，激活槽函数,要有参数，否则报错
+                lock1.release()  # 释放锁
+
+                #————————————————————————————————————————结束循环，并结束子线程————————————————————————————————————————
+                print(f"\n--------------------------------------------------------------------------------------")
+                print(f"\n\033[1;32mSuccess:\033[0m 编码已完成：{Translation_Progress:.2f}%               已花费费用：{money_used:.4f}＄")
+                print(f"\n--------------------------------------------------------------------------------------\n")
+                break
+
+   #子线程抛出错误信息
+    except Exception as e:
+        print("\033[1;33m线程ID:\033[0m ", threading.get_ident())
+        print("\033[1;31mError:\033[0m 线程出现问题！错误信息如下")
+        print(f"Error: {e}\n")
+        return
+
+
 # ——————————————————————————————————————————下面都是UI相关代码——————————————————————————————————————————
 
-class Widget11(QFrame):#自定义的widget内容界面
+class Widget11(QFrame):#官方账号界面
+
 
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
@@ -2064,7 +2508,7 @@ class Widget11(QFrame):#自定义的widget内容界面
 
         #设置“测试请求”的按钮
         primaryButton1 = PrimaryPushButton('测试请求', self, FIF.SEND)
-        primaryButton1.clicked.connect(On_button_clicked4) #按钮绑定槽函数
+        primaryButton1.clicked.connect(Test_request_button) #按钮绑定槽函数
 
 
         layout6.addStretch(1)  # 添加伸缩项
@@ -2101,8 +2545,7 @@ class Widget11(QFrame):#自定义的widget内容界面
             CreateSuccessInfoBar("已设置使用OpenAI官方进行翻译")
 
 
-
-class Widget12(QFrame):#自定义的widget内容界面
+class Widget12(QFrame):#代理账号界面
 
 
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
@@ -2190,7 +2633,7 @@ class Widget12(QFrame):#自定义的widget内容界面
         #设置“代理地址”标签
         label4 = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
         label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
-        label4.setText("代理地址")
+        label4.setText("域名地址")
 
         #设置微调距离用的空白标签
         labelx = QLabel()  
@@ -2244,7 +2687,7 @@ class Widget12(QFrame):#自定义的widget内容界面
 
         #设置“测试请求”的按钮
         primaryButton1 = PrimaryPushButton('测试请求', self, FIF.SEND)
-        primaryButton1.clicked.connect(On_button_clicked4) #按钮绑定槽函数
+        primaryButton1.clicked.connect(Test_request_button) #按钮绑定槽函数
 
 
         layout6.addStretch(1)  # 添加伸缩项
@@ -2282,7 +2725,7 @@ class Widget12(QFrame):#自定义的widget内容界面
             CreateSuccessInfoBar("已设置使用OpenAI国内代理平台进行翻译")
 
 
-class Widget15(QFrame):#自定义的widget内容界面
+class Widget15(QFrame):#Mtool项目界面
 
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
@@ -2358,7 +2801,7 @@ class Widget15(QFrame):#自定义的widget内容界面
 
         #设置打开文件按钮
         self.pushButton1 = PushButton('选择文件', self, FIF.DOCUMENT)
-        self.pushButton1.clicked.connect(On_button_clicked1) #按钮绑定槽函数
+        self.pushButton1.clicked.connect(Open_file) #按钮绑定槽函数
 
 
 
@@ -2386,7 +2829,7 @@ class Widget15(QFrame):#自定义的widget内容界面
 
         #设置输出文件夹按钮
         self.pushButton2 = PushButton('选择文件夹', self, FIF.FOLDER)
-        self.pushButton2.clicked.connect(On_button_clicked3) #按钮绑定槽函数
+        self.pushButton2.clicked.connect(Select_output_folder) #按钮绑定槽函数
 
 
         
@@ -2437,7 +2880,7 @@ class Widget15(QFrame):#自定义的widget内容界面
 
         #设置“开始翻译”的按钮
         self.primaryButton1 = PrimaryPushButton('开始翻译', self, FIF.UPDATE)
-        self.primaryButton1.clicked.connect(On_button_clicked5) #按钮绑定槽函数
+        self.primaryButton1.clicked.connect(Start_translation_button1) #按钮绑定槽函数
 
 
         layout5.addStretch(1)  # 添加伸缩项
@@ -2518,7 +2961,7 @@ class Widget15(QFrame):#自定义的widget内容界面
             self.SwitchButton1.setText("Off")
 
 
-class Widget16(QFrame):#自定义的widget内容界面
+class Widget16(QFrame):#Tpp项目界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
@@ -2595,7 +3038,7 @@ class Widget16(QFrame):#自定义的widget内容界面
 
         #设置打开文件夹按钮
         self.pushButton1 = PushButton('选择文件夹', self, FIF.FOLDER)
-        self.pushButton1.clicked.connect(On_button_clicked2) #按钮绑定槽函数
+        self.pushButton1.clicked.connect(Select_project_folder) #按钮绑定槽函数
 
 
 
@@ -2623,7 +3066,7 @@ class Widget16(QFrame):#自定义的widget内容界面
 
         #设置输出文件夹按钮
         self.pushButton2 = PushButton('选择文件夹', self, FIF.FOLDER)
-        self.pushButton2.clicked.connect(On_button_clicked3) #按钮绑定槽函数
+        self.pushButton2.clicked.connect(Select_output_folder) #按钮绑定槽函数
 
 
         
@@ -2675,7 +3118,7 @@ class Widget16(QFrame):#自定义的widget内容界面
 
         #设置“开始翻译”的按钮
         self.primaryButton1 = PrimaryPushButton('开始翻译', self, FIF.UPDATE)
-        self.primaryButton1.clicked.connect(On_button_clicked6) #按钮绑定槽函数
+        self.primaryButton1.clicked.connect(Start_translation_button2) #按钮绑定槽函数
 
         layout5.addStretch(1)  # 添加伸缩项
         layout5.addWidget(self.primaryButton1)
@@ -2753,326 +3196,8 @@ class Widget16(QFrame):#自定义的widget内容界面
         else :
             self.SwitchButton1.setText("Off")
 
-class Widget17(QFrame):#自定义的widget内容界面
 
-    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
-        super().__init__(parent=parent)          #调用父类的构造函数
-        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
-
-
-        #设置各个控件-----------------------------------------------------------------------------------------
-
-        # 最外层的垂直布局
-        container = QVBoxLayout()
-
-
-        # -----创建第1个组，添加多个组件-----
-        box1 = QGroupBox()
-        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout1 = QHBoxLayout()
-
-        #设置“项目文件夹”标签
-        label1 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label1.setText("项目文件夹")
-
-        #设置“项目文件夹”显示
-        self.label3 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label3.setText("请选择已翻译的T++项目文件夹“data”")
-
-        #设置打开文件夹按钮
-        self.pushButton2 = PushButton('选择文件夹', self, FIF.FOLDER)
-        self.pushButton2.clicked.connect(On_button_clicked2) #按钮绑定槽函数
-
-
-        layout1.addWidget(label1)
-        layout1.addWidget(self.label3)
-        layout1.addStretch(1)  # 添加伸缩项
-        layout1.addWidget(self.pushButton2)
-        box1.setLayout(layout1)
-
-
-
-        # -----创建第2个组，添加多个组件-----
-        box2 = QGroupBox()
-        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout2 = QHBoxLayout()
-
-        #设置“输出文件夹”标签
-        label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label4.setText("输出文件夹")
-
-        #设置“输出文件夹”显示
-        self.label6 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label6.setText("请选择检查重翻存储文件夹，不要与原文件夹相同")
-
-
-        #设置输出文件夹按钮
-        self.pushButton5 = PushButton('选择文件夹', self, FIF.FOLDER)
-        self.pushButton5.clicked.connect(On_button_clicked3) #按钮绑定槽函数
-
-
-        layout2.addWidget(label4)
-        layout2.addWidget(self.label6)
-        layout2.addStretch(1)  # 添加伸缩项
-        layout2.addWidget(self.pushButton5)
-        box2.setLayout(layout2)
-
-
-
-        # -----创建第3个组，添加多个组件-----
-        box3 = QGroupBox()
-        box3.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout3 = QHBoxLayout()
-
-
-        #设置“开始检查”的按钮
-        self.primaryButton7 = PrimaryPushButton('开始检查T++项目', self, FIF.UPDATE)
-        self.primaryButton7.clicked.connect(self.onChecked1) #按钮绑定槽函数
-
-        
-
-
-        layout3.addStretch(1)  # 添加伸缩项
-        layout3.addWidget(self.primaryButton7)
-        layout3.addStretch(1)  # 添加伸缩项
-        box3.setLayout(layout3)
-
-
-
-
-
-        # -----创建第4个组，添加多个组件-----
-        box4 = QGroupBox()
-        box4.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout4 = QHBoxLayout()
-
-
-        #设置“文件位置”标签
-        label8 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label8.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label8.setText("文件位置")
-
-        #设置“文件位置”显示
-        self.label9 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label9.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label9.setText("请选择需要已经翻译好的json文件")
-
-        #设置打开文件按钮
-        self.pushButton1 = PushButton('选择文件', self, FIF.DOCUMENT)
-        self.pushButton1.clicked.connect(On_button_clicked1) #按钮绑定槽函数
-
-
-
-
-        layout4.addWidget(label8)
-        layout4.addWidget(self.label9)
-        layout4.addStretch(1)  # 添加伸缩项
-        layout4.addWidget(self.pushButton1)
-        box4.setLayout(layout4)
-
-
-
-
-        # -----创建第5个组，添加多个组件-----
-        box5 = QGroupBox()
-        box5.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout5 = QHBoxLayout()
-
-        #设置“输出文件夹”标签
-        label10 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label10.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label10.setText("输出文件夹")
-
-        #设置“输出文件夹”显示
-        self.label11 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label11.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label11.resize(500, 20)
-        self.label11.setText("请选择检查重翻文件存储文件夹") 
-
-        #设置输出文件夹按钮
-        self.pushButton2 = PushButton('选择文件夹', self, FIF.FOLDER)
-        self.pushButton2.clicked.connect(On_button_clicked3) #按钮绑定槽函数
-
-
-
-
-        layout5.addWidget(label10)
-        layout5.addWidget(self.label11)
-        layout5.addStretch(1)  # 添加伸缩项
-        layout5.addWidget(self.pushButton2)
-        box5.setLayout(layout5)
-
-
-
-        # -----创建第6个组，添加多个组件-----
-        box6 = QGroupBox()
-        box6.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout6 = QHBoxLayout()
-
-
-        #设置“开始检查”的按钮
-        self.primaryButton1 = PrimaryPushButton('开始检查Mtool项目', self, FIF.UPDATE)
-        self.primaryButton1.clicked.connect(self.onChecked2) #按钮绑定槽函数
-        
-
-
-        layout6.addStretch(1)  # 添加伸缩项
-        layout6.addWidget(self.primaryButton1)
-        layout6.addStretch(1)  # 添加伸缩项
-        box6.setLayout(layout6)
-
-
-
-        # -----创建第7个组，添加多个组件-----
-        box7 = QGroupBox()
-        box7.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout7 = QVBoxLayout()
-
-
-
-        box7_1 = QGroupBox()
-        box7_1.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout7_1 = QHBoxLayout()
-
-        #设置“已花费”标签
-        self.label12 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label12.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        self.label12.setText("已花费")
-        self.label12.hide()  #先隐藏控件
-
-        #设置“已花费金额”具体标签
-        self.label13 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label13.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        self.label13.resize(500, 20)#设置标签大小
-        self.label13.setText("0＄")
-        self.label13.hide()  #先隐藏控件
-
-        layout7_1.addWidget(self.label12)
-        layout7_1.addWidget(self.label13)
-        layout7_1.addStretch(1)  # 添加伸缩项
-        box7_1.setLayout(layout7_1)
-
-
-
-
-        #设置翻译进度条控件
-        self.progressBar = QProgressBar(self)
-        self.progressBar.setMinimum(0)
-        self.progressBar.setMaximum(100)
-        self.progressBar.setValue(0)
-        self.progressBar.setFixedHeight(30)   # 设置进度条控件的固定宽度为30像素
-        self.progressBar.setStyleSheet("QProgressBar::chunk { text-align: center; } QProgressBar { text-align: left; }")#使用setStyleSheet()方法设置了进度条块的文本居中对齐，并且设置了进度条的文本居左对齐
-        self.progressBar.setFormat("已翻译: %p%")
-        self.progressBar.hide()  #先隐藏控件
-
-
-
-        layout7.addWidget(box7_1)
-        layout7.addWidget(self.progressBar)
-        box7.setLayout(layout7)
-
-
-        # 把内容添加到容器中
-        container.addStretch(1)  # 添加伸缩项
-        container.addWidget(box1)
-        container.addWidget(box2)
-        container.addWidget(box3)
-        container.addWidget(box4)
-        container.addWidget(box5)
-        container.addWidget(box6)
-        container.addWidget(box7)
-        container.addStretch(1)  # 添加伸缩项
-
-        # 设置窗口显示的内容是最外层容器
-        self.setLayout(container)
-        container.setSpacing(28) # 设置布局内控件的间距为28
-        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
-
-
-    def onChecked1(self):
-        global Running_status,money_used,Translation_Progress
-
-        if Running_status == 0:
-            
-            Inspection_results = Config(2)   #读取配置信息，设置系统参数，并进行检查
-
-            if Inspection_results == 0 :  #配置没有完全填写
-                CreateErrorInfoBar("请正确填入配置信息,不要留空")
-                Running_status = 0  #修改运行状态
-
-            elif Inspection_results == 1 :  #账号类型和模型类型组合错误
-                print("\033[1;31mError:\033[0m 请正确选择账号类型以及模型类型")
-                Ui_signal.update_signal.emit("Wrong type selection")
-
-            else :  
-                #清空花销与进度，更新UI
-                money_used = 0
-                Translation_Progress = 0 
-
-                Running_status = 5  #修改运行状态
-                on_update_signal("Update_ui")
-                OnButtonClicked("正在语义检查中" , "客官请耐心等待哦~~")
-
-                #显示隐藏控件
-                Window.Interface17.progressBar.show() 
-                Window.Interface17.label12.show()
-                Window.Interface17.label13.show() 
-
-
-                #创建子线程
-                thread = My_Thread()
-                thread.start()
-
-
-
-        elif Running_status == 1 or 2 or 3 or 4 or 5:
-            CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
-
-    def onChecked2(self):
-        global Running_status,money_used,Translation_Progress
-
-        if Running_status == 0:
-            
-            Inspection_results = Config(1)   #读取配置信息，设置系统参数，并进行检查
-
-            if Inspection_results == 0 :  #配置没有完全填写
-                CreateErrorInfoBar("请正确填入配置信息,不要留空")
-                Running_status = 0  #修改运行状态
-
-            elif Inspection_results == 1 :  #账号类型和模型类型组合错误
-                print("\033[1;31mError:\033[0m 请正确选择账号类型以及模型类型")
-                Ui_signal.update_signal.emit("Wrong type selection")
-
-            else :  
-                #清空花销与进度，更新UI
-                money_used = 0
-                Translation_Progress = 0 
-
-                Running_status = 4  #修改运行状态
-                on_update_signal("Update_ui")
-                OnButtonClicked("正在语义检查中" , "客官请耐心等待哦~~")
-
-                #显示隐藏控件
-                Window.Interface17.progressBar.show() 
-                Window.Interface17.label12.show()
-                Window.Interface17.label13.show() 
-
-
-                #创建子线程
-                thread = My_Thread()
-                thread.start()
-
-
-
-        elif Running_status == 1 or 2 or 3 or 4 or 5:
-            CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
-
-
-class Widget18(QFrame):#自定义的widget内容界面
+class Widget18(QFrame):#实时调教界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
@@ -3403,54 +3528,246 @@ class Widget18(QFrame):#自定义的widget内容界面
             CreateSuccessInfoBar("已启用实时调教功能")
 
 
-class Widget19(QFrame):#自定义的widget内容界面
+class Widget19(QFrame):#语义检查（Mtool）界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
 
-       
-
-
-    def onChecked1(self):
-        global Running_status,money_used,Translation_Progress
-
-        if Running_status == 0:
-            
-            Inspection_results = Config(2)   #读取配置信息，设置系统参数，并进行检查
-
-            if Inspection_results == 0 :  #配置没有完全填写
-                CreateErrorInfoBar("请正确填入配置信息,不要留空")
-                Running_status = 0  #修改运行状态
-
-            elif Inspection_results == 1 :  #账号类型和模型类型组合错误
-                print("\033[1;31mError:\033[0m 请正确选择账号类型以及模型类型")
-                Ui_signal.update_signal.emit("Wrong type selection")
-
-            else :  
-                #清空花销与进度，更新UI
-                money_used = 0
-                Translation_Progress = 0 
-
-                Running_status = 5  #修改运行状态
-                on_update_signal("Update_ui")
-                OnButtonClicked("正在语义检查中" , "客官请耐心等待哦~~")
-
-                #显示隐藏控件
-                Window.Interface17.progressBar.show() 
-                Window.Interface17.label12.show()
-                Window.Interface17.label13.show() 
-
-
-                #创建子线程
-                thread = My_Thread()
-                thread.start()
+        # 最外层的垂直布局
+        container = QVBoxLayout()
 
 
 
-        elif Running_status == 1 or 2 or 3 or 4 or 5:
-            CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+        # -----创建第0-1个组，添加多个组件-----
+        box0_1 = QGroupBox()
+        box0_1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout0_1 = QHBoxLayout()
 
-    def onChecked2(self):
+        #设置“语义权重”标签
+        label0_1 = QLabel( flags=Qt.WindowFlags())  
+        label0_1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label0_1.setText("语义权重")
+
+        #设置“语义权重”输入
+        self.doubleSpinBox1 = DoubleSpinBox(self)
+        self.doubleSpinBox1.setMaximum(1.0)
+        self.doubleSpinBox1.setMinimum(0.0)
+        self.doubleSpinBox1.setValue(0.6)
+
+        #设置“符号权重”标签
+        label0_2 = QLabel( flags=Qt.WindowFlags())  
+        label0_2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label0_2.setText("符号权重")
+
+        #设置“符号权重”输入
+        self.doubleSpinBox2 = DoubleSpinBox(self)
+        self.doubleSpinBox2.setMaximum(1.0)
+        self.doubleSpinBox2.setMinimum(0.0)
+        self.doubleSpinBox2.setValue(0.2)
+
+        #设置“字数权重”标签
+        label0_3 = QLabel( flags=Qt.WindowFlags())  
+        label0_3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label0_3.setText("字数权重")
+
+        #设置“字数权重”输入
+        self.doubleSpinBox3 = DoubleSpinBox(self)
+        self.doubleSpinBox3.setMaximum(1.0)
+        self.doubleSpinBox3.setMinimum(0.0)
+        self.doubleSpinBox3.setValue(0.2)
+
+
+        layout0_1.addWidget(label0_1)
+        layout0_1.addWidget(self.doubleSpinBox1)
+        layout0_1.addStretch(1)  # 添加伸缩项
+        layout0_1.addWidget(label0_2)
+        layout0_1.addWidget(self.doubleSpinBox2)
+        layout0_1.addStretch(1)  # 添加伸缩项
+        layout0_1.addWidget(label0_3)
+        layout0_1.addWidget(self.doubleSpinBox3)
+
+        box0_1.setLayout(layout0_1)
+
+
+        # -----创建第0-2个组，添加多个组件-----
+        box0_2 = QGroupBox()
+        box0_2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout0_2 = QHBoxLayout()
+
+        #设置“相似度阈值”标签
+        label0_4 = QLabel( flags=Qt.WindowFlags())  
+        label0_4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label0_4.setText("相似度阈值")
+
+        #设置“相似度阈值”输入
+        self.spinBox1 = SpinBox(self)
+        self.spinBox1.setMaximum(100)
+        self.spinBox1.setMinimum(0)
+        self.spinBox1.setValue(60)
+
+        layout0_2.addWidget(label0_4)
+        layout0_2.addStretch(1)  # 添加伸缩项
+        layout0_2.addWidget(self.spinBox1)
+        box0_2.setLayout(layout0_2)
+
+
+
+
+
+
+        # -----创建第1个组，添加多个组件-----
+        box1 = QGroupBox()
+        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1 = QHBoxLayout()
+
+
+        #设置“文件位置”标签
+        label1 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label1.setText("文件位置")
+
+        #设置“文件位置”显示
+        self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label2.setText("请选择需要已经翻译好的json文件")
+
+        #设置打开文件按钮
+        self.pushButton1 = PushButton('选择文件', self, FIF.DOCUMENT)
+        self.pushButton1.clicked.connect(Open_file) #按钮绑定槽函数
+
+
+
+
+        layout1.addWidget(label1)
+        layout1.addWidget(self.label2)
+        layout1.addStretch(1)  # 添加伸缩项
+        layout1.addWidget(self.pushButton1)
+        box1.setLayout(layout1)
+
+
+
+
+        # -----创建第2个组，添加多个组件-----
+        box2 = QGroupBox()
+        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout2 = QHBoxLayout()
+
+        #设置“输出文件夹”标签
+        label3 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label3.setText("输出文件夹")
+
+        #设置“输出文件夹”显示
+        self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label4.resize(500, 20)
+        self.label4.setText("请选择检查重翻文件存储文件夹") 
+
+        #设置输出文件夹按钮
+        self.pushButton2 = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton2.clicked.connect(Select_output_folder) #按钮绑定槽函数
+
+
+
+
+        layout2.addWidget(label3)
+        layout2.addWidget(self.label4)
+        layout2.addStretch(1)  # 添加伸缩项
+        layout2.addWidget(self.pushButton2)
+        box2.setLayout(layout2)
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box3 = QGroupBox()
+        box3.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout3 = QHBoxLayout()
+
+
+        #设置“开始检查”的按钮
+        self.primaryButton1 = PrimaryPushButton('开始检查Mtool项目', self, FIF.UPDATE)
+        self.primaryButton1.clicked.connect(self.onChecked_Mtool) #按钮绑定槽函数
+        
+
+
+        layout3.addStretch(1)  # 添加伸缩项
+        layout3.addWidget(self.primaryButton1)
+        layout3.addStretch(1)  # 添加伸缩项
+        box3.setLayout(layout3)
+
+
+        # -----创建第4个组，添加多个组件-----
+        box4 = QGroupBox()
+        box4.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout4 = QVBoxLayout()
+
+
+
+        box4_1 = QGroupBox()
+        box4_1.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout4_1 = QHBoxLayout()
+
+        #设置“已花费”标签
+        self.label5 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label5.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        self.label5.setText("已花费")
+        self.label5.hide()  #先隐藏控件
+
+        #设置“已花费金额”具体标签
+        self.label6 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        self.label6.resize(500, 20)#设置标签大小
+        self.label6.setText("0＄")
+        self.label6.hide()  #先隐藏控件
+
+        layout4_1.addWidget(self.label5)
+        layout4_1.addWidget(self.label6)
+        layout4_1.addStretch(1)  # 添加伸缩项
+        box4_1.setLayout(layout4_1)
+
+
+
+
+        #设置翻译进度条控件
+        self.progressBar = QProgressBar(self)
+        self.progressBar.setMinimum(0)
+        self.progressBar.setMaximum(100)
+        self.progressBar.setValue(0)
+        self.progressBar.setFixedHeight(30)   # 设置进度条控件的固定宽度为30像素
+        self.progressBar.setStyleSheet("QProgressBar::chunk { text-align: center; } QProgressBar { text-align: left; }")#使用setStyleSheet()方法设置了进度条块的文本居中对齐，并且设置了进度条的文本居左对齐
+        self.progressBar.setFormat("正在进行中: %p%")
+        self.progressBar.hide()  #先隐藏控件
+
+
+
+        layout4.addWidget(box4_1)
+        layout4.addWidget(self.progressBar)
+        box4.setLayout(layout4)
+
+
+
+
+
+
+
+        # 把内容添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box0_1)
+        container.addWidget(box0_2)
+        container.addWidget(box1)
+        container.addWidget(box2)
+        container.addWidget(box4)
+        container.addWidget(box3)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+
+    def onChecked_Mtool(self):
         global Running_status,money_used,Translation_Progress
 
         if Running_status == 0:
@@ -3471,13 +3788,13 @@ class Widget19(QFrame):#自定义的widget内容界面
                 Translation_Progress = 0 
 
                 Running_status = 4  #修改运行状态
-                on_update_signal("Update_ui")
+                on_update_signal("Update_ui2")
                 OnButtonClicked("正在语义检查中" , "客官请耐心等待哦~~")
 
                 #显示隐藏控件
-                Window.Interface17.progressBar.show() 
-                Window.Interface17.label12.show()
-                Window.Interface17.label13.show() 
+                Window.Interface19.progressBar.show() 
+                Window.Interface19.label5.show()
+                Window.Interface19.label6.show() 
 
 
                 #创建子线程
@@ -3486,15 +3803,294 @@ class Widget19(QFrame):#自定义的widget内容界面
 
 
 
-        elif Running_status == 1 or 2 or 3 or 4 or 5:
+        elif Running_status != 0:
             CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
-class AvatarWidget(NavigationWidget):#自定义的头像导航项
+
+class Widget20(QFrame):#语义检查（Tpp）界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+
+
+        # -----创建第0-1个组，添加多个组件-----
+        box0_1 = QGroupBox()
+        box0_1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout0_1 = QHBoxLayout()
+
+        #设置“语义权重”标签
+        label0_1 = QLabel( flags=Qt.WindowFlags())  
+        label0_1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label0_1.setText("语义权重")
+
+        #设置“语义权重”输入
+        self.doubleSpinBox1 = DoubleSpinBox(self)
+        self.doubleSpinBox1.setMaximum(1.0)
+        self.doubleSpinBox1.setMinimum(0.0)
+        self.doubleSpinBox1.setValue(0.6)
+
+        #设置“符号权重”标签
+        label0_2 = QLabel( flags=Qt.WindowFlags())  
+        label0_2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label0_2.setText("符号权重")
+
+        #设置“符号权重”输入
+        self.doubleSpinBox2 = DoubleSpinBox(self)
+        self.doubleSpinBox2.setMaximum(1.0)
+        self.doubleSpinBox2.setMinimum(0.0)
+        self.doubleSpinBox2.setValue(0.2)
+
+        #设置“字数权重”标签
+        label0_3 = QLabel( flags=Qt.WindowFlags())  
+        label0_3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label0_3.setText("字数权重")
+
+        #设置“字数权重”输入
+        self.doubleSpinBox3 = DoubleSpinBox(self)
+        self.doubleSpinBox3.setMaximum(1.0)
+        self.doubleSpinBox3.setMinimum(0.0)
+        self.doubleSpinBox3.setValue(0.2)
+
+
+        layout0_1.addWidget(label0_1)
+        layout0_1.addWidget(self.doubleSpinBox1)
+        layout0_1.addStretch(1)  # 添加伸缩项
+        layout0_1.addWidget(label0_2)
+        layout0_1.addWidget(self.doubleSpinBox2)
+        layout0_1.addStretch(1)  # 添加伸缩项
+        layout0_1.addWidget(label0_3)
+        layout0_1.addWidget(self.doubleSpinBox3)
+
+        box0_1.setLayout(layout0_1)
+
+
+        # -----创建第0-2个组，添加多个组件-----
+        box0_2 = QGroupBox()
+        box0_2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout0_2 = QHBoxLayout()
+
+        #设置“相似度阈值”标签
+        label0_4 = QLabel( flags=Qt.WindowFlags())  
+        label0_4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label0_4.setText("相似度阈值")
+
+        #设置“相似度阈值”输入
+        self.spinBox1 = SpinBox(self)
+        self.spinBox1.setMaximum(100)
+        self.spinBox1.setMinimum(0)
+        self.spinBox1.setValue(60)
+
+        layout0_2.addWidget(label0_4)
+        layout0_2.addStretch(1)  # 添加伸缩项
+        layout0_2.addWidget(self.spinBox1)
+        box0_2.setLayout(layout0_2)
+
+
+
+
+
+
+        # -----创建第1个组，添加多个组件-----
+        box1 = QGroupBox()
+        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1 = QHBoxLayout()
+
+
+
+        #设置“项目文件夹”标签
+        label1 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label1.setText("项目文件夹")
+
+        #设置“项目文件夹”显示
+        self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label2.setText("请选择已翻译的T++项目文件夹“data”")
+
+        #设置打开文件夹按钮
+        self.pushButton2 = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton2.clicked.connect(Select_project_folder) #按钮绑定槽函数
+
+
+        layout1.addWidget(label1)
+        layout1.addWidget(self.label2)
+        layout1.addStretch(1)  # 添加伸缩项
+        layout1.addWidget(self.pushButton2)
+        box1.setLayout(layout1)
+
+
+
+
+        # -----创建第2个组，添加多个组件-----
+        box2 = QGroupBox()
+        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout2 = QHBoxLayout()
+
+        #设置“输出文件夹”标签
+        label3 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label3.setText("输出文件夹")
+
+        #设置“输出文件夹”显示
+        self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label4.resize(500, 20)
+        self.label4.setText("请选择检查重翻文件存储文件夹") 
+
+        #设置输出文件夹按钮
+        self.pushButton2 = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton2.clicked.connect(Select_output_folder) #按钮绑定槽函数
+
+
+
+
+        layout2.addWidget(label3)
+        layout2.addWidget(self.label4)
+        layout2.addStretch(1)  # 添加伸缩项
+        layout2.addWidget(self.pushButton2)
+        box2.setLayout(layout2)
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box3 = QGroupBox()
+        box3.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout3 = QHBoxLayout()
+
+
+        #设置“开始检查”的按钮
+        self.primaryButton1 = PrimaryPushButton('开始检查T++项目', self, FIF.UPDATE)
+        self.primaryButton1.clicked.connect(self.onChecked_Tpp) #按钮绑定槽函数
+        
+
+
+        layout3.addStretch(1)  # 添加伸缩项
+        layout3.addWidget(self.primaryButton1)
+        layout3.addStretch(1)  # 添加伸缩项
+        box3.setLayout(layout3)
+
+
+        # -----创建第4个组，添加多个组件-----
+        box4 = QGroupBox()
+        box4.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout4 = QVBoxLayout()
+
+
+
+        box4_1 = QGroupBox()
+        box4_1.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout4_1 = QHBoxLayout()
+
+        #设置“已花费”标签
+        self.label5 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label5.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        self.label5.setText("已花费")
+        self.label5.hide()  #先隐藏控件
+
+        #设置“已花费金额”具体标签
+        self.label6 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        self.label6.resize(500, 20)#设置标签大小
+        self.label6.setText("0＄")
+        self.label6.hide()  #先隐藏控件
+
+        layout4_1.addWidget(self.label5)
+        layout4_1.addWidget(self.label6)
+        layout4_1.addStretch(1)  # 添加伸缩项
+        box4_1.setLayout(layout4_1)
+
+
+
+
+        #设置翻译进度条控件
+        self.progressBar = QProgressBar(self)
+        self.progressBar.setMinimum(0)
+        self.progressBar.setMaximum(100)
+        self.progressBar.setValue(0)
+        self.progressBar.setFixedHeight(30)   # 设置进度条控件的固定宽度为30像素
+        self.progressBar.setStyleSheet("QProgressBar::chunk { text-align: center; } QProgressBar { text-align: left; }")#使用setStyleSheet()方法设置了进度条块的文本居中对齐，并且设置了进度条的文本居左对齐
+        self.progressBar.setFormat("正在进行中: %p%")
+        self.progressBar.hide()  #先隐藏控件
+
+
+
+        layout4.addWidget(box4_1)
+        layout4.addWidget(self.progressBar)
+        box4.setLayout(layout4)
+
+
+
+
+
+
+
+        # 把内容添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box0_1)
+        container.addWidget(box0_2)
+        container.addWidget(box1)
+        container.addWidget(box2)
+        container.addWidget(box4)
+        container.addWidget(box3)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+
+    def onChecked_Tpp(self):
+        global Running_status,money_used,Translation_Progress
+
+        if Running_status == 0:
+            
+            Inspection_results = Config(2)   #读取配置信息，设置系统参数，并进行检查
+
+            if Inspection_results == 0 :  #配置没有完全填写
+                CreateErrorInfoBar("请正确填入配置信息,不要留空")
+                Running_status = 0  #修改运行状态
+
+            elif Inspection_results == 1 :  #账号类型和模型类型组合错误
+                print("\033[1;31mError:\033[0m 请正确选择账号类型以及模型类型")
+                Ui_signal.update_signal.emit("Wrong type selection")
+
+            else :  
+                #清空花销与进度，更新UI
+                money_used = 0
+                Translation_Progress = 0 
+
+                Running_status = 5  #修改运行状态
+                on_update_signal("Update_ui2")
+                OnButtonClicked("正在语义检查中" , "客官请耐心等待哦~~")
+
+                #显示隐藏控件
+                Window.Interface20.progressBar.show() 
+                Window.Interface20.label5.show()
+                Window.Interface20.label6.show() 
+
+
+                #创建子线程
+                thread = My_Thread()
+                thread.start()
+
+
+
+        elif Running_status != 0:
+            CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+
+
+class AvatarWidget(NavigationWidget):#头像导航项
     """ Avatar widget """
 
     def __init__(self, parent=None):
         super().__init__(isSelectable=False, parent=parent)
-        self.avatar = QImage('resource/Avatar.png').scaled(
+        self.avatar = QImage(os.path.join(resource_dir, "Avatar.png")).scaled(
             24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
     def paintEvent(self, e):
@@ -3527,7 +4123,7 @@ class AvatarWidget(NavigationWidget):#自定义的头像导航项
             painter.drawText(QRect(44, 0, 255, 36), Qt.AlignVCenter, 'NEKOparapa')
 
 
-class CustomTitleBar(TitleBar): #自定义的标题栏
+class CustomTitleBar(TitleBar): #标题栏
     """ Title bar with icon and title """
 
     def __init__(self, parent):
@@ -3553,7 +4149,7 @@ class CustomTitleBar(TitleBar): #自定义的标题栏
         self.iconLabel.setPixmap(QIcon(icon).pixmap(18, 18)) #设置图标
 
 
-class window(FramelessWindow): #自定义的窗口
+class window(FramelessWindow): #主窗口
 
     def __init__(self):
         super().__init__()
@@ -3569,22 +4165,22 @@ class window(FramelessWindow): #自定义的窗口
 
 
         # create sub interface
-        self.Interface11 = Widget11('Interface11', self)     #创建子界面Interface(搜索界面)，传入参数为对象名和parent
-        self.Interface12 = Widget12('Interface12', self)     #创建子界面Interface(文件夹界面)，传入参数为对象名和parent
-        self.Interface15 = Widget15('Interface15', self)      #创建子界面Interface(音乐界面) ，传入参数为对象名和parent
-        self.Interface16 = Widget16('Interface16', self)        #创建子界面Interface(视频界面)，传入参数为对象名和parent
-        self.Interface17 = Widget17('Interface17', self) 
+        self.Interface11 = Widget11('Interface11', self)     #创建子界面Interface，传入参数为对象名和parent
+        self.Interface12 = Widget12('Interface12', self)     #创建子界面Interface，传入参数为对象名和parent
+        self.Interface15 = Widget15('Interface15', self)      #创建子界面Interface，传入参数为对象名和parent
+        self.Interface16 = Widget16('Interface16', self)        #创建子界面Interface，传入参数为对象名和parent
         self.Interface18 = Widget18('Interface18', self)
-        self.Interface19 = Widget19('Interface19', self)  
+        self.Interface19 = Widget19('Interface19', self) 
+        self.Interface20 = Widget20('Interface20', self)   
 
 
         self.stackWidget.addWidget(self.Interface11)  #将子界面添加到父2堆栈窗口中
         self.stackWidget.addWidget(self.Interface12)
         self.stackWidget.addWidget(self.Interface15)
         self.stackWidget.addWidget(self.Interface16)
-        self.stackWidget.addWidget(self.Interface17)
         self.stackWidget.addWidget(self.Interface18)
         self.stackWidget.addWidget(self.Interface19)
+        self.stackWidget.addWidget(self.Interface20)
 
 
         self.initLayout() #调用初始化布局函数 
@@ -3644,15 +4240,6 @@ class window(FramelessWindow): #自定义的窗口
 
         self.navigationInterface.addSeparator() #添加分隔符
 
-        
-        #添加词义检查导航项
-        self.navigationInterface.addItem(
-            routeKey=self.Interface17.objectName(),
-            icon=FIF.HIGHTLIGHT,
-            text='语义检查',
-            onClick=lambda: self.switchTo(self.Interface17),
-            position=NavigationItemPosition.SCROLL
-            ) 
 
 
         #添加实时调教导航项
@@ -3664,12 +4251,21 @@ class window(FramelessWindow): #自定义的窗口
             position=NavigationItemPosition.SCROLL
             ) 
 
-        #添加测试导航项
+        #添加语义检查_Mtool导航项
         self.navigationInterface.addItem(
             routeKey=self.Interface19.objectName(),
-            icon=FIF.ALBUM,
-            text='测试',
+            icon=FIF.HIGHTLIGHT,
+            text='语义检查(Mtool)',
             onClick=lambda: self.switchTo(self.Interface19),
+            position=NavigationItemPosition.SCROLL
+            ) 
+        
+        #添加语义检查_Tpp导航项
+        self.navigationInterface.addItem(
+            routeKey=self.Interface20.objectName(),
+            icon=FIF.HIGHTLIGHT,
+            text='语义检查(T++)',
+            onClick=lambda: self.switchTo(self.Interface20),
             position=NavigationItemPosition.SCROLL
             ) 
 
@@ -3712,8 +4308,13 @@ class window(FramelessWindow): #自定义的窗口
 
 
         #根据主题设置设置样式表的函数
-        color = 'dark' if isDarkTheme() else 'light' #如果是暗色主题，则color为dark，否则为light
-        with open(f'resource/{color}/demo.qss', encoding='utf-8') as f: #打开样式表
+        #color = 'dark' if isDarkTheme() else 'light' #如果是暗色主题，则color为dark，否则为light
+        #with open(f'resource/{color}/demo.qss', encoding='utf-8') as f: #打开样式表
+            #self.setStyleSheet(f.read()) #设置样式表
+
+        dir1 = os.path.join(resource_dir, "light")
+        dir2 = os.path.join(dir1, "demo.qss")
+        with open(dir2, encoding='utf-8') as f: #打开样式表
             self.setStyleSheet(f.read()) #设置样式表
 
     #切换到某个窗口的函数
