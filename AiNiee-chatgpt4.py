@@ -2072,6 +2072,9 @@ def Check_wrong_Main():
         #输出遍历进度，转换成百分百进度
         print("[INFO] 当前检查进度：", round((i+1)/keyList_len*100,2), "% \n")
 
+        #暂停五秒
+        time.sleep(3)
+
     #检查完毕，将错误文本字典写入json文件
     with open(os.path.join(ErrorTxt_folder, "error_txt_dict.json"), 'w', encoding='utf-8') as f:
         json.dump(error_txt_dict, f, ensure_ascii=False, indent=4)
@@ -2222,7 +2225,7 @@ def Check_wrong_Main():
     print("\n\033[1;32mSuccess:\033[0m 请检查译文文件，格式是否错误，存在错行，或者有空行等问题")
     print("\n-------------------------------------------------------------------------------------\n")
 
-
+ 
 # ——————————————————————————————————————————嵌入任务线程并发函数——————————————————————————————————————————
 def Make_request_Embeddings():
     
