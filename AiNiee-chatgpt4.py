@@ -760,7 +760,7 @@ def Test_request_button():
         CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 # ——————————————————————————————————————————开始翻译（mtool）按钮绑定函数——————————————————————————————————————————
-def Start_translation_button1():
+def Start_translation_mtool():
     global Running_status,money_used,Translation_Progress
 
     if Running_status == 0:
@@ -799,7 +799,7 @@ def Start_translation_button1():
         CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 # ——————————————————————————————————————————开始翻译（T++）按钮绑定函数——————————————————————————————————————————
-def Start_translation_button2():
+def Start_translation_Tpp():
     global Running_status,money_used,Translation_Progress
 
     if Running_status == 0:
@@ -2880,7 +2880,7 @@ class Widget15(QFrame):#Mtool项目界面
 
         #设置“开始翻译”的按钮
         self.primaryButton1 = PrimaryPushButton('开始翻译', self, FIF.UPDATE)
-        self.primaryButton1.clicked.connect(Start_translation_button1) #按钮绑定槽函数
+        self.primaryButton1.clicked.connect(Start_translation_mtool) #按钮绑定槽函数
 
 
         layout5.addStretch(1)  # 添加伸缩项
@@ -3118,7 +3118,7 @@ class Widget16(QFrame):#Tpp项目界面
 
         #设置“开始翻译”的按钮
         self.primaryButton1 = PrimaryPushButton('开始翻译', self, FIF.UPDATE)
-        self.primaryButton1.clicked.connect(Start_translation_button2) #按钮绑定槽函数
+        self.primaryButton1.clicked.connect(Start_translation_Tpp) #按钮绑定槽函数
 
         layout5.addStretch(1)  # 添加伸缩项
         layout5.addWidget(self.primaryButton1)
