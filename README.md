@@ -102,7 +102,7 @@
     ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/导入工程2.png" width="400" height="300"><br>
     >对**红色标签内容进行修改**,这些内容不能翻译,以免出现错误。还有对导入时缺行的内容进行自翻译
 
-  🖱️右键左侧区域,移到"全部选择",选择"Create Automation",选择"",复制粘贴下面的代码运行
+  🖱️右键左侧区域,移到"全部选择",选择"Create Automation",选择"对每行",复制粘贴下面的代码运行
   ```JavaScript
   if (this.tags) {
     if (this.tags.includes("red")) this.cells[1]=this.cells[0];
