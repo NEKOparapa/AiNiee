@@ -24,7 +24,7 @@
     > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/官方账号设置.png" width="400" height="300"><br>
     > 官方账号配置说明:<br>
     > `启用该平台`: 如果使用该平台的AI进行翻译,请勾上<br>
-    >`账号类型`: 是你账号类型,免费用户基本只能并发两三个线程翻译任务,而付费用户可以并发几十个,大幅缩减翻译时间<br>
+    >`账号类型`: 是你账号类型,新注册的5刀余额账号为免费账号，绑定信用卡后，会升级为120刀余额的付费用户<br>
     > `模型选择`: 默认都是GPT3.5,如果你的账号获得了GPT4的使用资格,请选择付费账号（48h后）和模型gpt-4来进行翻译,并且可以把Lines设置为80<br>
     >`API KEY`: 填入你的api_key<br>
     >`代理地址`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
@@ -86,18 +86,19 @@
     > 1.回到`🔴Translator++`+,点击导入工程,选择从电子表格导入翻译,点击“Import Folder”,选择输出文件夹里的data文件夹,点击导入<br>
     ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/导入工程1.png" width="400" height="300"> | 
     ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/导入工程2.png" width="400" height="300"><br>
-    >对**红色标签内容进行修改**,这些内容不能翻译,以免出现错误。还有对导入时缺行的内容进行自翻译
 
-  🖱️右键左侧区域,移到"全部选择",选择"Create Automation",选择"对每行",复制粘贴下面的代码运行
+
+    > 2.🖱️右键左侧区域,移到"全部选择",选择"Create Automation",选择"对每行",复制粘贴下面的代码运行<br>
   ```JavaScript
   if (this.tags) {
     if (this.tags.includes("red")) this.cells[1]=this.cells[0];
   }
+     >对**红色标签内容进行修改**,这些内容不能翻译,以免出现错误。还有对导入时缺行的内容进行自翻译
   ```
     > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/处理错误1.png" width="400" height="300"> | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/处理错误1.png" width="400" height="300">
   
   查看左边文件有哪个没有到达百分百的,寻找到空行并自行翻译
-* 5-3.最后选择导出工程,选择导出到文件夹,指定**你的游戏目录里的data文件夹的上一级文件夹**,原文件会被替换,请注意备份原游戏
+* 4-4.最后选择导出工程,选择导出到文件夹,指定**你的游戏目录里的data文件夹的上一级文件夹**,原文件会被替换,请注意备份原游戏
     ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/修改游戏1.png" width="400" height="300"> | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/修改游戏2.png" width="400" height="300">
 
 # 🕹️ 拓展功能
