@@ -24,7 +24,7 @@
     > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/官方账号设置.png" width="400" height="300"><br>
     > 官方账号配置说明:<br>
     > `启用该平台`: 如果使用该平台的AI进行翻译,请勾上<br>
-    >`账号类型`: 是你账号类型,新注册的5刀余额账号为免费账号，绑定信用卡后，会升级为120刀余额的付费用户<br>
+    >`账号类型`: 新注册的5刀余额账号为免费账号，绑定信用卡后，会升级为120刀余额的付费用户<br>
     > `模型选择`: 默认都是GPT3.5,如果你的账号获得了GPT4的使用资格,请选择付费账号（48h后）和模型gpt-4来进行翻译,并且可以把Lines设置为80<br>
     >`API KEY`: 填入你的api_key<br>
     >`代理地址`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
@@ -46,11 +46,11 @@
     >配置示例:<br>
     ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/翻译设置Mtool.png" width="400" height="300"><br>
     >配置说明:<br>
-    >`Lines`: 是每次请求翻译的文本行数。行数设置越大,整体的翻译效果会更好,上下文更加流畅,但每次请求回复速度会越慢,回复的内容越容易出错,建议gpt3.5模型不要设置超过50,gpt4模型不超过90<br>
-    >`错行检查`: 是针对AI回复内容的检查功能,因为AI在翻译时有时会把上下文一起翻译,并放到一个文本行中,导致回复的文本错行,对不上原文。开启这个功能,会对AI回复内容进行检查,会增加时间和花销,追求翻译质量可开<br>
-    >`Prompt`: 是系统提示词,用于告诉chatgpt任务目标的命令语。希望大家有空去探索一下Prompt的写法,如果写得越好,AI酱就能更能准确回复译文格式,以你想要的写作风格进行翻译。只要在Prompt里加上"以json文件格式回复译文",程序就能够处理<br>
-    >`文件位置`: 是选择你需要翻译的原文文件,也是ManualTransFile.json文件
-    >`输出文件夹`: 是选择翻译后文件的存储文件夹<br>
+    >`Lines`: 每次请求翻译的文本行数。行数设置越大,整体的翻译效果会更好,上下文更加流畅,但每次请求回复速度会越慢,回复的内容越容易出错,建议gpt3.5模型不要设置超过50,gpt4模型不超过90<br>
+    >`错行检查`: 针对AI回复内容的检查功能,因为AI在翻译时有时会把上下文一起翻译,并放到一个文本行中,导致回复的文本错行,对不上原文。开启这个功能,会对AI回复内容进行检查,会增加时间和花销,追求翻译质量可开<br>
+    >`Prompt`: 系统提示词,用于告诉chatgpt任务目标的命令语。希望大家有空去探索一下Prompt的写法,如果写得越好,AI酱就能更能准确回复译文格式,以你想要的写作风格进行翻译。只要在Prompt里加上"以json文件格式回复译文",程序就能够处理<br>
+    >`文件位置`: 选择你需要翻译的原文文件,也是ManualTransFile.json文件
+    >`输出文件夹`: 选择翻译后文件的存储文件夹<br>
 * 3-2.🖱️点击**开始翻译**按钮,看控制台输出日志或者进度条。之后等待翻译进度到百分百,自动生成翻译好的文件Tradata.json在输出文件夹中
     > 正在进行翻译<br>
     ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/控制台正在翻译.png" width="400" height="300"> | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/UI界面正在翻译.png" width="400" height="300">
