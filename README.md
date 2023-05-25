@@ -102,7 +102,7 @@
 * 4-3.最后选择导出工程,选择导出到文件夹,指定**你的游戏目录里的data文件夹的上一级文件夹**,原文件会被替换,请注意备份原游戏
     ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/修改游戏1.png" width="400" height="300"> | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/修改游戏2.png" width="400" height="300">
 
-# 拓展功能🕹️ 
+# 其他功能🕹️ 
 ***
 * 😊如果您希望翻译从其他语言到中文,可以尝试修改Prompt词,把`日语`换成源语言,**英语除外**,因为已经被设置过滤了  
   
