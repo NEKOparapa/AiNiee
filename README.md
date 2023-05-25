@@ -9,7 +9,7 @@
 [![ GitHub 许可证](https://img.shields.io/github/license/NEKOparapa/AiNiee-chatgpt)](https://github.com/NEKOparapa/AiNiee-chatgpt/LICENSE) [![GitHub release](https://img.shields.io/github/v/release/NEKOparapa/AiNiee-chatgpt)](https://github.com/NEKOparapa/NEKOparapa/releases/)
 > 这是一款基于`Mtool`或`Translator++`的 chatgpt自动批翻译工具,主要是用来翻译各种RPG游戏
 > [教程视频](https://www.bilibili.com/video/BV18c411K7WN) [下载地址](https://github.com/NEKOparapa/AiNiee-chatgpt/releases)
-# 🏕️ 环境支持
+#  环境支持🏕️
 ***
    
  * **`🟪好用的魔法工具`**:我们**强烈建议**您选择优质稳定的代理工具,不然api接口会频繁报错无法连接,错误代码443或者一直没有回复
@@ -17,7 +17,7 @@
    > 两者免费版本就可以,新人推荐Mtool,如果希望能够自行校正,构建用户词典,获得更好的翻译效果,推荐Translator++
 * **`🤖Chat-GPT`**:建议您新建一个API_Key,并且最好在使用期间不要和其他程序一起使用,不然容易达到请求次数限制,现在有很多店铺卖10-30的120美元余额的key或者账号,可以翻译十几个游戏（我们没有店铺,不提供任何代购帮助）
 
-# 📝使用方法
+# 使用方法📝
 ***
 * 1.🖱️双击`启动AiNiee-chatgpt4.exe`,在账号设置页面配置你的账号信息以及`API KEY`
     > 🔥官方账号配置示例:<br>
@@ -102,7 +102,7 @@
 * 4-3.最后选择导出工程,选择导出到文件夹,指定**你的游戏目录里的data文件夹的上一级文件夹**,原文件会被替换,请注意备份原游戏
     ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/修改游戏1.png" width="400" height="300"> | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/修改游戏2.png" width="400" height="300">
 
-# 🕹️ 拓展功能
+# 拓展功能🕹️ 
 ***
 * 😊如果您希望翻译从其他语言到中文,可以尝试修改Prompt词,把`日语`换成源语言,**英语除外**,因为已经被设置过滤了  
   
@@ -116,7 +116,7 @@
   >是原文与译文的词义相似度检测功能,用来判断译文是否翻译错误,以解决AI翻译时错行的问题。开启这个功能会**耗费一段不短的时间进行检查**,而且会将错误内容进行重翻译,也会增加开销。作为实验性功能，仍在优化中
   
 
-# 🍵 NEKO酱的个人BB
+#  NEKO酱的个人BB🍵
 ***
 * 虽然有点编程基础,但还是第一次用Python写程序,不是相关从业者,写法奇奇怪怪莫要怪。后续我不知道有没有时间去更新维护。既然已经开源了,就交给其他大佬了
 
@@ -124,11 +124,11 @@
 
 * 建了一个QQ交流群821624890,群里只用于反应bug,功能建议,以及prompt词交流,不要分享各种游戏资源,发黄键镇
 
-# 🧉 A酱也小BB一下
+# A酱也小BB一下🧉 
 ***
 * 大佬好厉害,我只能帮大佬写写md,虽然写的不是很漂亮，但尽力了😭
 * 希望大家有机会也来我仓库玩玩(x
-# 🧰 类似工具
+# 类似工具🧰 
 ***
  * GPT-Translator 是一款前后端分离基于 OpenAI 的高效翻译软件。
 https://github.com/XHXJ/json-GPT-translator
@@ -136,6 +136,6 @@ https://github.com/XHXJ/json-GPT-translator
  * 对已解包的GalGame脚本文件实行ChatGPT自动化翻译
 https://github.com/Lilyltt/GalUpTs
 
-# 🧾 声明
+# 声明🧾 
 ***
 该款AI翻译工具仅供个人合法用途,任何使用该工具进行直接或者间接非法盈利活动的行为,均不属于授权范围,也不受到任何支持和认可
