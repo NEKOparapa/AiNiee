@@ -4,7 +4,7 @@ import numpy as np   #需要安装库pip install numpy
 import openai        #需要安装库pip install openai                       
 import json
 import re
-from openpyxl import load_workbook  #需安装库pip install openpyxl
+from openpyxl import load_workbook  #需安装库pip install openpyxl  在`openpyxl`模块中，xlsx文件的行数和列数都是从1开始计数的
 from qfluentwidgets.components import Dialog
 from qframelesswindow import FramelessWindow, TitleBar
 import time
@@ -404,33 +404,49 @@ def File_Backup(subset_mid,response_content):
 
         #构造文件夹路径
         data_Backup_path = os.path.join(Backup_folder, 'data')
-        #实时备份翻译数据
-        for file_name in os.listdir(data_Backup_path):
-            if file_name.endswith('.xlsx'):  # 如果是xlsx文件
-                file_path = os.path.join(data_Backup_path, file_name)  # 构造文件路径
-                wb = load_workbook(file_path)  # 以读写模式打开工作簿
-                ws = wb.active  # 获取活动工作表
-                for row in ws.iter_rows(min_row=2, min_col=1):  # 从第2行开始遍历每一行
-                        if len(row) < 2:  # 如果该行的单元格数小于2，为了避免写入时报错
-                            # 在该行的第2列创建一个空单元格
-                            new_cell = ws.cell(row=row[0].row, column=2, value="")
-                            row = (row[0], new_cell)
-                        
-                        key = row[0].value  # 获取该行第1列的值作为key
-                        #如果key不是None
-                        if key is not None:
-                            if key in Check_dict:  # 如果key在TrsData_Backup字典中
-                                value = Check_dict[key]  # 获取TrsData_Backup字典中对应的value
-                                row[1].value = value  # 将value写入该行第2列
+        #遍历check_dict每一个key
+        for key in Check_dict:
+            #如果key在Catalog_Dictionary字典的key中
+            if key in Catalog_Dictionary:
+                #获取key对应的value作为文件名和行数索引
+                Index  = Catalog_Dictionary[key]
+                file_name = Index[0]
+                row_index = Index[1]
+                #构造文件路径
+                file_path = os.path.join(data_Backup_path, file_name)
+                #打开工作簿
+                wb = load_workbook(file_path)
+                #获取活动工作表
+                ws = wb.active
+                #将译文写入到对应的行的第二列中
+                ws.cell(row=row_index, column=2, value = Check_dict[key])
+                #保存工作簿
+                wb.save(file_path)
+                #关闭工作簿
+                wb.close()
 
-                wb.save(file_path)  # 保存工作簿
-                wb.close()  # 关闭工作簿
-
+                if len(Index) != 2: #如果Index的长度不等于2，说明后面仍有索引值，需要将后面所有的索引值都写入
+                    for i in range(2,len(Index)):
+                        file_name2 = Index[i][0]
+                        row_index2 = Index[i][1]
+                        #构造文件路径
+                        file_path = os.path.join(data_Backup_path, file_name2)
+                        #打开工作簿
+                        wb = load_workbook(file_path)
+                        #获取活动工作表
+                        ws = wb.active
+                        #将译文写入到对应的行的第二列中
+                        ws.cell(row=row_index2, column=2, value = Check_dict[key])
+                        #保存工作簿
+                        wb.save(file_path)
+                        #关闭工作簿
+                        wb.close()
 
 
     #假如退出了翻译状态则退出函数
     elif Running_status == 0 :
         return 
+    
 
 #读写配置文件config.json函数
 def Read_Write_Config(mode):
@@ -1090,7 +1106,7 @@ def Config(num):
 
 # ——————————————————————————————————————————翻译任务主函数——————————————————————————————————————————
 def Main():
-    global file_name,dir_path,Backup_folder ,Translation_lines,Running_status,The_Max_workers,DEBUG_folder
+    global file_name,dir_path,Backup_folder ,Translation_lines,Running_status,The_Max_workers,DEBUG_folder,Catalog_Dictionary
     global keyList_len ,   Translation_Status_List , money_used,source,source_mid,result_dict,Translation_Progress,OpenAI_temperature
     # ——————————————————————————————————————————清空进度,花销与初始化变量存储的内容—————————————————————————————————————————
 
@@ -1141,6 +1157,33 @@ def Main():
                         source[key] = value  # 将key和value添加到字典source中
                 wb.close()  # 关闭工作簿
         #print("[DEBUG] 你的未修改原文是",source)
+
+
+        #遍历文件夹中所有的xlsx文件每个内容的对应行数添加到Catalog_Dictionary字典中，用于后续的索引
+        Catalog_Dictionary = {}
+        for file_name in os.listdir(Tpp_path):
+            if file_name.endswith('.xlsx'):
+                file_path = os.path.join(Tpp_path, file_name)
+                wb = load_workbook(file_path, read_only=True)  # 以只读模式打开工作簿
+                ws = wb.active  # 获取活动工作表
+                Index_list = []
+                row_index = 2 #索引值从2开始
+                for row in ws.iter_rows(min_row=2, min_col=1):  # 从第2行开始遍历每一行
+                    #如果第1列的值不为空，过滤掉空行
+                    if row[0].value is not None:
+                        #获取该位置的值作为key
+                        key = row[0].value
+                        #获取该位置的文件名和行数存储到value里Index_list = [file_name,row_index]作为value
+                        Index_list = [file_name,row_index]
+                        row_index += 1 #索引值加1
+                        #将key和value添加到字典Catalog_Dictionary中
+                        if key in Catalog_Dictionary: #如果key已经存在，就在key对应的value里添加Index_list,因为有些内容在多个文件里同时存在
+                            Catalog_Dictionary[key].append(Index_list)#注意是以列表的形式添加到列表的值中
+                        else:
+                            Catalog_Dictionary[key] = Index_list
+                wb.close()  # 关闭工作簿
+
+
         source_mid = source.copy() #将原文复制一份到source_mid变量里，用于后续的修改
 
         #在输出文件夹里新建文件夹data
@@ -1413,7 +1456,8 @@ def Make_request():
             #检查该条消息总tokens数是否大于单条消息最大数量---------------------------------
             if tokens_consume >= (tokens_limit_per-500) :
                 lock5.acquire()  # 获取锁
-                waiting_threads = waiting_threads - 1 #改变等待线程数
+                if waiting_threads > 0 :
+                    waiting_threads = waiting_threads - 1 #改变等待线程数
                 lock5.release()  # 释放锁  
 
                 print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
@@ -1423,7 +1467,8 @@ def Make_request():
             #检查子线程是否超时---------------------------------
             if time.time() - start_time > timeout:
                 lock5.acquire()  # 获取锁
-                waiting_threads = waiting_threads - 1 #改变等待线程数
+                if waiting_threads > 0 :
+                    waiting_threads = waiting_threads - 1 #改变等待线程数
                 lock5.release()  # 释放锁  
 
                 # 超时退出
@@ -1472,7 +1517,10 @@ def Make_request():
                     Number_of_requested = Number_of_requested + 1
                     #记录等待线程数
                     waiting_threads = waiting_threads + 1
-                    print("\033[1;34m[INFO]\033[0m 当前等待AI回复的线程数：",waiting_threads,'\n','\n')
+                    print("\033[1;34m[INFO]\033[0m 当前等待AI回复的线程数：",waiting_threads)
+                    #记录当前子线程数量
+                    num_threads = threading.active_count() - 2  # 减去主线程和副线程
+                    print("\033[1;34m[INFO]\033[0m 当前正在进行任务的线程数：", num_threads,'\n','\n')
                     #记录开始请求时间
                     Start_request_time = time.time()
 
@@ -1505,7 +1553,8 @@ def Make_request():
                 except Exception as e:
 
                     lock5.acquire()  # 获取锁
-                    waiting_threads = waiting_threads - 1 #改变等待线程数
+                    if waiting_threads > 0 :
+                        waiting_threads = waiting_threads - 1 #改变等待线程数
                     lock5.release()  # 释放锁  
 
                     print("\033[1;33m线程ID:\033[0m ", threading.get_ident())
@@ -1518,7 +1567,8 @@ def Make_request():
                 #——————————————————————————————————————————收到回复，并截取回复内容中的文本内容 ————————————————————————————————————————  
                 lock5.acquire()  # 获取锁
                 #改变等待线程数
-                waiting_threads = waiting_threads - 1 
+                if waiting_threads > 0 :
+                    waiting_threads = waiting_threads - 1 
                 #计算请求消耗时间
                 Request_consumption_time =  round(time.time() - Start_request_time, 2)
                 lock5.release()  # 释放锁     
@@ -1546,6 +1596,8 @@ def Make_request():
                 print("[INFO] 已成功接受到AI的回复-----------------------")
                 print("[INFO] 该次请求已消耗等待时间：",Request_consumption_time,"秒")
                 print("\033[1;34m[INFO]\033[0m 当前仍在等待AI回复的线程数：",waiting_threads)
+                num_threads = threading.active_count() - 2  # 减去主线程和副线程
+                print("\033[1;34m[INFO]\033[0m 当前正在进行任务的线程数：", num_threads)
                 #print("[INFO] 此次请求往返消耗的总tokens：",total_tokens_used )
                 print("[INFO] 此次请求往返消耗的总金额：",The_round_trip_cost )
                 print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
@@ -1745,11 +1797,6 @@ def Make_request():
                     Translation_Progress = Translation_Status_List.count(1) / keyList_len  * 100
                     Ui_signal.update_signal.emit("Update_ui")#发送信号，激活槽函数,要有参数，否则报错
                     lock1.release()  # 释放锁
-                    print(f"\n--------------------------------------------------------------------------------------")
-                    print(f"\n\033[1;32mSuccess:\033[0m 翻译已完成：{Translation_Progress:.2f}%               已花费费用：{money_used:.4f}＄")
-                    print(f"\n--------------------------------------------------------------------------------------\n")
-
-
 
                     lock2.acquire()  # 获取锁
                     # 用字典类型存储每次请求的译文
@@ -1764,8 +1811,9 @@ def Make_request():
                     File_Backup(subset_mid,response_content)
 
                     lock2.release()  # 释放锁
-
-
+                    print(f"\n--------------------------------------------------------------------------------------")
+                    print(f"\n\033[1;32mSuccess:\033[0m 翻译已完成：{Translation_Progress:.2f}%               已花费费用：{money_used:.4f}＄")
+                    print(f"\n--------------------------------------------------------------------------------------\n")
 
                     break
 
@@ -1777,7 +1825,8 @@ def Make_request():
         print(f"Error: {e}\n")
 
         lock5.acquire()  # 获取锁
-        waiting_threads = waiting_threads - 1 #改变等待线程数
+        if waiting_threads > 0 :
+            waiting_threads = waiting_threads - 1 #改变等待线程数
         lock5.release()  # 释放锁  
 
         return
@@ -1785,7 +1834,7 @@ def Make_request():
 
 # ——————————————————————————————————————————检查词义错误主函数——————————————————————————————————————————
 def Check_wrong_Main():
-    global file_name,Tpp_path,dir_path,source_or_dict,source_tr_dict,Embeddings_Status_List,Embeddings_or_List,Embeddings_tr_List,Translation_Status_List,keyList_len
+    global file_name,Tpp_path,dir_path,source_or_dict,source_tr_dict,Embeddings_Status_List,Embeddings_or_List,Embeddings_tr_List,Translation_Status_List,keyList_len,Catalog_Dictionary
     global Translation_Progress,money_used,source,source_mid,result_dict,The_Max_workers,DEBUG_folder,Backup_folder,Translation_lines ,Running_status,OpenAI_temperature
             
     # ——————————————————————————————————————————清空进度,花销与初始化变量存储的内容—————————————————————————————————————————
@@ -1833,7 +1882,7 @@ def Check_wrong_Main():
                 file_path = os.path.join(Tpp_path, file_name)  # 构造文件路径
                 wb = load_workbook(file_path, read_only=True)  # 以只读模式打开工作簿
                 ws = wb.active  # 获取活动工作表
-                for row in ws.iter_rows(min_row=2, min_col=1):  # 从第2行开始遍历每一行
+                for row in ws.iter_rows(min_row=2, min_col=1):  # 从第2行开始遍历每一行。
                     #如果第1列的值不为空，过滤掉空行
                     if row[0].value is not None:
                         key = row[0].value  # 获取该行第1列的值作为key
@@ -1841,6 +1890,31 @@ def Check_wrong_Main():
                         result_dict[key] = value  # 将key和value添加到字典source中
                 wb.close()  # 关闭工作簿
 
+        #遍历文件夹中所有的xlsx文件每个内容的对应行数添加到Catalog_Dictionary字典中，用于后续的索引
+        Catalog_Dictionary = {}
+        for file_name in os.listdir(Tpp_path):
+            if file_name.endswith('.xlsx'):
+                file_path = os.path.join(Tpp_path, file_name)
+                wb = load_workbook(file_path, read_only=True)  # 以只读模式打开工作簿
+                ws = wb.active  # 获取活动工作表
+                Index_list = []
+                row_index = 2 #索引值从2开始
+                for row in ws.iter_rows(min_row=2, min_col=1):  # 从第2行开始遍历每一行
+                    #如果第1列的值不为空，过滤掉空行
+                    if row[0].value is not None:
+                        #获取该位置的值作为key
+                        key = row[0].value
+                        #获取该位置的文件名和行数存储到value里Index_list = [file_name,row_index]作为value
+                        Index_list = [file_name,row_index]
+                        row_index += 1 #索引值加1
+                        #将key和value添加到字典Catalog_Dictionary中
+                        if key in Catalog_Dictionary: #如果key已经存在，就在key对应的value里添加Index_list,因为有些内容在多个文件里同时存在
+                            Catalog_Dictionary[key].append(Index_list)#注意是以列表的形式添加到列表的值中
+                        else:
+                            Catalog_Dictionary[key] = Index_list
+                wb.close()  # 关闭工作簿
+        
+            
         #在输出文件夹里新建文件夹data
         data_path = os.path.join(dir_path, 'data')
         os.makedirs(data_path, exist_ok=True)
@@ -1970,6 +2044,10 @@ def Check_wrong_Main():
     #创建存储原文与译文的列表，方便复制粘贴，这里是两个空字符串，后面会被替换
     sentences = ["", ""]  
 
+    #创建存储每对翻译相似度计算过程日志的字符串
+    similarity_log = ""
+    log_count = 0
+
     #错误文本计数变量
     count_error = 0
     #计算每对翻译总的相似度，并重新改变翻译状态列表中的值
@@ -2073,13 +2151,20 @@ def Check_wrong_Main():
         print("[INFO] 当前检查进度：", round((i+1)/keyList_len*100,2), "% \n")
 
         #暂停五秒
-        time.sleep(3)
+        #time.sleep(3)
+
+        #创建格式化字符串，用于存储每对翻译相似度计算过程日志
+        if log_count <=  10000 :#如果log_count小于等于10000,避免太大
+            similarity_log = similarity_log + "\n" + "原文是：" + sentences[0] + "\n" + "译文是：" + sentences[1] + "\n" + "语义相似度：" + str(Semantic_similarity) + "%" + "\n" + "符号相似度：" + str(Symbolic_similarity) + "%" + "\n" + "字数相似度：" + str(Word_count_similarity) + "%" + "\n" + "总相似度结果：" + str(similarity) + "%" + "\n" + "语义权重：" + str(Semantic_weight) + "，符号权重：" + str(Symbolic_weight) + "，字数权重：" + str(Word_count_weight) + "\n" + "当前检查进度：" + str(round((i+1)/keyList_len*100,2)) + "%" + "\n"
+            log_count = log_count + 1
 
     #检查完毕，将错误文本字典写入json文件
     with open(os.path.join(ErrorTxt_folder, "error_txt_dict.json"), 'w', encoding='utf-8') as f:
         json.dump(error_txt_dict, f, ensure_ascii=False, indent=4)
     
-
+    #将每对翻译相似度计算过程日志写入txt文件
+    with open(os.path.join(ErrorTxt_folder, "similarity_log.txt"), 'w', encoding='utf-8') as f:
+        f.write(similarity_log)
 
 
 
@@ -2226,7 +2311,7 @@ def Check_wrong_Main():
     print("\n-------------------------------------------------------------------------------------\n")
 
  
-# ——————————————————————————————————————————嵌入任务线程并发函数——————————————————————————————————————————
+# ——————————————————————————————————————————编码任务线程并发函数——————————————————————————————————————————
 def Make_request_Embeddings():
     
     global source_or_dict,source_tr_dict,Embeddings_Status_List,Semantic_similarity_list,Translation_Progress,money_used
@@ -2337,7 +2422,7 @@ def Make_request_Embeddings():
                     similarity_score = np.dot(Original_Embeddings, Translation_Embeddings)
                     Semantic_similarity_list[i] = (similarity_score - 0.75) / (1 - 0.75) * 150 
 
-                print("[INFO] 已计算语义相似度并存储--------------------------------------",'\n','\n')
+                print("[INFO] 已计算语义相似度并存储",'\n','\n')
 
                 lock2.release()  # 释放锁
                 
@@ -3607,7 +3692,7 @@ class Widget19(QFrame):#语义检查（Mtool）界面
         self.spinBox1 = SpinBox(self)
         self.spinBox1.setMaximum(100)
         self.spinBox1.setMinimum(0)
-        self.spinBox1.setValue(60)
+        self.spinBox1.setValue(50)
 
         layout0_2.addWidget(label0_4)
         layout0_2.addStretch(1)  # 添加伸缩项
@@ -3886,7 +3971,7 @@ class Widget20(QFrame):#语义检查（Tpp）界面
         self.spinBox1 = SpinBox(self)
         self.spinBox1.setMaximum(100)
         self.spinBox1.setMinimum(0)
-        self.spinBox1.setValue(60)
+        self.spinBox1.setValue(50)
 
         layout0_2.addWidget(label0_4)
         layout0_2.addStretch(1)  # 添加伸缩项
