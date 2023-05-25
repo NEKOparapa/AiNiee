@@ -19,9 +19,7 @@
 
 # 📝使用方法
 ***
-> 🆗在您检查所有的环境依赖都安装完毕了,请按照下面的步骤进行操作
-* 1.🖱️首先双击运行`初始化依赖环境.cmd`,安装完成后会自动生成一个`启动AiNiee-chatgpt4.cmd`文件在项目目录下(**如果您已手动安装完🐍Python依赖,也请运行这一步,脚本不会再安装一次,`启动AiNiee-chatgpt4.cmd也会自动生成的`**)
-* 2.🖱️双击`启动AiNiee-chatgpt4.cmd`,在账号设置页面配置你的账号信息以及`API KEY`
+* 1.🖱️双击`启动AiNiee-chatgpt4.exe`,在账号设置页面配置你的账号信息以及`API KEY`
     > 🔥官方账号配置示例:<br>
     > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/官方账号设置.png" width="400" height="300"><br>
     > 官方账号配置说明:<br>
@@ -36,9 +34,9 @@
     > 代理账号配置说明:<br>
     >`API KEY`: 填入国内代理平台给你生成的API KEY<br>
     >`域名地址`: 填入国内代理平台提供的请求地址,如OpenAI-sb平台提供的请求地址是`api.openai-sb.com`,则填入：`https://api.openai-sb.com/v1`
-* 3.✅点击请求测试,测试网络是否通畅,请求是否成功
+* 2.✅点击请求测试,测试网络是否通畅,请求是否成功
     ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/请求成功.png" width="400" height="300"> 
-* 4-1.如果使用`🔵Mtool`进行翻译请根据以下步骤操作
+* 3-1.如果使用`🔵Mtool`进行翻译请根据以下步骤操作
     > 1.使用Mtool打开游戏,并在翻译功能界面,选择导出游戏原文文件,会在游戏根目录生成：ManualTransFile.json<br>
     ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/导出原文1.png" width="400" height="300"><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/导出原文2.png" width="400" height="300"><br>
     > 2.在`AiNiee-chatgpt`界面选择`🔵Mtool项目`,并配置翻译设置<br>
