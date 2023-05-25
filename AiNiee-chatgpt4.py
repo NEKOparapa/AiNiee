@@ -397,50 +397,40 @@ def File_Backup(subset_mid,response_content):
 
             #构建一个字典，用来合并这次翻译任务的原文与译文
             response_content_dict = json.loads(response_content) #注意转化为字典的数字序号key是字符串类型 
-            Check_dict = {}
+            Backup_dict = {}
             for i in range(len(subset_mid)):
-                Check_dict[subset_mid[i]] = response_content_dict[str(i)]
+                Backup_dict[subset_mid[i]] = response_content_dict[str(i)]
 
 
             #构造文件夹路径
             data_Backup_path = os.path.join(Backup_folder, 'data')
+            #创建存储相同文件名的字典
+            Catalog_file = {}
             #遍历check_dict每一个key
-            for key in Check_dict:
+            for key in Backup_dict:   
                 #如果key在Catalog_Dictionary字典的key中
                 if key in Catalog_Dictionary:
                     #获取key对应的value作为文件名和行数索引
                     Index  = Catalog_Dictionary[key]
-                    file_name = Index[0]
-                    row_index = Index[1]
-                    #构造文件路径
-                    file_path = os.path.join(data_Backup_path, file_name)
-                    #打开工作簿
-                    wb = load_workbook(file_path)
-                    #获取活动工作表
-                    ws = wb.active
-                    #将译文写入到对应的行的第二列中
-                    ws.cell(row=row_index, column=2, value = Check_dict[key])
-                    #保存工作簿
-                    wb.save(file_path)
-                    #关闭工作簿
-                    wb.close()
 
-                    if len(Index) != 2: #如果Index的长度不等于2，说明后面仍有索引值，需要将后面所有的索引值都写入
-                        for i in range(2,len(Index)):
-                            file_name2 = Index[i][0]
-                            row_index2 = Index[i][1]
-                            #构造文件路径
-                            file_path = os.path.join(data_Backup_path, file_name2)
-                            #打开工作簿
-                            wb = load_workbook(file_path)
-                            #获取活动工作表
-                            ws = wb.active
-                            #将译文写入到对应的行的第二列中
-                            ws.cell(row=row_index2, column=2, value = Check_dict[key])
-                            #保存工作簿
-                            wb.save(file_path)
-                            #关闭工作簿
-                            wb.close()
+                    for i in range(0,len(Index)):
+                        file_name = Index[i][0]
+                        row_index = Index[i][1]
+
+
+
+                        #构造文件路径
+                        file_path = os.path.join(data_Backup_path, file_name)
+                        #打开工作簿
+                        wb = load_workbook(file_path)
+                        #获取活动工作表
+                        ws = wb.active
+                        #将译文写入到对应的行的第二列中
+                        ws.cell(row=row_index, column=2, value = Backup_dict[key])
+                        #保存工作簿
+                        wb.save(file_path)
+                        #关闭工作簿
+                        wb.close()
 
 
         #假如退出了翻译状态则退出函数
@@ -1165,7 +1155,7 @@ def Main():
         #print("[DEBUG] 你的未修改原文是",source)
 
 
-        #遍历文件夹中所有的xlsx文件每个内容的对应行数添加到Catalog_Dictionary字典中，用于后续的索引
+        #遍历文件夹中所有的xlsx文件每个内容的对应行数添加到Catalog_Dictionary字典中，用于后续实时备份的索引
         Catalog_Dictionary = {}
         for file_name in os.listdir(Tpp_path):
             if file_name.endswith('.xlsx'):
@@ -1186,7 +1176,7 @@ def Main():
                         if key in Catalog_Dictionary: #如果key已经存在，就在key对应的value里添加Index_list,因为有些内容在多个文件里同时存在
                             Catalog_Dictionary[key].append(Index_list)#注意是以列表的形式添加到列表的值中
                         else:
-                            Catalog_Dictionary[key] = Index_list
+                            Catalog_Dictionary[key] = [Index_list]#注意是以列表的形式添加到列表的值中
                 wb.close()  # 关闭工作簿
 
 
@@ -1917,7 +1907,7 @@ def Check_wrong_Main():
                         if key in Catalog_Dictionary: #如果key已经存在，就在key对应的value里添加Index_list,因为有些内容在多个文件里同时存在
                             Catalog_Dictionary[key].append(Index_list)#注意是以列表的形式添加到列表的值中
                         else:
-                            Catalog_Dictionary[key] = Index_list
+                            Catalog_Dictionary[key] = [Index_list]#注意是以列表的形式添加到列表的值中
                 wb.close()  # 关闭工作簿
         
             
