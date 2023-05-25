@@ -11,25 +11,11 @@
 > [教程视频](https://www.bilibili.com/video/BV18c411K7WN) [下载地址](https://github.com/NEKOparapa/AiNiee-chatgpt/releases)
 # 🏕️ 环境支持
 ***
- * ℹ️要使用本工具您必须需要`🐍Python3环境` `🟪好用的魔法工具` `🔵Mtool/🔴Translator++` `🤖Chat-GPT`的支持
- 
-# 💡 提醒&帮助&常见问题建议
- ***
- * **`🐍Python3环境`**:您可以在[🐍Python官网](https://www.python.org/downloads/windows/)下载合适的版本进行安装,我们建议安装3.10及以上的版本,同时我们建议也不要安装3.8版本,可能出现会**无法兼容**的问题(群友反馈)
-   >  🐍Python使用的AI相关库和UI相关库:`openai` `PyQt5` `PyQt-Fluent-Widgets[full]` `openpyxl` `sentence-transformers`
-   
-   您可以使用`Cmd` `PowerShell`等Shell**进入项目目录**运行以下命令通过`清华源`以安装相关依赖(注意不要直接使用pip进行install,因为可能导致**Fatal error in launcher: Unable to create process using pip问题❗❗❗**的发生),也可以运行我们的`自动依赖安装脚本`,相关介绍放在后文
-   ``` 
-   python3 -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
-   ```
    
  * **`🟪好用的魔法工具`**:我们**强烈建议**您选择优质稳定的代理工具,不然api接口会频繁报错无法连接,错误代码443或者一直没有回复
  * **`🔵Mtool/🔴Translator++`**:[🔵Mtool下载地址](https://afdian.net/a/AdventCirno?tab=feed)  [🔴Translator++下载地址](https://dreamsavior.net/download/)[🔴Translator++ Github简体中文文档地址](https://github.com/zyf722/TranslatorPlusPlusChineseWiki)
    > 两者免费版本就可以,新人推荐Mtool,如果希望能够自行校正,构建用户词典,获得更好的翻译效果,推荐Translator++
 * **`🤖Chat-GPT`**:建议您新建一个API_Key,并且最好在使用期间不要和其他程序一起使用,不然容易达到请求次数限制,现在有很多店铺卖10-30的120美元余额的key或者账号,可以翻译十几个游戏（我们没有店铺,不提供任何代购帮助）
-* **`💾IDE软件`**:我们建议您使用`VScode` `pycharm` 等软件[VScode下载地址](https://code.visualstudio.com/)
-* <b>😏经过几个版本的优化,从以前的翻译1mb大小json文件花费3刀左右,已经减少到1.5刀左右,所以大家在进行翻译前,掂量一下自己的账号余额</b>
-* <b>特别注意,在翻译到最后99%时,因为要处理难翻译的文本,所以要处理蛮长一段时间,输出日志更新很慢,要保持耐心等待(除非频繁报错)</b>
 
 # 📝使用方法
 ***
