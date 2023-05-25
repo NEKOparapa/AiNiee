@@ -52,7 +52,6 @@
     > 正在进行翻译<br>
     ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/控制台正在翻译.png" width="400" height="300"><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/UI界面正在翻译.png" width="400" height="300">
    
-   😪这个过程比较煎熬,通常我翻译1mb的json文件,就得花一个小时左右,免费玩家就是这样的,而付费玩家,使用多线程功能,可以基本在20分钟左右翻译完成
 
     > 已经完成翻译<br>
     ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/控制台翻译完成.png" width="400" height="300"><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/UI界面翻译完成.png" width="400" height="300">
@@ -116,9 +115,9 @@
 ***
 * 虽然有点编程基础,但还是第一次用Python写程序,不是相关从业者,写法奇奇怪怪莫要怪。后续我不知道有没有时间去更新维护。既然已经开源了,就交给其他大佬了
 
-* 🤖AI酱实在太厉害啦,一边写一边问她,什么都能回答,帮我写,帮我改bug,heart,heart,heart。
+* AI酱实在太厉害啦,一边写一边问她,什么都能回答,帮我写,帮我改bug,heart,heart,heart。
 
-* 建了一个📮QQ交流群821624890,群里只用于反应bug,功能建议,以及prompt词交流,不要分享各种游戏资源,发黄键镇
+* 建了一个QQ交流群821624890,群里只用于反应bug,功能建议,以及prompt词交流,不要分享各种游戏资源,发黄键镇
 
 # 🧉 A酱也小BB一下
 ***
