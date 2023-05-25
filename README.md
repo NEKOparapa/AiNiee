@@ -130,7 +130,7 @@
 * 希望大家有机会也来我仓库玩玩(x
 # 🧰 类似工具
 ***
- * 一个根据MTool导出其翻译结果用GPT翻译的项目
+ * GPT-Translator 是一款前后端分离基于 OpenAI 的高效翻译软件。
 https://github.com/XHXJ/json-GPT-translator
 
  * 对已解包的GalGame脚本文件实行ChatGPT自动化翻译
