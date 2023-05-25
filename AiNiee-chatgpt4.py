@@ -363,90 +363,96 @@ def divide_by_2345(num):
 #备份翻译数据函数
 def File_Backup(subset_mid,response_content):
 
+    try:#方便排查子线程bug
+        #进行Mtool的备份
+        if Running_status == 2 or Running_status == 4:
+            # 将存放译文的字典的key改回去
+            TS_Backup = {}
+            for i, key in enumerate(source.keys()):     # 使用enumerate()遍历source字典的键，并将其替换到result_dict中
+                TS_Backup[key] = result_dict[i]   #在新字典中创建新key的同时把result_dict[i]的值赋予到key对应的值上
 
-    #进行Mtool的备份
-    if Running_status == 2 or Running_status == 4:
-        # 将存放译文的字典的key改回去
-        TS_Backup = {}
-        for i, key in enumerate(source.keys()):     # 使用enumerate()遍历source字典的键，并将其替换到result_dict中
-            TS_Backup[key] = result_dict[i]   #在新字典中创建新key的同时把result_dict[i]的值赋予到key对应的值上
+            #根据翻译状态列表，提取已经翻译的内容和未翻译的内容
+            TrsData_Backup = {}
+            ManualTransFile_Backup = {}
+            list_Backup = list(TS_Backup.keys()) #将字典的key转换成列表,之前在循环里转换，结果太吃资源了，程序就卡住了
 
-         #根据翻译状态列表，提取已经翻译的内容和未翻译的内容
-        TrsData_Backup = {}
-        ManualTransFile_Backup = {}
-        list_Backup = list(TS_Backup.keys()) #将字典的key转换成列表,之前在循环里转换，结果太吃资源了，程序就卡住了
+            for i, status in enumerate(Translation_Status_List):
+                if status == 1:
+                    key = list_Backup[i]
+                    TrsData_Backup[key] = TS_Backup[key]
+                else:
+                    key = list_Backup[i]
+                    ManualTransFile_Backup[key] = TS_Backup[key]
 
-        for i, status in enumerate(Translation_Status_List):
-            if status == 1:
-                key = list_Backup[i]
-                TrsData_Backup[key] = TS_Backup[key]
-            else:
-                key = list_Backup[i]
-                ManualTransFile_Backup[key] = TS_Backup[key]
+            #写入已翻译好内容的文件
+            with open(os.path.join(Backup_folder, "TrsData.json"), "w", encoding="utf-8") as f100:
+                json.dump(TrsData_Backup, f100, ensure_ascii=False, indent=4)
 
-        #写入已翻译好内容的文件
-        with open(os.path.join(Backup_folder, "TrsData.json"), "w", encoding="utf-8") as f100:
-            json.dump(TrsData_Backup, f100, ensure_ascii=False, indent=4)
+            #写入未翻译好内容的文件
+            with open(os.path.join(Backup_folder, "ManualTransFile.json"), "w", encoding="utf-8") as f200:
+                json.dump(ManualTransFile_Backup, f200, ensure_ascii=False, indent=4)
 
-        #写入未翻译好内容的文件
-        with open(os.path.join(Backup_folder, "ManualTransFile.json"), "w", encoding="utf-8") as f200:
-            json.dump(ManualTransFile_Backup, f200, ensure_ascii=False, indent=4)
+        #进行Tpp的备份
+        elif Running_status == 3 or Running_status == 5:
 
-    #进行Tpp的备份
-    elif Running_status == 3 or Running_status == 5:
-
-        #构建一个字典，用来合并这次翻译任务的原文与译文
-        response_content_dict = json.loads(response_content) #注意转化为字典的数字序号key是字符串类型 
-        Check_dict = {}
-        for i in range(len(subset_mid)):
-            Check_dict[subset_mid[i]] = response_content_dict[str(i)]
-
-
-        #构造文件夹路径
-        data_Backup_path = os.path.join(Backup_folder, 'data')
-        #遍历check_dict每一个key
-        for key in Check_dict:
-            #如果key在Catalog_Dictionary字典的key中
-            if key in Catalog_Dictionary:
-                #获取key对应的value作为文件名和行数索引
-                Index  = Catalog_Dictionary[key]
-                file_name = Index[0]
-                row_index = Index[1]
-                #构造文件路径
-                file_path = os.path.join(data_Backup_path, file_name)
-                #打开工作簿
-                wb = load_workbook(file_path)
-                #获取活动工作表
-                ws = wb.active
-                #将译文写入到对应的行的第二列中
-                ws.cell(row=row_index, column=2, value = Check_dict[key])
-                #保存工作簿
-                wb.save(file_path)
-                #关闭工作簿
-                wb.close()
-
-                if len(Index) != 2: #如果Index的长度不等于2，说明后面仍有索引值，需要将后面所有的索引值都写入
-                    for i in range(2,len(Index)):
-                        file_name2 = Index[i][0]
-                        row_index2 = Index[i][1]
-                        #构造文件路径
-                        file_path = os.path.join(data_Backup_path, file_name2)
-                        #打开工作簿
-                        wb = load_workbook(file_path)
-                        #获取活动工作表
-                        ws = wb.active
-                        #将译文写入到对应的行的第二列中
-                        ws.cell(row=row_index2, column=2, value = Check_dict[key])
-                        #保存工作簿
-                        wb.save(file_path)
-                        #关闭工作簿
-                        wb.close()
+            #构建一个字典，用来合并这次翻译任务的原文与译文
+            response_content_dict = json.loads(response_content) #注意转化为字典的数字序号key是字符串类型 
+            Check_dict = {}
+            for i in range(len(subset_mid)):
+                Check_dict[subset_mid[i]] = response_content_dict[str(i)]
 
 
-    #假如退出了翻译状态则退出函数
-    elif Running_status == 0 :
-        return 
-    
+            #构造文件夹路径
+            data_Backup_path = os.path.join(Backup_folder, 'data')
+            #遍历check_dict每一个key
+            for key in Check_dict:
+                #如果key在Catalog_Dictionary字典的key中
+                if key in Catalog_Dictionary:
+                    #获取key对应的value作为文件名和行数索引
+                    Index  = Catalog_Dictionary[key]
+                    file_name = Index[0]
+                    row_index = Index[1]
+                    #构造文件路径
+                    file_path = os.path.join(data_Backup_path, file_name)
+                    #打开工作簿
+                    wb = load_workbook(file_path)
+                    #获取活动工作表
+                    ws = wb.active
+                    #将译文写入到对应的行的第二列中
+                    ws.cell(row=row_index, column=2, value = Check_dict[key])
+                    #保存工作簿
+                    wb.save(file_path)
+                    #关闭工作簿
+                    wb.close()
+
+                    if len(Index) != 2: #如果Index的长度不等于2，说明后面仍有索引值，需要将后面所有的索引值都写入
+                        for i in range(2,len(Index)):
+                            file_name2 = Index[i][0]
+                            row_index2 = Index[i][1]
+                            #构造文件路径
+                            file_path = os.path.join(data_Backup_path, file_name2)
+                            #打开工作簿
+                            wb = load_workbook(file_path)
+                            #获取活动工作表
+                            ws = wb.active
+                            #将译文写入到对应的行的第二列中
+                            ws.cell(row=row_index2, column=2, value = Check_dict[key])
+                            #保存工作簿
+                            wb.save(file_path)
+                            #关闭工作簿
+                            wb.close()
+
+
+        #假如退出了翻译状态则退出函数
+        elif Running_status == 0 :
+            return 
+        
+    #子线程抛出错误信息
+    except Exception as e:
+        print("\033[1;31mError:\033[0m 实时备份出现问题！错误信息如下")
+        print(f"Error: {e}\n")
+
+        return
 
 #读写配置文件config.json函数
 def Read_Write_Config(mode):
