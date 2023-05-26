@@ -363,6 +363,10 @@ def divide_by_2345(num):
 #备份翻译数据函数
 def File_Backup(subset_mid,response_content):
 
+    #记录备份开始时间
+    start_time = time.time()
+    print("[INFO] 开始备份---------------------------：")
+
     try:#方便排查子线程bug
         #进行Mtool的备份
         if Running_status == 2 or Running_status == 4:
@@ -417,26 +421,38 @@ def File_Backup(subset_mid,response_content):
                         file_name = Index[i][0]
                         row_index = Index[i][1]
 
+                        #将file_name作为key，row_index与Backup_dict[key]组成列表作为value，存入Catalog_file字典
+                        if file_name in Catalog_file:
+                            Catalog_file[file_name].append([row_index,Backup_dict[key]])
+                        else:
+                            Catalog_file[file_name] = [[row_index,Backup_dict[key]]]
+
+            #print ("[DEBUG] Catalog_file字典的内容是：",Catalog_file,'\n')
+
+            #遍历Catalog_file字典的key，以key作为文件名，打开响应文件，并将value写入文件
+            for key in Catalog_file:
+                #构造文件路径
+                file_path = os.path.join(data_Backup_path, key)
+                #打开工作簿
+                wb = load_workbook(file_path)
+                #获取活动工作表
+                ws = wb.active
+                #提取key对应value里每个行数已经对应译文写入到对应的行的第二列中
+                for i in range(0,len(Catalog_file[key])):
+                    row_index = Catalog_file[key][i][0]
+                    ws.cell(row_index, 2).value = Catalog_file[key][i][1]
 
 
-                        #构造文件路径
-                        file_path = os.path.join(data_Backup_path, file_name)
-                        #打开工作簿
-                        wb = load_workbook(file_path)
-                        #获取活动工作表
-                        ws = wb.active
-                        #将译文写入到对应的行的第二列中
-                        ws.cell(row=row_index, column=2, value = Backup_dict[key])
-                        #保存工作簿
-                        wb.save(file_path)
-                        #关闭工作簿
-                        wb.close()
+                #保存工作簿
+                wb.save(file_path)
+                #关闭工作簿
+                wb.close()
+                
+        #记录备份结束时间
+        end_time = time.time()
+        print("[INFO] 备份用时：",round(end_time - start_time, 2))
+        print("[INFO] 备份完成---------------------------：",'\n')
 
-
-        #假如退出了翻译状态则退出函数
-        elif Running_status == 0 :
-            return 
-        
     #子线程抛出错误信息
     except Exception as e:
         print("\033[1;31mError:\033[0m 实时备份出现问题！错误信息如下")
@@ -1565,8 +1581,9 @@ def Make_request():
                 #改变等待线程数
                 if waiting_threads > 0 :
                     waiting_threads = waiting_threads - 1 
-                #计算请求消耗时间
-                Request_consumption_time =  round(time.time() - Start_request_time, 2)
+                #记录AI回复的时间
+                response_time = time.time()
+                Request_consumption_time =  round(response_time - Start_request_time, 2)
                 lock5.release()  # 释放锁     
 
                 response_content = response['choices'][0]['message']['content'] 
@@ -1685,7 +1702,7 @@ def Make_request():
                             #计算v中的日文、中文,韩文，英文字母的个数
                             A,S,D,F = count_japanese_chinese_korean(v)
                             #如果日文、中文的个数相差较大，则错误+1
-                            if abs((Q+W+E+R) - (A+S+D+F)) > 8: 
+                            if abs((Q+W+E+R) - (A+S+D+F)) > 9: 
                                 error_count += 1
 
 
