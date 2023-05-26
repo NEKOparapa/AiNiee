@@ -2328,9 +2328,11 @@ def Make_request_Embeddings():
                 #从i开始，循环获取source_or_dict与source_tr_dict的value值，并进行tokens计算，直到达到单次请求的最大值7090
                 tokens_consume = 0
                 for j in range(i,len(Embeddings_Status_List)):
-                    tokens_consume = tokens_consume + num_tokens_from_messages(source_or_dict[j], "text-embedding-ada-002") + num_tokens_from_messages(source_tr_dict[j], "text-embedding-ada-002")
-                    if tokens_consume > 7090:
+                    tokens_consume_j = num_tokens_from_messages(source_or_dict[j], "text-embedding-ada-002") + num_tokens_from_messages(source_tr_dict[j], "text-embedding-ada-002")
+                    tokens_consume = tokens_consume + tokens_consume_j
+                    if tokens_consume > 7090: 
                         end = j #确定切割结束位置
+                        tokens_consume = tokens_consume - tokens_consume_j #减去最后一次的tokens消耗
                         break
                     else:
                         end = j + 1 #确定切割结束位置
