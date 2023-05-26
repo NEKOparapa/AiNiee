@@ -95,7 +95,7 @@
     if (this.tags.includes("red")) this.cells[1]=this.cells[0];
   }
   ```
-    > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/处理错误1.png" width="400" height="300"> | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/处理错误1.png" width="400" height="300">
+    > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/处理错误1.png" width="400" height="300"> | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Tpp/处理错误2.png" width="400" height="300">
   
    > 3.查看左边文件有哪个没有到达百分百的,寻找到空行并自行翻译
   
