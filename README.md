@@ -53,11 +53,11 @@
     >`输出文件夹`: 选择翻译后文件的存储文件夹<br>
 * 3-2.🖱️点击**开始翻译**按钮,看控制台输出日志或者进度条。之后等待翻译进度到百分百,自动生成翻译好的文件Tradata.json在输出文件夹中
     > 正在进行翻译<br>
-    ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/控制台正在翻译.png" width="400" height="300"> | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/UI界面正在翻译.png" width="400" height="300">
+    > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/UI界面正在翻译.png" width="400" height="300">
    
 
     > 已经完成翻译<br>
-    ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/控制台翻译完成.png" width="400" height="300"> | <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/UI界面翻译完成.png" width="400" height="300">
+    ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/UI界面翻译完成.png" width="400" height="300">
 
    回到`🔵Mtool`工具,依然在翻译功能界面,选择加载翻译文件,选择Tradata.json文件即可
     > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/导入译文.png" width="400" height="300"> 
