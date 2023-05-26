@@ -111,7 +111,7 @@
   
   
 * `🔵Mtool项目的实时备份功能`
-  >进行`🔵Mtool项目`翻译时,运行中会实时输出`TrsData.json`和`ManualTransFile.json`存储在`Backup Folder文件夹`里,`Backup Folder文件夹`里面的`ManualTransFile.json`是还没有翻译的数据,`TrsData.json`是现在已经翻译好的数据。如果因为意外中断了,把文件夹里的文件A(`TrsData.json`)放置其他地方保存,再选择备份文件夹里面的`ManualTransFile.json`开始翻译,生成新的文件B(`TrsData.json`),然后把文件B里的数据复制粘贴到文件A里面
+  >进行`🔵Mtool项目`翻译时,运行中会实时输出`TrsData.json`和`ManualTransFile.json`存储在`Backup Folder文件夹`里,文件夹里面的`ManualTransFile.json`是还没有翻译的数据,`TrsData.json`是现在已经翻译好的数据。如果因为意外中断了,把文件夹里的文件A(`TrsData.json`)放置其他地方保存,再选择备份文件夹里面的`ManualTransFile.json`开始翻译,生成新的文件B(`TrsData.json`),然后把文件B里的数据复制粘贴到文件A里面。
   
 * `🔴Translator++项目的实时备份功能`
   >运行中会实时输出data文件夹存储在`Backup Folder文件夹`里,在每个表格里,如果原文文本已经被翻译,译文会写在第二列,如果没有被翻译,则第二列继续为空,所以出现意外时,可直接选择`备份文件夹里data文件夹`来继续翻译 
