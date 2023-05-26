@@ -1529,10 +1529,10 @@ def Make_request():
                     Number_of_requested = Number_of_requested + 1
                     #记录等待线程数
                     waiting_threads = waiting_threads + 1
-                    print("\033[1;34m[INFO]\033[0m 当前等待AI回复的线程数：",waiting_threads)
+                    print("\033[1;34m[INFO]\033[0m 当前等待AI回复的子线程数：",waiting_threads)
                     #记录当前子线程数量
                     num_threads = threading.active_count() - 2  # 减去主线程和副线程
-                    print("\033[1;34m[INFO]\033[0m 当前正在进行任务的线程数：", num_threads,'\n','\n')
+                    print("\033[1;34m[INFO]\033[0m 当前正在进行任务的子线程数：", num_threads,'\n','\n')
                     #记录开始请求时间
                     Start_request_time = time.time()
 
@@ -1608,9 +1608,9 @@ def Make_request():
 
                 print("[INFO] 已成功接受到AI的回复-----------------------")
                 print("[INFO] 该次请求已消耗等待时间：",Request_consumption_time,"秒")
-                print("\033[1;34m[INFO]\033[0m 当前仍在等待AI回复的线程数：",waiting_threads)
+                print("\033[1;34m[INFO]\033[0m 当前仍在等待AI回复的子线程数：",waiting_threads)
                 num_threads = threading.active_count() - 2  # 减去主线程和副线程
-                print("\033[1;34m[INFO]\033[0m 当前正在进行任务的线程数：", num_threads)
+                print("\033[1;34m[INFO]\033[0m 当前正在进行任务的子线程数：", num_threads)
                 #print("[INFO] 此次请求往返消耗的总tokens：",total_tokens_used )
                 print("[INFO] 此次请求往返消耗的总金额：",The_round_trip_cost )
                 print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
@@ -2352,7 +2352,7 @@ def Make_request_Embeddings():
                         tokens_consume = tokens_consume - tokens_consume_j #减去最后一次的tokens消耗
                         break
                     else:
-                        end = j + 1 #确定切割结束位置
+                        end = j + 1 #到data的最后一行时，end的值为最后一行的索引值加1
                 break
         
         #修改嵌入状态列表位置状态为嵌入中
