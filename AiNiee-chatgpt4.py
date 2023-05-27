@@ -2100,8 +2100,8 @@ def Check_wrong_Main():
 
         #计算符号相似度----------------------------------------
         # 用正则表达式匹配原文与译文中的标点符号
-        k_syms = re.findall(r'[。！？…♡♥=★]', sentences[0])
-        v_syms = re.findall(r'[。！？…♡♥=★]', sentences[1])
+        k_syms = re.findall(r'[。！？…♡♥=★♪]', sentences[0])
+        v_syms = re.findall(r'[。！？…♡♥=★♪]', sentences[1])
 
         #假如v_syms与k_syms都不为空
         if len(v_syms) != 0 and len(k_syms) != 0:
@@ -2181,8 +2181,6 @@ def Check_wrong_Main():
         #输出遍历进度，转换成百分百进度
         print("[INFO] 当前检查进度：", round((i+1)/keyList_len*100,2), "% \n")
 
-        #暂停五秒
-        #time.sleep(3)
 
         #创建格式化字符串，用于存储每对翻译相似度计算过程日志
         if log_count <=  10000 :#如果log_count小于等于10000,避免太大
@@ -2347,6 +2345,9 @@ def Make_request_Embeddings():
     
     global source_or_dict,source_tr_dict,Embeddings_Status_List,Semantic_similarity_list,Translation_Progress,money_used
 
+    start_time = time.time()
+    timeout = 850  # 设置超时时间为x秒
+
     try:#方便排查子线程bug
 
         # ——————————————————————————————————————————确定编码位置——————————————————————————————————————————
@@ -2398,7 +2399,14 @@ def Make_request_Embeddings():
             #检查主窗口是否已经退出---------------------------------
             if Running_status == 10 :
                 return
-        
+            
+
+            #检查子线程是否超时---------------------------------
+            if time.time() - start_time > timeout:
+                # 超时退出
+                print("\033[1;31mError:\033[0m 子线程执行任务已经超时，将暂时取消本次任务")
+                break
+
             # 检查是否符合速率限制---------------------------------
             if api_tokens.consume(tokens_consume ) and api_request.send_request():
 
