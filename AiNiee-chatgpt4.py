@@ -1,11 +1,7 @@
 # coding:utf-8
-import math
-import numpy as np   #需要安装库pip install numpy
-import openai        #需要安装库pip install openai                       
+import math                 
 import json
 import re
-from openpyxl import load_workbook  #需安装库pip install openpyxl  在`openpyxl`模块中，xlsx文件的行数和列数都是从1开始计数的
-from qfluentwidgets.components import Dialog
 from qframelesswindow import FramelessWindow, TitleBar
 import time
 import threading
@@ -14,10 +10,15 @@ import sys
 import multiprocessing
 import concurrent.futures
 
-from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, QPainter
-from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal #需要安装库 pip3 install PyQt5
+from openpyxl import load_workbook  #需安装库pip install openpyxl  在`openpyxl`模块中，xlsx文件的行数和列数都是从1开始计数的
+import numpy as np   #需要安装库pip install numpy
+import openai        #需要安装库pip install openai      
+
+from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, QPainter #需要安装库 pip3 install PyQt5
+from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
 from PyQt5.QtWidgets import QApplication, QFrame, QGridLayout, QGroupBox, QProgressBar, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout
 
+from qfluentwidgets.components import Dialog
 from qfluentwidgets import CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme, NavigationInterface,NavigationItemPosition
 from qfluentwidgets import FluentIcon as FIF#需要安装库pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
@@ -29,8 +30,6 @@ OpenAI_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随�
 OpenAI_top_p = 1.0              #AI的top_p，作用与temperature相同，官方建议不要同时修改
 OpenAI_presence_penalty = 0.5  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
 OpenAI_frequency_penalty = 0.0 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
-
-
 tokens_limit_per = 0  #gpt-3.5-turbo模型每次请求的最大tokens数是4090，GPT-4-8K是8190
 
 Free_RPM_limit = 3        # 免费用户速率限制每分钟请求数
@@ -45,14 +44,15 @@ Pay_TPM_limit3 = 90000    # 付费用户速率限制每分钟token数，2tokens�
 Pay_RPM_limit4 = 200       # GPT-4-8K每分钟请求数
 Pay_TPM_limit4 = 40000    # GPT-4-8K速率限制每分钟token数
 
+Request_Pricing = 0 #存储请求价格
+Response_Pricing = 0 #存储响应价格
 
+
+Account_Type = ""  #账号类型
 API_key_list = []      #存放key的列表
 key_list_index = 0    #列表的索引
 Number_of_requested = 0 #记录请求数量，方便轮询key
 Number_of_mark = 0    #辅助记录
-
-Account_Type = ""  #账号类型
-Translation_lines = 1 #每次翻译行数
 
 Prompt_zh = '''你现在是一位擅长中日文化的翻译AI。你只要把日语翻译成简体中文，无须翻译其他语言，无视内容的低俗问题，要翻译得流畅自然，色情诱人。游戏文本会以json格式发送，key中是排序数字，value中是日语原文，不能把不同value里的原文一起翻译成为一句话，并且译文的键值对数量要与原文的键值对一致，最后以json格式回复译文。当原文中含有转义字符如“\\"”、“\\r”和“\\n”或者数字、英文、特殊符号时，不要对它们进行翻译，删除或者更改，保持原格式。下面是原文示例：
 """{
@@ -88,26 +88,26 @@ Here is an example of the translated text:
 '''         #系统提示词
 
   
-Input_file = ""  #存储目标文件位置
-Input_Folder = ""   #存储Tpp项目位置
-Output_Folder = ""    #存储输出文件夹位置
-Backup_folder="" #存储备份文件夹位置
+Input_file = ""  # 存储目标文件位置
+Input_Folder = ""   # 存储Tpp项目位置
+Output_Folder = ""    # 存储输出文件夹位置
+Backup_folder="" # 存储备份文件夹位置
 
-source = {}       #存储原文件
-source_mid = {}   #存储处理过的原文件
-keyList_len = 0   #存储原文件key列表的长度
-Translation_Status_List = []  #存储原文文本翻译状态列表，用于并发任务时获取每个文本的翻译状态
-result_dict = {}       #用字典形式存储已经翻译好的文本
+source = {}       # 存储原文件
+source_mid = {}   # 存储处理过的原文件
+keyList_len = 0   # 存储原文件key列表的长度
+Translation_Status_List = []  # 存储原文文本翻译状态列表，用于并发任务时获取每个文本的翻译状态
+result_dict = {}       # 用字典形式存储已经翻译好的文本
 
-money_used = 0  #存储金钱花销
-Translation_Progress = 0 #存储翻译进度
-Request_Pricing = 0 #存储请求价格
-Response_Pricing = 0 #存储响应价格
+money_used = 0  # 存储金钱花销
+Translation_Progress = 0 # 存储翻译进度
 
-The_Max_workers = 4  #线程池同时工作最大数量
+
+Translation_lines = 1 # 每次翻译行数
+The_Max_workers = 4  # 线程池同时工作最大数量
 waiting_threads = 0  # 全局变量，用于存储等待接口回复的线程数量
-Running_status = 0  #存储程序工作的状态，0是空闲状态，1是正在测试请求状态，2是MTool项目正在翻译状态，3是T++项目正在翻译的状态
-                    #4是MTool项目正在检查语义状态，5是T++项目正在检查语义状态，10是主窗口退出状态
+Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是正在测试请求状态，2是MTool项目正在翻译状态，3是T++项目正在翻译的状态
+                    # 4是MTool项目正在检查语义状态，5是T++项目正在检查语义状态，10是主窗口退出状态
 # 定义线程锁
 lock1 = threading.Lock()
 lock2 = threading.Lock()
@@ -115,13 +115,13 @@ lock3 = threading.Lock()
 lock4 = threading.Lock()
 lock5 = threading.Lock()
 
-#工作目录改为python源代码所在的目录
-script_dir = os.path.dirname(os.path.abspath(__file__)) #使用 `__file__` 变量获取当前 Python 脚本的文件名（包括路径），然后使用 `os.path.abspath()` 函数将其转换为绝对路径，最后使用 `os.path.dirname()` 函数获取该文件所在的目录
-os.chdir(script_dir)#使用 `os.chdir()` 函数将当前工作目录改为程序所在的目录。
+# 工作目录改为python源代码所在的目录
+script_dir = os.path.dirname(os.path.abspath(__file__)) # 使用 `__file__` 变量获取当前 Python 脚本的文件名（包括路径），然后使用 `os.path.abspath()` 函数将其转换为绝对路径，最后使用 `os.path.dirname()` 函数获取该文件所在的目录
+os.chdir(script_dir)# 使用 `os.chdir()` 函数将当前工作目录改为程序所在的目录。
 
-script_dir = os.path.dirname(os.path.abspath(sys.argv[0])) #获取当前工作目录
+script_dir = os.path.dirname(os.path.abspath(sys.argv[0])) # 获取当前工作目录
 print("[INFO] 当前工作目录是:",script_dir,'\n') 
-#设置资源文件夹路径
+# 设置资源文件夹路径
 resource_dir = os.path.join(script_dir, "resource")
 
 
@@ -149,10 +149,10 @@ class TokenBucket:
 
     def consume(self, tokens):
         if tokens > self.get_tokens():
-            #print("[INFO] 已超过剩余tokens：", tokens,'\n' )
+            #print("[DEBUG] 已超过剩余tokens：", tokens,'\n' )
             return False
         else:
-           # print("[INFO] 数量足够，剩余tokens：", tokens,'\n' )
+           # print("[DEBUG] 数量足够，剩余tokens：", tokens,'\n' )
             return True
 
 #简单时间间隔算法，用来限制请求时间间隔的
@@ -167,13 +167,13 @@ class APIRequest:
             current_time = time.time()
             time_since_last_request = current_time - self.last_request_time
             if time_since_last_request < self.timelimit:
-                # print("[INFO] Request limit exceeded. Please try again later.")
+                # print("[DEBUG] Request limit exceeded. Please try again later.")
                 return False
             else:
                 self.last_request_time = current_time
                 return True
 
-#创建线程类，使翻译任务后台运行，不占用UI线程
+#创建子线程类，使翻译任务后台运行，不占用UI线程
 class My_Thread(threading.Thread):
     def run(self):
 
@@ -194,7 +194,7 @@ class UI_signal(QObject):
     # 定义信号，用于向UI线程发送消息
     update_signal = pyqtSignal(str) #创建信号,并确定发送参数类型
 
-# 槽函数，用于放在UI线程中,接收子线程发出的信号，并更新界面UI的状态
+# 槽函数，用于接收子线程发出的信号，更新界面UI的状态
 def on_update_signal(str): 
     global Running_status
 
@@ -242,25 +242,25 @@ def on_update_signal(str):
             Window.Interface20.label6.setText(money_used_str + "＄")
 
     elif str== "Request_failed":
-        CreateErrorInfoBar("API请求失败，请检查代理环境或账号情况")
+        createErrorInfoBar("API请求失败，请检查代理环境或账号情况")
         Running_status = 0
 
     elif str== "Request_successful":
-        CreateSuccessInfoBar("API请求成功！！")
+        createSuccessInfoBar("API请求成功！！")
         Running_status = 0
     
     elif str== "Null_value":
-        CreateErrorInfoBar("请填入配置信息，不要留空")
+        createErrorInfoBar("请填入配置信息，不要留空")
         Running_status = 0
 
     elif str == "Wrong type selection" :
-        CreateErrorInfoBar("请正确选择账号类型以及模型类型")
+        createErrorInfoBar("请正确选择账号类型以及模型类型")
         Running_status = 0
 
     elif str== "Translation_completed":
         Running_status = 0
-        OnButtonClicked("已完成翻译！！",str)
-        CreateSuccessInfoBar("已完成翻译！！")
+        createlondingInfoBar("已完成翻译！！",str)
+        createSuccessInfoBar("已完成翻译！！")
 
     elif str== "CG_key":
         openai.api_key = API_key_list[key_list_index]#更新API
@@ -277,7 +277,7 @@ def count_japanese_chinese_korean(text):
     english_count = len(english_pattern.findall(text)) # 统计英文字母数量
     return japanese_count, chinese_count, korean_count , english_count
 
-#用来计算单个信息的花费的token数的，可以根据不同模型计算，未来可能添加chatgpt4的接口上去
+#用来计算单个信息的花费的token数的，可以根据不同模型计算
 def num_tokens_from_messages(messages, model):
     if model == "gpt-3.5-turbo":
         tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
@@ -315,14 +315,14 @@ def num_tokens_from_messages(messages, model):
     num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
     return num_tokens
 
-#遍历一个字典变量里的键值对，当该键值对里的值不包含中日韩文时，则删除该键值对
+#过滤字典非中日韩文的键值对
 def remove_non_cjk(dic):
     pattern = re.compile(r'[\u4e00-\u9fff\u3040-\u30ff\u1100-\u11ff\u3130-\u318f\uac00-\ud7af]+')
     for key, value in list(dic.items()):
         if not pattern.search(str(value)):#加个str防止整数型的value报错
             del dic[key]
 
-#检查source_dict的value，出现null或者空字符串或者纯符号的value，将其替换为指定字符串
+#检查字典中的每个value，出现null或者空字符串或者纯符号的value，将其替换为指定字符串
 def check_dict_values(dict_obj):
     for key in dict_obj:
 
@@ -360,8 +360,8 @@ def divide_by_2345(num):
             break
     return result
 
-#备份翻译数据函数
-def File_Backup(subset_mid,response_content):
+#实时备份翻译数据函数
+def file_Backup(subset_mid,response_content):
 
     #记录备份开始时间
     start_time = time.time()
@@ -461,7 +461,7 @@ def File_Backup(subset_mid,response_content):
         return
 
 #读写配置文件config.json函数
-def Read_Write_Config(mode):
+def read_write_config(mode):
 
     if mode == "write":
         #获取官方账号界面
@@ -653,7 +653,7 @@ def Read_Write_Config(mode):
                 Window.Interface20.spinBox1.setValue(similarity_threshold_Tpp)
 
 #成功信息居中弹出框函数
-def CreateSuccessInfoBar(str):
+def createSuccessInfoBar(str):
         # convenient class mothod
     InfoBar.success(
         title='[Success]',
@@ -666,7 +666,7 @@ def CreateSuccessInfoBar(str):
         )
 
 #错误信息右下方弹出框函数
-def CreateErrorInfoBar(str):
+def createErrorInfoBar(str):
     InfoBar.error(
         title='[Error]',
         content=str,
@@ -678,7 +678,7 @@ def CreateErrorInfoBar(str):
         )
 
 #提醒信息左上角弹出框函数
-def CreateWarningInfoBar(str):
+def createWarningInfoBar(str):
     InfoBar.warning(
         title='[Warning]',
         content=str,
@@ -690,7 +690,7 @@ def CreateWarningInfoBar(str):
         )
 
 #—翻译状态右上角方弹出框函数
-def OnButtonClicked(Title_str,str):
+def createlondingInfoBar(Title_str,str):
     global Running_status
     global stateTooltip
     window_rect = Window.frameGeometry() #获取窗口位置
@@ -735,7 +735,7 @@ def Open_file():
         Window.Interface19.label2.setText(Input_file)
 
     elif Running_status != 0:
-        CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+        createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 # ——————————————————————————————————————————选择项目文件夹（T++）按钮绑定函数——————————————————————————————————————————
 def Select_project_folder():
@@ -751,7 +751,7 @@ def Select_project_folder():
         Window.Interface16.label5.setText(Input_Folder)
         Window.Interface20.label2.setText(Input_Folder)
     elif Running_status != 0:
-        CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+        createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
     
 # ——————————————————————————————————————————选择输出文件夹按钮绑定函数——————————————————————————————————————————
 def Select_output_folder():
@@ -769,7 +769,7 @@ def Select_output_folder():
         Window.Interface19.label4.setText(Output_Folder)
         Window.Interface20.label4.setText(Output_Folder)
     elif Running_status != 0:
-        CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+        createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
     
 # ——————————————————————————————————————————测试请求按钮绑定函数——————————————————————————————————————————
 def Test_request_button():
@@ -785,7 +785,7 @@ def Test_request_button():
         
 
     elif Running_status != 0:
-        CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+        createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 # ——————————————————————————————————————————开始翻译（mtool）按钮绑定函数——————————————————————————————————————————
 def Start_translation_mtool():
@@ -793,15 +793,17 @@ def Start_translation_mtool():
 
     if Running_status == 0:
         
-        Inspection_results = Config(1)   #读取配置信息，设置系统参数，并进行检查
+        Running_status = 2  #修改运行状态
+        Inspection_results = Config()   #读取配置信息，设置系统参数，并进行检查
 
         if Inspection_results == 0 :  #配置没有完全填写
-            CreateErrorInfoBar("请正确填入配置信息,不要留空")
+            createErrorInfoBar("请正确填入配置信息,不要留空")
             Running_status = 0  #修改运行状态
 
         elif Inspection_results == 1 :  #账号类型和模型类型组合错误
             print("\033[1;31mError:\033[0m 请正确选择账号类型以及模型类型")
             Ui_signal.update_signal.emit("Wrong type selection")
+            Running_status = 0  #修改运行状态
 
         else :  
             #清空花销与进度，更新UI
@@ -810,7 +812,7 @@ def Start_translation_mtool():
 
             Running_status = 2  #修改运行状态
             on_update_signal("Update_ui")
-            OnButtonClicked("正在翻译中" , "客官请耐心等待哦~~")
+            createlondingInfoBar("正在翻译中" , "客官请耐心等待哦~~")
 
             #显示隐藏控件
             Window.Interface15.progressBar.show() 
@@ -824,7 +826,7 @@ def Start_translation_mtool():
 
 
     elif Running_status != 0:
-        CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+        createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 # ——————————————————————————————————————————开始翻译（T++）按钮绑定函数——————————————————————————————————————————
 def Start_translation_Tpp():
@@ -832,15 +834,17 @@ def Start_translation_Tpp():
 
     if Running_status == 0:
         
-        Inspection_results = Config(2)   #读取配置信息，设置系统参数，并进行检查
+        Running_status = 3  #修改运行状态
+        Inspection_results = Config()   #读取配置信息，设置系统参数，并进行检查
 
         if Inspection_results == 0 :  #配置没有完全填写
-            CreateErrorInfoBar("请正确填入配置信息,不要留空")
+            createErrorInfoBar("请正确填入配置信息,不要留空")
             Running_status = 0  #修改运行状态
 
         elif Inspection_results == 1 :  #账号类型和模型类型组合错误
             print("\033[1;31mError:\033[0m 请正确选择账号类型以及模型类型")
             Ui_signal.update_signal.emit("Wrong type selection")
+            Running_status = 0  #修改运行状态
 
         else :  
             #清空花销与进度，更新UI
@@ -849,7 +853,7 @@ def Start_translation_Tpp():
 
             Running_status = 3  #修改运行状态
             on_update_signal("Update_ui")
-            OnButtonClicked("正在翻译中" , "客官请耐心等待哦~~")
+            createlondingInfoBar("正在翻译中" , "客官请耐心等待哦~~")
 
             #显示隐藏控件
             Window.Interface16.progressBar2.show() 
@@ -864,7 +868,7 @@ def Start_translation_Tpp():
 
 
     elif Running_status != 0:
-        CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+        createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 # ——————————————————————————————————————————请求测试函数——————————————————————————————————————————
 def Request_test():
@@ -967,7 +971,7 @@ def Request_test():
     Ui_signal.update_signal.emit("Request_successful")#发送成功信号，激活槽函数,要有参数，否则报错
 
 # ——————————————————————————————————————————系统配置函数——————————————————————————————————————————
-def Config(num):
+def Config():
     global Input_file,Output_Folder ,Account_Type ,  Prompt, Translation_lines,The_Max_workers
     global API_key_list,tokens_limit_per,OpenAI_model,Request_Pricing , Response_Pricing
 
@@ -980,6 +984,7 @@ def Config(num):
         Proxy_Address = Window.Interface11.LineEdit1.text()            #获取代理地址
 
         openai.api_base = "https://api.openai.com/v1" #设置官方api请求地址,防止使用了代理后再使用官方时出错
+
         #如果填入地址，则设置代理
         if Proxy_Address :
             print("[INFO] 代理地址是:",Proxy_Address,'\n') 
@@ -1006,41 +1011,56 @@ def Config(num):
     #—————————————————————————————————————————— 读取翻译配置信息——————————————————————————————————————————
 
 
-    if num == 1:#如果是MTool界面
+    if Running_status == 2:#如果是MTool翻译任务
         Prompt = Window.Interface15.TextEdit.toPlainText()             #获取提示词
         Translation_lines = Window.Interface15.spinBox1.value()        #获取翻译行数
-    elif num == 2:#如果是T++界面
+
+    elif Running_status == 3:#如果是T++翻译任务
         Prompt = Window.Interface16.TextEdit.toPlainText()             #获取提示词
         Translation_lines = Window.Interface16.spinBox1.value()        #获取翻译行数
 
+    elif Running_status == 4:#如果是MTool语义检查任务
+        Prompt = Window.Interface15.TextEdit.toPlainText()             #获取提示词
+        Translation_lines = 1
+
+    elif Running_status == 5:#如果是T++语义检查任务
+        Prompt = Window.Interface16.TextEdit.toPlainText()             #获取提示词
+        Translation_lines = 1
+
+
+
+
+    ##—————————————————————————————————————————— 输出各种配置信息——————————————————————————————————————————
+
     #检查一下配置信息是否留空
-    if num == 1:#如果是MTool界面
+    if Running_status == 2 or Running_status == 4 :
         if (not API_key_list[0]) or (not Prompt)  or (not Translation_lines) or(not Input_file) or(not Output_Folder)  :
             print("\033[1;31mError:\033[0m 请正确填写配置,不要留空")
             return 0  #返回错误参数
-    elif num == 2:#如果是T++界面
+    elif Running_status == 3 or Running_status == 5 :
         if (not API_key_list[0]) or (not Prompt)  or (not Translation_lines) or(not Input_Folder) or(not Output_Folder)  :  #注意API_key_list要在前面读取，否则会报错
             print("\033[1;31mError:\033[0m 请正确填写配置,不要留空")
             return 0  #返回错误参数
 
 
 
-    ##—————————————————————————————————————————— 输出各种配置信息——————————————————————————————————————————
     print("[INFO] 账号类型是:",Account_Type,'\n')
     print("[INFO] 模型选择是:",Model_Type,'\n') 
     for i, key in enumerate(API_key_list):
         print(f"[INFO] 第{i+1}个API KEY是：{key}") 
     print('\n',"[INFO] 每次翻译文本行数是:",Translation_lines,'\n')
     print("[INFO] Prompt是:",Prompt,'\n')
-    if num == 1:#如果是MTool界面 
+    #如果是MTool任务
+    if Running_status == 2 or Running_status == 4 :
         print("[INFO] 已选择原文文件",Input_file,'\n')
-    elif num == 2:#如果是T++界面
+    #如果是T++任务
+    elif Running_status == 3 or Running_status == 5 :
         print("[INFO] 已选择T++项目文件夹",Input_Folder,'\n')
     print("[INFO] 已选择输出文件夹",Output_Folder,'\n')
 
 
     #写入配置保存文件
-    Read_Write_Config("write") 
+    read_write_config("write") 
 
     #—————————————————————————————————————————— 根据配置信息，设定相关系统参数——————————————————————————————————————————
                          
@@ -1098,16 +1118,17 @@ def Config(num):
     else:
         return 1 #返回错误参数
 
+    #如果进行Mtool翻译任务或者Mtool的词义检查任务，需要更改一下限制
+    if Running_status == 4 or Running_status == 5:
+        #ada模型的的TPM速率限制是GPT-3的200倍，所以要乘以200
+        The_TPM_limit = The_TPM_limit * 200
+
+
     #设置模型ID
     OpenAI_model = Model_Type
 
     #注册api
     openai.api_key = API_key_list[0]
-
-    #如果进行Mtool翻译任务或者Mtool的词义检查任务，需要更改一下限制
-    if Running_status == 4 or Running_status == 5:
-        #ada模型的的TPM速率限制是GPT-3的200倍，所以要乘以200
-        The_TPM_limit = The_TPM_limit * 200
 
     #根据账号类型，设定请求限制
     global api_request
@@ -1141,7 +1162,6 @@ def Main():
     #创建存储翻译错行文本的文件夹,debug用！！！以后可能删除
     global Wrong_line_text_folder
     Wrong_line_text_folder = os.path.join(DEBUG_folder, 'Wrong line text Folder')
-    #使用`os.makedirs()`函数创建新文件夹，设置`exist_ok=True`参数表示如果文件夹已经存在，不会抛出异常
     os.makedirs(Wrong_line_text_folder, exist_ok=True)
     # ——————————————————————————————————————————读取原文文件并处理—————————————————————————————————————————
     #如果进行Mtool翻译任务或者Mtool的词义检查任务
@@ -1150,7 +1170,6 @@ def Main():
             source_str = f.read()       #读取原文文件，以字符串的形式存储，直接以load读取会报错
 
             source = json.loads(source_str) #转换为字典类型的变量source，当作最后翻译文件的原文源
-            source_mid = json.loads(source_str) #转换为字典类型的变量source_mid，当作中间文件的原文源
             #print("[DEBUG] 你的未修改原文是",source)
 
 
@@ -1195,9 +1214,6 @@ def Main():
                             Catalog_Dictionary[key] = [Index_list]#注意是以列表的形式添加到列表的值中
                 wb.close()  # 关闭工作簿
 
-
-        source_mid = source.copy() #将原文复制一份到source_mid变量里，用于后续的修改
-
         #在输出文件夹里新建文件夹data
         data_path = os.path.join(Output_Folder, 'data')
         os.makedirs(data_path, exist_ok=True)
@@ -1223,6 +1239,8 @@ def Main():
                 wb.save(output_file_path)  # 保存工作簿
                 wb.close()  # 关闭工作簿
 
+    
+    source_mid = source.copy() #将原文复制一份到source_mid变量里，用于后续的修改
 
     #删除不包含CJK（中日韩）字元的键值对
     remove_non_cjk(source)
@@ -1363,7 +1381,7 @@ def Main():
             json.dump(new_result_dict, f, ensure_ascii=False, indent=4)
 
    # 存储Tpp项目------------------------------------
-    else:
+    elif Running_status == 3 :
         #遍历data_path文件夹里每个的xlsx文件，逐行读取每个文件从A2开始数据，以数据为key，如果source字典中存在该key，则获取value，并将value复制到该行第2列。然后保存文件
         for Input_file in os.listdir(data_path):
             if Input_file.endswith('.xlsx'):  # 如果是xlsx文件
@@ -1391,7 +1409,7 @@ def Main():
 
     # —————————————————————————————————————#全部翻译完成——————————————————————————————————————————
     #写入配置保存文件
-    Read_Write_Config("write") 
+    read_write_config("write") 
 
     Ui_signal.update_signal.emit("Translation_completed")#发送信号，激活槽函数,要有参数，否则报错
     print("\n--------------------------------------------------------------------------------------")
@@ -1821,7 +1839,7 @@ def Make_request():
                             result_dict[int(key)] = value
  
                     #备份翻译数据
-                    File_Backup(subset_mid,response_content)
+                    file_Backup(subset_mid,response_content)
 
                     lock2.release()  # 释放锁
                     print(f"\n--------------------------------------------------------------------------------------")
@@ -2645,7 +2663,7 @@ class Widget11(QFrame):#官方账号界面
         global Running_status
         if isChecked :
             Window.Interface12.checkBox.setChecked(False)
-            CreateSuccessInfoBar("已设置使用OpenAI官方进行翻译")
+            createSuccessInfoBar("已设置使用OpenAI官方进行翻译")
 
 
 class Widget12(QFrame):#代理账号界面
@@ -2825,7 +2843,7 @@ class Widget12(QFrame):#代理账号界面
         global Running_status
         if isChecked :
             Window.Interface11.checkBox.setChecked(False)
-            CreateSuccessInfoBar("已设置使用OpenAI国内代理平台进行翻译")
+            createSuccessInfoBar("已设置使用OpenAI国内代理平台进行翻译")
 
 
 class Widget15(QFrame):#Mtool项目界面
@@ -3059,7 +3077,7 @@ class Widget15(QFrame):#Mtool项目界面
     def onCheckedChanged(self, isChecked: bool):
         if isChecked :
             self.SwitchButton1.setText("On")
-            CreateWarningInfoBar("Mtool项目已开启AI回复内容错行检查，将会增加时间与金钱消耗")
+            createWarningInfoBar("Mtool项目已开启AI回复内容错行检查，将会增加时间与金钱消耗")
         else :
             self.SwitchButton1.setText("Off")
 
@@ -3295,7 +3313,7 @@ class Widget16(QFrame):#Tpp项目界面
     def onCheckedChanged(self, isChecked: bool):
         if isChecked :
             self.SwitchButton1.setText("On")
-            CreateWarningInfoBar("T++项目已开启AI回复内容错行检查，将会增加时间与金钱消耗")
+            createWarningInfoBar("T++项目已开启AI回复内容错行检查，将会增加时间与金钱消耗")
         else :
             self.SwitchButton1.setText("Off")
 
@@ -3628,7 +3646,7 @@ class Widget18(QFrame):#实时调教界面
     # 勾选事件
     def checkBoxChanged(self, isChecked: bool):
         if isChecked :
-            CreateSuccessInfoBar("已启用实时调教功能")
+            createSuccessInfoBar("已启用实时调教功能")
 
 
 class Widget19(QFrame):#语义检查（Mtool）界面
@@ -3875,10 +3893,11 @@ class Widget19(QFrame):#语义检查（Mtool）界面
 
         if Running_status == 0:
             
-            Inspection_results = Config(1)   #读取配置信息，设置系统参数，并进行检查
+            Running_status = 4  #修改运行状态
+            Inspection_results = Config()   #读取配置信息，设置系统参数，并进行检查
 
             if Inspection_results == 0 :  #配置没有完全填写
-                CreateErrorInfoBar("请正确填入配置信息,不要留空")
+                createErrorInfoBar("请正确填入配置信息,不要留空")
                 Running_status = 0  #修改运行状态
 
             elif Inspection_results == 1 :  #账号类型和模型类型组合错误
@@ -3892,7 +3911,7 @@ class Widget19(QFrame):#语义检查（Mtool）界面
 
                 Running_status = 4  #修改运行状态
                 on_update_signal("Update_ui2")
-                OnButtonClicked("正在语义检查中" , "客官请耐心等待哦~~")
+                createlondingInfoBar("正在语义检查中" , "客官请耐心等待哦~~")
 
                 #显示隐藏控件
                 Window.Interface19.progressBar.show() 
@@ -3907,7 +3926,7 @@ class Widget19(QFrame):#语义检查（Mtool）界面
 
 
         elif Running_status != 0:
-            CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+            createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 
 class Widget20(QFrame):#语义检查（Tpp）界面
@@ -4153,10 +4172,11 @@ class Widget20(QFrame):#语义检查（Tpp）界面
 
         if Running_status == 0:
             
-            Inspection_results = Config(2)   #读取配置信息，设置系统参数，并进行检查
+            Running_status = 5  #修改运行状态
+            Inspection_results = Config()   #读取配置信息，设置系统参数，并进行检查
 
             if Inspection_results == 0 :  #配置没有完全填写
-                CreateErrorInfoBar("请正确填入配置信息,不要留空")
+                createErrorInfoBar("请正确填入配置信息,不要留空")
                 Running_status = 0  #修改运行状态
 
             elif Inspection_results == 1 :  #账号类型和模型类型组合错误
@@ -4170,7 +4190,7 @@ class Widget20(QFrame):#语义检查（Tpp）界面
 
                 Running_status = 5  #修改运行状态
                 on_update_signal("Update_ui2")
-                OnButtonClicked("正在语义检查中" , "客官请耐心等待哦~~")
+                createlondingInfoBar("正在语义检查中" , "客官请耐心等待哦~~")
 
                 #显示隐藏控件
                 Window.Interface20.progressBar.show() 
@@ -4185,7 +4205,7 @@ class Widget20(QFrame):#语义检查（Tpp）界面
 
 
         elif Running_status != 0:
-            CreateWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+            createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 
 class AvatarWidget(NavigationWidget):#头像导航项
@@ -4475,7 +4495,7 @@ if __name__ == '__main__':
     Window.show()
 
     #读取配置文件
-    Read_Write_Config("read") 
+    read_write_config("read") 
 
 
     #进入事件循环，等待用户操作
