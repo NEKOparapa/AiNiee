@@ -110,6 +110,8 @@
 * ` 多key轮询`
   >如果想使用多个key来分担消耗压力，简单加速，请使用同类型账号的key，而且输入时在每个key中间加上英文逗号，不要换行。
   
+* ` 配置迁移`
+  >配置信息都会存储在resource的config.json中，下载新版本可以把它复制到新版本的resource中。
   
 * `🔵Mtool项目的自动备份功能`
   >进行`🔵Mtool项目`翻译时,运行中会实时输出`TrsData.json`和`ManualTransFile.json`存储在`Backup Folder文件夹`里,文件夹里面的`ManualTransFile.json`是还没有翻译的数据,`TrsData.json`是现在已经翻译好的数据。如果因为意外中断了,把文件夹里的文件A(`TrsData.json`)放置其他地方保存,再选择备份文件夹里面的`ManualTransFile.json`开始翻译,生成新的文件B(`TrsData.json`),然后把文件B里的数据复制粘贴到文件A里面。
