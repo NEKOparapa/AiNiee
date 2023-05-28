@@ -266,6 +266,9 @@ def on_update_signal(str):
         Running_status = 0
         createlondingInfoBar("已完成翻译！！",str)
         createSuccessInfoBar("已完成翻译！！")
+    
+    elif str =="Manual backup in progress":
+        createWarningInfoBar("正在进行手动备份，请耐心等待！！")
 
     elif str== "Backup successful":
         createSuccessInfoBar("已成功完成手动备份！！")
@@ -472,7 +475,9 @@ def file_Backup(subset_mid,response_content):
 #手动备份翻译数据函数
 def Manually_backup_files (source,result_dict,Translation_Status_List):
     global Manual_Backup_Folder
-    
+    #开始备份提醒
+    Ui_signal.update_signal.emit("Manual backup in progress")
+
     try:#方便排查子线程bug
         #进行Mtool的备份
         if Running_status == 2 or Running_status == 4:
