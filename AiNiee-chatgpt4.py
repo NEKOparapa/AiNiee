@@ -3548,6 +3548,7 @@ class Widget17(QFrame):#备份设置界面
                         print(f'[INFO]  已选择手动备份文件夹: {Manual_Backup_Folder}')
                     else :
                         print('[INFO]  未选择文件夹')
+                        Manual_Backup_Status = 0 #修改手动备份状态为未进行中
                         return  # 直接返回，不执行后续操作
                     
                     #创建手动备份子线程
