@@ -19,11 +19,11 @@ from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QFrame, QGridLayout, QGroupBox, QProgressBar, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout
 
 from qfluentwidgets.components import Dialog
-from qfluentwidgets import CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme, NavigationInterface,NavigationItemPosition
+from qfluentwidgets import CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition
 from qfluentwidgets import FluentIcon as FIF#需要安装库pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 
-Software_Version = "AiNiee-chatgpt4.47"  #软件版本号
+Software_Version = "AiNiee-chatgpt4.48"  #软件版本号
 
 OpenAI_model="gpt-3.5-turbo"   #调用api的模型,默认3.5-turbo
 OpenAI_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
@@ -91,7 +91,10 @@ Here is an example of the translated text:
 Input_file = ""  # 存储目标文件位置
 Input_Folder = ""   # 存储Tpp项目位置
 Output_Folder = ""    # 存储输出文件夹位置
-Backup_folder="" # 存储备份文件夹位置
+Automatic_Backup_folder="" # 存储实时备份文件夹位置
+Manual_Backup_Folder = "" # 存储手动备份文件夹位置
+DEBUG_folder = "" # 存储调试日志文件夹位置  
+Manual_Backup_Status = 0 # 存储手动备份状态，0是未备份，1是正在备份中
 
 source = {}       # 存储原文件
 source_mid = {}   # 存储处理过的原文件
@@ -175,19 +178,21 @@ class APIRequest:
 
 #创建子线程类，使翻译任务后台运行，不占用UI线程
 class My_Thread(threading.Thread):
-    def run(self):
+    def __init__(self, running_status):
+        super().__init__()
+        self.running_status = running_status
 
-        if Running_status == 1:
-            # 在子线程中执行测试请求函数
+    def run(self):
+        if self.running_status == 1:
             Request_test()
-        elif Running_status == 2:
-            # 在子线程中执行main函数
+        elif self.running_status == 2:
             Main()
-        elif Running_status == 3:
-            # 在子线程中执行main函数
+        elif self.running_status == 3:
             Main()
-        elif Running_status == 4 or Running_status == 5:
+        elif self.running_status == 4 or self.running_status == 5:
             Check_wrong_Main()
+        elif self.running_status == 100:
+            Manually_backup_files (source,result_dict,Translation_Status_List)
 
 #用于向UI线程发送消息的信号类
 class UI_signal(QObject):
@@ -196,7 +201,7 @@ class UI_signal(QObject):
 
 # 槽函数，用于接收子线程发出的信号，更新界面UI的状态
 def on_update_signal(str): 
-    global Running_status
+    global Running_status,Manual_Backup_Status
 
     if str == "Update_ui" :
         
@@ -261,6 +266,10 @@ def on_update_signal(str):
         Running_status = 0
         createlondingInfoBar("已完成翻译！！",str)
         createSuccessInfoBar("已完成翻译！！")
+
+    elif str== "Backup successful":
+        createSuccessInfoBar("已成功完成手动备份！！")
+        Manual_Backup_Status = 0
 
     elif str== "CG_key":
         openai.api_key = API_key_list[key_list_index]#更新API
@@ -360,7 +369,7 @@ def divide_by_2345(num):
             break
     return result
 
-#实时备份翻译数据函数
+#自动备份翻译数据函数
 def file_Backup(subset_mid,response_content):
 
     #记录备份开始时间
@@ -389,11 +398,11 @@ def file_Backup(subset_mid,response_content):
                     ManualTransFile_Backup[key] = TS_Backup[key]
 
             #写入已翻译好内容的文件
-            with open(os.path.join(Backup_folder, "TrsData.json"), "w", encoding="utf-8") as f100:
+            with open(os.path.join(Automatic_Backup_folder, "TrsData.json"), "w", encoding="utf-8") as f100:
                 json.dump(TrsData_Backup, f100, ensure_ascii=False, indent=4)
 
             #写入未翻译好内容的文件
-            with open(os.path.join(Backup_folder, "ManualTransFile.json"), "w", encoding="utf-8") as f200:
+            with open(os.path.join(Automatic_Backup_folder, "ManualTransFile.json"), "w", encoding="utf-8") as f200:
                 json.dump(ManualTransFile_Backup, f200, ensure_ascii=False, indent=4)
 
         #进行Tpp的备份
@@ -407,7 +416,7 @@ def file_Backup(subset_mid,response_content):
 
 
             #构造文件夹路径
-            data_Backup_path = os.path.join(Backup_folder, 'data')
+            data_Backup_path = os.path.join(Automatic_Backup_folder, 'data')
             #创建存储相同文件名的字典
             Catalog_file = {}
             #遍历check_dict每一个key
@@ -460,6 +469,105 @@ def file_Backup(subset_mid,response_content):
 
         return
 
+#手动备份翻译数据函数
+def Manually_backup_files (source,result_dict,Translation_Status_List):
+    global Manual_Backup_Folder
+    
+    try:#方便排查子线程bug
+        #进行Mtool的备份
+        if Running_status == 2 or Running_status == 4:
+
+            # 处理翻译结果，将翻译结果写入到对应的文件中
+            TS_Backup = {}
+            for i, key in enumerate(source.keys()):     # 使用enumerate()遍历source字典的键，并将其替换到result_dict中
+                TS_Backup[key] = result_dict[i]   #在新字典中创建新key的同时把result_dict[i]的值赋予到key对应的值上
+
+            #根据翻译状态列表，提取已经翻译的内容和未翻译的内容
+            TrsData_Backup = {}
+            ManualTransFile_Backup = {}
+            list_Backup = list(TS_Backup.keys()) #将字典的key转换成列表,之前在循环里转换，结果太吃资源了，程序就卡住了
+
+            for i, status in enumerate(Translation_Status_List):
+                if status == 1:
+                    key = list_Backup[i]
+                    TrsData_Backup[key] = TS_Backup[key]
+                else:
+                    key = list_Backup[i]
+                    ManualTransFile_Backup[key] = TS_Backup[key]
+
+            #写入已翻译好内容的文件
+            with open(os.path.join(Manual_Backup_Folder, "TrsData.json"), "w", encoding="utf-8") as f100:
+                json.dump(TrsData_Backup, f100, ensure_ascii=False, indent=4)
+
+            #写入未翻译好内容的文件
+            with open(os.path.join(Manual_Backup_Folder, "ManualTransFile.json"), "w", encoding="utf-8") as f200:
+                json.dump(ManualTransFile_Backup, f200, ensure_ascii=False, indent=4)
+
+
+        #进行Tpp的备份
+        elif Running_status == 3 or Running_status == 5:
+
+            # 创建手动备份文件夹中data文件夹路径
+            data_path = os.path.join(Manual_Backup_Folder, 'data')
+            os.makedirs(data_path, exist_ok=True) 
+
+            #复制原项目data文件夹所有文件到手动备份文件夹的data里面
+            for Input_file in os.listdir(Input_Folder):
+                if Input_file.endswith('.xlsx'):  # 如果是xlsx文件
+                    file_path = os.path.join(Input_Folder, Input_file)  # 构造文件路径
+                    output_file_path = os.path.join(data_path, Input_file)  # 构造输出文件路径
+                    wb = load_workbook(file_path)        # 以读写模式打开工作簿
+                    wb.save(output_file_path)  # 保存工作簿
+                    wb.close()  # 关闭工作簿
+
+            #处理翻译结果，将翻译结果写入到对应的文件中
+            new_result_dict = {}
+            for i, key in enumerate(source.keys()):     # 使用enumerate()遍历source字典的键，并将其替换到result_dict中
+                new_result_dict[key] = result_dict[i]   #在新字典中创建新key的同时把result_dict[i]的值赋予到key对应的值上
+
+            #根据翻译状态列表，提取已经翻译的内容
+            TrsData_Backup = {}
+            list_Backup = list(new_result_dict.keys()) #将字典的key转换成列表,之前在循环里转换，结果太吃资源了，程序就卡住了
+
+            for i, status in enumerate(Translation_Status_List):
+                if status == 1:
+                    key = list_Backup[i]
+                    TrsData_Backup[key] = new_result_dict[key]
+
+
+            #备份已经翻译数据
+            for file_name in os.listdir(data_path):
+                if file_name.endswith('.xlsx'):  # 如果是xlsx文件
+                    file_path = os.path.join(data_path, file_name)  # 构造文件路径
+                    wb = load_workbook(file_path)  # 以读写模式打开工作簿
+                    ws = wb.active  # 获取活动工作表
+                    for row in ws.iter_rows(min_row=2, min_col=1):  # 从第2行开始遍历每一行
+                            if len(row) < 2:  # 如果该行的单元格数小于2，为了避免写入时报错
+                                # 在该行的第2列创建一个空单元格
+                                new_cell = ws.cell(row=row[0].row, column=2, value="")
+                                row = (row[0], new_cell)
+                            
+                            key = row[0].value  # 获取该行第1列的值作为key
+                            #如果key不是None
+                            if key is not None:
+                                if key in TrsData_Backup:  # 如果key在TrsData_Backup字典中
+                                    value = TrsData_Backup[key]  # 获取TrsData_Backup字典中对应的value
+                                    row[1].value = value  # 将value写入该行第2列
+
+                    wb.save(file_path)  # 保存工作簿
+                    wb.close()  # 关闭工作簿
+
+        #显示备份成功提醒
+        Ui_signal.update_signal.emit("Backup successful")#发送信号，激活槽函数,要有参数，否则报错
+        print("\033[1;32mSuccess:\033[0m 手动备份完成---------------------------：",'\n')
+
+    #子线程抛出错误信息
+    except Exception as e:
+        print("\033[1;31mError:\033[0m 手动备份出现问题！错误信息如下")
+        print(f"Error: {e}\n")
+
+        return
+
 #读写配置文件config.json函数
 def read_write_config(mode):
 
@@ -486,6 +594,9 @@ def read_write_config(mode):
         Prompt_Tpp = Window.Interface16.TextEdit.toPlainText()             #获取T++界面提示词
         Translation_lines_Tpp = Window.Interface16.spinBox1.value()        #获取T++界面翻译行数
         Check_Switch_Tpp = Window.Interface16.SwitchButton1.isChecked()#获取语义检查开关的状态
+
+        #获取备份设置界面
+        Automatic_Backup = Window.Interface17.checkBox.isChecked()        #获取自动备份开关状态
 
         #获取实时设置界面
         OpenAI_Temperature = Window.Interface18.slider1.value()           #获取OpenAI温度
@@ -528,6 +639,7 @@ def read_write_config(mode):
         config_dict["Translation_lines_Tpp"] = Translation_lines_Tpp
         config_dict["Check_Switch_Tpp"] = Check_Switch_Tpp
 
+        config_dict["Automatic_Backup"] = Automatic_Backup
 
         config_dict["OpenAI_Temperature"] = OpenAI_Temperature
         config_dict["OpenAI_top_p"] = OpenAI_top_p
@@ -612,6 +724,9 @@ def read_write_config(mode):
                 Check_Switch_Tpp = config_dict["Check_Switch_Tpp"]
                 Window.Interface16.SwitchButton1.setChecked(Check_Switch_Tpp)
 
+            if "Automatic_Backup" in config_dict:
+                Automatic_Backup = config_dict["Automatic_Backup"]
+                Window.Interface17.checkBox.setChecked(Automatic_Backup)
 
             if "OpenAI_Temperature" in config_dict:
                 OpenAI_Temperature = config_dict["OpenAI_Temperature"]
@@ -780,92 +895,9 @@ def Test_request_button():
         Running_status = 1
 
         #创建子线程
-        thread = My_Thread()
+        thread = My_Thread(1)
         thread.start()
         
-
-    elif Running_status != 0:
-        createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
-
-# ——————————————————————————————————————————开始翻译（mtool）按钮绑定函数——————————————————————————————————————————
-def Start_translation_mtool():
-    global Running_status,money_used,Translation_Progress
-
-    if Running_status == 0:
-        
-        Running_status = 2  #修改运行状态
-        Inspection_results = Config()   #读取配置信息，设置系统参数，并进行检查
-
-        if Inspection_results == 0 :  #配置没有完全填写
-            createErrorInfoBar("请正确填入配置信息,不要留空")
-            Running_status = 0  #修改运行状态
-
-        elif Inspection_results == 1 :  #账号类型和模型类型组合错误
-            print("\033[1;31mError:\033[0m 请正确选择账号类型以及模型类型")
-            Ui_signal.update_signal.emit("Wrong type selection")
-            Running_status = 0  #修改运行状态
-
-        else :  
-            #清空花销与进度，更新UI
-            money_used = 0
-            Translation_Progress = 0 
-
-            Running_status = 2  #修改运行状态
-            on_update_signal("Update_ui")
-            createlondingInfoBar("正在翻译中" , "客官请耐心等待哦~~")
-
-            #显示隐藏控件
-            Window.Interface15.progressBar.show() 
-            Window.Interface15.label8.show()
-            Window.Interface15.label13.show() 
-
-
-            #创建子线程
-            thread = My_Thread()
-            thread.start()
-
-
-    elif Running_status != 0:
-        createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
-
-# ——————————————————————————————————————————开始翻译（T++）按钮绑定函数——————————————————————————————————————————
-def Start_translation_Tpp():
-    global Running_status,money_used,Translation_Progress
-
-    if Running_status == 0:
-        
-        Running_status = 3  #修改运行状态
-        Inspection_results = Config()   #读取配置信息，设置系统参数，并进行检查
-
-        if Inspection_results == 0 :  #配置没有完全填写
-            createErrorInfoBar("请正确填入配置信息,不要留空")
-            Running_status = 0  #修改运行状态
-
-        elif Inspection_results == 1 :  #账号类型和模型类型组合错误
-            print("\033[1;31mError:\033[0m 请正确选择账号类型以及模型类型")
-            Ui_signal.update_signal.emit("Wrong type selection")
-            Running_status = 0  #修改运行状态
-
-        else :  
-            #清空花销与进度，更新UI
-            money_used = 0
-            Translation_Progress = 0 
-
-            Running_status = 3  #修改运行状态
-            on_update_signal("Update_ui")
-            createlondingInfoBar("正在翻译中" , "客官请耐心等待哦~~")
-
-            #显示隐藏控件
-            Window.Interface16.progressBar2.show() 
-            Window.Interface16.label8.show()
-            Window.Interface16.label13.show() 
-
-
-            #创建子线程
-            thread = My_Thread()
-            thread.start()
-
-
 
     elif Running_status != 0:
         createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
@@ -1118,11 +1150,6 @@ def Config():
     else:
         return 1 #返回错误参数
 
-    #如果进行Mtool翻译任务或者Mtool的词义检查任务，需要更改一下限制
-    if Running_status == 4 or Running_status == 5:
-        #ada模型的的TPM速率限制是GPT-3的200倍，所以要乘以200
-        The_TPM_limit = The_TPM_limit * 200
-
 
     #设置模型ID
     OpenAI_model = Model_Type
@@ -1139,7 +1166,7 @@ def Config():
 
 # ——————————————————————————————————————————翻译任务主函数——————————————————————————————————————————
 def Main():
-    global Input_file,Output_Folder,Backup_folder ,Translation_lines,Running_status,The_Max_workers,DEBUG_folder,Catalog_Dictionary
+    global Input_file,Output_Folder,Automatic_Backup_folder ,Translation_lines,Running_status,The_Max_workers,DEBUG_folder,Catalog_Dictionary
     global keyList_len ,   Translation_Status_List , money_used,source,source_mid,result_dict,Translation_Progress,OpenAI_temperature
     # ——————————————————————————————————————————清空进度,花销与初始化变量存储的内容—————————————————————————————————————————
 
@@ -1155,8 +1182,8 @@ def Main():
     os.makedirs(DEBUG_folder, exist_ok=True)
 
     # 创建备份文件夹路径
-    Backup_folder = os.path.join(Output_Folder, 'Backup Folder')
-    os.makedirs(Backup_folder, exist_ok=True) 
+    Automatic_Backup_folder = os.path.join(Output_Folder, 'Backup Folder')
+    os.makedirs(Automatic_Backup_folder, exist_ok=True) 
 
 
     #创建存储翻译错行文本的文件夹,debug用！！！以后可能删除
@@ -1219,7 +1246,7 @@ def Main():
         os.makedirs(data_path, exist_ok=True)
 
         #在备份文件夹里新建文件夹data
-        data_Backup_path = os.path.join(Backup_folder, 'data')
+        data_Backup_path = os.path.join(Automatic_Backup_folder, 'data')
         os.makedirs(data_Backup_path, exist_ok=True)
 
         #复制原项目data文件夹所有文件到输出文件夹data文件夹里和备份文件夹的data里面
@@ -1476,7 +1503,7 @@ def Make_request():
         messages = [{"role": "system","content":Prompt}]
         messages.append(d)
 
-        tokens_consume = num_tokens_from_messages(messages, OpenAI_model)  #计算该信息在openai那里的tokens花费
+        tokens_consume = num_tokens_from_messages(messages, OpenAI_model) + 150  #计算该信息在openai那里的tokens花费，300是提示词花费的tokens数
 
         # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
         while 1 :
@@ -1507,7 +1534,7 @@ def Make_request():
 
             #检查请求数量是否达到限制，如果是多key的话---------------------------------
             if len(API_key_list) > 1: #如果存有多个key
-                if (Number_of_requested - Number_of_mark) >= 20 :#如果该key请求数已经达到限制次数
+                if (Number_of_requested - Number_of_mark) >= 20 :#如果该key请求数已经达到次数
 
                     lock4.acquire()  # 获取锁
                     Number_of_mark = Number_of_requested
@@ -1529,7 +1556,7 @@ def Make_request():
                     lock4.release()  # 释放锁
 
             # 检查子是否符合速率限制---------------------------------
-            if api_tokens.consume(tokens_consume * 2 ) and api_request.send_request():
+            if api_tokens.consume(tokens_consume * 2  ) and api_request.send_request():
 
                 #如果能够发送请求，则扣除令牌桶里的令牌数
                 api_tokens.tokens = api_tokens.tokens - (tokens_consume * 2 )
@@ -1838,8 +1865,9 @@ def Make_request():
                             # 如果出现过，则将result_dict中对应键的值替换为new_response_dict中对应键的值
                             result_dict[int(key)] = value
  
-                    #备份翻译数据
-                    file_Backup(subset_mid,response_content)
+                    #自动备份翻译数据
+                    if Window.Interface17.checkBox.isChecked() :
+                        file_Backup(subset_mid,response_content)
 
                     lock2.release()  # 释放锁
                     print(f"\n--------------------------------------------------------------------------------------")
@@ -1866,7 +1894,7 @@ def Make_request():
 # ——————————————————————————————————————————检查词义错误主函数——————————————————————————————————————————
 def Check_wrong_Main():
     global Input_file,Input_Folder,Output_Folder,source_or_dict,source_tr_dict,Embeddings_Status_List,Embeddings_or_List,Embeddings_tr_List,Translation_Status_List,keyList_len,Catalog_Dictionary
-    global Translation_Progress,money_used,source,source_mid,result_dict,The_Max_workers,DEBUG_folder,Backup_folder,Translation_lines ,Running_status,OpenAI_temperature
+    global Translation_Progress,money_used,source,source_mid,result_dict,The_Max_workers,DEBUG_folder,Automatic_Backup_folder,Translation_lines ,Running_status,OpenAI_temperature
             
     # ——————————————————————————————————————————清空进度,花销与初始化变量存储的内容—————————————————————————————————————————
 
@@ -1888,9 +1916,9 @@ def Check_wrong_Main():
     os.makedirs(DEBUG_folder, exist_ok=True)
 
     # 创建备份文件夹路径
-    Backup_folder = os.path.join(Output_Folder, 'Backup Folder')
+    Automatic_Backup_folder = os.path.join(Output_Folder, 'Backup Folder')
     #使用`os.makedirs()`函数创建新文件夹，设置`exist_ok=True`参数表示如果文件夹已经存在，不会抛出异常
-    os.makedirs(Backup_folder, exist_ok=True) 
+    os.makedirs(Automatic_Backup_folder, exist_ok=True) 
 
     #创建存储错误文本的文件夹
     ErrorTxt_folder = os.path.join(DEBUG_folder, 'ErrorTxt Folder')
@@ -1951,7 +1979,7 @@ def Check_wrong_Main():
         os.makedirs(data_path, exist_ok=True)
 
         #在备份文件夹里新建文件夹data
-        data_Backup_path = os.path.join(Backup_folder, 'data')
+        data_Backup_path = os.path.join(Automatic_Backup_folder, 'data')
         os.makedirs(data_Backup_path, exist_ok=True)
 
         #复制原项目data文件夹所有文件到输出文件夹data文件夹里和备份文件夹的data里面
@@ -1997,6 +2025,9 @@ def Check_wrong_Main():
 
 
     # —————————————————————————————————————创建并发嵌入任务——————————————————————————————————————————
+
+    #更改速率限制，从gpt模型改为ada模型的速率限制，乘以200
+    api_tokens.rate = api_tokens.rate * 200
 
 
     #遍历source_dict每个key和每个value，利用num_tokens_from_messages(messages, model)计算每个key和value的tokens数量，并计算总tokens数量
@@ -2230,6 +2261,9 @@ def Check_wrong_Main():
 
 
    # —————————————————————————————————————开始重新翻译——————————————————————————————————————————
+
+    #更改速率限制，从ada模型改为gpt模型的限制，除以200
+    api_tokens.rate = api_tokens.rate / 200
 
     #计算需要翻译文本的数量
     count_not_Translate = Translation_Status_List.count(0)
@@ -3009,7 +3043,7 @@ class Widget15(QFrame):#Mtool项目界面
 
         #设置“开始翻译”的按钮
         self.primaryButton1 = PrimaryPushButton('开始翻译', self, FIF.UPDATE)
-        self.primaryButton1.clicked.connect(Start_translation_mtool) #按钮绑定槽函数
+        self.primaryButton1.clicked.connect(self.Start_translation_mtool) #按钮绑定槽函数
 
 
         layout5.addStretch(1)  # 添加伸缩项
@@ -3082,12 +3116,54 @@ class Widget15(QFrame):#Mtool项目界面
         container.setSpacing(28) # 设置布局内控件的间距为28
         container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
+    #设置“错行检查”选择开关绑定函数
     def onCheckedChanged(self, isChecked: bool):
         if isChecked :
             self.SwitchButton1.setText("On")
             createWarningInfoBar("Mtool项目已开启AI回复内容错行检查，将会增加时间与金钱消耗")
         else :
             self.SwitchButton1.setText("Off")
+
+    #开始翻译（mtool）按钮绑定函数
+    def Start_translation_mtool(self):
+        global Running_status,money_used,Translation_Progress
+
+        if Running_status == 0:
+            
+            Running_status = 2  #修改运行状态
+            Inspection_results = Config()   #读取配置信息，设置系统参数，并进行检查
+
+            if Inspection_results == 0 :  #配置没有完全填写
+                createErrorInfoBar("请正确填入配置信息,不要留空")
+                Running_status = 0  #修改运行状态
+
+            elif Inspection_results == 1 :  #账号类型和模型类型组合错误
+                print("\033[1;31mError:\033[0m 请正确选择账号类型以及模型类型")
+                Ui_signal.update_signal.emit("Wrong type selection")
+                Running_status = 0  #修改运行状态
+
+            else :  
+                #清空花销与进度，更新UI
+                money_used = 0
+                Translation_Progress = 0 
+
+                Running_status = 2  #修改运行状态
+                on_update_signal("Update_ui")
+                createlondingInfoBar("正在翻译中" , "客官请耐心等待哦~~")
+
+                #显示隐藏控件
+                Window.Interface15.progressBar.show() 
+                Window.Interface15.label8.show()
+                Window.Interface15.label13.show() 
+
+
+                #创建子线程
+                thread = My_Thread(2)
+                thread.start()
+
+
+        elif Running_status != 0:
+            createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 
 class Widget16(QFrame):#Tpp项目界面
@@ -3247,7 +3323,7 @@ class Widget16(QFrame):#Tpp项目界面
 
         #设置“开始翻译”的按钮
         self.primaryButton1 = PrimaryPushButton('开始翻译', self, FIF.UPDATE)
-        self.primaryButton1.clicked.connect(Start_translation_Tpp) #按钮绑定槽函数
+        self.primaryButton1.clicked.connect(self.Start_translation_Tpp) #按钮绑定槽函数
 
         layout5.addStretch(1)  # 添加伸缩项
         layout5.addWidget(self.primaryButton1)
@@ -3318,12 +3394,166 @@ class Widget16(QFrame):#Tpp项目界面
         container.setSpacing(28) # 设置布局内控件的间距为28
         container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
+    #设置“错行检查”选择开关绑定函数
     def onCheckedChanged(self, isChecked: bool):
         if isChecked :
             self.SwitchButton1.setText("On")
             createWarningInfoBar("T++项目已开启AI回复内容错行检查，将会增加时间与金钱消耗")
         else :
             self.SwitchButton1.setText("Off")
+
+    #开始翻译（T++）按钮绑定函数
+    def Start_translation_Tpp(self):
+        global Running_status,money_used,Translation_Progress
+
+        if Running_status == 0:
+            
+            Running_status = 3  #修改运行状态
+            Inspection_results = Config()   #读取配置信息，设置系统参数，并进行检查
+
+            if Inspection_results == 0 :  #配置没有完全填写
+                createErrorInfoBar("请正确填入配置信息,不要留空")
+                Running_status = 0  #修改运行状态
+
+            elif Inspection_results == 1 :  #账号类型和模型类型组合错误
+                print("\033[1;31mError:\033[0m 请正确选择账号类型以及模型类型")
+                Ui_signal.update_signal.emit("Wrong type selection")
+                Running_status = 0  #修改运行状态
+
+            else :  
+                #清空花销与进度，更新UI
+                money_used = 0
+                Translation_Progress = 0 
+
+                Running_status = 3  #修改运行状态
+                on_update_signal("Update_ui")
+                createlondingInfoBar("正在翻译中" , "客官请耐心等待哦~~")
+
+                #显示隐藏控件
+                Window.Interface16.progressBar2.show() 
+                Window.Interface16.label8.show()
+                Window.Interface16.label13.show() 
+
+
+                #创建子线程
+                thread = My_Thread(3)
+                thread.start()
+
+
+
+        elif Running_status != 0:
+            createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+
+
+class Widget17(QFrame):#备份设置界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+
+        # -----创建第1个组，添加多个组件-----
+        box1 = QGroupBox()
+        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1 = QHBoxLayout()
+
+        #设置“启用该账号”标签
+        label1 = QLabel( flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label1.setText("启用功能")
+
+        #设置“自动备份文件夹”显示
+        self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label2.setText("自动备份到输出文件夹中的Backup_folder中")
+
+
+        #设置“启用该账号”开
+        self.checkBox = CheckBox('自动备份')
+        self.checkBox.stateChanged.connect(self.checkBoxChanged)
+
+        layout1.addWidget(label1)
+        layout1.addWidget(self.label2)
+        layout1.addStretch(1)  # 添加伸缩项
+        layout1.addWidget(self.checkBox)
+        box1.setLayout(layout1)
+
+
+
+        # -----创建第2个组，添加多个组件-----
+        box2 = QGroupBox()
+        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout2 = QHBoxLayout()
+
+        #设置“输出文件夹”标签
+        label3 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label3.setText("手动备份")
+
+        #设置“输出文件夹”显示
+        self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label4.setText("请选择备份的文件夹")
+
+        #设置输出文件夹按钮
+        self.pushButton2 = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton2.clicked.connect(self.Manual_Backup_Button) #按钮绑定槽函数
+
+
+        
+
+        layout2.addWidget(label3)
+        layout2.addWidget(self.label4)
+        layout2.addStretch(1)  # 添加伸缩项
+        layout2.addWidget(self.pushButton2)
+        box2.setLayout(layout2)
+
+
+
+        # -----最外层容器设置垂直布局-----
+        container = QVBoxLayout()
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+        # 把各个组添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box1)
+        container.addWidget(box2)
+        container.addStretch(1)  # 添加伸缩项
+
+
+    def checkBoxChanged(self, isChecked: bool):
+        if isChecked :
+            createSuccessInfoBar("已设置开启自动备份，建议使用固态硬盘或者翻译小文件时使用")
+
+    def Manual_Backup_Button(self):
+        global Manual_Backup_Folder,Manual_Backup_Status
+
+        if Running_status == 2 or Running_status == 3 or Running_status == 4 or Running_status == 5: #如果有需要翻译的项目正在进行
+            if Number_of_requested > 10: #如果已经有翻译请求正在进行
+                if Manual_Backup_Status == 0:#如果手动备份状态为未进行中
+                    
+                    Manual_Backup_Status=1 #修改手动备份状态为进行中
+                    Manual_Backup_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+                    if Manual_Backup_Folder:
+                        print(f'[INFO]  已选择手动备份文件夹: {Manual_Backup_Folder}')
+                    else :
+                        print('[INFO]  未选择文件夹')
+                        return  # 直接返回，不执行后续操作
+                    
+                    #创建手动备份子线程
+                    thread100 = My_Thread(100)
+                    thread100.start()
+                else:
+                    createWarningInfoBar("手动备份正在进行中，请等待手动备份结束后再操作~")
+            else:
+                createWarningInfoBar("还未开始翻译，无法选择备份文件夹")
+        else:
+            createWarningInfoBar("暂无翻译项目进行中，无法选择备份文件夹")
 
 
 class Widget18(QFrame):#实时调教界面
@@ -3928,7 +4158,7 @@ class Widget19(QFrame):#语义检查（Mtool）界面
 
 
                 #创建子线程
-                thread = My_Thread()
+                thread = My_Thread(4)
                 thread.start()
 
 
@@ -4207,7 +4437,7 @@ class Widget20(QFrame):#语义检查（Tpp）界面
 
 
                 #创建子线程
-                thread = My_Thread()
+                thread = My_Thread(5)
                 thread.start()
 
 
@@ -4300,6 +4530,7 @@ class window(FramelessWindow): #主窗口
         self.Interface12 = Widget12('Interface12', self)     #创建子界面Interface，传入参数为对象名和parent
         self.Interface15 = Widget15('Interface15', self)      #创建子界面Interface，传入参数为对象名和parent
         self.Interface16 = Widget16('Interface16', self)        #创建子界面Interface，传入参数为对象名和parent
+        self.Interface17 = Widget17('Interface17', self)
         self.Interface18 = Widget18('Interface18', self)
         self.Interface19 = Widget19('Interface19', self) 
         self.Interface20 = Widget20('Interface20', self)   
@@ -4309,6 +4540,7 @@ class window(FramelessWindow): #主窗口
         self.stackWidget.addWidget(self.Interface12)
         self.stackWidget.addWidget(self.Interface15)
         self.stackWidget.addWidget(self.Interface16)
+        self.stackWidget.addWidget(self.Interface17)
         self.stackWidget.addWidget(self.Interface18)
         self.stackWidget.addWidget(self.Interface19)
         self.stackWidget.addWidget(self.Interface20)
@@ -4372,6 +4604,15 @@ class window(FramelessWindow): #主窗口
         self.navigationInterface.addSeparator() #添加分隔符
 
 
+        #添加备份设置导航项
+        self.navigationInterface.addItem(
+            routeKey=self.Interface17.objectName(),
+            icon=FIF.COPY,
+            text='备份功能',
+            onClick=lambda: self.switchTo(self.Interface17),
+            position=NavigationItemPosition.SCROLL
+            ) 
+
 
         #添加实时调教导航项
         self.navigationInterface.addItem(
@@ -4410,8 +4651,8 @@ class window(FramelessWindow): #主窗口
         )
 
 
-        #!IMPORTANT: don't forget to set the default route key
-        self.navigationInterface.setDefaultRouteKey(self.Interface11.objectName()) #设置默认的路由键,不起作用
+        # 设置程序默认打开的界面
+        qrouter.setDefaultRouteKey(self.stackWidget, self.Interface11.objectName())
         
 
         # set the maximum width
@@ -4456,6 +4697,7 @@ class window(FramelessWindow): #主窗口
     def onCurrentInterfaceChanged(self, index):    
         widget = self.stackWidget.widget(index) #获取堆栈窗口的当前窗口
         self.navigationInterface.setCurrentItem(widget.objectName()) #设置导航栏的当前项为widget的对象名
+        qrouter.push(self.stackWidget, widget.objectName()) #将堆栈窗口的当前窗口的对象名压入路由器
 
     #重写鼠标按下事件
     def resizeEvent(self, e): 
