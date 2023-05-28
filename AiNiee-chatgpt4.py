@@ -1802,7 +1802,7 @@ def Make_request():
                         print("\033[1;33mWarning:\033[0m AI回复内容中有空行或仅符号,将进行重新翻译\n")
                         Error_message = "Warning: AI回复内容中有空行或仅符号,将进行重新翻译\n"
                     elif Error_Type[3] == 1 :
-                        print("\033[1;33mWarning:\033[0m AI回复内容的符号与字数与原文的不符合程度为:",error_list_count_percent,"%,大于等于",Error_Threshold,"%阈值，将进行重新翻译\n")
+                        print("\033[1;33mWarning:\033[0m AI回复内容的符号与字数与原文的不符合程度为:",error_list_count_percent,"%,小于等于",Error_Threshold,"%阈值，将进行重新翻译\n")
                         Error_message = "Warning: AI回复内容的符号与字数与原文不符合，大于等于阈值,将进行重新翻译\n"
 
                     #错误回复计次
@@ -1847,7 +1847,7 @@ def Make_request():
                     #只有进行Mtool时且开启了错行检查的开关，或者进行Tpp时且开启了错行检查的开关，才会进行后面两项检查
                     if ((Running_status == 2 and Window.Interface15.SwitchButton1.isChecked()) or (Running_status == 3 and Window.Interface16.SwitchButton1.isChecked())) :
                         print("[INFO] AI回复内容中没有空行或仅符号")
-                        print("[INFO] AI回复内容的符号与字数与原文的不符合程度为:",error_list_count_percent,"%,小于",Error_Threshold,"%阈值\n")
+                        print("[INFO] AI回复内容的符号与字数与原文的不符合程度为:",error_list_count_percent,"%,大于",Error_Threshold,"%阈值\n")
 
                     #格式检查通过，将AI酱回复的内容数字序号进行修改，方便后面进行读写json文件
                     new_response = re.sub(r'"(\d+)"', lambda x: '"' + str(int(x.group(1))+start) + '"', response_content)
