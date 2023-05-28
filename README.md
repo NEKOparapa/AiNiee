@@ -39,12 +39,12 @@
 * 3-1.如果使用`🔵Mtool`进行翻译请根据以下步骤操作
     > 1.使用Mtool打开游戏,并在翻译功能界面,选择导出游戏原文文件,会在游戏根目录生成：ManualTransFile.json<br>
   
-    ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/导出原文1.png" width="400" height="300">  |  <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/导出原文2.png" width="400" height="300">
+    ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/导出原文1.png" width="600" height="400">  |  <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/导出原文2.png" width="600" height="400">
   <br>
   
     > 2.在`AiNiee-chatgpt`界面选择`🔵Mtool项目`,并配置翻译设置<br>
     >配置示例:<br>
-    ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/翻译设置Mtool.png" width="400" height="300"><br>
+    ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/翻译设置Mtool.png" width="600" height="400"><br>
     >配置说明:<br>
     >`Lines`: 每次请求翻译的文本行数。行数设置越大,整体的翻译效果会更好,上下文更加流畅,但每次请求回复速度会越慢,回复的内容越容易出错,建议gpt3.5模型不要设置超过50,gpt4模型不超过90<br>
     >`错行检查`: 针对AI回复内容的检查功能,因为AI在翻译时有时会把上下文一起翻译,并放到一个文本行中,导致回复的文本错行,对不上原文。开启这个功能,会对AI回复内容进行检查,会增加时间和花销,追求翻译质量可开<br>
