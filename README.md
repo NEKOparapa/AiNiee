@@ -21,7 +21,7 @@
 ***
 * 1.🖱️双击`启动AiNiee-chatgpt4.exe`,在账号设置页面配置你的账号信息以及`API KEY`
     > 🔥官方账号配置示例:<br>
-    > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/官方账号设置.png" width="400" height="300"><br>
+    > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/官方账号设置.png"><br>
     > 官方账号配置说明:<br>
     > `启用该平台`: 如果使用该平台的AI进行翻译,请勾上<br>
     >`账号类型`: 新注册的5刀余额账号为免费账号，绑定信用卡后，会升级为120刀余额的付费用户<br>
@@ -30,12 +30,12 @@
     >`代理地址`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
 
     > 🎐代理账号配置示例:<br>
-    > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/代理账号设置.png" width="400" height="300"><br> 
+    > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/代理账号设置.png"><br> 
     > 代理账号配置说明:<br>
     >`API KEY`: 填入国内代理平台给你生成的API KEY<br>
     >`域名地址`: 填入国内代理平台提供的请求地址,如OpenAI-sb平台提供的请求地址是`api.openai-sb.com`,则填入：`https://api.openai-sb.com/v1`
 * 2.✅点击请求测试,测试网络是否通畅,请求是否成功
-    ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/请求成功.png" width="400" height="300"> 
+    ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/请求成功.png"> 
 * 3-1.如果使用`🔵Mtool`进行翻译请根据以下步骤操作
     > 1.使用Mtool打开游戏,并在翻译功能界面,选择导出游戏原文文件,会在游戏根目录生成：ManualTransFile.json<br>
   
