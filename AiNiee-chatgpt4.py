@@ -23,7 +23,7 @@ from qfluentwidgets import CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, Inf
 from qfluentwidgets import FluentIcon as FIF#需要安装库pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
 
-Software_Version = "AiNiee-chatgpt4.48"  #软件版本号
+Software_Version = "AiNiee-chatgpt4.49"  #软件版本号
 
 OpenAI_model="gpt-3.5-turbo"   #调用api的模型,默认3.5-turbo
 OpenAI_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
@@ -594,11 +594,13 @@ def read_write_config(mode):
         #如果是MTool界面
         Prompt_Mtool = Window.Interface15.TextEdit.toPlainText()             #获取MTool界面提示词
         Translation_lines_Mtool = Window.Interface15.spinBox1.value()        #获取MTool界面翻译行数
-        Check_Switch_Mtool = Window.Interface15.SwitchButton1.isChecked()#获取语义检查开关的状态
+        Check_Switch_Mtool = Window.Interface15.SwitchButton1.isChecked()   #获取错行检查开关的状态
+        Filter_text__Switch_Mtool = Window.Interface15.SwitchButton2.isChecked()   #获取过滤文本开关的状态
         #如果是T++界面
         Prompt_Tpp = Window.Interface16.TextEdit.toPlainText()             #获取T++界面提示词
         Translation_lines_Tpp = Window.Interface16.spinBox1.value()        #获取T++界面翻译行数
-        Check_Switch_Tpp = Window.Interface16.SwitchButton1.isChecked()#获取语义检查开关的状态
+        Check_Switch_Tpp = Window.Interface16.SwitchButton1.isChecked()   #获取错行检查开关的状态
+        Filter_text__Switch_Tpp = Window.Interface16.SwitchButton2.isChecked()   #获取过滤文本开关的状态
 
         #获取备份设置界面
         Automatic_Backup = Window.Interface17.checkBox.isChecked()        #获取自动备份开关状态
@@ -623,6 +625,7 @@ def read_write_config(mode):
 
 
         #将变量名作为key，变量值作为value，写入字典config.json
+        #官方账号界面
         config_dict = {}
         config_dict["Platform_Status"] = Platform_Status
         config_dict["Account_Type"] = Account_Type
@@ -630,32 +633,41 @@ def read_write_config(mode):
         config_dict["Proxy_Address"] = Proxy_Address
         config_dict["API_key_str"] = API_key_str
 
+        #代理账号界面
         config_dict["Platform_Status_sb"] = Platform_Status_sb
         config_dict["Account_Type_sb"] = Account_Type_sb
         config_dict["Model_Type_sb"] = Model_Type_sb
         config_dict["Proxy_Address_sb"] = Proxy_Address_sb
         config_dict["API_key_str_sb"] = API_key_str_sb
 
+        #Mtool界面
         config_dict["Prompt_Mtool"] = Prompt_Mtool
         config_dict["Translation_lines_Mtool"] = Translation_lines_Mtool
         config_dict["Check_Switch_Mtool"] = Check_Switch_Mtool
+        config_dict["Filter_text__Switch_Mtool"] = Filter_text__Switch_Mtool
 
+        #Tpp界面
         config_dict["Prompt_Tpp"] = Prompt_Tpp
         config_dict["Translation_lines_Tpp"] = Translation_lines_Tpp
         config_dict["Check_Switch_Tpp"] = Check_Switch_Tpp
+        config_dict["Filter_text__Switch_Tpp"] = Filter_text__Switch_Tpp
 
+        #备份设置界面
         config_dict["Automatic_Backup"] = Automatic_Backup
 
+        #实时设置界面
         config_dict["OpenAI_Temperature"] = OpenAI_Temperature
         config_dict["OpenAI_top_p"] = OpenAI_top_p
         config_dict["OpenAI_presence_penalty"] = OpenAI_presence_penalty
         config_dict["OpenAI_frequency_penalty"] = OpenAI_frequency_penalty
 
+        #语义检查Mtool界面
         config_dict["Semantic_weight_Mtool"] = Semantic_weight_Mtool
         config_dict["Symbolic_weight_Mtool"] = Symbolic_weight_Mtool
         config_dict["Word_count_weight_Mtool"] = Word_count_weight_Mtool
         config_dict["similarity_threshold_Mtool"] = similarity_threshold_Mtool
 
+        #语义检查Tpp界面
         config_dict["Semantic_weight_Tpp"] = Semantic_weight_Tpp
         config_dict["Symbolic_weight_Tpp"] = Symbolic_weight_Tpp
         config_dict["Word_count_weight_Tpp"] = Word_count_weight_Tpp
@@ -673,6 +685,7 @@ def read_write_config(mode):
                 config_dict = json.load(f)
 
             #将config.json中的值赋予到变量中,并set到界面上
+            #官方账号界面
             if "Platform_Status" in config_dict:
                 Platform_Status = config_dict["Platform_Status"]
                 Window.Interface11.checkBox.setChecked(Platform_Status)
@@ -689,7 +702,7 @@ def read_write_config(mode):
                 API_key_str = config_dict["API_key_str"]
                 Window.Interface11.TextEdit2.setText(API_key_str)
 
-
+            #代理账号界面
             if "Platform_Status_sb" in config_dict:
                 Platform_Status_sb = config_dict["Platform_Status_sb"]
                 Window.Interface12.checkBox.setChecked(Platform_Status_sb)
@@ -706,7 +719,7 @@ def read_write_config(mode):
                 API_key_str_sb = config_dict["API_key_str_sb"]
                 Window.Interface12.TextEdit2.setText(API_key_str_sb)
 
-
+            #Mtool界面
             if "Prompt_Mtool" in config_dict:
                 Prompt_Mtool = config_dict["Prompt_Mtool"]
                 Window.Interface15.TextEdit.setText(Prompt_Mtool)
@@ -716,9 +729,12 @@ def read_write_config(mode):
             if "Check_Switch_Mtool" in config_dict:
                 Check_Switch_Mtool = config_dict["Check_Switch_Mtool"]
                 Window.Interface15.SwitchButton1.setChecked(Check_Switch_Mtool)
+            if "Filter_text__Switch_Mtool" in config_dict:
+                Filter_text__Switch_Mtool = config_dict["Filter_text__Switch_Mtool"]
+                Window.Interface15.SwitchButton2.setChecked(Filter_text__Switch_Mtool)
 
 
-
+            #T++界面
             if "Prompt_Tpp" in config_dict:
                 Prompt_Tpp = config_dict["Prompt_Tpp"]
                 Window.Interface16.TextEdit.setText(Prompt_Tpp)
@@ -728,11 +744,17 @@ def read_write_config(mode):
             if "Check_Switch_Tpp" in config_dict:
                 Check_Switch_Tpp = config_dict["Check_Switch_Tpp"]
                 Window.Interface16.SwitchButton1.setChecked(Check_Switch_Tpp)
+            if "Filter_text__Switch_Tpp" in config_dict:
+                Filter_text__Switch_Tpp = config_dict["Filter_text__Switch_Tpp"]
+                Window.Interface16.SwitchButton2.setChecked(Filter_text__Switch_Tpp)
 
+            #备份设置界面
             if "Automatic_Backup" in config_dict:
                 Automatic_Backup = config_dict["Automatic_Backup"]
                 Window.Interface17.checkBox.setChecked(Automatic_Backup)
+        
 
+            #实时设置界面
             if "OpenAI_Temperature" in config_dict:
                 OpenAI_Temperature = config_dict["OpenAI_Temperature"]
                 Window.Interface18.slider1.setValue(OpenAI_Temperature)
@@ -746,6 +768,7 @@ def read_write_config(mode):
                 OpenAI_frequency_penalty = config_dict["OpenAI_frequency_penalty"]
                 Window.Interface18.slider4.setValue(OpenAI_frequency_penalty)
 
+            #语义检查Mtool界面
             if "Semantic_weight_Mtool" in config_dict:
                 Semantic_weight_Mtool = config_dict["Semantic_weight_Mtool"]
                 Window.Interface19.doubleSpinBox1.setValue(Semantic_weight_Mtool)
@@ -759,6 +782,7 @@ def read_write_config(mode):
                 similarity_threshold_Mtool = config_dict["similarity_threshold_Mtool"]
                 Window.Interface19.spinBox1.setValue(similarity_threshold_Mtool)
               
+            #语义检查Tpp界面
             if "Semantic_weight_Tpp" in config_dict:
                 Semantic_weight_Tpp = config_dict["Semantic_weight_Tpp"]
                 Window.Interface20.doubleSpinBox1.setValue(Semantic_weight_Tpp)
@@ -1274,9 +1298,10 @@ def Main():
     
     source_mid = source.copy() #将原文复制一份到source_mid变量里，用于后续的修改
 
-    #删除不包含CJK（中日韩）字元的键值对
-    remove_non_cjk(source)
-    remove_non_cjk(source_mid)
+     #只有进行Mtool时且开启了文本过滤的开关，或者进行Tpp时且开启了文本过滤的开关，才会进行文本过滤
+    if ((Running_status == 2 and Window.Interface15.SwitchButton2.isChecked()) or (Running_status == 3 and Window.Interface16.SwitchButton2.isChecked())) :
+        remove_non_cjk(source)
+        remove_non_cjk(source_mid)
 
 
     keyList=list(source_mid.keys())         #通过字典的keys方法，获取所有的key，转换为list变量
@@ -2951,6 +2976,28 @@ class Widget15(QFrame):#Mtool项目界面
         box1_5.setLayout(layout1_5)
 
 
+        # -----创建第1.6个组(后来补的)，添加多个组件-----
+        box1_6 = QGroupBox()
+        box1_6.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_6 = QHBoxLayout()
+
+        #设置“错行检查”标签
+        labe1_6 = QLabel(flags=Qt.WindowFlags())  
+        labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        labe1_6.setText("过滤非中日文本")
+
+       #设置“错行检查”选择开关
+        self.SwitchButton2 = SwitchButton(parent=self)    
+        #self.SwitchButton2.checkedChanged.connect(self.onCheckedChanged)
+
+
+
+        layout1_6.addWidget(labe1_6)
+        layout1_6.addStretch(1)  # 添加伸缩项
+        layout1_6.addWidget(self.SwitchButton2)
+        box1_6.setLayout(layout1_6)
+
+
 
         # -----创建第2个组，添加多个组件-----
         box2 = QGroupBox()
@@ -3109,6 +3156,7 @@ class Widget15(QFrame):#Mtool项目界面
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box1)
         container.addWidget(box1_5)
+        container.addWidget(box1_6)
         container.addWidget(box2)
         container.addWidget(box3)
         container.addWidget(box4)
@@ -3226,6 +3274,27 @@ class Widget16(QFrame):#Tpp项目界面
         layout1_5.addWidget(self.SwitchButton1)
         box1_5.setLayout(layout1_5)
 
+
+        # -----创建第1.6个组(后来补的)，添加多个组件-----
+        box1_6 = QGroupBox()
+        box1_6.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_6 = QHBoxLayout()
+
+        #设置“错行检查”标签
+        labe1_6 = QLabel(flags=Qt.WindowFlags())  
+        labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        labe1_6.setText("过滤非中日文本")
+
+       #设置“错行检查”选择开关
+        self.SwitchButton2 = SwitchButton(parent=self)    
+        #self.SwitchButton2.checkedChanged.connect(self.onCheckedChanged)
+
+
+
+        layout1_6.addWidget(labe1_6)
+        layout1_6.addStretch(1)  # 添加伸缩项
+        layout1_6.addWidget(self.SwitchButton2)
+        box1_6.setLayout(layout1_6)
 
 
 
@@ -3387,6 +3456,7 @@ class Widget16(QFrame):#Tpp项目界面
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box1)
         container.addWidget(box1_5)
+        container.addWidget(box1_6)
         container.addWidget(box2)
         container.addWidget(box3)
         container.addWidget(box4)
@@ -4674,7 +4744,7 @@ class window(FramelessWindow): #主窗口
 
     #初始化父窗口的函数
     def initWindow(self): 
-        self.resize(1000 , 700) #设置窗口的大小
+        self.resize(1100 , 700) #设置窗口的大小
         #self.setWindowIcon(QIcon('resource/logo.png')) #设置窗口的图标
         self.setWindowTitle(Software_Version) #设置窗口的标题
         self.titleBar.setAttribute(Qt.WA_StyledBackground) #设置标题栏的属性
