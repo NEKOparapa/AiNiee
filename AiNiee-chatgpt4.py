@@ -1275,7 +1275,7 @@ def Main():
         #print("[DEBUG] 你的未修改原文是",source)
 
 
-        #遍历文件夹中所有的xlsx文件每个内容的对应行数添加到Catalog_Dictionary字典中，用于后续实时备份的索引
+        #遍历文件夹中所有的xlsx文件每个内容的对应行数添加到Catalog_Dictionary字典中，作为后续自动备份的索引目录
         Catalog_Dictionary = {}
         for Input_file in os.listdir(Input_Folder):
             if Input_file.endswith('.xlsx'):
@@ -1307,7 +1307,7 @@ def Main():
         data_Backup_path = os.path.join(Automatic_Backup_folder, 'data')
         os.makedirs(data_Backup_path, exist_ok=True)
 
-        #复制原项目data文件夹所有文件到输出文件夹data文件夹里和备份文件夹的data里面
+        #复制原项目data文件夹所有文件到输出文件夹data文件夹里
         for Input_file in os.listdir(Input_Folder):
             if Input_file.endswith('.xlsx'):  # 如果是xlsx文件
                 file_path = os.path.join(Input_Folder, Input_file)  # 构造文件路径
@@ -1315,7 +1315,8 @@ def Main():
                 wb = load_workbook(file_path)        # 以读写模式打开工作簿
                 wb.save(output_file_path)  # 保存工作簿
                 wb.close()  # 关闭工作簿
-        
+                
+        #复制原项目data文件夹所有文件到备份文件夹的data里面
         for Input_file in os.listdir(Input_Folder):
             if Input_file.endswith('.xlsx'):  # 如果是xlsx文件
                 file_path = os.path.join(Input_Folder, Input_file)  # 构造文件路径
@@ -1377,7 +1378,7 @@ def Main():
         return
     
 
-# ——————————————————————————————————————————检查没能成功翻译的文本，递减行数翻译————————————————————————————————————————
+# ——————————————————————————————————————————检查没能成功翻译的文本，迭代翻译————————————————————————————————————————
 
     #计算未翻译文本的数量
     count_not_Translate = Translation_Status_List.count(2)
@@ -1386,6 +1387,8 @@ def Main():
     Number_of_iterations = 0
     #构建递减翻译行数迭代列表   
     Translation_lines_list = divide_by_2345(Translation_lines)
+    #迭代列表索引
+    Translation_lines_index = 0
 
     while count_not_Translate != 0 :
         print("\033[1;33mWarning:\033[0m 仍然有部分未翻译，将进行迭代翻译-----------------------------------")
@@ -1399,14 +1402,10 @@ def Main():
 
         
         #根据迭代列表减少翻译行数，直至翻译行数降至1行
-        if Number_of_iterations < len(Translation_lines_list):
-            Translation_lines = Translation_lines_list[Number_of_iterations]
+        if Translation_lines_index < len(Translation_lines_list):
+            Translation_lines = Translation_lines_list[Translation_lines_index]
             # 找到了值，进行后续操作
             print("[INFO] 当前翻译行数设置是：",Translation_lines)
-        else:
-            # 找不到值，pass
-            pass
-
 
 
         # 计算可并发任务总数
@@ -1429,14 +1428,17 @@ def Main():
         if Running_status == 10 :
             return
         
-        #检查是否已经陷入死循环
+        #检查是否已经达到迭代次数限制
         if Number_of_iterations == 30 :
+            print ("\033[1;33mWarning:\033[0m 已经达到迭代次数限制，但仍然有部分文本未翻译，不影响使用，可手动翻译")
             break
 
         #重新计算未翻译文本的数量
         count_not_Translate = Translation_Status_List.count(2) 
         #增加迭代次数，进一步减少翻译行数
         Number_of_iterations = Number_of_iterations + 1
+        #增加迭代列表索引
+        Translation_lines_index = Translation_lines_index + 1
 
         #如果实时调教功能没有开的话，则每次迭代翻译，增加OpenAI温度,增加随机性
         if Window.Interface18.checkBox.isChecked() == False :
@@ -1448,7 +1450,7 @@ def Main():
 
         #如果只剩下15句左右没有翻译则直接逐行翻译
         if count_not_Translate <= 15:
-            Number_of_iterations = len(Translation_lines_list) - 1
+            Translation_lines_index = len(Translation_lines_list) - 1 
             print("\033[1;33mWarning:\033[0m 当剩下15句未翻译时，将进行逐行翻译-----------------------------------")
 
 
@@ -2997,7 +2999,7 @@ class Widget15(QFrame):#Mtool项目界面
 
        #设置“错行检查”选择开关
         self.SwitchButton1 = SwitchButton(parent=self)    
-        self.SwitchButton1.checkedChanged.connect(self.onCheckedChanged)
+        self.SwitchButton1.checkedChanged.connect(self.onCheckedChanged1)
 
 
 
@@ -3012,14 +3014,14 @@ class Widget15(QFrame):#Mtool项目界面
         box1_6.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout1_6 = QHBoxLayout()
 
-        #设置“错行检查”标签
+        #设置“过滤文本”标签
         labe1_6 = QLabel(flags=Qt.WindowFlags())  
         labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
         labe1_6.setText("过滤非中日文本")
 
-       #设置“错行检查”选择开关
+       #设置“过滤文本”选择开关
         self.SwitchButton2 = SwitchButton(parent=self)    
-        #self.SwitchButton2.checkedChanged.connect(self.onCheckedChanged)
+        self.SwitchButton2.checkedChanged.connect(self.onCheckedChanged2)
 
 
 
@@ -3230,12 +3232,21 @@ class Widget15(QFrame):#Mtool项目界面
         container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
     #设置“错行检查”选择开关绑定函数
-    def onCheckedChanged(self, isChecked: bool):
+    def onCheckedChanged1(self, isChecked: bool):
         if isChecked :
             self.SwitchButton1.setText("On")
             createWarningInfoBar("Mtool项目已开启AI回复内容错行检查，将会增加时间与金钱消耗")
         else :
             self.SwitchButton1.setText("Off")
+
+    #设置“文本过滤”选择开关绑定函数
+    def onCheckedChanged2(self, isChecked: bool):
+        if isChecked :
+            self.SwitchButton2.setText("On")
+        else :
+            self.SwitchButton2.setText("Off")
+            self.SwitchButton1.setChecked(False)
+            
 
     #开始翻译（mtool）按钮绑定函数
     def Start_translation_mtool(self):
@@ -3325,7 +3336,7 @@ class Widget16(QFrame):#Tpp项目界面
 
        #设置“错行检查”选择开关
         self.SwitchButton1 = SwitchButton(parent=self)    
-        self.SwitchButton1.checkedChanged.connect(self.onCheckedChanged)
+        self.SwitchButton1.checkedChanged.connect(self.onCheckedChanged1)
 
 
 
@@ -3340,14 +3351,14 @@ class Widget16(QFrame):#Tpp项目界面
         box1_6.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout1_6 = QHBoxLayout()
 
-        #设置“错行检查”标签
+        #设置“文本过滤”标签
         labe1_6 = QLabel(flags=Qt.WindowFlags())  
         labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
         labe1_6.setText("过滤非中日文本")
 
-       #设置“错行检查”选择开关
+       #设置“文本过滤”选择开关
         self.SwitchButton2 = SwitchButton(parent=self)    
-        #self.SwitchButton2.checkedChanged.connect(self.onCheckedChanged)
+        self.SwitchButton2.checkedChanged.connect(self.onCheckedChanged2)
 
 
 
@@ -3555,12 +3566,21 @@ class Widget16(QFrame):#Tpp项目界面
         container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
     #设置“错行检查”选择开关绑定函数
-    def onCheckedChanged(self, isChecked: bool):
+    def onCheckedChanged1(self, isChecked: bool):
         if isChecked :
             self.SwitchButton1.setText("On")
             createWarningInfoBar("T++项目已开启AI回复内容错行检查，将会增加时间与金钱消耗")
         else :
             self.SwitchButton1.setText("Off")
+
+    #设置“文本过滤”选择开关绑定函数
+    def onCheckedChanged2(self, isChecked: bool):
+        if isChecked :
+            self.SwitchButton2.setText("On")
+        else :
+            self.SwitchButton2.setText("Off")
+            self.SwitchButton1.setChecked(False)
+            
 
     #开始翻译（T++）按钮绑定函数
     def Start_translation_Tpp(self):
