@@ -3038,7 +3038,7 @@ class Widget15(QFrame):#Mtool项目界面
         box1_7.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout1_7 = QHBoxLayout()
 
-        #设置“翻译行数”标签
+        #设置“最大线程数”标签
         label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
         label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
         label1_7.setText("最大线程数")
@@ -3048,8 +3048,10 @@ class Widget15(QFrame):#Mtool项目界面
         label2_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
         label2_7.setText("0是自动根据电脑设置线程数")  
 
-       #设置“翻译行数”数值输入框
-        self.spinBox2 = SpinBox(self)    
+       #设置“最大线程数”数值输入框
+        self.spinBox2 = SpinBox(self)
+        #设置最大最小值
+        self.spinBox2.setRange(0, 1000)    
         self.spinBox2.setValue(0)
 
         layout1_7.addWidget(label1_7)
@@ -3372,7 +3374,7 @@ class Widget16(QFrame):#Tpp项目界面
         box1_7.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout1_7 = QHBoxLayout()
 
-        #设置“翻译行数”标签
+        #设置“最大线程数”标签
         label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
         label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
         label1_7.setText("最大线程数")
@@ -3382,8 +3384,10 @@ class Widget16(QFrame):#Tpp项目界面
         label2_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
         label2_7.setText("0是自动根据电脑设置线程数")  
 
-       #设置“翻译行数”数值输入框
-        self.spinBox2 = SpinBox(self)    
+       #设置“最大线程数”数值输入框
+        self.spinBox2 = SpinBox(self)
+        #设置最大最小值
+        self.spinBox2.setRange(0, 1000)        
         self.spinBox2.setValue(0)
 
         layout1_7.addWidget(label1_7)
@@ -4157,7 +4161,7 @@ class Widget19(QFrame):#语义检查（Mtool）界面
         box0_3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout0_3 = QHBoxLayout()
 
-        #设置“翻译行数”标签
+        #设置“最大线程数”标签
         label0_5 = QLabel(parent=self, flags=Qt.WindowFlags())  
         label0_5.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
         label0_5.setText("最大线程数")
@@ -4167,8 +4171,10 @@ class Widget19(QFrame):#语义检查（Mtool）界面
         label0_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
         label0_6.setText("0是自动根据电脑设置线程数")  
 
-       #设置“翻译行数”数值输入框
-        self.spinBox2 = SpinBox(self)    
+       #设置“最大线程数”数值输入框
+        self.spinBox2 = SpinBox(self)
+        #设置最大最小值
+        self.spinBox2.setRange(0, 1000)    
         self.spinBox2.setValue(0)
 
         layout0_3.addWidget(label0_5)
@@ -4462,7 +4468,7 @@ class Widget20(QFrame):#语义检查（Tpp）界面
         box0_3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout0_3 = QHBoxLayout()
 
-        #设置“翻译行数”标签
+        #设置“最大线程数”标签
         label0_5 = QLabel(parent=self, flags=Qt.WindowFlags())  
         label0_5.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
         label0_5.setText("最大线程数")
@@ -4472,8 +4478,10 @@ class Widget20(QFrame):#语义检查（Tpp）界面
         label0_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
         label0_6.setText("0是自动根据电脑设置线程数")  
 
-       #设置“翻译行数”数值输入框
-        self.spinBox2 = SpinBox(self)    
+       #设置“最大线程数”数值输入框
+        self.spinBox2 = SpinBox(self)  
+       #设置最大最小值
+        self.spinBox2.setRange(0, 1000)    
         self.spinBox2.setValue(0)
 
         layout0_3.addWidget(label0_5)
