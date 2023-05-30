@@ -1315,7 +1315,7 @@ def Main():
                 wb = load_workbook(file_path)        # 以读写模式打开工作簿
                 wb.save(output_file_path)  # 保存工作簿
                 wb.close()  # 关闭工作簿
-                
+
         #复制原项目data文件夹所有文件到备份文件夹的data里面
         for Input_file in os.listdir(Input_Folder):
             if Input_file.endswith('.xlsx'):  # 如果是xlsx文件
@@ -4897,7 +4897,7 @@ class window(FramelessWindow): #主窗口
 
     #初始化父窗口的函数
     def initWindow(self): 
-        self.resize(1100 , 700) #设置窗口的大小
+        self.resize(1200 , 700) #设置窗口的大小
         #self.setWindowIcon(QIcon('resource/logo.png')) #设置窗口的图标
         self.setWindowTitle(Software_Version) #设置窗口的标题
         self.titleBar.setAttribute(Qt.WA_StyledBackground) #设置标题栏的属性
