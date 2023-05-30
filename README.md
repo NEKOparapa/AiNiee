@@ -8,7 +8,8 @@
 ***
 [![ GitHub 许可证](https://img.shields.io/github/license/NEKOparapa/AiNiee-chatgpt)](https://github.com/NEKOparapa/AiNiee-chatgpt/LICENSE) [![GitHub release](https://img.shields.io/github/v/release/NEKOparapa/AiNiee-chatgpt)](https://github.com/NEKOparapa/NEKOparapa/releases/)
 > 这是一款基于`Mtool`或`Translator++`的 chatgpt自动批翻译工具,主要是用来翻译各种RPG游戏
-> [教程视频](https://www.bilibili.com/video/BV18c411K7WN) [下载地址](https://github.com/NEKOparapa/AiNiee-chatgpt/releases)
+  
+> [工具教程视频](https://www.bilibili.com/video/BV18c411K7WN) [工具下载地址](https://github.com/NEKOparapa/AiNiee-chatgpt/releases)
 #  环境支持🏕️
 ***
    
