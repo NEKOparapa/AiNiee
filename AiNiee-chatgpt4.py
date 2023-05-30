@@ -3236,8 +3236,13 @@ class Widget15(QFrame):#Mtool项目界面
     #设置“错行检查”选择开关绑定函数
     def onCheckedChanged1(self, isChecked: bool):
         if isChecked :
-            self.SwitchButton1.setText("On")
-            createWarningInfoBar("Mtool项目已开启AI回复内容错行检查，将会增加时间与金钱消耗")
+            if self.SwitchButton2.isChecked() == True:
+                self.SwitchButton1.setText("On")
+                createWarningInfoBar("Mtool项目已开启AI回复内容错行检查，将会增加时间与金钱消耗")
+            else :
+                self.SwitchButton1.setChecked(False)
+                self.SwitchButton1.setText("Off")
+                createWarningInfoBar("需要绑定过滤文本功能一起开启，否则部分文本将会过不了错行检查，一直循环翻译")
         else :
             self.SwitchButton1.setText("Off")
 
@@ -3572,8 +3577,13 @@ class Widget16(QFrame):#Tpp项目界面
     #设置“错行检查”选择开关绑定函数
     def onCheckedChanged1(self, isChecked: bool):
         if isChecked :
-            self.SwitchButton1.setText("On")
-            createWarningInfoBar("T++项目已开启AI回复内容错行检查，将会增加时间与金钱消耗")
+            if self.SwitchButton2.isChecked() == True:
+                self.SwitchButton1.setText("On")
+                createWarningInfoBar("Mtool项目已开启AI回复内容错行检查，将会增加时间与金钱消耗")
+            else :
+                self.SwitchButton1.setChecked(False)
+                self.SwitchButton1.setText("Off")
+                createWarningInfoBar("需要绑定过滤文本功能一起开启，否则部分文本将会过不了错行检查，一直循环翻译")
         else :
             self.SwitchButton1.setText("Off")
 
