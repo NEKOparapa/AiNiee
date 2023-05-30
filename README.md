@@ -48,12 +48,19 @@
     ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/翻译设置Mtool.png" width="600" height="400"><br>
     >配置说明:<br>
     >`Lines`: 每次请求翻译的文本行数。行数设置越大,整体的翻译效果会更好,上下文更加流畅,但每次请求回复速度会越慢,回复的内容越容易出错,建议gpt3.5模型不要设置超过50,gpt4模型不超过90<br>
+  
     >`错行检查`: 针对AI回复内容的检查功能,因为AI在翻译时有时会把上下文一起翻译,并放到一个文本行中,导致回复的文本错行,对不上原文。开启这个功能,会对AI回复内容进行检查,会增加时间和花销,追求翻译质量可开<br>
+  
     >`过滤非中日文本`: 该功能会过滤掉提取文本中的数字，纯符号，事件代号等非对话文本，减少翻译时间与消耗<br>
+  
     >`最大线程数`: 请根据电脑自身情况设置，线程数越大，越容易吃满Openai的速率限制，翻译速度越快<br>
+  
     >`Prompt`: 系统提示词,用于告诉chatgpt任务目标的命令语。希望大家有空去探索一下Prompt的写法,如果写得越好,AI酱就能更能准确回复译文格式,以你想要的写作风格进行翻译。只要在Prompt里加上"以json文件格式回复译文",程序就能够处理<br>
+  
     >`文件位置`: 选择你需要翻译的原文文件,也是ManualTransFile.json文件<br>
+  
     >`输出文件夹`: 选择翻译后文件的存储文件夹<br>
+  
 * 3-2.🖱️点击**开始翻译**按钮,看控制台输出日志或者进度条。之后等待翻译进度到百分百,自动生成翻译好的文件Tradata.json在输出文件夹中
     > 正在进行翻译<br>
     > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Mtool/UI界面正在翻译.png"  width="600" height="400">
