@@ -3242,7 +3242,7 @@ class Widget15(QFrame):#Mtool项目界面
             else :
                 self.SwitchButton1.setChecked(False)
                 self.SwitchButton1.setText("Off")
-                createWarningInfoBar("需要绑定过滤文本功能一起开启，否则部分文本将会过不了错行检查，一直循环翻译")
+                createWarningInfoBar("需要绑定过滤文本功能一起开启，否则纯符号纯数字等文本将会过不了错行检查，一直循环翻译")
         else :
             self.SwitchButton1.setText("Off")
 
@@ -3583,7 +3583,7 @@ class Widget16(QFrame):#Tpp项目界面
             else :
                 self.SwitchButton1.setChecked(False)
                 self.SwitchButton1.setText("Off")
-                createWarningInfoBar("需要绑定过滤文本功能一起开启，否则部分文本将会过不了错行检查，一直循环翻译")
+                createWarningInfoBar("需要绑定过滤文本功能一起开启，否则纯符号纯数字等文本将会过不了错行检查，一直循环翻译")
         else :
             self.SwitchButton1.setText("Off")
 
