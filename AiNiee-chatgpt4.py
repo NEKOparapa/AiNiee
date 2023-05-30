@@ -596,11 +596,14 @@ def read_write_config(mode):
         Translation_lines_Mtool = Window.Interface15.spinBox1.value()        #获取MTool界面翻译行数
         Check_Switch_Mtool = Window.Interface15.SwitchButton1.isChecked()   #获取错行检查开关的状态
         Filter_text__Switch_Mtool = Window.Interface15.SwitchButton2.isChecked()   #获取过滤文本开关的状态
+        Number_of_threads_Mtool = Window.Interface15.spinBox2.value()             #获取最大线程数
+
         #如果是T++界面
         Prompt_Tpp = Window.Interface16.TextEdit.toPlainText()             #获取T++界面提示词
         Translation_lines_Tpp = Window.Interface16.spinBox1.value()        #获取T++界面翻译行数
         Check_Switch_Tpp = Window.Interface16.SwitchButton1.isChecked()   #获取错行检查开关的状态
         Filter_text__Switch_Tpp = Window.Interface16.SwitchButton2.isChecked()   #获取过滤文本开关的状态
+        Number_of_threads_Tpp = Window.Interface16.spinBox2.value()             #获取最大线程数
 
         #获取备份设置界面
         Automatic_Backup = Window.Interface17.checkBox.isChecked()        #获取自动备份开关状态
@@ -616,13 +619,14 @@ def read_write_config(mode):
         Symbolic_weight_Mtool = Window.Interface19.doubleSpinBox2.value()
         Word_count_weight_Mtool = Window.Interface19.doubleSpinBox3.value()
         similarity_threshold_Mtool = Window.Interface19.spinBox1.value()
+        Number_threads_Mtool = Window.Interface19.spinBox2.value()
 
         #获取语义检查Tpp界面
         Semantic_weight_Tpp = Window.Interface20.doubleSpinBox1.value()
         Symbolic_weight_Tpp = Window.Interface20.doubleSpinBox2.value()
         Word_count_weight_Tpp = Window.Interface20.doubleSpinBox3.value()
         similarity_threshold_Tpp = Window.Interface20.spinBox1.value()
-
+        Number_threads_Tpp = Window.Interface20.spinBox2.value()
 
         #将变量名作为key，变量值作为value，写入字典config.json
         #官方账号界面
@@ -645,12 +649,14 @@ def read_write_config(mode):
         config_dict["Translation_lines_Mtool"] = Translation_lines_Mtool
         config_dict["Check_Switch_Mtool"] = Check_Switch_Mtool
         config_dict["Filter_text__Switch_Mtool"] = Filter_text__Switch_Mtool
+        config_dict["Number_of_threads_Mtool"] = Number_of_threads_Mtool
 
         #Tpp界面
         config_dict["Prompt_Tpp"] = Prompt_Tpp
         config_dict["Translation_lines_Tpp"] = Translation_lines_Tpp
         config_dict["Check_Switch_Tpp"] = Check_Switch_Tpp
         config_dict["Filter_text__Switch_Tpp"] = Filter_text__Switch_Tpp
+        config_dict["Number_of_threads_Tpp"] = Number_of_threads_Tpp
 
         #备份设置界面
         config_dict["Automatic_Backup"] = Automatic_Backup
@@ -666,12 +672,14 @@ def read_write_config(mode):
         config_dict["Symbolic_weight_Mtool"] = Symbolic_weight_Mtool
         config_dict["Word_count_weight_Mtool"] = Word_count_weight_Mtool
         config_dict["similarity_threshold_Mtool"] = similarity_threshold_Mtool
+        config_dict["Number_threads_Mtool"] = Number_threads_Mtool
 
         #语义检查Tpp界面
         config_dict["Semantic_weight_Tpp"] = Semantic_weight_Tpp
         config_dict["Symbolic_weight_Tpp"] = Symbolic_weight_Tpp
         config_dict["Word_count_weight_Tpp"] = Word_count_weight_Tpp
         config_dict["similarity_threshold_Tpp"] = similarity_threshold_Tpp
+        config_dict["Number_threads_Tpp"] = Number_threads_Tpp
 
         #写入config.json
         with open(os.path.join(resource_dir, "config.json"), "w", encoding="utf-8") as f:
@@ -732,6 +740,9 @@ def read_write_config(mode):
             if "Filter_text__Switch_Mtool" in config_dict:
                 Filter_text__Switch_Mtool = config_dict["Filter_text__Switch_Mtool"]
                 Window.Interface15.SwitchButton2.setChecked(Filter_text__Switch_Mtool)
+            if "Number_of_threads_Mtool" in config_dict:
+                Number_of_threads_Mtool = config_dict["Number_of_threads_Mtool"]
+                Window.Interface15.spinBox2.setValue(Number_of_threads_Mtool)
 
 
             #T++界面
@@ -747,6 +758,9 @@ def read_write_config(mode):
             if "Filter_text__Switch_Tpp" in config_dict:
                 Filter_text__Switch_Tpp = config_dict["Filter_text__Switch_Tpp"]
                 Window.Interface16.SwitchButton2.setChecked(Filter_text__Switch_Tpp)
+            if "Number_of_threads_Tpp" in config_dict:
+                Number_of_threads_Tpp = config_dict["Number_of_threads_Tpp"]
+                Window.Interface16.spinBox2.setValue(Number_of_threads_Tpp)
 
             #备份设置界面
             if "Automatic_Backup" in config_dict:
@@ -781,6 +795,9 @@ def read_write_config(mode):
             if "similarity_threshold_Mtool" in config_dict:
                 similarity_threshold_Mtool = config_dict["similarity_threshold_Mtool"]
                 Window.Interface19.spinBox1.setValue(similarity_threshold_Mtool)
+            if "Number_threads_Mtool" in config_dict:
+                Number_threads_Mtool = config_dict["Number_threads_Mtool"]
+                Window.Interface19.spinBox2.setValue(Number_threads_Mtool)
               
             #语义检查Tpp界面
             if "Semantic_weight_Tpp" in config_dict:
@@ -795,6 +812,9 @@ def read_write_config(mode):
             if "similarity_threshold_Tpp" in config_dict:
                 similarity_threshold_Tpp = config_dict["similarity_threshold_Tpp"]
                 Window.Interface20.spinBox1.setValue(similarity_threshold_Tpp)
+            if "Number_threads_Tpp" in config_dict:
+                Number_threads_Tpp = config_dict["Number_threads_Tpp"]
+                Window.Interface20.spinBox2.setValue(Number_threads_Tpp)
 
 #成功信息居中弹出框函数
 def createSuccessInfoBar(str):
@@ -1075,19 +1095,22 @@ def Config():
     if Running_status == 2:#如果是MTool翻译任务
         Prompt = Window.Interface15.TextEdit.toPlainText()             #获取提示词
         Translation_lines = Window.Interface15.spinBox1.value()        #获取翻译行数
+        The_Max_workers = Window.Interface15.spinBox2.value()         #获取最大线程数
 
     elif Running_status == 3:#如果是T++翻译任务
         Prompt = Window.Interface16.TextEdit.toPlainText()             #获取提示词
         Translation_lines = Window.Interface16.spinBox1.value()        #获取翻译行数
+        The_Max_workers = Window.Interface16.spinBox2.value()         #获取最大线程数
 
     elif Running_status == 4:#如果是MTool语义检查任务
         Prompt = Window.Interface15.TextEdit.toPlainText()             #获取提示词
         Translation_lines = 1
+        The_Max_workers = Window.Interface19.spinBox2.value()         #获取最大线程数
 
     elif Running_status == 5:#如果是T++语义检查任务
         Prompt = Window.Interface16.TextEdit.toPlainText()             #获取提示词
         Translation_lines = 1
-
+        The_Max_workers = Window.Interface20.spinBox2.value()         #获取最大线程数
 
 
 
@@ -1130,7 +1153,8 @@ def Config():
     if (Account_Type == "付费账号(48h内)") and (Model_Type == "gpt-3.5-turbo") :
         The_RPM_limit =  60 / Pay_RPM_limit2                    #计算请求时间间隔
         The_TPM_limit =  Pay_TPM_limit2 / 60                    #计算请求每秒可请求的tokens流量
-        The_Max_workers = multiprocessing.cpu_count() * 3 + 1 #获取计算机cpu核心数，设置最大线程数
+        if The_Max_workers == 0:                                #如果最大线程数设置值为0，则自动设置为cpu核心数的4倍+1
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 #获取计算机cpu核心数，设置最大线程数
         tokens_limit_per = 4090                                #根据模型类型设置每次请求的最大tokens数量
         Request_Pricing = 0.002 /1000                           #存储请求价格
         Response_Pricing = 0.002 /1000                          #存储响应价格
@@ -1139,7 +1163,8 @@ def Config():
     elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-3.5-turbo"):
         The_RPM_limit =  60 / Pay_RPM_limit3           
         The_TPM_limit =  Pay_TPM_limit3 / 60
-        The_Max_workers = multiprocessing.cpu_count() * 3 + 1
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
         tokens_limit_per = 4090
         Request_Pricing = 0.002 /1000
         Response_Pricing = 0.002 /1000
@@ -1147,7 +1172,8 @@ def Config():
     elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-4"):
         The_RPM_limit =  60 / Pay_RPM_limit4           
         The_TPM_limit =  Pay_TPM_limit4 / 60
-        The_Max_workers = multiprocessing.cpu_count() * 3 + 1
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
         tokens_limit_per = 8190
         Request_Pricing = 0.03 / 1000
         Response_Pricing = 0.06 / 1000
@@ -1163,7 +1189,8 @@ def Config():
     elif Account_Type == "代理账号" and (Model_Type == "gpt-3.5-turbo"):
         The_RPM_limit =  60 / Pay_RPM_limit3           
         The_TPM_limit =  Pay_TPM_limit3 / 60
-        The_Max_workers = multiprocessing.cpu_count() * 3 + 1
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
         tokens_limit_per = 4090
         Request_Pricing = 0.0003 /1000
         Response_Pricing = 0.0003 /1000
@@ -1171,7 +1198,8 @@ def Config():
     elif Account_Type == "代理账号" and (Model_Type == "gpt-4"):
         The_RPM_limit =  60 / Pay_RPM_limit4           
         The_TPM_limit =  Pay_TPM_limit4 / 60
-        The_Max_workers = multiprocessing.cpu_count() * 3 + 1
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
         tokens_limit_per = 8190
         Request_Pricing = 0.0454/1000
         Response_Pricing = 0.0909 / 1000
@@ -1179,6 +1207,7 @@ def Config():
     else:
         return 1 #返回错误参数
 
+    print ("[INFO] 当前设置最大线程数是:",The_Max_workers,'\n')
 
     #设置模型ID
     OpenAI_model = Model_Type
@@ -2964,6 +2993,8 @@ class Widget15(QFrame):#Mtool项目界面
         labe1_5.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
         labe1_5.setText("错行检查")
 
+
+
        #设置“错行检查”选择开关
         self.SwitchButton1 = SwitchButton(parent=self)    
         self.SwitchButton1.checkedChanged.connect(self.onCheckedChanged)
@@ -2996,6 +3027,34 @@ class Widget15(QFrame):#Mtool项目界面
         layout1_6.addStretch(1)  # 添加伸缩项
         layout1_6.addWidget(self.SwitchButton2)
         box1_6.setLayout(layout1_6)
+
+
+
+
+        # -----创建第1.7个组(后来补的)，添加多个组件-----
+        box1_7 = QGroupBox()
+        box1_7.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_7 = QHBoxLayout()
+
+        #设置“翻译行数”标签
+        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label1_7.setText("最大线程数")
+
+        #设置“文件位置”显示
+        label2_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label2_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        label2_7.setText("0是自动根据电脑设置线程数")  
+
+       #设置“翻译行数”数值输入框
+        self.spinBox2 = SpinBox(self)    
+        self.spinBox2.setValue(0)
+
+        layout1_7.addWidget(label1_7)
+        layout1_7.addWidget(label2_7)
+        layout1_7.addStretch(1)  # 添加伸缩项
+        layout1_7.addWidget(self.spinBox2)
+        box1_7.setLayout(layout1_7)
 
 
 
@@ -3157,6 +3216,7 @@ class Widget15(QFrame):#Mtool项目界面
         container.addWidget(box1)
         container.addWidget(box1_5)
         container.addWidget(box1_6)
+        container.addWidget(box1_7)
         container.addWidget(box2)
         container.addWidget(box3)
         container.addWidget(box4)
@@ -3296,6 +3356,30 @@ class Widget16(QFrame):#Tpp项目界面
         layout1_6.addWidget(self.SwitchButton2)
         box1_6.setLayout(layout1_6)
 
+        # -----创建第1.7个组(后来补的)，添加多个组件-----
+        box1_7 = QGroupBox()
+        box1_7.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_7 = QHBoxLayout()
+
+        #设置“翻译行数”标签
+        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label1_7.setText("最大线程数")
+
+        #设置“文件位置”显示
+        label2_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label2_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        label2_7.setText("0是自动根据电脑设置线程数")  
+
+       #设置“翻译行数”数值输入框
+        self.spinBox2 = SpinBox(self)    
+        self.spinBox2.setValue(0)
+
+        layout1_7.addWidget(label1_7)
+        layout1_7.addWidget(label2_7)
+        layout1_7.addStretch(1)  # 添加伸缩项
+        layout1_7.addWidget(self.spinBox2)
+        box1_7.setLayout(layout1_7)
 
 
         # -----创建第2个组，添加多个组件-----
@@ -3457,6 +3541,7 @@ class Widget16(QFrame):#Tpp项目界面
         container.addWidget(box1)
         container.addWidget(box1_5)
         container.addWidget(box1_6)
+        container.addWidget(box1_7)
         container.addWidget(box2)
         container.addWidget(box3)
         container.addWidget(box4)
@@ -4002,9 +4087,9 @@ class Widget19(QFrame):#语义检查（Mtool）界面
         self.doubleSpinBox2.setValue(0.2)
 
         #设置“字数权重”标签
-        label0_3 = QLabel( flags=Qt.WindowFlags())  
-        label0_3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label0_3.setText("字数权重")
+        label0_5 = QLabel( flags=Qt.WindowFlags())  
+        label0_5.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label0_5.setText("字数权重")
 
         #设置“字数权重”输入
         self.doubleSpinBox3 = DoubleSpinBox(self)
@@ -4019,7 +4104,7 @@ class Widget19(QFrame):#语义检查（Mtool）界面
         layout0_1.addWidget(label0_2)
         layout0_1.addWidget(self.doubleSpinBox2)
         layout0_1.addStretch(1)  # 添加伸缩项
-        layout0_1.addWidget(label0_3)
+        layout0_1.addWidget(label0_5)
         layout0_1.addWidget(self.doubleSpinBox3)
 
         box0_1.setLayout(layout0_1)
@@ -4031,9 +4116,9 @@ class Widget19(QFrame):#语义检查（Mtool）界面
         layout0_2 = QHBoxLayout()
 
         #设置“相似度阈值”标签
-        label0_4 = QLabel( flags=Qt.WindowFlags())  
-        label0_4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label0_4.setText("相似度阈值")
+        label0_5 = QLabel( flags=Qt.WindowFlags())  
+        label0_5.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label0_5.setText("相似度阈值")
 
         #设置“相似度阈值”输入
         self.spinBox1 = SpinBox(self)
@@ -4041,13 +4126,36 @@ class Widget19(QFrame):#语义检查（Mtool）界面
         self.spinBox1.setMinimum(0)
         self.spinBox1.setValue(50)
 
-        layout0_2.addWidget(label0_4)
+        layout0_2.addWidget(label0_5)
         layout0_2.addStretch(1)  # 添加伸缩项
         layout0_2.addWidget(self.spinBox1)
         box0_2.setLayout(layout0_2)
 
 
+        # -----创建第0-3个组(后来补的)，添加多个组件-----
+        box0_3 = QGroupBox()
+        box0_3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout0_3 = QHBoxLayout()
 
+        #设置“翻译行数”标签
+        label0_5 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label0_5.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label0_5.setText("最大线程数")
+
+        #设置“文件位置”显示
+        label0_6 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label0_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        label0_6.setText("0是自动根据电脑设置线程数")  
+
+       #设置“翻译行数”数值输入框
+        self.spinBox2 = SpinBox(self)    
+        self.spinBox2.setValue(0)
+
+        layout0_3.addWidget(label0_5)
+        layout0_3.addWidget(label0_6)
+        layout0_3.addStretch(1)  # 添加伸缩项
+        layout0_3.addWidget(self.spinBox2)
+        box0_3.setLayout(layout0_3)
 
 
 
@@ -4190,6 +4298,7 @@ class Widget19(QFrame):#语义检查（Mtool）界面
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box0_1)
         container.addWidget(box0_2)
+        container.addWidget(box0_3)
         container.addWidget(box1)
         container.addWidget(box2)
         container.addWidget(box4)
@@ -4328,7 +4437,30 @@ class Widget20(QFrame):#语义检查（Tpp）界面
 
 
 
+        # -----创建第0-3个组(后来补的)，添加多个组件-----
+        box0_3 = QGroupBox()
+        box0_3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout0_3 = QHBoxLayout()
 
+        #设置“翻译行数”标签
+        label0_5 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label0_5.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label0_5.setText("最大线程数")
+
+        #设置“文件位置”显示
+        label0_6 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label0_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        label0_6.setText("0是自动根据电脑设置线程数")  
+
+       #设置“翻译行数”数值输入框
+        self.spinBox2 = SpinBox(self)    
+        self.spinBox2.setValue(0)
+
+        layout0_3.addWidget(label0_5)
+        layout0_3.addWidget(label0_6)
+        layout0_3.addStretch(1)  # 添加伸缩项
+        layout0_3.addWidget(self.spinBox2)
+        box0_3.setLayout(layout0_3)
 
 
         # -----创建第1个组，添加多个组件-----
@@ -4469,6 +4601,7 @@ class Widget20(QFrame):#语义检查（Tpp）界面
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box0_1)
         container.addWidget(box0_2)
+        container.addWidget(box0_3)
         container.addWidget(box1)
         container.addWidget(box2)
         container.addWidget(box4)
