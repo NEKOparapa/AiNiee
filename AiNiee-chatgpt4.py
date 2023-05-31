@@ -2142,7 +2142,7 @@ def Check_wrong_Main():
         num_request = int(math.ceil(tokens_all_consume / 6090))
 
         #将列表变量里正在嵌入的文本状态初始化
-        for i in range(count_not_Translate):      
+        for i in range(Embeddings_Status_List_count):      
             if 2 in Embeddings_Status_List: #如果列表里有2
                 idx = Embeddings_Status_List.index(2) #获取2的索引
                 Embeddings_Status_List[idx] = 0 #将2改为0
