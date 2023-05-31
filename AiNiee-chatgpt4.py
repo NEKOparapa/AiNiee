@@ -1338,9 +1338,13 @@ def Main():
     keyList_len = len(keyList)              #获取原文件key列表的长度，当作于原文的总行数
     print("[INFO] 你的原文长度是",keyList_len)
 
-        #将字典source_mid中的键设为从0开始的整数型数字序号 
-    for i in range(keyList_len):        #循环遍历key列表
-        source_mid[i] = source_mid.pop(keyList[i])    #将原来的key对应的value值赋给新的key，同时删除原来的key    
+    #将字典source_mid中的键设为从0开始的整数型数字序号 
+
+    # 将字典source_mid中的键设为从0开始的整数型数字序号
+    new_source_mid = {}
+    for i in range(keyList_len):
+        new_source_mid[i] = source_mid[keyList[i]]
+    source_mid = new_source_mid.copy()  # 将新的字典赋值给原来的字典，这样就可以通过数字序号来获取原文的内容了
     #print("[DEBUG] 你的已修改原文是",source_mid)
   
     result_dict = source_mid.copy() # 先存储未翻译的译文，千万注意不要写等号，不然两个变量会指向同一个内存地址，导致修改一个变量，另一个变量也会被修改
