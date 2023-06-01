@@ -14,12 +14,12 @@ from openpyxl import load_workbook  #需安装库pip install openpyxl  在`openp
 import numpy as np   #需要安装库pip install numpy
 import openai        #需要安装库pip install openai      
 
-from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, QPainter #需要安装库 pip3 install PyQt5
+from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, QPainter#需要安装库 pip3 install PyQt5
 from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
-from PyQt5.QtWidgets import QApplication, QFrame, QGridLayout, QGroupBox, QProgressBar, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QApplication, QFrame, QGridLayout, QGroupBox, QProgressBar, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout,QAbstractScrollArea,QWidget
 
 from qfluentwidgets.components import Dialog
-from qfluentwidgets import CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition
+from qfluentwidgets import CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, ScrollArea,ScrollBar,ExpandLayout
 from qfluentwidgets import FluentIcon as FIF#需要安装库pip install "PyQt-Fluent-Widgets[full]" 
 
 
@@ -4696,6 +4696,24 @@ class Widget20(QFrame):#语义检查（Tpp）界面
         elif Running_status != 0:
             createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
+class Widget21(ScrollArea):#测试界面
+
+
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+        self.scrollWidget = QWidget() #创建滚动区域的子窗口
+        self.resize(1000, 800) #设置窗口大小
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff) #设置水平滚动条不可见
+        self.setViewportMargins(0, 120, 0, 20) #设置滚动区域的边距
+        self.setWidget(self.scrollWidget) #设置滚动区域的子窗口
+        self.setWidgetResizable(True) #设置滚动区域的子窗口可调整大小
+
+        # setting label
+        self.settingLabel = QLabel(self.tr("Settings"), self)
+
+
 
 class AvatarWidget(NavigationWidget):#头像导航项
     """ Avatar widget """
@@ -4785,6 +4803,7 @@ class window(FramelessWindow): #主窗口
         self.Interface18 = Widget18('Interface18', self)
         self.Interface19 = Widget19('Interface19', self) 
         self.Interface20 = Widget20('Interface20', self)   
+        self.Interface21 = Widget21('Interface21', self)   
 
 
         self.stackWidget.addWidget(self.Interface11)  #将子界面添加到父2堆栈窗口中
@@ -4795,6 +4814,7 @@ class window(FramelessWindow): #主窗口
         self.stackWidget.addWidget(self.Interface18)
         self.stackWidget.addWidget(self.Interface19)
         self.stackWidget.addWidget(self.Interface20)
+        self.stackWidget.addWidget(self.Interface21)
 
 
         self.initLayout() #调用初始化布局函数 
@@ -4891,6 +4911,21 @@ class window(FramelessWindow): #主窗口
             onClick=lambda: self.switchTo(self.Interface20),
             position=NavigationItemPosition.SCROLL
             ) 
+
+
+        self.navigationInterface.addSeparator() #添加分隔符
+
+
+        #添加测试项
+        self.navigationInterface.addItem(
+            routeKey=self.Interface21.objectName(),
+            icon=FIF.HIGHTLIGHT,
+            text='测试',
+            onClick=lambda: self.switchTo(self.Interface21),
+            position=NavigationItemPosition.SCROLL
+            ) 
+
+
 
 
        # 添加头像导航项
