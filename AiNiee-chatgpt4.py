@@ -14,12 +14,12 @@ from openpyxl import load_workbook  #需安装库pip install openpyxl  在`openp
 import numpy as np   #需要安装库pip install numpy
 import openai        #需要安装库pip install openai      
 
-from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, QPainter#需要安装库 pip3 install PyQt5
+from PyQt5.QtGui import QPalette, QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, QPainter#需要安装库 pip3 install PyQt5
 from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
-from PyQt5.QtWidgets import QApplication, QFrame, QGridLayout, QGroupBox, QProgressBar, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout,QAbstractScrollArea,QWidget
+from PyQt5.QtWidgets import QPushButton,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QProgressBar, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout,QAbstractScrollArea,QWidget
 
 from qfluentwidgets.components import Dialog
-from qfluentwidgets import CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, ScrollArea,ScrollBar,ExpandLayout
+from qfluentwidgets import TableItemDelegate, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, ScrollArea,ScrollBar,ExpandLayout
 from qfluentwidgets import FluentIcon as FIF#需要安装库pip install "PyQt-Fluent-Widgets[full]" 
 
 
@@ -4703,17 +4703,106 @@ class Widget21(ScrollArea):#测试界面
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
 
-        self.scrollWidget = QWidget() #创建滚动区域的子窗口
-        self.resize(1000, 800) #设置窗口大小
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff) #设置水平滚动条不可见
-        self.setViewportMargins(0, 120, 0, 20) #设置滚动区域的边距
-        self.setWidget(self.scrollWidget) #设置滚动区域的子窗口
-        self.setWidgetResizable(True) #设置滚动区域的子窗口可调整大小
+        self.scrollWidget = QWidget() #创建滚动窗口
+        #self.scrollWidget.resize(500, 400)    #设置滚动窗口大小
+        #self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff) #设置水平滚动条不可见
+        self.setViewportMargins(0, 50, 0, 0)   #设置滚动窗口的边距      
+        self.setWidget(self.scrollWidget)  #设置滚动窗口的内容  
+        self.setWidgetResizable(True)   #设置滚动窗口的内容可调整大小
+        self.verticalScrollBar().sliderPressed.connect(self.scrollContents) #滚动条滚动时，调用的函数
+        #设置各个控件-----------------------------------------------------------------------------------------
 
-        # setting label
-        self.settingLabel = QLabel(self.tr("Settings"), self)
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+        # -----创建第1个组，添加放置表格-----
+        self.tableView = TableWidget(self)
+        self.tableView.setWordWrap(False) #设置表格内容不换行
+        self.tableView.setRowCount(10) #设置表格行数
+        self.tableView.setColumnCount(2) #设置表格列数
+        #self.tableView.verticalHeader().hide() #隐藏垂直表头
+        self.tableView.setHorizontalHeaderLabels(['原名', '译名']) #设置水平表头
+        self.tableView.resizeColumnsToContents() #设置列宽度自适应内容
+        self.tableView.resizeRowsToContents() #设置行高度自适应内容
+        # 设置表格大小
+        #self.tableView.setFixedSize(500, 300)  
+        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
+        self.tableView.setSortingEnabled(True)  #设置表格可排序
+
+        songInfos = [
+            ['かばん', 'aiko'],
+            ['爱你', '王心凌'],
+            ['星のない世界', 'aiko'],
+            ['横顔', 'aiko'],
+            ['秘密', 'aiko'],
+            ['シアワセ', 'aiko'],
+            ['二人', 'aiko'],
+        ]
+        for i, songInfo in enumerate(songInfos): #遍历数据
+            for j in range(2): #遍历每一列
+                self.tableView.setItem(i, j, QTableWidgetItem(songInfo[j])) #设置每个单元格的内容
 
 
+        # -----创建第2个组，添加多个组件-----
+        box2 = QGroupBox()
+        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout2 = QGridLayout()
+
+        #设置“账号类型”标签
+        label2 = QLabel( flags=Qt.WindowFlags())  
+        label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")#设置字体，大小，颜色
+        label2.setText("账号类型")
+
+
+        #设置“账号类型”下拉选择框
+        self.comboBox = ComboBox() #以demo为父类
+        self.comboBox.addItems(['代理账号'])
+        self.comboBox.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox.setFixedSize(150, 30)
+
+
+        layout2.addWidget(label2, 0, 0)
+        layout2.addWidget(self.comboBox, 0, 1)
+        box2.setLayout(layout2)
+
+
+        # -----创建第3个组，添加多个组件-----
+        box3 = QGroupBox()
+        box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout3 = QGridLayout()
+
+        #设置“模型选择”标签
+        label3 = QLabel(flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        label3.setText("模型选择")
+
+
+        #设置“模型类型”下拉选择框
+        self.comboBox2 = ComboBox() #以demo为父类
+        self.comboBox2.addItems(['gpt-3.5-turbo', 'gpt-4'])
+        self.comboBox2.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox2.setFixedSize(150, 30)
+        
+
+
+        layout3.addWidget(label3, 0, 0)
+        layout3.addWidget(self.comboBox2, 0, 1)
+        box3.setLayout(layout3)
+
+
+        # 把内容添加到容器中    
+        container.addWidget(self.tableView)
+        container.addWidget(box2)
+        container.addWidget(box3)
+
+        # 设置窗口显示的内容是最外层容器
+        self.scrollWidget.setLayout(container)
+        container.setSpacing(28)     
+        container.setContentsMargins(50, 70, 50, 30)      
+
+    #滚动条滚动时，调用的函数
+    def scrollContents(self, position):
+        self.scrollWidget.move(0, position) 
 
 class AvatarWidget(NavigationWidget):#头像导航项
     """ Avatar widget """
