@@ -16,7 +16,7 @@ import openai        #需要安装库pip install openai
 
 from PyQt5.QtGui import QPalette, QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, QPainter#需要安装库 pip3 install PyQt5
 from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
-from PyQt5.QtWidgets import QPushButton,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QProgressBar, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout,QAbstractScrollArea,QWidget
+from PyQt5.QtWidgets import QAbstractItemView,QPushButton,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QProgressBar, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout,QAbstractScrollArea,QWidget
 
 from qfluentwidgets.components import Dialog
 from qfluentwidgets import TableItemDelegate, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, ScrollArea,ScrollBar,ExpandLayout
@@ -1244,7 +1244,7 @@ def Main():
     os.makedirs(Automatic_Backup_folder, exist_ok=True) 
 
 
-    #创建存储翻译错行文本的文件夹,debug用！！！以后可能删除
+    #创建存储翻译错行文本的文件夹
     global Wrong_line_text_folder
     Wrong_line_text_folder = os.path.join(DEBUG_folder, 'Wrong line text Folder')
     os.makedirs(Wrong_line_text_folder, exist_ok=True)
@@ -4696,20 +4696,20 @@ class Widget20(QFrame):#语义检查（Tpp）界面
         elif Running_status != 0:
             createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
-class Widget21(ScrollArea):#测试界面
+class Widget21(QFrame):#测试界面
 
 
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
 
-        self.scrollWidget = QWidget() #创建滚动窗口
-        #self.scrollWidget.resize(500, 400)    #设置滚动窗口大小
-        #self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff) #设置水平滚动条不可见
-        self.setViewportMargins(0, 50, 0, 0)   #设置滚动窗口的边距      
-        self.setWidget(self.scrollWidget)  #设置滚动窗口的内容  
-        self.setWidgetResizable(True)   #设置滚动窗口的内容可调整大小
-        self.verticalScrollBar().sliderPressed.connect(self.scrollContents) #滚动条滚动时，调用的函数
+        # self.scrollWidget = QWidget() #创建滚动窗口
+        # #self.scrollWidget.resize(500, 400)    #设置滚动窗口大小
+        # #self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff) #设置水平滚动条不可见
+        # self.setViewportMargins(0, 0, 0, 0)   #设置滚动窗口的边距      
+        # self.setWidget(self.scrollWidget)  #设置滚动窗口的内容  
+        # self.setWidgetResizable(True)   #设置滚动窗口的内容可调整大小
+        # self.verticalScrollBar().sliderPressed.connect(self.scrollContents) #滚动条滚动时，调用的函数
         #设置各个控件-----------------------------------------------------------------------------------------
 
         # 最外层的垂直布局
@@ -4721,13 +4721,18 @@ class Widget21(ScrollArea):#测试界面
         self.tableView.setRowCount(10) #设置表格行数
         self.tableView.setColumnCount(2) #设置表格列数
         #self.tableView.verticalHeader().hide() #隐藏垂直表头
-        self.tableView.setHorizontalHeaderLabels(['原名', '译名']) #设置水平表头
+        self.tableView.setHorizontalHeaderLabels(['原文', '译文']) #设置水平表头
         self.tableView.resizeColumnsToContents() #设置列宽度自适应内容
         self.tableView.resizeRowsToContents() #设置行高度自适应内容
+        self.tableView.setEditTriggers(QAbstractItemView.AllEditTriggers)   # 设置所有单元格可编辑
         # 设置表格大小
-        #self.tableView.setFixedSize(500, 300)  
+        #self.tableView.setFixedSize(500, 300) 
+        # 设置表格的最大高度
+        self.tableView.setMaximumHeight(400)
+        # 设置表格的最小高度
+        self.tableView.setMinimumHeight(400)   
         self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
-        self.tableView.setSortingEnabled(True)  #设置表格可排序
+        #self.tableView.setSortingEnabled(True)  #设置表格可排序
 
         songInfos = [
             ['かばん', 'aiko'],
@@ -4743,66 +4748,168 @@ class Widget21(ScrollArea):#测试界面
                 self.tableView.setItem(i, j, QTableWidgetItem(songInfo[j])) #设置每个单元格的内容
 
 
+        # 在表格最后一行第一列添加"添加行"按钮
+        button = PushButton('Add Row')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
+        button.clicked.connect(self.add_row)
+        # 在表格最后一行第二列添加"删除空白行"按钮
+        button = PushButton('Delete Blank Row')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
+        button.clicked.connect(self.delete_blank_row)
+
+
+
+        # -----创建第1_1个组，添加多个组件-----
+        box1_1 = QGroupBox()
+        box1_1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_1 = QHBoxLayout()
+
+
+        #设置导入字典按钮
+        self.pushButton1 = PushButton('导入字典', self, FIF.FOLDER)
+        #self.pushButton1.clicked.connect(self.Manual_Backup_Button) #按钮绑定槽函数
+
+        #设置导出字典按钮
+        self.pushButton2 = PushButton('导出字典', self, FIF.FOLDER)
+        #self.pushButton2.clicked.connect(self.Manual_Backup_Button) #按钮绑定槽函数
+
+        #设置清空字典按钮
+        self.pushButton3 = PushButton('清空字典', self, FIF.FOLDER)
+        #self.pushButton3.clicked.connect(self.Manual_Backup_Button) #按钮绑定槽函数
+
+        #设置保存字典按钮
+        self.pushButton4 = PushButton('保存字典', self, FIF.FOLDER)
+        #self.pushButton4.clicked.connect(self.Manual_Backup_Button) #按钮绑定槽函数
+
+
+        layout1_1.addWidget(self.pushButton1)
+        layout1_1.addStretch(1)  # 添加伸缩项
+        layout1_1.addWidget(self.pushButton2)
+        layout1_1.addStretch(1)  # 添加伸缩项
+        layout1_1.addWidget(self.pushButton3)
+        layout1_1.addStretch(1)  # 添加伸缩项
+        layout1_1.addWidget(self.pushButton4)
+        box1_1.setLayout(layout1_1)
+
+
+
+        # -----创建第1_2个组，添加多个组件-----
+        box1_2 = QGroupBox()
+        box1_2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_2 = QHBoxLayout()
+
+        #设置“名词最大字数”标签
+        label1_2 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1_2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label1_2.setText("名词最大字数")
+
+       #设置“名词最大字数”数值输入框
+        self.spinBox1 = SpinBox(self)
+        #设置最大最小值
+        self.spinBox1.setRange(0, 30)        
+        self.spinBox1.setValue(4)
+
+        #设置输出文件夹按钮
+        self.pushButton5 = PushButton('提取文件中名词到字典', self, FIF.FOLDER)
+        #self.pushButton5.clicked.connect(self.Manual_Backup_Button) #按钮绑定槽函数
+
+
+        
+
+        layout1_2.addWidget(label1_2)
+        layout1_2.addWidget(self.spinBox1)
+        layout1_2.addStretch(1)  # 添加伸缩项
+        layout1_2.addWidget(self.pushButton5)
+        box1_2.setLayout(layout1_2)
+
+
         # -----创建第2个组，添加多个组件-----
         box2 = QGroupBox()
         box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout2 = QGridLayout()
+        layout2 = QHBoxLayout()
 
-        #设置“账号类型”标签
-        label2 = QLabel( flags=Qt.WindowFlags())  
-        label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")#设置字体，大小，颜色
-        label2.setText("账号类型")
+        #设置“启用该账号”标签
+        label1 = QLabel( flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label1.setText("启用功能")
 
-
-        #设置“账号类型”下拉选择框
-        self.comboBox = ComboBox() #以demo为父类
-        self.comboBox.addItems(['代理账号'])
-        self.comboBox.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
-        self.comboBox.setFixedSize(150, 30)
+        #设置“自动备份文件夹”显示
+        self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label2.setText("(在翻译前将所有原文替换成译文)")
 
 
-        layout2.addWidget(label2, 0, 0)
-        layout2.addWidget(self.comboBox, 0, 1)
+        #设置“启用该账号”开
+        self.checkBox1 = CheckBox('译前替换')
+        #self.checkBox.stateChanged.connect(self.checkBoxChanged)
+
+        layout2.addWidget(label1)
+        layout2.addWidget(self.label2)
+        layout2.addStretch(1)  # 添加伸缩项
+        layout2.addWidget(self.checkBox1)
         box2.setLayout(layout2)
 
 
         # -----创建第3个组，添加多个组件-----
         box3 = QGroupBox()
         box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout3 = QGridLayout()
+        layout3 = QHBoxLayout()
 
-        #设置“模型选择”标签
-        label3 = QLabel(flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
-        label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
-        label3.setText("模型选择")
+        #设置“启用该账号”标签
+        label3 = QLabel( flags=Qt.WindowFlags())  
+        label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label3.setText("启用功能")
 
-
-        #设置“模型类型”下拉选择框
-        self.comboBox2 = ComboBox() #以demo为父类
-        self.comboBox2.addItems(['gpt-3.5-turbo', 'gpt-4'])
-        self.comboBox2.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
-        self.comboBox2.setFixedSize(150, 30)
-        
+        #设置“自动备份文件夹”显示
+        self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label4.setText("(在翻译过程中作为AI的prompt提示词)")
 
 
-        layout3.addWidget(label3, 0, 0)
-        layout3.addWidget(self.comboBox2, 0, 1)
+        #设置“启用该账号”开
+        self.checkBox2 = CheckBox('译时提示')
+        #self.checkBox.stateChanged.connect(self.checkBoxChanged)
+
+        layout3.addWidget(label3)
+        layout3.addWidget(self.label4)
+        layout3.addStretch(1)  # 添加伸缩项
+        layout3.addWidget(self.checkBox2)
         box3.setLayout(layout3)
 
 
         # 把内容添加到容器中    
         container.addWidget(self.tableView)
+        container.addWidget(box1_1)
+        container.addWidget(box1_2)
         container.addWidget(box2)
         container.addWidget(box3)
+        container.addStretch(1)  # 添加伸缩项
 
         # 设置窗口显示的内容是最外层容器
-        self.scrollWidget.setLayout(container)
-        container.setSpacing(28)     
+        #self.scrollWidget.setLayout(container)
+        self.setLayout(container)
+        container.setSpacing(20)     
         container.setContentsMargins(50, 70, 50, 30)      
 
     #滚动条滚动时，调用的函数
     def scrollContents(self, position):
         self.scrollWidget.move(0, position) 
+
+    def add_row(self):
+        # 添加新行在按钮所在行前面
+        self.tableView.insertRow(self.tableView.rowCount()-1)
+        #设置新行的高度与前一行相同
+        self.tableView.setRowHeight(self.tableView.rowCount()-2, self.tableView.rowHeight(self.tableView.rowCount()-3))
+
+    def delete_blank_row(self):
+        # 删除表格内第一列和第二列为空或者空字符串的行
+        for i in range(self.tableView.rowCount()-1):
+            if self.tableView.item(i, 0) is None or self.tableView.item(i, 0).text() == '':
+                self.tableView.removeRow(i)
+                break
+            elif self.tableView.item(i, 1) is None or self.tableView.item(i, 1).text() == '':
+                self.tableView.removeRow(i)
+                break
 
 class AvatarWidget(NavigationWidget):#头像导航项
     """ Avatar widget """
