@@ -3659,16 +3659,16 @@ class Widget17(QFrame):#备份设置界面
         #设置“启用该账号”标签
         label1 = QLabel( flags=Qt.WindowFlags())  
         label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label1.setText("启用功能")
+        label1.setText("自动备份")
 
         #设置“自动备份文件夹”显示
         self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label2.setText("自动备份到输出文件夹中的Backup_folder中")
+        self.label2.setText("(自动备份到输出文件夹中的Backup_folder中)")
 
 
         #设置“启用该账号”开
-        self.checkBox = CheckBox('自动备份')
+        self.checkBox = CheckBox('启用功能')
         self.checkBox.stateChanged.connect(self.checkBoxChanged)
 
         layout1.addWidget(label1)
@@ -3692,7 +3692,7 @@ class Widget17(QFrame):#备份设置界面
         #设置“输出文件夹”显示
         self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label4.setText("请选择备份的文件夹")
+        self.label4.setText("(请选择备份的文件夹)")
 
         #设置输出文件夹按钮
         self.pushButton2 = PushButton('选择文件夹', self, FIF.FOLDER)
@@ -4831,7 +4831,7 @@ class Widget21(QFrame):#测试界面
         #设置“启用该账号”标签
         label1 = QLabel( flags=Qt.WindowFlags())  
         label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label1.setText("启用功能")
+        label1.setText("译前替换")
 
         #设置“自动备份文件夹”显示
         self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
@@ -4840,7 +4840,7 @@ class Widget21(QFrame):#测试界面
 
 
         #设置“启用该账号”开
-        self.checkBox1 = CheckBox('译前替换')
+        self.checkBox1 = CheckBox('启用功能')
         #self.checkBox.stateChanged.connect(self.checkBoxChanged)
 
         layout2.addWidget(label1)
@@ -4858,7 +4858,7 @@ class Widget21(QFrame):#测试界面
         #设置“启用该账号”标签
         label3 = QLabel( flags=Qt.WindowFlags())  
         label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label3.setText("启用功能")
+        label3.setText("译时提示")
 
         #设置“自动备份文件夹”显示
         self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
@@ -4867,7 +4867,7 @@ class Widget21(QFrame):#测试界面
 
 
         #设置“启用该账号”开
-        self.checkBox2 = CheckBox('译时提示')
+        self.checkBox2 = CheckBox('启用功能')
         #self.checkBox.stateChanged.connect(self.checkBoxChanged)
 
         layout3.addWidget(label3)
