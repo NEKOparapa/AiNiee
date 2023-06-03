@@ -5077,9 +5077,15 @@ class window(FramelessWindow): #主窗口
             icon=FIF.COPY,
             text='备份功能',
             onClick=lambda: self.switchTo(self.Interface17),
-            position=NavigationItemPosition.SCROLL
             ) 
 
+        #添加测试项
+        self.navigationInterface.addItem(
+            routeKey=self.Interface21.objectName(),
+            icon=FIF.HIGHTLIGHT,
+            text='用户字典',
+            onClick=lambda: self.switchTo(self.Interface21),
+            ) 
 
         #添加实时调教导航项
         self.navigationInterface.addItem(
@@ -5087,8 +5093,11 @@ class window(FramelessWindow): #主窗口
             icon=FIF.ALBUM,
             text='实时调教',
             onClick=lambda: self.switchTo(self.Interface18),
-            position=NavigationItemPosition.SCROLL
             ) 
+
+        self.navigationInterface.addSeparator() #添加分隔符,需要删除position=NavigationItemPosition.SCROLL来使分隔符正确显示
+
+
 
         #添加语义检查_Mtool导航项
         self.navigationInterface.addItem(
@@ -5109,17 +5118,8 @@ class window(FramelessWindow): #主窗口
             ) 
 
 
-        self.navigationInterface.addSeparator() #添加分隔符
 
 
-        #添加测试项
-        self.navigationInterface.addItem(
-            routeKey=self.Interface21.objectName(),
-            icon=FIF.HIGHTLIGHT,
-            text='测试',
-            onClick=lambda: self.switchTo(self.Interface21),
-            position=NavigationItemPosition.SCROLL
-            ) 
 
 
 
