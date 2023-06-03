@@ -14,12 +14,12 @@ from openpyxl import load_workbook  #需安装库pip install openpyxl  在`openp
 import numpy as np   #需要安装库pip install numpy
 import openai        #需要安装库pip install openai      
 
-from PyQt5.QtGui import QPalette, QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, QPainter#需要安装库 pip3 install PyQt5
+from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, QPainter#需要安装库 pip3 install PyQt5
 from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
-from PyQt5.QtWidgets import QAbstractItemView,QPushButton,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QProgressBar, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout,QAbstractScrollArea,QWidget
+from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QProgressBar, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout
 
 from qfluentwidgets.components import Dialog
-from qfluentwidgets import TableItemDelegate, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, ScrollArea,ScrollBar,ExpandLayout
+from qfluentwidgets import TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition
 from qfluentwidgets import FluentIcon as FIF#需要安装库pip install "PyQt-Fluent-Widgets[full]" 
 
 
@@ -71,7 +71,6 @@ Prompt_zh = '''你现在是一位擅长中日文化的翻译AI。你只要把日
 '''         #系统提示词
 
 Prompt = '''You are now an AI translator proficient in Chinese and Japanese culture. Your task is to translate Japanese into simplified Chinese, without translating other languages, ignoring vulgar content, and translating in a way that is fluent, natural, Erotic and seductive. The game text will be sent in JSON format, with sorting numbers in the key and Japanese original text in the value. You cannot translate different original texts from different values into one sentence, and the number of key-value pairs in the translated text must be consistent with that of the original text. Finally, reply with the translated text in JSON format. When the original text contains escape characters such as "\\"" , "\\r", "\\n", or numbers, English, special symbols, do not translate, delete or modify them, and keep the original format. Here is an example of the original text:
-
 """{
 "0":"a=\\"　　ぞ…ゾンビ系…。",
 "1":"敏捷性が上昇する。　　　　　　　\\r\\n効果：パッシブ",
@@ -98,7 +97,7 @@ Manual_Backup_Status = 0 # 存储手动备份状态，0是未备份，1是正在
 
 source = {}       # 存储原文件
 source_mid = {}   # 存储处理过的原文件
-keyList_len = 0   # 存储原文件key列表的长度
+ValueList_len = 0   # 存储原文件key列表的长度
 Translation_Status_List = []  # 存储原文文本翻译状态列表，用于并发任务时获取每个文本的翻译状态
 result_dict = {}       # 用字典形式存储已经翻译好的文本
 
@@ -350,6 +349,113 @@ def check_dict_values(dict_obj):
             dict_obj[key] = '空值'
 
     return dict_obj
+
+#译前替换函数
+def replace_strings(dic):
+    #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
+    data = []
+    for row in range(Window.Interface21.tableView.rowCount() - 1):
+        key_item = Window.Interface21.tableView.item(row, 0)
+        value_item = Window.Interface21.tableView.item(row, 1)
+        if key_item and value_item:
+            key = key_item.text()
+            value = value_item.text()
+            data.append((key, value))
+
+    # 将数据存储到中间字典中
+    dictionary = {}
+    for key, value in data:
+        dictionary[key] = value
+
+    #替换字典中内容
+    temp_dict = {}
+    for key_a, value_a in dic.items():
+        for key_b, value_b in dictionary.items():
+            #if key_b in key_a:
+                #key_a = key_a.replace(key_b, value_b)
+            if key_b in value_a:
+                value_a = value_a.replace(key_b, value_b)
+        temp_dict[key_a] = value_a
+
+    #创建存储替换后文本的文件夹
+    Replace_before_translation_folder = os.path.join(DEBUG_folder, 'Replace before translation folder')
+    os.makedirs(Replace_before_translation_folder, exist_ok=True)
+
+    #写入替换后文本的文件
+    with open(os.path.join(Replace_before_translation_folder, "Replace_before_translation.json"), "w", encoding="utf-8") as f:
+        json.dump(temp_dict, f, ensure_ascii=False, indent=4)
+    
+    return temp_dict
+
+#译时提示函数
+def change_translation_prompt(dic):
+    #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
+    data = []
+    for row in range(Window.Interface21.tableView.rowCount() - 1):
+        key_item = Window.Interface21.tableView.item(row, 0)
+        value_item = Window.Interface21.tableView.item(row, 1)
+        if key_item and value_item:
+            key = key_item.text()
+            value = value_item.text()
+            data.append((key, value))
+
+    # 将数据存储到中间字典中
+    dictionary = {}
+    for key, value in data:
+        dictionary[key] = value
+    
+
+    #遍历dictionary字典每一个key，如果该key在subset_mid的value中，则存储进新字典中
+    temp_dict = {}
+    for key_a, value_a in dictionary.items():
+        for key_b, value_b in dic.items():
+            if key_a in value_b:
+                temp_dict[key_a] = value_a
+    
+
+    # 构建原文示例字符串开头 
+    original_text = '''"""{
+"0":"a=\\"　　ぞ…ゾンビ系…。",
+"1":"敏捷性が上昇する。　　　　　　　\\r\\n効果：パッシブ",
+"2":"【ベーカリー】営業時間8：00～18：00",
+"3":"&f.Item[f.Select_Item][1]+'　個'"'''
+
+    #如果字典不为空，补充内容
+    if  temp_dict:
+        i = 0 #用于记录key的索引
+        for key in temp_dict:
+            original_text += ',' + '\n' + '"' + str(i + 4) + '":"' + str(key) + '"'
+            i += 1
+    # 构建原文示例字符串结尾
+    original_text = original_text + '\n' + '}"""'
+
+
+    # 构建译文示例字符串开头
+    translated_text = '''"""{
+"0":"a=\\"　　好可怕啊……。",
+"1":"提高敏捷性。　　　　　　　\\r\\n效果：被动",
+"2":"【面包店】营业时间8：00～18：00",
+"3":"&f.Item[f.Select_Item][1]+'　个'"'''
+
+    #如果字典不为空，补充内容
+    if  temp_dict:
+        j = 0
+        for key in temp_dict:
+            translated_text += ',' + '\n' + '"' + str(j + 4) + '":"' + str(temp_dict[key]) + '"' 
+            j += 1
+    # 构建译文示例字符串结尾
+    translated_text = translated_text+ '\n' + '}"""'
+
+
+    # 构建完整的prompt提示
+    prompt = f'''You are now an AI translator proficient in Chinese and Japanese culture. Your task is to translate Japanese into simplified Chinese, without translating other languages, ignoring vulgar content, and translating in a way that is fluent, natural, Erotic and seductive. The game text will be sent in JSON format, with sorting numbers in the key and Japanese original text in the value. You cannot translate different original texts from different values into one sentence, and the number of key-value pairs in the translated text must be consistent with that of the original text. Finally, reply with the translated text in JSON format. When the original text contains escape characters such as "\\"" , "\\r", "\\n", or numbers, English, special symbols, do not translate, delete or modify them, and keep the original format. Here is an example of the original text:
+{original_text}
+Here is an example of the translated text:
+{translated_text}'''
+
+    #print("[DEBUG] prompt的内容是：",prompt,'\n')
+
+    return prompt
 
 #构建最长整除列表函数，将一个数字不断整除，并将结果放入列表变量
 def divide_by_2345(num):
@@ -608,6 +714,18 @@ def read_write_config(mode):
         #获取备份设置界面
         Automatic_Backup = Window.Interface17.checkBox.isChecked()        #获取自动备份开关状态
 
+
+        #获取用户字典界面
+        User_Dictionary = {}
+        for row in range(Window.Interface21.tableView.rowCount() - 1):
+            key_item = Window.Interface21.tableView.item(row, 0)
+            value_item = Window.Interface21.tableView.item(row, 1)
+            if key_item and value_item:
+                key = key_item.text()
+                value = value_item.text()
+                User_Dictionary[key] = value
+
+
         #获取实时设置界面
         OpenAI_Temperature = Window.Interface18.slider1.value()           #获取OpenAI温度
         OpenAI_top_p = Window.Interface18.slider2.value()                 #获取OpenAI top_p
@@ -660,6 +778,9 @@ def read_write_config(mode):
 
         #备份设置界面
         config_dict["Automatic_Backup"] = Automatic_Backup
+
+        #用户字典界面
+        config_dict["User_Dictionary"] = User_Dictionary
 
         #实时设置界面
         config_dict["OpenAI_Temperature"] = OpenAI_Temperature
@@ -766,7 +887,20 @@ def read_write_config(mode):
             if "Automatic_Backup" in config_dict:
                 Automatic_Backup = config_dict["Automatic_Backup"]
                 Window.Interface17.checkBox.setChecked(Automatic_Backup)
-        
+
+            #用户字典界面
+            if "User_Dictionary" in config_dict:
+                User_Dictionary = config_dict["User_Dictionary"]
+                if User_Dictionary:
+                    for key, value in User_Dictionary.items():
+                        row = Window.Interface21.tableView.rowCount() - 1
+                        Window.Interface21.tableView.insertRow(row)
+                        key_item = QTableWidgetItem(key)
+                        value_item = QTableWidgetItem(value)
+                        Window.Interface21.tableView.setItem(row, 0, key_item)
+                        Window.Interface21.tableView.setItem(row, 1, value_item)        
+                    #删除第一行
+                    Window.Interface21.tableView.removeRow(0)
 
             #实时设置界面
             if "OpenAI_Temperature" in config_dict:
@@ -1225,7 +1359,7 @@ def Config():
 # ——————————————————————————————————————————翻译任务主函数——————————————————————————————————————————
 def Main():
     global Input_file,Output_Folder,Automatic_Backup_folder ,Translation_lines,Running_status,The_Max_workers,DEBUG_folder,Catalog_Dictionary
-    global keyList_len ,   Translation_Status_List , money_used,source,source_mid,result_dict,Translation_Progress,OpenAI_temperature
+    global ValueList_len ,   Translation_Status_List , money_used,source,source_mid,result_dict,Translation_Progress,OpenAI_temperature
     # ——————————————————————————————————————————清空进度,花销与初始化变量存储的内容—————————————————————————————————————————
 
     money_used = 0
@@ -1334,34 +1468,32 @@ def Main():
         remove_non_cjk(source_mid)
 
 
-    keyList=list(source_mid.keys())         #通过字典的keys方法，获取所有的key，转换为list变量
-    keyList_len = len(keyList)              #获取原文件key列表的长度，当作于原文的总行数
-    print("[INFO] 你的原文长度是",keyList_len)
+    ValueList=list(source_mid.values())         #通过字典的valuas方法，获取所有的value，转换为list变量
+    ValueList_len = len(ValueList)              #获取原文件valua列表的长度，当作于原文的总行数
+    print("[INFO] 你的原文长度是",ValueList_len)
 
-    #将字典source_mid中的键设为从0开始的整数型数字序号 
-
-    # 将字典source_mid中的键设为从0开始的整数型数字序号
+    # 将字典source_mid中的键设为从0开始的整数型数字序号,使用中间变量进行存储，避免直接修改原字典
     new_source_mid = {}
-    for i in range(keyList_len):
-        new_source_mid[i] = source_mid[keyList[i]]
-    source_mid = new_source_mid.copy()  # 将新的字典赋值给原来的字典，这样就可以通过数字序号来获取原文的内容了
+    for i in range(ValueList_len):
+        new_source_mid[i] = source_mid[ValueList[i]]
+    source_mid = new_source_mid  # 将新的字典赋值给原来的字典，这样就可以通过数字序号来获取原文的内容了
     #print("[DEBUG] 你的已修改原文是",source_mid)
-  
+
+    #如果开启译前替换功能，则根据用户字典进行替换
+    if Window.Interface21.checkBox1.isChecked() :
+        source_mid = replace_strings(source_mid)
+
     result_dict = source_mid.copy() # 先存储未翻译的译文，千万注意不要写等号，不然两个变量会指向同一个内存地址，导致修改一个变量，另一个变量也会被修改
-    Translation_Status_List =  [0] * keyList_len   #创建文本翻译状态列表，用于并发时获取每个文本的翻译状态
+    Translation_Status_List =  [0] * ValueList_len   #创建文本翻译状态列表，用于并发时获取每个文本的翻译状态
 
-
-    #写入过滤和修改key的原文文件，方便debug
-    with open(os.path.join(DEBUG_folder, "ManualTransFile_debug.json"), "w", encoding="utf-8") as f:
-        json.dump(source_mid, f, ensure_ascii=False, indent=4)
 
     # ——————————————————————————————————————————构建并发任务池子—————————————————————————————————————————
 
     # 计算并发任务数
-    if keyList_len % Translation_lines == 0:
-        tasks_Num = keyList_len // Translation_lines 
+    if ValueList_len % Translation_lines == 0:
+        tasks_Num = ValueList_len // Translation_lines 
     else:
-        tasks_Num = keyList_len // Translation_lines + 1
+        tasks_Num = ValueList_len // Translation_lines + 1
 
 
     print("[INFO] 你的翻译任务总数是：", tasks_Num)
@@ -1533,8 +1665,8 @@ def Make_request():
             if status  == 0:
                 start = i     #确定切割开始位置
 
-                if (start + Translation_lines >= keyList_len) :  #确定切割结束位置，注意最后位置是不固定的
-                    end = keyList_len  
+                if (start + Translation_lines >= ValueList_len) :  #确定切割结束位置，注意最后位置是不固定的
+                    end = ValueList_len  
                 else :
                     end = start + Translation_lines
                 break
@@ -1562,10 +1694,21 @@ def Make_request():
         subset_str = json.dumps(subset_mid, ensure_ascii=False)    
         #print("[DEBUG] 提取的subset_str是",subset_str,'\n','\n') 
 
-        # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————
-        #将JSON 格式的字符串再处理，方便发送            
-        d = {"role":"user","content":subset_str}                #将文本整合进字典，符合会话请求格式
-        messages = [{"role": "system","content":Prompt}]
+        # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
+
+        #构建系统提示词
+        The_Prompt =  Prompt
+        #如果开启了译时提示功能，则构建新的prompt
+        if Window.Interface21.checkBox2.isChecked() :
+            The_Prompt = change_translation_prompt(subset_mid)
+
+        #将提示词整合进发送字典
+        messages = [{"role": "system","content":The_Prompt}]
+
+        #构建需要翻译的文本
+        d = {"role":"user","content":subset_str} 
+
+        #将文本整合进发送字典
         messages.append(d)
 
         tokens_consume = num_tokens_from_messages(messages, OpenAI_model) + 150  #计算该信息在openai那里的tokens花费，300是提示词花费的tokens数
@@ -1630,7 +1773,9 @@ def Make_request():
                 print("[INFO] 已进行请求的次数：",Number_of_requested)
                 #print("[INFO] 花费tokens数预计值是：",tokens_consume * 2) 
                 #print("[INFO] 桶中剩余tokens数是：", api_tokens.tokens // 1)
-                print("[INFO] 当前发送内容：\n", messages )
+                #print("[INFO] 当前设定的prompt提示词：\n", The_Prompt )
+                print("[INFO] 当前发送的原文文本：", subset_str )
+
 
                 # ——————————————————————————————————————————开始发送会话请求——————————————————————————————————————————
                 try:
@@ -1862,7 +2007,7 @@ def Make_request():
                         print("\033[1;33mWarning:\033[0m AI回复内容中有空行或仅符号,将进行重新翻译\n")
                         Error_message = "Warning: AI回复内容中有空行或仅符号,将进行重新翻译\n"
                     elif Error_Type[3] == 1 :
-                        print("\033[1;33mWarning:\033[0m AI回复内容的符号与字数与原文的不符合程度为:",error_list_count_percent,"%,小于等于",Error_Threshold,"%阈值，将进行重新翻译\n")
+                        print("\033[1;33mWarning:\033[0m AI回复内容的符号与字数与原文的不符合程度为:",error_list_count_percent,"%,大于等于",Error_Threshold,"%阈值，将进行重新翻译\n")
                         Error_message = "Warning: AI回复内容的符号与字数与原文不符合，大于等于阈值,将进行重新翻译\n"
 
                     #错误回复计次
@@ -1907,7 +2052,7 @@ def Make_request():
                     #只有进行Mtool时且开启了错行检查的开关，或者进行Tpp时且开启了错行检查的开关，才会进行后面两项检查
                     if ((Running_status == 2 and Window.Interface15.SwitchButton1.isChecked()) or (Running_status == 3 and Window.Interface16.SwitchButton1.isChecked())) :
                         print("[INFO] AI回复内容中没有空行或仅符号")
-                        print("[INFO] AI回复内容的符号与字数与原文的不符合程度为:",error_list_count_percent,"%,大于",Error_Threshold,"%阈值\n")
+                        print("[INFO] AI回复内容的符号与字数与原文的不符合程度为:",error_list_count_percent,"%,小于",Error_Threshold,"%阈值\n")
 
                     #格式检查通过，将AI酱回复的内容数字序号进行修改，方便后面进行读写json文件
                     new_response = re.sub(r'"(\d+)"', lambda x: '"' + str(int(x.group(1))+start) + '"', response_content)
@@ -1917,7 +2062,7 @@ def Make_request():
                     #修改文本翻译状态列表的状态，把这段文本修改为已翻译
                     Translation_Status_List[start:end] = [1] * (end - start) 
 
-                    Translation_Progress = Translation_Status_List.count(1) / keyList_len  * 100
+                    Translation_Progress = Translation_Status_List.count(1) / ValueList_len  * 100
                     Ui_signal.update_signal.emit("Update_ui")#发送信号，激活槽函数,要有参数，否则报错
                     lock1.release()  # 释放锁
 
@@ -1958,7 +2103,7 @@ def Make_request():
 
 # ——————————————————————————————————————————检查词义错误主函数——————————————————————————————————————————
 def Check_wrong_Main():
-    global Input_file,Input_Folder,Output_Folder,source_or_dict,source_tr_dict,Embeddings_Status_List,Embeddings_or_List,Embeddings_tr_List,Translation_Status_List,keyList_len,Catalog_Dictionary
+    global Input_file,Input_Folder,Output_Folder,source_or_dict,source_tr_dict,Embeddings_Status_List,Embeddings_or_List,Embeddings_tr_List,Translation_Status_List,ValueList_len,Catalog_Dictionary
     global Translation_Progress,money_used,source,source_mid,result_dict,The_Max_workers,DEBUG_folder,Automatic_Backup_folder,Translation_lines ,Running_status,OpenAI_temperature
             
     # ——————————————————————————————————————————清空进度,花销与初始化变量存储的内容—————————————————————————————————————————
@@ -2077,16 +2222,16 @@ def Check_wrong_Main():
         source_tr_dict[i] = result_dict[key]
     
     #创建编码状态列表，用于并发时获取每对翻译的编码状态
-    keyList_len = len(result_dict.keys())
-    Embeddings_Status_List =  [0] * keyList_len
+    ValueList_len = len(result_dict.values())
+    Embeddings_Status_List =  [0] * ValueList_len
 
     #创建原文编码列表，用于存储原文的编码
-    Embeddings_or_List =  [0] * keyList_len
+    Embeddings_or_List =  [0] * ValueList_len
     #创建译文编码列表，用于存储译文的编码
-    Embeddings_tr_List =  [0] * keyList_len
+    Embeddings_tr_List =  [0] * ValueList_len
 
     #创建语义相似度列表，用于存储每对翻译语义相似度
-    Semantic_similarity_list = [0] * keyList_len
+    Semantic_similarity_list = [0] * ValueList_len
 
 
     # —————————————————————————————————————创建并发嵌入任务——————————————————————————————————————————
@@ -2103,7 +2248,7 @@ def Check_wrong_Main():
     #根据tokens_all_consume与除以6090计算出需要请求的次数,并向上取整（除以6090是为了富余任务数）
     num_request = int(math.ceil(tokens_all_consume / 6090))
 
-    print("[DEBUG] 你的原文长度是",keyList_len,"需要请求大概次数是",num_request)
+    print("[DEBUG] 你的原文长度是",ValueList_len,"需要请求大概次数是",num_request)
 
     # 创建线程池
     with concurrent.futures.ThreadPoolExecutor (The_Max_workers) as executor:
@@ -2166,7 +2311,7 @@ def Check_wrong_Main():
     # —————————————————————————————————————开始检查，并整理需要重新翻译的文本——————————————————————————————————————————
 
     #创建翻译状态列表,全部设置为已翻译状态
-    Translation_Status_List =  [1] * keyList_len
+    Translation_Status_List =  [1] * ValueList_len
 
     #创建存储原文与译文的列表，方便复制粘贴，这里是两个空字符串，后面会被替换
     sentences = ["", ""]  
@@ -2178,7 +2323,7 @@ def Check_wrong_Main():
     #错误文本计数变量
     count_error = 0
     #计算每对翻译总的相似度，并重新改变翻译状态列表中的值
-    for i in range(keyList_len):
+    for i in range(ValueList_len):
 
         #将sentence[0]与sentence[1]转换成字符串数据，确保能够被语义相似度检查模型识别，防止数字型数据导致报错
         sentences[0] = str(source_or_dict[i])
@@ -2275,12 +2420,12 @@ def Check_wrong_Main():
             print("[INFO] 总相似度结果：", similarity, "%", "，不需要重翻译")
             
         #输出遍历进度，转换成百分百进度
-        print("[INFO] 当前检查进度：", round((i+1)/keyList_len*100,2), "% \n")
+        print("[INFO] 当前检查进度：", round((i+1)/ValueList_len*100,2), "% \n")
 
 
         #创建格式化字符串，用于存储每对翻译相似度计算过程日志
         if log_count <=  10000 :#如果log_count小于等于10000,避免太大
-            similarity_log = similarity_log + "\n" + "原文是：" + sentences[0] + "\n" + "译文是：" + sentences[1] + "\n" + "语义相似度：" + str(Semantic_similarity) + "%" + "\n" + "符号相似度：" + str(Symbolic_similarity) + "%" + "\n" + "字数相似度：" + str(Word_count_similarity) + "%" + "\n" + "总相似度结果：" + str(similarity) + "%" + "\n" + "语义权重：" + str(Semantic_weight) + "，符号权重：" + str(Symbolic_weight) + "，字数权重：" + str(Word_count_weight) + "\n" + "当前检查进度：" + str(round((i+1)/keyList_len*100,2)) + "%" + "\n"
+            similarity_log = similarity_log + "\n" + "原文是：" + sentences[0] + "\n" + "译文是：" + sentences[1] + "\n" + "语义相似度：" + str(Semantic_similarity) + "%" + "\n" + "符号相似度：" + str(Symbolic_similarity) + "%" + "\n" + "字数相似度：" + str(Word_count_similarity) + "%" + "\n" + "总相似度结果：" + str(similarity) + "%" + "\n" + "语义权重：" + str(Semantic_weight) + "，符号权重：" + str(Symbolic_weight) + "，字数权重：" + str(Word_count_weight) + "\n" + "当前检查进度：" + str(round((i+1)/ValueList_len*100,2)) + "%" + "\n"
             log_count = log_count + 1
 
     #检查完毕，将错误文本字典写入json文件
@@ -2308,17 +2453,17 @@ def Check_wrong_Main():
 
 
     keyList=list(source_mid.keys())         #通过字典的keys方法，获取所有的key，转换为list变量
-    keyList_len = len(keyList)              #获取原文件key列表的长度，当作于原文的总行数
+    ValueList_len = len(keyList)              #获取原文件key列表的长度，当作于原文的总行数
     #print("[INFO] 你的原文长度是",keyList_len)
 
     #将字典source_mid中的键设为从0开始的整数型数字序号 
-    for i in range(keyList_len):        #循环遍历key列表
+    for i in range(ValueList_len):        #循环遍历key列表
         source_mid[i] = source_mid.pop(keyList[i])    #将原来的key对应的value值赋给新的key，同时删除原来的key    
     #print("[DEBUG] 你的已修改原文是",source_mid)
 
 
     #将字典result_dict中的键设为从0开始的整数型数字序号 
-    for i in range(keyList_len):        #循环遍历key列表
+    for i in range(ValueList_len):        #循环遍历key列表
         result_dict[i] = result_dict.pop(keyList[i])    #将原来的key对应的value值赋给新的key，同时删除原来的key    
     #print("[DEBUG] 你的已修改原文是",result_dict)
   
@@ -2573,7 +2718,7 @@ def Make_request_Embeddings():
                 #print("[DEBUG] 已修改位置 ",start," 到 ",end," 的嵌入状态为已嵌入")
 
                 #计算嵌入进度
-                Translation_Progress = Embeddings_Status_List.count(1) / keyList_len  * 100
+                Translation_Progress = Embeddings_Status_List.count(1) / ValueList_len  * 100
                 Ui_signal.update_signal.emit("Update_ui2")#发送信号，激活槽函数,要有参数，否则报错
                 lock1.release()  # 释放锁
 
@@ -4696,7 +4841,8 @@ class Widget20(QFrame):#语义检查（Tpp）界面
         elif Running_status != 0:
             createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
-class Widget21(QFrame):#测试界面
+
+class Widget21(QFrame):#用户字典界面
 
 
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
@@ -4718,34 +4864,25 @@ class Widget21(QFrame):#测试界面
         # -----创建第1个组，添加放置表格-----
         self.tableView = TableWidget(self)
         self.tableView.setWordWrap(False) #设置表格内容不换行
-        self.tableView.setRowCount(10) #设置表格行数
+        self.tableView.setRowCount(2) #设置表格行数
         self.tableView.setColumnCount(2) #设置表格列数
         #self.tableView.verticalHeader().hide() #隐藏垂直表头
         self.tableView.setHorizontalHeaderLabels(['原文', '译文']) #设置水平表头
         self.tableView.resizeColumnsToContents() #设置列宽度自适应内容
         self.tableView.resizeRowsToContents() #设置行高度自适应内容
         self.tableView.setEditTriggers(QAbstractItemView.AllEditTriggers)   # 设置所有单元格可编辑
-        # 设置表格大小
-        #self.tableView.setFixedSize(500, 300) 
-        # 设置表格的最大高度
-        self.tableView.setMaximumHeight(400)
-        # 设置表格的最小高度
-        self.tableView.setMinimumHeight(400)   
+        #self.tableView.setFixedSize(500, 300)         # 设置表格大小
+        self.tableView.setMaximumHeight(400)          # 设置表格的最大高度
+        self.tableView.setMinimumHeight(400)             # 设置表格的最小高度
         self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
         #self.tableView.setSortingEnabled(True)  #设置表格可排序
 
-        songInfos = [
-            ['かばん', 'aiko'],
-            ['爱你', '王心凌'],
-            ['星のない世界', 'aiko'],
-            ['横顔', 'aiko'],
-            ['秘密', 'aiko'],
-            ['シアワセ', 'aiko'],
-            ['二人', 'aiko'],
-        ]
-        for i, songInfo in enumerate(songInfos): #遍历数据
-            for j in range(2): #遍历每一列
-                self.tableView.setItem(i, j, QTableWidgetItem(songInfo[j])) #设置每个单元格的内容
+        # songInfos = [
+        #     ['かばん', 'aiko']
+        # ]
+        # for i, songInfo in enumerate(songInfos): #遍历数据
+        #     for j in range(2): #遍历每一列
+        #         self.tableView.setItem(i, j, QTableWidgetItem(songInfo[j])) #设置每个单元格的内容
 
 
         # 在表格最后一行第一列添加"添加行"按钮
@@ -4767,19 +4904,19 @@ class Widget21(QFrame):#测试界面
 
         #设置导入字典按钮
         self.pushButton1 = PushButton('导入字典', self, FIF.FOLDER)
-        #self.pushButton1.clicked.connect(self.Manual_Backup_Button) #按钮绑定槽函数
+        self.pushButton1.clicked.connect(self.Importing_dictionaries) #按钮绑定槽函数
 
         #设置导出字典按钮
         self.pushButton2 = PushButton('导出字典', self, FIF.FOLDER)
-        #self.pushButton2.clicked.connect(self.Manual_Backup_Button) #按钮绑定槽函数
+        self.pushButton2.clicked.connect(self.Exporting_dictionaries) #按钮绑定槽函数
 
         #设置清空字典按钮
         self.pushButton3 = PushButton('清空字典', self, FIF.FOLDER)
-        #self.pushButton3.clicked.connect(self.Manual_Backup_Button) #按钮绑定槽函数
+        self.pushButton3.clicked.connect(self.Empty_dictionary) #按钮绑定槽函数
 
         #设置保存字典按钮
         self.pushButton4 = PushButton('保存字典', self, FIF.FOLDER)
-        #self.pushButton4.clicked.connect(self.Manual_Backup_Button) #按钮绑定槽函数
+        self.pushButton4.clicked.connect(self.Save_dictionary) #按钮绑定槽函数
 
 
         layout1_1.addWidget(self.pushButton1)
@@ -4811,7 +4948,7 @@ class Widget21(QFrame):#测试界面
 
         #设置输出文件夹按钮
         self.pushButton5 = PushButton('提取文件中名词到字典', self, FIF.FOLDER)
-        #self.pushButton5.clicked.connect(self.Manual_Backup_Button) #按钮绑定槽函数
+        self.pushButton5.clicked.connect(self.Extract_nouns) #按钮绑定槽函数
 
 
         
@@ -4828,20 +4965,20 @@ class Widget21(QFrame):#测试界面
         box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout2 = QHBoxLayout()
 
-        #设置“启用该账号”标签
+        #设置“译前替换”标签
         label1 = QLabel( flags=Qt.WindowFlags())  
         label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
         label1.setText("译前替换")
 
-        #设置“自动备份文件夹”显示
+        #设置“译前替换”显示
         self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
         self.label2.setText("(在翻译前将所有原文替换成译文)")
 
 
-        #设置“启用该账号”开
+        #设置“译前替换”开
         self.checkBox1 = CheckBox('启用功能')
-        #self.checkBox.stateChanged.connect(self.checkBoxChanged)
+        self.checkBox1.stateChanged.connect(self.checkBoxChanged1)
 
         layout2.addWidget(label1)
         layout2.addWidget(self.label2)
@@ -4855,20 +4992,20 @@ class Widget21(QFrame):#测试界面
         box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout3 = QHBoxLayout()
 
-        #设置“启用该账号”标签
+        #设置“译时提示”标签
         label3 = QLabel( flags=Qt.WindowFlags())  
         label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
         label3.setText("译时提示")
 
-        #设置“自动备份文件夹”显示
+        #设置“译时提示”显示
         self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
         self.label4.setText("(在翻译过程中作为AI的prompt提示词)")
 
 
-        #设置“启用该账号”开
+        #设置“译时提示”开
         self.checkBox2 = CheckBox('启用功能')
-        #self.checkBox.stateChanged.connect(self.checkBoxChanged)
+        self.checkBox2.stateChanged.connect(self.checkBoxChanged2)
 
         layout3.addWidget(label3)
         layout3.addWidget(self.label4)
@@ -4895,21 +5032,164 @@ class Widget21(QFrame):#测试界面
     def scrollContents(self, position):
         self.scrollWidget.move(0, position) 
 
+    #添加行按钮
     def add_row(self):
         # 添加新行在按钮所在行前面
         self.tableView.insertRow(self.tableView.rowCount()-1)
         #设置新行的高度与前一行相同
         self.tableView.setRowHeight(self.tableView.rowCount()-2, self.tableView.rowHeight(self.tableView.rowCount()-3))
 
+    #删除空白行按钮
     def delete_blank_row(self):
-        # 删除表格内第一列和第二列为空或者空字符串的行
-        for i in range(self.tableView.rowCount()-1):
-            if self.tableView.item(i, 0) is None or self.tableView.item(i, 0).text() == '':
-                self.tableView.removeRow(i)
-                break
-            elif self.tableView.item(i, 1) is None or self.tableView.item(i, 1).text() == '':
-                self.tableView.removeRow(i)
-                break
+        #表格行数大于2时，删除表格内第一列和第二列为空或者空字符串的行
+        if self.tableView.rowCount() > 2:
+            # 删除表格内第一列和第二列为空或者空字符串的行
+            for i in range(self.tableView.rowCount()-1):
+                if self.tableView.item(i, 0) is None or self.tableView.item(i, 0).text() == '':
+                    self.tableView.removeRow(i)
+                    break
+                elif self.tableView.item(i, 1) is None or self.tableView.item(i, 1).text() == '':
+                    self.tableView.removeRow(i)
+                    break
+
+    #导入字典按钮
+    def Importing_dictionaries(self):
+        # 选择文件
+        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'JSON Files (*.json)')      #调用QFileDialog类里的函数来选择文件
+        if Input_File:
+            print(f'[INFO]  已选择字典导入文件: {Input_File}')
+        else :
+            print('[INFO]  未选择文件')
+            return
+        
+        # 读取文件
+        with open(Input_File, 'r', encoding="utf-8") as f:
+            dictionary = json.load(f)
+        
+        # 将字典中的数据从表格底部添加到表格中
+        for key, value in dictionary.items():
+            row = self.tableView.rowCount() - 1 #获取表格的倒数行数
+            self.tableView.insertRow(row)    # 在表格中插入一行
+            self.tableView.setItem(row, 0, QTableWidgetItem(key))
+            self.tableView.setItem(row, 1, QTableWidgetItem(value))
+            #设置新行的高度与前一行相同
+            self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
+
+        createSuccessInfoBar("导入成功")
+        print(f'[INFO]  已导入字典文件')
+    
+    #导出字典按钮
+    def Exporting_dictionaries(self):
+        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
+        data = []
+        for row in range(self.tableView.rowCount() - 1):
+            key_item = self.tableView.item(row, 0)
+            value_item = self.tableView.item(row, 1)
+            if key_item and value_item:
+                key = key_item.text()
+                value = value_item.text()
+                data.append((key, value))
+
+        # 将数据存储到中间字典中
+        dictionary = {}
+        for key, value in data:
+            dictionary[key] = value
+
+        # 选择文件保存路径
+        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Output_Folder:
+            print(f'[INFO]  已选择字典导出文件夹: {Output_Folder}')
+        else :
+            print('[INFO]  未选择文件夹')
+            return  # 直接返回，不执行后续操作
+
+        # 将字典保存到文件中
+        with open(os.path.join(Output_Folder, "用户字典.json"), 'w', encoding="utf-8") as f:
+            json.dump(dictionary, f, ensure_ascii=False, indent=4)
+
+        createSuccessInfoBar("导出成功")
+        print(f'[INFO]  已导出字典文件')
+
+    #清空字典按钮
+    def Empty_dictionary(self):
+        #清空表格
+        self.tableView.clearContents()
+        #设置表格的行数为1
+        self.tableView.setRowCount(2)
+        
+        # 在表格最后一行第一列添加"添加行"按钮
+        button = PushButton('Add Row')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
+        button.clicked.connect(self.add_row)
+        # 在表格最后一行第二列添加"删除空白行"按钮
+        button = PushButton('Delete Blank Row')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
+        button.clicked.connect(self.delete_blank_row)
+
+        createSuccessInfoBar("清空成功")
+        print(f'[INFO]  已清空字典')
+
+    #保存字典按钮
+    def Save_dictionary(self):
+        read_write_config("write") 
+        createSuccessInfoBar("保存成功")
+
+    #提取文件中名词到字典按钮
+    def Extract_nouns(self):
+        # 选择文件
+        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'JSON Files (*.json)')      #调用QFileDialog类里的函数来选择文件
+        if Input_File:
+            print(f'[INFO]  已选择字典导入文件: {Input_File}')
+        else :
+            print('[INFO]  未选择文件')
+            return
+        
+        # 读取文件
+        with open(Input_File, 'r', encoding="utf-8") as f:
+            dictionary = json.load(f)
+
+        #遍历字典每一个key，判断一下
+        for key in dictionary.keys():
+            #key是否可取的判断变量
+            key_is_ok = 0
+
+            #检查一下表格中是否已经存在该key，如果存在则不添加
+            for row in range(self.tableView.rowCount() - 1):
+                key_item = self.tableView.item(row, 0)
+                if key_item and key_item.text() == key:
+                    key_is_ok = 1
+
+            #检查一下该key是否包含中日文，如果不包含则不添加
+            if re.search("[\u4e00-\u9fa5]", key) == None and re.search("[\u3040-\u309F\u30A0-\u30FF]", key) == None:
+                key_is_ok = 2
+
+            #检查一下该key是否为名词，如果不是名词则不添加
+            if len(key) > self.spinBox1.value():
+                key_is_ok = 3
+
+            #如果key可取，则添加到表格中
+            if key_is_ok == 0 : 
+                row = self.tableView.rowCount() - 1
+                self.tableView.insertRow(row)    # 在表格中插入一行
+                self.tableView.setItem(row, 0, QTableWidgetItem(key))
+                self.tableView.setItem(row, 1, QTableWidgetItem(dictionary[key]))
+                #设置新行的高度与前一行相同
+                self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
+        
+        createSuccessInfoBar("提取完成")
+        print(f'[INFO]  已提取文件中名词到字典')
+
+    #功能互斥函数
+    def checkBoxChanged1(self, isChecked: bool):
+        if isChecked :
+            self.checkBox2.setChecked(False)
+            createSuccessInfoBar("已开启译前替换功能")
+    
+    #功能互斥函数
+    def checkBoxChanged2(self, isChecked: bool):
+        if isChecked :
+            self.checkBox1.setChecked(False)
+            createSuccessInfoBar("已开启译时提示功能")
 
 class AvatarWidget(NavigationWidget):#头像导航项
     """ Avatar widget """
