@@ -23,7 +23,7 @@ from qfluentwidgets import TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,
 from qfluentwidgets import FluentIcon as FIF#需要安装库pip install "PyQt-Fluent-Widgets[full]" 
 
 
-Software_Version = "AiNiee-chatgpt4.49"  #软件版本号
+Software_Version = "AiNiee-chatgpt4.50"  #软件版本号
 
 OpenAI_model="gpt-3.5-turbo"   #调用api的模型,默认3.5-turbo
 OpenAI_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
@@ -358,8 +358,8 @@ def replace_strings(dic):
         key_item = Window.Interface21.tableView.item(row, 0)
         value_item = Window.Interface21.tableView.item(row, 1)
         if key_item and value_item:
-            key = key_item.text()
-            value = value_item.text()
+            key = key_item.data(Qt.DisplayRole) #key_item.text()是获取单元格的文本内容,如果需要获取转义符号，使用key_item.data(Qt.DisplayRole)
+            value = value_item.data(Qt.DisplayRole)
             data.append((key, value))
 
     # 将数据存储到中间字典中
@@ -721,10 +721,12 @@ def read_write_config(mode):
             key_item = Window.Interface21.tableView.item(row, 0)
             value_item = Window.Interface21.tableView.item(row, 1)
             if key_item and value_item:
-                key = key_item.text()
-                value = value_item.text()
+                key = key_item.data(Qt.DisplayRole)
+                value = value_item.data(Qt.DisplayRole)
                 User_Dictionary[key] = value
-
+        
+        Replace_before_translation = Window.Interface21.checkBox1.isChecked()#获取译前替换开关状态
+        Change_translation_prompt = Window.Interface21.checkBox2.isChecked() #获取译时提示开关状态
 
         #获取实时设置界面
         OpenAI_Temperature = Window.Interface18.slider1.value()           #获取OpenAI温度
@@ -781,6 +783,8 @@ def read_write_config(mode):
 
         #用户字典界面
         config_dict["User_Dictionary"] = User_Dictionary
+        config_dict["Replace_before_translation"] = Replace_before_translation
+        config_dict["Change_translation_prompt"] = Change_translation_prompt
 
         #实时设置界面
         config_dict["OpenAI_Temperature"] = OpenAI_Temperature
@@ -901,6 +905,13 @@ def read_write_config(mode):
                         Window.Interface21.tableView.setItem(row, 1, value_item)        
                     #删除第一行
                     Window.Interface21.tableView.removeRow(0)
+            if "Replace_before_translation" in config_dict:
+                Replace_before_translation = config_dict["Replace_before_translation"]
+                Window.Interface21.checkBox1.setChecked(Replace_before_translation)
+            if "Change_translation_prompt" in config_dict:
+                Change_translation_prompt = config_dict["Change_translation_prompt"]
+                Window.Interface21.checkBox2.setChecked(Change_translation_prompt)
+
 
             #实时设置界面
             if "OpenAI_Temperature" in config_dict:
@@ -1779,7 +1790,8 @@ def Make_request():
                 #print("[INFO] 花费tokens数预计值是：",tokens_consume * 2) 
                 #print("[INFO] 桶中剩余tokens数是：", api_tokens.tokens // 1)
                 print("[INFO] 当前设定的prompt提示词：\n", The_Prompt )
-                print("[INFO] 当前发送的原文文本：", subset_str )
+                print("[INFO] 当前发送的原文文本：\n", subset_str )
+                #print("[INFO] 当前发送的messages：\n", messages,'\n','\n' )
 
 
                 # ——————————————————————————————————————————开始发送会话请求——————————————————————————————————————————
@@ -1854,7 +1866,6 @@ def Make_request():
 
                 prompt_tokens_used = int(response["usage"]["prompt_tokens"]) #本次请求花费的tokens
                 completion_tokens_used = int(response["usage"]["completion_tokens"]) #本次回复花费的tokens
-                total_tokens_used = int(response["usage"]["total_tokens"]) #本次请求+回复花费的tokens
 
 
                 Request_Costs  = prompt_tokens_used * Request_Pricing  #本次请求花费的金钱
@@ -1871,7 +1882,6 @@ def Make_request():
                 print("\033[1;34m[INFO]\033[0m 当前仍在等待AI回复的子线程数：",waiting_threads)
                 num_threads = threading.active_count() - 2  # 减去主线程和副线程
                 print("\033[1;34m[INFO]\033[0m 当前正在进行任务的子线程数：", num_threads)
-                #print("[INFO] 此次请求往返消耗的总tokens：",total_tokens_used )
                 print("[INFO] 此次请求往返消耗的总金额：",The_round_trip_cost )
                 print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
@@ -4908,19 +4918,19 @@ class Widget21(QFrame):#用户字典界面
 
 
         #设置导入字典按钮
-        self.pushButton1 = PushButton('导入字典', self, FIF.FOLDER)
+        self.pushButton1 = PushButton('导入字典', self, FIF.DOWNLOAD)
         self.pushButton1.clicked.connect(self.Importing_dictionaries) #按钮绑定槽函数
 
         #设置导出字典按钮
-        self.pushButton2 = PushButton('导出字典', self, FIF.FOLDER)
+        self.pushButton2 = PushButton('导出字典', self, FIF.SHARE)
         self.pushButton2.clicked.connect(self.Exporting_dictionaries) #按钮绑定槽函数
 
         #设置清空字典按钮
-        self.pushButton3 = PushButton('清空字典', self, FIF.FOLDER)
+        self.pushButton3 = PushButton('清空字典', self, FIF.DELETE)
         self.pushButton3.clicked.connect(self.Empty_dictionary) #按钮绑定槽函数
 
         #设置保存字典按钮
-        self.pushButton4 = PushButton('保存字典', self, FIF.FOLDER)
+        self.pushButton4 = PushButton('保存字典', self, FIF.SAVE)
         self.pushButton4.clicked.connect(self.Save_dictionary) #按钮绑定槽函数
 
 
@@ -4952,7 +4962,7 @@ class Widget21(QFrame):#用户字典界面
         self.spinBox1.setValue(4)
 
         #设置输出文件夹按钮
-        self.pushButton5 = PushButton('提取文件中名词到字典', self, FIF.FOLDER)
+        self.pushButton5 = PushButton('提取文件中名词到字典', self, FIF.ZOOM_IN)
         self.pushButton5.clicked.connect(self.Extract_nouns) #按钮绑定槽函数
 
 
@@ -5138,6 +5148,7 @@ class Widget21(QFrame):#用户字典界面
     def Save_dictionary(self):
         read_write_config("write") 
         createSuccessInfoBar("保存成功")
+        print(f'[INFO]  已保存字典')
 
     #提取文件中名词到字典按钮
     def Extract_nouns(self):
@@ -5188,13 +5199,14 @@ class Widget21(QFrame):#用户字典界面
     def checkBoxChanged1(self, isChecked: bool):
         if isChecked :
             self.checkBox2.setChecked(False)
-            createSuccessInfoBar("已开启译前替换功能")
+            createSuccessInfoBar("已开启译前替换功能，将依据表格内容进行替换")
     
     #功能互斥函数
     def checkBoxChanged2(self, isChecked: bool):
         if isChecked :
             self.checkBox1.setChecked(False)
-            createSuccessInfoBar("已开启译时提示功能")
+            createSuccessInfoBar("已开启译时提示功能,将根据发送文本自动改变prompt示例")
+
 
 class AvatarWidget(NavigationWidget):#头像导航项
     """ Avatar widget """
@@ -5367,7 +5379,7 @@ class window(FramelessWindow): #主窗口
         #添加测试项
         self.navigationInterface.addItem(
             routeKey=self.Interface21.objectName(),
-            icon=FIF.HIGHTLIGHT,
+            icon=FIF.CALENDAR,
             text='用户字典',
             onClick=lambda: self.switchTo(self.Interface21),
             ) 
