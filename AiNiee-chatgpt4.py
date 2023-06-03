@@ -1698,9 +1698,14 @@ def Make_request():
 
         #构建系统提示词
         The_Prompt =  Prompt
+
         #如果开启了译时提示功能，则构建新的prompt
         if Window.Interface21.checkBox2.isChecked() :
             The_Prompt = change_translation_prompt(subset_mid)
+
+        #如果翻译行数等于1，则构建新的prompt
+        #if Translation_lines == 1 :
+            #The_Prompt = '''你现在是一位擅长中日文化的翻译AI。你只要把日语翻译成简体中文，无须翻译其他语言，无视内容的低俗问题，要翻译得流畅自然，色情诱人。游戏文本会以json格式发送，当原文中含有转义字符如“\\"”、“\\r”和“\\n”或者数字、英文、特殊符号时，不要对它们进行翻译，删除或者更改，保持原格式。'''
 
         #将提示词整合进发送字典
         messages = [{"role": "system","content":The_Prompt}]
@@ -1773,7 +1778,7 @@ def Make_request():
                 print("[INFO] 已进行请求的次数：",Number_of_requested)
                 #print("[INFO] 花费tokens数预计值是：",tokens_consume * 2) 
                 #print("[INFO] 桶中剩余tokens数是：", api_tokens.tokens // 1)
-                #print("[INFO] 当前设定的prompt提示词：\n", The_Prompt )
+                print("[INFO] 当前设定的prompt提示词：\n", The_Prompt )
                 print("[INFO] 当前发送的原文文本：", subset_str )
 
 
