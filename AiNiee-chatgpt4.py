@@ -4962,7 +4962,7 @@ class Widget21(QFrame):#用户字典界面
         self.spinBox1.setValue(4)
 
         #设置输出文件夹按钮
-        self.pushButton5 = PushButton('提取文件中名词到字典', self, FIF.ZOOM_IN)
+        self.pushButton5 = PushButton('提取json文件中名词到字典', self, FIF.ZOOM_IN)
         self.pushButton5.clicked.connect(self.Extract_nouns) #按钮绑定槽函数
 
 
