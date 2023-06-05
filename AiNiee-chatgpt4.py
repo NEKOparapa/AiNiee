@@ -1213,7 +1213,7 @@ def Config():
 
         #如果填入地址，则设置代理
         if Proxy_Address :
-            print("[INFO] 代理地址是:",Proxy_Address,'\n') 
+            print("[INFO] 系统代理地址是:",Proxy_Address,'\n') 
             os.environ["http_proxy"]=Proxy_Address
             os.environ["https_proxy"]=Proxy_Address
     
@@ -1353,6 +1353,13 @@ def Config():
         return 1 #返回错误参数
 
     print ("[INFO] 当前设置最大线程数是:",The_Max_workers,'\n')
+
+
+    #根据API KEY数量，重新设定请求限制
+    if len(API_key_list) != 1:
+        The_RPM_limit = The_RPM_limit / len(API_key_list) *1.05     #根据数量，重新计算请求时间间隔，后面是修正系数，防止出现请求过快的情况
+        The_TPM_limit = The_TPM_limit * len(API_key_list) *0.95     #根据数量，重新计算请求每秒可请求的tokens流量
+        print("[INFO] 当前API KEY数量是:",len(API_key_list),"将开启多key轮询功能\n")
 
     #设置模型ID
     OpenAI_model = Model_Type
@@ -1756,34 +1763,36 @@ def Make_request():
                 print("\033[1;31mError:\033[0m 子线程执行任务已经超时，将暂时取消本次任务")
                 break
 
-            #检查请求数量是否达到限制，如果是多key的话---------------------------------
-            if len(API_key_list) > 1: #如果存有多个key
-                if (Number_of_requested - Number_of_mark) >= 20 :#如果该key请求数已经达到次数
-
-                    lock4.acquire()  # 获取锁
-                    Number_of_mark = Number_of_requested
-                    if (key_list_index + 1) < len(API_key_list):#假如索引值不超过列表最后一个
-                            key_list_index = key_list_index + 1 #更换APIKEY索引
-                    else :
-                            key_list_index = 0
-
-                    #更新API
-                    #openai.api_key = API_key_list[key_list_index]
-                    on_update_signal("CG_key")
-
-                    #重置频率限制，重置请求时间
-                    api_tokens.tokens = tokens_limit_per * 2
-                    api_request.last_request_time = 0
-
-                    print("\033[1;33mWarning:\033[0m 该key请求数已达20,将进行KEY的更换")
-                    print("\033[1;33mWarning:\033[0m 将API-KEY更换为第",key_list_index+1,"个 , 值为：", API_key_list[key_list_index] ,'\n')
-                    lock4.release()  # 释放锁
 
             # 检查子是否符合速率限制---------------------------------
             if api_tokens.consume(tokens_consume * 2  ) and api_request.send_request():
 
                 #如果能够发送请求，则扣除令牌桶里的令牌数
                 api_tokens.tokens = api_tokens.tokens - (tokens_consume * 2 )
+
+                #检查请求数量是否达到限制，如果是多key的话---------------------------------
+                if len(API_key_list) > 1: #如果存有多个key
+                    limit_count = 1
+                    if (Number_of_requested - Number_of_mark) >= limit_count :#如果该key请求数已经达到次数
+
+                        lock4.acquire()  # 获取锁
+                        Number_of_mark = Number_of_requested
+                        if (key_list_index + 1) < len(API_key_list):#假如索引值不超过列表最后一个
+                                key_list_index = key_list_index + 1 #更换APIKEY索引
+                        else :
+                                key_list_index = 0
+
+                        #更新API
+                        #openai.api_key = API_key_list[key_list_index]
+                        on_update_signal("CG_key")
+
+                        #重置频率限制，重置请求时间
+                        #api_tokens.tokens = tokens_limit_per * 2
+                        #api_request.last_request_time = 0
+
+                        #print("\033[1;34m[INFO]\033[0m 该key请求数已达",limit_count,"将进行KEY的更换")
+                        print("\033[1;34m[INFO]\033[0m 将API-KEY更换为第",key_list_index+1,"个 ,Key为：", API_key_list[key_list_index] ,'\n')
+                        lock4.release()  # 释放锁
 
                 print("[INFO] 已发送请求,正在等待AI回复中-----------------------")
                 print("[INFO] 已进行请求的次数：",Number_of_requested)
@@ -1793,9 +1802,10 @@ def Make_request():
                 print("[INFO] 当前发送的原文文本：\n", subset_str )
                 #print("[INFO] 当前发送的messages：\n", messages,'\n','\n' )
 
-
                 # ——————————————————————————————————————————开始发送会话请求——————————————————————————————————————————
                 try:
+
+
                     lock5.acquire()  # 获取锁
                     #记录请求数
                     Number_of_requested = Number_of_requested + 1
@@ -2602,7 +2612,7 @@ def Check_wrong_Main():
 # ——————————————————————————————————————————编码任务线程并发函数——————————————————————————————————————————
 def Make_request_Embeddings():
     
-    global source_or_dict,source_tr_dict,Embeddings_Status_List,Semantic_similarity_list,Translation_Progress,money_used
+    global source_or_dict,source_tr_dict,Embeddings_Status_List,Semantic_similarity_list,Translation_Progress,money_used,API_key_list,Number_of_mark,key_list_index
 
     start_time = time.time()
     timeout = 850  # 设置超时时间为x秒
@@ -2672,7 +2682,24 @@ def Make_request_Embeddings():
                 #如果能够发送请求，则扣除令牌桶里的令牌数
                 api_tokens.tokens = api_tokens.tokens - (tokens_consume  )
 
+                #检查请求数量是否达到限制，如果是多key的话---------------------------------
+                if len(API_key_list) > 1: #如果存有多个key
+                    limit_count = 1
+                    if (Number_of_requested - Number_of_mark) >= limit_count :#如果该key请求数已经达到次数
 
+                        lock4.acquire()  # 获取锁
+                        Number_of_mark = Number_of_requested
+                        if (key_list_index + 1) < len(API_key_list):#假如索引值不超过列表最后一个
+                                key_list_index = key_list_index + 1 #更换APIKEY索引
+                        else :
+                                key_list_index = 0
+
+                        #更新API
+                        #openai.api_key = API_key_list[key_list_index]
+                        on_update_signal("CG_key")
+
+                        print("\033[1;34m[INFO]\033[0m 将API-KEY更换为第",key_list_index+1,"个 ,Key为：", API_key_list[key_list_index] ,'\n')
+                        lock4.release()  # 释放锁
 
                 #————————————————————————————————————————发送请求————————————————————————————————————————
                 try:
