@@ -700,15 +700,15 @@ def read_write_config(mode):
         #如果是MTool界面
         Prompt_Mtool = Window.Interface15.TextEdit.toPlainText()             #获取MTool界面提示词
         Translation_lines_Mtool = Window.Interface15.spinBox1.value()        #获取MTool界面翻译行数
-        Check_Switch_Mtool = Window.Interface15.SwitchButton1.isChecked()   #获取错行检查开关的状态
         Filter_text__Switch_Mtool = Window.Interface15.SwitchButton2.isChecked()   #获取过滤文本开关的状态
+        Check_Switch_Mtool = Window.Interface15.SwitchButton1.isChecked()   #获取错行检查开关的状态
         Number_of_threads_Mtool = Window.Interface15.spinBox2.value()             #获取最大线程数
 
         #如果是T++界面
         Prompt_Tpp = Window.Interface16.TextEdit.toPlainText()             #获取T++界面提示词
         Translation_lines_Tpp = Window.Interface16.spinBox1.value()        #获取T++界面翻译行数
-        Check_Switch_Tpp = Window.Interface16.SwitchButton1.isChecked()   #获取错行检查开关的状态
         Filter_text__Switch_Tpp = Window.Interface16.SwitchButton2.isChecked()   #获取过滤文本开关的状态
+        Check_Switch_Tpp = Window.Interface16.SwitchButton1.isChecked()   #获取错行检查开关的状态
         Number_of_threads_Tpp = Window.Interface16.spinBox2.value()             #获取最大线程数
 
         #获取备份设置界面
@@ -767,15 +767,15 @@ def read_write_config(mode):
         #Mtool界面
         config_dict["Prompt_Mtool"] = Prompt_Mtool
         config_dict["Translation_lines_Mtool"] = Translation_lines_Mtool
-        config_dict["Check_Switch_Mtool"] = Check_Switch_Mtool
         config_dict["Filter_text__Switch_Mtool"] = Filter_text__Switch_Mtool
+        config_dict["Check_Switch_Mtool"] = Check_Switch_Mtool
         config_dict["Number_of_threads_Mtool"] = Number_of_threads_Mtool
 
         #Tpp界面
         config_dict["Prompt_Tpp"] = Prompt_Tpp
         config_dict["Translation_lines_Tpp"] = Translation_lines_Tpp
-        config_dict["Check_Switch_Tpp"] = Check_Switch_Tpp
         config_dict["Filter_text__Switch_Tpp"] = Filter_text__Switch_Tpp
+        config_dict["Check_Switch_Tpp"] = Check_Switch_Tpp
         config_dict["Number_of_threads_Tpp"] = Number_of_threads_Tpp
 
         #备份设置界面
@@ -859,12 +859,12 @@ def read_write_config(mode):
             if "Translation_lines_Mtool" in config_dict:
                 Translation_lines_Mtool = config_dict["Translation_lines_Mtool"]
                 Window.Interface15.spinBox1.setValue(Translation_lines_Mtool)
-            if "Check_Switch_Mtool" in config_dict:
-                Check_Switch_Mtool = config_dict["Check_Switch_Mtool"]
-                Window.Interface15.SwitchButton1.setChecked(Check_Switch_Mtool)
             if "Filter_text__Switch_Mtool" in config_dict:
                 Filter_text__Switch_Mtool = config_dict["Filter_text__Switch_Mtool"]
                 Window.Interface15.SwitchButton2.setChecked(Filter_text__Switch_Mtool)
+            if "Check_Switch_Mtool" in config_dict:
+                Check_Switch_Mtool = config_dict["Check_Switch_Mtool"]
+                Window.Interface15.SwitchButton1.setChecked(Check_Switch_Mtool)
             if "Number_of_threads_Mtool" in config_dict:
                 Number_of_threads_Mtool = config_dict["Number_of_threads_Mtool"]
                 Window.Interface15.spinBox2.setValue(Number_of_threads_Mtool)
@@ -877,12 +877,12 @@ def read_write_config(mode):
             if "Translation_lines_Tpp" in config_dict:
                 Translation_lines_Tpp = config_dict["Translation_lines_Tpp"]
                 Window.Interface16.spinBox1.setValue(Translation_lines_Tpp)
-            if "Check_Switch_Tpp" in config_dict:
-                Check_Switch_Tpp = config_dict["Check_Switch_Tpp"]
-                Window.Interface16.SwitchButton1.setChecked(Check_Switch_Tpp)
             if "Filter_text__Switch_Tpp" in config_dict:
                 Filter_text__Switch_Tpp = config_dict["Filter_text__Switch_Tpp"]
                 Window.Interface16.SwitchButton2.setChecked(Filter_text__Switch_Tpp)
+            if "Check_Switch_Tpp" in config_dict:
+                Check_Switch_Tpp = config_dict["Check_Switch_Tpp"]
+                Window.Interface16.SwitchButton1.setChecked(Check_Switch_Tpp)
             if "Number_of_threads_Tpp" in config_dict:
                 Number_of_threads_Tpp = config_dict["Number_of_threads_Tpp"]
                 Window.Interface16.spinBox2.setValue(Number_of_threads_Tpp)
