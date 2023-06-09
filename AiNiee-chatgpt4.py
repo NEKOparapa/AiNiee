@@ -774,17 +774,17 @@ def read_write_config(mode):
         API_key_str_sb = Window.Interface12.TextEdit2.toPlainText()        #获取apikey输入值
 
         #如果是MTool界面
-        Prompt_Mtool = Window.Interface15.TextEdit.toPlainText()             #获取MTool界面提示词
         Translation_lines_Mtool = Window.Interface15.spinBox1.value()        #获取MTool界面翻译行数
-        Filter_text__Switch_Mtool = Window.Interface15.SwitchButton2.isChecked()   #获取过滤文本开关的状态
-        Check_Switch_Mtool = Window.Interface15.SwitchButton1.isChecked()   #获取错行检查开关的状态
+        Check_Switch_Mtool = Window.Interface15.SwitchButton1.isChecked()    #获取错行检查开关的状态
+        Line_break_switch_Mtool = Window.Interface15.SwitchButton2.isChecked()   #获取换行符替换翻译开关的状态
+        Text_Source_Language_Mtool = Window.Interface15.comboBox1.currentText()   #获取文本源语言下拉框当前选中选项的值
         Number_of_threads_Mtool = Window.Interface15.spinBox2.value()             #获取最大线程数
 
         #如果是T++界面
-        Prompt_Tpp = Window.Interface16.TextEdit.toPlainText()             #获取T++界面提示词
         Translation_lines_Tpp = Window.Interface16.spinBox1.value()        #获取T++界面翻译行数
-        Filter_text__Switch_Tpp = Window.Interface16.SwitchButton2.isChecked()   #获取过滤文本开关的状态
         Check_Switch_Tpp = Window.Interface16.SwitchButton1.isChecked()   #获取错行检查开关的状态
+        Line_break_switch_Tpp = Window.Interface16.SwitchButton2.isChecked()   #获取换行符替换翻译开关的状态
+        Text_Source_Language_Tpp = Window.Interface16.comboBox1.currentText()   #获取文本源语言下拉框当前选中选项的值
         Number_of_threads_Tpp = Window.Interface16.spinBox2.value()             #获取最大线程数
 
         #获取备份设置界面
@@ -807,7 +807,7 @@ def read_write_config(mode):
         #获取实时设置界面
         OpenAI_Temperature = Window.Interface18.slider1.value()           #获取OpenAI温度
         OpenAI_top_p = Window.Interface18.slider2.value()                 #获取OpenAI top_p
-        OpenAI_presence_penalty = Window.Interface18.slider3.value()                 #获取OpenAI top_k
+        OpenAI_presence_penalty = Window.Interface18.slider3.value()      #获取OpenAI top_k
         OpenAI_frequency_penalty = Window.Interface18.slider4.value()    #获取OpenAI repetition_penalty
 
         #获取语义检查Mtool界面
@@ -842,14 +842,16 @@ def read_write_config(mode):
 
         #Mtool界面
         config_dict["Translation_lines_Mtool"] = Translation_lines_Mtool
-        config_dict["Filter_text__Switch_Mtool"] = Filter_text__Switch_Mtool
         config_dict["Check_Switch_Mtool"] = Check_Switch_Mtool
+        config_dict["Line_break_switch_Mtool"] = Line_break_switch_Mtool
+        config_dict["Text_Source_Language_Mtool"] = Text_Source_Language_Mtool
         config_dict["Number_of_threads_Mtool"] = Number_of_threads_Mtool
 
         #Tpp界面
         config_dict["Translation_lines_Tpp"] = Translation_lines_Tpp
-        config_dict["Filter_text__Switch_Tpp"] = Filter_text__Switch_Tpp
         config_dict["Check_Switch_Tpp"] = Check_Switch_Tpp
+        config_dict["Line_break_switch_Tpp"] = Line_break_switch_Tpp
+        config_dict["Text_Source_Language_Tpp"] = Text_Source_Language_Tpp
         config_dict["Number_of_threads_Tpp"] = Number_of_threads_Tpp
 
         #备份设置界面
@@ -930,12 +932,15 @@ def read_write_config(mode):
             if "Translation_lines_Mtool" in config_dict:
                 Translation_lines_Mtool = config_dict["Translation_lines_Mtool"]
                 Window.Interface15.spinBox1.setValue(Translation_lines_Mtool)
-            if "Filter_text__Switch_Mtool" in config_dict:
-                Filter_text__Switch_Mtool = config_dict["Filter_text__Switch_Mtool"]
-                Window.Interface15.SwitchButton2.setChecked(Filter_text__Switch_Mtool)
             if "Check_Switch_Mtool" in config_dict:
                 Check_Switch_Mtool = config_dict["Check_Switch_Mtool"]
                 Window.Interface15.SwitchButton1.setChecked(Check_Switch_Mtool)
+            if "Line_break_switch_Mtool" in config_dict:
+                Line_break_switch_Mtool = config_dict["Line_break_switch_Mtool"]
+                Window.Interface15.SwitchButton2.setChecked(Line_break_switch_Mtool)
+            if "Text_Source_Language_Mtool" in config_dict:
+                Text_Source_Language_Mtool = config_dict["Text_Source_Language_Mtool"]
+                Window.Interface15.comboBox1.setCurrentText(Text_Source_Language_Mtool)
             if "Number_of_threads_Mtool" in config_dict:
                 Number_of_threads_Mtool = config_dict["Number_of_threads_Mtool"]
                 Window.Interface15.spinBox2.setValue(Number_of_threads_Mtool)
@@ -945,12 +950,15 @@ def read_write_config(mode):
             if "Translation_lines_Tpp" in config_dict:
                 Translation_lines_Tpp = config_dict["Translation_lines_Tpp"]
                 Window.Interface16.spinBox1.setValue(Translation_lines_Tpp)
-            if "Filter_text__Switch_Tpp" in config_dict:
-                Filter_text__Switch_Tpp = config_dict["Filter_text__Switch_Tpp"]
-                Window.Interface16.SwitchButton2.setChecked(Filter_text__Switch_Tpp)
             if "Check_Switch_Tpp" in config_dict:
                 Check_Switch_Tpp = config_dict["Check_Switch_Tpp"]
                 Window.Interface16.SwitchButton1.setChecked(Check_Switch_Tpp)
+            if "Line_break_switch_Tpp" in config_dict:
+                Line_break_switch_Tpp = config_dict["Line_break_switch_Tpp"]
+                Window.Interface16.SwitchButton2.setChecked(Line_break_switch_Tpp)
+            if "Text_Source_Language_Tpp" in config_dict:
+                Text_Source_Language_Tpp = config_dict["Text_Source_Language_Tpp"]
+                Window.Interface16.comboBox1.setCurrentText(Text_Source_Language_Tpp)
             if "Number_of_threads_Tpp" in config_dict:
                 Number_of_threads_Tpp = config_dict["Number_of_threads_Tpp"]
                 Window.Interface16.spinBox2.setValue(Number_of_threads_Tpp)
@@ -3527,25 +3535,11 @@ class Widget15(QFrame):#Mtool项目界面
 
     #设置“错行检查”选择开关绑定函数
     def onCheckedChanged1(self, isChecked: bool):
-        if isChecked :
-            if self.SwitchButton2.isChecked() == True:
-                self.SwitchButton1.setText("On")
-                createWarningInfoBar("Mtool项目已开启AI回复内容错行检查，将会增加时间与金钱消耗")
-            else :
-                self.SwitchButton1.setChecked(False)
-                self.SwitchButton1.setText("Off")
-                createWarningInfoBar("需要绑定过滤文本功能一起开启，否则纯符号纯数字等文本将会过不了错行检查，一直循环翻译")
-        else :
-            self.SwitchButton1.setText("Off")
+        pass
 
     #设置“文本过滤”选择开关绑定函数
     def onCheckedChanged2(self, isChecked: bool):
-        if isChecked :
-            self.SwitchButton2.setText("On")
-        else :
-            self.SwitchButton2.setText("Off")
-            self.SwitchButton1.setChecked(False)
-            
+        pass
 
     #开始翻译（mtool）按钮绑定函数
     def Start_translation_mtool(self):
@@ -3866,24 +3860,11 @@ class Widget16(QFrame):#Tpp项目界面
 
     #设置“错行检查”选择开关绑定函数
     def onCheckedChanged1(self, isChecked: bool):
-        if isChecked :
-            if self.SwitchButton2.isChecked() == True:
-                self.SwitchButton1.setText("On")
-                createWarningInfoBar("Mtool项目已开启AI回复内容错行检查，将会增加时间与金钱消耗")
-            else :
-                self.SwitchButton1.setChecked(False)
-                self.SwitchButton1.setText("Off")
-                createWarningInfoBar("需要绑定过滤文本功能一起开启，否则纯符号纯数字等文本将会过不了错行检查，一直循环翻译")
-        else :
-            self.SwitchButton1.setText("Off")
+        pass
 
     #设置“文本过滤”选择开关绑定函数
     def onCheckedChanged2(self, isChecked: bool):
-        if isChecked :
-            self.SwitchButton2.setText("On")
-        else :
-            self.SwitchButton2.setText("Off")
-            self.SwitchButton1.setChecked(False)
+        pass
             
 
     #开始翻译（T++）按钮绑定函数
