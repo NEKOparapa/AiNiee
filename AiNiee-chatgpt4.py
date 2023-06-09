@@ -23,7 +23,7 @@ from qfluentwidgets import TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,
 from qfluentwidgets import FluentIcon as FIF#需要安装库pip install "PyQt-Fluent-Widgets[full]" 
 
 
-Software_Version = "AiNiee-chatgpt4.50"  #软件版本号
+Software_Version = "AiNiee-chatgpt4.51"  #软件版本号
 
 OpenAI_model="gpt-3.5-turbo"   #调用api的模型,默认3.5-turbo
 OpenAI_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
@@ -841,14 +841,12 @@ def read_write_config(mode):
         config_dict["API_key_str_sb"] = API_key_str_sb
 
         #Mtool界面
-        config_dict["Prompt_Mtool"] = Prompt_Mtool
         config_dict["Translation_lines_Mtool"] = Translation_lines_Mtool
         config_dict["Filter_text__Switch_Mtool"] = Filter_text__Switch_Mtool
         config_dict["Check_Switch_Mtool"] = Check_Switch_Mtool
         config_dict["Number_of_threads_Mtool"] = Number_of_threads_Mtool
 
         #Tpp界面
-        config_dict["Prompt_Tpp"] = Prompt_Tpp
         config_dict["Translation_lines_Tpp"] = Translation_lines_Tpp
         config_dict["Filter_text__Switch_Tpp"] = Filter_text__Switch_Tpp
         config_dict["Check_Switch_Tpp"] = Check_Switch_Tpp
@@ -929,9 +927,6 @@ def read_write_config(mode):
                 Window.Interface12.TextEdit2.setText(API_key_str_sb)
 
             #Mtool界面
-            if "Prompt_Mtool" in config_dict:
-                Prompt_Mtool = config_dict["Prompt_Mtool"]
-                Window.Interface15.TextEdit.setText(Prompt_Mtool)
             if "Translation_lines_Mtool" in config_dict:
                 Translation_lines_Mtool = config_dict["Translation_lines_Mtool"]
                 Window.Interface15.spinBox1.setValue(Translation_lines_Mtool)
@@ -947,9 +942,6 @@ def read_write_config(mode):
 
 
             #T++界面
-            if "Prompt_Tpp" in config_dict:
-                Prompt_Tpp = config_dict["Prompt_Tpp"]
-                Window.Interface16.TextEdit.setText(Prompt_Tpp)
             if "Translation_lines_Tpp" in config_dict:
                 Translation_lines_Tpp = config_dict["Translation_lines_Tpp"]
                 Window.Interface16.spinBox1.setValue(Translation_lines_Tpp)
@@ -1274,7 +1266,7 @@ def Request_test():
 
 # ——————————————————————————————————————————系统配置函数——————————————————————————————————————————
 def Config():
-    global Input_file,Output_Folder ,Account_Type ,  Prompt, Translation_lines,The_Max_workers
+    global Input_file,Output_Folder ,Account_Type ,  Prompt, Translation_lines,Text_Source_Language,The_Max_workers
     global API_key_list,tokens_limit_per,OpenAI_model,Request_Pricing , Response_Pricing
 
     #—————————————————————————————————————————— 读取账号配置信息——————————————————————————————————————————
@@ -1314,61 +1306,41 @@ def Config():
 
 
     if Running_status == 2:#如果是MTool翻译任务
-        Prompt = Window.Interface15.TextEdit.toPlainText()             #获取提示词
         Translation_lines = Window.Interface15.spinBox1.value()        #获取翻译行数
+        Text_Source_Language =  Window.Interface15.comboBox1.currentText() #获取文本源语言下拉框当前选中选项的值
         The_Max_workers = Window.Interface15.spinBox2.value()         #获取最大线程数
 
     elif Running_status == 3:#如果是T++翻译任务
-        Prompt = Window.Interface16.TextEdit.toPlainText()             #获取提示词
-        Translation_lines = Window.Interface16.spinBox1.value()        #获取翻译行数
-        The_Max_workers = Window.Interface16.spinBox2.value()         #获取最大线程数
+        Translation_lines = Window.Interface16.spinBox1.value()        
+        Text_Source_Language =  Window.Interface16.comboBox1.currentText() 
+        The_Max_workers = Window.Interface16.spinBox2.value()         
 
     elif Running_status == 4:#如果是MTool语义检查任务
-        Prompt = Window.Interface15.TextEdit.toPlainText()             #获取提示词
         Translation_lines = 1
-        The_Max_workers = Window.Interface19.spinBox2.value()         #获取最大线程数
+        Text_Source_Language =  Window.Interface15.comboBox1.currentText() 
+        The_Max_workers = Window.Interface19.spinBox2.value()         
 
     elif Running_status == 5:#如果是T++语义检查任务
-        Prompt = Window.Interface16.TextEdit.toPlainText()             #获取提示词
         Translation_lines = 1
-        The_Max_workers = Window.Interface20.spinBox2.value()         #获取最大线程数
+        Text_Source_Language =  Window.Interface16.comboBox1.currentText() 
+        The_Max_workers = Window.Interface20.spinBox2.value()        
 
-
-
-    ##—————————————————————————————————————————— 输出各种配置信息——————————————————————————————————————————
 
     #检查一下配置信息是否留空
     if Running_status == 2 or Running_status == 4 :
-        if (not API_key_list[0]) or (not Prompt)  or (not Translation_lines) or(not Input_file) or(not Output_Folder)  :
+        if (not API_key_list[0])  or (not Translation_lines) or(not Input_file) or(not Output_Folder)  :
             print("\033[1;31mError:\033[0m 请正确填写配置,不要留空")
             return 0  #返回错误参数
     elif Running_status == 3 or Running_status == 5 :
-        if (not API_key_list[0]) or (not Prompt)  or (not Translation_lines) or(not Input_Folder) or(not Output_Folder)  :  #注意API_key_list要在前面读取，否则会报错
+        if (not API_key_list[0]) or (not Translation_lines) or(not Input_Folder) or(not Output_Folder)  :  #注意API_key_list要在前面读取，否则会报错
             print("\033[1;31mError:\033[0m 请正确填写配置,不要留空")
             return 0  #返回错误参数
-
-
-
-    print("[INFO] 账号类型是:",Account_Type,'\n')
-    print("[INFO] 模型选择是:",Model_Type,'\n') 
-    for i, key in enumerate(API_key_list):
-        print(f"[INFO] 第{i+1}个API KEY是：{key}") 
-    print('\n',"[INFO] 每次翻译文本行数是:",Translation_lines,'\n')
-    print("[INFO] Prompt是:",Prompt,'\n')
-    #如果是MTool任务
-    if Running_status == 2 or Running_status == 4 :
-        print("[INFO] 已选择原文文件",Input_file,'\n')
-    #如果是T++任务
-    elif Running_status == 3 or Running_status == 5 :
-        print("[INFO] 已选择T++项目文件夹",Input_Folder,'\n')
-    print("[INFO] 已选择输出文件夹",Output_Folder,'\n')
 
 
     #写入配置保存文件
     read_write_config("write") 
 
     #—————————————————————————————————————————— 根据配置信息，设定相关系统参数——————————————————————————————————————————
-                         
 
     #设定账号类型与模型类型组合，以及其他参数
     if (Account_Type == "付费账号(48h内)") and (Model_Type == "gpt-3.5-turbo") :
@@ -1428,7 +1400,14 @@ def Config():
     else:
         return 1 #返回错误参数
 
-    print ("[INFO] 当前设置最大线程数是:",The_Max_workers,'\n')
+
+    #根据用户选择的文本源语言，设定新的prompt
+    if Text_Source_Language == "日语":
+        Prompt = Prompt 
+    elif Text_Source_Language == "英语":
+        Prompt = Prompt.replace("Japanese","English")
+    elif Text_Source_Language == "韩语":
+        Prompt = Prompt.replace("Japanese","Korean")
 
 
     #根据API KEY数量，重新设定请求限制
@@ -1448,6 +1427,25 @@ def Config():
     global api_tokens
     api_request = APIRequest(The_RPM_limit)
     api_tokens = TokenBucket((tokens_limit_per * 2), The_TPM_limit)
+
+
+    ##—————————————————————————————————————————— 输出各种配置信息——————————————————————————————————————————
+
+    print("[INFO] 账号类型是:",Account_Type,'\n')
+    print("[INFO] 模型选择是:",Model_Type,'\n') 
+    for i, key in enumerate(API_key_list):
+        print(f"[INFO] 第{i+1}个API KEY是：{key}") 
+    print('\n',"[INFO] 每次翻译文本行数是:",Translation_lines,'\n')
+    print("[INFO] Prompt是:",Prompt,'\n')
+    #如果是MTool任务
+    if Running_status == 2 or Running_status == 4 :
+        print("[INFO] 已选择原文文件",Input_file,'\n')
+    #如果是T++任务
+    elif Running_status == 3 or Running_status == 5 :
+        print("[INFO] 已选择T++项目文件夹",Input_Folder,'\n')
+    print("[INFO] 已选择输出文件夹",Output_Folder,'\n')
+
+    print ("[INFO] 当前设置最大线程数是:",The_Max_workers,'\n')
 
 
 # ——————————————————————————————————————————翻译任务主函数——————————————————————————————————————————
@@ -3312,12 +3310,12 @@ class Widget15(QFrame):#Mtool项目界面
         box1_6.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout1_6 = QHBoxLayout()
 
-        #设置“过滤文本”标签
+        #设置“换行符保留”标签
         labe1_6 = QLabel(flags=Qt.WindowFlags())  
         labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_6.setText("过滤非中日文本")
+        labe1_6.setText("换行符保留")
 
-       #设置“过滤文本”选择开关
+       #设置“换行符保留”选择开关
         self.SwitchButton2 = SwitchButton(parent=self)    
         self.SwitchButton2.checkedChanged.connect(self.onCheckedChanged2)
 
@@ -3426,24 +3424,20 @@ class Widget15(QFrame):#Mtool项目界面
         layout4 = QHBoxLayout()
 
 
-        #设置“Prompt”标签
+        #设置“文本源语言”标签
         label3 = QLabel(parent=self, flags=Qt.WindowFlags())  
         label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label3.setText("Prompt")
+        label3.setText("文本源语言")
 
-        #设置微调距离用的空白标签
-        labelx = QLabel()  
-        labelx.setText("                ")
-
-
-        #设置“Prompt”的输入框
-        self.TextEdit = TextEdit(self)
-        self.TextEdit.setText(Prompt)
+        #设置“文本源语言”下拉选择框
+        self.comboBox1 = ComboBox() #以demo为父类
+        self.comboBox1.addItems(['日语', '英语', '韩语'])
+        self.comboBox1.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox1.setFixedSize(127, 30)
 
 
         layout4.addWidget(label3)
-        layout4.addWidget(labelx)
-        layout4.addWidget(self.TextEdit)
+        layout4.addWidget(self.comboBox1)
         box4.setLayout(layout4)
 
 
@@ -3518,10 +3512,10 @@ class Widget15(QFrame):#Mtool项目界面
         container.addWidget(box1)
         container.addWidget(box1_5)
         container.addWidget(box1_6)
+        container.addWidget(box4)
         container.addWidget(box1_7)
         container.addWidget(box2)
         container.addWidget(box3)
-        container.addWidget(box4)
         container.addWidget(box6)
         container.addWidget(box5)
         container.addStretch(1)  # 添加伸缩项
@@ -3656,12 +3650,12 @@ class Widget16(QFrame):#Tpp项目界面
         box1_6.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout1_6 = QHBoxLayout()
 
-        #设置“文本过滤”标签
+        #设置“换行符保留”标签
         labe1_6 = QLabel(flags=Qt.WindowFlags())  
         labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_6.setText("过滤非中日文本")
+        labe1_6.setText("换行符保留")
 
-       #设置“文本过滤”选择开关
+       #设置“换行符保留”选择开关
         self.SwitchButton2 = SwitchButton(parent=self)    
         self.SwitchButton2.checkedChanged.connect(self.onCheckedChanged2)
 
@@ -3671,6 +3665,8 @@ class Widget16(QFrame):#Tpp项目界面
         layout1_6.addStretch(1)  # 添加伸缩项
         layout1_6.addWidget(self.SwitchButton2)
         box1_6.setLayout(layout1_6)
+
+
 
         # -----创建第1.7个组(后来补的)，添加多个组件-----
         box1_7 = QGroupBox()
@@ -3768,24 +3764,20 @@ class Widget16(QFrame):#Tpp项目界面
         layout4 = QHBoxLayout()
 
 
-        #设置“Prompt”标签
+        #设置“文本源语言”标签
         label3 = QLabel(parent=self, flags=Qt.WindowFlags())  
         label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label3.setText("Prompt")
+        label3.setText("文本源语言")
 
-        #设置微调距离用的空白标签
-        labelx = QLabel()  
-        labelx.setText("                ")
-
-
-        #设置“Prompt”的输入框
-        self.TextEdit = TextEdit(self)
-        self.TextEdit.setText(Prompt)
+        #设置“文本源语言”下拉选择框
+        self.comboBox1 = ComboBox() #以demo为父类
+        self.comboBox1.addItems(['日语', '英语', '韩语'])
+        self.comboBox1.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox1.setFixedSize(127, 30)
 
 
         layout4.addWidget(label3)
-        layout4.addWidget(labelx)
-        layout4.addWidget(self.TextEdit)
+        layout4.addWidget(self.comboBox1)
         box4.setLayout(layout4)
 
 
@@ -3859,10 +3851,10 @@ class Widget16(QFrame):#Tpp项目界面
         container.addWidget(box1)
         container.addWidget(box1_5)
         container.addWidget(box1_6)
+        container.addWidget(box4)
         container.addWidget(box1_7)
         container.addWidget(box2)
         container.addWidget(box3)
-        container.addWidget(box4)
         container.addWidget(box6)
         container.addWidget(box5)
         container.addStretch(1)  # 添加伸缩项
