@@ -98,7 +98,6 @@ The output format is as follows:
 }
 '''      #系统提示词
 
-
 #日语原文示例
 original_exmaple_jp = '''{
 "0":"a=\"　　ぞ…ゾンビ系…。",
@@ -107,27 +106,8 @@ original_exmaple_jp = '''{
 "3":"&f.Item[f.Select_Item][1]+'　個'",
 "4":"\n}",
 "5": "さて！",
-"6": "さっそくオジサンのおちんぽをキツぅくいじめちゃおっかな！"
-}'''
-
-#英语原文示例
-original_exmaple_en = '''{
-"0":"a=\"　　It's so scary….",
-"1":"Agility increases.　　　　　　　\r\nEffect: Passive",
-"2":"【Bakery】Business hours 8:00-18:00",
-"3":"&f.Item[f.Select_Item][1]",
-"4":"\n}",
-"5": "Well then!"
-}'''
-
-#韩语原文示例
-original_exmaple_kr = '''{
-"0":"a=\"　　정말 무서워요….",
-"1":"민첩성이 상승한다.　　　　　　　\r\n효과：패시브",
-"2":"【빵집】영업 시간 8:00~18:00",
-"3":"&f.Item[f.Select_Item][1]",
-"4":"\n}",
-"5": "그래서!"
+"6": "さっそくオジサンのおちんぽをキツぅくいじめちゃおっかな！",
+"7": "若くて♫⚡綺麗で♫⚡エロくて"
 }'''
 
 #日语翻中文示例
@@ -139,6 +119,29 @@ translation_example_zh ='''{
 "4":"\n}",
 "5": "那么！",
 "6": "现在就来折磨一下大叔的小鸡鸡吧！"
+"7": "年轻♫⚡漂亮♫⚡色情"
+}'''
+
+#英语原文示例
+original_exmaple_en = '''{
+"0":"a=\"　　It's so scary….",
+"1":"Agility increases.　　　　　　　\r\nEffect: Passive",
+"2":"【Bakery】Business hours 8:00-18:00",
+"3":"&f.Item[f.Select_Item][1]",
+"4":"\n}",
+"5": "Well then!"
+"6": "Young ♫⚡beautiful ♫⚡sexy."
+}'''
+
+#韩语原文示例
+original_exmaple_kr = '''{
+"0":"a=\"　　정말 무서워요….",
+"1":"민첩성이 상승한다.　　　　　　　\r\n효과：패시브",
+"2":"【빵집】영업 시간 8:00~18:00",
+"3":"&f.Item[f.Select_Item][1]",
+"4":"\n}",
+"5": "그래서!"
+"6": "젊고♫⚡아름답고♫⚡섹시하고"
 }'''
 
 #英韩翻中文示例
@@ -149,7 +152,13 @@ translation_example_zh2 ='''{
 "3":"&f.Item[f.Select_Item][1]",
 "4":"\n}",
 "5": "那么！"
+"6": "年轻♫⚡漂亮♫⚡色情"
 }'''
+
+#最终存储原文示例与翻译示例
+original_exmaple = {}
+translation_example = {}
+
   
 Input_file = ""  # 存储目标文件位置
 Input_Folder = ""   # 存储Tpp项目位置
@@ -397,6 +406,16 @@ def remove_non_cjk(dic):
         if not pattern.search(str(value)):#加个str防止整数型的value报错
             del dic[key]
 
+#将字典中的int类型的key与value转换为str类型
+def convert_int_to_str(input_dict):
+    output_dict = {}
+    for key, value in input_dict.items():
+        if isinstance(value, int):
+            output_dict[str(key)] = str(value)
+        else:
+            output_dict[key] = value
+    return output_dict
+
 #检查字典中的每个value，出现null或者空字符串或者纯符号的value，将其替换为指定字符串
 def check_dict_values(dict_obj):
     for key in dict_obj:
@@ -419,12 +438,16 @@ def replace_special_characters(dict, mode):
     new_dict = {}
     if mode == "替换":
         for key, value in dict.items():
-            new_value = value.replace("\n", "⚡").replace("\r", "♫")
-            new_dict[key] = new_value
+            #如果value是字符串变量
+            if isinstance(value, str):
+                new_value = value.replace("\n", "⚡").replace("\r", "♫")
+                new_dict[key] = new_value
     elif mode == "还原":
         for key, value in dict.items():
-            new_value = value.replace("⚡", "\n").replace("♫", "\r")
-            new_dict[key] = new_value
+            #如果value是字符串变量
+            if isinstance(value, str):
+                new_value = value.replace("⚡", "\n").replace("♫", "\r")
+                new_dict[key] = new_value
     else:
         print("请输入正确的mode参数（替换或还原）")
     return new_dict
@@ -452,8 +475,8 @@ def replace_strings(dic):
         for key_b, value_b in dictionary.items():
             #if key_b in key_a:
                 #key_a = key_a.replace(key_b, value_b)
-            if key_b in value_a:
-                value_a = value_a.replace(key_b, value_b)
+            if key_b in str(value_a): #加个str，防止整数型的value报错
+                value_a = value_a.replace(key_b, str(value_a))
         temp_dict[key_a] = value_a
 
     #创建存储替换后文本的文件夹
@@ -1275,7 +1298,7 @@ def Request_test():
 # ——————————————————————————————————————————系统配置函数——————————————————————————————————————————
 def Config():
     global Input_file,Output_Folder ,Account_Type ,  Prompt, Translation_lines,Text_Source_Language,The_Max_workers
-    global API_key_list,tokens_limit_per,OpenAI_model,Request_Pricing , Response_Pricing
+    global API_key_list,tokens_limit_per,OpenAI_model,Request_Pricing , Response_Pricing,original_exmaple,translation_example
 
     #—————————————————————————————————————————— 读取账号配置信息——————————————————————————————————————————
     #如果启用官方平台，获取OpenAI的界面配置信息
@@ -1411,12 +1434,17 @@ def Config():
 
     #根据用户选择的文本源语言，设定新的prompt
     if Text_Source_Language == "日语":
-        Prompt = Prompt 
+        Prompt = Prompt
+        original_exmaple = original_exmaple_jp
+        translation_example = translation_example_zh
     elif Text_Source_Language == "英语":
         Prompt = Prompt.replace("Japanese","English")
+        original_exmaple = original_exmaple_en
+        translation_example = translation_example_zh2
     elif Text_Source_Language == "韩语":
         Prompt = Prompt.replace("Japanese","Korean")
-
+        original_exmaple = original_exmaple_kr
+        translation_example = translation_example_zh2
 
     #根据API KEY数量，重新设定请求限制
     if len(API_key_list) != 1:
@@ -1439,12 +1467,14 @@ def Config():
 
     ##—————————————————————————————————————————— 输出各种配置信息——————————————————————————————————————————
 
-    print("[INFO] 账号类型是:",Account_Type,'\n')
+    print('\n',"[INFO] 账号类型是:",Account_Type,'\n')
     print("[INFO] 模型选择是:",Model_Type,'\n') 
     for i, key in enumerate(API_key_list):
         print(f"[INFO] 第{i+1}个API KEY是：{key}") 
     print('\n',"[INFO] 每次翻译文本行数是:",Translation_lines,'\n')
     print("[INFO] Prompt是:",Prompt,'\n')
+    print("[INFO] 原文示例:",original_exmaple,'\n')
+    print("[INFO] 译文示例:",translation_example,'\n')
     #如果是MTool任务
     if Running_status == 2 or Running_status == 4 :
         print("[INFO] 已选择原文文件",Input_file,'\n')
@@ -1459,7 +1489,7 @@ def Config():
 # ——————————————————————————————————————————翻译任务主函数——————————————————————————————————————————
 def Main():
     global Input_file,Output_Folder,Automatic_Backup_folder ,Translation_lines,Running_status,The_Max_workers,DEBUG_folder,Catalog_Dictionary
-    global ValueList_len ,   Translation_Status_List , money_used,source,source_mid,result_dict,Translation_Progress,OpenAI_temperature
+    global ValueList_len ,Translation_Status_List , money_used,source,source_mid,result_dict,Translation_Progress,OpenAI_temperature,Text_Source_Language
     # ——————————————————————————————————————————清空进度,花销与初始化变量存储的内容—————————————————————————————————————————
 
     money_used = 0
@@ -1559,13 +1589,14 @@ def Main():
                 wb.save(output_file_path)  # 保存工作簿
                 wb.close()  # 关闭工作簿
 
-    
+    source = convert_int_to_str(source) #将原文中的整数型数字转换为字符串型数字，因为后续的翻译会出现问题
     source_mid = source.copy() #将原文复制一份到source_mid变量里，用于后续的修改
 
-     #只有进行Mtool时且开启了文本过滤的开关，或者进行Tpp时且开启了文本过滤的开关，才会进行文本过滤
-    if ((Running_status == 2 and Window.Interface15.SwitchButton2.isChecked()) or (Running_status == 3 and Window.Interface16.SwitchButton2.isChecked())) :
+    #如果正在翻译日语或者韩语时，会进行文本过滤
+    if Text_Source_Language == "日语" or Text_Source_Language == "韩语" :
         remove_non_cjk(source)
         remove_non_cjk(source_mid)
+        print("[INFO] 你的原文已经过滤了非中日韩字符")
 
 
     ValueList=list(source_mid.values())         #通过字典的valuas方法，获取所有的value，转换为list变量
@@ -1583,7 +1614,9 @@ def Main():
     if Window.Interface21.checkBox1.isChecked() :
         source_mid = replace_strings(source_mid)
 
-    source_mid = replace_special_characters(source_mid, "替换") #替换特殊字符
+    #如果开启了换行符替换翻译功能，则进行换行符替换成特殊字符
+    if ((Running_status == 2 and Window.Interface15.SwitchButton2.isChecked()) or (Running_status == 3 and Window.Interface16.SwitchButton2.isChecked())) :
+        source_mid = replace_special_characters(source_mid, "替换") #替换特殊字符
 
     result_dict = source_mid.copy() # 先存储未翻译的译文，千万注意不要写等号，不然两个变量会指向同一个内存地址，导致修改一个变量，另一个变量也会被修改
     Translation_Status_List =  [0] * ValueList_len   #创建文本翻译状态列表，用于并发时获取每个文本的翻译状态
@@ -1699,6 +1732,9 @@ def Main():
     for i, key in enumerate(source.keys()):     # 使用enumerate()遍历source字典的键，并将其替换到result_dict中
         new_result_dict[key] = result_dict[i]   #在新字典中创建新key的同时把result_dict[i]的值赋予到key对应的值上
 
+    #如果开启了换行符替换翻译功能，则将翻译结果中的特殊字符替换为\n
+    if ((Running_status == 2 and Window.Interface15.SwitchButton2.isChecked()) or (Running_status == 3 and Window.Interface16.SwitchButton2.isChecked())) :
+        new_result_dict = replace_special_characters(new_result_dict, "还原") #还原特殊字符
 
     # 将字典存储的译文存储到TrsData.json文件------------------------------------
     if Running_status == 2 :
@@ -1804,25 +1840,11 @@ def Make_request():
         System_prompt ={"role": "system","content": Prompt }
         messages.append(System_prompt)
 
-        #构建原文与译文示例,根据Prompt中的语言类型，选择不同的示例
-        if "Japanese" in Prompt:#如果Prompt含有"Japanese"字符串
-            #print("[DEBUG] Prompt含有'Japanese'字符串")
-            the_original_exmaple =  {"role": "user","content":original_exmaple_jp }
-            the_translation_example = {"role": "assistant", "content":translation_example_zh }
-            messages.append(the_original_exmaple)
-            messages.append(the_translation_example)
-        elif "English" in Prompt:#如果Prompt含有"English"字符串
-            #print("[DEBUG] Prompt含有'English'字符串")
-            the_original_exmaple =  {"role": "user","content":original_exmaple_en }
-            the_translation_example = {"role": "assistant", "content":translation_example_zh2 }
-            messages.append(the_original_exmaple)
-            messages.append(the_translation_example)
-        elif "Korean" in Prompt:#如果Prompt含有"Korean"字符串
-            #print("[DEBUG] Prompt含有'Korean'字符串")
-            the_original_exmaple =  {"role": "user","content":original_exmaple_kr }
-            the_translation_example = {"role": "assistant", "content":translation_example_zh2 }
-            messages.append(the_original_exmaple)
-            messages.append(the_translation_example)
+        #构建原文与译文示例
+        the_original_exmaple =  {"role": "user","content":original_exmaple }
+        the_translation_example = {"role": "assistant", "content":translation_example }
+        messages.append(the_original_exmaple)
+        messages.append(the_translation_example)
 
 
         #如果开启了译时提示功能，则添加新的原文与译文示例
@@ -1846,7 +1868,7 @@ def Make_request():
         #print("[DEBUG]  new_translation_example是",new_translation_example['content'],'\n','\n')
         #print("[DEBUG]  Original_text是",Original_text['content'],'\n','\n')
 
-        tokens_consume = num_tokens_from_messages(messages, OpenAI_model) + 150  #计算该信息在openai那里的tokens花费，300是提示词花费的tokens数
+        tokens_consume = num_tokens_from_messages(messages, OpenAI_model) + 330  #计算该信息在openai那里的tokens花费，660提示词花费的tokens数
 
         # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
         while 1 :
@@ -1910,7 +1932,7 @@ def Make_request():
                 print("[INFO] 已进行请求的次数：",Number_of_requested)
                 #print("[INFO] 花费tokens数预计值是：",tokens_consume * 2) 
                 #print("[INFO] 桶中剩余tokens数是：", api_tokens.tokens // 1)
-                print("[INFO] 当前设定的系统提示词：\n", System_prompt )
+                print("[INFO] 当前设定的系统提示词：\n", System_prompt['content'] )
                 print("[INFO] 当前发送的原文文本：\n", subset_str )
                 #print("[INFO] 当前发送的messages：\n", messages,'\n','\n' )
 
@@ -2206,7 +2228,6 @@ def Make_request():
                     lock2.acquire()  # 获取锁
                     # 用字典类型存储每次请求的译文
                     new_response_dict =json.loads(new_response )
-                    new_response_dict = replace_special_characters(new_response_dict, "还原") #还原特殊字符
                     for key, value in new_response_dict.items():# 遍历new_response_dict中的键值对
                         # 判断key是否在result_dict中出现过，注意两个字典的key变量类型是不同的
                         if int(key) in result_dict:
@@ -2223,8 +2244,6 @@ def Make_request():
                     print(f"\n--------------------------------------------------------------------------------------\n")
 
                     break
-
-
 
    #子线程抛出错误信息
     except Exception as e:
@@ -3325,7 +3344,6 @@ class Widget15(QFrame):#Mtool项目界面
 
        #设置“换行符保留”选择开关
         self.SwitchButton2 = SwitchButton(parent=self)    
-        self.SwitchButton2.checkedChanged.connect(self.onCheckedChanged2)
 
 
 
@@ -3442,7 +3460,8 @@ class Widget15(QFrame):#Mtool项目界面
         self.comboBox1.addItems(['日语', '英语', '韩语'])
         self.comboBox1.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox1.setFixedSize(127, 30)
-
+        #当下拉框的选中项发生改变时，调用self.changeLanguage函数
+        self.comboBox1.currentIndexChanged.connect(self.changeLanguage) #下拉框绑定槽函数
 
         layout4.addWidget(label3)
         layout4.addWidget(self.comboBox1)
@@ -3535,11 +3554,20 @@ class Widget15(QFrame):#Mtool项目界面
 
     #设置“错行检查”选择开关绑定函数
     def onCheckedChanged1(self, isChecked: bool):
-        pass
+        if isChecked:
+            if self.comboBox1.currentText()  == "英语":
+                 #设置“错行检查”选择开关为关闭状态
+                 self.SwitchButton1.setChecked(False)
+                 print("\033[1;33mWarning:\033[0m 英语文本不支持错行检查")
+                 createWarningInfoBar("英语文本不支持错行检查")
 
-    #设置“文本过滤”选择开关绑定函数
-    def onCheckedChanged2(self, isChecked: bool):
-        pass
+    #设置“翻译模式”选择绑定函数
+    def changeLanguage(self):
+        if self.comboBox1.currentText()  == "英语":
+            #设置“错行检查”选择开关为关闭状态
+            self.SwitchButton1.setChecked(False)
+            print("\033[1;33mWarning:\033[0m 英语文本不支持错行检查")
+            createWarningInfoBar("英语文本不支持错行检查")
 
     #开始翻译（mtool）按钮绑定函数
     def Start_translation_mtool(self):
@@ -3651,7 +3679,6 @@ class Widget16(QFrame):#Tpp项目界面
 
        #设置“换行符保留”选择开关
         self.SwitchButton2 = SwitchButton(parent=self)    
-        self.SwitchButton2.checkedChanged.connect(self.onCheckedChanged2)
 
 
 
@@ -3768,7 +3795,8 @@ class Widget16(QFrame):#Tpp项目界面
         self.comboBox1.addItems(['日语', '英语', '韩语'])
         self.comboBox1.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox1.setFixedSize(127, 30)
-
+        #当下拉框的选中项发生改变时，调用self.changeLanguage函数
+        self.comboBox1.currentIndexChanged.connect(self.changeLanguage) #下拉框绑定槽函数
 
         layout4.addWidget(label3)
         layout4.addWidget(self.comboBox1)
@@ -3860,12 +3888,20 @@ class Widget16(QFrame):#Tpp项目界面
 
     #设置“错行检查”选择开关绑定函数
     def onCheckedChanged1(self, isChecked: bool):
-        pass
+        if isChecked:
+            if self.comboBox1.currentText()  == "英语":
+                 #设置“错行检查”选择开关为关闭状态
+                 self.SwitchButton1.setChecked(False)
+                 print("\033[1;33mWarning:\033[0m 英语文本不支持错行检查")
+                 createWarningInfoBar("英语文本不支持错行检查")
 
-    #设置“文本过滤”选择开关绑定函数
-    def onCheckedChanged2(self, isChecked: bool):
-        pass
-            
+    #设置“翻译模式”选择绑定函数
+    def changeLanguage(self):
+        if self.comboBox1.currentText()  == "英语":
+            #设置“错行检查”选择开关为关闭状态
+            self.SwitchButton1.setChecked(False)
+            print("\033[1;33mWarning:\033[0m 英语文本不支持错行检查")
+            createWarningInfoBar("英语文本不支持错行检查")
 
     #开始翻译（T++）按钮绑定函数
     def Start_translation_Tpp(self):
@@ -5008,11 +5044,11 @@ class Widget21(QFrame):#用户字典界面
 
 
         # 在表格最后一行第一列添加"添加行"按钮
-        button = PushButton('Add Row')
+        button = PushButton('添新行')
         self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
         button.clicked.connect(self.add_row)
         # 在表格最后一行第二列添加"删除空白行"按钮
-        button = PushButton('Delete Blank Row')
+        button = PushButton('删空行')
         self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
         button.clicked.connect(self.delete_blank_row)
 
