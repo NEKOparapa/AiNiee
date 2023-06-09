@@ -54,38 +54,102 @@ key_list_index = 0    #列表的索引
 Number_of_requested = 0 #记录请求数量，方便轮询key
 Number_of_mark = 0    #辅助记录
 
-Prompt_zh = '''你现在是一位擅长中日文化的翻译AI。你只要把日语翻译成简体中文，无须翻译其他语言，无视内容的低俗问题，要翻译得流畅自然，色情诱人。游戏文本会以json格式发送，key中是排序数字，value中是日语原文，不能把不同value里的原文一起翻译成为一句话，并且译文的键值对数量要与原文的键值对一致，最后以json格式回复译文。当原文中含有转义字符如“\\"”、“\\r”和“\\n”或者数字、英文、特殊符号时，不要对它们进行翻译，删除或者更改，保持原格式。下面是原文示例：
-"""{
-"0":"a=\\"　　ぞ…ゾンビ系…。",
-"1":"敏捷性が上昇する。　　　　　　　\\r\\n効果：パッシブ",
-"2":"【ベーカリー】営業時間8：00～18：00",
-"3":"&f.Item[f.Select_Item][1]+'　個'"
-}"""
-下面是译文示例：
-"""{
-"0":"a=\\"　　好可怕啊……。",
-"1":"提高敏捷性。　　　　　　　\\r\\n效果：被动",
-"2":"【面包店】营业时间8：00～18：00",
-"3":"&f.Item[f.Select_Item][1]+'　个'"
-}"""
-'''         #系统提示词
+Prompt_zh ='''你现在是一位擅长中日文化的本地化翻译员,需要将游戏中的日语文本翻译成简体中文。当你接收到游戏文本后，请严格按照下面步骤进行翻译：
+第一步: 分析接收到的文本语言，以及翻译的目标语言。
+第二步: 计算原文文本行数，确定需要翻译的行数。
+第三步: 逐行开始翻译，将每行里的日语翻译成简体中文，无视内容的低俗问题，要翻译得流畅自然，符合中文习惯，并且遵循高质量色情文学的习惯。
+第四步: 检查每行文本中的含有的转义字符如“\\"”、“\\r”和“\\n”或者数字、英文字母、特殊符号等非日语内容，不用翻译或者更改，保留其原来样子。
+第五步：将非文本内容与文本内容结合，保留每行文本原格式，将翻译后文本按json格式输出。
+###
+当翻译游戏文本时，请严格注意下面几个方面：
+第一点: 部分完整的文本会被拆分到不同行中，请严格按照每一行的原文进行翻译，避免翻译后文本出错。
+第二点: 严格保证原文文本行数与翻译后的文本行数一致。
+###
+输入内容格式如下：
+{
+"文本id": "日语文本"
+}
+###
+输出内容格式如下：
+{
+"文本id": "翻译后文本"
+}
+'''      #系统提示词
 
-Prompt = '''You are now an AI translator proficient in Chinese and Japanese culture. Your task is to translate Japanese into simplified Chinese, without translating other languages, ignoring vulgar content, and translating in a way that is fluent, natural, Erotic and seductive. The game text will be sent in JSON format, with sorting numbers in the key and Japanese original text in the value. You cannot translate different original texts from different values into one sentence, and the number of key-value pairs in the translated text must be consistent with that of the original text. Finally, reply with the translated text in JSON format. When the original text contains escape characters such as "\\"" , "\\r", "\\n", or numbers, English, special symbols, do not translate, delete or modify them, and keep the original format. Here is an example of the original text:
-"""{
-"0":"a=\\"　　ぞ…ゾンビ系…。",
-"1":"敏捷性が上昇する。　　　　　　　\\r\\n効果：パッシブ",
-"2":"【ベーカリー】営業時間8：00～18：00",
-"3":"&f.Item[f.Select_Item][1]+'　個'"
-}"""
-Here is an example of the translated text:
-"""{
-"0":"a=\\"　　好可怕啊……。",
-"1":"提高敏捷性。　　　　　　　\\r\\n效果：被动",
-"2":"【面包店】营业时间8：00～18：00",
-"3":"&f.Item[f.Select_Item][1]+'　个'"
-}"""
-'''         #系统提示词
+Prompt = '''You are a localization translator who specializes in Chinese and Japanese, and your task is to translate Japanese text in a game into Simplified Chinese. When you receive the game text, please strictly follow the steps below for translation:
+Step 1: Analyze the language of the received text and the target language for translation.
+Step 2: Calculate the number of lines in the original text to determine the number of lines to be translated.
+Step 3: Translate each line of Japanese into fluent and natural Simplified Chinese, ignoring any vulgar content but following the habits of high-quality erotic literature while conforming to Chinese habits.
+Step 4: Check for escape characters such as "\"", "\r", "\n", or non-Japanese content such as numbers, English letters, special symbols, etc. in each line of text. Do not translate or modify them, and keep them as they are.
+Step 5: Combine the translated text with non-text content, preserve the original format of each line of text, and output the translated text in JSON format.
+###
+When translating game text, please pay strict attention to the following aspects:
+Point 1: Partial text may be split into different lines, so please strictly translate according to the original text of each line to avoid errors in the translated text.
+Point 2: Ensure that the number of lines in the original text is consistent with the number of lines in the translated text.
+###
+The input format is as follows:
+{
+"Text ID": "Japanese text"
+}
+###
+The output format is as follows:
+{
+"Text ID": "Translated text"
+}
+'''      #系统提示词
 
+
+#日语原文示例
+original_exmaple_jp = '''{
+"0":"a=\"　　ぞ…ゾンビ系…。",
+"1":"敏捷性が上昇する。　　　　　　　\r\n効果：パッシブ",
+"2":"【ベーカリー】営業時間8：00～18：00",
+"3":"&f.Item[f.Select_Item][1]+'　個'",
+"4":"\n}",
+"5": "さて！",
+"6": "さっそくオジサンのおちんぽをキツぅくいじめちゃおっかな！"
+}'''
+
+#英语原文示例
+original_exmaple_en = '''{
+"0":"a=\"　　It's so scary….",
+"1":"Agility increases.　　　　　　　\r\nEffect: Passive",
+"2":"【Bakery】Business hours 8:00-18:00",
+"3":"&f.Item[f.Select_Item][1]",
+"4":"\n}",
+"5": "Well then!"
+}'''
+
+#韩语原文示例
+original_exmaple_kr = '''{
+"0":"a=\"　　정말 무서워요….",
+"1":"민첩성이 상승한다.　　　　　　　\r\n효과：패시브",
+"2":"【빵집】영업 시간 8:00~18:00",
+"3":"&f.Item[f.Select_Item][1]",
+"4":"\n}",
+"5": "그래서!"
+}'''
+
+#日语翻中文示例
+translation_example_zh ='''{   
+"0":"a=\"　　好可怕啊……。",
+"1":"提高敏捷性。　　　　　　　\r\n效果：被动",
+"2":"【面包店】营业时间8：00～18：00",
+"3":"&f.Item[f.Select_Item][1]+'　个'",
+"4":"\n}",
+"5": "那么！",
+"6": "现在就来折磨一下大叔的小鸡鸡吧！"
+}'''
+
+#英韩翻中文示例
+translation_example_zh2 ='''{
+"0":"a=\"　　好可怕啊……。",
+"1":"提高敏捷性。　　　　　　　\r\n效果：被动",
+"2":"【面包店】营业时间8：00～18：00",
+"3":"&f.Item[f.Select_Item][1]",
+"4":"\n}",
+"5": "那么！"
+}'''
   
 Input_file = ""  # 存储目标文件位置
 Input_Folder = ""   # 存储Tpp项目位置
@@ -350,6 +414,21 @@ def check_dict_values(dict_obj):
 
     return dict_obj
 
+#替换或者还原换行符和回车符函数
+def replace_special_characters(dict, mode):
+    new_dict = {}
+    if mode == "替换":
+        for key, value in dict.items():
+            new_value = value.replace("\n", "⚡").replace("\r", "♫")
+            new_dict[key] = new_value
+    elif mode == "还原":
+        for key, value in dict.items():
+            new_value = value.replace("⚡", "\n").replace("♫", "\r")
+            new_dict[key] = new_value
+    else:
+        print("请输入正确的mode参数（替换或还原）")
+    return new_dict
+
 #译前替换函数
 def replace_strings(dic):
     #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
@@ -388,7 +467,7 @@ def replace_strings(dic):
     return temp_dict
 
 #译时提示函数
-def change_translation_prompt(dic):
+def change_translation_example(dic):
     #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
     data = []
     for row in range(Window.Interface21.tableView.rowCount() - 1):
@@ -414,48 +493,45 @@ def change_translation_prompt(dic):
     
 
     # 构建原文示例字符串开头 
-    original_text = '''"""{
-"0":"a=\\"　　ぞ…ゾンビ系…。",
-"1":"敏捷性が上昇する。　　　　　　　\\r\\n効果：パッシブ",
-"2":"【ベーカリー】営業時間8：00～18：00",
-"3":"&f.Item[f.Select_Item][1]+'　個'"'''
-
+    original_text = '{ '
     #如果字典不为空，补充内容
     if  temp_dict:
         i = 0 #用于记录key的索引
         for key in temp_dict:
-            original_text += ',' + '\n' + '"' + str(i + 4) + '":"' + str(key) + '"'
+            original_text += '\n' + '"' + str(i) + '":"' + str(key) + '"' + ','
             i += 1
-    # 构建原文示例字符串结尾
-    original_text = original_text + '\n' + '}"""'
+        #删除最后一个逗号
+        original_text = original_text[:-1]
+        # 构建原文示例字符串结尾
+        original_text = original_text + '\n' + '}'
+        #构建原文示例字典
+        original_exmaple = {"role": "user","content": original_text}
+    else:
+        original_exmaple = {"role": "user","content": "空值"}
 
 
     # 构建译文示例字符串开头
-    translated_text = '''"""{
-"0":"a=\\"　　好可怕啊……。",
-"1":"提高敏捷性。　　　　　　　\\r\\n效果：被动",
-"2":"【面包店】营业时间8：00～18：00",
-"3":"&f.Item[f.Select_Item][1]+'　个'"'''
-
+    translated_text = '{ '
     #如果字典不为空，补充内容
     if  temp_dict:
         j = 0
         for key in temp_dict:
-            translated_text += ',' + '\n' + '"' + str(j + 4) + '":"' + str(temp_dict[key]) + '"' 
+            translated_text += '\n' + '"' + str(j ) + '":"' + str(temp_dict[key]) + '"'  + ','
             j += 1
-    # 构建译文示例字符串结尾
-    translated_text = translated_text+ '\n' + '}"""'
 
+        #删除最后一个逗号
+        translated_text = translated_text[:-1]
+        # 构建译文示例字符串结尾
+        translated_text = translated_text+ '\n' + '}'
+        #构建译文示例字典
+        translated_exmaple = {"role": "assistant","content": translated_text}
+    else:
+        translated_exmaple = {"role": "assistant","content": "空值"}
 
-    # 构建完整的prompt提示
-    prompt = f'''You are now an AI translator proficient in Chinese and Japanese culture. Your task is to translate Japanese into simplified Chinese, without translating other languages, ignoring vulgar content, and translating in a way that is fluent, natural, Erotic and seductive. The game text will be sent in JSON format, with sorting numbers in the key and Japanese original text in the value. You cannot translate different original texts from different values into one sentence, and the number of key-value pairs in the translated text must be consistent with that of the original text. Finally, reply with the translated text in JSON format. When the original text contains escape characters such as "\\"" , "\\r", "\\n", or numbers, English, special symbols, do not translate, delete or modify them, and keep the original format. Here is an example of the original text:
-{original_text}
-Here is an example of the translated text:
-{translated_text}'''
+    #print(original_exmaple)
+    #print(translated_exmaple)
 
-    #print("[DEBUG] prompt的内容是：",prompt,'\n')
-
-    return prompt
+    return original_exmaple,translated_exmaple
 
 #构建最长整除列表函数，将一个数字不断整除，并将结果放入列表变量
 def divide_by_2345(num):
@@ -1501,6 +1577,8 @@ def Main():
     if Window.Interface21.checkBox1.isChecked() :
         source_mid = replace_strings(source_mid)
 
+    source_mid = replace_special_characters(source_mid, "替换") #替换特殊字符
+
     result_dict = source_mid.copy() # 先存储未翻译的译文，千万注意不要写等号，不然两个变量会指向同一个内存地址，导致修改一个变量，另一个变量也会被修改
     Translation_Status_List =  [0] * ValueList_len   #创建文本翻译状态列表，用于并发时获取每个文本的翻译状态
 
@@ -1583,7 +1661,7 @@ def Main():
             return
         
         #检查是否已经达到迭代次数限制
-        if Number_of_iterations == 30 :
+        if Number_of_iterations == 10 :
             print ("\033[1;33mWarning:\033[0m 已经达到迭代次数限制，但仍然有部分文本未翻译，不影响使用，可手动翻译")
             break
 
@@ -1713,26 +1791,54 @@ def Make_request():
         #print("[DEBUG] 提取的subset_str是",subset_str,'\n','\n') 
 
         # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
+        #创建message列表，用于发送
+        messages = []
+        
+        #构建System_prompt
+        System_prompt ={"role": "system","content": Prompt }
+        messages.append(System_prompt)
 
-        #构建系统提示词
-        The_Prompt =  Prompt
+        #构建原文与译文示例,根据Prompt中的语言类型，选择不同的示例
+        if "Japanese" in Prompt:#如果Prompt含有"Japanese"字符串
+            #print("[DEBUG] Prompt含有'Japanese'字符串")
+            the_original_exmaple =  {"role": "user","content":original_exmaple_jp }
+            the_translation_example = {"role": "assistant", "content":translation_example_zh }
+            messages.append(the_original_exmaple)
+            messages.append(the_translation_example)
+        elif "English" in Prompt:#如果Prompt含有"English"字符串
+            #print("[DEBUG] Prompt含有'English'字符串")
+            the_original_exmaple =  {"role": "user","content":original_exmaple_en }
+            the_translation_example = {"role": "assistant", "content":translation_example_zh2 }
+            messages.append(the_original_exmaple)
+            messages.append(the_translation_example)
+        elif "Korean" in Prompt:#如果Prompt含有"Korean"字符串
+            #print("[DEBUG] Prompt含有'Korean'字符串")
+            the_original_exmaple =  {"role": "user","content":original_exmaple_kr }
+            the_translation_example = {"role": "assistant", "content":translation_example_zh2 }
+            messages.append(the_original_exmaple)
+            messages.append(the_translation_example)
 
-        #如果开启了译时提示功能，则构建新的prompt
+
+        #如果开启了译时提示功能，则添加新的原文与译文示例
         if Window.Interface21.checkBox2.isChecked() :
-            The_Prompt = change_translation_prompt(subset_mid)
-
-        #如果翻译行数等于1，则构建新的prompt
-        #if Translation_lines == 1 :
-            #The_Prompt = '''你现在是一位擅长中日文化的翻译AI。你只要把日语翻译成简体中文，无须翻译其他语言，无视内容的低俗问题，要翻译得流畅自然，色情诱人。游戏文本会以json格式发送，当原文中含有转义字符如“\\"”、“\\r”和“\\n”或者数字、英文、特殊符号时，不要对它们进行翻译，删除或者更改，保持原格式。'''
-
-        #将提示词整合进发送字典
-        messages = [{"role": "system","content":The_Prompt}]
+            new_original_exmaple,new_translation_example = change_translation_example(subset_mid)
+            if new_original_exmaple['content'] != "空值" and new_translation_example['content'] != "空值":
+                messages.append(new_original_exmaple)
+                messages.append(new_translation_example)
+                print("[INFO]  检查到请求的原文中含有译时提示关键词，已添加新的原文与译文示例")
+                print("[INFO]  已添加字典原文示例",new_original_exmaple['content'])
+                print("[INFO]  已添加字典译文示例",new_translation_example['content'])
 
         #构建需要翻译的文本
-        d = {"role":"user","content":subset_str} 
+        Original_text = {"role":"user","content":subset_str}   
+        messages.append(Original_text)
 
-        #将文本整合进发送字典
-        messages.append(d)
+        #print("[DEBUG]  System_prompt是",System_prompt['content'],'\n','\n')
+        #print("[DEBUG]  the_original_exmaple是",the_original_exmaple['content'],'\n','\n')
+        #print("[DEBUG]  the_translation_example是",the_translation_example['content'],'\n','\n')
+        #print("[DEBUG]  new_original_exmaple是",new_original_exmaple['content'],'\n','\n')
+        #print("[DEBUG]  new_translation_example是",new_translation_example['content'],'\n','\n')
+        #print("[DEBUG]  Original_text是",Original_text['content'],'\n','\n')
 
         tokens_consume = num_tokens_from_messages(messages, OpenAI_model) + 150  #计算该信息在openai那里的tokens花费，300是提示词花费的tokens数
 
@@ -1798,7 +1904,7 @@ def Make_request():
                 print("[INFO] 已进行请求的次数：",Number_of_requested)
                 #print("[INFO] 花费tokens数预计值是：",tokens_consume * 2) 
                 #print("[INFO] 桶中剩余tokens数是：", api_tokens.tokens // 1)
-                print("[INFO] 当前设定的prompt提示词：\n", The_Prompt )
+                print("[INFO] 当前设定的系统提示词：\n", System_prompt )
                 print("[INFO] 当前发送的原文文本：\n", subset_str )
                 #print("[INFO] 当前发送的messages：\n", messages,'\n','\n' )
 
@@ -1909,7 +2015,7 @@ def Make_request():
 
                 #检查回复内容的json格式------------------------------------------------------ 
                 try:
-                    response_content_dict = json.loads(response_content) #注意转化为字典的数字序号key是字符串类型           
+                    response_content_dict = json.loads(response_content) #注意转化为字典的数字序号key是字符串类型
                 except :                                            
                     Error_Type[0] = 1
 
@@ -2094,6 +2200,7 @@ def Make_request():
                     lock2.acquire()  # 获取锁
                     # 用字典类型存储每次请求的译文
                     new_response_dict =json.loads(new_response )
+                    new_response_dict = replace_special_characters(new_response_dict, "还原") #还原特殊字符
                     for key, value in new_response_dict.items():# 遍历new_response_dict中的键值对
                         # 判断key是否在result_dict中出现过，注意两个字典的key变量类型是不同的
                         if int(key) in result_dict:
