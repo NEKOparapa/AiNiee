@@ -490,7 +490,7 @@ def replace_strings(dic):
     return temp_dict
 
 #译时提示函数
-def change_translation_example(dic):
+def Building_dictionary(dic):
     #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
     data = []
     for row in range(Window.Interface21.tableView.rowCount() - 1):
@@ -553,6 +553,62 @@ def change_translation_example(dic):
 
     #print(original_exmaple)
     #print(translated_exmaple)
+
+    return original_exmaple,translated_exmaple
+
+#构建用户输入的翻译示例函数
+def Build_translation_examples ():
+    #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
+    data = []
+    for row in range(Window.Interface22.tableView.rowCount() - 1):
+        key_item = Window.Interface22.tableView.item(row, 0)
+        value_item = Window.Interface22.tableView.item(row, 1)
+        if key_item and value_item:
+            key = key_item.text()
+            value = value_item.text()
+            data.append((key, value))
+
+    # 将数据存储到中间字典中
+    temp_dict = {}
+    for key, value in data:
+        temp_dict[key] = value
+
+    # 构建原文示例字符串开头 
+    original_text = '{ '
+    #如果字典不为空，补充内容
+    if  temp_dict:
+        i = 0 #用于记录key的索引
+        for key in temp_dict:
+            original_text += '\n' + '"' + str(i) + '":"' + str(key) + '"' + ','
+            i += 1
+        #删除最后一个逗号
+        original_text = original_text[:-1]
+        # 构建原文示例字符串结尾
+        original_text = original_text + '\n' + '}'
+        #构建原文示例字典
+        original_exmaple = {"role": "user","content": original_text}
+    else:
+        original_exmaple = {"role": "user","content": "空值"}
+
+
+    # 构建译文示例字符串开头
+    translated_text = '{ '
+    #如果字典不为空，补充内容
+    if  temp_dict:
+        j = 0
+        for key in temp_dict:
+            translated_text += '\n' + '"' + str(j ) + '":"' + str(temp_dict[key]) + '"'  + ','
+            j += 1
+
+        #删除最后一个逗号
+        translated_text = translated_text[:-1]
+        # 构建译文示例字符串结尾
+        translated_text = translated_text+ '\n' + '}'
+        #构建译文示例字典
+        translated_exmaple = {"role": "assistant","content": translated_text}
+    else:
+        translated_exmaple = {"role": "assistant","content": "空值"}
+
 
     return original_exmaple,translated_exmaple
 
@@ -833,6 +889,20 @@ def read_write_config(mode):
         OpenAI_presence_penalty = Window.Interface18.slider3.value()      #获取OpenAI top_k
         OpenAI_frequency_penalty = Window.Interface18.slider4.value()    #获取OpenAI repetition_penalty
 
+
+        #获取提示词工程界面
+        Custom_Prompt_Switch = Window.Interface22.checkBox1.isChecked()   #获取自定义提示词开关状态
+        Custom_Prompt = Window.Interface22.TextEdit1.toPlainText()        #获取自定义提示词输入值 
+        Add_user_example_switch = Window.Interface22.checkBox2.isChecked()#获取添加用户示例开关状态
+        User_example = {}
+        for row in range(Window.Interface22.tableView.rowCount() - 1):
+            key_item = Window.Interface22.tableView.item(row, 0)
+            value_item = Window.Interface22.tableView.item(row, 1)
+            if key_item and value_item:
+                key = key_item.data(Qt.DisplayRole)
+                value = value_item.data(Qt.DisplayRole)
+                User_example[key] = value
+
         #获取语义检查Mtool界面
         Semantic_weight_Mtool = Window.Interface19.doubleSpinBox1.value()
         Symbolic_weight_Mtool = Window.Interface19.doubleSpinBox2.value()
@@ -890,6 +960,12 @@ def read_write_config(mode):
         config_dict["OpenAI_top_p"] = OpenAI_top_p
         config_dict["OpenAI_presence_penalty"] = OpenAI_presence_penalty
         config_dict["OpenAI_frequency_penalty"] = OpenAI_frequency_penalty
+
+        #提示词工程界面
+        config_dict["Custom_Prompt_Switch"] = Custom_Prompt_Switch
+        config_dict["Custom_Prompt"] = Custom_Prompt
+        config_dict["Add_user_example_switch"] = Add_user_example_switch
+        config_dict["User_example"] = User_example
 
         #语义检查Mtool界面
         config_dict["Semantic_weight_Mtool"] = Semantic_weight_Mtool
@@ -1025,6 +1101,29 @@ def read_write_config(mode):
             if "OpenAI_frequency_penalty" in config_dict:
                 OpenAI_frequency_penalty = config_dict["OpenAI_frequency_penalty"]
                 Window.Interface18.slider4.setValue(OpenAI_frequency_penalty)
+
+            #提示词工程界面
+            if "Custom_Prompt_Switch" in config_dict:
+                Custom_Prompt_Switch = config_dict["Custom_Prompt_Switch"]
+                Window.Interface22.checkBox1.setChecked(Custom_Prompt_Switch)
+            if "Custom_Prompt" in config_dict:
+                Custom_Prompt = config_dict["Custom_Prompt"]
+                Window.Interface22.TextEdit1.setText(Custom_Prompt)
+            if "Add_user_example_switch" in config_dict:
+                Add_user_example_switch = config_dict["Add_user_example_switch"]
+                Window.Interface22.checkBox2.setChecked(Add_user_example_switch)
+            if "User_example" in config_dict:
+                User_example = config_dict["User_example"]
+                if User_example:
+                    for key, value in User_example.items():
+                        row = Window.Interface22.tableView.rowCount() - 1
+                        Window.Interface22.tableView.insertRow(row)
+                        key_item = QTableWidgetItem(key)
+                        value_item = QTableWidgetItem(value)
+                        Window.Interface22.tableView.setItem(row, 0, key_item)
+                        Window.Interface22.tableView.setItem(row, 1, value_item)        
+                    #删除第一行
+                    Window.Interface22.tableView.removeRow(0)
 
             #语义检查Mtool界面
             if "Semantic_weight_Mtool" in config_dict:
@@ -1298,7 +1397,7 @@ def Request_test():
 # ——————————————————————————————————————————系统配置函数——————————————————————————————————————————
 def Config():
     global Input_file,Output_Folder ,Account_Type ,  Prompt, Translation_lines,Text_Source_Language,The_Max_workers
-    global API_key_list,tokens_limit_per,OpenAI_model,Request_Pricing , Response_Pricing,original_exmaple,translation_example
+    global API_key_list,tokens_limit_per,OpenAI_model,Request_Pricing , Response_Pricing,original_exmaple,translation_example,user_original_exmaple,user_translation_example
 
     #—————————————————————————————————————————— 读取账号配置信息——————————————————————————————————————————
     #如果启用官方平台，获取OpenAI的界面配置信息
@@ -1446,6 +1545,14 @@ def Config():
         original_exmaple = original_exmaple_kr
         translation_example = translation_example_zh2
 
+    #如果提示词工程界面的自定义提示词开关打开，则使用自定义提示词
+    if Window.Interface22.checkBox1.isChecked():
+        Prompt = Window.Interface22.TextEdit1.toPlainText()
+        
+    #如果提示词工程界面的添加翻译示例开关打开，则添加翻译示例
+    if Window.Interface22.checkBox2.isChecked():
+        user_original_exmaple,user_translation_example = Build_translation_examples ()
+    
     #根据API KEY数量，重新设定请求限制
     if len(API_key_list) != 1:
         The_RPM_limit = The_RPM_limit / len(API_key_list) *1.05     #根据数量，重新计算请求时间间隔，后面是修正系数，防止出现请求过快的情况
@@ -1473,8 +1580,12 @@ def Config():
         print(f"[INFO] 第{i+1}个API KEY是：{key}") 
     print('\n',"[INFO] 每次翻译文本行数是:",Translation_lines,'\n')
     print("[INFO] Prompt是:",Prompt,'\n')
-    print("[INFO] 原文示例:",original_exmaple,'\n')
-    print("[INFO] 译文示例:",translation_example,'\n')
+    print("[INFO] 默认原文示例:",original_exmaple,'\n')
+    print("[INFO] 默认译文示例:",translation_example,'\n')
+    if user_original_exmaple['content'] != "空值" and user_translation_example['content'] != "空值":
+        print("[INFO]  检查到用户翻译示例开关打开，已添加新的原文与译文示例")
+        print("[INFO]  已添加新的原文示例",user_original_exmaple['content'],'\n')
+        print("[INFO]  已添加新的译文示例",user_translation_example['content'],'\n')
     #如果是MTool任务
     if Running_status == 2 or Running_status == 4 :
         print("[INFO] 已选择原文文件",Input_file,'\n')
@@ -1849,13 +1960,23 @@ def Make_request():
 
         #如果开启了译时提示功能，则添加新的原文与译文示例
         if Window.Interface21.checkBox2.isChecked() :
-            new_original_exmaple,new_translation_example = change_translation_example(subset_mid)
+            new_original_exmaple,new_translation_example = Building_dictionary(subset_mid)
             if new_original_exmaple['content'] != "空值" and new_translation_example['content'] != "空值":
                 messages.append(new_original_exmaple)
                 messages.append(new_translation_example)
-                print("[INFO]  检查到请求的原文中含有译时提示关键词，已添加新的原文与译文示例")
+                print("[INFO]  检查到请求的原文中含有用户字典内容，已添加新的原文与译文示例")
                 print("[INFO]  已添加字典原文示例",new_original_exmaple['content'])
                 print("[INFO]  已添加字典译文示例",new_translation_example['content'])
+
+        #如果提示词工程界面的用户翻译示例开关打开，则添加新的原文与译文示例
+        if Window.Interface22.checkBox2.isChecked() :
+            if user_original_exmaple['content'] != "空值" and user_translation_example['content'] != "空值":
+                messages.append(user_original_exmaple)
+                messages.append(user_translation_example)
+                print("[DEBUG]  检查到用户翻译示例开关打开，已添加新的原文与译文示例")
+                print("[DEBUG]  已添加用户原文示例",user_original_exmaple['content'])
+                print("[DEBUG]  已添加用户译文示例",user_translation_example['content'])
+
 
         #构建需要翻译的文本
         Original_text = {"role":"user","content":subset_str}   
@@ -1868,7 +1989,7 @@ def Make_request():
         #print("[DEBUG]  new_translation_example是",new_translation_example['content'],'\n','\n')
         #print("[DEBUG]  Original_text是",Original_text['content'],'\n','\n')
 
-        tokens_consume = num_tokens_from_messages(messages, OpenAI_model) + 330  #计算该信息在openai那里的tokens花费，660提示词花费的tokens数
+        tokens_consume = num_tokens_from_messages(messages, OpenAI_model)+200   #计算该信息在openai那里的tokens花费,200是修正系数
 
         # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
         while 1 :
@@ -3368,7 +3489,7 @@ class Widget15(QFrame):#Mtool项目界面
         #设置“文件位置”显示
         label2_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
         label2_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
-        label2_7.setText("0是自动根据电脑设置线程数")  
+        label2_7.setText("(0是自动根据电脑设置线程数)")  
 
        #设置“最大线程数”数值输入框
         self.spinBox2 = SpinBox(self)
@@ -3397,7 +3518,7 @@ class Widget15(QFrame):#Mtool项目界面
         #设置“文件位置”显示
         self.label5 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label5.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
-        self.label5.setText("请选择需要翻译的json文件")  
+        self.label5.setText("(请选择需要翻译的json文件)")  
 
         #设置打开文件按钮
         self.pushButton1 = PushButton('选择文件', self, FIF.DOCUMENT)
@@ -3425,7 +3546,7 @@ class Widget15(QFrame):#Mtool项目界面
         #设置“输出文件夹”显示
         self.label7 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label7.setText("请选择翻译文件存储文件夹")
+        self.label7.setText("(请选择翻译文件存储文件夹)")
 
         #设置输出文件夹按钮
         self.pushButton2 = PushButton('选择文件夹', self, FIF.FOLDER)
@@ -3702,7 +3823,7 @@ class Widget16(QFrame):#Tpp项目界面
         #设置“文件位置”显示
         label2_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
         label2_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
-        label2_7.setText("0是自动根据电脑设置线程数")  
+        label2_7.setText("(0是自动根据电脑设置线程数)")  
 
        #设置“最大线程数”数值输入框
         self.spinBox2 = SpinBox(self)
@@ -3731,7 +3852,7 @@ class Widget16(QFrame):#Tpp项目界面
         #设置“项目文件夹”显示
         self.label5 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label5.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label5.setText("请选择导出的T++项目文件夹“data”")
+        self.label5.setText("(请选择导出的T++项目文件夹“data”)")
 
 
         #设置打开文件夹按钮
@@ -3760,7 +3881,7 @@ class Widget16(QFrame):#Tpp项目界面
         #设置“输出文件夹”显示
         self.label7 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label7.setText("请选择翻译文件存储文件夹")
+        self.label7.setText("(请选择翻译文件存储文件夹)")
 
         #设置输出文件夹按钮
         self.pushButton2 = PushButton('选择文件夹', self, FIF.FOLDER)
@@ -5158,7 +5279,7 @@ class Widget21(QFrame):#用户字典界面
         #设置“译时提示”显示
         self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label4.setText("(在翻译过程中作为AI的prompt提示词)")
+        self.label4.setText("(在请求翻译的内容中出现字典内容时，该部分字典内容将作为AI的翻译示例)")
 
 
         #设置“译时提示”开
@@ -5351,6 +5472,260 @@ class Widget21(QFrame):#用户字典界面
             createSuccessInfoBar("已开启译时提示功能,将根据发送文本自动改变prompt示例")
 
 
+class Widget22(QFrame):#提示词工程界面
+
+
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+        # -----创建第1个组，添加多个组件-----
+        box1 = QGroupBox()
+        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1 = QHBoxLayout()
+
+
+        label1 = QLabel( flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label1.setText("自定义系统提示词")
+
+
+        self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label2.setText("(将修改系统提示词Prompt为输入框中的内容)")
+
+
+        self.checkBox1 = CheckBox('启用功能')
+        #self.checkBox1.stateChanged.connect(self.checkBoxChanged1)
+
+        layout1.addWidget(label1)
+        layout1.addWidget(self.label2)
+        layout1.addStretch(1)  # 添加伸缩项
+        layout1.addWidget(self.checkBox1)
+        box1.setLayout(layout1)
+
+
+        # -----创建第2个组，添加多个组件-----
+        box2 = QGroupBox()
+        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout2 = QHBoxLayout()
+
+        self.TextEdit1 = TextEdit()
+        #设置输入框最小高度
+        self.TextEdit1.setMinimumHeight(180)
+        #设置默认文本
+        self.TextEdit1.setText(Prompt)
+
+
+        layout2.addWidget(self.TextEdit1)
+        box2.setLayout(layout2)
+
+
+        # -----创建第3个组，添加多个组件-----
+        box3 = QGroupBox()
+        box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout3 = QHBoxLayout()
+
+        label3 = QLabel( flags=Qt.WindowFlags())  
+        label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label3.setText("添加翻译示例")
+
+        self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label4.setText("(将表格内容添加为新的翻译示例，全程加入翻译请求中，帮助AI更好的进行少样本学习，提高翻译质量)")
+
+
+        self.checkBox2 = CheckBox('启用功能')
+        #self.checkBox2.stateChanged.connect(self.checkBoxChanged2)
+
+        layout3.addWidget(label3)
+        layout3.addWidget(self.label4)
+        layout3.addStretch(1)  # 添加伸缩项
+        layout3.addWidget(self.checkBox2)
+        box3.setLayout(layout3)
+
+
+
+        # -----创建第4个组，添加放置表格-----
+        self.tableView = TableWidget(self)
+        self.tableView.setWordWrap(False) #设置表格内容不换行
+        self.tableView.setRowCount(2) #设置表格行数
+        self.tableView.setColumnCount(2) #设置表格列数
+        #self.tableView.verticalHeader().hide() #隐藏垂直表头
+        self.tableView.setHorizontalHeaderLabels(['原文', '译文']) #设置水平表头
+        self.tableView.resizeColumnsToContents() #设置列宽度自适应内容
+        self.tableView.resizeRowsToContents() #设置行高度自适应内容
+        self.tableView.setEditTriggers(QAbstractItemView.AllEditTriggers)   # 设置所有单元格可编辑
+        #self.tableView.setFixedSize(500, 300)         # 设置表格大小
+        self.tableView.setMaximumHeight(300)          # 设置表格的最大高度
+        self.tableView.setMinimumHeight(300)             # 设置表格的最小高度
+        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
+        #self.tableView.setSortingEnabled(True)  #设置表格可排序
+
+
+        # 在表格最后一行第一列添加"添加行"按钮
+        button = PushButton('添新行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
+        button.clicked.connect(self.add_row)
+        # 在表格最后一行第二列添加"删除空白行"按钮
+        button = PushButton('删空行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
+        button.clicked.connect(self.delete_blank_row)
+
+
+        # -----创建第1_1个组，添加多个组件-----
+        box5 = QGroupBox()
+        box5.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout5 = QHBoxLayout()
+
+
+        #设置导入字典按钮
+        self.pushButton1 = PushButton('导入示例', self, FIF.DOWNLOAD)
+        self.pushButton1.clicked.connect(self.Importing_dictionaries) #按钮绑定槽函数
+
+        #设置导出字典按钮
+        self.pushButton2 = PushButton('导出示例', self, FIF.SHARE)
+        self.pushButton2.clicked.connect(self.Exporting_dictionaries) #按钮绑定槽函数
+
+        #设置清空字典按钮
+        self.pushButton3 = PushButton('清空示例', self, FIF.DELETE)
+        self.pushButton3.clicked.connect(self.Empty_dictionary) #按钮绑定槽函数
+
+        #设置保存字典按钮
+        self.pushButton4 = PushButton('保存示例', self, FIF.SAVE)
+        self.pushButton4.clicked.connect(self.Save_dictionary) #按钮绑定槽函数
+
+
+        layout5.addWidget(self.pushButton1)
+        layout5.addStretch(1)  # 添加伸缩项
+        layout5.addWidget(self.pushButton2)
+        layout5.addStretch(1)  # 添加伸缩项
+        layout5.addWidget(self.pushButton3)
+        layout5.addStretch(1)  # 添加伸缩项
+        layout5.addWidget(self.pushButton4)
+        box5.setLayout(layout5)
+
+
+        # -----最外层容器设置垂直布局-----
+        container = QVBoxLayout()
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(20) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+        # 把各个组添加到容器中
+        container.addWidget(box1)
+        container.addWidget(box2)
+        container.addWidget(box3)
+        container.addWidget(self.tableView)
+        container.addWidget(box5)
+
+
+    #添加行按钮
+    def add_row(self):
+        # 添加新行在按钮所在行前面
+        self.tableView.insertRow(self.tableView.rowCount()-1)
+        #设置新行的高度与前一行相同
+        self.tableView.setRowHeight(self.tableView.rowCount()-2, self.tableView.rowHeight(self.tableView.rowCount()-3))
+
+    #删除空白行按钮
+    def delete_blank_row(self):
+        #表格行数大于2时，删除表格内第一列和第二列为空或者空字符串的行
+        if self.tableView.rowCount() > 2:
+            # 删除表格内第一列和第二列为空或者空字符串的行
+            for i in range(self.tableView.rowCount()-1):
+                if self.tableView.item(i, 0) is None or self.tableView.item(i, 0).text() == '':
+                    self.tableView.removeRow(i)
+                    break
+                elif self.tableView.item(i, 1) is None or self.tableView.item(i, 1).text() == '':
+                    self.tableView.removeRow(i)
+                    break
+
+    #导入翻译示例按钮
+    def Importing_dictionaries(self):
+        # 选择文件
+        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'JSON Files (*.json)')      #调用QFileDialog类里的函数来选择文件
+        if Input_File:
+            print(f'[INFO]  已选择翻译示例导入文件: {Input_File}')
+        else :
+            print('[INFO]  未选择文件')
+            return
+        
+        # 读取文件
+        with open(Input_File, 'r', encoding="utf-8") as f:
+            dictionary = json.load(f)
+        
+        # 将翻译示例中的数据从表格底部添加到表格中
+        for key, value in dictionary.items():
+            row = self.tableView.rowCount() - 1 #获取表格的倒数行数
+            self.tableView.insertRow(row)    # 在表格中插入一行
+            self.tableView.setItem(row, 0, QTableWidgetItem(key))
+            self.tableView.setItem(row, 1, QTableWidgetItem(value))
+            #设置新行的高度与前一行相同
+            self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
+
+        createSuccessInfoBar("导入成功")
+        print(f'[INFO]  已导入翻译示例文件')
+    
+    #导出翻译示例按钮
+    def Exporting_dictionaries(self):
+        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间翻译示例中
+        data = []
+        for row in range(self.tableView.rowCount() - 1):
+            key_item = self.tableView.item(row, 0)
+            value_item = self.tableView.item(row, 1)
+            if key_item and value_item:
+                key = key_item.text()
+                value = value_item.text()
+                data.append((key, value))
+
+        # 将数据存储到中间翻译示例中
+        dictionary = {}
+        for key, value in data:
+            dictionary[key] = value
+
+        # 选择文件保存路径
+        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Output_Folder:
+            print(f'[INFO]  已选择翻译示例导出文件夹: {Output_Folder}')
+        else :
+            print('[INFO]  未选择文件夹')
+            return  # 直接返回，不执行后续操作
+
+        # 将翻译示例保存到文件中
+        with open(os.path.join(Output_Folder, "用户翻译示例.json"), 'w', encoding="utf-8") as f:
+            json.dump(dictionary, f, ensure_ascii=False, indent=4)
+
+        createSuccessInfoBar("导出成功")
+        print(f'[INFO]  已导出翻译示例文件')
+
+    #清空翻译示例按钮
+    def Empty_dictionary(self):
+        #清空表格
+        self.tableView.clearContents()
+        #设置表格的行数为1
+        self.tableView.setRowCount(2)
+        
+        # 在表格最后一行第一列添加"添加行"按钮
+        button = PushButton('Add Row')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
+        button.clicked.connect(self.add_row)
+        # 在表格最后一行第二列添加"删除空白行"按钮
+        button = PushButton('Delete Blank Row')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
+        button.clicked.connect(self.delete_blank_row)
+
+        createSuccessInfoBar("清空成功")
+        print(f'[INFO]  已清空翻译示例')
+
+    #保存翻译示例按钮
+    def Save_dictionary(self):
+        read_write_config("write") 
+        createSuccessInfoBar("保存成功")
+        print(f'[INFO]  已保存翻译示例')
+
+
 class AvatarWidget(NavigationWidget):#头像导航项
     """ Avatar widget """
 
@@ -5439,7 +5814,8 @@ class window(FramelessWindow): #主窗口
         self.Interface18 = Widget18('Interface18', self)
         self.Interface19 = Widget19('Interface19', self) 
         self.Interface20 = Widget20('Interface20', self)   
-        self.Interface21 = Widget21('Interface21', self)   
+        self.Interface21 = Widget21('Interface21', self) 
+        self.Interface22 = Widget22('Interface22', self)     
 
 
         self.stackWidget.addWidget(self.Interface11)  #将子界面添加到父2堆栈窗口中
@@ -5451,6 +5827,7 @@ class window(FramelessWindow): #主窗口
         self.stackWidget.addWidget(self.Interface19)
         self.stackWidget.addWidget(self.Interface20)
         self.stackWidget.addWidget(self.Interface21)
+        self.stackWidget.addWidget(self.Interface22)
 
 
         self.initLayout() #调用初始化布局函数 
@@ -5519,7 +5896,7 @@ class window(FramelessWindow): #主窗口
             onClick=lambda: self.switchTo(self.Interface17),
             ) 
 
-        #添加测试项
+        #添加用户字典项
         self.navigationInterface.addItem(
             routeKey=self.Interface21.objectName(),
             icon=FIF.CALENDAR,
@@ -5534,6 +5911,15 @@ class window(FramelessWindow): #主窗口
             text='实时调教',
             onClick=lambda: self.switchTo(self.Interface18),
             ) 
+
+        #添加提示词工程项
+        self.navigationInterface.addItem(
+            routeKey=self.Interface22.objectName(),
+            icon=FIF.ZOOM,
+            text='提示词工程',
+            onClick=lambda: self.switchTo(self.Interface22),
+            ) 
+
 
         self.navigationInterface.addSeparator() #添加分隔符,需要删除position=NavigationItemPosition.SCROLL来使分隔符正确显示
 
