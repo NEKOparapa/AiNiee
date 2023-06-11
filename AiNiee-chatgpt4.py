@@ -5481,7 +5481,7 @@ class Widget22(QFrame):#提示词工程界面
 
         label1 = QLabel( flags=Qt.WindowFlags())  
         label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label1.setText("自定义系统提示词")
+        label1.setText("修改系统提示词")
 
 
         self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
