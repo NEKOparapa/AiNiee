@@ -1582,10 +1582,11 @@ def Config():
     print("[INFO] Prompt是:",Prompt,'\n')
     print("[INFO] 默认原文示例:",original_exmaple,'\n')
     print("[INFO] 默认译文示例:",translation_example,'\n')
-    if user_original_exmaple['content'] != "空值" and user_translation_example['content'] != "空值":
-        print("[INFO]  检查到用户翻译示例开关打开，已添加新的原文与译文示例")
-        print("[INFO]  已添加新的原文示例",user_original_exmaple['content'],'\n')
-        print("[INFO]  已添加新的译文示例",user_translation_example['content'],'\n')
+    if Window.Interface22.checkBox2.isChecked():
+        if user_original_exmaple['content'] != "空值" and user_translation_example['content'] != "空值":
+            print("[INFO]  检查到用户翻译示例开关打开，已添加新的原文与译文示例")
+            print("[INFO]  已添加新的原文示例",user_original_exmaple['content'],'\n')
+            print("[INFO]  已添加新的译文示例",user_translation_example['content'],'\n')
     #如果是MTool任务
     if Running_status == 2 or Running_status == 4 :
         print("[INFO] 已选择原文文件",Input_file,'\n')
@@ -1989,7 +1990,7 @@ def Make_request():
         #print("[DEBUG]  new_translation_example是",new_translation_example['content'],'\n','\n')
         #print("[DEBUG]  Original_text是",Original_text['content'],'\n','\n')
 
-        tokens_consume = num_tokens_from_messages(messages, OpenAI_model)+200   #计算该信息在openai那里的tokens花费,200是修正系数
+        tokens_consume = num_tokens_from_messages(messages, OpenAI_model)+330   #计算该信息在openai那里的tokens花费,330是英文提示词的tokens花费
 
         # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
         while 1 :
