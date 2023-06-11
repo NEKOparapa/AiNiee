@@ -1983,13 +1983,6 @@ def Make_request():
         Original_text = {"role":"user","content":subset_str}   
         messages.append(Original_text)
 
-        #print("[DEBUG]  System_prompt是",System_prompt['content'],'\n','\n')
-        #print("[DEBUG]  the_original_exmaple是",the_original_exmaple['content'],'\n','\n')
-        #print("[DEBUG]  the_translation_example是",the_translation_example['content'],'\n','\n')
-        #print("[DEBUG]  new_original_exmaple是",new_original_exmaple['content'],'\n','\n')
-        #print("[DEBUG]  new_translation_example是",new_translation_example['content'],'\n','\n')
-        #print("[DEBUG]  Original_text是",Original_text['content'],'\n','\n')
-
         tokens_consume = num_tokens_from_messages(messages, OpenAI_model)+330   #计算该信息在openai那里的tokens花费,330是英文提示词的tokens花费
 
         # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
@@ -5280,7 +5273,7 @@ class Widget21(QFrame):#用户字典界面
         #设置“译时提示”显示
         self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label4.setText("(在请求翻译的内容中出现字典内容时，该部分字典内容将作为AI的翻译示例)")
+        self.label4.setText("(在请求翻译的内容中出现字典内容时，该部分字典内容将作为AI的翻译示例，不是全程加入全部字典内容)")
 
 
         #设置“译时提示”开
