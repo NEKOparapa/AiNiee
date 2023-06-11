@@ -1974,9 +1974,9 @@ def Make_request():
             if user_original_exmaple['content'] != "空值" and user_translation_example['content'] != "空值":
                 messages.append(user_original_exmaple)
                 messages.append(user_translation_example)
-                print("[DEBUG]  检查到用户翻译示例开关打开，已添加新的原文与译文示例")
-                print("[DEBUG]  已添加用户原文示例",user_original_exmaple['content'])
-                print("[DEBUG]  已添加用户译文示例",user_translation_example['content'])
+                print("[INFO]  检查到用户翻译示例开关打开，已添加新的原文与译文示例")
+                print("[INFO]  已添加用户原文示例",user_original_exmaple['content'])
+                print("[INFO]  已添加用户译文示例",user_translation_example['content'])
 
 
         #构建需要翻译的文本
