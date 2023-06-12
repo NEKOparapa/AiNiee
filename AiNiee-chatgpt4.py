@@ -1898,7 +1898,6 @@ def Make_request():
     global result_dict,waiting_threads # 声明全局变量
     global Translation_Status_List  
     global money_used,Translation_Progress,key_list_index,Number_of_requested,Number_of_mark
-    global OpenAI_temperature,OpenAI_top_p,OpenAI_frequency_penalty,OpenAI_presence_penalty
 
     Wrong_answer_count = 0 #错误回答计数，用于错误回答到达一定次数后，取消该任务。
 
@@ -2067,29 +2066,35 @@ def Make_request():
                     #记录开始请求时间
                     Start_request_time = time.time()
 
+                    #配置当初请求的AI参数
+                    temperature=OpenAI_temperature,
+                    top_p = OpenAI_top_p,                        
+                    presence_penalty=OpenAI_presence_penalty,
+                    frequency_penalty=OpenAI_frequency_penalty
+
                     #如果启用实时参数设置
                     if Window.Interface18.checkBox.isChecked() :
                         #获取界面配置信息
-                        OpenAI_temperature = Window.Interface18.slider1.value() * 0.1
-                        OpenAI_top_p = Window.Interface18.slider2.value() * 0.1
-                        OpenAI_presence_penalty = Window.Interface18.slider3.value() * 0.1
-                        OpenAI_frequency_penalty = Window.Interface18.slider4.value() * 0.1
+                        temperature = Window.Interface18.slider1.value() * 0.1
+                        top_p = Window.Interface18.slider2.value() * 0.1
+                        presence_penalty = Window.Interface18.slider3.value() * 0.1
+                        frequency_penalty = Window.Interface18.slider4.value() * 0.1
                         #输出到控制台
                         print("[INFO] 实时参数设置已启用")
-                        print("[INFO] 当前temperature是:",OpenAI_temperature)
-                        print("[INFO] 当前top_p是:",OpenAI_top_p)
-                        print("[INFO] 当前presence_penalty是:",OpenAI_presence_penalty)
-                        print("[INFO] 当前frequency_penalty是:",OpenAI_frequency_penalty,'\n','\n')
+                        print("[INFO] 当前temperature是:",temperature)
+                        print("[INFO] 当前top_p是:",top_p)
+                        print("[INFO] 当前presence_penalty是:",presence_penalty)
+                        print("[INFO] 当前frequency_penalty是:",frequency_penalty,'\n','\n')
 
                     lock5.release()  # 释放锁
 
                     response = openai.ChatCompletion.create(
                         model= OpenAI_model,
                         messages = messages ,
-                        temperature=OpenAI_temperature,
-                        top_p = OpenAI_top_p,                        
-                        presence_penalty=OpenAI_presence_penalty,
-                        frequency_penalty=OpenAI_frequency_penalty
+                        temperature=temperature,
+                        top_p = top_p,                        
+                        presence_penalty=presence_penalty,
+                        frequency_penalty=frequency_penalty
                         )
 
                 #一旦有错误就抛出错误信息，一定程度上避免网络代理波动带来的超时问题
