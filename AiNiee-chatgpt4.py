@@ -23,7 +23,7 @@ from qfluentwidgets import TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,
 from qfluentwidgets import FluentIcon as FIF#需要安装库pip install "PyQt-Fluent-Widgets[full]" 
 
 
-Software_Version = "AiNiee-chatgpt4.51"  #软件版本号
+Software_Version = "AiNiee-chatgpt4.52"  #软件版本号
 
 OpenAI_model="gpt-3.5-turbo"   #调用api的模型,默认3.5-turbo
 OpenAI_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
@@ -155,31 +155,24 @@ translation_example_zh2 ='''{
 "6": "年轻♫⚡漂亮♫⚡色情"
 }'''
 
-#最终存储原文示例与翻译示例
-original_exmaple = {}
-translation_example = {}
 
-  
-Input_file = ""  # 存储目标文件位置
-Input_Folder = ""   # 存储Tpp项目位置
-Output_Folder = ""    # 存储输出文件夹位置
-Automatic_Backup_folder="" # 存储实时备份文件夹位置
-Manual_Backup_Folder = "" # 存储手动备份文件夹位置
-DEBUG_folder = "" # 存储调试日志文件夹位置  
-Manual_Backup_Status = 0 # 存储手动备份状态，0是未备份，1是正在备份中
+#存储输入输出文件路径
+Input_and_output_paths = [{"Input_file":"","Input_Folder":""},
+                          {"Output_Folder":"","DEBUG_folder":"","Wrong_line_text_folder":"","Automatic_Backup_folder":"","Manual_Backup_Folder":""},                                    
+                          {"Manual_Backup_Status":0},
+                          {"resource_dir":""}     ]  
 
-source = {}       # 存储原文件
-source_mid = {}   # 存储处理过的原文件
-ValueList_len = 0   # 存储原文件key列表的长度
+
+source = {}       # 存储读取的文件数据
+Original_text_dictionary = {}   # 存储处理过的原文文本
+Translation_text_Dictionary = {}       # 用字典形式存储已经翻译好的文本
 Translation_Status_List = []  # 存储原文文本翻译状态列表，用于并发任务时获取每个文本的翻译状态
-result_dict = {}       # 用字典形式存储已经翻译好的文本
+ValueList_len = 0   # 存储原文件key列表的长度
+
+
 
 money_used = 0  # 存储金钱花销
 Translation_Progress = 0 # 存储翻译进度
-
-
-Translation_lines = 1 # 每次翻译行数
-The_Max_workers = 4  # 线程池同时工作最大数量
 waiting_threads = 0  # 全局变量，用于存储等待接口回复的线程数量
 Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是正在测试请求状态，2是MTool项目正在翻译状态，3是T++项目正在翻译的状态
                     # 4是MTool项目正在检查语义状态，5是T++项目正在检查语义状态，10是主窗口退出状态
@@ -197,7 +190,7 @@ os.chdir(script_dir)# 使用 `os.chdir()` 函数将当前工作目录改为程�
 script_dir = os.path.dirname(os.path.abspath(sys.argv[0])) # 获取当前工作目录
 print("[INFO] 当前工作目录是:",script_dir,'\n') 
 # 设置资源文件夹路径
-resource_dir = os.path.join(script_dir, "resource")
+Input_and_output_paths[3]['resource_dir'] = os.path.join(script_dir, "resource")
 
 
 #令牌桶算法，用来限制请求tokens数的
@@ -264,7 +257,7 @@ class My_Thread(threading.Thread):
         elif self.running_status == 4 or self.running_status == 5:
             Check_wrong_Main()
         elif self.running_status == 100:
-            Manually_backup_files (source,result_dict,Translation_Status_List)
+            Manually_backup_files (source,Translation_text_Dictionary,Translation_Status_List)
 
 #用于向UI线程发送消息的信号类
 class UI_signal(QObject):
@@ -273,7 +266,7 @@ class UI_signal(QObject):
 
 # 槽函数，用于接收子线程发出的信号，更新界面UI的状态
 def on_update_signal(str): 
-    global Running_status,Manual_Backup_Status
+    global Running_status,Input_and_output_paths
 
     if str == "Update_ui" :
         
@@ -344,7 +337,7 @@ def on_update_signal(str):
 
     elif str== "Backup successful":
         createSuccessInfoBar("已成功完成手动备份！！")
-        Manual_Backup_Status = 0
+        Input_and_output_paths[2]['Manual_Backup_Status'] = 0
 
     elif str== "CG_key":
         openai.api_key = API_key_list[key_list_index]#更新API
@@ -450,6 +443,15 @@ def replace_special_characters(dict, mode):
                 new_dict[key] = new_value
     else:
         print("请输入正确的mode参数（替换或还原）")
+
+    #创建存储替换后文本的文件夹
+    Replace_before_translation_folder = os.path.join(Input_and_output_paths[1]['DEBUG_folder'], 'Replace before translation folder')
+    os.makedirs(Replace_before_translation_folder, exist_ok=True)
+
+    #写入替换后文本的文件
+    with open(os.path.join(Replace_before_translation_folder, "Replace Line Breaks.json"), "w", encoding="utf-8") as f:
+        json.dump(new_dict, f, ensure_ascii=False, indent=4)
+
     return new_dict
 
 #译前替换函数
@@ -480,11 +482,11 @@ def replace_strings(dic):
         temp_dict[key_a] = value_a
 
     #创建存储替换后文本的文件夹
-    Replace_before_translation_folder = os.path.join(DEBUG_folder, 'Replace before translation folder')
+    Replace_before_translation_folder = os.path.join(Input_and_output_paths[1]['DEBUG_folder'], 'Replace before translation folder')
     os.makedirs(Replace_before_translation_folder, exist_ok=True)
 
     #写入替换后文本的文件
-    with open(os.path.join(Replace_before_translation_folder, "Replace_before_translation.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(Replace_before_translation_folder, "Replace the original text.json"), "w", encoding="utf-8") as f:
         json.dump(temp_dict, f, ensure_ascii=False, indent=4)
     
     return temp_dict
@@ -646,7 +648,7 @@ def file_Backup(subset_mid,response_content):
             # 将存放译文的字典的key改回去
             TS_Backup = {}
             for i, key in enumerate(source.keys()):     # 使用enumerate()遍历source字典的键，并将其替换到result_dict中
-                TS_Backup[key] = result_dict[i]   #在新字典中创建新key的同时把result_dict[i]的值赋予到key对应的值上
+                TS_Backup[key] = Translation_text_Dictionary[i]   #在新字典中创建新key的同时把result_dict[i]的值赋予到key对应的值上
 
             #根据翻译状态列表，提取已经翻译的内容和未翻译的内容
             TrsData_Backup = {}
@@ -662,11 +664,11 @@ def file_Backup(subset_mid,response_content):
                     ManualTransFile_Backup[key] = TS_Backup[key]
 
             #写入已翻译好内容的文件
-            with open(os.path.join(Automatic_Backup_folder, "TrsData.json"), "w", encoding="utf-8") as f100:
+            with open(os.path.join(Input_and_output_paths[1]['Automatic_Backup_folder'], "TrsData.json"), "w", encoding="utf-8") as f100:
                 json.dump(TrsData_Backup, f100, ensure_ascii=False, indent=4)
 
             #写入未翻译好内容的文件
-            with open(os.path.join(Automatic_Backup_folder, "ManualTransFile.json"), "w", encoding="utf-8") as f200:
+            with open(os.path.join(Input_and_output_paths[1]['Automatic_Backup_folder'], "ManualTransFile.json"), "w", encoding="utf-8") as f200:
                 json.dump(ManualTransFile_Backup, f200, ensure_ascii=False, indent=4)
 
         #进行Tpp的备份
@@ -680,7 +682,7 @@ def file_Backup(subset_mid,response_content):
 
 
             #构造文件夹路径
-            data_Backup_path = os.path.join(Automatic_Backup_folder, 'data')
+            data_Backup_path = os.path.join(Input_and_output_paths[1]['Automatic_Backup_folder'], 'data')
             #创建存储相同文件名的字典
             Catalog_file = {}
             #遍历check_dict每一个key
@@ -735,7 +737,7 @@ def file_Backup(subset_mid,response_content):
 
 #手动备份翻译数据函数
 def Manually_backup_files (source,result_dict,Translation_Status_List):
-    global Manual_Backup_Folder
+    global Input_and_output_paths
     #开始备份提醒
     Ui_signal.update_signal.emit("Manual backup in progress")
 
@@ -762,11 +764,11 @@ def Manually_backup_files (source,result_dict,Translation_Status_List):
                     ManualTransFile_Backup[key] = TS_Backup[key]
 
             #写入已翻译好内容的文件
-            with open(os.path.join(Manual_Backup_Folder, "TrsData.json"), "w", encoding="utf-8") as f100:
+            with open(os.path.join(Input_and_output_paths[1]['Manual_Backup_Folder'], "TrsData.json"), "w", encoding="utf-8") as f100:
                 json.dump(TrsData_Backup, f100, ensure_ascii=False, indent=4)
 
             #写入未翻译好内容的文件
-            with open(os.path.join(Manual_Backup_Folder, "ManualTransFile.json"), "w", encoding="utf-8") as f200:
+            with open(os.path.join(Input_and_output_paths[1]['Manual_Backup_Folder'], "ManualTransFile.json"), "w", encoding="utf-8") as f200:
                 json.dump(ManualTransFile_Backup, f200, ensure_ascii=False, indent=4)
 
 
@@ -774,13 +776,13 @@ def Manually_backup_files (source,result_dict,Translation_Status_List):
         elif Running_status == 3 or Running_status == 5:
 
             # 创建手动备份文件夹中data文件夹路径
-            data_path = os.path.join(Manual_Backup_Folder, 'data')
+            data_path = os.path.join(Input_and_output_paths[1]['Manual_Backup_Folder'], 'data')
             os.makedirs(data_path, exist_ok=True) 
 
             #复制原项目data文件夹所有文件到手动备份文件夹的data里面
-            for Input_file in os.listdir(Input_Folder):
+            for Input_file in os.listdir(Input_and_output_paths[0]['Input_Folder']):
                 if Input_file.endswith('.xlsx'):  # 如果是xlsx文件
-                    file_path = os.path.join(Input_Folder, Input_file)  # 构造文件路径
+                    file_path = os.path.join(Input_and_output_paths[0]['Input_Folder'], Input_file)  # 构造文件路径
                     output_file_path = os.path.join(data_path, Input_file)  # 构造输出文件路径
                     wb = load_workbook(file_path)        # 以读写模式打开工作簿
                     wb.save(output_file_path)  # 保存工作簿
@@ -982,14 +984,14 @@ def read_write_config(mode):
         config_dict["Number_threads_Tpp"] = Number_threads_Tpp
 
         #写入config.json
-        with open(os.path.join(resource_dir, "config.json"), "w", encoding="utf-8") as f:
+        with open(os.path.join(Input_and_output_paths[3]['resource_dir'], "config.json"), "w", encoding="utf-8") as f:
             json.dump(config_dict, f, ensure_ascii=False, indent=4)
 
     if mode == "read":
         #如果config.json在子文件夹resource中存在
-        if os.path.exists(os.path.join(resource_dir, "config.json")):
+        if os.path.exists(os.path.join(Input_and_output_paths[3]['resource_dir'], "config.json")):
             #读取config.json
-            with open(os.path.join(resource_dir, "config.json"), "r", encoding="utf-8") as f:
+            with open(os.path.join(Input_and_output_paths[3]['resource_dir'], "config.json"), "r", encoding="utf-8") as f:
                 config_dict = json.load(f)
 
             #将config.json中的值赋予到变量中,并set到界面上
@@ -1227,54 +1229,54 @@ def createlondingInfoBar(Title_str,str):
 
 # ——————————————————————————————————————————打开文件（mtool）按钮绑定函数——————————————————————————————————————————
 def Open_file():
-    global Running_status,Input_file
+    global Running_status,Input_and_output_paths
 
     if Running_status == 0:
         #打开文件
-        Input_file, _ = QFileDialog.getOpenFileName(None, 'Open File', '', 'Text Files (*.json);;All Files (*)')   #调用QFileDialog类里的函数以特定后缀类型来打开文件浏览器
-        if Input_file:
-            print(f'[INFO]  已选择文件: {Input_file}')
+        Input_and_output_paths[0]['Input_file'], _ = QFileDialog.getOpenFileName(None, 'Open File', '', 'Text Files (*.json);;All Files (*)')   #调用QFileDialog类里的函数以特定后缀类型来打开文件浏览器
+        if Input_and_output_paths[0]['Input_file']:
+            print('[INFO]  已选择文件:',Input_and_output_paths[0]['Input_file'])
         else :
             print('[INFO]  未选择文件')
             return  # 直接返回，不执行后续操作
         #设置控件里的文本显示
-        Window.Interface15.label5.setText(Input_file)
-        Window.Interface19.label2.setText(Input_file)
+        Window.Interface15.label5.setText(Input_and_output_paths[0]['Input_file'])
+        Window.Interface19.label2.setText(Input_and_output_paths[0]['Input_file'])
 
     elif Running_status != 0:
         createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 # ——————————————————————————————————————————选择项目文件夹（T++）按钮绑定函数——————————————————————————————————————————
 def Select_project_folder():
-    global Running_status,Input_Folder
+    global Running_status,Input_and_output_paths
 
     if Running_status == 0:
-        Input_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Input_Folder:
-            print(f'[INFO]  已选择项目文件夹: {Input_Folder}')
+        Input_and_output_paths[0]['Input_Folder'] = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Input_and_output_paths[0]['Input_Folder']:
+            print('[INFO]  已选择项目文件夹: ',Input_and_output_paths[0]['Input_Folder'])
         else :
             print('[INFO]  未选择文件夹')
             return  # 直接返回，不执行后续操作
-        Window.Interface16.label5.setText(Input_Folder)
-        Window.Interface20.label2.setText(Input_Folder)
+        Window.Interface16.label5.setText(Input_and_output_paths[0]['Input_Folder'])
+        Window.Interface20.label2.setText(Input_and_output_paths[0]['Input_Folder'])
     elif Running_status != 0:
         createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
     
 # ——————————————————————————————————————————选择输出文件夹按钮绑定函数——————————————————————————————————————————
 def Select_output_folder():
-    global Running_status,Output_Folder
+    global Running_status,Input_and_output_paths
 
     if Running_status == 0:
-        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Output_Folder:
-            print(f'[INFO]  已选择输出文件夹: {Output_Folder}')
+        Input_and_output_paths[1]['Output_Folder'] = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Input_and_output_paths[1]['Output_Folder']:
+            print('[INFO]  已选择输出文件夹:' ,Input_and_output_paths[1]['Output_Folder'])
         else :
             print('[INFO]  未选择文件夹')
             return  # 直接返回，不执行后续操作
-        Window.Interface15.label7.setText(Output_Folder)
-        Window.Interface16.label7.setText(Output_Folder)
-        Window.Interface19.label4.setText(Output_Folder)
-        Window.Interface20.label4.setText(Output_Folder)
+        Window.Interface15.label7.setText(Input_and_output_paths[1]['Output_Folder'])
+        Window.Interface16.label7.setText(Input_and_output_paths[1]['Output_Folder'])
+        Window.Interface19.label4.setText(Input_and_output_paths[1]['Output_Folder'])
+        Window.Interface20.label4.setText(Input_and_output_paths[1]['Output_Folder'])
     elif Running_status != 0:
         createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
     
@@ -1396,7 +1398,7 @@ def Request_test():
 
 # ——————————————————————————————————————————系统配置函数——————————————————————————————————————————
 def Config():
-    global Input_file,Output_Folder ,Account_Type ,  Prompt, Translation_lines,Text_Source_Language,The_Max_workers
+    global Input_and_output_paths,Account_Type ,  Prompt, Translation_lines,Text_Source_Language,The_Max_workers
     global API_key_list,tokens_limit_per,OpenAI_model,Request_Pricing , Response_Pricing,original_exmaple,translation_example,user_original_exmaple,user_translation_example
 
     #—————————————————————————————————————————— 读取账号配置信息——————————————————————————————————————————
@@ -1458,11 +1460,11 @@ def Config():
 
     #检查一下配置信息是否留空
     if Running_status == 2 or Running_status == 4 :
-        if (not API_key_list[0])  or (not Translation_lines) or(not Input_file) or(not Output_Folder)  :
+        if (not API_key_list[0])  or (not Translation_lines) or(not Input_and_output_paths[0]['Input_file']) or(not Input_and_output_paths[1]['Output_Folder'])  :
             print("\033[1;31mError:\033[0m 请正确填写配置,不要留空")
             return 0  #返回错误参数
     elif Running_status == 3 or Running_status == 5 :
-        if (not API_key_list[0]) or (not Translation_lines) or(not Input_Folder) or(not Output_Folder)  :  #注意API_key_list要在前面读取，否则会报错
+        if (not API_key_list[0]) or (not Translation_lines) or(not Input_and_output_paths[0]['Input_Folder']) or(not Input_and_output_paths[1]['Output_Folder'])  :  #注意API_key_list要在前面读取，否则会报错
             print("\033[1;31mError:\033[0m 请正确填写配置,不要留空")
             return 0  #返回错误参数
 
@@ -1589,45 +1591,45 @@ def Config():
             print("[INFO]  已添加新的译文示例",user_translation_example['content'],'\n')
     #如果是MTool任务
     if Running_status == 2 or Running_status == 4 :
-        print("[INFO] 已选择原文文件",Input_file,'\n')
+        print("[INFO] 已选择原文文件",Input_and_output_paths[0]['Input_file'],'\n')
     #如果是T++任务
     elif Running_status == 3 or Running_status == 5 :
-        print("[INFO] 已选择T++项目文件夹",Input_Folder,'\n')
-    print("[INFO] 已选择输出文件夹",Output_Folder,'\n')
+        print("[INFO] 已选择T++项目文件夹",Input_and_output_paths[0]['Input_Folder'],'\n')
+    print("[INFO] 已选择输出文件夹",Input_and_output_paths[1]['Output_Folder'],'\n')
 
     print ("[INFO] 当前设置最大线程数是:",The_Max_workers,'\n')
 
 
 # ——————————————————————————————————————————翻译任务主函数——————————————————————————————————————————
 def Main():
-    global Input_file,Output_Folder,Automatic_Backup_folder ,Translation_lines,Running_status,The_Max_workers,DEBUG_folder,Catalog_Dictionary
-    global ValueList_len ,Translation_Status_List , money_used,source,source_mid,result_dict,Translation_Progress,OpenAI_temperature,Text_Source_Language
+    global Input_and_output_paths,Translation_lines,Running_status,Catalog_Dictionary,Text_Source_Language
+    global ValueList_len ,Translation_Status_List , money_used,source,Original_text_dictionary,Translation_text_Dictionary,Translation_Progress,OpenAI_temperature
     # ——————————————————————————————————————————清空进度,花销与初始化变量存储的内容—————————————————————————————————————————
 
     money_used = 0
     Translation_Progress = 0 
 
-    result_dict = {}
-    source = {}  # 存储字符串数据的字典
+    Translation_text_Dictionary = {} # 存储翻译文本的字典
+    source = {}  # 存储读取文件数据的字典
 
-    # 创建DEBUG文件夹路径
-    DEBUG_folder = os.path.join(Output_Folder, 'DEBUG Folder')
-    #使用`os.makedirs()`函数创建新文件夹，设置`exist_ok=True`参数表示如果文件夹已经存在，不会抛出异常
-    os.makedirs(DEBUG_folder, exist_ok=True)
+
 
     # 创建备份文件夹路径
-    Automatic_Backup_folder = os.path.join(Output_Folder, 'Backup Folder')
-    os.makedirs(Automatic_Backup_folder, exist_ok=True) 
+    Input_and_output_paths[1]['Automatic_Backup_folder'] = os.path.join(Input_and_output_paths[1]['Output_Folder'], 'Backup Folder')
+    os.makedirs(Input_and_output_paths[1]['Automatic_Backup_folder'], exist_ok=True) 
 
+    # 创建DEBUG文件夹路径
+    Input_and_output_paths[1]['DEBUG_folder'] = os.path.join(Input_and_output_paths[1]['Output_Folder'], 'DEBUG Folder')
+    #使用`os.makedirs()`函数创建新文件夹，设置`exist_ok=True`参数表示如果文件夹已经存在，不会抛出异常
+    os.makedirs(Input_and_output_paths[1]['DEBUG_folder'], exist_ok=True)
 
     #创建存储翻译错行文本的文件夹
-    global Wrong_line_text_folder
-    Wrong_line_text_folder = os.path.join(DEBUG_folder, 'Wrong line text Folder')
-    os.makedirs(Wrong_line_text_folder, exist_ok=True)
+    Input_and_output_paths[1]['Wrong_line_text_folder'] = os.path.join(Input_and_output_paths[1]['DEBUG_folder'], 'Wrong line text Folder')
+    os.makedirs(Input_and_output_paths[1]['Wrong_line_text_folder'], exist_ok=True)
     # ——————————————————————————————————————————读取原文文件并处理—————————————————————————————————————————
     #如果进行Mtool翻译任务或者Mtool的词义检查任务
     if Running_status == 2:
-        with open(Input_file, 'r',encoding="utf-8") as f:               
+        with open(Input_and_output_paths[0]['Input_file'], 'r',encoding="utf-8") as f:               
             source_str = f.read()       #读取原文文件，以字符串的形式存储，直接以load读取会报错
 
             source = json.loads(source_str) #转换为字典类型的变量source，当作最后翻译文件的原文源
@@ -1636,9 +1638,9 @@ def Main():
 
     elif Running_status == 3:
         # 遍历文件夹中的所有xlsx文件到source变量里
-        for Input_file in os.listdir(Input_Folder):
-            if Input_file.endswith('.xlsx'):  # 如果是xlsx文件
-                file_path = os.path.join(Input_Folder, Input_file)  # 构造文件路径
+        for Input_and_output_paths[0]['Input_file'] in os.listdir(Input_and_output_paths[0]['Input_Folder']):
+            if Input_and_output_paths[0]['Input_file'].endswith('.xlsx'):  # 如果是xlsx文件
+                file_path = os.path.join(Input_and_output_paths[0]['Input_Folder'], Input_and_output_paths[0]['Input_file'])  # 构造文件路径
                 wb = load_workbook(file_path, read_only=True)  # 以只读模式打开工作簿
                 ws = wb.active  # 获取活动工作表
                 for row in ws.iter_rows(min_row=2, min_col=1):  # 从第2行开始遍历每一行
@@ -1653,9 +1655,9 @@ def Main():
 
         #遍历文件夹中所有的xlsx文件每个内容的对应行数添加到Catalog_Dictionary字典中，作为后续自动备份的索引目录
         Catalog_Dictionary = {}
-        for Input_file in os.listdir(Input_Folder):
-            if Input_file.endswith('.xlsx'):
-                file_path = os.path.join(Input_Folder, Input_file)
+        for Input_and_output_paths[0]['Input_file'] in os.listdir(Input_and_output_paths[0]['Input_Folder']):
+            if Input_and_output_paths[0]['Input_file'].endswith('.xlsx'):
+                file_path = os.path.join(Input_and_output_paths[0]['Input_Folder'], Input_and_output_paths[0]['Input_file'])
                 wb = load_workbook(file_path, read_only=True)  # 以只读模式打开工作簿
                 ws = wb.active  # 获取活动工作表
                 Index_list = []
@@ -1666,7 +1668,7 @@ def Main():
                         #获取该位置的值作为key
                         key = row[0].value
                         #获取该位置的文件名和行数存储到value里Index_list = [file_name,row_index]作为value
-                        Index_list = [Input_file,row_index]
+                        Index_list = [Input_and_output_paths[0]['Input_file'],row_index]
                         row_index += 1 #索引值加1
                         #将key和value添加到字典Catalog_Dictionary中
                         if key in Catalog_Dictionary: #如果key已经存在，就在key对应的value里添加Index_list,因为有些内容在多个文件里同时存在
@@ -1676,61 +1678,61 @@ def Main():
                 wb.close()  # 关闭工作簿
 
         #在输出文件夹里新建文件夹data
-        data_path = os.path.join(Output_Folder, 'data')
+        data_path = os.path.join(Input_and_output_paths[1]['Output_Folder'], 'data')
         os.makedirs(data_path, exist_ok=True)
 
         #在备份文件夹里新建文件夹data
-        data_Backup_path = os.path.join(Automatic_Backup_folder, 'data')
+        data_Backup_path = os.path.join(Input_and_output_paths[1]['Automatic_Backup_folder'], 'data')
         os.makedirs(data_Backup_path, exist_ok=True)
 
         #复制原项目data文件夹所有文件到输出文件夹data文件夹里
-        for Input_file in os.listdir(Input_Folder):
-            if Input_file.endswith('.xlsx'):  # 如果是xlsx文件
-                file_path = os.path.join(Input_Folder, Input_file)  # 构造文件路径
-                output_file_path = os.path.join(data_path, Input_file)  # 构造输出文件路径
+        for Input_and_output_paths[0]['Input_file'] in os.listdir(Input_and_output_paths[0]['Input_Folder']):
+            if Input_and_output_paths[0]['Input_file'].endswith('.xlsx'):  # 如果是xlsx文件
+                file_path = os.path.join(Input_and_output_paths[0]['Input_Folder'], Input_and_output_paths[0]['Input_file'])  # 构造文件路径
+                output_file_path = os.path.join(data_path, Input_and_output_paths[0]['Input_file'])  # 构造输出文件路径
                 wb = load_workbook(file_path)        # 以读写模式打开工作簿
                 wb.save(output_file_path)  # 保存工作簿
                 wb.close()  # 关闭工作簿
 
         #复制原项目data文件夹所有文件到备份文件夹的data里面
-        for Input_file in os.listdir(Input_Folder):
-            if Input_file.endswith('.xlsx'):  # 如果是xlsx文件
-                file_path = os.path.join(Input_Folder, Input_file)  # 构造文件路径
-                output_file_path = os.path.join( data_Backup_path, Input_file)  # 构造输出文件路径
+        for Input_and_output_paths[0]['Input_file'] in os.listdir(Input_and_output_paths[0]['Input_Folder']):
+            if Input_and_output_paths[0]['Input_file'].endswith('.xlsx'):  # 如果是xlsx文件
+                file_path = os.path.join(Input_and_output_paths[0]['Input_Folder'], Input_and_output_paths[0]['Input_file'])  # 构造文件路径
+                output_file_path = os.path.join( data_Backup_path, Input_and_output_paths[0]['Input_file'])  # 构造输出文件路径
                 wb = load_workbook(file_path)        # 以读写模式打开工作簿
                 wb.save(output_file_path)  # 保存工作簿
                 wb.close()  # 关闭工作簿
 
     source = convert_int_to_str(source) #将原文中的整数型数字转换为字符串型数字，因为后续的翻译会出现问题
-    source_mid = source.copy() #将原文复制一份到source_mid变量里，用于后续的修改
+    Original_text_dictionary = source.copy() #将原文复制一份到Original_text_dictionary变量里，用于后续的修改
 
     #如果正在翻译日语或者韩语时，会进行文本过滤
     if Text_Source_Language == "日语" or Text_Source_Language == "韩语" :
         remove_non_cjk(source)
-        remove_non_cjk(source_mid)
+        remove_non_cjk(Original_text_dictionary)
         print("[INFO] 你的原文已经过滤了非中日韩字符")
 
 
-    ValueList=list(source_mid.values())         #通过字典的valuas方法，获取所有的value，转换为list变量
-    ValueList_len = len(ValueList)              #获取原文件valua列表的长度，当作于原文的总行数
+    ValueList=list(Original_text_dictionary.values())         #通过字典的valuas方法，获取所有的value，转换为list变量
+    ValueList_len = len(ValueList)                           #获取原文件valua列表的长度，当作于原文的总行数
     print("[INFO] 你的原文长度是",ValueList_len)
 
     # 将字典source_mid中的键设为从0开始的整数型数字序号,使用中间变量进行存储，避免直接修改原字典
     new_source_mid = {}
     for i in range(ValueList_len):
-        new_source_mid[i] = source_mid[ValueList[i]]
-    source_mid = new_source_mid  # 将新的字典赋值给原来的字典，这样就可以通过数字序号来获取原文的内容了
-    #print("[DEBUG] 你的已修改原文是",source_mid)
+        new_source_mid[i] = Original_text_dictionary[ValueList[i]]
+    Original_text_dictionary = new_source_mid  # 将新的字典赋值给原来的字典，这样就可以通过数字序号来获取原文的内容了
+
 
     #如果开启译前替换功能，则根据用户字典进行替换
     if Window.Interface21.checkBox1.isChecked() :
-        source_mid = replace_strings(source_mid)
+        Original_text_dictionary = replace_strings(Original_text_dictionary)
 
     #如果开启了换行符替换翻译功能，则进行换行符替换成特殊字符
     if ((Running_status == 2 and Window.Interface15.SwitchButton2.isChecked()) or (Running_status == 3 and Window.Interface16.SwitchButton2.isChecked())) :
-        source_mid = replace_special_characters(source_mid, "替换") #替换特殊字符
+        Original_text_dictionary = replace_special_characters(Original_text_dictionary, "替换") #替换特殊字符
 
-    result_dict = source_mid.copy() # 先存储未翻译的译文，千万注意不要写等号，不然两个变量会指向同一个内存地址，导致修改一个变量，另一个变量也会被修改
+    Translation_text_Dictionary = Original_text_dictionary.copy() # 先存储未翻译的译文，千万注意不要写等号，不然两个变量会指向同一个内存地址，导致修改一个变量，另一个变量也会被修改
     Translation_Status_List =  [0] * ValueList_len   #创建文本翻译状态列表，用于并发时获取每个文本的翻译状态
 
 
@@ -1832,34 +1834,34 @@ def Main():
             print("\033[1;33mWarning:\033[0m 当前OpenAI温度设置为：",OpenAI_temperature)
 
         #如果只剩下15句左右没有翻译则直接逐行翻译
-        if count_not_Translate <= 15:
+        if count_not_Translate <= 20:
             Translation_lines_index = len(Translation_lines_list) - 1 
-            print("\033[1;33mWarning:\033[0m 当剩下15句未翻译时，将进行逐行翻译-----------------------------------")
+            print("\033[1;33mWarning:\033[0m 当剩下20句未翻译时，将进行逐行翻译-----------------------------------")
 
 
   # ——————————————————————————————————————————将各类数据处理并保存为各种文件—————————————————————————————————————————
 
-    #处理翻译结果----------------------------------------------------
-    new_result_dict = {}
-    for i, key in enumerate(source.keys()):     # 使用enumerate()遍历source字典的键，并将其替换到result_dict中
-        new_result_dict[key] = result_dict[i]   #在新字典中创建新key的同时把result_dict[i]的值赋予到key对应的值上
+    #处理翻译结果,合并原文与译文成一个字典数据----------------------------------------------------
+    Translated_file_data = {}
+    for i, key in enumerate(source.keys()):    
+        Translated_file_data[key] = Translation_text_Dictionary[i]   
 
     #如果开启了换行符替换翻译功能，则将翻译结果中的特殊字符替换为\n
     if ((Running_status == 2 and Window.Interface15.SwitchButton2.isChecked()) or (Running_status == 3 and Window.Interface16.SwitchButton2.isChecked())) :
-        new_result_dict = replace_special_characters(new_result_dict, "还原") #还原特殊字符
+        Translated_file_data = replace_special_characters(Translated_file_data, "还原") #还原特殊字符
 
     # 将字典存储的译文存储到TrsData.json文件------------------------------------
     if Running_status == 2 :
         #写入文件
-        with open(os.path.join(Output_Folder, "TrsData.json"), "w", encoding="utf-8") as f:
-            json.dump(new_result_dict, f, ensure_ascii=False, indent=4)
+        with open(os.path.join(Input_and_output_paths[1]['Output_Folder'], "TrsData.json"), "w", encoding="utf-8") as f:
+            json.dump(Translated_file_data, f, ensure_ascii=False, indent=4)
 
    # 存储Tpp项目------------------------------------
     elif Running_status == 3 :
         #遍历data_path文件夹里每个的xlsx文件，逐行读取每个文件从A2开始数据，以数据为key，如果source字典中存在该key，则获取value，并将value复制到该行第2列。然后保存文件
-        for Input_file in os.listdir(data_path):
-            if Input_file.endswith('.xlsx'):  # 如果是xlsx文件
-                file_path = os.path.join(data_path, Input_file)  # 构造文件路径
+        for Input_and_output_paths[0]['Input_file'] in os.listdir(data_path):
+            if Input_and_output_paths[0]['Input_file'].endswith('.xlsx'):  # 如果是xlsx文件
+                file_path = os.path.join(data_path, Input_and_output_paths[0]['Input_file'])  # 构造文件路径
                 wb = load_workbook(file_path)  # 以读写模式打开工作簿
                 ws = wb.active  # 获取活动工作表
                 for row in ws.iter_rows(min_row=2, min_col=1):  # 从第2行开始遍历每一行
@@ -1870,8 +1872,8 @@ def Main():
                     key = row[0].value  # 获取该行第1列的值作为key
                     #如果key不是None
                     if key is not None:
-                        if key in new_result_dict:  # 如果key在new_result_dict字典中
-                            value = new_result_dict[key]  # 获取new_result_dict字典中对应的value
+                        if key in Translated_file_data:  # 如果key在new_result_dict字典中
+                            value = Translated_file_data[key]  # 获取new_result_dict字典中对应的value
                             row[1].value = value  # 将value写入该行第2列
                         else:#如果不在字典中，且第二列没有内容，则复制到第二列中
                             if row[1].value == None:
@@ -1895,7 +1897,7 @@ def Main():
 # ——————————————————————————————————————————翻译任务线程并发函数——————————————————————————————————————————
 def Make_request():
 
-    global result_dict,waiting_threads # 声明全局变量
+    global Translation_text_Dictionary,waiting_threads # 声明全局变量
     global Translation_Status_List  
     global money_used,Translation_Progress,key_list_index,Number_of_requested,Number_of_mark
 
@@ -1928,7 +1930,7 @@ def Make_request():
         # ——————————————————————————————————————————截取特定段落的文本并进行处理——————————————————————————————————————————
 
         #读取source_mid源文件中特定起始位置到结束位置的数据,构建新字典变量
-        subset_mid = {k: source_mid[k] for k in range( start , end)}     #`k: source_mid[k]`是一个字典键值对，其中`k`表示键，`source_mid[k]`表示该键对应的值。`for k in keys`是一个for循环，它遍历了`keys`列表里的内容，并将其用作字典键。
+        subset_mid = {k: Original_text_dictionary[k] for k in range( start , end)}     #`k: source_mid[k]`是一个字典键值对，其中`k`表示键，`source_mid[k]`表示该键对应的值。`for k in keys`是一个for循环，它遍历了`keys`列表里的内容，并将其用作字典键。
         #print("[DEBUG] 提取的subset_mid是",subset_mid,'\n','\n') 
 
         
@@ -2067,9 +2069,9 @@ def Make_request():
                     Start_request_time = time.time()
 
                     #配置当初请求的AI参数
-                    temperature=OpenAI_temperature,
-                    top_p = OpenAI_top_p,                        
-                    presence_penalty=OpenAI_presence_penalty,
+                    temperature=OpenAI_temperature
+                    top_p = OpenAI_top_p                        
+                    presence_penalty=OpenAI_presence_penalty
                     frequency_penalty=OpenAI_frequency_penalty
 
                     #如果启用实时参数设置
@@ -2266,7 +2268,7 @@ def Make_request():
                             #构建专属文件名，以便于后续DEBUG
                             file_name = str(start) + "-" + str(end) + ".json"
                             #将错误的键值对写入文件，以便于后续DEBUG
-                            with open( os.path.join(Wrong_line_text_folder, file_name), "w", encoding="utf-8") as f:
+                            with open( os.path.join(Input_and_output_paths[1]['Wrong_line_text_folder'], file_name), "w", encoding="utf-8") as f:
                                 json.dump(Check_dict, f, ensure_ascii=False, indent=4)
 
                         #如果翻译行数已经迭代到了10行，就忽略错误，避免死循环
@@ -2297,7 +2299,7 @@ def Make_request():
                     if  Wrong_answer_count == 1 :#当第一次出现错误回复时
                         # 创建专属文件夹路径
                         The_folder_name = "Wrong position  "+str(start) + "——" +str(end)
-                        folder_path = os.path.join(DEBUG_folder, The_folder_name)
+                        folder_path = os.path.join(Input_and_output_paths[1]['DEBUG_folder'], The_folder_name)
                         os.makedirs(folder_path, exist_ok=True)
 
                         #写入原文文本，方便做对比
@@ -2350,9 +2352,9 @@ def Make_request():
                     new_response_dict =json.loads(new_response )
                     for key, value in new_response_dict.items():# 遍历new_response_dict中的键值对
                         # 判断key是否在result_dict中出现过，注意两个字典的key变量类型是不同的
-                        if int(key) in result_dict:
+                        if int(key) in Translation_text_Dictionary:
                             # 如果出现过，则将result_dict中对应键的值替换为new_response_dict中对应键的值
-                            result_dict[int(key)] = value
+                            Translation_text_Dictionary[int(key)] = value
  
                     #自动备份翻译数据
                     if Window.Interface17.checkBox.isChecked() :
@@ -2380,15 +2382,15 @@ def Make_request():
 
 # ——————————————————————————————————————————检查词义错误主函数——————————————————————————————————————————
 def Check_wrong_Main():
-    global Input_file,Input_Folder,Output_Folder,source_or_dict,source_tr_dict,Embeddings_Status_List,Embeddings_or_List,Embeddings_tr_List,Translation_Status_List,ValueList_len,Catalog_Dictionary
-    global Translation_Progress,money_used,source,source_mid,result_dict,The_Max_workers,DEBUG_folder,Automatic_Backup_folder,Translation_lines ,Running_status,OpenAI_temperature
+    global Input_and_output_paths,source_or_dict,source_tr_dict,Embeddings_Status_List,Embeddings_or_List,Embeddings_tr_List,Translation_Status_List,ValueList_len,Catalog_Dictionary
+    global Translation_Progress,money_used,source,Original_text_dictionary,Translation_text_Dictionary,Translation_lines ,Running_status,OpenAI_temperature
             
     # ——————————————————————————————————————————清空进度,花销与初始化变量存储的内容—————————————————————————————————————————
 
     money_used = 0
     Translation_Progress = 0 
 
-    result_dict = {}
+    Translation_text_Dictionary = {}
     source = {}  # 存储字符串数据的字典
 
     error_txt_dict = {}     #存储错行文本的字典
@@ -2398,34 +2400,34 @@ def Check_wrong_Main():
     Semantic_similarity_list = []
 
     # 创建DEBUG文件夹路径
-    DEBUG_folder = os.path.join(Output_Folder, 'DEBUG Folder')
+    Input_and_output_paths[1]['DEBUG_folder'] = os.path.join(Input_and_output_paths[1]['Output_Folder'], 'DEBUG Folder')
     #使用`os.makedirs()`函数创建新文件夹，设置`exist_ok=True`参数表示如果文件夹已经存在，不会抛出异常
-    os.makedirs(DEBUG_folder, exist_ok=True)
+    os.makedirs(Input_and_output_paths[1]['DEBUG_folder'], exist_ok=True)
 
     # 创建备份文件夹路径
-    Automatic_Backup_folder = os.path.join(Output_Folder, 'Backup Folder')
+    Input_and_output_paths[1]['Automatic_Backup_folder'] = os.path.join(Input_and_output_paths[1]['Output_Folder'], 'Backup Folder')
     #使用`os.makedirs()`函数创建新文件夹，设置`exist_ok=True`参数表示如果文件夹已经存在，不会抛出异常
-    os.makedirs(Automatic_Backup_folder, exist_ok=True) 
+    os.makedirs(Input_and_output_paths[1]['Automatic_Backup_folder'], exist_ok=True) 
 
     #创建存储错误文本的文件夹
-    ErrorTxt_folder = os.path.join(DEBUG_folder, 'ErrorTxt Folder')
+    ErrorTxt_folder = os.path.join(Input_and_output_paths[1]['DEBUG_folder'], 'ErrorTxt Folder')
     #使用`os.makedirs()`函数创建新文件夹，设置`exist_ok=True`参数表示如果文件夹已经存在，不会抛出异常
     os.makedirs(ErrorTxt_folder, exist_ok=True)
 
     # —————————————————————————————————————读取目标文件——————————————————————————————————————————
 
     if Running_status == 4:
-        with open(Input_file, 'r',encoding="utf-8") as f:               
+        with open(Input_and_output_paths[0]['Input_file'], 'r',encoding="utf-8") as f:               
             source_str = f.read()       #读取原文文件，以字符串的形式存储，直接以load读取会报错
 
-            result_dict = json.loads(source_str) #转换为字典类型的变量source，当作最后翻译文件的原文源
+            Translation_text_Dictionary = json.loads(source_str) #转换为字典类型的变量source，当作最后翻译文件的原文源
 
 
     elif Running_status == 5:
         # 遍历文件夹中的所有xlsx文件到source变量里
-        for Input_file in os.listdir(Input_Folder):
-            if Input_file.endswith('.xlsx'):  # 如果是xlsx文件
-                file_path = os.path.join(Input_Folder, Input_file)  # 构造文件路径
+        for Input_and_output_paths[0]['Input_file'] in os.listdir(Input_and_output_paths[0]['Input_Folder']):
+            if Input_and_output_paths[0]['Input_file'].endswith('.xlsx'):  # 如果是xlsx文件
+                file_path = os.path.join(Input_and_output_paths[0]['Input_Folder'], Input_and_output_paths[0]['Input_file'])  # 构造文件路径
                 wb = load_workbook(file_path, read_only=True)  # 以只读模式打开工作簿
                 ws = wb.active  # 获取活动工作表
                 for row in ws.iter_rows(min_row=2, min_col=1):  # 从第2行开始遍历每一行。
@@ -2433,14 +2435,14 @@ def Check_wrong_Main():
                     if row[0].value is not None:
                         key = row[0].value  # 获取该行第1列的值作为key
                         value = row[1].value  # 获取该行第2列的值作为value
-                        result_dict[key] = value  # 将key和value添加到字典source中
+                        Translation_text_Dictionary[key] = value  # 将key和value添加到字典source中
                 wb.close()  # 关闭工作簿
 
         #遍历文件夹中所有的xlsx文件每个内容的对应行数添加到Catalog_Dictionary字典中，用于后续的索引
         Catalog_Dictionary = {}
-        for Input_file in os.listdir(Input_Folder):
-            if Input_file.endswith('.xlsx'):
-                file_path = os.path.join(Input_Folder, Input_file)
+        for Input_and_output_paths[0]['Input_file'] in os.listdir(Input_and_output_paths[0]['Input_Folder']):
+            if Input_and_output_paths[0]['Input_file'].endswith('.xlsx'):
+                file_path = os.path.join(Input_and_output_paths[0]['Input_Folder'], Input_and_output_paths[0]['Input_file'])
                 wb = load_workbook(file_path, read_only=True)  # 以只读模式打开工作簿
                 ws = wb.active  # 获取活动工作表
                 Index_list = []
@@ -2451,7 +2453,7 @@ def Check_wrong_Main():
                         #获取该位置的值作为key
                         key = row[0].value
                         #获取该位置的文件名和行数存储到value里Index_list = [file_name,row_index]作为value
-                        Index_list = [Input_file,row_index]
+                        Index_list = [Input_and_output_paths[0]['Input_file'],row_index]
                         row_index += 1 #索引值加1
                         #将key和value添加到字典Catalog_Dictionary中
                         if key in Catalog_Dictionary: #如果key已经存在，就在key对应的value里添加Index_list,因为有些内容在多个文件里同时存在
@@ -2462,26 +2464,26 @@ def Check_wrong_Main():
         
             
         #在输出文件夹里新建文件夹data
-        data_path = os.path.join(Output_Folder, 'data')
+        data_path = os.path.join(Input_and_output_paths[1]['Output_Folder'], 'data')
         os.makedirs(data_path, exist_ok=True)
 
         #在备份文件夹里新建文件夹data
-        data_Backup_path = os.path.join(Automatic_Backup_folder, 'data')
+        data_Backup_path = os.path.join(Input_and_output_paths[1]['Automatic_Backup_folder'], 'data')
         os.makedirs(data_Backup_path, exist_ok=True)
 
         #复制原项目data文件夹所有文件到输出文件夹data文件夹里和备份文件夹的data里面
-        for Input_file in os.listdir(Input_Folder):
-            if Input_file.endswith('.xlsx'):  # 如果是xlsx文件
-                file_path = os.path.join(Input_Folder, Input_file)  # 构造文件路径
-                output_file_path = os.path.join(data_path, Input_file)  # 构造输出文件路径
+        for Input_and_output_paths[0]['Input_file'] in os.listdir(Input_and_output_paths[0]['Input_Folder']):
+            if Input_and_output_paths[0]['Input_file'].endswith('.xlsx'):  # 如果是xlsx文件
+                file_path = os.path.join(Input_and_output_paths[0]['Input_Folder'], Input_and_output_paths[0]['Input_file'])  # 构造文件路径
+                output_file_path = os.path.join(data_path, Input_and_output_paths[0]['Input_file'])  # 构造输出文件路径
                 wb = load_workbook(file_path)        # 以读写模式打开工作簿
                 wb.save(output_file_path)  # 保存工作簿
                 wb.close()  # 关闭工作簿
         
-        for Input_file in os.listdir(Input_Folder):
-            if Input_file.endswith('.xlsx'):  # 如果是xlsx文件
-                file_path = os.path.join(Input_Folder, Input_file)  # 构造文件路径
-                output_file_path = os.path.join( data_Backup_path, Input_file)  # 构造输出文件路径
+        for Input_and_output_paths[0]['Input_file'] in os.listdir(Input_and_output_paths[0]['Input_Folder']):
+            if Input_and_output_paths[0]['Input_file'].endswith('.xlsx'):  # 如果是xlsx文件
+                file_path = os.path.join(Input_and_output_paths[0]['Input_Folder'], Input_and_output_paths[0]['Input_file'])  # 构造文件路径
+                output_file_path = os.path.join( data_Backup_path, Input_and_output_paths[0]['Input_file'])  # 构造输出文件路径
                 wb = load_workbook(file_path)        # 以读写模式打开工作簿
                 wb.save(output_file_path)  # 保存工作簿
                 wb.close()  # 关闭工作簿
@@ -2489,17 +2491,17 @@ def Check_wrong_Main():
     # —————————————————————————————————————处理读取的文件——————————————————————————————————————————
 
     #检查source_dict的value，出现null或者空字符串或者纯符号的value，将其替换为指定字符串
-    check_dict_values(result_dict)
+    check_dict_values(Translation_text_Dictionary)
 
     #将source_dict的key作为source_or_dict字典的从0开始的key的valua，source_dict的valua作为source_tr_dict字典的从0开始的key的valua
     source_or_dict = {}
     source_tr_dict = {}
-    for i, key in enumerate(result_dict.keys()):
+    for i, key in enumerate(Translation_text_Dictionary.keys()):
         source_or_dict[i] = key
-        source_tr_dict[i] = result_dict[key]
+        source_tr_dict[i] = Translation_text_Dictionary[key]
     
     #创建编码状态列表，用于并发时获取每对翻译的编码状态
-    ValueList_len = len(result_dict.values())
+    ValueList_len = len(Translation_text_Dictionary.values())
     Embeddings_Status_List =  [0] * ValueList_len
 
     #创建原文编码列表，用于存储原文的编码
@@ -2519,8 +2521,8 @@ def Check_wrong_Main():
 
     #遍历source_dict每个key和每个value，利用num_tokens_from_messages(messages, model)计算每个key和value的tokens数量，并计算总tokens数量
     tokens_all_consume = 0
-    for i, key in enumerate(result_dict.keys()):
-        tokens_all_consume = tokens_all_consume + num_tokens_from_messages(key, "text-embedding-ada-002") + num_tokens_from_messages(result_dict[key], "text-embedding-ada-002")
+    for i, key in enumerate(Translation_text_Dictionary.keys()):
+        tokens_all_consume = tokens_all_consume + num_tokens_from_messages(key, "text-embedding-ada-002") + num_tokens_from_messages(Translation_text_Dictionary[key], "text-embedding-ada-002")
 
     #根据tokens_all_consume与除以6090计算出需要请求的次数,并向上取整（除以6090是为了富余任务数）
     num_request = int(math.ceil(tokens_all_consume / 6090))
@@ -2720,28 +2722,28 @@ def Check_wrong_Main():
     print("\033[1;33mWarning:\033[0m 针对错误译文进行重新翻译-----------------------------------")
 
     #将result_dict的key作为source的key，并复制source的key的值为该key对应的value
-    source = result_dict.copy()
+    source = Translation_text_Dictionary.copy()
     #将source的value的值全部替换为key的值，这样source的key和value就一样了
     for key, value in source.items():
         source[key] = key
 
-    source_mid = source.copy()  # 复制source的值到source_mid，作为中间变量
+    Original_text_dictionary = source.copy()  # 复制source的值到source_mid，作为中间变量
 
 
 
-    keyList=list(source_mid.keys())         #通过字典的keys方法，获取所有的key，转换为list变量
+    keyList=list(Original_text_dictionary.keys())         #通过字典的keys方法，获取所有的key，转换为list变量
     ValueList_len = len(keyList)              #获取原文件key列表的长度，当作于原文的总行数
     #print("[INFO] 你的原文长度是",keyList_len)
 
     #将字典source_mid中的键设为从0开始的整数型数字序号 
     for i in range(ValueList_len):        #循环遍历key列表
-        source_mid[i] = source_mid.pop(keyList[i])    #将原来的key对应的value值赋给新的key，同时删除原来的key    
+        Original_text_dictionary[i] = Original_text_dictionary.pop(keyList[i])    #将原来的key对应的value值赋给新的key，同时删除原来的key    
     #print("[DEBUG] 你的已修改原文是",source_mid)
 
 
     #将字典result_dict中的键设为从0开始的整数型数字序号 
     for i in range(ValueList_len):        #循环遍历key列表
-        result_dict[i] = result_dict.pop(keyList[i])    #将原来的key对应的value值赋给新的key，同时删除原来的key    
+        Translation_text_Dictionary[i] = Translation_text_Dictionary.pop(keyList[i])    #将原来的key对应的value值赋给新的key，同时删除原来的key    
     #print("[DEBUG] 你的已修改原文是",result_dict)
   
 
@@ -2816,21 +2818,21 @@ def Check_wrong_Main():
     #处理翻译结果----------------------------------------------------
     new_result_dict = {}
     for i, key in enumerate(source.keys()):     # 使用enumerate()遍历source字典的键，并将其替换到result_dict中
-        new_result_dict[key] = result_dict[i]   #在新字典中创建新key的同时把result_dict[i]的值赋予到key对应的值上
+        new_result_dict[key] = Translation_text_Dictionary[i]   #在新字典中创建新key的同时把result_dict[i]的值赋予到key对应的值上
 
 
     # 将字典存储的译文存储到TrsData.json文件------------------------------------
     if Running_status == 4 :
         #写入文件
-        with open(os.path.join(Output_Folder, "TrsData.json"), "w", encoding="utf-8") as f:
+        with open(os.path.join(Input_and_output_paths[1]['Output_Folder'], "TrsData.json"), "w", encoding="utf-8") as f:
             json.dump(new_result_dict, f, ensure_ascii=False, indent=4)
 
    # 存储Tpp项目------------------------------------
     elif Running_status == 5 :
         #遍历data_path文件夹里每个的xlsx文件，逐行读取每个文件从A2开始数据，以数据为key，如果source字典中存在该key，则获取value，并将value复制到该行第2列。然后保存文件
-        for Input_file in os.listdir(data_path):
-            if Input_file.endswith('.xlsx'):  # 如果是xlsx文件
-                file_path = os.path.join(data_path, Input_file)  # 构造文件路径
+        for Input_and_output_paths[0]['Input_file'] in os.listdir(data_path):
+            if Input_and_output_paths[0]['Input_file'].endswith('.xlsx'):  # 如果是xlsx文件
+                file_path = os.path.join(data_path, Input_and_output_paths[0]['Input_file'])  # 构造文件路径
                 wb = load_workbook(file_path)  # 以读写模式打开工作簿
                 ws = wb.active  # 获取活动工作表
                 for row in ws.iter_rows(min_row=2, min_col=1):  # 从第2行开始遍历每一行
@@ -4152,16 +4154,16 @@ class Widget17(QFrame):#备份设置界面
             createSuccessInfoBar("已设置开启自动备份，建议使用固态硬盘或者翻译小文件时使用")
 
     def Manual_Backup_Button(self):
-        global Manual_Backup_Folder,Manual_Backup_Status
+        global Input_and_output_paths,Manual_Backup_Status
 
         if Running_status == 2 or Running_status == 3 or Running_status == 4 or Running_status == 5: #如果有需要翻译的项目正在进行
             if Number_of_requested > 10: #如果已经有翻译请求正在进行
                 if Manual_Backup_Status == 0:#如果手动备份状态为未进行中
                     
                     Manual_Backup_Status=1 #修改手动备份状态为进行中
-                    Manual_Backup_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-                    if Manual_Backup_Folder:
-                        print(f'[INFO]  已选择手动备份文件夹: {Manual_Backup_Folder}')
+                    Input_and_output_paths[1]['Manual_Backup_Folder'] = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+                    if Input_and_output_paths[1]['Manual_Backup_Folder']:
+                        print('[INFO]  已选择手动备份文件夹:', Input_and_output_paths[1]['Manual_Backup_Folder'])
                     else :
                         print('[INFO]  未选择文件夹')
                         Manual_Backup_Status = 0 #修改手动备份状态为未进行中
@@ -5730,7 +5732,7 @@ class AvatarWidget(NavigationWidget):#头像导航项
 
     def __init__(self, parent=None):
         super().__init__(isSelectable=False, parent=parent)
-        self.avatar = QImage(os.path.join(resource_dir, "Avatar.png")).scaled(
+        self.avatar = QImage(os.path.join(Input_and_output_paths[3]['resource_dir'], "Avatar.png")).scaled(
             24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
     def paintEvent(self, e):
@@ -5991,7 +5993,7 @@ class window(FramelessWindow): #主窗口
         #with open(f'resource/{color}/demo.qss', encoding='utf-8') as f: #打开样式表
             #self.setStyleSheet(f.read()) #设置样式表
 
-        dir1 = os.path.join(resource_dir, "light")
+        dir1 = os.path.join(Input_and_output_paths[3]['resource_dir'], "light")
         dir2 = os.path.join(dir1, "demo.qss")
         with open(dir2, encoding='utf-8') as f: #打开样式表
             self.setStyleSheet(f.read()) #设置样式表
