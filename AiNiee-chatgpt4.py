@@ -2561,8 +2561,8 @@ def Check_wrong_Main():
 
         #计算符号相似度----------------------------------------
         # 用正则表达式匹配原文与译文中的标点符号
-        k_syms = re.findall(r'[。！？…♡♥=★♪]', sentences[0])
-        v_syms = re.findall(r'[。！？…♡♥=★♪]', sentences[1])
+        k_syms = re.findall(r'[。！？…♡♥=★♪♫⚡]', sentences[0])
+        v_syms = re.findall(r'[。！？…♡♥=★♪♫⚡]', sentences[1])
 
         #假如v_syms与k_syms都不为空
         if len(v_syms) != 0 and len(k_syms) != 0:
