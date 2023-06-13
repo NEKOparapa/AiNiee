@@ -2403,9 +2403,11 @@ def Check_wrong_Main():
 
     elif Running_status == 5:
 
+        #复制xlsx文件到输出文件夹
         copy_xlsx_files(Input_and_output_paths[0]['Input_Folder'], Input_and_output_paths[1]['Output_Folder'])
         copy_xlsx_files(Input_and_output_paths[0]['Input_Folder'], Input_and_output_paths[1]['Automatic_Backup_folder'])
 
+        #创建存储原文文本，译文文本，文本索引的列表变量
         Text_Directory_Index = []
         for root, dirs, files in os.walk(Input_and_output_paths[0]['Input_Folder']):
             for file in files:
@@ -2425,7 +2427,7 @@ def Check_wrong_Main():
                                 "Translated text":cell_value2
                         })
 
-        #获取source_file里的"Original text"的值，写入source字典变量中，source的结构是：{"Original text":"Original text" ,……}
+        #提取原文文本，译文文本组成的字典
         for i in Text_Directory_Index:
             Translation_text_Dictionary[i["Original text"]] = i["Translated text"]
         
