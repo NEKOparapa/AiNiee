@@ -62,12 +62,12 @@ Prompt_zh ='''你现在是一位擅长中日文化的本地化翻译员,需要�
 ###
 输入内容格式如下：
 {
-"文本id": "日语文本"
+"<文本id>": "<日语文本>"
 }
 ###
 输出内容格式如下：
 {
-"文本id": "翻译后文本"
+"<文本id>": "<翻译后文本>"
 }
 '''      #系统提示词
 
@@ -84,12 +84,12 @@ Point 2: Ensure that the number of lines in the original text is consistent with
 ###
 The input format is as follows:
 {
-"Text ID": "Japanese text"
+"<Text ID>": "<Japanese text>"
 }
 ###
 The output format is as follows:
 {
-"Text ID": "Translated text"
+"<Text ID>": "<Translated text>"
 }
 '''      #系统提示词
 
