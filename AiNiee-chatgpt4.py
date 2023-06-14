@@ -169,6 +169,7 @@ Input_and_output_paths = [{"Input_file":"","Input_Folder":""},
 source = {}       # 存储读取的文件数据
 Original_text_dictionary = {}   # 存储处理过的原文文本
 Translation_text_Dictionary = {}       # 用字典形式存储已经翻译好的文本
+Text_Directory_Index = [] # 存储文本的索引的缓存列表
 Translation_Status_List = []  # 存储原文文本翻译状态列表，用于并发任务时获取每个文本的翻译状态
 ValueList_len = 0   # 存储原文件key列表的长度
 
@@ -400,9 +401,9 @@ def num_tokens_from_messages(messages, model):
         japanese_count, chinese_count, korean_count,english_count= count_japanese_chinese_korean(messages)
         num_tokens = japanese_count * 1.5 + chinese_count * 2 + korean_count * 2.5 
         return num_tokens
-
     else:
         raise NotImplementedError(f"""num_tokens_from_messages() is not implemented for model {model}. See https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are converted to tokens.""")
+
     num_tokens = 0
     #这里重构了官方计算tokens的方法，因为打包时，线程池里的子线程子线程弹出错误：Error: Unknown encoding cl100k_base
     for message in messages:
@@ -1805,6 +1806,7 @@ def Main():
 
     source = {}  # 存储读取文件数据的字典
     Translation_text_Dictionary = {} # 存储翻译文本的字典
+    Text_Directory_Index = [] # 存储文本的索引的缓存列表
 
 
     # 创建备份文件夹路径
@@ -2131,7 +2133,7 @@ def Make_request():
                 break
 
 
-            # 检查子是否符合速率限制---------------------------------
+            # 检查是否符合速率限制---------------------------------
             if api_tokens.consume(tokens_consume * 2  ) and api_request.send_request():
 
                 #如果能够发送请求，则扣除令牌桶里的令牌数
@@ -2153,11 +2155,6 @@ def Make_request():
                         #openai.api_key = API_key_list[key_list_index]
                         on_update_signal("CG_key")
 
-                        #重置频率限制，重置请求时间
-                        #api_tokens.tokens = tokens_limit_per * 2
-                        #api_request.last_request_time = 0
-
-                        #print("\033[1;34m[INFO]\033[0m 该key请求数已达",limit_count,"将进行KEY的更换")
                         print("\033[1;34m[INFO]\033[0m 将API-KEY更换为第",key_list_index+1,"个 ,Key为：", API_key_list[key_list_index] ,'\n')
                         lock4.release()  # 释放锁
 
@@ -2171,8 +2168,6 @@ def Make_request():
 
                 # ——————————————————————————————————————————开始发送会话请求——————————————————————————————————————————
                 try:
-
-
                     lock5.acquire()  # 获取锁
                     #记录请求数
                     Number_of_requested = Number_of_requested + 1
@@ -2514,7 +2509,8 @@ def Check_wrong_Main():
 
 
     source = {}  # 存储字符串数据的字典
-    Translation_text_Dictionary = {}
+    Translation_text_Dictionary = {} # 存储翻译文本的字典
+    Text_Directory_Index = [] # 存储文本的索引的缓存列表
 
     error_txt_dict = {}     #存储错行文本的字典
 
@@ -5326,7 +5322,7 @@ class Widget21(QFrame):#用户字典界面
         #设置“译前替换”显示
         self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label2.setText("(在翻译前将所有原文替换成译文)")
+        self.label2.setText("(在翻译开始前，将游戏文本中出现的字典原文全部替换成为译文，再发送过去翻译)")
 
 
         #设置“译前替换”开
@@ -5353,7 +5349,7 @@ class Widget21(QFrame):#用户字典界面
         #设置“译时提示”显示
         self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label4.setText("(在请求翻译的内容中出现字典内容时，该部分字典内容将作为AI的翻译示例，不是全程加入全部字典内容)")
+        self.label4.setText("(在翻译进行时，如果该次游戏文本出现了部分字典原文，则会将这部分字典内容作为AI的翻译示例，一并发过去翻译)")
 
 
         #设置“译时提示”开
@@ -5606,7 +5602,7 @@ class Widget22(QFrame):#提示词工程界面
 
         self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label4.setText("(将表格内容添加为新的翻译示例，全程加入翻译请求中，帮助AI更好的进行少样本学习，提高翻译质量)")
+        self.label4.setText("(将表格内容添加为新的翻译示例，全程加入翻译请求中，帮助AI更好的进行少样本学习，学习其中格式，翻译逻辑，提高AI翻译质量)")
 
 
         self.checkBox2 = CheckBox('启用功能')
