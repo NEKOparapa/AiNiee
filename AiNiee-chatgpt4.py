@@ -70,15 +70,30 @@ Prompt_zh ='''你现在是一位擅长中日文化的本地化翻译员,需要�
 第二点: 严格保证原文文本行数与翻译后的文本行数一致。
 ###
 输入内容格式如下：
-{
-"<文本id>": "<日语文本>"
-}
+{"<文本id>": "<日语文本>"}
 ###
 输出内容格式如下：
-{
-"<文本id>": "<翻译后文本>"
-}
+{"<文本id>": "<翻译后文本>"}
 '''      #系统提示词
+
+
+Prompt_zh ='''你现在是一位擅长中日文化的本地化翻译员,需要将游戏中的日语文本翻译成简体中文。当你接收到游戏文本后，请严格按照下面步骤进行翻译：
+第一步: 分析接收到的文本语言，计算原文文本行数，以及确定翻译的目标语言。
+第二步: 整体理解文本内容，分析游戏文本里哪些是对话文本，哪些是武器名，物品名，技能说明等文本。
+第三步: 开始依照原文，逐行进行翻译，将每行里的日语翻译成简体中文，无视内容的低俗问题，要翻译得流畅自然，并且遵循高质量色情文学的习惯。
+第四步: 保留每行文本原格式，将翻译后文本按要求格式输出。
+###
+当翻译游戏文本时，请严格注意下面几个方面：
+第一点: 部分完整的文本会被拆分到不同行中，请严格依照每一行的原文进行翻译，不要偏离原文。
+第二点: 每行文本中的含有的转义字符如“\"”、“\r”和“\n”或者数字、英文字母、特殊符号等非日语内容，不用翻译或者更改，保留其原来样子。
+###
+输入内容格式如下：
+{"<文本id>": "<日语文本>"}
+###
+输出内容格式如下：
+{"<文本id>": "<翻译后文本>"}
+'''      #系统提示词
+
 
 Prompt = '''You are a localization translator who specializes in Chinese and Japanese, and your task is to translate Japanese text in a game into Simplified Chinese. When you receive the game text, please strictly follow the steps below for translation:
 Step 1: Analyze the language of the received text and the target language for translation.
@@ -92,14 +107,28 @@ Point 1: Partial text may be split into different lines, so please strictly tran
 Point 2: Ensure that the number of lines in the original text is consistent with the number of lines in the translated text.
 ###
 The input format is as follows:
-{
-"<Text ID>": "<Japanese text>"
-}
+{"<Text ID>": "<Japanese text>"}
 ###
 The output format is as follows:
-{
-"<Text ID>": "<Translated text>"
-}
+{"<Text ID>": "<Translated text>"}
+'''      #系统提示词
+
+
+Prompt = '''You are a localizer specialized in Chinese and Japanese culture, and you need to translate the Japanese text in the game into Simplified Chinese. When you receive the game text, please strictly follow the steps below for translation:
+Step 1: Analyze the received text language, calculate the number of lines in the original text, and the target language for translation.
+Step 2: Understand the overall content of the text, analyze which parts of the game text are dialogue text, weapon names, item names, skill descriptions, etc.
+Step 3: Start translating line by line according to the original text, translate the Japanese in each line into Simplified Chinese, ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
+Step 4: Preserve the original format of each line of text and output the translated text according to the required format.
+###
+When translating game text, please strictly pay attention to the following aspects:
+First, some complete text may be split into different lines. Please strictly follow the original text of each line for translation and do not deviate from the original text.
+Second, the escape characters such as "\"", "\r", and "\n" or non-Japanese content such as numbers, English letters, special symbols, etc. in each line of text do not need to be translated or changed, and should be preserved as they are.
+###
+The input content format is as follows:
+{"<text id>": "<Japanese text>"}
+###
+The output content format is as follows:
+{"<text id>": "<translated text>"}
 '''      #系统提示词
 
 #日语原文示例
@@ -108,7 +137,7 @@ original_exmaple_jp = '''{
 "1":"敏捷性が上昇する。　　　　　　　\r\n効果：パッシブ",
 "2":"【ベーカリー】営業時間8：00～18：00",
 "3":"&f.Item[f.Select_Item][1]+'　個'",
-"4":"\n}",
+"4":"ちょろ……ちょろろ……\nじょぼぼぼ……♡",
 "5": "さて！",
 "6": "さっそくオジサンのおちんぽをキツぅくいじめちゃおっかな！",
 "7": "若くて♫⚡綺麗で♫⚡エロくて"
@@ -120,7 +149,7 @@ translation_example_zh ='''{
 "1":"提高敏捷性。　　　　　　　\r\n效果：被动",
 "2":"【面包店】营业时间8：00～18：00",
 "3":"&f.Item[f.Select_Item][1]+'　个'",
-"4":"\n}",
+"4":"咕噜……咕噜噜……\n哒哒哒……♡",
 "5": "那么！",
 "6": "现在就来折磨一下大叔的小鸡鸡吧！",
 "7": "年轻♫⚡漂亮♫⚡色情"
@@ -132,7 +161,7 @@ original_exmaple_en = '''{
 "1":"Agility increases.　　　　　　　\r\nEffect: Passive",
 "2":"【Bakery】Business hours 8:00-18:00",
 "3":"&f.Item[f.Select_Item][1]",
-"4":"\n}",
+"4":"Gurgle…Gurgle…\nDadadada…♡",
 "5": "Well then!",
 "6": "Young ♫⚡beautiful ♫⚡sexy."
 }'''
@@ -143,7 +172,7 @@ original_exmaple_kr = '''{
 "1":"민첩성이 상승한다.　　　　　　　\r\n효과：패시브",
 "2":"【빵집】영업 시간 8:00~18:00",
 "3":"&f.Item[f.Select_Item][1]",
-"4":"\n}",
+"4":"둥글둥글…둥글둥글…\n둥글둥글…♡",
 "5": "그래서!",
 "6": "젊고♫⚡아름답고♫⚡섹시하고"
 }'''
@@ -154,7 +183,7 @@ translation_example_zh2 ='''{
 "1":"提高敏捷性。　　　　　　　\r\n效果：被动",
 "2":"【面包店】营业时间8：00～18：00",
 "3":"&f.Item[f.Select_Item][1]",
-"4":"\n}",
+"4":"咕噜……咕噜噜……\n哒哒哒……♡",
 "5": "那么！",
 "6": "年轻♫⚡漂亮♫⚡色情"
 }'''
