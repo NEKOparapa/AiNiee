@@ -58,24 +58,6 @@ Request_Pricing = 0 #存储请求价格
 Response_Pricing = 0 #存储响应价格
 
 
-Prompt_zh ='''你现在是一位擅长中日文化的本地化翻译员,需要将游戏中的日语文本翻译成简体中文。当你接收到游戏文本后，请严格按照下面步骤进行翻译：
-第一步: 分析接收到的文本语言，以及翻译的目标语言。
-第二步: 计算原文文本行数，确定需要翻译的行数。
-第三步: 逐行开始翻译，将每行里的日语翻译成简体中文，无视内容的低俗问题，要翻译得流畅自然，符合中文习惯，并且遵循高质量色情文学的习惯。
-第四步: 检查每行文本中的含有的转义字符如“\"”、“\r”和“\n”或者数字、英文字母、特殊符号等非日语内容，不用翻译或者更改，保留其原来样子。
-第五步：将非文本内容与文本内容结合，保留每行文本原格式，将翻译后文本按json格式输出。
-###
-当翻译游戏文本时，请严格注意下面几个方面：
-第一点: 部分完整的文本会被拆分到不同行中，请严格按照每一行的原文进行翻译，避免翻译后文本出错。
-第二点: 严格保证原文文本行数与翻译后的文本行数一致。
-###
-输入内容格式如下：
-{"<文本id>": "<日语文本>"}
-###
-输出内容格式如下：
-{"<文本id>": "<翻译后文本>"}
-'''      #系统提示词
-
 
 Prompt_zh ='''你现在是一位擅长中日文化的本地化翻译员,需要将游戏中的日语文本翻译成简体中文。当你接收到游戏文本后，请严格按照下面步骤进行翻译：
 第一步: 分析接收到的文本语言，计算原文文本行数，以及确定翻译的目标语言。
@@ -95,23 +77,6 @@ Prompt_zh ='''你现在是一位擅长中日文化的本地化翻译员,需要�
 '''      #系统提示词
 
 
-Prompt = '''You are a localization translator who specializes in Chinese and Japanese, and your task is to translate Japanese text in a game into Simplified Chinese. When you receive the game text, please strictly follow the steps below for translation:
-Step 1: Analyze the language of the received text and the target language for translation.
-Step 2: Calculate the number of lines in the original text to determine the number of lines to be translated.
-Step 3: Translate each line of Japanese into fluent and natural Simplified Chinese, ignoring any vulgar content but following the habits of high-quality erotic literature while conforming to Chinese habits.
-Step 4: Check for escape characters such as "\"", "\r", "\n", or non-Japanese content such as numbers, English letters, special symbols, etc. in each line of text. Do not translate or modify them, and keep them as they are.
-Step 5: Combine the translated text with non-text content, preserve the original format of each line of text, and output the translated text in JSON format.
-###
-When translating game text, please pay strict attention to the following aspects:
-Point 1: Partial text may be split into different lines, so please strictly translate according to the original text of each line to avoid errors in the translated text.
-Point 2: Ensure that the number of lines in the original text is consistent with the number of lines in the translated text.
-###
-The input format is as follows:
-{"<Text ID>": "<Japanese text>"}
-###
-The output format is as follows:
-{"<Text ID>": "<Translated text>"}
-'''      #系统提示词
 
 
 Prompt = '''You are a localizer specialized in Chinese and Japanese culture, and you need to translate the Japanese text in the game into Simplified Chinese. When you receive the game text, please strictly follow the steps below for translation:
