@@ -1,4 +1,4 @@
-# | AiNiee-ChatGPT:年轻人的第一款AI烤肉工具!
+# | AiNiee-ChatGPT
 <p align="center">
   <a href="https://github.com/NEKOparapa/AiNiee-chatgpt">
     <img src="https://github.com/Abcuders/AiNiee-chatgpt/blob/main/Example%20image/logo.png">
