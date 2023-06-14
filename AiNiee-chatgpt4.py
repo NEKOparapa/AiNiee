@@ -1579,7 +1579,7 @@ def Config():
         Response_Pricing = 0.004 /1000        
 
     
-    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-3.5-turbo"):
+    elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-3.5-turbo"):
         The_RPM_limit =  60 / Pay_RPM_limit4           
         The_TPM_limit =  Pay_TPM_limit4 / 60
         if The_Max_workers == 0:                                
@@ -1588,7 +1588,7 @@ def Config():
         Request_Pricing = 0.0015 /1000
         Response_Pricing = 0.002 /1000
 
-    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-3.5-turbo-0613"):
+    elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-3.5-turbo-0613"):
         The_RPM_limit =  60 / Pay_RPM_limit4           
         The_TPM_limit =  Pay_TPM_limit4 / 60
         if The_Max_workers == 0:                                
@@ -1598,7 +1598,7 @@ def Config():
         Response_Pricing = 0.002 /1000
 
 
-    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-3.5-turbo-16k"):
+    elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-3.5-turbo-16k"):
         The_RPM_limit =  60 / Pay_RPM_limit5           
         The_TPM_limit =  Pay_TPM_limit5 / 60
         if The_Max_workers == 0:                                
@@ -1608,7 +1608,7 @@ def Config():
         Response_Pricing = 0.004 /1000
 
 
-    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-3.5-turbo-16k-0613"):
+    elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-3.5-turbo-16k-0613"):
         The_RPM_limit =  60 / Pay_RPM_limit5           
         The_TPM_limit =  Pay_TPM_limit5 / 60
         if The_Max_workers == 0:                                
@@ -1618,7 +1618,7 @@ def Config():
         Response_Pricing = 0.004 /1000
 
 
-    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-4"):
+    elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-4"):
         The_RPM_limit =  60 / Pay_RPM_limit6           
         The_TPM_limit =  Pay_TPM_limit6 / 60
         if The_Max_workers == 0:                                
@@ -1628,7 +1628,7 @@ def Config():
         Response_Pricing = 0.06 / 1000
 
 
-    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-4-0613"):
+    elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-4-0613"):
         The_RPM_limit =  60 / Pay_RPM_limit6           
         The_TPM_limit =  Pay_TPM_limit6 / 60
         if The_Max_workers == 0:                                
@@ -1637,7 +1637,7 @@ def Config():
         Request_Pricing = 0.03 / 1000
         Response_Pricing = 0.06 / 1000
 
-    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-4-32k"):
+    elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-4-32k"):
         The_RPM_limit =  60 / Pay_RPM_limit7           
         The_TPM_limit =  Pay_TPM_limit7 / 60
         if The_Max_workers == 0:                                
@@ -1646,7 +1646,7 @@ def Config():
         Request_Pricing = 0.06 / 1000
         Response_Pricing = 0.12 / 1000
 
-    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-4-32k-0613"):
+    elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-4-32k-0613"):
         The_RPM_limit =  60 / Pay_RPM_limit7           
         The_TPM_limit =  Pay_TPM_limit7 / 60
         if The_Max_workers == 0:                                
@@ -1689,23 +1689,23 @@ def Config():
         Request_Pricing = 0.003 /1000
         Response_Pricing = 0.004 /1000
 
-    elif Account_Type == "代理账号" and (Model_Type == "gpt-3.5-turbo"):
-        The_RPM_limit =  60 / Pay_RPM_limit4           
-        The_TPM_limit =  Pay_TPM_limit4 / 60
-        if The_Max_workers == 0:                                
-            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
-        tokens_limit_per = 4090
-        Request_Pricing = 0.0003 /1000
-        Response_Pricing = 0.0003 /1000
+    # elif Account_Type == "代理账号" and (Model_Type == "gpt-3.5-turbo"):
+    #     The_RPM_limit =  60 / Pay_RPM_limit4           
+    #     The_TPM_limit =  Pay_TPM_limit4 / 60
+    #     if The_Max_workers == 0:                                
+    #         The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+    #     tokens_limit_per = 4090
+    #     Request_Pricing = 0.0003 /1000
+    #     Response_Pricing = 0.0003 /1000
 
-    elif Account_Type == "代理账号" and (Model_Type == "gpt-4"):
-        The_RPM_limit =  60 / Pay_RPM_limit6           
-        The_TPM_limit =  Pay_TPM_limit6 / 60
-        if The_Max_workers == 0:                                
-            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
-        tokens_limit_per = 8190
-        Request_Pricing = 0.0454/1000
-        Response_Pricing = 0.0909 / 1000
+    # elif Account_Type == "代理账号" and (Model_Type == "gpt-4"):
+    #     The_RPM_limit =  60 / Pay_RPM_limit6           
+    #     The_TPM_limit =  Pay_TPM_limit6 / 60
+    #     if The_Max_workers == 0:                                
+    #         The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+    #     tokens_limit_per = 8190
+    #     Request_Pricing = 0.0454/1000
+    #     Response_Pricing = 0.0909 / 1000
 
     else:
         return 1 #返回错误参数
