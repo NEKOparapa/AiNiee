@@ -1,4 +1,3 @@
-# | AiNiee-ChatGPT:AI翻译改变世界RPG!
 <p align="center">
   <a href="https://github.com/NEKOparapa/AiNiee-chatgpt">
     <img src="https://github.com/Abcuders/AiNiee-chatgpt/blob/main/Example%20image/logo.png">
