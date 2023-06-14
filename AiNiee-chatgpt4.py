@@ -1503,7 +1503,7 @@ def Config():
         Account_Type = Window.Interface12.comboBox.currentText()      #获取账号类型下拉框当前选中选项的值
         Model_Type =  Window.Interface12.comboBox2.currentText()      #获取模型类型下拉框当前选中选项的值
         API_key_str = Window.Interface12.TextEdit2.toPlainText()            #获取apikey输入值
-        Proxy_Address = Window.Interface12.LineEdit1.text()            #获取代理地址
+        Proxy_Address = Window.Interface12.LineEdit1.text()            #获取域名地址
 
         #设置API代理
         openai.api_base = Proxy_Address
@@ -2332,8 +2332,8 @@ def Make_request():
                             error_count = 0
                                 
                             # 用正则表达式匹配原文与译文中的标点符号
-                            k_syms = re.findall(r'[。！？…♡♥=★♫⚡]', k)
-                            v_syms = re.findall(r'[。！？…♡♥=★♫⚡]', v)
+                            k_syms = re.findall(r'[。！？…♡♥=★]', k)
+                            v_syms = re.findall(r'[。！？…♡♥=★]', v)
 
                             #假如v_syms与k_syms都不为空
                             if len(v_syms) != 0 and len(k_syms) != 0:
@@ -2705,8 +2705,8 @@ def Check_wrong_Main():
 
         #计算符号相似度----------------------------------------
         # 用正则表达式匹配原文与译文中的标点符号
-        k_syms = re.findall(r'[。！？…♡♥=★♪♫⚡]', sentences[0])
-        v_syms = re.findall(r'[。！？…♡♥=★♪♫⚡]', sentences[1])
+        k_syms = re.findall(r'[。！？…♡♥=★♪]', sentences[0])
+        v_syms = re.findall(r'[。！？…♡♥=★♪]', sentences[1])
 
         #假如v_syms与k_syms都不为空
         if len(v_syms) != 0 and len(k_syms) != 0:
@@ -3147,7 +3147,7 @@ class Widget11(QFrame):#官方账号界面
         self.comboBox = ComboBox() #以demo为父类
         self.comboBox.addItems(['免费账号', '付费账号(48h内)', '付费账号(48h后)'])
         self.comboBox.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
-        self.comboBox.setFixedSize(150, 30)
+        self.comboBox.setFixedSize(150, 35)
 
 
         layout2.addWidget(label2, 0, 0)
@@ -3171,7 +3171,9 @@ class Widget11(QFrame):#官方账号界面
         self.comboBox2.addItems(['gpt-3.5-turbo', 'gpt-3.5-turbo-0613', 'gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
                                  'gpt-4', 'gpt-4-0613', 'gpt-4-32k', 'gpt-4-32k-0613'])
         self.comboBox2.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
-        self.comboBox2.setFixedSize(150, 30)
+        self.comboBox2.setFixedSize(200, 35)
+        #设置下拉选择框默认选择
+        self.comboBox2.setCurrentText('gpt-3.5-turbo-0613')
         
 
 
@@ -3327,7 +3329,7 @@ class Widget12(QFrame):#代理账号界面
         self.comboBox = ComboBox() #以demo为父类
         self.comboBox.addItems(['代理账号'])
         self.comboBox.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
-        self.comboBox.setFixedSize(150, 30)
+        self.comboBox.setFixedSize(150, 35)
 
 
         layout2.addWidget(label2, 0, 0)
@@ -3351,7 +3353,7 @@ class Widget12(QFrame):#代理账号界面
         self.comboBox2.addItems(['gpt-3.5-turbo', 'gpt-3.5-turbo-0613', 'gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
                                  'gpt-4', 'gpt-4-0613', 'gpt-4-32k', 'gpt-4-32k-0613'])
         self.comboBox2.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
-        self.comboBox2.setFixedSize(150, 30)
+        self.comboBox2.setFixedSize(200, 35)
         
 
 
@@ -3486,8 +3488,10 @@ class Widget15(QFrame):#Mtool项目界面
 
 
        #设置“翻译行数”数值输入框
-        self.spinBox1 = SpinBox(self)    
+        self.spinBox1 = SpinBox(self)
+        self.spinBox1.setRange(1, 1000)    
         self.spinBox1.setValue(40)
+
 
         layout1.addWidget(label1)
         layout1.addStretch(1)  # 添加伸缩项
@@ -3824,8 +3828,10 @@ class Widget16(QFrame):#Tpp项目界面
 
 
        #设置“翻译行数”数值输入框
-        self.spinBox1 = SpinBox(self)    
+        self.spinBox1 = SpinBox(self) 
+        self.spinBox1.setRange(1, 1000)   
         self.spinBox1.setValue(40)
+
 
         layout1.addWidget(label1)
         layout1.addStretch(1)  # 添加伸缩项
