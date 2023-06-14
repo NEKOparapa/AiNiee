@@ -36,14 +36,23 @@ tokens_limit_per = 0  #gpt-3.5-turbo模型每次请求的最大tokens数是4090�
 Free_RPM_limit = 3        # 免费用户速率限制每分钟请求数
 Free_TPM_limit = 40000    # 免费用户速率限制每分钟token数，2tokens大概一个汉字,1.5tokens大概一个日文
 
-Pay_RPM_limit2 = 60        # 付费用户前48小时速率限制每分钟请求数
-Pay_TPM_limit2 = 60000    # 付费用户前48小时速率限制每分钟token数，2tokens大概一个汉字，发送和接受的信息都算作一起
+Pay_RPM_limit2 = 60        # 付费用户前48小时和gpt-3.5-turbo-4k的速率限制每分钟请求数
+Pay_TPM_limit2 = 60000    # 付费用户前48小时和gpt-3.5-turbo-4k的速率限制每分钟token数
 
-Pay_RPM_limit3 = 3500        # 付费用户速率限制每分钟请求数
-Pay_TPM_limit3 = 90000    # 付费用户速率限制每分钟token数，2tokens大概一个汉字，发送和接受的信息都算作一起
+Pay_RPM_limit3 = 60        # 付费用户前48小时和gpt-3.5-turbo-16k的速率限制每分钟请求数
+Pay_TPM_limit3 = 120000    # 付费用户前48小时和gpt-3.5-turbo-16k的速率限制每分钟token数
 
-Pay_RPM_limit4 = 200       # GPT-4-8K每分钟请求数
-Pay_TPM_limit4 = 40000    # GPT-4-8K速率限制每分钟token数
+Pay_RPM_limit4 = 3500        # 付费用户48小时后和gpt-3.5-turbo-4k的速率限制每分钟请求数
+Pay_TPM_limit4 = 90000    # 付费用户48小时后和gpt-3.5-turbo-4k的速率限制每分钟token数
+
+Pay_RPM_limit5 = 3500        # 付费用户48小时后和gpt-3.5-turbo-16k的速率限制每分钟请求数
+Pay_TPM_limit5 = 180000    # 付费用户48小时后和gpt-3.5-turbo-16k的速率限制每分钟token数
+
+Pay_RPM_limit6 = 200       # 付费用户48小时后和GPT-4-8K每分钟请求数
+Pay_TPM_limit6 = 40000    # 付费用户48小时后和GPT-4-8K速率限制每分钟token数
+
+Pay_RPM_limit7 = 20       # 付费用户48小时后和GPT-4-32K每分钟请求数
+Pay_TPM_limit7 = 150000    # 付费用户48小时后和GPT-4-32K速率限制每分钟token数
 
 Request_Pricing = 0 #存储请求价格
 Response_Pricing = 0 #存储响应价格
@@ -1536,39 +1545,153 @@ def Config():
         if The_Max_workers == 0:                                #如果最大线程数设置值为0，则自动设置为cpu核心数的4倍+1
             The_Max_workers = multiprocessing.cpu_count() * 4 + 1 #获取计算机cpu核心数，设置最大线程数
         tokens_limit_per = 4090                                #根据模型类型设置每次请求的最大tokens数量
-        Request_Pricing = 0.002 /1000                           #存储请求价格
+        Request_Pricing = 0.0015 /1000                           #存储请求价格
         Response_Pricing = 0.002 /1000                          #存储响应价格
 
 
+    elif (Account_Type == "付费账号(48h内)") and (Model_Type == "gpt-3.5-turbo-0613") :
+        The_RPM_limit =  60 / Pay_RPM_limit2                    
+        The_TPM_limit =  Pay_TPM_limit2 / 60                    
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 4090                                
+        Request_Pricing = 0.0015 /1000                           
+        Response_Pricing = 0.002 /1000                         
+
+
+    elif (Account_Type == "付费账号(48h内)") and (Model_Type == "gpt-3.5-turbo-16k") :
+        The_RPM_limit =  60 / Pay_RPM_limit3                    
+        The_TPM_limit =  Pay_TPM_limit3 / 60                    
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 16000                                
+        Request_Pricing = 0.003 /1000                          
+        Response_Pricing = 0.004 /1000                          
+
+
+    elif (Account_Type == "付费账号(48h内)") and (Model_Type == "gpt-3.5-turbo-16k-0613") :
+        The_RPM_limit =  60 / Pay_RPM_limit3                    
+        The_TPM_limit =  Pay_TPM_limit3 / 60                    
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 16000                                
+        Request_Pricing = 0.003 /1000                          
+        Response_Pricing = 0.004 /1000        
+
+    
     elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-3.5-turbo"):
-        The_RPM_limit =  60 / Pay_RPM_limit3           
-        The_TPM_limit =  Pay_TPM_limit3 / 60
+        The_RPM_limit =  60 / Pay_RPM_limit4           
+        The_TPM_limit =  Pay_TPM_limit4 / 60
         if The_Max_workers == 0:                                
             The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
         tokens_limit_per = 4090
-        Request_Pricing = 0.002 /1000
+        Request_Pricing = 0.0015 /1000
         Response_Pricing = 0.002 /1000
 
-    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-4"):
+    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-3.5-turbo-0613"):
         The_RPM_limit =  60 / Pay_RPM_limit4           
         The_TPM_limit =  Pay_TPM_limit4 / 60
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 4090
+        Request_Pricing = 0.0015 /1000
+        Response_Pricing = 0.002 /1000
+
+
+    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-3.5-turbo-16k"):
+        The_RPM_limit =  60 / Pay_RPM_limit5           
+        The_TPM_limit =  Pay_TPM_limit5 / 60
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 16000
+        Request_Pricing = 0.003 /1000
+        Response_Pricing = 0.004 /1000
+
+
+    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-3.5-turbo-16k-0613"):
+        The_RPM_limit =  60 / Pay_RPM_limit5           
+        The_TPM_limit =  Pay_TPM_limit5 / 60
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 16000
+        Request_Pricing = 0.003 /1000
+        Response_Pricing = 0.004 /1000
+
+
+    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-4"):
+        The_RPM_limit =  60 / Pay_RPM_limit6           
+        The_TPM_limit =  Pay_TPM_limit6 / 60
         if The_Max_workers == 0:                                
             The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
         tokens_limit_per = 8190
         Request_Pricing = 0.03 / 1000
         Response_Pricing = 0.06 / 1000
 
+
+    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-4-0613"):
+        The_RPM_limit =  60 / Pay_RPM_limit6           
+        The_TPM_limit =  Pay_TPM_limit6 / 60
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 8190
+        Request_Pricing = 0.03 / 1000
+        Response_Pricing = 0.06 / 1000
+
+    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-4-32k"):
+        The_RPM_limit =  60 / Pay_RPM_limit7           
+        The_TPM_limit =  Pay_TPM_limit7 / 60
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 32000
+        Request_Pricing = 0.06 / 1000
+        Response_Pricing = 0.12 / 1000
+
+    elif Account_Type == "付费账号(48h后)" and (Model_Type == "gpt-4-32k-0613"):
+        The_RPM_limit =  60 / Pay_RPM_limit7           
+        The_TPM_limit =  Pay_TPM_limit7 / 60
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 32000
+        Request_Pricing = 0.06 / 1000
+        Response_Pricing = 0.12 / 1000
+
+
     elif Account_Type == "免费账号" and (Model_Type == "gpt-3.5-turbo"):
         The_RPM_limit =  60 / Free_RPM_limit             
         The_TPM_limit =  Free_TPM_limit / 60             
         The_Max_workers = 4                              
         tokens_limit_per = 4090
-        Request_Pricing = 0.002 /1000
+        Request_Pricing = 0.0015 /1000
         Response_Pricing = 0.002 /1000
 
+
+    elif Account_Type == "免费账号" and (Model_Type == "gpt-3.5-turbo-0613"):
+        The_RPM_limit =  60 / Free_RPM_limit             
+        The_TPM_limit =  Free_TPM_limit / 60             
+        The_Max_workers = 4                              
+        tokens_limit_per = 4090
+        Request_Pricing = 0.0015 /1000
+        Response_Pricing = 0.002 /1000
+
+    elif Account_Type == "免费账号" and (Model_Type == "gpt-3.5-turbo-16k"):
+        The_RPM_limit =  60 / Free_RPM_limit             
+        The_TPM_limit =  Free_TPM_limit / 60             
+        The_Max_workers = 4                              
+        tokens_limit_per = 16000
+        Request_Pricing = 0.003 /1000
+        Response_Pricing = 0.004 /1000
+
+    elif Account_Type == "免费账号" and (Model_Type == "gpt-3.5-turbo-16k-0613"):
+        The_RPM_limit =  60 / Free_RPM_limit             
+        The_TPM_limit =  Free_TPM_limit / 60             
+        The_Max_workers = 4                              
+        tokens_limit_per = 16000
+        Request_Pricing = 0.003 /1000
+        Response_Pricing = 0.004 /1000
+
     elif Account_Type == "代理账号" and (Model_Type == "gpt-3.5-turbo"):
-        The_RPM_limit =  60 / Pay_RPM_limit3           
-        The_TPM_limit =  Pay_TPM_limit3 / 60
+        The_RPM_limit =  60 / Pay_RPM_limit4           
+        The_TPM_limit =  Pay_TPM_limit4 / 60
         if The_Max_workers == 0:                                
             The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
         tokens_limit_per = 4090
@@ -1576,8 +1699,8 @@ def Config():
         Response_Pricing = 0.0003 /1000
 
     elif Account_Type == "代理账号" and (Model_Type == "gpt-4"):
-        The_RPM_limit =  60 / Pay_RPM_limit4           
-        The_TPM_limit =  Pay_TPM_limit4 / 60
+        The_RPM_limit =  60 / Pay_RPM_limit6           
+        The_TPM_limit =  Pay_TPM_limit6 / 60
         if The_Max_workers == 0:                                
             The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
         tokens_limit_per = 8190
@@ -3029,7 +3152,8 @@ class Widget11(QFrame):#官方账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox2 = ComboBox() #以demo为父类
-        self.comboBox2.addItems(['gpt-3.5-turbo', 'gpt-4'])
+        self.comboBox2.addItems(['gpt-3.5-turbo', 'gpt-3.5-turbo-0613', 'gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
+                                 'gpt-4', 'gpt-4-0613', 'gpt-4-32k', 'gpt-4-32k-0613'])
         self.comboBox2.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox2.setFixedSize(150, 30)
         
@@ -3208,7 +3332,8 @@ class Widget12(QFrame):#代理账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox2 = ComboBox() #以demo为父类
-        self.comboBox2.addItems(['gpt-3.5-turbo', 'gpt-4'])
+        self.comboBox2.addItems(['gpt-3.5-turbo', 'gpt-3.5-turbo-0613', 'gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
+                                 'gpt-4', 'gpt-4-0613', 'gpt-4-32k', 'gpt-4-32k-0613'])
         self.comboBox2.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox2.setFixedSize(150, 30)
         
