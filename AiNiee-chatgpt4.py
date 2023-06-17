@@ -2023,9 +2023,15 @@ def Main():
         Translated_file_data[key] = Translation_text_Dictionary[i]
     print("\033[1;32mSuccess:\033[0m  原文与译文文件合并完成-----------------------------------")   
 
-    # 调用函数，将繁体字典转换为简体字典
-    Translated_file_data = convert_dict_to_simplified(Translated_file_data)
-    print("\033[1;32mSuccess:\033[0m  繁体中文转化简体中文完成-----------------------------------")   
+
+    # 调用函数，将繁体字典转换为简体字典----------------------------------------------------
+    try:
+        Translated_file_data = convert_dict_to_simplified(Translated_file_data)
+        print("\033[1;32mSuccess:\033[0m  繁体中文转化简体中文完成-----------------------------------")   
+
+    except Exception as e:
+        print("\033[1;33mWarning:\033[0m 繁转中出现问题！！将跳过该步，错误信息如下")
+        print(f"Error: {e}\n")
 
     # 将字典存储的译文存储到TrsData.json文件------------------------------------
     if Running_status == 2 :
