@@ -3092,7 +3092,7 @@ def Make_request_Embeddings():
 
                 #计算花销
                 total_tokens_used = int(response["usage"]["total_tokens"]) #本次请求花费的tokens
-                money_used  =  money_used + total_tokens_used / 10000 * 0.0004 #本次请求花费的money
+                money_used  =  money_used + total_tokens_used / 10000 * 0.0001 #本次请求花费的money
 
                 #response['data'][i]['embedding']的长度为(end-start）*2 ，获取response['data'][i]['embedding']中前半的值，作为原文的编码，存储到Embeddings_or_List列表中start开始，end结束位置。
                 for i in range(start,end):
