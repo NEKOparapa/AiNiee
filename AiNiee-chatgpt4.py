@@ -515,9 +515,9 @@ def replace_strings(dic):
 def Building_dictionary(dic):
     #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
     data = []
-    for row in range(Window.Interface21.tableView.rowCount() - 1):
-        key_item = Window.Interface21.tableView.item(row, 0)
-        value_item = Window.Interface21.tableView.item(row, 1)
+    for row in range(Window.Interface23.tableView.rowCount() - 1):
+        key_item = Window.Interface23.tableView.item(row, 0)
+        value_item = Window.Interface23.tableView.item(row, 1)
         if key_item and value_item:
             key = key_item.text()
             value = value_item.text()
@@ -3140,8 +3140,6 @@ def Make_request_Embeddings():
 # ——————————————————————————————————————————下面都是UI相关代码——————————————————————————————————————————
 
 class Widget11(QFrame):#官方账号界面
-
-
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
@@ -3322,8 +3320,6 @@ class Widget11(QFrame):#官方账号界面
 
 
 class Widget12(QFrame):#代理账号界面
-
-
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
@@ -5403,11 +5399,11 @@ class Widget21(QFrame):#原文替换字典界面
         box3.setLayout(layout3)
 
 
-        # 把内容添加到容器中    
+        # 把内容添加到容器中 
+        container.addWidget(box2)   
         container.addWidget(self.tableView)
         container.addWidget(box1_1)
         container.addWidget(box1_2)
-        container.addWidget(box2)
         container.addStretch(1)  # 添加伸缩项
 
         # 设置窗口显示的内容是最外层容器
@@ -5468,7 +5464,7 @@ class Widget21(QFrame):#原文替换字典界面
     
     #导出字典按钮
     def Exporting_dictionaries(self):
-        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
+        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一列作为key，第二列作为value，存储中间字典中
         data = []
         for row in range(self.tableView.rowCount() - 1):
             key_item = self.tableView.item(row, 0)
@@ -5772,7 +5768,7 @@ class Widget22(QFrame):#提示词工程界面
     
     #导出翻译示例按钮
     def Exporting_dictionaries(self):
-        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间翻译示例中
+        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一列作为key，第二列作为value，存储中间翻译示例中
         data = []
         for row in range(self.tableView.rowCount() - 1):
             key_item = self.tableView.item(row, 0)
@@ -5960,11 +5956,11 @@ class Widget23(QFrame):#AI提示字典界面
         box3.setLayout(layout3)
 
 
-        # 把内容添加到容器中    
+        # 把内容添加到容器中
+        container.addWidget(box3)    
         container.addWidget(self.tableView)
         container.addWidget(box1_1)
         container.addWidget(box1_2)
-        container.addWidget(box3)
         container.addStretch(1)  # 添加伸缩项
 
         # 设置窗口显示的内容是最外层容器
@@ -6022,7 +6018,7 @@ class Widget23(QFrame):#AI提示字典界面
     
     #导出字典按钮
     def Exporting_dictionaries(self):
-        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
+        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一列作为key，第二列作为value，存储中间字典中
         data = []
         for row in range(self.tableView.rowCount() - 1):
             key_item = self.tableView.item(row, 0)
