@@ -2020,11 +2020,12 @@ def Main():
     #处理翻译结果,合并原文与译文成一个字典数据----------------------------------------------------
     Translated_file_data = {}
     for i, key in enumerate(source.keys()):    
-        Translated_file_data[key] = Translation_text_Dictionary[i]   
+        Translated_file_data[key] = Translation_text_Dictionary[i]
+    print("\033[1;32mSuccess:\033[0m  原文与译文文件合并完成-----------------------------------")   
 
     # 调用函数，将繁体字典转换为简体字典
     Translated_file_data = convert_dict_to_simplified(Translated_file_data)
-
+    print("\033[1;32mSuccess:\033[0m  繁体中文转化简体中文完成-----------------------------------")   
 
     # 将字典存储的译文存储到TrsData.json文件------------------------------------
     if Running_status == 2 :
@@ -2043,6 +2044,8 @@ def Main():
         #指定需要补充空行内容的文件夹，不然会把ouput文件夹内所有内容都补充空行了
         folder_name = os.path.join(Input_and_output_paths[1]['Output_Folder'], folder_name)
         fill_empty_cells_with_values(folder_name)#填充xlsx文件空单元格
+
+    print("\033[1;32mSuccess:\033[0m  译文文件写入完成-----------------------------------")  
 
     # —————————————————————————————————————#全部翻译完成——————————————————————————————————————————
     #写入配置保存文件
