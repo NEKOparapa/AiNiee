@@ -13,7 +13,8 @@ import shutil
 
 import openpyxl  #需安装库pip install openpyxl  
 import numpy as np   #需要安装库pip install numpy
-import openai        #需要安装库pip install openai      
+import openai        #需要安装库pip install openai
+import opencc       #需要安装库pip install opencc      
 
 from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, QPainter#需要安装库 pip3 install PyQt5
 from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
@@ -163,7 +164,7 @@ Input_and_output_paths = [{"Input_file":"","Input_Folder":""},
 source = {}       # 存储读取的文件数据
 Original_text_dictionary = {}   # 存储处理过的原文文本
 Translation_text_Dictionary = {}       # 用字典形式存储已经翻译好的文本
-Text_Directory_Index = [] # 存储文本的索引的缓存列表
+Text_Directory_Index = [] # 存储文本的存储位置索引的列表
 Translation_Status_List = []  # 存储原文文本翻译状态列表，用于并发任务时获取每个文本的翻译状态
 ValueList_len = 0   # 存储原文件key列表的长度
 
@@ -825,7 +826,7 @@ def Manually_backup_files (source,result_dict,Translation_Status_List):
 
         return
 
-#更新全部译文文本到文本目录索引函数中
+#更新全部译文文本到文本存储位置索引列表中
 def update_translations(Translated_file_data, Text_Directory_Index):
     for translation_key, translation_value in Translated_file_data.items():
         for text_data in Text_Directory_Index:
@@ -849,7 +850,7 @@ def translate_text(Translated_file_data, Text_Directory_Index):
             new_list.append(new_item)
     return new_list
 
-#更新文件路径函数
+#更新文本存储位置索引列表的文件路径函数
 def update_file_paths(input_folder_path1, ouput_folder_path2, file_index):
     # 获取源文件夹的最后一个文件夹名
     folder_name = os.path.basename(os.path.normpath(input_folder_path1))
@@ -862,7 +863,7 @@ def update_file_paths(input_folder_path1, ouput_folder_path2, file_index):
             item["File path"] = new_file_path
     return file_index
 
-#将译文写入xlsx文件函数
+#根据文本存储位置索引列表，将译文写入对应xlsx文件函数
 def update_xlsx_files(Text_Directory_Index):
     # 创建一个字典，用于存储相同文件路径的记录
     grouped_data = {}
@@ -910,6 +911,16 @@ def fill_empty_cells_with_values(folder_path):
                 # 保存修改后的xlsx文件
                 wb.save(file_path)
 
+#将输入字典的每个value转换为简体字
+def convert_dict_to_simplified(dict_input):
+    """将输入字典的每个value转换为简体字"""
+    cc = opencc.OpenCC('t2s')  # 创建OpenCC对象，使用t2s参数表示繁体字转简体字
+    dict_output = {}  # 定义一个空字典，用于存储转换后的结果
+    for key, value in dict_input.items():
+        simplified_value = cc.convert(str(value))  # 使用OpenCC将value转换为简体字
+        dict_output[key] = simplified_value  # 将转换后的结果存储到输出字典中
+    return dict_output
+
 #读写配置文件config.json函数
 def read_write_config(mode):
 
@@ -946,18 +957,30 @@ def read_write_config(mode):
         Automatic_Backup = Window.Interface17.checkBox.isChecked()        #获取自动备份开关状态
 
 
-        #获取用户字典界面
-        User_Dictionary = {}
+        #获取替换字典界面
+        User_Dictionary1 = {}
         for row in range(Window.Interface21.tableView.rowCount() - 1):
             key_item = Window.Interface21.tableView.item(row, 0)
             value_item = Window.Interface21.tableView.item(row, 1)
             if key_item and value_item:
                 key = key_item.data(Qt.DisplayRole)
                 value = value_item.data(Qt.DisplayRole)
-                User_Dictionary[key] = value
+                User_Dictionary1[key] = value
         
         Replace_before_translation = Window.Interface21.checkBox1.isChecked()#获取译前替换开关状态
-        Change_translation_prompt = Window.Interface21.checkBox2.isChecked() #获取译时提示开关状态
+
+
+        #获取提示字典界面
+        User_Dictionary2 = {}
+        for row in range(Window.Interface23.tableView.rowCount() - 1):
+            key_item = Window.Interface23.tableView.item(row, 0)
+            value_item = Window.Interface23.tableView.item(row, 1)
+            if key_item and value_item:
+                key = key_item.data(Qt.DisplayRole)
+                value = value_item.data(Qt.DisplayRole)
+                User_Dictionary2[key] = value
+        Change_translation_prompt = Window.Interface23.checkBox2.isChecked() #获取译时提示开关状态
+
 
         #获取实时设置界面
         OpenAI_Temperature = Window.Interface18.slider1.value()           #获取OpenAI温度
@@ -1026,9 +1049,12 @@ def read_write_config(mode):
         #备份设置界面
         config_dict["Automatic_Backup"] = Automatic_Backup
 
-        #用户字典界面
-        config_dict["User_Dictionary"] = User_Dictionary
+        #替换字典界面
+        config_dict["User_Dictionary1"] = User_Dictionary1
         config_dict["Replace_before_translation"] = Replace_before_translation
+
+        #提示字典界面
+        config_dict["User_Dictionary2"] = User_Dictionary2
         config_dict["Change_translation_prompt"] = Change_translation_prompt
 
         #实时设置界面
@@ -1143,11 +1169,11 @@ def read_write_config(mode):
                 Automatic_Backup = config_dict["Automatic_Backup"]
                 Window.Interface17.checkBox.setChecked(Automatic_Backup)
 
-            #用户字典界面
-            if "User_Dictionary" in config_dict:
-                User_Dictionary = config_dict["User_Dictionary"]
-                if User_Dictionary:
-                    for key, value in User_Dictionary.items():
+            #替换字典界面
+            if "User_Dictionary1" in config_dict:
+                User_Dictionary1 = config_dict["User_Dictionary1"]
+                if User_Dictionary1:
+                    for key, value in User_Dictionary1.items():
                         row = Window.Interface21.tableView.rowCount() - 1
                         Window.Interface21.tableView.insertRow(row)
                         key_item = QTableWidgetItem(key)
@@ -1159,9 +1185,26 @@ def read_write_config(mode):
             if "Replace_before_translation" in config_dict:
                 Replace_before_translation = config_dict["Replace_before_translation"]
                 Window.Interface21.checkBox1.setChecked(Replace_before_translation)
+
+
+
+            #提示字典界面
+            if "User_Dictionary2" in config_dict:
+                User_Dictionary2 = config_dict["User_Dictionary2"]
+                if User_Dictionary2:
+                    for key, value in User_Dictionary2.items():
+                        row = Window.Interface23.tableView.rowCount() - 1
+                        Window.Interface23.tableView.insertRow(row)
+                        key_item = QTableWidgetItem(key)
+                        value_item = QTableWidgetItem(value)
+                        Window.Interface23.tableView.setItem(row, 0, key_item)
+                        Window.Interface23.tableView.setItem(row, 1, value_item)        
+                    #删除第一行
+                    Window.Interface23.tableView.removeRow(0)
             if "Change_translation_prompt" in config_dict:
                 Change_translation_prompt = config_dict["Change_translation_prompt"]
-                Window.Interface21.checkBox2.setChecked(Change_translation_prompt)
+                Window.Interface23.checkBox2.setChecked(Change_translation_prompt)
+
 
 
             #实时设置界面
@@ -1979,6 +2022,10 @@ def Main():
     for i, key in enumerate(source.keys()):    
         Translated_file_data[key] = Translation_text_Dictionary[i]   
 
+    # 调用函数，将繁体字典转换为简体字典
+    Translated_file_data = convert_dict_to_simplified(Translated_file_data)
+
+
     # 将字典存储的译文存储到TrsData.json文件------------------------------------
     if Running_status == 2 :
         #写入文件
@@ -2074,7 +2121,7 @@ def Make_request():
 
 
         #如果开启了译时提示功能，则添加新的原文与译文示例
-        if Window.Interface21.checkBox2.isChecked() :
+        if Window.Interface23.checkBox2.isChecked() :
             new_original_exmaple,new_translation_example = Building_dictionary(subset_mid)
             if new_original_exmaple['content'] != "空值" and new_translation_example['content'] != "空值":
                 messages.append(new_original_exmaple)
@@ -3266,7 +3313,6 @@ class Widget11(QFrame):#官方账号界面
 
 
     def checkBoxChanged(self, isChecked: bool):
-        global Running_status
         if isChecked :
             Window.Interface12.checkBox.setChecked(False)
             createSuccessInfoBar("已设置使用OpenAI官方进行翻译")
@@ -3447,7 +3493,6 @@ class Widget12(QFrame):#代理账号界面
 
 
     def checkBoxChanged(self, isChecked: bool):
-        global Running_status
         if isChecked :
             Window.Interface11.checkBox.setChecked(False)
             createSuccessInfoBar("已设置使用OpenAI国内代理平台进行翻译")
@@ -4243,7 +4288,7 @@ class Widget17(QFrame):#备份设置界面
             createWarningInfoBar("暂无翻译项目进行中，无法选择备份文件夹")
 
 
-class Widget18(QFrame):#实时调教界面
+class Widget18(QFrame):#AI实时调教界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
@@ -5185,9 +5230,7 @@ class Widget20(QFrame):#语义检查（Tpp）界面
             createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 
-class Widget21(QFrame):#用户字典界面
-
-
+class Widget21(QFrame):#原文替换字典界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
@@ -5311,12 +5354,12 @@ class Widget21(QFrame):#用户字典界面
         #设置“译前替换”标签
         label1 = QLabel( flags=Qt.WindowFlags())  
         label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label1.setText("译前替换")
+        label1.setText("原文本替换翻译")
 
         #设置“译前替换”显示
         self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label2.setText("(在翻译开始前，将游戏文本中出现的字典原文全部替换成为译文，再发送过去翻译)")
+        self.label2.setText("(在翻译开始前，根据表格中内容，将游戏文本中出现的原文全部替换成为译文，再发送过去翻译)")
 
 
         #设置“译前替换”开
@@ -5348,7 +5391,7 @@ class Widget21(QFrame):#用户字典界面
 
         #设置“译时提示”开
         self.checkBox2 = CheckBox('启用功能')
-        self.checkBox2.stateChanged.connect(self.checkBoxChanged2)
+        #self.checkBox2.stateChanged.connect(self.checkBoxChanged2)
 
         layout3.addWidget(label3)
         layout3.addWidget(self.label4)
@@ -5362,7 +5405,6 @@ class Widget21(QFrame):#用户字典界面
         container.addWidget(box1_1)
         container.addWidget(box1_2)
         container.addWidget(box2)
-        container.addWidget(box3)
         container.addStretch(1)  # 添加伸缩项
 
         # 设置窗口显示的内容是最外层容器
@@ -5447,7 +5489,7 @@ class Widget21(QFrame):#用户字典界面
             return  # 直接返回，不执行后续操作
 
         # 将字典保存到文件中
-        with open(os.path.join(Output_Folder, "用户字典.json"), 'w', encoding="utf-8") as f:
+        with open(os.path.join(Output_Folder, "用户替换字典.json"), 'w', encoding="utf-8") as f:
             json.dump(dictionary, f, ensure_ascii=False, indent=4)
 
         createSuccessInfoBar("导出成功")
@@ -5461,11 +5503,11 @@ class Widget21(QFrame):#用户字典界面
         self.tableView.setRowCount(2)
         
         # 在表格最后一行第一列添加"添加行"按钮
-        button = PushButton('Add Row')
+        button = PushButton('添新行')
         self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
         button.clicked.connect(self.add_row)
         # 在表格最后一行第二列添加"删除空白行"按钮
-        button = PushButton('Delete Blank Row')
+        button = PushButton('删空行')
         self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
         button.clicked.connect(self.delete_blank_row)
 
@@ -5523,18 +5565,11 @@ class Widget21(QFrame):#用户字典界面
         createSuccessInfoBar("提取完成")
         print(f'[INFO]  已提取文件中名词到字典')
 
-    #功能互斥函数
+    #提示函数
     def checkBoxChanged1(self, isChecked: bool):
         if isChecked :
-            self.checkBox2.setChecked(False)
             createSuccessInfoBar("已开启译前替换功能，将依据表格内容进行替换")
     
-    #功能互斥函数
-    def checkBoxChanged2(self, isChecked: bool):
-        if isChecked :
-            self.checkBox1.setChecked(False)
-            createSuccessInfoBar("已开启译时提示功能,将根据发送文本自动改变prompt示例")
-
 
 class Widget22(QFrame):#提示词工程界面
 
@@ -5790,6 +5825,307 @@ class Widget22(QFrame):#提示词工程界面
         print(f'[INFO]  已保存翻译示例')
 
 
+class Widget23(QFrame):#AI提示字典界面
+
+
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+        # -----创建第1个组，添加放置表格-----
+        self.tableView = TableWidget(self)
+        self.tableView.setWordWrap(False) #设置表格内容不换行
+        self.tableView.setRowCount(2) #设置表格行数
+        self.tableView.setColumnCount(2) #设置表格列数
+        #self.tableView.verticalHeader().hide() #隐藏垂直表头
+        self.tableView.setHorizontalHeaderLabels(['原文', '译文']) #设置水平表头
+        self.tableView.resizeColumnsToContents() #设置列宽度自适应内容
+        self.tableView.resizeRowsToContents() #设置行高度自适应内容
+        self.tableView.setEditTriggers(QAbstractItemView.AllEditTriggers)   # 设置所有单元格可编辑
+        #self.tableView.setFixedSize(500, 300)         # 设置表格大小
+        self.tableView.setMaximumHeight(400)          # 设置表格的最大高度
+        self.tableView.setMinimumHeight(400)             # 设置表格的最小高度
+        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
+        #self.tableView.setSortingEnabled(True)  #设置表格可排序
+
+        # 在表格最后一行第一列添加"添加行"按钮
+        button = PushButton('添新行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
+        button.clicked.connect(self.add_row)
+        # 在表格最后一行第二列添加"删除空白行"按钮
+        button = PushButton('删空行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
+        button.clicked.connect(self.delete_blank_row)
+
+
+
+        # -----创建第1_1个组，添加多个组件-----
+        box1_1 = QGroupBox()
+        box1_1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_1 = QHBoxLayout()
+
+
+        #设置导入字典按钮
+        self.pushButton1 = PushButton('导入字典', self, FIF.DOWNLOAD)
+        self.pushButton1.clicked.connect(self.Importing_dictionaries) #按钮绑定槽函数
+
+        #设置导出字典按钮
+        self.pushButton2 = PushButton('导出字典', self, FIF.SHARE)
+        self.pushButton2.clicked.connect(self.Exporting_dictionaries) #按钮绑定槽函数
+
+        #设置清空字典按钮
+        self.pushButton3 = PushButton('清空字典', self, FIF.DELETE)
+        self.pushButton3.clicked.connect(self.Empty_dictionary) #按钮绑定槽函数
+
+        #设置保存字典按钮
+        self.pushButton4 = PushButton('保存字典', self, FIF.SAVE)
+        self.pushButton4.clicked.connect(self.Save_dictionary) #按钮绑定槽函数
+
+
+        layout1_1.addWidget(self.pushButton1)
+        layout1_1.addStretch(1)  # 添加伸缩项
+        layout1_1.addWidget(self.pushButton2)
+        layout1_1.addStretch(1)  # 添加伸缩项
+        layout1_1.addWidget(self.pushButton3)
+        layout1_1.addStretch(1)  # 添加伸缩项
+        layout1_1.addWidget(self.pushButton4)
+        box1_1.setLayout(layout1_1)
+
+
+
+        # -----创建第1_2个组，添加多个组件-----
+        box1_2 = QGroupBox()
+        box1_2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_2 = QHBoxLayout()
+
+        #设置“名词最大字数”标签
+        label1_2 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1_2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label1_2.setText("名词最大字数")
+
+       #设置“名词最大字数”数值输入框
+        self.spinBox1 = SpinBox(self)
+        #设置最大最小值
+        self.spinBox1.setRange(0, 30)        
+        self.spinBox1.setValue(4)
+
+        #设置输出文件夹按钮
+        self.pushButton5 = PushButton('提取json文件中名词到字典', self, FIF.ZOOM_IN)
+        self.pushButton5.clicked.connect(self.Extract_nouns) #按钮绑定槽函数
+
+
+        
+
+        layout1_2.addWidget(label1_2)
+        layout1_2.addWidget(self.spinBox1)
+        layout1_2.addStretch(1)  # 添加伸缩项
+        layout1_2.addWidget(self.pushButton5)
+        box1_2.setLayout(layout1_2)
+
+
+        # -----创建第2个组，添加多个组件-----
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box3 = QGroupBox()
+        box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout3 = QHBoxLayout()
+
+        #设置“译时提示”标签
+        label3 = QLabel( flags=Qt.WindowFlags())  
+        label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label3.setText("AI提示翻译")
+
+        #设置“译时提示”显示
+        self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label4.setText("(在每次翻译请求时，如果文本中出现了字典原文，就会把表格中这部分字典内容作为AI的翻译示例，一起发过去翻译)")
+
+
+        #设置“译时提示”开
+        self.checkBox2 = CheckBox('启用功能')
+        self.checkBox2.stateChanged.connect(self.checkBoxChanged2)
+
+        layout3.addWidget(label3)
+        layout3.addWidget(self.label4)
+        layout3.addStretch(1)  # 添加伸缩项
+        layout3.addWidget(self.checkBox2)
+        box3.setLayout(layout3)
+
+
+        # 把内容添加到容器中    
+        container.addWidget(self.tableView)
+        container.addWidget(box1_1)
+        container.addWidget(box1_2)
+        container.addWidget(box3)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        #self.scrollWidget.setLayout(container)
+        self.setLayout(container)
+        container.setSpacing(20)     
+        container.setContentsMargins(50, 70, 50, 30)      
+
+
+    #添加行按钮
+    def add_row(self):
+        # 添加新行在按钮所在行前面
+        self.tableView.insertRow(self.tableView.rowCount()-1)
+        #设置新行的高度与前一行相同
+        self.tableView.setRowHeight(self.tableView.rowCount()-2, self.tableView.rowHeight(self.tableView.rowCount()-3))
+
+    #删除空白行按钮
+    def delete_blank_row(self):
+        #表格行数大于2时，删除表格内第一列和第二列为空或者空字符串的行
+        if self.tableView.rowCount() > 2:
+            # 删除表格内第一列和第二列为空或者空字符串的行
+            for i in range(self.tableView.rowCount()-1):
+                if self.tableView.item(i, 0) is None or self.tableView.item(i, 0).text() == '':
+                    self.tableView.removeRow(i)
+                    break
+                elif self.tableView.item(i, 1) is None or self.tableView.item(i, 1).text() == '':
+                    self.tableView.removeRow(i)
+                    break
+
+    #导入字典按钮
+    def Importing_dictionaries(self):
+        # 选择文件
+        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'JSON Files (*.json)')      #调用QFileDialog类里的函数来选择文件
+        if Input_File:
+            print(f'[INFO]  已选择字典导入文件: {Input_File}')
+        else :
+            print('[INFO]  未选择文件')
+            return
+        
+        # 读取文件
+        with open(Input_File, 'r', encoding="utf-8") as f:
+            dictionary = json.load(f)
+        
+        # 将字典中的数据从表格底部添加到表格中
+        for key, value in dictionary.items():
+            row = self.tableView.rowCount() - 1 #获取表格的倒数行数
+            self.tableView.insertRow(row)    # 在表格中插入一行
+            self.tableView.setItem(row, 0, QTableWidgetItem(key))
+            self.tableView.setItem(row, 1, QTableWidgetItem(value))
+            #设置新行的高度与前一行相同
+            self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
+
+        createSuccessInfoBar("导入成功")
+        print(f'[INFO]  已导入字典文件')
+    
+    #导出字典按钮
+    def Exporting_dictionaries(self):
+        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
+        data = []
+        for row in range(self.tableView.rowCount() - 1):
+            key_item = self.tableView.item(row, 0)
+            value_item = self.tableView.item(row, 1)
+            if key_item and value_item:
+                key = key_item.text()
+                value = value_item.text()
+                data.append((key, value))
+
+        # 将数据存储到中间字典中
+        dictionary = {}
+        for key, value in data:
+            dictionary[key] = value
+
+        # 选择文件保存路径
+        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Output_Folder:
+            print(f'[INFO]  已选择字典导出文件夹: {Output_Folder}')
+        else :
+            print('[INFO]  未选择文件夹')
+            return  # 直接返回，不执行后续操作
+
+        # 将字典保存到文件中
+        with open(os.path.join(Output_Folder, "用户提示字典.json"), 'w', encoding="utf-8") as f:
+            json.dump(dictionary, f, ensure_ascii=False, indent=4)
+
+        createSuccessInfoBar("导出成功")
+        print(f'[INFO]  已导出字典文件')
+
+    #清空字典按钮
+    def Empty_dictionary(self):
+        #清空表格
+        self.tableView.clearContents()
+        #设置表格的行数为1
+        self.tableView.setRowCount(2)
+        
+        # 在表格最后一行第一列添加"添加行"按钮
+        button = PushButton('添新行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
+        button.clicked.connect(self.add_row)
+        # 在表格最后一行第二列添加"删除空白行"按钮
+        button = PushButton('删空行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
+        button.clicked.connect(self.delete_blank_row)
+
+        createSuccessInfoBar("清空成功")
+        print(f'[INFO]  已清空字典')
+
+    #保存字典按钮
+    def Save_dictionary(self):
+        read_write_config("write") 
+        createSuccessInfoBar("保存成功")
+        print(f'[INFO]  已保存字典')
+
+    #提取文件中名词到字典按钮
+    def Extract_nouns(self):
+        # 选择文件
+        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'JSON Files (*.json)')      #调用QFileDialog类里的函数来选择文件
+        if Input_File:
+            print(f'[INFO]  已选择字典导入文件: {Input_File}')
+        else :
+            print('[INFO]  未选择文件')
+            return
+        
+        # 读取文件
+        with open(Input_File, 'r', encoding="utf-8") as f:
+            dictionary = json.load(f)
+
+        #遍历字典每一个key，判断一下
+        for key in dictionary.keys():
+            #key是否可取的判断变量
+            key_is_ok = 0
+
+            #检查一下表格中是否已经存在该key，如果存在则不添加
+            for row in range(self.tableView.rowCount() - 1):
+                key_item = self.tableView.item(row, 0)
+                if key_item and key_item.text() == key:
+                    key_is_ok = 1
+
+            #检查一下该key是否包含中日文，如果不包含则不添加
+            if re.search("[\u4e00-\u9fa5]", key) == None and re.search("[\u3040-\u309F\u30A0-\u30FF]", key) == None:
+                key_is_ok = 2
+
+            #检查一下该key是否为名词，如果不是名词则不添加
+            if len(key) > self.spinBox1.value():
+                key_is_ok = 3
+
+            #如果key可取，则添加到表格中
+            if key_is_ok == 0 : 
+                row = self.tableView.rowCount() - 1
+                self.tableView.insertRow(row)    # 在表格中插入一行
+                self.tableView.setItem(row, 0, QTableWidgetItem(key))
+                self.tableView.setItem(row, 1, QTableWidgetItem(dictionary[key]))
+                #设置新行的高度与前一行相同
+                self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
+        
+        createSuccessInfoBar("提取完成")
+        print(f'[INFO]  已提取文件中名词到字典')
+
+    
+    #消息提示函数
+    def checkBoxChanged2(self, isChecked: bool):
+        if isChecked :
+            createSuccessInfoBar("已开启译时提示功能,将根据发送文本自动添加翻译示例")
+
+
 class AvatarWidget(NavigationWidget):#头像导航项
     """ Avatar widget """
 
@@ -5879,7 +6215,8 @@ class window(FramelessWindow): #主窗口
         self.Interface19 = Widget19('Interface19', self) 
         self.Interface20 = Widget20('Interface20', self)   
         self.Interface21 = Widget21('Interface21', self) 
-        self.Interface22 = Widget22('Interface22', self)     
+        self.Interface22 = Widget22('Interface22', self)
+        self.Interface23 = Widget23('Interface23', self)       
 
 
         self.stackWidget.addWidget(self.Interface11)  #将子界面添加到父2堆栈窗口中
@@ -5892,6 +6229,7 @@ class window(FramelessWindow): #主窗口
         self.stackWidget.addWidget(self.Interface20)
         self.stackWidget.addWidget(self.Interface21)
         self.stackWidget.addWidget(self.Interface22)
+        self.stackWidget.addWidget(self.Interface23)
 
 
         self.initLayout() #调用初始化布局函数 
@@ -5964,15 +6302,23 @@ class window(FramelessWindow): #主窗口
         self.navigationInterface.addItem(
             routeKey=self.Interface21.objectName(),
             icon=FIF.CALENDAR,
-            text='用户字典',
+            text='替换字典',
             onClick=lambda: self.switchTo(self.Interface21),
+            ) 
+
+        #添加用户字典项
+        self.navigationInterface.addItem(
+            routeKey=self.Interface23.objectName(),
+            icon=FIF.CALENDAR,
+            text='AI提示字典',
+            onClick=lambda: self.switchTo(self.Interface23),
             ) 
 
         #添加实时调教导航项
         self.navigationInterface.addItem(
             routeKey=self.Interface18.objectName(),
             icon=FIF.ALBUM,
-            text='实时调教',
+            text='AI实时调教',
             onClick=lambda: self.switchTo(self.Interface18),
             ) 
 
@@ -5980,7 +6326,7 @@ class window(FramelessWindow): #主窗口
         self.navigationInterface.addItem(
             routeKey=self.Interface22.objectName(),
             icon=FIF.ZOOM,
-            text='提示词工程',
+            text='AI提示词工程',
             onClick=lambda: self.switchTo(self.Interface22),
             ) 
 
