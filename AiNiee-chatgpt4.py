@@ -1878,14 +1878,11 @@ def Main():
             source[i["Original text"]] = i["Original text"]
 
     source = convert_int_to_str(source) #将原文中的整数型数字转换为字符串型数字，因为后续的翻译会出现问题
-    Original_text_dictionary = source.copy() #将原文复制一份到Original_text_dictionary变量里，用于后续的修改
-
-    #如果正在翻译日语或者韩语时，会进行文本过滤
-    if Text_Source_Language == "日语" or Text_Source_Language == "韩语" :
+    if Text_Source_Language == "日语" or Text_Source_Language == "韩语" :    #如果正在翻译日语或者韩语时，会进行文本过滤
         remove_non_cjk(source)
-        remove_non_cjk(Original_text_dictionary)
         print("[INFO] 你的原文已经过滤了非中日韩字符")
 
+    Original_text_dictionary = source.copy() #将原文复制一份到Original_text_dictionary变量里，用于后续的修改
 
     ValueList=list(Original_text_dictionary.values())         #通过字典的valuas方法，获取所有的value，转换为list变量
     ValueList_len = len(ValueList)                           #获取原文件valua列表的长度，当作于原文的总行数
@@ -1903,11 +1900,11 @@ def Main():
 
     #如果开启译前替换功能，则根据用户字典进行替换
     if Window.Interface21.checkBox1.isChecked() :
-        Translation_text_Dictionary = replace_strings(Translation_text_Dictionary)
+        Original_text_dictionary = replace_strings(Original_text_dictionary)
 
     #如果开启了换行符替换翻译功能，则进行换行符替换成特殊字符
     if ((Running_status == 2 and Window.Interface15.SwitchButton2.isChecked()) or (Running_status == 3 and Window.Interface16.SwitchButton2.isChecked())) :
-        Translation_text_Dictionary = replace_special_characters(Translation_text_Dictionary, "替换") #替换特殊字符
+        Original_text_dictionary = replace_special_characters(Original_text_dictionary, "替换") #替换特殊字符
 
 
     # ——————————————————————————————————————————构建并发任务池子—————————————————————————————————————————
@@ -2100,7 +2097,7 @@ def Make_request():
         # ——————————————————————————————————————————截取特定段落的文本并进行处理——————————————————————————————————————————
 
         #读取source_mid源文件中特定起始位置到结束位置的数据,构建新字典变量
-        subset_mid = {k: Translation_text_Dictionary[k] for k in range( start , end)}    
+        subset_mid = {k: Original_text_dictionary[k] for k in range( start , end)}    
 
         
         #copy前面的代码，将截取文本的键改为从0开始的数字序号，因为AI在回答一万以上的序号时，容易出错
