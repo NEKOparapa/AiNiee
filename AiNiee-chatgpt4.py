@@ -25,7 +25,7 @@ from qfluentwidgets import TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,
 from qfluentwidgets import FluentIcon as FIF#需要安装库pip install "PyQt-Fluent-Widgets[full]" 
 
 
-Software_Version = "AiNiee-chatgpt4.53"  #软件版本号
+Software_Version = "AiNiee-chatgpt4.54"  #软件版本号
 
 OpenAI_model="gpt-3.5-turbo"   #调用api的模型,默认3.5-turbo
 OpenAI_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
