@@ -1865,7 +1865,6 @@ def Main():
             source_str = f.read()       #读取原文文件，以字符串的形式存储，直接以load读取会报错
 
             source = json.loads(source_str) #转换为字典类型的变量source，当作最后翻译文件的原文源
-            #print("[DEBUG] 你的未修改原文是",source)
 
 
     elif Running_status == 3:
@@ -1898,7 +1897,7 @@ def Main():
     Translation_Status_List =  [0] * ValueList_len   #创建文本翻译状态列表，用于并发时获取每个文本的翻译状态
 
 
-    #如果开启译前替换功能，则根据用户字典进行替换
+    #如果开启译前替换功能，则根据用户字典进行替换,用原文字典是为了避免备份文件也被替换，后面继续翻译会出错
     if Window.Interface21.checkBox1.isChecked() :
         Original_text_dictionary = replace_strings(Original_text_dictionary)
 
