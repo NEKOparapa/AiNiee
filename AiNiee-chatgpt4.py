@@ -171,8 +171,9 @@ ValueList_len = 0   # 存储原文件key列表的长度
 
 API_key_list = []      #存放key的列表
 key_list_index = 0    #列表的索引
+Number_of_mark = 0    #辅助记录当前选择的key的索引
 Number_of_requested = 0 #记录请求数量，方便轮询key
-Number_of_mark = 0    #辅助记录
+
 
 money_used = 0  # 存储金钱花销
 Translation_Progress = 0 # 存储翻译进度
