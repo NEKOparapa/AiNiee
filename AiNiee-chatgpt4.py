@@ -18,9 +18,9 @@
 
 
 #to do list
-#1.增加多key测试
-#2.编写T++导入脚本
-
+#1.编写T++导入脚本
+#2.增加文本目标语言选择
+#3.增加多key测试
 
 # coding:utf-8
 import math                 
