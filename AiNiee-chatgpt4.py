@@ -1,3 +1,20 @@
+# ═══════════════════════════════════════════════════════
+# ████ WARNING: Enter at Your Own Risk!               ████
+# ████ Congratulations, you have stumbled upon my     ████
+# ████ masterpiece - a mountain of 10,000 lines of    ████
+# ████ spaghetti code. Proceed with caution,          ████
+# ████ as reading this code may result in             ████
+# ████ immediate unhappiness and despair.             ████
+# ═══════════════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════
+# ████ 警告：擅自进入，后果自负                         ████
+# ████ 恭喜你，你已经发现了我的杰作                     ████
+# ████ 一座万行意大利面条式代码的屎山                   ████
+# ████ 请谨慎前行，阅读这段代码可能会。                 ████
+# ████ 立刻让你感到不幸和绝望                          ████
+# ═══════════════════════════════════════════════════════
 # coding:utf-8
 import math                 
 import json
