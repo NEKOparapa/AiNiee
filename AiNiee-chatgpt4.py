@@ -16,7 +16,7 @@
 # ████ 立刻让你感到不幸和绝望                          ████
 # ═══════════════════════════════════════════════════════
 
-
+#以后有空再进行拆分重构吧。。。。。。。
 
 # coding:utf-8
 import math                 
@@ -945,6 +945,22 @@ def convert_dict_to_simplified(dict_input):
         simplified_value = cc.convert(str(value))  # 使用OpenCC将value转换为简体字
         dict_output[key] = simplified_value  # 将转换后的结果存储到输出字典中
     return dict_output
+
+#替换表格文件中所有的整数型数据变为字符串型数据，防止t++导入时出错
+def process_excel_files(folder_path):
+    for root, _, files in os.walk(folder_path):#os.walk()返回的是一个三元tupple(dirpath, dirnames, filenames)，其中第一个为起始路径，第二个为起始路径下的文件夹，第三个是起始路径下的文件。
+        for file in files:
+            if file.endswith('.xlsx'):
+                file_path = os.path.join(root, file)
+                workbook = openpyxl.load_workbook(file_path)
+                sheet = workbook.active
+
+                for row in sheet.iter_rows(min_row=1, max_col=2):
+                    if not isinstance(row[0].value, str):
+                        row[0].value = str(row[0].value)
+                        row[1].value = str(row[1].value)
+
+                workbook.save(file_path)
 
 #读写配置文件config.json函数
 def read_write_config(mode):
@@ -2070,11 +2086,21 @@ def Main():
         Text_Directory_Index = update_file_paths(Input_and_output_paths[0]['Input_Folder'], Input_and_output_paths[1]['Output_Folder'], Text_Directory_Index)#更新文件路径
         update_xlsx_files(Text_Directory_Index) #更新xlsx文件
 
-        # 获取源文件夹的最后一个文件夹名
+        # 获取源文件夹的最后一个文件夹名，是导出时的文件夹名字
         folder_name = os.path.basename(os.path.normpath(Input_and_output_paths[0]['Input_Folder']))
-        #指定需要补充空行内容的文件夹，不然会把ouput文件夹内所有内容都补充空行了
+        #指定需要补充空行内容的文件夹，不然会把输出文件夹内，包括备份文件夹，debug文件夹里的东西都补充空行了
         folder_name = os.path.join(Input_and_output_paths[1]['Output_Folder'], folder_name)
-        fill_empty_cells_with_values(folder_name)#填充xlsx文件空单元格
+        #填充xlsx文件空单元格
+        fill_empty_cells_with_values(folder_name)
+
+        #处理输出文件夹中所有的xlsx文件中的整数型数据为字符串数据，以免导入出错
+        try:
+            process_excel_files(folder_name)
+            print("\033[1;32mSuccess:\033[0m  处理xlsx文件中整数型数据完成-----------------------------------")   
+
+        except Exception as e:
+            print("\033[1;33mWarning:\033[0m 处理xlsx文件中整数型数据出现问题！！将跳过该步，错误信息如下")
+            print(f"Error: {e}\n")
 
     print("\033[1;32mSuccess:\033[0m  译文文件写入完成-----------------------------------")  
 
