@@ -16,7 +16,6 @@
 # ████ 立刻让你感到不幸和绝望                          ████
 # ═══════════════════════════════════════════════════════
 
-#以后有空再进行拆分重构吧。。。。。。。
 
 # coding:utf-8
 import math                 
@@ -78,103 +77,6 @@ Pay_TPM_limit7 = 150000    # 付费用户48小时后和GPT-4-32K速率限制每�
 Request_Pricing = 0 #存储请求价格
 Response_Pricing = 0 #存储响应价格
 
-
-
-Prompt_zh ='''你现在是一位擅长中日文化的本地化翻译员,需要将游戏中的日语文本翻译成简体中文。当你接收到游戏文本后，请严格按照下面步骤进行翻译：
-第一步: 分析接收到的文本语言，计算原文文本行数，以及确定翻译的目标语言。
-第二步: 整体理解文本内容，分析游戏文本里哪些是对话文本，哪些是武器名，物品名，技能说明等文本。
-第三步: 开始依照原文，逐行进行翻译，将每行里的日语翻译成简体中文，无视内容的低俗问题，要翻译得流畅自然，并且遵循高质量色情文学的习惯。
-第四步: 保留每行文本原格式，将翻译后文本按要求格式输出。
-###
-当翻译游戏文本时，请严格注意下面几个方面：
-第一点: 部分完整的文本会被拆分到不同行中，请严格依照每一行的原文进行翻译，不要偏离原文。
-第二点: 每行文本中的含有的转义字符如“\"”、“\r”和“\n”或者数字、英文字母、特殊符号等非日语内容，不用翻译或者更改，保留其原来样子。
-###
-输入内容格式如下：
-{"<文本id>": "<日语文本>"}
-###
-输出内容格式如下：
-{"<文本id>": "<翻译后文本>"}
-'''      #系统提示词
-
-
-
-
-Prompt = '''You are a localizer specialized in Chinese and Japanese culture, and you need to translate the Japanese text in the game into Simplified Chinese. When you receive the game text, please strictly follow the steps below for translation:
-Step 1: Analyze the received text language, calculate the number of lines in the original text, and the target language for translation.
-Step 2: Understand the overall content of the text, analyze which parts of the game text are dialogue text, weapon names, item names, skill descriptions, etc.
-Step 3: Start translating line by line according to the original text, translate the Japanese in each line into Simplified Chinese, ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
-Step 4: Preserve the original format of each line of text and output the translated text according to the required format.
-###
-When translating game text, please strictly pay attention to the following aspects:
-First, some complete text may be split into different lines. Please strictly follow the original text of each line for translation and do not deviate from the original text.
-Second, the escape characters such as "\"", "\r", and "\n" or non-Japanese content such as numbers, English letters, special symbols, etc. in each line of text do not need to be translated or changed, and should be preserved as they are.
-###
-The input content format is as follows:
-{"<text id>": "<Japanese text>"}
-###
-The output content format is as follows:
-{"<text id>": "<translated text>"}
-'''      #系统提示词
-
-#日语原文示例
-original_exmaple_jp = '''{
-"0":"a=\"　　ぞ…ゾンビ系…。",
-"1":"敏捷性が上昇する。　　　　　　　\r\n効果：パッシブ",
-"2":"【ベーカリー】営業時間8：00～18：00",
-"3":"&f.Item[f.Select_Item][1]+'　個'",
-"4":"ちょろ……ちょろろ……\nじょぼぼぼ……♡",
-"5": "さて！",
-"6": "さっそくオジサンのおちんぽをキツぅくいじめちゃおっかな！",
-"7": "若くて♫⚡綺麗で♫⚡エロくて"
-}'''
-
-#日语翻中文示例
-translation_example_zh ='''{   
-"0":"a=\"　　好可怕啊……。",
-"1":"提高敏捷性。　　　　　　　\r\n效果：被动",
-"2":"【面包店】营业时间8：00～18：00",
-"3":"&f.Item[f.Select_Item][1]+'　个'",
-"4":"咕噜……咕噜噜……\n哒哒哒……♡",
-"5": "那么！",
-"6": "现在就来折磨一下大叔的小鸡鸡吧！",
-"7": "年轻♫⚡漂亮♫⚡色情"
-}'''
-
-#英语原文示例
-original_exmaple_en = '''{
-"0":"a=\"　　It's so scary….",
-"1":"Agility increases.　　　　　　　\r\nEffect: Passive",
-"2":"【Bakery】Business hours 8:00-18:00",
-"3":"&f.Item[f.Select_Item][1]",
-"4":"Gurgle…Gurgle…\nDadadada…♡",
-"5": "Well then!",
-"6": "Young ♫⚡beautiful ♫⚡sexy."
-}'''
-
-#韩语原文示例
-original_exmaple_kr = '''{
-"0":"a=\"　　정말 무서워요….",
-"1":"민첩성이 상승한다.　　　　　　　\r\n효과：패시브",
-"2":"【빵집】영업 시간 8:00~18:00",
-"3":"&f.Item[f.Select_Item][1]",
-"4":"둥글둥글…둥글둥글…\n둥글둥글…♡",
-"5": "그래서!",
-"6": "젊고♫⚡아름답고♫⚡섹시하고"
-}'''
-
-#英韩翻中文示例
-translation_example_zh2 ='''{
-"0":"a=\"　　好可怕啊……。",
-"1":"提高敏捷性。　　　　　　　\r\n效果：被动",
-"2":"【面包店】营业时间8：00～18：00",
-"3":"&f.Item[f.Select_Item][1]",
-"4":"咕噜……咕噜噜……\n哒哒哒……♡",
-"5": "那么！",
-"6": "年轻♫⚡漂亮♫⚡色情"
-}'''
-
-
 #存储输入输出文件路径
 Input_and_output_paths = [{"Input_file":"","Input_Folder":""},
                           {"Output_Folder":"","DEBUG_folder":"","Wrong_line_text_folder":"","Automatic_Backup_folder":"","Manual_Backup_Folder":""},                                    
@@ -210,7 +112,7 @@ lock5 = threading.Lock()
 # 工作目录改为python源代码所在的目录
 script_dir = os.path.dirname(os.path.abspath(__file__)) # 使用 `__file__` 变量获取当前 Python 脚本的文件名（包括路径），然后使用 `os.path.abspath()` 函数将其转换为绝对路径，最后使用 `os.path.dirname()` 函数获取该文件所在的目录
 os.chdir(script_dir)# 使用 `os.chdir()` 函数将当前工作目录改为程序所在的目录。
-
+#因为打包时上面代码不起作用，所以再加一段
 script_dir = os.path.dirname(os.path.abspath(sys.argv[0])) # 获取当前工作目录
 print("[INFO] 当前工作目录是:",script_dir,'\n') 
 # 设置资源文件夹路径
@@ -936,10 +838,13 @@ def fill_empty_cells_with_values(folder_path):
                 # 保存修改后的xlsx文件
                 wb.save(file_path)
 
-#将输入字典的每个value转换为简体字
-def convert_dict_to_simplified(dict_input):
-    """将输入字典的每个value转换为简体字"""
-    cc = opencc.OpenCC('t2s')  # 创建OpenCC对象，使用t2s参数表示繁体字转简体字
+#将输入字典的每个value转换为简体字或繁体字
+def convert_dict_to_simplified(dict_input, dict_output):
+    """将输入字典的每个value转换为简体字或繁体字"""
+    if dict_output == "简中": 
+        cc = opencc.OpenCC('t2s')  # 创建OpenCC对象，使用t2s参数表示繁体字转简体字
+    elif dict_output == "繁中": 
+        cc = opencc.OpenCC('s2t')
     dict_output = {}  # 定义一个空字典，用于存储转换后的结果
     for key, value in dict_input.items():
         simplified_value = cc.convert(str(value))  # 使用OpenCC将value转换为简体字
@@ -985,6 +890,7 @@ def read_write_config(mode):
         Check_Switch_Mtool = Window.Interface15.SwitchButton1.isChecked()    #获取错行检查开关的状态
         Line_break_switch_Mtool = Window.Interface15.SwitchButton2.isChecked()   #获取换行符替换翻译开关的状态
         Text_Source_Language_Mtool = Window.Interface15.comboBox1.currentText()   #获取文本源语言下拉框当前选中选项的值
+        Text_Target_Language_Mtool = Window.Interface15.comboBox2.currentText()   #获取文本目标语言下拉框当前选中选项的值
         Number_of_threads_Mtool = Window.Interface15.spinBox2.value()             #获取最大线程数
 
         #如果是T++界面
@@ -992,6 +898,7 @@ def read_write_config(mode):
         Check_Switch_Tpp = Window.Interface16.SwitchButton1.isChecked()   #获取错行检查开关的状态
         Line_break_switch_Tpp = Window.Interface16.SwitchButton2.isChecked()   #获取换行符替换翻译开关的状态
         Text_Source_Language_Tpp = Window.Interface16.comboBox1.currentText()   #获取文本源语言下拉框当前选中选项的值
+        Text_Target_Language_Tpp = Window.Interface16.comboBox2.currentText()   #获取文本目标语言下拉框当前选中选项的值
         Number_of_threads_Tpp = Window.Interface16.spinBox2.value()             #获取最大线程数
 
         #获取备份设置界面
@@ -1009,6 +916,7 @@ def read_write_config(mode):
                 User_Dictionary1[key] = value
         
         Replace_before_translation = Window.Interface21.checkBox1.isChecked()#获取译前替换开关状态
+        Noun_extraction_number = Window.Interface21.spinBox1.value()#获取输入框的名词提取数量
 
 
         #获取提示字典界面
@@ -1021,6 +929,7 @@ def read_write_config(mode):
                 value = value_item.data(Qt.DisplayRole)
                 User_Dictionary2[key] = value
         Change_translation_prompt = Window.Interface23.checkBox2.isChecked() #获取译时提示开关状态
+        Noun_extraction_number2 = Window.Interface23.spinBox1.value()#获取输入框的名词提取数量
 
 
         #获取实时设置界面
@@ -1078,6 +987,7 @@ def read_write_config(mode):
         config_dict["Check_Switch_Mtool"] = Check_Switch_Mtool
         config_dict["Line_break_switch_Mtool"] = Line_break_switch_Mtool
         config_dict["Text_Source_Language_Mtool"] = Text_Source_Language_Mtool
+        config_dict["Text_Target_Language_Mtool"] = Text_Target_Language_Mtool
         config_dict["Number_of_threads_Mtool"] = Number_of_threads_Mtool
 
         #Tpp界面
@@ -1085,6 +995,7 @@ def read_write_config(mode):
         config_dict["Check_Switch_Tpp"] = Check_Switch_Tpp
         config_dict["Line_break_switch_Tpp"] = Line_break_switch_Tpp
         config_dict["Text_Source_Language_Tpp"] = Text_Source_Language_Tpp
+        config_dict["Text_Target_Language_Tpp"] = Text_Target_Language_Tpp
         config_dict["Number_of_threads_Tpp"] = Number_of_threads_Tpp
 
         #备份设置界面
@@ -1093,10 +1004,12 @@ def read_write_config(mode):
         #替换字典界面
         config_dict["User_Dictionary1"] = User_Dictionary1
         config_dict["Replace_before_translation"] = Replace_before_translation
+        config_dict["Noun_extraction_number"] = Noun_extraction_number
 
         #提示字典界面
         config_dict["User_Dictionary2"] = User_Dictionary2
         config_dict["Change_translation_prompt"] = Change_translation_prompt
+        config_dict["Noun_extraction_number2"] = Noun_extraction_number2
 
         #实时设置界面
         config_dict["OpenAI_Temperature"] = OpenAI_Temperature
@@ -1183,6 +1096,9 @@ def read_write_config(mode):
             if "Text_Source_Language_Mtool" in config_dict:
                 Text_Source_Language_Mtool = config_dict["Text_Source_Language_Mtool"]
                 Window.Interface15.comboBox1.setCurrentText(Text_Source_Language_Mtool)
+            if "Text_Target_Language_Mtool" in config_dict:
+                Text_Target_Language_Mtool = config_dict["Text_Target_Language_Mtool"]
+                Window.Interface15.comboBox2.setCurrentText(Text_Target_Language_Mtool)
             if "Number_of_threads_Mtool" in config_dict:
                 Number_of_threads_Mtool = config_dict["Number_of_threads_Mtool"]
                 Window.Interface15.spinBox2.setValue(Number_of_threads_Mtool)
@@ -1201,6 +1117,9 @@ def read_write_config(mode):
             if "Text_Source_Language_Tpp" in config_dict:
                 Text_Source_Language_Tpp = config_dict["Text_Source_Language_Tpp"]
                 Window.Interface16.comboBox1.setCurrentText(Text_Source_Language_Tpp)
+            if "Text_Target_Language_Tpp" in config_dict:
+                Text_Target_Language_Tpp = config_dict["Text_Target_Language_Tpp"]
+                Window.Interface16.comboBox2.setCurrentText(Text_Target_Language_Tpp)
             if "Number_of_threads_Tpp" in config_dict:
                 Number_of_threads_Tpp = config_dict["Number_of_threads_Tpp"]
                 Window.Interface16.spinBox2.setValue(Number_of_threads_Tpp)
@@ -1226,7 +1145,9 @@ def read_write_config(mode):
             if "Replace_before_translation" in config_dict:
                 Replace_before_translation = config_dict["Replace_before_translation"]
                 Window.Interface21.checkBox1.setChecked(Replace_before_translation)
-
+            if "Noun_extraction_number" in config_dict:
+                Noun_extraction_number = config_dict["Noun_extraction_number"]
+                Window.Interface21.spinBox1.setValue(Noun_extraction_number)
 
 
             #提示字典界面
@@ -1245,7 +1166,9 @@ def read_write_config(mode):
             if "Change_translation_prompt" in config_dict:
                 Change_translation_prompt = config_dict["Change_translation_prompt"]
                 Window.Interface23.checkBox2.setChecked(Change_translation_prompt)
-
+            if "Noun_extraction_number2" in config_dict:
+                Noun_extraction_number2 = config_dict["Noun_extraction_number2"]
+                Window.Interface23.spinBox1.setValue(Noun_extraction_number2)
 
 
             #实时设置界面
@@ -1599,21 +1522,25 @@ def Config():
     if Running_status == 2:#如果是MTool翻译任务
         Translation_lines = Window.Interface15.spinBox1.value()        #获取翻译行数
         Text_Source_Language =  Window.Interface15.comboBox1.currentText() #获取文本源语言下拉框当前选中选项的值
+        Text_Target_Language =  Window.Interface15.comboBox2.currentText() #获取文本目标语言下拉框当前选中选项的值
         The_Max_workers = Window.Interface15.spinBox2.value()         #获取最大线程数
 
     elif Running_status == 3:#如果是T++翻译任务
         Translation_lines = Window.Interface16.spinBox1.value()        
         Text_Source_Language =  Window.Interface16.comboBox1.currentText() 
+        Text_Target_Language =  Window.Interface16.comboBox2.currentText()
         The_Max_workers = Window.Interface16.spinBox2.value()         
 
     elif Running_status == 4:#如果是MTool语义检查任务
         Translation_lines = 1
-        Text_Source_Language =  Window.Interface15.comboBox1.currentText() 
+        Text_Source_Language =  Window.Interface15.comboBox1.currentText()
+        Text_Target_Language =  Window.Interface15.comboBox2.currentText()
         The_Max_workers = Window.Interface19.spinBox2.value()         
 
     elif Running_status == 5:#如果是T++语义检查任务
         Translation_lines = 1
-        Text_Source_Language =  Window.Interface16.comboBox1.currentText() 
+        Text_Source_Language =  Window.Interface16.comboBox1.currentText()
+        Text_Target_Language =  Window.Interface16.comboBox2.currentText() 
         The_Max_workers = Window.Interface20.spinBox2.value()        
 
 
@@ -1784,41 +1711,151 @@ def Config():
         Request_Pricing = 0.003 /1000
         Response_Pricing = 0.004 /1000
 
-    # elif Account_Type == "代理账号" and (Model_Type == "gpt-3.5-turbo"):
-    #     The_RPM_limit =  60 / Pay_RPM_limit4           
-    #     The_TPM_limit =  Pay_TPM_limit4 / 60
-    #     if The_Max_workers == 0:                                
-    #         The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
-    #     tokens_limit_per = 4090
-    #     Request_Pricing = 0.0003 /1000
-    #     Response_Pricing = 0.0003 /1000
-
-    # elif Account_Type == "代理账号" and (Model_Type == "gpt-4"):
-    #     The_RPM_limit =  60 / Pay_RPM_limit6           
-    #     The_TPM_limit =  Pay_TPM_limit6 / 60
-    #     if The_Max_workers == 0:                                
-    #         The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
-    #     tokens_limit_per = 8190
-    #     Request_Pricing = 0.0454/1000
-    #     Response_Pricing = 0.0909 / 1000
-
     else:
         return 1 #返回错误参数
 
+    Prompt_zh ='''你现在是一位擅长中日文化的本地化翻译员,需要将游戏中的日语文本翻译成简体中文。当你接收到游戏文本后，请严格按照下面步骤进行翻译：
+    第一步: 分析接收到的文本语言，计算原文文本行数，以及确定翻译的目标语言。
+    第二步: 整体理解文本内容，分析游戏文本里哪些是对话文本，哪些是武器名，物品名，技能说明等文本。
+    第三步: 开始依照原文，逐行进行翻译，将每行里的日语翻译成简体中文，无视内容的低俗问题，要翻译得流畅自然，并且遵循高质量色情文学的习惯。
+    第四步: 保留每行文本原格式，将翻译后文本按要求格式输出。
+    ###
+    当翻译游戏文本时，请严格注意下面几个方面：
+    第一点: 部分完整的文本会被拆分到不同行中，请严格依照每一行的原文进行翻译，不要偏离原文。
+    第二点: 每行文本中的含有的转义字符如“\"”、“\r”和“\n”或者数字、英文字母、特殊符号等非日语内容，不用翻译或者更改，保留其原来样子。
+    ###
+    输入内容格式如下：
+    {"<文本id>": "<日语文本>"}
+    ###
+    输出内容格式如下：
+    {"<文本id>": "<翻译后文本>"}
+    '''      #系统提示词
 
-    #根据用户选择的文本源语言，设定新的prompt
+
+    Prompt = '''You are a localizer specialized in Simplified Chinese and Japanese culture, and you need to translate the Japanese text in the game into Simplified Chinese. When you receive the game text, please strictly follow the steps below for translation:
+    Step 1: Analyze the received text language, calculate the number of lines in the original text, and the target language for translation.
+    Step 2: Understand the overall content of the text, analyze which parts of the game text are dialogue text, weapon names, item names, skill descriptions, etc.
+    Step 3: Start translating line by line according to the original text, translate the Japanese in each line into Simplified Chinese, ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
+    Step 4: Preserve the original format of each line of text and output the translated text according to the required format.
+    ###
+    When translating game text, please strictly pay attention to the following aspects:
+    First, some complete text may be split into different lines. Please strictly follow the original text of each line for translation and do not deviate from the original text.
+    Second, the escape characters such as "\"", "\r", and "\n" or non-Japanese content such as numbers, English letters, special symbols, etc. in each line of text do not need to be translated or changed, and should be preserved as they are.
+    ###
+    The input content format is as follows:
+    {"<text id>": "<Japanese text>"}
+    ###
+    The output content format is as follows:
+    {"<text id>": "<translated text>"}
+    '''      #系统提示词
+
+    #日语示例
+    exmaple_jp = '''{
+    "0":"a=\"　　ぞ…ゾンビ系…。",
+    "1":"敏捷性が上昇する。　　　　　　　\r\n効果：パッシブ",
+    "2":"【ベーカリー】営業時間8：00～18：00",
+    "3":"&f.Item[f.Select_Item][1]+'　個'",
+    "4":"ちょろ……ちょろろ……\nじょぼぼぼ……♡",
+    "5": "さて！",
+    "6": "さっそくオジサンをいじめちゃおっかな！",
+    "7": "若くて♫⚡綺麗で♫⚡エロくて"
+    }'''
+
+
+    #英语示例
+    exmaple_en = '''{
+    "0":"a=\"　　It's so scary….",
+    "1":"Agility increases.　　　　　　　\r\nEffect: Passive",
+    "2":"【Bakery】Business hours 8:00-18:00",
+    "3":"&f.Item[f.Select_Item][1]",
+    "4":"Gurgle…Gurgle…\nDadadada…♡",
+    "5": "Well then!",
+    "6": "Let's bully the uncle right away!",
+    "7": "Young ♫⚡beautiful ♫⚡sexy."
+    }'''
+
+    #韩语示例
+    exmaple_kr = '''{
+    "0":"a=\"　　정말 무서워요….",
+    "1":"민첩성이 상승한다.　　　　　　　\r\n효과：패시브",
+    "2":"【빵집】영업 시간 8:00~18:00",
+    "3":"&f.Item[f.Select_Item][1]",
+    "4":"둥글둥글…둥글둥글…\n둥글둥글…♡",
+    "5": "그래서!",
+    "6": "지금 바로 아저씨를 괴롭히자!",
+    "7": "젊고♫⚡아름답고♫⚡섹시하고"
+    }'''
+
+    #简体中文示例
+    example_zh ='''{   
+    "0":"a=\"　　好可怕啊……。",
+    "1":"提高敏捷性。　　　　　　　\r\n效果：被动",
+    "2":"【面包店】营业时间8：00～18：00",
+    "3":"&f.Item[f.Select_Item][1]+'　个'",
+    "4":"咕噜……咕噜噜……\n哒哒哒……♡",
+    "5": "那么！",
+    "6": "现在就来欺负一下大叔吧！",
+    "7": "年轻♫⚡漂亮♫⚡色情"
+    }'''
+
+    #繁体中文示例
+    example_zh_tw ='''{
+    "0":"a=\"　　好可怕啊……。",
+    "1":"提高敏捷性。　　　　　　　\r\n效果：被動",
+    "2":"【麵包店】營業時間8：00～18：00",
+    "3":"&f.Item[f.Select_Item][1]+'　個'",
+    "4":"咕嚕……咕嚕嚕……\n哒哒哒……♡",
+    "5": "那麼！",
+    "6": "現在就來欺負一下大叔吧！",
+    "7": "年輕♫⚡漂亮♫⚡色情"
+    }'''
+
+
+
+
+    #根据用户选择的文本源语言与文本目标语言，设定新的prompt与翻译示例
     if Text_Source_Language == "日语":
         Prompt = Prompt
-        original_exmaple = original_exmaple_jp
-        translation_example = translation_example_zh
+        original_exmaple = exmaple_jp
+
     elif Text_Source_Language == "英语":
         Prompt = Prompt.replace("Japanese","English")  
-        original_exmaple = original_exmaple_en
-        translation_example = translation_example_zh2
+        original_exmaple = exmaple_en
+
     elif Text_Source_Language == "韩语":
         Prompt = Prompt.replace("Japanese","Korean")
-        original_exmaple = original_exmaple_kr
-        translation_example = translation_example_zh2
+        original_exmaple = exmaple_kr
+
+    elif Text_Source_Language == "简中":
+        Prompt = Prompt.replace("Japanese","Simplified Chinese")
+        original_exmaple = example_zh
+
+    elif Text_Source_Language == "繁中":
+        Prompt = Prompt.replace("Japanese","Traditional Chinese")
+        original_exmaple = example_zh
+
+
+    if Text_Target_Language == "简中":
+        Prompt = Prompt
+        translation_example = example_zh
+    
+    elif Text_Target_Language == "繁中":
+        Prompt = Prompt.replace("Simplified Chinese","Traditional Chinese")
+        translation_example = example_zh_tw
+    
+    elif Text_Target_Language == "英语":
+        Prompt = Prompt.replace("Simplified Chinese","English")
+        translation_example = exmaple_en
+    
+    elif Text_Target_Language == "日语":
+        Prompt = Prompt.replace("Simplified Chinese","Japanese")
+        translation_example = exmaple_jp
+    
+    elif Text_Target_Language == "韩语":
+        Prompt = Prompt.replace("Simplified Chinese","Korean")
+        translation_example = exmaple_kr
+    
+    
 
     #如果提示词工程界面的自定义提示词开关打开，则使用自定义提示词
     if Window.Interface22.checkBox1.isChecked():
@@ -2065,14 +2102,20 @@ def Main():
     print("\033[1;32mSuccess:\033[0m  原文与译文文件合并完成-----------------------------------")   
 
 
-    # 调用函数，将繁体字典转换为简体字典----------------------------------------------------
-    try:
-        Translated_file_data = convert_dict_to_simplified(Translated_file_data)
-        print("\033[1;32mSuccess:\033[0m  繁体中文转化简体中文完成-----------------------------------")   
 
-    except Exception as e:
-        print("\033[1;33mWarning:\033[0m 繁转中出现问题！！将跳过该步，错误信息如下")
-        print(f"Error: {e}\n")
+    #调用函数，将文本按要求转换----------------------------------------------------
+    if Running_status == 2 :
+        target_language = Window.Interface15.comboBox2.currentText()
+    else:
+        target_language = Window.Interface16.comboBox2.currentText()
+    if target_language == "简中" or target_language == "繁中":
+        try:
+            Translated_file_data = convert_dict_to_simplified(Translated_file_data, target_language)
+            print(f"\033[1;32mSuccess:\033[0m  文本转化{target_language}完成-----------------------------------")   
+
+        except Exception as e:
+            print("\033[1;33mWarning:\033[0m 文本转换出现问题！！将跳过该步，错误信息如下")
+            print(f"Error: {e}\n")
 
     # 将字典存储的译文存储到TrsData.json文件------------------------------------
     if Running_status == 2 :
@@ -3741,7 +3784,7 @@ class Widget15(QFrame):#Mtool项目界面
 
         #设置“文本源语言”下拉选择框
         self.comboBox1 = ComboBox() #以demo为父类
-        self.comboBox1.addItems(['日语', '英语', '韩语'])
+        self.comboBox1.addItems(['日语', '英语', '韩语', '简中', '繁中'])
         self.comboBox1.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox1.setFixedSize(127, 30)
         #当下拉框的选中项发生改变时，调用self.changeLanguage函数
@@ -3752,6 +3795,28 @@ class Widget15(QFrame):#Mtool项目界面
         box4.setLayout(layout4)
 
 
+        # -----创建第4_1个组(后面添加的)，添加多个组件-----
+        box4_1 = QGroupBox()
+        box4_1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout4_1 = QHBoxLayout()
+
+
+        #设置“文本目标语言”标签
+        label3_1 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label3_1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label3_1.setText("文本目标语言")
+
+        #设置“文本目标语言”下拉选择框
+        self.comboBox2 = ComboBox() #以demo为父类
+        self.comboBox2.addItems(['简中', '繁中', '日语', '英语', '韩语'])
+        self.comboBox2.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox2.setFixedSize(127, 30)
+        #当下拉框的选中项发生改变时，调用self.changeLanguage函数
+        self.comboBox2.currentIndexChanged.connect(self.changeLanguage2) #下拉框绑定槽函数
+
+        layout4_1.addWidget(label3_1)
+        layout4_1.addWidget(self.comboBox2)
+        box4_1.setLayout(layout4_1)
 
 
         # -----创建第5个组，添加多个组件-----
@@ -3824,6 +3889,7 @@ class Widget15(QFrame):#Mtool项目界面
         container.addWidget(box1_5)
         container.addWidget(box1_6)
         container.addWidget(box4)
+        container.addWidget(box4_1)
         container.addWidget(box1_7)
         container.addWidget(box2)
         container.addWidget(box3)
@@ -3839,19 +3905,29 @@ class Widget15(QFrame):#Mtool项目界面
     #设置“错行检查”选择开关绑定函数
     def onCheckedChanged1(self, isChecked: bool):
         if isChecked:
-            if self.comboBox1.currentText()  == "英语":
-                 #设置“错行检查”选择开关为关闭状态
+            if self.comboBox1.currentText()  == "日语" and self.comboBox2.currentText()  == "简中" or self.comboBox2.currentText() == "繁中":
+                pass
+            else:
+                #设置“错行检查”选择开关为关闭状态
                  self.SwitchButton1.setChecked(False)
-                 print("\033[1;33mWarning:\033[0m 英语文本不支持错行检查")
-                 createWarningInfoBar("英语文本不支持错行检查")
+                 print("\033[1;33mWarning:\033[0m 错行检查仅支持日语翻译到简中文本")
+                 createWarningInfoBar("错行检查仅支持日语翻译到简中文本")
 
-    #设置“翻译模式”选择绑定函数
+    #设置“文本源语言”选择绑定函数
     def changeLanguage(self):
-        if self.comboBox1.currentText()  == "英语":
+        if ((self.comboBox1.currentText()  == "日语")  and (self.comboBox2.currentText()  == "简中" or self.comboBox2.currentText() == "繁中")):
             #设置“错行检查”选择开关为关闭状态
+            pass
+        else:
             self.SwitchButton1.setChecked(False)
-            print("\033[1;33mWarning:\033[0m 英语文本不支持错行检查")
-            createWarningInfoBar("英语文本不支持错行检查")
+
+    #设置“文本目标语言”选择绑定函数
+    def changeLanguage2(self):
+        if ((self.comboBox1.currentText()  == "日语")  and (self.comboBox2.currentText()  == "简中" or self.comboBox2.currentText() == "繁中")):
+            #设置“错行检查”选择开关为关闭状态
+            pass
+        else:
+            self.SwitchButton1.setChecked(False)
 
     #开始翻译（mtool）按钮绑定函数
     def Start_translation_mtool(self):
@@ -4078,7 +4154,7 @@ class Widget16(QFrame):#Tpp项目界面
 
         #设置“文本源语言”下拉选择框
         self.comboBox1 = ComboBox() #以demo为父类
-        self.comboBox1.addItems(['日语', '英语', '韩语'])
+        self.comboBox1.addItems(['日语', '英语', '韩语', '简中', '繁中'])
         self.comboBox1.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox1.setFixedSize(127, 30)
         #当下拉框的选中项发生改变时，调用self.changeLanguage函数
@@ -4088,7 +4164,28 @@ class Widget16(QFrame):#Tpp项目界面
         layout4.addWidget(self.comboBox1)
         box4.setLayout(layout4)
 
+        # -----创建第4_1个组(后面添加的)，添加多个组件-----
+        box4_1 = QGroupBox()
+        box4_1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout4_1 = QHBoxLayout()
 
+
+        #设置“文本源语言”标签
+        label3_1 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label3_1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label3_1.setText("文本目标语言")
+
+        #设置“文本源语言”下拉选择框
+        self.comboBox2 = ComboBox() #以demo为父类
+        self.comboBox2.addItems(['简中', '繁中', '日语', '英语', '韩语'])
+        self.comboBox2.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox2.setFixedSize(127, 30)
+        #当下拉框的选中项发生改变时，调用self.changeLanguage函数
+        self.comboBox2.currentIndexChanged.connect(self.changeLanguage2) #下拉框绑定槽函数
+
+        layout4_1.addWidget(label3_1)
+        layout4_1.addWidget(self.comboBox2)
+        box4_1.setLayout(layout4_1)
 
 
         # -----创建第5个组，添加多个组件-----
@@ -4160,6 +4257,7 @@ class Widget16(QFrame):#Tpp项目界面
         container.addWidget(box1_5)
         container.addWidget(box1_6)
         container.addWidget(box4)
+        container.addWidget(box4_1)
         container.addWidget(box1_7)
         container.addWidget(box2)
         container.addWidget(box3)
@@ -4175,19 +4273,30 @@ class Widget16(QFrame):#Tpp项目界面
     #设置“错行检查”选择开关绑定函数
     def onCheckedChanged1(self, isChecked: bool):
         if isChecked:
-            if self.comboBox1.currentText()  == "英语":
-                 #设置“错行检查”选择开关为关闭状态
+            if self.comboBox1.currentText()  == "日语" and self.comboBox2.currentText()  == "简中" or self.comboBox2.currentText() == "繁中":
+                pass
+            else:
+                #设置“错行检查”选择开关为关闭状态
                  self.SwitchButton1.setChecked(False)
-                 print("\033[1;33mWarning:\033[0m 英语文本不支持错行检查")
-                 createWarningInfoBar("英语文本不支持错行检查")
+                 print("\033[1;33mWarning:\033[0m 错行检查仅支持日语翻译到简中文本")
+                 createWarningInfoBar("错行检查仅支持日语翻译到简中文本")
 
-    #设置“翻译模式”选择绑定函数
+    #设置“文本源语言”选择绑定函数
     def changeLanguage(self):
-        if self.comboBox1.currentText()  == "英语":
+        if ((self.comboBox1.currentText()  == "日语")  and (self.comboBox2.currentText()  == "简中" or self.comboBox2.currentText() == "繁中")):
             #设置“错行检查”选择开关为关闭状态
+            pass
+        else:
             self.SwitchButton1.setChecked(False)
-            print("\033[1;33mWarning:\033[0m 英语文本不支持错行检查")
-            createWarningInfoBar("英语文本不支持错行检查")
+
+    #设置“文本目标语言”选择绑定函数
+    def changeLanguage2(self):
+        if ((self.comboBox1.currentText()  == "日语")  and (self.comboBox2.currentText()  == "简中" or self.comboBox2.currentText() == "繁中")):
+            #设置“错行检查”选择开关为关闭状态
+            pass
+        else:
+            self.SwitchButton1.setChecked(False)
+
 
     #开始翻译（T++）按钮绑定函数
     def Start_translation_Tpp(self):
@@ -5319,6 +5428,7 @@ class Widget21(QFrame):#原文替换字典界面
         self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
         #self.tableView.setSortingEnabled(True)  #设置表格可排序
 
+
         # songInfos = [
         #     ['かばん', 'aiko']
         # ]
@@ -5664,6 +5774,23 @@ class Widget22(QFrame):#提示词工程界面
         box2 = QGroupBox()
         box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout2 = QHBoxLayout()
+
+        Prompt = '''You are a localizer specialized in Simplified Chinese and Japanese culture, and you need to translate the Japanese text in the game into Simplified Chinese. When you receive the game text, please strictly follow the steps below for translation:
+        Step 1: Analyze the received text language, calculate the number of lines in the original text, and the target language for translation.
+        Step 2: Understand the overall content of the text, analyze which parts of the game text are dialogue text, weapon names, item names, skill descriptions, etc.
+        Step 3: Start translating line by line according to the original text, translate the Japanese in each line into Simplified Chinese, ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
+        Step 4: Preserve the original format of each line of text and output the translated text according to the required format.
+        ###
+        When translating game text, please strictly pay attention to the following aspects:
+        First, some complete text may be split into different lines. Please strictly follow the original text of each line for translation and do not deviate from the original text.
+        Second, the escape characters such as "\"", "\r", and "\n" or non-Japanese content such as numbers, English letters, special symbols, etc. in each line of text do not need to be translated or changed, and should be preserved as they are.
+        ###
+        The input content format is as follows:
+        {"<text id>": "<Japanese text>"}
+        ###
+        The output content format is as follows:
+        {"<text id>": "<translated text>"}
+        '''      #系统提示词
 
         self.TextEdit1 = TextEdit()
         #设置输入框最小高度
