@@ -21,7 +21,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller openai numpy openpyxl PyQt5 "PyQt-Fluent-Widgets[full]" opencc 
-
+      - name: Modify opencc
+        run: |
+          (Get-Command python).Path | ForEach-Object { $_ -replace 'python\.exe$', 'Lib\site-packages\opencc\__init__.py' } | ForEach-Object { $content = Get-Content $_; $content -replace '_thisdir = .+', '_thisdir = os.path.dirname(os.path.abspath(sys.argv[0]))' | Set-Content $_ }
       - name: Build EXE
         run: pyinstaller -F -i ./resource/Avatar.png ./AiNiee-chatgpt4.py
       - name: Zip dist folder
@@ -44,7 +46,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.AINIEE }}
         with:
           tag_name: Beta
-          release_name: Beta测试版 同步最新代码
+          release_name: AiNiee-chatgpt测试版 同步最新代码
           draft: false
           prerelease: true
 
