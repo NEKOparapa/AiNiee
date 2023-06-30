@@ -2386,8 +2386,14 @@ def Make_request():
                 #截取回复内容中返回的tonkens花费，并计算金钱花费
                 lock3.acquire()  # 获取锁
 
-                prompt_tokens_used = int(response["usage"]["prompt_tokens"]) #本次请求花费的tokens
-                completion_tokens_used = int(response["usage"]["completion_tokens"]) #本次回复花费的tokens
+                try:
+                    prompt_tokens_used = int(response["usage"]["prompt_tokens"]) #本次请求花费的tokens
+                except Exception as e:
+                    prompt_tokens_used = 0
+                try:
+                    completion_tokens_used = int(response["usage"]["completion_tokens"]) #本次回复花费的tokens
+                except Exception as e:
+                    completion_tokens_used = 0
 
 
                 Request_Costs  = prompt_tokens_used * Request_Pricing  #本次请求花费的金钱
@@ -3191,7 +3197,10 @@ def Make_request_Embeddings():
                 print("[INFO] 位置：",start," 到 ",end," 的文本嵌入编码")
 
                 #计算花销
-                total_tokens_used = int(response["usage"]["total_tokens"]) #本次请求花费的tokens
+                try:
+                    total_tokens_used = int(response["usage"]["total_tokens"]) #本次请求花费的tokens
+                except Exception as e:
+                    total_tokens_used = 0
                 money_used  =  money_used + total_tokens_used / 10000 * 0.0001 #本次请求花费的money
 
                 #response['data'][i]['embedding']的长度为(end-start）*2 ，获取response['data'][i]['embedding']中前半的值，作为原文的编码，存储到Embeddings_or_List列表中start开始，end结束位置。
