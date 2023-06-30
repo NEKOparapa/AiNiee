@@ -28,7 +28,9 @@ jobs:
         run: pyinstaller -F -i ./resource/Avatar.png ./AiNiee-chatgpt4.py
       - name: Zip dist folder
         run: |
-          Copy-Item -Path "clib" -Destination "dist\clib" -Recurse -Force
+          $openccPath = (Get-Command python).Path | ForEach-Object { $_ -replace 'python\.exe$', 'Lib\site-packages\opencc' }
+          $clibPath = Join-Path -Path $openccPath -ChildPath 'clib'
+          Copy-Item -Path "$clibPath" -Destination "dist\clib" -Recurse -Force
           Copy-Item -Path "resource" -Destination "dist\resource" -Recurse -Force
           Compress-Archive -Path "dist" -DestinationPath "AiNiee-chatgpt-Beta.zip"
       - name: Delete release
