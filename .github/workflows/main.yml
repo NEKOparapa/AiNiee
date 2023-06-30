@@ -44,7 +44,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.AINIEE }}
         with:
           tag_name: Beta
-          release_name: Beta测试版 同步最新代码
+          release_name: AiNiee-chatgpt测试版 同步最新代码
           draft: false
           prerelease: true
 
