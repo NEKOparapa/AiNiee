@@ -1,4 +1,4 @@
-name: AiNiee-chatgpt PyInstaller monitors the main branch commit and automatically packs it into an exe Action to Beta release.
+name: AiNiee-chatgpt Action monitors the main branch commit and automatically packs it into an exe file to Beta release.
 on:
   push:
     branches:
