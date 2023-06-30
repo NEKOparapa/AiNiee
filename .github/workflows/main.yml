@@ -1,0 +1,59 @@
+name: AiNiee-chatgpt Action monitors the main branch commit and automatically packs it into an exe file to Beta release.
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Install PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller openai numpy openpyxl PyQt5 "PyQt-Fluent-Widgets[full]" opencc 
+
+      - name: Build EXE
+        run: pyinstaller -F -i ./resource/Avatar.png ./AiNiee-chatgpt4.py
+      - name: Zip dist folder
+        run: |
+          Copy-Item -Path "clib" -Destination "dist\clib" -Recurse -Force
+          Copy-Item -Path "resource" -Destination "dist\resource" -Recurse -Force
+          Compress-Archive -Path "dist" -DestinationPath "AiNiee-chatgpt-Beta.zip"
+      - name: Delete release
+        uses: dev-drprasad/delete-tag-and-release@v0.2.1
+        with:
+          tag_name: Beta
+          delete_release: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.AINIEE }}
+
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.AINIEE }}
+        with:
+          tag_name: Beta
+          release_name: Beta测试版 同步最新代码
+          draft: false
+          prerelease: true
+
+      - name: Upload file
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.AINIEE }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./AiNiee-chatgpt-Beta.zip
+          asset_name: AiNiee-chatgpt-Beta.zip
+          asset_content_type: application/octet-stream
