@@ -405,27 +405,26 @@ def replace_strings(dic):
         key_item = Window.Interface21.tableView.item(row, 0)
         value_item = Window.Interface21.tableView.item(row, 1)
         if key_item and value_item:
-            key = key_item.data(Qt.DisplayRole) #key_item.text()是获取单元格的文本内容,如果需要获取转义符号，使用key_item.data(Qt.DisplayRole)
-            value = value_item.data(Qt.DisplayRole)
+            key = key_item.text() #key_item.text()是获取单元格的文本内容,如果需要获取转义符号，使用key_item.data(Qt.DisplayRole)
+            value = value_item.text()
             data.append((key, value))
 
-    # 将数据存储到中间字典中
+    # 将表格数据存储到中间字典中
     dictionary = {}
     for key, value in data:
         dictionary[key] = value
 
-    #替换字典中内容
+    #存储替换字典后的中文本内容
     temp_dict = {}
     #简写版，减少内存占用
-    temp_dict = {key_a: str(value_a).replace(key_b, str(value_b)) if key_b in str(value_a) else value_a for key_a, value_a in dic.items() for key_b, value_b in dictionary.items()}
+
     #详细版，增加可读性，但内存占用较大
-    # for key_a, value_a in dic.items():
-    #     for key_b, value_b in dictionary.items():
-    #         #if key_b in key_a:
-    #             #key_a = key_a.replace(key_b, value_b)
-    #         if key_b in str(value_a): #加个str，防止整数型的value报错
-    #             value_a = value_a.replace(key_b, str(value_a))
-    #     temp_dict[key_a] = value_a
+    for key_a, value_a in dic.items():
+        for key_b, value_b in dictionary.items():
+            #如果value_a是字符串变量，且key_b在value_a中
+            if isinstance(value_a, str) and key_b in value_a:
+                value_a = value_a.replace(key_b, value_b)
+        temp_dict[key_a] = value_a
     
 
     #创建存储替换后文本的文件夹
