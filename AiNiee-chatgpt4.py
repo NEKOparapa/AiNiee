@@ -2166,6 +2166,7 @@ def Make_request():
     global money_used,Translation_Progress,key_list_index,Number_of_requested,Number_of_mark
 
     Wrong_answer_count = 0 #错误回答计数，用于错误回答到达一定次数后，取消该任务。
+    Number_of_request_errors = 0 #请求错误计数，用于请求错误到达一定次数后，取消该任务。
 
     start_time = time.time()
     timeout = 850  # 设置超时时间为x秒
@@ -2366,6 +2367,16 @@ def Make_request():
                     print("\033[1;33m线程ID:\033[0m ", threading.get_ident())
                     print("\033[1;31mError:\033[0m api请求出现问题！错误信息如下")
                     print(f"Error: {e}\n")
+
+                    #请求错误计次
+                    Number_of_request_errors = Number_of_request_errors + 1
+                    print("\033[1;33mWarning:\033[0m api请求错误计次：",Number_of_request_errors,'\n')
+                    #如果错误次数过多，就取消任务
+                    if Number_of_request_errors >= 3 :
+                        print("\033[1;31m[ERROR]\033[0m api请求错误次数过多，该线程取消任务！")
+                        break
+
+
                     #处理完毕，再次进行请求
                     continue
 
