@@ -6502,18 +6502,18 @@ class window(FramelessWindow): #主窗口
 
         #添加用户字典项
         self.navigationInterface.addItem(
+            routeKey=self.Interface23.objectName(),
+            icon=FIF.CALENDAR,
+            text='提示字典',
+            onClick=lambda: self.switchTo(self.Interface23),
+            ) 
+        
+        #添加用户字典项
+        self.navigationInterface.addItem(
             routeKey=self.Interface21.objectName(),
             icon=FIF.CALENDAR,
             text='替换字典',
             onClick=lambda: self.switchTo(self.Interface21),
-            ) 
-
-        #添加用户字典项
-        self.navigationInterface.addItem(
-            routeKey=self.Interface23.objectName(),
-            icon=FIF.CALENDAR,
-            text='AI提示字典',
-            onClick=lambda: self.switchTo(self.Interface23),
             ) 
 
         #添加实时调教导航项
