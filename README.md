@@ -8,7 +8,7 @@
 [![ GitHub 许可证](https://img.shields.io/github/license/NEKOparapa/AiNiee-chatgpt)](https://github.com/NEKOparapa/AiNiee-chatgpt/LICENSE) 
 [![GitHub release](https://img.shields.io/github/v/release/NEKOparapa/AiNiee-chatgpt)](https://github.com/NEKOparapa/AiNiee-chatgpt/releases)
 ![image](https://img.shields.io/badge/交流群-88888888-ff69b4?style=flat&logo=tencent-qq)
-
+[![GitHub release](https://img.shields.io/badge/下载地址-dddd-ff69b4)](https://github.com/NEKOparapa/AiNiee-chatgpt/releases)
 
 
 
