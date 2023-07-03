@@ -8,7 +8,9 @@
 [![ GitHub 许可证](https://img.shields.io/github/license/NEKOparapa/AiNiee-chatgpt)](https://github.com/NEKOparapa/AiNiee-chatgpt/LICENSE) 
 [![GitHub release](https://img.shields.io/github/v/release/NEKOparapa/AiNiee-chatgpt)](https://github.com/NEKOparapa/NEKOparapa/releases/)
 ![image](https://img.shields.io/badge/交流群-88888888-ff69b4?style=flat&logo=tencent-qq)
-[![bilibili](https://img.shields.io/badge/dynamic/json?label=views&style=social&logo=bilibili&query=data.stat.view&url=https%3A%2F%2Fapi.bilibili.com%2Fx%2Fweb-interface%2Fview%3Fbvid%3DBV1XY411B7nM)](https://www.bilibili.com/video/BV1XY411B7nM)
+
+[![bilibili](https://img.shields.io/badge/dynamic/json?label=教程视频&style=social&logo=bilibili&query=data.stat.view&url=https%3A%2F%2Fapi.bilibili.com%2Fx%2Fweb-interface%2Fview%3Fbvid%3DBV18c411K7WN)](https://www.bilibili.com/video/BV18c411K7WN)
+
 
 这是一款基于`Mtool`或`Translator++`的 chatgpt自动批翻译工具,主要是用来翻译各种RPG游戏
   
