@@ -280,7 +280,7 @@ def count_japanese_chinese_korean(text):
     english_count = len(english_pattern.findall(text)) # 统计英文字母数量
     return japanese_count, chinese_count, korean_count , english_count
 
-#用来计算单个信息的花费的token数的，可以根据不同模型计算
+#计算发送信息列表的token数的，可以根据不同模型计算
 def num_tokens_from_messages(messages, model):
     if model == "gpt-3.5-turbo":
         tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
@@ -1935,15 +1935,16 @@ def Main():
     #创建存储翻译错行文本的文件夹
     Input_and_output_paths[1]['Wrong_line_text_folder'] = os.path.join(Input_and_output_paths[1]['DEBUG_folder'], 'Wrong line text Folder')
     os.makedirs(Input_and_output_paths[1]['Wrong_line_text_folder'], exist_ok=True)
+
     # ——————————————————————————————————————————读取原文文件并处理—————————————————————————————————————————
-    #如果进行Mtool翻译任务或者Mtool的词义检查任务
+    #如果进行Mtool翻译任务
     if Running_status == 2:
         with open(Input_and_output_paths[0]['Input_file'], 'r',encoding="utf-8") as f:               
             source_str = f.read()       #读取原文文件，以字符串的形式存储，直接以load读取会报错
 
             source = json.loads(source_str) #转换为字典类型的变量source，当作最后翻译文件的原文源
 
-
+    #如果进行T++翻译任务
     elif Running_status == 3:
         Text_Directory_Index = read_xlsx_files(Input_and_output_paths[0]['Input_Folder'])
         copy_xlsx_files(Input_and_output_paths[0]['Input_Folder'], Input_and_output_paths[1]['Output_Folder'])
@@ -1985,7 +1986,6 @@ def Main():
         print("[INFO] 你开启了换行符保留功能，正在进行替换", '\n')
         Original_text_dictionary = replace_special_characters(Original_text_dictionary, "替换") #替换特殊字符
         print("[INFO] 换行符保留功能已完成", '\n')
-
 
     # ——————————————————————————————————————————构建并发任务池子—————————————————————————————————————————
 
@@ -2371,7 +2371,7 @@ def Make_request():
                     Number_of_request_errors = Number_of_request_errors + 1
                     print("\033[1;33mWarning:\033[0m api请求错误计次：",Number_of_request_errors,'\n')
                     #如果错误次数过多，就取消任务
-                    if Number_of_request_errors >= 3 :
+                    if Number_of_request_errors >= 5 :
                         print("\033[1;31m[ERROR]\033[0m api请求错误次数过多，该线程取消任务！")
                         break
 
