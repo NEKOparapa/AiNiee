@@ -5,8 +5,8 @@
 <p>
 
 ***
-![image](https://img.shields.io/badge/QQ交流群-88888888-BA55D3)
-[![下载地址](https://img.shields.io/badge/下载地址-点击下载-ff8C00)](https://github.com/NEKOparapa/AiNiee-chatgpt/releases)
+![image](https://img.shields.io/badge/QQ交流群-821624890-BA55D3)
+[![下载地址](https://img.shields.io/badge/下载地址-点击下载-1E90FF)](https://github.com/NEKOparapa/AiNiee-chatgpt/releases)
 [![教程视频](https://img.shields.io/badge/教程视频-点击观看-ff69b4)](https://www.bilibili.com/video/BV18c411K7WN)
 
 
