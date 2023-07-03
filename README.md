@@ -10,7 +10,7 @@
 [![教程视频](https://img.shields.io/badge/教程视频-点击观看-ff69b4)](https://www.bilibili.com/video/BV18c411K7WN)
 
 
-这是一款基于`Mtool`或`Translator++`的 AI自动批翻译工具,主要是用来翻译各种RPG游戏
+**这是一款基于`Mtool`或`Translator++`的 AI自动批翻译工具,主要是用来翻译各种RPG游戏**
   
 # 声明🧾 
 ***
