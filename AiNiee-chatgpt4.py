@@ -41,7 +41,8 @@ from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWi
 
 from qfluentwidgets.components import Dialog
 from qfluentwidgets import TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition
-from qfluentwidgets import FluentIcon as FIF#需要安装库pip install "PyQt-Fluent-Widgets[full]" 
+from qfluentwidgets import FluentIcon as FIF
+
 
 
 Software_Version = "AiNiee-chatgpt4.56"  #软件版本号
@@ -333,6 +334,7 @@ def num_tokens_from_messages(messages, model):
                 num_tokens += tokens_per_name
     num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
     return num_tokens
+
 
 #过滤字典非中日韩文的键值对
 def remove_non_cjk(dic):
