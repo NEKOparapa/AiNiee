@@ -5,15 +5,14 @@
 <p>
 
 ***
-[![ GitHub 许可证](https://img.shields.io/github/license/NEKOparapa/AiNiee-chatgpt)](https://github.com/NEKOparapa/AiNiee-chatgpt/LICENSE) 
-[![GitHub release](https://img.shields.io/github/v/release/NEKOparapa/AiNiee-chatgpt)](https://github.com/NEKOparapa/AiNiee-chatgpt/releases)
+![image](https://img.shields.io/badge/QQ交流群-88888888-BA55D3)
+[![下载地址](https://img.shields.io/badge/下载地址-点击下载-ff8C00)](https://github.com/NEKOparapa/AiNiee-chatgpt/releases)
+[![教程视频](https://img.shields.io/badge/教程视频-点击观看-ff69b4)](https://www.bilibili.com/video/BV18c411K7WN)
 
 
 这是一款基于`Mtool`或`Translator++`的 chatgpt自动批翻译工具,主要是用来翻译各种RPG游戏
   
-![image](https://img.shields.io/badge/QQ交流群-88888888-ff69b4)
-[![下载地址](https://img.shields.io/badge/下载地址-点击下载-ff69b4)](https://github.com/NEKOparapa/AiNiee-chatgpt/releases)
-[![教程视频](https://img.shields.io/badge/教程视频-点击观看-ff69b4)](https://www.bilibili.com/video/BV18c411K7WN)
+
 
 #  环境支持🏕️
 ***
