@@ -418,15 +418,15 @@ def replace_strings(dic):
 
     #存储替换字典后的中文本内容
     temp_dict = {}
-    #简写版，减少内存占用
-
-    #详细版，增加可读性，但内存占用较大
-    for key_a, value_a in dic.items():
-        for key_b, value_b in dictionary.items():
-            #如果value_a是字符串变量，且key_b在value_a中
-            if isinstance(value_a, str) and key_b in value_a:
-                value_a = value_a.replace(key_b, value_b)
-        temp_dict[key_a] = value_a
+    #简写版，使用生成器表达式和字典推导式来优化代码，以减少内存占用。
+    temp_dict = {key_a: (value_a.replace(key_b, value_b) if isinstance(value_a, str) and key_b in value_a else value_a) for key_a, value_a in dic.items() for key_b, value_b in dictionary.items()}
+    # #详细版，增加可读性，但遍历整个文本，内存占用较大，当文本较大时，会报错
+    # for key_a, value_a in dic.items():
+    #     for key_b, value_b in dictionary.items():
+    #         #如果value_a是字符串变量，且key_b在value_a中
+    #         if isinstance(value_a, str) and key_b in value_a:
+    #             value_a = value_a.replace(key_b, value_b)
+    #     temp_dict[key_a] = value_a
     
 
     #创建存储替换后文本的文件夹
