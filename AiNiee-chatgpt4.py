@@ -1872,9 +1872,13 @@ def Config():
     
     #根据API KEY数量，重新设定请求限制
     if len(API_key_list) != 1:
-        The_RPM_limit = The_RPM_limit / len(API_key_list) *1.05     #根据数量，重新计算请求时间间隔，后面是修正系数，防止出现请求过快的情况
-        The_TPM_limit = The_TPM_limit * len(API_key_list) *0.95     #根据数量，重新计算请求每秒可请求的tokens流量
+        The_RPM_limit = The_RPM_limit / len(API_key_list)      #根据数量，重新计算请求时间间隔
+        The_TPM_limit = The_TPM_limit * len(API_key_list)      #根据数量，重新计算请求每秒可请求的tokens流量
         print("[INFO] 当前API KEY数量是:",len(API_key_list),"将开启多key轮询功能\n")
+
+    #调整速率限制，避免超限，触发等待
+    The_RPM_limit = The_RPM_limit  *1.05
+    The_TPM_limit = The_TPM_limit  *0.95
 
     #设置模型ID
     OpenAI_model = Model_Type
