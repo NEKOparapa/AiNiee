@@ -30,6 +30,10 @@ import multiprocessing
 import concurrent.futures
 import shutil
 
+
+import tiktoken_ext  #必须导入这两个库，否则打包后无法运行
+from tiktoken_ext import openai_public
+
 import tiktoken #需要安装库pip install tiktoken
 import openpyxl  #需安装库pip install openpyxl  
 import numpy as np   #需要安装库pip install numpy
@@ -1379,6 +1383,11 @@ def Select_project_folder():
 
     if Running_status == 0:
         Input_and_output_paths[0]['Input_Folder'] = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        encoding = tiktoken.get_encoding("cl100k_base")
+        encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+        num_tokens = len(encoding.encode("tiktoken is great!"))
+        print(num_tokens)
+
         if Input_and_output_paths[0]['Input_Folder']:
             print('[INFO]  已选择项目文件夹: ',Input_and_output_paths[0]['Input_Folder'])
         else :
