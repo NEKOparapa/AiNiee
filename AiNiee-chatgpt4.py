@@ -341,6 +341,45 @@ def num_tokens_from_messages(messages, model):
     num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
     return num_tokens
 
+#计算单个字符串tokens数量函数
+def num_tokens_from_string(string: str) -> int:
+    """Returns the number of tokens in a text string."""
+    encoding = tiktoken.get_encoding("cl100k_base")
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
+
+#根据运行状态，读取输入路径中文件，处理并计算tokens数量，返回tokens数量列表(但替换字典处理流程在后面，仍然会不太准确，但也无所谓了，差不了多少)
+def num_tokens_from_path():
+
+    source = {} #原文字典
+
+    #如果进行Mtool翻译任务
+    if Running_status == 2:
+        with open(Input_and_output_paths[0]['Input_file'], 'r',encoding="utf-8") as f:               
+            source_str = f.read()       #读取原文文件，以字符串的形式存储，直接以load读取会报错
+
+            source = json.loads(source_str) #转换为字典类型的变量source，当作最后翻译文件的原文源
+
+    #如果进行T++翻译任务
+    elif Running_status == 3:
+        Text_Directory_Index = read_xlsx_files(Input_and_output_paths[0]['Input_Folder'])
+
+        #获取source_file里的"Original text"的值，写入source字典变量中，source的结构是：{"Original text":"Original text" ,……}
+        for i in Text_Directory_Index:
+            source[i["Original text"]] = i["Original text"]
+
+    source = convert_int_to_str(source) #将原文中的整数型数字转换为字符串型数字，因为后续的翻译会出现问题
+    if Text_Source_Language == "日语" or Text_Source_Language == "韩语" :    #如果正在翻译日语或者韩语时，会进行文本过滤
+        remove_non_cjk(source)
+    
+    #计算tokens数量
+    num_tokens_list = []
+    for key, value in source.items():
+        num_tokens = num_tokens_from_string(value) + 6 #因为发送格式为键值对如"50":"", 去官网计算得6个tokens，所以加上
+        num_tokens_list.append(num_tokens)
+    
+    #返回tokens数量列表
+    return num_tokens_list
 
 #过滤字典非中日韩文的键值对
 def remove_non_cjk(dic):
@@ -873,44 +912,6 @@ def process_excel_files(folder_path):
                         row[1].value = str(row[1].value)
 
                 workbook.save(file_path)
-
-#计算单个字符串tokens数量函数
-def num_tokens_from_string(string: str) -> int:
-    """Returns the number of tokens in a text string."""
-    encoding = tiktoken.get_encoding("cl100k_base")
-    num_tokens = len(encoding.encode(string))
-    return num_tokens
-
-#根据运行状态，读取输入路径中文件，处理并计算tokens数量，返回tokens数量列表(但替换字典处理流程在后面，仍然会不太准确，但也无所谓了，差不了多少)
-def num_tokens_from_path():
-    #如果进行Mtool翻译任务
-    if Running_status == 2:
-        with open(Input_and_output_paths[0]['Input_file'], 'r',encoding="utf-8") as f:               
-            source_str = f.read()       #读取原文文件，以字符串的形式存储，直接以load读取会报错
-
-            source = json.loads(source_str) #转换为字典类型的变量source，当作最后翻译文件的原文源
-
-    #如果进行T++翻译任务
-    elif Running_status == 3:
-        Text_Directory_Index = read_xlsx_files(Input_and_output_paths[0]['Input_Folder'])
-
-        #获取source_file里的"Original text"的值，写入source字典变量中，source的结构是：{"Original text":"Original text" ,……}
-        for i in Text_Directory_Index:
-            source[i["Original text"]] = i["Original text"]
-
-    source = convert_int_to_str(source) #将原文中的整数型数字转换为字符串型数字，因为后续的翻译会出现问题
-    if Text_Source_Language == "日语" or Text_Source_Language == "韩语" :    #如果正在翻译日语或者韩语时，会进行文本过滤
-        remove_non_cjk(source)
-    
-    #计算tokens数量
-    num_tokens_list = []
-    for key, value in source.items():
-        num_tokens = num_tokens_from_string(value)
-        num_tokens_list.append(num_tokens)
-    
-    #返回tokens数量列表
-    return num_tokens_list
-
 
 #读写配置文件config.json函数
 def read_write_config(mode):
@@ -2325,21 +2326,24 @@ def Make_request():
 
         #进行翻译任务时
         if Running_status == 2 or Running_status == 3:
-            #根据截取位置，获取num_tokens_list列表对应位置上的值，并计和
-            tokens_consume = sum(num_tokens_list[start:end])  + prompt_tokens + example_tokens
+            #计算请求的tokens预计花费
+            request_tokens_consume = (sum(num_tokens_list[start:end])  + prompt_tokens + example_tokens)   * 1.04 #修正系数，避免超出单条限制
+            #计算回复的tokens预计花费
+            completion_tokens_consume = sum(num_tokens_list[start:end])  * 1.04 #修正系数，避免超出单条限制
 
         #进行语义检查任务时
         else:
             #计算该信息在openai那里的tokens花费,330是英文提示词的tokens花费
-            tokens_consume = num_tokens_from_messages(messages, OpenAI_model)+330   #计算该信息在openai那里的tokens花费,330是英文提示词的tokens花费
-
+            request_tokens_consume = num_tokens_from_messages(messages, OpenAI_model)+330   #计算该信息在openai那里的tokens花费,330是英文提示词的tokens花费
+            #计算回复的tokens预计花费
+            completion_tokens_consume = request_tokens_consume 
         # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
         while 1 :
             #检查主窗口是否已经退出---------------------------------
             if Running_status == 10 :
                 return
             #检查该条消息总tokens数是否大于单条消息最大数量---------------------------------
-            if tokens_consume >= (tokens_limit_per) :
+            if request_tokens_consume >= (tokens_limit_per) :
                 lock5.acquire()  # 获取锁
                 if waiting_threads > 0 :
                     waiting_threads = waiting_threads - 1 #改变等待线程数
@@ -2362,10 +2366,10 @@ def Make_request():
 
 
             # 检查是否符合速率限制---------------------------------
-            if api_tokens.consume(tokens_consume * 2  ) and api_request.send_request():
+            if api_tokens.consume(request_tokens_consume + completion_tokens_consume  ) and api_request.send_request():
 
                 #如果能够发送请求，则扣除令牌桶里的令牌数
-                api_tokens.tokens = api_tokens.tokens - (tokens_consume * 2 )
+                api_tokens.tokens = api_tokens.tokens - (request_tokens_consume + completion_tokens_consume )
 
                 #检查请求数量是否达到限制，如果是多key的话---------------------------------
                 if len(API_key_list) > 1: #如果存有多个key
@@ -2388,7 +2392,9 @@ def Make_request():
 
                 print("[INFO] 已发送请求,正在等待AI回复中-----------------------")
                 print("[INFO] 已进行请求的次数：",Number_of_requested)
-                #print("[INFO] 花费tokens数预计值是：",tokens_consume * 2) 
+                print("[INFO] 发送的tokens数预计值是：",request_tokens_consume)
+                print("[INFO] 回复的tokens数预计值是：",completion_tokens_consume )
+                print("[INFO] 总的tokens数预计值是：",request_tokens_consume  + completion_tokens_consume ) 
                 #print("[INFO] 桶中剩余tokens数是：", api_tokens.tokens // 1)
                 print("[INFO] 当前设定的系统提示词：\n", System_prompt['content'] )
                 print("[INFO] 当前发送的原文文本：\n", subset_str )
@@ -2504,6 +2510,9 @@ def Make_request():
                 print("\033[1;34m[INFO]\033[0m 当前仍在等待AI回复的子线程数：",waiting_threads)
                 num_threads = threading.active_count() - 2  # 减去主线程和副线程
                 print("\033[1;34m[INFO]\033[0m 当前正在进行任务的子线程数：", num_threads)
+                print("[INFO] 本次请求花费的tokens是：",prompt_tokens_used)
+                print("[INFO] 本次回复花费的tokens是：",completion_tokens_used)
+                print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
                 print("[INFO] 此次请求往返消耗的总金额：",The_round_trip_cost )
                 print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
