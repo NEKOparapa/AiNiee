@@ -1513,8 +1513,8 @@ def Config():
         print("[INFO] API代理地址是:",Proxy_Address,'\n') 
 
 
-    #分割KEY字符串并存储进列表里
-    API_key_list = API_key_str.replace(" ", "").split(",")
+    #去除空格，换行符，分割KEY字符串并存储进列表里
+    API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
 
 
     #—————————————————————————————————————————— 读取翻译配置信息——————————————————————————————————————————
