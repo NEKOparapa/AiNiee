@@ -2381,7 +2381,7 @@ def Make_request():
                     Number_of_request_errors = Number_of_request_errors + 1
                     print("\033[1;33mWarning:\033[0m api请求错误计次：",Number_of_request_errors,'\n')
                     #如果错误次数过多，就取消任务
-                    if Number_of_request_errors >= 5 :
+                    if Number_of_request_errors >= 15 :
                         print("\033[1;31m[ERROR]\033[0m api请求错误次数过多，该线程取消任务！")
                         break
 
