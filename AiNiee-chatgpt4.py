@@ -30,6 +30,7 @@ import multiprocessing
 import concurrent.futures
 import shutil
 
+import tiktoken #需要安装库pip install tiktoken
 import openpyxl  #需安装库pip install openpyxl  
 import numpy as np   #需要安装库pip install numpy
 import openai        #需要安装库pip install openai
@@ -90,6 +91,11 @@ Translation_text_Dictionary = {}       # 用字典形式存储已经翻译好的
 Text_Directory_Index = [] # 存储文本的存储位置索引的列表
 Translation_Status_List = []  # 存储原文文本翻译状态列表，用于并发任务时获取每个文本的翻译状态
 ValueList_len = 0   # 存储原文件key列表的长度
+
+
+num_tokens_list = [] # 存储每行原文文本的计算过后的tokens数
+prompt_tokens = 0 #存储prompt的tokens数
+example_tokens = 0 #存储翻译示例的tokens数
 
 
 API_key_list = []      #存放key的列表
@@ -868,6 +874,44 @@ def process_excel_files(folder_path):
 
                 workbook.save(file_path)
 
+#计算单个字符串tokens数量函数
+def num_tokens_from_string(string: str) -> int:
+    """Returns the number of tokens in a text string."""
+    encoding = tiktoken.get_encoding("cl100k_base")
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
+
+#根据运行状态，读取输入路径中文件，处理并计算tokens数量，返回tokens数量列表(但替换字典处理流程在后面，仍然会不太准确，但也无所谓了，差不了多少)
+def num_tokens_from_path():
+    #如果进行Mtool翻译任务
+    if Running_status == 2:
+        with open(Input_and_output_paths[0]['Input_file'], 'r',encoding="utf-8") as f:               
+            source_str = f.read()       #读取原文文件，以字符串的形式存储，直接以load读取会报错
+
+            source = json.loads(source_str) #转换为字典类型的变量source，当作最后翻译文件的原文源
+
+    #如果进行T++翻译任务
+    elif Running_status == 3:
+        Text_Directory_Index = read_xlsx_files(Input_and_output_paths[0]['Input_Folder'])
+
+        #获取source_file里的"Original text"的值，写入source字典变量中，source的结构是：{"Original text":"Original text" ,……}
+        for i in Text_Directory_Index:
+            source[i["Original text"]] = i["Original text"]
+
+    source = convert_int_to_str(source) #将原文中的整数型数字转换为字符串型数字，因为后续的翻译会出现问题
+    if Text_Source_Language == "日语" or Text_Source_Language == "韩语" :    #如果正在翻译日语或者韩语时，会进行文本过滤
+        remove_non_cjk(source)
+    
+    #计算tokens数量
+    num_tokens_list = []
+    for key, value in source.items():
+        num_tokens = num_tokens_from_string(value)
+        num_tokens_list.append(num_tokens)
+    
+    #返回tokens数量列表
+    return num_tokens_list
+
+
 #读写配置文件config.json函数
 def read_write_config(mode):
 
@@ -1481,6 +1525,7 @@ def Request_test():
 # ——————————————————————————————————————————系统配置函数——————————————————————————————————————————
 def Config():
     global Input_and_output_paths, Translation_lines,Text_Source_Language,The_Max_workers
+    global num_tokens_list,prompt_tokens,example_tokens
     global API_key_list,tokens_limit_per,OpenAI_model,Request_Pricing , Response_Pricing
     global Prompt, original_exmaple,translation_example,user_original_exmaple,user_translation_example
 
@@ -1876,9 +1921,30 @@ def Config():
         The_TPM_limit = The_TPM_limit * len(API_key_list)      #根据数量，重新计算请求每秒可请求的tokens流量
         print("[INFO] 当前API KEY数量是:",len(API_key_list),"将开启多key轮询功能\n")
 
-    #调整速率限制，避免超限，触发等待
+    #调整速率限制，避免因为误差超限，触发等待
     The_RPM_limit = The_RPM_limit  *1.05
     The_TPM_limit = The_TPM_limit  *0.95
+
+
+    #计算每行原文文本的tokens数量，并存储在列表中
+    num_tokens_list = num_tokens_from_path()
+    #计算prompt的tokens数量
+    prompt_tokens = num_tokens_from_string(Prompt)
+    #计算默认原文示例的tokens数量
+    original_exmaple_tokens = num_tokens_from_string(original_exmaple)
+    #计算默认翻译示例的tokens数量
+    translation_example_tokens = num_tokens_from_string(translation_example)
+    #如果提示词工程界面的自定义提示词开关打开，则计算用户自定义提示词的tokens数量
+    user_original_exmaple_tokens = 0
+    user_translation_example_tokens = 0
+    if Window.Interface22.checkBox2.isChecked():
+        #计算用户自定义原文示例的tokens数量
+        user_original_exmaple_tokens = num_tokens_from_string(user_original_exmaple)
+        #计算用户自定义翻译示例的tokens数量
+        user_translation_example_tokens = num_tokens_from_string(user_translation_example)
+    #合计示例的tokens数量
+    example_tokens = original_exmaple_tokens + translation_example_tokens + user_original_exmaple_tokens + user_translation_example_tokens
+
 
     #设置模型ID
     OpenAI_model = Model_Type
@@ -2257,7 +2323,15 @@ def Make_request():
         Original_text = {"role":"user","content":subset_str}   
         messages.append(Original_text)
 
-        tokens_consume = num_tokens_from_messages(messages, OpenAI_model)+330   #计算该信息在openai那里的tokens花费,330是英文提示词的tokens花费
+        #进行翻译任务时
+        if Running_status == 2 or Running_status == 3:
+            #根据截取位置，获取num_tokens_list列表对应位置上的值，并计和
+            tokens_consume = sum(num_tokens_list[start:end])  + prompt_tokens + example_tokens
+
+        #进行语义检查任务时
+        else:
+            #计算该信息在openai那里的tokens花费,330是英文提示词的tokens花费
+            tokens_consume = num_tokens_from_messages(messages, OpenAI_model)+330   #计算该信息在openai那里的tokens花费,330是英文提示词的tokens花费
 
         # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
         while 1 :
@@ -2265,7 +2339,7 @@ def Make_request():
             if Running_status == 10 :
                 return
             #检查该条消息总tokens数是否大于单条消息最大数量---------------------------------
-            if tokens_consume >= (tokens_limit_per-500) :
+            if tokens_consume >= (tokens_limit_per) :
                 lock5.acquire()  # 获取锁
                 if waiting_threads > 0 :
                     waiting_threads = waiting_threads - 1 #改变等待线程数
@@ -2381,7 +2455,7 @@ def Make_request():
                     Number_of_request_errors = Number_of_request_errors + 1
                     print("\033[1;33mWarning:\033[0m api请求错误计次：",Number_of_request_errors,'\n')
                     #如果错误次数过多，就取消任务
-                    if Number_of_request_errors >= 15 :
+                    if Number_of_request_errors >= 10 :
                         print("\033[1;31m[ERROR]\033[0m api请求错误次数过多，该线程取消任务！")
                         break
 
