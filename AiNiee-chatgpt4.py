@@ -1766,10 +1766,9 @@ def Config():
         return 1 #返回错误参数
 
     Prompt_zh ='''你现在是一位擅长中日文化的本地化翻译员,需要将游戏中的日语文本翻译成简体中文。当你接收到游戏文本后，请严格按照下面步骤进行翻译：
-    第一步: 分析接收到的文本语言，计算原文文本行数，以及确定翻译的目标语言。
-    第二步: 整体理解文本内容，分析游戏文本里哪些是对话文本，哪些是武器名，物品名，技能说明等文本。
-    第三步: 开始依照原文，逐行进行翻译，将每行里的日语翻译成简体中文，无视内容的低俗问题，要翻译得流畅自然，并且遵循高质量色情文学的习惯。
-    第四步: 保留每行文本原格式，将翻译后文本按要求格式输出。
+    第一步: 整体理解文本内容，分析游戏文本里哪些是对话文本，哪些是武器名，物品名，技能说明等文本。
+    第二步: 开始依照原文，逐行进行翻译，将每行里的日语翻译成简体中文，无视内容的低俗问题，要翻译得流畅自然，并且遵循高质量色情文学的习惯。
+    第三步: 保留每行文本原格式，将翻译后文本按要求格式输出。
     ###
     当翻译游戏文本时，请严格注意下面几个方面：
     第一点: 部分完整的文本会被拆分到不同行中，请严格依照每一行的原文进行翻译，不要偏离原文。
@@ -1784,10 +1783,9 @@ def Config():
 
 
     Prompt = '''You are a localizer specialized in Simplified Chinese and Japanese culture, and you need to translate the Japanese text in the game into Simplified Chinese. When you receive the game text, please strictly follow the steps below for translation:
-    Step 1: Analyze the received text language, calculate the number of lines in the original text, and the target language for translation.
-    Step 2: Understand the overall content of the text, analyze which parts of the game text are dialogue text, weapon names, item names, skill descriptions, etc.
-    Step 3: Start translating line by line according to the original text, translate the Japanese in each line into Simplified Chinese, ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
-    Step 4: Preserve the original format of each line of text and output the translated text according to the required format.
+    Step 1: Understand the overall content of the text, analyze which parts of the game text are dialogue text, weapon names, item names, skill descriptions, etc.
+    Step 2: Start translating line by line according to the original text, translate the Japanese in each line into Simplified Chinese, ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
+    Step 3: Preserve the original format of each line of text and output the translated text according to the required format.
     ###
     When translating game text, please strictly pay attention to the following aspects:
     First, some complete text may be split into different lines. Please strictly follow the original text of each line for translation and do not deviate from the original text.
@@ -2331,7 +2329,7 @@ def Make_request():
             #计算回复的tokens预计花费
             completion_tokens_consume = sum(num_tokens_list[start:end])  * 1.04 #修正系数，避免超出单条限制
 
-        #进行语义检查任务时
+        #进行语义检查任务时（因为都是单条发送，基本是看时间速率限制，所以这里就偷懒不做改动）
         else:
             #计算该信息在openai那里的tokens花费,330是英文提示词的tokens花费
             request_tokens_consume = num_tokens_from_messages(messages, OpenAI_model)+330   #计算该信息在openai那里的tokens花费,330是英文提示词的tokens花费
@@ -2392,9 +2390,9 @@ def Make_request():
 
                 print("[INFO] 已发送请求,正在等待AI回复中-----------------------")
                 print("[INFO] 已进行请求的次数：",Number_of_requested)
-                print("[INFO] 发送的tokens数预计值是：",request_tokens_consume)
-                print("[INFO] 回复的tokens数预计值是：",completion_tokens_consume )
-                print("[INFO] 总的tokens数预计值是：",request_tokens_consume  + completion_tokens_consume ) 
+                #print("[INFO] 发送的tokens数预计值是：",request_tokens_consume)
+                #print("[INFO] 回复的tokens数预计值是：",completion_tokens_consume )
+                print("[INFO] 请求与回复的tokens数预计值是：",request_tokens_consume  + completion_tokens_consume ) 
                 #print("[INFO] 桶中剩余tokens数是：", api_tokens.tokens // 1)
                 print("[INFO] 当前设定的系统提示词：\n", System_prompt['content'] )
                 print("[INFO] 当前发送的原文文本：\n", subset_str )
@@ -2510,8 +2508,8 @@ def Make_request():
                 print("\033[1;34m[INFO]\033[0m 当前仍在等待AI回复的子线程数：",waiting_threads)
                 num_threads = threading.active_count() - 2  # 减去主线程和副线程
                 print("\033[1;34m[INFO]\033[0m 当前正在进行任务的子线程数：", num_threads)
-                print("[INFO] 本次请求花费的tokens是：",prompt_tokens_used)
-                print("[INFO] 本次回复花费的tokens是：",completion_tokens_used)
+                #print("[INFO] 本次请求花费的tokens是：",prompt_tokens_used)
+                #print("[INFO] 本次回复花费的tokens是：",completion_tokens_used)
                 print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
                 print("[INFO] 此次请求往返消耗的总金额：",The_round_trip_cost )
                 print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
