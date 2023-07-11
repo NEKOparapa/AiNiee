@@ -50,7 +50,7 @@ from qfluentwidgets import FluentIcon as FIF
 
 
 
-Software_Version = "AiNiee-chatgpt4.56"  #软件版本号
+Software_Version = "AiNiee-chatgpt4.57"  #软件版本号
 
 OpenAI_model="gpt-3.5-turbo"   #调用api的模型,默认3.5-turbo
 OpenAI_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
@@ -2219,12 +2219,7 @@ def Make_request():
         # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
         #创建message列表，用于发送
         messages = []
-        #创建存储请求消息tokens
-        request_tokens_consume = 0
-        #创建存储回复消息tokens
-        completion_tokens_consume = 0
 
-        
         #构建System_prompt
         System_prompt ={"role": "system","content": Prompt }
         messages.append(System_prompt)
