@@ -97,11 +97,6 @@ Translation_Status_List = []  # 存储原文文本翻译状态列表，用于并
 ValueList_len = 0   # 存储原文件key列表的长度
 
 
-num_tokens_list = [] # 存储每行原文文本的计算过后的tokens数
-prompt_tokens = 0 #存储prompt的tokens数
-example_tokens = 0 #存储翻译示例的tokens数
-
-
 API_key_list = []      #存放key的列表
 key_list_index = 0    #列表的索引
 Number_of_mark = 0    #辅助记录当前选择的key的索引
@@ -291,60 +286,6 @@ def count_japanese_chinese_korean(text):
     english_count = len(english_pattern.findall(text)) # 统计英文字母数量
     return japanese_count, chinese_count, korean_count , english_count
 
-#计算发送信息列表的token数的，可以根据不同模型计算
-def num_tokens_from_messages(messages, model):
-    if model == "gpt-3.5-turbo":
-        tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
-        tokens_per_name = -1  # if there's a name, the role is omitted
-
-    elif model == "gpt-3.5-turbo-0613":
-        tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
-        tokens_per_name = -1  # if there's a name, the role is omitted
-
-    elif model == "gpt-3.5-turbo-16k":
-        tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
-        tokens_per_name = -1  # if there's a name, the role is omitted
-
-    elif model == "gpt-3.5-turbo-16k-0613":
-        tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
-        tokens_per_name = -1  # if there's a name, the role is omitted
-
-    elif model == "gpt-4":
-        tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
-        tokens_per_name = -1  # if there's a name, the role is omitted
-
-    elif model == "gpt-4-0613":
-        tokens_per_message = 3
-        tokens_per_name = 1
-
-    elif model == "gpt-4-32k":
-        tokens_per_message = 3
-        tokens_per_name = 1
-
-    elif model == "gpt-4-32k-0613":
-        tokens_per_message = 3
-        tokens_per_name = 1
-    
-    elif model == "text-embedding-ada-002":
-        #传入参数为字符串变量，计算该字符串大概的tokens数，并返回
-        japanese_count, chinese_count, korean_count,english_count= count_japanese_chinese_korean(messages)
-        num_tokens = japanese_count * 1.5 + chinese_count * 2 + korean_count * 2.5 
-        return num_tokens
-    else:
-        raise NotImplementedError(f"""num_tokens_from_messages() is not implemented for model {model}. See https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are converted to tokens.""")
-
-    num_tokens = 0
-    #这里重构了官方计算tokens的方法，因为打包时，线程池里的子线程子线程弹出错误：Error: Unknown encoding cl100k_base
-    for message in messages:
-        num_tokens += tokens_per_message
-        for key, value in message.items():
-            japanese_count, chinese_count, korean_count,english_count= count_japanese_chinese_korean(value)
-            num_tokens += japanese_count * 1.5 + chinese_count * 2 + korean_count * 2.5 
-            if key == "name":
-                num_tokens += tokens_per_name
-    num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
-    return num_tokens
-
 #计算单个字符串tokens数量函数
 def num_tokens_from_string(string: str) -> int:
     """Returns the number of tokens in a text string."""
@@ -352,38 +293,42 @@ def num_tokens_from_string(string: str) -> int:
     num_tokens = len(encoding.encode(string))
     return num_tokens
 
-#根据运行状态，读取输入路径中文件，处理并计算tokens数量，返回tokens数量列表(但替换字典处理流程在后面，仍然会不太准确，但也无所谓了，差不了多少)
-def num_tokens_from_path():
-
-    source = {} #原文字典
-
-    #如果进行Mtool翻译任务
-    if Running_status == 2:
-        with open(Input_and_output_paths[0]['Input_file'], 'r',encoding="utf-8") as f:               
-            source_str = f.read()       #读取原文文件，以字符串的形式存储，直接以load读取会报错
-
-            source = json.loads(source_str) #转换为字典类型的变量source，当作最后翻译文件的原文源
-
-    #如果进行T++翻译任务
-    elif Running_status == 3:
-        Text_Directory_Index = read_xlsx_files(Input_and_output_paths[0]['Input_Folder'])
-
-        #获取source_file里的"Original text"的值，写入source字典变量中，source的结构是：{"Original text":"Original text" ,……}
-        for i in Text_Directory_Index:
-            source[i["Original text"]] = i["Original text"]
-
-    source = convert_int_to_str(source) #将原文中的整数型数字转换为字符串型数字，因为后续的翻译会出现问题
-    if Text_Source_Language == "日语" or Text_Source_Language == "韩语" :    #如果正在翻译日语或者韩语时，会进行文本过滤
-        remove_non_cjk(source)
-    
-    #计算tokens数量
-    num_tokens_list = []
-    for key, value in source.items():
-        num_tokens = num_tokens_from_string(value) + 6 #因为发送格式为键值对如"50":"", 去官网计算得6个tokens，所以加上
-        num_tokens_list.append(num_tokens)
-    
-    #返回tokens数量列表
-    return num_tokens_list
+#计算发送信息列表的token数
+def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0613"):
+    """Return the number of tokens used by a list of messages."""
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except KeyError:
+        print("Warning: model not found. Using cl100k_base encoding.")
+        encoding = tiktoken.get_encoding("cl100k_base")
+    if model in {
+        "gpt-3.5-turbo",
+        "gpt-3.5-turbo-0613",
+        "gpt-3.5-turbo-16k",
+        "gpt-3.5-turbo-16k-0613",
+        "gpt-4",
+        "gpt-4-0613",
+        "gpt-4-32k",
+        "gpt-4-32k-0613",
+        }:
+        tokens_per_message = 3
+        tokens_per_name = 1
+    elif model == "gpt-3.5-turbo-0301":
+        tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
+        tokens_per_name = -1  # if there's a name, the role is omitted
+    else:
+        raise NotImplementedError(
+            f"""num_tokens_from_messages() is not implemented for model {model}. See https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are converted to tokens."""
+        )
+    num_tokens = 0
+    for message in messages:
+        num_tokens += tokens_per_message
+        for key, value in message.items():
+            num_tokens += len(encoding.encode(value))
+            if key == "name":
+                num_tokens += tokens_per_name
+    num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
+    return num_tokens
 
 #过滤字典非中日韩文的键值对
 def remove_non_cjk(dic):
@@ -1535,7 +1480,6 @@ def Request_test():
 # ——————————————————————————————————————————系统配置函数——————————————————————————————————————————
 def Config():
     global Input_and_output_paths, Translation_lines,Text_Source_Language,The_Max_workers
-    global num_tokens_list,prompt_tokens,example_tokens
     global API_key_list,tokens_limit_per,OpenAI_model,Request_Pricing , Response_Pricing
     global Prompt, original_exmaple,translation_example,user_original_exmaple,user_translation_example
 
@@ -1934,25 +1878,6 @@ def Config():
     The_TPM_limit = The_TPM_limit  *0.95
 
 
-    #计算每行原文文本的tokens数量，并存储在列表中
-    num_tokens_list = num_tokens_from_path()
-    #计算prompt的tokens数量
-    prompt_tokens = num_tokens_from_string(Prompt)
-    #计算默认原文示例的tokens数量
-    original_exmaple_tokens = num_tokens_from_string(original_exmaple)
-    #计算默认翻译示例的tokens数量
-    translation_example_tokens = num_tokens_from_string(translation_example)
-    #如果提示词工程界面的自定义提示词开关打开，则计算用户自定义提示词的tokens数量
-    user_original_exmaple_tokens = 0
-    user_translation_example_tokens = 0
-    if Window.Interface22.checkBox2.isChecked():
-        #计算用户自定义原文示例的tokens数量
-        user_original_exmaple_tokens = num_tokens_from_string(user_original_exmaple)
-        #计算用户自定义翻译示例的tokens数量
-        user_translation_example_tokens = num_tokens_from_string(user_translation_example)
-    #合计示例的tokens数量
-    example_tokens = original_exmaple_tokens + translation_example_tokens + user_original_exmaple_tokens + user_translation_example_tokens
-
 
     #设置模型ID
     OpenAI_model = Model_Type
@@ -2244,8 +2169,7 @@ def Main():
 # ——————————————————————————————————————————翻译任务线程并发函数——————————————————————————————————————————
 def Make_request():
 
-    global Translation_text_Dictionary,waiting_threads # 声明全局变量
-    global Translation_Status_List  
+    global Translation_text_Dictionary,Translation_Status_List,waiting_threads # 声明全局变量
     global money_used,Translation_Progress,key_list_index,Number_of_requested,Number_of_mark
 
     Wrong_answer_count = 0 #错误回答计数，用于错误回答到达一定次数后，取消该任务。
@@ -2295,6 +2219,11 @@ def Make_request():
         # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
         #创建message列表，用于发送
         messages = []
+        #创建存储请求消息tokens
+        request_tokens_consume = 0
+        #创建存储回复消息tokens
+        completion_tokens_consume = 0
+
         
         #构建System_prompt
         System_prompt ={"role": "system","content": Prompt }
@@ -2331,19 +2260,11 @@ def Make_request():
         Original_text = {"role":"user","content":subset_str}   
         messages.append(Original_text)
 
-        #进行翻译任务时
-        if Running_status == 2 or Running_status == 3:
-            #计算请求的tokens预计花费
-            request_tokens_consume = (sum(num_tokens_list[start:end])  + prompt_tokens + example_tokens)   * 1.04 #修正系数，避免超出单条限制
-            #计算回复的tokens预计花费
-            completion_tokens_consume = sum(num_tokens_list[start:end])  * 1.04 #修正系数，避免超出单条限制
+        #计算请求的tokens预计花费
+        request_tokens_consume = num_tokens_from_messages(messages, OpenAI_model) *1.02 #加上2%的修正系数
+        #计算回复的tokens预计花费
+        completion_tokens_consume = num_tokens_from_messages([Original_text], OpenAI_model)*1.02 #加上2%的修正系数
 
-        #进行语义检查任务时（因为都是单条发送，基本是看时间速率限制，所以这里就偷懒不做改动）
-        else:
-            #计算该信息在openai那里的tokens花费,330是英文提示词的tokens花费
-            request_tokens_consume = num_tokens_from_messages(messages, OpenAI_model)+330   #计算该信息在openai那里的tokens花费,330是英文提示词的tokens花费
-            #计算回复的tokens预计花费
-            completion_tokens_consume = request_tokens_consume 
         # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
         while 1 :
             #检查主窗口是否已经退出---------------------------------
@@ -2488,7 +2409,6 @@ def Make_request():
                 lock5.release()  # 释放锁     
 
                 response_content = response['choices'][0]['message']['content'] 
-
 
                 #截取回复内容中返回的tonkens花费，并计算金钱花费
                 lock3.acquire()  # 获取锁
@@ -2860,10 +2780,10 @@ def Check_wrong_Main():
     api_tokens.rate = api_tokens.rate * 200
 
 
-    #遍历source_dict每个key和每个value，利用num_tokens_from_messages(messages, model)计算每个key和value的tokens数量，并计算总tokens数量
+    #遍历source_dict每个key和每个value，利用num_tokens_from_string计算每个key和value的tokens数量，并计算总tokens数量
     tokens_all_consume = 0
     for i, key in enumerate(Translation_text_Dictionary.keys()):
-        tokens_all_consume = tokens_all_consume + num_tokens_from_messages(key, "text-embedding-ada-002") + num_tokens_from_messages(Translation_text_Dictionary[key], "text-embedding-ada-002")
+        tokens_all_consume = tokens_all_consume + num_tokens_from_string(key) + num_tokens_from_string(Translation_text_Dictionary[key])
 
     #根据tokens_all_consume与除以6090计算出需要请求的次数,并向上取整（除以6090是为了富余任务数）
     num_request = int(math.ceil(tokens_all_consume / 6090))
@@ -2900,7 +2820,7 @@ def Check_wrong_Main():
         for i, status in enumerate(Embeddings_Status_List):
             if status == 0 or status == 2:
                 #计算source_or_dict[i]与source_tr_dict[i]的tokens数量
-                tokens_all_consume = tokens_all_consume + num_tokens_from_messages(source_or_dict[i], "text-embedding-ada-002") + num_tokens_from_messages(source_tr_dict[i], "text-embedding-ada-002")
+                tokens_all_consume = tokens_all_consume + num_tokens_from_string(source_or_dict[i]) + num_tokens_from_string(source_tr_dict[i])
 
         
         #根据tokens_all_consume与除以6090计算出需要请求的次数,并向上取整
@@ -3208,7 +3128,7 @@ def Make_request_Embeddings():
                 #从i开始，循环获取source_or_dict与source_tr_dict的value值，并进行tokens计算，直到达到单次请求的最大值7090
                 tokens_consume = 0
                 for j in range(i,len(Embeddings_Status_List)):
-                    tokens_consume_j = num_tokens_from_messages(source_or_dict[j], "text-embedding-ada-002") + num_tokens_from_messages(source_tr_dict[j], "text-embedding-ada-002")
+                    tokens_consume_j = num_tokens_from_string(source_or_dict[j]) + num_tokens_from_string(source_tr_dict[j])
                     tokens_consume = tokens_consume + tokens_consume_j
                     if tokens_consume > 7090: 
                         end = j #确定切割结束位置
