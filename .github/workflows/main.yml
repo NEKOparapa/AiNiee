@@ -20,7 +20,7 @@ jobs:
       - name: Install PyInstaller
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller openai numpy openpyxl PyQt5 "PyQt-Fluent-Widgets[full]" opencc 
+          pip install pyinstaller openai numpy openpyxl PyQt5 "PyQt-Fluent-Widgets[full]" opencc tiktoken 
       - name: Modify opencc
         run: |
           (Get-Command python).Path | ForEach-Object { $_ -replace 'python\.exe$', 'Lib\site-packages\opencc\__init__.py' } | ForEach-Object { $content = Get-Content $_; $content -replace '_thisdir = .+', '_thisdir = os.path.dirname(os.path.abspath(sys.argv[0]))' | Set-Content $_ }
