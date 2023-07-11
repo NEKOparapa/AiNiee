@@ -2130,14 +2130,22 @@ def Main():
     elif Running_status == 3 :
         Text_Directory_Index = update_translations(Translated_file_data, Text_Directory_Index) #更新翻译
         Text_Directory_Index = update_file_paths(Input_and_output_paths[0]['Input_Folder'], Input_and_output_paths[1]['Output_Folder'], Text_Directory_Index)#更新文件路径
-        update_xlsx_files(Text_Directory_Index) #更新xlsx文件
+        update_xlsx_files(Text_Directory_Index) #将翻译内容更新到xlsx文件
 
-        # 获取源文件夹的最后一个文件夹名，是导出时的文件夹名字
-        folder_name = os.path.basename(os.path.normpath(Input_and_output_paths[0]['Input_Folder']))
-        #指定需要补充空行内容的文件夹，不然会把输出文件夹内，包括备份文件夹，debug文件夹里的东西都补充空行了
-        folder_name = os.path.join(Input_and_output_paths[1]['Output_Folder'], folder_name)
         #填充xlsx文件空单元格
-        fill_empty_cells_with_values(folder_name)
+        try:
+            # 获取源文件夹的最后一个文件夹名，是导出时的文件夹名字
+            folder_name = os.path.basename(os.path.normpath(Input_and_output_paths[0]['Input_Folder']))
+            #指定需要补充空行内容的文件夹，不然会把输出文件夹内，包括备份文件夹，debug文件夹里的东西都补充空行了
+            folder_name = os.path.join(Input_and_output_paths[1]['Output_Folder'], folder_name)
+            #开始填充空行
+            fill_empty_cells_with_values(folder_name)
+            print("\033[1;32mSuccess:\033[0m  填充xlsx文件空单元格完成-----------------------------------")   
+
+        except Exception as e:
+            print("\033[1;33mWarning:\033[0m 填充xlsx文件空单元格出现问题！！将跳过该步，错误信息如下")
+            print(f"Error: {e}\n")
+
 
         #处理输出文件夹中所有的xlsx文件中的整数型数据为字符串数据，以免导入出错
         try:
