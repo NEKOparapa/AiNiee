@@ -9,7 +9,6 @@
 [![下载地址](https://img.shields.io/badge/下载地址-点击下载-1E90FF)](https://github.com/NEKOparapa/AiNiee-chatgpt/releases)
 [![教程视频](https://img.shields.io/badge/教程视频-点击观看-ff69b4)](https://www.bilibili.com/video/BV18c411K7WN)
 
-
 **这是一款基于`Mtool`或`Translator++`的 AI自动批翻译工具,主要是用来翻译各种RPG游戏**
   
 # 声明🧾 
@@ -176,6 +175,8 @@ https://github.com/XHXJ/json-GPT-translator
 https://github.com/Lilyltt/GalUpTs
 
 # 感谢💖
+[![xxxx](https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Sponsor/徽章.png)](https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Sponsor/徽章.png)
+
 都是为这个工具做出各种贡献的朋友，以下排名不分先后
 >下划线君，孤狼，Takakura Anri，Amegi，hola，旧日，OYcedar，Abcuders，ChristinaA2M，NEKOparapa
  
