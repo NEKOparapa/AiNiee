@@ -178,5 +178,5 @@ https://github.com/Lilyltt/GalUpTs
 [![xxxx](https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Sponsor/徽章.png)](https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Sponsor/赞赏码.png)
 
 都是为这个工具做出各种贡献的朋友，以下排名不分先后
->下划线君，孤狼，Takakura Anri，Amegi，hola，旧日，OYcedar，Abcuders，ChristinaA2M，NEKOparapa
+>下划线君，孤狼，Takakura Anri，Amegi，hola，旧日，OYcedar，Abcuders，ChristinaA2M，adastra9257，NEKOparapa
  
