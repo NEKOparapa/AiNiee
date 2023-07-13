@@ -18,6 +18,7 @@
 
 
 # coding:utf-8
+import itertools
 import math                 
 import json
 import re
@@ -410,11 +411,8 @@ def replace_strings(dic):
     for key, value in data:
         dictionary[key] = value
 
-    #存储替换字典后的中文本内容
-    temp_dict = {}
-    #简写版，使用生成器表达式和字典推导式来优化代码，以减少内存占用。
-    temp_dict = {key_a: (value_a.replace(key_b, value_b) if isinstance(value_a, str) and key_b in value_a else value_a) for key_a, value_a in dic.items() for key_b, value_b in dictionary.items()}
     # #详细版，增加可读性，但遍历整个文本，内存占用较大，当文本较大时，会报错
+    # temp_dict = {}     #存储替换字典后的中文本内容
     # for key_a, value_a in dic.items():
     #     for key_b, value_b in dictionary.items():
     #         #如果value_a是字符串变量，且key_b在value_a中
@@ -422,6 +420,28 @@ def replace_strings(dic):
     #             value_a = value_a.replace(key_b, value_b)
     #     temp_dict[key_a] = value_a
     
+
+    #另版，减少内存消耗。
+    def replace_values(dic, dictionary):
+        temp_dict = {}
+        for sub_dic in batch(dic.items(), 1000):
+            for key_a, value_a in sub_dic:
+                for key_b, value_b in dictionary.items():
+                    if isinstance(value_a, str) and key_b in value_a:
+                        value_a = value_a.replace(key_b, value_b)
+                temp_dict[key_a] = value_a
+        return temp_dict
+
+    def batch(iterable, n):
+        # 生成器表达式，每次返回n个元素的子序列
+        iterator = iter(iterable)
+        while True:
+            chunk = tuple(itertools.islice(iterator, n))
+            if not chunk:
+                return
+            yield chunk
+    
+    temp_dict = replace_values(dic, dictionary)
 
     #创建存储替换后文本的文件夹
     Replace_before_translation_folder = os.path.join(Input_and_output_paths[1]['DEBUG_folder'], 'Replace before translation folder')
@@ -1981,9 +2001,9 @@ def Main():
 
     #如果开启译前替换功能，则根据用户字典进行替换,用原文字典是为了避免备份文件也被替换，后面继续翻译会出错
     if Window.Interface21.checkBox1.isChecked() :
-        print("[INFO] 你开启了译前替换功能，正在进行替换", '\n')
+        print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
         Original_text_dictionary = replace_strings(Original_text_dictionary)
-        print("[INFO] 译前替换功能已完成", '\n')
+        print("[INFO] 译前替换字典功能已完成", '\n')
 
     #如果开启了换行符替换翻译功能，则进行换行符替换成特殊字符
     if ((Running_status == 2 and Window.Interface15.SwitchButton2.isChecked()) or (Running_status == 3 and Window.Interface16.SwitchButton2.isChecked())) :
