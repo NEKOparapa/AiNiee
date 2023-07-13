@@ -192,6 +192,15 @@ class My_Thread(threading.Thread):
         elif self.running_status == 100:
             Manually_backup_files (source,Translation_text_Dictionary,Translation_Status_List)
 
+#手动备份子线程类,测试，因为有人反馈手动备份会直接卡死
+class Backup_Thread(threading.Thread):
+    def __init__(self, running_status):
+        super().__init__()
+        self.running_status = running_status
+
+    def run(self):
+        Manually_backup_files (source,Translation_text_Dictionary,Translation_Status_List)
+
 #用于向UI线程发送消息的信号类
 class UI_signal(QObject):
     # 定义信号，用于向UI线程发送消息
@@ -4500,7 +4509,7 @@ class Widget17(QFrame):#备份设置界面
                         return  # 直接返回，不执行后续操作
                     
                     #创建手动备份子线程
-                    thread100 = My_Thread(100)
+                    thread100 = Backup_Thread(100)
                     thread100.start()
                 else:
                     createWarningInfoBar("手动备份正在进行中，请等待手动备份结束后再操作~")
