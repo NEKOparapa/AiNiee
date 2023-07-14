@@ -45,7 +45,7 @@ ECHO !!
 ECHO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-pip install openpyxl -i https://pypi.tuna.tsinghua.edu.cn/simple
+pip install openpyxl    -i https://pypi.tuna.tsinghua.edu.cn/simple
 ECHO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ECHO !!
 ECHO !! 如果没有报错，openpyxl库已安装完成
@@ -70,14 +70,14 @@ ECHO !!
 ECHO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-pip install opencc -i https://pypi.org/simple/
+pip install opencc -i https://pypi.tuna.tsinghua.edu.cn/simple
 ECHO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ECHO !!
 ECHO !! 如果没有报错，opencc库已安装完成
 ECHO !!
 ECHO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-pip install tiktoken -i https://pypi.org/simple/
+pip install tiktoken -i https://pypi.tuna.tsinghua.edu.cn/simple
 ECHO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ECHO !!
 ECHO !! 如果没有报错，tiktoken库已安装完成
