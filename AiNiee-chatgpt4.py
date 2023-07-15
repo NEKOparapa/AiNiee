@@ -51,7 +51,7 @@ from qfluentwidgets import FluentIcon as FIF
 
 
 
-Software_Version = "AiNiee-chatgpt4.57"  #软件版本号
+Software_Version = "AiNiee-chatgpt4.58"  #软件版本号
 
 OpenAI_model="gpt-3.5-turbo"   #调用api的模型,默认3.5-turbo
 OpenAI_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
@@ -906,6 +906,8 @@ def read_write_config(mode):
         Platform_Status_sb =Window.Interface12.checkBox.isChecked()        #获取平台启用状态
         Account_Type_sb = Window.Interface12.comboBox.currentText()      #获取账号类型下拉框当前选中选项的值
         Model_Type_sb =  Window.Interface12.comboBox2.currentText()      #获取模型类型下拉框当前选中选项的值
+        Rpm_limit = Window.Interface12.spinBox1.value()               #获取rpm限制值
+        Tpm_limit = Window.Interface12.spinBox2.value()               #获取tpm限制值
         Proxy_Address_sb = Window.Interface12.LineEdit1.text()            #获取代理地址
         API_key_str_sb = Window.Interface12.TextEdit2.toPlainText()        #获取apikey输入值
 
@@ -1003,6 +1005,8 @@ def read_write_config(mode):
         config_dict["Platform_Status_sb"] = Platform_Status_sb
         config_dict["Account_Type_sb"] = Account_Type_sb
         config_dict["Model_Type_sb"] = Model_Type_sb
+        config_dict["Rpm_limit"] = Rpm_limit
+        config_dict["Tpm_limit"] = Tpm_limit
         config_dict["Proxy_Address_sb"] = Proxy_Address_sb
         config_dict["API_key_str_sb"] = API_key_str_sb
 
@@ -1100,6 +1104,12 @@ def read_write_config(mode):
             if "Model_Type_sb" in config_dict:
                 Model_Type_sb = config_dict["Model_Type_sb"]
                 Window.Interface12.comboBox2.setCurrentText(Model_Type_sb)
+            if "Rpm_limit" in config_dict:
+                Rpm_limit = config_dict["Rpm_limit"]
+                Window.Interface12.spinBox1.setValue(Rpm_limit)
+            if "Tpm_limit" in config_dict:
+                Tpm_limit = config_dict["Tpm_limit"]
+                Window.Interface12.spinBox2.setValue(Tpm_limit)
             if "Proxy_Address_sb" in config_dict:
                 Proxy_Address_sb = config_dict["Proxy_Address_sb"]
                 Window.Interface12.LineEdit1.setText(Proxy_Address_sb)
@@ -1890,6 +1900,19 @@ def Config():
     #如果提示词工程界面的添加翻译示例开关打开，则添加翻译示例
     if Window.Interface22.checkBox2.isChecked():
         user_original_exmaple,user_translation_example = Build_translation_examples ()
+
+    #读取代理账号的tpm与rpm限制
+    if Account_Type == "代理账号":
+        #读取代理账号的rpm限制，如果不为0
+        if Window.Interface12.spinBox1.value() != 0:
+            The_RPM_limit = Window.Interface12.spinBox1.value()
+            print("[INFO] 已检测到代理账号的RPM限制是:",The_RPM_limit,'\n')
+
+        #读取代理账号的tpm限制，如果不为0
+        if Window.Interface12.spinBox2.value() != 0:
+            The_TPM_limit = Window.Interface12.spinBox2.value()
+            print("[INFO] 已检测到代理账号的TPM限制是:",The_TPM_limit,'\n')
+
     
     #根据API KEY数量，重新设定请求限制
     if len(API_key_list) != 1:
@@ -3588,6 +3611,61 @@ class Widget12(QFrame):#代理账号界面
         layout4.addWidget(self.LineEdit1)
         box4.setLayout(layout4)
 
+        # -----创建第4_1个组(后面加的)，添加多个组件-----
+        box4_1 = QGroupBox()
+        box4_1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout4_1 = QHBoxLayout()
+
+        #设置“RPM”标签
+        label4_1 = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        label4_1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        label4_1.setText("每分钟请求数")
+
+        #设置“说明”显示
+        label5_1 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label5_1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        label5_1.setText("(0是自动设置为官方速率)")  
+
+        #数值输入
+        self.spinBox1 = SpinBox(self)
+        self.spinBox1.setRange(0, 2147483647)    
+        self.spinBox1.setValue(0)
+
+
+        layout4_1.addWidget(label4_1)
+        layout4_1.addWidget(label5_1)
+        layout4_1.addStretch(1)  # 添加伸缩项
+        layout4_1.addWidget(self.spinBox1)
+        box4_1.setLayout(layout4_1)
+
+
+
+        # -----创建第4_2个组（后面加的），添加多个组件-----
+        box4_2 = QGroupBox()
+        box4_2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout4_2 = QHBoxLayout()
+
+        #设置“TPM”标签
+        label4_2 = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        label4_2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        label4_2.setText("每分钟tonken数")
+    
+        #设置“说明”显示
+        label5_2 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label5_2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        label5_2.setText("(0是自动设置为官方速率)") 
+
+        #数值输入
+        self.spinBox2 = SpinBox(self)
+        self.spinBox2.setRange(0, 2147483647)    
+        self.spinBox2.setValue(0)
+
+
+        layout4_2.addWidget(label4_2)
+        layout4_2.addWidget(label5_2)
+        layout4_2.addStretch(1)  # 添加伸缩项
+        layout4_2.addWidget(self.spinBox2)
+        box4_2.setLayout(layout4_2)
 
 
 
@@ -3649,6 +3727,8 @@ class Widget12(QFrame):#代理账号界面
         container.addWidget(box1)
         container.addWidget(box2)
         container.addWidget(box3)
+        container.addWidget(box4_1)
+        container.addWidget(box4_2)
         container.addWidget(box4)
         container.addWidget(box5)
         container.addStretch(1)  # 添加伸缩项
@@ -3758,7 +3838,7 @@ class Widget15(QFrame):#Mtool项目界面
         label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
         label1_7.setText("最大线程数")
 
-        #设置“文件位置”显示
+        #设置“说明”显示
         label2_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
         label2_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
         label2_7.setText("(0是自动根据电脑设置线程数)")  
