@@ -3692,7 +3692,7 @@ class Widget12(QFrame):#代理账号界面
         #设置“TPM”标签
         label4_2 = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
         label4_2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
-        label4_2.setText("每分钟tonken数")
+        label4_2.setText("每分钟tokens数")
     
         #设置“说明”显示
         label5_2 = QLabel(parent=self, flags=Qt.WindowFlags())  
