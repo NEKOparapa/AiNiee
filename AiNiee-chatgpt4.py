@@ -317,6 +317,7 @@ def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0613"):
         "gpt-3.5-turbo-16k",
         "gpt-3.5-turbo-16k-0613",
         "gpt-4",
+        "gpt-4-0314",
         "gpt-4-0613",
         "gpt-4-32k",
         "gpt-4-32k-0613",
@@ -1605,6 +1606,18 @@ def Config():
         Response_Pricing = 0.002 /1000                          #存储响应价格
 
 
+
+    elif (Account_Type == "付费账号(48h内)") and (Model_Type == "gpt-3.5-turbo-0301") :
+        The_RPM_limit =  60 / Pay_RPM_limit2                    
+        The_TPM_limit =  Pay_TPM_limit2 / 60                    
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 4090                                
+        Request_Pricing = 0.0015 /1000                           
+        Response_Pricing = 0.002 /1000  
+
+
+
     elif (Account_Type == "付费账号(48h内)") and (Model_Type == "gpt-3.5-turbo-0613") :
         The_RPM_limit =  60 / Pay_RPM_limit2                    
         The_TPM_limit =  Pay_TPM_limit2 / 60                    
@@ -1643,6 +1656,16 @@ def Config():
         tokens_limit_per = 4090
         Request_Pricing = 0.0015 /1000
         Response_Pricing = 0.002 /1000
+
+    elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-3.5-turbo-0301"):
+        The_RPM_limit =  60 / Pay_RPM_limit4           
+        The_TPM_limit =  Pay_TPM_limit4 / 60
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 4090
+        Request_Pricing = 0.0015 /1000
+        Response_Pricing = 0.002 /1000
+
 
     elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-3.5-turbo-0613"):
         The_RPM_limit =  60 / Pay_RPM_limit4           
@@ -1684,6 +1707,16 @@ def Config():
         Response_Pricing = 0.06 / 1000
 
 
+    elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-4-0314"):
+        The_RPM_limit =  60 / Pay_RPM_limit6           
+        The_TPM_limit =  Pay_TPM_limit6 / 60
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 8190
+        Request_Pricing = 0.03 / 1000
+        Response_Pricing = 0.06 / 1000
+
+
     elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-4-0613"):
         The_RPM_limit =  60 / Pay_RPM_limit6           
         The_TPM_limit =  Pay_TPM_limit6 / 60
@@ -1701,6 +1734,17 @@ def Config():
         tokens_limit_per = 32000
         Request_Pricing = 0.06 / 1000
         Response_Pricing = 0.12 / 1000
+
+
+    elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-4-32k-0314"):
+        The_RPM_limit =  60 / Pay_RPM_limit7           
+        The_TPM_limit =  Pay_TPM_limit7 / 60
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 32000
+        Request_Pricing = 0.06 / 1000
+        Response_Pricing = 0.12 / 1000
+
 
     elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-4-32k-0613"):
         The_RPM_limit =  60 / Pay_RPM_limit7           
@@ -2557,8 +2601,8 @@ def Make_request():
                             error_count = 0
                                 
                             # 用正则表达式匹配原文与译文中的标点符号
-                            k_syms = re.findall(r'[。！？…♡♥=★]', k)
-                            v_syms = re.findall(r'[。！？…♡♥=★]', v)
+                            k_syms = re.findall(r'[。！？…♡♥=★「」『』【】]', k)
+                            v_syms = re.findall(r'[。！？…♡♥=★「」『』【】]', v)
 
                             #假如v_syms与k_syms都不为空
                             if len(v_syms) != 0 and len(k_syms) != 0:
@@ -3395,8 +3439,8 @@ class Widget11(QFrame):#官方账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox2 = ComboBox() #以demo为父类
-        self.comboBox2.addItems(['gpt-3.5-turbo', 'gpt-3.5-turbo-0613', 'gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
-                                 'gpt-4', 'gpt-4-0613', 'gpt-4-32k', 'gpt-4-32k-0613'])
+        self.comboBox2.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
+                                 'gpt-4','gpt-4-0314', 'gpt-4-0613', 'gpt-4-32k','gpt-4-32K-0314','gpt-4-32k-0613'])
         self.comboBox2.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox2.setFixedSize(200, 35)
         #设置下拉选择框默认选择
@@ -3574,8 +3618,8 @@ class Widget12(QFrame):#代理账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox2 = ComboBox() #以demo为父类
-        self.comboBox2.addItems(['gpt-3.5-turbo', 'gpt-3.5-turbo-0613', 'gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
-                                 'gpt-4', 'gpt-4-0613', 'gpt-4-32k', 'gpt-4-32k-0613'])
+        self.comboBox2.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
+                                 'gpt-4','gpt-4-0314', 'gpt-4-0613', 'gpt-4-32k','gpt-4-32K-0314','gpt-4-32k-0613'])
         self.comboBox2.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox2.setFixedSize(200, 35)
         
