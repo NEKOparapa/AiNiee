@@ -184,7 +184,7 @@ https://github.com/XHXJ/json-GPT-translator
 https://github.com/Lilyltt/GalUpTs
 
  * GalTransl 一套将数个基础功能上的微小创新与对ChatGPT提示工程（Prompt Engineering）的深度利用相结合的galgame自动化翻译工具
-[https://github.com/Lilyltt/GalUpTs](https://github.com/XD2333/GalTransl)
+https://github.com/XD2333/GalTransl
 
 # 感谢💖
 [![xxxx](https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Sponsor/徽章.png)](https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Sponsor/赞赏码.png)
