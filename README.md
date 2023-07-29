@@ -180,8 +180,11 @@
  * GPT-Translator 是一款前后端分离基于 OpenAI 的高效翻译软件。
 https://github.com/XHXJ/json-GPT-translator
 
- * 对已解包的GalGame脚本文件实行ChatGPT自动化翻译
+ * GalUpTs 对已解包的GalGame脚本文件实行ChatGPT自动化翻译
 https://github.com/Lilyltt/GalUpTs
+
+ * GalTransl 一套将数个基础功能上的微小创新与对ChatGPT提示工程（Prompt Engineering）的深度利用相结合的galgame自动化翻译工具
+[https://github.com/Lilyltt/GalUpTs](https://github.com/XD2333/GalTransl)
 
 # 感谢💖
 [![xxxx](https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Sponsor/徽章.png)](https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Sponsor/赞赏码.png)
