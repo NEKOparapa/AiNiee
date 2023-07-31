@@ -1766,6 +1766,16 @@ def Config():
         Response_Pricing = 0.002 /1000
 
 
+    elif Account_Type == "免费账号" and (Model_Type == "gpt-3.5-turbo-0301"):
+        The_RPM_limit =  60 / Free_RPM_limit             
+        The_TPM_limit =  Free_TPM_limit / 60             
+        if The_Max_workers == 0:               
+            The_Max_workers = 4                            
+        tokens_limit_per = 4090
+        Request_Pricing = 0.0015 /1000
+        Response_Pricing = 0.002 /1000
+
+
     elif Account_Type == "免费账号" and (Model_Type == "gpt-3.5-turbo-0613"):
         The_RPM_limit =  60 / Free_RPM_limit             
         The_TPM_limit =  Free_TPM_limit / 60             
