@@ -1443,7 +1443,12 @@ def Request_test():
             print("\033[1;31mError:\033[0m 请填写API代理地址,不要留空")
             Ui_signal.update_signal.emit("Null_value")
             return 0
-        #如果填入地址，则设置API代理
+        
+        #检查一下域名地址尾部是否为/v1，自动补全
+        if Proxy_Address[-3:] != "/v1":
+            Proxy_Address = Proxy_Address + "/v1"
+        
+        #设置api代理
         openai.api_base = Proxy_Address
         print("[INFO] API代理地址是:",Proxy_Address,'\n') 
 
@@ -1541,6 +1546,10 @@ def Config():
         Model_Type =  Window.Interface12.comboBox2.currentText()      #获取模型类型下拉框当前选中选项的值
         API_key_str = Window.Interface12.TextEdit2.toPlainText()            #获取apikey输入值
         Proxy_Address = Window.Interface12.LineEdit1.text()            #获取域名地址
+
+        #检查一下域名地址尾部是否为/v1，自动补全
+        if Proxy_Address[-3:] != "/v1":
+            Proxy_Address = Proxy_Address + "/v1"
 
         #设置API代理
         openai.api_base = Proxy_Address
@@ -2781,7 +2790,7 @@ def Make_request():
         return
 
 
-# ——————————————————————————————————————————检查词义错误主函数——————————————————————————————————————————
+# ——————————————————————————————————————————检查语义错误主函数——————————————————————————————————————————
 def Check_wrong_Main():
     global Input_and_output_paths,source_or_dict,source_tr_dict,Embeddings_Status_List,Embeddings_or_List,Embeddings_tr_List,Translation_Status_List,ValueList_len,Text_Directory_Index
     global Translation_Progress,money_used,source,Original_text_dictionary,Translation_text_Dictionary,Translation_lines ,Running_status,OpenAI_temperature
@@ -3098,19 +3107,24 @@ def Check_wrong_Main():
 
     keyList=list(Original_text_dictionary.keys())         #通过字典的keys方法，获取所有的key，转换为list变量
     ValueList_len = len(keyList)              #获取原文件key列表的长度，当作于原文的总行数
-    #print("[INFO] 你的原文长度是",keyList_len)
+
 
     #将字典source_mid中的键设为从0开始的整数型数字序号 
     for i in range(ValueList_len):        #循环遍历key列表
         Original_text_dictionary[i] = Original_text_dictionary.pop(keyList[i])    #将原来的key对应的value值赋给新的key，同时删除原来的key    
-    #print("[DEBUG] 你的已修改原文是",source_mid)
+
 
 
     #将字典result_dict中的键设为从0开始的整数型数字序号 
     for i in range(ValueList_len):        #循环遍历key列表
         Translation_text_Dictionary[i] = Translation_text_Dictionary.pop(keyList[i])    #将原来的key对应的value值赋给新的key，同时删除原来的key    
-    #print("[DEBUG] 你的已修改原文是",result_dict)
-  
+
+
+    #如果开启译前替换功能，则根据用户字典进行替换,用原文字典是为了避免备份文件也被替换，后面继续翻译会出错
+    if Window.Interface21.checkBox1.isChecked() :
+        print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
+        Original_text_dictionary = replace_strings(Original_text_dictionary)
+        print("[INFO] 译前替换字典功能已完成", '\n')
 
    # —————————————————————————————————————开始重新翻译——————————————————————————————————————————
 
