@@ -51,7 +51,7 @@ from qfluentwidgets import FluentIcon as FIF
 
 
 
-Software_Version = "AiNiee-chatgpt4.58"  #软件版本号
+Software_Version = "AiNiee-chatgpt4.59"  #软件版本号
 
 OpenAI_model="gpt-3.5-turbo"   #调用api的模型,默认3.5-turbo
 OpenAI_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
