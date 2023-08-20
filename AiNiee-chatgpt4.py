@@ -900,7 +900,7 @@ def read_write_config(mode):
         Platform_Status =Window.Interface11.checkBox.isChecked()        #获取平台启用状态
         Account_Type = Window.Interface11.comboBox.currentText()      #获取账号类型下拉框当前选中选项的值
         Model_Type =  Window.Interface11.comboBox2.currentText()      #获取模型类型下拉框当前选中选项的值
-        Proxy_Address = Window.Interface11.LineEdit1.text()            #获取代理地址
+        Proxy_Address = Window.Interface11.LineEdit1.text()            #获取代理端口
         API_key_str = Window.Interface11.TextEdit2.toPlainText()        #获取apikey输入值
         
         #获取代理账号界面
@@ -909,7 +909,8 @@ def read_write_config(mode):
         Model_Type_sb =  Window.Interface12.comboBox2.currentText()      #获取模型类型下拉框当前选中选项的值
         Rpm_limit = Window.Interface12.spinBox1.value()               #获取rpm限制值
         Tpm_limit = Window.Interface12.spinBox2.value()               #获取tpm限制值
-        Proxy_Address_sb = Window.Interface12.LineEdit1.text()            #获取代理地址
+        Request_address = Window.Interface12.LineEdit1.text()            #获取请求地址
+        Proxy_address_new = Window.Interface12.LineEdit3_1.text()            #获取代理地址
         API_key_str_sb = Window.Interface12.TextEdit2.toPlainText()        #获取apikey输入值
 
         #如果是MTool界面
@@ -1008,7 +1009,8 @@ def read_write_config(mode):
         config_dict["Model_Type_sb"] = Model_Type_sb
         config_dict["Rpm_limit"] = Rpm_limit
         config_dict["Tpm_limit"] = Tpm_limit
-        config_dict["Proxy_Address_sb"] = Proxy_Address_sb
+        config_dict["Request_address"] = Request_address
+        config_dict["Proxy_address_new"] = Proxy_address_new
         config_dict["API_key_str_sb"] = API_key_str_sb
 
         #Mtool界面
@@ -1111,9 +1113,12 @@ def read_write_config(mode):
             if "Tpm_limit" in config_dict:
                 Tpm_limit = config_dict["Tpm_limit"]
                 Window.Interface12.spinBox2.setValue(Tpm_limit)
-            if "Proxy_Address_sb" in config_dict:
-                Proxy_Address_sb = config_dict["Proxy_Address_sb"]
-                Window.Interface12.LineEdit1.setText(Proxy_Address_sb)
+            if "Request_address" in config_dict:
+                Request_address = config_dict["Request_address"]
+                Window.Interface12.LineEdit1.setText(Request_address)
+            if "Proxy_address_new" in config_dict:
+                Proxy_address_new = config_dict["Proxy_address_new"]
+                Window.Interface12.LineEdit3_1.setText(Proxy_address_new)
             if "API_key_str_sb" in config_dict:
                 API_key_str_sb = config_dict["API_key_str_sb"]
                 Window.Interface12.TextEdit2.setText(API_key_str_sb)
@@ -1421,13 +1426,13 @@ def Request_test():
         Account_Type = Window.Interface11.comboBox.currentText()      #获取账号类型下拉框当前选中选项的值
         Model_Type =  Window.Interface11.comboBox2.currentText()      #获取模型类型下拉框当前选中选项的值
         API_key_str = Window.Interface11.TextEdit2.toPlainText()            #获取apikey输入值
-        Proxy_Address = Window.Interface11.LineEdit1.text()            #获取代理地址
+        Proxy_Address = Window.Interface11.LineEdit1.text()            #获取代理端口
 
         openai.api_base = "https://api.openai.com/v1" #设置官方api请求地址,防止使用了代理后再使用官方时出错
         
-        #如果填入地址，则设置代理
+        #如果填入地址，则设置代理端口
         if Proxy_Address :
-            print("[INFO] 环境代理地址是:",Proxy_Address,'\n') 
+            print("[INFO] 环境代理端口是:",Proxy_Address,'\n') 
             os.environ["http_proxy"]=Proxy_Address
             os.environ["https_proxy"]=Proxy_Address
 
@@ -1436,21 +1441,28 @@ def Request_test():
         Account_Type = Window.Interface12.comboBox.currentText()      #获取账号类型下拉框当前选中选项的值
         Model_Type =  Window.Interface12.comboBox2.currentText()      #获取模型类型下拉框当前选中选项的值
         API_key_str = Window.Interface12.TextEdit2.toPlainText()            #获取apikey输入值
-        Proxy_Address = Window.Interface12.LineEdit1.text()            #获取代理地址
+        Proxy_Address = Window.Interface12.LineEdit3_1.text()            #获取代理端口
+        Request_address = Window.Interface12.LineEdit1.text()            #获取请求地址
 
-        #检查一下是否已经填入代理地址
-        if not Proxy_Address  :
-            print("\033[1;31mError:\033[0m 请填写API代理地址,不要留空")
+        #如果填入地址，则设置代理端口
+        if Proxy_Address :
+            print("[INFO] 环境代理端口是:",Proxy_Address,'\n') 
+            os.environ["http_proxy"]=Proxy_Address
+            os.environ["https_proxy"]=Proxy_Address
+
+        #检查一下是否已经填入请求地址
+        if not Request_address  :
+            print("\033[1;31mError:\033[0m 请填写API代理请求地址,不要留空")
             Ui_signal.update_signal.emit("Null_value")
             return 0
         
-        #检查一下域名地址尾部是否为/v1，自动补全
-        if Proxy_Address[-3:] != "/v1":
-            Proxy_Address = Proxy_Address + "/v1"
+        #检查一下请求地址尾部是否为/v1，自动补全
+        if Request_address[-3:] != "/v1":
+            Request_address = Request_address + "/v1"
         
         #设置api代理
-        openai.api_base = Proxy_Address
-        print("[INFO] API代理地址是:",Proxy_Address,'\n') 
+        openai.api_base = Request_address
+        print("[INFO] API代理请求地址是:",Request_address,'\n') 
 
     #分割KEY字符串并存储进列表里
     API_key_list = API_key_str.replace(" ", "").split(",")
@@ -1529,13 +1541,13 @@ def Config():
         Account_Type = Window.Interface11.comboBox.currentText()      #获取账号类型下拉框当前选中选项的值
         Model_Type =  Window.Interface11.comboBox2.currentText()      #获取模型类型下拉框当前选中选项的值
         API_key_str = Window.Interface11.TextEdit2.toPlainText()            #获取apikey输入值
-        Proxy_Address = Window.Interface11.LineEdit1.text()            #获取代理地址
+        Proxy_Address = Window.Interface11.LineEdit1.text()            #获取代理端口
 
         openai.api_base = "https://api.openai.com/v1" #设置官方api请求地址,防止使用了代理后再使用官方时出错
 
-        #如果填入地址，则设置代理
+        #如果填入地址，则设置代理端口
         if Proxy_Address :
-            print("[INFO] 系统代理地址是:",Proxy_Address,'\n') 
+            print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
             os.environ["http_proxy"]=Proxy_Address
             os.environ["https_proxy"]=Proxy_Address
     
@@ -1545,15 +1557,22 @@ def Config():
         Account_Type = Window.Interface12.comboBox.currentText()      #获取账号类型下拉框当前选中选项的值
         Model_Type =  Window.Interface12.comboBox2.currentText()      #获取模型类型下拉框当前选中选项的值
         API_key_str = Window.Interface12.TextEdit2.toPlainText()            #获取apikey输入值
-        Proxy_Address = Window.Interface12.LineEdit1.text()            #获取域名地址
+        Proxy_Address = Window.Interface12.LineEdit3_1.text()            #获取代理端口
+        Request_address = Window.Interface12.LineEdit1.text()            #获取请求地址
+
+        #如果填入地址，则设置代理端口
+        if Proxy_Address :
+            print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
+            os.environ["http_proxy"]=Proxy_Address
+            os.environ["https_proxy"]=Proxy_Address
 
         #检查一下域名地址尾部是否为/v1，自动补全
-        if Proxy_Address[-3:] != "/v1":
-            Proxy_Address = Proxy_Address + "/v1"
+        if Request_address[-3:] != "/v1":
+            Request_address = Request_address + "/v1"
 
-        #设置API代理
-        openai.api_base = Proxy_Address
-        print("[INFO] API代理地址是:",Proxy_Address,'\n') 
+        #设置API代理请求地址
+        openai.api_base = Request_address
+        print("[INFO] API代理请求地址是:",Request_address,'\n') 
 
 
     #去除空格，换行符，分割KEY字符串并存储进列表里
@@ -3486,7 +3505,7 @@ class Widget11(QFrame):#官方账号界面
         #设置“代理地址”标签
         label4 = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
         label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
-        label4.setText("代理地址")
+        label4.setText("代理端口")
 
         #设置微调距离用的空白标签
         labelx = QLabel()  
@@ -3655,6 +3674,37 @@ class Widget12(QFrame):#代理账号界面
 
 
 
+
+
+        # -----创建第3_1个组，添加多个组件-----
+        box3_1 = QGroupBox()
+        box3_1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout3_1 = QHBoxLayout()
+
+        #设置“代理地址”标签
+        label3_1 = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        label3_1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        label3_1.setText("代理端口")
+
+        #设置微调距离用的空白标签
+        label3_2 = QLabel()  
+        label3_2.setText("                ")
+
+        #设置“代理地址”的输入框
+        self.LineEdit3_1 = LineEdit()
+        #LineEdit1.setFixedSize(300, 30)
+
+
+        layout3_1.addWidget(label3_1)
+        layout3_1.addWidget(label3_2)
+        layout3_1.addWidget(self.LineEdit3_1)
+        box3_1.setLayout(layout3_1)
+
+
+
+
+
+
         # -----创建第4个组，添加多个组件-----
         box4 = QGroupBox()
         box4.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
@@ -3663,7 +3713,7 @@ class Widget12(QFrame):#代理账号界面
         #设置“代理地址”标签
         label4 = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
         label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
-        label4.setText("域名地址")
+        label4.setText("请求地址")
 
         #设置微调距离用的空白标签
         labelx = QLabel()  
@@ -3795,6 +3845,7 @@ class Widget12(QFrame):#代理账号界面
         container.addWidget(box1)
         container.addWidget(box2)
         container.addWidget(box3)
+        container.addWidget(box3_1)
         container.addWidget(box4_1)
         container.addWidget(box4_2)
         container.addWidget(box4)
