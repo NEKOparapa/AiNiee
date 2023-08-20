@@ -37,18 +37,20 @@
   
     >`API KEY`: 填入由OpenAi账号生成的api_key<br>
   
-    >`代理地址`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
+    >`代理端口`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
 
     > 🎐代理账号配置示例:<br>
     > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/代理账号设置.png" width="600" height="400"><br> 
     > 代理账号配置说明:<br>
     >`API KEY`: 填入国内代理平台给你生成的API KEY<br>
-  
-    >`域名地址`: 填入国内代理平台提供的请求地址,如OpenAI-sb平台提供的请求地址是`api.openai-sb.com`,则填入：`https://api.openai-sb.com/v1`
+
+    >`代理端口`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
   
     >`每分钟请求数`: RPM (requests per minute)每分钟向openai发送的翻译任务数量`
   
-    >`每分钟tokens数`: TPM (tokens per minute)每分钟向openai发送的tokens总数（类似字符总数），`
+    >`每分钟tokens数`: TPM (tokens per minute)每分钟向openai发送的tokens总数（类似字符总数）
+  
+    >`请求地址`: 填入国内代理平台提供的请求地址,如OpenAI-sb平台提供的请求地址是`api.openai-sb.com`,则填入：`https://api.openai-sb.com/v1`
   
 * 2.✅点击请求测试,测试网络是否通畅,请求是否成功
     ><img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/请求成功.png" width="600" height="400"> 
