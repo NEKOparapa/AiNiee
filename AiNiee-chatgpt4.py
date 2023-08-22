@@ -95,7 +95,7 @@ Original_text_dictionary = {}   # 存储处理过的原文文本
 Translation_text_Dictionary = {}       # 用字典形式存储已经翻译好的文本
 Text_Directory_Index = [] # 存储文本的存储位置索引的列表
 Translation_Status_List = []  # 存储原文文本翻译状态列表，用于并发任务时获取每个文本的翻译状态
-ValueList_len = 0   # 存储原文件key列表的长度
+KeyList_len = 0   # 存储原文件key列表的长度
 
 
 API_key_list = []      #存放key的列表
@@ -2050,7 +2050,7 @@ def Config():
 # ——————————————————————————————————————————翻译任务主函数——————————————————————————————————————————
 def Main():
     global Input_and_output_paths,Translation_lines,Running_status,Text_Source_Language,Text_Directory_Index
-    global ValueList_len ,Translation_Status_List , money_used,source,Original_text_dictionary,Translation_text_Dictionary,Translation_Progress,OpenAI_temperature
+    global KeyList_len ,Translation_Status_List , money_used,source,Original_text_dictionary,Translation_text_Dictionary,Translation_Progress,OpenAI_temperature
     # ——————————————————————————————————————————清空进度,花销与初始化变量存储的内容—————————————————————————————————————————
 
     money_used = 0
@@ -2099,18 +2099,18 @@ def Main():
 
     Original_text_dictionary = source.copy() #将原文复制一份到Original_text_dictionary变量里，用于后续的修改
 
-    ValueList=list(Original_text_dictionary.keys())         #通过字典的keys方法，获取所有的key，转换为list变量
-    ValueList_len = len(ValueList)                           #获取原文件valua列表的长度，当作于原文的总行数
-    print("[INFO] 你的原文长度是",ValueList_len)
+    KeyList=list(Original_text_dictionary.keys())         #通过字典的keys方法，获取所有的key，转换为list变量
+    KeyList_len = len(KeyList)                           #获取原文件key列表的长度，当作于原文的总行数
+    print("[INFO] 你的原文长度是",KeyList_len)
 
     # 将字典source_mid中的键设为从0开始的整数型数字序号,使用中间变量进行存储，避免直接修改原字典
     new_source_mid = {}
-    for i in range(ValueList_len):
-        new_source_mid[i] = Original_text_dictionary[ValueList[i]]
+    for i in range(KeyList_len):
+        new_source_mid[i] = Original_text_dictionary[KeyList[i]]
     Original_text_dictionary = new_source_mid  # 将新的字典赋值给原来的字典，这样就可以通过数字序号来获取原文的内容了
 
     Translation_text_Dictionary = Original_text_dictionary.copy() # 先存储未翻译的译文，千万注意不要写等号，不然两个变量会指向同一个内存地址，导致修改一个变量，另一个变量也会被修改
-    Translation_Status_List =  [0] * ValueList_len   #创建文本翻译状态列表，用于并发时获取每个文本的翻译状态
+    Translation_Status_List =  [0] * KeyList_len   #创建文本翻译状态列表，用于并发时获取每个文本的翻译状态
 
 
     #如果开启译前替换功能，则根据用户字典进行替换,用原文字典是为了避免备份文件也被替换，后面继续翻译会出错
@@ -2128,10 +2128,10 @@ def Main():
     # ——————————————————————————————————————————构建并发任务池子—————————————————————————————————————————
 
     # 计算并发任务数
-    if ValueList_len % Translation_lines == 0:
-        tasks_Num = ValueList_len // Translation_lines 
+    if KeyList_len % Translation_lines == 0:
+        tasks_Num = KeyList_len // Translation_lines 
     else:
-        tasks_Num = ValueList_len // Translation_lines + 1
+        tasks_Num = KeyList_len // Translation_lines + 1
 
 
     print("[INFO] 你的翻译任务总数是：", tasks_Num)
@@ -2325,8 +2325,8 @@ def Make_request():
             if status  == 0:
                 start = i     #确定切割开始位置
 
-                if (start + Translation_lines >= ValueList_len) :  #确定切割结束位置，注意最后位置是不固定的
-                    end = ValueList_len  
+                if (start + Translation_lines >= KeyList_len) :  #确定切割结束位置，注意最后位置是不固定的
+                    end = KeyList_len  
                 else :
                     end = start + Translation_lines
                 break
@@ -2767,7 +2767,7 @@ def Make_request():
                     #修改文本翻译状态列表的状态，把这段文本修改为已翻译
                     Translation_Status_List[start:end] = [1] * (end - start) 
 
-                    Translation_Progress = Translation_Status_List.count(1) / ValueList_len  * 100
+                    Translation_Progress = Translation_Status_List.count(1) / KeyList_len  * 100
                     Ui_signal.update_signal.emit("Update_ui")#发送信号，激活槽函数,要有参数，否则报错
                     lock1.release()  # 释放锁
 
@@ -2811,7 +2811,7 @@ def Make_request():
 
 # ——————————————————————————————————————————检查语义错误主函数——————————————————————————————————————————
 def Check_wrong_Main():
-    global Input_and_output_paths,source_or_dict,source_tr_dict,Embeddings_Status_List,Embeddings_or_List,Embeddings_tr_List,Translation_Status_List,ValueList_len,Text_Directory_Index
+    global Input_and_output_paths,source_or_dict,source_tr_dict,Embeddings_Status_List,Embeddings_or_List,Embeddings_tr_List,Translation_Status_List,KeyList_len,Text_Directory_Index
     global Translation_Progress,money_used,source,Original_text_dictionary,Translation_text_Dictionary,Translation_lines ,Running_status,OpenAI_temperature
             
     # ——————————————————————————————————————————清空进度,花销与初始化变量存储的内容—————————————————————————————————————————
@@ -2894,16 +2894,16 @@ def Check_wrong_Main():
         source_tr_dict[i] = Translation_text_Dictionary[key]
     
     #创建编码状态列表，用于并发时获取每对翻译的编码状态
-    ValueList_len = len(Translation_text_Dictionary.values())
-    Embeddings_Status_List =  [0] * ValueList_len
+    KeyList_len = len(Translation_text_Dictionary.values())
+    Embeddings_Status_List =  [0] * KeyList_len
 
     #创建原文编码列表，用于存储原文的编码
-    Embeddings_or_List =  [0] * ValueList_len
+    Embeddings_or_List =  [0] * KeyList_len
     #创建译文编码列表，用于存储译文的编码
-    Embeddings_tr_List =  [0] * ValueList_len
+    Embeddings_tr_List =  [0] * KeyList_len
 
     #创建语义相似度列表，用于存储每对翻译语义相似度
-    Semantic_similarity_list = [0] * ValueList_len
+    Semantic_similarity_list = [0] * KeyList_len
 
 
     # —————————————————————————————————————创建并发嵌入任务——————————————————————————————————————————
@@ -2920,7 +2920,7 @@ def Check_wrong_Main():
     #根据tokens_all_consume与除以6090计算出需要请求的次数,并向上取整（除以6090是为了富余任务数）
     num_request = int(math.ceil(tokens_all_consume / 6090))
 
-    print("[DEBUG] 你的原文长度是",ValueList_len,"需要请求大概次数是",num_request)
+    print("[DEBUG] 你的原文长度是",KeyList_len,"需要请求大概次数是",num_request)
 
     # 创建线程池
     with concurrent.futures.ThreadPoolExecutor (The_Max_workers) as executor:
@@ -2983,7 +2983,7 @@ def Check_wrong_Main():
     # —————————————————————————————————————开始检查，并整理需要重新翻译的文本——————————————————————————————————————————
 
     #创建翻译状态列表,全部设置为已翻译状态
-    Translation_Status_List =  [1] * ValueList_len
+    Translation_Status_List =  [1] * KeyList_len
 
     #创建存储原文与译文的列表，方便复制粘贴，这里是两个空字符串，后面会被替换
     sentences = ["", ""]  
@@ -2995,7 +2995,7 @@ def Check_wrong_Main():
     #错误文本计数变量
     count_error = 0
     #计算每对翻译总的相似度，并重新改变翻译状态列表中的值
-    for i in range(ValueList_len):
+    for i in range(KeyList_len):
 
         #将sentence[0]与sentence[1]转换成字符串数据，确保能够被语义相似度检查模型识别，防止数字型数据导致报错
         sentences[0] = str(source_or_dict[i])
@@ -3092,12 +3092,12 @@ def Check_wrong_Main():
             print("[INFO] 总相似度结果：", similarity, "%", "，不需要重翻译")
             
         #输出遍历进度，转换成百分百进度
-        print("[INFO] 当前检查进度：", round((i+1)/ValueList_len*100,2), "% \n")
+        print("[INFO] 当前检查进度：", round((i+1)/KeyList_len*100,2), "% \n")
 
 
         #创建格式化字符串，用于存储每对翻译相似度计算过程日志
         if log_count <=  10000 :#如果log_count小于等于10000,避免太大
-            similarity_log = similarity_log + "\n" + "原文是：" + sentences[0] + "\n" + "译文是：" + sentences[1] + "\n" + "语义相似度：" + str(Semantic_similarity) + "%" + "\n" + "符号相似度：" + str(Symbolic_similarity) + "%" + "\n" + "字数相似度：" + str(Word_count_similarity) + "%" + "\n" + "总相似度结果：" + str(similarity) + "%" + "\n" + "语义权重：" + str(Semantic_weight) + "，符号权重：" + str(Symbolic_weight) + "，字数权重：" + str(Word_count_weight) + "\n" + "当前检查进度：" + str(round((i+1)/ValueList_len*100,2)) + "%" + "\n"
+            similarity_log = similarity_log + "\n" + "原文是：" + sentences[0] + "\n" + "译文是：" + sentences[1] + "\n" + "语义相似度：" + str(Semantic_similarity) + "%" + "\n" + "符号相似度：" + str(Symbolic_similarity) + "%" + "\n" + "字数相似度：" + str(Word_count_similarity) + "%" + "\n" + "总相似度结果：" + str(similarity) + "%" + "\n" + "语义权重：" + str(Semantic_weight) + "，符号权重：" + str(Symbolic_weight) + "，字数权重：" + str(Word_count_weight) + "\n" + "当前检查进度：" + str(round((i+1)/KeyList_len*100,2)) + "%" + "\n"
             log_count = log_count + 1
 
     #检查完毕，将错误文本字典写入json文件
@@ -3125,17 +3125,17 @@ def Check_wrong_Main():
 
 
     keyList=list(Original_text_dictionary.keys())         #通过字典的keys方法，获取所有的key，转换为list变量
-    ValueList_len = len(keyList)              #获取原文件key列表的长度，当作于原文的总行数
+    KeyList_len = len(keyList)              #获取原文件key列表的长度，当作于原文的总行数
 
 
     #将字典source_mid中的键设为从0开始的整数型数字序号 
-    for i in range(ValueList_len):        #循环遍历key列表
+    for i in range(KeyList_len):        #循环遍历key列表
         Original_text_dictionary[i] = Original_text_dictionary.pop(keyList[i])    #将原来的key对应的value值赋给新的key，同时删除原来的key    
 
 
 
     #将字典result_dict中的键设为从0开始的整数型数字序号 
-    for i in range(ValueList_len):        #循环遍历key列表
+    for i in range(KeyList_len):        #循环遍历key列表
         Translation_text_Dictionary[i] = Translation_text_Dictionary.pop(keyList[i])    #将原来的key对应的value值赋给新的key，同时删除原来的key    
 
 
@@ -3395,7 +3395,7 @@ def Make_request_Embeddings():
                 #print("[DEBUG] 已修改位置 ",start," 到 ",end," 的嵌入状态为已嵌入")
 
                 #计算嵌入进度
-                Translation_Progress = Embeddings_Status_List.count(1) / ValueList_len  * 100
+                Translation_Progress = Embeddings_Status_List.count(1) / KeyList_len  * 100
                 Ui_signal.update_signal.emit("Update_ui2")#发送信号，激活槽函数,要有参数，否则报错
                 lock1.release()  # 释放锁
 
