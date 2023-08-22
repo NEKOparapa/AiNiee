@@ -2099,7 +2099,7 @@ def Main():
 
     Original_text_dictionary = source.copy() #将原文复制一份到Original_text_dictionary变量里，用于后续的修改
 
-    ValueList=list(Original_text_dictionary.values())         #通过字典的valuas方法，获取所有的value，转换为list变量
+    ValueList=list(Original_text_dictionary.keys())         #通过字典的keys方法，获取所有的key，转换为list变量
     ValueList_len = len(ValueList)                           #获取原文件valua列表的长度，当作于原文的总行数
     print("[INFO] 你的原文长度是",ValueList_len)
 
