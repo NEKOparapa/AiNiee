@@ -1429,6 +1429,16 @@ def Request_test():
         Proxy_Address = Window.Interface11.LineEdit1.text()            #获取代理端口
 
         openai.api_base = "https://api.openai.com/v1" #设置官方api请求地址,防止使用了代理后再使用官方时出错
+
+        #检查一下模型类似是否是选择了私有微调模型
+        if Model_Type == "gpt-3.5-turbo微调模型" :
+            #获取微调模型id
+            Model_Type = Window.Interface11.LineEdit3_1.text()            #获取微调模型id
+            #检查一下是否已经填入微调模型id
+            if not Model_Type  :
+                print("\033[1;31mError:\033[0m 请填写微调模型id,不要留空")
+                Ui_signal.update_signal.emit("Null_value")
+                return 0
         
         #如果填入地址，则设置代理端口
         if Proxy_Address :
@@ -1544,6 +1554,7 @@ def Config():
         Proxy_Address = Window.Interface11.LineEdit1.text()            #获取代理端口
 
         openai.api_base = "https://api.openai.com/v1" #设置官方api请求地址,防止使用了代理后再使用官方时出错
+
 
         #如果填入地址，则设置代理端口
         if Proxy_Address :
@@ -1782,6 +1793,22 @@ def Config():
         tokens_limit_per = 32000
         Request_Pricing = 0.06 / 1000
         Response_Pricing = 0.12 / 1000
+
+    elif (Account_Type == "付费账号(48h后)" ) and (Model_Type == "gpt-3.5-turbo微调模型"):
+        #获取微调模型id
+        Model_Type = Window.Interface11.LineEdit3_1.text()            #获取微调模型id
+        #检查一下是否已经填入微调模型id
+        if not Model_Type  :
+            print("\033[1;31mError:\033[0m 请填写微调模型id,不要留空")
+            return 1
+
+        The_RPM_limit =  60 / Pay_RPM_limit4           
+        The_TPM_limit =  Pay_TPM_limit4 / 60
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 4090
+        Request_Pricing = 0.012 /1000
+        Response_Pricing = 0.016 /1000
 
 
     elif Account_Type == "免费账号" and (Model_Type == "gpt-3.5-turbo"):
@@ -3483,7 +3510,7 @@ class Widget11(QFrame):#官方账号界面
         #设置“模型类型”下拉选择框
         self.comboBox2 = ComboBox() #以demo为父类
         self.comboBox2.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
-                                 'gpt-4','gpt-4-0314', 'gpt-4-0613', 'gpt-4-32k','gpt-4-32K-0314','gpt-4-32k-0613'])
+                                 'gpt-4','gpt-4-0314', 'gpt-4-0613', 'gpt-4-32k','gpt-4-32K-0314','gpt-4-32k-0613','gpt-3.5-turbo微调模型'])
         self.comboBox2.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox2.setFixedSize(200, 35)
         #设置下拉选择框默认选择
@@ -3494,6 +3521,32 @@ class Widget11(QFrame):#官方账号界面
         layout3.addWidget(label3, 0, 0)
         layout3.addWidget(self.comboBox2, 0, 1)
         box3.setLayout(layout3)
+
+
+        # -----创建第3_1个组，添加多个组件-----
+        box3_1 = QGroupBox()
+        box3_1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout3_1 = QHBoxLayout()
+
+        #设置“代理地址”标签
+        label3_1 = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        label3_1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        label3_1.setText("微调模型名")
+
+        #设置微调距离用的空白标签
+        labelx3_1 = QLabel()  
+        labelx3_1.setText("             ")
+
+        #设置“代理地址”的输入框
+        self.LineEdit3_1 = LineEdit()
+        #LineEdit1.setFixedSize(300, 30)
+
+
+        layout3_1.addWidget(label3_1)
+        layout3_1.addWidget(labelx3_1)
+        layout3_1.addWidget(self.LineEdit3_1)
+        box3_1.setLayout(layout3_1)
+
 
 
 
@@ -3582,6 +3635,7 @@ class Widget11(QFrame):#官方账号界面
         container.addWidget(box1)
         container.addWidget(box2)
         container.addWidget(box3)
+        container.addWidget(box3_1)
         container.addWidget(box4)
         container.addWidget(box5)
         container.addStretch(1)  # 添加伸缩项
