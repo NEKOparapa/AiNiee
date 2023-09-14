@@ -177,7 +177,7 @@
   
 * 【翻译后文本导入到T++不完全，部分未能百分百】————————在非RPGMVZ游戏中，出现该问题比较多，使用最新赞助版T++可以缓解，还可以自己手动打开表格，自己复制粘贴进去
 
-# 类似工具🧰 
+# 推荐工具🧰 
 ***
  * GPT-Translator 是一款前后端分离基于 OpenAI 的高效翻译软件。
 https://github.com/XHXJ/json-GPT-translator
@@ -187,6 +187,9 @@ https://github.com/Lilyltt/GalUpTs
 
  * GalTransl 一套将数个基础功能上的微小创新与对ChatGPT提示工程（Prompt Engineering）的深度利用相结合的galgame自动化翻译工具
 https://github.com/XD2333/GalTransl
+
+ * AutoAnimeMv 一个番剧自动识别剧名剧集+自动重命名+自动整理的工具,具有部署方便,开箱即用的特点,用来配合qBittorrent实现Rss订阅下载Emby全自动刮削一条龙到家式爽歪歪服务!
+https://github.com/Abcuders/AutoAnimeMv
 
 # 感谢💖
 [![xxxx](https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Sponsor/徽章.png)](https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/Sponsor/赞赏码.png)
