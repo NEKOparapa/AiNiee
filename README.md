@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/NEKOparapa/AiNiee-chatgpt">
-    <img src="https://github.com/Abcuders/AiNiee-chatgpt/main/Example%20image/logo.png">
+    <img src="https://github.com/Abcuders/AiNiee-chatgpt/blob/main/Example%20image/logo.png">
   </a>
 <p>
 
