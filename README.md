@@ -40,7 +40,7 @@
     >`代理端口`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
 
     > 🎐代理账号配置示例:<br>
-    > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/代理账号设置.png" width="600" height="400"><br> 
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/代理账号设置.png" width="600" height="400"><br> 
     > 代理账号配置说明:<br>
     >`API KEY`: 填入国内代理平台给你生成的API KEY<br>
 
