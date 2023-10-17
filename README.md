@@ -27,7 +27,7 @@
 ***
 * 1.🖱️双击`启动AiNiee-chatgpt4.exe`,在账号设置页面配置你的账号信息以及`API KEY`
     > 🔥官方账号配置示例:<br>
-    > <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/官方账号设置.png" width="600" height="400"><br>
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/官方账号设置.png" width="600" height="400"><br>
     > 官方账号配置说明:<br>
     > `启用该平台`: 如果使用该平台的AI进行翻译,请勾上<br>
   
