@@ -40,6 +40,7 @@ import openpyxl  #需安装库pip install openpyxl
 import numpy as np   #需要安装库pip install numpy
 import openai        #需要安装库pip install openai
 import opencc       #需要安装库pip install opencc      
+from openai import OpenAI
 
 from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, QPainter#需要安装库 pip3 install PyQt5
 from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
@@ -54,6 +55,7 @@ from qfluentwidgets import FluentIcon as FIF
 Software_Version = "AiNiee-chatgpt4.59"  #软件版本号
 
 OpenAI_model="gpt-3.5-turbo"   #调用api的模型,默认3.5-turbo
+OpenAI_base_url = 'https://api.openai.com/v1' #api默认请求地址
 OpenAI_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
 OpenAI_top_p = 1.0              #AI的top_p，作用与temperature相同，官方建议不要同时修改
 OpenAI_presence_penalty = 0.5  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
@@ -61,13 +63,7 @@ OpenAI_frequency_penalty = 0.0 #AI的频率惩罚，限制词语重复出现的�
 tokens_limit_per = 0  #gpt-3.5-turbo模型每次请求的最大tokens数是4090，GPT-4-8K是8190
 
 Free_RPM_limit = 3        # 免费用户速率限制每分钟请求数
-Free_TPM_limit = 40000    # 免费用户速率限制每分钟token数，2tokens大概一个汉字,1.5tokens大概一个日文
-
-Pay_RPM_limit2 = 60        # 付费用户前48小时和gpt-3.5-turbo-4k的速率限制每分钟请求数
-Pay_TPM_limit2 = 60000    # 付费用户前48小时和gpt-3.5-turbo-4k的速率限制每分钟token数
-
-Pay_RPM_limit3 = 60        # 付费用户前48小时和gpt-3.5-turbo-16k的速率限制每分钟请求数
-Pay_TPM_limit3 = 120000    # 付费用户前48小时和gpt-3.5-turbo-16k的速率限制每分钟token数
+Free_TPM_limit = 20000    # 免费用户速率限制每分钟token数，2tokens大概一个汉字,1.5tokens大概一个日文
 
 Pay_RPM_limit4 = 3500        # 付费用户48小时后和gpt-3.5-turbo-4k的速率限制每分钟请求数
 Pay_TPM_limit4 = 90000    # 付费用户48小时后和gpt-3.5-turbo-4k的速率限制每分钟token数
@@ -254,11 +250,11 @@ def on_update_signal(str):
             Window.Interface20.label6.setText(money_used_str + "＄")
 
     elif str== "Request_failed":
-        createErrorInfoBar("API请求失败，请检查代理环境或账号情况")
+        createErrorInfoBar("存在API_KEY请求失败，请检查代理环境或账号情况！！")
         Running_status = 0
 
     elif str== "Request_successful":
-        createSuccessInfoBar("API请求成功！！")
+        createSuccessInfoBar("全部API_KEY请求成功！！")
         Running_status = 0
     
     elif str== "Null_value":
@@ -314,11 +310,13 @@ def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0613"):
     if model in {
         "gpt-3.5-turbo",
         "gpt-3.5-turbo-0613",
+        "gpt-3.5-turbo-1106",
         "gpt-3.5-turbo-16k",
         "gpt-3.5-turbo-16k-0613",
         "gpt-4",
         "gpt-4-0314",
         "gpt-4-0613",
+        "gpt-4-1106-preview",
         "gpt-4-32k",
         "gpt-4-32k-0613",
         }:
@@ -1428,8 +1426,6 @@ def Request_test():
         API_key_str = Window.Interface11.TextEdit2.toPlainText()            #获取apikey输入值
         Proxy_Address = Window.Interface11.LineEdit1.text()            #获取代理端口
 
-        openai.api_base = "https://api.openai.com/v1" #设置官方api请求地址,防止使用了代理后再使用官方时出错
-
         #检查一下模型类似是否是选择了私有微调模型
         if Model_Type == "gpt-3.5-turbo微调模型" :
             #获取微调模型id
@@ -1440,11 +1436,24 @@ def Request_test():
                 Ui_signal.update_signal.emit("Null_value")
                 return 0
         
-        #如果填入地址，则设置代理端口
+        #如果填入地址，则设置系统代理
         if Proxy_Address :
-            print("[INFO] 环境代理端口是:",Proxy_Address,'\n') 
+            print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
             os.environ["http_proxy"]=Proxy_Address
             os.environ["https_proxy"]=Proxy_Address
+
+        #检查一下是否已经填入key
+        if not API_key_str:
+            print("\033[1;31mError:\033[0m 请填写API KEY,不要留空")
+            Ui_signal.update_signal.emit("Null_value")
+            return 0
+        
+        #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
+        API_key_list = API_key_str.replace('\n','').replace(" ", "").split(",")
+
+        #创建openai客户端
+        openaiclient = OpenAI(api_key=API_key_list[0],
+                base_url= 'https://api.openai.com/v1')
 
     #如果启用代理平台，获取界面配置信息
     elif Window.Interface12.checkBox.isChecked() :
@@ -1454,95 +1463,114 @@ def Request_test():
         Proxy_Address = Window.Interface12.LineEdit3_1.text()            #获取代理端口
         Request_address = Window.Interface12.LineEdit1.text()            #获取请求地址
 
-        #如果填入地址，则设置代理端口
+        #如果填入地址，则设置系统代理
         if Proxy_Address :
-            print("[INFO] 环境代理端口是:",Proxy_Address,'\n') 
+            print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
             os.environ["http_proxy"]=Proxy_Address
             os.environ["https_proxy"]=Proxy_Address
 
-        #检查一下是否已经填入请求地址
+        #检查一下是否已经填入请求中转地址
         if not Request_address  :
-            print("\033[1;31mError:\033[0m 请填写API代理请求地址,不要留空")
+            print("\033[1;31mError:\033[0m 请填写API请求中转地址,不要留空")
             Ui_signal.update_signal.emit("Null_value")
             return 0
         
         #检查一下请求地址尾部是否为/v1，自动补全
         if Request_address[-3:] != "/v1":
             Request_address = Request_address + "/v1"
+
+        #检查一下是否已经填入key
+        if not API_key_str:
+            print("\033[1;31mError:\033[0m 请填写API KEY,不要留空")
+            Ui_signal.update_signal.emit("Null_value")
+            return 0
         
-        #设置api代理
-        openai.api_base = Request_address
-        print("[INFO] API代理请求地址是:",Request_address,'\n') 
+        #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
+        API_key_list = API_key_str.replace('\n','').replace(" ", "").split(",")
 
-    #分割KEY字符串并存储进列表里
-    API_key_list = API_key_str.replace(" ", "").split(",")
+        #创建openai客户端,并设置api代理请求地址
+        openaiclient = OpenAI(api_key=API_key_list[0],
+                base_url= Request_address)
+        print("[INFO] API请求代理地址是:",Request_address,'\n') 
 
-    #检查一下是否已经填入key
-    if not API_key_list[0]  :
-        print("\033[1;31mError:\033[0m 请填写API KEY,不要留空")
-        Ui_signal.update_signal.emit("Null_value")
-        return 0
-    
 
     print("[INFO] 账号类型是:",Account_Type,'\n')
     print("[INFO] 模型选择是:",Model_Type,'\n')
+
+    #创建存储每个key测试结果的列表
+    test_results = [None] * len(API_key_list)
+
+
+    #循环测试每一个apikey情况
     for i, key in enumerate(API_key_list):
-        print(f"[INFO] 第{i+1}个API KEY是：{key}") 
-    print("\n") 
+        print(f"[INFO] 正在测试第{i+1}个API KEY：{key}",'\n') 
+        #更换key
+        openaiclient.api_key = API_key_list[i]
+
+        #构建发送内容
+        messages_test = [{"role": "system","content":"你是我的女朋友欣雨。接下来你必须以女朋友的方式回复我"}, {"role":"user","content":"小可爱，你在干嘛"}]
+        print("[INFO] 当前发送内容：\n", messages_test ,'\n')
+
+        #尝试请求，并设置各种参数
+        try:
+            #如果启用实时参数设置
+            if Window.Interface18.checkBox.isChecked() :
+                #获取界面配置信息
+                OpenAI_temperature = Window.Interface18.slider1.value() * 0.1
+                OpenAI_top_p = Window.Interface18.slider2.value() * 0.1
+                OpenAI_presence_penalty = Window.Interface18.slider3.value() * 0.1
+                OpenAI_frequency_penalty = Window.Interface18.slider4.value() * 0.1
+                #输出到控制台
+                print("[INFO] 实时参数设置已启用")
+                print("[INFO] 当前temperature是:",OpenAI_temperature)
+                print("[INFO] 当前top_p是:",OpenAI_top_p)
+                print("[INFO] 当前presence_penalty是:",OpenAI_presence_penalty)
+                print("[INFO] 当前frequency_penalty是:",OpenAI_frequency_penalty,'\n','\n')
+
+            response_test = openaiclient.chat.completions.create( 
+            model= Model_Type,
+            messages = messages_test ,
+            temperature=OpenAI_temperature,
+            top_p = OpenAI_top_p,
+            presence_penalty=OpenAI_presence_penalty,
+            frequency_penalty=OpenAI_frequency_penalty
+            ) 
+
+            #如果回复成功，显示成功信息
+            response_test = response_test.choices[0].message.content
+            print("[INFO] 已成功接受到AI的回复")
+            print("[INFO] AI回复的文本内容：\n",response_test ,'\n','\n')
+
+            test_results[i] = 1 #记录成功结果
+
+        #如果回复失败，抛出错误信息，并测试下一个key
+        except Exception as e:
+            print("\033[1;31mError:\033[0m key：",API_key_list[i],"请求出现问题！错误信息如下")
+            print(f"Error: {e}\n\n")
+            test_results[i] = 0 #记录错误结果
+            continue
 
 
-    #注册api
-    openai.api_key = API_key_list[0]
-    #设置模型
-    AI_model = Model_Type
+    # 输出每个API密钥测试的结果
+    print("[INFO] 全部API KEY测试结果--------------")
+    for i, key in enumerate(API_key_list):
+        result = "成功" if test_results[i] == 1 else "失败"
+        print(f"第{i+1}个 API KEY：{key} 测试结果：{result}")
 
-    messages_test = [{"role": "system","content":"你是我的女朋友欣雨。接下来你必须以女朋友的方式回复我"}, {"role":"user","content":"小可爱，你在干嘛"}]
-    print("[INFO] 测试是否能够正常与openai通信,正在等待AI回复中--------------")
-    print("[INFO] 当前发送内容：\n", messages_test ,'\n','\n')
-
-    #尝试请求，并设置各种参数
-    try:
-        #如果启用实时参数设置
-        if Window.Interface18.checkBox.isChecked() :
-             #获取界面配置信息
-            OpenAI_temperature = Window.Interface18.slider1.value() * 0.1
-            OpenAI_top_p = Window.Interface18.slider2.value() * 0.1
-            OpenAI_presence_penalty = Window.Interface18.slider3.value() * 0.1
-            OpenAI_frequency_penalty = Window.Interface18.slider4.value() * 0.1
-            #输出到控制台
-            print("[INFO] 实时参数设置已启用")
-            print("[INFO] 当前temperature是:",OpenAI_temperature)
-            print("[INFO] 当前top_p是:",OpenAI_top_p)
-            print("[INFO] 当前presence_penalty是:",OpenAI_presence_penalty,'\n','\n')
-            print("[INFO] 当前frequency_penalty是:",OpenAI_frequency_penalty)
-
-        response_test = openai.ChatCompletion.create( 
-        model= AI_model,
-        messages = messages_test ,
-        temperature=OpenAI_temperature,
-        top_p = OpenAI_top_p,
-        presence_penalty=OpenAI_presence_penalty,
-        frequency_penalty=OpenAI_frequency_penalty
-        ) 
-
-    #抛出错误信息
-    except Exception as e:
-        print("\033[1;31mError:\033[0m api请求出现问题！错误信息如下")
-        print(f"Error: {e}\n")
+    # 检查测试结果是否全部成功
+    all_successful = all(result == 1 for result in test_results)
+    # 输出总结信息
+    if all_successful:
+        print("[INFO] 所有API KEY测试成功！！！！")
+        Ui_signal.update_signal.emit("Request_successful")#发送成功信号，激活槽函数,要有参数，否则报错
+    else:
+        print("[INFO] 存在API KEY测试失败！！！！")
         Ui_signal.update_signal.emit("Request_failed")#发送失败信号，激活槽函数,要有参数，否则报错
-        return
-
-
-    #成功回复
-    response_test = response_test['choices'][0]['message']['content']
-    print("[INFO] 已成功接受到AI的回复--------------")
-    print("[INFO] AI回复的文本内容：\n",response_test ,'\n','\n')
-    Ui_signal.update_signal.emit("Request_successful")#发送成功信号，激活槽函数,要有参数，否则报错
 
 # ——————————————————————————————————————————系统配置函数——————————————————————————————————————————
 def Config():
     global Input_and_output_paths, Translation_lines,Text_Source_Language,The_Max_workers
-    global API_key_list,tokens_limit_per,OpenAI_model,Request_Pricing , Response_Pricing
+    global API_key_list,OpenAI_base_url,tokens_limit_per,OpenAI_model,Request_Pricing , Response_Pricing
     global Prompt, original_exmaple,translation_example,user_original_exmaple,user_translation_example
 
     #—————————————————————————————————————————— 读取账号配置信息——————————————————————————————————————————
@@ -1553,15 +1581,15 @@ def Config():
         API_key_str = Window.Interface11.TextEdit2.toPlainText()            #获取apikey输入值
         Proxy_Address = Window.Interface11.LineEdit1.text()            #获取代理端口
 
-        openai.api_base = "https://api.openai.com/v1" #设置官方api请求地址,防止使用了代理后再使用官方时出错
-
 
         #如果填入地址，则设置代理端口
         if Proxy_Address :
             print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
             os.environ["http_proxy"]=Proxy_Address
             os.environ["https_proxy"]=Proxy_Address
-    
+        
+        #设置为官网请求地址
+        OpenAI_base_url = 'https://api.openai.com/v1'
 
     #如果启用代理平台，获取OpenAI的界面配置信息
     elif Window.Interface12.checkBox.isChecked() :
@@ -1582,9 +1610,9 @@ def Config():
             Request_address = Request_address + "/v1"
 
         #设置API代理请求地址
-        openai.api_base = Request_address
         print("[INFO] API代理请求地址是:",Request_address,'\n') 
-
+        #设置为中转地址
+        OpenAI_base_url = Request_address
 
     #去除空格，换行符，分割KEY字符串并存储进列表里
     API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
@@ -1635,66 +1663,15 @@ def Config():
     #—————————————————————————————————————————— 根据配置信息，设定相关系统参数——————————————————————————————————————————
 
     #设定账号类型与模型类型组合，以及其他参数
-    if (Account_Type == "付费账号(48h内)") and (Model_Type == "gpt-3.5-turbo") :
-        The_RPM_limit =  60 / Pay_RPM_limit2                    #计算请求时间间隔
-        The_TPM_limit =  Pay_TPM_limit2 / 60                    #计算请求每秒可请求的tokens流量
-        if The_Max_workers == 0:                                #如果最大线程数设置值为0，则自动设置为cpu核心数的4倍+1
-            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 #获取计算机cpu核心数，设置最大线程数
-        tokens_limit_per = 4090                                #根据模型类型设置每次请求的最大tokens数量
-        Request_Pricing = 0.0015 /1000                           #存储请求价格
-        Response_Pricing = 0.002 /1000                          #存储响应价格
-
-
-
-    elif (Account_Type == "付费账号(48h内)") and (Model_Type == "gpt-3.5-turbo-0301") :
-        The_RPM_limit =  60 / Pay_RPM_limit2                    
-        The_TPM_limit =  Pay_TPM_limit2 / 60                    
-        if The_Max_workers == 0:                                
-            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
-        tokens_limit_per = 4090                                
-        Request_Pricing = 0.0015 /1000                           
-        Response_Pricing = 0.002 /1000  
-
-
-
-    elif (Account_Type == "付费账号(48h内)") and (Model_Type == "gpt-3.5-turbo-0613") :
-        The_RPM_limit =  60 / Pay_RPM_limit2                    
-        The_TPM_limit =  Pay_TPM_limit2 / 60                    
-        if The_Max_workers == 0:                                
-            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
-        tokens_limit_per = 4090                                
-        Request_Pricing = 0.0015 /1000                           
-        Response_Pricing = 0.002 /1000                         
-
-
-    elif (Account_Type == "付费账号(48h内)") and (Model_Type == "gpt-3.5-turbo-16k") :
-        The_RPM_limit =  60 / Pay_RPM_limit3                    
-        The_TPM_limit =  Pay_TPM_limit3 / 60                    
-        if The_Max_workers == 0:                                
-            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
-        tokens_limit_per = 16000                                
-        Request_Pricing = 0.003 /1000                          
-        Response_Pricing = 0.004 /1000                          
-
-
-    elif (Account_Type == "付费账号(48h内)") and (Model_Type == "gpt-3.5-turbo-16k-0613") :
-        The_RPM_limit =  60 / Pay_RPM_limit3                    
-        The_TPM_limit =  Pay_TPM_limit3 / 60                    
-        if The_Max_workers == 0:                                
-            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
-        tokens_limit_per = 16000                                
-        Request_Pricing = 0.003 /1000                          
-        Response_Pricing = 0.004 /1000        
-
-    
-    elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-3.5-turbo"):
-        The_RPM_limit =  60 / Pay_RPM_limit4           
-        The_TPM_limit =  Pay_TPM_limit4 / 60
-        if The_Max_workers == 0:                                
-            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
-        tokens_limit_per = 4090
-        Request_Pricing = 0.0015 /1000
-        Response_Pricing = 0.002 /1000
+    #付费账号(48h后)
+    if (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-3.5-turbo"):
+        The_RPM_limit =  60 / Pay_RPM_limit4                        #计算请求时间间隔
+        The_TPM_limit =  Pay_TPM_limit4 / 60                        #计算请求每秒可请求的tokens流量
+        if The_Max_workers == 0:                                    #如果最大线程数设置值为0，则自动设置为cpu核心数的4倍+1  
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1   #获取计算机cpu核心数，设置最大线程数
+        tokens_limit_per = 4090        #根据模型类型设置每次请求的最大tokens数量
+        Request_Pricing = 0.0015 /1000  #存储请求价格
+        Response_Pricing = 0.002 /1000  #存储响应价格
 
     elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-3.5-turbo-0301"):
         The_RPM_limit =  60 / Pay_RPM_limit4           
@@ -1715,6 +1692,15 @@ def Config():
         Request_Pricing = 0.0015 /1000
         Response_Pricing = 0.002 /1000
 
+    elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-3.5-turbo-1106"):
+        The_RPM_limit =  60 / Pay_RPM_limit4           
+        The_TPM_limit =  Pay_TPM_limit4 / 60
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 4090
+        Request_Pricing = 0.001 /1000
+        Response_Pricing = 0.002 /1000
+
 
     elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-3.5-turbo-16k"):
         The_RPM_limit =  60 / Pay_RPM_limit5           
@@ -1722,8 +1708,8 @@ def Config():
         if The_Max_workers == 0:                                
             The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
         tokens_limit_per = 16000
-        Request_Pricing = 0.003 /1000
-        Response_Pricing = 0.004 /1000
+        Request_Pricing = 0.001 /1000
+        Response_Pricing = 0.002 /1000
 
 
     elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-3.5-turbo-16k-0613"):
@@ -1732,8 +1718,18 @@ def Config():
         if The_Max_workers == 0:                                
             The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
         tokens_limit_per = 16000
-        Request_Pricing = 0.003 /1000
-        Response_Pricing = 0.004 /1000
+        Request_Pricing = 0.001 /1000
+        Response_Pricing = 0.002 /1000
+
+
+    elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-4-1106-preview"):
+        The_RPM_limit =  60 / Pay_RPM_limit6           
+        The_TPM_limit =  Pay_TPM_limit6 / 60
+        if The_Max_workers == 0:                                
+            The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
+        tokens_limit_per = 4000
+        Request_Pricing = 0.01 / 1000
+        Response_Pricing = 0.03 / 1000
 
 
     elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-4"):
@@ -1765,6 +1761,7 @@ def Config():
         Request_Pricing = 0.03 / 1000
         Response_Pricing = 0.06 / 1000
 
+
     elif (Account_Type == "付费账号(48h后)" or Account_Type == "代理账号") and (Model_Type == "gpt-4-32k"):
         The_RPM_limit =  60 / Pay_RPM_limit7           
         The_TPM_limit =  Pay_TPM_limit7 / 60
@@ -1794,6 +1791,7 @@ def Config():
         Request_Pricing = 0.06 / 1000
         Response_Pricing = 0.12 / 1000
 
+
     elif (Account_Type == "付费账号(48h后)" ) and (Model_Type == "gpt-3.5-turbo微调模型"):
         #获取微调模型id
         Model_Type = Window.Interface11.LineEdit3_1.text()            #获取微调模型id
@@ -1807,9 +1805,10 @@ def Config():
         if The_Max_workers == 0:                                
             The_Max_workers = multiprocessing.cpu_count() * 4 + 1 
         tokens_limit_per = 4090
-        Request_Pricing = 0.012 /1000
-        Response_Pricing = 0.016 /1000
+        Request_Pricing = 0.003 /1000
+        Response_Pricing = 0.006 /1000
 
+    #免费账号信息，下次要放在另一个配置文件里，不然配得好累
 
     elif Account_Type == "免费账号" and (Model_Type == "gpt-3.5-turbo"):
         The_RPM_limit =  60 / Free_RPM_limit             
@@ -1838,6 +1837,15 @@ def Config():
             The_Max_workers = 4                            
         tokens_limit_per = 4090
         Request_Pricing = 0.0015 /1000
+        Response_Pricing = 0.002 /1000
+
+    elif Account_Type == "免费账号" and (Model_Type == "gpt-3.5-turbo-1106"):
+        The_RPM_limit =  60 / Free_RPM_limit             
+        The_TPM_limit =  Free_TPM_limit / 60             
+        if The_Max_workers == 0:               
+            The_Max_workers = 4                            
+        tokens_limit_per = 4090
+        Request_Pricing = 0.001 /1000
         Response_Pricing = 0.002 /1000
 
     elif Account_Type == "免费账号" and (Model_Type == "gpt-3.5-turbo-16k"):
@@ -1870,10 +1878,10 @@ def Config():
     第一点: 部分完整的文本会被拆分到不同行中，请严格依照每一行的原文进行翻译，不要偏离原文。
     第二点: 每行文本中的含有的转义字符如“\"”、“\r”和“\n”或者数字、英文字母、特殊符号等非日语内容，不用翻译或者更改，保留其原来样子。
     ###
-    输入内容格式如下：
+    原文格式如下：
     {"<文本id>": "<日语文本>"}
     ###
-    输出内容格式如下：
+    以json格式输出译文：
     {"<文本id>": "<翻译后文本>"}
     '''      #系统提示词
 
@@ -1887,10 +1895,10 @@ def Config():
     First, some complete text may be split into different lines. Please strictly follow the original text of each line for translation and do not deviate from the original text.
     Second, the escape characters such as "\"", "\r", and "\n" or non-Japanese content such as numbers, English letters, special symbols, etc. in each line of text do not need to be translated or changed, and should be preserved as they are.
     ###
-    The input content format is as follows:
+    The original text is formatted as follows:
     {"<text id>": "<Japanese text>"}
     ###
-    The output content format is as follows:
+    Translate the text into English and output it in JSON format:
     {"<text id>": "<translated text>"}
     '''      #系统提示词
 
@@ -2037,9 +2045,6 @@ def Config():
 
     #设置模型ID
     OpenAI_model = Model_Type
-
-    #注册api
-    openai.api_key = API_key_list[0]
 
     #根据账号类型，设定请求限制
     global api_request
@@ -2470,9 +2475,10 @@ def Make_request():
                         else :
                                 key_list_index = 0
 
-                        #更新API
-                        #openai.api_key = API_key_list[key_list_index]
-                        on_update_signal("CG_key")
+                        #创建客户端在这里会报错local variable 'openaiclient' referenced before assignment
+                        #openaiclient = OpenAI(api_key=API_key_list[key_list_index],
+                                        #base_url= OpenAI_base_url)
+
 
                         print("\033[1;34m[INFO]\033[0m 将API-KEY更换为第",key_list_index+1,"个 ,Key为：", API_key_list[key_list_index] ,'\n')
                         lock4.release()  # 释放锁
@@ -2488,6 +2494,9 @@ def Make_request():
                 #print("[INFO] 当前发送的messages：\n", messages,'\n','\n' )
 
                 # ——————————————————————————————————————————开始发送会话请求——————————————————————————————————————————
+                #更新API，并创建openai客户端（不知道为什么不能放在上面）
+                openaiclient = OpenAI(api_key=API_key_list[key_list_index],
+                                        base_url= OpenAI_base_url)
                 try:
                     lock5.acquire()  # 获取锁
                     #记录请求数
@@ -2523,14 +2532,27 @@ def Make_request():
 
                     lock5.release()  # 释放锁
 
-                    response = openai.ChatCompletion.create(
-                        model= OpenAI_model,
-                        messages = messages ,
-                        temperature=temperature,
-                        top_p = top_p,                        
-                        presence_penalty=presence_penalty,
-                        frequency_penalty=frequency_penalty
-                        )
+                    #如果开启了jsonmode模式和使用了对应的模型
+                    if ( ((OpenAI_model=="gpt-3.5-turbo-1106" or OpenAI_model=="gpt-4-1106-preview")  and  Window.Interface15.SwitchButton1_4.isChecked()) 
+                        or ((OpenAI_model=="gpt-3.5-turbo-1106" or OpenAI_model=="gpt-4-1106-preview")  and  Window.Interface16.SwitchButton1_4.isChecked()) ):
+
+                        response = openaiclient.chat.completions.create(
+                            model= OpenAI_model,
+                            messages = messages ,
+                            temperature=temperature,
+                            top_p = top_p,                        
+                            presence_penalty=presence_penalty,
+                            frequency_penalty=frequency_penalty
+                            )
+                    else:
+                        response = openaiclient.chat.completions.create(
+                            model= OpenAI_model,
+                            messages = messages ,
+                            temperature=temperature,
+                            top_p = top_p,                        
+                            presence_penalty=presence_penalty,
+                            frequency_penalty=frequency_penalty
+                            )
 
                 #一旦有错误就抛出错误信息，一定程度上避免网络代理波动带来的超时问题
                 except Exception as e:
@@ -2567,17 +2589,17 @@ def Make_request():
                 Request_consumption_time =  round(response_time - Start_request_time, 2)
                 lock5.release()  # 释放锁     
 
-                response_content = response['choices'][0]['message']['content'] 
+                response_content = response.choices[0].message.content 
 
                 #截取回复内容中返回的tonkens花费，并计算金钱花费
                 lock3.acquire()  # 获取锁
 
                 try:
-                    prompt_tokens_used = int(response["usage"]["prompt_tokens"]) #本次请求花费的tokens
+                    prompt_tokens_used = int(response.usage.prompt_tokens) #本次请求花费的tokens
                 except Exception as e:
                     prompt_tokens_used = 0
                 try:
-                    completion_tokens_used = int(response["usage"]["completion_tokens"]) #本次回复花费的tokens
+                    completion_tokens_used = int(response.usage.completion_tokens) #本次回复花费的tokens
                 except Exception as e:
                     completion_tokens_used = 0
 
@@ -3353,20 +3375,19 @@ def Make_request_Embeddings():
                         else :
                                 key_list_index = 0
 
-                        #更新API
-                        #openai.api_key = API_key_list[key_list_index]
-                        on_update_signal("CG_key")
-
                         print("\033[1;34m[INFO]\033[0m 将API-KEY更换为第",key_list_index+1,"个 ,Key为：", API_key_list[key_list_index] ,'\n')
                         lock4.release()  # 释放锁
 
                 #————————————————————————————————————————发送请求————————————————————————————————————————
+                #更新API，并创建openai客户端（不知道为什么不能放在上面）
+                openaiclient = OpenAI(api_key=API_key_list[key_list_index],
+                                        base_url= OpenAI_base_url)
                 try:
                     print("[INFO] 已发送请求-------------------------------------")
                     print("[INFO] 当前编码起始位置是：",start,"------当前编码结束位置是：", end )
                     print("[INFO] 请求内容长度是：",len(input_txt),'\n','\n')
                     #print("[INFO] 已发送请求，请求内容是：",input_txt)
-                    response = openai.Embedding.create(
+                    response = openaiclient.embeddings.create(
                         input=input_txt,
                         model="text-embedding-ada-002")
                     
@@ -3392,7 +3413,7 @@ def Make_request_Embeddings():
 
                 #计算花销
                 try:
-                    total_tokens_used = int(response["usage"]["total_tokens"]) #本次请求花费的tokens
+                    total_tokens_used = int(response.usage.total_tokens) #本次请求花费的tokens
                 except Exception as e:
                     total_tokens_used = 0
                 money_used  =  money_used + total_tokens_used / 10000 * 0.0001 #本次请求花费的money
@@ -3401,11 +3422,13 @@ def Make_request_Embeddings():
                 for i in range(start,end):
                     #计算获取原文编码的索引位置，并获取
                     Original_Index = i - start
-                    Original_Embeddings = response['data'][Original_Index]['embedding']
+                    #openai返回的嵌入值是存储在data列表的字典元素里，在字典元素里以embedding为关键字，所以才要改变data的索引值
+                    Original_Embeddings = response.data[Original_Index].embedding
 
                     #计算获取译文编码的索引位置，并获取
                     Translation_Index = i - start + (end - start)
-                    Translation_Embeddings = response['data'][Translation_Index]['embedding']
+                    #openai返回的嵌入值是存储在data列表的字典元素里，在字典元素里以embedding为关键字，所以才要改变data的索引值
+                    Translation_Embeddings = response.data[Translation_Index].embedding
 
                     #计算每对翻译语义相似度
                     similarity_score = np.dot(Original_Embeddings, Translation_Embeddings)
@@ -3486,7 +3509,7 @@ class Widget11(QFrame):#官方账号界面
 
         #设置“账号类型”下拉选择框
         self.comboBox = ComboBox() #以demo为父类
-        self.comboBox.addItems(['免费账号', '付费账号(48h内)', '付费账号(48h后)'])
+        self.comboBox.addItems(['免费账号',  '付费账号(48h后)'])
         self.comboBox.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox.setFixedSize(150, 35)
 
@@ -3509,8 +3532,8 @@ class Widget11(QFrame):#官方账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox2 = ComboBox() #以demo为父类
-        self.comboBox2.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
-                                 'gpt-4','gpt-4-0314', 'gpt-4-0613', 'gpt-4-32k','gpt-4-32K-0314','gpt-4-32k-0613','gpt-3.5-turbo微调模型'])
+        self.comboBox2.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-1106','gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
+                                 'gpt-4','gpt-4-0314', 'gpt-4-0613','gpt-4-1106-preview','gpt-4-32k','gpt-4-32K-0314','gpt-4-32k-0613','gpt-3.5-turbo微调模型'])
         self.comboBox2.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox2.setFixedSize(200, 35)
         #设置下拉选择框默认选择
@@ -3614,7 +3637,13 @@ class Widget11(QFrame):#官方账号界面
         primaryButton1 = PrimaryPushButton('测试请求', self, FIF.SEND)
         primaryButton1.clicked.connect(Test_request_button) #按钮绑定槽函数
 
+        #设置“保存配置”的按钮
+        primaryButton2 = PushButton('保存配置', self, FIF.SAVE)
+        primaryButton2.clicked.connect(self.saveconfig) #按钮绑定槽函数
 
+
+        layout6.addStretch(1)  # 添加伸缩项
+        layout6.addWidget(primaryButton2)
         layout6.addStretch(1)  # 添加伸缩项
         layout6.addWidget(primaryButton1)
         layout6.addStretch(1)  # 添加伸缩项
@@ -3647,6 +3676,10 @@ class Widget11(QFrame):#官方账号界面
         if isChecked :
             Window.Interface12.checkBox.setChecked(False)
             createSuccessInfoBar("已设置使用OpenAI官方进行翻译")
+
+    def saveconfig(self):
+            read_write_config("write")
+            createSuccessInfoBar("已成功保存配置")
 
 
 class Widget12(QFrame):#代理账号界面
@@ -3715,8 +3748,8 @@ class Widget12(QFrame):#代理账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox2 = ComboBox() #以demo为父类
-        self.comboBox2.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
-                                 'gpt-4','gpt-4-0314', 'gpt-4-0613', 'gpt-4-32k','gpt-4-32K-0314','gpt-4-32k-0613'])
+        self.comboBox2.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613','gpt-3.5-turbo-1106', 'gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
+                                 'gpt-4','gpt-4-0314', 'gpt-4-0613','gpt-4-1106-preview','gpt-4-32k','gpt-4-32K-0314','gpt-4-32k-0613'])
         self.comboBox2.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox2.setFixedSize(200, 35)
         
@@ -3764,10 +3797,10 @@ class Widget12(QFrame):#代理账号界面
         box4.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout4 = QHBoxLayout()
 
-        #设置“代理地址”标签
+        #设置“中转地址”标签
         label4 = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
         label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
-        label4.setText("请求地址")
+        label4.setText("中转地址")
 
         #设置微调距离用的空白标签
         labelx = QLabel()  
@@ -3878,7 +3911,13 @@ class Widget12(QFrame):#代理账号界面
         primaryButton1 = PrimaryPushButton('测试请求', self, FIF.SEND)
         primaryButton1.clicked.connect(Test_request_button) #按钮绑定槽函数
 
+        #设置“保存配置”的按钮
+        primaryButton2 = PushButton('保存配置', self, FIF.SAVE)
+        primaryButton2.clicked.connect(self.saveconfig) #按钮绑定槽函数
 
+
+        layout6.addStretch(1)  # 添加伸缩项
+        layout6.addWidget(primaryButton2)
         layout6.addStretch(1)  # 添加伸缩项
         layout6.addWidget(primaryButton1)
         layout6.addStretch(1)  # 添加伸缩项
@@ -3914,6 +3953,10 @@ class Widget12(QFrame):#代理账号界面
         if isChecked :
             Window.Interface11.checkBox.setChecked(False)
             createSuccessInfoBar("已设置使用OpenAI国内代理平台进行翻译")
+
+    def saveconfig(self):
+            read_write_config("write")
+            createSuccessInfoBar("已成功保存配置")
 
 
 class Widget15(QFrame):#Mtool项目界面
@@ -3952,6 +3995,28 @@ class Widget15(QFrame):#Mtool项目界面
         box1.setLayout(layout1)
 
 
+        # -----创建第1.4个组(后来补的)，添加多个组件-----
+        box1_4 = QGroupBox()
+        box1_4.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_4 = QHBoxLayout()
+
+        #设置“回复json格式”标签
+        labe1_4 = QLabel(flags=Qt.WindowFlags())  
+        labe1_4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        labe1_4.setText("回复json格式")
+
+
+
+       #设置“回复json格式”选择开关
+        self.SwitchButton1_4 = SwitchButton(parent=self)    
+        self.SwitchButton1_4.checkedChanged.connect(self.onjsonmode)
+
+
+
+        layout1_4.addWidget(labe1_4)
+        layout1_4.addStretch(1)  # 添加伸缩项
+        layout1_4.addWidget(self.SwitchButton1_4)
+        box1_4.setLayout(layout1_4)
 
 
         # -----创建第1.5个组(后来补的)，添加多个组件-----
@@ -4143,11 +4208,17 @@ class Widget15(QFrame):#Mtool项目界面
         box5.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout5 = QHBoxLayout()
 
+        #设置“保存配置”的按钮
+        self.primaryButton2 = PushButton('保存配置', self, FIF.SAVE)
+        self.primaryButton2.clicked.connect(self.saveconfig) #按钮绑定槽函数
+
         #设置“开始翻译”的按钮
         self.primaryButton1 = PrimaryPushButton('开始翻译', self, FIF.UPDATE)
         self.primaryButton1.clicked.connect(self.Start_translation_mtool) #按钮绑定槽函数
 
 
+        layout5.addStretch(1)  # 添加伸缩项
+        layout5.addWidget(self.primaryButton2)
         layout5.addStretch(1)  # 添加伸缩项
         layout5.addWidget(self.primaryButton1)
         layout5.addStretch(1)  # 添加伸缩项
@@ -4207,6 +4278,7 @@ class Widget15(QFrame):#Mtool项目界面
         container.addWidget(box1)
         container.addWidget(box1_5)
         container.addWidget(box1_6)
+        container.addWidget(box1_4)
         container.addWidget(box4)
         container.addWidget(box4_1)
         container.addWidget(box1_7)
@@ -4220,6 +4292,11 @@ class Widget15(QFrame):#Mtool项目界面
         self.setLayout(container)
         container.setSpacing(28) # 设置布局内控件的间距为28
         container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+    #设置“回复json格式”选择开关绑定函数
+    def onjsonmode(self, isChecked: bool):
+        if isChecked:
+                 createWarningInfoBar("该设置现在仅支持gpt-3.5-turbo-1106与gpt-4-1106-preview模型开启")
 
     #设置“错行检查”选择开关绑定函数
     def onCheckedChanged1(self, isChecked: bool):
@@ -4289,6 +4366,10 @@ class Widget15(QFrame):#Mtool项目界面
         elif Running_status != 0:
             createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
+    def saveconfig(self):
+            read_write_config("write")
+            createSuccessInfoBar("已成功保存配置")
+
 
 class Widget16(QFrame):#Tpp项目界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
@@ -4324,7 +4405,28 @@ class Widget16(QFrame):#Tpp项目界面
         layout1.addWidget(self.spinBox1)
         box1.setLayout(layout1)
 
+        # -----创建第1.4个组(后来补的)，添加多个组件-----
+        box1_4 = QGroupBox()
+        box1_4.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_4 = QHBoxLayout()
 
+        #设置“回复json格式”标签
+        labe1_4 = QLabel(flags=Qt.WindowFlags())  
+        labe1_4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        labe1_4.setText("回复json格式")
+
+
+
+       #设置“回复json格式”选择开关
+        self.SwitchButton1_4 = SwitchButton(parent=self)    
+        self.SwitchButton1_4.checkedChanged.connect(self.onjsonmode)
+
+
+
+        layout1_4.addWidget(labe1_4)
+        layout1_4.addStretch(1)  # 添加伸缩项
+        layout1_4.addWidget(self.SwitchButton1_4)
+        box1_4.setLayout(layout1_4)
 
         # -----创建第1.5个组(后来补的)，添加多个组件-----
         box1_5 = QGroupBox()
@@ -4513,10 +4615,16 @@ class Widget16(QFrame):#Tpp项目界面
         layout5 = QHBoxLayout()
 
 
+        #设置“保存配置”的按钮
+        self.primaryButton2 = PushButton('保存配置', self, FIF.SAVE)
+        self.primaryButton2.clicked.connect(self.saveconfig) #按钮绑定槽函数
+
         #设置“开始翻译”的按钮
         self.primaryButton1 = PrimaryPushButton('开始翻译', self, FIF.UPDATE)
         self.primaryButton1.clicked.connect(self.Start_translation_Tpp) #按钮绑定槽函数
 
+        layout5.addStretch(1)  # 添加伸缩项
+        layout5.addWidget(self.primaryButton2)
         layout5.addStretch(1)  # 添加伸缩项
         layout5.addWidget(self.primaryButton1)
         layout5.addStretch(1)  # 添加伸缩项
@@ -4575,6 +4683,7 @@ class Widget16(QFrame):#Tpp项目界面
         container.addWidget(box1)
         container.addWidget(box1_5)
         container.addWidget(box1_6)
+        container.addWidget(box1_4)
         container.addWidget(box4)
         container.addWidget(box4_1)
         container.addWidget(box1_7)
@@ -4588,6 +4697,11 @@ class Widget16(QFrame):#Tpp项目界面
         self.setLayout(container)
         container.setSpacing(28) # 设置布局内控件的间距为28
         container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+    #设置“回复json格式”选择开关绑定函数
+    def onjsonmode(self, isChecked: bool):
+        if isChecked:
+                 createWarningInfoBar("该设置现在仅支持gpt-3.5-turbo-1106与gpt-4-1106-preview模型开启")
 
     #设置“错行检查”选择开关绑定函数
     def onCheckedChanged1(self, isChecked: bool):
@@ -4658,6 +4772,11 @@ class Widget16(QFrame):#Tpp项目界面
 
         elif Running_status != 0:
             createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+
+
+    def saveconfig(self):
+            read_write_config("write")
+            createSuccessInfoBar("已成功保存配置")
 
 
 class Widget17(QFrame):#备份设置界面
