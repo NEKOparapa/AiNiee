@@ -2536,13 +2536,16 @@ def Make_request():
                     if ( ((OpenAI_model=="gpt-3.5-turbo-1106" or OpenAI_model=="gpt-4-1106-preview")  and  Window.Interface15.SwitchButton1_4.isChecked()) 
                         or ((OpenAI_model=="gpt-3.5-turbo-1106" or OpenAI_model=="gpt-4-1106-preview")  and  Window.Interface16.SwitchButton1_4.isChecked()) ):
 
+                        print("[INFO] 当前已启用json回复格式")
+
                         response = openaiclient.chat.completions.create(
                             model= OpenAI_model,
                             messages = messages ,
                             temperature=temperature,
                             top_p = top_p,                        
                             presence_penalty=presence_penalty,
-                            frequency_penalty=frequency_penalty
+                            frequency_penalty=frequency_penalty,
+                            response_format={"type": "json_object"}
                             )
                     else:
                         response = openaiclient.chat.completions.create(
