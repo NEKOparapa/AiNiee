@@ -914,6 +914,7 @@ def read_write_config(mode):
         #如果是MTool界面
         Translation_lines_Mtool = Window.Interface15.spinBox1.value()        #获取MTool界面翻译行数
         Check_Switch_Mtool = Window.Interface15.SwitchButton1.isChecked()    #获取错行检查开关的状态
+        Jsonmode_Switch_Mtool = Window.Interface15.SwitchButton1_4.isChecked()    #获取josnmode开关的状态
         Line_break_switch_Mtool = Window.Interface15.SwitchButton2.isChecked()   #获取换行符替换翻译开关的状态
         Text_Source_Language_Mtool = Window.Interface15.comboBox1.currentText()   #获取文本源语言下拉框当前选中选项的值
         Text_Target_Language_Mtool = Window.Interface15.comboBox2.currentText()   #获取文本目标语言下拉框当前选中选项的值
@@ -922,6 +923,7 @@ def read_write_config(mode):
         #如果是T++界面
         Translation_lines_Tpp = Window.Interface16.spinBox1.value()        #获取T++界面翻译行数
         Check_Switch_Tpp = Window.Interface16.SwitchButton1.isChecked()   #获取错行检查开关的状态
+        Jsonmode_Switch_Tpp = Window.Interface16.SwitchButton1_4.isChecked()    #获取josnmode开关的状态
         Line_break_switch_Tpp = Window.Interface16.SwitchButton2.isChecked()   #获取换行符替换翻译开关的状态
         Text_Source_Language_Tpp = Window.Interface16.comboBox1.currentText()   #获取文本源语言下拉框当前选中选项的值
         Text_Target_Language_Tpp = Window.Interface16.comboBox2.currentText()   #获取文本目标语言下拉框当前选中选项的值
@@ -1014,6 +1016,7 @@ def read_write_config(mode):
         #Mtool界面
         config_dict["Translation_lines_Mtool"] = Translation_lines_Mtool
         config_dict["Check_Switch_Mtool"] = Check_Switch_Mtool
+        config_dict["Jsonmode_Switch_Mtool"] = Jsonmode_Switch_Mtool
         config_dict["Line_break_switch_Mtool"] = Line_break_switch_Mtool
         config_dict["Text_Source_Language_Mtool"] = Text_Source_Language_Mtool
         config_dict["Text_Target_Language_Mtool"] = Text_Target_Language_Mtool
@@ -1022,6 +1025,7 @@ def read_write_config(mode):
         #Tpp界面
         config_dict["Translation_lines_Tpp"] = Translation_lines_Tpp
         config_dict["Check_Switch_Tpp"] = Check_Switch_Tpp
+        config_dict["Jsonmode_Switch_Tpp"] = Jsonmode_Switch_Tpp
         config_dict["Line_break_switch_Tpp"] = Line_break_switch_Tpp
         config_dict["Text_Source_Language_Tpp"] = Text_Source_Language_Tpp
         config_dict["Text_Target_Language_Tpp"] = Text_Target_Language_Tpp
@@ -1128,6 +1132,9 @@ def read_write_config(mode):
             if "Check_Switch_Mtool" in config_dict:
                 Check_Switch_Mtool = config_dict["Check_Switch_Mtool"]
                 Window.Interface15.SwitchButton1.setChecked(Check_Switch_Mtool)
+            if "Jsonmode_Switch_Mtool" in config_dict:
+                Jsonmode_Switch_Mtool = config_dict["Jsonmode_Switch_Mtool"]
+                Window.Interface15.SwitchButton1_4.setChecked(Jsonmode_Switch_Mtool)
             if "Line_break_switch_Mtool" in config_dict:
                 Line_break_switch_Mtool = config_dict["Line_break_switch_Mtool"]
                 Window.Interface15.SwitchButton2.setChecked(Line_break_switch_Mtool)
@@ -1149,6 +1156,9 @@ def read_write_config(mode):
             if "Check_Switch_Tpp" in config_dict:
                 Check_Switch_Tpp = config_dict["Check_Switch_Tpp"]
                 Window.Interface16.SwitchButton1.setChecked(Check_Switch_Tpp)
+            if "Jsonmode_Switch_Tpp" in config_dict:
+                Jsonmode_Switch_Tpp = config_dict["Jsonmode_Switch_Tpp"]
+                Window.Interface16.SwitchButton1_4.setChecked(Jsonmode_Switch_Tpp)
             if "Line_break_switch_Tpp" in config_dict:
                 Line_break_switch_Tpp = config_dict["Line_break_switch_Tpp"]
                 Window.Interface16.SwitchButton2.setChecked(Line_break_switch_Tpp)
