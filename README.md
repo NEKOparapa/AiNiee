@@ -6,7 +6,7 @@
 
 ***
 ![image](https://img.shields.io/badge/QQ交流群-821624890-BA55D3)
-[![下载地址](https://img.shields.io/badge/下载地址-点击下载-1E90FF)](https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/releases)
+[![下载地址](https://img.shields.io/badge/下载地址-点击下载-1E90FF)](https://github.com/NEKOparapa/AiNiee-chatgpt/releases)
 [![教程视频](https://img.shields.io/badge/教程视频-点击观看-ff69b4)](https://www.bilibili.com/video/BV18c411K7WN)
 
 **这是一款基于`Mtool`或`Translator++`的 AI自动批翻译工具,主要是用来翻译各种RPG游戏**
