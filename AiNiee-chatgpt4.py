@@ -1908,7 +1908,7 @@ def Config():
     The original text is formatted as follows:
     {"<text id>": "<Japanese text>"}
     ###
-    Translate the text into English and output it in JSON format:
+    Output the translation in JSON format:
     {"<text id>": "<translated text>"}
     '''      #系统提示词
 
@@ -1916,7 +1916,7 @@ def Config():
     exmaple_jp = '''{
     "0":"a=\"　　ぞ…ゾンビ系…。",
     "1":"敏捷性が上昇する。　　　　　　　\r\n効果：パッシブ",
-    "2":"【ベーカリー】営業時間8：00～18：00",
+    "2":"【ベーカリー】営業時間 8：00～18：00",
     "3":"&f.Item[f.Select_Item][1]+'　個'",
     "4":"ちょろ……ちょろろ……\nじょぼぼぼ……♡",
     "5": "さて！",
@@ -1949,11 +1949,25 @@ def Config():
     "7": "젊고♫⚡아름답고♫⚡섹시하고"
     }'''
 
+
+    #俄语示例
+    exmaple_ru = '''{
+    "0": "а=\"　　Ужасно страшно...。",
+    "1": "Повышает ловкость.　　　　　　　\r\nЭффект: Пассивный",
+    "2": "【пекарня】Время работы 8:00-18:00",
+    "3": "&f.Item[f.Select_Item][1]+'　шт.'",
+    "4": "Гуру... гуругу... ♡\nДадада... ♡",
+    "5": "Итак!",
+    "6": "Давайте сейчас поиздеваемся над дядей!",
+    "7": "Молодые♫⚡Красивые♫⚡Эротичные"
+    }'''
+
+
     #简体中文示例
     example_zh ='''{   
     "0":"a=\"　　好可怕啊……。",
     "1":"提高敏捷性。　　　　　　　\r\n效果：被动",
-    "2":"【面包店】营业时间8：00～18：00",
+    "2":"【面包店】营业时间 8：00～18：00",
     "3":"&f.Item[f.Select_Item][1]+'　个'",
     "4":"咕噜……咕噜噜……\n哒哒哒……♡",
     "5": "那么！",
@@ -1961,11 +1975,12 @@ def Config():
     "7": "年轻♫⚡漂亮♫⚡色情"
     }'''
 
+
     #繁体中文示例
     example_zh_tw ='''{
     "0":"a=\"　　好可怕啊……。",
     "1":"提高敏捷性。　　　　　　　\r\n效果：被動",
-    "2":"【麵包店】營業時間8：00～18：00",
+    "2":"【麵包店】營業時間 8：00～18：00",
     "3":"&f.Item[f.Select_Item][1]+'　個'",
     "4":"咕嚕……咕嚕嚕……\n哒哒哒……♡",
     "5": "那麼！",
@@ -1989,13 +2004,18 @@ def Config():
         Prompt = Prompt.replace("Japanese","Korean")
         original_exmaple = exmaple_kr
 
+    elif Text_Source_Language == "俄语":
+        Prompt = Prompt.replace("Japanese","Russian")
+        original_exmaple = exmaple_ru
+
     elif Text_Source_Language == "简中":
         Prompt = Prompt.replace("Japanese","Simplified Chinese")
         original_exmaple = example_zh
 
     elif Text_Source_Language == "繁中":
         Prompt = Prompt.replace("Japanese","Traditional Chinese")
-        original_exmaple = example_zh
+        original_exmaple = example_zh_tw
+
 
 
     if Text_Target_Language == "简中":
@@ -4181,7 +4201,7 @@ class Widget15(QFrame):#Mtool项目界面
 
         #设置“文本源语言”下拉选择框
         self.comboBox1 = ComboBox() #以demo为父类
-        self.comboBox1.addItems(['日语', '英语', '韩语', '简中', '繁中'])
+        self.comboBox1.addItems(['日语', '英语', '韩语', '俄语', '简中', '繁中'])
         self.comboBox1.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox1.setFixedSize(127, 30)
         #当下拉框的选中项发生改变时，调用self.changeLanguage函数
@@ -4588,7 +4608,7 @@ class Widget16(QFrame):#Tpp项目界面
 
         #设置“文本源语言”下拉选择框
         self.comboBox1 = ComboBox() #以demo为父类
-        self.comboBox1.addItems(['日语', '英语', '韩语', '简中', '繁中'])
+        self.comboBox1.addItems(['日语', '英语', '韩语', '俄语', '简中', '繁中'])
         self.comboBox1.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox1.setFixedSize(127, 30)
         #当下拉框的选中项发生改变时，调用self.changeLanguage函数
