@@ -1,3 +1,5 @@
 AiNiee-chatgpt4.spec
 build/
 dist/
+*.json
+
