@@ -203,9 +203,6 @@ https://github.com/XD2333/GalTransl
  * AutoAnimeMv 一个番剧自动识别剧名剧集+自动重命名+自动整理的工具,具有部署方便,开箱即用的特点,用来配合qBittorrent实现Rss订阅下载Emby全自动刮削一条龙到家式爽歪歪服务!
 https://github.com/Abcuders/AutoAnimeMv
 
- * txt2json4AiNiee 如果需要用AiNiee翻译纯文本txt，可以用这个Python脚本把txt转换成AiNiee可以接受的Mtool JSON格式
-https://github.com/AkiraChisaka/txt2json4AiNiee
-
 # 感谢💖
 [![xxxx](https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sponsor/徽章.png)](https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sponsor/赞赏码.png)
 
