@@ -177,6 +177,18 @@
   
 * 【翻译后文本导入到T++不完全，部分未能百分百】————————在非RPGMVZ游戏中，出现该问题比较多，使用最新赞助版T++可以缓解，还可以自己手动打开表格，自己复制粘贴进去
 
+# 本地部署🛠️
+***
+如果想要修改代码，或者帮忙改进，请按照下面的指示来进行：
+
+* 1.下载整个代码/Repo，推荐自己Fork一下然后Clone到本地。
+
+* 2.运行`安装脚本依赖环境.cmd`来快速安装需要的东西。
+
+* 3.在主目录的控制台里进行`pyinstaller --onefile AiNiee-chatgpt4.py`来构筑软件。完成之后，可以在`dist`文件夹里找到你的AiNiee。不过这个exe因为缺少`clib`和`resource`所以无法运行。
+
+* 4.下载正式版的AiNiee，然后把解压以后的`clib`和`resource`拷贝到这个`dist`文件夹里。然后就可以直接运行AiNiee了！
+
 # 推荐工具🧰 
 ***
  * GPT-Translator 是一款前后端分离基于 OpenAI 的高效翻译软件。
@@ -191,9 +203,12 @@ https://github.com/XD2333/GalTransl
  * AutoAnimeMv 一个番剧自动识别剧名剧集+自动重命名+自动整理的工具,具有部署方便,开箱即用的特点,用来配合qBittorrent实现Rss订阅下载Emby全自动刮削一条龙到家式爽歪歪服务!
 https://github.com/Abcuders/AutoAnimeMv
 
+ * txt2json4AiNiee 如果需要用AiNiee翻译纯文本txt，可以用这个Python脚本把txt转换成AiNiee可以接受的Mtool JSON格式
+https://github.com/AkiraChisaka/txt2json4AiNiee
+
 # 感谢💖
 [![xxxx](https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sponsor/徽章.png)](https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sponsor/赞赏码.png)
 
 都是为这个工具做出各种贡献的朋友，以下排名不分先后
->下划线君，孤狼，Takakura Anri，Amegi，hola，旧日，OYcedar，Abcuders，ChristinaA2M，adastra9257，NEKOparapa
+>下划线君，孤狼，Takakura Anri，Amegi，hola，旧日，OYcedar，Abcuders，ChristinaA2M，adastra9257，NEKOparapa, Akira
  
