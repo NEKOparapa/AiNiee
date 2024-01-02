@@ -3034,7 +3034,6 @@ class User_Interface_Prompter(QObject):
 
 
 
-
 # ——————————————————————————————————————————下面都是UI相关代码——————————————————————————————————————————
 class Widget_Openai(QFrame):#  Openai账号界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
