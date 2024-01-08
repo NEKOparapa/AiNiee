@@ -93,13 +93,14 @@ class Translator():
         elif configurator.translation_project == "Ainiee缓存文件":
             cache_list = File_Reader.read_cache_files(self,folder_path = Input_Folder)
 
+
+        # 将浮点型，整数型文本内容变成字符型文本内容
+        Cache_Manager.convert_source_text_to_str(self,cache_list)
+
         # 如果翻译日语或者韩语文本时，则去除非中日韩文本
         Text_Source_Language =  Window.Widget_translation_settings.A_settings.comboBox_source_text.currentText() 
         if Text_Source_Language == "日语" or Text_Source_Language == "韩语":
             Cache_Manager.process_dictionary_list(self,cache_list)
-
-        # 将浮点型，整数型文本内容变成字符型文本内容
-        Cache_Manager.convert_source_text_to_str(self,cache_list)
 
 
         # ——————————————————————————————————————————构建并发任务池子—————————————————————————————————————————
@@ -115,15 +116,23 @@ class Translator():
 
 
 
-        # 更新界面UI信息，并输出信息
+        # 更新界面UI信息，并输出各种信息
         project_id = cache_list[0]["project_id"]
         user_interface_prompter.signal.emit("初始化翻译界面数据",project_id,total_text_line_count,0,0) #需要输入够当初设定的参数个数
         user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0,0,0)
-        print("[INFO] 文本总行数为：",total_text_line_count,"  每次发送行数为：",line_count_configuration,"  计划的翻译任务总数是：", tasks_Num)
-        print("[INFO] 当前设定的系统提示词为：", configurator.get_system_prompt(), '\n')
+        print("[INFO]  翻译项目为",configurator.translation_project, '\n')
+        print("[INFO]  翻译平台为",configurator.translation_platform, '\n')
+        print("[INFO]  AI模型为",configurator.model_type, '\n')
+        if configurator.translation_platform == "Openai代理":
+            print("[INFO]  中转地址为",configurator.openai_base_url, '\n')
+        elif configurator.translation_platform == "Openai官方":
+            print("[INFO]  账号类型为",Window.Widget_Openai.comboBox_account_type.currentText(), '\n')
+        print("[INFO]  游戏文本从",configurator.source_language, '翻译到', configurator.target_language,'\n')
+        print("[INFO]  当前设定的系统提示词为：", configurator.get_system_prompt(), '\n')
         original_exmaple,translation_example =  configurator.get_default_translation_example()
         print("[INFO]  已添加默认原文示例",original_exmaple, '\n')
-        print("[INFO]  已添加默认译文示例",translation_example, '\n') 
+        print("[INFO]  已添加默认译文示例",translation_example, '\n')
+        print("[INFO]  文本总行数为：",total_text_line_count,"  每次发送行数为：",line_count_configuration,"  计划的翻译任务总数是：", tasks_Num) 
         print("\033[1;32m[INFO] \033[0m 五秒后开始进行翻译，请注意保持网络通畅，余额充足。", '\n')
         time.sleep(5)  
 
@@ -3945,7 +3954,7 @@ class Widget_Openai(QFrame):#  Openai账号界面
 
         #设置微调距离用的空白标签
         self.labely = QLabel()  
-        self.labely.setText("            ")
+        self.labely.setText("                       ")
 
         #设置“API KEY”的输入框
         self.TextEdit_apikey = TextEdit()
@@ -4162,7 +4171,7 @@ class Widget_Openai_Proxy_A(QFrame):#  代理账号基础设置子界面
 
         #设置微调距离用的空白标签
         self.labely = QLabel()  
-        self.labely.setText("                     ")
+        self.labely.setText("                       ")
 
         #设置“API KEY”的输入框
         self.TextEdit_apikey = TextEdit()
@@ -4451,7 +4460,7 @@ class Widget_Google(QFrame):#  谷歌账号界面
 
         #设置微调距离用的空白标签
         self.labely = QLabel()  
-        self.labely.setText("                ")
+        self.labely.setText("                       ")
 
         #设置“API KEY”的输入框
         self.TextEdit_apikey = TextEdit()
@@ -5430,7 +5439,7 @@ class Widget_check(QFrame):# 错行检查界面
         #设置“翻译平台”标签
         self.labelx = QLabel( flags=Qt.WindowFlags())  
         self.labelx.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")#设置字体，大小，颜色
-        self.labelx.setText("翻译平台")
+        self.labelx.setText("重翻平台")
 
 
         #设置“翻译平台”下拉选择框
@@ -5453,7 +5462,7 @@ class Widget_check(QFrame):# 错行检查界面
         #设置“翻译项目”标签
         self.labelx = QLabel( flags=Qt.WindowFlags())  
         self.labelx.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")#设置字体，大小，颜色
-        self.labelx.setText("翻译项目")
+        self.labelx.setText("检查项目")
 
 
         #设置“翻译项目”下拉选择框
