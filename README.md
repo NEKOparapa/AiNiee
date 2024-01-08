@@ -30,7 +30,6 @@
 * 1.🖱️双击`启动AiNiee-chatgpt4.exe`,在账号设置页面配置你的账号信息以及`API KEY`
     > OpenAI官方配置界面:<br>
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/官方账号设置.png" width="600" height="400"><br>
-    > 官方账号配置说明:<br>
   
     >`账号类型`: 新注册的5刀余额账号为免费账号，且每分钟只能翻译3次，每天一共只能翻译200次；付费账号是有过付费记录，且达到一些条件才会升级<br>
   
@@ -42,7 +41,6 @@
 
     > OpenAI中转配置界面:<br>
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/代理账号设置.png" width="600" height="400"><br> 
-    > 代理账号配置说明:<br>
     
     >`请求地址`: 填入国内代理平台提供的请求地址,如OpenAI-sb平台提供的请求地址是`api.openai-sb.com`,则填入：`https://api.openai-sb.com/v1`
     
@@ -62,7 +60,6 @@
 
     > Google官方配置界面:<br>
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/官方账号设置.png" width="600" height="400"><br>
-    > 官方账号配置说明:<br>
   
     > `模型选择`: 现在只有gemini-pro模型开放测试。<br>
   
@@ -84,9 +81,8 @@
     > 2.在`翻译设置`界面的`翻译项目`选择`🔵Mtool导出文件`,并配置翻译设置<br>
     >配置示例:<br>
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/翻译设置Mtool.png" width="600" height="400"><br>
-    >配置说明:<br>
     
-    >`翻译项目`: 选择先前导出原文文件的工具<br>
+    >`翻译项目`: 先前导出原文文件的工具<br>
 
     >`翻译平台`: 翻译文本时希望使用的平台<br>
 
@@ -108,7 +104,7 @@
     >`最大线程数`: 请根据电脑自身情况设置，线程数越大，越容易吃满Openai的速率限制，翻译速度越快。最大线程数设置上限为999，建议设置100以内<br>
     
   
-* 3-2.🖱️点击**开始翻译**按钮,看控制台输出日志或者进度条。之后等待翻译进度到百分百,自动生成翻译好的文件在输出文件夹中
+* 3-2.🖱️到开始翻译页面，点击**开始翻译**按钮,看控制台输出日志或者进度条。之后等待翻译进度到百分百,自动生成翻译好的文件在输出文件夹中
     > 正在进行翻译<br>
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/UI界面正在翻译.png"  width="600" height="400">
    
@@ -126,21 +122,24 @@
     > 2.选择你的游戏文件,创建新工程,软件会自动解包和导入游戏数据<br>
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/新建工程3.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/新建工程4.png" width="600" height="400">
 
+
   当弹出提示框,问你：**Do you  also want to load JavaScript files**时,选择**Cancel**,加载脚本里的文本修改容易出错,而且大多都是脚本注释,翻译了也没用
 
     > 3.🖱️点"Options"按钮,选择"Preferences",选择"UI Language",选择简体中文,方便之后操作<br>
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/汉化设置1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/汉化设置2.png" width="600" height="400"><br>
     > 4.点左上角的导出工程,选择导出格式为XML格式到你指定的文件夹,生成data文件夹<br>
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/导出工程1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/导出工程2.png" width="600" height="400">
+
  
   当弹出提示框,问如何处理标记列,就点击红色和选择**Do not process row with selected tag**,或者不设置直接导出,因为这工具暂时存在bug,无法过滤标记内容
     > 5.在`翻译设置`界面的`翻译项目`选择`🔴T++导出文件`,配置翻译设置<br>
     > 配置示例<br>
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/翻译配置Tpp.png" width="600" height="400"><br>
-    > 配置说明:<br>
     > `项目文件夹`: 选择之前`🔴Translator++`导出的项目文件夹data<br>
     > `输出文件夹`: 选择翻译后项目文件夹的存储文件夹<br>
-* 4-2.🖱️点**开始翻译**按钮,等待翻译进度到百分百,生成翻译好的data文件夹在输出文件夹中,翻译中的备份会在在Backup Folder文件夹的data里<br>
+
+    
+* 4-2.🖱️到开始翻译页面，点**开始翻译**按钮,等待翻译进度到百分百,生成翻译好的data文件夹在输出文件夹中<br>
     > 1.回到`🔴Translator++`+,点击导入工程,选择从电子表格导入翻译,点击“Import Folder”,选择输出文件夹里的data文件夹,点击导入<br>
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/导入工程1.png" width="600" height="400"> | 
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/导入工程2.png" width="600" height="400"><br>
@@ -168,14 +167,11 @@
 * ` 配置迁移`
   >配置信息都会存储在resource的config.json中，下载新版本可以把它复制到新版本的resource中。
   
-* `🔵Mtool项目的自动备份功能`
-  >进行`🔵Mtool项目`翻译时,运行中会实时输出`TrsData.json`和`ManualTransFile.json`存储在`Backup Folder文件夹`里,备份文件夹里面的`ManualTransFile.json`是还没有翻译的数据,`TrsData.json`是现在已经翻译好的数据。如果因为意外中断了,把文件夹里的文件A(`TrsData.json`)放置其他地方保存,再选择备份文件夹里面的`ManualTransFile.json`开始翻译,生成新的文件B(`TrsData.json`),然后把文件B里的文本数据复制粘贴到文件A的头部或者尾部，并增删一些逗号，使之符合json格式，建议使用vscode或其他文本编辑器来操作。
+* `自动备份缓存文件到输出文件夹`
+  >当翻译遇到问题时，可以之后更改翻译项目为缓存文件，并在输入文件夹选择该缓存文件所在的文件夹进行继续翻译
   
-* `🔴Translator++项目的自动备份功能`
-  >运行中会实时输出data文件夹存储在`Backup Folder文件夹`里,在每个表格里,如果原文文本已经被翻译,译文会写在第二列,如果没有被翻译,则第二列继续为空,所以出现意外时,可直接选择`备份文件夹里data文件夹`来继续翻译 
-
-* `手动备份`
-  >手动备份的文件与自动备份的文件相同，如果需要继续翻译，请参照上面自动备份的方法
+* `导出当前任务的已翻译文件`
+  >会将已经翻译好的内容和未翻译的内容导出
   
 * `提示字典`
   >用来统一名词的翻译，让AI翻译的人名，物品名词，怪物名词，特殊名词能够翻译成你想要的样子。
@@ -184,7 +180,7 @@
   >功能基本同上，只不过实现方式是替换原文本的词语。
 
 * `AI实时调教`
-  >用来改变AI的参数设定，控制AI生成内容时的随机性，重复性。
+  >用来改变AI的参数设定，控制AI生成内容时的随机性，重复性，通常用来解决语气词重复的问题
 
 * `提示词工程`
   >用于修改prompt与添加翻译示例，帮助AI进行少样本学习，获取更好的翻译效果，但会消耗更多的tokens。
@@ -192,7 +188,7 @@
 * `语义检查`
   >是原文与译文的词义相似度检测功能,用来判断译文是否翻译错误,以解决AI翻译时错行，串行的问题。开启这个功能会**耗费一段不短的时间进行检查**,而且会将错误内容进行重翻译,也会增加开销。
   
-  >采用权重的方式来给每对翻译计算总的相似度，如果小于阈值则进行重新翻译。检查出的错行文本和相似度计算过程日志会存储在DEBUG文件夹中的ErrorTxt Folder中。只支持日语到中文的文本，作为实验性功能，仍在优化中
+  >采用权重的方式来给每对翻译计算总的相似度，如果小于阈值则进行重新翻译。检查出的错行文本和相似度计算过程日志会存储在输出文件夹中。只支持日语到中文的文本，作为实验性功能，仍在优化中
   
 #  常见问题🐛
 ***
