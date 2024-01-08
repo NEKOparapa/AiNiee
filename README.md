@@ -20,28 +20,34 @@
    
  * **`🟪好用的魔法工具`**:我们**强烈建议**您选择优质稳定的代理工具,不然api接口会频繁报错无法连接,显示错误代码443或者一直没有回复
  * **`🔵Mtool/🔴Translator++`**:[🔵Mtool下载地址](https://afdian.net/a/AdventCirno?tab=feed)  [🔴Translator++下载地址](https://dreamsavior.net/download/)[🔴Translator++ Github简体中文文档地址](https://raw.githubusercontent.com/zyf722/TranslatorPlusPlusChineseWiki)
-   > 两者免费版本就可以,新人推荐Mtool,如果希望能够自行校正,构建用户词典,获得更好的翻译效果,推荐Translator++
+   > 两者免费版本就可以,新人推荐Mtool,如果希望能够自行校正,获得更好的翻译效果,推荐Translator++
 * **`🤖Chat-GPT账号`**:建议您新建一个API_Key,并且最好在使用期间不要和其他程序一起使用,不然容易达到请求次数限制
+* **`🥁Google账号`**:在谷歌的Google AI Studio平台中新建apikey
 
+  
 # 使用方法📝
 ***
 * 1.🖱️双击`启动AiNiee-chatgpt4.exe`,在账号设置页面配置你的账号信息以及`API KEY`
-    > 🔥官方账号配置示例:<br>
+    > OpenAI官方配置界面:<br>
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/官方账号设置.png" width="600" height="400"><br>
     > 官方账号配置说明:<br>
-    > `启用该平台`: 如果使用该平台的AI进行翻译,请勾上<br>
   
-    >`账号类型`: 新注册的5刀余额账号为免费账号，且每分钟只能翻译3次，每天一共只能翻译200次；免费账号绑定信用卡后，会升级为120刀余额的付费账号（48h内）每分钟能翻译60次，每天一共能翻译2000次；付费账号过了48小时后就是付费账号（48h后），每分钟能翻译3500次，每天无限制次数。不同账号类型，OpenAi的速率限制不同，请根据实际情况选择。另外说明一下在店铺买的120刀账号基本都是付费账号（48h后）<br>
+    >`账号类型`: 新注册的5刀余额账号为免费账号，且每分钟只能翻译3次，每天一共只能翻译200次；付费账号是有过付费记录，且达到一些条件才会升级<br>
   
-    > `模型选择`: 默认是GPT3.5最新模型，请自行了解模型之间的区别后再进行更改。如果你的账号获得了GPT4的使用资格,请选择付费账号（48h后）和gpt-4相关模型来进行翻译<br>
+    > `模型选择`: 默认是GPT3.5模型，请自行了解模型之间的区别后再进行更改。<br>
   
     >`API KEY`: 填入由OpenAi账号生成的api_key<br>
   
     >`代理端口`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
 
-    > 🎐代理账号配置示例:<br>
+    > OpenAI中转配置界面:<br>
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/代理账号设置.png" width="600" height="400"><br> 
     > 代理账号配置说明:<br>
+    
+    >`请求地址`: 填入国内代理平台提供的请求地址,如OpenAI-sb平台提供的请求地址是`api.openai-sb.com`,则填入：`https://api.openai-sb.com/v1`
+    
+    >`模型选择`: 默认是GPT3.5模型，请自行了解模型之间的区别后再进行更改。<br>
+
     >`API KEY`: 填入国内代理平台给你生成的API KEY<br>
 
     >`代理端口`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
@@ -49,38 +55,60 @@
     >`每分钟请求数`: RPM (requests per minute)每分钟向openai发送的翻译任务数量`
   
     >`每分钟tokens数`: TPM (tokens per minute)每分钟向openai发送的tokens总数（类似字符总数）
+
+    >`请求输入价格`: 根据国内代理平台设定的价格进行设置，单位是每1k tokens
+    
+    >`回复输出价格`: 根据国内代理平台设定的价格进行设置，单位是每1k tokens
+
+    > Google官方配置界面:<br>
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/官方账号设置.png" width="600" height="400"><br>
+    > 官方账号配置说明:<br>
   
-    >`请求地址`: 填入国内代理平台提供的请求地址,如OpenAI-sb平台提供的请求地址是`api.openai-sb.com`,则填入：`https://api.openai-sb.com/v1`
+    > `模型选择`: 现在只有gemini-pro模型开放测试。<br>
+  
+    >`API KEY`: 填入由谷歌账号生成的api_key<br>
+  
+    >`代理端口`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
+
   
 * 2.✅点击请求测试,测试网络是否通畅,请求是否成功
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/请求成功.png" width="600" height="400"> 
+
+    
 * 3-1.如果使用`🔵Mtool`进行翻译请根据以下步骤操作
     > 1.使用Mtool打开游戏,并在翻译功能界面,选择导出游戏原文文件,会在游戏根目录生成：ManualTransFile.json<br>
   
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导出原文1.png" width="600" height="400">  |  <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导出原文2.png" width="600" height="400">
   <br>
   
-    > 2.在`AiNiee-chatgpt`界面选择`🔵Mtool项目`,并配置翻译设置<br>
+    > 2.在`翻译设置`界面的`翻译项目`选择`🔵Mtool导出文件`,并配置翻译设置<br>
     >配置示例:<br>
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/翻译设置Mtool.png" width="600" height="400"><br>
     >配置说明:<br>
-    >`Lines`: 每次请求翻译的文本行数。行数设置越大,整体的翻译效果会更好,上下文更加流畅,但每次请求回复速度会越慢,回复的内容越容易出错。根据模型类型来进行设置，建议gpt3.5基础模型不要设置超过40,gpt4基础模型不超过80<br>
-  
-    >`错行检查`: 针对AI回复内容的检查功能,该功能只支持日到中。AI在翻译时有时会把上下文一起翻译,并放到一个文本行中,导致回复的文本错行,对不上原文。开启这个功能,会对AI回复内容进行检查,会增加时间和花销,追求翻译质量可开<br>
-  
-    >`换行符保留`: 该功能尽可能地保留文本中的/r/n，但不总是能够完全保留，仍有小部分位置错乱，消失或者变成其他特殊符号。请根据翻译情况选择开启<br>
+    
+    >`翻译项目`: 选择先前导出原文文件的工具<br>
 
-    >`文本源语言`: 就是根据你需要翻译游戏的语言选择相应的源语言<br>
+    >`翻译平台`: 翻译文本时希望使用的平台<br>
+
+    >`文本源语言`: 根据你需要翻译游戏的语言选择相应的源语言<br>
 
     >`文本目标语言`: 你希望翻译成的语言<br>
   
+    >`输入文件夹`: 选择你需要翻译的原文文件,把导出的文件尽量放在一个文件夹内，文件夹内没有其他文件，因为会读取该文件夹内所有相关的文件<br>
+  
+    >`输出文件夹`: 选择翻译后文件的存储文件夹，请不要和输入文件夹一个路径<br>
+
+
+    >`每次翻译行数`: 每次请求翻译的文本行数。行数设置越大,整体的翻译效果会更好,上下文更加流畅,但每次请求回复速度会越慢,回复的内容越容易出错。根据模型类型来进行设置，建议gpt3.5基础模型不要设置超过40,gpt4基础模型不超过80<br>
+  
+    >`保留换行符`: 该功能尽可能地保留文本中的/r/n，但不总是能够完全保留，仍有小部分位置错乱，消失或者变成其他特殊符号。请根据翻译情况选择开启<br>
+
+    >`回复json格式`: 仅对openai的两个模型生效，强制ai以json格式回复消息，可以减少格式错误问题<br>
+    
     >`最大线程数`: 请根据电脑自身情况设置，线程数越大，越容易吃满Openai的速率限制，翻译速度越快。最大线程数设置上限为999，建议设置100以内<br>
+    
   
-    >`文件位置`: 选择你需要翻译的原文文件,也是ManualTransFile.json文件<br>
-  
-    >`输出文件夹`: 选择翻译后文件的存储文件夹<br>
-  
-* 3-2.🖱️点击**开始翻译**按钮,看控制台输出日志或者进度条。之后等待翻译进度到百分百,自动生成翻译好的文件Tradata.json在输出文件夹中
+* 3-2.🖱️点击**开始翻译**按钮,看控制台输出日志或者进度条。之后等待翻译进度到百分百,自动生成翻译好的文件在输出文件夹中
     > 正在进行翻译<br>
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/UI界面正在翻译.png"  width="600" height="400">
    
@@ -88,7 +116,8 @@
     > 已经完成翻译<br>
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/UI界面翻译完成.png" width="600" height="400">
 
-   回到`🔵Mtool`工具,依然在翻译功能界面,选择加载翻译文件,选择Tradata.json文件即可
+
+   回到`🔵Mtool`工具,依然在翻译功能界面,选择加载翻译文件,选择翻译后的文件即可
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导入译文.png" width="600" height="400"> 
 
 * 4-1.如果使用`🔴Translator++`进行翻译请根据以下步骤操作
@@ -105,7 +134,7 @@
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/导出工程1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/导出工程2.png" width="600" height="400">
  
   当弹出提示框,问如何处理标记列,就点击红色和选择**Do not process row with selected tag**,或者不设置直接导出,因为这工具暂时存在bug,无法过滤标记内容
-    > 5.在AiNiee界面,选择`🔴Translator++项目`,配置翻译设置<br>
+    > 5.在`翻译设置`界面的`翻译项目`选择`🔴T++导出文件`,配置翻译设置<br>
     > 配置示例<br>
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/翻译配置Tpp.png" width="600" height="400"><br>
     > 配置说明:<br>
