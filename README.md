@@ -59,7 +59,7 @@
     >`回复输出价格`: 根据国内代理平台设定的价格进行设置，单位是每1k tokens
 
     > Google官方配置界面:<br>
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/官方账号设置.png" width="600" height="400"><br>
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Google官方设置.png" width="600" height="400"><br>
   
     > `模型选择`: 现在只有gemini-pro模型开放测试。<br>
   
