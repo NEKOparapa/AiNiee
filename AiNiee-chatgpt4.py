@@ -675,6 +675,7 @@ class Api_Requester():
             timeout = 850  # 设置超时时间为x秒
             request_errors_count = 0 # 设置请求错误次数限制
             Wrong_answer_count = 0   # 设置错误回复次数限制
+            model_degradation = False # 模型退化检测
 
             while 1 :
                 #检查主窗口是否已经退出---------------------------------
@@ -701,6 +702,10 @@ class Api_Requester():
 
                     # 获取AI的参数设置
                     temperature,top_p,presence_penalty,frequency_penalty= configurator.get_model_parameters()
+                    # 如果上一次请求出现模型退化，更改参数
+                    if model_degradation:
+                        frequency_penalty = 0.4
+
                     # 获取apikey
                     openai_apikey =  configurator.get_apikey()
                     # 获取请求地址
@@ -835,6 +840,7 @@ class Api_Requester():
 
                     # 如果出现回复错误
                     else:
+
                         # 更改UI界面信息
                         lock2.acquire()  # 获取锁
                         # 如果是进行平时的翻译任务
@@ -842,6 +848,10 @@ class Api_Requester():
                             user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",row_count,prompt_tokens_used,completion_tokens_used)
                         lock2.release()  # 释放锁
                         print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
+                        # 检查一下是不是模型退化
+                        if error_content == "AI回复内容出现高频词,将调整发送参数，并重新翻译":
+                            print("\033[1;33mWarning:\033[0m 下次请求将修改参数，回避高频词输出","\n")
+                            model_degradation = True
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
@@ -1283,6 +1293,18 @@ class Response_Parser():
         # 存储错误内容
         error_content = "0"
 
+
+        # 检查模型是否退化，出现高频词（只检测中日）
+        if Response_Parser.model_degradation_detection(self,response_str):
+            pass
+
+        else:
+            check_result = False
+            # 存储错误内容
+            error_content = "AI回复内容出现高频词,将调整发送参数，并重新翻译"
+            return check_result,error_content
+
+
         # 检查文本格式
         if Response_Parser.check_response_format(self,response_str):
             # 回复文本转换成字典格式
@@ -1349,6 +1371,26 @@ class Response_Parser():
                 return False
 
             return True
+        
+    # 模型退化检测，高频语气词
+    def model_degradation_detection(self,input_string):
+        # 使用正则表达式匹配中日语字符
+        japanese_chars = re.findall(r'[\u3040-\u309F\u30A0-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]', input_string)
+
+        # 统计中日语字符的数量
+        char_count = {}
+        for char in japanese_chars:
+            char_count[char] = char_count.get(char, 0) + 1
+
+        # 输出字符数量
+        for char, count in char_count.items():
+            if count >= 120:
+                return False
+                #print(f"中日语字符 '{char}' 出现了 {count} 次一次。")
+        
+        return True
+
+
         
     #计算字符串里面日文与中文，韩文,英文字母（不是单词）的数量
     def count_japanese_chinese_korean(self,text):
@@ -3977,11 +4019,11 @@ class Widget_Openai(QFrame):#  Openai账号界面
         #设置“代理地址”标签
         self.label_proxy_port = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
         self.label_proxy_port.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
-        self.label_proxy_port.setText("系统代理端口")
+        self.label_proxy_port.setText("系统代理")
 
         #设置微调距离用的空白标签
         self.labelx = QLabel()  
-        self.labelx.setText("                ")
+        self.labelx.setText("                      ")
 
         #设置“代理地址”的输入框
         self.LineEdit_proxy_port = LineEdit()
@@ -4195,11 +4237,11 @@ class Widget_Openai_Proxy_A(QFrame):#  代理账号基础设置子界面
         #设置“系统代理端口”标签
         self.label_proxy_port = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
         self.label_proxy_port.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
-        self.label_proxy_port.setText("系统代理端口")
+        self.label_proxy_port.setText("系统代理")
 
         #设置微调距离用的空白标签
         self.labelx = QLabel()  
-        self.labelx.setText("                ")
+        self.labelx.setText("                      ")
 
         #设置“系统代理端口”的输入框
         self.LineEdit_proxy_port = LineEdit()
@@ -4484,11 +4526,11 @@ class Widget_Google(QFrame):#  谷歌账号界面
         #设置“代理地址”标签
         self.label_proxy_port = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
         self.label_proxy_port.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
-        self.label_proxy_port.setText("系统代理端口")
+        self.label_proxy_port.setText("系统代理")
 
         #设置微调距离用的空白标签
         self.labelx = QLabel()  
-        self.labelx.setText("                ")
+        self.labelx.setText("                      ")
 
         #设置“代理地址”的输入框
         self.LineEdit_proxy_port = LineEdit()
@@ -4673,7 +4715,7 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
         #设置“输入文件夹”显示
         self.label_input_path = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label_input_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
-        self.label_input_path.setText("(请选择原文文件所在的文件夹)")  
+        self.label_input_path.setText("(请选择原文文件所在的文件夹，不要混杂其他文件)")  
 
         #设置打开文件按钮
         self.pushButton_input = PushButton('选择文件夹', self, FIF.FOLDER)
