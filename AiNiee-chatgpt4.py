@@ -704,7 +704,7 @@ class Api_Requester():
                     temperature,top_p,presence_penalty,frequency_penalty= configurator.get_model_parameters()
                     # 如果上一次请求出现模型退化，更改参数
                     if model_degradation:
-                        frequency_penalty = 0.4
+                        frequency_penalty = 0.2
 
                     # 获取apikey
                     openai_apikey =  configurator.get_apikey()
@@ -849,7 +849,7 @@ class Api_Requester():
                         lock2.release()  # 释放锁
                         print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
                         # 检查一下是不是模型退化
-                        if error_content == "AI回复内容出现高频词,将调整发送参数，并重新翻译":
+                        if error_content == "AI回复内容出现高频词,并重新翻译":
                             print("\033[1;33mWarning:\033[0m 下次请求将修改参数，回避高频词输出","\n")
                             model_degradation = True
 
@@ -1301,7 +1301,7 @@ class Response_Parser():
         else:
             check_result = False
             # 存储错误内容
-            error_content = "AI回复内容出现高频词,将调整发送参数，并重新翻译"
+            error_content = "AI回复内容出现高频词,并重新翻译"
             return check_result,error_content
 
 
@@ -1384,7 +1384,7 @@ class Response_Parser():
 
         # 输出字符数量
         for char, count in char_count.items():
-            if count >= 120:
+            if count >= 90:
                 return False
                 #print(f"中日语字符 '{char}' 出现了 {count} 次一次。")
         
