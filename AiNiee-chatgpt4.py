@@ -242,16 +242,16 @@ class Translator():
         print ("\033[1;32mSuccess:\033[0m  翻译阶段已完成，正在处理数据-----------------------------------", '\n')
 
 
-        #转换简繁文本
-        target_language = configurator.target_language
-        if target_language == "简中" or target_language == "繁中":
-            try:
-                cache_list = File_Outputter.simplified_and_traditional_conversion(self,cache_list, target_language)
-                print(f"\033[1;32mSuccess:\033[0m  文本转化{target_language}完成-----------------------------------", '\n')   
+        #如果开启了转换简繁开关功能，则进行文本转换
+        if configurator.conversion_toggle: 
+            if configurator.target_language == "简中" or configurator.target_language == "繁中":
+                try:
+                    cache_list = File_Outputter.simplified_and_traditional_conversion(self,cache_list, configurator.target_language)
+                    print(f"\033[1;32mSuccess:\033[0m  文本转化{configurator.target_language}完成-----------------------------------", '\n')   
 
-            except Exception as e:
-                print("\033[1;33mWarning:\033[0m 文本转换出现问题！！将跳过该步，错误信息如下")
-                print(f"Error: {e}\n")
+                except Exception as e:
+                    print("\033[1;33mWarning:\033[0m 文本转换出现问题！！将跳过该步，错误信息如下")
+                    print(f"Error: {e}\n")
 
         # 将翻译结果写为文件
         output_path = configurator.Output_Folder
@@ -1737,6 +1737,8 @@ class Configurator():
         self.preserve_line_breaks_toggle =  Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.isChecked()
         # 获取回复json格式开关
         self.response_json_format_toggle =  Window.Widget_translation_settings.B_settings.SwitchButton_jsonmode.isChecked()
+        # 获取简繁转换开关柜
+        self.conversion_toggle = Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.isChecked()
 
 
         # 初始化模型参数
@@ -1945,6 +1947,7 @@ class Configurator():
             config_dict["thread_counts"] = Window.Widget_translation_settings.B_settings.spinBox_thread_count.value() # 获取线程数设置  
             config_dict["preserve_line_breaks_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关
             config_dict["response_json_format_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_jsonmode.isChecked()   # 获取回复json格式开关
+            config_dict["response_conversion_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.isChecked()   # 获取简繁转换开关
 
             #开始翻译的备份设置界面
             config_dict["auto_backup_toggle"] =  Window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
@@ -2086,6 +2089,8 @@ class Configurator():
                     Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.setChecked(config_dict["preserve_line_breaks_toggle"])
                 if "response_json_format_toggle" in config_dict:
                     Window.Widget_translation_settings.B_settings.SwitchButton_jsonmode.setChecked(config_dict["response_json_format_toggle"])
+                if "response_conversion_toggle" in config_dict:
+                    Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.setChecked(config_dict["response_conversion_toggle"])
 
 
                 #开始翻译的备份设置界面
@@ -4910,6 +4915,28 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
 
 
         # -----创建第1.6个组(后来补的)，添加多个组件-----
+        box1_conversion_toggle = QGroupBox()
+        box1_conversion_toggle.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_conversion_toggle = QHBoxLayout()
+
+        #设置“简繁转换开关”标签
+        labe1_6 = QLabel(flags=Qt.WindowFlags())  
+        labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        labe1_6.setText("简繁体自动转换")
+
+       #设置“简繁体自动转换”选择开关
+        self.SwitchButton_conversion_toggle = SwitchButton(parent=self)    
+
+
+
+        layout1_conversion_toggle.addWidget(labe1_6)
+        layout1_conversion_toggle.addStretch(1)  # 添加伸缩项
+        layout1_conversion_toggle.addWidget(self.SwitchButton_conversion_toggle)
+        box1_conversion_toggle.setLayout(layout1_conversion_toggle)
+
+
+
+        # -----创建第1.6个组(后来补的)，添加多个组件-----
         box1_line_breaks = QGroupBox()
         box1_line_breaks.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout1_line_breaks = QHBoxLayout()
@@ -4969,6 +4996,7 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         container.addWidget(box_Lines)
         container.addWidget(box1_line_breaks)
         container.addWidget(box1_jsonmode)
+        container.addWidget(box1_conversion_toggle)
         container.addWidget(box1_thread_count)
         container.addStretch(1)  # 添加伸缩项
 

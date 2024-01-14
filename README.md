@@ -208,7 +208,10 @@
 
 * 1.下载整个代码/Repo，推荐自己Fork一下然后Clone到本地。
 
-* 2.运行`安装脚本依赖环境.cmd`来快速安装需要的东西。
+* 2.在根目录下打开CMD窗口，并输入下面安装全部依赖库命令:
+   ```
+   pip install -r requirements.txt
+   ```
 
 * 3.然后在IDE或者CLI里，直接运行`AiNiee-chatgpt4.py`应该就可以了！
 

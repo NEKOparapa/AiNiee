@@ -1,0 +1,10 @@
+# System
+openai
+tiktoken
+numpy
+openpyxl
+PyQt5
+"PyQt-Fluent-Widgets[full]"
+opencc
+google-generativeai
+
