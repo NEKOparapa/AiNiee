@@ -116,22 +116,23 @@ class Translator():
 
 
 
-        # 更新界面UI信息，并输出各种信息
+        # 更新界面UI信息，并输出各种配置信息
         project_id = cache_list[0]["project_id"]
         user_interface_prompter.signal.emit("初始化翻译界面数据",project_id,total_text_line_count,0,0) #需要输入够当初设定的参数个数
         user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0,0,0)
         print("[INFO]  翻译项目为",configurator.translation_project, '\n')
         print("[INFO]  翻译平台为",configurator.translation_platform, '\n')
         print("[INFO]  AI模型为",configurator.model_type, '\n')
-        if configurator.translation_platform == "Openai代理":
-            print("[INFO]  中转地址为",configurator.openai_base_url, '\n')
+        if configurator.translation_platform == "Openai代理" or  configurator.translation_platform == "SakuraLLM":
+            print("[INFO]  请求地址为",configurator.openai_base_url, '\n')
         elif configurator.translation_platform == "Openai官方":
             print("[INFO]  账号类型为",Window.Widget_Openai.comboBox_account_type.currentText(), '\n')
         print("[INFO]  游戏文本从",configurator.source_language, '翻译到', configurator.target_language,'\n')
-        print("[INFO]  当前设定的系统提示词为：", configurator.get_system_prompt(), '\n')
-        original_exmaple,translation_example =  configurator.get_default_translation_example()
-        print("[INFO]  已添加默认原文示例",original_exmaple, '\n')
-        print("[INFO]  已添加默认译文示例",translation_example, '\n')
+        if configurator.translation_platform != "SakuraLLM":
+            print("[INFO]  当前设定的系统提示词为：", configurator.get_system_prompt(), '\n')
+            original_exmaple,translation_example =  configurator.get_default_translation_example()
+            print("[INFO]  已添加默认原文示例",original_exmaple, '\n')
+            print("[INFO]  已添加默认译文示例",translation_example, '\n')
         print("[INFO]  文本总行数为：",total_text_line_count,"  每次发送行数为：",line_count_configuration,"  计划的翻译任务总数是：", tasks_Num) 
         print("\033[1;32m[INFO] \033[0m 五秒后开始进行翻译，请注意保持网络通畅，余额充足。", '\n')
         time.sleep(5)  
@@ -786,6 +787,9 @@ class Api_Requester():
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                 # ——————————————————————————————————————————对AI回复内容进行各种处理和检查——————————————————————————————————————————
+                    # 处理回复内容
+                    response_content = Response_Parser.adjust_string(self,response_content)
+
                     # 检查回复内容
                     check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
 
@@ -1096,6 +1100,9 @@ class Api_Requester():
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                 # ——————————————————————————————————————————对AI回复内容进行各种处理和检查——————————————————————————————————————————
+                    # 处理回复内容
+                    response_content = Response_Parser.adjust_string(self,response_content)
+
                     # 检查回复内容
                     check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
 
@@ -1296,15 +1303,18 @@ class Api_Requester():
 
         # 0.8模型不支持下面功能
         if configurator.model_type != 'Sakura-13B-LNovel-v0.8':
+
+            prompt = "将下面的日文文本翻译成中文："
+
             #构建原文与译文示例
             original_exmaple,translation_example =  configurator.get_default_translation_example()
-            the_original_exmaple =  {"role": "user","content":original_exmaple }
+            the_original_exmaple =  {"role": "user","content":prompt + original_exmaple }
             the_translation_example = {"role": "assistant", "content":translation_example }
             #print("[INFO]  已添加默认原文示例",original_exmaple)
             #print("[INFO]  已添加默认译文示例",translation_example)
 
-            messages.append(the_original_exmaple)
-            messages.append(the_translation_example)
+            #messages.append(the_original_exmaple)
+            #messages.append(the_translation_example)
     
 
 
@@ -1312,7 +1322,7 @@ class Api_Requester():
             if Window.Interface23.checkBox2.isChecked() :
                 original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(source_text_dict)
                 if original_exmaple_2 and translation_example_2:
-                    the_original_exmaple =  {"role": "user","content":original_exmaple_2 }
+                    the_original_exmaple =  {"role": "user","content":prompt + original_exmaple_2 }
                     the_translation_example = {"role": "assistant", "content":translation_example_2 }
                     messages.append(the_original_exmaple)
                     messages.append(the_translation_example)
@@ -1324,7 +1334,7 @@ class Api_Requester():
             if Window.Interface22.checkBox2.isChecked() :
                 original_exmaple_3,translation_example_3 = configurator.build_user_translation_example ()
                 if original_exmaple_3 and translation_example_3:
-                    the_original_exmaple =  {"role": "user","content":original_exmaple_3 }
+                    the_original_exmaple =  {"role": "user","content":prompt + original_exmaple_3 }
                     the_translation_example = {"role": "assistant", "content":translation_example_3 }
                     messages.append(the_original_exmaple)
                     messages.append(the_translation_example)
@@ -1495,6 +1505,9 @@ class Api_Requester():
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                 # ——————————————————————————————————————————对AI回复内容进行各种处理和检查——————————————————————————————————————————
+                    # 处理回复内容
+                    response_content = Response_Parser.adjust_string(self,response_content)
+
                     # 检查回复内容
                     check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
 
@@ -1592,6 +1605,23 @@ class Api_Requester():
 class Response_Parser():
     def __init__(self):
         pass
+
+
+
+
+    # 处理回复，前后加上大括号
+    def adjust_string(self,input_str):
+        # 检查并添加开头的"{"
+        if not input_str.startswith("{"):
+            input_str = "{" + input_str
+
+        # 检查并添加结尾的"}"
+        if not input_str.endswith("}"):
+            input_str = input_str + "}"
+
+        return input_str
+
+
 
     # 检查回复内容是否存在问题
     def check_response_content(self,response_str,source_text_dict):
@@ -2075,7 +2105,7 @@ class Configurator():
         self.openai_temperature = 0.1        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
         self.openai_top_p = 1.0              #AI的top_p，作用与temperature相同，官方建议不要同时修改
         self.openai_presence_penalty = 0.0  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
-        self.openai_frequency_penalty = 0.1 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
+        self.openai_frequency_penalty = 0.0 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
 
 
 
@@ -2112,7 +2142,7 @@ class Configurator():
         self.openai_temperature = 0.1        
         self.openai_top_p = 1.0             
         self.openai_presence_penalty = 0.0  
-        self.openai_frequency_penalty = 0.1 
+        self.openai_frequency_penalty = 0.0 
 
 
         # 如果进行的是错行检查任务，修改部分设置(补丁)
@@ -3128,8 +3158,8 @@ class Request_Limiter():
 
         # 示例数据
         self.sakura_limit_data = {
-                "Sakura-13B-LNovel-v0.8": {  "inputTokenLimit": 30720,"outputTokenLimit": 40000,"max_tokens": 40000, "TPM": 1000000, "RPM": 60},
-                "Sakura-13B-LNovel-v0.9": {  "inputTokenLimit": 30720,"outputTokenLimit": 40000,"max_tokens": 40000, "TPM": 1000000, "RPM": 60},
+                "Sakura-13B-LNovel-v0.8": {  "inputTokenLimit": 30720,"outputTokenLimit":  2400,"max_tokens": 2400, "TPM": 1000000, "RPM": 60},
+                "Sakura-13B-LNovel-v0.9": {  "inputTokenLimit": 30720,"outputTokenLimit":  2400,"max_tokens": 2400, "TPM": 1000000, "RPM": 60},
             }
 
         # TPM相关参数
