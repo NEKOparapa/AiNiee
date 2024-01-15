@@ -52,7 +52,7 @@ from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, 
 from qfluentwidgets import FluentIcon as FIF
 
 
-Software_Version = "AiNiee-chatgpt4.60"  #软件版本号
+Software_Version = "AiNiee-chatgpt4.61"  #软件版本号
 cache_list = [] # 全局缓存数据
 Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
                     # 6是翻译任务进行状态，7是错行检查状态
@@ -156,6 +156,9 @@ class Translator():
                 elif configurator.translation_platform == "Google官方":
                     executor.submit(api_requester_instance.Concurrent_Request_Google)
 
+                elif configurator.translation_platform == "SakuraLLM":
+                    executor.submit(api_requester_instance.Concurrent_Request_Sakura)
+
             # 等待线程池任务完成
             executor.shutdown(wait=True)
 
@@ -218,6 +221,9 @@ class Translator():
                         
                     elif configurator.translation_platform == "Google官方":
                         executor.submit(api_requester_instance.Concurrent_Request_Google)
+
+                    elif configurator.translation_platform == "SakuraLLM":
+                        executor.submit(api_requester_instance.Concurrent_Request_Sakura)
 
                 # 等待线程池任务完成
                 executor.shutdown(wait=True)
@@ -563,7 +569,7 @@ class Api_Requester():
         pass
     
     # 整理发送内容（Openai）
-    def organize_send_content_openai(self,source_text_str,source_text_dict):
+    def organize_send_content_openai(self,source_text_dict):
         #创建message列表，用于发送
         messages = []
 
@@ -582,20 +588,12 @@ class Api_Requester():
 
         messages.append(the_original_exmaple)
         messages.append(the_translation_example)
-
-
-        #如果开启译前替换字典功能，则根据用户字典进行替换
-        if Window.Interface21.checkBox1.isChecked() :
-            print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
-            dict_new = configurator.replace_strings_dictionary(source_text_dict)
-            print("[INFO] 译前替换字典功能已完成", '\n')
-        else:
-            dict_new = source_text_dict
  
+
 
         #如果开启了译时提示字典功能，则添加新的原文与译文示例
         if Window.Interface23.checkBox2.isChecked() :
-            original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(dict_new)
+            original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(source_text_dict)
             if original_exmaple_2 and translation_example_2:
                 the_original_exmaple =  {"role": "user","content":original_exmaple_2 }
                 the_translation_example = {"role": "assistant", "content":translation_example_2 }
@@ -618,11 +616,25 @@ class Api_Requester():
                 print("[INFO]  已添加用户译文示例",translation_example_3)
 
 
+        # 如果开启了保留换行符功能
+        if configurator.preserve_line_breaks_toggle:
+            print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
+            source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
+
+
+        #如果开启译前替换字典功能，则根据用户字典进行替换
+        if Window.Interface21.checkBox1.isChecked() :
+            print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
+            source_text_dict = configurator.replace_strings_dictionary(source_text_dict)
+
+        #将原文本字典转换成JSON格式的字符串，方便发送
+        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
+
         #构建需要翻译的文本
         Original_text = {"role":"user","content":source_text_str}   
         messages.append(Original_text)
 
-        return messages
+        return messages,source_text_str
 
 
     # 并发接口请求（Openai）
@@ -644,25 +656,17 @@ class Api_Requester():
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
 
-            # 如果开启了保留换行符功能
-            if configurator.preserve_line_breaks_toggle:
-                print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
-                source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
-
-            #将原文本字典转换成JSON格式的字符串，方便发送
-            source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
-
             # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
-            messages = Api_Requester.organize_send_content_openai(self,source_text_str,source_text_dict)
+            messages,source_text_str = Api_Requester.organize_send_content_openai(self,source_text_dict)
 
 
 
             #——————————————————————————————————————————检查tokens发送限制——————————————————————————————————————————
             #计算请求的tokens预计花费
-            request_tokens_consume = Request_Limiter.num_tokens_from_messages(self,messages) *1.02 #加上2%的修正系数
+            request_tokens_consume = Request_Limiter.num_tokens_from_messages(self,messages) 
             #计算回复的tokens预计花费，只计算发送的文本，不计算提示词与示例，可以大致得出
-            Original_text = [{"role":"user","content":source_text_str}] # 需要拿列表来包一层，不然计算时会出错 
-            completion_tokens_consume = Request_Limiter.num_tokens_from_messages(self,Original_text)*1.02 #加上2%的修正系数
+            Original_text = [{"role":"user","content":source_text_str }] # 需要拿列表来包一层，不然计算时会出错 
+            completion_tokens_consume = Request_Limiter.num_tokens_from_messages(self,Original_text)
  
             if request_tokens_consume >= request_limiter.max_tokens :
                 print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
@@ -875,7 +879,7 @@ class Api_Requester():
 
 
     # 整理发送内容（Google）
-    def organize_send_content_google(self,source_text_str,source_text_dict):
+    def organize_send_content_google(self,source_text_dict):
         #创建message列表，用于发送
         messages = []
 
@@ -890,19 +894,11 @@ class Api_Requester():
         messages.append({'role':'user','parts':prompt +"\n###\n" + original_exmaple})
         messages.append({'role':'model','parts':translation_example})
 
-
-        #如果开启译前替换字典功能，则根据用户字典进行替换
-        if Window.Interface21.checkBox1.isChecked() :
-            print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
-            dict_new = configurator.replace_strings_dictionary(source_text_dict)
-            print("[INFO] 译前替换字典功能已完成", '\n')
-        else:
-            dict_new = source_text_dict
  
 
         #如果开启了译时提示字典功能，则添加新的原文与译文示例
         if Window.Interface23.checkBox2.isChecked() :
-            original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(dict_new)
+            original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(source_text_dict)
             if original_exmaple_2 and translation_example_2:
                 the_original_exmaple =  {"role": "user","parts":original_exmaple_2 }
                 the_translation_example = {"role": "model", "parts":translation_example_2 }
@@ -925,11 +921,25 @@ class Api_Requester():
                 print("[INFO]  已添加用户译文示例",translation_example_3)
 
 
+        # 如果开启了保留换行符功能
+        if configurator.preserve_line_breaks_toggle:
+            print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
+            source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
+
+        #如果开启译前替换字典功能，则根据用户字典进行替换
+        if Window.Interface21.checkBox1.isChecked() :
+            print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
+            source_text_dict = configurator.replace_strings_dictionary(source_text_dict)
+
+
+        #将原文本字典转换成JSON格式的字符串，方便发送
+        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)   
+
         #构建需要翻译的文本
         Original_text = {"role":"user","parts":source_text_str}   
         messages.append(Original_text)
 
-        return messages
+        return messages,source_text_str
 
 
     # 并发接口请求（Google）
@@ -949,25 +959,17 @@ class Api_Requester():
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
 
-            # 如果开启了保留换行符功能
-            if configurator.preserve_line_breaks_toggle:
-                print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
-                source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
-
-            #将原文本字典转换成JSON格式的字符串，方便发送
-            source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
-
             # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
-            messages = Api_Requester.organize_send_content_google(self,source_text_str,source_text_dict)
+            messages,source_text_str = Api_Requester.organize_send_content_google(self,source_text_dict)
 
 
 
             #——————————————————————————————————————————检查tokens发送限制——————————————————————————————————————————
             #计算请求的tokens预计花费
-            request_tokens_consume = Request_Limiter.num_tokens_from_messages(self,messages) *1.02 #加上2%的修正系数
+            request_tokens_consume = Request_Limiter.num_tokens_from_messages(self,messages) 
             #计算回复的tokens预计花费，只计算发送的文本，不计算提示词与示例，可以大致得出
             Original_text = [{"role":"user","content":source_text_str}] # 需要拿列表来包一层，不然计算时会出错 
-            completion_tokens_consume = Request_Limiter.num_tokens_from_messages(self,Original_text)*1.02 #加上2%的修正系数
+            completion_tokens_consume = Request_Limiter.num_tokens_from_messages(self,Original_text)
  
             if request_tokens_consume >= request_limiter.max_tokens :
                 print("\033[1;33mWarning:\033[0m 该条消息总tokens数大于单条消息最大数量" )
@@ -1278,6 +1280,311 @@ class Api_Requester():
             print("\033[1;31mError:\033[0m 线程出现问题！错误信息如下")
             print(f"Error: {e}\n")
             return
+
+
+
+    # 整理发送内容（sakura）
+    def organize_send_content_Sakura(self,source_text_dict):
+        #创建message列表，用于发送
+        messages = []
+
+        #构建系统提示词
+        system_prompt ={"role": "system","content": "你是一个轻小说翻译模型，可以流畅通顺地以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，不擅自添加原文中没有的代词。" }
+        #print("[INFO] 当前系统提示词为", prompt,'\n')
+        messages.append(system_prompt)
+
+
+        # 0.8模型不支持下面功能
+        if configurator.model_type != 'Sakura-13B-LNovel-v0.8':
+            #构建原文与译文示例
+            original_exmaple,translation_example =  configurator.get_default_translation_example()
+            the_original_exmaple =  {"role": "user","content":original_exmaple }
+            the_translation_example = {"role": "assistant", "content":translation_example }
+            #print("[INFO]  已添加默认原文示例",original_exmaple)
+            #print("[INFO]  已添加默认译文示例",translation_example)
+
+            messages.append(the_original_exmaple)
+            messages.append(the_translation_example)
+    
+
+
+            #如果开启了译时提示字典功能，则添加新的原文与译文示例
+            if Window.Interface23.checkBox2.isChecked() :
+                original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(source_text_dict)
+                if original_exmaple_2 and translation_example_2:
+                    the_original_exmaple =  {"role": "user","content":original_exmaple_2 }
+                    the_translation_example = {"role": "assistant", "content":translation_example_2 }
+                    messages.append(the_original_exmaple)
+                    messages.append(the_translation_example)
+                    print("[INFO]  检查到请求的原文中含有用户字典内容，已添加新的原文与译文示例")
+                    print("[INFO]  已添加提示字典原文示例",original_exmaple_2)
+                    print("[INFO]  已添加提示字典译文示例",translation_example_2)
+
+            #如果提示词工程界面的用户翻译示例开关打开，则添加新的原文与译文示例
+            if Window.Interface22.checkBox2.isChecked() :
+                original_exmaple_3,translation_example_3 = configurator.build_user_translation_example ()
+                if original_exmaple_3 and translation_example_3:
+                    the_original_exmaple =  {"role": "user","content":original_exmaple_3 }
+                    the_translation_example = {"role": "assistant", "content":translation_example_3 }
+                    messages.append(the_original_exmaple)
+                    messages.append(the_translation_example)
+                    print("[INFO]  检查到用户翻译示例开关打开，已添加新的原文与译文示例")
+                    print("[INFO]  已添加用户原文示例",original_exmaple_3)
+                    print("[INFO]  已添加用户译文示例",translation_example_3)
+
+
+
+        # 如果开启了保留换行符功能
+        if configurator.preserve_line_breaks_toggle:
+            print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
+            source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
+
+        #如果开启译前替换字典功能，则根据用户字典进行替换
+        if Window.Interface21.checkBox1.isChecked() :
+            print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
+            source_text_dict = configurator.replace_strings_dictionary(source_text_dict)
+
+
+ 
+        #将原文本字典转换成JSON格式的字符串，方便发送
+        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
+
+        #构建需要翻译的文本
+        prompt = "将下面的日文文本翻译成中文："
+        Original_text = {"role":"user","content":prompt + source_text_str}   
+        messages.append(Original_text)
+
+
+
+        return messages,source_text_str
+
+
+    # 并发接口请求（sakura）
+    def Concurrent_Request_Sakura(self):
+        global cache_list,Running_status
+
+
+
+        try:#方便排查子线程bug
+
+            # ——————————————————————————————————————————截取需要翻译的原文本——————————————————————————————————————————
+            lock1.acquire()  # 获取锁
+            # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
+            rows = configurator.text_line_counts
+            source_text_list = Cache_Manager.process_dictionary_data(self,rows, cache_list)    
+            lock1.release()  # 释放锁
+
+            # ——————————————————————————————————————————转换原文本的格式——————————————————————————————————————————
+            # 将原文本列表改变为请求格式
+            source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
+
+            # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
+            messages,source_text_str = Api_Requester.organize_send_content_Sakura(self,source_text_dict)
+
+
+
+            #——————————————————————————————————————————检查tokens发送限制——————————————————————————————————————————
+            #计算请求的tokens预计花费
+            request_tokens_consume = Request_Limiter.num_tokens_from_messages(self,messages)  #加上2%的修正系数
+            #计算回复的tokens预计花费，只计算发送的文本，不计算提示词与示例，可以大致得出
+            Original_text = [{"role":"user","content":source_text_str}] # 需要拿列表来包一层，不然计算时会出错 
+            completion_tokens_consume = Request_Limiter.num_tokens_from_messages(self,Original_text) #加上2%的修正系数
+ 
+            if request_tokens_consume >= request_limiter.max_tokens :
+                print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
+                print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
+                return
+
+
+            # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
+            start_time = time.time()
+            timeout = 850  # 设置超时时间为x秒
+            request_errors_count = 0 # 设置请求错误次数限制
+            Wrong_answer_count = 0   # 设置错误回复次数限制
+            model_degradation = False # 模型退化检测
+
+            while 1 :
+                #检查主窗口是否已经退出---------------------------------
+                if Running_status == 10 :
+                    return
+
+                #检查子线程运行是否超时---------------------------------
+                if time.time() - start_time > timeout:
+                    print("\033[1;31mError:\033[0m 子线程执行任务已经超时，将暂时取消本次任务")
+                    break
+
+
+                # 检查是否符合速率限制---------------------------------
+                if request_limiter.RPM_and_TPM_limit(request_tokens_consume):
+
+
+                    print("[INFO] 已发送请求,正在等待AI回复中-----------------------")
+                    print("[INFO] 请求与回复的tokens数预计值是：",request_tokens_consume  + completion_tokens_consume )
+                    print("[INFO] 当前发送的原文文本：\n", source_text_str)
+
+                    # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
+                    # 记录开始请求时间
+                    Start_request_time = time.time()
+
+                    # 获取AI的参数设置
+                    temperature,top_p,presence_penalty,frequency_penalty= configurator.get_model_parameters()
+                    # 如果上一次请求出现模型退化，更改参数
+                    if model_degradation:
+                        frequency_penalty = 0.2
+
+                    # 获取apikey
+                    openai_apikey =  configurator.get_apikey()
+                    # 获取请求地址
+                    openai_base_url = configurator.openai_base_url
+                    # 创建openai客户端
+                    openaiclient = OpenAI(api_key=openai_apikey,
+                                            base_url= openai_base_url)
+                    # 发送对话请求
+                    try:
+                        response = openaiclient.chat.completions.create(
+                            model= configurator.model_type,
+                            messages = messages ,
+                            temperature=temperature,
+                            top_p = top_p,                        
+                            presence_penalty=presence_penalty,
+                            frequency_penalty=frequency_penalty
+                            )
+
+                    #抛出错误信息
+                    except Exception as e:
+                        print("\033[1;31mError:\033[0m 进行请求时出现问题！！！错误信息如下")
+                        print(f"Error: {e}\n")
+
+                        #请求错误计次
+                        request_errors_count = request_errors_count + 1
+                        #如果错误次数过多，就取消任务
+                        if request_errors_count >= 6 :
+                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
+                            break
+
+                        #处理完毕，再次进行请求
+                        continue
+
+
+                    #——————————————————————————————————————————收到回复，并截取回复内容中的文本内容 ————————————————————————————————————————  
+                    # 计算AI回复花费的时间
+                    response_time = time.time()
+                    Request_consumption_time = round(response_time - Start_request_time, 2)
+
+
+                    # 计算本次请求的花费的tokens
+                    try: # 因为有些中转网站不返回tokens消耗
+                        prompt_tokens_used = int(response.usage.prompt_tokens) #本次请求花费的tokens
+                    except Exception as e:
+                        prompt_tokens_used = 0
+                    try:
+                        completion_tokens_used = int(response.usage.completion_tokens) #本次回复花费的tokens
+                    except Exception as e:
+                        completion_tokens_used = 0
+
+
+
+                    # 提取回复的文本内容
+                    response_content = response.choices[0].message.content 
+
+
+                    print('\n' )
+                    print("[INFO] 已成功接受到AI的回复-----------------------")
+                    print("[INFO] 该次请求已消耗等待时间：",Request_consumption_time,"秒")
+                    print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
+                    print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
+
+                # ——————————————————————————————————————————对AI回复内容进行各种处理和检查——————————————————————————————————————————
+                    # 检查回复内容
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
+
+                    # 如果没有出现错误
+                    if check_result :
+                        # 转化为字典格式
+                        response_dict = json.loads(response_content) #注意转化为字典的数字序号key是字符串类型
+
+                        # 如果开启了保留换行符功能
+                        if configurator.preserve_line_breaks_toggle:
+                            response_dict = Cache_Manager.replace_special_characters(self,response_dict, "还原")
+
+                        # 录入缓存文件
+                        lock1.acquire()  # 获取锁
+                        Cache_Manager.update_cache_data(self,cache_list, source_text_list, response_dict)
+                        lock1.release()  # 释放锁
+
+
+                        # 如果开启自动备份,则自动备份缓存文件
+                        if Window.Widget_start_translation.B_settings.checkBox_switch.isChecked():
+                            lock3.acquire()  # 获取锁
+
+                            # 创建存储缓存文件的文件夹，如果路径不存在，创建文件夹
+                            output_path = os.path.join(configurator.Output_Folder, "cache")
+                            os.makedirs(output_path, exist_ok=True)
+                            # 输出备份
+                            File_Outputter.output_cache_file(self,cache_list,output_path)
+                            lock3.release()  # 释放锁
+
+                        
+                        lock2.acquire()  # 获取锁
+
+                        # 如果是进行平时的翻译任务
+                        if Running_status == 6 :
+                            # 计算进度信息
+                            progress = (user_interface_prompter.translated_line_count+row_count) / user_interface_prompter.total_text_line_count * 100
+                            progress = round(progress, 1)
+
+                            # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
+                            user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",row_count,prompt_tokens_used,completion_tokens_used)
+                        
+                        # 如果进行的是错行检查任务，使用不同的计算方法
+                        elif Running_status == 7 :
+                            user_interface_prompter.translated_line_count = user_interface_prompter.translated_line_count + row_count
+                            progress = user_interface_prompter.translated_line_count / user_interface_prompter.total_text_line_count * 100
+                            progress = round(progress, 1)
+
+                        print(f"\n--------------------------------------------------------------------------------------")
+                        print(f"\n\033[1;32mSuccess:\033[0m AI回复内容检查通过！！！已翻译完成{progress}%")
+                        print(f"\n--------------------------------------------------------------------------------------\n")
+                        lock2.release()  # 释放锁
+
+
+                        break
+                
+
+                    # 如果出现回复错误
+                    else:
+
+                        # 更改UI界面信息
+                        lock2.acquire()  # 获取锁
+                        # 如果是进行平时的翻译任务
+                        if Running_status == 6 :
+                            user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",row_count,prompt_tokens_used,completion_tokens_used)
+                        lock2.release()  # 释放锁
+                        print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
+                        # 检查一下是不是模型退化
+                        if error_content == "AI回复内容出现高频词,并重新翻译":
+                            print("\033[1;33mWarning:\033[0m 下次请求将修改参数，回避高频词输出","\n")
+                            model_degradation = True
+
+                        #错误回复计次
+                        Wrong_answer_count = Wrong_answer_count + 1
+                        print("\033[1;33mWarning:\033[0m AI回复内容格式错误次数:",Wrong_answer_count,"到达2次后将该段文本进行拆分翻译\n")
+                        #检查回答错误次数，如果达到限制，则跳过该句翻译。
+                        if Wrong_answer_count >= 2 :
+                            print("\033[1;33mWarning:\033[0m 错误次数已经达限制,将该段文本进行拆分翻译！\n")    
+                            break
+
+
+                        #进行下一次循环
+                        time.sleep(3)                 
+                        continue
+
+    #子线程抛出错误信息
+        except Exception as e:
+            print("\033[1;31mError:\033[0m 子线程运行出现问题！错误信息如下")
+            print(f"Error: {e}\n")
+            return
+
 
 
 
@@ -1683,6 +1990,66 @@ class Request_Tester():
             print("[INFO] 存在API KEY测试失败！！！！")
             user_interface_prompter.signal.emit("接口测试结果","测试失败",0,0,0)
 
+
+    # sakura接口测试
+    def sakura_request_test(self):
+        
+        Base_url = Window.Widget_SakuraLLM.LineEdit_address.text()                  #获取请求地址
+        Model_Type =  Window.Widget_SakuraLLM.comboBox_model.currentText()                #获取模型类型下拉框当前选中选项的值
+        Proxy_port  = Window.Widget_SakuraLLM.LineEdit_proxy_port.text()                  #获取代理端口
+
+        
+        #如果填入地址，则设置系统代理
+        if Proxy_port :
+            print("[INFO] 系统代理端口是:",Proxy_port,'\n') 
+            os.environ["http_proxy"]=Proxy_port
+            os.environ["https_proxy"]=Proxy_port
+
+        
+
+        #检查一下请求地址尾部是否为/v1，自动补全
+        if Base_url[-3:] != "/v1":
+            Base_url = Base_url + "/v1"
+
+        #创建openai客户端
+        openaiclient = OpenAI(api_key="sakura",
+                base_url= Base_url)
+
+
+        print("[INFO] 模型地址是:",Base_url,'\n')
+        print("[INFO] 模型选择是:",Model_Type,'\n')
+
+
+
+        #构建发送内容
+        messages_test = [{"role": "system","content":"你是一个轻小说翻译模型，可以流畅通顺地以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，不擅自添加原文中没有的代词。"},
+                         {"role":"user","content":"将下面的日文文本翻译成中文：サポートキャスト"}]
+        print("[INFO] 当前发送内容：\n", messages_test ,'\n')
+
+        #尝试请求，并设置各种参数
+        try:
+            response_test = openaiclient.chat.completions.create( 
+            model= Model_Type,
+            messages = messages_test ,
+            ) 
+
+            #如果回复成功，显示成功信息
+            response_test = response_test.choices[0].message.content
+            print("[INFO] 已成功接受到AI的回复")
+            print("[INFO] AI回复的文本内容：\n",response_test ,'\n','\n')
+
+            print("[INFO] 模型通讯测试成功！！！！")
+            user_interface_prompter.signal.emit("接口测试结果","测试成功",0,0,0)
+
+        #如果回复失败，抛出错误信息，并测试下一个key
+        except Exception as e:
+            print("\033[1;31mError:\033[0m 请求出现问题！错误信息如下")
+            print(f"Error: {e}\n\n")
+            print("[INFO] 模型通讯测试失败！！！！")
+            user_interface_prompter.signal.emit("接口测试结果","测试失败",0,0,0)
+
+
+
     
 # 配置器
 class Configurator():
@@ -1705,10 +2072,10 @@ class Configurator():
 
 
         self.openai_base_url = 'https://api.openai.com/v1' # api默认请求地址
-        self.openai_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
+        self.openai_temperature = 0.1        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
         self.openai_top_p = 1.0              #AI的top_p，作用与temperature相同，官方建议不要同时修改
-        self.openai_presence_penalty = 0.5  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
-        self.openai_frequency_penalty = 0.0 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
+        self.openai_presence_penalty = 0.0  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
+        self.openai_frequency_penalty = 0.1 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
 
 
 
@@ -1741,11 +2108,11 @@ class Configurator():
         self.conversion_toggle = Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.isChecked()
 
 
-        # 初始化模型参数
-        self.openai_temperature = 0        
+        # 重新初始化模型参数，防止上次任务的设置影响到
+        self.openai_temperature = 0.1        
         self.openai_top_p = 1.0             
-        self.openai_presence_penalty = 0.5  
-        self.openai_frequency_penalty = 0.0 
+        self.openai_presence_penalty = 0.0  
+        self.openai_frequency_penalty = 0.1 
 
 
         # 如果进行的是错行检查任务，修改部分设置(补丁)
@@ -1825,7 +2192,30 @@ class Configurator():
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
 
-    
+
+        elif self.translation_platform == 'SakuraLLM':
+            # 获取模型类型
+            self.model_type =  Window.Widget_SakuraLLM.comboBox_model.currentText()     
+            # 构建假apikey
+            self.apikey_list = ["sakura"]
+
+            # 获取中转请求地址
+            relay_address = Window.Widget_SakuraLLM.LineEdit_address.text()   
+            #检查一下请求地址尾部是否为/v1，自动补全
+            if relay_address[-3:] != "/v1":
+                relay_address = relay_address + "/v1"
+            self.openai_base_url = relay_address  
+
+            #如果填入地址，则设置代理端口
+            Proxy_Address = Window.Widget_SakuraLLM.LineEdit_proxy_port.text()              #获取代理端口
+            if Proxy_Address :
+                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
+                os.environ["http_proxy"]=Proxy_Address
+                os.environ["https_proxy"]=Proxy_Address
+
+            #更改参数
+            self.openai_temperature = 0.1       
+            self.openai_top_p = 0.3            
 
     # 初始化配置信息
     def initialize_configuration_check (self):
@@ -1898,10 +2288,6 @@ class Configurator():
                 os.environ["https_proxy"]=Proxy_Address
 
 
-
-
-
-
     #读写配置文件config.json函数
     def read_write_config(self,mode):
 
@@ -1932,6 +2318,13 @@ class Configurator():
             config_dict["google_model_type"] =  Window.Widget_Google.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
             config_dict["google_API_key_str"] = Window.Widget_Google.TextEdit_apikey.toPlainText()        #获取apikey输入值
             config_dict["google_proxy_port"] = Window.Widget_Google.LineEdit_proxy_port.text()            #获取代理端口
+
+
+            #Sakura界面
+            config_dict["sakura_address"] = Window.Widget_SakuraLLM.LineEdit_address.text()                  #获取请求地址
+            config_dict["sakura_model_type"] =  Window.Widget_SakuraLLM.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
+            config_dict["sakura_proxy_port"] = Window.Widget_SakuraLLM.LineEdit_proxy_port.text()            #获取代理端口
+
 
 
             #翻译设置基础设置界面
@@ -2065,6 +2458,16 @@ class Configurator():
                     Window.Widget_Google.TextEdit_apikey.setText(config_dict["google_API_key_str"])
                 if "google_proxy_port" in config_dict:
                     Window.Widget_Google.LineEdit_proxy_port.setText(config_dict["google_proxy_port"])
+
+
+                #sakura界面
+                if "sakura_address" in config_dict:
+                    Window.Widget_SakuraLLM.LineEdit_address.setText(config_dict["sakura_address"])
+                if "sakura_model_type" in config_dict:
+                    Window.Widget_SakuraLLM.comboBox_model.setCurrentText(config_dict["sakura_model_type"])
+                if "sakura_proxy_port" in config_dict:
+                    Window.Widget_SakuraLLM.LineEdit_proxy_port.setText(config_dict["sakura_proxy_port"])
+
 
                 #翻译设置基础界面
                 if "translation_project" in config_dict:
@@ -2279,6 +2682,7 @@ class Configurator():
             Output the translation in JSON format:
             {{"<text id>": "<translated text>"}}
             '''      #系统提示词,字符串中包含花括号，并不是用作格式化字符串的一部分，需要使用两个花括号来转义
+
 
 
         return system_prompt
@@ -2617,7 +3021,8 @@ class Configurator():
         self.text_line_counts = result
 
         return result
-    
+
+
 
 # 请求限制器
 class Request_Limiter():
@@ -2721,6 +3126,12 @@ class Request_Limiter():
                 "gemini-pro": {  "inputTokenLimit": 30720,"outputTokenLimit": 2048,"max_tokens": 2500, "TPM": 1000000, "RPM": 60},
             }
 
+        # 示例数据
+        self.sakura_limit_data = {
+                "Sakura-13B-LNovel-v0.8": {  "inputTokenLimit": 30720,"outputTokenLimit": 40000,"max_tokens": 40000, "TPM": 1000000, "RPM": 60},
+                "Sakura-13B-LNovel-v0.9": {  "inputTokenLimit": 30720,"outputTokenLimit": 40000,"max_tokens": 40000, "TPM": 1000000, "RPM": 60},
+            }
+
         # TPM相关参数
         self.max_tokens = 0  # 令牌桶最大容量
         self.remaining_tokens = 0 # 令牌桶剩余容量
@@ -2794,6 +3205,18 @@ class Request_Limiter():
             key_count = len(configurator.apikey_list)
             RPM_limit = RPM_limit * key_count
             TPM_limit = TPM_limit * key_count
+
+            # 设置限制
+            self.set_limit(max_tokens,TPM_limit,RPM_limit)
+
+        elif translation_platform == 'SakuraLLM':
+            # 获取模型
+            model = Window.Widget_SakuraLLM.comboBox_model.currentText()
+
+            # 获取相应的限制
+            max_tokens = self.sakura_limit_data[model]["max_tokens"]
+            TPM_limit = self.sakura_limit_data[model]["TPM"]
+            RPM_limit = self.sakura_limit_data[model]["RPM"]
 
             # 设置限制
             self.set_limit(max_tokens,TPM_limit,RPM_limit)
@@ -3767,6 +4190,13 @@ class background_executor(threading.Thread):
             Request_Tester.google_request_test(self)
             Running_status = 0
 
+
+        # 执行google接口测试
+        elif self.task_id == "Sakura通讯测试":
+            Running_status = 1
+            Request_Tester.sakura_request_test(self)
+            Running_status = 0
+
         # 执行翻译
         elif self.task_id == "执行翻译任务":
             Running_status = 6
@@ -3813,6 +4243,12 @@ class User_Interface_Prompter(QObject):
        self.google_price_data = {
             "gemini-pro": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
             }
+
+       self.sakura_price_data = {
+            "Sakura-13B-LNovel-v0.8": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
+            "Sakura-13B-LNovel-v0.9": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
+            }
+
 
     # 槽函数，用于接收子线程发出的信号，更新界面UI的状态，因为子线程不能更改父线程的QT的UI控件的值
     def on_update_ui(self,input_str1,input_str2,iunput_int1,input_int2,input_int3):
@@ -3876,6 +4312,11 @@ class User_Interface_Prompter(QObject):
                 # 获取使用的模型输入价格与输出价格
                 input_price = self.google_price_data[configurator.model_type]["input_price"]
                 output_price = self.google_price_data[configurator.model_type]["output_price"]
+
+            elif configurator.translation_platform == "SakuraLLM":
+                # 获取使用的模型输入价格与输出价格
+                input_price = self.sakura_price_data[configurator.model_type]["input_price"]
+                output_price = self.sakura_price_data[configurator.model_type]["output_price"]
 
             self.amount_spent = self.amount_spent + (input_price/1000 * input_int2)  + (output_price/1000 * input_int3) 
             self.amount_spent = round(self.amount_spent, 4)
@@ -4099,6 +4540,7 @@ class Widget_Openai(QFrame):#  Openai账号界面
 
         elif Running_status != 0:
             user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+
 
 
 class Widget_Openai_Proxy(QFrame):  # Openai代理账号主界面
@@ -4606,6 +5048,150 @@ class Widget_Google(QFrame):#  谷歌账号界面
             user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 
+
+class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+        # -----创建第1个组，添加多个组件-----
+        box_address = QGroupBox()
+        box_address.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_address = QHBoxLayout()
+
+        #设置“请求地址”标签
+        self.labelA = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.labelA.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.labelA.setText("请求地址")
+
+        #设置微调距离用的空白标签
+        self.labelB = QLabel()  
+        self.labelB.setText("                      ")
+
+        #设置“请求地址”的输入框
+        self.LineEdit_address = LineEdit()
+        #LineEdit1.setFixedSize(300, 30)
+
+
+        layout_address.addWidget(self.labelA)
+        layout_address.addWidget(self.labelB)
+        layout_address.addWidget(self.LineEdit_address)
+        box_address.setLayout(layout_address)
+
+
+        # -----创建第1个组，添加多个组件-----
+        box_model = QGroupBox()
+        box_model.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_model = QGridLayout()
+
+        #设置“模型选择”标签
+        self.labelx = QLabel(flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.labelx.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.labelx.setText("模型选择")
+
+
+        #设置“模型类型”下拉选择框
+        self.comboBox_model = ComboBox() #以demo为父类
+        self.comboBox_model.addItems(['Sakura-13B-LNovel-v0.8','Sakura-13B-LNovel-v0.9'])
+        self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox_model.setFixedSize(200, 35)
+        #设置下拉选择框默认选择
+        self.comboBox_model.setCurrentText('Sakura-13B-LNovel-v0.8')
+        
+
+
+        layout_model.addWidget(self.labelx, 0, 0)
+        layout_model.addWidget(self.comboBox_model, 0, 1)
+        box_model.setLayout(layout_model)
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box_proxy_port = QGroupBox()
+        box_proxy_port.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_proxy_port = QHBoxLayout()
+
+        #设置“代理地址”标签
+        self.label_proxy_port = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.label_proxy_port.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.label_proxy_port.setText("系统代理")
+
+        #设置微调距离用的空白标签
+        self.labelx = QLabel()  
+        self.labelx.setText("                      ")
+
+        #设置“代理地址”的输入框
+        self.LineEdit_proxy_port = LineEdit()
+        #LineEdit1.setFixedSize(300, 30)
+
+
+        layout_proxy_port.addWidget(self.label_proxy_port)
+        layout_proxy_port.addWidget(self.labelx)
+        layout_proxy_port.addWidget(self.LineEdit_proxy_port)
+        box_proxy_port.setLayout(layout_proxy_port)
+
+
+
+        # -----创建第4个组，添加多个组件-----
+        box_test = QGroupBox()
+        box_test.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_test = QHBoxLayout()
+
+
+        #设置“测试请求”的按钮
+        primaryButton_test = PrimaryPushButton('测试请求', self, FIF.SEND)
+        primaryButton_test.clicked.connect(self.test_request) #按钮绑定槽函数
+
+        #设置“保存配置”的按钮
+        primaryButton_save = PushButton('保存配置', self, FIF.SAVE)
+        primaryButton_save.clicked.connect(self.saveconfig) #按钮绑定槽函数
+
+
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_save)
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_test)
+        layout_test.addStretch(1)  # 添加伸缩项
+        box_test.setLayout(layout_test)
+
+
+
+        # -----最外层容器设置垂直布局-----
+        container = QVBoxLayout()
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+        # 把各个组添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_address)
+        container.addWidget(box_model)
+        container.addWidget(box_proxy_port)
+        container.addWidget(box_test)
+        container.addStretch(1)  # 添加伸缩项
+
+
+    def saveconfig(self):
+        configurator.read_write_config("write")
+        user_interface_prompter.createSuccessInfoBar("已成功保存配置")
+
+    def test_request(self):
+        global Running_status
+
+        if Running_status == 0:
+            #创建子线程
+            thread = background_executor("Sakura通讯测试")
+            thread.start()
+
+        elif Running_status != 0:
+            user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+
+
+
+
 class Widget_translation_settings(QFrame):  # 翻译设置主界面
     def __init__(self, text: str, parent=None):  # 构造函数，初始化实例时会自动调用
         super().__init__(parent=parent)  # 调用父类 QWidget 的构造函数
@@ -4674,7 +5260,7 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
 
         #设置“翻译平台”下拉选择框
         self.comboBox_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_translation_platform.addItems(['Openai官方',  'Openai代理',  'Google官方'])
+        self.comboBox_translation_platform.addItems(['Openai官方',  'Openai代理',  'Google官方',  'SakuraLLM'])
         self.comboBox_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_translation_platform.setFixedSize(150, 35)
 
@@ -6919,6 +7505,7 @@ class window(FramelessWindow): #主窗口
         self.Widget_Openai = Widget_Openai('Widget_Openai', self)   
         self.Widget_Openai_Proxy = Widget_Openai_Proxy('Widget_Openai_Proxy', self)     
         self.Widget_Google = Widget_Google('Widget_Google', self)
+        self.Widget_SakuraLLM = Widget_SakuraLLM('Widget_SakuraLLM', self)
         self.Widget_translation_settings = Widget_translation_settings('Widget_translation_settings', self) 
         self.Widget_start_translation = Widget_start_translation('Widget_start_translation', self)     
         self.Interface18 = Widget18('Interface18', self)
@@ -6959,6 +7546,8 @@ class window(FramelessWindow): #主窗口
         self.addSubInterface(self.Widget_Openai_Proxy, FIF.FEEDBACK, 'Openai代理') 
         #添加谷歌官方账号界面
         self.addSubInterface(self.Widget_Google, FIF.FEEDBACK, 'Google官方') 
+        #添加sakura界面
+        self.addSubInterface(self.Widget_SakuraLLM, FIF.FEEDBACK, 'SakuraLLM') 
 
         self.navigationInterface.addSeparator() #添加分隔符
 
