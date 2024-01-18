@@ -11,7 +11,7 @@
 **这是一款基于`Mtool`或`Translator++`的 AI自动批翻译工具,主要是用来翻译各种RPG游戏**
 
 
-*全称Artificial Intelligence Narrative Interpretation and Exploration Engine，才不是AI + niee呢*
+*Artificial Intelligence Narrative Interpretation and Exploration Engine？*
   
 # 声明🧾 
 ***
