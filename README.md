@@ -5,7 +5,6 @@
 <p>
 
 ***
-![image](https://img.shields.io/badge/QQ交流群-821624890-BA55D3)
 [![下载地址](https://img.shields.io/badge/下载地址-点击下载-1E90FF)](https://github.com/NEKOparapa/AiNiee-chatgpt/releases)
 [![教程视频](https://img.shields.io/badge/教程视频-点击观看-ff69b4)](https://www.bilibili.com/video/BV18c411K7WN)
 
@@ -14,6 +13,8 @@
 # 声明🧾 
 ***
 该款AI翻译工具仅供个人合法用途,任何使用该工具进行直接或者间接非法盈利活动的行为,均不属于授权范围,也不受到任何支持和认可。
+
+* **`TG交流群`**:https://t.me/+JVHbDSGo8SI2Njhl 没有因为QQ交流群被停而感到悲伤，马上赶到现场的是新的TG交流群
 
 #  环境支持🏕️
 ***
