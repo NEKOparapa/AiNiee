@@ -1288,6 +1288,15 @@ class Api_Requester():
             print(f"Error: {e}\n")
             return
 
+    # 将json文本改为纯文本
+    def convert_dict_to_raw_str(self, source_text_dict):
+        # 此处假设不会存在index先2后1的情况，如果无法这样假设请在review时告知
+        str_list = []
+        for idx in range(len(source_text_dict.keys())):
+            # str_list.append(s['source_text'])
+            str_list.append(source_text_dict[f"{idx}"])
+        raw_str = "\n".join(str_list)
+        return raw_str
 
 
     # 整理发送内容（sakura）
@@ -1357,16 +1366,17 @@ class Api_Requester():
 
  
         #将原文本字典转换成JSON格式的字符串，方便发送
-        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
+        # source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
+        source_text_str_raw = self.convert_dict_to_raw_str(source_text_dict)
 
         #构建需要翻译的文本
         prompt = "将下面的日文文本翻译成中文："
-        Original_text = {"role":"user","content":prompt + source_text_str}   
+        Original_text = {"role":"user","content":prompt + source_text_str_raw}   
         messages.append(Original_text)
 
 
 
-        return messages,source_text_str
+        return messages, source_text_str_raw
 
 
     # 并发接口请求（sakura）
@@ -1506,7 +1516,8 @@ class Api_Requester():
 
                 # ——————————————————————————————————————————对AI回复内容进行各种处理和检查——————————————————————————————————————————
                     # 处理回复内容
-                    response_content = Response_Parser.adjust_string(self,response_content)
+                    # response_content = Response_Parser.adjust_string(self,response_content)
+                    response_content = Response_Parser.convert_str_to_json_str(self, response_content)
 
                     # 检查回复内容
                     check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
@@ -1621,7 +1632,13 @@ class Response_Parser():
 
         return input_str
 
-
+    # 将Raw文本恢复根据行数转换成json文本
+    def convert_str_to_json_str(self, input_str):
+        str_list = input_str.split("\n")
+        ret_json = {}
+        for idx, text in enumerate(str_list):
+            ret_json[f"{idx}"] = f"{text}"
+        return json.dumps(ret_json, ensure_ascii=False)
 
     # 检查回复内容是否存在问题
     def check_response_content(self,response_str,source_text_dict):
