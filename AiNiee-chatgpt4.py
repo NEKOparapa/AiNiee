@@ -1290,7 +1290,6 @@ class Api_Requester():
 
     # 将json文本改为纯文本
     def convert_dict_to_raw_str(self, source_text_dict):
-        # 此处假设不会存在index先2后1的情况，如果无法这样假设请在review时告知
         str_list = []
         for idx in range(len(source_text_dict.keys())):
             # str_list.append(s['source_text'])
@@ -1365,8 +1364,7 @@ class Api_Requester():
 
 
  
-        #将原文本字典转换成JSON格式的字符串，方便发送
-        # source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
+        #将原文本字典转换成JSON格式的字符串，方便发送   
         source_text_str_raw = self.convert_dict_to_raw_str(source_text_dict)
 
         #构建需要翻译的文本
@@ -1516,7 +1514,6 @@ class Api_Requester():
 
                 # ——————————————————————————————————————————对AI回复内容进行各种处理和检查——————————————————————————————————————————
                     # 处理回复内容
-                    # response_content = Response_Parser.adjust_string(self,response_content)
                     response_content = Response_Parser.convert_str_to_json_str(self, response_content)
 
                     # 检查回复内容
