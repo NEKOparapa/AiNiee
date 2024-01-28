@@ -4,6 +4,7 @@ import json
 import pandas as pd
 import traceback
 from ruamel.yaml import YAML
+import openpyxl
 
 # t++标红标蓝行需要找对应code
 # code对应地址
@@ -11,7 +12,7 @@ from ruamel.yaml import YAML
 redcode = ['356', '655', '122']
 # "Comment": "108","Comment More": "408",
 bluecode = ['108', '408']
-bluedir = ['System.json\switches', r'System.json\variables']
+bluedir = [r'System.json\switches', r'System.json\variables']
 # "Show Choices": "102","Show Text Attributes": "101","Show Text": "401","Show Scrolling Text": "405",
 # "Show Scrolling Text Attributes": "105","Change Actor Name": "320","Change Actor Nickname": "324",
 # "Choice": "402"应该和102一起来
@@ -154,6 +155,36 @@ class Jr_Tpp():
             self.load(path) # 从工程文件加载
 
 ####################################读取和注入游戏文本，保存与加载翻译工程，导入翻译结果等基本功能###################################
+    # 用openpyxl读xlsx，因为用pandas会把'=xxx'的字符串读成NaN，而且解决不了
+    def __Readxlsx(self, name):
+        try:
+            # 打开Excel文件
+            workbook = openpyxl.load_workbook(name)
+            # 获取所有工作表的名称
+            sheet_names = workbook.sheetnames
+            # 选择第一个工作表
+            worksheet = workbook[sheet_names[0]]
+            # 读取列名
+            column_names = [cell.value for cell in worksheet[1] if cell.value is not None]
+            # 检查是否只有列名
+            if len(column_names) == 0:
+                # 创建空DataFrame
+                df = pd.DataFrame(columns=column_names)
+            else:
+                # 读取数据
+                data = []
+                for row in worksheet.iter_rows(min_row=2, values_only=True):
+                    data.append(row)
+
+                # 创建DataFrame
+                df = pd.DataFrame(data, columns=column_names)
+            # 关闭Excel文件
+            workbook.close()
+            return df
+        except Exception as e:
+            print(traceback.format_exc())
+            print(e)
+            print('请关闭所有xlsx文件再试')
     # 读取json文件中含中日字符的字符串，并记录其地址。
     # 输入json文件的内容，返回其中所有文本组成的list
     def __ReadFile(self,data,FileName:str,code:int =False) -> list:
@@ -170,7 +201,7 @@ class Jr_Tpp():
                 res+=self.__ReadFile(data[i],FileName+'\\'+str(i),code)
         # 是字符串，而且含中日字符(System.json\gameTitle不论是否含中日字符，都进
         elif tp==str and (re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5]',data)
-                          or 'System.json\gameTitle' in FileName) :
+                          or r'System.json\gameTitle' in FileName) :
             if not code:code='-1'
             # 只有特定code才读取
             if str(code) in self.ReadCode:
@@ -217,7 +248,7 @@ class Jr_Tpp():
                     if code in self.BlackCode: black = True
                     if not black:
                         for i in range(0,len(Dir)):
-                            a['a'].loc[index,'地址']+=','+Dir[i]
+                            a['a'].loc[index,'地址']+='☆↑↓'+Dir[i]
                             a['a'].loc[index, 'code'] += ','+code[i]
             return a['a']
         else:
@@ -261,10 +292,10 @@ class Jr_Tpp():
             DataFrame=self.ProgramData[name]
             NANFrame=DataFrame[DataFrame['译文'].isnull()]
             if len(NANFrame):
-                index=list(NANFrame.index)
-                nanlist+=index
-                for i in index:
-                    DataFrame.loc[index,'译文']=i
+                indexlist=list(NANFrame.index)
+                nanlist+=indexlist
+                for index in indexlist:
+                    DataFrame.loc[index,'译文']=index
             self.ProgramData[name]=DataFrame
         if len(nanlist):
             print('以下原文没有对应译文，恢复为原文')
@@ -275,7 +306,7 @@ class Jr_Tpp():
         Files=self.__ReadFolder(GameDir)
         for File in Files:
             # 只读取data内的json文件
-            if 'data' in File and 'json' in File:
+            if '\\data\\' in File and 'json' in File:
                 name=File.split('\\')[-1]
                 # 黑名单文件不读取
                 if name not in self.BlackFiles:
@@ -298,7 +329,7 @@ class Jr_Tpp():
         Files = self.__ReadFolder(GameDir)
         for File in Files:
             # 只读取data内的json文件
-            if 'data' in File and 'json' in File:
+            if '\\data\\' in File and 'json' in File:
                 name = File.split('\\')[-1]
                 # 黑名单文件不写入
                 if name not in self.BlackFiles:
@@ -310,7 +341,7 @@ class Jr_Tpp():
                         DataFrame=self.ProgramData[name]
                         for untrs in DataFrame.index:
                             trsed=DataFrame.loc[untrs,'译文']
-                            Dirlist=DataFrame.loc[untrs,'地址'].split(',')
+                            Dirlist=DataFrame.loc[untrs,'地址'].split('☆↑↓')
                             codelist=DataFrame.loc[untrs,'code'].split(',')
                             labellist=DataFrame.loc[untrs,'标签'].split(',')
                             black=False
@@ -432,7 +463,7 @@ class Jr_Tpp():
             if 'xlsx' in file:
                 print('正在读取{}'.format(file.split('\\')[-1]))
                 try:
-                    data = pd.read_excel(file,dtype=object)
+                    data = self.__Readxlsx(file)
                 except Exception as e:
                     print(traceback.format_exc())
                     print(e)
@@ -456,7 +487,7 @@ class Jr_Tpp():
         for file in FileNames:
             print('正在加载{}'.format(file.split('\\')[-1]))
             if 'xlsx' in file:
-                data = pd.read_excel(file,dtype=object)
+                data = self.__Readxlsx(file)
                 # 检查xlsx格式是否正确
                 if not list(data.columns)==['原文','译文','地址','标签','code']:
                     print(f'{file}文件列名不为[\'原文\',\'译文\',\'地址\',\'标签\',\'code\']，读取失败')
@@ -651,7 +682,7 @@ class Jr_Tpp():
         if 'System.json' in self.ProgramData.keys():
             try:
                 data=self.ProgramData['System.json']
-                index=list(data[data['地址']=='System.json\gameTitle'].index)[0]
+                index=list(data[data['地址']==r'System.json\gameTitle'].index)[0]
                 self.ProgramData['System.json'].loc[index,'译文']+=mark
                 print('########################已添加水印########################')
             except Exception as e:
@@ -926,18 +957,19 @@ if __name__ == '__main__':
     startpage='1.一键读取游戏数据并保存\n' \
               '2.加载翻译工程\n'
     key=['1','2']
-    while 1:
-        res=0
-        while res not in key:
-            res = input(startpage)
-        if res=='1':
-            pj=Jr_Tpp(config)
-            pj.FromGame(config['game_path'],config['save_path'])
-            input('已成功读取游戏数据，提取到的名字保存在Name.json中\n'
-                  '请在翻译完名字以后，将其导入到ainiee的提示词典中\n'
-                  '然后翻译{}\\data中的xlsx文件\n'.format(config['save_path']))
-        else:
-            pj = Jr_Tpp_LOAD(config['save_path'])
+    try:
+        while 1:
+            res=0
+            while res not in key:
+                res = input(startpage)
+            if res=='1':
+                pj=Jr_Tpp(config)
+                pj.FromGame(config['game_path'],config['save_path'])
+                input('已成功读取游戏数据，提取到的名字保存在Name.json中\n'
+                      '请在翻译完名字以后，将其导入到ainiee的提示词典中\n'
+                      '然后翻译{}\\data中的xlsx文件\n'.format(config['save_path']))
+            else:
+                pj = Jr_Tpp_LOAD(config['save_path'])
             mainpage = '1.一键注入翻译\n' \
                        '2.自动换行（换行后不会自动保存，也不会自动注入，不推荐在没有没备份的情况下保存)\n' \
                        '3.保存翻译工程\n' \
@@ -958,6 +990,10 @@ if __name__ == '__main__':
                 elif res=='5':
                     config=readconfig()
                     print('已重新加载配置文件')
+    except Exception as e:
+        print(traceback.format_exc())
+        print(e)
+        input('发生错误，请上报bug')
     # 读
     # test=Jr_Tpp(config)
     # test.FromGame(config['GameDir'],'data')
