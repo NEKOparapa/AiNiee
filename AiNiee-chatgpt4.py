@@ -1356,17 +1356,20 @@ class Api_Requester():
 
 
  
-        #将原文本字典转换成JSON格式的字符串，方便发送
-        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
+        #将原文本字典转换成raw格式的字符串，方便发送   
+        source_text_str_raw = self.convert_dict_to_raw_str(source_text_dict)
+
+        # 处理全角数字
+        source_text_str_raw = self.convert_fullwidth_to_halfwidth(source_text_str_raw)
 
         #构建需要翻译的文本
         prompt = "将下面的日文文本翻译成中文："
-        Original_text = {"role":"user","content":prompt + source_text_str}   
+        Original_text = {"role":"user","content":prompt + source_text_str_raw}   
         messages.append(Original_text)
 
 
 
-        return messages,source_text_str
+        return messages, source_text_str_raw
 
 
     # 并发接口请求（sakura）
@@ -1506,7 +1509,7 @@ class Api_Requester():
 
                 # ——————————————————————————————————————————对AI回复内容进行各种处理和检查——————————————————————————————————————————
                     # 处理回复内容
-                    response_content = Response_Parser.adjust_string(self,response_content)
+                    response_content = Response_Parser.convert_str_to_json_str(self, row_count, response_content)
 
                     # 检查回复内容
                     check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
@@ -1599,14 +1602,33 @@ class Api_Requester():
             return
 
 
+    # 将json文本改为纯文本
+    def convert_dict_to_raw_str(self,source_text_dict):
+        str_list = []
+        for idx in range(len(source_text_dict.keys())):
+            # str_list.append(s['source_text'])
+            str_list.append(source_text_dict[f"{idx}"])
+        raw_str = "\n".join(str_list)
+        return raw_str
+
+
+    # 将列表中的字符串中的全角数字转换为半角数字
+    def convert_fullwidth_to_halfwidth(self,input_string):
+        modified_string = ""
+        for char in input_string:
+            if '０' <= char <= '９':  # 判断是否为全角数字
+                modified_string += chr(ord(char) - ord('０') + ord('0'))  # 转换为半角数字
+            else:
+                modified_string += char
+
+        return modified_string
+
 
 
 # 回复解析器
 class Response_Parser():
     def __init__(self):
         pass
-
-
 
 
     # 处理回复，前后加上大括号
@@ -1620,6 +1642,22 @@ class Response_Parser():
             input_str = input_str + "}"
 
         return input_str
+
+
+    # 将Raw文本恢复根据行数转换成json文本
+    def convert_str_to_json_str(self,row_count, input_str):
+
+        # 当发送文本为1行时，就不分割了，以免切错
+        if row_count == 1:
+            result = {"0": input_str}
+            return  json.dumps(result, ensure_ascii=False)
+        
+        else:
+            str_list = input_str.split("\n")
+            ret_json = {}
+            for idx, text in enumerate(str_list):
+                ret_json[f"{idx}"] = f"{text}"
+            return json.dumps(ret_json, ensure_ascii=False)
 
 
 
@@ -2243,9 +2281,12 @@ class Configurator():
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
 
-            #更改参数
+            #更改部分参数，以适合Sakura模型
             self.openai_temperature = 0.1       
-            self.openai_top_p = 0.3            
+            self.openai_top_p = 0.3
+            self.thread_counts = 1 # 线程数
+            #self.text_line_counts = 1 # 文本行数
+
 
     # 初始化配置信息
     def initialize_configuration_check (self):
