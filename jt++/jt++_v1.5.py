@@ -5,6 +5,8 @@ import pandas as pd
 import traceback
 from ruamel.yaml import YAML
 import openpyxl
+from chardet import detect
+from openpyxl.utils.dataframe import dataframe_to_rows
 
 # t++标红标蓝行需要找对应code
 # code对应地址
@@ -151,6 +153,7 @@ class Jr_Tpp():
         self.NameWithout=config['NameWithout']  #   对这些字段搜索反选后，打Name标签
         self.codewithnames=config['codewithnames']  # dnb用，包裹文件名的标识符
         self.ReadCode=config['ReadCode']    # 只读取这些code的文本
+        self.ja=config['ja']    # 是否为日文游戏，日文游戏的情况下，只会提取含中日字符的文本，dnb也只会处理含中日字符的文件名
         if path:
             self.load(path) # 从工程文件加载
 
@@ -185,6 +188,33 @@ class Jr_Tpp():
             print(traceback.format_exc())
             print(e)
             print('请关闭所有xlsx文件再试')
+    # 用openpyxl写xlsx，只导出原文和译文列
+    def __Writexlsx(self,df,name):
+        # 创建一个Excel工作簿
+        workbook = openpyxl.Workbook()
+        # 获取默认的工作表
+        sheet = workbook.active
+        # 定义需要导出的列
+        columns_to_export = ['原文', '译文']
+        # 写入表头
+        header_row = [column for column in columns_to_export]
+        sheet.append(header_row)
+        # 将DataFrame的数据写入工作表
+        for index, row in df.iterrows():
+            data_row = [row[column] for column in columns_to_export]
+            sheet.append(data_row)
+        # 将单元格格式设置为文本格式
+        for column_cells in sheet.columns:
+            for cell in column_cells:
+                cell.number_format = '@'
+        # 编码所有字符串为Unicode
+        for row in sheet.iter_rows(min_row=2):
+            for cell in row:
+                if isinstance(cell.value, str):
+                    encoded_string = cell.value.encode('utf-8')
+                    cell.value = encoded_string.decode('utf-8')
+        # 保存工作簿为xlsx文件
+        workbook.save(name)
     # 读取json文件中含中日字符的字符串，并记录其地址。
     # 输入json文件的内容，返回其中所有文本组成的list
     def __ReadFile(self,data,FileName:str,code:int =False) -> list:
@@ -200,8 +230,9 @@ class Jr_Tpp():
             for i in range(0,len(data)):
                 res+=self.__ReadFile(data[i],FileName+'\\'+str(i),code)
         # 是字符串，而且含中日字符(System.json\gameTitle不论是否含中日字符，都进
-        elif tp==str and (re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5]',data)
+        elif tp==str and (not self.ja or re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5]',data)
                           or r'System.json\gameTitle' in FileName) :
+            if r'System.json\gameTitle' in FileName and data=='':data=' '# 游戏名为空时，变为空格，否则会报错
             if not code:code='-1'
             # 只有特定code才读取
             if str(code) in self.ReadCode:
@@ -260,16 +291,22 @@ class Jr_Tpp():
         DataFrame=self.__RemoveDuplicated(DataFrame)# 去除原文重复的行
         return DataFrame
     # 将后缀json和xlsx互相转化
-    def __nameswitch(self,name):
+    def __nameswitch(self,name,csv:bool=False):
         name = name.split('\\')[-1]
         resname = ''
         temp = name.split('.')
         for i in temp[:-1]:
             resname += i + '.'
-        if 'xlsx' in name:
-            resname += 'json'
+        if not csv:
+            if 'xlsx' in name:
+                resname += 'json'
+            else:
+                resname += 'xlsx'
         else:
-            resname += 'xlsx'
+            if 'csv' in name:
+                resname += 'json'
+            else:
+                resname += 'csv'
         return resname
     # 按照Dir逐级读取文件内容，直到读到untrs，将其替换为trsed，然后逐级返回
     def __WriteFile(self,data,untrs:str,trsed:str,Dir:list):
@@ -280,7 +317,7 @@ class Jr_Tpp():
         elif type(data)==dict:
             data[Dir[0]]=self.__WriteFile(data[Dir[0]],untrs,trsed,Dir[1:])
         elif type(data)==str and len(Dir)==0:
-            if data==untrs:
+            if data==untrs or (data=='' and untrs==' '):
                 data=trsed
             else:
                 print(f'原文\"{data}\"不匹配')
@@ -305,14 +342,27 @@ class Jr_Tpp():
     def ReadGame(self,GameDir:str):
         Files=self.__ReadFolder(GameDir)
         for File in Files:
+            name = File.split('\\')[-1]
             # 只读取data内的json文件
-            if '\\data\\' in File and 'json' in File:
-                name=File.split('\\')[-1]
+            if '\\data\\' in File and '.json' in name:
                 # 黑名单文件不读取
                 if name not in self.BlackFiles:
                     print(f'正在读取{name}')
-                    with open(File, 'r', encoding='utf8') as f:
-                        data = json.load(f)
+                    try:
+                        try:
+                            with open(File, 'r', encoding='utf8') as f:
+                                data = json.load(f)
+                        except:
+                            with open(File,'rb') as f:
+                                encoding = detect(f.read())['encoding']
+                                if encoding==None:
+                                    encoding='ansi'
+                            with open(File, 'r', encoding=encoding) as f:
+                                data = json.load(f)
+                    except Exception as e:
+                        print(traceback.format_exc())
+                        print(e)
+                        print(f'无法确定{name}文件编码,且无法用ANSI编码打开，读取失败')
                     TextDatas=self.__ReadFile(data,name)
                     self.ProgramData.update({name:self.__toDataFrame(TextDatas)})
         print('########################读取游戏完成########################')
@@ -329,8 +379,8 @@ class Jr_Tpp():
         Files = self.__ReadFolder(GameDir)
         for File in Files:
             # 只读取data内的json文件
-            if '\\data\\' in File and 'json' in File:
-                name = File.split('\\')[-1]
+            name = File.split('\\')[-1]
+            if '\\data\\' in File and '.json' in name:
                 # 黑名单文件不写入
                 if name not in self.BlackFiles:
                     print(f'正在写入{name}')
@@ -390,24 +440,41 @@ class Jr_Tpp():
             mapname[-1]=f'0{mapname[-1]}'
         namelist.append(f'Map{mapname[0]}~{mapname[-1]}.json')
         return namelist
-    # 导出单个文件
+    # 导出单个文件，只导出原文和译文列
     def ToXlsx(self,name:str,path:str):
         # 文件名后缀改为xlsx
-        print(f'正在保存{self.__nameswitch(name)}')
         outputname = self.__nameswitch(name)
+        print(f'正在导出{outputname}')
         data=self.ProgramData[name]
-        # 将标签转化为字符串
         try:
-            data.to_excel(path + '\\' + outputname, index=False)
+            self.__Writexlsx(data,path + '\\' + outputname)
         except Exception as e:
             print(traceback.format_exc())
             print(e)
-            input('保存失败，请关闭所有xlsx文件后再次尝试')
-    # 保存/导出工程,数据保存为xlsx，设置保存为json
-    def Save(self,path:str):
+            input('导出失败，请关闭所有xlsx文件后再次尝试')
+    # 导出单个文件到csv
+    def ToCsv(self,name:str,path:str):
+        # 文件名后缀改为xlsx
+        outputname = self.__nameswitch(name, True)
+        print(f'正在保存{outputname}')
+        data = self.ProgramData[name]
+        try:
+            data.to_csv(path+'\\'+outputname, sep='\uFFFC', encoding='utf8',index=False)
+        except Exception as e:
+            print(traceback.format_exc())
+            print(e)
+            input('保存失败，请关闭所有csv文件后再次尝试')
+    # 导出工程,数据保存为xlsx
+    def Output(self,path:str):
         if not os.path.exists(path+'\\data'): os.mkdir(path+'\\data')
         for name in self.ProgramData.keys():
             self.ToXlsx(name,path+'\\data')
+        print('########################导出完成########################')
+    # 保存工程文件，数据保存为csv，设置保存为json
+    def Save(self,path:str):
+        if not os.path.exists(path+'\\csv'): os.mkdir(path+'\\csv')
+        for name in self.ProgramData.keys():
+            self.ToCsv(name,path+'\\csv')
         out = json.dumps(self.config, indent=4, ensure_ascii=False)
         with open(path+'\\'+'config.json', 'w', encoding='utf8') as f1:
             print(out, file=f1)
@@ -417,12 +484,21 @@ class Jr_Tpp():
     def InputFromJson(self,trsdata:dict=False,path:str=False,namelist:list=False):
         if not trsdata:
             try:
-                with open(path, 'r', encoding='utf8') as f:
-                    trsdata = json.load(f)
+                try:
+                    with open(path, 'r', encoding='utf8') as f:
+                        trsdata = json.load(f)
+                except:
+                    with open(path, 'rb') as f:
+                        encoding = detect(f.read())['encoding']
+                        if encoding==None:
+                            encoding='ansi'
+                    with open(path, 'r', encoding=encoding) as f:
+                        trsdata = json.load(f)
             except Exception as e:
                 print(traceback.format_exc())
                 print(e)
-                input(f'读取{path}失败,请确保json文件头格式正确')
+                input(f'读取{path}失败,请确保json文件头格式正确\n'
+                      f'若提示UnicodeDecodeError，请确保该文件编码可读')
         # 全选
         if not namelist:
             namelist=self.ProgramData.keys()
@@ -460,8 +536,9 @@ class Jr_Tpp():
     def InputFromeXlsx(self, path:str, namelist:list=False, samefile=False):
         FileNames=self.__ReadFolder(path) # 读取path内文件路径
         for file in FileNames:
-            if 'xlsx' in file:
-                print('正在读取{}'.format(file.split('\\')[-1]))
+            name=file.split('\\')[-1]
+            if '.xlsx' in name:
+                print('正在导入{}'.format(name))
                 try:
                     data = self.__Readxlsx(file)
                 except Exception as e:
@@ -472,7 +549,6 @@ class Jr_Tpp():
                     self.InputFromDataFrame(data,namelist)
                 else:
                     # 获取文件的json文件名
-                    name=file.split('\\')[-1]
                     jsonname =self.__nameswitch(file)
                     # 检查是否存在该json文件
                     if jsonname in self.ProgramData.keys():
@@ -485,10 +561,11 @@ class Jr_Tpp():
         self.ProgramData={} # 清空工程数据
         FileNames = self.__ReadFolder(path) # 读取path内文件路径
         for file in FileNames:
-            print('正在加载{}'.format(file.split('\\')[-1]))
-            if 'xlsx' in file:
-                data = self.__Readxlsx(file)
-                # 检查xlsx格式是否正确
+            name = file.split('\\')[-1]
+            if '.csv' in name:
+                print('正在加载{}'.format(name))
+                data = pd.read_csv(file, sep='\uFFFC',encoding='utf8',engine='python',dtype='str')
+                # 检查csv格式是否正确
                 if not list(data.columns)==['原文','译文','地址','标签','code']:
                     print(f'{file}文件列名不为[\'原文\',\'译文\',\'地址\',\'标签\',\'code\']，读取失败')
                     continue
@@ -500,7 +577,7 @@ class Jr_Tpp():
                 # 去除原文重复的行
                 data=self.__RemoveDuplicated(data)
                 # 获取文件的json文件名
-                jsonname =self.__nameswitch(file)
+                jsonname =self.__nameswitch(file,True)
                 self.ProgramData.update({jsonname:data})
         print('########################加载工程完成########################')
 ############################################输出，增减标签，按条件搜索及其配套操作函数###########################################
@@ -623,24 +700,25 @@ class Jr_Tpp():
         res=self.search(string,col,target=target,namelist=namelist,notin=notin,BigSmall=BigSmall)
         if len (res):
             output=pd.concat(list(res.values()),axis=0)
-            output.to_excel(OutputName, index=False)
+            self.__Writexlsx(output,OutputName)
             print(f'已将搜索结果保存为{OutputName}')
         else:
             print('搜索结果为空')
         return res
-    # 将搜索结果导出到当前目录的单个json文件中,返回搜索结果
+    # 将搜索结果导出到当前目录的单个json文件中,返回json数据,搜索为空则返回空df
     def JsonBySearch(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False,OutputName:str='SearchRes.json'):
         res=self.search(string,col,target=target,namelist=namelist,notin=notin,BigSmall=BigSmall)
         if len(res):
             res = pd.concat(list(res.values()), axis=0)
-            output=dict(zip(res['原文'],res['原文']))
+            output=dict(zip(res['原文'],res['译文'].fillna('')))
             out = json.dumps(output, indent=4, ensure_ascii=False)
             with open(OutputName,'w',encoding='utf8') as f:
                 print(out, file=f)
             print(f'已将结果导出为{OutputName}')
+            return output
         else:
             print('搜索结果为空')
-        return res
+            return res
 #######################################################预处理和后处理######################################################
     # 标签黑名单地址,标签为'BlackDir'。同时对其应用原文
     def LabelBlackDir(self):
@@ -664,7 +742,19 @@ class Jr_Tpp():
     # 对名字标签并导出json文件
     def GetName(self,without:list=False):
         self.LabelName(without)
-        self.JsonBySearch('Name',3,OutputName='Name.json')
+        if not os.path.exists('name'): os.mkdir('name')
+        namedict=self.JsonBySearch('Name',3,OutputName=r'name\Name.json')
+        splited_name={}
+        for name in namedict.keys():
+            namelist=re.sub('[^\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5]','↓☆←',name).split('↓☆←')
+            trsednamelist=re.sub('[^\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5]','↓☆←',name).split('↓☆←')
+            if len(namelist)==len(trsednamelist):
+                splited_name.update(dict(zip(namelist, trsednamelist)))
+            else:
+                splited_name.update(dict(zip(namelist,namelist)))
+        out = json.dumps(splited_name, indent=4, ensure_ascii=False)
+        with open(r'name\Name.json', 'w', encoding='utf8') as f:
+            print(out, file=f)
     # 对target翻译应用原文
     def ApplyUntrs(self,target):
         for name in target.keys():
@@ -742,7 +832,7 @@ class Jr_Tpp():
         # 得到含有中日字符的文件名和不带后缀的形式
         for filename in temp:
             filename = filename.split('\\')[-1]
-            if re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5]',filename):
+            if re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5]',filename) or not self.ja:
                 files.append(filename)
                 files+=filename.split('.')[:-1]
         # 遍历
@@ -910,6 +1000,7 @@ class Jr_Tpp():
     def FromGame(self,GameDir,path):
         self.ReadGame(GameDir)
         self.GetName(self.NameWithout)
+        self.Output(path)
         self.Save(path)
     # 注入游戏，自动处理文件名问题，如有水印(如有），打水印，参数为游戏根目录,翻译数据路径和注入翻译后的json文件保存目录，mark为水印
     def ToGmae(self,GameDir,path,OutputPath,mark:str=False):
@@ -919,17 +1010,13 @@ class Jr_Tpp():
         if mark:
             self.AddMark(mark)
         self.InjectGame(GameDir,OutputPath)
-# 从路径读取config.json，并初始化翻译器，随后读取翻译数据,返回翻译器
-def Jr_Tpp_LOAD(path):
-    try:
-        with open(path+'\\'+'config.json','r',encoding='utf8') as f:
-            config=json.load(f)
-    except Exception as e:
-        print(traceback.format_exc())
-        print(e)
-        print('请确保读取路径内包含格式正确的config.json文件')
-    jrtpp=Jr_Tpp(config,path)
-    return jrtpp
+    # 游戏版本更新，path是旧版翻译文件的路径
+    def Updata(self,GameDir,path,savepath):
+        self.ReadGame(GameDir)
+        self.InputFromeXlsx(path)
+        self.GetName(self.NameWithout)
+        self.Output(savepath)
+        self.Save(savepath)
 def readconfig():
     try:
         yaml = YAML(typ='safe')
@@ -948,6 +1035,8 @@ def readconfig():
         codewithnames=config['codewithnames']
         output_path=config['output_path']
         line_length=config['line_length']
+        if not config.get('ja',False):
+            config['ja']=1
     except Exception as e:
         print(e)
         input('没有找到格式正确的config.yaml文件，请确保其存在于与exe同级文件夹内')
@@ -955,8 +1044,9 @@ def readconfig():
 if __name__ == '__main__':
     config=readconfig()
     startpage='1.一键读取游戏数据并保存\n' \
-              '2.加载翻译工程\n'
-    key=['1','2']
+              '2.加载翻译工程\n' \
+              '3.游戏版本更新\n'
+    key=['1','2','3']
     try:
         while 1:
             res=0
@@ -968,16 +1058,20 @@ if __name__ == '__main__':
                 input('已成功读取游戏数据，提取到的名字保存在Name.json中\n'
                       '请在翻译完名字以后，将其导入到ainiee的提示词典中\n'
                       '然后翻译{}\\data中的xlsx文件\n'.format(config['save_path']))
+            elif res=='3':
+                pj = Jr_Tpp(config)
+                pj.Updata(config['game_path'],config['translation_path'],config['save_path'])
             else:
-                pj = Jr_Tpp_LOAD(config['save_path'])
+                pj = Jr_Tpp(config,config['save_path'])
             mainpage = '1.一键注入翻译\n' \
                        '2.自动换行（换行后不会自动保存，也不会自动注入，不推荐在没有没备份的情况下保存)\n' \
                        '3.保存翻译工程\n' \
                        '4.加载翻译工程\n' \
-                       '5.重新加载配置文件\n'
+                       '5.导出翻译xlsx文件\n' \
+                       '6.重新加载配置文件\n'
             while 1:
                 res=0
-                while res not in ['1','2','3','4','5']:
+                while res not in ['1','2','3','4','5','6']:
                     res = input(mainpage)
                 if res=='1':
                     pj.ToGmae(config['game_path'],config['translation_path'],config['output_path'],config['mark'])
@@ -986,8 +1080,10 @@ if __name__ == '__main__':
                 elif res=='3':
                     pj.Save(config['save_path'])
                 elif res=='4':
-                    pj = Jr_Tpp_LOAD(config['save_path'])
+                    pj = Jr_Tpp(config,config['save_path'])
                 elif res=='5':
+                    pj.Output(config['save_path'])
+                elif res=='6':
                     config=readconfig()
                     print('已重新加载配置文件')
     except Exception as e:
@@ -996,18 +1092,21 @@ if __name__ == '__main__':
         input('发生错误，请上报bug')
     # 读
     # test=Jr_Tpp(config)
-    # test.FromGame(config['GameDir'],'data')
-    # test.OutputBySearch('vents*name',2)
 
 
     #
-    # test.ReadGame(config['GameDir'])
+    # test.ReadGame(config['game_path'])
+    # test.Display(namelist=['Map122.json'])
+    # print('\n{}'.format(test.ProgramData['Map122.json'].loc['虚ろな目をした女性','地址']))
     # test.GetName()
     # test.InputFromJson(path=r'res/TrsData.json')
     # test.Save('data')
     # 写
     # test=Jr_Tpp_LOAD('data')
-    # translation_path=r'D:\ggsddu\old\QFT\system\mytrs\jt++\jt++\ainiee'
+    # translation_path=r'jt++\ainiee'
+    # test.InputFromeXlsx(translation_path)
+    # test.Save('data')
+    # test.OutputBySearch('自身命中',1)
     # outputpath='D:\ggsddu\old\QFT\system\mytrs\jt++\output'
     # test.ToGmae(config['GameDir'],translation_path,outputpath,config['mark'])
     # test.Save('data')
