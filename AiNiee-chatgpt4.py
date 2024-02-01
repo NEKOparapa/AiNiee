@@ -6079,6 +6079,263 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
 
 
 
+
+
+class Widget_RPG(QFrame):  # RPG提取导入主界面
+    def __init__(self, text: str, parent=None):  # 构造函数，初始化实例时会自动调用
+        super().__init__(parent=parent)  # 调用父类 QWidget 的构造函数
+        self.setObjectName(text.replace(' ', '-'))  # 设置对象名，用于在 NavigationInterface 中的 addItem 方法中的 routeKey 参数中使用
+
+
+        self.pivot = SegmentedWidget(self)  # 创建一个 SegmentedWidget 实例，分段式导航栏
+        self.stackedWidget = QStackedWidget(self)  # 创建一个 QStackedWidget 实例，堆叠式窗口
+        self.vBoxLayout = QVBoxLayout(self)  # 创建一个垂直布局管理器
+
+        self.A_settings = Widget_export_source_text('A_settings', self)  # 创建实例，指向界面
+        self.B_settings = Widget_import_translated_text('B_settings', self)  # 创建实例，指向界面
+
+        # 添加子界面到分段式导航栏
+        self.addSubInterface(self.A_settings, 'A_settings', '原文导出')
+        self.addSubInterface(self.B_settings, 'B_settings', '译文导入')
+
+
+        # 将分段式导航栏和堆叠式窗口添加到垂直布局中
+        self.vBoxLayout.addWidget(self.pivot)
+        self.vBoxLayout.addWidget(self.stackedWidget)
+        self.vBoxLayout.setContentsMargins(30, 50, 30, 30)  # 设置布局的外边距
+
+        # 连接堆叠式窗口的 currentChanged 信号到槽函数 onCurrentIndexChanged
+        self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
+        self.stackedWidget.setCurrentWidget(self.A_settings)  # 设置默认显示的子界面为xxx界面
+        self.pivot.setCurrentItem(self.A_settings.objectName())  # 设置分段式导航栏的当前项为xxx界面
+
+    def addSubInterface(self, widget: QLabel, objectName, text):
+        """
+        添加子界面到堆叠式窗口和分段式导航栏
+        """
+        widget.setObjectName(objectName)
+        #widget.setAlignment(Qt.AlignCenter) # 设置 widget 对象的文本（如果是文本控件）在控件中的水平对齐方式
+        self.stackedWidget.addWidget(widget)
+        self.pivot.addItem(
+            routeKey=objectName,
+            text=text,
+            onClick=lambda: self.stackedWidget.setCurrentWidget(widget),
+        )
+
+    def onCurrentIndexChanged(self, index):
+        """
+        槽函数：堆叠式窗口的 currentChanged 信号的槽函数
+        """
+        widget = self.stackedWidget.widget(index)
+        self.pivot.setCurrentItem(widget.objectName())
+
+
+class Widget_export_source_text(QFrame):#  导出子界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+
+
+        # -----创建第1个组，添加多个组件-----
+        box_input = QGroupBox()
+        box_input.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_input = QHBoxLayout()
+
+        #设置“输入文件夹”标签
+        label4 = QLabel(flags=Qt.WindowFlags())  
+        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label4.setText("输入文件夹")
+
+        #设置“输入文件夹”显示
+        self.label_input_path = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label_input_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.label_input_path.setText("(请选择原文文件所在的文件夹，不要混杂其他文件)")  
+
+        #设置打开文件按钮
+        self.pushButton_input = PushButton('选择文件夹', self, FIF.FOLDER)
+        #self.pushButton_input.clicked.connect(File_Reader.Select_project_folder) #按钮绑定槽函数
+
+
+
+        layout_input.addWidget(label4)
+        layout_input.addWidget(self.label_input_path)
+        layout_input.addStretch(1)  # 添加伸缩项
+        layout_input.addWidget(self.pushButton_input)
+        box_input.setLayout(layout_input)
+
+
+        # -----创建第2个组，添加多个组件-----
+        box_output = QGroupBox()
+        box_output.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_output = QHBoxLayout()
+
+        #设置“输出文件夹”标签
+        label6 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label6.setText("输出文件夹")
+
+        #设置“输出文件夹”显示
+        self.label_output_path = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label_output_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label_output_path.setText("(请选择翻译文件存放的文件夹)")
+
+        #设置输出文件夹按钮
+        self.pushButton_output = PushButton('选择文件夹', self, FIF.FOLDER)
+        #self.pushButton_output.clicked.connect(File_Reader.Select_output_folder) #按钮绑定槽函数
+
+
+        
+
+        layout_output.addWidget(label6)
+        layout_output.addWidget(self.label_output_path)
+        layout_output.addStretch(1)  # 添加伸缩项
+        layout_output.addWidget(self.pushButton_output)
+        box_output.setLayout(layout_output)
+
+
+        # -----创建第x个组，添加多个组件-----
+        box_start_export = QGroupBox()
+        box_start_export.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_start_export = QHBoxLayout()
+
+
+        #设置“开始翻译”的按钮
+        self.primaryButton_start_export = PrimaryPushButton('开始导出', self, FIF.UPDATE)
+        #self.primaryButton_start_import.clicked.connect(self.Start_import_mtool) #按钮绑定槽函数
+
+
+        layout_start_export.addStretch(1)  # 添加伸缩项
+        layout_start_export.addWidget(self.primaryButton_start_export)
+        layout_start_export.addStretch(1)  # 添加伸缩项
+        box_start_export.setLayout(layout_start_export)
+
+
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+        # 把内容添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_input)
+        container.addWidget(box_output)
+        container.addWidget(box_start_export)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+
+
+    def saveconfig(self):
+        configurator.read_write_config("write")
+        user_interface_prompter.createSuccessInfoBar("已成功保存配置")
+
+
+class Widget_import_translated_text(QFrame):#  导入子界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+
+
+        # -----创建第1个组，添加多个组件-----
+        box_input = QGroupBox()
+        box_input.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_input = QHBoxLayout()
+
+        #设置“输入文件夹”标签
+        label4 = QLabel(flags=Qt.WindowFlags())  
+        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label4.setText("输入文件夹")
+
+        #设置“输入文件夹”显示
+        self.label_input_path = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label_input_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.label_input_path.setText("(请选择原文文件所在的文件夹，不要混杂其他文件)")  
+
+        #设置打开文件按钮
+        self.pushButton_input = PushButton('选择文件夹', self, FIF.FOLDER)
+        #self.pushButton_input.clicked.connect(File_Reader.Select_project_folder) #按钮绑定槽函数
+
+
+
+        layout_input.addWidget(label4)
+        layout_input.addWidget(self.label_input_path)
+        layout_input.addStretch(1)  # 添加伸缩项
+        layout_input.addWidget(self.pushButton_input)
+        box_input.setLayout(layout_input)
+
+
+        # -----创建第2个组，添加多个组件-----
+        box_output = QGroupBox()
+        box_output.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_output = QHBoxLayout()
+
+        #设置“输出文件夹”标签
+        label6 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label6.setText("输出文件夹")
+
+        #设置“输出文件夹”显示
+        self.label_output_path = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label_output_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label_output_path.setText("(请选择翻译文件存放的文件夹)")
+
+        #设置输出文件夹按钮
+        self.pushButton_output = PushButton('选择文件夹', self, FIF.FOLDER)
+        #self.pushButton_output.clicked.connect(File_Reader.Select_output_folder) #按钮绑定槽函数
+
+
+        
+
+        layout_output.addWidget(label6)
+        layout_output.addWidget(self.label_output_path)
+        layout_output.addStretch(1)  # 添加伸缩项
+        layout_output.addWidget(self.pushButton_output)
+        box_output.setLayout(layout_output)
+
+
+        # -----创建第x个组，添加多个组件-----
+        box_start_import = QGroupBox()
+        box_start_import.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_start_import = QHBoxLayout()
+
+
+        #设置“开始翻译”的按钮
+        self.primaryButton_start_import = PrimaryPushButton('开始导入', self, FIF.UPDATE)
+        #self.primaryButton_start_import.clicked.connect(self.Start_import_mtool) #按钮绑定槽函数
+
+
+        layout_start_import.addStretch(1)  # 添加伸缩项
+        layout_start_import.addWidget(self.primaryButton_start_import)
+        layout_start_import.addStretch(1)  # 添加伸缩项
+        box_start_import.setLayout(layout_start_import)
+
+
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+        # 把内容添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_input)
+        container.addWidget(box_output)
+        container.addWidget(box_start_import)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+
+
+
 class Widget_check(QFrame):# 错行检查界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
@@ -7578,7 +7835,8 @@ class window(FramelessWindow): #主窗口
         self.Widget_Google = Widget_Google('Widget_Google', self)
         self.Widget_SakuraLLM = Widget_SakuraLLM('Widget_SakuraLLM', self)
         self.Widget_translation_settings = Widget_translation_settings('Widget_translation_settings', self) 
-        self.Widget_start_translation = Widget_start_translation('Widget_start_translation', self)     
+        self.Widget_start_translation = Widget_start_translation('Widget_start_translation', self) 
+        self.Widget_RPG = Widget_RPG('Widget_RPG', self)    
         self.Interface18 = Widget18('Interface18', self)
         self.Widget_check = Widget_check('Widget_check', self)   
         self.Interface21 = Widget21('Interface21', self) 
@@ -7631,10 +7889,15 @@ class window(FramelessWindow): #主窗口
         # 添加其他功能页面
         self.addSubInterface(self.Interface23, FIF.CALENDAR, '提示字典')  
         self.addSubInterface(self.Interface21, FIF.CALENDAR, '替换字典')  
-        self.addSubInterface(self.Interface18, FIF.ALBUM, 'AI实时调教')   
         self.addSubInterface(self.Interface22, FIF.ZOOM, 'AI提示词工程') 
+        self.addSubInterface(self.Interface18, FIF.ALBUM, 'AI实时调教')   
 
         self.navigationInterface.addSeparator() #添加分隔符,需要删除position=NavigationItemPosition.SCROLL来使分隔符正确显示
+
+        #添加RPG界面
+        self.addSubInterface(self.Widget_RPG, FIF.CALENDAR, 'RPG')
+
+        self.navigationInterface.addSeparator() 
 
         #添加语义检查页面
         self.addSubInterface(self.Widget_check, FIF.HIGHTLIGHT, '错行检查') 
