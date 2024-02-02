@@ -721,7 +721,7 @@ class Api_Requester():
                     # 发送对话请求
                     try:
                         #如果开启了回复josn格式的功能和可以开启该功能的模型
-                        if (configurator.response_json_format_toggle) and (configurator.model_type == "gpt-3.5-turbo-1106" or configurator.model_type == "gpt-4-1106-preview"):
+                        if (configurator.response_json_format_toggle) and (configurator.model_type == "gpt-3.5-turbo-0125" or configurator.model_type == "gpt-4-turbo-preview"):
                             print("[INFO] 已开启强制回复josn格式功能")
                             response = openaiclient.chat.completions.create(
                                 model= configurator.model_type,
@@ -3105,7 +3105,7 @@ class Request_Limiter():
                 "gpt-3.5-turbo-0301": {"max_tokens": 4000, "TPM": 40000, "RPM": 3},
                 "gpt-3.5-turbo-0613": {"max_tokens": 4000, "TPM": 40000, "RPM": 3},
                 "gpt-3.5-turbo-1106": {"max_tokens": 4000, "TPM": 40000, "RPM": 3},
-                "gpt-3.5-turbo-0125": {"max_tokens": 4000, "TPM": 40000, "RPM": 3},
+                "gpt-3.5-turbo-0125": {"max_tokens": 4000, "TPM": 150000, "RPM": 3},
                 "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 40000, "RPM": 3},
                 "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 40000, "RPM": 3},
                 "text-embedding-ada-002": {"max_tokens": 8000, "TPM": 150000, "RPM": 3},
@@ -5688,7 +5688,7 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
     #设置“回复json格式”选择开关绑定函数
     def onjsonmode(self, isChecked: bool):
         if isChecked:
-            user_interface_prompter.createWarningInfoBar("该设置现在仅支持openai接口的gpt-3.5-turbo-1106与gpt-4-1106-preview模型开启")
+            user_interface_prompter.createWarningInfoBar("该设置现在仅支持openai接口的gpt-3.5-turbo-0125与gpt-4-turbo-preview模型开启")
 
 
 
