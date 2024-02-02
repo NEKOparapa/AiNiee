@@ -5,7 +5,7 @@
 <p>
 
 ***
-[![下载地址](https://img.shields.io/badge/下载地址-点击下载-1E90FF)](https://github.com/NEKOparapa/AiNiee-chatgpt/releases)
+[![下载地址](https://img.shields.io/badge/下载地址-点击下载-1E90FF)](https://github.com/NEKOparapa/AiNiee/releases)
 [![教程视频](https://img.shields.io/badge/教程视频-点击观看-ff69b4)](https://www.bilibili.com/video/BV18c411K7WN)
 
 **这是一款基于`Mtool`或`Translator++`的 AI自动批翻译工具,主要是用来翻译各种RPG游戏**
@@ -31,7 +31,7 @@
   
 # 使用方法📝
 ***
-* **第一步**.🖱️双击`启动AiNiee-chatgpt4.exe`,在账号设置页面配置你的账号信息以及`API KEY`
+* **第一步**.🖱️双击`启动AiNiee.exe`,在账号设置页面配置你的账号信息以及`API KEY`
     > OpenAI官方配置界面:<br>
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/官方账号设置.png" width="600" height="400"><br>
   
@@ -217,7 +217,7 @@
    pip install -r requirements.txt
    ```
 
-* 3.然后在IDE或者CLI里，直接运行`AiNiee-chatgpt4.py`应该就可以了！
+* 3.然后在IDE或者CLI里，直接运行`AiNiee4.py`应该就可以了！
 
 # 推荐工具🧰 
 ***
