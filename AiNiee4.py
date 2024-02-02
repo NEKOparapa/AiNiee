@@ -4516,7 +4516,7 @@ class Widget_Openai(QFrame):#  Openai账号界面
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(200, 35)
         #设置下拉选择框默认选择
-        self.comboBox_model.setCurrentText('gpt-3.5-turbo-0613')
+        self.comboBox_model.setCurrentText('gpt-3.5-turbo')
         
 
 
