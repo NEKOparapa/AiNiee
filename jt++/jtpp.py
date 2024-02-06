@@ -6,7 +6,7 @@ import traceback
 import openpyxl
 from chardet import detect
 
-# v1.5
+# v1.6
 class Jr_Tpp():
     def __init__(self,config:dict,path:str=False):
         self.config=config
@@ -52,14 +52,17 @@ class Jr_Tpp():
             print(traceback.format_exc())
             print(e)
             print('请关闭所有xlsx文件再试')
-    # 用openpyxl写xlsx，只导出原文和译文列
-    def __Writexlsx(self,df,name):
+    # 用openpyxl写xlsx，默认只导出原文和译文列
+    def __Writexlsx(self,df,name,full=False):
         # 创建一个Excel工作簿
         workbook = openpyxl.Workbook()
         # 获取默认的工作表
         sheet = workbook.active
         # 定义需要导出的列
-        columns_to_export = ['原文', '译文']
+        if not full:
+            columns_to_export = ['原文', '译文']
+        else:
+            columns_to_export = ['原文', '译文','地址','标签','code']
         # 写入表头
         header_row = [column for column in columns_to_export]
         sheet.append(header_row)
@@ -98,8 +101,8 @@ class Jr_Tpp():
                           or r'System.json\gameTitle' in FileName) :
             if r'System.json\gameTitle' in FileName and data=='':data=' '# 游戏名为空时，变为空格，否则会报错
             if not code:code='-1'
-            # 只有特定code才读取
-            if str(code) in self.ReadCode:
+            # 只有特定code才读取,readcode为空时，全读
+            if str(code) in self.ReadCode or len(self.ReadCode)==0:
                 res.append([data,'',FileName,'',str(code)])
         return res
     # 读取文件夹路径，返回包括其子文件夹内的所有文件名
@@ -245,11 +248,11 @@ class Jr_Tpp():
             # 只读取data内的json文件
             name = File.split('\\')[-1]
             if '\\data\\' in File and '.json' in name:
-                # 黑名单文件不写入
+                print(f'正在写入{name}')
+                with open(File, 'r', encoding='utf8') as f:
+                    data = json.load(f)
+                # 黑名单文件不做修改，直接输出
                 if name not in self.BlackFiles:
-                    print(f'正在写入{name}')
-                    with open(File, 'r', encoding='utf8') as f:
-                        data = json.load(f)
                     # 写入翻译
                     if name in self.ProgramData.keys():
                         DataFrame=self.ProgramData[name]
@@ -272,18 +275,19 @@ class Jr_Tpp():
                                     data=self.__WriteFile(data,untrs,trsed,Dir[1:])
                     else:
                         print(f'{name}不在工程文件中，工程文件与游戏是否匹配')
-                    # 获取文件输出路径
-                    outputpath=(path+'\\data\\'+File.split('\\data\\')[-1]).lstrip('\\')
-                    # 获取并创建从path到outputpath的路径
-                    datadir=(outputpath.replace(name,'').replace(path,'').strip('\\')).split('\\')
-                    temp=path.rstrip('\\')
-                    for i in datadir:
-                        temp+='\\'+i
-                        if not os.path.exists(temp.strip('\\')): os.mkdir(temp.strip('\\'))
-                    # 输出文件
-                    out = json.dumps(data, ensure_ascii=False)
-                    with open(outputpath, 'w', encoding='utf8') as f1:
-                        print(out, file=f1)
+                # 获取文件输出路径
+                outputpath=(path+'\\data\\'+File.split('\\data\\')[-1]).lstrip('\\')
+                # 获取并创建从path到outputpath的路径
+                datadir=(outputpath.replace(name,'').replace(path,'').strip('\\')).split('\\')
+                temp=path.rstrip('\\')
+                for i in datadir:
+                    temp+='\\'+i
+                    if not os.path.exists(temp.strip('\\')): os.mkdir(temp.strip('\\'))
+                # 输出文件
+                out = json.dumps(data, ensure_ascii=False)
+                with open(outputpath, 'w', encoding='utf8') as f1:
+                    print(out, file=f1)
+
         print('########################写入游戏完成########################')
     # 获取翻译工程内的文件名,Mapxxx.json合并为Mapxxx~XXX.json
     def GetFileNames(self) -> list:
@@ -304,7 +308,7 @@ class Jr_Tpp():
             mapname[-1]=f'0{mapname[-1]}'
         namelist.append(f'Map{mapname[0]}~{mapname[-1]}.json')
         return namelist
-    # 导出单个文件，只导出原文和译文列
+    # 导出单个文件，默认只导出原文和译文列
     def ToXlsx(self,name:str,path:str):
         # 文件名后缀改为xlsx
         outputname = self.__nameswitch(name)
@@ -559,12 +563,12 @@ class Jr_Tpp():
         res=self.search(string,col,target=target,namelist=namelist,notin=notin,BigSmall=BigSmall)
         self.Display(res)
         return res
-    # 将搜索结果导出到当前目录的单个xlsx中,返回搜索结果
-    def OutputBySearch(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False,OutputName:str='SearchRes.xlsx'):
+    # 将搜索结果导出到当前目录的单个xlsx中,返回搜索结果,默认只导出原文和译文
+    def OutputBySearch(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False,OutputName:str='SearchRes.xlsx',full=False):
         res=self.search(string,col,target=target,namelist=namelist,notin=notin,BigSmall=BigSmall)
         if len (res):
             output=pd.concat(list(res.values()),axis=0)
-            self.__Writexlsx(output,OutputName)
+            self.__Writexlsx(output,OutputName,full)
             print(f'已将搜索结果保存为{OutputName}')
         else:
             print('搜索结果为空')
@@ -616,6 +620,7 @@ class Jr_Tpp():
                 splited_name.update(dict(zip(namelist, trsednamelist)))
             else:
                 splited_name.update(dict(zip(namelist,namelist)))
+        if '' in splited_name.keys():del splited_name['']
         out = json.dumps(splited_name, indent=4, ensure_ascii=False)
         with open(r'name\Name.json', 'w', encoding='utf8') as f:
             print(out, file=f)
