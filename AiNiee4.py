@@ -52,16 +52,16 @@ from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, 
 from qfluentwidgets import FluentIcon as FIF
 
 
-Software_Version = "AiNiee-chatgpt4.61"  #软件版本号
+Software_Version = "AiNiee-chatgpt4.63"  #软件版本号
 cache_list = [] # 全局缓存数据
 Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
-                    # 6是翻译任务进行状态，7是错行检查状态
+                    # 6是翻译任务进行状态，7是错行检查状态，9是翻译任务暂停状态，10是强制终止任务状态
 
 
 # 定义线程锁
 lock1 = threading.Lock()  #这个用来锁缓存文件
 lock2 = threading.Lock()  #这个用来锁UI信号的
-lock3 = threading.Lock()  #这个用来锁自动备份缓存文件
+lock3 = threading.Lock()  #这个用来锁自动备份缓存文件功能的
 
 # 工作目录改为python源代码所在的目录
 script_dir = os.path.dirname(os.path.abspath(sys.argv[0])) # 获取当前工作目录
@@ -84,56 +84,73 @@ class Translator():
         request_limiter.initialize_limiter()
 
         # ——————————————————————————————————————————读取原文到缓存—————————————————————————————————————————
-        # 读取文件
-        Input_Folder = configurator.Input_Folder
-        if configurator.translation_project == "Mtool导出文件":
-            cache_list = File_Reader.read_mtool_files(self,folder_path = Input_Folder)
-        elif configurator.translation_project == "T++导出文件":
-            cache_list = File_Reader.read_xlsx_files (self,folder_path = Input_Folder)
-        elif configurator.translation_project == "Ainiee缓存文件":
-            cache_list = File_Reader.read_cache_files(self,folder_path = Input_Folder)
+        #如果是从头开始翻译
+        if Running_status != 9:
+            # 读取文件
+            Input_Folder = configurator.Input_Folder
+            if configurator.translation_project == "Mtool导出文件":
+                cache_list = File_Reader.read_mtool_files(self,folder_path = Input_Folder)
+            elif configurator.translation_project == "T++导出文件":
+                cache_list = File_Reader.read_xlsx_files (self,folder_path = Input_Folder)
+            elif configurator.translation_project == "Ainiee缓存文件":
+                cache_list = File_Reader.read_cache_files(self,folder_path = Input_Folder)
 
 
-        # 将浮点型，整数型文本内容变成字符型文本内容
-        Cache_Manager.convert_source_text_to_str(self,cache_list)
+            # 将浮点型，整数型文本内容变成字符型文本内容
+            Cache_Manager.convert_source_text_to_str(self,cache_list)
 
-        # 如果翻译日语或者韩语文本时，则去除非中日韩文本
-        Text_Source_Language =  Window.Widget_translation_settings.A_settings.comboBox_source_text.currentText() 
-        if Text_Source_Language == "日语" or Text_Source_Language == "韩语":
-            Cache_Manager.process_dictionary_list(self,cache_list)
+            # 如果翻译日语或者韩语文本时，则去除非中日韩文本
+            Text_Source_Language =  Window.Widget_translation_settings.A_settings.comboBox_source_text.currentText() 
+            if Text_Source_Language == "日语" or Text_Source_Language == "韩语":
+                Cache_Manager.process_dictionary_list(self,cache_list)
+
 
 
         # ——————————————————————————————————————————构建并发任务池子—————————————————————————————————————————
 
         # 计算并发任务数
         line_count_configuration = configurator.text_line_counts # 获取每次翻译行数配置
-        total_text_line_count = Cache_Manager.count_translation_status_0(self, cache_list)
+        untranslated_text_line_count = Cache_Manager.count_and_update_translation_status_0_2(self, cache_list) #获取需要翻译的文本总行数
 
-        if total_text_line_count % line_count_configuration == 0:
-            tasks_Num = total_text_line_count // line_count_configuration 
+        if untranslated_text_line_count % line_count_configuration == 0:
+            tasks_Num = untranslated_text_line_count // line_count_configuration 
         else:
-            tasks_Num = total_text_line_count // line_count_configuration + 1
+            tasks_Num = untranslated_text_line_count // line_count_configuration + 1
 
 
 
         # 更新界面UI信息，并输出各种配置信息
-        project_id = cache_list[0]["project_id"]
-        user_interface_prompter.signal.emit("初始化翻译界面数据",project_id,total_text_line_count,0,0) #需要输入够当初设定的参数个数
-        user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0,0,0)
+        if Running_status == 9: # 如果是继续翻译
+            total_text_line_count = user_interface_prompter.total_text_line_count # 与上一个翻译任务的总行数一致
+            user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0,0,0)
+
+            #最后改一下运行状态
+            Running_status = 6
+
+        else:#如果是从头开始翻译
+            total_text_line_count = untranslated_text_line_count
+            project_id = cache_list[0]["project_id"]
+            user_interface_prompter.signal.emit("初始化翻译界面数据",project_id,untranslated_text_line_count,0,0) #需要输入够当初设定的参数个数
+            user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0,0,0)
+
         print("[INFO]  翻译项目为",configurator.translation_project, '\n')
         print("[INFO]  翻译平台为",configurator.translation_platform, '\n')
         print("[INFO]  AI模型为",configurator.model_type, '\n')
+
         if configurator.translation_platform == "Openai代理" or  configurator.translation_platform == "SakuraLLM":
             print("[INFO]  请求地址为",configurator.openai_base_url, '\n')
         elif configurator.translation_platform == "Openai官方":
             print("[INFO]  账号类型为",Window.Widget_Openai.comboBox_account_type.currentText(), '\n')
-        print("[INFO]  游戏文本从",configurator.source_language, '翻译到', configurator.target_language,'\n')
+
         if configurator.translation_platform != "SakuraLLM":
             print("[INFO]  当前设定的系统提示词为：", configurator.get_system_prompt(), '\n')
             original_exmaple,translation_example =  configurator.get_default_translation_example()
             print("[INFO]  已添加默认原文示例",original_exmaple, '\n')
             print("[INFO]  已添加默认译文示例",translation_example, '\n')
-        print("[INFO]  文本总行数为：",total_text_line_count,"  每次发送行数为：",line_count_configuration,"  计划的翻译任务总数是：", tasks_Num) 
+
+        print("[INFO]  游戏文本从",configurator.source_language, '翻译到', configurator.target_language,'\n')
+        print("[INFO]  文本总行数为：",total_text_line_count,"  需要翻译的行数为：",untranslated_text_line_count) 
+        print("[INFO]  每次发送行数为：",line_count_configuration,"  计划的翻译任务总数是：", tasks_Num,'\n') 
         print("\033[1;32m[INFO] \033[0m 五秒后开始进行翻译，请注意保持网络通畅，余额充足。", '\n')
         time.sleep(5)  
 
@@ -167,20 +184,17 @@ class Translator():
 
 
 
-        # 检查主窗口是否已经退出
-        if Running_status == 10 :
+        # 检查翻译任务是否已经暂停或者退出
+        if Running_status == 9 or Running_status == 10 :
             return
-    
-        # 检查翻译任务是否已经暂停
-        if Running_status == 1011 :
-            pass
+
 
         # ——————————————————————————————————————————检查没能成功翻译的文本，拆分翻译————————————————————————————————————————
 
         #计算未翻译文本的数量
         untranslated_text_line_count = Cache_Manager.count_and_update_translation_status_0_2(self,cache_list)
 
-        #重新翻译次数限制
+        #存储重新翻译的次数
         retry_translation_count = 1
 
         while untranslated_text_line_count != 0 :
@@ -230,10 +244,10 @@ class Translator():
                 executor.shutdown(wait=True)
 
             
-
-            #检查主窗口是否已经退出
-            if Running_status == 10 :
+            # 检查翻译任务是否已经暂停或者退出
+            if Running_status == 9 or Running_status == 10 :
                 return
+
 
             #检查是否已经达到重翻次数限制
             retry_translation_count  = retry_translation_count + 1
@@ -260,20 +274,12 @@ class Translator():
                     print("\033[1;33mWarning:\033[0m 文本转换出现问题！！将跳过该步，错误信息如下")
                     print(f"Error: {e}\n")
 
-        # 将翻译结果写为文件
+        # 将翻译结果写为对应文件
         output_path = configurator.Output_Folder
-
-        if configurator.translation_project == "Mtool导出文件":
+        if cache_list[0]["project_type"] == "Mtool":
             File_Outputter.output_json_file(self,cache_list, output_path)
-
-        elif configurator.translation_project == "T++导出文件":
+        else:
             File_Outputter.output_excel_file(self,cache_list, output_path)
-
-        elif configurator.translation_project == "Ainiee缓存文件":
-            if cache_list[0]["project_type"] == "Mtool":
-                File_Outputter.output_json_file(self,cache_list, output_path)
-            else:
-                File_Outputter.output_excel_file(self,cache_list, output_path)
 
         print("\033[1;32mSuccess:\033[0m  译文文件写入完成-----------------------------------", '\n')  
 
@@ -642,7 +648,9 @@ class Api_Requester():
     def Concurrent_Request_Openai(self):
         global cache_list,Running_status
 
-
+        # 检查翻译任务是否已经暂停或者退出
+        if Running_status == 9 or Running_status == 10 :
+            return
 
         try:#方便排查子线程bug
 
@@ -683,8 +691,8 @@ class Api_Requester():
             model_degradation = False # 模型退化检测
 
             while 1 :
-                #检查主窗口是否已经退出---------------------------------
-                if Running_status == 10 :
+                # 检查翻译任务是否已经暂停或者退出
+                if Running_status == 9 or Running_status == 10 :
                     return
 
                 #检查子线程运行是否超时---------------------------------
@@ -757,6 +765,11 @@ class Api_Requester():
                         #处理完毕，再次进行请求
                         continue
 
+
+                    # 检查翻译任务是否已经暂停或者退出，不进行接下来的处理了
+                    if Running_status == 9 or Running_status == 10 :
+                        return
+                    
 
                     #——————————————————————————————————————————收到回复，并截取回复内容中的文本内容 ————————————————————————————————————————  
                     # 计算AI回复花费的时间
@@ -950,6 +963,10 @@ class Api_Requester():
     def Concurrent_Request_Google(self):
         global cache_list,Running_status
 
+        # 检查翻译任务是否已经暂停或者退出
+        if Running_status == 9 or Running_status == 10 :
+            return
+
         try:#方便排查子线程bug
 
             # ——————————————————————————————————————————截取需要翻译的原文本——————————————————————————————————————————
@@ -988,8 +1005,8 @@ class Api_Requester():
             Wrong_answer_count = 0   # 设置错误回复次数限制
 
             while 1 :
-                #检查主窗口是否已经退出---------------------------------
-                if Running_status == 10 :
+                # 检查翻译任务是否已经暂停或者退出
+                if Running_status == 9 or Running_status == 10 :
                     return
 
                 #检查子线程运行是否超时---------------------------------
@@ -1067,6 +1084,11 @@ class Api_Requester():
                         #处理完毕，再次进行请求
                         continue
 
+
+                    # 检查翻译任务是否已经暂停或者退出，不进行接下来的处理了
+                    if Running_status == 9 or Running_status == 10 :
+                        return
+                    
 
                     #——————————————————————————————————————————收到回复，并截取回复内容中的文本内容 ————————————————————————————————————————  
                     # 计算AI回复花费的时间
@@ -1376,7 +1398,9 @@ class Api_Requester():
     def Concurrent_Request_Sakura(self):
         global cache_list,Running_status
 
-
+        # 检查翻译任务是否已经暂停或者退出
+        if Running_status == 9 or Running_status == 10 :
+            return
 
         try:#方便排查子线程bug
 
@@ -1417,8 +1441,8 @@ class Api_Requester():
             model_degradation = False # 模型退化检测
 
             while 1 :
-                #检查主窗口是否已经退出---------------------------------
-                if Running_status == 10 :
+                # 检查翻译任务是否已经暂停或者退出
+                if Running_status == 9 or Running_status == 10 :
                     return
 
                 #检查子线程运行是否超时---------------------------------
@@ -1479,6 +1503,11 @@ class Api_Requester():
                         continue
 
 
+                    # 检查翻译任务是否已经暂停或者退出，不进行接下来的处理了
+                    if Running_status == 9 or Running_status == 10 :
+                        return
+                    
+                    
                     #——————————————————————————————————————————收到回复，并截取回复内容中的文本内容 ————————————————————————————————————————  
                     # 计算AI回复花费的时间
                     response_time = time.time()
@@ -3675,17 +3704,20 @@ class Cache_Manager():
     """
     缓存数据以列表来存储，分文件头和文本单元，文件头数据结构如下:
     1.项目类型： "project_type"
+    2.项目ID： "project_id"
 
     文本单元的数据结构如下:
     1.翻译状态： "translation_status"   未翻译状态为0，已翻译为1，正在翻译为2，正在嵌入或者嵌入完成为3，不需要翻译为7
     2.文本归类： "text_classification"
     3.文本索引： "text_index"
-    4.原文： "source_text"
-    5.译文： "translated_text"
-    6.语义相似度："semantic_similarity"
-    7.存储路径： "storage_path"
-    8.存储文件名： "storage_file_name"
-    9.行索引： "line_index"
+    4.名字： "name"
+    5.原文： "source_text"
+    6.译文： "translated_text"
+    7.语义相似度："semantic_similarity"
+    8.存储路径： "storage_path"
+    9.存储文件名： "storage_file_name"
+    10.行索引： "line_index"
+
     """
     def __init__(self):
         pass
@@ -4288,9 +4320,27 @@ class background_executor(threading.Thread):
 
         # 执行翻译
         elif self.task_id == "执行翻译任务":
-            Running_status = 6
+            #如果不是status'为9，说明翻译任务被暂停了，先不改变运行状态
+            if Running_status != 9:
+                Running_status = 6
+
+            #执行翻译主函数
             Translator.Main(self)
-            Running_status = 0
+
+
+            # 如果完成了翻译任务
+            if Running_status == 6:
+                Running_status = 0
+            # 如果取消了翻译任务
+            if Running_status == 10:
+                user_interface_prompter.signal.emit("翻译状态提示","翻译取消",0,0,0)
+                Running_status = 0
+            # 如果暂停了翻译任务
+            if Running_status == 9:
+                user_interface_prompter.signal.emit("翻译状态提示","翻译暂停",0,0,0)
+
+
+
         # 执行检查任务
         elif self.task_id == "执行检查任务":
             Running_status = 7
@@ -4352,10 +4402,45 @@ class User_Interface_Prompter(QObject):
                 self.stateTooltip = StateToolTip('正在进行翻译中', '客官请耐心等待哦~~', Window)
                 self.stateTooltip.move(510, 30) # 设定控件的出现位置，该位置是传入的Window窗口的位置
                 self.stateTooltip.show()
+
+            elif input_str2 == "翻译暂停":
+                print("\033[1;33mWarning:\033[0m 翻译任务已被暂停-----------------------","\n")
+                self.stateTooltip.setContent('翻译已暂停')
+                self.stateTooltip.setState(True)
+                self.stateTooltip = None
+                #界面提示
+                self.createWarningInfoBar("翻译已暂停")
+
+            elif input_str2 == "翻译取消":
+                print("\033[1;33mWarning:\033[0m 翻译任务已被取消-----------------------","\n")
+                self.stateTooltip.setContent('翻译已取消')
+                self.stateTooltip.setState(True)
+                self.stateTooltip = None
+                #界面提示
+                self.createWarningInfoBar("翻译已取消")
+
+                #重置翻译界面数据
+                Window.Widget_start_translation.A_settings.translation_project.setText("无")
+                Window.Widget_start_translation.A_settings.project_id.setText("无")
+                Window.Widget_start_translation.A_settings.total_text_line_count.setText("无")
+                Window.Widget_start_translation.A_settings.translated_line_count.setText("无")
+                Window.Widget_start_translation.A_settings.tokens_spent.setText("无")
+                Window.Widget_start_translation.A_settings.amount_spent.setText("无")
+                Window.Widget_start_translation.A_settings.progressRing.setValue(0)
+
+
             elif input_str2 == "翻译完成":
                 self.stateTooltip.setContent('已经翻译完成啦 😆')
                 self.stateTooltip.setState(True)
                 self.stateTooltip = None
+
+                #隐藏继续翻译按钮
+                Window.Widget_start_translation.A_settings.primaryButton_continue_translation.hide()
+                #隐藏暂停翻译按钮
+                Window.Widget_start_translation.A_settings.primaryButton_pause_translation.hide()
+                #显示开始翻译按钮
+                Window.Widget_start_translation.A_settings.primaryButton_start_translation.show()
+
 
         elif input_str1 == "初始化翻译界面数据":
             # 更新翻译项目信息
@@ -4379,6 +4464,19 @@ class User_Interface_Prompter(QObject):
             self.translated_line_count = 0 #存储已经翻译文本行数
             self.tokens_spent = 0  #存储已经花费的tokens
             self.amount_spent = 0  #存储已经花费的金钱
+
+
+
+        elif input_str1 == "重置界面数据":
+
+            #重置翻译界面数据
+            Window.Widget_start_translation.A_settings.translation_project.setText("无")
+            Window.Widget_start_translation.A_settings.project_id.setText("无")
+            Window.Widget_start_translation.A_settings.total_text_line_count.setText("无")
+            Window.Widget_start_translation.A_settings.translated_line_count.setText("无")
+            Window.Widget_start_translation.A_settings.tokens_spent.setText("无")
+            Window.Widget_start_translation.A_settings.amount_spent.setText("无")
+            Window.Widget_start_translation.A_settings.progressRing.setValue(0)
 
 
         elif input_str1 == "更新翻译界面数据":
@@ -5918,12 +6016,36 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
 
 
         #设置“开始翻译”的按钮
-        self.primaryButton_start_translation = PrimaryPushButton('开始翻译', self, FIF.UPDATE)
-        self.primaryButton_start_translation.clicked.connect(self.Start_translation_mtool) #按钮绑定槽函数
+        self.primaryButton_start_translation = PrimaryPushButton('开始翻译', self, FIF.PLAY)
+        self.primaryButton_start_translation.clicked.connect(self.Start_translation) #按钮绑定槽函数
+
+
+        #设置“暂停翻译”的按钮
+        self.primaryButton_pause_translation = PrimaryPushButton('暂停翻译', self, FIF.PAUSE)
+        self.primaryButton_pause_translation.clicked.connect(self.pause_translation) #按钮绑定槽函数
+        #隐藏按钮
+        self.primaryButton_pause_translation.hide()
+
+        #设置“继续翻译”的按钮
+        self.primaryButton_continue_translation = PrimaryPushButton('继续翻译', self, FIF.ROTATE)
+        self.primaryButton_continue_translation.clicked.connect(self.continue_translation) #按钮绑定槽函数
+        #隐藏按钮
+        self.primaryButton_continue_translation.hide()
+
+
+        #设置“终止翻译”的按钮
+        self.primaryButton_terminate_translation = PrimaryPushButton('取消翻译', self, FIF.CANCEL)
+        self.primaryButton_terminate_translation.clicked.connect(self.terminate_translation) #按钮绑定槽函数
+
+
 
 
         layout_start_translation.addStretch(1)  # 添加伸缩项
         layout_start_translation.addWidget(self.primaryButton_start_translation)
+        layout_start_translation.addWidget(self.primaryButton_continue_translation)
+        layout_start_translation.addWidget(self.primaryButton_pause_translation)
+        layout_start_translation.addStretch(1)  # 添加伸缩项
+        layout_start_translation.addWidget(self.primaryButton_terminate_translation)
         layout_start_translation.addStretch(1)  # 添加伸缩项
         box_start_translation.setLayout(layout_start_translation)
 
@@ -5948,16 +6070,84 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
 
 
     #开始翻译按钮绑定函数
-    def Start_translation_mtool(self):
+    def Start_translation(self):
         global Running_status
 
         if Running_status == 0:
+            #隐藏开始翻译按钮
+            self.primaryButton_start_translation.hide()
+            #显示暂停翻译按钮
+            self.primaryButton_pause_translation.show()
+
             #创建子线程
             thread = background_executor("执行翻译任务")
             thread.start()
 
         elif Running_status != 0:
             user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+    
+    #暂停翻译按钮绑定函数
+    def pause_translation(self):
+        #隐藏暂停翻译按钮
+        self.primaryButton_pause_translation.hide()
+        #显示继续翻译按钮
+        self.primaryButton_continue_translation.show()
+
+        global Running_status
+        Running_status = 9
+        print("\033[1;33mWarning:\033[0m 翻译任务正在暂停中-----------------------","\n")
+
+    #继续翻译按钮绑定函数
+    def continue_translation(self):
+        global Running_status
+        if Running_status == 9:
+            #隐藏继续翻译按钮
+            self.primaryButton_continue_translation.hide()
+            #显示暂停翻译按钮
+            self.primaryButton_pause_translation.show()
+
+            #创建子线程
+            thread = background_executor("执行翻译任务")
+            thread.start()
+
+        elif Running_status != 9:
+            user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+    
+    #取消翻译按钮绑定函数
+    def terminate_translation(self):
+        #隐藏继续翻译按钮
+        self.primaryButton_continue_translation.hide()
+        #隐藏暂停翻译按钮
+        self.primaryButton_pause_translation.hide()
+        #显示开始翻译按钮
+        self.primaryButton_start_translation.show()
+
+        global Running_status
+        #如果正在翻译中
+        if Running_status == 6:
+            Running_status = 10
+            print("\033[1;33mWarning:\033[0m 翻译任务正在取消中-----------------------","\n")
+
+        #如果正在暂停中
+        elif Running_status == 9:
+
+            Running_status = 0
+            print("\033[1;33mWarning:\033[0m 翻译任务已取消-----------------------","\n")
+            #界面提示
+            user_interface_prompter.createWarningInfoBar("翻译已取消")
+            user_interface_prompter.signal.emit("重置界面数据","翻译取消",0,0,0)
+
+
+        #如果正在空闲中
+        elif Running_status == 0:
+
+            Running_status = 0
+            print("\033[1;33mWarning:\033[0m 当前无翻译任务-----------------------","\n")
+            #界面提示
+            user_interface_prompter.createWarningInfoBar("当前无翻译任务")
+            user_interface_prompter.signal.emit("重置界面数据","翻译取消",0,0,0)
+
+
 
 
 class Widget_start_translation_B(QFrame):#  开始翻译子界面
@@ -7905,7 +8095,7 @@ class window(FramelessWindow): #主窗口
 
         # 添加翻译设置相关页面
         self.addSubInterface(self.Widget_translation_settings, FIF.BOOK_SHELF, '翻译设置') 
-        self.addSubInterface(self.Widget_start_translation, FIF.PLAY, '开始翻译')  
+        self.addSubInterface(self.Widget_start_translation, FIF.ROBOT, '开始翻译')  
 
         self.navigationInterface.addSeparator() #添加分隔符
 
