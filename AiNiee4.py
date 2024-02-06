@@ -721,7 +721,7 @@ class Api_Requester():
                     # 发送对话请求
                     try:
                         #如果开启了回复josn格式的功能和可以开启该功能的模型
-                        if (configurator.response_json_format_toggle) and (configurator.model_type == "gpt-3.5-turbo-1106" or configurator.model_type == "gpt-4-1106-preview"):
+                        if (configurator.response_json_format_toggle) and (configurator.model_type == "gpt-3.5-turbo-0125" or configurator.model_type == "gpt-4-turbo-preview"):
                             print("[INFO] 已开启强制回复josn格式功能")
                             response = openaiclient.chat.completions.create(
                                 model= configurator.model_type,
@@ -3105,21 +3105,27 @@ class Request_Limiter():
                 "gpt-3.5-turbo-0301": {"max_tokens": 4000, "TPM": 40000, "RPM": 3},
                 "gpt-3.5-turbo-0613": {"max_tokens": 4000, "TPM": 40000, "RPM": 3},
                 "gpt-3.5-turbo-1106": {"max_tokens": 4000, "TPM": 40000, "RPM": 3},
+                "gpt-3.5-turbo-0125": {"max_tokens": 4000, "TPM": 150000, "RPM": 3},
                 "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 40000, "RPM": 3},
                 "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 40000, "RPM": 3},
                 "text-embedding-ada-002": {"max_tokens": 8000, "TPM": 150000, "RPM": 3},
+                "text-embedding-3-small": {"max_tokens": 8000, "TPM": 150000, "RPM": 3},
+                "text-embedding-3-large": {"max_tokens": 8000, "TPM": 150000, "RPM": 3},
             },
             "付费账号(等级1)": {
                 "gpt-3.5-turbo": {"max_tokens": 4000, "TPM": 60000, "RPM": 3500},
                 "gpt-3.5-turbo-0301": {"max_tokens": 4000, "TPM": 60000, "RPM": 3500},
                 "gpt-3.5-turbo-0613": {"max_tokens": 4000, "TPM": 60000, "RPM": 3500},
                 "gpt-3.5-turbo-1106": {"max_tokens": 4000, "TPM": 60000, "RPM": 3500},
+                "gpt-3.5-turbo-0125": {"max_tokens": 4000, "TPM": 120000, "RPM": 2000},
                 "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 60000, "RPM": 3500},
                 "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 60000, "RPM": 3500},
                 "gpt-4": {"max_tokens": 8000, "TPM": 10000, "RPM": 500},
                 "gpt-4-0314": {"max_tokens": 8000, "TPM": 10000, "RPM": 500},
                 "gpt-4-0613": {"max_tokens": 8000, "TPM": 10000, "RPM": 500},
-                "gpt-4-1106-preview": {"max_tokens": 128000, "TPM": 150000, "RPM": 500},
+                "gpt-4-turbo-preview": {"max_tokens": 4000, "TPM": 150000, "RPM": 500},
+                "gpt-4-1106-preview": {"max_tokens": 4000, "TPM": 150000, "RPM": 500},
+                "gpt-4-0125-preview": {"max_tokens": 4000, "TPM": 150000, "RPM": 500},
                 #"gpt-4-32k": {"max_tokens": 32000, "TPM": 200, "RPM": 500},
                 #"gpt-4-32k-0314": {"max_tokens": 32000, "TPM": 200, "RPM": 500},
                 #"gpt-4-32k-0613": {"max_tokens": 32000, "TPM": 200, "RPM": 500},
@@ -3130,12 +3136,15 @@ class Request_Limiter():
                 "gpt-3.5-turbo-0301": {"max_tokens": 4000, "TPM": 80000, "RPM": 3500},
                 "gpt-3.5-turbo-0613": {"max_tokens": 4000, "TPM": 80000, "RPM": 3500},
                 "gpt-3.5-turbo-1106": {"max_tokens": 4000, "TPM": 80000, "RPM": 3500},
+                "gpt-3.5-turbo-0125": {"max_tokens": 4000, "TPM": 160000, "RPM": 2000},
                 "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 80000, "RPM": 3500},
                 "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 80000, "RPM": 3500},
                 "gpt-4": {"max_tokens": 8000, "TPM": 40000, "RPM": 5000},
                 "gpt-4-0314": {"max_tokens": 8000, "TPM": 40000, "RPM": 5000},
                 "gpt-4-0613": {"max_tokens": 8000, "TPM": 40000, "RPM": 5000},
-                "gpt-4-1106-preview": {"max_tokens": 128000, "TPM": 300000, "RPM": 5000},
+                "gpt-4-turbo-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
+                "gpt-4-1106-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
+                "gpt-4-0125-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
                 #"gpt-4-32k": {"max_tokens": 32000, "TPM": 200, "RPM": 5000},
                 #"gpt-4-32k-0314": {"max_tokens": 32000, "TPM": 200, "RPM": 5000},
                 #"gpt-4-32k-0613": {"max_tokens": 32000, "TPM": 200, "RPM": 5000},
@@ -3145,13 +3154,16 @@ class Request_Limiter():
                 "gpt-3.5-turbo": {"max_tokens": 4000, "TPM": 160000, "RPM": 5000},
                 "gpt-3.5-turbo-0301": {"max_tokens": 4000, "TPM": 160000, "RPM": 5000},
                 "gpt-3.5-turbo-0613": {"max_tokens": 4000, "TPM": 160000, "RPM": 5000},
-                "gpt-3.5-turbo-1106": {"max_tokens": 4000, "TPM": 160000, "RPM": 5000},
+                "gpt-3.5-turbo-1106": {"max_tokens": 4000, "TPM": 250000 , "RPM": 3000},
+                "gpt-3.5-turbo-0125": {"max_tokens": 4000, "TPM": 160000, "RPM": 5000},
                 "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 160000, "RPM": 5000},
                 "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 160000, "RPM": 5000},
                 "gpt-4": {"max_tokens": 8000, "TPM": 80000, "RPM": 5000},
                 "gpt-4-0314": {"max_tokens": 8000, "TPM": 80000, "RPM": 5000},
                 "gpt-4-0613": {"max_tokens": 8000, "TPM": 80000, "RPM": 5000},
-                "gpt-4-1106-preview": {"max_tokens": 128000, "TPM": 300000, "RPM": 5000},
+                "gpt-4-turbo-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
+                "gpt-4-1106-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
+                "gpt-4-0125-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
                 #"gpt-4-32k": {"max_tokens": 32000, "TPM": 200, "RPM": 5000},
                 #"gpt-4-32k-0314": {"max_tokens": 32000, "TPM": 200, "RPM": 5000},
                 #"gpt-4-32k-0613": {"max_tokens": 32000, "TPM": 200, "RPM": 5000},
@@ -3162,12 +3174,15 @@ class Request_Limiter():
                 "gpt-3.5-turbo-0301": {"max_tokens": 4000, "TPM": 1000000, "RPM": 10000},
                 "gpt-3.5-turbo-0613": {"max_tokens": 4000, "TPM": 1000000, "RPM": 10000},
                 "gpt-3.5-turbo-1106": {"max_tokens": 4000, "TPM": 1000000, "RPM": 10000},
+                "gpt-3.5-turbo-0125": {"max_tokens": 4000, "TPM": 2000000, "RPM": 50000},
                 "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 1000000, "RPM": 10000},
                 "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 1000000, "RPM": 10000},
                 "gpt-4": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
                 "gpt-4-0314": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
                 "gpt-4-0613": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
-                "gpt-4-1106-preview": {"max_tokens": 128000, "TPM": 450000, "RPM": 10000},
+                "gpt-4-turbo-preview": {"max_tokens": 4000, "TPM": 450000, "RPM": 10000},
+                "gpt-4-1106-preview": {"max_tokens": 4000, "TPM": 450000, "RPM": 10000},
+                "gpt-4-0125-preview": {"max_tokens": 4000, "TPM": 450000, "RPM": 10000},
                 #"gpt-4-32k": {"max_tokens": 32000, "TPM": 200, "RPM": 10000},
                 #"gpt-4-32k-0314": {"max_tokens": 32000, "TPM": 200, "RPM": 10000},
                 #"gpt-4-32k-0613": {"max_tokens": 32000, "TPM": 200, "RPM": 10000},
@@ -3178,12 +3193,15 @@ class Request_Limiter():
                 "gpt-3.5-turbo-0301": {"max_tokens": 4000, "TPM": 2000000, "RPM": 10000},
                 "gpt-3.5-turbo-0613": {"max_tokens": 4000, "TPM": 2000000, "RPM": 10000},
                 "gpt-3.5-turbo-1106": {"max_tokens": 4000, "TPM": 2000000, "RPM": 10000},
+                "gpt-3.5-turbo-0125": {"max_tokens": 4000, "TPM": 4000000, "RPM": 20000},
                 "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 2000000, "RPM": 10000},
                 "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 2000000, "RPM": 10000},
                 "gpt-4": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
                 "gpt-4-0314": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
                 "gpt-4-0613": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
-                "gpt-4-1106-preview": {"max_tokens": 128000, "TPM": 600000, "RPM": 10000},
+                "gpt-4-turbo-preview": {"max_tokens": 4000, "TPM": 600000, "RPM": 10000},
+                "gpt-4-1106-preview": {"max_tokens": 4000, "TPM": 600000, "RPM": 10000},
+                "gpt-4-0125-preview": {"max_tokens": 4000, "TPM": 600000, "RPM": 10000},
                 #"gpt-4-32k": {"max_tokens": 32000, "TPM": 200, "RPM": 10000},
                 #"gpt-4-32k-0314": {"max_tokens": 32000, "TPM": 200, "RPM": 10000},
                 #"gpt-4-32k-0613": {"max_tokens": 32000, "TPM": 200, "RPM": 10000},
@@ -4299,16 +4317,21 @@ class User_Interface_Prompter(QObject):
             "gpt-3.5-turbo-0301": {"input_price": 0.0015, "output_price": 0.002},
             "gpt-3.5-turbo-0613": {"input_price": 0.0015, "output_price": 0.002},
             "gpt-3.5-turbo-1106": {"input_price": 0.001, "output_price": 0.002},
+            "gpt-3.5-turbo-0125": {"input_price": 0.0005, "output_price": 0.0015},
             "gpt-3.5-turbo-16k": {"input_price": 0.001, "output_price": 0.002},
             "gpt-3.5-turbo-16k-0613": {"input_price": 0.001, "output_price": 0.002},
             "gpt-4": {"input_price": 0.03, "output_price": 0.06},
             "gpt-4-0314": {"input_price": 0.03, "output_price": 0.06},
             "gpt-4-0613": {"input_price": 0.03, "output_price": 0.06},
+            "gpt-4-turbo-preview":{"input_price": 0.01, "output_price": 0.03},
             "gpt-4-1106-preview":{"input_price": 0.01, "output_price": 0.03},
+            "gpt-4-0125-preview":{"input_price": 0.01, "output_price": 0.03},
             "gpt-4-32k": {"input_price": 0.06, "output_price": 0.12},
             "gpt-4-32k-0314": {"input_price": 0.06, "output_price": 0.12},
             "gpt-4-32k-0613": {"input_price": 0.06, "output_price": 0.12},
             "text-embedding-ada-002": {"input_price": 0.0001, "output_price": 0},
+            "text-embedding-3-small": {"input_price": 0.00002, "output_price": 0},
+            "text-embedding-3-large": {"input_price": 0.00013, "output_price": 0},
             }
        
        self.google_price_data = {
@@ -4488,12 +4511,12 @@ class Widget_Openai(QFrame):#  Openai账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox_model = ComboBox() #以demo为父类
-        self.comboBox_model.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-1106','gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
-                                 'gpt-4','gpt-4-0314', 'gpt-4-0613','gpt-4-1106-preview'])
+        self.comboBox_model.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-1106', 'gpt-3.5-turbo-0125','gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
+                                 'gpt-4','gpt-4-0314', 'gpt-4-0613','gpt-4-turbo-preview','gpt-4-1106-preview','gpt-4-0125-preview'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(200, 35)
         #设置下拉选择框默认选择
-        self.comboBox_model.setCurrentText('gpt-3.5-turbo-0613')
+        self.comboBox_model.setCurrentText('gpt-3.5-turbo')
         
 
 
@@ -4706,8 +4729,8 @@ class Widget_Openai_Proxy_A(QFrame):#  代理账号基础设置子界面
 
         #设置“模型类型”下拉选择框
         self.comboBox_model = ComboBox() #以demo为父类
-        self.comboBox_model.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-1106','gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
-                                 'gpt-4','gpt-4-0314', 'gpt-4-0613','gpt-4-1106-preview'])
+        self.comboBox_model.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-1106', 'gpt-3.5-turbo-0125','gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
+                                 'gpt-4','gpt-4-0314', 'gpt-4-0613','gpt-4-turbo-preview','gpt-4-1106-preview','gpt-4-0125-preview'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(200, 35)
         #设置下拉选择框默认选择
@@ -5665,7 +5688,7 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
     #设置“回复json格式”选择开关绑定函数
     def onjsonmode(self, isChecked: bool):
         if isChecked:
-            user_interface_prompter.createWarningInfoBar("该设置现在仅支持openai接口的gpt-3.5-turbo-1106与gpt-4-1106-preview模型开启")
+            user_interface_prompter.createWarningInfoBar("该设置现在仅支持openai接口的gpt-3.5-turbo-0125与gpt-4-turbo-preview模型开启")
 
 
 

@@ -25,14 +25,14 @@ jobs:
         run: |
           (Get-Command python).Path | ForEach-Object { $_ -replace 'python\.exe$', 'Lib\site-packages\opencc\__init__.py' } | ForEach-Object { $content = Get-Content $_; $content -replace '_thisdir = .+', '_thisdir = os.path.dirname(os.path.abspath(sys.argv[0]))' | Set-Content $_ }
       - name: Build EXE
-        run: pyinstaller -F -i ./resource/Avatar.png ./AiNiee-chatgpt4.py
+        run: pyinstaller -F -i ./resource/Avatar.png ./AiNiee4.py
       - name: Zip dist folder
         run: |
           $openccPath = (Get-Command python).Path | ForEach-Object { $_ -replace 'python\.exe$', 'Lib\site-packages\opencc' }
           $clibPath = Join-Path -Path $openccPath -ChildPath 'clib'
           Copy-Item -Path "$clibPath" -Destination "dist\clib" -Recurse -Force
           Copy-Item -Path "resource" -Destination "dist\resource" -Recurse -Force
-          Compress-Archive -Path "dist" -DestinationPath "AiNiee-chatgpt-Beta.zip"
+          Compress-Archive -Path "dist" -DestinationPath "AiNiee-Beta.zip"
       - name: Delete release
         uses: dev-drprasad/delete-tag-and-release@v0.2.1
         with:
@@ -48,7 +48,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.AINIEE }}
         with:
           tag_name: Beta
-          release_name: AiNiee-chatgpt测试版 自动同步源码
+          release_name: AiNiee测试版 自动同步源码
           draft: false
           prerelease: true
 
@@ -58,6 +58,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.AINIEE }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./AiNiee-chatgpt-Beta.zip
-          asset_name: AiNiee-chatgpt-Beta.zip
+          asset_path: ./AiNiee-Beta.zip
+          asset_name: AiNiee-Beta.zip
           asset_content_type: application/octet-stream
