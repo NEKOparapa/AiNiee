@@ -6,7 +6,7 @@ import traceback
 import openpyxl
 from chardet import detect
 
-# v1.6
+# v1.7
 class Jr_Tpp():
     def __init__(self,config:dict,path:str=False):
         self.config=config
@@ -97,7 +97,7 @@ class Jr_Tpp():
             for i in range(0,len(data)):
                 res+=self.__ReadFile(data[i],FileName+'\\'+str(i),code)
         # 是字符串，而且含中日字符(System.json\gameTitle不论是否含中日字符，都进
-        elif tp==str and (not self.ja or re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5]',data)
+        elif tp==str and (not self.ja or re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]',data)
                           or r'System.json\gameTitle' in FileName) :
             if r'System.json\gameTitle' in FileName and data=='':data=' '# 游戏名为空时，变为空格，否则会报错
             if not code:code='-1'
@@ -550,18 +550,24 @@ class Jr_Tpp():
     # 根据搜索结果增减标签,add为True，添加标签,返回搜索结果
     def LabelBySearch(self,string:str,col:int,label:str,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False,add=True):
         res=self.search(string,col,target=target,namelist=namelist,notin=notin,BigSmall=BigSmall)
-        target={}
-        for name in res.keys():
-            target.update({name:list(res[name].index)})
-        if add:
-            self.addlabel(target,label)
+        if len(res)>0:
+            target={}
+            for name in res.keys():
+                target.update({name:list(res[name].index)})
+            if add:
+                self.addlabel(target,label)
+            else:
+                self.removelabel(target,label)
         else:
-            self.removelabel(target,label)
+            print('搜索结果为空')
         return res
     # 输出搜索结果,返回搜索结果
     def DisplayBySearch(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False):
         res=self.search(string,col,target=target,namelist=namelist,notin=notin,BigSmall=BigSmall)
-        self.Display(res)
+        if len(res)>0:
+            self.Display(res)
+        else:
+            print('搜索结果为空')
         return res
     # 将搜索结果导出到当前目录的单个xlsx中,返回搜索结果,默认只导出原文和译文
     def OutputBySearch(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False,OutputName:str='SearchRes.xlsx',full=False):
@@ -614,8 +620,8 @@ class Jr_Tpp():
         namedict=self.JsonBySearch('Name',3,OutputName=r'name\Name.json')
         splited_name={}
         for name in namedict.keys():
-            namelist=re.sub('[^\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5]','↓☆←',name).split('↓☆←')
-            trsednamelist=re.sub('[^\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5]','↓☆←',name).split('↓☆←')
+            namelist=re.sub('[^\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]','↓☆←',name).split('↓☆←')
+            trsednamelist=re.sub('[^\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]','↓☆←',name).split('↓☆←')
             if len(namelist)==len(trsednamelist):
                 splited_name.update(dict(zip(namelist, trsednamelist)))
             else:
@@ -635,7 +641,10 @@ class Jr_Tpp():
     # 对搜索结果应用原文
     def ApplyUntrs_BySearch(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False):
         res = self.search(string, col, target=target, namelist=namelist, notin=notin, BigSmall=BigSmall)
-        self.ApplyUntrs(res)
+        if len(res)>0:
+            self.ApplyUntrs(res)
+        else:
+            print('搜索结果为空')
     # 自动对游戏标题添加水印（地址为'System.json\gameTitle'的译文末尾添加mark）
     def AddMark(self,mark:str):
         if 'System.json' in self.ProgramData.keys():
@@ -701,7 +710,7 @@ class Jr_Tpp():
         # 得到含有中日字符的文件名和不带后缀的形式
         for filename in temp:
             filename = filename.split('\\')[-1]
-            if re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5]',filename) or not self.ja:
+            if re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]',filename) or not self.ja:
                 files.append(filename)
                 files+=filename.split('.')[:-1]
         # 遍历
@@ -736,7 +745,7 @@ class Jr_Tpp():
                     # 如果长度大于设定单行最大值，则进行拆分
                     while len(q) > linelength:
                         # 从字符串的第linelength-1个字符开始匹配中文汉字和英文字母，并返回其位置
-                        n = re.search(r'[0-9a-zA-Z\u4e00-\u9fa5]', q[linelength:])
+                        n = re.search(r'[0-9a-zA-Z\u4e00-\u9fff\u3000-\u303f\uff01-\uffef]', q[linelength:])
                         if n != None:
                             n = n.span()[0] + linelength
                         else:
