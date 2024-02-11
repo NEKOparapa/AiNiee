@@ -3490,19 +3490,6 @@ class File_Reader():
             return  # 直接返回，不执行后续操作
 
 
-    # 选择输入文件夹按钮绑定函数(检查任务用)
-    def Select_project_folder_check(self):
-        Input_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Input_Folder:
-            # 将输入路径存储到配置器中
-            configurator.Input_Folder = Input_Folder
-            Window.Widget_check.label_input_path.setText(Input_Folder)
-            print('[INFO]  已选择项目文件夹: ',Input_Folder)
-        else :
-            print('[INFO]  未选择文件夹')
-            return  # 直接返回，不执行后续操作
-
-
     # 选择输出文件夹按钮绑定函数
     def Select_output_folder(self):
         Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
@@ -3514,7 +3501,19 @@ class File_Reader():
         else :
             print('[INFO]  未选择文件夹')
             return  # 直接返回，不执行后续操作
+        
 
+    # 选择输入文件夹按钮绑定函数(检查任务用)
+    def Select_project_folder_check(self):
+        Input_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Input_Folder:
+            # 将输入路径存储到配置器中
+            configurator.Input_Folder = Input_Folder
+            Window.Widget_check.label_input_path.setText(Input_Folder)
+            print('[INFO]  已选择项目文件夹: ',Input_Folder)
+        else :
+            print('[INFO]  未选择文件夹')
+            return  # 直接返回，不执行后续操作
 
     # 选择输出文件夹按钮绑定函数(检查任务用)
     def Select_output_folder_check(self):
@@ -6294,7 +6293,7 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
 
 
 
-class Widget_RPG(QFrame):  # RPG提取导入主界面
+class Widget_RPG(QFrame):  # RPG主界面
     def __init__(self, text: str, parent=None):  # 构造函数，初始化实例时会自动调用
         super().__init__(parent=parent)  # 调用父类 QWidget 的构造函数
         self.setObjectName(text.replace(' ', '-'))  # 设置对象名，用于在 NavigationInterface 中的 addItem 方法中的 routeKey 参数中使用
@@ -6359,16 +6358,16 @@ class Widget_export_source_text(QFrame):#  导出子界面
         #设置“输入文件夹”标签
         label4 = QLabel(flags=Qt.WindowFlags())  
         label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label4.setText("输入文件夹")
+        label4.setText("游戏文件夹")
 
         #设置“输入文件夹”显示
         self.label_input_path = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label_input_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
-        self.label_input_path.setText("(请选择原文文件所在的文件夹，不要混杂其他文件)")  
+        self.label_input_path.setText("(请选择游戏文件夹)")  
 
         #设置打开文件按钮
         self.pushButton_input = PushButton('选择文件夹', self, FIF.FOLDER)
-        #self.pushButton_input.clicked.connect(File_Reader.Select_project_folder) #按钮绑定槽函数
+        self.pushButton_input.clicked.connect(self.Select_project_folder) #按钮绑定槽函数
 
 
 
@@ -6387,19 +6386,17 @@ class Widget_export_source_text(QFrame):#  导出子界面
         #设置“输出文件夹”标签
         label6 = QLabel(parent=self, flags=Qt.WindowFlags())  
         label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label6.setText("输出文件夹")
+        label6.setText("存储文件夹")
 
         #设置“输出文件夹”显示
         self.label_output_path = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label_output_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label_output_path.setText("(请选择翻译文件存放的文件夹)")
+        self.label_output_path.setText("(请选择提取文件存放的文件夹)")
 
         #设置输出文件夹按钮
         self.pushButton_output = PushButton('选择文件夹', self, FIF.FOLDER)
-        #self.pushButton_output.clicked.connect(File_Reader.Select_output_folder) #按钮绑定槽函数
+        self.pushButton_output.clicked.connect(self.Select_output_folder) #按钮绑定槽函数
 
-
-        
 
         layout_output.addWidget(label6)
         layout_output.addWidget(self.label_output_path)
@@ -6443,9 +6440,26 @@ class Widget_export_source_text(QFrame):#  导出子界面
 
 
 
-    def saveconfig(self):
-        configurator.read_write_config("write")
-        user_interface_prompter.createSuccessInfoBar("已成功保存配置")
+    # 选择输入文件夹按钮绑定函数
+    def Select_project_folder(self):
+        Input_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Input_Folder:
+            self.label_input_path.setText(Input_Folder)
+            print('[INFO]  已选择游戏文件夹: ',Input_Folder)
+        else :
+            print('[INFO]  未选择文件夹')
+            return  # 直接返回，不执行后续操作
+
+
+    # 选择输出文件夹按钮绑定函数
+    def Select_output_folder(self):
+        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Output_Folder:
+            self.label_output_path.setText(Output_Folder)
+            print('[INFO]  已选择输出文件夹:' ,Output_Folder)
+        else :
+            print('[INFO]  未选择文件夹')
+            return  # 直接返回，不执行后续操作
 
 
 class Widget_import_translated_text(QFrame):#  导入子界面
@@ -6464,16 +6478,16 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         #设置“输入文件夹”标签
         label4 = QLabel(flags=Qt.WindowFlags())  
         label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label4.setText("输入文件夹")
+        label4.setText("游戏文件夹")
 
         #设置“输入文件夹”显示
         self.label_input_path = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label_input_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
-        self.label_input_path.setText("(请选择原文文件所在的文件夹，不要混杂其他文件)")  
+        self.label_input_path.setText("(请选择原来的游戏文件夹)")  
 
         #设置打开文件按钮
         self.pushButton_input = PushButton('选择文件夹', self, FIF.FOLDER)
-        #self.pushButton_input.clicked.connect(File_Reader.Select_project_folder) #按钮绑定槽函数
+        self.pushButton_input.clicked.connect(self.Select_project_folder) #按钮绑定槽函数
 
 
 
@@ -6492,25 +6506,50 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         #设置“输出文件夹”标签
         label6 = QLabel(parent=self, flags=Qt.WindowFlags())  
         label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label6.setText("输出文件夹")
+        label6.setText("译文文件夹")
 
         #设置“输出文件夹”显示
         self.label_output_path = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label_output_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label_output_path.setText("(请选择翻译文件存放的文件夹)")
+        self.label_output_path.setText("(请选择翻译后的文件存放的文件夹)")
 
         #设置输出文件夹按钮
         self.pushButton_output = PushButton('选择文件夹', self, FIF.FOLDER)
-        #self.pushButton_output.clicked.connect(File_Reader.Select_output_folder) #按钮绑定槽函数
+        self.pushButton_output.clicked.connect(self.Select_output_folder) #按钮绑定槽函数
 
-
-        
 
         layout_output.addWidget(label6)
         layout_output.addWidget(self.label_output_path)
         layout_output.addStretch(1)  # 添加伸缩项
         layout_output.addWidget(self.pushButton_output)
         box_output.setLayout(layout_output)
+
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box_title_watermark1 = QGroupBox()
+        box_title_watermark1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_title_watermark1 = QHBoxLayout()
+
+
+        self.LineEdit_title_watermark = LineEdit()
+
+        #设置微调距离用的空白标签
+        self.labelB = QLabel()  
+        self.labelB.setText("          ")
+
+        # 设置“添加游戏标题水印”选择开关
+        self.checkBox_title_watermark = CheckBox('添加游戏标题水印', self)
+
+
+
+        layout_title_watermark1.addWidget(self.LineEdit_title_watermark)
+        layout_title_watermark1.addWidget(self.labelB)
+        layout_title_watermark1.addWidget(self.checkBox_title_watermark)
+        box_title_watermark1.setLayout(layout_title_watermark1)
+
+
 
 
         # -----创建第x个组，添加多个组件-----
@@ -6538,6 +6577,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box_input)
         container.addWidget(box_output)
+        container.addWidget(box_title_watermark1)
         container.addWidget(box_start_import)
         container.addStretch(1)  # 添加伸缩项
 
@@ -6547,7 +6587,27 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
 
+    # 选择输入文件夹按钮绑定函数
+    def Select_project_folder(self):
+        Input_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Input_Folder:
+            self.label_input_path.setText(Input_Folder)
+            print('[INFO]  已选择游戏文件夹: ',Input_Folder)
+        else :
+            print('[INFO]  未选择文件夹')
+            return  # 直接返回，不执行后续操作
 
+
+    # 选择输出文件夹按钮绑定函数
+    def Select_output_folder(self):
+        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Output_Folder:
+            self.label_output_path.setText(Output_Folder)
+            print('[INFO]  已选择输出文件夹:' ,Output_Folder)
+        else :
+            print('[INFO]  未选择文件夹')
+            return  # 直接返回，不执行后续操作
+        
 
 class Widget_check(QFrame):# 错行检查界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
