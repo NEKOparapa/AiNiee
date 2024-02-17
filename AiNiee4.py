@@ -52,7 +52,7 @@ from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, 
 from qfluentwidgets import FluentIcon as FIF
 
 
-Software_Version = "AiNiee-chatgpt4.63"  #软件版本号
+Software_Version = "AiNiee4.63"  #软件版本号
 cache_list = [] # 全局缓存数据
 Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
                     # 6是翻译任务进行状态，7是错行检查状态，9是翻译任务暂停状态，10是强制终止任务状态
@@ -199,7 +199,7 @@ class Translator():
 
         while untranslated_text_line_count != 0 :
             print("\033[1;33mWarning:\033[0m 仍然有部分未翻译，将进行拆分后重新翻译，-----------------------------------")
-            print("[INFO] 当前重新翻译次数：",retry_translation_count ," 到达最大次数：10 时，将停止翻译")
+            print("[INFO] 当前拆分翻译轮次：",retry_translation_count ," 到达最大次数：6 时，将停止翻译")
 
 
             #根据算法计算拆分的文本行数
@@ -251,8 +251,8 @@ class Translator():
 
             #检查是否已经达到重翻次数限制
             retry_translation_count  = retry_translation_count + 1
-            if retry_translation_count >= 10 :
-                print ("\033[1;33mWarning:\033[0m 已经达到重新翻译次数限制，但仍然有部分文本未翻译，不影响使用，可手动翻译", '\n')
+            if retry_translation_count >= 7 :
+                print ("\033[1;33mWarning:\033[0m 已经达到拆分翻译次数限制，但仍然有部分文本未翻译，不影响使用，可手动翻译", '\n')
                 break
 
             #重新计算未翻译文本的数量
@@ -1740,11 +1740,25 @@ class Response_Parser():
             error_content = "AI回复内容中有未进行翻译的空行,将进行重新翻译"
             return check_result,error_content
 
+
+        # 检查回复文本相同的翻译内容
+        if Response_Parser.check_same_translation(self,response_dict):
+            pass
+        else:
+            check_result = False
+            # 存储错误内容
+            error_content = "AI回复内容中存在大量相同的译文,将进行重新翻译"
+            return check_result,error_content
+        
+
         # 如果检查都没有问题
         check_result = True
         # 存储错误内容
         error_content = "检查无误"
         return check_result,error_content
+    
+
+
 
 
 
@@ -1794,6 +1808,30 @@ class Response_Parser():
         
         return True
 
+
+    # 检查回复文本出现相同的翻译内容
+    def check_same_translation(self,response_dict):
+        # 计算字典元素个数
+        count = len(response_dict)
+
+
+        # 判断元素个数是否大于等于5
+        if count >= 5:
+            # 将 dict_values 转换为列表
+            values_list = list(response_dict.values())
+
+            # 使用set()去除重复元素，分别统计每个元素出现的次数
+            for value in set(values_list):
+                # 使用列表的 count 方法
+                count = values_list.count(value)
+
+                if count > 4:
+                    return False
+                    #print(f'相同译文： "{value}" 出现了 {count} 次')
+
+
+        # 如果元素个数不大于等于5或者没有错误情况
+        return True
 
         
     #计算字符串里面日文与中文，韩文,英文字母（不是单词）的数量
@@ -2162,6 +2200,8 @@ class Configurator():
         self.thread_counts = 1 # 存储线程数
         self.preserve_line_breaks_toggle = False # 保留换行符开关
         self.response_json_format_toggle = False # 回复json格式开关
+        self.conversion_toggle = False #简繁转换开关
+
 
         self.model_type = ""             #模型选择
         self.apikey_list = [] # 存储key的列表
@@ -2182,7 +2222,7 @@ class Configurator():
         global Running_status
 
 
-        # 获取第一页的配置信息
+        # 获取第一页的配置信息（基础设置）
         self.translation_project = Window.Widget_translation_settings.A_settings.comboBox_translation_project.currentText()
         self.translation_platform = Window.Widget_translation_settings.A_settings.comboBox_translation_platform.currentText()
         self.source_language = Window.Widget_translation_settings.A_settings.comboBox_source_text.currentText()
@@ -2191,18 +2231,15 @@ class Configurator():
         self.Output_Folder = Window.Widget_translation_settings.A_settings.label_output_path.text() # 存储输出文件夹
 
 
-        # 获取文本行数设置
+        # 获取第二页的配置信息(进阶设置)
         self.text_line_counts = Window.Widget_translation_settings.B_settings.spinBox_Lines.value()
-        # 获取线程数设置  
         self.thread_counts = Window.Widget_translation_settings.B_settings.spinBox_thread_count.value()
         if self.thread_counts == 0:                                
             self.thread_counts = multiprocessing.cpu_count() * 4 + 1  
-        # 获取保留换行符开关
         self.preserve_line_breaks_toggle =  Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.isChecked()
-        # 获取回复json格式开关
         self.response_json_format_toggle =  Window.Widget_translation_settings.B_settings.SwitchButton_jsonmode.isChecked()
-        # 获取简繁转换开关柜
         self.conversion_toggle = Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.isChecked()
+
 
 
         # 重新初始化模型参数，防止上次任务的设置影响到
@@ -2225,99 +2262,11 @@ class Configurator():
             self.target_language = "简中"
 
 
-        #根据翻译平台读取配置信息
-        if self.translation_platform == 'Openai官方':
-            # 获取模型类型
-            self.model_type =  Window.Widget_Openai.comboBox_model.currentText()              
-
-            # 获取apikey列表
-            API_key_str = Window.Widget_Openai.TextEdit_apikey.toPlainText()            #获取apikey输入值
-            #去除空格，换行符，分割KEY字符串并存储进列表里
-            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
-            self.apikey_list = API_key_list
-
-            # 获取请求地址
-            self.openai_base_url = 'https://api.openai.com/v1'  #需要重新设置，以免使用代理网站后，没有改回来
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = Window.Widget_Openai.LineEdit_proxy_port.text()            #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
+        # 获取翻译平台的配置信息
+        self.configure_translation_platform(self.translation_platform)
 
 
-        elif self.translation_platform == 'Openai代理':
-            # 获取模型类型
-            self.model_type =  Window.Widget_Openai_Proxy.A_settings.comboBox_model.currentText()     
-
-            # 获取apikey列表
-            API_key_str = Window.Widget_Openai_Proxy.A_settings.TextEdit_apikey.toPlainText()            #获取apikey输入值
-            #去除空格，换行符，分割KEY字符串并存储进列表里
-            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
-            self.apikey_list = API_key_list
-
-            # 获取中转请求地址
-            relay_address = Window.Widget_Openai_Proxy.A_settings.LineEdit_relay_address.text()
-            #检查一下请求地址尾部是否为/v1，自动补全
-            if relay_address[-3:] != "/v1":
-                relay_address = relay_address + "/v1"
-            self.openai_base_url = relay_address  
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = Window.Widget_Openai_Proxy.A_settings.LineEdit_proxy_port.text()            #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-        elif self.translation_platform == 'Google官方':
-            # 获取模型类型
-            self.model_type =  Window.Widget_Google.comboBox_model.currentText()              
-
-            # 获取apikey列表
-            API_key_str = Window.Widget_Google.TextEdit_apikey.toPlainText()            #获取apikey输入值
-            #去除空格，换行符，分割KEY字符串并存储进列表里
-            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
-            self.apikey_list = API_key_list
-
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = Window.Widget_Google.LineEdit_proxy_port.text()            #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-
-        elif self.translation_platform == 'SakuraLLM':
-            # 获取模型类型
-            self.model_type =  Window.Widget_SakuraLLM.comboBox_model.currentText()     
-            # 构建假apikey
-            self.apikey_list = ["sakura"]
-
-            # 获取中转请求地址
-            relay_address = Window.Widget_SakuraLLM.LineEdit_address.text()   
-            #检查一下请求地址尾部是否为/v1，自动补全
-            if relay_address[-3:] != "/v1":
-                relay_address = relay_address + "/v1"
-            self.openai_base_url = relay_address  
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = Window.Widget_SakuraLLM.LineEdit_proxy_port.text()              #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-            #更改部分参数，以适合Sakura模型
-            self.openai_temperature = 0.1       
-            self.openai_top_p = 0.3
-            self.thread_counts = 1 # 线程数
-            #self.text_line_counts = 1 # 文本行数
-
-
-    # 初始化配置信息
+    # 初始化配置信息（错行检查用）
     def initialize_configuration_check (self):
         # 获取配置信息
         self.translation_project = Window.Widget_check.comboBox_translation_project.currentText()
@@ -2388,314 +2337,99 @@ class Configurator():
                 os.environ["https_proxy"]=Proxy_Address
 
 
-    #读写配置文件config.json函数
-    def read_write_config(self,mode):
+    # 配置翻译平台信息
+    def configure_translation_platform(self,translation_platform):
 
-        if mode == "write":
-            # 存储配置信息的字典
-            config_dict = {}
-            
-            #获取openai官方账号界面
-            config_dict["openai_account_type"] = Window.Widget_Openai.comboBox_account_type.currentText()      #获取账号类型下拉框当前选中选项的值
-            config_dict["openai_model_type"] =  Window.Widget_Openai.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
-            config_dict["openai_API_key_str"] = Window.Widget_Openai.TextEdit_apikey.toPlainText()        #获取apikey输入值
-            config_dict["openai_proxy_port"] = Window.Widget_Openai.LineEdit_proxy_port.text()            #获取代理端口
-            
-            #获取openai代理账号基础设置界面
-            config_dict["op_relay_address"] = Window.Widget_Openai_Proxy.A_settings.LineEdit_relay_address.text()                  #获取请求地址
-            config_dict["op_model_type"] =  Window.Widget_Openai_Proxy.A_settings.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
-            config_dict["op_API_key_str"] = Window.Widget_Openai_Proxy.A_settings.TextEdit_apikey.toPlainText()        #获取apikey输入值
-            config_dict["op_proxy_port"]  = Window.Widget_Openai_Proxy.A_settings.LineEdit_proxy_port.text()               #获取代理端口
+        #根据翻译平台读取配置信息
+        if translation_platform == 'Openai官方':
+            # 获取模型类型
+            self.model_type =  Window.Widget_Openai.comboBox_model.currentText()              
 
+            # 获取apikey列表
+            API_key_str = Window.Widget_Openai.TextEdit_apikey.toPlainText()            #获取apikey输入值
+            #去除空格，换行符，分割KEY字符串并存储进列表里
+            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
+            self.apikey_list = API_key_list
 
-            #获取openai代理账号进阶设置界面
-            config_dict["op_rpm_limit"] = Window.Widget_Openai_Proxy.B_settings.spinBox_RPM.value()               #获取rpm限制值
-            config_dict["op_tpm_limit"] = Window.Widget_Openai_Proxy.B_settings.spinBox_TPM.value()               #获取tpm限制值
-            config_dict["op_input_pricing"] = Window.Widget_Openai_Proxy.B_settings.spinBox_input_pricing.value()               #获取输入价格
-            config_dict["op_output_pricing"] = Window.Widget_Openai_Proxy.B_settings.spinBox_output_pricing.value()               #获取输出价格
+            # 获取请求地址
+            self.openai_base_url = 'https://api.openai.com/v1'  #需要重新设置，以免使用代理网站后，没有改回来
 
-            #Google官方账号界面
-            config_dict["google_model_type"] =  Window.Widget_Google.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
-            config_dict["google_API_key_str"] = Window.Widget_Google.TextEdit_apikey.toPlainText()        #获取apikey输入值
-            config_dict["google_proxy_port"] = Window.Widget_Google.LineEdit_proxy_port.text()            #获取代理端口
+            #如果填入地址，则设置代理端口
+            Proxy_Address = Window.Widget_Openai.LineEdit_proxy_port.text()            #获取代理端口
+            if Proxy_Address :
+                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
+                os.environ["http_proxy"]=Proxy_Address
+                os.environ["https_proxy"]=Proxy_Address
 
 
-            #Sakura界面
-            config_dict["sakura_address"] = Window.Widget_SakuraLLM.LineEdit_address.text()                  #获取请求地址
-            config_dict["sakura_model_type"] =  Window.Widget_SakuraLLM.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
-            config_dict["sakura_proxy_port"] = Window.Widget_SakuraLLM.LineEdit_proxy_port.text()            #获取代理端口
+        elif translation_platform == 'Openai代理':
+            # 获取模型类型
+            self.model_type =  Window.Widget_Openai_Proxy.A_settings.comboBox_model.currentText()     
+
+            # 获取apikey列表
+            API_key_str = Window.Widget_Openai_Proxy.A_settings.TextEdit_apikey.toPlainText()            #获取apikey输入值
+            #去除空格，换行符，分割KEY字符串并存储进列表里
+            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
+            self.apikey_list = API_key_list
+
+            # 获取中转请求地址
+            relay_address = Window.Widget_Openai_Proxy.A_settings.LineEdit_relay_address.text()
+            #检查一下请求地址尾部是否为/v1，自动补全
+            if relay_address[-3:] != "/v1":
+                relay_address = relay_address + "/v1"
+            self.openai_base_url = relay_address  
+
+            #如果填入地址，则设置代理端口
+            Proxy_Address = Window.Widget_Openai_Proxy.A_settings.LineEdit_proxy_port.text()            #获取代理端口
+            if Proxy_Address :
+                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
+                os.environ["http_proxy"]=Proxy_Address
+                os.environ["https_proxy"]=Proxy_Address
+
+        elif translation_platform == 'Google官方':
+            # 获取模型类型
+            self.model_type =  Window.Widget_Google.comboBox_model.currentText()              
+
+            # 获取apikey列表
+            API_key_str = Window.Widget_Google.TextEdit_apikey.toPlainText()            #获取apikey输入值
+            #去除空格，换行符，分割KEY字符串并存储进列表里
+            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
+            self.apikey_list = API_key_list
 
 
-
-            #翻译设置基础设置界面
-            config_dict["translation_project"] = Window.Widget_translation_settings.A_settings.comboBox_translation_project.currentText()
-            config_dict["translation_platform"] = Window.Widget_translation_settings.A_settings.comboBox_translation_platform.currentText()
-            config_dict["source_language"] = Window.Widget_translation_settings.A_settings.comboBox_source_text.currentText()
-            config_dict["target_language"] = Window.Widget_translation_settings.A_settings.comboBox_translated_text.currentText()
-            config_dict["label_input_path"] = Window.Widget_translation_settings.A_settings.label_input_path.text()
-            config_dict["label_output_path"] = Window.Widget_translation_settings.A_settings.label_output_path.text()
-
-            #翻译设置进阶设置界面
-            config_dict["text_line_counts"] = Window.Widget_translation_settings.B_settings.spinBox_Lines.value()     # 获取文本行数设置
-            config_dict["thread_counts"] = Window.Widget_translation_settings.B_settings.spinBox_thread_count.value() # 获取线程数设置  
-            config_dict["preserve_line_breaks_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关
-            config_dict["response_json_format_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_jsonmode.isChecked()   # 获取回复json格式开关
-            config_dict["response_conversion_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.isChecked()   # 获取简繁转换开关
-
-            #开始翻译的备份设置界面
-            config_dict["auto_backup_toggle"] =  Window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
+            #如果填入地址，则设置代理端口
+            Proxy_Address = Window.Widget_Google.LineEdit_proxy_port.text()            #获取代理端口
+            if Proxy_Address :
+                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
+                os.environ["http_proxy"]=Proxy_Address
+                os.environ["https_proxy"]=Proxy_Address
 
 
-            #错行检查界面
-            config_dict["semantic_weight"] = Window.Widget_check.doubleSpinBox_semantic_weight.value() 
-            config_dict["symbol_weight"] = Window.Widget_check.doubleSpinBox_symbol_weight.value() 
-            config_dict["word_count_weight"] = Window.Widget_check.doubleSpinBox_word_count_weight.value() 
-            config_dict["similarity_threshold"] = Window.Widget_check.spinBox_similarity_threshold.value() 
-            config_dict["translation_project_check"] = Window.Widget_check.comboBox_translation_project.currentText()
-            config_dict["translation_platform_check"] = Window.Widget_check.comboBox_translation_platform.currentText()
-            config_dict["label_input_path_check"] = Window.Widget_check.label_input_path.text()
-            config_dict["label_output_path_check"] = Window.Widget_check.label_output_path.text()
+        elif translation_platform == 'SakuraLLM':
+            # 获取模型类型
+            self.model_type =  Window.Widget_SakuraLLM.comboBox_model.currentText()     
+            # 构建假apikey
+            self.apikey_list = ["sakura"]
 
+            # 获取中转请求地址
+            relay_address = Window.Widget_SakuraLLM.LineEdit_address.text()   
+            #检查一下请求地址尾部是否为/v1，自动补全
+            if relay_address[-3:] != "/v1":
+                relay_address = relay_address + "/v1"
+            self.openai_base_url = relay_address  
 
+            #如果填入地址，则设置代理端口
+            Proxy_Address = Window.Widget_SakuraLLM.LineEdit_proxy_port.text()              #获取代理端口
+            if Proxy_Address :
+                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
+                os.environ["http_proxy"]=Proxy_Address
+                os.environ["https_proxy"]=Proxy_Address
 
-            #获取替换字典界面
-            config_dict["Replace_before_translation"] =  Window.Interface21.checkBox1.isChecked()#获取译前替换开关状态
-            User_Dictionary1 = {}
-            for row in range(Window.Interface21.tableView.rowCount() - 1):
-                key_item = Window.Interface21.tableView.item(row, 0)
-                value_item = Window.Interface21.tableView.item(row, 1)
-                if key_item and value_item:
-                    key = key_item.data(Qt.DisplayRole)
-                    value = value_item.data(Qt.DisplayRole)
-                    User_Dictionary1[key] = value
-            config_dict["User_Dictionary1"] = User_Dictionary1
-
-
-            #获取提示字典界面
-            config_dict["Change_translation_prompt"] = Window.Interface23.checkBox2.isChecked() #获取译时提示开关状态
-            User_Dictionary2 = {}
-            for row in range(Window.Interface23.tableView.rowCount() - 1):
-                key_item = Window.Interface23.tableView.item(row, 0)
-                value_item = Window.Interface23.tableView.item(row, 1)
-                if key_item and value_item:
-                    key = key_item.data(Qt.DisplayRole)
-                    value = value_item.data(Qt.DisplayRole)
-                    User_Dictionary2[key] = value
-            config_dict["User_Dictionary2"] = User_Dictionary2
-
-
-
-            #获取实时设置界面
-            config_dict["OpenAI_Temperature"] = Window.Interface18.slider1.value()           #获取OpenAI温度
-            config_dict["OpenAI_top_p"] = Window.Interface18.slider2.value()                 #获取OpenAI top_p
-            config_dict["OpenAI_presence_penalty"] = Window.Interface18.slider3.value()      #获取OpenAI top_k
-            config_dict["OpenAI_frequency_penalty"] = Window.Interface18.slider4.value()    #获取OpenAI repetition_penalty
-
-
-            #获取提示词工程界面
-            config_dict["Custom_Prompt_Switch"] = Window.Interface22.checkBox1.isChecked()   #获取自定义提示词开关状态
-            config_dict["Custom_Prompt"] = Window.Interface22.TextEdit1.toPlainText()        #获取自定义提示词输入值 
-            config_dict["Add_user_example_switch"]= Window.Interface22.checkBox2.isChecked()#获取添加用户示例开关状态
-            User_example = {}
-            for row in range(Window.Interface22.tableView.rowCount() - 1):
-                key_item = Window.Interface22.tableView.item(row, 0)
-                value_item = Window.Interface22.tableView.item(row, 1)
-                if key_item and value_item:
-                    key = key_item.data(Qt.DisplayRole)
-                    value = value_item.data(Qt.DisplayRole)
-                    User_example[key] = value
-            config_dict["User_example"] = User_example
-
-
-            #将所有的配置信息写入config.json文件中
-            with open(os.path.join(resource_dir, "config.json"), "w", encoding="utf-8") as f:
-                json.dump(config_dict, f, ensure_ascii=False, indent=4)
-
-
-        if mode == "read":
-            #如果config.json在子文件夹resource中存在
-            if os.path.exists(os.path.join(resource_dir, "config.json")):
-                #读取config.json
-                with open(os.path.join(resource_dir, "config.json"), "r", encoding="utf-8") as f:
-                    config_dict = json.load(f)
-
-                #将config.json中的值赋予到变量中,并set到界面上
-                #openai官方账号界面
-                if "openai_account_type" in config_dict:
-                    Window.Widget_Openai.comboBox_account_type.setCurrentText(config_dict["openai_account_type"])
-                if "openai_model_type" in config_dict:
-                    Window.Widget_Openai.comboBox_model.setCurrentText(config_dict["openai_model_type"])
-                if "openai_API_key_str" in config_dict:
-                    Window.Widget_Openai.TextEdit_apikey.setText(config_dict["openai_API_key_str"])
-                if "openai_proxy_port" in config_dict:
-                    Window.Widget_Openai.LineEdit_proxy_port.setText(config_dict["openai_proxy_port"])
-
-                #openai代理账号基础界面
-                if "op_relay_address" in config_dict:
-                    Window.Widget_Openai_Proxy.A_settings.LineEdit_relay_address.setText(config_dict["op_relay_address"])
-                if "op_model_type" in config_dict:
-                    Window.Widget_Openai_Proxy.A_settings.comboBox_model.setCurrentText(config_dict["op_model_type"])
-                if "op_API_key_str" in config_dict:
-                    Window.Widget_Openai_Proxy.A_settings.TextEdit_apikey.setText(config_dict["op_API_key_str"])
-                if "op_proxy_port" in config_dict:
-                    Window.Widget_Openai_Proxy.A_settings.LineEdit_proxy_port.setText(config_dict["op_proxy_port"])
-
-                #openai代理账号进阶界面
-                if "op_rpm_limit" in config_dict:
-                    Window.Widget_Openai_Proxy.B_settings.spinBox_RPM.setValue(config_dict["op_rpm_limit"])
-                if "op_tpm_limit" in config_dict:
-                    Window.Widget_Openai_Proxy.B_settings.spinBox_TPM.setValue(config_dict["op_tpm_limit"])
-                if "op_input_pricing" in config_dict:
-                    Window.Widget_Openai_Proxy.B_settings.spinBox_input_pricing.setValue(config_dict["op_input_pricing"])
-                if "op_output_pricing" in config_dict:
-                    Window.Widget_Openai_Proxy.B_settings.spinBox_output_pricing.setValue(config_dict["op_output_pricing"])
-
-
-                #google官方账号界面
-                if "google_model_type" in config_dict:
-                    Window.Widget_Google.comboBox_model.setCurrentText(config_dict["google_model_type"])
-                if "google_API_key_str" in config_dict:
-                    Window.Widget_Google.TextEdit_apikey.setText(config_dict["google_API_key_str"])
-                if "google_proxy_port" in config_dict:
-                    Window.Widget_Google.LineEdit_proxy_port.setText(config_dict["google_proxy_port"])
-
-
-                #sakura界面
-                if "sakura_address" in config_dict:
-                    Window.Widget_SakuraLLM.LineEdit_address.setText(config_dict["sakura_address"])
-                if "sakura_model_type" in config_dict:
-                    Window.Widget_SakuraLLM.comboBox_model.setCurrentText(config_dict["sakura_model_type"])
-                if "sakura_proxy_port" in config_dict:
-                    Window.Widget_SakuraLLM.LineEdit_proxy_port.setText(config_dict["sakura_proxy_port"])
-
-
-                #翻译设置基础界面
-                if "translation_project" in config_dict:
-                    Window.Widget_translation_settings.A_settings.comboBox_translation_project.setCurrentText(config_dict["translation_project"])
-                if "translation_platform" in config_dict:
-                    Window.Widget_translation_settings.A_settings.comboBox_translation_platform.setCurrentText(config_dict["translation_platform"])
-                if "source_language" in config_dict:
-                    Window.Widget_translation_settings.A_settings.comboBox_source_text.setCurrentText(config_dict["source_language"])
-                if "target_language" in config_dict:
-                    Window.Widget_translation_settings.A_settings.comboBox_translated_text.setCurrentText(config_dict["target_language"])
-                if "label_input_path" in config_dict:
-                    Window.Widget_translation_settings.A_settings.label_input_path.setText(config_dict["label_input_path"])
-                if "label_output_path" in config_dict:
-                    Window.Widget_translation_settings.A_settings.label_output_path.setText(config_dict["label_output_path"])
-
-                #翻译设置进阶界面
-                if "text_line_counts" in config_dict:
-                    Window.Widget_translation_settings.B_settings.spinBox_Lines.setValue(config_dict["text_line_counts"])
-                if "thread_counts" in config_dict:
-                    Window.Widget_translation_settings.B_settings.spinBox_thread_count.setValue(config_dict["thread_counts"])
-                if "preserve_line_breaks_toggle" in config_dict:
-                    Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.setChecked(config_dict["preserve_line_breaks_toggle"])
-                if "response_json_format_toggle" in config_dict:
-                    Window.Widget_translation_settings.B_settings.SwitchButton_jsonmode.setChecked(config_dict["response_json_format_toggle"])
-                if "response_conversion_toggle" in config_dict:
-                    Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.setChecked(config_dict["response_conversion_toggle"])
-
-
-                #开始翻译的备份设置界面
-                if "auto_backup_toggle" in config_dict:
-                    Window.Widget_start_translation.B_settings.checkBox_switch.setChecked(config_dict["auto_backup_toggle"])
-
-
-
-                #错行检查界面
-                if "semantic_weight" in config_dict:
-                    Window.Widget_check.doubleSpinBox_semantic_weight.setValue(config_dict["semantic_weight"])
-                if "symbol_weight" in config_dict:
-                    Window.Widget_check.doubleSpinBox_symbol_weight.setValue(config_dict["symbol_weight"])
-                if "word_count_weight" in config_dict:
-                    Window.Widget_check.doubleSpinBox_word_count_weight.setValue(config_dict["word_count_weight"])
-                if "similarity_threshold" in config_dict:
-                    Window.Widget_check.spinBox_similarity_threshold.setValue(config_dict["similarity_threshold"])
-                if "translation_project_check" in config_dict:
-                    Window.Widget_check.comboBox_translation_project.setCurrentText(config_dict["translation_project_check"])
-                if "translation_platform_check" in config_dict:
-                    Window.Widget_check.comboBox_translation_platform.setCurrentText(config_dict["translation_platform_check"])
-                if "label_input_path_check" in config_dict:
-                    Window.Widget_check.label_input_path.setText(config_dict["label_input_path_check"])
-                if "label_output_path_check" in config_dict:
-                    Window.Widget_check.label_output_path.setText(config_dict["label_output_path_check"])
-
-
-
-
-                #替换字典界面
-                if "User_Dictionary1" in config_dict:
-                    User_Dictionary1 = config_dict["User_Dictionary1"]
-                    if User_Dictionary1:
-                        for key, value in User_Dictionary1.items():
-                            row = Window.Interface21.tableView.rowCount() - 1
-                            Window.Interface21.tableView.insertRow(row)
-                            key_item = QTableWidgetItem(key)
-                            value_item = QTableWidgetItem(value)
-                            Window.Interface21.tableView.setItem(row, 0, key_item)
-                            Window.Interface21.tableView.setItem(row, 1, value_item)        
-                        #删除第一行
-                        Window.Interface21.tableView.removeRow(0)
-                if "Replace_before_translation" in config_dict:
-                    Replace_before_translation = config_dict["Replace_before_translation"]
-                    Window.Interface21.checkBox1.setChecked(Replace_before_translation)
-
-
-                #提示字典界面
-                if "User_Dictionary2" in config_dict:
-                    User_Dictionary2 = config_dict["User_Dictionary2"]
-                    if User_Dictionary2:
-                        for key, value in User_Dictionary2.items():
-                            row = Window.Interface23.tableView.rowCount() - 1
-                            Window.Interface23.tableView.insertRow(row)
-                            key_item = QTableWidgetItem(key)
-                            value_item = QTableWidgetItem(value)
-                            Window.Interface23.tableView.setItem(row, 0, key_item)
-                            Window.Interface23.tableView.setItem(row, 1, value_item)        
-                        #删除第一行
-                        Window.Interface23.tableView.removeRow(0)
-                if "Change_translation_prompt" in config_dict:
-                    Change_translation_prompt = config_dict["Change_translation_prompt"]
-                    Window.Interface23.checkBox2.setChecked(Change_translation_prompt)
-
-
-                #实时设置界面
-                if "OpenAI_Temperature" in config_dict:
-                    OpenAI_Temperature = config_dict["OpenAI_Temperature"]
-                    Window.Interface18.slider1.setValue(OpenAI_Temperature)
-                if "OpenAI_top_p" in config_dict:
-                    OpenAI_top_p = config_dict["OpenAI_top_p"]
-                    Window.Interface18.slider2.setValue(OpenAI_top_p)
-                if "OpenAI_presence_penalty" in config_dict:
-                    OpenAI_presence_penalty = config_dict["OpenAI_presence_penalty"]
-                    Window.Interface18.slider3.setValue(OpenAI_presence_penalty)
-                if "OpenAI_frequency_penalty" in config_dict:
-                    OpenAI_frequency_penalty = config_dict["OpenAI_frequency_penalty"]
-                    Window.Interface18.slider4.setValue(OpenAI_frequency_penalty)
-
-                #提示词工程界面
-                if "Custom_Prompt_Switch" in config_dict:
-                    Custom_Prompt_Switch = config_dict["Custom_Prompt_Switch"]
-                    Window.Interface22.checkBox1.setChecked(Custom_Prompt_Switch)
-                if "Custom_Prompt" in config_dict:
-                    Custom_Prompt = config_dict["Custom_Prompt"]
-                    Window.Interface22.TextEdit1.setText(Custom_Prompt)
-                if "Add_user_example_switch" in config_dict:
-                    Add_user_example_switch = config_dict["Add_user_example_switch"]
-                    Window.Interface22.checkBox2.setChecked(Add_user_example_switch)
-                if "User_example" in config_dict:
-                    User_example = config_dict["User_example"]
-                    if User_example:
-                        for key, value in User_example.items():
-                            row = Window.Interface22.tableView.rowCount() - 1
-                            Window.Interface22.tableView.insertRow(row)
-                            key_item = QTableWidgetItem(key)
-                            value_item = QTableWidgetItem(value)
-                            Window.Interface22.tableView.setItem(row, 0, key_item)
-                            Window.Interface22.tableView.setItem(row, 1, value_item)        
-                        #删除第一行
-                        Window.Interface22.tableView.removeRow(0)
-
+            #更改部分参数，以适合Sakura模型
+            self.openai_temperature = 0.1       
+            self.openai_top_p = 0.3
+            self.thread_counts = 1 # 线程数
+            #self.preserve_line_breaks_toggle = True
 
 
     # 获取系统提示词
@@ -3121,6 +2855,316 @@ class Configurator():
         self.text_line_counts = result
 
         return result
+
+
+
+    #读写配置文件config.json函数
+    def read_write_config(self,mode):
+
+        if mode == "write":
+            # 存储配置信息的字典
+            config_dict = {}
+            
+            #获取openai官方账号界面
+            config_dict["openai_account_type"] = Window.Widget_Openai.comboBox_account_type.currentText()      #获取账号类型下拉框当前选中选项的值
+            config_dict["openai_model_type"] =  Window.Widget_Openai.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
+            config_dict["openai_API_key_str"] = Window.Widget_Openai.TextEdit_apikey.toPlainText()        #获取apikey输入值
+            config_dict["openai_proxy_port"] = Window.Widget_Openai.LineEdit_proxy_port.text()            #获取代理端口
+            
+            #获取openai代理账号基础设置界面
+            config_dict["op_relay_address"] = Window.Widget_Openai_Proxy.A_settings.LineEdit_relay_address.text()                  #获取请求地址
+            config_dict["op_model_type"] =  Window.Widget_Openai_Proxy.A_settings.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
+            config_dict["op_API_key_str"] = Window.Widget_Openai_Proxy.A_settings.TextEdit_apikey.toPlainText()        #获取apikey输入值
+            config_dict["op_proxy_port"]  = Window.Widget_Openai_Proxy.A_settings.LineEdit_proxy_port.text()               #获取代理端口
+
+
+            #获取openai代理账号进阶设置界面
+            config_dict["op_rpm_limit"] = Window.Widget_Openai_Proxy.B_settings.spinBox_RPM.value()               #获取rpm限制值
+            config_dict["op_tpm_limit"] = Window.Widget_Openai_Proxy.B_settings.spinBox_TPM.value()               #获取tpm限制值
+            config_dict["op_input_pricing"] = Window.Widget_Openai_Proxy.B_settings.spinBox_input_pricing.value()               #获取输入价格
+            config_dict["op_output_pricing"] = Window.Widget_Openai_Proxy.B_settings.spinBox_output_pricing.value()               #获取输出价格
+
+            #Google官方账号界面
+            config_dict["google_model_type"] =  Window.Widget_Google.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
+            config_dict["google_API_key_str"] = Window.Widget_Google.TextEdit_apikey.toPlainText()        #获取apikey输入值
+            config_dict["google_proxy_port"] = Window.Widget_Google.LineEdit_proxy_port.text()            #获取代理端口
+
+
+            #Sakura界面
+            config_dict["sakura_address"] = Window.Widget_SakuraLLM.LineEdit_address.text()                  #获取请求地址
+            config_dict["sakura_model_type"] =  Window.Widget_SakuraLLM.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
+            config_dict["sakura_proxy_port"] = Window.Widget_SakuraLLM.LineEdit_proxy_port.text()            #获取代理端口
+
+
+
+            #翻译设置基础设置界面
+            config_dict["translation_project"] = Window.Widget_translation_settings.A_settings.comboBox_translation_project.currentText()
+            config_dict["translation_platform"] = Window.Widget_translation_settings.A_settings.comboBox_translation_platform.currentText()
+            config_dict["source_language"] = Window.Widget_translation_settings.A_settings.comboBox_source_text.currentText()
+            config_dict["target_language"] = Window.Widget_translation_settings.A_settings.comboBox_translated_text.currentText()
+            config_dict["label_input_path"] = Window.Widget_translation_settings.A_settings.label_input_path.text()
+            config_dict["label_output_path"] = Window.Widget_translation_settings.A_settings.label_output_path.text()
+
+            #翻译设置进阶设置界面
+            config_dict["text_line_counts"] = Window.Widget_translation_settings.B_settings.spinBox_Lines.value()     # 获取文本行数设置
+            config_dict["thread_counts"] = Window.Widget_translation_settings.B_settings.spinBox_thread_count.value() # 获取线程数设置  
+            config_dict["preserve_line_breaks_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关
+            config_dict["response_json_format_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_jsonmode.isChecked()   # 获取回复json格式开关
+            config_dict["response_conversion_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.isChecked()   # 获取简繁转换开关
+
+            #开始翻译的备份设置界面
+            config_dict["auto_backup_toggle"] =  Window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
+
+
+            #错行检查界面
+            config_dict["semantic_weight"] = Window.Widget_check.doubleSpinBox_semantic_weight.value() 
+            config_dict["symbol_weight"] = Window.Widget_check.doubleSpinBox_symbol_weight.value() 
+            config_dict["word_count_weight"] = Window.Widget_check.doubleSpinBox_word_count_weight.value() 
+            config_dict["similarity_threshold"] = Window.Widget_check.spinBox_similarity_threshold.value() 
+            config_dict["translation_project_check"] = Window.Widget_check.comboBox_translation_project.currentText()
+            config_dict["translation_platform_check"] = Window.Widget_check.comboBox_translation_platform.currentText()
+            config_dict["label_input_path_check"] = Window.Widget_check.label_input_path.text()
+            config_dict["label_output_path_check"] = Window.Widget_check.label_output_path.text()
+
+
+
+            #获取替换字典界面
+            config_dict["Replace_before_translation"] =  Window.Interface21.checkBox1.isChecked()#获取译前替换开关状态
+            User_Dictionary1 = {}
+            for row in range(Window.Interface21.tableView.rowCount() - 1):
+                key_item = Window.Interface21.tableView.item(row, 0)
+                value_item = Window.Interface21.tableView.item(row, 1)
+                if key_item and value_item:
+                    key = key_item.data(Qt.DisplayRole)
+                    value = value_item.data(Qt.DisplayRole)
+                    User_Dictionary1[key] = value
+            config_dict["User_Dictionary1"] = User_Dictionary1
+
+
+            #获取提示字典界面
+            config_dict["Change_translation_prompt"] = Window.Interface23.checkBox2.isChecked() #获取译时提示开关状态
+            User_Dictionary2 = {}
+            for row in range(Window.Interface23.tableView.rowCount() - 1):
+                key_item = Window.Interface23.tableView.item(row, 0)
+                value_item = Window.Interface23.tableView.item(row, 1)
+                if key_item and value_item:
+                    key = key_item.data(Qt.DisplayRole)
+                    value = value_item.data(Qt.DisplayRole)
+                    User_Dictionary2[key] = value
+            config_dict["User_Dictionary2"] = User_Dictionary2
+
+
+
+            #获取实时设置界面
+            config_dict["OpenAI_Temperature"] = Window.Interface18.slider1.value()           #获取OpenAI温度
+            config_dict["OpenAI_top_p"] = Window.Interface18.slider2.value()                 #获取OpenAI top_p
+            config_dict["OpenAI_presence_penalty"] = Window.Interface18.slider3.value()      #获取OpenAI top_k
+            config_dict["OpenAI_frequency_penalty"] = Window.Interface18.slider4.value()    #获取OpenAI repetition_penalty
+
+
+            #获取提示词工程界面
+            config_dict["Custom_Prompt_Switch"] = Window.Interface22.checkBox1.isChecked()   #获取自定义提示词开关状态
+            config_dict["Custom_Prompt"] = Window.Interface22.TextEdit1.toPlainText()        #获取自定义提示词输入值 
+            config_dict["Add_user_example_switch"]= Window.Interface22.checkBox2.isChecked()#获取添加用户示例开关状态
+            User_example = {}
+            for row in range(Window.Interface22.tableView.rowCount() - 1):
+                key_item = Window.Interface22.tableView.item(row, 0)
+                value_item = Window.Interface22.tableView.item(row, 1)
+                if key_item and value_item:
+                    key = key_item.data(Qt.DisplayRole)
+                    value = value_item.data(Qt.DisplayRole)
+                    User_example[key] = value
+            config_dict["User_example"] = User_example
+
+
+            #将所有的配置信息写入config.json文件中
+            with open(os.path.join(resource_dir, "config.json"), "w", encoding="utf-8") as f:
+                json.dump(config_dict, f, ensure_ascii=False, indent=4)
+
+
+        if mode == "read":
+            #如果config.json在子文件夹resource中存在
+            if os.path.exists(os.path.join(resource_dir, "config.json")):
+                #读取config.json
+                with open(os.path.join(resource_dir, "config.json"), "r", encoding="utf-8") as f:
+                    config_dict = json.load(f)
+
+                #将config.json中的值赋予到变量中,并set到界面上
+                #openai官方账号界面
+                if "openai_account_type" in config_dict:
+                    Window.Widget_Openai.comboBox_account_type.setCurrentText(config_dict["openai_account_type"])
+                if "openai_model_type" in config_dict:
+                    Window.Widget_Openai.comboBox_model.setCurrentText(config_dict["openai_model_type"])
+                if "openai_API_key_str" in config_dict:
+                    Window.Widget_Openai.TextEdit_apikey.setText(config_dict["openai_API_key_str"])
+                if "openai_proxy_port" in config_dict:
+                    Window.Widget_Openai.LineEdit_proxy_port.setText(config_dict["openai_proxy_port"])
+
+                #openai代理账号基础界面
+                if "op_relay_address" in config_dict:
+                    Window.Widget_Openai_Proxy.A_settings.LineEdit_relay_address.setText(config_dict["op_relay_address"])
+                if "op_model_type" in config_dict:
+                    Window.Widget_Openai_Proxy.A_settings.comboBox_model.setCurrentText(config_dict["op_model_type"])
+                if "op_API_key_str" in config_dict:
+                    Window.Widget_Openai_Proxy.A_settings.TextEdit_apikey.setText(config_dict["op_API_key_str"])
+                if "op_proxy_port" in config_dict:
+                    Window.Widget_Openai_Proxy.A_settings.LineEdit_proxy_port.setText(config_dict["op_proxy_port"])
+
+                #openai代理账号进阶界面
+                if "op_rpm_limit" in config_dict:
+                    Window.Widget_Openai_Proxy.B_settings.spinBox_RPM.setValue(config_dict["op_rpm_limit"])
+                if "op_tpm_limit" in config_dict:
+                    Window.Widget_Openai_Proxy.B_settings.spinBox_TPM.setValue(config_dict["op_tpm_limit"])
+                if "op_input_pricing" in config_dict:
+                    Window.Widget_Openai_Proxy.B_settings.spinBox_input_pricing.setValue(config_dict["op_input_pricing"])
+                if "op_output_pricing" in config_dict:
+                    Window.Widget_Openai_Proxy.B_settings.spinBox_output_pricing.setValue(config_dict["op_output_pricing"])
+
+
+                #google官方账号界面
+                if "google_model_type" in config_dict:
+                    Window.Widget_Google.comboBox_model.setCurrentText(config_dict["google_model_type"])
+                if "google_API_key_str" in config_dict:
+                    Window.Widget_Google.TextEdit_apikey.setText(config_dict["google_API_key_str"])
+                if "google_proxy_port" in config_dict:
+                    Window.Widget_Google.LineEdit_proxy_port.setText(config_dict["google_proxy_port"])
+
+
+                #sakura界面
+                if "sakura_address" in config_dict:
+                    Window.Widget_SakuraLLM.LineEdit_address.setText(config_dict["sakura_address"])
+                if "sakura_model_type" in config_dict:
+                    Window.Widget_SakuraLLM.comboBox_model.setCurrentText(config_dict["sakura_model_type"])
+                if "sakura_proxy_port" in config_dict:
+                    Window.Widget_SakuraLLM.LineEdit_proxy_port.setText(config_dict["sakura_proxy_port"])
+
+
+                #翻译设置基础界面
+                if "translation_project" in config_dict:
+                    Window.Widget_translation_settings.A_settings.comboBox_translation_project.setCurrentText(config_dict["translation_project"])
+                if "translation_platform" in config_dict:
+                    Window.Widget_translation_settings.A_settings.comboBox_translation_platform.setCurrentText(config_dict["translation_platform"])
+                if "source_language" in config_dict:
+                    Window.Widget_translation_settings.A_settings.comboBox_source_text.setCurrentText(config_dict["source_language"])
+                if "target_language" in config_dict:
+                    Window.Widget_translation_settings.A_settings.comboBox_translated_text.setCurrentText(config_dict["target_language"])
+                if "label_input_path" in config_dict:
+                    Window.Widget_translation_settings.A_settings.label_input_path.setText(config_dict["label_input_path"])
+                if "label_output_path" in config_dict:
+                    Window.Widget_translation_settings.A_settings.label_output_path.setText(config_dict["label_output_path"])
+
+                #翻译设置进阶界面
+                if "text_line_counts" in config_dict:
+                    Window.Widget_translation_settings.B_settings.spinBox_Lines.setValue(config_dict["text_line_counts"])
+                if "thread_counts" in config_dict:
+                    Window.Widget_translation_settings.B_settings.spinBox_thread_count.setValue(config_dict["thread_counts"])
+                if "preserve_line_breaks_toggle" in config_dict:
+                    Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.setChecked(config_dict["preserve_line_breaks_toggle"])
+                if "response_json_format_toggle" in config_dict:
+                    Window.Widget_translation_settings.B_settings.SwitchButton_jsonmode.setChecked(config_dict["response_json_format_toggle"])
+                if "response_conversion_toggle" in config_dict:
+                    Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.setChecked(config_dict["response_conversion_toggle"])
+
+
+                #开始翻译的备份设置界面
+                if "auto_backup_toggle" in config_dict:
+                    Window.Widget_start_translation.B_settings.checkBox_switch.setChecked(config_dict["auto_backup_toggle"])
+
+
+
+                #错行检查界面
+                if "semantic_weight" in config_dict:
+                    Window.Widget_check.doubleSpinBox_semantic_weight.setValue(config_dict["semantic_weight"])
+                if "symbol_weight" in config_dict:
+                    Window.Widget_check.doubleSpinBox_symbol_weight.setValue(config_dict["symbol_weight"])
+                if "word_count_weight" in config_dict:
+                    Window.Widget_check.doubleSpinBox_word_count_weight.setValue(config_dict["word_count_weight"])
+                if "similarity_threshold" in config_dict:
+                    Window.Widget_check.spinBox_similarity_threshold.setValue(config_dict["similarity_threshold"])
+                if "translation_project_check" in config_dict:
+                    Window.Widget_check.comboBox_translation_project.setCurrentText(config_dict["translation_project_check"])
+                if "translation_platform_check" in config_dict:
+                    Window.Widget_check.comboBox_translation_platform.setCurrentText(config_dict["translation_platform_check"])
+                if "label_input_path_check" in config_dict:
+                    Window.Widget_check.label_input_path.setText(config_dict["label_input_path_check"])
+                if "label_output_path_check" in config_dict:
+                    Window.Widget_check.label_output_path.setText(config_dict["label_output_path_check"])
+
+
+
+
+                #替换字典界面
+                if "User_Dictionary1" in config_dict:
+                    User_Dictionary1 = config_dict["User_Dictionary1"]
+                    if User_Dictionary1:
+                        for key, value in User_Dictionary1.items():
+                            row = Window.Interface21.tableView.rowCount() - 1
+                            Window.Interface21.tableView.insertRow(row)
+                            key_item = QTableWidgetItem(key)
+                            value_item = QTableWidgetItem(value)
+                            Window.Interface21.tableView.setItem(row, 0, key_item)
+                            Window.Interface21.tableView.setItem(row, 1, value_item)        
+                        #删除第一行
+                        Window.Interface21.tableView.removeRow(0)
+                if "Replace_before_translation" in config_dict:
+                    Replace_before_translation = config_dict["Replace_before_translation"]
+                    Window.Interface21.checkBox1.setChecked(Replace_before_translation)
+
+
+                #提示字典界面
+                if "User_Dictionary2" in config_dict:
+                    User_Dictionary2 = config_dict["User_Dictionary2"]
+                    if User_Dictionary2:
+                        for key, value in User_Dictionary2.items():
+                            row = Window.Interface23.tableView.rowCount() - 1
+                            Window.Interface23.tableView.insertRow(row)
+                            key_item = QTableWidgetItem(key)
+                            value_item = QTableWidgetItem(value)
+                            Window.Interface23.tableView.setItem(row, 0, key_item)
+                            Window.Interface23.tableView.setItem(row, 1, value_item)        
+                        #删除第一行
+                        Window.Interface23.tableView.removeRow(0)
+                if "Change_translation_prompt" in config_dict:
+                    Change_translation_prompt = config_dict["Change_translation_prompt"]
+                    Window.Interface23.checkBox2.setChecked(Change_translation_prompt)
+
+
+                #实时设置界面
+                if "OpenAI_Temperature" in config_dict:
+                    OpenAI_Temperature = config_dict["OpenAI_Temperature"]
+                    Window.Interface18.slider1.setValue(OpenAI_Temperature)
+                if "OpenAI_top_p" in config_dict:
+                    OpenAI_top_p = config_dict["OpenAI_top_p"]
+                    Window.Interface18.slider2.setValue(OpenAI_top_p)
+                if "OpenAI_presence_penalty" in config_dict:
+                    OpenAI_presence_penalty = config_dict["OpenAI_presence_penalty"]
+                    Window.Interface18.slider3.setValue(OpenAI_presence_penalty)
+                if "OpenAI_frequency_penalty" in config_dict:
+                    OpenAI_frequency_penalty = config_dict["OpenAI_frequency_penalty"]
+                    Window.Interface18.slider4.setValue(OpenAI_frequency_penalty)
+
+                #提示词工程界面
+                if "Custom_Prompt_Switch" in config_dict:
+                    Custom_Prompt_Switch = config_dict["Custom_Prompt_Switch"]
+                    Window.Interface22.checkBox1.setChecked(Custom_Prompt_Switch)
+                if "Custom_Prompt" in config_dict:
+                    Custom_Prompt = config_dict["Custom_Prompt"]
+                    Window.Interface22.TextEdit1.setText(Custom_Prompt)
+                if "Add_user_example_switch" in config_dict:
+                    Add_user_example_switch = config_dict["Add_user_example_switch"]
+                    Window.Interface22.checkBox2.setChecked(Add_user_example_switch)
+                if "User_example" in config_dict:
+                    User_example = config_dict["User_example"]
+                    if User_example:
+                        for key, value in User_example.items():
+                            row = Window.Interface22.tableView.rowCount() - 1
+                            Window.Interface22.tableView.insertRow(row)
+                            key_item = QTableWidgetItem(key)
+                            value_item = QTableWidgetItem(value)
+                            Window.Interface22.tableView.setItem(row, 0, key_item)
+                            Window.Interface22.tableView.setItem(row, 1, value_item)        
+                        #删除第一行
+                        Window.Interface22.tableView.removeRow(0)
 
 
 
@@ -3749,9 +3793,10 @@ class Cache_Manager():
         列表元素结构如下:
         1.文本索引： "text_index"
         2.原文： "source_text"
+        3.名字(非必需)： "name"
         """
         ex_list = [
-            {'text_index': 4, 'source_text': 'しこトラ！'},
+            {'text_index': 4, 'source_text': 'しこトラ！',"name": "xxxxx"},
             {'text_index': 5, 'source_text': '11111'},
             {'text_index': 6, 'source_text': 'しこトラ！'},
         ]
@@ -3761,12 +3806,20 @@ class Cache_Manager():
         for entry in cache_list:
             translation_status = entry.get('translation_status')
 
+            # 如果能够获得到翻译状态的键，且翻译状态为0，即未翻译状态，那么将该行数据加入到新列表中
             if translation_status == 0:
                 source_text = entry.get('source_text')
                 text_index = entry.get('text_index')
 
+                # 判断是否为None
                 if source_text is not None and text_index is not None:
-                    new_list.append({ 'text_index': text_index ,'source_text': source_text})
+
+                    name = entry.get('name')
+                    # 如果有名字，则将名字加入到新列表中，否则不加入
+                    if name:
+                        new_list.append({ 'text_index': text_index ,'source_text': source_text, 'name': name})
+                    else:
+                        new_list.append({ 'text_index': text_index ,'source_text': source_text})
 
                 entry['translation_status'] = 2
 
@@ -3778,10 +3831,14 @@ class Cache_Manager():
 
     # 将未翻译的文本列表，转换成待发送的原文字典,并计算文本行数，因为最后一些文本可能达到不了每次翻译行数
     def create_dictionary_from_list(self,data_list):
-        """
-        字典元素结构如下:
-        "index":"source_text"
-        """
+        #输入示例
+        ex_list = [
+            {'text_index': 4, 'source_text': 'しこトラ！',"name": "xxxxx"},
+            {'text_index': 5, 'source_text': '11111'},
+            {'text_index': 6, 'source_text': 'しこトラ！'},
+        ]
+
+        # 输出示例
         ex_dict = {
         '0': '测试！',
         '1': '测试1122211',
@@ -3792,9 +3849,14 @@ class Cache_Manager():
 
         for index, entry in enumerate(data_list):
             source_text = entry.get('source_text')
-
+            # 判断是否为None
             if source_text is not None:
-                new_dict[str(index)] = source_text
+                name = entry.get('name')
+                # 如果有名字，则组合成轻小说的格式，如：小明「测试」， 否则不组合
+                if name:
+                    new_dict[str(index)] = f"{name}「{source_text}」"
+                else:
+                    new_dict[str(index)] = source_text
 
         return new_dict, len(data_list)
 
@@ -3813,7 +3875,7 @@ class Cache_Manager():
 
 
         ex_source_text_list = [
-            {'text_index': 4, 'source_text': 'しこトラ！'},
+            {'text_index': 4, 'source_text': 'しこトラ！','name': 'xxxxx'},
             {'text_index': 5, 'source_text': '11111'},
             {'text_index': 6, 'source_text': 'しこトラ！'},
         ]
@@ -3835,12 +3897,29 @@ class Cache_Manager():
             text_index = source_text_item.get('text_index')
             # 根据回复文本的索引值，在回复内容中获取已翻译的文本
             response_value = response_dict.get(str(index))
+            # 获取人名（如果有）
+            name = source_text_item.get('name')
 
             # 缓存文本中索引值，基本上是缓存文件里元素的位置索引值，所以直接获取并修改
             if response_value is not None:
                 if 'text_index' in cache_data[text_index] and cache_data[text_index]['text_index'] == text_index:
-                    cache_data[text_index]['translation_status'] = 1
-                    cache_data[text_index]['translated_text'] = response_value
+
+                    # 如果之前文本中有人名信息
+                    if name:
+                        # 提取人名以及对话文本
+                        name,text = Cache_Manager.extract_strings(self,response_value)
+                        # 如果能够正确提取到人名以及翻译文本
+                        if name:
+                            cache_data[text_index]['translation_status'] = 1
+                            cache_data[text_index]['name'] = name
+                            cache_data[text_index]['translated_text'] = text
+                        else:
+                            cache_data[text_index]['translation_status'] = 1
+                            cache_data[text_index]['translated_text'] = response_value
+
+                    else:
+                        cache_data[text_index]['translation_status'] = 1
+                        cache_data[text_index]['translated_text'] = response_value
 
             # 增加索引值
             index = index + 1
@@ -4030,7 +4109,19 @@ class Cache_Manager():
                     data['semantic_similarity'] = distance_to_update
                     break
 
-
+    # 轻小说格式提取人名与文本
+    def extract_strings(self, input_str):
+        # 正则表达式匹配括号及其内容
+        match = re.search(r'(.*)「(.*?)」', input_str)
+        if match:
+            # 括号左边的内容
+            left_content = match.group(1)
+            # 括号内的内容
+            inner_content = match.group(2)
+            return left_content, inner_content
+        else:
+            # 如果没有找到括号，返回原始字符串和空字符串
+            return  0,input_str
 
 
 # 文件输出器
@@ -4690,9 +4781,9 @@ class Widget_Openai(QFrame):#  Openai账号界面
 
 
         layout_test.addStretch(1)  # 添加伸缩项
-        layout_test.addWidget(primaryButton_save)
-        layout_test.addStretch(1)  # 添加伸缩项
         layout_test.addWidget(primaryButton_test)
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_save)
         layout_test.addStretch(1)  # 添加伸缩项
         box_test.setLayout(layout_test)
 
@@ -4909,9 +5000,9 @@ class Widget_Openai_Proxy_A(QFrame):#  代理账号基础设置子界面
 
 
         layout_test.addStretch(1)  # 添加伸缩项
-        layout_test.addWidget(primaryButton_save)
-        layout_test.addStretch(1)  # 添加伸缩项
         layout_test.addWidget(primaryButton_test)
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_save)
         layout_test.addStretch(1)  # 添加伸缩项
         box_test.setLayout(layout_test)
 
@@ -5198,9 +5289,9 @@ class Widget_Google(QFrame):#  谷歌账号界面
 
 
         layout_test.addStretch(1)  # 添加伸缩项
-        layout_test.addWidget(primaryButton_save)
-        layout_test.addStretch(1)  # 添加伸缩项
         layout_test.addWidget(primaryButton_test)
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_save)
         layout_test.addStretch(1)  # 添加伸缩项
         box_test.setLayout(layout_test)
 
@@ -5340,9 +5431,9 @@ class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
 
 
         layout_test.addStretch(1)  # 添加伸缩项
-        layout_test.addWidget(primaryButton_save)
-        layout_test.addStretch(1)  # 添加伸缩项
         layout_test.addWidget(primaryButton_test)
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_save)
         layout_test.addStretch(1)  # 添加伸缩项
         box_test.setLayout(layout_test)
 
@@ -5395,10 +5486,12 @@ class Widget_translation_settings(QFrame):  # 翻译设置主界面
 
         self.A_settings = Widget_translation_settings_A('A_settings', self)  # 创建实例，指向界面
         self.B_settings = Widget_translation_settings_B('B_settings', self)  # 创建实例，指向界面
+        #self.C_settings = Widget_translation_settings_C('C_settings', self)
 
         # 添加子界面到分段式导航栏
         self.addSubInterface(self.A_settings, 'A_settings', '基础设置')
         self.addSubInterface(self.B_settings, 'B_settings', '进阶设置')
+        #self.addSubInterface(self.C_settings, 'C_settings', '混合翻译设置')
 
 
         # 将分段式导航栏和堆叠式窗口添加到垂直布局中
@@ -5665,6 +5758,36 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         box_Lines.setLayout(layout_Lines)
 
 
+
+        # -----创建第1.7个组(后来补的)，添加多个组件-----
+        box1_thread_count = QGroupBox()
+        box1_thread_count.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_thread_count = QHBoxLayout()
+
+        #设置“最大线程数”标签
+        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label1_7.setText("最大线程数")
+
+        #设置“说明”显示
+        label2_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label2_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        label2_7.setText("(0是自动根据电脑设置线程数)")  
+
+       #设置“最大线程数”数值输入框
+        self.spinBox_thread_count = SpinBox(self)
+        #设置最大最小值
+        self.spinBox_thread_count.setRange(0, 1000)    
+        self.spinBox_thread_count.setValue(0)
+
+        layout1_thread_count.addWidget(label1_7)
+        layout1_thread_count.addWidget(label2_7)
+        layout1_thread_count.addStretch(1)  # 添加伸缩项
+        layout1_thread_count.addWidget(self.spinBox_thread_count)
+        box1_thread_count.setLayout(layout1_thread_count)
+
+
+
         # -----创建第1.4个组(后来补的)，添加多个组件-----
         box1_jsonmode = QGroupBox()
         box1_jsonmode.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
@@ -5736,32 +5859,6 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
 
 
 
-        # -----创建第1.7个组(后来补的)，添加多个组件-----
-        box1_thread_count = QGroupBox()
-        box1_thread_count.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout1_thread_count = QHBoxLayout()
-
-        #设置“最大线程数”标签
-        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label1_7.setText("最大线程数")
-
-        #设置“说明”显示
-        label2_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label2_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
-        label2_7.setText("(0是自动根据电脑设置线程数)")  
-
-       #设置“最大线程数”数值输入框
-        self.spinBox_thread_count = SpinBox(self)
-        #设置最大最小值
-        self.spinBox_thread_count.setRange(0, 1000)    
-        self.spinBox_thread_count.setValue(0)
-
-        layout1_thread_count.addWidget(label1_7)
-        layout1_thread_count.addWidget(label2_7)
-        layout1_thread_count.addStretch(1)  # 添加伸缩项
-        layout1_thread_count.addWidget(self.spinBox_thread_count)
-        box1_thread_count.setLayout(layout1_thread_count)
 
 
 
@@ -5771,10 +5868,10 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         # 把内容添加到容器中
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box_Lines)
+        container.addWidget(box1_thread_count)
         container.addWidget(box1_line_breaks)
         container.addWidget(box1_jsonmode)
         container.addWidget(box1_conversion_toggle)
-        container.addWidget(box1_thread_count)
         container.addStretch(1)  # 添加伸缩项
 
         # 设置窗口显示的内容是最外层容器
@@ -5786,6 +5883,131 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
     def onjsonmode(self, isChecked: bool):
         if isChecked:
             user_interface_prompter.createWarningInfoBar("该设置现在仅支持openai接口的gpt-3.5-turbo-0125与gpt-4-turbo-preview模型开启")
+
+
+class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+
+
+        # -----创建第1个组，添加多个组件-----
+        box_switch = QGroupBox()
+        box_switch.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_switch = QHBoxLayout()
+
+        #设置“回复json格式”标签
+        self.labe1_4 = QLabel(flags=Qt.WindowFlags())  
+        self.labe1_4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        self.labe1_4.setText("启用混合平台翻译功能")
+
+
+
+        # 设置“回复json格式”选择开关
+        self.SwitchButton_mixed_translation = SwitchButton(parent=self)    
+        #self.SwitchButton_jsonmode.checkedChanged.connect(self.onjsonmode)
+
+
+
+        layout_switch.addWidget(self.labe1_4)
+        layout_switch.addStretch(1)  # 添加伸缩项
+        layout_switch.addWidget(self.SwitchButton_mixed_translation)
+        box_switch.setLayout(layout_switch)
+
+
+
+
+
+        # -----创建第2个组，添加多个组件-----
+        box_translation_platform1 = QGroupBox()
+        box_translation_platform1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_translation_platform1 = QGridLayout()
+
+        #设置“翻译平台”标签
+        self.labelx1 = QLabel( flags=Qt.WindowFlags())  
+        self.labelx1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")#设置字体，大小，颜色
+        self.labelx1.setText("首轮翻译平台")
+
+
+        #设置“翻译平台”下拉选择框
+        self.comboBox_primary_translation_platform = ComboBox() #以demo为父类
+        self.comboBox_primary_translation_platform.addItems(['Openai官方',  'Openai代理',  'Google官方',  'SakuraLLM'])
+        self.comboBox_primary_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox_primary_translation_platform.setFixedSize(150, 35)
+
+
+        layout_translation_platform1.addWidget(self.labelx1, 0, 0)
+        layout_translation_platform1.addWidget(self.comboBox_primary_translation_platform, 0, 1)
+        box_translation_platform1.setLayout(layout_translation_platform1)
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box_translation_platform2 = QGroupBox()
+        box_translation_platform2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_translation_platform2 = QGridLayout()
+
+        #设置“翻译平台”标签
+        self.labelx2 = QLabel( flags=Qt.WindowFlags())  
+        self.labelx2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")#设置字体，大小，颜色
+        self.labelx2.setText("次轮翻译平台")
+
+
+        #设置“翻译平台”下拉选择框
+        self.comboBox_secondary_translation_platform = ComboBox() #以demo为父类
+        self.comboBox_secondary_translation_platform.addItems(['不设置', 'Openai官方',  'Openai代理',  'Google官方',  'SakuraLLM'])
+        self.comboBox_secondary_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox_secondary_translation_platform.setFixedSize(150, 35)
+
+
+        layout_translation_platform2.addWidget(self.labelx2, 0, 0)
+        layout_translation_platform2.addWidget(self.comboBox_secondary_translation_platform, 0, 1)
+        box_translation_platform2.setLayout(layout_translation_platform2)
+
+
+
+        # -----创建第4个组，添加多个组件-----
+        box_translation_platform3 = QGroupBox()
+        box_translation_platform3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_translation_platform3 = QGridLayout()
+
+        #设置“翻译平台”标签
+        self.labelx3 = QLabel( flags=Qt.WindowFlags())  
+        self.labelx3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")#设置字体，大小，颜色
+        self.labelx3.setText("末轮翻译平台")
+
+
+        #设置“翻译平台”下拉选择框
+        self.comboBox_final_translation_platform = ComboBox() #以demo为父类
+        self.comboBox_final_translation_platform.addItems(['不设置','Openai官方',  'Openai代理',  'Google官方',  'SakuraLLM'])
+        self.comboBox_final_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox_final_translation_platform.setFixedSize(150, 35)
+
+
+        layout_translation_platform3.addWidget(self.labelx3, 0, 0)
+        layout_translation_platform3.addWidget(self.comboBox_final_translation_platform, 0, 1)
+        box_translation_platform3.setLayout(layout_translation_platform3)
+
+
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+        # 把内容添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_switch)
+        container.addWidget(box_translation_platform1)
+        container.addWidget(box_translation_platform2)
+        container.addWidget(box_translation_platform3)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
 
 
 
@@ -6033,7 +6255,7 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
 
 
         #设置“终止翻译”的按钮
-        self.primaryButton_terminate_translation = PrimaryPushButton('取消翻译', self, FIF.CANCEL)
+        self.primaryButton_terminate_translation = PushButton('取消翻译', self, FIF.CANCEL)
         self.primaryButton_terminate_translation.clicked.connect(self.terminate_translation) #按钮绑定槽函数
 
 
@@ -8168,7 +8390,7 @@ class window(FramelessWindow): #主窗口
         self.navigationInterface.addSeparator() #添加分隔符,需要删除position=NavigationItemPosition.SCROLL来使分隔符正确显示
 
         #添加RPG界面
-        self.addSubInterface(self.Widget_RPG, FIF.CALENDAR, 'RPG')
+        self.addSubInterface(self.Widget_RPG, FIF.CALENDAR, 'StevExtraction')
 
         self.navigationInterface.addSeparator() 
 
