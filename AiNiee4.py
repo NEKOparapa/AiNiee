@@ -41,6 +41,7 @@ from openpyxl import Workbook
 import numpy as np   #需要安装库pip install numpy
 import opencc       #需要安装库pip install opencc      
 from openai import OpenAI #需要安装库pip install openai
+from zhipuai import ZhipuAI #需要安装库pip install zhipuai
 import google.generativeai as genai #需要安装库pip install -U google-generativeai
 
 from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, QPainter, QPixmap#需要安装库 pip3 install PyQt5
@@ -124,7 +125,7 @@ class Translator():
             total_text_line_count = user_interface_prompter.total_text_line_count # 与上一个翻译任务的总行数一致
             user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0,0,0)
 
-            #最后改一下运行状态
+            #最后改一下运行状态，为正常翻译状态
             Running_status = 6
 
         else:#如果是从头开始翻译
@@ -173,6 +174,9 @@ class Translator():
                     
                 elif configurator.translation_platform == "Google官方":
                     executor.submit(api_requester_instance.Concurrent_Request_Google)
+
+                elif configurator.translation_platform == "智谱官方":
+                    executor.submit(api_requester_instance.Concurrent_Request_ZhiPu)
 
                 elif configurator.translation_platform == "SakuraLLM":
                     executor.submit(api_requester_instance.Concurrent_Request_Sakura)
@@ -236,6 +240,9 @@ class Translator():
                         
                     elif configurator.translation_platform == "Google官方":
                         executor.submit(api_requester_instance.Concurrent_Request_Google)
+
+                    elif configurator.translation_platform == "智谱官方":
+                        executor.submit(api_requester_instance.Concurrent_Request_ZhiPu)
 
                     elif configurator.translation_platform == "SakuraLLM":
                         executor.submit(api_requester_instance.Concurrent_Request_Sakura)
@@ -801,7 +808,7 @@ class Api_Requester():
 
                 # ——————————————————————————————————————————对AI回复内容进行各种处理和检查——————————————————————————————————————————
                     # 处理回复内容
-                    response_content = Response_Parser.adjust_string(self,response_content)
+                    response_content = Response_Parser.extract_first_brackets_content(self,response_content)
 
                     # 检查回复内容
                     check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
@@ -1123,7 +1130,7 @@ class Api_Requester():
 
                 # ——————————————————————————————————————————对AI回复内容进行各种处理和检查——————————————————————————————————————————
                     # 处理回复内容
-                    response_content = Response_Parser.adjust_string(self,response_content)
+                    response_content = Response_Parser.extract_first_brackets_content(self,response_content)
 
                     # 检查回复内容
                     check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
@@ -1200,6 +1207,304 @@ class Api_Requester():
             print("\033[1;31mError:\033[0m 子线程运行出现问题！错误信息如下")
             print(f"Error: {e}\n")
             return
+
+
+
+
+    # 整理发送内容（zhipu）
+    def organize_send_content_zhipu(self,source_text_dict):
+        #创建message列表，用于发送
+        messages = []
+
+        #构建系统提示词
+        prompt = configurator.get_system_prompt()
+        system_prompt ={"role": "system","content": prompt }
+        #print("[INFO] 当前系统提示词为", prompt,'\n')
+        messages.append(system_prompt)
+
+        #构建原文与译文示例
+        original_exmaple,translation_example =  configurator.get_default_translation_example()
+        the_original_exmaple =  {"role": "user","content":original_exmaple }
+        the_translation_example = {"role": "assistant", "content":translation_example }
+        #print("[INFO]  已添加默认原文示例",original_exmaple)
+        #print("[INFO]  已添加默认译文示例",translation_example)
+
+        messages.append(the_original_exmaple)
+        messages.append(the_translation_example)
+ 
+
+
+        #如果开启了译时提示字典功能，则添加新的原文与译文示例
+        if Window.Interface23.checkBox2.isChecked() :
+            original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(source_text_dict)
+            if original_exmaple_2 and translation_example_2:
+                the_original_exmaple =  {"role": "user","content":original_exmaple_2 }
+                the_translation_example = {"role": "assistant", "content":translation_example_2 }
+                messages.append(the_original_exmaple)
+                messages.append(the_translation_example)
+                print("[INFO]  检查到请求的原文中含有用户字典内容，已添加新的原文与译文示例")
+                print("[INFO]  已添加提示字典原文示例",original_exmaple_2)
+                print("[INFO]  已添加提示字典译文示例",translation_example_2)
+
+        #如果提示词工程界面的用户翻译示例开关打开，则添加新的原文与译文示例
+        if Window.Interface22.checkBox2.isChecked() :
+            original_exmaple_3,translation_example_3 = configurator.build_user_translation_example ()
+            if original_exmaple_3 and translation_example_3:
+                the_original_exmaple =  {"role": "user","content":original_exmaple_3 }
+                the_translation_example = {"role": "assistant", "content":translation_example_3 }
+                messages.append(the_original_exmaple)
+                messages.append(the_translation_example)
+                print("[INFO]  检查到用户翻译示例开关打开，已添加新的原文与译文示例")
+                print("[INFO]  已添加用户原文示例",original_exmaple_3)
+                print("[INFO]  已添加用户译文示例",translation_example_3)
+
+
+        # 如果开启了保留换行符功能
+        if configurator.preserve_line_breaks_toggle:
+            print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
+            source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
+
+
+        #如果开启译前替换字典功能，则根据用户字典进行替换
+        if Window.Interface21.checkBox1.isChecked() :
+            print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
+            source_text_dict = configurator.replace_strings_dictionary(source_text_dict)
+
+        #将原文本字典转换成JSON格式的字符串，方便发送
+        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
+
+        #构建需要翻译的文本
+        Original_text = {"role":"user","content":source_text_str}   
+        messages.append(Original_text)
+
+        return messages,source_text_str
+
+
+    # 并发接口请求（zhipu）
+    def Concurrent_Request_ZhiPu(self):
+        global cache_list,Running_status
+
+        # 检查翻译任务是否已经暂停或者退出
+        if Running_status == 9 or Running_status == 10 :
+            return
+
+        try:#方便排查子线程bug
+
+            # ——————————————————————————————————————————截取需要翻译的原文本——————————————————————————————————————————
+            lock1.acquire()  # 获取锁
+            # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
+            rows = configurator.text_line_counts
+            source_text_list = Cache_Manager.process_dictionary_data(self,rows, cache_list)    
+            lock1.release()  # 释放锁
+
+            # ——————————————————————————————————————————转换原文本的格式——————————————————————————————————————————
+            # 将原文本列表改变为请求格式
+            source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
+
+            # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
+            messages,source_text_str = Api_Requester.organize_send_content_zhipu(self,source_text_dict)
+
+
+
+            #——————————————————————————————————————————检查tokens发送限制——————————————————————————————————————————
+            #计算请求的tokens预计花费
+            request_tokens_consume = Request_Limiter.num_tokens_from_messages(self,messages) 
+            #计算回复的tokens预计花费，只计算发送的文本，不计算提示词与示例，可以大致得出
+            Original_text = [{"role":"user","content":source_text_str }] # 需要拿列表来包一层，不然计算时会出错 
+            completion_tokens_consume = Request_Limiter.num_tokens_from_messages(self,Original_text)
+ 
+            if request_tokens_consume >= request_limiter.max_tokens :
+                print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
+                print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
+                return
+
+
+            # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
+            start_time = time.time()
+            timeout = 850  # 设置超时时间为x秒
+            request_errors_count = 0 # 设置请求错误次数限制
+            Wrong_answer_count = 0   # 设置错误回复次数限制
+
+            while 1 :
+                # 检查翻译任务是否已经暂停或者退出
+                if Running_status == 9 or Running_status == 10 :
+                    return
+
+                #检查子线程运行是否超时---------------------------------
+                if time.time() - start_time > timeout:
+                    print("\033[1;31mError:\033[0m 子线程执行任务已经超时，将暂时取消本次任务")
+                    break
+
+
+                # 检查是否符合速率限制---------------------------------
+                if request_limiter.RPM_and_TPM_limit(request_tokens_consume):
+
+
+                    print("[INFO] 已发送请求,正在等待AI回复中-----------------------")
+                    print("[INFO] 请求与回复的tokens数预计值是：",request_tokens_consume  + completion_tokens_consume )
+                    print("[INFO] 当前发送的原文文本：\n", source_text_str)
+
+                    # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
+                    # 记录开始请求时间
+                    Start_request_time = time.time()
+
+
+                    # 获取apikey
+                    zhipu_apikey =  configurator.get_apikey()
+
+                    # 创建zhipu客户端
+                    zhipuclient = ZhipuAI(api_key=zhipu_apikey)
+                    # 发送对话请求
+                    try:
+                        response = zhipuclient.chat.completions.create(
+                            model= configurator.model_type,
+                            messages = messages ,
+                            temperature=0.1
+                            )
+
+                    #抛出错误信息
+                    except Exception as e:
+                        print("\033[1;31mError:\033[0m 进行请求时出现问题！！！错误信息如下")
+                        print(f"Error: {e}\n")
+
+                        #请求错误计次
+                        request_errors_count = request_errors_count + 1
+                        #如果错误次数过多，就取消任务
+                        if request_errors_count >= 6 :
+                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
+                            break
+
+                        #处理完毕，再次进行请求
+                        continue
+
+
+                    # 检查翻译任务是否已经暂停或者退出，不进行接下来的处理了
+                    if Running_status == 9 or Running_status == 10 :
+                        return
+                    
+
+                    #——————————————————————————————————————————收到回复，并截取回复内容中的文本内容 ————————————————————————————————————————  
+                    # 计算AI回复花费的时间
+                    response_time = time.time()
+                    Request_consumption_time = round(response_time - Start_request_time, 2)
+
+
+                    # 计算本次请求的花费的tokens
+                    try: # 因为有些中转网站不返回tokens消耗
+                        prompt_tokens_used = int(response.usage.prompt_tokens) #本次请求花费的tokens
+                    except Exception as e:
+                        prompt_tokens_used = 0
+                    try:
+                        completion_tokens_used = int(response.usage.completion_tokens) #本次回复花费的tokens
+                    except Exception as e:
+                        completion_tokens_used = 0
+
+
+
+                    # 提取回复的文本内容
+                    response_content = response.choices[0].message.content 
+
+
+                    print('\n' )
+                    print("[INFO] 已成功接受到AI的回复-----------------------")
+                    print("[INFO] 该次请求已消耗等待时间：",Request_consumption_time,"秒")
+                    print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
+                    print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
+
+                # ——————————————————————————————————————————对AI回复内容进行各种处理和检查——————————————————————————————————————————
+                    # 处理回复内容
+                    response_content = Response_Parser.extract_first_brackets_content(self,response_content)
+
+                    # 检查回复内容
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
+
+                    # 如果没有出现错误
+                    if check_result :
+                        # 转化为字典格式
+                        response_dict = json.loads(response_content) #注意转化为字典的数字序号key是字符串类型
+
+                        # 如果开启了保留换行符功能
+                        if configurator.preserve_line_breaks_toggle:
+                            response_dict = Cache_Manager.replace_special_characters(self,response_dict, "还原")
+
+                        # 录入缓存文件
+                        lock1.acquire()  # 获取锁
+                        Cache_Manager.update_cache_data(self,cache_list, source_text_list, response_dict)
+                        lock1.release()  # 释放锁
+
+
+                        # 如果开启自动备份,则自动备份缓存文件
+                        if Window.Widget_start_translation.B_settings.checkBox_switch.isChecked():
+                            lock3.acquire()  # 获取锁
+
+                            # 创建存储缓存文件的文件夹，如果路径不存在，创建文件夹
+                            output_path = os.path.join(configurator.Output_Folder, "cache")
+                            os.makedirs(output_path, exist_ok=True)
+                            # 输出备份
+                            File_Outputter.output_cache_file(self,cache_list,output_path)
+                            lock3.release()  # 释放锁
+
+                        
+                        lock2.acquire()  # 获取锁
+
+                        # 如果是进行平时的翻译任务
+                        if Running_status == 6 :
+                            # 计算进度信息
+                            progress = (user_interface_prompter.translated_line_count+row_count) / user_interface_prompter.total_text_line_count * 100
+                            progress = round(progress, 1)
+
+                            # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
+                            user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",row_count,prompt_tokens_used,completion_tokens_used)
+                        
+                        # 如果进行的是错行检查任务，使用不同的计算方法
+                        elif Running_status == 7 :
+                            user_interface_prompter.translated_line_count = user_interface_prompter.translated_line_count + row_count
+                            progress = user_interface_prompter.translated_line_count / user_interface_prompter.total_text_line_count * 100
+                            progress = round(progress, 1)
+
+                        print(f"\n--------------------------------------------------------------------------------------")
+                        print(f"\n\033[1;32mSuccess:\033[0m AI回复内容检查通过！！！已翻译完成{progress}%")
+                        print(f"\n--------------------------------------------------------------------------------------\n")
+                        lock2.release()  # 释放锁
+
+
+                        break
+                
+
+                    # 如果出现回复错误
+                    else:
+
+                        # 更改UI界面信息
+                        lock2.acquire()  # 获取锁
+                        # 如果是进行平时的翻译任务
+                        if Running_status == 6 :
+                            user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",row_count,prompt_tokens_used,completion_tokens_used)
+                        lock2.release()  # 释放锁
+                        print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
+
+
+                        #错误回复计次
+                        Wrong_answer_count = Wrong_answer_count + 1
+                        print("\033[1;33mWarning:\033[0m AI回复内容格式错误次数:",Wrong_answer_count,"到达2次后将该段文本进行拆分翻译\n")
+                        #检查回答错误次数，如果达到限制，则跳过该句翻译。
+                        if Wrong_answer_count >= 2 :
+                            print("\033[1;33mWarning:\033[0m 错误次数已经达限制,将该段文本进行拆分翻译！\n")    
+                            break
+
+
+                        #进行下一次循环
+                        time.sleep(3)                 
+                        continue
+
+    #子线程抛出错误信息
+        except Exception as e:
+            print("\033[1;31mError:\033[0m 子线程运行出现问题！错误信息如下")
+            print(f"Error: {e}\n")
+            return
+
+
+
+
 
 
     # 并发嵌入请求
@@ -1658,19 +1963,16 @@ class Api_Requester():
 class Response_Parser():
     def __init__(self):
         pass
+    
 
-
-    # 处理回复，前后加上大括号
-    def adjust_string(self,input_str):
-        # 检查并添加开头的"{"
-        if not input_str.startswith("{"):
-            input_str = "{" + input_str
-
-        # 检查并添加结尾的"}"
-        if not input_str.endswith("}"):
-            input_str = input_str + "}"
-
-        return input_str
+    #提取字符串大括号里的内容
+    def extract_first_brackets_content(self,input_string):
+        # 使用正则表达式搜索第一个在大括号内的内容（包括大括号本身），并允许匹配跨越多行
+        match = re.search(r'\{[^{}]*\}', input_string, re.DOTALL)
+        if match:
+            return match.group()  # 返回匹配的字符串
+        else:
+            return None  # 如果没有找到匹配项，返回 None
 
 
     # 将Raw文本恢复根据行数转换成json文本
@@ -2126,6 +2428,83 @@ class Request_Tester():
             user_interface_prompter.signal.emit("接口测试结果","测试失败",0,0,0)
 
 
+    # 智谱官方接口测试
+    def zhipu_request_test(self):
+        Model_Type =  Window.Widget_ZhiPu.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
+        API_key_str = Window.Widget_ZhiPu.TextEdit_apikey.toPlainText()        #获取apikey输入值
+        Proxy_port = Window.Widget_ZhiPu.LineEdit_proxy_port.text()            #获取代理端口
+        
+        #如果填入地址，则设置系统代理
+        if Proxy_port :
+            print("[INFO] 系统代理端口是:",Proxy_port,'\n') 
+            os.environ["http_proxy"]=Proxy_port
+            os.environ["https_proxy"]=Proxy_port
+
+
+        #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
+        API_key_list = API_key_str.replace('\n','').replace(" ", "").split(",")
+
+
+        #创建openai客户端
+        ZhipuAIclient = ZhipuAI(api_key=API_key_list[0])
+
+
+        print("[INFO] 模型选择是:",Model_Type,'\n')
+
+        #创建存储每个key测试结果的列表
+        test_results = [None] * len(API_key_list)
+
+
+        #循环测试每一个apikey情况
+        for i, key in enumerate(API_key_list):
+            print(f"[INFO] 正在测试第{i+1}个API KEY：{key}",'\n') 
+
+            #更换key
+            ZhipuAIclient.api_key = API_key_list[i]
+
+            #构建发送内容
+            messages_test = [{"role": "system","content":"你是我的女朋友欣雨。接下来你必须以女朋友的方式回复我"}, {"role":"user","content":"小可爱，你在干嘛"}]
+            print("[INFO] 当前发送内容：\n", messages_test ,'\n')
+
+            #尝试请求，并设置各种参数
+            try:
+                response_test = ZhipuAIclient.chat.completions.create( 
+                model= Model_Type,
+                messages = messages_test ,
+                ) 
+
+                #如果回复成功，显示成功信息
+                response_test = response_test.choices[0].message.content
+                print("[INFO] 已成功接受到AI的回复")
+                print("[INFO] AI回复的文本内容：\n",response_test ,'\n','\n')
+
+                test_results[i] = 1 #记录成功结果
+
+            #如果回复失败，抛出错误信息，并测试下一个key
+            except Exception as e:
+                print("\033[1;31mError:\033[0m key：",API_key_list[i],"请求出现问题！错误信息如下")
+                print(f"Error: {e}\n\n")
+                test_results[i] = 0 #记录错误结果
+                continue
+
+
+        # 输出每个API密钥测试的结果
+        print("[INFO] 全部API KEY测试结果--------------")
+        for i, key in enumerate(API_key_list):
+            result = "成功" if test_results[i] == 1 else "失败"
+            print(f"第{i+1}个 API KEY：{key} 测试结果：{result}")
+
+        # 检查测试结果是否全部成功
+        all_successful = all(result == 1 for result in test_results)
+        # 输出总结信息
+        if all_successful:
+            print("[INFO] 所有API KEY测试成功！！！！")
+            user_interface_prompter.signal.emit("接口测试结果","测试成功",0,0,0)
+        else:
+            print("[INFO] 存在API KEY测试失败！！！！")
+            user_interface_prompter.signal.emit("接口测试结果","测试失败",0,0,0)
+
+
     # sakura接口测试
     def sakura_request_test(self):
         
@@ -2399,6 +2778,28 @@ class Configurator():
 
             #如果填入地址，则设置代理端口
             Proxy_Address = Window.Widget_Google.LineEdit_proxy_port.text()            #获取代理端口
+            if Proxy_Address :
+                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
+                os.environ["http_proxy"]=Proxy_Address
+                os.environ["https_proxy"]=Proxy_Address
+
+
+        #根据翻译平台读取配置信息
+        elif translation_platform == '智谱官方':
+            # 获取模型类型
+            self.model_type =  Window.Widget_ZhiPu.comboBox_model.currentText()              
+
+            # 获取apikey列表
+            API_key_str = Window.Widget_ZhiPu.TextEdit_apikey.toPlainText()            #获取apikey输入值
+            #去除空格，换行符，分割KEY字符串并存储进列表里
+            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
+            self.apikey_list = API_key_list
+
+            # 获取请求地址
+            self.openai_base_url = 'https://open.bigmodel.cn/api/paas/v4/chat/completions'  #需要重新设置，以免使用代理网站后，没有改回来
+
+            #如果填入地址，则设置代理端口
+            Proxy_Address = Window.Widget_ZhiPu.LineEdit_proxy_port.text()            #获取代理端口
             if Proxy_Address :
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
@@ -2889,6 +3290,10 @@ class Configurator():
             config_dict["google_API_key_str"] = Window.Widget_Google.TextEdit_apikey.toPlainText()        #获取apikey输入值
             config_dict["google_proxy_port"] = Window.Widget_Google.LineEdit_proxy_port.text()            #获取代理端口
 
+            #智谱官方界面
+            config_dict["zhipu_model_type"] =  Window.Widget_ZhiPu.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
+            config_dict["zhipu_API_key_str"] = Window.Widget_ZhiPu.TextEdit_apikey.toPlainText()        #获取apikey输入值
+            config_dict["zhipu_proxy_port"] = Window.Widget_ZhiPu.LineEdit_proxy_port.text()            #获取代理端口
 
             #Sakura界面
             config_dict["sakura_address"] = Window.Widget_SakuraLLM.LineEdit_address.text()                  #获取请求地址
@@ -3029,6 +3434,13 @@ class Configurator():
                 if "google_proxy_port" in config_dict:
                     Window.Widget_Google.LineEdit_proxy_port.setText(config_dict["google_proxy_port"])
 
+                #智谱官方界面
+                if "zhipu_model_type" in config_dict:
+                    Window.Widget_ZhiPu.comboBox_model.setCurrentText(config_dict["zhipu_model_type"])
+                if "zhipu_API_key_str" in config_dict:
+                    Window.Widget_ZhiPu.TextEdit_apikey.setText(config_dict["zhipu_API_key_str"])
+                if "zhipu_proxy_port" in config_dict:
+                    Window.Widget_ZhiPu.LineEdit_proxy_port.setText(config_dict["zhipu_proxy_port"])
 
                 #sakura界面
                 if "sakura_address" in config_dict:
@@ -3288,6 +3700,13 @@ class Request_Limiter():
                 "gemini-pro": {  "inputTokenLimit": 30720,"outputTokenLimit": 2048,"max_tokens": 2500, "TPM": 1000000, "RPM": 60},
             }
 
+
+        # 示例数据
+        self.zhipu_limit_data = {
+                "glm-3-turbo": {  "inputTokenLimit": 000,"outputTokenLimit": 0000,"max_tokens": 3500, "TPM": 100000, "RPM": 60},
+                "glm-4": {  "inputTokenLimit": 000,"outputTokenLimit": 0000,"max_tokens": 3500, "TPM": 100000, "RPM": 60},
+            }
+
         # 示例数据
         self.sakura_limit_data = {
                 "Sakura-13B-LNovel-v0.8": {  "inputTokenLimit": 30720,"outputTokenLimit":  2400,"max_tokens": 2400, "TPM": 1000000, "RPM": 60},
@@ -3370,6 +3789,28 @@ class Request_Limiter():
 
             # 设置限制
             self.set_limit(max_tokens,TPM_limit,RPM_limit)
+
+
+
+        elif translation_platform == '智谱官方':
+            # 获取模型
+            model = Window.Widget_ZhiPu.comboBox_model.currentText()
+
+            # 获取相应的限制
+            max_tokens = self.zhipu_limit_data[model]["max_tokens"]
+            TPM_limit = self.zhipu_limit_data[model]["TPM"]
+            RPM_limit = self.zhipu_limit_data[model]["RPM"]
+
+            # 获取当前key的数量，对限制进行倍数更改
+            key_count = len(configurator.apikey_list)
+            RPM_limit = RPM_limit * key_count
+            TPM_limit = TPM_limit * key_count
+
+            # 设置限制
+            self.set_limit(max_tokens,TPM_limit,RPM_limit)
+
+
+
 
         elif translation_platform == 'SakuraLLM':
             # 获取模型
@@ -4401,8 +4842,13 @@ class background_executor(threading.Thread):
             Request_Tester.google_request_test(self)
             Running_status = 0
 
+        # 执行智谱接口测试
+        elif self.task_id == "智谱官方接口测试":
+            Running_status = 1
+            Request_Tester.zhipu_request_test(self)
+            Running_status = 0
 
-        # 执行google接口测试
+        # 执行Sakura接口测试
         elif self.task_id == "Sakura通讯测试":
             Running_status = 1
             Request_Tester.sakura_request_test(self)
@@ -4476,6 +4922,11 @@ class User_Interface_Prompter(QObject):
        
        self.google_price_data = {
             "gemini-pro": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
+            }
+
+       self.zhipu_price_data = {
+            "glm-3-turbo": {"input_price": 0.005, "output_price": 0.005}, # 存储的价格是 /k tokens
+            "glm-4": {"input_price": 0.1, "output_price": 0.1},
             }
 
        self.sakura_price_data = {
@@ -4594,6 +5045,11 @@ class User_Interface_Prompter(QObject):
                 # 获取使用的模型输入价格与输出价格
                 input_price = self.google_price_data[configurator.model_type]["input_price"]
                 output_price = self.google_price_data[configurator.model_type]["output_price"]
+
+            elif configurator.translation_platform == "智谱官方":
+                # 获取使用的模型输入价格与输出价格
+                input_price = self.zhipu_price_data[configurator.model_type]["input_price"]
+                output_price = self.zhipu_price_data[configurator.model_type]["output_price"]
 
             elif configurator.translation_platform == "SakuraLLM":
                 # 获取使用的模型输入价格与输出价格
@@ -5331,6 +5787,151 @@ class Widget_Google(QFrame):#  谷歌账号界面
 
 
 
+class Widget_ZhiPu(QFrame):#  智谱账号界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+
+
+        # -----创建第1个组，添加多个组件-----
+        box_model = QGroupBox()
+        box_model.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_model = QGridLayout()
+
+        #设置“模型选择”标签
+        self.labelx = QLabel(flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.labelx.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.labelx.setText("模型选择")
+
+
+        #设置“模型类型”下拉选择框
+        self.comboBox_model = ComboBox() #以demo为父类
+        self.comboBox_model.addItems(['glm-3-turbo','glm-4'])
+        self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox_model.setFixedSize(200, 35)
+        #设置下拉选择框默认选择
+        self.comboBox_model.setCurrentText('glm-3-turbo')
+        
+
+
+        layout_model.addWidget(self.labelx, 0, 0)
+        layout_model.addWidget(self.comboBox_model, 0, 1)
+        box_model.setLayout(layout_model)
+
+        # -----创建第2个组，添加多个组件-----
+        box_apikey = QGroupBox()
+        box_apikey.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_apikey = QHBoxLayout()
+
+        #设置“API KEY”标签
+        self.labelx = QLabel(flags=Qt.WindowFlags())  
+        self.labelx.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        self.labelx.setText("API KEY")
+
+        #设置微调距离用的空白标签
+        self.labely = QLabel()  
+        self.labely.setText("                       ")
+
+        #设置“API KEY”的输入框
+        self.TextEdit_apikey = TextEdit()
+
+
+
+        # 追加到容器中
+        layout_apikey.addWidget(self.labelx)
+        layout_apikey.addWidget(self.labely)
+        layout_apikey.addWidget(self.TextEdit_apikey)
+        # 添加到 box中
+        box_apikey.setLayout(layout_apikey)
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box_proxy_port = QGroupBox()
+        box_proxy_port.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_proxy_port = QHBoxLayout()
+
+        #设置“代理地址”标签
+        self.label_proxy_port = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.label_proxy_port.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.label_proxy_port.setText("系统代理")
+
+        #设置微调距离用的空白标签
+        self.labelx = QLabel()  
+        self.labelx.setText("                      ")
+
+        #设置“代理地址”的输入框
+        self.LineEdit_proxy_port = LineEdit()
+        #LineEdit1.setFixedSize(300, 30)
+
+
+        layout_proxy_port.addWidget(self.label_proxy_port)
+        layout_proxy_port.addWidget(self.labelx)
+        layout_proxy_port.addWidget(self.LineEdit_proxy_port)
+        box_proxy_port.setLayout(layout_proxy_port)
+
+
+
+        # -----创建第4个组，添加多个组件-----
+        box_test = QGroupBox()
+        box_test.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_test = QHBoxLayout()
+
+
+        #设置“测试请求”的按钮
+        primaryButton_test = PrimaryPushButton('测试请求', self, FIF.SEND)
+        primaryButton_test.clicked.connect(self.test_request) #按钮绑定槽函数
+
+        #设置“保存配置”的按钮
+        primaryButton_save = PushButton('保存配置', self, FIF.SAVE)
+        primaryButton_save.clicked.connect(self.saveconfig) #按钮绑定槽函数
+
+
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_test)
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_save)
+        layout_test.addStretch(1)  # 添加伸缩项
+        box_test.setLayout(layout_test)
+
+
+
+        # -----最外层容器设置垂直布局-----
+        container = QVBoxLayout()
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+        # 把各个组添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_model)
+        container.addWidget(box_apikey)
+        container.addWidget(box_proxy_port)
+        container.addWidget(box_test)
+        container.addStretch(1)  # 添加伸缩项
+
+
+    def saveconfig(self):
+        configurator.read_write_config("write")
+        user_interface_prompter.createSuccessInfoBar("已成功保存配置")
+
+    def test_request(self):
+        global Running_status
+
+        if Running_status == 0:
+            #创建子线程
+            thread = background_executor("智谱官方接口测试")
+            thread.start()
+
+        elif Running_status != 0:
+            user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+
+
+
 class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
@@ -5544,7 +6145,7 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
 
         #设置“翻译平台”下拉选择框
         self.comboBox_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_translation_platform.addItems(['Openai官方',  'Openai代理',  'Google官方',  'SakuraLLM'])
+        self.comboBox_translation_platform.addItems(['Openai官方',  'Openai代理',  'Google官方',  '智谱官方',  'SakuraLLM'])
         self.comboBox_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_translation_platform.setFixedSize(150, 35)
 
@@ -8328,6 +8929,7 @@ class window(FramelessWindow): #主窗口
         self.Widget_Openai = Widget_Openai('Widget_Openai', self)   
         self.Widget_Openai_Proxy = Widget_Openai_Proxy('Widget_Openai_Proxy', self)     
         self.Widget_Google = Widget_Google('Widget_Google', self)
+        self.Widget_ZhiPu = Widget_ZhiPu('Widget_Openai_ZhiPu', self)
         self.Widget_SakuraLLM = Widget_SakuraLLM('Widget_SakuraLLM', self)
         self.Widget_translation_settings = Widget_translation_settings('Widget_translation_settings', self) 
         self.Widget_start_translation = Widget_start_translation('Widget_start_translation', self) 
@@ -8369,7 +8971,9 @@ class window(FramelessWindow): #主窗口
         #添加closeai代理账号界面
         self.addSubInterface(self.Widget_Openai_Proxy, FIF.FEEDBACK, 'Openai代理') 
         #添加谷歌官方账号界面
-        self.addSubInterface(self.Widget_Google, FIF.FEEDBACK, 'Google官方') 
+        self.addSubInterface(self.Widget_Google, FIF.FEEDBACK, 'Google官方')
+        #添加智谱官方账号界面
+        self.addSubInterface(self.Widget_ZhiPu, FIF.FEEDBACK, '智谱官方') 
         #添加sakura界面
         self.addSubInterface(self.Widget_SakuraLLM, FIF.FEEDBACK, 'SakuraLLM') 
 
