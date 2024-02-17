@@ -20,12 +20,15 @@ jobs:
       - name: Install PyInstaller
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller openai numpy openpyxl PyQt5 "PyQt-Fluent-Widgets[full]" opencc tiktoken google-generativeai
+          pip install pyinstaller openai zhipuai numpy openpyxl PyQt5 "PyQt-Fluent-Widgets[full]" opencc tiktoken google-generativeai pandas chardet 
+
       - name: Modify opencc
         run: |
           (Get-Command python).Path | ForEach-Object { $_ -replace 'python\.exe$', 'Lib\site-packages\opencc\__init__.py' } | ForEach-Object { $content = Get-Content $_; $content -replace '_thisdir = .+', '_thisdir = os.path.dirname(os.path.abspath(sys.argv[0]))' | Set-Content $_ }
+
       - name: Build EXE
         run: pyinstaller -F -i ./resource/Avatar.png ./AiNiee4.py
+
       - name: Zip dist folder
         run: |
           $openccPath = (Get-Command python).Path | ForEach-Object { $_ -replace 'python\.exe$', 'Lib\site-packages\opencc' }
@@ -33,6 +36,7 @@ jobs:
           Copy-Item -Path "$clibPath" -Destination "dist\clib" -Recurse -Force
           Copy-Item -Path "resource" -Destination "dist\resource" -Recurse -Force
           Compress-Archive -Path "dist" -DestinationPath "AiNiee-Beta.zip"
+          
       - name: Delete release
         uses: dev-drprasad/delete-tag-and-release@v0.2.1
         with:

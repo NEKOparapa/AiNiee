@@ -23,6 +23,7 @@ import datetime
 import json
 import math
 import random
+import yaml
 import re
 from qframelesswindow import FramelessWindow, TitleBar
 import time
@@ -51,6 +52,9 @@ from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWi
 from qfluentwidgets.components import Dialog
 from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition
 from qfluentwidgets import FluentIcon as FIF
+
+
+from StevExtraction import jtpp  #导入文本提取工具
 
 
 Software_Version = "AiNiee4.63"  #软件版本号
@@ -7130,8 +7134,8 @@ class Widget_RPG(QFrame):  # RPG主界面
         self.B_settings = Widget_import_translated_text('B_settings', self)  # 创建实例，指向界面
 
         # 添加子界面到分段式导航栏
-        self.addSubInterface(self.A_settings, 'A_settings', '原文导出')
-        self.addSubInterface(self.B_settings, 'B_settings', '译文导入')
+        self.addSubInterface(self.A_settings, 'A_settings', '游戏原文提取')
+        self.addSubInterface(self.B_settings, 'B_settings', '游戏译文导入')
 
 
         # 将分段式导航栏和堆叠式窗口添加到垂直布局中
@@ -7165,15 +7169,37 @@ class Widget_RPG(QFrame):  # RPG主界面
         self.pivot.setCurrentItem(widget.objectName())
 
 
-class Widget_export_source_text(QFrame):#  导出子界面
+class Widget_export_source_text(QFrame):#  提取子界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
         #设置各个控件-----------------------------------------------------------------------------------------
 
-
-
         # -----创建第1个组，添加多个组件-----
+        box_switch = QGroupBox()
+        box_switch.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_switch = QHBoxLayout()
+
+        #设置“回复json格式”标签
+        self.labe1_4 = QLabel(flags=Qt.WindowFlags())  
+        self.labe1_4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        self.labe1_4.setText("是否日语游戏")
+
+
+
+        # 设置“回复json格式”选择开关
+        self.SwitchButton_ja = CheckBox('        ')    
+        #self.SwitchButton_jsonmode.checkedChanged.connect(self.onjsonmode)
+
+
+
+        layout_switch.addWidget(self.labe1_4)
+        layout_switch.addStretch(1)  # 添加伸缩项
+        layout_switch.addWidget(self.SwitchButton_ja)
+        box_switch.setLayout(layout_switch)
+
+
+        # -----创建第2个组，添加多个组件-----
         box_input = QGroupBox()
         box_input.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_input = QHBoxLayout()
@@ -7201,7 +7227,7 @@ class Widget_export_source_text(QFrame):#  导出子界面
         box_input.setLayout(layout_input)
 
 
-        # -----创建第2个组，添加多个组件-----
+        # -----创建第3个组，添加多个组件-----
         box_output = QGroupBox()
         box_output.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_output = QHBoxLayout()
@@ -7235,8 +7261,8 @@ class Widget_export_source_text(QFrame):#  导出子界面
 
 
         #设置“开始翻译”的按钮
-        self.primaryButton_start_export = PrimaryPushButton('开始导出', self, FIF.UPDATE)
-        #self.primaryButton_start_import.clicked.connect(self.Start_import_mtool) #按钮绑定槽函数
+        self.primaryButton_start_export = PrimaryPushButton('开始提取', self, FIF.UPDATE)
+        self.primaryButton_start_export.clicked.connect(self.Start_export) #按钮绑定槽函数
 
 
         layout_start_export.addStretch(1)  # 添加伸缩项
@@ -7251,6 +7277,7 @@ class Widget_export_source_text(QFrame):#  导出子界面
 
         # 把内容添加到容器中
         container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_switch)
         container.addWidget(box_input)
         container.addWidget(box_output)
         container.addWidget(box_start_export)
@@ -7284,6 +7311,24 @@ class Widget_export_source_text(QFrame):#  导出子界面
             print('[INFO]  未选择文件夹')
             return  # 直接返回，不执行后续操作
 
+    # 提取函数
+    def Start_export(self):
+        print('[INFO]  开始提取游戏原文,请耐心等待！！！')
+
+        #读取配置文件
+        config_path = os.path.join(script_dir, "StevExtraction", "config.yaml")
+        with open(config_path, 'r', encoding='utf-8') as file:
+            config = yaml.safe_load(file)
+
+        #修改输入输出路径及开关
+        config['game_path'] = self.label_input_path.text()
+        config['save_path'] =self.label_output_path.text()
+        config['ja']=self.SwitchButton_ja.isChecked()
+
+        #提取文本
+        pj=jtpp.Jr_Tpp(config)
+        pj.FromGame(config['game_path'],config['save_path'])
+
 
 class Widget_import_translated_text(QFrame):#  导入子界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
@@ -7306,7 +7351,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         #设置“输入文件夹”显示
         self.label_input_path = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label_input_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
-        self.label_input_path.setText("(请选择原来的游戏文件夹)")  
+        self.label_input_path.setText("(原来的游戏文件夹)")  
 
         #设置打开文件按钮
         self.pushButton_input = PushButton('选择文件夹', self, FIF.FOLDER)
@@ -7322,35 +7367,61 @@ class Widget_import_translated_text(QFrame):#  导入子界面
 
 
         # -----创建第2个组，添加多个组件-----
-        box_output = QGroupBox()
-        box_output.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_output = QHBoxLayout()
+        box_translation_folder = QGroupBox()
+        box_translation_folder.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_translation_folder = QHBoxLayout()
 
         #设置“输出文件夹”标签
-        label6 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label6.setText("译文文件夹")
+        self.label6 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        self.label6.setText("译文文件夹")
 
         #设置“输出文件夹”显示
-        self.label_output_path = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label_output_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label_output_path.setText("(请选择翻译后的文件存放的文件夹)")
+        self.label_translation_folder = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label_translation_folder.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label_translation_folder.setText("(译文文件存放的文件夹)")
 
         #设置输出文件夹按钮
-        self.pushButton_output = PushButton('选择文件夹', self, FIF.FOLDER)
-        self.pushButton_output.clicked.connect(self.Select_output_folder) #按钮绑定槽函数
+        self.pushButton_translation_folder = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton_translation_folder.clicked.connect(self.Select_translation_folder) #按钮绑定槽函数
 
 
-        layout_output.addWidget(label6)
-        layout_output.addWidget(self.label_output_path)
-        layout_output.addStretch(1)  # 添加伸缩项
-        layout_output.addWidget(self.pushButton_output)
-        box_output.setLayout(layout_output)
-
-
+        layout_translation_folder.addWidget(self.label6)
+        layout_translation_folder.addWidget(self.label_translation_folder)
+        layout_translation_folder.addStretch(1)  # 添加伸缩项
+        layout_translation_folder.addWidget(self.pushButton_translation_folder)
+        box_translation_folder.setLayout(layout_translation_folder)
 
 
         # -----创建第3个组，添加多个组件-----
+        box_output_folder = QGroupBox()
+        box_output_folder.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_putput_folder = QHBoxLayout()
+
+        #设置“输出文件夹”标签
+        self.label7 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        self.label7.setText("存储文件夹")
+
+        #设置“输出文件夹”显示
+        self.label_output_folder = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label_output_folder.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label_output_folder.setText("(游戏文件合并译文后，存放的文件夹)")
+
+        #设置输出文件夹按钮
+        self.pushButton_putput_folder = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton_putput_folder.clicked.connect(self.Select_save_folder) #按钮绑定槽函数
+
+
+        layout_putput_folder.addWidget(self.label7)
+        layout_putput_folder.addWidget(self.label_output_folder)
+        layout_putput_folder.addStretch(1)  # 添加伸缩项
+        layout_putput_folder.addWidget(self.pushButton_putput_folder)
+        box_output_folder.setLayout(layout_putput_folder)
+
+
+
+        # -----创建第4个组，添加多个组件-----
         box_title_watermark1 = QGroupBox()
         box_title_watermark1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_title_watermark1 = QHBoxLayout()
@@ -7383,7 +7454,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
 
         #设置“开始翻译”的按钮
         self.primaryButton_start_import = PrimaryPushButton('开始导入', self, FIF.UPDATE)
-        #self.primaryButton_start_import.clicked.connect(self.Start_import_mtool) #按钮绑定槽函数
+        self.primaryButton_start_import.clicked.connect(self.Start_import) #按钮绑定槽函数
 
 
         layout_start_import.addStretch(1)  # 添加伸缩项
@@ -7399,7 +7470,8 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         # 把内容添加到容器中
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box_input)
-        container.addWidget(box_output)
+        container.addWidget(box_translation_folder)
+        container.addWidget(box_output_folder)
         container.addWidget(box_title_watermark1)
         container.addWidget(box_start_import)
         container.addStretch(1)  # 添加伸缩项
@@ -7421,16 +7493,50 @@ class Widget_import_translated_text(QFrame):#  导入子界面
             return  # 直接返回，不执行后续操作
 
 
-    # 选择输出文件夹按钮绑定函数
-    def Select_output_folder(self):
-        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Output_Folder:
-            self.label_output_path.setText(Output_Folder)
-            print('[INFO]  已选择输出文件夹:' ,Output_Folder)
+    # 选择译文文件夹按钮绑定函数
+    def Select_translation_folder(self):
+        translation_folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if translation_folder:
+            self.label_translation_folder.setText(translation_folder)
+            print('[INFO]  已选择译文文件夹:' ,translation_folder)
         else :
             print('[INFO]  未选择文件夹')
             return  # 直接返回，不执行后续操作
         
+    # 选择存储文件夹按钮绑定函数
+    def Select_save_folder(self):
+        save_folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if save_folder:
+            self.label_output_folder.setText(save_folder)
+            print('[INFO]  已选择存储文件夹:' ,save_folder)
+        else :
+            print('[INFO]  未选择文件夹')
+
+    
+    # 导入按钮绑定函数
+    def Start_import(self):
+        print('[INFO]  开始合并译文与游戏原文件,请耐心等待！！！')
+
+        #读取配置文件
+        config_path = os.path.join(script_dir, "StevExtraction", "config.yaml")
+        with open(config_path, 'r', encoding='utf-8') as file:
+            config = yaml.safe_load(file)
+
+        #修改配置信息
+        config['game_path'] = self.label_input_path.text()
+        config['translation_path'] = self.label_translation_folder.text()
+        config['output_path'] = self.label_output_folder.text()
+        if self.checkBox_title_watermark.isChecked():
+            config['mark'] = self.LineEdit_title_watermark.text()
+        else:
+            config['mark'] = 0
+
+        #导入文本
+        pj=jtpp.Jr_Tpp(config)
+        pj.ToGmae(config['game_path'],config['translation_path'],config['output_path'],config['mark'])
+        
+
+
 
 class Widget_check(QFrame):# 错行检查界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
