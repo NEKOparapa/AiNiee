@@ -10,3 +10,4 @@ opencc
 google-generativeai
 pandas
 chardet
+PyYAML
