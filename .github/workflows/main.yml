@@ -33,10 +33,10 @@ jobs:
         run: |
           $openccPath = (Get-Command python).Path | ForEach-Object { $_ -replace 'python\.exe$', 'Lib\site-packages\opencc' }
           $clibPath = Join-Path -Path $openccPath -ChildPath 'clib'
-          Copy-Item -Path "$clibPath" -Destination "AiNiee\clib" -Recurse -Force
-          Copy-Item -Path "resource" -Destination "AiNiee\resource" -Recurse -Force
-          Copy-Item -Path "StevExtraction" -Destination "AiNiee\StevExtraction" -Recurse -Force
-          Compress-Archive -Path "AiNiee" -DestinationPath "AiNiee-Beta.zip"
+          Copy-Item -Path "$clibPath" -Destination "dist\clib" -Recurse -Force
+          Copy-Item -Path "resource" -Destination "dist\resource" -Recurse -Force
+          Copy-Item -Path "StevExtraction" -Destination "dist\StevExtraction" -Recurse -Force
+          Compress-Archive -Path "dist" -DestinationPath "AiNiee-Beta.zip"
           
       - name: Delete release
         uses: dev-drprasad/delete-tag-and-release@v0.2.1
