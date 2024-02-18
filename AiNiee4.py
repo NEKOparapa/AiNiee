@@ -92,13 +92,19 @@ class Translator():
         #如果是从头开始翻译
         if Running_status != 9:
             # 读取文件
-            Input_Folder = configurator.Input_Folder
-            if configurator.translation_project == "Mtool导出文件":
-                cache_list = File_Reader.read_mtool_files(self,folder_path = Input_Folder)
-            elif configurator.translation_project == "T++导出文件":
-                cache_list = File_Reader.read_xlsx_files (self,folder_path = Input_Folder)
-            elif configurator.translation_project == "Ainiee缓存文件":
-                cache_list = File_Reader.read_cache_files(self,folder_path = Input_Folder)
+            try:
+                Input_Folder = configurator.Input_Folder
+                if configurator.translation_project == "Mtool导出文件":
+                    cache_list = File_Reader.read_mtool_files(self,folder_path = Input_Folder)
+                elif configurator.translation_project == "T++导出文件":
+                    cache_list = File_Reader.read_xlsx_files (self,folder_path = Input_Folder)
+                elif configurator.translation_project == "Ainiee缓存文件":
+                    cache_list = File_Reader.read_cache_files(self,folder_path = Input_Folder)
+            
+            except Exception as e:
+                print(e)
+                print("\033[1;31mError:\033[0m 读取原文失败，请检查项目类型是否正确，文件夹是否包含其他同类型文件！")
+                return
 
 
             # 将浮点型，整数型文本内容变成字符型文本内容
@@ -848,12 +854,21 @@ class Api_Requester():
 
                         # 如果是进行平时的翻译任务
                         if Running_status == 6 :
-                            # 计算进度信息
-                            progress = (user_interface_prompter.translated_line_count+row_count) / user_interface_prompter.total_text_line_count * 100
-                            progress = round(progress, 1)
+                            
+                            # 更改翻译界面状态，用来阻塞翻译界面更新
+                            user_interface_prompter.UI_update_state = 0
 
                             # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
                             user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",row_count,prompt_tokens_used,completion_tokens_used)
+
+                            # 等待翻译界面更新数据，状态变量改变
+                            while user_interface_prompter.UI_update_state == 0 :
+                                time.sleep(0.01)    # 等待翻译界面更新数据
+                                if user_interface_prompter.UI_update_state == 1 :
+                                    break
+
+                            # 获取翻译进度
+                            progress = user_interface_prompter.progress
                         
                         # 如果进行的是错行检查任务，使用不同的计算方法
                         elif Running_status == 7 :
@@ -872,14 +887,28 @@ class Api_Requester():
 
                     # 如果出现回复错误
                     else:
+                        print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
 
-                        # 更改UI界面信息
+
                         lock2.acquire()  # 获取锁
+
                         # 如果是进行平时的翻译任务
                         if Running_status == 6 :
+
+                            # 更改翻译界面状态，用来阻塞翻译界面更新
+                            user_interface_prompter.UI_update_state = 0
+
                             user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",row_count,prompt_tokens_used,completion_tokens_used)
+
+                            # 等待翻译界面更新数据，状态变量改变
+                            while user_interface_prompter.UI_update_state == 0 :
+                                time.sleep(0.01)    # 等待翻译界面更新数据
+                                if user_interface_prompter.UI_update_state == 1 :
+                                    break
+
                         lock2.release()  # 释放锁
-                        print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
+
+
                         # 检查一下是不是模型退化
                         if error_content == "AI回复内容出现高频词,并重新翻译":
                             print("\033[1;33mWarning:\033[0m 下次请求将修改参数，回避高频词输出","\n")
@@ -1168,12 +1197,22 @@ class Api_Requester():
 
                         
                         lock2.acquire()  # 获取锁
-                        # 计算进度信息
-                        progress = (user_interface_prompter.translated_line_count+row_count) / user_interface_prompter.total_text_line_count * 100
-                        progress = round(progress, 1)
+
+                        # 更改翻译界面状态，用来阻塞翻译界面更新
+                        user_interface_prompter.UI_update_state = 0
 
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
                         user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",row_count,prompt_tokens_used,completion_tokens_used)
+
+                        # 等待翻译界面更新数据，状态变量改变
+                        while user_interface_prompter.UI_update_state == 0 :
+                            time.sleep(0.01)    # 等待翻译界面更新数据
+                            if user_interface_prompter.UI_update_state == 1 :
+                                break
+
+                        # 获取翻译进度
+                        progress = user_interface_prompter.progress
+
                         print(f"\n--------------------------------------------------------------------------------------")
                         print(f"\n\033[1;32mSuccess:\033[0m AI回复内容检查通过！！！已翻译完成{progress}%")
                         print(f"\n--------------------------------------------------------------------------------------\n")
@@ -1188,9 +1227,21 @@ class Api_Requester():
                     else:
                         # 更改UI界面信息
                         lock2.acquire()  # 获取锁
+
+                        # 更改翻译界面状态，用来阻塞翻译界面更新
+                        user_interface_prompter.UI_update_state = 0
+
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
                         user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",row_count,prompt_tokens_used,completion_tokens_used)
+
+                        # 等待翻译界面更新数据，状态变量改变
+                        while user_interface_prompter.UI_update_state == 0 :
+                            time.sleep(0.01)    # 等待翻译界面更新数据
+                            if user_interface_prompter.UI_update_state == 1 :
+                                break
+
                         lock2.release()  # 释放锁
+
                         print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
 
                         #错误回复计次
@@ -1451,20 +1502,20 @@ class Api_Requester():
                         
                         lock2.acquire()  # 获取锁
 
-                        # 如果是进行平时的翻译任务
-                        if Running_status == 6 :
-                            # 计算进度信息
-                            progress = (user_interface_prompter.translated_line_count+row_count) / user_interface_prompter.total_text_line_count * 100
-                            progress = round(progress, 1)
+                        # 更改翻译界面状态，用来阻塞翻译界面更新
+                        user_interface_prompter.UI_update_state = 0
 
-                            # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                            user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",row_count,prompt_tokens_used,completion_tokens_used)
-                        
-                        # 如果进行的是错行检查任务，使用不同的计算方法
-                        elif Running_status == 7 :
-                            user_interface_prompter.translated_line_count = user_interface_prompter.translated_line_count + row_count
-                            progress = user_interface_prompter.translated_line_count / user_interface_prompter.total_text_line_count * 100
-                            progress = round(progress, 1)
+                        # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",row_count,prompt_tokens_used,completion_tokens_used)
+
+                        # 等待翻译界面更新数据，状态变量改变
+                        while user_interface_prompter.UI_update_state == 0 :
+                            time.sleep(0.01)    # 等待翻译界面更新数据
+                            if user_interface_prompter.UI_update_state == 1 :
+                                break
+
+                        # 获取翻译进度
+                        progress = user_interface_prompter.progress
 
                         print(f"\n--------------------------------------------------------------------------------------")
                         print(f"\n\033[1;32mSuccess:\033[0m AI回复内容检查通过！！！已翻译完成{progress}%")
@@ -1480,12 +1531,20 @@ class Api_Requester():
 
                         # 更改UI界面信息
                         lock2.acquire()  # 获取锁
-                        # 如果是进行平时的翻译任务
-                        if Running_status == 6 :
-                            user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",row_count,prompt_tokens_used,completion_tokens_used)
-                        lock2.release()  # 释放锁
-                        print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
 
+                        # 更改翻译界面状态，用来阻塞翻译界面更新
+                        user_interface_prompter.UI_update_state = 0
+
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",row_count,prompt_tokens_used,completion_tokens_used)
+
+                        while user_interface_prompter.UI_update_state == 0 :
+                            time.sleep(0.01)    # 等待翻译界面更新数据
+                            if user_interface_prompter.UI_update_state == 1 :
+                                break
+
+                        lock2.release()  # 释放锁
+
+                        print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
@@ -1505,9 +1564,6 @@ class Api_Requester():
             print("\033[1;31mError:\033[0m 子线程运行出现问题！错误信息如下")
             print(f"Error: {e}\n")
             return
-
-
-
 
 
 
@@ -1881,20 +1937,20 @@ class Api_Requester():
                         
                         lock2.acquire()  # 获取锁
 
-                        # 如果是进行平时的翻译任务
-                        if Running_status == 6 :
-                            # 计算进度信息
-                            progress = (user_interface_prompter.translated_line_count+row_count) / user_interface_prompter.total_text_line_count * 100
-                            progress = round(progress, 1)
+                        # 更改翻译界面状态，用来阻塞翻译界面更新
+                        user_interface_prompter.UI_update_state = 0
 
-                            # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                            user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",row_count,prompt_tokens_used,completion_tokens_used)
-                        
-                        # 如果进行的是错行检查任务，使用不同的计算方法
-                        elif Running_status == 7 :
-                            user_interface_prompter.translated_line_count = user_interface_prompter.translated_line_count + row_count
-                            progress = user_interface_prompter.translated_line_count / user_interface_prompter.total_text_line_count * 100
-                            progress = round(progress, 1)
+                        # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",row_count,prompt_tokens_used,completion_tokens_used)
+
+                        # 等待翻译界面更新数据，状态变量改变
+                        while user_interface_prompter.UI_update_state == 0 :
+                            time.sleep(0.01)    # 等待翻译界面更新数据
+                            if user_interface_prompter.UI_update_state == 1 :
+                                break
+
+                        # 获取翻译进度
+                        progress = user_interface_prompter.progress                    
 
                         print(f"\n--------------------------------------------------------------------------------------")
                         print(f"\n\033[1;32mSuccess:\033[0m AI回复内容检查通过！！！已翻译完成{progress}%")
@@ -1910,11 +1966,23 @@ class Api_Requester():
 
                         # 更改UI界面信息
                         lock2.acquire()  # 获取锁
-                        # 如果是进行平时的翻译任务
-                        if Running_status == 6 :
-                            user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",row_count,prompt_tokens_used,completion_tokens_used)
+
+                        # 更改翻译界面状态，用来阻塞翻译界面更新
+                        user_interface_prompter.UI_update_state = 0
+
+                        # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",row_count,prompt_tokens_used,completion_tokens_used)
+
+                        # 等待翻译界面更新数据，状态变量改变
+                        while user_interface_prompter.UI_update_state == 0 :
+                            time.sleep(0.01)    # 等待翻译界面更新数据
+                            if user_interface_prompter.UI_update_state == 1 :
+                                break
+
                         lock2.release()  # 释放锁
+
                         print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
+
                         # 检查一下是不是模型退化
                         if error_content == "AI回复内容出现高频词,并重新翻译":
                             print("\033[1;33mWarning:\033[0m 下次请求将修改参数，回避高频词输出","\n")
@@ -3707,8 +3775,8 @@ class Request_Limiter():
 
         # 示例数据
         self.zhipu_limit_data = {
-                "glm-3-turbo": {  "inputTokenLimit": 000,"outputTokenLimit": 0000,"max_tokens": 3500, "TPM": 100000, "RPM": 60},
-                "glm-4": {  "inputTokenLimit": 000,"outputTokenLimit": 0000,"max_tokens": 3500, "TPM": 100000, "RPM": 60},
+                "glm-3-turbo": {  "inputTokenLimit": 100000,"outputTokenLimit": 100000,"max_tokens": 100000, "TPM": 100000, "RPM": 10},
+                "glm-4": {  "inputTokenLimit": 100000,"outputTokenLimit": 100000,"max_tokens": 100000, "TPM": 100000, "RPM": 10},
             }
 
         # 示例数据
@@ -4896,10 +4964,13 @@ class User_Interface_Prompter(QObject):
     def __init__(self):
        super().__init__()  # 调用父类的构造函数
        self.stateTooltip = None # 存储翻译状态控件
-       self.total_text_line_count = 0 #存储总文本行数
-       self.translated_line_count = 0 #存储已经翻译文本行数
-       self.tokens_spent = 0  #存储已经花费的tokens
-       self.amount_spent = 0  #存储已经花费的金钱
+       self.total_text_line_count = 0 # 存储总文本行数
+       self.translated_line_count = 0 # 存储已经翻译文本行数
+       self.progress = 0           # 存储翻译进度
+       self.tokens_spent = 0  # 存储已经花费的tokens
+       self.amount_spent = 0  # 存储已经花费的金钱
+
+       self.UI_update_state = 0       # 界面更新状态位,主要用来判断界面是否已经更新完成
 
 
        self.openai_price_data = {
@@ -4986,6 +5057,12 @@ class User_Interface_Prompter(QObject):
                 #显示开始翻译按钮
                 Window.Widget_start_translation.A_settings.primaryButton_start_translation.show()
 
+        elif input_str1 == "接口测试结果":
+            if input_str2 == "测试成功":
+                self.createSuccessInfoBar("全部Apikey请求测试成功")
+            else:
+                self.createErrorInfoBar("存在Apikey请求测试失败")
+
 
         elif input_str1 == "初始化翻译界面数据":
             # 更新翻译项目信息
@@ -5006,9 +5083,10 @@ class User_Interface_Prompter(QObject):
             Window.Widget_start_translation.A_settings.progressRing.setValue(0)
 
             # 初始化存储的数值
-            self.translated_line_count = 0 #存储已经翻译文本行数
-            self.tokens_spent = 0  #存储已经花费的tokens
-            self.amount_spent = 0  #存储已经花费的金钱
+            self.translated_line_count = 0 
+            self.tokens_spent = 0  
+            self.amount_spent = 0  
+            self.progress = 0.0 
 
 
 
@@ -5025,16 +5103,8 @@ class User_Interface_Prompter(QObject):
 
 
         elif input_str1 == "更新翻译界面数据":
-            if input_str2 == "翻译成功":
-                # 更新已经翻译的文本数
-                self.translated_line_count = self.translated_line_count + iunput_int1
-                Window.Widget_start_translation.A_settings.translated_line_count.setText(str(self.translated_line_count))
 
-            #更新已经花费的tokens
-            self.tokens_spent = self.tokens_spent + input_int2 + input_int3
-            Window.Widget_start_translation.A_settings.tokens_spent.setText(str(self.tokens_spent))
-
-            #更新已经花费的金额
+            #根据模型设定单位价格
             if configurator.translation_platform == "Openai官方":
                 # 获取使用的模型输入价格与输出价格
                 input_price = self.openai_price_data[configurator.model_type]["input_price"]
@@ -5060,21 +5130,31 @@ class User_Interface_Prompter(QObject):
                 input_price = self.sakura_price_data[configurator.model_type]["input_price"]
                 output_price = self.sakura_price_data[configurator.model_type]["output_price"]
 
+            #计算已经翻译的文本数
+            if input_str2 == "翻译成功":
+                # 更新已经翻译的文本数
+                self.translated_line_count = self.translated_line_count + iunput_int1   
+                Window.Widget_start_translation.A_settings.translated_line_count.setText(str(self.translated_line_count))
+
+            #计算tokens花销
+            self.tokens_spent = self.tokens_spent + input_int2 + input_int3
+            Window.Widget_start_translation.A_settings.tokens_spent.setText(str(self.tokens_spent))
+
+            #计算金额花销
             self.amount_spent = self.amount_spent + (input_price/1000 * input_int2)  + (output_price/1000 * input_int3) 
             self.amount_spent = round(self.amount_spent, 4)
             Window.Widget_start_translation.A_settings.amount_spent.setText(str(self.amount_spent))
 
-            #更新进度条
+            #计算进度条
             result = self.translated_line_count / self.total_text_line_count * 100
-            result = round(result, 0)
-            result = int(result)
-            Window.Widget_start_translation.A_settings.progressRing.setValue(result)
+            self.progress = round(result, 2)
+            progress = int(round(result, 0))
+            Window.Widget_start_translation.A_settings.progressRing.setValue(progress)
+
+            #更改状态变量
+            self.UI_update_state = 1
         
-        elif input_str1 == "接口测试结果":
-            if input_str2 == "测试成功":
-                self.createSuccessInfoBar("全部Apikey请求测试成功")
-            else:
-                self.createErrorInfoBar("存在Apikey请求测试失败")
+
 
     #成功信息居中弹出框函数
     def createSuccessInfoBar(self,str):
@@ -7180,15 +7260,16 @@ class Widget_export_source_text(QFrame):#  提取子界面
         box_switch.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_switch = QHBoxLayout()
 
-        #设置“回复json格式”标签
+        #设置“是否日语游戏”标签
         self.labe1_4 = QLabel(flags=Qt.WindowFlags())  
         self.labe1_4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
         self.labe1_4.setText("是否日语游戏")
 
 
 
-        # 设置“回复json格式”选择开关
-        self.SwitchButton_ja = CheckBox('        ')    
+        # 设置“是否日语游戏”选择开关
+        self.SwitchButton_ja = CheckBox('        ')
+        self.SwitchButton_ja.setChecked(True)    
         #self.SwitchButton_jsonmode.checkedChanged.connect(self.onjsonmode)
 
 
@@ -7199,20 +7280,44 @@ class Widget_export_source_text(QFrame):#  提取子界面
         box_switch.setLayout(layout_switch)
 
 
+        # -----创建第1个组，添加多个组件-----
+        box_switch_note = QGroupBox()
+        box_switch_note.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_switch_note = QHBoxLayout()
+
+        #设置“是否翻译note类型文本”标签
+        self.labe1_note = QLabel(flags=Qt.WindowFlags())  
+        self.labe1_note.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        self.labe1_note.setText("是否翻译note类型文本")
+
+
+
+        # 设置“是否翻译note类型文本”选择开关
+        self.SwitchButton_note = CheckBox('        ')
+        self.SwitchButton_note.setChecked(True)    
+        #self.SwitchButton_jsonmode.checkedChanged.connect(self.onjsonmode)
+
+
+
+        layout_switch_note.addWidget(self.labe1_note)
+        layout_switch_note.addStretch(1)  # 添加伸缩项
+        layout_switch_note.addWidget(self.SwitchButton_note)
+        box_switch_note.setLayout(layout_switch_note)
+
         # -----创建第2个组，添加多个组件-----
         box_input = QGroupBox()
         box_input.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_input = QHBoxLayout()
 
-        #设置“输入文件夹”标签
+        #设置“游戏文件夹”标签
         label4 = QLabel(flags=Qt.WindowFlags())  
         label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
         label4.setText("游戏文件夹")
 
-        #设置“输入文件夹”显示
+        #设置“游戏文件夹”显示
         self.label_input_path = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label_input_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
-        self.label_input_path.setText("(请选择游戏文件夹)")  
+        self.label_input_path.setText("(游戏根目录文件夹)")  
 
         #设置打开文件按钮
         self.pushButton_input = PushButton('选择文件夹', self, FIF.FOLDER)
@@ -7227,6 +7332,7 @@ class Widget_export_source_text(QFrame):#  提取子界面
         box_input.setLayout(layout_input)
 
 
+
         # -----创建第3个组，添加多个组件-----
         box_output = QGroupBox()
         box_output.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
@@ -7235,12 +7341,12 @@ class Widget_export_source_text(QFrame):#  提取子界面
         #设置“输出文件夹”标签
         label6 = QLabel(parent=self, flags=Qt.WindowFlags())  
         label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label6.setText("存储文件夹")
+        label6.setText("原文存储文件夹")
 
         #设置“输出文件夹”显示
         self.label_output_path = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label_output_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label_output_path.setText("(请选择提取文件存放的文件夹)")
+        self.label_output_path.setText("(游戏原文提取后存放的文件夹)")
 
         #设置输出文件夹按钮
         self.pushButton_output = PushButton('选择文件夹', self, FIF.FOLDER)
@@ -7252,6 +7358,37 @@ class Widget_export_source_text(QFrame):#  提取子界面
         layout_output.addStretch(1)  # 添加伸缩项
         layout_output.addWidget(self.pushButton_output)
         box_output.setLayout(layout_output)
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box_data = QGroupBox()
+        box_data.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_data = QHBoxLayout()
+
+        #设置“输出文件夹”标签
+        label6 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label6.setText("工程存储文件夹")
+
+        #设置“输出文件夹”显示
+        self.label_data_path = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label_data_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label_data_path.setText("(该游戏工程数据存放的文件夹)")
+
+        #设置输出文件夹按钮
+        self.pushButton_data = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton_data.clicked.connect(self.Select_data_folder) #按钮绑定槽函数
+
+
+        layout_data.addWidget(label6)
+        layout_data.addWidget(self.label_data_path)
+        layout_data.addStretch(1)  # 添加伸缩项
+        layout_data.addWidget(self.pushButton_data)
+        box_data.setLayout(layout_data)
+
+
+
 
 
         # -----创建第x个组，添加多个组件-----
@@ -7278,8 +7415,10 @@ class Widget_export_source_text(QFrame):#  提取子界面
         # 把内容添加到容器中
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box_switch)
+        container.addWidget(box_switch_note)
         container.addWidget(box_input)
         container.addWidget(box_output)
+        container.addWidget(box_data)
         container.addWidget(box_start_export)
         container.addStretch(1)  # 添加伸缩项
 
@@ -7295,21 +7434,33 @@ class Widget_export_source_text(QFrame):#  提取子界面
         Input_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
         if Input_Folder:
             self.label_input_path.setText(Input_Folder)
-            print('[INFO]  已选择游戏文件夹: ',Input_Folder)
+            print('[INFO]  已选择游戏根目录文件夹: ',Input_Folder)
         else :
             print('[INFO]  未选择文件夹')
             return  # 直接返回，不执行后续操作
 
 
-    # 选择输出文件夹按钮绑定函数
+    # 选择原文文件夹按钮绑定函数
     def Select_output_folder(self):
         Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
         if Output_Folder:
             self.label_output_path.setText(Output_Folder)
-            print('[INFO]  已选择输出文件夹:' ,Output_Folder)
+            print('[INFO]  已选择原文存储文件夹:' ,Output_Folder)
         else :
             print('[INFO]  未选择文件夹')
             return  # 直接返回，不执行后续操作
+
+
+    # 选择工程文件夹按钮绑定函数
+    def Select_data_folder(self):
+        data_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if data_Folder:
+            self.label_data_path.setText(data_Folder)
+            print('[INFO]  已选择工程存储文件夹:' ,data_Folder)
+        else :
+            print('[INFO]  未选择文件夹')
+            return  # 直接返回，不执行后续操作
+
 
     # 提取函数
     def Start_export(self):
@@ -7322,12 +7473,17 @@ class Widget_export_source_text(QFrame):#  提取子界面
 
         #修改输入输出路径及开关
         config['game_path'] = self.label_input_path.text()
-        config['save_path'] =self.label_output_path.text()
+        config['save_path'] = self.label_data_path.text()
+        config['data_path'] = self.label_output_path.text()
         config['ja']=self.SwitchButton_ja.isChecked()
+        if self.SwitchButton_note.isChecked():
+            #添加“note”到列表里
+            config['BlackDir'].append('note')
+
 
         #提取文本
         pj=jtpp.Jr_Tpp(config)
-        pj.FromGame(config['game_path'],config['save_path'])
+        pj.FromGame(config['game_path'],config['save_path'],config['data_path'])
 
 
 class Widget_import_translated_text(QFrame):#  导入子界面
@@ -7351,11 +7507,11 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         #设置“输入文件夹”显示
         self.label_input_path = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label_input_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
-        self.label_input_path.setText("(原来的游戏文件夹)")  
+        self.label_input_path.setText("(原来的游戏根目录文件夹)")  
 
         #设置打开文件按钮
         self.pushButton_input = PushButton('选择文件夹', self, FIF.FOLDER)
-        self.pushButton_input.clicked.connect(self.Select_project_folder) #按钮绑定槽函数
+        self.pushButton_input.clicked.connect(self.Select_game_folder) #按钮绑定槽函数
 
 
 
@@ -7366,7 +7522,37 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         box_input.setLayout(layout_input)
 
 
+
         # -----创建第2个组，添加多个组件-----
+        box_data = QGroupBox()
+        box_data.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_data = QHBoxLayout()
+
+        #设置“输入文件夹”标签
+        label4 = QLabel(flags=Qt.WindowFlags())  
+        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label4.setText("工程数据文件夹")
+
+        #设置“输入文件夹”显示
+        self.label_data_path = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label_data_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.label_data_path.setText("(导出的工程数据文件夹)")  
+
+        #设置打开文件按钮
+        self.pushButton_data = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton_data.clicked.connect(self.Select_data_folder) #按钮绑定槽函数
+
+
+
+        layout_data.addWidget(label4)
+        layout_data.addWidget(self.label_data_path)
+        layout_data.addStretch(1)  # 添加伸缩项
+        layout_data.addWidget(self.pushButton_data)
+        box_data.setLayout(layout_data)
+
+
+
+        # -----创建第3个组，添加多个组件-----
         box_translation_folder = QGroupBox()
         box_translation_folder.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_translation_folder = QHBoxLayout()
@@ -7393,7 +7579,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         box_translation_folder.setLayout(layout_translation_folder)
 
 
-        # -----创建第3个组，添加多个组件-----
+        # -----创建第4个组，添加多个组件-----
         box_output_folder = QGroupBox()
         box_output_folder.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_putput_folder = QHBoxLayout()
@@ -7406,7 +7592,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         #设置“输出文件夹”显示
         self.label_output_folder = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label_output_folder.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label_output_folder.setText("(游戏文件合并译文后，存放的文件夹)")
+        self.label_output_folder.setText("(游戏文件注入译文后，存放的文件夹)")
 
         #设置输出文件夹按钮
         self.pushButton_putput_folder = PushButton('选择文件夹', self, FIF.FOLDER)
@@ -7421,7 +7607,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
 
 
 
-        # -----创建第4个组，添加多个组件-----
+        # -----创建第5个组，添加多个组件-----
         box_title_watermark1 = QGroupBox()
         box_title_watermark1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_title_watermark1 = QHBoxLayout()
@@ -7470,6 +7656,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         # 把内容添加到容器中
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box_input)
+        container.addWidget(box_data)
         container.addWidget(box_translation_folder)
         container.addWidget(box_output_folder)
         container.addWidget(box_title_watermark1)
@@ -7483,15 +7670,24 @@ class Widget_import_translated_text(QFrame):#  导入子界面
 
 
     # 选择输入文件夹按钮绑定函数
-    def Select_project_folder(self):
+    def Select_game_folder(self):
         Input_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
         if Input_Folder:
             self.label_input_path.setText(Input_Folder)
-            print('[INFO]  已选择游戏文件夹: ',Input_Folder)
+            print('[INFO]  已选择原游戏文件夹: ',Input_Folder)
         else :
             print('[INFO]  未选择文件夹')
             return  # 直接返回，不执行后续操作
-
+        
+    # 选择工程文件夹按钮绑定函数
+    def Select_data_folder(self):
+        Data_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Data_Folder:
+            self.label_data_path.setText(Data_Folder)
+            print('[INFO]  已选择工程数据文件夹: ',Data_Folder)
+        else :
+            print('[INFO]  未选择文件夹')
+            return  # 直接返回，不执行后续操作
 
     # 选择译文文件夹按钮绑定函数
     def Select_translation_folder(self):
@@ -7508,7 +7704,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         save_folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
         if save_folder:
             self.label_output_folder.setText(save_folder)
-            print('[INFO]  已选择存储文件夹:' ,save_folder)
+            print('[INFO]  已选择注入后存储文件夹:' ,save_folder)
         else :
             print('[INFO]  未选择文件夹')
 
@@ -7524,6 +7720,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
 
         #修改配置信息
         config['game_path'] = self.label_input_path.text()
+        config['save_path'] = self.label_data_path.text()
         config['translation_path'] = self.label_translation_folder.text()
         config['output_path'] = self.label_output_folder.text()
         if self.checkBox_title_watermark.isChecked():
@@ -7532,8 +7729,8 @@ class Widget_import_translated_text(QFrame):#  导入子界面
             config['mark'] = 0
 
         #导入文本
-        pj=jtpp.Jr_Tpp(config)
-        pj.ToGmae(config['game_path'],config['translation_path'],config['output_path'],config['mark'])
+        pj=jtpp.Jr_Tpp(config,config['save_path'])
+        pj.ToGame(config['game_path'],config['translation_path'],config['output_path'],config['mark'])
         
 
 
