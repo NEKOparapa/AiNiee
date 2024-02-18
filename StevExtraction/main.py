@@ -153,6 +153,7 @@ def readconfig():
         codewithnames=config['codewithnames']
         output_path=config['output_path']
         line_length=config['line_length']
+        data_path=config['data_path']
         if not config.get('ja',False):
             config['ja']=1
     except Exception as e:
@@ -172,7 +173,7 @@ try:
             res = input(startpage)
         if res=='1':
             pj=Jr_Tpp(config)
-            pj.FromGame(config['game_path'],config['save_path'])
+            pj.FromGame(config['game_path'],config['save_path'],config['data_path'])
             input('已成功读取游戏数据，提取到的名字保存在Name.json中\n'
                   '请在翻译完名字以后，将其导入到ainiee的提示词典中\n'
                   '然后翻译{}\\data中的xlsx文件\n'.format(config['save_path']))
@@ -192,7 +193,7 @@ try:
             while res not in ['1','2','3','4','5','6']:
                 res = input(mainpage)
             if res=='1':
-                pj.ToGmae(config['game_path'],config['translation_path'],config['output_path'],config['mark'])
+                pj.ToGame(config['game_path'],config['translation_path'],config['output_path'],config['mark'])
             elif res=='2':
                 pj.AutoLineFeed(config['line_length'])
             elif res=='3':

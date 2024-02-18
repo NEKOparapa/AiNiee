@@ -6,7 +6,7 @@ import traceback
 import openpyxl
 from chardet import detect
 
-# v1.7
+# v1.8
 class Jr_Tpp():
     def __init__(self,config:dict,path:str=False):
         self.config=config
@@ -121,13 +121,8 @@ class Jr_Tpp():
     # 判断地址是否为黑名单地址
     def __IfBlackDir(self,Dir:str) ->bool:
         for blackdir in self.BlackDir:
-            # 如果有任意一个黑名单遍历后仍为True，则说明地址为黑名单地址，break出来
-            dirsig = True
-            for i in blackdir.split('*'):
-                if i not in Dir:
-                    dirsig = False
-                    break
-            if dirsig:
+            pattern=re.compile(blackdir)
+            if re.search(pattern,Dir):
                 return True
         return False
     # 去除DataFrame中重复的行，将重复行的地址和code添加到被保留的行中,在地址为黑名单地址或code为黑名单code的情况下，不保留其数据
@@ -141,11 +136,11 @@ class Jr_Tpp():
                 if index in b['b'].index:
                     Dir = list(b['b'][b['b'].index == index]['地址'])
                     code = list(b['b'][b['b'].index == index]['code'])
-                    black=False
-                    if self.__IfBlackDir(Dir):black=True
-                    if code in self.BlackCode: black = True
-                    if not black:
-                        for i in range(0,len(Dir)):
+                    for i in range(0,len(Dir)):
+                        black=False
+                        if self.__IfBlackDir(Dir[i]):black=True
+                        if code[i] in self.BlackCode: black = True
+                        if not black:
                             a['a'].loc[index,'地址']+='☆↑↓'+Dir[i]
                             a['a'].loc[index, 'code'] += ','+code[i]
             return a['a']
@@ -233,14 +228,11 @@ class Jr_Tpp():
                     TextDatas=self.__ReadFile(data,name)
                     self.ProgramData.update({name:self.__toDataFrame(TextDatas)})
         print('########################读取游戏完成########################')
-        ## 标签黑名单地址,并对其应用原文
-        # self.LabelBlackDir()
-        # 有可能有些文本有多个地址和code，但只有其中一个是黑的，所以不再事先标记黑名单，而在注入时，对每个地址/code单独判断是否是黑的
     # 注入翻译到游戏,BlackLabel为不注入的标签list，默认为'BlackDir',BlackCode默认self.BlackCode
     def InjectGame(self,GameDir:str,path:str,BlackLabel:list=False,BlackCode:list=False):
         self.__CheckNAN()
         if not BlackLabel:
-            BlackLabel=['BlackDir']
+            BlackLabel=['Black']
         if not BlackCode:
             BlackCode=self.BlackCode
         Files = self.__ReadFolder(GameDir)
@@ -332,7 +324,7 @@ class Jr_Tpp():
             print(traceback.format_exc())
             print(e)
             input('保存失败，请关闭所有csv文件后再次尝试')
-    # 导出工程,数据保存为xlsx
+    # 导出数据为xlsx
     def Output(self,path:str):
         if not os.path.exists(path+'\\data'): os.mkdir(path+'\\data')
         for name in self.ProgramData.keys():
@@ -340,12 +332,9 @@ class Jr_Tpp():
         print('########################导出完成########################')
     # 保存工程文件，数据保存为csv，设置保存为json
     def Save(self,path:str):
-        if not os.path.exists(path+'\\csv'): os.mkdir(path+'\\csv')
+        if not os.path.exists(path+'\\翻译工程文件'): os.mkdir(path+'\\翻译工程文件')
         for name in self.ProgramData.keys():
-            self.ToCsv(name,path+'\\csv')
-        out = json.dumps(self.config, indent=4, ensure_ascii=False)
-        with open(path+'\\'+'config.json', 'w', encoding='utf8') as f1:
-            print(out, file=f1)
+            self.ToCsv(name,path+'\\翻译工程文件')
         print('########################保存工程完成########################')
     # 导入翻译，从json导入,路径需指定到json文件。可指定某几个文件(list格式)，namelist为False则全选
     # trsdata和path二选一
@@ -505,28 +494,20 @@ class Jr_Tpp():
         elif col == 2:col = '地址'
         elif col == 3: col = '标签'
         elif col==4:col='code'
-        string=string.split('*')
         res={}
+        # pattern=re.compile(string)
         if not target:
             target=self.ProgramData.copy()
         if not namelist:
             namelist=target.keys()
         for name in namelist:
             if name in target.keys():
-                DataFrame = target[name]
-                if BigSmall:
-                    temp=DataFrame.apply(lambda x: x.astype(str).str.lower())
-                else:
-                    temp=DataFrame.copy()
-                for chara in string:
-                    if BigSmall:
-                        chara=chara.lower()
-                    temp=temp[temp[col].str.contains(chara)]
-                # 根据是否反选，返回未被改变大小写的dataframe
+                DataFrame = target[name].copy()
+                # 根据是否反选，返回搜索结果
                 if notin:
-                    temp=DataFrame[~DataFrame.index.isin(temp.index)].dropna()
+                    temp=DataFrame[~DataFrame[col].str.contains(string,case=not BigSmall,regex=True)]
                 else:
-                    temp = DataFrame[DataFrame.index.isin(temp.index)].dropna()
+                    temp = DataFrame[DataFrame[col].str.contains(string,case=not BigSmall,regex=True)]
                 if len(list(temp.index)):
                     res.update({name:temp})
         return res
@@ -594,15 +575,43 @@ class Jr_Tpp():
             print('搜索结果为空')
             return res
 #######################################################预处理和后处理######################################################
-    # 标签黑名单地址,标签为'BlackDir'。同时对其应用原文
-    def LabelBlackDir(self):
-        for i in self.BlackDir:
-            res=self.LabelBySearch(i,2,'BlackDir')
-            self.ApplyUntrs(res)
-        for i in self.BlackCode:
-            res = self.LabelBySearch(i, 4, 'BlackDir')
-            self.ApplyUntrs(res)
-        print('全部黑名单标记完成')
+    # 判断地址和code是否全黑
+    def __IfAllBlack(self, string: str,code:bool) -> bool:
+        if 'switches' in string:
+            asas=1
+        if not code:
+            blacklist=self.BlackDir
+            qlist=string.split('☆↑↓')
+        else:
+            blacklist=self.BlackCode
+            qlist = string.split(',')
+        for black in blacklist:
+            sig=True
+            pattern = re.compile(black)
+            for q in qlist:
+                if not re.search(pattern, q):
+                    sig=False
+                    break
+            if sig:
+                return True
+        return False
+    # 将地址或code中，只有黑名单的行标记为Black，并应用原文
+    def LabelBlack(self):
+        target={}
+        for name in self.ProgramData.keys():
+            targetlist=[]
+            df=self.ProgramData[name]
+            temp = df[df["地址"].apply(lambda x: self.__IfAllBlack(x,False))]
+            if not temp.empty:
+                targetlist+=list(temp.index)
+            temp = df[df["code"].apply(lambda x: self.__IfAllBlack(x, True))]
+            if not temp.empty:
+                targetlist+=list(temp.index)
+            if targetlist:
+                target[name]=list(set(targetlist))
+        self.addlabel(target,'Black')
+        self.ApplyUntrs_BySearch('Black',3)
+        print('########################已标记黑名单并应用原文########################')
     # 标签名称为'Name',withoutx形如['Actors.json','Items.json','Skills.json'],可除外这些文件中的name，一般对应文件含对应对象的名字
     def LabelName(self,without:list=False):
         # target=self.search('BlackDir',3,notin=True) # 目标为不含'BlackDir'标签的行
@@ -614,10 +623,11 @@ class Jr_Tpp():
         # 对剩下的标签'Name',不区分大小写搜索
         self.LabelBySearch('name',2,'Name',target=target,BigSmall=True)
     # 对名字标签并导出json文件
-    def GetName(self,without:list=False):
+    def GetName(self,data_path,without:list=False):
+        path=data_path+'\\name'
         self.LabelName(without)
-        if not os.path.exists('name'): os.mkdir('name')
-        namedict=self.JsonBySearch('Name',3,OutputName=r'name\Name.json')
+        if not os.path.exists(path): os.mkdir(path)
+        namedict=self.JsonBySearch('Name',3,OutputName=path+r'\Name.json')
         splited_name={}
         for name in namedict.keys():
             namelist=re.sub('[^\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]','↓☆←',name).split('↓☆←')
@@ -628,7 +638,7 @@ class Jr_Tpp():
                 splited_name.update(dict(zip(namelist,namelist)))
         if '' in splited_name.keys():del splited_name['']
         out = json.dumps(splited_name, indent=4, ensure_ascii=False)
-        with open(r'name\Name.json', 'w', encoding='utf8') as f:
+        with open(path+r'\Name.json', 'w', encoding='utf8') as f:
             print(out, file=f)
     # 对target翻译应用原文
     def ApplyUntrs(self,target):
@@ -874,14 +884,16 @@ class Jr_Tpp():
             self.InputFromDataFrame(DataFrame,[name])
         print('########################note处理完毕########################')
 #########################################################一键处理#########################################################
-    # 读取游戏并打好预设标签，获取人名，保存数据，参数为游戏目录和保存路径，保存路径需是已存在的文件夹
-    def FromGame(self,GameDir,path):
+    # 读取游戏并打好预设标签，获取人名，保存数据，GameDir为游戏目录，save_pat为工程保存路径，data_path为待翻译文件路径，保存路径需是已存在的文件夹
+    def FromGame(self,GameDir,save_path,data_path):
         self.ReadGame(GameDir)
-        self.GetName(self.NameWithout)
-        self.Output(path)
-        self.Save(path)
+        # 标记全黑行并应用原文
+        self.LabelBlack()
+        self.GetName(data_path,self.NameWithout)
+        self.Output(data_path)
+        self.Save(save_path)
     # 注入游戏，自动处理文件名问题，如有水印(如有），打水印，参数为游戏根目录,翻译数据路径和注入翻译后的json文件保存目录，mark为水印
-    def ToGmae(self,GameDir,path,OutputPath,mark:str=False):
+    def ToGame(self,GameDir,path,OutputPath,mark:str=False):
         self.InputFromeXlsx(path)
         self.dnb(GameDir)
         self.DNoteB()
