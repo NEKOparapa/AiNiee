@@ -6,7 +6,7 @@ import traceback
 import openpyxl
 from chardet import detect
 
-# v1.8
+# v1.9
 class Jr_Tpp():
     def __init__(self,config:dict,path:str=False):
         self.config=config
@@ -102,7 +102,7 @@ class Jr_Tpp():
             if r'System.json\gameTitle' in FileName and data=='':data=' '# 游戏名为空时，变为空格，否则会报错
             if not code:code='-1'
             # 只有特定code才读取,readcode为空时，全读
-            if str(code) in self.ReadCode or len(self.ReadCode)==0:
+            if (str(code) in self.ReadCode or len(self.ReadCode)==0) and data!='':
                 res.append([data,'',FileName,'',str(code)])
         return res
     # 读取文件夹路径，返回包括其子文件夹内的所有文件名
@@ -628,18 +628,19 @@ class Jr_Tpp():
         self.LabelName(without)
         if not os.path.exists(path): os.mkdir(path)
         namedict=self.JsonBySearch('Name',3,OutputName=path+r'\Name.json')
-        splited_name={}
-        for name in namedict.keys():
-            namelist=re.sub('[^\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]','↓☆←',name).split('↓☆←')
-            trsednamelist=re.sub('[^\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]','↓☆←',name).split('↓☆←')
-            if len(namelist)==len(trsednamelist):
-                splited_name.update(dict(zip(namelist, trsednamelist)))
-            else:
-                splited_name.update(dict(zip(namelist,namelist)))
-        if '' in splited_name.keys():del splited_name['']
-        out = json.dumps(splited_name, indent=4, ensure_ascii=False)
-        with open(path+r'\Name.json', 'w', encoding='utf8') as f:
-            print(out, file=f)
+        if self.config['ja']:
+            splited_name={}
+            for name in namedict.keys():
+                namelist=re.sub('[^\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]','↓☆←',name).split('↓☆←')
+                trsednamelist=re.sub('[^\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]','↓☆←',name).split('↓☆←')
+                if len(namelist)==len(trsednamelist):
+                    splited_name.update(dict(zip(namelist, trsednamelist)))
+                else:
+                    splited_name.update(dict(zip(namelist,namelist)))
+            if '' in splited_name.keys():del splited_name['']
+            out = json.dumps(splited_name, indent=4, ensure_ascii=False)
+            with open(path+r'\Name.json', 'w', encoding='utf8') as f:
+                print(out, file=f)
     # 对target翻译应用原文
     def ApplyUntrs(self,target):
         for name in target.keys():
