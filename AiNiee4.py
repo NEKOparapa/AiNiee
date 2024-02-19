@@ -7215,7 +7215,7 @@ class Widget_RPG(QFrame):  # RPG主界面
 
         # 添加子界面到分段式导航栏
         self.addSubInterface(self.A_settings, 'A_settings', '游戏原文提取')
-        self.addSubInterface(self.B_settings, 'B_settings', '游戏译文导入')
+        self.addSubInterface(self.B_settings, 'B_settings', '游戏译文注入')
 
 
         # 将分段式导航栏和堆叠式窗口添加到垂直布局中
@@ -7254,6 +7254,27 @@ class Widget_export_source_text(QFrame):#  提取子界面
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
         #设置各个控件-----------------------------------------------------------------------------------------
+
+
+
+        # -----创建第1个组，添加多个组件-----
+        box = QGroupBox()
+        box.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout = QHBoxLayout()
+
+
+        self.labe1_3 = QLabel(flags=Qt.WindowFlags())  
+        self.labe1_3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        self.labe1_3.setText("RPG Maker MV/MZ 的文本提取注入工具")
+
+
+        layout.addStretch(1)  # 添加伸缩项
+        layout.addWidget(self.labe1_3)
+        layout.addStretch(1)  # 添加伸缩项
+        box.setLayout(layout)
+
+
+
 
         # -----创建第1个组，添加多个组件-----
         box_switch = QGroupBox()
@@ -7398,7 +7419,7 @@ class Widget_export_source_text(QFrame):#  提取子界面
 
 
         #设置“开始翻译”的按钮
-        self.primaryButton_start_export = PrimaryPushButton('开始提取', self, FIF.UPDATE)
+        self.primaryButton_start_export = PrimaryPushButton('开始提取原文', self, FIF.UPDATE)
         self.primaryButton_start_export.clicked.connect(self.Start_export) #按钮绑定槽函数
 
 
@@ -7414,6 +7435,7 @@ class Widget_export_source_text(QFrame):#  提取子界面
 
         # 把内容添加到容器中
         container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box)
         container.addWidget(box_switch)
         container.addWidget(box_switch_note)
         container.addWidget(box_input)
@@ -7531,12 +7553,12 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         #设置“输入文件夹”标签
         label4 = QLabel(flags=Qt.WindowFlags())  
         label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label4.setText("工程数据文件夹")
+        label4.setText("工程文件夹")
 
         #设置“输入文件夹”显示
         self.label_data_path = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label_data_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
-        self.label_data_path.setText("(导出的工程数据文件夹)")  
+        self.label_data_path.setText("(原来导出的工程数据文件夹)")  
 
         #设置打开文件按钮
         self.pushButton_data = PushButton('选择文件夹', self, FIF.FOLDER)
@@ -7639,7 +7661,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
 
 
         #设置“开始翻译”的按钮
-        self.primaryButton_start_import = PrimaryPushButton('开始导入', self, FIF.UPDATE)
+        self.primaryButton_start_import = PrimaryPushButton('开始注入译文', self, FIF.UPDATE)
         self.primaryButton_start_import.clicked.connect(self.Start_import) #按钮绑定槽函数
 
 
@@ -9297,7 +9319,7 @@ class window(FramelessWindow): #主窗口
         self.navigationInterface.addSeparator() #添加分隔符,需要删除position=NavigationItemPosition.SCROLL来使分隔符正确显示
 
         #添加RPG界面
-        self.addSubInterface(self.Widget_RPG, FIF.CALENDAR, 'StevExtraction')
+        self.addSubInterface(self.Widget_RPG, FIF.TILES, 'StevExtraction')
 
         self.navigationInterface.addSeparator() 
 
