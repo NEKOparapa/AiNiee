@@ -27,6 +27,9 @@
 * **`🤖智谱账号`**:在开发者平台中新建apikey
 
 
+
+
+
 <details>
 <summary><b> 
 
@@ -73,7 +76,7 @@
 <details>
 <summary><b>
   
-### 如果翻译MTOOL进行翻译
+### 如果使用MTOOL进行翻译
 </b> </summary>
 *  1.使用Mtool打开游戏,并在翻译功能界面,选择导出游戏原文文件,会在游戏根目录生成：ManualTransFile.json<br>
   
@@ -119,6 +122,7 @@
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导入译文.png" width="600" height="400"> 
 
 </details>
+
 
 
 
@@ -171,14 +175,18 @@
 * 8.最后选择导出工程,选择导出到文件夹,指定**你的游戏目录里的data文件夹的上一级文件夹**,原文件会被替换,请注意备份原游戏
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/修改游戏1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/修改游戏2.png" width="600" height="400">
 </details>
-
-
-
 </details>
 
 
-# 其他功能🕹️ 
 ***
+
+
+<details>
+<summary><b> 
+
+# 其他功能🕹️ 
+</b> </summary>
+
 * ` 多key轮询`
   >如果想使用多个key来分担消耗压力，根据key数量进行加速翻译，请使用同类型账号的key，而且输入时在每个key中间加上英文逗号，不要换行。例如：key1,key2,key3
   
@@ -207,8 +215,10 @@
   >是原文与译文的词义相似度检测功能,用来判断译文是否翻译错误,以解决AI翻译时错行，串行的问题。开启这个功能会**耗费一段不短的时间进行检查**,而且会将错误内容进行重翻译,也会增加开销。
   
   >采用权重的方式来给每对翻译计算总的相似度，如果小于阈值则进行重新翻译。检查出的错行文本和相似度计算过程日志会存储在输出文件夹中。只支持日语到中文的文本，作为实验性功能，仍在优化中
-  
 
+</details>
+
+***
 
 <details>
 <summary><b> 
@@ -228,6 +238,7 @@
 
 </details>
 
+***
 
 # 感谢💖
 [![xxxx](https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sponsor/徽章.png)](https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sponsor/赞赏码.png)
