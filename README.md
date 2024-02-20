@@ -23,11 +23,11 @@
 ***
    
  * **`🟪好用的魔法工具`**:我们**强烈建议**您选择优质稳定的代理工具,不然api接口会频繁报错无法连接,显示错误代码443或者一直没有回复
- * **`🔵Mtool/🔴Translator++`**:[🔵Mtool下载地址](https://afdian.net/a/AdventCirno?tab=feed)  [🔴Translator++下载地址](https://dreamsavior.net/download/)[🔴Translator++ Github简体中文文档地址](https://raw.githubusercontent.com/zyf722/TranslatorPlusPlusChineseWiki)
+ * **`🔵Mtool/🔴Translator++`**:[🔵Mtool下载地址](https://afdian.net/a/AdventCirno?tab=feed)  [🔴Translator++下载地址](https://dreamsavior.net/download/)
    > 两者免费版本就可以,新人推荐Mtool,如果希望能够自行校正,获得更好的翻译效果,推荐Translator++
 * **`🤖Chat-GPT账号`**:建议您新建一个API_Key,并且最好在使用期间不要和其他程序一起使用,不然容易达到请求次数限制
-* **`🥁Google账号`**:在谷歌的Google AI Studio平台中新建apikey
-
+* **`🤖Google账号`**:在谷歌的Google AI Studio平台中新建apikey
+* **`🤖智谱账号`**:在开发者平台中新建apikey
   
 # 使用方法📝
 ***
@@ -196,6 +196,8 @@
   
 #  常见问题🐛
 ***
+</b> </summary>
+
 * 【如何反馈自己在使用中遇到的问题】————————将cmd窗口（黑黑的那个框框）的内容完整截图下来，里面有程序运行日志，还有软件界面设置截图，然后将问题描述清晰带上截图到群里或者issue提问。当进一步排除问题，需要到原文本或者翻译后文本时，请压缩并上传。
 
 * 【翻译“卡住”了】————————如果运行日志中，无错误提醒，请耐心等待
@@ -206,38 +208,8 @@
   
 * 【翻译后文本导入到T++不完全，部分未能百分百】————————在非RPGMVZ游戏中，出现该问题比较多，使用最新赞助版T++可以缓解，还可以自己手动打开表格，自己复制粘贴进去
 
-# 下载调试🛠️
-***
-如果想要修改代码，或者帮忙改进，请按照下面的指示来进行：
-
-* 1.下载整个代码/Repo，推荐自己Fork一下然后Clone到本地。
-
-* 2.在根目录下打开CMD窗口，并输入下面安装全部依赖库命令:
-   ```
-   pip install -r requirements.txt
-   ```
-
-* 3.然后在IDE或者CLI里，直接运行`AiNiee4.py`应该就可以了！
-
-# 推荐工具🧰 
-***
- * GPT-Translator 是一款前后端分离基于 OpenAI 的高效翻译软件。
-https://github.com/XHXJ/json-GPT-translator
-
- * GalUpTs 对已解包的GalGame脚本文件实行ChatGPT自动化翻译。
-https://github.com/Lilyltt/GalUpTs
-
- * GalTransl 一套将数个基础功能上的微小创新与对ChatGPT提示工程（Prompt Engineering）的深度利用相结合的galgame自动化翻译工具。
-https://github.com/XD2333/GalTransl
-
- * AutoAnimeMv 一个番剧自动识别剧名剧集+自动重命名+自动整理的工具,具有部署方便,开箱即用的特点,用来配合qBittorrent实现Rss订阅下载Emby全自动刮削一条龙到家式爽歪歪服务！
-https://github.com/Abcuders/AutoAnimeMv
-
- * txt2json4AiNiee 一个简单的可以把 txt 文本转换成 AiNiee 喜欢的 MTool JSON 格式的小 Python Script。在 AiNiee 的翻译小说功能做完之前可以先拿来用。
-https://github.com/AkiraChisaka/txt2json4AiNiee
+<summary> <b> 
 
 # 感谢💖
 [![xxxx](https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sponsor/徽章.png)](https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sponsor/赞赏码.png)
 
-都是为这个工具做出各种贡献的朋友，以下排名不分先后
->下划线君，孤狼，Takakura Anri，Amegi，hola，旧日，OYcedar，Abcuders，ChristinaA2M，adastra9257，NEKOparapa, Akira
