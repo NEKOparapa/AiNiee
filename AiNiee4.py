@@ -855,17 +855,11 @@ class Api_Requester():
                         # 如果是进行平时的翻译任务
                         if Running_status == 6 :
                             
-                            # 更改翻译界面状态，用来阻塞翻译界面更新
-                            user_interface_prompter.UI_update_state = 0
+                            # 更新翻译界面数据
+                            user_interface_prompter.update_data(1,row_count,prompt_tokens_used,completion_tokens_used)
 
                             # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                            user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",row_count,prompt_tokens_used,completion_tokens_used)
-
-                            # 等待翻译界面更新数据，状态变量改变
-                            while user_interface_prompter.UI_update_state == 0 :
-                                time.sleep(0.01)    # 等待翻译界面更新数据
-                                if user_interface_prompter.UI_update_state == 1 :
-                                    break
+                            user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",1,1,1)
 
                             # 获取翻译进度
                             progress = user_interface_prompter.progress
@@ -895,16 +889,11 @@ class Api_Requester():
                         # 如果是进行平时的翻译任务
                         if Running_status == 6 :
 
-                            # 更改翻译界面状态，用来阻塞翻译界面更新
-                            user_interface_prompter.UI_update_state = 0
+                            # 更新翻译界面数据
+                            user_interface_prompter.update_data(0,row_count,prompt_tokens_used,completion_tokens_used)
 
-                            user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",row_count,prompt_tokens_used,completion_tokens_used)
-
-                            # 等待翻译界面更新数据，状态变量改变
-                            while user_interface_prompter.UI_update_state == 0 :
-                                time.sleep(0.01)    # 等待翻译界面更新数据
-                                if user_interface_prompter.UI_update_state == 1 :
-                                    break
+                            # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
+                            user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",1,1,1)
 
                         lock2.release()  # 释放锁
 
@@ -1198,17 +1187,11 @@ class Api_Requester():
                         
                         lock2.acquire()  # 获取锁
 
-                        # 更改翻译界面状态，用来阻塞翻译界面更新
-                        user_interface_prompter.UI_update_state = 0
+                        # 更新翻译界面数据
+                        user_interface_prompter.update_data(1,row_count,prompt_tokens_used,completion_tokens_used)
 
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",row_count,prompt_tokens_used,completion_tokens_used)
-
-                        # 等待翻译界面更新数据，状态变量改变
-                        while user_interface_prompter.UI_update_state == 0 :
-                            time.sleep(0.01)    # 等待翻译界面更新数据
-                            if user_interface_prompter.UI_update_state == 1 :
-                                break
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",1,1,1)
 
                         # 获取翻译进度
                         progress = user_interface_prompter.progress
@@ -1228,17 +1211,11 @@ class Api_Requester():
                         # 更改UI界面信息
                         lock2.acquire()  # 获取锁
 
-                        # 更改翻译界面状态，用来阻塞翻译界面更新
-                        user_interface_prompter.UI_update_state = 0
+                        # 更新翻译界面数据
+                        user_interface_prompter.update_data(0,row_count,prompt_tokens_used,completion_tokens_used)
 
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",row_count,prompt_tokens_used,completion_tokens_used)
-
-                        # 等待翻译界面更新数据，状态变量改变
-                        while user_interface_prompter.UI_update_state == 0 :
-                            time.sleep(0.01)    # 等待翻译界面更新数据
-                            if user_interface_prompter.UI_update_state == 1 :
-                                break
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",1,1,1)
 
                         lock2.release()  # 释放锁
 
@@ -1502,17 +1479,11 @@ class Api_Requester():
                         
                         lock2.acquire()  # 获取锁
 
-                        # 更改翻译界面状态，用来阻塞翻译界面更新
-                        user_interface_prompter.UI_update_state = 0
+                        # 更新翻译界面数据
+                        user_interface_prompter.update_data(1,row_count,prompt_tokens_used,completion_tokens_used)
 
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",row_count,prompt_tokens_used,completion_tokens_used)
-
-                        # 等待翻译界面更新数据，状态变量改变
-                        while user_interface_prompter.UI_update_state == 0 :
-                            time.sleep(0.01)    # 等待翻译界面更新数据
-                            if user_interface_prompter.UI_update_state == 1 :
-                                break
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",1,1,1)
 
                         # 获取翻译进度
                         progress = user_interface_prompter.progress
@@ -1532,15 +1503,11 @@ class Api_Requester():
                         # 更改UI界面信息
                         lock2.acquire()  # 获取锁
 
-                        # 更改翻译界面状态，用来阻塞翻译界面更新
-                        user_interface_prompter.UI_update_state = 0
+                        # 更新翻译界面数据
+                        user_interface_prompter.update_data(0,row_count,prompt_tokens_used,completion_tokens_used)
 
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",row_count,prompt_tokens_used,completion_tokens_used)
-
-                        while user_interface_prompter.UI_update_state == 0 :
-                            time.sleep(0.01)    # 等待翻译界面更新数据
-                            if user_interface_prompter.UI_update_state == 1 :
-                                break
+                        # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",1,1,1)
 
                         lock2.release()  # 释放锁
 
@@ -1937,17 +1904,11 @@ class Api_Requester():
                         
                         lock2.acquire()  # 获取锁
 
-                        # 更改翻译界面状态，用来阻塞翻译界面更新
-                        user_interface_prompter.UI_update_state = 0
+                        # 更新翻译界面数据
+                        user_interface_prompter.update_data(1,row_count,prompt_tokens_used,completion_tokens_used)
 
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",row_count,prompt_tokens_used,completion_tokens_used)
-
-                        # 等待翻译界面更新数据，状态变量改变
-                        while user_interface_prompter.UI_update_state == 0 :
-                            time.sleep(0.01)    # 等待翻译界面更新数据
-                            if user_interface_prompter.UI_update_state == 1 :
-                                break
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",1,1,1)
 
                         # 获取翻译进度
                         progress = user_interface_prompter.progress                    
@@ -1967,17 +1928,11 @@ class Api_Requester():
                         # 更改UI界面信息
                         lock2.acquire()  # 获取锁
 
-                        # 更改翻译界面状态，用来阻塞翻译界面更新
-                        user_interface_prompter.UI_update_state = 0
+                        # 更新翻译界面数据
+                        user_interface_prompter.update_data(0,row_count,prompt_tokens_used,completion_tokens_used)
 
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",row_count,prompt_tokens_used,completion_tokens_used)
-
-                        # 等待翻译界面更新数据，状态变量改变
-                        while user_interface_prompter.UI_update_state == 0 :
-                            time.sleep(0.01)    # 等待翻译界面更新数据
-                            if user_interface_prompter.UI_update_state == 1 :
-                                break
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",1,1,1)
 
                         lock2.release()  # 释放锁
 
@@ -2044,7 +1999,7 @@ class Response_Parser():
         if match:
             return match.group()  # 返回匹配的字符串
         else:
-            return None  # 如果没有找到匹配项，返回 None
+            return "提取失败"  # 如果没有找到匹配项，返回 None
 
 
     # 将Raw文本恢复根据行数转换成json文本
@@ -4970,8 +4925,6 @@ class User_Interface_Prompter(QObject):
        self.tokens_spent = 0  # 存储已经花费的tokens
        self.amount_spent = 0  # 存储已经花费的金钱
 
-       self.UI_update_state = 0       # 界面更新状态位,主要用来判断界面是否已经更新完成
-
 
        self.openai_price_data = {
             "gpt-3.5-turbo": {"input_price": 0.0015, "output_price": 0.002}, # 存储的价格是 /k tokens
@@ -5104,56 +5057,68 @@ class User_Interface_Prompter(QObject):
 
         elif input_str1 == "更新翻译界面数据":
 
-            #根据模型设定单位价格
-            if configurator.translation_platform == "Openai官方":
-                # 获取使用的模型输入价格与输出价格
-                input_price = self.openai_price_data[configurator.model_type]["input_price"]
-                output_price = self.openai_price_data[configurator.model_type]["output_price"]
+            Window.Widget_start_translation.A_settings.translated_line_count.setText(str(self.translated_line_count))
 
-            elif configurator.translation_platform == "Openai代理":
-                # 获取使用的模型输入价格与输出价格
-                input_price = Window.Widget_Openai_Proxy.B_settings.spinBox_input_pricing.value()               #获取输入价格
-                output_price = Window.Widget_Openai_Proxy.B_settings.spinBox_output_pricing.value()               #获取输出价格
-
-            elif configurator.translation_platform == "Google官方":
-                # 获取使用的模型输入价格与输出价格
-                input_price = self.google_price_data[configurator.model_type]["input_price"]
-                output_price = self.google_price_data[configurator.model_type]["output_price"]
-
-            elif configurator.translation_platform == "智谱官方":
-                # 获取使用的模型输入价格与输出价格
-                input_price = self.zhipu_price_data[configurator.model_type]["input_price"]
-                output_price = self.zhipu_price_data[configurator.model_type]["output_price"]
-
-            elif configurator.translation_platform == "SakuraLLM":
-                # 获取使用的模型输入价格与输出价格
-                input_price = self.sakura_price_data[configurator.model_type]["input_price"]
-                output_price = self.sakura_price_data[configurator.model_type]["output_price"]
-
-            #计算已经翻译的文本数
-            if input_str2 == "翻译成功":
-                # 更新已经翻译的文本数
-                self.translated_line_count = self.translated_line_count + iunput_int1   
-                Window.Widget_start_translation.A_settings.translated_line_count.setText(str(self.translated_line_count))
-
-            #计算tokens花销
-            self.tokens_spent = self.tokens_spent + input_int2 + input_int3
             Window.Widget_start_translation.A_settings.tokens_spent.setText(str(self.tokens_spent))
 
-            #计算金额花销
-            self.amount_spent = self.amount_spent + (input_price/1000 * input_int2)  + (output_price/1000 * input_int3) 
-            self.amount_spent = round(self.amount_spent, 4)
             Window.Widget_start_translation.A_settings.amount_spent.setText(str(self.amount_spent))
 
-            #计算进度条
-            result = self.translated_line_count / self.total_text_line_count * 100
-            self.progress = round(result, 2)
-            progress = int(round(result, 0))
+            progress = int(round(self.progress, 0))
             Window.Widget_start_translation.A_settings.progressRing.setValue(progress)
 
-            #更改状态变量
-            self.UI_update_state = 1
         
+
+
+    # 更新翻译进度数据
+    def update_data(self, state, translated_line_count, prompt_tokens_used, completion_tokens_used):
+
+        #根据模型设定单位价格
+        if configurator.translation_platform == "Openai官方":
+            # 获取使用的模型输入价格与输出价格
+            input_price = self.openai_price_data[configurator.model_type]["input_price"]
+            output_price = self.openai_price_data[configurator.model_type]["output_price"]
+
+        elif configurator.translation_platform == "Openai代理":
+            # 获取使用的模型输入价格与输出价格
+            input_price = Window.Widget_Openai_Proxy.B_settings.spinBox_input_pricing.value()               #获取输入价格
+            output_price = Window.Widget_Openai_Proxy.B_settings.spinBox_output_pricing.value()               #获取输出价格
+
+        elif configurator.translation_platform == "Google官方":
+            # 获取使用的模型输入价格与输出价格
+            input_price = self.google_price_data[configurator.model_type]["input_price"]
+            output_price = self.google_price_data[configurator.model_type]["output_price"]
+
+        elif configurator.translation_platform == "智谱官方":
+            # 获取使用的模型输入价格与输出价格
+            input_price = self.zhipu_price_data[configurator.model_type]["input_price"]
+            output_price = self.zhipu_price_data[configurator.model_type]["output_price"]
+
+        elif configurator.translation_platform == "SakuraLLM":
+            # 获取使用的模型输入价格与输出价格
+            input_price = self.sakura_price_data[configurator.model_type]["input_price"]
+            output_price = self.sakura_price_data[configurator.model_type]["output_price"]
+
+        #计算已经翻译的文本数
+        if state == 1:
+            # 更新已经翻译的文本数
+            self.translated_line_count = self.translated_line_count + translated_line_count   
+
+        #计算tokens花销
+        self.tokens_spent = self.tokens_spent + prompt_tokens_used + completion_tokens_used
+
+        #计算金额花销
+        self.amount_spent = self.amount_spent + (input_price/1000 * prompt_tokens_used)  + (output_price/1000 * completion_tokens_used) 
+        self.amount_spent = round(self.amount_spent, 4)
+
+        #计算进度条
+        result = self.translated_line_count / self.total_text_line_count * 100
+        self.progress = round(result, 2)
+
+
+
+
+
+
 
 
     #成功信息居中弹出框函数
