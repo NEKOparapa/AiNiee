@@ -28,9 +28,13 @@
 * **`🤖Chat-GPT账号`**:建议您新建一个API_Key,并且最好在使用期间不要和其他程序一起使用,不然容易达到请求次数限制
 * **`🤖Google账号`**:在谷歌的Google AI Studio平台中新建apikey
 * **`🤖智谱账号`**:在开发者平台中新建apikey
-  
+
+<details>
+<summary><b> 
+
 # 使用方法📝
-***
+</b> </summary>
+
 * **第一步**.🖱️双击`启动AiNiee.exe`,在账号设置页面配置你的账号信息以及`API KEY`
     > OpenAI官方配置界面:<br>
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/官方账号设置.png" width="600" height="400"><br>
@@ -162,6 +166,10 @@
   
 * 4-3.最后选择导出工程,选择导出到文件夹,指定**你的游戏目录里的data文件夹的上一级文件夹**,原文件会被替换,请注意备份原游戏
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/修改游戏1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/修改游戏2.png" width="600" height="400">
+
+
+</details>
+
 
 # 其他功能🕹️ 
 ***
