@@ -4,14 +4,12 @@
   </a>
 <p>
 
-***
-[![下载地址](https://img.shields.io/badge/下载地址-点击下载-1E90FF)](https://github.com/NEKOparapa/AiNiee/releases)
-[![教程视频](https://img.shields.io/badge/教程视频-点击观看-ff69b4)](https://www.bilibili.com/video/BV18c411K7WN)
 
 **这是一款基于`Mtool`或`Translator++`的 AI自动批翻译工具,主要是用来翻译各种RPG游戏**
 
-
 *Artificial Intelligence Narrative Interpretation and Exploration Engine？*
+
+
   
 # 声明🧾 
 ***
@@ -19,15 +17,15 @@
 
 * **`交♂交流群`**:  QQ交流群：821624890，备用QQ群：729610150，备用TG群：https://t.me/+JVHbDSGo8SI2Njhl ,
 
-#  环境支持🏕️
+#  工具准备🏕️
 ***
-   
  * **`🟪好用的魔法工具`**:我们**强烈建议**您选择优质稳定的代理工具,不然api接口会频繁报错无法连接,显示错误代码443或者一直没有回复
  * **`🔵Mtool/🔴Translator++`**:[🔵Mtool下载地址](https://afdian.net/a/AdventCirno?tab=feed)  [🔴Translator++下载地址](https://dreamsavior.net/download/)
    > 两者免费版本就可以,新人推荐Mtool,如果希望能够自行校正,获得更好的翻译效果,推荐Translator++
 * **`🤖Chat-GPT账号`**:建议您新建一个API_Key,并且最好在使用期间不要和其他程序一起使用,不然容易达到请求次数限制
 * **`🤖Google账号`**:在谷歌的Google AI Studio平台中新建apikey
 * **`🤖智谱账号`**:在开发者平台中新建apikey
+
 
 <details>
 <summary><b> 
@@ -70,7 +68,14 @@
 * **第二步**.✅点击请求测试,测试网络是否通畅,请求是否成功
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/请求成功.png" width="600" height="400"> 
 
-    
+
+
+<details>
+<summary><b>
+  
+## 如果使用MTOOL进行翻译
+</b> </summary>
+
 * **第三步-翻译Mtool文件**1.如果使用`🔵Mtool`进行翻译请根据以下步骤操作
     > 1.使用Mtool打开游戏,并在翻译功能界面,选择导出游戏原文文件,会在游戏根目录生成：ManualTransFile.json<br>
   
@@ -114,6 +119,10 @@
 
    回到`🔵Mtool`工具,依然在翻译功能界面,选择加载翻译文件,选择翻译后的文件即可
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导入译文.png" width="600" height="400"> 
+
+</details>
+
+
 
 * **第三步-翻译T++文件**-1.如果使用`🔴Translator++`进行翻译请根据以下步骤操作
     > 1.🖱️打开`🔴Translator++`,选择“start a new project”,根据你的游戏图标来选择对应的游戏引擎<br>
