@@ -218,7 +218,7 @@
 
 
 *  3.注入回原文
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Extraction/注入译文.png" width="600" 
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Extraction/注入译文.png"  width="600" height="400"> <br>
     
     >`游戏文件夹`: 游戏根目录<br>
 
