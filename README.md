@@ -66,15 +66,6 @@
     
     >`回复输出价格`: 根据国内代理平台设定的价格进行设置，单位是每1k tokens
 
-    > Google官方配置界面:<br>
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Google官方设置.png" width="600" height="400"><br>
-  
-    > `模型选择`: 现在只有gemini-pro模型开放测试。<br>
-  
-    >`API KEY`: 填入由谷歌账号生成的api_key<br>
-  
-    >`代理端口`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
-
   
 * **第二步**.✅点击请求测试,测试网络是否通畅,请求是否成功
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/请求成功.png" width="600" height="400"> 
