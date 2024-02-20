@@ -208,7 +208,7 @@
 *  2.在`翻译设置`界面的`翻译项目`选择`🔵T++导出文件`,并配置翻译设置
 
 
-*  3. 注入回原文
+*  3.注入回原文
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导入译文.png" width="600" height="400"> 
 
 </details>
