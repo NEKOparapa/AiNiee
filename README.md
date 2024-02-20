@@ -41,7 +41,7 @@
 ### 账号配置
 </b> </summary>
 
-*  OpenAI官方配置示例:<br>
+*  OpenAI官方配置示例:
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/官方账号设置.png" width="600" height="400"><br>
   
     >`账号类型`: 新注册的5刀余额账号为免费账号，且每分钟只能翻译3次，每天一共只能翻译200次；付费账号是有过付费记录，且达到一些条件才会升级<br>
@@ -52,7 +52,7 @@
   
     >`代理端口`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
 
-*  OpenAI中转配置示例:<br>
+*  OpenAI中转配置示例:
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/代理账号设置.png" width="600" height="400"><br> 
     
     >`请求地址`: 填入国内代理平台提供的请求地址,示例：`https://api.openai-sb.com/v1`
@@ -70,6 +70,14 @@
     >`请求输入价格`: 根据国内代理平台设定的价格进行设置，单位是每1k tokens
     
     >`回复输出价格`: 根据国内代理平台设定的价格进行设置，单位是每1k tokens
+
+*  SakuraLLM配置:
+    1.Kaggle云平台方法：https://github.com/SakuraLLM/Sakura-13B-Galgame/wiki/%E7%99%BD%E5%AB%96Kaggle%E5%B9%B3%E5%8F%B0%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B
+
+    2.Autodl云平台方法：https://books.fishhawk.top/forum/65719bf16843e12bd3a4dc98#%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8AutoDL%E9%83%A8%E7%BD%B2
+
+    3.部署好模型后，获取接口地址，填入请求地址栏中
+
 
 </details>
   
@@ -201,7 +209,7 @@
 ### 如果使用StevExtraction进行翻译
 </b> </summary>
 
-*  1.在提取页面进行提取
+*  1.在提取页面进行提取,目前只能适应于RPG Maker MVMZ游戏，能提取到游戏的原文和人物名字
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Extraction/提取原文.png" width="600" height="400"> <br>
     >`是否日语游戏`: 根据游戏进行选择<br>
 

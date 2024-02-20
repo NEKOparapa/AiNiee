@@ -2953,6 +2953,7 @@ class Configurator():
         "5": "さて！",
         "6": "さっそくオジサンをいじめちゃおっかな！",
         "7": "若くて♫⚡綺麗で♫⚡エロくて"
+        "8": "さくら：「すごく面白かった！」"
         }'''
 
 
@@ -2966,6 +2967,7 @@ class Configurator():
         "5": "Well then!",
         "6": "Let's bully the uncle right away!",
         "7": "Young ♫⚡beautiful ♫⚡sexy."
+        "8": "Sakura：「It was really fun!」"
         }'''
 
         #韩语示例
@@ -2978,6 +2980,7 @@ class Configurator():
         "5": "그래서!",
         "6": "지금 바로 아저씨를 괴롭히자!",
         "7": "젊고♫⚡아름답고♫⚡섹시하고"
+        "8": "사쿠라：「정말로 재미있었어요!」"
         }'''
 
 
@@ -2991,6 +2994,7 @@ class Configurator():
         "5": "Итак!",
         "6": "Давайте сейчас поиздеваемся над дядей!",
         "7": "Молодые♫⚡Красивые♫⚡Эротичные"
+        "8": "Сакура: 「Было очень интересно!」"
         }'''
 
 
@@ -3004,6 +3008,7 @@ class Configurator():
         "5": "那么！",
         "6": "现在就来欺负一下大叔吧！",
         "7": "年轻♫⚡漂亮♫⚡色情"
+        "8": "樱：「超级有趣！」"
         }'''
 
 
@@ -3017,6 +3022,7 @@ class Configurator():
         "5": "那麼！",
         "6": "現在就來欺負一下大叔吧！",
         "7": "年輕♫⚡漂亮♫⚡色情"
+        "8": "櫻：「超有趣！」"
         }'''
 
 
@@ -4285,10 +4291,11 @@ class Cache_Manager():
                 # 如果新列表中的元素个数达到指定行数，则停止遍历
                 if len(new_list) == rows:
                     break
+        
 
         return new_list
 
-    # 将未翻译的文本列表，转换成待发送的原文字典,并计算文本行数，因为最后一些文本可能达到不了每次翻译行数
+    # 将未翻译的文本列表，转换成待发送的原文字典,并计算文本实际行数，因为最后一些文本可能达到不了每次翻译行数
     def create_dictionary_from_list(self,data_list):
         #输入示例
         ex_list = [
@@ -4305,17 +4312,20 @@ class Cache_Manager():
         }
 
         new_dict = {}
+        index_count = 0
 
         for index, entry in enumerate(data_list):
             source_text = entry.get('source_text')
-            # 判断是否为None
-            if source_text is not None:
-                name = entry.get('name')
-                # 如果有名字，则组合成轻小说的格式，如：小明「测试」， 否则不组合
-                if name:
-                    new_dict[str(index)] = f"{name}「{source_text}」"
-                else:
-                    new_dict[str(index)] = source_text
+            name = entry.get('name')
+
+            # 如果有名字，则组合成轻小说的格式，如：小明「测试」， 否则不组合
+            if name:
+                new_dict[str(index_count)] = f"{name}「{source_text}」"
+            else:
+                new_dict[str(index_count)] = source_text
+
+            #索引计数
+            index_count += 1
 
         return new_dict, len(data_list)
 
