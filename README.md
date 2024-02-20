@@ -72,6 +72,7 @@
     >`回复输出价格`: 根据国内代理平台设定的价格进行设置，单位是每1k tokens
 
 *  SakuraLLM配置:
+  
     1.Kaggle云平台方法：https://github.com/SakuraLLM/Sakura-13B-Galgame/wiki/%E7%99%BD%E5%AB%96Kaggle%E5%B9%B3%E5%8F%B0%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B
 
     2.Autodl云平台方法：https://books.fishhawk.top/forum/65719bf16843e12bd3a4dc98#%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8AutoDL%E9%83%A8%E7%BD%B2
