@@ -41,7 +41,7 @@
 ### 账号配置
 </b> </summary>
 
-*  OpenAI官方配置界面:<br>
+*  OpenAI官方配置示例:<br>
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/官方账号设置.png" width="600" height="400"><br>
   
     >`账号类型`: 新注册的5刀余额账号为免费账号，且每分钟只能翻译3次，每天一共只能翻译200次；付费账号是有过付费记录，且达到一些条件才会升级<br>
@@ -52,7 +52,7 @@
   
     >`代理端口`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
 
-*  OpenAI中转配置界面:<br>
+*  OpenAI中转配置示例:<br>
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/代理账号设置.png" width="600" height="400"><br> 
     
     >`请求地址`: 填入国内代理平台提供的请求地址,示例：`https://api.openai-sb.com/v1`
