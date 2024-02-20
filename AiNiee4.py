@@ -57,7 +57,7 @@ from qfluentwidgets import FluentIcon as FIF
 from StevExtraction import jtpp  #导入文本提取工具
 
 
-Software_Version = "AiNiee4.63"  #软件版本号
+Software_Version = "AiNiee4.64"  #软件版本号
 cache_list = [] # 全局缓存数据
 Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
                     # 6是翻译任务进行状态，7是错行检查状态，9是翻译任务暂停状态，10是强制终止任务状态
@@ -219,15 +219,6 @@ class Translator():
             #根据算法计算拆分的文本行数
             line_count_configuration = configurator.update_text_line_count(line_count_configuration)
             print("[INFO] 未翻译文本总行数为：",untranslated_text_line_count,"  每次发送行数修改为：",line_count_configuration, '\n')
-
-            #如果实时调教功能没有开的话，则每次重新翻译，增加OpenAI的随机性
-            if configurator.translation_platform == "Openai官方" or configurator.translation_platform == "Openai代理":
-                if (Window.Interface18.checkBox.isChecked() == False) and (retry_translation_count != 1) :
-                    if configurator.openai_temperature + 0.1 <= 1.0 :
-                        configurator.openai_temperature = configurator.openai_temperature + 0.1
-                    else:
-                        configurator.openai_temperature = 1.0
-                    print("\033[1;33mWarning:\033[0m 当前AI模型的随机度设置为：",configurator.openai_temperature)
 
 
             # 计算可并发任务总数
@@ -1999,7 +1990,7 @@ class Response_Parser():
         if match:
             return match.group()  # 返回匹配的字符串
         else:
-            return "提取失败"  # 如果没有找到匹配项，返回 None
+            return input_string  # 如果没有找到匹配项，返回原文
 
 
     # 将Raw文本恢复根据行数转换成json文本
@@ -2131,12 +2122,12 @@ class Response_Parser():
 
         # 输出字符数量
         for char, count in char_count.items():
-            if count >= 90:
+            if count >= 80:
                 return False
                 #print(f"中日语字符 '{char}' 出现了 {count} 次一次。")
         
         return True
-
+    
 
     # 检查回复文本出现相同的翻译内容
     def check_same_translation(self,response_dict):
