@@ -125,27 +125,6 @@
     >配置示例:<br>
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/翻译设置Mtool.png" width="600" height="400"><br>
     
-    >`翻译项目`: 先前导出原文文件的工具<br>
-
-    >`翻译平台`: 翻译文本时希望使用的平台<br>
-
-    >`文本源语言`: 根据你需要翻译游戏的语言选择相应的源语言<br>
-
-    >`文本目标语言`: 你希望翻译成的语言<br>
-  
-    >`输入文件夹`: 选择你需要翻译的原文文件,把导出的文件尽量放在一个文件夹内，文件夹内没有其他文件，因为会读取该文件夹内所有相关的文件<br>
-  
-    >`输出文件夹`: 选择翻译后文件的存储文件夹，请不要和输入文件夹一个路径<br>
-
-
-    >`每次翻译行数`: 每次请求翻译的文本行数。行数设置越大,整体的翻译效果会更好,上下文更加流畅,但每次请求回复速度会越慢,回复的内容越容易出错。根据模型类型来进行设置，建议gpt3.5基础模型不要设置超过40,gpt4基础模型不超过80<br>
-  
-    >`保留换行符`: 该功能尽可能地保留文本中的/r/n，但不总是能够完全保留，仍有小部分位置错乱，消失或者变成其他特殊符号。请根据翻译情况选择开启<br>
-
-    >`回复json格式`: 仅对openai的两个模型生效，强制ai以json格式回复消息，可以减少格式错误问题<br>
-    
-    >`最大线程数`: 请根据电脑自身情况设置，线程数越大，越容易吃满Openai的速率限制，翻译速度越快。最大线程数设置上限为999，建议设置100以内<br>
-    
   
 * 3.🖱️到开始翻译页面，点击**开始翻译**按钮,看控制台输出日志或者进度条。之后等待翻译进度到百分百,自动生成翻译好的文件在输出文件夹中
     > 正在进行翻译<br>
@@ -156,7 +135,7 @@
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/UI界面翻译完成.png" width="600" height="400">
 
 
-* 4. 回到`🔵Mtool`工具,依然在翻译功能界面,选择加载翻译文件,选择翻译后的文件即可
+* 4.回到`🔵Mtool`工具,依然在翻译功能界面,选择加载翻译文件,选择翻译后的文件即可
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导入译文.png" width="600" height="400"> 
 
 </details>
@@ -213,11 +192,32 @@
 * 8.最后选择导出工程,选择导出到文件夹,指定**你的游戏目录里的data文件夹的上一级文件夹**,原文件会被替换,请注意备份原游戏
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/修改游戏1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/修改游戏2.png" width="600" height="400">
 </details>
+
+
+
+<details>
+<summary><b>
+  
+### 如果使用StevExtraction进行翻译
+</b> </summary>
+
+*  1.在提取页面进行提取
+    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导出原文1.png" width="600" height="400"> <br>
+
+  
+*  2.在`翻译设置`界面的`翻译项目`选择`🔵T++导出文件`,并配置翻译设置
+
+
+*  3. 注入回原文
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导入译文.png" width="600" height="400"> 
+
 </details>
 
 
-***
 
+</details>
+
+***
 
 <details>
 <summary><b> 
