@@ -33,8 +33,15 @@
 # 使用方法📝
 </b> </summary>
 
-* **第一步**.🖱️双击`启动AiNiee.exe`,在账号设置页面配置你的账号信息以及`API KEY`
-    > OpenAI官方配置界面:<br>
+
+
+<details>
+<summary><b> 
+
+### 账号配置
+</b> </summary>
+
+*  OpenAI官方配置界面:<br>
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/官方账号设置.png" width="600" height="400"><br>
   
     >`账号类型`: 新注册的5刀余额账号为免费账号，且每分钟只能翻译3次，每天一共只能翻译200次；付费账号是有过付费记录，且达到一些条件才会升级<br>
@@ -45,7 +52,7 @@
   
     >`代理端口`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
 
-    > OpenAI中转配置界面:<br>
+*  OpenAI中转配置界面:<br>
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/代理账号设置.png" width="600" height="400"><br> 
     
     >`请求地址`: 填入国内代理平台提供的请求地址,示例：`https://api.openai-sb.com/v1`
@@ -64,9 +71,43 @@
     
     >`回复输出价格`: 根据国内代理平台设定的价格进行设置，单位是每1k tokens
 
+</details>
   
-* **第二步**.✅点击请求测试,测试网络是否通畅,请求是否成功
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/请求成功.png" width="600" height="400"> 
+
+
+<details>
+<summary><b> 
+
+### 翻译配置
+</b> </summary>
+
+*   配置示例:<br>
+    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/翻译设置Mtool.png" width="600" height="400"><br>
+    
+    >`翻译项目`: 先前导出原文文件的工具<br>
+
+    >`翻译平台`: 翻译文本时希望使用的平台<br>
+
+    >`文本源语言`: 根据你需要翻译游戏的语言选择相应的源语言<br>
+
+    >`文本目标语言`: 你希望翻译成的语言<br>
+  
+    >`输入文件夹`: 选择你需要翻译的原文文件,把导出的文件尽量放在一个文件夹内，文件夹内没有其他文件，因为会读取该文件夹内所有相关的文件<br>
+  
+    >`输出文件夹`: 选择翻译后文件的存储文件夹，请不要和输入文件夹一个路径<br>
+
+
+    >`每次翻译行数`: 每次请求翻译的文本行数。行数设置越大,整体的翻译效果会更好,上下文更加流畅,但每次请求回复速度会越慢,回复的内容越容易出错。根据模型类型来进行设置，建议gpt3.5基础模型不要设置超过40,gpt4基础模型不超过80<br>
+  
+    >`保留换行符`: 该功能尽可能地保留文本中的/r/n，但不总是能够完全保留，仍有小部分位置错乱，消失或者变成其他特殊符号。请根据翻译情况选择开启<br>
+
+    >`回复json格式`: 仅对openai的两个模型生效，强制ai以json格式回复消息，可以减少格式错误问题<br>
+    
+    >`最大线程数`: 请根据电脑自身情况设置，线程数越大，越容易吃满Openai的速率限制，翻译速度越快。最大线程数设置上限为999，建议设置100以内<br>
+
+</details>
+
+
 
 
 
