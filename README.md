@@ -202,14 +202,31 @@
 </b> </summary>
 
 *  1.在提取页面进行提取
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导出原文1.png" width="600" height="400"> <br>
+    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Extraction/提取原文.png" width="600" height="400"> <br>
+    >`是否日语游戏`: 根据游戏进行选择<br>
 
+    >`是否翻译note类型文本`: # 在翻译ACT游戏时，尝试关闭该选项，否则大概率无法攻击或攻击没有效果<br>
+
+    >`游戏文件夹`: 游戏根目录<br>
+
+    >`原文存储文件夹`: 提取到的游戏原文存储的地方<br>
+  
+    >`工程存储文件夹`: 关于这个游戏的工程数据存储的地方，后面注入还会用到<br>
+  
   
 *  2.在`翻译设置`界面的`翻译项目`选择`🔵T++导出文件`,并配置翻译设置
 
 
 *  3.注入回原文
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导入译文.png" width="600" height="400"> 
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Extraction/注入译文.png" width="600" 
+    
+    >`游戏文件夹`: 游戏根目录<br>
+
+    >`译文文件夹`: 之前经过翻译的原文文件<br>
+  
+    >`工程文件夹`: 之前这个游戏的工程数据存储的地方<br>
+
+    >`存储文件夹`: 注入译文后存储的地方<br>
 
 </details>
 
