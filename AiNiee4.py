@@ -57,7 +57,7 @@ from qfluentwidgets import FluentIcon as FIF
 from StevExtraction import jtpp  #导入文本提取工具
 
 
-Software_Version = "AiNiee4.64"  #软件版本号
+Software_Version = "AiNiee4.63"  #软件版本号
 cache_list = [] # 全局缓存数据
 Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
                     # 6是翻译任务进行状态，7是错行检查状态，9是翻译任务暂停状态，10是强制终止任务状态
