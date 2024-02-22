@@ -5,7 +5,7 @@
 <p>
 
 
-**这是一款AI自动翻译工具,主要是用来翻译各种RPG游戏**
+**这是一款专注于AI自动翻译工具,主要是用来翻译各种RPG游戏**
 
 *Artificial Intelligence Narrative Interpretation and Exploration Engine？*
 
