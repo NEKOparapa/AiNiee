@@ -179,7 +179,7 @@ try:
                   '然后翻译{}\\data中的xlsx文件\n'.format(config['save_path']))
         elif res=='3':
             pj = Jr_Tpp(config)
-            pj.Updata(config['game_path'],config['translation_path'],config['save_path'])
+            pj.Update(config['game_path'],config['translation_path'],config['save_path'],config['data_path'])
         else:
             pj = Jr_Tpp(config,config['save_path'])
         mainpage = '1.一键注入翻译\n' \
