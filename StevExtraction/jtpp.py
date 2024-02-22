@@ -6,7 +6,7 @@ import traceback
 import openpyxl
 from chardet import detect
 
-# v1.9
+# v1.9.1
 class Jr_Tpp():
     def __init__(self,config:dict,path:str=False):
         self.config=config
@@ -902,9 +902,9 @@ class Jr_Tpp():
             self.AddMark(mark)
         self.InjectGame(GameDir,OutputPath)
     # 游戏版本更新，path是旧版翻译文件的路径
-    def Updata(self,GameDir,path,savepath):
+    def Update(self,GameDir,path,save_path,data_path):
         self.ReadGame(GameDir)
         self.InputFromeXlsx(path)
-        self.GetName(self.NameWithout)
-        self.Output(savepath)
-        self.Save(savepath)
+        self.GetName(data_path,self.NameWithout)
+        self.Output(data_path)
+        self.Save(save_path)
