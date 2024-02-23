@@ -23,9 +23,8 @@
  * **`🔵Mtool/🔴Translator++`**:[🔵Mtool下载地址](https://afdian.net/a/AdventCirno?tab=feed)  [🔴Translator++下载地址](https://dreamsavior.net/download/)
    > 两者免费版本就可以,新人推荐Mtool,如果希望能够自行校正,获得更好的翻译效果,推荐Translator++
 * **`🤖AI平台账号`**: [OpenAI平台](https://platform.openai.com/)    [GooGle平台](https://makersuite.google.com/app/apikey?hl=zh-cn)    [智谱平台](https://open.bigmodel.cn/overview)
-
-
-
+* **`📡下载地址`**: [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
+* **`📺视频教程`**: [OpenAI平台](https://platform.openai.com/)
 
 <details>
 <summary><b> 
