@@ -6,7 +6,7 @@ import traceback
 import openpyxl
 from chardet import detect
 
-# v1.9.1
+# v2.0
 class Jr_Tpp():
     def __init__(self,config:dict,path:str=False):
         self.config=config
@@ -18,6 +18,10 @@ class Jr_Tpp():
         self.codewithnames=config['codewithnames']  # dnb用，包裹文件名的标识符
         self.ReadCode=config['ReadCode']    # 只读取这些code的文本
         self.ja=config['ja']    # 是否为日文游戏，日文游戏的情况下，只会提取含中日字符的文本，dnb也只会处理含中日字符的文件名
+        self.sumcode=config['sumcode']
+        self.__tempdata=['原文','译文','地址','标签','code'] # 用于记录上一行文本的数据
+        self.__sumlen=0 # code相同的文本行数
+        self.note_percent=config['note_percent']
         if path:
             self.load(path) # 从工程文件加载
 
@@ -84,26 +88,65 @@ class Jr_Tpp():
         workbook.save(name)
     # 读取json文件中含中日字符的字符串，并记录其地址。
     # 输入json文件的内容，返回其中所有文本组成的list
-    def __ReadFile(self,data,FileName:str,code:int =False) -> list:
-        res=[]
+    def __ReadFile(self, data, FileName: str, code: int = False) -> list:
+        res = []
         tp = type(data)
         if tp == dict:
             for key in data.keys():
                 # FileName用来记录地址
                 code = data.get('code', False)
-                res+=self.__ReadFile(data[key],FileName+'\\'+key,code)
+                res += self.__ReadFile(data[key], FileName + '\\' + key, code)
 
         elif tp == list:
-            for i in range(0,len(data)):
-                res+=self.__ReadFile(data[i],FileName+'\\'+str(i),code)
-        # 是字符串，而且含中日字符(System.json\gameTitle不论是否含中日字符，都进
-        elif tp==str and (not self.ja or re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]',data)
-                          or r'System.json\gameTitle' in FileName) :
-            if r'System.json\gameTitle' in FileName and data=='':data=' '# 游戏名为空时，变为空格，否则会报错
-            if not code:code='-1'
-            # 只有特定code才读取,readcode为空时，全读
-            if (str(code) in self.ReadCode or len(self.ReadCode)==0) and data!='':
-                res.append([data,'',FileName,'',str(code)])
+            for i in range(0, len(data)):
+                res += self.__ReadFile(data[i], FileName + '\\' + str(i), code)
+        elif tp == str:
+            # 格式化code
+            if not code:
+                code = '-1'
+            else:
+                code = str(code)
+            # 是需要添加的字符串，而且含中日字符(System.json\gameTitle不论是否含中日字符，都进
+            if (not self.ja or re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]', data)
+                    or r'System.json\gameTitle' in FileName):
+                if r'System.json\gameTitle' in FileName and data == '': data = ' '  # 游戏名为空时，变为空格，否则会报错
+                # 这一行的文本数据,0原文,1译文,2地址,3标签,4code
+                textdata = [data, '', FileName, '', code]
+                # 当code和上次的一样,或者上次是108，这次是408，而且是需要文本求和的code时
+                if (code == self.__tempdata[4] or (
+                        self.__tempdata[4] == '108' and code == '408')) and code in self.sumcode:
+                    self.__tempdata[0] += '\n' + textdata[0]
+                    self.__sumlen += 1
+                # 当code和上一次的code不相等时，正常存储
+                else:
+                    if self.__sumlen:
+                        self.__tempdata[2] += '\u200B' + str(self.__sumlen)  # 在地址后面加上一个零宽空格后加上求和长度
+                        res.append(self.__tempdata)
+                    # 只有特定code才读取,readcode为空时，全读
+                    if (code in self.ReadCode or len(self.ReadCode) == 0) and data != '':
+                        # res.append(textdata)
+                        # 更新tempcode并初始化sumlen
+                        self.__tempdata = textdata
+                        self.__sumlen = 1
+            # 不是需要添加的字符串，单独判断是否中断文本求和
+            else:
+                # code仍符合需求，并且data是字符串，则原原本本地添加进来
+                if (code == self.__tempdata[4] or (
+                        self.__tempdata[4] == '108' and code == '408')) and code in self.sumcode:
+                    self.__tempdata[0] += '\n' + data
+                    self.__sumlen += 1
+                # 否则中断文本求和
+                elif self.__sumlen:
+                    self.__tempdata[2] += '\u200B' + str(self.__sumlen)  # 求和的文本行，在地址后面加上一个零宽空格后加上求和长度
+                    res.append(self.__tempdata)
+                    # 初始化tempcode和sumlen
+                    self.__tempdata = ['原文', '译文', '地址', '标签', 'code']
+                    self.__sumlen = 0
+                else:
+                    # 初始化tempcode和sumlen
+                    self.__tempdata = ['原文', '译文', '地址', '标签', 'code']
+                    self.__sumlen = 0
+
         return res
     # 读取文件夹路径，返回包括其子文件夹内的所有文件名
     def __ReadFolder(self,dir:str) -> list:
@@ -154,35 +197,47 @@ class Jr_Tpp():
         return DataFrame
     # 将后缀json和xlsx互相转化
     def __nameswitch(self,name,csv:bool=False):
-        name = name.split('\\')[-1]
-        resname = ''
-        temp = name.split('.')
-        for i in temp[:-1]:
-            resname += i + '.'
+        name = name.split('\\data\\')[-1]
         if not csv:
-            if 'xlsx' in name:
-                resname += 'json'
+            if name.endswith('.xlsx'):
+                name = name[:-5] + '.json'
             else:
-                resname += 'xlsx'
+                name = name[:-5] + '.xlsx'
         else:
-            if 'csv' in name:
-                resname += 'json'
+            if name.endswith('.csv'):
+                name = name[:-4] + '.json'
             else:
-                resname += 'csv'
-        return resname
+                name = name[:-5] + '.csv'
+        return name
     # 按照Dir逐级读取文件内容，直到读到untrs，将其替换为trsed，然后逐级返回
-    def __WriteFile(self,data,untrs:str,trsed:str,Dir:list):
+    def __WriteFile(self,data,untrs:str,trsed:str,Dir:list,length:int,key_is_list=False):
         # 获取文本在文件内的地址
         if type(data)==list:
             i=int(Dir[0])
-            data[i]=self.__WriteFile(data[i],untrs,trsed,Dir[1:])
+            data[i]=self.__WriteFile(data[i],untrs,trsed,Dir[1:],length)
+            if key_is_list:
+                for  n in range(1,length):
+                    # 标记应该被删掉的行，直接删的话会导致后面乱掉
+                    data[i+n]='☆删除☆'
         elif type(data)==dict:
-            data[Dir[0]]=self.__WriteFile(data[Dir[0]],untrs,trsed,Dir[1:])
+            # 如果key是list,并且文本长度大于1，标记
+            if Dir[0]=='list' and length>1:
+                key_is_list=True
+            data[Dir[0]]=self.__WriteFile(data[Dir[0]],untrs,trsed,Dir[1:],length,key_is_list=key_is_list)
         elif type(data)==str and len(Dir)==0:
-            if data==untrs or (data=='' and untrs==' '):
-                data=trsed
-            else:
-                print(f'原文\"{data}\"不匹配')
+            data=trsed
+        return data
+    # 遍历data，删除所有被标记的list元素
+    def __del_marked_list(self,data):
+        if type(data)==list:
+            for i in range(0,len(data)):
+                data[i]=self.__del_marked_list(data[i])
+        elif type(data)==dict:
+            for key in data.keys():
+                if key == 'list':
+                    while '☆删除☆' in data['list']:data['list'].remove('☆删除☆')
+                else:
+                    data[key]=self.__del_marked_list(data[key])
         return data
     # 检查译文中是否存在空数据，若存在，用原文填充，并输出提示
     def __CheckNAN(self):
@@ -201,12 +256,12 @@ class Jr_Tpp():
             for i in nanlist:
                 print(i)
     # 从游戏读取文本,参数为游戏目录，自动标签黑名单地址,并对其应用原文
-    def ReadGame(self,GameDir:str):
-        Files=self.__ReadFolder(GameDir)
+    def ReadGame(self, GameDir: str):
+        Files = self.__ReadFolder(GameDir)
         for File in Files:
-            name = File.split('\\')[-1]
+            name = File.split('\\data\\')[-1]
             # 只读取data内的json文件
-            if '\\data\\' in File and '.json' in name:
+            if '\\data\\' in File and name.endswith('.json'):
                 # 黑名单文件不读取
                 if name not in self.BlackFiles:
                     print(f'正在读取{name}')
@@ -215,18 +270,25 @@ class Jr_Tpp():
                             with open(File, 'r', encoding='utf8') as f:
                                 data = json.load(f)
                         except:
-                            with open(File,'rb') as f:
+                            with open(File, 'rb') as f:
                                 encoding = detect(f.read())['encoding']
-                                if encoding==None:
-                                    encoding='ansi'
+                                if encoding == None:
+                                    encoding = 'ansi'
                             with open(File, 'r', encoding=encoding) as f:
                                 data = json.load(f)
                     except Exception as e:
                         print(traceback.format_exc())
                         print(e)
                         print(f'无法确定{name}文件编码,且无法用ANSI编码打开，读取失败')
-                    TextDatas=self.__ReadFile(data,name)
-                    self.ProgramData.update({name:self.__toDataFrame(TextDatas)})
+                    TextDatas = self.__ReadFile(data, name)
+                    # 文件全部跑完会剩一个tempdata，添加进来，然后初始化tempdata和sumlen
+                    if self.__sumlen and self.__tempdata not in TextDatas:
+                        if '\u200B' not in self.__tempdata[2]:
+                            self.__tempdata[2] += '\u200B' + str(self.__sumlen)
+                        TextDatas.append(self.__tempdata)
+                    self.__tempdata = ['原文', '译文', '地址', '标签', 'code']  # 用于记录上一行文本的数据
+                    self.__sumlen = 0  # code相同的文本行数
+                    self.ProgramData.update({name: self.__toDataFrame(TextDatas)})
         print('########################读取游戏完成########################')
     # 注入翻译到游戏,BlackLabel为不注入的标签list，默认为'BlackDir',BlackCode默认self.BlackCode
     def InjectGame(self,GameDir:str,path:str,BlackLabel:list=False,BlackCode:list=False):
@@ -238,8 +300,8 @@ class Jr_Tpp():
         Files = self.__ReadFolder(GameDir)
         for File in Files:
             # 只读取data内的json文件
-            name = File.split('\\')[-1]
-            if '\\data\\' in File and '.json' in name:
+            name = File.split('\\data\\')[-1]
+            if '\\data\\' in File and name.endswith('.json'):
                 print(f'正在写入{name}')
                 with open(File, 'r', encoding='utf8') as f:
                     data = json.load(f)
@@ -258,26 +320,23 @@ class Jr_Tpp():
                                 if label in BlackLabel:
                                     black=True
                             for i in range(0,len(Dirlist)):
-                                Dir=Dirlist[i]
+                                Dir=Dirlist[i].split('\u200B')[0]
+                                length=int(Dirlist[i].split('\u200B')[1])
                                 code=codelist[i]
                                 # 标签，地址和code都不是黑的才写入
                                 if not black and code not in BlackCode and not self.__IfBlackDir(Dir):
                                     Dir=Dir.split('\\')
                                     # 写入翻译
-                                    data=self.__WriteFile(data,untrs,trsed,Dir[1:])
+                                    data=self.__WriteFile(data,untrs,trsed,Dir[1:],length)
+                        # 全部注入后，删除被求和的行
+                        data=self.__del_marked_list(data)
                     else:
                         print(f'{name}不在工程文件中，工程文件与游戏是否匹配')
-                # 获取文件输出路径
-                outputpath=(path+'\\data\\'+File.split('\\data\\')[-1]).lstrip('\\')
-                # 获取并创建从path到outputpath的路径
-                datadir=(outputpath.replace(name,'').replace(path,'').strip('\\')).split('\\')
-                temp=path.rstrip('\\')
-                for i in datadir:
-                    temp+='\\'+i
-                    if not os.path.exists(temp.strip('\\')): os.mkdir(temp.strip('\\'))
+                # 创建文件输出路径
+                self.__makedir(name,path)
                 # 输出文件
                 out = json.dumps(data, ensure_ascii=False)
-                with open(outputpath, 'w', encoding='utf8') as f1:
+                with open(path+'\\'+name, 'w', encoding='utf8') as f1:
                     print(out, file=f1)
 
         print('########################写入游戏完成########################')
@@ -300,8 +359,18 @@ class Jr_Tpp():
             mapname[-1]=f'0{mapname[-1]}'
         namelist.append(f'Map{mapname[0]}~{mapname[-1]}.json')
         return namelist
+    # 在ptah路径下创建name的所在路径,返回最终路径
+    def __makedir(self,name,path):
+        dirlist=name.split('\\')
+        if len(dirlist)>1:
+            dirlist=dirlist[:-1]
+            for i in dirlist:
+                path+='\\'+i
+                if not os.path.exists(path): os.mkdir(path)
+        return path
     # 导出单个文件，默认只导出原文和译文列
     def ToXlsx(self,name:str,path:str):
+        self.__makedir(name,path)
         # 文件名后缀改为xlsx
         outputname = self.__nameswitch(name)
         print(f'正在导出{outputname}')
@@ -314,6 +383,7 @@ class Jr_Tpp():
             input('导出失败，请关闭所有xlsx文件后再次尝试')
     # 导出单个文件到csv
     def ToCsv(self,name:str,path:str):
+        self.__makedir(name, path)
         # 文件名后缀改为xlsx
         outputname = self.__nameswitch(name, True)
         print(f'正在保存{outputname}')
@@ -333,8 +403,9 @@ class Jr_Tpp():
     # 保存工程文件，数据保存为csv，设置保存为json
     def Save(self,path:str):
         if not os.path.exists(path+'\\翻译工程文件'): os.mkdir(path+'\\翻译工程文件')
+        if not os.path.exists(path + '\\翻译工程文件\\data'): os.mkdir(path + '\\翻译工程文件\\data')
         for name in self.ProgramData.keys():
-            self.ToCsv(name,path+'\\翻译工程文件')
+            self.ToCsv(name,path+'\\翻译工程文件\\data')
         print('########################保存工程完成########################')
     # 导入翻译，从json导入,路径需指定到json文件。可指定某几个文件(list格式)，namelist为False则全选
     # trsdata和path二选一
@@ -389,12 +460,12 @@ class Jr_Tpp():
                 else:
                     DataFrame['译文']=data['译文']
                 self.ProgramData[name]=DataFrame
-    # 导入翻译，从xlsx导入，可指定到文件夹也可指定到xlsx文件。
+    # 导入翻译，从xlsx导入，可指定到文件夹也可指定到xlsx文件。,samefile时，需要连路径都相同
     def InputFromeXlsx(self, path:str, namelist:list=False, samefile=False):
         FileNames=self.__ReadFolder(path) # 读取path内文件路径
         for file in FileNames:
             name=file.split('\\')[-1]
-            if '.xlsx' in name:
+            if name.endswith('.xlsx'):
                 print('正在导入{}'.format(name))
                 try:
                     data = self.__Readxlsx(file)
@@ -418,8 +489,8 @@ class Jr_Tpp():
         self.ProgramData={} # 清空工程数据
         FileNames = self.__ReadFolder(path) # 读取path内文件路径
         for file in FileNames:
-            name = file.split('\\')[-1]
-            if '.csv' in name:
+            name = file.split('\\data\\')[-1]
+            if name.endswith('.csv'):
                 print('正在加载{}'.format(name))
                 data = pd.read_csv(file, sep='\uFFFC',encoding='utf8',engine='python',dtype='str')
                 # 检查csv格式是否正确
@@ -577,8 +648,6 @@ class Jr_Tpp():
 #######################################################预处理和后处理######################################################
     # 判断地址和code是否全黑
     def __IfAllBlack(self, string: str,code:bool) -> bool:
-        if 'switches' in string:
-            asas=1
         if not code:
             blacklist=self.BlackDir
             qlist=string.split('☆↑↓')
@@ -642,7 +711,9 @@ class Jr_Tpp():
             with open(path+r'\Name.json', 'w', encoding='utf8') as f:
                 print(out, file=f)
     # 对target翻译应用原文
-    def ApplyUntrs(self,target):
+    def ApplyUntrs(self,target:dict=False):
+        if not target:
+            target=self.ProgramData
         for name in target.keys():
             if name in self.ProgramData.keys():
                 for index in target[name].index:
@@ -661,14 +732,14 @@ class Jr_Tpp():
         if 'System.json' in self.ProgramData.keys():
             try:
                 data=self.ProgramData['System.json']
-                index=list(data[data['地址']==r'System.json\gameTitle'].index)[0]
+                index=list(data[data['地址']==r'System.json\gameTitle​1'].index)[0]
                 self.ProgramData['System.json'].loc[index,'译文']+=mark
                 print('########################已添加水印########################')
             except Exception as e:
                 print(traceback.format_exc())
                 print(e)
                 input(f'没有找到游戏标题，添加水印失败')
-    # dnb用，分割原文译文的函数
+    # dnb用，分割原文译文的函数,返回的字符串带着分隔符
     def __splitbychar(self,q, l):
         b = []
         if l[0] in q and l[1] in q:
@@ -732,7 +803,8 @@ class Jr_Tpp():
                     if index== filename:
                         self.ProgramData[name].loc[index,'译文']=index
                     # 原文包含文件名时，在文件名被特定符号包裹的情况下，将被特定符号包裹的文本，按顺序替换回原文
-                    elif filename in index:
+                    # 不对note行实行dnb
+                    elif filename in index and 'note' not in self.ProgramData[name].loc[index,'地址']:
                         self.ProgramData[name].loc[index,'译文']=self.__dealin(index,self.ProgramData[name].loc[index,'译文'],
                                                                              filename)
         print('########################修正文件名完成########################')
@@ -862,25 +934,56 @@ class Jr_Tpp():
         for name in res.keys():
             DataFrame=res[name]
             for untrs in DataFrame.index:
-                trsed=DataFrame.loc[untrs,'译文']
-                l=['<',':'] # 分隔符
-                if untrs.count(l[0])==untrs.count(l[1]) and untrs.count(l[0])==trsed.count(l[0]) and\
-                    untrs.count(l[1])==trsed.count(l[1]):
-                    # 将文本按照分隔符拆分
+                l=['<','>']
+                trsed = DataFrame.loc[untrs, '译文']
+                # note行，但是没有<>的，不处理
+                if untrs.count(l[0])==0 and untrs.count(l[1])==0:
+                    continue
+                # 原文中出现<>的次数应相等，且原文和译文中出现<>的次数应分别相等。不相等就直接应用原文
+                elif untrs.count(l[0]) == untrs.count(l[1]) and untrs.count(l[0]) == trsed.count(l[0]) and \
+                        untrs.count(l[1]) == trsed.count(l[1]):
+                    # 拆分得到每一对<>
                     untrs_list = self.__splitbychar(untrs, l)
                     trsed_list = self.__splitbychar(trsed, l)
                     length = len(trsed_list)
-                    # 如果按某分隔符拆分结果长度不相等，不处理
-                    if len(untrs_list) != length:
-                        continue
-                    elif length:
-                        # 被分隔符包裹的字符串只会出现在奇数位
+                    if length and len(untrs_list)==length:
+                        # <>代码段只出现在奇数位
                         for i in range(0, int(length / 2)):
-                            trsed_list[2 * i + 1] = untrs_list[2 * i + 1]
-                        # 将处理后的文本拼接好，等待下一循环
-                        trsed = ''
-                        for i in range(0, length): trsed += trsed_list[i]
-                DataFrame.loc[untrs,'译文']=trsed
+                            untrs_code=untrs_list[2 * i + 1]
+                            trsed_code=trsed_list[2 * i + 1]
+                            # 对长度足够长的文本，只替换冒号前的内容
+                            if ((untrs_code.find(':') - untrs_code.find('<')) / len(untrs_code))< self.note_percent:
+                                l = ['<', ':']  #分隔符
+                                if untrs_code.count(l[0]) == trsed_code.count(l[0]) and untrs_code.count(l[1]) == trsed_code.count(l[1]):
+                                    # 将文本按照分隔符拆分
+                                    untrs_code_list = self.__splitbychar(untrs_code, l)
+                                    trsed_code_list = self.__splitbychar(trsed_code, l)
+                                    length = len(trsed_code_list)
+                                    if length and len(untrs_code_list) == length:
+                                        # 被分隔符包裹的字符串只会出现在奇数位
+                                        for j in range(0, int(length / 2)):
+                                            trsed_code_list[2 * j + 1] = untrs_code_list[2 * j + 1]
+                                        # 将处理后的文本拼接好
+                                        trsed_code = ''
+                                        for j in range(0, length): trsed_code += trsed_code_list[j]
+                                        trsed_list[2 * i + 1]=trsed_code
+                                    # 如果按某分隔符拆分结果长度不相等,或者文本不含<:，应用原文
+                                    else:
+                                        trsed_list[2 * i + 1] = untrs_list[2 * i + 1]
+                                else:
+                                    trsed_list[2 * i + 1] = untrs_list[2 * i + 1]
+                            # 文本不够长，全部替换
+                            else:
+                                trsed_list[2 * i + 1] = untrs_list[2 * i + 1]
+                        # 处理完毕，把trsed还原
+                        trsed=''
+                        for i in trsed_list:trsed+=i
+                        DataFrame.loc[untrs, '译文'] = trsed
+                    # 如果拆分后长度不等或不含分隔符，应用原文
+                    else:
+                        DataFrame.loc[untrs, '译文'] = untrs
+                else:
+                    DataFrame.loc[untrs, '译文'] = untrs
             # 将处理后文本导入到工程数据
             self.InputFromDataFrame(DataFrame,[name])
         print('########################note处理完毕########################')
