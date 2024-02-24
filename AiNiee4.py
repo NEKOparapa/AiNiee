@@ -693,7 +693,7 @@ class Api_Requester():
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
-            timeout = 850  # 设置超时时间为x秒
+            timeout = 60  # 设置超时时间为x秒
             request_errors_count = 0 # 设置请求错误次数限制
             Wrong_answer_count = 0   # 设置错误回复次数限制
             model_degradation = False # 模型退化检测
@@ -1020,7 +1020,7 @@ class Api_Requester():
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
-            timeout = 850  # 设置超时时间为x秒
+            timeout = 60  # 设置超时时间为x秒
             request_errors_count = 0 # 设置请求错误次数限制
             Wrong_answer_count = 0   # 设置错误回复次数限制
 
@@ -1344,7 +1344,7 @@ class Api_Requester():
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
-            timeout = 850  # 设置超时时间为x秒
+            timeout = 60  # 设置超时时间为x秒
             request_errors_count = 0 # 设置请求错误次数限制
             Wrong_answer_count = 0   # 设置错误回复次数限制
 
@@ -1646,53 +1646,9 @@ class Api_Requester():
         messages.append(system_prompt)
 
 
-        # 0.8模型不支持下面功能
-        if configurator.model_type != 'Sakura-13B-LNovel-v0.8':
-
-            prompt = "将下面的日文文本翻译成中文："
-
-            #构建原文与译文示例
-            original_exmaple,translation_example =  configurator.get_default_translation_example()
-            the_original_exmaple =  {"role": "user","content":prompt + original_exmaple }
-            the_translation_example = {"role": "assistant", "content":translation_example }
-            #print("[INFO]  已添加默认原文示例",original_exmaple)
-            #print("[INFO]  已添加默认译文示例",translation_example)
-
-            #messages.append(the_original_exmaple)
-            #messages.append(the_translation_example)
-    
-
-
-            #如果开启了译时提示字典功能，则添加新的原文与译文示例
-            if Window.Interface23.checkBox2.isChecked() :
-                original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(source_text_dict)
-                if original_exmaple_2 and translation_example_2:
-                    the_original_exmaple =  {"role": "user","content":prompt + original_exmaple_2 }
-                    the_translation_example = {"role": "assistant", "content":translation_example_2 }
-                    messages.append(the_original_exmaple)
-                    messages.append(the_translation_example)
-                    print("[INFO]  检查到请求的原文中含有用户字典内容，已添加新的原文与译文示例")
-                    print("[INFO]  已添加提示字典原文示例",original_exmaple_2)
-                    print("[INFO]  已添加提示字典译文示例",translation_example_2)
-
-            #如果提示词工程界面的用户翻译示例开关打开，则添加新的原文与译文示例
-            if Window.Interface22.checkBox2.isChecked() :
-                original_exmaple_3,translation_example_3 = configurator.build_user_translation_example ()
-                if original_exmaple_3 and translation_example_3:
-                    the_original_exmaple =  {"role": "user","content":prompt + original_exmaple_3 }
-                    the_translation_example = {"role": "assistant", "content":translation_example_3 }
-                    messages.append(the_original_exmaple)
-                    messages.append(the_translation_example)
-                    print("[INFO]  检查到用户翻译示例开关打开，已添加新的原文与译文示例")
-                    print("[INFO]  已添加用户原文示例",original_exmaple_3)
-                    print("[INFO]  已添加用户译文示例",translation_example_3)
-
-
-
-        # 如果开启了保留换行符功能
-        if configurator.preserve_line_breaks_toggle:
-            print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
-            source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
+        # 开启了保留换行符功能
+        print("[INFO] 正在使用SakuraLLM，将替换换行符为特殊符号", '\n')
+        source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
 
         #如果开启译前替换字典功能，则根据用户字典进行替换
         if Window.Interface21.checkBox1.isChecked() :
@@ -1758,7 +1714,7 @@ class Api_Requester():
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
-            timeout = 850  # 设置超时时间为x秒
+            timeout = 60  # 设置超时时间为x秒
             request_errors_count = 0 # 设置请求错误次数限制
             Wrong_answer_count = 0   # 设置错误回复次数限制
             model_degradation = False # 模型退化检测
@@ -2952,7 +2908,7 @@ class Configurator():
         "4":"ちょろ……ちょろろ……\nじょぼぼぼ……♡",
         "5": "さて！",
         "6": "さっそくオジサンをいじめちゃおっかな！",
-        "7": "若くて♫⚡綺麗で♫⚡エロくて"
+        "7": "若くて∞＠綺麗で∞＠エロくて"
         "8": "さくら：「すごく面白かった！」"
         }'''
 
@@ -2966,7 +2922,7 @@ class Configurator():
         "4":"Gurgle…Gurgle…\nDadadada…♡",
         "5": "Well then!",
         "6": "Let's bully the uncle right away!",
-        "7": "Young ♫⚡beautiful ♫⚡sexy."
+        "7": "Young ∞＠beautiful ∞＠sexy."
         "8": "Sakura：「It was really fun!」"
         }'''
 
@@ -2979,7 +2935,7 @@ class Configurator():
         "4":"둥글둥글…둥글둥글…\n둥글둥글…♡",
         "5": "그래서!",
         "6": "지금 바로 아저씨를 괴롭히자!",
-        "7": "젊고♫⚡아름답고♫⚡섹시하고"
+        "7": "젊고∞＠아름답고∞＠섹시하고"
         "8": "사쿠라：「정말로 재미있었어요!」"
         }'''
 
@@ -2993,7 +2949,7 @@ class Configurator():
         "4": "Гуру... гуругу... ♡\nДадада... ♡",
         "5": "Итак!",
         "6": "Давайте сейчас поиздеваемся над дядей!",
-        "7": "Молодые♫⚡Красивые♫⚡Эротичные"
+        "7": "Молодые∞＠Красивые∞＠Эротичные"
         "8": "Сакура: 「Было очень интересно!」"
         }'''
 
@@ -3007,7 +2963,7 @@ class Configurator():
         "4":"咕噜……咕噜噜……\n哒哒哒……♡",
         "5": "那么！",
         "6": "现在就来欺负一下大叔吧！",
-        "7": "年轻♫⚡漂亮♫⚡色情"
+        "7": "年轻∞＠漂亮∞＠色情"
         "8": "樱：「超级有趣！」"
         }'''
 
@@ -3021,7 +2977,7 @@ class Configurator():
         "4":"咕嚕……咕嚕嚕……\n哒哒哒……♡",
         "5": "那麼！",
         "6": "現在就來欺負一下大叔吧！",
-        "7": "年輕♫⚡漂亮♫⚡色情"
+        "7": "年輕∞＠漂亮∞＠色情"
         "8": "櫻：「超有趣！」"
         }'''
 
@@ -3733,8 +3689,8 @@ class Request_Limiter():
 
         # 示例数据
         self.sakura_limit_data = {
-                "Sakura-13B-LNovel-v0.8": {  "inputTokenLimit": 30720,"outputTokenLimit":  2400,"max_tokens": 2400, "TPM": 1000000, "RPM": 60},
-                "Sakura-13B-LNovel-v0.9": {  "inputTokenLimit": 30720,"outputTokenLimit":  2400,"max_tokens": 2400, "TPM": 1000000, "RPM": 60},
+                "Sakura-13B-LNovel-v0.8": {  "inputTokenLimit": 1000,"outputTokenLimit":  1000,"max_tokens": 1000, "TPM": 1000000, "RPM": 60},
+                "Sakura-13B-LNovel-v0.9": {  "inputTokenLimit": 1000,"outputTokenLimit":  1000,"max_tokens": 1000, "TPM": 1000000, "RPM": 60},
             }
 
         # TPM相关参数
@@ -4093,7 +4049,6 @@ class File_Reader():
                             # 将数据存储在字典中
                             json_data_list.append({
                                 "text_index": i,
-                                "text_classification" : 0,
                                 "translation_status": 0,
                                 "source_text": source_text,
                                 "translated_text": translated_text,
@@ -4150,7 +4105,6 @@ class File_Reader():
                             translated_text = "无"
                             cache_list.append({
                                 "text_index": i,
-                                "text_classification" : 0,
                                 "translation_status": 0,
                                 "source_text": source_text,
                                 "translated_text": translated_text,
@@ -4168,7 +4122,6 @@ class File_Reader():
                             translated_text = cell_value2
                             cache_list.append({
                                 "text_index": i,
-                                "text_classification" : 0,
                                 "translation_status": 1,
                                 "source_text": source_text,
                                 "translated_text": translated_text,
@@ -4230,13 +4183,19 @@ class Cache_Manager():
     def __init__(self):
         pass
 
-    # 整数型，浮点型数字变换为字符型数字函数，，且改变翻译状态为7,因为T++读取到整数型数字时，会报错，明明是自己导出来的...
+    # 忽视空值内容和将整数型，浮点型数字变换为字符型数字函数，且改变翻译状态为7,因为T++读取到整数型数字时，会报错，明明是自己导出来的...
     def convert_source_text_to_str(self,cache_list):
         for entry in cache_list:
             source_text = entry.get('source_text')
 
             if isinstance(source_text, (int, float)):
                 entry['source_text'] = str(source_text)
+                entry['translation_status'] = 7
+            
+            if source_text == "":
+                entry['translation_status'] = 7
+            
+            if source_text == None:
                 entry['translation_status'] = 7
 
     # 处理缓存数据的非中日韩字符，且改变翻译状态为7
@@ -4495,13 +4454,16 @@ class Cache_Manager():
             for key, value in dict.items():
                 #如果value是字符串变量
                 if isinstance(value, str):
-                    new_value = value.replace("\n", "⚡").replace("\r", "♫")
+                    new_value = value.replace("\n", "＠").replace("\r", "∞")
                     new_dict[key] = new_value
         elif mode == "还原":
             for key, value in dict.items():
                 #如果value是字符串变量
                 if isinstance(value, str):
-                    new_value = value.replace("⚡", "\n").replace("♫", "\r")
+                    # 先替换半角符号
+                    new_value = value.replace("@", "\n")
+                    # 再替换全角符号
+                    new_value = new_value.replace("＠", "\n").replace("∞", "\r")
                     new_dict[key] = new_value
         else:
             print("请输入正确的mode参数（替换或还原）")
@@ -7267,30 +7229,6 @@ class Widget_export_source_text(QFrame):#  提取子界面
         box_switch.setLayout(layout_switch)
 
 
-        # -----创建第1个组，添加多个组件-----
-        box_switch_note = QGroupBox()
-        box_switch_note.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_switch_note = QHBoxLayout()
-
-        #设置“是否翻译note类型文本”标签
-        self.labe1_note = QLabel(flags=Qt.WindowFlags())  
-        self.labe1_note.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        self.labe1_note.setText("是否翻译note类型文本")
-
-
-
-        # 设置“是否翻译note类型文本”选择开关
-        self.SwitchButton_note = CheckBox('        ')
-        self.SwitchButton_note.setChecked(True)    
-        #self.SwitchButton_jsonmode.checkedChanged.connect(self.onjsonmode)
-
-
-
-        layout_switch_note.addWidget(self.labe1_note)
-        layout_switch_note.addStretch(1)  # 添加伸缩项
-        layout_switch_note.addWidget(self.SwitchButton_note)
-        box_switch_note.setLayout(layout_switch_note)
-
         # -----创建第2个组，添加多个组件-----
         box_input = QGroupBox()
         box_input.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
@@ -7403,7 +7341,6 @@ class Widget_export_source_text(QFrame):#  提取子界面
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box)
         container.addWidget(box_switch)
-        container.addWidget(box_switch_note)
         container.addWidget(box_input)
         container.addWidget(box_output)
         container.addWidget(box_data)
@@ -7464,9 +7401,6 @@ class Widget_export_source_text(QFrame):#  提取子界面
         config['save_path'] = self.label_data_path.text()
         config['data_path'] = self.label_output_path.text()
         config['ja']=self.SwitchButton_ja.isChecked()
-        if self.SwitchButton_note.isChecked():
-            #添加“note”到列表里
-            config['BlackDir'].append('note')
 
 
         #提取文本
