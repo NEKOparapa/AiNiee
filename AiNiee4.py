@@ -57,7 +57,7 @@ from qfluentwidgets import FluentIcon as FIF
 from StevExtraction import jtpp  #导入文本提取工具
 
 
-Software_Version = "AiNiee4.63"  #软件版本号
+Software_Version = "AiNiee4.63.3"  #软件版本号
 cache_list = [] # 全局缓存数据
 Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
                     # 6是翻译任务进行状态，7是错行检查状态，9是翻译任务暂停状态，10是强制终止任务状态
@@ -693,13 +693,13 @@ class Api_Requester():
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
-            timeout = 60  # 设置超时时间为x秒
+            timeout = 120  # 设置超时时间为x秒
             request_errors_count = 0 # 设置请求错误次数限制
             Wrong_answer_count = 0   # 设置错误回复次数限制
             model_degradation = False # 模型退化检测
 
             while 1 :
-                # 检查翻译任务是否已经暂停或者退出
+                # 检查翻译任务是否已经暂停或者退出---------------------------------
                 if Running_status == 9 or Running_status == 10 :
                     return
 
@@ -779,7 +779,7 @@ class Api_Requester():
                         return
                     
 
-                    #——————————————————————————————————————————收到回复，并截取回复内容中的文本内容 ————————————————————————————————————————  
+                    #——————————————————————————————————————————收到回复，获取返回的信息 ————————————————————————————————————————  
                     # 计算AI回复花费的时间
                     response_time = time.time()
                     Request_consumption_time = round(response_time - Start_request_time, 2)
@@ -807,9 +807,9 @@ class Api_Requester():
                     print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
-                # ——————————————————————————————————————————对AI回复内容进行各种处理和检查——————————————————————————————————————————
+                    # ———————————————————————————————————对回复内容处理,检查和录入—————————————————————————————————————————————————
                     # 处理回复内容
-                    response_content = Response_Parser.extract_first_brackets_content(self,response_content)
+                    response_content = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
                     check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
@@ -1020,7 +1020,7 @@ class Api_Requester():
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
-            timeout = 60  # 设置超时时间为x秒
+            timeout = 120   # 设置超时时间为x秒
             request_errors_count = 0 # 设置请求错误次数限制
             Wrong_answer_count = 0   # 设置错误回复次数限制
 
@@ -1110,7 +1110,7 @@ class Api_Requester():
                         return
                     
 
-                    #——————————————————————————————————————————收到回复，并截取回复内容中的文本内容 ————————————————————————————————————————  
+                    #——————————————————————————————————————————收到回复，获取返回的信息 ————————————————————————————————————————  
                     # 计算AI回复花费的时间
                     response_time = time.time()
                     Request_consumption_time = round(response_time - Start_request_time, 2)
@@ -1141,9 +1141,9 @@ class Api_Requester():
                     print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
-                # ——————————————————————————————————————————对AI回复内容进行各种处理和检查——————————————————————————————————————————
+                    # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
                     # 处理回复内容
-                    response_content = Response_Parser.extract_first_brackets_content(self,response_content)
+                    response_content = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
                     check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
@@ -1344,7 +1344,7 @@ class Api_Requester():
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
-            timeout = 60  # 设置超时时间为x秒
+            timeout = 120   # 设置超时时间为x秒
             request_errors_count = 0 # 设置请求错误次数限制
             Wrong_answer_count = 0   # 设置错误回复次数限制
 
@@ -1406,7 +1406,7 @@ class Api_Requester():
                         return
                     
 
-                    #——————————————————————————————————————————收到回复，并截取回复内容中的文本内容 ————————————————————————————————————————  
+                    #——————————————————————————————————————————收到回复，获取返回的信息 ————————————————————————————————————————  
                     # 计算AI回复花费的时间
                     response_time = time.time()
                     Request_consumption_time = round(response_time - Start_request_time, 2)
@@ -1434,9 +1434,9 @@ class Api_Requester():
                     print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
-                # ——————————————————————————————————————————对AI回复内容进行各种处理和检查——————————————————————————————————————————
+                    # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
                     # 处理回复内容
-                    response_content = Response_Parser.extract_first_brackets_content(self,response_content)
+                    response_content = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
                     check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
@@ -1714,7 +1714,7 @@ class Api_Requester():
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
-            timeout = 60  # 设置超时时间为x秒
+            timeout = 120   # 设置超时时间为x秒
             request_errors_count = 0 # 设置请求错误次数限制
             Wrong_answer_count = 0   # 设置错误回复次数限制
             model_degradation = False # 模型退化检测
@@ -1787,7 +1787,7 @@ class Api_Requester():
                         return
                     
                     
-                    #——————————————————————————————————————————收到回复，并截取回复内容中的文本内容 ————————————————————————————————————————  
+                    #——————————————————————————————————————————收到回复，获取返回的信息 ————————————————————————————————————————  
                     # 计算AI回复花费的时间
                     response_time = time.time()
                     Request_consumption_time = round(response_time - Start_request_time, 2)
@@ -1815,7 +1815,7 @@ class Api_Requester():
                     print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
-                # ——————————————————————————————————————————对AI回复内容进行各种处理和检查——————————————————————————————————————————
+                    # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
                     # 处理回复内容
                     response_content = Response_Parser.convert_str_to_json_str(self, row_count, response_content)
 
@@ -1939,14 +1939,18 @@ class Response_Parser():
         pass
     
 
-    #提取字符串大括号里的内容
-    def extract_first_brackets_content(self,input_string):
-        # 使用正则表达式搜索第一个在大括号内的内容（包括大括号本身），并允许匹配跨越多行
-        match = re.search(r'\{[^{}]*\}', input_string, re.DOTALL)
-        if match:
-            return match.group()  # 返回匹配的字符串
-        else:
-            return input_string  # 如果没有找到匹配项，返回原文
+    #提取字符串大括号里的内容（考虑到对话文本里有大括号的情况，先尝试直接转换，不行再提取）
+    def process_content(self,input_string):
+        try:
+            response_dict = json.loads(input_string) 
+            return input_string
+        except :                                            
+            # 使用正则表达式搜索第一个在大括号内的内容（包括大括号本身），并允许匹配跨越多行
+            match = re.search(r'\{[^{}]*\}', input_string, re.DOTALL)
+            if match:
+                return match.group()  # 返回匹配的字符串
+            else:
+                return input_string  # 如果没有找到匹配项，返回原文
 
 
     # 将Raw文本恢复根据行数转换成json文本
@@ -1963,7 +1967,6 @@ class Response_Parser():
             for idx, text in enumerate(str_list):
                 ret_json[f"{idx}"] = f"{text}"
             return json.dumps(ret_json, ensure_ascii=False)
-
 
 
     # 检查回复内容是否存在问题
@@ -2034,10 +2037,6 @@ class Response_Parser():
         return check_result,error_content
     
 
-
-
-
-
     # 检查回复内容的json格式
     def check_response_format(self,response_str):
         try:
@@ -2084,7 +2083,6 @@ class Response_Parser():
         
         return True
     
-
     # 检查回复文本出现相同的翻译内容
     def check_same_translation(self,response_dict):
         # 计算字典元素个数
@@ -4211,7 +4209,7 @@ class Cache_Manager():
             if source_text and not contains_cjk(source_text):
                 entry['translation_status'] = 7
 
-    # 获取缓存数据中指定行数的未翻译文本，且改变翻译状态为2
+    # 获取缓存数据中指定行数的翻译状态为0的未翻译文本，且改变翻译状态为2
     def process_dictionary_data(self,rows, cache_list):
         """
         列表元素结构如下:
