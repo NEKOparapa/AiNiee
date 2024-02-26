@@ -643,7 +643,7 @@ class Api_Requester():
             source_text_dict = configurator.replace_strings_dictionary(source_text_dict)
 
         #将原文本字典转换成JSON格式的字符串，方便发送
-        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
+        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)# ensure_ascii=False参数的作用是不将非ASCII字符转义为\uXXXX序列，而是输出它们原本的Unicode形式
 
         #构建需要翻译的文本
         Original_text = {"role":"user","content":source_text_str}   
@@ -807,17 +807,18 @@ class Api_Requester():
                     print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
-                    # ———————————————————————————————————对回复内容处理,检查和录入—————————————————————————————————————————————————
+                    # ———————————————————————————————————对回复内容处理,检查—————————————————————————————————————————————————
+
                     # 处理回复内容
-                    response_content = Response_Parser.process_content(self,response_content)
+                    response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict)
 
+
+                    # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
                     # 如果没有出现错误
                     if check_result :
-                        # 转化为字典格式
-                        response_dict = json.loads(response_content) #注意转化为字典的数字序号key是字符串类型
 
                         # 如果开启了保留换行符功能
                         if configurator.preserve_line_breaks_toggle:
@@ -1143,15 +1144,15 @@ class Api_Requester():
 
                     # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
                     # 处理回复内容
-                    response_content = Response_Parser.process_content(self,response_content)
+                    response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict)
+
+                    # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
 
                     # 如果没有出现错误
                     if check_result :
-                        # 转化为字典格式
-                        response_dict = json.loads(response_content) #注意转化为字典的数字序号key是字符串类型
 
                         # 如果开启了保留换行符功能
                         if configurator.preserve_line_breaks_toggle:
@@ -1436,15 +1437,15 @@ class Api_Requester():
 
                     # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
                     # 处理回复内容
-                    response_content = Response_Parser.process_content(self,response_content)
+                    response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict)
+
+                    # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
 
                     # 如果没有出现错误
                     if check_result :
-                        # 转化为字典格式
-                        response_dict = json.loads(response_content) #注意转化为字典的数字序号key是字符串类型
 
                         # 如果开启了保留换行符功能
                         if configurator.preserve_line_breaks_toggle:
@@ -1707,8 +1708,8 @@ class Api_Requester():
             completion_tokens_consume = Request_Limiter.num_tokens_from_messages(self,Original_text) #加上2%的修正系数
  
             if request_tokens_consume >= request_limiter.max_tokens :
-                print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
-                print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
+                print("\033[1;33mWarning:\033[0m 该条消息总tokens数大于单条消息最大数量" )
+                print("\033[1;33mWarning:\033[0m 该条消息取消任务，进行拆分翻译" )
                 return
 
 
@@ -1815,21 +1816,23 @@ class Api_Requester():
                     print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
-                    # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
-                    # 处理回复内容
+                    # ——————————————————————————————————————————对回复内容处理,检查——————————————————————————————————————————
+                    # 见raw格式转换为josn格式字符串
                     response_content = Response_Parser.convert_str_to_json_str(self, row_count, response_content)
 
+                    # 处理回复内容
+                    response_dict = Response_Parser.process_content(self,response_content)
+
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,source_text_dict)
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict)
+
+                    # ——————————————————————————————————————————回复内容结果录入——————————————————————————————————————————
 
                     # 如果没有出现错误
                     if check_result :
-                        # 转化为字典格式
-                        response_dict = json.loads(response_content) #注意转化为字典的数字序号key是字符串类型
 
-                        # 如果开启了保留换行符功能
-                        if configurator.preserve_line_breaks_toggle:
-                            response_dict = Cache_Manager.replace_special_characters(self,response_dict, "还原")
+                        # 强制开启换行符还原功能
+                        response_dict = Cache_Manager.replace_special_characters(self,response_dict, "还原")
 
                         # 录入缓存文件
                         lock1.acquire()  # 获取锁
@@ -1939,18 +1942,48 @@ class Response_Parser():
         pass
     
 
-    #提取字符串大括号里的内容（考虑到对话文本里有大括号的情况，先尝试直接转换，不行再提取）
-    def process_content(self,input_string):
+    #处理并提取正确内容
+    def process_content(self,input_str):
+
+        # 尝试直接转换为json字典
         try:
-            response_dict = json.loads(input_string) 
-            return input_string
-        except :                                            
-            # 使用正则表达式搜索第一个在大括号内的内容（包括大括号本身），并允许匹配跨越多行
-            match = re.search(r'\{[^{}]*\}', input_string, re.DOTALL)
-            if match:
-                return match.group()  # 返回匹配的字符串
-            else:
-                return input_string  # 如果没有找到匹配项，返回原文
+            response_dict = json.loads(input_str) 
+            return response_dict
+        except :       
+            pass       
+
+
+        # 尝试正则提取
+        try:
+            # 预处理字符串：替换换行符和其他特殊字符
+            processed_str = input_str.replace('\\', '<<<escape>>>').replace('\n', '<<<newline>>>')
+
+            # 使用正则表达式匹配字符串中的所有键值对
+            key_value_pairs = re.findall(r'"(.*?)"\s*:\s*"(.*?)"', processed_str)
+            #print(key_value_pairs)
+
+            # 初始化一个空字典
+            parsed_dict = {}
+
+            # 对于每个匹配的键值对，去除两端的空白字符，并添加到字典中（如果键不存在）
+            for key, value in key_value_pairs:
+                key = key.strip()
+                value = value.strip()
+                if key not in parsed_dict:
+                    parsed_dict[key] = value
+
+            # 遍历字典的元素，将占位符恢复为原始字符
+            for key in parsed_dict:
+                value = parsed_dict[key]
+                value = value.replace('<<<newline>', '\n').replace('<<<escape>>>', '\\')
+                parsed_dict[key] = value
+
+            return parsed_dict
+        except :       
+            print("\033[1;33mWarning:\033[0m 回复内容无法正常提取，请反馈\n") 
+            return {}
+
+
 
 
     # 将Raw文本恢复根据行数转换成json文本
@@ -1970,7 +2003,7 @@ class Response_Parser():
 
 
     # 检查回复内容是否存在问题
-    def check_response_content(self,response_str,source_text_dict):
+    def check_response_content(self,response_str,response_dict,source_text_dict):
         # 存储检查结果
         check_result = False
         # 存储错误内容
@@ -1985,18 +2018,6 @@ class Response_Parser():
             check_result = False
             # 存储错误内容
             error_content = "AI回复内容出现高频词,并重新翻译"
-            return check_result,error_content
-
-
-        # 检查文本格式
-        if Response_Parser.check_response_format(self,response_str):
-            # 回复文本转换成字典格式
-            response_dict = json.loads(response_str)
-
-        else:
-            check_result = False
-            # 存储错误内容
-            error_content = "AI回复内容不符合要求的格式,将进行重新翻译"
             return check_result,error_content
 
 
@@ -2070,17 +2091,27 @@ class Response_Parser():
         # 使用正则表达式匹配中日语字符
         japanese_chars = re.findall(r'[\u3040-\u309F\u30A0-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]', input_string)
 
+        # 使用正则表达式匹配英文字母
+        english_chars = re.findall(r'[a-zA-Z]', input_string)
         # 统计中日语字符的数量
         char_count = {}
         for char in japanese_chars:
             char_count[char] = char_count.get(char, 0) + 1
-
         # 输出字符数量
         for char, count in char_count.items():
             if count >= 80:
                 return False
                 #print(f"中日语字符 '{char}' 出现了 {count} 次一次。")
         
+        # 统计英文字母的数量
+        english_char_count = {}
+        for char in english_chars:
+            english_char_count[char] = english_char_count.get(char, 0) + 1
+        # 检查是否有英文字母出现超过500次
+        for count in english_char_count.values():
+            if count > 400:
+                return False
+            
         return True
     
     # 检查回复文本出现相同的翻译内容
@@ -3687,8 +3718,8 @@ class Request_Limiter():
 
         # 示例数据
         self.sakura_limit_data = {
-                "Sakura-13B-LNovel-v0.8": {  "inputTokenLimit": 1000,"outputTokenLimit":  1000,"max_tokens": 1000, "TPM": 1000000, "RPM": 60},
-                "Sakura-13B-LNovel-v0.9": {  "inputTokenLimit": 1000,"outputTokenLimit":  1000,"max_tokens": 1000, "TPM": 1000000, "RPM": 60},
+                "Sakura-13B-LNovel-v0.8": {  "inputTokenLimit": 600,"outputTokenLimit":  600,"max_tokens": 600, "TPM": 1000000, "RPM": 60},
+                "Sakura-13B-LNovel-v0.9": {  "inputTokenLimit": 600,"outputTokenLimit":  600,"max_tokens": 600, "TPM": 1000000, "RPM": 60},
             }
 
         # TPM相关参数
