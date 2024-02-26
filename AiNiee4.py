@@ -57,7 +57,7 @@ from qfluentwidgets import FluentIcon as FIF
 from StevExtraction import jtpp  #导入文本提取工具
 
 
-Software_Version = "AiNiee4.63.3"  #软件版本号
+Software_Version = "AiNiee4.63.4"  #软件版本号
 cache_list = [] # 全局缓存数据
 Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
                     # 6是翻译任务进行状态，7是错行检查状态，9是翻译任务暂停状态，10是强制终止任务状态
@@ -67,12 +67,6 @@ Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口�
 lock1 = threading.Lock()  #这个用来锁缓存文件
 lock2 = threading.Lock()  #这个用来锁UI信号的
 lock3 = threading.Lock()  #这个用来锁自动备份缓存文件功能的
-
-# 工作目录改为python源代码所在的目录
-script_dir = os.path.dirname(os.path.abspath(sys.argv[0])) # 获取当前工作目录
-print("[INFO] 当前工作目录是:",script_dir,'\n') 
-# 设置资源文件夹路径
-resource_dir = os.path.join(script_dir, "resource")
 
 
 
@@ -1749,6 +1743,13 @@ class Api_Requester():
                     if model_degradation:
                         frequency_penalty = 0.2
 
+
+                    extra_query = {
+                        'do_sample': False,
+                        'num_beams': 1,
+                        'repetition_penalty': 1.0,
+                    }
+
                     # 获取apikey
                     openai_apikey =  configurator.get_apikey()
                     # 获取请求地址
@@ -1764,7 +1765,11 @@ class Api_Requester():
                             temperature=temperature,
                             top_p = top_p,                        
                             presence_penalty=presence_penalty,
-                            frequency_penalty=frequency_penalty
+                            frequency_penalty=frequency_penalty,
+
+                            max_tokens=512,
+                            seed=-1,
+                            extra_query=extra_query,
                             )
 
                     #抛出错误信息
@@ -9362,7 +9367,13 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
+    # 工作目录改为python源代码所在的目录
+    script_dir = os.path.dirname(os.path.abspath(sys.argv[0])) # 获取当前工作目录
+    print("[INFO] 当前工作目录是:",script_dir,'\n') 
+    # 设置资源文件夹路径
+    resource_dir = os.path.join(script_dir, "resource")
 
+    
     # 创建全局UI通讯器
     user_interface_prompter = User_Interface_Prompter() 
     user_interface_prompter.signal.connect(user_interface_prompter.on_update_ui)  #创建信号与槽函数的绑定，使用方法为：user_interface_prompter.signal.emit("str","str"....)
