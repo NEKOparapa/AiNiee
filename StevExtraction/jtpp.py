@@ -6,7 +6,7 @@ import traceback
 import openpyxl
 from chardet import detect
 
-# v2.0
+# v2.01
 class Jr_Tpp():
     def __init__(self,config:dict,path:str=False):
         self.config=config
@@ -288,7 +288,9 @@ class Jr_Tpp():
                         TextDatas.append(self.__tempdata)
                     self.__tempdata = ['原文', '译文', '地址', '标签', 'code']  # 用于记录上一行文本的数据
                     self.__sumlen = 0  # code相同的文本行数
-                    self.ProgramData.update({name: self.__toDataFrame(TextDatas)})
+                    # 不为空则保存
+                    if TextDatas:
+                        self.ProgramData.update({name: self.__toDataFrame(TextDatas)})
         print('########################读取游戏完成########################')
     # 注入翻译到游戏,BlackLabel为不注入的标签list，默认为'BlackDir',BlackCode默认self.BlackCode
     def InjectGame(self,GameDir:str,path:str,BlackLabel:list=False,BlackCode:list=False):
@@ -298,6 +300,7 @@ class Jr_Tpp():
         if not BlackCode:
             BlackCode=self.BlackCode
         Files = self.__ReadFolder(GameDir)
+        if not os.path.exists(path+'\\data'): os.mkdir(path+'\\data')
         for File in Files:
             # 只读取data内的json文件
             name = File.split('\\data\\')[-1]
@@ -305,38 +308,35 @@ class Jr_Tpp():
                 print(f'正在写入{name}')
                 with open(File, 'r', encoding='utf8') as f:
                     data = json.load(f)
-                # 黑名单文件不做修改，直接输出
-                if name not in self.BlackFiles:
+                # 不再项目中的文件(黑名单文件和空文件)不做修改，直接输出
+                if name in self.ProgramData.keys():
                     # 写入翻译
-                    if name in self.ProgramData.keys():
-                        DataFrame=self.ProgramData[name]
-                        for untrs in DataFrame.index:
-                            trsed=DataFrame.loc[untrs,'译文']
-                            Dirlist=DataFrame.loc[untrs,'地址'].split('☆↑↓')
-                            codelist=DataFrame.loc[untrs,'code'].split(',')
-                            labellist=DataFrame.loc[untrs,'标签'].split(',')
-                            black=False
-                            for label in labellist:
-                                if label in BlackLabel:
-                                    black=True
-                            for i in range(0,len(Dirlist)):
-                                Dir=Dirlist[i].split('\u200B')[0]
-                                length=int(Dirlist[i].split('\u200B')[1])
-                                code=codelist[i]
-                                # 标签，地址和code都不是黑的才写入
-                                if not black and code not in BlackCode and not self.__IfBlackDir(Dir):
-                                    Dir=Dir.split('\\')
-                                    # 写入翻译
-                                    data=self.__WriteFile(data,untrs,trsed,Dir[1:],length)
-                        # 全部注入后，删除被求和的行
-                        data=self.__del_marked_list(data)
-                    else:
-                        print(f'{name}不在工程文件中，工程文件与游戏是否匹配')
+                    DataFrame=self.ProgramData[name]
+                    for untrs in DataFrame.index:
+                        trsed=DataFrame.loc[untrs,'译文']
+                        Dirlist=DataFrame.loc[untrs,'地址'].split('☆↑↓')
+                        codelist=DataFrame.loc[untrs,'code'].split(',')
+                        labellist=DataFrame.loc[untrs,'标签'].split(',')
+                        black=False
+                        for label in labellist:
+                            if label in BlackLabel:
+                                black=True
+                        for i in range(0,len(Dirlist)):
+                            Dir=Dirlist[i].split('\u200B')[0]
+                            length=int(Dirlist[i].split('\u200B')[1])
+                            code=codelist[i]
+                            # 标签，地址和code都不是黑的才写入
+                            if not black and code not in BlackCode and not self.__IfBlackDir(Dir):
+                                Dir=Dir.split('\\')
+                                # 写入翻译
+                                data=self.__WriteFile(data,untrs,trsed,Dir[1:],length)
+                    # 全部注入后，删除被求和的行
+                    data=self.__del_marked_list(data)
                 # 创建文件输出路径
                 self.__makedir(name,path)
                 # 输出文件
                 out = json.dumps(data, ensure_ascii=False)
-                with open(path+'\\'+name, 'w', encoding='utf8') as f1:
+                with open(path+'\\data\\'+name, 'w', encoding='utf8') as f1:
                     print(out, file=f1)
 
         print('########################写入游戏完成########################')
@@ -574,11 +574,14 @@ class Jr_Tpp():
         for name in namelist:
             if name in target.keys():
                 DataFrame = target[name].copy()
-                # 根据是否反选，返回搜索结果
-                if notin:
-                    temp=DataFrame[~DataFrame[col].str.contains(string,case=not BigSmall,regex=True)]
+                if string=='':
+                    temp=DataFrame[DataFrame[col]=='']
                 else:
-                    temp = DataFrame[DataFrame[col].str.contains(string,case=not BigSmall,regex=True)]
+                    # 根据是否反选，返回搜索结果
+                    if notin:
+                        temp=DataFrame[~DataFrame[col].str.contains(string,case=not BigSmall,regex=True)]
+                    else:
+                        temp = DataFrame[DataFrame[col].str.contains(string,case=not BigSmall,regex=True)]
                 if len(list(temp.index)):
                     res.update({name:temp})
         return res
