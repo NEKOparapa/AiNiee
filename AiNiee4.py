@@ -69,7 +69,6 @@ lock2 = threading.Lock()  #这个用来锁UI信号的
 lock3 = threading.Lock()  #这个用来锁自动备份缓存文件功能的
 
 
-
 # 翻译器
 class Translator():
     def __init__(self):
@@ -9373,7 +9372,7 @@ if __name__ == '__main__':
     # 设置资源文件夹路径
     resource_dir = os.path.join(script_dir, "resource")
 
-    
+
     # 创建全局UI通讯器
     user_interface_prompter = User_Interface_Prompter() 
     user_interface_prompter.signal.connect(user_interface_prompter.on_update_ui)  #创建信号与槽函数的绑定，使用方法为：user_interface_prompter.signal.emit("str","str"....)
