@@ -6,7 +6,7 @@ import traceback
 import openpyxl
 from chardet import detect
 
-# v2.01
+# v2.10
 class Jr_Tpp():
     def __init__(self,config:dict,path:str=False):
         self.config=config
@@ -22,8 +22,15 @@ class Jr_Tpp():
         self.__tempdata=['原文','译文','地址','标签','code'] # 用于记录上一行文本的数据
         self.__sumlen=0 # code相同的文本行数
         self.note_percent=config['note_percent']
+        self.rule=config['rule'].replace('。','\'')
+        self.code355 = False
+        # 把355从readcode中剔除
+        if '355' in self.ReadCode:
+            self.ReadCode.remove('355')
+            self.code355=True
         if path:
             self.load(path) # 从工程文件加载
+
 
 ####################################读取和注入游戏文本，保存与加载翻译工程，导入翻译结果等基本功能###################################
     # 用openpyxl读xlsx，因为用pandas会把'=xxx'的字符串读成NaN，而且解决不了
@@ -86,6 +93,16 @@ class Jr_Tpp():
                     cell.value = encoded_string.decode('utf-8')
         # 保存工作簿为xlsx文件
         workbook.save(name)
+    # 读取code355，且脚本中含有addText的文本,仅适用于日文游戏
+    def __ReadCode355_addText(self,data:str,Dir) -> list:
+        res=[]
+        Dir+='\u200B' + '1'
+        if self.ja:
+            data=re.sub(self.rule,'☆↑↓←→',data).split('☆↑↓←→')
+            for i in data:
+                if re.search('[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]',i):
+                    res.append([i,'',Dir,'','355'])
+        return res
     # 读取json文件中含中日字符的字符串，并记录其地址。
     # 输入json文件的内容，返回其中所有文本组成的list
     def __ReadFile(self, data, FileName: str, code: int = False) -> list:
@@ -106,6 +123,9 @@ class Jr_Tpp():
                 code = '-1'
             else:
                 code = str(code)
+            # 读取code355中可翻译部分
+            if code == '355' and '\'addText\'' in data and self.code355:
+                [res.append(x) for x in self.__ReadCode355_addText(data, FileName)]
             # 是需要添加的字符串，而且含中日字符(System.json\gameTitle不论是否含中日字符，都进
             if (not self.ja or re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]', data)
                     or r'System.json\gameTitle' in FileName):
@@ -210,11 +230,11 @@ class Jr_Tpp():
                 name = name[:-5] + '.csv'
         return name
     # 按照Dir逐级读取文件内容，直到读到untrs，将其替换为trsed，然后逐级返回
-    def __WriteFile(self,data,untrs:str,trsed:str,Dir:list,length:int,key_is_list=False):
+    def __WriteFile(self,data,untrs:str,trsed:str,Dir:list,length:int,code:str,key_is_list=False):
         # 获取文本在文件内的地址
         if type(data)==list:
             i=int(Dir[0])
-            data[i]=self.__WriteFile(data[i],untrs,trsed,Dir[1:],length)
+            data[i]=self.__WriteFile(data[i],untrs,trsed,Dir[1:],length,code)
             if key_is_list:
                 for  n in range(1,length):
                     # 标记应该被删掉的行，直接删的话会导致后面乱掉
@@ -223,9 +243,13 @@ class Jr_Tpp():
             # 如果key是list,并且文本长度大于1，标记
             if Dir[0]=='list' and length>1:
                 key_is_list=True
-            data[Dir[0]]=self.__WriteFile(data[Dir[0]],untrs,trsed,Dir[1:],length,key_is_list=key_is_list)
+            data[Dir[0]]=self.__WriteFile(data[Dir[0]],untrs,trsed,Dir[1:],length,code,key_is_list=key_is_list)
         elif type(data)==str and len(Dir)==0:
-            data=trsed
+            # 写code355
+            if code == '355' and '\'addText\'' in data and self.code355:
+                data=data.replace(untrs,trsed)
+            else:
+                data=trsed
         return data
     # 遍历data，删除所有被标记的list元素
     def __del_marked_list(self,data):
@@ -294,6 +318,10 @@ class Jr_Tpp():
         print('########################读取游戏完成########################')
     # 注入翻译到游戏,BlackLabel为不注入的标签list，默认为'BlackDir',BlackCode默认self.BlackCode
     def InjectGame(self,GameDir:str,path:str,BlackLabel:list=False,BlackCode:list=False):
+        untrsline=self.search('',1)
+        if untrsline:
+            print('存在未翻译行，已应用原文')
+            self.ApplyUntrs(untrsline)
         self.__CheckNAN()
         if not BlackLabel:
             BlackLabel=['Black']
@@ -329,7 +357,7 @@ class Jr_Tpp():
                             if not black and code not in BlackCode and not self.__IfBlackDir(Dir):
                                 Dir=Dir.split('\\')
                                 # 写入翻译
-                                data=self.__WriteFile(data,untrs,trsed,Dir[1:],length)
+                                data=self.__WriteFile(data,untrs,trsed,Dir[1:],length,code)
                     # 全部注入后，删除被求和的行
                     data=self.__del_marked_list(data)
                 # 创建文件输出路径
