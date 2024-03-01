@@ -5,8 +5,17 @@ import pandas as pd
 import traceback
 import openpyxl
 from chardet import detect
+import csv
 
-# v2.10
+version = 'v2.11'
+
+csv.field_size_limit(2**30)
+pd.options.display.max_colwidth = None
+pd.options.display.max_rows=None    # 行数
+pd.options.display.max_columns=None # 列数
+pd.options.display.width=None       # 单元格长度
+
+
 class Jr_Tpp():
     def __init__(self,config:dict,path:str=False):
         self.config=config
@@ -573,16 +582,7 @@ class Jr_Tpp():
             if key in target.keys():
                 print(f'{key}:')
                 # 完整输出DataFrame
-                with pd.option_context('display.max_rows', None,    # 行数
-                                       'display.max_columns', None, # 列数
-                                       'display.width', None,       # 单元格长度
-                                       'display.max_colwidth', None,# 不折叠单元格
-                                        # 对齐表格(对不齐）
-                                       # 'display.unicode.ambiguous_as_wide', True,
-                                       # 'display.unicode.east_asian_width', True,
-                                       # 'display.width',200
-                                        ):
-                    print(target[key].reset_index(drop=True,inplace=False))
+                print(target[key].reset_index(drop=True,inplace=False))
             else:
                 print(f'{key}不再目标范围内')
     # 按条件搜索，col是按搜索目标，0原文，1译文，2地址，3标签，4code。搜索条件为按*分割,target和返回值格式同ProgramData,notin为True，则搜索不含搜索目标的

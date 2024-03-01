@@ -1,6 +1,11 @@
 from jtpp import Jr_Tpp
+from jtpp import version
 from ruamel.yaml import YAML
 import traceback
+
+print(version)
+
+
 # t++标红标蓝行需要找对应code
 # code对应地址
 # "Plugin Command": "356","Control Variables": "122","Script": "655",
@@ -14,7 +19,6 @@ bluedir = [r'System.json\switches', r'System.json\variables']
 textcode = ['-1', '401', '101', '102','105','405','320',"324"]  # 需要被翻译的大概只有这些，-1是没有code的
 # "Label": "118","Jump to Label": "119","Conditional Branch": "111","Show Picture": "231",
 emptycode = ['357', '657', '111', '118', '119'] # t++没有提取的，应该不止
-
 RPG_CODE={
   "Empty": "0",
   "Show Text Attributes": "101",
@@ -154,6 +158,8 @@ def readconfig():
         output_path=config['output_path']
         line_length=config['line_length']
         data_path=config['data_path']
+        sumcode=config['sumcode']
+        note_percent=config['note_percent']
         if not config.get('ja',False):
             config['ja']=1
     except Exception as e:
