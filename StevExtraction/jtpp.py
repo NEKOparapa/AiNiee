@@ -142,21 +142,25 @@ class Jr_Tpp():
                 # 这一行的文本数据,0原文,1译文,2地址,3标签,4code
                 textdata = [data, '', FileName, '', code]
                 # 当code和上次的一样,或者上次是108，这次是408，而且是需要文本求和的code时
-                if (code == self.__tempdata[4] or (
-                        self.__tempdata[4] == '108' and code == '408')) and code in self.sumcode:
+                if (code == self.__tempdata[4] or (self.__tempdata[4] == '108' and code == '408')) and code in self.sumcode:
                     self.__tempdata[0] += '\n' + textdata[0]
                     self.__sumlen += 1
                 # 当code和上一次的code不相等时，正常存储
                 else:
                     if self.__sumlen:
                         self.__tempdata[2] += '\u200B' + str(self.__sumlen)  # 在地址后面加上一个零宽空格后加上求和长度
-                        res.append(self.__tempdata)
+                        if self.__tempdata[0]!='':
+                            res.append(self.__tempdata)
                     # 只有特定code才读取,readcode为空时，全读
-                    if (code in self.ReadCode or len(self.ReadCode) == 0) and data != '':
+                    if (code in self.ReadCode or len(self.ReadCode) == 0):
                         # res.append(textdata)
                         # 更新tempcode并初始化sumlen
                         self.__tempdata = textdata
                         self.__sumlen = 1
+                    else:
+                        # 初始化tempcode和sumlen
+                        self.__tempdata = ['原文', '译文', '地址', '标签', 'code']
+                        self.__sumlen = 0
             # 不是需要添加的字符串，单独判断是否中断文本求和
             else:
                 # code仍符合需求，并且data是字符串，则原原本本地添加进来
@@ -167,7 +171,8 @@ class Jr_Tpp():
                 # 否则中断文本求和
                 elif self.__sumlen:
                     self.__tempdata[2] += '\u200B' + str(self.__sumlen)  # 求和的文本行，在地址后面加上一个零宽空格后加上求和长度
-                    res.append(self.__tempdata)
+                    if self.__tempdata[0] != '':
+                        res.append(self.__tempdata)
                     # 初始化tempcode和sumlen
                     self.__tempdata = ['原文', '译文', '地址', '标签', 'code']
                     self.__sumlen = 0
@@ -318,7 +323,8 @@ class Jr_Tpp():
                     if self.__sumlen and self.__tempdata not in TextDatas:
                         if '\u200B' not in self.__tempdata[2]:
                             self.__tempdata[2] += '\u200B' + str(self.__sumlen)
-                        TextDatas.append(self.__tempdata)
+                        if self.__tempdata[0]!='':
+                            TextDatas.append(self.__tempdata)
                     self.__tempdata = ['原文', '译文', '地址', '标签', 'code']  # 用于记录上一行文本的数据
                     self.__sumlen = 0  # code相同的文本行数
                     # 不为空则保存
