@@ -57,7 +57,7 @@ from qfluentwidgets import FluentIcon as FIF
 from StevExtraction import jtpp  #导入文本提取工具
 
 
-Software_Version = "AiNiee4.63.4"  #软件版本号
+Software_Version = "AiNiee4.64"  #软件版本号
 cache_list = [] # 全局缓存数据
 Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
                     # 6是翻译任务进行状态，7是错行检查状态，9是翻译任务暂停状态，10是强制终止任务状态
@@ -91,6 +91,12 @@ class Translator():
                     cache_list = File_Reader.read_mtool_files(self,folder_path = Input_Folder)
                 elif configurator.translation_project == "T++导出文件":
                     cache_list = File_Reader.read_xlsx_files (self,folder_path = Input_Folder)
+                elif configurator.translation_project == "Srt字幕文件":
+                    cache_list = File_Reader.read_srt_files(self,folder_path = Input_Folder)
+                elif configurator.translation_project == "Lrc音声文件":
+                    cache_list = File_Reader.read_lrc_files(self,folder_path = Input_Folder)
+                elif configurator.translation_project == "Vnt导出文件":
+                    cache_list = File_Reader.read_vnt_files(self,folder_path = Input_Folder)
                 elif configurator.translation_project == "Ainiee缓存文件":
                     cache_list = File_Reader.read_cache_files(self,folder_path = Input_Folder)
             
@@ -282,6 +288,12 @@ class Translator():
         output_path = configurator.Output_Folder
         if cache_list[0]["project_type"] == "Mtool":
             File_Outputter.output_json_file(self,cache_list, output_path)
+        elif cache_list[0]["project_type"] == "Srt":
+            File_Outputter.output_srt_file(self,cache_list, output_path)
+        elif cache_list[0]["project_type"] == "Lrc":
+            File_Outputter.output_lrc_file(self,cache_list, output_path)
+        elif cache_list[0]["project_type"] == "Vnt":
+            File_Outputter.output_vnt_file(self,cache_list, output_path)
         else:
             File_Outputter.output_excel_file(self,cache_list, output_path)
 
@@ -1229,8 +1241,6 @@ class Api_Requester():
             return
 
 
-
-
     # 整理发送内容（zhipu）
     def organize_send_content_zhipu(self,source_text_dict):
         #创建message列表，用于发送
@@ -1521,117 +1531,6 @@ class Api_Requester():
             return
 
 
-
-    # 并发嵌入请求
-    def Concurrent_request_Embeddings(self):
-        global cache_list,Running_status
-
-        try:#方便排查子线程bug
-            # ——————————————————————————————————————————提取需要嵌入的翻译对——————————————————————————————————————————
-            lock1.acquire()  # 获取锁
-            accumulated_tokens, source_texts, translated_texts,text_index_list = Cache_Manager.process_tokens(cache_list, 7500)
-            lock1.release()  # 释放锁
-
-            # 计算一下文本长度
-            text_len = len(source_texts)
-
-            #检查一下返回值是否为空，如果为空则表示已经嵌入完了
-            if accumulated_tokens == 0 or text_len == 0:
-                return
-            
-            # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————
-            #构建发送文本列表，长度为end - start的两倍，前半部分为原文，后半部分为译文
-            input_txt = []
-            for i in range(text_len):
-                input_txt.append(source_texts[i])
-            for i in range(text_len):
-                input_txt.append(translated_texts[i])
-
-
-        
-            # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
-            while 1 :
-                #检查主窗口是否已经退出---------------------------------
-                if Running_status == 10 :
-                    return
-
-                # 检查是否符合速率限制---------------------------------
-                if request_limiter.RPM_and_TPM_limit(accumulated_tokens):
-
-                    #————————————————————————————————————————发送请求————————————————————————————————————————
-                    # 获取apikey
-                    openai_apikey =  configurator.get_apikey()
-                    # 获取请求地址
-                    openai_base_url = configurator.openai_base_url
-                    # 创建openai客户端
-                    openaiclient = OpenAI(api_key=openai_apikey,
-                                            base_url= openai_base_url)
-                    try:
-                        print("[INFO] 已发送文本嵌入请求-------------------------------------")
-                        print("[INFO] 请求内容长度是：",len(input_txt))
-                        print("[INFO] 已发送请求，请求内容是：",input_txt,'\n','\n')
-                        response = openaiclient.embeddings.create(
-                            input=input_txt,
-                            model="text-embedding-ada-002")
-                        
-            
-                    except Exception as e:
-                        print("\033[1;33m线程ID:\033[0m ", threading.get_ident())
-                        print("\033[1;31mError:\033[0m api请求出现问题！错误信息如下")
-                        print(f"Error: {e}\n")
-
-                        #等待五秒再次请求
-                        print("\033[1;33m线程ID:\033[0m 该任务五秒后再次请求")
-                        time.sleep(5)
-
-                        
-                        continue #处理完毕，再次进行请求
-
-                    #————————————————————————————————————————处理回复————————————————————————————————————————
-
-                    print("[INFO] 已收到回复--------------------------------------")
-                    print("[INFO] 正在计算语义相似度并录入缓存中")
-
-                    # 计算相似度
-                    Semantic_similarity_list = []
-                    for i in range(text_len):
-                        #计算获取原文编码的索引位置，并获取
-                        Original_Index = i
-                        #openai返回的嵌入值是存储在data列表的字典元素里，在字典元素里以embedding为关键字，所以才要改变data的索引值
-                        Original_Embeddings = response.data[Original_Index].embedding
-
-                        #计算获取译文编码的索引位置，并获取
-                        Translation_Index = i  + text_len
-                        #openai返回的嵌入值是存储在data列表的字典元素里，在字典元素里以embedding为关键字，所以才要改变data的索引值
-                        Translation_Embeddings = response.data[Translation_Index].embedding
-
-                        #计算每对翻译语义相似度
-                        similarity_score = np.dot(Original_Embeddings, Translation_Embeddings)
-                        Semantic_similarity_list.append((similarity_score - 0.75) / (1 - 0.75) * 150)
-
-                    lock1.acquire()  # 获取锁
-                    user_interface_prompter.translated_line_count = user_interface_prompter.translated_line_count + text_len
-                    progress = user_interface_prompter.translated_line_count / user_interface_prompter.total_text_line_count * 100
-                    progress = round(progress, 1)
-                    Cache_Manager.update_vector_distance(cache_list, text_index_list, Semantic_similarity_list)
-                    print("[INFO] 已计算语义相似度并存储",'\n','\n')
-                    lock1.release()  # 释放锁
-
-                    #————————————————————————————————————————结束循环，并结束子线程————————————————————————————————————————
-                    print(f"\n--------------------------------------------------------------------------------------")
-                    print(f"\n\033[1;32mSuccess:\033[0m 嵌入编码已完成：{progress}%             ")
-                    print(f"\n--------------------------------------------------------------------------------------\n")
-                    break
-
-    #子线程抛出错误信息
-        except Exception as e:
-            print("\033[1;33m线程ID:\033[0m ", threading.get_ident())
-            print("\033[1;31mError:\033[0m 线程出现问题！错误信息如下")
-            print(f"Error: {e}\n")
-            return
-
-
-
     # 整理发送内容（sakura）
     def organize_send_content_Sakura(self,source_text_dict):
         #创建message列表，用于发送
@@ -1653,6 +1552,29 @@ class Api_Requester():
             source_text_dict = configurator.replace_strings_dictionary(source_text_dict)
 
 
+
+        #如果开启了译时提示字典功能，则添加新的原文与译文示例
+        converted_list = [] # 创建一个空列表来存储转换后的字符串
+        if (Window.Interface23.checkBox2.isChecked()) and (configurator.model_type == "Sakura-13B-Qwen2beta-v0.10pre"):
+            original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(source_text_dict)
+            if original_exmaple_2 and translation_example_2:
+                # 将字符串转换成字典格式
+                original_exmaple_2 = json.loads(original_exmaple_2)
+                translation_example_2 = json.loads(translation_example_2)
+                # 遍历原文字典
+                for key in original_exmaple_2:
+                    # 从原文字典中获取原文
+                    src = original_exmaple_2[key]
+                    # 从译文字典中获取对应的译文
+                    dst = translation_example_2[key]
+                    # 将原文和译文组合成所需的格式，并添加到列表中
+                    converted_list.append(f"{src}->{dst}")
+
+                # 将列表转换为单个字符串，每个元素之间用换行符分隔
+                converted_text = "\n".join(converted_list)
+                print("[INFO]  检测到请求的原文中含有提示字典内容")
+                print("[INFO]  已添加翻译示例:",converted_text)
+
  
         #将原文本字典转换成raw格式的字符串，方便发送   
         source_text_str_raw = self.convert_dict_to_raw_str(source_text_dict)
@@ -1661,8 +1583,14 @@ class Api_Requester():
         source_text_str_raw = self.convert_fullwidth_to_halfwidth(source_text_str_raw)
 
         #构建需要翻译的文本
-        prompt = "将下面的日文文本翻译成中文："
-        Original_text = {"role":"user","content":prompt + source_text_str_raw}   
+        if converted_list:
+            user_prompt = "根据以下术语表：\n" + converted_text + "\n" + "将下面的日文文本根据上述术语表的对应关系和注释翻译成中文：" + source_text_str_raw
+            Original_text = {"role":"user","content": user_prompt}   
+        else:
+            user_prompt = "将下面的日文文本翻译成中文：" + source_text_str_raw
+            Original_text = {"role":"user","content": user_prompt}
+
+
         messages.append(Original_text)
 
 
@@ -1942,6 +1870,115 @@ class Api_Requester():
         return modified_string
 
 
+    # 并发嵌入请求
+    def Concurrent_request_Embeddings(self):
+        global cache_list,Running_status
+
+        try:#方便排查子线程bug
+            # ——————————————————————————————————————————提取需要嵌入的翻译对——————————————————————————————————————————
+            lock1.acquire()  # 获取锁
+            accumulated_tokens, source_texts, translated_texts,text_index_list = Cache_Manager.process_tokens(cache_list, 7500)
+            lock1.release()  # 释放锁
+
+            # 计算一下文本长度
+            text_len = len(source_texts)
+
+            #检查一下返回值是否为空，如果为空则表示已经嵌入完了
+            if accumulated_tokens == 0 or text_len == 0:
+                return
+            
+            # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————
+            #构建发送文本列表，长度为end - start的两倍，前半部分为原文，后半部分为译文
+            input_txt = []
+            for i in range(text_len):
+                input_txt.append(source_texts[i])
+            for i in range(text_len):
+                input_txt.append(translated_texts[i])
+
+
+        
+            # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
+            while 1 :
+                #检查主窗口是否已经退出---------------------------------
+                if Running_status == 10 :
+                    return
+
+                # 检查是否符合速率限制---------------------------------
+                if request_limiter.RPM_and_TPM_limit(accumulated_tokens):
+
+                    #————————————————————————————————————————发送请求————————————————————————————————————————
+                    # 获取apikey
+                    openai_apikey =  configurator.get_apikey()
+                    # 获取请求地址
+                    openai_base_url = configurator.openai_base_url
+                    # 创建openai客户端
+                    openaiclient = OpenAI(api_key=openai_apikey,
+                                            base_url= openai_base_url)
+                    try:
+                        print("[INFO] 已发送文本嵌入请求-------------------------------------")
+                        print("[INFO] 请求内容长度是：",len(input_txt))
+                        print("[INFO] 已发送请求，请求内容是：",input_txt,'\n','\n')
+                        response = openaiclient.embeddings.create(
+                            input=input_txt,
+                            model="text-embedding-ada-002")
+                        
+            
+                    except Exception as e:
+                        print("\033[1;33m线程ID:\033[0m ", threading.get_ident())
+                        print("\033[1;31mError:\033[0m api请求出现问题！错误信息如下")
+                        print(f"Error: {e}\n")
+
+                        #等待五秒再次请求
+                        print("\033[1;33m线程ID:\033[0m 该任务五秒后再次请求")
+                        time.sleep(5)
+
+                        
+                        continue #处理完毕，再次进行请求
+
+                    #————————————————————————————————————————处理回复————————————————————————————————————————
+
+                    print("[INFO] 已收到回复--------------------------------------")
+                    print("[INFO] 正在计算语义相似度并录入缓存中")
+
+                    # 计算相似度
+                    Semantic_similarity_list = []
+                    for i in range(text_len):
+                        #计算获取原文编码的索引位置，并获取
+                        Original_Index = i
+                        #openai返回的嵌入值是存储在data列表的字典元素里，在字典元素里以embedding为关键字，所以才要改变data的索引值
+                        Original_Embeddings = response.data[Original_Index].embedding
+
+                        #计算获取译文编码的索引位置，并获取
+                        Translation_Index = i  + text_len
+                        #openai返回的嵌入值是存储在data列表的字典元素里，在字典元素里以embedding为关键字，所以才要改变data的索引值
+                        Translation_Embeddings = response.data[Translation_Index].embedding
+
+                        #计算每对翻译语义相似度
+                        similarity_score = np.dot(Original_Embeddings, Translation_Embeddings)
+                        Semantic_similarity_list.append((similarity_score - 0.75) / (1 - 0.75) * 150)
+
+                    lock1.acquire()  # 获取锁
+                    user_interface_prompter.translated_line_count = user_interface_prompter.translated_line_count + text_len
+                    progress = user_interface_prompter.translated_line_count / user_interface_prompter.total_text_line_count * 100
+                    progress = round(progress, 1)
+                    Cache_Manager.update_vector_distance(cache_list, text_index_list, Semantic_similarity_list)
+                    print("[INFO] 已计算语义相似度并存储",'\n','\n')
+                    lock1.release()  # 释放锁
+
+                    #————————————————————————————————————————结束循环，并结束子线程————————————————————————————————————————
+                    print(f"\n--------------------------------------------------------------------------------------")
+                    print(f"\n\033[1;32mSuccess:\033[0m 嵌入编码已完成：{progress}%             ")
+                    print(f"\n--------------------------------------------------------------------------------------\n")
+                    break
+
+    #子线程抛出错误信息
+        except Exception as e:
+            print("\033[1;33m线程ID:\033[0m ", threading.get_ident())
+            print("\033[1;31mError:\033[0m 线程出现问题！错误信息如下")
+            print(f"Error: {e}\n")
+            return
+
+
 
 # 回复解析器
 class Response_Parser():
@@ -2137,7 +2174,7 @@ class Response_Parser():
                 # 使用列表的 count 方法
                 count = values_list.count(value)
 
-                if count > 4:
+                if count > 5:
                     return False
                     #print(f'相同译文： "{value}" 出现了 {count} 次')
 
@@ -3725,8 +3762,9 @@ class Request_Limiter():
 
         # 示例数据
         self.sakura_limit_data = {
-                "Sakura-13B-LNovel-v0.8": {  "inputTokenLimit": 600,"outputTokenLimit":  600,"max_tokens": 600, "TPM": 1000000, "RPM": 60},
-                "Sakura-13B-LNovel-v0.9": {  "inputTokenLimit": 600,"outputTokenLimit":  600,"max_tokens": 600, "TPM": 1000000, "RPM": 60},
+                "Sakura-13B-LNovel-v0.8": {  "inputTokenLimit": 700,"outputTokenLimit":  700,"max_tokens": 700, "TPM": 1000000, "RPM": 60},
+                "Sakura-13B-LNovel-v0.9": {  "inputTokenLimit": 700,"outputTokenLimit":  700,"max_tokens": 700, "TPM": 1000000, "RPM": 60},
+                "Sakura-13B-Qwen2beta-v0.10pre": {  "inputTokenLimit": 700,"outputTokenLimit":  700,"max_tokens": 700, "TPM": 1000000, "RPM": 60},
             }
 
         # TPM相关参数
@@ -4042,7 +4080,7 @@ class File_Reader():
         return project_id
 
 
-    # 读取文件夹中树形结构json文件
+    # 读取文件夹中树形结构Mtool文件
     def read_mtool_files (self,folder_path):
         # 缓存数据结构示例
         ex_cache_data = [
@@ -4174,6 +4212,69 @@ class File_Reader():
         return cache_list
     
 
+    # 读取文件夹中树形结构Vnt导出文件
+    def read_vnt_files (self,folder_path):
+
+        # 创建缓存数据，并生成文件头信息
+        json_data_list = []
+        project_id = File_Reader.generate_project_id(self,"Vnt")
+        json_data_list.append({
+            "project_type": "Vnt",
+            "project_id": project_id,
+        })
+
+        #文本索引初始值
+        i = 1
+
+        # 遍历文件夹及其子文件夹
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                # 判断文件是否为 JSON 文件
+                if file.endswith(".json"):
+                    file_path = os.path.join(root, file) # 构建文件路径
+                    
+                    # 读取 JSON 文件内容
+                    with open(file_path, 'r', encoding='utf-8') as json_file:
+                        json_data = json.load(json_file)
+
+                        # 提取键值对
+                        for entry in json_data:
+                            # 根据 JSON 文件内容的数据结构，获取相应字段值
+                            source_text = entry["message"]
+                            storage_path = os.path.relpath(file_path, folder_path) 
+                            file_name = file
+
+                            name = entry.get("name")
+                            if name:
+                                # 将数据存储在字典中
+                                json_data_list.append({
+                                    "text_index": i,
+                                    "translation_status": 0,
+                                    "source_text": source_text,
+                                    "translated_text": source_text,
+                                    "name": name,
+                                    "semantic_similarity": 0,
+                                    "storage_path": storage_path,
+                                    "file_name": file_name,
+                                })
+                            else:
+                                # 将数据存储在字典中
+                                json_data_list.append({
+                                    "text_index": i,
+                                    "translation_status": 0,
+                                    "source_text": source_text,
+                                    "translated_text": source_text,
+                                    "semantic_similarity": 0,
+                                    "storage_path": storage_path,
+                                    "file_name": file_name,
+                                })
+
+                            # 增加文本索引值
+                            i = i + 1
+
+        return json_data_list
+
+
     #读取缓存文件
     def read_cache_files(self,folder_path):
         # 获取文件夹中的所有文件
@@ -4193,6 +4294,178 @@ class File_Reader():
         with open(json_file_path, 'r', encoding='utf-8') as json_file:
             data = json.load(json_file)
             return data
+
+
+    # 读取文件夹中树形结构Srt字幕文件
+    def read_srt_files (self,folder_path):
+        # 缓存数据结构示例
+        ex_cache_data = [
+        {'project_type': 'Mtool'},
+        {'text_index': 1, 'text_classification': 0, 'translation_status': 0, 'source_text': 'しこトラ！', 'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json'},
+        {'text_index': 2, 'text_classification': 0, 'translation_status': 0, 'source_text': '室内カメラ', 'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json'},
+        {'text_index': 3, 'text_classification': 0, 'translation_status': 0, 'source_text': '室内カメラ', 'translated_text': '无', 'storage_path': 'DEBUG Folder\\Replace the original text.json', 'file_name': 'Replace the original text.json'},
+        ]
+
+
+        # 创建缓存数据，并生成文件头信息
+        json_data_list = []
+        project_id = File_Reader.generate_project_id(self,"Srt")
+        json_data_list.append({
+            "project_type": "Srt",
+            "project_id": project_id,
+        })
+
+        #文本索引初始值
+        i = 1
+        source_text = ''
+        subtitle_number = ''
+        subtitle_time = ''
+
+        # 遍历文件夹及其子文件夹
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                # 判断文件是否为 JSON 文件
+                if file.endswith(".srt"):
+                    file_path = os.path.join(root, file) # 构建文件路径
+                    
+                    with open(file_path, 'r', encoding='utf-8') as file:
+                        content = file.read()
+
+                    # 将内容按行分割
+                    lines = content.split('\n')
+
+                    # 遍历每一行
+                    for line in lines:
+
+                        # 去除行首的BOM（如果存在）
+                        line = line.lstrip('\ufeff')
+
+                        # 如果行是数字，代表新的字幕开始
+                        if line.isdigit():
+                            subtitle_number = line
+
+                        # 时间码行
+                        elif '-->' in line:
+                            subtitle_time = line
+
+                        # 空行代表字幕文本的结束
+                        elif line == '':
+                            storage_path = os.path.relpath(file_path, folder_path) 
+                            file_name = file
+                            # 将数据存储在字典中
+                            json_data_list.append({
+                                "text_index": i,
+                                "translation_status": 0,
+                                "source_text": source_text,
+                                "translated_text": source_text,
+                                "subtitle_number": subtitle_number,
+                                "subtitle_time": subtitle_time,
+                                "storage_path": storage_path,
+                                "file_name": file_name,
+                            })
+
+                            # 增加文本索引值
+                            i = i + 1
+                            # 清空变量
+                            source_text = ''
+                            subtitle_number = ''
+                            subtitle_time = ''
+
+                        # 其他行是字幕文本，需要添加到文本中
+                        else:
+                            if  source_text:
+                                source_text += '\n' + line
+                            else:
+                                source_text = line
+
+        return json_data_list
+
+
+    # 读取文件夹中树形结构Lrc音声文件
+    def read_lrc_files (self,folder_path):
+        # 缓存数据结构示例
+        ex_cache_data = [
+        {'project_type': 'Mtool'},
+        {'text_index': 1, 'text_classification': 0, 'translation_status': 0, 'source_text': 'しこトラ！', 'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json'},
+        {'text_index': 2, 'text_classification': 0, 'translation_status': 0, 'source_text': '室内カメラ', 'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json'},
+        {'text_index': 3, 'text_classification': 0, 'translation_status': 0, 'source_text': '室内カメラ', 'translated_text': '无', 'storage_path': 'DEBUG Folder\\Replace the original text.json', 'file_name': 'Replace the original text.json'},
+        ]
+
+
+        # 创建缓存数据，并生成文件头信息
+        json_data_list = []
+        project_id = File_Reader.generate_project_id(self,"Lrc")
+        json_data_list.append({
+            "project_type": "Lrc",
+            "project_id": project_id,
+        })
+
+        #文本索引初始值
+        i = 1
+        subtitle_title = ""
+
+        # 遍历文件夹及其子文件夹
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                # 判断文件是否为 JSON 文件
+                if file.endswith(".lrc"):
+                    file_path = os.path.join(root, file) # 构建文件路径
+                    
+                    with open(file_path, 'r', encoding='utf-8') as file:
+                        content = file.read()
+
+                    # 切行
+                    lyrics = content.split('\n')
+                    for line in lyrics:
+
+                        # 使用正则表达式匹配标题标签行
+                        title_pattern = re.compile(r'\[ti:(.*?)\]')
+                        match = title_pattern.search(line)
+                        if match:
+                            subtitle_title =  match.group(1)  # 返回匹配到的标题全部内容
+
+
+                        # 使用正则表达式匹配时间戳和歌词内容
+                        pattern = re.compile(r'(\[([0-9:.]+)\])(.*)')
+                        match = pattern.match(line)
+                        if match:
+                            timestamp = match.group(2)
+                            source_text = match.group(3).strip()
+                            if source_text == "":
+                                continue
+                            storage_path = os.path.relpath(file_path, folder_path)
+                            file_name = file
+
+                            if subtitle_title:                             
+                                # 将数据存储在字典中
+                                json_data_list.append({
+                                    "text_index": i,
+                                    "translation_status": 0,
+                                    "source_text": source_text,
+                                    "translated_text": source_text,
+                                    "subtitle_time": timestamp,
+                                    "subtitle_title":subtitle_title,
+                                    "storage_path": storage_path,
+                                    "file_name": file_name,
+                                })
+                                subtitle_title = ""
+
+                            else:
+                                # 将数据存储在字典中
+                                json_data_list.append({
+                                    "text_index": i,
+                                    "translation_status": 0,
+                                    "source_text": source_text,
+                                    "translated_text": source_text,
+                                    "subtitle_time": timestamp,
+                                    "storage_path": storage_path,
+                                    "file_name": file_name,
+                                })
+
+                            # 增加文本索引值
+                            i += 1
+
+        return json_data_list
 
 
 
@@ -4259,10 +4532,6 @@ class Cache_Manager():
                             # 检查右边字符量是否比左边字符量大N倍
                             if len(right) > len(left) * 15:
                                 entry['translation_status'] = 0
-
-                
-
-            
 
 
     # 处理缓存数据的非中日韩字符，且改变翻译状态为7
@@ -4345,8 +4614,11 @@ class Cache_Manager():
             name = entry.get('name')
 
             # 如果有名字，则组合成轻小说的格式，如：小明「测试」， 否则不组合
-            if name:
-                new_dict[str(index_count)] = f"{name}「{source_text}」"
+            if name: # 注意：改成二级处理时，要记得提示字典只会判断原文，不会判断名字
+                if source_text[0] == '「':
+                    new_dict[str(index_count)] = f"{name}{source_text}"
+                else:
+                    new_dict[str(index_count)] = f"{name}「{source_text}」"
             else:
                 new_dict[str(index_count)] = source_text
 
@@ -4608,18 +4880,19 @@ class Cache_Manager():
                     break
 
     # 轻小说格式提取人名与文本
-    def extract_strings(self, input_str):
-        # 正则表达式匹配括号及其内容
-        match = re.search(r'(.*)「(.*?)」', input_str)
-        if match:
-            # 括号左边的内容
-            left_content = match.group(1)
-            # 括号内的内容
-            inner_content = match.group(2)
-            return left_content, inner_content
-        else:
-            # 如果没有找到括号，返回原始字符串和空字符串
-            return  0,input_str
+    def extract_strings(self, text):
+        # 查找第一个左括号的位置
+        left_bracket_pos = text.find('「')
+        
+        # 如果找不到左括号，返回原始文本
+        if left_bracket_pos == -1:
+            return 0,text
+        
+        # 提取名字和对话内容
+        name = text[:left_bracket_pos].strip()
+        dialogue = text[left_bracket_pos:].strip()
+        
+        return name, dialogue
 
 
 # 文件输出器
@@ -4776,6 +5049,138 @@ class File_Outputter():
                 with open(file_path_untranslated, 'w', encoding='utf-8') as file:
                     json.dump(output_file2, file, ensure_ascii=False, indent=4)
 
+
+    # 输出vnt文件
+    def output_vnt_file(self,cache_data, output_path):
+
+        # 输出文件格式示例
+        ex_output =  [
+            {
+                "name": "玲",
+                "message": "「……おはよう」"
+            },
+            {
+                "message": "　心の内では、ムシャクシャした気持ちは未だに鎮まっていなかった。"
+            }
+            ]
+
+        # 创建中间存储字典，这个存储已经翻译的内容
+        path_dict = {}
+
+        # 遍历缓存数据
+        for item in cache_data:
+            # 忽略不包含 'storage_path' 的项
+            if 'storage_path' not in item:
+                continue
+
+            # 获取相对文件路径
+            storage_path = item['storage_path']
+            # 获取文件名
+            file_name = item['file_name']
+
+            if file_name != storage_path :
+                # 构建文件输出路径
+                file_path = f'{output_path}/{storage_path}'
+                # 获取输出路径的上一级路径，使用os.path.dirname
+                folder_path = os.path.dirname(file_path)
+                # 如果路径不存在，则创建
+                os.makedirs(folder_path, exist_ok=True)
+            else:
+                # 构建文件输出路径
+                file_path = f'{output_path}/{storage_path}' 
+                
+
+
+            # 如果文件路径已经在 path_dict 中，添加到对应的列表中
+            if file_path in path_dict:
+                if'name' in item:
+                    text = {'translation_status': item['translation_status'],
+                            'source_text': item['source_text'], 
+                            'translated_text': item['translated_text'],
+                            'name': item['name']}
+
+                else:
+                    text = {'translation_status': item['translation_status'],
+                            'source_text': item['source_text'], 
+                            'translated_text': item['translated_text']}
+                    
+                path_dict[file_path].append(text)
+
+            # 否则，创建一个新的列表
+            else:
+                if'name' in item:
+                    text = {'translation_status': item['translation_status'],
+                            'source_text': item['source_text'], 
+                            'translated_text': item['translated_text'],
+                            'name': item['name']}
+
+                else:
+                    text = {'translation_status': item['translation_status'],
+                            'source_text': item['source_text'], 
+                            'translated_text': item['translated_text']}
+                    
+                path_dict[file_path] = [text]
+
+        # 遍历 path_dict，并将内容写入文件
+        for file_path, content_list in path_dict.items():
+
+            # 提取文件路径的文件夹路径和文件名
+            folder_path, old_filename = os.path.split(file_path)
+
+
+            # 创建已翻译文本的新文件路径
+            if old_filename.endswith(".json"):
+                file_name_translated = old_filename.replace(".json", "") + "_translated.json"
+            else:
+                file_name_translated = old_filename + "_translated.json"
+            file_path_translated = os.path.join(folder_path, file_name_translated)
+
+
+            # 创建未翻译文本的新文件路径
+            if old_filename.endswith(".json"):
+                file_name_untranslated = old_filename.replace(".json", "") + "_untranslated.json"
+            else:
+                file_name_untranslated = old_filename + "_untranslated.json"
+            file_path_untranslated = os.path.join(folder_path, file_name_untranslated)
+
+            # 存储已经翻译的文本
+            output_file = []
+
+            #存储未翻译的文本
+            output_file2 = []
+
+            # 转换中间字典的格式为最终输出格式
+            for content in content_list:
+                # 如果这个本已经翻译了，存放对应的文件中
+                if'name' in content:
+                    text = {'name': content['name'],
+                            'message': content['translated_text'],}
+                else:
+                    text = {'message': content['translated_text'],}
+                
+                output_file.append(text)
+
+                # 如果这个文本没有翻译或者正在翻译
+                if content['translation_status'] == 0 or content['translation_status'] == 2:
+                    if'name' in content:
+                        text = {'name': content['name'],
+                                'message': content['translated_text'],}
+                    else:
+                        text = {'message': content['translated_text'],}
+                    
+                    output_file2.append(text)
+
+
+            # 输出已经翻译的文件
+            with open(file_path_translated, 'w', encoding='utf-8') as file:
+                json.dump(output_file, file, ensure_ascii=False, indent=4)
+
+            # 输出未翻译的内容
+            if output_file2:
+                with open(file_path_untranslated, 'w', encoding='utf-8') as file:
+                    json.dump(output_file2, file, ensure_ascii=False, indent=4)
+
+
     # 输出表格文件
     def output_excel_file(self,cache_data, output_path):
         # 缓存数据结构示例
@@ -4846,6 +5251,7 @@ class File_Outputter():
             # 保存工作簿
             wb.save(file_path)
 
+
     # 输出缓存文件
     def output_cache_file(self,cache_data,output_path):
         # 复制缓存数据到新变量
@@ -4860,6 +5266,196 @@ class File_Outputter():
         with open(os.path.join(output_path, "AinieeCacheData.json"), "w", encoding="utf-8") as f:
             json.dump(modified_cache_data, f, ensure_ascii=False, indent=4)
 
+
+    # 输出srt文件
+    def output_srt_file(self,cache_data, output_path):
+
+        # 输出文件格式示例
+        ex_output ="""
+        1
+        00:00:16,733 --> 00:00:19,733
+        Does that feel good, Tetchan?
+
+        2
+        00:00:25,966 --> 00:00:32,500
+        Just a little more... I'm really close too... Ahhh, I can't...!
+        """
+
+        # 创建中间存储文本
+        text_dict = {}
+
+        # 遍历缓存数据
+        for item in cache_data:
+            # 忽略不包含 'storage_path' 的项
+            if 'storage_path' not in item:
+                continue
+
+            # 获取相对文件路径
+            storage_path = item['storage_path']
+            # 获取文件名
+            file_name = item['file_name']
+
+            if file_name != storage_path :
+                # 构建文件输出路径
+                file_path = f'{output_path}/{storage_path}'
+                # 获取输出路径的上一级路径，使用os.path.dirname
+                folder_path = os.path.dirname(file_path)
+                # 如果路径不存在，则创建
+                os.makedirs(folder_path, exist_ok=True)
+            else:
+                # 构建文件输出路径
+                file_path = f'{output_path}/{storage_path}' 
+
+
+            # 如果文件路径已经在 path_dict 中，添加到对应的列表中
+            if file_path in text_dict:
+
+                text = {'translation_status': item['translation_status'],'source_text': item['source_text'], 'translated_text': item['translated_text'],'subtitle_number': item['subtitle_number'],'subtitle_time': item['subtitle_time']}
+                text_dict[file_path].append(text)
+
+            # 否则，创建一个新的列表
+            else:
+                text = {'translation_status': item['translation_status'],'source_text': item['source_text'], 'translated_text': item['translated_text'],'subtitle_number':  item['subtitle_number'],'subtitle_time': item['subtitle_time']}
+                text_dict[file_path] = [text]
+
+        # 遍历 path_dict，并将内容写入文件
+        for file_path, content_list in text_dict.items():
+
+            # 提取文件路径的文件夹路径和文件名
+            folder_path, old_filename = os.path.split(file_path)
+
+
+            # 创建已翻译文本的新文件路径
+            if old_filename.endswith(".srt"):
+                file_name_translated = old_filename.replace(".srt", "") + "_translated.srt"
+            else:
+                file_name_translated = old_filename + "_translated.srt"
+            file_path_translated = os.path.join(folder_path, file_name_translated)
+
+
+            # 存储已经翻译的文本
+            output_file = ""
+            # 转换中间字典的格式为最终输出格式
+            for content in content_list:
+                # 获取字幕序号
+                subtitle_number = content['subtitle_number']
+                # 获取字幕时间轴
+                subtitle_time = content['subtitle_time']
+                # 获取字幕文本内容
+                subtitle_text = content['translated_text']
+
+                output_file += f'{subtitle_number}\n{subtitle_time}\n{subtitle_text}\n\n'
+
+
+
+            # 输出已经翻译的文件
+            with open(file_path_translated, 'w', encoding='utf-8') as file:
+                file.write(output_file)
+
+
+    # 输出lrc文件
+    def output_lrc_file(self,cache_data, output_path):
+
+        # 输出文件格式示例
+        ex_output ="""
+        [ti:1.したっぱ童貞構成員へハニートラップ【手コキ】 (Transcribed on 15-May-2023 19-10-13)]
+        [00:00.00]お疲れ様です大長 ただいま機会いたしました
+        [00:06.78]法案特殊情報部隊一番対処得フィルレイやセルドツナイカーです 今回例の犯罪組織への潜入が成功しましたのでご報告させていただきます
+        """
+
+        # 创建中间存储文本
+        text_dict = {}
+
+        # 遍历缓存数据
+        for item in cache_data:
+            # 忽略不包含 'storage_path' 的项
+            if 'storage_path' not in item:
+                continue
+
+            # 获取相对文件路径
+            storage_path = item['storage_path']
+            # 获取文件名
+            file_name = item['file_name']
+
+            if file_name != storage_path :
+                # 构建文件输出路径
+                file_path = f'{output_path}/{storage_path}'
+                # 获取输出路径的上一级路径，使用os.path.dirname
+                folder_path = os.path.dirname(file_path)
+                # 如果路径不存在，则创建
+                os.makedirs(folder_path, exist_ok=True)
+            else:
+                # 构建文件输出路径
+                file_path = f'{output_path}/{storage_path}' 
+
+
+            # 如果文件路径已经在 path_dict 中，添加到对应的列表中
+            if file_path in text_dict:
+                if 'subtitle_title' in item:
+                    text = {'translation_status': item['translation_status'],
+                            'source_text': item['source_text'], 
+                            'translated_text': item['translated_text'],
+                            "subtitle_time": item['subtitle_time'],
+                            'subtitle_title': item['subtitle_title']}
+                else:
+                    text = {'translation_status': item['translation_status'],
+                            'source_text': item['source_text'], 
+                            'translated_text': item['translated_text'],
+                            "subtitle_time": item['subtitle_time']}
+                text_dict[file_path].append(text)
+
+            # 否则，创建一个新的列表
+            else:
+                if 'subtitle_title' in item:
+                    text = {'translation_status': item['translation_status'],
+                            'source_text': item['source_text'], 
+                            'translated_text': item['translated_text'],
+                            "subtitle_time": item['subtitle_time'],
+                            'subtitle_title': item['subtitle_title']}
+                else:
+                    text = {'translation_status': item['translation_status'],
+                            'source_text': item['source_text'], 
+                            'translated_text': item['translated_text'],
+                            "subtitle_time": item['subtitle_time']}
+                text_dict[file_path] = [text]
+
+        # 遍历 path_dict，并将内容写入文件
+        for file_path, content_list in text_dict.items():
+
+            # 提取文件路径的文件夹路径和文件名
+            folder_path, old_filename = os.path.split(file_path)
+
+
+            # 创建已翻译文本的新文件路径
+            if old_filename.endswith(".lrc"):
+                file_name_translated = old_filename.replace(".lrc", "") + "_translated.lrc"
+            else:
+                file_name_translated = old_filename + "_translated.lrc"
+            file_path_translated = os.path.join(folder_path, file_name_translated)
+
+
+            # 存储已经翻译的文本
+            output_file = ""
+            # 转换中间字典的格式为最终输出格式
+            for content in content_list:
+                # 获取字幕时间轴
+                subtitle_time = content['subtitle_time']
+                # 获取字幕文本内容
+                subtitle_text = content['translated_text']
+
+                if 'subtitle_title' in content:
+                    subtitle_title = content['subtitle_title']
+                    output_file += f'[{subtitle_title}]\n[{subtitle_time}]{subtitle_text}\n'
+                else:
+                    output_file += f'[{subtitle_time}]{subtitle_text}\n'
+
+
+
+            # 输出已经翻译的文件
+            with open(file_path_translated, 'w', encoding='utf-8') as file:
+                file.write(output_file)
+
+
     # 输出已经翻译文件
     def output_translated_content(self,cache_data,output_path):
         # 复制缓存数据到新变量
@@ -4868,6 +5464,12 @@ class File_Outputter():
         # 提取项目列表
         if new_cache_data[0]["project_type"] == "Mtool":
             File_Outputter.output_json_file(self,new_cache_data, output_path)
+        elif new_cache_data[0]["project_type"] == "Srt":
+            File_Outputter.output_srt_file(self,new_cache_data, output_path)
+        elif new_cache_data[0]["project_type"] == "Lrc":
+            File_Outputter.output_lrc_file(self,new_cache_data, output_path)
+        elif new_cache_data[0]["project_type"] == "Vnt":
+            File_Outputter.output_vnt_file(self,new_cache_data, output_path)
         else:
             File_Outputter.output_excel_file(self,new_cache_data, output_path)
 
@@ -4990,6 +5592,7 @@ class User_Interface_Prompter(QObject):
        self.sakura_price_data = {
             "Sakura-13B-LNovel-v0.8": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
             "Sakura-13B-LNovel-v0.9": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
+            "Sakura-13B-Qwen2beta-v0.10pre": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
             }
 
 
@@ -6055,9 +6658,9 @@ class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
 
         #设置“模型类型”下拉选择框
         self.comboBox_model = ComboBox() #以demo为父类
-        self.comboBox_model.addItems(['Sakura-13B-LNovel-v0.8','Sakura-13B-LNovel-v0.9'])
+        self.comboBox_model.addItems(['Sakura-13B-LNovel-v0.8','Sakura-13B-LNovel-v0.9','Sakura-13B-Qwen2beta-v0.10pre'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
-        self.comboBox_model.setFixedSize(200, 35)
+        self.comboBox_model.setFixedSize(250, 35)
         #设置下拉选择框默认选择
         self.comboBox_model.setCurrentText('Sakura-13B-LNovel-v0.8')
         
@@ -6247,7 +6850,7 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
 
         #设置“翻译项目”下拉选择框
         self.comboBox_translation_project = ComboBox() #以demo为父类
-        self.comboBox_translation_project.addItems(['Mtool导出文件',  'T++导出文件',  'Ainiee缓存文件'])
+        self.comboBox_translation_project.addItems(['Mtool导出文件',  'T++导出文件', 'Vnt导出文件' , 'Srt字幕文件' , 'Lrc音声文件', 'Ainiee缓存文件'])
         self.comboBox_translation_project.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_translation_project.setFixedSize(150, 35)
 
@@ -7188,6 +7791,56 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
         else :
             print('[INFO]  未选择文件夹')
             return  # 直接返回，不执行后续操作
+
+
+
+
+class Widget_tune(QFrame):  # 实时调教主界面
+    def __init__(self, text: str, parent=None):  # 构造函数，初始化实例时会自动调用
+        super().__init__(parent=parent)  # 调用父类 QWidget 的构造函数
+        self.setObjectName(text.replace(' ', '-'))  # 设置对象名，用于在 NavigationInterface 中的 addItem 方法中的 routeKey 参数中使用
+
+
+        self.pivot = SegmentedWidget(self)  # 创建一个 SegmentedWidget 实例，分段式导航栏
+        self.stackedWidget = QStackedWidget(self)  # 创建一个 QStackedWidget 实例，堆叠式窗口
+        self.vBoxLayout = QVBoxLayout(self)  # 创建一个垂直布局管理器
+
+        self.A_settings = Widget_start_translation_A('A_settings', self)  # 创建实例，指向界面
+        self.B_settings = Widget_start_translation_B('B_settings', self)  # 创建实例，指向界面
+
+        # 添加子界面到分段式导航栏
+        self.addSubInterface(self.A_settings, 'A_settings', '开始翻译')
+        self.addSubInterface(self.B_settings, 'B_settings', '备份功能')
+
+        # 将分段式导航栏和堆叠式窗口添加到垂直布局中
+        self.vBoxLayout.addWidget(self.pivot)
+        self.vBoxLayout.addWidget(self.stackedWidget)
+        self.vBoxLayout.setContentsMargins(30, 50, 30, 30)  # 设置布局的外边距
+
+        # 连接堆叠式窗口的 currentChanged 信号到槽函数 onCurrentIndexChanged
+        self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
+        self.stackedWidget.setCurrentWidget(self.A_settings)  # 设置默认显示的子界面为xxx界面
+        self.pivot.setCurrentItem(self.A_settings.objectName())  # 设置分段式导航栏的当前项为xxx界面
+
+    def addSubInterface(self, widget: QLabel, objectName, text):
+        """
+        添加子界面到堆叠式窗口和分段式导航栏
+        """
+        widget.setObjectName(objectName)
+        #widget.setAlignment(Qt.AlignCenter) # 设置 widget 对象的文本（如果是文本控件）在控件中的水平对齐方式
+        self.stackedWidget.addWidget(widget)
+        self.pivot.addItem(
+            routeKey=objectName,
+            text=text,
+            onClick=lambda: self.stackedWidget.setCurrentWidget(widget),
+        )
+
+    def onCurrentIndexChanged(self, index):
+        """
+        槽函数：堆叠式窗口的 currentChanged 信号的槽函数
+        """
+        widget = self.stackedWidget.widget(index)
+        self.pivot.setCurrentItem(widget.objectName())
 
 
 
@@ -9319,6 +9972,7 @@ class Widget23(QFrame):#AI提示字典界面
     def checkBoxChanged2(self, isChecked: bool):
         if isChecked :
             user_interface_prompter.createSuccessInfoBar("已开启译时提示功能,将根据发送文本自动添加翻译示例")
+
 
 
 
