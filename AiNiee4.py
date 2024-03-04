@@ -4132,56 +4132,6 @@ class File_Reader():
         pass
 
 
-    # 选择输入文件夹按钮绑定函数
-    def Select_project_folder(self):
-        Input_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Input_Folder:
-            # 将输入路径存储到配置器中
-            configurator.Input_Folder = Input_Folder
-            Window.Widget_translation_settings.A_settings.label_input_path.setText(Input_Folder)
-            print('[INFO]  已选择项目文件夹: ',Input_Folder)
-        else :
-            print('[INFO]  未选择文件夹')
-            return  # 直接返回，不执行后续操作
-
-
-    # 选择输出文件夹按钮绑定函数
-    def Select_output_folder(self):
-        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Output_Folder:
-            # 将输入路径存储到配置器中
-            configurator.Output_Folder = Output_Folder
-            Window.Widget_translation_settings.A_settings.label_output_path.setText(Output_Folder)
-            print('[INFO]  已选择输出文件夹:' ,Output_Folder)
-        else :
-            print('[INFO]  未选择文件夹')
-            return  # 直接返回，不执行后续操作
-        
-
-    # 选择输入文件夹按钮绑定函数(检查任务用)
-    def Select_project_folder_check(self):
-        Input_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Input_Folder:
-            # 将输入路径存储到配置器中
-            configurator.Input_Folder = Input_Folder
-            Window.Widget_check.label_input_path.setText(Input_Folder)
-            print('[INFO]  已选择项目文件夹: ',Input_Folder)
-        else :
-            print('[INFO]  未选择文件夹')
-            return  # 直接返回，不执行后续操作
-
-    # 选择输出文件夹按钮绑定函数(检查任务用)
-    def Select_output_folder_check(self):
-        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Output_Folder:
-            # 将输入路径存储到配置器中
-            configurator.Output_Folder = Output_Folder
-            Window.Widget_check.label_output_path.setText(Output_Folder)
-            print('[INFO]  已选择输出文件夹:' ,Output_Folder)
-        else :
-            print('[INFO]  未选择文件夹')
-            return  # 直接返回，不执行后续操作
-
     # 生成项目ID
     def generate_project_id(self,prefix):
         # 获取当前时间，并将其格式化为数字字符串
@@ -4585,7 +4535,7 @@ class File_Reader():
 
 
 
-# 缓存器
+# 缓存管理器
 class Cache_Manager():
     """
     缓存数据以列表来存储，分文件头和文本单元，文件头数据结构如下:
@@ -5669,7 +5619,7 @@ class User_Interface_Prompter(QObject):
        self.stateTooltip = None # 存储翻译状态控件
        self.total_text_line_count = 0 # 存储总文本行数
        self.translated_line_count = 0 # 存储已经翻译文本行数
-       self.progress = 0           # 存储翻译进度
+       self.progress = 0.0           # 存储翻译进度
        self.tokens_spent = 0  # 存储已经花费的tokens
        self.amount_spent = 0  # 存储已经花费的金钱
 
@@ -5727,7 +5677,7 @@ class User_Interface_Prompter(QObject):
                 self.stateTooltip.setState(True)
                 self.stateTooltip = None
                 #界面提示
-                self.createWarningInfoBar("翻译已暂停")
+                self.createSuccessInfoBar("翻译任务已全部暂停")
 
             elif input_str2 == "翻译取消":
                 print("\033[1;33mWarning:\033[0m 翻译任务已被取消-----------------------","\n")
@@ -5735,7 +5685,7 @@ class User_Interface_Prompter(QObject):
                 self.stateTooltip.setState(True)
                 self.stateTooltip = None
                 #界面提示
-                self.createWarningInfoBar("翻译已取消")
+                self.createSuccessInfoBar("翻译任务已全部取消")
 
                 #重置翻译界面数据
                 Window.Widget_start_translation.A_settings.translation_project.setText("无")
@@ -5862,6 +5812,8 @@ class User_Interface_Prompter(QObject):
         #计算进度条
         result = self.translated_line_count / self.total_text_line_count * 100
         self.progress = round(result, 2)
+
+        print("总行数：",self.total_text_line_count,"已翻译行数：",self.translated_line_count,"进度：",self.progress,"%")
 
 
 
@@ -6993,7 +6945,7 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
 
         #设置打开文件按钮
         self.pushButton_input = PushButton('选择文件夹', self, FIF.FOLDER)
-        self.pushButton_input.clicked.connect(File_Reader.Select_project_folder) #按钮绑定槽函数
+        self.pushButton_input.clicked.connect(self.Select_project_folder) #按钮绑定槽函数
 
 
 
@@ -7021,7 +6973,7 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
 
         #设置输出文件夹按钮
         self.pushButton_output = PushButton('选择文件夹', self, FIF.FOLDER)
-        self.pushButton_output.clicked.connect(File_Reader.Select_output_folder) #按钮绑定槽函数
+        self.pushButton_output.clicked.connect(self.Select_output_folder) #按钮绑定槽函数
 
 
         
@@ -7120,6 +7072,31 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
         container.setSpacing(28) # 设置布局内控件的间距为28
         container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
+
+
+    # 选择输入文件夹按钮绑定函数
+    def Select_project_folder(self):
+        Input_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Input_Folder:
+            # 将输入路径存储到配置器中
+            configurator.Input_Folder = Input_Folder
+            self.label_input_path.setText(Input_Folder)
+            print('[INFO]  已选择项目文件夹: ',Input_Folder)
+        else :
+            print('[INFO]  未选择文件夹')
+
+
+
+    # 选择输出文件夹按钮绑定函数
+    def Select_output_folder(self):
+        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Output_Folder:
+            # 将输入路径存储到配置器中
+            configurator.Output_Folder = Output_Folder
+            self.label_output_path.setText(Output_Folder)
+            print('[INFO]  已选择输出文件夹:' ,Output_Folder)
+        else :
+            print('[INFO]  未选择文件夹')
 
 
     def saveconfig(self):
@@ -7715,7 +7692,8 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
 
         global Running_status
         Running_status = 9
-        print("\033[1;33mWarning:\033[0m 翻译任务正在暂停中-----------------------","\n")
+        user_interface_prompter.createWarningInfoBar("软件的翻译进行任务正在取消中，请等待全部翻译任务释放完成！！！")
+        print("\033[1;33mWarning:\033[0m 软件的翻译进行任务正在取消中，请等待全部翻译任务释放完成！！！-----------------------","\n")
 
     #继续翻译按钮绑定函数
     def continue_translation(self):
@@ -7746,7 +7724,8 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         #如果正在翻译中
         if Running_status == 6:
             Running_status = 10
-            print("\033[1;33mWarning:\033[0m 翻译任务正在取消中-----------------------","\n")
+            user_interface_prompter.createWarningInfoBar("软件的翻译进行任务正在取消中，请等待全部翻译任务释放完成！！！")
+            print("\033[1;33mWarning:\033[0m 软件的翻译进行任务正在取消中，请等待全部翻译任务释放完成！！！-----------------------","\n")
 
         #如果正在暂停中
         elif Running_status == 9:
@@ -9904,7 +9883,7 @@ class Widget_check(QFrame):# 错行检查界面
 
         #设置打开文件按钮
         self.pushButton_input = PushButton('选择文件夹', self, FIF.FOLDER)
-        self.pushButton_input.clicked.connect(File_Reader.Select_project_folder_check) #按钮绑定槽函数
+        self.pushButton_input.clicked.connect(self.Select_project_folder_check) #按钮绑定槽函数
 
 
 
@@ -9932,7 +9911,7 @@ class Widget_check(QFrame):# 错行检查界面
 
         #设置输出文件夹按钮
         self.pushButton_output = PushButton('选择文件夹', self, FIF.FOLDER)
-        self.pushButton_output.clicked.connect(File_Reader.Select_output_folder_check) #按钮绑定槽函数
+        self.pushButton_output.clicked.connect(self.Select_output_folder_check) #按钮绑定槽函数
 
 
         
@@ -9989,6 +9968,29 @@ class Widget_check(QFrame):# 错行检查界面
         container.setSpacing(28) # 设置布局内控件的间距为28
         container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
+
+    # 选择输入文件夹按钮绑定函数(检查任务用)
+    def Select_project_folder_check(self):
+        Input_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Input_Folder:
+            # 将输入路径存储到配置器中
+            configurator.Input_Folder = Input_Folder
+            self.label_input_path.setText(Input_Folder)
+            print('[INFO]  已选择项目文件夹: ',Input_Folder)
+        else :
+            print('[INFO]  未选择文件夹')
+
+
+    # 选择输出文件夹按钮绑定函数(检查任务用)
+    def Select_output_folder_check(self):
+        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Output_Folder:
+            # 将输入路径存储到配置器中
+            configurator.Output_Folder = Output_Folder
+            self.label_output_path.setText(Output_Folder)
+            print('[INFO]  已选择输出文件夹:' ,Output_Folder)
+        else :
+            print('[INFO]  未选择文件夹')
 
     def saveconfig(self):
         configurator.read_write_config("write")
