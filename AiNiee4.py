@@ -646,9 +646,9 @@ class Api_Requester():
 
 
         #如果开启译前替换字典功能，则根据用户字典进行替换
-        if Window.Interface21.checkBox1.isChecked() :
+        if Window.Widget_replace_dict.A_settings.checkBox1.isChecked() :
             print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
-            source_text_dict = configurator.replace_strings_dictionary(source_text_dict)
+            source_text_dict = configurator.replace_before_translation(source_text_dict)
 
         #将原文本字典转换成JSON格式的字符串，方便发送
         source_text_str = json.dumps(source_text_dict, ensure_ascii=False)# ensure_ascii=False参数的作用是不将非ASCII字符转义为\uXXXX序列，而是输出它们原本的Unicode形式
@@ -730,7 +730,7 @@ class Api_Requester():
                     Start_request_time = time.time()
 
                     # 获取AI的参数设置
-                    temperature,top_p,presence_penalty,frequency_penalty= configurator.get_model_parameters()
+                    temperature,top_p,presence_penalty,frequency_penalty= configurator.get_openai_parameters()
                     # 如果上一次请求出现模型退化，更改参数
                     if model_degradation:
                         frequency_penalty = 0.2
@@ -831,6 +831,12 @@ class Api_Requester():
                         # 如果开启了保留换行符功能
                         if configurator.preserve_line_breaks_toggle:
                             response_dict = Cache_Manager.replace_special_characters(self,response_dict, "还原")
+
+
+                        #如果开启译后替换字典功能，则根据用户字典进行替换
+                        if Window.Widget_replace_dict.B_settings.checkBox1.isChecked() :
+                            print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
+                            response_dict = configurator.replace_after_translation(response_dict)
 
                         # 录入缓存文件
                         lock1.acquire()  # 获取锁
@@ -973,9 +979,9 @@ class Api_Requester():
             source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
 
         #如果开启译前替换字典功能，则根据用户字典进行替换
-        if Window.Interface21.checkBox1.isChecked() :
+        if Window.Widget_replace_dict.A_settings.checkBox1.isChecked() :
             print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
-            source_text_dict = configurator.replace_strings_dictionary(source_text_dict)
+            source_text_dict = configurator.replace_before_translation(source_text_dict)
 
 
         #将原文本字典转换成JSON格式的字符串，方便发送
@@ -1166,6 +1172,11 @@ class Api_Requester():
                         if configurator.preserve_line_breaks_toggle:
                             response_dict = Cache_Manager.replace_special_characters(self,response_dict, "还原")
 
+                        #如果开启译后替换字典功能，则根据用户字典进行替换
+                        if Window.Widget_replace_dict.B_settings.checkBox1.isChecked() :
+                            print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
+                            response_dict = configurator.replace_after_translation(response_dict)
+
                         # 录入缓存文件
                         lock1.acquire()  # 获取锁
                         Cache_Manager.update_cache_data(self,cache_list, source_text_list, response_dict)
@@ -1296,9 +1307,9 @@ class Api_Requester():
 
 
         #如果开启译前替换字典功能，则根据用户字典进行替换
-        if Window.Interface21.checkBox1.isChecked() :
+        if Window.Widget_replace_dict.A_settings.checkBox1.isChecked() :
             print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
-            source_text_dict = configurator.replace_strings_dictionary(source_text_dict)
+            source_text_dict = configurator.replace_before_translation(source_text_dict)
 
         #将原文本字典转换成JSON格式的字符串，方便发送
         source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
@@ -1457,6 +1468,11 @@ class Api_Requester():
                         if configurator.preserve_line_breaks_toggle:
                             response_dict = Cache_Manager.replace_special_characters(self,response_dict, "还原")
 
+                        #如果开启译后替换字典功能，则根据用户字典进行替换
+                        if Window.Widget_replace_dict.B_settings.checkBox1.isChecked() :
+                            print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
+                            response_dict = configurator.replace_after_translation(response_dict)
+
                         # 录入缓存文件
                         lock1.acquire()  # 获取锁
                         Cache_Manager.update_cache_data(self,cache_list, source_text_list, response_dict)
@@ -1547,9 +1563,9 @@ class Api_Requester():
         source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
 
         #如果开启译前替换字典功能，则根据用户字典进行替换
-        if Window.Interface21.checkBox1.isChecked() :
+        if Window.Widget_replace_dict.A_settings.checkBox1.isChecked() :
             print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
-            source_text_dict = configurator.replace_strings_dictionary(source_text_dict)
+            source_text_dict = configurator.replace_before_translation(source_text_dict)
 
 
 
@@ -1668,7 +1684,7 @@ class Api_Requester():
                     Start_request_time = time.time()
 
                     # 获取AI的参数设置
-                    temperature,top_p,presence_penalty,frequency_penalty= configurator.get_model_parameters()
+                    temperature,top_p,frequency_penalty= configurator.get_sakura_parameters()
                     # 如果上一次请求出现模型退化，更改参数
                     if model_degradation:
                         frequency_penalty = 0.2
@@ -1694,7 +1710,6 @@ class Api_Requester():
                             messages = messages ,
                             temperature=temperature,
                             top_p = top_p,                        
-                            presence_penalty=presence_penalty,
                             frequency_penalty=frequency_penalty,
 
                             max_tokens=512,
@@ -1768,6 +1783,11 @@ class Api_Requester():
 
                         # 强制开启换行符还原功能
                         response_dict = Cache_Manager.replace_special_characters(self,response_dict, "还原")
+
+                        #如果开启译后替换字典功能，则根据用户字典进行替换
+                        if Window.Widget_replace_dict.B_settings.checkBox1.isChecked() :
+                            print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
+                            response_dict = configurator.replace_after_translation(response_dict)
 
                         # 录入缓存文件
                         lock1.acquire()  # 获取锁
@@ -3225,13 +3245,43 @@ class Configurator():
         return original_exmaple,translated_exmaple
 
 
-    # 译前替换字典函数
-    def replace_strings_dictionary(self,dict):
+    # 原文替换字典函数
+    def replace_before_translation(self,dict):
         #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
         data = []
-        for row in range(Window.Interface21.tableView.rowCount() - 1):
-            key_item = Window.Interface21.tableView.item(row, 0)
-            value_item = Window.Interface21.tableView.item(row, 1)
+        for row in range(Window.Widget_replace_dict.A_settings.tableView.rowCount() - 1):
+            key_item = Window.Widget_replace_dict.A_settings.tableView.item(row, 0)
+            value_item = Window.Widget_replace_dict.A_settings.tableView.item(row, 1)
+            if key_item and value_item:
+                key = key_item.text() #key_item.text()是获取单元格的文本内容,如果需要获取转义符号，使用key_item.data(Qt.DisplayRole)
+                value = value_item.text()
+                data.append((key, value))
+
+        # 将表格数据存储到中间字典中
+        dictionary = {}
+        for key, value in data:
+            dictionary[key] = value
+
+        #详细版，增加可读性，但遍历整个文本，内存占用较大，当文本较大时，会报错
+        temp_dict = {}     #存储替换字典后的中文本内容
+        for key_a, value_a in dict.items():
+            for key_b, value_b in dictionary.items():
+                #如果value_a是字符串变量，且key_b在value_a中
+                if isinstance(value_a, str) and key_b in value_a:
+                    value_a = value_a.replace(key_b, value_b)
+            temp_dict[key_a] = value_a
+        
+
+        return temp_dict
+
+
+    # 译文修正字典函数
+    def replace_after_translation(self,dict):
+        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
+        data = []
+        for row in range(Window.Widget_replace_dict.B_settings.tableView.rowCount() - 1):
+            key_item = Window.Widget_replace_dict.B_settings.tableView.item(row, 0)
+            value_item = Window.Widget_replace_dict.B_settings.tableView.item(row, 1)
             if key_item and value_item:
                 key = key_item.text() #key_item.text()是获取单元格的文本内容,如果需要获取转义符号，使用key_item.data(Qt.DisplayRole)
                 value = value_item.text()
@@ -3272,16 +3322,16 @@ class Configurator():
         return self.apikey_list[self.key_index]
 
 
-    # 获取AI模型的参数设置
-    def get_model_parameters(self):
+    # 获取AI模型的参数设置（openai）
+    def get_openai_parameters(self):
         #如果启用实时参数设置
-        if Window.Interface18.checkBox.isChecked() :
-            print("[INFO] 已开启实时调教功能，设置为用户设定的参数")
+        if Window.Widget_tune.A_settings.checkBox.isChecked() :
+            print("[INFO] 已开启OpnAI调教功能，设置为用户设定的参数")
             #获取界面配置信息
-            temperature = Window.Interface18.slider1.value() * 0.1
-            top_p = Window.Interface18.slider2.value() * 0.1
-            presence_penalty = Window.Interface18.slider3.value() * 0.1
-            frequency_penalty = Window.Interface18.slider4.value() * 0.1
+            temperature = Window.Widget_tune.A_settings.slider1.value() * 0.1
+            top_p = Window.Widget_tune.A_settings.slider2.value() * 0.1
+            presence_penalty = Window.Widget_tune.A_settings.slider3.value() * 0.1
+            frequency_penalty = Window.Widget_tune.A_settings.slider4.value() * 0.1
         else:
             temperature = self.openai_temperature      
             top_p = self.openai_top_p              
@@ -3289,6 +3339,23 @@ class Configurator():
             frequency_penalty = self.openai_frequency_penalty
 
         return temperature,top_p,presence_penalty,frequency_penalty
+
+
+    # 获取AI模型的参数设置（sakura）
+    def get_sakura_parameters(self):
+        #如果启用实时参数设置
+        if Window.Widget_tune.B_settings.checkBox.isChecked() :
+            print("[INFO] 已开启Sakura调教功能，设置为用户设定的参数")
+            #获取界面配置信息
+            temperature = Window.Widget_tune.B_settings.slider1.value() * 0.1
+            top_p = Window.Widget_tune.B_settings.slider2.value() * 0.1
+            frequency_penalty = Window.Widget_tune.B_settings.slider4.value() * 0.1
+        else:
+            temperature = self.openai_temperature      
+            top_p = self.openai_top_p              
+            frequency_penalty = self.openai_frequency_penalty
+
+        return temperature,top_p,frequency_penalty
 
     
     # 重新设置发送的文本行数
@@ -3386,17 +3453,30 @@ class Configurator():
 
 
 
-            #获取替换字典界面
-            config_dict["Replace_before_translation"] =  Window.Interface21.checkBox1.isChecked()#获取译前替换开关状态
+            #获取译前替换字典界面
+            config_dict["Replace_before_translation"] =  Window.Widget_replace_dict.A_settings.checkBox1.isChecked()#获取译前替换开关状态
             User_Dictionary1 = {}
-            for row in range(Window.Interface21.tableView.rowCount() - 1):
-                key_item = Window.Interface21.tableView.item(row, 0)
-                value_item = Window.Interface21.tableView.item(row, 1)
+            for row in range(Window.Widget_replace_dict.A_settings.tableView.rowCount() - 1):
+                key_item = Window.Widget_replace_dict.A_settings.tableView.item(row, 0)
+                value_item = Window.Widget_replace_dict.A_settings.tableView.item(row, 1)
                 if key_item and value_item:
                     key = key_item.data(Qt.DisplayRole)
                     value = value_item.data(Qt.DisplayRole)
                     User_Dictionary1[key] = value
             config_dict["User_Dictionary1"] = User_Dictionary1
+
+
+            #获取译后替换字典界面
+            config_dict["Replace_after_translation"] =  Window.Widget_replace_dict.B_settings.checkBox1.isChecked()#获取译后替换开关状态
+            User_Dictionary3 = {}
+            for row in range(Window.Widget_replace_dict.B_settings.tableView.rowCount() - 1):
+                key_item = Window.Widget_replace_dict.B_settings.tableView.item(row, 0)
+                value_item = Window.Widget_replace_dict.B_settings.tableView.item(row, 1)
+                if key_item and value_item:
+                    key = key_item.data(Qt.DisplayRole)
+                    value = value_item.data(Qt.DisplayRole)
+                    User_Dictionary3[key] = value
+            config_dict["User_Dictionary3"] = User_Dictionary3
 
 
             #获取提示字典界面
@@ -3413,11 +3493,16 @@ class Configurator():
 
 
 
-            #获取实时设置界面
-            config_dict["OpenAI_Temperature"] = Window.Interface18.slider1.value()           #获取OpenAI温度
-            config_dict["OpenAI_top_p"] = Window.Interface18.slider2.value()                 #获取OpenAI top_p
-            config_dict["OpenAI_presence_penalty"] = Window.Interface18.slider3.value()      #获取OpenAI top_k
-            config_dict["OpenAI_frequency_penalty"] = Window.Interface18.slider4.value()    #获取OpenAI repetition_penalty
+            #获取实时设置界面(openai)
+            config_dict["OpenAI_Temperature"] = Window.Widget_tune.A_settings.slider1.value()           #获取OpenAI温度
+            config_dict["OpenAI_top_p"] = Window.Widget_tune.A_settings.slider2.value()                 #获取OpenAI top_p
+            config_dict["OpenAI_presence_penalty"] = Window.Widget_tune.A_settings.slider3.value()      #获取OpenAI top_k
+            config_dict["OpenAI_frequency_penalty"] = Window.Widget_tune.A_settings.slider4.value()    #获取OpenAI repetition_penalty
+
+            #获取实时设置界面(sakura)
+            config_dict["Sakura_Temperature"] = Window.Widget_tune.B_settings.slider1.value()           #获取sakura温度
+            config_dict["Sakura_top_p"] = Window.Widget_tune.B_settings.slider2.value()
+            config_dict["Sakura_frequency_penalty"] = Window.Widget_tune.B_settings.slider4.value()
 
 
             #获取提示词工程界面
@@ -3558,22 +3643,41 @@ class Configurator():
 
 
 
-                #替换字典界面
+                #译前替换字典界面
                 if "User_Dictionary1" in config_dict:
                     User_Dictionary1 = config_dict["User_Dictionary1"]
                     if User_Dictionary1:
                         for key, value in User_Dictionary1.items():
-                            row = Window.Interface21.tableView.rowCount() - 1
-                            Window.Interface21.tableView.insertRow(row)
+                            row = Window.Widget_replace_dict.A_settings.tableView.rowCount() - 1
+                            Window.Widget_replace_dict.A_settings.tableView.insertRow(row)
                             key_item = QTableWidgetItem(key)
                             value_item = QTableWidgetItem(value)
-                            Window.Interface21.tableView.setItem(row, 0, key_item)
-                            Window.Interface21.tableView.setItem(row, 1, value_item)        
+                            Window.Widget_replace_dict.A_settings.tableView.setItem(row, 0, key_item)
+                            Window.Widget_replace_dict.A_settings.tableView.setItem(row, 1, value_item)        
                         #删除第一行
-                        Window.Interface21.tableView.removeRow(0)
+                        Window.Widget_replace_dict.A_settings.tableView.removeRow(0)
                 if "Replace_before_translation" in config_dict:
                     Replace_before_translation = config_dict["Replace_before_translation"]
-                    Window.Interface21.checkBox1.setChecked(Replace_before_translation)
+                    Window.Widget_replace_dict.A_settings.checkBox1.setChecked(Replace_before_translation)
+
+
+                #译后替换字典界面
+                if "User_Dictionary3" in config_dict:
+                    User_Dictionary3 = config_dict["User_Dictionary3"]
+                    if User_Dictionary3:
+                        for key, value in User_Dictionary3.items():
+                            row = Window.Widget_replace_dict.B_settings.tableView.rowCount() - 1
+                            Window.Widget_replace_dict.B_settings.tableView.insertRow(row)
+                            key_item = QTableWidgetItem(key)
+                            value_item = QTableWidgetItem(value)
+                            Window.Widget_replace_dict.B_settings.tableView.setItem(row, 0, key_item)
+                            Window.Widget_replace_dict.B_settings.tableView.setItem(row, 1, value_item)
+                        #删除第一行
+                        Window.Widget_replace_dict.B_settings.tableView.removeRow(0)
+                if "Replace_after_translation" in config_dict:
+                    Replace_after_translation = config_dict["Replace_after_translation"]
+                    Window.Widget_replace_dict.B_settings.checkBox1.setChecked(Replace_after_translation)
+
 
 
                 #提示字典界面
@@ -3594,19 +3698,31 @@ class Configurator():
                     Window.Interface23.checkBox2.setChecked(Change_translation_prompt)
 
 
-                #实时设置界面
+                #实时设置界面(openai)
                 if "OpenAI_Temperature" in config_dict:
                     OpenAI_Temperature = config_dict["OpenAI_Temperature"]
-                    Window.Interface18.slider1.setValue(OpenAI_Temperature)
+                    Window.Widget_tune.A_settings.slider1.setValue(OpenAI_Temperature)
                 if "OpenAI_top_p" in config_dict:
                     OpenAI_top_p = config_dict["OpenAI_top_p"]
-                    Window.Interface18.slider2.setValue(OpenAI_top_p)
+                    Window.Widget_tune.A_settings.slider2.setValue(OpenAI_top_p)
                 if "OpenAI_presence_penalty" in config_dict:
                     OpenAI_presence_penalty = config_dict["OpenAI_presence_penalty"]
-                    Window.Interface18.slider3.setValue(OpenAI_presence_penalty)
+                    Window.Widget_tune.A_settings.slider3.setValue(OpenAI_presence_penalty)
                 if "OpenAI_frequency_penalty" in config_dict:
                     OpenAI_frequency_penalty = config_dict["OpenAI_frequency_penalty"]
-                    Window.Interface18.slider4.setValue(OpenAI_frequency_penalty)
+                    Window.Widget_tune.A_settings.slider4.setValue(OpenAI_frequency_penalty)
+
+
+                #实时设置界面(sakura)
+                if "Sakura_Temperature" in config_dict:
+                    Sakura_Temperature = config_dict["Sakura_Temperature"]
+                    Window.Widget_tune.B_settings.slider1.setValue(Sakura_Temperature)
+                if "Sakura_top_p" in config_dict:
+                    Sakura_top_p = config_dict["Sakura_top_p"]
+                    Window.Widget_tune.B_settings.slider2.setValue(Sakura_top_p)
+                if  "Sakura_frequency_penalty" in config_dict:
+                    Sakura_frequency_penalty = config_dict["Sakura_frequency_penalty"]
+                    Window.Widget_tune.B_settings.slider4.setValue(Sakura_frequency_penalty)
 
                 #提示词工程界面
                 if "Custom_Prompt_Switch" in config_dict:
@@ -7805,12 +7921,12 @@ class Widget_tune(QFrame):  # 实时调教主界面
         self.stackedWidget = QStackedWidget(self)  # 创建一个 QStackedWidget 实例，堆叠式窗口
         self.vBoxLayout = QVBoxLayout(self)  # 创建一个垂直布局管理器
 
-        self.A_settings = Widget_start_translation_A('A_settings', self)  # 创建实例，指向界面
-        self.B_settings = Widget_start_translation_B('B_settings', self)  # 创建实例，指向界面
+        self.A_settings = Widget_tune_openai('A_settings', self)  # 创建实例，指向界面
+        self.B_settings = Widget_tune_sakura('B_settings', self)  # 创建实例，指向界面
 
         # 添加子界面到分段式导航栏
-        self.addSubInterface(self.A_settings, 'A_settings', '开始翻译')
-        self.addSubInterface(self.B_settings, 'B_settings', '备份功能')
+        self.addSubInterface(self.A_settings, 'A_settings', 'OpenAI')
+        self.addSubInterface(self.B_settings, 'B_settings', 'Sakura')
 
         # 将分段式导航栏和堆叠式窗口添加到垂直布局中
         self.vBoxLayout.addWidget(self.pivot)
@@ -7843,6 +7959,1018 @@ class Widget_tune(QFrame):  # 实时调教主界面
         self.pivot.setCurrentItem(widget.objectName())
 
 
+class Widget_tune_openai(QFrame):# oepnai调教界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+
+        # -----创建第1个组，添加多个组件-----
+        box1 = QGroupBox()
+        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1 = QHBoxLayout()
+
+
+        #设置“启用实时参数”标签
+        label0 = QLabel(flags=Qt.WindowFlags())  
+        label0.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label0.setText("实时改变AI参数")
+
+        #设置官方文档说明链接按钮
+        hyperlinkButton = HyperlinkButton(
+            url='https://platform.openai.com/docs/api-reference/chat/create',
+            text='(官方文档)'
+        )
+
+        #设置“启用实时参数”开关
+        self.checkBox = CheckBox('启用', self)
+        self.checkBox.stateChanged.connect(self.checkBoxChanged)
+
+
+        layout1.addWidget(label0)
+        layout1.addWidget(hyperlinkButton)
+        layout1.addStretch(1)  # 添加伸缩项
+        layout1.addWidget(self.checkBox)
+        box1.setLayout(layout1)
+
+
+
+        # -----创建第2个组，添加多个组件-----
+        box2 = QGroupBox()
+        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout2 = QHBoxLayout()
+
+        #设置“官方文档”标签
+        label01 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label01.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label01.setText("官方文档说明")
+
+        #设置官方文档说明链接按钮
+        pushButton1 = PushButton('文档链接', self)
+        pushButton1.clicked.connect(lambda: QDesktopServices.openUrl(QUrl('https://platform.openai.com/docs/api-reference/chat/create')))
+
+
+        layout2.addWidget(label01)
+        layout2.addStretch(1)  # 添加伸缩项
+        layout2.addWidget(pushButton1)
+        box2.setLayout(layout2)
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box3 = QGroupBox()
+        box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout3 = QHBoxLayout()
+
+        #设置“温度”标签
+        label1 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label1.setText("Temperature")
+
+        #设置“温度”副标签
+        label11 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label11.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 10px;  color: black")
+        label11.setText("(官方默认值为1)")
+
+        #设置“温度”滑动条
+        self.slider1 = Slider(Qt.Horizontal, self)
+        self.slider1.setFixedWidth(200)
+
+        # 创建一个QLabel控件，并设置初始文本为滑动条的初始值,并实时更新
+        self.label2 = QLabel(str(self.slider1.value()), self)
+        self.label2.setFixedSize(100, 15)  # 设置标签框的大小，不然会显示不全
+        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px;  color: black")
+        self.slider1.valueChanged.connect(lambda value: self.label2.setText(str("{:.1f}".format(value * 0.1))))
+
+        #设置滑动条的最小值、最大值、当前值，放到后面是为了让上面的label2显示正确的值
+        self.slider1.setMinimum(0)
+        self.slider1.setMaximum(20)
+        self.slider1.setValue(0)
+
+        
+
+        layout3.addWidget(label1)
+        layout3.addWidget(label11)
+        layout3.addStretch(1)  # 添加伸缩项
+        layout3.addWidget(self.slider1)
+        layout3.addWidget(self.label2)
+        box3.setLayout(layout3)
+
+
+
+
+
+
+        # -----创建第5个组，添加多个组件-----
+        box5 = QGroupBox()
+        box5.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout5 = QHBoxLayout()
+
+        #设置“top_p”标签
+        label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label4.setText("Top_p")
+
+        #设置“top_p”副标签
+        label41 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label41.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 10px;  color: black")
+        label41.setText("(官方默认值为1)")
+
+
+        #设置“top_p”滑动条
+        self.slider2 = Slider(Qt.Horizontal, self)
+        self.slider2.setFixedWidth(200)
+
+
+        # 创建一个QLabel控件，并设置初始文本为滑动条的初始值,并实时更新
+        self.label5 = QLabel(str(self.slider2.value()), self)
+        self.label5.setFixedSize(100, 15)  # 设置标签框的大小，不然会显示不全
+        self.label5.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px;  color: black")
+        self.slider2.valueChanged.connect(lambda value: self.label5.setText(str("{:.1f}".format(value * 0.1))))
+
+        #设置滑动条的最小值、最大值、当前值，放在后面是为了让上面的label5显示正确的值和格式
+        self.slider2.setMinimum(0)
+        self.slider2.setMaximum(10)
+        self.slider2.setValue(10)
+
+
+
+        layout5.addWidget(label4)
+        layout5.addWidget(label41)
+        layout5.addStretch(1)  # 添加伸缩项
+        layout5.addWidget(self.slider2)
+        layout5.addWidget(self.label5)
+        box5.setLayout(layout5)
+
+
+
+
+
+
+
+
+        # -----创建第7个组，添加多个组件-----
+        box7 = QGroupBox()
+        box7.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout7 = QHBoxLayout()
+
+        #设置“presence_penalty”标签
+        label7 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label7.setText("Presence_penalty")
+
+        #设置“presence_penalty”副标签
+        label71 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label71.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 10px;  color: black")
+        label71.setText("(官方默认值为0)")
+
+
+        #设置“presence_penalty”滑动条
+        self.slider3 = Slider(Qt.Horizontal, self)
+        self.slider3.setFixedWidth(200)
+
+        # 创建一个QLabel控件，并设置初始文本为滑动条的初始值,并实时更新
+        self.label8 = QLabel(str(self.slider3.value()), self)
+        self.label8.setFixedSize(100, 15)  # 设置标签框的大小，不然会显示不全
+        self.label8.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px;  color: black")
+        self.slider3.valueChanged.connect(lambda value: self.label8.setText(str("{:.1f}".format(value * 0.1))))
+
+        #设置滑动条的最小值、最大值、当前值，放到后面是为了让上面的label8显示正确的值和格式
+        self.slider3.setMinimum(-20)
+        self.slider3.setMaximum(20)
+        self.slider3.setValue(0)
+
+
+
+        layout7.addWidget(label7)
+        layout7.addWidget(label71)
+        layout7.addStretch(1)  # 添加伸缩项
+        layout7.addWidget(self.slider3)
+        layout7.addWidget(self.label8)
+        box7.setLayout(layout7)
+
+
+
+
+
+
+        # -----创建第9个组，添加多个组件-----
+        box9 = QGroupBox()
+        box9.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout9 = QHBoxLayout()
+
+        #设置“frequency_penalty”标签
+        label9 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label9.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label9.setText("Frequency_penalty")
+
+        #设置“presence_penalty”副标签
+        label91 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label91.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 10px;  color: black")
+        label91.setText("(官方默认值为0)")
+
+        #设置“frequency_penalty”滑动条
+        self.slider4 = Slider(Qt.Horizontal, self)
+        self.slider4.setFixedWidth(200)
+
+        # 创建一个QLabel控件，并设置初始文本为滑动条的初始值,并实时更新
+        self.label10 = QLabel(str(self.slider4.value()), self)
+        self.label10.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px;  color: black")
+        self.label10.setFixedSize(100, 15)  # 设置标签框的大小，不然会显示不全
+        self.slider4.valueChanged.connect(lambda value: self.label10.setText(str("{:.1f}".format(value * 0.1))))
+
+        #设置滑动条的最小值、最大值、当前值，放到后面是为了让上面的label10显示正确的值和格式
+        self.slider4.setMinimum(-20)
+        self.slider4.setMaximum(20)
+        self.slider4.setValue(0)
+
+
+        layout9.addWidget(label9)
+        layout9.addWidget(label91)
+        layout9.addStretch(1)  # 添加伸缩项
+        layout9.addWidget(self.slider4)
+        layout9.addWidget(self.label10)
+        box9.setLayout(layout9)
+
+
+
+
+
+        # 把内容添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box1)
+        container.addWidget(box3)
+        container.addWidget(box5)
+        container.addWidget(box7)
+        container.addWidget(box9)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+    # 勾选事件
+    def checkBoxChanged(self, isChecked: bool):
+        if isChecked :
+            user_interface_prompter.createSuccessInfoBar("已启用实时调教功能")
+
+
+class Widget_tune_sakura(QFrame):# sakura调教界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+
+         # 最外层的垂直布局
+        container = QVBoxLayout()
+
+
+        # -----创建第1个组，添加多个组件-----
+        box1 = QGroupBox()
+        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1 = QHBoxLayout()
+
+
+        #设置“启用实时参数”标签
+        label0 = QLabel(flags=Qt.WindowFlags())  
+        label0.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label0.setText("实时改变AI参数")
+
+        #设置官方文档说明链接按钮
+        hyperlinkButton = HyperlinkButton(
+            url='https://github.com/SakuraLLM/Sakura-13B-Galgame',
+            text='(Github主页)'
+        )
+
+        #设置“启用实时参数”开关
+        self.checkBox = CheckBox('启用', self)
+        self.checkBox.stateChanged.connect(self.checkBoxChanged)
+
+
+        layout1.addWidget(label0)
+        layout1.addWidget(hyperlinkButton)
+        layout1.addStretch(1)  # 添加伸缩项
+        layout1.addWidget(self.checkBox)
+        box1.setLayout(layout1)
+
+
+
+        # -----创建第2个组，添加多个组件-----
+        box2 = QGroupBox()
+        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout2 = QHBoxLayout()
+
+        #设置“官方文档”标签
+        label01 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label01.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label01.setText("官方文档说明")
+
+        #设置官方文档说明链接按钮
+        pushButton1 = PushButton('文档链接', self)
+        pushButton1.clicked.connect(lambda: QDesktopServices.openUrl(QUrl('https://platform.openai.com/docs/api-reference/chat/create')))
+
+
+        layout2.addWidget(label01)
+        layout2.addStretch(1)  # 添加伸缩项
+        layout2.addWidget(pushButton1)
+        box2.setLayout(layout2)
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box3 = QGroupBox()
+        box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout3 = QHBoxLayout()
+
+        #设置“温度”标签
+        label1 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label1.setText("Temperature")
+
+        #设置“温度”副标签
+        label11 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label11.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 10px;  color: black")
+        label11.setText("(官方默认值为0.1)")
+
+        #设置“温度”滑动条
+        self.slider1 = Slider(Qt.Horizontal, self)
+        self.slider1.setFixedWidth(200)
+
+        # 创建一个QLabel控件，并设置初始文本为滑动条的初始值,并实时更新
+        self.label2 = QLabel(str(self.slider1.value()), self)
+        self.label2.setFixedSize(100, 15)  # 设置标签框的大小，不然会显示不全
+        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px;  color: black")
+        self.slider1.valueChanged.connect(lambda value: self.label2.setText(str("{:.1f}".format(value * 0.1))))
+
+        #设置滑动条的最小值、最大值、当前值，放到后面是为了让上面的label2显示正确的值
+        self.slider1.setMinimum(0)
+        self.slider1.setMaximum(20)
+        self.slider1.setValue(1)
+
+        
+
+        layout3.addWidget(label1)
+        layout3.addWidget(label11)
+        layout3.addStretch(1)  # 添加伸缩项
+        layout3.addWidget(self.slider1)
+        layout3.addWidget(self.label2)
+        box3.setLayout(layout3)
+
+
+
+
+
+
+        # -----创建第5个组，添加多个组件-----
+        box5 = QGroupBox()
+        box5.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout5 = QHBoxLayout()
+
+        #设置“top_p”标签
+        label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label4.setText("Top_p")
+
+        #设置“top_p”副标签
+        label41 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label41.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 10px;  color: black")
+        label41.setText("(官方默认值为0.3)")
+
+
+        #设置“top_p”滑动条
+        self.slider2 = Slider(Qt.Horizontal, self)
+        self.slider2.setFixedWidth(200)
+
+
+        # 创建一个QLabel控件，并设置初始文本为滑动条的初始值,并实时更新
+        self.label5 = QLabel(str(self.slider2.value()), self)
+        self.label5.setFixedSize(100, 15)  # 设置标签框的大小，不然会显示不全
+        self.label5.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px;  color: black")
+        self.slider2.valueChanged.connect(lambda value: self.label5.setText(str("{:.1f}".format(value * 0.1))))
+
+        #设置滑动条的最小值、最大值、当前值，放在后面是为了让上面的label5显示正确的值和格式
+        self.slider2.setMinimum(0)
+        self.slider2.setMaximum(10)
+        self.slider2.setValue(3)
+
+
+
+        layout5.addWidget(label4)
+        layout5.addWidget(label41)
+        layout5.addStretch(1)  # 添加伸缩项
+        layout5.addWidget(self.slider2)
+        layout5.addWidget(self.label5)
+        box5.setLayout(layout5)
+
+
+
+
+
+
+
+
+        # -----创建第9个组，添加多个组件-----
+        box9 = QGroupBox()
+        box9.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout9 = QHBoxLayout()
+
+        #设置“frequency_penalty”标签
+        label9 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label9.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label9.setText("Frequency_penalty")
+
+        #设置“presence_penalty”副标签
+        label91 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label91.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 10px;  color: black")
+        label91.setText("(官方默认值为0)")
+
+        #设置“frequency_penalty”滑动条
+        self.slider4 = Slider(Qt.Horizontal, self)
+        self.slider4.setFixedWidth(200)
+
+        # 创建一个QLabel控件，并设置初始文本为滑动条的初始值,并实时更新
+        self.label10 = QLabel(str(self.slider4.value()), self)
+        self.label10.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px;  color: black")
+        self.label10.setFixedSize(100, 15)  # 设置标签框的大小，不然会显示不全
+        self.slider4.valueChanged.connect(lambda value: self.label10.setText(str("{:.1f}".format(value * 0.1))))
+
+        #设置滑动条的最小值、最大值、当前值，放到后面是为了让上面的label10显示正确的值和格式
+        self.slider4.setMinimum(-20)
+        self.slider4.setMaximum(20)
+        self.slider4.setValue(0)
+
+
+        layout9.addWidget(label9)
+        layout9.addWidget(label91)
+        layout9.addStretch(1)  # 添加伸缩项
+        layout9.addWidget(self.slider4)
+        layout9.addWidget(self.label10)
+        box9.setLayout(layout9)
+
+
+
+
+
+        # 把内容添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box1)
+        container.addWidget(box3)
+        container.addWidget(box5)
+        container.addWidget(box9)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+    # 勾选事件
+    def checkBoxChanged(self, isChecked: bool):
+        if isChecked :
+            user_interface_prompter.createSuccessInfoBar("已启用Sakura实时调教功能")
+
+
+
+
+
+class Widget_replace_dict(QFrame):  # 替换字典主界面
+    def __init__(self, text: str, parent=None):  # 构造函数，初始化实例时会自动调用
+        super().__init__(parent=parent)  # 调用父类 QWidget 的构造函数
+        self.setObjectName(text.replace(' ', '-'))  # 设置对象名，用于在 NavigationInterface 中的 addItem 方法中的 routeKey 参数中使用
+
+
+        self.pivot = SegmentedWidget(self)  # 创建一个 SegmentedWidget 实例，分段式导航栏
+        self.stackedWidget = QStackedWidget(self)  # 创建一个 QStackedWidget 实例，堆叠式窗口
+        self.vBoxLayout = QVBoxLayout(self)  # 创建一个垂直布局管理器
+
+        self.A_settings = Widget_before_dict('A_settings', self)  # 创建实例，指向界面
+        self.B_settings = Widget_after_dict('B_settings', self)  # 创建实例，指向界面
+
+        # 添加子界面到分段式导航栏
+        self.addSubInterface(self.A_settings, 'A_settings', '译前替换')
+        self.addSubInterface(self.B_settings, 'B_settings', '译后替换')
+
+        # 将分段式导航栏和堆叠式窗口添加到垂直布局中
+        self.vBoxLayout.addWidget(self.pivot)
+        self.vBoxLayout.addWidget(self.stackedWidget)
+        self.vBoxLayout.setContentsMargins(30, 50, 30, 30)  # 设置布局的外边距
+
+        # 连接堆叠式窗口的 currentChanged 信号到槽函数 onCurrentIndexChanged
+        self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
+        self.stackedWidget.setCurrentWidget(self.A_settings)  # 设置默认显示的子界面为xxx界面
+        self.pivot.setCurrentItem(self.A_settings.objectName())  # 设置分段式导航栏的当前项为xxx界面
+
+    def addSubInterface(self, widget: QLabel, objectName, text):
+        """
+        添加子界面到堆叠式窗口和分段式导航栏
+        """
+        widget.setObjectName(objectName)
+        #widget.setAlignment(Qt.AlignCenter) # 设置 widget 对象的文本（如果是文本控件）在控件中的水平对齐方式
+        self.stackedWidget.addWidget(widget)
+        self.pivot.addItem(
+            routeKey=objectName,
+            text=text,
+            onClick=lambda: self.stackedWidget.setCurrentWidget(widget),
+        )
+
+    def onCurrentIndexChanged(self, index):
+        """
+        槽函数：堆叠式窗口的 currentChanged 信号的槽函数
+        """
+        widget = self.stackedWidget.widget(index)
+        self.pivot.setCurrentItem(widget.objectName())
+
+
+class Widget_before_dict(QFrame):# 原文替换字典界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+        # self.scrollWidget = QWidget() #创建滚动窗口
+        # #self.scrollWidget.resize(500, 400)    #设置滚动窗口大小
+        # #self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff) #设置水平滚动条不可见
+        # self.setViewportMargins(0, 0, 0, 0)   #设置滚动窗口的边距      
+        # self.setWidget(self.scrollWidget)  #设置滚动窗口的内容  
+        # self.setWidgetResizable(True)   #设置滚动窗口的内容可调整大小
+        # self.verticalScrollBar().sliderPressed.connect(self.scrollContents) #滚动条滚动时，调用的函数
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+        # -----创建第1个组，添加放置表格-----
+        self.tableView = TableWidget(self)
+        self.tableView.setWordWrap(False) #设置表格内容不换行
+        self.tableView.setRowCount(2) #设置表格行数
+        self.tableView.setColumnCount(2) #设置表格列数
+        #self.tableView.verticalHeader().hide() #隐藏垂直表头
+        self.tableView.setHorizontalHeaderLabels(['Src', 'Dst']) #设置水平表头
+        self.tableView.resizeColumnsToContents() #设置列宽度自适应内容
+        self.tableView.resizeRowsToContents() #设置行高度自适应内容
+        self.tableView.setEditTriggers(QAbstractItemView.AllEditTriggers)   # 设置所有单元格可编辑
+        #self.tableView.setFixedSize(500, 300)         # 设置表格大小
+        self.tableView.setMaximumHeight(400)          # 设置表格的最大高度
+        self.tableView.setMinimumHeight(400)             # 设置表格的最小高度
+        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
+        #self.tableView.setSortingEnabled(True)  #设置表格可排序
+
+
+        # songInfos = [
+        #     ['かばん', 'aiko']
+        # ]
+        # for i, songInfo in enumerate(songInfos): #遍历数据
+        #     for j in range(2): #遍历每一列
+        #         self.tableView.setItem(i, j, QTableWidgetItem(songInfo[j])) #设置每个单元格的内容
+
+
+        # 在表格最后一行第一列添加"添加行"按钮
+        button = PushButton('添新行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
+        button.clicked.connect(self.add_row)
+        # 在表格最后一行第二列添加"删除空白行"按钮
+        button = PushButton('删空行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
+        button.clicked.connect(self.delete_blank_row)
+
+
+
+        # -----创建第1_1个组，添加多个组件-----
+        box1_1 = QGroupBox()
+        box1_1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_1 = QHBoxLayout()
+
+
+        #设置导入字典按钮
+        self.pushButton1 = PushButton('导入字典', self, FIF.DOWNLOAD)
+        self.pushButton1.clicked.connect(self.Importing_dictionaries) #按钮绑定槽函数
+
+        #设置导出字典按钮
+        self.pushButton2 = PushButton('导出字典', self, FIF.SHARE)
+        self.pushButton2.clicked.connect(self.Exporting_dictionaries) #按钮绑定槽函数
+
+        #设置清空字典按钮
+        self.pushButton3 = PushButton('清空字典', self, FIF.DELETE)
+        self.pushButton3.clicked.connect(self.Empty_dictionary) #按钮绑定槽函数
+
+        #设置保存字典按钮
+        self.pushButton4 = PushButton('保存字典', self, FIF.SAVE)
+        self.pushButton4.clicked.connect(self.Save_dictionary) #按钮绑定槽函数
+
+
+        layout1_1.addWidget(self.pushButton1)
+        layout1_1.addStretch(1)  # 添加伸缩项
+        layout1_1.addWidget(self.pushButton2)
+        layout1_1.addStretch(1)  # 添加伸缩项
+        layout1_1.addWidget(self.pushButton3)
+        layout1_1.addStretch(1)  # 添加伸缩项
+        layout1_1.addWidget(self.pushButton4)
+        box1_1.setLayout(layout1_1)
+
+
+
+
+        # -----创建第2个组，添加多个组件-----
+        box2 = QGroupBox()
+        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout2 = QHBoxLayout()
+
+        #设置“译前替换”标签
+        label1 = QLabel( flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label1.setText("原文替换")
+
+        #设置“译前替换”显示
+        self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label2.setText("(翻译前，将根据字典内容对原文文本进行替换)")
+
+
+        #设置“译前替换”开
+        self.checkBox1 = CheckBox('启用功能')
+        self.checkBox1.stateChanged.connect(self.checkBoxChanged1)
+
+        layout2.addWidget(label1)
+        layout2.addWidget(self.label2)
+        layout2.addStretch(1)  # 添加伸缩项
+        layout2.addWidget(self.checkBox1)
+        box2.setLayout(layout2)
+
+
+
+
+        # 把内容添加到容器中 
+        container.addWidget(box2)   
+        container.addWidget(self.tableView)
+        container.addWidget(box1_1)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        #self.scrollWidget.setLayout(container)
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下 
+
+    #滚动条滚动时，调用的函数
+    def scrollContents(self, position):
+        self.scrollWidget.move(0, position) 
+
+    #添加行按钮
+    def add_row(self):
+        # 添加新行在按钮所在行前面
+        self.tableView.insertRow(self.tableView.rowCount()-1)
+        #设置新行的高度与前一行相同
+        self.tableView.setRowHeight(self.tableView.rowCount()-2, self.tableView.rowHeight(self.tableView.rowCount()-3))
+
+    #删除空白行按钮
+    def delete_blank_row(self):
+        #表格行数大于2时，删除表格内第一列和第二列为空或者空字符串的行
+        if self.tableView.rowCount() > 2:
+            # 删除表格内第一列和第二列为空或者空字符串的行
+            for i in range(self.tableView.rowCount()-1):
+                if self.tableView.item(i, 0) is None or self.tableView.item(i, 0).text() == '':
+                    self.tableView.removeRow(i)
+                    break
+                elif self.tableView.item(i, 1) is None or self.tableView.item(i, 1).text() == '':
+                    self.tableView.removeRow(i)
+                    break
+
+    #导入字典按钮
+    def Importing_dictionaries(self):
+        # 选择文件
+        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'JSON Files (*.json)')      #调用QFileDialog类里的函数来选择文件
+        if Input_File:
+            print(f'[INFO]  已选择字典导入文件: {Input_File}')
+        else :
+            print('[INFO]  未选择文件')
+            return
+        
+        # 读取文件
+        with open(Input_File, 'r', encoding="utf-8") as f:
+            dictionary = json.load(f)
+        
+        # 将字典中的数据从表格底部添加到表格中
+        for key, value in dictionary.items():
+            row = self.tableView.rowCount() - 1 #获取表格的倒数行数
+            self.tableView.insertRow(row)    # 在表格中插入一行
+            self.tableView.setItem(row, 0, QTableWidgetItem(key))
+            self.tableView.setItem(row, 1, QTableWidgetItem(value))
+            #设置新行的高度与前一行相同
+            self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
+
+        user_interface_prompter.createSuccessInfoBar("导入成功")
+        print(f'[INFO]  已导入字典文件')
+    
+    #导出字典按钮
+    def Exporting_dictionaries(self):
+        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一列作为key，第二列作为value，存储中间字典中
+        data = []
+        for row in range(self.tableView.rowCount() - 1):
+            key_item = self.tableView.item(row, 0)
+            value_item = self.tableView.item(row, 1)
+            if key_item and value_item:
+                key = key_item.text()
+                value = value_item.text()
+                data.append((key, value))
+
+        # 将数据存储到中间字典中
+        dictionary = {}
+        for key, value in data:
+            dictionary[key] = value
+
+        # 选择文件保存路径
+        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Output_Folder:
+            print(f'[INFO]  已选择字典导出文件夹: {Output_Folder}')
+        else :
+            print('[INFO]  未选择文件夹')
+            return  # 直接返回，不执行后续操作
+
+        # 将字典保存到文件中
+        with open(os.path.join(Output_Folder, "用户译前替换字典.json"), 'w', encoding="utf-8") as f:
+            json.dump(dictionary, f, ensure_ascii=False, indent=4)
+
+        user_interface_prompter.createSuccessInfoBar("导出成功")
+        print(f'[INFO]  已导出字典文件')
+
+    #清空字典按钮
+    def Empty_dictionary(self):
+        #清空表格
+        self.tableView.clearContents()
+        #设置表格的行数为1
+        self.tableView.setRowCount(2)
+        
+        # 在表格最后一行第一列添加"添加行"按钮
+        button = PushButton('添新行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
+        button.clicked.connect(self.add_row)
+        # 在表格最后一行第二列添加"删除空白行"按钮
+        button = PushButton('删空行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
+        button.clicked.connect(self.delete_blank_row)
+
+        user_interface_prompter.createSuccessInfoBar("清空成功")
+        print(f'[INFO]  已清空字典')
+
+    #保存字典按钮
+    def Save_dictionary(self):
+        configurator.read_write_config("write") 
+        user_interface_prompter.createSuccessInfoBar("保存成功")
+        print(f'[INFO]  已保存字典')
+
+
+    #提示函数
+    def checkBoxChanged1(self, isChecked: bool):
+        if isChecked :
+            user_interface_prompter.createSuccessInfoBar("已开启译前替换功能，将依据表格内容进行替换")
+    
+
+class Widget_after_dict(QFrame):# 译文修正字典界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+        # self.scrollWidget = QWidget() #创建滚动窗口
+        # #self.scrollWidget.resize(500, 400)    #设置滚动窗口大小
+        # #self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff) #设置水平滚动条不可见
+        # self.setViewportMargins(0, 0, 0, 0)   #设置滚动窗口的边距      
+        # self.setWidget(self.scrollWidget)  #设置滚动窗口的内容  
+        # self.setWidgetResizable(True)   #设置滚动窗口的内容可调整大小
+        # self.verticalScrollBar().sliderPressed.connect(self.scrollContents) #滚动条滚动时，调用的函数
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+        # -----创建第1个组，添加放置表格-----
+        self.tableView = TableWidget(self)
+        self.tableView.setWordWrap(False) #设置表格内容不换行
+        self.tableView.setRowCount(2) #设置表格行数
+        self.tableView.setColumnCount(2) #设置表格列数
+        #self.tableView.verticalHeader().hide() #隐藏垂直表头
+        self.tableView.setHorizontalHeaderLabels(['Src', 'Dst']) #设置水平表头
+        self.tableView.resizeColumnsToContents() #设置列宽度自适应内容
+        self.tableView.resizeRowsToContents() #设置行高度自适应内容
+        self.tableView.setEditTriggers(QAbstractItemView.AllEditTriggers)   # 设置所有单元格可编辑
+        #self.tableView.setFixedSize(500, 300)         # 设置表格大小
+        self.tableView.setMaximumHeight(400)          # 设置表格的最大高度
+        self.tableView.setMinimumHeight(400)             # 设置表格的最小高度
+        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
+        #self.tableView.setSortingEnabled(True)  #设置表格可排序
+
+
+        # songInfos = [
+        #     ['かばん', 'aiko']
+        # ]
+        # for i, songInfo in enumerate(songInfos): #遍历数据
+        #     for j in range(2): #遍历每一列
+        #         self.tableView.setItem(i, j, QTableWidgetItem(songInfo[j])) #设置每个单元格的内容
+
+
+        # 在表格最后一行第一列添加"添加行"按钮
+        button = PushButton('添新行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
+        button.clicked.connect(self.add_row)
+        # 在表格最后一行第二列添加"删除空白行"按钮
+        button = PushButton('删空行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
+        button.clicked.connect(self.delete_blank_row)
+
+
+
+        # -----创建第1_1个组，添加多个组件-----
+        box1_1 = QGroupBox()
+        box1_1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_1 = QHBoxLayout()
+
+
+        #设置导入字典按钮
+        self.pushButton1 = PushButton('导入字典', self, FIF.DOWNLOAD)
+        self.pushButton1.clicked.connect(self.Importing_dictionaries) #按钮绑定槽函数
+
+        #设置导出字典按钮
+        self.pushButton2 = PushButton('导出字典', self, FIF.SHARE)
+        self.pushButton2.clicked.connect(self.Exporting_dictionaries) #按钮绑定槽函数
+
+        #设置清空字典按钮
+        self.pushButton3 = PushButton('清空字典', self, FIF.DELETE)
+        self.pushButton3.clicked.connect(self.Empty_dictionary) #按钮绑定槽函数
+
+        #设置保存字典按钮
+        self.pushButton4 = PushButton('保存字典', self, FIF.SAVE)
+        self.pushButton4.clicked.connect(self.Save_dictionary) #按钮绑定槽函数
+
+
+        layout1_1.addWidget(self.pushButton1)
+        layout1_1.addStretch(1)  # 添加伸缩项
+        layout1_1.addWidget(self.pushButton2)
+        layout1_1.addStretch(1)  # 添加伸缩项
+        layout1_1.addWidget(self.pushButton3)
+        layout1_1.addStretch(1)  # 添加伸缩项
+        layout1_1.addWidget(self.pushButton4)
+        box1_1.setLayout(layout1_1)
+
+
+
+
+        # -----创建第2个组，添加多个组件-----
+        box2 = QGroupBox()
+        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout2 = QHBoxLayout()
+
+        #设置“译前替换”标签
+        label1 = QLabel( flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label1.setText("译文修正")
+
+        #设置“译前替换”显示
+        self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label2.setText("(翻译完成后，根据字典内容对译文文本进行替换)")
+
+
+        #设置“译前替换”开
+        self.checkBox1 = CheckBox('启用功能')
+        self.checkBox1.stateChanged.connect(self.checkBoxChanged1)
+
+        layout2.addWidget(label1)
+        layout2.addWidget(self.label2)
+        layout2.addStretch(1)  # 添加伸缩项
+        layout2.addWidget(self.checkBox1)
+        box2.setLayout(layout2)
+
+
+
+
+        # 把内容添加到容器中 
+        container.addWidget(box2)   
+        container.addWidget(self.tableView)
+        container.addWidget(box1_1)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        #self.scrollWidget.setLayout(container)
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下    
+
+    #滚动条滚动时，调用的函数
+    def scrollContents(self, position):
+        self.scrollWidget.move(0, position) 
+
+    #添加行按钮
+    def add_row(self):
+        # 添加新行在按钮所在行前面
+        self.tableView.insertRow(self.tableView.rowCount()-1)
+        #设置新行的高度与前一行相同
+        self.tableView.setRowHeight(self.tableView.rowCount()-2, self.tableView.rowHeight(self.tableView.rowCount()-3))
+
+    #删除空白行按钮
+    def delete_blank_row(self):
+        #表格行数大于2时，删除表格内第一列和第二列为空或者空字符串的行
+        if self.tableView.rowCount() > 2:
+            # 删除表格内第一列和第二列为空或者空字符串的行
+            for i in range(self.tableView.rowCount()-1):
+                if self.tableView.item(i, 0) is None or self.tableView.item(i, 0).text() == '':
+                    self.tableView.removeRow(i)
+                    break
+                elif self.tableView.item(i, 1) is None or self.tableView.item(i, 1).text() == '':
+                    self.tableView.removeRow(i)
+                    break
+
+    #导入字典按钮
+    def Importing_dictionaries(self):
+        # 选择文件
+        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'JSON Files (*.json)')      #调用QFileDialog类里的函数来选择文件
+        if Input_File:
+            print(f'[INFO]  已选择字典导入文件: {Input_File}')
+        else :
+            print('[INFO]  未选择文件')
+            return
+        
+        # 读取文件
+        with open(Input_File, 'r', encoding="utf-8") as f:
+            dictionary = json.load(f)
+        
+        # 将字典中的数据从表格底部添加到表格中
+        for key, value in dictionary.items():
+            row = self.tableView.rowCount() - 1 #获取表格的倒数行数
+            self.tableView.insertRow(row)    # 在表格中插入一行
+            self.tableView.setItem(row, 0, QTableWidgetItem(key))
+            self.tableView.setItem(row, 1, QTableWidgetItem(value))
+            #设置新行的高度与前一行相同
+            self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
+
+        user_interface_prompter.createSuccessInfoBar("导入成功")
+        print(f'[INFO]  已导入字典文件')
+    
+    #导出字典按钮
+    def Exporting_dictionaries(self):
+        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一列作为key，第二列作为value，存储中间字典中
+        data = []
+        for row in range(self.tableView.rowCount() - 1):
+            key_item = self.tableView.item(row, 0)
+            value_item = self.tableView.item(row, 1)
+            if key_item and value_item:
+                key = key_item.text()
+                value = value_item.text()
+                data.append((key, value))
+
+        # 将数据存储到中间字典中
+        dictionary = {}
+        for key, value in data:
+            dictionary[key] = value
+
+        # 选择文件保存路径
+        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Output_Folder:
+            print(f'[INFO]  已选择字典导出文件夹: {Output_Folder}')
+        else :
+            print('[INFO]  未选择文件夹')
+            return  # 直接返回，不执行后续操作
+
+        # 将字典保存到文件中
+        with open(os.path.join(Output_Folder, "用户译后修正字典.json"), 'w', encoding="utf-8") as f:
+            json.dump(dictionary, f, ensure_ascii=False, indent=4)
+
+        user_interface_prompter.createSuccessInfoBar("导出成功")
+        print(f'[INFO]  已导出字典文件')
+
+    #清空字典按钮
+    def Empty_dictionary(self):
+        #清空表格
+        self.tableView.clearContents()
+        #设置表格的行数为1
+        self.tableView.setRowCount(2)
+        
+        # 在表格最后一行第一列添加"添加行"按钮
+        button = PushButton('添新行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
+        button.clicked.connect(self.add_row)
+        # 在表格最后一行第二列添加"删除空白行"按钮
+        button = PushButton('删空行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
+        button.clicked.connect(self.delete_blank_row)
+
+        user_interface_prompter.createSuccessInfoBar("清空成功")
+        print(f'[INFO]  已清空字典')
+
+    #保存字典按钮
+    def Save_dictionary(self):
+        configurator.read_write_config("write") 
+        user_interface_prompter.createSuccessInfoBar("保存成功")
+        print(f'[INFO]  已保存字典')
+
+
+    #提示函数
+    def checkBoxChanged1(self, isChecked: bool):
+        if isChecked :
+            user_interface_prompter.createSuccessInfoBar("已开启译后修正功能，将依据表格内容进行修正")
+    
 
 
 
@@ -7916,8 +9044,16 @@ class Widget_export_source_text(QFrame):#  提取子界面
         self.labe1_3.setText("RPG Maker MV/MZ 的文本提取注入工具")
 
 
+        #设置官方文档说明链接按钮
+        hyperlinkButton = HyperlinkButton(
+            url='https://www.ai2moe.org/topic/10271-jt%EF%BC%8C%E7%9B%AE%E6%A0%87%E6%98%AF%E9%9B%B6%E9%97%A8%E6%A7%9B%E7%9A%84%EF%BC%8C%E5%86%85%E5%B5%8C%E4%BA%86%E5%A4%9A%E4%B8%AA%E8%84%9A%E6%9C%AC%E7%9A%84%E9%9D%92%E6%98%A5%E7%89%88t/',
+            text='(作者页面)'
+        )
+
+
         layout.addStretch(1)  # 添加伸缩项
         layout.addWidget(self.labe1_3)
+        layout.addWidget(hyperlinkButton)
         layout.addStretch(1)  # 添加伸缩项
         box.setLayout(layout)
 
@@ -8872,605 +10008,6 @@ class Widget_check(QFrame):# 错行检查界面
             user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 
-class Widget18(QFrame):#AI实时调教界面
-    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
-        super().__init__(parent=parent)          #调用父类的构造函数
-        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
-
-
-        # 最外层的垂直布局
-        container = QVBoxLayout()
-
-
-        # -----创建第1个组，添加多个组件-----
-        box1 = QGroupBox()
-        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout1 = QHBoxLayout()
-
-
-        #设置“启用实时参数”标签
-        label0 = QLabel(flags=Qt.WindowFlags())  
-        label0.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label0.setText("启用调教功能（OpenAI）")
-
-        #设置官方文档说明链接按钮
-        hyperlinkButton = HyperlinkButton(
-            url='https://platform.openai.com/docs/api-reference/chat/create',
-            text='(官方文档)'
-        )
-
-        #设置“启用实时参数”开关
-        self.checkBox = CheckBox('实时设置AI参数', self)
-        self.checkBox.stateChanged.connect(self.checkBoxChanged)
-
-
-        layout1.addWidget(label0)
-        layout1.addWidget(hyperlinkButton)
-        layout1.addStretch(1)  # 添加伸缩项
-        layout1.addWidget(self.checkBox)
-        box1.setLayout(layout1)
-
-
-
-        # -----创建第2个组，添加多个组件-----
-        box2 = QGroupBox()
-        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout2 = QHBoxLayout()
-
-        #设置“官方文档”标签
-        label01 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label01.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label01.setText("官方文档说明")
-
-        #设置官方文档说明链接按钮
-        pushButton1 = PushButton('文档链接', self)
-        pushButton1.clicked.connect(lambda: QDesktopServices.openUrl(QUrl('https://platform.openai.com/docs/api-reference/chat/create')))
-
-
-        layout2.addWidget(label01)
-        layout2.addStretch(1)  # 添加伸缩项
-        layout2.addWidget(pushButton1)
-        box2.setLayout(layout2)
-
-
-
-        # -----创建第3个组，添加多个组件-----
-        box3 = QGroupBox()
-        box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout3 = QHBoxLayout()
-
-        #设置“温度”标签
-        label1 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label1.setText("温度")
-
-        #设置“温度”副标签
-        label11 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label11.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 10px;  color: black")
-        label11.setText("(官方默认值为1)")
-
-        #设置“温度”滑动条
-        self.slider1 = Slider(Qt.Horizontal, self)
-        self.slider1.setFixedWidth(200)
-
-        # 创建一个QLabel控件，并设置初始文本为滑动条的初始值,并实时更新
-        self.label2 = QLabel(str(self.slider1.value()), self)
-        self.label2.setFixedSize(100, 15)  # 设置标签框的大小，不然会显示不全
-        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px;  color: black")
-        self.slider1.valueChanged.connect(lambda value: self.label2.setText(str("{:.1f}".format(value * 0.1))))
-
-        #设置滑动条的最小值、最大值、当前值，放到后面是为了让上面的label2显示正确的值
-        self.slider1.setMinimum(0)
-        self.slider1.setMaximum(20)
-        self.slider1.setValue(0)
-
-        
-
-        layout3.addWidget(label1)
-        layout3.addWidget(label11)
-        layout3.addStretch(1)  # 添加伸缩项
-        layout3.addWidget(self.slider1)
-        layout3.addWidget(self.label2)
-        box3.setLayout(layout3)
-
-
-
-
-
-        # -----创建第4个组，添加多个组件-----
-        box4 = QGroupBox()
-        box4.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout4 = QHBoxLayout()
-
-
-        #设置“温度”说明文档
-        label3 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 14px;  color: black")
-        label3.setText("Temperature：控制结果的随机性。如果希望结果更有创意可以尝试 0.9，或者希望有固定结果可以尝试0.0\n官方建议不要与Top_p一同改变 ")
-
-
-        layout4.addWidget(label3)
-        box4.setLayout(layout4)
-
-
-
-
-        # -----创建第5个组，添加多个组件-----
-        box5 = QGroupBox()
-        box5.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout5 = QHBoxLayout()
-
-        #设置“top_p”标签
-        label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label4.setText("概率阈值")
-
-        #设置“top_p”副标签
-        label41 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label41.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 10px;  color: black")
-        label41.setText("(官方默认值为1)")
-
-
-        #设置“top_p”滑动条
-        self.slider2 = Slider(Qt.Horizontal, self)
-        self.slider2.setFixedWidth(200)
-
-
-        # 创建一个QLabel控件，并设置初始文本为滑动条的初始值,并实时更新
-        self.label5 = QLabel(str(self.slider2.value()), self)
-        self.label5.setFixedSize(100, 15)  # 设置标签框的大小，不然会显示不全
-        self.label5.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px;  color: black")
-        self.slider2.valueChanged.connect(lambda value: self.label5.setText(str("{:.1f}".format(value * 0.1))))
-
-        #设置滑动条的最小值、最大值、当前值，放在后面是为了让上面的label5显示正确的值和格式
-        self.slider2.setMinimum(0)
-        self.slider2.setMaximum(10)
-        self.slider2.setValue(10)
-
-
-
-        layout5.addWidget(label4)
-        layout5.addWidget(label41)
-        layout5.addStretch(1)  # 添加伸缩项
-        layout5.addWidget(self.slider2)
-        layout5.addWidget(self.label5)
-        box5.setLayout(layout5)
-
-
-
-
-        # -----创建第6个组，添加多个组件-----
-        box6 = QGroupBox()
-        box6.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout6 = QHBoxLayout()
-
-
-        #设置“top_p”说明文档
-        label6 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 14px;  color: black")
-        label6.setText("Top_p：用于控制生成文本的多样性，与Temperature的作用相同。如果希望结果更加多样可以尝试 0.9\n或者希望有固定结果可以尝试 0.0。官方建议不要与Temperature一同改变 ")
-
-
-
-        layout6.addWidget(label6)
-        box6.setLayout(layout6)
-
-
-
-
-
-        # -----创建第7个组，添加多个组件-----
-        box7 = QGroupBox()
-        box7.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout7 = QHBoxLayout()
-
-        #设置“presence_penalty”标签
-        label7 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label7.setText("主题惩罚")
-
-        #设置“presence_penalty”副标签
-        label71 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label71.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 10px;  color: black")
-        label71.setText("(官方默认值为0)")
-
-
-        #设置“presence_penalty”滑动条
-        self.slider3 = Slider(Qt.Horizontal, self)
-        self.slider3.setFixedWidth(200)
-
-        # 创建一个QLabel控件，并设置初始文本为滑动条的初始值,并实时更新
-        self.label8 = QLabel(str(self.slider3.value()), self)
-        self.label8.setFixedSize(100, 15)  # 设置标签框的大小，不然会显示不全
-        self.label8.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px;  color: black")
-        self.slider3.valueChanged.connect(lambda value: self.label8.setText(str("{:.1f}".format(value * 0.1))))
-
-        #设置滑动条的最小值、最大值、当前值，放到后面是为了让上面的label8显示正确的值和格式
-        self.slider3.setMinimum(-20)
-        self.slider3.setMaximum(20)
-        self.slider3.setValue(5)
-
-
-
-        layout7.addWidget(label7)
-        layout7.addWidget(label71)
-        layout7.addStretch(1)  # 添加伸缩项
-        layout7.addWidget(self.slider3)
-        layout7.addWidget(self.label8)
-        box7.setLayout(layout7)
-
-
-
-        # -----创建第8个组，添加多个组件-----
-        box8 = QGroupBox()
-        box8.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout8 = QHBoxLayout()
-
-
-        #设置“presence_penalty”说明文档
-        label82 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label82.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 14px;  color: black")
-        label82.setText("Presence_penalty：用于控制主题的重复度。AI生成新内容时，会根据到目前为止已经出现在文本中的语句  \n负值是增加生成的新内容，正值是减少生成的新内容，从而改变AI模型谈论新主题内容的可能性")
-
-
-        layout8.addWidget(label82)
-        box8.setLayout(layout8)
-
-
-
-
-        # -----创建第9个组，添加多个组件-----
-        box9 = QGroupBox()
-        box9.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout9 = QHBoxLayout()
-
-        #设置“frequency_penalty”标签
-        label9 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label9.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label9.setText("频率惩罚")
-
-        #设置“presence_penalty”副标签
-        label91 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label91.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 10px;  color: black")
-        label91.setText("(官方默认值为0)")
-
-        #设置“frequency_penalty”滑动条
-        self.slider4 = Slider(Qt.Horizontal, self)
-        self.slider4.setFixedWidth(200)
-
-        # 创建一个QLabel控件，并设置初始文本为滑动条的初始值,并实时更新
-        self.label10 = QLabel(str(self.slider4.value()), self)
-        self.label10.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px;  color: black")
-        self.label10.setFixedSize(100, 15)  # 设置标签框的大小，不然会显示不全
-        self.slider4.valueChanged.connect(lambda value: self.label10.setText(str("{:.1f}".format(value * 0.1))))
-
-        #设置滑动条的最小值、最大值、当前值，放到后面是为了让上面的label10显示正确的值和格式
-        self.slider4.setMinimum(-20)
-        self.slider4.setMaximum(20)
-        self.slider4.setValue(0)
-
-
-        layout9.addWidget(label9)
-        layout9.addWidget(label91)
-        layout9.addStretch(1)  # 添加伸缩项
-        layout9.addWidget(self.slider4)
-        layout9.addWidget(self.label10)
-        box9.setLayout(layout9)
-
-
-        # -----创建第10个组，添加多个组件-----
-        box10 = QGroupBox()
-        box10.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout10 = QHBoxLayout()
-
-
-        #设置“frequency_penalty”说明文档
-        label11 = QLabel(parent=self, flags=Qt.WindowFlags())
-        label11.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 14px;  color: black")
-        label11.setText("Frequency_penalty：用于控制词语的频率。AI在生成新词时，会根据该词在文本中的现有频率 \n负值进行奖励，增加出现频率；正值进行惩罚，降低出现频率；以便增加或降低逐字重复同一行的可能性")
-
-
-        layout10.addWidget(label11)
-        box10.setLayout(layout10)
-
-
-
-
-
-
-        # 把内容添加到容器中
-        container.addStretch(1)  # 添加伸缩项
-        container.addWidget(box1)
-        #container.addWidget(box2)
-        container.addWidget(box3)
-        container.addWidget(box4)
-        container.addWidget(box5)
-        container.addWidget(box6)
-        container.addWidget(box7)
-        container.addWidget(box8)
-        container.addWidget(box9)
-        container.addWidget(box10)
-        container.addStretch(1)  # 添加伸缩项
-
-        # 设置窗口显示的内容是最外层容器
-        self.setLayout(container)
-        container.setSpacing(20) # 设置布局内控件的间距为28
-        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
-
-    # 勾选事件
-    def checkBoxChanged(self, isChecked: bool):
-        if isChecked :
-            user_interface_prompter.createSuccessInfoBar("已启用实时调教功能")
-
-
-class Widget21(QFrame):#原文替换字典界面
-    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
-        super().__init__(parent=parent)          #调用父类的构造函数
-        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
-
-        # self.scrollWidget = QWidget() #创建滚动窗口
-        # #self.scrollWidget.resize(500, 400)    #设置滚动窗口大小
-        # #self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff) #设置水平滚动条不可见
-        # self.setViewportMargins(0, 0, 0, 0)   #设置滚动窗口的边距      
-        # self.setWidget(self.scrollWidget)  #设置滚动窗口的内容  
-        # self.setWidgetResizable(True)   #设置滚动窗口的内容可调整大小
-        # self.verticalScrollBar().sliderPressed.connect(self.scrollContents) #滚动条滚动时，调用的函数
-        #设置各个控件-----------------------------------------------------------------------------------------
-
-        # 最外层的垂直布局
-        container = QVBoxLayout()
-
-        # -----创建第1个组，添加放置表格-----
-        self.tableView = TableWidget(self)
-        self.tableView.setWordWrap(False) #设置表格内容不换行
-        self.tableView.setRowCount(2) #设置表格行数
-        self.tableView.setColumnCount(2) #设置表格列数
-        #self.tableView.verticalHeader().hide() #隐藏垂直表头
-        self.tableView.setHorizontalHeaderLabels(['原文', '译文']) #设置水平表头
-        self.tableView.resizeColumnsToContents() #设置列宽度自适应内容
-        self.tableView.resizeRowsToContents() #设置行高度自适应内容
-        self.tableView.setEditTriggers(QAbstractItemView.AllEditTriggers)   # 设置所有单元格可编辑
-        #self.tableView.setFixedSize(500, 300)         # 设置表格大小
-        self.tableView.setMaximumHeight(400)          # 设置表格的最大高度
-        self.tableView.setMinimumHeight(400)             # 设置表格的最小高度
-        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
-        #self.tableView.setSortingEnabled(True)  #设置表格可排序
-
-
-        # songInfos = [
-        #     ['かばん', 'aiko']
-        # ]
-        # for i, songInfo in enumerate(songInfos): #遍历数据
-        #     for j in range(2): #遍历每一列
-        #         self.tableView.setItem(i, j, QTableWidgetItem(songInfo[j])) #设置每个单元格的内容
-
-
-        # 在表格最后一行第一列添加"添加行"按钮
-        button = PushButton('添新行')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
-        button.clicked.connect(self.add_row)
-        # 在表格最后一行第二列添加"删除空白行"按钮
-        button = PushButton('删空行')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
-        button.clicked.connect(self.delete_blank_row)
-
-
-
-        # -----创建第1_1个组，添加多个组件-----
-        box1_1 = QGroupBox()
-        box1_1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout1_1 = QHBoxLayout()
-
-
-        #设置导入字典按钮
-        self.pushButton1 = PushButton('导入字典', self, FIF.DOWNLOAD)
-        self.pushButton1.clicked.connect(self.Importing_dictionaries) #按钮绑定槽函数
-
-        #设置导出字典按钮
-        self.pushButton2 = PushButton('导出字典', self, FIF.SHARE)
-        self.pushButton2.clicked.connect(self.Exporting_dictionaries) #按钮绑定槽函数
-
-        #设置清空字典按钮
-        self.pushButton3 = PushButton('清空字典', self, FIF.DELETE)
-        self.pushButton3.clicked.connect(self.Empty_dictionary) #按钮绑定槽函数
-
-        #设置保存字典按钮
-        self.pushButton4 = PushButton('保存字典', self, FIF.SAVE)
-        self.pushButton4.clicked.connect(self.Save_dictionary) #按钮绑定槽函数
-
-
-        layout1_1.addWidget(self.pushButton1)
-        layout1_1.addStretch(1)  # 添加伸缩项
-        layout1_1.addWidget(self.pushButton2)
-        layout1_1.addStretch(1)  # 添加伸缩项
-        layout1_1.addWidget(self.pushButton3)
-        layout1_1.addStretch(1)  # 添加伸缩项
-        layout1_1.addWidget(self.pushButton4)
-        box1_1.setLayout(layout1_1)
-
-
-
-
-        # -----创建第2个组，添加多个组件-----
-        box2 = QGroupBox()
-        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout2 = QHBoxLayout()
-
-        #设置“译前替换”标签
-        label1 = QLabel( flags=Qt.WindowFlags())  
-        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label1.setText("原文本替换翻译")
-
-        #设置“译前替换”显示
-        self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label2.setText("(在翻译开始前，根据表格中内容，将游戏文本中出现的原文全部替换成为译文，再发送过去翻译)")
-
-
-        #设置“译前替换”开
-        self.checkBox1 = CheckBox('启用功能')
-        self.checkBox1.stateChanged.connect(self.checkBoxChanged1)
-
-        layout2.addWidget(label1)
-        layout2.addWidget(self.label2)
-        layout2.addStretch(1)  # 添加伸缩项
-        layout2.addWidget(self.checkBox1)
-        box2.setLayout(layout2)
-
-
-        # -----创建第3个组，添加多个组件-----
-        box3 = QGroupBox()
-        box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout3 = QHBoxLayout()
-
-        #设置“译时提示”标签
-        label3 = QLabel( flags=Qt.WindowFlags())  
-        label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label3.setText("译时提示")
-
-        #设置“译时提示”显示
-        self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label4.setText("(在翻译进行时，如果该次游戏文本出现了部分字典原文，则会将这部分字典内容作为AI的翻译示例，一并发过去翻译)")
-
-
-        #设置“译时提示”开
-        self.checkBox2 = CheckBox('启用功能')
-        #self.checkBox2.stateChanged.connect(self.checkBoxChanged2)
-
-        layout3.addWidget(label3)
-        layout3.addWidget(self.label4)
-        layout3.addStretch(1)  # 添加伸缩项
-        layout3.addWidget(self.checkBox2)
-        box3.setLayout(layout3)
-
-
-        # 把内容添加到容器中 
-        container.addWidget(box2)   
-        container.addWidget(self.tableView)
-        container.addWidget(box1_1)
-        container.addStretch(1)  # 添加伸缩项
-
-        # 设置窗口显示的内容是最外层容器
-        #self.scrollWidget.setLayout(container)
-        self.setLayout(container)
-        container.setSpacing(20)     
-        container.setContentsMargins(50, 70, 50, 30)      
-
-    #滚动条滚动时，调用的函数
-    def scrollContents(self, position):
-        self.scrollWidget.move(0, position) 
-
-    #添加行按钮
-    def add_row(self):
-        # 添加新行在按钮所在行前面
-        self.tableView.insertRow(self.tableView.rowCount()-1)
-        #设置新行的高度与前一行相同
-        self.tableView.setRowHeight(self.tableView.rowCount()-2, self.tableView.rowHeight(self.tableView.rowCount()-3))
-
-    #删除空白行按钮
-    def delete_blank_row(self):
-        #表格行数大于2时，删除表格内第一列和第二列为空或者空字符串的行
-        if self.tableView.rowCount() > 2:
-            # 删除表格内第一列和第二列为空或者空字符串的行
-            for i in range(self.tableView.rowCount()-1):
-                if self.tableView.item(i, 0) is None or self.tableView.item(i, 0).text() == '':
-                    self.tableView.removeRow(i)
-                    break
-                elif self.tableView.item(i, 1) is None or self.tableView.item(i, 1).text() == '':
-                    self.tableView.removeRow(i)
-                    break
-
-    #导入字典按钮
-    def Importing_dictionaries(self):
-        # 选择文件
-        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'JSON Files (*.json)')      #调用QFileDialog类里的函数来选择文件
-        if Input_File:
-            print(f'[INFO]  已选择字典导入文件: {Input_File}')
-        else :
-            print('[INFO]  未选择文件')
-            return
-        
-        # 读取文件
-        with open(Input_File, 'r', encoding="utf-8") as f:
-            dictionary = json.load(f)
-        
-        # 将字典中的数据从表格底部添加到表格中
-        for key, value in dictionary.items():
-            row = self.tableView.rowCount() - 1 #获取表格的倒数行数
-            self.tableView.insertRow(row)    # 在表格中插入一行
-            self.tableView.setItem(row, 0, QTableWidgetItem(key))
-            self.tableView.setItem(row, 1, QTableWidgetItem(value))
-            #设置新行的高度与前一行相同
-            self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
-
-        user_interface_prompter.createSuccessInfoBar("导入成功")
-        print(f'[INFO]  已导入字典文件')
-    
-    #导出字典按钮
-    def Exporting_dictionaries(self):
-        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一列作为key，第二列作为value，存储中间字典中
-        data = []
-        for row in range(self.tableView.rowCount() - 1):
-            key_item = self.tableView.item(row, 0)
-            value_item = self.tableView.item(row, 1)
-            if key_item and value_item:
-                key = key_item.text()
-                value = value_item.text()
-                data.append((key, value))
-
-        # 将数据存储到中间字典中
-        dictionary = {}
-        for key, value in data:
-            dictionary[key] = value
-
-        # 选择文件保存路径
-        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Output_Folder:
-            print(f'[INFO]  已选择字典导出文件夹: {Output_Folder}')
-        else :
-            print('[INFO]  未选择文件夹')
-            return  # 直接返回，不执行后续操作
-
-        # 将字典保存到文件中
-        with open(os.path.join(Output_Folder, "用户替换字典.json"), 'w', encoding="utf-8") as f:
-            json.dump(dictionary, f, ensure_ascii=False, indent=4)
-
-        user_interface_prompter.createSuccessInfoBar("导出成功")
-        print(f'[INFO]  已导出字典文件')
-
-    #清空字典按钮
-    def Empty_dictionary(self):
-        #清空表格
-        self.tableView.clearContents()
-        #设置表格的行数为1
-        self.tableView.setRowCount(2)
-        
-        # 在表格最后一行第一列添加"添加行"按钮
-        button = PushButton('添新行')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
-        button.clicked.connect(self.add_row)
-        # 在表格最后一行第二列添加"删除空白行"按钮
-        button = PushButton('删空行')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
-        button.clicked.connect(self.delete_blank_row)
-
-        user_interface_prompter.createSuccessInfoBar("清空成功")
-        print(f'[INFO]  已清空字典')
-
-    #保存字典按钮
-    def Save_dictionary(self):
-        configurator.read_write_config("write") 
-        user_interface_prompter.createSuccessInfoBar("保存成功")
-        print(f'[INFO]  已保存字典')
-
-
-    #提示函数
-    def checkBoxChanged1(self, isChecked: bool):
-        if isChecked :
-            user_interface_prompter.createSuccessInfoBar("已开启译前替换功能，将依据表格内容进行替换")
-    
-
 class Widget22(QFrame):#提示词工程界面
 
 
@@ -10127,13 +10664,12 @@ class window(FramelessWindow): #主窗口
         self.Widget_translation_settings = Widget_translation_settings('Widget_translation_settings', self) 
         self.Widget_start_translation = Widget_start_translation('Widget_start_translation', self) 
         self.Widget_RPG = Widget_RPG('Widget_RPG', self)    
-        self.Interface18 = Widget18('Interface18', self)
+        self.Widget_tune = Widget_tune('Widget_tune', self)
         self.Widget_check = Widget_check('Widget_check', self)   
-        self.Interface21 = Widget21('Interface21', self) 
         self.Interface22 = Widget22('Interface22', self)
         self.Interface23 = Widget23('Interface23', self)
         self.Widget_sponsor = Widget_sponsor('Widget_sponsor', self)
-
+        self.Widget_replace_dict = Widget_replace_dict('Widget_replace_dict', self)
 
 
         self.initLayout() #调用初始化布局函数 
@@ -10180,9 +10716,11 @@ class window(FramelessWindow): #主窗口
 
         # 添加其他功能页面
         self.addSubInterface(self.Interface23, FIF.CALENDAR, '提示字典')  
-        self.addSubInterface(self.Interface21, FIF.CALENDAR, '替换字典')  
+        self.addSubInterface(self.Widget_replace_dict, FIF.CALENDAR, '替换字典')  
         self.addSubInterface(self.Interface22, FIF.ZOOM, 'AI提示词工程') 
-        self.addSubInterface(self.Interface18, FIF.ALBUM, 'AI实时调教')   
+        self.addSubInterface(self.Widget_tune, FIF.ALBUM, 'AI实时参数调教')   
+
+
 
         self.navigationInterface.addSeparator() #添加分隔符,需要删除position=NavigationItemPosition.SCROLL来使分隔符正确显示
 
