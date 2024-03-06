@@ -7,7 +7,7 @@ import openpyxl
 from chardet import detect
 import csv
 
-version = 'v2.11'
+version = 'v2.12'
 
 csv.field_size_limit(2**30)
 pd.options.display.max_colwidth = None
@@ -370,13 +370,13 @@ class Jr_Tpp():
                             code=codelist[i]
                             # 标签，地址和code都不是黑的才写入
                             if not black and code not in BlackCode and not self.__IfBlackDir(Dir):
-                                Dir=Dir.split('\\')
+                                Dir=Dir.split('json\\')[1].split('\\')
                                 # 写入翻译
-                                data=self.__WriteFile(data,untrs,trsed,Dir[1:],length,code)
+                                data=self.__WriteFile(data,untrs,trsed,Dir,length,code)
                     # 全部注入后，删除被求和的行
                     data=self.__del_marked_list(data)
                 # 创建文件输出路径
-                self.__makedir(name,path)
+                self.__makedir(name,path+'\\data')
                 # 输出文件
                 out = json.dumps(data, ensure_ascii=False)
                 with open(path+'\\data\\'+name, 'w', encoding='utf8') as f1:

@@ -3,7 +3,9 @@ from jtpp import version
 from ruamel.yaml import YAML
 import traceback
 
-print(version)
+
+print('jtpp_{}'.format(version))
+print('main_v1.01')
 
 
 # t++标红标蓝行需要找对应code
@@ -160,8 +162,7 @@ def readconfig():
         data_path=config['data_path']
         sumcode=config['sumcode']
         note_percent=config['note_percent']
-        if not config.get('ja',False):
-            config['ja']=1
+        ja=config['ja']
     except Exception as e:
         print(e)
         input('没有找到格式正确的config.yaml文件，请确保其存在于与exe同级文件夹内')
