@@ -6136,6 +6136,7 @@ class User_Interface_Prompter(QObject):
        self.anthropic_price_data = {
             "claude-2.0": {"input_price": 0.008, "output_price": 0.024}, # 存储的价格是 /k tokens
             "claude-2.1": {"input_price": 0.008, "output_price": 0.024}, # 存储的价格是 /k tokens
+            "claude-3-haiku-20240229": {"input_price": 0.0025, "output_price": 0.00125}, # 存储的价格是 /k tokens
             "claude-3-sonnet-20240229": {"input_price": 0.003, "output_price": 0.015}, # 存储的价格是 /k tokens
             "claude-3-opus-20240229": {"input_price": 0.015, "output_price": 0.075}, # 存储的价格是 /k tokens
             }
@@ -7091,7 +7092,7 @@ class Widget_Anthropic(QFrame):#  Anthropic账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox_model = ComboBox() #以demo为父类
-        self.comboBox_model.addItems(['claude-2.0','claude-2.1','claude-3-sonnet-20240229', 'claude-3-opus-20240229'])
+        self.comboBox_model.addItems(['claude-2.0','claude-2.1','claude-3-haiku-20240229','claude-3-sonnet-20240229', 'claude-3-opus-20240229'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(215, 35)
         #设置下拉选择框默认选择
