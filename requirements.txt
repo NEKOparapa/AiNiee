@@ -1,6 +1,7 @@
 # System
 openai
 zhipuai
+anthropic
 tiktoken
 numpy
 openpyxl
