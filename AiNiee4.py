@@ -49,7 +49,7 @@ from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, 
 from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
 from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout, QWidget
 
-from qfluentwidgets.components import Dialog
+from qfluentwidgets.components import Dialog  # 需要安装库 pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition
 from qfluentwidgets import FluentIcon as FIF
 from qframelesswindow import FramelessWindow, TitleBar, StandardTitleBar
@@ -57,7 +57,7 @@ from qframelesswindow import FramelessWindow, TitleBar, StandardTitleBar
 from StevExtraction import jtpp  #导入文本提取工具
 
 
-Software_Version = "AiNiee4.64"  #软件版本号
+Software_Version = "AiNiee4.64.1"  #软件版本号
 cache_list = [] # 全局缓存数据
 Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
                     # 6是翻译任务进行状态，7是错行检查状态，9是翻译任务暂停状态，10是强制终止任务状态
@@ -95,7 +95,7 @@ class Translator():
                     cache_list = File_Reader.read_srt_files(self,folder_path = Input_Folder)
                 elif configurator.translation_project == "Lrc音声文件":
                     cache_list = File_Reader.read_lrc_files(self,folder_path = Input_Folder)
-                elif configurator.translation_project == "Vnt导出文件":
+                elif configurator.translation_project == "VNText导出文件":
                     cache_list = File_Reader.read_vnt_files(self,folder_path = Input_Folder)
                 elif configurator.translation_project == "Ainiee缓存文件":
                     cache_list = File_Reader.read_cache_files(self,folder_path = Input_Folder)
@@ -105,7 +105,8 @@ class Translator():
                 print("\033[1;31mError:\033[0m 读取原文失败，请检查项目类型是否正确，文件夹是否包含其他同类型文件！")
                 return
 
-
+        # ——————————————————————————————————————————处理缓存文件—————————————————————————————————————————
+            
             # 将浮点型，整数型文本内容变成字符型文本内容
             Cache_Manager.convert_source_text_to_str(self,cache_list)
 
@@ -113,10 +114,8 @@ class Translator():
             Cache_Manager.ignore_code_text(self,cache_list)
 
             # 如果翻译日语或者韩语文本时，则去除非中日韩文本
-            Text_Source_Language =  Window.Widget_translation_settings.A_settings.comboBox_source_text.currentText() 
-            if Text_Source_Language == "日语" or Text_Source_Language == "韩语":
+            if configurator.source_language == "日语" or configurator.source_language == "韩语":
                 Cache_Manager.process_dictionary_list(self,cache_list)
-
 
 
         # ——————————————————————————————————————————构建并发任务池子—————————————————————————————————————————
@@ -171,8 +170,6 @@ class Translator():
         #api_requester_instance = Api_Requester()
         #api_requester_instance.Concurrent_Request_Openai()
 
-
-
         # 创建线程池
         The_Max_workers = configurator.thread_counts # 获取线程数配置
         with concurrent.futures.ThreadPoolExecutor (The_Max_workers) as executor:
@@ -198,9 +195,6 @@ class Translator():
 
             # 等待线程池任务完成
             executor.shutdown(wait=True)
-
-
-
 
 
         # 检查翻译任务是否已经暂停或者退出
@@ -274,10 +268,11 @@ class Translator():
             #重新计算未翻译文本的数量
             untranslated_text_line_count = Cache_Manager.count_and_update_translation_status_0_2(self,cache_list)
 
-
-        # ——————————————————————————————————————————将数据处理并保存为文件—————————————————————————————————————————
         print ("\033[1;32mSuccess:\033[0m  翻译阶段已完成，正在处理数据-----------------------------------", '\n')
 
+
+        # ——————————————————————————————————————————将数据处理并保存为文件—————————————————————————————————————————
+            
 
         #如果开启了转换简繁开关功能，则进行文本转换
         if configurator.conversion_toggle: 
@@ -291,22 +286,12 @@ class Translator():
                     print(f"Error: {e}\n")
 
         # 将翻译结果写为对应文件
-        output_path = configurator.Output_Folder
-        if cache_list[0]["project_type"] == "Mtool":
-            File_Outputter.output_json_file(self,cache_list, output_path)
-        elif cache_list[0]["project_type"] == "Srt":
-            File_Outputter.output_srt_file(self,cache_list, output_path)
-        elif cache_list[0]["project_type"] == "Lrc":
-            File_Outputter.output_lrc_file(self,cache_list, output_path)
-        elif cache_list[0]["project_type"] == "Vnt":
-            File_Outputter.output_vnt_file(self,cache_list, output_path)
-        else:
-            File_Outputter.output_excel_file(self,cache_list, output_path)
-
-        print("\033[1;32mSuccess:\033[0m  译文文件写入完成-----------------------------------", '\n')  
-
+        File_Outputter.output_translated_content(self,cache_list,configurator.Output_Folder)
 
         # —————————————————————————————————————#全部翻译完成——————————————————————————————————————————
+
+
+        print("\033[1;32mSuccess:\033[0m  译文文件写入完成-----------------------------------", '\n')  
         user_interface_prompter.signal.emit("翻译状态提示","翻译完成",0,0,0)
         print("\n--------------------------------------------------------------------------------------")
         print("\n\033[1;32mSuccess:\033[0m 已完成全部翻译任务，程序已经停止")   
@@ -683,9 +668,14 @@ class Api_Requester():
             source_text_list = Cache_Manager.process_dictionary_data(self,rows, cache_list)    
             lock1.release()  # 释放锁
 
-            # ——————————————————————————————————————————转换原文本的格式——————————————————————————————————————————
+            # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
+
+            # 如果原文是日语，清除文本首位中的代码文本，并记录清除信息
+            if configurator.source_language == "日语":
+                source_text_dict,process_info_list = Cache_Manager.process_dictionary(self,source_text_dict)
+                row_count = len(source_text_dict)
 
             # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
             messages,source_text_str = Api_Requester.organize_send_content_openai(self,source_text_dict)
@@ -827,7 +817,7 @@ class Api_Requester():
                     response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict)
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,row_count)
 
 
                     # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
@@ -839,10 +829,14 @@ class Api_Requester():
                             response_dict = Cache_Manager.replace_special_characters(self,response_dict, "还原")
 
 
-                        #如果开启译后替换字典功能，则根据用户字典进行替换
+                        # 如果开启译后替换字典功能，则根据用户字典进行替换
                         if Window.Widget_replace_dict.B_settings.checkBox1.isChecked() :
                             print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
                             response_dict = configurator.replace_after_translation(response_dict)
+
+                        # 如果原文是日语，则还原文本的首尾代码字符
+                        if configurator.source_language == "日语":
+                            response_dict = Cache_Manager.update_dictionary(self,response_dict, process_info_list)
 
                         # 录入缓存文件
                         lock1.acquire()  # 获取锁
@@ -1017,9 +1011,15 @@ class Api_Requester():
             source_text_list = Cache_Manager.process_dictionary_data(self,rows, cache_list)    
             lock1.release()  # 释放锁
 
-            # ——————————————————————————————————————————转换原文本的格式——————————————————————————————————————————
+            # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
+
+            # 如果原文是日语，清除文本首位中的代码文本，并记录清除信息
+            if configurator.source_language == "日语":
+                source_text_dict,process_info_list = Cache_Manager.process_dictionary(self,source_text_dict)
+                row_count = len(source_text_dict)
+
 
             # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
             messages,source_text_str = Api_Requester.organize_send_content_google(self,source_text_dict)
@@ -1167,7 +1167,7 @@ class Api_Requester():
                     response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict)
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,row_count)
 
                     # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
 
@@ -1182,6 +1182,10 @@ class Api_Requester():
                         if Window.Widget_replace_dict.B_settings.checkBox1.isChecked() :
                             print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
                             response_dict = configurator.replace_after_translation(response_dict)
+
+                        # 如果原文是日语，则还原文本的首尾代码字符
+                        if configurator.source_language == "日语":
+                            response_dict = Cache_Manager.update_dictionary(self,response_dict, process_info_list)
 
                         # 录入缓存文件
                         lock1.acquire()  # 获取锁
@@ -1344,9 +1348,15 @@ class Api_Requester():
             source_text_list = Cache_Manager.process_dictionary_data(self,rows, cache_list)    
             lock1.release()  # 释放锁
 
-            # ——————————————————————————————————————————转换原文本的格式——————————————————————————————————————————
+            # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
+
+            # 如果原文是日语，清除文本首位中的代码文本，并记录清除信息
+            if configurator.source_language == "日语":
+                source_text_dict,process_info_list = Cache_Manager.process_dictionary(self,source_text_dict)
+                row_count = len(source_text_dict)
+
 
             # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
             messages,source_text_str = Api_Requester.organize_send_content_zhipu(self,source_text_dict)
@@ -1463,7 +1473,7 @@ class Api_Requester():
                     response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict)
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,row_count)
 
                     # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
 
@@ -1478,6 +1488,10 @@ class Api_Requester():
                         if Window.Widget_replace_dict.B_settings.checkBox1.isChecked() :
                             print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
                             response_dict = configurator.replace_after_translation(response_dict)
+
+                        # 如果原文是日语，则还原文本的首尾代码字符
+                        if configurator.source_language == "日语":
+                            response_dict = Cache_Manager.update_dictionary(self,response_dict, process_info_list)
 
                         # 录入缓存文件
                         lock1.acquire()  # 获取锁
@@ -1635,9 +1649,15 @@ class Api_Requester():
             source_text_list = Cache_Manager.process_dictionary_data(self,rows, cache_list)    
             lock1.release()  # 释放锁
 
-            # ——————————————————————————————————————————转换原文本的格式——————————————————————————————————————————
+            # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
+
+            # 如果原文是日语，清除文本首位中的代码文本，并记录清除信息
+            if configurator.source_language == "日语":
+                source_text_dict,process_info_list = Cache_Manager.process_dictionary(self,source_text_dict)
+                row_count = len(source_text_dict)
+
 
             # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
             messages,source_text_str = Api_Requester.organize_send_content_anthropic(self,source_text_dict)
@@ -1762,7 +1782,7 @@ class Api_Requester():
                     response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict)
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,row_count)
 
                     # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
 
@@ -1777,6 +1797,10 @@ class Api_Requester():
                         if Window.Widget_replace_dict.B_settings.checkBox1.isChecked() :
                             print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
                             response_dict = configurator.replace_after_translation(response_dict)
+
+                        # 如果原文是日语，则还原文本的首尾代码字符
+                        if configurator.source_language == "日语":
+                            response_dict = Cache_Manager.update_dictionary(self,response_dict, process_info_list)
 
                         # 录入缓存文件
                         lock1.acquire()  # 获取锁
@@ -1936,9 +1960,15 @@ class Api_Requester():
             source_text_list = Cache_Manager.process_dictionary_data(self,rows, cache_list)    
             lock1.release()  # 释放锁
 
-            # ——————————————————————————————————————————转换原文本的格式——————————————————————————————————————————
+            # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
+
+            # 如果原文是日语，清除文本首位中的代码文本，并记录清除信息
+            if configurator.source_language == "日语":
+                source_text_dict,process_info_list = Cache_Manager.process_dictionary(self,source_text_dict)
+                row_count = len(source_text_dict)
+
 
             # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
             messages,source_text_str = Api_Requester.organize_send_content_Sakura(self,source_text_dict)
@@ -2079,7 +2109,7 @@ class Api_Requester():
                     response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict)
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,row_count)
 
                     # ——————————————————————————————————————————回复内容结果录入——————————————————————————————————————————
 
@@ -2093,6 +2123,10 @@ class Api_Requester():
                         if Window.Widget_replace_dict.B_settings.checkBox1.isChecked() :
                             print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
                             response_dict = configurator.replace_after_translation(response_dict)
+
+                        # 如果原文是日语，则还原文本的首尾代码字符
+                        if configurator.source_language == "日语":
+                            response_dict = Cache_Manager.update_dictionary(self,response_dict, process_info_list)
 
                         # 录入缓存文件
                         lock1.acquire()  # 获取锁
@@ -2353,8 +2387,6 @@ class Response_Parser():
             return {}
 
 
-
-
     # 将Raw文本恢复根据行数转换成json文本
     def convert_str_to_json_str(self,row_count, input_str):
 
@@ -2372,7 +2404,7 @@ class Response_Parser():
 
 
     # 检查回复内容是否存在问题
-    def check_response_content(self,response_str,response_dict,source_text_dict):
+    def check_response_content(self,response_str,response_dict,row_count):
         # 存储检查结果
         check_result = False
         # 存储错误内容
@@ -2391,7 +2423,7 @@ class Response_Parser():
 
 
         # 检查文本行数
-        if Response_Parser.check_text_line_count(self,source_text_dict,response_dict):
+        if Response_Parser.check_text_line_count(self,row_count,response_dict):
             pass
         else:
             check_result = False
@@ -2435,13 +2467,15 @@ class Response_Parser():
         except :                                            
             return False
         
+
     # 检查回复内容的文本行数
-    def check_text_line_count(self,source_text_dict,response_dict):
-        if(len(source_text_dict)  ==  len(response_dict) ):    
+    def check_text_line_count(self,row_count,response_dict):
+        if(row_count  ==  len(response_dict) ):    
             return True
         else:                                            
             return False
         
+
     # 检查翻译内容是否有空值
     def check_empty_response(self,response_dict):
         for value in response_dict.values():
@@ -2455,6 +2489,7 @@ class Response_Parser():
 
             return True
         
+
     # 模型退化检测，高频语气词
     def model_degradation_detection(self,input_string):
         # 使用正则表达式匹配中日语字符
@@ -2483,6 +2518,7 @@ class Response_Parser():
             
         return True
     
+
     # 检查回复文本出现相同的翻译内容
     def check_same_translation(self,response_dict):
         # 计算字典元素个数
@@ -2519,7 +2555,6 @@ class Response_Parser():
         korean_count = len(korean_pattern.findall(text)) # 统计韩文字符数量
         english_count = len(english_pattern.findall(text)) # 统计英文字母数量
         return japanese_count, chinese_count, korean_count , english_count
-
 
 
 
@@ -3018,7 +3053,6 @@ class Request_Tester():
 
 
 
-    
 # 配置器
 class Configurator():
     def __init__(self):
@@ -4734,7 +4768,7 @@ class File_Reader():
         return cache_list
     
 
-    # 读取文件夹中树形结构Vnt导出文件
+    # 读取文件夹中树形结构VNText导出文件
     def read_vnt_files (self,folder_path):
 
         # 创建缓存数据，并生成文件头信息
@@ -5158,6 +5192,108 @@ class Cache_Manager():
 
         return new_dict, len(data_list)
 
+
+    # 提取输入文本头尾的非文本字符
+    def trim_string(self,input_string):
+
+        # 存储截取的头尾字符
+        head_chars = []
+        tail_chars = []
+        middle_chars = input_string
+
+        # 定义中日文及常用标点符号的正则表达式
+        zh_pattern = re.compile(r'[\u4e00-\u9fff]+')
+        jp_pattern = re.compile(r'[\u3040-\u309f\u30a0-\u30ff\u3400-\u4dbf]+')
+        punctuation = re.compile(r'[。．，、；：？！「」『』【】〔〕（）《》〈〉…—…]+')
+
+        # 从头开始检查并截取
+        while middle_chars and not (zh_pattern.match(middle_chars) or jp_pattern.match(middle_chars) or punctuation.match(middle_chars)):
+            head_chars.append(middle_chars[0])
+            middle_chars = middle_chars[1:]
+        
+        # 从尾开始检查并截取
+        while middle_chars and not (zh_pattern.match(middle_chars[-1]) or jp_pattern.match(middle_chars[-1]) or punctuation.match(middle_chars[-1])):
+            tail_chars.insert(0, middle_chars[-1])  # 保持原始顺序插入
+            middle_chars = middle_chars[:-1]
+        
+        return head_chars, middle_chars, tail_chars
+
+    # 处理字典内的文本，清除头尾的非文本字符
+    def process_dictionary(self,input_dict):
+        # 输入字典示例
+        ex_dict1 = {
+        '0': '\if(s[114])en(s[115])ハイヒーリング（消費MP5）',
+        '1': '\F[21]\FF[128]ゲオルグ「なにを言う。　僕はおまえを助けに来たんだ。\FF[128]',
+        '2': '少年「ダメか。僕も血が止まらないな……。',
+        }
+
+        #输出信息处理记录列表示例
+        ex_list1 = [
+            {'text_index': '0', "Head:": '\if(s[114])en(s[115])',"Middle": "ハイヒーリング（消費MP5）"},
+            {'text_index': '1', "Head:": '\F[21]\FF[128]',"Middle": "ゲオルグ「なにを言う。　僕はおまえを助けに来たんだ。", "Head:": '\FF[128]'},
+            {'text_index': '2', "Middle": "少年「ダメか。僕も血が止まらないな……。"},
+        ]
+
+        # 输出字典示例
+        ex_dict2 = {
+        '0': 'ハイヒーリング（消費MP5）',
+        '1': 'ゲオルグ「なにを言う。　僕はおまえを助けに来たんだ。',
+        '2': '少年「ダメか。僕も血が止まらないな……。',
+        }
+
+        processed_dict = {}
+        process_info_list = []
+        for key, value in input_dict.items():
+            head, middle, tail = Cache_Manager.trim_string(self,value)
+            processed_dict[key] = middle
+            info = {"text_index": key}
+            if head:
+                info["Head:"] = ''.join(head)
+            if middle:
+                info["Middle:"] = middle
+            if tail:
+                info["Tail:"] = ''.join(tail)
+            process_info_list.append(info)
+        return processed_dict, process_info_list
+
+    # 复原文本中的头尾的非文本字符
+    def update_dictionary(self,original_dict, process_info_list):
+        # 输入字典示例
+        ex_dict1 = {
+        '0': '测试1',
+        '1': '测试2',
+        '2': '测试3',
+        }
+        #输入信息处理记录列表示例
+        ex_list1 = [
+            {'text_index': '0', "Head:": '\if(s[114])en(s[115])',"Middle": "ハイヒーリング（消費MP5）"},
+            {'text_index': '1', "Head:": '\F[21]\FF[128]',"Middle": "ゲオルグ「なにを言う。　僕はおまえを助けに来たんだ。", "Head:": '\FF[128]'},
+            {'text_index': '2', "Middle": "少年「ダメか。僕も血が止まらないな……。"},
+        ]
+        # 输出字典示例
+        ex_dict2 = {
+        '0': '\if(s[114])en(s[115])测试1',
+        '1': '\F[21]\FF[128]测试2\FF[128]',
+        '2': '测试3',
+        }
+
+        updated_dict = {}
+        for item in process_info_list:
+            text_index = item["text_index"]
+            head = item.get("Head:", "")
+            tail = item.get("Tail:", "")
+            
+            # 获取原始字典中的值
+            original_value = original_dict.get(text_index, "")
+            
+            # 拼接头、原始值、中和尾
+            updated_value = head + original_value + tail
+            updated_dict[text_index] = updated_value
+        return updated_dict
+
+
+
+
     # 将翻译结果录入缓存函数，且改变翻译状态为1
     def update_cache_data(self, cache_data, source_text_list, response_dict):
         # 输入的数据结构参考
@@ -5424,6 +5560,7 @@ class Cache_Manager():
         dialogue = text[left_bracket_pos:].strip()
         
         return name, dialogue
+
 
 
 # 文件输出器
@@ -6095,6 +6232,7 @@ class background_executor(threading.Thread):
         elif self.task_id == "输出已翻译文件":
             File_Outputter.output_translated_content(self,cache_list,self.output_folder)
             print('\033[1;32mSuccess:\033[0m 已输出已翻译文件到文件夹')
+
 
 
 # 界面提示器
@@ -7598,7 +7736,7 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
 
         #设置“翻译项目”下拉选择框
         self.comboBox_translation_project = ComboBox() #以demo为父类
-        self.comboBox_translation_project.addItems(['Mtool导出文件',  'T++导出文件', 'Vnt导出文件' , 'Srt字幕文件' , 'Lrc音声文件', 'Ainiee缓存文件'])
+        self.comboBox_translation_project.addItems(['Mtool导出文件',  'T++导出文件', 'VNText导出文件' , 'Srt字幕文件' , 'Lrc音声文件', 'Ainiee缓存文件'])
         self.comboBox_translation_project.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_translation_project.setFixedSize(150, 35)
 
