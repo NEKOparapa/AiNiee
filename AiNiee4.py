@@ -7943,7 +7943,7 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
        #设置“翻译行数”数值输入框
         self.spinBox_Lines = SpinBox(self)
         self.spinBox_Lines.setRange(1, 1000)    
-        self.spinBox_Lines.setValue(30)
+        self.spinBox_Lines.setValue(20)
 
 
         layout_Lines.addWidget(label1)
