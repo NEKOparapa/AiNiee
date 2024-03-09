@@ -673,7 +673,7 @@ class Api_Requester():
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
 
             # 如果原文是日语，清除文本首位中的代码文本，并记录清除信息
-            if configurator.source_language == "日语":
+            if configurator.source_language == "日语" and configurator.text_clear_toggle:
                 source_text_dict,process_info_list = Cache_Manager.process_dictionary(self,source_text_dict)
                 row_count = len(source_text_dict)
 
@@ -1016,7 +1016,7 @@ class Api_Requester():
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
 
             # 如果原文是日语，清除文本首位中的代码文本，并记录清除信息
-            if configurator.source_language == "日语":
+            if configurator.source_language == "日语"and configurator.text_clear_toggle:
                 source_text_dict,process_info_list = Cache_Manager.process_dictionary(self,source_text_dict)
                 row_count = len(source_text_dict)
 
@@ -1353,7 +1353,7 @@ class Api_Requester():
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
 
             # 如果原文是日语，清除文本首位中的代码文本，并记录清除信息
-            if configurator.source_language == "日语":
+            if configurator.source_language == "日语"and configurator.text_clear_toggle:
                 source_text_dict,process_info_list = Cache_Manager.process_dictionary(self,source_text_dict)
                 row_count = len(source_text_dict)
 
@@ -1654,7 +1654,7 @@ class Api_Requester():
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
 
             # 如果原文是日语，清除文本首位中的代码文本，并记录清除信息
-            if configurator.source_language == "日语":
+            if configurator.source_language == "日语"and configurator.text_clear_toggle:
                 source_text_dict,process_info_list = Cache_Manager.process_dictionary(self,source_text_dict)
                 row_count = len(source_text_dict)
 
@@ -1965,7 +1965,7 @@ class Api_Requester():
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
 
             # 如果原文是日语，清除文本首位中的代码文本，并记录清除信息
-            if configurator.source_language == "日语":
+            if configurator.source_language == "日语" and configurator.text_clear_toggle:
                 source_text_dict,process_info_list = Cache_Manager.process_dictionary(self,source_text_dict)
                 row_count = len(source_text_dict)
 
@@ -3065,6 +3065,7 @@ class Configurator():
 
         self.text_line_counts = 1 # 存储每次请求的文本行数设置
         self.thread_counts = 1 # 存储线程数
+        self.text_clear_toggle = False # 清除首位非文本字符开关
         self.preserve_line_breaks_toggle = False # 保留换行符开关
         self.response_json_format_toggle = False # 回复json格式开关
         self.conversion_toggle = False #简繁转换开关
@@ -3103,6 +3104,7 @@ class Configurator():
         self.thread_counts = Window.Widget_translation_settings.B_settings.spinBox_thread_count.value()
         if self.thread_counts == 0:                                
             self.thread_counts = multiprocessing.cpu_count() * 4 + 1  
+        self.text_clear_toggle = Window.Widget_translation_settings.B_settings.SwitchButton_clear.isChecked()
         self.preserve_line_breaks_toggle =  Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.isChecked()
         self.response_json_format_toggle =  Window.Widget_translation_settings.B_settings.SwitchButton_jsonmode.isChecked()
         self.conversion_toggle = Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.isChecked()
@@ -7982,7 +7984,32 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
 
 
 
-        # -----创建第1.4个组(后来补的)，添加多个组件-----
+        # -----创建第1个组(后来补的)，添加多个组件-----
+        box_clear = QGroupBox()
+        box_clear.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_clear = QHBoxLayout()
+
+        #设置标签
+        labe1_4 = QLabel(flags=Qt.WindowFlags())  
+        labe1_4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        labe1_4.setText("处理首尾非文本字符")
+
+
+
+       #设置选择开关
+        self.SwitchButton_clear = SwitchButton(parent=self)    
+        self.SwitchButton_clear.checkedChanged.connect(self.on_clear)
+
+
+
+        layout_clear.addWidget(labe1_4)
+        layout_clear.addStretch(1)  # 添加伸缩项
+        layout_clear.addWidget(self.SwitchButton_clear)
+        box_clear.setLayout(layout_clear)
+
+
+
+        # -----创建第2个组(后来补的)，添加多个组件-----
         box1_jsonmode = QGroupBox()
         box1_jsonmode.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout1_jsonmode = QHBoxLayout()
@@ -8008,7 +8035,7 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
 
 
 
-        # -----创建第1.6个组(后来补的)，添加多个组件-----
+        # -----创建第3个组(后来补的)，添加多个组件-----
         box1_conversion_toggle = QGroupBox()
         box1_conversion_toggle.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout1_conversion_toggle = QHBoxLayout()
@@ -8030,7 +8057,7 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
 
 
 
-        # -----创建第1.6个组(后来补的)，添加多个组件-----
+        # -----创建第4个组(后来补的)，添加多个组件-----
         box1_line_breaks = QGroupBox()
         box1_line_breaks.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout1_line_breaks = QHBoxLayout()
@@ -8066,6 +8093,7 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         container.addWidget(box1_line_breaks)
         container.addWidget(box1_jsonmode)
         container.addWidget(box1_conversion_toggle)
+        container.addWidget(box_clear)
         container.addStretch(1)  # 添加伸缩项
 
         # 设置窗口显示的内容是最外层容器
@@ -8077,6 +8105,11 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
     def onjsonmode(self, isChecked: bool):
         if isChecked:
             user_interface_prompter.createWarningInfoBar("该设置现在仅支持openai接口的gpt-3.5-turbo-0125与gpt-4-turbo-preview模型开启")
+
+    #设置选择开关绑定函数
+    def on_clear(self, isChecked: bool):
+        if isChecked:
+            user_interface_prompter.createWarningInfoBar("仅支持翻译日语文本时生效，建议翻译T++导出文件时开启")
 
 
 class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
