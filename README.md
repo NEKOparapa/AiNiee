@@ -22,9 +22,9 @@
  * **`🟪好用的魔法工具`**:我们**强烈建议**您选择优质稳定的代理工具,不然api接口会频繁报错无法连接或者一直没有回复
  * **`🔵Mtool/🔴Translator++`**:[🔵Mtool下载地址](https://afdian.net/a/AdventCirno?tab=feed)  [🔴Translator++下载地址](https://dreamsavior.net/download/)
    > 两者免费版本就可以,新人推荐Mtool,如果希望能够自行校正,获得更好的翻译效果,推荐Translator++
-* **`🤖AI平台账号`**: [OpenAI平台](https://platform.openai.com/)    [GooGle平台](https://makersuite.google.com/app/apikey?hl=zh-cn)    [智谱平台](https://open.bigmodel.cn/overview)
+* **`🤖AI平台账号`**: [OpenAI平台](https://platform.openai.com/)    [GooGle平台](https://makersuite.google.com/app/apikey?hl=zh-cn)     [Anthropic平台](https://console.anthropic.com/dashboard)    [智谱平台](https://open.bigmodel.cn/overview)
 * **`📡下载地址`**: [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
-* **`📺视频教程`**: [Mtool教程](https://www.bilibili.com/video/BV18c411K7WN)[T++教程](https://www.bilibili.com/video/BV18c411K7WN?p=2)
+* **`📺视频教程`**: [Mtool教程](https://www.bilibili.com/video/BV18c411K7WN)      [T++教程](https://www.bilibili.com/video/BV18c411K7WN?p=2)
 
 <details>
 <summary><b> 
