@@ -24,7 +24,7 @@
    > 两者免费版本就可以,新人推荐Mtool,如果希望能够自行校正,获得更好的翻译效果,推荐Translator++或者SExtractor
 * **`🤖AI平台账号`**: [OpenAI平台](https://platform.openai.com/)    [GooGle平台](https://makersuite.google.com/app/apikey?hl=zh-cn)    [Anthropic平台](https://console.anthropic.com/dashboard)    [智谱平台](https://open.bigmodel.cn/overview)
 * **`📡下载地址`**: [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
-* **`📺视频教程`**: [Mtool教程](https://www.bilibili.com/video/BV18c411K7WN)      [T++教程](https://www.bilibili.com/video/BV18c411K7WN?p=2)
+* **`📺视频教程`**: [Mtool教程](https://www.bilibili.com/video/BV1h6421c7MA)      [T++教程](https://www.bilibili.com/video/BV18c411K7WN?p=2)
 
 <details>
 <summary><b> 
