@@ -3065,6 +3065,7 @@ class Configurator():
 
         self.text_line_counts = 1 # 存储每次请求的文本行数设置
         self.thread_counts = 1 # 存储线程数
+        self.retry_count_limit = 1 # 错误回复重试次数
         self.text_clear_toggle = False # 清除首位非文本字符开关
         self.preserve_line_breaks_toggle = False # 保留换行符开关
         self.response_json_format_toggle = False # 回复json格式开关
@@ -3887,6 +3888,7 @@ class Configurator():
             config_dict["preserve_line_breaks_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关
             config_dict["response_json_format_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_jsonmode.isChecked()   # 获取回复json格式开关
             config_dict["response_conversion_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.isChecked()   # 获取简繁转换开关
+            config_dict["text_clear_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_clear.isChecked() # 获取文本处理开关
 
             #开始翻译的备份设置界面
             config_dict["auto_backup_toggle"] =  Window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
@@ -4075,6 +4077,8 @@ class Configurator():
                     Window.Widget_translation_settings.B_settings.SwitchButton_jsonmode.setChecked(config_dict["response_json_format_toggle"])
                 if "response_conversion_toggle" in config_dict:
                     Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.setChecked(config_dict["response_conversion_toggle"])
+                if "text_clear_toggle" in config_dict:
+                    Window.Widget_translation_settings.B_settings.SwitchButton_clear.setChecked(config_dict["text_clear_toggle"])
 
 
                 #开始翻译的备份设置界面
@@ -7955,7 +7959,7 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
 
 
 
-        # -----创建第1.7个组(后来补的)，添加多个组件-----
+        # -----创建第1个组(后来补的)，添加多个组件-----
         box1_thread_count = QGroupBox()
         box1_thread_count.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout1_thread_count = QHBoxLayout()
@@ -7981,6 +7985,29 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         layout1_thread_count.addStretch(1)  # 添加伸缩项
         layout1_thread_count.addWidget(self.spinBox_thread_count)
         box1_thread_count.setLayout(layout1_thread_count)
+
+
+        # -----创建第2个组(后来补的)，添加多个组件-----
+        box_retry_count_limit = QGroupBox()
+        box_retry_count_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_retry_count_limit = QHBoxLayout()
+
+
+        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label1_7.setText("错误回复重翻次数")
+
+
+        # 设置数值输入框
+        self.spinBox_retry_count_limit = SpinBox(self)
+        # 设置最大最小值
+        self.spinBox_retry_count_limit.setRange(0, 1000)    
+        self.spinBox_retry_count_limit.setValue(1)
+
+        layout_retry_count_limit.addWidget(label1_7)
+        layout_retry_count_limit.addStretch(1)  # 添加伸缩项
+        layout_retry_count_limit.addWidget(self.spinBox_retry_count_limit)
+        box_retry_count_limit.setLayout(layout_retry_count_limit)
 
 
 
@@ -10258,7 +10285,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         self.labelB.setText("          ")
 
         # 设置“添加游戏标题水印”选择开关
-        self.checkBox_title_watermark = CheckBox('添加游戏标题水印', self)
+        self.checkBox_title_watermark = CheckBox('添加标题水印', self)
 
 
 
@@ -10268,6 +10295,33 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         box_title_watermark1.setLayout(layout_title_watermark1)
 
 
+
+
+
+        # -----创建第5个组，添加多个组件-----
+        box_auto_wrap = QGroupBox()
+        box_auto_wrap.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_auto_wrap = QHBoxLayout()
+
+        #设置标签
+        label4 = QLabel(flags=Qt.WindowFlags())  
+        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label4.setText("换行字数")
+
+        self.spinBox_auto_wrap = SpinBox(self)
+        self.spinBox_auto_wrap.setRange(0, 1000)    
+        self.spinBox_auto_wrap.setValue(0)
+
+
+        # 设置“添加游戏标题水印”选择开关
+        self.checkBox_auto_wrap = CheckBox('启用自动换行', self)
+
+
+        layout_auto_wrap.addWidget(label4)
+        layout_auto_wrap.addWidget(self.spinBox_auto_wrap)
+        layout_auto_wrap.addStretch(1)
+        layout_auto_wrap.addWidget(self.checkBox_auto_wrap)
+        box_auto_wrap.setLayout(layout_auto_wrap)
 
 
         # -----创建第x个组，添加多个组件-----
@@ -10298,6 +10352,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         container.addWidget(box_translation_folder)
         container.addWidget(box_output_folder)
         container.addWidget(box_title_watermark1)
+        container.addWidget(box_auto_wrap)
         container.addWidget(box_start_import)
         container.addStretch(1)  # 添加伸缩项
 
@@ -10361,10 +10416,16 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         config['save_path'] = self.label_data_path.text()
         config['translation_path'] = self.label_translation_folder.text()
         config['output_path'] = self.label_output_folder.text()
+
         if self.checkBox_title_watermark.isChecked():
             config['mark'] = self.LineEdit_title_watermark.text()
         else:
             config['mark'] = 0
+
+        if self.checkBox_auto_wrap.isChecked():
+            config['line_length'] = self.spinBox_auto_wrap.value()
+        else:
+            config['line_length'] = 0
 
         #导入文本
         pj=jtpp.Jr_Tpp(config,config['save_path'])
