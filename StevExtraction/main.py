@@ -5,7 +5,7 @@ import traceback
 
 
 print('jtpp_{}'.format(version))
-print('main_v1.01')
+print('main_v1.02')
 
 
 # t++标红标蓝行需要找对应code
@@ -190,27 +190,25 @@ try:
         else:
             pj = Jr_Tpp(config,config['save_path'])
         mainpage = '1.一键注入翻译\n' \
-                   '2.自动换行（换行后不会自动保存，也不会自动注入，不推荐在没有没备份的情况下保存)\n' \
-                   '3.保存翻译工程\n' \
-                   '4.加载翻译工程\n' \
-                   '5.导出翻译xlsx文件\n' \
-                   '6.重新加载配置文件\n'
+                   '2.保存翻译工程\n' \
+                   '3.加载翻译工程\n' \
+                   '4.导出翻译xlsx文件\n' \
+                   '5.重新加载配置文件\n'
         while 1:
             res=0
-            while res not in ['1','2','3','4','5','6']:
+            while res not in ['1','2','3','4','5']:
                 res = input(mainpage)
             if res=='1':
                 pj.ToGame(config['game_path'],config['translation_path'],config['output_path'],config['mark'])
             elif res=='2':
-                pj.AutoLineFeed(config['line_length'])
-            elif res=='3':
                 pj.Save(config['save_path'])
-            elif res=='4':
+            elif res=='3':
                 pj = Jr_Tpp(config,config['save_path'])
-            elif res=='5':
+            elif res=='4':
                 pj.Output(config['save_path'])
-            elif res=='6':
+            elif res=='5':
                 config=readconfig()
+                pj.ApplyConfig(config)
                 print('已重新加载配置文件')
 except Exception as e:
     print(traceback.format_exc())
