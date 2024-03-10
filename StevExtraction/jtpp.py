@@ -7,7 +7,7 @@ import openpyxl
 from chardet import detect
 import csv
 
-version = 'v2.12'
+version = 'v2.13'
 
 csv.field_size_limit(2**30)
 pd.options.display.max_colwidth = None
@@ -17,26 +17,32 @@ pd.options.display.width=None       # 单元格长度
 
 
 class Jr_Tpp():
-    def __init__(self,config:dict,path:str=False):
-        self.config=config
-        self.ProgramData= {} # 翻译工程数据,键为文件名，值为DataFrame，列为['原文','译文','地址','标签']，同时设置原文为索引
-        self.BlackDir=config['BlackDir']   # 地址黑名单，自动打标签“BlackDir”
-        self.BlackFiles=config['BlackFiles']    # 黑名单文件，不读取这些文件，需要是文件全名（也不会有人把Map加黑名单吧）
-        self.BlackCode=config['BlackCode']      # 效果同blackdir，只不过这个是code
-        self.NameWithout=config['NameWithout']  #   对这些字段搜索反选后，打Name标签
-        self.codewithnames=config['codewithnames']  # dnb用，包裹文件名的标识符
-        self.ReadCode=config['ReadCode']    # 只读取这些code的文本
-        self.ja=config['ja']    # 是否为日文游戏，日文游戏的情况下，只会提取含中日字符的文本，dnb也只会处理含中日字符的文件名
-        self.sumcode=config['sumcode']
-        self.__tempdata=['原文','译文','地址','标签','code'] # 用于记录上一行文本的数据
-        self.__sumlen=0 # code相同的文本行数
-        self.note_percent=config['note_percent']
-        self.rule=config['rule'].replace('。','\'')
+    def ApplyConfig(self,config,clean=False):
+        self.BlackDir = config['BlackDir']  # 地址黑名单，自动打标签“BlackDir”
+        self.BlackFiles = config['BlackFiles']  # 黑名单文件，不读取这些文件，需要是文件全名（也不会有人把Map加黑名单吧）
+        self.BlackCode = config['BlackCode']  # 效果同blackdir，只不过这个是code
+        self.NameWithout = config['NameWithout']  # 对这些字段搜索反选后，打Name标签
+        self.codewithnames = config['codewithnames']  # dnb用，包裹文件名的标识符
+        self.ReadCode = config['ReadCode']  # 只读取这些code的文本
+        self.ja = config['ja']  # 是否为日文游戏，日文游戏的情况下，只会提取含中日字符的文本，dnb也只会处理含中日字符的文件名
+        self.sumcode = config['sumcode']
+        self.line_length = config['line_length']
+        self.note_percent = config['note_percent']
+        self.rule = config['rule'].replace('。', '\'')
         self.code355 = False
         # 把355从readcode中剔除
         if '355' in self.ReadCode:
             self.ReadCode.remove('355')
-            self.code355=True
+            self.code355 = True
+        # 每次加载config都重置
+        self.__tempdata = ['原文', '译文', '地址', '标签', 'code']  # 用于记录上一行文本的数据
+        self.__sumlen = 0  # code相同的文本行数
+        # 可选地清空项目工程
+        if clean:
+            self.ProgramData={}
+    def __init__(self,config:dict,path:str=False):
+        self.ProgramData= {} # 翻译工程数据,键为文件名，值为DataFrame，列为['原文','译文','地址','标签']，同时设置原文为索引
+        self.ApplyConfig(config)
         if path:
             self.load(path) # 从工程文件加载
 
@@ -263,7 +269,7 @@ class Jr_Tpp():
             if code == '355' and '\'addText\'' in data and self.code355:
                 data=data.replace(untrs,trsed)
             else:
-                data=trsed
+                data = trsed
         return data
     # 遍历data，删除所有被标记的list元素
     def __del_marked_list(self,data):
@@ -335,8 +341,10 @@ class Jr_Tpp():
     def InjectGame(self,GameDir:str,path:str,BlackLabel:list=False,BlackCode:list=False):
         untrsline=self.search('',1)
         if untrsline:
-            print('存在未翻译行，已应用原文')
+            output = pd.concat(list(untrsline.values()), axis=0)
+            self.__Writexlsx(output, '未翻译行.xlsx', full=True)
             self.ApplyUntrs(untrsline)
+            print('存在未翻译行，已应用原文并导出为“未翻译行.xlsx”以供确认')
         self.__CheckNAN()
         if not BlackLabel:
             BlackLabel=['Black']
@@ -526,7 +534,7 @@ class Jr_Tpp():
                         self.InputFromDataFrame(data,[jsonname],True)
                     else:
                         print(f'{name}没有对应的json文件，已跳过导入该文件')
-    # 读取工程,只从xlsx读取，path内需包含一个config
+    # 读取工程,只从csv读取
     # xlsx必须含['原文','译文','地址','code']五列，读取时自动将xlsx名转化为json名，并作为键
     def load(self,path:str):
         self.ProgramData={} # 清空工程数据
@@ -734,7 +742,7 @@ class Jr_Tpp():
         self.LabelName(without)
         if not os.path.exists(path): os.mkdir(path)
         namedict=self.JsonBySearch('Name',3,OutputName=path+r'\Name.json')
-        if self.config['ja']:
+        if self.ja:
             splited_name={}
             for name in namedict.keys():
                 namelist=re.sub('[^\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]','↓☆←',name).split('↓☆←')
@@ -770,6 +778,9 @@ class Jr_Tpp():
             try:
                 data=self.ProgramData['System.json']
                 index=list(data[data['地址']==r'System.json\gameTitle​1'].index)[0]
+                # 如果标题没有译文，先替换为原文
+                if not self.ProgramData['System.json'].loc[index,'译文']:
+                    self.ProgramData['System.json'].loc[index, '译文']=index
                 self.ProgramData['System.json'].loc[index,'译文']+=mark
                 print('########################已添加水印########################')
             except Exception as e:
@@ -875,6 +886,7 @@ class Jr_Tpp():
                     res += q + '\n'
                 DataFrame.loc[index,'译文']= res.rstrip('\n')
             self.ProgramData[name]=DataFrame
+        print('########################已按每行{}字自动换行########################'.format(linelength))
     # 核对原文译文中，文本出现次数，若不同，单独导出。只导出原文至少出现一次的。需要一个名为checkdict.json的检查字典，格式为
     #{"要检查的原文":"对应的译文"}
     def checknum(self):
@@ -1038,6 +1050,8 @@ class Jr_Tpp():
         self.InputFromeXlsx(path)
         self.dnb(GameDir)
         self.DNoteB()
+        if self.line_length:
+            self.AutoLineFeed(self.line_length)
         if mark:
             self.AddMark(mark)
         self.InjectGame(GameDir,OutputPath)
