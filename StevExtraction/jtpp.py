@@ -268,6 +268,8 @@ class Jr_Tpp():
             # 写code355
             if code == '355' and '\'addText\'' in data and self.code355:
                 data=data.replace(untrs,trsed)
+            else:
+                data = trsed
         return data
     # 遍历data，删除所有被标记的list元素
     def __del_marked_list(self,data):
@@ -776,6 +778,9 @@ class Jr_Tpp():
             try:
                 data=self.ProgramData['System.json']
                 index=list(data[data['地址']==r'System.json\gameTitle​1'].index)[0]
+                # 如果标题没有译文，先替换为原文
+                if not self.ProgramData['System.json'].loc[index,'译文']:
+                    self.ProgramData['System.json'].loc[index, '译文']=index
                 self.ProgramData['System.json'].loc[index,'译文']+=mark
                 print('########################已添加水印########################')
             except Exception as e:
