@@ -57,7 +57,7 @@ from qframelesswindow import FramelessWindow, TitleBar, StandardTitleBar
 from StevExtraction import jtpp  #导入文本提取工具
 
 
-Software_Version = "AiNiee4.64.1"  #软件版本号
+Software_Version = "AiNiee4.64.2"  #软件版本号
 cache_list = [] # 全局缓存数据
 Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
                     # 6是翻译任务进行状态，7是错行检查状态，9是翻译任务暂停状态，10是强制终止任务状态
@@ -672,8 +672,8 @@ class Api_Requester():
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
 
-            # 如果原文是日语，清除文本首位中的代码文本，并记录清除信息
-            if configurator.source_language == "日语" and configurator.text_clear_toggle:
+            # 如果原文是日语，清除文本首尾中的代码文本，并记录清除信息
+            if (configurator.source_language == "日语" and configurator.text_clear_toggle):
                 source_text_dict,process_info_list = Cache_Manager.process_dictionary(self,source_text_dict)
                 row_count = len(source_text_dict)
 
@@ -835,7 +835,7 @@ class Api_Requester():
                             response_dict = configurator.replace_after_translation(response_dict)
 
                         # 如果原文是日语，则还原文本的首尾代码字符
-                        if configurator.source_language == "日语":
+                        if (configurator.source_language == "日语" and configurator.text_clear_toggle):
                             response_dict = Cache_Manager.update_dictionary(self,response_dict, process_info_list)
 
                         # 录入缓存文件
@@ -1015,8 +1015,8 @@ class Api_Requester():
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
 
-            # 如果原文是日语，清除文本首位中的代码文本，并记录清除信息
-            if configurator.source_language == "日语"and configurator.text_clear_toggle:
+            # 如果原文是日语，清除文本首尾中的代码文本，并记录清除信息
+            if (configurator.source_language == "日语" and configurator.text_clear_toggle):
                 source_text_dict,process_info_list = Cache_Manager.process_dictionary(self,source_text_dict)
                 row_count = len(source_text_dict)
 
@@ -1184,7 +1184,7 @@ class Api_Requester():
                             response_dict = configurator.replace_after_translation(response_dict)
 
                         # 如果原文是日语，则还原文本的首尾代码字符
-                        if configurator.source_language == "日语":
+                        if (configurator.source_language == "日语" and configurator.text_clear_toggle):
                             response_dict = Cache_Manager.update_dictionary(self,response_dict, process_info_list)
 
                         # 录入缓存文件
@@ -1490,7 +1490,7 @@ class Api_Requester():
                             response_dict = configurator.replace_after_translation(response_dict)
 
                         # 如果原文是日语，则还原文本的首尾代码字符
-                        if configurator.source_language == "日语":
+                        if (configurator.source_language == "日语" and configurator.text_clear_toggle):
                             response_dict = Cache_Manager.update_dictionary(self,response_dict, process_info_list)
 
                         # 录入缓存文件
@@ -1799,7 +1799,7 @@ class Api_Requester():
                             response_dict = configurator.replace_after_translation(response_dict)
 
                         # 如果原文是日语，则还原文本的首尾代码字符
-                        if configurator.source_language == "日语":
+                        if (configurator.source_language == "日语" and configurator.text_clear_toggle):
                             response_dict = Cache_Manager.update_dictionary(self,response_dict, process_info_list)
 
                         # 录入缓存文件
@@ -2125,7 +2125,7 @@ class Api_Requester():
                             response_dict = configurator.replace_after_translation(response_dict)
 
                         # 如果原文是日语，则还原文本的首尾代码字符
-                        if configurator.source_language == "日语":
+                        if (configurator.source_language == "日语" and configurator.text_clear_toggle):
                             response_dict = Cache_Manager.update_dictionary(self,response_dict, process_info_list)
 
                         # 录入缓存文件
