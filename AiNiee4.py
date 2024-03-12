@@ -5909,7 +5909,11 @@ class File_Outputter():
     # 输出缓存文件
     def output_cache_file(self,cache_data,output_path):
         # 复制缓存数据到新变量
-        modified_cache_data = copy.deepcopy(cache_data)
+        try:
+            modified_cache_data = copy.deepcopy(cache_data)
+        except:
+            print("[INFO]: 无法正常进行深层复制,改为浅复制")
+            modified_cache_data = cache_data.copy()
 
         # 修改新变量的元素中的'translation_status'
         for item in modified_cache_data:
@@ -6113,7 +6117,11 @@ class File_Outputter():
     # 输出已经翻译文件
     def output_translated_content(self,cache_data,output_path):
         # 复制缓存数据到新变量
-        new_cache_data = copy.deepcopy(cache_data)
+        try:
+           new_cache_data = copy.deepcopy(cache_data)
+        except:
+            print("[INFO]: 无法正常进行深层复制,改为浅复制")
+            new_cache_data = cache_data.copy()
 
         # 提取项目列表
         if new_cache_data[0]["project_type"] == "Mtool":
@@ -7136,11 +7144,10 @@ class Widget_Google(QFrame):#  谷歌账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox_model = ComboBox() #以demo为父类
-        self.comboBox_model.addItems(['gemini-pro'])
+        self.comboBox_model.addItems(['gemini-1.0-pro'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(200, 35)
-        #设置下拉选择框默认选择
-        self.comboBox_model.setCurrentText('gemini-pro')
+
         
 
 
@@ -8823,7 +8830,7 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
 
             if len(cache_list)>= 3:
                 #创建子线程
-                thread = background_executor("输出缓存文件",Output_Folder)
+                thread = background_executor("输出缓存文件",Output_Folder,"","","","","")
                 thread.start()
             else:
                 print('[INFO]  未存在缓存文件')
@@ -8843,7 +8850,7 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
 
             if len(cache_list)>= 3:
                 #创建子线程
-                thread = background_executor("输出已翻译文件",Output_Folder)
+                thread = background_executor("输出已翻译文件",Output_Folder,"","","","")
                 thread.start()
 
             else:
