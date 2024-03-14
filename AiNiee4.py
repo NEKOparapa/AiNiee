@@ -4309,7 +4309,7 @@ class Request_Limiter():
 
         # 示例数据
         self.google_limit_data = {
-                "gemini-pro": {  "InputTokenLimit": 30720,"OutputTokenLimit": 2048,"max_tokens": 2500, "TPM": 1000000, "RPM": 60},
+                "gemini-1.0-pro": {  "InputTokenLimit": 30720,"OutputTokenLimit": 2048,"max_tokens": 2500, "TPM": 1000000, "RPM": 60},
             }
 
 
@@ -6274,7 +6274,7 @@ class User_Interface_Prompter(QObject):
             }
 
        self.google_price_data = {
-            "gemini-pro": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
+            "gemini-1.0-pro": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
             }
 
        self.zhipu_price_data = {
