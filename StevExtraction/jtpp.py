@@ -7,7 +7,7 @@ import openpyxl
 from chardet import detect
 import csv
 
-version = 'v2.13'
+version = 'v2.14'
 
 csv.field_size_limit(2**30)
 pd.options.display.max_colwidth = None
@@ -29,11 +29,17 @@ class Jr_Tpp():
         self.line_length = config['line_length']
         self.note_percent = config['note_percent']
         self.rule = config['rule'].replace('。', '\'')
+        self.battlelog_code=['655','355']
         self.code355 = False
+        self.code655 = False
         # 把355从readcode中剔除
         if '355' in self.ReadCode:
             self.ReadCode.remove('355')
             self.code355 = True
+        # 把655从readcode中剔除
+        if '655' in self.ReadCode:
+            self.ReadCode.remove('655')
+            self.code655 = True
         # 每次加载config都重置
         self.__tempdata = ['原文', '译文', '地址', '标签', 'code']  # 用于记录上一行文本的数据
         self.__sumlen = 0  # code相同的文本行数
@@ -108,15 +114,15 @@ class Jr_Tpp():
                     cell.value = encoded_string.decode('utf-8')
         # 保存工作簿为xlsx文件
         workbook.save(name)
-    # 读取code355，且脚本中含有addText的文本,仅适用于日文游戏
-    def __ReadCode355_addText(self,data:str,Dir) -> list:
+    # 读取code355(655)，且脚本中含有addText的文本,仅适用于日文游戏
+    def __ReadCode355_addText(self,data:str,Dir,code) -> list:
         res=[]
         Dir+='\u200B' + '1'
         if self.ja:
             data=re.sub(self.rule,'☆↑↓←→',data).split('☆↑↓←→')
             for i in data:
                 if re.search('[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]',i):
-                    res.append([i,'',Dir,'','355'])
+                    res.append([i,'',Dir,'',code])
         return res
     # 读取json文件中含中日字符的字符串，并记录其地址。
     # 输入json文件的内容，返回其中所有文本组成的list
@@ -138,9 +144,9 @@ class Jr_Tpp():
                 code = '-1'
             else:
                 code = str(code)
-            # 读取code355中可翻译部分
-            if code == '355' and '\'addText\'' in data and self.code355:
-                [res.append(x) for x in self.__ReadCode355_addText(data, FileName)]
+            # 读取code355,655中可翻译部分
+            if code in self.battlelog_code and '\'addText\'' in data and ((code == '355' and self.code355) or (code == '655' and self.code655)):
+                [res.append(x) for x in self.__ReadCode355_addText(data, FileName,code)]
             # 是需要添加的字符串，而且含中日字符(System.json\gameTitle不论是否含中日字符，都进
             if (not self.ja or re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]', data)
                     or r'System.json\gameTitle' in FileName):
@@ -265,8 +271,8 @@ class Jr_Tpp():
                 key_is_list=True
             data[Dir[0]]=self.__WriteFile(data[Dir[0]],untrs,trsed,Dir[1:],length,code,key_is_list=key_is_list)
         elif type(data)==str and len(Dir)==0:
-            # 写code355
-            if code == '355' and '\'addText\'' in data and self.code355:
+            # 写code355,655
+            if code in self.battlelog_code and '\'addText\'' in data and ((code == '355' and self.code355) or (code == '655' and self.code655)):
                 data=data.replace(untrs,trsed)
             else:
                 data = trsed
