@@ -1,3 +1,5 @@
+v2.14:
+1.战斗日志新增一种code（655），和code355同样，只在只在readcode中有355时生效，且不能出现在sumcode和blackcode中。两个code可以单独设置
 v2.13：
 1.togame一键式操作中添加自动换行，当'line_length'不为0时启用
 2.新增ApplyConfig函数用于更新config
