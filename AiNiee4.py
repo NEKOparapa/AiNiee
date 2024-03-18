@@ -57,7 +57,7 @@ from qframelesswindow import FramelessWindow, TitleBar, StandardTitleBar
 from StevExtraction import jtpp  #导入文本提取工具
 
 
-Software_Version = "AiNiee4.64.3"  #软件版本号
+Software_Version = "AiNiee4.65"  #软件版本号
 cache_list = [] # 全局缓存数据
 Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
                     # 6是翻译任务进行状态，7是错行检查状态，9是翻译任务暂停状态，10是强制终止任务状态
@@ -78,10 +78,19 @@ class Translator():
         global cache_list, Running_status
 
         # ——————————————————————————————————————————配置信息初始化—————————————————————————————————————————
-        configurator.initialize_configuration() # 初始化配置，必需在请求限制器初始化之前调用
-        request_limiter.initialize_limiter()
+
+        configurator.initialize_configuration() # 获取界面的配置信息
+
+        # 根据混合翻译设置更换翻译平台
+        if configurator.mixed_translation_toggle:
+            configurator.translation_platform = configurator.configure_mixed_translation["first_platform"]
+
+        configurator.configure_translation_platform(configurator.translation_platform)  # 配置翻译平台信息
+        request_limiter.initialize_limiter() # 配置请求限制器，依赖前面的配置信息，必需在最后面初始化
+
 
         # ——————————————————————————————————————————读取原文到缓存—————————————————————————————————————————
+
         #如果是从头开始翻译
         if Running_status != 9:
             # 读取文件
@@ -212,11 +221,27 @@ class Translator():
 
         while untranslated_text_line_count != 0 :
             print("\033[1;33mWarning:\033[0m 仍然有部分未翻译，将进行拆分后重新翻译，-----------------------------------")
-            print("[INFO] 当前拆分翻译轮次：",retry_translation_count ," 到达最大次数：6 时，将停止翻译")
+            print("[INFO] 当前拆分翻译轮次：",retry_translation_count ," 到达最大轮次：6 时，将停止翻译")
 
 
-            #根据算法计算拆分的文本行数
-            line_count_configuration = configurator.update_text_line_count(line_count_configuration)
+            # 根据混合翻译设置更换翻译平台,并重新初始化配置信息
+            if configurator.mixed_translation_toggle:
+                configurator.initialize_configuration() # 获取界面的配置信息
+
+                # 更换翻译平台
+                if retry_translation_count == 1:
+                    configurator.translation_platform = configurator.configure_mixed_translation["second_platform"]
+                    print("[INFO]  已开启混合翻译功能，正在进行次轮翻译，翻译平台更换为：",configurator.translation_platform, '\n')
+                else:
+                    configurator.translation_platform = configurator.configure_mixed_translation["third_platform"]
+                    print("[INFO]  已开启混合翻译功能，正在进行末轮翻译，翻译平台更换为：",configurator.translation_platform, '\n')
+
+                configurator.configure_translation_platform(configurator.translation_platform)  # 配置翻译平台信息
+                request_limiter.initialize_limiter() # 配置请求限制器，依赖前面的配置信息，必需在最后面初始化
+
+
+            # 根据算法计算拆分的文本行数
+            line_count_configuration = configurator.update_text_line_count(line_count_configuration) # 更换配置中的文本行数
             print("[INFO] 未翻译文本总行数为：",untranslated_text_line_count,"  每次发送行数修改为：",line_count_configuration, '\n')
 
 
@@ -261,8 +286,8 @@ class Translator():
 
             #检查是否已经达到重翻次数限制
             retry_translation_count  = retry_translation_count + 1
-            if retry_translation_count >= 7 :
-                print ("\033[1;33mWarning:\033[0m 已经达到拆分翻译次数限制，但仍然有部分文本未翻译，不影响使用，可手动翻译", '\n')
+            if retry_translation_count > configurator.round_limit :
+                print ("\033[1;33mWarning:\033[0m 已经达到拆分翻译轮次限制，但仍然有部分文本未翻译，不影响使用，可手动翻译", '\n')
                 break
 
             #重新计算未翻译文本的数量
@@ -501,9 +526,9 @@ class Translator():
             f.write(similarity_log)
 
     # ——————————————————————————————————————————配置信息初始化—————————————————————————————————————————
-        configurator.initialize_configuration()
-        request_limiter.initialize_limiter()
-
+        configurator.initialize_configuration() # 获取界面的配置信息
+        configurator.configure_translation_platform(configurator.translation_platform)  # 配置翻译平台信息
+        request_limiter.initialize_limiter() # 配置请求限制器，依赖前面的配置信息，必需在最后面初始化
 
         # 初始化一下界面提示器里面存储的相关变量
         user_interface_prompter.translated_line_count = 0
@@ -694,12 +719,15 @@ class Api_Requester():
                 print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
                 return
 
+            if source_text_str =="""{}""":
+                print("\033[1;31mError:\033[0m 该条消息为空，取消任务")
+                return
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
             timeout = 120  # 设置超时时间为x秒
-            request_errors_count = 0 # 设置请求错误次数限制
-            Wrong_answer_count = 0   # 设置错误回复次数限制
+            request_errors_count = 0 # 请求错误次数
+            Wrong_answer_count = 0   # 错误回复次数
             model_degradation = False # 模型退化检测
 
             while 1 :
@@ -770,7 +798,7 @@ class Api_Requester():
                         #请求错误计次
                         request_errors_count = request_errors_count + 1
                         #如果错误次数过多，就取消任务
-                        if request_errors_count >= 6 :
+                        if request_errors_count >= 4 :
                             print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
                             break
 
@@ -911,15 +939,14 @@ class Api_Requester():
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m AI回复内容格式错误次数:",Wrong_answer_count,"到达2次后将该段文本进行拆分翻译\n")
+                        print("\033[1;33mWarning:\033[0m AI回复内容错误次数:",Wrong_answer_count,"到达",configurator.retry_count_limit,"次后，将该段文本进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
-                        if Wrong_answer_count >= 2 :
-                            print("\033[1;33mWarning:\033[0m 错误次数已经达限制,将该段文本进行拆分翻译！\n")    
+                        if Wrong_answer_count > configurator.retry_count_limit :
+                            print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
                             break
 
 
-                        #进行下一次循环
-                        time.sleep(3)                 
+                        #进行下一次循环              
                         continue
 
     #子线程抛出错误信息
@@ -1037,7 +1064,10 @@ class Api_Requester():
                 print("\033[1;33mWarning:\033[0m 该条消息总tokens数大于单条消息最大数量" )
                 print("\033[1;33mWarning:\033[0m 该条消息取消任务，进行拆分翻译" )
                 return
-
+            
+            if source_text_str =="""{}""":
+                print("\033[1;31mError:\033[0m 该条消息为空，取消任务")
+                return
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
@@ -1118,7 +1148,7 @@ class Api_Requester():
                         #请求错误计次
                         request_errors_count = request_errors_count + 1
                         #如果错误次数过多，就取消任务
-                        if request_errors_count >= 6 :
+                        if request_errors_count >= 4 :
                             print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
                             break
 
@@ -1244,15 +1274,14 @@ class Api_Requester():
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m AI回复内容格式错误次数:",Wrong_answer_count,"到达2次后将该段文本进行拆分翻译\n")
+                        print("\033[1;33mWarning:\033[0m AI回复内容错误次数:",Wrong_answer_count,"到达",configurator.retry_count_limit,"次后，将该段文本进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
-                        if Wrong_answer_count >= 2 :
-                            print("\033[1;33mWarning:\033[0m 错误次数已经达限制,将该段文本进行拆分翻译！\n")    
+                        if Wrong_answer_count > configurator.retry_count_limit :
+                            print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
                             break
 
 
-                        #进行下一次循环
-                        time.sleep(1)                 
+                        #进行下一次循环              
                         continue
 
     #子线程抛出错误信息
@@ -1375,7 +1404,10 @@ class Api_Requester():
                 print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
                 return
 
-
+            if source_text_str =="""{}""":
+                print("\033[1;31mError:\033[0m 该条消息为空，取消任务")
+                return
+            
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
             timeout = 120   # 设置超时时间为x秒
@@ -1430,7 +1462,7 @@ class Api_Requester():
                         #请求错误计次
                         request_errors_count = request_errors_count + 1
                         #如果错误次数过多，就取消任务
-                        if request_errors_count >= 6 :
+                        if request_errors_count >= 4 :
                             print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
                             break
 
@@ -1552,15 +1584,14 @@ class Api_Requester():
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m AI回复内容格式错误次数:",Wrong_answer_count,"到达2次后将该段文本进行拆分翻译\n")
+                        print("\033[1;33mWarning:\033[0m AI回复内容错误次数:",Wrong_answer_count,"到达",configurator.retry_count_limit,"次后，将该段文本进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
-                        if Wrong_answer_count >= 2 :
-                            print("\033[1;33mWarning:\033[0m 错误次数已经达限制,将该段文本进行拆分翻译！\n")    
+                        if Wrong_answer_count > configurator.retry_count_limit :
+                            print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
                             break
 
 
-                        #进行下一次循环
-                        time.sleep(3)                 
+                        #进行下一次循环              
                         continue
 
     #子线程抛出错误信息
@@ -1685,7 +1716,10 @@ class Api_Requester():
                 print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
                 return
 
-
+            if source_text_str =="""{}""":
+                print("\033[1;31mError:\033[0m 该条消息为空，取消任务")
+                return
+            
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
             timeout = 120   # 设置超时时间为x秒
@@ -1742,7 +1776,7 @@ class Api_Requester():
                         #请求错误计次
                         request_errors_count = request_errors_count + 1
                         #如果错误次数过多，就取消任务
-                        if request_errors_count >= 6 :
+                        if request_errors_count >= 4 :
                             print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
                             break
 
@@ -1864,15 +1898,14 @@ class Api_Requester():
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m AI回复内容格式错误次数:",Wrong_answer_count,"到达2次后将该段文本进行拆分翻译\n")
+                        print("\033[1;33mWarning:\033[0m AI回复内容错误次数:",Wrong_answer_count,"到达",configurator.retry_count_limit,"次后，将该段文本进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
-                        if Wrong_answer_count >= 2 :
-                            print("\033[1;33mWarning:\033[0m 错误次数已经达限制,将该段文本进行拆分翻译！\n")    
+                        if Wrong_answer_count > configurator.retry_count_limit :
+                            print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
                             break
 
 
-                        #进行下一次循环
-                        time.sleep(3)                 
+                        #进行下一次循环              
                         continue
 
     #子线程抛出错误信息
@@ -1993,7 +2026,7 @@ class Api_Requester():
                 print("\033[1;33mWarning:\033[0m 该条消息取消任务，进行拆分翻译" )
                 return
 
-
+            
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
             timeout = 120   # 设置超时时间为x秒
@@ -2066,7 +2099,7 @@ class Api_Requester():
                         #请求错误计次
                         request_errors_count = request_errors_count + 1
                         #如果错误次数过多，就取消任务
-                        if request_errors_count >= 6 :
+                        if request_errors_count >= 4 :
                             print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
                             break
 
@@ -2195,15 +2228,14 @@ class Api_Requester():
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m AI回复内容格式错误次数:",Wrong_answer_count,"到达2次后将该段文本进行拆分翻译\n")
+                        print("\033[1;33mWarning:\033[0m AI回复内容错误次数:",Wrong_answer_count,"到达",configurator.retry_count_limit,"次后，将该段文本进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
-                        if Wrong_answer_count >= 2 :
-                            print("\033[1;33mWarning:\033[0m 错误次数已经达限制,将该段文本进行拆分翻译！\n")    
+                        if Wrong_answer_count > configurator.retry_count_limit :
+                            print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
                             break
 
 
-                        #进行下一次循环
-                        time.sleep(3)                 
+                        #进行下一次循环              
                         continue
 
     #子线程抛出错误信息
@@ -2994,7 +3026,12 @@ class Configurator():
         self.preserve_line_breaks_toggle = False # 保留换行符开关
         self.response_json_format_toggle = False # 回复json格式开关
         self.conversion_toggle = False #简繁转换开关
-
+        self.mixed_translation_toggle = False # 混合翻译开关
+        self.retry_count_limit = 1 # 错误回复重试次数限制
+        self.round_limit = 6 # 拆分翻译轮次限制
+        self.configure_mixed_translation = {"first_platform":"first_platform",
+                                            "second_platform":"second_platform",
+                                            "third_platform":"third_platform",}  #混合翻译相关信息
 
         self.model_type = ""             #模型选择
         self.apikey_list = [] # 存储key的列表
@@ -3035,6 +3072,20 @@ class Configurator():
         self.conversion_toggle = Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.isChecked()
 
 
+        # 获取第三页的配置信息(混合翻译设置)
+        self.mixed_translation_toggle = Window.Widget_translation_settings.C_settings.SwitchButton_mixed_translation.isChecked()
+        if self.mixed_translation_toggle == True:
+            self.retry_count_limit =  Window.Widget_translation_settings.C_settings.spinBox_retry_count_limit.value()
+            self.round_limit =  Window.Widget_translation_settings.C_settings.spinBox_round_limit.value()
+        self.configure_mixed_translation["first_platform"] = Window.Widget_translation_settings.C_settings.comboBox_primary_translation_platform.currentText()
+        self.configure_mixed_translation["second_platform"] = Window.Widget_translation_settings.C_settings.comboBox_secondary_translation_platform.currentText()
+        if self.configure_mixed_translation["second_platform"] == "不设置":
+            self.configure_mixed_translation["second_platform"] = self.configure_mixed_translation["first_platform"]
+        self.configure_mixed_translation["third_platform"] = Window.Widget_translation_settings.C_settings.comboBox_final_translation_platform.currentText()
+        if self.configure_mixed_translation["third_platform"] == "不设置":
+           self.configure_mixed_translation["third_platform"] = self.configure_mixed_translation["second_platform"]
+
+
 
         # 重新初始化模型参数，防止上次任务的设置影响到
         self.openai_temperature = 0.1        
@@ -3056,8 +3107,6 @@ class Configurator():
             self.target_language = "简中"
 
 
-        # 获取翻译平台的配置信息
-        self.configure_translation_platform(self.translation_platform)
 
 
     # 初始化配置信息（错行检查用）
@@ -3382,12 +3431,11 @@ class Configurator():
         "0":"a=\"　　ぞ…ゾンビ系…。",
         "1":"敏捷性が上昇する。　　　　　　　\r\n効果：パッシブ",
         "2":"【ベーカリー】営業時間 8：00～18：00",
-        "3":"&f.Item[f.Select_Item][1]+'　個'",
-        "4":"ちょろ……ちょろろ……\nじょぼぼぼ……♡",
-        "5": "さて！",
-        "6": "さっそくオジサンをいじめちゃおっかな！",
-        "7": "若くて∞＠綺麗で∞＠エロくて"
-        "8": "さくら：「すごく面白かった！」"
+        "3":"ちょろ……ちょろろ……\nじょぼぼぼ……♡",
+        "4": "さて！",
+        "5": "さっそくオジサンをいじめちゃおっかな！",
+        "6": "若くて∞＠綺麗で∞＠エロくて"
+        "7": "さくら：「すごく面白かった！」"
         }'''
 
 
@@ -3396,12 +3444,11 @@ class Configurator():
         "0":"a=\"　　It's so scary….",
         "1":"Agility increases.　　　　　　　\r\nEffect: Passive",
         "2":"【Bakery】Business hours 8:00-18:00",
-        "3":"&f.Item[f.Select_Item][1]",
-        "4":"Gurgle…Gurgle…\nDadadada…♡",
-        "5": "Well then!",
-        "6": "Let's bully the uncle right away!",
-        "7": "Young ∞＠beautiful ∞＠sexy."
-        "8": "Sakura：「It was really fun!」"
+        "3":"Gurgle…Gurgle…\nDadadada…♡",
+        "4": "Well then!",
+        "5": "Let's bully the uncle right away!",
+        "6": "Young ∞＠beautiful ∞＠sexy."
+        "7": "Sakura：「It was really fun!」"
         }'''
 
         #韩语示例
@@ -3409,12 +3456,11 @@ class Configurator():
         "0":"a=\"　　정말 무서워요….",
         "1":"민첩성이 상승한다.　　　　　　　\r\n효과：패시브",
         "2":"【빵집】영업 시간 8:00~18:00",
-        "3":"&f.Item[f.Select_Item][1]",
-        "4":"둥글둥글…둥글둥글…\n둥글둥글…♡",
-        "5": "그래서!",
-        "6": "지금 바로 아저씨를 괴롭히자!",
-        "7": "젊고∞＠아름답고∞＠섹시하고"
-        "8": "사쿠라：「정말로 재미있었어요!」"
+        "3":"둥글둥글…둥글둥글…\n둥글둥글…♡",
+        "4": "그래서!",
+        "5": "지금 바로 아저씨를 괴롭히자!",
+        "6": "젊고∞＠아름답고∞＠섹시하고"
+        "7": "사쿠라：「정말로 재미있었어요!」"
         }'''
 
 
@@ -3423,12 +3469,11 @@ class Configurator():
         "0": "а=\"　　Ужасно страшно...。",
         "1": "Повышает ловкость.　　　　　　　\r\nЭффект: Пассивный",
         "2": "【пекарня】Время работы 8:00-18:00",
-        "3": "&f.Item[f.Select_Item][1]+'　шт.'",
-        "4": "Гуру... гуругу... ♡\nДадада... ♡",
-        "5": "Итак!",
-        "6": "Давайте сейчас поиздеваемся над дядей!",
-        "7": "Молодые∞＠Красивые∞＠Эротичные"
-        "8": "Сакура: 「Было очень интересно!」"
+        "3": "Гуру... гуругу... ♡\nДадада... ♡",
+        "4": "Итак!",
+        "5": "Давайте сейчас поиздеваемся над дядей!",
+        "6": "Молодые∞＠Красивые∞＠Эротичные"
+        "7": "Сакура: 「Было очень интересно!」"
         }'''
 
 
@@ -3437,12 +3482,11 @@ class Configurator():
         "0":"a=\"　　好可怕啊……。",
         "1":"提高敏捷性。　　　　　　　\r\n效果：被动",
         "2":"【面包店】营业时间 8：00～18：00",
-        "3":"&f.Item[f.Select_Item][1]+'　个'",
-        "4":"咕噜……咕噜噜……\n哒哒哒……♡",
-        "5": "那么！",
-        "6": "现在就来欺负一下大叔吧！",
-        "7": "年轻∞＠漂亮∞＠色情"
-        "8": "樱：「超级有趣！」"
+        "3":"咕噜……咕噜噜……\n哒哒哒……♡",
+        "4": "那么！",
+        "5": "现在就来欺负一下大叔吧！",
+        "6": "年轻∞＠漂亮∞＠色情"
+        "7": "樱：「超级有趣！」"
         }'''
 
 
@@ -3451,12 +3495,11 @@ class Configurator():
         "0":"a=\"　　好可怕啊……。",
         "1":"提高敏捷性。　　　　　　　\r\n效果：被動",
         "2":"【麵包店】營業時間 8：00～18：00",
-        "3":"&f.Item[f.Select_Item][1]+'　個'",
-        "4":"咕嚕……咕嚕嚕……\n哒哒哒……♡",
-        "5": "那麼！",
-        "6": "現在就來欺負一下大叔吧！",
-        "7": "年輕∞＠漂亮∞＠色情"
-        "8": "櫻：「超有趣！」"
+        "3":"咕嚕……咕嚕嚕……\n哒哒哒……♡",
+        "4": "那麼！",
+        "5": "現在就來欺負一下大叔吧！",
+        "6": "年輕∞＠漂亮∞＠色情"
+        "7": "櫻：「超有趣！」"
         }'''
 
 
@@ -3835,6 +3878,15 @@ class Configurator():
             config_dict["response_conversion_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.isChecked()   # 获取简繁转换开关
             config_dict["text_clear_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_clear.isChecked() # 获取文本处理开关
 
+            #翻译设置混合反应设置界面
+            config_dict["translation_mixing_toggle"] =  Window.Widget_translation_settings.C_settings.SwitchButton_mixed_translation.isChecked() # 获取混合翻译开关
+            config_dict["translation_platform_1"] =  Window.Widget_translation_settings.C_settings.comboBox_primary_translation_platform.currentText()  # 获取首轮翻译平台设置
+            config_dict["translation_platform_2"] =  Window.Widget_translation_settings.C_settings.comboBox_secondary_translation_platform.currentText()   # 获取次轮
+            config_dict["translation_platform_3"] =  Window.Widget_translation_settings.C_settings.comboBox_final_translation_platform.currentText()    # 获取末轮
+            config_dict["retry_count_limit"] =  Window.Widget_translation_settings.C_settings.spinBox_retry_count_limit.value()     # 获取重翻次数限制
+            config_dict["round_limit"] =  Window.Widget_translation_settings.C_settings.spinBox_round_limit.value() # 获取轮数限制
+
+
             #开始翻译的备份设置界面
             config_dict["auto_backup_toggle"] =  Window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
 
@@ -4048,6 +4100,20 @@ class Configurator():
                     Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.setChecked(config_dict["response_conversion_toggle"])
                 if "text_clear_toggle" in config_dict:
                     Window.Widget_translation_settings.B_settings.SwitchButton_clear.setChecked(config_dict["text_clear_toggle"])
+
+                #翻译设置混合翻译界面
+                if "translation_mixing_toggle" in config_dict:
+                    Window.Widget_translation_settings.C_settings.SwitchButton_mixed_translation.setChecked(config_dict["translation_mixing_toggle"])
+                if "translation_platform_1" in config_dict:
+                    Window.Widget_translation_settings.C_settings.comboBox_primary_translation_platform.setCurrentText(config_dict["translation_platform_1"])
+                if "translation_platform_2" in config_dict:
+                    Window.Widget_translation_settings.C_settings.comboBox_secondary_translation_platform.setCurrentText(config_dict["translation_platform_2"])
+                if "translation_platform_3" in config_dict:
+                    Window.Widget_translation_settings.C_settings.comboBox_final_translation_platform.setCurrentText(config_dict["translation_platform_3"])
+                if "retry_count_limit" in config_dict:
+                    Window.Widget_translation_settings.C_settings.spinBox_retry_count_limit.setValue(config_dict["retry_count_limit"])
+                if "round_limit" in config_dict:
+                     Window.Widget_translation_settings.C_settings.spinBox_round_limit.setValue(config_dict["round_limit"]) 
 
 
                 #开始翻译的备份设置界面
@@ -6268,7 +6334,7 @@ class User_Interface_Prompter(QObject):
        self.anthropic_price_data = {
             "claude-2.0": {"input_price": 0.008, "output_price": 0.024}, # 存储的价格是 /k tokens
             "claude-2.1": {"input_price": 0.008, "output_price": 0.024}, # 存储的价格是 /k tokens
-            "claude-3-haiku-20240229": {"input_price": 0.0025, "output_price": 0.00125}, # 存储的价格是 /k tokens
+            "claude-3-haiku-20240307": {"input_price": 0.0025, "output_price": 0.00125}, # 存储的价格是 /k tokens
             "claude-3-sonnet-20240229": {"input_price": 0.003, "output_price": 0.015}, # 存储的价格是 /k tokens
             "claude-3-opus-20240229": {"input_price": 0.015, "output_price": 0.075}, # 存储的价格是 /k tokens
             }
@@ -6638,7 +6704,7 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
 
 
         self.comboBox_model_anthropic = ComboBox() #以demo为父类
-        self.comboBox_model_anthropic.addItems(['claude-2.0','claude-2.1','claude-3-sonnet-20240229', 'claude-3-opus-20240229'])
+        self.comboBox_model_anthropic.addItems(['claude-2.0','claude-2.1','claude-3-haiku-20240307','claude-3-sonnet-20240229', 'claude-3-opus-20240229'])
         self.comboBox_model_anthropic.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model_anthropic.setFixedSize(200, 35)
 
@@ -7316,7 +7382,7 @@ class Widget_Anthropic(QFrame):#  Anthropic账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox_model = ComboBox() #以demo为父类
-        self.comboBox_model.addItems(['claude-2.0','claude-2.1','claude-3-sonnet-20240229', 'claude-3-opus-20240229'])
+        self.comboBox_model.addItems(['claude-2.0','claude-2.1','claude-3-haiku-20240307','claude-3-sonnet-20240229', 'claude-3-opus-20240229'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(215, 35)
         #设置下拉选择框默认选择
@@ -7755,12 +7821,12 @@ class Widget_translation_settings(QFrame):  # 翻译设置主界面
 
         self.A_settings = Widget_translation_settings_A('A_settings', self)  # 创建实例，指向界面
         self.B_settings = Widget_translation_settings_B('B_settings', self)  # 创建实例，指向界面
-        #self.C_settings = Widget_translation_settings_C('C_settings', self)
+        self.C_settings = Widget_translation_settings_C('C_settings', self)
 
         # 添加子界面到分段式导航栏
         self.addSubInterface(self.A_settings, 'A_settings', '基础设置')
         self.addSubInterface(self.B_settings, 'B_settings', '进阶设置')
-        #self.addSubInterface(self.C_settings, 'C_settings', '混合翻译设置')
+        self.addSubInterface(self.C_settings, 'C_settings', '混合翻译设置')
 
 
         # 将分段式导航栏和堆叠式窗口添加到垂直布局中
@@ -8081,28 +8147,6 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         box1_thread_count.setLayout(layout1_thread_count)
 
 
-        # -----创建第2个组(后来补的)，添加多个组件-----
-        box_retry_count_limit = QGroupBox()
-        box_retry_count_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_retry_count_limit = QHBoxLayout()
-
-
-        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label1_7.setText("错误回复重翻次数")
-
-
-        # 设置数值输入框
-        self.spinBox_retry_count_limit = SpinBox(self)
-        # 设置最大最小值
-        self.spinBox_retry_count_limit.setRange(0, 1000)    
-        self.spinBox_retry_count_limit.setValue(1)
-
-        layout_retry_count_limit.addWidget(label1_7)
-        layout_retry_count_limit.addStretch(1)  # 添加伸缩项
-        layout_retry_count_limit.addWidget(self.spinBox_retry_count_limit)
-        box_retry_count_limit.setLayout(layout_retry_count_limit)
-
 
 
         # -----创建第1个组(后来补的)，添加多个组件-----
@@ -8246,16 +8290,16 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
         box_switch.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_switch = QHBoxLayout()
 
-        #设置“回复json格式”标签
+        #设置标签
         self.labe1_4 = QLabel(flags=Qt.WindowFlags())  
         self.labe1_4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
         self.labe1_4.setText("启用混合平台翻译功能")
 
 
 
-        # 设置“回复json格式”选择开关
+        # 设置选择开关
         self.SwitchButton_mixed_translation = SwitchButton(parent=self)    
-        #self.SwitchButton_jsonmode.checkedChanged.connect(self.onjsonmode)
+        self.SwitchButton_mixed_translation.checkedChanged.connect(self.test)
 
 
 
@@ -8281,7 +8325,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
 
         #设置“翻译平台”下拉选择框
         self.comboBox_primary_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_primary_translation_platform.addItems(['OpenAI官方',  'OpenAI代理',  'Google官方',  'SakuraLLM'])
+        self.comboBox_primary_translation_platform.addItems(['OpenAI官方',  'Google官方', 'Anthropic官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
         self.comboBox_primary_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_primary_translation_platform.setFixedSize(150, 35)
 
@@ -8305,7 +8349,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
 
         #设置“翻译平台”下拉选择框
         self.comboBox_secondary_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_secondary_translation_platform.addItems(['不设置', 'OpenAI官方',  'OpenAI代理',  'Google官方',  'SakuraLLM'])
+        self.comboBox_secondary_translation_platform.addItems(['不设置', 'OpenAI官方',  'Google官方', 'Anthropic官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
         self.comboBox_secondary_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_secondary_translation_platform.setFixedSize(150, 35)
 
@@ -8329,7 +8373,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
 
         #设置“翻译平台”下拉选择框
         self.comboBox_final_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_final_translation_platform.addItems(['不设置','OpenAI官方',  'OpenAI代理',  'Google官方',  'SakuraLLM'])
+        self.comboBox_final_translation_platform.addItems(['不设置','OpenAI官方',  'Google官方', 'Anthropic官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
         self.comboBox_final_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_final_translation_platform.setFixedSize(150, 35)
 
@@ -8338,6 +8382,51 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
         layout_translation_platform3.addWidget(self.comboBox_final_translation_platform, 0, 1)
         box_translation_platform3.setLayout(layout_translation_platform3)
 
+
+        # -----创建第x个组，添加多个组件-----
+        box_retry_count_limit = QGroupBox()
+        box_retry_count_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_retry_count_limit = QHBoxLayout()
+
+
+        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label1_7.setText("错误重翻最大次数限制")
+
+
+        # 设置数值输入框
+        self.spinBox_retry_count_limit = SpinBox(self)
+        # 设置最大最小值
+        self.spinBox_retry_count_limit.setRange(0, 1000)    
+        self.spinBox_retry_count_limit.setValue(1)
+
+        layout_retry_count_limit.addWidget(label1_7)
+        layout_retry_count_limit.addStretch(1)  # 添加伸缩项
+        layout_retry_count_limit.addWidget(self.spinBox_retry_count_limit)
+        box_retry_count_limit.setLayout(layout_retry_count_limit)
+
+
+        # -----创建第x个组，添加多个组件-----
+        box_round_limit = QGroupBox()
+        box_round_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_round_limit = QHBoxLayout()
+
+
+        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label1_7.setText("拆分翻译最大轮次限制")
+
+
+        # 设置数值输入框
+        self.spinBox_round_limit = SpinBox(self)
+        # 设置最大最小值
+        self.spinBox_round_limit.setRange(3, 1000)    
+        self.spinBox_round_limit.setValue(6)
+
+        layout_round_limit.addWidget(label1_7)
+        layout_round_limit.addStretch(1)  # 添加伸缩项
+        layout_round_limit.addWidget(self.spinBox_round_limit)
+        box_round_limit.setLayout(layout_round_limit)
 
 
         # 最外层的垂直布局
@@ -8349,6 +8438,8 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
         container.addWidget(box_translation_platform1)
         container.addWidget(box_translation_platform2)
         container.addWidget(box_translation_platform3)
+        container.addWidget(box_retry_count_limit)
+        container.addWidget(box_round_limit)
         container.addStretch(1)  # 添加伸缩项
 
         # 设置窗口显示的内容是最外层容器
@@ -8357,7 +8448,10 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
         container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
 
-
+    #设置开关绑定函数
+    def test(self, isChecked: bool):
+        if isChecked:
+            user_interface_prompter.createWarningInfoBar("请注意，该功能将会根据轮次设置,覆盖基础设置中的翻译平台")
 
 
 class Widget_start_translation(QFrame):  # 开始翻译主界面
@@ -10027,7 +10121,8 @@ class Widget_export_source_text(QFrame):#  提取子界面
         # 设置“是否日语游戏”选择开关
         self.SwitchButton_ja = CheckBox('        ')
         self.SwitchButton_ja.setChecked(True)    
-        #self.SwitchButton_jsonmode.checkedChanged.connect(self.onjsonmode)
+        # 绑定选择开关的点击事件
+        self.SwitchButton_ja.clicked.connect(self.test)
 
 
 
@@ -10187,7 +10282,10 @@ class Widget_export_source_text(QFrame):#  提取子界面
         container.setSpacing(28) # 设置布局内控件的间距为28
         container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
-
+    #设置开关绑定函数
+    def test(self, isChecked: bool):
+        if isChecked== False:
+            user_interface_prompter.createWarningInfoBar("不建议使用在非日语游戏上,容易出现问题")
 
     # 选择输入文件夹按钮绑定函数
     def Select_project_folder(self):
