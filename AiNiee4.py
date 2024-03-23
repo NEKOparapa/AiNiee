@@ -2541,19 +2541,18 @@ class Response_Parser():
         # 使用正则表达式匹配中日语字符
         japanese_chars = re.findall(r'[\u3040-\u309F\u30A0-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]', input_string)
 
-        # 使用正则表达式匹配英文字母
-        english_chars = re.findall(r'[a-zA-Z]', input_string)
         # 统计中日语字符的数量
         char_count = {}
         for char in japanese_chars:
             char_count[char] = char_count.get(char, 0) + 1
         # 输出字符数量
         for char, count in char_count.items():
-            if count >= 80:
+            if count >= 90:
                 return False
                 #print(f"中日语字符 '{char}' 出现了 {count} 次一次。")
         
         # 统计英文字母的数量
+        english_chars = re.findall(r'[a-zA-Z]', input_string)
         english_char_count = {}
         for char in english_chars:
             english_char_count[char] = english_char_count.get(char, 0) + 1
