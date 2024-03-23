@@ -231,10 +231,10 @@ class Translator():
                 # 更换翻译平台
                 if retry_translation_count == 1:
                     configurator.translation_platform = configurator.configure_mixed_translation["second_platform"]
-                    print("[INFO]  已开启混合翻译功能，正在进行次轮翻译，翻译平台更换为：",configurator.translation_platform, '\n')
+                    print("[INFO]  已开启混合翻译功能，正在进行次轮拆分翻译，翻译平台更换为：",configurator.translation_platform, '\n')
                 else:
                     configurator.translation_platform = configurator.configure_mixed_translation["third_platform"]
-                    print("[INFO]  已开启混合翻译功能，正在进行末轮翻译，翻译平台更换为：",configurator.translation_platform, '\n')
+                    print("[INFO]  已开启混合翻译功能，正在进行末轮拆分翻译，翻译平台更换为：",configurator.translation_platform, '\n')
 
                 configurator.configure_translation_platform(configurator.translation_platform)  # 配置翻译平台信息
                 request_limiter.initialize_limiter() # 配置请求限制器，依赖前面的配置信息，必需在最后面初始化
@@ -8382,6 +8382,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
         box_translation_platform3.setLayout(layout_translation_platform3)
 
 
+
         # -----创建第x个组，添加多个组件-----
         box_retry_count_limit = QGroupBox()
         box_retry_count_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
@@ -8413,7 +8414,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
 
         label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
         label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label1_7.setText("拆分翻译最大轮次限制")
+        label1_7.setText("翻译流程最大轮次限制")
 
 
         # 设置数值输入框
@@ -8432,13 +8433,15 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
         container = QVBoxLayout()
 
         # 把内容添加到容器中
-        container.addStretch(1)  # 添加伸缩项
+        #container.addStretch(1)  # 添加伸缩项
         container.addWidget(box_switch)
+        container.addStretch(1)  # 添加伸缩项
         container.addWidget(box_translation_platform1)
         container.addWidget(box_translation_platform2)
         container.addWidget(box_translation_platform3)
         container.addWidget(box_retry_count_limit)
         container.addWidget(box_round_limit)
+        container.addStretch(1)  # 添加伸缩项
         container.addStretch(1)  # 添加伸缩项
 
         # 设置窗口显示的内容是最外层容器
@@ -8450,7 +8453,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
     #设置开关绑定函数
     def test(self, isChecked: bool):
         if isChecked:
-            user_interface_prompter.createWarningInfoBar("请注意，该功能将会根据轮次设置,覆盖基础设置中的翻译平台")
+            user_interface_prompter.createWarningInfoBar("请注意，该功能会覆盖基础设置中的翻译平台")
 
 
 class Widget_start_translation(QFrame):  # 开始翻译主界面
