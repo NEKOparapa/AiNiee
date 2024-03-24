@@ -57,7 +57,7 @@ from qframelesswindow import FramelessWindow, TitleBar, StandardTitleBar
 from StevExtraction import jtpp  #导入文本提取工具
 
 
-Software_Version = "AiNiee4.65"  #软件版本号
+Software_Version = "AiNiee4.65.1"  #软件版本号
 cache_list = [] # 全局缓存数据
 Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
                     # 6是翻译任务进行状态，7是错行检查状态，9是翻译任务暂停状态，10是强制终止任务状态
@@ -8946,7 +8946,7 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
 
             if len(cache_list)>= 3:
                 #创建子线程
-                thread = background_executor("输出已翻译文件",Output_Folder,"","","","")
+                thread = background_executor("输出已翻译文件",Output_Folder,"","","","","")
                 thread.start()
 
             else:
