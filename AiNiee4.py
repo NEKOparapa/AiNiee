@@ -31,6 +31,7 @@ import os
 import sys
 import multiprocessing
 import concurrent.futures
+import shutil
 
 import tiktoken_ext  #必须导入这两个库，否则打包后无法运行
 from tiktoken_ext import openai_public
@@ -44,6 +45,9 @@ from openai import OpenAI #需要安装库pip install openai
 from zhipuai import ZhipuAI #需要安装库pip install zhipuai
 import google.generativeai as genai #需要安装库pip install -U google-generativeai
 import anthropic #需要安装库pip install anthropic
+import ebooklib #需要安装库pip install ebooklib
+from ebooklib import epub
+from bs4 import BeautifulSoup #需要安装库pip install beautifulsoup4
 
 from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, QPainter, QPixmap#需要安装库 pip3 install PyQt5
 from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
@@ -57,7 +61,7 @@ from qframelesswindow import FramelessWindow, TitleBar, StandardTitleBar
 from StevExtraction import jtpp  #导入文本提取工具
 
 
-Software_Version = "AiNiee4.65.1"  #软件版本号
+Software_Version = "AiNiee4.66"  #软件版本号
 cache_list = [] # 全局缓存数据
 Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
                     # 6是翻译任务进行状态，7是错行检查状态，9是翻译任务暂停状态，10是强制终止任务状态
@@ -95,26 +99,14 @@ class Translator():
         if Running_status != 9:
             # 读取文件
             try:
-                Input_Folder = configurator.Input_Folder
-                if configurator.translation_project == "Mtool导出文件":
-                    cache_list = File_Reader.read_mtool_files(self,folder_path = Input_Folder)
-                elif configurator.translation_project == "T++导出文件":
-                    cache_list = File_Reader.read_xlsx_files (self,folder_path = Input_Folder)
-                elif configurator.translation_project == "Srt字幕文件":
-                    cache_list = File_Reader.read_srt_files(self,folder_path = Input_Folder)
-                elif configurator.translation_project == "Lrc音声文件":
-                    cache_list = File_Reader.read_lrc_files(self,folder_path = Input_Folder)
-                elif configurator.translation_project == "VNText导出文件":
-                    cache_list = File_Reader.read_vnt_files(self,folder_path = Input_Folder)
-                elif configurator.translation_project == "Ainiee缓存文件":
-                    cache_list = File_Reader.read_cache_files(self,folder_path = Input_Folder)
-            
+                cache_list = File_Reader.read_files(self,configurator.translation_project, configurator.Input_Folder)
+
             except Exception as e:
                 print(e)
                 print("\033[1;31mError:\033[0m 读取原文失败，请检查项目类型是否正确，文件夹是否包含其他同类型文件！")
                 return
 
-        # ——————————————————————————————————————————处理缓存文件—————————————————————————————————————————
+        # ——————————————————————————————————————————初步处理缓存文件—————————————————————————————————————————
             
             # 将浮点型，整数型文本内容变成字符型文本内容
             Cache_Manager.convert_source_text_to_str(self,cache_list)
@@ -130,13 +122,12 @@ class Translator():
         # ——————————————————————————————————————————构建并发任务池子—————————————————————————————————————————
 
         # 计算并发任务数
-        line_count_configuration = configurator.text_line_counts # 获取每次翻译行数配置
         untranslated_text_line_count = Cache_Manager.count_and_update_translation_status_0_2(self, cache_list) #获取需要翻译的文本总行数
 
-        if untranslated_text_line_count % line_count_configuration == 0:
-            tasks_Num = untranslated_text_line_count // line_count_configuration 
+        if untranslated_text_line_count % configurator.text_line_counts == 0:
+            tasks_Num = untranslated_text_line_count // configurator.text_line_counts 
         else:
-            tasks_Num = untranslated_text_line_count // line_count_configuration + 1
+            tasks_Num = untranslated_text_line_count // configurator.text_line_counts + 1
 
 
 
@@ -171,7 +162,7 @@ class Translator():
 
         print("[INFO]  游戏文本从",configurator.source_language, '翻译到', configurator.target_language,'\n')
         print("[INFO]  文本总行数为：",total_text_line_count,"  需要翻译的行数为：",untranslated_text_line_count) 
-        print("[INFO]  每次发送行数为：",line_count_configuration,"  计划的翻译任务总数是：", tasks_Num,'\n') 
+        print("[INFO]  每次发送行数为：",configurator.text_line_counts,"  计划的翻译任务总数是：", tasks_Num,'\n') 
         print("\033[1;32m[INFO] \033[0m 五秒后开始进行翻译，请注意保持网络通畅，余额充足。", '\n')
         time.sleep(5)  
 
@@ -241,15 +232,18 @@ class Translator():
 
 
             # 根据算法计算拆分的文本行数
-            line_count_configuration = configurator.update_text_line_count(line_count_configuration) # 更换配置中的文本行数
-            print("[INFO] 未翻译文本总行数为：",untranslated_text_line_count,"  每次发送行数修改为：",line_count_configuration, '\n')
+            if configurator.mixed_translation_toggle and configurator.split_switch:
+                print("[INFO] 检测到不进行拆分设置，发送行数将继续保持不变")
+            else:
+                configurator.text_line_counts = configurator.update_text_line_count(configurator.text_line_counts) # 更换配置中的文本行数
+            print("[INFO] 未翻译文本总行数为：",untranslated_text_line_count,"  每次发送行数修改为：",configurator.text_line_counts, '\n')
 
 
             # 计算可并发任务总数
-            if untranslated_text_line_count % line_count_configuration == 0:
-                tasks_Num = untranslated_text_line_count // line_count_configuration
+            if untranslated_text_line_count % configurator.text_line_counts == 0:
+                tasks_Num = untranslated_text_line_count // configurator.text_line_counts
             else:
-                tasks_Num = untranslated_text_line_count // line_count_configuration + 1
+                tasks_Num = untranslated_text_line_count // configurator.text_line_counts + 1
 
 
             # 创建线程池
@@ -311,7 +305,7 @@ class Translator():
                     print(f"Error: {e}\n")
 
         # 将翻译结果写为对应文件
-        File_Outputter.output_translated_content(self,cache_list,configurator.Output_Folder)
+        File_Outputter.output_translated_content(self,cache_list,configurator.Output_Folder,configurator.Input_Folder)
 
         # —————————————————————————————————————#全部翻译完成——————————————————————————————————————————
 
@@ -725,7 +719,7 @@ class Api_Requester():
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
-            timeout = 120  # 设置超时时间为x秒
+            timeout = 220  # 设置超时时间为x秒
             request_errors_count = 0 # 请求错误次数
             Wrong_answer_count = 0   # 错误回复次数
             model_degradation = False # 模型退化检测
@@ -939,7 +933,7 @@ class Api_Requester():
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m AI回复内容错误次数:",Wrong_answer_count,"到达",configurator.retry_count_limit,"次后，将该段文本进行拆分翻译\n")
+                        print("\033[1;33mWarning:\033[0m 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
                         if Wrong_answer_count > configurator.retry_count_limit :
                             print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
@@ -1071,7 +1065,7 @@ class Api_Requester():
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
-            timeout = 120   # 设置超时时间为x秒
+            timeout = 220   # 设置超时时间为x秒
             request_errors_count = 0 # 设置请求错误次数限制
             Wrong_answer_count = 0   # 设置错误回复次数限制
 
@@ -1274,7 +1268,7 @@ class Api_Requester():
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m AI回复内容错误次数:",Wrong_answer_count,"到达",configurator.retry_count_limit,"次后，将该段文本进行拆分翻译\n")
+                        print("\033[1;33mWarning:\033[0m 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
                         if Wrong_answer_count > configurator.retry_count_limit :
                             print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
@@ -1410,7 +1404,7 @@ class Api_Requester():
             
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
-            timeout = 120   # 设置超时时间为x秒
+            timeout = 220   # 设置超时时间为x秒
             request_errors_count = 0 # 设置请求错误次数限制
             Wrong_answer_count = 0   # 设置错误回复次数限制
 
@@ -1584,7 +1578,7 @@ class Api_Requester():
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m AI回复内容错误次数:",Wrong_answer_count,"到达",configurator.retry_count_limit,"次后，将该段文本进行拆分翻译\n")
+                        print("\033[1;33mWarning:\033[0m 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
                         if Wrong_answer_count > configurator.retry_count_limit :
                             print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
@@ -1722,7 +1716,7 @@ class Api_Requester():
             
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
-            timeout = 120   # 设置超时时间为x秒
+            timeout = 220   # 设置超时时间为x秒
             request_errors_count = 0 # 请求错误计数
             Wrong_answer_count = 0   # 错误回复计数
 
@@ -1898,7 +1892,7 @@ class Api_Requester():
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m AI回复内容错误次数:",Wrong_answer_count,"到达",configurator.retry_count_limit,"次后，将该段文本进行拆分翻译\n")
+                        print("\033[1;33mWarning:\033[0m 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
                         if Wrong_answer_count > configurator.retry_count_limit :
                             print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
@@ -2029,7 +2023,7 @@ class Api_Requester():
             
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
-            timeout = 120   # 设置超时时间为x秒
+            timeout = 220   # 设置超时时间为x秒
             request_errors_count = 0 # 设置请求错误次数限制
             Wrong_answer_count = 0   # 设置错误回复次数限制
             model_degradation = False # 模型退化检测
@@ -2228,7 +2222,7 @@ class Api_Requester():
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m AI回复内容错误次数:",Wrong_answer_count,"到达",configurator.retry_count_limit,"次后，将该段文本进行拆分翻译\n")
+                        print("\033[1;33mWarning:\033[0m 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
                         if Wrong_answer_count > configurator.retry_count_limit :
                             print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
@@ -3025,9 +3019,11 @@ class Configurator():
         self.preserve_line_breaks_toggle = False # 保留换行符开关
         self.response_json_format_toggle = False # 回复json格式开关
         self.conversion_toggle = False #简繁转换开关
+
         self.mixed_translation_toggle = False # 混合翻译开关
         self.retry_count_limit = 1 # 错误回复重试次数限制
         self.round_limit = 6 # 拆分翻译轮次限制
+        self.split_switch = False # 拆分开关
         self.configure_mixed_translation = {"first_platform":"first_platform",
                                             "second_platform":"second_platform",
                                             "third_platform":"third_platform",}  #混合翻译相关信息
@@ -3076,6 +3072,7 @@ class Configurator():
         if self.mixed_translation_toggle == True:
             self.retry_count_limit =  Window.Widget_translation_settings.C_settings.spinBox_retry_count_limit.value()
             self.round_limit =  Window.Widget_translation_settings.C_settings.spinBox_round_limit.value()
+            self.split_switch = Window.Widget_translation_settings.C_settings.SwitchButton_split_switch.isChecked()
         self.configure_mixed_translation["first_platform"] = Window.Widget_translation_settings.C_settings.comboBox_primary_translation_platform.currentText()
         self.configure_mixed_translation["second_platform"] = Window.Widget_translation_settings.C_settings.comboBox_secondary_translation_platform.currentText()
         if self.configure_mixed_translation["second_platform"] == "不设置":
@@ -3799,8 +3796,6 @@ class Configurator():
         else:
             result = 1
 
-        # 更新设置
-        self.text_line_counts = result
 
         return result
 
@@ -3884,7 +3879,7 @@ class Configurator():
             config_dict["translation_platform_3"] =  Window.Widget_translation_settings.C_settings.comboBox_final_translation_platform.currentText()    # 获取末轮
             config_dict["retry_count_limit"] =  Window.Widget_translation_settings.C_settings.spinBox_retry_count_limit.value()     # 获取重翻次数限制
             config_dict["round_limit"] =  Window.Widget_translation_settings.C_settings.spinBox_round_limit.value() # 获取轮数限制
-
+            config_dict["split_switch"] =  Window.Widget_translation_settings.C_settings.SwitchButton_split_switch.isChecked() # 获取混合翻译开关
 
             #开始翻译的备份设置界面
             config_dict["auto_backup_toggle"] =  Window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
@@ -4113,7 +4108,8 @@ class Configurator():
                     Window.Widget_translation_settings.C_settings.spinBox_retry_count_limit.setValue(config_dict["retry_count_limit"])
                 if "round_limit" in config_dict:
                      Window.Widget_translation_settings.C_settings.spinBox_round_limit.setValue(config_dict["round_limit"]) 
-
+                if "split_switch" in config_dict:
+                    Window.Widget_translation_settings.C_settings.SwitchButton_split_switch.setChecked(config_dict["split_switch"])
 
                 #开始翻译的备份设置界面
                 if "auto_backup_toggle" in config_dict:
@@ -4935,8 +4931,8 @@ class File_Reader():
                 if file.endswith(".srt"):
                     file_path = os.path.join(root, file) # 构建文件路径
                     
-                    with open(file_path, 'r', encoding='utf-8') as file:
-                        content = file.read()
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
 
                     # 将内容按行分割
                     lines = content.split('\n')
@@ -5018,8 +5014,8 @@ class File_Reader():
                 if file.endswith(".lrc"):
                     file_path = os.path.join(root, file) # 构建文件路径
                     
-                    with open(file_path, 'r', encoding='utf-8') as file:
-                        content = file.read()
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
 
                     # 切行
                     lyrics = content.split('\n')
@@ -5074,6 +5070,181 @@ class File_Reader():
 
         return json_data_list
 
+
+    # 读取文件夹中树形结构Txt小说文件
+    def read_txt_files (self,folder_path):
+
+        # 创建缓存数据，并生成文件头信息
+        json_data_list = []
+        project_id = File_Reader.generate_project_id(self,"Txt")
+        json_data_list.append({
+            "project_type": "Txt",
+            "project_id": project_id,
+        })
+
+        #文本索引初始值
+        i = 1
+
+        # 遍历文件夹及其子文件夹
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                # 判断文件是否为 JSON 文件
+                if file.endswith(".txt"):
+                    file_path = os.path.join(root, file) # 构建文件路径
+                    
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+
+                    storage_path = os.path.relpath(file_path, folder_path)
+                    file_name = file
+
+                    # 切行
+                    lines = content.split('\n')
+
+
+                    for j, line in enumerate(lines):
+                        if line.strip() == '': # 跳过空行
+                            continue
+                        spaces = len(line) - len(line.lstrip()) # 获取行开头的空格数
+
+                        if j < len(lines) - 1 and lines[j + 1].strip() == '': # 检查当前行是否是文本中的最后一行,并检测下一行是否为空行
+                            if (j+1) < len(lines) - 1 and lines[j + 2].strip() == '': # 再检查下下行是否为空行，所以最多只会保留2行空行信息
+                                # 将数据存储在字典中
+                                json_data_list.append({
+                                    "text_index": i,
+                                    "translation_status": 0,
+                                    "source_text": line,
+                                    "translated_text": line,
+                                    "sentence_indent": spaces,
+                                    "line_break":2,
+                                    "storage_path": storage_path,
+                                    "file_name": file_name,
+                                })
+                            else:
+                                # 将数据存储在字典中
+                                json_data_list.append({
+                                    "text_index": i,
+                                    "translation_status": 0,
+                                    "source_text": line,
+                                    "translated_text": line,
+                                    "sentence_indent": spaces,
+                                    "line_break":1,
+                                    "storage_path": storage_path,
+                                    "file_name": file_name,
+                                })
+
+                        else:
+                            # 将数据存储在字典中
+                            json_data_list.append({
+                                "text_index": i,
+                                "translation_status": 0,
+                                "source_text": line,
+                                "translated_text": line,
+                                "sentence_indent": spaces,
+                                "line_break":0,
+                                "storage_path": storage_path,
+                                "file_name": file_name,
+                            })
+
+                        i += 1
+
+
+        return json_data_list
+
+
+    # 读取文件夹中树形结构Epub文件
+    def read_epub_files (self,folder_path):
+
+        # 创建缓存数据，并生成文件头信息
+        json_data_list = []
+        project_id = File_Reader.generate_project_id(self,"Epub")
+        json_data_list.append({
+            "project_type": "Epub",
+            "project_id": project_id,
+        })
+
+        #文本索引初始值
+        i = 1
+
+        # 遍历文件夹及其子文件夹
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                # 判断文件是否为 epub 文件
+                if file.endswith(".epub"):
+                    file_path = os.path.join(root, file) # 构建文件路径
+                    
+                    # 加载EPUB文件
+                    book = epub.read_epub(file_path)
+
+                    # 获取文件路径和文件名
+                    storage_path = os.path.relpath(file_path, folder_path)
+                    file_name = file
+
+                    # 遍历书籍中的所有内容
+                    for item in book.get_items():
+                        # 检查是否是文本内容
+                        if item.get_type() == ebooklib.ITEM_DOCUMENT:
+                            # 获取文本内容并解码
+                            content = item.get_content().decode('utf-8')
+
+                            # 使用BeautifulSoup解析HTML
+                            soup = BeautifulSoup(content, 'html.parser')
+                            
+                            # 提取纯文本
+                            text_content = soup.get_text()
+                            
+                            # 获取项目的唯一ID
+                            item_id = item.get_id()
+
+                            # 切行
+                            lines = text_content.split('\n')
+
+                            # 去除每行前后的空格
+                            strip_lines = [line.strip() for line in lines]
+
+
+                            for j, line in enumerate(strip_lines):
+                                if line.strip() == '': # 跳过空行
+                                    continue
+
+                                # 将数据存储在字典中
+                                json_data_list.append({
+                                    "text_index": i,
+                                    "translation_status": 0,
+                                    "source_text": line,
+                                    "translated_text": line,
+                                    "item_id": item_id,
+                                    "storage_path": storage_path,
+                                    "file_name": file_name,
+                                })
+
+                                # 增加文本索引值
+                                i = i + 1
+
+        return json_data_list
+
+
+    # 根据文件类型读取文件
+    def read_files (self,translation_project,Input_Folder):
+
+        if translation_project == "Mtool导出文件":
+            cache_list = File_Reader.read_mtool_files(self,folder_path = Input_Folder)
+        elif translation_project == "T++导出文件":
+            cache_list = File_Reader.read_xlsx_files (self,folder_path = Input_Folder)
+        elif translation_project == "VNText导出文件":
+            cache_list = File_Reader.read_vnt_files(self,folder_path = Input_Folder)
+        elif translation_project == "Srt字幕文件":
+            cache_list = File_Reader.read_srt_files(self,folder_path = Input_Folder)
+        elif translation_project == "Lrc音声文件":
+            cache_list = File_Reader.read_lrc_files(self,folder_path = Input_Folder)
+        elif translation_project == "Txt小说文件":
+            cache_list = File_Reader.read_txt_files(self,folder_path = Input_Folder)
+        elif translation_project == "Epub小说文件":
+            cache_list = File_Reader.read_epub_files(self,folder_path = Input_Folder)
+        elif translation_project == "Ainiee缓存文件":
+            cache_list = File_Reader.read_cache_files(self,folder_path = Input_Folder)
+
+        return cache_list
 
 
 # 缓存管理器
@@ -6179,8 +6350,219 @@ class File_Outputter():
                 file.write(output_file)
 
 
+    # 输出txt文件
+    def output_txt_file(self,cache_data, output_path):
+
+        # 输出文件格式示例
+        ex_output ="""
+        　测试1
+        　今ではダンジョンは、人々の営みの一部としてそれなりに定着していた。
+
+        ***
+
+        「正気なの？」
+        测试2
+        """
+
+        # 创建中间存储文本
+        text_dict = {}
+
+        # 遍历缓存数据
+        for item in cache_data:
+            # 忽略不包含 'storage_path' 的项
+            if 'storage_path' not in item:
+                continue
+
+            # 获取相对文件路径
+            storage_path = item['storage_path']
+            # 获取文件名
+            file_name = item['file_name']
+
+            if file_name != storage_path :
+                # 构建文件输出路径
+                file_path = f'{output_path}/{storage_path}'
+                # 获取输出路径的上一级路径，使用os.path.dirname
+                folder_path = os.path.dirname(file_path)
+                # 如果路径不存在，则创建
+                os.makedirs(folder_path, exist_ok=True)
+            else:
+                # 构建文件输出路径
+                file_path = f'{output_path}/{storage_path}' 
+
+
+            # 如果文件路径已经在 path_dict 中，添加到对应的列表中
+            if file_path in text_dict:
+                text = {'translation_status': item['translation_status'],
+                        'source_text': item['source_text'], 
+                        'translated_text': item['translated_text'],
+                        "sentence_indent": item['sentence_indent'],
+                        'line_break': item['line_break']}
+                text_dict[file_path].append(text)
+
+            # 否则，创建一个新的列表
+            else:
+                text = {'translation_status': item['translation_status'],
+                        'source_text': item['source_text'], 
+                        'translated_text': item['translated_text'],
+                        "sentence_indent": item['sentence_indent'],
+                        'line_break': item['line_break']}
+                text_dict[file_path] = [text]
+
+        # 遍历 path_dict，并将内容写入文件
+        for file_path, content_list in text_dict.items():
+
+            # 提取文件路径的文件夹路径和文件名
+            folder_path, old_filename = os.path.split(file_path)
+
+
+            # 创建已翻译文本的新文件路径
+            if old_filename.endswith(".txt"):
+                file_name_translated = old_filename.replace(".txt", "") + "_translated.txt"
+            else:
+                file_name_translated = old_filename + "_translated.txt"
+            file_path_translated = os.path.join(folder_path, file_name_translated)
+
+
+            # 存储已经翻译的文本
+            output_file = ""
+
+            # 转换中间字典的格式为最终输出格式
+            for content in content_list:
+                # 获取记录的句首空格数
+                expected_indent_count = content['sentence_indent']
+                # 获取句尾换行符数
+                line_break_count = content['line_break']
+                
+                # 删除句首的所有空格
+                translated_text = content['translated_text'].lstrip()
+                
+                # 根据记录的空格数在句首补充空格
+                sentence_indent = "　" * expected_indent_count
+                
+                line_break = "\n" * (line_break_count + 1)
+
+                output_file += f'{sentence_indent}{translated_text}{line_break}'
+
+            # 输出已经翻译的文件
+            with open(file_path_translated, 'w', encoding='utf-8') as file:
+                file.write(output_file)
+
+
+
+    # 输出epub文件
+    def output_epub_file(self,cache_data, output_path, input_path):
+
+        # 创建中间存储文本
+        text_dict = {}
+
+        # 遍历缓存数据
+        for item in cache_data:
+            # 忽略不包含 'storage_path' 的项
+            if 'storage_path' not in item:
+                continue
+
+            # 获取相对文件路径
+            storage_path = item['storage_path']
+            # 获取文件名
+            file_name = item['file_name']
+
+            if file_name != storage_path :
+                # 构建文件输出路径
+                file_path = f'{output_path}/{storage_path}'
+                # 获取输出路径的上一级路径，使用os.path.dirname
+                folder_path = os.path.dirname(file_path)
+                # 如果路径不存在，则创建
+                os.makedirs(folder_path, exist_ok=True)
+            else:
+                # 构建文件输出路径
+                file_path = f'{output_path}/{storage_path}' 
+
+
+            # 如果文件路径已经在 path_dict 中，添加到对应的列表中
+            if file_path in text_dict:
+                text = {'translation_status': item['translation_status'],
+                        'source_text': item['source_text'], 
+                        'translated_text': item['translated_text'],
+                        "item_id": item['item_id'],}
+                text_dict[file_path].append(text)
+
+            # 否则，创建一个新的列表
+            else:
+                text = {'translation_status': item['translation_status'],
+                        'source_text': item['source_text'], 
+                        'translated_text': item['translated_text'],
+                        "item_id": item['item_id'],}
+                text_dict[file_path] = [text]
+
+
+
+
+        # 将输入路径里面的所有epub文件复制到输出路径
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+
+        # 递归遍历输入路径中的所有文件和子目录
+        for dirpath, dirnames, filenames in os.walk(input_path):
+            for filename in filenames:
+                # 检查文件扩展名是否为.epub
+                if filename.endswith('.epub'):
+                    # 构建源文件和目标文件的完整路径
+                    src_file_path = os.path.join(dirpath, filename)
+                    # 计算相对于输入路径的相对路径
+                    relative_path = os.path.relpath(src_file_path, start=input_path)
+                    # 构建目标文件的完整路径
+                    dst_file_path = os.path.join(output_path, relative_path)
+
+                    # 创建目标文件的目录（如果不存在）
+                    os.makedirs(os.path.dirname(dst_file_path), exist_ok=True)
+                    # 复制文件
+                    shutil.copy2(src_file_path, dst_file_path)
+                    #print(f'Copied: {src_file_path} -> {dst_file_path}')
+
+
+
+        # 遍历 path_dict，并将内容写入对应文件中
+        for file_path, content_list in text_dict.items():
+    
+            # 加载EPUB文件
+            book = epub.read_epub(file_path)
+
+
+            # 遍历书籍中的所有内容
+            for item in book.get_items():
+                # 检查是否是文本内容
+                if item.get_type() == ebooklib.ITEM_DOCUMENT:
+                    # 获取文本内容并解码
+                    content_html = item.get_content().decode('utf-8')
+
+
+                    # 获取文件的唯一ID
+                    item_id = item.get_id()
+
+                    # 遍历缓存数据
+                    for content in content_list:
+                        # 如果找到匹配的文件id
+                        if item_id == content['item_id']:
+                            # 获取原文本
+                            original = content['source_text']
+                            # 获取翻译后的文本
+                            replacement = content['translated_text']
+
+                            # 使用正则表达式替换第一个匹配项
+                            content_html  = re.sub(original, replacement, content_html, count=1)
+
+                    # 将修改后的内容编码并设置为内容
+                    item.set_content(content_html.encode('utf-8'))
+
+            # 保存修改后的EPUB文件
+            modified_epub_file = file_path.rsplit('.', 1)[0] + '_translated.epub'
+            epub.write_epub(modified_epub_file, book, {})
+
+            # 删除旧文件
+            os.remove(file_path)
+
     # 输出已经翻译文件
-    def output_translated_content(self,cache_data,output_path):
+    def output_translated_content(self,cache_data,output_path,input_path):
         # 复制缓存数据到新变量
         try:
            new_cache_data = copy.deepcopy(cache_data)
@@ -6197,6 +6579,10 @@ class File_Outputter():
             File_Outputter.output_lrc_file(self,new_cache_data, output_path)
         elif new_cache_data[0]["project_type"] == "Vnt":
             File_Outputter.output_vnt_file(self,new_cache_data, output_path)
+        elif new_cache_data[0]["project_type"] == "Txt":
+            File_Outputter.output_txt_file(self,new_cache_data, output_path)
+        elif new_cache_data[0]["project_type"] == "Epub":
+            File_Outputter.output_epub_file(self,new_cache_data, output_path,input_path)
         else:
             File_Outputter.output_excel_file(self,new_cache_data, output_path)
 
@@ -6204,9 +6590,15 @@ class File_Outputter():
 
 # 任务分发器(后台运行)
 class background_executor(threading.Thread): 
-    def __init__(self, task_id,output_folder,platform,base_url,model,api_key,proxy_port):
+    def __init__(self, task_id,input_folder,output_folder,platform,base_url,model,api_key,proxy_port):
         super().__init__() # 调用父类构造
         self.task_id = task_id
+
+        if input_folder :
+            self.input_folder = input_folder
+        else:
+            self.input_folder = ""
+
         if output_folder :
             self.output_folder = output_folder
         else:
@@ -6289,7 +6681,7 @@ class background_executor(threading.Thread):
             print('\033[1;32mSuccess:\033[0m 已输出缓存文件到文件夹')
 
         elif self.task_id == "输出已翻译文件":
-            File_Outputter.output_translated_content(self,cache_list,self.output_folder)
+            File_Outputter.output_translated_content(self,cache_list,self.output_folder,self.input_folder)
             print('\033[1;32mSuccess:\033[0m 已输出已翻译文件到文件夹')
 
 
@@ -6865,7 +7257,7 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
                 Model_Type = self.comboBox_model_zhipu.currentText()
 
             #创建子线程
-            thread = background_executor("接口测试","",Proxy_platform,Base_url,Model_Type,API_key_str,Proxy_port)
+            thread = background_executor("接口测试","","",Proxy_platform,Base_url,Model_Type,API_key_str,Proxy_port)
             thread.start()
 
         elif Running_status != 0:
@@ -7180,7 +7572,7 @@ class Widget_Openai(QFrame):#  Openai账号界面
             Proxy_port = self.LineEdit_proxy_port.text()            #获取代理端口
 
             #创建子线程
-            thread = background_executor("接口测试","","OpenAI",Base_url,Model_Type,API_key_str,Proxy_port)
+            thread = background_executor("接口测试","","","OpenAI",Base_url,Model_Type,API_key_str,Proxy_port)
             thread.start()
 
         elif Running_status != 0:
@@ -7329,7 +7721,7 @@ class Widget_Google(QFrame):#  谷歌账号界面
             Proxy_port = self.LineEdit_proxy_port.text()            #获取代理端口
 
             #创建子线程
-            thread = background_executor("接口测试","","Google",Base_url,Model_Type,API_key_str,Proxy_port)
+            thread = background_executor("接口测试","","","Google",Base_url,Model_Type,API_key_str,Proxy_port)
             thread.start()
 
         elif Running_status != 0:
@@ -7503,7 +7895,7 @@ class Widget_Anthropic(QFrame):#  Anthropic账号界面
             Proxy_port = self.LineEdit_proxy_port.text()            #获取代理端口
 
             #创建子线程
-            thread = background_executor("接口测试","","Anthropic",Base_url,Model_Type,API_key_str,Proxy_port)
+            thread = background_executor("接口测试","","","Anthropic",Base_url,Model_Type,API_key_str,Proxy_port)
             thread.start()
         elif Running_status != 0:
             user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
@@ -7652,7 +8044,7 @@ class Widget_ZhiPu(QFrame):#  智谱账号界面
             Proxy_port = self.LineEdit_proxy_port.text()            #获取代理端口
 
             #创建子线程
-            thread = background_executor("接口测试","","Zhipu",Base_url,Model_Type,API_key_str,Proxy_port)
+            thread = background_executor("接口测试","","","Zhipu",Base_url,Model_Type,API_key_str,Proxy_port)
             thread.start()
 
         elif Running_status != 0:
@@ -7799,7 +8191,7 @@ class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
             Proxy_port = self.LineEdit_proxy_port.text()            #获取代理端口
 
             #创建子线程
-            thread = background_executor("接口测试","","Sakura",Base_url,Model_Type,API_key_str,Proxy_port)
+            thread = background_executor("接口测试","","","Sakura",Base_url,Model_Type,API_key_str,Proxy_port)
             thread.start()
 
         elif Running_status != 0:
@@ -7901,7 +8293,7 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
 
         #设置“翻译项目”下拉选择框
         self.comboBox_translation_project = ComboBox() #以demo为父类
-        self.comboBox_translation_project.addItems(['Mtool导出文件',  'T++导出文件', 'VNText导出文件' , 'Srt字幕文件' , 'Lrc音声文件', 'Ainiee缓存文件'])
+        self.comboBox_translation_project.addItems(['Mtool导出文件',  'T++导出文件', 'VNText导出文件', 'Epub小说文件' , 'Txt小说文件' , 'Srt字幕文件' , 'Lrc音声文件', 'Ainiee缓存文件'])
         self.comboBox_translation_project.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_translation_project.setFixedSize(150, 35)
 
@@ -8429,6 +8821,31 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
         box_round_limit.setLayout(layout_round_limit)
 
 
+        # -----创建第1个组，添加多个组件-----
+        box_split_switch = QGroupBox()
+        box_split_switch.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_split_switch = QHBoxLayout()
+
+        #设置标签
+        self.labe1_split_switch = QLabel(flags=Qt.WindowFlags())  
+        self.labe1_split_switch.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        self.labe1_split_switch.setText("更换轮次后不进行文本拆分")
+
+
+
+        # 设置选择开关
+        self.SwitchButton_split_switch = SwitchButton(parent=self)    
+        #self.SwitchButton_split_switch.checkedChanged.connect(self.test)
+
+
+
+        layout_split_switch.addWidget(self.labe1_split_switch)
+        layout_split_switch.addStretch(1)  # 添加伸缩项
+        layout_split_switch.addWidget(self.SwitchButton_split_switch)
+        box_split_switch.setLayout(layout_split_switch)
+
+
+
         # 最外层的垂直布局
         container = QVBoxLayout()
 
@@ -8441,6 +8858,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
         container.addWidget(box_translation_platform3)
         container.addWidget(box_retry_count_limit)
         container.addWidget(box_round_limit)
+        container.addWidget( box_split_switch)
         container.addStretch(1)  # 添加伸缩项
         container.addStretch(1)  # 添加伸缩项
 
@@ -8745,7 +9163,7 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
             self.primaryButton_pause_translation.show()
 
             #创建子线程
-            thread = background_executor("执行翻译任务","","","","","","")
+            thread = background_executor("执行翻译任务","","","","","","","")
             thread.start()
 
         elif Running_status != 0:
@@ -8773,7 +9191,7 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
             self.primaryButton_pause_translation.show()
 
             #创建子线程
-            thread = background_executor("执行翻译任务","","","","","","")
+            thread = background_executor("执行翻译任务","","","","","","","")
             thread.start()
 
         elif Running_status != 9:
@@ -8926,7 +9344,7 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
 
             if len(cache_list)>= 3:
                 #创建子线程
-                thread = background_executor("输出缓存文件",Output_Folder,"","","","","")
+                thread = background_executor("输出缓存文件","",Output_Folder,"","","","","")
                 thread.start()
             else:
                 print('[INFO]  未存在缓存文件')
@@ -8946,7 +9364,7 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
 
             if len(cache_list)>= 3:
                 #创建子线程
-                thread = background_executor("输出已翻译文件",Output_Folder,"","","","","")
+                thread = background_executor("输出已翻译文件",configurator.Input_Folder,Output_Folder,"","","","","")
                 thread.start()
 
             else:
@@ -11110,7 +11528,7 @@ class Widget_check(QFrame):# 错行检查界面
 
         if Running_status == 0:
             #创建子线程
-            thread = background_executor("执行检查任务","","","","","","")
+            thread = background_executor("执行检查任务","","","","","","","")
             thread.start()
 
         elif Running_status != 0:
