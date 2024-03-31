@@ -103,7 +103,7 @@ class Translator():
 
             except Exception as e:
                 print(e)
-                print("\033[1;31mError:\033[0m 读取原文失败，请检查项目类型是否正确，文件夹是否包含其他同类型文件！")
+                print("\033[1;31mError:\033[0m 读取原文失败，请检查项目类型是否设置正确，输入文件夹是否混杂其他非必要文件！")
                 return
 
         # ——————————————————————————————————————————初步处理缓存文件—————————————————————————————————————————
@@ -891,6 +891,12 @@ class Api_Requester():
 
                             # 获取翻译进度
                             progress = user_interface_prompter.progress
+
+                            # debug
+                            if progress > 100:
+                                time.sleep(1)
+                                print("出现计数错误！") 
+                                print("[DEBUG] 总行数：",user_interface_prompter.total_text_line_count,"已翻译行数：",user_interface_prompter.translated_line_count,"进度：",user_interface_prompter.progress,"%")
                         
                         # 如果进行的是错行检查任务，使用不同的计算方法
                         elif Running_status == 7 :
@@ -2391,7 +2397,9 @@ class Response_Parser():
         # 尝试正则提取
         try:
             # 预处理字符串：替换换行符和其他特殊字符
-            processed_str = input_str.replace('\\', '<<<escape>>>').replace('\n', '<<<newline>>>')
+            #processed_str = input_str.replace('\\', '<<<escape>>>').replace('\n', '<<<newline>>>')
+            processed_str = input_str
+
 
             # 使用正则表达式匹配字符串中的所有键值对
             key_value_pairs = re.findall(r'"(.*?)"\s*:\s*"(.*?)"', processed_str)
@@ -2400,18 +2408,19 @@ class Response_Parser():
             # 初始化一个空字典
             parsed_dict = {}
 
-            # 对于每个匹配的键值对，去除两端的空白字符，并添加到字典中（如果键不存在）
+            # 对于每个匹配的键值对，并添加到字典中（如果键不存在）
             for key, value in key_value_pairs:
-                key = key.strip()
-                value = value.strip()
+                key = key
+                value = value
                 if key not in parsed_dict:
                     parsed_dict[key] = value
 
             # 遍历字典的元素，将占位符恢复为原始字符
-            for key in parsed_dict:
-                value = parsed_dict[key]
-                value = value.replace('<<<newline>', '\n').replace('<<<escape>>>', '\\')
-                parsed_dict[key] = value
+            #for key in parsed_dict:
+                #value = parsed_dict[key]
+                #value = value.replace('<<<newline>>>', '\n')
+                #value = value.replace('<<<escape>>>', '\\')
+                #parsed_dict[key] = value
 
             return parsed_dict
         except :       
@@ -5548,37 +5557,39 @@ class Cache_Manager():
         index = 0
 
         # 遍历原文本列表
-        for source_text_item in source_text_list:
-            # 获取缓存文本中索引值
-            text_index = source_text_item.get('text_index')
-            # 根据回复文本的索引值，在回复内容中获取已翻译的文本
-            response_value = response_dict.get(str(index))
-            # 获取人名（如果有）
-            name = source_text_item.get('name')
+        try:
+            for source_text_item in source_text_list:
+                # 获取缓存文本中索引值
+                text_index = source_text_item['text_index']
+                # 根据回复文本的索引值，在回复内容中获取已翻译的文本
+                response_value = response_dict[str(index)]
+                # 获取人名（如果有）
+                name = source_text_item.get('name')
 
-            # 缓存文本中索引值，基本上是缓存文件里元素的位置索引值，所以直接获取并修改
-            if response_value is not None:
-                if 'text_index' in cache_data[text_index] and cache_data[text_index]['text_index'] == text_index:
-
-                    # 如果之前文本中有人名信息
-                    if name:
-                        # 提取人名以及对话文本
-                        name,text = Cache_Manager.extract_strings(self,response_value)
-                        # 如果能够正确提取到人名以及翻译文本
-                        if name:
-                            cache_data[text_index]['translation_status'] = 1
-                            cache_data[text_index]['name'] = name
-                            cache_data[text_index]['translated_text'] = text
-                        else:
-                            cache_data[text_index]['translation_status'] = 1
-                            cache_data[text_index]['translated_text'] = response_value
-
+                # 缓存文本中索引值，基本上是缓存文件里元素的位置索引值，所以直接获取并修改
+                if name:
+                    # 提取人名以及对话文本
+                    name_text,text = Cache_Manager.extract_strings(self,response_value)
+                    # 如果能够正确提取到人名以及翻译文本
+                    if name_text:
+                        cache_data[text_index]['translation_status'] = 1
+                        cache_data[text_index]['name'] = name_text
+                        cache_data[text_index]['translated_text'] = text
                     else:
                         cache_data[text_index]['translation_status'] = 1
                         cache_data[text_index]['translated_text'] = response_value
 
-            # 增加索引值
-            index = index + 1
+                else:
+                    cache_data[text_index]['translation_status'] = 1
+                    cache_data[text_index]['translated_text'] = response_value
+
+                # 增加索引值
+                index = index + 1
+        
+        except:
+            print("[DEBUG] 录入翻译结果出现问题！！！！！！！！！！！！")
+            print(text_index)
+
 
         return cache_data
 
@@ -6902,7 +6913,7 @@ class User_Interface_Prompter(QObject):
         result = self.translated_line_count / self.total_text_line_count * 100
         self.progress = round(result, 2)
 
-        print("[DEBUG] 总行数：",self.total_text_line_count,"已翻译行数：",self.translated_line_count,"进度：",self.progress,"%")
+        #print("[DEBUG] 总行数：",self.total_text_line_count,"已翻译行数：",self.translated_line_count,"进度：",self.progress,"%")
 
 
 
