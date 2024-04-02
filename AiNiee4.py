@@ -1469,23 +1469,40 @@ class Api_Requester():
                     Start_request_time = time.time()
 
 
+                    #——————————————————————————————暂时兼容openai格式——————————————————————
+
                     # 获取apikey
-                    anthropic_apikey =  configurator.get_apikey()
-
-                    # 获取请求地址
-                    base_url = configurator.base_url
-
-                    # 创建anthropic客户端
-                    client = anthropic.Anthropic(api_key=anthropic_apikey,base_url=base_url)
+                    openai_apikey =  configurator.get_apikey()
+                    # 创建openai客户端
+                    openaiclient = OpenAI(api_key=openai_apikey,
+                                            base_url= configurator.base_url)
+                    #添加系统提示词
+                    messages.insert(0, prompt_tokens)
                     # 发送对话请求
                     try:
-                        response = client.messages.create(
+                        response = openaiclient.chat.completions.create(
                             model= configurator.model_type,
-                            max_tokens=4000,
-                            system= system_prompt,
                             messages = messages ,
-                            temperature=0
+                            temperature=0,
                             )
+
+
+                    # 获取apikey
+                    #anthropic_apikey =  configurator.get_apikey()
+                    # 创建anthropic客户端
+                    #client = anthropic.Anthropic(api_key=anthropic_apikey,base_url=configurator.base_url)
+                    # 发送对话请求
+                    #try:
+                    #    response = client.messages.create(
+                    #        model= configurator.model_type,
+                    #        max_tokens=4000,
+                    #        system= system_prompt,
+                    #        messages = messages ,
+                    #        temperature=0
+                    #        )
+
+                    #——————————————————————————————暂时兼容openai格式——————————————————————
+
 
                     #抛出错误信息
                     except Exception as e:
@@ -1525,9 +1542,15 @@ class Api_Requester():
                         completion_tokens_used = 0
 
 
+                    #——————————————————————————————暂时兼容openai格式——————————————————————
 
-                    # 提取回复的文本内容
-                    response_content = response.content[0].text 
+                    # 提取回复的文本内容（anthropic）
+                    #response_content = response.content[0].text 
+
+                    # 提取回复的文本内容（openai）
+                    response_content = response.choices[0].message.content 
+
+                    #——————————————————————————————暂时兼容openai格式——————————————————————
 
 
                     print('\n' )
@@ -2220,7 +2243,7 @@ class Request_Tester():
             base_url = base_url + "/v1"
 
         #创建openai客户端
-        openaiclient = OpenAI(api_key=API_key_list[0],
+        client = OpenAI(api_key=API_key_list[0],
                 base_url= base_url)
 
 
@@ -2236,7 +2259,7 @@ class Request_Tester():
             print(f"[INFO] 正在测试第{i+1}个API KEY：{key}",'\n') 
 
             #更换key
-            openaiclient.api_key = API_key_list[i]
+            client.api_key = API_key_list[i]
 
             #构建发送内容
             messages_test = [{"role": "system","content":"你是我的女朋友欣雨。接下来你必须以女朋友的方式回复我"}, {"role":"user","content":"小可爱，你在干嘛"}]
@@ -2244,7 +2267,7 @@ class Request_Tester():
 
             #尝试请求，并设置各种参数
             try:
-                response_test = openaiclient.chat.completions.create( 
+                response_test = client.chat.completions.create( 
                 model= model_type,
                 messages = messages_test ,
                 ) 
@@ -2405,11 +2428,17 @@ class Request_Tester():
         #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
         API_key_list = api_key_str.replace('\n','').replace(" ", "").split(",")
 
+
+        #——————————————————————————————暂时兼容openai格式——————————————————————
         #创建客户端
-        client = anthropic.Anthropic(
-            base_url=base_url,
-            api_key=API_key_list[0]
-        )
+        #client = anthropic.Anthropic(
+        #    base_url=base_url,
+        #    api_key=API_key_list[0]
+        #)
+        #创建openai客户端
+        client = OpenAI(api_key=API_key_list[0],
+                base_url= base_url)
+        #——————————————————————————————暂时兼容openai格式——————————————————————
 
 
         #创建存储每个key测试结果的列表
@@ -2427,17 +2456,33 @@ class Request_Tester():
             messages_test = [ {"role":"user","content":"小可爱，你在干嘛"}]
             print("[INFO] 当前发送内容：\n", messages_test ,'\n')
 
+
+            #——————————————————————————————暂时兼容openai格式——————————————————————
+
             #尝试请求，并设置各种参数
+            #try:
+            #    response_test = client.messages.create(
+            #    model= model_type,
+            #    max_tokens=1000,
+            #    system="你是我的女朋友欣雨。接下来你必须以女朋友的方式回复我",
+            #    messages = messages_test ,
+            #    ) 
+
+            #    #如果回复成功，显示成功信息
+            #    response_test = response_test.content[0].text
             try:
-                response_test = client.messages.create(
+                messages_test .insert(0, {"role": "system","content":"你是我的女朋友欣雨。接下来你必须以女朋友的方式回复我"})
+                response_test = client.chat.completions.create( 
                 model= model_type,
-                max_tokens=1000,
-                system="你是我的女朋友欣雨。接下来你必须以女朋友的方式回复我",
                 messages = messages_test ,
                 ) 
 
                 #如果回复成功，显示成功信息
-                response_test = response_test.content[0].text
+                response_test = response_test.choices[0].message.content
+
+            #——————————————————————————————暂时兼容openai格式——————————————————————
+
+
                 print("[INFO] 已成功接受到AI的回复")
                 print("[INFO] AI回复的文本内容：\n",response_test ,'\n','\n')
 
