@@ -61,7 +61,7 @@ from qframelesswindow import FramelessWindow, TitleBar, StandardTitleBar
 from StevExtraction import jtpp  #导入文本提取工具
 
 
-Software_Version = "AiNiee4.66"  #软件版本号
+Software_Version = "AiNiee4.66.1"  #软件版本号
 cache_list = [] # 全局缓存数据
 Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
                     # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
@@ -484,11 +484,9 @@ class Api_Requester():
 
                     # 获取apikey
                     openai_apikey =  configurator.get_apikey()
-                    # 获取请求地址
-                    openai_base_url = configurator.base_url
                     # 创建openai客户端
                     openaiclient = OpenAI(api_key=openai_apikey,
-                                            base_url= openai_base_url)
+                                            base_url= configurator.base_url)
                     # 发送对话请求
                     try:
                         response = openaiclient.chat.completions.create(
@@ -1477,7 +1475,7 @@ class Api_Requester():
                     # 获取请求地址
                     base_url = configurator.base_url
 
-                    # 创建zhipu客户端
+                    # 创建anthropic客户端
                     client = anthropic.Anthropic(api_key=anthropic_apikey,base_url=base_url)
                     # 发送对话请求
                     try:
@@ -2875,6 +2873,7 @@ class Configurator():
         if Window.Interface22.checkBox1.isChecked():
             print("[INFO] 已开启自定义系统提示词功能，设置为用户设定的提示词")
             system_prompt = Window.Interface22.TextEdit1.toPlainText()
+            return system_prompt
         else:
             #获取文本源语言下拉框当前选中选项的值,先是window父窗口，再到下级Widget_translation_settings，再到A_settings，才到控件
             Text_Source_Language =  Window.Widget_translation_settings.A_settings.comboBox_source_text.currentText() 
@@ -2973,10 +2972,10 @@ class Configurator():
             {{"<text id>": "<translated text>"}}
             '''    
 
-        if (Text_Target_Language == "简中" or Text_Target_Language == "繁中") and ("claude" in self.model_type):
-            return system_prompt_zh
-        else:
-            return system_prompt
+            if (Text_Target_Language == "简中" or Text_Target_Language == "繁中") and ("claude" in self.model_type):
+                return system_prompt_zh
+            else:
+                return system_prompt
         
 
 
