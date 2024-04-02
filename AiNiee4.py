@@ -239,7 +239,7 @@ class Translator():
                 print("[INFO] 检测到不进行拆分设置，发送行数将继续保持不变")
             else:
                 configurator.text_line_counts = configurator.update_text_line_count(configurator.text_line_counts) # 更换配置中的文本行数
-            print("[INFO] 未翻译文本总行数为：",untranslated_text_line_count,"  每次发送行数修改为：",configurator.text_line_counts, '\n')
+            print("[INFO] 未翻译文本总行数为：",untranslated_text_line_count,"  每次发送行数为：",configurator.text_line_counts, '\n')
 
 
             # 计算可并发任务总数
@@ -2659,7 +2659,8 @@ class Configurator():
         self.text_line_counts = Window.Widget_translation_settings.B_settings.spinBox_Lines.value()
         self.thread_counts = Window.Widget_translation_settings.B_settings.spinBox_thread_count.value()
         if self.thread_counts == 0:                                
-            self.thread_counts = multiprocessing.cpu_count() * 4 + 1  
+            self.thread_counts = multiprocessing.cpu_count() * 4 + 1
+        self.retry_count_limit =  Window.Widget_translation_settings.B_settings.spinBox_retry_count_limit.value()  
         self.text_clear_toggle = Window.Widget_translation_settings.B_settings.SwitchButton_clear.isChecked()
         self.preserve_line_breaks_toggle =  Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.isChecked()
         self.conversion_toggle = Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.isChecked()
@@ -2668,7 +2669,6 @@ class Configurator():
         # 获取第三页的配置信息(混合翻译设置)
         self.mixed_translation_toggle = Window.Widget_translation_settings.C_settings.SwitchButton_mixed_translation.isChecked()
         if self.mixed_translation_toggle == True:
-            self.retry_count_limit =  Window.Widget_translation_settings.C_settings.spinBox_retry_count_limit.value()
             self.round_limit =  Window.Widget_translation_settings.C_settings.spinBox_round_limit.value()
             self.split_switch = Window.Widget_translation_settings.C_settings.SwitchButton_split_switch.isChecked()
         self.configure_mixed_translation["first_platform"] = Window.Widget_translation_settings.C_settings.comboBox_primary_translation_platform.currentText()
@@ -3432,7 +3432,8 @@ class Configurator():
 
             #翻译设置进阶设置界面
             config_dict["text_line_counts"] = Window.Widget_translation_settings.B_settings.spinBox_Lines.value()     # 获取文本行数设置
-            config_dict["thread_counts"] = Window.Widget_translation_settings.B_settings.spinBox_thread_count.value() # 获取线程数设置  
+            config_dict["thread_counts"] = Window.Widget_translation_settings.B_settings.spinBox_thread_count.value() # 获取线程数设置
+            config_dict["retry_count_limit"] =  Window.Widget_translation_settings.B_settings.spinBox_retry_count_limit.value()     # 获取重翻次数限制  
             config_dict["preserve_line_breaks_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关  
             config_dict["response_conversion_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.isChecked()   # 获取简繁转换开关
             config_dict["text_clear_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_clear.isChecked() # 获取文本处理开关
@@ -3442,7 +3443,6 @@ class Configurator():
             config_dict["translation_platform_1"] =  Window.Widget_translation_settings.C_settings.comboBox_primary_translation_platform.currentText()  # 获取首轮翻译平台设置
             config_dict["translation_platform_2"] =  Window.Widget_translation_settings.C_settings.comboBox_secondary_translation_platform.currentText()   # 获取次轮
             config_dict["translation_platform_3"] =  Window.Widget_translation_settings.C_settings.comboBox_final_translation_platform.currentText()    # 获取末轮
-            config_dict["retry_count_limit"] =  Window.Widget_translation_settings.C_settings.spinBox_retry_count_limit.value()     # 获取重翻次数限制
             config_dict["round_limit"] =  Window.Widget_translation_settings.C_settings.spinBox_round_limit.value() # 获取轮数限制
             config_dict["split_switch"] =  Window.Widget_translation_settings.C_settings.SwitchButton_split_switch.isChecked() # 获取混合翻译开关
 
@@ -3670,7 +3670,7 @@ class Configurator():
                 if "translation_platform_3" in config_dict:
                     Window.Widget_translation_settings.C_settings.comboBox_final_translation_platform.setCurrentText(config_dict["translation_platform_3"])
                 if "retry_count_limit" in config_dict:
-                    Window.Widget_translation_settings.C_settings.spinBox_retry_count_limit.setValue(config_dict["retry_count_limit"])
+                    Window.Widget_translation_settings.B_settings.spinBox_retry_count_limit.setValue(config_dict["retry_count_limit"])
                 if "round_limit" in config_dict:
                      Window.Widget_translation_settings.C_settings.spinBox_round_limit.setValue(config_dict["round_limit"]) 
                 if "split_switch" in config_dict:
@@ -3952,7 +3952,6 @@ class Request_Limiter():
 
         # 示例数据
         self.sakura_limit_data = {
-                "Sakura-13B-LNovel-v0.8": {  "InputTokenLimit": 700,"OutputTokenLimit":  700,"max_tokens": 700, "TPM": 1000000, "RPM": 60},
                 "Sakura-13B-LNovel-v0.9": {  "InputTokenLimit": 700,"OutputTokenLimit":  700,"max_tokens": 700, "TPM": 1000000, "RPM": 60},
                 "Sakura-13B-Qwen2beta-v0.10pre": {  "InputTokenLimit": 700,"OutputTokenLimit":  700,"max_tokens": 700, "TPM": 1000000, "RPM": 60},
             }
@@ -6206,7 +6205,6 @@ class User_Interface_Prompter(QObject):
             }
 
        self.sakura_price_data = {
-            "Sakura-13B-LNovel-v0.8": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
             "Sakura-13B-LNovel-v0.9": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
             "Sakura-13B-Qwen2beta-v0.10pre": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
             }
@@ -7737,11 +7735,10 @@ class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
 
         #设置“模型类型”下拉选择框
         self.comboBox_model = ComboBox() #以demo为父类
-        self.comboBox_model.addItems(['Sakura-13B-LNovel-v0.8','Sakura-13B-LNovel-v0.9','Sakura-13B-Qwen2beta-v0.10pre'])
+        self.comboBox_model.addItems(['Sakura-13B-LNovel-v0.9','Sakura-13B-Qwen2beta-v0.10pre'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(250, 35)
-        #设置下拉选择框默认选择
-        self.comboBox_model.setCurrentText('Sakura-13B-LNovel-v0.8')
+
         
 
 
@@ -8179,6 +8176,27 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         box1_thread_count.setLayout(layout1_thread_count)
 
 
+        # -----创建第x个组，添加多个组件-----
+        box_retry_count_limit = QGroupBox()
+        box_retry_count_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_retry_count_limit = QHBoxLayout()
+
+
+        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label1_7.setText("错误重翻最大次数限制")
+
+
+        # 设置数值输入框
+        self.spinBox_retry_count_limit = SpinBox(self)
+        # 设置最大最小值
+        self.spinBox_retry_count_limit.setRange(0, 1000)    
+        self.spinBox_retry_count_limit.setValue(1)
+
+        layout_retry_count_limit.addWidget(label1_7)
+        layout_retry_count_limit.addStretch(1)  # 添加伸缩项
+        layout_retry_count_limit.addWidget(self.spinBox_retry_count_limit)
+        box_retry_count_limit.setLayout(layout_retry_count_limit)
 
 
         # -----创建第1个组(后来补的)，添加多个组件-----
@@ -8261,6 +8279,7 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box_Lines)
         container.addWidget(box1_thread_count)
+        container.addWidget(box_retry_count_limit)
         container.addWidget(box1_line_breaks)
         container.addWidget(box1_conversion_toggle)
         container.addWidget(box_clear)
@@ -8385,28 +8404,6 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
 
 
 
-        # -----创建第x个组，添加多个组件-----
-        box_retry_count_limit = QGroupBox()
-        box_retry_count_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_retry_count_limit = QHBoxLayout()
-
-
-        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label1_7.setText("错误重翻最大次数限制")
-
-
-        # 设置数值输入框
-        self.spinBox_retry_count_limit = SpinBox(self)
-        # 设置最大最小值
-        self.spinBox_retry_count_limit.setRange(0, 1000)    
-        self.spinBox_retry_count_limit.setValue(1)
-
-        layout_retry_count_limit.addWidget(label1_7)
-        layout_retry_count_limit.addStretch(1)  # 添加伸缩项
-        layout_retry_count_limit.addWidget(self.spinBox_retry_count_limit)
-        box_retry_count_limit.setLayout(layout_retry_count_limit)
-
 
         # -----创建第x个组，添加多个组件-----
         box_round_limit = QGroupBox()
@@ -8466,7 +8463,6 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
         container.addWidget(box_translation_platform1)
         container.addWidget(box_translation_platform2)
         container.addWidget(box_translation_platform3)
-        container.addWidget(box_retry_count_limit)
         container.addWidget(box_round_limit)
         container.addWidget( box_split_switch)
         container.addStretch(1)  # 添加伸缩项
@@ -8481,7 +8477,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
     #设置开关绑定函数
     def test(self, isChecked: bool):
         if isChecked:
-            user_interface_prompter.createWarningInfoBar("请注意，该功能会覆盖基础设置中的翻译平台")
+            user_interface_prompter.createWarningInfoBar("请注意，开启该开关下面设置才会生效，并且会覆盖基础设置中的翻译平台")
 
 
 class Widget_start_translation(QFrame):  # 开始翻译主界面
