@@ -1472,34 +1472,34 @@ class Api_Requester():
                     #——————————————————————————————暂时兼容openai格式——————————————————————
 
                     # 获取apikey
-                    openai_apikey =  configurator.get_apikey()
+                    #openai_apikey =  configurator.get_apikey()
                     # 创建openai客户端
-                    openaiclient = OpenAI(api_key=openai_apikey,
-                                            base_url= configurator.base_url)
+                    #openaiclient = OpenAI(api_key=openai_apikey,
+                    #                        base_url= configurator.base_url)
                     #添加系统提示词
-                    messages.insert(0, prompt_tokens)
+                    #messages.insert(0, prompt_tokens)
                     # 发送对话请求
-                    try:
-                        response = openaiclient.chat.completions.create(
-                            model= configurator.model_type,
-                            messages = messages ,
-                            temperature=0,
-                            )
+                    #try:
+                    #    response = openaiclient.chat.completions.create(
+                    #        model= configurator.model_type,
+                    #        messages = messages ,
+                    #        temperature=0,
+                    #        )
 
 
                     # 获取apikey
-                    #anthropic_apikey =  configurator.get_apikey()
+                    anthropic_apikey =  configurator.get_apikey()
                     # 创建anthropic客户端
-                    #client = anthropic.Anthropic(api_key=anthropic_apikey,base_url=configurator.base_url)
+                    client = anthropic.Anthropic(api_key=anthropic_apikey,base_url=configurator.base_url)
                     # 发送对话请求
-                    #try:
-                    #    response = client.messages.create(
-                    #        model= configurator.model_type,
-                    #        max_tokens=4000,
-                    #        system= system_prompt,
-                    #        messages = messages ,
-                    #        temperature=0
-                    #        )
+                    try:
+                        response = client.messages.create(
+                            model= configurator.model_type,
+                            max_tokens=4000,
+                            system= system_prompt,
+                            messages = messages ,
+                            temperature=0
+                            )
 
                     #——————————————————————————————暂时兼容openai格式——————————————————————
 
@@ -1545,10 +1545,10 @@ class Api_Requester():
                     #——————————————————————————————暂时兼容openai格式——————————————————————
 
                     # 提取回复的文本内容（anthropic）
-                    #response_content = response.content[0].text 
+                    response_content = response.content[0].text 
 
                     # 提取回复的文本内容（openai）
-                    response_content = response.choices[0].message.content 
+                    #response_content = response.choices[0].message.content 
 
                     #——————————————————————————————暂时兼容openai格式——————————————————————
 
@@ -2428,18 +2428,18 @@ class Request_Tester():
 
         #——————————————————————————————暂时兼容openai格式——————————————————————
         #创建客户端
-        #client = anthropic.Anthropic(
-        #    base_url=base_url,
-        #    api_key=API_key_list[0]
-        #)
+        client = anthropic.Anthropic(
+            base_url=base_url,
+            api_key=API_key_list[0]
+        )
 
         #检查一下请求地址尾部是否为/v1，自动补全
-        if base_url[-3:] != "/v1":
-            base_url = base_url + "/v1"
+        #if base_url[-3:] != "/v1":
+        #    base_url = base_url + "/v1"
 
         #创建openai客户端
-        client = OpenAI(api_key=API_key_list[0],
-                base_url= base_url)
+        #client = OpenAI(api_key=API_key_list[0],
+        #        base_url= base_url)
         #——————————————————————————————暂时兼容openai格式——————————————————————
 
 
@@ -2466,25 +2466,25 @@ class Request_Tester():
             #——————————————————————————————暂时兼容openai格式——————————————————————
 
             #尝试请求，并设置各种参数
-            #try:
-            #    response_test = client.messages.create(
-            #    model= model_type,
-            #    max_tokens=1000,
-            #    system="你是我的女朋友欣雨。接下来你必须以女朋友的方式回复我",
-            #    messages = messages_test ,
-            #    ) 
-
-            #    #如果回复成功，显示成功信息
-            #    response_test = response_test.content[0].text
             try:
-                messages_test .insert(0, {"role": "system","content":"你是我的女朋友欣雨。接下来你必须以女朋友的方式回复我"})
-                response_test = client.chat.completions.create( 
+                response_test = client.messages.create(
                 model= model_type,
+                max_tokens=1000,
+                system="你是我的女朋友欣雨。接下来你必须以女朋友的方式回复我",
                 messages = messages_test ,
                 ) 
 
+            #    #如果回复成功，显示成功信息
+                response_test = response_test.content[0].text
+            #try:
+            #    messages_test .insert(0, {"role": "system","content":"你是我的女朋友欣雨。接下来你必须以女朋友的方式回复我"})
+            #    response_test = client.chat.completions.create( 
+            #    model= model_type,
+            #    messages = messages_test ,
+            #    ) 
+
                 #如果回复成功，显示成功信息
-                response_test = response_test.choices[0].message.content
+            #    response_test = response_test.choices[0].message.content
 
             #——————————————————————————————暂时兼容openai格式——————————————————————
 
@@ -2777,8 +2777,8 @@ class Configurator():
 
             #——————————————————————————————暂时兼容openai格式——————————————————————
             # 获取请求地址
-            #self.base_url = 'https://api.anthropic.com'
-            self.base_url = 'https://api.anthropic.com/v1'
+            self.base_url = 'https://api.anthropic.com'
+            #self.base_url = 'https://api.anthropic.com/v1'
             #——————————————————————————————暂时兼容openai格式——————————————————————
             
 
@@ -2875,8 +2875,8 @@ class Configurator():
 
                 #——————————————————————————————暂时兼容openai格式——————————————————————
                 #检查一下请求地址尾部是否为/v1，自动补全
-                if relay_address[-3:] != "/v1":
-                    relay_address = relay_address + "/v1"
+                #if relay_address[-3:] != "/v1":
+                    #relay_address = relay_address + "/v1"
                 #——————————————————————————————暂时兼容openai格式——————————————————————
 
             elif proxy_platform == '智谱清言':
