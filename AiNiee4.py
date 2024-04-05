@@ -4287,6 +4287,70 @@ class File_Reader():
         
         return project_id
 
+    # 读取文件夹中树形结构Paratranz json 文件
+    def read_paratranz_files(self, folder_path):
+        # 缓存数据结构示例
+        ex_cache_data = [
+            {'project_type': 'Paratranz'},
+            {'text_index': 1, 'text_classification': 0, 'translation_status': 0, 'source_text': 'しこトラ！',
+             'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json', 'key': 'txtKey',
+             'context': ''},
+            {'text_index': 2, 'text_classification': 0, 'translation_status': 0, 'source_text': '室内カメラ',
+             'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json', 'key': 'txtKey',
+             'context': ''},
+            {'text_index': 3, 'text_classification': 0, 'translation_status': 0, 'source_text': '室内カメラ',
+             'translated_text': '无', 'storage_path': 'DEBUG Folder\\Replace the original text.json',
+             'file_name': 'Replace the original text.json', 'key': 'txtKey', 'context': ''},
+        ]
+
+        # 创建缓存数据，并生成文件头信息
+        json_data_list = []
+        project_id = File_Reader.generate_project_id(self, "Paratranz")
+        json_data_list.append({
+            "project_type": "Paratranz",
+            "project_id": project_id,
+        })
+
+        # 文本索引初始值
+        i = 1
+
+        # 遍历文件夹及其子文件夹
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                # 判断文件是否为 JSON 文件
+                if file.endswith(".json"):
+                    file_path = os.path.join(root, file)  # 构建文件路径
+
+                    # 读取 JSON 文件内容
+                    with open(file_path, 'r', encoding='utf-8') as json_file:
+                        json_data = json.load(json_file)
+
+                        # 提取键值对
+                        for item in json_data:
+                            # 根据 JSON 文件内容的数据结构，获取相应字段值
+                            source_text = item.get('original', '')  # 获取原文，如果没有则默认为空字符串
+                            translated_text = item.get('translation', '')  # 获取翻译，如果没有则默认为空字符串
+                            key = item.get('key', '')  # 获取键值，如果没有则默认为空字符串
+                            context = item.get('context', '')  # 获取上下文信息，如果没有则默认为空字符串
+                            storage_path = os.path.relpath(file_path, folder_path)
+                            file_name = file
+                            # 将数据存储在字典中
+                            json_data_list.append({
+                                "text_index": i,
+                                "translation_status": 0,
+                                "source_text": source_text,
+                                "translated_text": translated_text,
+                                "semantic_similarity": 0,
+                                "storage_path": storage_path,
+                                "file_name": file_name,
+                                "key": key,
+                                "context": context
+                            })
+
+                            # 增加文本索引值
+                            i = i + 1
+
+        return json_data_list
 
     # 读取文件夹中树形结构Mtool文件
     def read_mtool_files (self,folder_path):
@@ -4848,7 +4912,8 @@ class File_Reader():
             cache_list = File_Reader.read_epub_files(self,folder_path = Input_Folder)
         elif translation_project == "Ainiee缓存文件":
             cache_list = File_Reader.read_cache_files(self,folder_path = Input_Folder)
-
+        if translation_project == "ParaTranz导出文件":
+            cache_list = File_Reader.read_paratranz_files(self,folder_path = Input_Folder)
         return cache_list
 
 
@@ -5459,6 +5524,125 @@ class File_Outputter():
                 with open(file_path_untranslated, 'w', encoding='utf-8') as file:
                     json.dump(output_file2, file, ensure_ascii=False, indent=4)
 
+    # 输出json文件
+    def output_paratranz_file(self, cache_data, output_path):
+        # 缓存数据结构示例
+        ex_cache_data = [
+            {'project_type': 'Mtool'},
+            {'text_index': 1, 'text_classification': 0, 'translation_status': 0, 'source_text': 'しこトラ！',
+             'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json'},
+            {'text_index': 2, 'text_classification': 0, 'translation_status': 0, 'source_text': '室内カメラ',
+             'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json'},
+            {'text_index': 3, 'text_classification': 0, 'translation_status': 0, 'source_text': '111111111',
+             'translated_text': '无', 'storage_path': 'DEBUG Folder\\Replace the original text.json',
+             'file_name': 'Replace the original text.json'},
+            {'text_index': 4, 'text_classification': 0, 'translation_status': 0, 'source_text': '222222222',
+             'translated_text': '无', 'storage_path': 'DEBUG Folder\\Replace the original text.json',
+             'file_name': 'Replace the original text.json'},
+        ]
+
+        # 中间存储字典格式示例
+        ex_path_dict = {
+            "D:\\DEBUG Folder\\Replace the original text.json": {'translation_status': 1, 'Source Text': 'しこトラ！',
+                                                                 'Translated Text': 'しこトラ！'},
+            "D:\\DEBUG Folder\\DEBUG Folder\\Replace the original text.json": {'translation_status': 0,
+                                                                               'Source Text': 'しこトラ！',
+                                                                               'Translated Text': 'しこトラ！'}
+        }
+
+        # 输出文件格式示例
+        ex_output = {
+            'しこトラ！': 'xxxx',
+            '室内カメラ': 'yyyyy',
+            '111111111': '无3',
+            '222222222': '无4',
+        }
+
+        # 创建中间存储字典，这个存储已经翻译的内容
+        path_dict = {}
+
+        # 遍历缓存数据
+        for item in cache_data:
+            # 忽略不包含 'storage_path' 的项
+            if 'storage_path' not in item:
+                continue
+
+            # 获取相对文件路径
+            storage_path = item['storage_path']
+            # 获取文件名
+            file_name = item['file_name']
+
+            if file_name != storage_path:
+                # 构建文件输出路径
+                file_path = f'{output_path}/{storage_path}'
+                # 获取输出路径的上一级路径，使用os.path.dirname
+                folder_path = os.path.dirname(file_path)
+                # 如果路径不存在，则创建
+                os.makedirs(folder_path, exist_ok=True)
+            else:
+                # 构建文件输出路径
+                file_path = f'{output_path}/{storage_path}'
+
+                # 如果文件路径已经在 path_dict 中，添加到对应的列表中
+            if file_path in path_dict:
+                text = {'translation_status': item['translation_status'], 'source_text': item['source_text'],
+                        'translated_text': item['translated_text'], 'context': item['context'], 'key': item['key']}
+                path_dict[file_path].append(text)
+
+            # 否则，创建一个新的列表
+            else:
+                text = {'translation_status': item['translation_status'], 'source_text': item['source_text'],
+                        'translated_text': item['translated_text'], 'context': item['context'], 'key': item['key']}
+                path_dict[file_path] = [text]
+
+        # 遍历 path_dict，并将内容写入文件
+        for file_path, content_list in path_dict.items():
+
+            # 提取文件路径的文件夹路径和文件名
+            folder_path, old_filename = os.path.split(file_path)
+
+            # 创建已翻译文本的新文件路径
+            if old_filename.endswith(".json"):
+                file_name_translated = old_filename.replace(".json", "") + "_translated.json"
+            else:
+                file_name_translated = old_filename + "_translated.json"
+            file_path_translated = os.path.join(folder_path, file_name_translated)
+
+            # 创建未翻译文本的新文件路径
+            if old_filename.endswith(".json"):
+                file_name_untranslated = old_filename.replace(".json", "") + "_untranslated.json"
+            else:
+                file_name_untranslated = old_filename + "_untranslated.json"
+            file_path_untranslated = os.path.join(folder_path, file_name_untranslated)
+
+            # 存储已经翻译的文本
+            output_file = []
+
+            # 存储未翻译的文本
+            output_file2 = []
+
+            # 转换中间字典的格式为最终输出格式
+            for content in content_list:
+                item = {
+                    "key": content.get("key", ""),  # 假设每个 content 字典都有 'key' 字段
+                    "original": content['source_text'],
+                    "translation": content.get('translated_text', ""),
+                    "context": content.get('context', "")  # 如果你有 'context' 字段，也包括它
+                }
+                # 根据翻译状态，选择存储到已翻译或未翻译的列表
+                if content['translation_status'] == 1:
+                    output_file.append(item)
+                elif content['translation_status'] == 0 or content['translation_status'] == 2:
+                    output_file2.append(item)
+
+            # 输出已经翻译的文件
+            with open(file_path_translated, 'w', encoding='utf-8') as file:
+                json.dump(output_file, file, ensure_ascii=False, indent=4)
+
+            # 输出未翻译的内容
+            if output_file2:
+                with open(file_path_untranslated, 'w', encoding='utf-8') as file:
+                    json.dump(output_file2, file, ensure_ascii=False, indent=4)
 
     # 输出vnt文件
     def output_vnt_file(self,cache_data, output_path):
@@ -6104,6 +6288,8 @@ class File_Outputter():
             File_Outputter.output_txt_file(self,new_cache_data, output_path)
         elif new_cache_data[0]["project_type"] == "Epub":
             File_Outputter.output_epub_file(self,new_cache_data, output_path,input_path)
+        elif new_cache_data[0]["project_type"] == "Paratranz":
+            File_Outputter.output_paratranz_file(self,new_cache_data, output_path)
         else:
             File_Outputter.output_excel_file(self,new_cache_data, output_path)
 
@@ -7992,7 +8178,7 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
 
         #设置“翻译项目”下拉选择框
         self.comboBox_translation_project = ComboBox() #以demo为父类
-        self.comboBox_translation_project.addItems(['Mtool导出文件',  'T++导出文件', 'VNText导出文件', 'Epub小说文件' , 'Txt小说文件' , 'Srt字幕文件' , 'Lrc音声文件', 'Ainiee缓存文件'])
+        self.comboBox_translation_project.addItems(['Mtool导出文件',  'T++导出文件', 'VNText导出文件', 'Epub小说文件' , 'Txt小说文件' , 'Srt字幕文件' , 'Lrc音声文件', 'Ainiee缓存文件', 'ParaTranz导出文件'])
         self.comboBox_translation_project.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_translation_project.setFixedSize(150, 35)
 
