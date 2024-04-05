@@ -5539,15 +5539,17 @@ class File_Outputter():
         ex_cache_data = [
             {'project_type': 'Mtool'},
             {'text_index': 1, 'text_classification': 0, 'translation_status': 0, 'source_text': 'しこトラ！',
-             'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json'},
+             'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json',
+             'key': 'txtKey', 'context': ''},
             {'text_index': 2, 'text_classification': 0, 'translation_status': 0, 'source_text': '室内カメラ',
-             'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json'},
+             'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json',
+             'key': 'txtKey', 'context': ''},
             {'text_index': 3, 'text_classification': 0, 'translation_status': 0, 'source_text': '111111111',
              'translated_text': '无', 'storage_path': 'DEBUG Folder\\Replace the original text.json',
-             'file_name': 'Replace the original text.json'},
+             'file_name': 'Replace the original text.json', 'key': 'txtKey', 'context': ''},
             {'text_index': 4, 'text_classification': 0, 'translation_status': 0, 'source_text': '222222222',
              'translated_text': '无', 'storage_path': 'DEBUG Folder\\Replace the original text.json',
-             'file_name': 'Replace the original text.json'},
+             'file_name': 'Replace the original text.json', 'key': 'txtKey', 'context': ''},
         ]
 
         # 中间存储字典格式示例
@@ -5560,12 +5562,13 @@ class File_Outputter():
         }
 
         # 输出文件格式示例
-        ex_output = {
-            'しこトラ！': 'xxxx',
-            '室内カメラ': 'yyyyy',
-            '111111111': '无3',
-            '222222222': '无4',
-        }
+        ex_output = [
+        {
+            "key": "Activate",
+            "original": "カードをプレイ",
+            "translation": "出牌",
+            "context": ""
+        }]
 
         # 创建中间存储字典，这个存储已经翻译的内容
         path_dict = {}
