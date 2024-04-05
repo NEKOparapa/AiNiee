@@ -4289,6 +4289,15 @@ class File_Reader():
 
     # 读取文件夹中树形结构Paratranz json 文件
     def read_paratranz_files(self, folder_path):
+        # 待处理的json接口例
+        # [
+        #     {
+        #         "key": "Activate",
+        #         "original": "カードをプレイ",
+        #         "translation": "出牌",
+        #         "context": null
+        #     }
+        # ]
         # 缓存数据结构示例
         ex_cache_data = [
             {'project_type': 'Paratranz'},
