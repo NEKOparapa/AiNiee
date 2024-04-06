@@ -216,24 +216,7 @@
 
 <details>
 <summary><b>
-### 如果使用 Paratranz 进行游戏翻译
-</b> </summary>
-
-*  0.工具详情：[官方网站](https://paratranz.cn/) 这是一个专用于业余翻译工作的站点，与 Ainiee 的对接主要用于预先对文本进行机翻，之后可以进行校对。
-
-*  1.在项目的 `文件管理` 界面，对需要进行翻译的原文，执行 `下载原始数据` ，将下载下来的数据复制到 `翻译设置` 中的 `输入文件夹` 目录
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Paratranz/Paratranz_export.png" width="600" height="400"> <br>
-*  2.在`翻译设置`界面的`翻译项目`选择`🔵Paratranz导出文件`,并配置翻译设置<br>
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Paratranz/project_type.png" width="600" height="400"> <br>
-*  3.🖱️到开始翻译页面，点击**开始翻译**按钮,看控制台输出日志或者进度条。之后等待翻译进度到百分百,自动生成翻译好的文件在输出文件夹中
-*  4.回到 `Paratranz`工具,依然在 `文件管理` 界面,选择 `导入译文` ,选择翻译后的 json 文件进行导入即可
-</details>
-
-
-<details>
-<summary><b>
-
-  
+ 
 ### 如果使用StevExtraction进行游戏翻译
 </b> </summary>
 
@@ -268,6 +251,26 @@
     >`存储文件夹`: 注入译文后存储的地方<br>
 
 </details>
+
+
+
+
+<details>
+<summary><b>
+
+### 如果使用 Paratranz 进行游戏翻译
+</b> </summary>
+
+*  0.工具详情：[官方网站](https://paratranz.cn/) 这是一个专用于业余翻译工作的站点，与 Ainiee 的对接主要用于预先对文本进行机翻，之后可以进行校对。
+
+*  1.在项目的 `文件管理` 界面，对需要进行翻译的原文，执行 `下载原始数据` ，将下载下来的数据复制到 `翻译设置` 中的 `输入文件夹` 目录
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Paratranz/Paratranz_export.png" width="600" height="400"> <br>
+*  2.在`翻译设置`界面的`翻译项目`选择`🔵Paratranz导出文件`,并配置翻译设置<br>
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Paratranz/project_type.png" width="600" height="400"> <br>
+*  3.🖱️到开始翻译页面，点击**开始翻译**按钮,看控制台输出日志或者进度条。之后等待翻译进度到百分百,自动生成翻译好的文件在输出文件夹中
+*  4.回到 `Paratranz`工具,依然在 `文件管理` 界面,选择 `导入译文` ,选择翻译后的 json 文件进行导入即可
+</details>
+
 
 
 
