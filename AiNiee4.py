@@ -9866,6 +9866,15 @@ class Widget_prompt_dict(QFrame):#AI提示字典界面
                     self.tableView.removeRow(i)
                     break
 
+    # 将条目添加到表格的辅助函数
+    def add_to_table(self, key, value):
+            row = self.tableView.rowCount() - 1 #获取表格的倒数行数
+            self.tableView.insertRow(row)    # 在表格中插入一行
+            self.tableView.setItem(row, 0, QTableWidgetItem(key))
+            self.tableView.setItem(row, 1, QTableWidgetItem(value))
+            #设置新行的高度与前一行相同
+            self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
+
     #导入字典按钮
     def Importing_dictionaries(self):
         # 选择文件
@@ -9879,15 +9888,35 @@ class Widget_prompt_dict(QFrame):#AI提示字典界面
         # 读取文件
         with open(Input_File, 'r', encoding="utf-8") as f:
             dictionary = json.load(f)
-        
-        # 将字典中的数据从表格底部添加到表格中
-        for key, value in dictionary.items():
-            row = self.tableView.rowCount() - 1 #获取表格的倒数行数
-            self.tableView.insertRow(row)    # 在表格中插入一行
-            self.tableView.setItem(row, 0, QTableWidgetItem(key))
-            self.tableView.setItem(row, 1, QTableWidgetItem(value))
-            #设置新行的高度与前一行相同
-            self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
+
+        # 检查数据是列表还是字典
+        if isinstance(dictionary, list):  # 如果是列表，代表是Paratranz的术语表，处理每一个字典项
+            for item in dictionary:
+                key = item.get("term", "")
+                value = item.get("translation", "")
+                self.add_to_table(key, value)
+            # 格式例
+            # [
+            #   {
+            #     "id": 359894,
+            #     "createdAt": "2024-04-06T18:43:56.075Z",
+            #     "updatedAt": "2024-04-06T18:43:56.075Z",
+            #     "updatedBy": null,
+            #     "pos": "noun",
+            #     "uid": 49900,
+            #     "term": "アイテム",
+            #     "translation": "道具",
+            #     "note": "",
+            #     "project": 9841,
+            #     "variants": []
+            #   }
+            # ]
+        elif isinstance(dictionary, dict):  # 如果是字典，处理字典键值对
+            for key, value in dictionary.items():
+                self.add_to_table(key, value)
+        else:
+            print('[ERROR]  不支持的文件格式')
+            return
 
         user_interface_prompter.createSuccessInfoBar("导入成功")
         print(f'[INFO]  已导入字典文件')
