@@ -7,7 +7,7 @@ import openpyxl
 from chardet import detect
 import csv
 
-version = 'v2.14'
+version = 'v2.15'
 
 csv.field_size_limit(2**30)
 pd.options.display.max_colwidth = None
@@ -838,29 +838,32 @@ class Jr_Tpp():
             self.need2check.update({untrs: trsed})
         return trsed
     # 处理文件名被翻译的问题
-    def dnb(self,GameDir):
+    def dnb(self,GameDir,files:list=False):
         print('开始修正文件名')
-        temp=self.__ReadFolder(GameDir)
-        files=[]
-        self.need2check={}
-        # 得到含有中日字符的文件名和不带后缀的形式
-        for filename in temp:
-            filename = filename.split('\\')[-1]
-            if re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]',filename) or not self.ja:
-                files.append(filename)
-                files+=filename.split('.')[:-1]
+        self.need2check = {}
+        # 如果没有提供文件名
+        if not files:
+            temp=self.__ReadFolder(GameDir)
+            files=[]
+            # 得到含有中日字符的文件名和不带后缀的形式
+            for filename in temp:
+                filename = filename.split('\\')[-1]
+                if re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]',filename) or not self.ja:
+                    files.append(filename)
+                    files+=filename.split('.')[:-1]
         # 遍历
         for name in self.ProgramData.keys():
             for index in self.ProgramData[name].index:
-                for filename in files:
-                    # 原文等于文件名，译文替换回原文
-                    if index== filename:
-                        self.ProgramData[name].loc[index,'译文']=index
-                    # 原文包含文件名时，在文件名被特定符号包裹的情况下，将被特定符号包裹的文本，按顺序替换回原文
-                    # 不对note行实行dnb
-                    elif filename in index and 'note' not in self.ProgramData[name].loc[index,'地址']:
-                        self.ProgramData[name].loc[index,'译文']=self.__dealin(index,self.ProgramData[name].loc[index,'译文'],
-                                                                             filename)
+                if type(index)==str:
+                    for filename in files:
+                        # 原文等于文件名，译文替换回原文
+                        if index== filename:
+                            self.ProgramData[name].loc[index,'译文']=index
+                        # 原文包含文件名时，在文件名被特定符号包裹的情况下，将被特定符号包裹的文本，按顺序替换回原文
+                        # 不对note行实行dnb
+                        elif filename in index and 'note' not in self.ProgramData[name].loc[index,'地址']:
+                            self.ProgramData[name].loc[index,'译文']=self.__dealin(index,self.ProgramData[name].loc[index,'译文'],
+                                                                                 filename)
         print('########################修正文件名完成########################')
         # 如有需确认的文本，导出json文件
         if len(self.need2check):
@@ -881,8 +884,9 @@ class Jr_Tpp():
                     q = line
                     # 如果长度大于设定单行最大值，则进行拆分
                     while len(q) > linelength:
-                        # 从字符串的第linelength-1个字符开始匹配中文汉字和英文字母，并返回其位置
-                        n = re.search(r'[0-9a-zA-Z\u4e00-\u9fff\u3000-\u303f\uff01-\uffef]', q[linelength:])
+                        # 从字符串的第linelength-1个字符开始匹配中文汉字，并返回其位置
+                        # \uff01-\uffef为很大范围的标点符号，但是不包含《》【】，\u2026是…
+                        n = re.search(r'[\u4e00-\u9fff\u3000-\u303f\uff01-\uffef\u2026《》【】]', q[linelength:])
                         if n != None:
                             n = n.span()[0] + linelength
                         else:
@@ -1006,8 +1010,11 @@ class Jr_Tpp():
                         for i in range(0, int(length / 2)):
                             untrs_code=untrs_list[2 * i + 1]
                             trsed_code=trsed_list[2 * i + 1]
+                            # 总长度只计算中日字符
+                            jalen=len(re.findall('[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]', untrs_code))
+                            if jalen==0:jalen=1
                             # 对长度足够长的文本，只替换冒号前的内容
-                            if ((untrs_code.find(':') - untrs_code.find('<')) / len(untrs_code))< self.note_percent:
+                            if ((untrs_code.find(':') - untrs_code.find('<')) / jalen)< self.note_percent:
                                 l = ['<', ':']  #分隔符
                                 if untrs_code.count(l[0]) == trsed_code.count(l[0]) and untrs_code.count(l[1]) == trsed_code.count(l[1]):
                                     # 将文本按照分隔符拆分
