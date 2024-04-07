@@ -61,17 +61,6 @@ from qframelesswindow import FramelessWindow, TitleBar, StandardTitleBar
 from StevExtraction import jtpp  #导入文本提取工具
 
 
-Software_Version = "AiNiee4.66.3"  #软件版本号
-cache_list = [] # 全局缓存数据
-Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
-                    # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
-
-
-# 定义线程锁
-lock1 = threading.Lock()  #这个用来锁缓存文件
-lock2 = threading.Lock()  #这个用来锁UI信号的
-lock3 = threading.Lock()  #这个用来锁自动备份缓存文件功能的
-
 
 # 翻译器
 class Translator():
@@ -11924,6 +11913,19 @@ if __name__ == '__main__':
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+
+
+    Software_Version = "AiNiee4.66.3"  #软件版本号
+    cache_list = [] # 全局缓存数据
+    Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
+                        # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
+
+
+    # 定义线程锁
+    lock1 = threading.Lock()  #这个用来锁缓存文件
+    lock2 = threading.Lock()  #这个用来锁UI信号的
+    lock3 = threading.Lock()  #这个用来锁自动备份缓存文件功能的
+
 
     # 工作目录改为python源代码所在的目录
     script_dir = os.path.dirname(os.path.abspath(sys.argv[0])) # 获取当前工作目录
