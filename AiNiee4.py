@@ -21,7 +21,6 @@
 import copy
 import datetime
 import json
-import math
 import random
 import yaml
 import re
@@ -85,7 +84,7 @@ class Translator():
         # ——————————————————————————————————————————读取原文到缓存—————————————————————————————————————————
 
         #如果是从头开始翻译
-        if Running_status != 9:
+        if Running_status == 6:
             # 读取文件
             try:
                 cache_list = File_Reader.read_files(self,configurator.translation_project, configurator.Input_Folder)
@@ -2746,12 +2745,8 @@ class Configurator():
             API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
             self.apikey_list = API_key_list
 
-
-            #——————————————————————————————暂时兼容openai格式——————————————————————
             # 获取请求地址
             self.base_url = 'https://api.anthropic.com'
-            #self.base_url = 'https://api.anthropic.com/v1'
-            #——————————————————————————————暂时兼容openai格式——————————————————————
             
 
             #如果填入地址，则设置代理端口
@@ -3824,10 +3819,6 @@ class Configurator():
 # 请求限制器
 class Request_Limiter():
     def __init__(self):
-        # 默认数据
-        self.default_limit_data = {
-                "other": { "max_tokens": 4000, "TPM": 60000, "RPM": 60},
-            }
 
         # openai模型相关数据
         self.openai_limit_data = {
@@ -4247,6 +4238,7 @@ class File_Reader():
         
         return project_id
 
+
     # 读取文件夹中树形结构Paratranz json 文件
     def read_paratranz_files(self, folder_path):
         # 待处理的json接口例
@@ -4320,6 +4312,7 @@ class File_Reader():
                             i = i + 1
 
         return json_data_list
+
 
     # 读取文件夹中树形结构Mtool文件
     def read_mtool_files (self,folder_path):
@@ -9003,12 +8996,13 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
     
     #暂停翻译按钮绑定函数
     def pause_translation(self):
+        global Running_status
+
         #隐藏暂停翻译按钮
         self.primaryButton_pause_translation.hide()
         #显示继续翻译按钮
         self.primaryButton_continue_translation.show()
 
-        global Running_status
         Running_status = 9
         user_interface_prompter.createWarningInfoBar("软件的翻译进行任务正在取消中，请等待全部翻译任务释放完成！！！")
         print("\033[1;33mWarning:\033[0m 软件的翻译进行任务正在取消中，请等待全部翻译任务释放完成！！！-----------------------","\n")
@@ -9016,6 +9010,7 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
     #继续翻译按钮绑定函数
     def continue_translation(self):
         global Running_status
+        
         if Running_status == 9:
             #隐藏继续翻译按钮
             self.primaryButton_continue_translation.hide()
@@ -9031,6 +9026,8 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
     
     #取消翻译按钮绑定函数
     def terminate_translation(self):
+        global Running_status
+
         #隐藏继续翻译按钮
         self.primaryButton_continue_translation.hide()
         #隐藏暂停翻译按钮
@@ -9038,7 +9035,6 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         #显示开始翻译按钮
         self.primaryButton_start_translation.show()
 
-        global Running_status
         #如果正在翻译中
         if Running_status == 6:
             Running_status = 10
@@ -11669,7 +11665,7 @@ class Widget_sponsor(QFrame):# 赞助界面
         self.text_label = QLabel(self)
         self.text_label.setStyleSheet("font-family: 'SimSun'; font-size: 19px;")
         #self.text_label.setText("个人开发不易，如果这个项目帮助到了您，可以考虑请作者喝一杯奶茶。您的支持就是作者开发和维护项目的动力！🙌")
-        self.text_label.setText("喜欢我的项目吗？如果这个项目帮助到了您，点个小赞助，让我能更有动力更新哦！💖")
+        self.text_label.setText("喜欢我的项目吗？如果这个项目帮助到了您，赞助一杯奶茶，让我能更有动力更新哦！💖")
 
         layout2.addStretch(1)  # 添加伸缩项
         layout2.addWidget(self.text_label)
@@ -11946,7 +11942,7 @@ if __name__ == '__main__':
 
     Software_Version = "AiNiee4.66.3"  #软件版本号
     cache_list = [] # 全局缓存数据
-    Running_status = 0  # 存储程序工作的状态，0是空闲状态,1是接口测试状态
+    Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是接口测试状态
                         # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
 
 
