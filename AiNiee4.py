@@ -10000,8 +10000,11 @@ class Widget_prompt_dict(QFrame):#AI提示字典界面
         if isinstance(dictionary, list):  # 如果是列表
             for item in dictionary:
                 if item.get("srt", "") and item.get("dst", ""):
+                    srt = item.get("srt", "")
+                    dst = item.get("dst", "")
+                    info = item.get("info", "")
 
-                    self.add_to_table(item.get("srt", ""), item.get("dst", ""),item.get("info", ""))
+                    self.add_to_table(srt, dst,info)
                     # 格式例
                     # [
                     #   {
@@ -10013,7 +10016,8 @@ class Widget_prompt_dict(QFrame):#AI提示字典界面
                 else: # 代表是Paratranz的术语表，处理每一个字典项
                     key = item.get("term", "")
                     value = item.get("translation", "")
-                    self.add_to_table(key, value)
+                    info = ""
+                    self.add_to_table(key, value,info)
                     # 格式例
                     # [
                     #   {
@@ -10032,7 +10036,8 @@ class Widget_prompt_dict(QFrame):#AI提示字典界面
                     # ]
         elif isinstance(dictionary, dict):  # 如果是字典，处理字典键值对
             for key, value in dictionary.items():
-                self.add_to_table(key, value)
+                info = ""
+                self.add_to_table(key, value,info)
         else:
             print('[ERROR]  不支持的文件格式')
             return
@@ -10086,7 +10091,7 @@ class Widget_prompt_dict(QFrame):#AI提示字典界面
         button.clicked.connect(self.add_row)
         # 在表格最后一行第二列添加"删除空白行"按钮
         button = PushButton('删空行')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 2, button)
         button.clicked.connect(self.delete_blank_row)
 
         user_interface_prompter.createSuccessInfoBar("清空成功")
@@ -12064,7 +12069,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.66.3"  #软件版本号
+    Software_Version = "AiNiee4.66.4"  #软件版本号
     cache_list = [] # 全局缓存数据
     Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是接口测试状态
                         # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
