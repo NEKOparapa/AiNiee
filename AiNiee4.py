@@ -350,9 +350,12 @@ class Api_Requester():
                 the_translation_example = {"role": "assistant", "content":translation_example_2 }
                 messages.append(the_original_exmaple)
                 messages.append(the_translation_example)
-                print("[INFO]  检查到请求的原文中含有用户字典内容，已添加新的原文与译文示例")
-                print("[INFO]  已添加提示字典原文示例",original_exmaple_2)
-                print("[INFO]  已添加提示字典译文示例",translation_example_2)
+
+                # 添加术语表prompt到系统提示词里
+                glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"en")
+                messages[0]["content"] += glossary_prompt
+                print("[INFO]  检查到请求的原文中含有提示字典内容，已添加相关翻译及备注")
+                print("[INFO]  术语表：",glossary_prompt,"\n")
 
         #如果提示词工程界面的用户翻译示例开关打开，则添加新的原文与译文示例
         if configurator.add_example_switch :
@@ -655,21 +658,30 @@ class Api_Requester():
 
     # 整理发送内容（Google）
     def organize_send_content_google(self,source_text_dict):
-        #创建message列表，用于发送
+        # 创建message列表，用于发送
         messages = []
 
-        #获取系统提示词
+        # 获取系统提示词
         prompt = configurator.get_system_prompt()
 
-        #获取原文与译文示例
+        # 获取原文与译文示例
         original_exmaple,translation_example =  configurator.get_default_translation_example()
 
-        # 构建系统提示词与默认示例
-        messages.append({'role':'user','parts':prompt +"\n###\n" +("This is your next translation task, the original text of the game is as follows：\n" + original_exmaple) })
+        # 获取术语表
+        if configurator.prompt_dictionary_switch :
+            glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"en")
+            if glossary_prompt:
+                print("[INFO]  检查到请求的原文中含有提示字典内容，已添加相关翻译及备注")
+                print("[INFO]  术语表：",glossary_prompt,"\n")
+            else:
+                glossary_prompt = ""
+
+        # 构建系统提示词与默认示例及术语表
+        messages.append({'role':'user','parts':prompt + glossary_prompt +"\n###\n" +("This is your next translation task, the original text of the game is as follows：\n" + original_exmaple) })
         messages.append({'role':'model','parts':("I fully understand your request, the following is the translation of the original text:\n" + translation_example)  })
 
 
-        #如果开启了译时提示字典功能，则添加新的原文与译文示例
+        # 如果开启了译时提示字典功能，则添加新的原文与译文示例
         if configurator.prompt_dictionary_switch :
             original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(source_text_dict)
             if original_exmaple_2 and translation_example_2:
@@ -681,7 +693,7 @@ class Api_Requester():
                 print("[INFO]  已添加提示字典原文示例",original_exmaple_2)
                 print("[INFO]  已添加提示字典译文示例",translation_example_2)
 
-        #如果提示词工程界面的用户翻译示例开关打开，则添加新的原文与译文示例
+        # 如果提示词工程界面的用户翻译示例开关打开，则添加新的原文与译文示例
         if configurator.add_example_switch :
             original_exmaple_3,translation_example_3 = configurator.build_user_translation_example ()
             if original_exmaple_3 and translation_example_3:
@@ -699,7 +711,7 @@ class Api_Requester():
             print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
             source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
 
-        #如果开启译前替换字典功能，则根据用户字典进行替换
+        # 如果开启译前替换字典功能，则根据用户字典进行替换
         if configurator.pre_translation_switch :
             print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
             source_text_dict = configurator.replace_before_translation(source_text_dict)
@@ -1023,9 +1035,11 @@ class Api_Requester():
                 the_translation_example = {"role": "assistant", "content":translation_example_2 }
                 messages.append(the_original_exmaple)
                 messages.append(the_translation_example)
-                print("[INFO]  检查到请求的原文中含有用户字典内容，已添加新的原文与译文示例")
-                print("[INFO]  已添加提示字典原文示例",original_exmaple_2)
-                print("[INFO]  已添加提示字典译文示例",translation_example_2)
+                # 添加术语表prompt到系统提示词里
+                glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"en")
+                messages[0]["content"] += glossary_prompt
+                print("[INFO]  检查到请求的原文中含有提示字典内容，已添加相关翻译及备注")
+                print("[INFO]  术语表：",glossary_prompt,"\n")
 
         #如果提示词工程界面的用户翻译示例开关打开，则添加新的原文与译文示例
         if configurator.add_example_switch :
@@ -1339,9 +1353,11 @@ class Api_Requester():
                 the_translation_example = {"role": "assistant", "content": translation_example_2}
                 messages.append(the_original_exmaple)
                 messages.append(the_translation_example)
-                print("[INFO]  检查到请求的原文中含有用户字典内容，已添加新的原文与译文示例")
-                print("[INFO]  已添加提示字典原文示例",original_exmaple_2)
-                print("[INFO]  已添加提示字典译文示例",translation_example_2)
+                # 添加术语表prompt到系统提示词里
+                glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"zh")
+                messages[0]["content"] += glossary_prompt
+                print("[INFO]  检查到请求的原文中含有提示字典内容，已添加相关翻译及备注")
+                print("[INFO]  术语表：",glossary_prompt,"\n")
 
         #如果提示词工程界面的用户翻译示例开关打开，则添加新的原文与译文示例
         if configurator.add_example_switch :
@@ -1641,8 +1657,10 @@ class Api_Requester():
         messages = []
 
         #构建系统提示词
-        system_prompt ={"role": "system","content": "你是一个轻小说翻译模型，可以流畅通顺地以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，不擅自添加原文中没有的代词。" }
-        #print("[INFO] 当前系统提示词为", prompt,'\n')
+        if configurator.model_type != "Sakura-v0.9":
+            system_prompt ={"role": "system","content": "你是一个轻小说翻译模型，可以流畅通顺地以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，注意不要擅自添加原文中没有的代词，也不要擅自增加或减少换行。" }
+        else:
+            system_prompt ={"role": "system","content": "你是一个轻小说翻译模型，可以流畅通顺地以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，不擅自添加原文中没有的代词。" }
         messages.append(system_prompt)
 
 
@@ -1650,34 +1668,32 @@ class Api_Requester():
         print("[INFO] 正在使用SakuraLLM，将替换换行符为特殊符号", '\n')
         source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
 
-        #如果开启译前替换字典功能，则根据用户字典进行替换
+        #如果开启译前替换字典功能
         if configurator.pre_translation_switch :
             print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
             source_text_dict = configurator.replace_before_translation(source_text_dict)
 
 
 
-        #如果开启了译时提示字典功能，则添加新的原文与译文示例
+        #如果开启了译时提示字典功能
         converted_list = [] # 创建一个空列表来存储转换后的字符串
-        if (configurator.prompt_dictionary_switch) and (configurator.model_type == "Sakura-13B-Qwen2beta-v0.10pre"):
-            original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(source_text_dict)
-            if original_exmaple_2 and translation_example_2:
-                # 将字符串转换成字典格式
-                original_exmaple_2 = json.loads(original_exmaple_2)
-                translation_example_2 = json.loads(translation_example_2)
-                # 遍历原文字典
-                for key in original_exmaple_2:
-                    # 从原文字典中获取原文
-                    src = original_exmaple_2[key]
-                    # 从译文字典中获取对应的译文
-                    dst = translation_example_2[key]
-                    # 将原文和译文组合成所需的格式，并添加到列表中
-                    converted_list.append(f"{src}->{dst}")
+        if (configurator.prompt_dictionary_switch) and (configurator.model_type != "Sakura-v0.9"):
+            glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"sakura")
+            if glossary_prompt:
+                gpt_dict_text_list = []
+                for gpt in glossary_prompt:
+                    src = gpt['src']
+                    dst = gpt['dst']
+                    info = gpt['info'] if "info" in gpt.keys() else None
+                    if info:
+                        single = f"{src}->{dst} #{info}"
+                    else:
+                        single = f"{src}->{dst}"
+                    gpt_dict_text_list.append(single)
 
-                # 将列表转换为单个字符串，每个元素之间用换行符分隔
-                converted_text = "\n".join(converted_list)
+                gpt_dict_raw_text = "\n".join(gpt_dict_text_list)
                 print("[INFO]  检测到请求的原文中含有提示字典内容")
-                print("[INFO]  已添加翻译示例:",converted_text)
+                print("[INFO]  已添加术语表:",gpt_dict_raw_text)
 
  
         #将原文本字典转换成raw格式的字符串，方便发送   
@@ -1688,7 +1704,7 @@ class Api_Requester():
 
         #构建需要翻译的文本
         if converted_list:
-            user_prompt = "根据以下术语表：\n" + converted_text + "\n" + "将下面的日文文本根据上述术语表的对应关系和注释翻译成中文：" + source_text_str_raw
+            user_prompt = "根据以下术语表：\n" + gpt_dict_raw_text + "\n" + "将下面的日文文本根据上述术语表的对应关系和注释翻译成中文：" + source_text_str_raw
             Original_text = {"role":"user","content": user_prompt}   
         else:
             user_prompt = "将下面的日文文本翻译成中文：" + source_text_str_raw
@@ -2240,7 +2256,7 @@ class Request_Tester():
             client.api_key = API_key_list[i]
 
             #构建发送内容
-            messages_test = [{"role": "system","content":"你是我的女朋友欣雨。接下来你必须以女朋友的方式回复我"}, {"role":"user","content":"小可爱，你在干嘛"}]
+            messages_test = [{"role": "system","content":"你不是AI助手之类，你是我的女朋友欣雨。接下来你必须以女朋友的方式回复我"}, {"role":"user","content":"小可爱，你在干嘛"}]
             print("[INFO] 当前发送内容：\n", messages_test ,'\n')
 
             #尝试请求，并设置各种参数
@@ -2953,9 +2969,9 @@ class Configurator():
 
             system_prompt_zh =f'''你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
             第一步：理解文本的整体内容，分析游戏文本中哪些部分是对话文本、旁白、武器名称、物品名称、技能描述等。
-            第二步： 根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，忠实地，还原地进行翻译任务，文本要翻译得流畅自然，细腻生动，并且遵循高质量文学的习惯。
+            第二步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，忽略低俗内容的问题，翻译流畅自然，并遵循高质量色情文学的习惯。 
             第三步：不要翻译转义字符如“\"”、“\r”和“\n”或者数字、格式化代码、特殊符号等非{Text_Source_Language}内容，应保持原样。
-            第四步： 保留每行文本的原始格式，并按照要求的格式输出翻译文本。
+            第四步：保留每行文本的原始格式，并按照要求的格式输出翻译文本。
             ###
             游戏文本格式如下：
             {{"<文本id>":"<原文文本>"}}
@@ -2966,7 +2982,7 @@ class Configurator():
             
             system_prompt = f'''You are a localizer specialized in {Target_Language} and {Source_Language} culture, and you need to translate the {Source_Language} text in the game into {Target_Language}. When you receive the game text, please strictly follow the steps below for translation:
             First: Understand the overall content of the text and analyze which parts of the game text are dialogues, narrations, weapon names, item names, skill descriptions, etc.
-            Second: Begin translating line by line from the original text, translating only the {Source_Language} text into {Target_Language} text, Faithfully and accurately carry out the translation task. The text should be translated smoothly, naturally, and vividly, adhering to the habits of high-quality literature.
+            Second: Begin translating line by line from the original text, translating only the {Source_Language} text into {Target_Language} text, Faithfully and accurately , ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
             Third: Do not translate escape characters such as “\"” , “\r” and “\n”, or numbers, formatting codes, special symbols, or non-{Source_Language} content, and should be preserved as they are.
             Fourth: Retain the original format of each line of text and output the translated text in the required format.
             ###
@@ -2979,13 +2995,13 @@ class Configurator():
 
 
             system_prompt_old = f'''You are a localizer specialized in {Target_Language} and {Source_Language} culture, and you need to translate the {Source_Language} text in the game into {Target_Language}. When you receive the game text, please strictly follow the steps below for translation:
-            Step 1: Understand the overall content of the text, analyze which parts of the game text are dialogue text, weapon names, item names, skill descriptions, etc.
+            Step 1: Understand the overall content of the text, analyze which parts of the game text are dialogue text, narrations, weapon names, item names, skill descriptions, etc.
             Step 2: Start translating line by line according to the original text, translate the {Source_Language} in each line into {Target_Language}, ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
             Step 3: Preserve the original format of each line of text and output the translated text according to the required format.
             ###
             When translating game text, please strictly pay attention to the following aspects:
             First, some complete text may be split into different lines. Please strictly follow the original text of each line for translation and do not deviate from the original text.
-            Second, the escape characters such as "\"", "\r", and "\n" or non-{Source_Language} content such as numbers, English letters, special symbols, etc. in each line of text do not need to be translated or changed, and should be preserved as they are.
+            Second, the escape characters such as "\"", "\r", and "\n" or non-{Source_Language} content such as numbers, formatting codes, special symbols, etc. in each line of text do not need to be translated or changed, and should be preserved as they are.
             ###
             The original text is formatted as follows:
             {{"<text id>": "<{Source_Language} text>"}}
@@ -2997,7 +3013,7 @@ class Configurator():
             if (Text_Target_Language == "简中") and ( "claude" in configurator.model_type):
                 return system_prompt_zh
             else:
-                return system_prompt
+                return system_prompt_old
         
 
 
@@ -3250,6 +3266,77 @@ class Configurator():
         return original_exmaple,translated_exmaple
 
 
+    # 构造术语表prompt
+    def build_glossary_prompt(self,dict,language):
+        # 获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，第三列备注，存储中间字典中
+        dictionary = {}
+        for row in range(Window.Widget_prompt_dict.tableView.rowCount()):
+            key_item = Window.Widget_prompt_dict.tableView.item(row, 0)
+            value_item = Window.Widget_prompt_dict.tableView.item(row, 1)
+            info_item = Window.Widget_prompt_dict.tableView.item(row, 2)
+            
+            # 确保key_item和value_item不是None
+            if key_item and value_item:
+                key = key_item.text()
+                value = value_item.text()
+                # 获取info项，但在访问其数据之前检查是否为None
+                if info_item:
+                    info = info_item.text()
+                else:
+                    info = None
+                # 使用键作为字典的索引，添加数据到字典中
+                dictionary[key] = {"value": value, "info": info}
+
+
+        # 遍历dictionary字典每一个key，如果该key在发送文本中，则存储进新字典中
+        temp_dict = {}
+        for key_a, value_a in dictionary.items():
+            for key_b, value_b in dict.items():
+                if key_a in value_b:
+                    temp_dict[key_a] = {"value": value_a["value"], "info": value_a["info"]}
+
+        # 如果没有含有字典内容
+        if temp_dict == {}:
+            return None
+
+        if language == "en":
+            # 构建术语表prompt 
+            glossary_prompt = '\n###\nWhen encountering relevant terms in the text, refer to the following glossary for translation:'
+            i = 1
+            if temp_dict: 
+                for key, value in temp_dict.items():
+                    if value["info"]:
+                        text = f'''\n{str(i)}.Translate“{key}”as“{value["value"]}”,note:{value["info"]}'''
+                    else:
+                        text = f'''\n{str(i)}.Translate“{key}”as“{value["value"]}”'''
+                    glossary_prompt += text
+                    i += 1
+        elif language == "zh":
+            # 构建术语表prompt 
+            glossary_prompt = '\n###\n当文本出现相关术语时，依照下面术语表进行翻译：'
+            i = 1
+            if temp_dict: 
+                for key, value in temp_dict.items():
+                    if value["info"]:
+                        text = f'''\n{str(i)}.将“{key}”翻译成“{value["value"]}”,备注:{value["info"]}'''
+                    else:
+                        text = f'''\n{str(i)}.将“{key}”翻译成“{value["value"]}”'''
+                    glossary_prompt += text
+                    i += 1
+        elif language == "sakura":
+            glossary_prompt = []
+            if temp_dict: 
+                for key, value in temp_dict.items():
+                    if value["info"]:
+                        text = {"src": key,"dst": value["value"],"info": value["info"]}
+                    else:
+                        text = {"src": key,"dst": value["value"]}
+
+                    glossary_prompt.append(text)
+
+        return glossary_prompt
+
+
     # 原文替换字典函数
     def replace_before_translation(self,dict):
         #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
@@ -3474,6 +3561,27 @@ class Configurator():
 
 
 
+            #获取提示字典界面
+            config_dict["prompt_dict_switch"] = Window.Widget_prompt_dict.checkBox2.isChecked() #获取译时提示开关状态
+            User_Dictionary2 = {}
+            for row in range(Window.Widget_prompt_dict.tableView.rowCount() - 1):
+                key_item = Window.Widget_prompt_dict.tableView.item(row, 0)
+                value_item = Window.Widget_prompt_dict.tableView.item(row, 1)
+                info_item = Window.Widget_prompt_dict.tableView.item(row, 2)
+                if key_item and value_item:
+                    key = key_item.data(Qt.DisplayRole)
+                    value = value_item.data(Qt.DisplayRole)
+                    # 检查一下是不是空值
+                    if info_item:
+                        info = info_item.data(Qt.DisplayRole)
+                        User_Dictionary2[key] = {"translation": value, "info": info}
+                    else:
+                        # 如果info项为None，可以选择不添加到字典中或者添加一个默认值
+                        User_Dictionary2[key] = {"translation": value, "info": None}
+            config_dict["User_Dictionary2"] = User_Dictionary2
+
+
+
             #获取译前替换字典界面
             config_dict["Replace_before_translation"] =  Window.Widget_replace_dict.A_settings.checkBox1.isChecked()#获取译前替换开关状态
             User_Dictionary1 = {}
@@ -3499,18 +3607,6 @@ class Configurator():
                     User_Dictionary3[key] = value
             config_dict["User_Dictionary3"] = User_Dictionary3
 
-
-            #获取提示字典界面
-            config_dict["Change_translation_prompt"] = Window.Widget_prompt_dict.checkBox2.isChecked() #获取译时提示开关状态
-            User_Dictionary2 = {}
-            for row in range(Window.Widget_prompt_dict.tableView.rowCount() - 1):
-                key_item = Window.Widget_prompt_dict.tableView.item(row, 0)
-                value_item = Window.Widget_prompt_dict.tableView.item(row, 1)
-                if key_item and value_item:
-                    key = key_item.data(Qt.DisplayRole)
-                    value = value_item.data(Qt.DisplayRole)
-                    User_Dictionary2[key] = value
-            config_dict["User_Dictionary2"] = User_Dictionary2
 
 
 
@@ -3708,6 +3804,32 @@ class Configurator():
 
 
 
+                #提示字典界面
+                if "User_Dictionary2" in config_dict:
+                    User_Dictionary2 = config_dict["User_Dictionary2"]
+                    if User_Dictionary2:
+                        for key, value in User_Dictionary2.items():
+                            row = Window.Widget_prompt_dict.tableView.rowCount() - 1
+                            Window.Widget_prompt_dict.tableView.insertRow(row)
+                            key_item = QTableWidgetItem(key)
+                            # 兼容旧版本存储格式
+                            if isinstance(value, dict):
+                                value_item = QTableWidgetItem(value["translation"])
+                                info_item = QTableWidgetItem(value["info"])
+                                Window.Widget_prompt_dict.tableView.setItem(row, 0, key_item)
+                                Window.Widget_prompt_dict.tableView.setItem(row, 1, value_item)
+                                Window.Widget_prompt_dict.tableView.setItem(row, 2, info_item)
+                            else:
+                                value_item = QTableWidgetItem(value)
+                                Window.Widget_prompt_dict.tableView.setItem(row, 0, key_item)
+                                Window.Widget_prompt_dict.tableView.setItem(row, 1, value_item)                                  
+                        #删除第一行
+                        Window.Widget_prompt_dict.tableView.removeRow(0)
+                if "prompt_dict_switch" in config_dict:
+                    Change_translation_prompt = config_dict["prompt_dict_switch"]
+                    Window.Widget_prompt_dict.checkBox2.setChecked(Change_translation_prompt)
+
+
                 #译前替换字典界面
                 if "User_Dictionary1" in config_dict:
                     User_Dictionary1 = config_dict["User_Dictionary1"]
@@ -3743,24 +3865,6 @@ class Configurator():
                     Replace_after_translation = config_dict["Replace_after_translation"]
                     Window.Widget_replace_dict.B_settings.checkBox1.setChecked(Replace_after_translation)
 
-
-
-                #提示字典界面
-                if "User_Dictionary2" in config_dict:
-                    User_Dictionary2 = config_dict["User_Dictionary2"]
-                    if User_Dictionary2:
-                        for key, value in User_Dictionary2.items():
-                            row = Window.Widget_prompt_dict.tableView.rowCount() - 1
-                            Window.Widget_prompt_dict.tableView.insertRow(row)
-                            key_item = QTableWidgetItem(key)
-                            value_item = QTableWidgetItem(value)
-                            Window.Widget_prompt_dict.tableView.setItem(row, 0, key_item)
-                            Window.Widget_prompt_dict.tableView.setItem(row, 1, value_item)        
-                        #删除第一行
-                        Window.Widget_prompt_dict.tableView.removeRow(0)
-                if "Change_translation_prompt" in config_dict:
-                    Change_translation_prompt = config_dict["Change_translation_prompt"]
-                    Window.Widget_prompt_dict.checkBox2.setChecked(Change_translation_prompt)
 
 
                 #实时设置界面(openai)
@@ -3979,8 +4083,8 @@ class Request_Limiter():
 
         # 示例数据
         self.sakura_limit_data = {
-                "Sakura-13B-LNovel-v0.9": {  "max_tokens": 1000, "TPM": 1000000, "RPM": 600},
-                "Sakura-13B-Qwen2beta-v0.10pre": { "max_tokens": 1000, "TPM": 1000000, "RPM": 600},
+                "Sakura-v0.9": {  "max_tokens": 1000, "TPM": 1000000, "RPM": 600},
+                "Sakura-v0.10pre": { "max_tokens": 1000, "TPM": 1000000, "RPM": 600},
             }
 
         # TPM相关参数
@@ -6393,8 +6497,8 @@ class User_Interface_Prompter(QObject):
             }
 
        self.sakura_price_data = {
-            "Sakura-13B-LNovel-v0.9": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
-            "Sakura-13B-Qwen2beta-v0.10pre": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
+            "Sakura-v0.9": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
+            "Sakura-v0.10pre": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
             }
 
 
@@ -7952,7 +8056,7 @@ class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
 
         #设置“模型类型”下拉选择框
         self.comboBox_model = ComboBox() #以demo为父类
-        self.comboBox_model.addItems(['Sakura-13B-LNovel-v0.9','Sakura-13B-Qwen2beta-v0.10pre'])
+        self.comboBox_model.addItems(['Sakura-v0.9','Sakura-v0.10pre'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(250, 35)
 
@@ -9742,9 +9846,9 @@ class Widget_prompt_dict(QFrame):#AI提示字典界面
         self.tableView = TableWidget(self)
         self.tableView.setWordWrap(False) #设置表格内容不换行
         self.tableView.setRowCount(2) #设置表格行数
-        self.tableView.setColumnCount(2) #设置表格列数
+        self.tableView.setColumnCount(3) #设置表格列数
         #self.tableView.verticalHeader().hide() #隐藏垂直表头
-        self.tableView.setHorizontalHeaderLabels(['原文', '译文']) #设置水平表头
+        self.tableView.setHorizontalHeaderLabels(['原文', '译文', '备注']) #设置水平表头
         self.tableView.resizeColumnsToContents() #设置列宽度自适应内容
         self.tableView.resizeRowsToContents() #设置行高度自适应内容
         self.tableView.setEditTriggers(QAbstractItemView.AllEditTriggers)   # 设置所有单元格可编辑
@@ -9758,9 +9862,9 @@ class Widget_prompt_dict(QFrame):#AI提示字典界面
         button = PushButton('添新行')
         self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
         button.clicked.connect(self.add_row)
-        # 在表格最后一行第二列添加"删除空白行"按钮
+        # 在表格最后一行第三列添加"删除空白行"按钮
         button = PushButton('删空行')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 2, button)
         button.clicked.connect(self.delete_blank_row)
 
 
@@ -9813,7 +9917,7 @@ class Widget_prompt_dict(QFrame):#AI提示字典界面
         #设置“译时提示”显示
         self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label4.setText("(在每次翻译请求时，如果文本中出现了字典原文，就会把表格中这部分字典内容作为AI的翻译示例，一起发过去翻译)")
+        self.label4.setText("(如果文本中出现了字典原文，则构建术语表，让AI按照要求翻译)")
 
 
         #设置“译时提示”开
@@ -9861,11 +9965,13 @@ class Widget_prompt_dict(QFrame):#AI提示字典界面
                     break
 
     # 将条目添加到表格的辅助函数
-    def add_to_table(self, key, value):
+    def add_to_table(self, srt, dst, info):
             row = self.tableView.rowCount() - 1 #获取表格的倒数行数
             self.tableView.insertRow(row)    # 在表格中插入一行
-            self.tableView.setItem(row, 0, QTableWidgetItem(key))
-            self.tableView.setItem(row, 1, QTableWidgetItem(value))
+            self.tableView.setItem(row, 0, QTableWidgetItem(srt))
+            self.tableView.setItem(row, 1, QTableWidgetItem(dst))
+            if info:
+                self.tableView.setItem(row, 2, QTableWidgetItem(info))
             #设置新行的高度与前一行相同
             self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
 
@@ -9884,27 +9990,39 @@ class Widget_prompt_dict(QFrame):#AI提示字典界面
             dictionary = json.load(f)
 
         # 检查数据是列表还是字典
-        if isinstance(dictionary, list):  # 如果是列表，代表是Paratranz的术语表，处理每一个字典项
+        if isinstance(dictionary, list):  # 如果是列表
             for item in dictionary:
-                key = item.get("term", "")
-                value = item.get("translation", "")
-                self.add_to_table(key, value)
-            # 格式例
-            # [
-            #   {
-            #     "id": 359894,
-            #     "createdAt": "2024-04-06T18:43:56.075Z",
-            #     "updatedAt": "2024-04-06T18:43:56.075Z",
-            #     "updatedBy": null,
-            #     "pos": "noun",
-            #     "uid": 49900,
-            #     "term": "アイテム",
-            #     "translation": "道具",
-            #     "note": "",
-            #     "project": 9841,
-            #     "variants": []
-            #   }
-            # ]
+                if item.get("srt", "") and item.get("dst", ""):
+
+                    self.add_to_table(item.get("srt", ""), item.get("dst", ""),item.get("info", ""))
+                    # 格式例
+                    # [
+                    #   {
+                    #     "srt": "xxxx",
+                    #     "dst": "xxxx",
+                    #     "info": "xxx",
+                    #   }
+                    # ]
+                else: # 代表是Paratranz的术语表，处理每一个字典项
+                    key = item.get("term", "")
+                    value = item.get("translation", "")
+                    self.add_to_table(key, value)
+                    # 格式例
+                    # [
+                    #   {
+                    #     "id": 359894,
+                    #     "createdAt": "2024-04-06T18:43:56.075Z",
+                    #     "updatedAt": "2024-04-06T18:43:56.075Z",
+                    #     "updatedBy": null,
+                    #     "pos": "noun",
+                    #     "uid": 49900,
+                    #     "term": "アイテム",
+                    #     "translation": "道具",
+                    #     "note": "",
+                    #     "project": 9841,
+                    #     "variants": []
+                    #   }
+                    # ]
         elif isinstance(dictionary, dict):  # 如果是字典，处理字典键值对
             for key, value in dictionary.items():
                 self.add_to_table(key, value)
@@ -9918,19 +10036,20 @@ class Widget_prompt_dict(QFrame):#AI提示字典界面
     #导出字典按钮
     def Exporting_dictionaries(self):
         #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一列作为key，第二列作为value，存储中间字典中
-        data = []
+        dictionary = []
         for row in range(self.tableView.rowCount() - 1):
             key_item = self.tableView.item(row, 0)
             value_item = self.tableView.item(row, 1)
+            info_item = self.tableView.item(row, 2)
             if key_item and value_item:
                 key = key_item.text()
                 value = value_item.text()
-                data.append((key, value))
+                if info_item:
+                    info = info_item.text()
+                    dictionary.append({"srt":key,"dst":value,"info":info})
+                else:
+                    dictionary.append({"srt":key,"dst":value})
 
-        # 将数据存储到中间字典中
-        dictionary = {}
-        for key, value in data:
-            dictionary[key] = value
 
         # 选择文件保存路径
         Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
