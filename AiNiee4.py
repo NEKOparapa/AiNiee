@@ -1694,7 +1694,7 @@ class Api_Requester():
 
                 gpt_dict_raw_text = "\n".join(gpt_dict_text_list)
                 print("[INFO]  检测到请求的原文中含有提示字典内容")
-                print("[INFO]  术语表:",gpt_dict_raw_text,"\n")
+                print("[INFO]  术语表:\n",gpt_dict_raw_text,"\n")
 
  
         #将原文本字典转换成raw格式的字符串，方便发送   
