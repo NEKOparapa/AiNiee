@@ -10122,7 +10122,7 @@ class Widget_prompy_engineering(QFrame):#提示词工程界面
 
         self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label2.setText("(将修改系统提示词Prompt为输入框中的内容)")
+        self.label2.setText("(将修改系统提示词为输入框中的内容)")
 
 
         self.checkBox1 = CheckBox('启用功能')
@@ -10179,7 +10179,7 @@ class Widget_prompy_engineering(QFrame):#提示词工程界面
 
         self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label4.setText("(将表格内容添加为新的翻译示例，全程加入翻译请求中，帮助AI更好的进行少样本学习，学习其中格式，翻译逻辑，提高AI翻译质量)")
+        self.label4.setText("(添加为新的翻译示例，全程加入翻译请求中，帮助AI更好的进行少样本学习，学习其中格式，翻译逻辑，提高AI翻译质量)")
 
 
         self.checkBox2 = CheckBox('启用功能')
