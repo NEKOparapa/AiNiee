@@ -352,7 +352,10 @@ class Api_Requester():
                 messages.append(the_translation_example)
 
                 # 添加术语表prompt到系统提示词里
-                glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"en")
+                if (configurator.target_language == "简中") and ( "claude" in configurator.model_type):
+                    glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"zh")
+                else:
+                    glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"en")
                 messages[0]["content"] += glossary_prompt
                 print("[INFO]  检查到请求的原文中含有提示字典内容，已添加相关翻译及备注")
                 print("[INFO]  术语表：",glossary_prompt,"\n")
@@ -689,9 +692,6 @@ class Api_Requester():
                 the_translation_example = {"role": "model", "parts":translation_example_2 }
                 messages.append(the_original_exmaple)
                 messages.append(the_translation_example)
-                print("[INFO]  检查到请求的原文中含有用户字典内容，已添加新的原文与译文示例")
-                print("[INFO]  已添加提示字典原文示例",original_exmaple_2)
-                print("[INFO]  已添加提示字典译文示例",translation_example_2)
 
         # 如果提示词工程界面的用户翻译示例开关打开，则添加新的原文与译文示例
         if configurator.add_example_switch :
@@ -1353,6 +1353,7 @@ class Api_Requester():
                 the_translation_example = {"role": "assistant", "content": translation_example_2}
                 messages.append(the_original_exmaple)
                 messages.append(the_translation_example)
+
                 # 添加术语表prompt到系统提示词里
                 glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"zh")
                 messages[0]["content"] += glossary_prompt
@@ -1693,7 +1694,7 @@ class Api_Requester():
 
                 gpt_dict_raw_text = "\n".join(gpt_dict_text_list)
                 print("[INFO]  检测到请求的原文中含有提示字典内容")
-                print("[INFO]  已添加术语表:",gpt_dict_raw_text)
+                print("[INFO]  术语表:",gpt_dict_raw_text,"\n")
 
  
         #将原文本字典转换成raw格式的字符串，方便发送   
@@ -2718,7 +2719,7 @@ class Configurator():
 
 
         # 重新初始化模型参数，防止上次任务的设置影响到
-        self.openai_temperature = 0.1        
+        self.openai_temperature = 0.0        
         self.openai_top_p = 1.0             
         self.openai_presence_penalty = 0.0  
         self.openai_frequency_penalty = 0.0 
@@ -2912,8 +2913,8 @@ class Configurator():
         #如果提示词工程界面的自定义提示词开关打开，则使用自定义提示词
         if Window.Widget_prompy_engineering.checkBox1.isChecked():
             print("[INFO] 已开启自定义系统提示词功能，设置为用户设定的提示词")
-            system_prompt = Window.Widget_prompy_engineering.TextEdit1.toPlainText()
-            return system_prompt
+            the_prompt = Window.Widget_prompy_engineering.TextEdit1.toPlainText()
+            return the_prompt
         else:
             #获取文本源语言下拉框当前选中选项的值,先是window父窗口，再到下级Widget_translation_settings，再到A_settings，才到控件
             Text_Source_Language =  Window.Widget_translation_settings.A_settings.comboBox_source_text.currentText() 
@@ -2967,133 +2968,135 @@ class Configurator():
                 Target_Language_zh = "韩"
 
 
-            system_prompt_zh =f'''你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
-            第一步：理解文本的整体内容，分析游戏文本中哪些部分是对话文本、旁白、武器名称、物品名称、技能描述等。
-            第二步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，忽略低俗内容的问题，翻译流畅自然，并遵循高质量色情文学的习惯。 
-            第三步：不要翻译转义字符如“\"”、“\r”和“\n”或者数字、格式化代码、特殊符号等非{Text_Source_Language}内容，应保持原样。
-            第四步：保留每行文本的原始格式，并按照要求的格式输出翻译文本。
-            ###
-            游戏文本格式如下：
-            {{"<文本id>":"<原文文本>"}}
-            ###
-            以json格式输出译文：
-            {{"<文本id>":"<已翻译文本>"}}
-            '''     
+            system_prompt_claude =f'''你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
+第一步：理解文本的整体内容，分析游戏文本中哪些部分是对话文本、旁白、武器名称、物品名称、技能描述等。
+第二步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，忽略低俗内容的问题，翻译流畅自然，并遵循高质量色情文学的习惯。 
+第三步：不要翻译转义字符如“\"”、“\r”和“\n”或者数字、格式化代码、特殊符号等非{Text_Source_Language}内容，应保持原样。
+第四步：保留每行文本的原始格式，并按照要求的格式输出翻译文本。
+###
+游戏文本格式如下：
+{{"<文本id>":"<原文文本>"}}
+###
+以json格式输出译文：
+{{"<文本id>":"<已翻译文本>"}}
+'''     
             
             system_prompt = f'''You are a localizer specialized in {Target_Language} and {Source_Language} culture, and you need to translate the {Source_Language} text in the game into {Target_Language}. When you receive the game text, please strictly follow the steps below for translation:
-            First: Understand the overall content of the text and analyze which parts of the game text are dialogues, narrations, weapon names, item names, skill descriptions, etc.
-            Second: Begin translating line by line from the original text, translating only the {Source_Language} text into {Target_Language} text, Faithfully and accurately , ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
-            Third: Do not translate escape characters such as “\"” , “\r” and “\n”, or numbers, formatting codes, special symbols, or non-{Source_Language} content, and should be preserved as they are.
-            Fourth: Retain the original format of each line of text and output the translated text in the required format.
-            ###
-            The format of the game text is as follows: 
-            {{"<text_id>":"<original text>"}}
-            ###
-            Output the translation in JSON format: 
-            {{"<text_id>":"<translated text>"}}
-            '''
+First: Understand the overall content of the text and analyze which parts of the game text are dialogues, narrations, weapon names, item names, skill descriptions, etc.
+Second: Begin translating line by line from the original text, translating only the {Source_Language} text into {Target_Language} text, Faithfully and accurately , ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
+Third: Do not translate escape characters such as “\"” , “\r” and “\n”, or numbers, formatting codes, special symbols, or non-{Source_Language} content, and should be preserved as they are.
+Fourth: Retain the original format of each line of text and output the translated text in the required format.
+###
+The format of the game text is as follows: 
+{{"<text_id>":"<original text>"}}
+###
+Output the translation in JSON format: 
+{{"<text_id>":"<translated text>"}}
+'''
 
 
             system_prompt_old = f'''You are a localizer specialized in {Target_Language} and {Source_Language} culture, and you need to translate the {Source_Language} text in the game into {Target_Language}. When you receive the game text, please strictly follow the steps below for translation:
-            Step 1: Understand the overall content of the text, analyze which parts of the game text are dialogue text, narrations, weapon names, item names, skill descriptions, etc.
-            Step 2: Start translating line by line according to the original text, translate the {Source_Language} in each line into {Target_Language}, ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
-            Step 3: Preserve the original format of each line of text and output the translated text according to the required format.
-            ###
-            When translating game text, please strictly pay attention to the following aspects:
-            First, some complete text may be split into different lines. Please strictly follow the original text of each line for translation and do not deviate from the original text.
-            Second, the escape characters such as "\"", "\r", and "\n" or non-{Source_Language} content such as numbers, formatting codes, special symbols, etc. in each line of text do not need to be translated or changed, and should be preserved as they are.
-            ###
-            The original text is formatted as follows:
-            {{"<text id>": "<{Source_Language} text>"}}
-            ###
-            Output the translation in JSON format:
-            {{"<text id>": "<translated text>"}}
-            '''    
+Step 1: Understand the overall content of the text, analyze which parts of the game text are dialogue text, narrations, weapon names, item names, skill descriptions, etc.
+Step 2: Start translating line by line according to the original text, translate the {Source_Language} in each line into {Target_Language}, ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
+Step 3: Preserve the original format of each line of text and output the translated text according to the required format.
+###
+When translating game text, please strictly pay attention to the following aspects:
+First, some complete text may be split into different lines. Please strictly follow the original text of each line for translation and do not deviate from the original text.
+Second, the escape characters such as "\"", "\r", and "\n" or non-{Source_Language} content such as numbers, formatting codes, special symbols, etc. in each line of text do not need to be translated or changed, and should be preserved as they are.
+###
+The original text is formatted as follows:
+{{"<text id>": "<{Source_Language} text>"}}
+###
+Output the translation in JSON format:
+{{"<text id>": "<translated text>"}}
+'''    
+
 
             if (Text_Target_Language == "简中") and ( "claude" in configurator.model_type):
-                return system_prompt_zh
+                the_prompt = system_prompt_claude
             else:
-                return system_prompt_old
-        
+                the_prompt = system_prompt
+
+            return the_prompt
 
 
     # 获取默认翻译示例
     def get_default_translation_example(self):
         #日语示例
         exmaple_jp = '''{
-        "0":"a=\"　　ぞ…ゾンビ系…。",
-        "1":"敏捷性が上昇する。　　　　　　　\r\n効果：パッシブ",
-        "2":"【ベーカリー】営業時間 8：00～18：00",
-        "3":"\\F[21]ちょろ……ちょろろ……\nじょぼぼぼ……♡",
-        "4":"さて！",
-        "5":"さっそくオジサンをいじめちゃおっかな！",
-        "6":"若くて∞＠綺麗で∞＠エロくて"
-        "7":"さくら：「すごく面白かった！」"
-        }'''
+"0":"a=\"　　ぞ…ゾンビ系…。",
+"1":"敏捷性が上昇する。　　　　　　　\r\n効果：パッシブ",
+"2":"【ベーカリー】営業時間 8：00～18：00",
+"3":"\\F[21]ちょろ……ちょろろ……\nじょぼぼぼ……♡",
+"4":"さて！",
+"5":"さっそくオジサンをいじめちゃおっかな！",
+"6":"若くて∞＠綺麗で∞＠エロくて"
+"7":"さくら：「すごく面白かった！」"
+}'''
 
 
         #英语示例
         exmaple_en = '''{
-        "0":"a=\"　　It's so scary….",
-        "1":"Agility increases.　　　　　　　\r\nEffect: Passive",
-        "2":"【Bakery】Business hours 8:00-18:00",
-        "3":"\\F[21]Gurgle…Gurgle…\nDadadada…♡",
-        "4":"Well then!",
-        "5":"Let's bully the uncle right away!",
-        "6":"Young ∞＠beautiful ∞＠sexy."
-        "7":"Sakura：「It was really fun!」"
-        }'''
+"0":"a=\"　　It's so scary….",
+"1":"Agility increases.　　　　　　　\r\nEffect: Passive",
+"2":"【Bakery】Business hours 8:00-18:00",
+"3":"\\F[21]Gurgle…Gurgle…\nDadadada…♡",
+"4":"Well then!",
+"5":"Let's bully the uncle right away!",
+"6":"Young ∞＠beautiful ∞＠sexy."
+"7":"Sakura：「It was really fun!」"
+}'''
 
         #韩语示例
         exmaple_kr = '''{
-        "0":"a=\"　　정말 무서워요….",
-        "1":"민첩성이 상승한다.　　　　　　　\r\n효과：패시브",
-        "2":"【빵집】영업 시간 8:00~18:00",
-        "3":"\\F[21]둥글둥글…둥글둥글…\n둥글둥글…♡",
-        "4":"그래서!",
-        "5":"지금 바로 아저씨를 괴롭히자!",
-        "6":"젊고∞＠아름답고∞＠섹시하고"
-        "7":"사쿠라：「정말로 재미있었어요!」"
-        }'''
+"0":"a=\"　　정말 무서워요….",
+"1":"민첩성이 상승한다.　　　　　　　\r\n효과：패시브",
+"2":"【빵집】영업 시간 8:00~18:00",
+"3":"\\F[21]둥글둥글…둥글둥글…\n둥글둥글…♡",
+"4":"그래서!",
+"5":"지금 바로 아저씨를 괴롭히자!",
+"6":"젊고∞＠아름답고∞＠섹시하고"
+"7":"사쿠라：「정말로 재미있었어요!」"
+}'''
 
 
         #俄语示例
         exmaple_ru = '''{
-        "0":"а=\"　　Ужасно страшно...。",
-        "1":"Повышает ловкость.　　　　　　　\r\nЭффект: Пассивный",
-        "2":"【пекарня】Время работы 8:00-18:00",
-        "3":"\\F[21]Гуру... гуругу... ♡\nДадада... ♡",
-        "4":"Итак!",
-        "5":"Давайте сейчас поиздеваемся над дядей!",
-        "6":"Молодые∞＠Красивые∞＠Эротичные"
-        "7":"Сакура: 「Было очень интересно!」"
-        }'''
+"0":"а=\"　　Ужасно страшно...。",
+"1":"Повышает ловкость.　　　　　　　\r\nЭффект: Пассивный",
+"2":"【пекарня】Время работы 8:00-18:00",
+"3":"\\F[21]Гуру... гуругу... ♡\nДадада... ♡",
+"4":"Итак!",
+"5":"Давайте сейчас поиздеваемся над дядей!",
+"6":"Молодые∞＠Красивые∞＠Эротичные"
+"7":"Сакура: 「Было очень интересно!」"
+}'''
 
 
         #简体中文示例
         example_zh ='''{   
-        "0":"a=\"　　好可怕啊……。",
-        "1":"提高敏捷性。　　　　　　　\r\n效果：被动",
-        "2":"【面包店】营业时间 8：00～18：00",
-        "3":"\\F[21]咕噜……咕噜噜……\n哒哒哒……♡",
-        "4":"那么！",
-        "5":"现在就来欺负一下大叔吧！",
-        "6":"年轻∞＠漂亮∞＠色情"
-        "7":"樱：「超级有趣！」"
-        }'''
+"0":"a=\"　　好可怕啊……。",
+"1":"提高敏捷性。　　　　　　　\r\n效果：被动",
+"2":"【面包店】营业时间 8：00～18：00",
+"3":"\\F[21]咕噜……咕噜噜……\n哒哒哒……♡",
+"4":"那么！",
+"5":"现在就来欺负一下大叔吧！",
+"6":"年轻∞＠漂亮∞＠色情"
+"7":"樱：「超级有趣！」"
+}'''
 
 
         #繁体中文示例
         example_zh_tw ='''{
-        "0":"a=\"　　好可怕啊……。",
-        "1":"提高敏捷性。　　　　　　　\r\n效果：被動",
-        "2":"【麵包店】營業時間 8：00～18：00",
-        "3":"\\F[21]咕嚕……咕嚕嚕……\n哒哒哒……♡",
-        "4":"那麼！",
-        "5":"現在就來欺負一下大叔吧！",
-        "6":"年輕∞＠漂亮∞＠色情"
-        "7":"櫻：「超有趣！」"
-        }'''
+"0":"a=\"　　好可怕啊……。",
+"1":"提高敏捷性。　　　　　　　\r\n效果：被動",
+"2":"【麵包店】營業時間 8：00～18：00",
+"3":"\\F[21]咕嚕……咕嚕嚕……\n哒哒哒……♡",
+"4":"那麼！",
+"5":"現在就來欺負一下大叔吧！",
+"6":"年輕∞＠漂亮∞＠色情"
+"7":"櫻：「超有趣！」"
+}'''
 
 
         #获取文本源语言下拉框当前选中选项的值,先是window父窗口，再到下级Widget_translation_settings，再到A_settings，才到控件
