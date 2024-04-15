@@ -326,10 +326,10 @@ class Api_Requester():
         #构建原文与译文示例
         original_exmaple,translation_example =  configurator.get_default_translation_example()
         if (configurator.target_language == "简中") and ( "claude" in configurator.model_type):
-            the_original_exmaple =  {"role": "user","content":("这是你接下来的翻译任务，游戏原文文本如下：\n" + original_exmaple) }
+            the_original_exmaple =  {"role": "user","content":("这是你接下来的翻译任务，原文文本如下：\n" + original_exmaple) }
             the_translation_example = {"role": "assistant", "content": ("我完全理解了您的要求,以下是对原文的翻译:\n" + translation_example) }
         else:
-            the_original_exmaple =  {"role": "user","content":("This is your next translation task, the original text of the game is as follows：\n" + original_exmaple) }
+            the_original_exmaple =  {"role": "user","content":("This is your next translation task, the original text is as follows：\n" + original_exmaple) }
             the_translation_example = {"role": "assistant", "content": ("I fully understand your request, the following is the translation of the original text:\n" + translation_example) }
         messages.append(the_original_exmaple)
         messages.append(the_translation_example)
@@ -383,9 +383,9 @@ class Api_Requester():
 
         #构建需要翻译的文本
         if (configurator.target_language == "简中") and ( "claude" in configurator.model_type):
-            Original_text = {"role":"user","content":("这是你接下来的翻译任务，游戏原文文本如下：\n" + source_text_str) }
+            Original_text = {"role":"user","content":("这是你接下来的翻译任务，原文文本如下：\n" + source_text_str) }
         else:
-            Original_text = {"role":"user","content":("This is your next translation task, the original text of the game is as follows：\n" + source_text_str) }
+            Original_text = {"role":"user","content":("This is your next translation task, the original text is as follows：\n" + source_text_str) }
         messages.append(Original_text)
 
         if (configurator.target_language == "简中") and ( "claude" in configurator.model_type  ):
@@ -664,16 +664,18 @@ class Api_Requester():
         original_exmaple,translation_example =  configurator.get_default_translation_example()
 
         # 获取术语表
-        glossary_prompt = ""
+        glossary_prompt = "\n"
         if configurator.prompt_dictionary_switch :
             glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"en")
             if glossary_prompt:
                 print("[INFO]  检查到请求的原文中含有提示字典内容，已添加相关翻译及备注")
                 print("[INFO]  术语表：",glossary_prompt,"\n")
+            else:
+                glossary_prompt = "\n" # 如果没有查询到相关术语，则置空，防止下面拼接出错
 
 
         # 构建系统提示词与默认示例及术语表
-        messages.append({'role':'user','parts':prompt + glossary_prompt +"\n###\n" +("This is your next translation task, the original text of the game is as follows：\n" + original_exmaple) })
+        messages.append({'role':'user','parts':f'''{prompt}{glossary_prompt}\n###\nThis is your next translation task, the original text is as follows：\n{original_exmaple}''' })
         messages.append({'role':'model','parts':("I fully understand your request, the following is the translation of the original text:\n" + translation_example)  })
 
 
@@ -714,7 +716,7 @@ class Api_Requester():
         source_text_str = json.dumps(source_text_dict, ensure_ascii=False)   
 
         #构建需要翻译的文本
-        Original_text = {"role":"user","parts":("This is your next translation task, the original text of the game is as follows：\n" + source_text_str) }
+        Original_text = {"role":"user","parts":("This is your next translation task, the original text is as follows：\n" + source_text_str) }
         messages.append(Original_text)
 
         return messages,source_text_str
@@ -1010,7 +1012,7 @@ class Api_Requester():
 
         #构建原文与译文示例
         original_exmaple,translation_example =  configurator.get_default_translation_example()
-        the_original_exmaple =  {"role": "user","content":("This is your next translation task, the original text of the game is as follows：\n" + original_exmaple) }
+        the_original_exmaple =  {"role": "user","content":("This is your next translation task, the original text is as follows：\n" + original_exmaple) }
         the_translation_example = {"role": "assistant", "content":  translation_example }
         #print("[INFO]  已添加默认原文示例",original_exmaple)
         #print("[INFO]  已添加默认译文示例",translation_example)
@@ -1062,7 +1064,7 @@ class Api_Requester():
         source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
 
         #构建需要翻译的文本
-        Original_text = {"role":"user","content":("This is your next translation task, the original text of the game is as follows：\n" + source_text_str) }
+        Original_text = {"role":"user","content":("This is your next translation task, the original text is as follows：\n" + source_text_str) }
         messages.append(Original_text)
 
         return messages,source_text_str
@@ -1330,10 +1332,10 @@ class Api_Requester():
         #构建原文与译文示例
         original_exmaple,translation_example =  configurator.get_default_translation_example()
         if configurator.target_language == "简中":
-            the_original_exmaple =  {"role": "user","content":("这是你接下来的翻译任务，游戏原文文本如下：\n" + original_exmaple ) }
+            the_original_exmaple =  {"role": "user","content":("这是你接下来的翻译任务，原文文本如下：\n" + original_exmaple ) }
             the_translation_example = {"role": "assistant", "content": ("我完全理解了您的要求,以下是对原文的翻译:\n" + translation_example) }
         else:
-            the_original_exmaple =  {"role": "user","content":("This is your next translation task, the original text of the game is as follows：\n" + original_exmaple) }
+            the_original_exmaple =  {"role": "user","content":("This is your next translation task, the original text is as follows：\n" + original_exmaple) }
             the_translation_example = {"role": "assistant", "content": ("I fully understand your request, the following is the translation of the original text:\n" + translation_example) }
 
         messages.append(the_original_exmaple)
@@ -1389,9 +1391,9 @@ class Api_Requester():
 
         #构建需要翻译的文本
         if configurator.target_language == "简中" :
-            Original_text = {"role":"user","content":("这是你接下来的翻译任务，游戏原文文本如下：\n" + source_text_str) }
+            Original_text = {"role":"user","content":("这是你接下来的翻译任务，原文文本如下：\n" + source_text_str) }
         else:
-            Original_text = {"role":"user","content":("This is your next translation task, the original text of the game is as follows：\n" + source_text_str ) }
+            Original_text = {"role":"user","content":("This is your next translation task, the original text is as follows：\n" + source_text_str ) }
         messages.append(Original_text)
 
 
@@ -1659,7 +1661,7 @@ class Api_Requester():
 
         #构建原文与译文示例
         original_exmaple,translation_example =  configurator.get_default_translation_example()
-        the_original_exmaple =  {"role": "USER","message":("This is your next translation task, the original text of the game is as follows：\n" + original_exmaple) }
+        the_original_exmaple =  {"role": "USER","message":("This is your next translation task, the original text is as follows：\n" + original_exmaple) }
         the_translation_example = {"role": "CHATBOT", "message": ("I fully understand your request, the following is the translation of the original text:\n" + translation_example) }
 
         messages.append(the_original_exmaple)
@@ -1718,7 +1720,7 @@ class Api_Requester():
         source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
 
         #构建需要翻译的文本
-        Original_text ="This is your next translation task, the original text of the game is as follows：\n" + source_text_str
+        Original_text ="This is your next translation task, the original text is as follows：\n" + source_text_str
 
 
 
@@ -4419,6 +4421,7 @@ class Request_Limiter():
                 "gpt-4": {"max_tokens": 8000, "TPM": 10000, "RPM": 500},
                 "gpt-4-0314": {"max_tokens": 8000, "TPM": 10000, "RPM": 500},
                 "gpt-4-0613": {"max_tokens": 8000, "TPM": 10000, "RPM": 500},
+                "gpt-4-turbo": {"max_tokens": 4000, "TPM": 300000, "RPM": 500},
                 "gpt-4-turbo-preview": {"max_tokens": 4000, "TPM": 150000, "RPM": 500},
                 "gpt-4-1106-preview": {"max_tokens": 4000, "TPM": 150000, "RPM": 500},
                 "gpt-4-0125-preview": {"max_tokens": 4000, "TPM": 150000, "RPM": 500},
@@ -4437,6 +4440,7 @@ class Request_Limiter():
                 "gpt-4": {"max_tokens": 8000, "TPM": 40000, "RPM": 5000},
                 "gpt-4-0314": {"max_tokens": 8000, "TPM": 40000, "RPM": 5000},
                 "gpt-4-0613": {"max_tokens": 8000, "TPM": 40000, "RPM": 5000},
+                "gpt-4-turbo": {"max_tokens": 4000, "TPM": 600000, "RPM": 5000},
                 "gpt-4-turbo-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
                 "gpt-4-1106-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
                 "gpt-4-0125-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
@@ -4455,6 +4459,7 @@ class Request_Limiter():
                 "gpt-4": {"max_tokens": 8000, "TPM": 80000, "RPM": 5000},
                 "gpt-4-0314": {"max_tokens": 8000, "TPM": 80000, "RPM": 5000},
                 "gpt-4-0613": {"max_tokens": 8000, "TPM": 80000, "RPM": 5000},
+                "gpt-4-turbo": {"max_tokens": 4000, "TPM": 600000, "RPM": 5000},
                 "gpt-4-turbo-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
                 "gpt-4-1106-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
                 "gpt-4-0125-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
@@ -4473,6 +4478,7 @@ class Request_Limiter():
                 "gpt-4": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
                 "gpt-4-0314": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
                 "gpt-4-0613": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
+                "gpt-4-turbo": {"max_tokens": 4000, "TPM": 900000, "RPM": 10000},
                 "gpt-4-turbo-preview": {"max_tokens": 4000, "TPM": 450000, "RPM": 10000},
                 "gpt-4-1106-preview": {"max_tokens": 4000, "TPM": 450000, "RPM": 10000},
                 "gpt-4-0125-preview": {"max_tokens": 4000, "TPM": 450000, "RPM": 10000},
@@ -4491,6 +4497,7 @@ class Request_Limiter():
                 "gpt-4": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
                 "gpt-4-0314": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
                 "gpt-4-0613": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
+                "gpt-4-turbo": {"max_tokens": 4000, "TPM": 1200000, "RPM": 10000},
                 "gpt-4-turbo-preview": {"max_tokens": 4000, "TPM": 600000, "RPM": 10000},
                 "gpt-4-1106-preview": {"max_tokens": 4000, "TPM": 600000, "RPM": 10000},
                 "gpt-4-0125-preview": {"max_tokens": 4000, "TPM": 600000, "RPM": 10000},
@@ -4513,6 +4520,7 @@ class Request_Limiter():
         # 示例数据
         self.google_limit_data = {
                 "gemini-1.0-pro": {  "InputTokenLimit": 30720,"OutputTokenLimit": 2048,"max_tokens": 2500, "TPM": 1000000, "RPM": 60},
+                "gemini-1.5-pro-latest": { "InputTokenLimit": 1048576,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 9999999, "RPM": 2},
             }
 
 
@@ -4854,6 +4862,7 @@ class User_Interface_Prompter(QObject):
             "gpt-4": {"input_price": 0.03, "output_price": 0.06},
             "gpt-4-0314": {"input_price": 0.03, "output_price": 0.06},
             "gpt-4-0613": {"input_price": 0.03, "output_price": 0.06},
+            "gpt-4-turbo":{"input_price": 0.01, "output_price": 0.03},
             "gpt-4-turbo-preview":{"input_price": 0.01, "output_price": 0.03},
             "gpt-4-1106-preview":{"input_price": 0.01, "output_price": 0.03},
             "gpt-4-0125-preview":{"input_price": 0.01, "output_price": 0.03},
@@ -4881,6 +4890,7 @@ class User_Interface_Prompter(QObject):
 
        self.google_price_data = {
             "gemini-1.0-pro": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
+            "gemini-1.5-pro-latest": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
             }
 
        self.moonshot_price_data = {
@@ -7330,7 +7340,7 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
         #设置“模型类型”下拉选择框
         self.comboBox_model_openai = EditableComboBox() #以demo为父类
         self.comboBox_model_openai.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-1106', 'gpt-3.5-turbo-0125','gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
-                                 'gpt-4','gpt-4-0314', 'gpt-4-0613','gpt-4-turbo-preview','gpt-4-1106-preview','gpt-4-0125-preview'])
+                                 'gpt-4','gpt-4-0314', 'gpt-4-0613','gpt-4-turbo','gpt-4-turbo-preview','gpt-4-1106-preview','gpt-4-0125-preview'])
         self.comboBox_model_openai.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model_openai.setFixedSize(250, 35)
 
@@ -7721,7 +7731,7 @@ class Widget_Openai(QFrame):#  Openai账号界面
         #设置“模型类型”下拉选择框
         self.comboBox_model = ComboBox() #以demo为父类
         self.comboBox_model.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-1106', 'gpt-3.5-turbo-0125','gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
-                                 'gpt-4','gpt-4-0314', 'gpt-4-0613','gpt-4-turbo-preview','gpt-4-1106-preview','gpt-4-0125-preview'])
+                                 'gpt-4','gpt-4-0314', 'gpt-4-0613','gpt-4-turbo','gpt-4-turbo-preview','gpt-4-1106-preview','gpt-4-0125-preview'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(200, 35)
         #设置下拉选择框默认选择
@@ -7872,7 +7882,7 @@ class Widget_Google(QFrame):#  谷歌账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox_model = ComboBox() #以demo为父类
-        self.comboBox_model.addItems(['gemini-1.0-pro'])
+        self.comboBox_model.addItems(['gemini-1.0-pro','gemini-1.5-pro-latest'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(200, 35)
 
@@ -12721,7 +12731,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.66.4"  #软件版本号
+    Software_Version = "AiNiee4.66.5"  #软件版本号
     cache_list = [] # 全局缓存数据
     Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是接口测试状态
                         # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
