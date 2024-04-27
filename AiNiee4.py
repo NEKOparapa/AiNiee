@@ -534,8 +534,24 @@ class Api_Requester():
 
 
 
-                    # 提取回复的文本内容
-                    response_content = response.choices[0].message.content 
+                    # 尝试提取回复的文本内容
+                    try:
+                        response_content = response.choices[0].message.content 
+                    #抛出错误信息
+                    except Exception as e:
+                        print("\033[1;31mError:\033[0m 提取文本时出现问题！！！运行错误信息如下")
+                        print(f"Error: {e}\n")
+                        print("接口返回的错误信息如下")
+                        print(response)
+                        #处理完毕，再次进行请求
+                        
+                        #请求错误计次
+                        request_errors_count = request_errors_count + 1
+                        #如果错误次数过多，就取消任务
+                        if request_errors_count >= 4 :
+                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
+                            break
+                        continue
 
 
                     print('\n' )
@@ -874,7 +890,7 @@ class Api_Requester():
 
 
 
-                    # 提取回复的文本内容
+                    # 尝试提取回复的文本内容
                     try:
                         response_content = response.text
                     #抛出错误信息
@@ -1203,9 +1219,25 @@ class Api_Requester():
 
 
 
-                    # 提取回复的文本内容
-                    response_content = response.choices[0].message.content 
 
+                    # 尝试提取回复的文本内容
+                    try:
+                        response_content = response.choices[0].message.content 
+                    #抛出错误信息
+                    except Exception as e:
+                        print("\033[1;31mError:\033[0m 提取文本时出现问题！！！运行错误信息如下")
+                        print(f"Error: {e}\n")
+                        print("接口返回的错误信息如下")
+                        print(response)
+                        #处理完毕，再次进行请求
+                        
+                        #请求错误计次
+                        request_errors_count = request_errors_count + 1
+                        #如果错误次数过多，就取消任务
+                        if request_errors_count >= 4 :
+                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
+                            break
+                        continue
 
                     print('\n' )
                     print("[INFO] 已成功接受到AI的回复-----------------------")
@@ -1539,9 +1571,25 @@ class Api_Requester():
                         completion_tokens_used = 0
 
 
-                    # 提取回复的文本内容（anthropic）
-                    response_content = response.content[0].text 
 
+                    # 尝试提取回复的文本内容
+                    try:
+                        response_content = response.content[0].text 
+                    #抛出错误信息
+                    except Exception as e:
+                        print("\033[1;31mError:\033[0m 提取文本时出现问题！！！运行错误信息如下")
+                        print(f"Error: {e}\n")
+                        print("接口返回的错误信息如下")
+                        print(response)
+                        #处理完毕，再次进行请求
+                        
+                        #请求错误计次
+                        request_errors_count = request_errors_count + 1
+                        #如果错误次数过多，就取消任务
+                        if request_errors_count >= 4 :
+                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
+                            break
+                        continue
 
 
                     print('\n' )
@@ -1864,9 +1912,25 @@ class Api_Requester():
                         completion_tokens_used = 0
 
 
-                    # 提取回复的文本内容（anthropic）
-                    response_content = response.text 
 
+                    # 尝试提取回复的文本内容
+                    try:
+                        response_content = response.text 
+                    #抛出错误信息
+                    except Exception as e:
+                        print("\033[1;31mError:\033[0m 提取文本时出现问题！！！运行错误信息如下")
+                        print(f"Error: {e}\n")
+                        print("接口返回的错误信息如下")
+                        print(response)
+                        #处理完毕，再次进行请求
+                        
+                        #请求错误计次
+                        request_errors_count = request_errors_count + 1
+                        #如果错误次数过多，就取消任务
+                        if request_errors_count >= 4 :
+                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
+                            break
+                        continue
 
 
                     print('\n' )
@@ -2482,30 +2546,17 @@ class Response_Parser():
         
 
     # 模型退化检测，高频语气词
-    def model_degradation_detection(self,input_string):
-        # 使用正则表达式匹配中日语字符
-        japanese_chars = re.findall(r'[\u3040-\u309F\u30A0-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]', input_string)
+    def model_degradation_detection(self, s, count=80):
+        """
+        检查字符串中是否存在任何字符连续出现指定次数。
 
-        # 统计中日语字符的数量
-        char_count = {}
-        for char in japanese_chars:
-            char_count[char] = char_count.get(char, 0) + 1
-        # 输出字符数量
-        for char, count in char_count.items():
-            if count >= 90:
+        :param s: 输入的字符串
+        :param count: 需要检查的连续次数，默认为80
+        :return: 如果存在字符连续出现指定次数，则返回False，否则返回True
+        """
+        for i in range(len(s) - count + 1):
+            if len(set(s[i:i+count])) == 1:
                 return False
-                #print(f"中日语字符 '{char}' 出现了 {count} 次一次。")
-        
-        # 统计英文字母的数量
-        english_chars = re.findall(r'[a-zA-Z]', input_string)
-        english_char_count = {}
-        for char in english_chars:
-            english_char_count[char] = english_char_count.get(char, 0) + 1
-        # 检查是否有英文字母出现超过500次
-        for count in english_char_count.values():
-            if count > 400:
-                return False
-            
         return True
     
 
@@ -4206,11 +4257,39 @@ Output the translation in JSON format:
                 if "op_model_type_openai" in config_dict:
                     #Window.Widget_Proxy.A_settings.comboBox_model_openai.setPlaceholderText(config_dict["op_model_type_openai"])
                     #Window.Widget_Proxy.A_settings.comboBox_model_openai.setCurrentIndex(-1)
-                    Window.Widget_Proxy.A_settings.comboBox_model_openai.setCurrentText(config_dict["op_model_type_openai"])
+
+                    # 获取配置文件中指定的模型类型
+                    model_type = config_dict["op_model_type_openai"]
+                    # 检查模型类型是否已经存在于下拉列表中
+                    existing_index = Window.Widget_Proxy.A_settings.comboBox_model_openai.findText(model_type)
+                    # 如果模型类型不存在，则添加到下拉列表中
+                    if existing_index == -1:
+                        Window.Widget_Proxy.A_settings.comboBox_model_openai.addItem(model_type)
+                    # 设置当前文本为配置文件中指定的模型类型
+                    Window.Widget_Proxy.A_settings.comboBox_model_openai.setCurrentText(model_type)
+
                 if "op_model_type_anthropic" in config_dict:
-                    Window.Widget_Proxy.A_settings.comboBox_model_anthropic.setCurrentText(config_dict["op_model_type_anthropic"])
+                    # 获取配置文件中指定的模型类型
+                    model_type = config_dict["op_model_type_anthropic"]
+                    # 检查模型类型是否已经存在于下拉列表中
+                    existing_index = Window.Widget_Proxy.A_settings.comboBox_model_anthropic.findText(model_type)
+                    # 如果模型类型不存在，则添加到下拉列表中
+                    if existing_index == -1:
+                        Window.Widget_Proxy.A_settings.comboBox_model_anthropic.addItem(model_type)
+                    # 设置当前文本为配置文件中指定的模型类型
+                    Window.Widget_Proxy.A_settings.comboBox_model_anthropic.setCurrentText(model_type)
+
                 if "op_model_type_zhipu" in config_dict:
-                    Window.Widget_Proxy.A_settings.comboBox_model_zhipu.setCurrentText(config_dict["op_model_type_zhipu"])
+                    # 获取配置文件中指定的模型类型
+                    model_type = config_dict["op_model_type_zhipu"]
+                    # 检查模型类型是否已经存在于下拉列表中
+                    existing_index = Window.Widget_Proxy.A_settings.comboBox_model_zhipu.findText(model_type)
+                    # 如果模型类型不存在，则添加到下拉列表中
+                    if existing_index == -1:
+                        Window.Widget_Proxy.A_settings.comboBox_model_zhipu.addItem(model_type)
+                    # 设置当前文本为配置文件中指定的模型类型
+                    Window.Widget_Proxy.A_settings.comboBox_model_zhipu.setCurrentText(model_type)
+                    
                 if "op_API_key_str" in config_dict:
                     Window.Widget_Proxy.A_settings.TextEdit_apikey.setText(config_dict["op_API_key_str"])
                 if "op_proxy_port" in config_dict:
@@ -7305,7 +7384,7 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
         #设置标签
         self.label_proxy_platform = QLabel(flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
         self.label_proxy_platform.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
-        self.label_proxy_platform.setText("代理类型")
+        self.label_proxy_platform.setText("请求格式")
 
 
         #设置下拉选择框
@@ -12731,7 +12810,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.66.5"  #软件版本号
+    Software_Version = "AiNiee4.66.6"  #软件版本号
     cache_list = [] # 全局缓存数据
     Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是接口测试状态
                         # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
