@@ -9546,6 +9546,8 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
             user_interface_prompter.createWarningInfoBar("请注意，开启该开关下面设置才会生效，并且会覆盖基础设置中的翻译平台")
 
 
+
+
 class Widget_start_translation(QFrame):  # 开始翻译主界面
     def __init__(self, text: str, parent=None):  # 构造函数，初始化实例时会自动调用
         super().__init__(parent=parent)  # 调用父类 QWidget 的构造函数
@@ -10887,22 +10889,20 @@ class Widget_prompy_engineering(QFrame):#提示词工程界面
         box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout2 = QHBoxLayout()
 
-        Prompt = '''You are a localizer specialized in Simplified Chinese and Japanese culture, and you need to translate the Japanese text in the game into Simplified Chinese. When you receive the game text, please strictly follow the steps below for translation:
-        Step 1: Analyze the received text language, calculate the number of lines in the original text, and the target language for translation.
-        Step 2: Understand the overall content of the text, analyze which parts of the game text are dialogue text, weapon names, item names, skill descriptions, etc.
-        Step 3: Start translating line by line according to the original text, translate the Japanese in each line into Simplified Chinese, ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
-        Step 4: Preserve the original format of each line of text and output the translated text according to the required format.
-        ###
-        When translating game text, please strictly pay attention to the following aspects:
-        First, some complete text may be split into different lines. Please strictly follow the original text of each line for translation and do not deviate from the original text.
-        Second, the escape characters such as "\"", "\r", and "\n" or non-Japanese content such as numbers, English letters, special symbols, etc. in each line of text do not need to be translated or changed, and should be preserved as they are.
-        ###
-        The input content format is as follows:
-        {"<text id>": "<Japanese text>"}
-        ###
-        The output content format is as follows:
-        {"<text id>": "<translated text>"}
-        '''      #系统提示词
+
+        Prompt = f'''You are a localizer specialized in Simplified Chinese and Japanese culture, and you need to translate the Japanese text in the game into Simplified Chinese. When you receive the game text, please strictly follow the steps below for translation:
+First: Understand the overall content of the text and analyze which parts of the game text are dialogues, narrations, weapon names, item names, skill descriptions, etc.
+Second: Begin translating line by line from the original text, translating only the Japanese text into Simplified Chinese text, Faithfully and accurately , ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
+Third: Do not translate escape characters such as “\"” , “\r” and “\n”, or numbers, formatting codes, special symbols, or non-Japanese content, and should be preserved as they are.
+Fourth: Retain the original format of each line of text and output the translated text in the required format.
+###
+The format of the game text is as follows: 
+{{"<text_id>":"<original text>"}}
+###
+Output the translation in JSON format: 
+{{"<text_id>":"<translated text>"}}
+'''
+
 
         self.TextEdit1 = TextEdit()
         #设置输入框最小高度
@@ -12810,7 +12810,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.66.6"  #软件版本号
+    Software_Version = "AiNiee4.66.7"  #软件版本号
     cache_list = [] # 全局缓存数据
     Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是接口测试状态
                         # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
