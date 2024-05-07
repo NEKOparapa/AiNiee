@@ -31,6 +31,7 @@ import sys
 import multiprocessing
 import concurrent.futures
 import shutil
+import zipfile
 
 import tiktoken_ext  #必须导入这两个库，否则打包后无法运行
 from tiktoken_ext import openai_public
@@ -2404,8 +2405,19 @@ class Response_Parser():
         try:
             response_dict = json.loads(input_str) 
             return response_dict
+        except :
+            # 对格式进行修复       
+            input_str = Response_Parser.repair_double_quotes(self,input_str)
+            input_str = Response_Parser.repair_double_quotes_2(self,input_str)  
+            input_str = Response_Parser.repair_double_quotes_3(self,input_str)       
+
+
+        # 再次尝试直接转换为json字典
+        try:
+            response_dict = json.loads(input_str) 
+            return response_dict
         except :       
-            pass       
+            pass
 
 
         # 尝试正则提取
@@ -2450,6 +2462,92 @@ class Response_Parser():
             return json.dumps(ret_json, ensure_ascii=False)
 
 
+    # 修复value前面的双引号
+    def repair_double_quotes(self,text):
+        # 消除文本中的空格
+        text = text.replace(" ", "")
+        # 正则表达式匹配双引号后跟冒号，并捕获第三个字符
+        pattern = r'[\"]:(.)'
+        # 使用finditer来找到所有匹配项
+        matches = re.finditer(pattern, text)
+        # 存储所有修改的位置
+        modifications = [(match.start(1), match.group(1)) for match in matches]
+
+        # 从后往前替换文本，这样不会影响后续匹配的位置
+        for start, char in reversed(modifications):
+            if char != '"':
+                text = text[:start] + '"' + text[start:]
+
+        return text
+
+    # 修复value后面的双引号
+    def repair_double_quotes_2(self,text):
+        # 消除文本中的空格
+        text = text.replace(" ", "")
+
+        # 正则表达式匹配逗号后面跟换行符（可选）,再跟双引号的模式
+        pattern = r',(?:\n)?\"'
+        matches = re.finditer(pattern, text)
+        result = []
+
+        last_end = 0
+        for match in matches:
+            # 获取逗号前的字符
+            quote_position = match.start()
+            before_quote = text[quote_position - 1]
+            
+            # 检查逗号前的字符是否是双引号
+            if before_quote == '"':
+                # 如果是双引号，将这一段文本加入到结果中
+                result.append(text[last_end:quote_position])
+            else:
+                # 如果不是双引号，将前一个字符换成'"'
+                result.append(text[last_end:quote_position - 1] + '"')
+            
+            # 更新最后结束的位置
+            last_end = quote_position
+
+        # 添加剩余的文本
+        result.append(text[last_end:])
+
+        # 将所有片段拼接起来
+        return ''.join(result)
+
+    # 修复大括号前面的双引号
+    def repair_double_quotes_3(self,text):
+        # 消除文本中的空格
+        text = text.replace(" ", "")
+
+        # 正则表达式匹配逗号后面紧跟双引号的模式
+        pattern = r'(?:\n)?}'
+        matches = re.finditer(pattern, text)
+        result = []
+
+        last_end = 0
+        for match in matches:
+            # 获取逗号前的字符
+            quote_position = match.start()
+            before_quote = text[quote_position - 1]
+            
+            # 检查逗号前的字符是否是双引号
+            if before_quote == '"':
+                # 如果是双引号，将这一段文本加入到结果中
+                result.append(text[last_end:quote_position])
+            else:
+                # 如果不是双引号，将前一个字符换成'"'
+                result.append(text[last_end:quote_position - 1] + '"')
+            
+            # 更新最后结束的位置
+            last_end = quote_position
+
+        # 添加剩余的文本
+        result.append(text[last_end:])
+
+        # 将所有片段拼接起来
+        return ''.join(result)
+
+
+
     # 检查回复内容是否存在问题
     def check_response_content(self,response_str,response_dict,source_text_dict):
         # 存储检查结果
@@ -2475,7 +2573,7 @@ class Response_Parser():
         else:
             check_result = False
             # 存储错误内容
-            error_content = "AI回复内容文本行数与原来数量不符合,将进行重新翻译"
+            error_content = "提取到的文本行数与原来数量不符合,将进行重新翻译"
             return check_result,error_content
 
 
@@ -2524,12 +2622,16 @@ class Response_Parser():
         
 
     # 检查回复内容的文本行数
-    def check_text_line_count(self,source_text_dict,response_dict):
-        if(len(source_text_dict)  ==  len(response_dict) ):    
-            return True
-        else:                                            
-            return False
-        
+    def check_text_line_count(self,source_text_dict,response_dict): 
+        """
+        检查字典d中是否包含从'0'到'(N-1)'的字符串键
+
+        :param d: 输入的字典
+        :param N: 数字N
+        :return: 如果字典包含从'0'到'(N-1)'的所有字符串键，则返回True，否则返回False
+        """
+        N = len(source_text_dict) 
+        return all(str(key) in response_dict for key in range(N))
 
     # 检查翻译内容是否有空值
     def check_empty_response(self,response_dict):
@@ -3208,8 +3310,6 @@ class Configurator():
         self.openai_top_p = 1.0             
         self.openai_presence_penalty = 0.0  
         self.openai_frequency_penalty = 0.0 
-
-
 
 
     # 配置翻译平台信息
@@ -5769,7 +5869,7 @@ class File_Reader():
         return json_data_list
 
 
-    # 读取文件夹中树形结构Epub文件
+    # 读取文件夹中树形结构Epub文件(写成一坨屎了)
     def read_epub_files (self,folder_path):
 
         # 创建缓存数据，并生成文件头信息
@@ -5807,35 +5907,92 @@ class File_Reader():
                             # 使用BeautifulSoup解析HTML
                             soup = BeautifulSoup(content, 'html.parser')
                             
+
+
+                            # 提取这个页面里所有的p标签
+                            p_tags = soup.find_all('p')
+                            # 存储含有ruby标签的原文字典
+                            ruby_dic = {}      
+
+                            # 遍历每个p标签，并提取文本内容
+                            for p in p_tags:
+                                # 检查<p>标签中是否包含<ruby>标签
+                                if p.find('ruby'):
+
+                                    # 创建一个空字符串来存储当前行的文本
+                                    line_text_rb = ""
+                                    line_text_rbrt = ""            
+                                    line_text_ruby = ""
+                                    # 遍历p标签中的所有子节点
+                                    for child in p.children:
+                                        # 如果是ruby元素，则处理rb和rt标签
+                                        if child.name == 'ruby':
+                                            line_text_ruby += "<ruby>"
+                                            for ruby_child in child.children:
+                                                if ruby_child.name == 'rb':
+                                                    line_text_rb += ruby_child.get_text()
+                                                    line_text_rbrt += ruby_child.get_text()
+                                                    line_text_ruby += f"<rb>{ruby_child.get_text()}</rb>"
+                                                elif ruby_child.name == 'rt':
+                                                    line_text_rbrt += f"({ruby_child.get_text()})"
+                                                    line_text_ruby += f"<rt>{ruby_child.get_text()}</rt>"
+                                            line_text_ruby += "</ruby>"
+                                        # 如果不是ruby元素，直接添加文本
+                                        elif child.name is None:
+                                            line_text_rb += child
+                                            line_text_rbrt += child                    
+                                            line_text_ruby += child
+                                    # 去除头部空格
+                                    line_text_rb = line_text_rb.lstrip()
+                                    line_text_rbrt = line_text_rbrt.lstrip()
+                                    line_text_ruby = line_text_ruby.lstrip()
+                                    # 添加到字典里
+                                    ruby_dic[line_text_rb] = {"rbrt": line_text_rbrt, "ruby": line_text_ruby}
+
+
+
+
                             # 提取纯文本
                             text_content = soup.get_text()
-                            
                             # 获取项目的唯一ID
                             item_id = item.get_id()
-
                             # 切行
                             lines = text_content.split('\n')
-
                             # 去除每行前后的空格
                             strip_lines = [line.strip() for line in lines]
-
-
+                            # 录入缓存
                             for j, line in enumerate(strip_lines):
-                                if line.strip() == '': # 跳过空行
+                                # 跳过空行
+                                if line.strip() == '': 
                                     continue
 
-                                # 将数据存储在字典中
-                                json_data_list.append({
-                                    "text_index": i,
-                                    "translation_status": 0,
-                                    "source_text": line,
-                                    "translated_text": line,
-                                    "model": "none",
-                                    "item_id": item_id,
-                                    "storage_path": storage_path,
-                                    "file_name": file_name,
-                                })
-
+                                # 如果文本中含ruby标签的内容
+                                if line in ruby_dic:
+                                    # 将数据存储在字典中
+                                    json_data_list.append({
+                                        "text_index": i,
+                                        "translation_status": 0,
+                                        "source_text": ruby_dic[line]["rbrt"],
+                                        "translated_text": ruby_dic[line]["rbrt"],
+                                        "ruby":ruby_dic[line]["ruby"],
+                                        "model": "none",
+                                        "item_id": item_id,
+                                        "storage_path": storage_path,
+                                        "file_name": file_name,
+                                    })
+                                else:
+                                    # 将数据存储在字典中
+                                    json_data_list.append({
+                                        "text_index": i,
+                                        "translation_status": 0,
+                                        "source_text": line,
+                                        "translated_text": line,
+                                        "ruby":"none",
+                                        "model": "none",
+                                        "item_id": item_id,
+                                        "storage_path": storage_path,
+                                        "file_name": file_name,
+                                    })                                    
                                 # 增加文本索引值
                                 i = i + 1
 
@@ -7108,6 +7265,7 @@ class File_Outputter():
                 text = {'translation_status': item['translation_status'],
                         'source_text': item['source_text'], 
                         'translated_text': item['translated_text'],
+                        'ruby': item['ruby'],
                         "item_id": item['item_id'],}
                 text_dict[file_path].append(text)
 
@@ -7116,6 +7274,7 @@ class File_Outputter():
                 text = {'translation_status': item['translation_status'],
                         'source_text': item['source_text'], 
                         'translated_text': item['translated_text'],
+                        'ruby': item['ruby'],
                         "item_id": item['item_id'],}
                 text_dict[file_path] = [text]
 
@@ -7152,17 +7311,40 @@ class File_Outputter():
             # 加载EPUB文件
             book = epub.read_epub(file_path)
 
+            # 构建解压文件夹路径
+            parent_path = os.path.dirname(file_path)
+            extract_path = os.path.join(parent_path, 'EpubCache')
+
+            # 创建解压文件夹
+            if not os.path.exists(extract_path):
+                os.makedirs(extract_path)
+
+            # 使用zipfile模块打开并解压EPUB文件
+            with zipfile.ZipFile(file_path, 'r') as epub_file:
+                # 提取所有文件
+                epub_file.extractall(extract_path)
 
             # 遍历书籍中的所有内容
             for item in book.get_items():
                 # 检查是否是文本内容
                 if item.get_type() == ebooklib.ITEM_DOCUMENT:
-                    # 获取文本内容并解码
-                    content_html = item.get_content().decode('utf-8')
 
-
-                    # 获取文件的唯一ID
+                    # 获取文件的唯一ID及文件名
                     item_id = item.get_id()
+                    file_name = os.path.basename(item.get_name())
+
+                    # 遍历文件夹中的所有文件,找到该文件，因为上面给的相对路径与epub解压后路径是不准的
+                    for root, dirs, files in os.walk(extract_path):
+                        for filename in files:
+                            # 如果文件名匹配
+                            if filename == file_name:
+                                # 构建完整的文件路径
+                                the_file_path = os.path.join(root, filename)
+
+                    # 打开对应HTML文件
+                    with open(the_file_path, 'r', encoding='utf-8') as file:
+                        # 读取文件内容
+                        content_html = file.read()
 
                     # 遍历缓存数据
                     for content in content_list:
@@ -7172,20 +7354,38 @@ class File_Outputter():
                             original = content['source_text']
                             # 获取翻译后的文本
                             replacement = content['translated_text']
+                            # 获取ruby标签化的文本
+                            ruby = content['ruby']
 
-                            # 使用正则表达式替换第一个匹配项
-                            content_html  = re.sub(original, replacement, content_html, count=1)
+                            if ruby == "none":
+                                # 使用正则表达式替换第一个匹配项
+                                content_html  = re.sub(original, replacement, content_html, count=1)
+                            else:
+                                content_html  = re.sub(ruby, replacement, content_html, count=1)
 
-                    # 将修改后的内容编码并设置为内容
-                    item.set_content(content_html.encode('utf-8'))
-
-            # 保存修改后的EPUB文件
+                    # 写入内容到HTML文件
+                    with open(the_file_path, 'w', encoding='utf-8') as file:
+                        file.write(content_html)
+        
+            # 构建修改后的EPUB文件路径
             modified_epub_file = file_path.rsplit('.', 1)[0] + '_translated.epub'
-            epub.write_epub(modified_epub_file, book, {})
 
+            # 创建ZipFile对象，准备写入压缩文件
+            with zipfile.ZipFile(modified_epub_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                # 遍历文件夹中的所有文件和子文件夹
+                for root, dirs, files in os.walk(extract_path):
+                    for file in files:
+                        # 获取文件的完整路径
+                        full_file_path = os.path.join(root, file)
+                        # 获取文件在压缩文件中的相对路径
+                        relative_file_path = os.path.relpath(full_file_path, extract_path)
+                        # 将文件添加到压缩文件中
+                        zipf.write(full_file_path, relative_file_path)
+                        
             # 删除旧文件
             os.remove(file_path)
-
+            # 删除文件夹
+            shutil.rmtree(extract_path)
 
 
     # 输出已经翻译文件
