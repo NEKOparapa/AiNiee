@@ -73,14 +73,15 @@
     >`回复输出价格`: 根据国内代理平台设定的价格进行设置，单位是每1k tokens
 
 *  SakuraLLM配置:
-  
-    1.Kaggle云平台方法：https://github.com/SakuraLLM/Sakura-13B-Galgame/wiki/%E7%99%BD%E5%AB%96Kaggle%E5%B9%B3%E5%8F%B0%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sakura/SakuraLLM.png" width="600" height="400"><br>
 
-    2.Autodl云平台方法：https://books.fishhawk.top/forum/65719bf16843e12bd3a4dc98#%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8AutoDL%E9%83%A8%E7%BD%B2
+    > 1.Kaggle云平台方法：https://github.com/SakuraLLM/Sakura-13B-Galgame/wiki/%E7%99%BD%E5%AB%96Kaggle%E5%B9%B3%E5%8F%B0%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B<br>
 
-    3.本地部署方法：https://github.com/SakuraLLM/Sakura-13B-Galgame/wiki
+    > 2.Autodl云平台方法：https://books.fishhawk.top/forum/65719bf16843e12bd3a4dc98#%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8AutoDL%E9%83%A8%E7%BD%B2<br>
 
-    4.部署好模型后，获取接口地址，如：http://127.0.0.1:6006    填入请求地址栏中，注意，接口地址后面不要包含其他内容，比如"/"，否则会报错<br>
+    > 3.本地部署方法：https://github.com/SakuraLLM/Sakura-13B-Galgame/wiki<br>
+
+    > 4.部署好模型后，获取接口地址，如：http://127.0.0.1:6006    填入请求地址栏中，注意，接口地址后面不要包含其他内容，比如"/"，否则会报错<br>
 
 
 </details>

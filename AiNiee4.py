@@ -2046,7 +2046,7 @@ class Api_Requester():
 
         #构建系统提示词
         if configurator.model_type != "Sakura-v0.9":
-            system_prompt ={"role": "system","content": "你是一个轻小说翻译模型，可以流畅通顺地以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，注意不要擅自添加原文中没有的代词，也不要擅自增加或减少换行。" }
+            system_prompt ={"role": "system","content": "你是一个轻小说翻译模型，可以流畅通顺地使用给定的术语表以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，注意不要混淆使役态和被动态的主语和宾语，不要擅自添加原文中没有的代词，也不要擅自增加或减少换行。" }
         else:
             system_prompt ={"role": "system","content": "你是一个轻小说翻译模型，可以流畅通顺地以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，不擅自添加原文中没有的代词。" }
         messages.append(system_prompt)
@@ -2092,11 +2092,14 @@ class Api_Requester():
 
         #构建需要翻译的文本
         if converted_list:
-            user_prompt = "根据以下术语表：\n" + gpt_dict_raw_text + "\n" + "将下面的日文文本根据上述术语表的对应关系和注释翻译成中文：" + source_text_str_raw
-            Original_text = {"role":"user","content": user_prompt}   
+            user_prompt = "根据以下术语表（可以为空）：\n" + gpt_dict_raw_text + "\n\n" + "将下面的日文文本根据上述术语表的对应关系和备注翻译成中文：" + source_text_str_raw
         else:
-            user_prompt = "将下面的日文文本翻译成中文：" + source_text_str_raw
-            Original_text = {"role":"user","content": user_prompt}
+            if configurator.model_type != "Sakura-v0.9":
+                user_prompt = "根据以下术语表（可以为空）：\n\n\n" + "将下面的日文文本根据上述术语表的对应关系和备注翻译成中文：" + source_text_str_raw
+            else:
+                user_prompt = "将下面的日文文本翻译成中文：" + source_text_str_raw
+
+        Original_text = {"role":"user","content": user_prompt}
 
 
         messages.append(Original_text)
@@ -13010,7 +13013,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.66.7"  #软件版本号
+    Software_Version = "AiNiee4.66.8"  #软件版本号
     cache_list = [] # 全局缓存数据
     Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是接口测试状态
                         # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
