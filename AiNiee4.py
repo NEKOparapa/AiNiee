@@ -32,6 +32,7 @@ import multiprocessing
 import concurrent.futures
 import shutil
 import zipfile
+import asyncio
 
 import tiktoken_ext  #必须导入这两个库，否则打包后无法运行
 from tiktoken_ext import openai_public
@@ -59,7 +60,7 @@ from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, 
 from qfluentwidgets import FluentIcon as FIF
 from qframelesswindow import FramelessWindow, TitleBar, StandardTitleBar
 
-from StevExtraction import jtpp  #导入文本提取工具
+from StevExtraction import jtpp  # type: ignore #导入文本提取工具
 
 
 
@@ -495,7 +496,6 @@ class Api_Requester():
                             presence_penalty=presence_penalty,
                             frequency_penalty=frequency_penalty
                             )
-
                     #抛出错误信息
                     except Exception as e:
                         print("\033[1;31mError:\033[0m 进行请求时出现问题！！！错误信息如下")
@@ -3279,7 +3279,7 @@ class Configurator():
         self.text_line_counts = Window.Widget_translation_settings.B_settings.spinBox_Lines.value()
         self.thread_counts = Window.Widget_translation_settings.B_settings.spinBox_thread_count.value()
         if self.thread_counts == 0:                                
-            self.thread_counts = multiprocessing.cpu_count() * 4 + 1
+            self.thread_counts = multiprocessing.cpu_count() 
         self.retry_count_limit =  Window.Widget_translation_settings.B_settings.spinBox_retry_count_limit.value()  
         self.text_clear_toggle = Window.Widget_translation_settings.B_settings.SwitchButton_clear.isChecked()
         self.preserve_line_breaks_toggle =  Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.isChecked()
@@ -5648,7 +5648,7 @@ class File_Reader():
                     with open(file_path, 'r', encoding='utf-8') as f:
                         content = f.read()
 
-                    # 将内容按行分割
+                    # 将内容按行分割,并除去换行
                     lines = content.split('\n')
 
                     # 遍历每一行
@@ -5658,11 +5658,11 @@ class File_Reader():
                         line = line.lstrip('\ufeff')
 
                         # 如果行是数字，代表新的字幕开始
-                        if line.isdigit():
+                        if line.isdigit() and (line == str(i)):
                             subtitle_number = line
 
                         # 时间码行
-                        elif '-->' in line:
+                        elif ' --> ' in line:
                             subtitle_time = line
 
                         # 空行代表字幕文本的结束
@@ -6061,12 +6061,18 @@ class Cache_Manager():
                 if isinstance(source_text, (int, float)):
                     entry['source_text'] = str(source_text)
                     entry['translation_status'] = 7
-                
+
                 if source_text == "":
                     # 注意一下，文件头没有原文，所以会添加新的键值对到文件头里
                     entry['translation_status'] = 7
                 
                 if source_text == None:
+                    entry['translation_status'] = 7
+
+                if source_text.isdigit():
+                    entry['translation_status'] = 7
+
+                if Cache_Manager.is_punctuation_string(self,source_text):
                     entry['translation_status'] = 7
 
     # 忽视部分纯代码文本，且改变翻译状态为7
@@ -6112,6 +6118,14 @@ class Cache_Manager():
 
             if source_text and not contains_cjk(source_text):
                 entry['translation_status'] = 7
+
+    # 检查字符串是否只包含常见的标点符号
+    def is_punctuation_string(self,s: str) -> bool:
+        """检查字符串是否只包含标点符号"""
+        punctuation = set("!" '"' "#" "$" "%" "&" "'" "(" ")" "*" "+" "," "-" "." "/" "，" "。"  
+                        ":" ";" "<" "=" ">" "?" "@" "[" "\\" "]" "^" "_" "`" "{" "|" "}" "~" "—")
+        return all(char in punctuation for char in s)
+
 
     # 获取缓存数据中指定行数的翻译状态为0的未翻译文本，且改变翻译状态为2
     def process_dictionary_data(self,rows, cache_list):
@@ -10056,8 +10070,8 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         self.primaryButton_continue_translation.show()
 
         Running_status = 9
-        user_interface_prompter.createWarningInfoBar("软件的翻译进行任务正在取消中，请等待全部翻译任务释放完成！！！")
-        print("\033[1;33mWarning:\033[0m 软件的翻译进行任务正在取消中，请等待全部翻译任务释放完成！！！-----------------------","\n")
+        user_interface_prompter.createWarningInfoBar("软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！")
+        print("\033[1;33mWarning:\033[0m 软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！-----------------------","\n")
 
     #继续翻译按钮绑定函数
     def continue_translation(self):
@@ -10090,8 +10104,8 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         #如果正在翻译中
         if Running_status == 6:
             Running_status = 10
-            user_interface_prompter.createWarningInfoBar("软件的翻译进行任务正在取消中，请等待全部翻译任务释放完成！！！")
-            print("\033[1;33mWarning:\033[0m 软件的翻译进行任务正在取消中，请等待全部翻译任务释放完成！！！-----------------------","\n")
+            user_interface_prompter.createWarningInfoBar("软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！")
+            print("\033[1;33mWarning:\033[0m 软件的多线程任务正在逐一取消中，请等待全部翻译任务释放完成！！！-----------------------","\n")
 
         #如果正在暂停中
         elif Running_status == 9:
