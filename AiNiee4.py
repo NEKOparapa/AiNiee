@@ -5650,6 +5650,8 @@ class File_Reader():
 
                     # 将内容按行分割,并除去换行
                     lines = content.split('\n')
+                    # 计数变量
+                    j = 1
 
                     # 遍历每一行
                     for line in lines:
@@ -5658,7 +5660,7 @@ class File_Reader():
                         line = line.lstrip('\ufeff')
 
                         # 如果行是数字，代表新的字幕开始
-                        if line.isdigit() and (line == str(i)):
+                        if line.isdigit() and (line == str(j)):
                             subtitle_number = line
 
                         # 时间码行
@@ -5684,6 +5686,7 @@ class File_Reader():
 
                             # 增加文本索引值
                             i = i + 1
+                            j = j + 1
                             # 清空变量
                             source_text = ''
                             subtitle_number = ''

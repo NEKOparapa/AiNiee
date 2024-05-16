@@ -54,7 +54,7 @@
 *  代理平台配置示例:
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/代理账号设置.png" width="600" height="400"><br> 
     
-    >`请求地址`: 填入国内代理平台提供的请求地址,示例：`https://api.openai-sb.com/v1`
+    >`请求地址`: 填入国内代理平台提供的请求地址,示例：`https://api.openai-sb.com` ,不要在后面单带一个`/`
     
     >`模型选择`: 请自行了解模型之间的区别后再进行更改。<br>
 
