@@ -2549,8 +2549,6 @@ class Response_Parser():
         # 将所有片段拼接起来
         return ''.join(result)
 
-
-
     # 检查回复内容是否存在问题
     def check_response_content(self,response_str,response_dict,source_text_dict):
         # 存储检查结果
@@ -2614,16 +2612,41 @@ class Response_Parser():
         # 存储错误内容
         error_content = "检查无误"
         return check_result,error_content
-    
+
 
     # 检查两个字典是否完全相同，即返回了原文
     def check_dicts_equal(self,dict1, dict2):
         if len(dict1) >=3 :
-            if dict1 == dict2:
-                return False
-        return True
-        
+            i = 0
+            s = 0
+            for key, value in dict1.items():
+                value2 = dict2[key]
 
+                # 将字符串转换为集合形式
+                set1 = set(value)
+                set2 = set(value2)
+
+                # 计算交集和并集的大小
+                intersection_size = len(set1.intersection(set2))
+                union_size = len(set1.union(set2))
+                
+                # 计算Jaccard相似系数
+                similarity = intersection_size / union_size
+
+                #累加与累计
+                i = i + 1 
+                s = s + similarity
+
+            result = s/i
+
+            if (result>= 0.90):
+                return False
+            else:
+                return True
+
+        else:
+            return True
+ 
     # 检查回复内容的文本行数
     def check_text_line_count(self,source_text_dict,response_dict): 
         """
@@ -2648,7 +2671,6 @@ class Response_Parser():
                 return False
 
         return True
-        
 
     # 模型退化检测，高频语气词
     def model_degradation_detection(self, s, count=80):
@@ -5875,7 +5897,7 @@ class File_Reader():
         return json_data_list
 
 
-    # 读取文件夹中树形结构Epub文件(写成一坨屎了)
+    # 读取文件夹中树形结构Epub文件
     def read_epub_files (self,folder_path):
 
         # 创建缓存数据，并生成文件头信息
@@ -5908,97 +5930,50 @@ class File_Reader():
                         # 检查是否是文本内容
                         if item.get_type() == ebooklib.ITEM_DOCUMENT:
                             # 获取文本内容并解码
-                            content = item.get_content().decode('utf-8')
+                            html_content = item.get_content().decode('utf-8')
 
-                            # 使用BeautifulSoup解析HTML
-                            soup = BeautifulSoup(content, 'html.parser')
-                            
+                            # 正则表达式匹配<p>标签及其内容，包括自闭和的<p/>标签
+                            p_pattern = r'<p[^>/]*>(.*?)</p>|<p[^>/]*/>'
 
+                            # 使用findall函数找到所有匹配的内容
+                            paragraphs = re.findall(p_pattern, html_content, re.DOTALL)
 
-                            # 提取这个页面里所有的p标签
-                            p_tags = soup.find_all('p')
-                            # 存储含有ruby标签的原文字典
-                            ruby_dic = {}      
+                            # 过滤掉空的内容
+                            filtered_matches = [match for match in paragraphs if match.strip()]
 
                             # 遍历每个p标签，并提取文本内容
-                            for p in p_tags:
-                                # 检查<p>标签中是否包含<ruby>标签
-                                if p.find('ruby'):
+                            for p in filtered_matches:
+                                # 保留原html内容文本
+                                cleaned_text = p
 
-                                    # 创建一个空字符串来存储当前行的文本
-                                    line_text_rb = ""
-                                    line_text_rbrt = ""            
-                                    line_text_ruby = ""
-                                    # 遍历p标签中的所有子节点
-                                    for child in p.children:
-                                        # 如果是ruby元素，则处理rb和rt标签
-                                        if child.name == 'ruby':
-                                            line_text_ruby += "<ruby>"
-                                            for ruby_child in child.children:
-                                                if ruby_child.name == 'rb':
-                                                    line_text_rb += ruby_child.get_text()
-                                                    line_text_rbrt += ruby_child.get_text()
-                                                    line_text_ruby += f"<rb>{ruby_child.get_text()}</rb>"
-                                                elif ruby_child.name == 'rt':
-                                                    line_text_rbrt += f"({ruby_child.get_text()})"
-                                                    line_text_ruby += f"<rt>{ruby_child.get_text()}</rt>"
-                                            line_text_ruby += "</ruby>"
-                                        # 如果不是ruby元素，直接添加文本
-                                        elif child.name is None:
-                                            line_text_rb += child
-                                            line_text_rbrt += child                    
-                                            line_text_ruby += child
-                                    # 去除头部空格
-                                    line_text_rb = line_text_rb.lstrip()
-                                    line_text_rbrt = line_text_rbrt.lstrip()
-                                    line_text_ruby = line_text_ruby.lstrip()
-                                    # 添加到字典里
-                                    ruby_dic[line_text_rb] = {"rbrt": line_text_rbrt, "ruby": line_text_ruby}
+                                # 提取纯文本
+                                p_html = "<p>"+ p + "</p>"
+                                soup = BeautifulSoup(p_html, 'html.parser')
+                                text_content = soup.get_text()
 
+                                # 去除前面的空格
+                                text_content = text_content.lstrip()
+                                cleaned_text = cleaned_text.lstrip() 
 
-
-
-                            # 提取纯文本
-                            text_content = soup.get_text()
-                            # 获取项目的唯一ID
-                            item_id = item.get_id()
-                            # 切行
-                            lines = text_content.split('\n')
-                            # 去除每行前后的空格
-                            strip_lines = [line.strip() for line in lines]
-                            # 录入缓存
-                            for j, line in enumerate(strip_lines):
-                                # 跳过空行
-                                if line.strip() == '': 
+                                # 检查一下是否提取到空文本内容
+                                if not text_content.strip():
                                     continue
 
-                                # 如果文本中含ruby标签的内容
-                                if line in ruby_dic:
-                                    # 将数据存储在字典中
-                                    json_data_list.append({
-                                        "text_index": i,
-                                        "translation_status": 0,
-                                        "source_text": ruby_dic[line]["rbrt"],
-                                        "translated_text": ruby_dic[line]["rbrt"],
-                                        "ruby":ruby_dic[line]["ruby"],
-                                        "model": "none",
-                                        "item_id": item_id,
-                                        "storage_path": storage_path,
-                                        "file_name": file_name,
-                                    })
-                                else:
-                                    # 将数据存储在字典中
-                                    json_data_list.append({
-                                        "text_index": i,
-                                        "translation_status": 0,
-                                        "source_text": line,
-                                        "translated_text": line,
-                                        "ruby":"none",
-                                        "model": "none",
-                                        "item_id": item_id,
-                                        "storage_path": storage_path,
-                                        "file_name": file_name,
-                                    })                                    
+                                # 获取项目的唯一ID
+                                item_id = item.get_id()
+
+                                # 录入缓存
+                                json_data_list.append({
+                                    "text_index": i,
+                                    "translation_status": 0,
+                                    "source_text": text_content,
+                                    "translated_text": text_content,
+                                    "html":cleaned_text,
+                                    "model": "none",
+                                    "item_id": item_id,
+                                    "storage_path": storage_path,
+                                    "file_name": file_name,
+                                })                                    
                                 # 增加文本索引值
                                 i = i + 1
 
@@ -6620,7 +6595,7 @@ class File_Outputter():
                 with open(file_path_untranslated, 'w', encoding='utf-8') as file:
                     json.dump(output_file2, file, ensure_ascii=False, indent=4)
 
-    # 输出json文件
+    # 输出paratranz文件
     def output_paratranz_file(self, cache_data, output_path):
         # 缓存数据结构示例
         ex_cache_data = [
@@ -7285,7 +7260,7 @@ class File_Outputter():
                 text = {'translation_status': item['translation_status'],
                         'source_text': item['source_text'], 
                         'translated_text': item['translated_text'],
-                        'ruby': item['ruby'],
+                        'html': item['html'],
                         "item_id": item['item_id'],}
                 text_dict[file_path].append(text)
 
@@ -7294,7 +7269,7 @@ class File_Outputter():
                 text = {'translation_status': item['translation_status'],
                         'source_text': item['source_text'], 
                         'translated_text': item['translated_text'],
-                        'ruby': item['ruby'],
+                        'html': item['html'],
                         "item_id": item['item_id'],}
                 text_dict[file_path] = [text]
 
@@ -7374,14 +7349,31 @@ class File_Outputter():
                             original = content['source_text']
                             # 获取翻译后的文本
                             replacement = content['translated_text']
-                            # 获取ruby标签化的文本
-                            ruby = content['ruby']
 
-                            if ruby == "none":
-                                # 使用正则表达式替换第一个匹配项
-                                content_html  = re.sub(original, replacement, content_html, count=1)
-                            else:
-                                content_html  = re.sub(ruby, replacement, content_html, count=1)
+                            # 获取html标签化的文本
+                            html = content['html']
+                            html = str(html)
+
+                            # 删除 &#13;\n\t\t\t\t
+                            html = html.replace("&#13;\n\t\t\t\t", "")
+
+
+                            # 有且只有一个a标签，则改变替换文本，以保留跳转功能
+                            if (re.match( r'^(?:<a(?:\s[^>]*?)?>[^<]*?</a>)*$', html) is not None):
+                                # 针对跳转标签的保留，使用正则表达式搜索<a>标签内的文本
+                                a_tag_pattern = re.compile(r'<a[^>]*>(.*?)</a>')
+                                matches = a_tag_pattern.findall(html)
+
+                                if len(matches) == 1:
+                                    html = matches[0]
+
+
+                            # 如果原文与译文不为空，则替换原hrml文件中的文本
+                            if (original and replacement):
+                                # 替换第一个匹配项
+                                content_html = content_html.replace(html, replacement, 1)
+                                #content_html  = re.sub(original, replacement, content_html, count=1)
+
 
                     # 写入内容到HTML文件
                     with open(the_file_path, 'w', encoding='utf-8') as file:
