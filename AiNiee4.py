@@ -4140,6 +4140,7 @@ Output the translation in JSON format:
             
 
             #Google官方账号界面
+            config_dict["google_account_type"] = Window.Widget_Google.comboBox_account_type.currentText()      #获取账号类型下拉框当前选中选项的值
             config_dict["google_model_type"] =  Window.Widget_Google.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
             config_dict["google_API_key_str"] = Window.Widget_Google.TextEdit_apikey.toPlainText()        #获取apikey输入值
             config_dict["google_proxy_port"] = Window.Widget_Google.LineEdit_proxy_port.text()            #获取代理端口
@@ -4341,6 +4342,8 @@ Output the translation in JSON format:
 
 
                 #google官方账号界面
+                if "google_account_type" in config_dict:
+                    Window.Widget_Google.comboBox_account_type.setCurrentText(config_dict["google_account_type"])
                 if "google_model_type" in config_dict:
                     Window.Widget_Google.comboBox_model.setCurrentText(config_dict["google_model_type"])
                 if "google_API_key_str" in config_dict:
@@ -4743,9 +4746,16 @@ class Request_Limiter():
 
         # 示例数据
         self.google_limit_data = {
+            "免费账号": {
                 "gemini-1.0-pro": {  "InputTokenLimit": 30720,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 32000, "RPM": 15},
-                "gemini-1.0-flash": {  "InputTokenLimit": 30720,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 1000000, "RPM": 15},
+                "gemini-1.5-flash": {  "InputTokenLimit": 30720,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 1000000, "RPM": 15},
                 "gemini-1.5-pro": { "InputTokenLimit": 1048576,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 32000, "RPM": 2},
+            },
+            "付费账号": {
+                "gemini-1.0-pro": {  "InputTokenLimit": 30720,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 120000 , "RPM": 360},
+                "gemini-1.5-flash": {  "InputTokenLimit": 30720,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 10000000 , "RPM": 360},
+                "gemini-1.5-pro": { "InputTokenLimit": 1048576,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 10000000, "RPM": 360},
+            },
     
             }
 
@@ -4902,13 +4912,15 @@ class Request_Limiter():
             self.set_limit(max_tokens,TPM_limit,RPM_limit)
 
         elif translation_platform == 'Google官方':
+            # 获取账号类型
+            account_type = Window.Widget_Google.comboBox_account_type.currentText()
             # 获取模型
             model = Window.Widget_Google.comboBox_model.currentText()
 
             # 获取相应的限制
-            max_tokens = self.google_limit_data[model]["max_tokens"]
-            TPM_limit = self.google_limit_data[model]["TPM"]
-            RPM_limit = self.google_limit_data[model]["RPM"]
+            max_tokens = self.google_limit_data[account_type][model]["max_tokens"]
+            TPM_limit = self.google_limit_data[account_type][model]["TPM"]
+            RPM_limit = self.google_limit_data[account_type][model]["RPM"]
 
             # 获取当前key的数量，对限制进行倍数更改
             key_count = len(configurator.apikey_list)
@@ -5140,9 +5152,9 @@ class User_Interface_Prompter(QObject):
             }
 
        self.google_price_data = {
-            "gemini-1.0-pro": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
-            "gemini-1.5-flash": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
-            "gemini-1.5-pro": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
+            "gemini-1.0-pro": {"input_price": 0.0005, "output_price": 0.0015}, # 存储的价格是 /k tokens
+            "gemini-1.5-flash": {"input_price": 0.00035, "output_price": 0.00105}, # 存储的价格是 /k tokens
+            "gemini-1.5-pro": {"input_price": 0.0035, "output_price": 0.00175}, # 存储的价格是 /k tokens
             }
 
        self.moonshot_price_data = {
@@ -8212,7 +8224,27 @@ class Widget_Google(QFrame):#  谷歌账号界面
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
         #设置各个控件-----------------------------------------------------------------------------------------
 
+        # -----创建第1个组，添加多个组件-----
+        box_account_type = QGroupBox()
+        box_account_type.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_account_type = QGridLayout()
 
+        #设置“账号类型”标签
+        self.labelx = QLabel( flags=Qt.WindowFlags())  
+        self.labelx.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")#设置字体，大小，颜色
+        self.labelx.setText("账号类型")
+
+
+        #设置“账号类型”下拉选择框
+        self.comboBox_account_type = ComboBox() #以demo为父类
+        self.comboBox_account_type.addItems(['免费账号',  '付费账号'])
+        self.comboBox_account_type.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox_account_type.setFixedSize(150, 35)
+
+
+        layout_account_type.addWidget(self.labelx, 0, 0)
+        layout_account_type.addWidget(self.comboBox_account_type, 0, 1)
+        box_account_type.setLayout(layout_account_type)
 
         # -----创建第1个组，添加多个组件-----
         box_model = QGroupBox()
@@ -8326,6 +8358,7 @@ class Widget_Google(QFrame):#  谷歌账号界面
 
         # 把各个组添加到容器中
         container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_account_type)
         container.addWidget(box_model)
         container.addWidget(box_apikey)
         container.addWidget(box_proxy_port)
@@ -9371,7 +9404,7 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
 
         #设置“翻译项目”下拉选择框
         self.comboBox_translation_project = ComboBox() #以demo为父类
-        self.comboBox_translation_project.addItems(['Mtool导出文件',  'T++导出文件', 'VNText导出文件', 'Epub小说文件' , 'Txt小说文件' , 'Srt字幕文件' , 'Lrc音声文件', 'Ainiee缓存文件', 'ParaTranz导出文件'])
+        self.comboBox_translation_project.addItems(['Mtool导出文件',  'T++导出文件', 'VNText导出文件', 'ParaTranz导出文件', 'Epub小说文件' , 'Txt小说文件' , 'Srt字幕文件' , 'Lrc音声文件', 'Ainiee缓存文件'])
         self.comboBox_translation_project.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_translation_project.setFixedSize(150, 35)
 
