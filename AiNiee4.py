@@ -32,7 +32,6 @@ import multiprocessing
 import concurrent.futures
 import shutil
 import zipfile
-import asyncio
 
 import tiktoken_ext  #必须导入这两个库，否则打包后无法运行
 from tiktoken_ext import openai_public
@@ -307,7 +306,10 @@ class Api_Requester():
         elif configurator.translation_platform == "Moonshot官方":
             self.concurrent_request_openai()
 
-        elif configurator.translation_platform == "智谱官方" or configurator.translation_platform == "智谱代理":
+        elif configurator.translation_platform == "Deepseek官方":
+            self.concurrent_request_openai()
+
+        elif configurator.translation_platform == "智谱官方":
             self.concurrent_request_zhiPu()
 
         elif configurator.translation_platform == "SakuraLLM":
@@ -2741,10 +2743,13 @@ class Request_Tester():
         elif platform == "Zhipu":
             Request_Tester.zhipu_request_test(self,base_url,model_type,api_key_str,proxy_port)
 
-        # 执行智谱接口测试
+        # 执行月之暗面接口测试
         elif platform == "Moonshot":
             Request_Tester.openai_request_test(self,base_url,model_type,api_key_str,proxy_port)
 
+        # 执行Deepseek接口测试
+        elif platform == "Deepseek":
+            Request_Tester.openai_request_test(self,base_url,model_type,api_key_str,proxy_port)
 
         # 执行Sakura接口测试
         elif platform == "Sakura":
@@ -3289,35 +3294,35 @@ class Configurator():
 
 
         # 获取第一页的配置信息（基础设置）
-        self.translation_project = Window.Widget_translation_settings.A_settings.comboBox_translation_project.currentText()
-        self.translation_platform = Window.Widget_translation_settings.A_settings.comboBox_translation_platform.currentText()
-        self.source_language = Window.Widget_translation_settings.A_settings.comboBox_source_text.currentText()
-        self.target_language = Window.Widget_translation_settings.A_settings.comboBox_translated_text.currentText()
-        self.Input_Folder = Window.Widget_translation_settings.A_settings.label_input_path.text() # 存储输入文件夹
-        self.Output_Folder = Window.Widget_translation_settings.A_settings.label_output_path.text() # 存储输出文件夹
+        self.translation_project = Window.Widget_translation_settings_A.comboBox_translation_project.currentText()
+        self.translation_platform = Window.Widget_translation_settings_A.comboBox_translation_platform.currentText()
+        self.source_language = Window.Widget_translation_settings_A.comboBox_source_text.currentText()
+        self.target_language = Window.Widget_translation_settings_A.comboBox_translated_text.currentText()
+        self.Input_Folder = Window.Widget_translation_settings_A.label_input_path.text() # 存储输入文件夹
+        self.Output_Folder = Window.Widget_translation_settings_A.label_output_path.text() # 存储输出文件夹
 
 
         # 获取第二页的配置信息(进阶设置)
-        self.text_line_counts = Window.Widget_translation_settings.B_settings.spinBox_Lines.value()
-        self.thread_counts = Window.Widget_translation_settings.B_settings.spinBox_thread_count.value()
+        self.text_line_counts = Window.Widget_translation_settings_B.spinBox_Lines.value()
+        self.thread_counts = Window.Widget_translation_settings_B.spinBox_thread_count.value()
         if self.thread_counts == 0:                                
             self.thread_counts = multiprocessing.cpu_count() 
-        self.retry_count_limit =  Window.Widget_translation_settings.B_settings.spinBox_retry_count_limit.value()  
-        self.text_clear_toggle = Window.Widget_translation_settings.B_settings.SwitchButton_clear.isChecked()
-        self.preserve_line_breaks_toggle =  Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.isChecked()
-        self.conversion_toggle = Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.isChecked()
+        self.retry_count_limit =  Window.Widget_translation_settings_B.spinBox_retry_count_limit.value()  
+        self.text_clear_toggle = Window.Widget_translation_settings_B.SwitchButton_clear.isChecked()
+        self.preserve_line_breaks_toggle =  Window.Widget_translation_settings_B.SwitchButton_line_breaks.isChecked()
+        self.conversion_toggle = Window.Widget_translation_settings_B.SwitchButton_conversion_toggle.isChecked()
 
 
         # 获取第三页的配置信息(混合翻译设置)
-        self.mixed_translation_toggle = Window.Widget_translation_settings.C_settings.SwitchButton_mixed_translation.isChecked()
+        self.mixed_translation_toggle = Window.Widget_translation_settings_C.SwitchButton_mixed_translation.isChecked()
         if self.mixed_translation_toggle == True:
-            self.round_limit =  Window.Widget_translation_settings.C_settings.spinBox_round_limit.value()
-            self.split_switch = Window.Widget_translation_settings.C_settings.SwitchButton_split_switch.isChecked()
-        self.configure_mixed_translation["first_platform"] = Window.Widget_translation_settings.C_settings.comboBox_primary_translation_platform.currentText()
-        self.configure_mixed_translation["second_platform"] = Window.Widget_translation_settings.C_settings.comboBox_secondary_translation_platform.currentText()
+            self.round_limit =  Window.Widget_translation_settings_C.spinBox_round_limit.value()
+            self.split_switch = Window.Widget_translation_settings_C.SwitchButton_split_switch.isChecked()
+        self.configure_mixed_translation["first_platform"] = Window.Widget_translation_settings_C.comboBox_primary_translation_platform.currentText()
+        self.configure_mixed_translation["second_platform"] = Window.Widget_translation_settings_C.comboBox_secondary_translation_platform.currentText()
         if self.configure_mixed_translation["second_platform"] == "不设置":
             self.configure_mixed_translation["second_platform"] = self.configure_mixed_translation["first_platform"]
-        self.configure_mixed_translation["third_platform"] = Window.Widget_translation_settings.C_settings.comboBox_final_translation_platform.currentText()
+        self.configure_mixed_translation["third_platform"] = Window.Widget_translation_settings_C.comboBox_final_translation_platform.currentText()
         if self.configure_mixed_translation["third_platform"] == "不设置":
            self.configure_mixed_translation["third_platform"] = self.configure_mixed_translation["second_platform"]
 
@@ -3469,6 +3474,27 @@ class Configurator():
                 os.environ["https_proxy"]=Proxy_Address
 
 
+        #根据翻译平台读取配置信息
+        elif translation_platform == 'Deepseek官方':
+            # 获取模型类型
+            self.model_type =  Window.Widget_Deepseek.comboBox_model.currentText()              
+
+            # 获取apikey列表
+            API_key_str = Window.Widget_Deepseek.TextEdit_apikey.toPlainText()            #获取apikey输入值
+            #去除空格，换行符，分割KEY字符串并存储进列表里
+            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
+            self.apikey_list = API_key_list
+
+            # 获取请求地址
+            self.base_url = 'https://api.deepseek.com/v1'  #需要重新设置，以免使用代理网站后，没有改回来
+
+            #如果填入地址，则设置代理端口
+            Proxy_Address = Window.Widget_Deepseek.LineEdit_proxy_port.text()            #获取代理端口
+            if Proxy_Address :
+                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
+                os.environ["http_proxy"]=Proxy_Address
+                os.environ["https_proxy"]=Proxy_Address
+
 
         elif translation_platform == '代理平台':
 
@@ -3488,11 +3514,6 @@ class Configurator():
             elif proxy_platform == 'Anthropic':
                 self.model_type =  Window.Widget_Proxy.A_settings.comboBox_model_anthropic.currentText()        # 获取模型类型
                 self.translation_platform = 'Anthropic代理'
-
-
-            elif proxy_platform == '智谱清言':
-                self.model_type =  Window.Widget_Proxy.A_settings.comboBox_model_zhipu.currentText()
-                self.translation_platform = '智谱代理'
 
             # 设定请求地址
             self.base_url = relay_address  
@@ -3534,7 +3555,7 @@ class Configurator():
             #更改部分参数，以适合Sakura模型
             self.openai_temperature = 0.1       
             self.openai_top_p = 0.3
-            self.thread_counts = 1 # 线程数
+            self.thread_counts = 1 # 锁定Sakura线程数为1
             #self.preserve_line_breaks_toggle = True
 
 
@@ -3549,9 +3570,9 @@ class Configurator():
             return the_prompt
         else:
             #获取文本源语言下拉框当前选中选项的值,先是window父窗口，再到下级Widget_translation_settings，再到A_settings，才到控件
-            Text_Source_Language =  Window.Widget_translation_settings.A_settings.comboBox_source_text.currentText() 
+            Text_Source_Language =  Window.Widget_translation_settings_A.comboBox_source_text.currentText() 
             #获取文本目标语言下拉框当前选中选项的值
-            Text_Target_Language =  Window.Widget_translation_settings.A_settings.comboBox_translated_text.currentText() 
+            Text_Target_Language =  Window.Widget_translation_settings_A.comboBox_translated_text.currentText() 
 
             #根据用户选择的文本源语言与文本目标语言，设定新的prompt
             if Text_Source_Language == "日语":
@@ -3732,9 +3753,9 @@ Output the translation in JSON format:
 
 
         #获取文本源语言下拉框当前选中选项的值,先是window父窗口，再到下级Widget_translation_settings，再到A_settings，才到控件
-        Text_Source_Language =  Window.Widget_translation_settings.A_settings.comboBox_source_text.currentText() 
+        Text_Source_Language =  Window.Widget_translation_settings_A.comboBox_source_text.currentText() 
         #获取文本目标语言下拉框当前选中选项的值
-        Text_Target_Language =  Window.Widget_translation_settings.A_settings.comboBox_translated_text.currentText() 
+        Text_Target_Language =  Window.Widget_translation_settings_A.comboBox_translated_text.currentText() 
 
         #根据用户选择的文本源语言与文本目标语言，设定新的翻译示例
         if Text_Source_Language == "日语":
@@ -4143,6 +4164,12 @@ Output the translation in JSON format:
             config_dict["moonshot_API_key_str"] = Window.Widget_Moonshot.TextEdit_apikey.toPlainText()        #获取apikey输入值
             config_dict["moonshot_proxy_port"] = Window.Widget_Moonshot.LineEdit_proxy_port.text()            #获取代理端口
 
+            #获取deepseek官方账号界面
+            config_dict["deepseek_model_type"] =  Window.Widget_Deepseek.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
+            config_dict["deepseek_API_key_str"] = Window.Widget_Deepseek.TextEdit_apikey.toPlainText()        #获取apikey输入值
+            config_dict["deepseek_proxy_port"] = Window.Widget_Deepseek.LineEdit_proxy_port.text()            #获取代理端口
+
+
             #智谱官方界面
             config_dict["zhipu_model_type"] =  Window.Widget_ZhiPu.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
             config_dict["zhipu_API_key_str"] = Window.Widget_ZhiPu.TextEdit_apikey.toPlainText()        #获取apikey输入值
@@ -4153,8 +4180,7 @@ Output the translation in JSON format:
             config_dict["op_relay_address"] = Window.Widget_Proxy.A_settings.LineEdit_relay_address.text()                  #获取请求地址
             config_dict["op_proxy_platform"] = Window.Widget_Proxy.A_settings.comboBox_proxy_platform.currentText()       # 获取代理平台
             config_dict["op_model_type_openai"] =  Window.Widget_Proxy.A_settings.comboBox_model_openai.currentText()      #获取openai的模型类型下拉框当前选中选项的值
-            config_dict["op_model_type_anthropic"] =  Window.Widget_Proxy.A_settings.comboBox_model_anthropic.currentText()      #获取anthropic的模型类型下拉框当前选中选项的值
-            config_dict["op_model_type_zhipu"] =  Window.Widget_Proxy.A_settings.comboBox_model_zhipu.currentText()      #获取zhipu的模型类型下拉框当前选中选项的值            
+            config_dict["op_model_type_anthropic"] =  Window.Widget_Proxy.A_settings.comboBox_model_anthropic.currentText()      #获取anthropic的模型类型下拉框当前选中选项的值        
             config_dict["op_API_key_str"] = Window.Widget_Proxy.A_settings.TextEdit_apikey.toPlainText()        #获取apikey输入值
             config_dict["op_proxy_port"]  = Window.Widget_Proxy.A_settings.LineEdit_proxy_port.text()               #获取代理端口
 
@@ -4175,28 +4201,28 @@ Output the translation in JSON format:
 
 
             #翻译设置基础设置界面
-            config_dict["translation_project"] = Window.Widget_translation_settings.A_settings.comboBox_translation_project.currentText()
-            config_dict["translation_platform"] = Window.Widget_translation_settings.A_settings.comboBox_translation_platform.currentText()
-            config_dict["source_language"] = Window.Widget_translation_settings.A_settings.comboBox_source_text.currentText()
-            config_dict["target_language"] = Window.Widget_translation_settings.A_settings.comboBox_translated_text.currentText()
-            config_dict["label_input_path"] = Window.Widget_translation_settings.A_settings.label_input_path.text()
-            config_dict["label_output_path"] = Window.Widget_translation_settings.A_settings.label_output_path.text()
+            config_dict["translation_project"] = Window.Widget_translation_settings_A.comboBox_translation_project.currentText()
+            config_dict["translation_platform"] = Window.Widget_translation_settings_A.comboBox_translation_platform.currentText()
+            config_dict["source_language"] = Window.Widget_translation_settings_A.comboBox_source_text.currentText()
+            config_dict["target_language"] = Window.Widget_translation_settings_A.comboBox_translated_text.currentText()
+            config_dict["label_input_path"] = Window.Widget_translation_settings_A.label_input_path.text()
+            config_dict["label_output_path"] = Window.Widget_translation_settings_A.label_output_path.text()
 
             #翻译设置进阶设置界面
-            config_dict["text_line_counts"] = Window.Widget_translation_settings.B_settings.spinBox_Lines.value()     # 获取文本行数设置
-            config_dict["thread_counts"] = Window.Widget_translation_settings.B_settings.spinBox_thread_count.value() # 获取线程数设置
-            config_dict["retry_count_limit"] =  Window.Widget_translation_settings.B_settings.spinBox_retry_count_limit.value()     # 获取重翻次数限制  
-            config_dict["preserve_line_breaks_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关  
-            config_dict["response_conversion_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.isChecked()   # 获取简繁转换开关
-            config_dict["text_clear_toggle"] =  Window.Widget_translation_settings.B_settings.SwitchButton_clear.isChecked() # 获取文本处理开关
+            config_dict["text_line_counts"] = Window.Widget_translation_settings_B.spinBox_Lines.value()     # 获取文本行数设置
+            config_dict["thread_counts"] = Window.Widget_translation_settings_B.spinBox_thread_count.value() # 获取线程数设置
+            config_dict["retry_count_limit"] =  Window.Widget_translation_settings_B.spinBox_retry_count_limit.value()     # 获取重翻次数限制  
+            config_dict["preserve_line_breaks_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关  
+            config_dict["response_conversion_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_conversion_toggle.isChecked()   # 获取简繁转换开关
+            config_dict["text_clear_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_clear.isChecked() # 获取文本处理开关
 
             #翻译设置混合反应设置界面
-            config_dict["translation_mixing_toggle"] =  Window.Widget_translation_settings.C_settings.SwitchButton_mixed_translation.isChecked() # 获取混合翻译开关
-            config_dict["translation_platform_1"] =  Window.Widget_translation_settings.C_settings.comboBox_primary_translation_platform.currentText()  # 获取首轮翻译平台设置
-            config_dict["translation_platform_2"] =  Window.Widget_translation_settings.C_settings.comboBox_secondary_translation_platform.currentText()   # 获取次轮
-            config_dict["translation_platform_3"] =  Window.Widget_translation_settings.C_settings.comboBox_final_translation_platform.currentText()    # 获取末轮
-            config_dict["round_limit"] =  Window.Widget_translation_settings.C_settings.spinBox_round_limit.value() # 获取轮数限制
-            config_dict["split_switch"] =  Window.Widget_translation_settings.C_settings.SwitchButton_split_switch.isChecked() # 获取混合翻译开关
+            config_dict["translation_mixing_toggle"] =  Window.Widget_translation_settings_C.SwitchButton_mixed_translation.isChecked() # 获取混合翻译开关
+            config_dict["translation_platform_1"] =  Window.Widget_translation_settings_C.comboBox_primary_translation_platform.currentText()  # 获取首轮翻译平台设置
+            config_dict["translation_platform_2"] =  Window.Widget_translation_settings_C.comboBox_secondary_translation_platform.currentText()   # 获取次轮
+            config_dict["translation_platform_3"] =  Window.Widget_translation_settings_C.comboBox_final_translation_platform.currentText()    # 获取末轮
+            config_dict["round_limit"] =  Window.Widget_translation_settings_C.spinBox_round_limit.value() # 获取轮数限制
+            config_dict["split_switch"] =  Window.Widget_translation_settings_C.SwitchButton_split_switch.isChecked() # 获取混合翻译开关
 
             #开始翻译的备份设置界面
             config_dict["auto_backup_toggle"] =  Window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
@@ -4343,6 +4369,13 @@ Output the translation in JSON format:
                 if "moonshot_proxy_port" in config_dict:
                     Window.Widget_Moonshot.LineEdit_proxy_port.setText(config_dict["moonshot_proxy_port"])
 
+                #deepseek官方账号界面
+                if "deepseek_model_type" in config_dict:
+                    Window.Widget_Deepseek.comboBox_model.setCurrentText(config_dict["deepseek_model_type"])
+                if "deepseek_API_key_str" in config_dict:
+                    Window.Widget_Deepseek.TextEdit_apikey.setText(config_dict["deepseek_API_key_str"])
+                if "deepseek_proxy_port" in config_dict:
+                    Window.Widget_Deepseek.LineEdit_proxy_port.setText(config_dict["deepseek_proxy_port"])
 
                 #智谱官方界面
                 if "zhipu_model_type" in config_dict:
@@ -4370,18 +4403,10 @@ Output the translation in JSON format:
                     if config_dict["op_proxy_platform"] =="OpenAI":
                         Window.Widget_Proxy.A_settings.comboBox_model_openai.show()
                         Window.Widget_Proxy.A_settings.comboBox_model_anthropic.hide()
-                        Window.Widget_Proxy.A_settings.comboBox_model_zhipu.hide()
                     elif config_dict["op_proxy_platform"] == 'Anthropic':
                         Window.Widget_Proxy.A_settings.comboBox_model_openai.hide()
                         Window.Widget_Proxy.A_settings.comboBox_model_anthropic.show()
-                        Window.Widget_Proxy.A_settings.comboBox_model_zhipu.hide()
-                    elif config_dict["op_proxy_platform"] == '智谱清言':
-                        Window.Widget_Proxy.A_settings.comboBox_model_openai.hide()
-                        Window.Widget_Proxy.A_settings.comboBox_model_anthropic.hide()
-                        Window.Widget_Proxy.A_settings.comboBox_model_zhipu.show()
                 if "op_model_type_openai" in config_dict:
-                    #Window.Widget_Proxy.A_settings.comboBox_model_openai.setPlaceholderText(config_dict["op_model_type_openai"])
-                    #Window.Widget_Proxy.A_settings.comboBox_model_openai.setCurrentIndex(-1)
 
                     # 获取配置文件中指定的模型类型
                     model_type = config_dict["op_model_type_openai"]
@@ -4404,16 +4429,6 @@ Output the translation in JSON format:
                     # 设置当前文本为配置文件中指定的模型类型
                     Window.Widget_Proxy.A_settings.comboBox_model_anthropic.setCurrentText(model_type)
 
-                if "op_model_type_zhipu" in config_dict:
-                    # 获取配置文件中指定的模型类型
-                    model_type = config_dict["op_model_type_zhipu"]
-                    # 检查模型类型是否已经存在于下拉列表中
-                    existing_index = Window.Widget_Proxy.A_settings.comboBox_model_zhipu.findText(model_type)
-                    # 如果模型类型不存在，则添加到下拉列表中
-                    if existing_index == -1:
-                        Window.Widget_Proxy.A_settings.comboBox_model_zhipu.addItem(model_type)
-                    # 设置当前文本为配置文件中指定的模型类型
-                    Window.Widget_Proxy.A_settings.comboBox_model_zhipu.setCurrentText(model_type)
                     
                 if "op_API_key_str" in config_dict:
                     Window.Widget_Proxy.A_settings.TextEdit_apikey.setText(config_dict["op_API_key_str"])
@@ -4439,45 +4454,45 @@ Output the translation in JSON format:
 
                 #翻译设置基础界面
                 if "translation_project" in config_dict:
-                    Window.Widget_translation_settings.A_settings.comboBox_translation_project.setCurrentText(config_dict["translation_project"])
+                    Window.Widget_translation_settings_A.comboBox_translation_project.setCurrentText(config_dict["translation_project"])
                 if "translation_platform" in config_dict:
-                    Window.Widget_translation_settings.A_settings.comboBox_translation_platform.setCurrentText(config_dict["translation_platform"])
+                    Window.Widget_translation_settings_A.comboBox_translation_platform.setCurrentText(config_dict["translation_platform"])
                 if "source_language" in config_dict:
-                    Window.Widget_translation_settings.A_settings.comboBox_source_text.setCurrentText(config_dict["source_language"])
+                    Window.Widget_translation_settings_A.comboBox_source_text.setCurrentText(config_dict["source_language"])
                 if "target_language" in config_dict:
-                    Window.Widget_translation_settings.A_settings.comboBox_translated_text.setCurrentText(config_dict["target_language"])
+                    Window.Widget_translation_settings_A.comboBox_translated_text.setCurrentText(config_dict["target_language"])
                 if "label_input_path" in config_dict:
-                    Window.Widget_translation_settings.A_settings.label_input_path.setText(config_dict["label_input_path"])
+                    Window.Widget_translation_settings_A.label_input_path.setText(config_dict["label_input_path"])
                 if "label_output_path" in config_dict:
-                    Window.Widget_translation_settings.A_settings.label_output_path.setText(config_dict["label_output_path"])
+                    Window.Widget_translation_settings_A.label_output_path.setText(config_dict["label_output_path"])
 
                 #翻译设置进阶界面
                 if "text_line_counts" in config_dict:
-                    Window.Widget_translation_settings.B_settings.spinBox_Lines.setValue(config_dict["text_line_counts"])
+                    Window.Widget_translation_settings_B.spinBox_Lines.setValue(config_dict["text_line_counts"])
                 if "thread_counts" in config_dict:
-                    Window.Widget_translation_settings.B_settings.spinBox_thread_count.setValue(config_dict["thread_counts"])
+                    Window.Widget_translation_settings_B.spinBox_thread_count.setValue(config_dict["thread_counts"])
                 if "preserve_line_breaks_toggle" in config_dict:
-                    Window.Widget_translation_settings.B_settings.SwitchButton_line_breaks.setChecked(config_dict["preserve_line_breaks_toggle"])
+                    Window.Widget_translation_settings_B.SwitchButton_line_breaks.setChecked(config_dict["preserve_line_breaks_toggle"])
                 if "response_conversion_toggle" in config_dict:
-                    Window.Widget_translation_settings.B_settings.SwitchButton_conversion_toggle.setChecked(config_dict["response_conversion_toggle"])
+                    Window.Widget_translation_settings_B.SwitchButton_conversion_toggle.setChecked(config_dict["response_conversion_toggle"])
                 if "text_clear_toggle" in config_dict:
-                    Window.Widget_translation_settings.B_settings.SwitchButton_clear.setChecked(config_dict["text_clear_toggle"])
+                    Window.Widget_translation_settings_B.SwitchButton_clear.setChecked(config_dict["text_clear_toggle"])
+                if "retry_count_limit" in config_dict:
+                    Window.Widget_translation_settings_B.spinBox_retry_count_limit.setValue(config_dict["retry_count_limit"])
 
                 #翻译设置混合翻译界面
                 if "translation_mixing_toggle" in config_dict:
-                    Window.Widget_translation_settings.C_settings.SwitchButton_mixed_translation.setChecked(config_dict["translation_mixing_toggle"])
+                    Window.Widget_translation_settings_C.SwitchButton_mixed_translation.setChecked(config_dict["translation_mixing_toggle"])
                 if "translation_platform_1" in config_dict:
-                    Window.Widget_translation_settings.C_settings.comboBox_primary_translation_platform.setCurrentText(config_dict["translation_platform_1"])
+                    Window.Widget_translation_settings_C.comboBox_primary_translation_platform.setCurrentText(config_dict["translation_platform_1"])
                 if "translation_platform_2" in config_dict:
-                    Window.Widget_translation_settings.C_settings.comboBox_secondary_translation_platform.setCurrentText(config_dict["translation_platform_2"])
+                    Window.Widget_translation_settings_C.comboBox_secondary_translation_platform.setCurrentText(config_dict["translation_platform_2"])
                 if "translation_platform_3" in config_dict:
-                    Window.Widget_translation_settings.C_settings.comboBox_final_translation_platform.setCurrentText(config_dict["translation_platform_3"])
-                if "retry_count_limit" in config_dict:
-                    Window.Widget_translation_settings.B_settings.spinBox_retry_count_limit.setValue(config_dict["retry_count_limit"])
+                    Window.Widget_translation_settings_C.comboBox_final_translation_platform.setCurrentText(config_dict["translation_platform_3"])
                 if "round_limit" in config_dict:
-                     Window.Widget_translation_settings.C_settings.spinBox_round_limit.setValue(config_dict["round_limit"]) 
+                     Window.Widget_translation_settings_C.spinBox_round_limit.setValue(config_dict["round_limit"]) 
                 if "split_switch" in config_dict:
-                    Window.Widget_translation_settings.C_settings.SwitchButton_split_switch.setChecked(config_dict["split_switch"])
+                    Window.Widget_translation_settings_C.SwitchButton_split_switch.setChecked(config_dict["split_switch"])
 
                 #开始翻译的备份设置界面
                 if "auto_backup_toggle" in config_dict:
@@ -4623,6 +4638,7 @@ class Request_Limiter():
                 "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 60000, "RPM": 3500},
                 "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 60000, "RPM": 3500},
                 "gpt-4": {"max_tokens": 8000, "TPM": 10000, "RPM": 500},
+                "gpt-4o": {"max_tokens": 4000, "TPM": 300000, "RPM": 500},
                 "gpt-4-0314": {"max_tokens": 8000, "TPM": 10000, "RPM": 500},
                 "gpt-4-0613": {"max_tokens": 8000, "TPM": 10000, "RPM": 500},
                 "gpt-4-turbo": {"max_tokens": 4000, "TPM": 300000, "RPM": 500},
@@ -4642,6 +4658,7 @@ class Request_Limiter():
                 "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 80000, "RPM": 3500},
                 "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 80000, "RPM": 3500},
                 "gpt-4": {"max_tokens": 8000, "TPM": 40000, "RPM": 5000},
+                "gpt-4o": {"max_tokens": 4000, "TPM": 600000, "RPM": 5000},
                 "gpt-4-0314": {"max_tokens": 8000, "TPM": 40000, "RPM": 5000},
                 "gpt-4-0613": {"max_tokens": 8000, "TPM": 40000, "RPM": 5000},
                 "gpt-4-turbo": {"max_tokens": 4000, "TPM": 600000, "RPM": 5000},
@@ -4661,6 +4678,7 @@ class Request_Limiter():
                 "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 160000, "RPM": 5000},
                 "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 160000, "RPM": 5000},
                 "gpt-4": {"max_tokens": 8000, "TPM": 80000, "RPM": 5000},
+                "gpt-4o": {"max_tokens": 4000, "TPM": 600000, "RPM": 5000},
                 "gpt-4-0314": {"max_tokens": 8000, "TPM": 80000, "RPM": 5000},
                 "gpt-4-0613": {"max_tokens": 8000, "TPM": 80000, "RPM": 5000},
                 "gpt-4-turbo": {"max_tokens": 4000, "TPM": 600000, "RPM": 5000},
@@ -4680,6 +4698,7 @@ class Request_Limiter():
                 "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 1000000, "RPM": 10000},
                 "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 1000000, "RPM": 10000},
                 "gpt-4": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
+                "gpt-4o": {"max_tokens": 4000, "TPM": 900000, "RPM": 10000},
                 "gpt-4-0314": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
                 "gpt-4-0613": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
                 "gpt-4-turbo": {"max_tokens": 4000, "TPM": 900000, "RPM": 10000},
@@ -4699,6 +4718,7 @@ class Request_Limiter():
                 "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 2000000, "RPM": 10000},
                 "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 2000000, "RPM": 10000},
                 "gpt-4": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
+                "gpt-4o": {"max_tokens": 4000, "TPM": 1200000, "RPM": 10000},
                 "gpt-4-0314": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
                 "gpt-4-0613": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
                 "gpt-4-turbo": {"max_tokens": 4000, "TPM": 1200000, "RPM": 10000},
@@ -4723,8 +4743,10 @@ class Request_Limiter():
 
         # 示例数据
         self.google_limit_data = {
-                "gemini-1.0-pro": {  "InputTokenLimit": 30720,"OutputTokenLimit": 2048,"max_tokens": 2500, "TPM": 1000000, "RPM": 60},
-                "gemini-1.5-pro-latest": { "InputTokenLimit": 1048576,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 9999999, "RPM": 2},
+                "gemini-1.0-pro": {  "InputTokenLimit": 30720,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 32000, "RPM": 15},
+                "gemini-1.0-flash": {  "InputTokenLimit": 30720,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 1000000, "RPM": 15},
+                "gemini-1.5-pro": { "InputTokenLimit": 1048576,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 32000, "RPM": 2},
+    
             }
 
 
@@ -4775,6 +4797,11 @@ class Request_Limiter():
                 "command-r-plus": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10000},
             }
         }
+
+        # 示例数据
+        self.deepseek_limit_data = {
+                "deepseek-chat": {  "InputTokenLimit": 32000,"OutputTokenLimit": 4000,"max_tokens": 4000, "TPM": 1000000, "RPM": 3500},
+            }
 
         # 示例数据
         self.zhipu_limit_data = {
@@ -4903,6 +4930,25 @@ class Request_Limiter():
             max_tokens = self.moonshot_limit_data[account_type][model]["max_tokens"]
             TPM_limit = self.moonshot_limit_data[account_type][model]["TPM"]
             RPM_limit = self.moonshot_limit_data[account_type][model]["RPM"]
+
+            # 获取当前key的数量，对限制进行倍数更改
+            key_count = len(configurator.apikey_list)
+            RPM_limit = RPM_limit * key_count
+            TPM_limit = TPM_limit * key_count
+
+            # 设置限制
+            self.set_limit(max_tokens,TPM_limit,RPM_limit)
+
+
+        #根据翻译平台读取配置信息
+        elif translation_platform == 'Deepseek官方':
+            # 获取模型选择 
+            model = Window.Widget_Deepseek.comboBox_model.currentText()
+
+            # 获取相应的限制
+            max_tokens = self.deepseek_limit_data[model]["max_tokens"]
+            TPM_limit = self.deepseek_limit_data[model]["TPM"]
+            RPM_limit = self.deepseek_limit_data[model]["RPM"]
 
             # 获取当前key的数量，对限制进行倍数更改
             key_count = len(configurator.apikey_list)
@@ -5064,6 +5110,7 @@ class User_Interface_Prompter(QObject):
             "gpt-3.5-turbo-16k": {"input_price": 0.001, "output_price": 0.002},
             "gpt-3.5-turbo-16k-0613": {"input_price": 0.001, "output_price": 0.002},
             "gpt-4": {"input_price": 0.03, "output_price": 0.06},
+            "gpt-4o": {"input_price": 0.005, "output_price": 0.015},
             "gpt-4-0314": {"input_price": 0.03, "output_price": 0.06},
             "gpt-4-0613": {"input_price": 0.03, "output_price": 0.06},
             "gpt-4-turbo":{"input_price": 0.01, "output_price": 0.03},
@@ -5094,7 +5141,8 @@ class User_Interface_Prompter(QObject):
 
        self.google_price_data = {
             "gemini-1.0-pro": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
-            "gemini-1.5-pro-latest": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
+            "gemini-1.5-flash": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
+            "gemini-1.5-pro": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
             }
 
        self.moonshot_price_data = {
@@ -5102,6 +5150,11 @@ class User_Interface_Prompter(QObject):
             "moonshot-v1-32k": {"input_price": 0.024, "output_price": 0.024}, # 存储的价格是 /k tokens
             "moonshot-v1-128k": {"input_price": 0.060, "output_price": 0.060}, # 存储的价格是 /k tokens
             }
+       
+       self.deepseek_price_data = {
+            "deepseek-chat": {"input_price": 0.001 , "output_price": 0.002 }, # 存储的价格是 /k tokens
+            }
+
 
        self.zhipu_price_data = {
             "glm-3-turbo": {"input_price": 0.005, "output_price": 0.005}, # 存储的价格是 /k tokens
@@ -5248,6 +5301,11 @@ class User_Interface_Prompter(QObject):
             # 获取使用的模型输入价格与输出价格
             input_price = self.moonshot_price_data[configurator.model_type]["input_price"]
             output_price = self.moonshot_price_data[configurator.model_type]["output_price"]
+
+        elif configurator.translation_platform == "Deepseek官方":
+            # 获取使用的模型输入价格与输出价格
+            input_price = self.deepseek_price_data[configurator.model_type]["input_price"]
+            output_price = self.deepseek_price_data[configurator.model_type]["output_price"]
 
         elif configurator.translation_platform == "智谱官方":
             # 获取使用的模型输入价格与输出价格
@@ -7506,6 +7564,7 @@ class Widget_AI(QFrame):
 
 
 
+
 class Widget_Proxy(QFrame):  # 代理账号主界面
     def __init__(self, text: str, parent=None):  # 构造函数，初始化实例时会自动调用
         super().__init__(parent=parent)  # 调用父类 QWidget 的构造函数
@@ -7601,7 +7660,7 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
 
         #设置下拉选择框
         self.comboBox_proxy_platform = ComboBox() #以demo为父类
-        self.comboBox_proxy_platform.addItems(['OpenAI', 'Anthropic',  '智谱清言'])
+        self.comboBox_proxy_platform.addItems(['OpenAI', 'Anthropic'])
         self.comboBox_proxy_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_proxy_platform.setFixedSize(250, 35)
         
@@ -7625,13 +7684,13 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
         #设置“模型选择”标签
         self.label_model = QLabel(flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
         self.label_model.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
-        self.label_model.setText("模型选择")
+        self.label_model.setText("模型选择(可编辑)")
 
 
         #设置“模型类型”下拉选择框
         self.comboBox_model_openai = EditableComboBox() #以demo为父类
         self.comboBox_model_openai.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-1106', 'gpt-3.5-turbo-0125','gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
-                                 'gpt-4','gpt-4-0314', 'gpt-4-0613','gpt-4-turbo','gpt-4-turbo-preview','gpt-4-1106-preview','gpt-4-0125-preview'])
+                                 'gpt-4','gpt-4o','gpt-4-0314', 'gpt-4-0613','gpt-4-turbo','gpt-4-turbo-preview','gpt-4-1106-preview','gpt-4-0125-preview'])
         self.comboBox_model_openai.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model_openai.setFixedSize(250, 35)
 
@@ -7642,26 +7701,17 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
         self.comboBox_model_anthropic.setFixedSize(250, 35)
 
 
-        self.comboBox_model_zhipu = EditableComboBox() #以demo为父类
-        self.comboBox_model_zhipu.addItems(['glm-3-turbo','glm-4'])
-        self.comboBox_model_zhipu.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
-        self.comboBox_model_zhipu.setFixedSize(250, 35)
-
-
-
 
         layout_model.addWidget(self.label_model)
         layout_model.addStretch(1)
         layout_model.addWidget(self.comboBox_model_openai)
         layout_model.addWidget(self.comboBox_model_anthropic)
-        layout_model.addWidget(self.comboBox_model_zhipu)
         box_model.setLayout(layout_model)
 
 
         #设置默认显示的模型选择框，其余隐藏
         self.comboBox_model_openai.show()
         self.comboBox_model_anthropic.hide()
-        self.comboBox_model_zhipu.hide()
 
 
         # -----创建第3个组，添加多个组件-----
@@ -7766,15 +7816,9 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
         if index =="OpenAI":
             self.comboBox_model_openai.show()
             self.comboBox_model_anthropic.hide()
-            self.comboBox_model_zhipu.hide()
         elif index == 'Anthropic':
             self.comboBox_model_openai.hide()
             self.comboBox_model_anthropic.show()
-            self.comboBox_model_zhipu.hide()
-        elif index == '智谱清言':
-            self.comboBox_model_openai.hide()
-            self.comboBox_model_anthropic.hide()
-            self.comboBox_model_zhipu.show()
 
 
     def saveconfig(self):
@@ -7794,9 +7838,6 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
                 Model_Type = self.comboBox_model_openai.currentText()
             elif Proxy_platform == "Anthropic":
                 Model_Type = self.comboBox_model_anthropic.currentText()
-            elif Proxy_platform == "智谱清言":
-                Proxy_platform = "Zhipu"
-                Model_Type = self.comboBox_model_zhipu.currentText()
 
             #创建子线程
             thread = background_executor("接口测试","","",Proxy_platform,Base_url,Model_Type,API_key_str,Proxy_port)
@@ -7977,6 +8018,19 @@ class Widget_Proxy_B(QFrame):#  代理账号进阶设置子界面
 
 
 
+
+
+class Widget_official_api(QFrame):
+
+    def __init__(self, text: str, parent=None):
+        super().__init__(parent=parent)
+        self.label = QLabel("广告位招租", self)
+        self.label.setAlignment(Qt.AlignCenter)
+        self.hBoxLayout = QHBoxLayout(self)
+        self.hBoxLayout.addWidget(self.label, 1, Qt.AlignCenter)
+        self.setObjectName(text.replace(' ', '-'))
+
+
 class Widget_Openai(QFrame):#  Openai账号界面
     def __init__(self, text: str, parent=None):
         super().__init__(parent=parent)
@@ -8022,7 +8076,7 @@ class Widget_Openai(QFrame):#  Openai账号界面
         #设置“模型类型”下拉选择框
         self.comboBox_model = ComboBox() #以demo为父类
         self.comboBox_model.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-1106', 'gpt-3.5-turbo-0125','gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
-                                 'gpt-4','gpt-4-0314', 'gpt-4-0613','gpt-4-turbo','gpt-4-turbo-preview','gpt-4-1106-preview','gpt-4-0125-preview'])
+                                 'gpt-4','gpt-4o','gpt-4-0314', 'gpt-4-0613','gpt-4-turbo','gpt-4-turbo-preview','gpt-4-1106-preview','gpt-4-0125-preview'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(200, 35)
         #设置下拉选择框默认选择
@@ -8173,7 +8227,7 @@ class Widget_Google(QFrame):#  谷歌账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox_model = ComboBox() #以demo为父类
-        self.comboBox_model.addItems(['gemini-1.0-pro','gemini-1.5-pro-latest'])
+        self.comboBox_model.addItems(['gemini-1.0-pro','gemini-1.5-flash','gemini-1.5-pro'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(200, 35)
 
@@ -8968,6 +9022,155 @@ class Widget_Moonshot(QFrame):#  Moonshot账号界面
             user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 
+class Widget_Deepseek(QFrame):#  deepseek账号界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+
+
+        # -----创建第1个组，添加多个组件-----
+        box_model = QGroupBox()
+        box_model.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_model = QGridLayout()
+
+        #设置“模型选择”标签
+        self.labelx = QLabel(flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.labelx.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.labelx.setText("模型选择")
+
+
+        #设置“模型类型”下拉选择框
+        self.comboBox_model = ComboBox() #以demo为父类
+        self.comboBox_model.addItems(['deepseek-chat'])
+        self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox_model.setFixedSize(200, 35)
+
+        
+
+
+        layout_model.addWidget(self.labelx, 0, 0)
+        layout_model.addWidget(self.comboBox_model, 0, 1)
+        box_model.setLayout(layout_model)
+
+        # -----创建第2个组，添加多个组件-----
+        box_apikey = QGroupBox()
+        box_apikey.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_apikey = QHBoxLayout()
+
+        #设置“API KEY”标签
+        self.labelx = QLabel(flags=Qt.WindowFlags())  
+        self.labelx.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        self.labelx.setText("API KEY")
+
+        #设置微调距离用的空白标签
+        self.labely = QLabel()  
+        self.labely.setText("                       ")
+
+        #设置“API KEY”的输入框
+        self.TextEdit_apikey = TextEdit()
+
+
+
+        # 追加到容器中
+        layout_apikey.addWidget(self.labelx)
+        layout_apikey.addWidget(self.labely)
+        layout_apikey.addWidget(self.TextEdit_apikey)
+        # 添加到 box中
+        box_apikey.setLayout(layout_apikey)
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box_proxy_port = QGroupBox()
+        box_proxy_port.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_proxy_port = QHBoxLayout()
+
+        #设置“代理地址”标签
+        self.label_proxy_port = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.label_proxy_port.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.label_proxy_port.setText("系统代理")
+
+        #设置微调距离用的空白标签
+        self.labelx = QLabel()  
+        self.labelx.setText("                      ")
+
+        #设置“代理地址”的输入框
+        self.LineEdit_proxy_port = LineEdit()
+        #LineEdit1.setFixedSize(300, 30)
+
+
+        layout_proxy_port.addWidget(self.label_proxy_port)
+        layout_proxy_port.addWidget(self.labelx)
+        layout_proxy_port.addWidget(self.LineEdit_proxy_port)
+        box_proxy_port.setLayout(layout_proxy_port)
+
+
+
+        # -----创建第4个组，添加多个组件-----
+        box_test = QGroupBox()
+        box_test.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_test = QHBoxLayout()
+
+
+        #设置“测试请求”的按钮
+        primaryButton_test = PrimaryPushButton('测试请求', self, FIF.SEND)
+        primaryButton_test.clicked.connect(self.test_request) #按钮绑定槽函数
+
+        #设置“保存配置”的按钮
+        primaryButton_save = PushButton('保存配置', self, FIF.SAVE)
+        primaryButton_save.clicked.connect(self.saveconfig) #按钮绑定槽函数
+
+
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_test)
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_save)
+        layout_test.addStretch(1)  # 添加伸缩项
+        box_test.setLayout(layout_test)
+
+
+
+        # -----最外层容器设置垂直布局-----
+        container = QVBoxLayout()
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+        # 把各个组添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_model)
+        container.addWidget(box_apikey)
+        container.addWidget(box_proxy_port)
+        container.addWidget(box_test)
+        container.addStretch(1)  # 添加伸缩项
+
+
+    def saveconfig(self):
+        configurator.read_write_config("write")
+        user_interface_prompter.createSuccessInfoBar("已成功保存配置")
+
+    def test_request(self):
+        global Running_status
+
+        if Running_status == 0:
+            Base_url = "https://api.deepseek.com/v1"
+            Model_Type =  self.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
+            API_key_str = self.TextEdit_apikey.toPlainText()        #获取apikey输入值
+            Proxy_port = self.LineEdit_proxy_port.text()            #获取代理端口
+
+            #创建子线程
+            thread = background_executor("接口测试","","","Deepseek",Base_url,Model_Type,API_key_str,Proxy_port)
+            thread.start()
+
+        elif Running_status != 0:
+            user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+
+
+
 
 class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
@@ -9117,54 +9320,13 @@ class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
 
 
 class Widget_translation_settings(QFrame):  # 翻译设置主界面
-    def __init__(self, text: str, parent=None):  # 构造函数，初始化实例时会自动调用
-        super().__init__(parent=parent)  # 调用父类 QWidget 的构造函数
-        self.setObjectName(text.replace(' ', '-'))  # 设置对象名，用于在 NavigationInterface 中的 addItem 方法中的 routeKey 参数中使用
-
-
-        self.pivot = SegmentedWidget(self)  # 创建一个 SegmentedWidget 实例，分段式导航栏
-        self.stackedWidget = QStackedWidget(self)  # 创建一个 QStackedWidget 实例，堆叠式窗口
-        self.vBoxLayout = QVBoxLayout(self)  # 创建一个垂直布局管理器
-
-        self.A_settings = Widget_translation_settings_A('A_settings', self)  # 创建实例，指向界面
-        self.B_settings = Widget_translation_settings_B('B_settings', self)  # 创建实例，指向界面
-        self.C_settings = Widget_translation_settings_C('C_settings', self)
-
-        # 添加子界面到分段式导航栏
-        self.addSubInterface(self.A_settings, 'A_settings', '基础设置')
-        self.addSubInterface(self.B_settings, 'B_settings', '进阶设置')
-        self.addSubInterface(self.C_settings, 'C_settings', '混合翻译设置')
-
-
-        # 将分段式导航栏和堆叠式窗口添加到垂直布局中
-        self.vBoxLayout.addWidget(self.pivot)
-        self.vBoxLayout.addWidget(self.stackedWidget)
-        self.vBoxLayout.setContentsMargins(30, 50, 30, 30)  # 设置布局的外边距
-
-        # 连接堆叠式窗口的 currentChanged 信号到槽函数 onCurrentIndexChanged
-        self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
-        self.stackedWidget.setCurrentWidget(self.A_settings)  # 设置默认显示的子界面为xxx界面
-        self.pivot.setCurrentItem(self.A_settings.objectName())  # 设置分段式导航栏的当前项为xxx界面
-
-    def addSubInterface(self, widget: QLabel, objectName, text):
-        """
-        添加子界面到堆叠式窗口和分段式导航栏
-        """
-        widget.setObjectName(objectName)
-        #widget.setAlignment(Qt.AlignCenter) # 设置 widget 对象的文本（如果是文本控件）在控件中的水平对齐方式
-        self.stackedWidget.addWidget(widget)
-        self.pivot.addItem(
-            routeKey=objectName,
-            text=text,
-            onClick=lambda: self.stackedWidget.setCurrentWidget(widget),
-        )
-
-    def onCurrentIndexChanged(self, index):
-        """
-        槽函数：堆叠式窗口的 currentChanged 信号的槽函数
-        """
-        widget = self.stackedWidget.widget(index)
-        self.pivot.setCurrentItem(widget.objectName())
+    def __init__(self, text: str, parent=None):
+        super().__init__(parent=parent)
+        self.label = QLabel("广告位招租", self)
+        self.label.setAlignment(Qt.AlignCenter)
+        self.hBoxLayout = QHBoxLayout(self)
+        self.hBoxLayout.addWidget(self.label, 1, Qt.AlignCenter)
+        self.setObjectName(text.replace(' ', '-'))
 
 
 class Widget_translation_settings_A(QFrame):#  基础设置子界面
@@ -9186,7 +9348,7 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
 
         #设置“翻译平台”下拉选择框
         self.comboBox_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_translation_platform.addItems(['OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
+        self.comboBox_translation_platform.addItems(['OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
         self.comboBox_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_translation_platform.setFixedSize(150, 35)
 
@@ -9361,7 +9523,7 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
         # 设置窗口显示的内容是最外层容器
         self.setLayout(container)
         container.setSpacing(28) # 设置布局内控件的间距为28
-        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
 
 
@@ -9566,7 +9728,7 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         # 设置窗口显示的内容是最外层容器
         self.setLayout(container)
         container.setSpacing(28) # 设置布局内控件的间距为28
-        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
 
     #设置选择开关绑定函数
@@ -9623,7 +9785,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
 
         #设置“翻译平台”下拉选择框
         self.comboBox_primary_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_primary_translation_platform.addItems(['OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
+        self.comboBox_primary_translation_platform.addItems(['OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
         self.comboBox_primary_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_primary_translation_platform.setFixedSize(150, 35)
 
@@ -9749,7 +9911,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
         # 设置窗口显示的内容是最外层容器
         self.setLayout(container)
         container.setSpacing(28) # 设置布局内控件的间距为28
-        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
 
     #设置开关绑定函数
@@ -11881,54 +12043,14 @@ class Widget_after_dict(QFrame):# 译文修正字典界面
 
 
 class Widget_RPG(QFrame):  # RPG主界面
-    def __init__(self, text: str, parent=None):  # 构造函数，初始化实例时会自动调用
-        super().__init__(parent=parent)  # 调用父类 QWidget 的构造函数
-        self.setObjectName(text.replace(' ', '-'))  # 设置对象名，用于在 NavigationInterface 中的 addItem 方法中的 routeKey 参数中使用
 
-
-        self.pivot = SegmentedWidget(self)  # 创建一个 SegmentedWidget 实例，分段式导航栏
-        self.stackedWidget = QStackedWidget(self)  # 创建一个 QStackedWidget 实例，堆叠式窗口
-        self.vBoxLayout = QVBoxLayout(self)  # 创建一个垂直布局管理器
-
-        self.A_settings = Widget_export_source_text('A_settings', self)  # 创建实例，指向界面
-        self.B_settings = Widget_import_translated_text('B_settings', self)  # 创建实例，指向界面
-        self.C_settings = Widget_update_text('B_settings', self)  # 创建实例，指向界面
-
-        # 添加子界面到分段式导航栏
-        self.addSubInterface(self.A_settings, 'A_settings', '游戏原文提取')
-        self.addSubInterface(self.B_settings, 'B_settings', '游戏译文注入')
-        self.addSubInterface(self.C_settings, 'C_settings', '游戏新版原文提取')
-
-
-        # 将分段式导航栏和堆叠式窗口添加到垂直布局中
-        self.vBoxLayout.addWidget(self.pivot)
-        self.vBoxLayout.addWidget(self.stackedWidget)
-        self.vBoxLayout.setContentsMargins(30, 50, 30, 30)  # 设置布局的外边距
-
-        # 连接堆叠式窗口的 currentChanged 信号到槽函数 onCurrentIndexChanged
-        self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
-        self.stackedWidget.setCurrentWidget(self.A_settings)  # 设置默认显示的子界面为xxx界面
-        self.pivot.setCurrentItem(self.A_settings.objectName())  # 设置分段式导航栏的当前项为xxx界面
-
-    def addSubInterface(self, widget: QLabel, objectName, text):
-        """
-        添加子界面到堆叠式窗口和分段式导航栏
-        """
-        widget.setObjectName(objectName)
-        #widget.setAlignment(Qt.AlignCenter) # 设置 widget 对象的文本（如果是文本控件）在控件中的水平对齐方式
-        self.stackedWidget.addWidget(widget)
-        self.pivot.addItem(
-            routeKey=objectName,
-            text=text,
-            onClick=lambda: self.stackedWidget.setCurrentWidget(widget),
-        )
-
-    def onCurrentIndexChanged(self, index):
-        """
-        槽函数：堆叠式窗口的 currentChanged 信号的槽函数
-        """
-        widget = self.stackedWidget.widget(index)
-        self.pivot.setCurrentItem(widget.objectName())
+    def __init__(self, text: str, parent=None):
+        super().__init__(parent=parent)
+        self.label = QLabel("广告位招租", self)
+        self.label.setAlignment(Qt.AlignCenter)
+        self.hBoxLayout = QHBoxLayout(self)
+        self.hBoxLayout.addWidget(self.label, 1, Qt.AlignCenter)
+        self.setObjectName(text.replace(' ', '-'))
 
 
 class Widget_export_source_text(QFrame):#  提取子界面
@@ -12140,7 +12262,7 @@ class Widget_export_source_text(QFrame):#  提取子界面
         # 设置窗口显示的内容是最外层容器
         self.setLayout(container)
         container.setSpacing(28) # 设置布局内控件的间距为28
-        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
     #设置开关绑定函数
     def test(self, isChecked: bool):
@@ -12411,7 +12533,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         # 设置窗口显示的内容是最外层容器
         self.setLayout(container)
         container.setSpacing(28) # 设置布局内控件的间距为28
-        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
 
     # 选择输入文件夹按钮绑定函数
@@ -12640,7 +12762,7 @@ class Widget_update_text(QFrame):#  更新子界面
         # 设置窗口显示的内容是最外层容器
         self.setLayout(container)
         container.setSpacing(28) # 设置布局内控件的间距为28
-        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
 
     # 选择输入文件夹按钮绑定函数
@@ -12848,6 +12970,7 @@ class window(FramelessWindow): #主窗口
 
         # 创建子界面控件，传入参数为对象名和parent
         self.Widget_AI = Widget_AI('Widget_AI', self)
+        self.Widget_official_api = Widget_official_api('Widget_official_api', self)
         self.Widget_Openai = Widget_Openai('Widget_Openai', self)   
         self.Widget_Proxy = Widget_Proxy('Widget_Proxy', self)
         self.Widget_Anthropic = Widget_Anthropic('Widget_Anthropic', self)
@@ -12855,10 +12978,17 @@ class window(FramelessWindow): #主窗口
         self.Widget_Cohere = Widget_Cohere('Widget_Cohere', self)
         self.Widget_ZhiPu = Widget_ZhiPu('Widget_ZhiPu', self)
         self.Widget_Moonshot = Widget_Moonshot('Widget_Moonshot', self)
+        self.Widget_Deepseek = Widget_Deepseek('Widget_Deepseek', self)
         self.Widget_SakuraLLM = Widget_SakuraLLM('Widget_SakuraLLM', self)
-        self.Widget_translation_settings = Widget_translation_settings('Widget_translation_settings', self) 
+        self.Widget_translation_settings = Widget_translation_settings('Widget_translation_settings', self)
+        self.Widget_translation_settings_A = Widget_translation_settings_A('Widget_translation_settings_A', self) 
+        self.Widget_translation_settings_B = Widget_translation_settings_B('Widget_translation_settings_B', self) 
+        self.Widget_translation_settings_C = Widget_translation_settings_C('Widget_translation_settings_C', self)  
         self.Widget_start_translation = Widget_start_translation('Widget_start_translation', self) 
-        self.Widget_RPG = Widget_RPG('Widget_RPG', self)    
+        self.Widget_RPG = Widget_RPG('Widget_RPG', self)  
+        self.Widget_export_source_text = Widget_export_source_text('Widget_export_source_text', self)  
+        self.Widget_import_translated_text = Widget_import_translated_text('Widget_import_translated_text', self)  
+        self.Widget_update_text = Widget_update_text('Widget_update_text', self)    
         self.Widget_tune = Widget_tune('Widget_tune', self)
         self.Widget_prompy_engineering = Widget_prompy_engineering('Widget_prompy_engineering', self)
         self.Widget_prompt_dict = Widget_prompt_dict('Widget_prompt_dict', self)
@@ -12889,36 +13019,47 @@ class window(FramelessWindow): #主窗口
 
         # 添加账号设置界面
         self.addSubInterface(self.Widget_AI, FIF.IOT, '账号设置',NavigationItemPosition.SCROLL) # NavigationItemPosition.SCROLL表示在可滚动伸缩区域
+        # 添加官方接口界面
+        self.addSubInterface(self.Widget_official_api, FIF.PEOPLE, '官方接口',parent=self.Widget_AI) # NavigationItemPosition.SCROLL表示在可滚动伸缩区域
         # 添加closeai官方账号界面
-        self.addSubInterface(self.Widget_Openai, FIF.FEEDBACK, 'OpenAI官方',parent=self.Widget_AI) 
+        self.addSubInterface(self.Widget_Openai, FIF.FEEDBACK, 'OpenAI官方',parent=self.Widget_official_api) 
         # 添加谷歌官方账号界面
-        self.addSubInterface(self.Widget_Google, FIF.FEEDBACK, 'Google官方',parent=self.Widget_AI)
+        self.addSubInterface(self.Widget_Google, FIF.FEEDBACK, 'Google官方',parent=self.Widget_official_api)
         # 添加Cohere官方账号界面
-        self.addSubInterface(self.Widget_Cohere, FIF.FEEDBACK, 'Cohere官方',parent=self.Widget_AI)
+        self.addSubInterface(self.Widget_Cohere, FIF.FEEDBACK, 'Cohere官方',parent=self.Widget_official_api)
         # 添加anthropic官方账号界面
-        self.addSubInterface(self.Widget_Anthropic, FIF.FEEDBACK, 'Anthropic官方',parent=self.Widget_AI)
+        self.addSubInterface(self.Widget_Anthropic, FIF.FEEDBACK, 'Anthropic官方',parent=self.Widget_official_api)
         # 添加Moonshot官方账号界面
-        self.addSubInterface(self.Widget_Moonshot, FIF.FEEDBACK, 'Moonshot官方',parent=self.Widget_AI) 
+        self.addSubInterface(self.Widget_Moonshot, FIF.FEEDBACK, 'Moonshot官方',parent=self.Widget_official_api) 
+        # 添加Deepseek官方账号界面
+        self.addSubInterface(self.Widget_Deepseek, FIF.FEEDBACK, 'Deepseek官方',parent=self.Widget_official_api) 
         # 添加智谱官方账号界面
-        self.addSubInterface(self.Widget_ZhiPu, FIF.FEEDBACK, '智谱官方',parent=self.Widget_AI) 
+
+        self.addSubInterface(self.Widget_ZhiPu, FIF.FEEDBACK, '智谱官方',parent=self.Widget_official_api) 
         # 添加代理账号界面
-        self.addSubInterface(self.Widget_Proxy, FIF.FEEDBACK, '代理平台',parent=self.Widget_AI) 
+        self.addSubInterface(self.Widget_Proxy, FIF.CLOUD, '代理平台',parent=self.Widget_AI) 
         # 添加sakura界面
-        self.addSubInterface(self.Widget_SakuraLLM, FIF.FEEDBACK, 'SakuraLLM',parent=self.Widget_AI) 
+        self.addSubInterface(self.Widget_SakuraLLM, FIF.CONNECT, 'SakuraLLM',parent=self.Widget_AI) 
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
 
         # 添加翻译设置相关页面
-        self.addSubInterface(self.Widget_translation_settings, FIF.BOOK_SHELF, '翻译设置',NavigationItemPosition.SCROLL) 
+        self.addSubInterface(self.Widget_translation_settings, FIF.APPLICATION, '翻译设置',NavigationItemPosition.SCROLL) 
+        self.addSubInterface(self.Widget_translation_settings_A, FIF.REMOVE, '基础设置',parent=self.Widget_translation_settings) 
+        self.addSubInterface(self.Widget_translation_settings_B, FIF.ALIGNMENT, '进阶设置',parent=self.Widget_translation_settings) 
+        self.addSubInterface(self.Widget_translation_settings_C, FIF.EMOJI_TAB_SYMBOLS, '混合翻译设置',parent=self.Widget_translation_settings) 
+
+
+        # 添加开始翻译页面
         self.addSubInterface(self.Widget_start_translation, FIF.ROBOT, '开始翻译',NavigationItemPosition.SCROLL)  
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
 
         # 添加其他功能页面
-        self.addSubInterface(self.Widget_prompt_dict, FIF.CALENDAR, '提示字典',NavigationItemPosition.SCROLL)  
-        self.addSubInterface(self.Widget_replace_dict, FIF.CALENDAR, '替换字典',NavigationItemPosition.SCROLL)  
+        self.addSubInterface(self.Widget_prompt_dict, FIF.DICTIONARY, '提示字典',NavigationItemPosition.SCROLL)  
+        self.addSubInterface(self.Widget_replace_dict, FIF.DICTIONARY, '替换字典',NavigationItemPosition.SCROLL)  
         self.addSubInterface(self.Widget_prompy_engineering, FIF.ZOOM, 'AI提示词工程',NavigationItemPosition.SCROLL) 
-        self.addSubInterface(self.Widget_tune, FIF.ALBUM, 'AI实时参数调教',NavigationItemPosition.SCROLL)   
+        self.addSubInterface(self.Widget_tune, FIF.MIX_VOLUMES, 'AI实时参数调教',NavigationItemPosition.SCROLL)   
 
 
 
@@ -12926,6 +13067,9 @@ class window(FramelessWindow): #主窗口
 
         # 添加RPG界面
         self.addSubInterface(self.Widget_RPG, FIF.TILES, 'StevExtraction',NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.Widget_export_source_text, FIF.SHARE, '提取原文',parent=self.Widget_RPG)
+        self.addSubInterface(self.Widget_import_translated_text, FIF.LABEL, '导入译文',parent=self.Widget_RPG)
+        self.addSubInterface(self.Widget_update_text, FIF.PIE_SINGLE, '提取新版游戏原文',parent=self.Widget_RPG)
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) 
 
