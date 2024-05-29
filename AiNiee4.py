@@ -6117,8 +6117,10 @@ class Cache_Manager():
                 if source_text == None:
                     entry['translation_status'] = 7
 
-                if source_text.isdigit():
+
+                if isinstance(source_text, str) and source_text.isdigit():
                     entry['translation_status'] = 7
+
 
                 if Cache_Manager.is_punctuation_string(self,source_text):
                     entry['translation_status'] = 7
@@ -13199,7 +13201,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.66.8"  #软件版本号
+    Software_Version = "AiNiee4.66.8.1"  #软件版本号
     cache_list = [] # 全局缓存数据
     Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是接口测试状态
                         # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
