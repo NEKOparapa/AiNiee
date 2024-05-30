@@ -6122,7 +6122,7 @@ class Cache_Manager():
                     entry['translation_status'] = 7
 
 
-                if Cache_Manager.is_punctuation_string(self,source_text):
+                if isinstance(source_text, str) and Cache_Manager.is_punctuation_string(self,source_text):
                     entry['translation_status'] = 7
 
     # 忽视部分纯代码文本，且改变翻译状态为7
