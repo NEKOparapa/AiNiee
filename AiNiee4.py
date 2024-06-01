@@ -4001,13 +4001,15 @@ Output the translation in JSON format:
             key_item = Window.Widget_replace_dict.A_settings.tableView.item(row, 0)
             value_item = Window.Widget_replace_dict.A_settings.tableView.item(row, 1)
             if key_item and value_item:
-                key = key_item.text() #key_item.text()是获取单元格的文本内容,如果需要获取转义符号，使用key_item.data(Qt.DisplayRole)
+                key = key_item.text() 
                 value = value_item.text()
                 data.append((key, value))
 
         # 将表格数据存储到中间字典中
         dictionary = {}
         for key, value in data:
+            key= key.replace('\\n', '\n').replace('\\r', '\r')  #现在只能针对替换，并不能将\\替换为\
+            value= value.replace('\\n', '\n').replace('\\r', '\r')
             dictionary[key] = value
 
         #详细版，增加可读性，但遍历整个文本，内存占用较大，当文本较大时，会报错
@@ -4038,6 +4040,8 @@ Output the translation in JSON format:
         # 将表格数据存储到中间字典中
         dictionary = {}
         for key, value in data:
+            key= key.replace('\\n', '\n').replace('\\r', '\r')  #现在只能针对替换，并不能将\\替换为\
+            value= value.replace('\\n', '\n').replace('\\r', '\r')
             dictionary[key] = value
 
         #详细版，增加可读性，但遍历整个文本，内存占用较大，当文本较大时，会报错
@@ -4800,11 +4804,13 @@ class Request_Limiter():
                 "command": {"max_tokens": 4000, "TPM": 9999999, "RPM": 10},
                 "command-r": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10},
                 "command-r-plus": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10},
+                "c4ai-aya-23": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10},
             },
             "生产账号": {
                 "command": {"max_tokens": 4000, "TPM": 9999999, "RPM": 10000 },
                 "command-r": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10000},
                 "command-r-plus": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10000},
+                "c4ai-aya-23": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10000},
             }
         }
 
@@ -5149,6 +5155,7 @@ class User_Interface_Prompter(QObject):
             "command": {"input_price": 0.0001, "output_price": 0.0001}, # 存储的价格是 /k tokens
             "command-r": {"input_price": 0.001, "output_price": 0.0001}, # 存储的价格是 /k tokens
             "command-r-plus": {"input_price": 0.001, "output_price": 0.001}, # 存储的价格是 /k tokens
+            "c4ai-aya-23": {"input_price": 0.001, "output_price": 0.001}, # 存储的价格是 /k tokens
             }
 
        self.google_price_data = {
@@ -7570,7 +7577,7 @@ class Widget_AI(QFrame):
 
     def __init__(self, text: str, parent=None):
         super().__init__(parent=parent)
-        self.label = QLabel("广告位招租", self)
+        self.label = QLabel("", self)
         self.label.setAlignment(Qt.AlignCenter)
         self.hBoxLayout = QHBoxLayout(self)
         self.hBoxLayout.addWidget(self.label, 1, Qt.AlignCenter)
@@ -8038,7 +8045,7 @@ class Widget_official_api(QFrame):
 
     def __init__(self, text: str, parent=None):
         super().__init__(parent=parent)
-        self.label = QLabel("广告位招租", self)
+        self.label = QLabel("", self)
         self.label.setAlignment(Qt.AlignCenter)
         self.hBoxLayout = QHBoxLayout(self)
         self.hBoxLayout.addWidget(self.label, 1, Qt.AlignCenter)
@@ -8607,7 +8614,7 @@ class Widget_Cohere(QFrame):#  Cohere账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox_model = ComboBox() #以demo为父类
-        self.comboBox_model.addItems(['command','command-r','command-r-plus'])
+        self.comboBox_model.addItems(['command','command-r','command-r-plus','c4ai-aya-23'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(200, 35)
         
@@ -9357,7 +9364,7 @@ class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
 class Widget_translation_settings(QFrame):  # 翻译设置主界面
     def __init__(self, text: str, parent=None):
         super().__init__(parent=parent)
-        self.label = QLabel("广告位招租", self)
+        self.label = QLabel("", self)
         self.label.setAlignment(Qt.AlignCenter)
         self.hBoxLayout = QHBoxLayout(self)
         self.hBoxLayout.addWidget(self.label, 1, Qt.AlignCenter)
@@ -12081,7 +12088,7 @@ class Widget_RPG(QFrame):  # RPG主界面
 
     def __init__(self, text: str, parent=None):
         super().__init__(parent=parent)
-        self.label = QLabel("广告位招租", self)
+        self.label = QLabel("", self)
         self.label.setAlignment(Qt.AlignCenter)
         self.hBoxLayout = QHBoxLayout(self)
         self.hBoxLayout.addWidget(self.label, 1, Qt.AlignCenter)
@@ -13201,7 +13208,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.66.8.1"  #软件版本号
+    Software_Version = "AiNiee4.66.8.2"  #软件版本号
     cache_list = [] # 全局缓存数据
     Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是接口测试状态
                         # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
