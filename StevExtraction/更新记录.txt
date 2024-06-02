@@ -1,3 +1,7 @@
+v2.16:
+1.新增对Scenario.json文件的支持，该文件如果存在，一般位于Scenario文件夹下，并且包含几乎全部游戏文本。
+如要翻译这个文件，需要在读取游戏前把它复制到data文件夹内
+注：样本量不是很足，不保证对所有Scenario.json都适配
 v2.15:
 1.改进DNoteB函数，现在总长度只会统计中日字符。防止形如"<Filter:日差し,tiltshift,TileAndCharsAndParallax>"的文本出现
 2.dnb函数新加一个参数，现在可以提交自定义文件名列表。默认为false，不使用自定义列表。

@@ -7,7 +7,7 @@ import openpyxl
 from chardet import detect
 import csv
 
-version = 'v2.15'
+version = 'v2.16'
 
 csv.field_size_limit(2**30)
 pd.options.display.max_colwidth = None
@@ -278,16 +278,16 @@ class Jr_Tpp():
                 data = trsed
         return data
     # 遍历data，删除所有被标记的list元素
-    def __del_marked_list(self,data):
+    def __del_marked_list(self,data,scenario=False):
         if type(data)==list:
             for i in range(0,len(data)):
-                data[i]=self.__del_marked_list(data[i])
+                data[i]=self.__del_marked_list(data[i],scenario)
         elif type(data)==dict:
             for key in data.keys():
-                if key == 'list':
-                    while '☆删除☆' in data['list']:data['list'].remove('☆删除☆')
+                if key == 'list' or scenario:
+                    while '☆删除☆' in data[key]:data[key].remove('☆删除☆')
                 else:
-                    data[key]=self.__del_marked_list(data[key])
+                    data[key]=self.__del_marked_list(data[key],scenario)
         return data
     # 检查译文中是否存在空数据，若存在，用原文填充，并输出提示
     def __CheckNAN(self):
@@ -359,8 +359,11 @@ class Jr_Tpp():
         Files = self.__ReadFolder(GameDir)
         if not os.path.exists(path+'\\data'): os.mkdir(path+'\\data')
         for File in Files:
+
             # 只读取data内的json文件
             name = File.split('\\data\\')[-1]
+            Scenario = False
+            if 'Scenario.json' in File:Scenario=True
             if '\\data\\' in File and name.endswith('.json'):
                 print(f'正在写入{name}')
                 with open(File, 'r', encoding='utf8') as f:
@@ -386,9 +389,9 @@ class Jr_Tpp():
                             if not black and code not in BlackCode and not self.__IfBlackDir(Dir):
                                 Dir=Dir.split('json\\')[1].split('\\')
                                 # 写入翻译
-                                data=self.__WriteFile(data,untrs,trsed,Dir,length,code)
+                                data=self.__WriteFile(data,untrs,trsed,Dir,length,code,key_is_list=Scenario)
                     # 全部注入后，删除被求和的行
-                    data=self.__del_marked_list(data)
+                    data=self.__del_marked_list(data,Scenario)
                 # 创建文件输出路径
                 self.__makedir(name,path+'\\data')
                 # 输出文件
