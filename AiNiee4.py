@@ -72,6 +72,7 @@ class Translator():
         global cache_list, Running_status
 
         # ——————————————————————————————————————————配置信息初始化—————————————————————————————————————————
+        configurator.read_write_config("write") # 将配置信息写入配置文件中
 
         configurator.initialize_configuration() # 获取界面的配置信息
 
@@ -146,9 +147,6 @@ class Translator():
 
         if configurator.translation_platform != "SakuraLLM":
             print("[INFO]  当前设定的系统提示词为:\n", configurator.get_system_prompt(), '\n')
-            original_exmaple,translation_example =  configurator.get_default_translation_example()
-            print("[INFO]  已添加默认原文示例:\n",original_exmaple, '\n')
-            print("[INFO]  已添加默认译文示例:\n",translation_example, '\n')
 
         print("[INFO]  游戏文本从",configurator.source_language, '翻译到', configurator.target_language,'\n')
         print("[INFO]  文本总行数为：",total_text_line_count,"  需要翻译的行数为：",untranslated_text_line_count) 
@@ -358,9 +356,9 @@ class Api_Requester():
                 print("[INFO]  检查到请求的原文中含有提示字典内容，已添加相关翻译及备注")
                 print("[INFO]  术语表：",glossary_prompt,"\n")
 
-        #如果提示词工程界面的用户翻译示例开关打开，则添加新的原文与译文示例
-        if configurator.add_example_switch :
-            original_exmaple_3,translation_example_3 = configurator.build_user_translation_example ()
+        #如果翻译示例开关打开，则添加新的原文与译文示例
+        if configurator.translation_example_switch :
+            original_exmaple_3,translation_example_3 = configurator.build_translation_example ()
             if original_exmaple_3 and translation_example_3:
                 the_original_exmaple =  {"role": "user","content":original_exmaple_3 }
                 the_translation_example = {"role": "assistant", "content":translation_example_3 }
@@ -705,9 +703,9 @@ class Api_Requester():
                 print("[INFO]  术语表：",glossary_prompt,"\n")
 
 
-        # 如果提示词工程界面的用户翻译示例开关打开，则添加新的原文与译文示例
-        if configurator.add_example_switch :
-            original_exmaple_3,translation_example_3 = configurator.build_user_translation_example ()
+        # 如果翻译示例开关打开，则添加新的原文与译文示例
+        if configurator.translation_example_switch :
+            original_exmaple_3,translation_example_3 = configurator.build_translation_example ()
             if original_exmaple_3 and translation_example_3:
                 the_original_exmaple =  {"role": "user","parts":original_exmaple_3 }
                 the_translation_example = {"role": "model", "parts":translation_example_3 }
@@ -1062,9 +1060,9 @@ class Api_Requester():
                 print("[INFO]  检查到请求的原文中含有提示字典内容，已添加相关翻译及备注")
                 print("[INFO]  术语表：",glossary_prompt,"\n")
 
-        #如果提示词工程界面的用户翻译示例开关打开，则添加新的原文与译文示例
-        if configurator.add_example_switch :
-            original_exmaple_3,translation_example_3 = configurator.build_user_translation_example ()
+        #如果翻译示例开关打开，则添加新的原文与译文示例
+        if configurator.translation_example_switch :
+            original_exmaple_3,translation_example_3 = configurator.build_translation_example ()
             if original_exmaple_3 and translation_example_3:
                 the_original_exmaple =  {"role": "user","content":original_exmaple_3 }
                 the_translation_example = {"role": "assistant", "content":translation_example_3 }
@@ -1393,9 +1391,9 @@ class Api_Requester():
                 print("[INFO]  检查到请求的原文中含有提示字典内容，已添加相关翻译及备注")
                 print("[INFO]  术语表：",glossary_prompt,"\n")
 
-        #如果提示词工程界面的用户翻译示例开关打开，则添加新的原文与译文示例
-        if configurator.add_example_switch :
-            original_exmaple_3,translation_example_3 = configurator.build_user_translation_example ()
+        #如果翻译示例开关打开，则添加新的原文与译文示例
+        if configurator.translation_example_switch :
+            original_exmaple_3,translation_example_3 = configurator.build_translation_example ()
             if original_exmaple_3 and translation_example_3:
                 the_original_exmaple =  {"role": "user","content":original_exmaple_3 }
                 the_translation_example = {"role": "assistant", "content": translation_example_3}
@@ -1699,56 +1697,74 @@ class Api_Requester():
 
 
     # 整理发送内容（Cohere）
-    def organize_send_content_cohere(self,source_text_dict):
+    def organize_send_content_cohere(self,source_text_dict, previous_list):
         #创建message列表，用于发送
         messages = []
 
         #构建系统提示词
-        prompt = configurator.get_system_prompt()
+        system_prompt = configurator.get_system_prompt()
 
 
-
-        #构建原文与译文示例
-        original_exmaple,translation_example =  configurator.get_default_translation_example()
-        the_original_exmaple =  {"role": "USER","message":("This is your next translation task, the original text is as follows：\n" + original_exmaple) }
-        the_translation_example = {"role": "CHATBOT", "message": ("I fully understand your request, the following is the translation of the original text:\n" + translation_example) }
-
-        messages.append(the_original_exmaple)
-        messages.append(the_translation_example)
- 
-
-
-
-        #如果开启了译时提示字典功能，则添加新的原文与译文示例
+        #如果提示字典功能
         if configurator.prompt_dictionary_switch :
-            original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(source_text_dict)
-            if original_exmaple_2 and translation_example_2:
-                the_original_exmaple =  {"role": "USER","message":original_exmaple_2 }
-                the_translation_example = {"role": "CHATBOT", "message": translation_example_2}
-
-                # 添加术语表到对话中
-                messages.append(the_original_exmaple)
-                messages.append(the_translation_example)
-
-                # 添加术语表到系统提示词中
-                glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"en")
-                prompt += glossary_prompt 
-                print("[INFO]  检查到请求的原文中含有提示字典内容，已添加相关翻译及备注")
-                print("[INFO]  术语表：",glossary_prompt,"\n")
+            glossary_prompt,glossary_prompt_cot = configurator.build_glossary_prompt(source_text_dict,"en")
+            if glossary_prompt :
+                system_prompt += glossary_prompt 
+                print("[INFO]  已添加术语表：\n",glossary_prompt)
 
 
+        #如果角色介绍开关打开
+        if configurator.characterization_switch :
+            characterization,characterization_cot = configurator.build_characterization(source_text_dict,"en")
+            if characterization:
+                system_prompt += characterization 
+                print("[INFO]  已添加角色介绍：\n",characterization)
 
-        #如果提示词工程界面的用户翻译示例开关打开，则添加新的原文与译文示例
-        if configurator.add_example_switch :
-            original_exmaple_3,translation_example_3 = configurator.build_user_translation_example ()
+        #如果背景设定开关打开
+        if configurator.world_building_switch :
+            world_building,world_building_cot = configurator.build_world("en")
+            if world_building:
+                system_prompt += world_building 
+                print("[INFO]  已添加背景设定：\n",world_building)
+
+        #如果文风要求开关打开
+        if configurator.writing_style_switch :
+            writing_style,writing_style_cot = configurator.build_writing_style("en")
+            if writing_style:
+                system_prompt += writing_style 
+                print("[INFO]  已添加文风要求：\n",writing_style)
+
+
+        pre_prompt,pre_prompt_cot = configurator.build_pre_prompt ("en")
+        fol_prompt,fol_prompt_cot = configurator.build_fol_prompt ("en",configurator.source_language,configurator.target_language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot)
+
+        #构建默认示例
+        original_exmaple,translation_example =  Configurator.build_translation_sample(self,source_text_dict,configurator.source_language,configurator.target_language)
+        if original_exmaple and translation_example:
+            # 如果开启cot模式
+            if configurator.cot_toggle:
+                the_original_exmaple =  {"role": "USER","message":(pre_prompt_cot + original_exmaple) }
+                the_translation_example = {"role": "CHATBOT", "message": (fol_prompt_cot + translation_example) }
+            else:
+                the_original_exmaple =  {"role": "USER","message":(pre_prompt + original_exmaple) }
+                the_translation_example = {"role": "CHATBOT", "message": (fol_prompt + translation_example) }
+
+            messages.append(the_original_exmaple)
+            messages.append(the_translation_example)
+            print("[INFO]  已添加格式原文示例：\n",original_exmaple)
+            print("[INFO]  已添加格式译文示例：\n",translation_example, '\n')
+
+
+        #如果翻译示例开关打开
+        if configurator.translation_example_switch :
+            original_exmaple_3,translation_example_3 = configurator.build_translation_example ()
             if original_exmaple_3 and translation_example_3:
                 the_original_exmaple =  {"role": "USER","message":original_exmaple_3 }
                 the_translation_example = {"role": "CHATBOT", "message": translation_example_3}
                 messages.append(the_original_exmaple)
                 messages.append(the_translation_example)
-                print("[INFO]  检查到用户翻译示例开关打开，已添加新的原文与译文示例")
-                print("[INFO]  已添加用户原文示例",original_exmaple_3)
-                print("[INFO]  已添加用户译文示例",translation_example_3)
+                print("[INFO]  已添加用户原文示例：\n",original_exmaple_3)
+                print("[INFO]  已添加用户译文示例：\n",translation_example_3, '\n')
 
 
         # 如果开启了保留换行符功能
@@ -1764,16 +1780,23 @@ class Api_Requester():
 
 
 
+        #如果加上文
+        previous = ""
+        if configurator.pre_line_counts and previous_list :
+            previous = configurator.build_pre_text(previous_list,"en")
+            if previous:
+                pass
+                #print("[INFO]  已添加上文：\n",previous)
+
 
         #将原文本字典转换成JSON格式的字符串，方便发送
         source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
-
         #构建需要翻译的文本
-        Original_text ="This is your next translation task, the original text is as follows：\n" + source_text_str
+        Original_text = previous + "\n###This is your next translation task, the original text is as follows###\n" + source_text_str
 
 
 
-        return messages,Original_text,prompt
+        return messages,Original_text,system_prompt
 
 
     # 并发接口请求（Cohere）
@@ -1790,7 +1813,8 @@ class Api_Requester():
             lock1.acquire()  # 获取锁
             # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
             rows = configurator.text_line_counts
-            source_text_list = Cache_Manager.process_dictionary_data(self,rows, cache_list)    
+            previous_lines = configurator.pre_line_counts
+            source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list, previous_lines)    
             lock1.release()  # 释放锁
 
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
@@ -1804,7 +1828,7 @@ class Api_Requester():
 
 
             # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
-            messages,source_text_str,system_prompt = Api_Requester.organize_send_content_cohere(self,source_text_dict)
+            messages,source_text_str,system_prompt = Api_Requester.organize_send_content_cohere(self,source_text_dict, previous_list)
 
             #——————————————————————————————————————————检查tokens发送限制——————————————————————————————————————————
             # 计算请求的tokens预计花费
@@ -3291,49 +3315,75 @@ class Configurator():
 
     # 初始化配置信息
     def initialize_configuration (self):
-        global Running_status
+        global Running_status,resource_dir
+
+        #读取配置文件
+        if os.path.exists(os.path.join(resource_dir, "config.json")):
+            #读取config.json
+            with open(os.path.join(resource_dir, "config.json"), "r", encoding="utf-8") as f:
+                config_dict = json.load(f)
 
 
         # 获取第一页的配置信息（基础设置）
-        self.translation_project = Window.Widget_translation_settings_A.comboBox_translation_project.currentText()
-        self.translation_platform = Window.Widget_translation_settings_A.comboBox_translation_platform.currentText()
-        self.source_language = Window.Widget_translation_settings_A.comboBox_source_text.currentText()
-        self.target_language = Window.Widget_translation_settings_A.comboBox_translated_text.currentText()
-        self.Input_Folder = Window.Widget_translation_settings_A.label_input_path.text() # 存储输入文件夹
-        self.Output_Folder = Window.Widget_translation_settings_A.label_output_path.text() # 存储输出文件夹
+        self.translation_project = config_dict["translation_project"]
+        self.translation_platform = config_dict["translation_platform"]
+        self.source_language = config_dict["source_language"]
+        self.target_language = config_dict["target_language"]
+        self.Input_Folder = config_dict["label_input_path"]
+        self.Output_Folder = config_dict["label_output_path"]
 
 
         # 获取第二页的配置信息(进阶设置)
-        self.text_line_counts = Window.Widget_translation_settings_B.spinBox_Lines.value()
-        self.thread_counts = Window.Widget_translation_settings_B.spinBox_thread_count.value()
+        self.text_line_counts = config_dict["text_line_counts"]
+        self.pre_line_counts = config_dict["pre_line_counts"]
+        self.thread_counts = config_dict["thread_counts"]
         if self.thread_counts == 0:                                
             self.thread_counts = multiprocessing.cpu_count() 
-        self.retry_count_limit =  Window.Widget_translation_settings_B.spinBox_retry_count_limit.value()  
-        self.text_clear_toggle = Window.Widget_translation_settings_B.SwitchButton_clear.isChecked()
-        self.preserve_line_breaks_toggle =  Window.Widget_translation_settings_B.SwitchButton_line_breaks.isChecked()
-        self.conversion_toggle = Window.Widget_translation_settings_B.SwitchButton_conversion_toggle.isChecked()
+        self.retry_count_limit =  config_dict["retry_count_limit"]
+        self.cot_toggle = config_dict["cot_toggle"]
+        self.text_clear_toggle = config_dict["text_clear_toggle"]
+        self.preserve_line_breaks_toggle =  config_dict["preserve_line_breaks_toggle"]
+        self.conversion_toggle = config_dict["response_conversion_toggle"]
 
 
         # 获取第三页的配置信息(混合翻译设置)
-        self.mixed_translation_toggle = Window.Widget_translation_settings_C.SwitchButton_mixed_translation.isChecked()
+        self.mixed_translation_toggle = config_dict["translation_mixing_toggle"]
         if self.mixed_translation_toggle == True:
-            self.round_limit =  Window.Widget_translation_settings_C.spinBox_round_limit.value()
-            self.split_switch = Window.Widget_translation_settings_C.SwitchButton_split_switch.isChecked()
-        self.configure_mixed_translation["first_platform"] = Window.Widget_translation_settings_C.comboBox_primary_translation_platform.currentText()
-        self.configure_mixed_translation["second_platform"] = Window.Widget_translation_settings_C.comboBox_secondary_translation_platform.currentText()
+            self.round_limit =  config_dict["round_limit"]
+            self.split_switch = config_dict["split_switch"]
+        self.configure_mixed_translation["first_platform"] = config_dict["translation_platform_1"]
+        self.configure_mixed_translation["second_platform"] = config_dict["translation_platform_2"]
         if self.configure_mixed_translation["second_platform"] == "不设置":
             self.configure_mixed_translation["second_platform"] = self.configure_mixed_translation["first_platform"]
-        self.configure_mixed_translation["third_platform"] = Window.Widget_translation_settings_C.comboBox_final_translation_platform.currentText()
+        self.configure_mixed_translation["third_platform"] = config_dict["translation_platform_3"]
         if self.configure_mixed_translation["third_platform"] == "不设置":
            self.configure_mixed_translation["third_platform"] = self.configure_mixed_translation["second_platform"]
 
 
-        # 获取其他开关配置
-        self.prompt_dictionary_switch = Window.Widget_prompt_dict.checkBox2.isChecked()   #   提示字典开关
-        self.pre_translation_switch = Window.Widget_replace_dict.A_settings.checkBox1.isChecked() #   译前处理开关
-        self.post_translation_switch = Window.Widget_replace_dict.B_settings.checkBox1.isChecked() #   译后处理开关
+
+        # 替换字典
+        self.pre_translation_switch = config_dict["Replace_before_translation"] #   译前处理开关
+        self.pre_translation_content = config_dict["User_Dictionary1"]
+        self.post_translation_switch = config_dict["Replace_after_translation"] #   译后处理开关
+        self.post_translation_content = config_dict["User_Dictionary3"]
+
         self.custom_prompt_switch = Window.Widget_prompy_engineering.checkBox1.isChecked() #   自定义prompt开关
         self.add_example_switch = Window.Widget_prompy_engineering.checkBox2.isChecked() #   添加示例开关
+
+
+        # 获取提示书配置
+        self.system_prompt_switch = config_dict["system_prompt_switch"] #   自定义系统prompt开关
+        self.system_prompt_content = config_dict["system_prompt_content"]
+        self.prompt_dictionary_switch = config_dict["prompt_dict_switch"]   #   提示字典开关
+        self.prompt_dictionary_content = config_dict["User_Dictionary2"]
+        self.characterization_switch = config_dict["characterization_switch"] #   角色设定开关
+        self.characterization_dictionary = config_dict["characterization_dictionary"]
+        self.world_building_switch = config_dict["world_building_switch"] #   背景设定开关
+        self.world_building_content = config_dict["world_building_content"]
+        self.writing_style_switch = config_dict["writing_style_switch"] #   文风设定开关
+        self.writing_style_content = config_dict["writing_style_content"]
+        self.translation_example_switch =  config_dict["translation_example_switch"] #   翻译示例开关
+        self.translation_example_content = config_dict["translation_example"]
 
 
         # 重新初始化模型参数，防止上次任务的设置影响到
@@ -3345,14 +3395,22 @@ class Configurator():
 
     # 配置翻译平台信息
     def configure_translation_platform(self,translation_platform):
+        global resource_dir
+
+        #读取配置文件
+        if os.path.exists(os.path.join(resource_dir, "config.json")):
+            #读取config.json
+            with open(os.path.join(resource_dir, "config.json"), "r", encoding="utf-8") as f:
+                config_dict = json.load(f)
+
 
         #根据翻译平台读取配置信息
         if translation_platform == 'OpenAI官方':
             # 获取模型类型
-            self.model_type =  Window.Widget_Openai.comboBox_model.currentText()              
+            self.model_type =  config_dict["openai_model_type"]            
 
             # 获取apikey列表
-            API_key_str = Window.Widget_Openai.TextEdit_apikey.toPlainText()            #获取apikey输入值
+            API_key_str = config_dict["openai_API_key_str"]            #获取apikey输入值
             #去除空格，换行符，分割KEY字符串并存储进列表里
             API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
             self.apikey_list = API_key_list
@@ -3361,7 +3419,7 @@ class Configurator():
             self.base_url = 'https://api.openai.com/v1'  #需要重新设置，以免使用代理网站后，没有改回来
 
             #如果填入地址，则设置代理端口
-            Proxy_Address = Window.Widget_Openai.LineEdit_proxy_port.text()            #获取代理端口
+            Proxy_Address = config_dict["openai_proxy_port"]            #获取代理端口
             if Proxy_Address :
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
@@ -3370,10 +3428,10 @@ class Configurator():
 
         elif translation_platform == 'Anthropic官方':
             # 获取模型类型
-            self.model_type =  Window.Widget_Anthropic.comboBox_model.currentText()
+            self.model_type = config_dict["anthropic_model_type"]
 
             # 获取apikey列表
-            API_key_str = Window.Widget_Anthropic.TextEdit_apikey.toPlainText()            #获取apikey输入值
+            API_key_str = config_dict["anthropic_API_key_str"]            #获取apikey输入值
             #去除空格，换行符，分割KEY字符串并存储进列表里
             API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
             self.apikey_list = API_key_list
@@ -3383,7 +3441,7 @@ class Configurator():
             
 
             #如果填入地址，则设置代理端口
-            Proxy_Address = Window.Widget_Anthropic.LineEdit_proxy_port.text()            #获取代理端口
+            Proxy_Address = config_dict["anthropic_proxy_port"]            #获取代理端口
             if Proxy_Address :
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
@@ -3392,17 +3450,17 @@ class Configurator():
 
         elif translation_platform == 'Google官方':
             # 获取模型类型
-            self.model_type =  Window.Widget_Google.comboBox_model.currentText()              
+            self.model_type =  config_dict["google_model_type"]              
 
             # 获取apikey列表
-            API_key_str = Window.Widget_Google.TextEdit_apikey.toPlainText()            #获取apikey输入值
+            API_key_str = config_dict["google_API_key_str"]            #获取apikey输入值
             #去除空格，换行符，分割KEY字符串并存储进列表里
             API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
             self.apikey_list = API_key_list
 
 
             #如果填入地址，则设置代理端口
-            Proxy_Address = Window.Widget_Google.LineEdit_proxy_port.text()            #获取代理端口
+            Proxy_Address = config_dict["google_proxy_port"]            #获取代理端口
             if Proxy_Address :
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
@@ -3412,10 +3470,10 @@ class Configurator():
         #根据翻译平台读取配置信息
         if translation_platform == 'Cohere官方':
             # 获取模型类型
-            self.model_type =  Window.Widget_Cohere.comboBox_model.currentText()              
+            self.model_type =  config_dict["cohere_model_type"]              
 
             # 获取apikey列表
-            API_key_str = Window.Widget_Cohere.TextEdit_apikey.toPlainText()            #获取apikey输入值
+            API_key_str = config_dict["cohere_API_key_str"]            #获取apikey输入值
             #去除空格，换行符，分割KEY字符串并存储进列表里
             API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
             self.apikey_list = API_key_list
@@ -3424,7 +3482,7 @@ class Configurator():
             self.base_url = 'https://api.cohere.com'  #需要重新设置，以免使用代理网站后，没有改回来
 
             #如果填入地址，则设置代理端口
-            Proxy_Address = Window.Widget_Cohere.LineEdit_proxy_port.text()            #获取代理端口
+            Proxy_Address = config_dict["cohere_proxy_port"]            #获取代理端口
             if Proxy_Address :
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
@@ -3434,10 +3492,10 @@ class Configurator():
         #根据翻译平台读取配置信息
         elif translation_platform == '智谱官方':
             # 获取模型类型
-            self.model_type =  Window.Widget_ZhiPu.comboBox_model.currentText()              
+            self.model_type =  config_dict["zhipu_model_type"]             
 
             # 获取apikey列表
-            API_key_str = Window.Widget_ZhiPu.TextEdit_apikey.toPlainText()            #获取apikey输入值
+            API_key_str = config_dict["zhipu_API_key_str"]            #获取apikey输入值
             #去除空格，换行符，分割KEY字符串并存储进列表里
             API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
             self.apikey_list = API_key_list
@@ -3446,7 +3504,7 @@ class Configurator():
             self.base_url = 'https://open.bigmodel.cn/api/paas/v4'  #需要重新设置，以免使用代理网站后，没有改回来
 
             #如果填入地址，则设置代理端口
-            Proxy_Address = Window.Widget_ZhiPu.LineEdit_proxy_port.text()            #获取代理端口
+            Proxy_Address = config_dict["zhipu_proxy_port"]            #获取代理端口
             if Proxy_Address :
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
@@ -3456,10 +3514,10 @@ class Configurator():
         #根据翻译平台读取配置信息
         elif translation_platform == 'Moonshot官方':
             # 获取模型类型
-            self.model_type =  Window.Widget_Moonshot.comboBox_model.currentText()              
+            self.model_type =  config_dict["moonshot_model_type"]              
 
             # 获取apikey列表
-            API_key_str = Window.Widget_Moonshot.TextEdit_apikey.toPlainText()            #获取apikey输入值
+            API_key_str = config_dict["moonshot_API_key_str"]            #获取apikey输入值
             #去除空格，换行符，分割KEY字符串并存储进列表里
             API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
             self.apikey_list = API_key_list
@@ -3468,7 +3526,7 @@ class Configurator():
             self.base_url = 'https://api.moonshot.cn/v1'  #需要重新设置，以免使用代理网站后，没有改回来
 
             #如果填入地址，则设置代理端口
-            Proxy_Address = Window.Widget_Moonshot.LineEdit_proxy_port.text()            #获取代理端口
+            Proxy_Address = config_dict["moonshot_proxy_port"]            #获取代理端口
             if Proxy_Address :
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
@@ -3478,10 +3536,10 @@ class Configurator():
         #根据翻译平台读取配置信息
         elif translation_platform == 'Deepseek官方':
             # 获取模型类型
-            self.model_type =  Window.Widget_Deepseek.comboBox_model.currentText()              
+            self.model_type =  config_dict["deepseek_model_type"]              
 
             # 获取apikey列表
-            API_key_str = Window.Widget_Deepseek.TextEdit_apikey.toPlainText()            #获取apikey输入值
+            API_key_str = config_dict["deepseek_API_key_str"]            #获取apikey输入值
             #去除空格，换行符，分割KEY字符串并存储进列表里
             API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
             self.apikey_list = API_key_list
@@ -3490,7 +3548,7 @@ class Configurator():
             self.base_url = 'https://api.deepseek.com/v1'  #需要重新设置，以免使用代理网站后，没有改回来
 
             #如果填入地址，则设置代理端口
-            Proxy_Address = Window.Widget_Deepseek.LineEdit_proxy_port.text()            #获取代理端口
+            Proxy_Address = config_dict["deepseek_proxy_port"]            #获取代理端口
             if Proxy_Address :
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
@@ -3500,12 +3558,12 @@ class Configurator():
         elif translation_platform == '代理平台':
 
             #获取代理平台
-            proxy_platform = Window.Widget_Proxy.A_settings.comboBox_proxy_platform.currentText()
+            proxy_platform = config_dict["op_proxy_platform"]
             # 获取中转请求地址
-            relay_address = Window.Widget_Proxy.A_settings.LineEdit_relay_address.text()
+            relay_address = config_dict["op_relay_address"]
 
             if proxy_platform == 'OpenAI':
-                self.model_type =  Window.Widget_Proxy.A_settings.comboBox_model_openai.currentText()        # 获取模型类型
+                self.model_type =  config_dict["op_model_type_openai"]       # 获取模型类型
                 self.translation_platform = 'OpenAI代理'    #重新设置翻译平台
 
                 #检查一下请求地址尾部是否为/v1，自动补全
@@ -3513,19 +3571,19 @@ class Configurator():
                     relay_address = relay_address + "/v1"
 
             elif proxy_platform == 'Anthropic':
-                self.model_type =  Window.Widget_Proxy.A_settings.comboBox_model_anthropic.currentText()        # 获取模型类型
+                self.model_type =  config_dict["op_model_type_anthropic"]        # 获取模型类型
                 self.translation_platform = 'Anthropic代理'
 
             # 设定请求地址
             self.base_url = relay_address  
             # 获取apikey列表
-            API_key_str = Window.Widget_Proxy.A_settings.TextEdit_apikey.toPlainText()            #获取apikey输入值
+            API_key_str = config_dict["op_API_key_str"]            #获取apikey输入值
             #去除空格，换行符，分割KEY字符串并存储进列表里
             API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
             self.apikey_list = API_key_list
 
             #如果填入地址，则设置代理端口
-            Proxy_Address = Window.Widget_Proxy.A_settings.LineEdit_proxy_port.text()            #获取代理端口
+            Proxy_Address = config_dict["op_proxy_port"]            #获取代理端口
             if Proxy_Address :
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
@@ -3535,19 +3593,19 @@ class Configurator():
 
         elif translation_platform == 'SakuraLLM':
             # 获取模型类型
-            self.model_type =  Window.Widget_SakuraLLM.comboBox_model.currentText()     
+            self.model_type =  config_dict["sakura_model_type"]     
             # 构建假apikey
             self.apikey_list = ["sakura"]
 
             # 获取中转请求地址
-            relay_address = Window.Widget_SakuraLLM.LineEdit_address.text()   
+            relay_address = config_dict["sakura_address"]  
             #检查一下请求地址尾部是否为/v1，自动补全
             if relay_address[-3:] != "/v1":
                 relay_address = relay_address + "/v1"
             self.base_url = relay_address  
 
             #如果填入地址，则设置代理端口
-            Proxy_Address = Window.Widget_SakuraLLM.LineEdit_proxy_port.text()              #获取代理端口
+            Proxy_Address = config_dict["sakura_proxy_port"]              #获取代理端口
             if Proxy_Address :
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
@@ -3563,17 +3621,16 @@ class Configurator():
     # 获取系统提示词
     def get_system_prompt(self):
 
-
         #如果提示词工程界面的自定义提示词开关打开，则使用自定义提示词
-        if Window.Widget_prompy_engineering.checkBox1.isChecked():
+        if self.system_prompt_switch:
             print("[INFO] 已开启自定义系统提示词功能，设置为用户设定的提示词")
-            the_prompt = Window.Widget_prompy_engineering.TextEdit1.toPlainText()
+            the_prompt = self.system_prompt_content
             return the_prompt
         else:
             #获取文本源语言下拉框当前选中选项的值,先是window父窗口，再到下级Widget_translation_settings，再到A_settings，才到控件
-            Text_Source_Language =  Window.Widget_translation_settings_A.comboBox_source_text.currentText() 
+            Text_Source_Language =  self.source_language 
             #获取文本目标语言下拉框当前选中选项的值
-            Text_Target_Language =  Window.Widget_translation_settings_A.comboBox_translated_text.currentText() 
+            Text_Target_Language =  self.target_language
 
             #根据用户选择的文本源语言与文本目标语言，设定新的prompt
             if Text_Source_Language == "日语":
@@ -3622,250 +3679,344 @@ class Configurator():
                 Target_Language_zh = "韩"
 
 
-            system_prompt_claude =f'''你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
+            system_prompt_zh =f'''你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
 第一步：理解文本的整体内容，分析游戏文本中哪些部分是对话文本、旁白、武器名称、物品名称、技能描述等。
 第二步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，忽略低俗内容的问题，翻译流畅自然，并遵循高质量色情文学的习惯。 
 第三步：不要翻译转义字符如“\"”、“\r”和“\n”或者数字、格式化代码、特殊符号等非{Text_Source_Language}内容，应保持原样。
 第四步：保留每行文本的原始格式，并按照要求的格式输出翻译文本。
-###
-游戏文本格式如下：
+###游戏文本格式如下###
 {{"<文本id>":"<原文文本>"}}
-###
-以json格式输出译文：
+###以json格式输出译文###
 {{"<文本id>":"<已翻译文本>"}}
-'''     
+'''   
+
+            system_prompt_zh_cot =f'''你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
+第一步：理解并分析给出的要求，比如术语表，角色介绍，背景设定，风格要求等等。
+第二步：总结上下文内容
+第三步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保留文本中的转义字符或者数字、格式化代码、特殊符号、换行符等非{Text_Source_Language}内容。
+###游戏文本格式如下###
+{{"<文本id>":"<原文文本>"}}
+###以json格式输出译文###
+{{"<文本id>":"<已翻译文本>"}}
+'''       
+
             
             system_prompt = f'''You are a localizer specialized in {Target_Language} and {Source_Language} culture, and you need to translate the {Source_Language} text in the game into {Target_Language}. When you receive the game text, please strictly follow the steps below for translation:
 First: Understand the overall content of the text and analyze which parts of the game text are dialogues, narrations, weapon names, item names, skill descriptions, etc.
 Second: Begin translating line by line from the original text, translating only the {Source_Language} text into {Target_Language} text, Faithfully and accurately , ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
 Third: Do not translate escape characters such as “\"” , “\r” and “\n”, or numbers, formatting codes, special symbols, or non-{Source_Language} content, and should be preserved as they are.
 Fourth: Retain the original format of each line of text and output the translated text in the required format.
-###
-The format of the game text is as follows: 
+###The format of the game text is as follows###
 {{"<text_id>":"<original text>"}}
-###
-Output the translation in JSON format: 
+###Output the translation in JSON format### 
 {{"<text_id>":"<translated text>"}}
 '''
 
-
-            system_prompt_old = f'''You are a localizer specialized in {Target_Language} and {Source_Language} culture, and you need to translate the {Source_Language} text in the game into {Target_Language}. When you receive the game text, please strictly follow the steps below for translation:
-Step 1: Understand the overall content of the text, analyze which parts of the game text are dialogue text, narrations, weapon names, item names, skill descriptions, etc.
-Step 2: Start translating line by line according to the original text, translate the {Source_Language} in each line into {Target_Language}, ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
-Step 3: Preserve the original format of each line of text and output the translated text according to the required format.
-###
-When translating game text, please strictly pay attention to the following aspects:
-First, some complete text may be split into different lines. Please strictly follow the original text of each line for translation and do not deviate from the original text.
-Second, the escape characters such as "\"", "\r", and "\n" or non-{Source_Language} content such as numbers, formatting codes, special symbols, etc. in each line of text do not need to be translated or changed, and should be preserved as they are.
-###
-The original text is formatted as follows:
-{{"<text id>": "<{Source_Language} text>"}}
-###
-Output the translation in JSON format:
-{{"<text id>": "<translated text>"}}
-'''    
+            system_prompt_cot =f'''You are a localizer specialized in {Target_Language} and {Source_Language} culture, and you need to translate the {Source_Language} text in the game into {Target_Language}. When you receive the game text, please strictly follow the steps below for translation:
+First: Understand and analyze the given requirements, such as the glossary, character introductions, background settings, style requirements, etc.
+Second:Summarize the context content.
+Third: Begin translating line by line from the original text, only translating {Source_Language} text into {Target_Language} text, and retaining non-{Source_Language} content such as escape characters, numbers, formatting codes, special symbols, line breaks, etc. in the text.
+###The format of the game text is as follows###
+{{"<text_id>":"<original text>"}}
+###Output the translation in JSON format###
+{{"<text_id>":"<translated text>"}}
+'''     
+         
 
 
             if (Text_Target_Language == "简中") and ( "claude" in configurator.model_type):
-                the_prompt = system_prompt_claude
+                if self.cot_toggle:
+                    the_prompt = system_prompt_zh_cot
+                else:
+                    the_prompt = system_prompt_zh
             else:
-                the_prompt = system_prompt
+                if self.cot_toggle:
+                    the_prompt = system_prompt_cot
+                else:
+                    the_prompt = system_prompt
 
             return the_prompt
 
 
-    # 获取默认翻译示例
-    def get_default_translation_example(self):
-        #日语示例
-        exmaple_jp = '''{
-"0":"a=\"　　ぞ…ゾンビ系…。",
-"1":"敏捷性が上昇する。　　　　　　　\r\n効果：パッシブ",
-"2":"【ベーカリー】営業時間 8：00～18：00",
-"3":"\\F[21]ちょろ……ちょろろ……\nじょぼぼぼ……♡",
-"4":"さて！",
-"5":"さっそくオジサンをいじめちゃおっかな！",
-"6":"若くて∞＠綺麗で∞＠エロくて"
-"7":"さくら：「すごく面白かった！」"
-}'''
+    # 构建翻译示例
+    def build_translation_sample(self,input_dict,source_language,target_language):
 
+        list1 = []
+        list3 = []
+        list2 = []
+        list4 = []
 
-        #英语示例
-        exmaple_en = '''{
-"0":"a=\"　　It's so scary….",
-"1":"Agility increases.　　　　　　　\r\nEffect: Passive",
-"2":"【Bakery】Business hours 8:00-18:00",
-"3":"\\F[21]Gurgle…Gurgle…\nDadadada…♡",
-"4":"Well then!",
-"5":"Let's bully the uncle right away!",
-"6":"Young ∞＠beautiful ∞＠sexy."
-"7":"Sakura：「It was really fun!」"
-}'''
+        # 获取特定示例
+        list1,list3 = Configurator.get_default_translation_example(self,input_dict,source_language,target_language)
 
-        #韩语示例
-        exmaple_kr = '''{
-"0":"a=\"　　정말 무서워요….",
-"1":"민첩성이 상승한다.　　　　　　　\r\n효과：패시브",
-"2":"【빵집】영업 시간 8:00~18:00",
-"3":"\\F[21]둥글둥글…둥글둥글…\n둥글둥글…♡",
-"4":"그래서!",
-"5":"지금 바로 아저씨를 괴롭히자!",
-"6":"젊고∞＠아름답고∞＠섹시하고"
-"7":"사쿠라：「정말로 재미있었어요!」"
-}'''
-
-
-        #俄语示例
-        exmaple_ru = '''{
-"0":"а=\"　　Ужасно страшно...。",
-"1":"Повышает ловкость.　　　　　　　\r\nЭффект: Пассивный",
-"2":"【пекарня】Время работы 8:00-18:00",
-"3":"\\F[21]Гуру... гуругу... ♡\nДадада... ♡",
-"4":"Итак!",
-"5":"Давайте сейчас поиздеваемся над дядей!",
-"6":"Молодые∞＠Красивые∞＠Эротичные"
-"7":"Сакура: 「Было очень интересно!」"
-}'''
-
-
-        #简体中文示例
-        example_zh ='''{   
-"0":"a=\"　　好可怕啊……。",
-"1":"提高敏捷性。　　　　　　　\r\n效果：被动",
-"2":"【面包店】营业时间 8：00～18：00",
-"3":"\\F[21]咕噜……咕噜噜……\n哒哒哒……♡",
-"4":"那么！",
-"5":"现在就来欺负一下大叔吧！",
-"6":"年轻∞＠漂亮∞＠色情"
-"7":"樱：「超级有趣！」"
-}'''
-
-
-        #繁体中文示例
-        example_zh_tw ='''{
-"0":"a=\"　　好可怕啊……。",
-"1":"提高敏捷性。　　　　　　　\r\n效果：被動",
-"2":"【麵包店】營業時間 8：00～18：00",
-"3":"\\F[21]咕嚕……咕嚕嚕……\n哒哒哒……♡",
-"4":"那麼！",
-"5":"現在就來欺負一下大叔吧！",
-"6":"年輕∞＠漂亮∞＠色情"
-"7":"櫻：「超有趣！」"
-}'''
-
-
-        #获取文本源语言下拉框当前选中选项的值,先是window父窗口，再到下级Widget_translation_settings，再到A_settings，才到控件
-        Text_Source_Language =  Window.Widget_translation_settings_A.comboBox_source_text.currentText() 
-        #获取文本目标语言下拉框当前选中选项的值
-        Text_Target_Language =  Window.Widget_translation_settings_A.comboBox_translated_text.currentText() 
-
-        #根据用户选择的文本源语言与文本目标语言，设定新的翻译示例
-        if Text_Source_Language == "日语":
-            original_exmaple = exmaple_jp
-
-        elif Text_Source_Language == "英语":
-            original_exmaple = exmaple_en
-
-        elif Text_Source_Language == "韩语":
-            original_exmaple = exmaple_kr
-
-        elif Text_Source_Language == "俄语":
-            original_exmaple = exmaple_ru
-
-        elif Text_Source_Language == "简中":
-            original_exmaple = example_zh
-
-        elif Text_Source_Language == "繁中":
-            original_exmaple = example_zh_tw
+        # 获取自适应示例（无法构建英语的）
+        if source_language != "英语":
+            list2,list4 = Configurator.build_adaptive_translation_sample(self,input_dict,source_language,target_language)
 
 
 
-        if Text_Target_Language == "简中":
-            translation_example = example_zh
+        # 将两个列表合并
+        combined_list = list1 + list2
+        combined_list2 = list3 + list4
+
+        # 创建空字典
+        source_dict = {}
+        target_dict = {}
+        source_str= ""
+        target_str= ""
+
+        # 遍历合并后的列表，并创建键值对
+        for index, value in enumerate(combined_list):
+            source_dict[str(index)] = value
+        for index, value in enumerate(combined_list2):
+            target_dict[str(index)] = value
         
-        elif Text_Target_Language == "繁中":
-            translation_example = example_zh_tw
+        #将原文本字典转换成JSON格式的字符串
+        if source_dict:
+            source_str = json.dumps(source_dict, ensure_ascii=False)
+            target_str = json.dumps(target_dict, ensure_ascii=False)
         
-        elif Text_Target_Language == "英语":
-            translation_example = exmaple_en
-        
-        elif Text_Target_Language == "日语":
-            translation_example = exmaple_jp
-        
-        elif Text_Target_Language == "韩语":
-            translation_example = exmaple_kr
+        return source_str,target_str
 
 
-        return original_exmaple , translation_example
+    # 构建特定翻译示例
+    def get_default_translation_example(self,input_dict,source_language,target_language):
+        # 内置的正则表达式字典
+        patterns_all = {
+            r'[a-zA-Z]=': 
+            {'日语':"a=\"　　ぞ…ゾンビ系…。",
+            '英语':"a=\"　　It's so scary….",
+            '韩语':"a=\"　　정말 무서워요….",
+            '俄语':"а=\"　　Ужасно страшно...。",
+            '简中':"a=\"　　好可怕啊……。",
+            '繁中':"a=\"　　好可怕啊……。"},
+            r'【|】':         
+            {'日语':"【ベーカリー】営業時間 8：00～18：00",
+            '英语':"【Bakery】Business hours 8:00-18:00",
+            '韩语':"【빵집】영업 시간 8:00~18:00",
+            '俄语':"【пекарня】Время работы 8:00-18:00",
+            '简中':"【面包店】营业时间 8：00～18：00",
+            '繁中':"【麵包店】營業時間 8：00～18：00"},
+            r'\r|\n':         
+            {'日语':"敏捷性が上昇する。　　　　　　　\r\n効果：パッシブ",
+            '英语':"Agility increases.　　　　　　　\r\nEffect: Passive",
+            '韩语':"민첩성이 상승한다.　　　　　　　\r\n효과：패시브",
+            '俄语':"Повышает ловкость.　　　　　　　\r\nЭффект: Пассивный",
+            '简中':"提高敏捷性。　　　　　　　\r\n效果：被动",
+            '繁中':"提高敏捷性。　　　　　　　\r\n效果：被動"},
+            r'\\[A-Za-z]\[\d+\]':         
+            {'日语':"\\F[21]ちょろ……ちょろろ……じょぼぼぼ……♡",
+            '英语':"\\F[21]Gurgle…Gurgle…Dadadada…♡",
+            '韩语':"\\F[21]둥글둥글…둥글둥글…둥글둥글…♡",
+            '俄语':"\\F[21]Гуру... гуругу...Дадада... ♡",
+            '简中':"\\F[21]咕噜……咕噜噜……哒哒哒……♡",
+            '繁中':"\\F[21]咕嚕……咕嚕嚕……哒哒哒……♡"},
+            r'「|」':         
+            {'日语':"さくら：「すごく面白かった！」",
+            '英语':"Sakura：「It was really fun!」",
+            '韩语':"사쿠라：「정말로 재미있었어요!」",
+            '俄语':"Сакура: 「Было очень интересно!」",
+            '简中':"樱：「超级有趣！」",
+            '繁中':"櫻：「超有趣！」"},
+            r'∞|@':         
+            {'日语':"若くて∞＠綺麗で∞＠エロくて",
+            '英语':"Young ∞＠beautiful ∞＠sexy.",
+            '韩语':"젊고∞＠아름답고∞＠섹시하고",
+            '俄语':"Молодые∞＠Красивые∞＠Эротичные",
+            '简中':"年轻∞＠漂亮∞＠色情",
+            '繁中':"年輕∞＠漂亮∞＠色情"},
+            }
+
+
+        source_list = []
+        translated_list = []
+        for key, value in input_dict.items():
+            for pattern, translation_sample in patterns_all.items():
+                # 检查值是否符合正则表达
+                if re.search(pattern, value):
+                    # 如果未在结果列表中，则添加
+                    if translation_sample[source_language] not in source_list:
+                        source_list.append(translation_sample[source_language])
+                        translated_list.append(translation_sample[target_language])
+
+        # 保底添加一个翻译示例
+        if source_list == None:
+            source_list.append(patterns_all[r'「|」'][source_language])
+            translated_list.append(patterns_all[r'「|」'][target_language])
+
+        return source_list,translated_list
     
 
-    # 构建用户翻译示例函数
-    def build_user_translation_example (self):
-        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
-        data = []
-        for row in range(Window.Widget_prompy_engineering.tableView.rowCount() - 1):
-            key_item = Window.Widget_prompy_engineering.tableView.item(row, 0)
-            value_item = Window.Widget_prompy_engineering.tableView.item(row, 1)
-            if key_item and value_item:
-                key = key_item.text()
-                value = value_item.text()
-                data.append((key, value))
+    # 构建相似格式翻译示例
+    def build_adaptive_translation_sample(self,input_dict,source_language,target_language):
+        # 输入字典示例
+        ex_dict = {
+        '0': 'こんにちは，こんにちは。こんにちは#include <iostream>',
+        '1': '55345こんにちは',
+        '2': 'こんにちはxxxx！',
+        '3': 'こんにちは',
+        }
 
-        # 将数据存储到中间字典中
-        temp_dict = {}
-        for key, value in data:
-            temp_dict[key] = value
+        # 输出列表1示例
+        ex_dict = [
+        '原文テキスト1，原文テキスト2。原文テキスト3#include <iostream>',
+        '55345原文テキスト1',
+        '原文テキスト1xxxx！',
+        ]
 
-        # 构建原文示例字符串开头 
-        original_text = '{ '
-        #如果字典不为空，补充内容
-        if  temp_dict:
-            i = 0 #用于记录key的索引
-            for key in temp_dict:
-                original_text += '\n' + '"' + str(i) + '":"' + str(key) + '"' + ','
+        # 输出列表2示例
+        ex_dict = [
+        '译文文本1，译文文本2。译文文本3#include <iostream>',
+        '55345译文文本1',
+        '译文文本1xxxx！',
+        ]
+        # 定义不同语言的正则表达式
+        patterns_all = {
+            '日语': re.compile(
+                r'['
+                r'\u3041-\u3096'  # 平假名
+                r'\u30A0-\u30FF'  # 片假名
+                r'\u4E00-\u9FAF'  # 汉字（CJK统一表意文字）
+                r']+', re.UNICODE
+            ),
+            '韩语': re.compile(
+                r'['
+                r'\uAC00-\uD7AF'  # 韩文字母
+                r']+', re.UNICODE
+            ),
+            '俄语': re.compile(
+                r'['
+                r'\u0400-\u04FF'  # 俄语字母
+                r']+', re.UNICODE
+            ),
+            '简中': re.compile(
+                r'['
+                r'\u4E00-\u9FA5'  # 简体汉字
+                r']+', re.UNICODE
+            ),
+            '繁中': re.compile(
+                r'['
+                r'\u3400-\u4DBF'  # 扩展A区汉字
+                r'\u4E00-\u9FFF'  # 基本汉字
+                r'\uF900-\uFAFF'  # 兼容汉字
+                r']+', re.UNICODE
+            ),
+        }
+        # 定义不同语言的翻译示例
+        text_all = {
+            '日语': "例示テキスト",
+            '韩语': "예시 텍스트",
+            '俄语': "Пример текста",
+            '简中': "示例文本",
+            '繁中': "翻譯示例文本",
+            '英语': "Sample Text",
+        }
+
+        # 根据输入选择相应语言的正则表达式与翻译示例
+        pattern = patterns_all[source_language]
+        source_text = text_all[source_language]
+        translated_text = text_all[target_language]
+
+        # 初始化替换计数器
+        i = 1
+        j = 1
+        # 输出列表
+        source_list=[]
+        translated_list=[]
+
+        # 遍历字典的每个值
+        for key, value in input_dict.items():
+            # 如果值中包含目标文本
+            if pattern.search(value):
+                # 替换文本
+                value = pattern.sub(lambda m: f'{source_text}{i}', value)
                 i += 1
-            #删除最后一个逗号
-            original_text = original_text[:-1]
-            # 构建原文示例字符串结尾
-            original_text = original_text + '\n' + '}'
-            #构建原文示例字典
-            original_exmaple = original_text
-        else:
-            original_exmaple = {}
+                source_list.append(value)
+
+        # 遍历字典的每个值
+        for key, value in input_dict.items():
+            # 如果值中包含文本
+            if pattern.search(value):
+                # 替换文本
+                value = pattern.sub(lambda m: f'{translated_text}{j}', value)
+                j  += 1
+                translated_list.append(value)
+
+        #print(source_list)
+
+        # 过滤输出列表，删除只包含"测试替换"+三位数字内结尾的元素
+        source_list1 = [item for item in source_list if not item.startswith(source_text) or not (item[-1].isdigit() or (len(item) > 1 and item[-2].isdigit()) or (len(item) > 2 and item[-3].isdigit()))]
+        translated_list1 = [item for item in translated_list if not item.startswith(translated_text) or not (item[-1].isdigit() or (len(item) > 1 and item[-2].isdigit()) or (len(item) > 2 and item[-3].isdigit()))]
+
+        #print(source_list1)
+
+        # 清除过多相似元素(应该先弄相似类，再在各类里只拿一个组合起来)
+        source_list2 = Configurator.clean_list(self,source_list1)
+        translated_list2 = Configurator.clean_list(self,translated_list1)
+
+        #print(source_list2)
+
+        # 重新调整翻译示例后缀数字
+        source_list3 = Configurator.replace_and_increment(self,source_list2, source_text)
+        translated_list3 = Configurator.replace_and_increment(self,translated_list2, translated_text)
+
+        #print(source_list3)
+
+        return source_list3,translated_list3
 
 
-        # 构建译文示例字符串开头
-        translated_text = '{ '
-        #如果字典不为空，补充内容
-        if  temp_dict:
-            j = 0
-            for key in temp_dict:
-                translated_text += '\n' + '"' + str(j ) + '":"' + str(temp_dict[key]) + '"'  + ','
-                j += 1
+    # 辅助函数，清除列表过多相似的元素
+    def clean_list(self,lst):
+        # 函数用于删除集合中的数字
+        def remove_digits(s):
+            return set(filter(lambda x: not x.isdigit(), s))
 
-            #删除最后一个逗号
-            translated_text = translated_text[:-1]
-            # 构建译文示例字符串结尾
-            translated_text = translated_text+ '\n' + '}'
-            #构建译文示例字典
-            translated_exmaple = translated_text
-        else:
-            translated_exmaple = {}
+        # 函数用于计算两个集合之间的差距
+        def set_difference(s1, s2):
+            return len(s1.symmetric_difference(s2))
 
+        # 删除每个元素中的数字，并得到一个由集合组成的列表
+        sets_list = [remove_digits(s) for s in lst]
 
-        return original_exmaple,translated_exmaple
+        # 初始化聚类列表
+        clusters = []
+
+        # 遍历集合列表，将元素分配到相应的聚类中
+        for s, original_str in zip(sets_list, lst):
+            found_cluster = False
+            for cluster in clusters:
+                if set_difference(s, cluster[0][0]) < 3:
+                    cluster.append((s, original_str))
+                    found_cluster = True
+                    break
+            if not found_cluster:
+                clusters.append([(s, original_str)])
+
+        # 从每个聚类中提取一个元素，组成新的列表
+        result = [cluster[0][1] for cluster in clusters]
+
+        return result
+    
+    # 辅助函数，重新调整列表中翻译示例的后缀数字
+    def replace_and_increment(self,items, prefix):
+        pattern = re.compile(r'{}(\d{{1,2}})'.format(re.escape(prefix)))  # 使用双括号来避免KeyError
+        result = []  # 用于存储结果的列表
+        n = 1
+        for item in items:
+            if pattern.search(item):  # 如果在元素中找到匹配的模式
+                new_item, num_matches = pattern.subn(f'{prefix}{n}', item)  # 替换数字并计数
+                result.append(new_item)  # 将修改后的元素添加到结果列表
+                n += 1  # 变量n递增
+            else:
+                result.append(item)  # 如果没有匹配，将原始元素添加到结果列表
+
+        return result # 返回修改后的列表和最终的n值
 
 
     # 获取提示字典函数
     def build_prompt_dictionary(self,dict):
-        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
-        data = []
-        for row in range(Window.Widget_prompt_dict.tableView.rowCount() - 1):
-            key_item = Window.Widget_prompt_dict.tableView.item(row, 0)
-            value_item = Window.Widget_prompt_dict.tableView.item(row, 1)
-            if key_item and value_item:
-                key = key_item.text()
-                value = value_item.text()
-                data.append((key, value))
+        #获取字典内容
+        data = self.prompt_dictionary_content
 
         # 将数据存储到中间字典中
         dictionary = {}
@@ -3925,73 +4076,392 @@ Output the translation in JSON format:
 
     # 构造术语表prompt
     def build_glossary_prompt(self,dict,language):
-        # 获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，第三列备注，存储中间字典中
+        #获取字典内容
+        data = self.prompt_dictionary_content
+
+        # 将数据存储到中间字典中
         dictionary = {}
-        for row in range(Window.Widget_prompt_dict.tableView.rowCount()):
-            key_item = Window.Widget_prompt_dict.tableView.item(row, 0)
-            value_item = Window.Widget_prompt_dict.tableView.item(row, 1)
-            info_item = Window.Widget_prompt_dict.tableView.item(row, 2)
-            
-            # 确保key_item和value_item不是None
-            if key_item and value_item:
-                key = key_item.text()
-                value = value_item.text()
-                # 获取info项，但在访问其数据之前检查是否为None
-                if info_item:
-                    info = info_item.text()
-                else:
-                    info = None
-                # 使用键作为字典的索引，添加数据到字典中
-                dictionary[key] = {"value": value, "info": info}
+        for key, value in data.items():
+            dictionary[key] = value
 
-
-        # 遍历dictionary字典每一个key，如果该key在发送文本中，则存储进新字典中
+        # 筛选进新字典中
         temp_dict = {}
         for key_a, value_a in dictionary.items():
             for key_b, value_b in dict.items():
                 if key_a in value_b:
-                    temp_dict[key_a] = {"value": value_a["value"], "info": value_a["info"]}
+                    if value_a.get("info"):
+                        temp_dict[key_a] = {"translation": value_a["translation"], "info": value_a["info"]}
+                    else:
+                        temp_dict[key_a] = {"translation": value_a["translation"]}
 
-        # 如果没有含有字典内容
+        # 如果文本中没有含有字典内容
         if temp_dict == {}:
-            return None
+            return None,None
+        
+        # 初始化变量，以免出错
+        glossary_prompt = ""
+        glossary_prompt_cot = ""
 
         if language == "en":
             # 构建术语表prompt 
-            glossary_prompt = '\n###\nWhen encountering relevant terms in the text, refer to the following glossary for translation:'
-            i = 1
-            if temp_dict: 
-                for key, value in temp_dict.items():
-                    if value["info"]:
-                        text = f'''\n{str(i)}.Translate“{key}”as“{value["value"]}”,note:{value["info"]}'''
-                    else:
-                        text = f'''\n{str(i)}.Translate“{key}”as“{value["value"]}”'''
-                    glossary_prompt += text
-                    i += 1
+            glossary_prompt = "###Glossary###\n"
+            glossary_prompt += "|\tOriginal Text\t|\tTranslation\t|\tRemarks\t|\n"
+            glossary_prompt += "-" * 50 + "\n"
+
+            # 构建术语表prompt-cot版
+            glossary_prompt_cot = "- Glossary:Provides terms such as"
+
+            for key, value in temp_dict.items():
+                if value.get("info"):
+                    glossary_prompt += f"|\t{key}\t|\t{value['translation']}\t|\t{value['info']}\t|\n"
+                    glossary_prompt_cot += f"“{key}”({value['translation']})"
+                else:
+                    glossary_prompt += f"|\t{key}\t|\t{value['translation']}\t|\t \t|\n"
+                    glossary_prompt_cot += f"“{key}”({value['translation']})"
+            
+            glossary_prompt += "-" * 50 + "\n"
+            glossary_prompt_cot += " and their explanations."
+
         elif language == "zh":
             # 构建术语表prompt 
-            glossary_prompt = '\n###\n当文本出现相关术语时，依照下面术语表进行翻译：'
-            i = 1
-            if temp_dict: 
-                for key, value in temp_dict.items():
-                    if value["info"]:
-                        text = f'''\n{str(i)}.将“{key}”翻译成“{value["value"]}”,备注:{value["info"]}'''
-                    else:
-                        text = f'''\n{str(i)}.将“{key}”翻译成“{value["value"]}”'''
-                    glossary_prompt += text
-                    i += 1
+            glossary_prompt = "###术语表###\n"
+            glossary_prompt += "|\t原文\t|\t译文\t|\t备注\t|\n"
+            glossary_prompt += "-" * 50 + "\n"
+
+            # 构建术语表prompt-cot版
+            glossary_prompt_cot = "- 术语表：提供了"
+
+            for key, value in temp_dict.items():
+                if value.get("info"):
+                    glossary_prompt += f"|\t{key}\t|\t{value['translation']}\t|\t{value['info']}\t|\n"
+                    glossary_prompt_cot += f"“{key}”（{value['translation']}）"
+                else:
+                    glossary_prompt += f"|\t{key}\t|\t{value['translation']}\t|\t \t|\n"
+                    glossary_prompt_cot += f"“{key}”（{value['translation']}）"
+            
+            glossary_prompt += "-" * 50 + "\n"
+            glossary_prompt_cot += "术语及其解释"
+
         elif language == "sakura":
             glossary_prompt = []
-            if temp_dict: 
-                for key, value in temp_dict.items():
-                    if value["info"]:
-                        text = {"src": key,"dst": value["value"],"info": value["info"]}
-                    else:
-                        text = {"src": key,"dst": value["value"]}
+            for key, value in temp_dict.items():
+                if value.get("info"):
+                    text = {"src": key,"dst": value["translation"],"info": value["info"]}
+                else:
+                    text = {"src": key,"dst": value["translation"]}
 
-                    glossary_prompt.append(text)
+                glossary_prompt.append(text)
 
-        return glossary_prompt
+        return glossary_prompt,glossary_prompt_cot
+
+
+    # 构造角色设定
+    def build_characterization(self,dict,language):
+        # 获取字典
+        characterization_dictionary = self.characterization_dictionary
+
+        # 筛选，如果该key在发送文本中，则存储进新字典中
+        temp_dict = {}
+        for key_a, value_a in characterization_dictionary.items():
+            for key_b, value_b in dict.items():
+                if key_a in value_b:
+                    temp_dict[key_a] = value_a
+
+        # 如果没有含有字典内容
+        if temp_dict == {}:
+            return None,None
+
+        if language == "en":
+            profile = f"###Character Introduction###"
+            profile_cot = "- Character Introduction:"
+            for key, value in temp_dict.items():
+                original_name = value.get('original_name')
+                translated_name = value.get('translated_name')
+                gender = value.get('gender')
+                age = value.get('age')
+                personality = value.get('personality')
+                speech_style = value.get('speech_style')
+                additional_info = value.get('additional_info')
+
+
+                profile += f"\n【{original_name}】"
+                if translated_name:
+                    profile += f"\n- Translated_name：{translated_name}"
+                    profile_cot += f"{translated_name}({original_name})"
+
+                if gender:
+                    profile += f"\n- Gender：{gender}"
+                    profile_cot += f",{gender}"
+
+                if age:
+                    profile += f"\n- Age：{age}"
+                    profile_cot += f",{age}"
+
+                if personality:
+                    profile += f"\n- Personality：{personality}"
+                    profile_cot += f",{personality}"
+
+                if speech_style:
+                    profile += f"\n- Speech_style：{speech_style}"
+                    profile_cot += f",{speech_style}"
+
+                if additional_info:
+                    profile += f"\n- Additional_info：{additional_info}"
+                    profile_cot += f",{additional_info}"
+
+                profile +="\n"
+                profile_cot +="."
+
+        elif language == "zh":
+
+            profile = f"###角色介绍###"
+            profile_cot = "- 角色介绍："
+            for key, value in temp_dict.items():
+                original_name = value.get('original_name')
+                translated_name = value.get('translated_name')
+                gender = value.get('gender')
+                age = value.get('age')
+                personality = value.get('personality')
+                speech_style = value.get('speech_style')
+                additional_info = value.get('additional_info')
+
+
+                profile += f"\n【{original_name}】"
+                if translated_name:
+                    profile += f"\n- 译名：{translated_name}"
+                    profile_cot += f"{translated_name}（{original_name}）"   
+
+                if gender:
+                    profile += f"\n- 性别：{gender}"
+                    profile_cot += f"，{gender}"
+
+                if age:
+                    profile += f"\n- 年龄：{age}"
+                    profile_cot += f"，{age}"
+
+                if personality:
+                    profile += f"\n- 性格：{personality}"
+                    profile_cot += f"，{personality}"
+
+                if speech_style:
+                    profile += f"\n- 说话方式：{speech_style}"
+                    profile_cot += f"，{speech_style}"
+
+                if additional_info:
+                    profile += f"\n- 补充信息：{additional_info}"
+                    profile_cot += f"，{additional_info}"
+
+                profile +="\n"
+                profile_cot +="。"
+
+        return profile,profile_cot
+
+
+    # 构造背景设定
+    def build_world(self,language):
+        # 获取自定义内容
+        world_building = self.world_building_content
+
+        if language == "en":
+            profile = f"###Background Setting###"
+            profile_cot = f"- Background Setting:"
+
+            profile += f"\n{world_building}\n"
+            profile_cot += f"{world_building}"
+
+        elif language == "zh":
+            profile = f"###背景设定###"
+            profile_cot = f"- 背景设定："
+
+            profile += f"\n{world_building}\n"
+            profile_cot += f"{world_building}"
+
+        return profile,profile_cot
+
+    # 构造文风要求
+    def build_writing_style(self,language):
+        # 获取自定义内容
+        writing_style = self.writing_style_content
+
+        if language == "en":
+            profile = f"###Writing Style###"
+            profile_cot = f"- Writing Style:"
+            
+            profile += f"\n{writing_style}\n"
+            profile_cot += f"{writing_style}"
+
+        elif language == "zh":
+            profile = f"###翻译风格###"
+            profile_cot = f"- 翻译风格："
+
+            profile += f"\n{writing_style}\n"
+            profile_cot += f"{writing_style}"
+
+        return profile,profile_cot
+
+    # 携带原文上文
+    def build_pre_text(self,input_list,language):
+
+        if language == "en":
+            profile = f"###Previous text###"
+
+        elif language == "zh":
+            profile = f"###上文内容###"
+
+        # 使用列表推导式，为每个元素前面添加“- ”，并转换为字符串列表
+        formatted_rows = ["- " + item for item in input_list]
+        # 使用换行符将列表元素连接成一个字符串
+        text='\n'.join(formatted_rows)
+
+        profile += f"\n{text}\n"
+
+        return profile
+
+
+    # 构建翻译示例
+    def build_translation_example (self):
+        #获取
+        data = self.translation_example_content
+
+        # 将数据存储到中间字典中
+        temp_dict = {}
+        for key, value in data.items():
+            temp_dict[key] = value
+
+        # 构建原文示例字符串开头 
+        original_text = '{ '
+        #如果字典不为空，补充内容
+        if  temp_dict:
+            i = 0 #用于记录key的索引
+            for key in temp_dict:
+                original_text += '\n' + '"' + str(i) + '":"' + str(key) + '"' + ','
+                i += 1
+            #删除最后一个逗号
+            original_text = original_text[:-1]
+            # 构建原文示例字符串结尾
+            original_text = original_text + '\n' + '}'
+            #构建原文示例字典
+            original_exmaple = original_text
+        else:
+            original_exmaple = {}
+
+
+        # 构建译文示例字符串开头
+        translated_text = '{ '
+        #如果字典不为空，补充内容
+        if  temp_dict:
+            j = 0
+            for key in temp_dict:
+                translated_text += '\n' + '"' + str(j ) + '":"' + str(temp_dict[key]) + '"'  + ','
+                j += 1
+
+            #删除最后一个逗号
+            translated_text = translated_text[:-1]
+            # 构建译文示例字符串结尾
+            translated_text = translated_text+ '\n' + '}'
+            #构建译文示例字典
+            translated_exmaple = translated_text
+        else:
+            translated_exmaple = {}
+
+
+        return original_exmaple,translated_exmaple
+
+
+    # 构建示例上文
+    def build_pre_prompt (self,language):
+
+        if language == "en":
+            profile = f" ###This is your next translation task, the original text is as follows###\n"
+            profile_cot = f"###This is your next translation task, the original text is as follows###\n  "
+            
+
+        elif language == "zh":
+            profile = f" ###这是你接下来的翻译任务，原文文本如下###\n"
+            profile_cot = f"###这是你接下来的翻译任务，原文文本如下###\n  "
+
+
+        return profile,profile_cot
+
+    # 构建示例下文
+    def build_fol_prompt (self,language,Text_Source_Language,Text_Target_Language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot):
+
+        if Text_Source_Language == "日语":
+            Source_Language = "Japanese"
+
+        elif Text_Source_Language == "英语":
+            Source_Language = "English" 
+
+        elif Text_Source_Language == "韩语":
+            Source_Language = "Korean"
+
+        elif Text_Source_Language == "俄语":
+            Source_Language = "Russian"
+
+        elif Text_Source_Language == "简中":
+            Source_Language = "Simplified Chinese"
+
+        elif Text_Source_Language == "繁中":
+            Source_Language = "Traditional Chinese"
+
+
+        if Text_Target_Language == "简中":
+            Target_Language = "Simplified Chinese"
+
+        elif Text_Target_Language == "繁中":
+            Target_Language = "Traditional Chinese"
+
+        elif Text_Target_Language == "英语":
+            Target_Language = "English"
+
+        elif Text_Target_Language == "日语":
+            Target_Language = "Japanese"
+
+        elif Text_Target_Language == "韩语":
+            Target_Language = "Korean"
+
+
+        if language == "en":
+            profile = f"I fully understand your request, the following is the translation of the original text:\n"
+
+
+            profile_cot = f" I will follow your instructions and translate the text step by step:\n"
+            profile_cot += f"###Step 1: Understand and analyze the requirements###\n"
+            profile_cot += f"- Translation target: Translate the {Source_Language} text into {Target_Language}.\n"
+            if glossary_prompt_cot:
+                profile_cot += f"{glossary_prompt_cot}\n"
+            if characterization_cot:
+                profile_cot += f"{characterization_cot}\n"
+            if world_building_cot:
+                profile_cot += f"{world_building_cot}\n"
+            if writing_style_cot:
+                profile_cot += f"{writing_style_cot}\n"
+
+            profile_cot += f"###Step 2: Summarize the context###\n"
+            profile_cot += f"{{Summarized content}}\n"
+            profile_cot += f"###Step 3: Translation###\n"
+
+        elif language == "zh":
+            profile = f"我完全理解了您的要求,以下是对原文的翻译:\n"
+
+
+            profile_cot = f"我将遵循您的指示，一步一步地翻译文本：\n"
+            profile_cot += f"###第一步：理解并分析要求###\n"
+            profile_cot += f"- 翻译目标: 将{Text_Source_Language}文本翻译成{Text_Target_Language}文本。\n"
+            if glossary_prompt_cot:
+                profile_cot += f"{glossary_prompt_cot}\n"
+            if characterization_cot:
+                profile_cot += f"{characterization_cot}\n"
+            if world_building_cot:
+                profile_cot += f"{world_building_cot}\n"
+            if writing_style_cot:
+                profile_cot += f"{writing_style_cot}\n"
+
+            profile_cot += f"###第二步：总结上文内容###\n    \n"
+            profile_cot += f"{{Summarized content}}\n"
+            profile_cot += f"###第三步：翻译###\n"
+
+        return profile,profile_cot
 
 
     # 原文替换字典函数
@@ -4216,6 +4686,8 @@ Output the translation in JSON format:
 
             #翻译设置进阶设置界面
             config_dict["text_line_counts"] = Window.Widget_translation_settings_B.spinBox_Lines.value()     # 获取文本行数设置
+            config_dict["pre_line_counts"] = Window.Widget_translation_settings_B.spinBox_pre_lines.value()     # 获取上文文本行数设置
+            config_dict["cot_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_cot_toggle.isChecked()   # 获取cot开关
             config_dict["thread_counts"] = Window.Widget_translation_settings_B.spinBox_thread_count.value() # 获取线程数设置
             config_dict["retry_count_limit"] =  Window.Widget_translation_settings_B.spinBox_retry_count_limit.value()     # 获取重翻次数限制  
             config_dict["preserve_line_breaks_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关  
@@ -4310,6 +4782,56 @@ Output the translation in JSON format:
                     value = value_item.data(Qt.DisplayRole)
                     User_example[key] = value
             config_dict["User_example"] = User_example
+
+
+
+
+            #获取提示书界面
+            config_dict["system_prompt_switch"] = Window.Widget_system_prompt.checkBox1.isChecked()   #获取自定义提示词开关状态
+            config_dict["system_prompt_content"] = Window.Widget_system_prompt.TextEdit1.toPlainText()        #获取自定义提示词输入值 
+            config_dict["characterization_switch"] = Window.Widget_characterization.checkBox1.isChecked() #获取角色设定开关状态
+            characterization_dictionary = {}
+            for row in range(Window.Widget_characterization.tableView.rowCount() - 1):
+                original_name = Window.Widget_characterization.tableView.item(row, 0)
+                translated_name = Window.Widget_characterization.tableView.item(row, 1)
+                character_attributes1 = Window.Widget_characterization.tableView.item(row, 2)
+                character_attributes2 = Window.Widget_characterization.tableView.item(row, 3)
+                character_attributes3 = Window.Widget_characterization.tableView.item(row, 4)
+                character_attributes4 = Window.Widget_characterization.tableView.item(row, 5)
+                character_attributes5 = Window.Widget_characterization.tableView.item(row, 6)
+                if original_name and translated_name:
+                    original_name = original_name.data(Qt.DisplayRole)
+                    translated_name = translated_name.data(Qt.DisplayRole)
+                    base_dictionary = {"original_name": original_name, "translated_name": translated_name}
+                    if character_attributes1:
+                        base_dictionary["gender"] = character_attributes1.data(Qt.DisplayRole)
+                    if character_attributes2:
+                        base_dictionary["age"] = character_attributes2.data(Qt.DisplayRole)
+                    if character_attributes3:
+                        base_dictionary["personality"] = character_attributes3.data(Qt.DisplayRole)
+                    if character_attributes4:
+                        base_dictionary["speech_style"] = character_attributes4.data(Qt.DisplayRole)
+                    if character_attributes5:
+                        base_dictionary["additional_info"] = character_attributes5.data(Qt.DisplayRole)
+                    characterization_dictionary[original_name] = base_dictionary
+            config_dict["characterization_dictionary"] = characterization_dictionary
+
+            config_dict["world_building_switch"] = Window.Widget_world_building.checkBox1.isChecked()   #获取背景设定开关状态
+            config_dict["world_building_content"] = Window.Widget_world_building.TextEdit1.toPlainText()        #获取背景设定文本 
+            config_dict["writing_style_switch"] = Window.Widget_writing_style.checkBox1.isChecked()   #获取文风要求开关状态
+            config_dict["writing_style_content"] = Window.Widget_writing_style.TextEdit1.toPlainText()        #获取文风要求开关 
+
+            config_dict["translation_example_switch"]= Window.Widget_translation_example.checkBox1.isChecked()#获取添加翻译示例开关状态
+            translation_example = {}
+            for row in range(Window.Widget_translation_example.tableView.rowCount() - 1):
+                key_item = Window.Widget_translation_example.tableView.item(row, 0)
+                value_item = Window.Widget_translation_example.tableView.item(row, 1)
+                if key_item and value_item:
+                    key = key_item.data(Qt.DisplayRole)
+                    value = value_item.data(Qt.DisplayRole)
+                    translation_example[key] = value
+            config_dict["translation_example"] = translation_example
+
 
 
             #将所有的配置信息写入config.json文件中
@@ -4477,8 +4999,12 @@ Output the translation in JSON format:
                 #翻译设置进阶界面
                 if "text_line_counts" in config_dict:
                     Window.Widget_translation_settings_B.spinBox_Lines.setValue(config_dict["text_line_counts"])
+                if "pre_line_counts" in config_dict:
+                    Window.Widget_translation_settings_B.spinBox_pre_lines.setValue(config_dict["pre_line_counts"])
                 if "thread_counts" in config_dict:
                     Window.Widget_translation_settings_B.spinBox_thread_count.setValue(config_dict["thread_counts"])
+                if "cot_toggle" in config_dict:
+                    Window.Widget_translation_settings_B.SwitchButton_cot_toggle.setChecked(config_dict["cot_toggle"])
                 if "preserve_line_breaks_toggle" in config_dict:
                     Window.Widget_translation_settings_B.SwitchButton_line_breaks.setChecked(config_dict["preserve_line_breaks_toggle"])
                 if "response_conversion_toggle" in config_dict:
@@ -4620,9 +5146,81 @@ Output the translation in JSON format:
                         #删除第一行
                         Window.Widget_prompy_engineering.tableView.removeRow(0)
 
+                #提示书界面
+                if "system_prompt_switch" in config_dict:
+                    system_prompt_switch = config_dict["system_prompt_switch"]
+                    Window.Widget_system_prompt.checkBox1.setChecked(system_prompt_switch)
+                if "system_prompt_content" in config_dict:
+                    system_prompt_content = config_dict["system_prompt_content"]
+                    Window.Widget_system_prompt.TextEdit1.setText(system_prompt_content)
+
+                if "characterization_switch" in config_dict:
+                    characterization_switch = config_dict["characterization_switch"]
+                    Window.Widget_characterization.checkBox1.setChecked(characterization_switch)
+                if "characterization_dictionary" in config_dict:
+                    characterization_dictionary = config_dict["characterization_dictionary"]
+                    if characterization_dictionary:
+                        for key, value in characterization_dictionary.items():
+                            row = Window.Widget_characterization.tableView.rowCount() - 1
+                            Window.Widget_characterization.tableView.insertRow(row)
+
+                            original_name = QTableWidgetItem(value["original_name"])
+                            translated_name = QTableWidgetItem(value["translated_name"])
+                            Window.Widget_characterization.tableView.setItem(row, 0, original_name)
+                            Window.Widget_characterization.tableView.setItem(row, 1, translated_name)
+
+                            if (value.get('gender')):
+                                character_attributes1 = QTableWidgetItem(value["gender"])
+                                Window.Widget_characterization.tableView.setItem(row, 2, character_attributes1)
+                            if (value.get('age')):
+                                character_attributes2 = QTableWidgetItem(value["age"])
+                                Window.Widget_characterization.tableView.setItem(row, 3, character_attributes2)
+                            if (value.get('personality')):
+                                character_attributes3 = QTableWidgetItem(value["personality"])
+                                Window.Widget_characterization.tableView.setItem(row, 4, character_attributes3)
+                            if (value.get('speech_style')):
+                                character_attributes4 = QTableWidgetItem(value["speech_style"])
+                                Window.Widget_characterization.tableView.setItem(row, 5, character_attributes4)
+                            if (value.get('additional_info')):
+                                character_attributes5 = QTableWidgetItem(value["additional_info"])
+                                Window.Widget_characterization.tableView.setItem(row, 6, character_attributes5)
+                        #删除第一行
+                        Window.Widget_characterization.tableView.removeRow(0)
+
+                if "world_building_switch" in config_dict:
+                    world_building_switch = config_dict["world_building_switch"]
+                    Window.Widget_world_building.checkBox1.setChecked(world_building_switch)
+                if "world_building_content" in config_dict:
+                    world_building_content = config_dict["world_building_content"]
+                    Window.Widget_world_building.TextEdit1.setText(world_building_content)
+
+                if "writing_style_switch" in config_dict:
+                    writing_style_switch = config_dict["writing_style_switch"]
+                    Window.Widget_writing_style.checkBox1.setChecked(writing_style_switch)
+                if "writing_style_content" in config_dict:
+                    writing_style_content = config_dict["writing_style_content"]
+                    Window.Widget_writing_style.TextEdit1.setText(writing_style_content)
+
+                if "translation_example_switch" in config_dict:
+                    translation_example_switch = config_dict["translation_example_switch"]
+                    Window.Widget_translation_example.checkBox1.setChecked(translation_example_switch)
+                if "translation_example" in config_dict:
+                    translation_example = config_dict["translation_example"]
+                    if translation_example:
+                        for key, value in translation_example.items():
+                            row = Window.Widget_translation_example.tableView.rowCount() - 1
+                            Window.Widget_translation_example.tableView.insertRow(row)
+                            key_item = QTableWidgetItem(key)
+                            value_item = QTableWidgetItem(value)
+                            Window.Widget_translation_example.tableView.setItem(row, 0, key_item)
+                            Window.Widget_translation_example.tableView.setItem(row, 1, value_item)        
+                        #删除第一行
+                        Window.Widget_translation_example.tableView.removeRow(0)
 
 
-# 请求限制器
+
+
+# 请求限制器（后面把读取界面配置的代码迁移到配置器，且速率价格的信息也跟着迁移）
 class Request_Limiter():
     def __init__(self):
 
@@ -4850,10 +5448,6 @@ class Request_Limiter():
 
         # 获取翻译平台
         translation_platform = configurator.translation_platform
-
-        # 如果进行的是错行检查任务，修改部分设置(补丁)
-        if Running_status == 7:
-            translation_platform =configurator.translation_platform
 
 
         #根据翻译平台读取配置信息
@@ -6222,21 +6816,42 @@ class Cache_Manager():
 
 
     # 获取缓存数据中指定行数的翻译状态为0的未翻译文本，且改变翻译状态为2
-    def process_dictionary_data(self,rows, cache_list):
-        """
-        列表元素结构如下:
-        1.文本索引： "text_index"
-        2.原文： "source_text"
-        3.名字(非必需)： "name"
-        """
-        ex_list = [
+    def process_dictionary_data(self,translation_lines, cache_list, previous_lines = 0, following_lines = 0):
+        # 输入的数据结构参考
+        ex_cache_list = [
+            {'project_type': 'Mtool'},
+            {'text_index': 1, 'text_classification': 0, 'translation_status': 0, 'source_text': 'しこトラ！', 'translated_text': '无'},
+            {'text_index': 2, 'text_classification': 0, 'translation_status': 1, 'source_text': '室内カメラ', 'translated_text': '无'},
+            {'text_index': 3, 'text_classification': 0, 'translation_status': 0, 'source_text': '11111', 'translated_text': '无'},
+            {'text_index': 4, 'text_classification': 0, 'translation_status': 0, 'source_text': '11111', 'translated_text': '无'},
+            {'text_index': 5, 'text_classification': 0, 'translation_status': 0, 'source_text': '11111', 'translated_text': '无'},
+            {'text_index': 6, 'text_classification': 0, 'translation_status': 0, 'source_text': '11111', 'translated_text': '无'},
+        ]
+        # 输出的数据结构参考
+        ex_translation_list = [
             {'text_index': 4, 'source_text': 'しこトラ！',"name": "xxxxx"},
             {'text_index': 5, 'source_text': '11111'},
             {'text_index': 6, 'source_text': 'しこトラ！'},
         ]
+        # 输出的数据结构参考
+        ex_previous_list = [
+            'しこトラ！'
+            '11111',
+            'しこトラ！',
+        ]
+        # 输出的数据结构参考
+        ex_following_list = [
+            'しこトラ！'
+            '11111',
+            'しこトラ！',
+        ]
 
-        new_list = []
+        translation_list = []
+        previous_list = []
+        following_list = []
 
+
+        # 获取特定行数的待翻译内容
         for entry in cache_list:
             translation_status = entry.get('translation_status')
 
@@ -6251,18 +6866,48 @@ class Cache_Manager():
                     name = entry.get('name')
                     # 如果有名字，则将名字加入到新列表中，否则不加入
                     if name:
-                        new_list.append({ 'text_index': text_index ,'source_text': source_text, 'name': name})
+                        translation_list.append({ 'text_index': text_index ,'source_text': source_text, 'name': name})
                     else:
-                        new_list.append({ 'text_index': text_index ,'source_text': source_text})
+                        translation_list.append({ 'text_index': text_index ,'source_text': source_text})
 
                 entry['translation_status'] = 2
 
                 # 如果新列表中的元素个数达到指定行数，则停止遍历
-                if len(new_list) == rows:
+                if len(translation_list) == translation_lines:
                     break
-        
 
-        return new_list
+        # 获取首尾索引
+        if translation_list:
+            star_index = translation_list[0]['text_index'] - 1  # 减1以获取前一行
+            end_index = translation_list[-1]['text_index']
+
+            # 获取前n行原文
+            for i in range(previous_lines):
+                the_index = star_index - i
+                if the_index >= 1 and the_index < len(cache_list): # 确保不超出列表范围
+                    translation_status = cache_list[the_index]['translation_status']
+                    storage_path = cache_list[the_index]['storage_path']
+                    file_name = cache_list[the_index]['file_name']
+                    if storage_path ==file_name: # 确保是同一文件里内容
+                        if translation_status == 1 :# 优先获取已经翻译的文本
+                            previous_list.append(cache_list[the_index]['translated_text'])
+                        else:
+                            previous_list.append(cache_list[the_index]['source_text'])
+
+            # 获取后n行原文
+            for i in range(following_lines):
+                the_index = end_index + i
+                if the_index >= 1 and the_index < len(cache_list):
+                    translation_status = cache_list[the_index]['translation_status']
+                    storage_path = cache_list[the_index]['storage_path']
+                    file_name = cache_list[the_index]['file_name']
+                    if storage_path ==file_name: # 确保是同一文件里内容
+                        if translation_status == 1 :# 优先获取已经翻译的文本
+                            following_list.append(cache_list[the_index]['translated_text'])
+                        else:
+                            following_list.append(cache_list[the_index]['source_text'])
+
+        return translation_list, previous_list
 
     # 将未翻译的文本列表，转换成待发送的原文字典,并计算文本实际行数，因为最后一些文本可能达到不了每次翻译行数
     def create_dictionary_from_list(self,data_list):
@@ -9669,6 +10314,31 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
 
 
 
+
+        # -----创建第1个组，添加多个组件-----
+        box_pre_lines = QGroupBox()
+        box_pre_lines.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_pre_lines = QHBoxLayout()
+
+        #设置标签
+        label1 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label1.setText("携带上文行数")
+
+
+        #设置数值输入框
+        self.spinBox_pre_lines = SpinBox(self)
+        self.spinBox_pre_lines.setRange(0, 1000)    
+        self.spinBox_pre_lines.setValue(0)
+
+
+        layout_pre_lines.addWidget(label1)
+        layout_pre_lines.addStretch(1)  # 添加伸缩项
+        layout_pre_lines.addWidget(self.spinBox_pre_lines)
+        box_pre_lines.setLayout(layout_pre_lines)
+
+
+
         # -----创建第1个组(后来补的)，添加多个组件-----
         box1_thread_count = QGroupBox()
         box1_thread_count.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
@@ -9718,6 +10388,28 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         layout_retry_count_limit.addStretch(1)  # 添加伸缩项
         layout_retry_count_limit.addWidget(self.spinBox_retry_count_limit)
         box_retry_count_limit.setLayout(layout_retry_count_limit)
+
+
+        # -----创建第3个组(后来补的)，添加多个组件-----
+        box1_cot_toggle = QGroupBox()
+        box1_cot_toggle.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_cot_toggle = QHBoxLayout()
+
+        #设置“简繁转换开关”标签
+        labe1_6 = QLabel(flags=Qt.WindowFlags())  
+        labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        labe1_6.setText("使用思维链模式")
+
+       #设置“简繁体自动转换”选择开关
+        self.SwitchButton_cot_toggle = SwitchButton(parent=self)    
+
+
+
+        layout1_cot_toggle.addWidget(labe1_6)
+        layout1_cot_toggle.addStretch(1)  # 添加伸缩项
+        layout1_cot_toggle.addWidget(self.SwitchButton_cot_toggle)
+        box1_cot_toggle.setLayout(layout1_cot_toggle)
+
 
 
         # -----创建第1个组(后来补的)，添加多个组件-----
@@ -9799,8 +10491,11 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         # 把内容添加到容器中
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box_Lines)
+        container.addWidget(box_pre_lines)
+        #container.addWidget(box_fol_lines)
         container.addWidget(box1_thread_count)
         container.addWidget(box_retry_count_limit)
+        container.addWidget(box1_cot_toggle)
         container.addWidget(box1_line_breaks)
         container.addWidget(box1_conversion_toggle)
         container.addWidget(box_clear)
@@ -12132,6 +12827,73 @@ class Widget_rulebook(QFrame):
         self.hBoxLayout.addWidget(self.label, 1, Qt.AlignCenter)
         self.setObjectName(text.replace(' ', '-'))
 
+
+class Widget_system_prompt(QFrame):
+
+
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+        # -----创建第1个组，添加多个组件-----
+        box1 = QGroupBox()
+        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1 = QHBoxLayout()
+
+
+        label1 = QLabel( flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label1.setText("修改系统提示词")
+
+
+        self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label2.setText("(全程修改)")
+
+
+        self.checkBox1 = CheckBox('启用功能')
+        #self.checkBox1.stateChanged.connect(self.checkBoxChanged1)
+
+        layout1.addWidget(label1)
+        layout1.addWidget(self.label2)
+        layout1.addStretch(1)  # 添加伸缩项
+        layout1.addWidget(self.checkBox1)
+        box1.setLayout(layout1)
+
+
+        # -----创建第2个组，添加多个组件-----
+        box2 = QGroupBox()
+        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout2 = QHBoxLayout()
+
+
+        Prompt = f'''None
+'''
+
+
+        self.TextEdit1 = TextEdit()
+        #设置输入框最小高度
+        self.TextEdit1.setMinimumHeight(180)
+        #设置默认文本
+        self.TextEdit1.setText(Prompt)
+
+
+        layout2.addWidget(self.TextEdit1)
+        box2.setLayout(layout2)
+
+        # -----最外层容器设置垂直布局-----
+        container = QVBoxLayout()
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(20) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+        # 把各个组添加到容器中
+        container.addWidget(box1)
+        container.addWidget(box2)
+
+
 class Widget_characterization(QFrame):
 
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
@@ -12145,9 +12907,9 @@ class Widget_characterization(QFrame):
         self.tableView = TableWidget(self)
         self.tableView.setWordWrap(False) #设置表格内容不换行
         self.tableView.setRowCount(2) #设置表格行数
-        self.tableView.setColumnCount(3) #设置表格列数
+        self.tableView.setColumnCount(7) #设置表格列数
         #self.tableView.verticalHeader().hide() #隐藏垂直表头
-        self.tableView.setHorizontalHeaderLabels(['原名', '译名', '补充']) #设置水平表头
+        self.tableView.setHorizontalHeaderLabels(['原名', '译名', '性别', '年龄', '性格', '说话风格', '补充']) #设置水平表头
         self.tableView.resizeColumnsToContents() #设置列宽度自适应内容
         self.tableView.resizeRowsToContents() #设置行高度自适应内容
         self.tableView.setEditTriggers(QAbstractItemView.AllEditTriggers)   # 设置所有单元格可编辑
@@ -12163,7 +12925,7 @@ class Widget_characterization(QFrame):
         button.clicked.connect(self.add_row)
         # 在表格最后一行第三列添加"删除空白行"按钮
         button = PushButton('删空行')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 2, button)
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 6, button)
         button.clicked.connect(self.delete_blank_row)
 
 
@@ -12175,22 +12937,250 @@ class Widget_characterization(QFrame):
         #设置“译时提示”标签
         label3 = QLabel( flags=Qt.WindowFlags())  
         label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label3.setText("AI提示翻译")
+        label3.setText("添加角色设定")
 
         #设置“译时提示”显示
         self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
         self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label4.setText("(如果文本中出现了字典原文，则构建相应的术语表，让AI按照要求翻译)")
+        self.label4.setText("(文本中出现了角色原名触发)")
 
 
         #设置“译时提示”开
-        self.checkBox2 = CheckBox('启用功能')
+        self.checkBox1 = CheckBox('启用功能')
         #self.checkBox2.stateChanged.connect(self.checkBoxChanged2)
 
         layout3.addWidget(label3)
         layout3.addWidget(self.label4)
         layout3.addStretch(1)  # 添加伸缩项
-        layout3.addWidget(self.checkBox2)
+        layout3.addWidget(self.checkBox1)
+        box3.setLayout(layout3)
+
+
+        # 把内容添加到容器中
+        container.addWidget(box3)    
+        container.addWidget(self.tableView)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        #self.scrollWidget.setLayout(container)
+        self.setLayout(container)
+        container.setSpacing(20)     
+        container.setContentsMargins(50, 70, 50, 30)      
+
+
+    #添加行按钮
+    def add_row(self):
+        # 添加新行在按钮所在行前面
+        self.tableView.insertRow(self.tableView.rowCount()-1)
+        #设置新行的高度与前一行相同
+        self.tableView.setRowHeight(self.tableView.rowCount()-2, self.tableView.rowHeight(self.tableView.rowCount()-3))
+
+    #删除空白行按钮
+    def delete_blank_row(self):
+        # 从倒数第二行开始反向遍历表格，因为最后一行是按钮行
+        for i in range(self.tableView.rowCount() - 2, -1, -1):
+            # 检查第一列和第二列是否为空
+            item1 = self.tableView.item(i, 0)
+            item2 = self.tableView.item(i, 1)
+            if (item1 is None or item1.text() == '') and (item2 is None or item2.text() == ''):
+                self.tableView.removeRow(i)
+
+
+
+class Widget_world_building(QFrame):
+
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+        # -----创建第1个组，添加多个组件-----
+        box1 = QGroupBox()
+        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1 = QHBoxLayout()
+
+
+        label1 = QLabel( flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label1.setText("添加背景设定")
+
+
+        self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label2.setText("(全程加入)")
+
+
+        self.checkBox1 = CheckBox('启用功能')
+        #self.checkBox1.stateChanged.connect(self.checkBoxChanged1)
+
+        layout1.addWidget(label1)
+        layout1.addWidget(self.label2)
+        layout1.addStretch(1)  # 添加伸缩项
+        layout1.addWidget(self.checkBox1)
+        box1.setLayout(layout1)
+
+
+        # -----创建第2个组，添加多个组件-----
+        box2 = QGroupBox()
+        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout2 = QHBoxLayout()
+
+
+        Prompt = f'''None
+'''
+
+
+        self.TextEdit1 = TextEdit()
+        #设置输入框最小高度
+        self.TextEdit1.setMinimumHeight(180)
+        #设置默认文本
+        self.TextEdit1.setText(Prompt)
+
+
+        layout2.addWidget(self.TextEdit1)
+        box2.setLayout(layout2)
+
+
+
+        # -----最外层容器设置垂直布局-----
+        container = QVBoxLayout()
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(20) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+        # 把各个组添加到容器中
+        container.addWidget(box1)
+        container.addWidget(box2)
+
+
+class Widget_writing_style(QFrame):
+
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+        # -----创建第1个组，添加多个组件-----
+        box1 = QGroupBox()
+        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1 = QHBoxLayout()
+
+
+        label1 = QLabel( flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label1.setText("添加文风设定")
+
+
+        self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label2.setText("(全程加入)")
+
+
+        self.checkBox1 = CheckBox('启用功能')
+        #self.checkBox1.stateChanged.connect(self.checkBoxChanged1)
+
+        layout1.addWidget(label1)
+        layout1.addWidget(self.label2)
+        layout1.addStretch(1)  # 添加伸缩项
+        layout1.addWidget(self.checkBox1)
+        box1.setLayout(layout1)
+
+
+        # -----创建第2个组，添加多个组件-----
+        box2 = QGroupBox()
+        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout2 = QHBoxLayout()
+
+
+        Prompt = f'''None
+'''
+
+
+        self.TextEdit1 = TextEdit()
+        #设置输入框最小高度
+        self.TextEdit1.setMinimumHeight(180)
+        #设置默认文本
+        self.TextEdit1.setText(Prompt)
+
+
+        layout2.addWidget(self.TextEdit1)
+        box2.setLayout(layout2)
+
+
+
+        # -----最外层容器设置垂直布局-----
+        container = QVBoxLayout()
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(20) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+        # 把各个组添加到容器中
+        container.addWidget(box1)
+        container.addWidget(box2)
+
+
+class Widget_translation_example(QFrame):
+
+
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+        # -----创建第1个组，添加放置表格-----
+        self.tableView = TableWidget(self)
+        self.tableView.setWordWrap(False) #设置表格内容不换行
+        self.tableView.setRowCount(2) #设置表格行数
+        self.tableView.setColumnCount(2) #设置表格列数
+        #self.tableView.verticalHeader().hide() #隐藏垂直表头
+        self.tableView.setHorizontalHeaderLabels(['原文', '译文']) #设置水平表头
+        self.tableView.resizeColumnsToContents() #设置列宽度自适应内容
+        self.tableView.resizeRowsToContents() #设置行高度自适应内容
+        self.tableView.setEditTriggers(QAbstractItemView.AllEditTriggers)   # 设置所有单元格可编辑
+        #self.tableView.setFixedSize(500, 300)         # 设置表格大小
+        self.tableView.setMaximumHeight(400)          # 设置表格的最大高度
+        self.tableView.setMinimumHeight(400)             # 设置表格的最小高度
+        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
+        #self.tableView.setSortingEnabled(True)  #设置表格可排序
+
+        # 在表格最后一行第一列添加"添加行"按钮
+        button = PushButton('添新行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
+        button.clicked.connect(self.add_row)
+        # 在表格最后一行第三列添加"删除空白行"按钮
+        button = PushButton('删空行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
+        button.clicked.connect(self.delete_blank_row)
+
+
+        # -----创建第3个组，添加多个组件-----
+        box3 = QGroupBox()
+        box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout3 = QHBoxLayout()
+
+        #设置“译时提示”标签
+        label3 = QLabel( flags=Qt.WindowFlags())  
+        label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label3.setText("添加翻译示例")
+
+        #设置“译时提示”显示
+        self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label4.setText("(全程加入)")
+
+
+        #设置“译时提示”开
+        self.checkBox1 = CheckBox('启用功能')
+        #self.checkBox2.stateChanged.connect(self.checkBoxChanged2)
+
+        layout3.addWidget(label3)
+        layout3.addWidget(self.label4)
+        layout3.addStretch(1)  # 添加伸缩项
+        layout3.addWidget(self.checkBox1)
         box3.setLayout(layout3)
 
 
@@ -12224,244 +13214,7 @@ class Widget_characterization(QFrame):
                     break
                 elif self.tableView.item(i, 1) is None or self.tableView.item(i, 1).text() == '':
                     self.tableView.removeRow(i)
-
-
-class Widget_world_building(QFrame):
-
-    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
-        super().__init__(parent=parent)          #调用父类的构造函数
-        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
-
-        # -----创建第1个组，添加多个组件-----
-        box1 = QGroupBox()
-        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout1 = QHBoxLayout()
-
-
-        label1 = QLabel( flags=Qt.WindowFlags())  
-        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label1.setText("修改系统提示词")
-
-
-        self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label2.setText("(将修改系统提示词为输入框中的内容)")
-
-
-        self.checkBox1 = CheckBox('启用功能')
-        #self.checkBox1.stateChanged.connect(self.checkBoxChanged1)
-
-        layout1.addWidget(label1)
-        layout1.addWidget(self.label2)
-        layout1.addStretch(1)  # 添加伸缩项
-        layout1.addWidget(self.checkBox1)
-        box1.setLayout(layout1)
-
-
-        # -----创建第2个组，添加多个组件-----
-        box2 = QGroupBox()
-        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout2 = QHBoxLayout()
-
-
-        Prompt = f'''You are a localizer specialized in Simplified Chinese and Japanese culture, and you need to translate the Japanese text in the game into Simplified Chinese. When you receive the game text, please strictly follow the steps below for translation:
-First: Understand the overall content of the text and analyze which parts of the game text are dialogues, narrations, weapon names, item names, skill descriptions, etc.
-Second: Begin translating line by line from the original text, translating only the Japanese text into Simplified Chinese text, Faithfully and accurately , ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
-Third: Do not translate escape characters such as “\"” , “\r” and “\n”, or numbers, formatting codes, special symbols, or non-Japanese content, and should be preserved as they are.
-Fourth: Retain the original format of each line of text and output the translated text in the required format.
-###
-The format of the game text is as follows: 
-{{"<text_id>":"<original text>"}}
-###
-Output the translation in JSON format: 
-{{"<text_id>":"<translated text>"}}
-'''
-
-
-        self.TextEdit1 = TextEdit()
-        #设置输入框最小高度
-        self.TextEdit1.setMinimumHeight(180)
-        #设置默认文本
-        self.TextEdit1.setText(Prompt)
-
-
-        layout2.addWidget(self.TextEdit1)
-        box2.setLayout(layout2)
-
-
-
-        # -----最外层容器设置垂直布局-----
-        container = QVBoxLayout()
-
-        # 设置窗口显示的内容是最外层容器
-        self.setLayout(container)
-        container.setSpacing(20) # 设置布局内控件的间距为28
-        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
-
-        # 把各个组添加到容器中
-        container.addWidget(box1)
-        container.addWidget(box2)
-
-class Widget_writing_style(QFrame):
-
-    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
-        super().__init__(parent=parent)          #调用父类的构造函数
-        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
-
-        # -----创建第1个组，添加多个组件-----
-        box1 = QGroupBox()
-        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout1 = QHBoxLayout()
-
-
-        label1 = QLabel( flags=Qt.WindowFlags())  
-        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label1.setText("修改系统提示词")
-
-
-        self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label2.setText("(将修改系统提示词为输入框中的内容)")
-
-
-        self.checkBox1 = CheckBox('启用功能')
-        #self.checkBox1.stateChanged.connect(self.checkBoxChanged1)
-
-        layout1.addWidget(label1)
-        layout1.addWidget(self.label2)
-        layout1.addStretch(1)  # 添加伸缩项
-        layout1.addWidget(self.checkBox1)
-        box1.setLayout(layout1)
-
-
-
-     # -----创建第2个组，添加多个组件-----
-        box_model = QGroupBox()
-        box_model.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_model = QHBoxLayout()
-
-        #设置“模型选择”标签
-        self.label_model = QLabel(flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
-        self.label_model.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
-        self.label_model.setText("模型选择(可编辑)")
-
-
-        #设置“模型类型”下拉选择框
-        self.comboBox_model_openai = EditableComboBox() #以demo为父类
-        self.comboBox_model_openai.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-1106', 'gpt-3.5-turbo-0125','gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
-                                 'gpt-4','gpt-4o','gpt-4-0314', 'gpt-4-0613','gpt-4-turbo','gpt-4-turbo-preview','gpt-4-1106-preview','gpt-4-0125-preview'])
-        self.comboBox_model_openai.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
-        self.comboBox_model_openai.setFixedSize(250, 35)
-
-
-
-
-        layout_model.addWidget(self.label_model)
-        layout_model.addStretch(1)
-        layout_model.addWidget(self.comboBox_model_openai)
-        box_model.setLayout(layout_model)
-
-
-
-
-        # -----创建第3个组，添加多个组件-----
-        box2 = QGroupBox()
-        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout2 = QHBoxLayout()
-
-
-        Prompt = f'''You are a localizer specialized in Simplified Chinese and Japanese culture, and you need to translate the Japanese text in the game into Simplified Chinese. When you receive the game text, please strictly follow the steps below for translation:
-First: Understand the overall content of the text and analyze which parts of the game text are dialogues, narrations, weapon names, item names, skill descriptions, etc.
-Second: Begin translating line by line from the original text, translating only the Japanese text into Simplified Chinese text, Faithfully and accurately , ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
-Third: Do not translate escape characters such as “\"” , “\r” and “\n”, or numbers, formatting codes, special symbols, or non-Japanese content, and should be preserved as they are.
-Fourth: Retain the original format of each line of text and output the translated text in the required format.
-###
-The format of the game text is as follows: 
-{{"<text_id>":"<original text>"}}
-###
-Output the translation in JSON format: 
-{{"<text_id>":"<translated text>"}}
-'''
-
-
-        self.TextEdit1 = TextEdit()
-        #设置输入框最小高度
-        self.TextEdit1.setMinimumHeight(180)
-        #设置默认文本
-        self.TextEdit1.setText(Prompt)
-
-
-        layout2.addWidget(self.TextEdit1)
-        box2.setLayout(layout2)
-
-
-
-
-        # -----创建第4个组，添加放置表格-----
-        self.tableView = TableWidget(self)
-        self.tableView.setWordWrap(False) #设置表格内容不换行
-        self.tableView.setRowCount(2) #设置表格行数
-        self.tableView.setColumnCount(2) #设置表格列数
-        #self.tableView.verticalHeader().hide() #隐藏垂直表头
-        self.tableView.setHorizontalHeaderLabels(['原文', '译文']) #设置水平表头
-        self.tableView.resizeColumnsToContents() #设置列宽度自适应内容
-        self.tableView.resizeRowsToContents() #设置行高度自适应内容
-        self.tableView.setEditTriggers(QAbstractItemView.AllEditTriggers)   # 设置所有单元格可编辑
-        #self.tableView.setFixedSize(500, 300)         # 设置表格大小
-        self.tableView.setMaximumHeight(300)          # 设置表格的最大高度
-        self.tableView.setMinimumHeight(300)             # 设置表格的最小高度
-        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
-        #self.tableView.setSortingEnabled(True)  #设置表格可排序
-
-
-        # 在表格最后一行第一列添加"添加行"按钮
-        button = PushButton('添新行')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
-        button.clicked.connect(self.add_row)
-        # 在表格最后一行第二列添加"删除空白行"按钮
-        button = PushButton('删空行')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
-        button.clicked.connect(self.delete_blank_row)
-
-
-
-        # -----最外层容器设置垂直布局-----
-        container = QVBoxLayout()
-
-        # 设置窗口显示的内容是最外层容器
-        self.setLayout(container)
-        container.setSpacing(20) # 设置布局内控件的间距为28
-        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
-
-        # 把各个组添加到容器中
-        container.addWidget(box1)
-        container.addWidget(box_model)
-        container.addWidget(box2)
-        container.addWidget(self.tableView)
-
-
-    #添加行按钮
-    def add_row(self):
-        # 添加新行在按钮所在行前面
-        self.tableView.insertRow(self.tableView.rowCount()-1)
-        #设置新行的高度与前一行相同
-        self.tableView.setRowHeight(self.tableView.rowCount()-2, self.tableView.rowHeight(self.tableView.rowCount()-3))
-
-    #删除空白行按钮
-    def delete_blank_row(self):
-        #表格行数大于2时，删除表格内第一列和第二列为空或者空字符串的行
-        if self.tableView.rowCount() > 2:
-            # 删除表格内第一列和第二列为空或者空字符串的行
-            for i in range(self.tableView.rowCount()-1):
-                if self.tableView.item(i, 0) is None or self.tableView.item(i, 0).text() == '':
-                    self.tableView.removeRow(i)
                     break
-                elif self.tableView.item(i, 1) is None or self.tableView.item(i, 1).text() == '':
-                    self.tableView.removeRow(i)
-                    break
-
-
-
 
 
 
@@ -13247,7 +14000,6 @@ class Widget_update_text(QFrame):#  更新子界面
         #导入文本
         pj=jtpp.Jr_Tpp(config)
         pj.Update(config['game_path'],config['translation_path'],config['save_path'],config['data_path'])
-        
 
 
 
@@ -13379,7 +14131,7 @@ class CustomTitleBar(TitleBar): #标题栏
         self.iconLabel.setPixmap(QIcon(icon).pixmap(18, 18)) #设置图标
 
 
-class window(FramelessWindow): #主窗口
+class window(FramelessWindow): #主窗口 v
 
     def __init__(self):
         super().__init__()
@@ -13419,7 +14171,9 @@ class window(FramelessWindow): #主窗口
         self.Widget_replace_dict = Widget_replace_dict('Widget_replace_dict', self)
 
 
-        self.Widget_rulebook = Widget_rulebook('Widget_rulebook', self) 
+        self.Widget_rulebook = Widget_rulebook('Widget_rulebook', self)
+        self.Widget_system_prompt = Widget_system_prompt('Widget_system_prompt', self)  
+        self.Widget_translation_example = Widget_translation_example('Widget_translation_example', self)  
         self.Widget_characterization = Widget_characterization('Widget_characterization', self) 
         self.Widget_world_building = Widget_world_building('Widget_world_building', self) 
         self.Widget_writing_style = Widget_writing_style('Widget_writing_style', self) 
@@ -13484,18 +14238,20 @@ class window(FramelessWindow): #主窗口
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
 
         # 添加其他功能页面
-        self.addSubInterface(self.Widget_prompt_dict, FIF.DICTIONARY, '提示字典',NavigationItemPosition.SCROLL)  
         self.addSubInterface(self.Widget_replace_dict, FIF.DICTIONARY, '替换字典',NavigationItemPosition.SCROLL)  
         self.addSubInterface(self.Widget_prompy_engineering, FIF.ZOOM, 'AI提示词工程',NavigationItemPosition.SCROLL) 
-        self.addSubInterface(self.Widget_tune, FIF.MIX_VOLUMES, 'AI实时参数调教',NavigationItemPosition.SCROLL)   
+        self.addSubInterface(self.Widget_tune, FIF.MIX_VOLUMES, '参数调整',NavigationItemPosition.SCROLL)   
 
 
 
         # 添加翻译设置相关页面
-        self.addSubInterface(self.Widget_rulebook, FIF.APPLICATION, '设定书',NavigationItemPosition.SCROLL) 
-        self.addSubInterface(self.Widget_characterization, FIF.REMOVE, '角色设定',parent=self.Widget_rulebook) 
+        self.addSubInterface(self.Widget_rulebook, FIF.APPLICATION, '提示书',NavigationItemPosition.SCROLL) 
+        self.addSubInterface(self.Widget_system_prompt, FIF.REMOVE, '基础提示',parent=self.Widget_rulebook)
+        self.addSubInterface(self.Widget_prompt_dict, FIF.DICTIONARY, '术语字典',parent=self.Widget_rulebook)   
+        self.addSubInterface(self.Widget_characterization, FIF.REMOVE, '角色介绍',parent=self.Widget_rulebook) 
         self.addSubInterface(self.Widget_world_building, FIF.ALIGNMENT, '背景设定',parent=self.Widget_rulebook) 
-        self.addSubInterface(self.Widget_writing_style, FIF.EMOJI_TAB_SYMBOLS, '文风设定',parent=self.Widget_rulebook) 
+        self.addSubInterface(self.Widget_writing_style, FIF.EMOJI_TAB_SYMBOLS, '文风要求',parent=self.Widget_rulebook) 
+        self.addSubInterface(self.Widget_translation_example, FIF.EMOJI_TAB_SYMBOLS, '翻译示例',parent=self.Widget_rulebook) 
 
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
