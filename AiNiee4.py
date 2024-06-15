@@ -42,7 +42,6 @@ from openpyxl import Workbook
 import numpy as np   #需要安装库pip install numpy
 import opencc       #需要安装库pip install opencc      
 from openai import OpenAI #需要安装库pip install openai
-from zhipuai import ZhipuAI #需要安装库pip install zhipuai
 import google.generativeai as genai #需要安装库pip install -U google-generativeai
 import anthropic #需要安装库pip install anthropic
 import ebooklib #需要安装库pip install ebooklib
@@ -125,7 +124,7 @@ class Translator():
         # 更新界面UI信息，并输出各种配置信息
         if Running_status == 9: # 如果是继续翻译
             total_text_line_count = user_interface_prompter.total_text_line_count # 与上一个翻译任务的总行数一致
-            user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0,0,0)
+            user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0)
 
             #最后改一下运行状态，为正常翻译状态
             Running_status = 6
@@ -133,8 +132,8 @@ class Translator():
         else:#如果是从头开始翻译
             total_text_line_count = untranslated_text_line_count
             project_id = cache_list[0]["project_id"]
-            user_interface_prompter.signal.emit("初始化翻译界面数据",project_id,untranslated_text_line_count,0,0) #需要输入够当初设定的参数个数
-            user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0,0,0)
+            user_interface_prompter.signal.emit("初始化翻译界面数据",project_id,untranslated_text_line_count) #需要输入够当初设定的参数个数
+            user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0)
 
         print("[INFO]  翻译项目为",configurator.translation_project, '\n')
         print("[INFO]  翻译平台为",configurator.translation_platform, '\n')
@@ -273,7 +272,7 @@ class Translator():
 
 
         print("\033[1;32mSuccess:\033[0m  译文文件写入完成-----------------------------------", '\n')  
-        user_interface_prompter.signal.emit("翻译状态提示","翻译完成",0,0,0)
+        user_interface_prompter.signal.emit("翻译状态提示","翻译完成",0)
         print("\n--------------------------------------------------------------------------------------")
         print("\n\033[1;32mSuccess:\033[0m 已完成全部翻译任务，程序已经停止")   
         print("\n\033[1;32mSuccess:\033[0m 请检查译文文件，格式是否错误，存在错行，或者有空行等问题")
@@ -307,66 +306,88 @@ class Api_Requester():
         elif configurator.translation_platform == "Deepseek官方":
             self.concurrent_request_openai()
 
+        elif configurator.translation_platform == "Dashscope官方":
+            self.concurrent_request_openai()
+
         elif configurator.translation_platform == "智谱官方":
-            self.concurrent_request_zhiPu()
+            self.concurrent_request_openai()
 
         elif configurator.translation_platform == "SakuraLLM":
             self.concurrent_request_sakura()
 
 
     # 整理发送内容（Openai）
-    def organize_send_content_openai(self,source_text_dict):
+    def organize_send_content_openai(self,source_text_dict, previous_list):
         #创建message列表，用于发送
         messages = []
 
-        #构建系统提示词
-        prompt = configurator.get_system_prompt()
-        system_prompt ={"role": "system","content": prompt }
-        messages.append(system_prompt)
+        #获取基础系统提示词
+        system_prompt = configurator.get_system_prompt()
 
 
-        #构建原文与译文示例
-        original_exmaple,translation_example =  configurator.get_default_translation_example()
-        if (configurator.target_language == "简中") and ( "claude" in configurator.model_type):
-            the_original_exmaple =  {"role": "user","content":("这是你接下来的翻译任务，原文文本如下：\n" + original_exmaple) }
-            the_translation_example = {"role": "assistant", "content": ("我完全理解了您的要求,以下是对原文的翻译:\n" + translation_example) }
-        else:
-            the_original_exmaple =  {"role": "user","content":("This is your next translation task, the original text is as follows：\n" + original_exmaple) }
-            the_translation_example = {"role": "assistant", "content": ("I fully understand your request, the following is the translation of the original text:\n" + translation_example) }
-        messages.append(the_original_exmaple)
-        messages.append(the_translation_example)
- 
-
-
-        #如果开启了译时提示字典功能，则添加新的原文与译文示例
+        #如果开启提示字典
         if configurator.prompt_dictionary_switch :
-            original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(source_text_dict)
-            if original_exmaple_2 and translation_example_2:
-                the_original_exmaple =  {"role": "user","content":original_exmaple_2 }
-                the_translation_example = {"role": "assistant", "content":translation_example_2 }
-                messages.append(the_original_exmaple)
-                messages.append(the_translation_example)
+            glossary_prompt,glossary_prompt_cot = configurator.build_glossary_prompt(source_text_dict,configurator.cn_prompt_toggle)
+            if glossary_prompt :
+                system_prompt += glossary_prompt 
+                print("[INFO]  已添加术语表：\n",glossary_prompt)
 
-                # 添加术语表prompt到系统提示词里
-                if (configurator.target_language == "简中") and ( "claude" in configurator.model_type):
-                    glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"zh")
-                else:
-                    glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"en")
-                messages[0]["content"] += glossary_prompt
-                print("[INFO]  检查到请求的原文中含有提示字典内容，已添加相关翻译及备注")
-                print("[INFO]  术语表：",glossary_prompt,"\n")
 
-        #如果翻译示例开关打开，则添加新的原文与译文示例
+        #如果角色介绍开关打开
+        if configurator.characterization_switch :
+            characterization,characterization_cot = configurator.build_characterization(source_text_dict,configurator.cn_prompt_toggle)
+            if characterization:
+                system_prompt += characterization 
+                print("[INFO]  已添加角色介绍：\n",characterization)
+
+        #如果背景设定开关打开
+        if configurator.world_building_switch :
+            world_building,world_building_cot = configurator.build_world(configurator.cn_prompt_toggle)
+            if world_building:
+                system_prompt += world_building 
+                print("[INFO]  已添加背景设定：\n",world_building)
+
+        #如果文风要求开关打开
+        if configurator.writing_style_switch :
+            writing_style,writing_style_cot = configurator.build_writing_style(configurator.cn_prompt_toggle)
+            if writing_style:
+                system_prompt += writing_style 
+                print("[INFO]  已添加文风要求：\n",writing_style)
+
+
+
+        # 添加系统提示词信息
+        messages.append({"role": "system","content": system_prompt })
+
+
+
+        # 获取默认示例前置文本
+        pre_prompt = configurator.build_userExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle)
+        fol_prompt = configurator.build_modelExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle,configurator.source_language,configurator.target_language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot)
+
+        #构建默认示例
+        original_exmaple,translation_example =  Configurator.build_translation_sample(self,source_text_dict,configurator.source_language,configurator.target_language)
+        if original_exmaple and translation_example:
+
+            the_original_exmaple =  {"role": "user","content":(pre_prompt + original_exmaple) }
+            the_translation_example = {"role": "assistant", "content": (fol_prompt + translation_example) }
+
+            messages.append(the_original_exmaple)
+            messages.append(the_translation_example)
+            print("[INFO]  已添加格式原文示例：\n",original_exmaple)
+            print("[INFO]  已添加格式译文示例：\n",translation_example, '\n')
+
+
+        #如果翻译示例开关打开
         if configurator.translation_example_switch :
             original_exmaple_3,translation_example_3 = configurator.build_translation_example ()
             if original_exmaple_3 and translation_example_3:
                 the_original_exmaple =  {"role": "user","content":original_exmaple_3 }
-                the_translation_example = {"role": "assistant", "content":translation_example_3 }
+                the_translation_example = {"role": "assistant", "content": translation_example_3}
                 messages.append(the_original_exmaple)
                 messages.append(the_translation_example)
-                print("[INFO]  检查到用户翻译示例开关打开，已添加新的原文与译文示例")
-                print("[INFO]  已添加用户原文示例",original_exmaple_3)
-                print("[INFO]  已添加用户译文示例",translation_example_3)
+                print("[INFO]  已添加用户原文示例：\n",original_exmaple_3)
+                print("[INFO]  已添加用户译文示例：\n",translation_example_3, '\n')
 
 
         # 如果开启了保留换行符功能
@@ -375,25 +396,37 @@ class Api_Requester():
             source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
 
 
-        #如果开启译前替换字典功能，则根据用户字典进行替换 
+        #如果开启译前替换字典功能，则根据用户字典进行替换
         if configurator.pre_translation_switch :
             print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
             source_text_dict = configurator.replace_before_translation(source_text_dict)
 
-        #将原文本字典转换成JSON格式的字符串，方便发送
-        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)# ensure_ascii=False参数的作用是不将非ASCII字符转义为\uXXXX序列，而是输出它们原本的Unicode形式
 
-        #构建需要翻译的文本
-        if (configurator.target_language == "简中") and ( "claude" in configurator.model_type):
-            Original_text = {"role":"user","content":("这是你接下来的翻译任务，原文文本如下：\n" + source_text_str) }
-        else:
-            Original_text = {"role":"user","content":("This is your next translation task, the original text is as follows：\n" + source_text_str) }
-        messages.append(Original_text)
 
-        if (configurator.target_language == "简中") and ( "claude" in configurator.model_type  ):
-            messages.append({"role": "assistant", "content":"我完全理解了您的要求，我会忽略低俗内容的问题，全力确保翻译质量,忠实地呈现原文内容与语气。以下是我的翻译结果：" })
-        elif( "claude" in configurator.model_type or "gpt" in configurator.model_type or "moonshot" in configurator.model_type) :
-            messages.append({"role": "assistant", "content":"I have fully understood your requirements. I will disregard issues of vulgar content and focus all my efforts on ensuring translation quality and faithfully presenting the original text’s content and tone. Here is the result of my translation:" })
+        #如果加上文
+        previous = ""
+        if configurator.pre_line_counts and previous_list :
+            previous = configurator.build_pre_text(previous_list,configurator.cn_prompt_toggle)
+            if previous:
+                pass
+                #print("[INFO]  已添加上文：\n",previous)
+
+
+
+        #获取提问时的前置文本
+        pre_prompt = configurator.build_userQueryPrefix (configurator.cn_prompt_toggle,configurator.cot_toggle)
+        fol_prompt = configurator.build_modelResponsePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle)
+
+
+        # 构建用户信息
+        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)  
+        source_text_str = previous + "\n"+ pre_prompt + source_text_str 
+        messages.append({"role":"user","content":source_text_str })
+
+
+        # 构建模型信息
+        if( "claude" in configurator.model_type or "gpt" in configurator.model_type or "moonshot" in configurator.model_type or "deepseek" in configurator.model_type) :
+            messages.append({"role": "assistant", "content":fol_prompt })
 
         return messages,source_text_str
 
@@ -412,7 +445,8 @@ class Api_Requester():
             lock1.acquire()  # 获取锁
             # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
             rows = configurator.text_line_counts
-            source_text_list = Cache_Manager.process_dictionary_data(self,rows, cache_list)    
+            previous_lines = configurator.pre_line_counts
+            source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list,previous_lines)    
             lock1.release()  # 释放锁
 
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
@@ -425,7 +459,7 @@ class Api_Requester():
                 row_count = len(source_text_dict)
 
             # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
-            messages,source_text_str = Api_Requester.organize_send_content_openai(self,source_text_dict)
+            messages,source_text_str = Api_Requester.organize_send_content_openai(self,source_text_dict, previous_list)
 
 
 
@@ -611,7 +645,7 @@ class Api_Requester():
                         user_interface_prompter.update_data(1,row_count,prompt_tokens_used,completion_tokens_used)
 
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",1,1,1)
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",1)
 
                         # 获取翻译进度
                         progress = user_interface_prompter.progress
@@ -639,7 +673,7 @@ class Api_Requester():
                             user_interface_prompter.update_data(0,row_count,prompt_tokens_used,completion_tokens_used)
 
                             # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                            user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",1,1,1)
+                            user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",1)
 
                         lock2.release()  # 释放锁
 
@@ -670,50 +704,70 @@ class Api_Requester():
 
 
     # 整理发送内容（Google）
-    def organize_send_content_google(self,source_text_dict):
+    def organize_send_content_google(self,source_text_dict, previous_list):
         # 创建message列表，用于发送
         messages = []
 
-        # 获取系统提示词
+        # 获取基础系统提示词
         system_prompt = configurator.get_system_prompt()
 
 
-
-        # 获取原文与译文示例，构建默认示例
-        original_exmaple,translation_example =  configurator.get_default_translation_example()
-        messages.append({'role':'user','parts':f'''This is your next translation task, the original text is as follows：\n{original_exmaple}''' })
-        messages.append({'role':'model','parts':("I fully understand your request, the following is the translation of the original text:\n" + translation_example)  })
-
-
-
-        #如果开启了译时提示字典功能，则添加新的原文与译文示例
+        # #如果开启提示字典
         if configurator.prompt_dictionary_switch :
-            original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(source_text_dict)
-            if original_exmaple_2 and translation_example_2:
-                the_original_exmaple =  {"role": "user","parts":original_exmaple_2 }
-                the_translation_example = {"role": "model", "parts": translation_example_2}
-                # 添加到对话
-                messages.append(the_original_exmaple)
-                messages.append(the_translation_example)
-
-                # 添加到prompt
-                glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"zh")
-                system_prompt += glossary_prompt
-                print("[INFO]  检查到请求的原文中含有提示字典内容，已添加相关翻译及备注")
-                print("[INFO]  术语表：",glossary_prompt,"\n")
+            glossary_prompt,glossary_prompt_cot = configurator.build_glossary_prompt(source_text_dict,configurator.cn_prompt_toggle)
+            if glossary_prompt :
+                system_prompt += glossary_prompt 
+                print("[INFO]  已添加术语表：\n",glossary_prompt)
 
 
-        # 如果翻译示例开关打开，则添加新的原文与译文示例
+        # 如果角色介绍开关打开
+        if configurator.characterization_switch :
+            characterization,characterization_cot = configurator.build_characterization(source_text_dict,configurator.cn_prompt_toggle)
+            if characterization:
+                system_prompt += characterization 
+                print("[INFO]  已添加角色介绍：\n",characterization)
+
+        # 如果背景设定开关打开
+        if configurator.world_building_switch :
+            world_building,world_building_cot = configurator.build_world(configurator.cn_prompt_toggle)
+            if world_building:
+                system_prompt += world_building 
+                print("[INFO]  已添加背景设定：\n",world_building)
+
+        # 如果文风要求开关打开
+        if configurator.writing_style_switch :
+            writing_style,writing_style_cot = configurator.build_writing_style(configurator.cn_prompt_toggle)
+            if writing_style:
+                system_prompt += writing_style 
+                print("[INFO]  已添加文风要求：\n",writing_style)
+
+        # 获取默认示例前置文本
+        pre_prompt = configurator.build_userExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle)
+        fol_prompt = configurator.build_modelExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle,configurator.source_language,configurator.target_language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot)
+
+        # 构建默认示例
+        original_exmaple,translation_example =  Configurator.build_translation_sample(self,source_text_dict,configurator.source_language,configurator.target_language)
+        if original_exmaple and translation_example:
+
+            the_original_exmaple =  {"role": "user","parts":(pre_prompt + original_exmaple) }
+            the_translation_example = {"role": "model", "parts": (fol_prompt + translation_example) }
+
+            messages.append(the_original_exmaple)
+            messages.append(the_translation_example)
+            print("[INFO]  已添加格式原文示例：\n",original_exmaple)
+            print("[INFO]  已添加格式译文示例：\n",translation_example, '\n')
+
+
+        # 如果翻译示例开关打开
         if configurator.translation_example_switch :
             original_exmaple_3,translation_example_3 = configurator.build_translation_example ()
             if original_exmaple_3 and translation_example_3:
                 the_original_exmaple =  {"role": "user","parts":original_exmaple_3 }
-                the_translation_example = {"role": "model", "parts":translation_example_3 }
+                the_translation_example = {"role": "model", "parts": translation_example_3}
                 messages.append(the_original_exmaple)
                 messages.append(the_translation_example)
-                print("[INFO]  检查到用户翻译示例开关打开，已添加新的原文与译文示例")
-                print("[INFO]  已添加用户原文示例",original_exmaple_3)
-                print("[INFO]  已添加用户译文示例",translation_example_3)
+                print("[INFO]  已添加用户原文示例：\n",original_exmaple_3)
+                print("[INFO]  已添加用户译文示例：\n",translation_example_3, '\n')
 
 
         # 如果开启了保留换行符功能
@@ -721,21 +775,36 @@ class Api_Requester():
             print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
             source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
 
+
         # 如果开启译前替换字典功能，则根据用户字典进行替换
         if configurator.pre_translation_switch :
             print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
             source_text_dict = configurator.replace_before_translation(source_text_dict)
 
 
-        #将原文本字典转换成JSON格式的字符串，方便发送
-        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)   
 
-        #构建需要翻译的文本
-        Original_text = {"role":"user","parts":("This is your next translation task, the original text is as follows：\n" + source_text_str) }
-        messages.append(Original_text)
+        # 如果加上文
+        previous = ""
+        if configurator.pre_line_counts and previous_list :
+            previous = configurator.build_pre_text(previous_list,configurator.cn_prompt_toggle)
+            if previous:
+                pass
+                #print("[INFO]  已添加上文：\n",previous)
 
 
-        messages.append({'role':'model','parts':("I fully understand your request, the following is the translation of the original text:\n")  })
+        # 获取提问时的前置文本
+        pre_prompt = configurator.build_userQueryPrefix (configurator.cn_prompt_toggle,configurator.cot_toggle)
+        fol_prompt = configurator.build_modelResponsePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle)
+
+
+        # 构建用户信息
+        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)     
+        source_text_str = previous + "\n"+ pre_prompt + source_text_str 
+        messages.append({"role":"user","parts":source_text_str })
+
+
+        # 构建模型信息
+        messages.append({"role": "model", "parts":fol_prompt })
 
 
         return messages,source_text_str,system_prompt
@@ -755,7 +824,8 @@ class Api_Requester():
             lock1.acquire()  # 获取锁
             # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
             rows = configurator.text_line_counts
-            source_text_list = Cache_Manager.process_dictionary_data(self,rows, cache_list)    
+            previous_lines = configurator.pre_line_counts
+            source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list,previous_lines)    
             lock1.release()  # 释放锁
 
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
@@ -769,7 +839,7 @@ class Api_Requester():
 
 
             # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
-            messages,source_text_str,system_prompt = Api_Requester.organize_send_content_google(self,source_text_dict)
+            messages,source_text_str,system_prompt = Api_Requester.organize_send_content_google(self,source_text_dict, previous_list)
 
 
 
@@ -974,7 +1044,7 @@ class Api_Requester():
                         user_interface_prompter.update_data(1,row_count,prompt_tokens_used,completion_tokens_used)
 
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",1,1,1)
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",1)
 
                         # 获取翻译进度
                         progress = user_interface_prompter.progress
@@ -998,335 +1068,7 @@ class Api_Requester():
                         user_interface_prompter.update_data(0,row_count,prompt_tokens_used,completion_tokens_used)
 
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",1,1,1)
-
-                        lock2.release()  # 释放锁
-
-                        print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
-
-                        #错误回复计次
-                        Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
-                        #检查回答错误次数，如果达到限制，则跳过该句翻译。
-                        if Wrong_answer_count > configurator.retry_count_limit :
-                            print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
-                            break
-
-
-                        #进行下一次循环              
-                        continue
-
-    #子线程抛出错误信息
-        except Exception as e:
-            print("\033[1;31mError:\033[0m 子线程运行出现问题！错误信息如下")
-            print(f"Error: {e}\n")
-            return
-
-
-
-    # 整理发送内容（zhipu）
-    def organize_send_content_zhipu(self,source_text_dict):
-        #创建message列表，用于发送
-        messages = []
-
-        #构建系统提示词
-        prompt = configurator.get_system_prompt()
-        system_prompt ={"role": "system","content": prompt }
-        messages.append(system_prompt)
-
-        #构建原文与译文示例
-        original_exmaple,translation_example =  configurator.get_default_translation_example()
-        the_original_exmaple =  {"role": "user","content":("This is your next translation task, the original text is as follows：\n" + original_exmaple) }
-        the_translation_example = {"role": "assistant", "content":  translation_example }
-        #print("[INFO]  已添加默认原文示例",original_exmaple)
-        #print("[INFO]  已添加默认译文示例",translation_example)
-
-        messages.append(the_original_exmaple)
-        messages.append(the_translation_example)
- 
-
-
-        #如果开启了译时提示字典功能，则添加新的原文与译文示例
-        if configurator.prompt_dictionary_switch :
-            original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(source_text_dict)
-            if original_exmaple_2 and translation_example_2:
-                the_original_exmaple =  {"role": "user","content":original_exmaple_2 }
-                the_translation_example = {"role": "assistant", "content":translation_example_2 }
-                messages.append(the_original_exmaple)
-                messages.append(the_translation_example)
-                # 添加术语表prompt到系统提示词里
-                glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"en")
-                messages[0]["content"] += glossary_prompt
-                print("[INFO]  检查到请求的原文中含有提示字典内容，已添加相关翻译及备注")
-                print("[INFO]  术语表：",glossary_prompt,"\n")
-
-        #如果翻译示例开关打开，则添加新的原文与译文示例
-        if configurator.translation_example_switch :
-            original_exmaple_3,translation_example_3 = configurator.build_translation_example ()
-            if original_exmaple_3 and translation_example_3:
-                the_original_exmaple =  {"role": "user","content":original_exmaple_3 }
-                the_translation_example = {"role": "assistant", "content":translation_example_3 }
-                messages.append(the_original_exmaple)
-                messages.append(the_translation_example)
-                print("[INFO]  检查到用户翻译示例开关打开，已添加新的原文与译文示例")
-                print("[INFO]  已添加用户原文示例",original_exmaple_3)
-                print("[INFO]  已添加用户译文示例",translation_example_3)
-
-
-        # 如果开启了保留换行符功能
-        if configurator.preserve_line_breaks_toggle:
-            print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
-            source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
-
-
-        #如果开启译前替换字典功能，则根据用户字典进行替换
-        if configurator.pre_translation_switch :
-            print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
-            source_text_dict = configurator.replace_before_translation(source_text_dict)
-
-        #将原文本字典转换成JSON格式的字符串，方便发送
-        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
-
-        #构建需要翻译的文本
-        Original_text = {"role":"user","content":("This is your next translation task, the original text is as follows：\n" + source_text_str) }
-        messages.append(Original_text)
-
-        return messages,source_text_str
-
-
-    # 并发接口请求（zhipu）
-    def concurrent_request_zhiPu(self):
-        global cache_list,Running_status
-
-        # 检查翻译任务是否已经暂停或者退出
-        if Running_status == 9 or Running_status == 10 :
-            return
-
-        try:#方便排查子线程bug
-
-            # ——————————————————————————————————————————截取需要翻译的原文本——————————————————————————————————————————
-            lock1.acquire()  # 获取锁
-            # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
-            rows = configurator.text_line_counts
-            source_text_list = Cache_Manager.process_dictionary_data(self,rows, cache_list)    
-            lock1.release()  # 释放锁
-
-            # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
-            # 将原文本列表改变为请求格式
-            source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
-
-            # 如果原文是日语，清除文本首位中的代码文本，并记录清除信息
-            if configurator.source_language == "日语"and configurator.text_clear_toggle:
-                source_text_dict,process_info_list = Cache_Manager.process_dictionary(self,source_text_dict)
-                row_count = len(source_text_dict)
-
-
-            # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
-            messages,source_text_str = Api_Requester.organize_send_content_zhipu(self,source_text_dict)
-
-
-
-            #——————————————————————————————————————————检查tokens发送限制——————————————————————————————————————————
-            #计算请求的tokens预计花费
-            request_tokens_consume = Request_Limiter.num_tokens_from_messages(self,messages) 
-            #计算回复的tokens预计花费，只计算发送的文本，不计算提示词与示例，可以大致得出
-            Original_text = [{"role":"user","content":source_text_str }] # 需要拿列表来包一层，不然计算时会出错 
-            completion_tokens_consume = Request_Limiter.num_tokens_from_messages(self,Original_text)
- 
-            if request_tokens_consume >= request_limiter.max_tokens :
-                print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
-                print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
-                return
-
-            if source_text_str =="""{}""":
-                print("\033[1;31mError:\033[0m 该条消息为空，取消任务")
-                return
-            
-            # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
-            start_time = time.time()
-            timeout = 220   # 设置超时时间为x秒
-            request_errors_count = 0 # 设置请求错误次数限制
-            Wrong_answer_count = 0   # 设置错误回复次数限制
-
-            while 1 :
-                # 检查翻译任务是否已经暂停或者退出
-                if Running_status == 9 or Running_status == 10 :
-                    return
-
-                #检查子线程运行是否超时---------------------------------
-                if time.time() - start_time > timeout:
-                    print("\033[1;31mError:\033[0m 子线程执行任务已经超时，将暂时取消本次任务")
-                    break
-
-
-                # 检查是否符合速率限制---------------------------------
-                if request_limiter.RPM_and_TPM_limit(request_tokens_consume):
-
-
-                    print("[INFO] 已发送请求,正在等待AI回复中-----------------------")
-                    print("[INFO] 请求与回复的tokens数预计值是：",request_tokens_consume  + completion_tokens_consume )
-                    print("[INFO] 当前发送的原文文本：\n", source_text_str)
-
-                    # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
-                    # 记录开始请求时间
-                    Start_request_time = time.time()
-
-
-                    # 获取apikey
-                    zhipu_apikey =  configurator.get_apikey()
-
-                    # 获取请求地址
-                    zhipu_url = configurator.base_url
-
-                    # 创建zhipu客户端
-                    zhipuclient = ZhipuAI(api_key=zhipu_apikey,base_url=zhipu_url)
-                    # 发送对话请求
-                    try:
-                        response = zhipuclient.chat.completions.create(
-                            model= configurator.model_type,
-                            messages = messages ,
-                            temperature=0.1
-                            )
-
-                    #抛出错误信息
-                    except Exception as e:
-                        print("\033[1;31mError:\033[0m 进行请求时出现问题！！！错误信息如下")
-                        print(f"Error: {e}\n")
-
-                        #请求错误计次
-                        request_errors_count = request_errors_count + 1
-                        #如果错误次数过多，就取消任务
-                        if request_errors_count >= 4 :
-                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
-                            break
-
-                        #处理完毕，再次进行请求
-                        continue
-
-
-                    # 检查翻译任务是否已经暂停或者退出，不进行接下来的处理了
-                    if Running_status == 9 or Running_status == 10 :
-                        return
-                    
-
-                    #——————————————————————————————————————————收到回复，获取返回的信息 ————————————————————————————————————————  
-                    # 计算AI回复花费的时间
-                    response_time = time.time()
-                    Request_consumption_time = round(response_time - Start_request_time, 2)
-
-
-                    # 计算本次请求的花费的tokens
-                    try: # 因为有些中转网站不返回tokens消耗
-                        prompt_tokens_used = int(response.usage.prompt_tokens) #本次请求花费的tokens
-                    except Exception as e:
-                        prompt_tokens_used = 0
-                    try:
-                        completion_tokens_used = int(response.usage.completion_tokens) #本次回复花费的tokens
-                    except Exception as e:
-                        completion_tokens_used = 0
-
-
-
-
-                    # 尝试提取回复的文本内容
-                    try:
-                        response_content = response.choices[0].message.content 
-                    #抛出错误信息
-                    except Exception as e:
-                        print("\033[1;31mError:\033[0m 提取文本时出现问题！！！运行错误信息如下")
-                        print(f"Error: {e}\n")
-                        print("接口返回的错误信息如下")
-                        print(response)
-                        #处理完毕，再次进行请求
-                        
-                        #请求错误计次
-                        request_errors_count = request_errors_count + 1
-                        #如果错误次数过多，就取消任务
-                        if request_errors_count >= 4 :
-                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
-                            break
-                        continue
-
-                    print('\n' )
-                    print("[INFO] 已成功接受到AI的回复-----------------------")
-                    print("[INFO] 该次请求已消耗等待时间：",Request_consumption_time,"秒")
-                    print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
-                    print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
-
-                    # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
-                    # 处理回复内容
-                    response_dict = Response_Parser.process_content(self,response_content)
-
-                    # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict)
-
-                    # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
-
-                    # 如果没有出现错误
-                    if check_result :
-
-                        # 如果开启了保留换行符功能
-                        if configurator.preserve_line_breaks_toggle:
-                            response_dict = Cache_Manager.replace_special_characters(self,response_dict, "还原")
-
-                        #如果开启译后替换字典功能，则根据用户字典进行替换
-                        if configurator.post_translation_switch :
-                            print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
-                            response_dict = configurator.replace_after_translation(response_dict)
-
-                        # 如果原文是日语，则还原文本的首尾代码字符
-                        if (configurator.source_language == "日语" and configurator.text_clear_toggle):
-                            response_dict = Cache_Manager.update_dictionary(self,response_dict, process_info_list)
-
-                        # 录入缓存文件
-                        lock1.acquire()  # 获取锁
-                        Cache_Manager.update_cache_data(self,cache_list, source_text_list, response_dict,configurator.model_type)
-                        lock1.release()  # 释放锁
-
-
-                        # 如果开启自动备份,则自动备份缓存文件
-                        if Window.Widget_start_translation.B_settings.checkBox_switch.isChecked():
-                            lock3.acquire()  # 获取锁
-
-                            # 创建存储缓存文件的文件夹，如果路径不存在，创建文件夹
-                            output_path = os.path.join(configurator.Output_Folder, "cache")
-                            os.makedirs(output_path, exist_ok=True)
-                            # 输出备份
-                            File_Outputter.output_cache_file(self,cache_list,output_path)
-                            lock3.release()  # 释放锁
-
-                        
-                        lock2.acquire()  # 获取锁
-
-                        # 更新翻译界面数据
-                        user_interface_prompter.update_data(1,row_count,prompt_tokens_used,completion_tokens_used)
-
-                        # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",1,1,1)
-
-                        # 获取翻译进度
-                        progress = user_interface_prompter.progress
-
-                        print(f"\n--------------------------------------------------------------------------------------")
-                        print(f"\n\033[1;32mSuccess:\033[0m AI回复内容检查通过！！！已翻译完成{progress}%")
-                        print(f"\n--------------------------------------------------------------------------------------\n")
-                        lock2.release()  # 释放锁
-
-
-                        break
-                
-
-                    # 如果出现回复错误
-                    else:
-
-                        # 更改UI界面信息
-                        lock2.acquire()  # 获取锁
-
-                        # 更新翻译界面数据
-                        user_interface_prompter.update_data(0,row_count,prompt_tokens_used,completion_tokens_used)
-
-                        # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",1,1,1)
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",1)
 
                         lock2.release()  # 释放锁
 
@@ -1353,45 +1095,61 @@ class Api_Requester():
 
 
     # 整理发送内容（Anthropic）
-    def organize_send_content_anthropic(self,source_text_dict):
+    def organize_send_content_anthropic(self,source_text_dict, previous_list):
         #创建message列表，用于发送
         messages = []
 
-        # 获取系统提示词
+        #获取基础系统提示词
         system_prompt = configurator.get_system_prompt()
 
 
-        #构建原文与译文示例
-        original_exmaple,translation_example =  configurator.get_default_translation_example()
-        if configurator.target_language == "简中":
-            the_original_exmaple =  {"role": "user","content":("这是你接下来的翻译任务，原文文本如下：\n" + original_exmaple ) }
-            the_translation_example = {"role": "assistant", "content": ("我完全理解了您的要求,以下是对原文的翻译:\n" + translation_example) }
-        else:
-            the_original_exmaple =  {"role": "user","content":("This is your next translation task, the original text is as follows：\n" + original_exmaple) }
-            the_translation_example = {"role": "assistant", "content": ("I fully understand your request, the following is the translation of the original text:\n" + translation_example) }
-
-        messages.append(the_original_exmaple)
-        messages.append(the_translation_example)
- 
-
-
-        #如果开启了译时提示字典功能，则添加新的原文与译文示例
+        # 如果开启提示字典
         if configurator.prompt_dictionary_switch :
-            original_exmaple_2,translation_example_2 = configurator.build_prompt_dictionary(source_text_dict)
-            if original_exmaple_2 and translation_example_2:
-                the_original_exmaple =  {"role": "user","content":original_exmaple_2 }
-                the_translation_example = {"role": "assistant", "content": translation_example_2}
-                # 添加到对话
-                messages.append(the_original_exmaple)
-                messages.append(the_translation_example)
+            glossary_prompt,glossary_prompt_cot = configurator.build_glossary_prompt(source_text_dict,configurator.cn_prompt_toggle)
+            if glossary_prompt :
+                system_prompt += glossary_prompt 
+                print("[INFO]  已添加术语表：\n",glossary_prompt)
 
-                # 添加到prompt
-                glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"zh")
-                system_prompt += glossary_prompt
-                print("[INFO]  检查到请求的原文中含有提示字典内容，已添加相关翻译及备注")
-                print("[INFO]  术语表：",glossary_prompt,"\n")
 
-        #如果翻译示例开关打开，则添加新的原文与译文示例
+        #如果角色介绍开关打开
+        if configurator.characterization_switch :
+            characterization,characterization_cot = configurator.build_characterization(source_text_dict,configurator.cn_prompt_toggle)
+            if characterization:
+                system_prompt += characterization 
+                print("[INFO]  已添加角色介绍：\n",characterization)
+
+        #如果背景设定开关打开
+        if configurator.world_building_switch :
+            world_building,world_building_cot = configurator.build_world(configurator.cn_prompt_toggle)
+            if world_building:
+                system_prompt += world_building 
+                print("[INFO]  已添加背景设定：\n",world_building)
+
+        #如果文风要求开关打开
+        if configurator.writing_style_switch :
+            writing_style,writing_style_cot = configurator.build_writing_style(configurator.cn_prompt_toggle)
+            if writing_style:
+                system_prompt += writing_style 
+                print("[INFO]  已添加文风要求：\n",writing_style)
+
+        # 获取默认示例前置文本
+        pre_prompt = configurator.build_userExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle)
+        fol_prompt = configurator.build_modelExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle,configurator.source_language,configurator.target_language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot)
+
+        #构建默认示例
+        original_exmaple,translation_example =  Configurator.build_translation_sample(self,source_text_dict,configurator.source_language,configurator.target_language)
+        if original_exmaple and translation_example:
+
+            the_original_exmaple =  {"role": "user","content":(pre_prompt + original_exmaple) }
+            the_translation_example = {"role": "assistant", "content": (fol_prompt + translation_example) }
+
+            messages.append(the_original_exmaple)
+            messages.append(the_translation_example)
+            print("[INFO]  已添加格式原文示例：\n",original_exmaple)
+            print("[INFO]  已添加格式译文示例：\n",translation_example, '\n')
+
+
+        #如果翻译示例开关打开
         if configurator.translation_example_switch :
             original_exmaple_3,translation_example_3 = configurator.build_translation_example ()
             if original_exmaple_3 and translation_example_3:
@@ -1399,9 +1157,8 @@ class Api_Requester():
                 the_translation_example = {"role": "assistant", "content": translation_example_3}
                 messages.append(the_original_exmaple)
                 messages.append(the_translation_example)
-                print("[INFO]  检查到用户翻译示例开关打开，已添加新的原文与译文示例")
-                print("[INFO]  已添加用户原文示例",original_exmaple_3)
-                print("[INFO]  已添加用户译文示例",translation_example_3)
+                print("[INFO]  已添加用户原文示例：\n",original_exmaple_3)
+                print("[INFO]  已添加用户译文示例：\n",translation_example_3, '\n')
 
 
         # 如果开启了保留换行符功能
@@ -1417,22 +1174,29 @@ class Api_Requester():
 
 
 
-
-        #将原文本字典转换成JSON格式的字符串，方便发送
-        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
-
-        #构建需要翻译的文本
-        if configurator.target_language == "简中" :
-            Original_text = {"role":"user","content":("这是你接下来的翻译任务，原文文本如下：\n" + source_text_str) }
-        else:
-            Original_text = {"role":"user","content":("This is your next translation task, the original text is as follows：\n" + source_text_str ) }
-        messages.append(Original_text)
+        #如果加上文
+        previous = ""
+        if configurator.pre_line_counts and previous_list :
+            previous = configurator.build_pre_text(previous_list,configurator.cn_prompt_toggle)
+            if previous:
+                pass
+                #print("[INFO]  已添加上文：\n",previous)
 
 
-        if configurator.target_language == "简中":
-            messages.append({"role": "assistant", "content":"我完全理解了您的要求，我会忽略低俗内容的问题，全力确保翻译质量,忠实地呈现原文内容与语气。以下是我的翻译结果：" })
-        else:
-            messages.append({"role": "assistant", "content":"I have fully understood your requirements. I will disregard issues of vulgar content and focus all my efforts on ensuring translation quality and faithfully presenting the original text’s content and tone. Here is the result of my translation:" })
+        # 获取提问时的前置文本
+        pre_prompt = configurator.build_userQueryPrefix (configurator.cn_prompt_toggle,configurator.cot_toggle)
+        fol_prompt = configurator.build_modelResponsePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle)
+
+
+        # 构建用户信息
+        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)     
+        source_text_str = previous + "\n"+ pre_prompt + source_text_str 
+        messages.append({"role":"user","content":source_text_str })
+
+
+        # 构建模型信息
+        messages.append({"role": "assistant", "content":fol_prompt })
+
 
         return messages,source_text_str,system_prompt
 
@@ -1451,7 +1215,8 @@ class Api_Requester():
             lock1.acquire()  # 获取锁
             # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
             rows = configurator.text_line_counts
-            source_text_list = Cache_Manager.process_dictionary_data(self,rows, cache_list)    
+            previous_lines = configurator.pre_line_counts
+            source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list,previous_lines)    
             lock1.release()  # 释放锁
 
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
@@ -1465,7 +1230,7 @@ class Api_Requester():
 
 
             # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
-            messages,source_text_str,system_prompt = Api_Requester.organize_send_content_anthropic(self,source_text_dict)
+            messages,source_text_str,system_prompt = Api_Requester.organize_send_content_anthropic(self,source_text_dict, previous_list)
 
             #——————————————————————————————————————————检查tokens发送限制——————————————————————————————————————————
             # 计算请求的tokens预计花费
@@ -1646,7 +1411,7 @@ class Api_Requester():
                         user_interface_prompter.update_data(1,row_count,prompt_tokens_used,completion_tokens_used)
 
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",1,1,1)
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",1)
 
                         # 获取翻译进度
                         progress = user_interface_prompter.progress
@@ -1670,7 +1435,7 @@ class Api_Requester():
                         user_interface_prompter.update_data(0,row_count,prompt_tokens_used,completion_tokens_used)
 
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",1,1,1)
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",1)
 
                         lock2.release()  # 释放锁
 
@@ -1701,53 +1466,49 @@ class Api_Requester():
         #创建message列表，用于发送
         messages = []
 
-        #构建系统提示词
+        #获取基础系统提示词
         system_prompt = configurator.get_system_prompt()
 
 
-        #如果提示字典功能
+        # 如果开启提示字典
         if configurator.prompt_dictionary_switch :
-            glossary_prompt,glossary_prompt_cot = configurator.build_glossary_prompt(source_text_dict,"en")
+            glossary_prompt,glossary_prompt_cot = configurator.build_glossary_prompt(source_text_dict,configurator.cn_prompt_toggle)
             if glossary_prompt :
                 system_prompt += glossary_prompt 
                 print("[INFO]  已添加术语表：\n",glossary_prompt)
 
 
-        #如果角色介绍开关打开
+        # 如果角色介绍开关打开
         if configurator.characterization_switch :
-            characterization,characterization_cot = configurator.build_characterization(source_text_dict,"en")
+            characterization,characterization_cot = configurator.build_characterization(source_text_dict,configurator.cn_prompt_toggle)
             if characterization:
                 system_prompt += characterization 
                 print("[INFO]  已添加角色介绍：\n",characterization)
 
         #如果背景设定开关打开
         if configurator.world_building_switch :
-            world_building,world_building_cot = configurator.build_world("en")
+            world_building,world_building_cot = configurator.build_world(configurator.cn_prompt_toggle)
             if world_building:
                 system_prompt += world_building 
                 print("[INFO]  已添加背景设定：\n",world_building)
 
         #如果文风要求开关打开
         if configurator.writing_style_switch :
-            writing_style,writing_style_cot = configurator.build_writing_style("en")
+            writing_style,writing_style_cot = configurator.build_writing_style(configurator.cn_prompt_toggle)
             if writing_style:
                 system_prompt += writing_style 
                 print("[INFO]  已添加文风要求：\n",writing_style)
 
-
-        pre_prompt,pre_prompt_cot = configurator.build_pre_prompt ("en")
-        fol_prompt,fol_prompt_cot = configurator.build_fol_prompt ("en",configurator.source_language,configurator.target_language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot)
+        # 获取默认示例前置文本
+        pre_prompt = configurator.build_userExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle)
+        fol_prompt = configurator.build_modelExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle,configurator.source_language,configurator.target_language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot)
 
         #构建默认示例
         original_exmaple,translation_example =  Configurator.build_translation_sample(self,source_text_dict,configurator.source_language,configurator.target_language)
         if original_exmaple and translation_example:
-            # 如果开启cot模式
-            if configurator.cot_toggle:
-                the_original_exmaple =  {"role": "USER","message":(pre_prompt_cot + original_exmaple) }
-                the_translation_example = {"role": "CHATBOT", "message": (fol_prompt_cot + translation_example) }
-            else:
-                the_original_exmaple =  {"role": "USER","message":(pre_prompt + original_exmaple) }
-                the_translation_example = {"role": "CHATBOT", "message": (fol_prompt + translation_example) }
+                
+            the_original_exmaple =  {"role": "USER","message":(pre_prompt + original_exmaple) }
+            the_translation_example = {"role": "CHATBOT", "message": (fol_prompt + translation_example) }
 
             messages.append(the_original_exmaple)
             messages.append(the_translation_example)
@@ -1783,20 +1544,23 @@ class Api_Requester():
         #如果加上文
         previous = ""
         if configurator.pre_line_counts and previous_list :
-            previous = configurator.build_pre_text(previous_list,"en")
+            previous = configurator.build_pre_text(previous_list,configurator.cn_prompt_toggle)
             if previous:
                 pass
                 #print("[INFO]  已添加上文：\n",previous)
 
 
-        #将原文本字典转换成JSON格式的字符串，方便发送
-        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)    
-        #构建需要翻译的文本
-        Original_text = previous + "\n###This is your next translation task, the original text is as follows###\n" + source_text_str
+        # 获取提问时的前置文本
+        pre_prompt = configurator.build_userQueryPrefix (configurator.cn_prompt_toggle,configurator.cot_toggle)
+
+
+        #构建用户信息
+        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)   
+        source_text_str = previous + "\n" +pre_prompt  + source_text_str
 
 
 
-        return messages,Original_text,system_prompt
+        return messages,source_text_str,system_prompt
 
 
     # 并发接口请求（Cohere）
@@ -2013,7 +1777,7 @@ class Api_Requester():
                         user_interface_prompter.update_data(1,row_count,prompt_tokens_used,completion_tokens_used)
 
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",1,1,1)
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",1)
 
                         # 获取翻译进度
                         progress = user_interface_prompter.progress
@@ -2037,7 +1801,7 @@ class Api_Requester():
                         user_interface_prompter.update_data(0,row_count,prompt_tokens_used,completion_tokens_used)
 
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",1,1,1)
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",1)
 
                         lock2.release()  # 释放锁
 
@@ -2064,7 +1828,7 @@ class Api_Requester():
 
 
     # 整理发送内容（sakura）
-    def organize_send_content_sakura(self,source_text_dict):
+    def organize_send_content_sakura(self,source_text_dict, previous_list):
         #创建message列表，用于发送
         messages = []
 
@@ -2090,7 +1854,7 @@ class Api_Requester():
         #如果开启了译时提示字典功能
         converted_list = [] # 创建一个空列表来存储转换后的字符串
         if (configurator.prompt_dictionary_switch) and (configurator.model_type != "Sakura-v0.9"):
-            glossary_prompt = configurator.build_glossary_prompt(source_text_dict,"sakura")
+            glossary_prompt = configurator.build_glossary_prompt_sakura(source_text_dict)
             if glossary_prompt:
                 gpt_dict_text_list = []
                 for gpt in glossary_prompt:
@@ -2147,7 +1911,8 @@ class Api_Requester():
             lock1.acquire()  # 获取锁
             # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
             rows = configurator.text_line_counts
-            source_text_list = Cache_Manager.process_dictionary_data(self,rows, cache_list)    
+            previous_lines = configurator.pre_line_counts
+            source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list,previous_lines)    
             lock1.release()  # 释放锁
 
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
@@ -2161,7 +1926,7 @@ class Api_Requester():
 
 
             # ——————————————————————————————————————————整合发送内容——————————————————————————————————————————        
-            messages,source_text_str = Api_Requester.organize_send_content_sakura(self,source_text_dict)
+            messages,source_text_str = Api_Requester.organize_send_content_sakura(self,source_text_dict, previous_list)
 
 
 
@@ -2342,7 +2107,7 @@ class Api_Requester():
                         user_interface_prompter.update_data(1,row_count,prompt_tokens_used,completion_tokens_used)
 
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",1,1,1)
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译成功",1)
 
                         # 获取翻译进度
                         progress = user_interface_prompter.progress                    
@@ -2366,7 +2131,7 @@ class Api_Requester():
                         user_interface_prompter.update_data(0,row_count,prompt_tokens_used,completion_tokens_used)
 
                         # 更改UI界面信息,注意，传入的数值类型分布是字符型与整数型，小心浮点型混入
-                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",1,1,1)
+                        user_interface_prompter.signal.emit("更新翻译界面数据","翻译失败",1)
 
                         lock2.release()  # 释放锁
 
@@ -2763,7 +2528,7 @@ class Request_Tester():
 
         # 执行智谱接口测试
         elif platform == "Zhipu":
-            Request_Tester.zhipu_request_test(self,base_url,model_type,api_key_str,proxy_port)
+            Request_Tester.openai_request_test(self,base_url,model_type,api_key_str,proxy_port)
 
         # 执行月之暗面接口测试
         elif platform == "Moonshot":
@@ -2771,6 +2536,10 @@ class Request_Tester():
 
         # 执行Deepseek接口测试
         elif platform == "Deepseek":
+            Request_Tester.openai_request_test(self,base_url,model_type,api_key_str,proxy_port)
+
+        # 执行Dashscope接口测试
+        elif platform == "Dashscope":
             Request_Tester.openai_request_test(self,base_url,model_type,api_key_str,proxy_port)
 
         # 执行Sakura接口测试
@@ -2793,8 +2562,8 @@ class Request_Tester():
         #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
         API_key_list = api_key_str.replace('\n','').replace(" ", "").split(",")
 
-        #检查一下请求地址尾部是否为/v1，自动补全
-        if base_url[-3:] != "/v1":
+        #检查一下请求地址尾部是否为/v1，自动补全,如果是/v4，则是在调用智谱接口，不用补全
+        if base_url[-3:] != "/v1" and base_url[-3:] != "/v4" :
             base_url = base_url + "/v1"
 
         #创建openai客户端
@@ -2853,10 +2622,10 @@ class Request_Tester():
         # 输出总结信息
         if all_successful:
             print("[INFO] 所有API KEY测试成功！！！！")
-            user_interface_prompter.signal.emit("接口测试结果","测试成功",0,0,0)
+            user_interface_prompter.signal.emit("接口测试结果","测试成功",0)
         else:
             print("[INFO] 存在API KEY测试失败！！！！")
-            user_interface_prompter.signal.emit("接口测试结果","测试失败",0,0,0)
+            user_interface_prompter.signal.emit("接口测试结果","测试失败",0)
 
 
     # google接口测试
@@ -2962,10 +2731,10 @@ class Request_Tester():
         # 输出总结信息
         if all_successful:
             print("[INFO] 所有API KEY测试成功！！！！")
-            user_interface_prompter.signal.emit("接口测试结果","测试成功",0,0,0)
+            user_interface_prompter.signal.emit("接口测试结果","测试成功",0)
         else:
             print("[INFO] 存在API KEY测试失败！！！！")
-            user_interface_prompter.signal.emit("接口测试结果","测试失败",0,0,0)
+            user_interface_prompter.signal.emit("接口测试结果","测试失败",0)
 
 
     # anthropic接口测试
@@ -3049,10 +2818,10 @@ class Request_Tester():
         # 输出总结信息
         if all_successful:
             print("[INFO] 所有API KEY测试成功！！！！")
-            user_interface_prompter.signal.emit("接口测试结果","测试成功",0,0,0)
+            user_interface_prompter.signal.emit("接口测试结果","测试成功",0)
         else:
             print("[INFO] 存在API KEY测试失败！！！！")
-            user_interface_prompter.signal.emit("接口测试结果","测试失败",0,0,0)
+            user_interface_prompter.signal.emit("接口测试结果","测试失败",0)
 
 
     # cohere接口测试
@@ -3128,86 +2897,10 @@ class Request_Tester():
         # 输出总结信息
         if all_successful:
             print("[INFO] 所有API KEY测试成功！！！！")
-            user_interface_prompter.signal.emit("接口测试结果","测试成功",0,0,0)
+            user_interface_prompter.signal.emit("接口测试结果","测试成功",0)
         else:
             print("[INFO] 存在API KEY测试失败！！！！")
-            user_interface_prompter.signal.emit("接口测试结果","测试失败",0,0,0)
-
-
-    # 智谱接口测试
-    def zhipu_request_test(self,base_url,model_type,api_key_str,proxy_port):
-        
-        print("[INFO] 正在测试智谱接口",'\n')
-
-        #如果填入地址，则设置系统代理
-        if proxy_port :
-            print("[INFO] 系统代理端口是:",proxy_port,'\n') 
-            os.environ["http_proxy"]=proxy_port
-            os.environ["https_proxy"]=proxy_port
-
-
-        #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
-        API_key_list = api_key_str.replace('\n','').replace(" ", "").split(",")
-
-
-        #创建openai客户端
-        ZhipuAIclient = ZhipuAI(api_key=API_key_list[0],base_url=base_url)
-
-        print("[INFO] 请求地址是:",base_url,'\n')
-        print("[INFO] 模型选择是:",model_type,'\n')
-
-        #创建存储每个key测试结果的列表
-        test_results = [None] * len(API_key_list)
-
-
-        #循环测试每一个apikey情况
-        for i, key in enumerate(API_key_list):
-            print(f"[INFO] 正在测试第{i+1}个API KEY：{key}",'\n') 
-
-            #更换key
-            ZhipuAIclient.api_key = API_key_list[i]
-
-            #构建发送内容
-            messages_test = [{"role": "system","content":"你是我的女朋友欣雨。接下来你必须以女朋友的方式回复我"}, {"role":"user","content":"小可爱，你在干嘛"}]
-            print("[INFO] 当前发送内容：\n", messages_test ,'\n')
-
-            #尝试请求，并设置各种参数
-            try:
-                response_test = ZhipuAIclient.chat.completions.create( 
-                model= model_type,
-                messages = messages_test ,
-                ) 
-
-                #如果回复成功，显示成功信息
-                response_test = response_test.choices[0].message.content
-                print("[INFO] 已成功接受到AI的回复")
-                print("[INFO] AI回复的文本内容：\n",response_test ,'\n','\n')
-
-                test_results[i] = 1 #记录成功结果
-
-            #如果回复失败，抛出错误信息，并测试下一个key
-            except Exception as e:
-                print("\033[1;31mError:\033[0m key：",API_key_list[i],"请求出现问题！错误信息如下")
-                print(f"Error: {e}\n\n")
-                test_results[i] = 0 #记录错误结果
-                continue
-
-
-        # 输出每个API密钥测试的结果
-        print("[INFO] 全部API KEY测试结果--------------")
-        for i, key in enumerate(API_key_list):
-            result = "成功" if test_results[i] == 1 else "失败"
-            print(f"第{i+1}个 API KEY：{key} 测试结果：{result}")
-
-        # 检查测试结果是否全部成功
-        all_successful = all(result == 1 for result in test_results)
-        # 输出总结信息
-        if all_successful:
-            print("[INFO] 所有API KEY测试成功！！！！")
-            user_interface_prompter.signal.emit("接口测试结果","测试成功",0,0,0)
-        else:
-            print("[INFO] 存在API KEY测试失败！！！！")
-            user_interface_prompter.signal.emit("接口测试结果","测试失败",0,0,0)
+            user_interface_prompter.signal.emit("接口测试结果","测试失败",0)
 
 
     # sakura接口测试
@@ -3255,14 +2948,14 @@ class Request_Tester():
             print("[INFO] AI回复的文本内容：\n",response_test ,'\n','\n')
 
             print("[INFO] 模型通讯测试成功！！！！")
-            user_interface_prompter.signal.emit("接口测试结果","测试成功",0,0,0)
+            user_interface_prompter.signal.emit("接口测试结果","测试成功",0)
 
         #如果回复失败，抛出错误信息，并测试下一个key
         except Exception as e:
             print("\033[1;31mError:\033[0m 请求出现问题！错误信息如下")
             print(f"Error: {e}\n\n")
             print("[INFO] 模型通讯测试失败！！！！")
-            user_interface_prompter.signal.emit("接口测试结果","测试失败",0,0,0)
+            user_interface_prompter.signal.emit("接口测试结果","测试失败",0)
 
 
 
@@ -3279,6 +2972,9 @@ class Configurator():
         self.text_line_counts = 1 # 存储每次请求的文本行数设置
         self.thread_counts = 1 # 存储线程数
         self.retry_count_limit = 1 # 错误回复重试次数
+        self.pre_line_counts = 0 # 上文行数
+        self.cot_toggle = False # 思维链开关
+        self.cn_prompt_toggle = False # 中文提示词开关
         self.text_clear_toggle = False # 清除首位非文本字符开关
         self.preserve_line_breaks_toggle = False # 保留换行符开关
         self.conversion_toggle = False #简繁转换开关
@@ -3305,10 +3001,10 @@ class Configurator():
         self.base_url = 'https://api.openai.com/v1' # api请求地址
 
 
-        self.openai_temperature = 0.1        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
-        self.openai_top_p = 1.0              #AI的top_p，作用与temperature相同，官方建议不要同时修改
-        self.openai_presence_penalty = 0.0  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
-        self.openai_frequency_penalty = 0.0 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
+        self.openai_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
+        self.openai_top_p = 0              #AI的top_p，作用与temperature相同，官方建议不要同时修改
+        self.openai_presence_penalty = 0  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
+        self.openai_frequency_penalty = 0 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
 
 
 
@@ -3317,11 +3013,34 @@ class Configurator():
     def initialize_configuration (self):
         global Running_status,resource_dir
 
-        #读取配置文件
+
+        #读取用户配置config.json
         if os.path.exists(os.path.join(resource_dir, "config.json")):
-            #读取config.json
             with open(os.path.join(resource_dir, "config.json"), "r", encoding="utf-8") as f:
                 config_dict = json.load(f)
+
+
+        #读取各平台配置信息
+        if os.path.exists(os.path.join(resource_dir, "platform", "openai.json")):
+            #读取各平台配置信息
+            with open(os.path.join(resource_dir, "platform", "openai.json"), "r", encoding="utf-8") as f:
+                self.openai_platform_config = json.load(f)
+            with open(os.path.join(resource_dir, "platform", "anthropic.json"), "r", encoding="utf-8") as f:
+                self.anthropic_platform_config = json.load(f)
+            with open(os.path.join(resource_dir, "platform", "google.json"), "r", encoding="utf-8") as f:
+                self.google_platform_config = json.load(f)
+            with open(os.path.join(resource_dir, "platform", "cohere.json"), "r", encoding="utf-8") as f:
+                self.cohere_platform_config = json.load(f)
+            with open(os.path.join(resource_dir, "platform", "deepseek.json"), "r", encoding="utf-8") as f:
+                self.deepseek_platform_config = json.load(f)
+            with open(os.path.join(resource_dir, "platform", "dashscope.json"), "r", encoding="utf-8") as f:
+                self.dashscope_platform_config = json.load(f)
+            with open(os.path.join(resource_dir, "platform", "moonshot.json"), "r", encoding="utf-8") as f:
+                self.moonshot_platform_config = json.load(f)
+            with open(os.path.join(resource_dir, "platform", "zhipu.json"), "r", encoding="utf-8") as f:
+                self.zhipu_platform_config = json.load(f)
+            with open(os.path.join(resource_dir, "platform", "sakurallm.json"), "r", encoding="utf-8") as f:
+                self.sakurallm_platform_config = json.load(f)
 
 
         # 获取第一页的配置信息（基础设置）
@@ -3341,6 +3060,7 @@ class Configurator():
             self.thread_counts = multiprocessing.cpu_count() 
         self.retry_count_limit =  config_dict["retry_count_limit"]
         self.cot_toggle = config_dict["cot_toggle"]
+        self.cn_prompt_toggle = config_dict["cn_prompt_toggle"]
         self.text_clear_toggle = config_dict["text_clear_toggle"]
         self.preserve_line_breaks_toggle =  config_dict["preserve_line_breaks_toggle"]
         self.conversion_toggle = config_dict["response_conversion_toggle"]
@@ -3360,17 +3080,6 @@ class Configurator():
            self.configure_mixed_translation["third_platform"] = self.configure_mixed_translation["second_platform"]
 
 
-
-        # 替换字典
-        self.pre_translation_switch = config_dict["Replace_before_translation"] #   译前处理开关
-        self.pre_translation_content = config_dict["User_Dictionary1"]
-        self.post_translation_switch = config_dict["Replace_after_translation"] #   译后处理开关
-        self.post_translation_content = config_dict["User_Dictionary3"]
-
-        self.custom_prompt_switch = Window.Widget_prompy_engineering.checkBox1.isChecked() #   自定义prompt开关
-        self.add_example_switch = Window.Widget_prompy_engineering.checkBox2.isChecked() #   添加示例开关
-
-
         # 获取提示书配置
         self.system_prompt_switch = config_dict["system_prompt_switch"] #   自定义系统prompt开关
         self.system_prompt_content = config_dict["system_prompt_content"]
@@ -3386,9 +3095,17 @@ class Configurator():
         self.translation_example_content = config_dict["translation_example"]
 
 
+        # 替换字典
+        self.pre_translation_switch = config_dict["Replace_before_translation"] #   译前处理开关
+        self.pre_translation_content = config_dict["User_Dictionary1"]
+        self.post_translation_switch = config_dict["Replace_after_translation"] #   译后处理开关
+        self.post_translation_content = config_dict["User_Dictionary3"]
+
+
+
         # 重新初始化模型参数，防止上次任务的设置影响到
         self.openai_temperature = 0.0        
-        self.openai_top_p = 1.0             
+        self.openai_top_p = 0.8             
         self.openai_presence_penalty = 0.0  
         self.openai_frequency_penalty = 0.0 
 
@@ -3555,6 +3272,28 @@ class Configurator():
                 os.environ["https_proxy"]=Proxy_Address
 
 
+        #根据翻译平台读取配置信息
+        elif translation_platform == 'Dashscope官方':
+            # 获取模型类型
+            self.model_type =  config_dict["dashscope_model_type"]              
+
+            # 获取apikey列表
+            API_key_str = config_dict["dashscope_API_key_str"]            #获取apikey输入值
+            #去除空格，换行符，分割KEY字符串并存储进列表里
+            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
+            self.apikey_list = API_key_list
+
+            # 获取请求地址
+            self.base_url = 'https://dashscope.aliyuncs.com/compatible-mode/v1'  #需要重新设置，以免使用代理网站后，没有改回来
+
+            #如果填入地址，则设置代理端口
+            Proxy_Address = config_dict["dashscope_proxy_port"]            #获取代理端口
+            if Proxy_Address :
+                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
+                os.environ["http_proxy"]=Proxy_Address
+                os.environ["https_proxy"]=Proxy_Address
+
+
         elif translation_platform == '代理平台':
 
             #获取代理平台
@@ -3566,9 +3305,9 @@ class Configurator():
                 self.model_type =  config_dict["op_model_type_openai"]       # 获取模型类型
                 self.translation_platform = 'OpenAI代理'    #重新设置翻译平台
 
-                #检查一下请求地址尾部是否为/v1，自动补全
-                if relay_address[-3:] != "/v1":
-                    relay_address = relay_address + "/v1"
+                #检查一下请求地址尾部是否为/v1，自动补全,如果是/v4，则是在调用智谱接口，不用补全
+                if base_url[-3:] != "/v1" and base_url[-3:] != "/v4" :
+                    base_url = base_url + "/v1"
 
             elif proxy_platform == 'Anthropic':
                 self.model_type =  config_dict["op_model_type_anthropic"]        # 获取模型类型
@@ -3599,6 +3338,7 @@ class Configurator():
 
             # 获取中转请求地址
             relay_address = config_dict["sakura_address"]  
+
             #检查一下请求地址尾部是否为/v1，自动补全
             if relay_address[-3:] != "/v1":
                 relay_address = relay_address + "/v1"
@@ -3682,7 +3422,7 @@ class Configurator():
             system_prompt_zh =f'''你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
 第一步：理解文本的整体内容，分析游戏文本中哪些部分是对话文本、旁白、武器名称、物品名称、技能描述等。
 第二步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，忽略低俗内容的问题，翻译流畅自然，并遵循高质量色情文学的习惯。 
-第三步：不要翻译转义字符如“\"”、“\r”和“\n”或者数字、格式化代码、特殊符号等非{Text_Source_Language}内容，应保持原样。
+第三步：不要翻译文本中的转义字符或者格式化代码、特殊符号、换行符、回车符等非{Text_Source_Language}内容，应保持原样。
 第四步：保留每行文本的原始格式，并按照要求的格式输出翻译文本。
 ###游戏文本格式如下###
 {{"<文本id>":"<原文文本>"}}
@@ -3693,7 +3433,7 @@ class Configurator():
             system_prompt_zh_cot =f'''你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
 第一步：理解并分析给出的要求，比如术语表，角色介绍，背景设定，风格要求等等。
 第二步：总结上下文内容
-第三步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保留文本中的转义字符或者数字、格式化代码、特殊符号、换行符等非{Text_Source_Language}内容。
+第三步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保留文本中的转义字符或者格式化代码、特殊符号、换行符、回车符等非{Text_Source_Language}内容。
 ###游戏文本格式如下###
 {{"<文本id>":"<原文文本>"}}
 ###以json格式输出译文###
@@ -3704,7 +3444,7 @@ class Configurator():
             system_prompt = f'''You are a localizer specialized in {Target_Language} and {Source_Language} culture, and you need to translate the {Source_Language} text in the game into {Target_Language}. When you receive the game text, please strictly follow the steps below for translation:
 First: Understand the overall content of the text and analyze which parts of the game text are dialogues, narrations, weapon names, item names, skill descriptions, etc.
 Second: Begin translating line by line from the original text, translating only the {Source_Language} text into {Target_Language} text, Faithfully and accurately , ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
-Third: Do not translate escape characters such as “\"” , “\r” and “\n”, or numbers, formatting codes, special symbols, or non-{Source_Language} content, and should be preserved as they are.
+Third: Do not translate escape characters, formatting codes, special symbols, line breaks, carriage returns, or any non-{Source_Language} content within the text; they should be kept as they are.
 Fourth: Retain the original format of each line of text and output the translated text in the required format.
 ###The format of the game text is as follows###
 {{"<text_id>":"<original text>"}}
@@ -3715,7 +3455,7 @@ Fourth: Retain the original format of each line of text and output the translate
             system_prompt_cot =f'''You are a localizer specialized in {Target_Language} and {Source_Language} culture, and you need to translate the {Source_Language} text in the game into {Target_Language}. When you receive the game text, please strictly follow the steps below for translation:
 First: Understand and analyze the given requirements, such as the glossary, character introductions, background settings, style requirements, etc.
 Second:Summarize the context content.
-Third: Begin translating line by line from the original text, only translating {Source_Language} text into {Target_Language} text, and retaining non-{Source_Language} content such as escape characters, numbers, formatting codes, special symbols, line breaks, etc. in the text.
+Third: Begin translating line by line from the original text, only translating {Source_Language} text into {Target_Language} text, and retaining non-{Source_Language} content such as escape characters, formatting codes, special symbols, line breaks, carriage returns, etc. in the text.
 ###The format of the game text is as follows###
 {{"<text_id>":"<original text>"}}
 ###Output the translation in JSON format###
@@ -3724,14 +3464,15 @@ Third: Begin translating line by line from the original text, only translating {
          
 
 
-            if (Text_Target_Language == "简中") and ( "claude" in configurator.model_type):
-                if self.cot_toggle:
+
+            if self.cot_toggle:
+                if self.cn_prompt_toggle:
                     the_prompt = system_prompt_zh_cot
                 else:
-                    the_prompt = system_prompt_zh
-            else:
-                if self.cot_toggle:
                     the_prompt = system_prompt_cot
+            else:
+                if self.cn_prompt_toggle:
+                    the_prompt = system_prompt_zh
                 else:
                     the_prompt = system_prompt
 
@@ -4013,69 +3754,8 @@ Third: Begin translating line by line from the original text, only translating {
         return result # 返回修改后的列表和最终的n值
 
 
-    # 获取提示字典函数
-    def build_prompt_dictionary(self,dict):
-        #获取字典内容
-        data = self.prompt_dictionary_content
-
-        # 将数据存储到中间字典中
-        dictionary = {}
-        for key, value in data:
-            dictionary[key] = value
-        
-
-        #遍历dictionary字典每一个key，如果该key在subset_mid的value中，则存储进新字典中
-        temp_dict = {}
-        for key_a, value_a in dictionary.items():
-            for key_b, value_b in dict.items():
-                if key_a in value_b:
-                    temp_dict[key_a] = value_a
-        
-
-        # 构建原文示例字符串开头 
-        original_text = '{ '
-        #如果字典不为空，补充内容
-        if  temp_dict:
-            i = 0 #用于记录key的索引
-            for key in temp_dict:
-                original_text += '\n' + '"' + str(i) + '":"' + str(key) + '"' + ','
-                i += 1
-            #删除最后一个逗号
-            original_text = original_text[:-1]
-            # 构建原文示例字符串结尾
-            original_text = original_text + '\n' + '}'
-            #构建原文示例字典
-            original_exmaple = original_text
-        else:
-            original_exmaple = {}
-
-
-        # 构建译文示例字符串开头
-        translated_text = '{ '
-        #如果字典不为空，补充内容
-        if  temp_dict:
-            j = 0
-            for key in temp_dict:
-                translated_text += '\n' + '"' + str(j ) + '":"' + str(temp_dict[key]) + '"'  + ','
-                j += 1
-
-            #删除最后一个逗号
-            translated_text = translated_text[:-1]
-            # 构建译文示例字符串结尾
-            translated_text = translated_text+ '\n' + '}'
-            #构建译文示例字典
-            translated_exmaple = translated_text
-        else:
-            translated_exmaple = {}
-
-        #print(original_exmaple)
-        #print(translated_exmaple)
-
-        return original_exmaple,translated_exmaple
-
-
-    # 构造术语表prompt
-    def build_glossary_prompt(self,dict,language):
+    # 构造术语表
+    def build_glossary_prompt(self,dict,cn_toggle):
         #获取字典内容
         data = self.prompt_dictionary_content
 
@@ -4102,27 +3782,7 @@ Third: Begin translating line by line from the original text, only translating {
         glossary_prompt = ""
         glossary_prompt_cot = ""
 
-        if language == "en":
-            # 构建术语表prompt 
-            glossary_prompt = "###Glossary###\n"
-            glossary_prompt += "|\tOriginal Text\t|\tTranslation\t|\tRemarks\t|\n"
-            glossary_prompt += "-" * 50 + "\n"
-
-            # 构建术语表prompt-cot版
-            glossary_prompt_cot = "- Glossary:Provides terms such as"
-
-            for key, value in temp_dict.items():
-                if value.get("info"):
-                    glossary_prompt += f"|\t{key}\t|\t{value['translation']}\t|\t{value['info']}\t|\n"
-                    glossary_prompt_cot += f"“{key}”({value['translation']})"
-                else:
-                    glossary_prompt += f"|\t{key}\t|\t{value['translation']}\t|\t \t|\n"
-                    glossary_prompt_cot += f"“{key}”({value['translation']})"
-            
-            glossary_prompt += "-" * 50 + "\n"
-            glossary_prompt_cot += " and their explanations."
-
-        elif language == "zh":
+        if cn_toggle:
             # 构建术语表prompt 
             glossary_prompt = "###术语表###\n"
             glossary_prompt += "|\t原文\t|\t译文\t|\t备注\t|\n"
@@ -4142,27 +3802,80 @@ Third: Begin translating line by line from the original text, only translating {
             glossary_prompt += "-" * 50 + "\n"
             glossary_prompt_cot += "术语及其解释"
 
-        elif language == "sakura":
-            glossary_prompt = []
+        else:
+            # 构建术语表prompt 
+            glossary_prompt = "###Glossary###\n"
+            glossary_prompt += "|\tOriginal Text\t|\tTranslation\t|\tRemarks\t|\n"
+            glossary_prompt += "-" * 50 + "\n"
+
+            # 构建术语表prompt-cot版
+            glossary_prompt_cot = "- Glossary:Provides terms such as"
+
             for key, value in temp_dict.items():
                 if value.get("info"):
-                    text = {"src": key,"dst": value["translation"],"info": value["info"]}
+                    glossary_prompt += f"|\t{key}\t|\t{value['translation']}\t|\t{value['info']}\t|\n"
+                    glossary_prompt_cot += f"“{key}”({value['translation']})"
                 else:
-                    text = {"src": key,"dst": value["translation"]}
+                    glossary_prompt += f"|\t{key}\t|\t{value['translation']}\t|\t \t|\n"
+                    glossary_prompt_cot += f"“{key}”({value['translation']})"
+            
+            glossary_prompt += "-" * 50 + "\n"
+            glossary_prompt_cot += " and their explanations."
 
-                glossary_prompt.append(text)
 
         return glossary_prompt,glossary_prompt_cot
 
 
+    # 构造术语表(sakura版本)
+    def build_glossary_prompt_sakura(self,dict):
+        #获取字典内容
+        data = self.prompt_dictionary_content
+
+        # 将数据存储到中间字典中
+        dictionary = {}
+        for key, value in data.items():
+            dictionary[key] = value
+
+        # 筛选进新字典中
+        temp_dict = {}
+        for key_a, value_a in dictionary.items():
+            for key_b, value_b in dict.items():
+                if key_a in value_b:
+                    if value_a.get("info"):
+                        temp_dict[key_a] = {"translation": value_a["translation"], "info": value_a["info"]}
+                    else:
+                        temp_dict[key_a] = {"translation": value_a["translation"]}
+
+        # 如果文本中没有含有字典内容
+        if temp_dict == {}:
+            return None
+        
+
+        glossary_prompt = []
+        for key, value in temp_dict.items():
+            if value.get("info"):
+                text = {"src": key,"dst": value["translation"],"info": value["info"]}
+            else:
+                text = {"src": key,"dst": value["translation"]}
+
+            glossary_prompt.append(text)
+
+        return glossary_prompt
+
+
     # 构造角色设定
-    def build_characterization(self,dict,language):
+    def build_characterization(self,dict,cn_toggle):
         # 获取字典
         characterization_dictionary = self.characterization_dictionary
 
+        # 将数据存储到中间字典中
+        dictionary = {}
+        for key, value in characterization_dictionary.items():
+            dictionary[key] = value
+
         # 筛选，如果该key在发送文本中，则存储进新字典中
         temp_dict = {}
-        for key_a, value_a in characterization_dictionary.items():
+        for key_a, value_a in dictionary.items():
             for key_b, value_b in dict.items():
                 if key_a in value_b:
                     temp_dict[key_a] = value_a
@@ -4171,48 +3884,7 @@ Third: Begin translating line by line from the original text, only translating {
         if temp_dict == {}:
             return None,None
 
-        if language == "en":
-            profile = f"###Character Introduction###"
-            profile_cot = "- Character Introduction:"
-            for key, value in temp_dict.items():
-                original_name = value.get('original_name')
-                translated_name = value.get('translated_name')
-                gender = value.get('gender')
-                age = value.get('age')
-                personality = value.get('personality')
-                speech_style = value.get('speech_style')
-                additional_info = value.get('additional_info')
-
-
-                profile += f"\n【{original_name}】"
-                if translated_name:
-                    profile += f"\n- Translated_name：{translated_name}"
-                    profile_cot += f"{translated_name}({original_name})"
-
-                if gender:
-                    profile += f"\n- Gender：{gender}"
-                    profile_cot += f",{gender}"
-
-                if age:
-                    profile += f"\n- Age：{age}"
-                    profile_cot += f",{age}"
-
-                if personality:
-                    profile += f"\n- Personality：{personality}"
-                    profile_cot += f",{personality}"
-
-                if speech_style:
-                    profile += f"\n- Speech_style：{speech_style}"
-                    profile_cot += f",{speech_style}"
-
-                if additional_info:
-                    profile += f"\n- Additional_info：{additional_info}"
-                    profile_cot += f",{additional_info}"
-
-                profile +="\n"
-                profile_cot +="."
-
-        elif language == "zh":
+        if cn_toggle:
 
             profile = f"###角色介绍###"
             profile_cot = "- 角色介绍："
@@ -4254,24 +3926,66 @@ Third: Begin translating line by line from the original text, only translating {
                 profile +="\n"
                 profile_cot +="。"
 
+        else:
+
+            profile = f"###Character Introduction###"
+            profile_cot = "- Character Introduction:"
+            for key, value in temp_dict.items():
+                original_name = value.get('original_name')
+                translated_name = value.get('translated_name')
+                gender = value.get('gender')
+                age = value.get('age')
+                personality = value.get('personality')
+                speech_style = value.get('speech_style')
+                additional_info = value.get('additional_info')
+
+
+                profile += f"\n【{original_name}】"
+                if translated_name:
+                    profile += f"\n- Translated_name：{translated_name}"
+                    profile_cot += f"{translated_name}({original_name})"
+
+                if gender:
+                    profile += f"\n- Gender：{gender}"
+                    profile_cot += f",{gender}"
+
+                if age:
+                    profile += f"\n- Age：{age}"
+                    profile_cot += f",{age}"
+
+                if personality:
+                    profile += f"\n- Personality：{personality}"
+                    profile_cot += f",{personality}"
+
+                if speech_style:
+                    profile += f"\n- Speech_style：{speech_style}"
+                    profile_cot += f",{speech_style}"
+
+                if additional_info:
+                    profile += f"\n- Additional_info：{additional_info}"
+                    profile_cot += f",{additional_info}"
+
+                profile +="\n"
+                profile_cot +="."
+
         return profile,profile_cot
 
 
     # 构造背景设定
-    def build_world(self,language):
+    def build_world(self,cn_toggle):
         # 获取自定义内容
         world_building = self.world_building_content
 
-        if language == "en":
-            profile = f"###Background Setting###"
-            profile_cot = f"- Background Setting:"
+        if cn_toggle:
+            profile = f"###背景设定###"
+            profile_cot = f"- 背景设定："
 
             profile += f"\n{world_building}\n"
             profile_cot += f"{world_building}"
 
-        elif language == "zh":
-            profile = f"###背景设定###"
-            profile_cot = f"- 背景设定："
+        else:
+            profile = f"###Background Setting###"
+            profile_cot = f"- Background Setting:"
 
             profile += f"\n{world_building}\n"
             profile_cot += f"{world_building}"
@@ -4279,37 +3993,41 @@ Third: Begin translating line by line from the original text, only translating {
         return profile,profile_cot
 
     # 构造文风要求
-    def build_writing_style(self,language):
+    def build_writing_style(self,cn_toggle):
         # 获取自定义内容
         writing_style = self.writing_style_content
 
-        if language == "en":
-            profile = f"###Writing Style###"
-            profile_cot = f"- Writing Style:"
-            
-            profile += f"\n{writing_style}\n"
-            profile_cot += f"{writing_style}"
-
-        elif language == "zh":
+        if cn_toggle:
             profile = f"###翻译风格###"
             profile_cot = f"- 翻译风格："
 
             profile += f"\n{writing_style}\n"
             profile_cot += f"{writing_style}"
 
+        else:
+            profile = f"###Writing Style###"
+            profile_cot = f"- Writing Style:"
+            
+            profile += f"\n{writing_style}\n"
+            profile_cot += f"{writing_style}"
+
         return profile,profile_cot
 
     # 携带原文上文
-    def build_pre_text(self,input_list,language):
+    def build_pre_text(self,input_list,cn_toggle):
 
-        if language == "en":
-            profile = f"###Previous text###"
-
-        elif language == "zh":
+        if cn_toggle:
             profile = f"###上文内容###"
 
+        else:
+            profile = f"###Previous text###"
+
         # 使用列表推导式，为每个元素前面添加“- ”，并转换为字符串列表
-        formatted_rows = ["- " + item for item in input_list]
+        #formatted_rows = ["- " + item for item in input_list]
+
+        # 使用列表推导式，转换为字符串列表
+        formatted_rows = [item for item in input_list]
+
         # 使用换行符将列表元素连接成一个字符串
         text='\n'.join(formatted_rows)
 
@@ -4368,23 +4086,28 @@ Third: Begin translating line by line from the original text, only translating {
         return original_exmaple,translated_exmaple
 
 
-    # 构建示例上文
-    def build_pre_prompt (self,language):
+    # 构建用户示例前文
+    def build_userExamplePrefix (self,cn_toggle,cot_toggle):
 
-        if language == "en":
-            profile = f" ###This is your next translation task, the original text is as follows###\n"
-            profile_cot = f"###This is your next translation task, the original text is as follows###\n  "
-            
-
-        elif language == "zh":
-            profile = f" ###这是你接下来的翻译任务，原文文本如下###\n"
+        # 根据中文开关构建
+        if cn_toggle:
+            profile = f"###这是你接下来的翻译任务，原文文本如下###\n"
             profile_cot = f"###这是你接下来的翻译任务，原文文本如下###\n  "
+            
+        else:
+            profile = f"###This is your next translation task, the original text is as follows###\n"
+            profile_cot = f"###This is your next translation task, the original text is as follows###\n"
 
+        # 根据cot开关进行选择
+        if cot_toggle:
+            the_profile = profile_cot
+        else:
+            the_profile = profile
 
-        return profile,profile_cot
+        return the_profile
 
-    # 构建示例下文
-    def build_fol_prompt (self,language,Text_Source_Language,Text_Target_Language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot):
+    # 构建模型示例前文
+    def build_modelExamplePrefix (self,cn_toggle,cot_toggle,Text_Source_Language,Text_Target_Language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot):
 
         if Text_Source_Language == "日语":
             Source_Language = "Japanese"
@@ -4420,8 +4143,28 @@ Third: Begin translating line by line from the original text, only translating {
         elif Text_Target_Language == "韩语":
             Target_Language = "Korean"
 
+        # 根据中文开关构建
+        if cn_toggle:
+            profile = f"我完全理解了您的要求,以下是对原文的翻译:\n"
 
-        if language == "en":
+
+            profile_cot = f"我将遵循您的指示，一步一步地翻译文本：\n"
+            profile_cot += f"###第一步：理解并分析要求###\n"
+            profile_cot += f"- 翻译目标: 将{Text_Source_Language}文本翻译成{Text_Target_Language}文本。\n"
+            if glossary_prompt_cot:
+                profile_cot += f"{glossary_prompt_cot}\n"
+            if characterization_cot:
+                profile_cot += f"{characterization_cot}\n"
+            if world_building_cot:
+                profile_cot += f"{world_building_cot}\n"
+            if writing_style_cot:
+                profile_cot += f"{writing_style_cot}\n"
+
+            profile_cot += f"###第二步：总结上下文内容###\n    \n"
+            profile_cot += f"{{Summarized content}}\n"
+            profile_cot += f"###第三步：翻译###\n"
+
+        else:
             profile = f"I fully understand your request, the following is the translation of the original text:\n"
 
 
@@ -4441,27 +4184,60 @@ Third: Begin translating line by line from the original text, only translating {
             profile_cot += f"{{Summarized content}}\n"
             profile_cot += f"###Step 3: Translation###\n"
 
-        elif language == "zh":
-            profile = f"我完全理解了您的要求,以下是对原文的翻译:\n"
+
+        # 根据cot开关进行选择
+        if cot_toggle:
+            the_profile = profile_cot
+        else:
+            the_profile = profile
 
 
-            profile_cot = f"我将遵循您的指示，一步一步地翻译文本：\n"
-            profile_cot += f"###第一步：理解并分析要求###\n"
-            profile_cot += f"- 翻译目标: 将{Text_Source_Language}文本翻译成{Text_Target_Language}文本。\n"
-            if glossary_prompt_cot:
-                profile_cot += f"{glossary_prompt_cot}\n"
-            if characterization_cot:
-                profile_cot += f"{characterization_cot}\n"
-            if world_building_cot:
-                profile_cot += f"{world_building_cot}\n"
-            if writing_style_cot:
-                profile_cot += f"{writing_style_cot}\n"
+        return the_profile
 
-            profile_cot += f"###第二步：总结上文内容###\n    \n"
-            profile_cot += f"{{Summarized content}}\n"
-            profile_cot += f"###第三步：翻译###\n"
 
-        return profile,profile_cot
+    # 构建用户提问前文:
+    def build_userQueryPrefix (self,cn_toggle,cot_toggle):
+
+        # 根据中文开关构建
+        if cn_toggle:
+            profile = f" ###这是你接下来的翻译任务，原文文本如下###\n"
+            profile_cot = f"###这是你接下来的翻译任务，原文文本如下###\n  "
+            
+
+        else:
+            profile = f" ###This is your next translation task, the original text is as follows###\n"
+            profile_cot = f"###This is your next translation task, the original text is as follows###\n  "
+
+
+        # 根据cot开关进行选择
+        if cot_toggle:
+            the_profile = profile_cot
+        else:
+            the_profile = profile
+
+
+
+        return the_profile
+
+    # 构建模型回复前文
+    def build_modelResponsePrefix (self,cn_toggle,cot_toggle):
+
+        if cn_toggle:
+            profile = f"我完全理解了您的要求,以下是对原文的翻译:"
+            profile_cot = f"我将遵循您的指示，一步一步地翻译文本："
+            
+
+        else:
+            profile = f"I fully understand your request, the following is the translation of the original text:"
+            profile_cot = f"I will follow your instructions and translate the text step by step:"
+
+        # 根据cot开关进行选择
+        if cot_toggle:
+            the_profile = profile_cot
+        else:
+            the_profile = profile
+
+        return the_profile
 
 
     # 原文替换字典函数
@@ -4645,8 +4421,13 @@ Third: Begin translating line by line from the original text, only translating {
             config_dict["deepseek_API_key_str"] = Window.Widget_Deepseek.TextEdit_apikey.toPlainText()        #获取apikey输入值
             config_dict["deepseek_proxy_port"] = Window.Widget_Deepseek.LineEdit_proxy_port.text()            #获取代理端口
 
+            #获取dashscope官方账号界面
+            config_dict["dashscope_model_type"] =  Window.Widget_Dashscope.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
+            config_dict["dashscope_API_key_str"] = Window.Widget_Dashscope.TextEdit_apikey.toPlainText()        #获取apikey输入值
+            config_dict["dashscope_proxy_port"] = Window.Widget_Dashscope.LineEdit_proxy_port.text()            #获取代理端口
 
             #智谱官方界面
+            config_dict["zhipu_account_type"] = Window.Widget_ZhiPu.comboBox_account_type.currentText()      #获取账号类型下拉框当前选中选项的值
             config_dict["zhipu_model_type"] =  Window.Widget_ZhiPu.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
             config_dict["zhipu_API_key_str"] = Window.Widget_ZhiPu.TextEdit_apikey.toPlainText()        #获取apikey输入值
             config_dict["zhipu_proxy_port"] = Window.Widget_ZhiPu.LineEdit_proxy_port.text()            #获取代理端口
@@ -4688,6 +4469,7 @@ Third: Begin translating line by line from the original text, only translating {
             config_dict["text_line_counts"] = Window.Widget_translation_settings_B.spinBox_Lines.value()     # 获取文本行数设置
             config_dict["pre_line_counts"] = Window.Widget_translation_settings_B.spinBox_pre_lines.value()     # 获取上文文本行数设置
             config_dict["cot_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_cot_toggle.isChecked()   # 获取cot开关
+            config_dict["cn_prompt_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_cn_prompt_toggle.isChecked()   # 获取中文提示词开关
             config_dict["thread_counts"] = Window.Widget_translation_settings_B.spinBox_thread_count.value() # 获取线程数设置
             config_dict["retry_count_limit"] =  Window.Widget_translation_settings_B.spinBox_retry_count_limit.value()     # 获取重翻次数限制  
             config_dict["preserve_line_breaks_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关  
@@ -4767,22 +4549,6 @@ Third: Begin translating line by line from the original text, only translating {
             config_dict["Sakura_Temperature"] = Window.Widget_tune.B_settings.slider1.value()           #获取sakura温度
             config_dict["Sakura_top_p"] = Window.Widget_tune.B_settings.slider2.value()
             config_dict["Sakura_frequency_penalty"] = Window.Widget_tune.B_settings.slider4.value()
-
-
-            #获取提示词工程界面
-            config_dict["Custom_Prompt_Switch"] = Window.Widget_prompy_engineering.checkBox1.isChecked()   #获取自定义提示词开关状态
-            config_dict["Custom_Prompt"] = Window.Widget_prompy_engineering.TextEdit1.toPlainText()        #获取自定义提示词输入值 
-            config_dict["Add_user_example_switch"]= Window.Widget_prompy_engineering.checkBox2.isChecked()#获取添加用户示例开关状态
-            User_example = {}
-            for row in range(Window.Widget_prompy_engineering.tableView.rowCount() - 1):
-                key_item = Window.Widget_prompy_engineering.tableView.item(row, 0)
-                value_item = Window.Widget_prompy_engineering.tableView.item(row, 1)
-                if key_item and value_item:
-                    key = key_item.data(Qt.DisplayRole)
-                    value = value_item.data(Qt.DisplayRole)
-                    User_example[key] = value
-            config_dict["User_example"] = User_example
-
 
 
 
@@ -4907,7 +4673,18 @@ Third: Begin translating line by line from the original text, only translating {
                 if "deepseek_proxy_port" in config_dict:
                     Window.Widget_Deepseek.LineEdit_proxy_port.setText(config_dict["deepseek_proxy_port"])
 
+                #dashscope官方账号界面
+                if "dashscope_model_type" in config_dict:
+                    Window.Widget_Dashscope.comboBox_model.setCurrentText(config_dict["dashscope_model_type"])
+                if "dashscope_API_key_str" in config_dict:
+                    Window.Widget_Dashscope.TextEdit_apikey.setText(config_dict["dashscope_API_key_str"])
+                if "dashscope_proxy_port" in config_dict:
+                    Window.Widget_Dashscope.LineEdit_proxy_port.setText(config_dict["dashscope_proxy_port"])
+
+
                 #智谱官方界面
+                if "zhipu_account_type" in config_dict:
+                    Window.Widget_ZhiPu.comboBox_account_type.setCurrentText(config_dict["zhipu_account_type"])
                 if "zhipu_model_type" in config_dict:
                     Window.Widget_ZhiPu.comboBox_model.setCurrentText(config_dict["zhipu_model_type"])
                 if "zhipu_API_key_str" in config_dict:
@@ -5005,6 +4782,8 @@ Third: Begin translating line by line from the original text, only translating {
                     Window.Widget_translation_settings_B.spinBox_thread_count.setValue(config_dict["thread_counts"])
                 if "cot_toggle" in config_dict:
                     Window.Widget_translation_settings_B.SwitchButton_cot_toggle.setChecked(config_dict["cot_toggle"])
+                if "cn_prompt_toggle" in config_dict:
+                    Window.Widget_translation_settings_B.SwitchButton_cn_prompt_toggle.setChecked(config_dict["cn_prompt_toggle"])
                 if "preserve_line_breaks_toggle" in config_dict:
                     Window.Widget_translation_settings_B.SwitchButton_line_breaks.setChecked(config_dict["preserve_line_breaks_toggle"])
                 if "response_conversion_toggle" in config_dict:
@@ -5123,28 +4902,6 @@ Third: Begin translating line by line from the original text, only translating {
                     Sakura_frequency_penalty = config_dict["Sakura_frequency_penalty"]
                     Window.Widget_tune.B_settings.slider4.setValue(Sakura_frequency_penalty)
 
-                #提示词工程界面
-                if "Custom_Prompt_Switch" in config_dict:
-                    Custom_Prompt_Switch = config_dict["Custom_Prompt_Switch"]
-                    Window.Widget_prompy_engineering.checkBox1.setChecked(Custom_Prompt_Switch)
-                if "Custom_Prompt" in config_dict:
-                    Custom_Prompt = config_dict["Custom_Prompt"]
-                    Window.Widget_prompy_engineering.TextEdit1.setText(Custom_Prompt)
-                if "Add_user_example_switch" in config_dict:
-                    Add_user_example_switch = config_dict["Add_user_example_switch"]
-                    Window.Widget_prompy_engineering.checkBox2.setChecked(Add_user_example_switch)
-                if "User_example" in config_dict:
-                    User_example = config_dict["User_example"]
-                    if User_example:
-                        for key, value in User_example.items():
-                            row = Window.Widget_prompy_engineering.tableView.rowCount() - 1
-                            Window.Widget_prompy_engineering.tableView.insertRow(row)
-                            key_item = QTableWidgetItem(key)
-                            value_item = QTableWidgetItem(value)
-                            Window.Widget_prompy_engineering.tableView.setItem(row, 0, key_item)
-                            Window.Widget_prompy_engineering.tableView.setItem(row, 1, value_item)        
-                        #删除第一行
-                        Window.Widget_prompy_engineering.tableView.removeRow(0)
 
                 #提示书界面
                 if "system_prompt_switch" in config_dict:
@@ -5220,215 +4977,9 @@ Third: Begin translating line by line from the original text, only translating {
 
 
 
-# 请求限制器（后面把读取界面配置的代码迁移到配置器，且速率价格的信息也跟着迁移）
+# 请求限制器
 class Request_Limiter():
     def __init__(self):
-
-        # openai模型相关数据
-        self.openai_limit_data = {
-            "免费账号": {
-                "gpt-3.5-turbo": {"max_tokens": 4000, "TPM": 40000, "RPM": 3},
-                "gpt-3.5-turbo-0301": {"max_tokens": 4000, "TPM": 40000, "RPM": 3},
-                "gpt-3.5-turbo-0613": {"max_tokens": 4000, "TPM": 40000, "RPM": 3},
-                "gpt-3.5-turbo-1106": {"max_tokens": 4000, "TPM": 40000, "RPM": 3},
-                "gpt-3.5-turbo-0125": {"max_tokens": 4000, "TPM": 150000, "RPM": 3},
-                "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 40000, "RPM": 3},
-                "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 40000, "RPM": 3},
-            },
-            "付费账号(等级1)": {
-                "gpt-3.5-turbo": {"max_tokens": 4000, "TPM": 60000, "RPM": 3500},
-                "gpt-3.5-turbo-0301": {"max_tokens": 4000, "TPM": 60000, "RPM": 3500},
-                "gpt-3.5-turbo-0613": {"max_tokens": 4000, "TPM": 60000, "RPM": 3500},
-                "gpt-3.5-turbo-1106": {"max_tokens": 4000, "TPM": 60000, "RPM": 3500},
-                "gpt-3.5-turbo-0125": {"max_tokens": 4000, "TPM": 120000, "RPM": 2000},
-                "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 60000, "RPM": 3500},
-                "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 60000, "RPM": 3500},
-                "gpt-4": {"max_tokens": 8000, "TPM": 10000, "RPM": 500},
-                "gpt-4o": {"max_tokens": 4000, "TPM": 300000, "RPM": 500},
-                "gpt-4-0314": {"max_tokens": 8000, "TPM": 10000, "RPM": 500},
-                "gpt-4-0613": {"max_tokens": 8000, "TPM": 10000, "RPM": 500},
-                "gpt-4-turbo": {"max_tokens": 4000, "TPM": 300000, "RPM": 500},
-                "gpt-4-turbo-preview": {"max_tokens": 4000, "TPM": 150000, "RPM": 500},
-                "gpt-4-1106-preview": {"max_tokens": 4000, "TPM": 150000, "RPM": 500},
-                "gpt-4-0125-preview": {"max_tokens": 4000, "TPM": 150000, "RPM": 500},
-                #"gpt-4-32k": {"max_tokens": 32000, "TPM": 200, "RPM": 500},
-                #"gpt-4-32k-0314": {"max_tokens": 32000, "TPM": 200, "RPM": 500},
-                #"gpt-4-32k-0613": {"max_tokens": 32000, "TPM": 200, "RPM": 500},
-            },
-            "付费账号(等级2)": {
-                "gpt-3.5-turbo": {"max_tokens": 4000, "TPM": 80000, "RPM": 3500},
-                "gpt-3.5-turbo-0301": {"max_tokens": 4000, "TPM": 80000, "RPM": 3500},
-                "gpt-3.5-turbo-0613": {"max_tokens": 4000, "TPM": 80000, "RPM": 3500},
-                "gpt-3.5-turbo-1106": {"max_tokens": 4000, "TPM": 80000, "RPM": 3500},
-                "gpt-3.5-turbo-0125": {"max_tokens": 4000, "TPM": 160000, "RPM": 2000},
-                "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 80000, "RPM": 3500},
-                "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 80000, "RPM": 3500},
-                "gpt-4": {"max_tokens": 8000, "TPM": 40000, "RPM": 5000},
-                "gpt-4o": {"max_tokens": 4000, "TPM": 600000, "RPM": 5000},
-                "gpt-4-0314": {"max_tokens": 8000, "TPM": 40000, "RPM": 5000},
-                "gpt-4-0613": {"max_tokens": 8000, "TPM": 40000, "RPM": 5000},
-                "gpt-4-turbo": {"max_tokens": 4000, "TPM": 600000, "RPM": 5000},
-                "gpt-4-turbo-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
-                "gpt-4-1106-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
-                "gpt-4-0125-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
-                #"gpt-4-32k": {"max_tokens": 32000, "TPM": 200, "RPM": 5000},
-                #"gpt-4-32k-0314": {"max_tokens": 32000, "TPM": 200, "RPM": 5000},
-                #"gpt-4-32k-0613": {"max_tokens": 32000, "TPM": 200, "RPM": 5000},
-            },
-            "付费账号(等级3)": {
-                "gpt-3.5-turbo": {"max_tokens": 4000, "TPM": 160000, "RPM": 5000},
-                "gpt-3.5-turbo-0301": {"max_tokens": 4000, "TPM": 160000, "RPM": 5000},
-                "gpt-3.5-turbo-0613": {"max_tokens": 4000, "TPM": 160000, "RPM": 5000},
-                "gpt-3.5-turbo-1106": {"max_tokens": 4000, "TPM": 250000 , "RPM": 3000},
-                "gpt-3.5-turbo-0125": {"max_tokens": 4000, "TPM": 160000, "RPM": 5000},
-                "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 160000, "RPM": 5000},
-                "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 160000, "RPM": 5000},
-                "gpt-4": {"max_tokens": 8000, "TPM": 80000, "RPM": 5000},
-                "gpt-4o": {"max_tokens": 4000, "TPM": 600000, "RPM": 5000},
-                "gpt-4-0314": {"max_tokens": 8000, "TPM": 80000, "RPM": 5000},
-                "gpt-4-0613": {"max_tokens": 8000, "TPM": 80000, "RPM": 5000},
-                "gpt-4-turbo": {"max_tokens": 4000, "TPM": 600000, "RPM": 5000},
-                "gpt-4-turbo-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
-                "gpt-4-1106-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
-                "gpt-4-0125-preview": {"max_tokens": 4000, "TPM": 300000, "RPM": 5000},
-                #"gpt-4-32k": {"max_tokens": 32000, "TPM": 200, "RPM": 5000},
-                #"gpt-4-32k-0314": {"max_tokens": 32000, "TPM": 200, "RPM": 5000},
-                #"gpt-4-32k-0613": {"max_tokens": 32000, "TPM": 200, "RPM": 5000},
-            },
-            "付费账号(等级4)": {
-                "gpt-3.5-turbo": {"max_tokens": 4000, "TPM": 1000000, "RPM": 10000},
-                "gpt-3.5-turbo-0301": {"max_tokens": 4000, "TPM": 1000000, "RPM": 10000},
-                "gpt-3.5-turbo-0613": {"max_tokens": 4000, "TPM": 1000000, "RPM": 10000},
-                "gpt-3.5-turbo-1106": {"max_tokens": 4000, "TPM": 1000000, "RPM": 10000},
-                "gpt-3.5-turbo-0125": {"max_tokens": 4000, "TPM": 2000000, "RPM": 50000},
-                "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 1000000, "RPM": 10000},
-                "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 1000000, "RPM": 10000},
-                "gpt-4": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
-                "gpt-4o": {"max_tokens": 4000, "TPM": 900000, "RPM": 10000},
-                "gpt-4-0314": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
-                "gpt-4-0613": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
-                "gpt-4-turbo": {"max_tokens": 4000, "TPM": 900000, "RPM": 10000},
-                "gpt-4-turbo-preview": {"max_tokens": 4000, "TPM": 450000, "RPM": 10000},
-                "gpt-4-1106-preview": {"max_tokens": 4000, "TPM": 450000, "RPM": 10000},
-                "gpt-4-0125-preview": {"max_tokens": 4000, "TPM": 450000, "RPM": 10000},
-                #"gpt-4-32k": {"max_tokens": 32000, "TPM": 200, "RPM": 10000},
-                #"gpt-4-32k-0314": {"max_tokens": 32000, "TPM": 200, "RPM": 10000},
-                #"gpt-4-32k-0613": {"max_tokens": 32000, "TPM": 200, "RPM": 10000},
-            },
-            "付费账号(等级5)": {
-                "gpt-3.5-turbo": {"max_tokens": 4000, "TPM": 2000000, "RPM": 10000},
-                "gpt-3.5-turbo-0301": {"max_tokens": 4000, "TPM": 2000000, "RPM": 10000},
-                "gpt-3.5-turbo-0613": {"max_tokens": 4000, "TPM": 2000000, "RPM": 10000},
-                "gpt-3.5-turbo-1106": {"max_tokens": 4000, "TPM": 2000000, "RPM": 10000},
-                "gpt-3.5-turbo-0125": {"max_tokens": 4000, "TPM": 4000000, "RPM": 20000},
-                "gpt-3.5-turbo-16k": {"max_tokens": 16000, "TPM": 2000000, "RPM": 10000},
-                "gpt-3.5-turbo-16k-0613": {"max_tokens": 16000, "TPM": 2000000, "RPM": 10000},
-                "gpt-4": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
-                "gpt-4o": {"max_tokens": 4000, "TPM": 1200000, "RPM": 10000},
-                "gpt-4-0314": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
-                "gpt-4-0613": {"max_tokens": 8000, "TPM": 300000, "RPM": 10000},
-                "gpt-4-turbo": {"max_tokens": 4000, "TPM": 1200000, "RPM": 10000},
-                "gpt-4-turbo-preview": {"max_tokens": 4000, "TPM": 600000, "RPM": 10000},
-                "gpt-4-1106-preview": {"max_tokens": 4000, "TPM": 600000, "RPM": 10000},
-                "gpt-4-0125-preview": {"max_tokens": 4000, "TPM": 600000, "RPM": 10000},
-                #"gpt-4-32k": {"max_tokens": 32000, "TPM": 200, "RPM": 10000},
-                #"gpt-4-32k-0314": {"max_tokens": 32000, "TPM": 200, "RPM": 10000},
-                #"gpt-4-32k-0613": {"max_tokens": 32000, "TPM": 200, "RPM": 10000},
-            },
-        }
-
-        # 示例数据
-        self.anthropic_limit_data = {
-                "免费账号": {"max_tokens": 4000, "TPM": 25000, "RPM": 5},
-                "付费账号(等级1)": { "max_tokens": 4000, "TPM": 50000, "RPM": 50},
-                "付费账号(等级2)": { "max_tokens": 4000, "TPM": 100000, "RPM": 1000},
-                "付费账号(等级3)": { "max_tokens": 4000, "TPM": 200000, "RPM": 2000},
-                "付费账号(等级4)": {"max_tokens": 4000, "TPM": 400000, "RPM": 4000},
-            }
-        
-
-        # 示例数据
-        self.google_limit_data = {
-            "免费账号": {
-                "gemini-1.0-pro": {  "InputTokenLimit": 30720,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 32000, "RPM": 15},
-                "gemini-1.5-flash": {  "InputTokenLimit": 30720,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 1000000, "RPM": 15},
-                "gemini-1.5-pro": { "InputTokenLimit": 1048576,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 32000, "RPM": 2},
-            },
-            "付费账号": {
-                "gemini-1.0-pro": {  "InputTokenLimit": 30720,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 120000 , "RPM": 360},
-                "gemini-1.5-flash": {  "InputTokenLimit": 30720,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 10000000 , "RPM": 360},
-                "gemini-1.5-pro": { "InputTokenLimit": 1048576,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 10000000, "RPM": 360},
-            },
-    
-            }
-
-
-        # 示例数据
-        self.moonshot_limit_data = {
-            "免费账号": {
-                "moonshot-v1-8k": {"max_tokens": 4000, "TPM": 32000, "RPM": 3},
-                "moonshot-v1-32k": {"max_tokens": 16000, "TPM": 32000, "RPM": 3},
-                "moonshot-v1-128k": {"max_tokens": 640000, "TPM": 32000, "RPM": 3},
-            },
-            "付费账号(等级1)": {
-                "moonshot-v1-8k": {"max_tokens": 4000, "TPM": 128000, "RPM": 200},
-                "moonshot-v1-32k": {"max_tokens": 16000, "TPM": 128000, "RPM": 200},
-                "moonshot-v1-128k": {"max_tokens": 640000, "TPM": 128000, "RPM": 200},
-            },
-            "付费账号(等级2)": {
-                "moonshot-v1-8k": {"max_tokens": 4000, "TPM": 128000, "RPM": 500},
-                "moonshot-v1-32k": {"max_tokens": 16000, "TPM": 128000, "RPM": 500},
-                "moonshot-v1-128k": {"max_tokens": 640000, "TPM": 128000, "RPM": 500},
-            },
-            "付费账号(等级3)": {
-                "moonshot-v1-8k": {"max_tokens": 4000, "TPM": 384000, "RPM": 5000},
-                "moonshot-v1-32k": {"max_tokens": 16000, "TPM": 384000, "RPM": 5000},
-                "moonshot-v1-128k": {"max_tokens": 640000, "TPM": 384000, "RPM": 5000},
-            },
-            "付费账号(等级4)": {
-                "moonshot-v1-8k": {"max_tokens": 4000, "TPM": 768000, "RPM": 5000},
-                "moonshot-v1-32k": {"max_tokens": 16000, "TPM": 768000, "RPM": 5000},
-                "moonshot-v1-128k": {"max_tokens": 640000, "TPM": 768000, "RPM": 5000},
-            },
-            "付费账号(等级5)": {
-                "moonshot-v1-8k": {"max_tokens": 4000, "TPM": 2000000, "RPM": 10000},
-                "moonshot-v1-32k": {"max_tokens": 16000, "TPM": 2000000, "RPM": 10000},
-                "moonshot-v1-128k": {"max_tokens": 640000, "TPM": 2000000, "RPM": 10000},
-            },
-        }
-
-        # 示例数据
-        self.cohere_limit_data = {
-            "试用账号": {
-                "command": {"max_tokens": 4000, "TPM": 9999999, "RPM": 10},
-                "command-r": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10},
-                "command-r-plus": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10},
-                "c4ai-aya-23": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10},
-            },
-            "生产账号": {
-                "command": {"max_tokens": 4000, "TPM": 9999999, "RPM": 10000 },
-                "command-r": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10000},
-                "command-r-plus": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10000},
-                "c4ai-aya-23": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10000},
-            }
-        }
-
-        # 示例数据
-        self.deepseek_limit_data = {
-                "deepseek-chat": {  "InputTokenLimit": 32000,"OutputTokenLimit": 4000,"max_tokens": 4000, "TPM": 1000000, "RPM": 3500},
-            }
-
-        # 示例数据
-        self.zhipu_limit_data = {
-                "glm-3-turbo": {  "InputTokenLimit": 100000,"OutputTokenLimit": 100000,"max_tokens": 100000, "TPM": 100000, "RPM": 10},
-                "glm-4": {  "InputTokenLimit": 100000,"OutputTokenLimit": 100000,"max_tokens": 100000, "TPM": 100000, "RPM": 10},
-            }
-
-        # 示例数据
-        self.sakura_limit_data = {
-                "Sakura-v0.9": {  "max_tokens": 1000, "TPM": 1000000, "RPM": 600},
-                "Sakura-v0.10pre": { "max_tokens": 1000, "TPM": 1000000, "RPM": 600},
-            }
 
         # TPM相关参数
         self.max_tokens = 0  # 令牌桶最大容量
@@ -5458,9 +5009,9 @@ class Request_Limiter():
             model = Window.Widget_Openai.comboBox_model.currentText()
 
             # 获取相应的限制
-            max_tokens = self.openai_limit_data[account_type][model]["max_tokens"]
-            TPM_limit = self.openai_limit_data[account_type][model]["TPM"]
-            RPM_limit = self.openai_limit_data[account_type][model]["RPM"]
+            max_tokens = configurator.openai_platform_config[account_type][model]["max_tokens"]
+            TPM_limit = configurator.openai_platform_config[account_type][model]["TPM"]
+            RPM_limit = configurator.openai_platform_config[account_type][model]["RPM"]
 
             # 获取当前key的数量，对限制进行倍数更改
             key_count = len(configurator.apikey_list)
@@ -5479,9 +5030,9 @@ class Request_Limiter():
             model = Window.Widget_Anthropic.comboBox_model.currentText()
 
             # 获取相应的限制
-            max_tokens = self.anthropic_limit_data[account_type]["max_tokens"]
-            TPM_limit = self.anthropic_limit_data[account_type]["TPM"]
-            RPM_limit = self.anthropic_limit_data[account_type]["RPM"]
+            max_tokens = configurator.anthropic_platform_config[account_type]["max_tokens"]
+            TPM_limit = configurator.anthropic_platform_config[account_type]["TPM"]
+            RPM_limit = configurator.anthropic_platform_config[account_type]["RPM"]
 
             # 获取当前key的数量，对限制进行倍数更改
             key_count = len(configurator.apikey_list)
@@ -5500,9 +5051,9 @@ class Request_Limiter():
             model = Window.Widget_Cohere.comboBox_model.currentText()
 
             # 获取相应的限制
-            max_tokens = self.cohere_limit_data[account_type][model]["max_tokens"]
-            TPM_limit = self.cohere_limit_data[account_type][model]["TPM"]
-            RPM_limit = self.cohere_limit_data[account_type][model]["RPM"]
+            max_tokens = configurator.cohere_platform_config[account_type][model]["max_tokens"]
+            TPM_limit = configurator.cohere_platform_config[account_type][model]["TPM"]
+            RPM_limit = configurator.cohere_platform_config[account_type][model]["RPM"]
 
             # 获取当前key的数量，对限制进行倍数更改
             key_count = len(configurator.apikey_list)
@@ -5519,9 +5070,9 @@ class Request_Limiter():
             model = Window.Widget_Google.comboBox_model.currentText()
 
             # 获取相应的限制
-            max_tokens = self.google_limit_data[account_type][model]["max_tokens"]
-            TPM_limit = self.google_limit_data[account_type][model]["TPM"]
-            RPM_limit = self.google_limit_data[account_type][model]["RPM"]
+            max_tokens = configurator.google_platform_config[account_type][model]["max_tokens"]
+            TPM_limit = configurator.google_platform_config[account_type][model]["TPM"]
+            RPM_limit = configurator.google_platform_config[account_type][model]["RPM"]
 
             # 获取当前key的数量，对限制进行倍数更改
             key_count = len(configurator.apikey_list)
@@ -5540,9 +5091,9 @@ class Request_Limiter():
             model = Window.Widget_Moonshot.comboBox_model.currentText()
 
             # 获取相应的限制
-            max_tokens = self.moonshot_limit_data[account_type][model]["max_tokens"]
-            TPM_limit = self.moonshot_limit_data[account_type][model]["TPM"]
-            RPM_limit = self.moonshot_limit_data[account_type][model]["RPM"]
+            max_tokens = configurator.moonshot_platform_config[account_type][model]["max_tokens"]
+            TPM_limit = configurator.moonshot_platform_config[account_type][model]["TPM"]
+            RPM_limit = configurator.moonshot_platform_config[account_type][model]["RPM"]
 
             # 获取当前key的数量，对限制进行倍数更改
             key_count = len(configurator.apikey_list)
@@ -5559,9 +5110,9 @@ class Request_Limiter():
             model = Window.Widget_Deepseek.comboBox_model.currentText()
 
             # 获取相应的限制
-            max_tokens = self.deepseek_limit_data[model]["max_tokens"]
-            TPM_limit = self.deepseek_limit_data[model]["TPM"]
-            RPM_limit = self.deepseek_limit_data[model]["RPM"]
+            max_tokens = configurator.deepseek_platform_config[model]["max_tokens"]
+            TPM_limit = configurator.deepseek_platform_config[model]["TPM"]
+            RPM_limit = configurator.deepseek_platform_config[model]["RPM"]
 
             # 获取当前key的数量，对限制进行倍数更改
             key_count = len(configurator.apikey_list)
@@ -5573,13 +5124,15 @@ class Request_Limiter():
 
 
         elif translation_platform == '智谱官方':
+            # 获取账号类型
+            account_type = Window.Widget_ZhiPu.comboBox_account_type.currentText()
             # 获取模型
             model = Window.Widget_ZhiPu.comboBox_model.currentText()
 
             # 获取相应的限制
-            max_tokens = self.zhipu_limit_data[model]["max_tokens"]
-            TPM_limit = self.zhipu_limit_data[model]["TPM"]
-            RPM_limit = self.zhipu_limit_data[model]["RPM"]
+            max_tokens =  configurator.zhipu_platform_config[account_type][model]["max_tokens"]
+            TPM_limit =  configurator.zhipu_platform_config[account_type][model]["TPM"]
+            RPM_limit =  configurator.zhipu_platform_config[account_type][model]["RPM"]
 
             # 获取当前key的数量，对限制进行倍数更改
             key_count = len(configurator.apikey_list)
@@ -5597,9 +5150,9 @@ class Request_Limiter():
             model = Window.Widget_SakuraLLM.comboBox_model.currentText()
 
             # 获取相应的限制
-            max_tokens = self.sakura_limit_data[model]["max_tokens"]
-            TPM_limit = self.sakura_limit_data[model]["TPM"]
-            RPM_limit = self.sakura_limit_data[model]["RPM"]
+            max_tokens = configurator.sakurallm_platform_config[model]["max_tokens"]
+            TPM_limit = configurator.sakurallm_platform_config[model]["TPM"]
+            RPM_limit = configurator.sakurallm_platform_config[model]["RPM"]
 
             # 设置限制
             self.set_limit(max_tokens,TPM_limit,RPM_limit)
@@ -5702,7 +5255,7 @@ class Request_Limiter():
 
 # 界面提示器
 class User_Interface_Prompter(QObject):
-    signal = pyqtSignal(str,str,int,int,int) #创建信号,并确定发送参数类型
+    signal = pyqtSignal(str,str,int) #创建信号,并确定发送参数类型
 
     def __init__(self):
        super().__init__()  # 调用父类的构造函数
@@ -5714,75 +5267,8 @@ class User_Interface_Prompter(QObject):
        self.amount_spent = 0  # 存储已经花费的金钱
 
 
-       self.openai_price_data = {
-            "gpt-3.5-turbo": {"input_price": 0.0015, "output_price": 0.002}, # 存储的价格是 /k tokens
-            "gpt-3.5-turbo-0301": {"input_price": 0.0015, "output_price": 0.002},
-            "gpt-3.5-turbo-0613": {"input_price": 0.0015, "output_price": 0.002},
-            "gpt-3.5-turbo-1106": {"input_price": 0.001, "output_price": 0.002},
-            "gpt-3.5-turbo-0125": {"input_price": 0.0005, "output_price": 0.0015},
-            "gpt-3.5-turbo-16k": {"input_price": 0.001, "output_price": 0.002},
-            "gpt-3.5-turbo-16k-0613": {"input_price": 0.001, "output_price": 0.002},
-            "gpt-4": {"input_price": 0.03, "output_price": 0.06},
-            "gpt-4o": {"input_price": 0.005, "output_price": 0.015},
-            "gpt-4-0314": {"input_price": 0.03, "output_price": 0.06},
-            "gpt-4-0613": {"input_price": 0.03, "output_price": 0.06},
-            "gpt-4-turbo":{"input_price": 0.01, "output_price": 0.03},
-            "gpt-4-turbo-preview":{"input_price": 0.01, "output_price": 0.03},
-            "gpt-4-1106-preview":{"input_price": 0.01, "output_price": 0.03},
-            "gpt-4-0125-preview":{"input_price": 0.01, "output_price": 0.03},
-            "gpt-4-32k": {"input_price": 0.06, "output_price": 0.12},
-            "gpt-4-32k-0314": {"input_price": 0.06, "output_price": 0.12},
-            "gpt-4-32k-0613": {"input_price": 0.06, "output_price": 0.12},
-            "text-embedding-ada-002": {"input_price": 0.0001, "output_price": 0},
-            "text-embedding-3-small": {"input_price": 0.00002, "output_price": 0},
-            "text-embedding-3-large": {"input_price": 0.00013, "output_price": 0},
-            }
-       
-       self.anthropic_price_data = {
-            "claude-2.0": {"input_price": 0.008, "output_price": 0.024}, # 存储的价格是 /k tokens
-            "claude-2.1": {"input_price": 0.008, "output_price": 0.024}, # 存储的价格是 /k tokens
-            "claude-3-haiku-20240307": {"input_price": 0.0025, "output_price": 0.00125}, # 存储的价格是 /k tokens
-            "claude-3-sonnet-20240229": {"input_price": 0.003, "output_price": 0.015}, # 存储的价格是 /k tokens
-            "claude-3-opus-20240229": {"input_price": 0.015, "output_price": 0.075}, # 存储的价格是 /k tokens
-            }
-
-       self.cohere_price_data = {
-            "command": {"input_price": 0.0001, "output_price": 0.0001}, # 存储的价格是 /k tokens
-            "command-r": {"input_price": 0.001, "output_price": 0.0001}, # 存储的价格是 /k tokens
-            "command-r-plus": {"input_price": 0.001, "output_price": 0.001}, # 存储的价格是 /k tokens
-            "c4ai-aya-23": {"input_price": 0.001, "output_price": 0.001}, # 存储的价格是 /k tokens
-            }
-
-       self.google_price_data = {
-            "gemini-1.0-pro": {"input_price": 0.0005, "output_price": 0.0015}, # 存储的价格是 /k tokens
-            "gemini-1.5-flash": {"input_price": 0.00035, "output_price": 0.00105}, # 存储的价格是 /k tokens
-            "gemini-1.5-pro": {"input_price": 0.0035, "output_price": 0.00175}, # 存储的价格是 /k tokens
-            }
-
-       self.moonshot_price_data = {
-            "moonshot-v1-8k": {"input_price": 0.012, "output_price": 0.012}, # 存储的价格是 /k tokens
-            "moonshot-v1-32k": {"input_price": 0.024, "output_price": 0.024}, # 存储的价格是 /k tokens
-            "moonshot-v1-128k": {"input_price": 0.060, "output_price": 0.060}, # 存储的价格是 /k tokens
-            }
-       
-       self.deepseek_price_data = {
-            "deepseek-chat": {"input_price": 0.001 , "output_price": 0.002 }, # 存储的价格是 /k tokens
-            }
-
-
-       self.zhipu_price_data = {
-            "glm-3-turbo": {"input_price": 0.005, "output_price": 0.005}, # 存储的价格是 /k tokens
-            "glm-4": {"input_price": 0.1, "output_price": 0.1},
-            }
-
-       self.sakura_price_data = {
-            "Sakura-v0.9": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
-            "Sakura-v0.10pre": {"input_price": 0.00001, "output_price": 0.00001}, # 存储的价格是 /k tokens
-            }
-
-
     # 槽函数，用于接收子线程发出的信号，更新界面UI的状态，因为子线程不能更改父线程的QT的UI控件的值
-    def on_update_ui(self,input_str1,input_str2,iunput_int1,input_int2,input_int3):
+    def on_update_ui(self,input_str1,input_str2,iunput_int1):
 
         if input_str1 == "翻译状态提示":
             if input_str2 == "开始翻译":
@@ -5884,52 +5370,55 @@ class User_Interface_Prompter(QObject):
             progress = int(round(self.progress, 0))
             Window.Widget_start_translation.A_settings.progressRing.setValue(progress)
 
-        
-
-
+    
     # 更新翻译进度数据
     def update_data(self, state, translated_line_count, prompt_tokens_used, completion_tokens_used):
 
         #根据模型设定单位价格
         if configurator.translation_platform == "OpenAI官方":
             # 获取使用的模型输入价格与输出价格
-            input_price = self.openai_price_data[configurator.model_type]["input_price"]
-            output_price = self.openai_price_data[configurator.model_type]["output_price"]
+            input_price = configurator.openai_platform_config["model_price"][configurator.model_type]["input_price"]
+            output_price = configurator.openai_platform_config["model_price"][configurator.model_type]["output_price"]
 
         elif configurator.translation_platform == "Anthropic官方":
             # 获取使用的模型输入价格与输出价格
-            input_price = self.anthropic_price_data[configurator.model_type]["input_price"]
-            output_price = self.anthropic_price_data[configurator.model_type]["output_price"]
+            input_price = configurator.anthropic_platform_config["model_price"][configurator.model_type]["input_price"]
+            output_price = configurator.anthropic_platform_config["model_price"][configurator.model_type]["output_price"]
 
         elif configurator.translation_platform == "Cohere官方":
             # 获取使用的模型输入价格与输出价格
-            input_price = self.cohere_price_data[configurator.model_type]["input_price"]
-            output_price = self.cohere_price_data[configurator.model_type]["output_price"]
+            input_price = configurator.cohere_platform_config["model_price"][configurator.model_type]["input_price"]
+            output_price = configurator.cohere_platform_config["model_price"][configurator.model_type]["output_price"]
 
         elif configurator.translation_platform == "Google官方":
             # 获取使用的模型输入价格与输出价格
-            input_price = self.google_price_data[configurator.model_type]["input_price"]
-            output_price = self.google_price_data[configurator.model_type]["output_price"]
+            input_price = configurator.google_platform_config["model_price"][configurator.model_type]["input_price"]
+            output_price = configurator.google_platform_config["model_price"][configurator.model_type]["output_price"]
 
         elif configurator.translation_platform == "Moonshot官方":
             # 获取使用的模型输入价格与输出价格
-            input_price = self.moonshot_price_data[configurator.model_type]["input_price"]
-            output_price = self.moonshot_price_data[configurator.model_type]["output_price"]
+            input_price = configurator.moonshot_platform_config["model_price"][configurator.model_type]["input_price"]
+            output_price = configurator.moonshot_platform_config["model_price"][configurator.model_type]["output_price"]
 
         elif configurator.translation_platform == "Deepseek官方":
             # 获取使用的模型输入价格与输出价格
-            input_price = self.deepseek_price_data[configurator.model_type]["input_price"]
-            output_price = self.deepseek_price_data[configurator.model_type]["output_price"]
+            input_price = configurator.deepseek_platform_config["model_price"][configurator.model_type]["input_price"]
+            output_price = configurator.deepseek_platform_config["model_price"][configurator.model_type]["output_price"]
+
+        elif configurator.translation_platform == "Dashscope官方":
+            # 获取使用的模型输入价格与输出价格
+            input_price = configurator.dashscope_platform_config["model_price"][configurator.model_type]["input_price"]
+            output_price = configurator.dashscope_platform_config["model_price"][configurator.model_type]["output_price"]
 
         elif configurator.translation_platform == "智谱官方":
             # 获取使用的模型输入价格与输出价格
-            input_price = self.zhipu_price_data[configurator.model_type]["input_price"]
-            output_price = self.zhipu_price_data[configurator.model_type]["output_price"]
+            input_price = configurator.zhipu_platform_config["model_price"][configurator.model_type]["input_price"]
+            output_price = configurator.zhipu_platform_config["model_price"][configurator.model_type]["output_price"]
 
         elif configurator.translation_platform == "SakuraLLM":
             # 获取使用的模型输入价格与输出价格
-            input_price = self.sakura_price_data[configurator.model_type]["input_price"]
-            output_price = self.sakura_price_data[configurator.model_type]["output_price"]
+            input_price = configurator.sakurallm_platform_config["model_price"][configurator.model_type]["input_price"]
+            output_price = configurator.sakurallm_platform_config["model_price"][configurator.model_type]["output_price"]
 
         else:
             # 获取使用的模型输入价格与输出价格
@@ -5953,9 +5442,6 @@ class User_Interface_Prompter(QObject):
         self.progress = round(result, 2)
 
         #print("[DEBUG] 总行数：",self.total_text_line_count,"已翻译行数：",self.translated_line_count,"进度：",self.progress,"%")
-
-
-
 
 
     #成功信息居中弹出框函数
@@ -6984,7 +6470,7 @@ class Cache_Manager():
         #输出信息处理记录列表示例
         ex_list1 = [
             {'text_index': '0', "Head:": '\if(s[114])en(s[115])',"Middle": "ハイヒーリング（消費MP5）"},
-            {'text_index': '1', "Head:": '\F[21]\FF[128]',"Middle": "ゲオルグ「なにを言う。　僕はおまえを助けに来たんだ。", "Head:": '\FF[128]'},
+            {'text_index': '1', "Head:": '\F[21]\FF[128]',"Middle": "ゲオルグ「なにを言う。　僕はおまえを助けに来たんだ。", "Tail:": '\FF[128]'},
             {'text_index': '2', "Middle": "少年「ダメか。僕も血が止まらないな……。"},
         ]
 
@@ -6999,6 +6485,16 @@ class Cache_Manager():
         process_info_list = []
         for key, value in input_dict.items():
             head, middle, tail = Cache_Manager.trim_string(self,value)
+
+            # 这里针对首尾非文本字符是纯数字字符或者类似“R5”组合时,还原回去,否则会影响翻译
+            if head.isdigit() or bool(re.match(r'^[a-zA-Z][0-9]{1,2}$', head)):
+                middle = head + middle
+                head = []
+            if tail.isdigit() or bool(re.match(r'^[a-zA-Z][0-9]{1,2}$', tail)):
+                middle = middle + tail
+                tail = []
+
+            # 将处理后的结果存储在两个不同的结构中：一个字典和一个列表。
             processed_dict[key] = middle
             info = {"text_index": key}
             if head:
@@ -8231,11 +7727,11 @@ class background_executor(threading.Thread):
                 Running_status = 0
             # 如果取消了翻译任务
             if Running_status == 10:
-                user_interface_prompter.signal.emit("翻译状态提示","翻译取消",0,0,0)
+                user_interface_prompter.signal.emit("翻译状态提示","翻译取消",0)
                 Running_status = 0
             # 如果暂停了翻译任务
             if Running_status == 9:
-                user_interface_prompter.signal.emit("翻译状态提示","翻译暂停",0,0,0)
+                user_interface_prompter.signal.emit("翻译状态提示","翻译暂停",0)
 
         # 执行接口测试
         elif self.task_id == "接口测试":
@@ -8266,8 +7762,6 @@ class Widget_AI(QFrame):
         self.hBoxLayout = QHBoxLayout(self)
         self.hBoxLayout.addWidget(self.label, 1, Qt.AlignCenter)
         self.setObjectName(text.replace(' ', '-'))
-
-
 
 
 class Widget_Proxy(QFrame):  # 代理账号主界面
@@ -8779,7 +8273,7 @@ class Widget_Openai(QFrame):#  Openai账号界面
 
 
         #设置“模型类型”下拉选择框
-        self.comboBox_model = ComboBox() #以demo为父类
+        self.comboBox_model = EditableComboBox() #以demo为父类
         self.comboBox_model.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-1106', 'gpt-3.5-turbo-0125','gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
                                  'gpt-4','gpt-4o','gpt-4-0314', 'gpt-4-0613','gpt-4-turbo','gpt-4-turbo-preview','gpt-4-1106-preview','gpt-4-0125-preview'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
@@ -8951,7 +8445,7 @@ class Widget_Google(QFrame):#  谷歌账号界面
 
 
         #设置“模型类型”下拉选择框
-        self.comboBox_model = ComboBox() #以demo为父类
+        self.comboBox_model =EditableComboBox() #以demo为父类
         self.comboBox_model.addItems(['gemini-1.5-flash','gemini-1.5-pro'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(200, 35)
@@ -9124,7 +8618,7 @@ class Widget_Anthropic(QFrame):#  Anthropic账号界面
 
 
         #设置“模型类型”下拉选择框
-        self.comboBox_model = ComboBox() #以demo为父类
+        self.comboBox_model = EditableComboBox() #以demo为父类
         self.comboBox_model.addItems(['claude-2.0','claude-2.1','claude-3-haiku-20240307','claude-3-sonnet-20240229', 'claude-3-opus-20240229'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(215, 35)
@@ -9297,7 +8791,7 @@ class Widget_Cohere(QFrame):#  Cohere账号界面
 
 
         #设置“模型类型”下拉选择框
-        self.comboBox_model = ComboBox() #以demo为父类
+        self.comboBox_model = EditableComboBox() #以demo为父类
         self.comboBox_model.addItems(['command','command-r','command-r-plus','c4ai-aya-23'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(200, 35)
@@ -9433,6 +8927,28 @@ class Widget_ZhiPu(QFrame):#  智谱账号界面
         #设置各个控件-----------------------------------------------------------------------------------------
 
 
+        # -----创建第1个组，添加多个组件-----
+        box_account_type = QGroupBox()
+        box_account_type.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_account_type = QGridLayout()
+
+        #设置“账号类型”标签
+        self.labelx = QLabel( flags=Qt.WindowFlags())  
+        self.labelx.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")#设置字体，大小，颜色
+        self.labelx.setText("账号类型")
+
+
+        #设置“账号类型”下拉选择框
+        self.comboBox_account_type = ComboBox() #以demo为父类
+        self.comboBox_account_type.addItems(['免费账号',  '付费账号(等级1)',  '付费账号(等级2)',  '付费账号(等级3)',  '付费账号(等级4)',  '付费账号(等级5)'])
+        self.comboBox_account_type.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox_account_type.setFixedSize(150, 35)
+
+
+        layout_account_type.addWidget(self.labelx, 0, 0)
+        layout_account_type.addWidget(self.comboBox_account_type, 0, 1)
+        box_account_type.setLayout(layout_account_type)
+
 
         # -----创建第1个组，添加多个组件-----
         box_model = QGroupBox()
@@ -9446,8 +8962,8 @@ class Widget_ZhiPu(QFrame):#  智谱账号界面
 
 
         #设置“模型类型”下拉选择框
-        self.comboBox_model = ComboBox() #以demo为父类
-        self.comboBox_model.addItems(['glm-3-turbo','glm-4'])
+        self.comboBox_model = EditableComboBox() #以demo为父类
+        self.comboBox_model.addItems(['glm-4-flash','glm-4-air','glm-4-airx','glm-4','glm-4-0520'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(200, 35)
         #设置下拉选择框默认选择
@@ -9547,6 +9063,7 @@ class Widget_ZhiPu(QFrame):#  智谱账号界面
 
         # 把各个组添加到容器中
         container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_account_type)
         container.addWidget(box_model)
         container.addWidget(box_apikey)
         container.addWidget(box_proxy_port)
@@ -9619,7 +9136,7 @@ class Widget_Moonshot(QFrame):#  Moonshot账号界面
 
 
         #设置“模型类型”下拉选择框
-        self.comboBox_model = ComboBox() #以demo为父类
+        self.comboBox_model = EditableComboBox() #以demo为父类
         self.comboBox_model.addItems(['moonshot-v1-8k','moonshot-v1-32k','moonshot-v1-128k'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(200, 35)
@@ -9748,6 +9265,7 @@ class Widget_Moonshot(QFrame):#  Moonshot账号界面
             user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 
+
 class Widget_Deepseek(QFrame):#  deepseek账号界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
@@ -9768,7 +9286,7 @@ class Widget_Deepseek(QFrame):#  deepseek账号界面
 
 
         #设置“模型类型”下拉选择框
-        self.comboBox_model = ComboBox() #以demo为父类
+        self.comboBox_model = EditableComboBox() #以demo为父类
         self.comboBox_model.addItems(['deepseek-chat'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(200, 35)
@@ -9895,6 +9413,154 @@ class Widget_Deepseek(QFrame):#  deepseek账号界面
         elif Running_status != 0:
             user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
+
+
+class Widget_Dashscope(QFrame):#  dashscope账号界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+
+
+        # -----创建第1个组，添加多个组件-----
+        box_model = QGroupBox()
+        box_model.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_model = QGridLayout()
+
+        #设置“模型选择”标签
+        self.labelx = QLabel(flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.labelx.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.labelx.setText("模型选择")
+
+
+        #设置“模型类型”下拉选择框
+        self.comboBox_model = EditableComboBox() #以demo为父类
+        self.comboBox_model.addItems(['qwen-turbo','qwen-plus','qwen-max','qwen-long'])
+        self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox_model.setFixedSize(200, 35)
+
+        
+
+
+        layout_model.addWidget(self.labelx, 0, 0)
+        layout_model.addWidget(self.comboBox_model, 0, 1)
+        box_model.setLayout(layout_model)
+
+        # -----创建第2个组，添加多个组件-----
+        box_apikey = QGroupBox()
+        box_apikey.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_apikey = QHBoxLayout()
+
+        #设置“API KEY”标签
+        self.labelx = QLabel(flags=Qt.WindowFlags())  
+        self.labelx.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        self.labelx.setText("API KEY")
+
+        #设置微调距离用的空白标签
+        self.labely = QLabel()  
+        self.labely.setText("                       ")
+
+        #设置“API KEY”的输入框
+        self.TextEdit_apikey = TextEdit()
+
+
+
+        # 追加到容器中
+        layout_apikey.addWidget(self.labelx)
+        layout_apikey.addWidget(self.labely)
+        layout_apikey.addWidget(self.TextEdit_apikey)
+        # 添加到 box中
+        box_apikey.setLayout(layout_apikey)
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box_proxy_port = QGroupBox()
+        box_proxy_port.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_proxy_port = QHBoxLayout()
+
+        #设置“代理地址”标签
+        self.label_proxy_port = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.label_proxy_port.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.label_proxy_port.setText("系统代理")
+
+        #设置微调距离用的空白标签
+        self.labelx = QLabel()  
+        self.labelx.setText("                      ")
+
+        #设置“代理地址”的输入框
+        self.LineEdit_proxy_port = LineEdit()
+        #LineEdit1.setFixedSize(300, 30)
+
+
+        layout_proxy_port.addWidget(self.label_proxy_port)
+        layout_proxy_port.addWidget(self.labelx)
+        layout_proxy_port.addWidget(self.LineEdit_proxy_port)
+        box_proxy_port.setLayout(layout_proxy_port)
+
+
+
+        # -----创建第4个组，添加多个组件-----
+        box_test = QGroupBox()
+        box_test.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_test = QHBoxLayout()
+
+
+        #设置“测试请求”的按钮
+        primaryButton_test = PrimaryPushButton('测试请求', self, FIF.SEND)
+        primaryButton_test.clicked.connect(self.test_request) #按钮绑定槽函数
+
+        #设置“保存配置”的按钮
+        primaryButton_save = PushButton('保存配置', self, FIF.SAVE)
+        primaryButton_save.clicked.connect(self.saveconfig) #按钮绑定槽函数
+
+
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_test)
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_save)
+        layout_test.addStretch(1)  # 添加伸缩项
+        box_test.setLayout(layout_test)
+
+
+
+        # -----最外层容器设置垂直布局-----
+        container = QVBoxLayout()
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+        # 把各个组添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_model)
+        container.addWidget(box_apikey)
+        container.addWidget(box_proxy_port)
+        container.addWidget(box_test)
+        container.addStretch(1)  # 添加伸缩项
+
+
+    def saveconfig(self):
+        configurator.read_write_config("write")
+        user_interface_prompter.createSuccessInfoBar("已成功保存配置")
+
+    def test_request(self):
+        global Running_status
+
+        if Running_status == 0:
+            Base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+            Model_Type =  self.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
+            API_key_str = self.TextEdit_apikey.toPlainText()        #获取apikey输入值
+            Proxy_port = self.LineEdit_proxy_port.text()            #获取代理端口
+
+            #创建子线程
+            thread = background_executor("接口测试","","","Dashscope",Base_url,Model_Type,API_key_str,Proxy_port)
+            thread.start()
+
+        elif Running_status != 0:
+            user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 
 
@@ -10045,6 +9711,7 @@ class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
 
 
 
+
 class Widget_translation_settings(QFrame):  # 翻译设置主界面
     def __init__(self, text: str, parent=None):
         super().__init__(parent=parent)
@@ -10074,7 +9741,7 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
 
         #设置“翻译平台”下拉选择框
         self.comboBox_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_translation_platform.addItems(['OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
+        self.comboBox_translation_platform.addItems(['OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  'Dashscope官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
         self.comboBox_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_translation_platform.setFixedSize(150, 35)
 
@@ -10411,6 +10078,26 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         box1_cot_toggle.setLayout(layout1_cot_toggle)
 
 
+        # -----创建第3个组(后来补的)，添加多个组件-----
+        box1_cn_prompt_toggle = QGroupBox()
+        box1_cn_prompt_toggle.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_cn_prompt_toggle = QHBoxLayout()
+
+        #设置“简繁转换开关”标签
+        labe1_6 = QLabel(flags=Qt.WindowFlags())  
+        labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        labe1_6.setText("使用中文提示词")
+
+       #设置“简繁体自动转换”选择开关
+        self.SwitchButton_cn_prompt_toggle = SwitchButton(parent=self)    
+
+
+
+        layout1_cn_prompt_toggle.addWidget(labe1_6)
+        layout1_cn_prompt_toggle.addStretch(1)  # 添加伸缩项
+        layout1_cn_prompt_toggle.addWidget(self.SwitchButton_cn_prompt_toggle)
+        box1_cn_prompt_toggle.setLayout(layout1_cn_prompt_toggle)
+
 
         # -----创建第1个组(后来补的)，添加多个组件-----
         box_clear = QGroupBox()
@@ -10492,10 +10179,10 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box_Lines)
         container.addWidget(box_pre_lines)
-        #container.addWidget(box_fol_lines)
         container.addWidget(box1_thread_count)
         container.addWidget(box_retry_count_limit)
         container.addWidget(box1_cot_toggle)
+        container.addWidget(box1_cn_prompt_toggle)
         container.addWidget(box1_line_breaks)
         container.addWidget(box1_conversion_toggle)
         container.addWidget(box_clear)
@@ -10561,7 +10248,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
 
         #设置“翻译平台”下拉选择框
         self.comboBox_primary_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_primary_translation_platform.addItems(['OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
+        self.comboBox_primary_translation_platform.addItems(['OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  'Dashscope官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
         self.comboBox_primary_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_primary_translation_platform.setFixedSize(150, 35)
 
@@ -10585,7 +10272,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
 
         #设置“翻译平台”下拉选择框
         self.comboBox_secondary_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_secondary_translation_platform.addItems(['不设置', 'OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
+        self.comboBox_secondary_translation_platform.addItems(['不设置', 'OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  'Dashscope官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
         self.comboBox_secondary_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_secondary_translation_platform.setFixedSize(150, 35)
 
@@ -10609,7 +10296,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
 
         #设置“翻译平台”下拉选择框
         self.comboBox_final_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_final_translation_platform.addItems(['不设置','OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
+        self.comboBox_final_translation_platform.addItems(['不设置','OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  'Dashscope官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
         self.comboBox_final_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_final_translation_platform.setFixedSize(150, 35)
 
@@ -11047,7 +10734,7 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
             print("\033[1;33mWarning:\033[0m 翻译任务已取消-----------------------","\n")
             #界面提示
             user_interface_prompter.createWarningInfoBar("翻译已取消")
-            user_interface_prompter.signal.emit("重置界面数据","翻译取消",0,0,0)
+            user_interface_prompter.signal.emit("重置界面数据","翻译取消",0)
 
 
         #如果正在空闲中
@@ -11057,7 +10744,7 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
             print("\033[1;33mWarning:\033[0m 当前无翻译任务-----------------------","\n")
             #界面提示
             user_interface_prompter.createWarningInfoBar("当前无翻译任务")
-            user_interface_prompter.signal.emit("重置界面数据","翻译取消",0,0,0)
+            user_interface_prompter.signal.emit("重置界面数据","翻译取消",0)
 
 
 class Widget_start_translation_B(QFrame):#  开始翻译子界面
@@ -11729,558 +11416,6 @@ class Widget_tune_sakura(QFrame):# sakura调教界面
 
 
 
-class Widget_prompt_dict(QFrame):#AI提示字典界面
-
-
-    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
-        super().__init__(parent=parent)          #调用父类的构造函数
-        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
-
-        # 最外层的垂直布局
-        container = QVBoxLayout()
-
-        # -----创建第1个组，添加放置表格-----
-        self.tableView = TableWidget(self)
-        self.tableView.setWordWrap(False) #设置表格内容不换行
-        self.tableView.setRowCount(2) #设置表格行数
-        self.tableView.setColumnCount(3) #设置表格列数
-        #self.tableView.verticalHeader().hide() #隐藏垂直表头
-        self.tableView.setHorizontalHeaderLabels(['原文', '译文', '备注']) #设置水平表头
-        self.tableView.resizeColumnsToContents() #设置列宽度自适应内容
-        self.tableView.resizeRowsToContents() #设置行高度自适应内容
-        self.tableView.setEditTriggers(QAbstractItemView.AllEditTriggers)   # 设置所有单元格可编辑
-        #self.tableView.setFixedSize(500, 300)         # 设置表格大小
-        self.tableView.setMaximumHeight(400)          # 设置表格的最大高度
-        self.tableView.setMinimumHeight(400)             # 设置表格的最小高度
-        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
-        #self.tableView.setSortingEnabled(True)  #设置表格可排序
-
-        # 在表格最后一行第一列添加"添加行"按钮
-        button = PushButton('添新行')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
-        button.clicked.connect(self.add_row)
-        # 在表格最后一行第三列添加"删除空白行"按钮
-        button = PushButton('删空行')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 2, button)
-        button.clicked.connect(self.delete_blank_row)
-
-
-
-        # -----创建第1_1个组，添加多个组件-----
-        box1_1 = QGroupBox()
-        box1_1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout1_1 = QHBoxLayout()
-
-
-        #设置导入字典按钮
-        self.pushButton1 = PushButton('导入字典', self, FIF.DOWNLOAD)
-        self.pushButton1.clicked.connect(self.Importing_dictionaries) #按钮绑定槽函数
-
-        #设置导出字典按钮
-        self.pushButton2 = PushButton('导出字典', self, FIF.SHARE)
-        self.pushButton2.clicked.connect(self.Exporting_dictionaries) #按钮绑定槽函数
-
-        #设置清空字典按钮
-        self.pushButton3 = PushButton('清空字典', self, FIF.DELETE)
-        self.pushButton3.clicked.connect(self.Empty_dictionary) #按钮绑定槽函数
-
-        #设置保存字典按钮
-        self.pushButton4 = PushButton('保存字典', self, FIF.SAVE)
-        self.pushButton4.clicked.connect(self.Save_dictionary) #按钮绑定槽函数
-
-
-        layout1_1.addWidget(self.pushButton1)
-        layout1_1.addStretch(1)  # 添加伸缩项
-        layout1_1.addWidget(self.pushButton2)
-        layout1_1.addStretch(1)  # 添加伸缩项
-        layout1_1.addWidget(self.pushButton3)
-        layout1_1.addStretch(1)  # 添加伸缩项
-        layout1_1.addWidget(self.pushButton4)
-        box1_1.setLayout(layout1_1)
-
-
-
-
-        # -----创建第3个组，添加多个组件-----
-        box3 = QGroupBox()
-        box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout3 = QHBoxLayout()
-
-        #设置“译时提示”标签
-        label3 = QLabel( flags=Qt.WindowFlags())  
-        label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label3.setText("AI提示翻译")
-
-        #设置“译时提示”显示
-        self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label4.setText("(如果文本中出现了字典原文，则构建相应的术语表，让AI按照要求翻译)")
-
-
-        #设置“译时提示”开
-        self.checkBox2 = CheckBox('启用功能')
-        self.checkBox2.stateChanged.connect(self.checkBoxChanged2)
-
-        layout3.addWidget(label3)
-        layout3.addWidget(self.label4)
-        layout3.addStretch(1)  # 添加伸缩项
-        layout3.addWidget(self.checkBox2)
-        box3.setLayout(layout3)
-
-
-        # 把内容添加到容器中
-        container.addWidget(box3)    
-        container.addWidget(self.tableView)
-        container.addWidget(box1_1)
-        container.addStretch(1)  # 添加伸缩项
-
-        # 设置窗口显示的内容是最外层容器
-        #self.scrollWidget.setLayout(container)
-        self.setLayout(container)
-        container.setSpacing(20)     
-        container.setContentsMargins(50, 70, 50, 30)      
-
-
-    #添加行按钮
-    def add_row(self):
-        # 添加新行在按钮所在行前面
-        self.tableView.insertRow(self.tableView.rowCount()-1)
-        #设置新行的高度与前一行相同
-        self.tableView.setRowHeight(self.tableView.rowCount()-2, self.tableView.rowHeight(self.tableView.rowCount()-3))
-
-    #删除空白行按钮
-    def delete_blank_row(self):
-        #表格行数大于2时，删除表格内第一列和第二列为空或者空字符串的行
-        if self.tableView.rowCount() > 2:
-            # 删除表格内第一列和第二列为空或者空字符串的行
-            for i in range(self.tableView.rowCount()-1):
-                if self.tableView.item(i, 0) is None or self.tableView.item(i, 0).text() == '':
-                    self.tableView.removeRow(i)
-                    break
-                elif self.tableView.item(i, 1) is None or self.tableView.item(i, 1).text() == '':
-                    self.tableView.removeRow(i)
-                    break
-
-    # 将条目添加到表格的辅助函数
-    def add_to_table(self, srt, dst, info):
-            row = self.tableView.rowCount() - 1 #获取表格的倒数行数
-            self.tableView.insertRow(row)    # 在表格中插入一行
-            self.tableView.setItem(row, 0, QTableWidgetItem(srt))
-            self.tableView.setItem(row, 1, QTableWidgetItem(dst))
-            if info:
-                self.tableView.setItem(row, 2, QTableWidgetItem(info))
-            #设置新行的高度与前一行相同
-            self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
-
-    #导入字典按钮
-    def Importing_dictionaries(self):
-        # 选择文件
-        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'JSON Files (*.json)')      #调用QFileDialog类里的函数来选择文件
-        if Input_File:
-            print(f'[INFO]  已选择字典导入文件: {Input_File}')
-        else :
-            print('[INFO]  未选择文件')
-            return
-        
-        # 读取文件
-        with open(Input_File, 'r', encoding="utf-8") as f:
-            dictionary = json.load(f)
-
-        # 检查数据是列表还是字典
-        if isinstance(dictionary, list):  # 如果是列表
-            for item in dictionary:
-                if item.get("srt", "") and item.get("dst", ""):
-                    srt = item.get("srt", "")
-                    dst = item.get("dst", "")
-                    info = item.get("info", "")
-
-                    self.add_to_table(srt, dst,info)
-                    # 格式例
-                    # [
-                    #   {
-                    #     "srt": "xxxx",
-                    #     "dst": "xxxx",
-                    #     "info": "xxx",
-                    #   }
-                    # ]
-                else: # 代表是Paratranz的术语表，处理每一个字典项
-                    key = item.get("term", "")
-                    value = item.get("translation", "")
-                    info = ""
-                    self.add_to_table(key, value,info)
-                    # 格式例
-                    # [
-                    #   {
-                    #     "id": 359894,
-                    #     "createdAt": "2024-04-06T18:43:56.075Z",
-                    #     "updatedAt": "2024-04-06T18:43:56.075Z",
-                    #     "updatedBy": null,
-                    #     "pos": "noun",
-                    #     "uid": 49900,
-                    #     "term": "アイテム",
-                    #     "translation": "道具",
-                    #     "note": "",
-                    #     "project": 9841,
-                    #     "variants": []
-                    #   }
-                    # ]
-        elif isinstance(dictionary, dict):  # 如果是字典，处理字典键值对
-            for key, value in dictionary.items():
-                info = ""
-                self.add_to_table(key, value,info)
-        else:
-            print('[ERROR]  不支持的文件格式')
-            return
-
-        user_interface_prompter.createSuccessInfoBar("导入成功")
-        print(f'[INFO]  已导入字典文件')
-    
-    #导出字典按钮
-    def Exporting_dictionaries(self):
-        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一列作为key，第二列作为value，存储中间字典中
-        dictionary = []
-        for row in range(self.tableView.rowCount() - 1):
-            key_item = self.tableView.item(row, 0)
-            value_item = self.tableView.item(row, 1)
-            info_item = self.tableView.item(row, 2)
-            if key_item and value_item:
-                key = key_item.text()
-                value = value_item.text()
-                if info_item:
-                    info = info_item.text()
-                    dictionary.append({"srt":key,"dst":value,"info":info})
-                else:
-                    dictionary.append({"srt":key,"dst":value})
-
-
-        # 选择文件保存路径
-        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Output_Folder:
-            print(f'[INFO]  已选择字典导出文件夹: {Output_Folder}')
-        else :
-            print('[INFO]  未选择文件夹')
-            return  # 直接返回，不执行后续操作
-
-        # 将字典保存到文件中
-        with open(os.path.join(Output_Folder, "用户提示字典.json"), 'w', encoding="utf-8") as f:
-            json.dump(dictionary, f, ensure_ascii=False, indent=4)
-
-        user_interface_prompter.createSuccessInfoBar("导出成功")
-        print(f'[INFO]  已导出字典文件')
-
-    #清空字典按钮
-    def Empty_dictionary(self):
-        #清空表格
-        self.tableView.clearContents()
-        #设置表格的行数为1
-        self.tableView.setRowCount(2)
-        
-        # 在表格最后一行第一列添加"添加行"按钮
-        button = PushButton('添新行')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
-        button.clicked.connect(self.add_row)
-        # 在表格最后一行第三列添加"删除空白行"按钮
-        button = PushButton('删空行')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 2, button)
-        button.clicked.connect(self.delete_blank_row)
-
-        user_interface_prompter.createSuccessInfoBar("清空成功")
-        print(f'[INFO]  已清空字典')
-
-    #保存字典按钮
-    def Save_dictionary(self):
-        configurator.read_write_config("write") 
-        user_interface_prompter.createSuccessInfoBar("保存成功")
-        print(f'[INFO]  已保存字典')
-
-    
-    #消息提示函数
-    def checkBoxChanged2(self, isChecked: bool):
-        if isChecked :
-            user_interface_prompter.createSuccessInfoBar("已开启译时提示功能,将根据发送文本自动添加翻译示例")
-
-
-
-class Widget_prompy_engineering(QFrame):#提示词工程界面
-
-
-    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
-        super().__init__(parent=parent)          #调用父类的构造函数
-        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
-
-        # -----创建第1个组，添加多个组件-----
-        box1 = QGroupBox()
-        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout1 = QHBoxLayout()
-
-
-        label1 = QLabel( flags=Qt.WindowFlags())  
-        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label1.setText("修改系统提示词")
-
-
-        self.label2 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label2.setText("(将修改系统提示词为输入框中的内容)")
-
-
-        self.checkBox1 = CheckBox('启用功能')
-        self.checkBox1.stateChanged.connect(self.checkBoxChanged1)
-
-        layout1.addWidget(label1)
-        layout1.addWidget(self.label2)
-        layout1.addStretch(1)  # 添加伸缩项
-        layout1.addWidget(self.checkBox1)
-        box1.setLayout(layout1)
-
-
-        # -----创建第2个组，添加多个组件-----
-        box2 = QGroupBox()
-        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout2 = QHBoxLayout()
-
-
-        Prompt = f'''You are a localizer specialized in Simplified Chinese and Japanese culture, and you need to translate the Japanese text in the game into Simplified Chinese. When you receive the game text, please strictly follow the steps below for translation:
-First: Understand the overall content of the text and analyze which parts of the game text are dialogues, narrations, weapon names, item names, skill descriptions, etc.
-Second: Begin translating line by line from the original text, translating only the Japanese text into Simplified Chinese text, Faithfully and accurately , ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
-Third: Do not translate escape characters such as “\"” , “\r” and “\n”, or numbers, formatting codes, special symbols, or non-Japanese content, and should be preserved as they are.
-Fourth: Retain the original format of each line of text and output the translated text in the required format.
-###
-The format of the game text is as follows: 
-{{"<text_id>":"<original text>"}}
-###
-Output the translation in JSON format: 
-{{"<text_id>":"<translated text>"}}
-'''
-
-
-        self.TextEdit1 = TextEdit()
-        #设置输入框最小高度
-        self.TextEdit1.setMinimumHeight(180)
-        #设置默认文本
-        self.TextEdit1.setText(Prompt)
-
-
-        layout2.addWidget(self.TextEdit1)
-        box2.setLayout(layout2)
-
-
-        # -----创建第3个组，添加多个组件-----
-        box3 = QGroupBox()
-        box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout3 = QHBoxLayout()
-
-        label3 = QLabel( flags=Qt.WindowFlags())  
-        label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label3.setText("添加翻译示例")
-
-        self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
-        self.label4.setText("(添加为新的翻译示例，全程加入翻译请求中，帮助AI更好的进行少样本学习，学习其中格式，翻译逻辑，提高AI翻译质量)")
-
-
-        self.checkBox2 = CheckBox('启用功能')
-        self.checkBox2.stateChanged.connect(self.checkBoxChanged2)
-
-        layout3.addWidget(label3)
-        layout3.addWidget(self.label4)
-        layout3.addStretch(1)  # 添加伸缩项
-        layout3.addWidget(self.checkBox2)
-        box3.setLayout(layout3)
-
-
-
-        # -----创建第4个组，添加放置表格-----
-        self.tableView = TableWidget(self)
-        self.tableView.setWordWrap(False) #设置表格内容不换行
-        self.tableView.setRowCount(2) #设置表格行数
-        self.tableView.setColumnCount(2) #设置表格列数
-        #self.tableView.verticalHeader().hide() #隐藏垂直表头
-        self.tableView.setHorizontalHeaderLabels(['原文', '译文']) #设置水平表头
-        self.tableView.resizeColumnsToContents() #设置列宽度自适应内容
-        self.tableView.resizeRowsToContents() #设置行高度自适应内容
-        self.tableView.setEditTriggers(QAbstractItemView.AllEditTriggers)   # 设置所有单元格可编辑
-        #self.tableView.setFixedSize(500, 300)         # 设置表格大小
-        self.tableView.setMaximumHeight(300)          # 设置表格的最大高度
-        self.tableView.setMinimumHeight(300)             # 设置表格的最小高度
-        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
-        #self.tableView.setSortingEnabled(True)  #设置表格可排序
-
-
-        # 在表格最后一行第一列添加"添加行"按钮
-        button = PushButton('添新行')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
-        button.clicked.connect(self.add_row)
-        # 在表格最后一行第二列添加"删除空白行"按钮
-        button = PushButton('删空行')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
-        button.clicked.connect(self.delete_blank_row)
-
-
-        # -----创建第1_1个组，添加多个组件-----
-        box5 = QGroupBox()
-        box5.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout5 = QHBoxLayout()
-
-
-        #设置导入字典按钮
-        self.pushButton1 = PushButton('导入示例', self, FIF.DOWNLOAD)
-        self.pushButton1.clicked.connect(self.Importing_dictionaries) #按钮绑定槽函数
-
-        #设置导出字典按钮
-        self.pushButton2 = PushButton('导出示例', self, FIF.SHARE)
-        self.pushButton2.clicked.connect(self.Exporting_dictionaries) #按钮绑定槽函数
-
-        #设置清空字典按钮
-        self.pushButton3 = PushButton('清空示例', self, FIF.DELETE)
-        self.pushButton3.clicked.connect(self.Empty_dictionary) #按钮绑定槽函数
-
-        #设置保存字典按钮
-        self.pushButton4 = PushButton('保存示例', self, FIF.SAVE)
-        self.pushButton4.clicked.connect(self.Save_dictionary) #按钮绑定槽函数
-
-
-        layout5.addWidget(self.pushButton1)
-        layout5.addStretch(1)  # 添加伸缩项
-        layout5.addWidget(self.pushButton2)
-        layout5.addStretch(1)  # 添加伸缩项
-        layout5.addWidget(self.pushButton3)
-        layout5.addStretch(1)  # 添加伸缩项
-        layout5.addWidget(self.pushButton4)
-        box5.setLayout(layout5)
-
-
-        # -----最外层容器设置垂直布局-----
-        container = QVBoxLayout()
-
-        # 设置窗口显示的内容是最外层容器
-        self.setLayout(container)
-        container.setSpacing(20) # 设置布局内控件的间距为28
-        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
-
-        # 把各个组添加到容器中
-        container.addWidget(box1)
-        container.addWidget(box2)
-        container.addWidget(box3)
-        container.addWidget(self.tableView)
-        container.addWidget(box5)
-
-
-    #添加行按钮
-    def add_row(self):
-        # 添加新行在按钮所在行前面
-        self.tableView.insertRow(self.tableView.rowCount()-1)
-        #设置新行的高度与前一行相同
-        self.tableView.setRowHeight(self.tableView.rowCount()-2, self.tableView.rowHeight(self.tableView.rowCount()-3))
-
-    #删除空白行按钮
-    def delete_blank_row(self):
-        #表格行数大于2时，删除表格内第一列和第二列为空或者空字符串的行
-        if self.tableView.rowCount() > 2:
-            # 删除表格内第一列和第二列为空或者空字符串的行
-            for i in range(self.tableView.rowCount()-1):
-                if self.tableView.item(i, 0) is None or self.tableView.item(i, 0).text() == '':
-                    self.tableView.removeRow(i)
-                    break
-                elif self.tableView.item(i, 1) is None or self.tableView.item(i, 1).text() == '':
-                    self.tableView.removeRow(i)
-                    break
-
-    #导入翻译示例按钮
-    def Importing_dictionaries(self):
-        # 选择文件
-        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'JSON Files (*.json)')      #调用QFileDialog类里的函数来选择文件
-        if Input_File:
-            print(f'[INFO]  已选择翻译示例导入文件: {Input_File}')
-        else :
-            print('[INFO]  未选择文件')
-            return
-        
-        # 读取文件
-        with open(Input_File, 'r', encoding="utf-8") as f:
-            dictionary = json.load(f)
-        
-        # 将翻译示例中的数据从表格底部添加到表格中
-        for key, value in dictionary.items():
-            row = self.tableView.rowCount() - 1 #获取表格的倒数行数
-            self.tableView.insertRow(row)    # 在表格中插入一行
-            self.tableView.setItem(row, 0, QTableWidgetItem(key))
-            self.tableView.setItem(row, 1, QTableWidgetItem(value))
-            #设置新行的高度与前一行相同
-            self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
-
-        user_interface_prompter.createSuccessInfoBar("导入成功")
-        print(f'[INFO]  已导入翻译示例文件')
-    
-    #导出翻译示例按钮
-    def Exporting_dictionaries(self):
-        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一列作为key，第二列作为value，存储中间翻译示例中
-        data = []
-        for row in range(self.tableView.rowCount() - 1):
-            key_item = self.tableView.item(row, 0)
-            value_item = self.tableView.item(row, 1)
-            if key_item and value_item:
-                key = key_item.text()
-                value = value_item.text()
-                data.append((key, value))
-
-        # 将数据存储到中间翻译示例中
-        dictionary = {}
-        for key, value in data:
-            dictionary[key] = value
-
-        # 选择文件保存路径
-        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Output_Folder:
-            print(f'[INFO]  已选择翻译示例导出文件夹: {Output_Folder}')
-        else :
-            print('[INFO]  未选择文件夹')
-            return  # 直接返回，不执行后续操作
-
-        # 将翻译示例保存到文件中
-        with open(os.path.join(Output_Folder, "用户翻译示例.json"), 'w', encoding="utf-8") as f:
-            json.dump(dictionary, f, ensure_ascii=False, indent=4)
-
-        user_interface_prompter.createSuccessInfoBar("导出成功")
-        print(f'[INFO]  已导出翻译示例文件')
-
-    #清空翻译示例按钮
-    def Empty_dictionary(self):
-        #清空表格
-        self.tableView.clearContents()
-        #设置表格的行数为1
-        self.tableView.setRowCount(2)
-        
-        # 在表格最后一行第一列添加"添加行"按钮
-        button = PushButton('Add Row')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
-        button.clicked.connect(self.add_row)
-        # 在表格最后一行第二列添加"删除空白行"按钮
-        button = PushButton('Delete Blank Row')
-        self.tableView.setCellWidget(self.tableView.rowCount()-1, 1, button)
-        button.clicked.connect(self.delete_blank_row)
-
-        user_interface_prompter.createSuccessInfoBar("清空成功")
-        print(f'[INFO]  已清空翻译示例')
-
-    #保存翻译示例按钮
-    def Save_dictionary(self):
-        configurator.read_write_config("write") 
-        user_interface_prompter.createSuccessInfoBar("保存成功")
-        print(f'[INFO]  已保存翻译示例')
-
-    #提示函数
-    def checkBoxChanged1(self, isChecked: bool):
-        if isChecked :
-            user_interface_prompter.createSuccessInfoBar("已开启自定义系统提示词功能")
-
-    #提示函数
-    def checkBoxChanged2(self, isChecked: bool):
-        if isChecked :
-            user_interface_prompter.createSuccessInfoBar("已开启添加用户翻译实例功能")
-
-
-
 
 class Widget_replace_dict(QFrame):  # 替换字典主界面
     def __init__(self, text: str, parent=None):  # 构造函数，初始化实例时会自动调用
@@ -12817,7 +11952,8 @@ class Widget_after_dict(QFrame):# 译文修正字典界面
     
 
 
-class Widget_rulebook(QFrame):
+
+class Widget_rulebook(QFrame):# 提示书界面
 
     def __init__(self, text: str, parent=None):
         super().__init__(parent=parent)
@@ -12828,7 +11964,7 @@ class Widget_rulebook(QFrame):
         self.setObjectName(text.replace(' ', '-'))
 
 
-class Widget_system_prompt(QFrame):
+class Widget_system_prompt(QFrame): # 基础提示页面
 
 
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
@@ -12894,7 +12030,278 @@ class Widget_system_prompt(QFrame):
         container.addWidget(box2)
 
 
-class Widget_characterization(QFrame):
+class Widget_prompt_dict(QFrame): # 术语字典界面
+
+
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+        # -----创建第1个组，添加放置表格-----
+        self.tableView = TableWidget(self)
+        self.tableView.setWordWrap(False) #设置表格内容不换行
+        self.tableView.setRowCount(2) #设置表格行数
+        self.tableView.setColumnCount(3) #设置表格列数
+        #self.tableView.verticalHeader().hide() #隐藏垂直表头
+        self.tableView.setHorizontalHeaderLabels(['原文', '译文', '备注']) #设置水平表头
+        self.tableView.resizeColumnsToContents() #设置列宽度自适应内容
+        self.tableView.resizeRowsToContents() #设置行高度自适应内容
+        self.tableView.setEditTriggers(QAbstractItemView.AllEditTriggers)   # 设置所有单元格可编辑
+        #self.tableView.setFixedSize(500, 300)         # 设置表格大小
+        self.tableView.setMaximumHeight(400)          # 设置表格的最大高度
+        self.tableView.setMinimumHeight(400)             # 设置表格的最小高度
+        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
+        #self.tableView.setSortingEnabled(True)  #设置表格可排序
+
+        # 在表格最后一行第一列添加"添加行"按钮
+        button = PushButton('添新行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
+        button.clicked.connect(self.add_row)
+        # 在表格最后一行第三列添加"删除空白行"按钮
+        button = PushButton('删空行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 2, button)
+        button.clicked.connect(self.delete_blank_row)
+
+
+
+        # -----创建第1_1个组，添加多个组件-----
+        box1_1 = QGroupBox()
+        box1_1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_1 = QHBoxLayout()
+
+
+        #设置导入字典按钮
+        self.pushButton1 = PushButton('导入字典', self, FIF.DOWNLOAD)
+        self.pushButton1.clicked.connect(self.Importing_dictionaries) #按钮绑定槽函数
+
+        #设置导出字典按钮
+        self.pushButton2 = PushButton('导出字典', self, FIF.SHARE)
+        self.pushButton2.clicked.connect(self.Exporting_dictionaries) #按钮绑定槽函数
+
+        #设置清空字典按钮
+        self.pushButton3 = PushButton('清空字典', self, FIF.DELETE)
+        self.pushButton3.clicked.connect(self.Empty_dictionary) #按钮绑定槽函数
+
+        #设置保存字典按钮
+        self.pushButton4 = PushButton('保存字典', self, FIF.SAVE)
+        self.pushButton4.clicked.connect(self.Save_dictionary) #按钮绑定槽函数
+
+
+        layout1_1.addWidget(self.pushButton1)
+        layout1_1.addStretch(1)  # 添加伸缩项
+        layout1_1.addWidget(self.pushButton2)
+        layout1_1.addStretch(1)  # 添加伸缩项
+        layout1_1.addWidget(self.pushButton3)
+        layout1_1.addStretch(1)  # 添加伸缩项
+        layout1_1.addWidget(self.pushButton4)
+        box1_1.setLayout(layout1_1)
+
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box3 = QGroupBox()
+        box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout3 = QHBoxLayout()
+
+        #设置“译时提示”标签
+        label3 = QLabel( flags=Qt.WindowFlags())  
+        label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label3.setText("添加提示字典")
+
+        #设置“译时提示”显示
+        self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label4.setText("(原文触发，自动构建术语表)")
+
+
+        #设置“译时提示”开
+        self.checkBox2 = CheckBox('启用功能')
+        self.checkBox2.stateChanged.connect(self.checkBoxChanged2)
+
+        layout3.addWidget(label3)
+        layout3.addWidget(self.label4)
+        layout3.addStretch(1)  # 添加伸缩项
+        layout3.addWidget(self.checkBox2)
+        box3.setLayout(layout3)
+
+
+        # 把内容添加到容器中
+        container.addWidget(box3)    
+        container.addWidget(self.tableView)
+        container.addWidget(box1_1)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        #self.scrollWidget.setLayout(container)
+        self.setLayout(container)
+        container.setSpacing(20)     
+        container.setContentsMargins(50, 70, 50, 30)      
+
+
+    #添加行按钮
+    def add_row(self):
+        # 添加新行在按钮所在行前面
+        self.tableView.insertRow(self.tableView.rowCount()-1)
+        #设置新行的高度与前一行相同
+        self.tableView.setRowHeight(self.tableView.rowCount()-2, self.tableView.rowHeight(self.tableView.rowCount()-3))
+
+    #删除空白行按钮
+    def delete_blank_row(self):
+        #表格行数大于2时，删除表格内第一列和第二列为空或者空字符串的行
+        if self.tableView.rowCount() > 2:
+            # 删除表格内第一列和第二列为空或者空字符串的行
+            for i in range(self.tableView.rowCount()-1):
+                if self.tableView.item(i, 0) is None or self.tableView.item(i, 0).text() == '':
+                    self.tableView.removeRow(i)
+                    break
+                elif self.tableView.item(i, 1) is None or self.tableView.item(i, 1).text() == '':
+                    self.tableView.removeRow(i)
+                    break
+
+    # 将条目添加到表格的辅助函数
+    def add_to_table(self, srt, dst, info):
+            row = self.tableView.rowCount() - 1 #获取表格的倒数行数
+            self.tableView.insertRow(row)    # 在表格中插入一行
+            self.tableView.setItem(row, 0, QTableWidgetItem(srt))
+            self.tableView.setItem(row, 1, QTableWidgetItem(dst))
+            if info:
+                self.tableView.setItem(row, 2, QTableWidgetItem(info))
+            #设置新行的高度与前一行相同
+            self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
+
+    #导入字典按钮
+    def Importing_dictionaries(self):
+        # 选择文件
+        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'JSON Files (*.json)')      #调用QFileDialog类里的函数来选择文件
+        if Input_File:
+            print(f'[INFO]  已选择字典导入文件: {Input_File}')
+        else :
+            print('[INFO]  未选择文件')
+            return
+        
+        # 读取文件
+        with open(Input_File, 'r', encoding="utf-8") as f:
+            dictionary = json.load(f)
+
+        # 检查数据是列表还是字典
+        if isinstance(dictionary, list):  # 如果是列表
+            for item in dictionary:
+                if item.get("srt", "") and item.get("dst", ""):
+                    srt = item.get("srt", "")
+                    dst = item.get("dst", "")
+                    info = item.get("info", "")
+
+                    self.add_to_table(srt, dst,info)
+                    # 格式例
+                    # [
+                    #   {
+                    #     "srt": "xxxx",
+                    #     "dst": "xxxx",
+                    #     "info": "xxx",
+                    #   }
+                    # ]
+                else: # 代表是Paratranz的术语表，处理每一个字典项
+                    key = item.get("term", "")
+                    value = item.get("translation", "")
+                    info = ""
+                    self.add_to_table(key, value,info)
+                    # 格式例
+                    # [
+                    #   {
+                    #     "id": 359894,
+                    #     "createdAt": "2024-04-06T18:43:56.075Z",
+                    #     "updatedAt": "2024-04-06T18:43:56.075Z",
+                    #     "updatedBy": null,
+                    #     "pos": "noun",
+                    #     "uid": 49900,
+                    #     "term": "アイテム",
+                    #     "translation": "道具",
+                    #     "note": "",
+                    #     "project": 9841,
+                    #     "variants": []
+                    #   }
+                    # ]
+        elif isinstance(dictionary, dict):  # 如果是字典，处理字典键值对
+            for key, value in dictionary.items():
+                info = ""
+                self.add_to_table(key, value,info)
+        else:
+            print('[ERROR]  不支持的文件格式')
+            return
+
+        user_interface_prompter.createSuccessInfoBar("导入成功")
+        print(f'[INFO]  已导入字典文件')
+    
+    #导出字典按钮
+    def Exporting_dictionaries(self):
+        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一列作为key，第二列作为value，存储中间字典中
+        dictionary = []
+        for row in range(self.tableView.rowCount() - 1):
+            key_item = self.tableView.item(row, 0)
+            value_item = self.tableView.item(row, 1)
+            info_item = self.tableView.item(row, 2)
+            if key_item and value_item:
+                key = key_item.text()
+                value = value_item.text()
+                if info_item:
+                    info = info_item.text()
+                    dictionary.append({"srt":key,"dst":value,"info":info})
+                else:
+                    dictionary.append({"srt":key,"dst":value})
+
+
+        # 选择文件保存路径
+        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if Output_Folder:
+            print(f'[INFO]  已选择字典导出文件夹: {Output_Folder}')
+        else :
+            print('[INFO]  未选择文件夹')
+            return  # 直接返回，不执行后续操作
+
+        # 将字典保存到文件中
+        with open(os.path.join(Output_Folder, "用户提示字典.json"), 'w', encoding="utf-8") as f:
+            json.dump(dictionary, f, ensure_ascii=False, indent=4)
+
+        user_interface_prompter.createSuccessInfoBar("导出成功")
+        print(f'[INFO]  已导出字典文件')
+
+    #清空字典按钮
+    def Empty_dictionary(self):
+        #清空表格
+        self.tableView.clearContents()
+        #设置表格的行数为1
+        self.tableView.setRowCount(2)
+        
+        # 在表格最后一行第一列添加"添加行"按钮
+        button = PushButton('添新行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)
+        button.clicked.connect(self.add_row)
+        # 在表格最后一行第三列添加"删除空白行"按钮
+        button = PushButton('删空行')
+        self.tableView.setCellWidget(self.tableView.rowCount()-1, 2, button)
+        button.clicked.connect(self.delete_blank_row)
+
+        user_interface_prompter.createSuccessInfoBar("清空成功")
+        print(f'[INFO]  已清空字典')
+
+    #保存字典按钮
+    def Save_dictionary(self):
+        configurator.read_write_config("write") 
+        user_interface_prompter.createSuccessInfoBar("保存成功")
+        print(f'[INFO]  已保存字典')
+
+    
+    #消息提示函数
+    def checkBoxChanged2(self, isChecked: bool):
+        if isChecked :
+            user_interface_prompter.createSuccessInfoBar("已开启译时提示功能,将根据发送文本自动添加翻译示例")
+
+
+class Widget_characterization(QFrame): # 角色介绍页面
 
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
@@ -12986,8 +12393,7 @@ class Widget_characterization(QFrame):
                 self.tableView.removeRow(i)
 
 
-
-class Widget_world_building(QFrame):
+class Widget_world_building(QFrame): # 背景设定界面
 
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
@@ -13054,7 +12460,7 @@ class Widget_world_building(QFrame):
         container.addWidget(box2)
 
 
-class Widget_writing_style(QFrame):
+class Widget_writing_style(QFrame): # 写作风格界面
 
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
@@ -13121,7 +12527,7 @@ class Widget_writing_style(QFrame):
         container.addWidget(box2)
 
 
-class Widget_translation_example(QFrame):
+class Widget_translation_example(QFrame): # 翻译示例界面
 
 
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
@@ -13215,6 +12621,8 @@ class Widget_translation_example(QFrame):
                 elif self.tableView.item(i, 1) is None or self.tableView.item(i, 1).text() == '':
                     self.tableView.removeRow(i)
                     break
+
+
 
 
 
@@ -14154,7 +13562,10 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_ZhiPu = Widget_ZhiPu('Widget_ZhiPu', self)
         self.Widget_Moonshot = Widget_Moonshot('Widget_Moonshot', self)
         self.Widget_Deepseek = Widget_Deepseek('Widget_Deepseek', self)
+        self.Widget_Dashscope = Widget_Dashscope('Widget_Dashscope', self)
         self.Widget_SakuraLLM = Widget_SakuraLLM('Widget_SakuraLLM', self)
+
+
         self.Widget_translation_settings = Widget_translation_settings('Widget_translation_settings', self)
         self.Widget_translation_settings_A = Widget_translation_settings_A('Widget_translation_settings_A', self) 
         self.Widget_translation_settings_B = Widget_translation_settings_B('Widget_translation_settings_B', self) 
@@ -14165,14 +13576,13 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_import_translated_text = Widget_import_translated_text('Widget_import_translated_text', self)  
         self.Widget_update_text = Widget_update_text('Widget_update_text', self)    
         self.Widget_tune = Widget_tune('Widget_tune', self)
-        self.Widget_prompy_engineering = Widget_prompy_engineering('Widget_prompy_engineering', self)
-        self.Widget_prompt_dict = Widget_prompt_dict('Widget_prompt_dict', self)
         self.Widget_sponsor = Widget_sponsor('Widget_sponsor', self)
         self.Widget_replace_dict = Widget_replace_dict('Widget_replace_dict', self)
 
 
         self.Widget_rulebook = Widget_rulebook('Widget_rulebook', self)
         self.Widget_system_prompt = Widget_system_prompt('Widget_system_prompt', self)  
+        self.Widget_prompt_dict = Widget_prompt_dict('Widget_prompt_dict', self)
         self.Widget_translation_example = Widget_translation_example('Widget_translation_example', self)  
         self.Widget_characterization = Widget_characterization('Widget_characterization', self) 
         self.Widget_world_building = Widget_world_building('Widget_world_building', self) 
@@ -14215,9 +13625,11 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_Moonshot, FIF.FEEDBACK, 'Moonshot官方',parent=self.Widget_official_api) 
         # 添加Deepseek官方账号界面
         self.addSubInterface(self.Widget_Deepseek, FIF.FEEDBACK, 'Deepseek官方',parent=self.Widget_official_api) 
+        # 添加Dashscope官方账号界面
+        self.addSubInterface(self.Widget_Dashscope, FIF.FEEDBACK, 'Dashscope官方',parent=self.Widget_official_api) 
         # 添加智谱官方账号界面
-
         self.addSubInterface(self.Widget_ZhiPu, FIF.FEEDBACK, '智谱官方',parent=self.Widget_official_api) 
+
         # 添加代理账号界面
         self.addSubInterface(self.Widget_Proxy, FIF.CLOUD, '代理平台',parent=self.Widget_AI) 
         # 添加sakura界面
@@ -14237,21 +13649,20 @@ class window(FramelessWindow): #主窗口 v
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
 
-        # 添加其他功能页面
-        self.addSubInterface(self.Widget_replace_dict, FIF.DICTIONARY, '替换字典',NavigationItemPosition.SCROLL)  
-        self.addSubInterface(self.Widget_prompy_engineering, FIF.ZOOM, 'AI提示词工程',NavigationItemPosition.SCROLL) 
-        self.addSubInterface(self.Widget_tune, FIF.MIX_VOLUMES, '参数调整',NavigationItemPosition.SCROLL)   
-
-
 
         # 添加翻译设置相关页面
-        self.addSubInterface(self.Widget_rulebook, FIF.APPLICATION, '提示书',NavigationItemPosition.SCROLL) 
-        self.addSubInterface(self.Widget_system_prompt, FIF.REMOVE, '基础提示',parent=self.Widget_rulebook)
-        self.addSubInterface(self.Widget_prompt_dict, FIF.DICTIONARY, '术语字典',parent=self.Widget_rulebook)   
-        self.addSubInterface(self.Widget_characterization, FIF.REMOVE, '角色介绍',parent=self.Widget_rulebook) 
-        self.addSubInterface(self.Widget_world_building, FIF.ALIGNMENT, '背景设定',parent=self.Widget_rulebook) 
-        self.addSubInterface(self.Widget_writing_style, FIF.EMOJI_TAB_SYMBOLS, '文风要求',parent=self.Widget_rulebook) 
-        self.addSubInterface(self.Widget_translation_example, FIF.EMOJI_TAB_SYMBOLS, '翻译示例',parent=self.Widget_rulebook) 
+        self.addSubInterface(self.Widget_rulebook, FIF.BOOK_SHELF, '提示书',NavigationItemPosition.SCROLL) 
+        self.addSubInterface(self.Widget_system_prompt, FIF.LABEL, '基础提示',parent=self.Widget_rulebook)
+        self.addSubInterface(self.Widget_prompt_dict, FIF.DICTIONARY, '提示字典',parent=self.Widget_rulebook)   
+        self.addSubInterface(self.Widget_characterization, FIF.EXPRESSIVE_INPUT_ENTRY, '角色介绍',parent=self.Widget_rulebook) 
+        self.addSubInterface(self.Widget_world_building, FIF.QUICK_NOTE, '背景设定',parent=self.Widget_rulebook) 
+        self.addSubInterface(self.Widget_writing_style, FIF.PENCIL_INK, '文风要求',parent=self.Widget_rulebook) 
+        self.addSubInterface(self.Widget_translation_example, FIF.ZOOM, '翻译示例',parent=self.Widget_rulebook) 
+
+
+        # 添加其他功能页面
+        self.addSubInterface(self.Widget_replace_dict, FIF.DICTIONARY, '替换字典',NavigationItemPosition.SCROLL)  
+        self.addSubInterface(self.Widget_tune, FIF.MIX_VOLUMES, '参数调整',NavigationItemPosition.SCROLL)  
 
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)

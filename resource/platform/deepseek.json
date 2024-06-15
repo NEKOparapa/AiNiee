@@ -1,0 +1,10 @@
+
+{
+    "deepseek-chat": {  "InputTokenLimit": 32000,"OutputTokenLimit": 4000,"max_tokens": 4000, "TPM": 1000000, "RPM": 3500},
+
+
+    "model_price": {
+        "deepseek-chat": {"input_price": 0.001 , "output_price": 0.002 }
+
+                }
+}

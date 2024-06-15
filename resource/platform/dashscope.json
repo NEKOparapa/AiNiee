@@ -1,0 +1,14 @@
+
+{
+    "qwen-turbo": {  "max_tokens": 6000, "TPM": 500000, "RPM": 500},
+    "qwen-plus": {  "max_tokens": 30000, "TPM": 200000 , "RPM": 200},
+    "qwen-max": {  "max_tokens": 6000, "TPM": 100000, "RPM": 60},
+    "qwen-long": {  "max_tokens": 28000, "TPM":  1500000, "RPM": 100},
+
+    "model_price": {
+        "qwen-turbo": {"input_price": 0.002 , "output_price": 0.006 },
+        "qwen-plus": {"input_price": 0.004 , "output_price": 0.012 },
+        "qwen-max": {"input_price": 0.04 , "output_price": 0.12 },
+        "qwen-long": {"input_price": 0.0005 , "output_price": 0.002 }
+                }
+}

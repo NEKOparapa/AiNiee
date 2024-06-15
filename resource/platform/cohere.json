@@ -1,0 +1,22 @@
+
+{
+    "试用账号": {
+        "command": {"max_tokens": 4000, "TPM": 9999999, "RPM": 10},
+        "command-r": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10},
+        "command-r-plus": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10},
+        "c4ai-aya-23": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10}
+    },
+    "生产账号": {
+        "command": {"max_tokens": 4000, "TPM": 9999999, "RPM": 10000 },
+        "command-r": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10000},
+        "command-r-plus": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10000},
+        "c4ai-aya-23": {"max_tokens": 100000, "TPM": 9999999, "RPM": 10000}
+    },
+
+    "model_price": {
+        "command": {"input_price": 0.0001, "output_price": 0.0001},
+        "command-r": {"input_price": 0.001, "output_price": 0.0001}, 
+        "command-r-plus": {"input_price": 0.001, "output_price": 0.001}, 
+        "c4ai-aya-23": {"input_price": 0.001, "output_price": 0.001}
+                }
+}

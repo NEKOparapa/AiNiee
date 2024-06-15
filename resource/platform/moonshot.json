@@ -1,0 +1,39 @@
+
+{
+    "免费账号": {
+        "moonshot-v1-8k": {"max_tokens": 4000, "TPM": 32000, "RPM": 3},
+        "moonshot-v1-32k": {"max_tokens": 16000, "TPM": 32000, "RPM": 3},
+        "moonshot-v1-128k": {"max_tokens": 640000, "TPM": 32000, "RPM": 3}
+    },
+    "付费账号(等级1)": {
+        "moonshot-v1-8k": {"max_tokens": 4000, "TPM": 128000, "RPM": 200},
+        "moonshot-v1-32k": {"max_tokens": 16000, "TPM": 128000, "RPM": 200},
+        "moonshot-v1-128k": {"max_tokens": 640000, "TPM": 128000, "RPM": 200}
+    },
+    "付费账号(等级2)": {
+        "moonshot-v1-8k": {"max_tokens": 4000, "TPM": 128000, "RPM": 500},
+        "moonshot-v1-32k": {"max_tokens": 16000, "TPM": 128000, "RPM": 500},
+        "moonshot-v1-128k": {"max_tokens": 640000, "TPM": 128000, "RPM": 500}
+    },
+    "付费账号(等级3)": {
+        "moonshot-v1-8k": {"max_tokens": 4000, "TPM": 384000, "RPM": 5000},
+        "moonshot-v1-32k": {"max_tokens": 16000, "TPM": 384000, "RPM": 5000},
+        "moonshot-v1-128k": {"max_tokens": 640000, "TPM": 384000, "RPM": 5000}
+    },
+    "付费账号(等级4)": {
+        "moonshot-v1-8k": {"max_tokens": 4000, "TPM": 768000, "RPM": 5000},
+        "moonshot-v1-32k": {"max_tokens": 16000, "TPM": 768000, "RPM": 5000},
+        "moonshot-v1-128k": {"max_tokens": 640000, "TPM": 768000, "RPM": 5000}
+    },
+    "付费账号(等级5)": {
+        "moonshot-v1-8k": {"max_tokens": 4000, "TPM": 2000000, "RPM": 10000},
+        "moonshot-v1-32k": {"max_tokens": 16000, "TPM": 2000000, "RPM": 10000},
+        "moonshot-v1-128k": {"max_tokens": 640000, "TPM": 2000000, "RPM": 10000}
+    },
+
+    "model_price": {
+        "moonshot-v1-8k": {"input_price": 0.012, "output_price": 0.012}, 
+        "moonshot-v1-32k": {"input_price": 0.024, "output_price": 0.024},
+        "moonshot-v1-128k": {"input_price": 0.060, "output_price": 0.060}
+                }
+}

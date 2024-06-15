@@ -1,7 +1,6 @@
 # System
 openai
 cohere
-zhipuai
 anthropic
 tiktoken
 numpy

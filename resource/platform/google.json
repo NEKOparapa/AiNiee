@@ -1,0 +1,19 @@
+
+{
+"免费账号": {
+    "gemini-1.0-pro": {  "InputTokenLimit": 30720,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 32000, "RPM": 15},
+    "gemini-1.5-flash": {  "InputTokenLimit": 30720,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 1000000, "RPM": 15},
+    "gemini-1.5-pro": { "InputTokenLimit": 1048576,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 32000, "RPM": 2}
+            },
+"付费账号": {
+    "gemini-1.0-pro": {  "InputTokenLimit": 30720,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 120000 , "RPM": 360},
+    "gemini-1.5-flash": {  "InputTokenLimit": 30720,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 10000000 , "RPM": 360},
+    "gemini-1.5-pro": { "InputTokenLimit": 1048576,"OutputTokenLimit": 8192,"max_tokens": 8192, "TPM": 10000000, "RPM": 360}
+            },
+
+"model_price": {
+    "gemini-1.0-pro": {"input_price": 0.0005, "output_price": 0.0015}, 
+    "gemini-1.5-flash": {"input_price": 0.00035, "output_price": 0.00105}, 
+    "gemini-1.5-pro": {"input_price": 0.0035, "output_price": 0.00175}
+            }
+}
