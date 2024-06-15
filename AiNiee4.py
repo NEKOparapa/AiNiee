@@ -370,7 +370,7 @@ class Api_Requester():
         if original_exmaple and translation_example:
 
             the_original_exmaple =  {"role": "user","content":(pre_prompt + original_exmaple) }
-            the_translation_example = {"role": "assistant", "content": (fol_prompt + translation_example) }
+            the_translation_example = {"role": "assistant", "content": (f'{fol_prompt}```json\n{translation_example}\n```') }
 
             messages.append(the_original_exmaple)
             messages.append(the_translation_example)
@@ -750,7 +750,7 @@ class Api_Requester():
         if original_exmaple and translation_example:
 
             the_original_exmaple =  {"role": "user","parts":(pre_prompt + original_exmaple) }
-            the_translation_example = {"role": "model", "parts": (fol_prompt + translation_example) }
+            the_translation_example = {"role": "model", "parts": (f'{fol_prompt}```json\n{translation_example}\n```') }
 
             messages.append(the_original_exmaple)
             messages.append(the_translation_example)
@@ -1141,7 +1141,7 @@ class Api_Requester():
         if original_exmaple and translation_example:
 
             the_original_exmaple =  {"role": "user","content":(pre_prompt + original_exmaple) }
-            the_translation_example = {"role": "assistant", "content": (fol_prompt + translation_example) }
+            the_translation_example = {"role": "assistant", "content": (f'{fol_prompt}```json\n{translation_example}\n```') }
 
             messages.append(the_original_exmaple)
             messages.append(the_translation_example)
@@ -1508,7 +1508,7 @@ class Api_Requester():
         if original_exmaple and translation_example:
                 
             the_original_exmaple =  {"role": "USER","message":(pre_prompt + original_exmaple) }
-            the_translation_example = {"role": "CHATBOT", "message": (fol_prompt + translation_example) }
+            the_translation_example = {"role": "CHATBOT", "message": (f'{fol_prompt}```json\n{translation_example}\n```') }
 
             messages.append(the_original_exmaple)
             messages.append(the_translation_example)
@@ -1541,12 +1541,13 @@ class Api_Requester():
 
 
 
-        #如果加上文
+        #如果加上文(cohere的模型注意力更多会注意在最新的消息，而导致过分关注最新消息的格式)
         previous = ""
         if configurator.pre_line_counts and previous_list :
             previous = configurator.build_pre_text(previous_list,configurator.cn_prompt_toggle)
             if previous:
-                pass
+                #system_prompt += previous
+                pass 
                 #print("[INFO]  已添加上文：\n",previous)
 
 
@@ -1557,7 +1558,7 @@ class Api_Requester():
         #构建用户信息
         source_text_str = json.dumps(source_text_dict, ensure_ascii=False)   
         source_text_str = previous + "\n" +pre_prompt  + source_text_str
-
+        #source_text_str = pre_prompt  + source_text_str
 
 
         return messages,source_text_str,system_prompt
@@ -3104,8 +3105,8 @@ class Configurator():
 
 
         # 重新初始化模型参数，防止上次任务的设置影响到
-        self.openai_temperature = 0.0        
-        self.openai_top_p = 0.8             
+        self.openai_temperature = 0.1        
+        self.openai_top_p = 0.9             
         self.openai_presence_penalty = 0.0  
         self.openai_frequency_penalty = 0.0 
 
@@ -4145,7 +4146,7 @@ Third: Begin translating line by line from the original text, only translating {
 
         # 根据中文开关构建
         if cn_toggle:
-            profile = f"我完全理解了您的要求,以下是对原文的翻译:\n"
+            profile = f"我完全理解了您的要求，我将遵循你的指示进行翻译，以下是对原文的翻译:\n"
 
 
             profile_cot = f"我将遵循您的指示，一步一步地翻译文本：\n"
@@ -4160,12 +4161,12 @@ Third: Begin translating line by line from the original text, only translating {
             if writing_style_cot:
                 profile_cot += f"{writing_style_cot}\n"
 
-            profile_cot += f"###第二步：总结上下文内容###\n    \n"
+            profile_cot += f"###第二步：总结上下文内容###\n"
             profile_cot += f"{{Summarized content}}\n"
             profile_cot += f"###第三步：翻译###\n"
 
         else:
-            profile = f"I fully understand your request, the following is the translation of the original text:\n"
+            profile = f"I have completely understood your request. I will follow your instructions to proceed with the translation. Here is the translation of the original text:\n"
 
 
             profile_cot = f" I will follow your instructions and translate the text step by step:\n"
@@ -4201,12 +4202,12 @@ Third: Begin translating line by line from the original text, only translating {
         # 根据中文开关构建
         if cn_toggle:
             profile = f" ###这是你接下来的翻译任务，原文文本如下###\n"
-            profile_cot = f"###这是你接下来的翻译任务，原文文本如下###\n  "
+            profile_cot = f"###这是你接下来的翻译任务，原文文本如下###\n"
             
 
         else:
             profile = f" ###This is your next translation task, the original text is as follows###\n"
-            profile_cot = f"###This is your next translation task, the original text is as follows###\n  "
+            profile_cot = f"###This is your next translation task, the original text is as follows###\n"
 
 
         # 根据cot开关进行选择
@@ -4223,12 +4224,12 @@ Third: Begin translating line by line from the original text, only translating {
     def build_modelResponsePrefix (self,cn_toggle,cot_toggle):
 
         if cn_toggle:
-            profile = f"我完全理解了您的要求,以下是对原文的翻译:"
+            profile = f"我完全理解了您的要求，我将遵循你的指示进行翻译，以下是对原文的翻译:"
             profile_cot = f"我将遵循您的指示，一步一步地翻译文本："
             
 
         else:
-            profile = f"I fully understand your request, the following is the translation of the original text:"
+            profile = f"I have completely understood your request. I will follow your instructions to proceed with the translation. Here is the translation of the original text:"
             profile_cot = f"I will follow your instructions and translate the text step by step:"
 
         # 根据cot开关进行选择
