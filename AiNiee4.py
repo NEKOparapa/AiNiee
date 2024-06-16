@@ -326,6 +326,8 @@ class Api_Requester():
 
 
         #如果开启提示字典
+        glossary_prompt = ""
+        glossary_prompt_cot = ""
         if configurator.prompt_dictionary_switch :
             glossary_prompt,glossary_prompt_cot = configurator.build_glossary_prompt(source_text_dict,configurator.cn_prompt_toggle)
             if glossary_prompt :
@@ -334,6 +336,8 @@ class Api_Requester():
 
 
         #如果角色介绍开关打开
+        characterization = ""
+        characterization_cot = ""
         if configurator.characterization_switch :
             characterization,characterization_cot = configurator.build_characterization(source_text_dict,configurator.cn_prompt_toggle)
             if characterization:
@@ -341,6 +345,8 @@ class Api_Requester():
                 print("[INFO]  已添加角色介绍：\n",characterization)
 
         #如果背景设定开关打开
+        world_building = ""
+        world_building_cot = ""
         if configurator.world_building_switch :
             world_building,world_building_cot = configurator.build_world(configurator.cn_prompt_toggle)
             if world_building:
@@ -348,6 +354,8 @@ class Api_Requester():
                 print("[INFO]  已添加背景设定：\n",world_building)
 
         #如果文风要求开关打开
+        writing_style = ""
+        writing_style_cot = ""
         if configurator.writing_style_switch :
             writing_style,writing_style_cot = configurator.build_writing_style(configurator.cn_prompt_toggle)
             if writing_style:
@@ -713,6 +721,8 @@ class Api_Requester():
 
 
         # #如果开启提示字典
+        glossary_prompt = ""
+        glossary_prompt_cot = ""
         if configurator.prompt_dictionary_switch :
             glossary_prompt,glossary_prompt_cot = configurator.build_glossary_prompt(source_text_dict,configurator.cn_prompt_toggle)
             if glossary_prompt :
@@ -721,6 +731,8 @@ class Api_Requester():
 
 
         # 如果角色介绍开关打开
+        characterization = ""
+        characterization_cot = ""
         if configurator.characterization_switch :
             characterization,characterization_cot = configurator.build_characterization(source_text_dict,configurator.cn_prompt_toggle)
             if characterization:
@@ -728,6 +740,8 @@ class Api_Requester():
                 print("[INFO]  已添加角色介绍：\n",characterization)
 
         # 如果背景设定开关打开
+        world_building = ""
+        world_building_cot = ""
         if configurator.world_building_switch :
             world_building,world_building_cot = configurator.build_world(configurator.cn_prompt_toggle)
             if world_building:
@@ -735,6 +749,8 @@ class Api_Requester():
                 print("[INFO]  已添加背景设定：\n",world_building)
 
         # 如果文风要求开关打开
+        writing_style = ""
+        writing_style_cot = ""
         if configurator.writing_style_switch :
             writing_style,writing_style_cot = configurator.build_writing_style(configurator.cn_prompt_toggle)
             if writing_style:
@@ -1104,6 +1120,8 @@ class Api_Requester():
 
 
         # 如果开启提示字典
+        glossary_prompt = ""
+        glossary_prompt_cot = ""
         if configurator.prompt_dictionary_switch :
             glossary_prompt,glossary_prompt_cot = configurator.build_glossary_prompt(source_text_dict,configurator.cn_prompt_toggle)
             if glossary_prompt :
@@ -1112,6 +1130,8 @@ class Api_Requester():
 
 
         #如果角色介绍开关打开
+        characterization = ""
+        characterization_cot = ""
         if configurator.characterization_switch :
             characterization,characterization_cot = configurator.build_characterization(source_text_dict,configurator.cn_prompt_toggle)
             if characterization:
@@ -1119,6 +1139,8 @@ class Api_Requester():
                 print("[INFO]  已添加角色介绍：\n",characterization)
 
         #如果背景设定开关打开
+        world_building = ""
+        world_building_cot = ""
         if configurator.world_building_switch :
             world_building,world_building_cot = configurator.build_world(configurator.cn_prompt_toggle)
             if world_building:
@@ -1126,6 +1148,8 @@ class Api_Requester():
                 print("[INFO]  已添加背景设定：\n",world_building)
 
         #如果文风要求开关打开
+        writing_style = ""
+        writing_style_cot = ""
         if configurator.writing_style_switch :
             writing_style,writing_style_cot = configurator.build_writing_style(configurator.cn_prompt_toggle)
             if writing_style:
@@ -1471,6 +1495,8 @@ class Api_Requester():
 
 
         # 如果开启提示字典
+        glossary_prompt = ""
+        glossary_prompt_cot = ""
         if configurator.prompt_dictionary_switch :
             glossary_prompt,glossary_prompt_cot = configurator.build_glossary_prompt(source_text_dict,configurator.cn_prompt_toggle)
             if glossary_prompt :
@@ -1479,6 +1505,8 @@ class Api_Requester():
 
 
         # 如果角色介绍开关打开
+        characterization = ""
+        characterization_cot = ""
         if configurator.characterization_switch :
             characterization,characterization_cot = configurator.build_characterization(source_text_dict,configurator.cn_prompt_toggle)
             if characterization:
@@ -1486,6 +1514,8 @@ class Api_Requester():
                 print("[INFO]  已添加角色介绍：\n",characterization)
 
         #如果背景设定开关打开
+        world_building = ""
+        world_building_cot = ""
         if configurator.world_building_switch :
             world_building,world_building_cot = configurator.build_world(configurator.cn_prompt_toggle)
             if world_building:
@@ -1493,6 +1523,8 @@ class Api_Requester():
                 print("[INFO]  已添加背景设定：\n",world_building)
 
         #如果文风要求开关打开
+        writing_style = ""
+        writing_style_cot = ""
         if configurator.writing_style_switch :
             writing_style,writing_style_cot = configurator.build_writing_style(configurator.cn_prompt_toggle)
             if writing_style:
@@ -13769,7 +13801,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.7"  #软件版本号
+    Software_Version = "AiNiee4.70.1"  #软件版本号
     cache_list = [] # 全局缓存数据
     Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是接口测试状态
                         # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
