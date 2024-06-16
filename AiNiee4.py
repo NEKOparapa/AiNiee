@@ -3339,8 +3339,8 @@ class Configurator():
                 self.translation_platform = 'OpenAI代理'    #重新设置翻译平台
 
                 #检查一下请求地址尾部是否为/v1，自动补全,如果是/v4，则是在调用智谱接口，不用补全
-                if base_url[-3:] != "/v1" and base_url[-3:] != "/v4" :
-                    base_url = base_url + "/v1"
+                if relay_address[-3:] != "/v1" and relay_address[-3:] != "/v4" :
+                    relay_address = relay_address + "/v1"
 
             elif proxy_platform == 'Anthropic':
                 self.model_type =  config_dict["op_model_type_anthropic"]        # 获取模型类型
