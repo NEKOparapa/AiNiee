@@ -3334,6 +3334,7 @@ class Configurator():
             # 获取中转请求地址
             relay_address = config_dict["op_relay_address"]
 
+
             if proxy_platform == 'OpenAI':
                 self.model_type =  config_dict["op_model_type_openai"]       # 获取模型类型
                 self.translation_platform = 'OpenAI代理'    #重新设置翻译平台
@@ -3346,8 +3347,10 @@ class Configurator():
                 self.model_type =  config_dict["op_model_type_anthropic"]        # 获取模型类型
                 self.translation_platform = 'Anthropic代理'
 
+
             # 设定请求地址
             self.base_url = relay_address  
+
             # 获取apikey列表
             API_key_str = config_dict["op_API_key_str"]            #获取apikey输入值
             #去除空格，换行符，分割KEY字符串并存储进列表里
@@ -6107,8 +6110,9 @@ class File_Reader():
             for file in files:
                 # 判断文件是否为 epub 文件
                 if file.endswith(".epub"):
-                    file_path = os.path.join(root, file) # 构建文件路径
-                    
+
+                    file_path = os.path.join(root, file)  # 构建文件路径
+
                     # 构建解压文件夹路径
                     parent_path = os.path.dirname(file_path)
                     extract_path = os.path.join(parent_path, 'EpubCache')
@@ -6140,12 +6144,12 @@ class File_Reader():
                             file_name = os.path.basename(item.get_name())
 
                             # 遍历文件夹中的所有文件,找到该文件，因为上面给的相对路径与epub解压后路径是不准的
-                            for root, dirs, files in os.walk(extract_path):
-                                for filename in files:
+                            for root_extract, dirs_extract, files_extract in os.walk(extract_path):
+                                for filename in files_extract:
                                     # 如果文件名匹配
                                     if filename == file_name:
                                         # 构建完整的文件路径
-                                        the_file_path = os.path.join(root, filename)
+                                        the_file_path = os.path.join(root_extract, filename)
 
                             # 打开对应HTML文件
                             with open(the_file_path, 'r', encoding='utf-8') as file:
