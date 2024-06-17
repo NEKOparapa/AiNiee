@@ -938,7 +938,7 @@ class Api_Requester():
 
                     # 获取apikey
                     apikey =  configurator.get_apikey()
-                    genai.configure(api_key=apikey)
+                    genai.configure(api_key=apikey,transport='rest')
 
                     #设置对话模型及参数
                     model = genai.GenerativeModel(model_name=configurator.model_type,
@@ -1304,7 +1304,8 @@ class Api_Requester():
                     # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
                     # 记录开始请求时间
                     Start_request_time = time.time()
-
+                    # 获取AI的参数设置
+                    temperature= configurator.get_anthropic_parameters()
                     # 获取apikey
                     anthropic_apikey =  configurator.get_apikey()
                     # 创建anthropic客户端
@@ -1316,7 +1317,7 @@ class Api_Requester():
                             max_tokens=4000,
                             system= system_prompt,
                             messages = messages ,
-                            temperature=0
+                            temperature=temperature
                             )
 
 
@@ -2515,8 +2516,8 @@ class Response_Parser():
         count = len(response_dict)
 
 
-        # 判断元素个数是否大于等于5
-        if count >= 5:
+        # 判断元素个数是否大于等于10
+        if count >= 10:
             # 将 dict_values 转换为列表
             values_list = list(response_dict.values())
 
@@ -2525,12 +2526,12 @@ class Response_Parser():
                 # 使用列表的 count 方法
                 count = values_list.count(value)
 
-                if count > 5:
+                if count > 9:
                     return False
                     #print(f'相同译文： "{value}" 出现了 {count} 次')
 
 
-        # 如果元素个数不大于等于5或者没有错误情况
+        # 如果元素个数不大于等于9或者没有错误情况
         return True
 
         
@@ -2718,7 +2719,7 @@ class Request_Tester():
             print(f"[INFO] 正在测试第{i+1}个API KEY：{key}",'\n') 
 
             #更换key
-            genai.configure(api_key= API_key_list[i]) 
+            genai.configure(api_key= API_key_list[i],transport='rest') 
 
             #构建发送内容
             system_prompt = "你是我的女朋友欣雨。接下来你必须以女朋友的方式向我问好"
@@ -3038,7 +3039,7 @@ class Configurator():
         self.openai_top_p = 0              #AI的top_p，作用与temperature相同，官方建议不要同时修改
         self.openai_presence_penalty = 0  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
         self.openai_frequency_penalty = 0 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
-
+        self.anthropic_temperature   =  0 
 
 
 
@@ -3141,7 +3142,7 @@ class Configurator():
         self.openai_top_p = 0.9             
         self.openai_presence_penalty = 0.0  
         self.openai_frequency_penalty = 0.0 
-
+        self.anthropic_temperature   =  0 
 
     # 配置翻译平台信息
     def configure_translation_platform(self,translation_platform):
@@ -3617,7 +3618,7 @@ Third: Begin translating line by line from the original text, only translating {
                         translated_list.append(translation_sample[target_language])
 
         # 保底添加一个翻译示例
-        if source_list == None:
+        if source_list == []:
             source_list.append(patterns_all[r'「|」'][source_language])
             translated_list.append(patterns_all[r'「|」'][target_language])
 
@@ -4360,13 +4361,13 @@ Third: Begin translating line by line from the original text, only translating {
     # 获取AI模型的参数设置（openai）
     def get_openai_parameters(self):
         #如果启用实时参数设置
-        if Window.Widget_tune.A_settings.checkBox.isChecked() :
+        if Window.Widget_tune_openai.checkBox.isChecked() :
             print("[INFO] 已开启OpnAI调教功能，设置为用户设定的参数")
             #获取界面配置信息
-            temperature = Window.Widget_tune.A_settings.slider1.value() * 0.1
-            top_p = Window.Widget_tune.A_settings.slider2.value() * 0.1
-            presence_penalty = Window.Widget_tune.A_settings.slider3.value() * 0.1
-            frequency_penalty = Window.Widget_tune.A_settings.slider4.value() * 0.1
+            temperature = Window.Widget_tune_openai.slider1.value() * 0.1
+            top_p = Window.Widget_tune_openai.slider2.value() * 0.1
+            presence_penalty = Window.Widget_tune_openai.slider3.value() * 0.1
+            frequency_penalty = Window.Widget_tune_openai.slider4.value() * 0.1
         else:
             temperature = self.openai_temperature      
             top_p = self.openai_top_p              
@@ -4376,15 +4377,28 @@ Third: Begin translating line by line from the original text, only translating {
         return temperature,top_p,presence_penalty,frequency_penalty
 
 
+    # 获取AI模型的参数设置（anthropic）
+    def get_anthropic_parameters(self):
+        #如果启用实时参数设置
+        if Window.Widget_tune_anthropic.checkBox.isChecked() :
+            print("[INFO] 已开启anthropic调教功能，设置为用户设定的参数")
+            #获取界面配置信息
+            temperature = Window.Widget_tune_anthropic.slider1.value() * 0.1
+        else:
+            temperature = self.anthropic_temperature      
+
+        return temperature
+
+
     # 获取AI模型的参数设置（sakura）
     def get_sakura_parameters(self):
         #如果启用实时参数设置
-        if Window.Widget_tune.B_settings.checkBox.isChecked() :
+        if Window.Widget_tune_sakura.checkBox.isChecked() :
             print("[INFO] 已开启Sakura调教功能，设置为用户设定的参数")
             #获取界面配置信息
-            temperature = Window.Widget_tune.B_settings.slider1.value() * 0.1
-            top_p = Window.Widget_tune.B_settings.slider2.value() * 0.1
-            frequency_penalty = Window.Widget_tune.B_settings.slider4.value() * 0.1
+            temperature = Window.Widget_tune_sakura.slider1.value() * 0.1
+            top_p = Window.Widget_tune_sakura.slider2.value() * 0.1
+            frequency_penalty = Window.Widget_tune_sakura.slider4.value() * 0.1
         else:
             temperature = self.openai_temperature      
             top_p = self.openai_top_p              
@@ -4576,15 +4590,18 @@ Third: Begin translating line by line from the original text, only translating {
 
 
             #获取实时设置界面(openai)
-            config_dict["OpenAI_Temperature"] = Window.Widget_tune.A_settings.slider1.value()           #获取OpenAI温度
-            config_dict["OpenAI_top_p"] = Window.Widget_tune.A_settings.slider2.value()                 #获取OpenAI top_p
-            config_dict["OpenAI_presence_penalty"] = Window.Widget_tune.A_settings.slider3.value()      #获取OpenAI top_k
-            config_dict["OpenAI_frequency_penalty"] = Window.Widget_tune.A_settings.slider4.value()    #获取OpenAI repetition_penalty
+            config_dict["OpenAI_Temperature"] = Window.Widget_tune_openai.slider1.value()           #获取OpenAI温度
+            config_dict["OpenAI_top_p"] = Window.Widget_tune_openai.slider2.value()                 #获取OpenAI top_p
+            config_dict["OpenAI_presence_penalty"] = Window.Widget_tune_openai.slider3.value()      #获取OpenAI top_k
+            config_dict["OpenAI_frequency_penalty"] = Window.Widget_tune_openai.slider4.value()    #获取OpenAI repetition_penalty
+
+            #获取实时设置界面(anthropic)
+            config_dict["Anthropic_Temperature"] = Window.Widget_tune_anthropic.slider1.value()           #获取anthropic 温度
 
             #获取实时设置界面(sakura)
-            config_dict["Sakura_Temperature"] = Window.Widget_tune.B_settings.slider1.value()           #获取sakura温度
-            config_dict["Sakura_top_p"] = Window.Widget_tune.B_settings.slider2.value()
-            config_dict["Sakura_frequency_penalty"] = Window.Widget_tune.B_settings.slider4.value()
+            config_dict["Sakura_Temperature"] = Window.Widget_tune_sakura.slider1.value()           #获取sakura温度
+            config_dict["Sakura_top_p"] = Window.Widget_tune_sakura.slider2.value()
+            config_dict["Sakura_frequency_penalty"] = Window.Widget_tune_sakura.slider4.value()
 
 
 
@@ -4915,28 +4932,32 @@ Third: Begin translating line by line from the original text, only translating {
                 #实时设置界面(openai)
                 if "OpenAI_Temperature" in config_dict:
                     OpenAI_Temperature = config_dict["OpenAI_Temperature"]
-                    Window.Widget_tune.A_settings.slider1.setValue(OpenAI_Temperature)
+                    Window.Widget_tune_openai.slider1.setValue(OpenAI_Temperature)
                 if "OpenAI_top_p" in config_dict:
                     OpenAI_top_p = config_dict["OpenAI_top_p"]
-                    Window.Widget_tune.A_settings.slider2.setValue(OpenAI_top_p)
+                    Window.Widget_tune_openai.slider2.setValue(OpenAI_top_p)
                 if "OpenAI_presence_penalty" in config_dict:
                     OpenAI_presence_penalty = config_dict["OpenAI_presence_penalty"]
-                    Window.Widget_tune.A_settings.slider3.setValue(OpenAI_presence_penalty)
+                    Window.Widget_tune_openai.slider3.setValue(OpenAI_presence_penalty)
                 if "OpenAI_frequency_penalty" in config_dict:
                     OpenAI_frequency_penalty = config_dict["OpenAI_frequency_penalty"]
-                    Window.Widget_tune.A_settings.slider4.setValue(OpenAI_frequency_penalty)
+                    Window.Widget_tune_openai.slider4.setValue(OpenAI_frequency_penalty)
 
+                #实时设置界面(anthropic)
+                if "Anthropic_Temperature" in config_dict:
+                    Anthropic_Temperature = config_dict["Anthropic_Temperature"]
+                    Window.Widget_tune_anthropic.slider1.setValue(Anthropic_Temperature)
 
                 #实时设置界面(sakura)
                 if "Sakura_Temperature" in config_dict:
                     Sakura_Temperature = config_dict["Sakura_Temperature"]
-                    Window.Widget_tune.B_settings.slider1.setValue(Sakura_Temperature)
+                    Window.Widget_tune_sakura.slider1.setValue(Sakura_Temperature)
                 if "Sakura_top_p" in config_dict:
                     Sakura_top_p = config_dict["Sakura_top_p"]
-                    Window.Widget_tune.B_settings.slider2.setValue(Sakura_top_p)
+                    Window.Widget_tune_sakura.slider2.setValue(Sakura_top_p)
                 if  "Sakura_frequency_penalty" in config_dict:
                     Sakura_frequency_penalty = config_dict["Sakura_frequency_penalty"]
-                    Window.Widget_tune.B_settings.slider4.setValue(Sakura_frequency_penalty)
+                    Window.Widget_tune_sakura.slider4.setValue(Sakura_frequency_penalty)
 
 
                 #提示书界面
@@ -6523,13 +6544,28 @@ class Cache_Manager():
         for key, value in input_dict.items():
             head, middle, tail = Cache_Manager.trim_string(self,value)
 
+
             # 这里针对首尾非文本字符是纯数字字符或者类似“R5”组合时,还原回去,否则会影响翻译
-            if head.isdigit() or bool(re.match(r'^[a-zA-Z][0-9]{1,2}$', head)):
-                middle = head + middle
+
+            if head: # 避免空列表与列表类型导致错误
+                head_str = ''.join(head)
+            else:
+                head_str = ""
+
+            if head_str.isdigit() or bool(re.match(r'^[a-zA-Z][0-9]{1,2}$', head_str)):
+                middle = head_str + middle
                 head = []
-            if tail.isdigit() or bool(re.match(r'^[a-zA-Z][0-9]{1,2}$', tail)):
-                middle = middle + tail
+
+
+            if tail: # 避免空列表与列表类型导致错误
+                tail_str = ''.join(tail)
+            else:
+                tail_str = ""
+
+            if tail_str.isdigit() or bool(re.match(r'^[a-zA-Z][0-9]{1,2}$', tail_str)):
+                middle = middle + tail_str
                 tail = []
+
 
             # 将处理后的结果存储在两个不同的结构中：一个字典和一个列表。
             processed_dict[key] = middle
@@ -10929,51 +10965,13 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
 
 
 class Widget_tune(QFrame):  # 实时调教主界面
-    def __init__(self, text: str, parent=None):  # 构造函数，初始化实例时会自动调用
-        super().__init__(parent=parent)  # 调用父类 QWidget 的构造函数
-        self.setObjectName(text.replace(' ', '-'))  # 设置对象名，用于在 NavigationInterface 中的 addItem 方法中的 routeKey 参数中使用
-
-
-        self.pivot = SegmentedWidget(self)  # 创建一个 SegmentedWidget 实例，分段式导航栏
-        self.stackedWidget = QStackedWidget(self)  # 创建一个 QStackedWidget 实例，堆叠式窗口
-        self.vBoxLayout = QVBoxLayout(self)  # 创建一个垂直布局管理器
-
-        self.A_settings = Widget_tune_openai('A_settings', self)  # 创建实例，指向界面
-        self.B_settings = Widget_tune_sakura('B_settings', self)  # 创建实例，指向界面
-
-        # 添加子界面到分段式导航栏
-        self.addSubInterface(self.A_settings, 'A_settings', 'OpenAI')
-        self.addSubInterface(self.B_settings, 'B_settings', 'Sakura')
-
-        # 将分段式导航栏和堆叠式窗口添加到垂直布局中
-        self.vBoxLayout.addWidget(self.pivot)
-        self.vBoxLayout.addWidget(self.stackedWidget)
-        self.vBoxLayout.setContentsMargins(30, 50, 30, 30)  # 设置布局的外边距
-
-        # 连接堆叠式窗口的 currentChanged 信号到槽函数 onCurrentIndexChanged
-        self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
-        self.stackedWidget.setCurrentWidget(self.A_settings)  # 设置默认显示的子界面为xxx界面
-        self.pivot.setCurrentItem(self.A_settings.objectName())  # 设置分段式导航栏的当前项为xxx界面
-
-    def addSubInterface(self, widget: QLabel, objectName, text):
-        """
-        添加子界面到堆叠式窗口和分段式导航栏
-        """
-        widget.setObjectName(objectName)
-        #widget.setAlignment(Qt.AlignCenter) # 设置 widget 对象的文本（如果是文本控件）在控件中的水平对齐方式
-        self.stackedWidget.addWidget(widget)
-        self.pivot.addItem(
-            routeKey=objectName,
-            text=text,
-            onClick=lambda: self.stackedWidget.setCurrentWidget(widget),
-        )
-
-    def onCurrentIndexChanged(self, index):
-        """
-        槽函数：堆叠式窗口的 currentChanged 信号的槽函数
-        """
-        widget = self.stackedWidget.widget(index)
-        self.pivot.setCurrentItem(widget.objectName())
+    def __init__(self, text: str, parent=None):
+        super().__init__(parent=parent)
+        self.label = QLabel("", self)
+        self.label.setAlignment(Qt.AlignCenter)
+        self.hBoxLayout = QHBoxLayout(self)
+        self.hBoxLayout.addWidget(self.label, 1, Qt.AlignCenter)
+        self.setObjectName(text.replace(' ', '-'))
 
 
 class Widget_tune_openai(QFrame):# oepnai调教界面
@@ -11005,7 +11003,7 @@ class Widget_tune_openai(QFrame):# oepnai调教界面
 
         #设置“启用实时参数”开关
         self.checkBox = CheckBox('启用', self)
-        self.checkBox.stateChanged.connect(self.checkBoxChanged)
+        #self.checkBox.stateChanged.connect(self.checkBoxChanged)
 
 
         layout1.addWidget(label0)
@@ -11014,27 +11012,6 @@ class Widget_tune_openai(QFrame):# oepnai调教界面
         layout1.addWidget(self.checkBox)
         box1.setLayout(layout1)
 
-
-
-        # -----创建第2个组，添加多个组件-----
-        box2 = QGroupBox()
-        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout2 = QHBoxLayout()
-
-        #设置“官方文档”标签
-        label01 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label01.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label01.setText("官方文档说明")
-
-        #设置官方文档说明链接按钮
-        pushButton1 = PushButton('文档链接', self)
-        pushButton1.clicked.connect(lambda: QDesktopServices.openUrl(QUrl('https://platform.openai.com/docs/api-reference/chat/create')))
-
-
-        layout2.addWidget(label01)
-        layout2.addStretch(1)  # 添加伸缩项
-        layout2.addWidget(pushButton1)
-        box2.setLayout(layout2)
 
 
 
@@ -11229,7 +11206,7 @@ class Widget_tune_openai(QFrame):# oepnai调教界面
         # 设置窗口显示的内容是最外层容器
         self.setLayout(container)
         container.setSpacing(28) # 设置布局内控件的间距为28
-        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
     # 勾选事件
     def checkBoxChanged(self, isChecked: bool):
@@ -11266,7 +11243,7 @@ class Widget_tune_sakura(QFrame):# sakura调教界面
 
         #设置“启用实时参数”开关
         self.checkBox = CheckBox('启用', self)
-        self.checkBox.stateChanged.connect(self.checkBoxChanged)
+        #self.checkBox.stateChanged.connect(self.checkBoxChanged)
 
 
         layout1.addWidget(label0)
@@ -11274,28 +11251,6 @@ class Widget_tune_sakura(QFrame):# sakura调教界面
         layout1.addStretch(1)  # 添加伸缩项
         layout1.addWidget(self.checkBox)
         box1.setLayout(layout1)
-
-
-
-        # -----创建第2个组，添加多个组件-----
-        box2 = QGroupBox()
-        box2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout2 = QHBoxLayout()
-
-        #设置“官方文档”标签
-        label01 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label01.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        label01.setText("官方文档说明")
-
-        #设置官方文档说明链接按钮
-        pushButton1 = PushButton('文档链接', self)
-        pushButton1.clicked.connect(lambda: QDesktopServices.openUrl(QUrl('https://platform.openai.com/docs/api-reference/chat/create')))
-
-
-        layout2.addWidget(label01)
-        layout2.addStretch(1)  # 添加伸缩项
-        layout2.addWidget(pushButton1)
-        box2.setLayout(layout2)
 
 
 
@@ -11326,7 +11281,7 @@ class Widget_tune_sakura(QFrame):# sakura调教界面
 
         #设置滑动条的最小值、最大值、当前值，放到后面是为了让上面的label2显示正确的值
         self.slider1.setMinimum(0)
-        self.slider1.setMaximum(20)
+        self.slider1.setMaximum(10)
         self.slider1.setValue(1)
 
         
@@ -11417,8 +11372,8 @@ class Widget_tune_sakura(QFrame):# sakura调教界面
         self.slider4.valueChanged.connect(lambda value: self.label10.setText(str("{:.1f}".format(value * 0.1))))
 
         #设置滑动条的最小值、最大值、当前值，放到后面是为了让上面的label10显示正确的值和格式
-        self.slider4.setMinimum(-20)
-        self.slider4.setMaximum(20)
+        self.slider4.setMinimum(-10)
+        self.slider4.setMaximum(10)
         self.slider4.setValue(0)
 
 
@@ -11444,12 +11399,106 @@ class Widget_tune_sakura(QFrame):# sakura调教界面
         # 设置窗口显示的内容是最外层容器
         self.setLayout(container)
         container.setSpacing(28) # 设置布局内控件的间距为28
-        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
     # 勾选事件
     def checkBoxChanged(self, isChecked: bool):
         if isChecked :
             user_interface_prompter.createSuccessInfoBar("已启用Sakura实时调教功能")
+
+
+class Widget_tune_anthropic(QFrame):# anthropic调教界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+
+        # -----创建第1个组，添加多个组件-----
+        box1 = QGroupBox()
+        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1 = QHBoxLayout()
+
+
+        #设置“启用实时参数”标签
+        label0 = QLabel(flags=Qt.WindowFlags())  
+        label0.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label0.setText("实时改变AI参数")
+
+        #设置官方文档说明链接按钮
+        hyperlinkButton = HyperlinkButton(
+            url='https://docs.anthropic.com/en/api/messages',
+            text='(官方文档)'
+        )
+
+        #设置“启用实时参数”开关
+        self.checkBox = CheckBox('启用', self)
+        #self.checkBox.stateChanged.connect(self.checkBoxChanged)
+
+
+        layout1.addWidget(label0)
+        layout1.addWidget(hyperlinkButton)
+        layout1.addStretch(1)  # 添加伸缩项
+        layout1.addWidget(self.checkBox)
+        box1.setLayout(layout1)
+
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box3 = QGroupBox()
+        box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout3 = QHBoxLayout()
+
+        #设置“温度”标签
+        label1 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label1.setText("Temperature")
+
+        #设置“温度”副标签
+        label11 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label11.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 10px;  color: black")
+        label11.setText("(官方默认值为0)")
+
+        #设置“温度”滑动条
+        self.slider1 = Slider(Qt.Horizontal, self)
+        self.slider1.setFixedWidth(200)
+
+        # 创建一个QLabel控件，并设置初始文本为滑动条的初始值,并实时更新
+        self.label2 = QLabel(str(self.slider1.value()), self)
+        self.label2.setFixedSize(100, 15)  # 设置标签框的大小，不然会显示不全
+        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px;  color: black")
+        self.slider1.valueChanged.connect(lambda value: self.label2.setText(str("{:.1f}".format(value * 0.1))))
+
+        #设置滑动条的最小值、最大值、当前值，放到后面是为了让上面的label2显示正确的值
+        self.slider1.setMinimum(0)
+        self.slider1.setMaximum(10)
+        self.slider1.setValue(0)
+
+        
+
+        layout3.addWidget(label1)
+        layout3.addWidget(label11)
+        layout3.addStretch(1)  # 添加伸缩项
+        layout3.addWidget(self.slider1)
+        layout3.addWidget(self.label2)
+        box3.setLayout(layout3)
+
+
+
+        # 把内容添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box1)
+        container.addWidget(box3)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
 
 
@@ -13602,20 +13651,24 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_Dashscope = Widget_Dashscope('Widget_Dashscope', self)
         self.Widget_SakuraLLM = Widget_SakuraLLM('Widget_SakuraLLM', self)
 
-
         self.Widget_translation_settings = Widget_translation_settings('Widget_translation_settings', self)
         self.Widget_translation_settings_A = Widget_translation_settings_A('Widget_translation_settings_A', self) 
         self.Widget_translation_settings_B = Widget_translation_settings_B('Widget_translation_settings_B', self) 
         self.Widget_translation_settings_C = Widget_translation_settings_C('Widget_translation_settings_C', self)  
         self.Widget_start_translation = Widget_start_translation('Widget_start_translation', self) 
+
         self.Widget_RPG = Widget_RPG('Widget_RPG', self)  
         self.Widget_export_source_text = Widget_export_source_text('Widget_export_source_text', self)  
         self.Widget_import_translated_text = Widget_import_translated_text('Widget_import_translated_text', self)  
         self.Widget_update_text = Widget_update_text('Widget_update_text', self)    
+
         self.Widget_tune = Widget_tune('Widget_tune', self)
+        self.Widget_tune_openai = Widget_tune_openai('Widget_tune_openai', self)
+        self.Widget_tune_sakura = Widget_tune_sakura('Widget_tune_sakura', self)
+        self.Widget_tune_anthropic = Widget_tune_anthropic('Widget_tune_anthropic', self)
+
         self.Widget_sponsor = Widget_sponsor('Widget_sponsor', self)
         self.Widget_replace_dict = Widget_replace_dict('Widget_replace_dict', self)
-
 
         self.Widget_rulebook = Widget_rulebook('Widget_rulebook', self)
         self.Widget_system_prompt = Widget_system_prompt('Widget_system_prompt', self)  
@@ -13680,12 +13733,10 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_translation_settings_B, FIF.ALIGNMENT, '进阶设置',parent=self.Widget_translation_settings) 
         self.addSubInterface(self.Widget_translation_settings_C, FIF.EMOJI_TAB_SYMBOLS, '混合翻译设置',parent=self.Widget_translation_settings) 
 
-
         # 添加开始翻译页面
         self.addSubInterface(self.Widget_start_translation, FIF.ROBOT, '开始翻译',NavigationItemPosition.SCROLL)  
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
-
 
         # 添加翻译设置相关页面
         self.addSubInterface(self.Widget_rulebook, FIF.BOOK_SHELF, '提示书',NavigationItemPosition.SCROLL) 
@@ -13696,11 +13747,14 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_writing_style, FIF.PENCIL_INK, '文风要求',parent=self.Widget_rulebook) 
         self.addSubInterface(self.Widget_translation_example, FIF.ZOOM, '翻译示例',parent=self.Widget_rulebook) 
 
-
-        # 添加其他功能页面
+        # 添加替换字典页面
         self.addSubInterface(self.Widget_replace_dict, FIF.DICTIONARY, '替换字典',NavigationItemPosition.SCROLL)  
-        self.addSubInterface(self.Widget_tune, FIF.MIX_VOLUMES, '参数调整',NavigationItemPosition.SCROLL)  
 
+        # 添加参数调整页面
+        self.addSubInterface(self.Widget_tune, FIF.MIX_VOLUMES, '参数调整',NavigationItemPosition.SCROLL)  
+        self.addSubInterface(self.Widget_tune_openai, FIF.SPEED_OFF, 'OpenAI',parent=self.Widget_tune)
+        self.addSubInterface(self.Widget_tune_anthropic, FIF.SPEED_OFF, 'Anthropic',parent=self.Widget_tune)    
+        self.addSubInterface(self.Widget_tune_sakura, FIF.SPEED_OFF, 'Sakura',parent=self.Widget_tune)  
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
 
@@ -13712,10 +13766,8 @@ class window(FramelessWindow): #主窗口 v
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) 
 
-
         # 添加赞助页面
         self.addSubInterface(self.Widget_sponsor, FIF.CAFE, '赞助一下', NavigationItemPosition.BOTTOM) 
-
 
        # 添加头像导航项
         self.navigationInterface.addWidget(
@@ -13725,11 +13777,8 @@ class window(FramelessWindow): #主窗口 v
             position=NavigationItemPosition.BOTTOM
         )
 
-
         self.stackWidget.currentChanged.connect(self.onCurrentInterfaceChanged)
         self.stackWidget.setCurrentIndex(1)
-
-
 
     #初始化父窗口的函数
     def initWindow(self): 
