@@ -5329,7 +5329,7 @@ class User_Interface_Prompter(QObject):
 
         if input_str1 == "翻译状态提示":
             if input_str2 == "开始翻译":
-                self.stateTooltip = StateToolTip('正在进行翻译中', '客官请耐心等待哦~~', Window)
+                self.stateTooltip = StateToolTip(" 正在进行翻译中，客官请耐心等待哦~~", "　　　当前任务开始于 " + datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S"), Window)
                 self.stateTooltip.move(510, 30) # 设定控件的出现位置，该位置是传入的Window窗口的位置
                 self.stateTooltip.show()
 
