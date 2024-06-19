@@ -7,7 +7,7 @@ import openpyxl
 from chardet import detect
 import csv
 
-version = 'v2.16'
+version = 'v2.17'
 
 csv.field_size_limit(2**30)
 pd.options.display.max_colwidth = None
@@ -29,9 +29,10 @@ class Jr_Tpp():
         self.line_length = config['line_length']
         self.note_percent = config['note_percent']
         self.rule = config['rule'].replace('。', '\'')
-        self.battlelog_code=['655','355']
+        self.battlelog_code=['655','355','356']
         self.code355 = False
         self.code655 = False
+        self.code356 = False
         # 把355从readcode中剔除
         if '355' in self.ReadCode:
             self.ReadCode.remove('355')
@@ -40,6 +41,9 @@ class Jr_Tpp():
         if '655' in self.ReadCode:
             self.ReadCode.remove('655')
             self.code655 = True
+        if '356' in self.ReadCode:
+            self.ReadCode.remove('356')
+            self.code356 = True
         # 每次加载config都重置
         self.__tempdata = ['原文', '译文', '地址', '标签', 'code']  # 用于记录上一行文本的数据
         self.__sumlen = 0  # code相同的文本行数
@@ -145,8 +149,13 @@ class Jr_Tpp():
             else:
                 code = str(code)
             # 读取code355,655中可翻译部分
-            if code in self.battlelog_code and '\'addText\'' in data and ((code == '355' and self.code355) or (code == '655' and self.code655)):
+            # 356内容貌似很多，不敢随便乱动
+            if (code in self.battlelog_code and
+                    ('\'addText\'' in data and ((code == '355' and self.code355) or (code == '655' and self.code655)))
+                    or ('addLog' in data and (code == '356' and self.code356))):
                 [res.append(x) for x in self.__ReadCode355_addText(data, FileName,code)]
+
+
             # 是需要添加的字符串，而且含中日字符(System.json\gameTitle不论是否含中日字符，都进
             if (not self.ja or re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]', data)
                     or r'System.json\gameTitle' in FileName):
@@ -272,7 +281,9 @@ class Jr_Tpp():
             data[Dir[0]]=self.__WriteFile(data[Dir[0]],untrs,trsed,Dir[1:],length,code,key_is_list=key_is_list)
         elif type(data)==str and len(Dir)==0:
             # 写code355,655
-            if code in self.battlelog_code and '\'addText\'' in data and ((code == '355' and self.code355) or (code == '655' and self.code655)):
+            if (code in self.battlelog_code and
+                    ('\'addText\'' in data and ((code == '355' and self.code355) or (code == '655' and self.code655)))
+                    or ('addLog' in data and (code == '356' and self.code356))):
                 data=data.replace(untrs,trsed)
             else:
                 data = trsed
@@ -610,7 +621,7 @@ class Jr_Tpp():
                 print(f'{key}不再目标范围内')
     # 按条件搜索，col是按搜索目标，0原文，1译文，2地址，3标签，4code。搜索条件为按*分割,target和返回值格式同ProgramData,notin为True，则搜索不含搜索目标的
     # BigSmall为true则不区分大小写
-    def search(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False) ->dict:
+    def search(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False,regex=True) ->dict:
         if col == 0:col = '原文'
         elif col == 1:col = '译文'
         elif col == 2:col = '地址'
@@ -630,18 +641,18 @@ class Jr_Tpp():
                 else:
                     # 根据是否反选，返回搜索结果
                     if notin:
-                        temp=DataFrame[~DataFrame[col].str.contains(string,case=not BigSmall,regex=True)]
+                        temp=DataFrame[~DataFrame[col].str.contains(string,case=not BigSmall,regex=regex)]
                     else:
-                        temp = DataFrame[DataFrame[col].str.contains(string,case=not BigSmall,regex=True)]
+                        temp = DataFrame[DataFrame[col].str.contains(string,case=not BigSmall,regex=regex)]
                 if len(list(temp.index)):
                     res.update({name:temp})
         return res
     # 搜索含A但不含B的，默认colB=colA
-    def DoubleSearch(self,A:str,B:str,colA:int,colB:int=False,target:dict=False,namelist:list=False,BigSmall=False):
-        res=self.search(A,colA,target,namelist,notin=False,BigSmall=BigSmall)
+    def DoubleSearch(self,A:str,B:str,colA:int,colB:int=False,target:dict=False,namelist:list=False,BigSmall=False,regex=True):
+        res=self.search(A,colA,target,namelist,notin=False,BigSmall=BigSmall,regex=regex)
         if not colB:
             colB=colA
-        return self.search(B,colB,res,namelist,True,BigSmall)
+        return self.search(B,colB,res,namelist,True,BigSmall,regex)
     # 替换,只能替换译文列
     def Replace(self,before:str,after:str,target:dict=False,namelist:list=False):
         if not target:
@@ -654,8 +665,8 @@ class Jr_Tpp():
                 target[name].loc[index,'译文']=target[name].loc[index,'译文'].replace(before,after)
         return target
     # 根据搜索结果增减标签,add为True，添加标签,返回搜索结果
-    def LabelBySearch(self,string:str,col:int,label:str,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False,add=True):
-        res=self.search(string,col,target=target,namelist=namelist,notin=notin,BigSmall=BigSmall)
+    def LabelBySearch(self,string:str,col:int,label:str,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False,add=True,regex=True):
+        res=self.search(string,col,target=target,namelist=namelist,notin=notin,BigSmall=BigSmall,regex=regex)
         if len(res)>0:
             target={}
             for name in res.keys():
@@ -668,16 +679,16 @@ class Jr_Tpp():
             print('搜索结果为空')
         return res
     # 输出搜索结果,返回搜索结果
-    def DisplayBySearch(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False):
-        res=self.search(string,col,target=target,namelist=namelist,notin=notin,BigSmall=BigSmall)
+    def DisplayBySearch(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False,regex=True):
+        res=self.search(string,col,target=target,namelist=namelist,notin=notin,BigSmall=BigSmall,regex=regex)
         if len(res)>0:
             self.Display(res)
         else:
             print('搜索结果为空')
         return res
     # 将搜索结果导出到当前目录的单个xlsx中,返回搜索结果,默认只导出原文和译文
-    def OutputBySearch(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False,OutputName:str='SearchRes.xlsx',full=False):
-        res=self.search(string,col,target=target,namelist=namelist,notin=notin,BigSmall=BigSmall)
+    def OutputBySearch(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False,OutputName:str='SearchRes.xlsx',full=False,regex=True):
+        res=self.search(string,col,target=target,namelist=namelist,notin=notin,BigSmall=BigSmall,regex=regex)
         if len (res):
             output=pd.concat(list(res.values()),axis=0)
             self.__Writexlsx(output,OutputName,full)
@@ -686,8 +697,8 @@ class Jr_Tpp():
             print('搜索结果为空')
         return res
     # 将搜索结果导出到当前目录的单个json文件中,返回json数据,搜索为空则返回空df
-    def JsonBySearch(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False,OutputName:str='SearchRes.json'):
-        res=self.search(string,col,target=target,namelist=namelist,notin=notin,BigSmall=BigSmall)
+    def JsonBySearch(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False,OutputName:str='SearchRes.json',regex=True):
+        res=self.search(string,col,target=target,namelist=namelist,notin=notin,BigSmall=BigSmall,regex=regex)
         if len(res):
             res = pd.concat(list(res.values()), axis=0)
             output=dict(zip(res['原文'],res['译文'].fillna('')))
@@ -742,15 +753,15 @@ class Jr_Tpp():
         if without:
             # 从target中依次除外without
             for i in without:
-                target=self.search(i,2,target=target,notin=True)
+                target=self.search(i,2,target=target,notin=True,regex=False)
         # 对剩下的标签'Name',不区分大小写搜索
-        self.LabelBySearch('name',2,'Name',target=target,BigSmall=True)
+        self.LabelBySearch('name',2,'Name',target=target,BigSmall=True,regex=False)
     # 对名字标签并导出json文件
     def GetName(self,data_path,without:list=False):
         path=data_path+'\\name'
         self.LabelName(without)
         if not os.path.exists(path): os.mkdir(path)
-        namedict=self.JsonBySearch('Name',3,OutputName=path+r'\Name.json')
+        namedict=self.JsonBySearch('Name',3,OutputName=path+r'\Name.json',regex=False)
         if self.ja:
             splited_name={}
             for name in namedict.keys():
@@ -775,8 +786,8 @@ class Jr_Tpp():
                         self.ProgramData[name].loc[index,'译文']=index
         print('应用原文完成')
     # 对搜索结果应用原文
-    def ApplyUntrs_BySearch(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False):
-        res = self.search(string, col, target=target, namelist=namelist, notin=notin, BigSmall=BigSmall)
+    def ApplyUntrs_BySearch(self,string:str,col:int,target:dict=False,namelist:list=False,notin:bool=False,BigSmall=False,regex=True):
+        res = self.search(string, col, target=target, namelist=namelist, notin=notin, BigSmall=BigSmall,regex=regex)
         if len(res)>0:
             self.ApplyUntrs(res)
         else:
@@ -992,7 +1003,7 @@ class Jr_Tpp():
     # 这类文本被翻译，通常会导致图鉴等不显示
     def DNoteB(self):
         print('正在处理可能存在的note问题')
-        res=self.search('note',2)
+        res=self.search('note',2,regex=False)
         for name in res.keys():
             DataFrame=res[name]
             for untrs in DataFrame.index:
@@ -1019,6 +1030,10 @@ class Jr_Tpp():
                             # 对长度足够长的文本，只替换冒号前的内容
                             if ((untrs_code.find(':') - untrs_code.find('<')) / jalen)< self.note_percent:
                                 l = ['<', ':']  #分隔符
+                                a=untrs_code.count(l[0])
+                                b=trsed_code.count(l[0])
+                                c=untrs_code.count(l[1])
+                                d=trsed_code.count(l[1])
                                 if untrs_code.count(l[0]) == trsed_code.count(l[0]) and untrs_code.count(l[1]) == trsed_code.count(l[1]):
                                     # 将文本按照分隔符拆分
                                     untrs_code_list = self.__splitbychar(untrs_code, l)
