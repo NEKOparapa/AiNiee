@@ -7,7 +7,7 @@ import openpyxl
 from chardet import detect
 import csv
 
-version = 'v2.17'
+version = 'v2.18'
 
 csv.field_size_limit(2**30)
 pd.options.display.max_colwidth = None
@@ -28,22 +28,12 @@ class Jr_Tpp():
         self.sumcode = config['sumcode']
         self.line_length = config['line_length']
         self.note_percent = config['note_percent']
-        self.rule = config['rule'].replace('。', '\'')
-        self.battlelog_code=['655','355','356']
-        self.code355 = False
-        self.code655 = False
-        self.code356 = False
-        # 把355从readcode中剔除
-        if '355' in self.ReadCode:
-            self.ReadCode.remove('355')
-            self.code355 = True
-        # 把655从readcode中剔除
-        if '655' in self.ReadCode:
-            self.ReadCode.remove('655')
-            self.code655 = True
-        if '356' in self.ReadCode:
-            self.ReadCode.remove('356')
-            self.code356 = True
+
+        #读取sptext并把正则表达式中的。换为单引号
+        self.sptext=config['sptext']
+        for key in self.sptext:
+            for mark in self.sptext[key]:
+                self.sptext[key][mark]=self.sptext[key][mark].replace('。', '\'')
         # 每次加载config都重置
         self.__tempdata = ['原文', '译文', '地址', '标签', 'code']  # 用于记录上一行文本的数据
         self.__sumlen = 0  # code相同的文本行数
@@ -119,11 +109,11 @@ class Jr_Tpp():
         # 保存工作簿为xlsx文件
         workbook.save(name)
     # 读取code355(655)，且脚本中含有addText的文本,仅适用于日文游戏
-    def __ReadCode355_addText(self,data:str,Dir,code) -> list:
+    def __GetSptext(self,data:str,Dir,code,rule) -> list:
         res=[]
         Dir+='\u200B' + '1'
         if self.ja:
-            data=re.sub(self.rule,'☆↑↓←→',data).split('☆↑↓←→')
+            data=re.findall(rule,data)
             for i in data:
                 if re.search('[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]',i):
                     res.append([i,'',Dir,'',code])
@@ -148,59 +138,58 @@ class Jr_Tpp():
                 code = '-1'
             else:
                 code = str(code)
-            # 读取code355,655中可翻译部分
-            # 356内容貌似很多，不敢随便乱动
-            if (code in self.battlelog_code and
-                    ('\'addText\'' in data and ((code == '355' and self.code355) or (code == '655' and self.code655)))
-                    or ('addLog' in data and (code == '356' and self.code356))):
-                [res.append(x) for x in self.__ReadCode355_addText(data, FileName,code)]
-
-
-            # 是需要添加的字符串，而且含中日字符(System.json\gameTitle不论是否含中日字符，都进
-            if (not self.ja or re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]', data)
-                    or r'System.json\gameTitle' in FileName):
-                if r'System.json\gameTitle' in FileName and data == '': data = ' '  # 游戏名为空时，变为空格，否则会报错
-                # 这一行的文本数据,0原文,1译文,2地址,3标签,4code
-                textdata = [data, '', FileName, '', code]
-                # 当code和上次的一样,或者上次是108，这次是408，而且是需要文本求和的code时
-                if (code == self.__tempdata[4] or (self.__tempdata[4] == '108' and code == '408')) and code in self.sumcode:
-                    self.__tempdata[0] += '\n' + textdata[0]
-                    self.__sumlen += 1
-                # 当code和上一次的code不相等时，正常存储
+            # code是特殊文本的code，则对对应的dict的key（mark）遍历，如果mark在未翻译文本中，按照mark对应的正则表达式提取文本
+            if code in self.sptext.keys():
+                for mark in self.sptext[code].keys():
+                    if mark in data or mark=='空':
+                        rule=self.sptext[code][mark]
+                        [res.append(x) for x in self.__GetSptext(data, FileName, code,rule)]
+            else:
+                # 是需要添加的字符串，而且含中日字符(System.json\gameTitle不论是否含中日字符，都进
+                if (not self.ja or re.search(r'[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fa5ー々〆〤]', data)
+                        or r'System.json\gameTitle' in FileName):
+                    if r'System.json\gameTitle' in FileName and data == '': data = ' '  # 游戏名为空时，变为空格，否则会报错
+                    # 这一行的文本数据,0原文,1译文,2地址,3标签,4code
+                    textdata = [data, '', FileName, '', code]
+                    # 当code和上次的一样,或者上次是108，这次是408，而且是需要文本求和的code时
+                    if (code == self.__tempdata[4] or (self.__tempdata[4] == '108' and code == '408')) and code in self.sumcode:
+                        self.__tempdata[0] += '\n' + textdata[0]
+                        self.__sumlen += 1
+                    # 当code和上一次的code不相等时，正常存储
+                    else:
+                        if self.__sumlen:
+                            self.__tempdata[2] += '\u200B' + str(self.__sumlen)  # 在地址后面加上一个零宽空格后加上求和长度
+                            if self.__tempdata[0]!='':
+                                res.append(self.__tempdata)
+                        # 只有特定code才读取,readcode为空时，全读
+                        if (code in self.ReadCode or len(self.ReadCode) == 0):
+                            # res.append(textdata)
+                            # 更新tempcode并初始化sumlen
+                            self.__tempdata = textdata
+                            self.__sumlen = 1
+                        else:
+                            # 初始化tempcode和sumlen
+                            self.__tempdata = ['原文', '译文', '地址', '标签', 'code']
+                            self.__sumlen = 0
+                # 不是需要添加的字符串，单独判断是否中断文本求和
                 else:
-                    if self.__sumlen:
-                        self.__tempdata[2] += '\u200B' + str(self.__sumlen)  # 在地址后面加上一个零宽空格后加上求和长度
-                        if self.__tempdata[0]!='':
+                    # code仍符合需求，并且data是字符串，则原原本本地添加进来
+                    if (code == self.__tempdata[4] or (
+                            self.__tempdata[4] == '108' and code == '408')) and code in self.sumcode:
+                        self.__tempdata[0] += '\n' + data
+                        self.__sumlen += 1
+                    # 否则中断文本求和
+                    elif self.__sumlen:
+                        self.__tempdata[2] += '\u200B' + str(self.__sumlen)  # 求和的文本行，在地址后面加上一个零宽空格后加上求和长度
+                        if self.__tempdata[0] != '':
                             res.append(self.__tempdata)
-                    # 只有特定code才读取,readcode为空时，全读
-                    if (code in self.ReadCode or len(self.ReadCode) == 0):
-                        # res.append(textdata)
-                        # 更新tempcode并初始化sumlen
-                        self.__tempdata = textdata
-                        self.__sumlen = 1
+                        # 初始化tempcode和sumlen
+                        self.__tempdata = ['原文', '译文', '地址', '标签', 'code']
+                        self.__sumlen = 0
                     else:
                         # 初始化tempcode和sumlen
                         self.__tempdata = ['原文', '译文', '地址', '标签', 'code']
                         self.__sumlen = 0
-            # 不是需要添加的字符串，单独判断是否中断文本求和
-            else:
-                # code仍符合需求，并且data是字符串，则原原本本地添加进来
-                if (code == self.__tempdata[4] or (
-                        self.__tempdata[4] == '108' and code == '408')) and code in self.sumcode:
-                    self.__tempdata[0] += '\n' + data
-                    self.__sumlen += 1
-                # 否则中断文本求和
-                elif self.__sumlen:
-                    self.__tempdata[2] += '\u200B' + str(self.__sumlen)  # 求和的文本行，在地址后面加上一个零宽空格后加上求和长度
-                    if self.__tempdata[0] != '':
-                        res.append(self.__tempdata)
-                    # 初始化tempcode和sumlen
-                    self.__tempdata = ['原文', '译文', '地址', '标签', 'code']
-                    self.__sumlen = 0
-                else:
-                    # 初始化tempcode和sumlen
-                    self.__tempdata = ['原文', '译文', '地址', '标签', 'code']
-                    self.__sumlen = 0
 
         return res
     # 读取文件夹路径，返回包括其子文件夹内的所有文件名
@@ -281,10 +270,10 @@ class Jr_Tpp():
             data[Dir[0]]=self.__WriteFile(data[Dir[0]],untrs,trsed,Dir[1:],length,code,key_is_list=key_is_list)
         elif type(data)==str and len(Dir)==0:
             # 写code355,655
-            if (code in self.battlelog_code and
-                    ('\'addText\'' in data and ((code == '355' and self.code355) or (code == '655' and self.code655)))
-                    or ('addLog' in data and (code == '356' and self.code356))):
-                data=data.replace(untrs,trsed)
+            if code in self.sptext.keys():
+                for mark in self.sptext[code].keys:
+                    if mark in data or mark=='空':
+                        data = data.replace(untrs, trsed)
             else:
                 data = trsed
         return data
