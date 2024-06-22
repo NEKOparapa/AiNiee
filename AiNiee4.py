@@ -121,7 +121,7 @@ class Translator():
 
 
 
-        # 更新界面UI信息，并输出各种配置信息
+        # 更新界面UI信息
         if Running_status == 9: # 如果是继续翻译
             total_text_line_count = user_interface_prompter.total_text_line_count # 与上一个翻译任务的总行数一致
             user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0)
@@ -135,6 +135,8 @@ class Translator():
             user_interface_prompter.signal.emit("初始化翻译界面数据",project_id,untranslated_text_line_count) #需要输入够当初设定的参数个数
             user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0)
 
+
+        # 输出开始翻译的日志
         print("[INFO]  翻译项目为",configurator.translation_project, '\n')
         print("[INFO]  翻译平台为",configurator.translation_platform, '\n')
         print("[INFO]  AI模型为",configurator.model_type, '\n')
@@ -153,9 +155,6 @@ class Translator():
         print("\033[1;32m[INFO] \033[0m 五秒后开始进行翻译，请注意保持网络通畅，余额充足。", '\n')
         time.sleep(5)  
 
-        # 测试用，会导致任务多一个，注意下
-        #api_requester_instance = Api_Requester()
-        #api_requester_instance.Concurrent_Request_Openai()
 
         # 创建线程池
         The_Max_workers = configurator.thread_counts # 获取线程数配置
@@ -457,6 +456,10 @@ class Api_Requester():
             source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list,previous_lines)    
             lock1.release()  # 释放锁
 
+            # 检查一下是否有发送内容
+            if source_text_list == []:
+                print("\033[1;33mWarning:\033[0m 未能获取文本，该线程为多余线程，取消任务")
+                return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
@@ -482,11 +485,6 @@ class Api_Requester():
                 print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
                 print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
                 return
-
-            if source_text_str =="""{}""":
-                print("\033[1;31mError:\033[0m 该条消息为空，取消任务")
-                return
-
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
             timeout = 220  # 设置超时时间为x秒
@@ -844,6 +842,10 @@ class Api_Requester():
             source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list,previous_lines)    
             lock1.release()  # 释放锁
 
+            # 检查一下是否有发送内容
+            if source_text_list == []:
+                print("\033[1;33mWarning:\033[0m 未能获取文本，该线程为多余线程，取消任务")
+                return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
@@ -873,10 +875,6 @@ class Api_Requester():
             if request_tokens_consume >= request_limiter.max_tokens :
                 print("\033[1;33mWarning:\033[0m 该条消息总tokens数大于单条消息最大数量" )
                 print("\033[1;33mWarning:\033[0m 该条消息取消任务，进行拆分翻译" )
-                return
-            
-            if source_text_str =="""{}""":
-                print("\033[1;31mError:\033[0m 该条消息为空，取消任务")
                 return
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
@@ -1243,6 +1241,10 @@ class Api_Requester():
             source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list,previous_lines)    
             lock1.release()  # 释放锁
 
+            # 检查一下是否有发送内容
+            if source_text_list == []:
+                print("\033[1;33mWarning:\033[0m 未能获取文本，该线程为多余线程，取消任务")
+                return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
@@ -1270,10 +1272,6 @@ class Api_Requester():
             if request_tokens_consume >= request_limiter.max_tokens :
                 print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
                 print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
-                return
-
-            if source_text_str =="""{}""":
-                print("\033[1;31mError:\033[0m 该条消息为空，取消任务")
                 return
             
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
@@ -1615,6 +1613,10 @@ class Api_Requester():
             source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list, previous_lines)    
             lock1.release()  # 释放锁
 
+            # 检查一下是否有发送内容
+            if source_text_list == []:
+                print("\033[1;33mWarning:\033[0m 未能获取文本，该线程为多余线程，取消任务")
+                return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
@@ -1644,10 +1646,6 @@ class Api_Requester():
             if request_tokens_consume >= request_limiter.max_tokens :
                 print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
                 print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
-                return
-
-            if source_text_str =="""{}""":
-                print("\033[1;31mError:\033[0m 该条消息为空，取消任务")
                 return
             
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
@@ -1952,6 +1950,11 @@ class Api_Requester():
                 source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list,previous_lines)    
             lock1.release()  # 释放锁
 
+            # 检查一下是否有发送内容
+            if source_text_list == []:
+                print("\033[1;33mWarning:\033[0m 未能获取文本，该线程为多余线程，取消任务")
+                return
+
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
@@ -1978,7 +1981,6 @@ class Api_Requester():
                 print("\033[1;33mWarning:\033[0m 该条消息总tokens数大于单条消息最大数量" )
                 print("\033[1;33mWarning:\033[0m 该条消息取消任务，进行拆分翻译" )
                 return
-
             
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
