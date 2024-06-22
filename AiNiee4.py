@@ -1906,7 +1906,7 @@ class Api_Requester():
                 print("[INFO]  术语表:\n",gpt_dict_raw_text,"\n")
 
  
-        #将原文本字典转换成raw格式的字符串，方便发送   
+        #将原文本字典转换成raw格式的字符串
         source_text_str_raw = self.convert_dict_to_raw_str(source_text_dict)
 
         # 处理全角数字
@@ -1946,7 +1946,10 @@ class Api_Requester():
             # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
             rows = configurator.text_line_counts
             previous_lines = configurator.pre_line_counts
-            source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list,previous_lines)    
+            if configurator.sakura_tokens_limit_switch:
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_sakura(self,configurator.sakura_tokens_limit, cache_list,previous_lines)  
+            else:
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list,previous_lines)    
             lock1.release()  # 释放锁
 
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
@@ -3077,6 +3080,12 @@ class Configurator():
                 self.sakurallm_platform_config = json.load(f)
 
 
+        # 获取Sakura的配置
+        self.sakura_threadings_switch = config_dict["sakura_threadings_switch"]           #获取sakura线程开关
+        self.sakura_tokens_limit_switch = config_dict["sakura_tokens_limit_switch"]            #获取sakura的tokens限制开关
+        self.sakura_tokens_limit = config_dict["sakura_tokens_limit"]    
+
+
         # 获取第一页的配置信息（基础设置）
         self.translation_project = config_dict["translation_project"]
         self.translation_platform = config_dict["translation_platform"]
@@ -3376,22 +3385,24 @@ class Configurator():
             # 获取中转请求地址
             relay_address = config_dict["sakura_address"]  
 
-            #检查一下请求地址尾部是否为/v1，自动补全
+            # 检查一下请求地址尾部是否为/v1，自动补全
             if relay_address[-3:] != "/v1":
                 relay_address = relay_address + "/v1"
             self.base_url = relay_address  
 
-            #如果填入地址，则设置代理端口
+            # 如果填入地址，则设置代理端口
             Proxy_Address = config_dict["sakura_proxy_port"]              #获取代理端口
             if Proxy_Address :
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
 
-            #更改部分参数，以适合Sakura模型
+            # 更改部分参数，以适合Sakura模型
             self.openai_temperature = 0.1       
             self.openai_top_p = 0.3
-            #self.thread_counts = 1 # 锁定Sakura线程数为1
+            # 如果没有打开线程限制开关
+            if self.sakura_threadings_switch == False:
+                self.thread_counts = 1 # 锁定Sakura线程数为1
             #self.preserve_line_breaks_toggle = True
 
 
@@ -4501,11 +4512,12 @@ Third: Begin translating line by line from the original text, only translating {
 
 
             #Sakura界面
-            config_dict["sakura_address"] = Window.Widget_SakuraLLM.LineEdit_address.text()                  #获取请求地址
-            config_dict["sakura_model_type"] =  Window.Widget_SakuraLLM.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
-            config_dict["sakura_proxy_port"] = Window.Widget_SakuraLLM.LineEdit_proxy_port.text()            #获取代理端口
-
-
+            config_dict["sakura_address"] = Window.Widget_SakuraLLM.A_settings.LineEdit_address.text()                  #获取请求地址
+            config_dict["sakura_model_type"] =  Window.Widget_SakuraLLM.A_settings.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
+            config_dict["sakura_proxy_port"] = Window.Widget_SakuraLLM.A_settings.LineEdit_proxy_port.text()            #获取代理端口
+            config_dict["sakura_threadings_switch"] = Window.Widget_SakuraLLM.B_settings.SwitchButton_threadings_switch.isChecked()            #获取线程开关
+            config_dict["sakura_tokens_limit_switch"] = Window.Widget_SakuraLLM.B_settings.checkBox_tokens_limit_switch.isChecked()            #获取tokens限制开关
+            config_dict["sakura_tokens_limit"] = Window.Widget_SakuraLLM.B_settings.spinBox_tokens_limit.value()            #获取tokens限制
 
             #翻译设置基础设置界面
             config_dict["translation_project"] = Window.Widget_translation_settings_A.comboBox_translation_project.currentText()
@@ -4747,11 +4759,17 @@ Third: Begin translating line by line from the original text, only translating {
 
                 #sakura界面
                 if "sakura_address" in config_dict:
-                    Window.Widget_SakuraLLM.LineEdit_address.setText(config_dict["sakura_address"])
+                    Window.Widget_SakuraLLM.A_settings.LineEdit_address.setText(config_dict["sakura_address"])
                 if "sakura_model_type" in config_dict:
-                    Window.Widget_SakuraLLM.comboBox_model.setCurrentText(config_dict["sakura_model_type"])
+                    Window.Widget_SakuraLLM.A_settings.comboBox_model.setCurrentText(config_dict["sakura_model_type"])
                 if "sakura_proxy_port" in config_dict:
-                    Window.Widget_SakuraLLM.LineEdit_proxy_port.setText(config_dict["sakura_proxy_port"])
+                    Window.Widget_SakuraLLM.A_settings.LineEdit_proxy_port.setText(config_dict["sakura_proxy_port"])
+                if "sakura_threadings_switch" in config_dict:
+                    Window.Widget_SakuraLLM.B_settings.SwitchButton_threadings_switch.setChecked(config_dict["sakura_threadings_switch"])
+                if "sakura_tokens_limit_switch" in config_dict:
+                    Window.Widget_SakuraLLM.B_settings.checkBox_tokens_limit_switch.setChecked(config_dict["sakura_tokens_limit_switch"])
+                if "sakura_tokens_limit" in config_dict:
+                    Window.Widget_SakuraLLM.B_settings.spinBox_tokens_limit.setValue(config_dict["sakura_tokens_limit"])
 
 
                 #OpenAI代理账号基础界面
@@ -5204,7 +5222,7 @@ class Request_Limiter():
 
         elif translation_platform == 'SakuraLLM':
             # 获取模型
-            model = Window.Widget_SakuraLLM.comboBox_model.currentText()
+            model = Window.Widget_SakuraLLM.A_settings.comboBox_model.currentText()
 
             # 获取相应的限制
             max_tokens = configurator.sakurallm_platform_config[model]["max_tokens"]
@@ -6407,6 +6425,7 @@ class Cache_Manager():
                 # 判断是否为None
                 if source_text is not None and text_index is not None:
 
+                    # 尝试获取name
                     name = entry.get('name')
                     # 如果有名字，则将名字加入到新列表中，否则不加入
                     if name:
@@ -6435,6 +6454,8 @@ class Cache_Manager():
                     if storage_path ==file_name: # 确保是同一文件里内容
                         if translation_status == 1 :# 优先获取已经翻译的文本
                             previous_list.append(cache_list[the_index]['translated_text'])
+                        elif translation_status == 7 : # 如果是不需要翻译的文本
+                            pass
                         else:
                             previous_list.append(cache_list[the_index]['source_text'])
 
@@ -6448,8 +6469,71 @@ class Cache_Manager():
                     if storage_path ==file_name: # 确保是同一文件里内容
                         if translation_status == 1 :# 优先获取已经翻译的文本
                             following_list.append(cache_list[the_index]['translated_text'])
+                        elif translation_status == 7 : # 如果是不需要翻译的文本
+                            pass
                         else:
                             following_list.append(cache_list[the_index]['source_text'])
+
+        return translation_list, previous_list
+
+
+    # 获取缓存数据中指定行数的翻译状态为0的未翻译文本，且改变翻译状态为2
+    def process_dictionary_data_sakura(self,tokens_limit, cache_list, previous_lines = 0):
+
+
+        translation_list = []
+        previous_list = []
+        tokens_count = 0
+
+        # 获取特定行数的待翻译内容
+        for entry in cache_list:
+            translation_status = entry.get('translation_status')
+
+            # 如果能够获得到翻译状态的键，且翻译状态为0，即未翻译状态，那么将该行数据加入到新列表中
+            if translation_status == 0:
+                source_text = entry.get('source_text')
+                text_index = entry.get('text_index')
+
+                # 判断是否为None
+                if source_text is not None and text_index is not None:
+
+                    # 计算原文tokens
+                    tokens = Request_Limiter.num_tokens_from_string(self,source_text)
+                    # 检查是否超出tokens限制
+                    tokens_count = tokens_count + tokens
+                    if tokens_count >= tokens_limit :
+                        break
+                    
+                    # 尝试获取name
+                    name = entry.get('name')
+                    # 如果有名字，则将名字加入到新列表中，否则不加入
+                    if name:
+                        translation_list.append({ 'text_index': text_index ,'source_text': source_text, 'name': name})
+                    else:
+                        translation_list.append({ 'text_index': text_index ,'source_text': source_text})
+
+                entry['translation_status'] = 2
+
+
+        # 获取首尾索引
+        if translation_list:
+            star_index = translation_list[0]['text_index'] - 1  # 减1以获取前一行 
+
+            # 获取前n行原文
+            for i in range(previous_lines):
+                the_index = star_index - i
+                if the_index >= 1 and the_index < len(cache_list): # 确保不超出列表范围
+                    translation_status = cache_list[the_index]['translation_status']
+                    storage_path = cache_list[the_index]['storage_path']
+                    file_name = cache_list[the_index]['file_name']
+                    if storage_path ==file_name: # 确保是同一文件里内容
+                        if translation_status == 1 :# 优先获取已经翻译的文本
+                            previous_list.append(cache_list[the_index]['translated_text'])
+                        elif translation_status == 7 : # 如果是不需要翻译的文本
+                            pass
+                        else:
+                            previous_list.append(cache_list[the_index]['source_text'])
+
 
         return translation_list, previous_list
 
@@ -9637,7 +9721,57 @@ class Widget_Dashscope(QFrame):#  dashscope账号界面
 
 
 
-class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
+
+
+class Widget_SakuraLLM(QFrame):  # Sakura主界面
+    def __init__(self, text: str, parent=None):  # 构造函数，初始化实例时会自动调用
+        super().__init__(parent=parent)  # 调用父类 QWidget 的构造函数
+        self.setObjectName(text.replace(' ', '-'))  # 设置对象名，用于在 NavigationInterface 中的 addItem 方法中的 routeKey 参数中使用
+
+
+        self.pivot = SegmentedWidget(self)  # 创建一个 SegmentedWidget 实例，分段式导航栏
+        self.stackedWidget = QStackedWidget(self)  # 创建一个 QStackedWidget 实例，堆叠式窗口
+        self.vBoxLayout = QVBoxLayout(self)  # 创建一个垂直布局管理器
+
+        self.A_settings = Widget_Sakura_A('A_settings', self)  # 创建实例，指向界面
+        self.B_settings = Widget_Sakura_B('B_settings', self)  # 创建实例，指向界面
+
+        # 添加子界面到分段式导航栏
+        self.addSubInterface(self.A_settings, 'A_settings', '基础设置')
+        self.addSubInterface(self.B_settings, 'B_settings', '其他设置')
+
+        # 将分段式导航栏和堆叠式窗口添加到垂直布局中
+        self.vBoxLayout.addWidget(self.pivot)
+        self.vBoxLayout.addWidget(self.stackedWidget)
+        self.vBoxLayout.setContentsMargins(30, 50, 30, 30)  # 设置布局的外边距
+
+        # 连接堆叠式窗口的 currentChanged 信号到槽函数 onCurrentIndexChanged
+        self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
+        self.stackedWidget.setCurrentWidget(self.A_settings)  # 设置默认显示的子界面为xxx界面
+        self.pivot.setCurrentItem(self.A_settings.objectName())  # 设置分段式导航栏的当前项为xxx界面
+
+    def addSubInterface(self, widget: QLabel, objectName, text):
+        """
+        添加子界面到堆叠式窗口和分段式导航栏
+        """
+        widget.setObjectName(objectName)
+        #widget.setAlignment(Qt.AlignCenter) # 设置 widget 对象的文本（如果是文本控件）在控件中的水平对齐方式
+        self.stackedWidget.addWidget(widget)
+        self.pivot.addItem(
+            routeKey=objectName,
+            text=text,
+            onClick=lambda: self.stackedWidget.setCurrentWidget(widget),
+        )
+
+    def onCurrentIndexChanged(self, index):
+        """
+        槽函数：堆叠式窗口的 currentChanged 信号的槽函数
+        """
+        widget = self.stackedWidget.widget(index)
+        self.pivot.setCurrentItem(widget.objectName())
+
+
+class Widget_Sakura_A(QFrame):#  Sakura基础界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
@@ -9750,7 +9884,7 @@ class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
         # 设置窗口显示的内容是最外层容器
         self.setLayout(container)
         container.setSpacing(28) # 设置布局内控件的间距为28
-        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
         # 把各个组添加到容器中
         container.addStretch(1)  # 添加伸缩项
@@ -9780,6 +9914,89 @@ class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
 
         elif Running_status != 0:
             user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+
+
+class Widget_Sakura_B(QFrame):#  Sakura进阶界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+
+
+        # -----创建第1个组，添加多个组件-----
+        box_threadings_switch = QGroupBox()
+        box_threadings_switch.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_threadings_switch = QHBoxLayout()
+
+        #设置标签
+        self.labe1_4 = QLabel(flags=Qt.WindowFlags())  
+        self.labe1_4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        self.labe1_4.setText("开启多线程模式")
+
+
+
+        # 设置选择开关
+        self.SwitchButton_threadings_switch = SwitchButton(parent=self)    
+        #self.SwitchButton_threadings_switch.checkedChanged.connect(self.test)
+
+
+
+        layout_threadings_switch.addWidget(self.labe1_4)
+        layout_threadings_switch.addStretch(1)  # 添加伸缩项
+        layout_threadings_switch.addWidget(self.SwitchButton_threadings_switch)
+        box_threadings_switch.setLayout(layout_threadings_switch)
+
+
+
+        # -----创建第5个组，添加多个组件-----
+        box_tokens_limit_switch = QGroupBox()
+        box_tokens_limit_switch.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_tokens_limit_switch = QHBoxLayout()
+
+        #设置标签
+        label4 = QLabel(flags=Qt.WindowFlags())  
+        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label4.setText("每次发送文本限制")
+
+        self.spinBox_tokens_limit = SpinBox(self)
+        self.spinBox_tokens_limit.setRange(0, 10000)    
+        self.spinBox_tokens_limit.setValue(1000)
+
+        #设置“说明”显示
+        self.labelA_tokens = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.labelA_tokens.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.labelA_tokens.setText("(tokens)")  
+
+
+        # 设置“添加游戏标题水印”选择开关
+        self.checkBox_tokens_limit_switch = CheckBox('开启tokens限制模式', self)
+
+
+        layout_tokens_limit_switch.addWidget(label4)
+        layout_tokens_limit_switch.addWidget(self.spinBox_tokens_limit)
+        layout_tokens_limit_switch.addWidget( self.labelA_tokens)
+        layout_tokens_limit_switch.addStretch(1)
+        layout_tokens_limit_switch.addWidget(self.checkBox_tokens_limit_switch)
+        box_tokens_limit_switch.setLayout(layout_tokens_limit_switch)
+
+
+
+
+        # -----最外层容器设置垂直布局-----
+        container = QVBoxLayout()
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+        # 把各个组添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_threadings_switch)
+        container.addWidget(box_tokens_limit_switch)
+        container.addStretch(1)  # 添加伸缩项
+
 
 
 
@@ -12785,31 +13002,6 @@ class Widget_export_source_text(QFrame):#  提取子界面
 
 
 
-        # -----创建第1个组，添加多个组件-----
-        box_switch_log = QGroupBox()
-        box_switch_log.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_switch_log = QHBoxLayout()
-
-        #设置标签
-        self.labe1_log = QLabel(flags=Qt.WindowFlags())  
-        self.labe1_log.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        self.labe1_log.setText("是否提取战斗日志文本")
-
-
-
-        # 设置选择开关
-        self.SwitchButton_log = CheckBox('        ')
-        self.SwitchButton_log.setChecked(True)    
-        #self.SwitchButton_jsonmode.checkedChanged.connect(self.onjsonmode)
-
-
-
-        layout_switch_log.addWidget(self.labe1_log)
-        layout_switch_log.addStretch(1)  # 添加伸缩项
-        layout_switch_log.addWidget(self.SwitchButton_log)
-        box_switch_log.setLayout(layout_switch_log)
-
-
         # -----创建第2个组，添加多个组件-----
         box_input = QGroupBox()
         box_input.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
@@ -12922,7 +13114,6 @@ class Widget_export_source_text(QFrame):#  提取子界面
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box)
         container.addWidget(box_switch)
-        container.addWidget(box_switch_log)
         container.addWidget(box_input)
         container.addWidget(box_output)
         container.addWidget(box_data)
@@ -12986,10 +13177,6 @@ class Widget_export_source_text(QFrame):#  提取子界面
         config['save_path'] = self.label_data_path.text()
         config['data_path'] = self.label_output_path.text()
         config['ja']=self.SwitchButton_ja.isChecked()
-        if self.SwitchButton_log.isChecked() == 0:
-            #把列表里的355删除
-            config['ReadCode'].remove('355')
-
         #提取文本
         pj=jtpp.Jr_Tpp(config)
         pj.FromGame(config['game_path'],config['save_path'],config['data_path'])
@@ -13854,7 +14041,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.70.1"  #软件版本号
+    Software_Version = "AiNiee4.71"  #软件版本号
     cache_list = [] # 全局缓存数据
     Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是接口测试状态
                         # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
