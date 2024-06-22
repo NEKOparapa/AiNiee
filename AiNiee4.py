@@ -3391,7 +3391,7 @@ class Configurator():
             #更改部分参数，以适合Sakura模型
             self.openai_temperature = 0.1       
             self.openai_top_p = 0.3
-            self.thread_counts = 1 # 锁定Sakura线程数为1
+            #self.thread_counts = 1 # 锁定Sakura线程数为1
             #self.preserve_line_breaks_toggle = True
 
 
