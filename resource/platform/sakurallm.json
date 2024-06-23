@@ -1,7 +1,7 @@
 
 {
-    "Sakura-v0.9": {  "max_tokens": 3000, "TPM": 1000000, "RPM": 3500},
-    "Sakura-v0.10pre": { "max_tokens": 3000, "TPM": 1000000, "RPM": 3500},
+    "Sakura-v0.9": {  "max_tokens": 1500, "TPM": 1000000, "RPM": 500},
+    "Sakura-v0.10pre": { "max_tokens": 1500, "TPM": 1000000, "RPM": 500},
 
     "model_price": {
         "Sakura-v0.9": {"input_price": 0.00001, "output_price": 0.00001}, 
