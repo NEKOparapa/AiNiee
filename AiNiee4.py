@@ -111,13 +111,10 @@ class Translator():
 
         # ——————————————————————————————————————————构建并发任务池子—————————————————————————————————————————
 
+        # 计算待翻译的文本总行数，tokens总数
+        untranslated_text_line_count,untranslated_text_tokens_count = Cache_Manager.count_and_update_translation_status_0_2(self, cache_list) #获取需要翻译的文本总行数
         # 计算并发任务数
-        untranslated_text_line_count = Cache_Manager.count_and_update_translation_status_0_2(self, cache_list) #获取需要翻译的文本总行数
-
-        if untranslated_text_line_count % configurator.text_line_counts == 0:
-            tasks_Num = untranslated_text_line_count // configurator.text_line_counts 
-        else:
-            tasks_Num = untranslated_text_line_count // configurator.text_line_counts + 1
+        tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.text_line_counts,configurator.sakura_tokens_limit,configurator.sakura_tokens_limit_switch)
 
 
 
@@ -178,7 +175,7 @@ class Translator():
         # ——————————————————————————————————————————检查没能成功翻译的文本，拆分翻译————————————————————————————————————————
 
         #计算未翻译文本的数量
-        untranslated_text_line_count = Cache_Manager.count_and_update_translation_status_0_2(self,cache_list)
+        untranslated_text_line_count,untranslated_text_tokens_count = Cache_Manager.count_and_update_translation_status_0_2(self,cache_list)
 
         #存储重新翻译的次数
         retry_translation_count = 1
@@ -190,6 +187,7 @@ class Translator():
 
             # 根据混合翻译设置更换翻译平台,并重新初始化配置信息
             if configurator.mixed_translation_toggle:
+
                 configurator.initialize_configuration() # 获取界面的配置信息
 
                 # 更换翻译平台
@@ -208,15 +206,13 @@ class Translator():
             if configurator.mixed_translation_toggle and configurator.split_switch:
                 print("[INFO] 检测到不进行拆分设置，发送行数将继续保持不变")
             else:
-                configurator.text_line_counts = configurator.update_text_line_count(configurator.text_line_counts) # 更换配置中的文本行数
+                configurator.text_line_counts,configurator.sakura_tokens_limit = Translator.update_lines_or_tokens(self,configurator.text_line_counts,configurator.sakura_tokens_limit) # 更换配置中的文本行数
             print("[INFO] 未翻译文本总行数为：",untranslated_text_line_count,"  每次发送行数为：",configurator.text_line_counts, '\n')
 
 
-            # 计算可并发任务总数
-            if untranslated_text_line_count % configurator.text_line_counts == 0:
-                tasks_Num = untranslated_text_line_count // configurator.text_line_counts
-            else:
-                tasks_Num = untranslated_text_line_count // configurator.text_line_counts + 1
+            # 计算并发任务数
+            tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.text_line_counts,configurator.sakura_tokens_limit,configurator.sakura_tokens_limit_switch)
+
 
 
             # 创建线程池
@@ -245,7 +241,7 @@ class Translator():
                 break
 
             #重新计算未翻译文本的数量
-            untranslated_text_line_count = Cache_Manager.count_and_update_translation_status_0_2(self,cache_list)
+            untranslated_text_line_count,untranslated_text_tokens_count = Cache_Manager.count_and_update_translation_status_0_2(self,cache_list)
 
         print ("\033[1;32mSuccess:\033[0m  翻译阶段已完成，正在处理数据-----------------------------------", '\n')
 
@@ -277,6 +273,45 @@ class Translator():
         print("\n\033[1;32mSuccess:\033[0m 请检查译文文件，格式是否错误，存在错行，或者有空行等问题")
         print("\n-------------------------------------------------------------------------------------\n")
 
+
+    # 重新设置发送的文本行数
+    def update_lines_or_tokens(self,lines_limit,tokens_limit):
+        # 重新计算文本行数限制
+        if lines_limit % 2 == 0:
+            new_lines_limit = lines_limit // 2
+        elif lines_limit % 3 == 0:
+            new_lines_limit = lines_limit // 3
+        elif lines_limit % 4 == 0:
+            new_lines_limit = lines_limit // 4
+        elif lines_limit % 5 == 0:
+            new_lines_limit = lines_limit // 5
+        else:
+            new_lines_limit = 1
+
+        # 重新计算tokens限制
+        new_tokens_limit = tokens_limit // 2
+
+        return new_lines_limit,new_tokens_limit
+
+
+    # 计算任务总数
+    def calculate_total_tasks(self,total_lines,total_tokens,lines_limit,tokens_limit,switch = False):
+        
+        if switch:
+
+            if total_tokens % tokens_limit == 0:
+                tasks_Num = total_tokens // tokens_limit 
+            else:
+                tasks_Num = total_tokens // tokens_limit + 1
+
+        else:
+
+            if total_lines % lines_limit == 0:
+                tasks_Num = total_lines // lines_limit 
+            else:
+                tasks_Num = total_lines // lines_limit + 1
+
+        return tasks_Num
 
 
 # 接口请求器
@@ -4446,24 +4481,6 @@ Third: Begin translating line by line from the original text, only translating {
 
         return temperature,top_p,frequency_penalty
 
-    
-    # 重新设置发送的文本行数
-    def update_text_line_count(self,num):
-        # 重新计算文本行数
-        if num % 2 == 0:
-            result = num // 2
-        elif num % 3 == 0:
-            result = num // 3
-        elif num % 4 == 0:
-            result = num // 4
-        elif num % 5 == 0:
-            result = num // 5
-        else:
-            result = 1
-
-
-        return result
-
 
 
     #读写配置文件config.json函数
@@ -6807,24 +6824,6 @@ class Cache_Manager():
 
         return cache_data
 
-
-    # 统计翻译状态等于0的元素个数
-    def count_translation_status_0(self, data):
-        # 输入的数据结构参考
-        ex_cache_data = [
-            {'project_type': 'Mtool'},
-            {'text_index': 1, 'text_classification': 0, 'translation_status': 0, 'source_text': 'しこトラ！', 'translated_text': '无'},
-            {'text_index': 2, 'text_classification': 0, 'translation_status': 1, 'source_text': '室内カメラ', 'translated_text': '无'},
-            {'text_index': 3, 'text_classification': 0, 'translation_status': 0, 'source_text': '11111', 'translated_text': '无'},
-            {'text_index': 4, 'text_classification': 0, 'translation_status': 2, 'source_text': '11111', 'translated_text': '无'},
-            {'text_index': 5, 'text_classification': 0, 'translation_status': 2, 'source_text': '11111', 'translated_text': '无'},
-            {'text_index': 6, 'text_classification': 0, 'translation_status': 0, 'source_text': '11111', 'translated_text': '无'},
-        ]
-
-        count_0 = sum(1 for item in data if item.get('translation_status') == 0)
-
-        counts = count_0 
-        return counts
     
     # 统计翻译状态等于0或者2的元素个数，且把等于2的翻译状态改为0.并返回元素个数
     def count_and_update_translation_status_0_2(self, data):
@@ -6839,16 +6838,39 @@ class Cache_Manager():
             {'text_index': 6, 'text_classification': 0, 'translation_status': 0, 'source_text': '11111', 'translated_text': '无'},
         ]
 
-        count_0 = sum(1 for item in data if item.get('translation_status') == 0)
-        count_2 = sum(1 for item in data if item.get('translation_status') == 2)
+        tokens_count = 0
+
+        # 计算翻译状态为0的条目数量
+        count_0 = 0
+        for item in data:
+            if item.get('translation_status') == 0:
+                count_0 += 1
+
+                source_text = item.get('source_text')
+                if  source_text:
+                    tokens = Request_Limiter.num_tokens_from_string(self,source_text)
+                    # 检查是否超出tokens限制
+                    tokens_count = tokens_count + tokens
+
+        # 计算翻译状态为2的条目数量
+        count_2 = 0
+        for item in data:
+            if item.get('translation_status') == 2:
+                count_2 += 1
+
+                source_text = item.get('source_text')
+                if  source_text:
+                    tokens = Request_Limiter.num_tokens_from_string(self,source_text)
+                    # 检查是否超出tokens限制
+                    tokens_count = tokens_count + tokens
 
         # 将'translation_status'等于2的元素的'translation_status'改为0
         for item in data:
             if item.get('translation_status') == 2:
                 item['translation_status'] = 0
 
-        counts = count_0 + count_2
-        return counts
+        raw_count = count_0 + count_2
+        return raw_count,tokens_count
     
     
     # 替换或者还原换行符和回车符函数
@@ -10360,7 +10382,7 @@ class Widget_Sakura_B(QFrame):#  Sakura进阶界面
         #设置标签
         label4 = QLabel(flags=Qt.WindowFlags())  
         label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label4.setText("每次发送文本限制")
+        label4.setText("每次翻译")
 
         self.spinBox_tokens_limit = SpinBox(self)
         self.spinBox_tokens_limit.setRange(0, 10000)    
@@ -10372,8 +10394,8 @@ class Widget_Sakura_B(QFrame):#  Sakura进阶界面
         self.labelA_tokens.setText("(tokens)")  
 
 
-        # 设置“添加游戏标题水印”选择开关
-        self.checkBox_tokens_limit_switch = CheckBox('开启tokens限制模式', self)
+        # 设置开关
+        self.checkBox_tokens_limit_switch = CheckBox('使用tokens限制', self)
 
 
         layout_tokens_limit_switch.addWidget(label4)
@@ -10673,6 +10695,69 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         box_Lines.setLayout(layout_Lines)
 
 
+        # -----创建第个组，添加多个组件-----
+        box_lines_limit = QGroupBox()
+        box_lines_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_lines_limit = QHBoxLayout()
+
+        #设置标签
+        label4 = QLabel(flags=Qt.WindowFlags())  
+        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label4.setText("每次翻译")
+
+        self.spinBox_lines_limit = SpinBox(self)
+        self.spinBox_lines_limit.setRange(0, 99999)    
+        self.spinBox_lines_limit.setValue(20)
+
+        #设置“说明”显示
+        self.labelA_lines = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.labelA_lines.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 15px")
+        self.labelA_lines.setText("(行)")  
+
+
+        # 设置开关
+        self.checkBox_lines_limit_switch = CheckBox('使用行数模式', self)
+
+
+        layout_lines_limit.addWidget(label4)
+        layout_lines_limit.addWidget(self.spinBox_lines_limit)
+        layout_lines_limit.addWidget( self.labelA_lines)
+        layout_lines_limit.addStretch(1)
+        layout_lines_limit.addWidget(self.checkBox_lines_limit_switch)
+        box_lines_limit.setLayout(layout_lines_limit)
+
+
+        # -----创建第个组，添加多个组件-----
+        box_tokens_limit = QGroupBox()
+        box_tokens_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_tokens_limit = QHBoxLayout()
+
+        #设置标签
+        label4 = QLabel(flags=Qt.WindowFlags())  
+        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label4.setText("每次翻译")
+
+        self.spinBox_tokens_limit = SpinBox(self)
+        self.spinBox_tokens_limit.setRange(0, 99999)    
+        self.spinBox_tokens_limit.setValue(1000)
+
+        #设置“说明”显示
+        self.labelA_tokens = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.labelA_tokens.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 15px")
+        self.labelA_tokens.setText("(tokens)")  
+
+
+        # 设置开关
+        self.checkBox_tokens_limit_switch = CheckBox('使用tokens模式', self)
+
+
+        layout_tokens_limit.addWidget(label4)
+        layout_tokens_limit.addWidget(self.spinBox_tokens_limit)
+        layout_tokens_limit.addWidget( self.labelA_tokens)
+        layout_tokens_limit.addStretch(1)
+        layout_tokens_limit.addWidget(self.checkBox_tokens_limit_switch)
+        box_tokens_limit.setLayout(layout_tokens_limit)
+
 
 
         # -----创建第1个组，添加多个组件-----
@@ -10862,15 +10947,14 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
 
 
 
-
-
-
         # 最外层的垂直布局
         container = QVBoxLayout()
 
         # 把内容添加到容器中
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box_Lines)
+        container.addWidget(box_lines_limit)
+        container.addWidget(box_tokens_limit)
         container.addWidget(box_pre_lines)
         container.addWidget(box1_thread_count)
         container.addWidget(box_retry_count_limit)
