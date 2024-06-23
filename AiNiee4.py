@@ -906,9 +906,12 @@ class Api_Requester():
                     # 记录开始请求时间
                     Start_request_time = time.time()
 
+                    # 获取AI的参数设置
+                    temperature= configurator.get_google_parameters()
+
                     # 设置AI的参数
                     generation_config = {
-                    "temperature": 0,
+                    "temperature": temperature,
                     "top_p": 1,
                     "top_k": 1,
                     "max_output_tokens": 8000, 
@@ -2601,8 +2604,8 @@ class Request_Tester():
         #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
         API_key_list = api_key_str.replace('\n','').replace(" ", "").split(",")
 
-        #检查一下请求地址尾部是否为/v1，自动补全,如果是/v4，则是在调用智谱接口，不用补全
-        if base_url[-3:] != "/v1" and base_url[-3:] != "/v4" :
+        #检查一下请求地址尾部是否为/v1，自动补全,如果是/v4，则是在调用智谱接口，如果是/v3，则是豆包
+        if base_url[-3:] != "/v1" and base_url[-3:] != "/v4" and base_url[-3:] != "/v3" :
             base_url = base_url + "/v1"
 
         #创建openai客户端
@@ -3045,7 +3048,7 @@ class Configurator():
         self.openai_presence_penalty = 0  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
         self.openai_frequency_penalty = 0 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
         self.anthropic_temperature   =  0 
-
+        self.google_temperature   =  0 
 
 
     # 初始化配置信息
@@ -3154,6 +3157,7 @@ class Configurator():
         self.openai_presence_penalty = 0.0  
         self.openai_frequency_penalty = 0.0 
         self.anthropic_temperature   =  0 
+        self.google_temperature   =  0 
 
     # 配置翻译平台信息
     def configure_translation_platform(self,translation_platform):
@@ -3351,8 +3355,8 @@ class Configurator():
                 self.model_type =  config_dict["op_model_type_openai"]       # 获取模型类型
                 self.translation_platform = 'OpenAI代理'    #重新设置翻译平台
 
-                #检查一下请求地址尾部是否为/v1，自动补全,如果是/v4，则是在调用智谱接口，不用补全
-                if relay_address[-3:] != "/v1" and relay_address[-3:] != "/v4" :
+                #检查一下请求地址尾部是否为/v1，自动补全,如果是/v4，则是在调用智谱接口，如果是/v3，则是豆包
+                if relay_address[-3:] != "/v1" and relay_address[-3:] != "/v4" and relay_address[-3:] != "/v3" :
                     relay_address = relay_address + "/v1"
 
             elif proxy_platform == 'Anthropic':
@@ -3618,6 +3622,17 @@ Third: Begin translating line by line from the original text, only translating {
             '繁中':"年輕∞＠漂亮∞＠色情"},
             }
 
+        # 基础示例
+        base_example = {
+            "base": 
+            {'日语':"愛は魂の深淵にある炎で、暖かくて永遠に消えない。",
+            '英语':"Love is the flame in the depth of the soul, warm and never extinguished.",
+            '韩语':"사랑은 영혼 깊숙이 타오르는 불꽃이며, 따뜻하고 영원히 꺼지지 않는다.",
+            '俄语':"Любовь - это пламя в глубине души, тёплое и никогда не угасающее.",
+            '简中':"爱情是灵魂深处的火焰，温暖且永不熄灭。",
+            '繁中':"愛情是靈魂深處的火焰，溫暖且永不熄滅。"}
+            }
+
 
         source_list = []
         translated_list = []
@@ -3632,8 +3647,8 @@ Third: Begin translating line by line from the original text, only translating {
 
         # 保底添加一个翻译示例
         if source_list == []:
-            source_list.append(patterns_all[r'「|」'][source_language])
-            translated_list.append(patterns_all[r'「|」'][target_language])
+            source_list.append(base_example["base"][source_language])
+            translated_list.append(base_example["base"][target_language])
 
         return source_list,translated_list
     
@@ -4403,6 +4418,18 @@ Third: Begin translating line by line from the original text, only translating {
         return temperature
 
 
+    # 获取AI模型的参数设置（google）
+    def get_google_parameters(self):
+        #如果启用实时参数设置
+        if Window.Widget_tune_google.checkBox.isChecked() :
+            print("[INFO] 已开启google调教功能，设置为用户设定的参数")
+            #获取界面配置信息
+            temperature = Window.Widget_tune_google.slider1.value() * 0.1
+        else:
+            temperature = self.google_temperature      
+
+        return temperature
+
     # 获取AI模型的参数设置（sakura）
     def get_sakura_parameters(self):
         #如果启用实时参数设置
@@ -4611,6 +4638,9 @@ Third: Begin translating line by line from the original text, only translating {
 
             #获取实时设置界面(anthropic)
             config_dict["Anthropic_Temperature"] = Window.Widget_tune_anthropic.slider1.value()           #获取anthropic 温度
+
+            #获取实时设置界面(google)
+            config_dict["Google_Temperature"] = Window.Widget_tune_google.slider1.value()           #获取google 温度
 
             #获取实时设置界面(sakura)
             config_dict["Sakura_Temperature"] = Window.Widget_tune_sakura.slider1.value()           #获取sakura温度
@@ -4967,6 +4997,11 @@ Third: Begin translating line by line from the original text, only translating {
                 if "Anthropic_Temperature" in config_dict:
                     Anthropic_Temperature = config_dict["Anthropic_Temperature"]
                     Window.Widget_tune_anthropic.slider1.setValue(Anthropic_Temperature)
+
+                #实时设置界面(google)
+                if "Google_Temperature" in config_dict:
+                    Google_Temperature = config_dict["Google_Temperature"]
+                    Window.Widget_tune_google.slider1.setValue(Google_Temperature)
 
                 #实时设置界面(sakura)
                 if "Sakura_Temperature" in config_dict:
@@ -9723,6 +9758,372 @@ class Widget_Dashscope(QFrame):#  dashscope账号界面
 
 
 
+class Widget_Volcengine(QFrame):  # 火山引擎主界面
+    def __init__(self, text: str, parent=None):  # 构造函数，初始化实例时会自动调用
+        super().__init__(parent=parent)  # 调用父类 QWidget 的构造函数
+        self.setObjectName(text.replace(' ', '-'))  # 设置对象名，用于在 NavigationInterface 中的 addItem 方法中的 routeKey 参数中使用
+
+
+        self.pivot = SegmentedWidget(self)  # 创建一个 SegmentedWidget 实例，分段式导航栏
+        self.stackedWidget = QStackedWidget(self)  # 创建一个 QStackedWidget 实例，堆叠式窗口
+        self.vBoxLayout = QVBoxLayout(self)  # 创建一个垂直布局管理器
+
+        self.A_settings = Widget_Volcengine_A('A_settings', self)  # 创建实例，指向界面
+        self.B_settings = Widget_Volcengine_B('B_settings', self)  # 创建实例，指向界面
+
+        # 添加子界面到分段式导航栏
+        self.addSubInterface(self.A_settings, 'A_settings', '基础设置')
+        self.addSubInterface(self.B_settings, 'B_settings', '速率价格设置')
+
+        # 将分段式导航栏和堆叠式窗口添加到垂直布局中
+        self.vBoxLayout.addWidget(self.pivot)
+        self.vBoxLayout.addWidget(self.stackedWidget)
+        self.vBoxLayout.setContentsMargins(30, 50, 30, 30)  # 设置布局的外边距
+
+        # 连接堆叠式窗口的 currentChanged 信号到槽函数 onCurrentIndexChanged
+        self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
+        self.stackedWidget.setCurrentWidget(self.A_settings)  # 设置默认显示的子界面为xxx界面
+        self.pivot.setCurrentItem(self.A_settings.objectName())  # 设置分段式导航栏的当前项为xxx界面
+
+    def addSubInterface(self, widget: QLabel, objectName, text):
+        """
+        添加子界面到堆叠式窗口和分段式导航栏
+        """
+        widget.setObjectName(objectName)
+        #widget.setAlignment(Qt.AlignCenter) # 设置 widget 对象的文本（如果是文本控件）在控件中的水平对齐方式
+        self.stackedWidget.addWidget(widget)
+        self.pivot.addItem(
+            routeKey=objectName,
+            text=text,
+            onClick=lambda: self.stackedWidget.setCurrentWidget(widget),
+        )
+
+    def onCurrentIndexChanged(self, index):
+        """
+        槽函数：堆叠式窗口的 currentChanged 信号的槽函数
+        """
+        widget = self.stackedWidget.widget(index)
+        self.pivot.setCurrentItem(widget.objectName())
+
+
+class Widget_Volcengine_A(QFrame):#  火山引擎基础设置子界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+
+        # -----创建第3个组，添加多个组件-----
+        box_access_point = QGroupBox()
+        box_access_point.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_access_point = QHBoxLayout()
+
+        #设置“推理接入点”标签
+        self.label_access_point = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.label_access_point.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.label_access_point.setText("推理接入点")
+
+        #设置微调距离用的空白标签
+        self.labelx = QLabel()  
+        self.labelx.setText("                    ")
+
+        #设置“推理接入点”的输入框
+        self.LineEdit_access_point = LineEdit()
+        #LineEdit1.setFixedSize(300, 30)
+
+
+        layout_access_point.addWidget(self.label_access_point)
+        layout_access_point.addWidget(self.labelx)
+        layout_access_point.addWidget(self.LineEdit_access_point)
+        box_access_point.setLayout(layout_access_point)
+
+        # -----创建第2个组，添加多个组件-----
+        box_apikey = QGroupBox()
+        box_apikey.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_apikey = QHBoxLayout()
+
+        #设置“API KEY”标签
+        self.labelx = QLabel(flags=Qt.WindowFlags())  
+        self.labelx.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        self.labelx.setText("API KEY")
+
+        #设置微调距离用的空白标签
+        self.labely = QLabel()  
+        self.labely.setText("                       ")
+
+        #设置“API KEY”的输入框
+        self.TextEdit_apikey = TextEdit()
+
+
+
+        # 追加到容器中
+        layout_apikey.addWidget(self.labelx)
+        layout_apikey.addWidget(self.labely)
+        layout_apikey.addWidget(self.TextEdit_apikey)
+        # 添加到 box中
+        box_apikey.setLayout(layout_apikey)
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box_proxy_port = QGroupBox()
+        box_proxy_port.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_proxy_port = QHBoxLayout()
+
+        #设置“代理地址”标签
+        self.label_proxy_port = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.label_proxy_port.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.label_proxy_port.setText("系统代理")
+
+        #设置微调距离用的空白标签
+        self.labelx = QLabel()  
+        self.labelx.setText("                      ")
+
+        #设置“代理地址”的输入框
+        self.LineEdit_proxy_port = LineEdit()
+        #LineEdit1.setFixedSize(300, 30)
+
+
+        layout_proxy_port.addWidget(self.label_proxy_port)
+        layout_proxy_port.addWidget(self.labelx)
+        layout_proxy_port.addWidget(self.LineEdit_proxy_port)
+        box_proxy_port.setLayout(layout_proxy_port)
+
+
+
+        # -----创建第4个组，添加多个组件-----
+        box_test = QGroupBox()
+        box_test.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_test = QHBoxLayout()
+
+
+        #设置“测试请求”的按钮
+        primaryButton_test = PrimaryPushButton('测试请求', self, FIF.SEND)
+        primaryButton_test.clicked.connect(self.test_request) #按钮绑定槽函数
+
+        #设置“保存配置”的按钮
+        primaryButton_save = PushButton('保存配置', self, FIF.SAVE)
+        primaryButton_save.clicked.connect(self.saveconfig) #按钮绑定槽函数
+
+
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_test)
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_save)
+        layout_test.addStretch(1)  # 添加伸缩项
+        box_test.setLayout(layout_test)
+
+
+
+        # -----最外层容器设置垂直布局-----
+        container = QVBoxLayout()
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+        # 把各个组添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_access_point)
+        container.addWidget(box_apikey)
+        container.addWidget(box_proxy_port)
+        container.addWidget(box_test)
+        container.addStretch(1)  # 添加伸缩项
+
+
+    def saveconfig(self):
+        configurator.read_write_config("write")
+        user_interface_prompter.createSuccessInfoBar("已成功保存配置")
+
+    def test_request(self):
+        global Running_status
+
+        if Running_status == 0:
+            Base_url = "https://ark.cn-beijing.volces.com/api/v3"
+            Model_Type =  self.LineEdit_access_point.text()      #获取推理接入点
+            API_key_str = self.TextEdit_apikey.toPlainText()        #获取apikey输入值
+            Proxy_port = self.LineEdit_proxy_port.text()            #获取代理端口
+
+            #创建子线程
+            thread = background_executor("接口测试","","","Dashscope",Base_url,Model_Type,API_key_str,Proxy_port)
+            thread.start()
+
+        elif Running_status != 0:
+            user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+
+
+class Widget_Volcengine_B(QFrame):#  火山引擎进阶设置子界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+
+        # -----创建第1个组(后面加的)，添加多个组件-----
+        box_tokens = QGroupBox()
+        box_tokens.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_tokens = QHBoxLayout()
+
+        #设置标签
+        self.label_tokens = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.label_tokens.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.label_tokens.setText("每次发送文本上限")
+
+        #设置“说明”显示
+        self.labelA_tokens = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.labelA_tokens.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.labelA_tokens.setText("(tokens)")  
+
+        #数值输入
+        self.spinBox_tokens = SpinBox(self)
+        self.spinBox_tokens.setRange(0, 2147483647)    
+        self.spinBox_tokens.setValue(4000)
+
+
+        layout_tokens.addWidget(self.label_tokens)
+        layout_tokens.addWidget(self.labelA_tokens)
+        layout_tokens.addStretch(1)  # 添加伸缩项
+        layout_tokens.addWidget(self.spinBox_tokens)
+        box_tokens.setLayout(layout_tokens)
+
+
+
+        # -----创建第1个组(后面加的)，添加多个组件-----
+        box_RPM = QGroupBox()
+        box_RPM.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_RPM = QHBoxLayout()
+
+        #设置“RPM”标签
+        self.labelY = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.labelY.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.labelY.setText("每分钟请求数")
+
+        #设置“说明”显示
+        self.labelA = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.labelA.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.labelA.setText("(RPM)")  
+
+        #数值输入
+        self.spinBox_RPM = SpinBox(self)
+        self.spinBox_RPM.setRange(0, 2147483647)    
+        self.spinBox_RPM.setValue(10000)
+
+
+        layout_RPM.addWidget(self.labelY)
+        layout_RPM.addWidget(self.labelA)
+        layout_RPM.addStretch(1)  # 添加伸缩项
+        layout_RPM.addWidget(self.spinBox_RPM)
+        box_RPM.setLayout(layout_RPM)
+
+
+
+        # -----创建第2个组（后面加的），添加多个组件-----
+        box_TPM = QGroupBox()
+        box_TPM.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_TPM = QHBoxLayout()
+
+        #设置“TPM”标签
+        self.labelB = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.labelB.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.labelB.setText("每分钟tokens数")
+    
+        #设置“说明”显示
+        self.labelC = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.labelC.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.labelC.setText("(TPM)") 
+
+        #数值输入
+        self.spinBox_TPM = SpinBox(self)
+        self.spinBox_TPM.setRange(0, 2147483647)    
+        self.spinBox_TPM.setValue(800000)
+
+
+        layout_TPM.addWidget(self.labelB)
+        layout_TPM.addWidget(self.labelC)
+        layout_TPM.addStretch(1)  # 添加伸缩项
+        layout_TPM.addWidget(self.spinBox_TPM)
+        box_TPM.setLayout(layout_TPM)
+
+
+        # -----创建第3个组（后面加的），添加多个组件-----
+        box_input_pricing = QGroupBox()
+        box_input_pricing.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_input_pricing = QHBoxLayout()
+
+        #设置“请求输入价格”标签
+        self.labelD = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.labelD.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.labelD.setText("请求输入价格")
+    
+        #设置“说明”显示
+        self.labelE = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.labelE.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.labelE.setText("( /1K tokens)") 
+
+        #数值输入
+        self.spinBox_input_pricing = DoubleSpinBox(self)
+        self.spinBox_input_pricing.setRange(0.0000, 2147483647)   
+        self.spinBox_input_pricing.setDecimals(4)  # 设置小数点后的位数 
+        self.spinBox_input_pricing.setValue(0.0020)
+
+
+        layout_input_pricing.addWidget(self.labelD)
+        layout_input_pricing.addWidget(self.labelE)
+        layout_input_pricing.addStretch(1)  # 添加伸缩项
+        layout_input_pricing.addWidget(self.spinBox_input_pricing)
+        box_input_pricing.setLayout(layout_input_pricing)
+
+
+        # -----创建第4个组（后面加的），添加多个组件-----
+        box_output_pricing = QGroupBox()
+        box_output_pricing.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_output_pricing = QHBoxLayout()
+
+        #设置“TPM”标签
+        self.labelF = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.labelF.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.labelF.setText("回复输出价格")
+    
+        #设置“说明”显示
+        self.labelG = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.labelG.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.labelG.setText("( /1K tokens)") 
+
+        #数值输入
+        self.spinBox_output_pricing = DoubleSpinBox(self)
+        self.spinBox_output_pricing.setRange(0.0000, 2147483647)
+        self.spinBox_output_pricing.setDecimals(4)  # 设置小数点后的位数     
+        self.spinBox_output_pricing.setValue(0.0500)
+        
+
+        layout_output_pricing.addWidget(self.labelF)
+        layout_output_pricing.addWidget(self.labelG)
+        layout_output_pricing.addStretch(1)  # 添加伸缩项
+        layout_output_pricing.addWidget(self.spinBox_output_pricing)
+        box_output_pricing.setLayout(layout_output_pricing)
+
+
+
+        # -----最外层容器设置垂直布局-----
+        container = QVBoxLayout()
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+        # 把各个组添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_tokens)
+        container.addWidget(box_RPM)
+        container.addWidget(box_TPM)
+        container.addWidget(box_input_pricing)
+        container.addWidget(box_output_pricing)
+        container.addStretch(1)  # 添加伸缩项
+
+
+
 
 
 class Widget_SakuraLLM(QFrame):  # Sakura主界面
@@ -11650,6 +12051,100 @@ class Widget_tune_anthropic(QFrame):# anthropic调教界面
         #设置官方文档说明链接按钮
         hyperlinkButton = HyperlinkButton(
             url='https://docs.anthropic.com/en/api/messages',
+            text='(官方文档)'
+        )
+
+        #设置“启用实时参数”开关
+        self.checkBox = CheckBox('启用', self)
+        #self.checkBox.stateChanged.connect(self.checkBoxChanged)
+
+
+        layout1.addWidget(label0)
+        layout1.addWidget(hyperlinkButton)
+        layout1.addStretch(1)  # 添加伸缩项
+        layout1.addWidget(self.checkBox)
+        box1.setLayout(layout1)
+
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box3 = QGroupBox()
+        box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout3 = QHBoxLayout()
+
+        #设置“温度”标签
+        label1 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label1.setText("Temperature")
+
+        #设置“温度”副标签
+        label11 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label11.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 10px;  color: black")
+        label11.setText("(官方默认值为0)")
+
+        #设置“温度”滑动条
+        self.slider1 = Slider(Qt.Horizontal, self)
+        self.slider1.setFixedWidth(200)
+
+        # 创建一个QLabel控件，并设置初始文本为滑动条的初始值,并实时更新
+        self.label2 = QLabel(str(self.slider1.value()), self)
+        self.label2.setFixedSize(100, 15)  # 设置标签框的大小，不然会显示不全
+        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px;  color: black")
+        self.slider1.valueChanged.connect(lambda value: self.label2.setText(str("{:.1f}".format(value * 0.1))))
+
+        #设置滑动条的最小值、最大值、当前值，放到后面是为了让上面的label2显示正确的值
+        self.slider1.setMinimum(0)
+        self.slider1.setMaximum(10)
+        self.slider1.setValue(0)
+
+        
+
+        layout3.addWidget(label1)
+        layout3.addWidget(label11)
+        layout3.addStretch(1)  # 添加伸缩项
+        layout3.addWidget(self.slider1)
+        layout3.addWidget(self.label2)
+        box3.setLayout(layout3)
+
+
+
+        # 把内容添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box1)
+        container.addWidget(box3)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+
+class Widget_tune_google(QFrame):# google调教界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+
+        # -----创建第1个组，添加多个组件-----
+        box1 = QGroupBox()
+        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1 = QHBoxLayout()
+
+
+        #设置“启用实时参数”标签
+        label0 = QLabel(flags=Qt.WindowFlags())  
+        label0.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label0.setText("实时改变AI参数")
+
+        #设置官方文档说明链接按钮
+        hyperlinkButton = HyperlinkButton(
+            url='https://ai.google.dev/gemini-api/docs/models/generative-models?hl=zh-cn',
             text='(官方文档)'
         )
 
@@ -13838,6 +14333,7 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_Moonshot = Widget_Moonshot('Widget_Moonshot', self)
         self.Widget_Deepseek = Widget_Deepseek('Widget_Deepseek', self)
         self.Widget_Dashscope = Widget_Dashscope('Widget_Dashscope', self)
+        self.Widget_Volcengine = Widget_Volcengine('Widget_Volcengine', self)
         self.Widget_SakuraLLM = Widget_SakuraLLM('Widget_SakuraLLM', self)
 
         self.Widget_translation_settings = Widget_translation_settings('Widget_translation_settings', self)
@@ -13855,6 +14351,7 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_tune_openai = Widget_tune_openai('Widget_tune_openai', self)
         self.Widget_tune_sakura = Widget_tune_sakura('Widget_tune_sakura', self)
         self.Widget_tune_anthropic = Widget_tune_anthropic('Widget_tune_anthropic', self)
+        self.Widget_tune_google = Widget_tune_google('Widget_tune_google', self)
 
         self.Widget_sponsor = Widget_sponsor('Widget_sponsor', self)
         self.Widget_replace_dict = Widget_replace_dict('Widget_replace_dict', self)
@@ -13906,6 +14403,8 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_Deepseek, FIF.FEEDBACK, 'Deepseek官方',parent=self.Widget_official_api) 
         # 添加Dashscope官方账号界面
         self.addSubInterface(self.Widget_Dashscope, FIF.FEEDBACK, 'Dashscope官方',parent=self.Widget_official_api) 
+        # 添加Volcengine官方账号界面
+        self.addSubInterface(self.Widget_Volcengine, FIF.FEEDBACK, 'Volcengine官方',parent=self.Widget_official_api) 
         # 添加智谱官方账号界面
         self.addSubInterface(self.Widget_ZhiPu, FIF.FEEDBACK, '智谱官方',parent=self.Widget_official_api) 
 
@@ -13944,6 +14443,7 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_tune_openai, FIF.SPEED_OFF, 'OpenAI',parent=self.Widget_tune)
         self.addSubInterface(self.Widget_tune_anthropic, FIF.SPEED_OFF, 'Anthropic',parent=self.Widget_tune)    
         self.addSubInterface(self.Widget_tune_sakura, FIF.SPEED_OFF, 'Sakura',parent=self.Widget_tune)  
+        self.addSubInterface(self.Widget_tune_google, FIF.SPEED_OFF, 'Google',parent=self.Widget_tune)  
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
 
