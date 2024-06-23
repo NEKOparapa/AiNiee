@@ -8211,7 +8211,7 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
 
 
         self.comboBox_model_anthropic = EditableComboBox() #以demo为父类
-        self.comboBox_model_anthropic.addItems(['claude-2.0','claude-2.1','claude-3-haiku-20240307','claude-3-sonnet-20240229', 'claude-3-opus-20240229'])
+        self.comboBox_model_anthropic.addItems(['claude-2.0','claude-2.1','claude-3-haiku-20240307','claude-3-sonnet-20240229', 'claude-3-opus-20240229','claude-3-5-sonnet-20240620'])
         self.comboBox_model_anthropic.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model_anthropic.setFixedSize(250, 35)
 
@@ -8935,7 +8935,7 @@ class Widget_Anthropic(QFrame):#  Anthropic账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox_model = EditableComboBox() #以demo为父类
-        self.comboBox_model.addItems(['claude-2.0','claude-2.1','claude-3-haiku-20240307','claude-3-sonnet-20240229', 'claude-3-opus-20240229'])
+        self.comboBox_model.addItems(['claude-2.0','claude-2.1','claude-3-haiku-20240307','claude-3-sonnet-20240229', 'claude-3-opus-20240229','claude-3-5-sonnet-20240620'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(215, 35)
         #设置下拉选择框默认选择
@@ -14581,7 +14581,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.71"  #软件版本号
+    Software_Version = "AiNiee4.8"  #软件版本号
     cache_list = [] # 全局缓存数据
     Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是接口测试状态
                         # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态

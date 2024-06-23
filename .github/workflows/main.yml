@@ -36,6 +36,7 @@ jobs:
           Copy-Item -Path "$clibPath" -Destination "dist\clib" -Recurse -Force
           Copy-Item -Path "resource" -Destination "dist\resource" -Recurse -Force
           Copy-Item -Path "StevExtraction" -Destination "dist\StevExtraction" -Recurse -Force
+          Copy-Item -Path "SakuraLLMScript" -Destination "dist\SakuraLLMScript" -Recurse -Force
           Compress-Archive -Path "dist" -DestinationPath "AiNiee-Beta.zip"
           
       - name: Delete release
