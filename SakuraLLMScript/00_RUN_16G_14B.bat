@@ -3,6 +3,6 @@
 
 set label=00_RUN_16G_14B
 set ngl=999
-set np=5
-set ctx=6400
+set np=8
+set ctx=7680
 call common.bat
