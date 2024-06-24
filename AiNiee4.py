@@ -69,8 +69,9 @@ class Translator():
 
     def Main(self):
         global cache_list, Running_status
-
         # ——————————————————————————————————————————配置信息初始化—————————————————————————————————————————
+
+
         configurator.read_write_config("write") # 将配置信息写入配置文件中
 
         configurator.initialize_configuration() # 获取界面的配置信息
@@ -85,6 +86,7 @@ class Translator():
 
         # ——————————————————————————————————————————读取原文到缓存—————————————————————————————————————————
 
+
         #如果是从头开始翻译
         if Running_status == 6:
             # 读取文件
@@ -96,8 +98,10 @@ class Translator():
                 print("\033[1;31mError:\033[0m 读取原文失败，请检查项目类型是否设置正确，输入文件夹是否混杂其他非必要文件！")
                 return
 
+
         # ——————————————————————————————————————————初步处理缓存文件—————————————————————————————————————————
             
+
             # 将浮点型，整数型文本内容变成字符型文本内容
             Cache_Manager.convert_source_text_to_str(self,cache_list)
 
@@ -111,11 +115,11 @@ class Translator():
 
         # ——————————————————————————————————————————构建并发任务池子—————————————————————————————————————————
 
+
         # 计算待翻译的文本总行数，tokens总数
         untranslated_text_line_count,untranslated_text_tokens_count = Cache_Manager.count_and_update_translation_status_0_2(self, cache_list) #获取需要翻译的文本总行数
         # 计算并发任务数
         tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.lines_limit,configurator.tokens_limit,configurator.tokens_limit_switch)
-
 
 
         # 更新界面UI信息
@@ -176,6 +180,7 @@ class Translator():
 
 
         # ——————————————————————————————————————————检查没能成功翻译的文本，拆分翻译————————————————————————————————————————
+
 
         #计算未翻译文本的数量
         untranslated_text_line_count,untranslated_text_tokens_count = Cache_Manager.count_and_update_translation_status_0_2(self,cache_list)
@@ -4613,18 +4618,18 @@ Third: Begin translating line by line from the original text, only translating {
             config_dict["label_output_path"] = Window.Widget_translation_settings_A.label_output_path.text()
 
             #翻译设置进阶设置界面
-            config_dict["lines_limit_switch"] = Window.Widget_translation_settings_B.checkBox_lines_limit_switch.isChecked()            
-            config_dict["lines_limit"] = Window.Widget_translation_settings_B.spinBox_lines_limit.value()          
-            config_dict["tokens_limit_switch"] = Window.Widget_translation_settings_B.checkBox_tokens_limit_switch.isChecked()           
-            config_dict["tokens_limit"] = Window.Widget_translation_settings_B.spinBox_tokens_limit.value()            #获取tokens限制
-            config_dict["pre_line_counts"] = Window.Widget_translation_settings_B.spinBox_pre_lines.value()     # 获取上文文本行数设置
-            config_dict["cot_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_cot_toggle.isChecked()   # 获取cot开关
-            config_dict["cn_prompt_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_cn_prompt_toggle.isChecked()   # 获取中文提示词开关
-            config_dict["thread_counts"] = Window.Widget_translation_settings_B.spinBox_thread_count.value() # 获取线程数设置
-            config_dict["retry_count_limit"] =  Window.Widget_translation_settings_B.spinBox_retry_count_limit.value()     # 获取重翻次数限制  
-            config_dict["preserve_line_breaks_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关  
-            config_dict["response_conversion_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_conversion_toggle.isChecked()   # 获取简繁转换开关
-            config_dict["text_clear_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_clear.isChecked() # 获取文本处理开关
+            config_dict["lines_limit_switch"] = Window.Widget_translation_settings_B1.checkBox_lines_limit_switch.isChecked()            
+            config_dict["lines_limit"] = Window.Widget_translation_settings_B1.spinBox_lines_limit.value()          
+            config_dict["tokens_limit_switch"] = Window.Widget_translation_settings_B1.checkBox_tokens_limit_switch.isChecked()           
+            config_dict["tokens_limit"] = Window.Widget_translation_settings_B1.spinBox_tokens_limit.value()            #获取tokens限制
+            config_dict["pre_line_counts"] = Window.Widget_translation_settings_B1.spinBox_pre_lines.value()     # 获取上文文本行数设置
+            config_dict["thread_counts"] = Window.Widget_translation_settings_B1.spinBox_thread_count.value() # 获取线程数设置
+            config_dict["retry_count_limit"] =  Window.Widget_translation_settings_B1.spinBox_retry_count_limit.value()     # 获取重翻次数限制  
+            config_dict["cot_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_cot_toggle.isChecked()   # 获取cot开关
+            config_dict["cn_prompt_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_cn_prompt_toggle.isChecked()   # 获取中文提示词开关
+            config_dict["preserve_line_breaks_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关  
+            config_dict["response_conversion_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_conversion_toggle.isChecked()   # 获取简繁转换开关
+            config_dict["text_clear_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_clear.isChecked() # 获取文本处理开关
 
             #翻译设置混合反应设置界面
             config_dict["translation_mixing_toggle"] =  Window.Widget_translation_settings_C.SwitchButton_mixed_translation.isChecked() # 获取混合翻译开关
@@ -4950,29 +4955,30 @@ Third: Begin translating line by line from the original text, only translating {
 
                 #翻译设置进阶界面
                 if "lines_limit_switch" in config_dict:
-                    Window.Widget_translation_settings_B.checkBox_lines_limit_switch.setChecked(config_dict["lines_limit_switch"])
+                    Window.Widget_translation_settings_B1.checkBox_lines_limit_switch.setChecked(config_dict["lines_limit_switch"])
                 if "lines_limit" in config_dict:
-                    Window.Widget_translation_settings_B.spinBox_lines_limit.setValue(config_dict["lines_limit"])
+                    Window.Widget_translation_settings_B1.spinBox_lines_limit.setValue(config_dict["lines_limit"])
                 if "tokens_limit_switch" in config_dict:
-                    Window.Widget_translation_settings_B.checkBox_tokens_limit_switch.setChecked(config_dict["tokens_limit_switch"])
+                    Window.Widget_translation_settings_B1.checkBox_tokens_limit_switch.setChecked(config_dict["tokens_limit_switch"])
                 if "tokens_limit" in config_dict:
-                    Window.Widget_translation_settings_B.spinBox_tokens_limit.setValue(config_dict["tokens_limit"])
+                    Window.Widget_translation_settings_B1.spinBox_tokens_limit.setValue(config_dict["tokens_limit"])
                 if "pre_line_counts" in config_dict:
-                    Window.Widget_translation_settings_B.spinBox_pre_lines.setValue(config_dict["pre_line_counts"])
+                    Window.Widget_translation_settings_B1.spinBox_pre_lines.setValue(config_dict["pre_line_counts"])
                 if "thread_counts" in config_dict:
-                    Window.Widget_translation_settings_B.spinBox_thread_count.setValue(config_dict["thread_counts"])
-                if "cot_toggle" in config_dict:
-                    Window.Widget_translation_settings_B.SwitchButton_cot_toggle.setChecked(config_dict["cot_toggle"])
-                if "cn_prompt_toggle" in config_dict:
-                    Window.Widget_translation_settings_B.SwitchButton_cn_prompt_toggle.setChecked(config_dict["cn_prompt_toggle"])
-                if "preserve_line_breaks_toggle" in config_dict:
-                    Window.Widget_translation_settings_B.SwitchButton_line_breaks.setChecked(config_dict["preserve_line_breaks_toggle"])
-                if "response_conversion_toggle" in config_dict:
-                    Window.Widget_translation_settings_B.SwitchButton_conversion_toggle.setChecked(config_dict["response_conversion_toggle"])
-                if "text_clear_toggle" in config_dict:
-                    Window.Widget_translation_settings_B.SwitchButton_clear.setChecked(config_dict["text_clear_toggle"])
+                    Window.Widget_translation_settings_B1.spinBox_thread_count.setValue(config_dict["thread_counts"])
                 if "retry_count_limit" in config_dict:
-                    Window.Widget_translation_settings_B.spinBox_retry_count_limit.setValue(config_dict["retry_count_limit"])
+                    Window.Widget_translation_settings_B1.spinBox_retry_count_limit.setValue(config_dict["retry_count_limit"])
+                if "cot_toggle" in config_dict:
+                    Window.Widget_translation_settings_B2.SwitchButton_cot_toggle.setChecked(config_dict["cot_toggle"])
+                if "cn_prompt_toggle" in config_dict:
+                    Window.Widget_translation_settings_B2.SwitchButton_cn_prompt_toggle.setChecked(config_dict["cn_prompt_toggle"])
+                if "preserve_line_breaks_toggle" in config_dict:
+                    Window.Widget_translation_settings_B2.SwitchButton_line_breaks.setChecked(config_dict["preserve_line_breaks_toggle"])
+                if "response_conversion_toggle" in config_dict:
+                    Window.Widget_translation_settings_B2.SwitchButton_conversion_toggle.setChecked(config_dict["response_conversion_toggle"])
+                if "text_clear_toggle" in config_dict:
+                    Window.Widget_translation_settings_B2.SwitchButton_clear.setChecked(config_dict["text_clear_toggle"])
+
 
                 #翻译设置混合翻译界面
                 if "translation_mixing_toggle" in config_dict:
@@ -10631,7 +10637,7 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
         user_interface_prompter.createSuccessInfoBar("已成功保存配置")
 
 
-class Widget_translation_settings_B(QFrame):#  进阶设置子界面
+class Widget_translation_settings_B1(QFrame):#  发送设置子界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
@@ -10780,6 +10786,49 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         box_retry_count_limit.setLayout(layout_retry_count_limit)
 
 
+
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+        # 把内容添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_lines_limit)
+        container.addWidget(box_tokens_limit)
+        container.addWidget(box_pre_lines)
+        container.addWidget(box1_thread_count)
+        container.addWidget(box_retry_count_limit)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+
+    #设置选择开关绑定函数
+    def on_clear(self, isChecked: bool):
+        if isChecked:
+            user_interface_prompter.createWarningInfoBar("仅支持翻译日语文本时生效，建议翻译T++导出文件时开启")
+
+    #设互斥开关函数
+    def on_lines(self, isChecked: bool):
+        if isChecked:
+            self.checkBox_tokens_limit_switch.setChecked(False)
+
+    #设互斥开关函数
+    def on_tokens(self, isChecked: bool):
+        if isChecked:
+            self.checkBox_lines_limit_switch.setChecked(False)
+
+
+class Widget_translation_settings_B2(QFrame):#  专项设置子界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+
         # -----创建第3个组(后来补的)，添加多个组件-----
         box1_cot_toggle = QGroupBox()
         box1_cot_toggle.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
@@ -10897,11 +10946,6 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
 
         # 把内容添加到容器中
         container.addStretch(1)  # 添加伸缩项
-        container.addWidget(box_lines_limit)
-        container.addWidget(box_tokens_limit)
-        container.addWidget(box_pre_lines)
-        container.addWidget(box1_thread_count)
-        container.addWidget(box_retry_count_limit)
         container.addWidget(box1_cot_toggle)
         container.addWidget(box1_cn_prompt_toggle)
         container.addWidget(box1_line_breaks)
@@ -10919,16 +10963,6 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
     def on_clear(self, isChecked: bool):
         if isChecked:
             user_interface_prompter.createWarningInfoBar("仅支持翻译日语文本时生效，建议翻译T++导出文件时开启")
-
-    #设互斥开关函数
-    def on_lines(self, isChecked: bool):
-        if isChecked:
-            self.checkBox_tokens_limit_switch.setChecked(False)
-
-    #设互斥开关函数
-    def on_tokens(self, isChecked: bool):
-        if isChecked:
-            self.checkBox_lines_limit_switch.setChecked(False)
 
 
 class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
@@ -14376,7 +14410,8 @@ class window(FramelessWindow): #主窗口 v
 
         self.Widget_translation_settings = Widget_translation_settings('Widget_translation_settings', self)
         self.Widget_translation_settings_A = Widget_translation_settings_A('Widget_translation_settings_A', self) 
-        self.Widget_translation_settings_B = Widget_translation_settings_B('Widget_translation_settings_B', self) 
+        self.Widget_translation_settings_B1 = Widget_translation_settings_B1('Widget_translation_settings_B1', self) 
+        self.Widget_translation_settings_B2 = Widget_translation_settings_B2('Widget_translation_settings_B2', self) 
         self.Widget_translation_settings_C = Widget_translation_settings_C('Widget_translation_settings_C', self)  
         self.Widget_start_translation = Widget_start_translation('Widget_start_translation', self) 
 
@@ -14456,7 +14491,8 @@ class window(FramelessWindow): #主窗口 v
         # 添加翻译设置相关页面
         self.addSubInterface(self.Widget_translation_settings, FIF.APPLICATION, '翻译设置',NavigationItemPosition.SCROLL) 
         self.addSubInterface(self.Widget_translation_settings_A, FIF.REMOVE, '基础设置',parent=self.Widget_translation_settings) 
-        self.addSubInterface(self.Widget_translation_settings_B, FIF.ALIGNMENT, '进阶设置',parent=self.Widget_translation_settings) 
+        self.addSubInterface(self.Widget_translation_settings_B1, FIF.ALIGNMENT, '发送设置',parent=self.Widget_translation_settings) 
+        self.addSubInterface(self.Widget_translation_settings_B2, FIF.ALBUM, '专项设置',parent=self.Widget_translation_settings) 
         self.addSubInterface(self.Widget_translation_settings_C, FIF.EMOJI_TAB_SYMBOLS, '混合翻译设置',parent=self.Widget_translation_settings) 
 
         # 添加开始翻译页面
@@ -14581,7 +14617,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.8"  #软件版本号
+    Software_Version = "AiNiee4.71"  #软件版本号
     cache_list = [] # 全局缓存数据
     Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是接口测试状态
                         # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
