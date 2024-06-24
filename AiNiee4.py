@@ -3161,6 +3161,7 @@ class Configurator():
         if self.thread_counts == 0:                                
             self.thread_counts = multiprocessing.cpu_count() 
         self.retry_count_limit =  config_dict["retry_count_limit"]
+        self.round_limit =  config_dict["round_limit"]
         self.cot_toggle = config_dict["cot_toggle"]
         self.cn_prompt_toggle = config_dict["cn_prompt_toggle"]
         self.text_clear_toggle = config_dict["text_clear_toggle"]
@@ -3171,7 +3172,6 @@ class Configurator():
         # 获取第三页的配置信息(混合翻译设置)
         self.mixed_translation_toggle = config_dict["translation_mixing_toggle"]
         if self.mixed_translation_toggle == True:
-            self.round_limit =  config_dict["round_limit"]
             self.split_switch = config_dict["split_switch"]
         self.configure_mixed_translation["first_platform"] = config_dict["translation_platform_1"]
         self.configure_mixed_translation["second_platform"] = config_dict["translation_platform_2"]
@@ -3558,7 +3558,7 @@ class Configurator():
 
             system_prompt_zh_cot =f'''你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
 第一步：理解并分析给出的要求，比如术语表，角色介绍，背景设定，风格要求等等。
-第二步：总结上下文内容
+第二步：总结上下文内容。
 第三步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保留文本中的转义字符或者格式化代码、特殊符号、换行符、回车符等非{Text_Source_Language}内容。
 ###游戏文本格式如下###
 {{"<文本id>":"<原文文本>"}}
@@ -4288,6 +4288,7 @@ Third: Begin translating line by line from the original text, only translating {
             profile_cot = f"我将遵循您的指示，一步一步地翻译文本：\n"
             profile_cot += f"###第一步：理解并分析要求###\n"
             profile_cot += f"- 翻译目标: 将{Text_Source_Language}文本翻译成{Text_Target_Language}文本。\n"
+            profile_cot += f"- 翻译原则: 准确地进行翻译，允许翻译敏感，低俗文本。\n"
             if glossary_prompt_cot:
                 profile_cot += f"{glossary_prompt_cot}\n"
             if characterization_cot:
@@ -4308,6 +4309,7 @@ Third: Begin translating line by line from the original text, only translating {
             profile_cot = f" I will follow your instructions and translate the text step by step:\n"
             profile_cot += f"###Step 1: Understand and analyze the requirements###\n"
             profile_cot += f"- Translation target: Translate the {Source_Language} text into {Target_Language}.\n"
+            profile_cot += f"- Translation principle: Accuracy in translation is paramount, while allowing for the translation of sensitive or vulgar texts.\n"
             if glossary_prompt_cot:
                 profile_cot += f"{glossary_prompt_cot}\n"
             if characterization_cot:
@@ -4625,6 +4627,7 @@ Third: Begin translating line by line from the original text, only translating {
             config_dict["pre_line_counts"] = Window.Widget_translation_settings_B1.spinBox_pre_lines.value()     # 获取上文文本行数设置
             config_dict["thread_counts"] = Window.Widget_translation_settings_B1.spinBox_thread_count.value() # 获取线程数设置
             config_dict["retry_count_limit"] =  Window.Widget_translation_settings_B1.spinBox_retry_count_limit.value()     # 获取重翻次数限制  
+            config_dict["round_limit"] =  Window.Widget_translation_settings_B1.spinBox_round_limit.value() # 获取轮数限制
             config_dict["cot_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_cot_toggle.isChecked()   # 获取cot开关
             config_dict["cn_prompt_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_cn_prompt_toggle.isChecked()   # 获取中文提示词开关
             config_dict["preserve_line_breaks_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关  
@@ -4636,7 +4639,6 @@ Third: Begin translating line by line from the original text, only translating {
             config_dict["translation_platform_1"] =  Window.Widget_translation_settings_C.comboBox_primary_translation_platform.currentText()  # 获取首轮翻译平台设置
             config_dict["translation_platform_2"] =  Window.Widget_translation_settings_C.comboBox_secondary_translation_platform.currentText()   # 获取次轮
             config_dict["translation_platform_3"] =  Window.Widget_translation_settings_C.comboBox_final_translation_platform.currentText()    # 获取末轮
-            config_dict["round_limit"] =  Window.Widget_translation_settings_C.spinBox_round_limit.value() # 获取轮数限制
             config_dict["split_switch"] =  Window.Widget_translation_settings_C.SwitchButton_split_switch.isChecked() # 获取混合翻译开关
 
             #开始翻译的备份设置界面
@@ -4953,6 +4955,8 @@ Third: Begin translating line by line from the original text, only translating {
                 if "label_output_path" in config_dict:
                     Window.Widget_translation_settings_A.label_output_path.setText(config_dict["label_output_path"])
 
+
+
                 #翻译设置进阶界面
                 if "lines_limit_switch" in config_dict:
                     Window.Widget_translation_settings_B1.checkBox_lines_limit_switch.setChecked(config_dict["lines_limit_switch"])
@@ -4968,6 +4972,8 @@ Third: Begin translating line by line from the original text, only translating {
                     Window.Widget_translation_settings_B1.spinBox_thread_count.setValue(config_dict["thread_counts"])
                 if "retry_count_limit" in config_dict:
                     Window.Widget_translation_settings_B1.spinBox_retry_count_limit.setValue(config_dict["retry_count_limit"])
+                if "round_limit" in config_dict:
+                     Window.Widget_translation_settings_B1.spinBox_round_limit.setValue(config_dict["round_limit"]) 
                 if "cot_toggle" in config_dict:
                     Window.Widget_translation_settings_B2.SwitchButton_cot_toggle.setChecked(config_dict["cot_toggle"])
                 if "cn_prompt_toggle" in config_dict:
@@ -4989,8 +4995,6 @@ Third: Begin translating line by line from the original text, only translating {
                     Window.Widget_translation_settings_C.comboBox_secondary_translation_platform.setCurrentText(config_dict["translation_platform_2"])
                 if "translation_platform_3" in config_dict:
                     Window.Widget_translation_settings_C.comboBox_final_translation_platform.setCurrentText(config_dict["translation_platform_3"])
-                if "round_limit" in config_dict:
-                     Window.Widget_translation_settings_C.spinBox_round_limit.setValue(config_dict["round_limit"]) 
                 if "split_switch" in config_dict:
                     Window.Widget_translation_settings_C.SwitchButton_split_switch.setChecked(config_dict["split_switch"])
 
@@ -6593,7 +6597,7 @@ class Cache_Manager():
                     else:
                         translation_list.append({ 'text_index': text_index ,'source_text': source_text})
 
-                entry['translation_status'] = 2
+                    entry['translation_status'] = 2
 
                 # 如果新列表中的元素个数达到指定行数，则停止遍历
                 if len(translation_list) == translation_lines:
@@ -6650,7 +6654,8 @@ class Cache_Manager():
 
         translation_list = []
         previous_list = []
-        tokens_count = 0
+        tokens_count = 0 
+        lines_count = 0  # 保底机制用
 
         # 获取特定行数的待翻译内容
         for entry in cache_list:
@@ -6668,7 +6673,7 @@ class Cache_Manager():
                     tokens = Request_Limiter.num_tokens_from_string(self,source_text)
                     # 检查是否超出tokens限制
                     tokens_count = tokens_count + tokens
-                    if tokens_count >= tokens_limit :
+                    if (tokens_count >= tokens_limit) and (lines_count >= 1) :
                         break
                     
                     # 尝试获取name
@@ -6679,7 +6684,10 @@ class Cache_Manager():
                     else:
                         translation_list.append({ 'text_index': text_index ,'source_text': source_text})
 
-                entry['translation_status'] = 2
+
+                    entry['translation_status'] = 2
+                    lines_count = lines_count + 1
+
 
 
         # 获取首尾索引
@@ -10786,6 +10794,27 @@ class Widget_translation_settings_B1(QFrame):#  发送设置子界面
         box_retry_count_limit.setLayout(layout_retry_count_limit)
 
 
+        # -----创建第x个组，添加多个组件-----
+        box_round_limit = QGroupBox()
+        box_round_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_round_limit = QHBoxLayout()
+
+
+        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label1_7.setText("翻译流程最大轮次限制")
+
+
+        # 设置数值输入框
+        self.spinBox_round_limit = SpinBox(self)
+        # 设置最大最小值
+        self.spinBox_round_limit.setRange(3, 1000)    
+        self.spinBox_round_limit.setValue(6)
+
+        layout_round_limit.addWidget(label1_7)
+        layout_round_limit.addStretch(1)  # 添加伸缩项
+        layout_round_limit.addWidget(self.spinBox_round_limit)
+        box_round_limit.setLayout(layout_round_limit)
 
 
         # 最外层的垂直布局
@@ -10798,6 +10827,7 @@ class Widget_translation_settings_B1(QFrame):#  发送设置子界面
         container.addWidget(box_pre_lines)
         container.addWidget(box1_thread_count)
         container.addWidget(box_retry_count_limit)
+        container.addWidget(box_round_limit)
         container.addStretch(1)  # 添加伸缩项
 
         # 设置窗口显示的内容是最外层容器
@@ -11072,30 +11102,6 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
 
 
 
-
-        # -----创建第x个组，添加多个组件-----
-        box_round_limit = QGroupBox()
-        box_round_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_round_limit = QHBoxLayout()
-
-
-        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label1_7.setText("翻译流程最大轮次限制")
-
-
-        # 设置数值输入框
-        self.spinBox_round_limit = SpinBox(self)
-        # 设置最大最小值
-        self.spinBox_round_limit.setRange(3, 1000)    
-        self.spinBox_round_limit.setValue(6)
-
-        layout_round_limit.addWidget(label1_7)
-        layout_round_limit.addStretch(1)  # 添加伸缩项
-        layout_round_limit.addWidget(self.spinBox_round_limit)
-        box_round_limit.setLayout(layout_round_limit)
-
-
         # -----创建第1个组，添加多个组件-----
         box_split_switch = QGroupBox()
         box_split_switch.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
@@ -11131,7 +11137,6 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
         container.addWidget(box_translation_platform1)
         container.addWidget(box_translation_platform2)
         container.addWidget(box_translation_platform3)
-        container.addWidget(box_round_limit)
         container.addWidget( box_split_switch)
         container.addStretch(1)  # 添加伸缩项
         container.addStretch(1)  # 添加伸缩项
