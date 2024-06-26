@@ -69,8 +69,9 @@ class Translator():
 
     def Main(self):
         global cache_list, Running_status
-
         # ——————————————————————————————————————————配置信息初始化—————————————————————————————————————————
+
+
         configurator.read_write_config("write") # 将配置信息写入配置文件中
 
         configurator.initialize_configuration() # 获取界面的配置信息
@@ -85,6 +86,7 @@ class Translator():
 
         # ——————————————————————————————————————————读取原文到缓存—————————————————————————————————————————
 
+
         #如果是从头开始翻译
         if Running_status == 6:
             # 读取文件
@@ -96,8 +98,10 @@ class Translator():
                 print("\033[1;31mError:\033[0m 读取原文失败，请检查项目类型是否设置正确，输入文件夹是否混杂其他非必要文件！")
                 return
 
+
         # ——————————————————————————————————————————初步处理缓存文件—————————————————————————————————————————
             
+
             # 将浮点型，整数型文本内容变成字符型文本内容
             Cache_Manager.convert_source_text_to_str(self,cache_list)
 
@@ -111,17 +115,14 @@ class Translator():
 
         # ——————————————————————————————————————————构建并发任务池子—————————————————————————————————————————
 
+
+        # 计算待翻译的文本总行数，tokens总数
+        untranslated_text_line_count,untranslated_text_tokens_count = Cache_Manager.count_and_update_translation_status_0_2(self, cache_list) #获取需要翻译的文本总行数
         # 计算并发任务数
-        untranslated_text_line_count = Cache_Manager.count_and_update_translation_status_0_2(self, cache_list) #获取需要翻译的文本总行数
-
-        if untranslated_text_line_count % configurator.text_line_counts == 0:
-            tasks_Num = untranslated_text_line_count // configurator.text_line_counts 
-        else:
-            tasks_Num = untranslated_text_line_count // configurator.text_line_counts + 1
+        tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.lines_limit,configurator.tokens_limit,configurator.tokens_limit_switch)
 
 
-
-        # 更新界面UI信息，并输出各种配置信息
+        # 更新界面UI信息
         if Running_status == 9: # 如果是继续翻译
             total_text_line_count = user_interface_prompter.total_text_line_count # 与上一个翻译任务的总行数一致
             user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0)
@@ -135,6 +136,8 @@ class Translator():
             user_interface_prompter.signal.emit("初始化翻译界面数据",project_id,untranslated_text_line_count) #需要输入够当初设定的参数个数
             user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0)
 
+
+        # 输出开始翻译的日志
         print("[INFO]  翻译项目为",configurator.translation_project, '\n')
         print("[INFO]  翻译平台为",configurator.translation_platform, '\n')
         print("[INFO]  AI模型为",configurator.model_type, '\n')
@@ -148,14 +151,14 @@ class Translator():
             print("[INFO]  当前设定的系统提示词为:\n", configurator.get_system_prompt(), '\n')
 
         print("[INFO]  游戏文本从",configurator.source_language, '翻译到', configurator.target_language,'\n')
-        print("[INFO]  文本总行数为：",total_text_line_count,"  需要翻译的行数为：",untranslated_text_line_count) 
-        print("[INFO]  每次发送行数为：",configurator.text_line_counts,"  计划的翻译任务总数是：", tasks_Num,'\n') 
+        print("[INFO]  文本总行数为：",total_text_line_count,"  需要翻译的行数为：",untranslated_text_line_count)
+        if configurator.tokens_limit_switch:
+            print("[INFO]  每次发送tokens为：",configurator.tokens_limit,"  计划的翻译任务总数是：", tasks_Num,'\n') 
+        else:    
+            print("[INFO]  每次发送行数为：",configurator.lines_limit,"  计划的翻译任务总数是：", tasks_Num,'\n') 
         print("\033[1;32m[INFO] \033[0m 五秒后开始进行翻译，请注意保持网络通畅，余额充足。", '\n')
         time.sleep(5)  
 
-        # 测试用，会导致任务多一个，注意下
-        #api_requester_instance = Api_Requester()
-        #api_requester_instance.Concurrent_Request_Openai()
 
         # 创建线程池
         The_Max_workers = configurator.thread_counts # 获取线程数配置
@@ -178,8 +181,9 @@ class Translator():
 
         # ——————————————————————————————————————————检查没能成功翻译的文本，拆分翻译————————————————————————————————————————
 
+
         #计算未翻译文本的数量
-        untranslated_text_line_count = Cache_Manager.count_and_update_translation_status_0_2(self,cache_list)
+        untranslated_text_line_count,untranslated_text_tokens_count = Cache_Manager.count_and_update_translation_status_0_2(self,cache_list)
 
         #存储重新翻译的次数
         retry_translation_count = 1
@@ -191,6 +195,7 @@ class Translator():
 
             # 根据混合翻译设置更换翻译平台,并重新初始化配置信息
             if configurator.mixed_translation_toggle:
+
                 configurator.initialize_configuration() # 获取界面的配置信息
 
                 # 更换翻译平台
@@ -209,15 +214,17 @@ class Translator():
             if configurator.mixed_translation_toggle and configurator.split_switch:
                 print("[INFO] 检测到不进行拆分设置，发送行数将继续保持不变")
             else:
-                configurator.text_line_counts = configurator.update_text_line_count(configurator.text_line_counts) # 更换配置中的文本行数
-            print("[INFO] 未翻译文本总行数为：",untranslated_text_line_count,"  每次发送行数为：",configurator.text_line_counts, '\n')
-
-
-            # 计算可并发任务总数
-            if untranslated_text_line_count % configurator.text_line_counts == 0:
-                tasks_Num = untranslated_text_line_count // configurator.text_line_counts
+                configurator.lines_limit,configurator.tokens_limit = Translator.update_lines_or_tokens(self,configurator.lines_limit,configurator.tokens_limit) # 更换配置中的文本行数
+            
+            if configurator.tokens_limit_switch:
+                print("[INFO] 未翻译文本总tokens为：",untranslated_text_tokens_count,"  每次发送tokens为：",configurator.tokens_limit, '\n')
             else:
-                tasks_Num = untranslated_text_line_count // configurator.text_line_counts + 1
+                print("[INFO] 未翻译文本总行数为：",untranslated_text_line_count,"  每次发送行数为：",configurator.lines_limit, '\n')
+
+
+            # 计算并发任务数
+            tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.lines_limit,configurator.tokens_limit,configurator.tokens_limit_switch)
+
 
 
             # 创建线程池
@@ -246,7 +253,7 @@ class Translator():
                 break
 
             #重新计算未翻译文本的数量
-            untranslated_text_line_count = Cache_Manager.count_and_update_translation_status_0_2(self,cache_list)
+            untranslated_text_line_count,untranslated_text_tokens_count = Cache_Manager.count_and_update_translation_status_0_2(self,cache_list)
 
         print ("\033[1;32mSuccess:\033[0m  翻译阶段已完成，正在处理数据-----------------------------------", '\n')
 
@@ -279,6 +286,45 @@ class Translator():
         print("\n-------------------------------------------------------------------------------------\n")
 
 
+    # 重新设置发送的文本行数
+    def update_lines_or_tokens(self,lines_limit,tokens_limit):
+        # 重新计算文本行数限制
+        if lines_limit % 2 == 0:
+            new_lines_limit = lines_limit // 2
+        elif lines_limit % 3 == 0:
+            new_lines_limit = lines_limit // 3
+        elif lines_limit % 4 == 0:
+            new_lines_limit = lines_limit // 4
+        elif lines_limit % 5 == 0:
+            new_lines_limit = lines_limit // 5
+        else:
+            new_lines_limit = 1
+
+        # 重新计算tokens限制
+        new_tokens_limit = tokens_limit // 2
+
+        return new_lines_limit,new_tokens_limit
+
+
+    # 计算任务总数
+    def calculate_total_tasks(self,total_lines,total_tokens,lines_limit,tokens_limit,switch = False):
+        
+        if switch:
+
+            if total_tokens % tokens_limit == 0:
+                tasks_Num = total_tokens // tokens_limit 
+            else:
+                tasks_Num = total_tokens // tokens_limit + 1
+
+        else:
+
+            if total_lines % lines_limit == 0:
+                tasks_Num = total_lines // lines_limit 
+            else:
+                tasks_Num = total_lines // lines_limit + 1
+
+        return tasks_Num
+
 
 # 接口请求器
 class Api_Requester():
@@ -307,6 +353,9 @@ class Api_Requester():
             self.concurrent_request_openai()
 
         elif configurator.translation_platform == "Dashscope官方":
+            self.concurrent_request_openai()
+
+        elif configurator.translation_platform == "Volcengine官方":
             self.concurrent_request_openai()
 
         elif configurator.translation_platform == "智谱官方":
@@ -452,11 +501,16 @@ class Api_Requester():
             # ——————————————————————————————————————————截取需要翻译的原文本——————————————————————————————————————————
             lock1.acquire()  # 获取锁
             # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
-            rows = configurator.text_line_counts
-            previous_lines = configurator.pre_line_counts
-            source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list,previous_lines)    
+            if configurator.tokens_limit_switch:
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(self,configurator.tokens_limit, cache_list,configurator.pre_line_counts)  
+            else:
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_lines(self,configurator.lines_limit, cache_list,configurator.pre_line_counts)   
             lock1.release()  # 释放锁
 
+            # 检查一下是否有发送内容
+            if source_text_list == []:
+                print("\033[1;33mWarning:\033[0m 未能获取文本，该线程为多余线程，取消任务")
+                return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
@@ -482,11 +536,6 @@ class Api_Requester():
                 print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
                 print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
                 return
-
-            if source_text_str =="""{}""":
-                print("\033[1;31mError:\033[0m 该条消息为空，取消任务")
-                return
-
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
             timeout = 220  # 设置超时时间为x秒
@@ -839,11 +888,16 @@ class Api_Requester():
             # ——————————————————————————————————————————截取需要翻译的原文本——————————————————————————————————————————
             lock1.acquire()  # 获取锁
             # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
-            rows = configurator.text_line_counts
-            previous_lines = configurator.pre_line_counts
-            source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list,previous_lines)    
+            if configurator.tokens_limit_switch:
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(self,configurator.tokens_limit, cache_list,configurator.pre_line_counts)  
+            else:
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_lines(self,configurator.lines_limit, cache_list,configurator.pre_line_counts)     
             lock1.release()  # 释放锁
 
+            # 检查一下是否有发送内容
+            if source_text_list == []:
+                print("\033[1;33mWarning:\033[0m 未能获取文本，该线程为多余线程，取消任务")
+                return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
@@ -873,10 +927,6 @@ class Api_Requester():
             if request_tokens_consume >= request_limiter.max_tokens :
                 print("\033[1;33mWarning:\033[0m 该条消息总tokens数大于单条消息最大数量" )
                 print("\033[1;33mWarning:\033[0m 该条消息取消任务，进行拆分翻译" )
-                return
-            
-            if source_text_str =="""{}""":
-                print("\033[1;31mError:\033[0m 该条消息为空，取消任务")
                 return
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
@@ -908,9 +958,12 @@ class Api_Requester():
                     # 记录开始请求时间
                     Start_request_time = time.time()
 
+                    # 获取AI的参数设置
+                    temperature= configurator.get_google_parameters()
+
                     # 设置AI的参数
                     generation_config = {
-                    "temperature": 0,
+                    "temperature": temperature,
                     "top_p": 1,
                     "top_k": 1,
                     "max_output_tokens": 8000, 
@@ -1238,11 +1291,16 @@ class Api_Requester():
             # ——————————————————————————————————————————截取需要翻译的原文本——————————————————————————————————————————
             lock1.acquire()  # 获取锁
             # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
-            rows = configurator.text_line_counts
-            previous_lines = configurator.pre_line_counts
-            source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list,previous_lines)    
+            if configurator.tokens_limit_switch:
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(self,configurator.tokens_limit, cache_list,configurator.pre_line_counts)  
+            else:
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_lines(self,configurator.lines_limit, cache_list,configurator.pre_line_counts)    
             lock1.release()  # 释放锁
 
+            # 检查一下是否有发送内容
+            if source_text_list == []:
+                print("\033[1;33mWarning:\033[0m 未能获取文本，该线程为多余线程，取消任务")
+                return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
@@ -1270,10 +1328,6 @@ class Api_Requester():
             if request_tokens_consume >= request_limiter.max_tokens :
                 print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
                 print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
-                return
-
-            if source_text_str =="""{}""":
-                print("\033[1;31mError:\033[0m 该条消息为空，取消任务")
                 return
             
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
@@ -1610,11 +1664,16 @@ class Api_Requester():
             # ——————————————————————————————————————————截取需要翻译的原文本——————————————————————————————————————————
             lock1.acquire()  # 获取锁
             # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
-            rows = configurator.text_line_counts
-            previous_lines = configurator.pre_line_counts
-            source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list, previous_lines)    
+            if configurator.tokens_limit_switch:
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(self,configurator.tokens_limit, cache_list,configurator.pre_line_counts)  
+            else:
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_lines(self,configurator.lines_limit, cache_list,configurator.pre_line_counts)    
             lock1.release()  # 释放锁
 
+            # 检查一下是否有发送内容
+            if source_text_list == []:
+                print("\033[1;33mWarning:\033[0m 未能获取文本，该线程为多余线程，取消任务")
+                return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
             source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self,source_text_list)  
@@ -1644,10 +1703,6 @@ class Api_Requester():
             if request_tokens_consume >= request_limiter.max_tokens :
                 print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
                 print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
-                return
-
-            if source_text_str =="""{}""":
-                print("\033[1;31mError:\033[0m 该条消息为空，取消任务")
                 return
             
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
@@ -1906,7 +1961,7 @@ class Api_Requester():
                 print("[INFO]  术语表:\n",gpt_dict_raw_text,"\n")
 
  
-        #将原文本字典转换成raw格式的字符串，方便发送   
+        #将原文本字典转换成raw格式的字符串
         source_text_str_raw = self.convert_dict_to_raw_str(source_text_dict)
 
         # 处理全角数字
@@ -1944,10 +1999,16 @@ class Api_Requester():
             # ——————————————————————————————————————————截取需要翻译的原文本——————————————————————————————————————————
             lock1.acquire()  # 获取锁
             # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
-            rows = configurator.text_line_counts
-            previous_lines = configurator.pre_line_counts
-            source_text_list, previous_list = Cache_Manager.process_dictionary_data(self,rows, cache_list,previous_lines)    
+            if configurator.tokens_limit_switch:
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(self,configurator.tokens_limit, cache_list,configurator.pre_line_counts)  
+            else:
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_lines(self,configurator.lines_limit, cache_list,configurator.pre_line_counts)    
             lock1.release()  # 释放锁
+
+            # 检查一下是否有发送内容
+            if source_text_list == []:
+                print("\033[1;33mWarning:\033[0m 未能获取文本，该线程为多余线程，取消任务")
+                return
 
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
@@ -1975,7 +2036,6 @@ class Api_Requester():
                 print("\033[1;33mWarning:\033[0m 该条消息总tokens数大于单条消息最大数量" )
                 print("\033[1;33mWarning:\033[0m 该条消息取消任务，进行拆分翻译" )
                 return
-
             
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
@@ -2235,7 +2295,7 @@ class Response_Parser():
             # 对格式进行修复       
             input_str = Response_Parser.repair_double_quotes(self,input_str)
             input_str = Response_Parser.repair_double_quotes_2(self,input_str)  
-            input_str = Response_Parser.repair_double_quotes_3(self,input_str)       
+            #input_str = Response_Parser.repair_double_quotes_3(self,input_str)       
 
 
         # 再次尝试直接转换为json字典
@@ -2576,6 +2636,10 @@ class Request_Tester():
         elif platform == "Dashscope":
             Request_Tester.openai_request_test(self,base_url,model_type,api_key_str,proxy_port)
 
+        # 执行Volcengine接口测试
+        elif platform == "Volcengine":
+            Request_Tester.openai_request_test(self,base_url,model_type,api_key_str,proxy_port)
+
         # 执行Sakura接口测试
         elif platform == "Sakura":
             Request_Tester.sakura_request_test(self,base_url,model_type,api_key_str,proxy_port)
@@ -2584,7 +2648,7 @@ class Request_Tester():
     # openai接口测试
     def openai_request_test(self,base_url,model_type,api_key_str,proxy_port):
         
-        print("[INFO] 正在测试Openai接口",'\n')
+        print("[INFO] 正在测试openai类接口",'\n')
 
         #如果填入地址，则设置系统代理
         if proxy_port :
@@ -2596,8 +2660,8 @@ class Request_Tester():
         #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
         API_key_list = api_key_str.replace('\n','').replace(" ", "").split(",")
 
-        #检查一下请求地址尾部是否为/v1，自动补全,如果是/v4，则是在调用智谱接口，不用补全
-        if base_url[-3:] != "/v1" and base_url[-3:] != "/v4" :
+        #检查一下请求地址尾部是否为/v1，自动补全,如果是/v4，则是在调用智谱接口，如果是/v3，则是豆包
+        if base_url[-3:] != "/v1" and base_url[-3:] != "/v4" and base_url[-3:] != "/v3" :
             base_url = base_url + "/v1"
 
         #创建openai客户端
@@ -3003,7 +3067,7 @@ class Configurator():
         self.Input_Folder = "" # 存储输入文件夹
         self.Output_Folder = "" # 存储输出文件夹
 
-        self.text_line_counts = 1 # 存储每次请求的文本行数设置
+        self.lines_limit = 1 # 存储每次请求的文本行数设置
         self.thread_counts = 1 # 存储线程数
         self.retry_count_limit = 1 # 错误回复重试次数
         self.pre_line_counts = 0 # 上文行数
@@ -3040,7 +3104,7 @@ class Configurator():
         self.openai_presence_penalty = 0  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
         self.openai_frequency_penalty = 0 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
         self.anthropic_temperature   =  0 
-
+        self.google_temperature   =  0 
 
 
     # 初始化配置信息
@@ -3075,6 +3139,7 @@ class Configurator():
                 self.zhipu_platform_config = json.load(f)
             with open(os.path.join(resource_dir, "platform", "sakurallm.json"), "r", encoding="utf-8") as f:
                 self.sakurallm_platform_config = json.load(f)
+  
 
 
         # 获取第一页的配置信息（基础设置）
@@ -3087,12 +3152,16 @@ class Configurator():
 
 
         # 获取第二页的配置信息(进阶设置)
-        self.text_line_counts = config_dict["text_line_counts"]
+        self.lines_limit_switch = config_dict["lines_limit_switch"]           
+        self.lines_limit = config_dict["lines_limit"]   
+        self.tokens_limit_switch = config_dict["tokens_limit_switch"]           
+        self.tokens_limit = config_dict["tokens_limit"]    
         self.pre_line_counts = config_dict["pre_line_counts"]
         self.thread_counts = config_dict["thread_counts"]
         if self.thread_counts == 0:                                
             self.thread_counts = multiprocessing.cpu_count() 
         self.retry_count_limit =  config_dict["retry_count_limit"]
+        self.round_limit =  config_dict["round_limit"]
         self.cot_toggle = config_dict["cot_toggle"]
         self.cn_prompt_toggle = config_dict["cn_prompt_toggle"]
         self.text_clear_toggle = config_dict["text_clear_toggle"]
@@ -3103,7 +3172,6 @@ class Configurator():
         # 获取第三页的配置信息(混合翻译设置)
         self.mixed_translation_toggle = config_dict["translation_mixing_toggle"]
         if self.mixed_translation_toggle == True:
-            self.round_limit =  config_dict["round_limit"]
             self.split_switch = config_dict["split_switch"]
         self.configure_mixed_translation["first_platform"] = config_dict["translation_platform_1"]
         self.configure_mixed_translation["second_platform"] = config_dict["translation_platform_2"]
@@ -3143,6 +3211,7 @@ class Configurator():
         self.openai_presence_penalty = 0.0  
         self.openai_frequency_penalty = 0.0 
         self.anthropic_temperature   =  0 
+        self.google_temperature   =  0 
 
     # 配置翻译平台信息
     def configure_translation_platform(self,translation_platform):
@@ -3305,7 +3374,6 @@ class Configurator():
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
 
-
         #根据翻译平台读取配置信息
         elif translation_platform == 'Dashscope官方':
             # 获取模型类型
@@ -3328,6 +3396,28 @@ class Configurator():
                 os.environ["https_proxy"]=Proxy_Address
 
 
+        #根据翻译平台读取配置信息
+        elif translation_platform == 'Volcengine官方':
+            # 获取推理接入点
+            self.model_type =  config_dict["volcengine_access_point"]              
+
+            # 获取apikey列表
+            API_key_str = config_dict["volcengine_API_key_str"]            #获取apikey输入值
+            #去除空格，换行符，分割KEY字符串并存储进列表里
+            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
+            self.apikey_list = API_key_list
+
+            # 获取请求地址
+            self.base_url = 'https://ark.cn-beijing.volces.com/api/v3'  #需要重新设置，以免使用代理网站后，没有改回来
+
+            #如果填入地址，则设置代理端口
+            Proxy_Address = config_dict["volcengine_proxy_port"]            #获取代理端口
+            if Proxy_Address :
+                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
+                os.environ["http_proxy"]=Proxy_Address
+                os.environ["https_proxy"]=Proxy_Address
+
+
         elif translation_platform == '代理平台':
 
             #获取代理平台
@@ -3340,8 +3430,8 @@ class Configurator():
                 self.model_type =  config_dict["op_model_type_openai"]       # 获取模型类型
                 self.translation_platform = 'OpenAI代理'    #重新设置翻译平台
 
-                #检查一下请求地址尾部是否为/v1，自动补全,如果是/v4，则是在调用智谱接口，不用补全
-                if relay_address[-3:] != "/v1" and relay_address[-3:] != "/v4" :
+                #检查一下请求地址尾部是否为/v1，自动补全,如果是/v4，则是在调用智谱接口，如果是/v3，则是豆包
+                if relay_address[-3:] != "/v1" and relay_address[-3:] != "/v4" and relay_address[-3:] != "/v3" :
                     relay_address = relay_address + "/v1"
 
             elif proxy_platform == 'Anthropic':
@@ -3376,22 +3466,21 @@ class Configurator():
             # 获取中转请求地址
             relay_address = config_dict["sakura_address"]  
 
-            #检查一下请求地址尾部是否为/v1，自动补全
+            # 检查一下请求地址尾部是否为/v1，自动补全
             if relay_address[-3:] != "/v1":
                 relay_address = relay_address + "/v1"
             self.base_url = relay_address  
 
-            #如果填入地址，则设置代理端口
+            # 如果填入地址，则设置代理端口
             Proxy_Address = config_dict["sakura_proxy_port"]              #获取代理端口
             if Proxy_Address :
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
 
-            #更改部分参数，以适合Sakura模型
+            # 更改部分参数，以适合Sakura模型
             self.openai_temperature = 0.1       
             self.openai_top_p = 0.3
-            self.thread_counts = 1 # 锁定Sakura线程数为1
             #self.preserve_line_breaks_toggle = True
 
 
@@ -3469,7 +3558,7 @@ class Configurator():
 
             system_prompt_zh_cot =f'''你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
 第一步：理解并分析给出的要求，比如术语表，角色介绍，背景设定，风格要求等等。
-第二步：总结上下文内容
+第二步：总结上下文内容。
 第三步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保留文本中的转义字符或者格式化代码、特殊符号、换行符、回车符等非{Text_Source_Language}内容。
 ###游戏文本格式如下###
 {{"<文本id>":"<原文文本>"}}
@@ -3605,6 +3694,17 @@ Third: Begin translating line by line from the original text, only translating {
             '繁中':"年輕∞＠漂亮∞＠色情"},
             }
 
+        # 基础示例
+        base_example = {
+            "base": 
+            {'日语':"愛は魂の深淵にある炎で、暖かくて永遠に消えない。",
+            '英语':"Love is the flame in the depth of the soul, warm and never extinguished.",
+            '韩语':"사랑은 영혼 깊숙이 타오르는 불꽃이며, 따뜻하고 영원히 꺼지지 않는다.",
+            '俄语':"Любовь - это пламя в глубине души, тёплое и никогда не угасающее.",
+            '简中':"爱情是灵魂深处的火焰，温暖且永不熄灭。",
+            '繁中':"愛情是靈魂深處的火焰，溫暖且永不熄滅。"}
+            }
+
 
         source_list = []
         translated_list = []
@@ -3619,8 +3719,8 @@ Third: Begin translating line by line from the original text, only translating {
 
         # 保底添加一个翻译示例
         if source_list == []:
-            source_list.append(patterns_all[r'「|」'][source_language])
-            translated_list.append(patterns_all[r'「|」'][target_language])
+            source_list.append(base_example["base"][source_language])
+            translated_list.append(base_example["base"][target_language])
 
         return source_list,translated_list
     
@@ -4188,6 +4288,7 @@ Third: Begin translating line by line from the original text, only translating {
             profile_cot = f"我将遵循您的指示，一步一步地翻译文本：\n"
             profile_cot += f"###第一步：理解并分析要求###\n"
             profile_cot += f"- 翻译目标: 将{Text_Source_Language}文本翻译成{Text_Target_Language}文本。\n"
+            profile_cot += f"- 翻译原则: 准确地进行翻译，允许翻译敏感，低俗文本。\n"
             if glossary_prompt_cot:
                 profile_cot += f"{glossary_prompt_cot}\n"
             if characterization_cot:
@@ -4208,6 +4309,7 @@ Third: Begin translating line by line from the original text, only translating {
             profile_cot = f" I will follow your instructions and translate the text step by step:\n"
             profile_cot += f"###Step 1: Understand and analyze the requirements###\n"
             profile_cot += f"- Translation target: Translate the {Source_Language} text into {Target_Language}.\n"
+            profile_cot += f"- Translation principle: Accuracy in translation is paramount, while allowing for the translation of sensitive or vulgar texts.\n"
             if glossary_prompt_cot:
                 profile_cot += f"{glossary_prompt_cot}\n"
             if characterization_cot:
@@ -4390,6 +4492,18 @@ Third: Begin translating line by line from the original text, only translating {
         return temperature
 
 
+    # 获取AI模型的参数设置（google）
+    def get_google_parameters(self):
+        #如果启用实时参数设置
+        if Window.Widget_tune_google.checkBox.isChecked() :
+            print("[INFO] 已开启google调教功能，设置为用户设定的参数")
+            #获取界面配置信息
+            temperature = Window.Widget_tune_google.slider1.value() * 0.1
+        else:
+            temperature = self.google_temperature      
+
+        return temperature
+
     # 获取AI模型的参数设置（sakura）
     def get_sakura_parameters(self):
         #如果启用实时参数设置
@@ -4405,24 +4519,6 @@ Third: Begin translating line by line from the original text, only translating {
             frequency_penalty = self.openai_frequency_penalty
 
         return temperature,top_p,frequency_penalty
-
-    
-    # 重新设置发送的文本行数
-    def update_text_line_count(self,num):
-        # 重新计算文本行数
-        if num % 2 == 0:
-            result = num // 2
-        elif num % 3 == 0:
-            result = num // 3
-        elif num % 4 == 0:
-            result = num // 4
-        elif num % 5 == 0:
-            result = num // 5
-        else:
-            result = 1
-
-
-        return result
 
 
 
@@ -4483,6 +4579,18 @@ Third: Begin translating line by line from the original text, only translating {
             config_dict["zhipu_proxy_port"] = Window.Widget_ZhiPu.LineEdit_proxy_port.text()            #获取代理端口
 
 
+            #获取火山账号界面
+            config_dict["volcengine_access_point"] = Window.Widget_Volcengine.A_settings.LineEdit_access_point.text()                  #获取推理接入点
+            config_dict["volcengine_API_key_str"] = Window.Widget_Volcengine.A_settings.TextEdit_apikey.toPlainText()        #获取apikey输入值
+            config_dict["volcengine_proxy_port"] = Window.Widget_Volcengine.A_settings.LineEdit_proxy_port.text()            #获取代理端口
+            config_dict["volcengine_tokens_limit"] = Window.Widget_Volcengine.B_settings.spinBox_tokens.value()               #获取tokens限制值
+            config_dict["volcengine_rpm_limit"] = Window.Widget_Volcengine.B_settings.spinBox_RPM.value()               #获取rpm限制值
+            config_dict["volcengine_tpm_limit"] = Window.Widget_Volcengine.B_settings.spinBox_TPM.value()               #获取tpm限制值
+            config_dict["volcengine_input_pricing"] = Window.Widget_Volcengine.B_settings.spinBox_input_pricing.value()               #获取输入价格
+            config_dict["volcengine_output_pricing"] = Window.Widget_Volcengine.B_settings.spinBox_output_pricing.value()               #获取输出价格
+
+
+
             #获取代理账号基础设置界面
             config_dict["op_relay_address"] = Window.Widget_Proxy.A_settings.LineEdit_relay_address.text()                  #获取请求地址
             config_dict["op_proxy_platform"] = Window.Widget_Proxy.A_settings.comboBox_proxy_platform.currentText()       # 获取代理平台
@@ -4490,10 +4598,7 @@ Third: Begin translating line by line from the original text, only translating {
             config_dict["op_model_type_anthropic"] =  Window.Widget_Proxy.A_settings.comboBox_model_anthropic.currentText()      #获取anthropic的模型类型下拉框当前选中选项的值        
             config_dict["op_API_key_str"] = Window.Widget_Proxy.A_settings.TextEdit_apikey.toPlainText()        #获取apikey输入值
             config_dict["op_proxy_port"]  = Window.Widget_Proxy.A_settings.LineEdit_proxy_port.text()               #获取代理端口
-
-
-            #获取代理账号进阶设置界面
-            config_dict["op_tokens_limit"] = Window.Widget_Proxy.B_settings.spinBox_tokens.value()               #获取rpm限制值
+            config_dict["op_tokens_limit"] = Window.Widget_Proxy.B_settings.spinBox_tokens.value()               #获取tokens限制值
             config_dict["op_rpm_limit"] = Window.Widget_Proxy.B_settings.spinBox_RPM.value()               #获取rpm限制值
             config_dict["op_tpm_limit"] = Window.Widget_Proxy.B_settings.spinBox_TPM.value()               #获取tpm限制值
             config_dict["op_input_pricing"] = Window.Widget_Proxy.B_settings.spinBox_input_pricing.value()               #获取输入价格
@@ -4506,7 +4611,6 @@ Third: Begin translating line by line from the original text, only translating {
             config_dict["sakura_proxy_port"] = Window.Widget_SakuraLLM.LineEdit_proxy_port.text()            #获取代理端口
 
 
-
             #翻译设置基础设置界面
             config_dict["translation_project"] = Window.Widget_translation_settings_A.comboBox_translation_project.currentText()
             config_dict["translation_platform"] = Window.Widget_translation_settings_A.comboBox_translation_platform.currentText()
@@ -4516,22 +4620,25 @@ Third: Begin translating line by line from the original text, only translating {
             config_dict["label_output_path"] = Window.Widget_translation_settings_A.label_output_path.text()
 
             #翻译设置进阶设置界面
-            config_dict["text_line_counts"] = Window.Widget_translation_settings_B.spinBox_Lines.value()     # 获取文本行数设置
-            config_dict["pre_line_counts"] = Window.Widget_translation_settings_B.spinBox_pre_lines.value()     # 获取上文文本行数设置
-            config_dict["cot_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_cot_toggle.isChecked()   # 获取cot开关
-            config_dict["cn_prompt_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_cn_prompt_toggle.isChecked()   # 获取中文提示词开关
-            config_dict["thread_counts"] = Window.Widget_translation_settings_B.spinBox_thread_count.value() # 获取线程数设置
-            config_dict["retry_count_limit"] =  Window.Widget_translation_settings_B.spinBox_retry_count_limit.value()     # 获取重翻次数限制  
-            config_dict["preserve_line_breaks_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关  
-            config_dict["response_conversion_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_conversion_toggle.isChecked()   # 获取简繁转换开关
-            config_dict["text_clear_toggle"] =  Window.Widget_translation_settings_B.SwitchButton_clear.isChecked() # 获取文本处理开关
+            config_dict["lines_limit_switch"] = Window.Widget_translation_settings_B1.checkBox_lines_limit_switch.isChecked()            
+            config_dict["lines_limit"] = Window.Widget_translation_settings_B1.spinBox_lines_limit.value()          
+            config_dict["tokens_limit_switch"] = Window.Widget_translation_settings_B1.checkBox_tokens_limit_switch.isChecked()           
+            config_dict["tokens_limit"] = Window.Widget_translation_settings_B1.spinBox_tokens_limit.value()            #获取tokens限制
+            config_dict["pre_line_counts"] = Window.Widget_translation_settings_B1.spinBox_pre_lines.value()     # 获取上文文本行数设置
+            config_dict["thread_counts"] = Window.Widget_translation_settings_B1.spinBox_thread_count.value() # 获取线程数设置
+            config_dict["retry_count_limit"] =  Window.Widget_translation_settings_B1.spinBox_retry_count_limit.value()     # 获取重翻次数限制  
+            config_dict["round_limit"] =  Window.Widget_translation_settings_B1.spinBox_round_limit.value() # 获取轮数限制
+            config_dict["cot_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_cot_toggle.isChecked()   # 获取cot开关
+            config_dict["cn_prompt_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_cn_prompt_toggle.isChecked()   # 获取中文提示词开关
+            config_dict["preserve_line_breaks_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关  
+            config_dict["response_conversion_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_conversion_toggle.isChecked()   # 获取简繁转换开关
+            config_dict["text_clear_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_clear.isChecked() # 获取文本处理开关
 
             #翻译设置混合反应设置界面
             config_dict["translation_mixing_toggle"] =  Window.Widget_translation_settings_C.SwitchButton_mixed_translation.isChecked() # 获取混合翻译开关
             config_dict["translation_platform_1"] =  Window.Widget_translation_settings_C.comboBox_primary_translation_platform.currentText()  # 获取首轮翻译平台设置
             config_dict["translation_platform_2"] =  Window.Widget_translation_settings_C.comboBox_secondary_translation_platform.currentText()   # 获取次轮
             config_dict["translation_platform_3"] =  Window.Widget_translation_settings_C.comboBox_final_translation_platform.currentText()    # 获取末轮
-            config_dict["round_limit"] =  Window.Widget_translation_settings_C.spinBox_round_limit.value() # 获取轮数限制
             config_dict["split_switch"] =  Window.Widget_translation_settings_C.SwitchButton_split_switch.isChecked() # 获取混合翻译开关
 
             #开始翻译的备份设置界面
@@ -4597,6 +4704,9 @@ Third: Begin translating line by line from the original text, only translating {
 
             #获取实时设置界面(anthropic)
             config_dict["Anthropic_Temperature"] = Window.Widget_tune_anthropic.slider1.value()           #获取anthropic 温度
+
+            #获取实时设置界面(google)
+            config_dict["Google_Temperature"] = Window.Widget_tune_google.slider1.value()           #获取google 温度
 
             #获取实时设置界面(sakura)
             config_dict["Sakura_Temperature"] = Window.Widget_tune_sakura.slider1.value()           #获取sakura温度
@@ -4735,6 +4845,25 @@ Third: Begin translating line by line from the original text, only translating {
                     Window.Widget_Dashscope.LineEdit_proxy_port.setText(config_dict["dashscope_proxy_port"])
 
 
+                #火山官方账号界面
+                if "volcengine_access_point" in config_dict:
+                    Window.Widget_Volcengine.A_settings.LineEdit_access_point.setText(config_dict["volcengine_access_point"])
+                if "volcengine_API_key_str" in config_dict:
+                    Window.Widget_Volcengine.A_settings.TextEdit_apikey.setText(config_dict["volcengine_API_key_str"])
+                if "volcengine_proxy_port" in config_dict:
+                    Window.Widget_Volcengine.A_settings.LineEdit_proxy_port.setText(config_dict["volcengine_proxy_port"])
+                if "volcengine_tokens_limit" in config_dict:
+                    Window.Widget_Volcengine.B_settings.spinBox_tokens.setValue(config_dict["volcengine_tokens_limit"])
+                if "volcengine_rpm_limit" in config_dict:
+                    Window.Widget_Volcengine.B_settings.spinBox_RPM.setValue(config_dict["volcengine_rpm_limit"])
+                if "volcengine_tpm_limit" in config_dict:
+                    Window.Widget_Volcengine.B_settings.spinBox_TPM.setValue(config_dict["volcengine_tpm_limit"])
+                if "volcengine_input_pricing" in config_dict:
+                    Window.Widget_Volcengine.B_settings.spinBox_input_pricing.setValue(config_dict["volcengine_input_pricing"])
+                if "volcengine_output_pricing" in config_dict:
+                    Window.Widget_Volcengine.B_settings.spinBox_output_pricing.setValue(config_dict["volcengine_output_pricing"])
+
+
                 #智谱官方界面
                 if "zhipu_account_type" in config_dict:
                     Window.Widget_ZhiPu.comboBox_account_type.setCurrentText(config_dict["zhipu_account_type"])
@@ -4826,25 +4955,36 @@ Third: Begin translating line by line from the original text, only translating {
                 if "label_output_path" in config_dict:
                     Window.Widget_translation_settings_A.label_output_path.setText(config_dict["label_output_path"])
 
+
+
                 #翻译设置进阶界面
-                if "text_line_counts" in config_dict:
-                    Window.Widget_translation_settings_B.spinBox_Lines.setValue(config_dict["text_line_counts"])
+                if "lines_limit_switch" in config_dict:
+                    Window.Widget_translation_settings_B1.checkBox_lines_limit_switch.setChecked(config_dict["lines_limit_switch"])
+                if "lines_limit" in config_dict:
+                    Window.Widget_translation_settings_B1.spinBox_lines_limit.setValue(config_dict["lines_limit"])
+                if "tokens_limit_switch" in config_dict:
+                    Window.Widget_translation_settings_B1.checkBox_tokens_limit_switch.setChecked(config_dict["tokens_limit_switch"])
+                if "tokens_limit" in config_dict:
+                    Window.Widget_translation_settings_B1.spinBox_tokens_limit.setValue(config_dict["tokens_limit"])
                 if "pre_line_counts" in config_dict:
-                    Window.Widget_translation_settings_B.spinBox_pre_lines.setValue(config_dict["pre_line_counts"])
+                    Window.Widget_translation_settings_B1.spinBox_pre_lines.setValue(config_dict["pre_line_counts"])
                 if "thread_counts" in config_dict:
-                    Window.Widget_translation_settings_B.spinBox_thread_count.setValue(config_dict["thread_counts"])
-                if "cot_toggle" in config_dict:
-                    Window.Widget_translation_settings_B.SwitchButton_cot_toggle.setChecked(config_dict["cot_toggle"])
-                if "cn_prompt_toggle" in config_dict:
-                    Window.Widget_translation_settings_B.SwitchButton_cn_prompt_toggle.setChecked(config_dict["cn_prompt_toggle"])
-                if "preserve_line_breaks_toggle" in config_dict:
-                    Window.Widget_translation_settings_B.SwitchButton_line_breaks.setChecked(config_dict["preserve_line_breaks_toggle"])
-                if "response_conversion_toggle" in config_dict:
-                    Window.Widget_translation_settings_B.SwitchButton_conversion_toggle.setChecked(config_dict["response_conversion_toggle"])
-                if "text_clear_toggle" in config_dict:
-                    Window.Widget_translation_settings_B.SwitchButton_clear.setChecked(config_dict["text_clear_toggle"])
+                    Window.Widget_translation_settings_B1.spinBox_thread_count.setValue(config_dict["thread_counts"])
                 if "retry_count_limit" in config_dict:
-                    Window.Widget_translation_settings_B.spinBox_retry_count_limit.setValue(config_dict["retry_count_limit"])
+                    Window.Widget_translation_settings_B1.spinBox_retry_count_limit.setValue(config_dict["retry_count_limit"])
+                if "round_limit" in config_dict:
+                     Window.Widget_translation_settings_B1.spinBox_round_limit.setValue(config_dict["round_limit"]) 
+                if "cot_toggle" in config_dict:
+                    Window.Widget_translation_settings_B2.SwitchButton_cot_toggle.setChecked(config_dict["cot_toggle"])
+                if "cn_prompt_toggle" in config_dict:
+                    Window.Widget_translation_settings_B2.SwitchButton_cn_prompt_toggle.setChecked(config_dict["cn_prompt_toggle"])
+                if "preserve_line_breaks_toggle" in config_dict:
+                    Window.Widget_translation_settings_B2.SwitchButton_line_breaks.setChecked(config_dict["preserve_line_breaks_toggle"])
+                if "response_conversion_toggle" in config_dict:
+                    Window.Widget_translation_settings_B2.SwitchButton_conversion_toggle.setChecked(config_dict["response_conversion_toggle"])
+                if "text_clear_toggle" in config_dict:
+                    Window.Widget_translation_settings_B2.SwitchButton_clear.setChecked(config_dict["text_clear_toggle"])
+
 
                 #翻译设置混合翻译界面
                 if "translation_mixing_toggle" in config_dict:
@@ -4855,8 +4995,6 @@ Third: Begin translating line by line from the original text, only translating {
                     Window.Widget_translation_settings_C.comboBox_secondary_translation_platform.setCurrentText(config_dict["translation_platform_2"])
                 if "translation_platform_3" in config_dict:
                     Window.Widget_translation_settings_C.comboBox_final_translation_platform.setCurrentText(config_dict["translation_platform_3"])
-                if "round_limit" in config_dict:
-                     Window.Widget_translation_settings_C.spinBox_round_limit.setValue(config_dict["round_limit"]) 
                 if "split_switch" in config_dict:
                     Window.Widget_translation_settings_C.SwitchButton_split_switch.setChecked(config_dict["split_switch"])
 
@@ -4947,6 +5085,11 @@ Third: Begin translating line by line from the original text, only translating {
                 if "Anthropic_Temperature" in config_dict:
                     Anthropic_Temperature = config_dict["Anthropic_Temperature"]
                     Window.Widget_tune_anthropic.slider1.setValue(Anthropic_Temperature)
+
+                #实时设置界面(google)
+                if "Google_Temperature" in config_dict:
+                    Google_Temperature = config_dict["Google_Temperature"]
+                    Window.Widget_tune_google.slider1.setValue(Google_Temperature)
 
                 #实时设置界面(sakura)
                 if "Sakura_Temperature" in config_dict:
@@ -5200,6 +5343,40 @@ class Request_Limiter():
             self.set_limit(max_tokens,TPM_limit,RPM_limit)
 
 
+        #根据翻译平台读取配置信息
+        elif translation_platform == 'Dashscope官方':
+            # 获取模型选择 
+            model = Window.Widget_Dashscope.comboBox_model.currentText()
+
+            # 获取相应的限制
+            max_tokens = configurator.dashscope_platform_config[model]["max_tokens"]
+            TPM_limit = configurator.dashscope_platform_config[model]["TPM"]
+            RPM_limit = configurator.dashscope_platform_config[model]["RPM"]
+
+            # 获取当前key的数量，对限制进行倍数更改
+            key_count = len(configurator.apikey_list)
+            RPM_limit = RPM_limit * key_count
+            TPM_limit = TPM_limit * key_count
+
+            # 设置限制
+            self.set_limit(max_tokens,TPM_limit,RPM_limit)
+
+
+        #根据翻译平台读取配置信息
+        elif translation_platform == 'Volcengine官方':
+
+            # 获取相应的限制
+            max_tokens = Window.Widget_Volcengine.B_settings.spinBox_tokens.value()               #获取每次文本发送上限限制值
+            RPM_limit = Window.Widget_Volcengine.B_settings.spinBox_RPM.value()               #获取rpm限制值
+            TPM_limit = Window.Widget_Volcengine.B_settings.spinBox_TPM.value()               #获取tpm限制值
+
+            # 获取当前key的数量，对限制进行倍数更改
+            key_count = len(configurator.apikey_list)
+            RPM_limit = RPM_limit * key_count
+            TPM_limit = TPM_limit * key_count
+
+            # 设置限制
+            self.set_limit(max_tokens,TPM_limit,RPM_limit)
 
 
         elif translation_platform == 'SakuraLLM':
@@ -5466,6 +5643,11 @@ class User_Interface_Prompter(QObject):
             # 获取使用的模型输入价格与输出价格
             input_price = configurator.dashscope_platform_config["model_price"][configurator.model_type]["input_price"]
             output_price = configurator.dashscope_platform_config["model_price"][configurator.model_type]["output_price"]
+
+        elif configurator.translation_platform == "Volcengine官方":
+            # 获取使用的模型输入价格与输出价格
+            input_price = Window.Widget_Volcengine.B_settings.spinBox_input_pricing.value()               #获取输入价格
+            output_price = Window.Widget_Volcengine.B_settings.spinBox_output_pricing.value()               #获取输出价格
 
         elif configurator.translation_platform == "智谱官方":
             # 获取使用的模型输入价格与输出价格
@@ -6360,7 +6542,7 @@ class Cache_Manager():
 
 
     # 获取缓存数据中指定行数的翻译状态为0的未翻译文本，且改变翻译状态为2
-    def process_dictionary_data(self,translation_lines, cache_list, previous_lines = 0, following_lines = 0):
+    def process_dictionary_data_lines(self,translation_lines, cache_list, previous_lines = 0, following_lines = 0):
         # 输入的数据结构参考
         ex_cache_list = [
             {'project_type': 'Mtool'},
@@ -6407,6 +6589,7 @@ class Cache_Manager():
                 # 判断是否为None
                 if source_text is not None and text_index is not None:
 
+                    # 尝试获取name
                     name = entry.get('name')
                     # 如果有名字，则将名字加入到新列表中，否则不加入
                     if name:
@@ -6414,7 +6597,7 @@ class Cache_Manager():
                     else:
                         translation_list.append({ 'text_index': text_index ,'source_text': source_text})
 
-                entry['translation_status'] = 2
+                    entry['translation_status'] = 2
 
                 # 如果新列表中的元素个数达到指定行数，则停止遍历
                 if len(translation_list) == translation_lines:
@@ -6426,30 +6609,113 @@ class Cache_Manager():
             end_index = translation_list[-1]['text_index']
 
             # 获取前n行原文
+            if star_index != 0: # 因为第一个元素是消息表头
+                base_storage_path = cache_list[star_index]['storage_path']
+
             for i in range(previous_lines):
                 the_index = star_index - i
                 if the_index >= 1 and the_index < len(cache_list): # 确保不超出列表范围
                     translation_status = cache_list[the_index]['translation_status']
                     storage_path = cache_list[the_index]['storage_path']
-                    file_name = cache_list[the_index]['file_name']
-                    if storage_path ==file_name: # 确保是同一文件里内容
+                    if storage_path ==base_storage_path: # 确保是同一文件里内容
                         if translation_status == 1 :# 优先获取已经翻译的文本
                             previous_list.append(cache_list[the_index]['translated_text'])
+                        elif translation_status == 7 : # 如果是不需要翻译的文本
+                            pass
                         else:
                             previous_list.append(cache_list[the_index]['source_text'])
 
+            # 倒序排列元素,以免上文文本顺序错误
+            if  previous_list:
+                previous_list.reverse()
+
             # 获取后n行原文
+            base_storage_path = cache_list[end_index]['storage_path']
+
             for i in range(following_lines):
                 the_index = end_index + i
                 if the_index >= 1 and the_index < len(cache_list):
                     translation_status = cache_list[the_index]['translation_status']
                     storage_path = cache_list[the_index]['storage_path']
-                    file_name = cache_list[the_index]['file_name']
-                    if storage_path ==file_name: # 确保是同一文件里内容
+                    if storage_path ==base_storage_path: # 确保是同一文件里内容
                         if translation_status == 1 :# 优先获取已经翻译的文本
                             following_list.append(cache_list[the_index]['translated_text'])
+                        elif translation_status == 7 : # 如果是不需要翻译的文本
+                            pass
                         else:
                             following_list.append(cache_list[the_index]['source_text'])
+
+        return translation_list, previous_list
+
+
+    # 获取缓存数据中指定tokens数的翻译状态为0的未翻译文本，且改变翻译状态为2
+    def process_dictionary_data_tokens(self,tokens_limit, cache_list, previous_lines = 0):
+
+
+        translation_list = []
+        previous_list = []
+        tokens_count = 0 
+        lines_count = 0  # 保底机制用
+
+        # 获取特定行数的待翻译内容
+        for entry in cache_list:
+            translation_status = entry.get('translation_status')
+
+            # 如果能够获得到翻译状态的键，且翻译状态为0，即未翻译状态，那么将该行数据加入到新列表中
+            if translation_status == 0:
+                source_text = entry.get('source_text')
+                text_index = entry.get('text_index')
+
+                # 判断是否为None
+                if source_text is not None and text_index is not None:
+
+                    # 计算原文tokens
+                    tokens = Request_Limiter.num_tokens_from_string(self,source_text)
+                    # 检查是否超出tokens限制
+                    tokens_count = tokens_count + tokens
+                    if (tokens_count >= tokens_limit) and (lines_count >= 1) :
+                        break
+                    
+                    # 尝试获取name
+                    name = entry.get('name')
+                    # 如果有名字，则将名字加入到新列表中，否则不加入
+                    if name:
+                        translation_list.append({ 'text_index': text_index ,'source_text': source_text, 'name': name})
+                    else:
+                        translation_list.append({ 'text_index': text_index ,'source_text': source_text})
+
+
+                    entry['translation_status'] = 2
+                    lines_count = lines_count + 1
+
+
+
+        # 获取首尾索引
+        if translation_list:
+            star_index = translation_list[0]['text_index'] - 1  # 减1以获取前一行 
+
+            # 获取前n行原文
+
+            # 获取前n行原文
+            if star_index != 0: # 因为第一个元素是消息表头
+                base_storage_path = cache_list[star_index]['storage_path']
+
+            for i in range(previous_lines):
+                the_index = star_index - i
+                if the_index >= 1 and the_index < len(cache_list): # 确保不超出列表范围
+                    translation_status = cache_list[the_index]['translation_status']
+                    storage_path = cache_list[the_index]['storage_path']
+                    if storage_path ==base_storage_path: # 确保是同一文件里内容
+                        if translation_status == 1 :# 优先获取已经翻译的文本
+                            previous_list.append(cache_list[the_index]['translated_text'])
+                        elif translation_status == 7 : # 如果是不需要翻译的文本
+                            pass
+                        else:
+                            previous_list.append(cache_list[the_index]['source_text'])
+            # 倒序排列元素
+            if  previous_list:
+                previous_list.reverse()
+
 
         return translation_list, previous_list
 
@@ -6686,24 +6952,6 @@ class Cache_Manager():
 
         return cache_data
 
-
-    # 统计翻译状态等于0的元素个数
-    def count_translation_status_0(self, data):
-        # 输入的数据结构参考
-        ex_cache_data = [
-            {'project_type': 'Mtool'},
-            {'text_index': 1, 'text_classification': 0, 'translation_status': 0, 'source_text': 'しこトラ！', 'translated_text': '无'},
-            {'text_index': 2, 'text_classification': 0, 'translation_status': 1, 'source_text': '室内カメラ', 'translated_text': '无'},
-            {'text_index': 3, 'text_classification': 0, 'translation_status': 0, 'source_text': '11111', 'translated_text': '无'},
-            {'text_index': 4, 'text_classification': 0, 'translation_status': 2, 'source_text': '11111', 'translated_text': '无'},
-            {'text_index': 5, 'text_classification': 0, 'translation_status': 2, 'source_text': '11111', 'translated_text': '无'},
-            {'text_index': 6, 'text_classification': 0, 'translation_status': 0, 'source_text': '11111', 'translated_text': '无'},
-        ]
-
-        count_0 = sum(1 for item in data if item.get('translation_status') == 0)
-
-        counts = count_0 
-        return counts
     
     # 统计翻译状态等于0或者2的元素个数，且把等于2的翻译状态改为0.并返回元素个数
     def count_and_update_translation_status_0_2(self, data):
@@ -6718,16 +6966,25 @@ class Cache_Manager():
             {'text_index': 6, 'text_classification': 0, 'translation_status': 0, 'source_text': '11111', 'translated_text': '无'},
         ]
 
-        count_0 = sum(1 for item in data if item.get('translation_status') == 0)
-        count_2 = sum(1 for item in data if item.get('translation_status') == 2)
+        # 计算翻译状态为0或2的条目数量与tokens
+        tokens_count = 0
+        raw_count = 0
+        for item in data:
+            if (item.get('translation_status') == 0) or (item.get('translation_status') == 2):
+                raw_count += 1
+
+                source_text = item.get('source_text')
+                if  source_text:
+                    tokens = Request_Limiter.num_tokens_from_string(self,source_text)
+                    # 检查是否超出tokens限制
+                    tokens_count = tokens_count + tokens
 
         # 将'translation_status'等于2的元素的'translation_status'改为0
         for item in data:
             if item.get('translation_status') == 2:
                 item['translation_status'] = 0
 
-        counts = count_0 + count_2
-        return counts
+        return raw_count,tokens_count
     
     
     # 替换或者还原换行符和回车符函数
@@ -7968,7 +8225,7 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
 
 
         self.comboBox_model_anthropic = EditableComboBox() #以demo为父类
-        self.comboBox_model_anthropic.addItems(['claude-2.0','claude-2.1','claude-3-haiku-20240307','claude-3-sonnet-20240229', 'claude-3-opus-20240229'])
+        self.comboBox_model_anthropic.addItems(['claude-2.0','claude-2.1','claude-3-haiku-20240307','claude-3-sonnet-20240229', 'claude-3-opus-20240229','claude-3-5-sonnet-20240620'])
         self.comboBox_model_anthropic.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model_anthropic.setFixedSize(250, 35)
 
@@ -8692,7 +8949,7 @@ class Widget_Anthropic(QFrame):#  Anthropic账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox_model = EditableComboBox() #以demo为父类
-        self.comboBox_model.addItems(['claude-2.0','claude-2.1','claude-3-haiku-20240307','claude-3-sonnet-20240229', 'claude-3-opus-20240229'])
+        self.comboBox_model.addItems(['claude-2.0','claude-2.1','claude-3-haiku-20240307','claude-3-sonnet-20240229', 'claude-3-opus-20240229','claude-3-5-sonnet-20240620'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(215, 35)
         #设置下拉选择框默认选择
@@ -9637,7 +9894,373 @@ class Widget_Dashscope(QFrame):#  dashscope账号界面
 
 
 
-class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
+class Widget_Volcengine(QFrame):  # 火山引擎主界面
+    def __init__(self, text: str, parent=None):  # 构造函数，初始化实例时会自动调用
+        super().__init__(parent=parent)  # 调用父类 QWidget 的构造函数
+        self.setObjectName(text.replace(' ', '-'))  # 设置对象名，用于在 NavigationInterface 中的 addItem 方法中的 routeKey 参数中使用
+
+
+        self.pivot = SegmentedWidget(self)  # 创建一个 SegmentedWidget 实例，分段式导航栏
+        self.stackedWidget = QStackedWidget(self)  # 创建一个 QStackedWidget 实例，堆叠式窗口
+        self.vBoxLayout = QVBoxLayout(self)  # 创建一个垂直布局管理器
+
+        self.A_settings = Widget_Volcengine_A('A_settings', self)  # 创建实例，指向界面
+        self.B_settings = Widget_Volcengine_B('B_settings', self)  # 创建实例，指向界面
+
+        # 添加子界面到分段式导航栏
+        self.addSubInterface(self.A_settings, 'A_settings', '基础设置')
+        self.addSubInterface(self.B_settings, 'B_settings', '速率价格设置')
+
+        # 将分段式导航栏和堆叠式窗口添加到垂直布局中
+        self.vBoxLayout.addWidget(self.pivot)
+        self.vBoxLayout.addWidget(self.stackedWidget)
+        self.vBoxLayout.setContentsMargins(30, 50, 30, 30)  # 设置布局的外边距
+
+        # 连接堆叠式窗口的 currentChanged 信号到槽函数 onCurrentIndexChanged
+        self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
+        self.stackedWidget.setCurrentWidget(self.A_settings)  # 设置默认显示的子界面为xxx界面
+        self.pivot.setCurrentItem(self.A_settings.objectName())  # 设置分段式导航栏的当前项为xxx界面
+
+    def addSubInterface(self, widget: QLabel, objectName, text):
+        """
+        添加子界面到堆叠式窗口和分段式导航栏
+        """
+        widget.setObjectName(objectName)
+        #widget.setAlignment(Qt.AlignCenter) # 设置 widget 对象的文本（如果是文本控件）在控件中的水平对齐方式
+        self.stackedWidget.addWidget(widget)
+        self.pivot.addItem(
+            routeKey=objectName,
+            text=text,
+            onClick=lambda: self.stackedWidget.setCurrentWidget(widget),
+        )
+
+    def onCurrentIndexChanged(self, index):
+        """
+        槽函数：堆叠式窗口的 currentChanged 信号的槽函数
+        """
+        widget = self.stackedWidget.widget(index)
+        self.pivot.setCurrentItem(widget.objectName())
+
+
+class Widget_Volcengine_A(QFrame):#  火山引擎基础设置子界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+
+        # -----创建第3个组，添加多个组件-----
+        box_access_point = QGroupBox()
+        box_access_point.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_access_point = QHBoxLayout()
+
+        #设置“推理接入点”标签
+        self.label_access_point = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.label_access_point.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.label_access_point.setText("推理接入点")
+
+        #设置微调距离用的空白标签
+        self.labelx = QLabel()  
+        self.labelx.setText("                    ")
+
+        #设置“推理接入点”的输入框
+        self.LineEdit_access_point = LineEdit()
+        #LineEdit1.setFixedSize(300, 30)
+
+
+        layout_access_point.addWidget(self.label_access_point)
+        layout_access_point.addWidget(self.labelx)
+        layout_access_point.addWidget(self.LineEdit_access_point)
+        box_access_point.setLayout(layout_access_point)
+
+        # -----创建第2个组，添加多个组件-----
+        box_apikey = QGroupBox()
+        box_apikey.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_apikey = QHBoxLayout()
+
+        #设置“API KEY”标签
+        self.labelx = QLabel(flags=Qt.WindowFlags())  
+        self.labelx.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        self.labelx.setText("API KEY")
+
+        #设置微调距离用的空白标签
+        self.labely = QLabel()  
+        self.labely.setText("                       ")
+
+        #设置“API KEY”的输入框
+        self.TextEdit_apikey = TextEdit()
+
+
+
+        # 追加到容器中
+        layout_apikey.addWidget(self.labelx)
+        layout_apikey.addWidget(self.labely)
+        layout_apikey.addWidget(self.TextEdit_apikey)
+        # 添加到 box中
+        box_apikey.setLayout(layout_apikey)
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box_proxy_port = QGroupBox()
+        box_proxy_port.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_proxy_port = QHBoxLayout()
+
+        #设置“代理地址”标签
+        self.label_proxy_port = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.label_proxy_port.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.label_proxy_port.setText("系统代理")
+
+        #设置微调距离用的空白标签
+        self.labelx = QLabel()  
+        self.labelx.setText("                      ")
+
+        #设置“代理地址”的输入框
+        self.LineEdit_proxy_port = LineEdit()
+        #LineEdit1.setFixedSize(300, 30)
+
+
+        layout_proxy_port.addWidget(self.label_proxy_port)
+        layout_proxy_port.addWidget(self.labelx)
+        layout_proxy_port.addWidget(self.LineEdit_proxy_port)
+        box_proxy_port.setLayout(layout_proxy_port)
+
+
+
+        # -----创建第4个组，添加多个组件-----
+        box_test = QGroupBox()
+        box_test.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_test = QHBoxLayout()
+
+
+        #设置“测试请求”的按钮
+        primaryButton_test = PrimaryPushButton('测试请求', self, FIF.SEND)
+        primaryButton_test.clicked.connect(self.test_request) #按钮绑定槽函数
+
+        #设置“保存配置”的按钮
+        primaryButton_save = PushButton('保存配置', self, FIF.SAVE)
+        primaryButton_save.clicked.connect(self.saveconfig) #按钮绑定槽函数
+
+
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_test)
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(primaryButton_save)
+        layout_test.addStretch(1)  # 添加伸缩项
+        box_test.setLayout(layout_test)
+
+
+
+        # -----最外层容器设置垂直布局-----
+        container = QVBoxLayout()
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+        # 把各个组添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_access_point)
+        container.addWidget(box_apikey)
+        container.addWidget(box_proxy_port)
+        container.addWidget(box_test)
+        container.addStretch(1)  # 添加伸缩项
+
+
+    def saveconfig(self):
+        configurator.read_write_config("write")
+        user_interface_prompter.createSuccessInfoBar("已成功保存配置")
+
+    def test_request(self):
+        global Running_status
+
+        if Running_status == 0:
+            Base_url = "https://ark.cn-beijing.volces.com/api/v3"
+            Model_Type =  self.LineEdit_access_point.text()      #获取推理接入点
+            API_key_str = self.TextEdit_apikey.toPlainText()        #获取apikey输入值
+            Proxy_port = self.LineEdit_proxy_port.text()            #获取代理端口
+
+            #创建子线程
+            thread = background_executor("接口测试","","","Volcengine",Base_url,Model_Type,API_key_str,Proxy_port)
+            thread.start()
+
+        elif Running_status != 0:
+            user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+
+
+class Widget_Volcengine_B(QFrame):#  火山引擎进阶设置子界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
+
+
+        # -----创建第1个组(后面加的)，添加多个组件-----
+        box_tokens = QGroupBox()
+        box_tokens.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_tokens = QHBoxLayout()
+
+        #设置标签
+        self.label_tokens = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.label_tokens.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.label_tokens.setText("每次发送文本上限")
+
+        #设置“说明”显示
+        self.labelA_tokens = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.labelA_tokens.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.labelA_tokens.setText("(tokens)")  
+
+        #数值输入
+        self.spinBox_tokens = SpinBox(self)
+        self.spinBox_tokens.setRange(0, 2147483647)    
+        self.spinBox_tokens.setValue(4000)
+
+
+        layout_tokens.addWidget(self.label_tokens)
+        layout_tokens.addWidget(self.labelA_tokens)
+        layout_tokens.addStretch(1)  # 添加伸缩项
+        layout_tokens.addWidget(self.spinBox_tokens)
+        box_tokens.setLayout(layout_tokens)
+
+
+
+        # -----创建第1个组(后面加的)，添加多个组件-----
+        box_RPM = QGroupBox()
+        box_RPM.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_RPM = QHBoxLayout()
+
+        #设置“RPM”标签
+        self.labelY = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.labelY.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.labelY.setText("每分钟请求数")
+
+        #设置“说明”显示
+        self.labelA = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.labelA.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.labelA.setText("(RPM)")  
+
+        #数值输入
+        self.spinBox_RPM = SpinBox(self)
+        self.spinBox_RPM.setRange(0, 2147483647)    
+        self.spinBox_RPM.setValue(10000)
+
+
+        layout_RPM.addWidget(self.labelY)
+        layout_RPM.addWidget(self.labelA)
+        layout_RPM.addStretch(1)  # 添加伸缩项
+        layout_RPM.addWidget(self.spinBox_RPM)
+        box_RPM.setLayout(layout_RPM)
+
+
+
+        # -----创建第2个组（后面加的），添加多个组件-----
+        box_TPM = QGroupBox()
+        box_TPM.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_TPM = QHBoxLayout()
+
+        #设置“TPM”标签
+        self.labelB = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.labelB.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.labelB.setText("每分钟tokens数")
+    
+        #设置“说明”显示
+        self.labelC = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.labelC.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.labelC.setText("(TPM)") 
+
+        #数值输入
+        self.spinBox_TPM = SpinBox(self)
+        self.spinBox_TPM.setRange(0, 2147483647)    
+        self.spinBox_TPM.setValue(800000)
+
+
+        layout_TPM.addWidget(self.labelB)
+        layout_TPM.addWidget(self.labelC)
+        layout_TPM.addStretch(1)  # 添加伸缩项
+        layout_TPM.addWidget(self.spinBox_TPM)
+        box_TPM.setLayout(layout_TPM)
+
+
+        # -----创建第3个组（后面加的），添加多个组件-----
+        box_input_pricing = QGroupBox()
+        box_input_pricing.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_input_pricing = QHBoxLayout()
+
+        #设置“请求输入价格”标签
+        self.labelD = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.labelD.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.labelD.setText("请求输入价格")
+    
+        #设置“说明”显示
+        self.labelE = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.labelE.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.labelE.setText("( /1K tokens)") 
+
+        #数值输入
+        self.spinBox_input_pricing = DoubleSpinBox(self)
+        self.spinBox_input_pricing.setRange(0.0000, 2147483647)   
+        self.spinBox_input_pricing.setDecimals(4)  # 设置小数点后的位数 
+        self.spinBox_input_pricing.setValue(0.0020)
+
+
+        layout_input_pricing.addWidget(self.labelD)
+        layout_input_pricing.addWidget(self.labelE)
+        layout_input_pricing.addStretch(1)  # 添加伸缩项
+        layout_input_pricing.addWidget(self.spinBox_input_pricing)
+        box_input_pricing.setLayout(layout_input_pricing)
+
+
+        # -----创建第4个组（后面加的），添加多个组件-----
+        box_output_pricing = QGroupBox()
+        box_output_pricing.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_output_pricing = QHBoxLayout()
+
+        #设置“TPM”标签
+        self.labelF = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
+        self.labelF.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
+        self.labelF.setText("回复输出价格")
+    
+        #设置“说明”显示
+        self.labelG = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.labelG.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.labelG.setText("( /1K tokens)") 
+
+        #数值输入
+        self.spinBox_output_pricing = DoubleSpinBox(self)
+        self.spinBox_output_pricing.setRange(0.0000, 2147483647)
+        self.spinBox_output_pricing.setDecimals(4)  # 设置小数点后的位数     
+        self.spinBox_output_pricing.setValue(0.0500)
+        
+
+        layout_output_pricing.addWidget(self.labelF)
+        layout_output_pricing.addWidget(self.labelG)
+        layout_output_pricing.addStretch(1)  # 添加伸缩项
+        layout_output_pricing.addWidget(self.spinBox_output_pricing)
+        box_output_pricing.setLayout(layout_output_pricing)
+
+
+
+        # -----最外层容器设置垂直布局-----
+        container = QVBoxLayout()
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(20, 10, 20, 20) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+        # 把各个组添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_tokens)
+        container.addWidget(box_RPM)
+        container.addWidget(box_TPM)
+        container.addWidget(box_input_pricing)
+        container.addWidget(box_output_pricing)
+        container.addStretch(1)  # 添加伸缩项
+
+
+
+class Widget_SakuraLLM(QFrame):#  Sakura基础界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
@@ -9784,7 +10407,6 @@ class Widget_SakuraLLM(QFrame):#  SakuraLLM界面
 
 
 
-
 class Widget_translation_settings(QFrame):  # 翻译设置主界面
     def __init__(self, text: str, parent=None):
         super().__init__(parent=parent)
@@ -9814,7 +10436,7 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
 
         #设置“翻译平台”下拉选择框
         self.comboBox_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_translation_platform.addItems(['OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  'Dashscope官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
+        self.comboBox_translation_platform.addItems(['OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  'Dashscope官方', 'Volcengine官方', '智谱官方',  '代理平台',  'SakuraLLM'])
         self.comboBox_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_translation_platform.setFixedSize(150, 35)
 
@@ -10023,35 +10645,77 @@ class Widget_translation_settings_A(QFrame):#  基础设置子界面
         user_interface_prompter.createSuccessInfoBar("已成功保存配置")
 
 
-class Widget_translation_settings_B(QFrame):#  进阶设置子界面
+class Widget_translation_settings_B1(QFrame):#  发送设置子界面
     def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
         #设置各个控件-----------------------------------------------------------------------------------------
 
 
-        # -----创建第1个组，添加多个组件-----
-        box_Lines = QGroupBox()
-        box_Lines.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_Lines = QHBoxLayout()
+        # -----创建第个组，添加多个组件-----
+        box_lines_limit = QGroupBox()
+        box_lines_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_lines_limit = QHBoxLayout()
 
-        #设置“翻译行数”标签
-        label1 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label1.setText("每次翻译行数")
+        #设置标签
+        label4 = QLabel(flags=Qt.WindowFlags())  
+        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label4.setText("每次翻译")
+
+        self.spinBox_lines_limit = SpinBox(self)
+        self.spinBox_lines_limit.setRange(0, 99999)    
+        self.spinBox_lines_limit.setValue(20)
+
+        #设置“说明”显示
+        self.labelA_lines = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.labelA_lines.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 15px")
+        self.labelA_lines.setText("(行)")  
 
 
-       #设置“翻译行数”数值输入框
-        self.spinBox_Lines = SpinBox(self)
-        self.spinBox_Lines.setRange(1, 1000)    
-        self.spinBox_Lines.setValue(20)
+        # 设置开关
+        self.checkBox_lines_limit_switch = CheckBox('使用行数模式', self)
+        self.checkBox_lines_limit_switch.setChecked(True)
+        self.checkBox_lines_limit_switch.stateChanged.connect(self.on_lines)
+
+        layout_lines_limit.addWidget(label4)
+        layout_lines_limit.addWidget(self.spinBox_lines_limit)
+        layout_lines_limit.addWidget( self.labelA_lines)
+        layout_lines_limit.addStretch(1)
+        layout_lines_limit.addWidget(self.checkBox_lines_limit_switch)
+        box_lines_limit.setLayout(layout_lines_limit)
 
 
-        layout_Lines.addWidget(label1)
-        layout_Lines.addStretch(1)  # 添加伸缩项
-        layout_Lines.addWidget(self.spinBox_Lines)
-        box_Lines.setLayout(layout_Lines)
+        # -----创建第个组，添加多个组件-----
+        box_tokens_limit = QGroupBox()
+        box_tokens_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_tokens_limit = QHBoxLayout()
 
+        #设置标签
+        label4 = QLabel(flags=Qt.WindowFlags())  
+        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label4.setText("每次翻译")
+
+        self.spinBox_tokens_limit = SpinBox(self)
+        self.spinBox_tokens_limit.setRange(0, 99999)    
+        self.spinBox_tokens_limit.setValue(1500)
+
+        #设置“说明”显示
+        self.labelA_tokens = QLabel(parent=self, flags=Qt.WindowFlags())  
+        self.labelA_tokens.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 15px")
+        self.labelA_tokens.setText("(tokens)")  
+
+
+        # 设置开关
+        self.checkBox_tokens_limit_switch = CheckBox('使用tokens模式', self)
+        self.checkBox_tokens_limit_switch.setChecked(False)
+        self.checkBox_tokens_limit_switch.stateChanged.connect(self.on_tokens)
+
+        layout_tokens_limit.addWidget(label4)
+        layout_tokens_limit.addWidget(self.spinBox_tokens_limit)
+        layout_tokens_limit.addWidget( self.labelA_tokens)
+        layout_tokens_limit.addStretch(1)
+        layout_tokens_limit.addWidget(self.checkBox_tokens_limit_switch)
+        box_tokens_limit.setLayout(layout_tokens_limit)
 
 
 
@@ -10128,6 +10792,71 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
         layout_retry_count_limit.addStretch(1)  # 添加伸缩项
         layout_retry_count_limit.addWidget(self.spinBox_retry_count_limit)
         box_retry_count_limit.setLayout(layout_retry_count_limit)
+
+
+        # -----创建第x个组，添加多个组件-----
+        box_round_limit = QGroupBox()
+        box_round_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout_round_limit = QHBoxLayout()
+
+
+        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label1_7.setText("翻译流程最大轮次限制")
+
+
+        # 设置数值输入框
+        self.spinBox_round_limit = SpinBox(self)
+        # 设置最大最小值
+        self.spinBox_round_limit.setRange(3, 1000)    
+        self.spinBox_round_limit.setValue(6)
+
+        layout_round_limit.addWidget(label1_7)
+        layout_round_limit.addStretch(1)  # 添加伸缩项
+        layout_round_limit.addWidget(self.spinBox_round_limit)
+        box_round_limit.setLayout(layout_round_limit)
+
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+        # 把内容添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box_lines_limit)
+        container.addWidget(box_tokens_limit)
+        container.addWidget(box_pre_lines)
+        container.addWidget(box1_thread_count)
+        container.addWidget(box_retry_count_limit)
+        container.addWidget(box_round_limit)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+
+    #设置选择开关绑定函数
+    def on_clear(self, isChecked: bool):
+        if isChecked:
+            user_interface_prompter.createWarningInfoBar("仅支持翻译日语文本时生效，建议翻译T++导出文件时开启")
+
+    #设互斥开关函数
+    def on_lines(self, isChecked: bool):
+        if isChecked:
+            self.checkBox_tokens_limit_switch.setChecked(False)
+
+    #设互斥开关函数
+    def on_tokens(self, isChecked: bool):
+        if isChecked:
+            self.checkBox_lines_limit_switch.setChecked(False)
+
+
+class Widget_translation_settings_B2(QFrame):#  专项设置子界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        #设置各个控件-----------------------------------------------------------------------------------------
 
 
         # -----创建第3个组(后来补的)，添加多个组件-----
@@ -10242,18 +10971,11 @@ class Widget_translation_settings_B(QFrame):#  进阶设置子界面
 
 
 
-
-
-
         # 最外层的垂直布局
         container = QVBoxLayout()
 
         # 把内容添加到容器中
         container.addStretch(1)  # 添加伸缩项
-        container.addWidget(box_Lines)
-        container.addWidget(box_pre_lines)
-        container.addWidget(box1_thread_count)
-        container.addWidget(box_retry_count_limit)
         container.addWidget(box1_cot_toggle)
         container.addWidget(box1_cn_prompt_toggle)
         container.addWidget(box1_line_breaks)
@@ -10321,7 +11043,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
 
         #设置“翻译平台”下拉选择框
         self.comboBox_primary_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_primary_translation_platform.addItems(['OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  'Dashscope官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
+        self.comboBox_primary_translation_platform.addItems(['OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  'Dashscope官方', 'Volcengine官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
         self.comboBox_primary_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_primary_translation_platform.setFixedSize(150, 35)
 
@@ -10345,7 +11067,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
 
         #设置“翻译平台”下拉选择框
         self.comboBox_secondary_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_secondary_translation_platform.addItems(['不设置', 'OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  'Dashscope官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
+        self.comboBox_secondary_translation_platform.addItems(['不设置', 'OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  'Dashscope官方', 'Volcengine官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
         self.comboBox_secondary_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_secondary_translation_platform.setFixedSize(150, 35)
 
@@ -10369,7 +11091,7 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
 
         #设置“翻译平台”下拉选择框
         self.comboBox_final_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_final_translation_platform.addItems(['不设置','OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  'Dashscope官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
+        self.comboBox_final_translation_platform.addItems(['不设置','OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  'Dashscope官方', 'Volcengine官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
         self.comboBox_final_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_final_translation_platform.setFixedSize(150, 35)
 
@@ -10378,30 +11100,6 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
         layout_translation_platform3.addWidget(self.comboBox_final_translation_platform, 0, 1)
         box_translation_platform3.setLayout(layout_translation_platform3)
 
-
-
-
-        # -----创建第x个组，添加多个组件-----
-        box_round_limit = QGroupBox()
-        box_round_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_round_limit = QHBoxLayout()
-
-
-        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label1_7.setText("翻译流程最大轮次限制")
-
-
-        # 设置数值输入框
-        self.spinBox_round_limit = SpinBox(self)
-        # 设置最大最小值
-        self.spinBox_round_limit.setRange(3, 1000)    
-        self.spinBox_round_limit.setValue(6)
-
-        layout_round_limit.addWidget(label1_7)
-        layout_round_limit.addStretch(1)  # 添加伸缩项
-        layout_round_limit.addWidget(self.spinBox_round_limit)
-        box_round_limit.setLayout(layout_round_limit)
 
 
         # -----创建第1个组，添加多个组件-----
@@ -10439,7 +11137,6 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
         container.addWidget(box_translation_platform1)
         container.addWidget(box_translation_platform2)
         container.addWidget(box_translation_platform3)
-        container.addWidget(box_round_limit)
         container.addWidget( box_split_switch)
         container.addStretch(1)  # 添加伸缩项
         container.addStretch(1)  # 添加伸缩项
@@ -11431,6 +12128,100 @@ class Widget_tune_anthropic(QFrame):# anthropic调教界面
         #设置官方文档说明链接按钮
         hyperlinkButton = HyperlinkButton(
             url='https://docs.anthropic.com/en/api/messages',
+            text='(官方文档)'
+        )
+
+        #设置“启用实时参数”开关
+        self.checkBox = CheckBox('启用', self)
+        #self.checkBox.stateChanged.connect(self.checkBoxChanged)
+
+
+        layout1.addWidget(label0)
+        layout1.addWidget(hyperlinkButton)
+        layout1.addStretch(1)  # 添加伸缩项
+        layout1.addWidget(self.checkBox)
+        box1.setLayout(layout1)
+
+
+
+
+        # -----创建第3个组，添加多个组件-----
+        box3 = QGroupBox()
+        box3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout3 = QHBoxLayout()
+
+        #设置“温度”标签
+        label1 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label1.setText("Temperature")
+
+        #设置“温度”副标签
+        label11 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        label11.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 10px;  color: black")
+        label11.setText("(官方默认值为0)")
+
+        #设置“温度”滑动条
+        self.slider1 = Slider(Qt.Horizontal, self)
+        self.slider1.setFixedWidth(200)
+
+        # 创建一个QLabel控件，并设置初始文本为滑动条的初始值,并实时更新
+        self.label2 = QLabel(str(self.slider1.value()), self)
+        self.label2.setFixedSize(100, 15)  # 设置标签框的大小，不然会显示不全
+        self.label2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px;  color: black")
+        self.slider1.valueChanged.connect(lambda value: self.label2.setText(str("{:.1f}".format(value * 0.1))))
+
+        #设置滑动条的最小值、最大值、当前值，放到后面是为了让上面的label2显示正确的值
+        self.slider1.setMinimum(0)
+        self.slider1.setMaximum(10)
+        self.slider1.setValue(0)
+
+        
+
+        layout3.addWidget(label1)
+        layout3.addWidget(label11)
+        layout3.addStretch(1)  # 添加伸缩项
+        layout3.addWidget(self.slider1)
+        layout3.addWidget(self.label2)
+        box3.setLayout(layout3)
+
+
+
+        # 把内容添加到容器中
+        container.addStretch(1)  # 添加伸缩项
+        container.addWidget(box1)
+        container.addWidget(box3)
+        container.addStretch(1)  # 添加伸缩项
+
+        # 设置窗口显示的内容是最外层容器
+        self.setLayout(container)
+        container.setSpacing(28) # 设置布局内控件的间距为28
+        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
+
+
+class Widget_tune_google(QFrame):# google调教界面
+    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+        super().__init__(parent=parent)          #调用父类的构造函数
+        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+
+
+        # 最外层的垂直布局
+        container = QVBoxLayout()
+
+
+        # -----创建第1个组，添加多个组件-----
+        box1 = QGroupBox()
+        box1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1 = QHBoxLayout()
+
+
+        #设置“启用实时参数”标签
+        label0 = QLabel(flags=Qt.WindowFlags())  
+        label0.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label0.setText("实时改变AI参数")
+
+        #设置官方文档说明链接按钮
+        hyperlinkButton = HyperlinkButton(
+            url='https://ai.google.dev/gemini-api/docs/models/generative-models?hl=zh-cn',
             text='(官方文档)'
         )
 
@@ -12785,31 +13576,6 @@ class Widget_export_source_text(QFrame):#  提取子界面
 
 
 
-        # -----创建第1个组，添加多个组件-----
-        box_switch_log = QGroupBox()
-        box_switch_log.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_switch_log = QHBoxLayout()
-
-        #设置标签
-        self.labe1_log = QLabel(flags=Qt.WindowFlags())  
-        self.labe1_log.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        self.labe1_log.setText("是否提取战斗日志文本")
-
-
-
-        # 设置选择开关
-        self.SwitchButton_log = CheckBox('        ')
-        self.SwitchButton_log.setChecked(True)    
-        #self.SwitchButton_jsonmode.checkedChanged.connect(self.onjsonmode)
-
-
-
-        layout_switch_log.addWidget(self.labe1_log)
-        layout_switch_log.addStretch(1)  # 添加伸缩项
-        layout_switch_log.addWidget(self.SwitchButton_log)
-        box_switch_log.setLayout(layout_switch_log)
-
-
         # -----创建第2个组，添加多个组件-----
         box_input = QGroupBox()
         box_input.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
@@ -12922,7 +13688,6 @@ class Widget_export_source_text(QFrame):#  提取子界面
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box)
         container.addWidget(box_switch)
-        container.addWidget(box_switch_log)
         container.addWidget(box_input)
         container.addWidget(box_output)
         container.addWidget(box_data)
@@ -12986,10 +13751,6 @@ class Widget_export_source_text(QFrame):#  提取子界面
         config['save_path'] = self.label_data_path.text()
         config['data_path'] = self.label_output_path.text()
         config['ja']=self.SwitchButton_ja.isChecked()
-        if self.SwitchButton_log.isChecked() == 0:
-            #把列表里的355删除
-            config['ReadCode'].remove('355')
-
         #提取文本
         pj=jtpp.Jr_Tpp(config)
         pj.FromGame(config['game_path'],config['save_path'],config['data_path'])
@@ -13649,11 +14410,13 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_Moonshot = Widget_Moonshot('Widget_Moonshot', self)
         self.Widget_Deepseek = Widget_Deepseek('Widget_Deepseek', self)
         self.Widget_Dashscope = Widget_Dashscope('Widget_Dashscope', self)
+        self.Widget_Volcengine = Widget_Volcengine('Widget_Volcengine', self)
         self.Widget_SakuraLLM = Widget_SakuraLLM('Widget_SakuraLLM', self)
 
         self.Widget_translation_settings = Widget_translation_settings('Widget_translation_settings', self)
         self.Widget_translation_settings_A = Widget_translation_settings_A('Widget_translation_settings_A', self) 
-        self.Widget_translation_settings_B = Widget_translation_settings_B('Widget_translation_settings_B', self) 
+        self.Widget_translation_settings_B1 = Widget_translation_settings_B1('Widget_translation_settings_B1', self) 
+        self.Widget_translation_settings_B2 = Widget_translation_settings_B2('Widget_translation_settings_B2', self) 
         self.Widget_translation_settings_C = Widget_translation_settings_C('Widget_translation_settings_C', self)  
         self.Widget_start_translation = Widget_start_translation('Widget_start_translation', self) 
 
@@ -13666,6 +14429,7 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_tune_openai = Widget_tune_openai('Widget_tune_openai', self)
         self.Widget_tune_sakura = Widget_tune_sakura('Widget_tune_sakura', self)
         self.Widget_tune_anthropic = Widget_tune_anthropic('Widget_tune_anthropic', self)
+        self.Widget_tune_google = Widget_tune_google('Widget_tune_google', self)
 
         self.Widget_sponsor = Widget_sponsor('Widget_sponsor', self)
         self.Widget_replace_dict = Widget_replace_dict('Widget_replace_dict', self)
@@ -13717,6 +14481,8 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_Deepseek, FIF.FEEDBACK, 'Deepseek官方',parent=self.Widget_official_api) 
         # 添加Dashscope官方账号界面
         self.addSubInterface(self.Widget_Dashscope, FIF.FEEDBACK, 'Dashscope官方',parent=self.Widget_official_api) 
+        # 添加Volcengine官方账号界面
+        self.addSubInterface(self.Widget_Volcengine, FIF.FEEDBACK, 'Volcengine官方',parent=self.Widget_official_api) 
         # 添加智谱官方账号界面
         self.addSubInterface(self.Widget_ZhiPu, FIF.FEEDBACK, '智谱官方',parent=self.Widget_official_api) 
 
@@ -13730,7 +14496,8 @@ class window(FramelessWindow): #主窗口 v
         # 添加翻译设置相关页面
         self.addSubInterface(self.Widget_translation_settings, FIF.APPLICATION, '翻译设置',NavigationItemPosition.SCROLL) 
         self.addSubInterface(self.Widget_translation_settings_A, FIF.REMOVE, '基础设置',parent=self.Widget_translation_settings) 
-        self.addSubInterface(self.Widget_translation_settings_B, FIF.ALIGNMENT, '进阶设置',parent=self.Widget_translation_settings) 
+        self.addSubInterface(self.Widget_translation_settings_B1, FIF.ALIGNMENT, '发送设置',parent=self.Widget_translation_settings) 
+        self.addSubInterface(self.Widget_translation_settings_B2, FIF.ALBUM, '专项设置',parent=self.Widget_translation_settings) 
         self.addSubInterface(self.Widget_translation_settings_C, FIF.EMOJI_TAB_SYMBOLS, '混合翻译设置',parent=self.Widget_translation_settings) 
 
         # 添加开始翻译页面
@@ -13755,6 +14522,7 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_tune_openai, FIF.SPEED_OFF, 'OpenAI',parent=self.Widget_tune)
         self.addSubInterface(self.Widget_tune_anthropic, FIF.SPEED_OFF, 'Anthropic',parent=self.Widget_tune)    
         self.addSubInterface(self.Widget_tune_sakura, FIF.SPEED_OFF, 'Sakura',parent=self.Widget_tune)  
+        self.addSubInterface(self.Widget_tune_google, FIF.SPEED_OFF, 'Google',parent=self.Widget_tune)  
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
 
@@ -13854,7 +14622,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.70.1"  #软件版本号
+    Software_Version = "AiNiee4.71"  #软件版本号
     cache_list = [] # 全局缓存数据
     Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是接口测试状态
                         # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
