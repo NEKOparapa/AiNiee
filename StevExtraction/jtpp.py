@@ -7,7 +7,7 @@ import openpyxl
 from chardet import detect
 import csv
 
-version = 'v2.18'
+version = 'v2.19'
 
 csv.field_size_limit(2**30)
 pd.options.display.max_colwidth = None
@@ -43,6 +43,7 @@ class Jr_Tpp():
     def __init__(self,config:dict,path:str=False):
         self.ProgramData= {} # 翻译工程数据,键为文件名，值为DataFrame，列为['原文','译文','地址','标签']，同时设置原文为索引
         self.ApplyConfig(config)
+        self.AutoLineFeed_jsdir='自动换行.js'
         if path:
             self.load(path) # 从工程文件加载
 
@@ -271,7 +272,7 @@ class Jr_Tpp():
         elif type(data)==str and len(Dir)==0:
             # 写code355,655
             if code in self.sptext.keys():
-                for mark in self.sptext[code].keys:
+                for mark in self.sptext[code].keys():
                     if mark in data or mark=='空':
                         data = data.replace(untrs, trsed)
             else:
@@ -900,6 +901,41 @@ class Jr_Tpp():
                 DataFrame.loc[index,'译文']= res.rstrip('\n')
             self.ProgramData[name]=DataFrame
         print('########################已按每行{}字自动换行########################'.format(linelength))
+    # 插件版自动换行
+    def AutoLineFeed_js(self,GameDir):
+        dirlist = self.__ReadFolder(GameDir)
+        # 定位到plugins.js文件，并取得plugins文件夹地址
+        for fdir in dirlist:
+            if fdir.endswith('plugins.js') and '\\js\\' in fdir:
+                pgsdir = fdir
+                pgsfolder = pgsdir.rstrip('plugins.js') + 'plugins\\'
+                break
+        with open(pgsdir, 'rb') as f:
+            encoding = detect(f.read())['encoding']
+            if encoding == None:
+                encoding = 'ansi'
+        with open(pgsdir, 'r', encoding=encoding) as f:
+            plugins_js = f.read()
+        # 修改plugins.js文件，在插件列表添加AutoLineFeed.js
+        temp0 = 'plugins =\n[\n'
+        body = plugins_js.split(temp0)
+        addline='{"name":"自动换行","status":true,"description":"auto linefeed","parameters":{}},\n'
+        if addline not in body[1]:
+            body[1] = addline + body[1]
+        plugins_js = body[0] + temp0 + body[1]
+        # 直接覆盖原文件
+        with open(pgsdir, 'w', encoding=encoding) as f:
+            f.write(plugins_js)
+        # 读取自动换行.js，然后在游戏插件目录写入一份（用cp命令可能会报错
+        with open(self.AutoLineFeed_jsdir, 'rb') as f:
+            encoding = detect(f.read())['encoding']
+            if encoding == None:
+                encoding = 'ansi'
+        with open(self.AutoLineFeed_jsdir, 'r', encoding=encoding) as f:
+            jscode = f.read()
+        with open(pgsfolder + '自动换行.js', 'w', encoding=encoding) as f:
+            f.write(jscode)
+        print('已将自动换行插件复制到游戏插件目录，如果出现bug，请自行修改plugins.js文件\n 将自动换行那一行删掉')
     # 核对原文译文中，文本出现次数，若不同，单独导出。只导出原文至少出现一次的。需要一个名为checkdict.json的检查字典，格式为
     #{"要检查的原文":"对应的译文"}
     def checknum(self):
@@ -1070,11 +1106,13 @@ class Jr_Tpp():
         self.InputFromeXlsx(path)
         self.dnb(GameDir)
         self.DNoteB()
-        if self.line_length:
+        if self.line_length and self.line_length!=-1:
             self.AutoLineFeed(self.line_length)
         if mark:
             self.AddMark(mark)
         self.InjectGame(GameDir,OutputPath)
+        if self.line_length==-1:
+            self.AutoLineFeed_js(GameDir)
     # 游戏版本更新，path是旧版翻译文件的路径
     def Update(self,GameDir,path,save_path,data_path):
         self.ReadGame(GameDir)
