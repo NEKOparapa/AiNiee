@@ -12495,6 +12495,11 @@ class Widget_before_dict(QFrame):# 原文替换字典界面
                     self.tableView.removeRow(i)
                     break
 
+    # 移除JSON内容中的行内注释
+    def remove_inline_comments(self, json_content):
+        # 正则表达式匹配行内注释并替换为空字符串
+        return re.sub(r'//.*$', '', json_content, flags=re.MULTILINE)
+
     #导入字典按钮
     def Importing_dictionaries(self):
         # 选择文件
@@ -12505,10 +12510,26 @@ class Widget_before_dict(QFrame):# 原文替换字典界面
             print('[INFO]  未选择文件')
             return
         
-        # 读取文件
-        with open(Input_File, 'r', encoding="utf-8") as f:
-            dictionary = json.load(f)
-        
+        try:
+            # 尝试读取文件内容
+            with open(Input_File, 'r', encoding="utf-8") as f:
+                content = f.read()
+        except FileNotFoundError:
+            print(f'[ERROR] 文件未找到: {Input_File}')
+            return
+        except Exception as e:
+            print(f'[ERROR] 读取文件时发生未知错误: {str(e)}')
+            return
+        try:
+            # 移除内容中的行内注释，并反序列化
+            dictionary = json.loads(self.remove_inline_comments(content))
+        except json.JSONDecodeError as e:
+            print(f'[ERROR] JSON解析错误: {str(e)}')
+            return
+        except Exception as e:
+            print(f'[ERROR] 反序列化时发生未知错误: {str(e)}')
+            return       
+
         # 将字典中的数据从表格底部添加到表格中
         for key, value in dictionary.items():
             row = self.tableView.rowCount() - 1 #获取表格的倒数行数
@@ -12520,6 +12541,9 @@ class Widget_before_dict(QFrame):# 原文替换字典界面
 
         user_interface_prompter.createSuccessInfoBar("导入成功")
         print(f'[INFO]  已导入字典文件')
+
+        # 导入成功后删除空白行
+        self.delete_blank_row()
     
     #导出字典按钮
     def Exporting_dictionaries(self):
@@ -12738,6 +12762,11 @@ class Widget_after_dict(QFrame):# 译文修正字典界面
                     self.tableView.removeRow(i)
                     break
 
+    # 移除JSON内容中的行内注释
+    def remove_inline_comments(self, json_content):
+        # 正则表达式匹配行内注释并替换为空字符串
+        return re.sub(r'//.*$', '', json_content, flags=re.MULTILINE)
+
     #导入字典按钮
     def Importing_dictionaries(self):
         # 选择文件
@@ -12748,9 +12777,25 @@ class Widget_after_dict(QFrame):# 译文修正字典界面
             print('[INFO]  未选择文件')
             return
         
-        # 读取文件
-        with open(Input_File, 'r', encoding="utf-8") as f:
-            dictionary = json.load(f)
+        try:
+            # 尝试读取文件内容
+            with open(Input_File, 'r', encoding="utf-8") as f:
+                content = f.read()
+        except FileNotFoundError:
+            print(f'[ERROR] 文件未找到: {Input_File}')
+            return
+        except Exception as e:
+            print(f'[ERROR] 读取文件时发生未知错误: {str(e)}')
+            return
+        try:
+            # 移除内容中的行内注释，并反序列化
+            dictionary = json.loads(self.remove_inline_comments(content))
+        except json.JSONDecodeError as e:
+            print(f'[ERROR] JSON解析错误: {str(e)}')
+            return
+        except Exception as e:
+            print(f'[ERROR] 反序列化时发生未知错误: {str(e)}')
+            return
         
         # 将字典中的数据从表格底部添加到表格中
         for key, value in dictionary.items():
@@ -12763,6 +12808,9 @@ class Widget_after_dict(QFrame):# 译文修正字典界面
 
         user_interface_prompter.createSuccessInfoBar("导入成功")
         print(f'[INFO]  已导入字典文件')
+
+        # 导入成功后删除空白行
+        self.delete_blank_row()
     
     #导出字典按钮
     def Exporting_dictionaries(self):
