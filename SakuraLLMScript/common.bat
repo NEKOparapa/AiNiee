@@ -62,7 +62,6 @@ echo 准备启动Sakura服务器...
 
 REM 检查 llama-server.exe 是否存在
 if exist ".\llama\llama-server.exe" (
-    REM 如果存在，则执行 llama-server.exe
 	@echo on
     .\llama\llama-server.exe -m .\%model.name%.gguf -fa --no-mmap -cb -np %np% -c %ctx% -ngl %ngl% -a %model.name% --host 127.0.0.1
 	@echo off
@@ -70,7 +69,6 @@ if exist ".\llama\llama-server.exe" (
 
 REM 检查 server.exe 是否存在
 if exist ".\llama\server.exe" (
-    REM 如果存在，则执行 server.exe
 	@echo on
     .\llama\server.exe -m .\%model.name%.gguf -fa --no-mmap -cb -np %np% -c %ctx% -ngl %ngl% -a %model.name% --host 127.0.0.1
 	@echo off
