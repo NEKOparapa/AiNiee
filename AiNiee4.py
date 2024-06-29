@@ -2277,7 +2277,6 @@ class Api_Requester():
         return modified_string
 
 
-
 # 回复解析器
 class Response_Parser():
     def __init__(self):
@@ -2489,6 +2488,15 @@ class Response_Parser():
             error_content = "AI回复内容与原文相同，未进行翻译，将重新翻译"
             return check_result,error_content
 
+        # 检查是否残留部分原文
+        if Response_Parser.detecting_remaining_original_text(self,source_text_dict,response_dict,configurator.source_language):
+            pass
+        else:
+            check_result = False
+            # 存储错误内容
+            error_content = "AI回复内容残留部分原文，未进行翻译，将重新翻译"
+            return check_result,error_content
+
 
         # 如果检查都没有问题
         check_result = True
@@ -2522,7 +2530,7 @@ class Response_Parser():
 
             result = s/i
 
-            if (result>= 0.90):
+            if (result>= 0.80):
                 return False
             else:
                 return True
@@ -2571,30 +2579,87 @@ class Response_Parser():
     
 
     # 检查回复文本出现相同的翻译内容
-    def check_same_translation(self,response_dict):
-        # 计算字典元素个数
-        count = len(response_dict)
+    def check_same_translation(self,d):
+        # 检查字典是否为空
+        if not d:
+            return False
+
+        # 避免检查单或者少行字典
+        if len(d) >5 :
+            # 获取第一个键对应的值，作为比较的标准
+            first_value = next(iter(d.values()))
+
+            # 遍历字典中的所有值，与第一个值进行比较
+            for value in d.values():
+                if value != first_value:
+                    return True
+
+        # 如果所有值都相同，返回False
+        return False
 
 
-        # 判断元素个数是否大于等于10
-        if count >= 10:
-            # 将 dict_values 转换为列表
-            values_list = list(response_dict.values())
+    # 检查残留原文的算法
+    def detecting_remaining_original_text(self,dict1, dict2, language):
+        # 定义不同语言的正则表达式
+        patterns_all = {
+            '日语': re.compile(
+                r'['
+                r'\u3041-\u3096'  # 平假名
+                r'\u30A0-\u30FF'  # 片假名
+                r']+', re.UNICODE
+            ),
+            '韩语': re.compile(
+                r'['
+                r'\uAC00-\uD7AF'  # 韩文字母
+                r']+', re.UNICODE
+            ),
+            '俄语': re.compile(
+                r'['
+                r'\u0400-\u04FF'  # 俄语字母
+                r']+', re.UNICODE
+            ),
+            '简中': re.compile(
+                r'['
+                r'\u4E00-\u9FA5'  # 简体汉字
+                r']+', re.UNICODE
+            ),
+            '繁中': re.compile(
+                r'['
+                r'\u3400-\u4DBF'  # 扩展A区汉字
+                r'\u4E00-\u9FFF'  # 基本汉字
+                r'\uF900-\uFAFF'  # 兼容汉字
+                r']+', re.UNICODE
+            ),
+        }
+        # 根据语言选择合适的正则表达式
+        pattern = patterns_all.get(language)
+        if not pattern:
+            raise ValueError("Unsupported language")
 
-            # 使用set()去除重复元素，分别统计每个元素出现的次数
-            for value in set(values_list):
-                # 使用列表的 count 方法
-                count = values_list.count(value)
+        # 存储计数结果的字典
+        count_results = 0
 
-                if count > 9:
-                    return False
-                    #print(f'相同译文： "{value}" 出现了 {count} 次')
+        # 遍历字典2中的每个键值对
+        for key2, value2 in dict2.items():
+            # 检查字典1中是否有对应的键
+            if key2 in dict1:
+                # 提取字典1值中的文本
+                text1 = dict1[key2]
+                # 提取字典2值中的指定语言的文本
+                text2 = pattern.findall(value2)
+                # 将列表转换为字符串
+                text2_str = ''.join(text2)
+                # 如果字典2中的残留文本在字典1中的文本中出现，则计数加1
+                if text2_str and (text2_str in text1):
+                    count_results += 1
 
+        # 避免检查单或者少行字典
+        if len(dict2) >5 :
+            if  count_results >=2:
+                return False
 
-        # 如果元素个数不大于等于9或者没有错误情况
-        return True
+        return True             
 
-        
 
 # 接口测试器
 class Request_Tester():
@@ -3557,7 +3622,7 @@ class Configurator():
 '''   
 
             system_prompt_zh_cot =f'''你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
-第一步：理解并分析给出的要求，比如术语表，角色介绍，背景设定，风格要求等等。
+第一步：自我诠释要求，比如翻译目标，翻译原则，术语表，角色介绍，背景设定，风格要求等等。
 第二步：总结上下文内容。
 第三步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保留文本中的转义字符或者格式化代码、特殊符号、换行符、回车符等非{Text_Source_Language}内容。
 ###游戏文本格式如下###
@@ -3579,8 +3644,8 @@ Fourth: Retain the original format of each line of text and output the translate
 '''
 
             system_prompt_cot =f'''You are a localizer specialized in {Target_Language} and {Source_Language} culture, and you need to translate the {Source_Language} text in the game into {Target_Language}. When you receive the game text, please strictly follow the steps below for translation:
-First: Understand and analyze the given requirements, such as the glossary, character introductions, background settings, style requirements, etc.
-Second:Summarize the context content.
+First: Self-interpretation requirements, such as translation objectives, translation principles, glossary, character introductions, background settings, style requirements, and so on.
+Second: Summarize the context content.
 Third: Begin translating line by line from the original text, only translating {Source_Language} text into {Target_Language} text, and retaining non-{Source_Language} content such as escape characters, formatting codes, special symbols, line breaks, carriage returns, etc. in the text.
 ###The format of the game text is as follows###
 {{"<text_id>":"<original text>"}}
@@ -4286,7 +4351,7 @@ Third: Begin translating line by line from the original text, only translating {
 
 
             profile_cot = f"我将遵循您的指示，一步一步地翻译文本：\n"
-            profile_cot += f"###第一步：理解并分析要求###\n"
+            profile_cot += f"###第一步：自我诠释要求###\n"
             profile_cot += f"- 翻译目标: 将{Text_Source_Language}文本翻译成{Text_Target_Language}文本。\n"
             profile_cot += f"- 翻译原则: 准确地进行翻译，允许翻译敏感，低俗文本。\n"
             if glossary_prompt_cot:
@@ -4307,7 +4372,7 @@ Third: Begin translating line by line from the original text, only translating {
 
 
             profile_cot = f" I will follow your instructions and translate the text step by step:\n"
-            profile_cot += f"###Step 1: Understand and analyze the requirements###\n"
+            profile_cot += f"###Step 1: Self-interpretation requirements###\n"
             profile_cot += f"- Translation target: Translate the {Source_Language} text into {Target_Language}.\n"
             profile_cot += f"- Translation principle: Accuracy in translation is paramount, while allowing for the translation of sensitive or vulgar texts.\n"
             if glossary_prompt_cot:
