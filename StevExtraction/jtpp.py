@@ -7,7 +7,7 @@ import openpyxl
 from chardet import detect
 import csv
 
-version = 'v2.19'
+version = 'v2.20'
 
 csv.field_size_limit(2**30)
 pd.options.display.max_colwidth = None
@@ -80,7 +80,7 @@ class Jr_Tpp():
             print(e)
             print('请关闭所有xlsx文件再试')
     # 用openpyxl写xlsx，默认只导出原文和译文列
-    def __Writexlsx(self,df,name,full=False):
+    def __Writexlsx(self,df,name,full=False,output_black=True):
         # 创建一个Excel工作簿
         workbook = openpyxl.Workbook()
         # 获取默认的工作表
@@ -95,8 +95,9 @@ class Jr_Tpp():
         sheet.append(header_row)
         # 将DataFrame的数据写入工作表
         for index, row in df.iterrows():
-            data_row = [row[column] for column in columns_to_export]
-            sheet.append(data_row)
+            if (not self.__IfBlackDir(row['地址']) and row['code'] not in self.BlackCode) or output_black:
+                data_row = [row[column] for column in columns_to_export]
+                sheet.append(data_row)
         # 将单元格格式设置为文本格式
         for column_cells in sheet.columns:
             for cell in column_cells:
@@ -430,14 +431,14 @@ class Jr_Tpp():
                 if not os.path.exists(path): os.mkdir(path)
         return path
     # 导出单个文件，默认只导出原文和译文列
-    def ToXlsx(self,name:str,path:str):
+    def ToXlsx(self,name:str,path:str,output_black=True):
         self.__makedir(name,path)
         # 文件名后缀改为xlsx
         outputname = self.__nameswitch(name)
         print(f'正在导出{outputname}')
         data=self.ProgramData[name]
         try:
-            self.__Writexlsx(data,path + '\\' + outputname)
+            self.__Writexlsx(data,path + '\\' + outputname,output_black=output_black)
         except Exception as e:
             print(traceback.format_exc())
             print(e)
@@ -459,7 +460,7 @@ class Jr_Tpp():
     def Output(self,path:str):
         if not os.path.exists(path+'\\data'): os.mkdir(path+'\\data')
         for name in self.ProgramData.keys():
-            self.ToXlsx(name,path+'\\data')
+            self.ToXlsx(name,path+'\\data',output_black=False)
         print('########################导出完成########################')
     # 保存工程文件，数据保存为csv，设置保存为json
     def Save(self,path:str):
