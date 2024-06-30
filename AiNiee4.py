@@ -2469,15 +2469,6 @@ class Response_Parser():
             error_content = "AI回复内容中有未进行翻译的空行,将进行重新翻译"
             return check_result,error_content
 
-
-        # 检查回复文本相同的翻译内容
-        if Response_Parser.check_same_translation(self,response_dict):
-            pass
-        else:
-            check_result = False
-            # 存储错误内容
-            error_content = "AI回复内容中存在大量相同的译文,将进行重新翻译"
-            return check_result,error_content
         
         # 检查是否回复了原文
         if Response_Parser.check_dicts_equal(self,source_text_dict,response_dict):
@@ -2578,28 +2569,13 @@ class Response_Parser():
         return True
     
 
-    # 检查回复文本出现相同的翻译内容
-    def check_same_translation(self,d):
-        # 检查字典是否为空
-        if not d:
-            return False
-
-        # 避免检查单或者少行字典
-        if len(d) >5 :
-            # 获取第一个键对应的值，作为比较的标准
-            first_value = next(iter(d.values()))
-
-            # 遍历字典中的所有值，与第一个值进行比较
-            for value in d.values():
-                if value != first_value:
-                    return True
-
-        # 如果所有值都相同，返回False
-        return False
-
-
     # 检查残留原文的算法
     def detecting_remaining_original_text(self,dict1, dict2, language):
+
+        # 考量到代码文本，英语不作检查
+        if language == "英语":
+            return True
+
         # 定义不同语言的正则表达式
         patterns_all = {
             '日语': re.compile(
