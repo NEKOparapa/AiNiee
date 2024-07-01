@@ -39,7 +39,6 @@ from tiktoken_ext import openai_public
 import tiktoken #需要安装库pip install tiktoken
 import openpyxl  #需安装库pip install openpyxl
 from openpyxl import Workbook  
-import numpy as np   #需要安装库pip install numpy
 import opencc       #需要安装库pip install opencc      
 from openai import OpenAI #需要安装库pip install openai
 import google.generativeai as genai #需要安装库pip install -U google-generativeai
@@ -49,14 +48,14 @@ from ebooklib import epub
 from bs4 import BeautifulSoup #需要安装库pip install beautifulsoup4
 import cohere  #需要安装库pip install cohere
 
-from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QIcon, QImage, QPainter, QPixmap#需要安装库 pip3 install PyQt5
+from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QImage, QPainter, QPixmap#需要安装库 pip3 install PyQt5
 from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
-from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout
 
 from qfluentwidgets.components import Dialog  # 需要安装库 pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, EditableComboBox
 from qfluentwidgets import FluentIcon as FIF
-from qframelesswindow import FramelessWindow, TitleBar, StandardTitleBar
+from qframelesswindow import FramelessWindow, StandardTitleBar
 
 from StevExtraction import jtpp  # type: ignore #导入文本提取工具
 
@@ -140,12 +139,8 @@ class Translator():
         # 输出开始翻译的日志
         print("[INFO]  翻译项目为",configurator.translation_project, '\n')
         print("[INFO]  翻译平台为",configurator.translation_platform, '\n')
-        print("[INFO]  AI模型为",configurator.model_type, '\n')
-
-        if configurator.translation_platform == "OpenAI代理" or  configurator.translation_platform == "SakuraLLM":
-            print("[INFO]  请求地址为",configurator.base_url, '\n')
-        elif configurator.translation_platform == "OpenAI官方":
-            print("[INFO]  账号类型为",Window.Widget_Openai.comboBox_account_type.currentText(), '\n')
+        print("[INFO]  请求地址为",configurator.base_url, '\n')
+        print("[INFO]  翻译模型为",configurator.model_type, '\n')
 
         if configurator.translation_platform != "SakuraLLM":
             print("[INFO]  当前设定的系统提示词为:\n", configurator.get_system_prompt(), '\n')
@@ -658,7 +653,7 @@ class Api_Requester():
                     response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict)
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict,configurator.source_language)
 
 
                     # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
@@ -686,7 +681,7 @@ class Api_Requester():
 
 
                         # 如果开启自动备份,则自动备份缓存文件
-                        if Window.Widget_start_translation.B_settings.checkBox_switch.isChecked():
+                        if configurator.auto_backup_toggle:
                             lock3.acquire()  # 获取锁
 
                             # 创建存储缓存文件的文件夹，如果路径不存在，创建文件夹
@@ -1068,7 +1063,7 @@ class Api_Requester():
                     response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict)
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict,configurator.source_language)
 
                     # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
 
@@ -1095,7 +1090,7 @@ class Api_Requester():
 
 
                         # 如果开启自动备份,则自动备份缓存文件
-                        if Window.Widget_start_translation.B_settings.checkBox_switch.isChecked():
+                        if configurator.auto_backup_toggle:
                             lock3.acquire()  # 获取锁
 
                             # 创建存储缓存文件的文件夹，如果路径不存在，创建文件夹
@@ -1446,7 +1441,7 @@ class Api_Requester():
                     response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict)
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict,configurator.source_language)
 
                     # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
 
@@ -1473,7 +1468,7 @@ class Api_Requester():
 
 
                         # 如果开启自动备份,则自动备份缓存文件
-                        if Window.Widget_start_translation.B_settings.checkBox_switch.isChecked():
+                        if configurator.auto_backup_toggle:
                             lock3.acquire()  # 获取锁
 
                             # 创建存储缓存文件的文件夹，如果路径不存在，创建文件夹
@@ -1822,7 +1817,7 @@ class Api_Requester():
                     response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict)
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict,configurator.source_language)
 
                     # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
 
@@ -1849,7 +1844,7 @@ class Api_Requester():
 
 
                         # 如果开启自动备份,则自动备份缓存文件
-                        if Window.Widget_start_translation.B_settings.checkBox_switch.isChecked():
+                        if configurator.auto_backup_toggle:
                             lock3.acquire()  # 获取锁
 
                             # 创建存储缓存文件的文件夹，如果路径不存在，创建文件夹
@@ -2158,7 +2153,7 @@ class Api_Requester():
                     response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict)
+                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict,configurator.source_language)
 
                     # ——————————————————————————————————————————回复内容结果录入——————————————————————————————————————————
 
@@ -2184,7 +2179,7 @@ class Api_Requester():
 
 
                         # 如果开启自动备份,则自动备份缓存文件
-                        if Window.Widget_start_translation.B_settings.checkBox_switch.isChecked():
+                        if configurator.auto_backup_toggle:
                             lock3.acquire()  # 获取锁
 
                             # 创建存储缓存文件的文件夹，如果路径不存在，创建文件夹
@@ -2432,7 +2427,7 @@ class Response_Parser():
         return ''.join(result)
 
     # 检查回复内容是否存在问题
-    def check_response_content(self,response_str,response_dict,source_text_dict):
+    def check_response_content(self,response_str,response_dict,source_text_dict,source_language):
         # 存储检查结果
         check_result = False
         # 存储错误内容
@@ -2480,7 +2475,7 @@ class Response_Parser():
             return check_result,error_content
 
         # 检查是否残留部分原文
-        if Response_Parser.detecting_remaining_original_text(self,source_text_dict,response_dict,configurator.source_language):
+        if Response_Parser.detecting_remaining_original_text(self,source_text_dict,response_dict,source_language):
             pass
         else:
             check_result = False
@@ -3182,6 +3177,89 @@ class Configurator():
                 self.sakurallm_platform_config = json.load(f)
   
 
+        #获取OpenAI官方账号界面
+        self.openai_account_type = config_dict["openai_account_type"]   #获取账号类型下拉框当前选中选项的值
+        self.openai_model_type = config_dict["openai_model_type"] #获取模型类型下拉框当前选中选项的值
+        self.openai_API_key_str = config_dict["openai_API_key_str"] #获取apikey输入值
+        self.openai_proxy_port = config_dict["openai_proxy_port"] #获取代理端口
+        
+
+        #Google官方账号界面
+        self.google_account_type = config_dict["google_account_type"]    #获取账号类型下拉框当前选中选项的值
+        self.google_model_type = config_dict["google_model_type"] #获取模型类型下拉框当前选中选项的值
+        self.google_API_key_str = config_dict["google_API_key_str"] #获取apikey输入值
+        self.google_proxy_port = config_dict["google_proxy_port"] #获取代理端口
+
+        #Anthropic官方账号界面
+        self.anthropic_account_type = config_dict["anthropic_account_type"]#获取账号类型下拉框当前选中选项的值
+        self.anthropic_model_type = config_dict["anthropic_model_type"] #获取模型类型下拉框当前选中选项的值
+        self.anthropic_API_key_str = config_dict["anthropic_API_key_str"] #获取apikey输入值
+        self.anthropic_proxy_port = config_dict["anthropic_proxy_port"] #获取代理端口
+
+
+        #获取Cohere官方账号界面
+        self.cohere_account_type = config_dict["cohere_account_type"] #获取账号类型下拉框当前选中选项的值
+        self.cohere_model_type = config_dict["cohere_model_type"] #获取模型类型下拉框当前选中选项的值
+        self.cohere_API_key_str = config_dict["cohere_API_key_str"] #获取apikey输入值
+        self.cohere_proxy_port = config_dict["cohere_proxy_port"] #获取代理端口
+
+
+        #获取moonshot官方账号界面
+        self.moonshot_account_type = config_dict["moonshot_account_type"]    #获取账号类型下拉框当前选中选项的值
+        self.moonshot_model_type = config_dict["moonshot_model_type"]  #获取模型类型下拉框当前选中选项的值
+        self.moonshot_API_key_str = config_dict["moonshot_API_key_str"] #获取apikey输入值
+        self.moonshot_proxy_port = config_dict["moonshot_proxy_port"] #获取代理端口
+
+        #获取deepseek官方账号界面
+        self.deepseek_model_type = config_dict["deepseek_model_type"] #获取模型类型下拉框当前选中选项的值
+        self.deepseek_API_key_str = config_dict["deepseek_API_key_str"] #获取apikey输入值
+        self.deepseek_proxy_port = config_dict["deepseek_proxy_port"] #获取代理端口
+
+        #获取dashscope官方账号界面
+        self.dashscope_model_type = config_dict["dashscope_model_type"] #获取模型类型下拉框当前选中选项的值
+        self.dashscope_API_key_str = config_dict["dashscope_API_key_str"] #获取apikey输入值
+        self.dashscope_proxy_port = config_dict["dashscope_proxy_port"] #获取代理端口
+
+        #智谱官方界面
+        self.zhipu_account_type = config_dict["zhipu_account_type"] #获取账号类型下拉框当前选中选项的值
+        self.zhipu_model_type = config_dict["zhipu_model_type"] #获取模型类型下拉框当前选中选项的值
+        self.zhipu_API_key_str = config_dict["zhipu_API_key_str"] #获取apikey输入值
+        self.zhipu_proxy_port = config_dict["zhipu_proxy_port"] #获取代理端口
+
+
+        #获取火山账号界面
+        self.volcengine_access_point = config_dict["volcengine_access_point"]      #获取推理接入点
+        self.volcengine_API_key_str = config_dict["volcengine_API_key_str"] #获取apikey输入值
+        self.volcengine_proxy_port = config_dict["volcengine_proxy_port"] #获取代理端口
+        self.volcengine_tokens_limit = config_dict["volcengine_tokens_limit"] #获取tokens限制值
+        self.volcengine_rpm_limit = config_dict["volcengine_rpm_limit"] #获取rpm限制值
+        self.volcengine_tpm_limit = config_dict["volcengine_tpm_limit"] #获取tpm限制值
+        self.volcengine_input_pricing = config_dict["volcengine_input_pricing"]        #获取输入价格
+        self.volcengine_output_pricing = config_dict["volcengine_output_pricing"]        #获取输出价格
+
+
+
+        #获取代理账号基础设置界面
+        self.op_relay_address = config_dict["op_relay_address"] #获取请求地址
+        self.op_proxy_platform = config_dict["op_proxy_platform"] # 获取代理平台
+        self.op_model_type_openai = config_dict["op_model_type_openai"] #获取openai的模型类型下拉框当前选中选项的值
+        self.op_model_type_anthropic = config_dict["op_model_type_anthropic"]  #获取anthropic的模型类型下拉框当前选中选项的值        
+        self.op_API_key_str = config_dict["op_API_key_str"] #获取apikey输入值
+        self.op_proxy_port = config_dict["op_proxy_port"]  #获取代理端口
+        self.op_tokens_limit = config_dict["op_tokens_limit"] #获取tokens限制值
+        self.op_rpm_limit = config_dict["op_rpm_limit"]  #获取rpm限制值
+        self.op_tpm_limit = config_dict["op_tpm_limit"] #获取tpm限制值
+        self.op_input_pricing = config_dict["op_input_pricing"] #获取输入价格
+        self.op_output_pricing = config_dict["op_output_pricing"] #获取输出价格
+
+
+        #Sakura界面
+        self.sakura_address = config_dict["sakura_address"] #获取请求地址
+        self.sakura_model_type = config_dict["sakura_model_type"] #获取模型类型下拉框当前选中选项的值
+        self.sakura_proxy_port = config_dict["sakura_proxy_port"] #获取代理端口
+
+
+
 
         # 获取第一页的配置信息（基础设置）
         self.translation_project = config_dict["translation_project"]
@@ -3223,6 +3301,11 @@ class Configurator():
            self.configure_mixed_translation["third_platform"] = self.configure_mixed_translation["second_platform"]
 
 
+        # 获取开始翻译的配置信息
+        self.auto_backup_toggle = config_dict["auto_backup_toggle"] #获取备份设置开关
+
+
+
         # 获取提示书配置
         self.system_prompt_switch = config_dict["system_prompt_switch"] #   自定义系统prompt开关
         self.system_prompt_content = config_dict["system_prompt_content"]
@@ -3244,6 +3327,28 @@ class Configurator():
         self.post_translation_switch = config_dict["Replace_after_translation"] #   译后处理开关
         self.post_translation_content = config_dict["User_Dictionary3"]
 
+
+
+        #获取实时设置界面(openai)
+        self.OpenAI_parameter_adjustment = config_dict["OpenAI_parameter_adjustment"]
+        self.OpenAI_Temperature = config_dict["OpenAI_Temperature"]
+        self.OpenAI_top_p = config_dict["OpenAI_top_p"]
+        self.OpenAI_presence_penalty = config_dict["OpenAI_presence_penalty"] 
+        self.OpenAI_frequency_penalty = config_dict["OpenAI_frequency_penalty"]
+
+        #获取实时设置界面(anthropic)
+        self.Anthropic_parameter_adjustment = config_dict["Anthropic_parameter_adjustment"] 
+        self.Anthropic_Temperature = config_dict["Anthropic_Temperature"]
+
+        #获取实时设置界面(google)
+        self.Google_parameter_adjustment = config_dict["Google_parameter_adjustment"]
+        self.Google_Temperature = config_dict["Google_Temperature"] 
+
+        #获取实时设置界面(sakura)
+        self.Sakura_parameter_adjustment = config_dict["Sakura_parameter_adjustment"] 
+        self.Sakura_Temperature = config_dict["Sakura_Temperature"] 
+        self.Sakura_top_p = config_dict["Sakura_top_p"] 
+        self.Sakura_frequency_penalty = config_dict["Sakura_frequency_penalty"] 
 
 
         # 重新初始化模型参数，防止上次任务的设置影响到
@@ -3534,7 +3639,7 @@ class Configurator():
             the_prompt = self.system_prompt_content
             return the_prompt
         else:
-            #获取文本源语言下拉框当前选中选项的值,先是window父窗口，再到下级Widget_translation_settings，再到A_settings，才到控件
+            #获取文本源语言下拉框当前选中选项的值
             Text_Source_Language =  self.source_language 
             #获取文本目标语言下拉框当前选中选项的值
             Text_Target_Language =  self.target_language
@@ -4422,19 +4527,12 @@ Third: Begin translating line by line from the original text, only translating {
 
     # 原文替换字典函数
     def replace_before_translation(self,dict):
-        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
-        data = []
-        for row in range(Window.Widget_replace_dict.A_settings.tableView.rowCount() - 1):
-            key_item = Window.Widget_replace_dict.A_settings.tableView.item(row, 0)
-            value_item = Window.Widget_replace_dict.A_settings.tableView.item(row, 1)
-            if key_item and value_item:
-                key = key_item.text() 
-                value = value_item.text()
-                data.append((key, value))
+
+        data = self.pre_translation_content
 
         # 将表格数据存储到中间字典中
         dictionary = {}
-        for key, value in data:
+        for key, value in data.items():
             key= key.replace('\\n', '\n').replace('\\r', '\r')  #现在只能针对替换，并不能将\\替换为\
             value= value.replace('\\n', '\n').replace('\\r', '\r')
             dictionary[key] = value
@@ -4454,19 +4552,12 @@ Third: Begin translating line by line from the original text, only translating {
 
     # 译文修正字典函数
     def replace_after_translation(self,dict):
-        #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一轮作为key，第二列作为value，存储中间字典中
-        data = []
-        for row in range(Window.Widget_replace_dict.B_settings.tableView.rowCount() - 1):
-            key_item = Window.Widget_replace_dict.B_settings.tableView.item(row, 0)
-            value_item = Window.Widget_replace_dict.B_settings.tableView.item(row, 1)
-            if key_item and value_item:
-                key = key_item.text() #key_item.text()是获取单元格的文本内容,如果需要获取转义符号，使用key_item.data(Qt.DisplayRole)
-                value = value_item.text()
-                data.append((key, value))
+
+        data = self.post_translation_content
 
         # 将表格数据存储到中间字典中
         dictionary = {}
-        for key, value in data:
+        for key, value in data.items():
             key= key.replace('\\n', '\n').replace('\\r', '\r')  #现在只能针对替换，并不能将\\替换为\
             value= value.replace('\\n', '\n').replace('\\r', '\r')
             dictionary[key] = value
@@ -4504,13 +4595,13 @@ Third: Begin translating line by line from the original text, only translating {
     # 获取AI模型的参数设置（openai）
     def get_openai_parameters(self):
         #如果启用实时参数设置
-        if Window.Widget_tune_openai.checkBox.isChecked() :
+        if self.OpenAI_parameter_adjustment :
             print("[INFO] 已开启OpnAI调教功能，设置为用户设定的参数")
             #获取界面配置信息
-            temperature = Window.Widget_tune_openai.slider1.value() * 0.1
-            top_p = Window.Widget_tune_openai.slider2.value() * 0.1
-            presence_penalty = Window.Widget_tune_openai.slider3.value() * 0.1
-            frequency_penalty = Window.Widget_tune_openai.slider4.value() * 0.1
+            temperature =  self.OpenAI_Temperature * 0.1
+            top_p = self.OpenAI_top_p * 0.1
+            presence_penalty = self.OpenAI_presence_penalty * 0.1
+            frequency_penalty = self.OpenAI_frequency_penalty * 0.1
         else:
             temperature = self.openai_temperature      
             top_p = self.openai_top_p              
@@ -4523,10 +4614,10 @@ Third: Begin translating line by line from the original text, only translating {
     # 获取AI模型的参数设置（anthropic）
     def get_anthropic_parameters(self):
         #如果启用实时参数设置
-        if Window.Widget_tune_anthropic.checkBox.isChecked() :
+        if  self.Anthropic_parameter_adjustment :
             print("[INFO] 已开启anthropic调教功能，设置为用户设定的参数")
             #获取界面配置信息
-            temperature = Window.Widget_tune_anthropic.slider1.value() * 0.1
+            temperature = self.Anthropic_Temperature * 0.1
         else:
             temperature = self.anthropic_temperature      
 
@@ -4536,10 +4627,10 @@ Third: Begin translating line by line from the original text, only translating {
     # 获取AI模型的参数设置（google）
     def get_google_parameters(self):
         #如果启用实时参数设置
-        if Window.Widget_tune_google.checkBox.isChecked() :
+        if self.Google_parameter_adjustment:
             print("[INFO] 已开启google调教功能，设置为用户设定的参数")
             #获取界面配置信息
-            temperature = Window.Widget_tune_google.slider1.value() * 0.1
+            temperature = self.Google_Temperature * 0.1
         else:
             temperature = self.google_temperature      
 
@@ -4548,12 +4639,12 @@ Third: Begin translating line by line from the original text, only translating {
     # 获取AI模型的参数设置（sakura）
     def get_sakura_parameters(self):
         #如果启用实时参数设置
-        if Window.Widget_tune_sakura.checkBox.isChecked() :
+        if self.Sakura_parameter_adjustment :
             print("[INFO] 已开启Sakura调教功能，设置为用户设定的参数")
             #获取界面配置信息
-            temperature = Window.Widget_tune_sakura.slider1.value() * 0.1
-            top_p = Window.Widget_tune_sakura.slider2.value() * 0.1
-            frequency_penalty = Window.Widget_tune_sakura.slider4.value() * 0.1
+            temperature = self.Sakura_Temperature * 0.1
+            top_p = self.Sakura_top_p * 0.1
+            frequency_penalty =  self.Sakura_frequency_penalty * 0.1
         else:
             temperature = self.openai_temperature      
             top_p = self.openai_top_p              
@@ -4738,18 +4829,22 @@ Third: Begin translating line by line from the original text, only translating {
 
 
             #获取实时设置界面(openai)
+            config_dict["OpenAI_parameter_adjustment"] = Window.Widget_tune_openai.checkBox.isChecked()           #获取开关设置
             config_dict["OpenAI_Temperature"] = Window.Widget_tune_openai.slider1.value()           #获取OpenAI温度
             config_dict["OpenAI_top_p"] = Window.Widget_tune_openai.slider2.value()                 #获取OpenAI top_p
             config_dict["OpenAI_presence_penalty"] = Window.Widget_tune_openai.slider3.value()      #获取OpenAI top_k
             config_dict["OpenAI_frequency_penalty"] = Window.Widget_tune_openai.slider4.value()    #获取OpenAI repetition_penalty
 
             #获取实时设置界面(anthropic)
+            config_dict["Anthropic_parameter_adjustment"] = Window.Widget_tune_anthropic.checkBox.isChecked()           #获取开关设置
             config_dict["Anthropic_Temperature"] = Window.Widget_tune_anthropic.slider1.value()           #获取anthropic 温度
 
             #获取实时设置界面(google)
+            config_dict["Google_parameter_adjustment"] = Window.Widget_tune_google.checkBox.isChecked()           #获取开关设置
             config_dict["Google_Temperature"] = Window.Widget_tune_google.slider1.value()           #获取google 温度
 
             #获取实时设置界面(sakura)
+            config_dict["Sakura_parameter_adjustment"] = Window.Widget_tune_sakura.checkBox.isChecked()           #获取开关设置
             config_dict["Sakura_Temperature"] = Window.Widget_tune_sakura.slider1.value()           #获取sakura温度
             config_dict["Sakura_top_p"] = Window.Widget_tune_sakura.slider2.value()
             config_dict["Sakura_frequency_penalty"] = Window.Widget_tune_sakura.slider4.value()
@@ -5109,6 +5204,9 @@ Third: Begin translating line by line from the original text, only translating {
 
 
                 #实时设置界面(openai)
+                if "OpenAI_parameter_adjustment" in config_dict:
+                    OpenAI_parameter_adjustment = config_dict["OpenAI_parameter_adjustment"]
+                    Window.Widget_tune_openai.checkBox.setChecked(OpenAI_parameter_adjustment)
                 if "OpenAI_Temperature" in config_dict:
                     OpenAI_Temperature = config_dict["OpenAI_Temperature"]
                     Window.Widget_tune_openai.slider1.setValue(OpenAI_Temperature)
@@ -5123,16 +5221,25 @@ Third: Begin translating line by line from the original text, only translating {
                     Window.Widget_tune_openai.slider4.setValue(OpenAI_frequency_penalty)
 
                 #实时设置界面(anthropic)
+                if "Anthropic_parameter_adjustment" in config_dict:
+                    Anthropic_parameter_adjustment = config_dict["Anthropic_parameter_adjustment"]
+                    Window.Widget_tune_anthropic.checkBox.setChecked(Anthropic_parameter_adjustment)
                 if "Anthropic_Temperature" in config_dict:
                     Anthropic_Temperature = config_dict["Anthropic_Temperature"]
                     Window.Widget_tune_anthropic.slider1.setValue(Anthropic_Temperature)
 
                 #实时设置界面(google)
+                if "Google_parameter_adjustment" in config_dict:
+                    Google_parameter_adjustment = config_dict["Google_parameter_adjustment"]
+                    Window.Widget_tune_google.checkBox.setChecked(Google_parameter_adjustment)
                 if "Google_Temperature" in config_dict:
                     Google_Temperature = config_dict["Google_Temperature"]
                     Window.Widget_tune_google.slider1.setValue(Google_Temperature)
 
                 #实时设置界面(sakura)
+                if "Sakura_parameter_adjustment" in config_dict:
+                    Sakura_parameter_adjustment = config_dict["Sakura_parameter_adjustment"]
+                    Window.Widget_tune_sakura.checkBox.setChecked(Sakura_parameter_adjustment)
                 if "Sakura_Temperature" in config_dict:
                     Sakura_Temperature = config_dict["Sakura_Temperature"]
                     Window.Widget_tune_sakura.slider1.setValue(Sakura_Temperature)
@@ -5245,9 +5352,9 @@ class Request_Limiter():
         #根据翻译平台读取配置信息
         if translation_platform == 'OpenAI官方':
             # 获取账号类型
-            account_type = Window.Widget_Openai.comboBox_account_type.currentText()
+            account_type = configurator.openai_account_type
             # 获取模型选择 
-            model = Window.Widget_Openai.comboBox_model.currentText()
+            model = configurator.openai_model_type
 
             # 获取相应的限制
             max_tokens = configurator.openai_platform_config[account_type][model]["max_tokens"]
@@ -5266,9 +5373,9 @@ class Request_Limiter():
         #根据翻译平台读取配置信息
         elif translation_platform == 'Anthropic官方':
             # 获取账号类型
-            account_type = Window.Widget_Anthropic.comboBox_account_type.currentText()
+            account_type = configurator.anthropic_account_type
             # 获取模型选择 
-            model = Window.Widget_Anthropic.comboBox_model.currentText()
+            model = configurator.anthropic_model_type
 
             # 获取相应的限制
             max_tokens = configurator.anthropic_platform_config[account_type]["max_tokens"]
@@ -5287,9 +5394,9 @@ class Request_Limiter():
         #根据翻译平台读取配置信息
         elif translation_platform == 'Cohere官方':
             # 获取账号类型
-            account_type = Window.Widget_Cohere.comboBox_account_type.currentText()
+            account_type = configurator.cohere_account_type
             # 获取模型选择 
-            model = Window.Widget_Cohere.comboBox_model.currentText()
+            model = configurator.cohere_model_type
 
             # 获取相应的限制
             max_tokens = configurator.cohere_platform_config[account_type][model]["max_tokens"]
@@ -5306,9 +5413,9 @@ class Request_Limiter():
 
         elif translation_platform == 'Google官方':
             # 获取账号类型
-            account_type = Window.Widget_Google.comboBox_account_type.currentText()
+            account_type = configurator.google_account_type
             # 获取模型
-            model = Window.Widget_Google.comboBox_model.currentText()
+            model = configurator.google_model_type
 
             # 获取相应的限制
             max_tokens = configurator.google_platform_config[account_type][model]["max_tokens"]
@@ -5327,9 +5434,9 @@ class Request_Limiter():
         #根据翻译平台读取配置信息
         elif translation_platform == 'Moonshot官方':
             # 获取账号类型
-            account_type = Window.Widget_Moonshot.comboBox_account_type.currentText()
+            account_type = configurator.moonshot_account_type
             # 获取模型选择 
-            model = Window.Widget_Moonshot.comboBox_model.currentText()
+            model = configurator.moonshot_model_type
 
             # 获取相应的限制
             max_tokens = configurator.moonshot_platform_config[account_type][model]["max_tokens"]
@@ -5348,7 +5455,7 @@ class Request_Limiter():
         #根据翻译平台读取配置信息
         elif translation_platform == 'Deepseek官方':
             # 获取模型选择 
-            model = Window.Widget_Deepseek.comboBox_model.currentText()
+            model = configurator.dashscope_model_type
 
             # 获取相应的限制
             max_tokens = configurator.deepseek_platform_config[model]["max_tokens"]
@@ -5366,9 +5473,9 @@ class Request_Limiter():
 
         elif translation_platform == '智谱官方':
             # 获取账号类型
-            account_type = Window.Widget_ZhiPu.comboBox_account_type.currentText()
+            account_type = configurator.zhipu_account_type
             # 获取模型
-            model = Window.Widget_ZhiPu.comboBox_model.currentText()
+            model = configurator.zhipu_model_type
 
             # 获取相应的限制
             max_tokens =  configurator.zhipu_platform_config[account_type][model]["max_tokens"]
@@ -5387,7 +5494,7 @@ class Request_Limiter():
         #根据翻译平台读取配置信息
         elif translation_platform == 'Dashscope官方':
             # 获取模型选择 
-            model = Window.Widget_Dashscope.comboBox_model.currentText()
+            model = configurator.dashscope_model_type
 
             # 获取相应的限制
             max_tokens = configurator.dashscope_platform_config[model]["max_tokens"]
@@ -5407,9 +5514,9 @@ class Request_Limiter():
         elif translation_platform == 'Volcengine官方':
 
             # 获取相应的限制
-            max_tokens = Window.Widget_Volcengine.B_settings.spinBox_tokens.value()               #获取每次文本发送上限限制值
-            RPM_limit = Window.Widget_Volcengine.B_settings.spinBox_RPM.value()               #获取rpm限制值
-            TPM_limit = Window.Widget_Volcengine.B_settings.spinBox_TPM.value()               #获取tpm限制值
+            max_tokens = configurator.volcengine_tokens_limit               #获取每次文本发送上限限制值
+            RPM_limit = configurator.volcengine_rpm_limit               #获取rpm限制值
+            TPM_limit = configurator.volcengine_tpm_limit           #获取tpm限制值
 
             # 获取当前key的数量，对限制进行倍数更改
             key_count = len(configurator.apikey_list)
@@ -5422,7 +5529,7 @@ class Request_Limiter():
 
         elif translation_platform == 'SakuraLLM':
             # 获取模型
-            model = Window.Widget_SakuraLLM.comboBox_model.currentText()
+            model = configurator.sakura_model_type
 
             # 获取相应的限制
             max_tokens = configurator.sakurallm_platform_config[model]["max_tokens"]
@@ -5434,9 +5541,9 @@ class Request_Limiter():
 
 
         else:            
-            max_tokens = Window.Widget_Proxy.B_settings.spinBox_tokens.value()               #获取每次文本发送上限限制值
-            RPM_limit = Window.Widget_Proxy.B_settings.spinBox_RPM.value()               #获取rpm限制值
-            TPM_limit = Window.Widget_Proxy.B_settings.spinBox_TPM.value()               #获取tpm限制值
+            max_tokens = configurator.op_tokens_limit               #获取每次文本发送上限限制值
+            RPM_limit = configurator.op_rpm_limit               #获取rpm限制值
+            TPM_limit = configurator.op_tpm_limit             #获取tpm限制值
 
             # 设置限制
             self.set_limit(max_tokens,TPM_limit,RPM_limit)
@@ -14447,32 +14554,6 @@ class AvatarWidget(NavigationWidget):#头像导航项
             painter.setFont(font)
             painter.drawText(QRect(44, 0, 255, 36), Qt.AlignVCenter, 'NEKOparapa')
 
-
-
-class CustomTitleBar(TitleBar): #标题栏
-    """ Title bar with icon and title """
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        # add window icon
-        self.iconLabel = QLabel(self) #创建标签
-        self.iconLabel.setFixedSize(18, 18) #设置标签大小
-        self.hBoxLayout.insertSpacing(0, 10) #设置布局的间距
-        self.hBoxLayout.insertWidget(1, self.iconLabel, 0, Qt.AlignLeft | Qt.AlignBottom) #将标签添加到布局中
-        self.window().windowIconChanged.connect(self.setIcon) #窗口图标改变时，调用setIcon函数
-
-        # add title label
-        self.titleLabel = QLabel(self) #创建标签
-        self.hBoxLayout.insertWidget(2, self.titleLabel, 0, Qt.AlignLeft | Qt.AlignBottom) #将标签添加到布局中
-        self.titleLabel.setObjectName('titleLabel') #设置对象名
-        self.window().windowTitleChanged.connect(self.setTitle) #窗口标题改变时，调用setTitle函数
-
-    def setTitle(self, title): #设置标题
-        self.titleLabel.setText(title) #设置标签的文本
-        self.titleLabel.adjustSize() #调整标签的大小
-
-    def setIcon(self, icon): #设置图标
-        self.iconLabel.setPixmap(QIcon(icon).pixmap(18, 18)) #设置图标
 
 
 class window(FramelessWindow): #主窗口 v
