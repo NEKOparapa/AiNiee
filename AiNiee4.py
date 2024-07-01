@@ -260,7 +260,7 @@ class Translator():
         if configurator.conversion_toggle: 
             if configurator.target_language == "简中" or configurator.target_language == "繁中":
                 try:
-                    cache_list = File_Outputter.simplified_and_traditional_conversion(self,cache_list, configurator.target_language)
+                    cache_list = Cache_Manager.simplified_and_traditional_conversion(self,cache_list, configurator.target_language)
                     print(f"\033[1;32mSuccess:\033[0m  文本转化{configurator.target_language}完成-----------------------------------", '\n')   
 
                 except Exception as e:
@@ -7175,12 +7175,6 @@ class Cache_Manager():
         return name, dialogue
 
 
-
-# 文件输出器
-class File_Outputter():
-    def __init__(self):
-        pass
-
     # 将缓存文件里已翻译的文本转换为简体字或繁体字
     def simplified_and_traditional_conversion( self,cache_list, target_language):
         # 缓存数据结构示例
@@ -7216,6 +7210,12 @@ class File_Outputter():
                 converted_list.append(item)
 
         return converted_list
+
+
+# 文件输出器
+class File_Outputter():
+    def __init__(self):
+        pass
     
 
     # 输出json文件
