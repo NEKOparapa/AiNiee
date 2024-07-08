@@ -2072,7 +2072,7 @@ class Api_Requester():
 
 
                     extra_query = {
-                        'do_sample': False,
+                        'do_sample': True,
                         'num_beams': 1,
                         'repetition_penalty': 1.0,
                     }
@@ -2082,21 +2082,25 @@ class Api_Requester():
                     # 获取请求地址
                     openai_base_url = configurator.base_url
                     # 创建openai客户端
-                    openaiclient = OpenAI(api_key=openai_apikey,
-                                            base_url= openai_base_url)
+                    openaiclient = OpenAI(api_key = openai_apikey, base_url = openai_base_url)
+                    # Token限制模式下，请求的最大tokens数应该与设置保持一致
+                    if not configurator.tokens_limit_switch:
+                        openai_max_tokens = 512
+                    else:
+                        openai_max_tokens = max(0, configurator.tokens_limit)
+                    
                     # 发送对话请求
                     try:
                         response = openaiclient.chat.completions.create(
-                            model= configurator.model_type,
-                            messages = messages ,
-                            temperature=temperature,
+                            model = configurator.model_type,
+                            messages = messages,
+                            temperature = temperature,
                             top_p = top_p,                        
-                            frequency_penalty=frequency_penalty,
-
-                            max_tokens=512,
-                            seed=-1,
-                            extra_query=extra_query,
-                            )
+                            frequency_penalty = frequency_penalty,
+                            max_tokens = openai_max_tokens,
+                            seed = -1,
+                            extra_query = extra_query,
+                        )
 
                     #抛出错误信息
                     except Exception as e:
