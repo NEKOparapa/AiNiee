@@ -24,8 +24,8 @@ class Widget_Volcengine(QFrame):  # 火山引擎主界面
         self.stackedWidget = QStackedWidget(self)  # 创建一个 QStackedWidget 实例，堆叠式窗口
         self.vBoxLayout = QVBoxLayout(self)  # 创建一个垂直布局管理器
 
-        self.A_settings = Widget_Volcengine_A('A_settings', self)  # 创建实例，指向界面
-        self.B_settings = Widget_Volcengine_B('B_settings', self)  # 创建实例，指向界面
+        self.A_settings = Widget_Volcengine_A('A_settings', self,configurator,user_interface_prompter,background_executor)  # 创建实例，指向界面
+        self.B_settings = Widget_Volcengine_B('B_settings', self,configurator,user_interface_prompter,background_executor)  # 创建实例，指向界面
 
         # 添加子界面到分段式导航栏
         self.addSubInterface(self.A_settings, 'A_settings', '基础设置')
@@ -63,9 +63,12 @@ class Widget_Volcengine(QFrame):  # 火山引擎主界面
 
 
 class Widget_Volcengine_A(QFrame):#  火山引擎基础设置子界面
-    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+    def __init__(self, text: str, parent=None,configurator=None,user_interface_prompter=None,background_executor=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        self.configurator = configurator
+        self.user_interface_prompter = user_interface_prompter
+        self.background_executor = background_executor
         #设置各个控件-----------------------------------------------------------------------------------------
 
 
@@ -209,9 +212,12 @@ class Widget_Volcengine_A(QFrame):#  火山引擎基础设置子界面
 
 
 class Widget_Volcengine_B(QFrame):#  火山引擎进阶设置子界面
-    def __init__(self, text: str, parent=None):#解释器会自动调用这个函数
+    def __init__(self, text: str, parent=None,configurator=None,user_interface_prompter=None,background_executor=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
+        self.configurator = configurator
+        self.user_interface_prompter = user_interface_prompter
+        self.background_executor = background_executor
         #设置各个控件-----------------------------------------------------------------------------------------
 
 

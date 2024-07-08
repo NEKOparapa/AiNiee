@@ -27,14 +27,14 @@ jobs:
           (Get-Command python).Path | ForEach-Object { $_ -replace 'python\.exe$', 'Lib\site-packages\opencc\__init__.py' } | ForEach-Object { $content = Get-Content $_; $content -replace '_thisdir = .+', '_thisdir = os.path.dirname(os.path.abspath(sys.argv[0]))' | Set-Content $_ }
 
       - name: Build EXE
-        run: pyinstaller -F -i ./resource/Avatar.png ./AiNiee.py
+        run: pyinstaller -F -i ./Resource/Avatar.png ./AiNiee.py
 
       - name: Zip dist folder
         run: |
           $openccPath = (Get-Command python).Path | ForEach-Object { $_ -replace 'python\.exe$', 'Lib\site-packages\opencc' }
           $clibPath = Join-Path -Path $openccPath -ChildPath 'clib'
           Copy-Item -Path "$clibPath" -Destination "dist\clib" -Recurse -Force
-          Copy-Item -Path "resource" -Destination "dist\resource" -Recurse -Force
+          Copy-Item -Path "Resource" -Destination "dist\Resource" -Recurse -Force
           Copy-Item -Path "StevExtraction" -Destination "dist\StevExtraction" -Recurse -Force
           Copy-Item -Path "SakuraLLMScript" -Destination "dist\SakuraLLMScript" -Recurse -Force
           Compress-Archive -Path "dist" -DestinationPath "AiNiee-Beta.zip"
