@@ -27,7 +27,7 @@ jobs:
           (Get-Command python).Path | ForEach-Object { $_ -replace 'python\.exe$', 'Lib\site-packages\opencc\__init__.py' } | ForEach-Object { $content = Get-Content $_; $content -replace '_thisdir = .+', '_thisdir = os.path.dirname(os.path.abspath(sys.argv[0]))' | Set-Content $_ }
 
       - name: Build EXE
-        run: pyinstaller -F -i ./resource/Avatar.png ./AiNiee4.py
+        run: pyinstaller -F -i ./resource/Avatar.png ./AiNiee.py
 
       - name: Zip dist folder
         run: |
