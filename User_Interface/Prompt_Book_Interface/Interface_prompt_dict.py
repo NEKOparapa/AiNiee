@@ -281,4 +281,4 @@ class Widget_prompt_dict(QFrame): # 术语字典界面
     #消息提示函数
     def checkBoxChanged2(self, isChecked: bool):
         if isChecked :
-            self.user_interface_prompter.createSuccessInfoBar("已开启译时提示功能,将根据发送文本自动添加翻译示例")
+            self.user_interface_prompter.createSuccessInfoBar("已开启术语字典功能")

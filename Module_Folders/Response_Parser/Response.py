@@ -164,22 +164,23 @@ class Response_Parser():
         return ''.join(result)
 
     # 检查回复内容是否存在问题
-    def check_response_content(self,response_str,response_dict,source_text_dict,source_language):
+    def check_response_content(self,reply_check_switch,response_str,response_dict,source_text_dict,source_language):
         # 存储检查结果
         check_result = False
         # 存储错误内容
         error_content = "0"
 
 
-        # 检查模型是否退化，出现高频词（只检测中日）
-        if Response_Parser.model_degradation_detection(self,response_str):
-            pass
+        # 检查模型是否退化，出现高频词
+        if 'Model Degradation Check' in reply_check_switch and reply_check_switch['Model Degradation Check']:
+            if Response_Parser.model_degradation_detection(self,response_str):
+                pass
 
-        else:
-            check_result = False
-            # 存储错误内容
-            error_content = "AI回复内容出现高频词,并重新翻译"
-            return check_result,error_content
+            else:
+                check_result = False
+                # 存储错误内容
+                error_content = "AI回复内容出现高频词,并重新翻译"
+                return check_result,error_content
 
 
         # 检查文本行数
@@ -203,22 +204,24 @@ class Response_Parser():
 
         
         # 检查是否回复了原文
-        if Response_Parser.check_dicts_equal(self,source_text_dict,response_dict):
-            pass
-        else:
-            check_result = False
-            # 存储错误内容
-            error_content = "AI回复内容与原文相同，未进行翻译，将重新翻译"
-            return check_result,error_content
+        if 'Return to Original Text Check' in reply_check_switch and reply_check_switch['Return to Original Text Check']:
+            if Response_Parser.check_dicts_equal(self,source_text_dict,response_dict):
+                pass
+            else:
+                check_result = False
+                # 存储错误内容
+                error_content = "AI回复内容与原文相同，未进行翻译，将重新翻译"
+                return check_result,error_content
 
         # 检查是否残留部分原文
-        if Response_Parser.detecting_remaining_original_text(self,source_text_dict,response_dict,source_language):
-            pass
-        else:
-            check_result = False
-            # 存储错误内容
-            error_content = "AI回复内容残留部分原文，未进行翻译，将重新翻译"
-            return check_result,error_content
+        if 'Residual Original Text Check' in reply_check_switch and reply_check_switch['Residual Original Text Check']:
+            if Response_Parser.detecting_remaining_original_text(self,source_text_dict,response_dict,source_language):
+                pass
+            else:
+                check_result = False
+                # 存储错误内容
+                error_content = "AI回复内容残留部分原文，未进行翻译，将重新翻译"
+                return check_result,error_content
 
 
         # 如果检查都没有问题
@@ -253,7 +256,7 @@ class Response_Parser():
 
             result = s/i
 
-            if (result>= 0.80):
+            if (result>= 0.85):
                 return False
             else:
                 return True

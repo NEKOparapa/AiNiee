@@ -7,6 +7,8 @@ import threading
 
 
 class Configurator():
+
+    
     def __init__(self,script_dir):
         # 设置资源文件夹路径
         self.script_dir = script_dir
@@ -213,6 +215,10 @@ class Configurator():
         self.text_clear_toggle = config_dict["text_clear_toggle"]
         self.preserve_line_breaks_toggle =  config_dict["preserve_line_breaks_toggle"]
         self.conversion_toggle = config_dict["response_conversion_toggle"]
+
+        # 检查设置页面
+        self.reply_check_switch = config_dict["reply_check_switch"]
+
 
 
         # 获取第三页的配置信息(混合翻译设置)

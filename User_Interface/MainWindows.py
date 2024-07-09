@@ -29,6 +29,7 @@ from .Translation_Settings_Interface.Interface_translation_settings import Widge
 from .Translation_Settings_Interface.Interface_translation_settings_A import Widget_translation_settings_A
 from .Translation_Settings_Interface.Interface_translation_settings_B1 import Widget_translation_settings_B1
 from .Translation_Settings_Interface.Interface_translation_settings_B2 import Widget_translation_settings_B2
+from .Translation_Settings_Interface.Interface_translation_settings_B3 import Widget_translation_settings_B3
 from .Translation_Settings_Interface.Interface_translation_settings_C import Widget_translation_settings_C
 
 
@@ -98,6 +99,7 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_translation_settings_A = Widget_translation_settings_A('Widget_translation_settings_A', self,configurator,user_interface_prompter) 
         self.Widget_translation_settings_B1 = Widget_translation_settings_B1('Widget_translation_settings_B1', self,user_interface_prompter) 
         self.Widget_translation_settings_B2 = Widget_translation_settings_B2('Widget_translation_settings_B2', self,user_interface_prompter) 
+        self.Widget_translation_settings_B3 = Widget_translation_settings_B3('Widget_translation_settings_B3', self,user_interface_prompter) 
         self.Widget_translation_settings_C = Widget_translation_settings_C('Widget_translation_settings_C', self,user_interface_prompter)  
 
         self.Widget_start_translation = Widget_start_translation('Widget_start_translation', self,configurator,user_interface_prompter,background_executor)  
@@ -188,6 +190,7 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_translation_settings_A, FIF.REMOVE, '基础设置',parent=self.Widget_translation_settings) 
         self.addSubInterface(self.Widget_translation_settings_B1, FIF.ALIGNMENT, '发送设置',parent=self.Widget_translation_settings) 
         self.addSubInterface(self.Widget_translation_settings_B2, FIF.ALBUM, '专项设置',parent=self.Widget_translation_settings) 
+        self.addSubInterface(self.Widget_translation_settings_B3, FIF.CHECKBOX, '检查设置',parent=self.Widget_translation_settings) 
         self.addSubInterface(self.Widget_translation_settings_C, FIF.EMOJI_TAB_SYMBOLS, '混合翻译设置',parent=self.Widget_translation_settings) 
 
         # 添加开始翻译页面
@@ -220,7 +223,7 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_RPG, FIF.TILES, 'StevExtraction',NavigationItemPosition.SCROLL)
         self.addSubInterface(self.Widget_export_source_text, FIF.SHARE, '提取原文',parent=self.Widget_RPG)
         self.addSubInterface(self.Widget_import_translated_text, FIF.LABEL, '导入译文',parent=self.Widget_RPG)
-        self.addSubInterface(self.Widget_update_text, FIF.PIE_SINGLE, '提取新版游戏原文',parent=self.Widget_RPG)
+        self.addSubInterface(self.Widget_update_text, FIF.PIE_SINGLE, '提取增量文本',parent=self.Widget_RPG)
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) 
 

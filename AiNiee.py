@@ -127,7 +127,7 @@ class Translator():
 
         # 计算待翻译的文本总行数，tokens总数
         untranslated_text_line_count,untranslated_text_tokens_count = Cache_Manager.count_and_update_translation_status_0_2(self, configurator.cache_list) #获取需要翻译的文本总行数
-        # 计算并发任务数
+        # 计算剩余任务数
         tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.lines_limit,configurator.tokens_limit,configurator.tokens_limit_switch)
 
 
@@ -227,7 +227,7 @@ class Translator():
                 print("[INFO] 未翻译文本总行数为：",untranslated_text_line_count,"  每次发送行数为：",configurator.lines_limit, '\n')
 
 
-            # 计算并发任务数
+            # 计算剩余任务数
             tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.lines_limit,configurator.tokens_limit,configurator.tokens_limit_switch)
 
 
@@ -311,7 +311,7 @@ class Translator():
         return new_lines_limit,new_tokens_limit
 
 
-    # 计算任务总数
+    # 计算剩余任务总数
     def calculate_total_tasks(self,total_lines,total_tokens,lines_limit,tokens_limit,switch = False):
         
         if switch:
@@ -662,7 +662,7 @@ class Api_Requester():
                     response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict,configurator.source_language)
+                    check_result,error_content =  Response_Parser.check_response_content(self,configurator.reply_check_switch,response_content,response_dict,source_text_dict,configurator.source_language)
 
 
                     # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
@@ -1070,7 +1070,7 @@ class Api_Requester():
                     response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict,configurator.source_language)
+                    check_result,error_content =  Response_Parser.check_response_content(self,configurator.reply_check_switch,response_content,response_dict,source_text_dict,configurator.source_language)
 
                     # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
 
@@ -1447,7 +1447,7 @@ class Api_Requester():
                     response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict,configurator.source_language)
+                    check_result,error_content =  Response_Parser.check_response_content(self,configurator.reply_check_switch,response_content,response_dict,source_text_dict,configurator.source_language)
 
                     # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
 
@@ -1822,7 +1822,7 @@ class Api_Requester():
                     response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict,configurator.source_language)
+                    check_result,error_content =  Response_Parser.check_response_content(self,configurator.reply_check_switch,response_content,response_dict,source_text_dict,configurator.source_language)
 
                     # ———————————————————————————————————回复内容结果录入—————————————————————————————————————————————————
 
@@ -2162,7 +2162,7 @@ class Api_Requester():
                     response_dict = Response_Parser.process_content(self,response_content)
 
                     # 检查回复内容
-                    check_result,error_content =  Response_Parser.check_response_content(self,response_content,response_dict,source_text_dict,configurator.source_language)
+                    check_result,error_content =  Response_Parser.check_response_content(self,configurator.reply_check_switch,response_content,response_dict,source_text_dict,configurator.source_language)
 
                     # ——————————————————————————————————————————回复内容结果录入——————————————————————————————————————————
 
@@ -2626,6 +2626,13 @@ class User_Interface_Prompter(QObject):
             config_dict["response_conversion_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_conversion_toggle.isChecked()   # 获取简繁转换开关
             config_dict["text_clear_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_clear.isChecked() # 获取文本处理开关
 
+            #翻译设置的检查设置页面
+            Model_Degradation_Check =  Window.Widget_translation_settings_B3.SwitchButton_check1.isChecked() 
+            Residual_Original_Text_Check =  Window.Widget_translation_settings_B3.SwitchButton_check2.isChecked()   
+            Return_to_Original_Text_Check =  Window.Widget_translation_settings_B3.SwitchButton_check3.isChecked() 
+            config_dict["reply_check_switch"] = {"Model Degradation Check":Model_Degradation_Check,"Residual Original Text Check":Residual_Original_Text_Check,"Return to Original Text Check":Return_to_Original_Text_Check}
+
+
             #翻译设置混合反应设置界面
             config_dict["translation_mixing_toggle"] =  Window.Widget_translation_settings_C.SwitchButton_mixed_translation.isChecked() # 获取混合翻译开关
             config_dict["translation_platform_1"] =  Window.Widget_translation_settings_C.comboBox_primary_translation_platform.currentText()  # 获取首轮翻译平台设置
@@ -2981,6 +2988,14 @@ class User_Interface_Prompter(QObject):
                 if "text_clear_toggle" in config_dict:
                     Window.Widget_translation_settings_B2.SwitchButton_clear.setChecked(config_dict["text_clear_toggle"])
 
+                #翻译设置的检查设置
+                if "reply_check_switch" in config_dict:
+                    if "Model Degradation Check" in config_dict["reply_check_switch"]:
+                        Window.Widget_translation_settings_B3.SwitchButton_check1.setChecked(config_dict["reply_check_switch"]["Model Degradation Check"])
+                    if "Residual Original Text Check" in config_dict["reply_check_switch"]:
+                        Window.Widget_translation_settings_B3.SwitchButton_check2.setChecked(config_dict["reply_check_switch"]["Residual Original Text Check"])
+                    if "Return to Original Text Check" in config_dict["reply_check_switch"]:
+                        Window.Widget_translation_settings_B3.SwitchButton_check3.setChecked(config_dict["reply_check_switch"]["Return to Original Text Check"])
 
                 #翻译设置混合翻译界面
                 if "translation_mixing_toggle" in config_dict:

@@ -35,8 +35,8 @@ class Widget_export_source_text(QFrame):#  提取子界面
 
         #设置官方文档说明链接按钮
         hyperlinkButton = HyperlinkButton(
-            url='https://www.ai2moe.org/topic/10271-jt%EF%BC%8C%E7%9B%AE%E6%A0%87%E6%98%AF%E9%9B%B6%E9%97%A8%E6%A7%9B%E7%9A%84%EF%BC%8C%E5%86%85%E5%B5%8C%E4%BA%86%E5%A4%9A%E4%B8%AA%E8%84%9A%E6%9C%AC%E7%9A%84%E9%9D%92%E6%98%A5%E7%89%88t/',
-            text='(作者页面)'
+            url='https://github.com/NEKOparapa/AiNiee/blob/main/StevExtraction/%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E.md',
+            text='(使用说明)'
         )
 
 
