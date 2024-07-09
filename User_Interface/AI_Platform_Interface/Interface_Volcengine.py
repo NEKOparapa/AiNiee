@@ -192,7 +192,7 @@ class Widget_Volcengine_A(QFrame):#  火山引擎基础设置子界面
 
 
     def saveconfig(self):
-        self.configurator.read_write_config("write")
+        self.user_interface_prompter.read_write_config("write",self.configurator.resource_dir)
         self.user_interface_prompter.createSuccessInfoBar("已成功保存配置")
 
     def test_request(self):

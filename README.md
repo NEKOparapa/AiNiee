@@ -25,6 +25,7 @@
 * **`🤖AI平台账号`**: [OpenAI平台](https://platform.openai.com/)    [GooGle平台](https://makersuite.google.com/app/apikey?hl=zh-cn)  [Cohere平台](https://dashboard.cohere.com/)  [Anthropic平台](https://console.anthropic.com/dashboard)    [Moonshot平台](https://platform.moonshot.cn/console/info)    [智谱平台](https://open.bigmodel.cn/overview)     [Deepseek平台](https://platform.deepseek.com/usage)     [Dashscope平台](https://dashscope.console.aliyun.com/playground)     [Volcengine平台](https://console.volcengine.com/ark)
 * **`📡下载地址`**: [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
 * **`📺视频教程`**: [Mtool教程](https://www.bilibili.com/video/BV1h6421c7MA)      [T++教程](https://www.bilibili.com/video/BV18c411K7WN?p=2)
+* **`🗣️角色AI提取工具`**: [KeywordGacha-翻译辅助工具](https://github.com/neavo/KeywordGacha)
 * **`🚀性能优化`**: [⚡ 查看 SakuraLLM 性能优化指南，轻松获取 500% 性能提升 !! ⚡](./SakuraLLMScript/OptimizationGuide.md)
 
 <details>

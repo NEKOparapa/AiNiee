@@ -320,7 +320,7 @@ class Widget_before_dict(QFrame):# 原文替换字典界面
 
     #保存字典按钮
     def Save_dictionary(self):
-        self.configurator.read_write_config("write") 
+        self.user_interface_prompter.read_write_config("write",self.configurator.resource_dir)
         self.user_interface_prompter.createSuccessInfoBar("保存成功")
         print(f'[INFO]  已保存字典')
 
@@ -589,7 +589,7 @@ class Widget_after_dict(QFrame):# 译文修正字典界面
 
     #保存字典按钮
     def Save_dictionary(self):
-        self.configurator.read_write_config("write") 
+        self.user_interface_prompter.read_write_config("write",self.configurator.resource_dir)
         self.user_interface_prompter.createSuccessInfoBar("保存成功")
         print(f'[INFO]  已保存字典')
 
