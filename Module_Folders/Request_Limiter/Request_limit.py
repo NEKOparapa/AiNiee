@@ -147,7 +147,7 @@ class Request_Limiter():
         #根据翻译平台读取配置信息
         elif translation_platform == 'Deepseek官方':
             # 获取模型选择 
-            model = self.configurator.dashscope_model_type
+            model = self.configurator.deepseek_model_type
 
             # 获取相应的限制
             max_tokens = self.configurator.deepseek_platform_config[model]["max_tokens"]

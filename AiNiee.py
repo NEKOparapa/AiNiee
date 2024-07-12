@@ -195,7 +195,7 @@ class Translator():
 
         while untranslated_text_line_count != 0 :
             print("\033[1;33mWarning:\033[0m 仍然有部分未翻译，将进行拆分后重新翻译，-----------------------------------")
-            print("[INFO] 当前拆分翻译轮次：",retry_translation_count ," 到达最大轮次：6 时，将停止翻译")
+            print("[INFO] 当前拆分翻译轮次：",retry_translation_count ," 到达最大轮次：",configurator.round_limit," 时，将停止翻译")
 
 
             # 根据混合翻译设置更换翻译平台,并重新初始化配置信息
@@ -303,10 +303,12 @@ class Translator():
         elif lines_limit % 5 == 0:
             new_lines_limit = lines_limit // 5
         else:
-            new_lines_limit = 1
+            new_lines_limit = 1 # 保底一行
 
         # 重新计算tokens限制
         new_tokens_limit = tokens_limit // 2
+        if tokens_limit // 2 == 0:
+            new_tokens_limit = 10 # 保底非零
 
         return new_lines_limit,new_tokens_limit
 
