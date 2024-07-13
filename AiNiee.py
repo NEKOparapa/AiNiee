@@ -307,7 +307,7 @@ class Translator():
 
         # 重新计算tokens限制
         new_tokens_limit = tokens_limit // 2
-        if tokens_limit // 2 == 0:
+        if new_tokens_limit == 0:
             new_tokens_limit = 10 # 保底非零
 
         return new_lines_limit,new_tokens_limit
@@ -1943,7 +1943,7 @@ class Api_Requester():
 
 
         #如果开启了译时提示字典功能
-        converted_list = [] # 创建一个空列表来存储转换后的字符串
+        gpt_dict_raw_text = "" # 空变量
         if (configurator.prompt_dictionary_switch) and (configurator.model_type != "Sakura-v0.9"):
             glossary_prompt = configurator.build_glossary_prompt_sakura(source_text_dict)
             if glossary_prompt:
@@ -1970,7 +1970,7 @@ class Api_Requester():
         source_text_str_raw = self.convert_fullwidth_to_halfwidth(source_text_str_raw)
 
         #构建需要翻译的文本
-        if converted_list:
+        if gpt_dict_raw_text:
             user_prompt = "根据以下术语表（可以为空）：\n" + gpt_dict_raw_text + "\n\n" + "将下面的日文文本根据上述术语表的对应关系和备注翻译成中文：" + source_text_str_raw
         else:
             if configurator.model_type != "Sakura-v0.9":

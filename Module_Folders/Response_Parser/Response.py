@@ -305,13 +305,25 @@ class Response_Parser():
     
 
     # 检查残留原文的算法
-    def detecting_remaining_original_text(self,dict1, dict2, language):
+    def detecting_remaining_original_text(self,dictA, dictB, language):
+
+        # 使用复制变量，避免影响到原变量
+        dict1 = dictA.copy()
+        dict2 = dictB.copy()
 
         # 考量到代码文本，英语不作检查
-        if language == "英语":
+        if language == "英语" or language == "俄语":
             return True
-
-        # 定义不同语言的正则表达式
+        
+        # 不同语言的标点符号字符集
+        punctuation_sets = {
+            '日语': r'[\u3000-\u303F\uFF01-\uFF9F]',  # 日文标点符号
+            '韩语': r'[\u314F-\u3163\uFF61-\uFF9F]',  # 韩文标点符号和半角标点符号
+            '俄语': r'[\u0400-\u04FF\u0500-\u052F]',  # 俄语字母和扩展字符（含标点）
+            '简中': r'[\u3000-\u303F]',  # 中文标点符号
+            '繁中': r'[\u3000-\u303F]',  # 中文标点符号
+        }
+        # 定义不同语言的文本字符集对应的正则表达式
         patterns_all = {
             '日语': re.compile(
                 r'['
@@ -344,6 +356,7 @@ class Response_Parser():
         }
         # 根据语言选择合适的正则表达式
         pattern = patterns_all.get(language)
+        punctuation_pattern = punctuation_sets.get(language)
         if not pattern:
             raise ValueError("Unsupported language")
 
@@ -356,8 +369,10 @@ class Response_Parser():
             if key2 in dict1:
                 # 提取字典1值中的文本
                 text1 = dict1[key2]
+                # 移除字典2值中的标点符号
+                text2_clean = re.sub(punctuation_pattern, '', value2)
                 # 提取字典2值中的指定语言的文本
-                text2 = pattern.findall(value2)
+                text2 = pattern.findall(text2_clean)
                 # 将列表转换为字符串
                 text2_str = ''.join(text2)
                 # 如果字典2中的残留文本在字典1中的文本中出现，则计数加1
