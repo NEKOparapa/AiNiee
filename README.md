@@ -10,15 +10,16 @@
 *Artificial Intelligence Narrative Interpretation and Exploration Engine？*
 
 
-  
-# 声明🧾 
-***
+---
+
+## 声明🧾 
 该款AI翻译工具仅供个人合法用途,任何使用该工具进行直接或者间接非法盈利活动的行为,均不属于授权范围,也不受到任何支持和认可。
 
 * **`交♂交流群`**:  QQ交流群(主要)：821624890，备用QQ群：729610150，备用TG群：https://t.me/+JVHbDSGo8SI2Njhl ,
 
-#  工具准备🏕️
-***
+---
+
+##  工具准备[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#工具准备)
  * **`🟪好用的魔法工具`**:我们**强烈建议**您选择优质稳定的代理工具,不然api接口会频繁报错无法连接或者一直没有回复
  * **`📖文本提取工具`**:[Mtool下载地址](https://afdian.net/a/AdventCirno?tab=feed)  [Translator++下载地址](https://dreamsavior.net/download/)  [SExtractor下载地址](https://github.com/satan53x/SExtractor)
    > 两者免费版本就可以,新人推荐Mtool,如果希望能够自行校正,获得更好的翻译效果,推荐Translator++或者SExtractor
@@ -29,18 +30,17 @@
 * **`🚀性能优化`**: [⚡ 查看 SakuraLLM 性能优化指南，轻松获取 500% 性能提升 !! ⚡](./SakuraLLMScript/OptimizationGuide.md)
 
 <details>
-<summary><b> 
-
-# 使用方法📝
-</b> </summary>
-
+<summary>
+  
+## 使用方法[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#使用方法)
+</summary>
 
 
 <details>
-<summary><b> 
+<summary>
 
 ### 账号配置
-</b> </summary>
+</summary>
 
 *  OpenAI官方配置示例:
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/官方账号设置.png" width="600" height="400"><br>
@@ -93,10 +93,10 @@
 
 
 <details>
-<summary><b> 
+<summary> 
 
 ### 翻译配置
-</b> </summary>
+</summary>
 
 *   配置示例:<br>
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/基础设置.png" width="600" height="400"><br>
@@ -157,10 +157,10 @@
 
 
 <details>
-<summary><b>
+<summary>
   
 ### 如果使用MTOOL进行游戏翻译
-</b> </summary>
+</summary>
 *  1.使用Mtool打开游戏,并在翻译功能界面,选择导出游戏原文文件,会在游戏根目录生成：ManualTransFile.json<br>
   
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导出原文1.png" width="600" height="400">  |  <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导出原文2.png" width="600" height="400">
@@ -189,10 +189,10 @@
 
 
 <details>
-<summary><b>
+<summary>
   
 ### 如果使用T++进行游戏翻译
-</b> </summary>
+</summary>
   
 * 1.🖱️打开`🔴Translator++`,选择“start a new project”,根据你的游戏图标来选择对应的游戏引擎<br>
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/新建工程1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/新建工程2.png" width="600" height="400"><br>
@@ -240,10 +240,10 @@
 
 
 <details>
-<summary><b>
+<summary>
  
 ### 如果使用StevExtraction进行游戏翻译
-</b> </summary>
+</summary>
 
 *  0.工具详情功能及介绍：[工具原作者页面](https://www.ai2moe.org/topic/10271-jt%EF%BC%8C%E7%9B%AE%E6%A0%87%E6%98%AF%E9%9B%B6%E9%97%A8%E6%A7%9B%E7%9A%84%EF%BC%8C%E5%86%85%E5%B5%8C%E4%BA%86%E5%A4%9A%E4%B8%AA%E8%84%9A%E6%9C%AC%E7%9A%84%E9%9D%92%E6%98%A5%E7%89%88t/) 
 
@@ -281,10 +281,10 @@
 
 
 <details>
-<summary><b>
+<summary>
 
 ### 如果使用 Paratranz 进行游戏翻译
-</b> </summary>
+</summary>
 
 *  0.工具详情：[官方网站](https://paratranz.cn/) 这是一个专用于业余翻译工作的站点，与 Ainiee 的对接主要用于预先对文本进行机翻，之后可以进行校对。
 
@@ -301,13 +301,13 @@
 
 </details>
 
-***
+---
 
 <details>
-<summary><b> 
+<summary> 
 
-# 常用功能说明🕹️ 
-</b> </summary>
+## 常用功能说明[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#常用功能说明) 
+</summary>
 
 * ` 多key轮询`
   >如果想使用多个key来分担消耗压力，根据key数量进行加速翻译，请使用同类型账号的key，而且输入时在每个key中间加上英文逗号，不要换行。例如：key1,key2,key3
@@ -342,13 +342,13 @@
   
 </details>
 
-***
+---
 
 <details>
-<summary><b> 
+<summary>
 
-# 常见问题🐛 
-</b> </summary>
+## 常见问题[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#常见问题)  
+</summary>
 
 * 【如何反馈自己在使用中遇到的问题】————————将CMD窗口（黑黑的那个框框）的内容完整截图下来，里面有程序运行日志，还有软件界面设置截图，然后将问题描述清晰带上截图到群里或者issue提问。当进一步排除问题，需要到原文本或者翻译后文本时，请压缩并上传。
 
@@ -360,8 +360,8 @@
 
 </details>
 
-***
+---
 
-# 赞助💖
+## 赞助💖
 [![xxxx](https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sponsor/徽章.png)](https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sponsor/赞赏码.png)
 
