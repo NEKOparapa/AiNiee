@@ -15,18 +15,47 @@
 ## 声明🧾 
 该款AI翻译工具仅供个人合法用途,任何使用该工具进行直接或者间接非法盈利活动的行为,均不属于授权范围,也不受到任何支持和认可。
 
-* **`交♂交流群`**:  QQ交流群(主要)：821624890，备用QQ群：729610150，备用TG群：https://t.me/+JVHbDSGo8SI2Njhl ,
+* **`交♂交流群`**:  QQ交流群(主要)：821624890，备用TG群：https://t.me/+JVHbDSGo8SI2Njhl ,
 
 ---
 
 ##  工具准备[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#工具准备)
- * **`🟪好用的魔法工具`**:我们**强烈建议**您选择优质稳定的代理工具,不然api接口会频繁报错无法连接或者一直没有回复
- * **`📖文本提取工具`**:[Mtool下载地址](https://afdian.net/a/AdventCirno?tab=feed)  [Translator++下载地址](https://dreamsavior.net/download/)  [SExtractor下载地址](https://github.com/satan53x/SExtractor)
-   > 两者免费版本就可以,新人推荐Mtool,如果希望能够自行校正,获得更好的翻译效果,推荐Translator++或者SExtractor
-* **`🤖AI平台账号`**: [OpenAI平台](https://platform.openai.com/)    [GooGle平台](https://makersuite.google.com/app/apikey?hl=zh-cn)  [Cohere平台](https://dashboard.cohere.com/)  [Anthropic平台](https://console.anthropic.com/dashboard)    [Moonshot平台](https://platform.moonshot.cn/console/info)    [智谱平台](https://open.bigmodel.cn/overview)     [Deepseek平台](https://platform.deepseek.com/usage)     [Dashscope平台](https://dashscope.console.aliyun.com/playground)     [Volcengine平台](https://console.volcengine.com/ark)
+
+ * **`🟪好用的魔法工具`**:我们**强烈建议**您选择优质稳定的代理工具,不然接口会报错Connection eror或者一直没有回复
+   
+ * **`📖文本提取工具`**
+
+
+      |工具名|介绍|
+      |:----:|:-----:|
+      |[Mtool](https://afdian.net/a/AdventCirno?tab=feed)|新人推荐|
+      |[Translator++](https://dreamsavior.net/download/)|大佬推荐|
+      |[SExtractor](https://github.com/satan53x/SExtractor)|大佬推荐|
+
+   
+* **`🤖AI平台`**
+
+
+
+      |支持平台|模型类型|介绍|
+      |:------------:|:---------------:|:-----:|
+      |[OpenAI平台](https://platform.openai.com/)|ChatGPT系列|新人推荐|
+      |[GooGle平台](https://makersuite.google.com/app/apikey?hl=zh-cn)|Gemini系列|新人推荐|
+      |[Cohere平台](https://dashboard.cohere.com/)|Command系列|新人推荐|
+      |[Anthropic平台](https://console.anthropic.com/dashboard)|Claude系列|新人推荐|
+      |[Moonshot平台](https://platform.moonshot.cn/console/info)|Moonshot系列|新人推荐|
+      |[智谱平台](https://open.bigmodel.cn/overview)|GLM系列|新人推荐|
+      [Deepseek平台](https://platform.deepseek.com/usage)|Deepseek系列|新人推荐|
+      |[Dashscope平台](https://dashscope.console.aliyun.com/playground)  |千问系列|新人推荐|
+      |[SakuraLLM](https://dashscope.console.aliyun.com/playground)  |豆包系列|新人推荐|
+
+  
 * **`📡下载地址`**: [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
+  
 * **`📺视频教程`**: [Mtool教程](https://www.bilibili.com/video/BV1h6421c7MA)      [T++教程](https://www.bilibili.com/video/BV18c411K7WN?p=2)
+  
 * **`🗣️角色AI提取工具`**: [KeywordGacha-翻译辅助工具](https://github.com/neavo/KeywordGacha)
+  
 * **`🚀性能优化`**: [⚡ 查看 SakuraLLM 性能优化指南，轻松获取 500% 性能提升 !! ⚡](./SakuraLLMScript/OptimizationGuide.md)
 
 <details>
@@ -34,6 +63,7 @@
   
 ## 使用方法[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#使用方法)
 </summary>
+
 
 
 <details>
@@ -99,6 +129,7 @@
 </summary>
 
 *   配置示例:<br>
+
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/基础设置.png" width="600" height="400"><br>
     
     >`翻译项目`: 先前导出原文文件的工具<br>
@@ -162,9 +193,10 @@
 ### 如果使用MTOOL进行游戏翻译
 </summary>
 *  1.使用Mtool打开游戏,并在翻译功能界面,选择导出游戏原文文件,会在游戏根目录生成：ManualTransFile.json<br>
-  
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导出原文1.png" width="600" height="400">  |  <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导出原文2.png" width="600" height="400">
-  <br>
+    >进入页面:<br>
+    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导出原文1.png" width="600" height="400"><br>
+    >导出原文:<br>
+    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导出原文2.png" width="600" height="400"><br>
   
 *  2.在`翻译设置`界面的`翻译项目`选择`🔵Mtool导出文件`,并配置翻译设置<br>
     >配置示例:<br>
