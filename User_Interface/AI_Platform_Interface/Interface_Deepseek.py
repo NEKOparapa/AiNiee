@@ -35,7 +35,7 @@ class Widget_Deepseek(QFrame):#  deepseek账号界面
 
         #设置“模型类型”下拉选择框
         self.comboBox_model = EditableComboBox() #以demo为父类
-        self.comboBox_model.addItems(['deepseek-chat'])
+        self.comboBox_model.addItems(['deepseek-chat','deepseek-coder'])
         self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(200, 35)
 
