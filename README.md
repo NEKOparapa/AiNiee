@@ -4,19 +4,25 @@
   </a>
 <p>
 
-
-**一款专注于Ai翻译的工具，可以用来一键自动翻译RPG SLG游戏，Epub TXT小说，Srt Lrc字幕等等**
-
-*Artificial Intelligence Narrative Interpretation and Exploration Engine？*
-
-
 ---
 
 
-
-
 ## 软件介绍🧾 
-none
+
+  
+<p align="center">
+  
+  **AiNiee 是一款专注于Ai翻译的工具，可以用来一键自动翻译RPG SLG游戏，Epub TXT小说，Srt Lrc字幕等等**
+  
+</p>
+
+
+* **多种文本格式**: json/xlsx导出文件、Epub/TXT 小说、Srt/Lrc 字幕等。
+* **多平台和模型**: 支持国内外主流AI接口平台，可方便快速使用OpenAI、Google、Anthropic、Deepseek、智谱等平台的接口。
+* **支持多种语言翻译**:  支持多种语言的互相翻译，例如中文、英文、日文、韩文、俄语等。
+* **灵活配置**: 自定义请求格式、平台、模型、翻译行数、线程数等。
+* **高效翻译**: 拥有多文件批量翻译、多线程翻译、多key轮询、混合平台翻译等功能。
+* **翻译质量优化**: 思维链翻译、提示书编写、上文自携带、文本自适应处理、回复检查等。
 
 ---
 
