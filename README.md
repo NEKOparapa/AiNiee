@@ -12,51 +12,60 @@
 
 ---
 
-## 声明🧾 
-该款AI翻译工具仅供个人合法用途,任何使用该工具进行直接或者间接非法盈利活动的行为,均不属于授权范围,也不受到任何支持和认可。
 
-* **`交♂交流群`**:  QQ交流群(主要)：821624890，备用TG群：https://t.me/+JVHbDSGo8SI2Njhl ,
+
+
+## 软件介绍🧾 
+none
 
 ---
 
-##  工具准备[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#工具准备)
 
- * **`🟪好用的魔法工具`**:我们**强烈建议**您选择优质稳定的代理工具,不然接口会报错Connection eror或者一直没有回复
+##  工具准备[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#工具准备)
    
  * **`📖文本提取工具`**
 
 
       |工具名|介绍|
       |:----:|:-----:|
-      |[Mtool](https://afdian.net/a/AdventCirno?tab=feed)|新人推荐|
-      |[Translator++](https://dreamsavior.net/download/)|大佬推荐|
-      |[SExtractor](https://github.com/satan53x/SExtractor)|大佬推荐|
+      |[Mtool](https://afdian.net/a/AdventCirno?tab=feed)|上手简单，推荐新人使用|
+      |[Translator++](https://dreamsavior.net/download/)|上手中等，功能强大，推荐大佬使用|
+      |[SExtractor](https://github.com/satan53x/SExtractor)|上手复杂，功能强大，推荐大佬使用|
 
    
-* **`🤖AI平台`**
+ * **`🤖AI调用平台`**
+
+      |支持平台|模型|白嫖情况|
+      |:-----:|:-----:|:-----:|
+      |[OpenAI平台](https://platform.openai.com/)|ChatGPT系列|现无免费额度|
+      |[GooGle平台](https://makersuite.google.com/app/apikey?hl=zh-cn)|Gemini系列|免费账号可白嫖，速度缓慢|
+      |[Cohere平台](https://dashboard.cohere.com/)|Command系列|免费账号可白嫖，速度缓慢|
+      |[Anthropic平台](https://console.anthropic.com/dashboard)|Claude系列|免费账号绑卡可白嫖少量额度，速度一般|
+      |[月之暗面平台](https://platform.moonshot.cn/console/info)|Moonshot系列|无免费额度|
+      |[智谱平台](https://open.bigmodel.cn/overview)|GLM系列|注册送少量免费额度|
+      |[Deepseek平台](https://platform.deepseek.com/usage)|Deepseek系列|注册送少量免费额度，速度极快|
+      |[Dashscope平台](https://dashscope.console.aliyun.com/playground) |千问系列|注册送大量免费额度|
+      |[Volcengine平台](https://console.volcengine.com/ark)|豆包系列|注册送大量免费额度，速度极快|
+      |[SakuraLLM](https://dashscope.console.aliyun.com/playground)  |Sakura系列|需自行部署模型|
 
 
+ * **`📺视频教程`**
 
-      |支持平台|模型类型|介绍|
-      |:------------:|:---------------:|:-----:|
-      |[OpenAI平台](https://platform.openai.com/)|ChatGPT系列|新人推荐|
-      |[GooGle平台](https://makersuite.google.com/app/apikey?hl=zh-cn)|Gemini系列|新人推荐|
-      |[Cohere平台](https://dashboard.cohere.com/)|Command系列|新人推荐|
-      |[Anthropic平台](https://console.anthropic.com/dashboard)|Claude系列|新人推荐|
-      |[Moonshot平台](https://platform.moonshot.cn/console/info)|Moonshot系列|新人推荐|
-      |[智谱平台](https://open.bigmodel.cn/overview)|GLM系列|新人推荐|
-      [Deepseek平台](https://platform.deepseek.com/usage)|Deepseek系列|新人推荐|
-      |[Dashscope平台](https://dashscope.console.aliyun.com/playground)  |千问系列|新人推荐|
-      |[SakuraLLM](https://dashscope.console.aliyun.com/playground)  |豆包系列|新人推荐|
+      |视频链接|说明|
+      |:----:|:-----:|
+      |[Mtool教程](https://www.bilibili.com/video/BV1h6421c7MA) |初次使用推荐观看|
+      |[T++教程](https://www.bilibili.com/video/BV18c411K7WN?p=2)|初次使用推荐观看|
 
   
-* **`📡下载地址`**: [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
-  
-* **`📺视频教程`**: [Mtool教程](https://www.bilibili.com/video/BV1h6421c7MA)      [T++教程](https://www.bilibili.com/video/BV18c411K7WN?p=2)
-  
-* **`🗣️角色AI提取工具`**: [KeywordGacha-翻译辅助工具](https://github.com/neavo/KeywordGacha)
+* **`🗣️角色提取工具`**: [KeywordGacha-翻译辅助工具](https://github.com/neavo/KeywordGacha)
   
 * **`🚀性能优化`**: [⚡ 查看 SakuraLLM 性能优化指南，轻松获取 500% 性能提升 !! ⚡](./SakuraLLMScript/OptimizationGuide.md)
+
+* **`📡下载地址`**: [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
+
+* **`🟪魔法工具`**:**强烈建议**您选择优质稳定的代理工具,不然接口会报错Connection eror或者一直没有回复
+   
+---
 
 <details>
 <summary>
@@ -192,10 +201,9 @@
   
 ### 如果使用MTOOL进行游戏翻译
 </summary>
+
 *  1.使用Mtool打开游戏,并在翻译功能界面,选择导出游戏原文文件,会在游戏根目录生成：ManualTransFile.json<br>
-    >进入页面:<br>
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导出原文1.png" width="600" height="400"><br>
-    >导出原文:<br>
+    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导出原文1.png" width="600" height="400"> | 
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导出原文2.png" width="600" height="400"><br>
   
 *  2.在`翻译设置`界面的`翻译项目`选择`🔵Mtool导出文件`,并配置翻译设置<br>
@@ -391,6 +399,13 @@
 * 【翻译后文本导入到T++不完全，部分未能百分百导入全部译文】————————在非RPGMVZ游戏中，出现该问题比较多，使用最新赞助版T++可以缓解，还可以自己手动打开表格，自己复制粘贴进去
 
 </details>
+
+---
+
+## 声明[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#声明)   
+该款AI翻译工具仅供个人合法用途,任何使用该工具进行直接或者间接非法盈利活动的行为,均不属于授权范围,也不受到任何支持和认可。
+
+* **`交♂交流群`**:  QQ交流群(主要)：821624890，备用TG群：https://t.me/+JVHbDSGo8SI2Njhl ,
 
 ---
 
