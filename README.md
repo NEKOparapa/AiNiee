@@ -13,7 +13,6 @@
 <p align="center">
   
   **AiNiee 是一款专注于Ai翻译的工具，可以用来一键自动翻译RPG SLG游戏，Epub TXT小说，Srt Lrc字幕等等**
-  
 </p>
 
 
@@ -45,14 +44,14 @@
       |:-----:|:-----:|:-----:|
       |[OpenAI平台](https://platform.openai.com/)|ChatGPT系列|现无免费额度|
       |[GooGle平台](https://makersuite.google.com/app/apikey?hl=zh-cn)|Gemini系列|免费账号可白嫖，速度缓慢|
-      |[Cohere平台](https://dashboard.cohere.com/)|Command系列|免费账号可白嫖，速度缓慢|
-      |[Anthropic平台](https://console.anthropic.com/dashboard)|Claude系列|免费账号绑卡可白嫖少量额度，速度一般|
-      |[月之暗面平台](https://platform.moonshot.cn/console/info)|Moonshot系列|无免费额度|
+      |[Cohere平台](https://dashboard.cohere.com/)|Command系列|免费账号可白嫖，速度一般|
+      |[Anthropic平台](https://console.anthropic.com/dashboard)|Claude系列|免费账号绑卡可白嫖少量额度，速度缓慢|
+      |[月之暗面平台](https://platform.moonshot.cn/console/info)|Moonshot系列|注册送少量免费额度|
       |[智谱平台](https://open.bigmodel.cn/overview)|GLM系列|注册送少量免费额度|
       |[Deepseek平台](https://platform.deepseek.com/usage)|Deepseek系列|注册送少量免费额度，速度极快|
       |[Dashscope平台](https://dashscope.console.aliyun.com/playground) |千问系列|注册送大量免费额度|
       |[Volcengine平台](https://console.volcengine.com/ark)|豆包系列|注册送大量免费额度，速度极快|
-      |[SakuraLLM](https://dashscope.console.aliyun.com/playground)  |Sakura系列|需自行部署模型|
+      |[SakuraLLM](https://github.com/SakuraLLM/SakuraLLM)  |Sakura系列|需自行部署模型|
 
 
  * **`📺视频教程`**
@@ -126,7 +125,7 @@
 *  SakuraLLM配置:
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sakura/SakuraLLM.png" width="600" height="400"><br>
 
-    > 1.本地部署方法：https://github.com/SakuraLLM/Sakura-13B-Galgame/wiki<br>
+    > 1.模型部署方法：https://github.com/SakuraLLM/Sakura-13B-Galgame/wiki<br>
 
     > 2.SakuraLLM 性能优化指南：https://github.com/NEKOparapa/AiNiee/blob/main/SakuraLLMScript/OptimizationGuide.md<br>
 
@@ -365,7 +364,7 @@
   >配置信息都会存储在resource的config.json中，下载新版本可以把它复制到新版本的resource中。
   
 * ` 自定义请求格式与模型`
-  >在代理平台页面中，选择相应的请求格式，并在模型选择的下拉框中直接输入模型名字，可以自定义组合发送格式与模型。
+  >在代理平台页面中，选择相应的请求格式，并在模型选择的下拉框中直接输入模型名字，可以自定义组合发送格式与模型。如果想在官方接口调用新模型，需要自行编辑Resource/platform文件夹里的模型信息文件。
 
 * ` 翻译暂停继续`
   >暂停时请耐心等待提示全部任务暂停完成，暂停后可更换设置，继续后会以新的设置继续翻译

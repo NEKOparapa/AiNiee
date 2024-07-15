@@ -464,7 +464,7 @@ class Api_Requester():
         fol_prompt = configurator.build_modelExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle,configurator.source_language,configurator.target_language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot)
 
         #构建默认示例
-        original_exmaple,translation_example =  Configurator.build_translation_sample(self,source_text_dict,configurator.source_language,configurator.target_language)
+        original_exmaple,translation_example =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
         if original_exmaple and translation_example:
 
             the_original_exmaple =  {"role": "user","content":(pre_prompt + original_exmaple) }
@@ -851,7 +851,7 @@ class Api_Requester():
         fol_prompt = configurator.build_modelExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle,configurator.source_language,configurator.target_language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot)
 
         # 构建默认示例
-        original_exmaple,translation_example =  Configurator.build_translation_sample(self,source_text_dict,configurator.source_language,configurator.target_language)
+        original_exmaple,translation_example =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
         if original_exmaple and translation_example:
 
             the_original_exmaple =  {"role": "user","parts":(pre_prompt + original_exmaple) }
@@ -1252,7 +1252,7 @@ class Api_Requester():
         fol_prompt = configurator.build_modelExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle,configurator.source_language,configurator.target_language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot)
 
         #构建默认示例
-        original_exmaple,translation_example =  Configurator.build_translation_sample(self,source_text_dict,configurator.source_language,configurator.target_language)
+        original_exmaple,translation_example =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
         if original_exmaple and translation_example:
 
             the_original_exmaple =  {"role": "user","content":(pre_prompt + original_exmaple) }
@@ -1628,7 +1628,7 @@ class Api_Requester():
         fol_prompt = configurator.build_modelExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle,configurator.source_language,configurator.target_language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot)
 
         #构建默认示例
-        original_exmaple,translation_example =  Configurator.build_translation_sample(self,source_text_dict,configurator.source_language,configurator.target_language)
+        original_exmaple,translation_example =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
         if original_exmaple and translation_example:
                 
             the_original_exmaple =  {"role": "USER","message":(pre_prompt + original_exmaple) }
