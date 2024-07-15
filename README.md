@@ -40,18 +40,18 @@
    
  * **`🤖AI调用平台`**
 
-      |支持平台|模型|白嫖情况|
-      |:-----:|:-----:|:-----:|
-      |[OpenAI平台](https://platform.openai.com/)|ChatGPT系列|现无免费额度|
-      |[GooGle平台](https://makersuite.google.com/app/apikey?hl=zh-cn)|Gemini系列|免费账号可白嫖，速度缓慢|
-      |[Cohere平台](https://dashboard.cohere.com/)|Command系列|免费账号可白嫖，速度一般|
-      |[Anthropic平台](https://console.anthropic.com/dashboard)|Claude系列|免费账号绑卡可白嫖少量额度，速度缓慢|
-      |[月之暗面平台](https://platform.moonshot.cn/console/info)|Moonshot系列|注册送少量免费额度|
-      |[智谱平台](https://open.bigmodel.cn/overview)|GLM系列|注册送少量免费额度|
-      |[Deepseek平台](https://platform.deepseek.com/usage)|Deepseek系列|注册送少量免费额度，速度极快|
-      |[Dashscope平台](https://dashscope.console.aliyun.com/playground) |千问系列|注册送大量免费额度|
-      |[Volcengine平台](https://console.volcengine.com/ark)|豆包系列|注册送大量免费额度，速度极快|
-      |[SakuraLLM](https://github.com/SakuraLLM/SakuraLLM)  |Sakura系列|需自行部署模型|
+      |支持平台|模型|白嫖情况|模型价格|限制情况|
+      |:-----:|:-----:|:-----:|:-----:|:-----:|
+      |[OpenAI平台](https://platform.openai.com/)|ChatGPT系列|现无免费额度|贵|用途广泛|
+      |[GooGle平台](https://makersuite.google.com/app/apikey?hl=zh-cn)|Gemini系列|免费账号可白嫖，速度缓慢|贵|安全限制|
+      |[Cohere平台](https://dashboard.cohere.com/)|Command系列|免费账号可白嫖，速度一般|一般|用途广泛|
+      |[Anthropic平台](https://console.anthropic.com/dashboard)|Claude系列|免费账号绑卡可白嫖少量额度，速度缓慢|贵|用途广泛|
+      |[月之暗面平台](https://platform.moonshot.cn/console/info)|Moonshot系列|注册送少量免费额度|一般|用途广泛|
+      |[智谱平台](https://open.bigmodel.cn/overview)|GLM系列|注册送少量免费额度|一般|安全限制|
+      |[Deepseek平台](https://platform.deepseek.com/usage)|Deepseek系列|注册送少量免费额度，速度极快|便宜|用途广泛|
+      |[Dashscope平台](https://dashscope.console.aliyun.com/playground) |千问系列|注册送大量免费额度|便宜|安全限制|
+      |[Volcengine平台](https://console.volcengine.com/ark)|豆包系列|注册送大量免费额度，速度极快|便宜|安全限制|
+      |[SakuraLLM](https://github.com/SakuraLLM/SakuraLLM)  |Sakura系列|需自行部署模型|免费|用途广泛|
 
 
  * **`📺视频教程`**
