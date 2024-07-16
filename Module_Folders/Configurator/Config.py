@@ -102,6 +102,8 @@ class Configurator():
                 self.moonshot_platform_config = json.load(f)
             with open(os.path.join(self.resource_dir, "platform", "zhipu.json"), "r", encoding="utf-8") as f:
                 self.zhipu_platform_config = json.load(f)
+            with open(os.path.join(self.resource_dir, "platform", "yi.json"), "r", encoding="utf-8") as f:
+                self.yi_platform_config = json.load(f)
             with open(os.path.join(self.resource_dir, "platform", "sakurallm.json"), "r", encoding="utf-8") as f:
                 self.sakurallm_platform_config = json.load(f)
   
@@ -148,6 +150,14 @@ class Configurator():
         self.dashscope_model_type = config_dict["dashscope_model_type"] #获取模型类型下拉框当前选中选项的值
         self.dashscope_API_key_str = config_dict["dashscope_API_key_str"] #获取apikey输入值
         self.dashscope_proxy_port = config_dict["dashscope_proxy_port"] #获取代理端口
+
+
+        #获取零一万物官方账号界面
+        self.yi_account_type = config_dict["yi_account_type"]   #获取账号类型下拉框当前选中选项的值
+        self.yi_model_type = config_dict["yi_model_type"] #获取模型类型下拉框当前选中选项的值
+        self.yi_API_key_str = config_dict["yi_API_key_str"] #获取apikey输入值
+        self.yi_proxy_port = config_dict["yi_proxy_port"] #获取代理端口
+
 
         #智谱官方界面
         self.zhipu_account_type = config_dict["zhipu_account_type"] #获取账号类型下拉框当前选中选项的值
@@ -385,6 +395,29 @@ class Configurator():
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
+
+
+        #根据翻译平台读取配置信息
+        elif translation_platform == '零一万物官方':
+            # 获取模型类型
+            self.model_type =  config_dict["yi_model_type"]             
+
+            # 获取apikey列表
+            API_key_str = config_dict["yi_API_key_str"]            #获取apikey输入值
+            #去除空格，换行符，分割KEY字符串并存储进列表里
+            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
+            self.apikey_list = API_key_list
+
+            # 获取请求地址
+            self.base_url = 'https://api.lingyiwanwu.com/v1'  #需要重新设置，以免使用代理网站后，没有改回来
+
+            #如果填入地址，则设置代理端口
+            Proxy_Address = config_dict["yi_proxy_port"]            #获取代理端口
+            if Proxy_Address :
+                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
+                os.environ["http_proxy"]=Proxy_Address
+                os.environ["https_proxy"]=Proxy_Address
+
 
 
         #根据翻译平台读取配置信息

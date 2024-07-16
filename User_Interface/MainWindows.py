@@ -18,6 +18,7 @@ from .AI_Platform_Interface.Interface_Anthropic import Widget_Anthropic
 from .AI_Platform_Interface.Interface_Google import Widget_Google
 from .AI_Platform_Interface.Interface_Cohere import Widget_Cohere
 from .AI_Platform_Interface.Interface_ZhiPu import Widget_ZhiPu
+from .AI_Platform_Interface.Interface_Yi import Widget_Yi
 from .AI_Platform_Interface.Interface_Moonshot import Widget_Moonshot
 from .AI_Platform_Interface.Interface_Deepseek import Widget_Deepseek
 from .AI_Platform_Interface.Interface_Dashscope import Widget_Dashscope
@@ -89,6 +90,7 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_Google = Widget_Google('Widget_Google', self,configurator,user_interface_prompter,background_executor)
         self.Widget_Cohere = Widget_Cohere('Widget_Cohere', self,configurator,user_interface_prompter,background_executor)
         self.Widget_ZhiPu = Widget_ZhiPu('Widget_ZhiPu', self,configurator,user_interface_prompter,background_executor)
+        self.Widget_Yi = Widget_Yi('Widget_Yi', self,configurator,user_interface_prompter,background_executor)
         self.Widget_Moonshot = Widget_Moonshot('Widget_Moonshot', self,configurator,user_interface_prompter,background_executor)
         self.Widget_Deepseek = Widget_Deepseek('Widget_Deepseek', self,configurator,user_interface_prompter,background_executor)
         self.Widget_Dashscope = Widget_Dashscope('Widget_Dashscope', self,configurator,user_interface_prompter,background_executor)
@@ -175,6 +177,8 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_Dashscope, FIF.FEEDBACK, 'Dashscope官方',parent=self.Widget_official_api) 
         # 添加Volcengine官方账号界面
         self.addSubInterface(self.Widget_Volcengine, FIF.FEEDBACK, 'Volcengine官方',parent=self.Widget_official_api) 
+        # 添加Yi官方账号界面
+        self.addSubInterface(self.Widget_Yi, FIF.FEEDBACK, '零一万物官方',parent=self.Widget_official_api) 
         # 添加智谱官方账号界面
         self.addSubInterface(self.Widget_ZhiPu, FIF.FEEDBACK, '智谱官方',parent=self.Widget_official_api) 
 

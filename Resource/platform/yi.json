@@ -1,0 +1,38 @@
+
+{
+    "免费账号": {
+        "yi-medium":   { "max_tokens": 8000, "TPM": 64000, "RPM": 8},
+        "yi-large-turbo":  { "max_tokens": 8000, "TPM": 64000, "RPM": 8},
+        "yi-large":  { "max_tokens": 16000, "TPM": 32000, "RPM": 4}
+    },
+    "付费账号(等级1)": {
+        "yi-medium":   { "max_tokens": 8000, "TPM": 120000, "RPM": 20},
+        "yi-large-turbo":  { "max_tokens": 8000, "TPM": 120000, "RPM": 20},
+        "yi-large":  { "max_tokens": 16000, "TPM": 80000, "RPM": 10}
+    },
+    "付费账号(等级2)": {
+        "yi-medium":   { "max_tokens": 8000, "TPM": 240000, "RPM": 80},
+        "yi-large-turbo":  { "max_tokens": 8000, "TPM": 240000, "RPM": 80},
+        "yi-large":  { "max_tokens": 16000, "TPM": 120000, "RPM": 40}
+    },
+    "付费账号(等级3)": {
+        "yi-medium":   { "max_tokens": 8000, "TPM": 400000, "RPM": 300},
+        "yi-large-turbo":  { "max_tokens": 8000, "TPM": 300000, "RPM": 240},
+        "yi-large":  { "max_tokens": 16000, "TPM": 160000, "RPM": 120}
+    },
+    "付费账号(等级4)": {
+        "yi-medium":   { "max_tokens": 8000, "TPM": 600000, "RPM": 400},
+        "yi-large-turbo":  { "max_tokens": 8000, "TPM": 480000, "RPM": 240},
+        "yi-large":  { "max_tokens": 16000, "TPM": 240000, "RPM": 120}
+    },
+    "付费账号(等级5)": {
+        "yi-medium":   { "max_tokens": 8000, "TPM": 1000000, "RPM": 800},
+        "yi-large-turbo":  { "max_tokens": 8000, "TPM": 800000, "RPM": 400},
+        "yi-large":  { "max_tokens":16000, "TPM": 400000, "RPM": 200}
+    },
+    "model_price": {
+        "yi-medium": {"input_price": 0.0025, "output_price": 0.0025},
+        "yi-large-turbo": {"input_price": 0.012, "output_price": 0.012},
+        "yi-large": {"input_price": 0.02, "output_price": 0.02}
+        }
+    }

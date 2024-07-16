@@ -35,6 +35,10 @@ class Request_Tester():
         elif platform == "Zhipu":
             Request_Tester.openai_request_test(self,user_interface_prompter,base_url,model_type,api_key_str,proxy_port)
 
+        # 执行零一万物接口测试
+        elif platform == "Yi":
+            Request_Tester.openai_request_test(self,user_interface_prompter,base_url,model_type,api_key_str,proxy_port)
+
         # 执行月之暗面接口测试
         elif platform == "Moonshot":
             Request_Tester.openai_request_test(self,user_interface_prompter,base_url,model_type,api_key_str,proxy_port)

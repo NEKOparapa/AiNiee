@@ -399,6 +399,9 @@ class Api_Requester():
         elif configurator.translation_platform == "Volcengine官方":
             self.concurrent_request_openai()
 
+        elif configurator.translation_platform == "零一万物官方":
+            self.concurrent_request_openai()
+
         elif configurator.translation_platform == "智谱官方":
             self.concurrent_request_openai()
 
@@ -2479,6 +2482,12 @@ class User_Interface_Prompter(QObject):
             input_price = Window.Widget_Volcengine.B_settings.spinBox_input_pricing.value()               #获取输入价格
             output_price = Window.Widget_Volcengine.B_settings.spinBox_output_pricing.value()               #获取输出价格
 
+        elif configurator.translation_platform == "零一万物官方":
+            # 获取使用的模型输入价格与输出价格
+            input_price = configurator.yi_platform_config["model_price"][configurator.model_type]["input_price"]
+            output_price = configurator.yi_platform_config["model_price"][configurator.model_type]["output_price"]
+
+
         elif configurator.translation_platform == "智谱官方":
             # 获取使用的模型输入价格与输出价格
             input_price = configurator.zhipu_platform_config["model_price"][configurator.model_type]["input_price"]
@@ -2599,6 +2608,15 @@ class User_Interface_Prompter(QObject):
             config_dict["dashscope_model_type"] =  Window.Widget_Dashscope.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
             config_dict["dashscope_API_key_str"] = Window.Widget_Dashscope.TextEdit_apikey.toPlainText()        #获取apikey输入值
             config_dict["dashscope_proxy_port"] = Window.Widget_Dashscope.LineEdit_proxy_port.text()            #获取代理端口
+
+            
+            #获取零一万物官方账号界面
+            config_dict["yi_account_type"] = Window.Widget_Yi.comboBox_account_type.currentText()      #获取账号类型下拉框当前选中选项的值
+            config_dict["yi_model_type"] =  Window.Widget_Yi.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
+            config_dict["yi_API_key_str"] = Window.Widget_Yi.TextEdit_apikey.toPlainText()        #获取apikey输入值
+            config_dict["yi_proxy_port"] = Window.Widget_Yi.LineEdit_proxy_port.text()            #获取代理端口
+            
+
 
             #智谱官方界面
             config_dict["zhipu_account_type"] = Window.Widget_ZhiPu.comboBox_account_type.currentText()      #获取账号类型下拉框当前选中选项的值
@@ -2901,6 +2919,17 @@ class User_Interface_Prompter(QObject):
                     Window.Widget_Volcengine.B_settings.spinBox_input_pricing.setValue(config_dict["volcengine_input_pricing"])
                 if "volcengine_output_pricing" in config_dict:
                     Window.Widget_Volcengine.B_settings.spinBox_output_pricing.setValue(config_dict["volcengine_output_pricing"])
+
+
+                #零一万物官方账号界面
+                if "yi_account_type" in config_dict:
+                    Window.Widget_Yi.comboBox_account_type.setCurrentText(config_dict["yi_account_type"])
+                if "yi_model_type" in config_dict:
+                    Window.Widget_Yi.comboBox_model.setCurrentText(config_dict["yi_model_type"])
+                if "yi_API_key_str" in config_dict:
+                    Window.Widget_Yi.TextEdit_apikey.setText(config_dict["yi_API_key_str"])
+                if "yi_proxy_port" in config_dict:
+                    Window.Widget_Yi.LineEdit_proxy_port.setText(config_dict["yi_proxy_port"])
 
 
                 #智谱官方界面
