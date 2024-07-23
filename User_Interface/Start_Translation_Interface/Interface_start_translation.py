@@ -206,8 +206,52 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         box_spent.setLayout(layout_spent)
 
 
-
         # -----创建第4个组，添加多个组件-----
+        box_status = QGroupBox()
+        box_status.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")  # 分别设置了边框大小，边框颜色，边框圆角
+        layout_status = QHBoxLayout()
+
+        # 第7组水平布局
+        layout_horizontal_7 = QHBoxLayout()
+
+        self.labelx111 = QLabel(flags=Qt.WindowFlags())
+        self.labelx111.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.labelx111.setText("运行状态 :")
+
+        self.running_status = QLabel(flags=Qt.WindowFlags())
+        self.running_status.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.running_status.setText("无")
+
+        layout_horizontal_7.addWidget(self.labelx111)
+        layout_horizontal_7.addStretch(1)  # 添加伸缩项
+        layout_horizontal_7.addWidget(self.running_status)
+        layout_horizontal_7.addStretch(1)  # 添加伸缩项
+
+        # 第8组水平布局
+        layout_horizontal_8 = QHBoxLayout()
+
+        self.labelx222 = QLabel(flags=Qt.WindowFlags())
+        self.labelx222.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.labelx222.setText("子线程数 :")
+
+        self.thread_count = QLabel(flags=Qt.WindowFlags())
+        self.thread_count.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.thread_count.setText("无")
+
+        layout_horizontal_8.addWidget(self.labelx222)
+        layout_horizontal_8.addStretch(1)  # 添加伸缩项
+        layout_horizontal_8.addWidget(self.thread_count)
+        layout_horizontal_8.addStretch(1)  # 添加伸缩项
+
+        # 将第7组和第8组水平布局放入最外层水平布局
+        layout_status.addLayout(layout_horizontal_7)
+        layout_status.addLayout(layout_horizontal_8)
+
+        box_status.setLayout(layout_status)
+
+
+
+        # -----创建第5个组，添加多个组件-----
         box_progressRing = QGroupBox()
         box_progressRing.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_progressRing = QHBoxLayout()
@@ -234,7 +278,7 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
 
 
 
-        # -----创建第5个组，添加多个组件-----
+        # -----创建第6个组，添加多个组件-----
         box_start_translation = QGroupBox()
         box_start_translation.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_start_translation = QHBoxLayout()
@@ -281,6 +325,7 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         # 把内容添加到容器中
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box_project)
+        container.addWidget(box_status)
         container.addWidget(box_text_line_count)
         container.addWidget(box_spent)
         container.addWidget(box_progressRing)
@@ -307,7 +352,7 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
             thread = self.background_executor("执行翻译任务","","","","","","","")
             thread.start()
 
-        elif self.configurator.Running_status != 0:
+        else :
             self.user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
     
     #暂停翻译按钮绑定函数
@@ -320,12 +365,13 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
 
         self.configurator.Running_status = 9
         self.user_interface_prompter.createWarningInfoBar("软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！")
+        self.user_interface_prompter.signal.emit("运行状态改变","正在取消线程任务中",0)
         print("\033[1;33mWarning:\033[0m 软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！-----------------------","\n")
 
     #继续翻译按钮绑定函数
     def continue_translation(self):
         
-        if self.configurator.Running_status == 9:
+        if self.configurator.Running_status == 10:
             #隐藏继续翻译按钮
             self.primaryButton_continue_translation.hide()
             #显示暂停翻译按钮
@@ -335,7 +381,7 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
             thread = self.background_executor("执行翻译任务","","","","","","","")
             thread.start()
 
-        elif self.configurator.Running_status != 9:
+        else:
             self.user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
     
     #取消翻译按钮绑定函数
@@ -348,21 +394,22 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         #显示开始翻译按钮
         self.primaryButton_start_translation.show()
 
-        #如果正在翻译中
-        if self.configurator.Running_status == 6:
-            self.configurator.Running_status = 10
+        #如果正在翻译中或者取消线程任务中
+        if self.configurator.Running_status in (6,9):
+            self.configurator.Running_status = 11
             self.user_interface_prompter.createWarningInfoBar("软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！")
+            self.user_interface_prompter.signal.emit("运行状态改变","正在取消线程任务中",0)
             print("\033[1;33mWarning:\033[0m 软件的多线程任务正在逐一取消中，请等待全部翻译任务释放完成！！！-----------------------","\n")
 
-        #如果正在暂停中
-        elif self.configurator.Running_status == 9:
+        #如果已经暂停翻译
+        elif self.configurator.Running_status == 10:
 
             self.configurator.Running_status = 0
             print("\033[1;33mWarning:\033[0m 翻译任务已取消-----------------------","\n")
             #界面提示
             self.user_interface_prompter.createWarningInfoBar("翻译已取消")
             self.user_interface_prompter.signal.emit("重置界面数据","翻译取消",0)
-
+            self.user_interface_prompter.signal.emit("运行状态改变",f"已取消翻译",0)
 
         #如果正在空闲中
         elif self.configurator.Running_status == 0:

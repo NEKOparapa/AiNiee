@@ -18,6 +18,8 @@ class Response_Parser():
     #处理并正则提取翻译内容
     def process_content(self,input_str):
 
+        input_str = Response_Parser.remove_json_triple_backticks(self,input_str)
+
         # 尝试直接转换为json字典
         try:
             response_dict = json.loads(input_str) 
@@ -81,8 +83,7 @@ class Response_Parser():
 
     # 修复value前面的双引号
     def repair_double_quotes(self,text):
-        # 消除文本中的空格
-        text = text.replace(" ", "")
+
         # 正则表达式匹配双引号后跟冒号，并捕获第三个字符
         pattern = r'[\"]:(.)'
         # 使用finditer来找到所有匹配项
@@ -99,8 +100,6 @@ class Response_Parser():
 
     # 修复value后面的双引号
     def repair_double_quotes_2(self,text):
-        # 消除文本中的空格
-        text = text.replace(" ", "")
 
         # 正则表达式匹配逗号后面跟换行符（可选）,再跟双引号的模式
         pattern = r',(?:\n)?\"'
@@ -132,8 +131,6 @@ class Response_Parser():
 
     # 修复大括号前面的双引号
     def repair_double_quotes_3(self,text):
-        # 消除文本中的空格
-        text = text.replace(" ", "")
 
         # 正则表达式匹配逗号后面紧跟双引号的模式
         pattern = r'(?:\n)?}'
@@ -162,6 +159,30 @@ class Response_Parser():
 
         # 将所有片段拼接起来
         return ''.join(result)
+
+    # 清除文本开头结尾的代码块标记
+    def remove_json_triple_backticks(self,s):
+        """
+        移除字符串开头的"```json"和结尾的"```"。
+
+        参数:
+        s (str): 输入字符串。
+
+        返回:
+        str: 处理后的字符串。
+        """
+        if not isinstance(s, str):
+            raise ValueError("Input must be a string")
+
+        start_len = len("```json")
+        end_len = len("```")
+
+        if s.startswith("```json"):
+            s = s[start_len:]
+        if s.endswith("```"):
+            s = s[:-end_len]
+
+        return s
 
     # 检查回复内容是否存在问题
     def check_response_content(self,reply_check_switch,response_str,response_dict,source_text_dict,source_language):

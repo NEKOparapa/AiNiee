@@ -64,7 +64,7 @@ class Configurator():
         # 缓存数据以及运行状态
         self.cache_list = [] # 全局缓存数据
         self.Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是接口测试状态
-                            # 6是翻译任务进行状态，9是翻译任务暂停状态，10是强制终止任务状态
+                            # 6是翻译任务进行状态，9是正在暂停状态，10是已暂停状态,11是正在取消状态
 
 
         # 线程锁
@@ -333,6 +333,10 @@ class Configurator():
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
 
+            # 获取使用的模型输入价格与输出价格
+            self.model_input_price = self.openai_platform_config["model_price"][self.model_type]["input_price"]
+            self.model_output_price = self.openai_platform_config["model_price"][self.model_type]["output_price"]
+
 
         elif translation_platform == 'Anthropic官方':
             # 获取模型类型
@@ -355,6 +359,10 @@ class Configurator():
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
 
+            # 获取使用的模型输入价格与输出价格
+            self.model_input_price = self.anthropic_platform_config["model_price"][self.model_type]["input_price"]
+            self.model_output_price = self.anthropic_platform_config["model_price"][self.model_type]["output_price"]
+
 
         elif translation_platform == 'Google官方':
             # 获取模型类型
@@ -373,6 +381,10 @@ class Configurator():
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
+
+            # 获取使用的模型输入价格与输出价格
+            self.model_input_price = self.google_platform_config["model_price"][self.model_type]["input_price"]
+            self.model_output_price = self.google_platform_config["model_price"][self.model_type]["output_price"]
 
 
         #根据翻译平台读取配置信息
@@ -396,6 +408,10 @@ class Configurator():
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
 
+            # 获取使用的模型输入价格与输出价格
+            self.model_input_price = self.cohere_platform_config["model_price"][self.model_type]["input_price"]
+            self.model_output_price = self.cohere_platform_config["model_price"][self.model_type]["output_price"]
+
 
         #根据翻译平台读取配置信息
         elif translation_platform == '零一万物官方':
@@ -418,6 +434,9 @@ class Configurator():
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
 
+            # 获取使用的模型输入价格与输出价格
+            self.model_input_price = self.yi_platform_config["model_price"][self.model_type]["input_price"]
+            self.model_output_price = self.yi_platform_config["model_price"][self.model_type]["output_price"]
 
 
         #根据翻译平台读取配置信息
@@ -441,6 +460,10 @@ class Configurator():
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
 
+            # 获取使用的模型输入价格与输出价格
+            self.model_input_price = self.zhipu_platform_config["model_price"][self.model_type]["input_price"]
+            self.model_output_price = self.zhipu_platform_config["model_price"][self.model_type]["output_price"]
+
 
         #根据翻译平台读取配置信息
         elif translation_platform == 'Moonshot官方':
@@ -462,6 +485,10 @@ class Configurator():
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
+
+            # 获取使用的模型输入价格与输出价格
+            self.model_input_price = self.moonshot_platform_config["model_price"][self.model_type]["input_price"]
+            self.model_output_price = self.moonshot_platform_config["model_price"][self.model_type]["output_price"]
 
 
         #根据翻译平台读取配置信息
@@ -485,6 +512,11 @@ class Configurator():
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
 
+            # 获取使用的模型输入价格与输出价格
+            self.model_input_price = self.deepseek_platform_config["model_price"][self.model_type]["input_price"]
+            self.model_output_price = self.deepseek_platform_config["model_price"][self.model_type]["output_price"]
+
+
         #根据翻译平台读取配置信息
         elif translation_platform == 'Dashscope官方':
             # 获取模型类型
@@ -505,6 +537,10 @@ class Configurator():
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
+
+            # 获取使用的模型输入价格与输出价格
+            self.model_input_price = self.dashscope_platform_config["model_price"][self.model_type]["input_price"]
+            self.model_output_price = self.dashscope_platform_config["model_price"][self.model_type]["output_price"]
 
 
         #根据翻译平台读取配置信息
@@ -527,6 +563,10 @@ class Configurator():
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
+
+            # 获取使用的模型输入价格与输出价格
+            self.model_input_price = config_dict["volcengine_input_pricing"]
+            self.model_output_price = config_dict["volcengine_output_pricing"]
 
 
         elif translation_platform == '代理平台':
@@ -566,6 +606,9 @@ class Configurator():
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
 
+            # 获取使用的模型输入价格与输出价格
+            self.model_input_price = config_dict["op_input_pricing"]
+            self.model_output_price = config_dict["op_output_pricing"]
 
 
         elif translation_platform == 'SakuraLLM':
@@ -588,6 +631,10 @@ class Configurator():
                 print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
                 os.environ["http_proxy"]=Proxy_Address
                 os.environ["https_proxy"]=Proxy_Address
+
+            # 获取使用的模型输入价格与输出价格
+            self.model_input_price = self.sakurallm_platform_config["model_price"][self.model_type]["input_price"]
+            self.model_output_price = self.sakurallm_platform_config["model_price"][self.model_type]["output_price"]
 
             # 更改部分参数，以适合Sakura模型
             self.openai_temperature = 0.1       

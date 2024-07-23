@@ -25,7 +25,7 @@ class Widget_translation_settings_B2(QFrame):#  专项设置子界面
         #设置“简繁转换开关”标签
         labe1_6 = QLabel(flags=Qt.WindowFlags())  
         labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_6.setText("使用思维链模式")
+        labe1_6.setText("使用思维链翻译")
 
        #设置“简繁体自动转换”选择开关
         self.SwitchButton_cot_toggle = SwitchButton(parent=self)    
@@ -114,7 +114,7 @@ class Widget_translation_settings_B2(QFrame):#  专项设置子界面
         #设置“换行符保留”标签
         labe1_6 = QLabel(flags=Qt.WindowFlags())  
         labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_6.setText("保留换行符")
+        labe1_6.setText("换行替换后翻译")
 
        #设置“换行符保留”选择开关
         self.SwitchButton_line_breaks = SwitchButton(parent=self)    

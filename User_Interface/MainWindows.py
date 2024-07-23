@@ -297,8 +297,7 @@ class window(FramelessWindow): #主窗口 v
 
         if w.exec() :
             print("[INFO] 主窗口已经退出！")
-            global Running_status
-            Running_status = 10
+            self.configurator.Running_status = 11
             event.accept()
         else:
             event.ignore()

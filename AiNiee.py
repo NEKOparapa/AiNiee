@@ -138,7 +138,7 @@ class Translator():
 
             except Exception as e:
                 print(e)
-                print("\033[1;31mError:\033[0m 读取原文失败，请检查项目类型是否设置正确，输入文件夹是否混杂其他非必要文件！")
+                print("\033[1;31mError:\033[0m 读取原文文件失败，请检查项目类型是否设置正确，输入文件夹是否混杂其他非必要文件！")
                 return
 
 
@@ -166,7 +166,7 @@ class Translator():
 
 
         # 更新界面UI信息
-        if configurator.Running_status == 9: # 如果是继续翻译
+        if configurator.Running_status == 10: # 如果是继续翻译
             total_text_line_count = user_interface_prompter.total_text_line_count # 与上一个翻译任务的总行数一致
             user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0)
 
@@ -213,8 +213,8 @@ class Translator():
             executor.shutdown(wait=True)
 
 
-        # 检查翻译任务是否已经暂停或者退出
-        if configurator.Running_status == 9 or configurator.Running_status == 10 :
+        # 检查翻译任务是否已经暂停或者取消
+        if configurator.Running_status in (9, 11):
             return
 
 
@@ -230,7 +230,7 @@ class Translator():
         while untranslated_text_line_count != 0 :
             print("\033[1;33mWarning:\033[0m 仍然有部分未翻译，将进行拆分后重新翻译，-----------------------------------")
             print("[INFO] 当前拆分翻译轮次：",retry_translation_count ," 到达最大轮次：",configurator.round_limit," 时，将停止翻译")
-
+            user_interface_prompter.signal.emit("运行状态改变",f"正在拆分翻译",0)
 
             # 根据混合翻译设置更换翻译平台,并重新初始化配置信息
             if configurator.mixed_translation_toggle:
@@ -280,8 +280,8 @@ class Translator():
                 executor.shutdown(wait=True)
 
             
-            # 检查翻译任务是否已经暂停或者退出
-            if configurator.Running_status == 9 or configurator.Running_status == 10 :
+            # 检查翻译任务是否已经暂停或者取消
+            if configurator.Running_status == 9 or configurator.Running_status == 11 :
                 return
 
 
@@ -321,7 +321,7 @@ class Translator():
         user_interface_prompter.signal.emit("翻译状态提示","翻译完成",0)
         print("\n--------------------------------------------------------------------------------------")
         print("\n\033[1;32mSuccess:\033[0m 已完成全部翻译任务，程序已经停止")   
-        print("\n\033[1;32mSuccess:\033[0m 请检查译文文件，格式是否错误，存在错行，或者有空行等问题")
+        print("\n\033[1;32mSuccess:\033[0m 请检查译文文件，格式是否错误，存在错行，空行等问题")
         print("\n-------------------------------------------------------------------------------------\n")
 
 
@@ -470,7 +470,7 @@ class Api_Requester():
         original_exmaple,translation_example =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
         if original_exmaple and translation_example:
 
-            the_original_exmaple =  {"role": "user","content":(pre_prompt + original_exmaple) }
+            the_original_exmaple =  {"role": "user","content":(f'{pre_prompt}```json\n{original_exmaple}\n```') }
             the_translation_example = {"role": "assistant", "content": (f'{fol_prompt}```json\n{translation_example}\n```') }
 
             messages.append(the_original_exmaple)
@@ -521,7 +521,7 @@ class Api_Requester():
 
         # 构建用户信息
         source_text_str = json.dumps(source_text_dict, ensure_ascii=False)  
-        source_text_str = previous + "\n"+ pre_prompt + source_text_str 
+        source_text_str = f'{previous}\n{pre_prompt}```json\n{source_text_str}\n```'
         messages.append({"role":"user","content":source_text_str })
 
 
@@ -536,7 +536,7 @@ class Api_Requester():
     def concurrent_request_openai(self):
 
         # 检查翻译任务是否已经暂停或者退出
-        if configurator.Running_status == 9 or configurator.Running_status == 10 :
+        if configurator.Running_status == 9 or configurator.Running_status == 11 :
             return
 
         try:#方便排查子线程bug
@@ -588,7 +588,7 @@ class Api_Requester():
 
             while 1 :
                 # 检查翻译任务是否已经暂停或者退出---------------------------------
-                if configurator.Running_status == 9 or configurator.Running_status == 10 :
+                if configurator.Running_status == 9 or configurator.Running_status == 11 :
                     return
 
                 #检查子线程运行是否超时---------------------------------
@@ -601,9 +601,13 @@ class Api_Requester():
                 if request_limiter.RPM_and_TPM_limit(request_tokens_consume):
 
 
-                    print("[INFO] 已发送请求,正在等待AI回复中-----------------------")
-                    print("[INFO] 请求与回复的tokens数预计值是：",request_tokens_consume  + completion_tokens_consume )
-                    print("[INFO] 当前发送的原文文本：\n", source_text_str)
+                    # 获取当前线程的ID
+                    thread_id = threading.get_ident()
+                    # 将线程ID简化为4个数字，这里使用对10000取模的方式
+                    simplified_thread_id = thread_id % 10000
+                    print(f"[INFO] 已发送请求,正在等待AI回复中-----------------------")
+                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
+                    print(f"[INFO] 当前发送的原文文本: \n{source_text_str}")
 
                     # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
                     # 记录开始请求时间
@@ -647,7 +651,7 @@ class Api_Requester():
 
 
                     # 检查翻译任务是否已经暂停或者退出，不进行接下来的处理了
-                    if configurator.Running_status == 9 or configurator.Running_status == 10 :
+                    if configurator.Running_status == 9 or configurator.Running_status == 11 :
                         return
                     
 
@@ -691,8 +695,7 @@ class Api_Requester():
 
                     print('\n' )
                     print("[INFO] 已成功接受到AI的回复-----------------------")
-                    print("[INFO] 该次请求已消耗等待时间：",Request_consumption_time,"秒")
-                    print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
+                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 等待时间: {Request_consumption_time} 秒")
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                     # ———————————————————————————————————对回复内容处理,检查—————————————————————————————————————————————————
@@ -856,8 +859,8 @@ class Api_Requester():
         # 构建默认示例
         original_exmaple,translation_example =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
         if original_exmaple and translation_example:
-
-            the_original_exmaple =  {"role": "user","parts":(pre_prompt + original_exmaple) }
+            
+            the_original_exmaple =  {"role": "user","parts":(f'{pre_prompt}```json\n{original_exmaple}\n```') }
             the_translation_example = {"role": "model", "parts": (f'{fol_prompt}```json\n{translation_example}\n```') }
 
             messages.append(the_original_exmaple)
@@ -906,8 +909,8 @@ class Api_Requester():
 
 
         # 构建用户信息
-        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)     
-        source_text_str = previous + "\n"+ pre_prompt + source_text_str 
+        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)
+        source_text_str = f'{previous}\n{pre_prompt}```json\n{source_text_str}\n```'     
         messages.append({"role":"user","parts":source_text_str })
 
 
@@ -921,7 +924,7 @@ class Api_Requester():
     # 并发接口请求（Google）
     def concurrent_request_google(self):
         # 检查翻译任务是否已经暂停或者退出
-        if configurator.Running_status == 9 or configurator.Running_status == 10 :
+        if configurator.Running_status == 9 or configurator.Running_status == 11 :
             return
 
         try:#方便排查子线程bug
@@ -978,7 +981,7 @@ class Api_Requester():
 
             while 1 :
                 # 检查翻译任务是否已经暂停或者退出
-                if configurator.Running_status == 9 or configurator.Running_status == 10 :
+                if configurator.Running_status == 9 or configurator.Running_status == 11 :
                     return
 
                 #检查子线程运行是否超时---------------------------------
@@ -991,9 +994,13 @@ class Api_Requester():
                 if request_limiter.RPM_and_TPM_limit(request_tokens_consume):
 
 
-                    print("[INFO] 已发送请求,正在等待AI回复中-----------------------")
-                    print("[INFO] 请求与回复的tokens数预计值是：",request_tokens_consume  + completion_tokens_consume ) 
-                    print("[INFO] 当前发送的原文文本：\n", source_text_str)
+                    # 获取当前线程的ID
+                    thread_id = threading.get_ident()
+                    # 将线程ID简化为4个数字，这里使用对10000取模的方式
+                    simplified_thread_id = thread_id % 10000
+                    print(f"[INFO] 已发送请求,正在等待AI回复中-----------------------")
+                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
+                    print(f"[INFO] 当前发送的原文文本: \n{source_text_str}")
 
                     # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
                     # 记录开始请求时间
@@ -1062,7 +1069,7 @@ class Api_Requester():
 
 
                     # 检查翻译任务是否已经暂停或者退出，不进行接下来的处理了
-                    if configurator.Running_status == 9 or configurator.Running_status == 10 :
+                    if configurator.Running_status == 9 or configurator.Running_status == 11 :
                         return
                     
 
@@ -1100,8 +1107,7 @@ class Api_Requester():
 
                     print('\n' )
                     print("[INFO] 已成功接受到AI的回复-----------------------")
-                    print("[INFO] 该次请求已消耗等待时间：",Request_consumption_time,"秒")
-                    print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
+                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 等待时间: {Request_consumption_time} 秒")
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                     # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
@@ -1258,7 +1264,7 @@ class Api_Requester():
         original_exmaple,translation_example =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
         if original_exmaple and translation_example:
 
-            the_original_exmaple =  {"role": "user","content":(pre_prompt + original_exmaple) }
+            the_original_exmaple =  {"role": "user","content":(f'{pre_prompt}```json\n{original_exmaple}\n```') }
             the_translation_example = {"role": "assistant", "content": (f'{fol_prompt}```json\n{translation_example}\n```') }
 
             messages.append(the_original_exmaple)
@@ -1307,8 +1313,8 @@ class Api_Requester():
 
 
         # 构建用户信息
-        source_text_str = json.dumps(source_text_dict, ensure_ascii=False)     
-        source_text_str = previous + "\n"+ pre_prompt + source_text_str 
+        source_text_str = json.dumps(source_text_dict, ensure_ascii=False) 
+        source_text_str = f'{previous}\n{pre_prompt}```json\n{source_text_str}\n```'
         messages.append({"role":"user","content":source_text_str })
 
 
@@ -1323,7 +1329,7 @@ class Api_Requester():
     def concurrent_request_anthropic(self):
 
         # 检查翻译任务是否已经暂停或者退出
-        if configurator.Running_status == 9 or configurator.Running_status == 10 :
+        if configurator.Running_status == 9 or configurator.Running_status == 11 :
             return
 
         try:#方便排查子线程bug
@@ -1378,7 +1384,7 @@ class Api_Requester():
 
             while 1 :
                 # 检查翻译任务是否已经暂停或者退出
-                if configurator.Running_status == 9 or configurator.Running_status == 10 :
+                if configurator.Running_status == 9 or configurator.Running_status == 11 :
                     return
 
                 #检查子线程运行是否超时---------------------------------
@@ -1391,9 +1397,13 @@ class Api_Requester():
                 if request_limiter.RPM_and_TPM_limit(request_tokens_consume):
 
 
-                    print("[INFO] 已发送请求,正在等待AI回复中-----------------------")
-                    print("[INFO] 请求与回复的tokens数预计值是：",request_tokens_consume  + completion_tokens_consume )
-                    print("[INFO] 当前发送的原文文本：\n", source_text_str)
+                    # 获取当前线程的ID
+                    thread_id = threading.get_ident()
+                    # 将线程ID简化为4个数字，这里使用对10000取模的方式
+                    simplified_thread_id = thread_id % 10000
+                    print(f"[INFO] 已发送请求,正在等待AI回复中-----------------------")
+                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
+                    print(f"[INFO] 当前发送的原文文本: \n{source_text_str}")
 
                     # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
                     # 记录开始请求时间
@@ -1433,7 +1443,7 @@ class Api_Requester():
 
 
                     # 检查翻译任务是否已经暂停或者退出，不进行接下来的处理了
-                    if configurator.Running_status == 9 or configurator.Running_status == 10 :
+                    if configurator.Running_status == 9 or configurator.Running_status == 11 :
                         return
                     
 
@@ -1477,8 +1487,7 @@ class Api_Requester():
 
                     print('\n' )
                     print("[INFO] 已成功接受到AI的回复-----------------------")
-                    print("[INFO] 该次请求已消耗等待时间：",Request_consumption_time,"秒")
-                    print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
+                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 等待时间: {Request_consumption_time} 秒")
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                     # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
@@ -1634,7 +1643,7 @@ class Api_Requester():
         original_exmaple,translation_example =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
         if original_exmaple and translation_example:
                 
-            the_original_exmaple =  {"role": "USER","message":(pre_prompt + original_exmaple) }
+            the_original_exmaple =  {"role": "USER","message":(f'{pre_prompt}```json\n{original_exmaple}\n```') }
             the_translation_example = {"role": "CHATBOT", "message": (f'{fol_prompt}```json\n{translation_example}\n```') }
 
             messages.append(the_original_exmaple)
@@ -1684,8 +1693,7 @@ class Api_Requester():
 
         #构建用户信息
         source_text_str = json.dumps(source_text_dict, ensure_ascii=False)   
-        source_text_str = previous + "\n" +pre_prompt  + source_text_str
-        #source_text_str = pre_prompt  + source_text_str
+        source_text_str = f'{previous}\n{pre_prompt}```json\n{source_text_str}\n```'
 
 
         return messages,source_text_str,system_prompt
@@ -1695,7 +1703,7 @@ class Api_Requester():
     def Concurrent_Request_cohere(self):
 
         # 检查翻译任务是否已经暂停或者退出
-        if configurator.Running_status == 9 or configurator.Running_status == 10 :
+        if configurator.Running_status == 9 or configurator.Running_status == 11 :
             return
 
         try:#方便排查子线程bug
@@ -1752,7 +1760,7 @@ class Api_Requester():
 
             while 1 :
                 # 检查翻译任务是否已经暂停或者退出
-                if configurator.Running_status == 9 or configurator.Running_status == 10 :
+                if configurator.Running_status == 9 or configurator.Running_status == 11 :
                     return
 
                 #检查子线程运行是否超时---------------------------------
@@ -1765,9 +1773,13 @@ class Api_Requester():
                 if request_limiter.RPM_and_TPM_limit(request_tokens_consume):
 
 
-                    print("[INFO] 已发送请求,正在等待AI回复中-----------------------")
-                    print("[INFO] 请求与回复的tokens数预计值是：",request_tokens_consume  + completion_tokens_consume )
-                    print("[INFO] 当前发送的原文文本：\n", source_text_str)
+                    # 获取当前线程的ID
+                    thread_id = threading.get_ident()
+                    # 将线程ID简化为4个数字，这里使用对10000取模的方式
+                    simplified_thread_id = thread_id % 10000
+                    print(f"[INFO] 已发送请求,正在等待AI回复中-----------------------")
+                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
+                    print(f"[INFO] 当前发送的原文文本: \n{source_text_str}")
 
                     # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
                     # 记录开始请求时间
@@ -1806,7 +1818,7 @@ class Api_Requester():
 
 
                     # 检查翻译任务是否已经暂停或者退出，不进行接下来的处理了
-                    if configurator.Running_status == 9 or configurator.Running_status == 10 :
+                    if configurator.Running_status == 9 or configurator.Running_status == 11 :
                         return
                     
 
@@ -1852,8 +1864,7 @@ class Api_Requester():
 
                     print('\n' )
                     print("[INFO] 已成功接受到AI的回复-----------------------")
-                    print("[INFO] 该次请求已消耗等待时间：",Request_consumption_time,"秒")
-                    print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
+                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 等待时间: {Request_consumption_time} 秒")
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                     # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
@@ -2029,7 +2040,7 @@ class Api_Requester():
     def concurrent_request_sakura(self):
 
         # 检查翻译任务是否已经暂停或者退出
-        if configurator.Running_status == 9 or configurator.Running_status == 10 :
+        if configurator.Running_status == 9 or configurator.Running_status == 11 :
             return
 
         try:#方便排查子线程bug
@@ -2084,7 +2095,7 @@ class Api_Requester():
 
             while 1 :
                 # 检查翻译任务是否已经暂停或者退出
-                if configurator.Running_status == 9 or configurator.Running_status == 10 :
+                if configurator.Running_status == 9 or configurator.Running_status == 11 :
                     return
 
                 #检查子线程运行是否超时---------------------------------
@@ -2097,9 +2108,13 @@ class Api_Requester():
                 if request_limiter.RPM_and_TPM_limit(request_tokens_consume):
 
 
-                    print("[INFO] 已发送请求,正在等待AI回复中-----------------------")
-                    print("[INFO] 请求与回复的tokens数预计值是：",request_tokens_consume  + completion_tokens_consume )
-                    print("[INFO] 当前发送的原文文本：\n", source_text_str)
+                    # 获取当前线程的ID
+                    thread_id = threading.get_ident()
+                    # 将线程ID简化为4个数字，这里使用对10000取模的方式
+                    simplified_thread_id = thread_id % 10000
+                    print(f"[INFO] 已发送请求,正在等待AI回复中-----------------------")
+                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
+                    print(f"[INFO] 当前发送的原文文本: \n{source_text_str}")
 
                     # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
                     # 记录开始请求时间
@@ -2161,7 +2176,7 @@ class Api_Requester():
 
 
                     # 检查翻译任务是否已经暂停或者退出，不进行接下来的处理了
-                    if configurator.Running_status == 9 or configurator.Running_status == 10 :
+                    if configurator.Running_status == 9 or configurator.Running_status == 11 :
                         return
                     
                     
@@ -2189,8 +2204,7 @@ class Api_Requester():
 
                     print('\n' )
                     print("[INFO] 已成功接受到AI的回复-----------------------")
-                    print("[INFO] 该次请求已消耗等待时间：",Request_consumption_time,"秒")
-                    print("[INFO] 本次请求与回复花费的总tokens是：",prompt_tokens_used + completion_tokens_used)
+                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 等待时间: {Request_consumption_time} 秒")
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                     # ——————————————————————————————————————————对回复内容处理,检查——————————————————————————————————————————
@@ -2332,7 +2346,7 @@ class User_Interface_Prompter(QObject):
        self.progress = 0.0           # 存储翻译进度
        self.tokens_spent = 0  # 存储已经花费的tokens
        self.amount_spent = 0  # 存储已经花费的金钱
-
+       self.num_worker_threads = 0 # 存储子线程数
 
     # 槽函数，用于接收子线程发出的信号，更新界面UI的状态，因为子线程不能更改父线程的QT的UI控件的值
     def on_update_ui(self,input_str1,input_str2,iunput_int1):
@@ -2342,13 +2356,19 @@ class User_Interface_Prompter(QObject):
                 self.stateTooltip = StateToolTip(" 正在进行翻译中，客官请耐心等待哦~~", "　　　当前任务开始于 " + datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S"), Window)
                 self.stateTooltip.move(510, 30) # 设定控件的出现位置，该位置是传入的Window窗口的位置
                 self.stateTooltip.show()
+                # 翻译状态改变
+                Window.Widget_start_translation.A_settings.running_status.setText("正在翻译中")
+
 
             elif input_str2 == "翻译暂停":
                 print("\033[1;33mWarning:\033[0m 翻译任务已被暂停-----------------------","\n")
                 self.stateTooltip.setContent('翻译已暂停')
                 self.stateTooltip.setState(True)
                 self.stateTooltip = None
-                #界面提示
+                # 翻译状态改变
+                Window.Widget_start_translation.A_settings.running_status.setText("已暂停翻译")
+                Window.Widget_start_translation.A_settings.thread_count.setText("0")
+                # 界面提示
                 self.createSuccessInfoBar("翻译任务已全部暂停")
 
             elif input_str2 == "翻译取消":
@@ -2356,9 +2376,11 @@ class User_Interface_Prompter(QObject):
                 self.stateTooltip.setContent('翻译已取消')
                 self.stateTooltip.setState(True)
                 self.stateTooltip = None
-                #界面提示
+                # 界面提示
                 self.createSuccessInfoBar("翻译任务已全部取消")
 
+                # 翻译状态改变
+                Window.Widget_start_translation.A_settings.running_status.setText("已取消翻译")
                 #重置翻译界面数据
                 Window.Widget_start_translation.A_settings.translation_project.setText("无")
                 Window.Widget_start_translation.A_settings.project_id.setText("无")
@@ -2366,6 +2388,7 @@ class User_Interface_Prompter(QObject):
                 Window.Widget_start_translation.A_settings.translated_line_count.setText("无")
                 Window.Widget_start_translation.A_settings.tokens_spent.setText("无")
                 Window.Widget_start_translation.A_settings.amount_spent.setText("无")
+                Window.Widget_start_translation.A_settings.thread_count.setText("无")
                 Window.Widget_start_translation.A_settings.progressRing.setValue(0)
 
 
@@ -2374,12 +2397,21 @@ class User_Interface_Prompter(QObject):
                 self.stateTooltip.setState(True)
                 self.stateTooltip = None
 
+                # 翻译状态改变
+                Window.Widget_start_translation.A_settings.running_status.setText("翻译已完成")
+                # 子线程数为0
+                Window.Widget_start_translation.A_settings.thread_count.setText("0")
                 #隐藏继续翻译按钮
                 Window.Widget_start_translation.A_settings.primaryButton_continue_translation.hide()
                 #隐藏暂停翻译按钮
                 Window.Widget_start_translation.A_settings.primaryButton_pause_translation.hide()
                 #显示开始翻译按钮
                 Window.Widget_start_translation.A_settings.primaryButton_start_translation.show()
+
+        elif input_str1 == "运行状态改变":
+            # 运行状态改变
+            Window.Widget_start_translation.A_settings.running_status.setText(input_str2)
+
 
         elif input_str1 == "接口测试结果":
             if input_str2 == "测试成功":
@@ -2399,6 +2431,14 @@ class User_Interface_Prompter(QObject):
             # 更新需要翻译的文本行数信息
             self.total_text_line_count = iunput_int1 #存储总文本行数
             Window.Widget_start_translation.A_settings.total_text_line_count.setText(str(self.total_text_line_count))
+
+            # 翻译状态改变
+            Window.Widget_start_translation.A_settings.running_status.setText("正在翻译中")
+
+            # 获取当前所有存活的线程
+            alive_threads = threading.enumerate()
+            self.num_worker_threads = len(alive_threads) - 2  # 减去主线程与一个子线程
+            Window.Widget_start_translation.A_settings.thread_count.setText(str(self.num_worker_threads))
 
             # 其他信息设置为0
             Window.Widget_start_translation.A_settings.translated_line_count.setText("0")
@@ -2423,6 +2463,7 @@ class User_Interface_Prompter(QObject):
             Window.Widget_start_translation.A_settings.translated_line_count.setText("无")
             Window.Widget_start_translation.A_settings.tokens_spent.setText("无")
             Window.Widget_start_translation.A_settings.amount_spent.setText("无")
+            Window.Widget_start_translation.A_settings.thread_count.setText("无")
             Window.Widget_start_translation.A_settings.progressRing.setValue(0)
 
 
@@ -2434,6 +2475,8 @@ class User_Interface_Prompter(QObject):
 
             Window.Widget_start_translation.A_settings.amount_spent.setText(str(self.amount_spent))
 
+            Window.Widget_start_translation.A_settings.thread_count.setText(str(self.num_worker_threads))
+
             progress = int(round(self.progress, 0))
             Window.Widget_start_translation.A_settings.progressRing.setValue(progress)
 
@@ -2441,67 +2484,8 @@ class User_Interface_Prompter(QObject):
     # 更新翻译进度数据
     def update_data(self, state, translated_line_count, prompt_tokens_used, completion_tokens_used):
 
-        #根据模型设定单位价格
-        if configurator.translation_platform == "OpenAI官方":
-            # 获取使用的模型输入价格与输出价格
-            input_price = configurator.openai_platform_config["model_price"][configurator.model_type]["input_price"]
-            output_price = configurator.openai_platform_config["model_price"][configurator.model_type]["output_price"]
-
-        elif configurator.translation_platform == "Anthropic官方":
-            # 获取使用的模型输入价格与输出价格
-            input_price = configurator.anthropic_platform_config["model_price"][configurator.model_type]["input_price"]
-            output_price = configurator.anthropic_platform_config["model_price"][configurator.model_type]["output_price"]
-
-        elif configurator.translation_platform == "Cohere官方":
-            # 获取使用的模型输入价格与输出价格
-            input_price = configurator.cohere_platform_config["model_price"][configurator.model_type]["input_price"]
-            output_price = configurator.cohere_platform_config["model_price"][configurator.model_type]["output_price"]
-
-        elif configurator.translation_platform == "Google官方":
-            # 获取使用的模型输入价格与输出价格
-            input_price = configurator.google_platform_config["model_price"][configurator.model_type]["input_price"]
-            output_price = configurator.google_platform_config["model_price"][configurator.model_type]["output_price"]
-
-        elif configurator.translation_platform == "Moonshot官方":
-            # 获取使用的模型输入价格与输出价格
-            input_price = configurator.moonshot_platform_config["model_price"][configurator.model_type]["input_price"]
-            output_price = configurator.moonshot_platform_config["model_price"][configurator.model_type]["output_price"]
-
-        elif configurator.translation_platform == "Deepseek官方":
-            # 获取使用的模型输入价格与输出价格
-            input_price = configurator.deepseek_platform_config["model_price"][configurator.model_type]["input_price"]
-            output_price = configurator.deepseek_platform_config["model_price"][configurator.model_type]["output_price"]
-
-        elif configurator.translation_platform == "Dashscope官方":
-            # 获取使用的模型输入价格与输出价格
-            input_price = configurator.dashscope_platform_config["model_price"][configurator.model_type]["input_price"]
-            output_price = configurator.dashscope_platform_config["model_price"][configurator.model_type]["output_price"]
-
-        elif configurator.translation_platform == "Volcengine官方":
-            # 获取使用的模型输入价格与输出价格
-            input_price = Window.Widget_Volcengine.B_settings.spinBox_input_pricing.value()               #获取输入价格
-            output_price = Window.Widget_Volcengine.B_settings.spinBox_output_pricing.value()               #获取输出价格
-
-        elif configurator.translation_platform == "零一万物官方":
-            # 获取使用的模型输入价格与输出价格
-            input_price = configurator.yi_platform_config["model_price"][configurator.model_type]["input_price"]
-            output_price = configurator.yi_platform_config["model_price"][configurator.model_type]["output_price"]
-
-
-        elif configurator.translation_platform == "智谱官方":
-            # 获取使用的模型输入价格与输出价格
-            input_price = configurator.zhipu_platform_config["model_price"][configurator.model_type]["input_price"]
-            output_price = configurator.zhipu_platform_config["model_price"][configurator.model_type]["output_price"]
-
-        elif configurator.translation_platform == "SakuraLLM":
-            # 获取使用的模型输入价格与输出价格
-            input_price = configurator.sakurallm_platform_config["model_price"][configurator.model_type]["input_price"]
-            output_price = configurator.sakurallm_platform_config["model_price"][configurator.model_type]["output_price"]
-
-        else:
-            # 获取使用的模型输入价格与输出价格
-            input_price = Window.Widget_Proxy.B_settings.spinBox_input_pricing.value()               #获取输入价格
-            output_price = Window.Widget_Proxy.B_settings.spinBox_output_pricing.value()               #获取输出价格
+        input_price = configurator.model_input_price               #获取输入价格
+        output_price = configurator.model_output_price               #获取输出价格
 
         #计算已经翻译的文本数
         if state == 1:
@@ -2519,7 +2503,13 @@ class User_Interface_Prompter(QObject):
         result = self.translated_line_count / self.total_text_line_count * 100
         self.progress = round(result, 2)
 
-        #print("[DEBUG] 总行数：",self.total_text_line_count,"已翻译行数：",self.translated_line_count,"进度：",self.progress,"%")
+        # 获取当前所有存活的线程
+        alive_threads = threading.enumerate()
+        # 计算子线程的数量（排除主线程）
+        self.num_worker_threads = len(alive_threads) - 2  # 减去主线程与一个子线程
+        #print("[DEBUG] 子线程数：",num_worker_threads)
+
+
 
 
     #成功信息居中弹出框函数
@@ -2837,7 +2827,15 @@ class User_Interface_Prompter(QObject):
                 if "openai_account_type" in config_dict:
                     Window.Widget_Openai.comboBox_account_type.setCurrentText(config_dict["openai_account_type"])
                 if "openai_model_type" in config_dict:
-                    Window.Widget_Openai.comboBox_model.setCurrentText(config_dict["openai_model_type"])
+                    # 获取配置文件中指定的模型类型
+                    model_type = config_dict["openai_model_type"]
+                    # 检查模型类型是否已经存在于下拉列表中
+                    existing_index = Window.Widget_Openai.comboBox_model.findText(model_type)
+                    # 如果模型类型不存在，则添加到下拉列表中
+                    if existing_index == -1:
+                        Window.Widget_Openai.comboBox_model.addItem(model_type)
+                    # 设置当前文本为配置文件中指定的模型类型
+                    Window.Widget_Openai.comboBox_model.setCurrentText(model_type)
                 if "openai_API_key_str" in config_dict:
                     Window.Widget_Openai.TextEdit_apikey.setText(config_dict["openai_API_key_str"])
                 if "openai_proxy_port" in config_dict:
@@ -2847,7 +2845,11 @@ class User_Interface_Prompter(QObject):
                 if "anthropic_account_type" in config_dict:
                     Window.Widget_Anthropic.comboBox_account_type.setCurrentText(config_dict["anthropic_account_type"])
                 if "anthropic_model_type" in config_dict:
-                    Window.Widget_Anthropic.comboBox_model.setCurrentText(config_dict["anthropic_model_type"])
+                    model_type = config_dict["anthropic_model_type"]
+                    existing_index = Window.Widget_Anthropic.comboBox_model.findText(model_type)
+                    if existing_index == -1:
+                        Window.Widget_Anthropic.comboBox_model.addItem(model_type)
+                    Window.Widget_Anthropic.comboBox_model.setCurrentText(model_type)
                 if "anthropic_API_key_str" in config_dict:
                     Window.Widget_Anthropic.TextEdit_apikey.setText(config_dict["anthropic_API_key_str"])
                 if "anthropic_proxy_port" in config_dict:
@@ -2858,7 +2860,11 @@ class User_Interface_Prompter(QObject):
                 if "google_account_type" in config_dict:
                     Window.Widget_Google.comboBox_account_type.setCurrentText(config_dict["google_account_type"])
                 if "google_model_type" in config_dict:
-                    Window.Widget_Google.comboBox_model.setCurrentText(config_dict["google_model_type"])
+                    model_type = config_dict["google_model_type"]
+                    existing_index = Window.Widget_Google.comboBox_model.findText(model_type)
+                    if existing_index == -1:
+                        Window.Widget_Google.comboBox_model.addItem(model_type)
+                    Window.Widget_Google.comboBox_model.setCurrentText(model_type)
                 if "google_API_key_str" in config_dict:
                     Window.Widget_Google.TextEdit_apikey.setText(config_dict["google_API_key_str"])
                 if "google_proxy_port" in config_dict:
@@ -2869,7 +2875,11 @@ class User_Interface_Prompter(QObject):
                 if "cohere_account_type" in config_dict:
                     Window.Widget_Cohere.comboBox_account_type.setCurrentText(config_dict["cohere_account_type"])
                 if "cohere_model_type" in config_dict:
-                    Window.Widget_Cohere.comboBox_model.setCurrentText(config_dict["cohere_model_type"])
+                    model_type = config_dict["cohere_model_type"]
+                    existing_index = Window.Widget_Cohere.comboBox_model.findText(model_type)
+                    if existing_index == -1:
+                        Window.Widget_Cohere.comboBox_model.addItem(model_type)
+                    Window.Widget_Cohere.comboBox_model.setCurrentText(model_type)
                 if "cohere_API_key_str" in config_dict:
                     Window.Widget_Cohere.TextEdit_apikey.setText(config_dict["cohere_API_key_str"])
                 if "cohere_proxy_port" in config_dict:
@@ -2879,7 +2889,11 @@ class User_Interface_Prompter(QObject):
                 if "moonshot_account_type" in config_dict:
                     Window.Widget_Moonshot.comboBox_account_type.setCurrentText(config_dict["moonshot_account_type"])
                 if "moonshot_model_type" in config_dict:
-                    Window.Widget_Moonshot.comboBox_model.setCurrentText(config_dict["moonshot_model_type"])
+                    model_type = config_dict["moonshot_model_type"]
+                    existing_index = Window.Widget_Moonshot.comboBox_model.findText(model_type)
+                    if existing_index == -1:
+                        Window.Widget_Moonshot.comboBox_model.addItem(model_type)
+                    Window.Widget_Moonshot.comboBox_model.setCurrentText(model_type)
                 if "moonshot_API_key_str" in config_dict:
                     Window.Widget_Moonshot.TextEdit_apikey.setText(config_dict["moonshot_API_key_str"])
                 if "moonshot_proxy_port" in config_dict:
@@ -2887,7 +2901,11 @@ class User_Interface_Prompter(QObject):
 
                 #deepseek官方账号界面
                 if "deepseek_model_type" in config_dict:
-                    Window.Widget_Deepseek.comboBox_model.setCurrentText(config_dict["deepseek_model_type"])
+                    model_type = config_dict["deepseek_model_type"]
+                    existing_index = Window.Widget_Deepseek.comboBox_model.findText(model_type)
+                    if existing_index == -1:
+                        Window.Widget_Deepseek.comboBox_model.addItem(model_type)
+                    Window.Widget_Deepseek.comboBox_model.setCurrentText(model_type)
                 if "deepseek_API_key_str" in config_dict:
                     Window.Widget_Deepseek.TextEdit_apikey.setText(config_dict["deepseek_API_key_str"])
                 if "deepseek_proxy_port" in config_dict:
@@ -2895,7 +2913,11 @@ class User_Interface_Prompter(QObject):
 
                 #dashscope官方账号界面
                 if "dashscope_model_type" in config_dict:
-                    Window.Widget_Dashscope.comboBox_model.setCurrentText(config_dict["dashscope_model_type"])
+                    model_type = config_dict["dashscope_model_type"]
+                    existing_index = Window.Widget_Dashscope.comboBox_model.findText(model_type)
+                    if existing_index == -1:
+                        Window.Widget_Dashscope.comboBox_model.addItem(model_type)
+                    Window.Widget_Dashscope.comboBox_model.setCurrentText(model_type)
                 if "dashscope_API_key_str" in config_dict:
                     Window.Widget_Dashscope.TextEdit_apikey.setText(config_dict["dashscope_API_key_str"])
                 if "dashscope_proxy_port" in config_dict:
@@ -2925,7 +2947,11 @@ class User_Interface_Prompter(QObject):
                 if "yi_account_type" in config_dict:
                     Window.Widget_Yi.comboBox_account_type.setCurrentText(config_dict["yi_account_type"])
                 if "yi_model_type" in config_dict:
-                    Window.Widget_Yi.comboBox_model.setCurrentText(config_dict["yi_model_type"])
+                    model_type = config_dict["yi_model_type"]
+                    existing_index = Window.Widget_Yi.comboBox_model.findText(model_type)
+                    if existing_index == -1:
+                        Window.Widget_Yi.comboBox_model.addItem(model_type)
+                    Window.Widget_Yi.comboBox_model.setCurrentText(model_type)
                 if "yi_API_key_str" in config_dict:
                     Window.Widget_Yi.TextEdit_apikey.setText(config_dict["yi_API_key_str"])
                 if "yi_proxy_port" in config_dict:
@@ -2936,7 +2962,11 @@ class User_Interface_Prompter(QObject):
                 if "zhipu_account_type" in config_dict:
                     Window.Widget_ZhiPu.comboBox_account_type.setCurrentText(config_dict["zhipu_account_type"])
                 if "zhipu_model_type" in config_dict:
-                    Window.Widget_ZhiPu.comboBox_model.setCurrentText(config_dict["zhipu_model_type"])
+                    model_type = config_dict["zhipu_model_type"]
+                    existing_index = Window.Widget_ZhiPu.comboBox_model.findText(model_type)
+                    if existing_index == -1:
+                        Window.Widget_ZhiPu.comboBox_model.addItem(model_type)
+                    Window.Widget_ZhiPu.comboBox_model.setCurrentText(model_type)
                 if "zhipu_API_key_str" in config_dict:
                     Window.Widget_ZhiPu.TextEdit_apikey.setText(config_dict["zhipu_API_key_str"])
                 if "zhipu_proxy_port" in config_dict:
@@ -3289,23 +3319,34 @@ class background_executor(threading.Thread):
     def run(self):
         # 执行翻译
         if self.task_id == "执行翻译任务":
-            #如果不是status'为9，说明翻译任务被暂停了，先不改变运行状态
-            if configurator.Running_status != 9:
+            #如果是真正状态进入翻译
+            if configurator.Running_status  == 0:
                 configurator.Running_status = 6
+
+            #如果是暂停状态进入翻译
+            if configurator.Running_status  == 10:
+                pass
+
 
             #执行翻译主函数
             Translator.Main(self)
 
-            # 如果完成了翻译任务
+
+
+            # 如果正常完成了翻译任务
             if configurator.Running_status == 6:
                 configurator.Running_status = 0
-            # 如果取消了翻译任务
-            if configurator.Running_status == 10:
-                user_interface_prompter.signal.emit("翻译状态提示","翻译取消",0)
-                configurator.Running_status = 0
+
             # 如果暂停了翻译任务
             if configurator.Running_status == 9:
+                configurator.Running_status = 10 # 已完成暂停状态
                 user_interface_prompter.signal.emit("翻译状态提示","翻译暂停",0)
+
+            # 如果取消了翻译任务
+            if configurator.Running_status == 11:
+                configurator.Running_status = 0  # 已完成取消状态
+                user_interface_prompter.signal.emit("翻译状态提示","翻译取消",0)
+
 
         # 执行接口测试
         elif self.task_id == "接口测试":
@@ -3338,7 +3379,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.72"  #软件版本号
+    Software_Version = "AiNiee4.73"  #软件版本号
 
 
     # 工作目录改为python源代码所在的目录

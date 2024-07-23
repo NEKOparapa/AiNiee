@@ -141,7 +141,7 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
         #设置“模型类型”下拉选择框
         self.comboBox_model_openai = EditableComboBox() #以demo为父类
         self.comboBox_model_openai.addItems(['gpt-3.5-turbo','gpt-3.5-turbo-0301','gpt-3.5-turbo-0613', 'gpt-3.5-turbo-1106', 'gpt-3.5-turbo-0125','gpt-3.5-turbo-16k', 'gpt-3.5-turbo-16k-0613',
-                                 'gpt-4','gpt-4o','gpt-4-0314', 'gpt-4-0613','gpt-4-turbo','gpt-4-turbo-preview','gpt-4-1106-preview','gpt-4-0125-preview'])
+                                 'gpt-4','gpt-4o','gpt-4o-mini','gpt-4-0314', 'gpt-4-0613','gpt-4-turbo','gpt-4-turbo-preview','gpt-4-1106-preview','gpt-4-0125-preview'])
         self.comboBox_model_openai.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model_openai.setFixedSize(250, 35)
 
