@@ -26,7 +26,7 @@ class Response_Parser():
             return response_dict
         except :
             # 对格式进行修复       
-            input_str = Response_Parser.repair_double_quotes(self,input_str)
+            #input_str = Response_Parser.repair_double_quotes(self,input_str)
             input_str = Response_Parser.repair_double_quotes_2(self,input_str)  
             #input_str = Response_Parser.repair_double_quotes_3(self,input_str)       
 
@@ -81,7 +81,7 @@ class Response_Parser():
             return json.dumps(ret_json, ensure_ascii=False)
 
 
-    # 修复value前面的双引号
+    # 修复value前面的双引号(存在文本开头是空格，而错误添加的问题)
     def repair_double_quotes(self,text):
 
         # 正则表达式匹配双引号后跟冒号，并捕获第三个字符
