@@ -107,6 +107,30 @@ class Widget_translation_settings_B2(QFrame):#  专项设置子界面
 
 
         # -----创建第4个组(后来补的)，添加多个组件-----
+        box_opencc_preset = QGroupBox()
+        box_opencc_preset.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")  # 分别设置了边框大小，边框颜色，边框圆角
+        layout_opencc_preset = QHBoxLayout()
+
+
+        #设置“OpenCC 配置”标签
+        labe1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
+        labe1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        labe1_7.setText("OpenCC 配置")
+
+        #设置“OpenCC 配置”下拉选择框
+        self.comboBox_opencc_preset = ComboBox()  # 以demo为父类
+        self.comboBox_opencc_preset.addItems(['s2t', 't2s', 's2tw', 'tw2s', 's2hk', 'hk2s', 's2twp', 'tw2sp', 't2tw', 'hk2t', 't2hk', 't2jp', 'jp2t', 'tw2t'])
+        self.comboBox_opencc_preset.setCurrentIndex(0)  # 设置下拉框控件（ComboBox）的当前选中项的索引为 0，也就是默认选中第一个选项
+        self.comboBox_opencc_preset.setFixedSize(127, 30)
+
+
+        layout_opencc_preset.addWidget(labe1_7)
+        layout_opencc_preset.addWidget(self.comboBox_opencc_preset)
+        box_opencc_preset.setLayout(layout_opencc_preset)
+
+
+
+        # -----创建第5个组(后来补的)，添加多个组件-----
         box1_line_breaks = QGroupBox()
         box1_line_breaks.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout1_line_breaks = QHBoxLayout()
@@ -138,6 +162,7 @@ class Widget_translation_settings_B2(QFrame):#  专项设置子界面
         container.addWidget(box1_cn_prompt_toggle)
         container.addWidget(box1_line_breaks)
         container.addWidget(box1_conversion_toggle)
+        container.addWidget(box_opencc_preset)
         container.addWidget(box_clear)
         container.addStretch(1)  # 添加伸缩项
 
