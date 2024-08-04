@@ -205,6 +205,7 @@ class Configurator():
         self.translation_platform = config_dict["translation_platform"]
         self.source_language = config_dict["source_language"]
         self.target_language = config_dict["target_language"]
+        self.opencc_preset = config_dict["opencc_preset"]
         self.Input_Folder = config_dict["label_input_path"]
         self.Output_Folder = config_dict["label_output_path"]
 

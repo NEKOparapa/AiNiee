@@ -301,15 +301,14 @@ class Translator():
             
 
         #如果开启了转换简繁开关功能，则进行文本转换
-        if configurator.conversion_toggle: 
-            if configurator.target_language == "简中" or configurator.target_language == "繁中":
-                try:
-                    configurator.cache_list = Cache_Manager.simplified_and_traditional_conversion(self,configurator.cache_list, configurator.target_language)
-                    print(f"\033[1;32mSuccess:\033[0m  文本转化{configurator.target_language}完成-----------------------------------", '\n')   
+        if configurator.conversion_toggle:
+            try:
+                configurator.cache_list = Cache_Manager.simplified_and_traditional_conversion(self,configurator.cache_list, configurator.opencc_preset)
+                print(f"\033[1;32mSuccess:\033[0m  文本转化{configurator.target_language}完成-----------------------------------", '\n')   
 
-                except Exception as e:
-                    print("\033[1;33mWarning:\033[0m 文本转换出现问题！！将跳过该步，错误信息如下")
-                    print(f"Error: {e}\n")
+            except Exception as e:
+                print("\033[1;33mWarning:\033[0m 文本转换出现问题！！将跳过该步，错误信息如下")
+                print(f"Error: {e}\n")
 
         # 将翻译结果写为对应文件
         File_Outputter.output_translated_content(self,configurator.cache_list,configurator.Output_Folder,configurator.Input_Folder)
@@ -2652,6 +2651,7 @@ class User_Interface_Prompter(QObject):
             config_dict["translation_platform"] = Window.Widget_translation_settings_A.comboBox_translation_platform.currentText()
             config_dict["source_language"] = Window.Widget_translation_settings_A.comboBox_source_text.currentText()
             config_dict["target_language"] = Window.Widget_translation_settings_A.comboBox_translated_text.currentText()
+            config_dict["opencc_preset"] = Window.Widget_translation_settings_A.comboBox_opencc_preset.currentText()
             config_dict["label_input_path"] = Window.Widget_translation_settings_A.label_input_path.text()
             config_dict["label_output_path"] = Window.Widget_translation_settings_A.label_output_path.text()
 
@@ -3048,6 +3048,8 @@ class User_Interface_Prompter(QObject):
                     Window.Widget_translation_settings_A.comboBox_source_text.setCurrentText(config_dict["source_language"])
                 if "target_language" in config_dict:
                     Window.Widget_translation_settings_A.comboBox_translated_text.setCurrentText(config_dict["target_language"])
+                if "opencc_preset" in config_dict:
+                    Window.Widget_translation_settings_A.comboBox_opencc_preset.setCurrentText(config_dict["opencc_preset"])
                 if "label_input_path" in config_dict:
                     Window.Widget_translation_settings_A.label_input_path.setText(config_dict["label_input_path"])
                 if "label_output_path" in config_dict:

@@ -600,7 +600,7 @@ class Cache_Manager():
 
 
     # 将缓存文件里已翻译的文本转换为简体字或繁体字
-    def simplified_and_traditional_conversion( self,cache_list, target_language):
+    def simplified_and_traditional_conversion(self,cache_list, opencc_preset):
         # 缓存数据结构示例
         ex_cache_data = [
         {'project_type': 'Mtool'},
@@ -611,10 +611,7 @@ class Cache_Manager():
         ]    
 
         # 确定使用的转换器
-        if target_language == "简中": 
-            cc = opencc.OpenCC('t2s')  # 创建OpenCC对象，使用t2s参数表示繁体字转简体字
-        elif target_language == "繁中": 
-            cc = opencc.OpenCC('s2t')
+        cc = opencc.OpenCC(opencc_preset)  # 创建OpenCC对象，使用t2s参数表示繁体字转简体字
 
         # 存储结果的列表
         converted_list = []
