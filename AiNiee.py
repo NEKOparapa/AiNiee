@@ -2651,7 +2651,6 @@ class User_Interface_Prompter(QObject):
             config_dict["translation_platform"] = Window.Widget_translation_settings_A.comboBox_translation_platform.currentText()
             config_dict["source_language"] = Window.Widget_translation_settings_A.comboBox_source_text.currentText()
             config_dict["target_language"] = Window.Widget_translation_settings_A.comboBox_translated_text.currentText()
-            config_dict["opencc_preset"] = Window.Widget_translation_settings_A.comboBox_opencc_preset.currentText()
             config_dict["label_input_path"] = Window.Widget_translation_settings_A.label_input_path.text()
             config_dict["label_output_path"] = Window.Widget_translation_settings_A.label_output_path.text()
 
@@ -2668,6 +2667,7 @@ class User_Interface_Prompter(QObject):
             config_dict["cn_prompt_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_cn_prompt_toggle.isChecked()   # 获取中文提示词开关
             config_dict["preserve_line_breaks_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关  
             config_dict["response_conversion_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_conversion_toggle.isChecked()   # 获取简繁转换开关
+            config_dict["opencc_preset"] = Window.Widget_translation_settings_B2.comboBox_opencc_preset.currentText()
             config_dict["text_clear_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_clear.isChecked() # 获取文本处理开关
 
             #翻译设置的检查设置页面
@@ -3048,8 +3048,6 @@ class User_Interface_Prompter(QObject):
                     Window.Widget_translation_settings_A.comboBox_source_text.setCurrentText(config_dict["source_language"])
                 if "target_language" in config_dict:
                     Window.Widget_translation_settings_A.comboBox_translated_text.setCurrentText(config_dict["target_language"])
-                if "opencc_preset" in config_dict:
-                    Window.Widget_translation_settings_A.comboBox_opencc_preset.setCurrentText(config_dict["opencc_preset"])
                 if "label_input_path" in config_dict:
                     Window.Widget_translation_settings_A.label_input_path.setText(config_dict["label_input_path"])
                 if "label_output_path" in config_dict:
@@ -3082,6 +3080,8 @@ class User_Interface_Prompter(QObject):
                     Window.Widget_translation_settings_B2.SwitchButton_line_breaks.setChecked(config_dict["preserve_line_breaks_toggle"])
                 if "response_conversion_toggle" in config_dict:
                     Window.Widget_translation_settings_B2.SwitchButton_conversion_toggle.setChecked(config_dict["response_conversion_toggle"])
+                if "opencc_preset" in config_dict:
+                    Window.Widget_translation_settings_B2.comboBox_opencc_preset.setCurrentText(config_dict["opencc_preset"])
                 if "text_clear_toggle" in config_dict:
                     Window.Widget_translation_settings_B2.SwitchButton_clear.setChecked(config_dict["text_clear_toggle"])
 

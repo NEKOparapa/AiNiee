@@ -205,7 +205,6 @@ class Configurator():
         self.translation_platform = config_dict["translation_platform"]
         self.source_language = config_dict["source_language"]
         self.target_language = config_dict["target_language"]
-        self.opencc_preset = config_dict["opencc_preset"]
         self.Input_Folder = config_dict["label_input_path"]
         self.Output_Folder = config_dict["label_output_path"]
 
@@ -226,6 +225,7 @@ class Configurator():
         self.text_clear_toggle = config_dict["text_clear_toggle"]
         self.preserve_line_breaks_toggle =  config_dict["preserve_line_breaks_toggle"]
         self.conversion_toggle = config_dict["response_conversion_toggle"]
+        self.opencc_preset = config_dict["opencc_preset"]
 
         # 检查设置页面
         self.reply_check_switch = config_dict["reply_check_switch"]
