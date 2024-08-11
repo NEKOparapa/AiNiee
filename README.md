@@ -52,7 +52,7 @@
       |[Deepseek平台](https://platform.deepseek.com/usage)|Deepseek系列|注册送少量免费额度，速度极快|便宜|用途广泛|
       |[Dashscope平台](https://dashscope.console.aliyun.com/playground) |千问系列|注册送大量免费额度|便宜|安全限制|
       |[Volcengine平台](https://console.volcengine.com/ark)|豆包系列|注册送大量免费额度，速度极快|便宜|安全限制|
-      |[SakuraLLM](https://github.com/SakuraLLM/SakuraLLM)  |Sakura系列|需自行部署模型|免费|用途广泛|
+      |[SakuraLLM](https://github.com/SakuraLLM/SakuraLLM)  |Sakura系列|需自行部署模型 [点击查看一键包](https://github.com/neavo/SakuraLLMServer) |免费|用途广泛|
 
 
  * **`📺视频教程`**
@@ -62,14 +62,13 @@
       |[Mtool教程](https://www.bilibili.com/video/BV1h6421c7MA) |初次使用推荐观看|
       |[T++教程](https://www.bilibili.com/video/BV18c411K7WN?p=2)|初次使用推荐观看|
 
-  
-* **`🗣️角色提取工具`**: [KeywordGacha-翻译辅助工具](https://github.com/neavo/KeywordGacha)
-  
-* **`🚀性能优化`**: [⚡ 查看 SakuraLLM 性能优化指南，轻松获取 500% 性能提升 !! ⚡](./SakuraLLMScript/OptimizationGuide.md)
+* **`📖 角色提取工具`**: [KeywordGacha - 翻译辅助工具](https://github.com/neavo/KeywordGacha)
 
-* **`📡下载地址`**: [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
+* **`💽 本地模型一键包`**: [SakuraLLMServer - 一键运行 SakuraLLM 获得免费且高质量的翻译能力](https://github.com/neavo/SakuraLLMServer)
 
-* **`🟪魔法工具`**:**强烈建议**您选择优质稳定的代理工具,不然接口会报错Connection eror或者一直没有回复
+* **`📡 下载地址`**: [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
+
+* **`🟪 魔法工具`**:**强烈建议**您选择优质稳定的代理工具,不然接口会报错Connection eror或者一直没有回复
    
 ---
 
