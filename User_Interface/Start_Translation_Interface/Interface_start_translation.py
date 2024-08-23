@@ -250,6 +250,49 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         box_status.setLayout(layout_status)
 
 
+        # -----创建第9个组，添加多个组件-----
+        box_translation_speed = QGroupBox()
+        box_translation_speed.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")  # 分别设置了边框大小，边框颜色，边框圆角
+        layout_translation_speed = QHBoxLayout()
+
+        # 第9组水平布局
+        layout_horizontal_9 = QHBoxLayout()
+
+        self.label9 = QLabel(flags=Qt.WindowFlags())
+        self.label9.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.label9.setText("翻译速度(token/s) :")
+
+        self.translation_speed_token = QLabel(flags=Qt.WindowFlags())
+        self.translation_speed_token.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.translation_speed_token.setText("无")
+
+        layout_horizontal_9.addWidget(self.label9)
+        layout_horizontal_9.addStretch(1)  # 添加伸缩项
+        layout_horizontal_9.addWidget(self.translation_speed_token)
+        layout_horizontal_9.addStretch(1)  # 添加伸缩项
+
+        # 第10组水平布局
+        layout_horizontal_10 = QHBoxLayout()
+
+        self.label10 = QLabel(flags=Qt.WindowFlags())
+        self.label10.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.label10.setText("翻译速度(line/s) :")
+
+        self.translation_speed_line = QLabel(flags=Qt.WindowFlags())
+        self.translation_speed_line.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.translation_speed_line.setText("无")
+
+        layout_horizontal_10.addWidget(self.label10)
+        layout_horizontal_10.addStretch(1)  # 添加伸缩项
+        layout_horizontal_10.addWidget(self.translation_speed_line)
+        layout_horizontal_10.addStretch(1)  # 添加伸缩项
+
+        # 将第九组和第十组水平布局放入最外层水平布局
+        layout_translation_speed.addLayout(layout_horizontal_9)
+        layout_translation_speed.addLayout(layout_horizontal_10)
+
+        box_translation_speed.setLayout(layout_translation_speed)
+
 
         # -----创建第5个组，添加多个组件-----
         box_progressRing = QGroupBox()
@@ -328,6 +371,7 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         container.addWidget(box_status)
         container.addWidget(box_text_line_count)
         container.addWidget(box_spent)
+        container.addWidget(box_translation_speed)
         container.addWidget(box_progressRing)
         container.addWidget(box_start_translation)
         container.addStretch(1)  # 添加伸缩项
