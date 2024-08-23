@@ -2346,12 +2346,18 @@ class User_Interface_Prompter(QObject):
        self.tokens_spent = 0  # 存储已经花费的tokens
        self.amount_spent = 0  # 存储已经花费的金钱
        self.num_worker_threads = 0 # 存储子线程数
+       self.translated_token_count_this_run = 0  # 存储本次已经翻译文本 tokens 数
+       self.translated_line_count_this_run = 0  # 存储本次已经翻译文本行数
+       self.translation_start_time = 0
 
     # 槽函数，用于接收子线程发出的信号，更新界面UI的状态，因为子线程不能更改父线程的QT的UI控件的值
     def on_update_ui(self,input_str1,input_str2,iunput_int1):
 
         if input_str1 == "翻译状态提示":
             if input_str2 == "开始翻译":
+                self.translation_start_time = time.time()
+                self.translated_token_count_this_run = 0
+                self.translated_line_count_this_run = 0
                 self.stateTooltip = StateToolTip(" 正在进行翻译中，客官请耐心等待哦~~", "　　　当前任务开始于 " + datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S"), Window)
                 self.stateTooltip.move(510, 30) # 设定控件的出现位置，该位置是传入的Window窗口的位置
                 self.stateTooltip.show()
@@ -2443,6 +2449,8 @@ class User_Interface_Prompter(QObject):
             Window.Widget_start_translation.A_settings.translated_line_count.setText("0")
             Window.Widget_start_translation.A_settings.tokens_spent.setText("0")
             Window.Widget_start_translation.A_settings.amount_spent.setText("0")
+            Window.Widget_start_translation.A_settings.translation_speed_token.setText("0")
+            Window.Widget_start_translation.A_settings.translation_speed_line.setText("0")
             Window.Widget_start_translation.A_settings.progressRing.setValue(0)
 
             # 初始化存储的数值
@@ -2450,7 +2458,9 @@ class User_Interface_Prompter(QObject):
             self.tokens_spent = 0  
             self.amount_spent = 0  
             self.progress = 0.0 
-
+            self.translated_token_count_this_run = 0
+            self.translated_line_count_this_run = 0
+            self.translation_start_time = time.time()
 
 
         elif input_str1 == "重置界面数据":
@@ -2460,6 +2470,8 @@ class User_Interface_Prompter(QObject):
             Window.Widget_start_translation.A_settings.project_id.setText("无")
             Window.Widget_start_translation.A_settings.total_text_line_count.setText("无")
             Window.Widget_start_translation.A_settings.translated_line_count.setText("无")
+            Window.Widget_start_translation.A_settings.translation_speed_token.setText("无")
+            Window.Widget_start_translation.A_settings.translation_speed_line.setText("无")
             Window.Widget_start_translation.A_settings.tokens_spent.setText("无")
             Window.Widget_start_translation.A_settings.amount_spent.setText("无")
             Window.Widget_start_translation.A_settings.thread_count.setText("无")
@@ -2467,8 +2479,12 @@ class User_Interface_Prompter(QObject):
 
 
         elif input_str1 == "更新翻译界面数据":
+            elapsed_time_this_run = time.time() - self.translation_start_time
 
             Window.Widget_start_translation.A_settings.translated_line_count.setText(str(self.translated_line_count))
+
+            Window.Widget_start_translation.A_settings.translation_speed_token.setText(f"{self.translated_token_count_this_run / elapsed_time_this_run:.2f}")
+            Window.Widget_start_translation.A_settings.translation_speed_line.setText(f"{self.translated_line_count_this_run / elapsed_time_this_run:.2f}")
 
             Window.Widget_start_translation.A_settings.tokens_spent.setText(str(self.tokens_spent))
 
@@ -2490,6 +2506,8 @@ class User_Interface_Prompter(QObject):
         if state == 1:
             # 更新已经翻译的文本数
             self.translated_line_count = self.translated_line_count + translated_line_count   
+            self.translated_line_count_this_run += translated_line_count
+            self.translated_token_count_this_run += completion_tokens_used
 
         #计算tokens花销
         self.tokens_spent = self.tokens_spent + prompt_tokens_used + completion_tokens_used
