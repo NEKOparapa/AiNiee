@@ -386,83 +386,58 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
     #开始翻译按钮绑定函数
     def Start_translation(self):
 
-        if self.configurator.Running_status == 0:
+        # 判断是否可以开始翻译
+        if self.background_executor.Start_translation_switch(self):
             #隐藏开始翻译按钮
             self.primaryButton_start_translation.hide()
             #显示暂停翻译按钮
             self.primaryButton_pause_translation.show()
 
             #创建子线程
-            thread = self.background_executor("执行翻译任务","","","","","","","")
+            thread = self.background_executor("开始翻译","","","","","","","")
             thread.start()
 
-        else :
-            self.user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+
     
-    #暂停翻译按钮绑定函数
+    # 暂停翻译按钮绑定函数
     def pause_translation(self):
 
-        #隐藏暂停翻译按钮
+        # 隐藏暂停翻译按钮
         self.primaryButton_pause_translation.hide()
-        #显示继续翻译按钮
+        # 显示继续翻译按钮
         self.primaryButton_continue_translation.show()
 
-        self.configurator.Running_status = 9
-        self.user_interface_prompter.createWarningInfoBar("软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！")
-        self.user_interface_prompter.signal.emit("运行状态改变","正在取消线程任务中",0)
-        print("\033[1;33mWarning:\033[0m 软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！-----------------------","\n")
+        # 暂停翻译实现函数
+        self.background_executor.Pause_translation(self)
+
 
     #继续翻译按钮绑定函数
     def continue_translation(self):
         
-        if self.configurator.Running_status == 10:
-            #隐藏继续翻译按钮
+        # 如果已经暂停完成
+        if self.background_executor.Continue_translation_switch(self):
+            # 隐藏继续翻译按钮
             self.primaryButton_continue_translation.hide()
-            #显示暂停翻译按钮
+            # 显示暂停翻译按钮
             self.primaryButton_pause_translation.show()
 
-            #创建子线程
-            thread = self.background_executor("执行翻译任务","","","","","","","")
+            # 创建子线程
+            thread = self.background_executor("开始翻译","","","","","","","")
             thread.start()
 
-        else:
-            self.user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
     
     #取消翻译按钮绑定函数
     def terminate_translation(self):
 
-        #隐藏继续翻译按钮
+        # 隐藏继续翻译按钮
         self.primaryButton_continue_translation.hide()
-        #隐藏暂停翻译按钮
+        # 隐藏暂停翻译按钮
         self.primaryButton_pause_translation.hide()
-        #显示开始翻译按钮
+        # 显示开始翻译按钮
         self.primaryButton_start_translation.show()
 
-        #如果正在翻译中或者取消线程任务中
-        if self.configurator.Running_status in (6,9):
-            self.configurator.Running_status = 11
-            self.user_interface_prompter.createWarningInfoBar("软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！")
-            self.user_interface_prompter.signal.emit("运行状态改变","正在取消线程任务中",0)
-            print("\033[1;33mWarning:\033[0m 软件的多线程任务正在逐一取消中，请等待全部翻译任务释放完成！！！-----------------------","\n")
-
-        #如果已经暂停翻译
-        elif self.configurator.Running_status == 10:
-
-            self.configurator.Running_status = 0
-            print("\033[1;33mWarning:\033[0m 翻译任务已取消-----------------------","\n")
-            #界面提示
-            self.user_interface_prompter.createWarningInfoBar("翻译已取消")
-            self.user_interface_prompter.signal.emit("重置界面数据","翻译取消",0)
-            self.user_interface_prompter.signal.emit("运行状态改变",f"已取消翻译",0)
-
-        #如果正在空闲中
-        elif self.configurator.Running_status == 0:
-
-            self.configurator.Running_status = 0
-            print("\033[1;33mWarning:\033[0m 当前无翻译任务-----------------------","\n")
-            #界面提示
-            self.user_interface_prompter.createWarningInfoBar("当前无翻译任务")
-            self.user_interface_prompter.signal.emit("重置界面数据","翻译取消",0)
+       # 取消翻译实现函数
+        self.background_executor.Cancel_translation(self)
 
 
 class Widget_start_translation_B(QFrame):#  开始翻译子界面

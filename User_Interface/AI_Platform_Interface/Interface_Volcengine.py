@@ -197,7 +197,7 @@ class Widget_Volcengine_A(QFrame):#  火山引擎基础设置子界面
 
     def test_request(self):
 
-        if self.configurator.Running_status == 0:
+        if self.background_executor.Request_test_switch(self):
             Base_url = "https://ark.cn-beijing.volces.com/api/v3"
             Model_Type =  self.LineEdit_access_point.text()      #获取推理接入点
             API_key_str = self.TextEdit_apikey.toPlainText()        #获取apikey输入值
@@ -206,9 +206,6 @@ class Widget_Volcengine_A(QFrame):#  火山引擎基础设置子界面
             #创建子线程
             thread = self.background_executor("接口测试","","","Volcengine",Base_url,Model_Type,API_key_str,Proxy_port)
             thread.start()
-
-        elif self.configurator.Running_status != 0:
-            self.user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 
 class Widget_Volcengine_B(QFrame):#  火山引擎进阶设置子界面

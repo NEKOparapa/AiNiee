@@ -145,7 +145,7 @@ class Widget_Dashscope(QFrame):#  dashscope账号界面
 
     def test_request(self):
 
-        if self.configurator.Running_status == 0:
+        if self.background_executor.Request_test_switch(self):
             Base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
             Model_Type =  self.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
             API_key_str = self.TextEdit_apikey.toPlainText()        #获取apikey输入值
@@ -154,6 +154,3 @@ class Widget_Dashscope(QFrame):#  dashscope账号界面
             #创建子线程
             thread = self.background_executor("接口测试","","","Dashscope",Base_url,Model_Type,API_key_str,Proxy_port)
             thread.start()
-
-        elif self.configurator.Running_status != 0:
-            self.user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")

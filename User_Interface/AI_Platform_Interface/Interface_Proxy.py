@@ -278,7 +278,7 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
 
     def test_request(self):
 
-        if self.configurator.Running_status == 0:
+        if self.background_executor.Request_test_switch(self):
             Base_url = self.LineEdit_relay_address.text()      # 获取代理地址
             Proxy_platform = self.comboBox_proxy_platform.currentText()  # 获取代理平台
             API_key_str = self.TextEdit_apikey.toPlainText()        # 获取apikey输入值
@@ -293,8 +293,6 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
             thread = self.background_executor("接口测试","","",Proxy_platform,Base_url,Model_Type,API_key_str,Proxy_port)
             thread.start()
 
-        elif self.configurator.Running_status != 0:
-            self.user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
 
 
 class Widget_Proxy_B(QFrame):#  代理账号进阶设置子界面

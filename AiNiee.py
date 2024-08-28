@@ -117,7 +117,7 @@ class Translator():
 
         user_interface_prompter.read_write_config("write",configurator.resource_dir) # 将配置信息写入配置文件中
 
-        configurator.initialize_configuration() # 获取界面的配置信息
+        configurator.initialize_configuration() # 初始化配置信息
 
         # 根据混合翻译设置更换翻译平台
         if configurator.mixed_translation_toggle:
@@ -2394,6 +2394,8 @@ class User_Interface_Prompter(QObject):
                 Window.Widget_start_translation.A_settings.tokens_spent.setText("无")
                 Window.Widget_start_translation.A_settings.amount_spent.setText("无")
                 Window.Widget_start_translation.A_settings.thread_count.setText("无")
+                Window.Widget_start_translation.A_settings.translation_speed_token.setText("无")
+                Window.Widget_start_translation.A_settings.translation_speed_line.setText("无")
                 Window.Widget_start_translation.A_settings.progressRing.setValue(0)
 
 
@@ -3313,23 +3315,13 @@ class User_Interface_Prompter(QObject):
                         Window.Widget_translation_example.tableView.removeRow(0)
 
 
-
 # 后台任务分发器
 class background_executor(threading.Thread): 
-    def __init__(self, task_id,input_folder,output_folder,platform,base_url,model,api_key,proxy_port):
+    def __init__(self, task_id = None,input_folder = None,output_folder= None,platform= None,base_url= None,model= None,api_key= None,proxy_port= None):
         super().__init__() # 调用父类构造
         self.task_id = task_id
-
-        if input_folder :
-            self.input_folder = input_folder
-        else:
-            self.input_folder = ""
-
-        if output_folder :
-            self.output_folder = output_folder
-        else:
-            self.output_folder = ""
-        
+        self.input_folder = input_folder
+        self.output_folder = output_folder
         self.platform = platform
         self.base_url = base_url
         self.model = model
@@ -3338,33 +3330,32 @@ class background_executor(threading.Thread):
 
     def run(self):
         # 执行翻译
-        if self.task_id == "执行翻译任务":
-            #如果是真正状态进入翻译
+        if self.task_id == "开始翻译":
+            # 如果是空闲状态进入翻译
             if configurator.Running_status  == 0:
                 configurator.Running_status = 6
 
-            #如果是暂停状态进入翻译
+            # 如果是暂停状态进入翻译
             if configurator.Running_status  == 10:
                 pass
 
 
-            #执行翻译主函数
+            # 执行翻译主函数
             Translator.Main(self)
-
 
 
             # 如果正常完成了翻译任务
             if configurator.Running_status == 6:
                 configurator.Running_status = 0
 
-            # 如果暂停了翻译任务
+            # 如果中途暂停了翻译任务
             if configurator.Running_status == 9:
                 configurator.Running_status = 10 # 已完成暂停状态
                 user_interface_prompter.signal.emit("翻译状态提示","翻译暂停",0)
 
-            # 如果取消了翻译任务
+            # 如果中途取消了翻译任务
             if configurator.Running_status == 11:
-                configurator.Running_status = 0  # 已完成取消状态
+                configurator.Running_status = 0  # 已完成取消状态，变成空闲状态
                 user_interface_prompter.signal.emit("翻译状态提示","翻译取消",0)
 
 
@@ -3375,15 +3366,83 @@ class background_executor(threading.Thread):
             Request_Tester.request_test(self,user_interface_prompter,self.platform,self.base_url,self.model,self.api_key,self.proxy_port)
             configurator.Running_status = 0
 
-        # 输出缓存
+        # 输出缓存文件实现函数
         elif self.task_id == "输出缓存文件":
             File_Outputter.output_cache_file(self,configurator.cache_list,self.output_folder)
             print('\033[1;32mSuccess:\033[0m 已输出缓存文件到文件夹')
 
-        # 输出已翻译文件
+        # 输出已翻译文件实现函数
         elif self.task_id == "输出已翻译文件":
             File_Outputter.output_translated_content(self,configurator.cache_list,self.output_folder,self.input_folder)
             print('\033[1;32mSuccess:\033[0m 已输出已翻译文件到文件夹')
+
+
+    # 开始翻译判断函数
+    def Start_translation_switch(self):
+        if configurator.Running_status == 0:
+            return True
+
+        else :
+            user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+            return False
+
+
+    # 继续翻译判断函数
+    def Continue_translation_switch(self):
+        if configurator.Running_status == 10:
+            return True
+
+        else :
+            user_interface_prompter.createWarningInfoBar("正在清理线程中，请耐心等待一会")
+            print("\033[1;33mWarning:\033[0m 多线程任务正清理中，请耐心等待一会","\n")
+            return False
+
+
+    # 暂停翻译判断+实现函数
+    def Pause_translation(self):
+        configurator.Running_status = 9
+        user_interface_prompter.createWarningInfoBar("软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！")
+        user_interface_prompter.signal.emit("运行状态改变","正在取消线程任务中",0)
+        print("\033[1;33mWarning:\033[0m 软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！-----------------------","\n")
+
+
+    # 取消翻译判断+实现函数
+    def Cancel_translation(self):
+
+        # 如果正在翻译中或者取消线程任务中
+        if configurator.Running_status in (6,9):
+            configurator.Running_status = 11
+            user_interface_prompter.createWarningInfoBar("软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！")
+            user_interface_prompter.signal.emit("运行状态改变","正在取消线程任务中",0)
+            print("\033[1;33mWarning:\033[0m 软件的多线程任务正在逐一取消中，请等待全部翻译任务释放完成！！！-----------------------","\n")
+
+        # 如果已经暂停翻译
+        elif configurator.Running_status == 10:
+
+            configurator.Running_status = 0
+            print("\033[1;33mWarning:\033[0m 翻译任务已取消-----------------------","\n")
+            # 界面提示
+            user_interface_prompter.createWarningInfoBar("翻译已取消")
+            user_interface_prompter.signal.emit("重置界面数据","翻译取消",0)
+            user_interface_prompter.signal.emit("运行状态改变",f"已取消翻译",0)
+
+        # 如果正在空闲中
+        elif configurator.Running_status == 0:
+
+            configurator.Running_status = 0
+            print("\033[1;33mWarning:\033[0m 当前无翻译任务-----------------------","\n")
+            # 界面提示
+            user_interface_prompter.createWarningInfoBar("当前无翻译任务")
+            user_interface_prompter.signal.emit("重置界面数据","翻译取消",0)
+
+
+    # 接口测试判断函数
+    def Request_test_switch(self):
+        if configurator.Running_status == 0:
+            return True
+        else:
+            self.user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
+            return False
 
 
 
@@ -3399,7 +3458,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.73"  #软件版本号
+    Software_Version = "AiNiee4.74"  #软件版本号
 
 
     # 工作目录改为python源代码所在的目录
