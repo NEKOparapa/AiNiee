@@ -75,9 +75,6 @@ class Request_Tester():
         #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
         API_key_list = api_key_str.replace('\n','').replace(" ", "").split(",")
 
-        #检查一下请求地址尾部是否为/v1，自动补全,如果是/v4，则是在调用智谱接口，如果是/v3，则是豆包
-        if base_url[-3:] != "/v1" and base_url[-3:] != "/v4" and base_url[-3:] != "/v3" :
-            base_url = base_url + "/v1"
 
         #创建openai客户端
         client = OpenAI(api_key=API_key_list[0],

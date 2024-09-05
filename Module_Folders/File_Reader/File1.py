@@ -17,10 +17,7 @@ import ebooklib #需要安装库pip install ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup #需要安装库pip install beautifulsoup4
 import openpyxl  #需安装库pip install openpyxl
-from openpyxl import Workbook  
-import ebooklib #需要安装库pip install ebooklib
-from ebooklib import epub
-from bs4 import BeautifulSoup #需要安装库pip install beautifulsoup4
+
 
 
 

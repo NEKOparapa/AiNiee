@@ -109,7 +109,7 @@ class Cache_Manager():
     def is_punctuation_string(self,s: str) -> bool:
         """检查字符串是否只包含标点符号"""
         punctuation = set("!" '"' "#" "$" "%" "&" "'" "(" ")" "*" "+" "," "-" "." "/" "，" "。"  
-                        ":" ";" "<" "=" ">" "?" "@" "[" "\\" "]" "^" "_" "`" "{" "|" "}" "~" "—")
+                        ":" ";" "<" "=" ">" "?" "@" "[" "\\" "]" "^" "_" "`" "{" "|" "}" "~" "—" "・")
         return all(char in punctuation for char in s)
 
 

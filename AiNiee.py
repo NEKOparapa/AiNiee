@@ -1,12 +1,3 @@
- # ═══════════════════════════════════════════════════════
-# ████ WARNING: Enter at Your Own Risk!               ████
-# ████ Congratulations, you have stumbled upon my     ████
-# ████ masterpiece - a mountain of 10,000 lines of    ████
-# ████ spaghetti code. Proceed with caution,          ████
-# ████ as reading this code may result in             ████
-# ████ immediate unhappiness and despair.             ████
-# ═══════════════════════════════════════════════════════
-
 
 # ═══════════════════════════════════════════════════════
 # ████ 警告：擅自进入，后果自负                         ████
@@ -15,10 +6,6 @@
 # ████ 请谨慎前行，阅读这段代码可能会。                 ████
 # ████ 立刻让你感到不幸和绝望                          ████
 # ═══════════════════════════════════════════════════════
-
-
-
-
 
 # 
 #                        _oo0oo_
@@ -48,49 +35,24 @@
 
 
 
-
-
 # coding:utf-8               
-import copy
 import datetime
 import json
-import random
-import yaml
-import re
 import time
 import threading
 import os
 import sys
 import multiprocessing
 import concurrent.futures
-import shutil
-import zipfile
 
-import tiktoken_ext  #必须导入这两个库，否则打包后无法运行
-from tiktoken_ext import openai_public
-import tiktoken #需要安装库pip install tiktoken
-
-import openpyxl  #需安装库pip install openpyxl
-from openpyxl import Workbook  
-import opencc       #需要安装库pip install opencc      
 from openai import OpenAI #需要安装库pip install openai
 import google.generativeai as genai #需要安装库pip install -U google-generativeai
 import anthropic #需要安装库pip install anthropic
-import ebooklib #需要安装库pip install ebooklib
-from ebooklib import epub
-from bs4 import BeautifulSoup #需要安装库pip install beautifulsoup4
 import cohere  #需要安装库pip install cohere
 
-from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QImage, QPainter, QPixmap#需要安装库 pip3 install PyQt5
-from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
-from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout
-
-from qfluentwidgets.components import Dialog  # 需要安装库 pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
-from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, EditableComboBox
-from qfluentwidgets import FluentIcon as FIF
-from qframelesswindow import FramelessWindow, StandardTitleBar
-
-
+from PyQt5.QtCore import  QObject,  Qt, pyqtSignal 
+from PyQt5.QtWidgets import QApplication, QTableWidgetItem
+from qfluentwidgets import InfoBar, InfoBarPosition, StateToolTip
 
 from StevExtraction import jtpp  # type: ignore #导入文本提取工具
 from Module_Folders.Cache_Manager.Cache import Cache_Manager  
@@ -101,7 +63,7 @@ from Module_Folders.Request_Tester.Request import Request_Tester
 from Module_Folders.Configurator.Config import Configurator
 from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
 from User_Interface.MainWindows import window  # 导入界面
-
+from User_Interface.MainWindows import Widget_Proxy
 
 
 
@@ -121,7 +83,7 @@ class Translator():
 
         # 根据混合翻译设置更换翻译平台
         if configurator.mixed_translation_toggle:
-            configurator.translation_platform = configurator.configure_mixed_translation["first_platform"]
+            configurator.translation_platform = configurator.mixed_translation_settings["translation_platform_1"]
 
         configurator.configure_translation_platform(configurator.translation_platform)  # 配置翻译平台信息
         request_limiter.initialize_limiter() # 配置请求限制器，依赖前面的配置信息，必需在最后面初始化
@@ -232,29 +194,46 @@ class Translator():
             print("[INFO] 当前拆分翻译轮次：",retry_translation_count ," 到达最大轮次：",configurator.round_limit," 时，将停止翻译")
             user_interface_prompter.signal.emit("运行状态改变",f"正在拆分翻译",0)
 
-            # 根据混合翻译设置更换翻译平台,并重新初始化配置信息
+            # 根据混合翻译设置更换翻译平台,并重新初始化部分配置信息
             if configurator.mixed_translation_toggle:
 
                 configurator.initialize_configuration() # 获取界面的配置信息
 
                 # 更换翻译平台
                 if retry_translation_count == 1:
-                    configurator.translation_platform = configurator.configure_mixed_translation["second_platform"]
-                    print("[INFO]  已开启混合翻译功能，正在进行次轮拆分翻译，翻译平台更换为：",configurator.translation_platform, '\n')
-                else:
-                    configurator.translation_platform = configurator.configure_mixed_translation["third_platform"]
+                    configurator.translation_platform = configurator.mixed_translation_settings["translation_platform_2"]
+                    print("[INFO]  已开启混合翻译功能，翻译平台更换为：",configurator.translation_platform, '\n')
+                elif retry_translation_count >= 2:
+                    configurator.translation_platform = configurator.mixed_translation_settings["translation_platform_3"]
                     print("[INFO]  已开启混合翻译功能，正在进行末轮拆分翻译，翻译平台更换为：",configurator.translation_platform, '\n')
 
                 configurator.configure_translation_platform(configurator.translation_platform)  # 配置翻译平台信息
+
+                # 更换模型选择
+                if retry_translation_count == 1 and configurator.mixed_translation_settings["customModel_siwtch_2"]:
+                    configurator.model_type = configurator.mixed_translation_settings["model_type_2"]
+                    print("[INFO]  模型更换为：",configurator.model_type, '\n')
+
+                elif retry_translation_count >= 2:
+                    configurator.translation_platform = configurator.mixed_translation_settings["translation_platform_3"]
+                    configurator.model_type = configurator.mixed_translation_settings["model_type_3"]
+                    print("[INFO]  模型更换为：",configurator.model_type, '\n')
+
                 request_limiter.initialize_limiter() # 配置请求限制器，依赖前面的配置信息，必需在最后面初始化
 
 
-            # 根据算法计算拆分的文本行数
-            if configurator.mixed_translation_toggle and configurator.split_switch:
-                print("[INFO] 检测到不进行拆分设置，发送行数将继续保持不变")
+            # 拆分文本行数或者tokens数
+            if configurator.mixed_translation_toggle and retry_translation_count == 1 and configurator.mixed_translation_settings["split_switch_2"]:
+                print("[INFO] 检测到不进行拆分设置，发送行数/tokens数将继续保持不变")
+
+            if configurator.mixed_translation_toggle and retry_translation_count >= 2 and configurator.mixed_translation_settings["split_switch_3"]:
+                print("[INFO] 检测到不进行拆分设置，发送行数/tokens数将继续保持不变")
+
             else:
                 configurator.lines_limit,configurator.tokens_limit = Translator.update_lines_or_tokens(self,configurator.lines_limit,configurator.tokens_limit) # 更换配置中的文本行数
             
+
+            # 显示日志
             if configurator.tokens_limit_switch:
                 print("[INFO] 未翻译文本总tokens为：",untranslated_text_tokens_count,"  每次发送tokens为：",configurator.tokens_limit, '\n')
             else:
@@ -374,34 +353,34 @@ class Api_Requester():
     # 并发接口请求分发
     def concurrent_request (self):
 
-        if configurator.translation_platform == "OpenAI官方" or configurator.translation_platform == "OpenAI代理":
+        if configurator.translation_platform == "OpenAI" or configurator.translation_platform == "OpenAI_proxy":
             self.concurrent_request_openai()
         
-        elif configurator.translation_platform == "Google官方":
+        elif configurator.translation_platform == "Google":
             self.concurrent_request_google()
 
-        elif configurator.translation_platform == "Cohere官方":
+        elif configurator.translation_platform == "Cohere":
             self.Concurrent_Request_cohere()
 
-        elif configurator.translation_platform == "Anthropic官方" or configurator.translation_platform == "Anthropic代理":
+        elif configurator.translation_platform == "Anthropic" or configurator.translation_platform == "Anthropic_proxy":
             self.concurrent_request_anthropic()
 
-        elif configurator.translation_platform == "Moonshot官方":
+        elif configurator.translation_platform == "Moonshot":
             self.concurrent_request_openai()
 
-        elif configurator.translation_platform == "Deepseek官方":
+        elif configurator.translation_platform == "Deepseek":
             self.concurrent_request_openai()
 
-        elif configurator.translation_platform == "Dashscope官方":
+        elif configurator.translation_platform == "Dashscope":
             self.concurrent_request_openai()
 
-        elif configurator.translation_platform == "Volcengine官方":
+        elif configurator.translation_platform == "Volcengine":
             self.concurrent_request_openai()
 
-        elif configurator.translation_platform == "零一万物官方":
+        elif configurator.translation_platform == "零一万物":
             self.concurrent_request_openai()
 
-        elif configurator.translation_platform == "智谱官方":
+        elif configurator.translation_platform == "智谱":
             self.concurrent_request_openai()
 
         elif configurator.translation_platform == "SakuraLLM":
@@ -2333,7 +2312,7 @@ class Api_Requester():
         return modified_string
 
 
-# UI提示器
+# UI交互器
 class User_Interface_Prompter(QObject):
     signal = pyqtSignal(str,str,int) #创建信号,并确定发送参数类型
 
@@ -2646,18 +2625,41 @@ class User_Interface_Prompter(QObject):
 
 
 
-            #获取代理账号基础设置界面
+            #获取代理账号设置界面
             config_dict["op_relay_address"] = Window.Widget_Proxy.A_settings.LineEdit_relay_address.text()                  #获取请求地址
             config_dict["op_proxy_platform"] = Window.Widget_Proxy.A_settings.comboBox_proxy_platform.currentText()       # 获取代理平台
             config_dict["op_model_type_openai"] =  Window.Widget_Proxy.A_settings.comboBox_model_openai.currentText()      #获取openai的模型类型下拉框当前选中选项的值
             config_dict["op_model_type_anthropic"] =  Window.Widget_Proxy.A_settings.comboBox_model_anthropic.currentText()      #获取anthropic的模型类型下拉框当前选中选项的值        
             config_dict["op_API_key_str"] = Window.Widget_Proxy.A_settings.TextEdit_apikey.toPlainText()        #获取apikey输入值
             config_dict["op_proxy_port"]  = Window.Widget_Proxy.A_settings.LineEdit_proxy_port.text()               #获取代理端口
+            config_dict["op_auto_complete"]  = Window.Widget_Proxy.A_settings.SwitchButton_auto_complete.isChecked()              #获取自动补全开关
             config_dict["op_tokens_limit"] = Window.Widget_Proxy.B_settings.spinBox_tokens.value()               #获取tokens限制值
             config_dict["op_rpm_limit"] = Window.Widget_Proxy.B_settings.spinBox_RPM.value()               #获取rpm限制值
             config_dict["op_tpm_limit"] = Window.Widget_Proxy.B_settings.spinBox_TPM.value()               #获取tpm限制值
             config_dict["op_input_pricing"] = Window.Widget_Proxy.B_settings.spinBox_input_pricing.value()               #获取输入价格
             config_dict["op_output_pricing"] = Window.Widget_Proxy.B_settings.spinBox_output_pricing.value()               #获取输出价格
+
+
+            # 获取额外代理平台配置信息
+            config_dict["additional_platform_count"] = configurator.additional_platform_count
+            name = ["A","B","C","D","E"]
+            Loop_count = 1
+            while (config_dict["additional_platform_count"] >= Loop_count) :
+                object_Name = "Proxy_platform_" + name[Loop_count]
+                config_dict[object_Name] = {} # 创建次级字典
+                config_dict[object_Name]["op_relay_address"] = configurator.instances_information[object_Name].A_settings.LineEdit_relay_address.text()                  #获取请求地址
+                config_dict[object_Name]["op_proxy_platform"] = configurator.instances_information[object_Name].A_settings.comboBox_proxy_platform.currentText()       # 获取代理平台
+                config_dict[object_Name]["op_model_type_openai"] =  configurator.instances_information[object_Name].A_settings.comboBox_model_openai.currentText()      #获取openai的模型类型下拉框当前选中选项的值
+                config_dict[object_Name]["op_model_type_anthropic"] =  configurator.instances_information[object_Name].A_settings.comboBox_model_anthropic.currentText()      #获取anthropic的模型类型下拉框当前选中选项的值        
+                config_dict[object_Name]["op_API_key_str"] = configurator.instances_information[object_Name].A_settings.TextEdit_apikey.toPlainText()        #获取apikey输入值
+                config_dict[object_Name]["op_proxy_port"]  = configurator.instances_information[object_Name].A_settings.LineEdit_proxy_port.text()               #获取代理端口
+                config_dict[object_Name]["op_auto_complete"] = configurator.instances_information[object_Name].A_settings.SwitchButton_auto_complete.isChecked()               #获取自动补全开关
+                config_dict[object_Name]["op_tokens_limit"] = configurator.instances_information[object_Name].B_settings.spinBox_tokens.value()               #获取tokens限制值
+                config_dict[object_Name]["op_rpm_limit"] = configurator.instances_information[object_Name].B_settings.spinBox_RPM.value()               #获取rpm限制值
+                config_dict[object_Name]["op_tpm_limit"] = configurator.instances_information[object_Name].B_settings.spinBox_TPM.value()               #获取tpm限制值
+                config_dict[object_Name]["op_input_pricing"] = configurator.instances_information[object_Name].B_settings.spinBox_input_pricing.value()               #获取输入价格
+                config_dict[object_Name]["op_output_pricing"] = configurator.instances_information[object_Name].B_settings.spinBox_output_pricing.value()               #获取输出价格
+                Loop_count = Loop_count + 1
 
 
             #Sakura界面
@@ -2699,10 +2701,20 @@ class User_Interface_Prompter(QObject):
 
             #翻译设置混合反应设置界面
             config_dict["translation_mixing_toggle"] =  Window.Widget_translation_settings_C.SwitchButton_mixed_translation.isChecked() # 获取混合翻译开关
-            config_dict["translation_platform_1"] =  Window.Widget_translation_settings_C.comboBox_primary_translation_platform.currentText()  # 获取首轮翻译平台设置
-            config_dict["translation_platform_2"] =  Window.Widget_translation_settings_C.comboBox_secondary_translation_platform.currentText()   # 获取次轮
-            config_dict["translation_platform_3"] =  Window.Widget_translation_settings_C.comboBox_final_translation_platform.currentText()    # 获取末轮
-            config_dict["split_switch"] =  Window.Widget_translation_settings_C.SwitchButton_split_switch.isChecked() # 获取混合翻译开关
+            config_dict["mixed_translation_settings"] = {}
+            config_dict["mixed_translation_settings"]["translation_platform_1"] = Window.Widget_translation_settings_C.SettingCard_A.translationPlatform_comboBox.currentText()  # 获取首轮翻译平台设置
+
+
+            config_dict["mixed_translation_settings"]["translation_platform_2"] = Window.Widget_translation_settings_C.SettingCard_B.translationPlatform_comboBox.currentText()  # 获取首轮翻译平台设置
+            config_dict["mixed_translation_settings"]["customModel_siwtch_2"] = Window.Widget_translation_settings_C.SettingCard_B.customModel_Button.isChecked()  
+            config_dict["mixed_translation_settings"]["model_type_2"] = Window.Widget_translation_settings_C.SettingCard_B.model_type.text()
+            config_dict["mixed_translation_settings"]["split_switch_2"] = Window.Widget_translation_settings_C.SettingCard_B.textSplitting_Button.isChecked()   
+
+            config_dict["mixed_translation_settings"]["translation_platform_3"] = Window.Widget_translation_settings_C.SettingCard_C.translationPlatform_comboBox.currentText()  # 获取首轮翻译平台设置
+            config_dict["mixed_translation_settings"]["customModel_siwtch_3"] = Window.Widget_translation_settings_C.SettingCard_C.customModel_Button.isChecked()  
+            config_dict["mixed_translation_settings"]["model_type_3"] = Window.Widget_translation_settings_C.SettingCard_C.model_type.text()  
+            config_dict["mixed_translation_settings"]["split_switch_3"] = Window.Widget_translation_settings_C.SettingCard_C.textSplitting_Button.isChecked()  
+
 
             #开始翻译的备份设置界面
             config_dict["auto_backup_toggle"] =  Window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
@@ -3001,7 +3013,7 @@ class User_Interface_Prompter(QObject):
                     Window.Widget_SakuraLLM.LineEdit_proxy_port.setText(config_dict["sakura_proxy_port"])
 
 
-                #OpenAI代理账号基础界面
+                #代理账号基础界面
                 if "op_relay_address" in config_dict:
                     Window.Widget_Proxy.A_settings.LineEdit_relay_address.setText(config_dict["op_relay_address"])
                 if "op_proxy_platform" in config_dict:
@@ -3036,16 +3048,15 @@ class User_Interface_Prompter(QObject):
                     # 设置当前文本为配置文件中指定的模型类型
                     Window.Widget_Proxy.A_settings.comboBox_model_anthropic.setCurrentText(model_type)
 
-                    
+                if "op_auto_complete" in config_dict:
+                    Window.Widget_Proxy.A_settings.SwitchButton_auto_complete.setChecked(config_dict["op_auto_complete"])
                 if "op_API_key_str" in config_dict:
                     Window.Widget_Proxy.A_settings.TextEdit_apikey.setText(config_dict["op_API_key_str"])
                 if "op_proxy_port" in config_dict:
                     Window.Widget_Proxy.A_settings.LineEdit_proxy_port.setText(config_dict["op_proxy_port"])
 
 
-
-
-                #OpenAI代理账号进阶界面
+                #代理账号进阶界面
                 if "op_tokens_limit" in config_dict:
                     Window.Widget_Proxy.B_settings.spinBox_tokens.setValue(config_dict["op_tokens_limit"])
                 if "op_rpm_limit" in config_dict:
@@ -3056,6 +3067,70 @@ class User_Interface_Prompter(QObject):
                     Window.Widget_Proxy.B_settings.spinBox_input_pricing.setValue(config_dict["op_input_pricing"])
                 if "op_output_pricing" in config_dict:
                     Window.Widget_Proxy.B_settings.spinBox_output_pricing.setValue(config_dict["op_output_pricing"])
+
+
+                if "additional_platform_count" in config_dict:
+                    platform_count =configurator.additional_platform_count = config_dict["additional_platform_count"]
+                    name = ["A","B","C","D","E"]
+                    Loop_count = 1
+                    while (platform_count >= Loop_count) :
+                        object_name = "Proxy_platform_" + name[Loop_count]
+                        object_name_cn = "代理平台" + name[Loop_count]
+
+                        # 创建动态名实例,并存入字典里
+                        Widget_New = configurator.instances_information[object_name] = Widget_Proxy(object_name, None,configurator,user_interface_prompter,background_executor)
+
+                        # 添加新导航项(这里使用子函数，是因为lambda不能循环使用，会导致指向同一个页面)
+                        Window.add_sub_interface(Widget_New,object_name,object_name_cn)
+
+                        # 添加新选项到UI选项中
+                        user_interface_prompter.add_new_proxy_option(object_name_cn)
+
+
+                        #代理账号基础界面
+                        Widget_New.A_settings.LineEdit_relay_address.setText(config_dict[object_name]["op_relay_address"])
+                        Widget_New.A_settings.comboBox_proxy_platform.setCurrentText(config_dict[object_name]["op_proxy_platform"])
+                        # 根据下拉框的索引调用不同的函数
+                        if config_dict[object_name]["op_proxy_platform"] =="OpenAI":
+                            Widget_New.A_settings.comboBox_model_openai.show()
+                            Widget_New.A_settings.comboBox_model_anthropic.hide()
+                        elif config_dict[object_name]["op_proxy_platform"] == 'Anthropic':
+                            Widget_New.A_settings.comboBox_model_openai.hide()
+                            Widget_New.A_settings.comboBox_model_anthropic.show()
+
+                        # 获取配置文件中指定的模型类型
+                        model_type = config_dict[object_name]["op_model_type_openai"]
+                        # 检查模型类型是否已经存在于下拉列表中
+                        existing_index = Widget_New.A_settings.comboBox_model_openai.findText(model_type)
+                        # 如果模型类型不存在，则添加到下拉列表中
+                        if existing_index == -1:
+                            Widget_New.A_settings.comboBox_model_openai.addItem(model_type)
+                        # 设置当前文本为配置文件中指定的模型类型
+                        Widget_New.A_settings.comboBox_model_openai.setCurrentText(model_type)
+
+                        # 获取配置文件中指定的模型类型
+                        model_type = config_dict[object_name]["op_model_type_anthropic"]
+                        # 检查模型类型是否已经存在于下拉列表中
+                        existing_index = Widget_New.A_settings.comboBox_model_anthropic.findText(model_type)
+                        # 如果模型类型不存在，则添加到下拉列表中
+                        if existing_index == -1:
+                            Widget_New.A_settings.comboBox_model_anthropic.addItem(model_type)
+                        # 设置当前文本为配置文件中指定的模型类型
+                        Widget_New.A_settings.comboBox_model_anthropic.setCurrentText(model_type)
+
+                            
+                        Widget_New.A_settings.TextEdit_apikey.setText(config_dict[object_name]["op_API_key_str"])
+                        Widget_New.A_settings.LineEdit_proxy_port.setText(config_dict[object_name]["op_proxy_port"])
+                        Widget_New.A_settings.SwitchButton_auto_complete.setChecked(config_dict[object_name]["op_auto_complete"])
+
+                        Widget_New.B_settings.spinBox_tokens.setValue(config_dict[object_name]["op_tokens_limit"])
+                        Widget_New.B_settings.spinBox_RPM.setValue(config_dict[object_name]["op_rpm_limit"])
+                        Widget_New.B_settings.spinBox_TPM.setValue(config_dict[object_name]["op_tpm_limit"])
+                        Widget_New.B_settings.spinBox_input_pricing.setValue(config_dict[object_name]["op_input_pricing"])
+                        Widget_New.B_settings.spinBox_output_pricing.setValue(config_dict[object_name]["op_output_pricing"])
+
+
+                        Loop_count = Loop_count + 1
 
 
 
@@ -3117,14 +3192,19 @@ class User_Interface_Prompter(QObject):
                 #翻译设置混合翻译界面
                 if "translation_mixing_toggle" in config_dict:
                     Window.Widget_translation_settings_C.SwitchButton_mixed_translation.setChecked(config_dict["translation_mixing_toggle"])
-                if "translation_platform_1" in config_dict:
-                    Window.Widget_translation_settings_C.comboBox_primary_translation_platform.setCurrentText(config_dict["translation_platform_1"])
-                if "translation_platform_2" in config_dict:
-                    Window.Widget_translation_settings_C.comboBox_secondary_translation_platform.setCurrentText(config_dict["translation_platform_2"])
-                if "translation_platform_3" in config_dict:
-                    Window.Widget_translation_settings_C.comboBox_final_translation_platform.setCurrentText(config_dict["translation_platform_3"])
-                if "split_switch" in config_dict:
-                    Window.Widget_translation_settings_C.SwitchButton_split_switch.setChecked(config_dict["split_switch"])
+                if "mixed_translation_settings" in config_dict:
+                    Window.Widget_translation_settings_C.SettingCard_A.translationPlatform_comboBox.setCurrentText(config_dict["mixed_translation_settings"]["translation_platform_1"])
+
+                    Window.Widget_translation_settings_C.SettingCard_B.translationPlatform_comboBox.setCurrentText(config_dict["mixed_translation_settings"]["translation_platform_2"])
+                    Window.Widget_translation_settings_C.SettingCard_B.customModel_Button.setChecked(config_dict["mixed_translation_settings"]["customModel_siwtch_2"])
+                    Window.Widget_translation_settings_C.SettingCard_B.model_type.setText(config_dict["mixed_translation_settings"]["model_type_2"])
+                    Window.Widget_translation_settings_C.SettingCard_B.textSplitting_Button.setChecked(config_dict["mixed_translation_settings"]["split_switch_2"] )
+
+                    Window.Widget_translation_settings_C.SettingCard_C.translationPlatform_comboBox.setCurrentText(config_dict["mixed_translation_settings"]["translation_platform_3"])
+                    Window.Widget_translation_settings_C.SettingCard_C.customModel_Button.setChecked(config_dict["mixed_translation_settings"]["customModel_siwtch_3"])
+                    Window.Widget_translation_settings_C.SettingCard_C.model_type.setText(config_dict["mixed_translation_settings"]["model_type_3"])
+                    Window.Widget_translation_settings_C.SettingCard_C.textSplitting_Button.setChecked(config_dict["mixed_translation_settings"]["split_switch_3"] )
+
 
                 #开始翻译的备份设置界面
                 if "auto_backup_toggle" in config_dict:
@@ -3314,8 +3394,38 @@ class User_Interface_Prompter(QObject):
                         #删除第一行
                         Window.Widget_translation_example.tableView.removeRow(0)
 
+    # 添加新的代理选项
+    def add_new_proxy_option(self,item_name):
 
-# 后台任务分发器
+        # 给基础设置添加代理选项
+        existing_index = Window.Widget_translation_settings_A.comboBox_translation_platform.findText(item_name)
+        # 如果模型类型不存在，则添加到下拉列表中
+        if existing_index == -1:
+            Window.Widget_translation_settings_A.comboBox_translation_platform.addItem(item_name)
+
+        # 给混合设置添加代理选项
+        existing_index = Window.Widget_translation_settings_C.SettingCard_A.translationPlatform_comboBox.findText(item_name)
+        if existing_index == -1:
+            Window.Widget_translation_settings_C.SettingCard_A.translationPlatform_comboBox.addItem(item_name)
+
+        existing_index = Window.Widget_translation_settings_C.SettingCard_B.translationPlatform_comboBox.findText(item_name)
+        if existing_index == -1:
+            Window.Widget_translation_settings_C.SettingCard_B.translationPlatform_comboBox.addItem(item_name)
+
+        existing_index = Window.Widget_translation_settings_C.SettingCard_C.translationPlatform_comboBox.findText(item_name)
+        if existing_index == -1:
+            Window.Widget_translation_settings_C.SettingCard_C.translationPlatform_comboBox.addItem(item_name)
+
+
+    # 删除代理选项
+    def del_proxy_option(self):
+        pass
+
+    # 隐藏删除按钮
+    def hide_delete_button(self):
+        pass
+
+# 任务执行器
 class background_executor(threading.Thread): 
     def __init__(self, task_id = None,input_folder = None,output_folder= None,platform= None,base_url= None,model= None,api_key= None,proxy_port= None):
         super().__init__() # 调用父类构造

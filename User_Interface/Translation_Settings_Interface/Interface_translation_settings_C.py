@@ -1,10 +1,10 @@
 
 from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QImage, QPainter, QPixmap#需要安装库 pip3 install PyQt5
 from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
-from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout, QWidget
 
 from qfluentwidgets.components import Dialog  # 需要安装库 pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
-from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, EditableComboBox
+from qfluentwidgets import BodyLabel, ExpandGroupSettingCard, FluentIcon, IndicatorPosition, ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, EditableComboBox
 from qfluentwidgets import FluentIcon as FIF
 from qframelesswindow import FramelessWindow, StandardTitleBar
 
@@ -44,104 +44,14 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
 
 
 
+        # 首轮翻译平台设置卡
+        self.SettingCard_A = SettingCard_A()
 
+        # 次轮翻译平台设置卡
+        self.SettingCard_B = SettingCard_B(parent=None,user_interface_prompter=self.user_interface_prompter)
 
-        # -----创建第2个组，添加多个组件-----
-        box_translation_platform1 = QGroupBox()
-        box_translation_platform1.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_translation_platform1 = QGridLayout()
-
-        #设置“翻译平台”标签
-        self.labelx1 = QLabel( flags=Qt.WindowFlags())  
-        self.labelx1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")#设置字体，大小，颜色
-        self.labelx1.setText("首轮翻译平台")
-
-
-        #设置“翻译平台”下拉选择框
-        self.comboBox_primary_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_primary_translation_platform.addItems(['OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  'Dashscope官方', 'Volcengine官方', '零一万物官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
-        self.comboBox_primary_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
-        self.comboBox_primary_translation_platform.setFixedSize(150, 35)
-
-
-        layout_translation_platform1.addWidget(self.labelx1, 0, 0)
-        layout_translation_platform1.addWidget(self.comboBox_primary_translation_platform, 0, 1)
-        box_translation_platform1.setLayout(layout_translation_platform1)
-
-
-
-        # -----创建第3个组，添加多个组件-----
-        box_translation_platform2 = QGroupBox()
-        box_translation_platform2.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_translation_platform2 = QGridLayout()
-
-        #设置“翻译平台”标签
-        self.labelx2 = QLabel( flags=Qt.WindowFlags())  
-        self.labelx2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")#设置字体，大小，颜色
-        self.labelx2.setText("次轮翻译平台")
-
-
-        #设置“翻译平台”下拉选择框
-        self.comboBox_secondary_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_secondary_translation_platform.addItems(['不设置', 'OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  'Dashscope官方', 'Volcengine官方', '零一万物官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
-        self.comboBox_secondary_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
-        self.comboBox_secondary_translation_platform.setFixedSize(150, 35)
-
-
-        layout_translation_platform2.addWidget(self.labelx2, 0, 0)
-        layout_translation_platform2.addWidget(self.comboBox_secondary_translation_platform, 0, 1)
-        box_translation_platform2.setLayout(layout_translation_platform2)
-
-
-
-        # -----创建第4个组，添加多个组件-----
-        box_translation_platform3 = QGroupBox()
-        box_translation_platform3.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_translation_platform3 = QGridLayout()
-
-        #设置“翻译平台”标签
-        self.labelx3 = QLabel( flags=Qt.WindowFlags())  
-        self.labelx3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")#设置字体，大小，颜色
-        self.labelx3.setText("末轮翻译平台")
-
-
-        #设置“翻译平台”下拉选择框
-        self.comboBox_final_translation_platform = ComboBox() #以demo为父类
-        self.comboBox_final_translation_platform.addItems(['不设置','OpenAI官方',  'Google官方', 'Anthropic官方',  'Cohere官方',  'Moonshot官方',  'Deepseek官方',  'Dashscope官方', 'Volcengine官方', '零一万物官方',  '智谱官方',  '代理平台',  'SakuraLLM'])
-        self.comboBox_final_translation_platform.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
-        self.comboBox_final_translation_platform.setFixedSize(150, 35)
-
-
-        layout_translation_platform3.addWidget(self.labelx3, 0, 0)
-        layout_translation_platform3.addWidget(self.comboBox_final_translation_platform, 0, 1)
-        box_translation_platform3.setLayout(layout_translation_platform3)
-
-
-
-        # -----创建第1个组，添加多个组件-----
-        box_split_switch = QGroupBox()
-        box_split_switch.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_split_switch = QHBoxLayout()
-
-        #设置标签
-        self.labe1_split_switch = QLabel(flags=Qt.WindowFlags())  
-        self.labe1_split_switch.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        self.labe1_split_switch.setText("更换轮次后不进行文本拆分")
-
-
-
-        # 设置选择开关
-        self.SwitchButton_split_switch = SwitchButton(parent=self)    
-        #self.SwitchButton_split_switch.checkedChanged.connect(self.test)
-
-
-
-        layout_split_switch.addWidget(self.labe1_split_switch)
-        layout_split_switch.addStretch(1)  # 添加伸缩项
-        layout_split_switch.addWidget(self.SwitchButton_split_switch)
-        box_split_switch.setLayout(layout_split_switch)
-
-
+        # 末轮翻译平台设置卡
+        self.SettingCard_C = SettingCard_C()
 
         # 最外层的垂直布局
         container = QVBoxLayout()
@@ -150,10 +60,9 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
         #container.addStretch(1)  # 添加伸缩项
         container.addWidget(box_switch)
         container.addStretch(1)  # 添加伸缩项
-        container.addWidget(box_translation_platform1)
-        container.addWidget(box_translation_platform2)
-        container.addWidget(box_translation_platform3)
-        container.addWidget( box_split_switch)
+        container.addWidget( self.SettingCard_A)
+        container.addWidget( self.SettingCard_B)
+        container.addWidget( self.SettingCard_C)
         container.addStretch(1)  # 添加伸缩项
         container.addStretch(1)  # 添加伸缩项
 
@@ -166,5 +75,153 @@ class Widget_translation_settings_C(QFrame):#  混合翻译设置子界面
     #设置开关绑定函数
     def test(self, isChecked: bool):
         if isChecked:
-            self.user_interface_prompter.createWarningInfoBar("请注意，开启该开关下面设置才会生效，并且会覆盖基础设置中的翻译平台")
+            self.user_interface_prompter.createWarningInfoBar("请注意，开启该开关下面设置才会生效，并且会覆盖部分基础设置")
 
+class SettingCard_A(ExpandGroupSettingCard):
+
+    def __init__(self, parent=None):
+        super().__init__(FluentIcon.SPEED_OFF, "首轮平台", "第一轮翻译使用的AI平台", parent)
+
+        # 第一组
+        self.translationPlatform_label = BodyLabel("翻译平台")
+        self.translationPlatform_comboBox = ComboBox()
+        self.translationPlatform_comboBox.addItems(['OpenAI',  'Google', 'Anthropic',  'Cohere',  'Moonshot',  'Deepseek',  'Dashscope', 'Volcengine', '零一万物',  '智谱',  'SakuraLLM',  '代理平台A'])
+        self.translationPlatform_comboBox.setFixedWidth(160)
+
+
+        # 调整内部布局
+        self.viewLayout.setContentsMargins(0, 0, 0, 0)
+        self.viewLayout.setSpacing(0)
+
+        # 添加各组到设置卡中
+        self.add(self.translationPlatform_label, self.translationPlatform_comboBox)
+
+    def add(self, label, widget):
+        w = QWidget()
+        w.setFixedHeight(60)
+
+        layout = QHBoxLayout(w)
+        layout.setContentsMargins(48, 12, 48, 12)
+
+        layout.addWidget(label)
+        layout.addStretch(1)
+        layout.addWidget(widget)
+
+        # 添加组件到设置卡
+        self.addGroupWidget(w)
+
+
+class SettingCard_B(ExpandGroupSettingCard):
+
+    def __init__(self, parent=None,user_interface_prompter=None):
+        super().__init__(FluentIcon.SPEED_OFF, "次轮平台", "第二轮翻译使用的AI平台", parent)
+        self.user_interface_prompter = user_interface_prompter
+
+
+        # 第一组
+        self.translationPlatform_label = BodyLabel("翻译平台")
+        self.translationPlatform_comboBox = ComboBox()
+        self.translationPlatform_comboBox.addItems(['OpenAI',  'Google', 'Anthropic',  'Cohere',  'Moonshot',  'Deepseek',  'Dashscope', 'Volcengine', '零一万物',  '智谱',  'SakuraLLM',  '代理平台A'])
+        self.translationPlatform_comboBox.setFixedWidth(160)
+
+
+
+        # 第二组
+        self.customModel_label = BodyLabel("重选模型")
+        self.customModel_Button = SwitchButton("关", self, IndicatorPosition.RIGHT)
+        self.customModel_Button.setOnText("开")
+        self.customModel_Button.checkedChanged.connect(self.test)
+        # 第三组
+        self.modeLabel = BodyLabel("模型名称")
+        self.model_type = LineEdit()
+        self.model_type.setFixedWidth(160)
+
+        # 第四组
+        self.textSplitting_label = BodyLabel("文本对半拆分")
+        self.textSplitting_Button = SwitchButton("关", self, IndicatorPosition.RIGHT)
+        self.textSplitting_Button.setOnText("开")
+
+
+        # 调整内部布局
+        self.viewLayout.setContentsMargins(0, 0, 0, 0)
+        self.viewLayout.setSpacing(0)
+
+        # 添加各组到设置卡中
+        self.add(self.translationPlatform_label, self.translationPlatform_comboBox)
+        self.add(self.customModel_label, self.customModel_Button)
+        self.add(self.modeLabel, self.model_type)
+        self.add(self.textSplitting_label, self.textSplitting_Button)
+
+
+    def add(self, label, widget):
+        w = QWidget()
+        w.setFixedHeight(60)
+
+        layout = QHBoxLayout(w)
+        layout.setContentsMargins(48, 12, 48, 12)
+
+        layout.addWidget(label)
+        layout.addStretch(1)
+        layout.addWidget(widget)
+
+        # 添加组件到设置卡
+        self.addGroupWidget(w)
+
+    #设置开关绑定函数
+    def test(self, isChecked: bool):
+        if isChecked:
+            self.user_interface_prompter.createWarningInfoBar("请注意，不在平台配置里的预设模型会出现问题")
+
+class SettingCard_C(ExpandGroupSettingCard):
+
+    def __init__(self, parent=None):
+        super().__init__(FluentIcon.SPEED_OFF, "末轮平台", "后续轮次翻译都使用的AI平台", parent)
+
+        # 第一组
+        self.translationPlatform_label = BodyLabel("翻译平台")
+        self.translationPlatform_comboBox = ComboBox()
+        self.translationPlatform_comboBox.addItems(['OpenAI',  'Google', 'Anthropic',  'Cohere',  'Moonshot',  'Deepseek',  'Dashscope', 'Volcengine', '零一万物',  '智谱',  'SakuraLLM',  '代理平台A'])
+        self.translationPlatform_comboBox.setFixedWidth(160)
+
+
+
+        # 第二组
+        self.customModel_label = BodyLabel("重选模型")
+        self.customModel_Button = SwitchButton("关", self, IndicatorPosition.RIGHT)
+        self.customModel_Button.setOnText("开")
+
+        # 第三组
+        self.modeLabel = BodyLabel("模型名称")
+        self.model_type = LineEdit()
+        self.model_type.setFixedWidth(160)
+
+        # 第四组
+        self.textSplitting_label = BodyLabel("文本对半拆分")
+        self.textSplitting_Button = SwitchButton("关", self, IndicatorPosition.RIGHT)
+        self.textSplitting_Button.setOnText("开")
+
+
+        # 调整内部布局
+        self.viewLayout.setContentsMargins(0, 0, 0, 0)
+        self.viewLayout.setSpacing(0)
+
+        # 添加各组到设置卡中
+        self.add(self.translationPlatform_label, self.translationPlatform_comboBox)
+        self.add(self.customModel_label, self.customModel_Button)
+        self.add(self.modeLabel, self.model_type)
+        self.add(self.textSplitting_label, self.textSplitting_Button)
+
+
+    def add(self, label, widget):
+        w = QWidget()
+        w.setFixedHeight(60)
+
+        layout = QHBoxLayout(w)
+        layout.setContentsMargins(48, 12, 48, 12)
+
+        layout.addWidget(label)
+        layout.addStretch(1)
+        layout.addWidget(widget)
+
+        # 添加组件到设置卡
+        self.addGroupWidget(w)

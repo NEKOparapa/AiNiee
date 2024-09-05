@@ -1,4 +1,5 @@
-
+from openpyxl import Workbook  
+import openpyxl  
 import json
 import os
 from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QImage, QPainter, QPixmap#需要安装库 pip3 install PyQt5
@@ -10,7 +11,7 @@ from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, 
 from qfluentwidgets import FluentIcon as FIF
 from qframelesswindow import FramelessWindow, StandardTitleBar
 
-
+ 
 
 class Widget_prompt_dict(QFrame): # 术语字典界面
 
@@ -38,6 +39,8 @@ class Widget_prompt_dict(QFrame): # 术语字典界面
         self.tableView.setMinimumHeight(400)             # 设置表格的最小高度
         self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
         #self.tableView.setSortingEnabled(True)  #设置表格可排序
+        self.tableView.setBorderVisible(True) # 开启显示边框功能，从而可以修改表格角半径
+        self.tableView.setBorderRadius(8) # 将表格组件的边角半径设置为x像素，从而实现圆角效果。
 
         # 在表格最后一行第一列添加"添加行"按钮
         button = PushButton('添新行')
@@ -159,66 +162,94 @@ class Widget_prompt_dict(QFrame): # 术语字典界面
     #导入字典按钮
     def Importing_dictionaries(self):
         # 选择文件
-        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'JSON Files (*.json)')      #调用QFileDialog类里的函数来选择文件
+        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'All Files (*)')
+
         if Input_File:
-            print(f'[INFO]  已选择字典导入文件: {Input_File}')
-        else :
-            print('[INFO]  未选择文件')
-            return
-        
-        # 读取文件
-        with open(Input_File, 'r', encoding="utf-8") as f:
-            dictionary = json.load(f)
+            print(f'[INFO] 已选择文件: {Input_File}')
+            # 获取文件后缀
+            file_suffix = Input_File.split('.')[-1].lower()
+            
+            # 根据文件后缀执行不同操作
+            if file_suffix == 'json':
 
-        # 检查数据是列表还是字典
-        if isinstance(dictionary, list):  # 如果是列表
-            for item in dictionary:
-                if item.get("srt", "") and item.get("dst", ""):
-                    srt = item.get("srt", "")
-                    dst = item.get("dst", "")
-                    info = item.get("info", "")
+                # 执行JSON文件的操作
+                with open(Input_File, 'r', encoding="utf-8") as f:
+                    dictionary = json.load(f)
 
-                    self.add_to_table(srt, dst,info)
-                    # 格式例
-                    # [
-                    #   {
-                    #     "srt": "xxxx",
-                    #     "dst": "xxxx",
-                    #     "info": "xxx",
-                    #   }
-                    # ]
-                else: # 代表是Paratranz的术语表，处理每一个字典项
-                    key = item.get("term", "")
-                    value = item.get("translation", "")
-                    info = ""
-                    self.add_to_table(key, value,info)
-                    # 格式例
-                    # [
-                    #   {
-                    #     "id": 359894,
-                    #     "createdAt": "2024-04-06T18:43:56.075Z",
-                    #     "updatedAt": "2024-04-06T18:43:56.075Z",
-                    #     "updatedBy": null,
-                    #     "pos": "noun",
-                    #     "uid": 49900,
-                    #     "term": "アイテム",
-                    #     "translation": "道具",
-                    #     "note": "",
-                    #     "project": 9841,
-                    #     "variants": []
-                    #   }
-                    # ]
-        elif isinstance(dictionary, dict):  # 如果是字典，处理字典键值对
-            for key, value in dictionary.items():
-                info = ""
-                self.add_to_table(key, value,info)
+                # 检查数据是列表还是字典
+                if isinstance(dictionary, list):
+                    for item in dictionary:
+                        if item.get("srt", "") and item.get("dst", ""): # 提示字典格式
+
+                            # 格式例
+                            # [
+                            #   {
+                            #     "srt": "xxxx",
+                            #     "dst": "xxxx",
+                            #     "info": "xxx",
+                            #   }
+                            # ]
+
+                            srt = item.get("srt", "")
+                            dst = item.get("dst", "")
+                            info = item.get("info", "")
+                            self.add_to_table(srt, dst,info)
+
+                        else: # Paratranz的术语表
+
+                            # 格式例
+                            # [
+                            #   {
+                            #     "id": 359894,
+                            #     "createdAt": "2024-04-06T18:43:56.075Z",
+                            #     "updatedAt": "2024-04-06T18:43:56.075Z",
+                            #     "updatedBy": null,
+                            #     "pos": "noun",
+                            #     "uid": 49900,
+                            #     "term": "アイテム",
+                            #     "translation": "道具",
+                            #     "note": "",
+                            #     "project": 9841,
+                            #     "variants": []
+                            #   }
+                            # ]
+
+                            key = item.get("term", "")
+                            value = item.get("translation", "")
+                            info = ""
+                            self.add_to_table(key, value,info)
+
+                elif isinstance(dictionary, dict):  # 普通键值对格式
+                    for key, value in dictionary.items():
+                        info = ""
+                        self.add_to_table(key, value,info)
+
+                # 输出日志
+                self.user_interface_prompter.createSuccessInfoBar("导入成功")
+                print(f'[INFO]  已导入字典文件')
+
+
+            elif file_suffix == 'xlsx':
+                # 执行XLSX文件的操作
+                    wb = openpyxl.load_workbook(Input_File)
+                    sheet = wb.active
+                    for row in range(2, sheet.max_row + 1): # 第一行是标识头，第二行才开始读取
+                        cell_value1 = sheet.cell(row=row, column=1).value # 第N行第一列的值
+                        cell_value2 = sheet.cell(row=row, column=2).value # 第N行第二列的值
+                        cell_value3 = sheet.cell(row=row, column=3).value # 第N行第二列的值
+                        self.add_to_table(cell_value1, cell_value2,cell_value3)
+
+                    # 输出日志
+                    self.user_interface_prompter.createSuccessInfoBar("导入成功")
+                    print(f'[INFO]  已导入字典文件')
+                    
+            else:
+                print(f'[INFO] 不支持的文件类型: .{file_suffix}')
+
         else:
-            print('[ERROR]  不支持的文件格式')
-            return
-
-        self.user_interface_prompter.createSuccessInfoBar("导入成功")
-        print(f'[INFO]  已导入字典文件')
-    
+            print('[INFO] 未选择文件')
+            return        
+        
     #导出字典按钮
     def Exporting_dictionaries(self):
         #获取表格中从第一行到倒数第二行的数据，判断第一列或第二列是否为空，如果为空则不获取。如果不为空，则第一列作为key，第二列作为value，存储中间字典中

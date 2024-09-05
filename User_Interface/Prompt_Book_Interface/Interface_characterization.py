@@ -33,7 +33,9 @@ class Widget_characterization(QFrame): # 角色介绍页面
         self.tableView.setMinimumHeight(400)             # 设置表格的最小高度
         self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  #作用是将表格填满窗口
         #self.tableView.setSortingEnabled(True)  #设置表格可排序
-
+        self.tableView.setBorderVisible(True) # 开启显示边框功能，从而可以修改表格角半径
+        self.tableView.setBorderRadius(8) # 将表格组件的边角半径设置为x像素，从而实现圆角效果。
+        
         # 在表格最后一行第一列添加"添加行"按钮
         button = PushButton('添新行')
         self.tableView.setCellWidget(self.tableView.rowCount()-1, 0, button)

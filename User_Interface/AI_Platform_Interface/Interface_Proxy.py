@@ -70,6 +70,26 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
         self.background_executor = background_executor
         #设置各个控件-----------------------------------------------------------------------------------------
 
+        # -----创建第x个组，添加多个组件-----
+        box_auto_complete = QGroupBox()
+        box_auto_complete.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
+        layout1_auto_complete = QHBoxLayout()
+
+        # 设置标签
+        labe1_6 = QLabel(flags=Qt.WindowFlags())  
+        labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        labe1_6.setText("请求地址自动补全")
+
+        # 设置选择开关
+        self.SwitchButton_auto_complete = SwitchButton(parent=self)    
+        self.SwitchButton_auto_complete.setChecked(True)
+
+
+        layout1_auto_complete.addWidget(labe1_6)
+        layout1_auto_complete.addStretch(1)  # 添加伸缩项
+        layout1_auto_complete.addWidget(self.SwitchButton_auto_complete)
+        box_auto_complete.setLayout(layout1_auto_complete)
+
 
         # -----创建第1个组，添加多个组件-----
         box_relay_address = QGroupBox()
@@ -226,20 +246,28 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
 
 
         #设置“测试请求”的按钮
-        primaryButton_test = PrimaryPushButton('测试请求', self, FIF.SEND)
-        primaryButton_test.clicked.connect(self.test_request) #按钮绑定槽函数
+        self.primaryButton_test = PrimaryPushButton('测试请求', self, FIF.SEND)
+        self.primaryButton_test.clicked.connect(self.test_request) #按钮绑定槽函数
 
         #设置“保存配置”的按钮
-        primaryButton_save = PushButton('保存配置', self, FIF.SAVE)
-        primaryButton_save.clicked.connect(self.saveconfig) #按钮绑定槽函数
+        self.primaryButton_save = PushButton('保存配置', self, FIF.SAVE)
+        self.primaryButton_save.clicked.connect(self.saveconfig) #按钮绑定槽函数
 
 
+        #设置“删除配置”的按钮
+        self.primaryButton_del = PushButton('删除配置', self, FIF.DELETE)
+        self.primaryButton_del.hide()
+        #primaryButton_del.clicked.connect(self.saveconfig) #按钮绑定槽函数
+
         layout_test.addStretch(1)  # 添加伸缩项
-        layout_test.addWidget(primaryButton_test)
+        layout_test.addWidget(self.primaryButton_test)
         layout_test.addStretch(1)  # 添加伸缩项
-        layout_test.addWidget(primaryButton_save)
+        layout_test.addWidget(self.primaryButton_save)
+        layout_test.addWidget(self.primaryButton_del)
         layout_test.addStretch(1)  # 添加伸缩项
         box_test.setLayout(layout_test)
+
+
 
 
 
@@ -254,12 +282,15 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
         # 把各个组添加到容器中
         container.addStretch(1)  # 添加伸缩项
         container.addWidget(box_relay_address)
+        container.addWidget(box_auto_complete)
         container.addWidget(box_proxy_platform)
         container.addWidget(box_model)
         container.addWidget(box_apikey)
         container.addWidget(box_proxy_port)
         container.addWidget(box_test)
         container.addStretch(1)  # 添加伸缩项
+
+
 
 
     def on_combobox_changed(self, index):
@@ -283,9 +314,16 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
             Proxy_platform = self.comboBox_proxy_platform.currentText()  # 获取代理平台
             API_key_str = self.TextEdit_apikey.toPlainText()        # 获取apikey输入值
             Proxy_port = self.LineEdit_proxy_port.text()            # 获取代理端口
+            op_auto_complete = self.SwitchButton_auto_complete.isChecked()
 
             if Proxy_platform == "OpenAI":
                 Model_Type = self.comboBox_model_openai.currentText()
+
+                # openai接口特有的自动补全
+                if op_auto_complete:
+                    if Base_url[-3:] != "/v1" and Base_url[-3:] != "/v4" and Base_url[-3:] != "/v3" :
+                        Base_url = Base_url + "/v1"
+
             elif Proxy_platform == "Anthropic":
                 Model_Type = self.comboBox_model_anthropic.currentText()
 
@@ -466,4 +504,3 @@ class Widget_Proxy_B(QFrame):#  代理账号进阶设置子界面
         container.addWidget(box_input_pricing)
         container.addWidget(box_output_pricing)
         container.addStretch(1)  # 添加伸缩项
-

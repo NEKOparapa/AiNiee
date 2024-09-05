@@ -42,7 +42,7 @@ class Request_Limiter():
 
 
         #根据翻译平台读取配置信息
-        if translation_platform == 'OpenAI官方':
+        if translation_platform == 'OpenAI':
             # 获取账号类型
             account_type = self.configurator.openai_account_type
             # 获取模型选择 
@@ -63,7 +63,7 @@ class Request_Limiter():
 
 
         #根据翻译平台读取配置信息
-        elif translation_platform == 'Anthropic官方':
+        elif translation_platform == 'Anthropic':
             # 获取账号类型
             account_type = self.configurator.anthropic_account_type
             # 获取模型选择 
@@ -84,7 +84,7 @@ class Request_Limiter():
 
 
         #根据翻译平台读取配置信息
-        elif translation_platform == 'Cohere官方':
+        elif translation_platform == 'Cohere':
             # 获取账号类型
             account_type = self.configurator.cohere_account_type
             # 获取模型选择 
@@ -103,7 +103,7 @@ class Request_Limiter():
             # 设置限制
             self.set_limit(max_tokens,TPM_limit,RPM_limit)
 
-        elif translation_platform == 'Google官方':
+        elif translation_platform == 'Google':
             # 获取账号类型
             account_type = self.configurator.google_account_type
             # 获取模型
@@ -124,7 +124,7 @@ class Request_Limiter():
 
 
         #根据翻译平台读取配置信息
-        elif translation_platform == 'Moonshot官方':
+        elif translation_platform == 'Moonshot':
             # 获取账号类型
             account_type = self.configurator.moonshot_account_type
             # 获取模型选择 
@@ -145,7 +145,7 @@ class Request_Limiter():
 
 
         #根据翻译平台读取配置信息
-        elif translation_platform == 'Deepseek官方':
+        elif translation_platform == 'Deepseek':
             # 获取模型选择 
             model = self.configurator.deepseek_model_type
 
@@ -163,7 +163,7 @@ class Request_Limiter():
             self.set_limit(max_tokens,TPM_limit,RPM_limit)
 
 
-        elif translation_platform == '智谱官方':
+        elif translation_platform == '智谱':
             # 获取账号类型
             account_type = self.configurator.zhipu_account_type
             # 获取模型
@@ -184,7 +184,7 @@ class Request_Limiter():
 
 
         #根据翻译平台读取配置信息
-        elif translation_platform == 'Dashscope官方':
+        elif translation_platform == 'Dashscope':
             # 获取模型选择 
             model = self.configurator.dashscope_model_type
 
@@ -203,7 +203,7 @@ class Request_Limiter():
 
 
         #根据翻译平台读取配置信息
-        elif translation_platform == 'Volcengine官方':
+        elif translation_platform == 'Volcengine':
 
             # 获取相应的限制
             max_tokens = self.configurator.volcengine_tokens_limit               #获取每次文本发送上限限制值
@@ -232,10 +232,18 @@ class Request_Limiter():
             self.set_limit(max_tokens,TPM_limit,RPM_limit)
 
 
-        else:            
+        elif translation_platform == '代理平台A':            
             max_tokens = self.configurator.op_tokens_limit               #获取每次文本发送上限限制值
             RPM_limit = self.configurator.op_rpm_limit               #获取rpm限制值
             TPM_limit = self.configurator.op_tpm_limit             #获取tpm限制值
+
+            # 设置限制
+            self.set_limit(max_tokens,TPM_limit,RPM_limit)
+
+        else:            
+            max_tokens = self.configurator.additional_platform_tokens_limit
+            RPM_limit = self.configurator.additional_platform_rpm_limit
+            TPM_limit = self.configurator.additional_platform_tpm_limit
 
             # 设置限制
             self.set_limit(max_tokens,TPM_limit,RPM_limit)
