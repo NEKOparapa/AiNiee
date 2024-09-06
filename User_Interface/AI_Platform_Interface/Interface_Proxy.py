@@ -99,7 +99,7 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
         #设置“中转地址”标签
         self.labelA = QLabel( flags=Qt.WindowFlags())  #parent参数表示父控件，如果没有父控件，可以将其设置为None；flags参数表示控件的标志，可以不传入
         self.labelA.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")#设置字体，大小，颜色
-        self.labelA.setText("中转请求地址")
+        self.labelA.setText("中转请求地址(URL)")
 
         #设置微调距离用的空白标签
         self.labelB = QLabel()  

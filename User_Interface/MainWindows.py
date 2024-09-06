@@ -331,6 +331,7 @@ class window(FramelessWindow): #主窗口 v
         self.navigationInterface.widget("Widget_AI").setExpanded(False)
         self.navigationInterface.widget("Widget_AI").setExpanded(True)
 
+        #self.navigationInterface.removeWidget(self.Widget_SakuraLLM.objectName())
 
     # 添加新代理平台导航项函数
     def add_sub_interface(self, Widget_New,object_name,object_name_cn):
