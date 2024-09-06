@@ -7,7 +7,7 @@ from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, 
 from qfluentwidgets import FluentIcon as FIF
 from qframelesswindow import FramelessWindow, StandardTitleBar
 
-class Widget_official_api(QFrame):
+class Widget_Official_api(QFrame):
 
     def __init__(self, text: str, parent=None):
         super().__init__(parent=parent)

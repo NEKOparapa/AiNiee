@@ -12,7 +12,7 @@ from qframelesswindow import FramelessWindow, StandardTitleBar
 
 
 from .AI_Platform_Interface.Interface_AI import Widget_AI
-from .AI_Platform_Interface.Interface_Official_api import Widget_official_api
+from .AI_Platform_Interface.Interface_Official_api import Widget_Official_api
 from .AI_Platform_Interface.Interface_Openai import Widget_Openai
 from .AI_Platform_Interface.Interface_Proxy import Widget_Proxy
 from .AI_Platform_Interface.Interface_New_proxy import Widget_New_proxy
@@ -89,7 +89,7 @@ class window(FramelessWindow): #主窗口 v
 
         # 创建子界面控件，传入参数为对象名和parent
         self.Widget_AI = Widget_AI('Widget_AI', self)
-        self.Widget_official_api = Widget_official_api('Widget_official_api', self)
+        self.Widget_Official_api = Widget_Official_api('Widget_Official_api', self)
         self.Widget_Openai = Widget_Openai('Widget_Openai', self,configurator,user_interface_prompter,background_executor)   
         self.Widget_Anthropic = Widget_Anthropic('Widget_Anthropic', self,configurator,user_interface_prompter,background_executor)
         self.Widget_Google = Widget_Google('Widget_Google', self,configurator,user_interface_prompter,background_executor)
@@ -167,27 +167,27 @@ class window(FramelessWindow): #主窗口 v
         # 添加账号设置界面
         self.addSubInterface(self.Widget_AI, FIF.IOT, '账号设置',NavigationItemPosition.SCROLL) # NavigationItemPosition.SCROLL表示在可滚动伸缩区域
         # 添加官方接口界面
-        self.addSubInterface(self.Widget_official_api, FIF.PEOPLE, '官方接口',parent=self.Widget_AI) # NavigationItemPosition.SCROLL表示在可滚动伸缩区域
+        self.addSubInterface(self.Widget_Official_api, FIF.PEOPLE, '官方接口',parent=self.Widget_AI) # NavigationItemPosition.SCROLL表示在可滚动伸缩区域
         # 添加closeai官方账号界面
-        self.addSubInterface(self.Widget_Openai, FIF.FEEDBACK, 'OpenAI',parent=self.Widget_official_api) 
+        self.addSubInterface(self.Widget_Openai, FIF.FEEDBACK, 'OpenAI',parent=self.Widget_Official_api) 
         # 添加谷歌官方账号界面
-        self.addSubInterface(self.Widget_Google, FIF.FEEDBACK, 'Google',parent=self.Widget_official_api)
+        self.addSubInterface(self.Widget_Google, FIF.FEEDBACK, 'Google',parent=self.Widget_Official_api)
         # 添加Cohere官方账号界面
-        self.addSubInterface(self.Widget_Cohere, FIF.FEEDBACK, 'Cohere',parent=self.Widget_official_api)
+        self.addSubInterface(self.Widget_Cohere, FIF.FEEDBACK, 'Cohere',parent=self.Widget_Official_api)
         # 添加anthropic官方账号界面
-        self.addSubInterface(self.Widget_Anthropic, FIF.FEEDBACK, 'Anthropic',parent=self.Widget_official_api)
+        self.addSubInterface(self.Widget_Anthropic, FIF.FEEDBACK, 'Anthropic',parent=self.Widget_Official_api)
         # 添加Moonshot官方账号界面
-        self.addSubInterface(self.Widget_Moonshot, FIF.FEEDBACK, 'Moonshot',parent=self.Widget_official_api) 
+        self.addSubInterface(self.Widget_Moonshot, FIF.FEEDBACK, 'Moonshot',parent=self.Widget_Official_api) 
         # 添加Deepseek官方账号界面
-        self.addSubInterface(self.Widget_Deepseek, FIF.FEEDBACK, 'Deepseek',parent=self.Widget_official_api) 
+        self.addSubInterface(self.Widget_Deepseek, FIF.FEEDBACK, 'Deepseek',parent=self.Widget_Official_api) 
         # 添加Dashscope官方账号界面
-        self.addSubInterface(self.Widget_Dashscope, FIF.FEEDBACK, 'Dashscope',parent=self.Widget_official_api) 
+        self.addSubInterface(self.Widget_Dashscope, FIF.FEEDBACK, 'Dashscope',parent=self.Widget_Official_api) 
         # 添加Volcengine官方账号界面
-        self.addSubInterface(self.Widget_Volcengine, FIF.FEEDBACK, 'Volcengine',parent=self.Widget_official_api) 
+        self.addSubInterface(self.Widget_Volcengine, FIF.FEEDBACK, 'Volcengine',parent=self.Widget_Official_api) 
         # 添加Yi官方账号界面
-        self.addSubInterface(self.Widget_Yi, FIF.FEEDBACK, '零一万物',parent=self.Widget_official_api) 
+        self.addSubInterface(self.Widget_Yi, FIF.FEEDBACK, '零一万物',parent=self.Widget_Official_api) 
         # 添加智谱官方账号界面
-        self.addSubInterface(self.Widget_ZhiPu, FIF.FEEDBACK, '智谱',parent=self.Widget_official_api) 
+        self.addSubInterface(self.Widget_ZhiPu, FIF.FEEDBACK, '智谱',parent=self.Widget_Official_api) 
 
 
         # 添加代理账号界面
