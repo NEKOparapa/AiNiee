@@ -63,7 +63,7 @@ from Module_Folders.Request_Tester.Request import Request_Tester
 from Module_Folders.Configurator.Config import Configurator
 from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
 from User_Interface.MainWindows import window  # 导入界面
-from User_Interface.MainWindows import Widget_Proxy
+from User_Interface.MainWindows import Widget_New_proxy
 
 
 
@@ -3078,7 +3078,7 @@ class User_Interface_Prompter(QObject):
                         object_name_cn = "代理平台" + name[Loop_count]
 
                         # 创建动态名实例,并存入字典里
-                        Widget_New = configurator.instances_information[object_name] = Widget_Proxy(object_name, None,configurator,user_interface_prompter,background_executor)
+                        Widget_New = configurator.instances_information[object_name] = Widget_New_proxy(object_name, None,configurator,user_interface_prompter,background_executor)
 
                         # 添加新导航项(这里使用子函数，是因为lambda不能循环使用，会导致指向同一个页面)
                         Window.add_sub_interface(Widget_New,object_name,object_name_cn)

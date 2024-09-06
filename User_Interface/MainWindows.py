@@ -12,9 +12,10 @@ from qframelesswindow import FramelessWindow, StandardTitleBar
 
 
 from .AI_Platform_Interface.Interface_AI import Widget_AI
-from .AI_Platform_Interface.Interface_official_api import Widget_official_api
+from .AI_Platform_Interface.Interface_Official_api import Widget_official_api
 from .AI_Platform_Interface.Interface_Openai import Widget_Openai
 from .AI_Platform_Interface.Interface_Proxy import Widget_Proxy
+from .AI_Platform_Interface.Interface_New_proxy import Widget_New_proxy
 from .AI_Platform_Interface.Interface_Empty import Widget_Empty
 from .AI_Platform_Interface.Interface_Anthropic import Widget_Anthropic
 from .AI_Platform_Interface.Interface_Google import Widget_Google
@@ -314,7 +315,7 @@ class window(FramelessWindow): #主窗口 v
         object_name_cn = "代理平台" + name[self.configurator.additional_platform_count]
 
         # 创建动态名实例,并存入字典里
-        self.configurator.instances_information[object_name] = Widget_Proxy(object_name, self,self.configurator,self.user_interface_prompter,self.background_executor)
+        self.configurator.instances_information[object_name] = Widget_New_proxy(object_name, self,self.configurator,self.user_interface_prompter,self.background_executor)
         Widget_New = self.configurator.instances_information[object_name] 
 
         # 添加新导航项

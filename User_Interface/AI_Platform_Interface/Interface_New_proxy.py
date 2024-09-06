@@ -4,13 +4,13 @@ from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal
 from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout
 
 from qfluentwidgets.components import Dialog  # 需要安装库 pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
-from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, EditableComboBox
+from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme, TransparentTogglePushButton,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, EditableComboBox
 from qfluentwidgets import FluentIcon as FIF
 from qframelesswindow import FramelessWindow, StandardTitleBar
 
 
 
-class Widget_Proxy(QFrame):  # 代理账号主界面
+class Widget_New_proxy(QFrame):  # 代理账号主界面
     def __init__(self, text: str, parent=None,configurator=None,user_interface_prompter=None,background_executor=None):  # 构造函数，初始化实例时会自动调用
         super().__init__(parent=parent)  # 调用父类 QWidget 的构造函数
         self.setObjectName(text.replace(' ', '-'))  # 设置对象名，用于在 NavigationInterface 中的 addItem 方法中的 routeKey 参数中使用
@@ -252,12 +252,18 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
         #设置“保存配置”的按钮
         self.primaryButton_save = PushButton('保存配置', self, FIF.SAVE)
         self.primaryButton_save.clicked.connect(self.saveconfig) #按钮绑定槽函数
-        
+        self.primaryButton_save.hide()
+
+        #设置“删除配置”的按钮
+        self.primaryButton_del = TransparentTogglePushButton('删除配置', self, FIF.DELETE)
+        #self.primaryButton_del.hide()
+        #primaryButton_del.clicked.connect(self.saveconfig) #按钮绑定槽函数
 
         layout_test.addStretch(1)  # 添加伸缩项
         layout_test.addWidget(self.primaryButton_test)
         layout_test.addStretch(1)  # 添加伸缩项
         layout_test.addWidget(self.primaryButton_save)
+        layout_test.addWidget(self.primaryButton_del)
         layout_test.addStretch(1)  # 添加伸缩项
         box_test.setLayout(layout_test)
 
