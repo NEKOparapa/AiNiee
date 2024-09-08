@@ -23,7 +23,10 @@ class Widget_New_proxy(QFrame):  # 代理账号主界面
         self.stackedWidget = QStackedWidget(self)  # 创建一个 QStackedWidget 实例，堆叠式窗口
         self.vBoxLayout = QVBoxLayout(self)  # 创建一个垂直布局管理器
 
-        self.A_settings = Widget_Proxy_A('A_settings', self,configurator,user_interface_prompter,background_executor)  # 创建实例，指向界面
+        # 传递对象名
+        text = text.replace(' ', '-')
+
+        self.A_settings = Widget_Proxy_A('A_settings', self,configurator,user_interface_prompter,background_executor,text)  # 创建实例，指向界面
         self.B_settings = Widget_Proxy_B('B_settings', self,configurator,user_interface_prompter,background_executor)  # 创建实例，指向界面
 
         # 添加子界面到分段式导航栏
@@ -62,12 +65,13 @@ class Widget_New_proxy(QFrame):  # 代理账号主界面
 
 
 class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
-    def __init__(self, text: str, parent=None,configurator=None,user_interface_prompter=None,background_executor=None):#解释器会自动调用这个函数
+    def __init__(self, text: str, parent=None,configurator=None,user_interface_prompter=None,background_executor=None,ObjectName=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
         self.configurator = configurator
         self.user_interface_prompter = user_interface_prompter
         self.background_executor = background_executor
+        self.ObjectName = ObjectName
         #设置各个控件-----------------------------------------------------------------------------------------
 
         # -----创建第x个组，添加多个组件-----
@@ -249,20 +253,14 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
         self.primaryButton_test = PrimaryPushButton('测试请求', self, FIF.SEND)
         self.primaryButton_test.clicked.connect(self.test_request) #按钮绑定槽函数
 
-        #设置“保存配置”的按钮
-        self.primaryButton_save = PushButton('保存配置', self, FIF.SAVE)
-        self.primaryButton_save.clicked.connect(self.saveconfig) #按钮绑定槽函数
-        self.primaryButton_save.hide()
 
         #设置“删除配置”的按钮
         self.primaryButton_del = TransparentTogglePushButton('删除配置', self, FIF.DELETE)
-        #self.primaryButton_del.hide()
-        #primaryButton_del.clicked.connect(self.saveconfig) #按钮绑定槽函数
+        self.primaryButton_del.clicked.connect(self.del_config) #按钮绑定槽函数
 
         layout_test.addStretch(1)  # 添加伸缩项
         layout_test.addWidget(self.primaryButton_test)
         layout_test.addStretch(1)  # 添加伸缩项
-        layout_test.addWidget(self.primaryButton_save)
         layout_test.addWidget(self.primaryButton_del)
         layout_test.addStretch(1)  # 添加伸缩项
         box_test.setLayout(layout_test)
@@ -303,9 +301,12 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
             self.comboBox_model_anthropic.show()
 
 
-    def saveconfig(self):
-        self.user_interface_prompter.read_write_config("write",self.configurator.resource_dir)
-        self.user_interface_prompter.createSuccessInfoBar("已成功保存配置")
+    def del_config(self):
+        object_name = self.ObjectName
+        self.user_interface_prompter.del_proxy_option(object_name)
+
+        self.user_interface_prompter.createSuccessInfoBar("已删除该平台配置")
+
 
     def test_request(self):
 

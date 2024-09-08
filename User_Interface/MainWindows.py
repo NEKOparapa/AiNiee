@@ -6,7 +6,7 @@ from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal
 from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout
 
 from qfluentwidgets.components import Dialog  # 需要安装库 pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
-from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, EditableComboBox
+from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TeachingTip, TeachingTipTailPosition, TeachingTipView, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, EditableComboBox
 from qfluentwidgets import FluentIcon as FIF
 from qframelesswindow import FramelessWindow, StandardTitleBar
 
@@ -295,7 +295,7 @@ class window(FramelessWindow): #主窗口 v
             routeKey=interface.objectName(),
             icon=icon,
             text=text,
-            onClick=lambda: self.addSubInterface_onClick(),
+            onClick=lambda: self.showTopTip(),
             position=position,
             tooltip=text,
             parentRouteKey=parent.objectName() if parent else None
@@ -303,27 +303,78 @@ class window(FramelessWindow): #主窗口 v
 
 
 
+    # 前置弹窗函数
+    def showTopTip(self):
+
+        self.view = TeachingTipView(
+            icon=None,
+            title='Add a new platform',
+            content="请输入新平台名字",
+            #image='resource/Gyro.jpg',
+            isClosable=True,
+            tailPosition=TeachingTipTailPosition.RIGHT,
+        )
+
+        # 输入框
+        self.TextEdit = LineEdit()
+        self.TextEdit.setFixedWidth(300)
+
+
+        # 按钮
+        self.Button = PushButton('确认')
+        self.Button.setFixedWidth(120)
+        self.Button.clicked.connect(self.addSubInterface_onClick)
+        
+        # 添加到弹窗
+        self.view.addWidget(self.TextEdit)
+        self.view.addWidget(self.Button)
+
+        self.w = TeachingTip.make(
+            target=self.Widget_Add_proxy_platform,
+            view=self.view,
+            duration=-1,
+            tailPosition=TeachingTipTailPosition.RIGHT,
+            parent=self
+        )
+        self.view.closed.connect(self.w.close)
+
+
+
     # 添加新代理平台导航项辅助函数
     def addSubInterface_onClick(self):
 
-        # 根据配置信息构建新的索引名,并更新配置信息
-        if self.configurator.additional_platform_count >= 4: # 限制添加数量
-            return 0
-        name = ["A","B","C","D","E"]
-        self.configurator.additional_platform_count = self.configurator.additional_platform_count + 1
-        object_name = "Proxy_platform_" + name[self.configurator.additional_platform_count]
-        object_name_cn = "代理平台" + name[self.configurator.additional_platform_count]
+        # 获取文本框内容，并确认是否为空
+        text = self.TextEdit.text()
+        if text == "":
+            # 关闭弹窗
+            self.w.close()
 
-        # 创建动态名实例,并存入字典里
+            return 0
+
+        # 根据配置信息构建新的索引名,并更新配置信息
+        if self.configurator.additional_platform_count >= 5: # 限制添加数量
+            return 0
+        
+        # 获取未被使用的索引名
+        object_name = self.check_keys_in_dict(self.configurator.additional_platform_dict)
+
+
+        # 添加新的索引与名字
+        self.configurator.additional_platform_count = self.configurator.additional_platform_count + 1
+        self.configurator.additional_platform_dict[object_name] = text
+
+        # 创建动态名实例,并存入全局字典里
         self.configurator.instances_information[object_name] = Widget_New_proxy(object_name, self,self.configurator,self.user_interface_prompter,self.background_executor)
         Widget_New = self.configurator.instances_information[object_name] 
 
         # 添加新导航项
-        self.add_sub_interface(Widget_New,object_name,object_name_cn)
+        self.add_sub_interface(Widget_New,object_name,text)
 
-        # 添加新选项到UI选项中
-        self.user_interface_prompter.add_new_proxy_option(object_name_cn)
+        # 添加新选项到平台选项中
+        self.user_interface_prompter.add_new_proxy_option(text)
 
+        # 关闭弹窗
+        self.w.close()
 
         # 重展开导航项，防止重叠显示
         self.navigationInterface.widget("Widget_Proxy_platform").setExpanded(False)
@@ -332,7 +383,7 @@ class window(FramelessWindow): #主窗口 v
         self.navigationInterface.widget("Widget_AI").setExpanded(False)
         self.navigationInterface.widget("Widget_AI").setExpanded(True)
 
-        #self.navigationInterface.removeWidget(self.Widget_SakuraLLM.objectName())
+
 
     # 添加新代理平台导航项函数
     def add_sub_interface(self, Widget_New,object_name,object_name_cn):
@@ -348,6 +399,27 @@ class window(FramelessWindow): #主窗口 v
             tooltip=object_name,
             parentRouteKey=self.Widget_Proxy_platform.objectName() if self.Widget_Proxy_platform else None
         )
+
+
+
+    # 删除导航项
+    def del_Interface(self,object_name):
+        #
+        self.navigationInterface.removeWidget(object_name)
+
+        # 重展开导航项，防止重叠显示
+        self.navigationInterface.widget("Widget_Proxy_platform").setExpanded(False)
+        self.navigationInterface.widget("Widget_Proxy_platform").setExpanded(True)
+
+        self.navigationInterface.widget("Widget_AI").setExpanded(False)
+        self.navigationInterface.widget("Widget_AI").setExpanded(True)
+
+    # 获取新的索引名
+    def check_keys_in_dict(self, input_dict):
+        for letter in ["Proxy_platform_B","Proxy_platform_C","Proxy_platform_D","Proxy_platform_E","Proxy_platform_F"]:
+            if letter not in input_dict.keys():
+                return letter
+        return 0
 
 
     #切换到某个窗口的函数

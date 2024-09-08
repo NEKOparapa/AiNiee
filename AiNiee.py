@@ -2642,11 +2642,11 @@ class User_Interface_Prompter(QObject):
 
             # 获取额外代理平台配置信息
             config_dict["additional_platform_count"] = configurator.additional_platform_count
-            name = ["A","B","C","D","E"]
-            Loop_count = 1
-            while (config_dict["additional_platform_count"] >= Loop_count) :
-                object_Name = "Proxy_platform_" + name[Loop_count]
+            config_dict["additional_platform_dict"] = configurator.additional_platform_dict
+            for key, value in configurator.additional_platform_dict.items():
+                object_Name = key
                 config_dict[object_Name] = {} # 创建次级字典
+                config_dict[object_Name]["op_platform_name"] = value 
                 config_dict[object_Name]["op_relay_address"] = configurator.instances_information[object_Name].A_settings.LineEdit_relay_address.text()                  #获取请求地址
                 config_dict[object_Name]["op_proxy_platform"] = configurator.instances_information[object_Name].A_settings.comboBox_proxy_platform.currentText()       # 获取代理平台
                 config_dict[object_Name]["op_model_type_openai"] =  configurator.instances_information[object_Name].A_settings.comboBox_model_openai.currentText()      #获取openai的模型类型下拉框当前选中选项的值
@@ -2659,7 +2659,6 @@ class User_Interface_Prompter(QObject):
                 config_dict[object_Name]["op_tpm_limit"] = configurator.instances_information[object_Name].B_settings.spinBox_TPM.value()               #获取tpm限制值
                 config_dict[object_Name]["op_input_pricing"] = configurator.instances_information[object_Name].B_settings.spinBox_input_pricing.value()               #获取输入价格
                 config_dict[object_Name]["op_output_pricing"] = configurator.instances_information[object_Name].B_settings.spinBox_output_pricing.value()               #获取输出价格
-                Loop_count = Loop_count + 1
 
 
             #Sakura界面
@@ -3069,16 +3068,18 @@ class User_Interface_Prompter(QObject):
                     Window.Widget_Proxy.B_settings.spinBox_output_pricing.setValue(config_dict["op_output_pricing"])
 
 
-                if "additional_platform_count" in config_dict:
-                    platform_count =configurator.additional_platform_count = config_dict["additional_platform_count"]
-                    name = ["A","B","C","D","E"]
-                    Loop_count = 1
-                    while (platform_count >= Loop_count) :
-                        object_name = "Proxy_platform_" + name[Loop_count]
-                        object_name_cn = "代理平台" + name[Loop_count]
+                if "additional_platform_dict" in config_dict:
+                    configurator.additional_platform_count = config_dict["additional_platform_count"]
+                    configurator.additional_platform_dict = config_dict["additional_platform_dict"]
+                    for key, value in configurator.additional_platform_dict.items():
+                        # 获取索引对象名
+                        object_name = key
 
                         # 创建动态名实例,并存入字典里
                         Widget_New = configurator.instances_information[object_name] = Widget_New_proxy(object_name, None,configurator,user_interface_prompter,background_executor)
+
+                        # 获取平台显示名
+                        object_name_cn = value
 
                         # 添加新导航项(这里使用子函数，是因为lambda不能循环使用，会导致指向同一个页面)
                         Window.add_sub_interface(Widget_New,object_name,object_name_cn)
@@ -3129,8 +3130,6 @@ class User_Interface_Prompter(QObject):
                         Widget_New.B_settings.spinBox_input_pricing.setValue(config_dict[object_name]["op_input_pricing"])
                         Widget_New.B_settings.spinBox_output_pricing.setValue(config_dict[object_name]["op_output_pricing"])
 
-
-                        Loop_count = Loop_count + 1
 
 
 
@@ -3394,7 +3393,7 @@ class User_Interface_Prompter(QObject):
                         #删除第一行
                         Window.Widget_translation_example.tableView.removeRow(0)
 
-    # 添加新的代理选项
+    # 添加新的平台选项
     def add_new_proxy_option(self,item_name):
 
         # 给基础设置添加代理选项
@@ -3417,13 +3416,40 @@ class User_Interface_Prompter(QObject):
             Window.Widget_translation_settings_C.SettingCard_C.translationPlatform_comboBox.addItem(item_name)
 
 
-    # 删除代理选项
-    def del_proxy_option(self):
-        pass
+    # 删除导航项及平台选项
+    def del_proxy_option(self,object_name):
 
-    # 隐藏删除按钮
-    def hide_delete_button(self):
-        pass
+        # 删除导航项
+        Window.del_Interface(object_name)
+
+
+        # 删除平台选项
+        platform_name = configurator.additional_platform_dict[object_name]
+        
+        # 获取项目在组合框中的索引
+        index = Window.Widget_translation_settings_A.comboBox_translation_platform.findText(platform_name)
+        # 如果找到了该项目，移除它
+        if index != -1:
+            Window.Widget_translation_settings_A.comboBox_translation_platform.removeItem(index)
+
+
+        index = Window.Widget_translation_settings_C.SettingCard_A.translationPlatform_comboBox.findText(platform_name)
+        if index != -1:
+            Window.Widget_translation_settings_C.SettingCard_A.translationPlatform_comboBox.removeItem(index)
+
+        index = Window.Widget_translation_settings_C.SettingCard_B.translationPlatform_comboBox.findText(platform_name)
+        if index != -1:
+            Window.Widget_translation_settings_C.SettingCard_B.translationPlatform_comboBox.removeItem(index)
+                
+        index = Window.Widget_translation_settings_C.SettingCard_C.translationPlatform_comboBox.findText(platform_name)
+        if index != -1:
+            Window.Widget_translation_settings_C.SettingCard_C.translationPlatform_comboBox.removeItem(index)
+
+
+        # 删除配置信息
+        configurator.additional_platform_count = configurator.additional_platform_count - 1
+        configurator.additional_platform_dict.pop(object_name)
+
 
 # 任务执行器
 class background_executor(threading.Thread): 

@@ -46,7 +46,7 @@ class Widget_translation_settings_B3(QFrame):#  专项设置子界面
         #设置标签
         labe1_6 = QLabel(flags=Qt.WindowFlags())  
         labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_6.setText("残留原文检查")
+        labe1_6.setText("残留部分原文检查")
 
         # 设置开关
         self.SwitchButton_check2 = SwitchButton(parent=self)    
@@ -67,7 +67,7 @@ class Widget_translation_settings_B3(QFrame):#  专项设置子界面
         # 设置标签
         labe1_4 = QLabel(flags=Qt.WindowFlags())  
         labe1_4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_4.setText("返回原文检查")
+        labe1_4.setText("返回相同原文检查")
 
 
 

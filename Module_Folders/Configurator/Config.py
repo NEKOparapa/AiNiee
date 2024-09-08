@@ -66,7 +66,8 @@ class Configurator():
                             
         # 额外代理平台
         self.additional_platform_count = 0 # 额外代理平台数
-        self.additional_platform_information = {} # 额外代理配置信息
+        self.additional_platform_dict = {} # 额外代理平台索引+名字
+        self.additional_platform_information = {} # 额外代理配置具体信息
         self.instances_information = {} # 动态对象名界面实例
 
         # 线程锁
@@ -202,11 +203,11 @@ class Configurator():
 
         # 获取额外代理平台的配置信息
         self.additional_platform_count = config_dict["additional_platform_count"]
-        name = ["A","B","C","D","E"]
-        Loop_count = 1
-        while (self.additional_platform_count >= Loop_count) :
-            object_Name = "Proxy_platform_" + name[Loop_count]
+        self.additional_platform_dict = config_dict["additional_platform_dict"] 
+        for key, value in self.additional_platform_dict.items():
+            object_Name = key
             self.additional_platform_information[object_Name] = {}
+            self.additional_platform_information[object_Name]["op_platform_name"] = value
             self.additional_platform_information[object_Name]["op_relay_address"] = config_dict[object_Name]["op_relay_address"] 
             self.additional_platform_information[object_Name]["op_proxy_platform"] = config_dict[object_Name]["op_proxy_platform"]
             self.additional_platform_information[object_Name]["op_model_type_openai"] =  config_dict[object_Name]["op_model_type_openai"]
@@ -218,7 +219,6 @@ class Configurator():
             self.additional_platform_information[object_Name]["op_tpm_limit"] = config_dict[object_Name]["op_tpm_limit"]              #获取tpm限制值
             self.additional_platform_information[object_Name]["op_input_pricing"] = config_dict[object_Name]["op_input_pricing"] 
             self.additional_platform_information[object_Name]["op_output_pricing"] = config_dict[object_Name]["op_output_pricing"]
-            Loop_count = Loop_count + 1
 
         # 获取第一页的配置信息（基础设置）
         self.translation_project = config_dict["translation_project"]
@@ -659,9 +659,10 @@ class Configurator():
 
         # 额外代理平台
         else:
-            # 获取对应平台的索引对象名
-            name = ["A","B","C","D","E"]
-            object_Name = "Proxy_platform_" + name[self.additional_platform_count]
+            # 获取平台的索引名
+            for key, value in self.additional_platform_dict.items():
+                if value == translation_platform:
+                    object_Name = key
 
             #获取代理平台
             proxy_platform = config_dict[object_Name]["op_proxy_platform"]
