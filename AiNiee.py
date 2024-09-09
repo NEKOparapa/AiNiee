@@ -197,36 +197,35 @@ class Translator():
             # 根据混合翻译设置更换翻译平台,并重新初始化部分配置信息
             if configurator.mixed_translation_toggle:
 
-                configurator.initialize_configuration() # 获取界面的配置信息
+                configurator.initialize_configuration() # 重新获取界面的配置信息
 
                 # 更换翻译平台
                 if retry_translation_count == 1:
                     configurator.translation_platform = configurator.mixed_translation_settings["translation_platform_2"]
-                    print("[INFO]  已开启混合翻译功能，翻译平台更换为：",configurator.translation_platform, '\n')
+                    print("[INFO]  已开启混合翻译功能，正在进行次轮翻译，翻译平台更换为：",configurator.translation_platform, '\n')
                 elif retry_translation_count >= 2:
                     configurator.translation_platform = configurator.mixed_translation_settings["translation_platform_3"]
-                    print("[INFO]  已开启混合翻译功能，正在进行末轮拆分翻译，翻译平台更换为：",configurator.translation_platform, '\n')
+                    print("[INFO]  已开启混合翻译功能，正在进行末轮翻译，翻译平台更换为：",configurator.translation_platform, '\n')
 
-                configurator.configure_translation_platform(configurator.translation_platform)  # 配置翻译平台信息
+                configurator.configure_translation_platform(configurator.translation_platform)  # 重新配置翻译平台信息
 
                 # 更换模型选择
-                if retry_translation_count == 1 and configurator.mixed_translation_settings["customModel_siwtch_2"]:
+                if (retry_translation_count == 1) and (configurator.mixed_translation_settings["customModel_siwtch_2"]):
                     configurator.model_type = configurator.mixed_translation_settings["model_type_2"]
                     print("[INFO]  模型更换为：",configurator.model_type, '\n')
 
-                elif retry_translation_count >= 2:
-                    configurator.translation_platform = configurator.mixed_translation_settings["translation_platform_3"]
+                elif (retry_translation_count >= 2) and (configurator.mixed_translation_settings["customModel_siwtch_3"]):
                     configurator.model_type = configurator.mixed_translation_settings["model_type_3"]
                     print("[INFO]  模型更换为：",configurator.model_type, '\n')
 
-                request_limiter.initialize_limiter() # 配置请求限制器，依赖前面的配置信息，必需在最后面初始化
+                request_limiter.initialize_limiter() # 重新配置请求限制器
 
 
             # 拆分文本行数或者tokens数
-            if configurator.mixed_translation_toggle and retry_translation_count == 1 and configurator.mixed_translation_settings["split_switch_2"]:
+            if (configurator.mixed_translation_toggle) and (retry_translation_count == 1) and (not configurator.mixed_translation_settings["split_switch_2"]):
                 print("[INFO] 检测到不进行拆分设置，发送行数/tokens数将继续保持不变")
 
-            if configurator.mixed_translation_toggle and retry_translation_count >= 2 and configurator.mixed_translation_settings["split_switch_3"]:
+            if (configurator.mixed_translation_toggle) and (retry_translation_count >= 2) and (not configurator.mixed_translation_settings["split_switch_3"]):
                 print("[INFO] 检测到不进行拆分设置，发送行数/tokens数将继续保持不变")
 
             else:

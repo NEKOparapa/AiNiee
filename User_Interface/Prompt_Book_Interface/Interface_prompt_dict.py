@@ -236,7 +236,7 @@ class Widget_prompt_dict(QFrame): # 术语字典界面
                     for row in range(2, sheet.max_row + 1): # 第一行是标识头，第二行才开始读取
                         cell_value1 = sheet.cell(row=row, column=1).value # 第N行第一列的值
                         cell_value2 = sheet.cell(row=row, column=2).value # 第N行第二列的值
-                        cell_value3 = sheet.cell(row=row, column=3).value # 第N行第二列的值
+                        cell_value3 = sheet.cell(row=row, column=3).value # 第N行第三列的值
                         self.add_to_table(cell_value1, cell_value2,cell_value3)
 
                     # 输出日志
