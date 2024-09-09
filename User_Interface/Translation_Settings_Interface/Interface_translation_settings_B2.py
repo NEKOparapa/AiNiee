@@ -94,28 +94,6 @@ class Widget_translation_settings_B2(QFrame):#  专项设置子界面
         labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
         labe1_6.setText("中文字体转换")
 
-       #设置“简繁体自动转换”选择开关
-        self.SwitchButton_conversion_toggle = SwitchButton(parent=self)    
-
-
-
-        layout1_conversion_toggle.addWidget(labe1_6)
-        layout1_conversion_toggle.addStretch(1)  # 添加伸缩项
-        layout1_conversion_toggle.addWidget(self.SwitchButton_conversion_toggle)
-        box1_conversion_toggle.setLayout(layout1_conversion_toggle)
-
-
-
-        # -----创建第4个组(后来补的)，添加多个组件-----
-        box_opencc_preset = QGroupBox()
-        box_opencc_preset.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")  # 分别设置了边框大小，边框颜色，边框圆角
-        layout_opencc_preset = QHBoxLayout()
-
-
-        #设置“OpenCC 配置”标签
-        labe1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        labe1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        labe1_7.setText("字体转换配置")
 
         #设置“OpenCC 配置”下拉选择框
         self.comboBox_opencc_preset = ComboBox()  # 以demo为父类
@@ -124,9 +102,17 @@ class Widget_translation_settings_B2(QFrame):#  专项设置子界面
         self.comboBox_opencc_preset.setFixedSize(127, 30)
 
 
-        layout_opencc_preset.addWidget(labe1_7)
-        layout_opencc_preset.addWidget(self.comboBox_opencc_preset)
-        box_opencc_preset.setLayout(layout_opencc_preset)
+       #设置“简繁体自动转换”选择开关
+        self.SwitchButton_conversion_toggle = SwitchButton(parent=self)    
+
+
+
+        layout1_conversion_toggle.addWidget(labe1_6)
+        layout1_conversion_toggle.addWidget(self.comboBox_opencc_preset)
+        layout1_conversion_toggle.addStretch(1)  # 添加伸缩项
+        layout1_conversion_toggle.addWidget(self.SwitchButton_conversion_toggle)
+        box1_conversion_toggle.setLayout(layout1_conversion_toggle)
+
 
 
 
@@ -163,7 +149,6 @@ class Widget_translation_settings_B2(QFrame):#  专项设置子界面
         container.addWidget(box1_line_breaks)
         container.addWidget(box_clear)
         container.addWidget(box1_conversion_toggle)
-        container.addWidget(box_opencc_preset)
         container.addStretch(1)  # 添加伸缩项
 
         # 设置窗口显示的内容是最外层容器
