@@ -2027,7 +2027,13 @@ class Api_Requester():
             configurator.lock1.acquire()  # 获取锁
             # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
             if configurator.tokens_limit_switch:
-                source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(self,configurator.tokens_limit, configurator.cache_list,configurator.pre_line_counts)  
+                # 减去系统提示词预计的tokens
+                if configurator.tokens_limit - 90 > 0:
+                    tokens_limit = configurator.tokens_limit - 90
+                else:
+                    tokens_limit = configurator.tokens_limit
+
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(self,tokens_limit, configurator.cache_list,configurator.pre_line_counts)  
             else:
                 source_text_list, previous_list = Cache_Manager.process_dictionary_data_lines(self,configurator.lines_limit, configurator.cache_list,configurator.pre_line_counts)    
             configurator.lock1.release()  # 释放锁
@@ -3416,7 +3422,7 @@ class User_Interface_Prompter(QObject):
             Window.Widget_translation_settings_C.SettingCard_C.translationPlatform_comboBox.addItem(item_name)
 
 
-    # 删除导航项及平台选项
+    # 删除导航项及平台选项及配置信息
     def del_proxy_option(self,object_name):
 
         # 删除导航项
@@ -3424,7 +3430,11 @@ class User_Interface_Prompter(QObject):
 
 
         # 删除平台选项
-        platform_name = configurator.additional_platform_dict[object_name]
+        if object_name in configurator.additional_platform_dict:
+            platform_name = configurator.additional_platform_dict[object_name]
+        else:
+            return 0
+        
         
         # 获取项目在组合框中的索引
         index = Window.Widget_translation_settings_A.comboBox_translation_platform.findText(platform_name)

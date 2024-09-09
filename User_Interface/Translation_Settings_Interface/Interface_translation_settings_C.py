@@ -114,7 +114,7 @@ class SettingCard_A(ExpandGroupSettingCard):
 class SettingCard_B(ExpandGroupSettingCard):
 
     def __init__(self, parent=None,user_interface_prompter=None):
-        super().__init__(FluentIcon.SPEED_OFF, "次轮平台", "第二轮翻译使用的AI平台", parent)
+        super().__init__(FluentIcon.SPEED_MEDIUM, "次轮平台", "第二轮翻译使用的AI平台", parent)
         self.user_interface_prompter = user_interface_prompter
 
 
@@ -175,7 +175,7 @@ class SettingCard_B(ExpandGroupSettingCard):
 class SettingCard_C(ExpandGroupSettingCard):
 
     def __init__(self, parent=None):
-        super().__init__(FluentIcon.SPEED_OFF, "末轮平台", "后续轮次翻译都使用的AI平台", parent)
+        super().__init__(FluentIcon.SPEED_HIGH, "末轮平台", "后续轮次翻译都使用的AI平台", parent)
 
         # 第一组
         self.translationPlatform_label = BodyLabel("翻译平台")

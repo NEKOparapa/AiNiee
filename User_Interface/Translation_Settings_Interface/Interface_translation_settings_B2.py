@@ -92,7 +92,7 @@ class Widget_translation_settings_B2(QFrame):#  专项设置子界面
         #设置“简繁转换开关”标签
         labe1_6 = QLabel(flags=Qt.WindowFlags())  
         labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_6.setText("简繁体自动转换")
+        labe1_6.setText("中文字体转换")
 
        #设置“简繁体自动转换”选择开关
         self.SwitchButton_conversion_toggle = SwitchButton(parent=self)    
@@ -115,7 +115,7 @@ class Widget_translation_settings_B2(QFrame):#  专项设置子界面
         #设置“OpenCC 配置”标签
         labe1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
         labe1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
-        labe1_7.setText("OpenCC 配置")
+        labe1_7.setText("字体转换配置")
 
         #设置“OpenCC 配置”下拉选择框
         self.comboBox_opencc_preset = ComboBox()  # 以demo为父类
@@ -161,9 +161,9 @@ class Widget_translation_settings_B2(QFrame):#  专项设置子界面
         container.addWidget(box1_cot_toggle)
         container.addWidget(box1_cn_prompt_toggle)
         container.addWidget(box1_line_breaks)
+        container.addWidget(box_clear)
         container.addWidget(box1_conversion_toggle)
         container.addWidget(box_opencc_preset)
-        container.addWidget(box_clear)
         container.addStretch(1)  # 添加伸缩项
 
         # 设置窗口显示的内容是最外层容器

@@ -611,7 +611,6 @@ class Configurator():
             # 更改部分参数，以适合Sakura模型
             self.openai_temperature = 0.1       
             self.openai_top_p = 0.3
-            #self.preserve_line_breaks_toggle = True
 
 
         elif translation_platform == '代理平台A':

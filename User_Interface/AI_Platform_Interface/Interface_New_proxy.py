@@ -305,7 +305,7 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
         object_name = self.ObjectName
         self.user_interface_prompter.del_proxy_option(object_name)
 
-        self.user_interface_prompter.createSuccessInfoBar("已删除该平台配置")
+        self.user_interface_prompter.createSuccessInfoBar("已删除该平台配置,请勿重复点击按钮")
 
 
     def test_request(self):
