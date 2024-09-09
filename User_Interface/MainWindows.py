@@ -433,7 +433,7 @@ class window(FramelessWindow): #主窗口 v
 
     #头像导航项的函数调用的函数
     def showMessageBox(self):
-        url = QUrl('https://github.com/NEKOparapa/AiNiee-chatgpt')
+        url = QUrl('https://github.com/NEKOparapa/AiNiee')
         QDesktopServices.openUrl(url)
 
     #窗口关闭函数，放在最后面，解决界面空白与窗口退出后子线程还在运行的问题
