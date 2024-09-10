@@ -77,16 +77,16 @@ class Translator():
         # ——————————————————————————————————————————配置信息初始化—————————————————————————————————————————
 
 
-        user_interface_prompter.read_write_config("write",configurator.resource_dir) # 将配置信息写入配置文件中
+        user_interface_prompter.read_write_config("write",configurator.resource_dir) # 将界面信息写入配置文件中
 
-        configurator.initialize_configuration() # 初始化配置信息
+        configurator.Read_Configuration_File() # 读取配置文件
 
         # 根据混合翻译设置更换翻译平台
         if configurator.mixed_translation_toggle:
             configurator.translation_platform = configurator.mixed_translation_settings["translation_platform_1"]
 
-        configurator.configure_translation_platform(configurator.translation_platform)  # 配置翻译平台信息
-        request_limiter.initialize_limiter() # 配置请求限制器，依赖前面的配置信息，必需在最后面初始化
+        configurator.configure_translation_platform(configurator.translation_platform,None)  # 配置翻译平台信息
+        request_limiter.set_limit(configurator.max_tokens,configurator.TPM_limit,configurator.RPM_limit) # 配置请求限制器，依赖前面的配置信息，必需在最后面初始化
 
 
         # ——————————————————————————————————————————读取原文到缓存—————————————————————————————————————————
@@ -197,7 +197,7 @@ class Translator():
             # 根据混合翻译设置更换翻译平台,并重新初始化部分配置信息
             if configurator.mixed_translation_toggle:
 
-                configurator.initialize_configuration() # 重新获取界面的配置信息
+                configurator.Read_Configuration_File() # 重新获取配置信息
 
                 # 更换翻译平台
                 if retry_translation_count == 1:
@@ -207,18 +207,18 @@ class Translator():
                     configurator.translation_platform = configurator.mixed_translation_settings["translation_platform_3"]
                     print("[INFO]  已开启混合翻译功能，正在进行末轮翻译，翻译平台更换为：",configurator.translation_platform, '\n')
 
-                configurator.configure_translation_platform(configurator.translation_platform)  # 重新配置翻译平台信息
-
                 # 更换模型选择
+                model_type = None
                 if (retry_translation_count == 1) and (configurator.mixed_translation_settings["customModel_siwtch_2"]):
-                    configurator.model_type = configurator.mixed_translation_settings["model_type_2"]
-                    print("[INFO]  模型更换为：",configurator.model_type, '\n')
+                    model_type = configurator.mixed_translation_settings["model_type_2"]
+                    print("[INFO]  模型更换为：",model_type, '\n')
 
                 elif (retry_translation_count >= 2) and (configurator.mixed_translation_settings["customModel_siwtch_3"]):
-                    configurator.model_type = configurator.mixed_translation_settings["model_type_3"]
-                    print("[INFO]  模型更换为：",configurator.model_type, '\n')
+                    model_type = configurator.mixed_translation_settings["model_type_3"]
+                    print("[INFO]  模型更换为：",model_type, '\n')
 
-                request_limiter.initialize_limiter() # 重新配置请求限制器
+                configurator.configure_translation_platform(configurator.translation_platform,model_type)  # 重新配置翻译平台信息
+                request_limiter.set_limit(configurator.max_tokens,configurator.TPM_limit,configurator.RPM_limit)# 重新配置请求限制器
 
 
             # 拆分文本行数或者tokens数
@@ -1764,6 +1764,8 @@ class Api_Requester():
 
                     # 获取apikey
                     cohere_apikey =  configurator.get_apikey()
+                    # 获取AI的参数设置
+                    temperature= configurator.get_cohere_parameters()
                     # 创建anthropic客户端
                     client = cohere.Client(api_key=cohere_apikey,base_url=configurator.base_url)
                     # 发送对话请求
@@ -1773,7 +1775,7 @@ class Api_Requester():
                             preamble= system_prompt,
                             message = source_text_str ,
                             chat_history = messages,
-                            temperature=0
+                            temperature=temperature
                             )
 
 
@@ -2790,6 +2792,10 @@ class User_Interface_Prompter(QObject):
             config_dict["Google_parameter_adjustment"] = Window.Widget_tune_google.checkBox.isChecked()           #获取开关设置
             config_dict["Google_Temperature"] = Window.Widget_tune_google.slider1.value()           #获取google 温度
 
+            #获取实时设置界面(cohere)
+            config_dict["Cohere_parameter_adjustment"] = Window.Widget_tune_cohere.checkBox.isChecked()           #获取开关设置
+            config_dict["Cohere_Temperature"] = Window.Widget_tune_cohere.slider1.value()           #获取cohere 温度
+
             #获取实时设置界面(sakura)
             config_dict["Sakura_parameter_adjustment"] = Window.Widget_tune_sakura.checkBox.isChecked()           #获取开关设置
             config_dict["Sakura_Temperature"] = Window.Widget_tune_sakura.slider1.value()           #获取sakura温度
@@ -3311,6 +3317,14 @@ class User_Interface_Prompter(QObject):
                 if "Google_Temperature" in config_dict:
                     Google_Temperature = config_dict["Google_Temperature"]
                     Window.Widget_tune_google.slider1.setValue(Google_Temperature)
+
+                #实时设置界面(cohere)
+                if "Cohere_parameter_adjustment" in config_dict:
+                    Cohere_parameter_adjustment = config_dict["Cohere_parameter_adjustment"]
+                    Window.Widget_tune_cohere.checkBox.setChecked(Cohere_parameter_adjustment)
+                if "Cohere_Temperature" in config_dict:
+                    Cohere_Temperature = config_dict["Cohere_Temperature"]
+                    Window.Widget_tune_cohere.slider1.setValue(Cohere_Temperature)
 
                 #实时设置界面(sakura)
                 if "Sakura_parameter_adjustment" in config_dict:

@@ -50,14 +50,21 @@ class Configurator():
         self.apikey_list = [] # 存储key的列表
         self.key_index = 0  # 方便轮询key的索引
         self.base_url = 'https://api.openai.com/v1' # api请求地址
+        self.max_tokens = 4000
+        self.RPM_limit = 3500
+        self.TPM_limit = 10000000
 
 
-        self.openai_temperature = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
-        self.openai_top_p = 0              #AI的top_p，作用与temperature相同，官方建议不要同时修改
-        self.openai_presence_penalty = 0  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
-        self.openai_frequency_penalty = 0 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
-        self.anthropic_temperature   =  0 
-        self.google_temperature   =  0 
+        self.openai_temperature_initialvalue = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
+        self.openai_top_p_initialvalue = 0              #AI的top_p，作用与temperature相同，官方建议不要同时修改
+        self.openai_presence_penalty_initialvalue = 0  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
+        self.openai_frequency_penalty_initialvalue = 0 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
+        self.sakura_temperature_initialvalue = 0        
+        self.sakura_top_p_initialvalue = 0             
+        self.sakura_frequency_penalty_initialvalue = 0 
+        self.anthropic_temperature_initialvalue   =  0 
+        self.google_temperature_initialvalue   =  0 
+        self.cohere_temperature_initialvalue   =  0 
 
         # 缓存数据以及运行状态
         self.cache_list = [] # 全局缓存数据
@@ -68,10 +75,7 @@ class Configurator():
         self.additional_platform_count = 0 # 额外代理平台数
         self.additional_platform_dict = {} # 额外代理平台索引+名字
         self.additional_platform_information = {} # 额外代理配置具体信息
-        self.instances_information = {} # 动态对象名界面实例
-        self.additional_platform_tokens_limit = 4000
-        self.additional_platform_rpm_limit = 3500             
-        self.additional_platform_tpm_limit = 1000000       
+        self.instances_information = {} # 动态对象名界面实例   
 
         # 线程锁
         self.lock1 = threading.Lock()  #这个用来锁缓存文件
@@ -80,7 +84,7 @@ class Configurator():
 
 
     # 初始化配置信息
-    def initialize_configuration (self):
+    def Read_Configuration_File (self):
 
 
         #读取用户配置config.json
@@ -304,6 +308,10 @@ class Configurator():
         self.Google_parameter_adjustment = config_dict["Google_parameter_adjustment"]
         self.Google_Temperature = config_dict["Google_Temperature"] 
 
+        #获取实时设置界面(cohere)
+        self.Cohere_parameter_adjustment = config_dict["Cohere_parameter_adjustment"]
+        self.Cohere_Temperature = config_dict["Cohere_Temperature"] 
+
         #获取实时设置界面(sakura)
         self.Sakura_parameter_adjustment = config_dict["Sakura_parameter_adjustment"] 
         self.Sakura_Temperature = config_dict["Sakura_Temperature"] 
@@ -312,15 +320,21 @@ class Configurator():
 
 
         # 重新初始化模型参数，防止上次任务的设置影响到
-        self.openai_temperature = 0.1        
-        self.openai_top_p = 0.9             
-        self.openai_presence_penalty = 0.0  
-        self.openai_frequency_penalty = 0.0 
-        self.anthropic_temperature   =  0 
-        self.google_temperature   =  0 
+        self.openai_temperature_initialvalue = 0.1        
+        self.openai_top_p_initialvalue = 0.9             
+        self.openai_presence_penalty_initialvalue = 0.0  
+        self.openai_frequency_penalty_initialvalue = 0.0 
+
+        self.sakura_temperature_initialvalue = 0.1         
+        self.sakura_top_p_initialvalue =  0.3             
+        self.sakura_frequency_penalty_initialvalue = 0.0 
+
+        self.anthropic_temperature_initialvalue   =  0 
+        self.google_temperature_initialvalue   =  0 
+        self.cohere_temperature_initialvalue   =  0 
 
     # 配置翻译平台信息
-    def configure_translation_platform(self,translation_platform):
+    def configure_translation_platform(self,translation_platform = None,model_type = None):
 
         #读取配置文件
         if os.path.exists(os.path.join(self.resource_dir, "config.json")):
@@ -332,7 +346,10 @@ class Configurator():
         #根据翻译平台读取配置信息
         if translation_platform == 'OpenAI':
             # 获取模型类型
-            self.model_type =  config_dict["openai_model_type"]            
+            if model_type:
+                self.model_type = model_type
+            else:
+                self.model_type =  config_dict["openai_model_type"]            
 
             # 获取apikey列表
             API_key_str = config_dict["openai_API_key_str"]            #获取apikey输入值
@@ -355,9 +372,26 @@ class Configurator():
             self.model_output_price = self.openai_platform_config["model_price"][self.model_type]["output_price"]
 
 
+            # 设置速率限制
+            account_type = self.yi_account_type
+            model = self.yi_model_type
+            # 获取相应的限制
+            self.max_tokens = self.yi_platform_config[account_type][model]["max_tokens"]
+            self.TPM_limit = self.yi_platform_config[account_type][model]["TPM"]
+            self.RPM_limit = self.yi_platform_config[account_type][model]["RPM"]
+
+            # 获取当前key的数量，对限制进行倍数更改
+            key_count = len(self.apikey_list)
+            self.RPM_limit = self.RPM_limit * key_count
+            self.TPM_limit = self.TPM_limit * key_count
+
+
         elif translation_platform == 'Anthropic':
             # 获取模型类型
-            self.model_type = config_dict["anthropic_model_type"]
+            if model_type:
+                self.model_type = model_type
+            else:
+                self.model_type = config_dict["anthropic_model_type"]
 
             # 获取apikey列表
             API_key_str = config_dict["anthropic_API_key_str"]            #获取apikey输入值
@@ -381,9 +415,28 @@ class Configurator():
             self.model_output_price = self.anthropic_platform_config["model_price"][self.model_type]["output_price"]
 
 
+            # 获取账号类型
+            account_type = self.anthropic_account_type
+            # 获取模型选择 
+            model = self.anthropic_model_type
+
+            # 获取相应的限制
+            self.max_tokens = self.anthropic_platform_config[account_type]["max_tokens"]
+            self.TPM_limit = self.anthropic_platform_config[account_type]["TPM"]
+            self.RPM_limit = self.anthropic_platform_config[account_type]["RPM"]
+
+            # 获取当前key的数量，对限制进行倍数更改
+            key_count = len(self.apikey_list)
+            self.RPM_limit = self.RPM_limit * key_count
+            self.TPM_limit = self.TPM_limit * key_count
+
+
         elif translation_platform == 'Google':
             # 获取模型类型
-            self.model_type =  config_dict["google_model_type"]              
+            if model_type:
+                self.model_type = model_type
+            else:
+                self.model_type =  config_dict["google_model_type"]              
 
             # 获取apikey列表
             API_key_str = config_dict["google_API_key_str"]            #获取apikey输入值
@@ -403,11 +456,29 @@ class Configurator():
             self.model_input_price = self.google_platform_config["model_price"][self.model_type]["input_price"]
             self.model_output_price = self.google_platform_config["model_price"][self.model_type]["output_price"]
 
+            # 获取账号类型
+            account_type = self.google_account_type
+            # 获取模型
+            model = self.google_model_type
+
+            # 获取相应的限制
+            self.max_tokens = self.google_platform_config[account_type][model]["max_tokens"]
+            self.TPM_limit = self.google_platform_config[account_type][model]["TPM"]
+            self.RPM_limit = self.google_platform_config[account_type][model]["RPM"]
+
+            # 获取当前key的数量，对限制进行倍数更改
+            key_count = len(self.apikey_list)
+            self.RPM_limit = self.RPM_limit * key_count
+            self.TPM_limit = self.TPM_limit * key_count
+
 
         #根据翻译平台读取配置信息
         elif translation_platform == 'Cohere':
             # 获取模型类型
-            self.model_type =  config_dict["cohere_model_type"]              
+            if model_type:
+                self.model_type = model_type
+            else:
+                self.model_type =  config_dict["cohere_model_type"]              
 
             # 获取apikey列表
             API_key_str = config_dict["cohere_API_key_str"]            #获取apikey输入值
@@ -430,10 +501,29 @@ class Configurator():
             self.model_output_price = self.cohere_platform_config["model_price"][self.model_type]["output_price"]
 
 
+            # 获取账号类型
+            account_type = self.cohere_account_type
+            # 获取模型选择 
+            model = self.cohere_model_type
+
+            # 获取相应的限制
+            self.max_tokens = self.cohere_platform_config[account_type][model]["max_tokens"]
+            self.TPM_limit = self.cohere_platform_config[account_type][model]["TPM"]
+            self.RPM_limit = self.cohere_platform_config[account_type][model]["RPM"]
+
+            # 获取当前key的数量，对限制进行倍数更改
+            key_count = len(self.apikey_list)
+            self.RPM_limit = self.RPM_limit * key_count
+            self.TPM_limit = self.TPM_limit * key_count
+
+
         #根据翻译平台读取配置信息
         elif translation_platform == '零一万物':
             # 获取模型类型
-            self.model_type =  config_dict["yi_model_type"]             
+            if model_type:
+                self.model_type = model_type
+            else:
+                self.model_type =  config_dict["yi_model_type"]             
 
             # 获取apikey列表
             API_key_str = config_dict["yi_API_key_str"]            #获取apikey输入值
@@ -456,10 +546,27 @@ class Configurator():
             self.model_output_price = self.yi_platform_config["model_price"][self.model_type]["output_price"]
 
 
+            # 设置速率限制
+            account_type = self.openai_account_type
+            model = self.openai_model_type
+            # 获取相应的限制
+            self.max_tokens = self.openai_platform_config[account_type][model]["max_tokens"]
+            self.TPM_limit = self.openai_platform_config[account_type][model]["TPM"]
+            self.RPM_limit = self.openai_platform_config[account_type][model]["RPM"]
+
+            # 获取当前key的数量，对限制进行倍数更改
+            key_count = len(self.apikey_list)
+            self.RPM_limit = self.RPM_limit * key_count
+            self.TPM_limit = self.TPM_limit * key_count
+
+
         #根据翻译平台读取配置信息
         elif translation_platform == '智谱':
             # 获取模型类型
-            self.model_type =  config_dict["zhipu_model_type"]             
+            if model_type:
+                self.model_type = model_type
+            else:
+                self.model_type =  config_dict["zhipu_model_type"]             
 
             # 获取apikey列表
             API_key_str = config_dict["zhipu_API_key_str"]            #获取apikey输入值
@@ -482,10 +589,29 @@ class Configurator():
             self.model_output_price = self.zhipu_platform_config["model_price"][self.model_type]["output_price"]
 
 
+            # 获取账号类型
+            account_type = self.zhipu_account_type
+            # 获取模型
+            model = self.zhipu_model_type
+
+            # 获取相应的限制
+            self.max_tokens =  self.zhipu_platform_config[account_type][model]["max_tokens"]
+            self.TPM_limit =  self.zhipu_platform_config[account_type][model]["TPM"]
+            self.RPM_limit =  self.zhipu_platform_config[account_type][model]["RPM"]
+
+            # 获取当前key的数量，对限制进行倍数更改
+            key_count = len(self.apikey_list)
+            self.RPM_limit = self.RPM_limit * key_count
+            self.TPM_limit = self.TPM_limit * key_count
+
+
         #根据翻译平台读取配置信息
         elif translation_platform == 'Moonshot':
             # 获取模型类型
-            self.model_type =  config_dict["moonshot_model_type"]              
+            if model_type:
+                self.model_type = model_type
+            else:
+                self.model_type =  config_dict["moonshot_model_type"]              
 
             # 获取apikey列表
             API_key_str = config_dict["moonshot_API_key_str"]            #获取apikey输入值
@@ -508,10 +634,29 @@ class Configurator():
             self.model_output_price = self.moonshot_platform_config["model_price"][self.model_type]["output_price"]
 
 
+            # 获取账号类型
+            account_type = self.moonshot_account_type
+            # 获取模型选择 
+            model = self.moonshot_model_type
+
+            # 获取相应的限制
+            self.max_tokens = self.moonshot_platform_config[account_type][model]["max_tokens"]
+            self.TPM_limit = self.moonshot_platform_config[account_type][model]["TPM"]
+            self.RPM_limit = self.moonshot_platform_config[account_type][model]["RPM"]
+
+            # 获取当前key的数量，对限制进行倍数更改
+            key_count = len(self.apikey_list)
+            self.RPM_limit = self.RPM_limit * key_count
+            self.TPM_limit = self.TPM_limit * key_count
+
+
         #根据翻译平台读取配置信息
         elif translation_platform == 'Deepseek':
             # 获取模型类型
-            self.model_type =  config_dict["deepseek_model_type"]              
+            if model_type:
+                self.model_type = model_type
+            else:
+                self.model_type =  config_dict["deepseek_model_type"]              
 
             # 获取apikey列表
             API_key_str = config_dict["deepseek_API_key_str"]            #获取apikey输入值
@@ -533,11 +678,27 @@ class Configurator():
             self.model_input_price = self.deepseek_platform_config["model_price"][self.model_type]["input_price"]
             self.model_output_price = self.deepseek_platform_config["model_price"][self.model_type]["output_price"]
 
+            # 获取模型选择 
+            model = self.deepseek_model_type
+
+            # 获取相应的限制
+            self.max_tokens = self.deepseek_platform_config[model]["max_tokens"]
+            self.TPM_limit = self.deepseek_platform_config[model]["TPM"]
+            self.RPM_limit = self.deepseek_platform_config[model]["RPM"]
+
+            # 获取当前key的数量，对限制进行倍数更改
+            key_count = len(self.apikey_list)
+            self.RPM_limit = self.RPM_limit * key_count
+            self.TPM_limit = self.TPM_limit * key_count
+
 
         #根据翻译平台读取配置信息
         elif translation_platform == 'Dashscope':
             # 获取模型类型
-            self.model_type =  config_dict["dashscope_model_type"]              
+            if model_type:
+                self.model_type = model_type
+            else:
+                self.model_type =  config_dict["dashscope_model_type"]              
 
             # 获取apikey列表
             API_key_str = config_dict["dashscope_API_key_str"]            #获取apikey输入值
@@ -559,11 +720,27 @@ class Configurator():
             self.model_input_price = self.dashscope_platform_config["model_price"][self.model_type]["input_price"]
             self.model_output_price = self.dashscope_platform_config["model_price"][self.model_type]["output_price"]
 
+            # 获取模型选择 
+            model = self.dashscope_model_type
+
+            # 获取相应的限制
+            self.max_tokens = self.dashscope_platform_config[model]["max_tokens"]
+            self.TPM_limit = self.dashscope_platform_config[model]["TPM"]
+            self.RPM_limit = self.dashscope_platform_config[model]["RPM"]
+
+            # 获取当前key的数量，对限制进行倍数更改
+            key_count = len(self.apikey_list)
+            self.RPM_limit = self.RPM_limit * key_count
+            self.TPM_limit = self.TPM_limit * key_count
+
 
         #根据翻译平台读取配置信息
         elif translation_platform == 'Volcengine':
             # 获取推理接入点
-            self.model_type =  config_dict["volcengine_access_point"]              
+            if model_type:
+                self.model_type = model_type
+            else:
+                self.model_type =  config_dict["volcengine_access_point"]              
 
             # 获取apikey列表
             API_key_str = config_dict["volcengine_API_key_str"]            #获取apikey输入值
@@ -586,9 +763,23 @@ class Configurator():
             self.model_output_price = config_dict["volcengine_output_pricing"]
 
 
+            # 获取相应的限制
+            self.max_tokens = self.volcengine_tokens_limit               #获取每次文本发送上限限制值
+            self.RPM_limit = self.volcengine_rpm_limit               #获取rpm限制值
+            self.TPM_limit = self.volcengine_tpm_limit           #获取tpm限制值
+
+            # 获取当前key的数量，对限制进行倍数更改
+            key_count = len(self.apikey_list)
+            self.RPM_limit = self.RPM_limit * key_count
+            self.TPM_limit = self.TPM_limit * key_count
+
+
         elif translation_platform == 'SakuraLLM':
             # 获取模型类型
-            self.model_type =  config_dict["sakura_model_type"]     
+            if model_type:
+                self.model_type = model_type
+            else:
+                self.model_type =  config_dict["sakura_model_type"]     
             # 构建假apikey
             self.apikey_list = ["sakura"]
 
@@ -611,9 +802,14 @@ class Configurator():
             self.model_input_price = self.sakurallm_platform_config["model_price"][self.model_type]["input_price"]
             self.model_output_price = self.sakurallm_platform_config["model_price"][self.model_type]["output_price"]
 
-            # 更改部分参数，以适合Sakura模型
-            self.openai_temperature = 0.1       
-            self.openai_top_p = 0.3
+            # 获取模型
+            model = self.sakura_model_type
+
+            # 获取相应的限制
+            self.max_tokens = self.sakurallm_platform_config[model]["max_tokens"]
+            self.TPM_limit = self.sakurallm_platform_config[model]["TPM"]
+            self.RPM_limit = self.sakurallm_platform_config[model]["RPM"]
+
 
 
         elif translation_platform == '代理平台A':
@@ -625,7 +821,10 @@ class Configurator():
 
 
             if proxy_platform == 'OpenAI':
-                self.model_type =  config_dict["op_model_type_openai"]       # 获取模型类型
+                if model_type:
+                    self.model_type = model_type
+                else:
+                    self.model_type =  config_dict["op_model_type_openai"]       # 获取模型类型
                 self.translation_platform = 'OpenAI_proxy'    #重新设置翻译平台
 
                 # 如果开启自动补全开关
@@ -635,7 +834,10 @@ class Configurator():
                         relay_address = relay_address + "/v1"
 
             elif proxy_platform == 'Anthropic':
-                self.model_type =  config_dict["op_model_type_anthropic"]        # 获取模型类型
+                if model_type:
+                    self.model_type = model_type
+                else:
+                    self.model_type =  config_dict["op_model_type_anthropic"]        # 获取模型类型
                 self.translation_platform = 'Anthropic_proxy'
 
 
@@ -659,6 +861,12 @@ class Configurator():
             self.model_input_price = config_dict["op_input_pricing"]
             self.model_output_price = config_dict["op_output_pricing"]
 
+
+            self.max_tokens = self.op_tokens_limit               #获取每次文本发送上限限制值
+            self.RPM_limit = self.op_rpm_limit               #获取rpm限制值
+            self.TPM_limit = self.op_tpm_limit             #获取tpm限制值
+
+
         # 额外代理平台
         else:
             # 获取平台的索引名
@@ -673,7 +881,10 @@ class Configurator():
 
 
             if proxy_platform == 'OpenAI':
-                self.model_type =  config_dict[object_Name]["op_model_type_openai"]       # 获取模型类型
+                if model_type:
+                    self.model_type = model_type
+                else:
+                    self.model_type =  config_dict[object_Name]["op_model_type_openai"]       # 获取模型类型
                 self.translation_platform = 'OpenAI_proxy'    #重新设置翻译平台
                 
                 # 如果开启自动补全开关
@@ -683,7 +894,10 @@ class Configurator():
                         relay_address = relay_address + "/v1"
 
             elif proxy_platform == 'Anthropic':
-                self.model_type =  config_dict[object_Name]["op_model_type_anthropic"]        # 获取模型类型
+                if model_type:
+                    self.model_type = model_type
+                else:
+                    self.model_type =  config_dict[object_Name]["op_model_type_anthropic"]        # 获取模型类型
                 self.translation_platform = 'Anthropic_proxy'
 
 
@@ -704,13 +918,14 @@ class Configurator():
                 os.environ["https_proxy"]=Proxy_Address
 
             # 获取使用的模型输入价格与输出价格
-            self.model_input_price = config_dict[object_Name]["op_input_pricing"]
-            self.model_output_price = config_dict[object_Name]["op_output_pricing"]
+            self.model_input_price = self.additional_platform_information[object_Name]["op_input_pricing"]
+            self.model_output_price = self.additional_platform_information[object_Name]["op_output_pricing"]
 
             # 设定一下速率设置
-            self.additional_platform_tokens_limit = config_dict[object_Name]["op_tokens_limit"]    
-            self.additional_platform_rpm_limit = config_dict[object_Name]["op_rpm_limit"]                
-            self.additional_platform_tpm_limit = config_dict[object_Name]["op_tpm_limit"]              
+            self.max_tokens = self.additional_platform_information[object_Name]["op_tokens_limit"]    
+            self.RPM_limit = self.additional_platform_information[object_Name]["op_rpm_limit"]                
+            self.TPM_limit = self.additional_platform_information[object_Name]["op_tpm_limit"]            
+
 
     # 获取系统提示词
     def get_system_prompt(self):
@@ -1685,10 +1900,10 @@ Third: Begin translating line by line from the original text, only translating {
             presence_penalty = self.OpenAI_presence_penalty * 0.1
             frequency_penalty = self.OpenAI_frequency_penalty * 0.1
         else:
-            temperature = self.openai_temperature      
-            top_p = self.openai_top_p              
-            presence_penalty = self.openai_presence_penalty
-            frequency_penalty = self.openai_frequency_penalty
+            temperature = self.openai_temperature_initialvalue      
+            top_p = self.openai_top_p_initialvalue              
+            presence_penalty = self.openai_presence_penalty_initialvalue
+            frequency_penalty = self.openai_frequency_penalty_initialvalue
 
         return temperature,top_p,presence_penalty,frequency_penalty
 
@@ -1701,7 +1916,7 @@ Third: Begin translating line by line from the original text, only translating {
             #获取界面配置信息
             temperature = self.Anthropic_Temperature * 0.1
         else:
-            temperature = self.anthropic_temperature      
+            temperature = self.anthropic_temperature_initialvalue      
 
         return temperature
 
@@ -1714,7 +1929,19 @@ Third: Begin translating line by line from the original text, only translating {
             #获取界面配置信息
             temperature = self.Google_Temperature * 0.1
         else:
-            temperature = self.google_temperature      
+            temperature = self.google_temperature_initialvalue      
+
+        return temperature
+
+    # 获取AI模型的参数设置（cohere）
+    def get_cohere_parameters(self):
+        #如果启用实时参数设置
+        if self.Cohere_parameter_adjustment:
+            print("[INFO] 已开启cohere调教功能，设置为用户设定的参数")
+            #获取界面配置信息
+            temperature = self.Cohere_Temperature * 0.1
+        else:
+            temperature = self.cohere_temperature_initialvalue      
 
         return temperature
 
@@ -1729,9 +1956,9 @@ Third: Begin translating line by line from the original text, only translating {
             top_p = self.Sakura_top_p * 0.1
             frequency_penalty =  self.Sakura_frequency_penalty * 0.1
         else:
-            temperature = self.openai_temperature      
-            top_p = self.openai_top_p              
-            frequency_penalty = self.openai_frequency_penalty
+            temperature = self.openai_temperature_initialvalue      
+            top_p = self.openai_top_p_initialvalue              
+            frequency_penalty = self.openai_frequency_penalty_initialvalue
 
         return temperature,top_p,frequency_penalty
 

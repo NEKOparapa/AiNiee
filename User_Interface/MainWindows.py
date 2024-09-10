@@ -54,6 +54,7 @@ from .Replacement_Dictionary_Interface.Interface_replace_dict import Widget_repl
 from .Parameter_Adjustment_Interface.Interface_tune import Widget_tune
 from .Parameter_Adjustment_Interface.Interface_tune_anthropic import Widget_tune_anthropic
 from .Parameter_Adjustment_Interface.Interface_tune_google import Widget_tune_google
+from .Parameter_Adjustment_Interface.Interface_tune_cohere import Widget_tune_cohere
 from .Parameter_Adjustment_Interface.Interface_tune_openai import Widget_tune_openai
 from .Parameter_Adjustment_Interface.Interface_tune_sakura import Widget_tune_sakura
 
@@ -131,6 +132,7 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_tune_sakura = Widget_tune_sakura('Widget_tune_sakura', self)
         self.Widget_tune_anthropic = Widget_tune_anthropic('Widget_tune_anthropic', self)
         self.Widget_tune_google = Widget_tune_google('Widget_tune_google', self)
+        self.Widget_tune_cohere = Widget_tune_cohere('Widget_tune_cohere', self)
 
         self.Widget_sponsor = Widget_sponsor('Widget_sponsor', self,configurator = self.configurator)
 
@@ -232,6 +234,7 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_tune_anthropic, FIF.SPEED_OFF, 'Anthropic',parent=self.Widget_tune)    
         self.addSubInterface(self.Widget_tune_sakura, FIF.SPEED_OFF, 'Sakura',parent=self.Widget_tune)  
         self.addSubInterface(self.Widget_tune_google, FIF.SPEED_OFF, 'Google',parent=self.Widget_tune)  
+        self.addSubInterface(self.Widget_tune_cohere, FIF.SPEED_OFF, 'Cohere',parent=self.Widget_tune)  
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
 
