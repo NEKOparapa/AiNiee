@@ -69,6 +69,9 @@ class Configurator():
         self.additional_platform_dict = {} # 额外代理平台索引+名字
         self.additional_platform_information = {} # 额外代理配置具体信息
         self.instances_information = {} # 动态对象名界面实例
+        self.additional_platform_tokens_limit = 4000
+        self.additional_platform_rpm_limit = 3500             
+        self.additional_platform_tpm_limit = 1000000       
 
         # 线程锁
         self.lock1 = threading.Lock()  #这个用来锁缓存文件
@@ -1714,6 +1717,7 @@ Third: Begin translating line by line from the original text, only translating {
             temperature = self.google_temperature      
 
         return temperature
+
 
     # 获取AI模型的参数设置（sakura）
     def get_sakura_parameters(self):

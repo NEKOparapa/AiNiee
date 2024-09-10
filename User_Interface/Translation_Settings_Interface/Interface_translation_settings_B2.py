@@ -92,7 +92,7 @@ class Widget_translation_settings_B2(QFrame):#  专项设置子界面
         #设置“简繁转换开关”标签
         labe1_6 = QLabel(flags=Qt.WindowFlags())  
         labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_6.setText("中文字体转换")
+        labe1_6.setText("中文字形转换")
 
 
         #设置“OpenCC 配置”下拉选择框
