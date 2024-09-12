@@ -231,18 +231,18 @@ class Widget_prompt_dict(QFrame): # 术语字典界面
 
             elif file_suffix == 'xlsx':
                 # 执行XLSX文件的操作
-                    wb = openpyxl.load_workbook(Input_File)
-                    sheet = wb.active
-                    for row in range(2, sheet.max_row + 1): # 第一行是标识头，第二行才开始读取
-                        cell_value1 = sheet.cell(row=row, column=1).value # 第N行第一列的值
-                        cell_value2 = sheet.cell(row=row, column=2).value # 第N行第二列的值
-                        cell_value3 = sheet.cell(row=row, column=3).value # 第N行第三列的值
-                        self.add_to_table(cell_value1, cell_value2,cell_value3)
+                wb = openpyxl.load_workbook(Input_File)
+                sheet = wb.active
+                for row in range(2, sheet.max_row + 1): # 第一行是标识头，第二行才开始读取
+                    cell_value1 = sheet.cell(row=row, column=1).value # 第N行第一列的值
+                    cell_value2 = sheet.cell(row=row, column=2).value # 第N行第二列的值
+                    cell_value3 = sheet.cell(row=row, column=3).value # 第N行第三列的值
+                    self.add_to_table(cell_value1, cell_value2,cell_value3)
 
-                    # 输出日志
-                    self.user_interface_prompter.createSuccessInfoBar("导入成功")
-                    print(f'[INFO]  已导入字典文件')
-                    
+                # 输出日志
+                self.user_interface_prompter.createSuccessInfoBar("导入成功")
+                print(f'[INFO]  已导入字典文件')
+                
             else:
                 print(f'[INFO] 不支持的文件类型: .{file_suffix}')
 

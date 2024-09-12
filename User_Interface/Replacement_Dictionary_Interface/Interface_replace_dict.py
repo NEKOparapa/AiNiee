@@ -1,6 +1,8 @@
 
 import json
 import os
+from openpyxl import Workbook  
+import openpyxl  
 import re
 from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QImage, QPainter, QPixmap#需要安装库 pip3 install PyQt5
 from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
@@ -225,48 +227,85 @@ class Widget_before_dict(QFrame):# 原文替换字典界面
 
     #导入字典按钮
     def Importing_dictionaries(self):
+
         # 选择文件
-        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'JSON Files (*.json)')      #调用QFileDialog类里的函数来选择文件
+        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'All Files (*)')
+
         if Input_File:
-            print(f'[INFO]  已选择字典导入文件: {Input_File}')
-        else :
-            print('[INFO]  未选择文件')
-            return
-        
-        try:
-            # 尝试读取文件内容
-            with open(Input_File, 'r', encoding="utf-8") as f:
-                content = f.read()
-        except FileNotFoundError:
-            print(f'[ERROR] 文件未找到: {Input_File}')
-            return
-        except Exception as e:
-            print(f'[ERROR] 读取文件时发生未知错误: {str(e)}')
-            return
-        try:
-            # 移除内容中的行内注释，并反序列化
-            dictionary = json.loads(self.remove_inline_comments(content))
-        except json.JSONDecodeError as e:
-            print(f'[ERROR] JSON解析错误: {str(e)}')
-            return
-        except Exception as e:
-            print(f'[ERROR] 反序列化时发生未知错误: {str(e)}')
-            return       
+            print(f'[INFO] 已选择文件: {Input_File}')
+            # 获取文件后缀
+            file_suffix = Input_File.split('.')[-1].lower()
+            
+            # 根据文件后缀执行不同操作
+            if file_suffix == 'json':
 
-        # 将字典中的数据从表格底部添加到表格中
-        for key, value in dictionary.items():
-            row = self.tableView.rowCount() - 1 #获取表格的倒数行数
-            self.tableView.insertRow(row)    # 在表格中插入一行
-            self.tableView.setItem(row, 0, QTableWidgetItem(key))
-            self.tableView.setItem(row, 1, QTableWidgetItem(value))
-            #设置新行的高度与前一行相同
-            self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
+                try:
+                    # 尝试读取文件内容
+                    with open(Input_File, 'r', encoding="utf-8") as f:
+                        content = f.read()
+                except FileNotFoundError:
+                    print(f'[ERROR] 文件未找到: {Input_File}')
+                    return
+                except Exception as e:
+                    print(f'[ERROR] 读取文件时发生未知错误: {str(e)}')
+                    return
+                try:
+                    # 移除内容中的行内注释，并反序列化
+                    dictionary = json.loads(self.remove_inline_comments(content))
+                except json.JSONDecodeError as e:
+                    print(f'[ERROR] JSON解析错误: {str(e)}')
+                    return
+                except Exception as e:
+                    print(f'[ERROR] 反序列化时发生未知错误: {str(e)}')
+                    return       
 
-        self.user_interface_prompter.createSuccessInfoBar("导入成功")
-        print(f'[INFO]  已导入字典文件')
+                # 将字典中的数据从表格底部添加到表格中
+                for key, value in dictionary.items():
+                    row = self.tableView.rowCount() - 1 #获取表格的倒数行数
+                    self.tableView.insertRow(row)    # 在表格中插入一行
+                    self.tableView.setItem(row, 0, QTableWidgetItem(key))
+                    self.tableView.setItem(row, 1, QTableWidgetItem(value))
+                    #设置新行的高度与前一行相同
+                    self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
 
-        # 导入成功后删除空白行
-        self.delete_blank_row()
+
+                # 导入成功后删除空白行
+                self.delete_blank_row()
+
+                # 输出日志
+                self.user_interface_prompter.createSuccessInfoBar("导入成功")
+                print(f'[INFO]  已导入字典文件')
+
+
+            elif file_suffix == 'xlsx':
+                # 执行XLSX文件的操作
+                wb = openpyxl.load_workbook(Input_File)
+                sheet = wb.active
+                for row in range(2, sheet.max_row + 1): # 第一行是标识头，第二行才开始读取
+                    cell_value1 = sheet.cell(row=row, column=1).value # 第N行第一列的值
+                    cell_value2 = sheet.cell(row=row, column=2).value # 第N行第二列的值
+
+
+                    row = self.tableView.rowCount() - 1 #获取表格的倒数行数
+                    self.tableView.insertRow(row)    # 在表格中插入一行
+                    self.tableView.setItem(row, 0, QTableWidgetItem(cell_value1))
+                    self.tableView.setItem(row, 1, QTableWidgetItem(cell_value2))
+                    #设置新行的高度与前一行相同
+                    self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
+
+                # 导入成功后删除空白行
+                self.delete_blank_row()
+
+                # 输出日志
+                self.user_interface_prompter.createSuccessInfoBar("导入成功")
+                print(f'[INFO]  已导入字典文件')
+                    
+            else:
+                print(f'[INFO] 不支持的文件类型: .{file_suffix}')
+
+        else:
+            print('[INFO] 未选择文件')
+            return        
     
     #导出字典按钮
     def Exporting_dictionaries(self):
@@ -496,47 +535,83 @@ class Widget_after_dict(QFrame):# 译文修正字典界面
     #导入字典按钮
     def Importing_dictionaries(self):
         # 选择文件
-        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'JSON Files (*.json)')      #调用QFileDialog类里的函数来选择文件
+        Input_File, _ = QFileDialog.getOpenFileName(None, 'Select File', '', 'All Files (*)')
+
         if Input_File:
-            print(f'[INFO]  已选择字典导入文件: {Input_File}')
-        else :
-            print('[INFO]  未选择文件')
-            return
-        
-        try:
-            # 尝试读取文件内容
-            with open(Input_File, 'r', encoding="utf-8") as f:
-                content = f.read()
-        except FileNotFoundError:
-            print(f'[ERROR] 文件未找到: {Input_File}')
-            return
-        except Exception as e:
-            print(f'[ERROR] 读取文件时发生未知错误: {str(e)}')
-            return
-        try:
-            # 移除内容中的行内注释，并反序列化
-            dictionary = json.loads(self.remove_inline_comments(content))
-        except json.JSONDecodeError as e:
-            print(f'[ERROR] JSON解析错误: {str(e)}')
-            return
-        except Exception as e:
-            print(f'[ERROR] 反序列化时发生未知错误: {str(e)}')
-            return
-        
-        # 将字典中的数据从表格底部添加到表格中
-        for key, value in dictionary.items():
-            row = self.tableView.rowCount() - 1 #获取表格的倒数行数
-            self.tableView.insertRow(row)    # 在表格中插入一行
-            self.tableView.setItem(row, 0, QTableWidgetItem(key))
-            self.tableView.setItem(row, 1, QTableWidgetItem(value))
-            #设置新行的高度与前一行相同
-            self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
+            print(f'[INFO] 已选择文件: {Input_File}')
+            # 获取文件后缀
+            file_suffix = Input_File.split('.')[-1].lower()
+            
+            # 根据文件后缀执行不同操作
+            if file_suffix == 'json':
 
-        self.user_interface_prompter.createSuccessInfoBar("导入成功")
-        print(f'[INFO]  已导入字典文件')
+                try:
+                    # 尝试读取文件内容
+                    with open(Input_File, 'r', encoding="utf-8") as f:
+                        content = f.read()
+                except FileNotFoundError:
+                    print(f'[ERROR] 文件未找到: {Input_File}')
+                    return
+                except Exception as e:
+                    print(f'[ERROR] 读取文件时发生未知错误: {str(e)}')
+                    return
+                try:
+                    # 移除内容中的行内注释，并反序列化
+                    dictionary = json.loads(self.remove_inline_comments(content))
+                except json.JSONDecodeError as e:
+                    print(f'[ERROR] JSON解析错误: {str(e)}')
+                    return
+                except Exception as e:
+                    print(f'[ERROR] 反序列化时发生未知错误: {str(e)}')
+                    return       
 
-        # 导入成功后删除空白行
-        self.delete_blank_row()
+                # 将字典中的数据从表格底部添加到表格中
+                for key, value in dictionary.items():
+                    row = self.tableView.rowCount() - 1 #获取表格的倒数行数
+                    self.tableView.insertRow(row)    # 在表格中插入一行
+                    self.tableView.setItem(row, 0, QTableWidgetItem(key))
+                    self.tableView.setItem(row, 1, QTableWidgetItem(value))
+                    #设置新行的高度与前一行相同
+                    self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
+
+
+                # 导入成功后删除空白行
+                self.delete_blank_row()
+
+                # 输出日志
+                self.user_interface_prompter.createSuccessInfoBar("导入成功")
+                print(f'[INFO]  已导入字典文件')
+
+
+            elif file_suffix == 'xlsx':
+                # 执行XLSX文件的操作
+                wb = openpyxl.load_workbook(Input_File)
+                sheet = wb.active
+                for row in range(2, sheet.max_row + 1): # 第一行是标识头，第二行才开始读取
+                    cell_value1 = sheet.cell(row=row, column=1).value # 第N行第一列的值
+                    cell_value2 = sheet.cell(row=row, column=2).value # 第N行第二列的值
+
+
+                    row = self.tableView.rowCount() - 1 #获取表格的倒数行数
+                    self.tableView.insertRow(row)    # 在表格中插入一行
+                    self.tableView.setItem(row, 0, QTableWidgetItem(cell_value1))
+                    self.tableView.setItem(row, 1, QTableWidgetItem(cell_value2))
+                    #设置新行的高度与前一行相同
+                    self.tableView.setRowHeight(row, self.tableView.rowHeight(row-1))
+
+                # 导入成功后删除空白行
+                self.delete_blank_row()
+
+                # 输出日志
+                self.user_interface_prompter.createSuccessInfoBar("导入成功")
+                print(f'[INFO]  已导入字典文件')
+                    
+            else:
+                print(f'[INFO] 不支持的文件类型: .{file_suffix}')
+
+        else:
+            print('[INFO] 未选择文件')
+            return    
     
     #导出字典按钮
     def Exporting_dictionaries(self):

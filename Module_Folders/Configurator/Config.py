@@ -83,7 +83,7 @@ class Configurator():
         self.lock3 = threading.Lock()  #这个用来锁自动备份缓存文件功能的
 
 
-    # 初始化配置信息
+    # 读取配置文件
     def Read_Configuration_File (self):
 
 
@@ -1318,6 +1318,7 @@ Third: Begin translating line by line from the original text, only translating {
 
         return result
     
+
     # 辅助函数，重新调整列表中翻译示例的后缀数字
     def replace_and_increment(self,items, prefix):
         pattern = re.compile(r'{}(\d{{1,2}})'.format(re.escape(prefix)))  # 使用双括号来避免KeyError
