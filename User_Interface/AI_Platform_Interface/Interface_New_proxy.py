@@ -253,6 +253,10 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
         self.primaryButton_test = PrimaryPushButton('测试请求', self, FIF.SEND)
         self.primaryButton_test.clicked.connect(self.test_request) #按钮绑定槽函数
 
+        #设置“保存配置”的按钮
+        self.primaryButton_save = PushButton('保存配置', self, FIF.SAVE)
+        self.primaryButton_save.clicked.connect(self.saveconfig) #按钮绑定槽函数
+
 
         #设置“删除配置”的按钮
         self.primaryButton_del = TransparentTogglePushButton('删除配置', self, FIF.DELETE)
@@ -260,6 +264,8 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
 
         layout_test.addStretch(1)  # 添加伸缩项
         layout_test.addWidget(self.primaryButton_test)
+        layout_test.addStretch(1)  # 添加伸缩项
+        layout_test.addWidget(self.primaryButton_save)
         layout_test.addStretch(1)  # 添加伸缩项
         layout_test.addWidget(self.primaryButton_del)
         layout_test.addStretch(1)  # 添加伸缩项
@@ -299,6 +305,10 @@ class Widget_Proxy_A(QFrame):#  代理账号基础设置子界面
         elif index == 'Anthropic':
             self.comboBox_model_openai.hide()
             self.comboBox_model_anthropic.show()
+
+    def saveconfig(self):
+        self.user_interface_prompter.read_write_config("write",self.configurator.resource_dir)
+        self.user_interface_prompter.createSuccessInfoBar("已成功保存配置")
 
 
     def del_config(self):

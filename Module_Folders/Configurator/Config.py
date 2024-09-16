@@ -1896,10 +1896,10 @@ Third: Begin translating line by line from the original text, only translating {
         if self.OpenAI_parameter_adjustment :
             print("[INFO] 已开启OpnAI调教功能，设置为用户设定的参数")
             #获取界面配置信息
-            temperature =  self.OpenAI_Temperature * 0.1
-            top_p = self.OpenAI_top_p * 0.1
-            presence_penalty = self.OpenAI_presence_penalty * 0.1
-            frequency_penalty = self.OpenAI_frequency_penalty * 0.1
+            temperature =  round(self.OpenAI_Temperature * 0.1 , 1 )
+            top_p = round(self.OpenAI_top_p * 0.1 , 1 )
+            presence_penalty = round(self.OpenAI_presence_penalty * 0.1 , 1 )
+            frequency_penalty = round(self.OpenAI_frequency_penalty * 0.1 , 1 )
         else:
             temperature = self.openai_temperature_initialvalue      
             top_p = self.openai_top_p_initialvalue              
@@ -1915,7 +1915,7 @@ Third: Begin translating line by line from the original text, only translating {
         if  self.Anthropic_parameter_adjustment :
             print("[INFO] 已开启anthropic调教功能，设置为用户设定的参数")
             #获取界面配置信息
-            temperature = self.Anthropic_Temperature * 0.1
+            temperature = round(self.Anthropic_Temperature * 0.1 , 1 )
         else:
             temperature = self.anthropic_temperature_initialvalue      
 
@@ -1928,7 +1928,7 @@ Third: Begin translating line by line from the original text, only translating {
         if self.Google_parameter_adjustment:
             print("[INFO] 已开启google调教功能，设置为用户设定的参数")
             #获取界面配置信息
-            temperature = self.Google_Temperature * 0.1
+            temperature = round(self.Google_Temperature * 0.1 , 1 )
         else:
             temperature = self.google_temperature_initialvalue      
 
@@ -1940,7 +1940,7 @@ Third: Begin translating line by line from the original text, only translating {
         if self.Cohere_parameter_adjustment:
             print("[INFO] 已开启cohere调教功能，设置为用户设定的参数")
             #获取界面配置信息
-            temperature = self.Cohere_Temperature * 0.1
+            temperature = round(self.Cohere_Temperature * 0.1 , 1 )
         else:
             temperature = self.cohere_temperature_initialvalue      
 
@@ -1953,13 +1953,13 @@ Third: Begin translating line by line from the original text, only translating {
         if self.Sakura_parameter_adjustment :
             print("[INFO] 已开启Sakura调教功能，设置为用户设定的参数")
             #获取界面配置信息
-            temperature = self.Sakura_Temperature * 0.1
-            top_p = self.Sakura_top_p * 0.1
-            frequency_penalty =  self.Sakura_frequency_penalty * 0.1
+            temperature = round(self.Sakura_Temperature * 0.1 , 1 )
+            top_p = round(self.Sakura_top_p * 0.1 , 1 )
+            frequency_penalty =  round(self.Sakura_frequency_penalty * 0.1 , 1 )
         else:
-            temperature = self.openai_temperature_initialvalue      
-            top_p = self.openai_top_p_initialvalue              
-            frequency_penalty = self.openai_frequency_penalty_initialvalue
+            temperature = self.sakura_temperature_initialvalue      
+            top_p = self.sakura_top_p_initialvalue              
+            frequency_penalty = self.sakura_frequency_penalty_initialvalue
 
         return temperature,top_p,frequency_penalty
 
