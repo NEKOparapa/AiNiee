@@ -66,6 +66,23 @@ from User_Interface.MainWindows import window  # 导入界面
 from User_Interface.MainWindows import Widget_New_proxy
 
 
+# 获取 llama.cpp 的 slots 数量，获取失败则返回 -1
+import urllib.request
+def get_llama_cpp_slots_num(url: str) -> int:
+    try:
+        num = -1
+        url = url.replace("/v1", "") if url.endswith("/v1") else url
+        with urllib.request.urlopen(f"{url}/slots") as response:
+            data = json.loads(response.read().decode("utf-8"))
+            num = len(data) if data != None and len(data) > 0 else num
+    except Exception as e:
+        # TODO
+        # 处理异常
+        pass
+    finally:
+        return num
+        
+print(f"{get_llama_cpp_slots_num('http://localhost:8080/v1')}")
 
 # 翻译器
 class Translator():
@@ -346,9 +363,10 @@ class Translator():
 
 # 接口请求器
 class Api_Requester():
+
     def __init__(self):
         pass
-    
+
     # 并发接口请求分发
     def concurrent_request (self):
 
