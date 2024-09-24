@@ -31,7 +31,7 @@ class Widget_translation_settings_B1(QFrame):#  发送设置子界面
 
         self.spinBox_lines_limit = SpinBox(self)
         self.spinBox_lines_limit.setRange(0, 99999)    
-        self.spinBox_lines_limit.setValue(20)
+        self.spinBox_lines_limit.setValue(15)
 
         #设置“说明”显示
         self.labelA_lines = QLabel(parent=self, flags=Qt.WindowFlags())  

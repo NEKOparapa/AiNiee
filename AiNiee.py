@@ -64,6 +64,7 @@ from Module_Folders.Configurator.Config import Configurator
 from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
 from User_Interface.MainWindows import window  # 导入界面
 from User_Interface.MainWindows import Widget_New_proxy
+from Plugin_Scripts.Plugin_Manager import Plugin_Manager
 
 
 # 获取 llama.cpp 的 slots 数量，获取失败则返回 -1
@@ -135,6 +136,10 @@ class Translator():
                 Cache_Manager.process_dictionary_list(self,configurator.cache_list)
 
 
+
+            # 假设这里有一个事件触发了
+            #plugin_manager.broadcast_event("文本过滤", event_data)
+            #plugin_manager.broadcast_event("文本预处理", event_data)
         # ——————————————————————————————————————————构建并发任务池子—————————————————————————————————————————
 
 
@@ -3635,7 +3640,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.74.3"  #软件版本号
+    Software_Version = "AiNiee4.74.4"  #软件版本号
 
 
     # 工作目录改为python源代码所在的目录
@@ -3653,6 +3658,10 @@ if __name__ == '__main__':
 
     # 创建全局限制器
     request_limiter = Request_Limiter(configurator)
+
+    # 创建全局插件管理器
+    plugin_manager = Plugin_Manager()
+    plugin_manager.load_plugins_from_directory(configurator.plugin_dir)
 
 
     #创建全局窗口对象

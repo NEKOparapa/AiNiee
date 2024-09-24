@@ -13,7 +13,7 @@ class Configurator():
         # 设置资源文件夹路径
         self.script_dir = script_dir
         self.resource_dir = os.path.join(script_dir, "Resource")
-
+        self.plugin_dir = os.path.join(script_dir, "Plugin_Scripts")
 
         self.translation_project = "" # 翻译项目
         self.translation_platform = "" # 翻译平台
@@ -67,9 +67,9 @@ class Configurator():
         self.cohere_temperature_initialvalue   =  0 
 
         # 缓存数据以及运行状态
-        self.cache_list = [] # 全局缓存数据
-        self.Running_status = 0  # 存储程序工作的状态，0是空闲状态，1是正在接口测试状态
-                            # 6是翻译任务进行状态，9是正在暂停状态，10是已暂停状态,11是正在取消状态，0也是已取消状态
+        self.cache_list = [] # 全局缓存数据,存储待翻译文本的全部信息
+        self.Running_status = 0  # 存储程序工作的状态，0是空闲状态
+                                 # 1是正在接口测试状态,6是翻译任务进行状态，9是正在暂停状态，10是已暂停状态,11是正在取消状态，0也是已取消状态
                             
         # 额外代理平台
         self.additional_platform_count = 0 # 额外代理平台数

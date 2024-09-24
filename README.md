@@ -33,7 +33,7 @@
 
       |工具名|介绍|
       |:----:|:-----:|
-      |[Mtool](https://afdian.net/a/AdventCirno?tab=feed)|上手简单，推荐新人使用|
+      |[Mtool](https://afdian.com/p/d42dd1e234aa11eba42452540025c377)|上手简单，推荐新人使用|
       |[Translator++](https://dreamsavior.net/download/)|上手中等，功能强大，推荐大佬使用|
       |[SExtractor](https://github.com/satan53x/SExtractor)|上手复杂，功能强大，推荐大佬使用|
 
