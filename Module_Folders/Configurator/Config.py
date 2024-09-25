@@ -10,10 +10,9 @@ class Configurator():
 
     
     def __init__(self,script_dir):
-        # 设置资源文件夹路径
-        self.script_dir = script_dir
-        self.resource_dir = os.path.join(script_dir, "Resource")
-        self.plugin_dir = os.path.join(script_dir, "Plugin_Scripts")
+        self.script_dir = script_dir          # 根目录路径
+        self.resource_dir = os.path.join(script_dir, "Resource") # 配置文件路径
+        self.plugin_dir = os.path.join(script_dir, "Plugin_Scripts") # 插件脚本路径
 
         self.translation_project = "" # 翻译项目
         self.translation_platform = "" # 翻译平台
@@ -22,18 +21,19 @@ class Configurator():
         self.Input_Folder = "" # 存储输入文件夹
         self.Output_Folder = "" # 存储输出文件夹
 
-        self.lines_limit = 1 # 存储每次请求的文本行数设置
+        self.lines_limit_switch = True  # 行数开关         
+        self.lines_limit = 15  # 行数限制
+        self.tokens_limit_switch = False   # tokens开关       
+        self.tokens_limit = 2000  # tokens限制
         self.thread_counts = 1 # 存储线程数
-        self.retry_count_limit = 1 # 错误回复重试次数
         self.pre_line_counts = 0 # 上文行数
         self.cot_toggle = False # 思维链开关
         self.cn_prompt_toggle = False # 中文提示词开关
-        self.text_clear_toggle = False # 清除首位非文本字符开关
-        self.preserve_line_breaks_toggle = False # 保留换行符开关
-        self.conversion_toggle = False #简繁转换开关
-        self.retry_count_limit = 1 # 错误回复重试次数限制
+        self.text_clear_toggle = False # 清除首尾非文本字符开关
+        self.preserve_line_breaks_toggle = False # 换行替换翻译开关
+        self.conversion_toggle = False #中文字形转换开关
         self.round_limit = 6 # 拆分翻译轮次限制
-
+        self.retry_count_limit = 1 # 错误回复重试次数限制
 
         self.mixed_translation_toggle = False # 混合翻译开关
         self.mixed_translation_settings = {}  #混合翻译相关信息

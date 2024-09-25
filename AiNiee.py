@@ -122,24 +122,13 @@ class Translator():
                 return
 
 
-        # ——————————————————————————————————————————初步处理缓存文件—————————————————————————————————————————
-            
-
-            # 将浮点型，整数型文本内容变成字符型文本内容
-            Cache_Manager.convert_source_text_to_str(self,configurator.cache_list)
-
-            # 除去代码文本
-            Cache_Manager.ignore_code_text(self,configurator.cache_list)
-
-            # 如果翻译日语或者韩语文本时，则去除非中日韩文本
-            if configurator.source_language == "日语" or configurator.source_language == "韩语":
-                Cache_Manager.process_dictionary_list(self,configurator.cache_list)
+        # ——————————————————————————————————————————插件预处理—————————————————————————————————————————
+        
+        # 调用插件，进行文本预处理
+        plugin_manager.broadcast_event("preproces_text", configurator,configurator.cache_list)
 
 
 
-            # 假设这里有一个事件触发了
-            #plugin_manager.broadcast_event("文本过滤", event_data)
-            #plugin_manager.broadcast_event("文本预处理", event_data)
         # ——————————————————————————————————————————构建并发任务池子—————————————————————————————————————————
 
 
@@ -165,6 +154,7 @@ class Translator():
 
 
         # 输出开始翻译的日志
+        print("\n")
         print("[INFO]  翻译项目为",configurator.translation_project, '\n')
         print("[INFO]  翻译平台为",configurator.translation_platform, '\n')
         print("[INFO]  请求地址为",configurator.base_url, '\n')
@@ -202,7 +192,7 @@ class Translator():
             return
 
 
-        # ——————————————————————————————————————————检查没能成功翻译的文本，拆分翻译————————————————————————————————————————
+        # ——————————————————————————————————————————检查没能成功翻译的文本，循环拆分翻译————————————————————————————————————————
 
 
         #计算未翻译文本的数量
@@ -297,8 +287,11 @@ class Translator():
         print ("\033[1;32mSuccess:\033[0m  翻译阶段已完成，正在处理数据-----------------------------------", '\n')
 
 
-        # ——————————————————————————————————————————将数据处理并保存为文件—————————————————————————————————————————
+        # ——————————————————————————————————————————插件后处理—————————————————————————————————————————
             
+        # 调用插件，进行文本后处理
+        plugin_manager.broadcast_event("postprocess_text", configurator,configurator.cache_list)
+
 
         #如果开启了转换简繁开关功能，则进行文本转换
         if configurator.conversion_toggle:
@@ -310,8 +303,14 @@ class Translator():
                 print("\033[1;33mWarning:\033[0m 文本转换出现问题！！将跳过该步，错误信息如下")
                 print(f"Error: {e}\n")
 
+
+        # ——————————————————————————————————————————将数据处理并保存为文件—————————————————————————————————————————
+
+
         # 将翻译结果写为对应文件
         File_Outputter.output_translated_content(self,configurator.cache_list,configurator.Output_Folder,configurator.Input_Folder)
+
+
 
         # —————————————————————————————————————#全部翻译完成——————————————————————————————————————————
 

@@ -14,103 +14,24 @@ import opencc       #需要安装库pip install opencc
 # 缓存管理器
 class Cache_Manager():
     """
-    缓存数据以列表来存储，分文件头和文本单元，文件头数据结构如下:
+    缓存数据以列表来存储，分文件头（第一个元素）和文本单元(后续元素)，文件头数据结构如下:
     1.项目类型： "project_type"
     2.项目ID： "project_id"
 
     文本单元的部分数据结构如下:
     1.翻译状态： "translation_status"   未翻译状态为0，已翻译为1，正在翻译为2，不需要翻译为7
-    2.文本归类： "text_classification"
-    3.文本索引： "text_index"
-    4.名字： "name"
-    5.原文： "source_text"
-    6.译文： "translated_text"
-    7.存储路径： "storage_path"
-    8.存储文件名： "storage_file_name"
-    9.行索引： "line_index"
+    2.文本索引： "text_index"
+    3.名字： "name"
+    4.原文： "source_text"
+    5.译文： "translated_text"
+    6.存储路径： "storage_path"
+    7.存储文件名： "storage_file_name"
+    8.翻译模型： "model"                         
     等等
 
     """
     def __init__(self):
         pass
-
-    # 忽视空值内容和将整数型，浮点型数字变换为字符型数字函数，且改变翻译状态为7,因为T++读取到整数型数字时，会报错，明明是自己导出来的...
-    def convert_source_text_to_str(self,cache_list):
-        for entry in cache_list:
-            storage_path = entry.get('storage_path')
-
-            if storage_path:
-                source_text = entry.get('source_text')
-
-                if isinstance(source_text, (int, float)):
-                    entry['source_text'] = str(source_text)
-                    entry['translation_status'] = 7
-
-                if source_text == "":
-                    # 注意一下，文件头没有原文，所以会添加新的键值对到文件头里
-                    entry['translation_status'] = 7
-                
-                if source_text == None:
-                    entry['translation_status'] = 7
-
-
-                if isinstance(source_text, str) and source_text.isdigit():
-                    entry['translation_status'] = 7
-
-
-                if isinstance(source_text, str) and Cache_Manager.is_punctuation_string(self,source_text):
-                    entry['translation_status'] = 7
-
-    # 忽视部分纯代码文本，且改变翻译状态为7
-    def ignore_code_text(self,cache_list):
-        for entry in cache_list:
-            source_text = entry.get('source_text')
-
-            #加个检测后缀为MP3，wav，png，这些文件名的文本，都是纯代码文本，所以忽略掉
-            if source_text:
-                if source_text.endswith('.mp3') or source_text.endswith('.wav') or source_text.endswith('.png') or source_text.endswith('.jpg'):
-                    entry['translation_status'] = 7
-
-            
-            # 检查文本是否为空
-            if source_text:
-                # 正则表达式匹配<sg ?: ?>>格式的文本
-                pattern = r'<SG[^>]*>'
-                matches = re.findall(pattern, source_text)
-
-                # 检查是否有匹配项
-                if matches:
-                    entry['translation_status'] = 7
-                    for match in matches:
-                        # 查找冒号的位置
-                        colon_index = match.find(':')
-                        if colon_index != -1: # 如果文本中存在冒号
-                            # 分割冒号左边的内容和冒号右边直到>的内容
-                            left = match[:colon_index].split('<SG')[-1].strip()
-                            right = match[colon_index+1:].split('>')[0].strip()
-                            # 检查右边字符量是否比左边字符量大N倍
-                            if len(right) > len(left) * 15:
-                                entry['translation_status'] = 0
-
-    # 处理缓存数据的非中日韩字符，且改变翻译状态为7
-    def process_dictionary_list(self,cache_list):
-        pattern = re.compile(r'[\u4e00-\u9fff\u3040-\u30ff\u1100-\u11ff\u3130-\u318f\uac00-\ud7af]+')
-
-        def contains_cjk(text):
-            return bool(pattern.search(text))
-
-        for entry in cache_list:
-            source_text = entry.get('source_text')
-
-            if source_text and not contains_cjk(source_text):
-                entry['translation_status'] = 7
-
-    # 检查字符串是否只包含常见的标点符号
-    def is_punctuation_string(self,s: str) -> bool:
-        """检查字符串是否只包含标点符号"""
-        punctuation = set("!" '"' "#" "$" "%" "&" "'" "(" ")" "*" "+" "," "-" "." "/" "，" "。"  
-                        ":" ";" "<" "=" ">" "?" "@" "[" "\\" "]" "^" "_" "`" "{" "|" "}" "~" "—" "・")
-        return all(char in punctuation for char in s)
 
 
     # 获取缓存数据中指定行数的翻译状态为0的未翻译文本，且改变翻译状态为2
