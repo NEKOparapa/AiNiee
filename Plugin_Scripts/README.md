@@ -54,7 +54,7 @@ class PluginBase:
 2. **监听事件**
    在`on_event`方法内部，根据事件名称执行相应的逻辑。
 
-以下是一些可能的事件示例：
+以下是目前的事件示例：
 - `preproces_text`: 读取原文文件到缓存中，开始请求前触发。
 - `postprocess_text`: 翻译完成，输出文件前触发。
 
@@ -62,6 +62,72 @@ class PluginBase:
 ## 传入参数介绍
 
 - `configuration_information`: 全局配置类，用于获取和设置应用程序的配置信息。
+
+下面是部分配置信息变量，如果需要获取更多配置信息，可以到Config.py文件中查看，基本在__init__(self,script_dir)与 Read_Configuration_File (self)中
+```python
+    self.script_dir = script_dir          # 根目录路径
+    self.resource_dir = os.path.join(script_dir, "Resource") # 配置文件路径
+    self.plugin_dir = os.path.join(script_dir, "Plugin_Scripts") # 插件脚本路径
+
+    self.translation_project = "" # 翻译项目
+    self.translation_platform = "" # 翻译平台
+    self.source_language = "" # 文本原语言
+    self.target_language = "" # 文本目标语言
+    self.Input_Folder = "" # 存储输入文件夹
+    self.Output_Folder = "" # 存储输出文件夹
+
+    self.lines_limit_switch = True  # 行数开关         
+    self.lines_limit = 15  # 行数限制
+    self.tokens_limit_switch = False   # tokens开关       
+    self.tokens_limit = 2000  # tokens限制
+    self.thread_counts = 1 # 存储线程数
+    self.pre_line_counts = 0 # 上文行数
+    self.cot_toggle = False # 思维链开关
+    self.cn_prompt_toggle = False # 中文提示词开关
+    self.text_clear_toggle = False # 清除首尾非文本字符开关
+    self.preserve_line_breaks_toggle = False # 换行替换翻译开关
+    self.conversion_toggle = False #中文字形转换开关
+    self.round_limit = 6 # 拆分翻译轮次限制
+    self.retry_count_limit = 1 # 错误回复重试次数限制
+
+    self.mixed_translation_toggle = False # 混合翻译开关
+    self.mixed_translation_settings = {}  #混合翻译相关信息
+
+
+    self.prompt_dictionary_switch = False   #   提示字典开关
+    self.pre_translation_switch = False #   译前处理开关
+    self.post_translation_switch = False #   译后处理开关
+    self.custom_prompt_switch = False #   自定义prompt开关
+    self.add_example_switch = False #   添加示例开关
+
+
+    self.model_type = ""             #模型选择
+    self.apikey_list = [] # 存储key的列表
+    self.key_index = 0  # 方便轮询key的索引
+    self.base_url = 'https://api.openai.com/v1' # api请求地址
+    self.max_tokens = 4000
+    self.RPM_limit = 3500
+    self.TPM_limit = 10000000
+
+
+    self.openai_temperature_initialvalue = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
+    self.openai_top_p_initialvalue = 0              #AI的top_p，作用与temperature相同，官方建议不要同时修改
+    self.openai_presence_penalty_initialvalue = 0  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
+    self.openai_frequency_penalty_initialvalue = 0 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
+    self.sakura_temperature_initialvalue = 0        
+    self.sakura_top_p_initialvalue = 0             
+    self.sakura_frequency_penalty_initialvalue = 0 
+    self.anthropic_temperature_initialvalue   =  0 
+    self.google_temperature_initialvalue   =  0 
+    self.cohere_temperature_initialvalue   =  0 
+
+    # 缓存数据以及运行状态
+    self.cache_list = [] # 全局缓存数据,存储待翻译文本的全部信息
+    self.Running_status = 0  # 存储程序工作的状态，0是空闲状态
+                              # 1是正在接口测试状态,6是翻译任务进行状态，9是正在暂停状态，10是已暂停状态,11是正在取消状态，0也是已取消状态
+```                         
+
+
 
 - `event_data`: 当前事件数据，目前是传入缓存文本信息。
 ```python
