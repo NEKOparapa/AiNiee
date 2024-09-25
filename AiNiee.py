@@ -67,24 +67,6 @@ from User_Interface.MainWindows import Widget_New_proxy
 from Plugin_Scripts.Plugin_Manager import Plugin_Manager
 
 
-# 获取 llama.cpp 的 slots 数量，获取失败则返回 -1
-import urllib.request
-def get_llama_cpp_slots_num(url: str) -> int:
-    try:
-        num = -1
-        url = url.replace("/v1", "") if url.endswith("/v1") else url
-        with urllib.request.urlopen(f"{url}/slots") as response:
-            data = json.loads(response.read().decode("utf-8"))
-            num = len(data) if data != None and len(data) > 0 else num
-    except Exception as e:
-        # TODO
-        # 处理异常
-        pass
-    finally:
-        return num
-        
-print(f"{get_llama_cpp_slots_num('http://localhost:8080/v1')}")
-
 # 翻译器
 class Translator():
     def __init__(self):
@@ -174,7 +156,7 @@ class Translator():
 
 
         # 创建线程池
-        The_Max_workers = configurator.thread_counts # 获取线程数配置
+        The_Max_workers = configurator.actual_thread_counts # 获取线程数配置
         with concurrent.futures.ThreadPoolExecutor (The_Max_workers) as executor:
             # 创建实例
             api_requester_instance = Api_Requester()
@@ -257,7 +239,7 @@ class Translator():
 
 
             # 创建线程池
-            The_Max_workers = configurator.thread_counts # 获取线程数配置
+            The_Max_workers = configurator.actual_thread_counts # 获取线程数配置
             with concurrent.futures.ThreadPoolExecutor (The_Max_workers) as executor:
                 # 创建实例
                 api_requester_instance = Api_Requester()
@@ -2710,7 +2692,7 @@ class User_Interface_Prompter(QObject):
             config_dict["tokens_limit_switch"] = Window.Widget_translation_settings_B1.checkBox_tokens_limit_switch.isChecked()           
             config_dict["tokens_limit"] = Window.Widget_translation_settings_B1.spinBox_tokens_limit.value()            #获取tokens限制
             config_dict["pre_line_counts"] = Window.Widget_translation_settings_B1.spinBox_pre_lines.value()     # 获取上文文本行数设置
-            config_dict["thread_counts"] = Window.Widget_translation_settings_B1.spinBox_thread_count.value() # 获取线程数设置
+            config_dict["user_thread_counts"] = Window.Widget_translation_settings_B1.spinBox_thread_count.value() # 获取线程数设置
             config_dict["retry_count_limit"] =  Window.Widget_translation_settings_B1.spinBox_retry_count_limit.value()     # 获取重翻次数限制  
             config_dict["round_limit"] =  Window.Widget_translation_settings_B1.spinBox_round_limit.value() # 获取轮数限制
             config_dict["cot_toggle"] =  Window.Widget_translation_settings_B2.SwitchButton_cot_toggle.isChecked()   # 获取cot开关
@@ -3193,8 +3175,8 @@ class User_Interface_Prompter(QObject):
                     Window.Widget_translation_settings_B1.spinBox_tokens_limit.setValue(config_dict["tokens_limit"])
                 if "pre_line_counts" in config_dict:
                     Window.Widget_translation_settings_B1.spinBox_pre_lines.setValue(config_dict["pre_line_counts"])
-                if "thread_counts" in config_dict:
-                    Window.Widget_translation_settings_B1.spinBox_thread_count.setValue(config_dict["thread_counts"])
+                if "user_thread_counts" in config_dict:
+                    Window.Widget_translation_settings_B1.spinBox_thread_count.setValue(config_dict["user_thread_counts"])
                 if "retry_count_limit" in config_dict:
                     Window.Widget_translation_settings_B1.spinBox_retry_count_limit.setValue(config_dict["retry_count_limit"])
                 if "round_limit" in config_dict:
@@ -3639,7 +3621,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.74.4"  #软件版本号
+    Software_Version = "AiNiee4.75"  #软件版本号
 
 
     # 工作目录改为python源代码所在的目录

@@ -4,7 +4,7 @@ import multiprocessing
 import os
 import re
 import threading
-
+import urllib.request
 
 class Configurator():
 
@@ -25,7 +25,8 @@ class Configurator():
         self.lines_limit = 15  # 行数限制
         self.tokens_limit_switch = False   # tokens开关       
         self.tokens_limit = 2000  # tokens限制
-        self.thread_counts = 1 # 存储线程数
+        self.user_thread_counts = 1 # 用户设置的线程数
+        self.actual_thread_counts= 1  # 实际设置的线程数
         self.pre_line_counts = 0 # 上文行数
         self.cot_toggle = False # 思维链开关
         self.cn_prompt_toggle = False # 中文提示词开关
@@ -242,9 +243,7 @@ class Configurator():
         self.tokens_limit_switch = config_dict["tokens_limit_switch"]           
         self.tokens_limit = config_dict["tokens_limit"]    
         self.pre_line_counts = config_dict["pre_line_counts"]
-        self.thread_counts = config_dict["thread_counts"]
-        if self.thread_counts == 0:                                
-            self.thread_counts = multiprocessing.cpu_count() 
+        self.user_thread_counts = config_dict["user_thread_counts"] 
         self.retry_count_limit =  config_dict["retry_count_limit"]
         self.round_limit =  config_dict["round_limit"]
         self.cot_toggle = config_dict["cot_toggle"]
@@ -332,6 +331,14 @@ class Configurator():
         self.anthropic_temperature_initialvalue   =  0 
         self.google_temperature_initialvalue   =  0 
         self.cohere_temperature_initialvalue   =  0 
+
+
+        # 设置线程数
+        if self.user_thread_counts == 0:                                
+            self.actual_thread_counts = self.auto_thread_count(self.translation_platform,self.sakura_address)
+        else:
+            self.actual_thread_counts = self.user_thread_counts
+
 
     # 配置翻译平台信息
     def configure_translation_platform(self,translation_platform = None,model_type = None):
@@ -926,6 +933,42 @@ class Configurator():
             self.RPM_limit = self.additional_platform_information[object_Name]["op_rpm_limit"]                
             self.TPM_limit = self.additional_platform_information[object_Name]["op_tpm_limit"]            
 
+
+
+
+    # 计算合适的线程数
+    def  auto_thread_count(self,translation_platform,SakuraLLM_address):
+
+        thread_counts = multiprocessing.cpu_count() 
+
+        if translation_platform == "SakuraLLM":
+
+            print(f"[INFO]  Accessing port to obtain the number of slots !")
+            # 根据slots数量计算线程数
+            num = self.get_llama_cpp_slots_num(SakuraLLM_address)
+            if num != -1:
+                thread_counts =  num 
+                print(f"[INFO]  Access successful, the number of slots is {thread_counts}")
+            else:
+                print(f"[INFO]  Access failed, please check the backend status")
+
+        return thread_counts
+
+    # 获取 llama.cpp 的 slots 数量，获取失败则返回 -1
+    def get_llama_cpp_slots_num(self,url: str) -> int:
+        try:
+            num = -1
+            url = url.replace("/v1", "") if url.endswith("/v1") else url
+            with urllib.request.urlopen(f"{url}/slots") as response:
+                data = json.loads(response.read().decode("utf-8"))
+                num = len(data) if data != None and len(data) > 0 else num
+        except Exception as e:
+            # TODO
+            # 处理异常
+            pass
+        finally:
+            return num
+        
 
     # 获取系统提示词
     def get_system_prompt(self):

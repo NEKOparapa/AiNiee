@@ -80,7 +80,8 @@ class PluginBase:
     self.lines_limit = 15  # 行数限制
     self.tokens_limit_switch = False   # tokens开关       
     self.tokens_limit = 2000  # tokens限制
-    self.thread_counts = 1 # 存储线程数
+    self.user_thread_counts = 1 # 用户设置的线程数
+    self.running_thread_counts= 1  # 实际设置的线程数
     self.pre_line_counts = 0 # 上文行数
     self.cot_toggle = False # 思维链开关
     self.cn_prompt_toggle = False # 中文提示词开关
