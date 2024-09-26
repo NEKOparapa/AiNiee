@@ -36,23 +36,28 @@ class General_Text_Filtering(PluginBase):
                 if  isinstance(source_text, (int, float)) or (isinstance(source_text, str) and source_text.isdigit()):
                     entry['source_text'] = str(source_text)
                     entry['translation_status'] = 7
+                    return
 
                 # 检查文本是否为空
                 if source_text == "":
                     entry['translation_status'] = 7
+                    return
 
                 # 检查文本是否为空
                 if source_text == None:
                     entry['translation_status'] = 7
+                    return
 
                 # 检查是否仅含标点符号的文本组合
                 if isinstance(source_text, str) and self.is_punctuation_string(source_text):
                     entry['translation_status'] = 7
+                    return
 
 
                 #加个检测后缀为MP3，wav，png，这些文件名的文本，都是纯代码文本，所以忽略掉
                 if source_text.endswith('.mp3') or source_text.endswith('.wav') or source_text.endswith('.png') or source_text.endswith('.jpg'):
                     entry['translation_status'] = 7
+                    return
 
                 
                 # 检查文本是否为空
@@ -74,7 +79,8 @@ class General_Text_Filtering(PluginBase):
                                 # 检查右边字符量是否比左边字符量大N倍
                                 if len(right) > len(left) * 15:
                                     entry['translation_status'] = 0
-
+                                    
+                    return
 
 
     # 检查字符串是否只包含常见的标点符号
