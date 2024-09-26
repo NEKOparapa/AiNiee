@@ -1,3 +1,5 @@
+import math
+
 from tqdm import tqdm
 from rich import print
 
@@ -11,7 +13,7 @@ class MTool_Optimizer(PluginBase):
         self.description = "MTool_Optimizer"
 
     def load(self):
-        print(f"[INFO]  [green]{self.name}[/] 已加载，至多可提升 [green]40%[/] 的翻译速度，理论上也会提升翻译质量并节约 Token 消耗 ...")
+        print(f"[INFO]  [green]{self.name}[/] 已加载，至多可提升 [green]40%[/] 的翻译速度，理论上也会提升翻译质量并减少 Token 消耗 ...")
 
     def on_event(self, event_name, configuration_information, event_data):
         if event_name == "preproces_text":
@@ -74,18 +76,34 @@ class MTool_Optimizer(PluginBase):
         print(f"")
 
         seen = set()
-        for v in tqdm(items):
-            source_text = v.get("source_text", "")
-            translated_text = v.get("translated_text", "")
+        self.generate_short_sentence(
+            [v for v in items if "\n" in v.get("source_text", "")], 
+            seen, 
+            event_data
+        )
+        
+        print(f"")
+        print(f"[MTool_Optimizer] 后处理执行成功，已还原 {len(seen)} 个条目 ...")
+        print(f"")
 
-            # 如果原文与译文中都包含换行符，且行数相等，则为其中的每一行生成一个新的条目
-            if "\n" in source_text and "\n" in translated_text:
-                lines_source = source_text.splitlines()
-                lines_translated = translated_text.splitlines()
-                
-                if not len(lines_source) == len(lines_translated):
-                    continue
-                
+    # 按长度切割字符串
+    def split_string_by_length(self, string, length):
+        return [string[i:i+length] for i in range(0, len(string), length)]
+
+    # 生成短句
+    def generate_short_sentence(self, items, seen, event_data):
+        for v in tqdm(items):
+            # 获取原文和译文并按行切分
+            source_text = v.get("source_text", "").strip()
+            translated_text = v.get("translated_text", "").strip()
+            lines_source = source_text.splitlines()
+            lines_translated = translated_text.strip().splitlines()
+            
+            # 统计包含换行符的原文的所有子句的最大长度
+            max_length = max(len(line) for line in lines_source if len(lines_source) > 1)
+            
+            # 第一种情况：原文和译文行数相等，则为其中的每一行生成一个新的条目
+            if len(lines_source) > 1 and len(lines_source) == len(lines_translated):
                 for source, translated in zip(lines_source, lines_translated):
                     # 跳过重复的条目
                     if source.strip() in seen:
@@ -99,6 +117,22 @@ class MTool_Optimizer(PluginBase):
                     item["translated_text"] = translated.strip()
                     event_data.append(item)
                     
-        print(f"")
-        print(f"[MTool_Optimizer] 后处理执行成功，已还原 {len(seen)} 个短句 ...")
-        print(f"")
+            # 兜底情况：原文和译文行数不相等，且不满足以上所有的条件，则按固定长度切割
+            elif len(lines_source) > 1 and len(lines_source) != len(lines_translated):
+                # 切分前，先将译文中的换行符移除，避免重复换行，切分长度为子句最大长度 - 2
+                lines_translated = self.split_string_by_length(translated_text.replace("\n", ""), max_length - 2)
+                
+                for k, source in enumerate(lines_source):
+                    translated = lines_translated[k] if k < len(lines_translated) else ""
+
+                    # 跳过重复的条目
+                    if source.strip() in seen:
+                        continue
+                    else:
+                        seen.add(source.strip())
+
+                    item = v.copy()
+                    item["text_index"] = len(event_data) + 1
+                    item["source_text"] = source.strip()
+                    item["translated_text"] = translated.strip()
+                    event_data.append(item)
