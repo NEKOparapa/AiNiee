@@ -14,3 +14,7 @@ beautifulsoup4
 pandas
 chardet
 PyYAML
+
+# Tools
+rich
+tqdm
