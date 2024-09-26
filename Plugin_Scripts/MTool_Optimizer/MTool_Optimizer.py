@@ -51,9 +51,11 @@ class MTool_Optimizer(PluginBase):
 
         for v in tqdm(items):
             v["translation_status"] = 7 if v.get("source_text", "").strip() in texts_to_delete else v.get("translation_status", 0)
+        
+        counts = len([v for v in items if v.get("translation_status", 0) == 7]) - orginal_length
 
         print(f"")
-        print(f"[MTool_Optimizer] 预处理执行成功，已移除 {len([v for v in items if v.get("translation_status", 0) == 7]) - orginal_length} 个重复的条目 ...")
+        print(f"[MTool_Optimizer] 预处理执行成功，已移除 {counts} 个重复的条目 ...")
         print(f"")
 
     # 文本后处理事件
@@ -82,8 +84,10 @@ class MTool_Optimizer(PluginBase):
             event_data
         )
         
+        counts = len(seen)
+
         print(f"")
-        print(f"[MTool_Optimizer] 后处理执行成功，已还原 {len(seen)} 个条目 ...")
+        print(f"[MTool_Optimizer] 后处理执行成功，已还原 {counts} 个条目 ...")
         print(f"")
 
     # 按长度切割字符串
