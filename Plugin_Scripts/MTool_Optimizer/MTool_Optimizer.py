@@ -11,7 +11,7 @@ class MTool_Optimizer(PluginBase):
         self.description = "MTool_Optimizer"
 
     def load(self):
-        print(f"[INFO]  [green]{self.name}[/] 已加载，可提升约 30% 的翻译速度，理论上也会提升翻译质量并节约 Token 消耗 ...")
+        print(f"[INFO]  [green]{self.name}[/] 已加载，至多可提升 [green]40%[/] 的翻译速度，理论上也会提升翻译质量并节约 Token 消耗 ...")
 
     def on_event(self, event_name, configuration_information, event_data):
         if event_name == "preproces_text":
@@ -22,6 +22,7 @@ class MTool_Optimizer(PluginBase):
 
     # 文本预处理事件
     def on_preproces_text(self, configuration_information, event_data):
+        # 检查数据有效性
         if event_data == None or len(event_data) < 2:
             return
 
@@ -40,15 +41,14 @@ class MTool_Optimizer(PluginBase):
         print(f"")
 
         orginal_length = len([v for v in items if v.get("translation_status", 0) == 7])
-        text_to_delete = set()
+        texts_to_delete = set()
 
         for v in tqdm(items):
             results = set(v.strip() for v in v.get("source_text", "").split("\n"))
-            text_to_delete.update(results) if len(results) > 1 else None
+            texts_to_delete.update(results) if len(results) > 1 else None
 
         for v in tqdm(items):
-            if v.get("source_text", "").strip() in text_to_delete:
-                v["translation_status"] = 7
+            v["translation_status"] = 7 if v.get("source_text", "").strip() in texts_to_delete else v.get("translation_status", 0)
 
         print(f"")
         print(f"[MTool_Optimizer] 预处理执行成功，已移除 {len([v for v in items if v.get("translation_status", 0) == 7]) - orginal_length} 个重复的条目 ...")
@@ -56,6 +56,7 @@ class MTool_Optimizer(PluginBase):
 
     # 文本后处理事件
     def on_postprocess_text(self, configuration_information, event_data):
+        # 检查数据有效性
         if event_data == None or len(event_data) < 2:
             return
 
