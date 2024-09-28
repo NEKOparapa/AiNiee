@@ -557,6 +557,9 @@ class Cache_Manager():
     # 计算单个字符串tokens数量函数
     def num_tokens_from_string(self,string):
         """Returns the number of tokens in a text string."""
-        encoding = tiktoken.get_encoding("cl100k_base")
-        num_tokens = len(encoding.encode(string))
-        return num_tokens
+        if isinstance(string, str):
+            encoding = tiktoken.get_encoding("cl100k_base")
+            num_tokens = len(encoding.encode(string))
+            return num_tokens
+        else:
+            return 10

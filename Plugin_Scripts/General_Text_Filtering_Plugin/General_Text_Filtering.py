@@ -33,7 +33,13 @@ class General_Text_Filtering(PluginBase):
                 source_text = entry.get('source_text')
 
                 # 检查文本是否为数值变量
-                if  isinstance(source_text, (int, float)) or (isinstance(source_text, str) and source_text.isdigit()):
+                if  isinstance(source_text, (int, float)) :
+                    entry['source_text'] = str(source_text)
+                    entry['translation_status'] = 7
+                    return
+
+                # 检查文本是否为字符型数字
+                if (isinstance(source_text, str) and source_text.isdigit()):
                     entry['source_text'] = str(source_text)
                     entry['translation_status'] = 7
                     return

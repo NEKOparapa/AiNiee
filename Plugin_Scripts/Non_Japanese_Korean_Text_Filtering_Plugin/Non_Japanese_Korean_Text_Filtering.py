@@ -36,5 +36,5 @@ class Non_Japanese_Korean_Text_Filtering(PluginBase):
         for entry in cache_list:
             source_text = entry.get('source_text')
 
-            if source_text and not contains_cjk(source_text):
+            if isinstance(source_text, str)  and not contains_cjk(source_text):
                 entry['translation_status'] = 7
