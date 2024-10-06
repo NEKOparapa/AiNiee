@@ -103,9 +103,6 @@ class MTool_Optimizer(PluginBase):
             lines_source = source_text.splitlines()
             lines_translated = translated_text.strip().splitlines()
             
-            # 统计包含换行符的原文的所有子句的最大长度
-            max_length = max(len(line) for line in lines_source if len(lines_source) > 1)
-            
             # 第一种情况：原文和译文行数相等，则为其中的每一行生成一个新的条目
             if len(lines_source) > 1 and len(lines_source) == len(lines_translated):
                 for source, translated in zip(lines_source, lines_translated):
@@ -123,8 +120,11 @@ class MTool_Optimizer(PluginBase):
                     
             # 兜底情况：原文和译文行数不相等，且不满足以上所有的条件，则按固定长度切割
             elif len(lines_source) > 1 and len(lines_source) != len(lines_translated):
-                # 切分前，先将译文中的换行符移除，避免重复换行，切分长度为子句最大长度 - 2
-                lines_translated = self.split_string_by_length(translated_text.replace("\n", ""), max_length - 2)
+                # 统计包含换行符的原文的所有子句的最大长度
+                max_length = max(len(line) for line in lines_source if len(lines_source) > 1)
+
+                # 切分前，先将译文中的换行符移除，避免重复换行，切分长度为子句最大长度 - 1
+                lines_translated = self.split_string_by_length(translated_text.replace("\n", ""), max(1, max_length - 1))
                 
                 for k, source in enumerate(lines_source):
                     translated = lines_translated[k] if k < len(lines_translated) else ""
