@@ -64,7 +64,7 @@
 
 * **`📖 角色提取工具`**: [KeywordGacha - 翻译辅助工具](https://github.com/neavo/KeywordGacha)
 
-* **`💽 本地模型一键包`**: [SakuraLLMServer - 一键运行 SakuraLLM 获得免费且高质量的翻译能力](https://github.com/neavo/SakuraLLMServer)
+* **`💽 本地模型一键包`**: [SakuraLLMServer - SakuraLLM 免费且高质量的日语翻译能力,简单快速部署,一键运行,提速500％](https://github.com/neavo/SakuraLLMServer)
 
 * **`📡 下载地址`**: [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
 
