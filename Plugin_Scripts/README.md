@@ -232,6 +232,26 @@ class GreetingPlugin(PluginBase):
 
 
 
+### 回复处理事件(sakura)：sakura_complete_text_process
+
+1. **触发位置**
+
+    每次接受到AI的回复后触发,只在使用Sakura模型时触发
+
+2. **传入参数**
+
+    | 参数名 | 类型 | 描述 |
+    | ------ | ---- | ---- |
+    | event_name | string | sakura_complete_text_process |
+    | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
+    | event_data | string | AI补全生成的全部文本 |
+
+3. **返回参数**
+    | 参数名 | 类型 | 描述 |
+    | ------ | ---- | ---- |
+    | complete_text | string | 处理完成的回复内容 |
+
+
 
 ### 文本后处理事件：postprocess_text
 

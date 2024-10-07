@@ -2219,11 +2219,12 @@ class Api_Requester():
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                     # ——————————————————————————————————————————对回复内容处理,检查——————————————————————————————————————————
-                    # 见raw格式转换为josn格式字符串
-                    response_content = Response_Parser.convert_str_to_json_str(self, row_count, response_content)
 
                     # 调用插件，进行处理
-                    response_content = plugin_manager.broadcast_event("complete_text_process", configurator,response_content)
+                    response_content = plugin_manager.broadcast_event("sakura_complete_text_process", configurator,response_content)
+
+                    # 见raw格式转换为josn格式字符串
+                    response_content = Response_Parser.convert_str_to_json_str(self, row_count, response_content)
 
                     # 提取回复内容
                     response_dict = Response_Parser.text_extraction(self,response_content)
