@@ -18,6 +18,9 @@ class Remove_Json_Triple_Backticks(PluginBase):
 
             text = self.remove_json_triple_backticks(event_data)
 
+        else:
+            text = event_data
+
         return text
 
 
