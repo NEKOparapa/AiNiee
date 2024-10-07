@@ -225,10 +225,8 @@ class GreetingPlugin(PluginBase):
     | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
     | event_data | string | AI补全生成的全部文本 |
 
-3. **返回参数**
-    | 参数名 | 类型 | 描述 |
-    | ------ | ---- | ---- |
-    | complete_text | string | 处理完成的回复内容 |
+
+    因为没有返回参数，需要直接处理输入的参数event_data
 
 
 
@@ -246,10 +244,7 @@ class GreetingPlugin(PluginBase):
     | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
     | event_data | string | AI补全生成的全部文本 |
 
-3. **返回参数**
-    | 参数名 | 类型 | 描述 |
-    | ------ | ---- | ---- |
-    | complete_text | string | 处理完成的回复内容 |
+    因为没有返回参数，需要直接处理输入的参数event_data
 
 
 
