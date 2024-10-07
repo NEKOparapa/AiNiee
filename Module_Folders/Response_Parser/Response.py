@@ -16,22 +16,9 @@ class Response_Parser():
     
 
     #处理并正则提取翻译内容
-    def process_content(self,input_str):
-
-        input_str = Response_Parser.remove_json_triple_backticks(self,input_str)
+    def text_extraction(self,input_str):
 
         # 尝试直接转换为json字典
-        try:
-            response_dict = json.loads(input_str) 
-            return response_dict
-        except :
-            # 对格式进行修复       
-            #input_str = Response_Parser.repair_double_quotes(self,input_str)
-            input_str = Response_Parser.repair_double_quotes_2(self,input_str)  
-            #input_str = Response_Parser.repair_double_quotes_3(self,input_str)       
-
-
-        # 再次尝试直接转换为json字典
         try:
             response_dict = json.loads(input_str) 
             return response_dict

@@ -36,6 +36,7 @@
 
 
 # coding:utf-8               
+import copy
 import datetime
 import json
 import time
@@ -106,6 +107,9 @@ class Translator():
 
         # ——————————————————————————————————————————插件预处理—————————————————————————————————————————
         
+        # 调用插件，进行文本过滤
+        plugin_manager.broadcast_event("text_filter", configurator,configurator.cache_list)
+
         # 调用插件，进行文本预处理
         plugin_manager.broadcast_event("preproces_text", configurator,configurator.cache_list)
 
@@ -303,6 +307,12 @@ class Translator():
         print("\n\033[1;32mSuccess:\033[0m 已完成全部翻译任务，程序已经停止")   
         print("\n\033[1;32mSuccess:\033[0m 请检查译文文件，格式是否错误，存在错行，空行等问题")
         print("\n-------------------------------------------------------------------------------------\n")
+
+
+        # ——————————————————————————————————————————完成后插件—————————————————————————————————————————
+            
+        plugin_manager.broadcast_event("translation_completed", configurator,None)
+
 
 
     # 重新设置发送的文本行数
@@ -681,8 +691,11 @@ class Api_Requester():
 
                     # ———————————————————————————————————对回复内容处理,检查—————————————————————————————————————————————————
 
-                    # 处理回复内容
-                    response_dict = Response_Parser.process_content(self,response_content)
+                    # 调用插件，进行处理
+                    response_content = plugin_manager.broadcast_event("complete_text_process", configurator,response_content)
+
+                    # 提取回复内容
+                    response_dict = Response_Parser.text_extraction(self,response_content)
 
                     # 检查回复内容
                     check_result,error_content =  Response_Parser.check_response_content(self,configurator.reply_check_switch,response_content,response_dict,source_text_dict,configurator.source_language)
@@ -1092,8 +1105,11 @@ class Api_Requester():
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                     # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
-                    # 处理回复内容
-                    response_dict = Response_Parser.process_content(self,response_content)
+                    # 调用插件，进行处理
+                    response_content = plugin_manager.broadcast_event("complete_text_process", configurator,response_content)
+
+                    # 提取回复内容
+                    response_dict = Response_Parser.text_extraction(self,response_content)
 
                     # 检查回复内容
                     check_result,error_content =  Response_Parser.check_response_content(self,configurator.reply_check_switch,response_content,response_dict,source_text_dict,configurator.source_language)
@@ -1472,8 +1488,11 @@ class Api_Requester():
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                     # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
-                    # 处理回复内容
-                    response_dict = Response_Parser.process_content(self,response_content)
+                    # 调用插件，进行处理
+                    response_content = plugin_manager.broadcast_event("complete_text_process", configurator,response_content)
+
+                    # 提取回复内容
+                    response_dict = Response_Parser.text_extraction(self,response_content)
 
                     # 检查回复内容
                     check_result,error_content =  Response_Parser.check_response_content(self,configurator.reply_check_switch,response_content,response_dict,source_text_dict,configurator.source_language)
@@ -1851,8 +1870,11 @@ class Api_Requester():
                     print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                     # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
-                    # 处理回复内容
-                    response_dict = Response_Parser.process_content(self,response_content)
+                    # 调用插件，进行处理
+                    response_content = plugin_manager.broadcast_event("complete_text_process", configurator,response_content)
+
+                    # 提取回复内容
+                    response_dict = Response_Parser.text_extraction(self,response_content)
 
                     # 检查回复内容
                     check_result,error_content =  Response_Parser.check_response_content(self,configurator.reply_check_switch,response_content,response_dict,source_text_dict,configurator.source_language)
@@ -2200,8 +2222,11 @@ class Api_Requester():
                     # 见raw格式转换为josn格式字符串
                     response_content = Response_Parser.convert_str_to_json_str(self, row_count, response_content)
 
-                    # 处理回复内容
-                    response_dict = Response_Parser.process_content(self,response_content)
+                    # 调用插件，进行处理
+                    response_content = plugin_manager.broadcast_event("complete_text_process", configurator,response_content)
+
+                    # 提取回复内容
+                    response_dict = Response_Parser.text_extraction(self,response_content)
 
                     # 检查回复内容
                     check_result,error_content =  Response_Parser.check_response_content(self,configurator.reply_check_switch,response_content,response_dict,source_text_dict,configurator.source_language)
@@ -2514,8 +2539,13 @@ class User_Interface_Prompter(QObject):
 
         # 获取当前所有存活的线程
         alive_threads = threading.enumerate()
-        # 计算子线程的数量（排除主线程）
-        self.num_worker_threads = len(alive_threads) - 2  # 减去主线程与一个子线程
+        # 计算子线程数量
+        if (len(alive_threads) - 3) <= 0: # 减去主线程与一个子线程，和一个滞后线程
+            counts = 1
+        else:
+            counts = len(alive_threads) - 3
+
+        self.num_worker_threads = counts
         #print("[DEBUG] 子线程数：",num_worker_threads)
 
 
@@ -3536,7 +3566,18 @@ class background_executor(threading.Thread):
 
         # 输出已翻译文件实现函数
         elif self.task_id == "输出已翻译文件":
-            File_Outputter.output_translated_content(self,configurator.cache_list,self.output_folder,self.input_folder)
+
+            # 复制缓存文本数据，避免手动导出被插件处理
+            try:
+                new_cache_data = copy.deepcopy(configurator.cache_list)
+            except:
+                print("[INFO]: 无法正常进行深层复制,改为浅复制")
+                new_cache_data = configurator.cache_list.copy()
+
+            # 调用插件
+            plugin_manager.broadcast_event("manual_export", configurator,new_cache_data)
+
+            File_Outputter.output_translated_content(self,new_cache_data,self.output_folder,self.input_folder)
             print('\033[1;32mSuccess:\033[0m 已输出已翻译文件到文件夹')
 
 

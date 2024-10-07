@@ -232,7 +232,7 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
 
         self.labelx222 = QLabel(flags=Qt.WindowFlags())
         self.labelx222.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
-        self.labelx222.setText("子线程数 :")
+        self.labelx222.setText("运行线程数 :")
 
         self.thread_count = QLabel(flags=Qt.WindowFlags())
         self.thread_count.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色

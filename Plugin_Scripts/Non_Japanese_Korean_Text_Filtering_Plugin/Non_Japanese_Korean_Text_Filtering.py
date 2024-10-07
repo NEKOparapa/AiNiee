@@ -15,7 +15,7 @@ class Non_Japanese_Korean_Text_Filtering(PluginBase):
     def on_event(self, event_name, configuration_information, event_data):
 
         # 事件触发
-        if event_name == "preproces_text":
+        if event_name == "text_filter":
 
             # 如果翻译日语或者韩语文本时，则去除非中日韩文本
             if  configuration_information.source_language == "日语" or  configuration_information.source_language == "韩语":

@@ -15,7 +15,7 @@ class General_Text_Filtering(PluginBase):
     def on_event(self, event_name, configuration_information, event_data):
 
         # 文本预处理事件触发
-        if event_name == "preproces_text":
+        if event_name == "text_filter":
 
             self.filter_text(event_data)
 
