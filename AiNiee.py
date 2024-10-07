@@ -121,7 +121,7 @@ class Translator():
         # 计算待翻译的文本总行数，tokens总数
         untranslated_text_line_count,untranslated_text_tokens_count = Cache_Manager.count_and_update_translation_status_0_2(self, configurator.cache_list) #获取需要翻译的文本总行数
         # 计算剩余任务数
-        tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.lines_limit,configurator.tokens_limit,configurator.tokens_limit_switch)
+        tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.lines_limit,configurator.tokens_limit,configurator.tokens_limit_switch,configurator.translation_platform)
 
 
         # 更新界面UI信息
@@ -238,7 +238,7 @@ class Translator():
 
 
             # 计算剩余任务数
-            tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.lines_limit,configurator.tokens_limit,configurator.tokens_limit_switch)
+            tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.lines_limit,configurator.tokens_limit,configurator.tokens_limit_switch,configurator.translation_platform)
 
 
 
@@ -331,21 +331,37 @@ class Translator():
 
         # 重新计算tokens限制
         new_tokens_limit = tokens_limit // 2
-        if new_tokens_limit == 0:
-            new_tokens_limit = 10 # 保底非零
+        if new_tokens_limit < 20:
+            new_tokens_limit = 20 # 保底非零
 
         return new_lines_limit,new_tokens_limit
 
 
     # 计算剩余任务总数
-    def calculate_total_tasks(self,total_lines,total_tokens,lines_limit,tokens_limit,switch = False):
+    def calculate_total_tasks(self,total_lines,total_tokens,lines_limit,tokens_limit,switch = False,translation_platform = None):
         
         if switch:
 
-            if total_tokens % tokens_limit == 0:
-                tasks_Num = total_tokens // tokens_limit 
+            if translation_platform == "SakuraLLM":
+
+                tokens_limit_sakura = tokens_limit - 95 # 减去系统提示词的消耗
+                if total_tokens  <= tokens_limit_sakura:  # 防止无法产出任务数
+                    return  2
+
+                if  tokens_limit_sakura <= 20: # 防止任务数过多
+                    tokens_limit_sakura = 20
+
+                if total_tokens % tokens_limit_sakura == 0:
+                    tasks_Num = total_tokens // tokens_limit_sakura 
+                else:
+                    tasks_Num = total_tokens // tokens_limit_sakura + 1
+            
             else:
-                tasks_Num = total_tokens // tokens_limit + 1
+
+                if total_tokens % tokens_limit == 0:
+                    tasks_Num = total_tokens // tokens_limit 
+                else:
+                    tasks_Num = total_tokens // tokens_limit + 1
 
         else:
 
@@ -2542,10 +2558,10 @@ class User_Interface_Prompter(QObject):
         # 获取当前所有存活的线程
         alive_threads = threading.enumerate()
         # 计算子线程数量
-        if (len(alive_threads) - 3) <= 0: # 减去主线程与一个子线程，和一个滞后线程
+        if (len(alive_threads) - 2) <= 0: # 减去主线程与一个子线程，和一个滞后线程
             counts = 1
         else:
-            counts = len(alive_threads) - 3
+            counts = len(alive_threads) - 2
 
         self.num_worker_threads = counts
         #print("[DEBUG] 子线程数：",num_worker_threads)
