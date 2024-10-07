@@ -29,7 +29,7 @@ class Bilingual_Comparison(PluginBase):
 
 
 
-    def read_yaml_switchparameter(file_path):
+    def read_yaml_switchparameter(self,file_path):
         """
         读取YAML文件并返回开关参数的值。
 
