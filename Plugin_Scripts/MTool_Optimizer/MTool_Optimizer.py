@@ -19,7 +19,7 @@ class MTool_Optimizer(PluginBase):
         if event_name == "preproces_text":
             self.on_preproces_text(configuration_information, event_data)
 
-        if event_name == "postprocess_text":
+        if event_name == "manual_export" or event_name == "postprocess_text":
             self.on_postprocess_text(configuration_information, event_data)
 
     # 文本预处理事件
