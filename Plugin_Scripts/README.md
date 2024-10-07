@@ -91,7 +91,7 @@ class GreetingPlugin(PluginBase):
 ## 插件事件介绍
 本插件会触发以下事件，并提供相应的参数供其他插件或功能模块使用。
 
-### 事件：preproces_text
+### 文本预处理事件：preproces_text
 
 1. **触发位置**
 
@@ -192,7 +192,7 @@ class GreetingPlugin(PluginBase):
         """
     ```
 
-### 事件：postprocess_text
+### 文本后处理事件：postprocess_text
 
 1. **触发位置**
 
@@ -208,7 +208,7 @@ class GreetingPlugin(PluginBase):
 
 
 
-### 事件：complete_text_process
+### 手动导出事件：manual_export
 
 1. **触发位置**
 
@@ -224,7 +224,7 @@ class GreetingPlugin(PluginBase):
 
 
 
-### 事件：complete_text_process
+### 回复处理事件：complete_text_process
 
 1. **触发位置**
 
@@ -246,7 +246,7 @@ class GreetingPlugin(PluginBase):
 
 
 
-### 事件：translation_completed
+### 翻译完成事件：translation_completed
 
 1. **触发位置**
 
