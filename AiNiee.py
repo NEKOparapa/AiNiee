@@ -2022,12 +2022,13 @@ class Api_Requester():
         # 处理全角数字
         source_text_str_raw = self.convert_fullwidth_to_halfwidth(source_text_str_raw)
 
-        #构建需要翻译的文本
-        if gpt_dict_raw_text:
+        #构建user_prompt
+        if gpt_dict_raw_text: # 有字典时
             user_prompt = "根据以下术语表（可以为空）：\n" + gpt_dict_raw_text + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：" + source_text_str_raw
-        else:
-            if configurator.model_type != "Sakura-v0.9":
-                user_prompt = "根据以下术语表（可以为空）：\n\n\n" + "将下面的日文文本根据上述术语表的对应关系和备注翻译成中文：" + source_text_str_raw
+
+        else: # 空字典时
+            if configurator.model_type != "Sakura-v0.9": 
+                user_prompt = "将下面的日文文本翻译成中文：" + source_text_str_raw
             else:
                 user_prompt = "将下面的日文文本翻译成中文：" + source_text_str_raw
 
