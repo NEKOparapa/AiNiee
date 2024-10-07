@@ -94,6 +94,7 @@ class GreetingPlugin(PluginBase):
 ### 事件：preproces_text
 
 1. **触发位置**
+
     读取原文文件到缓存中，开始请求前触发。
 
 2. **传入参数**
@@ -194,6 +195,7 @@ class GreetingPlugin(PluginBase):
 ### 事件：postprocess_text
 
 1. **触发位置**
+
     翻译完成，输出翻译文件前触发。
 
 2. **传入参数**
@@ -209,6 +211,7 @@ class GreetingPlugin(PluginBase):
 ### 事件：complete_text_process
 
 1. **触发位置**
+
     用户使用“手动导出翻译文件功能”，在翻译文件导出前触发。
 
 2. **传入参数**
@@ -224,6 +227,7 @@ class GreetingPlugin(PluginBase):
 ### 事件：complete_text_process
 
 1. **触发位置**
+
     每次请求，接受到AI的回复后触发。
 
 2. **传入参数**
@@ -245,6 +249,7 @@ class GreetingPlugin(PluginBase):
 ### 事件：translation_completed
 
 1. **触发位置**
+
     翻译完成，写出翻译文件，任务即将退出前。
 
 2. **传入参数**
