@@ -89,13 +89,30 @@ class GreetingPlugin(PluginBase):
 
 
 ## 插件事件介绍
-本插件会触发以下事件，并提供相应的参数供其他插件或功能模块使用。
+本插件会触发以下事件，并提供相应的参数供其他插件或功能模块使用，下面事件触发顺序大致由上到下。
+
+
+### 文本预过滤事件：text_filter
+
+1. **触发位置**
+
+    在读取原文文件后，在文本预处理事件前触发
+
+2. **传入参数**
+
+    | 参数名 | 类型 | 描述 |
+    | ------ | ---- | ---- |
+    | event_name | string | text_filter |
+    | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
+    | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
+
+
 
 ### 文本预处理事件：preproces_text
 
 1. **触发位置**
 
-    读取原文文件到缓存中，开始请求前触发。
+    在文本预过滤事件后，开始请求前触发。
 
 2. **传入参数**
 
@@ -192,6 +209,30 @@ class GreetingPlugin(PluginBase):
         """
     ```
 
+
+
+### 回复处理事件：complete_text_process
+
+1. **触发位置**
+
+    每次接受到AI的回复后触发。
+
+2. **传入参数**
+
+    | 参数名 | 类型 | 描述 |
+    | ------ | ---- | ---- |
+    | event_name | string | complete_text_process |
+    | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
+    | event_data | string | AI补全生成的全部文本 |
+
+3. **返回参数**
+    | 参数名 | 类型 | 描述 |
+    | ------ | ---- | ---- |
+    | complete_text | string | 处理完成的回复内容 |
+
+
+
+
 ### 文本后处理事件：postprocess_text
 
 1. **触发位置**
@@ -205,6 +246,8 @@ class GreetingPlugin(PluginBase):
     | event_name | string | postprocess_text |
     | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
     | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
+
+
 
 
 
@@ -224,33 +267,13 @@ class GreetingPlugin(PluginBase):
 
 
 
-### 回复处理事件：complete_text_process
-
-1. **触发位置**
-
-    每次请求，接受到AI的回复后触发。
-
-2. **传入参数**
-
-    | 参数名 | 类型 | 描述 |
-    | ------ | ---- | ---- |
-    | event_name | string | complete_text_process |
-    | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
-    | event_data | string | AI补全生成的全部文本 |
-
-3. **返回参数**
-    | 参数名 | 类型 | 描述 |
-    | ------ | ---- | ---- |
-    | complete_text | string | 处理完成的回复内容 |
-
-
 
 
 ### 翻译完成事件：translation_completed
 
 1. **触发位置**
 
-    翻译完成，写出翻译文件，任务即将退出前。
+    翻译完成，写出翻译文件后，任务即将退出前。
 
 2. **传入参数**
 
