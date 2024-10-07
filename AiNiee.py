@@ -2024,7 +2024,7 @@ class Api_Requester():
 
         #构建需要翻译的文本
         if gpt_dict_raw_text:
-            user_prompt = "根据以下术语表（可以为空）：\n" + gpt_dict_raw_text + "\n\n" + "将下面的日文文本根据上述术语表的对应关系和备注翻译成中文：" + source_text_str_raw
+            user_prompt = "根据以下术语表（可以为空）：\n" + gpt_dict_raw_text + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：" + source_text_str_raw
         else:
             if configurator.model_type != "Sakura-v0.9":
                 user_prompt = "根据以下术语表（可以为空）：\n\n\n" + "将下面的日文文本根据上述术语表的对应关系和备注翻译成中文：" + source_text_str_raw
