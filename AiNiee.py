@@ -107,8 +107,6 @@ class Translator():
 
         # ——————————————————————————————————————————插件预处理—————————————————————————————————————————
         
-        # 加载插件
-        plugin_manager.load_plugins_from_directory(configurator.plugin_dir)
 
 
         # 调用插件，进行文本过滤
@@ -3709,7 +3707,8 @@ if __name__ == '__main__':
 
     # 创建全局插件管理器
     plugin_manager = Plugin_Manager()
-   
+    # 加载插件
+    plugin_manager.load_plugins_from_directory(configurator.plugin_dir)
 
 
     #创建全局窗口对象
