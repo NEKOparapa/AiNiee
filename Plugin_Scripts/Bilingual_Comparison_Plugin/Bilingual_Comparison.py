@@ -54,7 +54,7 @@ class Bilingual_Comparison(PluginBase):
             if storage_path:
                 source_text = entry.get('source_text')
                 translated_text = entry.get('translated_text')
-                translation_status = entry.get('translation_status ')
+                translation_status = entry.get('translation_status')
 
                 if  translation_status == 1 :
                     entry['translated_text'] = source_text +"\n"+ translated_text
