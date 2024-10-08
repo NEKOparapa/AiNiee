@@ -2169,10 +2169,10 @@ class Api_Requester():
                     openaiclient = OpenAI(api_key = openai_apikey, base_url = openai_base_url)
 
                     # Token限制模式下，请求的最大tokens数应该与设置保持一致
-                    if not configurator.tokens_limit_switch:
-                        openai_max_tokens = 512
+                    if configurator.tokens_limit_switch:
+                        sakura_max_tokens = configurator.tokens_limit
                     else:
-                        openai_max_tokens = max(0, configurator.tokens_limit)
+                        sakura_max_tokens = 512
                     
                     # 发送对话请求
                     try:
@@ -2182,7 +2182,7 @@ class Api_Requester():
                             temperature = temperature,
                             top_p = top_p,                        
                             frequency_penalty = frequency_penalty,
-                            max_tokens = openai_max_tokens,
+                            max_tokens = sakura_max_tokens,
                             seed = -1,
                             extra_query = extra_query,
                         )

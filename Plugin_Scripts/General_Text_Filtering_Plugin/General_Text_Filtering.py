@@ -72,6 +72,17 @@ class General_Text_Filtering(PluginBase):
                     continue
 
 
+                # 检查开头的
+                if isinstance(source_text, str) and any(source_text.lower().startswith(ext) for ext in ['MapData/', 'SE/', 'BGS', '0=', 'BGM/', 'FIcon/', '<input type=', 'width:', '<div ']):
+                    entry['translation_status'] = 7
+                    continue
+
+
+                # 检查开头的
+                #if isinstance(source_text, str) and any(source_text.lower().startswith(ext) for ext in ['message = ', 'SE/']):
+                    #entry['translation_status'] = 7
+                    #continue
+
                 # 检查文本是否为空
                 if source_text:
                     # 正则表达式匹配<sg ?: ?>>格式的文本
