@@ -252,7 +252,7 @@ class GreetingPlugin(PluginBase):
 
 1. **触发位置**
 
-    翻译完成，输出翻译文件前触发。
+    翻译完成，文本优化事件前触发。
 
 2. **传入参数**
 
@@ -263,7 +263,19 @@ class GreetingPlugin(PluginBase):
     | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
 
 
+### 文本优化事件：optimize_text
 
+1. **触发位置**
+
+    文本后处理事件后，输出翻译文件前触发。
+
+2. **传入参数**
+
+    | 参数名 | 类型 | 描述 |
+    | ------ | ---- | ---- |
+    | event_name | string | optimize_text |
+    | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
+    | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
 
 
 ### 手动导出事件：manual_export

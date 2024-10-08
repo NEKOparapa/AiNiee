@@ -15,7 +15,7 @@ class Bilingual_Comparison(PluginBase):
     def on_event(self, event_name, configuration_information, event_data):
 
         # 事件触发
-        if event_name == "postprocess_text":
+        if event_name == "optimize_text":
 
             # 构建该插件配置文件路径
             the_plugin_dir = configuration_information.plugin_dir + "\Bilingual_Comparison_Plugin"+"\config.txt" 

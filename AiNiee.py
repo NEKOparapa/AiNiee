@@ -283,6 +283,9 @@ class Translator():
         plugin_manager.broadcast_event("postprocess_text", configurator,configurator.cache_list)
 
 
+        # 调用插件，进行文本后处理
+        plugin_manager.broadcast_event("optimize_text", configurator,configurator.cache_list)
+
         #如果开启了转换简繁开关功能，则进行文本转换
         if configurator.conversion_toggle:
             try:
