@@ -1,14 +1,5 @@
-
-import yaml
-import re
 import time
 import threading
-import os
-import sys
-import multiprocessing
-import concurrent.futures
-import shutil
-import zipfile
 
 import tiktoken_ext  #必须导入这两个库，否则打包后无法运行
 from tiktoken_ext import openai_public
