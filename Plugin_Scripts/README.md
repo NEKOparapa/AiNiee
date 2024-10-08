@@ -276,7 +276,7 @@ class GreetingPlugin(PluginBase):
 
     | 参数名 | 类型 | 描述 |
     | ------ | ---- | ---- |
-    | event_name | string | postprocess_text |
+    | event_name | string | manual_export |
     | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
     | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
 

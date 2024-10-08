@@ -36,36 +36,42 @@ class General_Text_Filtering(PluginBase):
                 if  isinstance(source_text, (int, float)) :
                     entry['source_text'] = str(source_text)
                     entry['translation_status'] = 7
-                    return
+                    continue
 
                 # 检查文本是否为字符型数字
                 if (isinstance(source_text, str) and source_text.isdigit()):
                     entry['source_text'] = str(source_text)
                     entry['translation_status'] = 7
-                    return
+                    continue
 
                 # 检查文本是否为空
                 if source_text == "":
                     entry['translation_status'] = 7
-                    return
+                    continue
 
                 # 检查文本是否为空
                 if source_text == None:
                     entry['translation_status'] = 7
-                    return
+                    continue
 
                 # 检查是否仅含标点符号的文本组合
                 if isinstance(source_text, str) and self.is_punctuation_string(source_text):
                     entry['translation_status'] = 7
-                    return
+                    continue
 
 
                 #加个检测后缀为MP3，wav，png，这些文件名的文本，都是纯代码文本，所以忽略掉
-                if source_text.endswith('.mp3') or source_text.endswith('.wav') or source_text.endswith('.png') or source_text.endswith('.jpg'):
+                if isinstance(source_text, str) and any(source_text.lower().endswith(ext) for ext in ['.mp3', '.wav', '.png', '.jpg', '.gif', '.rar', '.zip', '.json']):
                     entry['translation_status'] = 7
-                    return
+                    continue
 
-                
+
+                # 同上
+                if isinstance(source_text, str) and any(source_text.lower().endswith(ext) for ext in ['.txt', '.wav']):
+                    entry['translation_status'] = 7
+                    continue
+
+
                 # 检查文本是否为空
                 if source_text:
                     # 正则表达式匹配<sg ?: ?>>格式的文本
@@ -86,7 +92,7 @@ class General_Text_Filtering(PluginBase):
                                 if len(right) > len(left) * 15:
                                     entry['translation_status'] = 0
                                     
-                    return
+                    continue
 
 
     # 检查字符串是否只包含常见的标点符号
