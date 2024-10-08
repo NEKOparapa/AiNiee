@@ -1,8 +1,10 @@
 import re
+
+from .TextHelper import TextHelper
 from ..Plugin_Base.Plugin_Base import PluginBase
 
-
 class Non_Japanese_Korean_Text_Filtering(PluginBase):
+    
     def __init__(self):
         super().__init__()
         self.name = "Non_Japanese_Korean_Text_Filtering_Plugin"
@@ -11,32 +13,21 @@ class Non_Japanese_Korean_Text_Filtering(PluginBase):
     def load(self):
         print(f"[INFO]  {self.name} loaded!")
 
-
     def on_event(self, event_name, configuration_information, event_data):
-
         # 事件触发
         if event_name == "text_filter":
-
-            # 如果翻译日语或者韩语文本时，则去除非中日韩文本
-            if  (configuration_information.source_language == "日语") or  (configuration_information.source_language == "韩语") :
-
-                # 过滤文本
-                self.process_dictionary_list(event_data)
-
+            if configuration_information.source_language == "日语" or configuration_information.source_language == "韩语":
+                self.process_text_by_language(event_data, configuration_information.source_language)
                 print(f"[INFO]  Non-Japanese/Korean text has been filtered.")
 
+    # 根据目标语言处理缓存列表中的条目 
+    def process_text_by_language(self, cache_list, language):
+        if language == "日语":
+            for item in cache_list:
+                if not TextHelper.has_any_japanese(item.get("source_text", "")):
+                    item["translation_status"] = 7
 
-    # 处理缓存数据的非中日韩字符，且改变翻译状态为7
-    def process_dictionary_list(self,cache_list):
-
-        for entry in cache_list:
-            source_text = entry.get('source_text')
-
-            if isinstance(source_text, str)  and not self.contains_cjk(source_text):
-                entry['translation_status'] = 7
-
-
-
-    def contains_cjk(self,text):
-        pattern = re.compile(r'[\u4e00-\u9fff\u3040-\u30ff\u1100-\u11ff\u3130-\u318f\uac00-\ud7af]+')
-        return bool(pattern.search(text))
+        if language == "韩语":
+            for item in cache_list:
+                if not TextHelper.has_any_korean(item.get("source_text", "")):
+                    item["translation_status"] = 7
