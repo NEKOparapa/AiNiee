@@ -1,7 +1,6 @@
-import os
 from ..Plugin_Base.Plugin_Base import PluginBase
 
-import yaml
+
 
 class Bilingual_Comparison(PluginBase):
     def __init__(self):
@@ -19,31 +18,28 @@ class Bilingual_Comparison(PluginBase):
         if event_name == "postprocess_text":
 
             # 构建该插件配置文件路径
-            the_plugin_dir = os.path.join(configuration_information.plugin_dir, "Bilingual_Comparison_Plugin", "config.yaml") 
+            the_plugin_dir = configuration_information.plugin_dir + "\Bilingual_Comparison_Plugin"+"\config.txt" 
 
             # 获取配置开关
-            switch = self.read_yaml_switchparameter(the_plugin_dir)
+            switch = self.check_switch_status(the_plugin_dir)
 
             if switch:
                 self.process_dictionary_list(event_data)
 
 
 
-    def read_yaml_switchparameter(self,file_path):
-        """
-        读取YAML文件并返回开关参数的值。
-
-        参数:
-        file_path (str): YAML文件的路径。
-
-        返回:
-        bool: 开关参数的值。如果找不到参数，则返回None。
-        """
-        with open(file_path, 'r', encoding='utf-8') as file:
-            data = yaml.safe_load(file)
-            
-        # 假设开关参数在YAML文件中名为'switch'
-        return data.get('switch', None)
+    def check_switch_status(self,file_path):
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                content = file.read()
+                if "双语开关: 开" in content:
+                    return True
+                else:
+                    return False
+        except FileNotFoundError:
+            return "文件未找到"
+        except Exception as e:
+            return f"读取开关文件时发生错误: {e}"
 
 
     def process_dictionary_list(self,cache_list):

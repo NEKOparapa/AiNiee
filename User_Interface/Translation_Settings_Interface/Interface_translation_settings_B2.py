@@ -73,8 +73,8 @@ class Widget_translation_settings_B2(QFrame):#  专项设置子界面
 
        #设置选择开关
         self.SwitchButton_clear = SwitchButton(parent=self)    
-        self.SwitchButton_clear.checkedChanged.connect(self.on_clear)
-
+        #self.SwitchButton_clear.checkedChanged.connect(self.on_clear)
+        self.SwitchButton_clear.setChecked(True)
 
 
         layout_clear.addWidget(labe1_4)
@@ -128,7 +128,7 @@ class Widget_translation_settings_B2(QFrame):#  专项设置子界面
 
        #设置“换行符保留”选择开关
         self.SwitchButton_line_breaks = SwitchButton(parent=self)    
-
+        self.SwitchButton_line_breaks.setChecked(True)
 
 
         layout1_line_breaks.addWidget(labe1_6)
@@ -156,8 +156,3 @@ class Widget_translation_settings_B2(QFrame):#  专项设置子界面
         container.setSpacing(28) # 设置布局内控件的间距为28
         container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
 
-
-    #设置选择开关绑定函数
-    def on_clear(self, isChecked: bool):
-        if isChecked:
-            self.user_interface_prompter.createWarningInfoBar("仅支持翻译日语文本时生效，建议翻译T++导出文件时开启")
