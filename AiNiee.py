@@ -65,7 +65,7 @@ from Module_Folders.Configurator.Config import Configurator
 from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
 from User_Interface.MainWindows import window  # 导入界面
 from User_Interface.MainWindows import Widget_New_proxy
-from Plugin_Scripts.Plugin_Manager import Plugin_Manager
+#from Plugin_Scripts.Plugin_Manager import Plugin_Manager
 
 
 # 翻译器
@@ -3706,9 +3706,9 @@ if __name__ == '__main__':
     request_limiter = Request_Limiter(configurator)
 
     # 创建全局插件管理器
-    plugin_manager = Plugin_Manager()
+    #plugin_manager = Plugin_Manager()
     # 加载插件
-    plugin_manager.load_plugins_from_directory(configurator.plugin_dir)
+    #plugin_manager.load_plugins_from_directory(configurator.plugin_dir)
 
 
     #创建全局窗口对象
