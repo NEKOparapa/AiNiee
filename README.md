@@ -52,7 +52,7 @@
       |[Deepseek平台](https://platform.deepseek.com/usage)|Deepseek系列|注册送少量免费额度，速度极快|便宜|用途广泛|
       |[Dashscope平台](https://dashscope.console.aliyun.com/playground) |千问系列|注册送大量免费额度|便宜|安全限制|
       |[Volcengine平台](https://console.volcengine.com/ark)|豆包系列|注册送大量免费额度，速度极快|便宜|安全限制|
-      |[SakuraLLM](https://github.com/SakuraLLM/SakuraLLM)  |Sakura系列|需自行部署模型 [点击查看一键包](https://github.com/neavo/SakuraLLMServer) |免费|用途广泛|
+      |[SakuraLLM](https://github.com/SakuraLLM/SakuraLLM)  |Sakura系列| 本地模型，需显卡 [点击查看一键包](https://github.com/neavo/SakuraLLMServer) |免费|用途广泛|
 
 
  * **`📺视频教程`**
@@ -62,9 +62,9 @@
       |[Mtool教程](https://www.bilibili.com/video/BV1h6421c7MA) |初次使用推荐观看|
       |[T++教程](https://www.bilibili.com/video/BV18c411K7WN?p=2)|初次使用推荐观看|
 
-* **`📖 角色提取工具`**: [KeywordGacha - 翻译辅助工具](https://github.com/neavo/KeywordGacha)
+* **`📖 角色提取工具`**: [KeywordGacha - 使用 AI 技术来自动生成 `实体词语表` 的翻译辅助工具](https://github.com/neavo/KeywordGacha)
 
-* **`💽 本地模型一键包`**: [SakuraLLMServer - SakuraLLM 免费且高质量的日语翻译能力,简单部署,一键运行,提速500％](https://github.com/neavo/SakuraLLMServer)
+* **`💽 本地模型一键包`**: [SakuraLLMServer - 一键获取免费且高质量的日语翻译能力，可提速 3-5 倍](https://github.com/neavo/SakuraLLMServer)
 
 * **`📡 下载地址`**: [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
 
@@ -127,12 +127,7 @@
 *  SakuraLLM配置:
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sakura/SakuraLLM.png" width="600" height="400"><br>
 
-    > 1.模型部署方法：https://github.com/SakuraLLM/Sakura-13B-Galgame/wiki<br>
-
-    > 2.SakuraLLM 性能优化指南：https://github.com/NEKOparapa/AiNiee/blob/main/SakuraLLMScript/OptimizationGuide.md<br>
-
-    > 3.部署好模型后，获取接口地址，如：http://127.0.0.1:6006    填入请求地址栏中，注意，接口地址后面不要包含其他内容，比如空格或者"/"，否则会报错<br>
-
+    > 模型部署与应用设置请参考 [SakuraLLMServer - 一键获取免费且高质量的日语翻译能力](https://github.com/neavo/SakuraLLMServer)
 
 </details>
   
