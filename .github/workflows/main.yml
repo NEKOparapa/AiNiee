@@ -20,7 +20,7 @@ jobs:
       - name: Install PyInstaller
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller openai cohere anthropic numpy openpyxl PyQt5 "PyQt-Fluent-Widgets[full]"==1.3.5 opencc tiktoken google-generativeai==0.8.1 ebooklib beautifulsoup4 pandas chardet PyYAML rich
+          pip install pyinstaller openai cohere==5.10.0 anthropic numpy openpyxl PyQt5 "PyQt-Fluent-Widgets[full]" opencc tiktoken google-generativeai==0.8.1 ebooklib beautifulsoup4 pandas chardet PyYAML rich
 
       - name: Modify opencc
         run: |
