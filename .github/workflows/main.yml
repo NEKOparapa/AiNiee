@@ -15,12 +15,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.9
+          python-version: 3.12
 
       - name: Install PyInstaller
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller openai cohere==5.10.0 anthropic numpy openpyxl PyQt5 "PyQt-Fluent-Widgets[full]" opencc tiktoken google-generativeai==0.8.1 ebooklib beautifulsoup4 pandas chardet PyYAML rich
+          pip install pyinstaller openai cohere==5.10.0 anthropic numpy openpyxl PyQt5 "PyQt-Fluent-Widgets[full]" opencc tiktoken google-generativeai ebooklib beautifulsoup4 pandas chardet PyYAML rich
 
       - name: Modify opencc
         run: |
