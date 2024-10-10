@@ -55,6 +55,7 @@ from PyQt5.QtCore import  QObject,  Qt, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QTableWidgetItem
 from qfluentwidgets import InfoBar, InfoBarPosition, StateToolTip
 
+import jaconv # 日文文本转换工具
 from StevExtraction import jtpp  # type: ignore #导入文本提取工具
 from Module_Folders.Cache_Manager.Cache import Cache_Manager  
 from Module_Folders.File_Reader.File1 import File_Reader 
@@ -1980,9 +1981,16 @@ class Api_Requester():
 
 
     # 整理发送内容（sakura）
-    def organize_send_content_sakura(self,source_text_dict, previous_list):
-        #创建message列表，用于发送
+    def organize_send_content_sakura(self, source_text_dict, previous_list):
+        
+        # 创建message列表，用于发送
         messages = []
+
+        # 将半角（半角假名）片假名转换为全角（全角假名）片假名
+        # 全角（全角）ASCII字符和数字转换为半角（半角）ASCII字符和数字。
+        # 此外，全角波浪号（～）等也被规范化。
+        for k in source_text_dict.keys():
+            source_text_dict[k] = jaconv.normalize(source_text_dict.get(k, ""), mode = "NFKC")
 
         #构建系统提示词
         if configurator.model_type != "Sakura-v0.9":
@@ -2026,9 +2034,6 @@ class Api_Requester():
  
         #将原文本字典转换成raw格式的字符串
         source_text_str_raw = self.convert_dict_to_raw_str(source_text_dict)
-
-        # 处理全角数字
-        source_text_str_raw = self.convert_fullwidth_to_halfwidth(source_text_str_raw)
 
         #构建user_prompt
         if gpt_dict_raw_text: # 有字典时
@@ -2341,19 +2346,6 @@ class Api_Requester():
             str_list.append(source_text_dict[f"{idx}"])
         raw_str = "\n".join(str_list)
         return raw_str
-
-
-    # 将列表中的字符串中的全角数字转换为半角数字
-    def convert_fullwidth_to_halfwidth(self,input_string):
-        modified_string = ""
-        for char in input_string:
-            if '０' <= char <= '９':  # 判断是否为全角数字
-                modified_string += chr(ord(char) - ord('０') + ord('0'))  # 转换为半角数字
-            else:
-                modified_string += char
-
-        return modified_string
-
 
 # UI交互器
 class User_Interface_Prompter(QObject):
