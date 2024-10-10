@@ -8,6 +8,9 @@ class TextHelper:
     # 片假名
     KATAKANA = ("\u30A0", "\u30FF")
 
+    # 半角片假名（包括半角浊音、半角拗音等）
+    KATAKANA_HALF_WIDTH = ("\uFF65", "\uFF9F")
+
     # 片假名语音扩展
     KATAKANA_PHONETIC_EXTENSIONS = ("\u31F0", "\u31FF")
 
@@ -89,6 +92,7 @@ class TextHelper:
             TextHelper.CJK[0] <= ch <= TextHelper.CJK[1] 
             or TextHelper.KATAKANA[0] <= ch <= TextHelper.KATAKANA[1]
             or TextHelper.HIRAGANA[0] <= ch <= TextHelper.HIRAGANA[1]
+            or TextHelper.KATAKANA_HALF_WIDTH[0] <= ch <= TextHelper.KATAKANA_HALF_WIDTH[1]
             or TextHelper.KATAKANA_PHONETIC_EXTENSIONS[0] <= ch <= TextHelper.KATAKANA_PHONETIC_EXTENSIONS[1]
             or ch in TextHelper.VOICED_SOUND_MARKS
         )
