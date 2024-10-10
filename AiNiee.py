@@ -124,7 +124,7 @@ class Translator():
         # 计算待翻译的文本总行数，tokens总数
         untranslated_text_line_count,untranslated_text_tokens_count = Cache_Manager.count_and_update_translation_status_0_2(self, configurator.cache_list) #获取需要翻译的文本总行数
         # 计算剩余任务数
-        tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.lines_limit,configurator.tokens_limit,configurator.tokens_limit_switch,configurator.translation_platform)
+        tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.lines_limit,configurator.tokens_limit,configurator.tokens_limit_switch)
 
 
         # 更新界面UI信息
@@ -241,7 +241,7 @@ class Translator():
 
 
             # 计算剩余任务数
-            tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.lines_limit,configurator.tokens_limit,configurator.tokens_limit_switch,configurator.translation_platform)
+            tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.lines_limit,configurator.tokens_limit,configurator.tokens_limit_switch)
 
 
 
@@ -344,7 +344,7 @@ class Translator():
 
 
     # 计算剩余任务总数
-    def calculate_total_tasks(self,total_lines,total_tokens,lines_limit,tokens_limit,switch = False,translation_platform = None):
+    def calculate_total_tasks(self,total_lines,total_tokens,lines_limit,tokens_limit,switch = False):
         
         if switch:
 
