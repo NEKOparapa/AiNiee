@@ -259,17 +259,32 @@ class Cache_Manager():
         middle_chars = input_string
 
         # 定义中日文及常用标点符号的正则表达式
-        zh_pattern = re.compile(r'[\u4e00-\u9fff]+')
-        jp_pattern = re.compile(r'[\u3040-\u309f\u30a0-\u30ff\u3400-\u4dbf]+')
+        CJK = ("\u4E00", "\u9FFF") # 中日韩统一表意文字
+        HIRAGANA = ("\u3040", "\u309F") # 平假名
+        KATAKANA = ("\u30A0", "\u30FF") # 片假名
+        KATAKANA_HALF_WIDTH = ("\uFF65", "\uFF9F") # 半角片假名（包括半角浊音、半角拗音等）
+        KATAKANA_PHONETIC_EXTENSIONS = ("\u31F0", "\u31FF") # 片假名语音扩展
+        VOICED_SOUND_MARKS = ("\u309B", "\u309C") # 濁音和半浊音符号
+
+        jp_pattern = re.compile(
+            rf'['
+            + rf'{CJK[0]}-{CJK[1]}'
+            + rf'{HIRAGANA[0]}-{HIRAGANA[1]}'
+            + rf'{KATAKANA[0]}-{KATAKANA[1]}'
+            + rf'{KATAKANA_HALF_WIDTH[0]}-{KATAKANA_HALF_WIDTH[1]}'
+            + rf'{KATAKANA_PHONETIC_EXTENSIONS[0]}-{KATAKANA_PHONETIC_EXTENSIONS[1]}'
+            + rf'{VOICED_SOUND_MARKS[0]}-{VOICED_SOUND_MARKS[1]}'
+            + rf']+'
+        )
         punctuation = re.compile(r'[。．，、；：？！「」『』【】〔〕（）《》〈〉…—…]+')
 
         # 从头开始检查并截取
-        while middle_chars and not (zh_pattern.match(middle_chars) or jp_pattern.match(middle_chars) or punctuation.match(middle_chars)):
+        while middle_chars and not (jp_pattern.match(middle_chars) or punctuation.match(middle_chars)):
             head_chars.append(middle_chars[0])
             middle_chars = middle_chars[1:]
         
         # 从尾开始检查并截取
-        while middle_chars and not (zh_pattern.match(middle_chars[-1]) or jp_pattern.match(middle_chars[-1]) or punctuation.match(middle_chars[-1])):
+        while middle_chars and not (jp_pattern.match(middle_chars[-1]) or punctuation.match(middle_chars[-1])):
             tail_chars.insert(0, middle_chars[-1])  # 保持原始顺序插入
             middle_chars = middle_chars[:-1]
         
