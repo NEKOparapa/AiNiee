@@ -336,8 +336,8 @@ class Translator():
 
         # 重新计算tokens限制
         new_tokens_limit = tokens_limit // 2
-        if new_tokens_limit < 20:
-            new_tokens_limit = 20 # 保底非零
+        if new_tokens_limit < 2:
+            new_tokens_limit = 2 # 保底非零
 
         return new_lines_limit,new_tokens_limit
 
@@ -347,26 +347,13 @@ class Translator():
         
         if switch:
 
-            if translation_platform == "SakuraLLM":
+            if total_tokens  <= tokens_limit:  # 防止负数计算
+                return  1
 
-                tokens_limit_sakura = tokens_limit - 95 # 减去系统提示词的消耗
-                if total_tokens  <= tokens_limit_sakura:  # 防止无法产出任务数
-                    return  2
-
-                if  tokens_limit_sakura <= 20: # 防止任务数过多
-                    tokens_limit_sakura = 20
-
-                if total_tokens % tokens_limit_sakura == 0:
-                    tasks_Num = total_tokens // tokens_limit_sakura 
-                else:
-                    tasks_Num = total_tokens // tokens_limit_sakura + 1
-            
+            if total_tokens % tokens_limit == 0:
+                tasks_Num = total_tokens // tokens_limit 
             else:
-
-                if total_tokens % tokens_limit == 0:
-                    tasks_Num = total_tokens // tokens_limit 
-                else:
-                    tasks_Num = total_tokens // tokens_limit + 1
+                tasks_Num = total_tokens // tokens_limit + 1
 
         else:
 
@@ -2076,11 +2063,8 @@ class Api_Requester():
             configurator.lock1.acquire()  # 获取锁
             # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
             if configurator.tokens_limit_switch:
-                # 减去系统提示词预计的tokens
-                if configurator.tokens_limit - 90 > 0:
-                    tokens_limit = configurator.tokens_limit - 90
-                else:
-                    tokens_limit = configurator.tokens_limit
+
+                tokens_limit = configurator.tokens_limit
 
                 source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(self,tokens_limit, configurator.cache_list,configurator.pre_line_counts)  
             else:
