@@ -2068,10 +2068,7 @@ class Api_Requester():
             configurator.lock1.acquire()  # 获取锁
             # 获取设定行数的文本，并修改缓存文件里的翻译状态为2，表示正在翻译中
             if configurator.tokens_limit_switch:
-
-                tokens_limit = configurator.tokens_limit
-
-                source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(self,tokens_limit, configurator.cache_list,configurator.pre_line_counts)  
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(self,configurator.tokens_limit, configurator.cache_list,configurator.pre_line_counts)  
             else:
                 source_text_list, previous_list = Cache_Manager.process_dictionary_data_lines(self,configurator.lines_limit, configurator.cache_list,configurator.pre_line_counts)    
             configurator.lock1.release()  # 释放锁
