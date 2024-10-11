@@ -171,16 +171,12 @@ class Response_Parser():
             return True
  
     # 检查回复内容的文本行数
-    def check_text_line_count(self,source_text_dict,response_dict): 
-        """
-        检查字典d中是否包含从'0'到'(N-1)'的字符串键
-
-        :param d: 输入的字典
-        :param N: 数字N
-        :return: 如果字典包含从'0'到'(N-1)'的所有字符串键，则返回True，否则返回False
-        """
-        N = len(source_text_dict) 
-        return all(str(key) in response_dict for key in range(N))
+    def check_text_line_count(self, source_dict, response_dict):
+        return (
+            len(source_dict) > 0 and len(response_dict) > 0 # 数据不为空
+            and len(source_dict) == len(response_dict) # 原文与译文行数一致
+            and all(str(key) in response_dict for key in range(len(source_dict))) # 译文的 Key 的值为从 0 开始的连续数值字符
+        )
 
     # 检查翻译内容是否有空值
     def check_empty_response(self,response_dict):
