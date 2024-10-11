@@ -9,6 +9,8 @@ class Non_Japanese_Korean_Text_Filtering(PluginBase):
         super().__init__()
         self.name = "Non_Japanese_Korean_Text_Filtering_Plugin"
         self.description = "This is an example plugin."
+        self.add_event('text_filter', 5)  # 添加感兴趣的事件和优先级
+
 
     def load(self):
         print(f"[INFO]  {self.name} loaded!")

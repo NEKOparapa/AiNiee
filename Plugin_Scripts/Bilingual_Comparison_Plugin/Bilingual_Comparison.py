@@ -8,6 +8,8 @@ class Bilingual_Comparison(PluginBase):
         super().__init__()
         self.name = "Bilingual_Comparison_Plugin"
         self.description = "This is an Bilingual_Comparison plugin."
+        self.add_event('postprocess_text', 10)  # 添加感兴趣的事件和优先级
+
 
     def load(self):
         print(f"[INFO]  {self.name} loaded!")
@@ -16,7 +18,7 @@ class Bilingual_Comparison(PluginBase):
     def on_event(self, event_name, configuration_information, event_data):
 
         # 事件触发
-        if event_name == "optimize_text":
+        if event_name == "postprocess_text":
 
             # 构建该插件配置文件路径
             the_plugin_dir = os.path.join(configuration_information.plugin_dir, "Bilingual_Comparison_Plugin", "config.yaml") 

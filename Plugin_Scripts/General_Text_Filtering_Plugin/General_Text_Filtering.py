@@ -7,6 +7,7 @@ class General_Text_Filtering(PluginBase):
         super().__init__()
         self.name = "General_Text_Filtering_Plugin"
         self.description = "This is an example plugin."
+        self.add_event('text_filter', 4)  # 添加感兴趣的事件和优先级
 
     def load(self):
         print(f"[INFO]  {self.name} loaded!")
@@ -79,9 +80,9 @@ class General_Text_Filtering(PluginBase):
 
 
                 # 检查开头的
-                #if isinstance(source_text, str) and any(source_text.lower().startswith(ext) for ext in ['message = ', 'SE/']):
-                    #entry['translation_status'] = 7
-                    #continue
+                if isinstance(source_text, str) and any(source_text.lower().startswith(ext) for ext in ['EV0']):
+                    entry['translation_status'] = 7
+                    continue
 
                 # 检查文本是否为空
                 if source_text:

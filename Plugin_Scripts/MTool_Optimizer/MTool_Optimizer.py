@@ -9,6 +9,9 @@ class MTool_Optimizer(PluginBase):
         super().__init__()
         self.name = "MTool_Optimizer"
         self.description = "MTool_Optimizer"
+        self.add_event('preproces_text', 5)  # 添加感兴趣的事件和优先级
+        self.add_event('manual_export', 5)  # 添加感兴趣的事件和优先级
+        self.add_event('postprocess_text', 5)  # 添加感兴趣的事件和优先级
 
     def load(self):
         print(f"[INFO]  [green]{self.name}[/] 已加载，至多可提升 [green]40%[/] 的翻译速度，理论上也会提升翻译质量并减少 Token 消耗 ...")

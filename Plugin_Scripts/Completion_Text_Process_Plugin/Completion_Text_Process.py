@@ -7,6 +7,7 @@ class Completion_Text_Process_Plugin(PluginBase):
         super().__init__()
         self.name = "Completion_Text_Process_Plugin"
         self.description = "This is an Completion_Text_Process_Plugin."
+        self.add_event('complete_text_process', 5)  # 添加感兴趣的事件和优先级
 
     def load(self):
         print(f"[INFO]  {self.name} loaded!")

@@ -5,21 +5,33 @@ from .Plugin_Base.Plugin_Base import PluginBase
 
 class Plugin_Manager:
     def __init__(self):
-        self.plugins = []
+        self.event_plugins = {}  # 使用字典来存储每个事件对应的插件列表
 
     def load_plugin(self, plugin_class):
         plugin_instance = plugin_class()
         plugin_instance.load()
-        self.plugins.append(plugin_instance)
+        # 注册插件到所有它感兴趣的事件，但不进行排序
+        for event_info in plugin_instance.events:
+            event_name = event_info['event']
+            if event_name not in self.event_plugins:
+                self.event_plugins[event_name] = []
+            self.event_plugins[event_name].append(plugin_instance)
 
     def unload_plugin(self, plugin_instance):
-        plugin_instance.unload()
-        self.plugins.remove(plugin_instance)
+        pass
 
-    def broadcast_event(self, event_name, configuration_information = None, event_data = None):
-        for plugin in self.plugins:
-            plugin.on_event(event_name, configuration_information, event_data)
-
+    def broadcast_event(self, event_name, configuration_information=None, event_data=None):
+        # 只触发注册了该事件的插件，并在调用前进行排序
+        if event_name in self.event_plugins:
+            # 根据优先级进行排序
+            sorted_plugins = sorted(
+                self.event_plugins[event_name],
+                key=lambda x: next((event['priority'] for event in x.events if event['event'] == event_name), 0),
+                reverse=True
+            )
+            #print(sorted_plugins) #bug用
+            for plugin in sorted_plugins:
+                plugin.on_event(event_name, configuration_information, event_data)
 
     def load_plugins_from_directory(self, directory):
         directory_path = Path(directory)
