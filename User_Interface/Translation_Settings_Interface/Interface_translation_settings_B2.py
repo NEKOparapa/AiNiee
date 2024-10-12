@@ -82,7 +82,7 @@ class Widget_translation_settings_B2(QFrame):
         self.container.addWidget(
             SwitchButtonCard(
                 "思维链模式", 
-                "思维链（CoT）模式是一种高级翻译指令模式，在逻辑能力强的模型上可以取得更好的翻译效果，注意，会消耗更多 Token",
+                "思维链（CoT）是一种高级指令模式，在逻辑能力强的模型上可以取得更好的翻译效果，会消耗更多 Token（不支持 Sakura 模型）",
                 widget_01_init,
                 widget_01_callback,
             )
@@ -139,7 +139,7 @@ class Widget_translation_settings_B2(QFrame):
             )
         )
         
-        # 自动转换为繁体中文
+        # 自动简繁转换
         def widget_05_init(widget):
             widget.setChecked(config.get("response_conversion_toggle"))
             
@@ -149,14 +149,14 @@ class Widget_translation_settings_B2(QFrame):
 
         self.container.addWidget(
             SwitchButtonCard(
-                "自动转换为繁体中文", 
-                "启用此功能将在翻译完成后自动将译文转换为繁体中文",
+                "自动简繁转换", 
+                "启用此功能后，在翻译完成时将按照设置的字形映射规则进行简繁转换",
                 widget_05_init,
                 widget_05_callback,
             )
         )
         
-        # 简繁转换字体映射规则
+        # 简繁转换字形映射规则
         def widget_06_init(widget):
             widget.setCurrentIndex(max(0, widget.findText(config.get("opencc_preset"))))
 
@@ -166,14 +166,24 @@ class Widget_translation_settings_B2(QFrame):
 
         self.container.addWidget(
             ComboBoxCard(
-                "简繁转换字形映射规则", 
-                "进行简繁转换时的字形映射规则",
-                    [
-                        "s2t",
-                        "s2tw",
-                        "s2hk",
-                        "s2twp",
-                    ],
+                "简繁转换字形映射规则",
+                "进行简繁转换时的字形映射规则，常用的有：简转繁（s2t）、繁转简（t2s）",
+                [
+                    "s2t",
+                    "s2tw",
+                    "s2hk",
+                    "s2twp",
+                    "t2s",
+                    "t2tw",
+                    "t2hk",
+                    "t2jp",
+                    "tw2s",
+                    "tw2t",
+                    "tw2sp",
+                    "hk2s",
+                    "hk2t",
+                    "jp2t",
+                ],
                 widget_06_init,
                 widget_06_callback,
             )
