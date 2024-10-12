@@ -15,8 +15,8 @@ class Widget_translation_settings_B3(QFrame):
     DEFAULT = {
         "reply_check_switch": {
             "Model Degradation Check": True,
-            "Return to Original Text Check": True,
             "Residual Original Text Check": True,
+            "Return to Original Text Check": True,
         },
     }
 
@@ -87,7 +87,7 @@ class Widget_translation_settings_B3(QFrame):
             )
         )
 
-        # 翻译残留检查
+        # 原文返回检查
         def widget_02_init(widget):
             widget.setChecked(config.get("reply_check_switch").get("Return to Original Text Check"))
             
@@ -97,14 +97,14 @@ class Widget_translation_settings_B3(QFrame):
 
         self.container.addWidget(
             SwitchButtonCard(
-                "翻译残留检查", 
-                "如在翻译结果中检查到翻译残留的现象，则重试",
+                "原文返回检查", 
+                "如在翻译结果中检查到原文返回的现象，则重试",
                 widget_02_init,
                 widget_02_callback,
             )
         )
 
-        # 原文返回检查
+        # 翻译残留检查
         def widget_03_init(widget):
             widget.setChecked(config.get("reply_check_switch").get("Residual Original Text Check"))
             
@@ -114,8 +114,8 @@ class Widget_translation_settings_B3(QFrame):
 
         self.container.addWidget(
             SwitchButtonCard(
-                "原文返回检查", 
-                "如在翻译结果中检查到原文返回的现象，则重试",
+                "翻译残留检查", 
+                "如在翻译结果中检查到翻译残留的现象，则重试",
                 widget_03_init,
                 widget_03_callback,
             )
