@@ -26,10 +26,12 @@ class Non_Japanese_Korean_Text_Filtering(PluginBase):
     def process_text_by_language(self, cache_list, language):
         if language == "日语":
             for item in cache_list:
-                if not TextHelper.has_any_japanese(item.get("source_text", "")):
+                source_text = item.get("source_text", "")
+                if not isinstance(source_text, str) or not TextHelper.has_any_japanese(source_text):
                     item["translation_status"] = 7
 
         if language == "韩语":
             for item in cache_list:
-                if not TextHelper.has_any_korean(item.get("source_text", "")):
+                source_text = item.get("source_text", "")
+                if not isinstance(source_text, str) or not TextHelper.has_any_korean(source_text):
                     item["translation_status"] = 7
