@@ -1982,7 +1982,9 @@ class Api_Requester():
 
     # 整理发送内容（sakura）
     def organize_send_content_sakura(self, source_text_dict, previous_list):
-        
+        # 局部引用
+        from rich import print
+
         # 创建message列表，用于发送
         messages = []
 
@@ -1992,35 +1994,42 @@ class Api_Requester():
         for k in source_text_dict.keys():
             source_text_dict[k] = jaconv.normalize(source_text_dict.get(k, ""), mode = "NFKC")
 
-        #构建系统提示词
-        if configurator.model_type != "Sakura-v0.9":
-            system_prompt ={"role": "system","content": "你是一个轻小说翻译模型，可以流畅通顺地以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，不擅自添加原文中没有的代词。" }
-        else:
-            system_prompt ={"role": "system","content": "你是一个轻小说翻译模型，可以流畅通顺地以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，不擅自添加原文中没有的代词。" }
+        # 构建系统提示词
+        system_prompt = {
+            "role": "system",
+            "content": "你是一个轻小说翻译模型，可以流畅通顺地以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，不擅自添加原文中没有的代词。"
+        }
         messages.append(system_prompt)
 
-
-        # 开启了保留换行符功能
-        print("[INFO] 正在使用SakuraLLM，将替换换行符为特殊符号", '\n')
-        source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
-
-        #如果开启译前替换字典功能
+        # 如果开启译前替换功能
         if configurator.pre_translation_switch :
-            print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
+            print(f"[[green]INFO[/green]] 译前替换功能已开启，正在进行替换 ...")
             source_text_dict = configurator.replace_before_translation(source_text_dict)
 
+        # 如果开启了携带上文功能，v0.9 版本跳过
+        if configurator.model_type != "Sakura-v0.9" and configurator.pre_line_counts and previous_list:
+            print(f"[[green]INFO[/green]] 携带上文功能已开启，实际携带 {len(previous_list)} 行上文 ...")
+            messages.append(
+                {
+                    "role": "user",
+                    "content": "将下面的日文文本翻译成中文：" + "\n".join(previous_list),
+                }
+            )
 
+        # 如果开启了保留句内换行符功能
+        print(f"[[green]INFO[/green]] 保留句内换行符功能已开启，将替换句内换行符为特殊符号 ...")
+        source_text_dict = Cache_Manager.replace_special_characters(self, source_text_dict, "替换")
 
-        #如果开启了译时提示字典功能
+        # 如果开启了指令词典功能
         gpt_dict_raw_text = "" # 空变量
-        if (configurator.prompt_dictionary_switch) and (configurator.model_type != "Sakura-v0.9"):
+        if configurator.model_type != "Sakura-v0.9" and configurator.prompt_dictionary_switch: # v0.9 版本或功能未启用时跳过
             glossary_prompt = configurator.build_glossary_prompt_sakura(source_text_dict)
             if glossary_prompt:
                 gpt_dict_text_list = []
                 for gpt in glossary_prompt:
-                    src = gpt['src']
-                    dst = gpt['dst']
-                    info = gpt['info'] if "info" in gpt.keys() else None
+                    src = gpt["src"]
+                    dst = gpt["dst"]
+                    info = gpt["info"] if "info" in gpt.keys() else None
                     if info:
                         single = f"{src}->{dst} #{info}"
                     else:
@@ -2028,32 +2037,27 @@ class Api_Requester():
                     gpt_dict_text_list.append(single)
 
                 gpt_dict_raw_text = "\n".join(gpt_dict_text_list)
-                print("[INFO]  检测到请求的原文中含有提示字典内容")
-                print("[INFO]  术语表:\n",gpt_dict_raw_text,"\n")
+                print(f"[[green]INFO[/green]] 指令词典功能已开启，本次请求的原文中包含 {len(gpt_dict_text_list)} 条指令词典条目 ...")
+                print(f"{gpt_dict_raw_text}")
+                print(f"\n")
 
- 
-        #将原文本字典转换成raw格式的字符串
+        # 将原文本字典转换成raw格式的字符串
         source_text_str_raw = self.convert_dict_to_raw_str(source_text_dict)
 
-        #构建user_prompt
-        if gpt_dict_raw_text: # 有字典时
-            user_prompt = "根据以下术语表（可以为空）：\n" + gpt_dict_raw_text + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：" + source_text_str_raw
+        # 构建主要提示词
+        if gpt_dict_raw_text == "": 
+            user_prompt = "将下面的日文文本翻译成中文：\n" + source_text_str_raw
+        else:
+            user_prompt = "根据以下术语表（可以为空）：\n" + gpt_dict_raw_text + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：\n" + source_text_str_raw
 
-        else: # 空字典时
-            if configurator.model_type != "Sakura-v0.9": 
-                user_prompt = "将下面的日文文本翻译成中文：" + source_text_str_raw
-            else:
-                user_prompt = "将下面的日文文本翻译成中文：" + source_text_str_raw
-
-        Original_text = {"role":"user","content": user_prompt}
-
-
-        messages.append(Original_text)
-
-
+        messages.append(
+            {
+                "role": "user",
+                "content": user_prompt,
+            }
+        )
 
         return messages, source_text_str_raw
-
 
     # 并发接口请求（sakura）
     def concurrent_request_sakura(self):
