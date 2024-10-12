@@ -1,6 +1,3 @@
-# Core
-pyinstaller
-
 # System
 openai
 cohere==5.10.0
@@ -22,4 +19,4 @@ PyYAML
 # Tools
 rich
 tqdm
-jaconv # 日文文本转换工具
+jaconv

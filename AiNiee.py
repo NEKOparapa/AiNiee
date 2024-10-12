@@ -282,9 +282,6 @@ class Translator():
         plugin_manager.broadcast_event("postprocess_text", configurator,configurator.cache_list)
 
 
-        # 调用插件，进行文本后处理
-        plugin_manager.broadcast_event("optimize_text", configurator,configurator.cache_list)
-
         #如果开启了转换简繁开关功能，则进行文本转换
         if configurator.conversion_toggle:
             try:
@@ -489,6 +486,10 @@ class Api_Requester():
                 messages.append(the_translation_example)
                 print("[INFO]  已添加用户原文示例：\n",original_exmaple_3)
                 print("[INFO]  已添加用户译文示例：\n",translation_example_3, '\n')
+
+
+        # 调用插件，进行处理
+        plugin_manager.broadcast_event("normalize_text", configurator,source_text_dict)
 
 
         # 如果开启了保留换行符功能
@@ -882,6 +883,10 @@ class Api_Requester():
                 messages.append(the_translation_example)
                 print("[INFO]  已添加用户原文示例：\n",original_exmaple_3)
                 print("[INFO]  已添加用户译文示例：\n",translation_example_3, '\n')
+
+
+        # 调用插件，进行处理
+        plugin_manager.broadcast_event("normalize_text", configurator,source_text_dict)
 
 
         # 如果开启了保留换行符功能
@@ -1291,6 +1296,11 @@ class Api_Requester():
                 print("[INFO]  已添加用户译文示例：\n",translation_example_3, '\n')
 
 
+
+        # 调用插件，进行处理
+        plugin_manager.broadcast_event("normalize_text", configurator,source_text_dict)
+
+
         # 如果开启了保留换行符功能
         if configurator.preserve_line_breaks_toggle:
             print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
@@ -1673,6 +1683,10 @@ class Api_Requester():
                 print("[INFO]  已添加用户译文示例：\n",translation_example_3, '\n')
 
 
+        # 调用插件，进行处理
+        plugin_manager.broadcast_event("normalize_text", configurator,source_text_dict)
+
+
         # 如果开启了保留换行符功能
         if configurator.preserve_line_breaks_toggle:
             print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
@@ -1988,11 +2002,6 @@ class Api_Requester():
         # 创建message列表，用于发送
         messages = []
 
-        # 将半角（半角假名）片假名转换为全角（全角假名）片假名
-        # 全角（全角）ASCII字符和数字转换为半角（半角）ASCII字符和数字。
-        # 此外，全角波浪号（～）等也被规范化。
-        for k in source_text_dict.keys():
-            source_text_dict[k] = jaconv.normalize(source_text_dict.get(k, ""), mode = "NFKC")
 
         # 构建系统提示词
         system_prompt = {
@@ -2000,6 +2009,11 @@ class Api_Requester():
             "content": "你是一个轻小说翻译模型，可以流畅通顺地以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，不擅自添加原文中没有的代词。"
         }
         messages.append(system_prompt)
+
+
+        # 调用插件，进行处理
+        plugin_manager.broadcast_event("normalize_text", configurator,source_text_dict)
+
 
         # 如果开启译前替换功能
         if configurator.pre_translation_switch :
