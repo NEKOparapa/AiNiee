@@ -96,7 +96,7 @@ class Widget_prompt_dict(QFrame): # 术语字典界面
         #设置“译时提示”标签
         label3 = QLabel( flags=Qt.WindowFlags())  
         label3.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label3.setText("添加提示字典")
+        label3.setText("添加指令词典")
 
         #设置“译时提示”显示
         self.label4 = QLabel(parent=self, flags=Qt.WindowFlags())  
@@ -179,7 +179,7 @@ class Widget_prompt_dict(QFrame): # 术语字典界面
                 # 检查数据是列表还是字典
                 if isinstance(dictionary, list):
                     for item in dictionary:
-                        if item.get("srt", "") and item.get("dst", ""): # 提示字典格式
+                        if item.get("srt", "") and item.get("dst", ""): # 指令词典格式
 
                             # 格式例
                             # [
@@ -277,7 +277,7 @@ class Widget_prompt_dict(QFrame): # 术语字典界面
             return  # 直接返回，不执行后续操作
 
         # 将字典保存到文件中
-        with open(os.path.join(Output_Folder, "用户提示字典.json"), 'w', encoding="utf-8") as f:
+        with open(os.path.join(Output_Folder, "用户指令词典.json"), 'w', encoding="utf-8") as f:
             json.dump(dictionary, f, ensure_ascii=False, indent=4)
 
         self.user_interface_prompter.createSuccessInfoBar("导出成功")

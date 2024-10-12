@@ -15,7 +15,7 @@ from qframelesswindow import FramelessWindow, StandardTitleBar
 
 
 
-class Widget_replace_dict(QFrame):  # 替换字典主界面
+class Widget_replace_dict(QFrame):  # 文本替换主界面
     def __init__(self, text: str, parent=None,configurator=None,user_interface_prompter=None):  # 构造函数，初始化实例时会自动调用
         super().__init__(parent=parent)  # 调用父类 QWidget 的构造函数
         self.setObjectName(text.replace(' ', '-'))  # 设置对象名，用于在 NavigationInterface 中的 addItem 方法中的 routeKey 参数中使用
@@ -64,7 +64,7 @@ class Widget_replace_dict(QFrame):  # 替换字典主界面
         self.pivot.setCurrentItem(widget.objectName())
 
 
-class Widget_before_dict(QFrame):# 原文替换字典界面
+class Widget_before_dict(QFrame):# 原文文本替换界面
     def __init__(self, text: str, parent=None,configurator=None,user_interface_prompter=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
@@ -333,7 +333,7 @@ class Widget_before_dict(QFrame):# 原文替换字典界面
             return  # 直接返回，不执行后续操作
 
         # 将字典保存到文件中
-        with open(os.path.join(Output_Folder, "用户译前替换字典.json"), 'w', encoding="utf-8") as f:
+        with open(os.path.join(Output_Folder, "用户译前文本替换.json"), 'w', encoding="utf-8") as f:
             json.dump(dictionary, f, ensure_ascii=False, indent=4)
 
         self.user_interface_prompter.createSuccessInfoBar("导出成功")

@@ -40,7 +40,7 @@ class Configurator():
         self.mixed_translation_settings = {}  #混合翻译相关信息
 
 
-        self.prompt_dictionary_switch = False   #   提示字典开关
+        self.prompt_dictionary_switch = False   #   指令词典开关
         self.pre_translation_switch = False #   译前处理开关
         self.post_translation_switch = False #   译后处理开关
         self.custom_prompt_switch = False #   自定义prompt开关
@@ -272,7 +272,7 @@ class Configurator():
         # 获取提示书配置
         self.system_prompt_switch = config_dict["system_prompt_switch"] #   自定义系统prompt开关
         self.system_prompt_content = config_dict["system_prompt_content"]
-        self.prompt_dictionary_switch = config_dict["prompt_dict_switch"]   #   提示字典开关
+        self.prompt_dictionary_switch = config_dict["prompt_dict_switch"]   #   指令词典开关
         self.prompt_dictionary_content = config_dict["User_Dictionary2"]
         self.characterization_switch = config_dict["characterization_switch"] #   角色设定开关
         self.characterization_dictionary = config_dict["characterization_dictionary"]
@@ -284,7 +284,7 @@ class Configurator():
         self.translation_example_content = config_dict["translation_example"]
 
 
-        # 替换字典
+        # 文本替换
         self.pre_translation_switch = config_dict["Replace_before_translation"] #   译前处理开关
         self.pre_translation_content = config_dict["User_Dictionary1"]
         self.post_translation_switch = config_dict["Replace_after_translation"] #   译后处理开关
@@ -1866,7 +1866,7 @@ Third: Begin translating line by line from the original text, only translating {
         return the_profile
 
 
-    # 原文替换字典函数
+    # 原文文本替换函数
     def replace_before_translation(self,dict):
 
         data = self.pre_translation_content
@@ -1879,7 +1879,7 @@ Third: Begin translating line by line from the original text, only translating {
             dictionary[key] = value
 
         #详细版，增加可读性，但遍历整个文本，内存占用较大，当文本较大时，会报错
-        temp_dict = {}     #存储替换字典后的中文本内容
+        temp_dict = {}     #存储文本替换后的中文本内容
         for key_a, value_a in dict.items():
             for key_b, value_b in dictionary.items():
                 #如果value_a是字符串变量，且key_b在value_a中
@@ -1904,7 +1904,7 @@ Third: Begin translating line by line from the original text, only translating {
             dictionary[key] = value
 
         #详细版，增加可读性，但遍历整个文本，内存占用较大，当文本较大时，会报错
-        temp_dict = {}     #存储替换字典后的中文本内容
+        temp_dict = {}     #存储文本替换后的中文本内容
         for key_a, value_a in dict.items():
             for key_b, value_b in dictionary.items():
                 #如果value_a是字符串变量，且key_b在value_a中

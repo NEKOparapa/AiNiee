@@ -418,7 +418,7 @@ class Api_Requester():
         system_prompt = configurator.get_system_prompt()
 
 
-        #如果开启提示字典
+        #如果开启指令词典
         glossary_prompt = ""
         glossary_prompt_cot = ""
         if configurator.prompt_dictionary_switch :
@@ -497,9 +497,9 @@ class Api_Requester():
             source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
 
 
-        #如果开启译前替换字典功能，则根据用户字典进行替换
+        #如果开启译前文本替换功能，则根据用户字典进行替换
         if configurator.pre_translation_switch :
-            print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
+            print("[INFO] 你开启了译前文本替换功能，正在进行替换", '\n')
             source_text_dict = configurator.replace_before_translation(source_text_dict)
 
 
@@ -719,7 +719,7 @@ class Api_Requester():
                             response_dict = Cache_Manager.replace_special_characters(self,response_dict, "还原")
 
 
-                        # 如果开启译后替换字典功能，则根据用户字典进行替换
+                        # 如果开启译后文本替换功能，则根据用户字典进行替换
                         if configurator.post_translation_switch :
                             print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
                             response_dict = configurator.replace_after_translation(response_dict)
@@ -818,7 +818,7 @@ class Api_Requester():
         system_prompt = configurator.get_system_prompt()
 
 
-        # #如果开启提示字典
+        # #如果开启指令词典
         glossary_prompt = ""
         glossary_prompt_cot = ""
         if configurator.prompt_dictionary_switch :
@@ -890,9 +890,9 @@ class Api_Requester():
             source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
 
 
-        # 如果开启译前替换字典功能，则根据用户字典进行替换
+        # 如果开启译前文本替换功能，则根据用户字典进行替换
         if configurator.pre_translation_switch :
-            print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
+            print("[INFO] 你开启了译前文本替换功能，正在进行替换", '\n')
             source_text_dict = configurator.replace_before_translation(source_text_dict)
 
 
@@ -1132,7 +1132,7 @@ class Api_Requester():
                         if configurator.preserve_line_breaks_toggle:
                             response_dict = Cache_Manager.replace_special_characters(self,response_dict, "还原")
 
-                        #如果开启译后替换字典功能，则根据用户字典进行替换
+                        #如果开启译后文本替换功能，则根据用户字典进行替换
                         if configurator.post_translation_switch :
                             print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
                             response_dict = configurator.replace_after_translation(response_dict)
@@ -1225,7 +1225,7 @@ class Api_Requester():
         system_prompt = configurator.get_system_prompt()
 
 
-        # 如果开启提示字典
+        # 如果开启指令词典
         glossary_prompt = ""
         glossary_prompt_cot = ""
         if configurator.prompt_dictionary_switch :
@@ -1297,9 +1297,9 @@ class Api_Requester():
             source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
 
 
-        #如果开启译前替换字典功能，则根据用户字典进行替换
+        #如果开启译前文本替换功能，则根据用户字典进行替换
         if configurator.pre_translation_switch :
-            print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
+            print("[INFO] 你开启了译前文本替换功能，正在进行替换", '\n')
             source_text_dict = configurator.replace_before_translation(source_text_dict)
 
 
@@ -1515,7 +1515,7 @@ class Api_Requester():
                         if configurator.preserve_line_breaks_toggle:
                             response_dict = Cache_Manager.replace_special_characters(self,response_dict, "还原")
 
-                        #如果开启译后替换字典功能，则根据用户字典进行替换
+                        #如果开启译后文本替换功能，则根据用户字典进行替换
                         if configurator.post_translation_switch :
                             print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
                             response_dict = configurator.replace_after_translation(response_dict)
@@ -1607,7 +1607,7 @@ class Api_Requester():
         system_prompt = configurator.get_system_prompt()
 
 
-        # 如果开启提示字典
+        # 如果开启指令词典
         glossary_prompt = ""
         glossary_prompt_cot = ""
         if configurator.prompt_dictionary_switch :
@@ -1679,9 +1679,9 @@ class Api_Requester():
             source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
 
 
-        #如果开启译前替换字典功能，则根据用户字典进行替换
+        #如果开启译前文本替换功能，则根据用户字典进行替换
         if configurator.pre_translation_switch :
-            print("[INFO] 你开启了译前替换字典功能，正在进行替换", '\n')
+            print("[INFO] 你开启了译前文本替换功能，正在进行替换", '\n')
             source_text_dict = configurator.replace_before_translation(source_text_dict)
 
 
@@ -1897,7 +1897,7 @@ class Api_Requester():
                         if configurator.preserve_line_breaks_toggle:
                             response_dict = Cache_Manager.replace_special_characters(self,response_dict, "还原")
 
-                        #如果开启译后替换字典功能，则根据用户字典进行替换
+                        #如果开启译后文本替换功能，则根据用户字典进行替换
                         if configurator.post_translation_switch :
                             print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
                             response_dict = configurator.replace_after_translation(response_dict)
@@ -2252,7 +2252,7 @@ class Api_Requester():
                         # 强制开启换行符还原功能
                         response_dict = Cache_Manager.replace_special_characters(self,response_dict, "还原")
 
-                        #如果开启译后替换字典功能，则根据用户字典进行替换
+                        #如果开启译后文本替换功能，则根据用户字典进行替换
                         if configurator.post_translation_switch :
                             print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
                             response_dict = configurator.replace_after_translation(response_dict)
@@ -2716,27 +2716,7 @@ class User_Interface_Prompter(QObject):
             config_dict["label_input_path"] = Main_Window.Widget_translation_settings_A.label_input_path.text()
             config_dict["label_output_path"] = Main_Window.Widget_translation_settings_A.label_output_path.text()
 
-            #翻译设置进阶设置界面
-            config_dict["lines_limit_switch"] = Main_Window.Widget_translation_settings_B1.checkBox_lines_limit_switch.isChecked()            
-            config_dict["lines_limit"] = Main_Window.Widget_translation_settings_B1.spinBox_lines_limit.value()          
-            config_dict["tokens_limit_switch"] = Main_Window.Widget_translation_settings_B1.checkBox_tokens_limit_switch.isChecked()           
-            config_dict["tokens_limit"] = Main_Window.Widget_translation_settings_B1.spinBox_tokens_limit.value()            #获取tokens限制
-            config_dict["pre_line_counts"] = Main_Window.Widget_translation_settings_B1.spinBox_pre_lines.value()     # 获取上文文本行数设置
-            config_dict["user_thread_counts"] = Main_Window.Widget_translation_settings_B1.spinBox_thread_count.value() # 获取线程数设置
-            config_dict["retry_count_limit"] =  Main_Window.Widget_translation_settings_B1.spinBox_retry_count_limit.value()     # 获取重翻次数限制  
-            config_dict["round_limit"] =  Main_Window.Widget_translation_settings_B1.spinBox_round_limit.value() # 获取轮数限制
-            config_dict["cot_toggle"] =  Main_Window.Widget_translation_settings_B2.SwitchButton_cot_toggle.isChecked()   # 获取cot开关
-            config_dict["cn_prompt_toggle"] =  Main_Window.Widget_translation_settings_B2.SwitchButton_cn_prompt_toggle.isChecked()   # 获取中文提示词开关
-            config_dict["preserve_line_breaks_toggle"] =  Main_Window.Widget_translation_settings_B2.SwitchButton_line_breaks.isChecked() # 获取保留换行符开关  
-            config_dict["response_conversion_toggle"] =  Main_Window.Widget_translation_settings_B2.SwitchButton_conversion_toggle.isChecked()   # 获取简繁转换开关
-            config_dict["opencc_preset"] = Main_Window.Widget_translation_settings_B2.comboBox_opencc_preset.currentText()
-            config_dict["text_clear_toggle"] =  Main_Window.Widget_translation_settings_B2.SwitchButton_clear.isChecked() # 获取文本处理开关
-
-            #翻译设置的检查设置页面
-            Model_Degradation_Check =  Main_Window.Widget_translation_settings_B3.SwitchButton_check1.isChecked() 
-            Residual_Original_Text_Check =  Main_Window.Widget_translation_settings_B3.SwitchButton_check2.isChecked()   
-            Return_to_Original_Text_Check =  Main_Window.Widget_translation_settings_B3.SwitchButton_check3.isChecked() 
-            config_dict["reply_check_switch"] = {"Model Degradation Check":Model_Degradation_Check,"Residual Original Text Check":Residual_Original_Text_Check,"Return to Original Text Check":Return_to_Original_Text_Check}
+            
 
 
             #翻译设置混合反应设置界面
@@ -2762,7 +2742,7 @@ class User_Interface_Prompter(QObject):
 
 
 
-            #获取提示字典界面
+            #获取指令词典界面
             config_dict["prompt_dict_switch"] = Main_Window.Widget_prompt_dict.checkBox2.isChecked() #获取译时提示开关状态
             User_Dictionary2 = {}
             for row in range(Main_Window.Widget_prompt_dict.tableView.rowCount() - 1):
@@ -2783,7 +2763,7 @@ class User_Interface_Prompter(QObject):
 
 
 
-            #获取译前替换字典界面
+            #获取译前文本替换界面
             config_dict["Replace_before_translation"] =  Main_Window.Widget_replace_dict.A_settings.checkBox1.isChecked()#获取译前替换开关状态
             User_Dictionary1 = {}
             for row in range(Main_Window.Widget_replace_dict.A_settings.tableView.rowCount() - 1):
@@ -2796,7 +2776,7 @@ class User_Interface_Prompter(QObject):
             config_dict["User_Dictionary1"] = User_Dictionary1
 
 
-            #获取译后替换字典界面
+            #获取译后文本替换界面
             config_dict["Replace_after_translation"] =  Main_Window.Widget_replace_dict.B_settings.checkBox1.isChecked()#获取译后替换开关状态
             User_Dictionary3 = {}
             for row in range(Main_Window.Widget_replace_dict.B_settings.tableView.rowCount() - 1):
@@ -2884,11 +2864,16 @@ class User_Interface_Prompter(QObject):
                     translation_example[key] = value
             config_dict["translation_example"] = translation_example
 
-
-
-            #将所有的配置信息写入config.json文件中
-            with open(os.path.join(resource_dir, "config.json"), "w", encoding="utf-8") as f:
-                json.dump(config_dict, f, ensure_ascii=False, indent=4)
+            # 将所有的配置信息写入config.json文件中
+            # 写入前先检查配置文件中的数据，并补齐确实的部分
+            if os.path.exists(os.path.join(resource_dir, "config.json")):
+                with open(os.path.join(resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
+                    exists = json.load(reader)
+                    for k, v in exists.items():
+                        if not k in config_dict.keys():
+                            config_dict[k] = v
+            with open(os.path.join(resource_dir, "config.json"), "w", encoding = "utf-8") as writer:
+                json.dump(config_dict, writer, indent = 4, ensure_ascii = False,)
 
 
         if mode == "read":
@@ -3192,47 +3177,6 @@ class User_Interface_Prompter(QObject):
                 if "label_output_path" in config_dict:
                     Main_Window.Widget_translation_settings_A.label_output_path.setText(config_dict["label_output_path"])
 
-
-
-                #翻译设置进阶界面
-                if "lines_limit_switch" in config_dict:
-                    Main_Window.Widget_translation_settings_B1.checkBox_lines_limit_switch.setChecked(config_dict["lines_limit_switch"])
-                if "lines_limit" in config_dict:
-                    Main_Window.Widget_translation_settings_B1.spinBox_lines_limit.setValue(config_dict["lines_limit"])
-                if "tokens_limit_switch" in config_dict:
-                    Main_Window.Widget_translation_settings_B1.checkBox_tokens_limit_switch.setChecked(config_dict["tokens_limit_switch"])
-                if "tokens_limit" in config_dict:
-                    Main_Window.Widget_translation_settings_B1.spinBox_tokens_limit.setValue(config_dict["tokens_limit"])
-                if "pre_line_counts" in config_dict:
-                    Main_Window.Widget_translation_settings_B1.spinBox_pre_lines.setValue(config_dict["pre_line_counts"])
-                if "user_thread_counts" in config_dict:
-                    Main_Window.Widget_translation_settings_B1.spinBox_thread_count.setValue(config_dict["user_thread_counts"])
-                if "retry_count_limit" in config_dict:
-                    Main_Window.Widget_translation_settings_B1.spinBox_retry_count_limit.setValue(config_dict["retry_count_limit"])
-                if "round_limit" in config_dict:
-                     Main_Window.Widget_translation_settings_B1.spinBox_round_limit.setValue(config_dict["round_limit"]) 
-                if "cot_toggle" in config_dict:
-                    Main_Window.Widget_translation_settings_B2.SwitchButton_cot_toggle.setChecked(config_dict["cot_toggle"])
-                if "cn_prompt_toggle" in config_dict:
-                    Main_Window.Widget_translation_settings_B2.SwitchButton_cn_prompt_toggle.setChecked(config_dict["cn_prompt_toggle"])
-                if "preserve_line_breaks_toggle" in config_dict:
-                    Main_Window.Widget_translation_settings_B2.SwitchButton_line_breaks.setChecked(config_dict["preserve_line_breaks_toggle"])
-                if "response_conversion_toggle" in config_dict:
-                    Main_Window.Widget_translation_settings_B2.SwitchButton_conversion_toggle.setChecked(config_dict["response_conversion_toggle"])
-                if "opencc_preset" in config_dict:
-                    Main_Window.Widget_translation_settings_B2.comboBox_opencc_preset.setCurrentText(config_dict["opencc_preset"])
-                if "text_clear_toggle" in config_dict:
-                    Main_Window.Widget_translation_settings_B2.SwitchButton_clear.setChecked(config_dict["text_clear_toggle"])
-
-                #翻译设置的检查设置
-                if "reply_check_switch" in config_dict:
-                    if "Model Degradation Check" in config_dict["reply_check_switch"]:
-                        Main_Window.Widget_translation_settings_B3.SwitchButton_check1.setChecked(config_dict["reply_check_switch"]["Model Degradation Check"])
-                    if "Residual Original Text Check" in config_dict["reply_check_switch"]:
-                        Main_Window.Widget_translation_settings_B3.SwitchButton_check2.setChecked(config_dict["reply_check_switch"]["Residual Original Text Check"])
-                    if "Return to Original Text Check" in config_dict["reply_check_switch"]:
-                        Main_Window.Widget_translation_settings_B3.SwitchButton_check3.setChecked(config_dict["reply_check_switch"]["Return to Original Text Check"])
-
                 #翻译设置混合翻译界面
                 if "translation_mixing_toggle" in config_dict:
                     Main_Window.Widget_translation_settings_C.SwitchButton_mixed_translation.setChecked(config_dict["translation_mixing_toggle"])
@@ -3256,7 +3200,7 @@ class User_Interface_Prompter(QObject):
 
 
 
-                #提示字典界面
+                #指令词典界面
                 if "User_Dictionary2" in config_dict:
                     User_Dictionary2 = config_dict["User_Dictionary2"]
                     if User_Dictionary2:
@@ -3282,7 +3226,7 @@ class User_Interface_Prompter(QObject):
                     Main_Window.Widget_prompt_dict.checkBox2.setChecked(Change_translation_prompt)
 
 
-                #译前替换字典界面
+                #译前文本替换界面
                 if "User_Dictionary1" in config_dict:
                     User_Dictionary1 = config_dict["User_Dictionary1"]
                     if User_Dictionary1:
@@ -3300,7 +3244,7 @@ class User_Interface_Prompter(QObject):
                     Main_Window.Widget_replace_dict.A_settings.checkBox1.setChecked(Replace_before_translation)
 
 
-                #译后替换字典界面
+                #译后文本替换界面
                 if "User_Dictionary3" in config_dict:
                     User_Dictionary3 = config_dict["User_Dictionary3"]
                     if User_Dictionary3:

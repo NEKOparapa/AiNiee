@@ -155,7 +155,7 @@ class GreetingPlugin(PluginBase):
         self.mixed_translation_settings = {}  #混合翻译相关信息
 
 
-        self.prompt_dictionary_switch = False   #   提示字典开关
+        self.prompt_dictionary_switch = False   #   指令词典开关
         self.pre_translation_switch = False #   译前处理开关
         self.post_translation_switch = False #   译后处理开关
         self.custom_prompt_switch = False #   自定义prompt开关

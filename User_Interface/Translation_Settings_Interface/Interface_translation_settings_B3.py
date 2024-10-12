@@ -1,103 +1,125 @@
 
-from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QImage, QPainter, QPixmap#需要安装库 pip3 install PyQt5
-from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
-from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout
+import os
+import json
 
-from qfluentwidgets.components import Dialog  # 需要安装库 pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
-from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, EditableComboBox
-from qfluentwidgets import FluentIcon as FIF
-from qframelesswindow import FramelessWindow, StandardTitleBar
+from rich import print
+from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QVBoxLayout
 
+from Widget.SpinCard import SpinCard
+from Widget.ComboBoxCard import ComboBoxCard
+from Widget.SwitchButtonCard import SwitchButtonCard
 
-class Widget_translation_settings_B3(QFrame):#  专项设置子界面
-    def __init__(self, text: str, parent=None,user_interface_prompter=None):#解释器会自动调用这个函数
-        super().__init__(parent=parent)          #调用父类的构造函数
-        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
-        self.user_interface_prompter = user_interface_prompter
-        #设置各个控件-----------------------------------------------------------------------------------------
+class Widget_translation_settings_B3(QFrame):
 
+    DEFAULT = {
+        "reply_check_switch": {
+            "Model Degradation Check": True,
+            "Return to Original Text Check": True,
+            "Residual Original Text Check": True,
+        },
+    }
 
-        # ----------
-        check1_box = QGroupBox()
-        check1_box.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        check1_layout = QHBoxLayout()
+    def __init__(self, text: str, parent = None, configurator = None):
+        super().__init__(parent = parent)
 
-        #设置标签
-        labe1_6 = QLabel(flags=Qt.WindowFlags())  
-        labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_6.setText("模型退化检查")
+        self.setObjectName(text.replace(" ", "-"))
+        self.configurator = configurator
 
-       #设置选择开关
-        self.SwitchButton_check1 = SwitchButton(parent=self)    
-        self.SwitchButton_check1.setChecked(True)
+        # 主逻辑
+        self.main()
 
+    # 载入配置文件
+    def load_config(self) -> dict[str]:
+        config = {}
 
-        check1_layout.addWidget(labe1_6)
-        check1_layout.addStretch(1)  # 添加伸缩项
-        check1_layout.addWidget(self.SwitchButton_check1)
-        check1_box.setLayout(check1_layout)
+        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
+            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
+                config = json.load(reader)
+        
+        return config
 
+    # 保存配置文件
+    def save_config(self, config: dict) -> None:
+        config = self.fill_config(config)
+        with open(os.path.join(self.configurator.resource_dir, "config.json"), "w", encoding = "utf-8") as writer:
+            writer.write(json.dumps(config, indent = 4, ensure_ascii = False))
 
-        # ----------
-        check2_box = QGroupBox()
-        check2_box.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        check2_layout = QHBoxLayout()
+    # 填充配置文件缺失的条目
+    def fill_config(self, config: dict) -> dict:
+        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
+            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
+                exists = json.load(reader)
+                for k, v in exists.items():
+                    if not k in config.keys():
+                        config[k] = v
+                
+        for k, v in self.DEFAULT.items():
+            if not k in config.keys():
+                config[k] = v
 
-        #设置标签
-        labe1_6 = QLabel(flags=Qt.WindowFlags())  
-        labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_6.setText("残留部分原文检查")
+        return config
+    
+    def main(self):
+        # 载入配置文件
+        config = self.load_config()
+        self.save_config(config)
 
-        # 设置开关
-        self.SwitchButton_check2 = SwitchButton(parent=self)    
-        self.SwitchButton_check2.setChecked(True)
+        # 设置容器
+        self.container = QVBoxLayout(self)
+        self.container.setSpacing(8)
+        self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
+        # 模型退化检查
+        def widget_01_init(widget):
+            widget.setChecked(config.get("reply_check_switch").get("Model Degradation Check"))
+            
+        def widget_01_callback(widget, checked: bool):
+            config["reply_check_switch"]["Model Degradation Check"] = checked
+            self.save_config(config)
 
-        check2_layout.addWidget(labe1_6)
-        check2_layout.addStretch(1)  # 添加伸缩项
-        check2_layout.addWidget(self.SwitchButton_check2)
-        check2_box.setLayout(check2_layout)
+        self.container.addWidget(
+            SwitchButtonCard(
+                "模型退化检查", 
+                "如在翻译结果中检查到模型退化的现象，则重试",
+                widget_01_init,
+                widget_01_callback,
+            )
+        )
 
+        # 翻译残留检查
+        def widget_02_init(widget):
+            widget.setChecked(config.get("reply_check_switch").get("Return to Original Text Check"))
+            
+        def widget_02_callback(widget, checked: bool):
+            config["reply_check_switch"]["Return to Original Text Check"] = checked
+            self.save_config(config)
 
-        # ----------
-        check3_box = QGroupBox()
-        check3_box.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        check3_layout = QHBoxLayout()
+        self.container.addWidget(
+            SwitchButtonCard(
+                "翻译残留检查", 
+                "如在翻译结果中检查到翻译残留的现象，则重试",
+                widget_02_init,
+                widget_02_callback,
+            )
+        )
 
-        # 设置标签
-        labe1_4 = QLabel(flags=Qt.WindowFlags())  
-        labe1_4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_4.setText("返回相同原文检查")
+        # 原文返回检查
+        def widget_03_init(widget):
+            widget.setChecked(config.get("reply_check_switch").get("Residual Original Text Check"))
+            
+        def widget_03_callback(widget, checked: bool):
+            config["reply_check_switch"]["Residual Original Text Check"] = checked
+            self.save_config(config)
 
+        self.container.addWidget(
+            SwitchButtonCard(
+                "原文返回检查", 
+                "如在翻译结果中检查到原文返回的现象，则重试",
+                widget_03_init,
+                widget_03_callback,
+            )
+        )
 
-
-        # 设置选择开关
-        self.SwitchButton_check3 = SwitchButton(parent=self)    
-        self.SwitchButton_check3.setChecked(True)
-
-
-
-        check3_layout.addWidget(labe1_4)
-        check3_layout.addStretch(1)  # 添加伸缩项
-        check3_layout.addWidget(self.SwitchButton_check3)
-        check3_box.setLayout(check3_layout)
-
-
-
-
-        # 最外层的垂直布局
-        container = QVBoxLayout()
-
-        # 把内容添加到容器中
-        container.addStretch(1)  # 添加伸缩项
-        container.addWidget(check1_box)
-        container.addWidget(check2_box)
-        container.addWidget(check3_box)
-        container.addStretch(1)  # 添加伸缩项
-
-        # 设置窗口显示的内容是最外层容器
-        self.setLayout(container)
-        container.setSpacing(28) # 设置布局内控件的间距为28
-        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
-
-
+        # 填充
+        self.container.addStretch(1) # 确保控件顶端对齐
