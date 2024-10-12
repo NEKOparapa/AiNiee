@@ -236,7 +236,7 @@ class Cache_Manager():
             name = entry.get('name')
 
             # 如果有名字，则组合成轻小说的格式，如：小明「测试」， 否则不组合
-            if name: # 注意：改成二级处理时，要记得提示字典只会判断原文，不会判断名字
+            if name: # 注意：改成二级处理时，要记得指令词典只会判断原文，不会判断名字
                 if source_text[0] == '「':
                     new_dict[str(index_count)] = f"{name}{source_text}"
                 else:

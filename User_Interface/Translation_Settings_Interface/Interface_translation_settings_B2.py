@@ -1,158 +1,183 @@
 
-from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QImage, QPainter, QPixmap#需要安装库 pip3 install PyQt5
-from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
-from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout
+import os
+import json
 
-from qfluentwidgets.components import Dialog  # 需要安装库 pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
-from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, EditableComboBox
-from qfluentwidgets import FluentIcon as FIF
-from qframelesswindow import FramelessWindow, StandardTitleBar
+from rich import print
+from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QVBoxLayout
 
+from Widget.SpinCard import SpinCard
+from Widget.ComboBoxCard import ComboBoxCard
+from Widget.SwitchButtonCard import SwitchButtonCard
 
-class Widget_translation_settings_B2(QFrame):#  专项设置子界面
-    def __init__(self, text: str, parent=None,user_interface_prompter=None):#解释器会自动调用这个函数
-        super().__init__(parent=parent)          #调用父类的构造函数
-        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
-        self.user_interface_prompter = user_interface_prompter
-        #设置各个控件-----------------------------------------------------------------------------------------
+class Widget_translation_settings_B2(QFrame):
 
+    DEFAULT = {
+        "cot_toggle": False,
+        "cn_prompt_toggle": False,
+        "preserve_line_breaks_toggle": False,
+        "text_clear_toggle": False,
+        "response_conversion_toggle": False,
+        "opencc_preset": "s2t",
+    }
 
-        # -----创建第3个组(后来补的)，添加多个组件-----
-        box1_cot_toggle = QGroupBox()
-        box1_cot_toggle.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout1_cot_toggle = QHBoxLayout()
+    def __init__(self, text: str, parent = None, configurator = None):
+        super().__init__(parent = parent)
 
-        #设置“简繁转换开关”标签
-        labe1_6 = QLabel(flags=Qt.WindowFlags())  
-        labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_6.setText("使用思维链翻译")
+        self.setObjectName(text.replace(" ", "-"))
+        self.configurator = configurator
 
-       #设置“简繁体自动转换”选择开关
-        self.SwitchButton_cot_toggle = SwitchButton(parent=self)    
+        # 主逻辑
+        self.main()
 
+    # 载入配置文件
+    def load_config(self) -> dict[str]:
+        config = {}
 
+        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
+            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
+                config = json.load(reader)
+        
+        return config
 
-        layout1_cot_toggle.addWidget(labe1_6)
-        layout1_cot_toggle.addStretch(1)  # 添加伸缩项
-        layout1_cot_toggle.addWidget(self.SwitchButton_cot_toggle)
-        box1_cot_toggle.setLayout(layout1_cot_toggle)
+    # 保存配置文件
+    def save_config(self, config: dict) -> None:
+        config = self.fill_config(config)
+        with open(os.path.join(self.configurator.resource_dir, "config.json"), "w", encoding = "utf-8") as writer:
+            writer.write(json.dumps(config, indent = 4, ensure_ascii = False))
 
+    # 填充配置文件缺失的条目
+    def fill_config(self, config: dict) -> dict:
+        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
+            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
+                exists = json.load(reader)
+                for k, v in exists.items():
+                    if not k in config.keys():
+                        config[k] = v
+                
+        for k, v in self.DEFAULT.items():
+            if not k in config.keys():
+                config[k] = v
 
-        # -----创建第3个组(后来补的)，添加多个组件-----
-        box1_cn_prompt_toggle = QGroupBox()
-        box1_cn_prompt_toggle.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout1_cn_prompt_toggle = QHBoxLayout()
+        return config
+    
+    def main(self):
+        # 载入配置文件
+        config = self.load_config()
+        self.save_config(config)
 
-        #设置“简繁转换开关”标签
-        labe1_6 = QLabel(flags=Qt.WindowFlags())  
-        labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_6.setText("使用中文提示词")
+        # 设置容器
+        self.container = QVBoxLayout(self)
+        self.container.setSpacing(8)
+        self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
-       #设置“简繁体自动转换”选择开关
-        self.SwitchButton_cn_prompt_toggle = SwitchButton(parent=self)    
+        # 思维链模式
+        def widget_01_init(widget):
+            widget.setChecked(config.get("cot_toggle"))
+            
+        def widget_01_callback(widget, checked: bool):
+            config["cot_toggle"] = checked
+            self.save_config(config)
 
+        self.container.addWidget(
+            SwitchButtonCard(
+                "思维链模式", 
+                "思维链（CoT）模式是一种高级翻译指令模式，在逻辑能力强的模型上可以取得更好的翻译效果，注意，会消耗更多 Token",
+                widget_01_init,
+                widget_01_callback,
+            )
+        )
+        
+        # 中文提示词
+        def widget_02_init(widget):
+            widget.setChecked(config.get("cn_prompt_toggle"))
+            
+        def widget_02_callback(widget, checked: bool):
+            config["cn_prompt_toggle"] = checked
+            self.save_config(config)
 
+        self.container.addWidget(
+            SwitchButtonCard(
+                "中文提示词", 
+                "默认使用英文提示词，启用此功能后将使用中文提示词（Sakura 模型固定为中文提示词，无需启用此功能）",
+                widget_02_init,
+                widget_02_callback,
+            )
+        )
 
-        layout1_cn_prompt_toggle.addWidget(labe1_6)
-        layout1_cn_prompt_toggle.addStretch(1)  # 添加伸缩项
-        layout1_cn_prompt_toggle.addWidget(self.SwitchButton_cn_prompt_toggle)
-        box1_cn_prompt_toggle.setLayout(layout1_cn_prompt_toggle)
+        # 保留句内换行符
+        def widget_03_init(widget):
+            widget.setChecked(config.get("preserve_line_breaks_toggle"))
+            
+        def widget_03_callback(widget, checked: bool):
+            config["preserve_line_breaks_toggle"] = checked
+            self.save_config(config)
 
+        self.container.addWidget(
+            SwitchButtonCard(
+                "保留句内换行符", 
+                "启用此功能后将尝试保留每个句子内的换行符",
+                widget_03_init,
+                widget_03_callback,
+            )
+        )
 
-        # -----创建第1个组(后来补的)，添加多个组件-----
-        box_clear = QGroupBox()
-        box_clear.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_clear = QHBoxLayout()
+        # 保留首尾非文本字符
+        def widget_04_init(widget):
+            widget.setChecked(config.get("text_clear_toggle"))
+            
+        def widget_04_callback(widget, checked: bool):
+            config["text_clear_toggle"] = checked
+            self.save_config(config)
 
-        #设置标签
-        labe1_4 = QLabel(flags=Qt.WindowFlags())  
-        labe1_4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_4.setText("处理首尾非文本字符")
+        self.container.addWidget(
+            SwitchButtonCard(
+                "保留首尾非文本字符", 
+                "启用此功能后将尝试保留每个句子首尾的非文本字符",
+                widget_04_init,
+                widget_04_callback,
+            )
+        )
+        
+        # 自动转换为繁体中文
+        def widget_05_init(widget):
+            widget.setChecked(config.get("response_conversion_toggle"))
+            
+        def widget_05_callback(widget, checked: bool):
+            config["response_conversion_toggle"] = checked
+            self.save_config(config)
 
+        self.container.addWidget(
+            SwitchButtonCard(
+                "自动转换为繁体中文", 
+                "启用此功能将在翻译完成后自动将译文转换为繁体中文",
+                widget_05_init,
+                widget_05_callback,
+            )
+        )
+        
+        # 简繁转换字体映射规则
+        def widget_06_init(widget):
+            widget.setCurrentIndex(max(0, widget.findText(config.get("opencc_preset"))))
 
+        def widget_06_callback(widget, index: int):
+            config["opencc_preset"] = widget.currentText()
+            self.save_config(config)
 
-       #设置选择开关
-        self.SwitchButton_clear = SwitchButton(parent=self)    
-        #self.SwitchButton_clear.checkedChanged.connect(self.on_clear)
-        self.SwitchButton_clear.setChecked(True)
+        self.container.addWidget(
+            ComboBoxCard(
+                "简繁转换字形映射规则", 
+                "进行简繁转换时的字形映射规则",
+                    [
+                        "s2t",
+                        "s2tw",
+                        "s2hk",
+                        "s2twp",
+                    ],
+                widget_06_init,
+                widget_06_callback,
+            )
+        )
 
-
-        layout_clear.addWidget(labe1_4)
-        layout_clear.addStretch(1)  # 添加伸缩项
-        layout_clear.addWidget(self.SwitchButton_clear)
-        box_clear.setLayout(layout_clear)
-
-
-
-        # -----创建第3个组(后来补的)，添加多个组件-----
-        box1_conversion_toggle = QGroupBox()
-        box1_conversion_toggle.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout1_conversion_toggle = QHBoxLayout()
-
-        #设置“简繁转换开关”标签
-        labe1_6 = QLabel(flags=Qt.WindowFlags())  
-        labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_6.setText("中文字形转换")
-
-
-        #设置“OpenCC 配置”下拉选择框
-        self.comboBox_opencc_preset = ComboBox()  # 以demo为父类
-        self.comboBox_opencc_preset.addItems(['s2t', 't2s', 's2tw', 'tw2s', 's2hk', 'hk2s', 's2twp', 'tw2sp', 't2tw', 'hk2t', 't2hk', 't2jp', 'jp2t', 'tw2t'])
-        self.comboBox_opencc_preset.setCurrentIndex(0)  # 设置下拉框控件（ComboBox）的当前选中项的索引为 0，也就是默认选中第一个选项
-        self.comboBox_opencc_preset.setFixedSize(127, 30)
-
-
-       #设置“简繁体自动转换”选择开关
-        self.SwitchButton_conversion_toggle = SwitchButton(parent=self)    
-
-
-
-        layout1_conversion_toggle.addWidget(labe1_6)
-        layout1_conversion_toggle.addWidget(self.comboBox_opencc_preset)
-        layout1_conversion_toggle.addStretch(1)  # 添加伸缩项
-        layout1_conversion_toggle.addWidget(self.SwitchButton_conversion_toggle)
-        box1_conversion_toggle.setLayout(layout1_conversion_toggle)
-
-
-
-
-        # -----创建第5个组(后来补的)，添加多个组件-----
-        box1_line_breaks = QGroupBox()
-        box1_line_breaks.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout1_line_breaks = QHBoxLayout()
-
-        #设置“换行符保留”标签
-        labe1_6 = QLabel(flags=Qt.WindowFlags())  
-        labe1_6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        labe1_6.setText("换行替换后翻译")
-
-       #设置“换行符保留”选择开关
-        self.SwitchButton_line_breaks = SwitchButton(parent=self)    
-        self.SwitchButton_line_breaks.setChecked(True)
-
-
-        layout1_line_breaks.addWidget(labe1_6)
-        layout1_line_breaks.addStretch(1)  # 添加伸缩项
-        layout1_line_breaks.addWidget(self.SwitchButton_line_breaks)
-        box1_line_breaks.setLayout(layout1_line_breaks)
-
-
-
-
-        # 最外层的垂直布局
-        container = QVBoxLayout()
-
-        # 把内容添加到容器中
-        container.addStretch(1)  # 添加伸缩项
-        container.addWidget(box1_cot_toggle)
-        container.addWidget(box1_cn_prompt_toggle)
-        container.addWidget(box1_line_breaks)
-        container.addWidget(box_clear)
-        container.addWidget(box1_conversion_toggle)
-        container.addStretch(1)  # 添加伸缩项
-
-        # 设置窗口显示的内容是最外层容器
-        self.setLayout(container)
-        container.setSpacing(28) # 设置布局内控件的间距为28
-        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
-
+        # 填充
+        self.container.addStretch(1) # 确保控件顶端对齐

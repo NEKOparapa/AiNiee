@@ -1,219 +1,219 @@
 
-from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QImage, QPainter, QPixmap#需要安装库 pip3 install PyQt5
-from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
-from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout
+import os
+import json
 
-from qfluentwidgets.components import Dialog  # 需要安装库 pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
-from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, EditableComboBox
-from qfluentwidgets import FluentIcon as FIF
-from qframelesswindow import FramelessWindow, StandardTitleBar
+from rich import print
+from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QVBoxLayout
 
+from Widget.SpinCard import SpinCard
+from Widget.ComboBoxCard import ComboBoxCard
 
+class Widget_translation_settings_B1(QFrame):
 
+    DEFAULT = {
+        "lines_limit_switch": True,
+        "tokens_limit_switch": False,
+        "lines_limit": 16,
+        "tokens_limit": 512,
+        "pre_line_counts": 0,
+        "user_thread_counts": 0,
+        "retry_count_limit": 1,
+        "round_limit": 8,
+    }
 
-class Widget_translation_settings_B1(QFrame):#  发送设置子界面
-    def __init__(self, text: str, parent=None,user_interface_prompter=None):#解释器会自动调用这个函数
-        super().__init__(parent=parent)          #调用父类的构造函数
-        self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
-        self.user_interface_prompter = user_interface_prompter
-        #设置各个控件-----------------------------------------------------------------------------------------
+    def __init__(self, text: str, parent = None, configurator = None):
+        super().__init__(parent = parent)
 
+        self.setObjectName(text.replace(" ", "-"))
+        self.configurator = configurator
 
-        # -----创建第个组，添加多个组件-----
-        box_lines_limit = QGroupBox()
-        box_lines_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_lines_limit = QHBoxLayout()
+        # 主逻辑
+        self.main()
 
-        #设置标签
-        label4 = QLabel(flags=Qt.WindowFlags())  
-        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label4.setText("每次翻译")
+    # 载入配置文件
+    def load_config(self) -> dict:
+        config = {}
 
-        self.spinBox_lines_limit = SpinBox(self)
-        self.spinBox_lines_limit.setRange(0, 99999)    
-        self.spinBox_lines_limit.setValue(15)
+        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
+            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
+                config = json.load(reader)
 
-        #设置“说明”显示
-        self.labelA_lines = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.labelA_lines.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 15px")
-        self.labelA_lines.setText("(行)")  
+        return config
 
+    # 保存配置文件
+    def save_config(self, config: dict) -> None:
+        config = self.fill_config(config)
+        with open(os.path.join(self.configurator.resource_dir, "config.json"), "w", encoding = "utf-8") as writer:
+            writer.write(json.dumps(config, indent = 4, ensure_ascii = False))
 
-        # 设置开关
-        self.checkBox_lines_limit_switch = CheckBox('使用行数模式', self)
-        self.checkBox_lines_limit_switch.setChecked(True)
-        self.checkBox_lines_limit_switch.stateChanged.connect(self.on_lines)
+    # 填充配置文件缺失的条目
+    def fill_config(self, config: dict) -> dict:
+        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
+            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
+                exists = json.load(reader)
+                for k, v in exists.items():
+                    if not k in config.keys():
+                        config[k] = v
+                
+        for k, v in self.DEFAULT.items():
+            if not k in config.keys():
+                config[k] = v
 
-        layout_lines_limit.addWidget(label4)
-        layout_lines_limit.addWidget(self.spinBox_lines_limit)
-        layout_lines_limit.addWidget( self.labelA_lines)
-        layout_lines_limit.addStretch(1)
-        layout_lines_limit.addWidget(self.checkBox_lines_limit_switch)
-        box_lines_limit.setLayout(layout_lines_limit)
+        return config
+    
+    def main(self):
+        # 载入配置文件
+        config = self.load_config()
+        self.save_config(config)
 
+        # 设置容器
+        self.container = QVBoxLayout(self)
+        self.container.setSpacing(8)
+        self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
-        # -----创建第个组，添加多个组件-----
-        box_tokens_limit = QGroupBox()
-        box_tokens_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_tokens_limit = QHBoxLayout()
+        # 任务切分模式
+        def widget_01_init(widget):
+            lines_limit_switch = config.get("lines_limit_switch")
+            tokens_limit_switch = config.get("tokens_limit_switch")
 
-        #设置标签
-        label4 = QLabel(flags=Qt.WindowFlags())  
-        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label4.setText("每次翻译")
+            if lines_limit_switch == True and tokens_limit_switch == False:
+                widget.setCurrentIndex(0)
+                
+            if lines_limit_switch == False and tokens_limit_switch == True:
+                widget.setCurrentIndex(1)
+            
+        def widget_01_callback(widget, index: int):
+            if index == 0:
+                config["lines_limit_switch"] = True
+                config["tokens_limit_switch"] = False
+                
+            if index == 1:
+                config["lines_limit_switch"] = False
+                config["tokens_limit_switch"] = True
+                
+            self.save_config(config)
 
-        self.spinBox_tokens_limit = SpinBox(self)
-        self.spinBox_tokens_limit.setRange(0, 99999)    
-        self.spinBox_tokens_limit.setValue(1500)
+        self.container.addWidget(
+            ComboBoxCard(
+                "任务切分模式", 
+                "选择翻译任务切分的模式",
+                [
+                    "行数模式",
+                    "Token 模式",
+                ],
+                widget_01_init,
+                widget_01_callback,
+            )
+        )
 
-        #设置“说明”显示
-        self.labelA_tokens = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.labelA_tokens.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 15px")
-        self.labelA_tokens.setText("(tokens)")  
+        # 每次发送的最大行数
+        def widget_02_init(widget):
+            widget.setRange(0, 2048)
+            widget.setValue(config.get("lines_limit"))
 
+        def widget_02_callback(widget, value: int):
+            config["lines_limit"] = value
+            self.save_config(config)
 
-        # 设置开关
-        self.checkBox_tokens_limit_switch = CheckBox('使用tokens模式', self)
-        self.checkBox_tokens_limit_switch.setChecked(False)
-        self.checkBox_tokens_limit_switch.stateChanged.connect(self.on_tokens)
+        self.container.addWidget(
+            SpinCard(
+                "每次发送的最大行数", 
+                "当任务切分模式设置为 行数模式 时生效",
+                widget_02_init,
+                widget_02_callback,
+            )
+        )
 
-        layout_tokens_limit.addWidget(label4)
-        layout_tokens_limit.addWidget(self.spinBox_tokens_limit)
-        layout_tokens_limit.addWidget( self.labelA_tokens)
-        layout_tokens_limit.addStretch(1)
-        layout_tokens_limit.addWidget(self.checkBox_tokens_limit_switch)
-        box_tokens_limit.setLayout(layout_tokens_limit)
+        # 每次发送的最大 Token 数
+        def widget_03_init(widget):
+            widget.setRange(0, 2048)
+            widget.setValue(config.get("tokens_limit"))
 
+        def widget_03_callback(widget, value: int):
+            config["tokens_limit"] = value
+            self.save_config(config)
+            
+        self.container.addWidget(
+            SpinCard(
+                "每次发送的最大 Token 数", 
+                "当任务切分模式设置为 Token 模式 时生效",
+                widget_03_init,
+                widget_03_callback,
+            )
+        )
+        
+        # 参考上文行数
+        def widget_04_init(widget):
+            widget.setRange(0, 2048)
+            widget.setValue(config.get("pre_line_counts"))
 
+        def widget_04_callback(widget, value: int):
+            config["pre_line_counts"] = value
+            self.save_config(config)
+            
+        self.container.addWidget(
+            SpinCard(
+                "参考上文行数", 
+                "每个任务携带的参考上文的行数（不支持 Sakura v0.9 模型）",
+                widget_04_init,
+                widget_04_callback,
+            )
+        )
 
-        # -----创建第1个组，添加多个组件-----
-        box_pre_lines = QGroupBox()
-        box_pre_lines.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_pre_lines = QHBoxLayout()
+        # 并行子任务数量
+        def widget_05_init(widget):
+            widget.setRange(0, 2048)
+            widget.setValue(config.get("user_thread_counts"))
 
-        #设置标签
-        label1 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label1.setText("携带上文行数")
+        def widget_05_callback(widget, value: int):
+            config["user_thread_counts"] = value
+            self.save_config(config)
+            
+        self.container.addWidget(
+            SpinCard(
+                "并行子任务数量", 
+                "合理设置可以极大的增加翻译速度，请设置为本地模型的 np 值或者参考在线接口的官方文档，设置为 0 为自动模式",
+                widget_05_init,
+                widget_05_callback,
+            )
+        )
+        
+        # 错误重试的最大次数
+        def widget_06_init(widget):
+            widget.setRange(0, 2048)
+            widget.setValue(config.get("retry_count_limit"))
 
+        def widget_06_callback(widget, value: int):
+            config["retry_count_limit"] = value
+            self.save_config(config)
+            
+        self.container.addWidget(
+            SpinCard(
+                "错误重试的最大次数", 
+                "当遇到行数不匹配等翻译错误时进行重试的最大次数",
+                widget_06_init,
+                widget_06_callback,
+            )
+        )
 
-        #设置数值输入框
-        self.spinBox_pre_lines = SpinBox(self)
-        self.spinBox_pre_lines.setRange(0, 1000)    
-        self.spinBox_pre_lines.setValue(0)
+        # 翻译流程的最大轮次
+        def widget_07_init(widget):
+            widget.setRange(1, 2048)
+            widget.setValue(config.get("round_limit"))
 
+        def widget_07_callback(widget, value: int):
+            config["round_limit"] = value
+            self.save_config(config)
+            
+        self.container.addWidget(
+            SpinCard(
+                "翻译流程的最大轮次", 
+                "当完成一轮翻译后，如果还有未翻译的条目，将重新开始新的翻译流程，直到翻译完成或者达到最大轮次",
+                widget_07_init,
+                widget_07_callback,
+            )
+        )
 
-        layout_pre_lines.addWidget(label1)
-        layout_pre_lines.addStretch(1)  # 添加伸缩项
-        layout_pre_lines.addWidget(self.spinBox_pre_lines)
-        box_pre_lines.setLayout(layout_pre_lines)
-
-
-
-        # -----创建第1个组(后来补的)，添加多个组件-----
-        box1_thread_count = QGroupBox()
-        box1_thread_count.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout1_thread_count = QHBoxLayout()
-
-        #设置“最大线程数”标签
-        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label1_7.setText("最大线程数")
-
-        #设置“说明”显示
-        label2_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label2_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
-        label2_7.setText("(0是自动根据电脑设置线程数)")  
-
-       #设置“最大线程数”数值输入框
-        self.spinBox_thread_count = SpinBox(self)
-        #设置最大最小值
-        self.spinBox_thread_count.setRange(0, 1000)    
-        self.spinBox_thread_count.setValue(0)
-
-        layout1_thread_count.addWidget(label1_7)
-        layout1_thread_count.addWidget(label2_7)
-        layout1_thread_count.addStretch(1)  # 添加伸缩项
-        layout1_thread_count.addWidget(self.spinBox_thread_count)
-        box1_thread_count.setLayout(layout1_thread_count)
-
-
-        # -----创建第x个组，添加多个组件-----
-        box_retry_count_limit = QGroupBox()
-        box_retry_count_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_retry_count_limit = QHBoxLayout()
-
-
-        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label1_7.setText("错误重翻最大次数限制")
-
-
-        # 设置数值输入框
-        self.spinBox_retry_count_limit = SpinBox(self)
-        # 设置最大最小值
-        self.spinBox_retry_count_limit.setRange(0, 1000)    
-        self.spinBox_retry_count_limit.setValue(1)
-
-        layout_retry_count_limit.addWidget(label1_7)
-        layout_retry_count_limit.addStretch(1)  # 添加伸缩项
-        layout_retry_count_limit.addWidget(self.spinBox_retry_count_limit)
-        box_retry_count_limit.setLayout(layout_retry_count_limit)
-
-
-        # -----创建第x个组，添加多个组件-----
-        box_round_limit = QGroupBox()
-        box_round_limit.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_round_limit = QHBoxLayout()
-
-
-        label1_7 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label1_7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
-        label1_7.setText("翻译流程最大轮次限制")
-
-
-        # 设置数值输入框
-        self.spinBox_round_limit = SpinBox(self)
-        # 设置最大最小值
-        self.spinBox_round_limit.setRange(3, 1000)    
-        self.spinBox_round_limit.setValue(6)
-
-        layout_round_limit.addWidget(label1_7)
-        layout_round_limit.addStretch(1)  # 添加伸缩项
-        layout_round_limit.addWidget(self.spinBox_round_limit)
-        box_round_limit.setLayout(layout_round_limit)
-
-
-        # 最外层的垂直布局
-        container = QVBoxLayout()
-
-        # 把内容添加到容器中
-        container.addStretch(1)  # 添加伸缩项
-        container.addWidget(box_lines_limit)
-        container.addWidget(box_tokens_limit)
-        container.addWidget(box_pre_lines)
-        container.addWidget(box1_thread_count)
-        container.addWidget(box_retry_count_limit)
-        container.addWidget(box_round_limit)
-        container.addStretch(1)  # 添加伸缩项
-
-        # 设置窗口显示的内容是最外层容器
-        self.setLayout(container)
-        container.setSpacing(28) # 设置布局内控件的间距为28
-        container.setContentsMargins(50, 70, 50, 30) # 设置布局的边距, 也就是外边框距离，分别为左、上、右、下
-
-
-    #设置选择开关绑定函数
-    def on_clear(self, isChecked: bool):
-        if isChecked:
-            self.user_interface_prompter.createWarningInfoBar("仅支持翻译日语文本时生效，建议翻译T++导出文件时开启")
-
-    #设互斥开关函数
-    def on_lines(self, isChecked: bool):
-        if isChecked:
-            self.checkBox_tokens_limit_switch.setChecked(False)
-
-    #设互斥开关函数
-    def on_tokens(self, isChecked: bool):
-        if isChecked:
-            self.checkBox_lines_limit_switch.setChecked(False)
+        # 填充
+        self.container.addStretch(1) # 确保控件顶端对齐
