@@ -40,30 +40,33 @@ class Widget_translation_settings_B3(QFrame):
         return config
 
     # 保存配置文件
-    def save_config(self, config: dict) -> None:
-        config = self.fill_config(config)
-        with open(os.path.join(self.configurator.resource_dir, "config.json"), "w", encoding = "utf-8") as writer:
-            writer.write(json.dumps(config, indent = 4, ensure_ascii = False))
+    def save_config(self, new: dict) -> None:
+        path = os.path.join(self.configurator.resource_dir, "config.json")
+        
+        # 读取配置文件
+        if os.path.exists(path):
+            with open(path, "r", encoding = "utf-8") as reader:
+                old = json.load(reader)
+        else:
+            old = {}
 
-    # 填充配置文件缺失的条目
-    def fill_config(self, config: dict) -> dict:
-        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
-            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
-                exists = json.load(reader)
-                for k, v in exists.items():
-                    if not k in config.keys():
-                        config[k] = v
-                
+        # 修改配置文件中的条目：如果条目存在，这更新值，如果不存在，则设置默认值
         for k, v in self.DEFAULT.items():
-            if not k in config.keys():
-                config[k] = v
+            if not k in new.keys():
+                old[k] = v
+            else:
+                old[k] = new[k]
 
-        return config
+        # 写入配置文件
+        with open(path, "w", encoding = "utf-8") as writer:
+            writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
+
+        return old
     
     def main(self):
         # 载入配置文件
         config = self.load_config()
-        self.save_config(config)
+        config = self.save_config(config)
 
         # 设置容器
         self.container = QVBoxLayout(self)
