@@ -31,6 +31,7 @@ class PluginBase:
     def __init__(self):
         self.name = "Unnamed Plugin"
         self.description = "No description provided."
+        self.events = []  # 插件感兴趣的事件列表，使用字典存储事件名和优先级
 
     def load(self):
         """加载插件时调用"""
@@ -40,6 +41,11 @@ class PluginBase:
         """处理事件"""
         pass
 
+
+    def add_event(self, event_name, priority):
+        # 添加事件和对应的优先级到事件列表
+        self.events.append({'event': event_name, 'priority': priority})
+
 ```
 在编写插件时，您需要创建一个继承自`PluginBase`的新类，并实现必要的方法。
 
@@ -48,10 +54,13 @@ class PluginBase:
 ## 事件触发说明
 插件可以通过重写`on_event`方法来监听和响应事件。以下是事件触发的基本流程：
 
-1. **重写事件处理方法**
+1. **添加监听事件**
+   使用`add_event`方法，添加插件监听的事件及该事件触发的优先级，优先级建议设置`1-10`。
+
+2. **重写事件处理方法**
    在您的插件类中重写`on_event`方法，该方法将接收事件名称和数据。
 
-2. **监听事件**
+3. **监听事件**
    在`on_event`方法内部，根据事件名称执行相应的逻辑。
 
 以下是部分事件示例：
@@ -64,11 +73,12 @@ class PluginBase:
 以下是一个简单的插件示例，它继承自`PluginBase`并监听了`preproces_text`事件：
 ```python
 from ..Plugin_Base.Plugin_Base import PluginBase
-class GreetingPlugin(PluginBase):
+class Example_Plugin(PluginBase):
     def __init__(self):
         super().__init__()
         self.name = "example_Plugin"
         self.description = "This is an example plugin."
+        self.add_event('postprocess_text', 5)  # 添加感兴趣的事件和触发优先级
 
     def load(self):
         print(f"[INFO]  {self.name} loaded!")
@@ -210,8 +220,42 @@ class GreetingPlugin(PluginBase):
     ```
 
 
+### 发送前文本规范事件：normalize_text
 
-### 回复处理事件：complete_text_process
+1. **触发位置**
+
+    每次获取到待翻译文本，发送请求前触发。
+
+2. **传入参数**
+
+    | 参数名 | 类型 | 描述 |
+    | ------ | ---- | ---- |
+    | event_name | string | normalize_text |
+    | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
+    | event_data | dict | 本次任务的待翻译的原文文本 |
+
+
+    因为没有返回参数，需要直接处理输入的参数event_data
+
+
+    - `event_data`: 本次任务的待翻译的原文文本，json格式，key值是从0开始的数字序号
+    ```python
+        """
+        {
+        "0": "弾：ゾンビ攻撃",
+        "1": "敵：タイムボム",
+        "2": "敵：スコーピオン",
+        "3": "敵：プチデビル：リ",
+        "4": "プチデビルのリスポーン用です。"
+        }
+        """
+    ```
+
+
+
+
+
+### 回复后文本处理事件：complete_text_process
 
 1. **触发位置**
 
@@ -230,7 +274,7 @@ class GreetingPlugin(PluginBase):
 
 
 
-### 回复处理事件(sakura)：sakura_complete_text_process
+### 回复后文本处理事件(sakura)：sakura_complete_text_process
 
 1. **触发位置**
 
@@ -252,7 +296,7 @@ class GreetingPlugin(PluginBase):
 
 1. **触发位置**
 
-    翻译完成，文本优化事件前触发。
+    翻译完成，翻译文件输出前。
 
 2. **传入参数**
 
@@ -262,20 +306,6 @@ class GreetingPlugin(PluginBase):
     | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
     | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
 
-
-### 文本优化事件：optimize_text
-
-1. **触发位置**
-
-    文本后处理事件后，输出翻译文件前触发。
-
-2. **传入参数**
-
-    | 参数名 | 类型 | 描述 |
-    | ------ | ---- | ---- |
-    | event_name | string | optimize_text |
-    | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
-    | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
 
 
 ### 手动导出事件：manual_export

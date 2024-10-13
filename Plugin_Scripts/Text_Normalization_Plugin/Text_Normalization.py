@@ -26,8 +26,30 @@ class Text_Normalization_Plugin(PluginBase):
             # 此外，全角波浪号（～）等也被规范化。
             if configuration_information.source_language == "日语":
                 for k in event_data.keys():
-                    event_data[k] = jaconv.normalize(event_data.get(k, ""), mode = "NFKC")
+                    text = jaconv.normalize(event_data.get(k, ""), mode = "NFKC")
+                    text = self.remove_spaces(text)
+                    event_data[k] = text
 
             if configuration_information.source_language == "英语":
                 for k in event_data.keys():
-                    event_data[k] = unicodedata.normalize('NFKC', event_data.get(k, ""))
+                    text = unicodedata.normalize('NFKC', event_data.get(k, ""))
+                    text = self.remove_spaces(text)
+                    event_data[k] = text
+
+
+
+    def remove_spaces(self, text):
+        """
+        Remove both full-width and half-width spaces from the input text.
+        """
+        # Full-width space character
+        full_width_space = '　'
+        # Half-width space character
+        half_width_space = ' '
+
+        # Remove full-width spaces
+        text = text.replace(full_width_space, '')
+        # Remove half-width spaces
+        text = text.replace(half_width_space, '')
+
+        return text
