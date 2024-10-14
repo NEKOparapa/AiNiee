@@ -10,6 +10,10 @@ from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, 
 from qfluentwidgets import FluentIcon as FIF
 from qframelesswindow import FramelessWindow, StandardTitleBar
 
+from .BaseNavigationItem import BaseNavigationItem
+from .Quality_Optimization_Interface.TextReplaceAPage import TextReplaceAPage
+from .Quality_Optimization_Interface.TextReplaceBPage import TextReplaceBPage
+from .Quality_Optimization_Interface.PromptDictionaryPage import PromptDictionaryPage
 
 from .AI_Platform_Interface.Interface_AI import Widget_AI
 from .AI_Platform_Interface.Interface_Official_api import Widget_Official_api
@@ -35,7 +39,6 @@ from .Translation_Settings_Interface.Interface_translation_settings_B1 import Wi
 from .Translation_Settings_Interface.Interface_translation_settings_B2 import Widget_translation_settings_B2
 from .Translation_Settings_Interface.Interface_translation_settings_C import Widget_translation_settings_C
 
-from .Quality_Optimization_Interface.Interface_Prompt_Dictory import PromptDictoryPage
 
 from .Start_Translation_Interface.Interface_start_translation import Widget_start_translation
 
@@ -45,9 +48,6 @@ from .Prompt_Book_Interface.Interface_characterization import Widget_characteriz
 from .Prompt_Book_Interface.Interface_world_building import Widget_world_building
 from .Prompt_Book_Interface.Interface_writing_style import Widget_writing_style
 from .Prompt_Book_Interface.Interface_translation_example import Widget_translation_example
-
-
-from .Replacement_Dictionary_Interface.Interface_replace_dict import Widget_replace_dict
 
 
 from .Parameter_Adjustment_Interface.Interface_tune import Widget_tune
@@ -129,10 +129,6 @@ class window(FramelessWindow): #主窗口 v
         # -----------------------------------------------------------
         # 第三节开始
         # -----------------------------------------------------------
-
-
-        self.prompt_dictorcy_page = PromptDictoryPage("prompt_dictorcy_page", self, configurator)
-        self.Widget_replace_dict = Widget_replace_dict("Widget_replace_dict", self,configurator,user_interface_prompter)
 
 
         self.Widget_rulebook = Widget_rulebook('Widget_rulebook', self)
@@ -250,9 +246,15 @@ class window(FramelessWindow): #主窗口 v
         # -----------------------------------------------------------
 
 
-        # 添加文本替换页面
-        self.addSubInterface(self.prompt_dictorcy_page, FIF.DICTIONARY, "指令词典", NavigationItemPosition.SCROLL)
-        self.addSubInterface(self.Widget_replace_dict, FIF.SEARCH_MIRROR, "文本替换", NavigationItemPosition.SCROLL)
+        self.prompt_dictionary_page = PromptDictionaryPage("prompt_dictionary_page", self, self.configurator)
+        self.addSubInterface(self.prompt_dictionary_page, FIF.DICTIONARY, "指令词典", NavigationItemPosition.SCROLL)
+
+        self.text_replace_navigation_item = BaseNavigationItem("text_replace_navigation_item", self)
+        self.addSubInterface(self.text_replace_navigation_item, FIF.LANGUAGE, "文本替换", NavigationItemPosition.SCROLL)
+        self.text_replace_a_page = TextReplaceAPage("text_replace_a_page", self, self.configurator)
+        self.addSubInterface(self.text_replace_a_page, FIF.SEARCH, "译前替换", parent = self.text_replace_navigation_item) 
+        self.text_replace_b_page = TextReplaceBPage("text_replace_b_page", self, self.configurator)
+        self.addSubInterface(self.text_replace_b_page, FIF.SEARCH_MIRROR, "译后替换", parent = self.text_replace_navigation_item) 
 
 
         # 添加翻译设置相关页面

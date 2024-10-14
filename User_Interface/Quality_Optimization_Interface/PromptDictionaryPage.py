@@ -25,7 +25,7 @@ from Widget.ComboBoxCard import ComboBoxCard
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class PromptDictoryPage(QFrame):
+class PromptDictionaryPage(QFrame):
     
     DEFAULT = {
         "prompt_dict_switch": True,
@@ -55,7 +55,7 @@ class PromptDictoryPage(QFrame):
         # 添加控件
         self.add_widget_header(self.container, config)
         self.add_widget_body(self.container, config)
-        self.add_widget_footer(self.container, config)
+        self.add_widget_footer(self.container, config, parent)
 
     # 载入配置文件
     def load_config(self) -> dict:
@@ -139,7 +139,7 @@ class PromptDictoryPage(QFrame):
         self.update_to_table(self.table, config)
 
     # 底部
-    def add_widget_footer(self, parent, config):
+    def add_widget_footer(self, parent, config, window):
         self.command_bar_card = CommandBarCard()
         parent.addWidget(self.command_bar_card)
         
@@ -150,7 +150,7 @@ class PromptDictoryPage(QFrame):
         self.add_command_bar_action_03(self.command_bar_card)
         self.command_bar_card.addSeparator()
         self.add_command_bar_action_04(self.command_bar_card)
-        self.add_command_bar_action_05(self.command_bar_card)
+        self.add_command_bar_action_05(self.command_bar_card, window)
 
     # 向表格更新数据
     def update_to_table(self, table, config):
@@ -159,11 +159,13 @@ class PromptDictoryPage(QFrame):
         table.setRowCount(max(16, len(user_dictionary)))
         for k, v in user_dictionary.items():
             datas.append(
-                [k , v.get("translation", ""), v.get("info", "")]
+                [k.strip(), v.get("translation", "").strip(), v.get("info", "").strip()]
             )
         for row, data in enumerate(datas):
             for col, v in enumerate(data):
-                table.setItem(row, col, QTableWidgetItem(v))
+                item = QTableWidgetItem(v)
+                item.setTextAlignment(Qt.AlignCenter)
+                table.setItem(row, col, item)
 
     # 从表格更新数据
     def update_from_table(self, table, config):
@@ -214,9 +216,9 @@ class PromptDictoryPage(QFrame):
                     #     }
                     # ]
                     if isinstance(v, dict) and v.get("srt", "") != "" and v.get("dst", "") != "":
-                        dictionary[v.get("srt", "")] = {
-                            "translation": v.get("dst", ""),
-                            "info": v.get("info", ""),
+                        dictionary[v.get("srt", "").strip()] = {
+                            "translation": v.get("dst", "").strip(),
+                            "info": v.get("info", "").strip(),
                         }
                     
                     # Paratranz的术语表
@@ -236,8 +238,8 @@ class PromptDictoryPage(QFrame):
                     #   }
                     # ]
                     if isinstance(v, dict) and v.get("term", "") != "" and v.get("translation", "") != "":
-                        dictionary[v.get("term", "")] = {
-                            "translation": v.get("translation", ""),
+                        dictionary[v.get("term", "").strip()] = {
+                            "translation": v.get("translation", "").strip(),
                             "info": "",
                         }
             elif isinstance(inputs, dict):
@@ -247,8 +249,8 @@ class PromptDictoryPage(QFrame):
                 # ]
                 for k, v in inputs.items():
                     if isinstance(v, str) and k != "" and v != "":
-                        dictionary[k] = {
-                            "translation": v,
+                        dictionary[k.strip()] = {
+                            "translation": v.strip(),
                             "info": "",
                         }
 
@@ -264,9 +266,9 @@ class PromptDictoryPage(QFrame):
                 cell_value3 = sheet.cell(row=row, column=3).value # 第N行第三列的值
 
                 if cell_value1 != "" and cell_value2 != "":
-                    dictionary[cell_value1] = {
-                        "translation": cell_value2,
-                        "info": cell_value3,
+                    dictionary[cell_value1.strip()] = {
+                        "translation": cell_value2.strip(),
+                        "info": cell_value3.strip(),
                     }
 
             return dictionary
@@ -406,9 +408,9 @@ class PromptDictoryPage(QFrame):
         )
         
     # 重置
-    def add_command_bar_action_05(self, parent):
+    def add_command_bar_action_05(self, parent, window):
         def callback():
-            message_box = MessageBox("警告", "是否确认重置为默认数据 ... ？", self)
+            message_box = MessageBox("警告", "是否确认重置为默认数据 ... ？", window)
             message_box.yesButton.setText("确认")
             message_box.cancelButton.setText("取消")
 
