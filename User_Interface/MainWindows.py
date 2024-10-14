@@ -35,7 +35,7 @@ from .Translation_Settings_Interface.Interface_translation_settings_B1 import Wi
 from .Translation_Settings_Interface.Interface_translation_settings_B2 import Widget_translation_settings_B2
 from .Translation_Settings_Interface.Interface_translation_settings_C import Widget_translation_settings_C
 
-from .Quality_Optimization_Interface.Interface_Prompt_Dictory import PromptDictoryPage
+from .Quality_Optimization_Interface.Interface_Prompt_Dictory import PromptDictionaryPage
 
 from .Start_Translation_Interface.Interface_start_translation import Widget_start_translation
 
@@ -131,7 +131,7 @@ class window(FramelessWindow): #主窗口 v
         # -----------------------------------------------------------
 
 
-        self.prompt_dictorcy_page = PromptDictoryPage("prompt_dictorcy_page", self, configurator)
+        self.prompt_dictionary_page = PromptDictionaryPage("prompt_dictionary_page", self, configurator)
         self.Widget_replace_dict = Widget_replace_dict("Widget_replace_dict", self,configurator,user_interface_prompter)
 
 
@@ -251,7 +251,7 @@ class window(FramelessWindow): #主窗口 v
 
 
         # 添加文本替换页面
-        self.addSubInterface(self.prompt_dictorcy_page, FIF.DICTIONARY, "指令词典", NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.prompt_dictionary_page, FIF.DICTIONARY, "指令词典", NavigationItemPosition.SCROLL)
         self.addSubInterface(self.Widget_replace_dict, FIF.SEARCH_MIRROR, "文本替换", NavigationItemPosition.SCROLL)
 
 

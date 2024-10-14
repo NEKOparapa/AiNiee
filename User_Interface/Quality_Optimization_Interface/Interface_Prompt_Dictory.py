@@ -25,7 +25,7 @@ from Widget.ComboBoxCard import ComboBoxCard
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class PromptDictoryPage(QFrame):
+class PromptDictionaryPage(QFrame):
     
     DEFAULT = {
         "prompt_dict_switch": True,
