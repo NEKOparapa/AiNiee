@@ -119,7 +119,7 @@ class PromptDictionaryPage(QFrame):
         self.table.setBorderVisible(True)
 
         self.table.setWordWrap(False)
-        self.table.setRowCount(16)
+        self.table.setRowCount(12)
         self.table.setColumnCount(3)
         self.table.resizeRowsToContents() # 设置行高度自适应内容
         self.table.resizeColumnsToContents() # 设置列宽度自适应内容
@@ -156,7 +156,7 @@ class PromptDictionaryPage(QFrame):
     def update_to_table(self, table, config):
         datas = []
         user_dictionary = config.get("User_Dictionary2", {})
-        table.setRowCount(max(16, len(user_dictionary)))
+        table.setRowCount(max(12, len(user_dictionary)))
         for k, v in user_dictionary.items():
             datas.append(
                 [k.strip(), v.get("translation", "").strip(), v.get("info", "").strip()]

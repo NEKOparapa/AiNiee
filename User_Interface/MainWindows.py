@@ -14,6 +14,11 @@ from .BaseNavigationItem import BaseNavigationItem
 from .Quality_Optimization_Interface.TextReplaceAPage import TextReplaceAPage
 from .Quality_Optimization_Interface.TextReplaceBPage import TextReplaceBPage
 from .Quality_Optimization_Interface.PromptDictionaryPage import PromptDictionaryPage
+from .Quality_Optimization_Interface.ModelArgumentsSakuraPage import ModelArgumentsSakuraPage
+from .Quality_Optimization_Interface.ModelArgumentsGooglePage import ModelArgumentsGooglePage
+from .Quality_Optimization_Interface.ModelArgumentsCoherePage import ModelArgumentsCoherePage
+from .Quality_Optimization_Interface.ModelArgumentsOpenAIPage import ModelArgumentsOpenAIPage
+from .Quality_Optimization_Interface.ModelArgumentsAnthropicPage import ModelArgumentsAnthropicPage
 
 from .AI_Platform_Interface.Interface_AI import Widget_AI
 from .AI_Platform_Interface.Interface_Official_api import Widget_Official_api
@@ -48,14 +53,6 @@ from .Prompt_Book_Interface.Interface_characterization import Widget_characteriz
 from .Prompt_Book_Interface.Interface_world_building import Widget_world_building
 from .Prompt_Book_Interface.Interface_writing_style import Widget_writing_style
 from .Prompt_Book_Interface.Interface_translation_example import Widget_translation_example
-
-
-from .Parameter_Adjustment_Interface.Interface_tune import Widget_tune
-from .Parameter_Adjustment_Interface.Interface_tune_anthropic import Widget_tune_anthropic
-from .Parameter_Adjustment_Interface.Interface_tune_google import Widget_tune_google
-from .Parameter_Adjustment_Interface.Interface_tune_cohere import Widget_tune_cohere
-from .Parameter_Adjustment_Interface.Interface_tune_openai import Widget_tune_openai
-from .Parameter_Adjustment_Interface.Interface_tune_sakura import Widget_tune_sakura
 
 
 from .Other_Interfaces.Interface_AvatarWidget import AvatarWidget
@@ -137,14 +134,6 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_world_building = Widget_world_building('Widget_world_building', self) 
         self.Widget_writing_style = Widget_writing_style('Widget_writing_style', self) 
         self.Widget_translation_example = Widget_translation_example('Widget_translation_example', self)  
-
-
-        self.Widget_tune = Widget_tune('Widget_tune', self)
-        self.Widget_tune_openai = Widget_tune_openai('Widget_tune_openai', self)
-        self.Widget_tune_sakura = Widget_tune_sakura('Widget_tune_sakura', self)
-        self.Widget_tune_anthropic = Widget_tune_anthropic('Widget_tune_anthropic', self)
-        self.Widget_tune_google = Widget_tune_google('Widget_tune_google', self)
-        self.Widget_tune_cohere = Widget_tune_cohere('Widget_tune_cohere', self)
 
 
         # -----------------------------------------------------------
@@ -265,13 +254,20 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_writing_style, FIF.PENCIL_INK, '文风要求',parent=self.Widget_rulebook) 
         self.addSubInterface(self.Widget_translation_example, FIF.ZOOM, '翻译示例',parent=self.Widget_rulebook) 
 
-        # 添加参数调整页面
-        self.addSubInterface(self.Widget_tune, FIF.MIX_VOLUMES, '模型参数调整',NavigationItemPosition.SCROLL)  
-        self.addSubInterface(self.Widget_tune_openai, FIF.SPEED_OFF, 'OpenAI',parent=self.Widget_tune)
-        self.addSubInterface(self.Widget_tune_anthropic, FIF.SPEED_OFF, 'Anthropic',parent=self.Widget_tune)    
-        self.addSubInterface(self.Widget_tune_sakura, FIF.SPEED_OFF, 'Sakura',parent=self.Widget_tune)  
-        self.addSubInterface(self.Widget_tune_google, FIF.SPEED_OFF, 'Google',parent=self.Widget_tune)  
-        self.addSubInterface(self.Widget_tune_cohere, FIF.SPEED_OFF, 'Cohere',parent=self.Widget_tune)  
+        # 参数调整页面
+        self.model_arguments_navigation_item = BaseNavigationItem("model_arguments_navigation_item", self)
+        self.addSubInterface(self.model_arguments_navigation_item, FIF.MIX_VOLUMES, "模型参数调整", NavigationItemPosition.SCROLL)
+        self.model_arguments_sakura_page = ModelArgumentsSakuraPage("model_arguments_sakura_page", self, self.configurator)
+        self.addSubInterface(self.model_arguments_sakura_page, FIF.SPEED_OFF, "Sakura", parent = self.model_arguments_navigation_item) 
+        self.model_arguments_google_page = ModelArgumentsGooglePage("model_arguments_google_page", self, self.configurator)
+        self.addSubInterface(self.model_arguments_google_page, FIF.SPEED_OFF, "Google", parent = self.model_arguments_navigation_item) 
+        self.model_arguments_cohere_page = ModelArgumentsCoherePage("model_arguments_cohere_page", self, self.configurator)
+        self.addSubInterface(self.model_arguments_cohere_page, FIF.SPEED_OFF, "Cohere", parent = self.model_arguments_navigation_item) 
+        self.model_arguments_openai_page = ModelArgumentsOpenAIPage("model_arguments_openai_page", self, self.configurator)
+        self.addSubInterface(self.model_arguments_openai_page, FIF.SPEED_OFF, "OpenAI", parent = self.model_arguments_navigation_item) 
+        self.model_arguments_anthropic_page = ModelArgumentsAnthropicPage("model_arguments_anthropic_page", self, self.configurator)
+        self.addSubInterface(self.model_arguments_anthropic_page, FIF.SPEED_OFF, "Anthropic", parent = self.model_arguments_navigation_item) 
+        
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
 
