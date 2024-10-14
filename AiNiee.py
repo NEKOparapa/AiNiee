@@ -3213,33 +3213,6 @@ class User_Interface_Prompter(QObject):
                     Main_Window.Widget_start_translation.B_settings.checkBox_switch.setChecked(config_dict["auto_backup_toggle"])
 
 
-
-                #指令词典界面
-                if "User_Dictionary2" in config_dict:
-                    User_Dictionary2 = config_dict["User_Dictionary2"]
-                    if User_Dictionary2:
-                        for key, value in User_Dictionary2.items():
-                            row = Main_Window.Widget_prompt_dict.tableView.rowCount() - 1
-                            Main_Window.Widget_prompt_dict.tableView.insertRow(row)
-                            key_item = QTableWidgetItem(key)
-                            # 兼容旧版本存储格式
-                            if isinstance(value, dict):
-                                value_item = QTableWidgetItem(value["translation"])
-                                info_item = QTableWidgetItem(value["info"])
-                                Main_Window.Widget_prompt_dict.tableView.setItem(row, 0, key_item)
-                                Main_Window.Widget_prompt_dict.tableView.setItem(row, 1, value_item)
-                                Main_Window.Widget_prompt_dict.tableView.setItem(row, 2, info_item)
-                            else:
-                                value_item = QTableWidgetItem(value)
-                                Main_Window.Widget_prompt_dict.tableView.setItem(row, 0, key_item)
-                                Main_Window.Widget_prompt_dict.tableView.setItem(row, 1, value_item)                                  
-                        #删除第一行
-                        Main_Window.Widget_prompt_dict.tableView.removeRow(0)
-                if "prompt_dict_switch" in config_dict:
-                    Change_translation_prompt = config_dict["prompt_dict_switch"]
-                    Main_Window.Widget_prompt_dict.checkBox2.setChecked(Change_translation_prompt)
-
-
                 #译前文本替换界面
                 if "User_Dictionary1" in config_dict:
                     User_Dictionary1 = config_dict["User_Dictionary1"]
