@@ -33,7 +33,6 @@ from .Translation_Settings_Interface.Interface_translation_settings import Widge
 from .Translation_Settings_Interface.Interface_translation_settings_A import Widget_translation_settings_A
 from .Translation_Settings_Interface.Interface_translation_settings_B1 import Widget_translation_settings_B1
 from .Translation_Settings_Interface.Interface_translation_settings_B2 import Widget_translation_settings_B2
-from .Translation_Settings_Interface.Interface_translation_settings_B3 import Widget_translation_settings_B3
 from .Translation_Settings_Interface.Interface_translation_settings_C import Widget_translation_settings_C
 
 
@@ -110,7 +109,6 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_translation_settings_A = Widget_translation_settings_A('Widget_translation_settings_A', self, configurator, user_interface_prompter)
         self.Widget_translation_settings_B1 = Widget_translation_settings_B1('Widget_translation_settings_B1', self, configurator)
         self.Widget_translation_settings_B2 = Widget_translation_settings_B2('Widget_translation_settings_B2', self, configurator)
-        self.Widget_translation_settings_B3 = Widget_translation_settings_B3('Widget_translation_settings_B3', self, configurator)
         self.Widget_translation_settings_C = Widget_translation_settings_C('Widget_translation_settings_C', self,user_interface_prompter)  
 
         self.Widget_start_translation = Widget_start_translation('Widget_start_translation', self,configurator,user_interface_prompter,background_executor)  
@@ -204,15 +202,14 @@ class window(FramelessWindow): #主窗口 v
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
 
         # 添加翻译设置相关页面
-        self.addSubInterface(self.Widget_translation_settings, FIF.APPLICATION, '翻译设置',NavigationItemPosition.SCROLL) 
-        self.addSubInterface(self.Widget_translation_settings_A, FIF.REMOVE, '基础设置',parent=self.Widget_translation_settings) 
-        self.addSubInterface(self.Widget_translation_settings_B1, FIF.ALIGNMENT, '发送设置',parent=self.Widget_translation_settings) 
+        self.addSubInterface(self.Widget_translation_settings, FIF.LANGUAGE, '翻译设置',NavigationItemPosition.SCROLL) 
+        self.addSubInterface(self.Widget_translation_settings_A, FIF.TAG, '基础设置',parent=self.Widget_translation_settings) 
+        self.addSubInterface(self.Widget_translation_settings_B1, FIF.FLAG, '任务设置',parent=self.Widget_translation_settings) 
         self.addSubInterface(self.Widget_translation_settings_B2, FIF.ALBUM, '高级设置',parent=self.Widget_translation_settings) 
-        self.addSubInterface(self.Widget_translation_settings_B3, FIF.CHECKBOX, '结果检查设置',parent=self.Widget_translation_settings) 
         self.addSubInterface(self.Widget_translation_settings_C, FIF.EMOJI_TAB_SYMBOLS, '混合翻译设置',parent=self.Widget_translation_settings) 
 
         # 添加开始翻译页面
-        self.addSubInterface(self.Widget_start_translation, FIF.ROBOT, '开始翻译',NavigationItemPosition.SCROLL)  
+        self.addSubInterface(self.Widget_start_translation, FIF.PLAY, '开始翻译',NavigationItemPosition.SCROLL)  
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
 
@@ -226,7 +223,7 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_translation_example, FIF.ZOOM, '翻译示例',parent=self.Widget_rulebook) 
 
         # 添加文本替换页面
-        self.addSubInterface(self.Widget_replace_dict, FIF.DICTIONARY, '文本替换',NavigationItemPosition.SCROLL)  
+        self.addSubInterface(self.Widget_replace_dict, FIF.SEARCH_MIRROR, '文本替换',NavigationItemPosition.SCROLL)  
 
         # 添加参数调整页面
         self.addSubInterface(self.Widget_tune, FIF.MIX_VOLUMES, '参数调整',NavigationItemPosition.SCROLL)  

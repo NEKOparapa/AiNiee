@@ -4,7 +4,11 @@ import json
 
 from rich import print
 from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QScrollArea
 from PyQt5.QtWidgets import QVBoxLayout
+
+from qfluentwidgets import SmoothScrollArea
 
 from Widget.SpinCard import SpinCard
 from Widget.ComboBoxCard import ComboBoxCard
@@ -19,6 +23,11 @@ class Widget_translation_settings_B2(QFrame):
         "text_clear_toggle": True,
         "response_conversion_toggle": False,
         "opencc_preset": "s2t",
+        "reply_check_switch": {
+            "Model Degradation Check": True,
+            "Residual Original Text Check": True,
+            "Return to Original Text Check": True,
+        },
     }
 
     def __init__(self, text: str, parent = None, configurator = None):
@@ -27,8 +36,37 @@ class Widget_translation_settings_B2(QFrame):
         self.setObjectName(text.replace(" ", "-"))
         self.configurator = configurator
 
-        # 主逻辑
-        self.main()
+        # 载入配置文件
+        config = self.load_config()
+        config = self.save_config(config)
+
+        # 设置主容器
+        self.container = QVBoxLayout(self)
+        self.container.setContentsMargins(0, 0, 0, 0)
+
+        # 设置滚动容器
+        self.scroller = SmoothScrollArea(self)
+        self.scroller.setWidgetResizable(True)
+        self.scroller.setStyleSheet("QScrollArea { border: none; }")
+        self.container.addWidget(self.scroller)
+
+        # 设置容器
+        self.vbox_parent = QWidget()
+        self.vbox = QVBoxLayout(self.vbox_parent)
+        self.vbox.setSpacing(8)
+        self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
+        self.scroller.setWidget(self.vbox_parent)
+
+        # 添加控件
+        self.add_widget_01(self.vbox, config)
+        self.add_widget_02(self.vbox, config)
+        self.add_widget_03(self.vbox, config)
+        self.add_widget_04(self.vbox, config)
+        self.add_widget_05(self.vbox, config)
+        self.add_widget_06(self.vbox, config)
+        self.add_widget_07(self.vbox, config)
+        self.add_widget_08(self.vbox, config)
+        self.add_widget_09(self.vbox, config)
 
     # 载入配置文件
     def load_config(self) -> dict[str]:
@@ -63,111 +101,107 @@ class Widget_translation_settings_B2(QFrame):
             writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
 
         return old
-    
-    def main(self):
-        # 载入配置文件
-        config = self.load_config()
-        config = self.save_config(config)
 
-        # 设置容器
-        self.container = QVBoxLayout(self)
-        self.container.setSpacing(8)
-        self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
-
-        # 思维链模式
-        def widget_01_init(widget):
+    # 思维链模式
+    def add_widget_01(self, parent, config):
+        def widget_init(widget):
             widget.setChecked(config.get("cot_toggle"))
             
-        def widget_01_callback(widget, checked: bool):
+        def widget_callback(widget, checked: bool):
             config["cot_toggle"] = checked
             self.save_config(config)
 
-        self.container.addWidget(
+        parent.addWidget(
             SwitchButtonCard(
                 "思维链模式", 
                 "思维链（CoT）是一种高级指令模式，在逻辑能力强的模型上可以取得更好的翻译效果，会消耗更多 Token（不支持 Sakura 模型）",
-                widget_01_init,
-                widget_01_callback,
+                widget_init,
+                widget_callback,
             )
         )
         
-        # 中文提示词
-        def widget_02_init(widget):
+    # 中文提示词
+    def add_widget_02(self, parent, config):
+        def widget_init(widget):
             widget.setChecked(config.get("cn_prompt_toggle"))
             
-        def widget_02_callback(widget, checked: bool):
+        def widget_callback(widget, checked: bool):
             config["cn_prompt_toggle"] = checked
             self.save_config(config)
 
-        self.container.addWidget(
+        parent.addWidget(
             SwitchButtonCard(
                 "中文提示词", 
                 "默认使用英文提示词，启用此功能后将使用中文提示词（Sakura 模型固定为中文提示词，无需启用此功能）",
-                widget_02_init,
-                widget_02_callback,
+                widget_init,
+                widget_callback,
             )
         )
-
-        # 保留句内换行符
-        def widget_03_init(widget):
+        
+    # 保留句内换行符
+    def add_widget_03(self, parent, config):
+        def widget_init(widget):
             widget.setChecked(config.get("preserve_line_breaks_toggle"))
             
-        def widget_03_callback(widget, checked: bool):
+        def widget_callback(widget, checked: bool):
             config["preserve_line_breaks_toggle"] = checked
             self.save_config(config)
 
-        self.container.addWidget(
+        parent.addWidget(
             SwitchButtonCard(
                 "保留句内换行符", 
                 "启用此功能后将尝试保留每个句子内的换行符",
-                widget_03_init,
-                widget_03_callback,
+                widget_init,
+                widget_callback,
             )
         )
-
-        # 保留首尾非文本字符
-        def widget_04_init(widget):
+        
+    # 保留首尾非文本字符
+    def add_widget_04(self, parent, config):
+        def widget_init(widget):
             widget.setChecked(config.get("text_clear_toggle"))
             
-        def widget_04_callback(widget, checked: bool):
+        def widget_callback(widget, checked: bool):
             config["text_clear_toggle"] = checked
             self.save_config(config)
 
-        self.container.addWidget(
+        parent.addWidget(
             SwitchButtonCard(
                 "保留首尾非文本字符", 
-                "启用此功能后将尝试保留每个句子首尾的非文本字符",
-                widget_04_init,
-                widget_04_callback,
+                "启用此功能后将尝试保留每个句子首尾的非文本字符（仅当源语言为日文时生效）",
+                widget_init,
+                widget_callback,
             )
         )
         
-        # 自动简繁转换
-        def widget_05_init(widget):
+    # 自动简繁转换
+    def add_widget_05(self, parent, config):
+        def widget_init(widget):
             widget.setChecked(config.get("response_conversion_toggle"))
             
-        def widget_05_callback(widget, checked: bool):
+        def widget_callback(widget, checked: bool):
             config["response_conversion_toggle"] = checked
             self.save_config(config)
 
-        self.container.addWidget(
+        parent.addWidget(
             SwitchButtonCard(
                 "自动简繁转换", 
-                "启用此功能后，在翻译完成时将按照设置的字形映射规则进行简繁转换",
-                widget_05_init,
-                widget_05_callback,
+                "启用此功能后在翻译完成时将按照设置的字形映射规则进行简繁转换",
+                widget_init,
+                widget_callback,
             )
         )
         
-        # 简繁转换字形映射规则
-        def widget_06_init(widget):
+    # 简繁转换字形映射规则
+    def add_widget_06(self, parent, config):
+        def widget_init(widget):
             widget.setCurrentIndex(max(0, widget.findText(config.get("opencc_preset"))))
 
-        def widget_06_callback(widget, index: int):
+        def widget_callback(widget, index: int):
             config["opencc_preset"] = widget.currentText()
             self.save_config(config)
 
-        self.container.addWidget(
+        parent.addWidget(
             ComboBoxCard(
                 "简繁转换字形映射规则",
                 "进行简繁转换时的字形映射规则，常用的有：简转繁（s2t）、繁转简（t2s）",
@@ -187,10 +221,61 @@ class Widget_translation_settings_B2(QFrame):
                     "hk2t",
                     "jp2t",
                 ],
-                widget_06_init,
-                widget_06_callback,
+                widget_init,
+                widget_callback,
             )
         )
 
-        # 填充
-        self.container.addStretch(1) # 确保控件顶端对齐
+    # 模型退化检查
+    def add_widget_07(self, parent, config):
+        def widget_init(widget):
+            widget.setChecked(config.get("reply_check_switch").get("Model Degradation Check"))
+            
+        def widget_callback(widget, checked: bool):
+            config["reply_check_switch"]["Model Degradation Check"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                "模型退化检查", 
+                "如在翻译结果中检查 模型退化 现象，则视为任务执行失败，等待重试",
+                widget_init,
+                widget_callback,
+            )
+        )
+
+    # 原文返回检查
+    def add_widget_08(self, parent, config):
+        def widget_init(widget):
+            widget.setChecked(config.get("reply_check_switch").get("Return to Original Text Check"))
+            
+        def widget_callback(widget, checked: bool):
+            config["reply_check_switch"]["Return to Original Text Check"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                "原文返回检查", 
+                "如在翻译结果中检查 原文返回 现象，则视为任务执行失败，等待重试",
+                widget_init,
+                widget_callback,
+            )
+        )
+        
+    # 翻译残留检查
+    def add_widget_09(self, parent, config):
+        def widget_init(widget):
+            widget.setChecked(config.get("reply_check_switch").get("Residual Original Text Check"))
+            
+        def widget_callback(widget, checked: bool):
+            config["reply_check_switch"]["Residual Original Text Check"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                "翻译残留检查", 
+                "如在翻译结果中检查 翻译残留 现象，则视为任务执行失败，等待重试",
+                widget_init,
+                widget_callback,
+            )
+        )

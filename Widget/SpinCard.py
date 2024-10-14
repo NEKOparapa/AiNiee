@@ -3,17 +3,18 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
 
+from qfluentwidgets import ElevatedCardWidget
 from qfluentwidgets import SpinBox
-from qfluentwidgets import CardWidget
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import StrongBodyLabel
 
-class SpinCard(CardWidget):
+class SpinCard(ElevatedCardWidget):
 
     def __init__(self, title: str, description: str, init = None, on_value_changed = None):
         super().__init__(None)
         
         # 设置容器
+        self.setBorderRadius(4)
         self.container = QHBoxLayout(self)
         self.container.setContentsMargins(16, 16, 16, 16) # 左、上、右、下
 
@@ -29,7 +30,7 @@ class SpinCard(CardWidget):
         self.container.addLayout(self.vbox)
 
         # 填充
-        self.container.addStretch(1) # 确保控件顶端对齐
+        self.container.addStretch(1)
         
         # 微调框控件
         self.spin_box = SpinBox()
