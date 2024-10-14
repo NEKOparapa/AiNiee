@@ -201,6 +201,9 @@ class window(FramelessWindow): #主窗口 v
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
 
+        # 添加开始翻译页面
+        self.addSubInterface(self.Widget_start_translation, FIF.PLAY, '开始翻译',NavigationItemPosition.SCROLL)  
+
         # 添加翻译设置相关页面
         self.addSubInterface(self.Widget_translation_settings, FIF.LANGUAGE, '翻译设置',NavigationItemPosition.SCROLL) 
         self.addSubInterface(self.Widget_translation_settings_A, FIF.TAG, '基础设置',parent=self.Widget_translation_settings) 
@@ -208,25 +211,23 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_translation_settings_B2, FIF.ALBUM, '高级设置',parent=self.Widget_translation_settings) 
         self.addSubInterface(self.Widget_translation_settings_C, FIF.EMOJI_TAB_SYMBOLS, '混合翻译设置',parent=self.Widget_translation_settings) 
 
-        # 添加开始翻译页面
-        self.addSubInterface(self.Widget_start_translation, FIF.PLAY, '开始翻译',NavigationItemPosition.SCROLL)  
-
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
 
+        # 添加文本替换页面
+        self.addSubInterface(self.Widget_prompt_dict, FIF.DICTIONARY, "指令词典", NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.Widget_replace_dict, FIF.SEARCH_MIRROR, "文本替换", NavigationItemPosition.SCROLL)
+
+
         # 添加翻译设置相关页面
-        self.addSubInterface(self.Widget_rulebook, FIF.BOOK_SHELF, '提示书',NavigationItemPosition.SCROLL) 
-        self.addSubInterface(self.Widget_system_prompt, FIF.LABEL, '基础提示',parent=self.Widget_rulebook)
-        self.addSubInterface(self.Widget_prompt_dict, FIF.DICTIONARY, '指令词典',parent=self.Widget_rulebook)   
+        self.addSubInterface(self.Widget_rulebook, FIF.BOOK_SHELF, '提示词优化',NavigationItemPosition.SCROLL) 
+        self.addSubInterface(self.Widget_system_prompt, FIF.LABEL, '基础提示',parent=self.Widget_rulebook)   
         self.addSubInterface(self.Widget_characterization, FIF.EXPRESSIVE_INPUT_ENTRY, '角色介绍',parent=self.Widget_rulebook) 
         self.addSubInterface(self.Widget_world_building, FIF.QUICK_NOTE, '背景设定',parent=self.Widget_rulebook) 
         self.addSubInterface(self.Widget_writing_style, FIF.PENCIL_INK, '文风要求',parent=self.Widget_rulebook) 
         self.addSubInterface(self.Widget_translation_example, FIF.ZOOM, '翻译示例',parent=self.Widget_rulebook) 
 
-        # 添加文本替换页面
-        self.addSubInterface(self.Widget_replace_dict, FIF.SEARCH_MIRROR, '文本替换',NavigationItemPosition.SCROLL)  
-
         # 添加参数调整页面
-        self.addSubInterface(self.Widget_tune, FIF.MIX_VOLUMES, '参数调整',NavigationItemPosition.SCROLL)  
+        self.addSubInterface(self.Widget_tune, FIF.MIX_VOLUMES, '模型参数调整',NavigationItemPosition.SCROLL)  
         self.addSubInterface(self.Widget_tune_openai, FIF.SPEED_OFF, 'OpenAI',parent=self.Widget_tune)
         self.addSubInterface(self.Widget_tune_anthropic, FIF.SPEED_OFF, 'Anthropic',parent=self.Widget_tune)    
         self.addSubInterface(self.Widget_tune_sakura, FIF.SPEED_OFF, 'Sakura',parent=self.Widget_tune)  
