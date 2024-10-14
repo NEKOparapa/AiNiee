@@ -2754,29 +2754,6 @@ class User_Interface_Prompter(QObject):
             config_dict["auto_backup_toggle"] =  Main_Window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
 
 
-
-
-            #获取指令词典界面
-            config_dict["prompt_dict_switch"] = Main_Window.Widget_prompt_dict.checkBox2.isChecked() #获取译时提示开关状态
-            User_Dictionary2 = {}
-            for row in range(Main_Window.Widget_prompt_dict.tableView.rowCount() - 1):
-                key_item = Main_Window.Widget_prompt_dict.tableView.item(row, 0)
-                value_item = Main_Window.Widget_prompt_dict.tableView.item(row, 1)
-                info_item = Main_Window.Widget_prompt_dict.tableView.item(row, 2)
-                if key_item and value_item:
-                    key = key_item.data(Qt.DisplayRole)
-                    value = value_item.data(Qt.DisplayRole)
-                    # 检查一下是不是空值
-                    if info_item:
-                        info = info_item.data(Qt.DisplayRole)
-                        User_Dictionary2[key] = {"translation": value, "info": info}
-                    else:
-                        # 如果info项为None，可以选择不添加到字典中或者添加一个默认值
-                        User_Dictionary2[key] = {"translation": value, "info": None}
-            config_dict["User_Dictionary2"] = User_Dictionary2
-
-
-
             #获取译前文本替换界面
             config_dict["Replace_before_translation"] =  Main_Window.Widget_replace_dict.A_settings.checkBox1.isChecked()#获取译前替换开关状态
             User_Dictionary1 = {}
