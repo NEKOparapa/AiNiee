@@ -2754,34 +2754,6 @@ class User_Interface_Prompter(QObject):
             config_dict["auto_backup_toggle"] =  Main_Window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
 
 
-            #获取译前文本替换界面
-            config_dict["Replace_before_translation"] =  Main_Window.Widget_replace_dict.A_settings.checkBox1.isChecked()#获取译前替换开关状态
-            User_Dictionary1 = {}
-            for row in range(Main_Window.Widget_replace_dict.A_settings.tableView.rowCount() - 1):
-                key_item = Main_Window.Widget_replace_dict.A_settings.tableView.item(row, 0)
-                value_item = Main_Window.Widget_replace_dict.A_settings.tableView.item(row, 1)
-                if key_item and value_item:
-                    key = key_item.data(Qt.DisplayRole)
-                    value = value_item.data(Qt.DisplayRole)
-                    User_Dictionary1[key] = value
-            config_dict["User_Dictionary1"] = User_Dictionary1
-
-
-            #获取译后文本替换界面
-            config_dict["Replace_after_translation"] =  Main_Window.Widget_replace_dict.B_settings.checkBox1.isChecked()#获取译后替换开关状态
-            User_Dictionary3 = {}
-            for row in range(Main_Window.Widget_replace_dict.B_settings.tableView.rowCount() - 1):
-                key_item = Main_Window.Widget_replace_dict.B_settings.tableView.item(row, 0)
-                value_item = Main_Window.Widget_replace_dict.B_settings.tableView.item(row, 1)
-                if key_item and value_item:
-                    key = key_item.data(Qt.DisplayRole)
-                    value = value_item.data(Qt.DisplayRole)
-                    User_Dictionary3[key] = value
-            config_dict["User_Dictionary3"] = User_Dictionary3
-
-
-
-
             #获取实时设置界面(openai)
             config_dict["OpenAI_parameter_adjustment"] = Main_Window.Widget_tune_openai.checkBox.isChecked()           #获取开关设置
             config_dict["OpenAI_Temperature"] = Main_Window.Widget_tune_openai.slider1.value()           #获取OpenAI温度
@@ -3188,43 +3160,6 @@ class User_Interface_Prompter(QObject):
                 #开始翻译的备份设置界面
                 if "auto_backup_toggle" in config_dict:
                     Main_Window.Widget_start_translation.B_settings.checkBox_switch.setChecked(config_dict["auto_backup_toggle"])
-
-
-                #译前文本替换界面
-                if "User_Dictionary1" in config_dict:
-                    User_Dictionary1 = config_dict["User_Dictionary1"]
-                    if User_Dictionary1:
-                        for key, value in User_Dictionary1.items():
-                            row = Main_Window.Widget_replace_dict.A_settings.tableView.rowCount() - 1
-                            Main_Window.Widget_replace_dict.A_settings.tableView.insertRow(row)
-                            key_item = QTableWidgetItem(key)
-                            value_item = QTableWidgetItem(value)
-                            Main_Window.Widget_replace_dict.A_settings.tableView.setItem(row, 0, key_item)
-                            Main_Window.Widget_replace_dict.A_settings.tableView.setItem(row, 1, value_item)        
-                        #删除第一行
-                        Main_Window.Widget_replace_dict.A_settings.tableView.removeRow(0)
-                if "Replace_before_translation" in config_dict:
-                    Replace_before_translation = config_dict["Replace_before_translation"]
-                    Main_Window.Widget_replace_dict.A_settings.checkBox1.setChecked(Replace_before_translation)
-
-
-                #译后文本替换界面
-                if "User_Dictionary3" in config_dict:
-                    User_Dictionary3 = config_dict["User_Dictionary3"]
-                    if User_Dictionary3:
-                        for key, value in User_Dictionary3.items():
-                            row = Main_Window.Widget_replace_dict.B_settings.tableView.rowCount() - 1
-                            Main_Window.Widget_replace_dict.B_settings.tableView.insertRow(row)
-                            key_item = QTableWidgetItem(key)
-                            value_item = QTableWidgetItem(value)
-                            Main_Window.Widget_replace_dict.B_settings.tableView.setItem(row, 0, key_item)
-                            Main_Window.Widget_replace_dict.B_settings.tableView.setItem(row, 1, value_item)
-                        #删除第一行
-                        Main_Window.Widget_replace_dict.B_settings.tableView.removeRow(0)
-                if "Replace_after_translation" in config_dict:
-                    Replace_after_translation = config_dict["Replace_after_translation"]
-                    Main_Window.Widget_replace_dict.B_settings.checkBox1.setChecked(Replace_after_translation)
-
 
 
                 #实时设置界面(openai)
