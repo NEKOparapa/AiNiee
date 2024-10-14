@@ -163,7 +163,9 @@ class PromptDictionaryPage(QFrame):
             )
         for row, data in enumerate(datas):
             for col, v in enumerate(data):
-                table.setItem(row, col, QTableWidgetItem(v))
+                item = QTableWidgetItem(v)
+                item.setTextAlignment(Qt.AlignCenter)
+                table.setItem(row, col, item)
 
     # 从表格更新数据
     def update_from_table(self, table, config):
