@@ -162,7 +162,10 @@ class window(FramelessWindow): #主窗口 v
     def initNavigation(self): # 详细介绍：https://pyqt-fluent-widgets.readthedocs.io/zh_CN/latest/navigation.html
 
 
- 
+        # -----------------------------------------------------------
+        # 第一节开始
+        # -----------------------------------------------------------
+
 
         # 添加账号设置界面
         self.addSubInterface(self.Widget_AI, FIF.IOT, '账号设置',NavigationItemPosition.SCROLL) # NavigationItemPosition.SCROLL表示在可滚动伸缩区域
@@ -199,19 +202,28 @@ class window(FramelessWindow): #主窗口 v
         # 添加sakura界面
         self.addSubInterface(self.Widget_SakuraLLM, FIF.CONNECT, 'SakuraLLM',parent=self.Widget_AI) 
 
-        self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
 
-        # 添加开始翻译页面
-        self.addSubInterface(self.Widget_start_translation, FIF.PLAY, '开始翻译',NavigationItemPosition.SCROLL)  
-
-        # 添加翻译设置相关页面
-        self.addSubInterface(self.Widget_translation_settings, FIF.LANGUAGE, '翻译设置',NavigationItemPosition.SCROLL) 
-        self.addSubInterface(self.Widget_translation_settings_A, FIF.TAG, '基础设置',parent=self.Widget_translation_settings) 
-        self.addSubInterface(self.Widget_translation_settings_B1, FIF.FLAG, '任务设置',parent=self.Widget_translation_settings) 
-        self.addSubInterface(self.Widget_translation_settings_B2, FIF.ALBUM, '高级设置',parent=self.Widget_translation_settings) 
-        self.addSubInterface(self.Widget_translation_settings_C, FIF.EMOJI_TAB_SYMBOLS, '混合翻译设置',parent=self.Widget_translation_settings) 
+        self.addSubInterface(self.Widget_start_translation, FIF.PLAY, "开始翻译", NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.Widget_translation_settings_A, FIF.FOLDER, "项目属性", NavigationItemPosition.SCROLL) 
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
+
+
+        # -----------------------------------------------------------
+        # 第二节开始
+        # -----------------------------------------------------------
+
+        self.addSubInterface(self.Widget_translation_settings_B1, FIF.SETTING, "基础设置", NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.Widget_translation_settings_B2, FIF.ALBUM, "高级设置", NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.Widget_translation_settings_C, FIF.EMOJI_TAB_SYMBOLS, "混合翻译设置", NavigationItemPosition.SCROLL)
+
+        self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
+
+
+        # -----------------------------------------------------------
+        # 第四节开始
+        # -----------------------------------------------------------
+
 
         # 添加文本替换页面
         self.addSubInterface(self.Widget_prompt_dict, FIF.DICTIONARY, "指令词典", NavigationItemPosition.SCROLL)
@@ -235,6 +247,12 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_tune_cohere, FIF.SPEED_OFF, 'Cohere',parent=self.Widget_tune)  
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
+
+
+        # -----------------------------------------------------------
+        # 第四节开始
+        # -----------------------------------------------------------
+
 
         # 添加RPG界面
         self.addSubInterface(self.Widget_RPG, FIF.TILES, 'StevExtraction',NavigationItemPosition.SCROLL)
