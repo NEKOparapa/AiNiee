@@ -203,8 +203,8 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_SakuraLLM, FIF.CONNECT, 'SakuraLLM',parent=self.Widget_AI) 
 
 
-        self.addSubInterface(self.Widget_start_translation, FIF.PLAY, "开始翻译", NavigationItemPosition.SCROLL)
         self.addSubInterface(self.Widget_translation_settings_A, FIF.FOLDER, "项目属性", NavigationItemPosition.SCROLL) 
+        self.addSubInterface(self.Widget_start_translation, FIF.PLAY, "开始翻译", NavigationItemPosition.SCROLL)
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
 
@@ -273,8 +273,9 @@ class window(FramelessWindow): #主窗口 v
             position=NavigationItemPosition.BOTTOM
         )
 
+        # 默认展示开始翻页页面
+        self.stackWidget.setCurrentWidget(self.Widget_start_translation)
         self.stackWidget.currentChanged.connect(self.onCurrentInterfaceChanged)
-        self.stackWidget.setCurrentIndex(1)
 
     #初始化父窗口的函数
     def initWindow(self): 
