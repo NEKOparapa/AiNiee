@@ -33,15 +33,14 @@ from .Translation_Settings_Interface.Interface_translation_settings import Widge
 from .Translation_Settings_Interface.Interface_translation_settings_A import Widget_translation_settings_A
 from .Translation_Settings_Interface.Interface_translation_settings_B1 import Widget_translation_settings_B1
 from .Translation_Settings_Interface.Interface_translation_settings_B2 import Widget_translation_settings_B2
-from .Translation_Settings_Interface.Interface_translation_settings_B3 import Widget_translation_settings_B3
 from .Translation_Settings_Interface.Interface_translation_settings_C import Widget_translation_settings_C
 
+from .Quality_Optimization_Interface.Interface_Prompt_Dictory import PromptDictoryPage
 
 from .Start_Translation_Interface.Interface_start_translation import Widget_start_translation
 
 from .Prompt_Book_Interface.Interface_rulebook import Widget_rulebook
 from .Prompt_Book_Interface.Interface_system_prompt import Widget_system_prompt
-from .Prompt_Book_Interface.Interface_prompt_dict import Widget_prompt_dict
 from .Prompt_Book_Interface.Interface_characterization import Widget_characterization
 from .Prompt_Book_Interface.Interface_world_building import Widget_world_building
 from .Prompt_Book_Interface.Interface_writing_style import Widget_writing_style
@@ -89,6 +88,12 @@ class window(FramelessWindow): #主窗口 v
         self.background_executor = background_executor
 
         # 创建子界面控件，传入参数为对象名和parent
+
+        # -----------------------------------------------------------
+        # 第一节开始
+        # -----------------------------------------------------------
+        
+        
         self.Widget_AI = Widget_AI('Widget_AI', self)
         self.Widget_Official_api = Widget_Official_api('Widget_Official_api', self)
         self.Widget_Openai = Widget_Openai('Widget_Openai', self,configurator,user_interface_prompter,background_executor)   
@@ -106,25 +111,36 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_Add_proxy_platform = Widget_Empty('Widget_Add_proxy_platform', self)
         self.Widget_SakuraLLM = Widget_SakuraLLM('Widget_SakuraLLM', self,configurator,user_interface_prompter,background_executor)
 
-        self.Widget_translation_settings = Widget_translation_settings('Widget_translation_settings', self)
+
         self.Widget_translation_settings_A = Widget_translation_settings_A('Widget_translation_settings_A', self, configurator, user_interface_prompter)
+        self.Widget_start_translation = Widget_start_translation('Widget_start_translation', self,configurator,user_interface_prompter,background_executor)  
+
+
+        # -----------------------------------------------------------
+        # 第二节开始
+        # -----------------------------------------------------------
+
+
         self.Widget_translation_settings_B1 = Widget_translation_settings_B1('Widget_translation_settings_B1', self, configurator)
         self.Widget_translation_settings_B2 = Widget_translation_settings_B2('Widget_translation_settings_B2', self, configurator)
-        self.Widget_translation_settings_B3 = Widget_translation_settings_B3('Widget_translation_settings_B3', self, configurator)
         self.Widget_translation_settings_C = Widget_translation_settings_C('Widget_translation_settings_C', self,user_interface_prompter)  
 
-        self.Widget_start_translation = Widget_start_translation('Widget_start_translation', self,configurator,user_interface_prompter,background_executor)  
+
+        # -----------------------------------------------------------
+        # 第三节开始
+        # -----------------------------------------------------------
+
+
+        self.prompt_dictorcy_page = PromptDictoryPage("prompt_dictorcy_page", self, configurator)
+        self.Widget_replace_dict = Widget_replace_dict("Widget_replace_dict", self,configurator,user_interface_prompter)
 
 
         self.Widget_rulebook = Widget_rulebook('Widget_rulebook', self)
         self.Widget_system_prompt = Widget_system_prompt('Widget_system_prompt', self)  
-        self.Widget_prompt_dict = Widget_prompt_dict('Widget_prompt_dict', self,configurator,user_interface_prompter)
         self.Widget_characterization = Widget_characterization('Widget_characterization', self) 
         self.Widget_world_building = Widget_world_building('Widget_world_building', self) 
         self.Widget_writing_style = Widget_writing_style('Widget_writing_style', self) 
         self.Widget_translation_example = Widget_translation_example('Widget_translation_example', self)  
-
-
 
 
         self.Widget_tune = Widget_tune('Widget_tune', self)
@@ -134,10 +150,10 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_tune_google = Widget_tune_google('Widget_tune_google', self)
         self.Widget_tune_cohere = Widget_tune_cohere('Widget_tune_cohere', self)
 
-        self.Widget_sponsor = Widget_sponsor('Widget_sponsor', self,configurator = self.configurator)
 
-
-        self.Widget_replace_dict = Widget_replace_dict('Widget_replace_dict', self,configurator,user_interface_prompter)
+        # -----------------------------------------------------------
+        # 第四节开始
+        # -----------------------------------------------------------
 
 
         self.Widget_RPG = Widget_RPG('Widget_RPG', self)  
@@ -145,10 +161,17 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_import_translated_text = Widget_import_translated_text('Widget_import_translated_text', self,configurator,user_interface_prompter,jtpp)  
         self.Widget_update_text = Widget_update_text('Widget_update_text', self,configurator,user_interface_prompter,jtpp)   
 
+
+        # -----------------------------------------------------------
+        # 第五节开始
+        # -----------------------------------------------------------
+        
+
+        self.Widget_sponsor = Widget_sponsor('Widget_sponsor', self,configurator = self.configurator)
+
+
         self.initLayout() #调用初始化布局函数 
-
         self.initNavigation()   #调用初始化导航栏函数
-
         self.initWindow()  #调用初始化窗口函数
 
 
@@ -164,7 +187,10 @@ class window(FramelessWindow): #主窗口 v
     def initNavigation(self): # 详细介绍：https://pyqt-fluent-widgets.readthedocs.io/zh_CN/latest/navigation.html
 
 
- 
+        # -----------------------------------------------------------
+        # 第一节开始
+        # -----------------------------------------------------------
+
 
         # 添加账号设置界面
         self.addSubInterface(self.Widget_AI, FIF.IOT, '账号设置',NavigationItemPosition.SCROLL) # NavigationItemPosition.SCROLL表示在可滚动伸缩区域
@@ -201,35 +227,44 @@ class window(FramelessWindow): #主窗口 v
         # 添加sakura界面
         self.addSubInterface(self.Widget_SakuraLLM, FIF.CONNECT, 'SakuraLLM',parent=self.Widget_AI) 
 
-        self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
 
-        # 添加翻译设置相关页面
-        self.addSubInterface(self.Widget_translation_settings, FIF.APPLICATION, '翻译设置',NavigationItemPosition.SCROLL) 
-        self.addSubInterface(self.Widget_translation_settings_A, FIF.REMOVE, '基础设置',parent=self.Widget_translation_settings) 
-        self.addSubInterface(self.Widget_translation_settings_B1, FIF.ALIGNMENT, '发送设置',parent=self.Widget_translation_settings) 
-        self.addSubInterface(self.Widget_translation_settings_B2, FIF.ALBUM, '高级设置',parent=self.Widget_translation_settings) 
-        self.addSubInterface(self.Widget_translation_settings_B3, FIF.CHECKBOX, '结果检查设置',parent=self.Widget_translation_settings) 
-        self.addSubInterface(self.Widget_translation_settings_C, FIF.EMOJI_TAB_SYMBOLS, '混合翻译设置',parent=self.Widget_translation_settings) 
-
-        # 添加开始翻译页面
-        self.addSubInterface(self.Widget_start_translation, FIF.ROBOT, '开始翻译',NavigationItemPosition.SCROLL)  
+        self.addSubInterface(self.Widget_translation_settings_A, FIF.FOLDER, "项目属性", NavigationItemPosition.SCROLL) 
+        self.addSubInterface(self.Widget_start_translation, FIF.PLAY, "开始翻译", NavigationItemPosition.SCROLL)
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
 
+
+        # -----------------------------------------------------------
+        # 第二节开始
+        # -----------------------------------------------------------
+
+        self.addSubInterface(self.Widget_translation_settings_B1, FIF.SETTING, "基础设置", NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.Widget_translation_settings_B2, FIF.ALBUM, "高级设置", NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.Widget_translation_settings_C, FIF.EMOJI_TAB_SYMBOLS, "混合翻译设置", NavigationItemPosition.SCROLL)
+
+        self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
+
+
+        # -----------------------------------------------------------
+        # 第三节开始
+        # -----------------------------------------------------------
+
+
+        # 添加文本替换页面
+        self.addSubInterface(self.prompt_dictorcy_page, FIF.DICTIONARY, "指令词典", NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.Widget_replace_dict, FIF.SEARCH_MIRROR, "文本替换", NavigationItemPosition.SCROLL)
+
+
         # 添加翻译设置相关页面
-        self.addSubInterface(self.Widget_rulebook, FIF.BOOK_SHELF, '提示书',NavigationItemPosition.SCROLL) 
-        self.addSubInterface(self.Widget_system_prompt, FIF.LABEL, '基础提示',parent=self.Widget_rulebook)
-        self.addSubInterface(self.Widget_prompt_dict, FIF.DICTIONARY, '指令词典',parent=self.Widget_rulebook)   
+        self.addSubInterface(self.Widget_rulebook, FIF.BOOK_SHELF, '提示词优化',NavigationItemPosition.SCROLL) 
+        self.addSubInterface(self.Widget_system_prompt, FIF.LABEL, '基础提示',parent=self.Widget_rulebook)   
         self.addSubInterface(self.Widget_characterization, FIF.EXPRESSIVE_INPUT_ENTRY, '角色介绍',parent=self.Widget_rulebook) 
         self.addSubInterface(self.Widget_world_building, FIF.QUICK_NOTE, '背景设定',parent=self.Widget_rulebook) 
         self.addSubInterface(self.Widget_writing_style, FIF.PENCIL_INK, '文风要求',parent=self.Widget_rulebook) 
         self.addSubInterface(self.Widget_translation_example, FIF.ZOOM, '翻译示例',parent=self.Widget_rulebook) 
 
-        # 添加文本替换页面
-        self.addSubInterface(self.Widget_replace_dict, FIF.DICTIONARY, '文本替换',NavigationItemPosition.SCROLL)  
-
         # 添加参数调整页面
-        self.addSubInterface(self.Widget_tune, FIF.MIX_VOLUMES, '参数调整',NavigationItemPosition.SCROLL)  
+        self.addSubInterface(self.Widget_tune, FIF.MIX_VOLUMES, '模型参数调整',NavigationItemPosition.SCROLL)  
         self.addSubInterface(self.Widget_tune_openai, FIF.SPEED_OFF, 'OpenAI',parent=self.Widget_tune)
         self.addSubInterface(self.Widget_tune_anthropic, FIF.SPEED_OFF, 'Anthropic',parent=self.Widget_tune)    
         self.addSubInterface(self.Widget_tune_sakura, FIF.SPEED_OFF, 'Sakura',parent=self.Widget_tune)  
@@ -237,6 +272,12 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.Widget_tune_cohere, FIF.SPEED_OFF, 'Cohere',parent=self.Widget_tune)  
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
+
+
+        # -----------------------------------------------------------
+        # 第四节开始
+        # -----------------------------------------------------------
+
 
         # 添加RPG界面
         self.addSubInterface(self.Widget_RPG, FIF.TILES, 'StevExtraction',NavigationItemPosition.SCROLL)
@@ -249,7 +290,7 @@ class window(FramelessWindow): #主窗口 v
         # 添加赞助页面
         self.addSubInterface(self.Widget_sponsor, FIF.CAFE, '赞助一下', NavigationItemPosition.BOTTOM) 
 
-       # 添加头像导航项
+        # 添加头像导航项
         self.navigationInterface.addWidget(
             routeKey='avatar',
             widget=AvatarWidget(configurator = self.configurator),
@@ -257,8 +298,12 @@ class window(FramelessWindow): #主窗口 v
             position=NavigationItemPosition.BOTTOM
         )
 
+        # 展开状态下侧边导航的宽度
+        self.navigationInterface.setExpandWidth(256)
+
+        # 默认展示开始翻页页面
+        self.stackWidget.setCurrentWidget(self.Widget_start_translation)
         self.stackWidget.currentChanged.connect(self.onCurrentInterfaceChanged)
-        self.stackWidget.setCurrentIndex(1)
 
     #初始化父窗口的函数
     def initWindow(self): 
