@@ -25,16 +25,11 @@ from Widget.ComboBoxCard import ComboBoxCard
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class PromptDictionaryPage(QFrame):
+class TextReplaceBPage(QFrame):
     
     DEFAULT = {
-        "prompt_dict_switch": True,
-        "User_Dictionary2": {
-            "ダリヤ": {
-                "translation": "达莉雅",
-                "info": "女性的名字"
-            },
-        },
+        "Replace_after_translation": True,
+        "User_Dictionary3": {},
     }
 
     def __init__(self, text: str, parent = None, configurator = None):
@@ -94,16 +89,16 @@ class PromptDictionaryPage(QFrame):
     # 头部
     def add_widget_header(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("prompt_dict_switch"))
+            widget.setChecked(config.get("Replace_after_translation"))
             
         def widget_callback(widget, checked: bool):
-            config["prompt_dict_switch"] = checked
+            config["Replace_after_translation"] = checked
             self.save_config(config)
 
         parent.addWidget(
             SwitchButtonCard(
-                "指令词典", 
-                "通过构建词典指令来引导模型翻译，可实现统一翻译、矫正人称属性等功能 (不支持 Sakura v0.9 模型)",
+                "译后替换", 
+                "在翻译完成后，将译文中匹配的部分替换为指定的文本，执行的顺序为从上到下依次替换",
                 widget_init,
                 widget_callback,
             )
@@ -120,7 +115,7 @@ class PromptDictionaryPage(QFrame):
 
         self.table.setWordWrap(False)
         self.table.setRowCount(12)
-        self.table.setColumnCount(3)
+        self.table.setColumnCount(2)
         self.table.resizeRowsToContents() # 设置行高度自适应内容
         self.table.resizeColumnsToContents() # 设置列宽度自适应内容
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch) # 撑满宽度
@@ -130,8 +125,7 @@ class PromptDictionaryPage(QFrame):
         self.table.setHorizontalHeaderLabels(
             [
                 "原文",
-                "译文",
-                "描述",
+                "替换",
             ],
         )
 
@@ -148,18 +142,19 @@ class PromptDictionaryPage(QFrame):
         self.add_command_bar_action_02(self.command_bar_card)
         self.command_bar_card.addSeparator()
         self.add_command_bar_action_03(self.command_bar_card)
-        self.command_bar_card.addSeparator()
         self.add_command_bar_action_04(self.command_bar_card)
-        self.add_command_bar_action_05(self.command_bar_card, window)
+        self.command_bar_card.addSeparator()
+        self.add_command_bar_action_05(self.command_bar_card)
+        self.add_command_bar_action_06(self.command_bar_card, window)
 
     # 向表格更新数据
     def update_to_table(self, table, config):
         datas = []
-        user_dictionary = config.get("User_Dictionary2", {})
+        user_dictionary = config.get("User_Dictionary3", {})
         table.setRowCount(max(12, len(user_dictionary)))
         for k, v in user_dictionary.items():
             datas.append(
-                [k.strip(), v.get("translation", "").strip(), v.get("info", "").strip()]
+                [k.strip(), v.strip()]
             )
         for row, data in enumerate(datas):
             for col, v in enumerate(data):
@@ -169,12 +164,11 @@ class PromptDictionaryPage(QFrame):
 
     # 从表格更新数据
     def update_from_table(self, table, config):
-        config["User_Dictionary2"] = {}
+        config["User_Dictionary3"] = {}
         
         for row in range(table.rowCount()):
             data_str = table.item(row, 0)
             data_dst = table.item(row, 1)
-            data_info = table.item(row, 2)
 
             # 判断是否有数据
             if data_str == None or data_dst == None:
@@ -182,16 +176,12 @@ class PromptDictionaryPage(QFrame):
             
             data_str = data_str.text().strip()
             data_dst = data_dst.text().strip()
-            data_info = data_info.text().strip() if data_info != None else ""
 
             # 判断是否有数据
             if data_str == "" or data_dst == "":
                 continue
 
-            config["User_Dictionary2"][data_str] = {
-                "translation": data_dst,
-                "info": data_info,
-            }
+            config["User_Dictionary3"][data_str] = data_dst
 
         return config
 
@@ -216,10 +206,7 @@ class PromptDictionaryPage(QFrame):
                     #     }
                     # ]
                     if isinstance(v, dict) and v.get("srt", "") != "" and v.get("dst", "") != "":
-                        dictionary[v.get("srt", "").strip()] = {
-                            "translation": v.get("dst", "").strip(),
-                            "info": v.get("info", "").strip(),
-                        }
+                        dictionary[v.get("srt", "").strip()] = v.get("dst", "").strip()
                     
                     # Paratranz的术语表
                     # [
@@ -238,10 +225,7 @@ class PromptDictionaryPage(QFrame):
                     #   }
                     # ]
                     if isinstance(v, dict) and v.get("term", "") != "" and v.get("translation", "") != "":
-                        dictionary[v.get("term", "").strip()] = {
-                            "translation": v.get("translation", "").strip(),
-                            "info": "",
-                        }
+                        dictionary[v.get("term", "").strip()] = v.get("translation", "").strip()
             elif isinstance(inputs, dict):
                 # 普通 KV 格式
                 # [
@@ -249,10 +233,7 @@ class PromptDictionaryPage(QFrame):
                 # ]
                 for k, v in inputs.items():
                     if isinstance(v, str) and k != "" and v != "":
-                        dictionary[k.strip()] = {
-                            "translation": v.strip(),
-                            "info": "",
-                        }
+                        dictionary[k.strip()] = v.strip()
 
             return dictionary
             
@@ -266,10 +247,7 @@ class PromptDictionaryPage(QFrame):
                 cell_value3 = sheet.cell(row=row, column=3).value # 第N行第三列的值
 
                 if cell_value1 != "" and cell_value2 != "":
-                    dictionary[cell_value1.strip()] = {
-                        "translation": cell_value2.strip(),
-                        "info": cell_value3.strip(),
-                    }
+                    dictionary[cell_value1.strip()] = cell_value2.strip()
 
             return dictionary
         
@@ -291,7 +269,7 @@ class PromptDictionaryPage(QFrame):
 
             # 读取配置文件
             config = self.load_config()
-            config["User_Dictionary2"].update(datas)
+            config["User_Dictionary3"].update(datas)
 
             # 保存配置文件
             config = self.save_config(config)
@@ -325,13 +303,13 @@ class PromptDictionaryPage(QFrame):
 
             # 整理数据
             datas = []
-            user_dictionary = config.get("User_Dictionary2", {})
+            user_dictionary = config.get("User_Dictionary3", {})
             for k, v in user_dictionary.items():
                 datas.append(
                     {
                         "srt": k,
-                        "dst": v.get("translation", ""),
-                        "info": v.get("info", ""),
+                        "dst": v,
+                        "info": "",
                     }
                 )
 
@@ -341,13 +319,13 @@ class PromptDictionaryPage(QFrame):
                 return
 
             # 导出文件
-            with open(os.path.join(path, "导出_指令词典.json"), "w", encoding = "utf-8") as writer:
+            with open(os.path.join(path, "导出_译后替换.json"), "w", encoding = "utf-8") as writer:
                 writer.write(json.dumps(datas, indent = 4, ensure_ascii = False))
 
             # 弹出提示
             InfoBar.success(
                 title = "",
-                content = f"表格数据已导出为 导出_指令词典.json ...",
+                content = f"表格数据已导出为 导出_译后替换.json ...",
                 parent = self,
                 duration = 2000,
                 orient = Qt.Horizontal,
@@ -380,8 +358,35 @@ class PromptDictionaryPage(QFrame):
             Action(FluentIcon.ADD_TO, "添加新行", parent, triggered = callback),
         )
 
-    # 保存
+    # 移除空行
     def add_command_bar_action_04(self, parent):
+        def callback():
+            # 从表格更新数据，生成一个临时的配置文件
+            config = self.update_from_table(self.table, {})
+
+            # 清空表格
+            self.table.clearContents()
+
+            # 向表格更新数据
+            self.update_to_table(self.table, config)
+
+            # 弹出提示
+            InfoBar.success(
+                title = "",
+                content = "空行已移除 ...",
+                parent = self,
+                duration = 2000,
+                orient = Qt.Horizontal,
+                position = InfoBarPosition.TOP,
+                isClosable = True,
+            )
+
+        parent.addAction(
+            Action(FluentIcon.BROOM, "移除空行", parent, triggered = callback),
+        )
+
+    # 保存
+    def add_command_bar_action_05(self, parent):
         def callback():
             # 读取配置文件
             config = self.load_config()
@@ -408,7 +413,7 @@ class PromptDictionaryPage(QFrame):
         )
         
     # 重置
-    def add_command_bar_action_05(self, parent, window):
+    def add_command_bar_action_06(self, parent, window):
         def callback():
             message_box = MessageBox("警告", "是否确认重置为默认数据 ... ？", window)
             message_box.yesButton.setText("确认")

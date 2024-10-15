@@ -11,14 +11,23 @@ from qfluentwidgets import FluentIcon as FIF
 from qframelesswindow import FramelessWindow, StandardTitleBar
 
 from .BaseNavigationItem import BaseNavigationItem
-from .Quality_Optimization_Interface.TextReplaceAPage import TextReplaceAPage
-from .Quality_Optimization_Interface.TextReplaceBPage import TextReplaceBPage
-from .Quality_Optimization_Interface.PromptDictionaryPage import PromptDictionaryPage
-from .Quality_Optimization_Interface.ModelArgumentsSakuraPage import ModelArgumentsSakuraPage
-from .Quality_Optimization_Interface.ModelArgumentsGooglePage import ModelArgumentsGooglePage
-from .Quality_Optimization_Interface.ModelArgumentsCoherePage import ModelArgumentsCoherePage
-from .Quality_Optimization_Interface.ModelArgumentsOpenAIPage import ModelArgumentsOpenAIPage
-from .Quality_Optimization_Interface.ModelArgumentsAnthropicPage import ModelArgumentsAnthropicPage
+
+from .ApplicationSetting.BasicSettingsPage import BasicSettingsPage
+from .ApplicationSetting.AdvanceSettingsPage import AdvanceSettingsPage
+
+from .QualityOptimization.TextReplaceAPage import TextReplaceAPage
+from .QualityOptimization.TextReplaceBPage import TextReplaceBPage
+from .QualityOptimization.PromptDictionaryPage import PromptDictionaryPage
+from .QualityOptimization.ModelArgumentsSakuraPage import ModelArgumentsSakuraPage
+from .QualityOptimization.ModelArgumentsGooglePage import ModelArgumentsGooglePage
+from .QualityOptimization.ModelArgumentsCoherePage import ModelArgumentsCoherePage
+from .QualityOptimization.ModelArgumentsOpenAIPage import ModelArgumentsOpenAIPage
+from .QualityOptimization.ModelArgumentsAnthropicPage import ModelArgumentsAnthropicPage
+from .QualityOptimization.SystemPromptPage import SystemPromptPage
+from .QualityOptimization.WritingStylePromptPage import WritingStylePromptPage
+from .QualityOptimization.WorldBuildingPromptPage import WorldBuildingPromptPage
+from .QualityOptimization.CharacterizationPromptPage import CharacterizationPromptPage
+from .QualityOptimization.TranslationExamplePromptPage import TranslationExamplePromptPage
 
 from .AI_Platform_Interface.Interface_AI import Widget_AI
 from .AI_Platform_Interface.Interface_Official_api import Widget_Official_api
@@ -38,21 +47,11 @@ from .AI_Platform_Interface.Interface_Volcengine import Widget_Volcengine
 from .AI_Platform_Interface.Interface_SakuraLLM import Widget_SakuraLLM
 
 
-from .Translation_Settings_Interface.Interface_translation_settings import Widget_translation_settings
 from .Translation_Settings_Interface.Interface_translation_settings_A import Widget_translation_settings_A
-from .Translation_Settings_Interface.Interface_translation_settings_B1 import Widget_translation_settings_B1
-from .Translation_Settings_Interface.Interface_translation_settings_B2 import Widget_translation_settings_B2
 from .Translation_Settings_Interface.Interface_translation_settings_C import Widget_translation_settings_C
 
 
 from .Start_Translation_Interface.Interface_start_translation import Widget_start_translation
-
-from .Prompt_Book_Interface.Interface_rulebook import Widget_rulebook
-from .Prompt_Book_Interface.Interface_system_prompt import Widget_system_prompt
-from .Prompt_Book_Interface.Interface_characterization import Widget_characterization
-from .Prompt_Book_Interface.Interface_world_building import Widget_world_building
-from .Prompt_Book_Interface.Interface_writing_style import Widget_writing_style
-from .Prompt_Book_Interface.Interface_translation_example import Widget_translation_example
 
 
 from .Other_Interfaces.Interface_AvatarWidget import AvatarWidget
@@ -118,22 +117,12 @@ class window(FramelessWindow): #主窗口 v
         # -----------------------------------------------------------
 
 
-        self.Widget_translation_settings_B1 = Widget_translation_settings_B1('Widget_translation_settings_B1', self, configurator)
-        self.Widget_translation_settings_B2 = Widget_translation_settings_B2('Widget_translation_settings_B2', self, configurator)
         self.Widget_translation_settings_C = Widget_translation_settings_C('Widget_translation_settings_C', self,user_interface_prompter)  
 
 
         # -----------------------------------------------------------
         # 第三节开始
         # -----------------------------------------------------------
-
-
-        self.Widget_rulebook = Widget_rulebook('Widget_rulebook', self)
-        self.Widget_system_prompt = Widget_system_prompt('Widget_system_prompt', self)  
-        self.Widget_characterization = Widget_characterization('Widget_characterization', self) 
-        self.Widget_world_building = Widget_world_building('Widget_world_building', self) 
-        self.Widget_writing_style = Widget_writing_style('Widget_writing_style', self) 
-        self.Widget_translation_example = Widget_translation_example('Widget_translation_example', self)  
 
 
         # -----------------------------------------------------------
@@ -223,8 +212,11 @@ class window(FramelessWindow): #主窗口 v
         # 第二节开始
         # -----------------------------------------------------------
 
-        self.addSubInterface(self.Widget_translation_settings_B1, FIF.SETTING, "基础设置", NavigationItemPosition.SCROLL)
-        self.addSubInterface(self.Widget_translation_settings_B2, FIF.ALBUM, "高级设置", NavigationItemPosition.SCROLL)
+        self.basic_settings_page = BasicSettingsPage("basic_settings_page", self, self.configurator)
+        self.addSubInterface(self.basic_settings_page, FIF.SETTING, "基础设置", NavigationItemPosition.SCROLL) 
+        self.advance_settings_page = AdvanceSettingsPage("advance_settings_page", self, self.configurator)
+        self.addSubInterface(self.advance_settings_page, FIF.ALBUM, "高级设置", NavigationItemPosition.SCROLL) 
+
         self.addSubInterface(self.Widget_translation_settings_C, FIF.EMOJI_TAB_SYMBOLS, "混合翻译设置", NavigationItemPosition.SCROLL)
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
@@ -245,14 +237,18 @@ class window(FramelessWindow): #主窗口 v
         self.text_replace_b_page = TextReplaceBPage("text_replace_b_page", self, self.configurator)
         self.addSubInterface(self.text_replace_b_page, FIF.SEARCH_MIRROR, "译后替换", parent = self.text_replace_navigation_item) 
 
-
-        # 添加翻译设置相关页面
-        self.addSubInterface(self.Widget_rulebook, FIF.BOOK_SHELF, '提示词优化',NavigationItemPosition.SCROLL) 
-        self.addSubInterface(self.Widget_system_prompt, FIF.LABEL, '基础提示',parent=self.Widget_rulebook)   
-        self.addSubInterface(self.Widget_characterization, FIF.EXPRESSIVE_INPUT_ENTRY, '角色介绍',parent=self.Widget_rulebook) 
-        self.addSubInterface(self.Widget_world_building, FIF.QUICK_NOTE, '背景设定',parent=self.Widget_rulebook) 
-        self.addSubInterface(self.Widget_writing_style, FIF.PENCIL_INK, '文风要求',parent=self.Widget_rulebook) 
-        self.addSubInterface(self.Widget_translation_example, FIF.ZOOM, '翻译示例',parent=self.Widget_rulebook) 
+        self.prompt_optimization_navigation_item = BaseNavigationItem("prompt_optimization_navigation_item", self)
+        self.addSubInterface(self.prompt_optimization_navigation_item, FIF.BOOK_SHELF, "提示词优化", NavigationItemPosition.SCROLL)
+        self.system_prompt_page = SystemPromptPage("system_prompt_page", self, self.configurator)
+        self.addSubInterface(self.system_prompt_page, FIF.LABEL, "基础指令", parent = self.prompt_optimization_navigation_item)
+        self.characterization_prompt_page = CharacterizationPromptPage("characterization_prompt_page", self, self.configurator)
+        self.addSubInterface(self.characterization_prompt_page, FIF.EXPRESSIVE_INPUT_ENTRY, "角色介绍", parent = self.prompt_optimization_navigation_item)
+        self.world_building_prompt_page = WorldBuildingPromptPage("world_building_prompt_page", self, self.configurator)
+        self.addSubInterface(self.world_building_prompt_page, FIF.QUICK_NOTE, "世界观设定", parent = self.prompt_optimization_navigation_item)
+        self.writing_style_prompt_page = WritingStylePromptPage("writing_style_prompt_page", self, self.configurator)
+        self.addSubInterface(self.writing_style_prompt_page, FIF.PENCIL_INK, "行文措辞要求", parent = self.prompt_optimization_navigation_item)
+        self.translation_example_prompt_page = TranslationExamplePromptPage("translation_example_prompt_page", self, self.configurator)
+        self.addSubInterface(self.translation_example_prompt_page, FIF.ZOOM, "翻译风格示例", parent = self.prompt_optimization_navigation_item)
 
         # 参数调整页面
         self.model_arguments_navigation_item = BaseNavigationItem("model_arguments_navigation_item", self)
