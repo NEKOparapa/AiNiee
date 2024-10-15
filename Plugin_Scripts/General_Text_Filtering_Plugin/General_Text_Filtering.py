@@ -7,6 +7,10 @@ class General_Text_Filtering(PluginBase):
         super().__init__()
         self.name = "General_Text_Filtering_Plugin"
         self.description = "This is an example plugin."
+
+        self.visibility = False # 是否在插件设置中显示
+        self.default_enable = True # 默认启用状态
+
         self.add_event('text_filter', 4)  # 添加感兴趣的事件和优先级
 
     def load(self):

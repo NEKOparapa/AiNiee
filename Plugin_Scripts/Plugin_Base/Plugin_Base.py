@@ -2,6 +2,10 @@ class PluginBase:
     def __init__(self):
         self.name = "Unnamed Plugin"
         self.description = "No description provided."
+
+        self.visibility = True # 是否在插件设置中显示
+        self.default_enable = True # 默认启用状态
+
         self.events = []  # 插件感兴趣的事件列表，使用字典存储事件名和优先级
 
     def load(self):

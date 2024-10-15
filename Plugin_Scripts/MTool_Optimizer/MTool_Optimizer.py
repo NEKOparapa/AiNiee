@@ -8,7 +8,11 @@ class MTool_Optimizer(PluginBase):
     def __init__(self):
         super().__init__()
         self.name = "MTool_Optimizer"
-        self.description = "MTool_Optimizer"
+        self.description = "翻译 MTool 文件时，至多可提升 40% 的翻译速度，理论上也会提升翻译质量并减少 Token 消耗"
+
+        self.visibility = True # 是否在插件设置中显示
+        self.default_enable = True # 默认启用状态
+
         self.add_event('preproces_text', 5)  # 添加感兴趣的事件和优先级
         self.add_event('manual_export', 5)  # 添加感兴趣的事件和优先级
         self.add_event('postprocess_text', 5)  # 添加感兴趣的事件和优先级

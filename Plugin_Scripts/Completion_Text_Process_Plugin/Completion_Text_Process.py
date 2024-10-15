@@ -7,6 +7,10 @@ class Completion_Text_Process_Plugin(PluginBase):
         super().__init__()
         self.name = "Completion_Text_Process_Plugin"
         self.description = "This is an Completion_Text_Process_Plugin."
+
+        self.visibility = False # 是否在插件设置中显示
+        self.default_enable = True # 默认启用状态
+
         self.add_event('complete_text_process', 5)  # 添加感兴趣的事件和优先级
 
     def load(self):

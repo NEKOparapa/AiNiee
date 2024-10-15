@@ -6,6 +6,7 @@ from .Plugin_Base.Plugin_Base import PluginBase
 class Plugin_Manager:
     def __init__(self):
         self.event_plugins = {}  # 使用字典来存储每个事件对应的插件列表
+        self.plugins_enable = {}  # 记录每个插件的启用状态
 
     def load_plugin(self, plugin_class):
         plugin_instance = plugin_class()
@@ -29,6 +30,10 @@ class Plugin_Manager:
                 key=lambda x: next((event['priority'] for event in x.events if event['event'] == event_name), 0),
                 reverse=True
             )
+
+            # 根据启用状态进行过滤，默认为启用
+            sorted_plugins = [plugin for plugin in sorted_plugins if self.plugins_enable.get(plugin.name, True)]
+            
             #print(sorted_plugins) #bug用
             for plugin in sorted_plugins:
                 plugin.on_event(event_name, configuration_information, event_data)
@@ -53,3 +58,18 @@ class Plugin_Manager:
                 attribute = getattr(module, attribute_name)
                 if isinstance(attribute, type) and issubclass(attribute, PluginBase) and attribute is not PluginBase:
                     self.load_plugin(attribute)
+
+    # 生成插件列表
+    def get_plugins(self) -> dict:
+        plugins = {}
+        
+        for k, v in self.event_plugins.items():
+            for item in v:
+                if item.visibility == True:
+                    plugins[item.name] = item
+
+        return plugins
+
+    # 更新插件启用状态
+    def update_plugins_enable(self, plugins_enable):
+        self.plugins_enable = plugins_enable

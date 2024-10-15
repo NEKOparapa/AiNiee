@@ -3289,10 +3289,16 @@ if __name__ == '__main__':
     # 加载插件
     plugin_manager.load_plugins_from_directory(configurator.plugin_dir)
 
-
     #创建全局窗口对象
     app = QApplication(sys.argv)
-    Main_Window = window(Software_Version,configurator,user_interface_prompter,background_executor,jtpp)
+    Main_Window = window(
+        Software_Version,
+        configurator,
+        user_interface_prompter,
+        background_executor,
+        plugin_manager,
+        jtpp,
+    )
     
     #窗口对象显示
     Main_Window.show()

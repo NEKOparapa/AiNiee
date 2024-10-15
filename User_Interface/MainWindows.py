@@ -16,6 +16,7 @@ from .Project.ProjectPage import ProjectPage
 
 from .ApplicationSetting.BasicSettingsPage import BasicSettingsPage
 from .ApplicationSetting.AdvanceSettingsPage import AdvanceSettingsPage
+from .ApplicationSetting.PluginsSettingsPage import PluginsSettingsPage
 
 from .QualityOptimization.TextReplaceAPage import TextReplaceAPage
 from .QualityOptimization.TextReplaceBPage import TextReplaceBPage
@@ -68,7 +69,7 @@ from .Text_Extraction_Tool_Interface.Interface_update_text import Widget_update_
 class window(FramelessWindow): #主窗口 v
 
 
-    def __init__(self,Software_Version,configurator,user_interface_prompter,background_executor,jtpp):
+    def __init__(self, Software_Version, configurator, user_interface_prompter, background_executor, plugin_manager, jtpp):
         super().__init__()
         # use dark theme mode
         self.setTitleBar(StandardTitleBar(self))
@@ -83,6 +84,7 @@ class window(FramelessWindow): #主窗口 v
         self.configurator = configurator
         self.user_interface_prompter = user_interface_prompter
         self.background_executor = background_executor
+        self.plugin_manager = plugin_manager
 
         # 创建子界面控件，传入参数为对象名和parent
 
@@ -216,6 +218,8 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.basic_settings_page, FIF.SETTING, "基础设置", NavigationItemPosition.SCROLL) 
         self.advance_settings_page = AdvanceSettingsPage("advance_settings_page", self, self.configurator)
         self.addSubInterface(self.advance_settings_page, FIF.ALBUM, "高级设置", NavigationItemPosition.SCROLL) 
+        self.plugins_settings_page = PluginsSettingsPage("plugins_settings_page", self, self.configurator, self.plugin_manager)
+        self.addSubInterface(self.plugins_settings_page, FIF.COMMAND_PROMPT, "插件设置", NavigationItemPosition.SCROLL) 
 
         self.addSubInterface(self.Widget_translation_settings_C, FIF.EMOJI_TAB_SYMBOLS, "混合翻译设置", NavigationItemPosition.SCROLL)
 

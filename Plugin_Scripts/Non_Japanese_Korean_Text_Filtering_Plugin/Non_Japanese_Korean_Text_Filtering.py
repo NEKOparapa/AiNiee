@@ -8,7 +8,11 @@ class Non_Japanese_Korean_Text_Filtering(PluginBase):
     def __init__(self):
         super().__init__()
         self.name = "Non_Japanese_Korean_Text_Filtering_Plugin"
-        self.description = "This is an example plugin."
+        self.description = "无效原文条目过滤（仅支持 日文、韩文 项目）"
+
+        self.visibility = True # 是否在插件设置中显示
+        self.default_enable = True # 默认启用状态
+
         self.add_event('text_filter', 5)  # 添加感兴趣的事件和优先级
 
 
