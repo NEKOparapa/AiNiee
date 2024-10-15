@@ -114,7 +114,7 @@ class TextReplaceAPage(QFrame):
         self.table.setBorderVisible(True)
 
         self.table.setWordWrap(False)
-        self.table.setRowCount(10)
+        self.table.setRowCount(12)
         self.table.setColumnCount(2)
         self.table.resizeRowsToContents() # 设置行高度自适应内容
         self.table.resizeColumnsToContents() # 设置列宽度自适应内容
@@ -125,7 +125,7 @@ class TextReplaceAPage(QFrame):
         self.table.setHorizontalHeaderLabels(
             [
                 "原文",
-                "替换文本",
+                "替换",
             ],
         )
 
@@ -150,7 +150,7 @@ class TextReplaceAPage(QFrame):
     def update_to_table(self, table, config):
         datas = []
         user_dictionary = config.get("User_Dictionary1", {})
-        table.setRowCount(max(10, len(user_dictionary)))
+        table.setRowCount(max(12, len(user_dictionary)))
         for k, v in user_dictionary.items():
             datas.append(
                 [k.strip(), v.strip()]

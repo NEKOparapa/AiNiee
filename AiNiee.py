@@ -2754,33 +2754,6 @@ class User_Interface_Prompter(QObject):
             config_dict["auto_backup_toggle"] =  Main_Window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
 
 
-            #获取实时设置界面(openai)
-            config_dict["OpenAI_parameter_adjustment"] = Main_Window.Widget_tune_openai.checkBox.isChecked()           #获取开关设置
-            config_dict["OpenAI_Temperature"] = Main_Window.Widget_tune_openai.slider1.value()           #获取OpenAI温度
-            config_dict["OpenAI_top_p"] = Main_Window.Widget_tune_openai.slider2.value()                 #获取OpenAI top_p
-            config_dict["OpenAI_presence_penalty"] = Main_Window.Widget_tune_openai.slider3.value()      #获取OpenAI top_k
-            config_dict["OpenAI_frequency_penalty"] = Main_Window.Widget_tune_openai.slider4.value()    #获取OpenAI repetition_penalty
-
-            #获取实时设置界面(anthropic)
-            config_dict["Anthropic_parameter_adjustment"] = Main_Window.Widget_tune_anthropic.checkBox.isChecked()           #获取开关设置
-            config_dict["Anthropic_Temperature"] = Main_Window.Widget_tune_anthropic.slider1.value()           #获取anthropic 温度
-
-            #获取实时设置界面(google)
-            config_dict["Google_parameter_adjustment"] = Main_Window.Widget_tune_google.checkBox.isChecked()           #获取开关设置
-            config_dict["Google_Temperature"] = Main_Window.Widget_tune_google.slider1.value()           #获取google 温度
-
-            #获取实时设置界面(cohere)
-            config_dict["Cohere_parameter_adjustment"] = Main_Window.Widget_tune_cohere.checkBox.isChecked()           #获取开关设置
-            config_dict["Cohere_Temperature"] = Main_Window.Widget_tune_cohere.slider1.value()           #获取cohere 温度
-
-            #获取实时设置界面(sakura)
-            config_dict["Sakura_parameter_adjustment"] = Main_Window.Widget_tune_sakura.checkBox.isChecked()           #获取开关设置
-            config_dict["Sakura_Temperature"] = Main_Window.Widget_tune_sakura.slider1.value()           #获取sakura温度
-            config_dict["Sakura_top_p"] = Main_Window.Widget_tune_sakura.slider2.value()
-            config_dict["Sakura_frequency_penalty"] = Main_Window.Widget_tune_sakura.slider4.value()
-
-
-
             #获取提示书界面
             config_dict["system_prompt_switch"] = Main_Window.Widget_system_prompt.checkBox1.isChecked()   #获取自定义提示词开关状态
             config_dict["system_prompt_content"] = Main_Window.Widget_system_prompt.TextEdit1.toPlainText()        #获取自定义提示词输入值 
@@ -3160,62 +3133,6 @@ class User_Interface_Prompter(QObject):
                 #开始翻译的备份设置界面
                 if "auto_backup_toggle" in config_dict:
                     Main_Window.Widget_start_translation.B_settings.checkBox_switch.setChecked(config_dict["auto_backup_toggle"])
-
-
-                #实时设置界面(openai)
-                if "OpenAI_parameter_adjustment" in config_dict:
-                    OpenAI_parameter_adjustment = config_dict["OpenAI_parameter_adjustment"]
-                    Main_Window.Widget_tune_openai.checkBox.setChecked(OpenAI_parameter_adjustment)
-                if "OpenAI_Temperature" in config_dict:
-                    OpenAI_Temperature = config_dict["OpenAI_Temperature"]
-                    Main_Window.Widget_tune_openai.slider1.setValue(OpenAI_Temperature)
-                if "OpenAI_top_p" in config_dict:
-                    OpenAI_top_p = config_dict["OpenAI_top_p"]
-                    Main_Window.Widget_tune_openai.slider2.setValue(OpenAI_top_p)
-                if "OpenAI_presence_penalty" in config_dict:
-                    OpenAI_presence_penalty = config_dict["OpenAI_presence_penalty"]
-                    Main_Window.Widget_tune_openai.slider3.setValue(OpenAI_presence_penalty)
-                if "OpenAI_frequency_penalty" in config_dict:
-                    OpenAI_frequency_penalty = config_dict["OpenAI_frequency_penalty"]
-                    Main_Window.Widget_tune_openai.slider4.setValue(OpenAI_frequency_penalty)
-
-                #实时设置界面(anthropic)
-                if "Anthropic_parameter_adjustment" in config_dict:
-                    Anthropic_parameter_adjustment = config_dict["Anthropic_parameter_adjustment"]
-                    Main_Window.Widget_tune_anthropic.checkBox.setChecked(Anthropic_parameter_adjustment)
-                if "Anthropic_Temperature" in config_dict:
-                    Anthropic_Temperature = config_dict["Anthropic_Temperature"]
-                    Main_Window.Widget_tune_anthropic.slider1.setValue(Anthropic_Temperature)
-
-                #实时设置界面(google)
-                if "Google_parameter_adjustment" in config_dict:
-                    Google_parameter_adjustment = config_dict["Google_parameter_adjustment"]
-                    Main_Window.Widget_tune_google.checkBox.setChecked(Google_parameter_adjustment)
-                if "Google_Temperature" in config_dict:
-                    Google_Temperature = config_dict["Google_Temperature"]
-                    Main_Window.Widget_tune_google.slider1.setValue(Google_Temperature)
-
-                #实时设置界面(cohere)
-                if "Cohere_parameter_adjustment" in config_dict:
-                    Cohere_parameter_adjustment = config_dict["Cohere_parameter_adjustment"]
-                    Main_Window.Widget_tune_cohere.checkBox.setChecked(Cohere_parameter_adjustment)
-                if "Cohere_Temperature" in config_dict:
-                    Cohere_Temperature = config_dict["Cohere_Temperature"]
-                    Main_Window.Widget_tune_cohere.slider1.setValue(Cohere_Temperature)
-
-                #实时设置界面(sakura)
-                if "Sakura_parameter_adjustment" in config_dict:
-                    Sakura_parameter_adjustment = config_dict["Sakura_parameter_adjustment"]
-                    Main_Window.Widget_tune_sakura.checkBox.setChecked(Sakura_parameter_adjustment)
-                if "Sakura_Temperature" in config_dict:
-                    Sakura_Temperature = config_dict["Sakura_Temperature"]
-                    Main_Window.Widget_tune_sakura.slider1.setValue(Sakura_Temperature)
-                if "Sakura_top_p" in config_dict:
-                    Sakura_top_p = config_dict["Sakura_top_p"]
-                    Main_Window.Widget_tune_sakura.slider2.setValue(Sakura_top_p)
-                if  "Sakura_frequency_penalty" in config_dict:
-                    Sakura_frequency_penalty = config_dict["Sakura_frequency_penalty"]
-                    Main_Window.Widget_tune_sakura.slider4.setValue(Sakura_frequency_penalty)
 
 
                 #提示书界面
