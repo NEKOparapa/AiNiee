@@ -51,7 +51,8 @@ import google.generativeai as genai #需要安装库pip install -U google-genera
 import anthropic #需要安装库pip install anthropic
 import cohere  #需要安装库pip install cohere
 
-from PyQt5.QtCore import  QObject,  Qt, pyqtSignal 
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import  QObject,  Qt, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QTableWidgetItem
 from qfluentwidgets import InfoBar, InfoBarPosition, StateToolTip
 
@@ -3258,8 +3259,7 @@ if __name__ == '__main__':
     multiprocessing.freeze_support() 
 
     # 启用了高 DPI 缩放
-    QApplication.setHighDpiScaleFactorRoundingPolicy(
-        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
@@ -3286,11 +3286,20 @@ if __name__ == '__main__':
 
     # 创建全局插件管理器
     plugin_manager = Plugin_Manager()
+    
     # 加载插件
     plugin_manager.load_plugins_from_directory(configurator.plugin_dir)
 
-    #创建全局窗口对象
+    # 创建全局应用对象
     app = QApplication(sys.argv)
+    
+    # 设置全局字体属性，解决狗牙问题
+    font = QFont()
+    # font.setStyleStrategy(QFont.PreferAntialias) # 不确定有没有效果，好像有，又好像没有
+    font.setHintingPreference(QFont.PreferFullHinting)
+    app.setFont(font)
+
+    # 创建全局窗口对象
     Main_Window = window(
         Software_Version,
         configurator,
@@ -3300,7 +3309,7 @@ if __name__ == '__main__':
         jtpp,
     )
     
-    #窗口对象显示
+    # 窗口对象显示
     Main_Window.show()
 
 
