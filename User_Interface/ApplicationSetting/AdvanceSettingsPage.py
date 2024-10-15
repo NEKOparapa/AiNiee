@@ -253,7 +253,7 @@ class AdvanceSettingsPage(QFrame):
         parent.addWidget(
             FlowCard(
                 "翻译结果检查", 
-                "将在翻译结果中检查激活的规则，如检测到对应清空，则视为任务执行失败",
+                "将在翻译结果中检查激活的规则，如检测到对应情况，则视为任务执行失败",
                 widget_init
             )
         )
