@@ -195,10 +195,10 @@ class AdvanceSettingsPage(QFrame):
     # 简繁转换字形映射规则
     def add_widget_06(self, parent, config):
         def widget_init(widget):
-            widget.setCurrentIndex(max(0, widget.findText(config.get("opencc_preset"))))
+            widget.set_current_index(max(0, widget.find_text(config.get("opencc_preset"))))
 
         def widget_callback(widget, index: int):
-            config["opencc_preset"] = widget.currentText()
+            config["opencc_preset"] = widget.get_current_text()
             self.save_config(config)
 
         parent.addWidget(

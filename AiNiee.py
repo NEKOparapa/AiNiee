@@ -2722,17 +2722,6 @@ class User_Interface_Prompter(QObject):
             config_dict["sakura_proxy_port"] = Main_Window.Widget_SakuraLLM.LineEdit_proxy_port.text()            #获取代理端口
 
 
-            #翻译设置基础设置界面
-            config_dict["translation_project"] = Main_Window.Widget_translation_settings_A.comboBox_translation_project.currentText()
-            config_dict["translation_platform"] = Main_Window.Widget_translation_settings_A.comboBox_translation_platform.currentText()
-            config_dict["source_language"] = Main_Window.Widget_translation_settings_A.comboBox_source_text.currentText()
-            config_dict["target_language"] = Main_Window.Widget_translation_settings_A.comboBox_translated_text.currentText()
-            config_dict["label_input_path"] = Main_Window.Widget_translation_settings_A.label_input_path.text()
-            config_dict["label_output_path"] = Main_Window.Widget_translation_settings_A.label_output_path.text()
-
-            
-
-
             #翻译设置混合反应设置界面
             config_dict["translation_mixing_toggle"] =  Main_Window.Widget_translation_settings_C.SwitchButton_mixed_translation.isChecked() # 获取混合翻译开关
             config_dict["mixed_translation_settings"] = {}
@@ -3051,22 +3040,6 @@ class User_Interface_Prompter(QObject):
                         Widget_New.B_settings.spinBox_output_pricing.setValue(config_dict[object_name]["op_output_pricing"])
 
 
-
-
-                #翻译设置基础界面
-                if "translation_project" in config_dict:
-                    Main_Window.Widget_translation_settings_A.comboBox_translation_project.setCurrentText(config_dict["translation_project"])
-                if "translation_platform" in config_dict:
-                    Main_Window.Widget_translation_settings_A.comboBox_translation_platform.setCurrentText(config_dict["translation_platform"])
-                if "source_language" in config_dict:
-                    Main_Window.Widget_translation_settings_A.comboBox_source_text.setCurrentText(config_dict["source_language"])
-                if "target_language" in config_dict:
-                    Main_Window.Widget_translation_settings_A.comboBox_translated_text.setCurrentText(config_dict["target_language"])
-                if "label_input_path" in config_dict:
-                    Main_Window.Widget_translation_settings_A.label_input_path.setText(config_dict["label_input_path"])
-                if "label_output_path" in config_dict:
-                    Main_Window.Widget_translation_settings_A.label_output_path.setText(config_dict["label_output_path"])
-
                 #翻译设置混合翻译界面
                 if "translation_mixing_toggle" in config_dict:
                     Main_Window.Widget_translation_settings_C.SwitchButton_mixed_translation.setChecked(config_dict["translation_mixing_toggle"])
@@ -3091,13 +3064,6 @@ class User_Interface_Prompter(QObject):
 
     # 添加新的平台选项
     def add_new_proxy_option(self,item_name):
-
-        # 给基础设置添加代理选项
-        existing_index = Main_Window.Widget_translation_settings_A.comboBox_translation_platform.findText(item_name)
-        # 如果模型类型不存在，则添加到下拉列表中
-        if existing_index == -1:
-            Main_Window.Widget_translation_settings_A.comboBox_translation_platform.addItem(item_name)
-
         # 给混合设置添加代理选项
         existing_index = Main_Window.Widget_translation_settings_C.SettingCard_A.translationPlatform_comboBox.findText(item_name)
         if existing_index == -1:
@@ -3125,13 +3091,6 @@ class User_Interface_Prompter(QObject):
         else:
             return 0
         
-        
-        # 获取项目在组合框中的索引
-        index = Main_Window.Widget_translation_settings_A.comboBox_translation_platform.findText(platform_name)
-        # 如果找到了该项目，移除它
-        if index != -1:
-            Main_Window.Widget_translation_settings_A.comboBox_translation_platform.removeItem(index)
-
 
         index = Main_Window.Widget_translation_settings_C.SettingCard_A.translationPlatform_comboBox.findText(platform_name)
         if index != -1:

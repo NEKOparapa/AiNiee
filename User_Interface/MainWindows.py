@@ -12,6 +12,8 @@ from qframelesswindow import FramelessWindow, StandardTitleBar
 
 from .BaseNavigationItem import BaseNavigationItem
 
+from .Project.ProjectPage import ProjectPage
+
 from .ApplicationSetting.BasicSettingsPage import BasicSettingsPage
 from .ApplicationSetting.AdvanceSettingsPage import AdvanceSettingsPage
 
@@ -47,7 +49,6 @@ from .AI_Platform_Interface.Interface_Volcengine import Widget_Volcengine
 from .AI_Platform_Interface.Interface_SakuraLLM import Widget_SakuraLLM
 
 
-from .Translation_Settings_Interface.Interface_translation_settings_A import Widget_translation_settings_A
 from .Translation_Settings_Interface.Interface_translation_settings_C import Widget_translation_settings_C
 
 
@@ -108,7 +109,6 @@ class window(FramelessWindow): #主窗口 v
         self.Widget_SakuraLLM = Widget_SakuraLLM('Widget_SakuraLLM', self,configurator,user_interface_prompter,background_executor)
 
 
-        self.Widget_translation_settings_A = Widget_translation_settings_A('Widget_translation_settings_A', self, configurator, user_interface_prompter)
         self.Widget_start_translation = Widget_start_translation('Widget_start_translation', self,configurator,user_interface_prompter,background_executor)  
 
 
@@ -201,8 +201,8 @@ class window(FramelessWindow): #主窗口 v
         # 添加sakura界面
         self.addSubInterface(self.Widget_SakuraLLM, FIF.CONNECT, 'SakuraLLM',parent=self.Widget_AI) 
 
-
-        self.addSubInterface(self.Widget_translation_settings_A, FIF.FOLDER, "项目属性", NavigationItemPosition.SCROLL) 
+        self.prject_page = ProjectPage("prject_page", self, self.configurator)
+        self.addSubInterface(self.prject_page, FIF.FOLDER, "项目设置", NavigationItemPosition.SCROLL) 
         self.addSubInterface(self.Widget_start_translation, FIF.PLAY, "开始翻译", NavigationItemPosition.SCROLL)
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符

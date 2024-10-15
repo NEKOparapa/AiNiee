@@ -81,10 +81,10 @@ class BasicSettingsPage(QFrame):
             tokens_limit_switch = config.get("tokens_limit_switch")
 
             if lines_limit_switch == True and tokens_limit_switch == False:
-                widget.setCurrentIndex(0)
+                widget.set_current_index(0)
                 
             if lines_limit_switch == False and tokens_limit_switch == True:
-                widget.setCurrentIndex(1)
+                widget.set_current_index(1)
             
         def widget_01_callback(widget, index: int):
             if index == 0:
