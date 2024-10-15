@@ -35,6 +35,7 @@ class Widget_SakuraLLM(QFrame):#  Sakura基础界面
 
         #设置“请求地址”的输入框
         self.LineEdit_address = LineEdit()
+        self.LineEdit_address.setText("http://127.0.0.1:8080")
         #LineEdit1.setFixedSize(300, 30)
 
 
@@ -58,7 +59,7 @@ class Widget_SakuraLLM(QFrame):#  Sakura基础界面
         #设置“模型类型”下拉选择框
         self.comboBox_model = ComboBox() #以demo为父类
         self.comboBox_model.addItems(['Sakura-v0.9','Sakura-v1.0'])
-        self.comboBox_model.setCurrentIndex(0) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
+        self.comboBox_model.setCurrentIndex(1) #设置下拉框控件（ComboBox）的当前选中项的索引为0，也就是默认选中第一个选项
         self.comboBox_model.setFixedSize(250, 35)
 
         
