@@ -8,8 +8,10 @@ from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QScrollArea
 from PyQt5.QtWidgets import QVBoxLayout
 
+from qfluentwidgets import PillPushButton
 from qfluentwidgets import SmoothScrollArea
 
+from Widget.FlowCard import FlowCard
 from Widget.SpinCard import SpinCard
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.SwitchButtonCard import SwitchButtonCard
@@ -65,8 +67,9 @@ class AdvanceSettingsPage(QFrame):
         self.add_widget_05(self.vbox, config)
         self.add_widget_06(self.vbox, config)
         self.add_widget_07(self.vbox, config)
-        self.add_widget_08(self.vbox, config)
-        self.add_widget_09(self.vbox, config)
+
+        # 填充
+        self.vbox.addStretch(1)
 
     # 载入配置文件
     def load_config(self) -> dict[str]:
@@ -228,54 +231,29 @@ class AdvanceSettingsPage(QFrame):
 
     # 模型退化检查
     def add_widget_07(self, parent, config):
-        def widget_init(widget):
-            widget.setChecked(config.get("reply_check_switch").get("Model Degradation Check"))
-            
-        def widget_callback(widget, checked: bool):
-            config["reply_check_switch"]["Model Degradation Check"] = checked
+
+        def on_toggled(checked: bool, key):
+            config["reply_check_switch"][key] = checked
             self.save_config(config)
 
-        parent.addWidget(
-            SwitchButtonCard(
-                "模型退化检查", 
-                "如在翻译结果中检查 模型退化 现象，则视为任务执行失败，等待重试",
-                widget_init,
-                widget_callback,
-            )
-        )
-
-    # 原文返回检查
-    def add_widget_08(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("reply_check_switch").get("Return to Original Text Check"))
+            pairs = [
+                ("模型退化检查", "Model Degradation Check"),
+                ("原文返回检查", "Return to Original Text Check"),
+                ("翻译残留检查", "Residual Original Text Check"),
+            ]
             
-        def widget_callback(widget, checked: bool):
-            config["reply_check_switch"]["Return to Original Text Check"] = checked
-            self.save_config(config)
+            for v in pairs:
+                pill_push_button = PillPushButton(v[0])
+                pill_push_button.setContentsMargins(4, 0, 4, 0) # 左、上、右、下
+                pill_push_button.setChecked(config["reply_check_switch"].get(v[1]))
+                pill_push_button.toggled.connect(lambda checked: on_toggled(checked, v[1]))
+                widget.addWidget(pill_push_button)
 
         parent.addWidget(
-            SwitchButtonCard(
-                "原文返回检查", 
-                "如在翻译结果中检查 原文返回 现象，则视为任务执行失败，等待重试",
-                widget_init,
-                widget_callback,
-            )
-        )
-        
-    # 翻译残留检查
-    def add_widget_09(self, parent, config):
-        def widget_init(widget):
-            widget.setChecked(config.get("reply_check_switch").get("Residual Original Text Check"))
-            
-        def widget_callback(widget, checked: bool):
-            config["reply_check_switch"]["Residual Original Text Check"] = checked
-            self.save_config(config)
-
-        parent.addWidget(
-            SwitchButtonCard(
-                "翻译残留检查", 
-                "如在翻译结果中检查 翻译残留 现象，则视为任务执行失败，等待重试",
-                widget_init,
-                widget_callback,
+            FlowCard(
+                "翻译结果检查", 
+                "将在翻译结果中检查激活的规则，如检测到对应清空，则视为任务执行失败",
+                widget_init
             )
         )
