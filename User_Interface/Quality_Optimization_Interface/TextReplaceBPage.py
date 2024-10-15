@@ -142,9 +142,10 @@ class TextReplaceBPage(QFrame):
         self.add_command_bar_action_02(self.command_bar_card)
         self.command_bar_card.addSeparator()
         self.add_command_bar_action_03(self.command_bar_card)
-        self.command_bar_card.addSeparator()
         self.add_command_bar_action_04(self.command_bar_card)
-        self.add_command_bar_action_05(self.command_bar_card, window)
+        self.command_bar_card.addSeparator()
+        self.add_command_bar_action_05(self.command_bar_card)
+        self.add_command_bar_action_06(self.command_bar_card, window)
 
     # 向表格更新数据
     def update_to_table(self, table, config):
@@ -357,8 +358,35 @@ class TextReplaceBPage(QFrame):
             Action(FluentIcon.ADD_TO, "添加新行", parent, triggered = callback),
         )
 
-    # 保存
+    # 移除空行
     def add_command_bar_action_04(self, parent):
+        def callback():
+            # 从表格更新数据，生成一个临时的配置文件
+            config = self.update_from_table(self.table, {})
+
+            # 清空表格
+            self.table.clearContents()
+
+            # 向表格更新数据
+            self.update_to_table(self.table, config)
+
+            # 弹出提示
+            InfoBar.success(
+                title = "",
+                content = "空行已移除 ...",
+                parent = self,
+                duration = 2000,
+                orient = Qt.Horizontal,
+                position = InfoBarPosition.TOP,
+                isClosable = True,
+            )
+
+        parent.addAction(
+            Action(FluentIcon.BROOM, "移除空行", parent, triggered = callback),
+        )
+
+    # 保存
+    def add_command_bar_action_05(self, parent):
         def callback():
             # 读取配置文件
             config = self.load_config()
@@ -385,7 +413,7 @@ class TextReplaceBPage(QFrame):
         )
         
     # 重置
-    def add_command_bar_action_05(self, parent, window):
+    def add_command_bar_action_06(self, parent, window):
         def callback():
             message_box = MessageBox("警告", "是否确认重置为默认数据 ... ？", window)
             message_box.yesButton.setText("确认")
