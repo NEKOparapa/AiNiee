@@ -301,7 +301,8 @@ class window(FramelessWindow): #主窗口 v
 
     #初始化父窗口的函数
     def initWindow(self): 
-        self.resize(1200 , 700)
+        self.resize(1280, 800)
+        self.setMinimumSize(1280, 800)
         #self.setWindowIcon(QIcon('resource/logo.png'))
         self.setWindowTitle(self.Software_Version)
         self.titleBar.setAttribute(Qt.WA_StyledBackground)
