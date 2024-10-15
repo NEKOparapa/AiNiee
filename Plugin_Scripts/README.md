@@ -16,7 +16,7 @@
 ## 插件编写步骤
 1. **环境准备**
    确保您的开发环境满足以下要求：
-   - Python 3.9
+   - Python 3.12
    - 相关依赖库（请查看`requirements.txt`）
 2. **创建插件文件**
    在项目的`Plugin_Scripts`目录下创建新的子文件夹，并创建新的Python文件，例如`my_plugin.py`。
@@ -31,6 +31,10 @@ class PluginBase:
     def __init__(self):
         self.name = "Unnamed Plugin"
         self.description = "No description provided."
+
+        self.visibility = True # 是否在插件设置中显示
+        self.default_enable = True # 默认启用状态
+
         self.events = []  # 插件感兴趣的事件列表，使用字典存储事件名和优先级
 
     def load(self):
