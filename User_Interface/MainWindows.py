@@ -11,6 +11,10 @@ from qfluentwidgets import FluentIcon as FIF
 from qframelesswindow import FramelessWindow, StandardTitleBar
 
 from .BaseNavigationItem import BaseNavigationItem
+
+from .ApplicationSetting.BasicSettingsPage import BasicSettingsPage
+from .ApplicationSetting.AdvanceSettingsPage import AdvanceSettingsPage
+
 from .QualityOptimization.TextReplaceAPage import TextReplaceAPage
 from .QualityOptimization.TextReplaceBPage import TextReplaceBPage
 from .QualityOptimization.PromptDictionaryPage import PromptDictionaryPage
@@ -43,10 +47,7 @@ from .AI_Platform_Interface.Interface_Volcengine import Widget_Volcengine
 from .AI_Platform_Interface.Interface_SakuraLLM import Widget_SakuraLLM
 
 
-from .Translation_Settings_Interface.Interface_translation_settings import Widget_translation_settings
 from .Translation_Settings_Interface.Interface_translation_settings_A import Widget_translation_settings_A
-from .Translation_Settings_Interface.Interface_translation_settings_B1 import Widget_translation_settings_B1
-from .Translation_Settings_Interface.Interface_translation_settings_B2 import Widget_translation_settings_B2
 from .Translation_Settings_Interface.Interface_translation_settings_C import Widget_translation_settings_C
 
 
@@ -116,8 +117,6 @@ class window(FramelessWindow): #主窗口 v
         # -----------------------------------------------------------
 
 
-        self.Widget_translation_settings_B1 = Widget_translation_settings_B1('Widget_translation_settings_B1', self, configurator)
-        self.Widget_translation_settings_B2 = Widget_translation_settings_B2('Widget_translation_settings_B2', self, configurator)
         self.Widget_translation_settings_C = Widget_translation_settings_C('Widget_translation_settings_C', self,user_interface_prompter)  
 
 
@@ -213,8 +212,11 @@ class window(FramelessWindow): #主窗口 v
         # 第二节开始
         # -----------------------------------------------------------
 
-        self.addSubInterface(self.Widget_translation_settings_B1, FIF.SETTING, "基础设置", NavigationItemPosition.SCROLL)
-        self.addSubInterface(self.Widget_translation_settings_B2, FIF.ALBUM, "高级设置", NavigationItemPosition.SCROLL)
+        self.basic_settings_page = BasicSettingsPage("basic_settings_page", self, self.configurator)
+        self.addSubInterface(self.basic_settings_page, FIF.SETTING, "基础设置", NavigationItemPosition.SCROLL) 
+        self.advance_settings_page = AdvanceSettingsPage("advance_settings_page", self, self.configurator)
+        self.addSubInterface(self.advance_settings_page, FIF.ALBUM, "高级设置", NavigationItemPosition.SCROLL) 
+
         self.addSubInterface(self.Widget_translation_settings_C, FIF.EMOJI_TAB_SYMBOLS, "混合翻译设置", NavigationItemPosition.SCROLL)
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符

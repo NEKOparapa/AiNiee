@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QVBoxLayout
 from Widget.SpinCard import SpinCard
 from Widget.ComboBoxCard import ComboBoxCard
 
-class Widget_translation_settings_B1(QFrame):
+class BasicSettingsPage(QFrame):
 
     DEFAULT = {
         "lines_limit_switch": True,

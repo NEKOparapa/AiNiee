@@ -28,7 +28,7 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 class TranslationExamplePromptPage(QFrame):
     
     DEFAULT = {
-        "translation_example_switch": True,
+        "translation_example_switch": False,
         "translation_example": {
             "結婚前日、目の前の婚約者はそう言った。": "婚前一日，其婚約者前，如是云。",
         },

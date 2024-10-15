@@ -28,7 +28,7 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 class CharacterizationPromptPage(QFrame):
     
     DEFAULT = {
-        "characterization_switch": True,
+        "characterization_switch": False,
         "characterization_dictionary": {
             "遠坂凛": {
                 "original_name": "遠坂凛",

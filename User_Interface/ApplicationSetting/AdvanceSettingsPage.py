@@ -14,7 +14,7 @@ from Widget.SpinCard import SpinCard
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class Widget_translation_settings_B2(QFrame):
+class AdvanceSettingsPage(QFrame):
 
     DEFAULT = {
         "cot_toggle": False,
