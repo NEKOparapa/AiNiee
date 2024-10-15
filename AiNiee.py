@@ -2754,52 +2754,6 @@ class User_Interface_Prompter(QObject):
             config_dict["auto_backup_toggle"] =  Main_Window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
 
 
-            #获取提示书界面
-            config_dict["system_prompt_switch"] = Main_Window.Widget_system_prompt.checkBox1.isChecked()   #获取自定义提示词开关状态
-            config_dict["system_prompt_content"] = Main_Window.Widget_system_prompt.TextEdit1.toPlainText()        #获取自定义提示词输入值 
-            config_dict["characterization_switch"] = Main_Window.Widget_characterization.checkBox1.isChecked() #获取角色设定开关状态
-            characterization_dictionary = {}
-            for row in range(Main_Window.Widget_characterization.tableView.rowCount() - 1):
-                original_name = Main_Window.Widget_characterization.tableView.item(row, 0)
-                translated_name = Main_Window.Widget_characterization.tableView.item(row, 1)
-                character_attributes1 = Main_Window.Widget_characterization.tableView.item(row, 2)
-                character_attributes2 = Main_Window.Widget_characterization.tableView.item(row, 3)
-                character_attributes3 = Main_Window.Widget_characterization.tableView.item(row, 4)
-                character_attributes4 = Main_Window.Widget_characterization.tableView.item(row, 5)
-                character_attributes5 = Main_Window.Widget_characterization.tableView.item(row, 6)
-                if original_name and translated_name:
-                    original_name = original_name.data(Qt.DisplayRole)
-                    translated_name = translated_name.data(Qt.DisplayRole)
-                    base_dictionary = {"original_name": original_name, "translated_name": translated_name}
-                    if character_attributes1:
-                        base_dictionary["gender"] = character_attributes1.data(Qt.DisplayRole)
-                    if character_attributes2:
-                        base_dictionary["age"] = character_attributes2.data(Qt.DisplayRole)
-                    if character_attributes3:
-                        base_dictionary["personality"] = character_attributes3.data(Qt.DisplayRole)
-                    if character_attributes4:
-                        base_dictionary["speech_style"] = character_attributes4.data(Qt.DisplayRole)
-                    if character_attributes5:
-                        base_dictionary["additional_info"] = character_attributes5.data(Qt.DisplayRole)
-                    characterization_dictionary[original_name] = base_dictionary
-            config_dict["characterization_dictionary"] = characterization_dictionary
-
-            config_dict["world_building_switch"] = Main_Window.Widget_world_building.checkBox1.isChecked()   #获取背景设定开关状态
-            config_dict["world_building_content"] = Main_Window.Widget_world_building.TextEdit1.toPlainText()        #获取背景设定文本 
-            config_dict["writing_style_switch"] = Main_Window.Widget_writing_style.checkBox1.isChecked()   #获取文风要求开关状态
-            config_dict["writing_style_content"] = Main_Window.Widget_writing_style.TextEdit1.toPlainText()        #获取文风要求开关 
-
-            config_dict["translation_example_switch"]= Main_Window.Widget_translation_example.checkBox1.isChecked()#获取添加翻译示例开关状态
-            translation_example = {}
-            for row in range(Main_Window.Widget_translation_example.tableView.rowCount() - 1):
-                key_item = Main_Window.Widget_translation_example.tableView.item(row, 0)
-                value_item = Main_Window.Widget_translation_example.tableView.item(row, 1)
-                if key_item and value_item:
-                    key = key_item.data(Qt.DisplayRole)
-                    value = value_item.data(Qt.DisplayRole)
-                    translation_example[key] = value
-            config_dict["translation_example"] = translation_example
-
             # 将所有的配置信息写入config.json文件中
             # 写入前先检查配置文件中的数据，并补齐确实的部分
             if os.path.exists(os.path.join(resource_dir, "config.json")):
@@ -3134,77 +3088,6 @@ class User_Interface_Prompter(QObject):
                 if "auto_backup_toggle" in config_dict:
                     Main_Window.Widget_start_translation.B_settings.checkBox_switch.setChecked(config_dict["auto_backup_toggle"])
 
-
-                #提示书界面
-                if "system_prompt_switch" in config_dict:
-                    system_prompt_switch = config_dict["system_prompt_switch"]
-                    Main_Window.Widget_system_prompt.checkBox1.setChecked(system_prompt_switch)
-                if "system_prompt_content" in config_dict:
-                    system_prompt_content = config_dict["system_prompt_content"]
-                    Main_Window.Widget_system_prompt.TextEdit1.setText(system_prompt_content)
-
-                if "characterization_switch" in config_dict:
-                    characterization_switch = config_dict["characterization_switch"]
-                    Main_Window.Widget_characterization.checkBox1.setChecked(characterization_switch)
-                if "characterization_dictionary" in config_dict:
-                    characterization_dictionary = config_dict["characterization_dictionary"]
-                    if characterization_dictionary:
-                        for key, value in characterization_dictionary.items():
-                            row = Main_Window.Widget_characterization.tableView.rowCount() - 1
-                            Main_Window.Widget_characterization.tableView.insertRow(row)
-
-                            original_name = QTableWidgetItem(value["original_name"])
-                            translated_name = QTableWidgetItem(value["translated_name"])
-                            Main_Window.Widget_characterization.tableView.setItem(row, 0, original_name)
-                            Main_Window.Widget_characterization.tableView.setItem(row, 1, translated_name)
-
-                            if (value.get('gender')):
-                                character_attributes1 = QTableWidgetItem(value["gender"])
-                                Main_Window.Widget_characterization.tableView.setItem(row, 2, character_attributes1)
-                            if (value.get('age')):
-                                character_attributes2 = QTableWidgetItem(value["age"])
-                                Main_Window.Widget_characterization.tableView.setItem(row, 3, character_attributes2)
-                            if (value.get('personality')):
-                                character_attributes3 = QTableWidgetItem(value["personality"])
-                                Main_Window.Widget_characterization.tableView.setItem(row, 4, character_attributes3)
-                            if (value.get('speech_style')):
-                                character_attributes4 = QTableWidgetItem(value["speech_style"])
-                                Main_Window.Widget_characterization.tableView.setItem(row, 5, character_attributes4)
-                            if (value.get('additional_info')):
-                                character_attributes5 = QTableWidgetItem(value["additional_info"])
-                                Main_Window.Widget_characterization.tableView.setItem(row, 6, character_attributes5)
-                        #删除第一行
-                        Main_Window.Widget_characterization.tableView.removeRow(0)
-
-                if "world_building_switch" in config_dict:
-                    world_building_switch = config_dict["world_building_switch"]
-                    Main_Window.Widget_world_building.checkBox1.setChecked(world_building_switch)
-                if "world_building_content" in config_dict:
-                    world_building_content = config_dict["world_building_content"]
-                    Main_Window.Widget_world_building.TextEdit1.setText(world_building_content)
-
-                if "writing_style_switch" in config_dict:
-                    writing_style_switch = config_dict["writing_style_switch"]
-                    Main_Window.Widget_writing_style.checkBox1.setChecked(writing_style_switch)
-                if "writing_style_content" in config_dict:
-                    writing_style_content = config_dict["writing_style_content"]
-                    Main_Window.Widget_writing_style.TextEdit1.setText(writing_style_content)
-
-                if "translation_example_switch" in config_dict:
-                    translation_example_switch = config_dict["translation_example_switch"]
-                    Main_Window.Widget_translation_example.checkBox1.setChecked(translation_example_switch)
-                if "translation_example" in config_dict:
-                    translation_example = config_dict["translation_example"]
-                    if translation_example:
-                        for key, value in translation_example.items():
-                            row = Main_Window.Widget_translation_example.tableView.rowCount() - 1
-                            Main_Window.Widget_translation_example.tableView.insertRow(row)
-                            key_item = QTableWidgetItem(key)
-                            value_item = QTableWidgetItem(value)
-                            Main_Window.Widget_translation_example.tableView.setItem(row, 0, key_item)
-                            Main_Window.Widget_translation_example.tableView.setItem(row, 1, value_item)        
-                        #删除第一行
-                        Main_Window.Widget_translation_example.tableView.removeRow(0)
 
     # 添加新的平台选项
     def add_new_proxy_option(self,item_name):
