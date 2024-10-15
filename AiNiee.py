@@ -3422,7 +3422,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 
-    Software_Version = "AiNiee4.75"  #软件版本号
+    Software_Version = "AiNiee5.0"  #软件版本号
 
 
     # 工作目录改为python源代码所在的目录
