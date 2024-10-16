@@ -3248,6 +3248,7 @@ if __name__ == '__main__':
 
     # 读取配置文件
     user_interface_prompter.read_write_config("read",configurator.resource_dir)
+    user_interface_prompter.read_write_config("write",configurator.resource_dir)
 
     #进入事件循环，等待用户操作   
     sys.exit(app.exec_())
