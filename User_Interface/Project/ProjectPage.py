@@ -221,7 +221,7 @@ class ProjectPage(QFrame):
                 return
                 
             # 更新UI
-            widget.set_description(f"当前输出文件夹为 {config.get("label_input_path")}")
+            widget.set_description(f"当前输出文件夹为 {path.strip()}")
             
             # 更新并保存配置
             config["label_input_path"] = path.strip()
@@ -243,14 +243,14 @@ class ProjectPage(QFrame):
             widget.set_text("选择文件夹")
             widget.set_icon(FluentIcon.FOLDER_ADD)
 
-        def widget_callback(widget, index: int):
+        def widget_callback(widget):
             # 选择文件夹
             path = QFileDialog.getExistingDirectory(None, "选择文件夹", "")
             if path == None or path == "":
                 return
 
             # 更新UI
-            widget.set_description(f"当前输出文件夹为 {config.get("label_output_path")}")
+            widget.set_description(f"当前输出文件夹为 {path.strip()}")
 
             # 更新并保存配置
             config["label_output_path"] = path.strip()
