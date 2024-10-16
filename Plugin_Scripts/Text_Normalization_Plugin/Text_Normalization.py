@@ -8,7 +8,11 @@ class Text_Normalization_Plugin(PluginBase):
     def __init__(self):
         super().__init__()
         self.name = "Text_Normalization_Plugin"
-        self.description = "This is an Text_Normalization_Plugin."
+        self.description = "文本规范化插件（仅支持 英文、日文 项目）"
+
+        self.visibility = True # 是否在插件设置中显示
+        self.default_enable = True # 默认启用状态
+
         self.add_event('normalize_text', 5)  # 添加感兴趣的事件和优先级
 
 

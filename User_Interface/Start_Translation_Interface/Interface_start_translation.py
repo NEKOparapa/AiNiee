@@ -463,6 +463,7 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
 
 
         self.checkBox_switch = CheckBox('启用功能')
+        self.checkBox_switch.setChecked(True)
         self.checkBox_switch.stateChanged.connect(self.checkBoxChanged1)
 
         layout_switch.addWidget(label1)
