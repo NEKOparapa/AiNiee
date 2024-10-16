@@ -2723,23 +2723,6 @@ class User_Interface_Prompter(QObject):
             config_dict["sakura_proxy_port"] = Main_Window.Widget_SakuraLLM.LineEdit_proxy_port.text()            #获取代理端口
 
 
-            #翻译设置混合反应设置界面
-            config_dict["translation_mixing_toggle"] =  Main_Window.Widget_translation_settings_C.SwitchButton_mixed_translation.isChecked() # 获取混合翻译开关
-            config_dict["mixed_translation_settings"] = {}
-            config_dict["mixed_translation_settings"]["translation_platform_1"] = Main_Window.Widget_translation_settings_C.SettingCard_A.translationPlatform_comboBox.currentText()  # 获取首轮翻译平台设置
-
-
-            config_dict["mixed_translation_settings"]["translation_platform_2"] = Main_Window.Widget_translation_settings_C.SettingCard_B.translationPlatform_comboBox.currentText()  # 获取首轮翻译平台设置
-            config_dict["mixed_translation_settings"]["customModel_siwtch_2"] = Main_Window.Widget_translation_settings_C.SettingCard_B.customModel_Button.isChecked()  
-            config_dict["mixed_translation_settings"]["model_type_2"] = Main_Window.Widget_translation_settings_C.SettingCard_B.model_type.text()
-            config_dict["mixed_translation_settings"]["split_switch_2"] = Main_Window.Widget_translation_settings_C.SettingCard_B.textSplitting_Button.isChecked()   
-
-            config_dict["mixed_translation_settings"]["translation_platform_3"] = Main_Window.Widget_translation_settings_C.SettingCard_C.translationPlatform_comboBox.currentText()  # 获取首轮翻译平台设置
-            config_dict["mixed_translation_settings"]["customModel_siwtch_3"] = Main_Window.Widget_translation_settings_C.SettingCard_C.customModel_Button.isChecked()  
-            config_dict["mixed_translation_settings"]["model_type_3"] = Main_Window.Widget_translation_settings_C.SettingCard_C.model_type.text()  
-            config_dict["mixed_translation_settings"]["split_switch_3"] = Main_Window.Widget_translation_settings_C.SettingCard_C.textSplitting_Button.isChecked()  
-
-
             #开始翻译的备份设置界面
             config_dict["auto_backup_toggle"] =  Main_Window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
 
@@ -2994,10 +2977,6 @@ class User_Interface_Prompter(QObject):
                         # 添加新导航项(这里使用子函数，是因为lambda不能循环使用，会导致指向同一个页面)
                         Main_Window.add_sub_interface(Widget_New,object_name,object_name_cn)
 
-                        # 添加新选项到UI选项中
-                        user_interface_prompter.add_new_proxy_option(object_name_cn)
-
-
                         #代理账号基础界面
                         Widget_New.A_settings.LineEdit_relay_address.setText(config_dict[object_name]["op_relay_address"])
                         Widget_New.A_settings.comboBox_proxy_platform.setCurrentText(config_dict[object_name]["op_proxy_platform"])
@@ -3041,42 +3020,9 @@ class User_Interface_Prompter(QObject):
                         Widget_New.B_settings.spinBox_output_pricing.setValue(config_dict[object_name]["op_output_pricing"])
 
 
-                #翻译设置混合翻译界面
-                if "translation_mixing_toggle" in config_dict:
-                    Main_Window.Widget_translation_settings_C.SwitchButton_mixed_translation.setChecked(config_dict["translation_mixing_toggle"])
-                if "mixed_translation_settings" in config_dict:
-                    Main_Window.Widget_translation_settings_C.SettingCard_A.translationPlatform_comboBox.setCurrentText(config_dict["mixed_translation_settings"]["translation_platform_1"])
-
-                    Main_Window.Widget_translation_settings_C.SettingCard_B.translationPlatform_comboBox.setCurrentText(config_dict["mixed_translation_settings"]["translation_platform_2"])
-                    Main_Window.Widget_translation_settings_C.SettingCard_B.customModel_Button.setChecked(config_dict["mixed_translation_settings"]["customModel_siwtch_2"])
-                    Main_Window.Widget_translation_settings_C.SettingCard_B.model_type.setText(config_dict["mixed_translation_settings"]["model_type_2"])
-                    Main_Window.Widget_translation_settings_C.SettingCard_B.textSplitting_Button.setChecked(config_dict["mixed_translation_settings"]["split_switch_2"] )
-
-                    Main_Window.Widget_translation_settings_C.SettingCard_C.translationPlatform_comboBox.setCurrentText(config_dict["mixed_translation_settings"]["translation_platform_3"])
-                    Main_Window.Widget_translation_settings_C.SettingCard_C.customModel_Button.setChecked(config_dict["mixed_translation_settings"]["customModel_siwtch_3"])
-                    Main_Window.Widget_translation_settings_C.SettingCard_C.model_type.setText(config_dict["mixed_translation_settings"]["model_type_3"])
-                    Main_Window.Widget_translation_settings_C.SettingCard_C.textSplitting_Button.setChecked(config_dict["mixed_translation_settings"]["split_switch_3"] )
-
-
                 #开始翻译的备份设置界面
                 if "auto_backup_toggle" in config_dict:
                     Main_Window.Widget_start_translation.B_settings.checkBox_switch.setChecked(config_dict["auto_backup_toggle"])
-
-
-    # 添加新的平台选项
-    def add_new_proxy_option(self,item_name):
-        # 给混合设置添加代理选项
-        existing_index = Main_Window.Widget_translation_settings_C.SettingCard_A.translationPlatform_comboBox.findText(item_name)
-        if existing_index == -1:
-            Main_Window.Widget_translation_settings_C.SettingCard_A.translationPlatform_comboBox.addItem(item_name)
-
-        existing_index = Main_Window.Widget_translation_settings_C.SettingCard_B.translationPlatform_comboBox.findText(item_name)
-        if existing_index == -1:
-            Main_Window.Widget_translation_settings_C.SettingCard_B.translationPlatform_comboBox.addItem(item_name)
-
-        existing_index = Main_Window.Widget_translation_settings_C.SettingCard_C.translationPlatform_comboBox.findText(item_name)
-        if existing_index == -1:
-            Main_Window.Widget_translation_settings_C.SettingCard_C.translationPlatform_comboBox.addItem(item_name)
 
 
     # 删除导航项及平台选项及配置信息
@@ -3091,19 +3037,6 @@ class User_Interface_Prompter(QObject):
             platform_name = configurator.additional_platform_dict[object_name]
         else:
             return 0
-        
-
-        index = Main_Window.Widget_translation_settings_C.SettingCard_A.translationPlatform_comboBox.findText(platform_name)
-        if index != -1:
-            Main_Window.Widget_translation_settings_C.SettingCard_A.translationPlatform_comboBox.removeItem(index)
-
-        index = Main_Window.Widget_translation_settings_C.SettingCard_B.translationPlatform_comboBox.findText(platform_name)
-        if index != -1:
-            Main_Window.Widget_translation_settings_C.SettingCard_B.translationPlatform_comboBox.removeItem(index)
-                
-        index = Main_Window.Widget_translation_settings_C.SettingCard_C.translationPlatform_comboBox.findText(platform_name)
-        if index != -1:
-            Main_Window.Widget_translation_settings_C.SettingCard_C.translationPlatform_comboBox.removeItem(index)
 
 
         # 删除配置信息

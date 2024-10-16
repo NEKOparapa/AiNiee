@@ -17,6 +17,7 @@ from .Project.ProjectPage import ProjectPage
 from .ApplicationSetting.BasicSettingsPage import BasicSettingsPage
 from .ApplicationSetting.AdvanceSettingsPage import AdvanceSettingsPage
 from .ApplicationSetting.PluginsSettingsPage import PluginsSettingsPage
+from .ApplicationSetting.MixTranslationSettingsPage import MixTranslationSettingsPage
 
 from .QualityOptimization.TextReplaceAPage import TextReplaceAPage
 from .QualityOptimization.TextReplaceBPage import TextReplaceBPage
@@ -48,9 +49,6 @@ from .AI_Platform_Interface.Interface_Deepseek import Widget_Deepseek
 from .AI_Platform_Interface.Interface_Dashscope import Widget_Dashscope
 from .AI_Platform_Interface.Interface_Volcengine import Widget_Volcengine
 from .AI_Platform_Interface.Interface_SakuraLLM import Widget_SakuraLLM
-
-
-from .Translation_Settings_Interface.Interface_translation_settings_C import Widget_translation_settings_C
 
 
 from .Start_Translation_Interface.Interface_start_translation import Widget_start_translation
@@ -117,9 +115,6 @@ class window(FramelessWindow): #主窗口 v
         # -----------------------------------------------------------
         # 第二节开始
         # -----------------------------------------------------------
-
-
-        self.Widget_translation_settings_C = Widget_translation_settings_C('Widget_translation_settings_C', self,user_interface_prompter)  
 
 
         # -----------------------------------------------------------
@@ -220,8 +215,8 @@ class window(FramelessWindow): #主窗口 v
         self.addSubInterface(self.advance_settings_page, FIF.ALBUM, "高级设置", NavigationItemPosition.SCROLL) 
         self.plugins_settings_page = PluginsSettingsPage("plugins_settings_page", self, self.configurator, self.plugin_manager)
         self.addSubInterface(self.plugins_settings_page, FIF.COMMAND_PROMPT, "插件设置", NavigationItemPosition.SCROLL) 
-
-        self.addSubInterface(self.Widget_translation_settings_C, FIF.EMOJI_TAB_SYMBOLS, "混合翻译设置", NavigationItemPosition.SCROLL)
+        self.mix_translation_settings_page = MixTranslationSettingsPage("mix_translation_settings_page", self, self.configurator)
+        self.addSubInterface(self.mix_translation_settings_page, FIF.EMOJI_TAB_SYMBOLS, "混合翻译设置", NavigationItemPosition.SCROLL) 
 
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL) # 添加分隔符
 
@@ -416,9 +411,6 @@ class window(FramelessWindow): #主窗口 v
 
         # 添加新导航项
         self.add_sub_interface(Widget_New,object_name,text)
-
-        # 添加新选项到平台选项中
-        self.user_interface_prompter.add_new_proxy_option(text)
 
         # 关闭弹窗
         self.w.close()
