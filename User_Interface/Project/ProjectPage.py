@@ -21,8 +21,8 @@ class ProjectPage(QFrame):
         "translation_project": "Mtool导出文件",
         "source_language": "日语",
         "target_language": "简中",
-        "label_input_path": ".\input",
-        "label_output_path": ".\output",
+        "label_input_path": "./input",
+        "label_output_path": "./output",
     }
 
     def __init__(self, text: str, parent = None, configurator = None):

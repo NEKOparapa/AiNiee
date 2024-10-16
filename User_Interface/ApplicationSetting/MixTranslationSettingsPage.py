@@ -21,7 +21,7 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 class MixTranslationSettingsPage(QFrame):
 
     DEFAULT = {
-        "mixed_translation_toggle": False,
+        "translation_mixing_toggle": False,
         "mixed_translation_settings": {
             "translation_platform_1": "OpenAI",
             "translation_platform_2": "OpenAI",
@@ -140,10 +140,10 @@ class MixTranslationSettingsPage(QFrame):
     # 混合翻译模式
     def add_widget_01(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("mixed_translation_toggle"))
+            widget.setChecked(config.get("translation_mixing_toggle"))
             
         def widget_callback(widget, checked: bool):
-            config["mixed_translation_toggle"] = checked
+            config["translation_mixing_toggle"] = checked
             self.save_config(config)
 
         parent.addWidget(
