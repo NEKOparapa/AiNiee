@@ -3,7 +3,9 @@ from PyQt5.Qt import QIcon
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication
 
+from rich import print
 from qfluentwidgets import FluentIcon
+from qfluentwidgets import MessageBox
 from qfluentwidgets import FluentWindow
 from qfluentwidgets import NavigationItemPosition
 
@@ -60,6 +62,19 @@ class AppFluentWindow(FluentWindow): #主窗口
         self.navigationInterface.setMinimumExpandWidth(self.APP_WIDTH)
         self.navigationInterface.expand(useAni = False)
 
+    # 重写窗口关闭函数
+    def closeEvent(self, event):
+        message_box = MessageBox("警告", "确定是否退出程序 ... ？", self)
+        message_box.yesButton.setText("确认")
+        message_box.cancelButton.setText("取消")
+
+        if message_box.exec():
+            print(f"[[green]INFO[/]] 主窗口已关闭，稍后应用自动退出 ...")
+            self.configurator.Running_status = 11
+            event.accept()
+        else:
+            event.ignore()
+
     # 打开项目主页
     def open_project_page(self):
         url = QUrl("https://github.com/NEKOparapa/AiNiee")
@@ -80,6 +95,9 @@ class AppFluentWindow(FluentWindow): #主窗口
             onClick = self.open_project_page,
             position = NavigationItemPosition.BOTTOM
         )
+
+        # 保存变量
+        self.configurator = configurator
 
     # 添加第一节
     def add_project_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
