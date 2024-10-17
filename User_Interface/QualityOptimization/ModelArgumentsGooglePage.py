@@ -84,7 +84,7 @@ class ModelArgumentsGooglePage(QFrame):
     # 启动自定义参数
     def add_widget_01(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("Google_parameter_adjustment"))
+            widget.set_checked(config.get("Google_parameter_adjustment"))
             
         def widget_callback(widget, checked: bool):
             config["Google_parameter_adjustment"] = checked

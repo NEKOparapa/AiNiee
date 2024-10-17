@@ -85,7 +85,7 @@ class Example_Plugin(PluginBase):
         self.add_event('postprocess_text', 5)  # 添加感兴趣的事件和触发优先级
 
     def load(self):
-        print(f"[INFO]  {self.name} loaded!")
+        print(f"[INFO] {self.name} loaded!")
 
     def on_event(self, event_name, configuration_information, event_data):
         # 事件触发
@@ -97,7 +97,7 @@ class Example_Plugin(PluginBase):
                 # 过滤文本
                 self.preproces_text(event_data)
 
-                print(f"[INFO]  Non-Japanese/Korean text has been filtered.")
+                print(f"[INFO] Non-Japanese/Korean text has been filtered.")
 ```
 
 
@@ -137,18 +137,18 @@ class Example_Plugin(PluginBase):
     | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
 
 - `configuration_information`: 全局配置类，用于获取和设置应用程序的配置信息。
-    下面是部分配置信息变量，如果需要获取更多配置信息，可以到Config.py文件中查看，基本在__init__(self,script_dir)与 Read_Configuration_File (self)中
+    下面是部分配置信息变量，如果需要获取更多配置信息，可以到Config.py文件中查看，基本在__init__(self,script_dir)与 load_config_file (self)中
     ```python
         self.script_dir = script_dir          # 根目录路径
         self.resource_dir = os.path.join(script_dir, "Resource") # 配置文件路径
         self.plugin_dir = os.path.join(script_dir, "Plugin_Scripts") # 插件脚本路径
 
         self.translation_project = "" # 翻译项目,与UI显示的内容一致
-        self.translation_platform = "" # 翻译平台,与UI显示的内容一致
+        self.target_platform = "" # 翻译平台,与UI显示的内容一致
         self.source_language = "" # 文本原语言
         self.target_language = "" # 文本目标语言
-        self.Input_Folder = "" # 存储输入文件夹
-        self.Output_Folder = "" # 存储输出文件夹
+        self.label_input_path = "" # 存储输入文件夹
+        self.label_output_path = "" # 存储输出文件夹
 
         self.lines_limit_switch = True  # 行数开关         
         self.lines_limit = 15  # 行数限制
@@ -161,12 +161,12 @@ class Example_Plugin(PluginBase):
         self.cn_prompt_toggle = False # 中文提示词开关
         self.text_clear_toggle = False # 清除首尾非文本字符开关
         self.preserve_line_breaks_toggle = False # 换行替换翻译开关
-        self.conversion_toggle = False #中文字形转换开关
+        self.response_conversion_toggle = False #中文字形转换开关
         self.round_limit = 6 # 拆分翻译轮次限制
         self.retry_count_limit = 1 # 错误回复重试次数限制
 
-        self.mixed_translation_toggle = False # 混合翻译开关
-        self.mixed_translation_settings = {}  #混合翻译相关信息
+        self.mix_translation_enable = False # 混合翻译开关
+        self.mix_translation_settings = {}  #混合翻译相关信息
 
 
         self.prompt_dictionary_switch = False   #   指令词典开关
@@ -176,7 +176,7 @@ class Example_Plugin(PluginBase):
         self.add_example_switch = False #   添加示例开关
 
 
-        self.model_type = ""             #模型选择
+        self.model = ""             #模型选择
         self.apikey_list = [] # 存储key的列表
         self.key_index = 0  # 方便轮询key的索引
         self.base_url = 'https://api.openai.com/v1' # api请求地址

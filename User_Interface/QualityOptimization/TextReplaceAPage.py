@@ -28,8 +28,8 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 class TextReplaceAPage(QFrame):
     
     DEFAULT = {
-        "Replace_before_translation": True,
-        "User_Dictionary1": {},
+        "pre_translation_switch": True,
+        "pre_translation_content": {},
     }
 
     def __init__(self, text: str, parent = None, configurator = None):
@@ -89,10 +89,10 @@ class TextReplaceAPage(QFrame):
     # 头部
     def add_widget_header(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("Replace_before_translation"))
+            widget.set_checked(config.get("pre_translation_switch"))
             
         def widget_callback(widget, checked: bool):
-            config["Replace_before_translation"] = checked
+            config["pre_translation_switch"] = checked
             self.save_config(config)
 
         parent.addWidget(
@@ -150,7 +150,7 @@ class TextReplaceAPage(QFrame):
     # 向表格更新数据
     def update_to_table(self, table, config):
         datas = []
-        user_dictionary = config.get("User_Dictionary1", {})
+        user_dictionary = config.get("pre_translation_content", {})
         table.setRowCount(max(12, len(user_dictionary)))
         for k, v in user_dictionary.items():
             datas.append(
@@ -164,7 +164,7 @@ class TextReplaceAPage(QFrame):
 
     # 从表格更新数据
     def update_from_table(self, table, config):
-        config["User_Dictionary1"] = {}
+        config["pre_translation_content"] = {}
         
         for row in range(table.rowCount()):
             data_str = table.item(row, 0)
@@ -181,7 +181,7 @@ class TextReplaceAPage(QFrame):
             if data_str == "" or data_dst == "":
                 continue
 
-            config["User_Dictionary1"][data_str] = data_dst
+            config["pre_translation_content"][data_str] = data_dst
 
         return config
 
@@ -269,7 +269,7 @@ class TextReplaceAPage(QFrame):
 
             # 读取配置文件
             config = self.load_config()
-            config["User_Dictionary1"].update(datas)
+            config["pre_translation_content"].update(datas)
 
             # 保存配置文件
             config = self.save_config(config)
@@ -303,7 +303,7 @@ class TextReplaceAPage(QFrame):
 
             # 整理数据
             datas = []
-            user_dictionary = config.get("User_Dictionary1", {})
+            user_dictionary = config.get("pre_translation_content", {})
             for k, v in user_dictionary.items():
                 datas.append(
                     {

@@ -6,20 +6,21 @@ import re
 import threading
 import urllib.request
 
+from rich import print
+
 class Configurator():
 
-    
     def __init__(self,script_dir):
         self.script_dir = script_dir          # 根目录路径
         self.resource_dir = os.path.join(script_dir, "Resource") # 配置文件路径
         self.plugin_dir = os.path.join(script_dir, "Plugin_Scripts") # 插件脚本路径
 
         self.translation_project = "" # 翻译项目
-        self.translation_platform = "" # 翻译平台
+        self.target_platform = "" # 翻译平台
         self.source_language = "" # 文本原语言
         self.target_language = "" # 文本目标语言
-        self.Input_Folder = "" # 存储输入文件夹
-        self.Output_Folder = "" # 存储输出文件夹
+        self.label_input_path = "" # 存储输入文件夹
+        self.label_output_path = "" # 存储输出文件夹
 
         self.lines_limit_switch = True  # 行数开关         
         self.lines_limit = 15  # 行数限制
@@ -32,12 +33,12 @@ class Configurator():
         self.cn_prompt_toggle = False # 中文提示词开关
         self.text_clear_toggle = False # 清除首尾非文本字符开关
         self.preserve_line_breaks_toggle = False # 换行替换翻译开关
-        self.conversion_toggle = False #中文字形转换开关
+        self.response_conversion_toggle = False #中文字形转换开关
         self.round_limit = 6 # 拆分翻译轮次限制
         self.retry_count_limit = 1 # 错误回复重试次数限制
 
-        self.mixed_translation_toggle = False # 混合翻译开关
-        self.mixed_translation_settings = {}  #混合翻译相关信息
+        self.mix_translation_enable = False # 混合翻译开关
+        self.mix_translation_settings = {}  #混合翻译相关信息
 
 
         self.prompt_dictionary_switch = False   #   指令词典开关
@@ -47,7 +48,7 @@ class Configurator():
         self.add_example_switch = False #   添加示例开关
 
 
-        self.model_type = ""             #模型选择
+        self.model = ""             #模型选择
         self.apikey_list = [] # 存储key的列表
         self.key_index = 0  # 方便轮询key的索引
         self.base_url = 'https://api.openai.com/v1' # api请求地址
@@ -73,7 +74,6 @@ class Configurator():
                                  # 1是正在接口测试状态,6是翻译任务进行状态，9是正在暂停状态，10是已暂停状态,11是正在取消状态，0也是已取消状态
                             
         # 额外代理平台
-        self.additional_platform_count = 0 # 额外代理平台数
         self.additional_platform_dict = {} # 额外代理平台索引+名字
         self.additional_platform_information = {} # 额外代理配置具体信息
         self.instances_information = {} # 动态对象名界面实例   
@@ -81,876 +81,97 @@ class Configurator():
         # 线程锁
         self.lock1 = threading.Lock()  #这个用来锁缓存文件
         self.lock2 = threading.Lock()  #这个用来锁UI信号的
-        self.lock3 = threading.Lock()  #这个用来锁自动备份缓存文件功能的
-
+        self.lock3 = threading.Lock()  # 这个用来锁自动备份缓存文件功能的
 
     # 读取配置文件
-    def Read_Configuration_File (self):
-
-
-        #读取用户配置config.json
+    def load_config_file(self):
+        # 读取配置文件
         if os.path.exists(os.path.join(self.resource_dir, "config.json")):
-            with open(os.path.join(self.resource_dir, "config.json"), "r", encoding="utf-8") as f:
+            with open(os.path.join(self.resource_dir, "config.json"), "r", encoding = "utf-8") as f:
                 config_dict = json.load(f)
 
-
-        #读取各平台配置信息
-        if os.path.exists(os.path.join(self.resource_dir, "platform", "openai.json")):
-            #读取各平台配置信息
-            with open(os.path.join(self.resource_dir, "platform", "openai.json"), "r", encoding="utf-8") as f:
-                self.openai_platform_config = json.load(f)
-            with open(os.path.join(self.resource_dir, "platform", "anthropic.json"), "r", encoding="utf-8") as f:
-                self.anthropic_platform_config = json.load(f)
-            with open(os.path.join(self.resource_dir, "platform", "google.json"), "r", encoding="utf-8") as f:
-                self.google_platform_config = json.load(f)
-            with open(os.path.join(self.resource_dir, "platform", "cohere.json"), "r", encoding="utf-8") as f:
-                self.cohere_platform_config = json.load(f)
-            with open(os.path.join(self.resource_dir, "platform", "deepseek.json"), "r", encoding="utf-8") as f:
-                self.deepseek_platform_config = json.load(f)
-            with open(os.path.join(self.resource_dir, "platform", "dashscope.json"), "r", encoding="utf-8") as f:
-                self.dashscope_platform_config = json.load(f)
-            with open(os.path.join(self.resource_dir, "platform", "moonshot.json"), "r", encoding="utf-8") as f:
-                self.moonshot_platform_config = json.load(f)
-            with open(os.path.join(self.resource_dir, "platform", "zhipu.json"), "r", encoding="utf-8") as f:
-                self.zhipu_platform_config = json.load(f)
-            with open(os.path.join(self.resource_dir, "platform", "yi.json"), "r", encoding="utf-8") as f:
-                self.yi_platform_config = json.load(f)
-            with open(os.path.join(self.resource_dir, "platform", "sakurallm.json"), "r", encoding="utf-8") as f:
-                self.sakurallm_platform_config = json.load(f)
-  
-
-        #获取OpenAI官方账号界面
-        self.openai_account_type = config_dict["openai_account_type"]   #获取账号类型下拉框当前选中选项的值
-        self.openai_model_type = config_dict["openai_model_type"] #获取模型类型下拉框当前选中选项的值
-        self.openai_API_key_str = config_dict["openai_API_key_str"] #获取apikey输入值
-        self.openai_proxy_port = config_dict["openai_proxy_port"] #获取代理端口
-        
-
-        #Google官方账号界面
-        self.google_account_type = config_dict["google_account_type"]    #获取账号类型下拉框当前选中选项的值
-        self.google_model_type = config_dict["google_model_type"] #获取模型类型下拉框当前选中选项的值
-        self.google_API_key_str = config_dict["google_API_key_str"] #获取apikey输入值
-        self.google_proxy_port = config_dict["google_proxy_port"] #获取代理端口
-
-        #Anthropic官方账号界面
-        self.anthropic_account_type = config_dict["anthropic_account_type"]#获取账号类型下拉框当前选中选项的值
-        self.anthropic_model_type = config_dict["anthropic_model_type"] #获取模型类型下拉框当前选中选项的值
-        self.anthropic_API_key_str = config_dict["anthropic_API_key_str"] #获取apikey输入值
-        self.anthropic_proxy_port = config_dict["anthropic_proxy_port"] #获取代理端口
-
-
-        #获取Cohere官方账号界面
-        self.cohere_account_type = config_dict["cohere_account_type"] #获取账号类型下拉框当前选中选项的值
-        self.cohere_model_type = config_dict["cohere_model_type"] #获取模型类型下拉框当前选中选项的值
-        self.cohere_API_key_str = config_dict["cohere_API_key_str"] #获取apikey输入值
-        self.cohere_proxy_port = config_dict["cohere_proxy_port"] #获取代理端口
-
-
-        #获取moonshot官方账号界面
-        self.moonshot_account_type = config_dict["moonshot_account_type"]    #获取账号类型下拉框当前选中选项的值
-        self.moonshot_model_type = config_dict["moonshot_model_type"]  #获取模型类型下拉框当前选中选项的值
-        self.moonshot_API_key_str = config_dict["moonshot_API_key_str"] #获取apikey输入值
-        self.moonshot_proxy_port = config_dict["moonshot_proxy_port"] #获取代理端口
-
-        #获取deepseek官方账号界面
-        self.deepseek_model_type = config_dict["deepseek_model_type"] #获取模型类型下拉框当前选中选项的值
-        self.deepseek_API_key_str = config_dict["deepseek_API_key_str"] #获取apikey输入值
-        self.deepseek_proxy_port = config_dict["deepseek_proxy_port"] #获取代理端口
-
-        #获取dashscope官方账号界面
-        self.dashscope_model_type = config_dict["dashscope_model_type"] #获取模型类型下拉框当前选中选项的值
-        self.dashscope_API_key_str = config_dict["dashscope_API_key_str"] #获取apikey输入值
-        self.dashscope_proxy_port = config_dict["dashscope_proxy_port"] #获取代理端口
-
-
-        #获取零一万物官方账号界面
-        self.yi_account_type = config_dict["yi_account_type"]   #获取账号类型下拉框当前选中选项的值
-        self.yi_model_type = config_dict["yi_model_type"] #获取模型类型下拉框当前选中选项的值
-        self.yi_API_key_str = config_dict["yi_API_key_str"] #获取apikey输入值
-        self.yi_proxy_port = config_dict["yi_proxy_port"] #获取代理端口
-
-
-        #智谱官方界面
-        self.zhipu_account_type = config_dict["zhipu_account_type"] #获取账号类型下拉框当前选中选项的值
-        self.zhipu_model_type = config_dict["zhipu_model_type"] #获取模型类型下拉框当前选中选项的值
-        self.zhipu_API_key_str = config_dict["zhipu_API_key_str"] #获取apikey输入值
-        self.zhipu_proxy_port = config_dict["zhipu_proxy_port"] #获取代理端口
-
-
-        #获取火山账号界面
-        self.volcengine_access_point = config_dict["volcengine_access_point"]      #获取推理接入点
-        self.volcengine_API_key_str = config_dict["volcengine_API_key_str"] #获取apikey输入值
-        self.volcengine_proxy_port = config_dict["volcengine_proxy_port"] #获取代理端口
-        self.volcengine_tokens_limit = config_dict["volcengine_tokens_limit"] #获取tokens限制值
-        self.volcengine_rpm_limit = config_dict["volcengine_rpm_limit"] #获取rpm限制值
-        self.volcengine_tpm_limit = config_dict["volcengine_tpm_limit"] #获取tpm限制值
-        self.volcengine_input_pricing = config_dict["volcengine_input_pricing"]        #获取输入价格
-        self.volcengine_output_pricing = config_dict["volcengine_output_pricing"]        #获取输出价格
-
-
-        #Sakura界面
-        self.sakura_address = config_dict["sakura_address"] #获取请求地址
-        self.sakura_model_type = config_dict["sakura_model_type"] #获取模型类型下拉框当前选中选项的值
-        self.sakura_proxy_port = config_dict["sakura_proxy_port"] #获取代理端口
-
-
-        #获取代理界面
-        self.op_relay_address = config_dict["op_relay_address"] #获取请求地址
-        self.op_proxy_platform = config_dict["op_proxy_platform"] # 获取代理平台
-        self.op_model_type_openai = config_dict["op_model_type_openai"] #获取openai的模型类型下拉框当前选中选项的值
-        self.op_model_type_anthropic = config_dict["op_model_type_anthropic"]  #获取anthropic的模型类型下拉框当前选中选项的值        
-        self.op_API_key_str = config_dict["op_API_key_str"] #获取apikey输入值
-        self.op_proxy_port = config_dict["op_proxy_port"]  #获取代理端口
-        self.op_auto_complete = config_dict["op_auto_complete"] #获取自动补全开关
-        self.op_tokens_limit = config_dict["op_tokens_limit"] #获取tokens限制值
-        self.op_rpm_limit = config_dict["op_rpm_limit"]  #获取rpm限制值
-        self.op_tpm_limit = config_dict["op_tpm_limit"] #获取tpm限制值
-        self.op_input_pricing = config_dict["op_input_pricing"] #获取输入价格
-        self.op_output_pricing = config_dict["op_output_pricing"] #获取输出价格
-
-
-        # 获取额外代理平台的配置信息
-        self.additional_platform_count = config_dict["additional_platform_count"]
-        self.additional_platform_dict = config_dict["additional_platform_dict"] 
-        for key, value in self.additional_platform_dict.items():
-            object_Name = key
-            self.additional_platform_information[object_Name] = {}
-            self.additional_platform_information[object_Name]["op_platform_name"] = value
-            self.additional_platform_information[object_Name]["op_relay_address"] = config_dict[object_Name]["op_relay_address"] 
-            self.additional_platform_information[object_Name]["op_proxy_platform"] = config_dict[object_Name]["op_proxy_platform"]
-            self.additional_platform_information[object_Name]["op_model_type_openai"] =  config_dict[object_Name]["op_model_type_openai"]
-            self.additional_platform_information[object_Name]["op_model_type_anthropic"] =  config_dict[object_Name]["op_model_type_anthropic"]
-            self.additional_platform_information[object_Name]["op_API_key_str"] = config_dict[object_Name]["op_API_key_str"]
-            self.additional_platform_information[object_Name]["op_proxy_port"]  = config_dict[object_Name]["op_proxy_port"] 
-            self.additional_platform_information[object_Name]["op_tokens_limit"] = config_dict[object_Name]["op_tokens_limit"]
-            self.additional_platform_information[object_Name]["op_rpm_limit"] = config_dict[object_Name]["op_rpm_limit"]            #获取rpm限制值
-            self.additional_platform_information[object_Name]["op_tpm_limit"] = config_dict[object_Name]["op_tpm_limit"]              #获取tpm限制值
-            self.additional_platform_information[object_Name]["op_input_pricing"] = config_dict[object_Name]["op_input_pricing"] 
-            self.additional_platform_information[object_Name]["op_output_pricing"] = config_dict[object_Name]["op_output_pricing"]
-
-        # 获取第一页的配置信息（基础设置）
-        self.translation_project = config_dict["translation_project"]
-        self.translation_platform = config_dict["translation_platform"]
-        self.source_language = config_dict["source_language"]
-        self.target_language = config_dict["target_language"]
-        self.Input_Folder = config_dict["label_input_path"]
-        self.Output_Folder = config_dict["label_output_path"]
-
-
-        # 获取第二页的配置信息(进阶设置)
-        self.lines_limit_switch = config_dict["lines_limit_switch"]           
-        self.lines_limit = config_dict["lines_limit"]   
-        self.tokens_limit_switch = config_dict["tokens_limit_switch"]           
-        self.tokens_limit = config_dict["tokens_limit"]    
-        self.pre_line_counts = config_dict["pre_line_counts"]
-        self.user_thread_counts = config_dict["user_thread_counts"] 
-        self.retry_count_limit =  config_dict["retry_count_limit"]
-        self.round_limit =  config_dict["round_limit"]
-        self.cot_toggle = config_dict["cot_toggle"]
-        self.cn_prompt_toggle = config_dict["cn_prompt_toggle"]
-        self.text_clear_toggle = config_dict["text_clear_toggle"]
-        self.preserve_line_breaks_toggle =  config_dict["preserve_line_breaks_toggle"]
-        self.conversion_toggle = config_dict["response_conversion_toggle"]
-        self.opencc_preset = config_dict["opencc_preset"]
-
-        # 检查设置页面
-        self.reply_check_switch = config_dict["reply_check_switch"]
-
-
-
-        # 获取第三页的配置信息(混合翻译设置)
-        self.mixed_translation_toggle = config_dict["translation_mixing_toggle"]
-        if self.mixed_translation_toggle == True:
-            self.mixed_translation_settings = config_dict["mixed_translation_settings"]
-
-
-        # 获取开始翻译的配置信息
-        self.auto_backup_toggle = config_dict["auto_backup_toggle"] #获取备份设置开关
-
-
-
-        # 获取提示书配置
-        self.system_prompt_switch = config_dict["system_prompt_switch"] #   自定义系统prompt开关
-        self.system_prompt_content = config_dict["system_prompt_content"]
-        self.prompt_dictionary_switch = config_dict["prompt_dict_switch"]   #   指令词典开关
-        self.prompt_dictionary_content = config_dict["User_Dictionary2"]
-        self.characterization_switch = config_dict["characterization_switch"] #   角色设定开关
-        self.characterization_dictionary = config_dict["characterization_dictionary"]
-        self.world_building_switch = config_dict["world_building_switch"] #   背景设定开关
-        self.world_building_content = config_dict["world_building_content"]
-        self.writing_style_switch = config_dict["writing_style_switch"] #   文风设定开关
-        self.writing_style_content = config_dict["writing_style_content"]
-        self.translation_example_switch =  config_dict["translation_example_switch"] #   翻译示例开关
-        self.translation_example_content = config_dict["translation_example"]
-
-
-        # 文本替换
-        self.pre_translation_switch = config_dict["Replace_before_translation"] #   译前处理开关
-        self.pre_translation_content = config_dict["User_Dictionary1"]
-        self.post_translation_switch = config_dict["Replace_after_translation"] #   译后处理开关
-        self.post_translation_content = config_dict["User_Dictionary3"]
-
-
-
-        #获取实时设置界面(openai)
-        self.OpenAI_parameter_adjustment = config_dict["OpenAI_parameter_adjustment"]
-        self.OpenAI_Temperature = config_dict["OpenAI_Temperature"]
-        self.OpenAI_top_p = config_dict["OpenAI_top_p"]
-        self.OpenAI_presence_penalty = config_dict["OpenAI_presence_penalty"] 
-        self.OpenAI_frequency_penalty = config_dict["OpenAI_frequency_penalty"]
-
-        #获取实时设置界面(anthropic)
-        self.Anthropic_parameter_adjustment = config_dict["Anthropic_parameter_adjustment"] 
-        self.Anthropic_Temperature = config_dict["Anthropic_Temperature"]
-
-        #获取实时设置界面(google)
-        self.Google_parameter_adjustment = config_dict["Google_parameter_adjustment"]
-        self.Google_Temperature = config_dict["Google_Temperature"] 
-
-        #获取实时设置界面(cohere)
-        self.Cohere_parameter_adjustment = config_dict["Cohere_parameter_adjustment"]
-        self.Cohere_Temperature = config_dict["Cohere_Temperature"] 
-
-        #获取实时设置界面(sakura)
-        self.Sakura_parameter_adjustment = config_dict["Sakura_parameter_adjustment"] 
-        self.Sakura_Temperature = config_dict["Sakura_Temperature"] 
-        self.Sakura_top_p = config_dict["Sakura_top_p"] 
-        self.Sakura_frequency_penalty = config_dict["Sakura_frequency_penalty"] 
-
+        # 将字典中的每一项赋值到类中的同名属性
+        for key, value in config_dict.items():
+            setattr(self, key, value)
 
         # 重新初始化模型参数，防止上次任务的设置影响到
-        self.openai_temperature_initialvalue = 0.1        
-        self.openai_top_p_initialvalue = 0.9             
-        self.openai_presence_penalty_initialvalue = 0.0  
-        self.openai_frequency_penalty_initialvalue = 0.0 
+        self.openai_temperature_initialvalue = 0.1
+        self.openai_top_p_initialvalue = 0.9
+        self.openai_presence_penalty_initialvalue = 0.0
+        self.openai_frequency_penalty_initialvalue = 0.0
 
-        self.sakura_temperature_initialvalue = 0.1         
-        self.sakura_top_p_initialvalue =  0.3             
-        self.sakura_frequency_penalty_initialvalue = 0.0 
+        self.sakura_temperature_initialvalue = 0.1
+        self.sakura_top_p_initialvalue = 0.3
+        self.sakura_frequency_penalty_initialvalue = 0.0
 
-        self.anthropic_temperature_initialvalue   =  0 
-        self.google_temperature_initialvalue   =  0 
-        self.cohere_temperature_initialvalue   =  0 
-
+        self.anthropic_temperature_initialvalue = 0
+        self.google_temperature_initialvalue = 0
+        self.cohere_temperature_initialvalue = 0
 
         # 设置线程数
-        if self.user_thread_counts == 0:                                
-            self.actual_thread_counts = self.auto_thread_count(self.translation_platform,self.sakura_address)
-        else:
+        if self.user_thread_counts != 0:
             self.actual_thread_counts = self.user_thread_counts
-
+        else:
+            self.actual_thread_counts = self.auto_thread_count(self.target_platform, self.platforms.get("sakura").get("api_url"))
 
     # 配置翻译平台信息
-    def configure_translation_platform(self,translation_platform = None,model_type = None):
-
-        #读取配置文件
-        if os.path.exists(os.path.join(self.resource_dir, "config.json")):
-            #读取config.json
-            with open(os.path.join(self.resource_dir, "config.json"), "r", encoding="utf-8") as f:
-                config_dict = json.load(f)
-
-
-        #根据翻译平台读取配置信息
-        if translation_platform == 'OpenAI':
-            # 获取模型类型
-            if model_type:
-                self.model_type = model_type
-            else:
-                self.model_type =  config_dict["openai_model_type"]            
-
-            # 获取apikey列表
-            API_key_str = config_dict["openai_API_key_str"]            #获取apikey输入值
-            #去除空格，换行符，分割KEY字符串并存储进列表里
-            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
-            self.apikey_list = API_key_list
-
-            # 获取请求地址
-            self.base_url = 'https://api.openai.com/v1'  #需要重新设置，以免使用代理网站后，没有改回来
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = config_dict["openai_proxy_port"]            #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-            # 获取使用的模型输入价格与输出价格
-            self.model_input_price = self.openai_platform_config["model_price"][self.model_type]["input_price"]
-            self.model_output_price = self.openai_platform_config["model_price"][self.model_type]["output_price"]
-
-
-            # 设置速率限制
-            account_type = self.yi_account_type
-            model = self.yi_model_type
-            # 获取相应的限制
-            self.max_tokens = self.yi_platform_config[account_type][model]["max_tokens"]
-            self.TPM_limit = self.yi_platform_config[account_type][model]["TPM"]
-            self.RPM_limit = self.yi_platform_config[account_type][model]["RPM"]
-
-            # 获取当前key的数量，对限制进行倍数更改
-            key_count = len(self.apikey_list)
-            self.RPM_limit = self.RPM_limit * key_count
-            self.TPM_limit = self.TPM_limit * key_count
-
-
-        elif translation_platform == 'Anthropic':
-            # 获取模型类型
-            if model_type:
-                self.model_type = model_type
-            else:
-                self.model_type = config_dict["anthropic_model_type"]
-
-            # 获取apikey列表
-            API_key_str = config_dict["anthropic_API_key_str"]            #获取apikey输入值
-            #去除空格，换行符，分割KEY字符串并存储进列表里
-            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
-            self.apikey_list = API_key_list
-
-            # 获取请求地址
-            self.base_url = 'https://api.anthropic.com'
-            
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = config_dict["anthropic_proxy_port"]            #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-            # 获取使用的模型输入价格与输出价格
-            self.model_input_price = self.anthropic_platform_config["model_price"][self.model_type]["input_price"]
-            self.model_output_price = self.anthropic_platform_config["model_price"][self.model_type]["output_price"]
-
-
-            # 获取账号类型
-            account_type = self.anthropic_account_type
-            # 获取模型选择 
-            model = self.anthropic_model_type
-
-            # 获取相应的限制
-            self.max_tokens = self.anthropic_platform_config[account_type]["max_tokens"]
-            self.TPM_limit = self.anthropic_platform_config[account_type]["TPM"]
-            self.RPM_limit = self.anthropic_platform_config[account_type]["RPM"]
-
-            # 获取当前key的数量，对限制进行倍数更改
-            key_count = len(self.apikey_list)
-            self.RPM_limit = self.RPM_limit * key_count
-            self.TPM_limit = self.TPM_limit * key_count
-
-
-        elif translation_platform == 'Google':
-            # 获取模型类型
-            if model_type:
-                self.model_type = model_type
-            else:
-                self.model_type =  config_dict["google_model_type"]              
-
-            # 获取apikey列表
-            API_key_str = config_dict["google_API_key_str"]            #获取apikey输入值
-            #去除空格，换行符，分割KEY字符串并存储进列表里
-            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
-            self.apikey_list = API_key_list
-
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = config_dict["google_proxy_port"]            #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-            # 获取使用的模型输入价格与输出价格
-            self.model_input_price = self.google_platform_config["model_price"][self.model_type]["input_price"]
-            self.model_output_price = self.google_platform_config["model_price"][self.model_type]["output_price"]
-
-            # 获取账号类型
-            account_type = self.google_account_type
-            # 获取模型
-            model = self.google_model_type
-
-            # 获取相应的限制
-            self.max_tokens = self.google_platform_config[account_type][model]["max_tokens"]
-            self.TPM_limit = self.google_platform_config[account_type][model]["TPM"]
-            self.RPM_limit = self.google_platform_config[account_type][model]["RPM"]
-
-            # 获取当前key的数量，对限制进行倍数更改
-            key_count = len(self.apikey_list)
-            self.RPM_limit = self.RPM_limit * key_count
-            self.TPM_limit = self.TPM_limit * key_count
-
-
-        #根据翻译平台读取配置信息
-        elif translation_platform == 'Cohere':
-            # 获取模型类型
-            if model_type:
-                self.model_type = model_type
-            else:
-                self.model_type =  config_dict["cohere_model_type"]              
-
-            # 获取apikey列表
-            API_key_str = config_dict["cohere_API_key_str"]            #获取apikey输入值
-            #去除空格，换行符，分割KEY字符串并存储进列表里
-            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
-            self.apikey_list = API_key_list
-
-            # 获取请求地址
-            self.base_url = 'https://api.cohere.com'  #需要重新设置，以免使用代理网站后，没有改回来
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = config_dict["cohere_proxy_port"]            #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-            # 获取使用的模型输入价格与输出价格
-            self.model_input_price = self.cohere_platform_config["model_price"][self.model_type]["input_price"]
-            self.model_output_price = self.cohere_platform_config["model_price"][self.model_type]["output_price"]
-
-
-            # 获取账号类型
-            account_type = self.cohere_account_type
-            # 获取模型选择 
-            model = self.cohere_model_type
-
-            # 获取相应的限制
-            self.max_tokens = self.cohere_platform_config[account_type][model]["max_tokens"]
-            self.TPM_limit = self.cohere_platform_config[account_type][model]["TPM"]
-            self.RPM_limit = self.cohere_platform_config[account_type][model]["RPM"]
-
-            # 获取当前key的数量，对限制进行倍数更改
-            key_count = len(self.apikey_list)
-            self.RPM_limit = self.RPM_limit * key_count
-            self.TPM_limit = self.TPM_limit * key_count
-
-
-        #根据翻译平台读取配置信息
-        elif translation_platform == '零一万物':
-            # 获取模型类型
-            if model_type:
-                self.model_type = model_type
-            else:
-                self.model_type =  config_dict["yi_model_type"]             
-
-            # 获取apikey列表
-            API_key_str = config_dict["yi_API_key_str"]            #获取apikey输入值
-            #去除空格，换行符，分割KEY字符串并存储进列表里
-            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
-            self.apikey_list = API_key_list
-
-            # 获取请求地址
-            self.base_url = 'https://api.lingyiwanwu.com/v1'  #需要重新设置，以免使用代理网站后，没有改回来
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = config_dict["yi_proxy_port"]            #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-            # 获取使用的模型输入价格与输出价格
-            self.model_input_price = self.yi_platform_config["model_price"][self.model_type]["input_price"]
-            self.model_output_price = self.yi_platform_config["model_price"][self.model_type]["output_price"]
-
-
-            # 设置速率限制
-            account_type = self.openai_account_type
-            model = self.openai_model_type
-            # 获取相应的限制
-            self.max_tokens = self.openai_platform_config[account_type][model]["max_tokens"]
-            self.TPM_limit = self.openai_platform_config[account_type][model]["TPM"]
-            self.RPM_limit = self.openai_platform_config[account_type][model]["RPM"]
-
-            # 获取当前key的数量，对限制进行倍数更改
-            key_count = len(self.apikey_list)
-            self.RPM_limit = self.RPM_limit * key_count
-            self.TPM_limit = self.TPM_limit * key_count
-
-
-        #根据翻译平台读取配置信息
-        elif translation_platform == '智谱':
-            # 获取模型类型
-            if model_type:
-                self.model_type = model_type
-            else:
-                self.model_type =  config_dict["zhipu_model_type"]             
-
-            # 获取apikey列表
-            API_key_str = config_dict["zhipu_API_key_str"]            #获取apikey输入值
-            #去除空格，换行符，分割KEY字符串并存储进列表里
-            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
-            self.apikey_list = API_key_list
-
-            # 获取请求地址
-            self.base_url = 'https://open.bigmodel.cn/api/paas/v4'  #需要重新设置，以免使用代理网站后，没有改回来
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = config_dict["zhipu_proxy_port"]            #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-            # 获取使用的模型输入价格与输出价格
-            self.model_input_price = self.zhipu_platform_config["model_price"][self.model_type]["input_price"]
-            self.model_output_price = self.zhipu_platform_config["model_price"][self.model_type]["output_price"]
-
-
-            # 获取账号类型
-            account_type = self.zhipu_account_type
-            # 获取模型
-            model = self.zhipu_model_type
-
-            # 获取相应的限制
-            self.max_tokens =  self.zhipu_platform_config[account_type][model]["max_tokens"]
-            self.TPM_limit =  self.zhipu_platform_config[account_type][model]["TPM"]
-            self.RPM_limit =  self.zhipu_platform_config[account_type][model]["RPM"]
-
-            # 获取当前key的数量，对限制进行倍数更改
-            key_count = len(self.apikey_list)
-            self.RPM_limit = self.RPM_limit * key_count
-            self.TPM_limit = self.TPM_limit * key_count
-
-
-        #根据翻译平台读取配置信息
-        elif translation_platform == 'Moonshot':
-            # 获取模型类型
-            if model_type:
-                self.model_type = model_type
-            else:
-                self.model_type =  config_dict["moonshot_model_type"]              
-
-            # 获取apikey列表
-            API_key_str = config_dict["moonshot_API_key_str"]            #获取apikey输入值
-            #去除空格，换行符，分割KEY字符串并存储进列表里
-            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
-            self.apikey_list = API_key_list
-
-            # 获取请求地址
-            self.base_url = 'https://api.moonshot.cn/v1'  #需要重新设置，以免使用代理网站后，没有改回来
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = config_dict["moonshot_proxy_port"]            #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-            # 获取使用的模型输入价格与输出价格
-            self.model_input_price = self.moonshot_platform_config["model_price"][self.model_type]["input_price"]
-            self.model_output_price = self.moonshot_platform_config["model_price"][self.model_type]["output_price"]
-
-
-            # 获取账号类型
-            account_type = self.moonshot_account_type
-            # 获取模型选择 
-            model = self.moonshot_model_type
-
-            # 获取相应的限制
-            self.max_tokens = self.moonshot_platform_config[account_type][model]["max_tokens"]
-            self.TPM_limit = self.moonshot_platform_config[account_type][model]["TPM"]
-            self.RPM_limit = self.moonshot_platform_config[account_type][model]["RPM"]
-
-            # 获取当前key的数量，对限制进行倍数更改
-            key_count = len(self.apikey_list)
-            self.RPM_limit = self.RPM_limit * key_count
-            self.TPM_limit = self.TPM_limit * key_count
-
-
-        #根据翻译平台读取配置信息
-        elif translation_platform == 'Deepseek':
-            # 获取模型类型
-            if model_type:
-                self.model_type = model_type
-            else:
-                self.model_type =  config_dict["deepseek_model_type"]              
-
-            # 获取apikey列表
-            API_key_str = config_dict["deepseek_API_key_str"]            #获取apikey输入值
-            #去除空格，换行符，分割KEY字符串并存储进列表里
-            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
-            self.apikey_list = API_key_list
-
-            # 获取请求地址
-            self.base_url = 'https://api.deepseek.com/v1'  #需要重新设置，以免使用代理网站后，没有改回来
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = config_dict["deepseek_proxy_port"]            #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-            # 获取使用的模型输入价格与输出价格
-            self.model_input_price = self.deepseek_platform_config["model_price"][self.model_type]["input_price"]
-            self.model_output_price = self.deepseek_platform_config["model_price"][self.model_type]["output_price"]
-
-            # 获取模型选择 
-            model = self.deepseek_model_type
-
-            # 获取相应的限制
-            self.max_tokens = self.deepseek_platform_config[model]["max_tokens"]
-            self.TPM_limit = self.deepseek_platform_config[model]["TPM"]
-            self.RPM_limit = self.deepseek_platform_config[model]["RPM"]
-
-            # 获取当前key的数量，对限制进行倍数更改
-            key_count = len(self.apikey_list)
-            self.RPM_limit = self.RPM_limit * key_count
-            self.TPM_limit = self.TPM_limit * key_count
-
-
-        #根据翻译平台读取配置信息
-        elif translation_platform == 'Dashscope':
-            # 获取模型类型
-            if model_type:
-                self.model_type = model_type
-            else:
-                self.model_type =  config_dict["dashscope_model_type"]              
-
-            # 获取apikey列表
-            API_key_str = config_dict["dashscope_API_key_str"]            #获取apikey输入值
-            #去除空格，换行符，分割KEY字符串并存储进列表里
-            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
-            self.apikey_list = API_key_list
-
-            # 获取请求地址
-            self.base_url = 'https://dashscope.aliyuncs.com/compatible-mode/v1'  #需要重新设置，以免使用代理网站后，没有改回来
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = config_dict["dashscope_proxy_port"]            #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-            # 获取使用的模型输入价格与输出价格
-            self.model_input_price = self.dashscope_platform_config["model_price"][self.model_type]["input_price"]
-            self.model_output_price = self.dashscope_platform_config["model_price"][self.model_type]["output_price"]
-
-            # 获取模型选择 
-            model = self.dashscope_model_type
-
-            # 获取相应的限制
-            self.max_tokens = self.dashscope_platform_config[model]["max_tokens"]
-            self.TPM_limit = self.dashscope_platform_config[model]["TPM"]
-            self.RPM_limit = self.dashscope_platform_config[model]["RPM"]
-
-            # 获取当前key的数量，对限制进行倍数更改
-            key_count = len(self.apikey_list)
-            self.RPM_limit = self.RPM_limit * key_count
-            self.TPM_limit = self.TPM_limit * key_count
-
-
-        #根据翻译平台读取配置信息
-        elif translation_platform == 'Volcengine':
-            # 获取推理接入点
-            if model_type:
-                self.model_type = model_type
-            else:
-                self.model_type =  config_dict["volcengine_access_point"]              
-
-            # 获取apikey列表
-            API_key_str = config_dict["volcengine_API_key_str"]            #获取apikey输入值
-            #去除空格，换行符，分割KEY字符串并存储进列表里
-            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
-            self.apikey_list = API_key_list
-
-            # 获取请求地址
-            self.base_url = 'https://ark.cn-beijing.volces.com/api/v3'  #需要重新设置，以免使用代理网站后，没有改回来
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = config_dict["volcengine_proxy_port"]            #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-            # 获取使用的模型输入价格与输出价格
-            self.model_input_price = config_dict["volcengine_input_pricing"]
-            self.model_output_price = config_dict["volcengine_output_pricing"]
-
-
-            # 获取相应的限制
-            self.max_tokens = self.volcengine_tokens_limit               #获取每次文本发送上限限制值
-            self.RPM_limit = self.volcengine_rpm_limit               #获取rpm限制值
-            self.TPM_limit = self.volcengine_tpm_limit           #获取tpm限制值
-
-            # 获取当前key的数量，对限制进行倍数更改
-            key_count = len(self.apikey_list)
-            self.RPM_limit = self.RPM_limit * key_count
-            self.TPM_limit = self.TPM_limit * key_count
-
-
-        elif translation_platform == 'SakuraLLM':
-            # 获取模型类型
-            if model_type:
-                self.model_type = model_type
-            else:
-                self.model_type =  config_dict["sakura_model_type"]     
-            # 构建假apikey
-            self.apikey_list = ["sakura"]
-
-            # 获取中转请求地址
-            relay_address = config_dict["sakura_address"]  
-
-            # 检查一下请求地址尾部是否为/v1，自动补全
-            if relay_address[-3:] != "/v1":
-                relay_address = relay_address + "/v1"
-            self.base_url = relay_address  
-
-            # 如果填入地址，则设置代理端口
-            Proxy_Address = config_dict["sakura_proxy_port"]              #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-            # 获取使用的模型输入价格与输出价格
-            self.model_input_price = self.sakurallm_platform_config["model_price"][self.model_type]["input_price"]
-            self.model_output_price = self.sakurallm_platform_config["model_price"][self.model_type]["output_price"]
-
-            # 获取模型
-            model = self.sakura_model_type
-
-            # 获取相应的限制
-            self.max_tokens = self.sakurallm_platform_config[model]["max_tokens"]
-            self.TPM_limit = self.sakurallm_platform_config[model]["TPM"]
-            self.RPM_limit = self.sakurallm_platform_config[model]["RPM"]
-
-
-
-        elif translation_platform == '代理平台A':
-
-            #获取代理平台
-            proxy_platform = config_dict["op_proxy_platform"]
-            # 获取中转请求地址
-            relay_address = config_dict["op_relay_address"]
-
-
-            if proxy_platform == 'OpenAI':
-                if model_type:
-                    self.model_type = model_type
-                else:
-                    self.model_type =  config_dict["op_model_type_openai"]       # 获取模型类型
-                self.translation_platform = 'OpenAI_proxy'    #重新设置翻译平台
-
-                # 如果开启自动补全开关
-                if config_dict["op_auto_complete"]:
-                    # 检查一下请求地址尾部是否为/v1，自动补全,如果是/v4，则是在调用智谱接口，如果是/v3，则是豆包
-                    if relay_address[-3:] != "/v1" and relay_address[-3:] != "/v4" and relay_address[-3:] != "/v3" :
-                        relay_address = relay_address + "/v1"
-
-            elif proxy_platform == 'Anthropic':
-                if model_type:
-                    self.model_type = model_type
-                else:
-                    self.model_type =  config_dict["op_model_type_anthropic"]        # 获取模型类型
-                self.translation_platform = 'Anthropic_proxy'
-
-
-            # 设定请求地址
-            self.base_url = relay_address  
-
-            # 获取apikey列表
-            API_key_str = config_dict["op_API_key_str"]            #获取apikey输入值
-            #去除空格，换行符，分割KEY字符串并存储进列表里
-            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
-            self.apikey_list = API_key_list
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = config_dict["op_proxy_port"]            #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-            # 获取使用的模型输入价格与输出价格
-            self.model_input_price = config_dict["op_input_pricing"]
-            self.model_output_price = config_dict["op_output_pricing"]
-
-
-            self.max_tokens = self.op_tokens_limit               #获取每次文本发送上限限制值
-            self.RPM_limit = self.op_rpm_limit               #获取rpm限制值
-            self.TPM_limit = self.op_tpm_limit             #获取tpm限制值
-
-
-        # 额外代理平台
+    def configure_translation_platform(self, target_platform = None, model = None):
+        # 获取模型类型
+        if model:
+            self.model = model
         else:
-            # 获取平台的索引名
-            for key, value in self.additional_platform_dict.items():
-                if value == translation_platform:
-                    object_Name = key
+            self.model = self.platforms.get(target_platform).get("model")
+            
+        # 获取接口密钥
+        api_key = self.platforms.get(target_platform).get("api_key")
+        if api_key == "":
+            self.apikey_list = ["no_key_required"]
+        else:
+            self.apikey_list = api_key.replace("\n", "").replace(" ", "").split(",")
 
-            #获取代理平台
-            proxy_platform = config_dict[object_Name]["op_proxy_platform"]
-            # 获取中转请求地址
-            relay_address = config_dict[object_Name]["op_relay_address"] 
+        # 获取接口地址并补齐，v3 结尾是火山，v4 结尾是智谱
+        api_url = self.platforms.get(target_platform).get("api_url")
+        auto_complete = self.platforms.get(target_platform).get("auto_complete")
+        if target_platform == "sakura" and not api_url.endswith("/v1"):
+            self.base_url = api_url + "/v1"
+        elif auto_complete == True and not api_url.endswith("/v1") and not api_url.endswith("/v3") and not api_url.endswith("/v4"):
+            self.base_url = api_url + "/v1"
+        else:
+            self.base_url = api_url
 
+        # 获取网络代理
+        proxy = self.platforms.get(target_platform).get("proxy") # 获取代理端口
+        if proxy != "":
+            os.environ["http_proxy"] = proxy
+            os.environ["https_proxy"] = proxy
+            print(f"[[green]INFO[/]] 系统代理端口是：{proxy}")
 
-            if proxy_platform == 'OpenAI':
-                if model_type:
-                    self.model_type = model_type
-                else:
-                    self.model_type =  config_dict[object_Name]["op_model_type_openai"]       # 获取模型类型
-                self.translation_platform = 'OpenAI_proxy'    #重新设置翻译平台
-                
-                # 如果开启自动补全开关
-                if config_dict[object_Name]["op_auto_complete"]:
-                    #检查一下请求地址尾部是否为/v1，自动补全,如果是/v4，则是在调用智谱接口，如果是/v3，则是豆包
-                    if relay_address[-3:] != "/v1" and relay_address[-3:] != "/v4" and relay_address[-3:] != "/v3" :
-                        relay_address = relay_address + "/v1"
+        # 获取模型价格（弃用，直接置零）
+        self.model_input_price = 0
+        self.model_output_price = 0
 
-            elif proxy_platform == 'Anthropic':
-                if model_type:
-                    self.model_type = model_type
-                else:
-                    self.model_type =  config_dict[object_Name]["op_model_type_anthropic"]        # 获取模型类型
-                self.translation_platform = 'Anthropic_proxy'
-
-
-            # 设定请求地址
-            self.base_url = relay_address  
-
-            # 获取apikey列表
-            API_key_str = config_dict[object_Name]["op_API_key_str"]            #获取apikey输入值
-            #去除空格，换行符，分割KEY字符串并存储进列表里
-            API_key_list = API_key_str.replace('\n','').replace(' ','').split(',')
-            self.apikey_list = API_key_list
-
-            #如果填入地址，则设置代理端口
-            Proxy_Address = config_dict[object_Name]["op_proxy_port"]            #获取代理端口
-            if Proxy_Address :
-                print("[INFO] 系统代理端口是:",Proxy_Address,'\n') 
-                os.environ["http_proxy"]=Proxy_Address
-                os.environ["https_proxy"]=Proxy_Address
-
-            # 获取使用的模型输入价格与输出价格
-            self.model_input_price = self.additional_platform_information[object_Name]["op_input_pricing"]
-            self.model_output_price = self.additional_platform_information[object_Name]["op_output_pricing"]
-
-            # 设定一下速率设置
-            self.max_tokens = self.additional_platform_information[object_Name]["op_tokens_limit"]    
-            self.RPM_limit = self.additional_platform_information[object_Name]["op_rpm_limit"]                
-            self.TPM_limit = self.additional_platform_information[object_Name]["op_tpm_limit"]            
-
-
-
+        # 获取请求限制
+        a = self.platforms.get(target_platform).get("account")
+        m = self.platforms.get(target_platform).get("model")
+        self.max_tokens = self.platforms.get(target_platform).get("account_datas").get(a, {}).get(m, {}).get("max_tokens", 4096)
+        self.RPM_limit = self.platforms.get(target_platform).get("account_datas").get(a, {}).get(m, {}).get("RPM", 4096) * len(self.apikey_list)
+        self.TPM_limit = self.platforms.get(target_platform).get("account_datas").get(a, {}).get(m, {}).get("TPM", 4096000) * len(self.apikey_list)
 
     # 计算合适的线程数
-    def  auto_thread_count(self,translation_platform,SakuraLLM_address):
+    def  auto_thread_count(self,target_platform,SakuraLLM_address):
 
         thread_counts = multiprocessing.cpu_count() 
 
-        if translation_platform == "SakuraLLM":
+        if target_platform == "sakura":
 
-            print(f"[INFO]  Accessing port to obtain the number of slots !")
+            print(f"[[green]INFO][/]] Accessing port to obtain the number of slots !")
             # 根据slots数量计算线程数
             num = self.get_llama_cpp_slots_num(SakuraLLM_address)
             if num != -1:
                 thread_counts =  num 
-                print(f"[INFO]  Access successful, the number of slots is {thread_counts}")
+                print(f"[[green]INFO][/]] Access successful, the number of slots is {thread_counts}")
             else:
-                print(f"[INFO]  Access failed, please check the backend status")
+                print(f"[[green]INFO][/]] Access failed, please check the backend status")
 
         return thread_counts
 
@@ -975,7 +196,7 @@ class Configurator():
 
         #如果提示词工程界面的自定义提示词开关打开，则使用自定义提示词
         if self.system_prompt_switch:
-            print("[INFO] 已开启自定义系统提示词功能，设置为用户设定的提示词")
+            print("[[green]INFO[/]] 已开启自定义系统提示词功能，设置为用户设定的提示词")
             the_prompt = self.system_prompt_content
             return the_prompt
         else:
@@ -1937,7 +1158,7 @@ Third: Begin translating line by line from the original text, only translating {
     def get_openai_parameters(self):
         #如果启用实时参数设置
         if self.OpenAI_parameter_adjustment :
-            print("[INFO] 已开启OpnAI调教功能，设置为用户设定的参数")
+            print("[[green]INFO[/]] 已开启OpnAI调教功能，设置为用户设定的参数")
             #获取界面配置信息
             temperature =  round(self.OpenAI_Temperature * 0.1 , 1 )
             top_p = round(self.OpenAI_top_p * 0.1 , 1 )
@@ -1956,7 +1177,7 @@ Third: Begin translating line by line from the original text, only translating {
     def get_anthropic_parameters(self):
         #如果启用实时参数设置
         if  self.Anthropic_parameter_adjustment :
-            print("[INFO] 已开启anthropic调教功能，设置为用户设定的参数")
+            print("[[green]INFO[/]] 已开启anthropic调教功能，设置为用户设定的参数")
             #获取界面配置信息
             temperature = round(self.Anthropic_Temperature * 0.1 , 1 )
         else:
@@ -1969,7 +1190,7 @@ Third: Begin translating line by line from the original text, only translating {
     def get_google_parameters(self):
         #如果启用实时参数设置
         if self.Google_parameter_adjustment:
-            print("[INFO] 已开启google调教功能，设置为用户设定的参数")
+            print("[[green]INFO[/]] 已开启google调教功能，设置为用户设定的参数")
             #获取界面配置信息
             temperature = round(self.Google_Temperature * 0.1 , 1 )
         else:
@@ -1981,7 +1202,7 @@ Third: Begin translating line by line from the original text, only translating {
     def get_cohere_parameters(self):
         #如果启用实时参数设置
         if self.Cohere_parameter_adjustment:
-            print("[INFO] 已开启cohere调教功能，设置为用户设定的参数")
+            print("[[green]INFO[/]] 已开启cohere调教功能，设置为用户设定的参数")
             #获取界面配置信息
             temperature = round(self.Cohere_Temperature * 0.1 , 1 )
         else:
@@ -1994,7 +1215,7 @@ Third: Begin translating line by line from the original text, only translating {
     def get_sakura_parameters(self):
         #如果启用实时参数设置
         if self.Sakura_parameter_adjustment :
-            print("[INFO] 已开启Sakura调教功能，设置为用户设定的参数")
+            print("[[green]INFO[/]] 已开启Sakura调教功能，设置为用户设定的参数")
             #获取界面配置信息
             temperature = round(self.Sakura_Temperature * 0.1 , 1 )
             top_p = round(self.Sakura_top_p * 0.1 , 1 )

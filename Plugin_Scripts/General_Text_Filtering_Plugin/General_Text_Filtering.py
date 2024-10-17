@@ -14,7 +14,7 @@ class General_Text_Filtering(PluginBase):
         self.add_event('text_filter', 4)  # 添加感兴趣的事件和优先级
 
     def load(self):
-        print(f"[INFO]  {self.name} loaded!")
+        print(f"[INFO] {self.name} loaded!")
 
 
     def on_event(self, event_name, configuration_information, event_data):
@@ -24,7 +24,7 @@ class General_Text_Filtering(PluginBase):
 
             self.filter_text(event_data)
 
-            print(f"[INFO]  Text has been routinely filtered")
+            print(f"[INFO] Text has been routinely filtered")
 
 
 

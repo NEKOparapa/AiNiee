@@ -718,24 +718,24 @@ class File_Reader():
 
 
     # 根据文件类型读取文件
-    def read_files (self,translation_project,Input_Folder):
+    def read_files (self,translation_project,label_input_path):
 
         if translation_project == "Mtool导出文件":
-            cache_list = File_Reader.read_mtool_files(self,folder_path = Input_Folder)
+            cache_list = File_Reader.read_mtool_files(self,folder_path = label_input_path)
         elif translation_project == "T++导出文件":
-            cache_list = File_Reader.read_xlsx_files (self,folder_path = Input_Folder)
+            cache_list = File_Reader.read_xlsx_files (self,folder_path = label_input_path)
         elif translation_project == "VNText导出文件":
-            cache_list = File_Reader.read_vnt_files(self,folder_path = Input_Folder)
+            cache_list = File_Reader.read_vnt_files(self,folder_path = label_input_path)
         elif translation_project == "Srt字幕文件":
-            cache_list = File_Reader.read_srt_files(self,folder_path = Input_Folder)
+            cache_list = File_Reader.read_srt_files(self,folder_path = label_input_path)
         elif translation_project == "Lrc音声文件":
-            cache_list = File_Reader.read_lrc_files(self,folder_path = Input_Folder)
+            cache_list = File_Reader.read_lrc_files(self,folder_path = label_input_path)
         elif translation_project == "Txt小说文件":
-            cache_list = File_Reader.read_txt_files(self,folder_path = Input_Folder)
+            cache_list = File_Reader.read_txt_files(self,folder_path = label_input_path)
         elif translation_project == "Epub小说文件":
-            cache_list = File_Reader.read_epub_files(self,folder_path = Input_Folder)
+            cache_list = File_Reader.read_epub_files(self,folder_path = label_input_path)
         elif translation_project == "Ainiee缓存文件":
-            cache_list = File_Reader.read_cache_files(self,folder_path = Input_Folder)
+            cache_list = File_Reader.read_cache_files(self,folder_path = label_input_path)
         if translation_project == "ParaTranz导出文件":
-            cache_list = File_Reader.read_paratranz_files(self,folder_path = Input_Folder)
+            cache_list = File_Reader.read_paratranz_files(self,folder_path = label_input_path)
         return cache_list

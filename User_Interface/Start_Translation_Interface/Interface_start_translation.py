@@ -548,38 +548,38 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
     # 缓存文件输出
     def output_cachedata(self):
 
-        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Output_Folder:
-            print('[INFO]  已选择输出文件夹:' ,Output_Folder)
+        label_output_path = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if label_output_path:
+            print('[INFO] 已选择输出文件夹:' ,label_output_path)
 
             if len(self.configurator.cache_list)>= 3:
                 #创建子线程
-                thread = self.background_executor("输出缓存文件","",Output_Folder,"","","","","")
+                thread = self.background_executor("输出缓存文件","",label_output_path,"","","","","")
                 thread.start()
             else:
-                print('[INFO]  未存在缓存文件')
+                print('[INFO] 未存在缓存文件')
                 return  # 直接返回，不执行后续操作
         else :
-            print('[INFO]  未选择文件夹')
+            print('[INFO] 未选择文件夹')
             return  # 直接返回，不执行后续操作
 
 
     # 缓存文件输出
     def output_data(self):
 
-        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Output_Folder:
-            print('[INFO]  已选择输出文件夹:' ,Output_Folder)
+        label_output_path = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if label_output_path:
+            print('[INFO] 已选择输出文件夹:' ,label_output_path)
 
             if len(self.configurator.cache_list)>= 3:
                 #创建子线程
-                thread = self.background_executor("输出已翻译文件",self.configurator.Input_Folder,Output_Folder,"","","","","")
+                thread = self.background_executor("输出已翻译文件",self.configurator.label_input_path,label_output_path,"","","","","")
                 thread.start()
 
             else:
-                print('[INFO]  未存在缓存文件')
+                print('[INFO] 未存在缓存文件')
                 return  # 直接返回，不执行后续操作
         else :
-            print('[INFO]  未选择文件夹')
+            print('[INFO] 未选择文件夹')
             return  # 直接返回，不执行后续操作
 

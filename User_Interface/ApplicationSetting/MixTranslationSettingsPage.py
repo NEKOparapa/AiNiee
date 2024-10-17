@@ -3,6 +3,7 @@ import os
 import json
 
 from rich import print
+from PyQt5.Qt import Qt
 from PyQt5.Qt import QEvent
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QWidget
@@ -10,7 +11,7 @@ from PyQt5.QtWidgets import QScrollArea
 from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import PillPushButton
-from qfluentwidgets import SmoothScrollArea
+from qfluentwidgets import SingleDirectionScrollArea
 
 from Widget.SpinCard import SpinCard
 from Widget.GroupCard import GroupCard
@@ -21,14 +22,14 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 class MixTranslationSettingsPage(QFrame):
 
     DEFAULT = {
-        "translation_mixing_toggle": False,
-        "mixed_translation_settings": {
-            "translation_platform_1": "OpenAI",
-            "translation_platform_2": "OpenAI",
+        "mix_translation_enable": False,
+        "mix_translation_settings": {
+            "translation_platform_1": "openai",
+            "translation_platform_2": "openai",
             "customModel_siwtch_2": False,
             "model_type_2": "",
             "split_switch_2": False,
-            "translation_platform_3": "OpenAI",
+            "translation_platform_3": "openai",
             "customModel_siwtch_3": False,
             "model_type_3": "",
             "split_switch_3": False
@@ -53,13 +54,14 @@ class MixTranslationSettingsPage(QFrame):
         self.container.setContentsMargins(0, 0, 0, 0)
 
         # 设置滚动容器
-        self.scroller = SmoothScrollArea(self)
+        self.scroller = SingleDirectionScrollArea(self, orient = Qt.Vertical)
         self.scroller.setWidgetResizable(True)
-        self.scroller.setStyleSheet("QScrollArea { border: none; }")
+        self.scroller.setStyleSheet("QScrollArea { border: none; background: transparent; }")
         self.container.addWidget(self.scroller)
 
         # 设置容器
         self.vbox_parent = QWidget(self)
+        self.vbox_parent.setStyleSheet("QWidget { background: transparent; }")
         self.vbox = QVBoxLayout(self.vbox_parent)
         self.vbox.setSpacing(8)
         self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
@@ -115,35 +117,35 @@ class MixTranslationSettingsPage(QFrame):
 
         return old
 
-    # 从 config 中获取翻译平台列表
+    # 获取接口列表
     def get_items(self, config) -> list:
-        items = [
-            "Cohere",
-            "Google",
-            "OpenAI",
-            "Moonshot",
-            "Deepseek",
-            "Anthropic",
-            "Dashscope",
-            "SakuraLLM",
-            "Volcengine",
-            "智谱",
-            "零一万物",
-            "代理平台A",
-        ]
+        return [v.get("name") for k, v in config.get("platforms").items()]
 
-        for k, v in config.get("additional_platform_dict", {}).items():
-            items.append(v)
+    # 通过接口名字获取标签
+    def find_tag_by_name(self, config, name: str) -> str:
+        results = [v.get("tag") for k, v in config.get("platforms").items() if v.get("name") == name]
 
-        return items
+        if len(results) > 0:
+            return results[0]
+        else:
+            return ""
+
+    # 通过接口标签获取名字
+    def find_name_by_tag(self, config, tag: str) -> str:
+        results = [v.get("name") for k, v in config.get("platforms").items() if v.get("tag") == tag]
+
+        if len(results) > 0:
+            return results[0]
+        else:
+            return ""
 
     # 混合翻译模式
     def add_widget_01(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("translation_mixing_toggle"))
+            widget.set_checked(config.get("mix_translation_enable"))
             
         def widget_callback(widget, checked: bool):
-            config["translation_mixing_toggle"] = checked
+            config["mix_translation_enable"] = checked
             self.save_config(config)
 
         parent.addWidget(
@@ -164,18 +166,20 @@ class MixTranslationSettingsPage(QFrame):
                 config = self.load_config()
 
                 widget.set_items(self.get_items(config))
-                widget.set_current_index(max(0, widget.find_text(config.get("mixed_translation_settings").get("translation_platform_1"))))
+                widget.set_current_index(max(0, widget.find_text(self.find_name_by_tag(config, config.get("mix_translation_settings").get("translation_platform_1")))))
 
             def widget_init(widget):
                 # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
                 self.on_show_event.append(
                     lambda _, event: update_widget(widget)
                 )
-                
+
             def widget_callback(widget, index: int):
-                config["mixed_translation_settings"]["translation_platform_1"] = widget.get_current_text()
-                self.save_config(config)
+                config = self.load_config()
                 
+                config["mix_translation_settings"]["translation_platform_1"] = self.find_tag_by_name(config, widget.get_current_text())
+                self.save_config(config)
+
             widget.addWidget(
                 ComboBoxCard(
                     "模型类型", 
@@ -201,19 +205,23 @@ class MixTranslationSettingsPage(QFrame):
     def add_widget_03(self, parent, config):
 
         def add_translation_platform_2_card(parent):
+            
             def update_widget(widget):
                 config = self.load_config()
+
                 widget.set_items(self.get_items(config))
-                widget.set_current_index(max(0, widget.find_text(config.get("mixed_translation_settings").get("translation_platform_2"))))
+                widget.set_current_index(max(0, widget.find_text(self.find_name_by_tag(config, config.get("mix_translation_settings").get("translation_platform_2")))))
 
             def widget_init(widget):
                 # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
                 self.on_show_event.append(
                     lambda _, event: update_widget(widget)
                 )
-                
+
             def widget_callback(widget, index: int):
-                config["mixed_translation_settings"]["translation_platform_2"] = widget.get_current_text()
+                config = self.load_config()
+                
+                config["mix_translation_settings"]["translation_platform_2"] = self.find_tag_by_name(config, widget.get_current_text())
                 self.save_config(config)
                 
             parent.addWidget(
@@ -228,22 +236,22 @@ class MixTranslationSettingsPage(QFrame):
 
         def add_custom_model_siwtch_2_card(parent):
             def widget_init(widget):
-                model_type_2 = config.get("mixed_translation_settings").get("model_type_2")
+                model_type_2 = config.get("mix_translation_settings").get("model_type_2")
 
                 if model_type_2 != "":
-                    widget.setText(model_type_2)
+                    widget.set_text(model_type_2)
 
-                widget.setPlaceholderText("请输入模型名称 ...")
+                widget.set_placeholder_text("请输入模型名称 ...")
 
             def widget_callback(widget, text: str):
                 text = text.strip()
 
                 if text != "":
-                    config["mixed_translation_settings"]["model_type_2"] = text
-                    config["mixed_translation_settings"]["customModel_siwtch_2"] = True
+                    config["mix_translation_settings"]["model_type_2"] = text
+                    config["mix_translation_settings"]["customModel_siwtch_2"] = True
                 else:
-                    config["mixed_translation_settings"]["model_type_2"] = text
-                    config["mixed_translation_settings"]["customModel_siwtch_2"] = False
+                    config["mix_translation_settings"]["model_type_2"] = text
+                    config["mix_translation_settings"]["customModel_siwtch_2"] = False
 
                 self.save_config(config)
 
@@ -258,10 +266,10 @@ class MixTranslationSettingsPage(QFrame):
             
         def add_split_switch_2_card(parent):
             def widget_init(widget):
-                widget.setChecked(config.get("mixed_translation_settings").get("split_switch_2"))
+                widget.set_checked(config.get("mix_translation_settings").get("split_switch_2"))
                 
             def widget_callback(widget, checked: bool):
-                config["mixed_translation_settings"]["split_switch_2"] = checked
+                config["mix_translation_settings"]["split_switch_2"] = checked
                 self.save_config(config)
 
             parent.addWidget(
@@ -290,19 +298,23 @@ class MixTranslationSettingsPage(QFrame):
     def add_widget_04(self, parent, config):
 
         def add_translation_platform_3_card(parent):
+            
             def update_widget(widget):
                 config = self.load_config()
+
                 widget.set_items(self.get_items(config))
-                widget.set_current_index(max(0, widget.find_text(config.get("mixed_translation_settings").get("translation_platform_3"))))
+                widget.set_current_index(max(0, widget.find_text(self.find_name_by_tag(config, config.get("mix_translation_settings").get("translation_platform_3")))))
 
             def widget_init(widget):
                 # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
                 self.on_show_event.append(
                     lambda _, event: update_widget(widget)
                 )
-                
+
             def widget_callback(widget, index: int):
-                config["mixed_translation_settings"]["translation_platform_3"] = widget.get_current_text()
+                config = self.load_config()
+                
+                config["mix_translation_settings"]["translation_platform_3"] = self.find_tag_by_name(config, widget.get_current_text())
                 self.save_config(config)
                 
             parent.addWidget(
@@ -317,22 +329,22 @@ class MixTranslationSettingsPage(QFrame):
 
         def add_custom_model_siwtch_3_card(parent):
             def widget_init(widget):
-                model_type_3 = config.get("mixed_translation_settings").get("model_type_3")
+                model_type_3 = config.get("mix_translation_settings").get("model_type_3")
 
                 if model_type_3 != "":
-                    widget.setText(model_type_3)
+                    widget.set_text(model_type_3)
 
-                widget.setPlaceholderText("请输入模型名称 ...")
+                widget.set_placeholder_text("请输入模型名称 ...")
 
             def widget_callback(widget, text: str):
                 text = text.strip()
 
                 if text != "":
-                    config["mixed_translation_settings"]["model_type_3"] = text
-                    config["mixed_translation_settings"]["customModel_siwtch_3"] = True
+                    config["mix_translation_settings"]["model_type_3"] = text
+                    config["mix_translation_settings"]["customModel_siwtch_3"] = True
                 else:
-                    config["mixed_translation_settings"]["model_type_3"] = text
-                    config["mixed_translation_settings"]["customModel_siwtch_3"] = False
+                    config["mix_translation_settings"]["model_type_3"] = text
+                    config["mix_translation_settings"]["customModel_siwtch_3"] = False
 
                 self.save_config(config)
 
@@ -347,10 +359,10 @@ class MixTranslationSettingsPage(QFrame):
             
         def add_split_switch_3_card(parent):
             def widget_init(widget):
-                widget.setChecked(config.get("mixed_translation_settings").get("split_switch_3"))
+                widget.set_checked(config.get("mix_translation_settings").get("split_switch_3"))
                 
             def widget_callback(widget, checked: bool):
-                config["mixed_translation_settings"]["split_switch_3"] = checked
+                config["mix_translation_settings"]["split_switch_3"] = checked
                 self.save_config(config)
 
             parent.addWidget(

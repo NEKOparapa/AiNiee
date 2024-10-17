@@ -99,7 +99,7 @@ class SystemPromptPage(QFrame):
     # 头部
     def add_widget_header(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("system_prompt_switch"))
+            widget.set_checked(config.get("system_prompt_switch"))
             
         def widget_callback(widget, checked: bool):
             config["system_prompt_switch"] = checked

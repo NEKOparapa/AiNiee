@@ -17,7 +17,7 @@ from Widget.PushButtonCard import PushButtonCard
 class ProjectPage(QFrame):
 
     DEFAULT = {
-        "translation_platform": "SakuraLLM",
+        "target_platform": "sakura",
         "translation_project": "Mtool导出文件",
         "source_language": "日语",
         "target_language": "简中",
@@ -92,42 +92,45 @@ class ProjectPage(QFrame):
 
         return old
 
+    # 获取接口列表
+    def get_items(self, config) -> list:
+        return [v.get("name") for k, v in config.get("platforms").items()]
+
+    # 通过接口名字获取标签
+    def find_tag_by_name(self, config, name: str) -> str:
+        results = [v.get("tag") for k, v in config.get("platforms").items() if v.get("name") == name]
+
+        if len(results) > 0:
+            return results[0]
+        else:
+            return ""
+
+    # 通过接口标签获取名字
+    def find_name_by_tag(self, config, tag: str) -> str:
+        results = [v.get("name") for k, v in config.get("platforms").items() if v.get("tag") == tag]
+
+        if len(results) > 0:
+            return results[0]
+        else:
+            return ""
+
     # 模型类型
     def add_widget_01(self, parent, config):
-
-        def get_items(config) -> list:
-            items = [
-                "Cohere",
-                "Google",
-                "OpenAI",
-                "Moonshot",
-                "Deepseek",
-                "Anthropic",
-                "Dashscope",
-                "SakuraLLM",
-                "Volcengine",
-                "智谱",
-                "零一万物",
-                "代理平台A",
-            ]
-
-            for k, v in config.get("additional_platform_dict", {}).items():
-                items.append(v)
-
-            return items
-
+        
         def update_widget(widget):
             config = self.load_config()
 
-            widget.set_items(get_items(config))
-            widget.set_current_index(max(0, widget.find_text(config.get("translation_platform"))))
+            widget.set_items(self.get_items(config))
+            widget.set_current_index(max(0, widget.find_text(self.find_name_by_tag(config, config.get("target_platform")))))
 
         def widget_init(widget):
             # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
             self.on_show_event = lambda _, event: update_widget(widget)
             
         def widget_callback(widget, index: int):
-            config["translation_platform"] = widget.get_current_text()
+            config = self.load_config()
+            
+            config["target_platform"] = self.find_tag_by_name(config, widget.get_current_text())
             self.save_config(config)
 
         parent.addWidget(

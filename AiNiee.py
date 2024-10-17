@@ -46,14 +46,18 @@ import sys
 import multiprocessing
 import concurrent.futures
 
-from openai import OpenAI #需要安装库pip install openai
-import google.generativeai as genai #需要安装库pip install -U google-generativeai
-import anthropic #需要安装库pip install anthropic
-import cohere  #需要安装库pip install cohere
+import cohere  # 需要安装库pip install cohere
+import anthropic # 需要安装库pip install anthropic
+import google.generativeai as genai # 需要安装库pip install -U google-generativeai
+
+from rich import print
+from openai import OpenAI # 需要安装库pip install openai
 
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import  QObject,  Qt, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QTableWidgetItem
+from qfluentwidgets import Theme
+from qfluentwidgets import setTheme
 from qfluentwidgets import InfoBar, InfoBarPosition, StateToolTip
 
 import jaconv # 日文文本转换工具
@@ -65,10 +69,8 @@ from Module_Folders.Response_Parser.Response import Response_Parser
 from Module_Folders.Request_Tester.Request import Request_Tester
 from Module_Folders.Configurator.Config import Configurator
 from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
-from User_Interface.MainWindows import window  # 导入界面
-from User_Interface.MainWindows import Widget_New_proxy
 from Plugin_Scripts.Plugin_Manager import Plugin_Manager
-
+from User_Interface.AppFluentWindow import AppFluentWindow
 
 # 翻译器
 class Translator():
@@ -82,13 +84,13 @@ class Translator():
 
         user_interface_prompter.read_write_config("write",configurator.resource_dir) # 将界面信息写入配置文件中
 
-        configurator.Read_Configuration_File() # 读取配置文件
+        configurator.load_config_file() # 读取配置文件
 
         # 根据混合翻译设置更换翻译平台
-        if configurator.mixed_translation_toggle:
-            configurator.translation_platform = configurator.mixed_translation_settings["translation_platform_1"]
+        if configurator.mix_translation_enable:
+            configurator.target_platform = configurator.mix_translation_settings["translation_platform_1"]
 
-        configurator.configure_translation_platform(configurator.translation_platform,None)  # 配置翻译平台信息
+        configurator.configure_translation_platform(configurator.target_platform,None)  # 配置翻译平台信息
         request_limiter.set_limit(configurator.max_tokens,configurator.TPM_limit,configurator.RPM_limit) # 配置请求限制器，依赖前面的配置信息，必需在最后面初始化
 
 
@@ -99,11 +101,11 @@ class Translator():
         if configurator.Running_status == 6:
             # 读取文件
             try:
-                configurator.cache_list = File_Reader.read_files(self,configurator.translation_project, configurator.Input_Folder)
+                configurator.cache_list = File_Reader.read_files(self,configurator.translation_project, configurator.label_input_path)
 
             except Exception as e:
                 print(e)
-                print("\033[1;31mError:\033[0m 读取原文文件失败，请检查项目类型是否设置正确，输入文件夹是否混杂其他非必要文件！")
+                print("[[red]Error[/]] 读取原文文件失败，请检查项目类型是否设置正确，输入文件夹是否混杂其他非必要文件！")
                 return
 
 
@@ -145,21 +147,21 @@ class Translator():
 
         # 输出开始翻译的日志
         print("\n")
-        print("[INFO]  翻译项目为",configurator.translation_project, '\n')
-        print("[INFO]  翻译平台为",configurator.translation_platform, '\n')
-        print("[INFO]  请求地址为",configurator.base_url, '\n')
-        print("[INFO]  翻译模型为",configurator.model_type, '\n')
+        print("[[green]INFO[/]] 翻译项目为",configurator.translation_project, '\n')
+        print("[[green]INFO[/]] 翻译平台为",configurator.target_platform, '\n')
+        print("[[green]INFO[/]] 请求地址为",configurator.base_url, '\n')
+        print("[[green]INFO[/]] 翻译模型为",configurator.model, '\n')
 
-        if configurator.translation_platform != "SakuraLLM":
-            print("[INFO]  当前设定的系统提示词为:\n", configurator.get_system_prompt(), '\n')
+        if configurator.target_platform != "sakura":
+            print("[[green]INFO[/]] 当前设定的系统提示词为:\n", configurator.get_system_prompt(), '\n')
 
-        print("[INFO]  游戏文本从",configurator.source_language, '翻译到', configurator.target_language,'\n')
-        print("[INFO]  文本总行数为：",total_text_line_count,"  需要翻译的行数为：",untranslated_text_line_count)
+        print("[[green]INFO[/]] 游戏文本从",configurator.source_language, '翻译到', configurator.target_language,'\n')
+        print("[[green]INFO[/]] 文本总行数为：",total_text_line_count,"  需要翻译的行数为：",untranslated_text_line_count)
         if configurator.tokens_limit_switch:
-            print("[INFO]  每次发送tokens为：",configurator.tokens_limit,"  计划的翻译任务总数是：", tasks_Num,'\n') 
+            print("[[green]INFO[/]] 每次发送tokens为：",configurator.tokens_limit,"  计划的翻译任务总数是：", tasks_Num,'\n') 
         else:    
-            print("[INFO]  每次发送行数为：",configurator.lines_limit,"  计划的翻译任务总数是：", tasks_Num,'\n') 
-        print("\033[1;32m[INFO] \033[0m 五秒后开始进行翻译，请注意保持网络通畅，余额充足。", '\n')
+            print("[[green]INFO[/]] 每次发送行数为：",configurator.lines_limit,"  计划的翻译任务总数是：", tasks_Num,'\n') 
+        print("[[green]INFO[/]] 五秒后开始进行翻译，请注意保持网络通畅，余额充足。", '\n')
         time.sleep(5)  
 
 
@@ -192,43 +194,43 @@ class Translator():
         retry_translation_count = 1
 
         while untranslated_text_line_count != 0 :
-            print("\033[1;33mWarning:\033[0m 仍然有部分未翻译，将进行拆分后重新翻译，-----------------------------------")
-            print("[INFO] 当前拆分翻译轮次：",retry_translation_count ," 到达最大轮次：",configurator.round_limit," 时，将停止翻译")
+            print("[[orange_red1]Warning[/]] 仍然有部分未翻译，将进行拆分后重新翻译，-----------------------------------")
+            print("[[green]INFO[/]] 当前拆分翻译轮次：",retry_translation_count ," 到达最大轮次：",configurator.round_limit," 时，将停止翻译")
             user_interface_prompter.signal.emit("运行状态改变",f"正在拆分翻译",0)
 
             # 根据混合翻译设置更换翻译平台,并重新初始化部分配置信息
-            if configurator.mixed_translation_toggle:
+            if configurator.mix_translation_enable:
 
-                configurator.Read_Configuration_File() # 重新获取配置信息
+                configurator.load_config_file() # 重新获取配置信息
 
                 # 更换翻译平台
                 if retry_translation_count == 1:
-                    configurator.translation_platform = configurator.mixed_translation_settings["translation_platform_2"]
-                    print("[INFO]  已开启混合翻译功能，正在进行次轮翻译，翻译平台更换为：",configurator.translation_platform, '\n')
+                    configurator.target_platform = configurator.mix_translation_settings["translation_platform_2"]
+                    print("[[green]INFO[/]] 已开启混合翻译功能，正在进行次轮翻译，翻译平台更换为：",configurator.target_platform, '\n')
                 elif retry_translation_count >= 2:
-                    configurator.translation_platform = configurator.mixed_translation_settings["translation_platform_3"]
-                    print("[INFO]  已开启混合翻译功能，正在进行末轮翻译，翻译平台更换为：",configurator.translation_platform, '\n')
+                    configurator.target_platform = configurator.mix_translation_settings["translation_platform_3"]
+                    print("[[green]INFO[/]] 已开启混合翻译功能，正在进行末轮翻译，翻译平台更换为：",configurator.target_platform, '\n')
 
                 # 更换模型选择
-                model_type = None
-                if (retry_translation_count == 1) and (configurator.mixed_translation_settings["customModel_siwtch_2"]):
-                    model_type = configurator.mixed_translation_settings["model_type_2"]
-                    print("[INFO]  模型更换为：",model_type, '\n')
+                model = None
+                if (retry_translation_count == 1) and (configurator.mix_translation_settings["customModel_siwtch_2"]):
+                    model = configurator.mix_translation_settings["model_type_2"]
+                    print("[[green]INFO[/]] 模型更换为：",model, '\n')
 
-                elif (retry_translation_count >= 2) and (configurator.mixed_translation_settings["customModel_siwtch_3"]):
-                    model_type = configurator.mixed_translation_settings["model_type_3"]
-                    print("[INFO]  模型更换为：",model_type, '\n')
+                elif (retry_translation_count >= 2) and (configurator.mix_translation_settings["customModel_siwtch_3"]):
+                    model = configurator.mix_translation_settings["model_type_3"]
+                    print("[[green]INFO[/]] 模型更换为：",model, '\n')
 
-                configurator.configure_translation_platform(configurator.translation_platform,model_type)  # 重新配置翻译平台信息
+                configurator.configure_translation_platform(configurator.target_platform,model)  # 重新配置翻译平台信息
                 request_limiter.set_limit(configurator.max_tokens,configurator.TPM_limit,configurator.RPM_limit)# 重新配置请求限制器
 
 
             # 拆分文本行数或者tokens数
-            if (configurator.mixed_translation_toggle) and (retry_translation_count == 1) and (not configurator.mixed_translation_settings["split_switch_2"]):
-                print("[INFO] 检测到不进行拆分设置，发送行数/tokens数将继续保持不变")
+            if (configurator.mix_translation_enable) and (retry_translation_count == 1) and (not configurator.mix_translation_settings["split_switch_2"]):
+                print("[[green]INFO[/]] 检测到不进行拆分设置，发送行数/tokens数将继续保持不变")
 
-            if (configurator.mixed_translation_toggle) and (retry_translation_count >= 2) and (not configurator.mixed_translation_settings["split_switch_3"]):
-                print("[INFO] 检测到不进行拆分设置，发送行数/tokens数将继续保持不变")
+            if (configurator.mix_translation_enable) and (retry_translation_count >= 2) and (not configurator.mix_translation_settings["split_switch_3"]):
+                print("[[green]INFO[/]] 检测到不进行拆分设置，发送行数/tokens数将继续保持不变")
 
             else:
                 configurator.lines_limit,configurator.tokens_limit = Translator.update_lines_or_tokens(self,configurator.lines_limit,configurator.tokens_limit) # 更换配置中的文本行数
@@ -236,9 +238,9 @@ class Translator():
 
             # 显示日志
             if configurator.tokens_limit_switch:
-                print("[INFO] 未翻译文本总tokens为：",untranslated_text_tokens_count,"  每次发送tokens为：",configurator.tokens_limit, '\n')
+                print("[[green]INFO[/]] 未翻译文本总tokens为：",untranslated_text_tokens_count,"  每次发送tokens为：",configurator.tokens_limit, '\n')
             else:
-                print("[INFO] 未翻译文本总行数为：",untranslated_text_line_count,"  每次发送行数为：",configurator.lines_limit, '\n')
+                print("[[green]INFO[/]] 未翻译文本总行数为：",untranslated_text_line_count,"  每次发送行数为：",configurator.lines_limit, '\n')
 
 
             # 计算剩余任务数
@@ -268,13 +270,13 @@ class Translator():
             #检查是否已经达到重翻次数限制
             retry_translation_count  = retry_translation_count + 1
             if retry_translation_count > configurator.round_limit :
-                print ("\033[1;33mWarning:\033[0m 已经达到拆分翻译轮次限制，但仍然有部分文本未翻译，不影响使用，可手动翻译", '\n')
+                print ("[[orange_red1]Warning[/]] 已经达到拆分翻译轮次限制，但仍然有部分文本未翻译，不影响使用，可手动翻译", '\n')
                 break
 
             #重新计算未翻译文本的数量
             untranslated_text_line_count,untranslated_text_tokens_count = Cache_Manager.count_and_update_translation_status_0_2(self,configurator.cache_list)
 
-        print ("\033[1;32mSuccess:\033[0m  翻译阶段已完成，正在处理数据-----------------------------------", '\n')
+        print ("[[green]Success[/]] 翻译阶段已完成，正在处理数据-----------------------------------", '\n')
 
 
         # ——————————————————————————————————————————插件后处理—————————————————————————————————————————
@@ -284,13 +286,13 @@ class Translator():
 
 
         #如果开启了转换简繁开关功能，则进行文本转换
-        if configurator.conversion_toggle:
+        if configurator.response_conversion_toggle:
             try:
                 configurator.cache_list = Cache_Manager.simplified_and_traditional_conversion(self,configurator.cache_list, configurator.opencc_preset)
-                print(f"\033[1;32mSuccess:\033[0m  文本转化{configurator.target_language}完成-----------------------------------", '\n')   
+                print(f"[[green]Success[/]] 文本转化{configurator.target_language}完成-----------------------------------", '\n')   
 
             except Exception as e:
-                print("\033[1;33mWarning:\033[0m 文本转换出现问题！！将跳过该步，错误信息如下")
+                print("[[orange_red1]Warning[/]] 文本转换出现问题！！将跳过该步，错误信息如下")
                 print(f"Error: {e}\n")
 
 
@@ -298,18 +300,18 @@ class Translator():
 
 
         # 将翻译结果写为对应文件
-        File_Outputter.output_translated_content(self,configurator.cache_list,configurator.Output_Folder,configurator.Input_Folder)
+        File_Outputter.output_translated_content(self,configurator.cache_list,configurator.label_output_path,configurator.label_input_path)
 
 
 
         # —————————————————————————————————————#全部翻译完成——————————————————————————————————————————
 
 
-        print("\033[1;32mSuccess:\033[0m  译文文件写入完成-----------------------------------", '\n')  
+        print("[[green]Success[/]] 译文文件写入完成-----------------------------------", '\n')  
         user_interface_prompter.signal.emit("翻译状态提示","翻译完成",0)
         print("\n--------------------------------------------------------------------------------------")
-        print("\n\033[1;32mSuccess:\033[0m 已完成全部翻译任务，程序已经停止")   
-        print("\n\033[1;32mSuccess:\033[0m 请检查译文文件，格式是否错误，存在错行，空行等问题")
+        print("\n[[green]Success[/]] 已完成全部翻译任务，程序已经停止")   
+        print("\n[[green]Success[/]] 请检查译文文件，格式是否错误，存在错行，空行等问题")
         print("\n-------------------------------------------------------------------------------------\n")
 
 
@@ -371,41 +373,22 @@ class Api_Requester():
         pass
 
     # 并发接口请求分发
-    def concurrent_request (self):
+    def concurrent_request(self):
+        target_platform = configurator.target_platform
+        api_format = configurator.platforms.get(target_platform).get("api_format")
 
-        if configurator.translation_platform == "OpenAI" or configurator.translation_platform == "OpenAI_proxy":
-            self.concurrent_request_openai()
-        
-        elif configurator.translation_platform == "Google":
-            self.concurrent_request_google()
-
-        elif configurator.translation_platform == "Cohere":
-            self.Concurrent_Request_cohere()
-
-        elif configurator.translation_platform == "Anthropic" or configurator.translation_platform == "Anthropic_proxy":
-            self.concurrent_request_anthropic()
-
-        elif configurator.translation_platform == "Moonshot":
-            self.concurrent_request_openai()
-
-        elif configurator.translation_platform == "Deepseek":
-            self.concurrent_request_openai()
-
-        elif configurator.translation_platform == "Dashscope":
-            self.concurrent_request_openai()
-
-        elif configurator.translation_platform == "Volcengine":
-            self.concurrent_request_openai()
-
-        elif configurator.translation_platform == "零一万物":
-            self.concurrent_request_openai()
-
-        elif configurator.translation_platform == "智谱":
-            self.concurrent_request_openai()
-
-        elif configurator.translation_platform == "SakuraLLM":
+        if target_platform == "sakura":
             self.concurrent_request_sakura()
-
+        elif target_platform  == "cohere":
+            self.concurrent_request_chere()
+        elif target_platform  == "google":
+            self.concurrent_request_google()
+        elif target_platform  == "anthropic":
+            self.concurrent_request_anthropic()
+        elif target_platform.startswith("custom_platform_") and api_format == "Anthropic":
+            self.concurrent_request_anthropic()
+        else:
+            self.concurrent_request_openai()
 
     # 整理发送内容（Openai）
     def organize_send_content_openai(self,source_text_dict, previous_list):
@@ -423,7 +406,7 @@ class Api_Requester():
             glossary_prompt,glossary_prompt_cot = configurator.build_glossary_prompt(source_text_dict,configurator.cn_prompt_toggle)
             if glossary_prompt :
                 system_prompt += glossary_prompt 
-                print("[INFO]  已添加术语表：\n",glossary_prompt)
+                print("[[green]INFO[/]] 已添加术语表：\n",glossary_prompt)
 
 
         #如果角色介绍开关打开
@@ -433,7 +416,7 @@ class Api_Requester():
             characterization,characterization_cot = configurator.build_characterization(source_text_dict,configurator.cn_prompt_toggle)
             if characterization:
                 system_prompt += characterization 
-                print("[INFO]  已添加角色介绍：\n",characterization)
+                print("[[green]INFO[/]] 已添加角色介绍：\n",characterization)
 
         #如果背景设定开关打开
         world_building = ""
@@ -442,7 +425,7 @@ class Api_Requester():
             world_building,world_building_cot = configurator.build_world(configurator.cn_prompt_toggle)
             if world_building:
                 system_prompt += world_building 
-                print("[INFO]  已添加背景设定：\n",world_building)
+                print("[[green]INFO[/]] 已添加背景设定：\n",world_building)
 
         #如果文风要求开关打开
         writing_style = ""
@@ -451,7 +434,7 @@ class Api_Requester():
             writing_style,writing_style_cot = configurator.build_writing_style(configurator.cn_prompt_toggle)
             if writing_style:
                 system_prompt += writing_style 
-                print("[INFO]  已添加文风要求：\n",writing_style)
+                print("[[green]INFO[/]] 已添加文风要求：\n",writing_style)
 
 
 
@@ -465,16 +448,16 @@ class Api_Requester():
         fol_prompt = configurator.build_modelExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle,configurator.source_language,configurator.target_language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot)
 
         #构建默认示例
-        original_exmaple,translation_example =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
-        if original_exmaple and translation_example:
+        original_exmaple,translation_example_content =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
+        if original_exmaple and translation_example_content:
 
             the_original_exmaple =  {"role": "user","content":(f'{pre_prompt}```json\n{original_exmaple}\n```') }
-            the_translation_example = {"role": "assistant", "content": (f'{fol_prompt}```json\n{translation_example}\n```') }
+            the_translation_example = {"role": "assistant", "content": (f'{fol_prompt}```json\n{translation_example_content}\n```') }
 
             messages.append(the_original_exmaple)
             messages.append(the_translation_example)
-            print("[INFO]  已添加格式原文示例：\n",original_exmaple)
-            print("[INFO]  已添加格式译文示例：\n",translation_example, '\n')
+            print("[[green]INFO[/]] 已添加格式原文示例：\n",original_exmaple)
+            print("[[green]INFO[/]] 已添加格式译文示例：\n",translation_example_content, '\n')
 
 
         #如果翻译示例开关打开
@@ -485,8 +468,8 @@ class Api_Requester():
                 the_translation_example = {"role": "assistant", "content": translation_example_3}
                 messages.append(the_original_exmaple)
                 messages.append(the_translation_example)
-                print("[INFO]  已添加用户原文示例：\n",original_exmaple_3)
-                print("[INFO]  已添加用户译文示例：\n",translation_example_3, '\n')
+                print("[[green]INFO[/]] 已添加用户原文示例：\n",original_exmaple_3)
+                print("[[green]INFO[/]] 已添加用户译文示例：\n",translation_example_3, '\n')
 
 
         # 调用插件，进行处理
@@ -495,13 +478,13 @@ class Api_Requester():
 
         # 如果开启了保留换行符功能
         if configurator.preserve_line_breaks_toggle:
-            print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
+            print("[[green]INFO[/]] 你开启了保留换行符功能，正在进行替换", '\n')
             source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
 
 
         #如果开启译前文本替换功能，则根据用户字典进行替换
         if configurator.pre_translation_switch :
-            print("[INFO] 你开启了译前文本替换功能，正在进行替换", '\n')
+            print("[[green]INFO[/]] 你开启了译前文本替换功能，正在进行替换", '\n')
             source_text_dict = configurator.replace_before_translation(source_text_dict)
 
 
@@ -512,7 +495,7 @@ class Api_Requester():
             previous = configurator.build_pre_text(previous_list,configurator.cn_prompt_toggle)
             if previous:
                 pass
-                #print("[INFO]  已添加上文：\n",previous)
+                #print("[[green]INFO[/]] 已添加上文：\n",previous)
 
 
 
@@ -528,7 +511,7 @@ class Api_Requester():
 
 
         # 构建模型信息
-        if( "claude" in configurator.model_type or "gpt" in configurator.model_type or "moonshot" in configurator.model_type or "deepseek" in configurator.model_type) :
+        if( "claude" in configurator.model or "gpt" in configurator.model or "moonshot" in configurator.model or "deepseek" in configurator.model) :
             messages.append({"role": "assistant", "content":fol_prompt })
 
         return messages,source_text_str
@@ -554,7 +537,7 @@ class Api_Requester():
 
             # 检查一下是否有发送内容
             if source_text_list == []:
-                print("\033[1;33mWarning:\033[0m 未能获取文本，该线程为多余线程，取消任务")
+                print("[[orange_red1]Warning[/]] 未能获取文本，该线程为多余线程，取消任务")
                 return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
@@ -578,8 +561,8 @@ class Api_Requester():
             completion_tokens_consume = Request_Limiter.num_tokens_from_messages(self,Original_text)
  
             if request_tokens_consume >= request_limiter.max_tokens :
-                print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
-                print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
+                print("[[red]Error[/]] 该条消息总tokens数大于单条消息最大数量" )
+                print("[[red]Error[/]] 该条消息取消任务，进行拆分翻译" )
                 return
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
             start_time = time.time()
@@ -595,7 +578,7 @@ class Api_Requester():
 
                 #检查子线程运行是否超时---------------------------------
                 if time.time() - start_time > timeout:
-                    print("\033[1;31mError:\033[0m 子线程执行任务已经超时，将暂时取消本次任务")
+                    print("[[red]Error[/]] 子线程执行任务已经超时，将暂时取消本次任务")
                     break
 
 
@@ -607,9 +590,9 @@ class Api_Requester():
                     thread_id = threading.get_ident()
                     # 将线程ID简化为4个数字，这里使用对10000取模的方式
                     simplified_thread_id = thread_id % 10000
-                    print(f"[INFO] 已发送请求,正在等待AI回复中-----------------------")
-                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
-                    print(f"[INFO] 当前发送的原文文本: \n{source_text_str}")
+                    print(f"[[green]INFO[/]] 已发送请求,正在等待AI回复中-----------------------")
+                    print(f"[[green]INFO[/]] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
+                    print(f"[[green]INFO[/]] 当前发送的原文文本: \n{source_text_str}")
 
                     # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
                     # 记录开始请求时间
@@ -629,7 +612,7 @@ class Api_Requester():
                     # 发送对话请求
                     try:
                         response = openaiclient.chat.completions.create(
-                            model= configurator.model_type,
+                            model= configurator.model,
                             messages = messages ,
                             temperature=temperature,
                             top_p = top_p,                        
@@ -638,7 +621,7 @@ class Api_Requester():
                             )
                     #抛出错误信息
                     except Exception as e:
-                        print("\033[1;31mError:\033[0m 进行请求时出现问题！！！错误信息如下")
+                        print("[[red]Error[/]] 进行请求时出现问题！！！错误信息如下")
                         print(f"Error: {e}\n")
 
                         #请求错误计次
@@ -680,7 +663,7 @@ class Api_Requester():
                         response_content = response.choices[0].message.content 
                     #抛出错误信息
                     except Exception as e:
-                        print("\033[1;31mError:\033[0m 提取文本时出现问题！！！运行错误信息如下")
+                        print("[[red]Error[/]] 提取文本时出现问题！！！运行错误信息如下")
                         print(f"Error: {e}\n")
                         print("接口返回的错误信息如下")
                         print(response)
@@ -696,9 +679,9 @@ class Api_Requester():
 
 
                     print('\n' )
-                    print("[INFO] 已成功接受到AI的回复-----------------------")
-                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 等待时间: {Request_consumption_time} 秒")
-                    print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
+                    print("[[green]INFO[/]] 已成功接受到AI的回复-----------------------")
+                    print(f"[[green]INFO[/]] 线程 ID: {simplified_thread_id:04d}, 等待时间: {Request_consumption_time} 秒")
+                    print("[[green]INFO[/]] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                     # ———————————————————————————————————对回复内容处理,检查—————————————————————————————————————————————————
 
@@ -723,7 +706,7 @@ class Api_Requester():
 
                         # 如果开启译后文本替换功能，则根据用户字典进行替换
                         if configurator.post_translation_switch :
-                            print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
+                            print("[[green]INFO[/]] 你开启了译后修正功能，正在进行替换", '\n')
                             response_dict = configurator.replace_after_translation(response_dict)
 
                         # 如果原文是日语，则还原文本的首尾代码字符
@@ -732,7 +715,7 @@ class Api_Requester():
 
                         # 录入缓存文件
                         configurator.lock1.acquire()  # 获取锁
-                        Cache_Manager.update_cache_data(self,configurator.cache_list, source_text_list, response_dict,configurator.model_type)
+                        Cache_Manager.update_cache_data(self,configurator.cache_list, source_text_list, response_dict,configurator.model)
                         configurator.lock1.release()  # 释放锁
 
 
@@ -741,7 +724,7 @@ class Api_Requester():
                             configurator.lock3.acquire()  # 获取锁
 
                             # 创建存储缓存文件的文件夹，如果路径不存在，创建文件夹
-                            output_path = os.path.join(configurator.Output_Folder, "cache")
+                            output_path = os.path.join(configurator.label_output_path, "cache")
                             os.makedirs(output_path, exist_ok=True)
                             # 输出备份
                             File_Outputter.output_cache_file(self,configurator.cache_list,output_path)
@@ -759,7 +742,7 @@ class Api_Requester():
                         progress = user_interface_prompter.progress
 
                         print(f"\n--------------------------------------------------------------------------------------")
-                        print(f"\n\033[1;32mSuccess:\033[0m AI回复内容检查通过！！！已翻译完成{progress}%")
+                        print(f"\n[[green]Success[/]] AI回复内容检查通过！！！已翻译完成{progress}%")
                         print(f"\n--------------------------------------------------------------------------------------\n")
                         configurator.lock2.release()  # 释放锁
 
@@ -769,7 +752,7 @@ class Api_Requester():
 
                     # 如果出现回复错误
                     else:
-                        print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
+                        print("[[orange_red1]Warning[/]] AI回复内容存在问题:",error_content,"\n")
 
 
                         configurator.lock2.acquire()  # 获取锁
@@ -788,15 +771,15 @@ class Api_Requester():
 
                         # 检查一下是不是模型退化
                         if error_content == "AI回复内容出现高频词,并重新翻译":
-                            print("\033[1;33mWarning:\033[0m 下次请求将修改参数，回避高频词输出","\n")
+                            print("[[orange_red1]Warning[/]] 下次请求将修改参数，回避高频词输出","\n")
                             model_degradation = True
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
+                        print("[[orange_red1]Warning[/]] 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
                         if Wrong_answer_count > configurator.retry_count_limit :
-                            print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
+                            print("[[orange_red1]Warning[/]] 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
                             break
 
 
@@ -805,7 +788,7 @@ class Api_Requester():
 
     #子线程抛出错误信息
         except Exception as e:
-            print("\033[1;31mError:\033[0m 子线程运行出现问题！错误信息如下")
+            print("[[red]Error[/]] 子线程运行出现问题！错误信息如下")
             print(f"Error: {e}\n")
             return
 
@@ -827,7 +810,7 @@ class Api_Requester():
             glossary_prompt,glossary_prompt_cot = configurator.build_glossary_prompt(source_text_dict,configurator.cn_prompt_toggle)
             if glossary_prompt :
                 system_prompt += glossary_prompt 
-                print("[INFO]  已添加术语表：\n",glossary_prompt)
+                print("[[green]INFO[/]] 已添加术语表：\n",glossary_prompt)
 
 
         # 如果角色介绍开关打开
@@ -837,7 +820,7 @@ class Api_Requester():
             characterization,characterization_cot = configurator.build_characterization(source_text_dict,configurator.cn_prompt_toggle)
             if characterization:
                 system_prompt += characterization 
-                print("[INFO]  已添加角色介绍：\n",characterization)
+                print("[[green]INFO[/]] 已添加角色介绍：\n",characterization)
 
         # 如果背景设定开关打开
         world_building = ""
@@ -846,7 +829,7 @@ class Api_Requester():
             world_building,world_building_cot = configurator.build_world(configurator.cn_prompt_toggle)
             if world_building:
                 system_prompt += world_building 
-                print("[INFO]  已添加背景设定：\n",world_building)
+                print("[[green]INFO[/]] 已添加背景设定：\n",world_building)
 
         # 如果文风要求开关打开
         writing_style = ""
@@ -855,23 +838,23 @@ class Api_Requester():
             writing_style,writing_style_cot = configurator.build_writing_style(configurator.cn_prompt_toggle)
             if writing_style:
                 system_prompt += writing_style 
-                print("[INFO]  已添加文风要求：\n",writing_style)
+                print("[[green]INFO[/]] 已添加文风要求：\n",writing_style)
 
         # 获取默认示例前置文本
         pre_prompt = configurator.build_userExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle)
         fol_prompt = configurator.build_modelExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle,configurator.source_language,configurator.target_language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot)
 
         # 构建默认示例
-        original_exmaple,translation_example =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
-        if original_exmaple and translation_example:
+        original_exmaple,translation_example_content =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
+        if original_exmaple and translation_example_content:
             
             the_original_exmaple =  {"role": "user","parts":(f'{pre_prompt}```json\n{original_exmaple}\n```') }
-            the_translation_example = {"role": "model", "parts": (f'{fol_prompt}```json\n{translation_example}\n```') }
+            the_translation_example = {"role": "model", "parts": (f'{fol_prompt}```json\n{translation_example_content}\n```') }
 
             messages.append(the_original_exmaple)
             messages.append(the_translation_example)
-            print("[INFO]  已添加格式原文示例：\n",original_exmaple)
-            print("[INFO]  已添加格式译文示例：\n",translation_example, '\n')
+            print("[[green]INFO[/]] 已添加格式原文示例：\n",original_exmaple)
+            print("[[green]INFO[/]] 已添加格式译文示例：\n",translation_example_content, '\n')
 
 
         # 如果翻译示例开关打开
@@ -882,8 +865,8 @@ class Api_Requester():
                 the_translation_example = {"role": "model", "parts": translation_example_3}
                 messages.append(the_original_exmaple)
                 messages.append(the_translation_example)
-                print("[INFO]  已添加用户原文示例：\n",original_exmaple_3)
-                print("[INFO]  已添加用户译文示例：\n",translation_example_3, '\n')
+                print("[[green]INFO[/]] 已添加用户原文示例：\n",original_exmaple_3)
+                print("[[green]INFO[/]] 已添加用户译文示例：\n",translation_example_3, '\n')
 
 
         # 调用插件，进行处理
@@ -892,13 +875,13 @@ class Api_Requester():
 
         # 如果开启了保留换行符功能
         if configurator.preserve_line_breaks_toggle:
-            print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
+            print("[[green]INFO[/]] 你开启了保留换行符功能，正在进行替换", '\n')
             source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
 
 
         # 如果开启译前文本替换功能，则根据用户字典进行替换
         if configurator.pre_translation_switch :
-            print("[INFO] 你开启了译前文本替换功能，正在进行替换", '\n')
+            print("[[green]INFO[/]] 你开启了译前文本替换功能，正在进行替换", '\n')
             source_text_dict = configurator.replace_before_translation(source_text_dict)
 
 
@@ -909,7 +892,7 @@ class Api_Requester():
             previous = configurator.build_pre_text(previous_list,configurator.cn_prompt_toggle)
             if previous:
                 pass
-                #print("[INFO]  已添加上文：\n",previous)
+                #print("[[green]INFO[/]] 已添加上文：\n",previous)
 
 
         # 获取提问时的前置文本
@@ -949,7 +932,7 @@ class Api_Requester():
 
             # 检查一下是否有发送内容
             if source_text_list == []:
-                print("\033[1;33mWarning:\033[0m 未能获取文本，该线程为多余线程，取消任务")
+                print("[[orange_red1]Warning[/]] 未能获取文本，该线程为多余线程，取消任务")
                 return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
@@ -978,8 +961,8 @@ class Api_Requester():
             completion_tokens_consume = Request_Limiter.num_tokens_from_messages(self,Original_text)
  
             if request_tokens_consume >= request_limiter.max_tokens :
-                print("\033[1;33mWarning:\033[0m 该条消息总tokens数大于单条消息最大数量" )
-                print("\033[1;33mWarning:\033[0m 该条消息取消任务，进行拆分翻译" )
+                print("[[orange_red1]Warning[/]] 该条消息总tokens数大于单条消息最大数量" )
+                print("[[orange_red1]Warning[/]] 该条消息取消任务，进行拆分翻译" )
                 return
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
@@ -995,7 +978,7 @@ class Api_Requester():
 
                 #检查子线程运行是否超时---------------------------------
                 if time.time() - start_time > timeout:
-                    print("\033[1;31mError:\033[0m 子线程执行任务已经超时，将暂时取消本次任务")
+                    print("[[red]Error[/]] 子线程执行任务已经超时，将暂时取消本次任务")
                     break
 
 
@@ -1007,9 +990,9 @@ class Api_Requester():
                     thread_id = threading.get_ident()
                     # 将线程ID简化为4个数字，这里使用对10000取模的方式
                     simplified_thread_id = thread_id % 10000
-                    print(f"[INFO] 已发送请求,正在等待AI回复中-----------------------")
-                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
-                    print(f"[INFO] 当前发送的原文文本: \n{source_text_str}")
+                    print(f"[[green]INFO[/]] 已发送请求,正在等待AI回复中-----------------------")
+                    print(f"[[green]INFO[/]] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
+                    print(f"[[green]INFO[/]] 当前发送的原文文本: \n{source_text_str}")
 
                     # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
                     # 记录开始请求时间
@@ -1051,7 +1034,7 @@ class Api_Requester():
                     genai.configure(api_key=apikey,transport='rest')
 
                     #设置对话模型及参数
-                    model = genai.GenerativeModel(model_name=configurator.model_type,
+                    model = genai.GenerativeModel(model_name=configurator.model,
                                     generation_config=generation_config,
                                     safety_settings=safety_settings,
                                     system_instruction = system_prompt)
@@ -1063,7 +1046,7 @@ class Api_Requester():
 
                     #抛出错误信息
                     except Exception as e:
-                        print("\033[1;31mError:\033[0m 进行请求时出现问题！！！错误信息如下")
+                        print("[[red]Error[/]] 进行请求时出现问题！！！错误信息如下")
                         print(f"Error: {e}\n")
 
                         #请求错误计次
@@ -1099,7 +1082,7 @@ class Api_Requester():
                         response_content = response.text
                     #抛出错误信息
                     except Exception as e:
-                        print("\033[1;31mError:\033[0m 提取文本时出现错误！！！运行的错误信息如下")
+                        print("[[red]Error[/]] 提取文本时出现错误！！！运行的错误信息如下")
                         print(f"Error: {e}\n")
                         print("接口返回的错误信息如下")
                         print(response.prompt_feedback)
@@ -1115,9 +1098,9 @@ class Api_Requester():
 
 
                     print('\n' )
-                    print("[INFO] 已成功接受到AI的回复-----------------------")
-                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 等待时间: {Request_consumption_time} 秒")
-                    print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
+                    print("[[green]INFO[/]] 已成功接受到AI的回复-----------------------")
+                    print(f"[[green]INFO[/]] 线程 ID: {simplified_thread_id:04d}, 等待时间: {Request_consumption_time} 秒")
+                    print("[[green]INFO[/]] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                     # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
                     # 调用插件，进行处理
@@ -1140,7 +1123,7 @@ class Api_Requester():
 
                         #如果开启译后文本替换功能，则根据用户字典进行替换
                         if configurator.post_translation_switch :
-                            print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
+                            print("[[green]INFO[/]] 你开启了译后修正功能，正在进行替换", '\n')
                             response_dict = configurator.replace_after_translation(response_dict)
 
                         # 如果原文是日语，则还原文本的首尾代码字符
@@ -1149,7 +1132,7 @@ class Api_Requester():
 
                         # 录入缓存文件
                         configurator.lock1.acquire()  # 获取锁
-                        Cache_Manager.update_cache_data(self,configurator.cache_list, source_text_list, response_dict,configurator.model_type)
+                        Cache_Manager.update_cache_data(self,configurator.cache_list, source_text_list, response_dict,configurator.model)
                         configurator.lock1.release()  # 释放锁
 
 
@@ -1158,7 +1141,7 @@ class Api_Requester():
                             configurator.lock3.acquire()  # 获取锁
 
                             # 创建存储缓存文件的文件夹，如果路径不存在，创建文件夹
-                            output_path = os.path.join(configurator.Output_Folder, "cache")
+                            output_path = os.path.join(configurator.label_output_path, "cache")
                             os.makedirs(output_path, exist_ok=True)
                             # 输出备份
                             File_Outputter.output_cache_file(self,configurator.cache_list,output_path)
@@ -1178,7 +1161,7 @@ class Api_Requester():
                         progress = user_interface_prompter.progress
 
                         print(f"\n--------------------------------------------------------------------------------------")
-                        print(f"\n\033[1;32mSuccess:\033[0m AI回复内容检查通过！！！已翻译完成{progress}%")
+                        print(f"\n[[green]Success[/]] AI回复内容检查通过！！！已翻译完成{progress}%")
                         print(f"\n--------------------------------------------------------------------------------------\n")
 
                         configurator.lock2.release()  # 释放锁
@@ -1200,14 +1183,14 @@ class Api_Requester():
 
                         configurator.lock2.release()  # 释放锁
 
-                        print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
+                        print("[[orange_red1]Warning[/]] AI回复内容存在问题:",error_content,"\n")
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
+                        print("[[orange_red1]Warning[/]] 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
                         if Wrong_answer_count > configurator.retry_count_limit :
-                            print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
+                            print("[[orange_red1]Warning[/]] 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
                             break
 
 
@@ -1216,7 +1199,7 @@ class Api_Requester():
 
     #子线程抛出错误信息
         except Exception as e:
-            print("\033[1;31mError:\033[0m 子线程运行出现问题！错误信息如下")
+            print("[[red]Error[/]] 子线程运行出现问题！错误信息如下")
             print(f"Error: {e}\n")
             return
 
@@ -1238,7 +1221,7 @@ class Api_Requester():
             glossary_prompt,glossary_prompt_cot = configurator.build_glossary_prompt(source_text_dict,configurator.cn_prompt_toggle)
             if glossary_prompt :
                 system_prompt += glossary_prompt 
-                print("[INFO]  已添加术语表：\n",glossary_prompt)
+                print("[[green]INFO[/]] 已添加术语表：\n",glossary_prompt)
 
 
         #如果角色介绍开关打开
@@ -1248,7 +1231,7 @@ class Api_Requester():
             characterization,characterization_cot = configurator.build_characterization(source_text_dict,configurator.cn_prompt_toggle)
             if characterization:
                 system_prompt += characterization 
-                print("[INFO]  已添加角色介绍：\n",characterization)
+                print("[[green]INFO[/]] 已添加角色介绍：\n",characterization)
 
         #如果背景设定开关打开
         world_building = ""
@@ -1257,7 +1240,7 @@ class Api_Requester():
             world_building,world_building_cot = configurator.build_world(configurator.cn_prompt_toggle)
             if world_building:
                 system_prompt += world_building 
-                print("[INFO]  已添加背景设定：\n",world_building)
+                print("[[green]INFO[/]] 已添加背景设定：\n",world_building)
 
         #如果文风要求开关打开
         writing_style = ""
@@ -1266,23 +1249,23 @@ class Api_Requester():
             writing_style,writing_style_cot = configurator.build_writing_style(configurator.cn_prompt_toggle)
             if writing_style:
                 system_prompt += writing_style 
-                print("[INFO]  已添加文风要求：\n",writing_style)
+                print("[[green]INFO[/]] 已添加文风要求：\n",writing_style)
 
         # 获取默认示例前置文本
         pre_prompt = configurator.build_userExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle)
         fol_prompt = configurator.build_modelExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle,configurator.source_language,configurator.target_language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot)
 
         #构建默认示例
-        original_exmaple,translation_example =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
-        if original_exmaple and translation_example:
+        original_exmaple,translation_example_content =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
+        if original_exmaple and translation_example_content:
 
             the_original_exmaple =  {"role": "user","content":(f'{pre_prompt}```json\n{original_exmaple}\n```') }
-            the_translation_example = {"role": "assistant", "content": (f'{fol_prompt}```json\n{translation_example}\n```') }
+            the_translation_example = {"role": "assistant", "content": (f'{fol_prompt}```json\n{translation_example_content}\n```') }
 
             messages.append(the_original_exmaple)
             messages.append(the_translation_example)
-            print("[INFO]  已添加格式原文示例：\n",original_exmaple)
-            print("[INFO]  已添加格式译文示例：\n",translation_example, '\n')
+            print("[[green]INFO[/]] 已添加格式原文示例：\n",original_exmaple)
+            print("[[green]INFO[/]] 已添加格式译文示例：\n",translation_example_content, '\n')
 
 
         #如果翻译示例开关打开
@@ -1293,8 +1276,8 @@ class Api_Requester():
                 the_translation_example = {"role": "assistant", "content": translation_example_3}
                 messages.append(the_original_exmaple)
                 messages.append(the_translation_example)
-                print("[INFO]  已添加用户原文示例：\n",original_exmaple_3)
-                print("[INFO]  已添加用户译文示例：\n",translation_example_3, '\n')
+                print("[[green]INFO[/]] 已添加用户原文示例：\n",original_exmaple_3)
+                print("[[green]INFO[/]] 已添加用户译文示例：\n",translation_example_3, '\n')
 
 
 
@@ -1304,13 +1287,13 @@ class Api_Requester():
 
         # 如果开启了保留换行符功能
         if configurator.preserve_line_breaks_toggle:
-            print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
+            print("[[green]INFO[/]] 你开启了保留换行符功能，正在进行替换", '\n')
             source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
 
 
         #如果开启译前文本替换功能，则根据用户字典进行替换
         if configurator.pre_translation_switch :
-            print("[INFO] 你开启了译前文本替换功能，正在进行替换", '\n')
+            print("[[green]INFO[/]] 你开启了译前文本替换功能，正在进行替换", '\n')
             source_text_dict = configurator.replace_before_translation(source_text_dict)
 
 
@@ -1321,7 +1304,7 @@ class Api_Requester():
             previous = configurator.build_pre_text(previous_list,configurator.cn_prompt_toggle)
             if previous:
                 pass
-                #print("[INFO]  已添加上文：\n",previous)
+                #print("[[green]INFO[/]] 已添加上文：\n",previous)
 
 
         # 获取提问时的前置文本
@@ -1362,7 +1345,7 @@ class Api_Requester():
 
             # 检查一下是否有发送内容
             if source_text_list == []:
-                print("\033[1;33mWarning:\033[0m 未能获取文本，该线程为多余线程，取消任务")
+                print("[[orange_red1]Warning[/]] 未能获取文本，该线程为多余线程，取消任务")
                 return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
@@ -1389,8 +1372,8 @@ class Api_Requester():
             completion_tokens_consume = Request_Limiter.num_tokens_from_messages(self,Original_text)
  
             if request_tokens_consume >= request_limiter.max_tokens :
-                print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
-                print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
+                print("[[red]Error[/]] 该条消息总tokens数大于单条消息最大数量" )
+                print("[[red]Error[/]] 该条消息取消任务，进行拆分翻译" )
                 return
             
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
@@ -1406,7 +1389,7 @@ class Api_Requester():
 
                 #检查子线程运行是否超时---------------------------------
                 if time.time() - start_time > timeout:
-                    print("\033[1;31mError:\033[0m 子线程执行任务已经超时，将暂时取消本次任务")
+                    print("[[red]Error[/]] 子线程执行任务已经超时，将暂时取消本次任务")
                     break
 
 
@@ -1418,9 +1401,9 @@ class Api_Requester():
                     thread_id = threading.get_ident()
                     # 将线程ID简化为4个数字，这里使用对10000取模的方式
                     simplified_thread_id = thread_id % 10000
-                    print(f"[INFO] 已发送请求,正在等待AI回复中-----------------------")
-                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
-                    print(f"[INFO] 当前发送的原文文本: \n{source_text_str}")
+                    print(f"[[green]INFO[/]] 已发送请求,正在等待AI回复中-----------------------")
+                    print(f"[[green]INFO[/]] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
+                    print(f"[[green]INFO[/]] 当前发送的原文文本: \n{source_text_str}")
 
                     # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
                     # 记录开始请求时间
@@ -1434,7 +1417,7 @@ class Api_Requester():
                     # 发送对话请求
                     try:
                         response = client.messages.create(
-                            model= configurator.model_type,
+                            model= configurator.model,
                             max_tokens=4000,
                             system= system_prompt,
                             messages = messages ,
@@ -1445,7 +1428,7 @@ class Api_Requester():
 
                     #抛出错误信息
                     except Exception as e:
-                        print("\033[1;31mError:\033[0m 进行请求时出现问题！！！错误信息如下")
+                        print("[[red]Error[/]] 进行请求时出现问题！！！错误信息如下")
                         print(f"Error: {e}\n")
 
                         #请求错误计次
@@ -1487,7 +1470,7 @@ class Api_Requester():
                         response_content = response.content[0].text 
                     #抛出错误信息
                     except Exception as e:
-                        print("\033[1;31mError:\033[0m 提取文本时出现问题！！！运行错误信息如下")
+                        print("[[red]Error[/]] 提取文本时出现问题！！！运行错误信息如下")
                         print(f"Error: {e}\n")
                         print("接口返回的错误信息如下")
                         print(response)
@@ -1503,9 +1486,9 @@ class Api_Requester():
 
 
                     print('\n' )
-                    print("[INFO] 已成功接受到AI的回复-----------------------")
-                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 等待时间: {Request_consumption_time} 秒")
-                    print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
+                    print("[[green]INFO[/]] 已成功接受到AI的回复-----------------------")
+                    print(f"[[green]INFO[/]] 线程 ID: {simplified_thread_id:04d}, 等待时间: {Request_consumption_time} 秒")
+                    print("[[green]INFO[/]] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                     # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
                     # 调用插件，进行处理
@@ -1528,7 +1511,7 @@ class Api_Requester():
 
                         #如果开启译后文本替换功能，则根据用户字典进行替换
                         if configurator.post_translation_switch :
-                            print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
+                            print("[[green]INFO[/]] 你开启了译后修正功能，正在进行替换", '\n')
                             response_dict = configurator.replace_after_translation(response_dict)
 
                         # 如果原文是日语，则还原文本的首尾代码字符
@@ -1537,7 +1520,7 @@ class Api_Requester():
 
                         # 录入缓存文件
                         configurator.lock1.acquire()  # 获取锁
-                        Cache_Manager.update_cache_data(self,configurator.cache_list, source_text_list, response_dict,configurator.model_type)
+                        Cache_Manager.update_cache_data(self,configurator.cache_list, source_text_list, response_dict,configurator.model)
                         configurator.lock1.release()  # 释放锁
 
 
@@ -1546,7 +1529,7 @@ class Api_Requester():
                             configurator.lock3.acquire()  # 获取锁
 
                             # 创建存储缓存文件的文件夹，如果路径不存在，创建文件夹
-                            output_path = os.path.join(configurator.Output_Folder, "cache")
+                            output_path = os.path.join(configurator.label_output_path, "cache")
                             os.makedirs(output_path, exist_ok=True)
                             # 输出备份
                             File_Outputter.output_cache_file(self,configurator.cache_list,output_path)
@@ -1565,7 +1548,7 @@ class Api_Requester():
                         progress = user_interface_prompter.progress
 
                         print(f"\n--------------------------------------------------------------------------------------")
-                        print(f"\n\033[1;32mSuccess:\033[0m AI回复内容检查通过！！！已翻译完成{progress}%")
+                        print(f"\n[[green]Success[/]] AI回复内容检查通过！！！已翻译完成{progress}%")
                         print(f"\n--------------------------------------------------------------------------------------\n")
                         configurator.lock2.release()  # 释放锁
 
@@ -1587,14 +1570,14 @@ class Api_Requester():
 
                         configurator.lock2.release()  # 释放锁
 
-                        print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
+                        print("[[orange_red1]Warning[/]] AI回复内容存在问题:",error_content,"\n")
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
+                        print("[[orange_red1]Warning[/]] 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
                         if Wrong_answer_count > configurator.retry_count_limit :
-                            print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
+                            print("[[orange_red1]Warning[/]] 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
                             break
 
 
@@ -1603,7 +1586,7 @@ class Api_Requester():
 
     #子线程抛出错误信息
         except Exception as e:
-            print("\033[1;31mError:\033[0m 子线程运行出现问题！错误信息如下")
+            print("[[red]Error[/]] 子线程运行出现问题！错误信息如下")
             print(f"Error: {e}\n")
             return
 
@@ -1625,7 +1608,7 @@ class Api_Requester():
             glossary_prompt,glossary_prompt_cot = configurator.build_glossary_prompt(source_text_dict,configurator.cn_prompt_toggle)
             if glossary_prompt :
                 system_prompt += glossary_prompt 
-                print("[INFO]  已添加术语表：\n",glossary_prompt)
+                print("[[green]INFO[/]] 已添加术语表：\n",glossary_prompt)
 
 
         # 如果角色介绍开关打开
@@ -1635,7 +1618,7 @@ class Api_Requester():
             characterization,characterization_cot = configurator.build_characterization(source_text_dict,configurator.cn_prompt_toggle)
             if characterization:
                 system_prompt += characterization 
-                print("[INFO]  已添加角色介绍：\n",characterization)
+                print("[[green]INFO[/]] 已添加角色介绍：\n",characterization)
 
         #如果背景设定开关打开
         world_building = ""
@@ -1644,7 +1627,7 @@ class Api_Requester():
             world_building,world_building_cot = configurator.build_world(configurator.cn_prompt_toggle)
             if world_building:
                 system_prompt += world_building 
-                print("[INFO]  已添加背景设定：\n",world_building)
+                print("[[green]INFO[/]] 已添加背景设定：\n",world_building)
 
         #如果文风要求开关打开
         writing_style = ""
@@ -1653,23 +1636,23 @@ class Api_Requester():
             writing_style,writing_style_cot = configurator.build_writing_style(configurator.cn_prompt_toggle)
             if writing_style:
                 system_prompt += writing_style 
-                print("[INFO]  已添加文风要求：\n",writing_style)
+                print("[[green]INFO[/]] 已添加文风要求：\n",writing_style)
 
         # 获取默认示例前置文本
         pre_prompt = configurator.build_userExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle)
         fol_prompt = configurator.build_modelExamplePrefix (configurator.cn_prompt_toggle,configurator.cot_toggle,configurator.source_language,configurator.target_language,glossary_prompt_cot,characterization_cot,world_building_cot,writing_style_cot)
 
         #构建默认示例
-        original_exmaple,translation_example =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
-        if original_exmaple and translation_example:
+        original_exmaple,translation_example_content =  configurator.build_translation_sample(source_text_dict,configurator.source_language,configurator.target_language)
+        if original_exmaple and translation_example_content:
                 
             the_original_exmaple =  {"role": "USER","message":(f'{pre_prompt}```json\n{original_exmaple}\n```') }
-            the_translation_example = {"role": "CHATBOT", "message": (f'{fol_prompt}```json\n{translation_example}\n```') }
+            the_translation_example = {"role": "CHATBOT", "message": (f'{fol_prompt}```json\n{translation_example_content}\n```') }
 
             messages.append(the_original_exmaple)
             messages.append(the_translation_example)
-            print("[INFO]  已添加格式原文示例：\n",original_exmaple)
-            print("[INFO]  已添加格式译文示例：\n",translation_example, '\n')
+            print("[[green]INFO[/]] 已添加格式原文示例：\n",original_exmaple)
+            print("[[green]INFO[/]] 已添加格式译文示例：\n",translation_example_content, '\n')
 
 
         #如果翻译示例开关打开
@@ -1680,8 +1663,8 @@ class Api_Requester():
                 the_translation_example = {"role": "CHATBOT", "message": translation_example_3}
                 messages.append(the_original_exmaple)
                 messages.append(the_translation_example)
-                print("[INFO]  已添加用户原文示例：\n",original_exmaple_3)
-                print("[INFO]  已添加用户译文示例：\n",translation_example_3, '\n')
+                print("[[green]INFO[/]] 已添加用户原文示例：\n",original_exmaple_3)
+                print("[[green]INFO[/]] 已添加用户译文示例：\n",translation_example_3, '\n')
 
 
         # 调用插件，进行处理
@@ -1690,13 +1673,13 @@ class Api_Requester():
 
         # 如果开启了保留换行符功能
         if configurator.preserve_line_breaks_toggle:
-            print("[INFO] 你开启了保留换行符功能，正在进行替换", '\n')
+            print("[[green]INFO[/]] 你开启了保留换行符功能，正在进行替换", '\n')
             source_text_dict = Cache_Manager.replace_special_characters(self,source_text_dict, "替换")
 
 
         #如果开启译前文本替换功能，则根据用户字典进行替换
         if configurator.pre_translation_switch :
-            print("[INFO] 你开启了译前文本替换功能，正在进行替换", '\n')
+            print("[[green]INFO[/]] 你开启了译前文本替换功能，正在进行替换", '\n')
             source_text_dict = configurator.replace_before_translation(source_text_dict)
 
 
@@ -1708,7 +1691,7 @@ class Api_Requester():
             if previous:
                 #system_prompt += previous
                 pass 
-                #print("[INFO]  已添加上文：\n",previous)
+                #print("[[green]INFO[/]] 已添加上文：\n",previous)
 
 
         # 获取提问时的前置文本
@@ -1743,7 +1726,7 @@ class Api_Requester():
 
             # 检查一下是否有发送内容
             if source_text_list == []:
-                print("\033[1;33mWarning:\033[0m 未能获取文本，该线程为多余线程，取消任务")
+                print("[[orange_red1]Warning[/]] 未能获取文本，该线程为多余线程，取消任务")
                 return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
@@ -1772,8 +1755,8 @@ class Api_Requester():
             completion_tokens_consume = Request_Limiter.num_tokens_from_messages(self,Original_text)
  
             if request_tokens_consume >= request_limiter.max_tokens :
-                print("\033[1;31mError:\033[0m 该条消息总tokens数大于单条消息最大数量" )
-                print("\033[1;31mError:\033[0m 该条消息取消任务，进行拆分翻译" )
+                print("[[red]Error[/]] 该条消息总tokens数大于单条消息最大数量" )
+                print("[[red]Error[/]] 该条消息取消任务，进行拆分翻译" )
                 return
             
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
@@ -1789,7 +1772,7 @@ class Api_Requester():
 
                 #检查子线程运行是否超时---------------------------------
                 if time.time() - start_time > timeout:
-                    print("\033[1;31mError:\033[0m 子线程执行任务已经超时，将暂时取消本次任务")
+                    print("[[red]Error[/]] 子线程执行任务已经超时，将暂时取消本次任务")
                     break
 
 
@@ -1801,9 +1784,9 @@ class Api_Requester():
                     thread_id = threading.get_ident()
                     # 将线程ID简化为4个数字，这里使用对10000取模的方式
                     simplified_thread_id = thread_id % 10000
-                    print(f"[INFO] 已发送请求,正在等待AI回复中-----------------------")
-                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
-                    print(f"[INFO] 当前发送的原文文本: \n{source_text_str}")
+                    print(f"[[green]INFO[/]] 已发送请求,正在等待AI回复中-----------------------")
+                    print(f"[[green]INFO[/]] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
+                    print(f"[[green]INFO[/]] 当前发送的原文文本: \n{source_text_str}")
 
                     # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
                     # 记录开始请求时间
@@ -1818,7 +1801,7 @@ class Api_Requester():
                     # 发送对话请求
                     try:
                         response = client.chat(
-                            model= configurator.model_type,
+                            model= configurator.model,
                             preamble= system_prompt,
                             message = source_text_str ,
                             chat_history = messages,
@@ -1829,7 +1812,7 @@ class Api_Requester():
 
                     #抛出错误信息
                     except Exception as e:
-                        print("\033[1;31mError:\033[0m 进行请求时出现问题！！！错误信息如下")
+                        print("[[red]Error[/]] 进行请求时出现问题！！！错误信息如下")
                         print(f"Error: {e}\n")
 
                         #请求错误计次
@@ -1873,7 +1856,7 @@ class Api_Requester():
                         response_content = response.text 
                     #抛出错误信息
                     except Exception as e:
-                        print("\033[1;31mError:\033[0m 提取文本时出现问题！！！运行错误信息如下")
+                        print("[[red]Error[/]] 提取文本时出现问题！！！运行错误信息如下")
                         print(f"Error: {e}\n")
                         print("接口返回的错误信息如下")
                         print(response)
@@ -1889,9 +1872,9 @@ class Api_Requester():
 
 
                     print('\n' )
-                    print("[INFO] 已成功接受到AI的回复-----------------------")
-                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 等待时间: {Request_consumption_time} 秒")
-                    print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
+                    print("[[green]INFO[/]] 已成功接受到AI的回复-----------------------")
+                    print(f"[[green]INFO[/]] 线程 ID: {simplified_thread_id:04d}, 等待时间: {Request_consumption_time} 秒")
+                    print("[[green]INFO[/]] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                     # ——————————————————————————————————————————对回复内容处理,检查和录入——————————————————————————————————————————
                     # 调用插件，进行处理
@@ -1914,7 +1897,7 @@ class Api_Requester():
 
                         #如果开启译后文本替换功能，则根据用户字典进行替换
                         if configurator.post_translation_switch :
-                            print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
+                            print("[[green]INFO[/]] 你开启了译后修正功能，正在进行替换", '\n')
                             response_dict = configurator.replace_after_translation(response_dict)
 
                         # 如果原文是日语，则还原文本的首尾代码字符
@@ -1923,7 +1906,7 @@ class Api_Requester():
 
                         # 录入缓存文件
                         configurator.lock1.acquire()  # 获取锁
-                        Cache_Manager.update_cache_data(self,configurator.cache_list, source_text_list, response_dict,configurator.model_type)
+                        Cache_Manager.update_cache_data(self,configurator.cache_list, source_text_list, response_dict,configurator.model)
                         configurator.lock1.release()  # 释放锁
 
 
@@ -1932,7 +1915,7 @@ class Api_Requester():
                             configurator.lock3.acquire()  # 获取锁
 
                             # 创建存储缓存文件的文件夹，如果路径不存在，创建文件夹
-                            output_path = os.path.join(configurator.Output_Folder, "cache")
+                            output_path = os.path.join(configurator.label_output_path, "cache")
                             os.makedirs(output_path, exist_ok=True)
                             # 输出备份
                             File_Outputter.output_cache_file(self,configurator.cache_list,output_path)
@@ -1951,7 +1934,7 @@ class Api_Requester():
                         progress = user_interface_prompter.progress
 
                         print(f"\n--------------------------------------------------------------------------------------")
-                        print(f"\n\033[1;32mSuccess:\033[0m AI回复内容检查通过！！！已翻译完成{progress}%")
+                        print(f"\n[[green]Success[/]] AI回复内容检查通过！！！已翻译完成{progress}%")
                         print(f"\n--------------------------------------------------------------------------------------\n")
                         configurator.lock2.release()  # 释放锁
 
@@ -1973,14 +1956,14 @@ class Api_Requester():
 
                         configurator.lock2.release()  # 释放锁
 
-                        print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
+                        print("[[orange_red1]Warning[/]] AI回复内容存在问题:",error_content,"\n")
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
+                        print("[[orange_red1]Warning[/]] 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
                         if Wrong_answer_count > configurator.retry_count_limit :
-                            print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
+                            print("[[orange_red1]Warning[/]] 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
                             break
 
 
@@ -1989,7 +1972,7 @@ class Api_Requester():
 
     #子线程抛出错误信息
         except Exception as e:
-            print("\033[1;31mError:\033[0m 子线程运行出现问题！错误信息如下")
+            print("[[red]Error[/]] 子线程运行出现问题！错误信息如下")
             print(f"Error: {e}\n")
             return
 
@@ -2022,7 +2005,7 @@ class Api_Requester():
             source_text_dict = configurator.replace_before_translation(source_text_dict)
 
         # 如果开启了携带上文功能，v0.9 版本跳过
-        if configurator.model_type != "Sakura-v0.9" and configurator.pre_line_counts and previous_list:
+        if configurator.model != "Sakura-v0.9" and configurator.pre_line_counts and previous_list:
             print(f"[[green]INFO[/green]] 携带上文功能已开启，实际携带 {len(previous_list)} 行上文 ...")
             messages.append(
                 {
@@ -2037,7 +2020,7 @@ class Api_Requester():
 
         # 如果开启了指令词典功能
         gpt_dict_raw_text = "" # 空变量
-        if configurator.model_type != "Sakura-v0.9" and configurator.prompt_dictionary_switch: # v0.9 版本或功能未启用时跳过
+        if configurator.model != "Sakura-v0.9" and configurator.prompt_dictionary_switch: # v0.9 版本或功能未启用时跳过
             glossary_prompt = configurator.build_glossary_prompt_sakura(source_text_dict)
             if glossary_prompt:
                 gpt_dict_text_list = []
@@ -2094,7 +2077,7 @@ class Api_Requester():
 
             # 检查一下是否有发送内容
             if source_text_list == []:
-                print("\033[1;33mWarning:\033[0m 未能获取文本，该线程为多余线程，取消任务")
+                print("[[orange_red1]Warning[/]] 未能获取文本，该线程为多余线程，取消任务")
                 return
 
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
@@ -2120,8 +2103,8 @@ class Api_Requester():
             completion_tokens_consume = Request_Limiter.num_tokens_from_messages(self,Original_text) #加上2%的修正系数
  
             if request_tokens_consume >= request_limiter.max_tokens :
-                print("\033[1;33mWarning:\033[0m 该条消息总tokens数大于单条消息最大数量" )
-                print("\033[1;33mWarning:\033[0m 该条消息取消任务，进行拆分翻译" )
+                print("[[orange_red1]Warning[/]] 该条消息总tokens数大于单条消息最大数量" )
+                print("[[orange_red1]Warning[/]] 该条消息取消任务，进行拆分翻译" )
                 return
             
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
@@ -2138,7 +2121,7 @@ class Api_Requester():
 
                 #检查子线程运行是否超时---------------------------------
                 if time.time() - start_time > timeout:
-                    print("\033[1;31mError:\033[0m 子线程执行任务已经超时，将暂时取消本次任务")
+                    print("[[red]Error[/]] 子线程执行任务已经超时，将暂时取消本次任务")
                     break
 
 
@@ -2150,9 +2133,9 @@ class Api_Requester():
                     thread_id = threading.get_ident()
                     # 将线程ID简化为4个数字，这里使用对10000取模的方式
                     simplified_thread_id = thread_id % 10000
-                    print(f"[INFO] 已发送请求,正在等待AI回复中-----------------------")
-                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
-                    print(f"[INFO] 当前发送的原文文本: \n{source_text_str}")
+                    print(f"[[green]INFO[/]] 已发送请求,正在等待AI回复中-----------------------")
+                    print(f"[[green]INFO[/]] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
+                    print(f"[[green]INFO[/]] 当前发送的原文文本: \n{source_text_str}")
 
                     # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
                     # 记录开始请求时间
@@ -2187,7 +2170,7 @@ class Api_Requester():
                     # 发送对话请求
                     try:
                         response = openaiclient.chat.completions.create(
-                            model = configurator.model_type,
+                            model = configurator.model,
                             messages = messages,
                             temperature = temperature,
                             top_p = top_p,                        
@@ -2199,7 +2182,7 @@ class Api_Requester():
 
                     #抛出错误信息
                     except Exception as e:
-                        print("\033[1;31mError:\033[0m 进行请求时出现问题！！！错误信息如下")
+                        print("[[red]Error[/]] 进行请求时出现问题！！！错误信息如下")
                         print(f"Error: {e}\n")
 
                         #请求错误计次
@@ -2241,9 +2224,9 @@ class Api_Requester():
 
 
                     print('\n' )
-                    print("[INFO] 已成功接受到AI的回复-----------------------")
-                    print(f"[INFO] 线程 ID: {simplified_thread_id:04d}, 等待时间: {Request_consumption_time} 秒")
-                    print("[INFO] AI回复的文本内容：\n",response_content ,'\n','\n')
+                    print("[[green]INFO[/]] 已成功接受到AI的回复-----------------------")
+                    print(f"[[green]INFO[/]] 线程 ID: {simplified_thread_id:04d}, 等待时间: {Request_consumption_time} 秒")
+                    print("[[green]INFO[/]] AI回复的文本内容：\n",response_content ,'\n','\n')
 
                     # ——————————————————————————————————————————对回复内容处理,检查——————————————————————————————————————————
 
@@ -2269,7 +2252,7 @@ class Api_Requester():
 
                         #如果开启译后文本替换功能，则根据用户字典进行替换
                         if configurator.post_translation_switch :
-                            print("[INFO] 你开启了译后修正功能，正在进行替换", '\n')
+                            print("[[green]INFO[/]] 你开启了译后修正功能，正在进行替换", '\n')
                             response_dict = configurator.replace_after_translation(response_dict)
 
                         # 如果原文是日语，则还原文本的首尾代码字符
@@ -2278,7 +2261,7 @@ class Api_Requester():
 
                         # 录入缓存文件
                         configurator.lock1.acquire()  # 获取锁
-                        Cache_Manager.update_cache_data(self,configurator.cache_list, source_text_list, response_dict,configurator.model_type)
+                        Cache_Manager.update_cache_data(self,configurator.cache_list, source_text_list, response_dict,configurator.model)
                         configurator.lock1.release()  # 释放锁
 
 
@@ -2287,7 +2270,7 @@ class Api_Requester():
                             configurator.lock3.acquire()  # 获取锁
 
                             # 创建存储缓存文件的文件夹，如果路径不存在，创建文件夹
-                            output_path = os.path.join(configurator.Output_Folder, "cache")
+                            output_path = os.path.join(configurator.label_output_path, "cache")
                             os.makedirs(output_path, exist_ok=True)
                             # 输出备份
                             File_Outputter.output_cache_file(self,configurator.cache_list,output_path)
@@ -2306,7 +2289,7 @@ class Api_Requester():
                         progress = user_interface_prompter.progress                    
 
                         print(f"\n--------------------------------------------------------------------------------------")
-                        print(f"\n\033[1;32mSuccess:\033[0m AI回复内容检查通过！！！已翻译完成{progress}%")
+                        print(f"\n[[green]Success[/]] AI回复内容检查通过！！！已翻译完成{progress}%")
                         print(f"\n--------------------------------------------------------------------------------------\n")
                         configurator.lock2.release()  # 释放锁
 
@@ -2328,19 +2311,19 @@ class Api_Requester():
 
                         configurator.lock2.release()  # 释放锁
 
-                        print("\033[1;33mWarning:\033[0m AI回复内容存在问题:",error_content,"\n")
+                        print("[[orange_red1]Warning[/]] AI回复内容存在问题:",error_content,"\n")
 
                         # 检查一下是不是模型退化
                         if error_content == "AI回复内容出现高频词,并重新翻译":
-                            print("\033[1;33mWarning:\033[0m 下次请求将修改参数，回避高频词输出","\n")
+                            print("[[orange_red1]Warning[/]] 下次请求将修改参数，回避高频词输出","\n")
                             model_degradation = True
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("\033[1;33mWarning:\033[0m 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
+                        print("[[orange_red1]Warning[/]] 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
                         if Wrong_answer_count > configurator.retry_count_limit :
-                            print("\033[1;33mWarning:\033[0m 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
+                            print("[[orange_red1]Warning[/]] 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
                             break
 
 
@@ -2349,7 +2332,7 @@ class Api_Requester():
 
     #子线程抛出错误信息
         except Exception as e:
-            print("\033[1;31mError:\033[0m 子线程运行出现问题！错误信息如下")
+            print("[[red]Error[/]] 子线程运行出现问题！错误信息如下")
             print(f"Error: {e}\n")
             return
 
@@ -2367,7 +2350,7 @@ class Api_Requester():
 class User_Interface_Prompter(QObject):
     signal = pyqtSignal(str,str,int) #创建信号,并确定发送参数类型
 
-    def __init__(self):
+    def __init__(self, app_fluent_window):
        super().__init__()  # 调用父类的构造函数
        self.stateTooltip = None # 存储翻译状态控件
        self.total_text_line_count = 0 # 存储总文本行数
@@ -2388,26 +2371,26 @@ class User_Interface_Prompter(QObject):
                 self.translation_start_time = time.time()
                 self.translated_token_count_this_run = 0
                 self.translated_line_count_this_run = 0
-                self.stateTooltip = StateToolTip(" 正在进行翻译中，客官请耐心等待哦~~", "　　　当前任务开始于 " + datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S"), Main_Window)
+                self.stateTooltip = StateToolTip(" 正在进行翻译中，客官请耐心等待哦~~", "　　　当前任务开始于 " + datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S"), app_fluent_window)
                 self.stateTooltip.move(510, 30) # 设定控件的出现位置，该位置是传入的Window窗口的位置
                 self.stateTooltip.show()
                 # 翻译状态改变
-                Main_Window.Widget_start_translation.A_settings.running_status.setText("正在翻译中")
+                app_fluent_window.Widget_start_translation.A_settings.running_status.setText("正在翻译中")
 
 
             elif input_str2 == "翻译暂停":
-                print("\033[1;33mWarning:\033[0m 翻译任务已被暂停-----------------------","\n")
+                print("[[orange_red1]Warning[/]] 翻译任务已被暂停-----------------------","\n")
                 self.stateTooltip.setContent('翻译已暂停')
                 self.stateTooltip.setState(True)
                 self.stateTooltip = None
                 # 翻译状态改变
-                Main_Window.Widget_start_translation.A_settings.running_status.setText("已暂停翻译")
-                Main_Window.Widget_start_translation.A_settings.thread_count.setText("0")
+                app_fluent_window.Widget_start_translation.A_settings.running_status.setText("已暂停翻译")
+                app_fluent_window.Widget_start_translation.A_settings.thread_count.setText("0")
                 # 界面提示
                 self.createSuccessInfoBar("翻译任务已全部暂停")
 
             elif input_str2 == "翻译取消":
-                print("\033[1;33mWarning:\033[0m 翻译任务已被取消-----------------------","\n")
+                print("[[orange_red1]Warning[/]] 翻译任务已被取消-----------------------","\n")
                 self.stateTooltip.setContent('翻译已取消')
                 self.stateTooltip.setState(True)
                 self.stateTooltip = None
@@ -2415,18 +2398,18 @@ class User_Interface_Prompter(QObject):
                 self.createSuccessInfoBar("翻译任务已全部取消")
 
                 # 翻译状态改变
-                Main_Window.Widget_start_translation.A_settings.running_status.setText("已取消翻译")
+                app_fluent_window.Widget_start_translation.A_settings.running_status.setText("已取消翻译")
                 #重置翻译界面数据
-                Main_Window.Widget_start_translation.A_settings.translation_project.setText("无")
-                Main_Window.Widget_start_translation.A_settings.project_id.setText("无")
-                Main_Window.Widget_start_translation.A_settings.total_text_line_count.setText("无")
-                Main_Window.Widget_start_translation.A_settings.translated_line_count.setText("无")
-                Main_Window.Widget_start_translation.A_settings.tokens_spent.setText("无")
-                Main_Window.Widget_start_translation.A_settings.amount_spent.setText("无")
-                Main_Window.Widget_start_translation.A_settings.thread_count.setText("无")
-                Main_Window.Widget_start_translation.A_settings.translation_speed_token.setText("无")
-                Main_Window.Widget_start_translation.A_settings.translation_speed_line.setText("无")
-                Main_Window.Widget_start_translation.A_settings.progressRing.setValue(0)
+                app_fluent_window.Widget_start_translation.A_settings.translation_project.setText("无")
+                app_fluent_window.Widget_start_translation.A_settings.project_id.setText("无")
+                app_fluent_window.Widget_start_translation.A_settings.total_text_line_count.setText("无")
+                app_fluent_window.Widget_start_translation.A_settings.translated_line_count.setText("无")
+                app_fluent_window.Widget_start_translation.A_settings.tokens_spent.setText("无")
+                app_fluent_window.Widget_start_translation.A_settings.amount_spent.setText("无")
+                app_fluent_window.Widget_start_translation.A_settings.thread_count.setText("无")
+                app_fluent_window.Widget_start_translation.A_settings.translation_speed_token.setText("无")
+                app_fluent_window.Widget_start_translation.A_settings.translation_speed_line.setText("无")
+                app_fluent_window.Widget_start_translation.A_settings.progressRing.setValue(0)
 
 
             elif input_str2 == "翻译完成":
@@ -2435,55 +2418,52 @@ class User_Interface_Prompter(QObject):
                 self.stateTooltip = None
 
                 # 翻译状态改变
-                Main_Window.Widget_start_translation.A_settings.running_status.setText("翻译已完成")
+                app_fluent_window.Widget_start_translation.A_settings.running_status.setText("翻译已完成")
                 # 子线程数为0
-                Main_Window.Widget_start_translation.A_settings.thread_count.setText("0")
+                app_fluent_window.Widget_start_translation.A_settings.thread_count.setText("0")
                 #隐藏继续翻译按钮
-                Main_Window.Widget_start_translation.A_settings.primaryButton_continue_translation.hide()
+                app_fluent_window.Widget_start_translation.A_settings.primaryButton_continue_translation.hide()
                 #隐藏暂停翻译按钮
-                Main_Window.Widget_start_translation.A_settings.primaryButton_pause_translation.hide()
+                app_fluent_window.Widget_start_translation.A_settings.primaryButton_pause_translation.hide()
                 #显示开始翻译按钮
-                Main_Window.Widget_start_translation.A_settings.primaryButton_start_translation.show()
+                app_fluent_window.Widget_start_translation.A_settings.primaryButton_start_translation.show()
 
         elif input_str1 == "运行状态改变":
             # 运行状态改变
-            Main_Window.Widget_start_translation.A_settings.running_status.setText(input_str2)
+            app_fluent_window.Widget_start_translation.A_settings.running_status.setText(input_str2)
 
 
         elif input_str1 == "接口测试结果":
-            if input_str2 == "测试成功":
-                self.createSuccessInfoBar("全部Apikey请求测试成功")
-            else:
-                self.createErrorInfoBar("存在Apikey请求测试失败")
-
+            if self.on_api_test_done:
+                self.on_api_test_done(input_str2 == "测试成功")
 
         elif input_str1 == "初始化翻译界面数据":
             # 更新翻译项目信息
             translation_project = configurator.translation_project
-            Main_Window.Widget_start_translation.A_settings.translation_project.setText(translation_project)
+            app_fluent_window.Widget_start_translation.A_settings.translation_project.setText(translation_project)
 
             # 更新项目ID信息
-            Main_Window.Widget_start_translation.A_settings.project_id.setText(input_str2)
+            app_fluent_window.Widget_start_translation.A_settings.project_id.setText(input_str2)
 
             # 更新需要翻译的文本行数信息
             self.total_text_line_count = iunput_int1 #存储总文本行数
-            Main_Window.Widget_start_translation.A_settings.total_text_line_count.setText(str(self.total_text_line_count))
+            app_fluent_window.Widget_start_translation.A_settings.total_text_line_count.setText(str(self.total_text_line_count))
 
             # 翻译状态改变
-            Main_Window.Widget_start_translation.A_settings.running_status.setText("正在翻译中")
+            app_fluent_window.Widget_start_translation.A_settings.running_status.setText("正在翻译中")
 
             # 获取当前所有存活的线程
             alive_threads = threading.enumerate()
             self.num_worker_threads = len(alive_threads) - 2  # 减去主线程与一个子线程
-            Main_Window.Widget_start_translation.A_settings.thread_count.setText(str(self.num_worker_threads))
+            app_fluent_window.Widget_start_translation.A_settings.thread_count.setText(str(self.num_worker_threads))
 
             # 其他信息设置为0
-            Main_Window.Widget_start_translation.A_settings.translated_line_count.setText("0")
-            Main_Window.Widget_start_translation.A_settings.tokens_spent.setText("0")
-            Main_Window.Widget_start_translation.A_settings.amount_spent.setText("0")
-            Main_Window.Widget_start_translation.A_settings.translation_speed_token.setText("0")
-            Main_Window.Widget_start_translation.A_settings.translation_speed_line.setText("0")
-            Main_Window.Widget_start_translation.A_settings.progressRing.setValue(0)
+            app_fluent_window.Widget_start_translation.A_settings.translated_line_count.setText("0")
+            app_fluent_window.Widget_start_translation.A_settings.tokens_spent.setText("0")
+            app_fluent_window.Widget_start_translation.A_settings.amount_spent.setText("0")
+            app_fluent_window.Widget_start_translation.A_settings.translation_speed_token.setText("0")
+            app_fluent_window.Widget_start_translation.A_settings.translation_speed_line.setText("0")
+            app_fluent_window.Widget_start_translation.A_settings.progressRing.setValue(0)
 
             # 初始化存储的数值
             self.translated_line_count = 0 
@@ -2498,34 +2478,34 @@ class User_Interface_Prompter(QObject):
         elif input_str1 == "重置界面数据":
 
             #重置翻译界面数据
-            Main_Window.Widget_start_translation.A_settings.translation_project.setText("无")
-            Main_Window.Widget_start_translation.A_settings.project_id.setText("无")
-            Main_Window.Widget_start_translation.A_settings.total_text_line_count.setText("无")
-            Main_Window.Widget_start_translation.A_settings.translated_line_count.setText("无")
-            Main_Window.Widget_start_translation.A_settings.translation_speed_token.setText("无")
-            Main_Window.Widget_start_translation.A_settings.translation_speed_line.setText("无")
-            Main_Window.Widget_start_translation.A_settings.tokens_spent.setText("无")
-            Main_Window.Widget_start_translation.A_settings.amount_spent.setText("无")
-            Main_Window.Widget_start_translation.A_settings.thread_count.setText("无")
-            Main_Window.Widget_start_translation.A_settings.progressRing.setValue(0)
+            app_fluent_window.Widget_start_translation.A_settings.translation_project.setText("无")
+            app_fluent_window.Widget_start_translation.A_settings.project_id.setText("无")
+            app_fluent_window.Widget_start_translation.A_settings.total_text_line_count.setText("无")
+            app_fluent_window.Widget_start_translation.A_settings.translated_line_count.setText("无")
+            app_fluent_window.Widget_start_translation.A_settings.translation_speed_token.setText("无")
+            app_fluent_window.Widget_start_translation.A_settings.translation_speed_line.setText("无")
+            app_fluent_window.Widget_start_translation.A_settings.tokens_spent.setText("无")
+            app_fluent_window.Widget_start_translation.A_settings.amount_spent.setText("无")
+            app_fluent_window.Widget_start_translation.A_settings.thread_count.setText("无")
+            app_fluent_window.Widget_start_translation.A_settings.progressRing.setValue(0)
 
 
         elif input_str1 == "更新翻译界面数据":
             elapsed_time_this_run = time.time() - self.translation_start_time
 
-            Main_Window.Widget_start_translation.A_settings.translated_line_count.setText(str(self.translated_line_count))
+            app_fluent_window.Widget_start_translation.A_settings.translated_line_count.setText(str(self.translated_line_count))
 
-            Main_Window.Widget_start_translation.A_settings.translation_speed_token.setText(f"{self.translated_token_count_this_run / elapsed_time_this_run:.2f}")
-            Main_Window.Widget_start_translation.A_settings.translation_speed_line.setText(f"{self.translated_line_count_this_run / elapsed_time_this_run:.2f}")
+            app_fluent_window.Widget_start_translation.A_settings.translation_speed_token.setText(f"{self.translated_token_count_this_run / elapsed_time_this_run:.2f}")
+            app_fluent_window.Widget_start_translation.A_settings.translation_speed_line.setText(f"{self.translated_line_count_this_run / elapsed_time_this_run:.2f}")
 
-            Main_Window.Widget_start_translation.A_settings.tokens_spent.setText(str(self.tokens_spent))
+            app_fluent_window.Widget_start_translation.A_settings.tokens_spent.setText(str(self.tokens_spent))
 
-            Main_Window.Widget_start_translation.A_settings.amount_spent.setText(str(self.amount_spent))
+            app_fluent_window.Widget_start_translation.A_settings.amount_spent.setText(str(self.amount_spent))
 
-            Main_Window.Widget_start_translation.A_settings.thread_count.setText(str(self.num_worker_threads))
+            app_fluent_window.Widget_start_translation.A_settings.thread_count.setText(str(self.num_worker_threads))
 
             progress = int(round(self.progress, 0))
-            Main_Window.Widget_start_translation.A_settings.progressRing.setValue(progress)
+            app_fluent_window.Widget_start_translation.A_settings.progressRing.setValue(progress)
 
     
     # 更新翻译进度数据
@@ -2575,7 +2555,7 @@ class User_Interface_Prompter(QObject):
             isClosable=True,
             position=InfoBarPosition.TOP,
             duration=2000,
-            parent=Main_Window
+            parent=app_fluent_window
             )
 
     #错误信息右下方弹出框函数
@@ -2587,7 +2567,7 @@ class User_Interface_Prompter(QObject):
             isClosable=True,
             position=InfoBarPosition.BOTTOM_RIGHT,
             duration=-1,    # won't disappear automatically
-            parent=Main_Window
+            parent=app_fluent_window
             )
 
     #提醒信息左上角弹出框函数
@@ -2599,7 +2579,7 @@ class User_Interface_Prompter(QObject):
             isClosable=False,   # disable close button
             position=InfoBarPosition.TOP_LEFT,
             duration=2000,
-            parent=Main_Window
+            parent=app_fluent_window
             )
 
 
@@ -2609,122 +2589,10 @@ class User_Interface_Prompter(QObject):
         if mode == "write":
             # 存储配置信息的字典
             config_dict = {}
-            
-            #获取OpenAI官方账号界面
-            config_dict["openai_account_type"] = Main_Window.Widget_Openai.comboBox_account_type.currentText()      #获取账号类型下拉框当前选中选项的值
-            config_dict["openai_model_type"] =  Main_Window.Widget_Openai.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
-            config_dict["openai_API_key_str"] = Main_Window.Widget_Openai.TextEdit_apikey.toPlainText()        #获取apikey输入值
-            config_dict["openai_proxy_port"] = Main_Window.Widget_Openai.LineEdit_proxy_port.text()            #获取代理端口
-            
-
-            #Google官方账号界面
-            config_dict["google_account_type"] = Main_Window.Widget_Google.comboBox_account_type.currentText()      #获取账号类型下拉框当前选中选项的值
-            config_dict["google_model_type"] =  Main_Window.Widget_Google.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
-            config_dict["google_API_key_str"] = Main_Window.Widget_Google.TextEdit_apikey.toPlainText()        #获取apikey输入值
-            config_dict["google_proxy_port"] = Main_Window.Widget_Google.LineEdit_proxy_port.text()            #获取代理端口
-
-            #Anthropic官方账号界面
-            config_dict["anthropic_account_type"] = Main_Window.Widget_Anthropic.comboBox_account_type.currentText()      #获取账号类型下拉框当前选中选项的值
-            config_dict["anthropic_model_type"] =  Main_Window.Widget_Anthropic.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
-            config_dict["anthropic_API_key_str"] = Main_Window.Widget_Anthropic.TextEdit_apikey.toPlainText()        #获取apikey输入值
-            config_dict["anthropic_proxy_port"] = Main_Window.Widget_Anthropic.LineEdit_proxy_port.text()            #获取代理端口
-
-
-            #获取Cohere官方账号界面
-            config_dict["cohere_account_type"] = Main_Window.Widget_Cohere.comboBox_account_type.currentText()      #获取账号类型下拉框当前选中选项的值
-            config_dict["cohere_model_type"] =  Main_Window.Widget_Cohere.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
-            config_dict["cohere_API_key_str"] = Main_Window.Widget_Cohere.TextEdit_apikey.toPlainText()        #获取apikey输入值
-            config_dict["cohere_proxy_port"] = Main_Window.Widget_Cohere.LineEdit_proxy_port.text()            #获取代理端口
-
-
-            #获取moonshot官方账号界面
-            config_dict["moonshot_account_type"] = Main_Window.Widget_Moonshot.comboBox_account_type.currentText()      #获取账号类型下拉框当前选中选项的值
-            config_dict["moonshot_model_type"] =  Main_Window.Widget_Moonshot.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
-            config_dict["moonshot_API_key_str"] = Main_Window.Widget_Moonshot.TextEdit_apikey.toPlainText()        #获取apikey输入值
-            config_dict["moonshot_proxy_port"] = Main_Window.Widget_Moonshot.LineEdit_proxy_port.text()            #获取代理端口
-
-            #获取deepseek官方账号界面
-            config_dict["deepseek_model_type"] =  Main_Window.Widget_Deepseek.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
-            config_dict["deepseek_API_key_str"] = Main_Window.Widget_Deepseek.TextEdit_apikey.toPlainText()        #获取apikey输入值
-            config_dict["deepseek_proxy_port"] = Main_Window.Widget_Deepseek.LineEdit_proxy_port.text()            #获取代理端口
-
-            #获取dashscope官方账号界面
-            config_dict["dashscope_model_type"] =  Main_Window.Widget_Dashscope.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
-            config_dict["dashscope_API_key_str"] = Main_Window.Widget_Dashscope.TextEdit_apikey.toPlainText()        #获取apikey输入值
-            config_dict["dashscope_proxy_port"] = Main_Window.Widget_Dashscope.LineEdit_proxy_port.text()            #获取代理端口
-
-            
-            #获取零一万物官方账号界面
-            config_dict["yi_account_type"] = Main_Window.Widget_Yi.comboBox_account_type.currentText()      #获取账号类型下拉框当前选中选项的值
-            config_dict["yi_model_type"] =  Main_Window.Widget_Yi.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
-            config_dict["yi_API_key_str"] = Main_Window.Widget_Yi.TextEdit_apikey.toPlainText()        #获取apikey输入值
-            config_dict["yi_proxy_port"] = Main_Window.Widget_Yi.LineEdit_proxy_port.text()            #获取代理端口
-            
-
-
-            #智谱官方界面
-            config_dict["zhipu_account_type"] = Main_Window.Widget_ZhiPu.comboBox_account_type.currentText()      #获取账号类型下拉框当前选中选项的值
-            config_dict["zhipu_model_type"] =  Main_Window.Widget_ZhiPu.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
-            config_dict["zhipu_API_key_str"] = Main_Window.Widget_ZhiPu.TextEdit_apikey.toPlainText()        #获取apikey输入值
-            config_dict["zhipu_proxy_port"] = Main_Window.Widget_ZhiPu.LineEdit_proxy_port.text()            #获取代理端口
-
-
-            #获取火山账号界面
-            config_dict["volcengine_access_point"] = Main_Window.Widget_Volcengine.A_settings.LineEdit_access_point.text()                  #获取推理接入点
-            config_dict["volcengine_API_key_str"] = Main_Window.Widget_Volcengine.A_settings.TextEdit_apikey.toPlainText()        #获取apikey输入值
-            config_dict["volcengine_proxy_port"] = Main_Window.Widget_Volcengine.A_settings.LineEdit_proxy_port.text()            #获取代理端口
-            config_dict["volcengine_tokens_limit"] = Main_Window.Widget_Volcengine.B_settings.spinBox_tokens.value()               #获取tokens限制值
-            config_dict["volcengine_rpm_limit"] = Main_Window.Widget_Volcengine.B_settings.spinBox_RPM.value()               #获取rpm限制值
-            config_dict["volcengine_tpm_limit"] = Main_Window.Widget_Volcengine.B_settings.spinBox_TPM.value()               #获取tpm限制值
-            config_dict["volcengine_input_pricing"] = Main_Window.Widget_Volcengine.B_settings.spinBox_input_pricing.value()               #获取输入价格
-            config_dict["volcengine_output_pricing"] = Main_Window.Widget_Volcengine.B_settings.spinBox_output_pricing.value()               #获取输出价格
-
-
-
-            #获取代理账号设置界面
-            config_dict["op_relay_address"] = Main_Window.Widget_Proxy.A_settings.LineEdit_relay_address.text()                  #获取请求地址
-            config_dict["op_proxy_platform"] = Main_Window.Widget_Proxy.A_settings.comboBox_proxy_platform.currentText()       # 获取代理平台
-            config_dict["op_model_type_openai"] =  Main_Window.Widget_Proxy.A_settings.comboBox_model_openai.currentText()      #获取openai的模型类型下拉框当前选中选项的值
-            config_dict["op_model_type_anthropic"] =  Main_Window.Widget_Proxy.A_settings.comboBox_model_anthropic.currentText()      #获取anthropic的模型类型下拉框当前选中选项的值        
-            config_dict["op_API_key_str"] = Main_Window.Widget_Proxy.A_settings.TextEdit_apikey.toPlainText()        #获取apikey输入值
-            config_dict["op_proxy_port"]  = Main_Window.Widget_Proxy.A_settings.LineEdit_proxy_port.text()               #获取代理端口
-            config_dict["op_auto_complete"]  = Main_Window.Widget_Proxy.A_settings.SwitchButton_auto_complete.isChecked()              #获取自动补全开关
-            config_dict["op_tokens_limit"] = Main_Window.Widget_Proxy.B_settings.spinBox_tokens.value()               #获取tokens限制值
-            config_dict["op_rpm_limit"] = Main_Window.Widget_Proxy.B_settings.spinBox_RPM.value()               #获取rpm限制值
-            config_dict["op_tpm_limit"] = Main_Window.Widget_Proxy.B_settings.spinBox_TPM.value()               #获取tpm限制值
-            config_dict["op_input_pricing"] = Main_Window.Widget_Proxy.B_settings.spinBox_input_pricing.value()               #获取输入价格
-            config_dict["op_output_pricing"] = Main_Window.Widget_Proxy.B_settings.spinBox_output_pricing.value()               #获取输出价格
-
-
-            # 获取额外代理平台配置信息
-            config_dict["additional_platform_count"] = configurator.additional_platform_count
-            config_dict["additional_platform_dict"] = configurator.additional_platform_dict
-            for key, value in configurator.additional_platform_dict.items():
-                object_Name = key
-                config_dict[object_Name] = {} # 创建次级字典
-                config_dict[object_Name]["op_platform_name"] = value 
-                config_dict[object_Name]["op_relay_address"] = configurator.instances_information[object_Name].A_settings.LineEdit_relay_address.text()                  #获取请求地址
-                config_dict[object_Name]["op_proxy_platform"] = configurator.instances_information[object_Name].A_settings.comboBox_proxy_platform.currentText()       # 获取代理平台
-                config_dict[object_Name]["op_model_type_openai"] =  configurator.instances_information[object_Name].A_settings.comboBox_model_openai.currentText()      #获取openai的模型类型下拉框当前选中选项的值
-                config_dict[object_Name]["op_model_type_anthropic"] =  configurator.instances_information[object_Name].A_settings.comboBox_model_anthropic.currentText()      #获取anthropic的模型类型下拉框当前选中选项的值        
-                config_dict[object_Name]["op_API_key_str"] = configurator.instances_information[object_Name].A_settings.TextEdit_apikey.toPlainText()        #获取apikey输入值
-                config_dict[object_Name]["op_proxy_port"]  = configurator.instances_information[object_Name].A_settings.LineEdit_proxy_port.text()               #获取代理端口
-                config_dict[object_Name]["op_auto_complete"] = configurator.instances_information[object_Name].A_settings.SwitchButton_auto_complete.isChecked()               #获取自动补全开关
-                config_dict[object_Name]["op_tokens_limit"] = configurator.instances_information[object_Name].B_settings.spinBox_tokens.value()               #获取tokens限制值
-                config_dict[object_Name]["op_rpm_limit"] = configurator.instances_information[object_Name].B_settings.spinBox_RPM.value()               #获取rpm限制值
-                config_dict[object_Name]["op_tpm_limit"] = configurator.instances_information[object_Name].B_settings.spinBox_TPM.value()               #获取tpm限制值
-                config_dict[object_Name]["op_input_pricing"] = configurator.instances_information[object_Name].B_settings.spinBox_input_pricing.value()               #获取输入价格
-                config_dict[object_Name]["op_output_pricing"] = configurator.instances_information[object_Name].B_settings.spinBox_output_pricing.value()               #获取输出价格
-
-
-            #Sakura界面
-            config_dict["sakura_address"] = Main_Window.Widget_SakuraLLM.LineEdit_address.text()                  #获取请求地址
-            config_dict["sakura_model_type"] =  Main_Window.Widget_SakuraLLM.comboBox_model.currentText()      #获取模型类型下拉框当前选中选项的值
-            config_dict["sakura_proxy_port"] = Main_Window.Widget_SakuraLLM.LineEdit_proxy_port.text()            #获取代理端口
 
 
             #开始翻译的备份设置界面
-            config_dict["auto_backup_toggle"] =  Main_Window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
+            config_dict["auto_backup_toggle"] =  app_fluent_window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
 
 
             # 将所有的配置信息写入config.json文件中
@@ -2747,306 +2615,25 @@ class User_Interface_Prompter(QObject):
                     config_dict = json.load(f)
 
                 #将config.json中的值赋予到变量中,并set到界面上
-                #OpenAI官方账号界面
-                if "openai_account_type" in config_dict:
-                    Main_Window.Widget_Openai.comboBox_account_type.setCurrentText(config_dict["openai_account_type"])
-                if "openai_model_type" in config_dict:
-                    # 获取配置文件中指定的模型类型
-                    model_type = config_dict["openai_model_type"]
-                    # 检查模型类型是否已经存在于下拉列表中
-                    existing_index = Main_Window.Widget_Openai.comboBox_model.findText(model_type)
-                    # 如果模型类型不存在，则添加到下拉列表中
-                    if existing_index == -1:
-                        Main_Window.Widget_Openai.comboBox_model.addItem(model_type)
-                    # 设置当前文本为配置文件中指定的模型类型
-                    Main_Window.Widget_Openai.comboBox_model.setCurrentText(model_type)
-                if "openai_API_key_str" in config_dict:
-                    Main_Window.Widget_Openai.TextEdit_apikey.setText(config_dict["openai_API_key_str"])
-                if "openai_proxy_port" in config_dict:
-                    Main_Window.Widget_Openai.LineEdit_proxy_port.setText(config_dict["openai_proxy_port"])
-
-                #anthropic官方账号界面
-                if "anthropic_account_type" in config_dict:
-                    Main_Window.Widget_Anthropic.comboBox_account_type.setCurrentText(config_dict["anthropic_account_type"])
-                if "anthropic_model_type" in config_dict:
-                    model_type = config_dict["anthropic_model_type"]
-                    existing_index = Main_Window.Widget_Anthropic.comboBox_model.findText(model_type)
-                    if existing_index == -1:
-                        Main_Window.Widget_Anthropic.comboBox_model.addItem(model_type)
-                    Main_Window.Widget_Anthropic.comboBox_model.setCurrentText(model_type)
-                if "anthropic_API_key_str" in config_dict:
-                    Main_Window.Widget_Anthropic.TextEdit_apikey.setText(config_dict["anthropic_API_key_str"])
-                if "anthropic_proxy_port" in config_dict:
-                    Main_Window.Widget_Anthropic.LineEdit_proxy_port.setText(config_dict["anthropic_proxy_port"])
-
-
-                #google官方账号界面
-                if "google_account_type" in config_dict:
-                    Main_Window.Widget_Google.comboBox_account_type.setCurrentText(config_dict["google_account_type"])
-                if "google_model_type" in config_dict:
-                    model_type = config_dict["google_model_type"]
-                    existing_index = Main_Window.Widget_Google.comboBox_model.findText(model_type)
-                    if existing_index == -1:
-                        Main_Window.Widget_Google.comboBox_model.addItem(model_type)
-                    Main_Window.Widget_Google.comboBox_model.setCurrentText(model_type)
-                if "google_API_key_str" in config_dict:
-                    Main_Window.Widget_Google.TextEdit_apikey.setText(config_dict["google_API_key_str"])
-                if "google_proxy_port" in config_dict:
-                    Main_Window.Widget_Google.LineEdit_proxy_port.setText(config_dict["google_proxy_port"])
-
-
-                #Cohere官方账号界面
-                if "cohere_account_type" in config_dict:
-                    Main_Window.Widget_Cohere.comboBox_account_type.setCurrentText(config_dict["cohere_account_type"])
-                if "cohere_model_type" in config_dict:
-                    model_type = config_dict["cohere_model_type"]
-                    existing_index = Main_Window.Widget_Cohere.comboBox_model.findText(model_type)
-                    if existing_index == -1:
-                        Main_Window.Widget_Cohere.comboBox_model.addItem(model_type)
-                    Main_Window.Widget_Cohere.comboBox_model.setCurrentText(model_type)
-                if "cohere_API_key_str" in config_dict:
-                    Main_Window.Widget_Cohere.TextEdit_apikey.setText(config_dict["cohere_API_key_str"])
-                if "cohere_proxy_port" in config_dict:
-                    Main_Window.Widget_Cohere.LineEdit_proxy_port.setText(config_dict["cohere_proxy_port"])
-
-                #moonshot官方账号界面
-                if "moonshot_account_type" in config_dict:
-                    Main_Window.Widget_Moonshot.comboBox_account_type.setCurrentText(config_dict["moonshot_account_type"])
-                if "moonshot_model_type" in config_dict:
-                    model_type = config_dict["moonshot_model_type"]
-                    existing_index = Main_Window.Widget_Moonshot.comboBox_model.findText(model_type)
-                    if existing_index == -1:
-                        Main_Window.Widget_Moonshot.comboBox_model.addItem(model_type)
-                    Main_Window.Widget_Moonshot.comboBox_model.setCurrentText(model_type)
-                if "moonshot_API_key_str" in config_dict:
-                    Main_Window.Widget_Moonshot.TextEdit_apikey.setText(config_dict["moonshot_API_key_str"])
-                if "moonshot_proxy_port" in config_dict:
-                    Main_Window.Widget_Moonshot.LineEdit_proxy_port.setText(config_dict["moonshot_proxy_port"])
-
-                #deepseek官方账号界面
-                if "deepseek_model_type" in config_dict:
-                    model_type = config_dict["deepseek_model_type"]
-                    existing_index = Main_Window.Widget_Deepseek.comboBox_model.findText(model_type)
-                    if existing_index == -1:
-                        Main_Window.Widget_Deepseek.comboBox_model.addItem(model_type)
-                    Main_Window.Widget_Deepseek.comboBox_model.setCurrentText(model_type)
-                if "deepseek_API_key_str" in config_dict:
-                    Main_Window.Widget_Deepseek.TextEdit_apikey.setText(config_dict["deepseek_API_key_str"])
-                if "deepseek_proxy_port" in config_dict:
-                    Main_Window.Widget_Deepseek.LineEdit_proxy_port.setText(config_dict["deepseek_proxy_port"])
-
-                #dashscope官方账号界面
-                if "dashscope_model_type" in config_dict:
-                    model_type = config_dict["dashscope_model_type"]
-                    existing_index = Main_Window.Widget_Dashscope.comboBox_model.findText(model_type)
-                    if existing_index == -1:
-                        Main_Window.Widget_Dashscope.comboBox_model.addItem(model_type)
-                    Main_Window.Widget_Dashscope.comboBox_model.setCurrentText(model_type)
-                if "dashscope_API_key_str" in config_dict:
-                    Main_Window.Widget_Dashscope.TextEdit_apikey.setText(config_dict["dashscope_API_key_str"])
-                if "dashscope_proxy_port" in config_dict:
-                    Main_Window.Widget_Dashscope.LineEdit_proxy_port.setText(config_dict["dashscope_proxy_port"])
-
-
-                #火山官方账号界面
-                if "volcengine_access_point" in config_dict:
-                    Main_Window.Widget_Volcengine.A_settings.LineEdit_access_point.setText(config_dict["volcengine_access_point"])
-                if "volcengine_API_key_str" in config_dict:
-                    Main_Window.Widget_Volcengine.A_settings.TextEdit_apikey.setText(config_dict["volcengine_API_key_str"])
-                if "volcengine_proxy_port" in config_dict:
-                    Main_Window.Widget_Volcengine.A_settings.LineEdit_proxy_port.setText(config_dict["volcengine_proxy_port"])
-                if "volcengine_tokens_limit" in config_dict:
-                    Main_Window.Widget_Volcengine.B_settings.spinBox_tokens.setValue(config_dict["volcengine_tokens_limit"])
-                if "volcengine_rpm_limit" in config_dict:
-                    Main_Window.Widget_Volcengine.B_settings.spinBox_RPM.setValue(config_dict["volcengine_rpm_limit"])
-                if "volcengine_tpm_limit" in config_dict:
-                    Main_Window.Widget_Volcengine.B_settings.spinBox_TPM.setValue(config_dict["volcengine_tpm_limit"])
-                if "volcengine_input_pricing" in config_dict:
-                    Main_Window.Widget_Volcengine.B_settings.spinBox_input_pricing.setValue(config_dict["volcengine_input_pricing"])
-                if "volcengine_output_pricing" in config_dict:
-                    Main_Window.Widget_Volcengine.B_settings.spinBox_output_pricing.setValue(config_dict["volcengine_output_pricing"])
-
-
-                #零一万物官方账号界面
-                if "yi_account_type" in config_dict:
-                    Main_Window.Widget_Yi.comboBox_account_type.setCurrentText(config_dict["yi_account_type"])
-                if "yi_model_type" in config_dict:
-                    model_type = config_dict["yi_model_type"]
-                    existing_index = Main_Window.Widget_Yi.comboBox_model.findText(model_type)
-                    if existing_index == -1:
-                        Main_Window.Widget_Yi.comboBox_model.addItem(model_type)
-                    Main_Window.Widget_Yi.comboBox_model.setCurrentText(model_type)
-                if "yi_API_key_str" in config_dict:
-                    Main_Window.Widget_Yi.TextEdit_apikey.setText(config_dict["yi_API_key_str"])
-                if "yi_proxy_port" in config_dict:
-                    Main_Window.Widget_Yi.LineEdit_proxy_port.setText(config_dict["yi_proxy_port"])
-
-
-                #智谱官方界面
-                if "zhipu_account_type" in config_dict:
-                    Main_Window.Widget_ZhiPu.comboBox_account_type.setCurrentText(config_dict["zhipu_account_type"])
-                if "zhipu_model_type" in config_dict:
-                    model_type = config_dict["zhipu_model_type"]
-                    existing_index = Main_Window.Widget_ZhiPu.comboBox_model.findText(model_type)
-                    if existing_index == -1:
-                        Main_Window.Widget_ZhiPu.comboBox_model.addItem(model_type)
-                    Main_Window.Widget_ZhiPu.comboBox_model.setCurrentText(model_type)
-                if "zhipu_API_key_str" in config_dict:
-                    Main_Window.Widget_ZhiPu.TextEdit_apikey.setText(config_dict["zhipu_API_key_str"])
-                if "zhipu_proxy_port" in config_dict:
-                    Main_Window.Widget_ZhiPu.LineEdit_proxy_port.setText(config_dict["zhipu_proxy_port"])
-
-                #sakura界面
-                if "sakura_address" in config_dict:
-                    Main_Window.Widget_SakuraLLM.LineEdit_address.setText(config_dict["sakura_address"])
-                if "sakura_model_type" in config_dict:
-                    Main_Window.Widget_SakuraLLM.comboBox_model.setCurrentText(config_dict["sakura_model_type"])
-                if "sakura_proxy_port" in config_dict:
-                    Main_Window.Widget_SakuraLLM.LineEdit_proxy_port.setText(config_dict["sakura_proxy_port"])
-
-
-                #代理账号基础界面
-                if "op_relay_address" in config_dict:
-                    Main_Window.Widget_Proxy.A_settings.LineEdit_relay_address.setText(config_dict["op_relay_address"])
-                if "op_proxy_platform" in config_dict:
-                    Main_Window.Widget_Proxy.A_settings.comboBox_proxy_platform.setCurrentText(config_dict["op_proxy_platform"])
-                    # 根据下拉框的索引调用不同的函数
-                    if config_dict["op_proxy_platform"] =="OpenAI":
-                        Main_Window.Widget_Proxy.A_settings.comboBox_model_openai.show()
-                        Main_Window.Widget_Proxy.A_settings.comboBox_model_anthropic.hide()
-                    elif config_dict["op_proxy_platform"] == 'Anthropic':
-                        Main_Window.Widget_Proxy.A_settings.comboBox_model_openai.hide()
-                        Main_Window.Widget_Proxy.A_settings.comboBox_model_anthropic.show()
-                if "op_model_type_openai" in config_dict:
-
-                    # 获取配置文件中指定的模型类型
-                    model_type = config_dict["op_model_type_openai"]
-                    # 检查模型类型是否已经存在于下拉列表中
-                    existing_index = Main_Window.Widget_Proxy.A_settings.comboBox_model_openai.findText(model_type)
-                    # 如果模型类型不存在，则添加到下拉列表中
-                    if existing_index == -1:
-                        Main_Window.Widget_Proxy.A_settings.comboBox_model_openai.addItem(model_type)
-                    # 设置当前文本为配置文件中指定的模型类型
-                    Main_Window.Widget_Proxy.A_settings.comboBox_model_openai.setCurrentText(model_type)
-
-                if "op_model_type_anthropic" in config_dict:
-                    # 获取配置文件中指定的模型类型
-                    model_type = config_dict["op_model_type_anthropic"]
-                    # 检查模型类型是否已经存在于下拉列表中
-                    existing_index = Main_Window.Widget_Proxy.A_settings.comboBox_model_anthropic.findText(model_type)
-                    # 如果模型类型不存在，则添加到下拉列表中
-                    if existing_index == -1:
-                        Main_Window.Widget_Proxy.A_settings.comboBox_model_anthropic.addItem(model_type)
-                    # 设置当前文本为配置文件中指定的模型类型
-                    Main_Window.Widget_Proxy.A_settings.comboBox_model_anthropic.setCurrentText(model_type)
-
-                if "op_auto_complete" in config_dict:
-                    Main_Window.Widget_Proxy.A_settings.SwitchButton_auto_complete.setChecked(config_dict["op_auto_complete"])
-                if "op_API_key_str" in config_dict:
-                    Main_Window.Widget_Proxy.A_settings.TextEdit_apikey.setText(config_dict["op_API_key_str"])
-                if "op_proxy_port" in config_dict:
-                    Main_Window.Widget_Proxy.A_settings.LineEdit_proxy_port.setText(config_dict["op_proxy_port"])
-
-
-                #代理账号进阶界面
-                if "op_tokens_limit" in config_dict:
-                    Main_Window.Widget_Proxy.B_settings.spinBox_tokens.setValue(config_dict["op_tokens_limit"])
-                if "op_rpm_limit" in config_dict:
-                    Main_Window.Widget_Proxy.B_settings.spinBox_RPM.setValue(config_dict["op_rpm_limit"])
-                if "op_tpm_limit" in config_dict:
-                    Main_Window.Widget_Proxy.B_settings.spinBox_TPM.setValue(config_dict["op_tpm_limit"])
-                if "op_input_pricing" in config_dict:
-                    Main_Window.Widget_Proxy.B_settings.spinBox_input_pricing.setValue(config_dict["op_input_pricing"])
-                if "op_output_pricing" in config_dict:
-                    Main_Window.Widget_Proxy.B_settings.spinBox_output_pricing.setValue(config_dict["op_output_pricing"])
-
-
-                if "additional_platform_dict" in config_dict:
-                    configurator.additional_platform_count = config_dict["additional_platform_count"]
-                    configurator.additional_platform_dict = config_dict["additional_platform_dict"]
-                    for key, value in configurator.additional_platform_dict.items():
-                        # 获取索引对象名
-                        object_name = key
-
-                        # 创建动态名实例,并存入字典里
-                        Widget_New = configurator.instances_information[object_name] = Widget_New_proxy(object_name, None,configurator,user_interface_prompter,background_executor)
-
-                        # 获取平台显示名
-                        object_name_cn = value
-
-                        # 添加新导航项(这里使用子函数，是因为lambda不能循环使用，会导致指向同一个页面)
-                        Main_Window.add_sub_interface(Widget_New,object_name,object_name_cn)
-
-                        #代理账号基础界面
-                        Widget_New.A_settings.LineEdit_relay_address.setText(config_dict[object_name]["op_relay_address"])
-                        Widget_New.A_settings.comboBox_proxy_platform.setCurrentText(config_dict[object_name]["op_proxy_platform"])
-                        # 根据下拉框的索引调用不同的函数
-                        if config_dict[object_name]["op_proxy_platform"] =="OpenAI":
-                            Widget_New.A_settings.comboBox_model_openai.show()
-                            Widget_New.A_settings.comboBox_model_anthropic.hide()
-                        elif config_dict[object_name]["op_proxy_platform"] == 'Anthropic':
-                            Widget_New.A_settings.comboBox_model_openai.hide()
-                            Widget_New.A_settings.comboBox_model_anthropic.show()
-
-                        # 获取配置文件中指定的模型类型
-                        model_type = config_dict[object_name]["op_model_type_openai"]
-                        # 检查模型类型是否已经存在于下拉列表中
-                        existing_index = Widget_New.A_settings.comboBox_model_openai.findText(model_type)
-                        # 如果模型类型不存在，则添加到下拉列表中
-                        if existing_index == -1:
-                            Widget_New.A_settings.comboBox_model_openai.addItem(model_type)
-                        # 设置当前文本为配置文件中指定的模型类型
-                        Widget_New.A_settings.comboBox_model_openai.setCurrentText(model_type)
-
-                        # 获取配置文件中指定的模型类型
-                        model_type = config_dict[object_name]["op_model_type_anthropic"]
-                        # 检查模型类型是否已经存在于下拉列表中
-                        existing_index = Widget_New.A_settings.comboBox_model_anthropic.findText(model_type)
-                        # 如果模型类型不存在，则添加到下拉列表中
-                        if existing_index == -1:
-                            Widget_New.A_settings.comboBox_model_anthropic.addItem(model_type)
-                        # 设置当前文本为配置文件中指定的模型类型
-                        Widget_New.A_settings.comboBox_model_anthropic.setCurrentText(model_type)
-
-                            
-                        Widget_New.A_settings.TextEdit_apikey.setText(config_dict[object_name]["op_API_key_str"])
-                        Widget_New.A_settings.LineEdit_proxy_port.setText(config_dict[object_name]["op_proxy_port"])
-                        Widget_New.A_settings.SwitchButton_auto_complete.setChecked(config_dict[object_name]["op_auto_complete"])
-
-                        Widget_New.B_settings.spinBox_tokens.setValue(config_dict[object_name]["op_tokens_limit"])
-                        Widget_New.B_settings.spinBox_RPM.setValue(config_dict[object_name]["op_rpm_limit"])
-                        Widget_New.B_settings.spinBox_TPM.setValue(config_dict[object_name]["op_tpm_limit"])
-                        Widget_New.B_settings.spinBox_input_pricing.setValue(config_dict[object_name]["op_input_pricing"])
-                        Widget_New.B_settings.spinBox_output_pricing.setValue(config_dict[object_name]["op_output_pricing"])
-
-
                 #开始翻译的备份设置界面
                 if "auto_backup_toggle" in config_dict:
-                    Main_Window.Widget_start_translation.B_settings.checkBox_switch.setChecked(config_dict["auto_backup_toggle"])
-
-
-    # 删除导航项及平台选项及配置信息
-    def del_proxy_option(self,object_name):
-
-        # 删除导航项
-        Main_Window.del_Interface(object_name)
-
-
-        # 删除平台选项
-        if object_name in configurator.additional_platform_dict:
-            platform_name = configurator.additional_platform_dict[object_name]
-        else:
-            return 0
-
-
-        # 删除配置信息
-        configurator.additional_platform_count = configurator.additional_platform_count - 1
-        configurator.additional_platform_dict.pop(object_name)
+                    app_fluent_window.Widget_start_translation.B_settings.checkBox_switch.setChecked(config_dict["auto_backup_toggle"])
 
 
 # 任务执行器
 class background_executor(threading.Thread): 
-    def __init__(self, task_id = None,input_folder = None,output_folder= None,platform= None,base_url= None,model= None,api_key= None,proxy_port= None):
+    def __init__(self,
+        task_id = None,
+        input_folder = None,
+        output_folder = None,
+        platform = None,
+        base_url = None,
+        model = None,
+        api_key = None,
+        proxy_port = None,
+        api_format = None,
+        callback = None
+    ):
         super().__init__() # 调用父类构造
         self.task_id = task_id
         self.input_folder = input_folder
@@ -3056,6 +2643,8 @@ class background_executor(threading.Thread):
         self.model = model
         self.api_key = api_key
         self.proxy_port = proxy_port
+        self.api_format = api_format
+        self.callback = callback
 
     def run(self):
         # 执行翻译
@@ -3090,15 +2679,24 @@ class background_executor(threading.Thread):
 
         # 执行接口测试
         elif self.task_id == "接口测试":
-
             configurator.Running_status = 1
-            Request_Tester.request_test(self,user_interface_prompter,self.platform,self.base_url,self.model,self.api_key,self.proxy_port)
+            user_interface_prompter.on_api_test_done = self.callback # 设置回调函数
+            Request_Tester.request_test(
+                self,
+                user_interface_prompter,
+                self.platform,
+                self.base_url,
+                self.model,
+                self.api_key,
+                self.proxy_port,
+                self.api_format
+            )
             configurator.Running_status = 0
 
         # 输出缓存文件实现函数
         elif self.task_id == "输出缓存文件":
             File_Outputter.output_cache_file(self,configurator.cache_list,self.output_folder)
-            print('\033[1;32mSuccess:\033[0m 已输出缓存文件到文件夹')
+            print('[[green]Success[/]] 已输出缓存文件到文件夹')
 
         # 输出已翻译文件实现函数
         elif self.task_id == "输出已翻译文件":
@@ -3107,14 +2705,14 @@ class background_executor(threading.Thread):
             try:
                 new_cache_data = copy.deepcopy(configurator.cache_list)
             except:
-                print("[INFO]: 无法正常进行深层复制,改为浅复制")
+                print("[[green]INFO[/]]: 无法正常进行深层复制,改为浅复制")
                 new_cache_data = configurator.cache_list.copy()
 
             # 调用插件
             plugin_manager.broadcast_event("manual_export", configurator,new_cache_data)
 
             File_Outputter.output_translated_content(self,new_cache_data,self.output_folder,self.input_folder)
-            print('\033[1;32mSuccess:\033[0m 已输出已翻译文件到文件夹')
+            print('[[green]Success[/]] 已输出已翻译文件到文件夹')
 
 
     # 开始翻译判断函数
@@ -3134,7 +2732,7 @@ class background_executor(threading.Thread):
 
         else :
             user_interface_prompter.createWarningInfoBar("正在清理线程中，请耐心等待一会")
-            print("\033[1;33mWarning:\033[0m 多线程任务正清理中，请耐心等待一会","\n")
+            print("[[orange_red1]Warning[/]] 多线程任务正清理中，请耐心等待一会","\n")
             return False
 
 
@@ -3143,7 +2741,7 @@ class background_executor(threading.Thread):
         configurator.Running_status = 9
         user_interface_prompter.createWarningInfoBar("软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！")
         user_interface_prompter.signal.emit("运行状态改变","正在取消线程任务中",0)
-        print("\033[1;33mWarning:\033[0m 软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！-----------------------","\n")
+        print("[[orange_red1]Warning[/]] 软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！-----------------------","\n")
 
 
     # 取消翻译判断+实现函数
@@ -3154,13 +2752,13 @@ class background_executor(threading.Thread):
             configurator.Running_status = 11
             user_interface_prompter.createWarningInfoBar("软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！")
             user_interface_prompter.signal.emit("运行状态改变","正在取消线程任务中",0)
-            print("\033[1;33mWarning:\033[0m 软件的多线程任务正在逐一取消中，请等待全部翻译任务释放完成！！！-----------------------","\n")
+            print("[[orange_red1]Warning[/]] 软件的多线程任务正在逐一取消中，请等待全部翻译任务释放完成！！！-----------------------","\n")
 
         # 如果已经暂停翻译
         elif configurator.Running_status == 10:
 
             configurator.Running_status = 0
-            print("\033[1;33mWarning:\033[0m 翻译任务已取消-----------------------","\n")
+            print("[[orange_red1]Warning[/]] 翻译任务已取消-----------------------","\n")
             # 界面提示
             user_interface_prompter.createWarningInfoBar("翻译已取消")
             user_interface_prompter.signal.emit("重置界面数据","翻译取消",0)
@@ -3170,7 +2768,7 @@ class background_executor(threading.Thread):
         elif configurator.Running_status == 0:
 
             configurator.Running_status = 0
-            print("\033[1;33mWarning:\033[0m 当前无翻译任务-----------------------","\n")
+            print("[[orange_red1]Warning[/]] 当前无翻译任务-----------------------","\n")
             # 界面提示
             user_interface_prompter.createWarningInfoBar("当前无翻译任务")
             user_interface_prompter.signal.emit("重置界面数据","翻译取消",0)
@@ -3181,13 +2779,11 @@ class background_executor(threading.Thread):
         if configurator.Running_status == 0:
             return True
         else:
-            self.user_interface_prompter.createWarningInfoBar("正在进行任务中，请等待任务结束后再操作~")
             return False
 
 
 
 if __name__ == '__main__':
-
     #开启子进程支持
     multiprocessing.freeze_support() 
 
@@ -3196,20 +2792,12 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
-
     Software_Version = "AiNiee5.0"  #软件版本号
-
 
     # 工作目录改为python源代码所在的目录
     script_dir = os.path.dirname(os.path.abspath(sys.argv[0])) # 获取当前工作目录
     sys.path.append(script_dir)
-    print("[INFO] 当前工作目录是:",script_dir,'\n') 
-
-
-
-    # 创建全局UI通讯器
-    user_interface_prompter = User_Interface_Prompter() 
-    user_interface_prompter.signal.connect(user_interface_prompter.on_update_ui)  #创建信号与槽函数的绑定，使用方法为：user_interface_prompter.signal.emit("str","str"....)
+    print("[[green]INFO[/]] 当前工作目录是:",script_dir,'\n')
 
     # 创建全局配置器
     configurator = Configurator(script_dir)
@@ -3219,9 +2807,10 @@ if __name__ == '__main__':
 
     # 创建全局插件管理器
     plugin_manager = Plugin_Manager()
-    
-    # 加载插件
     plugin_manager.load_plugins_from_directory(configurator.plugin_dir)
+
+    # 设置暗黑模式
+    # setTheme(Theme.DARK)
 
     # 创建全局应用对象
     app = QApplication(sys.argv)
@@ -3233,25 +2822,21 @@ if __name__ == '__main__':
     app.setFont(font)
 
     # 创建全局窗口对象
-    Main_Window = window(
-        Software_Version,
-        configurator,
-        user_interface_prompter,
-        background_executor,
-        plugin_manager,
-        jtpp,
-    )
-    
-    # 窗口对象显示
-    Main_Window.show()
+    app_fluent_window = AppFluentWindow(Software_Version)
 
+    # 创建全局UI通讯器
+    user_interface_prompter = User_Interface_Prompter(app_fluent_window)
+
+    # 创建信号与槽函数的绑定，使用方法为 user_interface_prompter.signal.emit("str", "str"....)
+    user_interface_prompter.signal.connect(user_interface_prompter.on_update_ui)
+
+    # 显示全局窗口
+    app_fluent_window.add_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
+    app_fluent_window.show()
 
     # 读取配置文件
-    user_interface_prompter.read_write_config("read",configurator.resource_dir)
-    user_interface_prompter.read_write_config("write",configurator.resource_dir)
+    user_interface_prompter.read_write_config("read", configurator.resource_dir)
+    user_interface_prompter.read_write_config("write", configurator.resource_dir)
 
-    #进入事件循环，等待用户操作   
+    #进入事件循环，等待用户操作
     sys.exit(app.exec_())
-
-
-

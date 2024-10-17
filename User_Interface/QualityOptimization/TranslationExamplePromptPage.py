@@ -29,7 +29,7 @@ class TranslationExamplePromptPage(QFrame):
     
     DEFAULT = {
         "translation_example_switch": False,
-        "translation_example": {
+        "translation_example_content": {
             "結婚前日、目の前の婚約者はそう言った。": "婚前一日，其婚約者前，如是云。",
         },
     }
@@ -91,7 +91,7 @@ class TranslationExamplePromptPage(QFrame):
     # 头部
     def add_widget_header(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("translation_example_switch"))
+            widget.set_checked(config.get("translation_example_switch"))
             
         def widget_callback(widget, checked: bool):
             config["translation_example_switch"] = checked
@@ -147,7 +147,7 @@ class TranslationExamplePromptPage(QFrame):
     # 向表格更新数据
     def update_to_table(self, table, config):
         datas = []
-        dictionary = config.get("translation_example", {})
+        dictionary = config.get("translation_example_content", {})
         table.setRowCount(max(12, len(dictionary)))
         for k, v in dictionary.items():
             datas.append(
@@ -164,7 +164,7 @@ class TranslationExamplePromptPage(QFrame):
 
     # 从表格更新数据
     def update_from_table(self, table, config):
-        config["translation_example"] = {}
+        config["translation_example_content"] = {}
         
         for row in range(table.rowCount()):
             data_0 = table.item(row, 0)
@@ -181,7 +181,7 @@ class TranslationExamplePromptPage(QFrame):
             if data_0 == "" or data_1 == "":
                 continue
 
-            config["translation_example"][data_0] = data_1
+            config["translation_example_content"][data_0] = data_1
 
         return config
 

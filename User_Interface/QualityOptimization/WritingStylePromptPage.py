@@ -91,7 +91,7 @@ class WritingStylePromptPage(QFrame):
     # 头部
     def add_widget_header(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("writing_style_switch"))
+            widget.set_checked(config.get("writing_style_switch"))
             
         def widget_callback(widget, checked: bool):
             config["writing_style_switch"] = checked

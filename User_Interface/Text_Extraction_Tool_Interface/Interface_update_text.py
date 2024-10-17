@@ -174,12 +174,12 @@ class Widget_update_text(QFrame):#  更新子界面
 
     # 选择输入文件夹按钮绑定函数
     def Select_game_folder(self):
-        Input_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Input_Folder:
-            self.label_input_path.setText(Input_Folder)
-            print('[INFO]  已选择新版游戏文件夹: ',Input_Folder)
+        label_input_path = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if label_input_path:
+            self.label_input_path.setText(label_input_path)
+            print('[INFO] 已选择新版游戏文件夹: ',label_input_path)
         else :
-            print('[INFO]  未选择文件夹')
+            print('[INFO] 未选择文件夹')
             return  # 直接返回，不执行后续操作
         
     # 选择工程文件夹按钮绑定函数
@@ -187,9 +187,9 @@ class Widget_update_text(QFrame):#  更新子界面
         Data_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
         if Data_Folder:
             self.label_data_path.setText(Data_Folder)
-            print('[INFO]  已选择新版游戏工程数据文件夹: ',Data_Folder)
+            print('[INFO] 已选择新版游戏工程数据文件夹: ',Data_Folder)
         else :
-            print('[INFO]  未选择文件夹')
+            print('[INFO] 未选择文件夹')
             return  # 直接返回，不执行后续操作
 
     # 选择译文文件夹按钮绑定函数
@@ -197,9 +197,9 @@ class Widget_update_text(QFrame):#  更新子界面
         translation_folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
         if translation_folder:
             self.label_translation_folder.setText(translation_folder)
-            print('[INFO]  已选择旧版译文文件夹:' ,translation_folder)
+            print('[INFO] 已选择旧版译文文件夹:' ,translation_folder)
         else :
-            print('[INFO]  未选择文件夹')
+            print('[INFO] 未选择文件夹')
             return  # 直接返回，不执行后续操作
         
     # 选择存储文件夹按钮绑定函数
@@ -207,14 +207,14 @@ class Widget_update_text(QFrame):#  更新子界面
         save_folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
         if save_folder:
             self.label_output_folder.setText(save_folder)
-            print('[INFO]  已选择保存文件夹:' ,save_folder)
+            print('[INFO] 已选择保存文件夹:' ,save_folder)
         else :
-            print('[INFO]  未选择文件夹')
+            print('[INFO] 未选择文件夹')
 
     
     # 导入按钮绑定函数
     def Start_import(self):
-        print('[INFO]  开始提取新版本游戏原文,请耐心等待！！！')
+        print('[INFO] 开始提取新版本游戏原文,请耐心等待！！！')
 
         #读取配置文件
         config_path = os.path.join(self.configurator.script_dir, "StevExtraction", "config.yaml")

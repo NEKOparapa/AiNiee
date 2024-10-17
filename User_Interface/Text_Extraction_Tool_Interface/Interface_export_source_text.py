@@ -206,23 +206,23 @@ class Widget_export_source_text(QFrame):#  提取子界面
 
     # 选择输入文件夹按钮绑定函数
     def Select_project_folder(self):
-        Input_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Input_Folder:
-            self.label_input_path.setText(Input_Folder)
-            print('[INFO]  已选择游戏根目录文件夹: ',Input_Folder)
+        label_input_path = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if label_input_path:
+            self.label_input_path.setText(label_input_path)
+            print('[INFO] 已选择游戏根目录文件夹: ',label_input_path)
         else :
-            print('[INFO]  未选择文件夹')
+            print('[INFO] 未选择文件夹')
             return  # 直接返回，不执行后续操作
 
 
     # 选择原文文件夹按钮绑定函数
     def Select_output_folder(self):
-        Output_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
-        if Output_Folder:
-            self.label_output_path.setText(Output_Folder)
-            print('[INFO]  已选择原文存储文件夹:' ,Output_Folder)
+        label_output_path = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if label_output_path:
+            self.label_output_path.setText(label_output_path)
+            print('[INFO] 已选择原文存储文件夹:' ,label_output_path)
         else :
-            print('[INFO]  未选择文件夹')
+            print('[INFO] 未选择文件夹')
             return  # 直接返回，不执行后续操作
 
 
@@ -231,15 +231,15 @@ class Widget_export_source_text(QFrame):#  提取子界面
         data_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
         if data_Folder:
             self.label_data_path.setText(data_Folder)
-            print('[INFO]  已选择工程存储文件夹:' ,data_Folder)
+            print('[INFO] 已选择工程存储文件夹:' ,data_Folder)
         else :
-            print('[INFO]  未选择文件夹')
+            print('[INFO] 未选择文件夹')
             return  # 直接返回，不执行后续操作
 
 
     # 提取函数
     def Start_export(self):
-        print('[INFO]  开始提取游戏原文,请耐心等待！！！')
+        print('[INFO] 开始提取游戏原文,请耐心等待！！！')
 
         #读取配置文件
         config_path = os.path.join(self.configurator.script_dir, "StevExtraction", "config.yaml")

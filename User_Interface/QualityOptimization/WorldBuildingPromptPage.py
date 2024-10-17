@@ -91,7 +91,7 @@ class WorldBuildingPromptPage(QFrame):
     # 头部
     def add_widget_header(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("world_building_switch"))
+            widget.set_checked(config.get("world_building_switch"))
             
         def widget_callback(widget, checked: bool):
             config["world_building_switch"] = checked
