@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWi
 from qfluentwidgets.components import Dialog  # 需要安装库 pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, EditableComboBox
 from qfluentwidgets import FluentIcon as FIF
+from qfluentwidgets import StrongBodyLabel
 from qframelesswindow import FramelessWindow, StandardTitleBar
 
 
@@ -79,12 +80,12 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         # 第一组水平布局
         layout_horizontal_1 = QHBoxLayout()
 
-        self.label111 = QLabel(flags=Qt.WindowFlags())
-        self.label111.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.label111 = StrongBodyLabel()
+        # self.label111.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.label111.setText("项目类型 :")
 
-        self.translation_project = QLabel(flags=Qt.WindowFlags())
-        self.translation_project.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.translation_project = StrongBodyLabel()
+        # self.translation_project.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.translation_project.setText("无")
 
         layout_horizontal_1.addWidget(self.label111)
@@ -95,12 +96,12 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         # 第二组水平布局
         layout_horizontal_2 = QHBoxLayout()
 
-        self.label222 = QLabel(flags=Qt.WindowFlags())
-        self.label222.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.label222 = StrongBodyLabel()
+        # self.label222.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.label222.setText("项目ID :")
 
-        self.project_id = QLabel(flags=Qt.WindowFlags())
-        self.project_id.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.project_id = StrongBodyLabel()
+        # self.project_id.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.project_id.setText("无")
 
         layout_horizontal_2.addWidget(self.label222)
@@ -123,12 +124,12 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         # 第三组水平布局
         layout_horizontal_3 = QHBoxLayout()
 
-        self.label333 = QLabel(flags=Qt.WindowFlags())
-        self.label333.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.label333 = StrongBodyLabel()
+        # self.label333.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.label333.setText("总文本行数 :")
 
-        self.total_text_line_count = QLabel(flags=Qt.WindowFlags())
-        self.total_text_line_count.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.total_text_line_count = StrongBodyLabel()
+        # self.total_text_line_count.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.total_text_line_count.setText("无")
 
         layout_horizontal_3.addWidget(self.label333)
@@ -139,12 +140,12 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         # 第四组水平布局
         layout_horizontal_4 = QHBoxLayout()
 
-        self.label444 = QLabel(flags=Qt.WindowFlags())
-        self.label444.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.label444 = StrongBodyLabel()
+        # self.label444.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.label444.setText("已翻译行数 :")
 
-        self.translated_line_count = QLabel(flags=Qt.WindowFlags())
-        self.translated_line_count.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.translated_line_count = StrongBodyLabel()
+        # self.translated_line_count.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.translated_line_count.setText("无")
 
         layout_horizontal_4.addWidget(self.label444)
@@ -170,12 +171,12 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         # 第五组水平布局
         layout_horizontal_5 = QHBoxLayout()
 
-        self.labelx1 = QLabel(flags=Qt.WindowFlags())
-        self.labelx1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.labelx1 = StrongBodyLabel()
+        # self.labelx1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.labelx1.setText("已花费tokens :")
 
-        self.tokens_spent = QLabel(flags=Qt.WindowFlags())
-        self.tokens_spent.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.tokens_spent = StrongBodyLabel()
+        # self.tokens_spent.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.tokens_spent.setText("无")
 
         layout_horizontal_5.addWidget(self.labelx1)
@@ -186,12 +187,12 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         # 第六组水平布局
         layout_horizontal_6 = QHBoxLayout()
 
-        self.labelx2 = QLabel(flags=Qt.WindowFlags())
-        self.labelx2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.labelx2 = StrongBodyLabel()
+        # self.labelx2.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.labelx2.setText("已花费金额(＄) :")
 
-        self.amount_spent = QLabel(flags=Qt.WindowFlags())
-        self.amount_spent.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.amount_spent = StrongBodyLabel()
+        # self.amount_spent.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.amount_spent.setText("无")
 
         layout_horizontal_6.addWidget(self.labelx2)
@@ -214,12 +215,12 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         # 第7组水平布局
         layout_horizontal_7 = QHBoxLayout()
 
-        self.labelx111 = QLabel(flags=Qt.WindowFlags())
-        self.labelx111.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.labelx111 = StrongBodyLabel()
+        # self.labelx111.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.labelx111.setText("运行状态 :")
 
-        self.running_status = QLabel(flags=Qt.WindowFlags())
-        self.running_status.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.running_status = StrongBodyLabel()
+        # self.running_status.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.running_status.setText("无")
 
         layout_horizontal_7.addWidget(self.labelx111)
@@ -230,12 +231,12 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         # 第8组水平布局
         layout_horizontal_8 = QHBoxLayout()
 
-        self.labelx222 = QLabel(flags=Qt.WindowFlags())
-        self.labelx222.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.labelx222 = StrongBodyLabel()
+        # self.labelx222.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.labelx222.setText("运行线程数 :")
 
-        self.thread_count = QLabel(flags=Qt.WindowFlags())
-        self.thread_count.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.thread_count = StrongBodyLabel()
+        # self.thread_count.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.thread_count.setText("无")
 
         layout_horizontal_8.addWidget(self.labelx222)
@@ -258,12 +259,12 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         # 第9组水平布局
         layout_horizontal_9 = QHBoxLayout()
 
-        self.label9 = QLabel(flags=Qt.WindowFlags())
-        self.label9.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.label9 = StrongBodyLabel()
+        # self.label9.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.label9.setText("翻译速度(token/s) :")
 
-        self.translation_speed_token = QLabel(flags=Qt.WindowFlags())
-        self.translation_speed_token.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.translation_speed_token = StrongBodyLabel()
+        # self.translation_speed_token.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.translation_speed_token.setText("无")
 
         layout_horizontal_9.addWidget(self.label9)
@@ -274,12 +275,12 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
         # 第10组水平布局
         layout_horizontal_10 = QHBoxLayout()
 
-        self.label10 = QLabel(flags=Qt.WindowFlags())
-        self.label10.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.label10 = StrongBodyLabel()
+        # self.label10.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.label10.setText("翻译速度(line/s) :")
 
-        self.translation_speed_line = QLabel(flags=Qt.WindowFlags())
-        self.translation_speed_line.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
+        self.translation_speed_line = StrongBodyLabel()
+        # self.translation_speed_line.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")  # 设置字体，大小，颜色
         self.translation_speed_line.setText("无")
 
         layout_horizontal_10.addWidget(self.label10)
@@ -301,8 +302,8 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
 
 
         #设置“翻译进度”标签
-        self.label_progressRing = QLabel( flags=Qt.WindowFlags())  
-        self.label_progressRing.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")#设置字体，大小，颜色
+        self.label_progressRing = StrongBodyLabel()
+        # self.label_progressRing.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px; ")#设置字体，大小，颜色
         self.label_progressRing.setText("翻译进度")
 
         #设置翻译进度条
@@ -457,8 +458,8 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
         layout_switch = QHBoxLayout()
 
 
-        label1 = QLabel( flags=Qt.WindowFlags())  
-        label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
+        label1 = StrongBodyLabel()
+        # label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
         label1.setText("自动备份缓存文件到输出文件夹")
 
 
@@ -479,8 +480,8 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
         layout_export_cache_file_path = QHBoxLayout()
 
         #设置“导出当前任务的缓存文件”标签
-        label4 = QLabel(flags=Qt.WindowFlags())  
-        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label4 = StrongBodyLabel()  
+        # label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
         label4.setText("导出当前任务的缓存文件")
 
 
@@ -502,8 +503,8 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
         layout_export_translated_file_path = QHBoxLayout()
 
         #设置“导出当前任务的已翻译文本”标签
-        label6 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        label6 = StrongBodyLabel() 
+        # label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
         label6.setText("导出当前任务的已翻译文本")
 
 

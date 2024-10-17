@@ -44,23 +44,10 @@ class AdvanceSettingsPage(QFrame):
         config = self.save_config(config)
 
         # 设置主容器
-        self.container = QVBoxLayout(self)
-        self.container.setContentsMargins(0, 0, 0, 0)
-
-        # 设置滚动容器
-        self.scroller = SingleDirectionScrollArea(self, orient = Qt.Vertical)
-        self.scroller.setWidgetResizable(True)
-        self.scroller.setStyleSheet("QScrollArea { border: none; background: transparent; }")
-        self.container.addWidget(self.scroller)
-
-        # 设置容器
-        self.vbox_parent = QWidget(self)
-        self.vbox_parent.setStyleSheet("QWidget { background: transparent; }")
-        self.vbox = QVBoxLayout(self.vbox_parent)
+        self.vbox = QVBoxLayout(self)
         self.vbox.setSpacing(8)
         self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
-        self.scroller.setWidget(self.vbox_parent)
-
+        
         # 添加控件
         self.add_widget_01(self.vbox, config)
         self.add_widget_02(self.vbox, config)

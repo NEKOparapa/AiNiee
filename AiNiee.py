@@ -2809,9 +2809,6 @@ if __name__ == '__main__':
     plugin_manager = Plugin_Manager()
     plugin_manager.load_plugins_from_directory(configurator.plugin_dir)
 
-    # 设置暗黑模式
-    # setTheme(Theme.DARK)
-
     # 创建全局应用对象
     app = QApplication(sys.argv)
     

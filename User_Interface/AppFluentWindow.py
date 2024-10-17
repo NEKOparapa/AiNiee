@@ -1,13 +1,21 @@
+import os
+import json
+
 from PyQt5.Qt import QUrl
 from PyQt5.Qt import QIcon
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication
 
 from rich import print
+from qfluentwidgets import Theme
+from qfluentwidgets import setTheme
+from qfluentwidgets import isDarkTheme
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import FluentWindow
+from qfluentwidgets import NavigationPushButton
 from qfluentwidgets import NavigationItemPosition
+from qfluentwidgets import NavigationAvatarWidget
 
 from .BaseNavigationItem import BaseNavigationItem
 
@@ -33,7 +41,6 @@ from .QualityOptimization.WorldBuildingPromptPage import WorldBuildingPromptPage
 from .QualityOptimization.CharacterizationPromptPage import CharacterizationPromptPage
 from .QualityOptimization.TranslationExamplePromptPage import TranslationExamplePromptPage
 
-from Widget.AvatarWidget import AvatarWidget
 from .Start_Translation_Interface.Interface_start_translation import Widget_start_translation
 
 
@@ -41,9 +48,16 @@ class AppFluentWindow(FluentWindow): #主窗口
 
     APP_WIDTH = 1280
     APP_HEIGHT = 800
+    DEFAULT = {
+        "theme": "light",
+    }
 
     def __init__(self, version):
         super().__init__()
+
+        # 载入配置文件
+        config = self.load_config()
+        config = self.save_config(config)
 
         # 设置窗口属性
         self.resize(self.APP_WIDTH, self.APP_HEIGHT)
@@ -54,6 +68,9 @@ class AppFluentWindow(FluentWindow): #主窗口
         # 设置启动位置
         desktop = QApplication.desktop().availableGeometry()
         self.move(desktop.width()//2 - self.width()//2, desktop.height()//2 - self.height()//2)
+
+        # 设置主题
+        setTheme(Theme.DARK if config.get("theme") == "dark" else Theme.LIGHT)
 
         # 设置侧边栏宽度
         self.navigationInterface.setExpandWidth(256)
@@ -75,7 +92,55 @@ class AppFluentWindow(FluentWindow): #主窗口
         else:
             event.ignore()
 
-    # 打开项目主页
+    # 载入配置文件
+    def load_config(self) -> dict:
+        config = {}
+        path = "./Resource/config.json"
+
+        if os.path.exists(path):
+            with open(path, "r", encoding = "utf-8") as reader:
+                config = json.load(reader)
+        
+        return config
+
+    # 保存配置文件
+    def save_config(self, new: dict) -> None:
+        path = "./Resource/config.json"
+        
+        # 读取配置文件
+        if os.path.exists(path):
+            with open(path, "r", encoding = "utf-8") as reader:
+                old = json.load(reader)
+        else:
+            old = {}
+
+        # 修改配置文件中的条目：如果条目存在，这更新值，如果不存在，则设置默认值
+        for k, v in self.DEFAULT.items():
+            if not k in new.keys():
+                old[k] = v
+            else:
+                old[k] = new[k]
+
+        # 写入配置文件
+        with open(path, "w", encoding = "utf-8") as writer:
+            writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
+
+        return old
+
+    # 切换主题
+    def toggle_theme(self):
+        config = self.load_config()
+
+        if not isDarkTheme():
+            setTheme(Theme.DARK)
+            config["theme"] = "dark"
+        else:
+            setTheme(Theme.LIGHT)
+            config["theme"] = "light"
+
+        config = self.save_config(config)
+
+    # 打开主页
     def open_project_page(self):
         url = QUrl("https://github.com/NEKOparapa/AiNiee")
         QDesktopServices.openUrl(url)
@@ -88,10 +153,26 @@ class AppFluentWindow(FluentWindow): #主窗口
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
         self.add_quality_optimization_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
         self.switchTo(self.Widget_start_translation)
-
+        
+        # 主题切换按钮
         self.navigationInterface.addWidget(
-            routeKey = "avatar_widget",
-            widget = AvatarWidget(configurator = configurator),
+            routeKey = "theme_navigation_button",
+            widget = NavigationPushButton(
+                FluentIcon.CONSTRACT,
+                "变换自如",
+                False
+            ),
+            onClick = self.toggle_theme,
+            position = NavigationItemPosition.BOTTOM
+        )
+        
+        # 项目主页按钮
+        self.navigationInterface.addWidget(
+            routeKey = "avatar_navigation_widget",
+            widget = NavigationAvatarWidget(
+                "NEKOparapa",
+                "Resource/Avatar.png",
+            ),
             onClick = self.open_project_page,
             position = NavigationItemPosition.BOTTOM
         )
