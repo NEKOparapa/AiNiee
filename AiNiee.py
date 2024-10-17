@@ -622,13 +622,13 @@ class Api_Requester():
                     #抛出错误信息
                     except Exception as e:
                         print("[[red]Error[/]] 进行请求时出现问题！！！错误信息如下")
-                        print(f"Error: {e}\n")
+                        print(f"[[red]Error[/]] {e}\n")
 
                         #请求错误计次
                         request_errors_count = request_errors_count + 1
                         #如果错误次数过多，就取消任务
                         if request_errors_count >= 4 :
-                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
+                            print("[[red]Error[/]] 请求发生错误次数过多，该线程取消任务！")
                             break
 
                         #处理完毕，再次进行请求
@@ -673,7 +673,7 @@ class Api_Requester():
                         request_errors_count = request_errors_count + 1
                         #如果错误次数过多，就取消任务
                         if request_errors_count >= 4 :
-                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
+                            print("[[red]Error[/]] 请求发生错误次数过多，该线程取消任务！")
                             break
                         continue
 
@@ -1053,7 +1053,7 @@ class Api_Requester():
                         request_errors_count = request_errors_count + 1
                         #如果错误次数过多，就取消任务
                         if request_errors_count >= 4 :
-                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
+                            print("[[red]Error[/]] 请求发生错误次数过多，该线程取消任务！")
                             break
 
                         #处理完毕，再次进行请求
@@ -1092,7 +1092,7 @@ class Api_Requester():
                         request_errors_count = request_errors_count + 1
                         #如果错误次数过多，就取消任务
                         if request_errors_count >= 4 :
-                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
+                            print("[[red]Error[/]] 请求发生错误次数过多，该线程取消任务！")
                             break
                         continue
 
@@ -1435,7 +1435,7 @@ class Api_Requester():
                         request_errors_count = request_errors_count + 1
                         #如果错误次数过多，就取消任务
                         if request_errors_count >= 4 :
-                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
+                            print("[[red]Error[/]] 请求发生错误次数过多，该线程取消任务！")
                             break
 
                         #处理完毕，再次进行请求
@@ -1480,7 +1480,7 @@ class Api_Requester():
                         request_errors_count = request_errors_count + 1
                         #如果错误次数过多，就取消任务
                         if request_errors_count >= 4 :
-                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
+                            print("[[red]Error[/]] 请求发生错误次数过多，该线程取消任务！")
                             break
                         continue
 
@@ -1819,7 +1819,7 @@ class Api_Requester():
                         request_errors_count = request_errors_count + 1
                         #如果错误次数过多，就取消任务
                         if request_errors_count >= 4 :
-                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
+                            print("[[red]Error[/]] 请求发生错误次数过多，该线程取消任务！")
                             break
 
                         #处理完毕，再次进行请求
@@ -1866,7 +1866,7 @@ class Api_Requester():
                         request_errors_count = request_errors_count + 1
                         #如果错误次数过多，就取消任务
                         if request_errors_count >= 4 :
-                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
+                            print("[[red]Error[/]] 请求发生错误次数过多，该线程取消任务！")
                             break
                         continue
 
@@ -2189,7 +2189,7 @@ class Api_Requester():
                         request_errors_count = request_errors_count + 1
                         #如果错误次数过多，就取消任务
                         if request_errors_count >= 4 :
-                            print("\033[1;31m[ERROR]\033[0m 请求发生错误次数过多，该线程取消任务！")
+                            print("[[red]Error[/]] 请求发生错误次数过多，该线程取消任务！")
                             break
 
                         #处理完毕，再次进行请求
