@@ -1,4 +1,6 @@
+from PyQt5.Qt import QUrl
 from PyQt5.Qt import QIcon
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication
 
 from qfluentwidgets import FluentIcon
@@ -29,6 +31,7 @@ from .QualityOptimization.WorldBuildingPromptPage import WorldBuildingPromptPage
 from .QualityOptimization.CharacterizationPromptPage import CharacterizationPromptPage
 from .QualityOptimization.TranslationExamplePromptPage import TranslationExamplePromptPage
 
+from Widget.AvatarWidget import AvatarWidget
 from .Start_Translation_Interface.Interface_start_translation import Widget_start_translation
 
 
@@ -57,6 +60,11 @@ class AppFluentWindow(FluentWindow): #主窗口
         self.navigationInterface.setMinimumExpandWidth(self.APP_WIDTH)
         self.navigationInterface.expand(useAni = False)
 
+    # 打开项目主页
+    def open_project_page(self):
+        url = QUrl("https://github.com/NEKOparapa/AiNiee")
+        QDesktopServices.openUrl(url)
+
     # 开始添加页面
     def add_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
         self.add_project_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
@@ -65,6 +73,13 @@ class AppFluentWindow(FluentWindow): #主窗口
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
         self.add_quality_optimization_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
         self.switchTo(self.Widget_start_translation)
+
+        self.navigationInterface.addWidget(
+            routeKey = "avatar_widget",
+            widget = AvatarWidget(configurator = configurator),
+            onClick = self.open_project_page,
+            position = NavigationItemPosition.BOTTOM
+        )
 
     # 添加第一节
     def add_project_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
