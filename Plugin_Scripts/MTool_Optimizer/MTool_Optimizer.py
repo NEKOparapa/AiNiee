@@ -45,6 +45,10 @@ class MTool_Optimizer(PluginBase):
         # 获取文本条目的列表
         items = event_data[1:]
 
+        # 检查是否已经被插件处理过（即从缓存文件继续翻译的情况）
+        if items[0].get("source_backup", None) != None:
+            return
+
         # 检查需要移除的条目
         # 将包含换行符的长句拆分，然后查找与这些拆分后得到的短句相同的句子并移除它们
         print(f"")
@@ -68,11 +72,9 @@ class MTool_Optimizer(PluginBase):
                 v["source_text"] = v.get("source_text", "").replace("\r\n", "").replace("\n", "")
             else:
                 v["translation_status"] = 7 if v.get("source_text", "").strip() in texts_to_delete else v.get("translation_status", 0)
-        
-        counts = len([v for v in items if v.get("translation_status", 0) == 7]) - orginal_length
 
         print(f"")
-        print(f"[MTool_Optimizer] 预处理执行成功，已移除 {counts} 个重复的条目 ...")
+        print(f"[MTool_Optimizer] 预处理执行成功，已移除 {len([v for v in items if v.get("translation_status", 0) == 7]) - orginal_length} 个重复的条目 ...")
         print(f"")
 
     # 文本后处理事件
@@ -93,24 +95,15 @@ class MTool_Optimizer(PluginBase):
         print(f"[MTool_Optimizer] 开始执行后处理 ...")
         print(f"")
 
-        # 从备份中还原原文
-        for v in tqdm(items):
-            if v.get("source_backup", "") != v.get("source_text", ""):
-                v["source_text"] = v.get("source_backup", "")
-
         # 尝试将包含换行符的长句还原回短句
-        seen = set()
-        self.generate_short_sentence(
-            [v for v in items if len(v.get("source_text").splitlines()) > 1], 
-            seen, 
+        seen = self.generate_short_sentence(
+            items, 
             event_data,
             configuration_information.source_language
         )
-        
-        counts = len(seen)
 
         print(f"")
-        print(f"[MTool_Optimizer] 后处理执行成功，已还原 {counts} 个条目 ...")
+        print(f"[MTool_Optimizer] 后处理执行成功，已还原 {len(seen)} 个条目 ...")
         print(f"")
 
     # 按长度切割字符串
@@ -118,8 +111,15 @@ class MTool_Optimizer(PluginBase):
         return [string[i:i+length] for i in range(0, len(string), length)]
 
     # 生成短句
-    def generate_short_sentence(self, items, seen, event_data, language):
+    def generate_short_sentence(self, items, event_data, language):
+        # 记录实际处理的条目
+        seen = set()
+
         for v in tqdm(items):
+            # 从备份中恢复原文文本
+            if v.get("source_backup", "") != v.get("source_text", ""):
+                v["source_text"] = v.get("source_backup", "")
+            
             # 获取原文和译文按行切分，并移除空条目以避免连续换行带来的影响
             source_text = v.get("source_text", "").strip()
             translated_text = v.get("translated_text", "").strip()
@@ -167,3 +167,5 @@ class MTool_Optimizer(PluginBase):
                     item["source_text"] = source.strip()
                     item["translated_text"] = translated.strip()
                     event_data.append(item)
+
+        return seen
