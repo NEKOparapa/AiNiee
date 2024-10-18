@@ -3,13 +3,13 @@ from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import ElevatedCardWidget
-from qfluentwidgets import ComboBox
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import StrongBodyLabel
+from qfluentwidgets import EditableComboBox
 
-class ComboBoxCard(ElevatedCardWidget):
+class EditableComboBoxCard(ElevatedCardWidget):
 
-    def __init__(self, title: str, description: str, items: list, init = None, current_text_changed = None):
+    def __init__(self, title: str, description: str, items: list[str], init = None, current_text_changed = None, current_index_changed = None):
         super().__init__(None)
         
         # 设置容器
@@ -32,8 +32,9 @@ class ComboBoxCard(ElevatedCardWidget):
         self.container.addStretch(1)
         
         # 下拉框控件
-        self.combo_box = ComboBox(self)
+        self.combo_box = EditableComboBox(self)
         self.combo_box.addItems(items)
+        self.container.addWidget(self.combo_box)
 
         if init:
             init(self)
@@ -41,17 +42,30 @@ class ComboBoxCard(ElevatedCardWidget):
         if current_text_changed:
             self.combo_box.currentTextChanged.connect(lambda text: current_text_changed(self, text))
 
-        self.container.addWidget(self.combo_box)
+        if current_index_changed:
+            self.combo_box.currentIndexChanged.connect(lambda index: current_index_changed(self, index))
 
+    # 设置列表条目
     def set_items(self, items: list) -> None:
         self.combo_box.clear()
         self.combo_box.addItems(items)
 
+    # 通过文本查找索引
     def find_text(self, text: str) -> int:
         return self.combo_box.findText(text)
 
+    # 获取当前文本
     def get_current_text(self) -> str:
         return self.combo_box.currentText()
 
+    # 设置当前索引
     def set_current_index(self, index) -> None:
         self.combo_box.setCurrentIndex(index)
+
+    # 设置宽度
+    def set_fixed_width(self, width:int) -> None:
+        self.combo_box.setFixedWidth(width)
+
+    # 设置占位符
+    def set_placeholder_text(self, text:str) -> None:
+        self.combo_box.setPlaceholderText(text)

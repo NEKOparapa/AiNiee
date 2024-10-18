@@ -22,12 +22,29 @@ class FlowCard(ElevatedCardWidget):
         self.container = QVBoxLayout(self)
         self.container.setContentsMargins(16, 16, 16, 16) # 左、上、右、下
 
+        # 添加头部容器
+        self.head_container = QFrame(self)
+        self.head_hbox = QHBoxLayout(self.head_container)
+        self.head_hbox.setSpacing(8)
+        self.head_hbox.setContentsMargins(0, 0, 0, 0)
+        self.container.addWidget(self.head_container)
+
+        # 添加文本容器
+        self.text_container = QFrame(self)
+        self.text_vbox = QVBoxLayout(self.text_container)
+        self.text_vbox.setSpacing(8)
+        self.text_vbox.setContentsMargins(0, 0, 0, 0)
+        self.head_hbox.addWidget(self.text_container)
+
         self.title_label = StrongBodyLabel(title, self)
-        self.container.addWidget(self.title_label)
+        self.text_vbox.addWidget(self.title_label)
 
         self.description_label = CaptionLabel(description, self)
         self.description_label.setTextColor(QColor(96, 96, 96), QColor(160, 160, 160))
-        self.container.addWidget(self.description_label)
+        self.text_vbox.addWidget(self.description_label)
+
+        # 填充
+        self.head_hbox.addStretch(1)
 
         # 添加分割线
         line = QFrame(self)
@@ -53,11 +70,14 @@ class FlowCard(ElevatedCardWidget):
     def set_description(self, description: str) -> None:
         self.description_label.setText(description)
 
-    def set_text(self, text: str) -> None:
-        self.push_button.setText(text)
-
-    def set_icon(self, icon: str) -> None:
-        self.push_button.setIcon(icon)
-
-    def addWidget(self, widget) -> None:
+    # 添加控件
+    def add_widget(self, widget) -> None:
         self.flow_layout.addWidget(widget)
+
+    # 添加控件到头部
+    def add_widget_to_head(self, widget) -> None:
+        self.head_hbox.addWidget(widget)
+
+    # 移除所有控件并且删除他们
+    def take_all_widgets(self) -> None:
+        self.flow_layout.takeAllWidgets()

@@ -1,15 +1,15 @@
-
 import os
 import json
 
 from rich import print
+from PyQt5.Qt import Qt
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QScrollArea
 from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import PillPushButton
-from qfluentwidgets import SmoothScrollArea
+from qfluentwidgets import SingleDirectionScrollArea
 
 from Widget.FlowCard import FlowCard
 from Widget.SpinCard import SpinCard
@@ -35,30 +35,19 @@ class AdvanceSettingsPage(QFrame):
     def __init__(self, text: str, parent = None, configurator = None):
         super().__init__(parent = parent)
 
-        self.setObjectName(text.replace(" ", "-"))
+        # 初始化
         self.configurator = configurator
+        self.setObjectName(text.replace(" ", "-"))
 
         # 载入配置文件
         config = self.load_config()
         config = self.save_config(config)
 
         # 设置主容器
-        self.container = QVBoxLayout(self)
-        self.container.setContentsMargins(0, 0, 0, 0)
-
-        # 设置滚动容器
-        self.scroller = SmoothScrollArea(self)
-        self.scroller.setWidgetResizable(True)
-        self.scroller.setStyleSheet("QScrollArea { border: none; }")
-        self.container.addWidget(self.scroller)
-
-        # 设置容器
-        self.vbox_parent = QWidget()
-        self.vbox = QVBoxLayout(self.vbox_parent)
+        self.vbox = QVBoxLayout(self)
         self.vbox.setSpacing(8)
         self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
-        self.scroller.setWidget(self.vbox_parent)
-
+        
         # 添加控件
         self.add_widget_01(self.vbox, config)
         self.add_widget_02(self.vbox, config)
@@ -67,7 +56,7 @@ class AdvanceSettingsPage(QFrame):
         self.add_widget_05(self.vbox, config)
         self.add_widget_06(self.vbox, config)
         self.add_widget_07(self.vbox, config)
-
+        
         # 填充
         self.vbox.addStretch(1)
 
@@ -108,7 +97,7 @@ class AdvanceSettingsPage(QFrame):
     # 思维链模式
     def add_widget_01(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("cot_toggle"))
+            widget.set_checked(config.get("cot_toggle"))
             
         def widget_callback(widget, checked: bool):
             config["cot_toggle"] = checked
@@ -126,7 +115,7 @@ class AdvanceSettingsPage(QFrame):
     # 中文提示词
     def add_widget_02(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("cn_prompt_toggle"))
+            widget.set_checked(config.get("cn_prompt_toggle"))
             
         def widget_callback(widget, checked: bool):
             config["cn_prompt_toggle"] = checked
@@ -144,7 +133,7 @@ class AdvanceSettingsPage(QFrame):
     # 保留句内换行符
     def add_widget_03(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("preserve_line_breaks_toggle"))
+            widget.set_checked(config.get("preserve_line_breaks_toggle"))
             
         def widget_callback(widget, checked: bool):
             config["preserve_line_breaks_toggle"] = checked
@@ -162,7 +151,7 @@ class AdvanceSettingsPage(QFrame):
     # 保留首尾非文本字符
     def add_widget_04(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("text_clear_toggle"))
+            widget.set_checked(config.get("text_clear_toggle"))
             
         def widget_callback(widget, checked: bool):
             config["text_clear_toggle"] = checked
@@ -180,7 +169,7 @@ class AdvanceSettingsPage(QFrame):
     # 自动简繁转换
     def add_widget_05(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("response_conversion_toggle"))
+            widget.set_checked(config.get("response_conversion_toggle"))
             
         def widget_callback(widget, checked: bool):
             config["response_conversion_toggle"] = checked
@@ -248,7 +237,7 @@ class AdvanceSettingsPage(QFrame):
                 pill_push_button.setContentsMargins(4, 0, 4, 0) # 左、上、右、下
                 pill_push_button.setChecked(config["reply_check_switch"].get(v[1]))
                 pill_push_button.toggled.connect(lambda checked: on_toggled(checked, v[1]))
-                widget.addWidget(pill_push_button)
+                widget.add_widget(pill_push_button)
 
         parent.addWidget(
             FlowCard(

@@ -1,11 +1,11 @@
 from PyQt5.Qt import Qt
-from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QHBoxLayout
 
 from qfluentwidgets import SubtitleLabel
 
 
-class BaseNavigationItem(QFrame):
+class BaseNavigationItem(QWidget):
 
     def __init__(self, text: str, parent = None):
         super().__init__(parent = parent)

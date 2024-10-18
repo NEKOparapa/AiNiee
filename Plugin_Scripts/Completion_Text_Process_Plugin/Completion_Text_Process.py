@@ -14,7 +14,7 @@ class Completion_Text_Process_Plugin(PluginBase):
         self.add_event('complete_text_process', 5)  # 添加感兴趣的事件和优先级
 
     def load(self):
-        print(f"[INFO]  {self.name} loaded!")
+        print(f"[INFO] {self.name} loaded!")
 
 
     def on_event(self, event_name, configuration_information, event_data):

@@ -17,7 +17,7 @@ class Text_Normalization_Plugin(PluginBase):
 
 
     def load(self):
-        print(f"[INFO]  {self.name} loaded!")
+        print(f"[INFO] {self.name} loaded!")
 
 
     def on_event(self, event_name, configuration_information, event_data):

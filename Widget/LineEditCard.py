@@ -43,21 +43,28 @@ class LineEditCard(ElevatedCardWidget):
         self.line_edit.setClearButtonEnabled(True)
         self.container.addWidget(self.line_edit)
 
-        # 注册回调
         if init:
-            init(self.line_edit)
+            init(self)
 
         if text_changed:
-            self.line_edit.textChanged.connect(lambda text: text_changed(self.line_edit, text))
+            self.line_edit.textChanged.connect(lambda text: text_changed(self, text))
+
+    # 添加控件
+    def add_widget(self, widget) -> None:
+        self.container.addWidget(widget)
 
     # 获取文本
-    def getText(self) -> str:
+    def get_text(self) -> str:
         self.line_edit.text()
         
     # 设置文本
-    def setText(self, text:str) -> None:
+    def set_text(self, text:str) -> None:
         self.line_edit.setText(text)
 
+    # 设置输入框宽度
+    def set_fixed_width(self, width:int) -> None:
+        self.line_edit.setFixedWidth(width)
+
     # 设置占位符
-    def setPlaceholderText(self, text:str) -> None:
+    def set_placeholder_text(self, text:str) -> None:
         self.line_edit.setPlaceholderText(text)

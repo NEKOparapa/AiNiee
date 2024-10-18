@@ -99,7 +99,7 @@ class CharacterizationPromptPage(QFrame):
     # 头部
     def add_widget_header(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("characterization_switch"))
+            widget.set_checked(config.get("characterization_switch"))
             
         def widget_callback(widget, checked: bool):
             config["characterization_switch"] = checked

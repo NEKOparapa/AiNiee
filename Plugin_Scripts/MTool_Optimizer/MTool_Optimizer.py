@@ -18,7 +18,7 @@ class MTool_Optimizer(PluginBase):
         self.add_event('postprocess_text', 5)  # 添加感兴趣的事件和优先级
 
     def load(self):
-        print(f"[INFO]  [green]{self.name}[/] 已加载，至多可提升 [green]40%[/] 的翻译速度，理论上也会提升翻译质量并减少 Token 消耗 ...")
+        print(f"[[green]INFO[/]] [green]{self.name}[/] 已加载，至多可提升 [green]40%[/] 的翻译速度，理论上也会提升翻译质量并减少 Token 消耗 ...")
 
     def on_event(self, event_name, configuration_information, event_data):
         if event_name == "preproces_text":

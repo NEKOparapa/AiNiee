@@ -3,15 +3,15 @@ import os
 import json
 
 from rich import print
+from PyQt5.Qt import Qt
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QScrollArea
 from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import PillPushButton
-from qfluentwidgets import SmoothScrollArea
+from qfluentwidgets import SingleDirectionScrollArea
 
-from Widget.FlowCard import FlowCard
 from Widget.SpinCard import SpinCard
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.SwitchButtonCard import SwitchButtonCard
@@ -38,13 +38,14 @@ class PluginsSettingsPage(QFrame):
         self.container.setContentsMargins(0, 0, 0, 0)
 
         # 设置滚动容器
-        self.scroller = SmoothScrollArea(self)
+        self.scroller = SingleDirectionScrollArea(self, orient = Qt.Vertical)
         self.scroller.setWidgetResizable(True)
-        self.scroller.setStyleSheet("QScrollArea { border: none; }")
+        self.scroller.setStyleSheet("QScrollArea { border: none; background: transparent; }")
         self.container.addWidget(self.scroller)
 
         # 设置容器
-        self.vbox_parent = QWidget()
+        self.vbox_parent = QWidget(self)
+        self.vbox_parent.setStyleSheet("QWidget { background: transparent; }")
         self.vbox = QVBoxLayout(self.vbox_parent)
         self.vbox.setSpacing(8)
         self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
@@ -66,7 +67,7 @@ class PluginsSettingsPage(QFrame):
         for k, v in self.plugin_manager.get_plugins().items():
             def widget_init(widget):
                 widget.plugin_name = k
-                widget.setChecked(config.get("plugins_enable").get(k))
+                widget.set_checked(config.get("plugins_enable").get(k))
                 
             def widget_callback(widget, checked: bool):
                 config["plugins_enable"][widget.plugin_name] = checked

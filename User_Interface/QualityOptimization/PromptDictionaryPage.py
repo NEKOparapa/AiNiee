@@ -28,8 +28,8 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 class PromptDictionaryPage(QFrame):
     
     DEFAULT = {
-        "prompt_dict_switch": True,
-        "User_Dictionary2": {
+        "prompt_dictionary_switch": True,
+        "prompt_dictionary_content": {
             "ダリヤ": {
                 "translation": "达莉雅",
                 "info": "女性的名字"
@@ -94,10 +94,10 @@ class PromptDictionaryPage(QFrame):
     # 头部
     def add_widget_header(self, parent, config):
         def widget_init(widget):
-            widget.setChecked(config.get("prompt_dict_switch"))
+            widget.set_checked(config.get("prompt_dictionary_switch"))
             
         def widget_callback(widget, checked: bool):
-            config["prompt_dict_switch"] = checked
+            config["prompt_dictionary_switch"] = checked
             self.save_config(config)
 
         parent.addWidget(
@@ -156,7 +156,7 @@ class PromptDictionaryPage(QFrame):
     # 向表格更新数据
     def update_to_table(self, table, config):
         datas = []
-        user_dictionary = config.get("User_Dictionary2", {})
+        user_dictionary = config.get("prompt_dictionary_content", {})
         table.setRowCount(max(12, len(user_dictionary)))
         for k, v in user_dictionary.items():
             datas.append(
@@ -170,7 +170,7 @@ class PromptDictionaryPage(QFrame):
 
     # 从表格更新数据
     def update_from_table(self, table, config):
-        config["User_Dictionary2"] = {}
+        config["prompt_dictionary_content"] = {}
         
         for row in range(table.rowCount()):
             data_str = table.item(row, 0)
@@ -189,7 +189,7 @@ class PromptDictionaryPage(QFrame):
             if data_str == "" or data_dst == "":
                 continue
 
-            config["User_Dictionary2"][data_str] = {
+            config["prompt_dictionary_content"][data_str] = {
                 "translation": data_dst,
                 "info": data_info,
             }
@@ -292,7 +292,7 @@ class PromptDictionaryPage(QFrame):
 
             # 读取配置文件
             config = self.load_config()
-            config["User_Dictionary2"].update(datas)
+            config["prompt_dictionary_content"].update(datas)
 
             # 保存配置文件
             config = self.save_config(config)
@@ -326,7 +326,7 @@ class PromptDictionaryPage(QFrame):
 
             # 整理数据
             datas = []
-            user_dictionary = config.get("User_Dictionary2", {})
+            user_dictionary = config.get("prompt_dictionary_content", {})
             for k, v in user_dictionary.items():
                 datas.append(
                     {
