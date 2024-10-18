@@ -1,13 +1,3 @@
-import os
-import json
-import copy
-
-from PyQt5.Qt import Qt
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QHBoxLayout
-from PyQt5.QtWidgets import QVBoxLayout
-
 from qfluentwidgets import LineEdit
 from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import StrongBodyLabel

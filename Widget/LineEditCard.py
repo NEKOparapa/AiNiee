@@ -1,5 +1,3 @@
-
-from PyQt5.Qt import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QHBoxLayout

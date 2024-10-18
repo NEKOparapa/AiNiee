@@ -1,25 +1,19 @@
 
-import os
-import json
-
-from rich import print
 from PyQt5.Qt import Qt
 from PyQt5.Qt import QEvent
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QScrollArea
 from PyQt5.QtWidgets import QVBoxLayout
 
-from qfluentwidgets import PillPushButton
 from qfluentwidgets import SingleDirectionScrollArea
 
-from Widget.SpinCard import SpinCard
+from AiNieeBase import AiNieeBase
 from Widget.GroupCard import GroupCard
 from Widget.LineEditCard import LineEditCard
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class MixTranslationSettingsPage(QFrame):
+class MixTranslationSettingsPage(QFrame, AiNieeBase):
 
     DEFAULT = {
         "mix_translation_enable": False,
@@ -36,18 +30,16 @@ class MixTranslationSettingsPage(QFrame):
         },
     }
 
-    def __init__(self, text: str, parent, configurator):
-        super().__init__(parent = parent)
-
+    def __init__(self, text: str, parent):
+        QFrame.__init__(self, parent)
+        AiNieeBase.__init__(self)
         self.setObjectName(text.replace(" ", "-"))
-        self.configurator = configurator
-
+        
         # 初始化事件列表
         self.on_show_event = []
 
         # 载入配置文件
         config = self.load_config()
-        config = self.save_config(config)
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -83,40 +75,6 @@ class MixTranslationSettingsPage(QFrame):
         for v in self.on_show_event:
             v(self, event)
 
-    # 载入配置文件
-    def load_config(self) -> dict[str]:
-        config = {}
-
-        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
-            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
-                config = json.load(reader)
-        
-        return config
-
-    # 保存配置文件
-    def save_config(self, new: dict) -> None:
-        path = os.path.join(self.configurator.resource_dir, "config.json")
-        
-        # 读取配置文件
-        if os.path.exists(path):
-            with open(path, "r", encoding = "utf-8") as reader:
-                old = json.load(reader)
-        else:
-            old = {}
-
-        # 修改配置文件中的条目：如果条目存在，这更新值，如果不存在，则设置默认值
-        for k, v in self.DEFAULT.items():
-            if not k in new.keys():
-                old[k] = v
-            else:
-                old[k] = new[k]
-
-        # 写入配置文件
-        with open(path, "w", encoding = "utf-8") as writer:
-            writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
-
-        return old
-
     # 获取接口列表
     def get_items(self, config) -> list:
         return [v.get("name") for k, v in config.get("platforms").items()]
@@ -145,6 +103,7 @@ class MixTranslationSettingsPage(QFrame):
             widget.set_checked(config.get("mix_translation_enable"))
             
         def widget_callback(widget, checked: bool):
+            config = self.load_config()
             config["mix_translation_enable"] = checked
             self.save_config(config)
 
@@ -244,6 +203,7 @@ class MixTranslationSettingsPage(QFrame):
                 widget.set_placeholder_text("请输入模型名称 ...")
 
             def widget_callback(widget, text: str):
+                config = self.load_config()
                 text = text.strip()
 
                 if text != "":
@@ -269,6 +229,7 @@ class MixTranslationSettingsPage(QFrame):
                 widget.set_checked(config.get("mix_translation_settings").get("split_switch_2"))
                 
             def widget_callback(widget, checked: bool):
+                config = self.load_config()
                 config["mix_translation_settings"]["split_switch_2"] = checked
                 self.save_config(config)
 
@@ -337,6 +298,7 @@ class MixTranslationSettingsPage(QFrame):
                 widget.set_placeholder_text("请输入模型名称 ...")
 
             def widget_callback(widget, text: str):
+                config = self.load_config()
                 text = text.strip()
 
                 if text != "":
@@ -362,6 +324,7 @@ class MixTranslationSettingsPage(QFrame):
                 widget.set_checked(config.get("mix_translation_settings").get("split_switch_3"))
                 
             def widget_callback(widget, checked: bool):
+                config = self.load_config()
                 config["mix_translation_settings"]["split_switch_3"] = checked
                 self.save_config(config)
 

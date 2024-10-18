@@ -1,8 +1,3 @@
-
-import os
-import json
-
-from rich import print
 from PyQt5.Qt import QEvent
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QFileDialog
@@ -10,11 +5,11 @@ from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import FluentIcon
 
-from Widget.SpinCard import SpinCard
+from AiNieeBase import AiNieeBase
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.PushButtonCard import PushButtonCard
 
-class ProjectPage(QFrame):
+class ProjectPage(QFrame, AiNieeBase):
 
     DEFAULT = {
         "target_platform": "sakura",
@@ -25,15 +20,13 @@ class ProjectPage(QFrame):
         "label_output_path": "./output",
     }
 
-    def __init__(self, text: str, parent = None, configurator = None):
-        super().__init__(parent = parent)
-
+    def __init__(self, text: str, parent):
+        QFrame.__init__(self, parent)
+        AiNieeBase.__init__(self)
         self.setObjectName(text.replace(" ", "-"))
-        self.configurator = configurator
 
         # 载入配置文件
         config = self.load_config()
-        config = self.save_config(config)
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -57,40 +50,6 @@ class ProjectPage(QFrame):
         
         if self.on_show_event is not None:
             self.on_show_event(self, event)
-
-    # 载入配置文件
-    def load_config(self) -> dict:
-        config = {}
-
-        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
-            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
-                config = json.load(reader)
-
-        return config
-
-    # 保存配置文件
-    def save_config(self, new: dict) -> None:
-        path = os.path.join(self.configurator.resource_dir, "config.json")
-        
-        # 读取配置文件
-        if os.path.exists(path):
-            with open(path, "r", encoding = "utf-8") as reader:
-                old = json.load(reader)
-        else:
-            old = {}
-
-        # 修改配置文件中的条目：如果条目存在，这更新值，如果不存在，则设置默认值
-        for k, v in self.DEFAULT.items():
-            if not k in new.keys():
-                old[k] = v
-            else:
-                old[k] = new[k]
-
-        # 写入配置文件
-        with open(path, "w", encoding = "utf-8") as writer:
-            writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
-
-        return old
 
     # 获取接口列表
     def get_items(self, config) -> list:
@@ -129,7 +88,6 @@ class ProjectPage(QFrame):
             
         def current_text_changed(widget, text: str):
             config = self.load_config()
-            
             config["target_platform"] = self.find_tag_by_name(config, text)
             self.save_config(config)
 
@@ -149,6 +107,7 @@ class ProjectPage(QFrame):
             widget.set_current_index(max(0, widget.find_text(config.get("translation_project"))))
 
         def current_text_changed(widget, text: str):
+            config = self.load_config()
             config["translation_project"] = text
             self.save_config(config)
 
@@ -178,6 +137,7 @@ class ProjectPage(QFrame):
             widget.set_current_index(max(0, widget.find_text(config.get("source_language"))))
 
         def current_text_changed(widget, text: str):
+            config = self.load_config()
             config["source_language"] = text
             self.save_config(config)
 
@@ -197,6 +157,7 @@ class ProjectPage(QFrame):
             widget.set_current_index(max(0, widget.find_text(config.get("target_language"))))
 
         def current_text_changed(widget, text: str):
+            config = self.load_config()
             config["target_language"] = text
             self.save_config(config)
 
@@ -227,6 +188,7 @@ class ProjectPage(QFrame):
             widget.set_description(f"当前输出文件夹为 {path.strip()}")
             
             # 更新并保存配置
+            config = self.load_config()
             config["label_input_path"] = path.strip()
             self.save_config(config)
 
@@ -256,6 +218,7 @@ class ProjectPage(QFrame):
             widget.set_description(f"当前输出文件夹为 {path.strip()}")
 
             # 更新并保存配置
+            config = self.load_config()
             config["label_output_path"] = path.strip()
             self.save_config(config)
 

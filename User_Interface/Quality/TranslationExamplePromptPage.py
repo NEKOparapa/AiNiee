@@ -1,13 +1,5 @@
-
-import os
-import json
-
-import openpyxl
-from rich import print
 from PyQt5.Qt import Qt
 from PyQt5.QtWidgets import QFrame
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QHeaderView
 from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QTableWidgetItem
@@ -15,17 +7,15 @@ from PyQt5.QtWidgets import QTableWidgetItem
 from qfluentwidgets import Action
 from qfluentwidgets import InfoBar
 from qfluentwidgets import InfoBarPosition
-from qfluentwidgets import CommandBar
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import TableWidget
 
-from Widget.SpinCard import SpinCard
-from Widget.ComboBoxCard import ComboBoxCard
+from AiNieeBase import AiNieeBase
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class TranslationExamplePromptPage(QFrame):
+class TranslationExamplePromptPage(QFrame, AiNieeBase):
     
     DEFAULT = {
         "translation_example_switch": False,
@@ -34,15 +24,13 @@ class TranslationExamplePromptPage(QFrame):
         },
     }
 
-    def __init__(self, text: str, parent = None, configurator = None):
-        super().__init__(parent = parent)
-
+    def __init__(self, text: str, parent):
+        QFrame.__init__(self, parent)
+        AiNieeBase.__init__(self)
         self.setObjectName(text.replace(" ", "-"))
-        self.configurator = configurator
 
         # 载入配置文件
         config = self.load_config()
-        config = self.save_config(config)
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -54,46 +42,13 @@ class TranslationExamplePromptPage(QFrame):
         self.add_widget_body(self.container, config)
         self.add_widget_footer(self.container, config, parent)
 
-    # 载入配置文件
-    def load_config(self) -> dict:
-        config = {}
-
-        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
-            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
-                config = json.load(reader)
-        
-        return config
-
-    # 保存配置文件
-    def save_config(self, new: dict) -> None:
-        path = os.path.join(self.configurator.resource_dir, "config.json")
-        
-        # 读取配置文件
-        if os.path.exists(path):
-            with open(path, "r", encoding = "utf-8") as reader:
-                old = json.load(reader)
-        else:
-            old = {}
-
-        # 修改配置文件中的条目：如果条目存在，这更新值，如果不存在，则设置默认值
-        for k, v in self.DEFAULT.items():
-            if not k in new.keys():
-                old[k] = v
-            else:
-                old[k] = new[k]
-
-        # 写入配置文件
-        with open(path, "w", encoding = "utf-8") as writer:
-            writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
-
-        return old
-
     # 头部
     def add_widget_header(self, parent, config):
         def widget_init(widget):
             widget.set_checked(config.get("translation_example_switch"))
             
         def widget_callback(widget, checked: bool):
+            config = self.load_config()
             config["translation_example_switch"] = checked
             self.save_config(config)
 
@@ -280,8 +235,8 @@ class TranslationExamplePromptPage(QFrame):
             for k, v in self.DEFAULT.items():
                 config[k] = v
 
-            # 保存配置文件
-            config = self.save_config(config)
+            # 加载默认设置
+            config["translation_example_content"] = self.DEFAULT.get("translation_example_content")
 
             # 向表格更新数据
             self.update_to_table(self.table, config)

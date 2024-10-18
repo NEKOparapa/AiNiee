@@ -1,15 +1,18 @@
+from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QLabel
+from PyQt5.QtWidgets import QGroupBox
+from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QHBoxLayout
+from PyQt5.QtWidgets import QVBoxLayout
+from PyQt5.QtWidgets import QStackedWidget
 
-from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QImage, QPainter, QPixmap#需要安装库 pip3 install PyQt5
-from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
-from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout
-
-from qfluentwidgets.components import Dialog  # 需要安装库 pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
-from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, EditableComboBox
-from qfluentwidgets import FluentIcon as FIF
+from qfluentwidgets import CheckBox
+from qfluentwidgets import FluentIcon
+from qfluentwidgets import PushButton
+from qfluentwidgets import ProgressRing
 from qfluentwidgets import StrongBodyLabel
-from qframelesswindow import FramelessWindow, StandardTitleBar
-
-
+from qfluentwidgets import SegmentedWidget
+from qfluentwidgets import PrimaryPushButton
 
 class Widget_start_translation(QFrame):  # 开始翻译主界面
     def __init__(self, text: str, parent=None,configurator=None,user_interface_prompter=None,background_executor=None):  # 构造函数，初始化实例时会自动调用
@@ -329,25 +332,25 @@ class Widget_start_translation_A(QFrame):#  开始翻译子界面
 
 
         #设置“开始翻译”的按钮
-        self.primaryButton_start_translation = PrimaryPushButton('开始翻译', self, FIF.PLAY)
+        self.primaryButton_start_translation = PrimaryPushButton('开始翻译', self, FluentIcon.PLAY)
         self.primaryButton_start_translation.clicked.connect(self.Start_translation) #按钮绑定槽函数
 
 
         #设置“暂停翻译”的按钮
-        self.primaryButton_pause_translation = PrimaryPushButton('暂停翻译', self, FIF.PAUSE)
+        self.primaryButton_pause_translation = PrimaryPushButton('暂停翻译', self, FluentIcon.PAUSE)
         self.primaryButton_pause_translation.clicked.connect(self.pause_translation) #按钮绑定槽函数
         #隐藏按钮
         self.primaryButton_pause_translation.hide()
 
         #设置“继续翻译”的按钮
-        self.primaryButton_continue_translation = PrimaryPushButton('继续翻译', self, FIF.ROTATE)
+        self.primaryButton_continue_translation = PrimaryPushButton('继续翻译', self, FluentIcon.ROTATE)
         self.primaryButton_continue_translation.clicked.connect(self.continue_translation) #按钮绑定槽函数
         #隐藏按钮
         self.primaryButton_continue_translation.hide()
 
 
         #设置“终止翻译”的按钮
-        self.primaryButton_terminate_translation = PushButton('取消翻译', self, FIF.CANCEL)
+        self.primaryButton_terminate_translation = PushButton('取消翻译', self, FluentIcon.CANCEL)
         self.primaryButton_terminate_translation.clicked.connect(self.terminate_translation) #按钮绑定槽函数
 
 
@@ -486,7 +489,7 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
 
 
         #设置导出当前任务的缓存文件按钮
-        self.pushButton_export_cache_file_path = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton_export_cache_file_path = PushButton('选择文件夹', self, FluentIcon.FOLDER)
         self.pushButton_export_cache_file_path.clicked.connect(self.output_cachedata) #按钮绑定槽函数
 
 
@@ -509,7 +512,7 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
 
 
         #设置导出当前任务的已翻译文本按钮
-        self.pushButton_export_translated_file_path = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton_export_translated_file_path = PushButton('选择文件夹', self, FluentIcon.FOLDER)
         self.pushButton_export_translated_file_path.clicked.connect(self.output_data) #按钮绑定槽函数
 
 

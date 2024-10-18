@@ -1,12 +1,9 @@
-
 import os
 import json
 
 import openpyxl
-from rich import print
 from PyQt5.Qt import Qt
 from PyQt5.QtWidgets import QFrame
-from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QHeaderView
 from PyQt5.QtWidgets import QVBoxLayout
@@ -15,32 +12,33 @@ from PyQt5.QtWidgets import QTableWidgetItem
 from qfluentwidgets import Action
 from qfluentwidgets import InfoBar
 from qfluentwidgets import InfoBarPosition
-from qfluentwidgets import CommandBar
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import TableWidget
 
-from Widget.SpinCard import SpinCard
-from Widget.ComboBoxCard import ComboBoxCard
+from AiNieeBase import AiNieeBase
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class TextReplaceAPage(QFrame):
+class PromptDictionaryPage(QFrame, AiNieeBase):
     
     DEFAULT = {
-        "pre_translation_switch": True,
-        "pre_translation_content": {},
+        "prompt_dictionary_switch": True,
+        "prompt_dictionary_content": {
+            "ダリヤ": {
+                "translation": "达莉雅",
+                "info": "女性的名字"
+            },
+        },
     }
 
-    def __init__(self, text: str, parent = None, configurator = None):
-        super().__init__(parent = parent)
-
+    def __init__(self, text: str, parent):
+        QFrame.__init__(self, parent)
+        AiNieeBase.__init__(self)
         self.setObjectName(text.replace(" ", "-"))
-        self.configurator = configurator
 
         # 载入配置文件
         config = self.load_config()
-        config = self.save_config(config)
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -52,53 +50,20 @@ class TextReplaceAPage(QFrame):
         self.add_widget_body(self.container, config)
         self.add_widget_footer(self.container, config, parent)
 
-    # 载入配置文件
-    def load_config(self) -> dict:
-        config = {}
-
-        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
-            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
-                config = json.load(reader)
-        
-        return config
-
-    # 保存配置文件
-    def save_config(self, new: dict) -> None:
-        path = os.path.join(self.configurator.resource_dir, "config.json")
-        
-        # 读取配置文件
-        if os.path.exists(path):
-            with open(path, "r", encoding = "utf-8") as reader:
-                old = json.load(reader)
-        else:
-            old = {}
-
-        # 修改配置文件中的条目：如果条目存在，这更新值，如果不存在，则设置默认值
-        for k, v in self.DEFAULT.items():
-            if not k in new.keys():
-                old[k] = v
-            else:
-                old[k] = new[k]
-
-        # 写入配置文件
-        with open(path, "w", encoding = "utf-8") as writer:
-            writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
-
-        return old
-
     # 头部
     def add_widget_header(self, parent, config):
         def widget_init(widget):
-            widget.set_checked(config.get("pre_translation_switch"))
+            widget.set_checked(config.get("prompt_dictionary_switch"))
             
         def widget_callback(widget, checked: bool):
-            config["pre_translation_switch"] = checked
+            config = self.load_config()
+            config["prompt_dictionary_switch"] = checked
             self.save_config(config)
 
         parent.addWidget(
             SwitchButtonCard(
-                "译前替换", 
-                "在翻译开始前，将原文中匹配的部分替换为指定的文本，执行的顺序为从上到下依次替换",
+                "指令词典", 
+                "通过构建词典指令来引导模型翻译，可实现统一翻译、矫正人称属性等功能 (不支持 Sakura v0.9 模型)",
                 widget_init,
                 widget_callback,
             )
@@ -115,7 +80,7 @@ class TextReplaceAPage(QFrame):
 
         self.table.setWordWrap(False)
         self.table.setRowCount(12)
-        self.table.setColumnCount(2)
+        self.table.setColumnCount(3)
         self.table.resizeRowsToContents() # 设置行高度自适应内容
         self.table.resizeColumnsToContents() # 设置列宽度自适应内容
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch) # 撑满宽度
@@ -125,7 +90,8 @@ class TextReplaceAPage(QFrame):
         self.table.setHorizontalHeaderLabels(
             [
                 "原文",
-                "替换",
+                "译文",
+                "描述",
             ],
         )
 
@@ -150,11 +116,11 @@ class TextReplaceAPage(QFrame):
     # 向表格更新数据
     def update_to_table(self, table, config):
         datas = []
-        user_dictionary = config.get("pre_translation_content", {})
+        user_dictionary = config.get("prompt_dictionary_content", {})
         table.setRowCount(max(12, len(user_dictionary)))
         for k, v in user_dictionary.items():
             datas.append(
-                [k.strip(), v.strip()]
+                [k.strip(), v.get("translation", "").strip(), v.get("info", "").strip()]
             )
         for row, data in enumerate(datas):
             for col, v in enumerate(data):
@@ -164,11 +130,12 @@ class TextReplaceAPage(QFrame):
 
     # 从表格更新数据
     def update_from_table(self, table, config):
-        config["pre_translation_content"] = {}
+        config["prompt_dictionary_content"] = {}
         
         for row in range(table.rowCount()):
             data_str = table.item(row, 0)
             data_dst = table.item(row, 1)
+            data_info = table.item(row, 2)
 
             # 判断是否有数据
             if data_str == None or data_dst == None:
@@ -176,12 +143,16 @@ class TextReplaceAPage(QFrame):
             
             data_str = data_str.text().strip()
             data_dst = data_dst.text().strip()
+            data_info = data_info.text().strip() if data_info != None else ""
 
             # 判断是否有数据
             if data_str == "" or data_dst == "":
                 continue
 
-            config["pre_translation_content"][data_str] = data_dst
+            config["prompt_dictionary_content"][data_str] = {
+                "translation": data_dst,
+                "info": data_info,
+            }
 
         return config
 
@@ -206,7 +177,10 @@ class TextReplaceAPage(QFrame):
                     #     }
                     # ]
                     if isinstance(v, dict) and v.get("srt", "") != "" and v.get("dst", "") != "":
-                        dictionary[v.get("srt", "").strip()] = v.get("dst", "").strip()
+                        dictionary[v.get("srt", "").strip()] = {
+                            "translation": v.get("dst", "").strip(),
+                            "info": v.get("info", "").strip(),
+                        }
                     
                     # Paratranz的术语表
                     # [
@@ -225,7 +199,10 @@ class TextReplaceAPage(QFrame):
                     #   }
                     # ]
                     if isinstance(v, dict) and v.get("term", "") != "" and v.get("translation", "") != "":
-                        dictionary[v.get("term", "").strip()] = v.get("translation", "").strip()
+                        dictionary[v.get("term", "").strip()] = {
+                            "translation": v.get("translation", "").strip(),
+                            "info": "",
+                        }
             elif isinstance(inputs, dict):
                 # 普通 KV 格式
                 # [
@@ -233,7 +210,10 @@ class TextReplaceAPage(QFrame):
                 # ]
                 for k, v in inputs.items():
                     if isinstance(v, str) and k != "" and v != "":
-                        dictionary[k.strip()] = v.strip()
+                        dictionary[k.strip()] = {
+                            "translation": v.strip(),
+                            "info": "",
+                        }
 
             return dictionary
             
@@ -247,7 +227,10 @@ class TextReplaceAPage(QFrame):
                 cell_value3 = sheet.cell(row=row, column=3).value # 第N行第三列的值
 
                 if cell_value1 != "" and cell_value2 != "":
-                    dictionary[cell_value1.strip()] = cell_value2.strip()
+                    dictionary[cell_value1.strip()] = {
+                        "translation": cell_value2.strip(),
+                        "info": cell_value3.strip(),
+                    }
 
             return dictionary
         
@@ -269,13 +252,13 @@ class TextReplaceAPage(QFrame):
 
             # 读取配置文件
             config = self.load_config()
-            config["pre_translation_content"].update(datas)
+            config["prompt_dictionary_content"].update(datas)
 
             # 保存配置文件
             config = self.save_config(config)
 
             # 向表格更新数据
-            config = self.update_to_table(self.table, config)
+            self.update_to_table(self.table, config)
 
             # 弹出提示
             InfoBar.success(
@@ -303,13 +286,13 @@ class TextReplaceAPage(QFrame):
 
             # 整理数据
             datas = []
-            user_dictionary = config.get("pre_translation_content", {})
+            user_dictionary = config.get("prompt_dictionary_content", {})
             for k, v in user_dictionary.items():
                 datas.append(
                     {
                         "srt": k,
-                        "dst": v,
-                        "info": "",
+                        "dst": v.get("translation", ""),
+                        "info": v.get("info", ""),
                     }
                 )
 
@@ -319,13 +302,13 @@ class TextReplaceAPage(QFrame):
                 return
 
             # 导出文件
-            with open(os.path.join(path, "导出_译前替换.json"), "w", encoding = "utf-8") as writer:
+            with open(os.path.join(path, "导出_指令词典.json"), "w", encoding = "utf-8") as writer:
                 writer.write(json.dumps(datas, indent = 4, ensure_ascii = False))
 
             # 弹出提示
             InfoBar.success(
                 title = "",
-                content = f"表格数据已导出为 导出_译前替换.json ...",
+                content = "表格数据已导出为 导出_指令词典.json ...",
                 parent = self,
                 duration = 2000,
                 orient = Qt.Horizontal,
@@ -429,8 +412,7 @@ class TextReplaceAPage(QFrame):
             config = self.load_config()
 
             # 加载默认设置
-            for k, v in self.DEFAULT.items():
-                config[k] = v
+            config["prompt_dictionary_content"] = self.DEFAULT.get("prompt_dictionary_content")
 
             # 保存配置文件
             config = self.save_config(config)
