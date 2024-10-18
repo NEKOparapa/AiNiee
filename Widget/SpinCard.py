@@ -10,7 +10,7 @@ from qfluentwidgets import StrongBodyLabel
 
 class SpinCard(ElevatedCardWidget):
 
-    def __init__(self, title: str, description: str, init = None, on_value_changed = None):
+    def __init__(self, title: str, description: str, init = None, value_changed = None):
         super().__init__(None)
         
         # 设置容器
@@ -34,11 +34,16 @@ class SpinCard(ElevatedCardWidget):
         
         # 微调框控件
         self.spin_box = SpinBox()
+        self.container.addWidget(self.spin_box)
 
         if init:
-            init(self.spin_box)
+            init(self)
 
-        if on_value_changed:
-            self.spin_box.valueChanged.connect(lambda value: on_value_changed(self.spin_box, value))
+        if value_changed:
+            self.spin_box.valueChanged.connect(lambda value: value_changed(self, value))
 
-        self.container.addWidget(self.spin_box)
+    def set_range(self, min, max) -> None:
+        self.spin_box.setRange(min, max)
+        
+    def set_value(self, value) -> None:
+        self.spin_box.setValue(value)

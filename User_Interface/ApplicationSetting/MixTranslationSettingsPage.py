@@ -168,16 +168,16 @@ class MixTranslationSettingsPage(QFrame):
                 widget.set_items(self.get_items(config))
                 widget.set_current_index(max(0, widget.find_text(self.find_name_by_tag(config, config.get("mix_translation_settings").get("translation_platform_1")))))
 
-            def widget_init(widget):
+            def init(widget):
                 # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
                 self.on_show_event.append(
                     lambda _, event: update_widget(widget)
                 )
 
-            def widget_callback(widget, index: int):
+            def current_text_changed(widget, text: str):
                 config = self.load_config()
                 
-                config["mix_translation_settings"]["translation_platform_1"] = self.find_tag_by_name(config, widget.get_current_text())
+                config["mix_translation_settings"]["translation_platform_1"] = self.find_tag_by_name(config, text)
                 self.save_config(config)
 
             widget.addWidget(
@@ -185,8 +185,8 @@ class MixTranslationSettingsPage(QFrame):
                     "模型类型", 
                     "第一轮翻译中使用的模型类型",
                     [],
-                    widget_init,
-                    widget_callback,
+                    init = init,
+                    current_text_changed = current_text_changed,
                 )
             )
 
@@ -212,16 +212,16 @@ class MixTranslationSettingsPage(QFrame):
                 widget.set_items(self.get_items(config))
                 widget.set_current_index(max(0, widget.find_text(self.find_name_by_tag(config, config.get("mix_translation_settings").get("translation_platform_2")))))
 
-            def widget_init(widget):
+            def init(widget):
                 # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
                 self.on_show_event.append(
                     lambda _, event: update_widget(widget)
                 )
 
-            def widget_callback(widget, index: int):
+            def current_text_changed(widget, text: str):
                 config = self.load_config()
                 
-                config["mix_translation_settings"]["translation_platform_2"] = self.find_tag_by_name(config, widget.get_current_text())
+                config["mix_translation_settings"]["translation_platform_2"] = self.find_tag_by_name(config, text)
                 self.save_config(config)
                 
             parent.addWidget(
@@ -229,8 +229,8 @@ class MixTranslationSettingsPage(QFrame):
                     "模型类型", 
                     "第二轮翻译中使用的模型类型",
                     [],
-                    widget_init,
-                    widget_callback,
+                    init = init,
+                    current_text_changed = current_text_changed,
                 )
             )
 
@@ -305,16 +305,16 @@ class MixTranslationSettingsPage(QFrame):
                 widget.set_items(self.get_items(config))
                 widget.set_current_index(max(0, widget.find_text(self.find_name_by_tag(config, config.get("mix_translation_settings").get("translation_platform_3")))))
 
-            def widget_init(widget):
+            def init(widget):
                 # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
                 self.on_show_event.append(
                     lambda _, event: update_widget(widget)
                 )
 
-            def widget_callback(widget, index: int):
+            def current_text_changed(widget, text: str):
                 config = self.load_config()
                 
-                config["mix_translation_settings"]["translation_platform_3"] = self.find_tag_by_name(config, widget.get_current_text())
+                config["mix_translation_settings"]["translation_platform_3"] = self.find_tag_by_name(config, text)
                 self.save_config(config)
                 
             parent.addWidget(
@@ -322,8 +322,8 @@ class MixTranslationSettingsPage(QFrame):
                     "模型类型", 
                     "后续轮次的翻译中使用的模型类型",
                     [],
-                    widget_init,
-                    widget_callback,
+                    init = init,
+                    current_text_changed = current_text_changed,
                 )
             )
 

@@ -186,11 +186,11 @@ class AdvanceSettingsPage(QFrame):
         
     # 简繁转换字形映射规则
     def add_widget_06(self, parent, config):
-        def widget_init(widget):
+        def init(widget):
             widget.set_current_index(max(0, widget.find_text(config.get("opencc_preset"))))
 
-        def widget_callback(widget, index: int):
-            config["opencc_preset"] = widget.get_current_text()
+        def current_text_changed(widget, text: str):
+            config["opencc_preset"] = text
             self.save_config(config)
 
         parent.addWidget(
@@ -213,8 +213,8 @@ class AdvanceSettingsPage(QFrame):
                     "hk2t",
                     "jp2t",
                 ],
-                widget_init,
-                widget_callback,
+                init = init,
+                current_text_changed = current_text_changed,
             )
         )
 

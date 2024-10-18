@@ -12,8 +12,8 @@ from Widget.ComboBoxCard import ComboBoxCard
 class BasicSettingsPage(QFrame):
 
     DEFAULT = {
-        "lines_limit_switch": True,
-        "tokens_limit_switch": False,
+        "lines_limit_switch": False,
+        "tokens_limit_switch": True,
         "lines_limit": 16,
         "tokens_limit": 512,
         "pre_line_counts": 0,
@@ -28,8 +28,26 @@ class BasicSettingsPage(QFrame):
         self.setObjectName(text.replace(" ", "-"))
         self.configurator = configurator
 
-        # 主逻辑
-        self.main()
+        # 载入配置文件
+        config = self.load_config()
+        config = self.save_config(config)
+
+        # 设置容器
+        self.vbox = QVBoxLayout(self)
+        self.vbox.setSpacing(8)
+        self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
+
+        # 添加控件
+        self.add_widget_01(self.vbox, config)
+        self.add_widget_02(self.vbox, config)
+        self.add_widget_03(self.vbox, config)
+        self.add_widget_04(self.vbox, config)
+        self.add_widget_05(self.vbox, config)
+        self.add_widget_06(self.vbox, config)
+        self.add_widget_07(self.vbox, config)
+
+        # 填充
+        self.vbox.addStretch(1) # 确保控件顶端对齐
 
     # 载入配置文件
     def load_config(self) -> dict:
@@ -65,18 +83,10 @@ class BasicSettingsPage(QFrame):
 
         return old
     
-    def main(self):
-        # 载入配置文件
-        config = self.load_config()
-        config = self.save_config(config)
 
-        # 设置容器
-        self.container = QVBoxLayout(self)
-        self.container.setSpacing(8)
-        self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
-
-        # 任务切分模式
-        def widget_01_init(widget):
+    # 任务切分模式
+    def add_widget_01(self, parent, config):
+        def init(widget):
             lines_limit_switch = config.get("lines_limit_switch")
             tokens_limit_switch = config.get("tokens_limit_switch")
 
@@ -86,18 +96,18 @@ class BasicSettingsPage(QFrame):
             if lines_limit_switch == False and tokens_limit_switch == True:
                 widget.set_current_index(1)
             
-        def widget_01_callback(widget, index: int):
-            if index == 0:
+        def current_text_changed(widget, text: str):
+            if text == "行数模式":
                 config["lines_limit_switch"] = True
                 config["tokens_limit_switch"] = False
                 
-            if index == 1:
+            if text == "Token 模式":
                 config["lines_limit_switch"] = False
                 config["tokens_limit_switch"] = True
-                
+
             self.save_config(config)
 
-        self.container.addWidget(
+        parent.addWidget(
             ComboBoxCard(
                 "任务切分模式", 
                 "选择翻译任务切分的模式",
@@ -105,118 +115,121 @@ class BasicSettingsPage(QFrame):
                     "行数模式",
                     "Token 模式",
                 ],
-                widget_01_init,
-                widget_01_callback,
+                init = init,
+                current_text_changed = current_text_changed,
             )
         )
+        
+    # 每次发送的最大行数
+    def add_widget_02(self, parent, config):
+        def init(widget):
+            widget.set_range(0, 2048)
+            widget.set_value(config.get("lines_limit"))
 
-        # 每次发送的最大行数
-        def widget_02_init(widget):
-            widget.setRange(0, 2048)
-            widget.setValue(config.get("lines_limit"))
-
-        def widget_02_callback(widget, value: int):
+        def value_changed(widget, value: int):
             config["lines_limit"] = value
             self.save_config(config)
 
-        self.container.addWidget(
+        parent.addWidget(
             SpinCard(
                 "每次发送的最大行数", 
                 "当任务切分模式设置为 行数模式 时生效",
-                widget_02_init,
-                widget_02_callback,
+                init = init,
+                value_changed = value_changed,
             )
         )
 
-        # 每次发送的最大 Token 数
-        def widget_03_init(widget):
-            widget.setRange(0, 2048)
-            widget.setValue(config.get("tokens_limit"))
+    # 每次发送的最大 Token 数
+    def add_widget_03(self, parent, config):
+        def init(widget):
+            widget.set_range(0, 2048)
+            widget.set_value(config.get("tokens_limit"))
 
-        def widget_03_callback(widget, value: int):
+        def value_changed(widget, value: int):
             config["tokens_limit"] = value
             self.save_config(config)
-            
-        self.container.addWidget(
+
+        parent.addWidget(
             SpinCard(
                 "每次发送的最大 Token 数", 
                 "当任务切分模式设置为 Token 模式 时生效",
-                widget_03_init,
-                widget_03_callback,
+                init = init,
+                value_changed = value_changed,
             )
         )
         
-        # 参考上文行数
-        def widget_04_init(widget):
-            widget.setRange(0, 2048)
-            widget.setValue(config.get("pre_line_counts"))
+    # 参考上文行数
+    def add_widget_04(self, parent, config):
+        def init(widget):
+            widget.set_range(0, 2048)
+            widget.set_value(config.get("pre_line_counts"))
 
-        def widget_04_callback(widget, value: int):
+        def value_changed(widget, value: int):
             config["pre_line_counts"] = value
             self.save_config(config)
-            
-        self.container.addWidget(
+
+        parent.addWidget(
             SpinCard(
                 "参考上文行数", 
                 "每个任务携带的参考上文的行数（不支持 Sakura v0.9 模型）",
-                widget_04_init,
-                widget_04_callback,
-            )
-        )
-
-        # 并行子任务数量
-        def widget_05_init(widget):
-            widget.setRange(0, 2048)
-            widget.setValue(config.get("user_thread_counts"))
-
-        def widget_05_callback(widget, value: int):
-            config["user_thread_counts"] = value
-            self.save_config(config)
-            
-        self.container.addWidget(
-            SpinCard(
-                "并行子任务数量", 
-                "合理设置可以极大的增加翻译速度，请设置为本地模型的 np 值或者参考在线接口的官方文档，设置为 0 为自动模式",
-                widget_05_init,
-                widget_05_callback,
+                init = init,
+                value_changed = value_changed,
             )
         )
         
-        # 错误重试的最大次数
-        def widget_06_init(widget):
-            widget.setRange(0, 2048)
-            widget.setValue(config.get("retry_count_limit"))
+    # 并行子任务数量
+    def add_widget_05(self, parent, config):
+        def init(widget):
+            widget.set_range(0, 2048)
+            widget.set_value(config.get("user_thread_counts"))
 
-        def widget_06_callback(widget, value: int):
+        def value_changed(widget, value: int):
+            config["user_thread_counts"] = value
+            self.save_config(config)
+
+        parent.addWidget(
+            SpinCard(
+                "并行子任务数量", 
+                "合理设置可以极大的增加翻译速度，请设置为本地模型的 np 值或者参考在线接口的官方文档，设置为 0 为自动模式",
+                init = init,
+                value_changed = value_changed,
+            )
+        )
+        
+    # 并行子任务数量
+    def add_widget_06(self, parent, config):
+        def init(widget):
+            widget.set_range(0, 2048)
+            widget.set_value(config.get("retry_count_limit"))
+
+        def value_changed(widget, value: int):
             config["retry_count_limit"] = value
             self.save_config(config)
-            
-        self.container.addWidget(
+
+        parent.addWidget(
             SpinCard(
                 "错误重试的最大次数", 
                 "当遇到行数不匹配等翻译错误时进行重试的最大次数",
-                widget_06_init,
-                widget_06_callback,
+                init = init,
+                value_changed = value_changed,
             )
         )
+        
+    # 并行子任务数量
+    def add_widget_07(self, parent, config):
+        def init(widget):
+            widget.set_range(0, 2048)
+            widget.set_value(config.get("round_limit"))
 
-        # 翻译流程的最大轮次
-        def widget_07_init(widget):
-            widget.setRange(1, 2048)
-            widget.setValue(config.get("round_limit"))
-
-        def widget_07_callback(widget, value: int):
+        def value_changed(widget, value: int):
             config["round_limit"] = value
             self.save_config(config)
-            
-        self.container.addWidget(
+
+        parent.addWidget(
             SpinCard(
                 "翻译流程的最大轮次", 
                 "当完成一轮翻译后，如果还有未翻译的条目，将重新开始新的翻译流程，直到翻译完成或者达到最大轮次",
-                widget_07_init,
-                widget_07_callback,
+                init = init,
+                value_changed = value_changed,
             )
         )
-
-        # 填充
-        self.container.addStretch(1) # 确保控件顶端对齐

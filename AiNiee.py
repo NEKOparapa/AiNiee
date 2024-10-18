@@ -194,7 +194,7 @@ class Translator():
         retry_translation_count = 1
 
         while untranslated_text_line_count != 0 :
-            print("[[orange_red1]Warning[/]] 仍然有部分未翻译，将进行拆分后重新翻译，-----------------------------------")
+            print("[[salmon1]Warning[/]] 仍然有部分未翻译，将进行拆分后重新翻译，-----------------------------------")
             print("[[green]INFO[/]] 当前拆分翻译轮次：",retry_translation_count ," 到达最大轮次：",configurator.round_limit," 时，将停止翻译")
             user_interface_prompter.signal.emit("运行状态改变",f"正在拆分翻译",0)
 
@@ -270,7 +270,7 @@ class Translator():
             #检查是否已经达到重翻次数限制
             retry_translation_count  = retry_translation_count + 1
             if retry_translation_count > configurator.round_limit :
-                print ("[[orange_red1]Warning[/]] 已经达到拆分翻译轮次限制，但仍然有部分文本未翻译，不影响使用，可手动翻译", '\n')
+                print ("[[salmon1]Warning[/]] 已经达到拆分翻译轮次限制，但仍然有部分文本未翻译，不影响使用，可手动翻译", '\n')
                 break
 
             #重新计算未翻译文本的数量
@@ -292,7 +292,7 @@ class Translator():
                 print(f"[[green]Success[/]] 文本转化{configurator.target_language}完成-----------------------------------", '\n')   
 
             except Exception as e:
-                print("[[orange_red1]Warning[/]] 文本转换出现问题！！将跳过该步，错误信息如下")
+                print("[[salmon1]Warning[/]] 文本转换出现问题！！将跳过该步，错误信息如下")
                 print(f"Error: {e}\n")
 
 
@@ -537,7 +537,7 @@ class Api_Requester():
 
             # 检查一下是否有发送内容
             if source_text_list == []:
-                print("[[orange_red1]Warning[/]] 未能获取文本，该线程为多余线程，取消任务")
+                print("[[salmon1]Warning[/]] 未能获取文本，该线程为多余线程，取消任务")
                 return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
@@ -752,7 +752,7 @@ class Api_Requester():
 
                     # 如果出现回复错误
                     else:
-                        print("[[orange_red1]Warning[/]] AI回复内容存在问题:",error_content,"\n")
+                        print("[[salmon1]Warning[/]] AI回复内容存在问题:",error_content,"\n")
 
 
                         configurator.lock2.acquire()  # 获取锁
@@ -771,15 +771,15 @@ class Api_Requester():
 
                         # 检查一下是不是模型退化
                         if error_content == "AI回复内容出现高频词,并重新翻译":
-                            print("[[orange_red1]Warning[/]] 下次请求将修改参数，回避高频词输出","\n")
+                            print("[[salmon1]Warning[/]] 下次请求将修改参数，回避高频词输出","\n")
                             model_degradation = True
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("[[orange_red1]Warning[/]] 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
+                        print("[[salmon1]Warning[/]] 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
                         if Wrong_answer_count > configurator.retry_count_limit :
-                            print("[[orange_red1]Warning[/]] 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
+                            print("[[salmon1]Warning[/]] 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
                             break
 
 
@@ -932,7 +932,7 @@ class Api_Requester():
 
             # 检查一下是否有发送内容
             if source_text_list == []:
-                print("[[orange_red1]Warning[/]] 未能获取文本，该线程为多余线程，取消任务")
+                print("[[salmon1]Warning[/]] 未能获取文本，该线程为多余线程，取消任务")
                 return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
@@ -961,8 +961,8 @@ class Api_Requester():
             completion_tokens_consume = Request_Limiter.num_tokens_from_messages(self,Original_text)
  
             if request_tokens_consume >= request_limiter.max_tokens :
-                print("[[orange_red1]Warning[/]] 该条消息总tokens数大于单条消息最大数量" )
-                print("[[orange_red1]Warning[/]] 该条消息取消任务，进行拆分翻译" )
+                print("[[salmon1]Warning[/]] 该条消息总tokens数大于单条消息最大数量" )
+                print("[[salmon1]Warning[/]] 该条消息取消任务，进行拆分翻译" )
                 return
 
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
@@ -1183,14 +1183,14 @@ class Api_Requester():
 
                         configurator.lock2.release()  # 释放锁
 
-                        print("[[orange_red1]Warning[/]] AI回复内容存在问题:",error_content,"\n")
+                        print("[[salmon1]Warning[/]] AI回复内容存在问题:",error_content,"\n")
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("[[orange_red1]Warning[/]] 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
+                        print("[[salmon1]Warning[/]] 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
                         if Wrong_answer_count > configurator.retry_count_limit :
-                            print("[[orange_red1]Warning[/]] 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
+                            print("[[salmon1]Warning[/]] 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
                             break
 
 
@@ -1345,7 +1345,7 @@ class Api_Requester():
 
             # 检查一下是否有发送内容
             if source_text_list == []:
-                print("[[orange_red1]Warning[/]] 未能获取文本，该线程为多余线程，取消任务")
+                print("[[salmon1]Warning[/]] 未能获取文本，该线程为多余线程，取消任务")
                 return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
@@ -1570,14 +1570,14 @@ class Api_Requester():
 
                         configurator.lock2.release()  # 释放锁
 
-                        print("[[orange_red1]Warning[/]] AI回复内容存在问题:",error_content,"\n")
+                        print("[[salmon1]Warning[/]] AI回复内容存在问题:",error_content,"\n")
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("[[orange_red1]Warning[/]] 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
+                        print("[[salmon1]Warning[/]] 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
                         if Wrong_answer_count > configurator.retry_count_limit :
-                            print("[[orange_red1]Warning[/]] 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
+                            print("[[salmon1]Warning[/]] 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
                             break
 
 
@@ -1726,7 +1726,7 @@ class Api_Requester():
 
             # 检查一下是否有发送内容
             if source_text_list == []:
-                print("[[orange_red1]Warning[/]] 未能获取文本，该线程为多余线程，取消任务")
+                print("[[salmon1]Warning[/]] 未能获取文本，该线程为多余线程，取消任务")
                 return
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
             # 将原文本列表改变为请求格式
@@ -1956,14 +1956,14 @@ class Api_Requester():
 
                         configurator.lock2.release()  # 释放锁
 
-                        print("[[orange_red1]Warning[/]] AI回复内容存在问题:",error_content,"\n")
+                        print("[[salmon1]Warning[/]] AI回复内容存在问题:",error_content,"\n")
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("[[orange_red1]Warning[/]] 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
+                        print("[[salmon1]Warning[/]] 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
                         if Wrong_answer_count > configurator.retry_count_limit :
-                            print("[[orange_red1]Warning[/]] 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
+                            print("[[salmon1]Warning[/]] 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
                             break
 
 
@@ -2077,7 +2077,7 @@ class Api_Requester():
 
             # 检查一下是否有发送内容
             if source_text_list == []:
-                print("[[orange_red1]Warning[/]] 未能获取文本，该线程为多余线程，取消任务")
+                print("[[salmon1]Warning[/]] 未能获取文本，该线程为多余线程，取消任务")
                 return
 
             # ——————————————————————————————————————————处理原文本的内容与格式——————————————————————————————————————————
@@ -2103,8 +2103,8 @@ class Api_Requester():
             completion_tokens_consume = Request_Limiter.num_tokens_from_messages(self,Original_text) #加上2%的修正系数
  
             if request_tokens_consume >= request_limiter.max_tokens :
-                print("[[orange_red1]Warning[/]] 该条消息总tokens数大于单条消息最大数量" )
-                print("[[orange_red1]Warning[/]] 该条消息取消任务，进行拆分翻译" )
+                print("[[salmon1]Warning[/]] 该条消息总tokens数大于单条消息最大数量" )
+                print("[[salmon1]Warning[/]] 该条消息取消任务，进行拆分翻译" )
                 return
             
             # ——————————————————————————————————————————开始循环请求，直至成功或失败——————————————————————————————————————————
@@ -2311,19 +2311,19 @@ class Api_Requester():
 
                         configurator.lock2.release()  # 释放锁
 
-                        print("[[orange_red1]Warning[/]] AI回复内容存在问题:",error_content,"\n")
+                        print("[[salmon1]Warning[/]] AI回复内容存在问题:",error_content,"\n")
 
                         # 检查一下是不是模型退化
                         if error_content == "AI回复内容出现高频词,并重新翻译":
-                            print("[[orange_red1]Warning[/]] 下次请求将修改参数，回避高频词输出","\n")
+                            print("[[salmon1]Warning[/]] 下次请求将修改参数，回避高频词输出","\n")
                             model_degradation = True
 
                         #错误回复计次
                         Wrong_answer_count = Wrong_answer_count + 1
-                        print("[[orange_red1]Warning[/]] 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
+                        print("[[salmon1]Warning[/]] 错误重新翻译最大次数限制:",configurator.retry_count_limit,"剩余可重试次数:",(configurator.retry_count_limit + 1 - Wrong_answer_count),"到达次数限制后，该段文本将进行拆分翻译\n")
                         #检查回答错误次数，如果达到限制，则跳过该句翻译。
                         if Wrong_answer_count > configurator.retry_count_limit :
-                            print("[[orange_red1]Warning[/]] 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
+                            print("[[salmon1]Warning[/]] 错误回复重翻次数已经达限制,将该段文本进行拆分翻译！\n")    
                             break
 
 
@@ -2379,7 +2379,7 @@ class User_Interface_Prompter(QObject):
 
 
             elif input_str2 == "翻译暂停":
-                print("[[orange_red1]Warning[/]] 翻译任务已被暂停-----------------------","\n")
+                print("[[salmon1]Warning[/]] 翻译任务已被暂停-----------------------","\n")
                 self.stateTooltip.setContent('翻译已暂停')
                 self.stateTooltip.setState(True)
                 self.stateTooltip = None
@@ -2390,7 +2390,7 @@ class User_Interface_Prompter(QObject):
                 self.createSuccessInfoBar("翻译任务已全部暂停")
 
             elif input_str2 == "翻译取消":
-                print("[[orange_red1]Warning[/]] 翻译任务已被取消-----------------------","\n")
+                print("[[salmon1]Warning[/]] 翻译任务已被取消-----------------------","\n")
                 self.stateTooltip.setContent('翻译已取消')
                 self.stateTooltip.setState(True)
                 self.stateTooltip = None
@@ -2732,7 +2732,7 @@ class background_executor(threading.Thread):
 
         else :
             user_interface_prompter.createWarningInfoBar("正在清理线程中，请耐心等待一会")
-            print("[[orange_red1]Warning[/]] 多线程任务正清理中，请耐心等待一会","\n")
+            print("[[salmon1]Warning[/]] 多线程任务正清理中，请耐心等待一会","\n")
             return False
 
 
@@ -2741,7 +2741,7 @@ class background_executor(threading.Thread):
         configurator.Running_status = 9
         user_interface_prompter.createWarningInfoBar("软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！")
         user_interface_prompter.signal.emit("运行状态改变","正在取消线程任务中",0)
-        print("[[orange_red1]Warning[/]] 软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！-----------------------","\n")
+        print("[[salmon1]Warning[/]] 软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！-----------------------","\n")
 
 
     # 取消翻译判断+实现函数
@@ -2752,13 +2752,13 @@ class background_executor(threading.Thread):
             configurator.Running_status = 11
             user_interface_prompter.createWarningInfoBar("软件的多线程任务正在逐一取消中，请等待全部任务释放完成！！！")
             user_interface_prompter.signal.emit("运行状态改变","正在取消线程任务中",0)
-            print("[[orange_red1]Warning[/]] 软件的多线程任务正在逐一取消中，请等待全部翻译任务释放完成！！！-----------------------","\n")
+            print("[[salmon1]Warning[/]] 软件的多线程任务正在逐一取消中，请等待全部翻译任务释放完成！！！-----------------------","\n")
 
         # 如果已经暂停翻译
         elif configurator.Running_status == 10:
 
             configurator.Running_status = 0
-            print("[[orange_red1]Warning[/]] 翻译任务已取消-----------------------","\n")
+            print("[[salmon1]Warning[/]] 翻译任务已取消-----------------------","\n")
             # 界面提示
             user_interface_prompter.createWarningInfoBar("翻译已取消")
             user_interface_prompter.signal.emit("重置界面数据","翻译取消",0)
@@ -2768,7 +2768,7 @@ class background_executor(threading.Thread):
         elif configurator.Running_status == 0:
 
             configurator.Running_status = 0
-            print("[[orange_red1]Warning[/]] 当前无翻译任务-----------------------","\n")
+            print("[[salmon1]Warning[/]] 当前无翻译任务-----------------------","\n")
             # 界面提示
             user_interface_prompter.createWarningInfoBar("当前无翻译任务")
             user_interface_prompter.signal.emit("重置界面数据","翻译取消",0)
