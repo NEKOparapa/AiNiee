@@ -140,7 +140,7 @@ class PlatformPage(QFrame):
         platform = config.get("platforms").get(tag)
 
         if self.background_executor.Request_test_switch(self):
-            def on_api_test_done(result):
+            def callback(result):
                 if result == True:
                     InfoBar.success(
                         title = "",
@@ -166,13 +166,14 @@ class PlatformPage(QFrame):
                 "接口测试",
                 "",
                 "",
-                platform.get("tag"),
-                platform.get("api_url"),
-                platform.get("model"),
-                platform.get("api_key"),
-                platform.get("proxy"),
-                platform.get("api_format"),
-                on_api_test_done,
+                tag = platform.get("tag"),
+                api_url = platform.get("api_url"),
+                api_key = platform.get("api_key"),
+                api_format = platform.get("api_format"),
+                model = platform.get("model"),
+                proxy = platform.get("proxy"),
+                auto_complete = platform.get("auto_complete"),
+                callback = callback,
             ).start()
         else:
             InfoBar.warning(
@@ -319,6 +320,7 @@ class PlatformPage(QFrame):
 
         def message_box_close(widget, text: str):
             config = self.load_config()
+            print(config)
             
             # 生成一个随机 TAG
             tag = f"custom_platform_{random.randint(100000, 999999)}"

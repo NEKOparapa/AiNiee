@@ -15,7 +15,15 @@ class Request_Tester():
         pass
 
     # 接口测试分发
-    def request_test(self, user_interface_prompter, tag, api_url, model, api_key, proxy, api_format):
+    def request_test(self, user_interface_prompter, tag, api_url, model, api_key, proxy, api_format, auto_complete):
+        # 获取接口地址并补齐，v3 结尾是火山，v4 结尾是智谱
+        if tag == "sakura" and not api_url.endswith("/v1"):
+            api_url = api_url + "/v1"
+        elif auto_complete == True and not api_url.endswith("/v1") and not api_url.endswith("/v3") and not api_url.endswith("/v4"):
+            api_url = api_url + "/v1"
+        else:
+            api_url = api_url
+        
         if tag == "sakura":
             Request_Tester.sakura_request_test(self, user_interface_prompter, api_url, model, api_key, proxy)
         elif tag == "cohere":
@@ -30,15 +38,15 @@ class Request_Tester():
             Request_Tester.openai_request_test(self, user_interface_prompter, api_url, model, api_key, proxy)
 
     # openai接口测试
-    def openai_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy_port):
+    def openai_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy):
         
         print("[INFO] 正在测试openai类接口",'\n')
 
         #如果填入地址，则设置系统代理
-        if proxy_port :
-            print("[INFO] 系统代理端口是:",proxy_port,'\n') 
-            os.environ["http_proxy"]=proxy_port
-            os.environ["https_proxy"]=proxy_port
+        if proxy :
+            print("[INFO] 系统代理端口是:",proxy,'\n') 
+            os.environ["http_proxy"]=proxy
+            os.environ["https_proxy"]=proxy
 
         
         #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
@@ -108,15 +116,15 @@ class Request_Tester():
 
 
     # google接口测试
-    def google_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy_port):
+    def google_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy):
 
         print("[INFO] 正在测试Google接口",'\n')
 
         #如果填入地址，则设置系统代理
-        if proxy_port :
-            print("[INFO] 系统代理端口是:",proxy_port,'\n') 
-            os.environ["http_proxy"]=proxy_port
-            os.environ["https_proxy"]=proxy_port
+        if proxy :
+            print("[INFO] 系统代理端口是:",proxy,'\n') 
+            os.environ["http_proxy"]=proxy
+            os.environ["https_proxy"]=proxy
 
 
         #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
@@ -217,15 +225,15 @@ class Request_Tester():
 
 
     # anthropic接口测试
-    def anthropic_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy_port):
+    def anthropic_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy):
         
         print("[INFO] 正在测试Anthropic接口",'\n')
 
         #如果填入地址，则设置系统代理
-        if proxy_port :
-            print("[INFO] 系统代理端口是:",proxy_port,'\n') 
-            os.environ["http_proxy"]=proxy_port
-            os.environ["https_proxy"]=proxy_port
+        if proxy :
+            print("[INFO] 系统代理端口是:",proxy,'\n') 
+            os.environ["http_proxy"]=proxy
+            os.environ["https_proxy"]=proxy
 
 
         #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
@@ -304,15 +312,15 @@ class Request_Tester():
 
 
     # cohere接口测试
-    def cohere_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy_port):
+    def cohere_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy):
         
         print("[INFO] 正在测试Cohere接口",'\n')
 
         #如果填入地址，则设置系统代理
-        if proxy_port :
-            print("[INFO] 系统代理端口是:",proxy_port,'\n') 
-            os.environ["http_proxy"]=proxy_port
-            os.environ["https_proxy"]=proxy_port
+        if proxy :
+            print("[INFO] 系统代理端口是:",proxy,'\n') 
+            os.environ["http_proxy"]=proxy
+            os.environ["https_proxy"]=proxy
 
         
         #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
@@ -383,15 +391,15 @@ class Request_Tester():
 
 
     # sakura接口测试
-    def sakura_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy_port):
+    def sakura_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy):
 
         print("[INFO] 正在测试Sakura接口",'\n')
 
         #如果填入地址，则设置系统代理
-        if proxy_port :
-            print("[INFO] 系统代理端口是:",proxy_port,'\n') 
-            os.environ["http_proxy"]=proxy_port
-            os.environ["https_proxy"]=proxy_port
+        if proxy :
+            print("[INFO] 系统代理端口是:",proxy,'\n') 
+            os.environ["http_proxy"]=proxy
+            os.environ["https_proxy"]=proxy
 
         
 

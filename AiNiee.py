@@ -2626,24 +2626,26 @@ class background_executor(threading.Thread):
         task_id = None,
         input_folder = None,
         output_folder = None,
-        platform = None,
-        base_url = None,
-        model = None,
+        tag = None,
+        api_url = None,
         api_key = None,
-        proxy_port = None,
         api_format = None,
-        callback = None
+        model = None,
+        proxy = None,
+        auto_complete = None,
+        callback = None,
     ):
         super().__init__() # 调用父类构造
         self.task_id = task_id
         self.input_folder = input_folder
         self.output_folder = output_folder
-        self.platform = platform
-        self.base_url = base_url
-        self.model = model
+        self.tag = tag
+        self.api_url = api_url
         self.api_key = api_key
-        self.proxy_port = proxy_port
         self.api_format = api_format
+        self.model = model
+        self.proxy = proxy
+        self.auto_complete = auto_complete
         self.callback = callback
 
     def run(self):
@@ -2684,12 +2686,13 @@ class background_executor(threading.Thread):
             Request_Tester.request_test(
                 self,
                 user_interface_prompter,
-                self.platform,
-                self.base_url,
-                self.model,
-                self.api_key,
-                self.proxy_port,
-                self.api_format
+                tag = self.tag,
+                api_url = self.api_url,
+                api_key = self.api_key,
+                api_format = self.api_format,
+                model = self.model,
+                proxy = self.proxy,
+                auto_complete = self.auto_complete,
             )
             configurator.Running_status = 0
 
