@@ -79,6 +79,9 @@ class AppFluentWindow(FluentWindow): #主窗口
         self.navigationInterface.setMinimumExpandWidth(self.APP_WIDTH)
         self.navigationInterface.expand(useAni = False)
 
+        # 隐藏返回按钮
+        self.navigationInterface.panel.setReturnButtonVisible(False)
+
     # 重写窗口关闭函数
     def closeEvent(self, event):
         message_box = MessageBox("警告", "确定是否退出程序 ... ？", self)
