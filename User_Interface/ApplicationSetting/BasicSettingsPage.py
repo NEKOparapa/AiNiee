@@ -12,8 +12,8 @@ from Widget.ComboBoxCard import ComboBoxCard
 class BasicSettingsPage(QFrame):
 
     DEFAULT = {
-        "lines_limit_switch": True,
-        "tokens_limit_switch": False,
+        "lines_limit_switch": False,
+        "tokens_limit_switch": True,
         "lines_limit": 16,
         "tokens_limit": 512,
         "pre_line_counts": 0,
