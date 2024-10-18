@@ -320,7 +320,6 @@ class PlatformPage(QFrame):
 
         def message_box_close(widget, text: str):
             config = self.load_config()
-            print(config)
             
             # 生成一个随机 TAG
             tag = f"custom_platform_{random.randint(100000, 999999)}"
