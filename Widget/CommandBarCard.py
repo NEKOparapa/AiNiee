@@ -1,14 +1,9 @@
-
 from PyQt5.Qt import Qt
-
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import ElevatedCardWidget
 from qfluentwidgets import Action
 from qfluentwidgets import CommandBar
-from qfluentwidgets import FluentIcon
 
 class CommandBarCard(ElevatedCardWidget):
 

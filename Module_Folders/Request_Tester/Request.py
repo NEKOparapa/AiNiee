@@ -23,7 +23,16 @@ class Request_Tester():
             api_url = api_url + "/v1"
         else:
             api_url = api_url
-        
+
+        # 设置或取消代理
+        if proxy == "":
+            os.environ.pop("http_proxy", None)
+            os.environ.pop("https_proxy", None)
+        else:
+            os.environ["http_proxy"] = proxy
+            os.environ["https_proxy"] = proxy
+            print(f"[[green]INFO[/]] 系统代理已启用，代理地址：{proxy}")
+
         if tag == "sakura":
             Request_Tester.sakura_request_test(self, user_interface_prompter, api_url, model, api_key, proxy)
         elif tag == "cohere":
@@ -42,13 +51,6 @@ class Request_Tester():
         
         print("[INFO] 正在测试openai类接口",'\n')
 
-        #如果填入地址，则设置系统代理
-        if proxy :
-            print("[INFO] 系统代理端口是:",proxy,'\n') 
-            os.environ["http_proxy"]=proxy
-            os.environ["https_proxy"]=proxy
-
-        
         #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
         API_key_list = api_key_str.replace('\n','').replace(" ", "").split(",")
 
@@ -119,13 +121,6 @@ class Request_Tester():
     def google_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy):
 
         print("[INFO] 正在测试Google接口",'\n')
-
-        #如果填入地址，则设置系统代理
-        if proxy :
-            print("[INFO] 系统代理端口是:",proxy,'\n') 
-            os.environ["http_proxy"]=proxy
-            os.environ["https_proxy"]=proxy
-
 
         #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
         API_key_list = api_key_str.replace('\n','').replace(" ", "").split(",")
@@ -229,13 +224,6 @@ class Request_Tester():
         
         print("[INFO] 正在测试Anthropic接口",'\n')
 
-        #如果填入地址，则设置系统代理
-        if proxy :
-            print("[INFO] 系统代理端口是:",proxy,'\n') 
-            os.environ["http_proxy"]=proxy
-            os.environ["https_proxy"]=proxy
-
-
         #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
         API_key_list = api_key_str.replace('\n','').replace(" ", "").split(",")
 
@@ -316,13 +304,6 @@ class Request_Tester():
         
         print("[INFO] 正在测试Cohere接口",'\n')
 
-        #如果填入地址，则设置系统代理
-        if proxy :
-            print("[INFO] 系统代理端口是:",proxy,'\n') 
-            os.environ["http_proxy"]=proxy
-            os.environ["https_proxy"]=proxy
-
-        
         #分割KEY字符串并存储进列表里,如果API_key_str中没有逗号，split(",")方法仍然返回一个只包含一个元素的列表
         API_key_list = api_key_str.replace('\n','').replace(" ", "").split(",")
 
@@ -394,14 +375,6 @@ class Request_Tester():
     def sakura_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy):
 
         print("[INFO] 正在测试Sakura接口",'\n')
-
-        #如果填入地址，则设置系统代理
-        if proxy :
-            print("[INFO] 系统代理端口是:",proxy,'\n') 
-            os.environ["http_proxy"]=proxy
-            os.environ["https_proxy"]=proxy
-
-        
 
         #检查一下请求地址尾部是否为/v1，自动补全
         if base_url[-3:] != "/v1":

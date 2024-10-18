@@ -1,16 +1,11 @@
-
 import os
 import json
 import copy
 import random
 from functools import partial
 
-from rich import print
 from PyQt5.Qt import Qt
-from PyQt5.Qt import QEvent
-from PyQt5.Qt import QTimer
 from PyQt5.QtWidgets import QFrame
-from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import Action
@@ -21,12 +16,12 @@ from qfluentwidgets import FluentIcon
 from qfluentwidgets import PrimaryPushButton
 from qfluentwidgets import PrimaryDropDownPushButton
 
+from AiNieeBase import AiNieeBase
 from Widget.FlowCard import FlowCard
-from Widget.ComboBoxCard import ComboBoxCard
-from Widget.APIEditMessageBox import APIEditMessageBox
 from Widget.LineEditMessageBox import LineEditMessageBox
+from User_Interface.Project.APIEditPage import APIEditPage
 
-class PlatformPage(QFrame):
+class PlatformPage(QFrame, AiNieeBase):
 
     CUSTOM = {
         "tag": "",
@@ -61,20 +56,23 @@ class PlatformPage(QFrame):
 
     DEFAULT = {}
 
-    def __init__(self, text: str, window, configurator, background_executor):
-        super().__init__(parent = window)
-
+    def __init__(self, text: str, window, background_executor = None):
+        QFrame.__init__(self, window)
+        AiNieeBase.__init__(self)
         self.setObjectName(text.replace(" ", "-"))
+        
+        # 全局窗口对象
         self.window = window
-        self.configurator = configurator
+
+        # 配置文件管理器
         self.background_executor = background_executor
 
         # 加载默认配置
-        self.DEFAULT = self.load_file(os.path.join(self.configurator.resource_dir, "platforms.json"))
+        self.DEFAULT = self.load_file("./Resource/platforms.json")
+        self.save_config(self.load_config_from_default())
     
         # 载入配置文件
         config = self.load_config()
-        config = self.save_config(config)
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -96,42 +94,10 @@ class PlatformPage(QFrame):
         if os.path.exists(path):
             with open(path, "r", encoding = "utf-8") as reader:
                 result = json.load(reader)
+        else:
+            self.error("未找到 platforms.json 文件 ...")
 
         return result
-
-    # 载入配置文件
-    def load_config(self) -> dict:
-        config = {}
-
-        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
-            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
-                config = json.load(reader)
-
-        return config
-
-    # 保存配置文件
-    def save_config(self, new: dict) -> None:
-        path = os.path.join(self.configurator.resource_dir, "config.json")
-        
-        # 读取配置文件
-        if os.path.exists(path):
-            with open(path, "r", encoding = "utf-8") as reader:
-                old = json.load(reader)
-        else:
-            old = {}
-
-        # 修改配置文件中的条目：如果条目存在，这更新值，如果不存在，则设置默认值
-        for k, v in self.DEFAULT.items():
-            if not k in new.keys():
-                old[k] = v
-            else:
-                old[k] = new[k]
-
-        # 写入配置文件
-        with open(path, "w", encoding = "utf-8") as writer:
-            writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
-
-        return old
 
     # 执行接口测试
     def api_test(self, tag: str):
@@ -251,7 +217,7 @@ class PlatformPage(QFrame):
 
     # 显示 API 编辑对话框
     def show_api_edit_message_box(self, key: str):
-        api_edit_message_box = APIEditMessageBox(self.window, self.configurator, key)
+        api_edit_message_box = APIEditPage(self.window, key)
         api_edit_message_box.exec()
 
     # 初始化下拉按钮

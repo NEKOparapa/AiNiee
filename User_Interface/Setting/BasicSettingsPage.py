@@ -1,15 +1,11 @@
-
-import os
-import json
-
-from rich import print
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
 
+from AiNieeBase import AiNieeBase
 from Widget.SpinCard import SpinCard
 from Widget.ComboBoxCard import ComboBoxCard
 
-class BasicSettingsPage(QFrame):
+class BasicSettingsPage(QFrame, AiNieeBase):
 
     DEFAULT = {
         "lines_limit_switch": False,
@@ -22,15 +18,13 @@ class BasicSettingsPage(QFrame):
         "round_limit": 8,
     }
 
-    def __init__(self, text: str, parent = None, configurator = None):
-        super().__init__(parent = parent)
-
+    def __init__(self, text: str, parent):
+        QFrame.__init__(self, parent)
+        AiNieeBase.__init__(self)
         self.setObjectName(text.replace(" ", "-"))
-        self.configurator = configurator
 
         # 载入配置文件
         config = self.load_config()
-        config = self.save_config(config)
 
         # 设置容器
         self.vbox = QVBoxLayout(self)
@@ -49,41 +43,6 @@ class BasicSettingsPage(QFrame):
         # 填充
         self.vbox.addStretch(1) # 确保控件顶端对齐
 
-    # 载入配置文件
-    def load_config(self) -> dict:
-        config = {}
-
-        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
-            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
-                config = json.load(reader)
-
-        return config
-
-    # 保存配置文件
-    def save_config(self, new: dict) -> None:
-        path = os.path.join(self.configurator.resource_dir, "config.json")
-        
-        # 读取配置文件
-        if os.path.exists(path):
-            with open(path, "r", encoding = "utf-8") as reader:
-                old = json.load(reader)
-        else:
-            old = {}
-
-        # 修改配置文件中的条目：如果条目存在，这更新值，如果不存在，则设置默认值
-        for k, v in self.DEFAULT.items():
-            if not k in new.keys():
-                old[k] = v
-            else:
-                old[k] = new[k]
-
-        # 写入配置文件
-        with open(path, "w", encoding = "utf-8") as writer:
-            writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
-
-        return old
-    
-
     # 任务切分模式
     def add_widget_01(self, parent, config):
         def init(widget):
@@ -97,6 +56,8 @@ class BasicSettingsPage(QFrame):
                 widget.set_current_index(1)
             
         def current_text_changed(widget, text: str):
+            config = self.load_config()
+
             if text == "行数模式":
                 config["lines_limit_switch"] = True
                 config["tokens_limit_switch"] = False
@@ -127,6 +88,7 @@ class BasicSettingsPage(QFrame):
             widget.set_value(config.get("lines_limit"))
 
         def value_changed(widget, value: int):
+            config = self.load_config()
             config["lines_limit"] = value
             self.save_config(config)
 
@@ -146,6 +108,7 @@ class BasicSettingsPage(QFrame):
             widget.set_value(config.get("tokens_limit"))
 
         def value_changed(widget, value: int):
+            config = self.load_config()
             config["tokens_limit"] = value
             self.save_config(config)
 
@@ -165,6 +128,7 @@ class BasicSettingsPage(QFrame):
             widget.set_value(config.get("pre_line_counts"))
 
         def value_changed(widget, value: int):
+            config = self.load_config()
             config["pre_line_counts"] = value
             self.save_config(config)
 
@@ -184,6 +148,7 @@ class BasicSettingsPage(QFrame):
             widget.set_value(config.get("user_thread_counts"))
 
         def value_changed(widget, value: int):
+            config = self.load_config()
             config["user_thread_counts"] = value
             self.save_config(config)
 
@@ -203,6 +168,7 @@ class BasicSettingsPage(QFrame):
             widget.set_value(config.get("retry_count_limit"))
 
         def value_changed(widget, value: int):
+            config = self.load_config()
             config["retry_count_limit"] = value
             self.save_config(config)
 
@@ -222,6 +188,7 @@ class BasicSettingsPage(QFrame):
             widget.set_value(config.get("round_limit"))
 
         def value_changed(widget, value: int):
+            config = self.load_config()
             config["round_limit"] = value
             self.save_config(config)
 

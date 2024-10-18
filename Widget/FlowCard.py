@@ -1,5 +1,3 @@
-
-from PyQt5.Qt import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QHBoxLayout
@@ -7,8 +5,6 @@ from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import ElevatedCardWidget
 from qfluentwidgets import FlowLayout
-from qfluentwidgets import FluentIcon
-from qfluentwidgets import PushButton
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import StrongBodyLabel
 

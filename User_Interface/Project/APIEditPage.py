@@ -1,34 +1,28 @@
-import os
-import json
-import copy
-
 from PyQt5.Qt import Qt
-from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
 
-from qfluentwidgets import FluentIcon
 from qfluentwidgets import PlainTextEdit
 from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 
+from AiNieeBase import AiNieeBase
 from Widget.GroupCard import GroupCard
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.LineEditCard import LineEditCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 from Widget.EditableComboBoxCard import EditableComboBoxCard
 
-class APIEditMessageBox(MessageBoxBase):
+class APIEditPage(MessageBoxBase, AiNieeBase):
 
     DEFAULT = {}
 
-    def __init__(self, window, configurator, key):
-        super().__init__(parent = window)
+    def __init__(self, window, key):
+        MessageBoxBase.__init__(self, window)
+        AiNieeBase.__init__(self)
 
         # 初始化
         self.key = key
-        self.configurator = configurator
 
         # 设置框体
         self.widget.setFixedSize(960, 720)
@@ -37,7 +31,6 @@ class APIEditMessageBox(MessageBoxBase):
 
         # 载入配置文件
         config = self.load_config()
-        config = self.save_config(config)
 
         # 设置主布局
         self.viewLayout.setContentsMargins(0, 0, 0, 0)
@@ -55,11 +48,6 @@ class APIEditMessageBox(MessageBoxBase):
         self.vbox.setSpacing(8)
         self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
         self.scroller.setWidget(self.vbox_parent)
-
-        # 只有具有默认值的字段才会被写入配置文件
-        self.DEFAULT = {
-            "platforms": {}
-        }
 
         # 接口地址
         if "api_url" in config.get("platforms").get(self.key).get("key_in_settings"):
@@ -92,40 +80,6 @@ class APIEditMessageBox(MessageBoxBase):
         # 填充
         self.vbox.addStretch(1)
 
-    # 载入配置文件
-    def load_config(self) -> dict[str]:
-        config = {}
-
-        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
-            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
-                config = json.load(reader)
-        
-        return config
-
-    # 保存配置文件
-    def save_config(self, new: dict) -> None:
-        path = os.path.join(self.configurator.resource_dir, "config.json")
-
-        # 读取配置文件
-        if os.path.exists(path):
-            with open(path, "r", encoding = "utf-8") as reader:
-                old = json.load(reader)
-        else:
-            old = {}
-
-        # 修改配置文件中的条目：如果条目存在，这更新值，如果不存在，则设置默认值
-        for k, v in self.DEFAULT.items():
-            if not k in new.keys():
-                old[k] = v
-            else:
-                old[k] = new[k]
-
-        # 写入配置文件
-        with open(path, "w", encoding = "utf-8") as writer:
-            writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
-
-        return old
-
     # 接口地址
     def add_widget_url(self, parent, config):
         def init(widget):
@@ -134,6 +88,7 @@ class APIEditMessageBox(MessageBoxBase):
             widget.set_placeholder_text("请输入接口地址 ...")
 
         def text_changed(widget, text: str):
+            config = self.load_config()
             config["platforms"][self.key]["api_url"] = text.strip()
             self.save_config(config)
         
@@ -152,6 +107,7 @@ class APIEditMessageBox(MessageBoxBase):
             widget.set_checked(config.get("platforms").get(self.key).get("auto_complete"))
 
         def checked_changed(widget, checked: bool):
+            config = self.load_config()
             config["platforms"][self.key]["auto_complete"] = checked
             self.save_config(config)
 
@@ -168,6 +124,7 @@ class APIEditMessageBox(MessageBoxBase):
     def add_widget_key(self, parent, config):
 
         def text_changed(widget):
+            config = self.load_config()
             config["platforms"][self.key]["api_key"] = widget.toPlainText().strip()
             self.save_config(config)
 
@@ -195,6 +152,7 @@ class APIEditMessageBox(MessageBoxBase):
             widget.set_current_index(max(0, widget.find_text(platform.get("api_format"))))
 
         def current_text_changed(widget, text: str):
+            config = self.load_config()
             config["platforms"][self.key]["api_format"] = text.strip()
             self.save_config(config)
 
@@ -217,6 +175,7 @@ class APIEditMessageBox(MessageBoxBase):
             widget.set_current_index(max(0, widget.find_text(platform.get("account"))))
 
         def current_text_changed(widget, text: str):
+            config = self.load_config()
             config["platforms"][self.key]["account"] = text.strip()
             self.save_config(config)
 
@@ -237,7 +196,7 @@ class APIEditMessageBox(MessageBoxBase):
 
             # 如果默认模型列表中不存在该条目，则添加
             items = platforms.get("model_datas")
-            if platforms.get("model") != "" and not platforms.get("model") in platforms.get("model_datas"):
+            if platforms.get("model") != "" and platforms.get("model") not in platforms.get("model_datas"):
                 items.append(platforms.get("model"))
 
             widget.set_items(items)
@@ -246,6 +205,7 @@ class APIEditMessageBox(MessageBoxBase):
             widget.set_placeholder_text("请输入模型名称 ...")
 
         def current_text_changed(widget, text: str):
+            config = self.load_config()
             config["platforms"][self.key]["model"] = text.strip()
             self.save_config(config)
 
@@ -267,6 +227,7 @@ class APIEditMessageBox(MessageBoxBase):
             widget.set_placeholder_text("请输入网络代理地址 ...")
 
         def text_changed(widget, text: str):
+            config = self.load_config()
             config["platforms"][self.key]["proxy"] = text.strip()
             self.save_config(config)
 

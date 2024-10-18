@@ -1,22 +1,18 @@
 import os
 import json
+from functools import partial
 
-from rich import print
-from PyQt5.Qt import Qt
 from PyQt5.QtWidgets import QFrame
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QScrollArea
 from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import PillPushButton
-from qfluentwidgets import SingleDirectionScrollArea
 
+from AiNieeBase import AiNieeBase
 from Widget.FlowCard import FlowCard
-from Widget.SpinCard import SpinCard
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class AdvanceSettingsPage(QFrame):
+class AdvanceSettingsPage(QFrame, AiNieeBase):
 
     DEFAULT = {
         "cot_toggle": False,
@@ -32,16 +28,13 @@ class AdvanceSettingsPage(QFrame):
         },
     }
 
-    def __init__(self, text: str, parent = None, configurator = None):
-        super().__init__(parent = parent)
-
-        # 初始化
-        self.configurator = configurator
+    def __init__(self, text: str, parent):
+        QFrame.__init__(self, parent)
+        AiNieeBase.__init__(self)
         self.setObjectName(text.replace(" ", "-"))
 
         # 载入配置文件
         config = self.load_config()
-        config = self.save_config(config)
 
         # 设置主容器
         self.vbox = QVBoxLayout(self)
@@ -60,46 +53,13 @@ class AdvanceSettingsPage(QFrame):
         # 填充
         self.vbox.addStretch(1)
 
-    # 载入配置文件
-    def load_config(self) -> dict[str]:
-        config = {}
-
-        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
-            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
-                config = json.load(reader)
-        
-        return config
-
-    # 保存配置文件
-    def save_config(self, new: dict) -> None:
-        path = os.path.join(self.configurator.resource_dir, "config.json")
-        
-        # 读取配置文件
-        if os.path.exists(path):
-            with open(path, "r", encoding = "utf-8") as reader:
-                old = json.load(reader)
-        else:
-            old = {}
-
-        # 修改配置文件中的条目：如果条目存在，这更新值，如果不存在，则设置默认值
-        for k, v in self.DEFAULT.items():
-            if not k in new.keys():
-                old[k] = v
-            else:
-                old[k] = new[k]
-
-        # 写入配置文件
-        with open(path, "w", encoding = "utf-8") as writer:
-            writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
-
-        return old
-
     # 思维链模式
     def add_widget_01(self, parent, config):
         def widget_init(widget):
             widget.set_checked(config.get("cot_toggle"))
             
         def widget_callback(widget, checked: bool):
+            config = self.load_config()
             config["cot_toggle"] = checked
             self.save_config(config)
 
@@ -118,6 +78,7 @@ class AdvanceSettingsPage(QFrame):
             widget.set_checked(config.get("cn_prompt_toggle"))
             
         def widget_callback(widget, checked: bool):
+            config = self.load_config()
             config["cn_prompt_toggle"] = checked
             self.save_config(config)
 
@@ -136,6 +97,7 @@ class AdvanceSettingsPage(QFrame):
             widget.set_checked(config.get("preserve_line_breaks_toggle"))
             
         def widget_callback(widget, checked: bool):
+            config = self.load_config()
             config["preserve_line_breaks_toggle"] = checked
             self.save_config(config)
 
@@ -154,6 +116,7 @@ class AdvanceSettingsPage(QFrame):
             widget.set_checked(config.get("text_clear_toggle"))
             
         def widget_callback(widget, checked: bool):
+            config = self.load_config()
             config["text_clear_toggle"] = checked
             self.save_config(config)
 
@@ -172,6 +135,7 @@ class AdvanceSettingsPage(QFrame):
             widget.set_checked(config.get("response_conversion_toggle"))
             
         def widget_callback(widget, checked: bool):
+            config = self.load_config()
             config["response_conversion_toggle"] = checked
             self.save_config(config)
 
@@ -190,6 +154,7 @@ class AdvanceSettingsPage(QFrame):
             widget.set_current_index(max(0, widget.find_text(config.get("opencc_preset"))))
 
         def current_text_changed(widget, text: str):
+            config = self.load_config()
             config["opencc_preset"] = text
             self.save_config(config)
 
@@ -222,6 +187,7 @@ class AdvanceSettingsPage(QFrame):
     def add_widget_07(self, parent, config):
 
         def on_toggled(checked: bool, key):
+            config = self.load_config()
             config["reply_check_switch"][key] = checked
             self.save_config(config)
 
@@ -236,7 +202,7 @@ class AdvanceSettingsPage(QFrame):
                 pill_push_button = PillPushButton(v[0])
                 pill_push_button.setContentsMargins(4, 0, 4, 0) # 左、上、右、下
                 pill_push_button.setChecked(config["reply_check_switch"].get(v[1]))
-                pill_push_button.toggled.connect(lambda checked: on_toggled(checked, v[1]))
+                pill_push_button.toggled.connect(lambda checked, key = v[1]: on_toggled(checked, key))
                 widget.add_widget(pill_push_button)
 
         parent.addWidget(

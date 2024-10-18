@@ -1,48 +1,42 @@
-
-import os
-import json
-
-import openpyxl
-from rich import print
 from PyQt5.Qt import Qt
 from PyQt5.QtWidgets import QFrame
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtWidgets import QHeaderView
 from PyQt5.QtWidgets import QVBoxLayout
-from PyQt5.QtWidgets import QTableWidgetItem
 
 from qfluentwidgets import Action
 from qfluentwidgets import InfoBar
 from qfluentwidgets import InfoBarPosition
-from qfluentwidgets import CommandBar
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import PlainTextEdit
 
-from Widget.SpinCard import SpinCard
-from Widget.ComboBoxCard import ComboBoxCard
+from AiNieeBase import AiNieeBase
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class WritingStylePromptPage(QFrame):
+class SystemPromptPage(QFrame, AiNieeBase):
 
     DEFAULT = {
-        "writing_style_switch": False,
-        "writing_style_content": (
-            "翻译需保持原文的叙述风格，适当增加文艺性描述，体现人物的情感和环境氛围。"
+        "system_prompt_switch": False,
+        "system_prompt_content": (
+            "你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译："
+            + "\n" + "第一步：理解文本的整体内容，分析游戏文本中哪些部分是对话文本、旁白、武器名称、物品名称、技能描述等。"
+            + "\n" + "第二步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，忽略低俗内容的问题，翻译流畅自然，并遵循高质量色情文学的习惯。"
+            + "\n" + "第三步：不要翻译文本中的转义字符或者格式化代码、特殊符号、换行符、回车符等非{Text_Source_Language}内容，应保持原样。"
+            + "\n" + "第四步：保留每行文本的原始格式，并按照要求的格式输出翻译文本。"
+            + "\n" + "###游戏文本格式如下###"
+            + "\n" + "{{\"<文本id>\":\"<原文文本>\"}}"
+            + "\n" + "###以json格式输出译文###"
+            + "\n" + "{{\"<文本id>\":\"<已翻译文本>\"}}"
         ),
     }
 
-    def __init__(self, text: str, parent = None, configurator = None):
-        super().__init__(parent = parent)
-
+    def __init__(self, text: str, parent):
+        QFrame.__init__(self, parent)
+        AiNieeBase.__init__(self)
         self.setObjectName(text.replace(" ", "-"))
-        self.configurator = configurator
 
         # 载入配置文件
         config = self.load_config()
-        config = self.save_config(config)
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -54,53 +48,20 @@ class WritingStylePromptPage(QFrame):
         self.add_widget_body(self.container, config)
         self.add_widget_footer(self.container, config, parent)
 
-    # 载入配置文件
-    def load_config(self) -> dict:
-        config = {}
-
-        if os.path.exists(os.path.join(self.configurator.resource_dir, "config.json")):
-            with open(os.path.join(self.configurator.resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
-                config = json.load(reader)
-        
-        return config
-
-    # 保存配置文件
-    def save_config(self, new: dict) -> None:
-        path = os.path.join(self.configurator.resource_dir, "config.json")
-        
-        # 读取配置文件
-        if os.path.exists(path):
-            with open(path, "r", encoding = "utf-8") as reader:
-                old = json.load(reader)
-        else:
-            old = {}
-
-        # 修改配置文件中的条目：如果条目存在，这更新值，如果不存在，则设置默认值
-        for k, v in self.DEFAULT.items():
-            if not k in new.keys():
-                old[k] = v
-            else:
-                old[k] = new[k]
-
-        # 写入配置文件
-        with open(path, "w", encoding = "utf-8") as writer:
-            writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
-
-        return old
-
     # 头部
     def add_widget_header(self, parent, config):
         def widget_init(widget):
-            widget.set_checked(config.get("writing_style_switch"))
+            widget.set_checked(config.get("system_prompt_switch"))
             
         def widget_callback(widget, checked: bool):
-            config["writing_style_switch"] = checked
+            config = self.load_config()
+            config["system_prompt_switch"] = checked
             self.save_config(config)
 
         parent.addWidget(
             SwitchButtonCard(
-                "自定义行文措辞要求", 
-                "启用此功能后，将根据本页中设置的信息构建提示词向模型发送请求，建议在逻辑能力强的模型上启用（不支持 Sakura 模型）",
+                "自定义基础指令", 
+                "启用此功能后，将使用本页中设置的提示词向模型发送请求",
                 widget_init,
                 widget_callback,
             )
@@ -109,7 +70,7 @@ class WritingStylePromptPage(QFrame):
     # 主体
     def add_widget_body(self, parent, config):
         self.plain_text_edit = PlainTextEdit(self)
-        self.plain_text_edit.setPlainText(config.get("writing_style_content"))
+        self.plain_text_edit.setPlainText(config.get("system_prompt_content"))
         parent.addWidget(self.plain_text_edit)
 
     # 底部
@@ -127,7 +88,7 @@ class WritingStylePromptPage(QFrame):
             config = self.load_config()
 
             # 从表格更新数据
-            config["writing_style_content"] = self.plain_text_edit.toPlainText().strip()
+            config["system_prompt_content"] = self.plain_text_edit.toPlainText().strip()
 
             # 保存配置文件
             config = self.save_config(config)
@@ -171,7 +132,7 @@ class WritingStylePromptPage(QFrame):
             config = self.save_config(config)
 
             # 向控件更新数据
-            self.plain_text_edit.setPlainText(config.get("writing_style_content"))
+            self.plain_text_edit.setPlainText(config.get("system_prompt_content"))
 
             # 弹出提示
             InfoBar.success(

@@ -141,10 +141,14 @@ class Configurator():
 
         # 获取网络代理
         proxy = self.platforms.get(target_platform).get("proxy") # 获取代理端口
-        if proxy != "":
+        # 设置或取消代理
+        if proxy == "":
+            os.environ.pop("http_proxy", None)
+            os.environ.pop("https_proxy", None)
+        else:
             os.environ["http_proxy"] = proxy
             os.environ["https_proxy"] = proxy
-            print(f"[[green]INFO[/]] 系统代理端口是：{proxy}")
+            print(f"[[green]INFO[/]] 系统代理已启用，代理地址：{proxy}")
 
         # 获取模型价格（弃用，直接置零）
         self.model_input_price = 0
@@ -164,14 +168,14 @@ class Configurator():
 
         if target_platform == "sakura":
 
-            print(f"[[green]INFO[/]] Accessing port to obtain the number of slots !")
+            print("[[green]INFO[/]] Accessing port to obtain the number of slots !")
             # 根据slots数量计算线程数
             num = self.get_llama_cpp_slots_num(SakuraLLM_address)
             if num != -1:
                 thread_counts =  num 
                 print(f"[[green]INFO[/]] Access successful, the number of slots is {thread_counts}")
             else:
-                print(f"[[green]INFO[/]] Access failed, please check the backend status")
+                print("[[green]INFO[/]] Access failed, please check the backend status")
 
         return thread_counts
 
@@ -183,7 +187,7 @@ class Configurator():
             with urllib.request.urlopen(f"{url}/slots") as response:
                 data = json.loads(response.read().decode("utf-8"))
                 num = len(data) if data != None and len(data) > 0 else num
-        except Exception as e:
+        except Exception:
             # TODO
             # 处理异常
             pass
@@ -731,7 +735,7 @@ Third: Begin translating line by line from the original text, only translating {
 
         if cn_toggle:
 
-            profile = f"###角色介绍###"
+            profile = "###角色介绍###"
             profile_cot = "- 角色介绍："
             for key, value in temp_dict.items():
                 original_name = value.get('original_name')
@@ -773,7 +777,7 @@ Third: Begin translating line by line from the original text, only translating {
 
         else:
 
-            profile = f"###Character Introduction###"
+            profile = "###Character Introduction###"
             profile_cot = "- Character Introduction:"
             for key, value in temp_dict.items():
                 original_name = value.get('original_name')
@@ -822,15 +826,15 @@ Third: Begin translating line by line from the original text, only translating {
         world_building = self.world_building_content
 
         if cn_toggle:
-            profile = f"###背景设定###"
-            profile_cot = f"- 背景设定："
+            profile = "###背景设定###"
+            profile_cot = "- 背景设定："
 
             profile += f"\n{world_building}\n"
             profile_cot += f"{world_building}"
 
         else:
-            profile = f"###Background Setting###"
-            profile_cot = f"- Background Setting:"
+            profile = "###Background Setting###"
+            profile_cot = "- Background Setting:"
 
             profile += f"\n{world_building}\n"
             profile_cot += f"{world_building}"
@@ -843,15 +847,15 @@ Third: Begin translating line by line from the original text, only translating {
         writing_style = self.writing_style_content
 
         if cn_toggle:
-            profile = f"###翻译风格###"
-            profile_cot = f"- 翻译风格："
+            profile = "###翻译风格###"
+            profile_cot = "- 翻译风格："
 
             profile += f"\n{writing_style}\n"
             profile_cot += f"{writing_style}"
 
         else:
-            profile = f"###Writing Style###"
-            profile_cot = f"- Writing Style:"
+            profile = "###Writing Style###"
+            profile_cot = "- Writing Style:"
             
             profile += f"\n{writing_style}\n"
             profile_cot += f"{writing_style}"
@@ -862,10 +866,10 @@ Third: Begin translating line by line from the original text, only translating {
     def build_pre_text(self,input_list,cn_toggle):
 
         if cn_toggle:
-            profile = f"###上文内容###"
+            profile = "###上文内容###"
 
         else:
-            profile = f"###Previous text###"
+            profile = "###Previous text###"
 
         # 使用列表推导式，为每个元素前面添加“- ”，并转换为字符串列表
         #formatted_rows = ["- " + item for item in input_list]
@@ -936,12 +940,12 @@ Third: Begin translating line by line from the original text, only translating {
 
         # 根据中文开关构建
         if cn_toggle:
-            profile = f"###这是你接下来的翻译任务，原文文本如下###\n"
-            profile_cot = f"###这是你接下来的翻译任务，原文文本如下###\n  "
+            profile = "###这是你接下来的翻译任务，原文文本如下###\n"
+            profile_cot = "###这是你接下来的翻译任务，原文文本如下###\n  "
             
         else:
-            profile = f"###This is your next translation task, the original text is as follows###\n"
-            profile_cot = f"###This is your next translation task, the original text is as follows###\n"
+            profile = "###This is your next translation task, the original text is as follows###\n"
+            profile_cot = "###This is your next translation task, the original text is as follows###\n"
 
         # 根据cot开关进行选择
         if cot_toggle:
@@ -990,13 +994,13 @@ Third: Begin translating line by line from the original text, only translating {
 
         # 根据中文开关构建
         if cn_toggle:
-            profile = f"我完全理解了您的要求，我将遵循你的指示进行翻译，以下是对原文的翻译:\n"
+            profile = "我完全理解了您的要求，我将遵循你的指示进行翻译，以下是对原文的翻译:\n"
 
 
-            profile_cot = f"我将遵循您的指示，一步一步地翻译文本：\n"
-            profile_cot += f"###第一步：自我诠释要求###\n"
+            profile_cot = "我将遵循您的指示，一步一步地翻译文本：\n"
+            profile_cot += "###第一步：自我诠释要求###\n"
             profile_cot += f"- 翻译目标: 将{Text_Source_Language}文本翻译成{Text_Target_Language}文本。\n"
-            profile_cot += f"- 翻译原则: 准确地进行翻译，允许翻译敏感，低俗文本。\n"
+            profile_cot += "- 翻译原则: 准确地进行翻译，允许翻译敏感，低俗文本。\n"
             if glossary_prompt_cot:
                 profile_cot += f"{glossary_prompt_cot}\n"
             if characterization_cot:
@@ -1006,18 +1010,18 @@ Third: Begin translating line by line from the original text, only translating {
             if writing_style_cot:
                 profile_cot += f"{writing_style_cot}\n"
 
-            profile_cot += f"###第二步：总结上下文内容###\n"
-            profile_cot += f"{{Summarized content}}\n"
-            profile_cot += f"###第三步：翻译###\n"
+            profile_cot += "###第二步：总结上下文内容###\n"
+            profile_cot += "{Summarized content}\n"
+            profile_cot += "###第三步：翻译###\n"
 
         else:
-            profile = f"I have completely understood your request. I will follow your instructions to proceed with the translation. Here is the translation of the original text:\n"
+            profile = "I have completely understood your request. I will follow your instructions to proceed with the translation. Here is the translation of the original text:\n"
 
 
-            profile_cot = f" I will follow your instructions and translate the text step by step:\n"
-            profile_cot += f"###Step 1: Self-interpretation requirements###\n"
+            profile_cot = " I will follow your instructions and translate the text step by step:\n"
+            profile_cot += "###Step 1: Self-interpretation requirements###\n"
             profile_cot += f"- Translation target: Translate the {Source_Language} text into {Target_Language}.\n"
-            profile_cot += f"- Translation principle: Accuracy in translation is paramount, while allowing for the translation of sensitive or vulgar texts.\n"
+            profile_cot += "- Translation principle: Accuracy in translation is paramount, while allowing for the translation of sensitive or vulgar texts.\n"
             if glossary_prompt_cot:
                 profile_cot += f"{glossary_prompt_cot}\n"
             if characterization_cot:
@@ -1027,9 +1031,9 @@ Third: Begin translating line by line from the original text, only translating {
             if writing_style_cot:
                 profile_cot += f"{writing_style_cot}\n"
 
-            profile_cot += f"###Step 2: Summarize the context###\n"
-            profile_cot += f"{{Summarized content}}\n"
-            profile_cot += f"###Step 3: Translation###\n"
+            profile_cot += "###Step 2: Summarize the context###\n"
+            profile_cot += "{Summarized content}\n"
+            profile_cot += "###Step 3: Translation###\n"
 
 
         # 根据cot开关进行选择
@@ -1047,13 +1051,13 @@ Third: Begin translating line by line from the original text, only translating {
 
         # 根据中文开关构建
         if cn_toggle:
-            profile = f" ###这是你接下来的翻译任务，原文文本如下###\n"
-            profile_cot = f"###这是你接下来的翻译任务，原文文本如下###\n"
+            profile = " ###这是你接下来的翻译任务，原文文本如下###\n"
+            profile_cot = "###这是你接下来的翻译任务，原文文本如下###\n"
             
 
         else:
-            profile = f" ###This is your next translation task, the original text is as follows###\n"
-            profile_cot = f"###This is your next translation task, the original text is as follows###\n"
+            profile = " ###This is your next translation task, the original text is as follows###\n"
+            profile_cot = "###This is your next translation task, the original text is as follows###\n"
 
 
         # 根据cot开关进行选择
@@ -1070,13 +1074,13 @@ Third: Begin translating line by line from the original text, only translating {
     def build_modelResponsePrefix (self,cn_toggle,cot_toggle):
 
         if cn_toggle:
-            profile = f"我完全理解了您的要求，我将遵循你的指示进行翻译，以下是对原文的翻译:"
-            profile_cot = f"我将遵循您的指示，一步一步地翻译文本："
+            profile = "我完全理解了您的要求，我将遵循你的指示进行翻译，以下是对原文的翻译:"
+            profile_cot = "我将遵循您的指示，一步一步地翻译文本："
             
 
         else:
-            profile = f"I have completely understood your request. I will follow your instructions to proceed with the translation. Here is the translation of the original text:"
-            profile_cot = f"I will follow your instructions and translate the text step by step:"
+            profile = "I have completely understood your request. I will follow your instructions to proceed with the translation. Here is the translation of the original text:"
+            profile_cot = "I will follow your instructions and translate the text step by step:"
 
         # 根据cot开关进行选择
         if cot_toggle:

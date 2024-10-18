@@ -1,4 +1,3 @@
-
 # ═══════════════════════════════════════════════════════
 # ████ 警告：擅自进入，后果自负                         ████
 # ████ 恭喜你，你已经发现了我的杰作                     ████
@@ -55,12 +54,9 @@ from openai import OpenAI # 需要安装库pip install openai
 
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import  QObject,  Qt, pyqtSignal
-from PyQt5.QtWidgets import QApplication, QTableWidgetItem
-from qfluentwidgets import Theme
-from qfluentwidgets import setTheme
+from PyQt5.QtWidgets import QApplication
 from qfluentwidgets import InfoBar, InfoBarPosition, StateToolTip
 
-import jaconv # 日文文本转换工具
 from StevExtraction import jtpp  # type: ignore #导入文本提取工具
 from Module_Folders.Cache_Manager.Cache import Cache_Manager  
 from Module_Folders.File_Reader.File1 import File_Reader 
@@ -196,7 +192,7 @@ class Translator():
         while untranslated_text_line_count != 0 :
             print("[[salmon1]Warning[/]] 仍然有部分未翻译，将进行拆分后重新翻译，-----------------------------------")
             print("[[green]INFO[/]] 当前拆分翻译轮次：",retry_translation_count ," 到达最大轮次：",configurator.round_limit," 时，将停止翻译")
-            user_interface_prompter.signal.emit("运行状态改变",f"正在拆分翻译",0)
+            user_interface_prompter.signal.emit("运行状态改变","正在拆分翻译",0)
 
             # 根据混合翻译设置更换翻译平台,并重新初始化部分配置信息
             if configurator.mix_translation_enable:
@@ -590,7 +586,7 @@ class Api_Requester():
                     thread_id = threading.get_ident()
                     # 将线程ID简化为4个数字，这里使用对10000取模的方式
                     simplified_thread_id = thread_id % 10000
-                    print(f"[[green]INFO[/]] 已发送请求,正在等待AI回复中-----------------------")
+                    print("[[green]INFO[/]] 已发送请求,正在等待AI回复中-----------------------")
                     print(f"[[green]INFO[/]] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
                     print(f"[[green]INFO[/]] 当前发送的原文文本: \n{source_text_str}")
 
@@ -649,11 +645,11 @@ class Api_Requester():
                     # 计算本次请求的花费的tokens
                     try: # 因为有些中转网站不返回tokens消耗
                         prompt_tokens_used = int(response.usage.prompt_tokens) #本次请求花费的tokens
-                    except Exception as e:
+                    except Exception:
                         prompt_tokens_used = 0
                     try:
                         completion_tokens_used = int(response.usage.completion_tokens) #本次回复花费的tokens
-                    except Exception as e:
+                    except Exception:
                         completion_tokens_used = 0
 
 
@@ -741,9 +737,9 @@ class Api_Requester():
                         # 获取翻译进度
                         progress = user_interface_prompter.progress
 
-                        print(f"\n--------------------------------------------------------------------------------------")
+                        print("\n--------------------------------------------------------------------------------------")
                         print(f"\n[[green]Success[/]] AI回复内容检查通过！！！已翻译完成{progress}%")
-                        print(f"\n--------------------------------------------------------------------------------------\n")
+                        print("\n--------------------------------------------------------------------------------------\n")
                         configurator.lock2.release()  # 释放锁
 
 
@@ -990,7 +986,7 @@ class Api_Requester():
                     thread_id = threading.get_ident()
                     # 将线程ID简化为4个数字，这里使用对10000取模的方式
                     simplified_thread_id = thread_id % 10000
-                    print(f"[[green]INFO[/]] 已发送请求,正在等待AI回复中-----------------------")
+                    print("[[green]INFO[/]] 已发送请求,正在等待AI回复中-----------------------")
                     print(f"[[green]INFO[/]] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
                     print(f"[[green]INFO[/]] 当前发送的原文文本: \n{source_text_str}")
 
@@ -1160,9 +1156,9 @@ class Api_Requester():
                         # 获取翻译进度
                         progress = user_interface_prompter.progress
 
-                        print(f"\n--------------------------------------------------------------------------------------")
+                        print("\n--------------------------------------------------------------------------------------")
                         print(f"\n[[green]Success[/]] AI回复内容检查通过！！！已翻译完成{progress}%")
-                        print(f"\n--------------------------------------------------------------------------------------\n")
+                        print("\n--------------------------------------------------------------------------------------\n")
 
                         configurator.lock2.release()  # 释放锁
 
@@ -1401,7 +1397,7 @@ class Api_Requester():
                     thread_id = threading.get_ident()
                     # 将线程ID简化为4个数字，这里使用对10000取模的方式
                     simplified_thread_id = thread_id % 10000
-                    print(f"[[green]INFO[/]] 已发送请求,正在等待AI回复中-----------------------")
+                    print("[[green]INFO[/]] 已发送请求,正在等待AI回复中-----------------------")
                     print(f"[[green]INFO[/]] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
                     print(f"[[green]INFO[/]] 当前发送的原文文本: \n{source_text_str}")
 
@@ -1456,11 +1452,11 @@ class Api_Requester():
                     # 计算本次请求的花费的tokens
                     try: # 因为有些中转网站不返回tokens消耗
                         prompt_tokens_used = int(response.usage.prompt_tokens) #本次请求花费的tokens
-                    except Exception as e:
+                    except Exception:
                         prompt_tokens_used = 0
                     try:
                         completion_tokens_used = int(response.usage.completion_tokens) #本次回复花费的tokens
-                    except Exception as e:
+                    except Exception:
                         completion_tokens_used = 0
 
 
@@ -1547,9 +1543,9 @@ class Api_Requester():
                         # 获取翻译进度
                         progress = user_interface_prompter.progress
 
-                        print(f"\n--------------------------------------------------------------------------------------")
+                        print("\n--------------------------------------------------------------------------------------")
                         print(f"\n[[green]Success[/]] AI回复内容检查通过！！！已翻译完成{progress}%")
-                        print(f"\n--------------------------------------------------------------------------------------\n")
+                        print("\n--------------------------------------------------------------------------------------\n")
                         configurator.lock2.release()  # 释放锁
 
 
@@ -1784,7 +1780,7 @@ class Api_Requester():
                     thread_id = threading.get_ident()
                     # 将线程ID简化为4个数字，这里使用对10000取模的方式
                     simplified_thread_id = thread_id % 10000
-                    print(f"[[green]INFO[/]] 已发送请求,正在等待AI回复中-----------------------")
+                    print("[[green]INFO[/]] 已发送请求,正在等待AI回复中-----------------------")
                     print(f"[[green]INFO[/]] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
                     print(f"[[green]INFO[/]] 当前发送的原文文本: \n{source_text_str}")
 
@@ -1841,12 +1837,12 @@ class Api_Requester():
                     try: # 因为有些中转网站不返回tokens消耗
                         prompt_tokens_used = 0
                         #prompt_tokens_used = int(response.usage.prompt_tokens) #本次请求花费的tokens
-                    except Exception as e:
+                    except Exception:
                         prompt_tokens_used = 0
                     try:
                         completion_tokens_used = 0
                         #completion_tokens_used = int(response.usage.completion_tokens) #本次回复花费的tokens
-                    except Exception as e:
+                    except Exception:
                         completion_tokens_used = 0
 
 
@@ -1933,9 +1929,9 @@ class Api_Requester():
                         # 获取翻译进度
                         progress = user_interface_prompter.progress
 
-                        print(f"\n--------------------------------------------------------------------------------------")
+                        print("\n--------------------------------------------------------------------------------------")
                         print(f"\n[[green]Success[/]] AI回复内容检查通过！！！已翻译完成{progress}%")
-                        print(f"\n--------------------------------------------------------------------------------------\n")
+                        print("\n--------------------------------------------------------------------------------------\n")
                         configurator.lock2.release()  # 释放锁
 
 
@@ -2001,7 +1997,7 @@ class Api_Requester():
 
         # 如果开启译前替换功能
         if configurator.pre_translation_switch :
-            print(f"[[green]INFO[/green]] 译前替换功能已开启，正在进行替换 ...")
+            print("[[green]INFO[/green]] 译前替换功能已开启，正在进行替换 ...")
             source_text_dict = configurator.replace_before_translation(source_text_dict)
 
         # 如果开启了携带上文功能，v0.9 版本跳过
@@ -2015,7 +2011,7 @@ class Api_Requester():
             )
 
         # 如果开启了保留句内换行符功能
-        print(f"[[green]INFO[/green]] 保留句内换行符功能已开启，将替换句内换行符为特殊符号 ...")
+        print("[[green]INFO[/green]] 保留句内换行符功能已开启，将替换句内换行符为特殊符号 ...")
         source_text_dict = Cache_Manager.replace_special_characters(self, source_text_dict, "替换")
 
         # 如果开启了指令词典功能
@@ -2037,7 +2033,7 @@ class Api_Requester():
                 gpt_dict_raw_text = "\n".join(gpt_dict_text_list)
                 print(f"[[green]INFO[/green]] 指令词典功能已开启，本次请求的原文中包含 {len(gpt_dict_text_list)} 条指令词典条目 ...")
                 print(f"{gpt_dict_raw_text}")
-                print(f"\n")
+                print("\n")
 
         # 将原文本字典转换成raw格式的字符串
         source_text_str_raw = self.convert_dict_to_raw_str(source_text_dict)
@@ -2133,7 +2129,7 @@ class Api_Requester():
                     thread_id = threading.get_ident()
                     # 将线程ID简化为4个数字，这里使用对10000取模的方式
                     simplified_thread_id = thread_id % 10000
-                    print(f"[[green]INFO[/]] 已发送请求,正在等待AI回复中-----------------------")
+                    print("[[green]INFO[/]] 已发送请求,正在等待AI回复中-----------------------")
                     print(f"[[green]INFO[/]] 线程 ID: {simplified_thread_id:04d}, 文本行数: {row_count}, tokens数: {request_tokens_consume}" )
                     print(f"[[green]INFO[/]] 当前发送的原文文本: \n{source_text_str}")
 
@@ -2210,11 +2206,11 @@ class Api_Requester():
                     # 计算本次请求的花费的tokens
                     try: # 因为有些中转网站不返回tokens消耗
                         prompt_tokens_used = int(response.usage.prompt_tokens) #本次请求花费的tokens
-                    except Exception as e:
+                    except Exception:
                         prompt_tokens_used = 0
                     try:
                         completion_tokens_used = int(response.usage.completion_tokens) #本次回复花费的tokens
-                    except Exception as e:
+                    except Exception:
                         completion_tokens_used = 0
 
 
@@ -2288,9 +2284,9 @@ class Api_Requester():
                         # 获取翻译进度
                         progress = user_interface_prompter.progress                    
 
-                        print(f"\n--------------------------------------------------------------------------------------")
+                        print("\n--------------------------------------------------------------------------------------")
                         print(f"\n[[green]Success[/]] AI回复内容检查通过！！！已翻译完成{progress}%")
-                        print(f"\n--------------------------------------------------------------------------------------\n")
+                        print("\n--------------------------------------------------------------------------------------\n")
                         configurator.lock2.release()  # 释放锁
 
 
@@ -2601,7 +2597,7 @@ class User_Interface_Prompter(QObject):
                 with open(os.path.join(resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
                     exists = json.load(reader)
                     for k, v in exists.items():
-                        if not k in config_dict.keys():
+                        if k not in config_dict.keys():
                             config_dict[k] = v
             with open(os.path.join(resource_dir, "config.json"), "w", encoding = "utf-8") as writer:
                 json.dump(config_dict, writer, indent = 4, ensure_ascii = False,)
@@ -2622,7 +2618,8 @@ class User_Interface_Prompter(QObject):
 
 # 任务执行器
 class background_executor(threading.Thread): 
-    def __init__(self,
+    def __init__(
+        self,
         task_id = None,
         input_folder = None,
         output_folder = None,
@@ -2765,7 +2762,7 @@ class background_executor(threading.Thread):
             # 界面提示
             user_interface_prompter.createWarningInfoBar("翻译已取消")
             user_interface_prompter.signal.emit("重置界面数据","翻译取消",0)
-            user_interface_prompter.signal.emit("运行状态改变",f"已取消翻译",0)
+            user_interface_prompter.signal.emit("运行状态改变","已取消翻译",0)
 
         # 如果正在空闲中
         elif configurator.Running_status == 0:
