@@ -123,14 +123,14 @@ class ProjectPage(QFrame):
             widget.set_items(self.get_items(config))
             widget.set_current_index(max(0, widget.find_text(self.find_name_by_tag(config, config.get("target_platform")))))
 
-        def widget_init(widget):
+        def init(widget):
             # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
             self.on_show_event = lambda _, event: update_widget(widget)
             
-        def widget_callback(widget, index: int):
+        def current_text_changed(widget, text: str):
             config = self.load_config()
             
-            config["target_platform"] = self.find_tag_by_name(config, widget.get_current_text())
+            config["target_platform"] = self.find_tag_by_name(config, text)
             self.save_config(config)
 
         parent.addWidget(
@@ -138,18 +138,18 @@ class ProjectPage(QFrame):
                 "模型类型",
                 "设置当前翻译项目所使用的模型的类型，注意，选择错误将不能进行翻译",
                 [],
-                widget_init,
-                widget_callback,
+                init = init,
+                current_text_changed = current_text_changed,
             )
         )
 
     # 项目类型
     def add_widget_02(self, parent, config):
-        def widget_init(widget):
+        def init(widget):
             widget.set_current_index(max(0, widget.find_text(config.get("translation_project"))))
 
-        def widget_callback(widget, index: int):
-            config["translation_project"] = widget.get_current_text()
+        def current_text_changed(widget, text: str):
+            config["translation_project"] = text
             self.save_config(config)
 
         parent.addWidget(
@@ -167,18 +167,18 @@ class ProjectPage(QFrame):
                     "Ainiee缓存文件",
                     "ParaTranz导出文件",
                 ],
-                widget_init,
-                widget_callback,
+                init = init,
+                current_text_changed = current_text_changed,
             )
         )
 
     # 原文语言
     def add_widget_03(self, parent, config):
-        def widget_init(widget):
+        def init(widget):
             widget.set_current_index(max(0, widget.find_text(config.get("source_language"))))
 
-        def widget_callback(widget, index: int):
-            config["source_language"] = widget.get_current_text()
+        def current_text_changed(widget, text: str):
+            config["source_language"] = text
             self.save_config(config)
 
         parent.addWidget(
@@ -186,18 +186,18 @@ class ProjectPage(QFrame):
                 "原文语言",
                 "设置当前翻译项目所使用的原始文本的语言，注意，选择错误将不能进行翻译",
                 ["日语", "英语", "韩语", "俄语", "简中", "繁中"],
-                widget_init,
-                widget_callback,
+                init = init,
+                current_text_changed = current_text_changed,
             )
         )
         
     # 译文语言
     def add_widget_04(self, parent, config):
-        def widget_init(widget):
+        def init(widget):
             widget.set_current_index(max(0, widget.find_text(config.get("target_language"))))
 
-        def widget_callback(widget, index: int):
-            config["target_language"] = widget.get_current_text()
+        def current_text_changed(widget, text: str):
+            config["target_language"] = text
             self.save_config(config)
 
         parent.addWidget(
@@ -205,8 +205,8 @@ class ProjectPage(QFrame):
                 "译文语言",
                 "设置当前翻译项目所期望的译文文本的语言，注意，选择错误将不能进行翻译",
                 ["简中", "繁中", "日语", "英语", "韩语"],
-                widget_init,
-                widget_callback,
+                init = init,
+                current_text_changed = current_text_changed,
             )
         )
         

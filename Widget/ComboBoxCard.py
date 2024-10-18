@@ -14,8 +14,8 @@ class ComboBoxCard(ElevatedCardWidget):
         
         # 设置容器
         self.setBorderRadius(4)
-        self.container = QHBoxLayout(self)
-        self.container.setContentsMargins(16, 16, 16, 16) # 左、上、右、下
+        self.hbox = QHBoxLayout(self)
+        self.hbox.setContentsMargins(16, 16, 16, 16) # 左、上、右、下
 
         # 文本控件
         self.vbox = QVBoxLayout()
@@ -26,22 +26,21 @@ class ComboBoxCard(ElevatedCardWidget):
 
         self.vbox.addWidget(self.title_label)
         self.vbox.addWidget(self.description_label)
-        self.container.addLayout(self.vbox)
+        self.hbox.addLayout(self.vbox)
 
         # 填充
-        self.container.addStretch(1)
+        self.hbox.addStretch(1)
         
         # 下拉框控件
         self.combo_box = ComboBox(self)
         self.combo_box.addItems(items)
+        self.hbox.addWidget(self.combo_box)
 
         if init:
             init(self)
 
         if current_text_changed:
             self.combo_box.currentTextChanged.connect(lambda text: current_text_changed(self, text))
-
-        self.container.addWidget(self.combo_box)
 
     def set_items(self, items: list) -> None:
         self.combo_box.clear()
