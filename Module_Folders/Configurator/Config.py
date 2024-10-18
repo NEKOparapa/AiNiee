@@ -164,14 +164,14 @@ class Configurator():
 
         if target_platform == "sakura":
 
-            print(f"[[green]INFO][/]] Accessing port to obtain the number of slots !")
+            print(f"[[green]INFO[/]] Accessing port to obtain the number of slots !")
             # 根据slots数量计算线程数
             num = self.get_llama_cpp_slots_num(SakuraLLM_address)
             if num != -1:
                 thread_counts =  num 
-                print(f"[[green]INFO][/]] Access successful, the number of slots is {thread_counts}")
+                print(f"[[green]INFO[/]] Access successful, the number of slots is {thread_counts}")
             else:
-                print(f"[[green]INFO][/]] Access failed, please check the backend status")
+                print(f"[[green]INFO[/]] Access failed, please check the backend status")
 
         return thread_counts
 
