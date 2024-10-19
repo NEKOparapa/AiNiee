@@ -5,6 +5,8 @@ import random
 from functools import partial
 
 from PyQt5.Qt import Qt
+from PyQt5.Qt import QUrl
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
 
@@ -13,7 +15,7 @@ from qfluentwidgets import InfoBar
 from qfluentwidgets import InfoBarPosition
 from qfluentwidgets import RoundMenu
 from qfluentwidgets import FluentIcon
-from qfluentwidgets import PrimaryPushButton
+from qfluentwidgets import PushButton
 from qfluentwidgets import PrimaryDropDownPushButton
 
 from AiNieeBase import AiNieeBase
@@ -176,7 +178,7 @@ class PlatformPage(QFrame, AiNieeBase):
         for k, v in custom.items():
             key_in_settings = self.CUSTOM.get("key_in_settings", [])
             for setting in key_in_settings:
-                if not setting in v:
+                if setting not in v:
                     v[setting] = self.CUSTOM.get(setting)
 
         # 用更新后的预设数据更新配置中的内置接口数据
@@ -304,15 +306,26 @@ class PlatformPage(QFrame, AiNieeBase):
 
     # 添加头部
     def add_head_widget(self, parent, config):
+        def init(widget):
+            # 添加按钮
+            help_button = PushButton("帮助")
+            help_button.setIcon(FluentIcon.HELP)
+            help_button.setContentsMargins(4, 0, 4, 0)
+            help_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/neavo/SakuraLLMServer")))
+            widget.add_widget_to_head(help_button)
+
+            # 更新子控件
+            self.init_drop_down_push_button(
+                widget,
+                self.generate_ui_datas(platforms, False),
+            )
+
         platforms = {k:v for k, v in config.get("platforms").items() if v.get("group") == "local"}
         parent.addWidget(
             FlowCard(
                 "本地接口", 
                 "管理应用内置的本地大语言模型的接口信息",
-                init = lambda widget: self.init_drop_down_push_button(
-                    widget,
-                    self.generate_ui_datas(platforms, False),
-                ),
+                init = init,
             )
         )
 
@@ -360,7 +373,7 @@ class PlatformPage(QFrame, AiNieeBase):
 
         def init(widget):
             # 添加新增按钮
-            add_button = PrimaryPushButton("新增")
+            add_button = PushButton("新增")
             add_button.setIcon(FluentIcon.ADD_TO)
             add_button.setContentsMargins(4, 0, 4, 0)
             add_button.clicked.connect(lambda: on_add_button_clicked(self))
