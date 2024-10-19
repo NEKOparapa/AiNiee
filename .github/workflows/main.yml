@@ -1,5 +1,7 @@
 name: AiNiee-chatgpt Action monitors the main branch commit and automatically packs it into an exe file to Beta release.
 on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
   push:
     branches:
       - main
