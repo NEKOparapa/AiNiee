@@ -52,6 +52,9 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         # 载入配置文件
         config = self.load_config()
 
+        # 设置主题
+        setTheme(Theme.DARK if config.get("theme") == "dark" else Theme.LIGHT)
+
         # 设置窗口属性
         self.resize(self.APP_WIDTH, self.APP_HEIGHT)
         self.setMinimumSize(self.APP_WIDTH, self.APP_HEIGHT)
@@ -61,9 +64,6 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         # 设置启动位置
         desktop = QApplication.desktop().availableGeometry()
         self.move(desktop.width()//2 - self.width()//2, desktop.height()//2 - self.height()//2)
-
-        # 设置主题
-        setTheme(Theme.DARK if config.get("theme") == "dark" else Theme.LIGHT)
 
         # 设置侧边栏宽度
         self.navigationInterface.setExpandWidth(256)
