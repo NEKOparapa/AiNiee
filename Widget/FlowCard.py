@@ -3,12 +3,12 @@ from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
 
-from qfluentwidgets import ElevatedCardWidget
+from qfluentwidgets import CardWidget
 from qfluentwidgets import FlowLayout
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import StrongBodyLabel
 
-class FlowCard(ElevatedCardWidget):
+class FlowCard(CardWidget):
 
     def __init__(self, title: str, description: str, init = None):
         super().__init__(None)

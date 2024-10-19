@@ -2,11 +2,11 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
 
-from qfluentwidgets import ElevatedCardWidget
+from qfluentwidgets import CardWidget
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import StrongBodyLabel
 
-class GroupCard(ElevatedCardWidget):
+class GroupCard(CardWidget):
 
     def __init__(self, title: str, description: str, init = None):
         super().__init__(None)
