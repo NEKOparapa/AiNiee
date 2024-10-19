@@ -20,6 +20,7 @@ from AiNieeBase import AiNieeBase
 from Widget.FlowCard import FlowCard
 from Widget.LineEditMessageBox import LineEditMessageBox
 from User_Interface.Project.APIEditPage import APIEditPage
+from User_Interface.Project.LimitEditPage import LimitEditPage
 
 class PlatformPage(QFrame, AiNieeBase):
 
@@ -27,9 +28,12 @@ class PlatformPage(QFrame, AiNieeBase):
         "tag": "",
         "group": "custom",
         "name": "",
-        "api_url": "",
+        "api_url": "http://127.0.0.1:8080",
         "api_key": "",
-        "api_format": "",
+        "api_format": "OpenAI",
+        "rpm_limit": 4096,
+        "tpm_limit": 4096000,
+        "token_limit": 4096,
         "model": "",
         "proxy": "",
         "account": "",
@@ -48,6 +52,9 @@ class PlatformPage(QFrame, AiNieeBase):
             "api_url",
             "api_key",
             "api_format",
+            "rpm_limit",
+            "tpm_limit",
+            "token_limit",
             "model",
             "proxy",
             "auto_complete",
@@ -67,9 +74,8 @@ class PlatformPage(QFrame, AiNieeBase):
         # 配置文件管理器
         self.background_executor = background_executor
 
-        # 加载默认配置
-        self.DEFAULT = self.load_file("./Resource/platforms.json")
-        self.save_config(self.load_config_from_default(self.DEFAULT_FILL.SELECT_MODE))
+        # 加载并更新预设配置
+        self.load_preset()
     
         # 载入配置文件
         config = self.load_config()
@@ -95,7 +101,7 @@ class PlatformPage(QFrame, AiNieeBase):
             with open(path, "r", encoding = "utf-8") as reader:
                 result = json.load(reader)
         else:
-            self.error("未找到 platforms.json 文件 ...")
+            self.error(f"未找到 {path} 文件 ...")
 
         return result
 
@@ -152,6 +158,28 @@ class PlatformPage(QFrame, AiNieeBase):
                 isClosable = True,
             )
 
+    # 加载并更新预设配置
+    def load_preset(self):
+        # 这个函数的主要目的是保证可以通过预设文件对内置的接口的固定属性进行更新
+        preset = self.load_file("./Resource/platforms/preset.json")
+        config = self.load_config()
+
+        # 根据 key_in_settings 中记录的用户设置字段，从配置数据中读取设置值并更新到预设数据
+        for k, v in preset.get("platforms", {}).items():
+            if k in config.get("platforms", {}):
+                key_in_settings = v.get("key_in_settings", [])
+                for setting in key_in_settings:
+                    v[setting] = config.get("platforms", {}).get(k).get(setting)
+
+        # 用更新后的预设数据更新配置中的内置接口数据
+        platforms = {}
+        platforms.update(preset.get("platforms", {}))
+        platforms.update({k: v for k, v in config.get("platforms", {}).items() if v.get("group") == "custom"})
+        config["platforms"] = platforms
+
+        # 保存并返回
+        return self.save_config(config)
+
     # 删除平台
     def delete_platform(self, tag: str) -> None:
         # 载入配置文件
@@ -179,8 +207,13 @@ class PlatformPage(QFrame, AiNieeBase):
                             (
                                 FluentIcon.EDIT,
                                 "编辑接口",
-                                partial(self.show_api_edit_message_box, k),
+                                partial(self.show_api_edit_page, k),
                             ),
+                            # (
+                            #     FluentIcon.SCROLL,
+                            #     "编辑限额",
+                            #     partial(self.show_limit_edit_page, k),
+                            # ),
                             (
                                 FluentIcon.SEND,
                                 "测试接口",
@@ -197,7 +230,12 @@ class PlatformPage(QFrame, AiNieeBase):
                             (
                                 FluentIcon.EDIT,
                                 "编辑接口",
-                                partial(self.show_api_edit_message_box, k),
+                                partial(self.show_api_edit_page, k),
+                            ),
+                            (
+                                FluentIcon.SCROLL,
+                                "编辑限额",
+                                partial(self.show_limit_edit_page, k),
                             ),
                             (
                                 FluentIcon.SEND,
@@ -215,10 +253,13 @@ class PlatformPage(QFrame, AiNieeBase):
 
         return ui_datas
 
-    # 显示 API 编辑对话框
-    def show_api_edit_message_box(self, key: str):
-        api_edit_message_box = APIEditPage(self.window, key)
-        api_edit_message_box.exec()
+    # 显示编辑接口对话框
+    def show_api_edit_page(self, key: str):
+        APIEditPage(self.window, key).exec()
+
+    # 显示编辑限额对话框
+    def show_limit_edit_page(self, key: str):
+        LimitEditPage(self.window, key).exec()
 
     # 初始化下拉按钮
     def init_drop_down_push_button(self, widget, datas):
