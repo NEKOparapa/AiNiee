@@ -1,10 +1,3 @@
-# ═══════════════════════════════════════════════════════
-# ████ 警告：擅自进入，后果自负                         ████
-# ████ 恭喜你，你已经发现了我的杰作                     ████
-# ████ 一座万行意大利面条式代码的屎山                   ████
-# ████ 请谨慎前行，阅读这段代码可能会。                 ████
-# ████ 立刻让你感到不幸和绝望                          ████
-# ═══════════════════════════════════════════════════════
 
 # 
 #                        _oo0oo_
@@ -44,20 +37,20 @@ import os
 import sys
 import multiprocessing
 import concurrent.futures
+from rich import print
+
 
 import cohere  # 需要安装库pip install cohere
 import anthropic # 需要安装库pip install anthropic
 import google.generativeai as genai # 需要安装库pip install -U google-generativeai
-
-from rich import print
 from openai import OpenAI # 需要安装库pip install openai
+
 
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import  QObject,  Qt, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 from qfluentwidgets import InfoBar, InfoBarPosition, StateToolTip
 
-import jaconv # 日文文本转换工具
 from StevExtraction import jtpp  # type: ignore #导入文本提取工具
 from Module_Folders.Cache_Manager.Cache import Cache_Manager  
 from Module_Folders.File_Reader.File1 import File_Reader 
@@ -68,6 +61,10 @@ from Module_Folders.Configurator.Config import Configurator
 from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
 from Plugin_Scripts.Plugin_Manager import Plugin_Manager
 from User_Interface.AppFluentWindow import AppFluentWindow
+
+
+# 插件依赖
+import jaconv # 日文文本转换工具
 
 # 翻译器
 class Translator():
