@@ -64,8 +64,8 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         # 设置窗口属性
         self.resize(self.APP_WIDTH, self.APP_HEIGHT)
         self.setMinimumSize(self.APP_WIDTH, self.APP_HEIGHT)
-        # self.setWindowIcon(QIcon(f":{configurator.resource_dir}/Avatar.png"))
         self.setWindowTitle(version)
+        self.titleBar.iconLabel.hide()
 
         # 设置启动位置
         desktop = QApplication.desktop().availableGeometry()
