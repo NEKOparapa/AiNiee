@@ -44,8 +44,8 @@ class FlowCard(CardWidget):
 
         # 添加分割线
         line = QFrame(self)
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
+        line.setFixedHeight(1)
+        line.setStyleSheet("QFrame { background-color: #C0C0C0; }")
         self.container.addSpacing(4)
         self.container.addWidget(line)
         self.container.addSpacing(4)
