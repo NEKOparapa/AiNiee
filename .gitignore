@@ -1,2 +1,7 @@
-*config.json
 *__pycache__
+
+/input
+/output
+/*词典.json
+/*_ainiee.json
+/Resource/config.json

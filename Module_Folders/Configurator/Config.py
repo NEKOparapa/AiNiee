@@ -154,12 +154,25 @@ class Configurator():
         self.model_input_price = 0
         self.model_output_price = 0
 
-        # 获取请求限制
+        # 获取接口限额
         a = self.platforms.get(target_platform).get("account")
         m = self.platforms.get(target_platform).get("model")
-        self.max_tokens = self.platforms.get(target_platform).get("account_datas").get(a, {}).get(m, {}).get("max_tokens", 4096)
-        self.RPM_limit = self.platforms.get(target_platform).get("account_datas").get(a, {}).get(m, {}).get("RPM", 4096) * len(self.apikey_list)
-        self.TPM_limit = self.platforms.get(target_platform).get("account_datas").get(a, {}).get(m, {}).get("TPM", 4096000) * len(self.apikey_list)
+        
+        self.RPM_limit = self.platforms.get(target_platform).get("account_datas").get(a, {}).get(m, {}).get("RPM", 0)
+        if self.RPM_limit == 0:
+            self.RPM_limit = self.platforms.get(target_platform).get("rpm_limit", 4096)
+
+        self.TPM_limit = self.platforms.get(target_platform).get("account_datas").get(a, {}).get(m, {}).get("TPM", 0)
+        if self.TPM_limit == 0:
+            self.TPM_limit = self.platforms.get(target_platform).get("tpm_limit", 4096000)
+            
+        self.max_tokens = self.platforms.get(target_platform).get("account_datas").get(a, {}).get(m, {}).get("max_tokens", 0)
+        if self.max_tokens == 0:
+            self.max_tokens = self.platforms.get(target_platform).get("token_limit", 4096)
+
+        # 根据密钥数量给 RPM 和 TPM 限额翻倍
+        self.RPM_limit = self.RPM_limit * len(self.apikey_list)
+        self.TPM_limit = self.TPM_limit * len(self.apikey_list)
 
     # 计算合适的线程数
     def  auto_thread_count(self,target_platform,SakuraLLM_address):

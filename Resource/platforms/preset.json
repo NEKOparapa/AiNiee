@@ -7,9 +7,12 @@
             "api_url": "http://127.0.0.1:8080",
             "api_key": "",
             "api_format": "",
+            "rpm_limit": 4096,
+            "tpm_limit": 4096000,
+            "token_limit": 4096,
             "model": "Sakura-v1.0",
             "proxy": "",
-            "account": "默认",
+            "account": "",
             "auto_complete": false,
             "model_datas": [
                 "Sakura-v0.9",
@@ -28,10 +31,13 @@
             "name": "Cohere",
             "api_url": "https://api.cohere.com",
             "api_key": "",
-            "api_format": "Cohere",
+            "api_format": "",
+            "rpm_limit": 4096,
+            "tpm_limit": 4096000,
+            "token_limit": 4096,
             "model": "command",
             "proxy": "",
-            "account": "",
+            "account": "试用账号",
             "auto_complete": false,
             "model_datas": [
                 "command",
@@ -98,10 +104,13 @@
             "name": "Google",
             "api_url": "",
             "api_key": "",
-            "api_format": "Google",
+            "api_format": "",
+            "rpm_limit": 4096,
+            "tpm_limit": 4096000,
+            "token_limit": 4096,
             "model": "gemini-1.0-pro",
             "proxy": "",
-            "account": "",
+            "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
                 "gemini-1.0-pro",
@@ -111,22 +120,16 @@
             "account_datas": {
                 "免费账号": {
                     "gemini-1.0-pro": {
-                        "InputTokenLimit": 30720,
-                        "OutputTokenLimit": 8192,
                         "max_tokens": 8192,
                         "TPM": 32000,
                         "RPM": 15
                     },
                     "gemini-1.5-flash": {
-                        "InputTokenLimit": 30720,
-                        "OutputTokenLimit": 8192,
                         "max_tokens": 8192,
                         "TPM": 1000000,
                         "RPM": 15
                     },
                     "gemini-1.5-pro": {
-                        "InputTokenLimit": 1048576,
-                        "OutputTokenLimit": 8192,
                         "max_tokens": 8192,
                         "TPM": 32000,
                         "RPM": 2
@@ -134,22 +137,16 @@
                 },
                 "付费账号": {
                     "gemini-1.0-pro": {
-                        "InputTokenLimit": 30720,
-                        "OutputTokenLimit": 8192,
                         "max_tokens": 8192,
                         "TPM": 120000,
                         "RPM": 360
                     },
                     "gemini-1.5-flash": {
-                        "InputTokenLimit": 30720,
-                        "OutputTokenLimit": 8192,
                         "max_tokens": 8192,
                         "TPM": 4000000,
                         "RPM": 1000
                     },
                     "gemini-1.5-pro": {
-                        "InputTokenLimit": 1048576,
-                        "OutputTokenLimit": 8192,
                         "max_tokens": 8192,
                         "TPM": 4000000,
                         "RPM": 360
@@ -170,9 +167,12 @@
             "api_url": "https://api.openai.com/v1",
             "api_key": "",
             "api_format": "",
+            "rpm_limit": 4096,
+            "tpm_limit": 4096000,
+            "token_limit": 4096,
             "model": "gpt-3.5-turbo",
             "proxy": "",
-            "account": "",
+            "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
                 "gpt-3.5-turbo",
@@ -655,6 +655,9 @@
             "api_url": "https://api.deepseek.com/v1",
             "api_key": "",
             "api_format": "",
+            "rpm_limit": 4096,
+            "tpm_limit": 4096000,
+            "token_limit": 4096,
             "model": "deepseek-chat",
             "proxy": "",
             "account": "",
@@ -662,17 +665,7 @@
             "model_datas": [
                 "deepseek-chat"
             ],
-            "account_datas": {
-                "默认": {
-                    "deepseek-chat": {
-                        "InputTokenLimit": 32000,
-                        "OutputTokenLimit": 4000,
-                        "max_tokens": 4000,
-                        "TPM": 1000000,
-                        "RPM": 3500
-                    }
-                }
-            },
+            "account_datas": {},
             "key_in_settings": [
                 "api_key",
                 "model",
@@ -685,10 +678,13 @@
             "name": "Anthropic",
             "api_url": "https://api.anthropic.com",
             "api_key": "",
-            "api_format": "Anthropic",
+            "api_format": "",
+            "rpm_limit": 4096,
+            "tpm_limit": 4096000,
+            "token_limit": 4096,
             "model": "claude-2.0",
             "proxy": "",
-            "account": "",
+            "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
                 "claude-2.0",
@@ -700,29 +696,164 @@
             ],
             "account_datas": {
                 "免费账号": {
-                    "max_tokens": 4000,
-                    "TPM": 20000,
-                    "RPM": 5
+                    "claude-2.0": {
+                        "max_tokens": 4000,
+                        "TPM": 20000,
+                        "RPM": 5
+                    },
+                    "claude-2.1": {
+                        "max_tokens": 4000,
+                        "TPM": 20000,
+                        "RPM": 5
+                    },
+                    "claude-3-haiku-20240307": {
+                        "max_tokens": 4000,
+                        "TPM": 20000,
+                        "RPM": 5
+                    },
+                    "claude-3-sonnet-20240229": {
+                        "max_tokens": 4000,
+                        "TPM": 20000,
+                        "RPM": 5
+                    },
+                    "claude-3-opus-20240229": {
+                        "max_tokens": 4000,
+                        "TPM": 20000,
+                        "RPM": 5
+                    },
+                    "claude-3-5-sonnet-20240620": {
+                        "max_tokens": 4000,
+                        "TPM": 20000,
+                        "RPM": 5
+                    }
                 },
                 "付费账号(等级1)": {
-                    "max_tokens": 4000,
-                    "TPM": 50000,
-                    "RPM": 50
+                    "claude-2.0": {
+                        "max_tokens": 4000,
+                        "TPM": 50000,
+                        "RPM": 50
+                    },
+                    "claude-2.1": {
+                        "max_tokens": 4000,
+                        "TPM": 50000,
+                        "RPM": 50
+                    },
+                    "claude-3-haiku-20240307": {
+                        "max_tokens": 4000,
+                        "TPM": 50000,
+                        "RPM": 50
+                    },
+                    "claude-3-sonnet-20240229": {
+                        "max_tokens": 4000,
+                        "TPM": 50000,
+                        "RPM": 50
+                    },
+                    "claude-3-opus-20240229": {
+                        "max_tokens": 4000,
+                        "TPM": 50000,
+                        "RPM": 50
+                    },
+                    "claude-3-5-sonnet-20240620": {
+                        "max_tokens": 4000,
+                        "TPM": 50000,
+                        "RPM": 50
+                    }
                 },
                 "付费账号(等级2)": {
-                    "max_tokens": 4000,
-                    "TPM": 80000,
-                    "RPM": 1000
+                    "claude-2.0": {
+                        "max_tokens": 4000,
+                        "TPM": 80000,
+                        "RPM": 1000
+                    },
+                    "claude-2.1": {
+                        "max_tokens": 4000,
+                        "TPM": 80000,
+                        "RPM": 1000
+                    },
+                    "claude-3-haiku-20240307": {
+                        "max_tokens": 4000,
+                        "TPM": 80000,
+                        "RPM": 1000
+                    },
+                    "claude-3-sonnet-20240229": {
+                        "max_tokens": 4000,
+                        "TPM": 80000,
+                        "RPM": 1000
+                    },
+                    "claude-3-opus-20240229": {
+                        "max_tokens": 4000,
+                        "TPM": 80000,
+                        "RPM": 1000
+                    },
+                    "claude-3-5-sonnet-20240620": {
+                        "max_tokens": 4000,
+                        "TPM": 80000,
+                        "RPM": 1000
+                    }
                 },
                 "付费账号(等级3)": {
-                    "max_tokens": 4000,
-                    "TPM": 160000,
-                    "RPM": 2000
+                    "claude-2.0": {
+                        "max_tokens": 4000,
+                        "TPM": 160000,
+                        "RPM": 2000
+                    },
+                    "claude-2.1": {
+                        "max_tokens": 4000,
+                        "TPM": 160000,
+                        "RPM": 2000
+                    },
+                    "claude-3-haiku-20240307": {
+                        "max_tokens": 4000,
+                        "TPM": 160000,
+                        "RPM": 2000
+                    },
+                    "claude-3-sonnet-20240229": {
+                        "max_tokens": 4000,
+                        "TPM": 160000,
+                        "RPM": 2000
+                    },
+                    "claude-3-opus-20240229": {
+                        "max_tokens": 4000,
+                        "TPM": 160000,
+                        "RPM": 2000
+                    },
+                    "claude-3-5-sonnet-20240620": {
+                        "max_tokens": 4000,
+                        "TPM": 160000,
+                        "RPM": 2000
+                    }
                 },
                 "付费账号(等级4)": {
-                    "max_tokens": 4000,
-                    "TPM": 400000,
-                    "RPM": 4000
+                    "claude-2.0": {
+                        "max_tokens": 4000,
+                        "TPM": 400000,
+                        "RPM": 4000
+                    },
+                    "claude-2.1": {
+                        "max_tokens": 4000,
+                        "TPM": 400000,
+                        "RPM": 4000
+                    },
+                    "claude-3-haiku-20240307": {
+                        "max_tokens": 4000,
+                        "TPM": 400000,
+                        "RPM": 4000
+                    },
+                    "claude-3-sonnet-20240229": {
+                        "max_tokens": 4000,
+                        "TPM": 400000,
+                        "RPM": 4000
+                    },
+                    "claude-3-opus-20240229": {
+                        "max_tokens": 4000,
+                        "TPM": 400000,
+                        "RPM": 4000
+                    },
+                    "claude-3-5-sonnet-20240620": {
+                        "max_tokens": 4000,
+                        "TPM": 400000,
+                        "RPM": 4000
+                    }
                 }
             },
             "key_in_settings": [
@@ -739,6 +870,9 @@
             "api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
             "api_key": "",
             "api_format": "",
+            "rpm_limit": 4096,
+            "tpm_limit": 4096000,
+            "token_limit": 4096,
             "model": "qwen-turbo",
             "proxy": "",
             "account": "默认",
@@ -786,9 +920,12 @@
             "api_url": "https://open.bigmodel.cn/api/paas/v4",
             "api_key": "",
             "api_format": "",
+            "rpm_limit": 4096,
+            "tpm_limit": 4096000,
+            "token_limit": 4096,
             "model": "glm-4-flash",
             "proxy": "",
-            "account": "",
+            "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
                 "glm-4-flash",
@@ -975,9 +1112,12 @@
             "api_url": "https://api.lingyiwanwu.com/v1",
             "api_key": "",
             "api_format": "",
+            "rpm_limit": 4096,
+            "tpm_limit": 4096000,
+            "token_limit": 4096,
             "model": "yi-medium",
             "proxy": "",
-            "account": "",
+            "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
                 "yi-medium",
@@ -1102,9 +1242,12 @@
             "api_url": "https://api.moonshot.cn",
             "api_key": "",
             "api_format": "",
+            "rpm_limit": 4096,
+            "tpm_limit": 4096000,
+            "token_limit": 4096,
             "model": "moonshot-v1-8k",
             "proxy": "",
-            "account": "",
+            "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
                 "moonshot-v1-8k",
@@ -1220,25 +1363,6 @@
                 "model",
                 "proxy",
                 "account"
-            ]
-        },
-        "volcengine": {
-            "tag": "volcengine",
-            "group": "online",
-            "name": "火山引擎",
-            "api_url": "",
-            "api_key": "",
-            "api_format": "",
-            "model": "",
-            "proxy": "",
-            "account": "",
-            "auto_complete": false,
-            "model_datas": [],
-            "account_datas": {},
-            "key_in_settings": [
-                "api_url",
-                "api_key",
-                "proxy"
             ]
         }
     }
