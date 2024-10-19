@@ -69,7 +69,7 @@ class PlatformPage(QFrame, AiNieeBase):
 
         # 加载默认配置
         self.DEFAULT = self.load_file("./Resource/platforms.json")
-        self.save_config(self.load_config_from_default())
+        self.save_config(self.load_config_from_default(self.DEFAULT_FILL.SELECT_MODE))
     
         # 载入配置文件
         config = self.load_config()
