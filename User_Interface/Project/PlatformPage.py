@@ -171,10 +171,18 @@ class PlatformPage(QFrame, AiNieeBase):
                 for setting in key_in_settings:
                     v[setting] = config.get("platforms", {}).get(k).get(setting)
 
+        # 根据 key_in_settings 中记录的用户设置字段，补齐自定义模型中不存在的字段
+        custom = {k: v for k, v in config.get("platforms", {}).items() if v.get("group") == "custom"}
+        for k, v in custom.items():
+            key_in_settings = self.CUSTOM.get("key_in_settings", [])
+            for setting in key_in_settings:
+                if not setting in v:
+                    v[setting] = self.CUSTOM.get(setting)
+
         # 用更新后的预设数据更新配置中的内置接口数据
         platforms = {}
         platforms.update(preset.get("platforms", {}))
-        platforms.update({k: v for k, v in config.get("platforms", {}).items() if v.get("group") == "custom"})
+        platforms.update(custom)
         config["platforms"] = platforms
 
         # 保存并返回
