@@ -8,6 +8,12 @@ class AiNieeBase():
     # 默认配置
     DEFAULT = {}
 
+    # 默认配置填充模式
+    DEFAULT_FILL = type("GClass", (), {})()
+    DEFAULT_FILL.MODE_NORMAL = 10                               # 普通填充，只填充配置字典的直接字段
+    DEFAULT_FILL.MODE_TRAVERSAL = 20                            # 遍历填充，遍历默认配置字典中所有子字典，填充所有不存在的值
+    DEFAULT_FILL.SELECT_MODE = DEFAULT_FILL.MODE_TRAVERSAL      # 默认为遍历填充
+
     # 配置文件路径
     CONFIG_PATH = "./Resource/config.json"
 
@@ -15,7 +21,7 @@ class AiNieeBase():
         super().__init__()
 
         # 载入并保存默认配置
-        self.save_config(self.load_config_from_default())
+        self.save_config(self.load_config_from_default(self.DEFAULT_FILL.SELECT_MODE))
 
     # INFO
     def info(self, msg: str) -> None:
@@ -66,20 +72,20 @@ class AiNieeBase():
         return old
 
     # 更新配置
-    def fill_config(self, old: dict, new: dict) -> dict:
+    def fill_config(self, old: dict, new: dict, mode: int) -> dict:
         for k, v in new.items():
             if k not in old.keys():
                 old[k] = v
-            elif type(old[k]) == dict and type(v) == dict:
-                self.fill_config(old[k], v)
+            elif mode == self.DEFAULT_FILL.MODE_TRAVERSAL and type(old[k]) == dict and type(v) == dict:
+                self.fill_config(old[k], v, mode)
 
         return old
 
     # 用默认值更新并加载配置文件
-    def load_config_from_default(self) -> None:
+    def load_config_from_default(self, mode: int) -> None:
         config = self.load_config()
 
         if len(self.DEFAULT) > 0:
-            self.fill_config(config, self.DEFAULT)
-                
+            config = self.fill_config(config, self.DEFAULT, mode)
+
         return config

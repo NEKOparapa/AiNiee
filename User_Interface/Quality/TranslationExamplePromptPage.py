@@ -24,6 +24,10 @@ class TranslationExamplePromptPage(QFrame, AiNieeBase):
         },
     }
 
+    # 设置默认值填充模式为普通模式
+    DEFAULT_FILL = AiNieeBase.DEFAULT_FILL
+    DEFAULT_FILL.SELECT_MODE = DEFAULT_FILL.MODE_NORMAL
+
     def __init__(self, text: str, parent):
         QFrame.__init__(self, parent)
         AiNieeBase.__init__(self)
