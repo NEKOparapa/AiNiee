@@ -2,10 +2,10 @@ from PyQt5.Qt import QUrl
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication
 
-from rich import print
 from qfluentwidgets import Theme
 from qfluentwidgets import setTheme
 from qfluentwidgets import isDarkTheme
+from qfluentwidgets import setThemeColor
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import FluentWindow
@@ -41,6 +41,9 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
 
     APP_WIDTH = 1280
     APP_HEIGHT = 800
+
+    THEME_COLOR = "#8A95A9"
+    
     DEFAULT = {
         "theme": "light",
     }
@@ -52,18 +55,21 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         # 载入配置文件
         config = self.load_config()
 
+        # 设置主题颜色
+        setThemeColor(self.THEME_COLOR)
+
+        # 设置主题
+        setTheme(Theme.DARK if config.get("theme") == "dark" else Theme.LIGHT)
+
         # 设置窗口属性
         self.resize(self.APP_WIDTH, self.APP_HEIGHT)
         self.setMinimumSize(self.APP_WIDTH, self.APP_HEIGHT)
-        # self.setWindowIcon(QIcon(f":{configurator.resource_dir}/Avatar.png"))
         self.setWindowTitle(version)
+        self.titleBar.iconLabel.hide()
 
         # 设置启动位置
         desktop = QApplication.desktop().availableGeometry()
         self.move(desktop.width()//2 - self.width()//2, desktop.height()//2 - self.height()//2)
-
-        # 设置主题
-        setTheme(Theme.DARK if config.get("theme") == "dark" else Theme.LIGHT)
 
         # 设置侧边栏宽度
         self.navigationInterface.setExpandWidth(256)
@@ -82,7 +88,7 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         message_box.cancelButton.setText("取消")
 
         if message_box.exec():
-            print("[[green]INFO[/]] 主窗口已关闭，稍后应用自动退出 ...")
+            self.info("主窗口已关闭，稍后应用自动退出 ...")
             self.configurator.Running_status = 11
             event.accept()
         else:

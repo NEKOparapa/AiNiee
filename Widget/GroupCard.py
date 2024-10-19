@@ -2,11 +2,11 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
 
-from qfluentwidgets import ElevatedCardWidget
+from qfluentwidgets import CardWidget
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import StrongBodyLabel
 
-class GroupCard(ElevatedCardWidget):
+class GroupCard(CardWidget):
 
     def __init__(self, title: str, description: str, init = None):
         super().__init__(None)
@@ -25,8 +25,8 @@ class GroupCard(ElevatedCardWidget):
 
         # 添加分割线
         line = QFrame(self)
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
+        line.setFixedHeight(1)
+        line.setStyleSheet("QFrame { background-color: #C0C0C0; }")
         self.container.addSpacing(4)
         self.container.addWidget(line)
         self.container.addSpacing(4)
