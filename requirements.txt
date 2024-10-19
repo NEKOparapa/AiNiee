@@ -8,7 +8,6 @@ openpyxl
 PyQt5
 PyQt-Fluent-Widgets[full]
 opencc
-tiktoken
 google-generativeai
 ebooklib
 beautifulsoup4
