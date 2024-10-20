@@ -16,9 +16,8 @@ class PluginsSettingsPage(QFrame, AiNieeBase):
         "plugins_enable": {},
     }
 
-    def __init__(self, text: str, parent, plugin_manager = None):
-        QFrame.__init__(self, parent)
-        AiNieeBase.__init__(self)
+    def __init__(self, text: str, window, plugin_manager = None):
+        super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
         # 插件管理器

@@ -12,15 +12,14 @@ class BasicSettingsPage(QFrame, AiNieeBase):
         "tokens_limit_switch": True,
         "lines_limit": 16,
         "tokens_limit": 512,
-        "pre_line_counts": 0,
+        "pre_line_counts": 3,
         "user_thread_counts": 0,
         "retry_count_limit": 1,
         "round_limit": 8,
     }
 
-    def __init__(self, text: str, parent):
-        QFrame.__init__(self, parent)
-        AiNieeBase.__init__(self)
+    def __init__(self, text: str, window):
+        super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
         # 载入配置文件
@@ -43,7 +42,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
         # 填充
         self.vbox.addStretch(1) # 确保控件顶端对齐
 
-    # 任务切分模式
+    # 子任务切分模式
     def add_widget_01(self, parent, config):
         def init(widget):
             lines_limit_switch = config.get("lines_limit_switch")
@@ -70,8 +69,8 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             ComboBoxCard(
-                "任务切分模式", 
-                "选择翻译任务切分的模式",
+                "子任务切分模式", 
+                "选择子任务切分的模式",
                 [
                     "行数模式",
                     "Token 模式",
@@ -81,10 +80,10 @@ class BasicSettingsPage(QFrame, AiNieeBase):
             )
         )
         
-    # 每次发送的最大行数
+    # 子任务的最大文本行数
     def add_widget_02(self, parent, config):
         def init(widget):
-            widget.set_range(0, 2048)
+            widget.set_range(0, 9999999)
             widget.set_value(config.get("lines_limit"))
 
         def value_changed(widget, value: int):
@@ -94,17 +93,17 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SpinCard(
-                "每次发送的最大行数", 
-                "当任务切分模式设置为 行数模式 时生效",
+                "子任务的最大文本行数", 
+                "当子任务切分模式设置为 行数模式 时按此值进行子任务的切分",
                 init = init,
                 value_changed = value_changed,
             )
         )
 
-    # 每次发送的最大 Token 数
+    # 子任务的最大 Token 数量
     def add_widget_03(self, parent, config):
         def init(widget):
-            widget.set_range(0, 2048)
+            widget.set_range(0, 9999999)
             widget.set_value(config.get("tokens_limit"))
 
         def value_changed(widget, value: int):
@@ -114,17 +113,17 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SpinCard(
-                "每次发送的最大 Token 数", 
-                "当任务切分模式设置为 Token 模式 时生效",
+                "子任务的最大 Token 数量", 
+                "当子任务切分模式设置为 Token 模式时按此值进行子任务的切分",
                 init = init,
                 value_changed = value_changed,
             )
         )
         
-    # 参考上文行数
+    # 子任务携带的参考上文行数
     def add_widget_04(self, parent, config):
         def init(widget):
-            widget.set_range(0, 2048)
+            widget.set_range(0, 9999999)
             widget.set_value(config.get("pre_line_counts"))
 
         def value_changed(widget, value: int):
@@ -134,17 +133,17 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SpinCard(
-                "参考上文行数", 
-                "每个任务携带的参考上文的行数（不支持 Sakura v0.9 模型）",
+                "子任务携带的参考上文行数", 
+                "大部分情况下可以改善翻译结果，但是会少量降低翻译速度（不支持 Sakura v0.9 模型）",
                 init = init,
                 value_changed = value_changed,
             )
         )
         
-    # 并行子任务数量
+    # 同时执行的子任务数量
     def add_widget_05(self, parent, config):
         def init(widget):
-            widget.set_range(0, 2048)
+            widget.set_range(0, 9999999)
             widget.set_value(config.get("user_thread_counts"))
 
         def value_changed(widget, value: int):
@@ -154,17 +153,17 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SpinCard(
-                "并行子任务数量", 
+                "同时执行的子任务数量", 
                 "合理设置可以极大的增加翻译速度，请设置为本地模型的 np 值或者参考在线接口的官方文档，设置为 0 为自动模式",
                 init = init,
                 value_changed = value_changed,
             )
         )
         
-    # 并行子任务数量
+    # 错误重试的最大次数
     def add_widget_06(self, parent, config):
         def init(widget):
-            widget.set_range(0, 2048)
+            widget.set_range(0, 9999999)
             widget.set_value(config.get("retry_count_limit"))
 
         def value_changed(widget, value: int):
@@ -175,16 +174,16 @@ class BasicSettingsPage(QFrame, AiNieeBase):
         parent.addWidget(
             SpinCard(
                 "错误重试的最大次数", 
-                "当遇到行数不匹配等翻译错误时进行重试的最大次数",
+                "当翻译结果未通过验证时，将对翻译任务进行重试，直至获得正确的翻译结果或者达到最大重试次数",
                 init = init,
                 value_changed = value_changed,
             )
         )
         
-    # 并行子任务数量
+    # 翻译流程的最大轮次
     def add_widget_07(self, parent, config):
         def init(widget):
-            widget.set_range(0, 2048)
+            widget.set_range(0, 9999999)
             widget.set_value(config.get("round_limit"))
 
         def value_changed(widget, value: int):

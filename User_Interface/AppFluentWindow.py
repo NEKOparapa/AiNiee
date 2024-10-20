@@ -45,12 +45,11 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
     THEME_COLOR = "#8A95A9"
     
     DEFAULT = {
-        "theme": "light",
+        "theme": "dark",
     }
 
     def __init__(self, version):
-        FluentWindow.__init__(self)
-        AiNieeBase.__init__(self)
+        super().__init__()
 
         # 载入配置文件
         config = self.load_config()

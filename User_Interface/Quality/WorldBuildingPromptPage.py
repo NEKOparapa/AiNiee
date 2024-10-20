@@ -22,9 +22,8 @@ class WorldBuildingPromptPage(QFrame, AiNieeBase):
         ),
     }
 
-    def __init__(self, text: str, parent):
-        QFrame.__init__(self, parent)
-        AiNieeBase.__init__(self)
+    def __init__(self, text: str, window):
+        super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
         # 载入配置文件
@@ -38,7 +37,7 @@ class WorldBuildingPromptPage(QFrame, AiNieeBase):
         # 添加控件
         self.add_widget_header(self.container, config)
         self.add_widget_body(self.container, config)
-        self.add_widget_footer(self.container, config, parent)
+        self.add_widget_footer(self.container, config, window)
 
     # 头部
     def add_widget_header(self, parent, config):
@@ -53,7 +52,7 @@ class WorldBuildingPromptPage(QFrame, AiNieeBase):
         parent.addWidget(
             SwitchButtonCard(
                 "自定义世界观设定", 
-                "启用此功能后，将根据本页中设置的信息构建提示词向模型发送请求，建议在逻辑能力强的模型上启用（不支持 Sakura 模型）",
+                "启用此功能后，将根据本页中设置的信息构建提示词向模型发送请求，仅在逻辑能力强的模型上有效（不支持 Sakura 模型）",
                 widget_init,
                 widget_callback,
             )

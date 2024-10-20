@@ -17,8 +17,8 @@ class AiNieeBase():
     # 配置文件路径
     CONFIG_PATH = "./Resource/config.json"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # 载入并保存默认配置
         self.save_config(self.load_config_from_default(self.DEFAULT_FILL.SELECT_MODE))
