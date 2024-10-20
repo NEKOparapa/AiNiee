@@ -2779,8 +2779,6 @@ class background_executor(threading.Thread):
         else:
             return False
 
-
-
 if __name__ == '__main__':
     #开启子进程支持
     multiprocessing.freeze_support() 
@@ -2810,10 +2808,17 @@ if __name__ == '__main__':
     # 创建全局应用对象
     app = QApplication(sys.argv)
     
+    # 载入配置文件
+    config = {}
+    if os.path.exists("./Resource/config.json"):
+        with open("./Resource/config.json", "r", encoding = "utf-8") as reader:
+            config = json.load(reader)
+    else:
+        print("[[red]ERROR[/]] 配置文件不存在 ...")
+
     # 设置全局字体属性，解决狗牙问题
     font = QFont()
-    # font.setStyleStrategy(QFont.PreferAntialias) # 不确定有没有效果，好像有，又好像没有
-    font.setHintingPreference(QFont.PreferFullHinting)
+    font.setHintingPreference(QFont.PreferFullHinting if config.get("font_hinting", True) else QFont.Pre)
     app.setFont(font)
 
     # 创建全局窗口对象
