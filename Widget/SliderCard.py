@@ -10,7 +10,7 @@ from qfluentwidgets import StrongBodyLabel
 
 class SliderCard(ElevatedCardWidget):
 
-    def __init__(self, title: str, description: str, init = None, on_value_changed = None):
+    def __init__(self, title: str, description: str, init = None, value_changed = None):
         super().__init__(None)
         
         # 设置容器
@@ -36,11 +36,22 @@ class SliderCard(ElevatedCardWidget):
         self.slider = Slider(Qt.Horizontal)
         self.slider.setFixedWidth(256)
         self.slider_value_label = StrongBodyLabel(title, self)
+        self.slider_value_label.setFixedWidth(48)
+        self.slider_value_label.setAlignment(Qt.AlignCenter)
         self.container.addWidget(self.slider)
         self.container.addWidget(self.slider_value_label)
 
         if init:
-            init(self.slider, self.slider_value_label)
+            init(self)
 
-        if on_value_changed:
-            self.slider.valueChanged.connect(lambda value: on_value_changed(self.slider, self.slider_value_label, value))
+        if value_changed:
+            self.slider.valueChanged.connect(lambda value: value_changed(self, value))
+
+    def set_text(self, text:str) -> None:
+        self.slider_value_label.setText(text)
+        
+    def set_value(self, value: int) -> None:
+        self.slider.setValue(value)
+
+    def set_range(self, min: int, max: int) -> None:
+        self.slider.setRange(min, max)

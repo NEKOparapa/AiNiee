@@ -51,6 +51,7 @@ from PyQt5.QtCore import  QObject,  Qt, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 from qfluentwidgets import InfoBar, InfoBarPosition, StateToolTip
 
+from AiNieeBase import AiNieeBase
 from StevExtraction import jtpp  # type: ignore #导入文本提取工具
 from Module_Folders.Cache_Manager.Cache import Cache_Manager  
 from Module_Folders.File_Reader.File1 import File_Reader 
@@ -67,9 +68,10 @@ from User_Interface.AppFluentWindow import AppFluentWindow
 import jaconv # 日文文本转换工具
 
 # 翻译器
-class Translator():
+class Translator(AiNieeBase):
+    
     def __init__(self):
-        pass
+        super().__init__()
     
     # 翻译器主逻辑
     def Main(self):
@@ -140,24 +142,27 @@ class Translator():
 
 
         # 输出开始翻译的日志
-        print("\n")
-        print("[[green]INFO[/]] 翻译项目为",configurator.translation_project, '\n')
-        print("[[green]INFO[/]] 翻译平台为",configurator.target_platform, '\n')
-        print("[[green]INFO[/]] 请求地址为",configurator.base_url, '\n')
-        print("[[green]INFO[/]] 翻译模型为",configurator.model, '\n')
-
+        self.print("")
+        self.print("")
+        self.info(f"项目类型 - {configurator.translation_project}")
+        self.info(f"原文语言 - {configurator.source_language}")
+        self.info(f"译文语言 - {configurator.target_language}")
+        self.print("")
+        self.info(f"接口名称 - {configurator.platforms.get(configurator.target_platform, {}).get("name", "未知")}")
+        self.info(f"接口地址 - {configurator.base_url}")
+        self.info(f"模型名称 - {configurator.model}")
+        self.print("")
+        self.info(f"生效中的 RPM 限额 - {configurator.RPM_limit}")
+        self.info(f"生效中的 TPM 限额 - {configurator.TPM_limit}")
+        self.info(f"生效中的 MAX_TOKENS 限额 - {configurator.max_tokens}")
+        self.print("")
         if configurator.target_platform != "sakura":
-            print("[[green]INFO[/]] 当前设定的系统提示词为:\n", configurator.get_system_prompt(), '\n')
-
-        print("[[green]INFO[/]] 游戏文本从",configurator.source_language, '翻译到', configurator.target_language,'\n')
-        print("[[green]INFO[/]] 文本总行数为：",total_text_line_count,"  需要翻译的行数为：",untranslated_text_line_count)
-        if configurator.tokens_limit_switch:
-            print("[[green]INFO[/]] 每次发送tokens为：",configurator.tokens_limit,"  计划的翻译任务总数是：", tasks_Num,'\n') 
-        else:    
-            print("[[green]INFO[/]] 每次发送行数为：",configurator.lines_limit,"  计划的翻译任务总数是：", tasks_Num,'\n') 
-        print("[[green]INFO[/]] 五秒后开始进行翻译，请注意保持网络通畅，余额充足。", '\n')
-        time.sleep(5)  
-
+            self.info(f"本次任务使用以下基础指令：\n{configurator.get_system_prompt()}")
+            self.print("")
+        self.info(f"即将开始执行翻译任务，预计子任务总数为 {tasks_Num}, 同时执行的子任务数量为 {configurator.actual_thread_counts}，请注意保持网络通畅，余额充足。")
+        self.print("")
+        self.print("")
+        time.sleep(3)
 
         # 创建线程池
         The_Max_workers = configurator.actual_thread_counts # 获取线程数配置
@@ -592,8 +597,9 @@ class Api_Requester():
                     # 记录开始请求时间
                     Start_request_time = time.time()
 
-                    # 获取AI的参数设置
-                    temperature,top_p,presence_penalty,frequency_penalty= configurator.get_openai_parameters()
+                    # 获取接口的请求参数
+                    temperature, top_p, presence_penalty, frequency_penalty = configurator.get_platform_request_args()
+
                     # 如果上一次请求出现模型退化，更改参数
                     if model_degradation:
                         frequency_penalty = 0.2
@@ -992,8 +998,8 @@ class Api_Requester():
                     # 记录开始请求时间
                     Start_request_time = time.time()
 
-                    # 获取AI的参数设置
-                    temperature= configurator.get_google_parameters()
+                    # 获取接口的请求参数
+                    temperature, top_p, presence_penalty, frequency_penalty = configurator.get_platform_request_args()
 
                     # 设置AI的参数
                     generation_config = {
@@ -1402,8 +1408,10 @@ class Api_Requester():
                     # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
                     # 记录开始请求时间
                     Start_request_time = time.time()
-                    # 获取AI的参数设置
-                    temperature= configurator.get_anthropic_parameters()
+
+                    # 获取接口的请求参数
+                    temperature, top_p, presence_penalty, frequency_penalty = configurator.get_platform_request_args()
+                    
                     # 获取apikey
                     anthropic_apikey =  configurator.get_apikey()
                     # 创建anthropic客户端
@@ -1788,10 +1796,13 @@ class Api_Requester():
 
                     # 获取apikey
                     cohere_apikey =  configurator.get_apikey()
-                    # 获取AI的参数设置
-                    temperature= configurator.get_cohere_parameters()
+                    
+                    # 获取接口的请求参数
+                    temperature, top_p, presence_penalty, frequency_penalty = configurator.get_platform_request_args()
+                    
                     # 创建anthropic客户端
                     client = cohere.Client(api_key=cohere_apikey,base_url=configurator.base_url)
+                    
                     # 发送对话请求
                     try:
                         response = client.chat(
@@ -2135,8 +2146,9 @@ class Api_Requester():
                     # 记录开始请求时间
                     Start_request_time = time.time()
 
-                    # 获取AI的参数设置
-                    temperature,top_p,frequency_penalty= configurator.get_sakura_parameters()
+                    # 获取接口的请求参数
+                    temperature, top_p, presence_penalty, frequency_penalty = configurator.get_platform_request_args()
+                    
                     # 如果上一次请求出现模型退化，更改参数
                     if model_degradation:
                         frequency_penalty = 0.2
@@ -2615,7 +2627,7 @@ class User_Interface_Prompter(QObject):
 
 
 # 任务执行器
-class background_executor(threading.Thread): 
+class background_executor(threading.Thread, AiNieeBase): 
     def __init__(
         self,
         task_id = None,
@@ -2779,8 +2791,6 @@ class background_executor(threading.Thread):
         else:
             return False
 
-
-
 if __name__ == '__main__':
     #开启子进程支持
     multiprocessing.freeze_support() 
@@ -2810,10 +2820,17 @@ if __name__ == '__main__':
     # 创建全局应用对象
     app = QApplication(sys.argv)
     
+    # 载入配置文件
+    config = {}
+    if os.path.exists("./Resource/config.json"):
+        with open("./Resource/config.json", "r", encoding = "utf-8") as reader:
+            config = json.load(reader)
+    else:
+        print("[[red]ERROR[/]] 配置文件不存在 ...")
+
     # 设置全局字体属性，解决狗牙问题
     font = QFont()
-    # font.setStyleStrategy(QFont.PreferAntialias) # 不确定有没有效果，好像有，又好像没有
-    font.setHintingPreference(QFont.PreferFullHinting)
+    font.setHintingPreference(QFont.PreferFullHinting if config.get("font_hinting", True) else QFont.Pre)
     app.setFont(font)
 
     # 创建全局窗口对象

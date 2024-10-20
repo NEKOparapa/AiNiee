@@ -24,18 +24,15 @@ from User_Interface.Setting.MixTranslationSettingsPage import MixTranslationSett
 from User_Interface.Quality.TextReplaceAPage import TextReplaceAPage
 from User_Interface.Quality.TextReplaceBPage import TextReplaceBPage
 from User_Interface.Quality.PromptDictionaryPage import PromptDictionaryPage
-from User_Interface.Quality.ModelArgumentsSakuraPage import ModelArgumentsSakuraPage
-from User_Interface.Quality.ModelArgumentsGooglePage import ModelArgumentsGooglePage
-from User_Interface.Quality.ModelArgumentsCoherePage import ModelArgumentsCoherePage
-from User_Interface.Quality.ModelArgumentsOpenAIPage import ModelArgumentsOpenAIPage
-from User_Interface.Quality.ModelArgumentsAnthropicPage import ModelArgumentsAnthropicPage
 from User_Interface.Quality.SystemPromptPage import SystemPromptPage
 from User_Interface.Quality.WritingStylePromptPage import WritingStylePromptPage
 from User_Interface.Quality.WorldBuildingPromptPage import WorldBuildingPromptPage
 from User_Interface.Quality.CharacterizationPromptPage import CharacterizationPromptPage
 from User_Interface.Quality.TranslationExamplePromptPage import TranslationExamplePromptPage
-from User_Interface.Start_Translation_Interface.Interface_start_translation import Widget_start_translation
+from User_Interface.App.AppSettingsPage import AppSettingsPage
 
+# 旧页面
+from User_Interface.Start_Translation_Interface.Interface_start_translation import Widget_start_translation
 
 class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
 
@@ -87,7 +84,7 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         message_box.cancelButton.setText("取消")
 
         if message_box.exec():
-            self.info("主窗口已关闭，稍后应用自动退出 ...")
+            self.info("主窗口已关闭，稍后应用将自动退出 ...")
             self.configurator.Running_status = 11
             event.accept()
         else:
@@ -118,6 +115,10 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         self.add_application_setting_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
         self.add_quality_optimization_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
+        self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
+        self.add_app_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
+
+        # 设置默认页面
         self.switchTo(self.Widget_start_translation)
         
         # 主题切换按钮
@@ -192,15 +193,7 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         self.translation_example_prompt_page = TranslationExamplePromptPage("translation_example_prompt_page", self)
         self.addSubInterface(self.translation_example_prompt_page, FluentIcon.ZOOM, "翻译风格示例", parent = self.prompt_optimization_navigation_item)
 
-        self.model_arguments_navigation_item = BaseNavigationItem("model_arguments_navigation_item", self)
-        self.addSubInterface(self.model_arguments_navigation_item, FluentIcon.MIX_VOLUMES, "模型参数调整", NavigationItemPosition.SCROLL)
-        self.model_arguments_sakura_page = ModelArgumentsSakuraPage("model_arguments_sakura_page", self)
-        self.addSubInterface(self.model_arguments_sakura_page, FluentIcon.SPEED_OFF, "Sakura", parent = self.model_arguments_navigation_item)
-        self.model_arguments_google_page = ModelArgumentsGooglePage("model_arguments_google_page", self)
-        self.addSubInterface(self.model_arguments_google_page, FluentIcon.SPEED_OFF, "Google", parent = self.model_arguments_navigation_item)
-        self.model_arguments_cohere_page = ModelArgumentsCoherePage("model_arguments_cohere_page", self)
-        self.addSubInterface(self.model_arguments_cohere_page, FluentIcon.SPEED_OFF, "Cohere", parent = self.model_arguments_navigation_item)
-        self.model_arguments_openai_page = ModelArgumentsOpenAIPage("model_arguments_openai_page", self)
-        self.addSubInterface(self.model_arguments_openai_page, FluentIcon.SPEED_OFF, "OpenAI", parent = self.model_arguments_navigation_item)
-        self.model_arguments_anthropic_page = ModelArgumentsAnthropicPage("model_arguments_anthropic_page", self)
-        self.addSubInterface(self.model_arguments_anthropic_page, FluentIcon.SPEED_OFF, "Anthropic", parent = self.model_arguments_navigation_item)
+    # 添加第四节
+    def add_app_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
+        self.app_settings_page = AppSettingsPage("app_settings_page", self)
+        self.addSubInterface(self.app_settings_page, FluentIcon.IOT, "应用设置", NavigationItemPosition.SCROLL)
