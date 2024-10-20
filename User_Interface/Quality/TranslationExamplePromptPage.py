@@ -58,7 +58,7 @@ class TranslationExamplePromptPage(QFrame, AiNieeBase):
         parent.addWidget(
             SwitchButtonCard(
                 "自定义翻译风格示例", 
-                "启用此功能后，将根据本页中设置的信息构建提示词向模型发送请求，建议在逻辑能力强的模型上启用（不支持 Sakura 模型）",
+                "启用此功能后，将根据本页中设置的信息构建提示词向模型发送请求，仅在逻辑能力强的模型上有效（不支持 Sakura 模型）",
                 widget_init,
                 widget_callback,
             )
