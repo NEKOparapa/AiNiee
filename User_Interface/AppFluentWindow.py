@@ -24,11 +24,6 @@ from User_Interface.Setting.MixTranslationSettingsPage import MixTranslationSett
 from User_Interface.Quality.TextReplaceAPage import TextReplaceAPage
 from User_Interface.Quality.TextReplaceBPage import TextReplaceBPage
 from User_Interface.Quality.PromptDictionaryPage import PromptDictionaryPage
-from User_Interface.Quality.ModelArgumentsSakuraPage import ModelArgumentsSakuraPage
-from User_Interface.Quality.ModelArgumentsGooglePage import ModelArgumentsGooglePage
-from User_Interface.Quality.ModelArgumentsCoherePage import ModelArgumentsCoherePage
-from User_Interface.Quality.ModelArgumentsOpenAIPage import ModelArgumentsOpenAIPage
-from User_Interface.Quality.ModelArgumentsAnthropicPage import ModelArgumentsAnthropicPage
 from User_Interface.Quality.SystemPromptPage import SystemPromptPage
 from User_Interface.Quality.WritingStylePromptPage import WritingStylePromptPage
 from User_Interface.Quality.WorldBuildingPromptPage import WorldBuildingPromptPage
@@ -197,19 +192,6 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         self.addSubInterface(self.writing_style_prompt_page, FluentIcon.PENCIL_INK, "行文措辞要求", parent = self.prompt_optimization_navigation_item)
         self.translation_example_prompt_page = TranslationExamplePromptPage("translation_example_prompt_page", self)
         self.addSubInterface(self.translation_example_prompt_page, FluentIcon.ZOOM, "翻译风格示例", parent = self.prompt_optimization_navigation_item)
-
-        self.model_arguments_navigation_item = BaseNavigationItem("model_arguments_navigation_item", self)
-        self.addSubInterface(self.model_arguments_navigation_item, FluentIcon.MIX_VOLUMES, "模型参数调整", NavigationItemPosition.SCROLL)
-        self.model_arguments_sakura_page = ModelArgumentsSakuraPage("model_arguments_sakura_page", self)
-        self.addSubInterface(self.model_arguments_sakura_page, FluentIcon.SPEED_OFF, "Sakura", parent = self.model_arguments_navigation_item)
-        self.model_arguments_google_page = ModelArgumentsGooglePage("model_arguments_google_page", self)
-        self.addSubInterface(self.model_arguments_google_page, FluentIcon.SPEED_OFF, "Google", parent = self.model_arguments_navigation_item)
-        self.model_arguments_cohere_page = ModelArgumentsCoherePage("model_arguments_cohere_page", self)
-        self.addSubInterface(self.model_arguments_cohere_page, FluentIcon.SPEED_OFF, "Cohere", parent = self.model_arguments_navigation_item)
-        self.model_arguments_openai_page = ModelArgumentsOpenAIPage("model_arguments_openai_page", self)
-        self.addSubInterface(self.model_arguments_openai_page, FluentIcon.SPEED_OFF, "OpenAI", parent = self.model_arguments_navigation_item)
-        self.model_arguments_anthropic_page = ModelArgumentsAnthropicPage("model_arguments_anthropic_page", self)
-        self.addSubInterface(self.model_arguments_anthropic_page, FluentIcon.SPEED_OFF, "Anthropic", parent = self.model_arguments_navigation_item)
 
     # 添加第四节
     def add_app_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):

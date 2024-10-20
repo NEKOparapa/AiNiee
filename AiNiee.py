@@ -597,8 +597,9 @@ class Api_Requester():
                     # 记录开始请求时间
                     Start_request_time = time.time()
 
-                    # 获取AI的参数设置
-                    temperature,top_p,presence_penalty,frequency_penalty= configurator.get_openai_parameters()
+                    # 获取接口的请求参数
+                    temperature, top_p, presence_penalty, frequency_penalty = configurator.get_platform_request_args()
+
                     # 如果上一次请求出现模型退化，更改参数
                     if model_degradation:
                         frequency_penalty = 0.2
@@ -997,8 +998,8 @@ class Api_Requester():
                     # 记录开始请求时间
                     Start_request_time = time.time()
 
-                    # 获取AI的参数设置
-                    temperature= configurator.get_google_parameters()
+                    # 获取接口的请求参数
+                    temperature, top_p, presence_penalty, frequency_penalty = configurator.get_platform_request_args()
 
                     # 设置AI的参数
                     generation_config = {
@@ -1407,8 +1408,10 @@ class Api_Requester():
                     # ——————————————————————————————————————————发送会话请求——————————————————————————————————————————
                     # 记录开始请求时间
                     Start_request_time = time.time()
-                    # 获取AI的参数设置
-                    temperature= configurator.get_anthropic_parameters()
+
+                    # 获取接口的请求参数
+                    temperature, top_p, presence_penalty, frequency_penalty = configurator.get_platform_request_args()
+                    
                     # 获取apikey
                     anthropic_apikey =  configurator.get_apikey()
                     # 创建anthropic客户端
@@ -1793,10 +1796,13 @@ class Api_Requester():
 
                     # 获取apikey
                     cohere_apikey =  configurator.get_apikey()
-                    # 获取AI的参数设置
-                    temperature= configurator.get_cohere_parameters()
+                    
+                    # 获取接口的请求参数
+                    temperature, top_p, presence_penalty, frequency_penalty = configurator.get_platform_request_args()
+                    
                     # 创建anthropic客户端
                     client = cohere.Client(api_key=cohere_apikey,base_url=configurator.base_url)
+                    
                     # 发送对话请求
                     try:
                         response = client.chat(
@@ -2140,8 +2146,9 @@ class Api_Requester():
                     # 记录开始请求时间
                     Start_request_time = time.time()
 
-                    # 获取AI的参数设置
-                    temperature,top_p,frequency_penalty= configurator.get_sakura_parameters()
+                    # 获取接口的请求参数
+                    temperature, top_p, presence_penalty, frequency_penalty = configurator.get_platform_request_args()
+                    
                     # 如果上一次请求出现模型退化，更改参数
                     if model_degradation:
                         frequency_penalty = 0.2

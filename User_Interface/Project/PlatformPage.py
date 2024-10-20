@@ -22,6 +22,7 @@ from AiNieeBase import AiNieeBase
 from Widget.FlowCard import FlowCard
 from Widget.LineEditMessageBox import LineEditMessageBox
 from User_Interface.Project.APIEditPage import APIEditPage
+from User_Interface.Project.ArgsEditPage import ArgsEditPage
 from User_Interface.Project.LimitEditPage import LimitEditPage
 
 class PlatformPage(QFrame, AiNieeBase):
@@ -37,6 +38,10 @@ class PlatformPage(QFrame, AiNieeBase):
         "tpm_limit": 4096000,
         "token_limit": 4096,
         "model": "",
+        "top_p": 1.0,
+        "temperature": 1.0,
+        "presence_penalty": 0.0,
+        "frequency_penalty": 0.0,
         "proxy": "",
         "account": "",
         "auto_complete": True,
@@ -60,6 +65,10 @@ class PlatformPage(QFrame, AiNieeBase):
             "model",
             "proxy",
             "auto_complete",
+            "top_p",
+            "temperature",
+            "presence_penalty",
+            "frequency_penalty",
         ],
     }
 
@@ -165,22 +174,33 @@ class PlatformPage(QFrame, AiNieeBase):
         preset = self.load_file("./Resource/platforms/preset.json")
         config = self.load_config()
 
-        # 根据 key_in_settings 中记录的用户设置字段，从配置数据中读取设置值并更新到预设数据
-        for k, v in preset.get("platforms", {}).items():
-            if k in config.get("platforms", {}):
-                key_in_settings = v.get("key_in_settings", [])
-                for setting in key_in_settings:
-                    v[setting] = config.get("platforms", {}).get(k).get(setting)
+        # 从配置文件中非自定义读取接口信息数据并使用预设数据更新
+        p_platforms = preset.get("platforms", {})
+        c_platforms = config.get("platforms", {})
+        # 遍历预设数据中的接口信息
+        for k, p_platform in p_platforms.items():
+            # 在配置数据中查找相同的接口
+            if k in c_platforms:
+                c_platform = c_platforms.get(k, {})
+                # 如果该字段属于用户自定义字段，且配置数据中该字段的值合法，则使用此值更新预设数据
+                for setting in p_platform.get("key_in_settings", []):
+                    if c_platform.get(setting, None) != None:
+                        p_platform[setting] = c_platform.get(setting, None)
 
-        # 根据 key_in_settings 中记录的用户设置字段，补齐自定义模型中不存在的字段
+        # 从配置文件中读取自定义接口信息数据并使用预设数据更新
         custom = {k: v for k, v in config.get("platforms", {}).items() if v.get("group") == "custom"}
-        for k, v in custom.items():
-            key_in_settings = self.CUSTOM.get("key_in_settings", [])
-            for setting in key_in_settings:
-                if setting not in v:
-                    v[setting] = self.CUSTOM.get(setting)
+        # 遍历自定义模型数据
+        for _, platform in custom.items():
+            for k, v in self.CUSTOM.items():
+                # 如果该字段的值不合法，则使用预设数据更新该字段的值
+                if platform.get(k, None) == None:
+                    platform[k] = v
 
-        # 用更新后的预设数据更新配置中的内置接口数据
+                # 如果字段不属于用户自定义字段，且不在保护字段范围内，则使用预设数据更新该字段的值
+                if k not in self.CUSTOM.get("key_in_settings", []) and k not in ("tag", "name", "group"):
+                    platform[k] = v
+
+        # 汇总数据并更新配置数据中的接口信息
         platforms = {}
         platforms.update(preset.get("platforms", {}))
         platforms.update(custom)
@@ -218,6 +238,11 @@ class PlatformPage(QFrame, AiNieeBase):
                                 "编辑接口",
                                 partial(self.show_api_edit_page, k),
                             ),
+                            (
+                                FluentIcon.DEVELOPER_TOOLS,
+                                "编辑参数",
+                                partial(self.show_args_edit_page, k),
+                            ),
                             # (
                             #     FluentIcon.SCROLL,
                             #     "编辑限额",
@@ -247,6 +272,11 @@ class PlatformPage(QFrame, AiNieeBase):
                                 partial(self.show_limit_edit_page, k),
                             ),
                             (
+                                FluentIcon.DEVELOPER_TOOLS,
+                                "编辑参数",
+                                partial(self.show_args_edit_page, k),
+                            ),
+                            (
                                 FluentIcon.SEND,
                                 "测试接口",
                                 partial(self.api_test, k),
@@ -265,6 +295,10 @@ class PlatformPage(QFrame, AiNieeBase):
     # 显示编辑接口对话框
     def show_api_edit_page(self, key: str):
         APIEditPage(self.window, key).exec()
+        
+    # 显示编辑参数对话框
+    def show_args_edit_page(self, key: str):
+        ArgsEditPage(self.window, key).exec()
 
     # 显示编辑限额对话框
     def show_limit_edit_page(self, key: str):
