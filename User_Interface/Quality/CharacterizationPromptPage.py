@@ -36,9 +36,8 @@ class CharacterizationPromptPage(QFrame, AiNieeBase):
     DEFAULT_FILL = AiNieeBase.DEFAULT_FILL
     DEFAULT_FILL.SELECT_MODE = DEFAULT_FILL.MODE_NORMAL
 
-    def __init__(self, text: str, parent):
-        QFrame.__init__(self, parent)
-        AiNieeBase.__init__(self)
+    def __init__(self, text: str, window):
+        super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
         # 载入配置文件
@@ -52,7 +51,7 @@ class CharacterizationPromptPage(QFrame, AiNieeBase):
         # 添加控件
         self.add_widget_header(self.container, config)
         self.add_widget_body(self.container, config)
-        self.add_widget_footer(self.container, config, parent)
+        self.add_widget_footer(self.container, config, window)
 
     # 头部
     def add_widget_header(self, parent, config):

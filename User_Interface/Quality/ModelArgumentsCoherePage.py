@@ -16,9 +16,8 @@ class ModelArgumentsCoherePage(QFrame, AiNieeBase):
         "Cohere_Temperature": 0,
     }
 
-    def __init__(self, text: str, parent):
-        QFrame.__init__(self, parent)
-        AiNieeBase.__init__(self)
+    def __init__(self, text: str, window):
+        super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
         # 载入配置文件

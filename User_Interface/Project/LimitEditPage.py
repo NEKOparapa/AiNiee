@@ -13,8 +13,7 @@ class LimitEditPage(MessageBoxBase, AiNieeBase):
     DEFAULT = {}
 
     def __init__(self, window, key):
-        MessageBoxBase.__init__(self, window)
-        AiNieeBase.__init__(self)
+        super().__init__(window)
 
         # 初始化
         self.key = key

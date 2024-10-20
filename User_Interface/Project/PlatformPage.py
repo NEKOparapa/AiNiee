@@ -66,8 +66,7 @@ class PlatformPage(QFrame, AiNieeBase):
     DEFAULT = {}
 
     def __init__(self, text: str, window, background_executor = None):
-        QFrame.__init__(self, window)
-        AiNieeBase.__init__(self)
+        super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
         
         # 全局窗口对象
