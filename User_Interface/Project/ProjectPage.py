@@ -93,7 +93,7 @@ class ProjectPage(QFrame, AiNieeBase):
         parent.addWidget(
             ComboBoxCard(
                 "接口名称",
-                "设置当前翻译项目所使用的接口名称，注意，选择错误将不能进行翻译",
+                "设置当前翻译项目所使用的接口的名称，注意，选择错误将不能进行翻译",
                 [],
                 init = init,
                 current_text_changed = current_text_changed,
