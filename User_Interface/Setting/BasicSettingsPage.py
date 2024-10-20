@@ -83,7 +83,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
     # 子任务的最大文本行数
     def add_widget_02(self, parent, config):
         def init(widget):
-            widget.set_range(0, 2048)
+            widget.set_range(0, 9999999)
             widget.set_value(config.get("lines_limit"))
 
         def value_changed(widget, value: int):
@@ -103,7 +103,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
     # 子任务的最大 Token 数量
     def add_widget_03(self, parent, config):
         def init(widget):
-            widget.set_range(0, 2048)
+            widget.set_range(0, 9999999)
             widget.set_value(config.get("tokens_limit"))
 
         def value_changed(widget, value: int):
@@ -123,7 +123,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
     # 子任务携带的参考上文行数
     def add_widget_04(self, parent, config):
         def init(widget):
-            widget.set_range(0, 2048)
+            widget.set_range(0, 9999999)
             widget.set_value(config.get("pre_line_counts"))
 
         def value_changed(widget, value: int):
@@ -143,7 +143,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
     # 同时执行的子任务数量
     def add_widget_05(self, parent, config):
         def init(widget):
-            widget.set_range(0, 2048)
+            widget.set_range(0, 9999999)
             widget.set_value(config.get("user_thread_counts"))
 
         def value_changed(widget, value: int):
@@ -163,7 +163,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
     # 错误重试的最大次数
     def add_widget_06(self, parent, config):
         def init(widget):
-            widget.set_range(0, 2048)
+            widget.set_range(0, 9999999)
             widget.set_value(config.get("retry_count_limit"))
 
         def value_changed(widget, value: int):
@@ -183,7 +183,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
     # 翻译流程的最大轮次
     def add_widget_07(self, parent, config):
         def init(widget):
-            widget.set_range(0, 2048)
+            widget.set_range(0, 9999999)
             widget.set_value(config.get("round_limit"))
 
         def value_changed(widget, value: int):
