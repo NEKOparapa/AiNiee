@@ -23,6 +23,10 @@ class AiNieeBase():
         # 载入并保存默认配置
         self.save_config(self.load_config_from_default(self.DEFAULT_FILL.SELECT_MODE))
 
+    # PRINT
+    def print(self, msg: str) -> None:
+        print(msg)
+
     # INFO
     def info(self, msg: str) -> None:
         print(f"[[green]INFO[/]] {msg}")
