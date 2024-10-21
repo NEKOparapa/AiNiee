@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import SingleDirectionScrollArea
 
-from AiNieeBase import AiNieeBase
+from Base.AiNieeBase import AiNieeBase
 from Widget.SwitchButtonCard import SwitchButtonCard
 
 class PluginsSettingsPage(QFrame, AiNieeBase):

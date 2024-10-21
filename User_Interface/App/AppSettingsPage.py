@@ -15,7 +15,7 @@ from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import SingleDirectionScrollArea
 
-from AiNieeBase import AiNieeBase
+from Base.AiNieeBase import AiNieeBase
 from Widget.EmptyCard import EmptyCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 

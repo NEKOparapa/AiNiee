@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 
-from AiNieeBase import AiNieeBase
+from Base.AiNieeBase import AiNieeBase
 from Widget.SpinCard import SpinCard
 
 class LimitEditPage(MessageBoxBase, AiNieeBase):

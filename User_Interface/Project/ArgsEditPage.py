@@ -10,7 +10,7 @@ from qfluentwidgets import HyperlinkLabel
 from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 
-from AiNieeBase import AiNieeBase
+from Base.AiNieeBase import AiNieeBase
 from Widget.SliderCard import SliderCard
 
 class ArgsEditPage(MessageBoxBase, AiNieeBase):
@@ -207,6 +207,9 @@ class ArgsEditPage(MessageBoxBase, AiNieeBase):
             
         if self.key == "sakura":
             url = "https://github.com/SakuraLLM/SakuraLLM#%E6%8E%A8%E7%90%86"
+            
+        if self.key == "deepseek":
+            url = "https://api-docs.deepseek.com/zh-cn/quick_start/parameter_settings"
             
         if self.key == "anthropic":
             url = "https://docs.anthropic.com/en/api/getting-started"

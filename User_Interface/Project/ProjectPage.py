@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import FluentIcon
 
-from AiNieeBase import AiNieeBase
+from Base.AiNieeBase import AiNieeBase
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.PushButtonCard import PushButtonCard
 

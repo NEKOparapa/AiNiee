@@ -51,7 +51,7 @@ from PyQt5.QtCore import  QObject,  Qt, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 from qfluentwidgets import InfoBar, InfoBarPosition, StateToolTip
 
-from AiNieeBase import AiNieeBase
+from Base.AiNieeBase import AiNieeBase
 from StevExtraction import jtpp  # type: ignore #导入文本提取工具
 from Module_Folders.Cache_Manager.Cache import Cache_Manager  
 from Module_Folders.File_Reader.File1 import File_Reader 
