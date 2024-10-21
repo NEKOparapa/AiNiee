@@ -10,8 +10,6 @@ from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QTableWidgetItem
 
 from qfluentwidgets import Action
-from qfluentwidgets import InfoBar
-from qfluentwidgets import InfoBarPosition
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import TableWidget
@@ -237,15 +235,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
             self.update_to_table(self.table, config)
 
             # 弹出提示
-            InfoBar.success(
-                title = "",
-                content = "文件数据已导入 ...",
-                parent = self,
-                duration = 2000,
-                orient = Qt.Horizontal,
-                position = InfoBarPosition.TOP,
-                isClosable = True,
-            )
+            self.success_toast("", "数据已导入 ...")
 
         parent.addAction(
             Action(FluentIcon.DOWNLOAD, "导入", parent, triggered = callback),
@@ -282,15 +272,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
                 writer.write(json.dumps(datas, indent = 4, ensure_ascii = False))
 
             # 弹出提示
-            InfoBar.success(
-                title = "",
-                content = "表格数据已导出为 导出_译后替换.json ...",
-                parent = self,
-                duration = 2000,
-                orient = Qt.Horizontal,
-                position = InfoBarPosition.TOP,
-                isClosable = True,
-            )
+            self.success_toast("", "数据已导出为 \"导出_译后替换.json\" ...")
 
         parent.addAction(
             Action(FluentIcon.SHARE, "导出", parent, triggered = callback),
@@ -303,15 +285,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
             self.table.setRowCount(self.table.rowCount() + 1)
 
             # 弹出提示
-            InfoBar.success(
-                title = "",
-                content = "新行已添加 ...",
-                parent = self,
-                duration = 2000,
-                orient = Qt.Horizontal,
-                position = InfoBarPosition.TOP,
-                isClosable = True,
-            )
+            self.success_toast("", "新行已添加 ...")
 
         parent.addAction(
             Action(FluentIcon.ADD_TO, "添加新行", parent, triggered = callback),
@@ -330,15 +304,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
             self.update_to_table(self.table, config)
 
             # 弹出提示
-            InfoBar.success(
-                title = "",
-                content = "空行已移除 ...",
-                parent = self,
-                duration = 2000,
-                orient = Qt.Horizontal,
-                position = InfoBarPosition.TOP,
-                isClosable = True,
-            )
+            self.success_toast("", "空行已移除 ...")
 
         parent.addAction(
             Action(FluentIcon.BROOM, "移除空行", parent, triggered = callback),
@@ -357,15 +323,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
             config = self.save_config(config)
 
             # 弹出提示
-            InfoBar.success(
-                title = "",
-                content = "表格数据已保存 ...",
-                parent = self,
-                duration = 2000,
-                orient = Qt.Horizontal,
-                position = InfoBarPosition.TOP,
-                isClosable = True,
-            )
+            self.success_toast("", "数据已保存 ...")
 
         parent.addAction(
             Action(FluentIcon.SAVE, "保存", parent, triggered = callback),
@@ -397,15 +355,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
             self.update_to_table(self.table, config)
 
             # 弹出提示
-            InfoBar.success(
-                title = "",
-                content = "表格数据已重置 ...",
-                parent = self,
-                duration = 2000,
-                orient = Qt.Horizontal,
-                position = InfoBarPosition.TOP,
-                isClosable = True,
-            )
+            self.success_toast("", "数据已重置 ...")
 
         parent.addAction(
             Action(FluentIcon.DELETE, "重置", parent, triggered = callback),
