@@ -2830,7 +2830,7 @@ if __name__ == '__main__':
 
     # 设置全局字体属性，解决狗牙问题
     font = QFont()
-    font.setHintingPreference(QFont.PreferFullHinting if config.get("font_hinting", True) else QFont.Pre)
+    font.setHintingPreference(QFont.PreferFullHinting if config.get("font_hinting", True) else QFont.PreferNoHinting)
     app.setFont(font)
 
     # 创建全局窗口对象
