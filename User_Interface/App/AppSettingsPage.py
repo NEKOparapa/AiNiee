@@ -99,8 +99,12 @@ class AppSettingsPage(QWidget, AiNieeBase):
                 self.error_toast("", "配置文件内容未通过校验！")
                 return
 
-            if MessageBox("警告", "应用即将重启，请确认 ...", window).exec():
-                self.success_toast("", "配置文件导入成功，应用将在3秒后重启！")
+            # 确认框
+            message_box = MessageBox("警告", "是否确认导入选中的配置文件，导入后应用将自动重启 ...", window)
+            message_box.yesButton.setText("确认")
+            message_box.cancelButton.setText("取消")
+            if message_box.exec():
+                self.success_toast("", "配置文件导入成功，应用即将自动重启！")
             else:
                 return
 
@@ -112,7 +116,7 @@ class AppSettingsPage(QWidget, AiNieeBase):
             self.save_config(config)
 
             # 重启应用
-            QTimer.singleShot(3000, restart_app)
+            QTimer.singleShot(1000, restart_app)
 
         # 导出配置文件
         def export_profile_file(path):
@@ -122,7 +126,7 @@ class AppSettingsPage(QWidget, AiNieeBase):
             with open(f"{path}/ainiee_profile.json", "w", encoding = "utf-8") as writer:
                 writer.write(json.dumps(config, indent = 4, ensure_ascii = False))
                 
-            self.success_toast("", "配置文件导出成功！")
+            self.success_toast("", "配置已导出为 \"ainiee_profile.json\" ...")
 
         # 导入按钮点击事件
         def on_improt_button_clicked():
