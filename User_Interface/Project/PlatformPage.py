@@ -15,7 +15,7 @@ from qfluentwidgets import FluentIcon
 from qfluentwidgets import PushButton
 from qfluentwidgets import PrimaryDropDownPushButton
 
-from AiNieeBase import AiNieeBase
+from Base.AiNieeBase import AiNieeBase
 from Widget.FlowCard import FlowCard
 from Widget.LineEditMessageBox import LineEditMessageBox
 from User_Interface.Project.APIEditPage import APIEditPage

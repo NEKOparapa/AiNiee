@@ -6,7 +6,7 @@ from qfluentwidgets import PlainTextEdit
 from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 
-from AiNieeBase import AiNieeBase
+from Base.AiNieeBase import AiNieeBase
 from Widget.GroupCard import GroupCard
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.LineEditCard import LineEditCard

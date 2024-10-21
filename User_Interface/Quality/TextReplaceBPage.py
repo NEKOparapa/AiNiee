@@ -14,7 +14,7 @@ from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import TableWidget
 
-from AiNieeBase import AiNieeBase
+from Base.AiNieeBase import AiNieeBase
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 

@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
 
-from AiNieeBase import AiNieeBase
+from Base.AiNieeBase import AiNieeBase
 from Widget.SpinCard import SpinCard
 from Widget.ComboBoxCard import ComboBoxCard
 

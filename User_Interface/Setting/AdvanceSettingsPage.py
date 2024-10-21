@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import PillPushButton
 
-from AiNieeBase import AiNieeBase
+from Base.AiNieeBase import AiNieeBase
 from Widget.FlowCard import FlowCard
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.SwitchButtonCard import SwitchButtonCard

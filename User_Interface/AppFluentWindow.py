@@ -13,7 +13,7 @@ from qfluentwidgets import NavigationPushButton
 from qfluentwidgets import NavigationItemPosition
 from qfluentwidgets import NavigationAvatarWidget
 
-from AiNieeBase import AiNieeBase
+from Base.AiNieeBase import AiNieeBase
 from User_Interface.BaseNavigationItem import BaseNavigationItem
 from User_Interface.Project.ProjectPage import ProjectPage
 from User_Interface.Project.PlatformPage import PlatformPage
