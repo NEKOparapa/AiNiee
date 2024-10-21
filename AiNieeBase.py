@@ -1,6 +1,11 @@
 import os
 import json
 
+from PyQt5.Qt import Qt
+
+from qfluentwidgets import InfoBar
+from qfluentwidgets import InfoBarPosition
+
 from rich import print
 
 class AiNieeBase():
@@ -36,8 +41,56 @@ class AiNieeBase():
         print(f"[[red]ERROR[/]] {msg}")
 
     # WARNING
-    def WARNING(self, msg: str) -> None:
+    def warning(self, msg: str) -> None:
         print(f"[[red]WARNING[/]] {msg}")
+
+    # Toast
+    def info_toast(self, title, content) -> None:
+        InfoBar.info(
+            title = title,
+            content = content,
+            parent = self,
+            duration = 2500,
+            orient = Qt.Horizontal,
+            position = InfoBarPosition.TOP,
+            isClosable = True,
+        )
+
+    # Toast
+    def error_toast(self, title, content) -> None:
+        InfoBar.error(
+            title = title,
+            content = content,
+            parent = self,
+            duration = 2500,
+            orient = Qt.Horizontal,
+            position = InfoBarPosition.TOP,
+            isClosable = True,
+        )
+
+    # Toast
+    def success_toast(self, title, content) -> None:
+        InfoBar.success(
+            title = title,
+            content = content,
+            parent = self,
+            duration = 2500,
+            orient = Qt.Horizontal,
+            position = InfoBarPosition.TOP,
+            isClosable = True,
+        )
+
+    # Toast
+    def warning_toast(self, title, content) -> None:
+        InfoBar.warning(
+            title = title,
+            content = content,
+            parent = self,
+            duration = 2500,
+            orient = Qt.Horizontal,
+            position = InfoBarPosition.TOP,
+            isClosable = True,
+        )
 
     # 载入配置文件
     def load_config(self) -> dict:
