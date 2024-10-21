@@ -1,10 +1,7 @@
-from PyQt5.Qt import Qt
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import Action
-from qfluentwidgets import InfoBar
-from qfluentwidgets import InfoBarPosition
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import PlainTextEdit
@@ -85,15 +82,7 @@ class WritingStylePromptPage(QFrame, AiNieeBase):
             config = self.save_config(config)
 
             # 弹出提示
-            InfoBar.success(
-                title = "",
-                content = "数据已保存 ...",
-                parent = self,
-                duration = 2000,
-                orient = Qt.Horizontal,
-                position = InfoBarPosition.TOP,
-                isClosable = True,
-            )
+            self.success_toast("", "数据已保存 ...")
 
         parent.addAction(
             Action(FluentIcon.SAVE, "保存", parent, triggered = callback),
@@ -126,15 +115,7 @@ class WritingStylePromptPage(QFrame, AiNieeBase):
             self.plain_text_edit.setPlainText(config.get("writing_style_content"))
 
             # 弹出提示
-            InfoBar.success(
-                title = "",
-                content = "数据已重置 ...",
-                parent = self,
-                duration = 2000,
-                orient = Qt.Horizontal,
-                position = InfoBarPosition.TOP,
-                isClosable = True,
-            )
+            self.success_toast("", "数据已重置 ...")
 
         parent.addAction(
             Action(FluentIcon.DELETE, "重置", parent, triggered = callback),

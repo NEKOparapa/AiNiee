@@ -4,15 +4,12 @@ import copy
 import random
 from functools import partial
 
-from PyQt5.Qt import Qt
 from PyQt5.Qt import QUrl
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import Action
-from qfluentwidgets import InfoBar
-from qfluentwidgets import InfoBarPosition
 from qfluentwidgets import RoundMenu
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import PushButton
@@ -124,26 +121,10 @@ class PlatformPage(QFrame, AiNieeBase):
         if self.background_executor.Request_test_switch(self):
             def callback(result):
                 if result == True:
-                    InfoBar.success(
-                        title = "",
-                        content = "接口测试成功 ...",
-                        parent = self,
-                        duration = 2500,
-                        orient = Qt.Horizontal,
-                        position = InfoBarPosition.TOP,
-                        isClosable = True,
-                    )
+                    self.success_toast("", "接口测试成功 ...")
                 else:
-                    InfoBar.error(
-                        title = "",
-                        content = "接口测试失败 ...",
-                        parent = self,
-                        duration = 2500,
-                        orient = Qt.Horizontal,
-                        position = InfoBarPosition.TOP,
-                        isClosable = True,
-                    )
-                    
+                    self.error_toast("", "接口测试失败 ...")
+
             self.background_executor(
                 "接口测试",
                 "",
@@ -158,15 +139,7 @@ class PlatformPage(QFrame, AiNieeBase):
                 callback = callback,
             ).start()
         else:
-            InfoBar.warning(
-                title = "",
-                content = "接口测试正在执行中，请稍后再试 ...",
-                parent = self,
-                duration = 2500,
-                orient = Qt.Horizontal,
-                position = InfoBarPosition.TOP,
-                isClosable = True,
-            )
+            self.warning_toast("", "接口测试正在执行中，请稍后再试 ...")
 
     # 加载并更新预设配置
     def load_preset(self):
