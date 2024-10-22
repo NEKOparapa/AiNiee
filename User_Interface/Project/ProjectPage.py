@@ -19,7 +19,7 @@ class ProjectPage(QFrame, AiNieeBase):
         "target_language": "简中",
         "label_input_path": "./input",
         "label_output_path": "./output",
-        "auto_backup_toggle": True,
+        "auto_backup_toggle": False,
     }
 
     def __init__(self, text: str, window):
