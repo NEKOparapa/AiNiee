@@ -39,7 +39,6 @@ class PlatformPage(QFrame, AiNieeBase):
         "temperature": 1.0,
         "presence_penalty": 0.0,
         "frequency_penalty": 0.0,
-        "proxy": "",
         "account": "",
         "auto_complete": True,
         "model_datas": [
@@ -60,7 +59,6 @@ class PlatformPage(QFrame, AiNieeBase):
             "tpm_limit",
             "token_limit",
             "model",
-            "proxy",
             "auto_complete",
             "top_p",
             "temperature",
@@ -134,8 +132,9 @@ class PlatformPage(QFrame, AiNieeBase):
                 api_key = platform.get("api_key"),
                 api_format = platform.get("api_format"),
                 model = platform.get("model"),
-                proxy = platform.get("proxy"),
                 auto_complete = platform.get("auto_complete"),
+                proxy_url = config.get("proxy_url"),
+                proxy_enable = config.get("proxy_enable"),
                 callback = callback,
             ).start()
         else:

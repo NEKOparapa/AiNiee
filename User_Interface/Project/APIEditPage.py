@@ -72,10 +72,6 @@ class APIEditPage(MessageBoxBase, AiNieeBase):
         if "model" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_model(self.vbox, config)
 
-        # 网络代理地址
-        if "proxy" in config.get("platforms").get(self.key).get("key_in_settings"):
-            self.add_widget_proxy(self.vbox, config)
-
         # 填充
         self.vbox.addStretch(1)
 
@@ -215,26 +211,5 @@ class APIEditPage(MessageBoxBase, AiNieeBase):
                 [],
                 init = init,
                 current_text_changed = current_text_changed,
-            )
-        )
-
-    # 网络代理地址
-    def add_widget_proxy(self, parent, config):
-        def init(widget):
-            widget.set_text(config.get("platforms").get(self.key).get("proxy"))
-            widget.set_fixed_width(256)
-            widget.set_placeholder_text("请输入网络代理地址 ...")
-
-        def text_changed(widget, text: str):
-            config = self.load_config()
-            config["platforms"][self.key]["proxy"] = text.strip()
-            self.save_config(config)
-
-        parent.addWidget(
-            LineEditCard(
-                "网络代理地址",
-                "请输入网络代理的地址，例如 http://127.0.0.1:7890，留空则为不使用代理",
-                init = init,
-                text_changed = text_changed,
             )
         )

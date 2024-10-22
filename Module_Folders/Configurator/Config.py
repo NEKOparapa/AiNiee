@@ -139,16 +139,14 @@ class Configurator():
         else:
             self.base_url = api_url
 
-        # 获取网络代理
-        proxy = self.platforms.get(target_platform).get("proxy") # 获取代理端口
-        # 设置或取消代理
-        if proxy == "":
+        # 设置网络代理
+        if self.proxy_enable == False or self.proxy_url == "":
             os.environ.pop("http_proxy", None)
             os.environ.pop("https_proxy", None)
         else:
-            os.environ["http_proxy"] = proxy
-            os.environ["https_proxy"] = proxy
-            print(f"[[green]INFO[/]] 系统代理已启用，代理地址：{proxy}")
+            os.environ["http_proxy"] = self.proxy_url
+            os.environ["https_proxy"] = self.proxy_url
+            print(f"[[green]INFO[/]] 系统代理已启用，代理地址：{self.proxy_url}")
 
         # 获取模型价格（弃用，直接置零）
         self.model_input_price = 0

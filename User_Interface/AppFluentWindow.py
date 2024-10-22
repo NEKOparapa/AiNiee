@@ -29,7 +29,7 @@ from User_Interface.Quality.WritingStylePromptPage import WritingStylePromptPage
 from User_Interface.Quality.WorldBuildingPromptPage import WorldBuildingPromptPage
 from User_Interface.Quality.CharacterizationPromptPage import CharacterizationPromptPage
 from User_Interface.Quality.TranslationExamplePromptPage import TranslationExamplePromptPage
-from User_Interface.App.AppSettingsPage import AppSettingsPage
+from User_Interface.AppSettingsPage import AppSettingsPage
 
 # 旧页面
 from User_Interface.Start_Translation_Interface.Interface_start_translation import Widget_start_translation
@@ -115,11 +115,13 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         self.add_application_setting_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
         self.add_quality_optimization_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
-        self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
-        self.add_app_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
-
+        
         # 设置默认页面
         self.switchTo(self.Widget_start_translation)
+        
+        # 应用设置按钮
+        self.app_settings_page = AppSettingsPage("app_settings_page", self)
+        self.addSubInterface(self.app_settings_page, FluentIcon.IOT, "应用设置", NavigationItemPosition.BOTTOM)
         
         # 主题切换按钮
         self.navigationInterface.addWidget(
@@ -132,7 +134,7 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
             onClick = self.toggle_theme,
             position = NavigationItemPosition.BOTTOM
         )
-        
+
         # 项目主页按钮
         self.navigationInterface.addWidget(
             routeKey = "avatar_navigation_widget",
@@ -192,8 +194,3 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         self.addSubInterface(self.writing_style_prompt_page, FluentIcon.PENCIL_INK, "行文措辞要求", parent = self.prompt_optimization_navigation_item)
         self.translation_example_prompt_page = TranslationExamplePromptPage("translation_example_prompt_page", self)
         self.addSubInterface(self.translation_example_prompt_page, FluentIcon.ZOOM, "翻译风格示例", parent = self.prompt_optimization_navigation_item)
-
-    # 添加第四节
-    def add_app_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
-        self.app_settings_page = AppSettingsPage("app_settings_page", self)
-        self.addSubInterface(self.app_settings_page, FluentIcon.IOT, "应用设置", NavigationItemPosition.SCROLL)

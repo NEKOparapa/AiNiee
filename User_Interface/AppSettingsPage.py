@@ -1,7 +1,6 @@
 import os
 import sys
 import json
-import time
 import subprocess
 
 from PyQt5.Qt import Qt
@@ -13,15 +12,19 @@ from PyQt5.QtWidgets import QFileDialog
 from qfluentwidgets import PushButton
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
+from qfluentwidgets import SwitchButton
 from qfluentwidgets import SingleDirectionScrollArea
 
 from Base.AiNieeBase import AiNieeBase
 from Widget.EmptyCard import EmptyCard
+from Widget.LineEditCard import LineEditCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
 class AppSettingsPage(QWidget, AiNieeBase):
 
     DEFAULT = {
+        "proxy_url": "",
+        "proxy_enable": False,
         "font_hinting": True,
     }
 
@@ -51,12 +54,50 @@ class AppSettingsPage(QWidget, AiNieeBase):
         self.scroller.setWidget(self.vbox_parent)
 
         # 添加控件
+        self.add_widget_proxy(self.vbox, config)
         self.add_widget_font_hinting(self.vbox, config)
         self.add_widget_app_profile(self.vbox, config, window)
 
         # 填充
         self.vbox.addStretch(1)
 
+    # 网络代理地址
+    def add_widget_proxy(self, parent, config):
+
+        def checked_changed(swicth_button, checked: bool):
+            swicth_button.setChecked(checked)
+            
+            config = self.load_config()
+            config["proxy_enable"] = checked
+            self.save_config(config)
+
+        def init(widget):
+            widget.set_text(config.get("proxy_url"))
+            widget.set_fixed_width(256)
+            widget.set_placeholder_text("请输入网络代理地址 ...")
+
+            swicth_button = SwitchButton()
+            swicth_button.setOnText("启用")
+            swicth_button.setOffText("禁用")
+            swicth_button.setChecked(config.get("proxy_enable", False))
+            swicth_button.checkedChanged.connect(lambda checked: checked_changed(swicth_button, checked))
+            widget.add_spacing(8)
+            widget.add_widget(swicth_button)
+
+        def text_changed(widget, text: str):
+            config = self.load_config()
+            config["proxy_url"] = text.strip()
+            self.save_config(config)
+
+        parent.addWidget(
+            LineEditCard(
+                "网络代理地址", 
+                "启用该功能后，将使用设置的代理地址向接口发送请求，例如 http://127.0.0.1:7890",
+                init = init,
+                text_changed = text_changed,
+            )
+        )
+        
     # 应用字体优化
     def add_widget_font_hinting(self, parent, config):
         def init(widget):
