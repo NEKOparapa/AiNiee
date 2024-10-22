@@ -35,13 +35,13 @@ jobs:
           Copy-Item -Path "Plugin_Scripts" -Destination "dist\Plugin_Scripts" -Recurse -Force
           Compress-Archive -Path "dist" -DestinationPath "AiNiee-Beta.zip"
           
-      # - name: Delete release
-      #   uses: dev-drprasad/delete-tag-and-release@v0.2.1
-      #   with:
-      #     tag_name: Beta
-      #     delete_release: true
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.AINIEE }}
+      - name: Delete release
+        uses: dev-drprasad/delete-tag-and-release@v0.2.1
+        with:
+          tag_name: Beta
+          delete_release: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.AINIEE }}
 
       - name: Create release
         id: create_release
@@ -50,9 +50,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.AINIEE }}
         with:
           tag_name: Beta
-          release_name: AiNiee测试版 自动同步源码
-          draft: true
-          prerelease: false
+          release_name: AiNiee-Beta 开发测试版本，由最新源码自动打包
+          draft: false
+          prerelease: true
 
       - name: Upload file
         uses: actions/upload-release-asset@v1
