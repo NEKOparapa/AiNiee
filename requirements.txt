@@ -1,4 +1,5 @@
 # System
+pyinstaller
 openai
 cohere==5.10.0
 anthropic

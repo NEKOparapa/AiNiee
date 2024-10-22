@@ -64,9 +64,6 @@ from Plugin_Scripts.Plugin_Manager import Plugin_Manager
 from User_Interface.AppFluentWindow import AppFluentWindow
 
 
-# 插件依赖
-import jaconv # 日文文本转换工具
-
 # 翻译器
 class Translator(AiNieeBase):
     
