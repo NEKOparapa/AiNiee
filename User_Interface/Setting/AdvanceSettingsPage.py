@@ -211,7 +211,7 @@ class AdvanceSettingsPage(QFrame, AiNieeBase):
         parent.addWidget(
             FlowCard(
                 "翻译结果检查", 
-                "将在翻译结果中检查激活的规则，如检测到对应情况，则视为任务执行失败（点亮按钮则为激活规则）",
+                "将在翻译结果中检查激活的规则，如检测到对应情况，则视为任务执行失败（点亮按钮为激活规则）",
                 widget_init
             )
         )

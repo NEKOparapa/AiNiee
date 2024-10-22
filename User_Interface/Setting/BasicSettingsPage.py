@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QVBoxLayout
 
 from Base.AiNieeBase import AiNieeBase
 from Widget.SpinCard import SpinCard
+from Widget.Separator import Separator
 from Widget.ComboBoxCard import ComboBoxCard
 
 class BasicSettingsPage(QFrame, AiNieeBase):
@@ -34,8 +35,10 @@ class BasicSettingsPage(QFrame, AiNieeBase):
         self.add_widget_01(self.vbox, config)
         self.add_widget_02(self.vbox, config)
         self.add_widget_03(self.vbox, config)
+        self.vbox.addWidget(Separator())
         self.add_widget_04(self.vbox, config)
         self.add_widget_05(self.vbox, config)
+        self.vbox.addWidget(Separator())
         self.add_widget_06(self.vbox, config)
         self.add_widget_07(self.vbox, config)
 
@@ -119,29 +122,9 @@ class BasicSettingsPage(QFrame, AiNieeBase):
                 value_changed = value_changed,
             )
         )
-        
-    # 子任务携带的参考上文行数
-    def add_widget_04(self, parent, config):
-        def init(widget):
-            widget.set_range(0, 9999999)
-            widget.set_value(config.get("pre_line_counts"))
 
-        def value_changed(widget, value: int):
-            config = self.load_config()
-            config["pre_line_counts"] = value
-            self.save_config(config)
-
-        parent.addWidget(
-            SpinCard(
-                "子任务携带的参考上文行数", 
-                "大部分情况下可以改善翻译结果，但是会少量降低翻译速度（不支持 Sakura v0.9 模型）",
-                init = init,
-                value_changed = value_changed,
-            )
-        )
-        
     # 同时执行的子任务数量
-    def add_widget_05(self, parent, config):
+    def add_widget_04(self, parent, config):
         def init(widget):
             widget.set_range(0, 9999999)
             widget.set_value(config.get("user_thread_counts"))
@@ -159,7 +142,27 @@ class BasicSettingsPage(QFrame, AiNieeBase):
                 value_changed = value_changed,
             )
         )
-        
+
+    # 每个子任务携带的参考上文行数
+    def add_widget_05(self, parent, config):
+        def init(widget):
+            widget.set_range(0, 9999999)
+            widget.set_value(config.get("pre_line_counts"))
+
+        def value_changed(widget, value: int):
+            config = self.load_config()
+            config["pre_line_counts"] = value
+            self.save_config(config)
+
+        parent.addWidget(
+            SpinCard(
+                "每个子任务携带的参考上文行数", 
+                "启用此功能在大部分情况下可以改善翻译结果，但是会少量降低翻译速度（不支持 Sakura v0.9 模型）",
+                init = init,
+                value_changed = value_changed,
+            )
+        )
+
     # 错误重试的最大次数
     def add_widget_06(self, parent, config):
         def init(widget):

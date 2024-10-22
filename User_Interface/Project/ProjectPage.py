@@ -187,7 +187,7 @@ class ProjectPage(QFrame, AiNieeBase):
                 return
                 
             # 更新UI
-            widget.set_description(f"当前输出文件夹为 {path.strip()}")
+            widget.set_description(f"当前输入文件夹为 {path.strip()}")
             
             # 更新并保存配置
             config = self.load_config()
