@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QEasingCurve
-from PyQt5.QtWidgets import QFrame, QGroupBox, QHBoxLayout
+from PyQt5.QtWidgets import QFileDialog, QFrame, QGroupBox, QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import Action, FlowLayout, PrimaryPushButton, PushButton
@@ -144,3 +144,42 @@ class MonitoringPage(QFrame, AiNieeBase):
 
        # 取消翻译实现函数
         self.background_executor.Cancel_translation(self)
+
+        
+    # 缓存文件输出
+    def output_cachedata(self):
+
+        label_output_path = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if label_output_path:
+            print('[INFO] 已选择输出文件夹:' ,label_output_path)
+
+            if len(self.configurator.cache_list)>= 3:
+                #创建子线程
+                thread = self.background_executor("输出缓存文件","",label_output_path,"","","","","")
+                thread.start()
+            else:
+                print('[INFO] 未存在缓存文件')
+                return  # 直接返回，不执行后续操作
+        else :
+            print('[INFO] 未选择文件夹')
+            return  # 直接返回，不执行后续操作
+
+
+    # 已翻译文件输出
+    def output_data(self):
+
+        label_output_path = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        if label_output_path:
+            print('[INFO] 已选择输出文件夹:' ,label_output_path)
+
+            if len(self.configurator.cache_list)>= 3:
+                #创建子线程
+                thread = self.background_executor("输出已翻译文件",self.configurator.label_input_path,label_output_path,"","","","","")
+                thread.start()
+
+            else:
+                print('[INFO] 未存在缓存文件')
+                return  # 直接返回，不执行后续操作
+        else :
+            print('[INFO] 未选择文件夹')
+            return  # 直接返回，不执行后续操作

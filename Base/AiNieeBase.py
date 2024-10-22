@@ -3,12 +3,16 @@ import json
 
 from PyQt5.Qt import Qt
 
-from qfluentwidgets import InfoBar
+from qfluentwidgets import InfoBar, pyqtSignal
 from qfluentwidgets import InfoBarPosition
 
 from rich import print
 
 class AiNieeBase():
+
+    # 在基类中定义一个信号
+    update_signal = pyqtSignal(str)
+
 
     # 默认配置
     DEFAULT = {}
@@ -24,6 +28,9 @@ class AiNieeBase():
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # 连接信号到槽函数
+        self.update_signal.connect(self.update_UI)
 
         # 载入并保存默认配置
         self.save_config(self.load_config_from_default(self.DEFAULT_FILL.SELECT_MODE))
@@ -146,3 +153,13 @@ class AiNieeBase():
             config = self.fill_config(config, self.DEFAULT, mode)
 
         return config
+
+
+    # 槽函数，当按钮被点击时调用
+    def emit_data(self, text):
+        # 发射信号，传递文本
+        self.update_signal.emit(text)
+
+    # 槽函数，用于更新按钮文本
+    def update_UI(self, text):
+        pass
