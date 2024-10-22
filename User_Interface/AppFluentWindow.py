@@ -210,4 +210,4 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         self.widget_import_translated_text = Widget_import_translated_text("widget_import_translated_text", self)
         self.addSubInterface(self.widget_import_translated_text, FluentIcon.DOWNLOAD, "导入文本", parent = self.stev_extraction_navigation_item)
         self.widget_update_text = Widget_update_text("widget_update_text", self)
-        self.addSubInterface(self.widget_update_text, FluentIcon.UPDATE, "更新文本", parent = self.stev_extraction_navigation_item)
+        self.addSubInterface(self.widget_update_text, FluentIcon.UPDATE, "导出增量文本", parent = self.stev_extraction_navigation_item)
