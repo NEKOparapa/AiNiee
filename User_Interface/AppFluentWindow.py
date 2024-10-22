@@ -14,6 +14,7 @@ from qfluentwidgets import NavigationItemPosition
 from qfluentwidgets import NavigationAvatarWidget
 
 from Base.AiNieeBase import AiNieeBase
+from User_Interface.AppSettingsPage import AppSettingsPage
 from User_Interface.BaseNavigationItem import BaseNavigationItem
 from User_Interface.Project.ProjectPage import ProjectPage
 from User_Interface.Project.PlatformPage import PlatformPage
@@ -29,7 +30,10 @@ from User_Interface.Quality.WritingStylePromptPage import WritingStylePromptPage
 from User_Interface.Quality.WorldBuildingPromptPage import WorldBuildingPromptPage
 from User_Interface.Quality.CharacterizationPromptPage import CharacterizationPromptPage
 from User_Interface.Quality.TranslationExamplePromptPage import TranslationExamplePromptPage
-from User_Interface.AppSettingsPage import AppSettingsPage
+
+from User_Interface.Text_Extraction_Tool_Interface.Interface_export_source_text import Widget_export_source_text
+from User_Interface.Text_Extraction_Tool_Interface.Interface_import_translated_text import Widget_import_translated_text
+from User_Interface.Text_Extraction_Tool_Interface.Interface_update_text import Widget_update_text
 
 # 旧页面
 from User_Interface.Start_Translation_Interface.Interface_start_translation import Widget_start_translation
@@ -112,9 +116,11 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
     def add_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
         self.add_project_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
-        self.add_application_setting_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
+        self.add_setting_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
-        self.add_quality_optimization_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
+        self.add_quality_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
+        self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
+        self.add_stev_extraction_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
         
         # 设置默认页面
         self.switchTo(self.Widget_start_translation)
@@ -160,7 +166,7 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         self.addSubInterface(self.Widget_start_translation, FluentIcon.PLAY, "开始翻译", NavigationItemPosition.SCROLL)
         
     # 添加第二节
-    def add_application_setting_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
+    def add_setting_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
         self.basic_settings_page = BasicSettingsPage("basic_settings_page", self)
         self.addSubInterface(self.basic_settings_page, FluentIcon.SETTING, "基础设置", NavigationItemPosition.SCROLL)
         self.advance_settings_page = AdvanceSettingsPage("advance_settings_page", self)
@@ -171,7 +177,7 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         self.addSubInterface(self.mix_translation_settings_page, FluentIcon.EMOJI_TAB_SYMBOLS, "混合翻译设置", NavigationItemPosition.SCROLL) 
 
     # 添加第三节
-    def add_quality_optimization_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
+    def add_quality_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
         self.prompt_dictionary_page = PromptDictionaryPage("prompt_dictionary_page", self)
         self.addSubInterface(self.prompt_dictionary_page, FluentIcon.DICTIONARY, "指令词典", NavigationItemPosition.SCROLL)
 
@@ -194,3 +200,14 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         self.addSubInterface(self.writing_style_prompt_page, FluentIcon.PENCIL_INK, "行文措辞要求", parent = self.prompt_optimization_navigation_item)
         self.translation_example_prompt_page = TranslationExamplePromptPage("translation_example_prompt_page", self)
         self.addSubInterface(self.translation_example_prompt_page, FluentIcon.ZOOM, "翻译风格示例", parent = self.prompt_optimization_navigation_item)
+
+    # 添加第四节
+    def add_stev_extraction_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
+        self.stev_extraction_navigation_item = BaseNavigationItem("stev_extraction_navigation_item", self)
+        self.addSubInterface(self.stev_extraction_navigation_item, FluentIcon.ZIP_FOLDER, "StevExtraction", NavigationItemPosition.SCROLL)
+        self.widget_export_source_text = Widget_export_source_text("widget_export_source_text", self)
+        self.addSubInterface(self.widget_export_source_text, FluentIcon.SHARE, "导出文本", parent = self.stev_extraction_navigation_item)
+        self.widget_import_translated_text = Widget_import_translated_text("widget_import_translated_text", self)
+        self.addSubInterface(self.widget_import_translated_text, FluentIcon.DOWNLOAD, "导入文本", parent = self.stev_extraction_navigation_item)
+        self.widget_update_text = Widget_update_text("widget_update_text", self)
+        self.addSubInterface(self.widget_update_text, FluentIcon.UPDATE, "更新文本", parent = self.stev_extraction_navigation_item)
