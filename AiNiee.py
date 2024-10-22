@@ -84,7 +84,7 @@ class Translator(AiNieeBase):
             configurator.target_platform = configurator.mix_translation_settings["translation_platform_1"]
 
         configurator.configure_translation_platform(configurator.target_platform,None)  # 配置翻译平台信息
-        request_limiter.set_limit(configurator.max_tokens,configurator.TPM_limit,configurator.RPM_limit) # 配置请求限制器，依赖前面的配置信息，必需在最后面初始化
+        request_limiter.set_limit(configurator.max_tokens,configurator.TPM_limit,configurator.RPM_limit) # 配置请求限制器，依赖前面的配置信息
 
 
         # ——————————————————————————————————————————读取原文到缓存—————————————————————————————————————————
@@ -125,17 +125,21 @@ class Translator(AiNieeBase):
 
         # 更新界面UI信息
         if configurator.Running_status == 10: # 如果是继续翻译
-            total_text_line_count = user_interface_prompter.total_text_line_count # 与上一个翻译任务的总行数一致
             user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0)
+
+            # 更新翻译状态日志
+            configurator.update_translation_status("继续翻译", None ,None,None)
 
             #最后改一下运行状态，为正常翻译状态
             configurator.Running_status = 6
 
         else:#如果是从头开始翻译
-            total_text_line_count = untranslated_text_line_count
             project_id = configurator.cache_list[0]["project_id"]
             user_interface_prompter.signal.emit("初始化翻译界面数据",project_id,untranslated_text_line_count) #需要输入够当初设定的参数个数
             user_interface_prompter.signal.emit("翻译状态提示","开始翻译",0)
+
+            # 更新翻译状态日志
+            configurator.update_translation_status("开始翻译", configurator.translation_project, untranslated_text_line_count,None)
 
 
         # 输出开始翻译的日志
@@ -239,6 +243,10 @@ class Translator(AiNieeBase):
                 print("[[green]INFO[/]] 未翻译文本总行数为：",untranslated_text_line_count,"  每次发送行数为：",configurator.lines_limit, '\n')
 
 
+            # 更新翻译状态日志
+            configurator.update_translation_status("拆分翻译", configurator.translation_project, None,retry_translation_count)
+
+
             # 计算剩余任务数
             tasks_Num = Translator.calculate_total_tasks(self,untranslated_text_line_count,untranslated_text_tokens_count,configurator.lines_limit,configurator.tokens_limit,configurator.tokens_limit_switch)
 
@@ -309,6 +317,9 @@ class Translator(AiNieeBase):
         print("\n[[green]Success[/]] 已完成全部翻译任务，程序已经停止")   
         print("\n[[green]Success[/]] 请检查译文文件，格式是否错误，存在错行，空行等问题")
         print("\n-------------------------------------------------------------------------------------\n")
+
+        # 更新翻译状态日志
+        configurator.update_translation_status("翻译完成", None, None,None)
 
 
         # ——————————————————————————————————————————完成后插件—————————————————————————————————————————
@@ -729,6 +740,10 @@ class Api_Requester():
 
                         
                         configurator.lock2.acquire()  # 获取锁
+
+                        # 更新运行日志数据
+                        configurator.update_running_params(1, row_count, prompt_tokens_used, completion_tokens_used)
+                        
                         # 更新翻译界面数据
                         user_interface_prompter.update_data(1,row_count,prompt_tokens_used,completion_tokens_used)
 
@@ -756,6 +771,9 @@ class Api_Requester():
 
                         # 如果是进行平时的翻译任务
                         if configurator.Running_status == 6 :
+
+                            # 更新运行日志数据
+                            configurator.update_running_params(0, row_count, prompt_tokens_used, completion_tokens_used)
 
                             # 更新翻译界面数据
                             user_interface_prompter.update_data(0,row_count,prompt_tokens_used,completion_tokens_used)
@@ -1148,6 +1166,9 @@ class Api_Requester():
                         
                         configurator.lock2.acquire()  # 获取锁
 
+                        # 更新运行日志数据
+                        configurator.update_running_params(1, row_count, prompt_tokens_used, completion_tokens_used)
+                        
                         # 更新翻译界面数据
                         user_interface_prompter.update_data(1,row_count,prompt_tokens_used,completion_tokens_used)
 
@@ -1172,6 +1193,9 @@ class Api_Requester():
                         # 更改UI界面信息
                         configurator.lock2.acquire()  # 获取锁
 
+                        # 更新运行日志数据
+                        configurator.update_running_params(0, row_count, prompt_tokens_used, completion_tokens_used)
+                        
                         # 更新翻译界面数据
                         user_interface_prompter.update_data(0,row_count,prompt_tokens_used,completion_tokens_used)
 
@@ -1537,6 +1561,9 @@ class Api_Requester():
                         
                         configurator.lock2.acquire()  # 获取锁
 
+                        # 更新运行日志数据
+                        configurator.update_running_params(1, row_count, prompt_tokens_used, completion_tokens_used)
+
                         # 更新翻译界面数据
                         user_interface_prompter.update_data(1,row_count,prompt_tokens_used,completion_tokens_used)
 
@@ -1560,6 +1587,9 @@ class Api_Requester():
 
                         # 更改UI界面信息
                         configurator.lock2.acquire()  # 获取锁
+
+                        # 更新运行日志数据
+                        configurator.update_running_params(0, row_count, prompt_tokens_used, completion_tokens_used)
 
                         # 更新翻译界面数据
                         user_interface_prompter.update_data(0,row_count,prompt_tokens_used,completion_tokens_used)
@@ -1926,6 +1956,9 @@ class Api_Requester():
                         
                         configurator.lock2.acquire()  # 获取锁
 
+                        # 更新运行日志数据
+                        configurator.update_running_params(1, row_count, prompt_tokens_used, completion_tokens_used)
+                        
                         # 更新翻译界面数据
                         user_interface_prompter.update_data(1,row_count,prompt_tokens_used,completion_tokens_used)
 
@@ -1950,6 +1983,9 @@ class Api_Requester():
                         # 更改UI界面信息
                         configurator.lock2.acquire()  # 获取锁
 
+                        # 更新运行日志数据
+                        configurator.update_running_params(0, row_count, prompt_tokens_used, completion_tokens_used)
+                        
                         # 更新翻译界面数据
                         user_interface_prompter.update_data(0,row_count,prompt_tokens_used,completion_tokens_used)
 
@@ -2282,6 +2318,10 @@ class Api_Requester():
                         
                         configurator.lock2.acquire()  # 获取锁
 
+
+                        # 更新运行日志数据
+                        configurator.update_running_params(1, row_count, prompt_tokens_used, completion_tokens_used)
+
                         # 更新翻译界面数据
                         user_interface_prompter.update_data(1,row_count,prompt_tokens_used,completion_tokens_used)
 
@@ -2306,6 +2346,9 @@ class Api_Requester():
                         # 更改UI界面信息
                         configurator.lock2.acquire()  # 获取锁
 
+                        # 更新运行日志数据
+                        configurator.update_running_params(0, row_count, prompt_tokens_used, completion_tokens_used)
+                        
                         # 更新翻译界面数据
                         user_interface_prompter.update_data(0,row_count,prompt_tokens_used,completion_tokens_used)
 
@@ -2790,6 +2833,8 @@ class background_executor(threading.Thread, AiNieeBase):
             return True
         else:
             return False
+
+
 
 if __name__ == '__main__':
     #开启子进程支持
