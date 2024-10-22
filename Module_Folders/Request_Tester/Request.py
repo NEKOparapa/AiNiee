@@ -1,4 +1,3 @@
-
 import os
 
 import cohere  # 需要安装库pip install cohere
@@ -15,7 +14,7 @@ class Request_Tester():
         pass
 
     # 接口测试分发
-    def request_test(self, user_interface_prompter, tag, api_url, model, api_key, proxy, api_format, auto_complete):
+    def request_test(self, user_interface_prompter, tag, api_url, api_key, api_format, model, auto_complete, proxy_url, proxy_enable):
         # 获取接口地址并补齐，v3 结尾是火山，v4 结尾是智谱
         if tag == "sakura" and not api_url.endswith("/v1"):
             api_url = api_url + "/v1"
@@ -24,30 +23,30 @@ class Request_Tester():
         else:
             api_url = api_url
 
-        # 设置或取消代理
-        if proxy == "":
+        # 获取并设置网络代理
+        if proxy_enable == False or proxy_url == "":
             os.environ.pop("http_proxy", None)
             os.environ.pop("https_proxy", None)
         else:
-            os.environ["http_proxy"] = proxy
-            os.environ["https_proxy"] = proxy
-            print(f"[[green]INFO[/]] 系统代理已启用，代理地址：{proxy}")
+            os.environ["http_proxy"] = proxy_url
+            os.environ["https_proxy"] = proxy_url
+            print(f"[[green]INFO[/]] 系统代理已启用，代理地址：{proxy_url}")
 
         if tag == "sakura":
-            Request_Tester.sakura_request_test(self, user_interface_prompter, api_url, model, api_key, proxy)
+            Request_Tester.sakura_request_test(self, user_interface_prompter, api_url, api_key, model)
         elif tag == "cohere":
-            Request_Tester.cohere_request_test(self, user_interface_prompter, api_url, model, api_key, proxy)
+            Request_Tester.cohere_request_test(self, user_interface_prompter, api_url, api_key, model)
         elif tag == "google":
-            Request_Tester.google_request_test(self, user_interface_prompter, api_url, model, api_key, proxy)
+            Request_Tester.google_request_test(self, user_interface_prompter, api_url, api_key, model)
         elif tag == "anthropic":
-            Request_Tester.anthropic_request_test(self, user_interface_prompter, api_url, model, api_key, proxy)
+            Request_Tester.anthropic_request_test(self, user_interface_prompter, api_url, api_key, model)
         elif tag.startswith("custom_platform_") and api_format == "Anthropic":
-            Request_Tester.anthropic_request_test(self, user_interface_prompter, api_url, model, api_key, proxy)
+            Request_Tester.anthropic_request_test(self, user_interface_prompter, api_url, api_key, model)
         else:
-            Request_Tester.openai_request_test(self, user_interface_prompter, api_url, model, api_key, proxy)
+            Request_Tester.openai_request_test(self, user_interface_prompter, api_url, api_key, model)
 
     # openai接口测试
-    def openai_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy):
+    def openai_request_test(self, user_interface_prompter, base_url, api_key, model):
         
         print("[INFO] 正在测试openai类接口",'\n')
 
@@ -118,7 +117,7 @@ class Request_Tester():
 
 
     # google接口测试
-    def google_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy):
+    def google_request_test(self, user_interface_prompter, base_url, api_key, model):
 
         print("[INFO] 正在测试Google接口",'\n')
 
@@ -220,7 +219,7 @@ class Request_Tester():
 
 
     # anthropic接口测试
-    def anthropic_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy):
+    def anthropic_request_test(self, user_interface_prompter, base_url, api_key, model):
         
         print("[INFO] 正在测试Anthropic接口",'\n')
 
@@ -300,7 +299,7 @@ class Request_Tester():
 
 
     # cohere接口测试
-    def cohere_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy):
+    def cohere_request_test(self, user_interface_prompter, base_url, api_key, model):
         
         print("[INFO] 正在测试Cohere接口",'\n')
 
@@ -372,7 +371,7 @@ class Request_Tester():
 
 
     # sakura接口测试
-    def sakura_request_test(self,user_interface_prompter,base_url,model,api_key_str,proxy):
+    def sakura_request_test(self, user_interface_prompter, base_url, api_key, model):
 
         print("[INFO] 正在测试Sakura接口",'\n')
 

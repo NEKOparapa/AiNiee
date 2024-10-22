@@ -15,7 +15,6 @@
             "temperature": 0.1,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "proxy": "",
             "account": "",
             "auto_complete": false,
             "model_datas": [
@@ -26,7 +25,6 @@
             "key_in_settings": [
                 "api_url",
                 "model",
-                "proxy",
                 "top_p",
                 "temperature",
                 "frequency_penalty"
@@ -47,7 +45,6 @@
             "temperature": 0.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "proxy": "",
             "account": "试用账号",
             "auto_complete": false,
             "model_datas": [
@@ -105,7 +102,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "proxy",
                 "account",
                 "temperature"
             ]
@@ -125,7 +121,6 @@
             "temperature": 0.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "proxy": "",
             "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
@@ -172,7 +167,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "proxy",
                 "account",
                 "temperature"
             ]
@@ -192,7 +186,6 @@
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "proxy": "",
             "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
@@ -665,7 +658,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "proxy",
                 "account",
                 "top_p",
                 "temperature",
@@ -688,7 +680,6 @@
             "temperature": 1.3,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "proxy": "",
             "account": "",
             "auto_complete": false,
             "model_datas": [
@@ -698,7 +689,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "proxy",
                 "top_p",
                 "temperature",
                 "presence_penalty",
@@ -720,7 +710,6 @@
             "temperature": 0.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "proxy": "",
             "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
@@ -896,7 +885,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "proxy",
                 "account",
                 "temperature"
             ]
@@ -916,7 +904,6 @@
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "proxy": "",
             "account": "默认",
             "auto_complete": false,
             "model_datas": [
@@ -952,7 +939,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "proxy",
                 "top_p",
                 "temperature",
                 "presence_penalty",
@@ -974,7 +960,6 @@
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "proxy": "",
             "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
@@ -1151,7 +1136,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "proxy",
                 "account",
                 "top_p",
                 "temperature",
@@ -1174,7 +1158,6 @@
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "proxy": "",
             "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
@@ -1289,7 +1272,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "proxy",
                 "account",
                 "top_p",
                 "temperature",
@@ -1312,7 +1294,6 @@
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "proxy": "",
             "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
@@ -1427,7 +1408,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "proxy",
                 "account",
                 "top_p",
                 "temperature",

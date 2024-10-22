@@ -8,6 +8,7 @@ from qfluentwidgets import FluentIcon
 from Base.AiNieeBase import AiNieeBase
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.PushButtonCard import PushButtonCard
+from Widget.SwitchButtonCard import SwitchButtonCard
 
 class ProjectPage(QFrame, AiNieeBase):
 
@@ -18,6 +19,7 @@ class ProjectPage(QFrame, AiNieeBase):
         "target_language": "简中",
         "label_input_path": "./input",
         "label_output_path": "./output",
+        "auto_backup_toggle": False,
     }
 
     def __init__(self, text: str, window):
@@ -39,6 +41,7 @@ class ProjectPage(QFrame, AiNieeBase):
         self.add_widget_04(self.container, config)
         self.add_widget_05(self.container, config)
         self.add_widget_06(self.container, config)
+        self.add_widget_auto_save_cache_file(self.container, config)
         
         # 填充
         self.container.addStretch(1)
@@ -225,6 +228,25 @@ class ProjectPage(QFrame, AiNieeBase):
             PushButtonCard(
                 "输出文件夹",
                 "",
+                widget_init,
+                widget_callback,
+            )
+        )
+
+    # 自动保存翻译缓存
+    def add_widget_auto_save_cache_file(self, parent, config):
+        def widget_init(widget):
+            widget.set_checked(config.get("auto_backup_toggle"))
+            
+        def widget_callback(widget, checked: bool):
+            config = self.load_config()
+            config["auto_backup_toggle"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                "自动保存翻译缓存文件", 
+                "启用此功能后将在翻译缓存更新时自动将缓存文件保存到输出文件夹内",
                 widget_init,
                 widget_callback,
             )

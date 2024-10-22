@@ -2678,8 +2678,9 @@ class background_executor(threading.Thread, AiNieeBase):
         api_key = None,
         api_format = None,
         model = None,
-        proxy = None,
         auto_complete = None,
+        proxy_url = None,
+        proxy_enable = None,
         callback = None,
     ):
         super().__init__() # 调用父类构造
@@ -2691,8 +2692,9 @@ class background_executor(threading.Thread, AiNieeBase):
         self.api_key = api_key
         self.api_format = api_format
         self.model = model
-        self.proxy = proxy
         self.auto_complete = auto_complete
+        self.proxy_url = proxy_url
+        self.proxy_enable = proxy_enable
         self.callback = callback
 
     def run(self):
@@ -2738,8 +2740,9 @@ class background_executor(threading.Thread, AiNieeBase):
                 api_key = self.api_key,
                 api_format = self.api_format,
                 model = self.model,
-                proxy = self.proxy,
                 auto_complete = self.auto_complete,
+                proxy_url = self.proxy_url,
+                proxy_enable = self.proxy_enable,
             )
             configurator.Running_status = 0
 

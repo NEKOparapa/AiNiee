@@ -9,6 +9,7 @@ from qfluentwidgets import PillPushButton
 
 from Base.AiNieeBase import AiNieeBase
 from Widget.FlowCard import FlowCard
+from Widget.Separator import Separator
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
@@ -43,10 +44,13 @@ class AdvanceSettingsPage(QFrame, AiNieeBase):
         # 添加控件
         self.add_widget_01(self.vbox, config)
         self.add_widget_02(self.vbox, config)
+        self.vbox.addWidget(Separator())
         self.add_widget_03(self.vbox, config)
         self.add_widget_04(self.vbox, config)
+        self.vbox.addWidget(Separator())
         self.add_widget_05(self.vbox, config)
         self.add_widget_06(self.vbox, config)
+        self.vbox.addWidget(Separator())
         self.add_widget_07(self.vbox, config)
         
         # 填充
@@ -207,7 +211,7 @@ class AdvanceSettingsPage(QFrame, AiNieeBase):
         parent.addWidget(
             FlowCard(
                 "翻译结果检查", 
-                "将在翻译结果中检查激活的规则，如检测到对应情况，则视为任务执行失败",
+                "将在翻译结果中检查激活的规则，如检测到对应情况，则视为任务执行失败（点亮按钮则为激活规则）",
                 widget_init
             )
         )

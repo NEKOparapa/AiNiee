@@ -1,6 +1,9 @@
 @echo off
 
-	set ROOT=%~dp0
-	pip install -r %ROOT:~0,-1%\requirements.txt
+@REM 设置工作目录
+set ROOT=%~dp0
+
+@REM 安装依赖
+pip install -r requirements.txt
 
 pause

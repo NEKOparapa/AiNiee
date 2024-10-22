@@ -1,13 +1,16 @@
-import yaml
 import os
-from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QImage, QPainter, QPixmap#需要安装库 pip3 install PyQt5
-from PyQt5.QtCore import  QObject,  QRect,  QUrl,  Qt, pyqtSignal 
-from PyQt5.QtWidgets import QAbstractItemView,QHeaderView,QApplication, QTableWidgetItem, QFrame, QGridLayout, QGroupBox, QLabel,QFileDialog, QStackedWidget, QHBoxLayout, QVBoxLayout
+import yaml
 
-from qfluentwidgets.components import Dialog  # 需要安装库 pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
-from qfluentwidgets import ProgressRing, SegmentedWidget, TableWidget,CheckBox, DoubleSpinBox, HyperlinkButton,InfoBar, InfoBarPosition, NavigationWidget, Slider, SpinBox, ComboBox, LineEdit, PrimaryPushButton, PushButton ,StateToolTip, SwitchButton, TextEdit, Theme,  setTheme ,isDarkTheme,qrouter,NavigationInterface,NavigationItemPosition, EditableComboBox
-from qfluentwidgets import FluentIcon as FIF
-from qframelesswindow import FramelessWindow, StandardTitleBar
+from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QGroupBox
+from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QHBoxLayout
+from PyQt5.QtWidgets import QVBoxLayout
+
+from qfluentwidgets import FluentIcon
+from qfluentwidgets import PushButton
+from qfluentwidgets import StrongBodyLabel
+from qfluentwidgets import PrimaryPushButton
 
 
 class Widget_update_text(QFrame):#  更新子界面
@@ -23,21 +26,18 @@ class Widget_update_text(QFrame):#  更新子界面
 
         # -----创建第1个组，添加多个组件-----
         box_input = QGroupBox()
-        box_input.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_input = QHBoxLayout()
 
         #设置“输入文件夹”标签
-        label4 = QLabel(flags=Qt.WindowFlags())  
-        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label4 = StrongBodyLabel()  
         label4.setText("游戏文件夹")
 
         #设置“输入文件夹”显示
-        self.label_input_path = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label_input_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.label_input_path = StrongBodyLabel() 
         self.label_input_path.setText("(新版本的游戏根目录文件夹)")  
 
         #设置打开文件按钮
-        self.pushButton_input = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton_input = PushButton('选择文件夹', self, FluentIcon.FOLDER)
         self.pushButton_input.clicked.connect(self.Select_game_folder) #按钮绑定槽函数
 
 
@@ -52,21 +52,18 @@ class Widget_update_text(QFrame):#  更新子界面
 
         # -----创建第2个组，添加多个组件-----
         box_data = QGroupBox()
-        box_data.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_data = QHBoxLayout()
 
         #设置“输入文件夹”标签
-        label4 = QLabel(flags=Qt.WindowFlags())  
-        label4.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px")
+        label4 = StrongBodyLabel()  
         label4.setText("工程文件夹")
 
         #设置“输入文件夹”显示
-        self.label_data_path = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label_data_path.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px")
+        self.label_data_path = StrongBodyLabel() 
         self.label_data_path.setText("(新版本游戏导出的工程数据文件夹)")  
 
         #设置打开文件按钮
-        self.pushButton_data = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton_data = PushButton('选择文件夹', self, FluentIcon.FOLDER)
         self.pushButton_data.clicked.connect(self.Select_data_folder) #按钮绑定槽函数
 
 
@@ -81,21 +78,18 @@ class Widget_update_text(QFrame):#  更新子界面
 
         # -----创建第3个组，添加多个组件-----
         box_translation_folder = QGroupBox()
-        box_translation_folder.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_translation_folder = QHBoxLayout()
 
         #设置“输出文件夹”标签
-        self.label6 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label6.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        self.label6 = StrongBodyLabel() 
         self.label6.setText("译文文件夹")
 
         #设置“输出文件夹”显示
-        self.label_translation_folder = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label_translation_folder.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label_translation_folder = StrongBodyLabel() 
         self.label_translation_folder.setText("(旧版本游戏的译文文件存放的文件夹)")
 
         #设置输出文件夹按钮
-        self.pushButton_translation_folder = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton_translation_folder = PushButton('选择文件夹', self, FluentIcon.FOLDER)
         self.pushButton_translation_folder.clicked.connect(self.Select_translation_folder) #按钮绑定槽函数
 
 
@@ -108,21 +102,18 @@ class Widget_update_text(QFrame):#  更新子界面
 
         # -----创建第4个组，添加多个组件-----
         box_output_folder = QGroupBox()
-        box_output_folder.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_putput_folder = QHBoxLayout()
 
         #设置“输出文件夹”标签
-        self.label7 = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label7.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;  color: black")
+        self.label7 = StrongBodyLabel() 
         self.label7.setText("保存文件夹")
 
         #设置“输出文件夹”显示
-        self.label_output_folder = QLabel(parent=self, flags=Qt.WindowFlags())  
-        self.label_output_folder.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 11px;  color: black")
+        self.label_output_folder = StrongBodyLabel() 
         self.label_output_folder.setText("(新版游戏提取到的原文与旧版译文合并后，剩下的需要翻译的原文保存路径)")
 
         #设置输出文件夹按钮
-        self.pushButton_putput_folder = PushButton('选择文件夹', self, FIF.FOLDER)
+        self.pushButton_putput_folder = PushButton('选择文件夹', self, FluentIcon.FOLDER)
         self.pushButton_putput_folder.clicked.connect(self.Select_save_folder) #按钮绑定槽函数
 
 
@@ -138,12 +129,11 @@ class Widget_update_text(QFrame):#  更新子界面
 
         # -----创建第x个组，添加多个组件-----
         box_start_import = QGroupBox()
-        box_start_import.setStyleSheet(""" QGroupBox {border: 0px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_start_import = QHBoxLayout()
 
 
         #设置“开始翻译”的按钮
-        self.primaryButton_start_import = PrimaryPushButton('开始提取原文', self, FIF.UPDATE)
+        self.primaryButton_start_import = PrimaryPushButton('开始提取原文', self, FluentIcon.UPDATE)
         self.primaryButton_start_import.clicked.connect(self.Start_import) #按钮绑定槽函数
 
 
