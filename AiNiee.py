@@ -387,7 +387,7 @@ class Api_Requester():
         if target_platform == "sakura":
             self.concurrent_request_sakura()
         elif target_platform  == "cohere":
-            self.concurrent_request_chere()
+            self.concurrent_request_cohere()
         elif target_platform  == "google":
             self.concurrent_request_google()
         elif target_platform  == "anthropic":
@@ -1736,7 +1736,7 @@ class Api_Requester():
 
 
     # 并发接口请求（Cohere）
-    def Concurrent_Request_cohere(self):
+    def concurrent_request_cohere(self):
 
         # 检查翻译任务是否已经暂停或者退出
         if configurator.Running_status == 9 or configurator.Running_status == 11 :

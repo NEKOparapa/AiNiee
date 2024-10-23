@@ -72,8 +72,8 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             ComboBoxCard(
-                "子任务切分模式", 
-                "选择子任务切分的模式",
+                "翻译任务切分模式", 
+                "选择翻译任务切分的模式",
                 [
                     "行数模式",
                     "Token 模式",
@@ -96,8 +96,8 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SpinCard(
-                "子任务的最大文本行数", 
-                "当子任务切分模式设置为 行数模式 时按此值进行子任务的切分",
+                "翻译任务的最大文本行数", 
+                "当翻译任务切分模式设置为 行数模式 时按此值进行翻译任务的切分",
                 init = init,
                 value_changed = value_changed,
             )
@@ -116,8 +116,8 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SpinCard(
-                "子任务的最大 Token 数量", 
-                "当子任务切分模式设置为 Token 模式时按此值进行子任务的切分",
+                "翻译任务的最大 Token 数量", 
+                "当翻译任务切分模式设置为 Token 模式时按此值进行翻译任务的切分",
                 init = init,
                 value_changed = value_changed,
             )
@@ -136,7 +136,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SpinCard(
-                "同时执行的子任务数量", 
+                "同时执行的翻译任务数量", 
                 "合理设置可以极大的增加翻译速度，请设置为本地模型的 np 值或者参考在线接口的官方文档，设置为 0 为自动模式",
                 init = init,
                 value_changed = value_changed,
@@ -156,7 +156,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SpinCard(
-                "每个子任务携带的参考上文行数", 
+                "每个翻译任务携带的参考上文行数", 
                 "启用此功能在大部分情况下可以改善翻译结果，但是会少量降低翻译速度（不支持 Sakura v0.9 模型）",
                 init = init,
                 value_changed = value_changed,

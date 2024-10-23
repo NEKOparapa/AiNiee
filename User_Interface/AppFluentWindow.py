@@ -127,7 +127,7 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         
         # 应用设置按钮
         self.app_settings_page = AppSettingsPage("app_settings_page", self)
-        self.addSubInterface(self.app_settings_page, FluentIcon.IOT, "应用设置", NavigationItemPosition.BOTTOM)
+        self.addSubInterface(self.app_settings_page, FluentIcon.SETTING, "应用设置", NavigationItemPosition.BOTTOM)
         
         # 主题切换按钮
         self.navigationInterface.addWidget(
@@ -168,7 +168,7 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
     # 添加第二节
     def add_setting_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
         self.basic_settings_page = BasicSettingsPage("basic_settings_page", self)
-        self.addSubInterface(self.basic_settings_page, FluentIcon.SETTING, "基础设置", NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.basic_settings_page, FluentIcon.ZOOM, "基础设置", NavigationItemPosition.SCROLL)
         self.advance_settings_page = AdvanceSettingsPage("advance_settings_page", self)
         self.addSubInterface(self.advance_settings_page, FluentIcon.ALBUM, "高级设置", NavigationItemPosition.SCROLL)
         self.plugins_settings_page = PluginsSettingsPage("plugins_settings_page", self, plugin_manager)
@@ -199,7 +199,7 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         self.writing_style_prompt_page = WritingStylePromptPage("writing_style_prompt_page", self)
         self.addSubInterface(self.writing_style_prompt_page, FluentIcon.PENCIL_INK, "行文措辞要求", parent = self.prompt_optimization_navigation_item)
         self.translation_example_prompt_page = TranslationExamplePromptPage("translation_example_prompt_page", self)
-        self.addSubInterface(self.translation_example_prompt_page, FluentIcon.ZOOM, "翻译风格示例", parent = self.prompt_optimization_navigation_item)
+        self.addSubInterface(self.translation_example_prompt_page, FluentIcon.TILES, "翻译风格示例", parent = self.prompt_optimization_navigation_item)
 
     # 添加第四节
     def add_stev_extraction_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):

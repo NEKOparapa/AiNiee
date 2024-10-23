@@ -246,7 +246,7 @@ class ProjectPage(QFrame, AiNieeBase):
         parent.addWidget(
             SwitchButtonCard(
                 "自动保存翻译缓存文件", 
-                "启用此功能后将在翻译缓存更新时自动将缓存文件保存到输出文件夹内",
+                "启用此功能后，将在翻译缓存更新时，自动将缓存文件保存到输出文件夹内",
                 widget_init,
                 widget_callback,
             )
