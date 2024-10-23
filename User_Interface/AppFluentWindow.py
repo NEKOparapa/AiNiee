@@ -31,9 +31,9 @@ from User_Interface.Quality.WorldBuildingPromptPage import WorldBuildingPromptPa
 from User_Interface.Quality.CharacterizationPromptPage import CharacterizationPromptPage
 from User_Interface.Quality.TranslationExamplePromptPage import TranslationExamplePromptPage
 
-from User_Interface.Text_Extraction_Tool_Interface.Interface_export_source_text import Widget_export_source_text
-from User_Interface.Text_Extraction_Tool_Interface.Interface_import_translated_text import Widget_import_translated_text
-from User_Interface.Text_Extraction_Tool_Interface.Interface_update_text import Widget_update_text
+from User_Interface.Extraction_Tool.Export_Source_Text import Widget_export_source_text
+from User_Interface.Extraction_Tool.Import_Translated_Text import Widget_import_translated_text
+from User_Interface.Extraction_Tool.Export_Update_Text import Widget_update_text
 
 # 旧页面
 from User_Interface.Start_Translation_Interface.Interface_start_translation import Widget_start_translation
@@ -205,9 +205,9 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
     def add_stev_extraction_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
         self.stev_extraction_navigation_item = BaseNavigationItem("stev_extraction_navigation_item", self)
         self.addSubInterface(self.stev_extraction_navigation_item, FluentIcon.ZIP_FOLDER, "StevExtraction", NavigationItemPosition.SCROLL)
-        self.widget_export_source_text = Widget_export_source_text("widget_export_source_text", self)
+        self.widget_export_source_text = Widget_export_source_text("widget_export_source_text", self,configurator=configurator,jtpp=jtpp)
         self.addSubInterface(self.widget_export_source_text, FluentIcon.SHARE, "导出文本", parent = self.stev_extraction_navigation_item)
-        self.widget_import_translated_text = Widget_import_translated_text("widget_import_translated_text", self)
+        self.widget_import_translated_text = Widget_import_translated_text("widget_import_translated_text", self,configurator=configurator,jtpp=jtpp)
         self.addSubInterface(self.widget_import_translated_text, FluentIcon.DOWNLOAD, "导入文本", parent = self.stev_extraction_navigation_item)
-        self.widget_update_text = Widget_update_text("widget_update_text", self)
+        self.widget_update_text = Widget_update_text("widget_update_text", self,configurator=configurator,jtpp=jtpp)
         self.addSubInterface(self.widget_update_text, FluentIcon.UPDATE, "导出增量文本", parent = self.stev_extraction_navigation_item)
