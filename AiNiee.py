@@ -2881,6 +2881,9 @@ if __name__ == '__main__':
     # 创建全局窗口对象
     app_fluent_window = AppFluentWindow(Software_Version)
 
+    # 创建测试器对象
+    request_tester = Request_Tester()
+
     # 创建全局UI通讯器
     user_interface_prompter = User_Interface_Prompter(app_fluent_window)
 
