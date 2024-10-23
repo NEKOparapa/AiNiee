@@ -34,7 +34,7 @@ class PlatformPage(QFrame, AiNieeBase):
         "rpm_limit": 4096,
         "tpm_limit": 4096000,
         "token_limit": 4096,
-        "model": "",
+        "model": "gpt-4o",
         "top_p": 1.0,
         "temperature": 1.0,
         "presence_penalty": 0.0,
