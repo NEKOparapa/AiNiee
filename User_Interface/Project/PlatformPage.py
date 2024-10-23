@@ -69,14 +69,13 @@ class PlatformPage(QFrame, AiNieeBase):
 
     DEFAULT = {}
 
-    def __init__(self, text: str, window, background_executor = None):
+    def __init__(self, text: str, window, configurator, background_executor = None):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
         
-        # 全局窗口对象
+        # 全局变量
         self.window = window
-
-        # 配置文件管理器
+        self.configurator = configurator
         self.background_executor = background_executor
 
         # 加载并更新预设配置
@@ -116,29 +115,32 @@ class PlatformPage(QFrame, AiNieeBase):
         config = self.load_config()
         platform = config.get("platforms").get(tag)
 
-        if self.background_executor.Request_test_switch(self):
-            def callback(result):
-                if result == True:
-                    self.success_toast("", "接口测试成功 ...")
-                else:
-                    self.error_toast("", "接口测试失败 ...")
+        # 注册完成事件
+        self.subscribe(self.EVENT.API_TEST_DONE, self.api_test_done)
 
-            self.background_executor(
-                "接口测试",
-                "",
-                "",
-                tag = platform.get("tag"),
-                api_url = platform.get("api_url"),
-                api_key = platform.get("api_key"),
-                api_format = platform.get("api_format"),
-                model = platform.get("model"),
-                auto_complete = platform.get("auto_complete"),
-                proxy_url = config.get("proxy_url"),
-                proxy_enable = config.get("proxy_enable"),
-                callback = callback,
-            ).start()
+        if self.configurator.Running_status == 0:
+            # 更新运行状态
+            self.configurator.Running_status = 1
+            
+            # 创建事件参数
+            data = copy.deepcopy(platform)
+            data["proxy_url"] = config.get("proxy_url")
+            data["proxy_enable"] = config.get("proxy_enable")
+
+            # 触发事件
+            self.emit(self.EVENT.API_TEST_START, data)
         else:
             self.warning_toast("", "接口测试正在执行中，请稍后再试 ...")
+
+    # 接口测试完成
+    def api_test_done(self, event: int, data: dict):
+        # 更新运行状态
+        self.configurator.Running_status = 0
+
+        if data.get("failed", 0) > 0:
+            self.error_toast("", f"接口测试结果：成功 {data.get("success", 0)} 个，失败 {data.get("failed", 0)} 个 ...")
+        else:
+            self.success_toast("", f"接口测试结果：成功 {data.get("success", 0)} 个，失败 {data.get("failed", 0)} 个 ...")
 
     # 加载并更新预设配置
     def load_preset(self):

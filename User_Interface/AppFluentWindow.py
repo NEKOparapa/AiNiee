@@ -157,7 +157,7 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
 
     # 添加第一节
     def add_project_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
-        self.platform_page = PlatformPage("platform_page", self, background_executor)
+        self.platform_page = PlatformPage("platform_page", self, configurator, background_executor)
         self.addSubInterface(self.platform_page, FluentIcon.IOT, "接口管理", NavigationItemPosition.SCROLL)
         self.prject_page = ProjectPage("prject_page", self)
         self.addSubInterface(self.prject_page, FluentIcon.FOLDER, "项目设置", NavigationItemPosition.SCROLL)
