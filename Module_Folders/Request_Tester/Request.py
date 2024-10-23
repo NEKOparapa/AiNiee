@@ -53,7 +53,8 @@ class Request_Tester(AiNieeBase):
             self.info(f"系统代理已启用，代理地址：{proxy_url}")
 
         # 测试结果
-        results = []
+        failure = []
+        success = []
 
         # 密钥字符串，即使字符中没有逗号，split(",") 方法仍然返回一个只包含一个元素的列表
         api_keys = api_key.strip().replace("\r", "").replace("\n", "").split(",")
@@ -82,26 +83,26 @@ class Request_Tester(AiNieeBase):
                 self.info(f"接口返回信息 - {content}")
 
                 # 储存结果
-                results.append(True)
+                success.append(api_key)
             except Exception as e:
                 # 打印日志
                 self.error(f"接口测试失败 ... {e}")
 
                 # 储存结果
-                results.append(False)
+                failure.append(api_key)
             finally:
                 self.print("")
 
         # 打印结果
-        failed = len([x for x in results if x == False])
-        success = len([x for x in results if x == True])
         self.print("")
-        self.info(f"接口测试结果：共测试 {len(results)} 个接口，成功 {success} 个，失败 {failed} 个 ...")
+        self.info(f"接口测试结果：共测试 {len(api_keys)} 个接口，成功 {len(success)} 个，失败 {len(failure)} 个 ...")
+        if len(failure) >0:
+            self.info(f"失败的接口密钥 - {", ".join(failure)}")
         self.print("")
 
         # 发送完成事件
         self.emit(self.EVENT.API_TEST_DONE, {
-            "failed": failed,
+            "failure": failure,
             "success": success,
         })
 
@@ -155,7 +156,7 @@ class Request_Tester(AiNieeBase):
                 message = "小可爱，你在干嘛",
             ) 
 
-            return response.text
+            return response.text.strip()
         elif tag == "google":
             genai.configure(
                 api_key = api_key if api_key != "" else "no_key_required",
@@ -191,7 +192,7 @@ class Request_Tester(AiNieeBase):
                 system_instruction = "你不是AI助手，你是我的女朋友欣雨，接下来你必须以女朋友的方式回复我。"
             )
             
-            return requester.generate_content("小可爱，你在干嘛").text
+            return requester.generate_content("小可爱，你在干嘛").text.strip()
         elif tag == "anthropic" or (tag.startswith("custom_platform_") and api_format == "Anthropic"):
             client = anthropic.Anthropic(
                 api_key = api_key if api_key != "" else "no_key_required",
@@ -205,7 +206,7 @@ class Request_Tester(AiNieeBase):
                 system = "你不是AI助手，你是我的女朋友欣雨，接下来你必须以女朋友的方式回复我。",
             )
 
-            return response.content[0].text
+            return response.content[0].text.strip()
         else:
             client = OpenAI(
                 api_key = api_key if api_key != "" else "no_key_required",
@@ -217,4 +218,4 @@ class Request_Tester(AiNieeBase):
                 messages = messages,
             )
 
-            return response.choices[0].message.content
+            return response.choices[0].message.content.strip()
