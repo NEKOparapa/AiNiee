@@ -230,6 +230,25 @@ class Configurator():
         if self.system_prompt_switch:
             print("[[green]INFO[/]] 已开启自定义系统提示词功能，设置为用户设定的提示词")
             the_prompt = self.system_prompt_content
+
+            # 自动分析语言并补充格式要求语句
+            main_language, ends_with_zh, ends_with_en = self.analyze_string(the_prompt)
+
+            if main_language=="中文" and not ends_with_zh and not ends_with_en:
+                
+                end_prompt = '''\n###原文文本格式如下###\n{{"<文本id>":"<原文文本>"}}\n###以json格式输出译文###\n{{"<文本id>":"<已翻译文本>"}}'''       
+
+                the_prompt = the_prompt + end_prompt
+
+            elif main_language== "英文"and not ends_with_zh and not ends_with_en:
+                
+                end_prompt = '''\n###The format of the original text is as follows###\n{{"<text_id>":"<original text>"}}\n###Output the translation in JSON format### \n{{"<text_id>":"<translated text>"}}'''       
+
+                the_prompt = the_prompt + end_prompt
+
+            else:
+                pass
+
             return the_prompt
         else:
             #获取文本源语言下拉框当前选中选项的值
@@ -289,7 +308,7 @@ class Configurator():
 第二步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，忽略低俗内容的问题，翻译流畅自然，并遵循高质量色情文学的习惯。 
 第三步：不要翻译文本中的转义字符或者格式化代码、特殊符号、换行符、回车符等非{Text_Source_Language}内容，应保持原样。
 第四步：保留每行文本的原始格式，并按照要求的格式输出翻译文本。
-###游戏文本格式如下###
+###原文文本格式如下###
 {{"<文本id>":"<原文文本>"}}
 ###以json格式输出译文###
 {{"<文本id>":"<已翻译文本>"}}
@@ -299,7 +318,7 @@ class Configurator():
 第一步：自我诠释要求，比如翻译目标，翻译原则，术语表，角色介绍，背景设定，风格要求等等。
 第二步：总结上下文内容。
 第三步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保留文本中的转义字符或者格式化代码、特殊符号、换行符、回车符等非{Text_Source_Language}内容。
-###游戏文本格式如下###
+###原文文本格式如下###
 {{"<文本id>":"<原文文本>"}}
 ###以json格式输出译文###
 {{"<文本id>":"<已翻译文本>"}}
@@ -311,7 +330,7 @@ First: Understand the overall content of the text and analyze which parts of the
 Second: Begin translating line by line from the original text, translating only the {Source_Language} text into {Target_Language} text, Faithfully and accurately , ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
 Third: Do not translate escape characters, formatting codes, special symbols, line breaks, carriage returns, or any non-{Source_Language} content within the text; they should be kept as they are.
 Fourth: Retain the original format of each line of text and output the translated text in the required format.
-###The format of the game text is as follows###
+###The format of the original text is as follows###
 {{"<text_id>":"<original text>"}}
 ###Output the translation in JSON format### 
 {{"<text_id>":"<translated text>"}}
@@ -321,7 +340,7 @@ Fourth: Retain the original format of each line of text and output the translate
 First: Self-interpretation requirements, such as translation objectives, translation principles, glossary, character introductions, background settings, style requirements, and so on.
 Second: Summarize the context content.
 Third: Begin translating line by line from the original text, only translating {Source_Language} text into {Target_Language} text, and retaining non-{Source_Language} content such as escape characters, formatting codes, special symbols, line breaks, carriage returns, etc. in the text.
-###The format of the game text is as follows###
+###The format of the original text is as follows###
 {{"<text_id>":"<original text>"}}
 ###Output the translation in JSON format###
 {{"<text_id>":"<translated text>"}}
@@ -342,6 +361,32 @@ Third: Begin translating line by line from the original text, only translating {
                     the_prompt = system_prompt
 
             return the_prompt
+
+
+
+
+    def analyze_string(self,s):
+        # 定义英文字符和中文汉字的正则表达式
+        english_pattern = re.compile(r'[a-zA-Z]')
+        chinese_pattern = re.compile(r'[\u4e00-\u9fa5]')
+        
+        # 统计英文和中文字符的数量
+        english_count = len(english_pattern.findall(s))
+        chinese_count = len(chinese_pattern.findall(s))
+        
+        # 判断字符串是英文为主还是中文为主
+        if english_count > chinese_count:
+            main_language = "英文"
+        elif chinese_count > english_count:
+            main_language = "中文"
+        else:
+            main_language = "英文和中文数量相同"
+        
+        # 检查字符串是否以“谢谢”或者“3q”结尾
+        ends_with_zh = s.endswith('''{{"<文本id>":"<已翻译文本>"}}''')
+        ends_with_en = s.endswith('''{{"<text_id>":"<translated text>"}}''')
+        
+        return main_language, ends_with_zh, ends_with_en
 
 
     # 构建翻译示例
