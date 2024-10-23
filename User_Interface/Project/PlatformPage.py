@@ -97,6 +97,9 @@ class PlatformPage(QFrame, AiNieeBase):
         # 填充
         self.container.addStretch(1)
 
+        # 完成事件
+        self.subscribe(self.EVENT.API_TEST_DONE, self.api_test_done)
+
     # 从文件加载
     def load_file(self, path: str) -> dict:
         result = {}
@@ -114,10 +117,6 @@ class PlatformPage(QFrame, AiNieeBase):
         # 载入配置文件
         config = self.load_config()
         platform = config.get("platforms").get(tag)
-
-        # 注册完成事件
-        self.subscribe(self.EVENT.API_TEST_DONE, self.api_test_done)
-
         if self.configurator.Running_status == 0:
             # 更新运行状态
             self.configurator.Running_status = 1
@@ -137,10 +136,10 @@ class PlatformPage(QFrame, AiNieeBase):
         # 更新运行状态
         self.configurator.Running_status = 0
 
-        if data.get("failed", 0) > 0:
-            self.error_toast("", f"接口测试结果：成功 {data.get("success", 0)} 个，失败 {data.get("failed", 0)} 个 ...")
+        if len(data.get("failure", [])) > 0:
+            self.error_toast("", f"接口测试结果：成功 {len(data.get("success", []))} 个，失败 {len(data.get("failure", []))} 个 ...")
         else:
-            self.success_toast("", f"接口测试结果：成功 {data.get("success", 0)} 个，失败 {data.get("failed", 0)} 个 ...")
+            self.success_toast("", f"接口测试结果：成功 {len(data.get("success", []))} 个，失败 {len(data.get("failure", []))} 个 ...")
 
     # 加载并更新预设配置
     def load_preset(self):
