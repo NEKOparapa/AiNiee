@@ -456,28 +456,6 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
 
 
         # -----创建第1个组，添加多个组件-----
-        box_switch = QGroupBox()
-        box_switch.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
-        layout_switch = QHBoxLayout()
-
-
-        label1 = StrongBodyLabel()
-        # label1.setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 17px;")
-        label1.setText("自动备份缓存文件到输出文件夹")
-
-
-        self.checkBox_switch = CheckBox('启用功能')
-        self.checkBox_switch.setChecked(True)
-        self.checkBox_switch.stateChanged.connect(self.checkBoxChanged1)
-
-        layout_switch.addWidget(label1)
-        layout_switch.addStretch(1)  # 添加伸缩项
-        layout_switch.addWidget(self.checkBox_switch)
-        box_switch.setLayout(layout_switch)
-
-
-
-        # -----创建第1个组，添加多个组件-----
         box_export_cache_file_path = QGroupBox()
         box_export_cache_file_path.setStyleSheet(""" QGroupBox {border: 1px solid lightgray; border-radius: 8px;}""")#分别设置了边框大小，边框颜色，边框圆角
         layout_export_cache_file_path = QHBoxLayout()
@@ -539,15 +517,9 @@ class Widget_start_translation_B(QFrame):#  开始翻译子界面
 
         # 把各个组添加到容器中
         container.addStretch(1)  # 添加伸缩项        
-        container.addWidget(box_switch)
         container.addWidget(box_export_cache_file_path)
         container.addWidget(box_export_translated_file_path)
         container.addStretch(1)  # 添加伸缩项
-
-    #提示函数
-    def checkBoxChanged1(self, isChecked: bool):
-        if isChecked :
-            self.user_interface_prompter.createSuccessInfoBar("已开启自动备份功能")
 
     # 缓存文件输出
     def output_cachedata(self):

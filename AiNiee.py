@@ -2628,44 +2628,6 @@ class User_Interface_Prompter(QObject):
             parent=app_fluent_window
             )
 
-
-    #读写配置文件config.json函数
-    def read_write_config(self,mode,resource_dir):
-
-        if mode == "write":
-            # 存储配置信息的字典
-            config_dict = {}
-
-
-            #开始翻译的备份设置界面
-            config_dict["auto_backup_toggle"] =  app_fluent_window.Widget_start_translation.B_settings.checkBox_switch.isChecked() # 获取备份设置开关
-
-
-            # 将所有的配置信息写入config.json文件中
-            # 写入前先检查配置文件中的数据，并补齐确实的部分
-            if os.path.exists(os.path.join(resource_dir, "config.json")):
-                with open(os.path.join(resource_dir, "config.json"), "r", encoding = "utf-8") as reader:
-                    exists = json.load(reader)
-                    for k, v in exists.items():
-                        if k not in config_dict.keys():
-                            config_dict[k] = v
-            with open(os.path.join(resource_dir, "config.json"), "w", encoding = "utf-8") as writer:
-                json.dump(config_dict, writer, indent = 4, ensure_ascii = False,)
-
-
-        if mode == "read":
-            #如果config.json在子文件夹resource中存在
-            if os.path.exists(os.path.join(resource_dir, "config.json")):
-                #读取config.json
-                with open(os.path.join(resource_dir, "config.json"), "r", encoding="utf-8") as f:
-                    config_dict = json.load(f)
-
-                #将config.json中的值赋予到变量中,并set到界面上
-                #开始翻译的备份设置界面
-                if "auto_backup_toggle" in config_dict:
-                    app_fluent_window.Widget_start_translation.B_settings.checkBox_switch.setChecked(config_dict["auto_backup_toggle"])
-
-
 # 任务执行器
 class background_executor(threading.Thread, AiNieeBase): 
     def __init__(
@@ -2893,10 +2855,6 @@ if __name__ == '__main__':
     # 显示全局窗口
     app_fluent_window.add_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
     app_fluent_window.show()
-
-    # 读取配置文件
-    user_interface_prompter.read_write_config("read", configurator.resource_dir)
-    user_interface_prompter.read_write_config("write", configurator.resource_dir)
 
     #进入事件循环，等待用户操作
     sys.exit(app.exec_())

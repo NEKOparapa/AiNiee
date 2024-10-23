@@ -15,11 +15,10 @@ from qfluentwidgets import StrongBodyLabel
 from qfluentwidgets import PrimaryPushButton
 
 class Widget_export_source_text(QFrame):#  提取子界面
-    def __init__(self, text: str, parent=None,configurator=None,user_interface_prompter=None,jtpp=None):#解释器会自动调用这个函数
+    def __init__(self, text: str, parent=None,configurator=None,jtpp=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
         self.configurator = configurator
-        self.user_interface_prompter = user_interface_prompter
         self.jtpp = jtpp
         #设置各个控件-----------------------------------------------------------------------------------------
 
@@ -191,7 +190,7 @@ class Widget_export_source_text(QFrame):#  提取子界面
     #设置开关绑定函数
     def test(self, isChecked: bool):
         if isChecked== False:
-            self.user_interface_prompter.createWarningInfoBar("不建议使用在非日语游戏上,容易出现问题")
+            print("[INFO] 不建议使用在非日语游戏上,容易出现问题")
 
     # 选择输入文件夹按钮绑定函数
     def Select_project_folder(self):
