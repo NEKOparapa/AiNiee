@@ -74,9 +74,6 @@ class Translator(AiNieeBase):
     def Main(self):
         # ——————————————————————————————————————————配置信息初始化—————————————————————————————————————————
 
-
-        user_interface_prompter.read_write_config("write",configurator.resource_dir) # 将界面信息写入配置文件中
-
         configurator.load_config_file() # 读取配置文件
 
         # 根据混合翻译设置更换翻译平台
