@@ -1,11 +1,11 @@
 from PyQt5.Qt import Qt
 from PyQt5.QtWidgets import QVBoxLayout
 
-from qfluentwidgets import ElevatedCardWidget
+from qfluentwidgets import CardWidget
 from qfluentwidgets import Action
 from qfluentwidgets import CommandBar
 
-class CommandBarCard(ElevatedCardWidget):
+class CommandBarCard(CardWidget):
 
     def __init__(self, ):
         super().__init__(None)
@@ -24,10 +24,14 @@ class CommandBarCard(ElevatedCardWidget):
     def addAction(self, action: Action):
         self.command_bar.addAction(action)
         
-    # 添加始终隐藏的命令
-    def addHiddenAction(self, action: Action):
-        self.command_bar.addHiddenAction(action)
-        
     # 添加分隔符
     def addSeparator(self):
+        self.command_bar.addSeparator()
+
+    # 添加命令
+    def add_action(self, action: Action):
+        return self.command_bar.addAction(action)
+
+    # 添加分隔符
+    def add_separator(self):
         self.command_bar.addSeparator()

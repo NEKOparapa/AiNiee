@@ -18,6 +18,7 @@ from User_Interface.AppSettingsPage import AppSettingsPage
 from User_Interface.BaseNavigationItem import BaseNavigationItem
 from User_Interface.Project.ProjectPage import ProjectPage
 from User_Interface.Project.PlatformPage import PlatformPage
+from User_Interface.Project.TranslationPage import TranslationPage
 from User_Interface.Setting.BasicSettingsPage import BasicSettingsPage
 from User_Interface.Setting.AdvanceSettingsPage import AdvanceSettingsPage
 from User_Interface.Setting.PluginsSettingsPage import PluginsSettingsPage
@@ -161,6 +162,8 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         self.addSubInterface(self.platform_page, FluentIcon.IOT, "接口管理", NavigationItemPosition.SCROLL)
         self.prject_page = ProjectPage("prject_page", self)
         self.addSubInterface(self.prject_page, FluentIcon.FOLDER, "项目设置", NavigationItemPosition.SCROLL)
+        self.translation_page = TranslationPage("translation_page", self)
+        self.addSubInterface(self.translation_page, FluentIcon.PLAY, "开始翻译", NavigationItemPosition.SCROLL)
         
         self.Widget_start_translation = Widget_start_translation("Widget_start_translation", self, configurator, user_interface_prompter, background_executor)
         self.addSubInterface(self.Widget_start_translation, FluentIcon.PLAY, "开始翻译", NavigationItemPosition.SCROLL)
