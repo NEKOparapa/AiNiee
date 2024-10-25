@@ -21,7 +21,7 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 class TextReplaceBPage(QFrame, AiNieeBase):
     
     DEFAULT = {
-        "post_translation_switch": True,
+        "post_translation_switch": False,
         "post_translation_content": {},
     }
 

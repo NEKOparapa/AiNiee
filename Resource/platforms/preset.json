@@ -1283,7 +1283,7 @@
             "tag": "moonshot",
             "group": "online",
             "name": "月之暗面",
-            "api_url": "https://api.moonshot.cn",
+            "api_url": "https://api.moonshot.cn/v1",
             "api_key": "",
             "api_format": "",
             "rpm_limit": 4096,

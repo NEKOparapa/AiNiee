@@ -19,7 +19,7 @@ class ProjectPage(QFrame, AiNieeBase):
         "target_language": "简中",
         "label_input_path": "./input",
         "label_output_path": "./output",
-        "auto_backup_toggle": False,
+        "auto_backup_toggle": True,
     }
 
     def __init__(self, text: str, window):
@@ -246,7 +246,7 @@ class ProjectPage(QFrame, AiNieeBase):
         parent.addWidget(
             SwitchButtonCard(
                 "自动保存翻译缓存文件", 
-                "启用此功能后，将在翻译缓存更新时，自动将缓存文件保存到输出文件夹内",
+                "启用此功能后，自动将缓存文件保存到输出文件夹内,超高任务数时会降低翻译速度",
                 widget_init,
                 widget_callback,
             )

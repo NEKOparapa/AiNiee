@@ -28,7 +28,7 @@ class PlatformPage(QFrame, AiNieeBase):
         "tag": "",
         "group": "custom",
         "name": "",
-        "api_url": "http://127.0.0.1:8080",
+        "api_url": "https://api.lingyiwanwu.com/v1",
         "api_key": "",
         "api_format": "OpenAI",
         "rpm_limit": 4096,
@@ -44,7 +44,13 @@ class PlatformPage(QFrame, AiNieeBase):
         "model_datas": [
             "gpt-4o",
             "gpt-4o-mini",
-            "claude-3-5-sonnet-20240620",
+            "gpt-4-turbo",
+            "gpt-3.5-turbo",
+            "claude-3-haiku",
+            "claude-3-sonnet",
+            "claude-3-opus",
+            "claude-3-5-haiku",
+            "claude-3-5-sonnet",
         ],
         "format_datas": [
             "OpenAI",
