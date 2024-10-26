@@ -17,6 +17,17 @@ class AiNieeBase():
     EVENT = type("GClass", (), {})()
     EVENT.API_TEST_DONE = 10
     EVENT.API_TEST_START = 11
+    EVENT.TRANSLATION_START = 20
+    EVENT.TRANSLATION_UPDATE = 21
+
+    # 状态列表
+    STATUS = type("GClass", (), {})()
+    STATUS.IDLE = 0             # 空闲
+    STATUS.API_TEST = 1         # 接口测试中
+    STATUS.TRANSLATION = 6      # 翻译进行中
+    STATUS.PAUSE_WAITING = 9    # 等待暂停
+    STATUS.PAUSE = 10           # 已暂停
+    STATUS.CANCEL_WAITING = 11  # 等待取消
 
     # 默认配置
     DEFAULT = {}
@@ -49,9 +60,10 @@ class AiNieeBase():
 
     # ERROR
     def error(self, msg: str, e: Exception = None) -> None:
-        print(f"[[red]ERROR[/]] {msg}")
-        if e != None:
-            print(f"{e}\n{("".join(traceback.format_exception(None, e, e.__traceback__))).strip()}")
+        if e == None:
+            print(f"[[red]ERROR[/]] {msg}")
+        else:
+            print(f"[[red]ERROR[/]] {msg}\n{e}\n{("".join(traceback.format_exception(None, e, e.__traceback__))).strip()}")
 
     # WARNING
     def warning(self, msg: str) -> None:
@@ -118,7 +130,7 @@ class AiNieeBase():
         return config
 
     # 保存配置文件
-    def save_config(self, new: dict) -> None:        
+    def save_config(self, new: dict) -> None:
         old = {}
 
         # 读取配置文件
@@ -162,12 +174,12 @@ class AiNieeBase():
 
     # 触发事件
     def emit(self, event: int, data: dict):
-        self.event_manager_singleton.emit(event, data)
+        EventManager.get_singleton().emit(event, data)
 
     # 订阅事件
     def subscribe(self, event: int, hanlder: callable):
-        self.event_manager_singleton.subscribe(event, hanlder)
-        
+        EventManager.get_singleton().subscribe(event, hanlder)
+
     # 取消订阅事件
     def unsubscribe(self, event: int, hanlder: callable):
-        self.event_manager_singleton.subscribe(event, hanlder)
+        EventManager.get_singleton().unsubscribe(event, hanlder)

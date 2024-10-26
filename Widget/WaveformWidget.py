@@ -57,7 +57,10 @@ class WaveformWidget(QLabel):
         # 归一化以增大波形起伏
         min_val = min(self.history)
         max_val = max(self.history)
-        values = [(v - min_val) / (max_val - min_val) for v in self.history]
+        if max_val - min_val == 0:
+            values = self.history
+        else:
+            values = [(v - min_val) / (max_val - min_val) for v in self.history]
 
         # 生成文本
         lines = []

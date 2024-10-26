@@ -1,6 +1,3 @@
-import random
-
-from PyQt5.Qt import QTimer
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
@@ -11,7 +8,6 @@ from qfluentwidgets import FlowLayout
 from qfluentwidgets import ProgressRing
 
 from Base.AiNieeBase import AiNieeBase
-from Widget.Separator import Separator
 from Widget.DashboardCard import DashboardCard
 from Widget.WaveformWidget import WaveformWidget
 from Widget.CommandBarCard import CommandBarCard
@@ -37,6 +33,99 @@ class TranslationPage(QWidget, AiNieeBase):
         self.add_widget_body(self.container, config, window)
         self.add_widget_foot(self.container, config, window)
 
+        # 注册事件
+        self.subscribe(self.EVENT.TRANSLATION_UPDATE, self.translation_update)
+
+    # 翻译更新事件
+    def translation_update(self, event: int, data: dict):
+        if data.get("time", None) != None:
+            time = int(data.get("time"))
+
+            if time < 60:
+                self.time.set_unit("S")
+                self.time.set_value(f"{time}")
+            elif time < 60 * 60:
+                self.time.set_unit("M")
+                self.time.set_value(f"{(time / 60):.2f}")
+            else:
+                self.time.set_unit("H")
+                self.time.set_value(f"{(time / 60 / 60):.2f}")
+
+        if data.get("remaining_time", None) != None:
+            remaining_time = int(data.get("remaining_time"))
+
+            if remaining_time < 60:
+                self.remaining_time.set_unit("S")
+                self.remaining_time.set_value(f"{remaining_time}")
+            elif remaining_time < 60 * 60:
+                self.remaining_time.set_unit("M")
+                self.remaining_time.set_value(f"{(remaining_time / 60):.2f}")
+            else:
+                self.remaining_time.set_unit("H")
+                self.remaining_time.set_value(f"{(remaining_time / 60 / 60):.2f}")
+
+        if data.get("line", None) != None:
+            line = data.get("line")
+
+            if line < 1000:
+                self.line_card.set_unit("Line")
+                self.line_card.set_value(f"{line}")
+            else:
+                self.line_card.set_unit("KLine")
+                self.line_card.set_value(f"{(line / 1000):.2f}")
+
+        if data.get("remaining_line", None) != None:
+            remaining_line = data.get("remaining_line")
+
+            if remaining_line < 1000:
+                self.remaining_line.set_unit("Line")
+                self.remaining_line.set_value(f"{remaining_line}")
+            else:
+                self.remaining_line.set_unit("KLine")
+                self.remaining_line.set_value(f"{(remaining_line / 1000):.2f}")
+
+        if data.get("token", None) != None:
+            token = data.get("token")
+
+            if token < 1000:
+                self.token.set_unit("Token")
+                self.token.set_value(f"{token}")
+            else:
+                self.token.set_unit("KToken")
+                self.token.set_value(f"{(token / 1000):.2f}")
+
+        if data.get("speed", None) != None:
+            speed = data.get("speed")
+            self.waveform.add_value(speed)
+
+            if speed < 1000:
+                self.speed.set_unit("T/S")
+                self.speed.set_value(f"{speed:.2f}")
+            else:
+                self.speed.set_unit("KT/S")
+                self.speed.set_value(f"{(speed / 1000):.2f}")
+
+        if data.get("task", None) != None:
+            task = data.get("task")
+
+            if task < 1000:
+                self.task.set_unit("Task")
+                self.task.set_value(f"{task}")
+            else:
+                self.task.set_unit("KTask")
+                self.task.set_value(f"{(task / 1000):.2f}")
+
+        if data.get("status", None) != None:
+            ring = data.get("status")
+
+            if data.get("line", None) != None and data.get("line", None) != 0:
+                percent = data.get("line") / data.get("total_line")
+
+                ring = ring + f"\n{(percent * 100):.2f}%"
+                self.ring.setValue(int(percent * 10000))
+
+            self.ring.setFormat(ring)
+
     # 头部
     def add_widget_head(self, parent, config, window):
         self.head_hbox_container = QWidget(self)
@@ -55,11 +144,11 @@ class TranslationPage(QWidget, AiNieeBase):
         # 进度环
         self.ring = ProgressRing()
         self.ring.setRange(0, 10000)
-        self.ring.setValue(2222)
+        self.ring.setValue(0)
         self.ring.setTextVisible(True)
         self.ring.setStrokeWidth(12)
         self.ring.setFixedSize(140, 140)
-        self.ring.setFormat("正在翻译\n66.66%")
+        self.ring.setFormat("无任务")
 
         ring_vbox_container = QWidget()
         ring_vbox = QVBoxLayout(ring_vbox_container)
@@ -71,15 +160,6 @@ class TranslationPage(QWidget, AiNieeBase):
         self.head_hbox.addSpacing(8)
         self.head_hbox.addWidget(waveform_vbox_container)
 
-        def tick():
-            self.ring.setValue(self.ring.value() + 50)
-            self.ring.setFormat(f"正在翻译\n{self.ring.value() * 0.01:.2f}%")
-            self.waveform.add_value(random.randint(9900, 10000))
-
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(tick)
-        self.timer.start(666)
-        
     # 中部
     def add_widget_body(self, parent, config, window):
         self.flow_container = QWidget(self)
@@ -94,14 +174,14 @@ class TranslationPage(QWidget, AiNieeBase):
         self.add_speed_card(self.flow_layout)
         self.add_token_card(self.flow_layout)
         self.add_task_card(self.flow_layout)
-        
+
         self.container.addWidget(self.flow_container, 1)
 
     # 底部
     def add_widget_foot(self, parent, config, window):
         self.command_bar_card = CommandBarCard()
         parent.addWidget(self.command_bar_card)
-        
+
         # 添加命令
         self.add_command_bar_action_play(self.command_bar_card)
         self.add_command_bar_action_pause(self.command_bar_card)
@@ -112,80 +192,73 @@ class TranslationPage(QWidget, AiNieeBase):
 
     # 累计时间
     def add_time_card(self, parent):
-        w = DashboardCard(
-            title = "累计时间",
-            value = "1.25",
-            unit = "H",
-        )
-        w.setFixedSize(204, 204)
-
-        parent.addWidget(w)
+        self.time = DashboardCard(
+                title = "累计时间",
+                value = "未知",
+                unit = "",
+            )
+        self.time.setFixedSize(204, 204)
+        parent.addWidget(self.time)
 
     # 剩余时间
     def add_remaining_time_card(self, parent):
-        w = DashboardCard(
-            title = "剩余时间",
-            value = "42.14",
-            unit = "M",
-        )
-        w.setFixedSize(204, 204)
+        self.remaining_time = DashboardCard(
+                title = "剩余时间",
+                value = "未知",
+                unit = "",
+            )
+        self.remaining_time.setFixedSize(204, 204)
+        parent.addWidget(self.remaining_time)
 
-        parent.addWidget(w)
-
-    # 总计行数
+    # 翻译行数
     def add_line_card(self, parent):
-        w = DashboardCard(
-            title = "总计行数",
-            value = "26.13",
-            unit = "KLine",
-        )
-        w.setFixedSize(204, 204)
-
-        parent.addWidget(w)
+        self.line_card = DashboardCard(
+                title = "翻译行数",
+                value = "未知",
+                unit = "",
+            )
+        self.line_card.setFixedSize(204, 204)
+        parent.addWidget(self.line_card)
 
     # 剩余行数
     def add_remaining_line_card(self, parent):
-        w = DashboardCard(
-            title = "剩余行数",
-            value = "986",
-            unit = "Line",
-        )
-        w.setFixedSize(204, 204)
-
-        parent.addWidget(w)
+        self.remaining_line = DashboardCard(
+                title = "剩余行数",
+                value = "未知",
+                unit = "",
+            )
+        self.remaining_line.setFixedSize(204, 204)
+        parent.addWidget(self.remaining_line)
 
     # 平均速度
     def add_speed_card(self, parent):
-        w = DashboardCard(
-            title = "平均速度",
-            value = "256",
-            unit = "KT/S",
-        )
-        w.setFixedSize(204, 204)
+        self.speed = DashboardCard(
+                title = "平均速度",
+                value = "未知",
+                unit = "",
+            )
+        self.speed.setFixedSize(204, 204)
+        parent.addWidget(self.speed)
 
-        parent.addWidget(w)
-        
     # 累计消耗
     def add_token_card(self, parent):
-        w = DashboardCard(
-            title = "累计消耗",
-            value = "894",
-            unit = "KToken",
-        )
-        w.setFixedSize(204, 204)
-
-        parent.addWidget(w)
+        self.token = DashboardCard(
+                title = "累计消耗",
+                value = "未知",
+                unit = "",
+            )
+        self.token.setFixedSize(204, 204)
+        parent.addWidget(self.token)
 
     # 并行任务
     def add_task_card(self, parent):
-        w = DashboardCard(
-            title = "并行任务",
-            value = "16",
-            unit = "Task",
-        )
-        w.setFixedSize(204, 204)
-
-        parent.addWidget(w)
+        self.task = DashboardCard(
+                title = "实时任务数",
+                value = "未知",
+                unit = "",
+            )
+        self.task.setFixedSize(204, 204)
+        parent.addWidget(self.task)
 
     # 开始
     def add_command_bar_action_play(self, parent):
@@ -195,10 +268,13 @@ class TranslationPage(QWidget, AiNieeBase):
             self.action_continue.setEnabled(False)
             self.action_cancel.setEnabled(True)
 
+            # 触发事件
+            self.emit(self.EVENT.TRANSLATION_START, {})
+
         self.action_play = parent.add_action(
             Action(FluentIcon.PLAY, "开始", parent, triggered = triggered)
         )
-        
+
     # 暂停
     def add_command_bar_action_pause(self, parent):
         def triggered():
@@ -238,11 +314,11 @@ class TranslationPage(QWidget, AiNieeBase):
         )
         self.action_cancel.setEnabled(False)
 
-    # 导出已完成的任务和缓存
+    # 导出已完成的内容
     def add_command_bar_action_export(self, parent):
         def triggered():
             pass
 
         parent.addAction(
-            Action(FluentIcon.SHARE, "导出已完成的任务和缓存", parent, triggered = triggered),
+            Action(FluentIcon.SHARE, "导出已完成的内容", parent, triggered = triggered),
         )
