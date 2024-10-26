@@ -2804,7 +2804,7 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
-    Software_Version = "AiNiee v5.0.0 Dev"  #软件版本号
+    Software_Version = "AiNiee v5.0"  #软件版本号
 
     # 工作目录改为python源代码所在的目录
     script_dir = os.path.dirname(os.path.abspath(sys.argv[0])) # 获取当前工作目录
