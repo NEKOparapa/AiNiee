@@ -15,19 +15,24 @@ class AiNieeBase():
 
     # 事件列表
     EVENT = type("GClass", (), {})()
-    EVENT.API_TEST_DONE = 10
-    EVENT.API_TEST_START = 11
-    EVENT.TRANSLATION_START = 20
-    EVENT.TRANSLATION_UPDATE = 21
+    EVENT.API_TEST_DONE = 100
+    EVENT.API_TEST_START = 101
+    EVENT.TRANSLATION_START = 210
+    EVENT.TRANSLATION_UPDATE = 220
+    EVENT.TRANSLATION_STOP = 230
+    EVENT.TRANSLATION_STOP_DONE = 231
+    EVENT.TRANSLATION_CONTINUE_CHECK = 240
+    EVENT.TRANSLATION_CONTINUE_CHECK_DONE = 241
+    EVENT.CACHE_FILE_AUTO_SAVE = 300
 
     # 状态列表
     STATUS = type("GClass", (), {})()
-    STATUS.IDLE = 0             # 空闲
-    STATUS.API_TEST = 1         # 接口测试中
-    STATUS.TRANSLATION = 6      # 翻译进行中
-    STATUS.PAUSE_WAITING = 9    # 等待暂停
-    STATUS.PAUSE = 10           # 已暂停
-    STATUS.CANCEL_WAITING = 11  # 等待取消
+    STATUS.IDLE = 0             # 无任务
+    STATUS.API_TEST = 1         # 测试中
+    STATUS.TRANSLATION = 6      # 翻译中
+    STATUS.PAUSING = 9          # 暂停中（已弃用）
+    STATUS.PAUSE = 10           # 已暂停（已弃用）
+    STATUS.STOPING = 11         # 停止中
 
     # 默认配置
     DEFAULT = {}

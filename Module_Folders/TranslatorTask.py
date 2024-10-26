@@ -1,7 +1,4 @@
-import os
-import json
 import time
-import threading
 
 import cohere                       # 需要安装库pip install cohere
 import anthropic                    # 需要安装库pip install anthropic
@@ -10,9 +7,7 @@ from openai import OpenAI           # 需要安装库pip install openai
 
 from Base.AiNieeBase import AiNieeBase
 from Module_Folders.Cache_Manager.Cache import Cache_Manager
-from Module_Folders.File_Outputer.File2 import File_Outputter
 from Module_Folders.Response_Parser.Response import Response_Parser
-from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
 
 # 接口请求器
 class TranslatorTask(AiNieeBase):
@@ -67,7 +62,7 @@ class TranslatorTask(AiNieeBase):
 
         # 检查原文文本是否成功
         if len(source_text_list) == 0:
-            self.warning(f"获取原文文本失败，即将取消该任务 ...")
+            self.warning("获取原文文本失败，即将取消该任务 ...")
             return {}
 
         # 将原文文本列表改变为请求格式
@@ -84,12 +79,30 @@ class TranslatorTask(AiNieeBase):
             previous_list,
         )
 
+        # 预估 Token 消费，并检查 RPM 和 TPM 限制
+        request_tokens_consume = self.request_limiter.num_tokens_from_messages(messages)
+        while True:
+            # 检测是否需要停止任务
+            if self.configurator.Running_status == self.STATUS.STOPING:
+                return {}
+
+            # 检查 RPM 和 TPM 限制，如果符合条件，则继续
+            if self.request_limiter.RPM_and_TPM_limit(request_tokens_consume):
+                break
+
+            # 如果以上条件都不符合，则间隔 0.5 秒再次检查
+            time.sleep(0.5)
+
         # 记录是否检测到模型退化
         model_degradation = False
 
         # 开始任务循环
         i = 0
         while i < self.configurator.retry_count_limit + 1:
+            # 检测是否需要停止任务
+            if self.configurator.Running_status == self.STATUS.STOPING:
+                return {}
+
             # 记录任务循环次数
             i = i + 1
 
@@ -144,13 +157,13 @@ class TranslatorTask(AiNieeBase):
             # 获取指令消耗
             try:
                 prompt_tokens = int(response.usage.prompt_tokens)
-            except Exception as e:
+            except Exception:
                 prompt_tokens = 0
 
             # 获取回复消耗
             try:
                 completion_tokens = int(response.usage.completion_tokens)
-            except Exception as e:
+            except Exception:
                 completion_tokens = 0
 
             # 调用插件，进行处理
@@ -191,7 +204,7 @@ class TranslatorTask(AiNieeBase):
                 else:
                     i = i - 1
                     model_degradation = True
-                    self.warning(f"译文文本中检查到模型退化现象，稍后将修改请求参数后重试...")
+                    self.warning("译文文本中检查到模型退化现象，稍后将修改请求参数后重试...")
             else:
                 # 强制开启换行符还原功能
                 response_dict = Cache_Manager.replace_special_characters(
@@ -218,7 +231,7 @@ class TranslatorTask(AiNieeBase):
                         self.configurator.model
                     )
 
-                self.print(f"")
+                self.print("")
                 self.info(f"已完成翻译任务，耗时 {(time.time() - start_request_time):.2f} 秒 ...")
                 self.info(f"文本行数 - {row_count}，指令 Tokens - {prompt_tokens}, 返回 Tokens - {completion_tokens}")
                 if previous_message != "":
@@ -226,12 +239,12 @@ class TranslatorTask(AiNieeBase):
                 if glossary_message != "":
                     self.info(f"{glossary_message.strip()}")
                 self.info("※" * 80)
-                self.print(f"")
+                self.print("")
                 for source, translated in zip(source_text_str.splitlines(), response_content.splitlines()):
                     self.print(f"{source} [green]->[/] {translated}")
-                self.print(f"")
+                self.print("")
                 self.info("※" * 80)
-                self.print(f"")
+                self.print("")
 
                 # 翻译任务执行成功则不再重试
                 break

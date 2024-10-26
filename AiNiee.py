@@ -38,7 +38,6 @@ from StevExtraction import jtpp
 from Module_Folders.Translator import Translator
 from Module_Folders.Configurator.Config import Configurator
 from Module_Folders.Request_Tester.Request import Request_Tester
-from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
 
 from Plugin_Scripts.Plugin_Manager import Plugin_Manager
 
@@ -69,7 +68,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     # 设置全局字体属性，解决狗牙问题
-    font = QFont()
+    font = QFont("Consolas")
     font.setHintingPreference(QFont.PreferFullHinting if configurator.font_hinting == True else QFont.PreferNoHinting)
     app.setFont(font)
 
@@ -84,14 +83,10 @@ if __name__ == "__main__":
     # 创建全局测试器对象
     request_tester = Request_Tester()
 
-    # 创建全局限制器对象
-    request_limiter = Request_Limiter(configurator)
-
     # 创建翻译器对象
     translator = Translator(
         configurator = configurator,
         plugin_manager = plugin_manager,
-        request_limiter = request_limiter,
     )
 
     # 显示全局窗口

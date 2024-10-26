@@ -14,7 +14,7 @@ from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
 class CharacterizationPromptPage(QFrame, AiNieeBase):
-    
+
     DEFAULT = {
         "characterization_switch": False,
         "characterization_dictionary": {
@@ -55,7 +55,7 @@ class CharacterizationPromptPage(QFrame, AiNieeBase):
     def add_widget_header(self, parent, config):
         def widget_init(widget):
             widget.set_checked(config.get("characterization_switch"))
-            
+
         def widget_callback(widget, checked: bool):
             config = self.load_config()
             config["characterization_switch"] = checked
@@ -63,7 +63,7 @@ class CharacterizationPromptPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SwitchButtonCard(
-                "自定义角色介绍", 
+                "自定义角色介绍",
                 "启用此功能后，将根据本页中设置的信息构建提示词向模型发送请求，仅在逻辑能力强的模型上有效（不支持 Sakura 模型）",
                 widget_init,
                 widget_callback,
@@ -105,11 +105,11 @@ class CharacterizationPromptPage(QFrame, AiNieeBase):
     def add_widget_footer(self, parent, config, window):
         self.command_bar_card = CommandBarCard()
         parent.addWidget(self.command_bar_card)
-        
+
         # 添加命令
         self.add_command_bar_action_01(self.command_bar_card)
         self.add_command_bar_action_02(self.command_bar_card)
-        self.command_bar_card.addSeparator()
+        self.command_bar_card.add_separator()
         self.add_command_bar_action_03(self.command_bar_card)
         self.add_command_bar_action_04(self.command_bar_card, window)
 
@@ -139,7 +139,7 @@ class CharacterizationPromptPage(QFrame, AiNieeBase):
     # 从表格更新数据
     def update_from_table(self, table, config):
         config["characterization_dictionary"] = {}
-        
+
         for row in range(table.rowCount()):
             data_0 = table.item(row, 0)
             data_1 = table.item(row, 1)
@@ -152,7 +152,7 @@ class CharacterizationPromptPage(QFrame, AiNieeBase):
             # 判断是否有数据
             if data_0 == None:
                 continue
-            
+
             data_0 = data_0.text().strip()
             data_1 = data_1.text().strip() if data_1 != None else ""
             data_2 = data_2.text().strip() if data_2 != None else ""
@@ -186,7 +186,7 @@ class CharacterizationPromptPage(QFrame, AiNieeBase):
             # 弹出提示
             self.success_toast("", "新行已添加 ...")
 
-        parent.addAction(
+        parent.add_action(
             Action(FluentIcon.ADD_TO, "添加新行", parent, triggered = callback),
         )
 
@@ -205,7 +205,7 @@ class CharacterizationPromptPage(QFrame, AiNieeBase):
             # 弹出提示
             self.success_toast("", "空行已移除 ...")
 
-        parent.addAction(
+        parent.add_action(
             Action(FluentIcon.BROOM, "移除空行", parent, triggered = callback),
         )
 
@@ -224,10 +224,10 @@ class CharacterizationPromptPage(QFrame, AiNieeBase):
             # 弹出提示
             self.success_toast("", "数据已保存 ...")
 
-        parent.addAction(
+        parent.add_action(
             Action(FluentIcon.SAVE, "保存", parent, triggered = callback),
         )
-        
+
     # 重置
     def add_command_bar_action_04(self, parent, window):
         def callback():
@@ -256,6 +256,6 @@ class CharacterizationPromptPage(QFrame, AiNieeBase):
             # 弹出提示
             self.success_toast("", "数据已重置 ...")
 
-        parent.addAction(
+        parent.add_action(
             Action(FluentIcon.DELETE, "重置", parent, triggered = callback),
         )

@@ -12,7 +12,7 @@ class WaveformWidget(QLabel):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
         # 自动填充背景
         # self.setAutoFillBackground(True)
 
@@ -21,9 +21,9 @@ class WaveformWidget(QLabel):
 
         # 每个字符所占用的空间
         self.point_size = self.font.pointSize()
-        
+
         # 历史数据
-        self.history = []
+        self.history = [0]
 
         # 设置矩阵大小
         self.set_matrix_size(50, 20)
@@ -57,8 +57,10 @@ class WaveformWidget(QLabel):
         # 归一化以增大波形起伏
         min_val = min(self.history)
         max_val = max(self.history)
-        if max_val - min_val == 0:
-            values = self.history
+        if max_val - min_val == 0 and self.history[0] == 0:
+            values = [0 for i in self.history]
+        elif max_val - min_val == 0 and self.history[0] != 0:
+            values = [1 for i in self.history]
         else:
             values = [(v - min_val) / (max_val - min_val) for v in self.history]
 
@@ -71,11 +73,11 @@ class WaveformWidget(QLabel):
         x = self.max_width - self.point_size
         for line in lines:
             y = self.max_height
-            
+
             for point in line:
                 painter.drawText(x, y, point)
                 y = y - self.point_size
-                
+
             x = x - self.point_size
 
     # 重复最后的数据
@@ -84,7 +86,7 @@ class WaveformWidget(QLabel):
 
     # 添加数据
     def add_value(self, value: int):
-        if len(self.history) == self.matrix_width:
+        if len(self.history) >= self.matrix_width:
             self.history.pop(0)
 
         self.history.append(value)

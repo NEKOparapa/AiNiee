@@ -1,3 +1,5 @@
+from PyQt5.QtGui import QColor
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
@@ -5,7 +7,10 @@ from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import Action
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import FlowLayout
+from qfluentwidgets import MessageBox
 from qfluentwidgets import ProgressRing
+from qfluentwidgets import CaptionLabel
+from qfluentwidgets import IndeterminateProgressRing
 
 from Base.AiNieeBase import AiNieeBase
 from Widget.DashboardCard import DashboardCard
@@ -19,6 +24,9 @@ class TranslationPage(QWidget, AiNieeBase):
     def __init__(self, text: str, window):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
+
+        # 初始化
+        self.window = window
 
         # 载入配置文件
         config = self.load_config()
@@ -35,6 +43,14 @@ class TranslationPage(QWidget, AiNieeBase):
 
         # 注册事件
         self.subscribe(self.EVENT.TRANSLATION_UPDATE, self.translation_update)
+        self.subscribe(self.EVENT.TRANSLATION_STOP_DONE, self.translation_stop_done)
+        self.subscribe(self.EVENT.TRANSLATION_CONTINUE_CHECK_DONE, self.translation_continue_check_done)
+        self.subscribe(self.EVENT.CACHE_FILE_AUTO_SAVE, self.cache_file_auto_save)
+
+    # 页面显示事件
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.emit(self.EVENT.TRANSLATION_CONTINUE_CHECK, {})
 
     # 翻译更新事件
     def translation_update(self, event: int, data: dict):
@@ -126,6 +142,32 @@ class TranslationPage(QWidget, AiNieeBase):
 
             self.ring.setFormat(ring)
 
+    # 翻译停止完成事件
+    def translation_stop_done(self, event: int, data: dict):
+        self.indeterminate_hide()
+
+        self.ring.setValue(0)
+        self.ring.setFormat("无任务")
+        self.action_play.setEnabled(True)
+
+        # 更新继续翻译按钮状态
+        self.emit(self.EVENT.TRANSLATION_CONTINUE_CHECK, {})
+
+    # 翻译状态检查完成事件
+    def translation_continue_check_done(self, event: int, data: dict):
+        self.action_continue.setEnabled(
+            data.get("translation_continue", False)
+            and self.action_play.isEnabled()
+        )
+
+    # 缓存文件自动保存时间
+    def cache_file_auto_save(self, event: int, data: dict):
+        if self.indeterminate.isHidden():
+            self.indeterminate_show("缓存文件保存中 ...")
+
+            # 延迟关闭
+            QTimer.singleShot(1000, lambda: self.indeterminate_hide())
+
     # 头部
     def add_widget_head(self, parent, config, window):
         self.head_hbox_container = QWidget(self)
@@ -183,12 +225,27 @@ class TranslationPage(QWidget, AiNieeBase):
         parent.addWidget(self.command_bar_card)
 
         # 添加命令
+        self.command_bar_card.set_minimum_width(512)
         self.add_command_bar_action_play(self.command_bar_card)
-        self.add_command_bar_action_pause(self.command_bar_card)
-        self.add_command_bar_action_continue(self.command_bar_card)
-        self.add_command_bar_action_cancel(self.command_bar_card)
+        self.add_command_bar_action_stop(self.command_bar_card, window)
+        self.command_bar_card.add_separator()
+        self.add_command_bar_action_continue(self.command_bar_card, window)
         self.command_bar_card.add_separator()
         self.add_command_bar_action_export(self.command_bar_card)
+
+        # 添加信息条
+        self.indeterminate = IndeterminateProgressRing()
+        self.indeterminate.setFixedSize(16, 16)
+        self.indeterminate.setStrokeWidth(3)
+        self.indeterminate.hide()
+        self.info_label = CaptionLabel("缓存文件保存中 ...", self)
+        self.info_label.setTextColor(QColor(96, 96, 96), QColor(160, 160, 160))
+        self.info_label.hide()
+
+        self.command_bar_card.add_stretch(1)
+        self.command_bar_card.add_widget(self.info_label)
+        self.command_bar_card.add_spacing(4)
+        self.command_bar_card.add_widget(self.indeterminate)
 
     # 累计时间
     def add_time_card(self, parent):
@@ -264,61 +321,77 @@ class TranslationPage(QWidget, AiNieeBase):
     def add_command_bar_action_play(self, parent):
         def triggered():
             self.action_play.setEnabled(False)
-            self.action_pause.setEnabled(True)
+            self.action_stop.setEnabled(True)
             self.action_continue.setEnabled(False)
-            self.action_cancel.setEnabled(True)
-
-            # 触发事件
-            self.emit(self.EVENT.TRANSLATION_START, {})
+            self.emit(self.EVENT.TRANSLATION_START, {
+                "translation_continue": False,
+            })
 
         self.action_play = parent.add_action(
             Action(FluentIcon.PLAY, "开始", parent, triggered = triggered)
         )
 
-    # 暂停
-    def add_command_bar_action_pause(self, parent):
+    # 停止
+    def add_command_bar_action_stop(self, parent, window):
         def triggered():
-            self.action_play.setEnabled(False)
-            self.action_pause.setEnabled(False)
-            self.action_continue.setEnabled(True)
-            self.action_cancel.setEnabled(True)
+            message_box = MessageBox("警告", "停止的翻译任务可以随时继续翻译，是否确定停止任务 ... ？", window)
+            message_box.yesButton.setText("确认")
+            message_box.cancelButton.setText("取消")
 
-        self.action_pause = parent.add_action(
-            Action(FluentIcon.PAUSE, "暂停", parent, triggered = triggered),
+            # 确认则触发停止翻译事件
+            if message_box.exec():
+                self.indeterminate_show("正在停止翻译任务 ...")
+
+                self.action_stop.setEnabled(False)
+                self.emit(self.EVENT.TRANSLATION_STOP, {})
+
+        self.action_stop = parent.add_action(
+            Action(
+                FluentIcon.CANCEL_MEDIUM,
+                "停止",
+                parent,
+                triggered = triggered,
+            ),
         )
-        self.action_pause.setEnabled(False)
+        self.action_stop.setEnabled(False)
 
-    # 继续
-    def add_command_bar_action_continue(self, parent):
+    # 继续翻译
+    def add_command_bar_action_continue(self, parent, window):
         def triggered():
             self.action_play.setEnabled(False)
-            self.action_pause.setEnabled(True)
+            self.action_stop.setEnabled(True)
             self.action_continue.setEnabled(False)
-            self.action_cancel.setEnabled(True)
+            self.emit(self.EVENT.TRANSLATION_START, {
+                "translation_continue": True,
+            })
 
         self.action_continue = parent.add_action(
-            Action(FluentIcon.PLAY, "继续", parent, triggered = triggered),
+            Action(
+                FluentIcon.ROTATE,
+                "继续翻译",
+                parent,
+                triggered = triggered,
+            ),
         )
         self.action_continue.setEnabled(False)
-
-    # 取消
-    def add_command_bar_action_cancel(self, parent):
-        def triggered():
-            self.action_play.setEnabled(True)
-            self.action_pause.setEnabled(False)
-            self.action_continue.setEnabled(False)
-            self.action_cancel.setEnabled(False)
-
-        self.action_cancel = parent.add_action(
-            Action(FluentIcon.CANCEL, "取消", parent, triggered = triggered),
-        )
-        self.action_cancel.setEnabled(False)
 
     # 导出已完成的内容
     def add_command_bar_action_export(self, parent):
         def triggered():
             pass
 
-        parent.addAction(
+        parent.add_action(
             Action(FluentIcon.SHARE, "导出已完成的内容", parent, triggered = triggered),
         )
+
+    # 显示信息条
+    def indeterminate_show(self, msg: str):
+        self.indeterminate.show()
+        self.info_label.show()
+        self.info_label.setText(msg)
+
+    # 隐藏信息条
+    def indeterminate_hide(self):
+        self.indeterminate.hide()
+        self.info_label.hide()
+        self.info_label.setText("")
