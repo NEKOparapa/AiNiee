@@ -17,7 +17,7 @@ class AdvanceSettingsPage(QFrame, AiNieeBase):
 
     DEFAULT = {
         "cot_toggle": False,
-        "cn_prompt_toggle": False,
+        "cn_prompt_toggle": True,
         "preserve_line_breaks_toggle": True,
         "text_clear_toggle": True,
         "response_conversion_toggle": False,

@@ -13,7 +13,7 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 class ProjectPage(QFrame, AiNieeBase):
 
     DEFAULT = {
-        "target_platform": "sakura",
+        "target_platform": "deepseek",
         "translation_project": "Mtool导出文件",
         "source_language": "日语",
         "target_language": "简中",

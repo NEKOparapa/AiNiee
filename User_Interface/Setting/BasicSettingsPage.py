@@ -9,9 +9,9 @@ from Widget.ComboBoxCard import ComboBoxCard
 class BasicSettingsPage(QFrame, AiNieeBase):
 
     DEFAULT = {
-        "lines_limit_switch": False,
-        "tokens_limit_switch": True,
-        "lines_limit": 16,
+        "lines_limit_switch": True,
+        "tokens_limit_switch": False,
+        "lines_limit": 15,
         "tokens_limit": 512,
         "pre_line_counts": 3,
         "user_thread_counts": 0,
