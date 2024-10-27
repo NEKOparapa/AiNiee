@@ -32,6 +32,7 @@ class TranslatorTask(Base):
             self.configurator.target_platform,
             self.configurator.platforms.get(self.configurator.target_platform).get("api_format"),
         )
+
     # 发起请求
     def request(self, target_platform, api_format):
         # 从缓存数据中获取文本并更新这些文本的状态
@@ -78,8 +79,6 @@ class TranslatorTask(Base):
                 source_text_dict,
                 previous_list
             )
-        self.print(f"messages - {messages}")
-        self.print(f"system_prompt - {system_prompt}")
 
         # 预估 Token 消费，并检查 RPM 和 TPM 限制
         request_tokens_consume = self.request_limiter.num_tokens_from_messages(messages)
