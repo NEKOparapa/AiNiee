@@ -69,7 +69,10 @@ if __name__ == "__main__":
 
     # 设置全局字体属性，解决狗牙问题
     font = QFont("Consolas")
-    font.setHintingPreference(QFont.PreferFullHinting if configurator.font_hinting == True else QFont.PreferNoHinting)
+    if hasattr(configurator, "font_hinting") and configurator.font_hinting == True:
+        font.setHintingPreference(QFont.PreferFullHinting)
+    else:
+        font.setHintingPreference(QFont.PreferNoHinting)
     app.setFont(font)
 
     # 创建全局窗口对象

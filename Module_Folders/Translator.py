@@ -35,20 +35,25 @@ class Translator(AiNieeBase):
         self.subscribe(self.EVENT.TRANSLATION_STOP, self.translation_stop)
         self.subscribe(self.EVENT.TRANSLATION_START, self.translation_start)
         self.subscribe(self.EVENT.TRANSLATION_CONTINUE_CHECK, self.translation_continue_check)
+        self.subscribe(self.EVENT.APP_SHUT_DOWN, self.app_shut_down)
 
         # 定时器
         threading.Thread(target = self.save_cache_file_tick).start()
 
+    # 应用关闭事件
+    def app_shut_down(self, event: int, data: dict):
+        self.save_cache_file_stop_flag = True
+
     # 翻译停止事件
     def translation_stop(self, event: int, data: dict):
         # 设置运行状态为停止中
-        self.configurator.Running_status = self.STATUS.STOPING
+        self.configurator.status = self.STATUS.STOPING
 
         def target():
             while True:
                 time.sleep(0.5)
                 if len([t for t in threading.enumerate() if "translator" in t.name]) == 0:
-                    self.configurator.Running_status = self.STATUS.IDLE
+                    self.configurator.status = self.STATUS.IDLE
                     self.emit(self.EVENT.TRANSLATION_STOP_DONE, {})
                     break
 
@@ -81,7 +86,7 @@ class Translator(AiNieeBase):
     # 实际的翻译流程
     def translation_start_target(self, translation_continue):
         # 设置翻译状态为正在翻译状态
-        self.configurator.Running_status = self.STATUS.TRANSLATION
+        self.configurator.status = self.STATUS.TRANSLATION
 
         # 读取配置文件
         self.configurator.load_config_file()
@@ -159,7 +164,7 @@ class Translator(AiNieeBase):
         time.sleep(3)
         for current_round in range(self.configurator.round_limit + 1):
             # 检测是否需要停止任务
-            if self.configurator.Running_status == self.STATUS.STOPING:
+            if self.configurator.status == self.STATUS.STOPING:
                 return {}
 
             # 译前准备工作
@@ -306,16 +311,16 @@ class Translator(AiNieeBase):
     def task_done_callback(self, future, executor):
         try:
             # 翻译状态文本
-            if self.configurator.Running_status == self.STATUS.IDLE:
+            if self.configurator.status == self.STATUS.IDLE:
                 status = "无任务"
 
-            if self.configurator.Running_status == self.STATUS.API_TEST:
+            if self.configurator.status == self.STATUS.API_TEST:
                 status = "测试中"
 
-            if self.configurator.Running_status == self.STATUS.TRANSLATION:
+            if self.configurator.status == self.STATUS.TRANSLATION:
                 status = "翻译中"
 
-            if self.configurator.Running_status == self.STATUS.STOPING:
+            if self.configurator.status == self.STATUS.STOPING:
                 status = "停止中"
 
             # 获取结果
@@ -377,6 +382,12 @@ class Translator(AiNieeBase):
     def save_cache_file_tick(self):
         while True:
             time.sleep(self.CACHE_FILE_SAVE_INTERVAL / 1000)
+
+            # 接收到退出信号则停止
+            if hasattr(self, "save_cache_file_stop_flag") and self.save_cache_file_stop_flag == True:
+                break
+
+            # 接收到保存信号则保存
             if hasattr(self, "save_cache_file_require_flag") and self.save_cache_file_require_flag == True:
                 self.save_cache_file_require_flag = False
                 with self.cache_file_lock:

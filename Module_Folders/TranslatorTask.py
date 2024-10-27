@@ -1,4 +1,9 @@
 import time
+import json
+import itertools
+
+from rich import box
+from rich.table import Table
 
 import cohere                       # 需要安装库pip install cohere
 import anthropic                    # 需要安装库pip install anthropic
@@ -23,25 +28,12 @@ class TranslatorTask(AiNieeBase):
 
     # 并发接口请求分发
     def start(self):
-        try:
-            target_platform = self.configurator.target_platform
-            api_format = self.configurator.platforms.get(target_platform).get("api_format")
-
-            if target_platform == "sakura":
-                return self.request_sakura()
-            elif target_platform == "cohere":
-                return self.request_cohere()
-            elif target_platform == "google":
-                return self.request_google()
-            elif target_platform == "anthropic" or (target_platform.startswith("custom_platform_") and api_format == "Anthropic"):
-                return self.request_anthropic()
-            else:
-                return self.request_openai()
-        except Exception as e:
-            self.error("网络请求错误 ...", e)
-
+        return self.request(
+            self.configurator.target_platform,
+            self.configurator.platforms.get(self.configurator.target_platform).get("api_format"),
+        )
     # 发起请求
-    def request_sakura(self):
+    def request(self, target_platform, api_format):
         # 从缓存数据中获取文本并更新这些文本的状态
         with self.translator.cache_data_lock:
             if self.configurator.tokens_limit_switch == True and self.configurator.lines_limit_switch == False:
@@ -74,24 +66,23 @@ class TranslatorTask(AiNieeBase):
             row_count = len(source_text_dict)
 
         # 生成请求指令
-        messages, source_text_str, previous_message, glossary_message = self.generate_prompt_sakura(
-            source_text_dict,
-            previous_list,
-        )
+        if target_platform == "sakura":
+            messages, source_text_str, system_prompt, extra_log = self.generate_prompt_sakura(
+                source_text_dict,
+                previous_list,
+            )
+        else:
+            messages, source_text_str, system_prompt, extra_log = self.generate_prompt(
+                target_platform,
+                api_format,
+                source_text_dict,
+                previous_list
+            )
+        self.print(f"messages - {messages}")
+        self.print(f"system_prompt - {system_prompt}")
 
         # 预估 Token 消费，并检查 RPM 和 TPM 限制
         request_tokens_consume = self.request_limiter.num_tokens_from_messages(messages)
-        while True:
-            # 检测是否需要停止任务
-            if self.configurator.Running_status == self.STATUS.STOPING:
-                return {}
-
-            # 检查 RPM 和 TPM 限制，如果符合条件，则继续
-            if self.request_limiter.RPM_and_TPM_limit(request_tokens_consume):
-                break
-
-            # 如果以上条件都不符合，则间隔 0.5 秒再次检查
-            time.sleep(0.5)
 
         # 记录是否检测到模型退化
         model_degradation = False
@@ -99,9 +90,17 @@ class TranslatorTask(AiNieeBase):
         # 开始任务循环
         i = 0
         while i < self.configurator.retry_count_limit + 1:
-            # 检测是否需要停止任务
-            if self.configurator.Running_status == self.STATUS.STOPING:
-                return {}
+            while True:
+                # 检测是否需要停止任务
+                if self.configurator.status == self.STATUS.STOPING:
+                    return {}
+
+                # 检查 RPM 和 TPM 限制，如果符合条件，则继续
+                if self.request_limiter.RPM_and_TPM_limit(request_tokens_consume):
+                    break
+
+                # 如果以上条件都不符合，则间隔 0.5 秒再次检查
+                time.sleep(0.5)
 
             # 记录任务循环次数
             i = i + 1
@@ -116,69 +115,55 @@ class TranslatorTask(AiNieeBase):
             if model_degradation == True:
                 frequency_penalty = 0.2
 
-            extra_query = {
-                "do_sample": True,
-                "num_beams": 1,
-                "repetition_penalty": 1.0
-            }
-
-            # 创建客户端
-            client = OpenAI(
-                base_url = self.configurator.base_url,
-                api_key = self.configurator.get_apikey(),
-            )
-
-            # Token限制模式下，请求的最大tokens数应该与设置保持一致
-            if self.configurator.tokens_limit_switch == True:
-                max_tokens = self.configurator.tokens_limit
+            # 发起请求
+            if target_platform == "sakura":
+                skip, response_content_json, prompt_tokens, completion_tokens = self.request_sakura(
+                    messages,
+                    system_prompt,
+                    temperature,
+                    top_p,
+                    presence_penalty,
+                    frequency_penalty
+                )
+            elif target_platform == "cohere":
+                skip, response_content_json, prompt_tokens, completion_tokens = self.request_cohere(
+                    messages,
+                    system_prompt,
+                    temperature,
+                    top_p,
+                    presence_penalty,
+                    frequency_penalty
+                )
+            elif target_platform == "google":
+                skip, response_content_json, prompt_tokens, completion_tokens = self.request_google(
+                    messages,
+                    system_prompt,
+                    temperature,
+                    top_p,
+                    presence_penalty,
+                    frequency_penalty
+                )
+            elif target_platform == "anthropic" or (target_platform.startswith("custom_platform_") and api_format == "Anthropic"):
+                skip, response_content_json, prompt_tokens, completion_tokens = self.request_anthropic(
+                    messages,
+                    system_prompt,
+                    temperature,
+                    top_p,
+                    presence_penalty,
+                    frequency_penalty
+                )
             else:
-                max_tokens = 512
-
-            # 发送对话请求
-            try:
-                response = client.chat.completions.create(
-                    model = self.configurator.model,
-                    messages = messages,
-                    top_p = top_p,
-                    temperature = temperature,
-                    frequency_penalty = frequency_penalty,
-                    stream = False,
-                    timeout = 120,
-                    max_tokens = max_tokens,
-                    extra_query = extra_query,
+                skip, response_content_json, prompt_tokens, completion_tokens = self.request_openai(
+                    messages,
+                    system_prompt,
+                    temperature,
+                    top_p,
+                    presence_penalty,
+                    frequency_penalty
                 )
 
-                # 提取回复的文本内容
-                response_content = response.choices[0].message.content
-            except Exception as e:
-                self.error("翻译任务错误 ...", e)
-                continue # 跳过后续步骤，直接重试
-
-            # 获取指令消耗
-            try:
-                prompt_tokens = int(response.usage.prompt_tokens)
-            except Exception:
-                prompt_tokens = 0
-
-            # 获取回复消耗
-            try:
-                completion_tokens = int(response.usage.completion_tokens)
-            except Exception:
-                completion_tokens = 0
-
-            # 调用插件，进行处理
-            self.plugin_manager.broadcast_event(
-                "sakura_complete_text_process",
-                self.configurator,
-                response_content
-            )
-
-            # 见raw格式转换为josn格式字符串
-            response_content_json = Response_Parser.convert_str_to_json_str(
-                self,
-                row_count,
-                response_content
-            )
+            if skip == True:
+                continue
 
             # 提取回复内容
             response_dict = Response_Parser.text_extraction(
@@ -198,13 +183,32 @@ class TranslatorTask(AiNieeBase):
 
             # 判断结果是否通过检查
             if check_result == False:
-                # 当检测到模型退化时，无论是否开启重试，均增加一次额外的重试次数，且仅增加一次
+                error = ""
                 if "高频" not in error_content or model_degradation == True:
-                    self.warning(f"译文文本未通过检查，稍后将重试 - {error_content}")
+                    error = f"译文文本未通过检查，稍后将重试 - {error_content}"
                 else:
-                    i = i - 1
+                    i = i - 1 # 当检测到模型退化时，无论是否开启重试，均增加一次额外的重试次数，且仅增加一次
                     model_degradation = True
-                    self.warning("译文文本中检查到模型退化现象，稍后将修改请求参数后重试...")
+                    error = "译文文本中检查到模型退化现象，稍后将修改请求参数后重试"
+
+                # 打印任务结果
+                self.print("")
+                self.print(
+                    self.generate_log_table(
+                        *self.generate_log_rows(
+                            error,
+                            start_request_time,
+                            row_count,
+                            prompt_tokens,
+                            completion_tokens,
+                            [v.get("source_text") for v in source_text_list],
+                            [v for k, v in response_dict.items()],
+                            extra_log
+                        )
+                    )
+                )
+                self.print("")
+
             else:
                 # 强制开启换行符还原功能
                 response_dict = Cache_Manager.replace_special_characters(
@@ -231,24 +235,28 @@ class TranslatorTask(AiNieeBase):
                         self.configurator.model
                     )
 
+                # 打印任务结果
                 self.print("")
-                self.info(f"已完成翻译任务，耗时 {(time.time() - start_request_time):.2f} 秒 ...")
-                self.info(f"文本行数 - {row_count}，指令 Tokens - {prompt_tokens}, 返回 Tokens - {completion_tokens}")
-                if previous_message != "":
-                    self.info(f"{previous_message.strip()}")
-                if glossary_message != "":
-                    self.info(f"{glossary_message.strip()}")
-                self.info("※" * 80)
-                self.print("")
-                for source, translated in zip(source_text_str.splitlines(), response_content.splitlines()):
-                    self.print(f"{source} [green]->[/] {translated}")
-                self.print("")
-                self.info("※" * 80)
+                self.print(
+                    self.generate_log_table(
+                        *self.generate_log_rows(
+                            "",
+                            start_request_time,
+                            row_count,
+                            prompt_tokens,
+                            completion_tokens,
+                            [v.get("source_text") for v in source_text_list],
+                            [v for k, v in response_dict.items()],
+                            extra_log
+                        )
+                    )
+                )
                 self.print("")
 
                 # 翻译任务执行成功则不再重试
                 break
 
+        # 返回任务结果
         return {
             "check_result": check_result,
             "row_count": row_count,
@@ -256,16 +264,440 @@ class TranslatorTask(AiNieeBase):
             "completion_tokens": completion_tokens,
         }
 
+    # 发起请求
+    def request_sakura(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty):
+        try:
+            client = OpenAI(
+                base_url = self.configurator.base_url,
+                api_key = self.configurator.get_apikey(),
+            )
+
+            response = client.chat.completions.create(
+                model = self.configurator.model,
+                messages = messages,
+                top_p = top_p,
+                temperature = temperature,
+                frequency_penalty = frequency_penalty,
+                timeout = 120,
+                max_tokens = self.configurator.tokens_limit if self.configurator.tokens_limit_switch == True else 512,
+                extra_query = {
+                    "do_sample": True,
+                    "num_beams": 1,
+                    "repetition_penalty": 1.0
+                },
+            )
+
+            # 提取回复的文本内容
+            response_content = response.choices[0].message.content
+        except Exception as e:
+            self.error("翻译任务错误 ...", e)
+            return True, None, None, None
+
+        # 获取指令消耗
+        try:
+            prompt_tokens = int(response.usage.prompt_tokens)
+        except Exception:
+            prompt_tokens = 0
+
+        # 获取回复消耗
+        try:
+            completion_tokens = int(response.usage.completion_tokens)
+        except Exception:
+            completion_tokens = 0
+
+        # 调用插件，进行处理
+        self.plugin_manager.broadcast_event(
+            "sakura_complete_text_process",
+            self.configurator,
+            response_content
+        )
+
+        return False, self.convert_str_to_json_str(response_content), prompt_tokens, completion_tokens
+
+    # 发起请求
+    def request_cohere(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty):
+        try:
+            # Cohere SDK 文档 - https://docs.cohere.com/reference/chat
+            client = cohere.ClientV2(
+                base_url = self.configurator.base_url,
+                api_key = self.configurator.get_apikey(),
+                timeout = 120,
+            )
+
+            response = client.chat(
+                model = self.configurator.model,
+                messages = messages,
+                temperature = temperature,
+                p = top_p,
+                presence_penalty = presence_penalty,
+                frequency_penalty = frequency_penalty,
+                max_tokens = 4096,
+                safety_mode = "NONE",
+            )
+
+            # 提取回复的文本内容
+            response_content_json = response.message.content[0].text
+        except Exception as e:
+            self.error("翻译任务错误 ...", e)
+            return True, None, None, None
+
+        # 获取指令消耗
+        try:
+            prompt_tokens = int(response.usage.tokens.input_tokens)
+        except Exception:
+            prompt_tokens = 0
+
+        # 获取回复消耗
+        try:
+            completion_tokens = int(response.usage.tokens.output_tokens)
+        except Exception:
+            completion_tokens = 0
+
+        # 调用插件，进行处理
+        self.plugin_manager.broadcast_event(
+            "complete_text_process",
+            self.configurator,
+            response_content_json
+        )
+
+        return False, response_content_json, prompt_tokens, completion_tokens
+
+    # 发起请求
+    def request_google(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty):
+        try:
+            # Gemini SDK 文档 - https://ai.google.dev/api?hl=zh-cn&lang=python
+            genai.configure(
+                api_key = self.configurator.get_apikey(),
+                transport = "rest",
+            )
+
+            model = genai.GenerativeModel(
+                model_name = self.configurator.model,
+                safety_settings = [
+                    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+                ],
+                system_instruction = system_prompt,
+            )
+
+            # 提取回复的文本内容
+            response = model.generate_content(
+                messages,
+                generation_config = {
+                    "temperature": temperature,
+                    "top_p": top_p,
+                    "max_output_tokens": 4096,
+                },
+            )
+            response_content_json = response.text
+        except Exception as e:
+            self.error("翻译任务错误 ...", e)
+            return True, None, None, None
+
+        # 获取指令消耗
+        try:
+            prompt_tokens = int(response.usage_metadata.prompt_token_count)
+        except Exception:
+            prompt_tokens = 0
+
+        # 获取回复消耗
+        try:
+            completion_tokens = int(response.usage_metadata.candidates_token_count)
+        except Exception:
+            completion_tokens = 0
+
+        # 调用插件，进行处理
+        self.plugin_manager.broadcast_event(
+            "complete_text_process",
+            self.configurator,
+            response_content_json
+        )
+
+        return False, response_content_json, prompt_tokens, completion_tokens
+
+    # 发起请求
+    def request_anthropic(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty):
+        try:
+            client = anthropic.Anthropic(
+                base_url = self.configurator.base_url,
+                api_key = self.configurator.get_apikey(),
+            )
+
+            response = client.messages.create(
+                model = self.configurator.model,
+                system = system_prompt,
+                messages = messages,
+                temperature = temperature,
+                top_p = top_p,
+                timeout = 120,
+                max_tokens = 4096,
+            )
+
+            # 提取回复的文本内容
+            response_content_json = response.content[0].text
+        except Exception as e:
+            self.error("翻译任务错误 ...", e)
+            return True, None, None, None
+
+        # 获取指令消耗
+        try:
+            prompt_tokens = int(response.usage.prompt_tokens)
+        except Exception:
+            prompt_tokens = 0
+
+        # 获取回复消耗
+        try:
+            completion_tokens = int(response.usage.completion_tokens)
+        except Exception:
+            completion_tokens = 0
+
+        # 调用插件，进行处理
+        self.plugin_manager.broadcast_event(
+            "complete_text_process",
+            self.configurator,
+            response_content_json
+        )
+
+        return False, response_content_json, prompt_tokens, completion_tokens
+
+    # 发起请求
+    def request_openai(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty):
+        try:
+            client = OpenAI(
+                base_url = self.configurator.base_url,
+                api_key = self.configurator.get_apikey(),
+            )
+
+            response = client.chat.completions.create(
+                model = self.configurator.model,
+                messages = messages,
+                temperature = temperature,
+                top_p = top_p,
+                presence_penalty = presence_penalty,
+                frequency_penalty = frequency_penalty,
+                timeout = 120,
+                max_tokens = 4096,
+            )
+
+            # 提取回复的文本内容
+            response_content_json = response.choices[0].message.content
+        except Exception as e:
+            self.error("翻译任务错误 ...", e)
+            return True, None, None, None
+
+        # 获取指令消耗
+        try:
+            prompt_tokens = int(response.usage.prompt_tokens)
+        except Exception:
+            prompt_tokens = 0
+
+        # 获取回复消耗
+        try:
+            completion_tokens = int(response.usage.completion_tokens)
+        except Exception:
+            completion_tokens = 0
+
+        # 调用插件，进行处理
+        self.plugin_manager.broadcast_event(
+            "complete_text_process",
+            self.configurator,
+            response_content_json
+        )
+
+        return False, response_content_json, prompt_tokens, completion_tokens
+
     # 生成指令
+    def generate_prompt(self, target_platform, api_format, source_text_dict, previous_list):
+        # 储存指令
+        messages = []
+        # 储存额外日志
+        extra_log = []
+
+        # 获取基础系统提示词
+        system_prompt = self.configurator.get_system_prompt()
+
+        # 如果开启指令词典
+        glossary = ""
+        glossary_cot = ""
+        if self.configurator.prompt_dictionary_switch:
+            glossary, glossary_cot = self.configurator.build_glossary_prompt(source_text_dict, self.configurator.cn_prompt_toggle)
+            if glossary:
+                system_prompt += glossary
+                extra_log.append(f"指令词典已添加：\n{glossary}")
+
+        # 如果角色介绍开关打开
+        characterization = ""
+        characterization_cot = ""
+        if self.configurator.characterization_switch:
+            characterization, characterization_cot = self.configurator.build_characterization(source_text_dict, self.configurator.cn_prompt_toggle)
+            if characterization:
+                system_prompt += characterization
+                extra_log.append(f"角色介绍已添加：\n{characterization}")
+
+        # 如果启用自定义世界观设定功能
+        world_building = ""
+        world_building_cot = ""
+        if self.configurator.world_building_switch:
+            world_building, world_building_cot = self.configurator.build_world(self.configurator.cn_prompt_toggle)
+            if world_building:
+                system_prompt += world_building
+                extra_log.append(f"世界观设定已添加：\n{world_building}")
+
+        # 如果启用自定义行文措辞要求功能
+        writing_style = ""
+        writing_style_cot = ""
+        if self.configurator.writing_style_switch:
+            writing_style, writing_style_cot = self.configurator.build_writing_style(self.configurator.cn_prompt_toggle)
+            if writing_style:
+                system_prompt += writing_style
+                extra_log.append(f"行文措辞要求已添加：\n{writing_style}")
+
+        # 获取默认示例前置文本
+        pre_prompt = self.configurator.build_userExamplePrefix(
+            self.configurator.cn_prompt_toggle,
+            self.configurator.cot_toggle
+        )
+        fol_prompt = self.configurator.build_modelExamplePrefix(
+            self.configurator.cn_prompt_toggle,
+            self.configurator.cot_toggle,
+            self.configurator.source_language,
+            self.configurator.target_language,
+            glossary_cot,
+            characterization_cot,
+            world_building_cot,
+            writing_style_cot
+        )
+
+        # 获取默认示例
+        original_exmaple, translation_example_content = self.configurator.build_translation_sample(
+            source_text_dict,
+            self.configurator.source_language,
+            self.configurator.target_language
+        )
+        if original_exmaple and translation_example_content:
+            messages.append({
+                "role": "user",
+                "content": f"{pre_prompt}```json\n{original_exmaple}\n```"
+            })
+            messages.append({
+                "role": "assistant",
+                "content": f"{fol_prompt}```json\n{translation_example_content}\n```"
+            })
+            extra_log.append(f"格式原文示例已添加：\n{original_exmaple}")
+            extra_log.append(f"格式译文示例已添加：\n{translation_example_content}")
+
+        # 如果启用翻译风格示例功能
+        if self.configurator.translation_example_switch:
+            original_exmaple_3, translation_example_3 = self.configurator.build_translation_example()
+            if original_exmaple_3 and translation_example_3:
+                messages.append({
+                    "role": "user",
+                    "content": original_exmaple_3
+                })
+                messages.append({
+                    "role": "assistant",
+                    "content": translation_example_3
+                })
+                extra_log.append(f"用户原文示例已添加：\n{original_exmaple_3}")
+                extra_log.append(f"用户译文示例已添加：\n{translation_example_3}")
+
+        # 调用插件，进行处理
+        self.plugin_manager.broadcast_event(
+            "normalize_text",
+            self.configurator,
+            source_text_dict
+        )
+
+        # 如果开启了保留换行符功能
+        if self.configurator.preserve_line_breaks_toggle:
+            source_text_dict = Cache_Manager.replace_special_characters(
+                self,
+                source_text_dict,
+                "替换"
+            )
+
+        # 如果开启译前文本替换功能，则根据用户字典进行替换
+        if self.configurator.pre_translation_switch:
+            source_text_dict = self.configurator.replace_before_translation(source_text_dict)
+
+        # 如果加上文
+        previous = ""
+        if self.configurator.pre_line_counts and previous_list:
+            previous = self.configurator.build_pre_text(
+                previous_list,
+                self.configurator.cn_prompt_toggle
+            )
+            if previous:
+                extra_log.append(f"参考上文已添加：\n{"\n".join(previous_list)}")
+
+        # 获取提问时的前置文本
+        pre_prompt = self.configurator.build_userQueryPrefix(
+            self.configurator.cn_prompt_toggle,
+            self.configurator.cot_toggle
+        )
+        fol_prompt = self.configurator.build_modelResponsePrefix(
+            self.configurator.cn_prompt_toggle,
+            self.configurator.cot_toggle
+        )
+
+        # 构建用户信息
+        source_text_str = json.dumps(
+            source_text_dict,
+            ensure_ascii = False
+        )
+        source_text_str = f"{previous}\n{pre_prompt}```json\n{source_text_str}\n```"
+
+        messages.append(
+            {
+                "role": "user",
+                "content": source_text_str,
+            }
+        )
+        messages.append(
+            {
+                "role": "assistant",
+                "content": fol_prompt
+            }
+        )
+
+        # 当目标为 google 系列接口时，转换 messages 的格式
+        # 当目标为 anthropic 兼容接口时，保持原样
+        # 当目标为其他接口时，添加系统指令
+        if target_platform == "google":
+            new = []
+            for m in messages:
+                new.append({
+                    "role": "model" if m.get("role", "") == "assistant" else m.get("role", ""),
+                    "parts": m.get("content", ""),
+                })
+            messages = new
+        elif target_platform == "anthropic" or (target_platform.startswith("custom_platform_") and api_format == "Anthropic"):
+            pass
+        else:
+            messages.insert(
+                0,
+                {
+                    "role": "system",
+                    "content": system_prompt
+                }
+            )
+
+        return messages, source_text_str, system_prompt, extra_log
+
+    # 生成指令 Sakura
     def generate_prompt_sakura(self, source_text_dict, previous_list):
+        # 储存额外日志
+        extra_log = []
+        # 储存主体指令
         messages = []
 
         # 构建系统提示词
-        system_prompt = {
+        messages.append({
             "role": "system",
             "content": "你是一个轻小说翻译模型，可以流畅通顺地以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，不擅自添加原文中没有的代词。"
-        }
-        messages.append(system_prompt)
+        })
 
         # 调用插件，进行处理
         self.plugin_manager.broadcast_event(
@@ -292,7 +724,7 @@ class TranslatorTask(AiNieeBase):
                 "role": "user",
                 "content": "将下面的日文文本翻译成中文：" + "\n".join(previous_list),
             })
-            previous_message = f"携带参考上文功能已开启，实际携带 {len(previous_list)} 行上文 ...\n{"\n".join(previous_list)}"
+            extra_log.append(f"参考上文已添加：\n{"\n".join(previous_list)}")
 
         # 如果开启了指令词典功能
         glossary_message = ""
@@ -312,7 +744,7 @@ class TranslatorTask(AiNieeBase):
                     gpt_dict_text_list.append(single)
 
                 gpt_dict_raw_text = "\n".join(gpt_dict_text_list)
-                glossary_message = f"指令词典功能已开启，本次请求中包含 {len(gpt_dict_text_list)} 个词典条目 ...\n{gpt_dict_raw_text}"
+                extra_log.append(f"指令词典已添加：\n{gpt_dict_raw_text}")
 
         # 将原文本字典转换成raw格式的字符串
         source_text_str = self.convert_dict_to_raw_str(source_text_dict)
@@ -330,7 +762,51 @@ class TranslatorTask(AiNieeBase):
             }
         )
 
-        return messages, source_text_str, previous_message, glossary_message
+        return messages, source_text_str, "", extra_log
+
+    # 生成日志行
+    def generate_log_rows(self, error, start_time, row_count, prompt_tokens, completion_tokens, source, translated, extra_log):
+        rows = []
+
+        if error != "":
+            rows.append(error)
+        else:
+            rows.append(
+                f"任务耗时 {(time.time() - start_time):.2f} 秒，"
+                + f"文本行数 {row_count} 行，指令消耗 {prompt_tokens} Tokens，结果消耗 {completion_tokens} Tokens"
+            )
+
+        # 添加额外日志
+        for v in extra_log:
+            rows.append(v.strip())
+
+        # 原文译文对比
+        pair = ""
+        for source, translated in itertools.zip_longest(source, translated, fillvalue = ""):
+            pair = pair + "\n" + f"{source} [bright_blue]-->[/] {translated}"
+        rows.append(pair.strip())
+
+        return rows, error == ""
+
+    # 生成日志表格
+    def generate_log_table(self, rows: list, success: bool):
+        table = Table(
+            box = box.ASCII2,
+            expand = True,
+            highlight = True,
+            show_lines = True,
+            show_header = False,
+            border_style = "green" if success else "red",
+        )
+        table.add_column("", style = "white", ratio = 1, overflow = "fold")
+
+        for row in rows:
+            if isinstance(row, str):
+                table.add_row(row)
+            else:
+                table.add_row(*row)
+
+        return table
 
     # 将json文本改为纯文本
     def convert_dict_to_raw_str(self, source_text_dict):
@@ -340,3 +816,11 @@ class TranslatorTask(AiNieeBase):
             str_list.append(source_text_dict[f"{idx}"])
 
         return "\n".join(str_list)
+
+    # 将Raw文本恢复根据行数转换成json文本
+    def convert_str_to_json_str(self, input_str):
+        data = {}
+        for idx, line in enumerate(input_str.strip().splitlines()):
+            data[f"{idx}"] = f"{line}"
+
+        return json.dumps(data, ensure_ascii = False)

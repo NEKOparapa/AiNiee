@@ -72,7 +72,7 @@ class PlatformPage(QFrame, AiNieeBase):
     def __init__(self, text: str, window, configurator, background_executor = None):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
-        
+
         # 全局变量
         self.window = window
         self.configurator = configurator
@@ -80,7 +80,7 @@ class PlatformPage(QFrame, AiNieeBase):
 
         # 加载并更新预设配置
         self.load_preset()
-    
+
         # 载入配置文件
         config = self.load_config()
 
@@ -117,10 +117,10 @@ class PlatformPage(QFrame, AiNieeBase):
         # 载入配置文件
         config = self.load_config()
         platform = config.get("platforms").get(tag)
-        if self.configurator.Running_status == 0:
+        if self.configurator.status == self.STATUS.IDLE:
             # 更新运行状态
-            self.configurator.Running_status = 1
-            
+            self.configurator.status = self.STATUS.API_TEST
+
             # 创建事件参数
             data = copy.deepcopy(platform)
             data["proxy_url"] = config.get("proxy_url")
@@ -134,7 +134,7 @@ class PlatformPage(QFrame, AiNieeBase):
     # 接口测试完成
     def api_test_done(self, event: int, data: dict):
         # 更新运行状态
-        self.configurator.Running_status = 0
+        self.configurator.status = self.STATUS.IDLE
 
         if len(data.get("failure", [])) > 0:
             self.error_toast("", f"接口测试结果：成功 {len(data.get("success", []))} 个，失败 {len(data.get("failure", []))} 个 ...")
@@ -186,7 +186,7 @@ class PlatformPage(QFrame, AiNieeBase):
     def delete_platform(self, tag: str) -> None:
         # 载入配置文件
         config = self.load_config()
-        
+
         # 删除对应的平台
         del config["platforms"][tag]
 
@@ -199,7 +199,7 @@ class PlatformPage(QFrame, AiNieeBase):
     # 生成 UI 描述数据
     def generate_ui_datas(self, platforms: dict, is_custom: bool) -> list:
         ui_datas = []
-        
+
         for k, v in platforms.items():
             if not is_custom:
                 ui_datas.append(
@@ -268,7 +268,7 @@ class PlatformPage(QFrame, AiNieeBase):
     # 显示编辑接口对话框
     def show_api_edit_page(self, key: str):
         APIEditPage(self.window, key).exec()
-        
+
     # 显示编辑参数对话框
     def show_args_edit_page(self, key: str):
         ArgsEditPage(self.window, key).exec()
@@ -329,7 +329,7 @@ class PlatformPage(QFrame, AiNieeBase):
         platforms = {k:v for k, v in config.get("platforms").items() if v.get("group") == "local"}
         parent.addWidget(
             FlowCard(
-                "本地接口", 
+                "本地接口",
                 "管理应用内置的本地大语言模型的接口信息",
                 init = init,
             )
@@ -340,7 +340,7 @@ class PlatformPage(QFrame, AiNieeBase):
         platforms = {k:v for k, v in config.get("platforms").items() if v.get("group") == "online"}
         parent.addWidget(
             FlowCard(
-                "在线接口", 
+                "在线接口",
                 "管理应用内置的主流大语言模型的接口信息",
                 init = lambda widget: self.init_drop_down_push_button(
                     widget,
@@ -354,7 +354,7 @@ class PlatformPage(QFrame, AiNieeBase):
 
         def message_box_close(widget, text: str):
             config = self.load_config()
-            
+
             # 生成一个随机 TAG
             tag = f"custom_platform_{random.randint(100000, 999999)}"
 
@@ -374,7 +374,7 @@ class PlatformPage(QFrame, AiNieeBase):
                 "请输入新的接口名称 ...",
                 message_box_close = message_box_close
             )
-            
+
             message_box.exec()
 
         def init(widget):
@@ -389,7 +389,7 @@ class PlatformPage(QFrame, AiNieeBase):
             self.update_custom_platform_widgets(widget)
 
         self.flow_card = FlowCard(
-            "自定义接口", 
+            "自定义接口",
             "在此添加和管理任何符合 OpenAI 格式或者 Anthropic 格式的大语言模型的接口信息",
             init = init,
         )

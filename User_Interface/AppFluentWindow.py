@@ -89,6 +89,7 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         message_box.cancelButton.setText("取消")
 
         if message_box.exec():
+            self.emit(self.EVENT.APP_SHUT_DOWN, {})
             self.info("主窗口已关闭，稍后应用将自动退出 ...")
             event.accept()
         else:
