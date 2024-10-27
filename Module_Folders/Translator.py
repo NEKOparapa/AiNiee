@@ -328,7 +328,7 @@ class Translator(Base):
 
             # 记录数据
             with self.lock:
-                if result.get("check_result") == True:
+                if result.get("check_result", None) == True:
                     new = {}
                     new["status"] = status
                     new["start_time"] = self.data.get("start_time")
@@ -342,7 +342,7 @@ class Translator(Base):
                     new["speed"] = new.get("total_completion_tokens") / max(1, new.get("time"))
                     new["task"] = len([t for t in threading.enumerate() if "translator" in t.name])
                     self.data = new
-                else:
+                elif result.get("check_result", None) == False:
                     new = {}
                     new["status"] = status
                     new["start_time"] = self.data.get("start_time")
@@ -368,7 +368,10 @@ class Translator(Base):
             # 更新 UI
             self.emit(self.EVENT.TRANSLATION_UPDATE, self.data)
         except Exception as e:
-            self.error("翻译任务错误 ...", e)
+            if self.is_debug():
+                self.error(f"翻译任务错误 ...", e)
+            else:
+                self.error(f"翻译任务错误 ... {e}", None)
 
     # 更新任务长度限制
     def update_task_limit(self, line_limits: int, token_limits: int):

@@ -53,6 +53,10 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         # 载入配置文件
         config = self.load_config()
 
+        # 打印日志
+        if self.is_debug():
+            self.warning(f"运行在开发者模式 ...")
+
         # 设置主题颜色
         setThemeColor(self.THEME_COLOR)
 

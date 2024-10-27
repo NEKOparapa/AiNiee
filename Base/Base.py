@@ -189,3 +189,10 @@ class Base():
     # 取消订阅事件
     def unsubscribe(self, event: int, hanlder: callable):
         EventManager.get_singleton().unsubscribe(event, hanlder)
+
+    # 检查是否为开发模式
+    def is_debug(self):
+        if not hasattr(self, "_is_debug"):
+            self._is_debug = os.path.exists("./debug.txt")
+
+        return self._is_debug

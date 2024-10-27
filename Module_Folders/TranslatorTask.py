@@ -55,7 +55,6 @@ class TranslatorTask(Base):
 
         # 检查原文文本是否成功
         if len(source_text_list) == 0:
-            self.warning("获取原文文本失败，即将取消该任务 ...")
             return {}
 
         # 将原文文本列表改变为请求格式
@@ -161,6 +160,7 @@ class TranslatorTask(Base):
                     frequency_penalty
                 )
 
+            # 如果请求结果标记为 skip，即有错误发生，则跳过本次循环
             if skip == True:
                 continue
 
@@ -207,7 +207,6 @@ class TranslatorTask(Base):
                     )
                 )
                 self.print("")
-
             else:
                 # 强制开启换行符还原功能
                 response_dict = Cache_Manager.replace_special_characters(
@@ -256,12 +255,15 @@ class TranslatorTask(Base):
                 break
 
         # 返回任务结果
-        return {
-            "check_result": check_result,
-            "row_count": row_count,
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-        }
+        if not hasattr(self, "check_result"):
+            return {}
+        else:
+            return {
+                "check_result": check_result,
+                "row_count": row_count,
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+            }
 
     # 发起请求
     def request_sakura(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty):
@@ -289,7 +291,10 @@ class TranslatorTask(Base):
             # 提取回复的文本内容
             response_content = response.choices[0].message.content
         except Exception as e:
-            self.error("翻译任务错误 ...", e)
+            if self.is_debug():
+                self.error(f"翻译任务错误 ...", e)
+            else:
+                self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None
 
         # 获取指令消耗
@@ -337,7 +342,10 @@ class TranslatorTask(Base):
             # 提取回复的文本内容
             response_content_json = response.message.content[0].text
         except Exception as e:
-            self.error("翻译任务错误 ...", e)
+            if self.is_debug():
+                self.error(f"翻译任务错误 ...", e)
+            else:
+                self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None
 
         # 获取指令消耗
@@ -392,7 +400,10 @@ class TranslatorTask(Base):
             )
             response_content_json = response.text
         except Exception as e:
-            self.error("翻译任务错误 ...", e)
+            if self.is_debug():
+                self.error(f"翻译任务错误 ...", e)
+            else:
+                self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None
 
         # 获取指令消耗
@@ -437,7 +448,10 @@ class TranslatorTask(Base):
             # 提取回复的文本内容
             response_content_json = response.content[0].text
         except Exception as e:
-            self.error("翻译任务错误 ...", e)
+            if self.is_debug():
+                self.error(f"翻译任务错误 ...", e)
+            else:
+                self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None
 
         # 获取指令消耗
@@ -483,7 +497,10 @@ class TranslatorTask(Base):
             # 提取回复的文本内容
             response_content_json = response.choices[0].message.content
         except Exception as e:
-            self.error("翻译任务错误 ...", e)
+            if self.is_debug():
+                self.error(f"翻译任务错误 ...", e)
+            else:
+                self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None
 
         # 获取指令消耗
