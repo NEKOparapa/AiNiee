@@ -9,11 +9,11 @@ from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import TableWidget
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class CharacterizationPromptPage(QFrame, AiNieeBase):
+class CharacterizationPromptPage(QFrame, Base):
 
     DEFAULT = {
         "characterization_switch": False,
@@ -31,7 +31,7 @@ class CharacterizationPromptPage(QFrame, AiNieeBase):
     }
 
     # 设置默认值填充模式为普通模式
-    DEFAULT_FILL = AiNieeBase.DEFAULT_FILL
+    DEFAULT_FILL = Base.DEFAULT_FILL
     DEFAULT_FILL.SELECT_MODE = DEFAULT_FILL.MODE_NORMAL
 
     def __init__(self, text: str, window):

@@ -7,13 +7,13 @@ from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import SingleDirectionScrollArea
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.GroupCard import GroupCard
 from Widget.LineEditCard import LineEditCard
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class MixTranslationSettingsPage(QFrame, AiNieeBase):
+class MixTranslationSettingsPage(QFrame, Base):
 
     DEFAULT = {
         "mix_translation_enable": False,
@@ -32,7 +32,7 @@ class MixTranslationSettingsPage(QFrame, AiNieeBase):
     def __init__(self, text: str, window):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
-        
+
         # 初始化事件列表
         self.on_show_event = []
 
@@ -99,7 +99,7 @@ class MixTranslationSettingsPage(QFrame, AiNieeBase):
     def add_widget_01(self, parent, config):
         def widget_init(widget):
             widget.set_checked(config.get("mix_translation_enable"))
-            
+
         def widget_callback(widget, checked: bool):
             config = self.load_config()
             config["mix_translation_enable"] = checked
@@ -107,7 +107,7 @@ class MixTranslationSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SwitchButtonCard(
-                "混合翻译模式", 
+                "混合翻译模式",
                 "启用此功能后，将按照本页中的设置进行多轮次的翻译，主要用于解决翻译残留等问题",
                 widget_init,
                 widget_callback,
@@ -133,13 +133,13 @@ class MixTranslationSettingsPage(QFrame, AiNieeBase):
 
             def current_text_changed(widget, text: str):
                 config = self.load_config()
-                
+
                 config["mix_translation_settings"]["translation_platform_1"] = self.find_tag_by_name(config, text)
                 self.save_config(config)
 
             widget.addWidget(
                 ComboBoxCard(
-                    "模型类型", 
+                    "模型类型",
                     "第一轮翻译中使用的模型类型",
                     [],
                     init = init,
@@ -152,7 +152,7 @@ class MixTranslationSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             GroupCard(
-                "首轮设置", 
+                "首轮设置",
                 "这些设置将在进行第一轮翻译时覆盖原有的应用设置",
                 widget_init,
             )
@@ -162,7 +162,7 @@ class MixTranslationSettingsPage(QFrame, AiNieeBase):
     def add_widget_03(self, parent, config):
 
         def add_translation_platform_2_card(parent):
-            
+
             def update_widget(widget):
                 config = self.load_config()
 
@@ -177,13 +177,13 @@ class MixTranslationSettingsPage(QFrame, AiNieeBase):
 
             def current_text_changed(widget, text: str):
                 config = self.load_config()
-                
+
                 config["mix_translation_settings"]["translation_platform_2"] = self.find_tag_by_name(config, text)
                 self.save_config(config)
-                
+
             parent.addWidget(
                 ComboBoxCard(
-                    "模型类型", 
+                    "模型类型",
                     "第二轮翻译中使用的模型类型",
                     [],
                     init = init,
@@ -215,17 +215,17 @@ class MixTranslationSettingsPage(QFrame, AiNieeBase):
 
             parent.addWidget(
                 LineEditCard(
-                    "覆盖模型名称", 
+                    "覆盖模型名称",
                     "在进行第二轮的翻译时，将使用此模型名称覆盖原有的应用设置，留空为不覆盖原有模型名称",
                     widget_init,
                     widget_callback,
                 )
             )
-            
+
         def add_split_switch_2_card(parent):
             def widget_init(widget):
                 widget.set_checked(config.get("mix_translation_settings").get("split_switch_2"))
-                
+
             def widget_callback(widget, checked: bool):
                 config = self.load_config()
                 config["mix_translation_settings"]["split_switch_2"] = checked
@@ -233,7 +233,7 @@ class MixTranslationSettingsPage(QFrame, AiNieeBase):
 
             parent.addWidget(
                 SwitchButtonCard(
-                    "文本对半切分", 
+                    "文本对半切分",
                     "启用此功能后，在第二轮翻译时，文本将默认进行对半切分",
                     widget_init,
                     widget_callback,
@@ -247,7 +247,7 @@ class MixTranslationSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             GroupCard(
-                "次轮设置", 
+                "次轮设置",
                 "这些设置将在进行第二轮翻译时覆盖原有的应用设置",
                 widget_init,
             )
@@ -257,7 +257,7 @@ class MixTranslationSettingsPage(QFrame, AiNieeBase):
     def add_widget_04(self, parent, config):
 
         def add_translation_platform_3_card(parent):
-            
+
             def update_widget(widget):
                 config = self.load_config()
 
@@ -272,13 +272,13 @@ class MixTranslationSettingsPage(QFrame, AiNieeBase):
 
             def current_text_changed(widget, text: str):
                 config = self.load_config()
-                
+
                 config["mix_translation_settings"]["translation_platform_3"] = self.find_tag_by_name(config, text)
                 self.save_config(config)
-                
+
             parent.addWidget(
                 ComboBoxCard(
-                    "模型类型", 
+                    "模型类型",
                     "后续轮次的翻译中使用的模型类型",
                     [],
                     init = init,
@@ -310,17 +310,17 @@ class MixTranslationSettingsPage(QFrame, AiNieeBase):
 
             parent.addWidget(
                 LineEditCard(
-                    "覆盖模型名称", 
+                    "覆盖模型名称",
                     "在进行后续轮次的翻译时，将使用此模型名称覆盖原有的应用设置，留空为不覆盖原有模型名称",
                     widget_init,
                     widget_callback,
                 )
             )
-            
+
         def add_split_switch_3_card(parent):
             def widget_init(widget):
                 widget.set_checked(config.get("mix_translation_settings").get("split_switch_3"))
-                
+
             def widget_callback(widget, checked: bool):
                 config = self.load_config()
                 config["mix_translation_settings"]["split_switch_3"] = checked
@@ -328,7 +328,7 @@ class MixTranslationSettingsPage(QFrame, AiNieeBase):
 
             parent.addWidget(
                 SwitchButtonCard(
-                    "文本对半切分", 
+                    "文本对半切分",
                     "启用此功能后，在进行后续轮次的翻译时，文本将默认进行对半切分",
                     widget_init,
                     widget_callback,
@@ -342,7 +342,7 @@ class MixTranslationSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             GroupCard(
-                "后续轮次", 
+                "后续轮次",
                 "这些设置将在进行后续轮次的翻译时覆盖原有的应用设置",
                 widget_init,
             )

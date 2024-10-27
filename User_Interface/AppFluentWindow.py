@@ -13,7 +13,7 @@ from qfluentwidgets import NavigationPushButton
 from qfluentwidgets import NavigationItemPosition
 from qfluentwidgets import NavigationAvatarWidget
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from User_Interface.AppSettingsPage import AppSettingsPage
 from User_Interface.BaseNavigationItem import BaseNavigationItem
 from User_Interface.Project.ProjectPage import ProjectPage
@@ -36,7 +36,7 @@ from User_Interface.Extraction_Tool.Export_Source_Text import Widget_export_sour
 from User_Interface.Extraction_Tool.Import_Translated_Text import Widget_import_translated_text
 from User_Interface.Extraction_Tool.Export_Update_Text import Widget_update_text
 
-class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
+class AppFluentWindow(FluentWindow, Base): #主窗口
 
     APP_WIDTH = 1280
     APP_HEIGHT = 800

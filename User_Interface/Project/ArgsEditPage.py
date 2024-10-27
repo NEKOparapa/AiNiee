@@ -10,10 +10,10 @@ from qfluentwidgets import HyperlinkLabel
 from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.SliderCard import SliderCard
 
-class ArgsEditPage(MessageBoxBase, AiNieeBase):
+class ArgsEditPage(MessageBoxBase, Base):
 
     DEFAULT = {}
 

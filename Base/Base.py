@@ -11,7 +11,7 @@ from qfluentwidgets import InfoBarPosition
 
 from Base.EventManager import EventManager
 
-class AiNieeBase():
+class Base():
 
     # 事件列表
     EVENT = type("GClass", (), {})()

@@ -14,11 +14,11 @@ from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import TableWidget
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class TextReplaceBPage(QFrame, AiNieeBase):
+class TextReplaceBPage(QFrame, Base):
 
     DEFAULT = {
         "post_translation_switch": True,

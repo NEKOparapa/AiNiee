@@ -5,7 +5,7 @@ import json
 import threading
 import concurrent.futures
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Module_Folders.File_Reader.File1 import File_Reader
 from Module_Folders.Cache_Manager.Cache import Cache_Manager
 from Module_Folders.File_Outputer.File2 import File_Outputter
@@ -13,7 +13,7 @@ from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
 from Module_Folders.TranslatorTask import TranslatorTask
 
 # 翻译器
-class Translator(AiNieeBase):
+class Translator(Base):
 
     # 缓存文件保存周期（毫秒）
     CACHE_FILE_SAVE_INTERVAL = 3000

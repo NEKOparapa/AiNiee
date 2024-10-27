@@ -15,14 +15,14 @@ from qfluentwidgets import FluentIcon
 from qfluentwidgets import PushButton
 from qfluentwidgets import PrimaryDropDownPushButton
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.FlowCard import FlowCard
 from Widget.LineEditMessageBox import LineEditMessageBox
 from User_Interface.Project.APIEditPage import APIEditPage
 from User_Interface.Project.ArgsEditPage import ArgsEditPage
 from User_Interface.Project.LimitEditPage import LimitEditPage
 
-class PlatformPage(QFrame, AiNieeBase):
+class PlatformPage(QFrame, Base):
 
     CUSTOM = {
         "tag": "",

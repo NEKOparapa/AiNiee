@@ -5,10 +5,10 @@ from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.SpinCard import SpinCard
 
-class LimitEditPage(MessageBoxBase, AiNieeBase):
+class LimitEditPage(MessageBoxBase, Base):
 
     DEFAULT = {}
 
@@ -61,16 +61,16 @@ class LimitEditPage(MessageBoxBase, AiNieeBase):
             config = self.load_config()
             config["platforms"][self.key]["rpm_limit"] = value
             self.save_config(config)
-        
+
         parent.addWidget(
             SpinCard(
-                "每分钟请求数", 
+                "每分钟请求数",
                 "RPM，即每个密钥在一分钟内能响应的请求的最大数量",
                 init = init,
                 value_changed = value_changed,
             )
         )
-        
+
     # 每分钟 Token 数
     def add_widget_tpm(self, parent, config):
         def init(widget):
@@ -81,10 +81,10 @@ class LimitEditPage(MessageBoxBase, AiNieeBase):
             config = self.load_config()
             config["platforms"][self.key]["tpm_limit"] = value
             self.save_config(config)
-        
+
         parent.addWidget(
             SpinCard(
-                "每分钟 Token 数", 
+                "每分钟 Token 数",
                 "RPM，即每个密钥在一分钟内能生成的 Token 的最大数量",
                 init = init,
                 value_changed = value_changed,
@@ -101,10 +101,10 @@ class LimitEditPage(MessageBoxBase, AiNieeBase):
             config = self.load_config()
             config["platforms"][self.key]["token_limit"] = value
             self.save_config(config)
-        
+
         parent.addWidget(
             SpinCard(
-                "最大 Token 长度", 
+                "最大 Token 长度",
                 "即每个请求中包含的 Token 的最大长度",
                 init = init,
                 value_changed = value_changed,

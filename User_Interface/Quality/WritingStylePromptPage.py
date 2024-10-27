@@ -6,11 +6,11 @@ from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import PlainTextEdit
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class WritingStylePromptPage(QFrame, AiNieeBase):
+class WritingStylePromptPage(QFrame, Base):
 
     DEFAULT = {
         "writing_style_switch": False,

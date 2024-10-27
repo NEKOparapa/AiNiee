@@ -5,11 +5,11 @@ from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import FluentIcon
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.PushButtonCard import PushButtonCard
 
-class ProjectPage(QFrame, AiNieeBase):
+class ProjectPage(QFrame, Base):
 
     DEFAULT = {
         "target_platform": "sakura",

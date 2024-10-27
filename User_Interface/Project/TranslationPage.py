@@ -12,12 +12,12 @@ from qfluentwidgets import ProgressRing
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import IndeterminateProgressRing
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.DashboardCard import DashboardCard
 from Widget.WaveformWidget import WaveformWidget
 from Widget.CommandBarCard import CommandBarCard
 
-class TranslationPage(QWidget, AiNieeBase):
+class TranslationPage(QWidget, Base):
 
     DEFAULT = {}
 

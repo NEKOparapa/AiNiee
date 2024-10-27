@@ -10,12 +10,12 @@ import anthropic                    # 需要安装库pip install anthropic
 import google.generativeai as genai # 需要安装库pip install -U google-generativeai
 from openai import OpenAI           # 需要安装库pip install openai
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Module_Folders.Cache_Manager.Cache import Cache_Manager
 from Module_Folders.Response_Parser.Response import Response_Parser
 
 # 接口请求器
-class TranslatorTask(AiNieeBase):
+class TranslatorTask(Base):
 
     def __init__(self, translator, configurator, plugin_manager, request_limiter):
         super().__init__()
