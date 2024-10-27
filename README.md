@@ -87,7 +87,7 @@
 </summary>
 
 *  OpenAI官方配置示例:
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/官方账号设置.png" width="600" height="400"><br>
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/官方账号设置.png" width="600" height="400"><br>
   
     >`账号类型`: 新注册的5刀余额账号为免费账号，有各种限制，单号速度不快；付费账号是有过付费记录，且达到一些条件才会升级<br>
   
@@ -97,7 +97,7 @@
   
 
 *  代理平台配置示例:
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/代理账号设置.png" width="600" height="400"><br> 
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/代理账号设置.png" width="600" height="400"><br> 
     
     >`请求地址`: 填入国内代理平台提供的请求地址,示例：`https://api.XXXXX.com` ,不要在后面单带一个`/`
 
@@ -110,7 +110,7 @@
     >`API KEY`: 填入国内代理平台给你生成的API KEY<br>
 
 
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/代理账号速率价格设置.png" width="600" height="400"><br> 
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/代理账号速率价格设置.png" width="600" height="400"><br> 
 
     >`每次发送文本上限`: 限制每次发送文本的容量大小，以tokens为单位
   
@@ -152,7 +152,7 @@
 
     >`自动备份缓存文件`: 会自动备份缓存文件到输出文件夹，高并发情况下会影响速度<br>
 
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/任务设置.png" width="600" height="400"><br>
+    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/发送设置.png" width="600" height="400"><br>
 
     >`行数切分模式`: 每次请求翻译的文本行数。行数设置越大,整体的翻译效果会更好,上下文更加流畅,但每次请求回复速度会越慢,回复的内容越容易出错，请根据模型类型来进行设置。<br>
 
