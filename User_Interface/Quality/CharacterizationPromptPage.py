@@ -72,22 +72,25 @@ class CharacterizationPromptPage(QFrame, Base):
 
     # 主体
     def add_widget_body(self, parent, config):
+
+        def item_changed(item):
+            item.setTextAlignment(Qt.AlignCenter)
+
         self.table = TableWidget(self)
         parent.addWidget(self.table)
 
-        # 启用边框并设置圆角
+        # 设置表格属性
         self.table.setBorderRadius(4)
         self.table.setBorderVisible(True)
-
         self.table.setWordWrap(False)
-        self.table.setRowCount(12)
         self.table.setColumnCount(7)
         self.table.resizeRowsToContents() # 设置行高度自适应内容
         self.table.resizeColumnsToContents() # 设置列宽度自适应内容
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch) # 撑满宽度
+        self.table.itemChanged.connect(item_changed)
 
         # 设置水平表头并隐藏垂直表头
-        self.table.verticalHeader().hide()
+        self.table.verticalHeader().setDefaultAlignment(Qt.AlignCenter)
         self.table.setHorizontalHeaderLabels([
             "原名",
             "译名",
@@ -117,7 +120,8 @@ class CharacterizationPromptPage(QFrame, Base):
     def update_to_table(self, table, config):
         datas = []
         dictionary = config.get("characterization_dictionary", {})
-        table.setRowCount(max(12, len(dictionary)))
+
+        # 构建表格数据
         for k, v in dictionary.items():
             datas.append(
                 [
@@ -130,11 +134,12 @@ class CharacterizationPromptPage(QFrame, Base):
                     v.get("additional_info", "").strip(),
                 ]
             )
-        for row, data in enumerate(datas):
-            for col, v in enumerate(data):
-                item = QTableWidgetItem(v)
-                item.setTextAlignment(Qt.AlignCenter)
-                table.setItem(row, col, item)
+
+        # 向表格中填充数据
+        table.setRowCount(max(12, len(dictionary)))
+        for row in range(len(datas)):
+            for col in range(table.columnCount()):
+                table.setItem(row, col, QTableWidgetItem(datas[row][col]))
 
     # 从表格更新数据
     def update_from_table(self, table, config):
@@ -201,6 +206,9 @@ class CharacterizationPromptPage(QFrame, Base):
 
             # 向表格更新数据
             self.update_to_table(self.table, config)
+
+            # 保存配置文件
+            config = self.save_config(config)
 
             # 弹出提示
             self.success_toast("", "空行已移除 ...")
