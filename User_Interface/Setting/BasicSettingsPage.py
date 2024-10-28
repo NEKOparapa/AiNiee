@@ -12,7 +12,7 @@ class BasicSettingsPage(QFrame, Base):
         "lines_limit_switch": False,
         "tokens_limit_switch": True,
         "lines_limit": 16,
-        "tokens_limit": 512,
+        "tokens_limit": 384,
         "pre_line_counts": 3,
         "user_thread_counts": 0,
         "retry_count_limit": 1,
