@@ -137,7 +137,7 @@ class Example_Plugin(PluginBase):
     | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
 
 - `configuration_information`: 全局配置类，用于获取和设置应用程序的配置信息。
-    下面是部分配置信息变量，如果需要获取更多配置信息，可以到Config.py文件中查看，基本在__init__(self,script_dir)与 load_config_file (self)中
+    下面是部分配置信息变量，如果需要获取更多配置信息，可以到Config.py文件中查看，基本在__init__(self,script_dir)与 initialization_from_config_file (self)中
     ```python
         self.script_dir = script_dir          # 根目录路径
         self.resource_dir = os.path.join(script_dir, "Resource") # 配置文件路径

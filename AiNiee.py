@@ -57,11 +57,11 @@ if __name__ == "__main__":
     sys.path.append(script_dir)
 
     # 创建全局配置器
-    configurator = Configurator(script_dir)
+    configurator = Configurator()
 
     # 创建全局插件管理器
     plugin_manager = Plugin_Manager()
-    plugin_manager.load_plugins_from_directory(configurator.plugin_dir)
+    plugin_manager.load_plugins_from_directory("./Plugin_Scripts/Plugins")
 
     # 创建全局应用对象
     app = QApplication(sys.argv)
