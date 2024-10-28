@@ -192,7 +192,7 @@ class Base():
 
     # 检查是否为开发模式
     def is_debug(self):
-        if not hasattr(self, "_is_debug"):
-            self._is_debug = os.path.exists("./debug.txt")
+        if not hasattr(Base, "_is_debug"):
+            Base._is_debug = os.path.exists("./debug.txt")
 
-        return self._is_debug
+        return Base._is_debug
