@@ -58,7 +58,6 @@ if __name__ == "__main__":
 
     # 创建全局配置器
     configurator = Configurator(script_dir)
-    configurator.load_config_file()
 
     # 创建全局插件管理器
     plugin_manager = Plugin_Manager()
