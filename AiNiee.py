@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     # 创建全局插件管理器
     plugin_manager = Plugin_Manager()
-    plugin_manager.load_plugins_from_directory("./Plugin_Scripts/Plugins")
+    plugin_manager.load_plugins_from_directory("./Plugin_Scripts")
 
     # 创建全局应用对象
     app = QApplication(sys.argv)
