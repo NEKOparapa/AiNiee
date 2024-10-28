@@ -37,19 +37,37 @@ class TranslatorTask(Base):
     def request(self, target_platform, api_format):
         # 从缓存数据中获取文本并更新这些文本的状态
         with self.translator.cache_data_lock:
-            if self.configurator.tokens_limit_switch == True and self.configurator.lines_limit_switch == False:
+            # 获取需要翻译的文本，Sakura 默认原文前文，其他模型有译文优先获取译文前文
+            if self.configurator.tokens_limit_switch == True and target_platform == "sakura":
                 source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(
                     self,
                     self.configurator.tokens_limit,
                     self.configurator.cache_list,
+                    False,
                     self.configurator.pre_line_counts
                 )
-
-            if self.configurator.tokens_limit_switch == False and self.configurator.lines_limit_switch == True:
+            elif self.configurator.tokens_limit_switch == True and target_platform != "sakura":
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(
+                    self,
+                    self.configurator.tokens_limit,
+                    self.configurator.cache_list,
+                    True,
+                    self.configurator.pre_line_counts
+                )
+            elif self.configurator.tokens_limit_switch == False and target_platform == "sakura":
                 source_text_list, previous_list = Cache_Manager.process_dictionary_data_lines(
                     self,
                     self.configurator.lines_limit,
                     self.configurator.cache_list,
+                    False,
+                    self.configurator.pre_line_counts
+                )
+            elif self.configurator.tokens_limit_switch == False and target_platform != "sakura":
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_lines(
+                    self,
+                    self.configurator.lines_limit,
+                    self.configurator.cache_list,
+                    True,
                     self.configurator.pre_line_counts
                 )
 
@@ -270,7 +288,6 @@ class TranslatorTask(Base):
                 "prompt_tokens": request_tokens_consume,
                 "completion_tokens": 0,
             }
-
 
     # 发起请求
     def request_sakura(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty):

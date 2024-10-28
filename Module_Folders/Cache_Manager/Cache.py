@@ -1,14 +1,7 @@
-
-# coding:utf-8               
 import re
 
-import tiktoken_ext  #必须导入这两个库，否则打包后无法运行
-from tiktoken_ext import openai_public
-import tiktoken #需要安装库pip install tiktoken
-import opencc       #需要安装库pip install opencc     
-
-
-
+import opencc       # 需要安装库pip install opencc
+import tiktoken     # 需要安装库pip install tiktoken
 
 
 # 缓存管理器
@@ -26,7 +19,7 @@ class Cache_Manager():
     5.译文： "translated_text"
     6.存储路径： "storage_path"
     7.存储文件名： "storage_file_name"
-    8.翻译模型： "model"                         
+    8.翻译模型： "model"
     等等
 
     """
@@ -35,7 +28,7 @@ class Cache_Manager():
 
 
     # 获取缓存数据中指定行数的翻译状态为0的未翻译文本，且改变翻译状态为2
-    def process_dictionary_data_lines(self,translation_lines, cache_list, previous_lines = 0, following_lines = 0):
+    def process_dictionary_data_lines(self, translation_lines, cache_list, prefer_translated, previous_lines = 0, following_lines = 0):
         # 输入的数据结构参考
         ex_cache_list = [
             {'project_type': 'Mtool'},
@@ -111,7 +104,8 @@ class Cache_Manager():
                     translation_status = cache_list[the_index]['translation_status']
                     storage_path = cache_list[the_index]['storage_path']
                     if storage_path ==base_storage_path: # 确保是同一文件里内容
-                        if translation_status == 1 :# 优先获取已经翻译的文本
+                        # 判断是否需要优先获取已经翻译的文本
+                        if prefer_translated == True and translation_status == 1:
                             previous_list.append(cache_list[the_index]['translated_text'])
                         elif translation_status == 7 : # 如果是不需要翻译的文本
                             pass
@@ -131,7 +125,8 @@ class Cache_Manager():
                     translation_status = cache_list[the_index]['translation_status']
                     storage_path = cache_list[the_index]['storage_path']
                     if storage_path ==base_storage_path: # 确保是同一文件里内容
-                        if translation_status == 1 :# 优先获取已经翻译的文本
+                        # 判断是否需要优先获取已经翻译的文本
+                        if prefer_translated == True and translation_status == 1:
                             following_list.append(cache_list[the_index]['translated_text'])
                         elif translation_status == 7 : # 如果是不需要翻译的文本
                             pass
@@ -142,12 +137,12 @@ class Cache_Manager():
 
 
     # 获取缓存数据中指定tokens数的翻译状态为0的未翻译文本，且改变翻译状态为2
-    def process_dictionary_data_tokens(self,tokens_limit, cache_list, previous_lines = 0):
+    def process_dictionary_data_tokens(self, tokens_limit, cache_list, prefer_translated, previous_lines = 0):
 
 
         translation_list = []
         previous_list = []
-        tokens_count = 0 
+        tokens_count = 0
         lines_count = 0  # 保底机制用
 
         # 获取特定行数的待翻译内容
@@ -168,7 +163,7 @@ class Cache_Manager():
                     tokens_count = tokens_count + tokens
                     if (tokens_count >= tokens_limit) and (lines_count >= 1) :
                         break
-                    
+
                     # 尝试获取name
                     name = entry.get('name')
                     # 如果有名字，则将名字加入到新列表中，否则不加入
@@ -185,7 +180,7 @@ class Cache_Manager():
 
         # 获取首尾索引
         if translation_list:
-            star_index = translation_list[0]['text_index'] - 1  # 减1以获取前一行 
+            star_index = translation_list[0]['text_index'] - 1  # 减1以获取前一行
 
             # 获取前n行原文
 
@@ -199,7 +194,8 @@ class Cache_Manager():
                     translation_status = cache_list[the_index]['translation_status']
                     storage_path = cache_list[the_index]['storage_path']
                     if storage_path ==base_storage_path: # 确保是同一文件里内容
-                        if translation_status == 1 :# 优先获取已经翻译的文本
+                        # 判断是否需要优先获取已经翻译的文本
+                        if prefer_translated == True and translation_status == 1:
                             previous_list.append(cache_list[the_index]['translated_text'])
                         elif translation_status == 7 : # 如果是不需要翻译的文本
                             pass
@@ -267,14 +263,14 @@ class Cache_Manager():
         VOICED_SOUND_MARKS = ("\u309B", "\u309C") # 濁音和半浊音符号
 
         jp_pattern = re.compile(
-            rf'['
+            r'['
             + rf'{CJK[0]}-{CJK[1]}'
             + rf'{HIRAGANA[0]}-{HIRAGANA[1]}'
             + rf'{KATAKANA[0]}-{KATAKANA[1]}'
             + rf'{KATAKANA_HALF_WIDTH[0]}-{KATAKANA_HALF_WIDTH[1]}'
             + rf'{KATAKANA_PHONETIC_EXTENSIONS[0]}-{KATAKANA_PHONETIC_EXTENSIONS[1]}'
             + rf'{VOICED_SOUND_MARKS[0]}-{VOICED_SOUND_MARKS[1]}'
-            + rf']+'
+            + r']+'
         )
         punctuation = re.compile(r'[。．，、；：？！「」『』【】〔〕（）《》〈〉…—…]+')
 
@@ -282,12 +278,12 @@ class Cache_Manager():
         while middle_chars and not (jp_pattern.match(middle_chars) or punctuation.match(middle_chars)):
             head_chars.append(middle_chars[0])
             middle_chars = middle_chars[1:]
-        
+
         # 从尾开始检查并截取
         while middle_chars and not (jp_pattern.match(middle_chars[-1]) or punctuation.match(middle_chars[-1])):
             tail_chars.insert(0, middle_chars[-1])  # 保持原始顺序插入
             middle_chars = middle_chars[:-1]
-        
+
         return head_chars, middle_chars, tail_chars
 
     # 处理字典内的文本，清除头尾的非文本字符
@@ -379,10 +375,10 @@ class Cache_Manager():
             text_index = item["text_index"]
             head = item.get("Head:", "")
             tail = item.get("Tail:", "")
-            
+
             # 获取原始字典中的值
             original_value = original_dict.get(text_index, "")
-            
+
             # 拼接头、原始值、中和尾
             updated_value = head + original_value + tail
             updated_dict[text_index] = updated_value
@@ -452,7 +448,7 @@ class Cache_Manager():
 
                 # 增加索引值
                 index = index + 1
-        
+
         except:
             print("[DEBUG] 录入翻译结果出现问题！！！！！！！！！！！！")
             print(text_index)
@@ -460,7 +456,7 @@ class Cache_Manager():
 
         return cache_data
 
-    
+
     # 统计翻译状态等于0或者2的元素个数，且把等于2的翻译状态改为0.并返回元素个数
     def count_and_update_translation_status_0_2(self, data):
         # 输入的数据结构参考
@@ -493,8 +489,8 @@ class Cache_Manager():
                 item['translation_status'] = 0
 
         return raw_count,tokens_count
-    
-    
+
+
     # 替换或者还原换行符和回车符函数
     def replace_special_characters(self,dict, mode):
         new_dict = {}
@@ -523,15 +519,15 @@ class Cache_Manager():
     def extract_strings(self, text):
         # 查找第一个左括号的位置
         left_bracket_pos = text.find('「')
-        
+
         # 如果找不到左括号，返回原始文本
         if left_bracket_pos == -1:
             return 0,text
-        
+
         # 提取名字和对话内容
         name = text[:left_bracket_pos].strip()
         dialogue = text[left_bracket_pos:].strip()
-        
+
         return name, dialogue
 
 
@@ -544,7 +540,7 @@ class Cache_Manager():
         {'text_index': 2, 'text_classification': 0, 'translation_status': 1, 'source_text': '室内カメラ', 'translated_text': '開心', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json'},
         {'text_index': 3, 'text_classification': 0, 'translation_status': 0, 'source_text': '111111111', 'translated_text': '歷史', 'storage_path': 'DEBUG Folder\\Replace the original text.json', 'file_name': 'Replace the original text.json'},
         {'text_index': 4, 'text_classification': 0, 'translation_status': 0, 'source_text': '222222222', 'translated_text': '无', 'storage_path': 'DEBUG Folder\\Replace the original text.json', 'file_name': 'Replace the original text.json'},
-        ]    
+        ]
 
         # 确定使用的转换器
         cc = opencc.OpenCC(opencc_preset)  # 创建OpenCC对象，使用t2s参数表示繁体字转简体字
@@ -567,7 +563,7 @@ class Cache_Manager():
                 converted_list.append(item)
 
         return converted_list
-    
+
 
     # 计算单个字符串tokens数量函数
     def num_tokens_from_string(self,string):
