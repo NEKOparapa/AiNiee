@@ -37,7 +37,6 @@ class Text_Normalization_Plugin(PluginBase):
             if configuration_information.source_language == "英语":
                 for k in event_data.keys():
                     text = unicodedata.normalize('NFKC', event_data.get(k, ""))
-                    text = self.remove_spaces(text)
                     event_data[k] = text
 
 
