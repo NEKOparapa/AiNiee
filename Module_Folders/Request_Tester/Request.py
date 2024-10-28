@@ -15,7 +15,7 @@ class Request_Tester(Base):
         super().__init__(*args, **kwargs)
 
         # 注册事件
-        self.subscribe(self.EVENT.API_TEST_START, self.api_test_start)
+        self.subscribe(Base.EVENT.API_TEST_START, self.api_test_start)
 
     # 响应接口测试开始事件
     def api_test_start(self, event: int, data: dict):
@@ -101,7 +101,7 @@ class Request_Tester(Base):
         self.print("")
 
         # 发送完成事件
-        self.emit(self.EVENT.API_TEST_DONE, {
+        self.emit(Base.EVENT.API_TEST_DONE, {
             "failure": failure,
             "success": success,
         })

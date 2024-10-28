@@ -32,10 +32,10 @@ class Translator(Base):
         self.cache_file_lock = threading.Lock()
 
         # 注册事件
-        self.subscribe(self.EVENT.TRANSLATION_STOP, self.translation_stop)
-        self.subscribe(self.EVENT.TRANSLATION_START, self.translation_start)
-        self.subscribe(self.EVENT.TRANSLATION_CONTINUE_CHECK, self.translation_continue_check)
-        self.subscribe(self.EVENT.APP_SHUT_DOWN, self.app_shut_down)
+        self.subscribe(Base.EVENT.TRANSLATION_STOP, self.translation_stop)
+        self.subscribe(Base.EVENT.TRANSLATION_START, self.translation_start)
+        self.subscribe(Base.EVENT.TRANSLATION_CONTINUE_CHECK, self.translation_continue_check)
+        self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
 
         # 定时器
         threading.Thread(target = self.save_cache_file_tick).start()
@@ -47,14 +47,13 @@ class Translator(Base):
     # 翻译停止事件
     def translation_stop(self, event: int, data: dict):
         # 设置运行状态为停止中
-        self.configurator.status = self.STATUS.STOPING
+        self.configurator.status = Base.STATUS.STOPING
 
         def target():
             while True:
                 time.sleep(0.5)
                 if len([t for t in threading.enumerate() if "translator" in t.name]) == 0:
-                    self.configurator.status = self.STATUS.IDLE
-                    self.emit(self.EVENT.TRANSLATION_STOP_DONE, {})
+                    self.emit(Base.EVENT.TRANSLATION_STOP_DONE, {})
                     break
 
         threading.Thread(target = target).start()
@@ -70,38 +69,34 @@ class Translator(Base):
     def translation_continue_check(self, event: int, data: dict):
         translation_continue = False
         try:
-            cache = self.load_cache_file(f"{self.configurator.label_output_path}/cache/AinieeCacheData.json")
+            config = self.load_config()
+            cache = self.load_cache_file(f"{config.get("label_output_path", "")}/cache/AinieeCacheData.json")
             translated_line = [v for v in cache if v.get("translation_status", -1) == 1]
             untranslated_line = [v for v in cache if v.get("translation_status", -1) in (0, 2)]
             translation_continue = len(translated_line) > 0 and len(untranslated_line) > 0
         except Exception as e:
             self.error("缓存文件读取失败 ...", e)
         finally:
-            self.emit(self.EVENT.TRANSLATION_CONTINUE_CHECK_DONE, {
+            self.emit(Base.EVENT.TRANSLATION_CONTINUE_CHECK_DONE, {
                 "translation_continue" : translation_continue,
             })
 
     # 实际的翻译流程
     def translation_start_target(self, translation_continue):
         # 设置翻译状态为正在翻译状态
-        self.configurator.status = self.STATUS.TRANSLATION
+        self.configurator.status = Base.STATUS.TRANSLATION
 
         # 读取配置文件
         self.configurator.load_config_file()
 
         # 根据是否继续翻译载入项目数据
         default_data = {
-            "status": "翻译中",
             "start_time": time.time(),
             "total_line": 0,
             "line": 0,
-            "remaining_line": 0,
             "token": 0,
             "total_completion_tokens": 0,
             "time": 0,
-            "remaining_time": 0,
-            "speed": 0,
-            "task": 0,
         }
 
         if translation_continue:
@@ -117,7 +112,6 @@ class Translator(Base):
                 self.data = default_data
             else:
                 self.data = self.configurator.cache_list[0].get("data", {})
-                self.data["status"] = "翻译中"
                 self.data["start_time"] = time.time() - self.data.get("time", 0)
         else:
             # 读取文本
@@ -135,7 +129,7 @@ class Translator(Base):
             self.data = default_data
 
         # 更新翻译进度
-        self.emit(self.EVENT.TRANSLATION_UPDATE, self.data)
+        self.emit(Base.EVENT.TRANSLATION_UPDATE, self.data)
 
         # 调用插件，进行文本过滤
         self.plugin_manager.broadcast_event(
@@ -155,7 +149,7 @@ class Translator(Base):
         time.sleep(3)
         for current_round in range(self.configurator.round_limit + 1):
             # 检测是否需要停止任务
-            if self.configurator.status == self.STATUS.STOPING:
+            if self.configurator.status == Base.STATUS.STOPING:
                 return {}
 
             # 开启混合翻译时，根据混合翻译的设置调整接口
@@ -242,6 +236,9 @@ class Translator(Base):
         # 译后处理
         self.translation_post_process()
 
+        # 发送翻译停止完成的事件
+        self.emit(Base.EVENT.TRANSLATION_STOP_DONE, {})
+
     # 译前准备
     def translation_prepare(self, current_round: int, model: str, split: bool):
         # 第二轮开始对半切分
@@ -318,25 +315,12 @@ class Translator(Base):
         )
 
         self.print("")
-        self.info("翻译结果已保存至指定的输出目录 ...")
+        self.info(f"翻译结果已保存至 {self.configurator.label_output_path} 目录 ...")
         self.print("")
 
     # 翻译任务完成时
     def task_done_callback(self, future, executor):
         try:
-            # 翻译状态文本
-            if self.configurator.status == self.STATUS.IDLE:
-                status = "无任务"
-
-            if self.configurator.status == self.STATUS.API_TEST:
-                status = "测试中"
-
-            if self.configurator.status == self.STATUS.TRANSLATION:
-                status = "翻译中"
-
-            if self.configurator.status == self.STATUS.STOPING:
-                status = "停止中"
-
             # 获取结果
             result = future.result()
 
@@ -344,31 +328,21 @@ class Translator(Base):
             with self.lock:
                 if result.get("check_result") == True:
                     new = {}
-                    new["status"] = status
                     new["start_time"] = self.data.get("start_time")
                     new["total_line"] = self.data.get("total_line")
                     new["line"] = self.data.get("line") + result.get("row_count", 0)
-                    new["remaining_line"] = new.get("total_line") - new.get("line")
                     new["token"] = self.data.get("token") + result.get("prompt_tokens", 0) + result.get("completion_tokens", 0)
                     new["total_completion_tokens"] = self.data.get("total_completion_tokens") + result.get("completion_tokens")
                     new["time"] = time.time() - self.data.get("start_time")
-                    new["remaining_time"] = new.get("time") / max(1, new.get("line")) * new.get("remaining_line")
-                    new["speed"] = new.get("total_completion_tokens") / max(1, new.get("time"))
-                    new["task"] = len([t for t in threading.enumerate() if "translator" in t.name])
                     self.data = new
                 else:
                     new = {}
-                    new["status"] = status
                     new["start_time"] = self.data.get("start_time")
                     new["total_line"] = self.data.get("total_line")
                     new["line"] = self.data.get("line")
-                    new["remaining_line"] = self.data.get("remaining_line")
                     new["token"] = self.data.get("token") + result.get("prompt_tokens", 0) + result.get("completion_tokens", 0)
                     new["total_completion_tokens"] = self.data.get("total_completion_tokens")
                     new["time"] = time.time() - self.data.get("start_time")
-                    new["remaining_time"] = new.get("time") / max(1, new.get("line")) * new.get("remaining_line")
-                    new["speed"] = new.get("total_completion_tokens") / max(1, new.get("time"))
-                    new["task"] = len([t for t in threading.enumerate() if "translator" in t.name])
                     self.data = new
 
             # 更新翻译进度到缓存数据
@@ -380,10 +354,10 @@ class Translator(Base):
             self.save_cache_file_require()
 
             # 更新 UI
-            self.emit(self.EVENT.TRANSLATION_UPDATE, self.data)
+            self.emit(Base.EVENT.TRANSLATION_UPDATE, self.data)
         except Exception as e:
             if self.is_debug():
-                self.error(f"翻译任务错误 ...", e)
+                self.error("翻译任务错误 ...", e)
             else:
                 self.error(f"翻译任务错误 ... {e}", None)
 
@@ -429,7 +403,7 @@ class Translator(Base):
                     )
 
                     # 触发事件
-                    self.emit(self.EVENT.CACHE_FILE_AUTO_SAVE, {})
+                    self.emit(Base.EVENT.CACHE_FILE_AUTO_SAVE, {})
 
     # 保存缓存文件
     def save_cache_file(self, cache, path):

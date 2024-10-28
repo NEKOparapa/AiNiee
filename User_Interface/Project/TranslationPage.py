@@ -1,3 +1,6 @@
+import time
+import threading
+
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget
@@ -21,12 +24,21 @@ class TranslationPage(QWidget, Base):
 
     DEFAULT = {}
 
-    def __init__(self, text: str, window):
+    STATUS_TEXT = {
+        Base.STATUS.IDLE: "无任务",
+        Base.STATUS.API_TEST: "测试中",
+        Base.STATUS.TRANSLATION: "翻译中",
+        Base.STATUS.STOPING: "停止中",
+    }
+
+    def __init__(self, text: str, window, configurator):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
         # 初始化
         self.window = window
+        self.configurator = configurator
+        self.data = {}
 
         # 载入配置文件
         config = self.load_config()
@@ -42,123 +54,154 @@ class TranslationPage(QWidget, Base):
         self.add_widget_foot(self.container, config, window)
 
         # 注册事件
-        self.subscribe(self.EVENT.TRANSLATION_UPDATE, self.translation_update)
-        self.subscribe(self.EVENT.TRANSLATION_STOP_DONE, self.translation_stop_done)
-        self.subscribe(self.EVENT.TRANSLATION_CONTINUE_CHECK_DONE, self.translation_continue_check_done)
-        self.subscribe(self.EVENT.CACHE_FILE_AUTO_SAVE, self.cache_file_auto_save)
+        self.subscribe(Base.EVENT.TRANSLATION_UPDATE, self.translation_update)
+        self.subscribe(Base.EVENT.TRANSLATION_STOP_DONE, self.translation_stop_done)
+        self.subscribe(Base.EVENT.TRANSLATION_CONTINUE_CHECK_DONE, self.translation_continue_check_done)
+        self.subscribe(Base.EVENT.CACHE_FILE_AUTO_SAVE, self.cache_file_auto_save)
+
+        # 定时器
+        threading.Thread(target = self.update_ui_tick).start()
 
     # 页面显示事件
     def showEvent(self, event):
         super().showEvent(event)
-        self.emit(self.EVENT.TRANSLATION_CONTINUE_CHECK, {})
+        self.emit(Base.EVENT.TRANSLATION_CONTINUE_CHECK, {})
+
+    # 更新 UI 定时器
+    def update_ui_tick(self):
+        while True:
+            time.sleep(1)
+
+            # 接收到退出信号则停止
+            if hasattr(self, "update_ui_tick_stop_flag") and self.update_ui_tick_stop_flag == True:
+                break
+
+            # 触发翻译更新事件来更新 UI
+            self.emit(Base.EVENT.TRANSLATION_UPDATE, {})
 
     # 翻译更新事件
     def translation_update(self, event: int, data: dict):
-        if data.get("time", None) != None:
-            time = int(data.get("time"))
+        if self.configurator.status in (Base.STATUS.STOPING, Base.STATUS.TRANSLATION):
+            self.update_time(event, data)
+            self.update_line(event, data)
+            self.update_token(event, data)
 
-            if time < 60:
-                self.time.set_unit("S")
-                self.time.set_value(f"{time}")
-            elif time < 60 * 60:
-                self.time.set_unit("M")
-                self.time.set_value(f"{(time / 60):.2f}")
-            else:
-                self.time.set_unit("H")
-                self.time.set_value(f"{(time / 60 / 60):.2f}")
-
-        if data.get("remaining_time", None) != None:
-            remaining_time = int(data.get("remaining_time"))
-
-            if remaining_time < 60:
-                self.remaining_time.set_unit("S")
-                self.remaining_time.set_value(f"{remaining_time}")
-            elif remaining_time < 60 * 60:
-                self.remaining_time.set_unit("M")
-                self.remaining_time.set_value(f"{(remaining_time / 60):.2f}")
-            else:
-                self.remaining_time.set_unit("H")
-                self.remaining_time.set_value(f"{(remaining_time / 60 / 60):.2f}")
-
-        if data.get("line", None) != None:
-            line = data.get("line")
-
-            if line < 1000:
-                self.line_card.set_unit("Line")
-                self.line_card.set_value(f"{line}")
-            else:
-                self.line_card.set_unit("KLine")
-                self.line_card.set_value(f"{(line / 1000):.2f}")
-
-        if data.get("remaining_line", None) != None:
-            remaining_line = data.get("remaining_line")
-
-            if remaining_line < 1000:
-                self.remaining_line.set_unit("Line")
-                self.remaining_line.set_value(f"{remaining_line}")
-            else:
-                self.remaining_line.set_unit("KLine")
-                self.remaining_line.set_value(f"{(remaining_line / 1000):.2f}")
-
-        if data.get("token", None) != None:
-            token = data.get("token")
-
-            if token < 1000:
-                self.token.set_unit("Token")
-                self.token.set_value(f"{token}")
-            else:
-                self.token.set_unit("KToken")
-                self.token.set_value(f"{(token / 1000):.2f}")
-
-        if data.get("speed", None) != None:
-            speed = data.get("speed")
-            self.waveform.add_value(speed)
-
-            if speed < 1000:
-                self.speed.set_unit("T/S")
-                self.speed.set_value(f"{speed:.2f}")
-            else:
-                self.speed.set_unit("KT/S")
-                self.speed.set_value(f"{(speed / 1000):.2f}")
-
-        if data.get("task", None) != None:
-            task = data.get("task")
-
-            if task < 1000:
-                self.task.set_unit("Task")
-                self.task.set_value(f"{task}")
-            else:
-                self.task.set_unit("KTask")
-                self.task.set_value(f"{(task / 1000):.2f}")
-
-        if data.get("status", None) != None:
-            ring = data.get("status")
-
-            if data.get("line", None) != None and data.get("line", None) != 0:
-                percent = data.get("line") / data.get("total_line")
-
-                ring = ring + f"\n{(percent * 100):.2f}%"
-                self.ring.setValue(int(percent * 10000))
-
-            self.ring.setFormat(ring)
+        self.update_task(event, data)
+        self.update_status(event, data)
 
     # 翻译停止完成事件
     def translation_stop_done(self, event: int, data: dict):
         self.indeterminate_hide()
-
-        self.ring.setValue(0)
-        self.ring.setFormat("无任务")
         self.action_play.setEnabled(True)
+        self.action_stop.setEnabled(False)
+
+        # 设置翻译状态为无任务
+        self.configurator.status = Base.STATUS.IDLE
 
         # 更新继续翻译按钮状态
-        self.emit(self.EVENT.TRANSLATION_CONTINUE_CHECK, {})
+        self.emit(Base.EVENT.TRANSLATION_CONTINUE_CHECK, {})
 
     # 翻译状态检查完成事件
     def translation_continue_check_done(self, event: int, data: dict):
         self.action_continue.setEnabled(
-            data.get("translation_continue", False)
-            and self.action_play.isEnabled()
+            data.get("translation_continue", False) and self.action_play.isEnabled()
         )
+
+    # 更新时间
+    def update_time(self, event: int, data: dict):
+        if data.get("start_time", None) != None:
+            self.data["start_time"] = data.get("start_time")
+
+        total_time = int(time.time() - self.data.get("start_time", 0))
+        if total_time < 60:
+            self.time.set_unit("S")
+            self.time.set_value(f"{total_time}")
+        elif total_time < 60 * 60:
+            self.time.set_unit("M")
+            self.time.set_value(f"{(total_time / 60):.2f}")
+        else:
+            self.time.set_unit("H")
+            self.time.set_value(f"{(total_time / 60 / 60):.2f}")
+
+        remaining_time = int(total_time / max(1, self.data.get("line", 0)) * (self.data.get("total_line", 0) - self.data.get("line", 0)))
+        if remaining_time < 60:
+            self.remaining_time.set_unit("S")
+            self.remaining_time.set_value(f"{remaining_time}")
+        elif remaining_time < 60 * 60:
+            self.remaining_time.set_unit("M")
+            self.remaining_time.set_value(f"{(remaining_time / 60):.2f}")
+        else:
+            self.remaining_time.set_unit("H")
+            self.remaining_time.set_value(f"{(remaining_time / 60 / 60):.2f}")
+
+    # 更新行数
+    def update_line(self, event: int, data: dict):
+        if data.get("line", None) != None and data.get("total_line", None) != None:
+            self.data["line"] = data.get("line")
+            self.data["total_line"] = data.get("total_line")
+
+        line = self.data.get("line", 0)
+        if line < 1000:
+            self.line_card.set_unit("Line")
+            self.line_card.set_value(f"{line}")
+        else:
+            self.line_card.set_unit("KLine")
+            self.line_card.set_value(f"{(line/ 1000):.2f}")
+
+        remaining_line = self.data.get("total_line", 0) - self.data.get("line", 0)
+        if remaining_line < 1000:
+            self.remaining_line.set_unit("Line")
+            self.remaining_line.set_value(f"{remaining_line}")
+        else:
+            self.remaining_line.set_unit("KLine")
+            self.remaining_line.set_value(f"{(remaining_line / 1000):.2f}")
+
+    # 更新实时任务数
+    def update_task(self, event: int, data: dict):
+        task = len([t for t in threading.enumerate() if "translator" in t.name])
+        if task < 1000:
+            self.task.set_unit("Task")
+            self.task.set_value(f"{task}")
+        else:
+            self.task.set_unit("KTask")
+            self.task.set_value(f"{(task / 1000):.2f}")
+
+    # 更新 Token 数据
+    def update_token(self, event: int, data: dict):
+        if data.get("token", None) != None and data.get("total_completion_tokens", None) != None:
+            self.data["token"] = data.get("token")
+            self.data["total_completion_tokens"] = data.get("total_completion_tokens")
+
+        token = self.data.get("token", 0)
+        if token < 1000:
+            self.token.set_unit("Token")
+            self.token.set_value(f"{token}")
+        else:
+            self.token.set_unit("KToken")
+            self.token.set_value(f"{(token / 1000):.2f}")
+
+        speed = self.data.get("total_completion_tokens", 0) / max(1, time.time() - self.data.get("start_time", 0))
+        self.waveform.add_value(speed)
+        if speed < 1000:
+            self.speed.set_unit("T/S")
+            self.speed.set_value(f"{speed:.2f}")
+        else:
+            self.speed.set_unit("KT/S")
+            self.speed.set_value(f"{(speed / 1000):.2f}")
+
+    # 更新进度环
+    def update_status(self, event: int, data: dict):
+        if self.configurator.status == Base.STATUS.STOPING:
+            percent = self.data.get("line", 0) / max(1, self.data.get("total_line", 0))
+            self.ring.setValue(int(percent * 10000))
+            self.ring.setFormat(f"停止中\n{percent * 100:.2f}%")
+        elif self.configurator.status == Base.STATUS.TRANSLATION:
+            percent = self.data.get("line", 0) / max(1, self.data.get("total_line", 0))
+            self.ring.setValue(int(percent * 10000))
+            self.ring.setFormat(f"翻译中\n{percent * 100:.2f}%")
+        else:
+            self.ring.setValue(0)
+            self.ring.setFormat("无任务")
 
     # 缓存文件自动保存时间
     def cache_file_auto_save(self, event: int, data: dict):
@@ -251,7 +294,7 @@ class TranslationPage(QWidget, Base):
     def add_time_card(self, parent):
         self.time = DashboardCard(
                 title = "累计时间",
-                value = "未知",
+                value = "无",
                 unit = "",
             )
         self.time.setFixedSize(204, 204)
@@ -261,7 +304,7 @@ class TranslationPage(QWidget, Base):
     def add_remaining_time_card(self, parent):
         self.remaining_time = DashboardCard(
                 title = "剩余时间",
-                value = "未知",
+                value = "无",
                 unit = "",
             )
         self.remaining_time.setFixedSize(204, 204)
@@ -271,7 +314,7 @@ class TranslationPage(QWidget, Base):
     def add_line_card(self, parent):
         self.line_card = DashboardCard(
                 title = "翻译行数",
-                value = "未知",
+                value = "无",
                 unit = "",
             )
         self.line_card.setFixedSize(204, 204)
@@ -281,7 +324,7 @@ class TranslationPage(QWidget, Base):
     def add_remaining_line_card(self, parent):
         self.remaining_line = DashboardCard(
                 title = "剩余行数",
-                value = "未知",
+                value = "无",
                 unit = "",
             )
         self.remaining_line.setFixedSize(204, 204)
@@ -291,7 +334,7 @@ class TranslationPage(QWidget, Base):
     def add_speed_card(self, parent):
         self.speed = DashboardCard(
                 title = "平均速度",
-                value = "未知",
+                value = "无",
                 unit = "",
             )
         self.speed.setFixedSize(204, 204)
@@ -301,7 +344,7 @@ class TranslationPage(QWidget, Base):
     def add_token_card(self, parent):
         self.token = DashboardCard(
                 title = "累计消耗",
-                value = "未知",
+                value = "无",
                 unit = "",
             )
         self.token.setFixedSize(204, 204)
@@ -311,7 +354,7 @@ class TranslationPage(QWidget, Base):
     def add_task_card(self, parent):
         self.task = DashboardCard(
                 title = "实时任务数",
-                value = "未知",
+                value = "无",
                 unit = "",
             )
         self.task.setFixedSize(204, 204)
@@ -323,7 +366,7 @@ class TranslationPage(QWidget, Base):
             self.action_play.setEnabled(False)
             self.action_stop.setEnabled(True)
             self.action_continue.setEnabled(False)
-            self.emit(self.EVENT.TRANSLATION_START, {
+            self.emit(Base.EVENT.TRANSLATION_START, {
                 "translation_continue": False,
             })
 
@@ -343,7 +386,7 @@ class TranslationPage(QWidget, Base):
                 self.indeterminate_show("正在停止翻译任务 ...")
 
                 self.action_stop.setEnabled(False)
-                self.emit(self.EVENT.TRANSLATION_STOP, {})
+                self.emit(Base.EVENT.TRANSLATION_STOP, {})
 
         self.action_stop = parent.add_action(
             Action(
@@ -361,7 +404,7 @@ class TranslationPage(QWidget, Base):
             self.action_play.setEnabled(False)
             self.action_stop.setEnabled(True)
             self.action_continue.setEnabled(False)
-            self.emit(self.EVENT.TRANSLATION_START, {
+            self.emit(Base.EVENT.TRANSLATION_START, {
                 "translation_continue": True,
             })
 

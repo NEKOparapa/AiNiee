@@ -55,7 +55,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
         # 打印日志
         if self.is_debug():
-            self.warning(f"调试模式已启用 ...")
+            self.warning("调试模式已启用 ...")
 
         # 设置主题颜色
         setThemeColor(self.THEME_COLOR)
@@ -93,7 +93,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         message_box.cancelButton.setText("取消")
 
         if message_box.exec():
-            self.emit(self.EVENT.APP_SHUT_DOWN, {})
+            self.emit(Base.EVENT.APP_SHUT_DOWN, {})
             self.info("主窗口已关闭，稍后应用将自动退出 ...")
             event.accept()
         else:
@@ -163,7 +163,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.addSubInterface(self.platform_page, FluentIcon.IOT, "接口管理", NavigationItemPosition.SCROLL)
         self.prject_page = ProjectPage("prject_page", self)
         self.addSubInterface(self.prject_page, FluentIcon.FOLDER, "项目设置", NavigationItemPosition.SCROLL)
-        self.translation_page = TranslationPage("translation_page", self)
+        self.translation_page = TranslationPage("translation_page", self, configurator)
         self.addSubInterface(self.translation_page, FluentIcon.PLAY, "开始翻译", NavigationItemPosition.SCROLL)
 
     # 添加第二节

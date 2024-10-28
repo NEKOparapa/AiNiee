@@ -90,7 +90,7 @@ class TranslatorTask(Base):
         while i < self.configurator.retry_count_limit + 1:
             while True:
                 # 检测是否需要停止任务
-                if self.configurator.status == self.STATUS.STOPING:
+                if self.configurator.status == Base.STATUS.STOPING:
                     return {}
 
                 # 检查 RPM 和 TPM 限制，如果符合条件，则继续
@@ -263,7 +263,7 @@ class TranslatorTask(Base):
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
             }
-        except Exception as e:
+        except Exception:
             return {
                 "check_result": False,
                 "row_count": 0,
@@ -299,7 +299,7 @@ class TranslatorTask(Base):
             response_content = response.choices[0].message.content
         except Exception as e:
             if self.is_debug():
-                self.error(f"翻译任务错误 ...", e)
+                self.error("翻译任务错误 ...", e)
             else:
                 self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None
@@ -350,7 +350,7 @@ class TranslatorTask(Base):
             response_content_json = response.message.content[0].text
         except Exception as e:
             if self.is_debug():
-                self.error(f"翻译任务错误 ...", e)
+                self.error("翻译任务错误 ...", e)
             else:
                 self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None
@@ -408,7 +408,7 @@ class TranslatorTask(Base):
             response_content_json = response.text
         except Exception as e:
             if self.is_debug():
-                self.error(f"翻译任务错误 ...", e)
+                self.error("翻译任务错误 ...", e)
             else:
                 self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None
@@ -456,7 +456,7 @@ class TranslatorTask(Base):
             response_content_json = response.content[0].text
         except Exception as e:
             if self.is_debug():
-                self.error(f"翻译任务错误 ...", e)
+                self.error("翻译任务错误 ...", e)
             else:
                 self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None
@@ -505,7 +505,7 @@ class TranslatorTask(Base):
             response_content_json = response.choices[0].message.content
         except Exception as e:
             if self.is_debug():
-                self.error(f"翻译任务错误 ...", e)
+                self.error("翻译任务错误 ...", e)
             else:
                 self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None

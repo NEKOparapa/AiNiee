@@ -28,12 +28,10 @@ class Base():
 
     # 状态列表
     STATUS = type("GClass", (), {})()
-    STATUS.IDLE = 0             # 无任务
-    STATUS.API_TEST = 1         # 测试中
-    STATUS.TRANSLATION = 6      # 翻译中
-    STATUS.PAUSING = 9          # 暂停中（已弃用）
-    STATUS.PAUSE = 10           # 已暂停（已弃用）
-    STATUS.STOPING = 11         # 停止中
+    STATUS.IDLE = 100             # 无任务
+    STATUS.API_TEST = 110         # 测试中
+    STATUS.TRANSLATION = 120      # 翻译中
+    STATUS.STOPING = 130          # 停止中
 
     # 默认配置
     DEFAULT = {}
