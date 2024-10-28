@@ -20,15 +20,14 @@ class MixTranslationSettingsPage(QFrame, Base):
         "mix_translation_settings": {
             "translation_platform_1": "openai",
             "translation_platform_2": "openai",
-            "customModel_siwtch_2": False,
             "model_type_2": "",
             "split_switch_2": False,
             "translation_platform_3": "openai",
-            "customModel_siwtch_3": False,
             "model_type_3": "",
             "split_switch_3": False
         },
     }
+
     def __init__(self, text: str, window):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
@@ -193,24 +192,12 @@ class MixTranslationSettingsPage(QFrame, Base):
 
         def add_custom_model_siwtch_2_card(parent):
             def widget_init(widget):
-                model_type_2 = config.get("mix_translation_settings").get("model_type_2")
-
-                if model_type_2 != "":
-                    widget.set_text(model_type_2)
-
+                widget.set_text(config.get("mix_translation_settings").get("model_type_2"))
                 widget.set_placeholder_text("请输入模型名称 ...")
 
             def widget_callback(widget, text: str):
                 config = self.load_config()
-                text = text.strip()
-
-                if text != "":
-                    config["mix_translation_settings"]["model_type_2"] = text
-                    config["mix_translation_settings"]["customModel_siwtch_2"] = True
-                else:
-                    config["mix_translation_settings"]["model_type_2"] = text
-                    config["mix_translation_settings"]["customModel_siwtch_2"] = False
-
+                config["mix_translation_settings"]["model_type_2"] = text.strip()
                 self.save_config(config)
 
             parent.addWidget(
@@ -288,24 +275,12 @@ class MixTranslationSettingsPage(QFrame, Base):
 
         def add_custom_model_siwtch_3_card(parent):
             def widget_init(widget):
-                model_type_3 = config.get("mix_translation_settings").get("model_type_3")
-
-                if model_type_3 != "":
-                    widget.set_text(model_type_3)
-
+                widget.set_text(config.get("mix_translation_settings").get("model_type_3"))
                 widget.set_placeholder_text("请输入模型名称 ...")
 
             def widget_callback(widget, text: str):
                 config = self.load_config()
-                text = text.strip()
-
-                if text != "":
-                    config["mix_translation_settings"]["model_type_3"] = text
-                    config["mix_translation_settings"]["customModel_siwtch_3"] = True
-                else:
-                    config["mix_translation_settings"]["model_type_3"] = text
-                    config["mix_translation_settings"]["customModel_siwtch_3"] = False
-
+                config["mix_translation_settings"]["model_type_3"] = text.strip()
                 self.save_config(config)
 
             parent.addWidget(

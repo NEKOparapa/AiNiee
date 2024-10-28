@@ -254,16 +254,23 @@ class TranslatorTask(Base):
                 # 翻译任务执行成功则不再重试
                 break
 
-        # 返回任务结果
-        if not hasattr(self, "check_result"):
-            return {}
-        else:
+        # 返回任务结果，如果 check_result 不存在，即请求发生错误，则按照失败处理
+        try:
+            check_result == True
             return {
                 "check_result": check_result,
                 "row_count": row_count,
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
             }
+        except Exception as e:
+            return {
+                "check_result": False,
+                "row_count": 0,
+                "prompt_tokens": request_tokens_consume,
+                "completion_tokens": 0,
+            }
+
 
     # 发起请求
     def request_sakura(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty):

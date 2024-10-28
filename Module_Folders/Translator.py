@@ -71,12 +71,10 @@ class Translator(Base):
         translation_continue = False
         try:
             cache = self.load_cache_file(f"{self.configurator.label_output_path}/cache/AinieeCacheData.json")
-            untranslated_text_line_count, _ = Cache_Manager.count_and_update_translation_status_0_2(
-                self,
-                cache,
-            )
-            translation_continue = untranslated_text_line_count > 0
-        except Exception:
+            translated_line = [v for v in cache if v.get("translation_status", -1) == 1]
+            untranslated_line = [v for v in cache if v.get("translation_status", -1) in (0, 2)]
+            translation_continue = len(translated_line) > 0 and len(untranslated_line) > 0
+        except Exception as e:
             self.error("缓存文件读取失败 ...", e)
         finally:
             self.emit(self.EVENT.TRANSLATION_CONTINUE_CHECK_DONE, {
@@ -153,13 +151,6 @@ class Translator(Base):
             self.configurator.cache_list,
         )
 
-        # 配置请求限制器，依赖前面的配置信息
-        self.request_limiter.set_limit(
-            self.configurator.max_tokens,
-            self.configurator.TPM_limit,
-            self.configurator.RPM_limit,
-        )
-
         # 开始循环
         time.sleep(3)
         for current_round in range(self.configurator.round_limit + 1):
@@ -167,8 +158,28 @@ class Translator(Base):
             if self.configurator.status == self.STATUS.STOPING:
                 return {}
 
+            # 开启混合翻译时，根据混合翻译的设置调整接口
+            model = None
+            split = True
+            if current_round == 0 and self.configurator.mix_translation_enable == True:
+                self.configurator.target_platform = self.configurator.mix_translation_settings.get("translation_platform_1")
+            elif current_round == 1 and self.configurator.mix_translation_enable == True:
+                split = self.configurator.mix_translation_settings.get("split_switch_2")
+                self.configurator.target_platform = self.configurator.mix_translation_settings.get("translation_platform_2")
+                if self.configurator.mix_translation_settings.get("model_type_2") != "":
+                    model = self.configurator.mix_translation_settings.get("model_type_2")
+            elif current_round >= 2 and self.configurator.mix_translation_enable == True:
+                split = self.configurator.mix_translation_settings.get("split_switch_3")
+                self.configurator.target_platform = self.configurator.mix_translation_settings.get("translation_platform_3")
+                if self.configurator.mix_translation_settings.get("model_type_3") != "":
+                    model = self.configurator.mix_translation_settings.get("model_type_3")
+
             # 译前准备工作
-            task_current_round, line_current_round = self.translation_prepare(current_round)
+            task_current_round, line_current_round = self.translation_prepare(
+                current_round,
+                model,
+                split,
+            )
 
             # 判断是否需要继续翻译
             if line_current_round == 0:
@@ -232,13 +243,9 @@ class Translator(Base):
         self.translation_post_process()
 
     # 译前准备
-    def translation_prepare(self, current_round: int):
-        # 根据混合翻译设置更换翻译平台
-        if current_round == 0 and self.configurator.mix_translation_enable:
-            self.configurator.target_platform = self.configurator.mix_translation_settings.get("translation_platform_1")
-
+    def translation_prepare(self, current_round: int, model: str, split: bool):
         # 第二轮开始对半切分
-        if current_round > 0:
+        if current_round > 0 and split == True:
             self.configurator.lines_limit, self.configurator.tokens_limit = self.update_task_limit(
                 self.configurator.lines_limit,
                 self.configurator.tokens_limit,
@@ -247,7 +254,14 @@ class Translator(Base):
         # 配置翻译平台信息
         self.configurator.configure_translation_platform(
             self.configurator.target_platform,
-            None,
+            model,
+        )
+
+        # 配置请求限制器，依赖前面的配置信息
+        self.request_limiter.set_limit(
+            self.configurator.max_tokens,
+            self.configurator.TPM_limit,
+            self.configurator.RPM_limit,
         )
 
         # 计算待翻译的文本总行数，tokens总数
@@ -328,7 +342,7 @@ class Translator(Base):
 
             # 记录数据
             with self.lock:
-                if result.get("check_result", None) == True:
+                if result.get("check_result") == True:
                     new = {}
                     new["status"] = status
                     new["start_time"] = self.data.get("start_time")
@@ -342,7 +356,7 @@ class Translator(Base):
                     new["speed"] = new.get("total_completion_tokens") / max(1, new.get("time"))
                     new["task"] = len([t for t in threading.enumerate() if "translator" in t.name])
                     self.data = new
-                elif result.get("check_result", None) == False:
+                else:
                     new = {}
                     new["status"] = status
                     new["start_time"] = self.data.get("start_time")
