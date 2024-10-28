@@ -21,7 +21,7 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 class TextReplaceAPage(QFrame, Base):
 
     DEFAULT = {
-        "pre_translation_switch": True,
+        "pre_translation_switch": False,
         "pre_translation_content": {},
     }
 

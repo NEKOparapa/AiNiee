@@ -83,24 +83,23 @@
 <details>
 <summary>
 
-### 账号配置
+### 接口管理
 </summary>
 
 *  OpenAI官方配置示例:
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/官方账号设置.png" width="600" height="400"><br>
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/官方账号设置.png" width="600" height="400"><br>
   
     >`账号类型`: 新注册的5刀余额账号为免费账号，有各种限制，单号速度不快；付费账号是有过付费记录，且达到一些条件才会升级<br>
   
-    > `模型选择`: 默认是GPT3.5模型，请自行了解模型之间的区别后再进行更改。<br>
+    > `模型选择`: 请自行了解模型之间的区别后再进行更改。<br>
   
     >`API KEY`: 填入由OpenAi账号生成的api_key<br>
   
-    >`代理端口`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
 
 *  代理平台配置示例:
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/代理账号设置.png" width="600" height="400"><br> 
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/代理账号设置.png" width="600" height="400"><br> 
     
-    >`请求地址`: 填入国内代理平台提供的请求地址,示例：`https://api.openai-sb.com` ,不要在后面单带一个`/`
+    >`请求地址`: 填入国内代理平台提供的请求地址,示例：`https://api.XXXXX.com` ,不要在后面单带一个`/`
 
     >`自动补全`: 会在上面输入的请求地址自动补全“v1”
     
@@ -110,9 +109,8 @@
 
     >`API KEY`: 填入国内代理平台给你生成的API KEY<br>
 
-    >`代理端口`: 可以不输入,如果需要设置代理时,再则填入http://<代理ip>:<代理端口>,示例：`http://127.0.0.1:10081`<br>
 
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/代理账号速率价格设置.png" width="600" height="400"><br> 
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/代理账号速率价格设置.png" width="600" height="400"><br> 
 
     >`每次发送文本上限`: 限制每次发送文本的容量大小，以tokens为单位
   
@@ -120,9 +118,6 @@
   
     >`每分钟tokens数`: TPM (tokens per minute)每分钟向openai发送的tokens总数（类似字符总数）
 
-    >`请求输入价格`: 根据代理平台设定的价格进行设置，单位是每1k tokens
-    
-    >`回复输出价格`: 根据代理平台设定的价格进行设置，单位是每1k tokens
 
 *  SakuraLLM配置:
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sakura/SakuraLLM.png" width="600" height="400"><br>
@@ -136,33 +131,36 @@
 <details>
 <summary> 
 
-### 翻译配置
+### 项目设置
 </summary>
 
 *   配置示例:<br>
 
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/基础设置.png" width="600" height="400"><br>
     
-    >`翻译项目`: 需要翻译的原文文件<br>
+    >`项目类型`: 需要翻译的原文文件<br>
 
-    >`翻译平台`: 翻译文本时希望使用的平台<br>
+    >`接口名称`: 翻译文本时希望使用的平台<br>
 
-    >`文本源语言`: 根据你需要翻译游戏的语言选择相应的源语言<br>
+    >`原文语言`: 根据你需要翻译游戏的语言选择相应的源语言<br>
 
-    >`文本目标语言`: 你希望翻译成的语言<br>
+    >`译文语言`: 你希望翻译成的语言<br>
   
     >`输入文件夹`: 选择你需要翻译的原文文件,把原文尽量放在一个干净的文件夹内，文件夹内没有其他文件，因为会读取该文件夹内所有相关的文件，包括子文件<br>
   
     >`输出文件夹`: 选择翻译后文件的存储文件夹，请不要和输入文件夹一个路径<br>
 
+    >`自动备份缓存文件`: 会自动备份缓存文件到输出文件夹，高并发情况下会影响速度<br>
 
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/任务设置.png" width="600" height="400"><br>
+    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/发送设置.png" width="600" height="400"><br>
 
-    >`每次翻译行数`: 每次请求翻译的文本行数。行数设置越大,整体的翻译效果会更好,上下文更加流畅,但每次请求回复速度会越慢,回复的内容越容易出错，请根据模型类型来进行设置。<br>
+    >`行数切分模式`: 每次请求翻译的文本行数。行数设置越大,整体的翻译效果会更好,上下文更加流畅,但每次请求回复速度会越慢,回复的内容越容易出错，请根据模型类型来进行设置。<br>
 
-    >`每次翻译tokens数`: 每次请求翻译的文本tokens数，整体效果和行数模式差不多，只不过这个可以更加精确控制发送的大小，从而提高效率<br>
+    >`tokens数切分模式`: 每次请求翻译的文本tokens数，整体效果和行数模式差不多，只不过这个可以更加精确控制发送的大小，从而提高效率<br>
 
-    >`最大线程数`: 请根据翻译平台的速率进行设置，线程数越大，越容易吃满速率限制，翻译速度越快。多出的线程数不会影响翻译，但会增加电脑性能消耗<br>
+    >`翻译任务并发数`: 请根据翻译平台的速率进行设置，线程数越大，越容易吃满速率限制，翻译速度越快。多出的线程数不会影响翻译，但会增加电脑性能消耗<br>
+
+    >`携带上文行数`: 弱小的模型不建议携带上文，且不建议携带过多行数<br>
 
     >`错误重翻最大次数限制`: 就是一段文本，出现错误回复时，最多允许重复翻译的次数<br>  
     
@@ -177,9 +175,10 @@
 
     >`保留句内换行符`: 在翻译前将换行符替换成特殊字符，再进行翻译，AI仍会吞符号，不是百分百保留。<br>
 
-    >`中文字体转换`: 可以将翻译后的中文字体进行简体，繁体，香港体等待进行转换。配置文件说明，请参考 https://github.com/BYVoid/OpenCC<br>
-
     >`保留首尾非文本字符`: 主要用于T++导出的文本，该工具导出的文本带很多代码文本，可以截取处理了首尾的占位代码等，翻译了，再复原回来<br>
+
+    >`中文字形转换`: 可以将翻译后的中文字体进行简体，繁体，香港体等待进行转换。配置文件说明，请参考 https://github.com/BYVoid/OpenCC<br>
+
 
 
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/混合翻译设置.png" width="600" height="400"><br>
