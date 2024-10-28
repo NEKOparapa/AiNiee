@@ -58,6 +58,7 @@ class TranslationPage(QWidget, Base):
         self.subscribe(Base.EVENT.TRANSLATION_STOP_DONE, self.translation_stop_done)
         self.subscribe(Base.EVENT.TRANSLATION_CONTINUE_CHECK_DONE, self.translation_continue_check_done)
         self.subscribe(Base.EVENT.CACHE_FILE_AUTO_SAVE, self.cache_file_auto_save)
+        self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
 
         # 定时器
         threading.Thread(target = self.update_ui_tick).start()
@@ -66,6 +67,10 @@ class TranslationPage(QWidget, Base):
     def showEvent(self, event):
         super().showEvent(event)
         self.emit(Base.EVENT.TRANSLATION_CONTINUE_CHECK, {})
+
+    # 应用关闭事件
+    def app_shut_down(self, event: int, data: dict):
+        self.update_ui_tick_stop_flag = True
 
     # 更新 UI 定时器
     def update_ui_tick(self):
@@ -421,7 +426,8 @@ class TranslationPage(QWidget, Base):
     # 导出已完成的内容
     def add_command_bar_action_export(self, parent):
         def triggered():
-            pass
+            self.emit(Base.EVENT.TRANSLATION_MANUAL_EXPORT, {})
+            self.success_toast("", "已将完成的翻译内容导出到输出文件夹 ...")
 
         parent.add_action(
             Action(FluentIcon.SHARE, "导出已完成的内容", parent, triggered = triggered),

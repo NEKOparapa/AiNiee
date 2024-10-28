@@ -15,16 +15,17 @@ class Base():
 
     # 事件列表
     EVENT = type("GClass", (), {})()
-    EVENT.API_TEST_DONE = 100
-    EVENT.API_TEST_START = 101
-    EVENT.TRANSLATION_START = 210
-    EVENT.TRANSLATION_UPDATE = 220
-    EVENT.TRANSLATION_STOP = 230
-    EVENT.TRANSLATION_STOP_DONE = 231
-    EVENT.TRANSLATION_CONTINUE_CHECK = 240
-    EVENT.TRANSLATION_CONTINUE_CHECK_DONE = 241
-    EVENT.CACHE_FILE_AUTO_SAVE = 300
-    EVENT.APP_SHUT_DOWN = 1000
+    EVENT.API_TEST_DONE = 100                       # API 测试完成
+    EVENT.API_TEST_START = 101                      # API 测试开始
+    EVENT.TRANSLATION_START = 210                   # 翻译开始
+    EVENT.TRANSLATION_UPDATE = 220                  # 翻译状态更新
+    EVENT.TRANSLATION_STOP = 230                    # 翻译停止
+    EVENT.TRANSLATION_STOP_DONE = 231               # 翻译停止完成
+    EVENT.TRANSLATION_CONTINUE_CHECK = 240          # 继续翻译状态检查
+    EVENT.TRANSLATION_CONTINUE_CHECK_DONE = 241     # 继续翻译状态检查完成
+    EVENT.TRANSLATION_MANUAL_EXPORT = 250           # 翻译结果手动导出
+    EVENT.CACHE_FILE_AUTO_SAVE = 300                # 缓存文件自动保存
+    EVENT.APP_SHUT_DOWN = 1000                      # 应用关闭
 
     # 状态列表
     STATUS = type("GClass", (), {})()

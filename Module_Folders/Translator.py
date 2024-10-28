@@ -34,6 +34,7 @@ class Translator(Base):
         # 注册事件
         self.subscribe(Base.EVENT.TRANSLATION_STOP, self.translation_stop)
         self.subscribe(Base.EVENT.TRANSLATION_START, self.translation_start)
+        self.subscribe(Base.EVENT.TRANSLATION_MANUAL_EXPORT, self.translation_manual_export)
         self.subscribe(Base.EVENT.TRANSLATION_CONTINUE_CHECK, self.translation_continue_check)
         self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
 
@@ -42,6 +43,7 @@ class Translator(Base):
 
     # 应用关闭事件
     def app_shut_down(self, event: int, data: dict):
+        self.configurator.status = Base.STATUS.STOPING
         self.save_cache_file_stop_flag = True
 
     # 翻译停止事件
@@ -64,6 +66,26 @@ class Translator(Base):
             target = self.translation_start_target,
             args = (data.get("translation_continue"),),
         ).start()
+
+    # 翻译结果手动导出事件
+    def translation_manual_export(self, event: int, data: dict):
+        # 复制一份数据
+        new = copy.deepcopy(self.configurator.cache_list)
+
+        # 触发手动导出插件事件
+        self.plugin_manager.broadcast_event(
+            "manual_export",
+            self.configurator,
+            new
+        )
+
+        # 写入文件
+        File_Outputter.output_translated_content(
+            self,
+            new,
+            self.configurator.label_output_path,
+            self.configurator.label_input_path,
+        )
 
     # 翻译状态检查事件
     def translation_continue_check(self, event: int, data: dict):
