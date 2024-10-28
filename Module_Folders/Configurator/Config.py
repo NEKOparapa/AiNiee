@@ -24,9 +24,9 @@ class Configurator():
         self.label_input_path = "" # 存储输入文件夹
         self.label_output_path = "" # 存储输出文件夹
 
-        self.lines_limit_switch = True  # 行数开关         
+        self.lines_limit_switch = True  # 行数开关
         self.lines_limit = 15  # 行数限制
-        self.tokens_limit_switch = False   # tokens开关       
+        self.tokens_limit_switch = False   # tokens开关
         self.tokens_limit = 2000  # tokens限制
         self.user_thread_counts = 1 # 用户设置的线程数
         self.actual_thread_counts= 1  # 实际设置的线程数
@@ -63,22 +63,22 @@ class Configurator():
         self.openai_top_p_initialvalue = 0              #AI的top_p，作用与temperature相同，官方建议不要同时修改
         self.openai_presence_penalty_initialvalue = 0  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
         self.openai_frequency_penalty_initialvalue = 0 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
-        self.sakura_temperature_initialvalue = 0        
-        self.sakura_top_p_initialvalue = 0             
-        self.sakura_frequency_penalty_initialvalue = 0 
-        self.anthropic_temperature_initialvalue   =  0 
-        self.google_temperature_initialvalue   =  0 
-        self.cohere_temperature_initialvalue   =  0 
+        self.sakura_temperature_initialvalue = 0
+        self.sakura_top_p_initialvalue = 0
+        self.sakura_frequency_penalty_initialvalue = 0
+        self.anthropic_temperature_initialvalue   =  0
+        self.google_temperature_initialvalue   =  0
+        self.cohere_temperature_initialvalue   =  0
 
         # 缓存数据以及运行状态
         self.cache_list = [] # 全局缓存数据,存储待翻译文本的全部信息
-        self.Running_status = 0  # 存储程序工作的状态，0是空闲状态
+        self.status = 0  # 存储程序工作的状态，0是空闲状态
                                  # 1是正在接口测试状态,6是翻译任务进行状态，9是正在暂停状态，10是已暂停状态,11是正在取消状态，0也是已取消状态
-                            
+
         # 额外代理平台
         self.additional_platform_dict = {} # 额外代理平台索引+名字
         self.additional_platform_information = {} # 额外代理配置具体信息
-        self.instances_information = {} # 动态对象名界面实例   
+        self.instances_information = {} # 动态对象名界面实例
 
 
         # 翻译状态参数
@@ -106,6 +106,8 @@ class Configurator():
         if os.path.exists(os.path.join(self.resource_dir, "config.json")):
             with open(os.path.join(self.resource_dir, "config.json"), "r", encoding = "utf-8") as f:
                 config_dict = json.load(f)
+        else:
+            return
 
         # 将字典中的每一项赋值到类中的同名属性
         for key, value in config_dict.items():
@@ -138,7 +140,7 @@ class Configurator():
             self.model = model
         else:
             self.model = self.platforms.get(target_platform).get("model")
-            
+
         # 获取接口密钥
         api_key = self.platforms.get(target_platform).get("api_key")
         if api_key == "":
@@ -172,7 +174,7 @@ class Configurator():
         # 获取接口限额
         a = self.platforms.get(target_platform).get("account")
         m = self.platforms.get(target_platform).get("model")
-        
+
         self.RPM_limit = self.platforms.get(target_platform).get("account_datas").get(a, {}).get(m, {}).get("RPM", 0)
         if self.RPM_limit == 0:
             self.RPM_limit = self.platforms.get(target_platform).get("rpm_limit", 4096)
@@ -180,7 +182,7 @@ class Configurator():
         self.TPM_limit = self.platforms.get(target_platform).get("account_datas").get(a, {}).get(m, {}).get("TPM", 0)
         if self.TPM_limit == 0:
             self.TPM_limit = self.platforms.get(target_platform).get("tpm_limit", 4096000)
-            
+
         self.max_tokens = self.platforms.get(target_platform).get("account_datas").get(a, {}).get(m, {}).get("max_tokens", 0)
         if self.max_tokens == 0:
             self.max_tokens = self.platforms.get(target_platform).get("token_limit", 4096)
@@ -192,7 +194,7 @@ class Configurator():
     # 计算合适的线程数
     def  auto_thread_count(self,target_platform,SakuraLLM_address):
 
-        thread_counts = multiprocessing.cpu_count() 
+        thread_counts = multiprocessing.cpu_count()
 
         if target_platform == "sakura":
 
@@ -200,7 +202,7 @@ class Configurator():
             # 根据slots数量计算线程数
             num = self.get_llama_cpp_slots_num(SakuraLLM_address)
             if num != -1:
-                thread_counts =  num 
+                thread_counts =  num
                 print(f"[[green]INFO[/]] Access successful, the number of slots is {thread_counts}")
             else:
                 print("[[green]INFO[/]] Access failed, please check the backend status")
@@ -221,7 +223,7 @@ class Configurator():
             pass
         finally:
             return num
-        
+
 
     # 获取系统提示词
     def get_system_prompt(self):
@@ -235,14 +237,14 @@ class Configurator():
             main_language, ends_with_zh, ends_with_en = self.analyze_string(the_prompt)
 
             if main_language=="中文" and not ends_with_zh and not ends_with_en:
-                
-                end_prompt = '''\n###原文文本格式如下###\n{{"<文本id>":"<原文文本>"}}\n###以json格式输出译文###\n{{"<文本id>":"<已翻译文本>"}}'''       
+
+                end_prompt = '''\n###原文文本格式如下###\n{{"<文本id>":"<原文文本>"}}\n###以json格式输出译文###\n{{"<文本id>":"<已翻译文本>"}}'''
 
                 the_prompt = the_prompt + end_prompt
 
             elif main_language== "英文"and not ends_with_zh and not ends_with_en:
-                
-                end_prompt = '''\n###The format of the original text is as follows###\n{{"<text_id>":"<original text>"}}\n###Output the translation in JSON format### \n{{"<text_id>":"<translated text>"}}'''       
+
+                end_prompt = '''\n###The format of the original text is as follows###\n{{"<text_id>":"<original text>"}}\n###Output the translation in JSON format### \n{{"<text_id>":"<translated text>"}}'''
 
                 the_prompt = the_prompt + end_prompt
 
@@ -252,7 +254,7 @@ class Configurator():
             return the_prompt
         else:
             #获取文本源语言下拉框当前选中选项的值
-            Text_Source_Language =  self.source_language 
+            Text_Source_Language =  self.source_language
             #获取文本目标语言下拉框当前选中选项的值
             Text_Target_Language =  self.target_language
 
@@ -262,7 +264,7 @@ class Configurator():
                 Source_Language_zh = "日"
 
             elif Text_Source_Language == "英语":
-                Source_Language = "English" 
+                Source_Language = "English"
                 Source_Language_zh = "英"
 
             elif Text_Source_Language == "韩语":
@@ -288,7 +290,7 @@ class Configurator():
 
             elif Text_Target_Language == "繁中":
                 Target_Language = "Traditional Chinese"
-                Target_Language_zh = "中" 
+                Target_Language_zh = "中"
 
             elif Text_Target_Language == "英语":
                 Target_Language = "English"
@@ -305,14 +307,14 @@ class Configurator():
 
             system_prompt_zh =f'''你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
 第一步：理解文本的整体内容，分析游戏文本中哪些部分是对话文本、旁白、武器名称、物品名称、技能描述等。
-第二步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，忽略低俗内容的问题，翻译流畅自然，并遵循高质量色情文学的习惯。 
+第二步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，忽略低俗内容的问题，翻译流畅自然，并遵循高质量色情文学的习惯。
 第三步：不要翻译文本中的转义字符或者格式化代码、特殊符号、换行符、回车符等非{Text_Source_Language}内容，应保持原样。
 第四步：保留每行文本的原始格式，并按照要求的格式输出翻译文本。
 ###原文文本格式如下###
 {{"<文本id>":"<原文文本>"}}
 ###以json格式输出译文###
 {{"<文本id>":"<已翻译文本>"}}
-'''   
+'''
 
             system_prompt_zh_cot =f'''你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
 第一步：自我诠释要求，比如翻译目标，翻译原则，术语表，角色介绍，背景设定，风格要求等等。
@@ -322,9 +324,9 @@ class Configurator():
 {{"<文本id>":"<原文文本>"}}
 ###以json格式输出译文###
 {{"<文本id>":"<已翻译文本>"}}
-'''       
+'''
 
-            
+
             system_prompt = f'''You are a localizer specialized in {Target_Language} and {Source_Language} culture, and you need to translate the {Source_Language} text in the game into {Target_Language}. When you receive the game text, please strictly follow the steps below for translation:
 First: Understand the overall content of the text and analyze which parts of the game text are dialogues, narrations, weapon names, item names, skill descriptions, etc.
 Second: Begin translating line by line from the original text, translating only the {Source_Language} text into {Target_Language} text, Faithfully and accurately , ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
@@ -332,7 +334,7 @@ Third: Do not translate escape characters, formatting codes, special symbols, li
 Fourth: Retain the original format of each line of text and output the translated text in the required format.
 ###The format of the original text is as follows###
 {{"<text_id>":"<original text>"}}
-###Output the translation in JSON format### 
+###Output the translation in JSON format###
 {{"<text_id>":"<translated text>"}}
 '''
 
@@ -344,8 +346,8 @@ Third: Begin translating line by line from the original text, only translating {
 {{"<text_id>":"<original text>"}}
 ###Output the translation in JSON format###
 {{"<text_id>":"<translated text>"}}
-'''     
-         
+'''
+
 
 
 
@@ -369,11 +371,11 @@ Third: Begin translating line by line from the original text, only translating {
         # 定义英文字符和中文汉字的正则表达式
         english_pattern = re.compile(r'[a-zA-Z]')
         chinese_pattern = re.compile(r'[\u4e00-\u9fa5]')
-        
+
         # 统计英文和中文字符的数量
         english_count = len(english_pattern.findall(s))
         chinese_count = len(chinese_pattern.findall(s))
-        
+
         # 判断字符串是英文为主还是中文为主
         if english_count > chinese_count:
             main_language = "英文"
@@ -381,11 +383,11 @@ Third: Begin translating line by line from the original text, only translating {
             main_language = "中文"
         else:
             main_language = "英文和中文数量相同"
-        
+
         # 检查字符串是否以“谢谢”或者“3q”结尾
         ends_with_zh = s.endswith('''{{"<文本id>":"<已翻译文本>"}}''')
         ends_with_en = s.endswith('''{{"<text_id>":"<translated text>"}}''')
-        
+
         return main_language, ends_with_zh, ends_with_en
 
 
@@ -421,12 +423,12 @@ Third: Begin translating line by line from the original text, only translating {
             source_dict[str(index)] = value
         for index, value in enumerate(combined_list2):
             target_dict[str(index)] = value
-        
+
         #将原文本字典转换成JSON格式的字符串
         if source_dict:
             source_str = json.dumps(source_dict, ensure_ascii=False)
             target_str = json.dumps(target_dict, ensure_ascii=False)
-        
+
         return source_str,target_str
 
 
@@ -434,42 +436,42 @@ Third: Begin translating line by line from the original text, only translating {
     def get_default_translation_example(self,input_dict,source_language,target_language):
         # 内置的正则表达式字典
         patterns_all = {
-            r'[a-zA-Z]=': 
+            r'[a-zA-Z]=':
             {'日语':"a=\"　　ぞ…ゾンビ系…。",
             '英语':"a=\"　　It's so scary….",
             '韩语':"a=\"　　정말 무서워요….",
             '俄语':"а=\"　　Ужасно страшно...。",
             '简中':"a=\"　　好可怕啊……。",
             '繁中':"a=\"　　好可怕啊……。"},
-            r'【|】':         
+            r'【|】':
             {'日语':"【ベーカリー】営業時間 8：00～18：00",
             '英语':"【Bakery】Business hours 8:00-18:00",
             '韩语':"【빵집】영업 시간 8:00~18:00",
             '俄语':"【пекарня】Время работы 8:00-18:00",
             '简中':"【面包店】营业时间 8：00～18：00",
             '繁中':"【麵包店】營業時間 8：00～18：00"},
-            r'\r|\n':         
+            r'\r|\n':
             {'日语':"敏捷性が上昇する。　　　　　　　\r\n効果：パッシブ",
             '英语':"Agility increases.　　　　　　　\r\nEffect: Passive",
             '韩语':"민첩성이 상승한다.　　　　　　　\r\n효과：패시브",
             '俄语':"Повышает ловкость.　　　　　　　\r\nЭффект: Пассивный",
             '简中':"提高敏捷性。　　　　　　　\r\n效果：被动",
             '繁中':"提高敏捷性。　　　　　　　\r\n效果：被動"},
-            r'\\[A-Za-z]\[\d+\]':         
+            r'\\[A-Za-z]\[\d+\]':
             {'日语':"\\F[21]ちょろ……ちょろろ……じょぼぼぼ……♡",
             '英语':"\\F[21]Gurgle…Gurgle…Dadadada…♡",
             '韩语':"\\F[21]둥글둥글…둥글둥글…둥글둥글…♡",
             '俄语':"\\F[21]Гуру... гуругу...Дадада... ♡",
             '简中':"\\F[21]咕噜……咕噜噜……哒哒哒……♡",
             '繁中':"\\F[21]咕嚕……咕嚕嚕……哒哒哒……♡"},
-            r'「|」':         
+            r'「|」':
             {'日语':"さくら：「すごく面白かった！」",
             '英语':"Sakura：「It was really fun!」",
             '韩语':"사쿠라：「정말로 재미있었어요!」",
             '俄语':"Сакура: 「Было очень интересно!」",
             '简中':"樱：「超级有趣！」",
             '繁中':"櫻：「超有趣！」"},
-            r'∞|@':         
+            r'∞|@':
             {'日语':"若くて∞＠綺麗で∞＠エロくて",
             '英语':"Young ∞＠beautiful ∞＠sexy.",
             '韩语':"젊고∞＠아름답고∞＠섹시하고",
@@ -480,7 +482,7 @@ Third: Begin translating line by line from the original text, only translating {
 
         # 基础示例
         base_example = {
-            "base": 
+            "base":
             {'日语':"愛は魂の深淵にある炎で、暖かくて永遠に消えない。",
             '英语':"Love is the flame in the depth of the soul, warm and never extinguished.",
             '韩语':"사랑은 영혼 깊숙이 타오르는 불꽃이며, 따뜻하고 영원히 꺼지지 않는다.",
@@ -507,7 +509,7 @@ Third: Begin translating line by line from the original text, only translating {
             translated_list.append(base_example["base"][target_language])
 
         return source_list,translated_list
-    
+
 
     # 构建相似格式翻译示例
     def build_adaptive_translation_sample(self,input_dict,source_language,target_language):
@@ -658,7 +660,7 @@ Third: Begin translating line by line from the original text, only translating {
         result = [cluster[0][1] for cluster in clusters]
 
         return result
-    
+
 
     # 辅助函数，重新调整列表中翻译示例的后缀数字
     def replace_and_increment(self,items, prefix):
@@ -699,13 +701,13 @@ Third: Begin translating line by line from the original text, only translating {
         # 如果文本中没有含有字典内容
         if temp_dict == {}:
             return None,None
-        
+
         # 初始化变量，以免出错
         glossary_prompt = ""
         glossary_prompt_cot = ""
 
         if cn_toggle:
-            # 构建术语表prompt 
+            # 构建术语表prompt
             glossary_prompt = "###术语表###\n"
             glossary_prompt += "|\t原文\t|\t译文\t|\t备注\t|\n"
             glossary_prompt += "-" * 50 + "\n"
@@ -720,12 +722,12 @@ Third: Begin translating line by line from the original text, only translating {
                 else:
                     glossary_prompt += f"|\t{key}\t|\t{value['translation']}\t|\t \t|\n"
                     glossary_prompt_cot += f"“{key}”（{value['translation']}）"
-            
+
             glossary_prompt += "-" * 50 + "\n"
             glossary_prompt_cot += "术语及其解释"
 
         else:
-            # 构建术语表prompt 
+            # 构建术语表prompt
             glossary_prompt = "###Glossary###\n"
             glossary_prompt += "|\tOriginal Text\t|\tTranslation\t|\tRemarks\t|\n"
             glossary_prompt += "-" * 50 + "\n"
@@ -740,7 +742,7 @@ Third: Begin translating line by line from the original text, only translating {
                 else:
                     glossary_prompt += f"|\t{key}\t|\t{value['translation']}\t|\t \t|\n"
                     glossary_prompt_cot += f"“{key}”({value['translation']})"
-            
+
             glossary_prompt += "-" * 50 + "\n"
             glossary_prompt_cot += " and their explanations."
 
@@ -771,7 +773,7 @@ Third: Begin translating line by line from the original text, only translating {
         # 如果文本中没有含有字典内容
         if temp_dict == {}:
             return None
-        
+
 
         glossary_prompt = []
         for key, value in temp_dict.items():
@@ -823,7 +825,7 @@ Third: Begin translating line by line from the original text, only translating {
                 profile += f"\n【{original_name}】"
                 if translated_name:
                     profile += f"\n- 译名：{translated_name}"
-                    profile_cot += f"{translated_name}（{original_name}）"   
+                    profile_cot += f"{translated_name}（{original_name}）"
 
                 if gender:
                     profile += f"\n- 性别：{gender}"
@@ -929,7 +931,7 @@ Third: Begin translating line by line from the original text, only translating {
         else:
             profile = "###Writing Style###"
             profile_cot = "- Writing Style:"
-            
+
             profile += f"\n{writing_style}\n"
             profile_cot += f"{writing_style}"
 
@@ -968,7 +970,7 @@ Third: Begin translating line by line from the original text, only translating {
         for key, value in data.items():
             temp_dict[key] = value
 
-        # 构建原文示例字符串开头 
+        # 构建原文示例字符串开头
         original_text = '{ '
         #如果字典不为空，补充内容
         if  temp_dict:
@@ -1015,7 +1017,7 @@ Third: Begin translating line by line from the original text, only translating {
         if cn_toggle:
             profile = "###这是你接下来的翻译任务，原文文本如下###\n"
             profile_cot = "###这是你接下来的翻译任务，原文文本如下###\n  "
-            
+
         else:
             profile = "###This is your next translation task, the original text is as follows###\n"
             profile_cot = "###This is your next translation task, the original text is as follows###\n"
@@ -1035,7 +1037,7 @@ Third: Begin translating line by line from the original text, only translating {
             Source_Language = "Japanese"
 
         elif Text_Source_Language == "英语":
-            Source_Language = "English" 
+            Source_Language = "English"
 
         elif Text_Source_Language == "韩语":
             Source_Language = "Korean"
@@ -1126,7 +1128,7 @@ Third: Begin translating line by line from the original text, only translating {
         if cn_toggle:
             profile = " ###这是你接下来的翻译任务，原文文本如下###\n"
             profile_cot = "###这是你接下来的翻译任务，原文文本如下###\n"
-            
+
 
         else:
             profile = " ###This is your next translation task, the original text is as follows###\n"
@@ -1149,7 +1151,7 @@ Third: Begin translating line by line from the original text, only translating {
         if cn_toggle:
             profile = "我完全理解了您的要求，我将遵循你的指示进行翻译，以下是对原文的翻译:"
             profile_cot = "我将遵循您的指示，一步一步地翻译文本："
-            
+
 
         else:
             profile = "I have completely understood your request. I will follow your instructions to proceed with the translation. Here is the translation of the original text:"
@@ -1184,7 +1186,7 @@ Third: Begin translating line by line from the original text, only translating {
                 if isinstance(value_a, str) and key_b in value_a:
                     value_a = value_a.replace(key_b, value_b)
             temp_dict[key_a] = value_a
-        
+
 
         return temp_dict
 
@@ -1209,7 +1211,7 @@ Third: Begin translating line by line from the original text, only translating {
                 if isinstance(value_a, str) and key_b in value_a:
                     value_a = value_a.replace(key_b, value_b)
             temp_dict[key_a] = value_a
-        
+
 
         return temp_dict
 
@@ -1217,7 +1219,7 @@ Third: Begin translating line by line from the original text, only translating {
     # 轮询获取key列表里的key
     def get_apikey(self):
         # 如果存有多个key
-        if len(self.apikey_list) > 1: 
+        if len(self.apikey_list) > 1:
             # 如果增加索引值不超过key的个数
             if (self.key_index + 1) < len(self.apikey_list):
                 self.key_index = self.key_index + 1 #更换APIKEY索引
@@ -1238,7 +1240,7 @@ Third: Begin translating line by line from the original text, only translating {
             self.platforms.get(self.target_platform).get("presence_penalty"),
             self.platforms.get(self.target_platform).get("frequency_penalty"),
         )
-    
+
 
     # 更改翻译状态
     def update_translation_status(self, status, translation_project, untranslated_text_line_count,split_count):
@@ -1306,7 +1308,7 @@ Third: Begin translating line by line from the original text, only translating {
         #计算已经翻译的文本数
         if check_result == 1:
             # 更新已经翻译的文本数
-            self.translated_text_line_count = self.translated_text_line_count + translated_line_count   
+            self.translated_text_line_count = self.translated_text_line_count + translated_line_count
             self.total_tokens_successfully_completed += completion_tokens_used
 
         # 计算双速

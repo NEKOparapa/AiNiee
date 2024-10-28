@@ -6,17 +6,17 @@ import anthropic                    # 需要安装库pip install anthropic
 import google.generativeai as genai # 需要安装库pip install -U google-generativeai
 from openai import OpenAI           # 需要安装库pip install openai
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 
 # 接口测试器
-class Request_Tester(AiNieeBase):
+class Request_Tester(Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # 注册事件
-        self.subscribe(self.EVENT.API_TEST_START, self.api_test_start)
-    
+        self.subscribe(Base.EVENT.API_TEST_START, self.api_test_start)
+
     # 响应接口测试开始事件
     def api_test_start(self, event: int, data: dict):
         thread = threading.Thread(target = self.api_test, args = (event, data))
@@ -101,7 +101,7 @@ class Request_Tester(AiNieeBase):
         self.print("")
 
         # 发送完成事件
-        self.emit(self.EVENT.API_TEST_DONE, {
+        self.emit(Base.EVENT.API_TEST_DONE, {
             "failure": failure,
             "success": success,
         })
@@ -154,7 +154,7 @@ class Request_Tester(AiNieeBase):
                 model = model,
                 preamble = "你不是AI助手，你是我的女朋友欣雨，接下来你必须以女朋友的方式回复我。",
                 message = "小可爱，你在干嘛",
-            ) 
+            )
 
             return response.text.strip()
         elif tag == "google":
@@ -162,7 +162,7 @@ class Request_Tester(AiNieeBase):
                 api_key = api_key if api_key != "" else "no_key_required",
                 transport = "rest"
             )
-            
+
             requester = genai.GenerativeModel(
                 model_name = model,
                 safety_settings = [
@@ -191,7 +191,7 @@ class Request_Tester(AiNieeBase):
                 },
                 system_instruction = "你不是AI助手，你是我的女朋友欣雨，接下来你必须以女朋友的方式回复我。"
             )
-            
+
             return requester.generate_content("小可爱，你在干嘛").text.strip()
         elif tag == "anthropic" or (tag.startswith("custom_platform_") and api_format == "Anthropic"):
             client = anthropic.Anthropic(
@@ -212,7 +212,7 @@ class Request_Tester(AiNieeBase):
                 api_key = api_key if api_key != "" else "no_key_required",
                 base_url = api_url,
             )
-            
+
             response = client.chat.completions.create(
                 model = model,
                 messages = messages,

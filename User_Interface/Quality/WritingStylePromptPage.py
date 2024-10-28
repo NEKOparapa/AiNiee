@@ -6,11 +6,11 @@ from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import PlainTextEdit
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class WritingStylePromptPage(QFrame, AiNieeBase):
+class WritingStylePromptPage(QFrame, Base):
 
     DEFAULT = {
         "writing_style_switch": False,
@@ -40,7 +40,7 @@ class WritingStylePromptPage(QFrame, AiNieeBase):
     def add_widget_header(self, parent, config):
         def widget_init(widget):
             widget.set_checked(config.get("writing_style_switch"))
-            
+
         def widget_callback(widget, checked: bool):
             config = self.load_config()
             config["writing_style_switch"] = checked
@@ -48,7 +48,7 @@ class WritingStylePromptPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SwitchButtonCard(
-                "自定义行文措辞要求", 
+                "自定义行文措辞要求",
                 "启用此功能后，将根据本页中设置的信息构建提示词向模型发送请求，仅在逻辑能力强的模型上有效（不支持 Sakura 模型）",
                 widget_init,
                 widget_callback,
@@ -65,7 +65,7 @@ class WritingStylePromptPage(QFrame, AiNieeBase):
     def add_widget_footer(self, parent, config, window):
         self.command_bar_card = CommandBarCard()
         parent.addWidget(self.command_bar_card)
-        
+
         # 添加命令
         self.add_command_bar_action_01(self.command_bar_card)
         self.add_command_bar_action_02(self.command_bar_card, window)
@@ -84,10 +84,10 @@ class WritingStylePromptPage(QFrame, AiNieeBase):
             # 弹出提示
             self.success_toast("", "数据已保存 ...")
 
-        parent.addAction(
+        parent.add_action(
             Action(FluentIcon.SAVE, "保存", parent, triggered = callback),
         )
-        
+
     # 重置
     def add_command_bar_action_02(self, parent, window):
         def callback():
@@ -117,6 +117,6 @@ class WritingStylePromptPage(QFrame, AiNieeBase):
             # 弹出提示
             self.success_toast("", "数据已重置 ...")
 
-        parent.addAction(
+        parent.add_action(
             Action(FluentIcon.DELETE, "重置", parent, triggered = callback),
         )

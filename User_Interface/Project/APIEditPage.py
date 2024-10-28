@@ -6,14 +6,14 @@ from qfluentwidgets import PlainTextEdit
 from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.GroupCard import GroupCard
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.LineEditCard import LineEditCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 from Widget.EditableComboBoxCard import EditableComboBoxCard
 
-class APIEditPage(MessageBoxBase, AiNieeBase):
+class APIEditPage(MessageBoxBase, Base):
 
     DEFAULT = {}
 
@@ -59,7 +59,7 @@ class APIEditPage(MessageBoxBase, AiNieeBase):
         # 接口密钥
         if "api_key" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_key(self.vbox, config)
-            
+
         # 接口格式
         if "api_format" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_format(self.vbox, config)
@@ -86,10 +86,10 @@ class APIEditPage(MessageBoxBase, AiNieeBase):
             config = self.load_config()
             config["platforms"][self.key]["api_url"] = text.strip()
             self.save_config(config)
-        
+
         parent.addWidget(
             LineEditCard(
-                "接口地址", 
+                "接口地址",
                 "请输入接口地址，例如 https://api.deepseek.com",
                 init = init,
                 text_changed = text_changed,
@@ -108,7 +108,7 @@ class APIEditPage(MessageBoxBase, AiNieeBase):
 
         parent.addWidget(
             SwitchButtonCard(
-                "接口地址自动补全", 
+                "接口地址自动补全",
                 "将自动为你填写接口地址，例如 https://api.deepseek.com -> https://api.deepseek.com/v1",
                 init = init,
                 checked_changed = checked_changed,
@@ -132,7 +132,7 @@ class APIEditPage(MessageBoxBase, AiNieeBase):
 
         parent.addWidget(
             GroupCard(
-                "接口密钥", 
+                "接口密钥",
                 "请输入接口密钥，例如 sk-d0daba12345678fd8eb7b8d31c123456，多个密钥之间请使用半角逗号（,）分隔",
                 init = init,
             )
@@ -142,7 +142,7 @@ class APIEditPage(MessageBoxBase, AiNieeBase):
     def add_widget_format(self, parent, config):
         def init(widget):
             platform = config.get("platforms").get(self.key)
-            
+
             widget.set_items(platform.get("format_datas"))
             widget.set_current_index(max(0, widget.find_text(platform.get("api_format"))))
 
@@ -153,19 +153,19 @@ class APIEditPage(MessageBoxBase, AiNieeBase):
 
         parent.addWidget(
             ComboBoxCard(
-                "接口格式", 
+                "接口格式",
                 "请选择接口格式，大部分模型使用 OpenAI 格式，部分中转站的 Claude 模型则使用 Anthropic 格式",
                 [],
                 init = init,
                 current_text_changed = current_text_changed,
             )
         )
- 
+
     # 账户类型
     def add_widget_account(self, parent, config):
         def init(widget):
             platform = config.get("platforms").get(self.key)
-            
+
             widget.set_items(platform.get("account_datas"))
             widget.set_current_index(max(0, widget.find_text(platform.get("account"))))
 
@@ -176,7 +176,7 @@ class APIEditPage(MessageBoxBase, AiNieeBase):
 
         parent.addWidget(
             ComboBoxCard(
-                "账户类型", 
+                "账户类型",
                 "请选择账户类型",
                 [],
                 init = init,
@@ -206,7 +206,7 @@ class APIEditPage(MessageBoxBase, AiNieeBase):
 
         parent.addWidget(
             EditableComboBoxCard(
-                "模型名称", 
+                "模型名称",
                 "请选择要使用的模型的名称",
                 [],
                 init = init,

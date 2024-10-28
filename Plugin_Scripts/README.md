@@ -93,7 +93,7 @@ class Example_Plugin(PluginBase):
 
             # 如果翻译日语或者韩语文本时，则去除非中日韩文本
             if  configuration_information.source_language == "日语" or  configuration_information.source_language == "韩语":
-                
+
                 # 过滤文本
                 self.preproces_text(event_data)
 
@@ -150,9 +150,9 @@ class Example_Plugin(PluginBase):
         self.label_input_path = "" # 存储输入文件夹
         self.label_output_path = "" # 存储输出文件夹
 
-        self.lines_limit_switch = True  # 行数开关         
+        self.lines_limit_switch = True  # 行数开关
         self.lines_limit = 15  # 行数限制
-        self.tokens_limit_switch = False   # tokens开关       
+        self.tokens_limit_switch = False   # tokens开关
         self.tokens_limit = 2000  # tokens限制
         self.user_thread_counts = 1 # 用户设置的线程数
         self.running_thread_counts= 1  # 实际设置的线程数
@@ -189,18 +189,18 @@ class Example_Plugin(PluginBase):
         self.openai_top_p_initialvalue = 0              #AI的top_p，作用与temperature相同，官方建议不要同时修改
         self.openai_presence_penalty_initialvalue = 0  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
         self.openai_frequency_penalty_initialvalue = 0 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
-        self.sakura_temperature_initialvalue = 0        
-        self.sakura_top_p_initialvalue = 0             
-        self.sakura_frequency_penalty_initialvalue = 0 
-        self.anthropic_temperature_initialvalue   =  0 
-        self.google_temperature_initialvalue   =  0 
-        self.cohere_temperature_initialvalue   =  0 
+        self.sakura_temperature_initialvalue = 0
+        self.sakura_top_p_initialvalue = 0
+        self.sakura_frequency_penalty_initialvalue = 0
+        self.anthropic_temperature_initialvalue   =  0
+        self.google_temperature_initialvalue   =  0
+        self.cohere_temperature_initialvalue   =  0
 
         # 缓存数据以及运行状态
         self.cache_list = [] # 全局缓存文本数据
-        self.Running_status = 0  # 存储程序工作的状态，0是空闲状态
+        self.status = 0  # 存储程序工作的状态，0是空闲状态
                                 # 1是正在接口测试状态,6是翻译任务进行状态，9是正在暂停状态，10是已暂停状态,11是正在取消状态，0也是已取消状态
-    ```  
+    ```
 
     - `event_data`: 全局缓存文本数据，格式与导出的缓存文件一致。
     ```python
@@ -217,7 +217,7 @@ class Example_Plugin(PluginBase):
         5.译文： "translated_text"
         6.存储路径： "storage_path"
         7.存储文件名： "storage_file_name"
-        8.翻译模型： "model"                         
+        8.翻译模型： "model"
         等等
 
         """
