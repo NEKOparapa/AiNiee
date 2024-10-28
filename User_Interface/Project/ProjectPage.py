@@ -5,12 +5,11 @@ from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import FluentIcon
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.PushButtonCard import PushButtonCard
-from Widget.SwitchButtonCard import SwitchButtonCard
 
-class ProjectPage(QFrame, AiNieeBase):
+class ProjectPage(QFrame, Base):
 
     DEFAULT = {
         "target_platform": "deepseek",
@@ -19,7 +18,6 @@ class ProjectPage(QFrame, AiNieeBase):
         "target_language": "简中",
         "label_input_path": "./input",
         "label_output_path": "./output",
-        "auto_backup_toggle": True,
     }
 
     def __init__(self, text: str, window):
@@ -41,15 +39,14 @@ class ProjectPage(QFrame, AiNieeBase):
         self.add_widget_04(self.container, config)
         self.add_widget_05(self.container, config)
         self.add_widget_06(self.container, config)
-        self.add_widget_auto_save_cache_file(self.container, config)
-        
+
         # 填充
         self.container.addStretch(1)
 
     # 页面每次展示时触发
     def showEvent(self, event: QEvent):
         super().showEvent(event)
-        
+
         if self.on_show_event is not None:
             self.on_show_event(self, event)
 
@@ -77,7 +74,7 @@ class ProjectPage(QFrame, AiNieeBase):
 
     # 模型类型
     def add_widget_01(self, parent, config):
-        
+
         def update_widget(widget):
             config = self.load_config()
 
@@ -87,7 +84,7 @@ class ProjectPage(QFrame, AiNieeBase):
         def init(widget):
             # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
             self.on_show_event = lambda _, event: update_widget(widget)
-            
+
         def current_text_changed(widget, text: str):
             config = self.load_config()
             config["target_platform"] = self.find_tag_by_name(config, text)
@@ -152,7 +149,7 @@ class ProjectPage(QFrame, AiNieeBase):
                 current_text_changed = current_text_changed,
             )
         )
-        
+
     # 译文语言
     def add_widget_04(self, parent, config):
         def init(widget):
@@ -172,7 +169,7 @@ class ProjectPage(QFrame, AiNieeBase):
                 current_text_changed = current_text_changed,
             )
         )
-        
+
     # 输入文件夹
     def add_widget_05(self, parent, config):
         def widget_init(widget):
@@ -185,10 +182,10 @@ class ProjectPage(QFrame, AiNieeBase):
             path = QFileDialog.getExistingDirectory(None, "选择文件夹", "")
             if path == None or path == "":
                 return
-                
+
             # 更新UI
             widget.set_description(f"当前输入文件夹为 {path.strip()}")
-            
+
             # 更新并保存配置
             config = self.load_config()
             config["label_input_path"] = path.strip()
@@ -202,7 +199,7 @@ class ProjectPage(QFrame, AiNieeBase):
                 widget_callback,
             )
         )
-        
+
     # 输出文件夹
     def add_widget_06(self, parent, config):
         def widget_init(widget):
@@ -228,25 +225,6 @@ class ProjectPage(QFrame, AiNieeBase):
             PushButtonCard(
                 "输出文件夹",
                 "",
-                widget_init,
-                widget_callback,
-            )
-        )
-
-    # 自动保存翻译缓存
-    def add_widget_auto_save_cache_file(self, parent, config):
-        def widget_init(widget):
-            widget.set_checked(config.get("auto_backup_toggle"))
-            
-        def widget_callback(widget, checked: bool):
-            config = self.load_config()
-            config["auto_backup_toggle"] = checked
-            self.save_config(config)
-
-        parent.addWidget(
-            SwitchButtonCard(
-                "自动保存翻译缓存文件", 
-                "启用此功能后，自动将缓存文件保存到输出文件夹内,超高任务数时会降低翻译速度",
                 widget_init,
                 widget_callback,
             )

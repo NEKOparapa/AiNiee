@@ -13,11 +13,12 @@ from qfluentwidgets import NavigationPushButton
 from qfluentwidgets import NavigationItemPosition
 from qfluentwidgets import NavigationAvatarWidget
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from User_Interface.AppSettingsPage import AppSettingsPage
 from User_Interface.BaseNavigationItem import BaseNavigationItem
 from User_Interface.Project.ProjectPage import ProjectPage
 from User_Interface.Project.PlatformPage import PlatformPage
+from User_Interface.Project.TranslationPage import TranslationPage
 from User_Interface.Setting.BasicSettingsPage import BasicSettingsPage
 from User_Interface.Setting.AdvanceSettingsPage import AdvanceSettingsPage
 from User_Interface.Setting.PluginsSettingsPage import PluginsSettingsPage
@@ -35,25 +36,26 @@ from User_Interface.Extraction_Tool.Export_Source_Text import Widget_export_sour
 from User_Interface.Extraction_Tool.Import_Translated_Text import Widget_import_translated_text
 from User_Interface.Extraction_Tool.Export_Update_Text import Widget_update_text
 
-# 旧页面
-from User_Interface.Start_Translation_Interface.Interface_start_translation import Widget_start_translation
-
-class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
+class AppFluentWindow(FluentWindow, Base): #主窗口
 
     APP_WIDTH = 1280
     APP_HEIGHT = 800
 
     THEME_COLOR = "#8A95A9"
-    
+
     DEFAULT = {
         "theme": "dark",
     }
 
-    def __init__(self, version):
+    def __init__(self, version, configurator, plugin_manager, jtpp):
         super().__init__()
 
         # 载入配置文件
         config = self.load_config()
+
+        # 打印日志
+        if self.is_debug():
+            self.warning("调试模式已启用 ...")
 
         # 设置主题颜色
         setThemeColor(self.THEME_COLOR)
@@ -81,6 +83,9 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         # 隐藏返回按钮
         self.navigationInterface.panel.setReturnButtonVisible(False)
 
+        # 添加页面
+        self.add_pages(configurator, plugin_manager, jtpp)
+
     # 重写窗口关闭函数
     def closeEvent(self, event):
         message_box = MessageBox("警告", "确定是否退出程序 ... ？", self)
@@ -88,8 +93,8 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         message_box.cancelButton.setText("取消")
 
         if message_box.exec():
+            self.emit(Base.EVENT.APP_SHUT_DOWN, {})
             self.info("主窗口已关闭，稍后应用将自动退出 ...")
-            self.configurator.Running_status = 11
             event.accept()
         else:
             event.ignore()
@@ -113,22 +118,22 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         QDesktopServices.openUrl(url)
 
     # 开始添加页面
-    def add_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
-        self.add_project_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
+    def add_pages(self, configurator, plugin_manager, jtpp):
+        self.add_project_pages(configurator, plugin_manager, jtpp)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
-        self.add_setting_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
+        self.add_setting_pages(configurator, plugin_manager, jtpp)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
-        self.add_quality_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
+        self.add_quality_pages(configurator, plugin_manager, jtpp)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
-        self.add_stev_extraction_pages(configurator, plugin_manager, background_executor, user_interface_prompter, jtpp)
-        
+        self.add_stev_extraction_pages(configurator, plugin_manager, jtpp)
+
         # 设置默认页面
-        self.switchTo(self.Widget_start_translation)
-        
+        self.switchTo(self.translation_page)
+
         # 应用设置按钮
         self.app_settings_page = AppSettingsPage("app_settings_page", self)
         self.addSubInterface(self.app_settings_page, FluentIcon.SETTING, "应用设置", NavigationItemPosition.BOTTOM)
-        
+
         # 主题切换按钮
         self.navigationInterface.addWidget(
             routeKey = "theme_navigation_button",
@@ -152,21 +157,17 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
             position = NavigationItemPosition.BOTTOM
         )
 
-        # 保存变量
-        self.configurator = configurator
-
     # 添加第一节
-    def add_project_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
-        self.platform_page = PlatformPage("platform_page", self, configurator, background_executor)
+    def add_project_pages(self, configurator, plugin_manager, jtpp):
+        self.platform_page = PlatformPage("platform_page", self, configurator)
         self.addSubInterface(self.platform_page, FluentIcon.IOT, "接口管理", NavigationItemPosition.SCROLL)
         self.prject_page = ProjectPage("prject_page", self)
         self.addSubInterface(self.prject_page, FluentIcon.FOLDER, "项目设置", NavigationItemPosition.SCROLL)
-        
-        self.Widget_start_translation = Widget_start_translation("Widget_start_translation", self, configurator, user_interface_prompter, background_executor)
-        self.addSubInterface(self.Widget_start_translation, FluentIcon.PLAY, "开始翻译", NavigationItemPosition.SCROLL)
-        
+        self.translation_page = TranslationPage("translation_page", self, configurator)
+        self.addSubInterface(self.translation_page, FluentIcon.PLAY, "开始翻译", NavigationItemPosition.SCROLL)
+
     # 添加第二节
-    def add_setting_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
+    def add_setting_pages(self, configurator, plugin_manager, jtpp):
         self.basic_settings_page = BasicSettingsPage("basic_settings_page", self)
         self.addSubInterface(self.basic_settings_page, FluentIcon.ZOOM, "基础设置", NavigationItemPosition.SCROLL)
         self.advance_settings_page = AdvanceSettingsPage("advance_settings_page", self)
@@ -174,19 +175,19 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         self.plugins_settings_page = PluginsSettingsPage("plugins_settings_page", self, plugin_manager)
         self.addSubInterface(self.plugins_settings_page, FluentIcon.COMMAND_PROMPT, "插件设置", NavigationItemPosition.SCROLL)
         self.mix_translation_settings_page = MixTranslationSettingsPage("mix_translation_settings_page", self)
-        self.addSubInterface(self.mix_translation_settings_page, FluentIcon.EMOJI_TAB_SYMBOLS, "混合翻译设置", NavigationItemPosition.SCROLL) 
+        self.addSubInterface(self.mix_translation_settings_page, FluentIcon.EMOJI_TAB_SYMBOLS, "混合翻译设置", NavigationItemPosition.SCROLL)
 
     # 添加第三节
-    def add_quality_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
+    def add_quality_pages(self, configurator, plugin_manager, jtpp):
         self.prompt_dictionary_page = PromptDictionaryPage("prompt_dictionary_page", self)
         self.addSubInterface(self.prompt_dictionary_page, FluentIcon.DICTIONARY, "指令词典", NavigationItemPosition.SCROLL)
 
         self.text_replace_navigation_item = BaseNavigationItem("text_replace_navigation_item", self)
         self.addSubInterface(self.text_replace_navigation_item, FluentIcon.LANGUAGE, "文本替换", NavigationItemPosition.SCROLL)
         self.text_replace_a_page = TextReplaceAPage("text_replace_a_page", self)
-        self.addSubInterface(self.text_replace_a_page, FluentIcon.SEARCH, "译前替换", parent = self.text_replace_navigation_item) 
+        self.addSubInterface(self.text_replace_a_page, FluentIcon.SEARCH, "译前替换", parent = self.text_replace_navigation_item)
         self.text_replace_b_page = TextReplaceBPage("text_replace_b_page", self)
-        self.addSubInterface(self.text_replace_b_page, FluentIcon.SEARCH_MIRROR, "译后替换", parent = self.text_replace_navigation_item) 
+        self.addSubInterface(self.text_replace_b_page, FluentIcon.SEARCH_MIRROR, "译后替换", parent = self.text_replace_navigation_item)
 
         self.prompt_optimization_navigation_item = BaseNavigationItem("prompt_optimization_navigation_item", self)
         self.addSubInterface(self.prompt_optimization_navigation_item, FluentIcon.BOOK_SHELF, "提示词优化", NavigationItemPosition.SCROLL)
@@ -202,7 +203,7 @@ class AppFluentWindow(FluentWindow, AiNieeBase): #主窗口
         self.addSubInterface(self.translation_example_prompt_page, FluentIcon.TILES, "翻译风格示例", parent = self.prompt_optimization_navigation_item)
 
     # 添加第四节
-    def add_stev_extraction_pages(self, configurator, plugin_manager, background_executor, user_interface_prompter, jtpp):
+    def add_stev_extraction_pages(self, configurator, plugin_manager, jtpp):
         self.stev_extraction_navigation_item = BaseNavigationItem("stev_extraction_navigation_item", self)
         self.addSubInterface(self.stev_extraction_navigation_item, FluentIcon.ZIP_FOLDER, "StevExtraction", NavigationItemPosition.SCROLL)
         self.widget_export_source_text = Widget_export_source_text("widget_export_source_text", self,configurator=configurator,jtpp=jtpp)

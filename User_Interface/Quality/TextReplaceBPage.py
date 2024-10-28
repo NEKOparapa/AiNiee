@@ -14,12 +14,12 @@ from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import TableWidget
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class TextReplaceBPage(QFrame, AiNieeBase):
-    
+class TextReplaceBPage(QFrame, Base):
+
     DEFAULT = {
         "post_translation_switch": False,
         "post_translation_content": {},
@@ -46,7 +46,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
     def add_widget_header(self, parent, config):
         def widget_init(widget):
             widget.set_checked(config.get("post_translation_switch"))
-            
+
         def widget_callback(widget, checked: bool):
             config = self.load_config()
             config["post_translation_switch"] = checked
@@ -54,7 +54,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SwitchButtonCard(
-                "译后替换", 
+                "译后替换",
                 "在翻译完成后，将译文中匹配的部分替换为指定的文本，执行的顺序为从上到下依次替换",
                 widget_init,
                 widget_callback,
@@ -93,14 +93,14 @@ class TextReplaceBPage(QFrame, AiNieeBase):
     def add_widget_footer(self, parent, config, window):
         self.command_bar_card = CommandBarCard()
         parent.addWidget(self.command_bar_card)
-        
+
         # 添加命令
         self.add_command_bar_action_01(self.command_bar_card)
         self.add_command_bar_action_02(self.command_bar_card)
-        self.command_bar_card.addSeparator()
+        self.command_bar_card.add_separator()
         self.add_command_bar_action_03(self.command_bar_card)
         self.add_command_bar_action_04(self.command_bar_card)
-        self.command_bar_card.addSeparator()
+        self.command_bar_card.add_separator()
         self.add_command_bar_action_05(self.command_bar_card)
         self.add_command_bar_action_06(self.command_bar_card, window)
 
@@ -122,7 +122,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
     # 从表格更新数据
     def update_from_table(self, table, config):
         config["post_translation_content"] = {}
-        
+
         for row in range(table.rowCount()):
             data_str = table.item(row, 0)
             data_dst = table.item(row, 1)
@@ -130,7 +130,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
             # 判断是否有数据
             if data_str == None or data_dst == None:
                 continue
-            
+
             data_str = data_str.text().strip()
             data_dst = data_dst.text().strip()
 
@@ -147,7 +147,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
 
         def load_json_file(path):
             dictionary = {}
-            
+
             inputs = []
             with open(path, "r", encoding = "utf-8") as reader:
                 inputs = json.load(reader)
@@ -164,7 +164,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
                     # ]
                     if isinstance(v, dict) and v.get("srt", "") != "" and v.get("dst", "") != "":
                         dictionary[v.get("srt", "").strip()] = v.get("dst", "").strip()
-                    
+
                     # Paratranz的术语表
                     # [
                     #   {
@@ -193,7 +193,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
                         dictionary[k.strip()] = v.strip()
 
             return dictionary
-            
+
         def load_xlsx_file(path):
             dictionary = {}
 
@@ -207,7 +207,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
                     dictionary[cell_value1.strip()] = cell_value2.strip()
 
             return dictionary
-        
+
         def callback():
             # 选择文件
             path, _ = QFileDialog.getOpenFileName(None, "选择文件", "", "json files (*.json);;xlsx files (*.xlsx)")
@@ -220,7 +220,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
             datas = []
             if file_suffix == "json":
                 datas = load_json_file(path)
-                
+
             if file_suffix == "xlsx":
                 datas = load_xlsx_file(path)
 
@@ -237,10 +237,10 @@ class TextReplaceBPage(QFrame, AiNieeBase):
             # 弹出提示
             self.success_toast("", "数据已导入 ...")
 
-        parent.addAction(
+        parent.add_action(
             Action(FluentIcon.DOWNLOAD, "导入", parent, triggered = callback),
         )
-        
+
     # 导出
     def add_command_bar_action_02(self, parent):
         def callback():
@@ -274,10 +274,10 @@ class TextReplaceBPage(QFrame, AiNieeBase):
             # 弹出提示
             self.success_toast("", "数据已导出为 \"导出_译后替换.json\" ...")
 
-        parent.addAction(
+        parent.add_action(
             Action(FluentIcon.SHARE, "导出", parent, triggered = callback),
         )
-        
+
     # 添加新行
     def add_command_bar_action_03(self, parent):
         def callback():
@@ -287,7 +287,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
             # 弹出提示
             self.success_toast("", "新行已添加 ...")
 
-        parent.addAction(
+        parent.add_action(
             Action(FluentIcon.ADD_TO, "添加新行", parent, triggered = callback),
         )
 
@@ -306,7 +306,7 @@ class TextReplaceBPage(QFrame, AiNieeBase):
             # 弹出提示
             self.success_toast("", "空行已移除 ...")
 
-        parent.addAction(
+        parent.add_action(
             Action(FluentIcon.BROOM, "移除空行", parent, triggered = callback),
         )
 
@@ -325,10 +325,10 @@ class TextReplaceBPage(QFrame, AiNieeBase):
             # 弹出提示
             self.success_toast("", "数据已保存 ...")
 
-        parent.addAction(
+        parent.add_action(
             Action(FluentIcon.SAVE, "保存", parent, triggered = callback),
         )
-        
+
     # 重置
     def add_command_bar_action_06(self, parent, window):
         def callback():
@@ -357,6 +357,6 @@ class TextReplaceBPage(QFrame, AiNieeBase):
             # 弹出提示
             self.success_toast("", "数据已重置 ...")
 
-        parent.addAction(
+        parent.add_action(
             Action(FluentIcon.DELETE, "重置", parent, triggered = callback),
         )

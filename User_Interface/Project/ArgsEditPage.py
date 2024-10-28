@@ -10,10 +10,10 @@ from qfluentwidgets import HyperlinkLabel
 from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.SliderCard import SliderCard
 
-class ArgsEditPage(MessageBoxBase, AiNieeBase):
+class ArgsEditPage(MessageBoxBase, Base):
 
     DEFAULT = {}
 
@@ -96,7 +96,7 @@ class ArgsEditPage(MessageBoxBase, AiNieeBase):
             config = self.load_config()
             config["platforms"][self.key]["top_p"] = value / 100
             self.save_config(config)
-        
+
         if self.key in preset.get("platforms"):
             default_value = preset.get("platforms").get(self.key).get("top_p")
         else:
@@ -104,7 +104,7 @@ class ArgsEditPage(MessageBoxBase, AiNieeBase):
 
         parent.addWidget(
             SliderCard(
-                "top_p", 
+                "top_p",
                 f"请谨慎设置，错误的值可能导致结果异常或者请求报错，对于目标接口，此参数的默认值为 {default_value}",
                 init = init,
                 value_changed = value_changed,
@@ -124,7 +124,7 @@ class ArgsEditPage(MessageBoxBase, AiNieeBase):
             config = self.load_config()
             config["platforms"][self.key]["temperature"] = value / 100
             self.save_config(config)
-        
+
         if self.key in preset.get("platforms"):
             default_value = preset.get("platforms").get(self.key).get("temperature")
         else:
@@ -132,7 +132,7 @@ class ArgsEditPage(MessageBoxBase, AiNieeBase):
 
         parent.addWidget(
             SliderCard(
-                "temperature", 
+                "temperature",
                 f"请谨慎设置，错误的值可能导致结果异常或者请求报错，对于目标接口，此参数的默认值为 {default_value}",
                 init = init,
                 value_changed = value_changed,
@@ -152,7 +152,7 @@ class ArgsEditPage(MessageBoxBase, AiNieeBase):
             config = self.load_config()
             config["platforms"][self.key]["presence_penalty"] = value / 100
             self.save_config(config)
-        
+
         if self.key in preset.get("platforms"):
             default_value = preset.get("platforms").get(self.key).get("presence_penalty")
         else:
@@ -160,7 +160,7 @@ class ArgsEditPage(MessageBoxBase, AiNieeBase):
 
         parent.addWidget(
             SliderCard(
-                "presence_penalty", 
+                "presence_penalty",
                 f"请谨慎设置，错误的值可能导致结果异常或者请求报错，对于目标接口，此参数的默认值为 {default_value}",
                 init = init,
                 value_changed = value_changed,
@@ -180,7 +180,7 @@ class ArgsEditPage(MessageBoxBase, AiNieeBase):
             config = self.load_config()
             config["platforms"][self.key]["frequency_penalty"] = value / 100
             self.save_config(config)
-        
+
         if self.key in preset.get("platforms"):
             default_value = preset.get("platforms").get(self.key).get("frequency_penalty")
         else:
@@ -188,7 +188,7 @@ class ArgsEditPage(MessageBoxBase, AiNieeBase):
 
         parent.addWidget(
             SliderCard(
-                "frequency_penalty", 
+                "frequency_penalty",
                 f"请谨慎设置，错误的值可能导致结果异常或者请求报错，对于目标接口，此参数的默认值为 {default_value}",
                 init = init,
                 value_changed = value_changed,
@@ -201,21 +201,21 @@ class ArgsEditPage(MessageBoxBase, AiNieeBase):
 
         if self.key == "cohere":
             url = "https://docs.cohere.com/reference/chat"
-            
+
         if self.key == "google":
-            url = "https://ai.google.dev/gemini-api/docs/models/generative-models?hl=zh-cn"
-            
+            url = "https://ai.google.dev/api/generate-content"
+
         if self.key == "sakura":
             url = "https://github.com/SakuraLLM/SakuraLLM#%E6%8E%A8%E7%90%86"
-            
+
         if self.key == "deepseek":
             url = "https://api-docs.deepseek.com/zh-cn/quick_start/parameter_settings"
-            
+
         if self.key == "anthropic":
             url = "https://docs.anthropic.com/en/api/getting-started"
 
         hyper_link_label = HyperlinkLabel(QUrl(url), "点击查看文档")
         hyper_link_label.setUnderlineVisible(True)
-        
+
         parent.addSpacing(16)
         parent.addWidget(hyper_link_label, alignment = Qt.AlignHCenter)

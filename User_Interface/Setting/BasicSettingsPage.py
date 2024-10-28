@@ -1,18 +1,18 @@
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.SpinCard import SpinCard
 from Widget.Separator import Separator
 from Widget.ComboBoxCard import ComboBoxCard
 
-class BasicSettingsPage(QFrame, AiNieeBase):
+class BasicSettingsPage(QFrame, Base):
 
     DEFAULT = {
-        "lines_limit_switch": True,
-        "tokens_limit_switch": False,
-        "lines_limit": 15,
-        "tokens_limit": 512,
+        "lines_limit_switch": False,
+        "tokens_limit_switch": True,
+        "lines_limit": 16,
+        "tokens_limit": 384,
         "pre_line_counts": 3,
         "user_thread_counts": 0,
         "retry_count_limit": 1,
@@ -53,17 +53,17 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
             if lines_limit_switch == True and tokens_limit_switch == False:
                 widget.set_current_index(0)
-                
+
             if lines_limit_switch == False and tokens_limit_switch == True:
                 widget.set_current_index(1)
-            
+
         def current_text_changed(widget, text: str):
             config = self.load_config()
 
             if text == "行数模式":
                 config["lines_limit_switch"] = True
                 config["tokens_limit_switch"] = False
-                
+
             if text == "Token 模式":
                 config["lines_limit_switch"] = False
                 config["tokens_limit_switch"] = True
@@ -72,7 +72,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             ComboBoxCard(
-                "翻译任务切分模式", 
+                "翻译任务切分模式",
                 "选择翻译任务切分的模式",
                 [
                     "行数模式",
@@ -82,7 +82,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
                 current_text_changed = current_text_changed,
             )
         )
-        
+
     # 子任务的最大文本行数
     def add_widget_02(self, parent, config):
         def init(widget):
@@ -96,7 +96,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SpinCard(
-                "翻译任务的最大文本行数", 
+                "翻译任务的最大文本行数",
                 "当翻译任务切分模式设置为 行数模式 时按此值进行翻译任务的切分",
                 init = init,
                 value_changed = value_changed,
@@ -116,7 +116,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SpinCard(
-                "翻译任务的最大 Token 数量", 
+                "翻译任务的最大 Token 数量",
                 "当翻译任务切分模式设置为 Token 模式时按此值进行翻译任务的切分",
                 init = init,
                 value_changed = value_changed,
@@ -136,7 +136,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SpinCard(
-                "同时执行的翻译任务数量", 
+                "同时执行的翻译任务数量",
                 "合理设置可以极大的增加翻译速度，请设置为本地模型的 np 值或者参考在线接口的官方文档，设置为 0 为自动模式",
                 init = init,
                 value_changed = value_changed,
@@ -156,7 +156,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SpinCard(
-                "每个翻译任务携带的参考上文行数", 
+                "每个翻译任务携带的参考上文行数",
                 "启用此功能在大部分情况下可以改善翻译结果，但是会少量降低翻译速度（不支持 Sakura v0.9 模型）",
                 init = init,
                 value_changed = value_changed,
@@ -176,13 +176,13 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SpinCard(
-                "错误重试的最大次数", 
+                "错误重试的最大次数",
                 "当翻译结果未通过验证时，将对翻译任务进行重试，直至获得正确的翻译结果或者达到最大重试次数",
                 init = init,
                 value_changed = value_changed,
             )
         )
-        
+
     # 翻译流程的最大轮次
     def add_widget_07(self, parent, config):
         def init(widget):
@@ -196,7 +196,7 @@ class BasicSettingsPage(QFrame, AiNieeBase):
 
         parent.addWidget(
             SpinCard(
-                "翻译流程的最大轮次", 
+                "翻译流程的最大轮次",
                 "当完成一轮翻译后，如果还有未翻译的条目，将重新开始新的翻译流程，直到翻译完成或者达到最大轮次",
                 init = init,
                 value_changed = value_changed,

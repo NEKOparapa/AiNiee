@@ -7,10 +7,10 @@ from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import SingleDirectionScrollArea
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class PluginsSettingsPage(QFrame, AiNieeBase):
+class PluginsSettingsPage(QFrame, Base):
 
     DEFAULT = {
         "plugins_enable": {},
@@ -61,7 +61,7 @@ class PluginsSettingsPage(QFrame, AiNieeBase):
             def widget_init(widget):
                 widget.plugin_name = k
                 widget.set_checked(config.get("plugins_enable").get(k))
-                
+
             def widget_callback(widget, checked: bool):
                 config = self.load_config()
                 config["plugins_enable"][widget.plugin_name] = checked
@@ -72,7 +72,7 @@ class PluginsSettingsPage(QFrame, AiNieeBase):
 
             self.vbox.addWidget(
                 SwitchButtonCard(
-                    f"{v.name}", 
+                    f"{v.name}",
                     f"{v.description}",
                     widget_init,
                     widget_callback,

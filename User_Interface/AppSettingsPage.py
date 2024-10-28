@@ -15,12 +15,12 @@ from qfluentwidgets import MessageBox
 from qfluentwidgets import SwitchButton
 from qfluentwidgets import SingleDirectionScrollArea
 
-from Base.AiNieeBase import AiNieeBase
+from Base.Base import Base
 from Widget.EmptyCard import EmptyCard
 from Widget.LineEditCard import LineEditCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class AppSettingsPage(QWidget, AiNieeBase):
+class AppSettingsPage(QWidget, Base):
 
     DEFAULT = {
         "proxy_url": "",
@@ -66,7 +66,7 @@ class AppSettingsPage(QWidget, AiNieeBase):
 
         def checked_changed(swicth_button, checked: bool):
             swicth_button.setChecked(checked)
-            
+
             config = self.load_config()
             config["proxy_enable"] = checked
             self.save_config(config)
@@ -91,18 +91,18 @@ class AppSettingsPage(QWidget, AiNieeBase):
 
         parent.addWidget(
             LineEditCard(
-                "网络代理地址", 
+                "网络代理地址",
                 "启用该功能后，将使用设置的代理地址向接口发送请求，例如 http://127.0.0.1:7890",
                 init = init,
                 text_changed = text_changed,
             )
         )
-        
+
     # 应用字体优化
     def add_widget_font_hinting(self, parent, config):
         def init(widget):
             widget.set_checked(config.get("font_hinting"))
-            
+
         def checked_changed(widget, checked: bool):
             config = self.load_config()
             config["font_hinting"] = checked
@@ -110,13 +110,13 @@ class AppSettingsPage(QWidget, AiNieeBase):
 
         parent.addWidget(
             SwitchButtonCard(
-                "应用字体优化", 
+                "应用字体优化",
                 "启用此功能后，应用内字体会更加圆润，但是边缘会稍显模糊（切换将在应用重启后生效）",
                 init = init,
                 checked_changed = checked_changed,
             )
         )
-    
+
     # 应用配置切换
     def add_widget_app_profile(self, parent, config, window):
 
@@ -166,7 +166,7 @@ class AppSettingsPage(QWidget, AiNieeBase):
 
             with open(f"{path}/ainiee_profile.json", "w", encoding = "utf-8") as writer:
                 writer.write(json.dumps(config, indent = 4, ensure_ascii = False))
-                
+
             self.success_toast("", "配置已导出为 \"ainiee_profile.json\" ...")
 
         # 导入按钮点击事件
@@ -175,7 +175,7 @@ class AppSettingsPage(QWidget, AiNieeBase):
 
             if path == None or path == "":
                 return
-            
+
             import_profile_file(path)
         # 导出按钮点击事件
         def on_exprot_button_clicked():
@@ -183,7 +183,7 @@ class AppSettingsPage(QWidget, AiNieeBase):
 
             if path == None or path == "":
                 return
-            
+
             export_profile_file(path)
 
         def init(widget):
@@ -203,7 +203,7 @@ class AppSettingsPage(QWidget, AiNieeBase):
 
         parent.addWidget(
             EmptyCard(
-                "应用配置切换", 
+                "应用配置切换",
                 "可以将当前应用的除接口信息以外的所有设置导出为配置文件，以方便根据不同项目切换配置（导入配置后应用将自动重启）",
                 init = init,
             )

@@ -40,9 +40,9 @@
             "rpm_limit": 4096,
             "tpm_limit": 4096000,
             "token_limit": 4096,
-            "model": "command",
-            "top_p": 0.0,
-            "temperature": 0.0,
+            "model": "command-r",
+            "top_p": 0.75,
+            "temperature": 0.3,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
             "account": "试用账号",
@@ -103,7 +103,10 @@
                 "api_key",
                 "model",
                 "account",
-                "temperature"
+                "temperature",
+                "top_p",
+                "presence_penalty",
+                "frequency_penalty"
             ]
         },
         "google": {
@@ -116,9 +119,9 @@
             "rpm_limit": 4096,
             "tpm_limit": 4096000,
             "token_limit": 4096,
-            "model": "gemini-1.0-pro",
-            "top_p": 0.0,
-            "temperature": 0.0,
+            "model": "gemini-1.5-flash",
+            "top_p": 0.95,
+            "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
             "account": "免费账号",
@@ -168,7 +171,8 @@
                 "api_key",
                 "model",
                 "account",
-                "temperature"
+                "temperature",
+                "top_p"
             ]
         },
         "openai": {
@@ -181,7 +185,7 @@
             "rpm_limit": 4096,
             "tpm_limit": 4096000,
             "token_limit": 4096,
-            "model": "gpt-3.5-turbo",
+            "model": "gpt-4o-mini",
             "top_p": 1.0,
             "temperature": 1.0,
             "presence_penalty": 0.0,
@@ -706,8 +710,8 @@
             "tpm_limit": 4096000,
             "token_limit": 4096,
             "model": "claude-2.0",
-            "top_p": 0.0,
-            "temperature": 0.0,
+            "top_p": 0.95,
+            "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
             "account": "免费账号",
@@ -886,7 +890,8 @@
                 "api_key",
                 "model",
                 "account",
-                "temperature"
+                "temperature",
+                "top_p"
             ]
         },
         "dashscope": {
