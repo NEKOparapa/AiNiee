@@ -88,7 +88,7 @@ class AdvanceSettingsPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 "中文提示词",
-                "默认使用英文提示词，启用此功能后将使用中文提示词（Sakura 模型固定为中文提示词，无需启用此功能）",
+                "启用此功能后将使用中文提示词，默认使用英文提示词（Sakura 模型固定为中文提示词，无需启用此功能）",
                 widget_init,
                 widget_callback,
             )
