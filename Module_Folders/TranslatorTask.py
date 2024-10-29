@@ -303,7 +303,7 @@ class TranslatorTask(Base):
                 top_p = top_p,
                 temperature = temperature,
                 frequency_penalty = frequency_penalty,
-                timeout = 120,
+                timeout = self.configurator.request_timeout,
                 max_tokens = self.configurator.tokens_limit if self.configurator.tokens_limit_switch == True else 512,
                 extra_query = {
                     "do_sample": True,
@@ -349,7 +349,7 @@ class TranslatorTask(Base):
             client = cohere.ClientV2(
                 base_url = self.configurator.base_url,
                 api_key = self.configurator.get_apikey(),
-                timeout = 120,
+                timeout = self.configurator.request_timeout,
             )
 
             response = client.chat(
@@ -465,7 +465,7 @@ class TranslatorTask(Base):
                 messages = messages,
                 temperature = temperature,
                 top_p = top_p,
-                timeout = 120,
+                timeout = self.configurator.request_timeout,
                 max_tokens = 4096,
             )
 
@@ -514,7 +514,7 @@ class TranslatorTask(Base):
                 top_p = top_p,
                 presence_penalty = presence_penalty,
                 frequency_penalty = frequency_penalty,
-                timeout = 120,
+                timeout = self.configurator.request_timeout,
                 max_tokens = 4096,
             )
 
