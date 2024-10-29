@@ -9,11 +9,11 @@ from Widget.ComboBoxCard import ComboBoxCard
 class BasicSettingsPage(QFrame, Base):
 
     DEFAULT = {
-        "lines_limit_switch": False,
-        "tokens_limit_switch": True,
-        "lines_limit": 16,
+        "lines_limit_switch": True,
+        "tokens_limit_switch": False,
+        "lines_limit": 15,
         "tokens_limit": 384,
-        "pre_line_counts": 3,
+        "pre_line_counts": 0,
         "user_thread_counts": 0,
         "request_timeout": 120,
         "retry_count_limit": 1,
