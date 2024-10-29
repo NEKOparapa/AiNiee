@@ -201,7 +201,7 @@ class TranslatorTask(Base):
             # 判断结果是否通过检查
             if check_result == False:
                 error = ""
-                if "高频" not in error_content or model_degradation == True:
+                if "退化" not in error_content or model_degradation == True:
                     error = f"译文文本未通过检查，稍后将重试 - {error_content}"
                 else:
                     i = i - 1 # 当检测到模型退化时，无论是否开启重试，均增加一次额外的重试次数，且仅增加一次

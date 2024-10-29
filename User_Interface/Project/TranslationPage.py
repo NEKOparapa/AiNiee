@@ -248,7 +248,9 @@ class TranslationPage(QWidget, Base):
         # 添加控件
         self.head_hbox.addWidget(ring_vbox_container)
         self.head_hbox.addSpacing(8)
+        self.head_hbox.addStretch(1)
         self.head_hbox.addWidget(waveform_vbox_container)
+        self.head_hbox.addStretch(1)
 
     # 中部
     def add_widget_body(self, parent, config, window):
