@@ -59,6 +59,12 @@ if __name__ == "__main__":
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
+
+    # 工作目录改为python源代码所在的目录
+    script_dir = os.path.dirname(os.path.abspath(sys.argv[0])) # 获取当前工作目录
+    sys.path.append(script_dir)
+    print("[INFO] 当前工作目录是:",script_dir,'\n')
+
     # 创建全局配置器
     configurator = Configurator()
 
