@@ -17,6 +17,7 @@ from qfluentwidgets import SingleDirectionScrollArea
 
 from Base.Base import Base
 from Widget.EmptyCard import EmptyCard
+from Widget.ComboBoxCard import ComboBoxCard
 from Widget.LineEditCard import LineEditCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
@@ -26,6 +27,7 @@ class AppSettingsPage(QWidget, Base):
         "proxy_url": "",
         "proxy_enable": False,
         "font_hinting": True,
+        "scale_factor": "自动",
     }
 
     def __init__(self, text: str, window):
@@ -56,6 +58,7 @@ class AppSettingsPage(QWidget, Base):
         # 添加控件
         self.add_widget_proxy(self.vbox, config)
         self.add_widget_font_hinting(self.vbox, config)
+        self.add_widget_scale_factor(self.vbox, config)
         self.add_widget_app_profile(self.vbox, config, window)
 
         # 填充
@@ -111,9 +114,29 @@ class AppSettingsPage(QWidget, Base):
         parent.addWidget(
             SwitchButtonCard(
                 "应用字体优化",
-                "启用此功能后，应用内字体会更加圆润，但是边缘会稍显模糊（切换将在应用重启后生效）",
+                "启用此功能后，但是边缘会稍显模糊（将在应用重启后生效）",
                 init = init,
                 checked_changed = checked_changed,
+            )
+        )
+
+    # 全局缩放比例
+    def add_widget_scale_factor(self, parent, config):
+        def init(widget):
+            widget.set_current_index(max(0, widget.find_text(config.get("scale_factor"))))
+
+        def current_text_changed(widget, text: str):
+            config = self.load_config()
+            config["scale_factor"] = text
+            self.save_config(config)
+
+        parent.addWidget(
+            ComboBoxCard(
+                "全局缩放比例",
+                "启用此功能后，应用界面将按照所选比例进行缩放（将在应用重启后生效）",
+                ["自动", "50%", "75%", "150%", "200%"],
+                init = init,
+                current_text_changed = current_text_changed,
             )
         )
 

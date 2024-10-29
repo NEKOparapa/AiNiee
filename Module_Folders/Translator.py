@@ -109,7 +109,7 @@ class Translator(Base):
         self.configurator.status = Base.STATUS.TRANSLATION
 
         # 读取配置文件
-        self.configurator.load_config_file()
+        self.configurator.initialization_from_config_file()
 
         # 根据是否继续翻译载入项目数据
         default_data = {

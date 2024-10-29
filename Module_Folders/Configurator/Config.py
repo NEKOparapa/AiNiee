@@ -1,131 +1,31 @@
-# 配置器
-import datetime
-import json
-import multiprocessing
 import os
 import re
-import threading
 import time
+import json
+import datetime
+import threading
+import multiprocessing
 import urllib.request
 
 from rich import print
+from Base.Base import Base
 
-class Configurator():
+class Configurator(Base):
 
-    def __init__(self,script_dir):
-        self.script_dir = script_dir          # 根目录路径
-        self.resource_dir = os.path.join(script_dir, "Resource") # 配置文件路径
-        self.plugin_dir = os.path.join(script_dir, "Plugin_Scripts") # 插件脚本路径
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        self.translation_project = "" # 翻译项目
-        self.target_platform = "" # 翻译平台
-        self.source_language = "" # 文本原语言
-        self.target_language = "" # 文本目标语言
-        self.label_input_path = "" # 存储输入文件夹
-        self.label_output_path = "" # 存储输出文件夹
-
-        self.lines_limit_switch = True  # 行数开关
-        self.lines_limit = 15  # 行数限制
-        self.tokens_limit_switch = False   # tokens开关
-        self.tokens_limit = 2000  # tokens限制
-        self.user_thread_counts = 1 # 用户设置的线程数
-        self.actual_thread_counts= 1  # 实际设置的线程数
-        self.pre_line_counts = 0 # 上文行数
-        self.cot_toggle = False # 思维链开关
-        self.cn_prompt_toggle = False # 中文提示词开关
-        self.text_clear_toggle = False # 清除首尾非文本字符开关
-        self.preserve_line_breaks_toggle = False # 换行替换翻译开关
-        self.response_conversion_toggle = False #中文字形转换开关
-        self.round_limit = 6 # 拆分翻译轮次限制
-        self.retry_count_limit = 1 # 错误回复重试次数限制
-
-        self.mix_translation_enable = False # 混合翻译开关
-        self.mix_translation_settings = {}  #混合翻译相关信息
-
-
-        self.prompt_dictionary_switch = False   #   指令词典开关
-        self.pre_translation_switch = False #   译前处理开关
-        self.post_translation_switch = False #   译后处理开关
-        self.custom_prompt_switch = False #   自定义prompt开关
-        self.add_example_switch = False #   添加示例开关
-
-
-        self.model = ""             #模型选择
-        self.apikey_list = [] # 存储key的列表
-        self.key_index = 0  # 方便轮询key的索引
-        self.base_url = 'https://api.openai.com/v1' # api请求地址
-        self.max_tokens = 4000
-        self.RPM_limit = 3500
-        self.TPM_limit = 10000000
-
-
-        self.openai_temperature_initialvalue = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
-        self.openai_top_p_initialvalue = 0              #AI的top_p，作用与temperature相同，官方建议不要同时修改
-        self.openai_presence_penalty_initialvalue = 0  #AI的存在惩罚，生成新词前检查旧词是否存在相同的词。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
-        self.openai_frequency_penalty_initialvalue = 0 #AI的频率惩罚，限制词语重复出现的频率。0.0是不惩罚，2.0是最大惩罚，-2.0是最大奖励
-        self.sakura_temperature_initialvalue = 0
-        self.sakura_top_p_initialvalue = 0
-        self.sakura_frequency_penalty_initialvalue = 0
-        self.anthropic_temperature_initialvalue   =  0
-        self.google_temperature_initialvalue   =  0
-        self.cohere_temperature_initialvalue   =  0
-
-        # 缓存数据以及运行状态
-        self.cache_list = [] # 全局缓存数据,存储待翻译文本的全部信息
-        self.status = 0  # 存储程序工作的状态，0是空闲状态
-                                 # 1是正在接口测试状态,6是翻译任务进行状态，9是正在暂停状态，10是已暂停状态,11是正在取消状态，0也是已取消状态
-
-        # 额外代理平台
-        self.additional_platform_dict = {} # 额外代理平台索引+名字
-        self.additional_platform_information = {} # 额外代理配置具体信息
-        self.instances_information = {} # 动态对象名界面实例
-
-
-        # 翻译状态参数
-        self.translation_start_time = 0     # 存储翻译开始时间
-        self.translation_start_datetime = None  #存储翻译开始日期
-        self.translation_project_text = "未选择" # 翻译项目文本提示
-        self.status_text = "未开始"          # 存储翻译任务文本提示
-        self.untranslated_text_line_count = 0 # 存储未翻译文本总数
-        self.translated_text_line_count = 0 # 存储已经翻译文本总数
-        self.total_tokens_spent = 0  # 存储已经花费的tokens总数
-        self.total_tokens_successfully_completed = 0  # 存储成功补全的tokens数
-        self.translation_speed_line =  0 # 行速
-        self.translation_speed_token =  0 # tokens速
-        self.num_worker_threads = 0 # 存储并行任务数
-        self.progress = 0.0           # 存储翻译进度
-
-        # 线程锁
-        self.lock1 = threading.Lock()  #这个用来锁缓存文件
-        self.lock2 = threading.Lock()  #这个用来锁UI信号的
-        self.lock3 = threading.Lock()  # 这个用来锁自动备份缓存文件功能的
+        # 初始化
+        self.status = Base.STATUS.IDLE
 
     # 读取配置文件
-    def load_config_file(self):
+    def initialization_from_config_file(self):
         # 读取配置文件
-        if os.path.exists(os.path.join(self.resource_dir, "config.json")):
-            with open(os.path.join(self.resource_dir, "config.json"), "r", encoding = "utf-8") as f:
-                config_dict = json.load(f)
-        else:
-            return
+        config = self.load_config()
 
         # 将字典中的每一项赋值到类中的同名属性
-        for key, value in config_dict.items():
+        for key, value in config.items():
             setattr(self, key, value)
-
-        # 重新初始化模型参数，防止上次任务的设置影响到
-        self.openai_temperature_initialvalue = 0.1
-        self.openai_top_p_initialvalue = 0.9
-        self.openai_presence_penalty_initialvalue = 0.0
-        self.openai_frequency_penalty_initialvalue = 0.0
-
-        self.sakura_temperature_initialvalue = 0.1
-        self.sakura_top_p_initialvalue = 0.3
-        self.sakura_frequency_penalty_initialvalue = 0.0
-
-        self.anthropic_temperature_initialvalue = 0
-        self.google_temperature_initialvalue = 0
-        self.cohere_temperature_initialvalue = 0
 
         # 设置线程数
         if self.user_thread_counts != 0:

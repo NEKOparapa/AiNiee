@@ -207,7 +207,7 @@ class APIEditPage(MessageBoxBase, Base):
         parent.addWidget(
             EditableComboBoxCard(
                 "模型名称",
-                "请选择要使用的模型的名称",
+                "请选择或者输入要使用的模型的名称",
                 [],
                 init = init,
                 current_text_changed = current_text_changed,

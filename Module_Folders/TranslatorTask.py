@@ -37,19 +37,37 @@ class TranslatorTask(Base):
     def request(self, target_platform, api_format):
         # 从缓存数据中获取文本并更新这些文本的状态
         with self.translator.cache_data_lock:
-            if self.configurator.tokens_limit_switch == True and self.configurator.lines_limit_switch == False:
+            # 获取需要翻译的文本，Sakura 默认原文前文，其他模型有译文优先获取译文前文
+            if self.configurator.tokens_limit_switch == True and target_platform == "sakura":
                 source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(
                     self,
                     self.configurator.tokens_limit,
                     self.configurator.cache_list,
+                    False,
                     self.configurator.pre_line_counts
                 )
-
-            if self.configurator.tokens_limit_switch == False and self.configurator.lines_limit_switch == True:
+            elif self.configurator.tokens_limit_switch == True and target_platform != "sakura":
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(
+                    self,
+                    self.configurator.tokens_limit,
+                    self.configurator.cache_list,
+                    True,
+                    self.configurator.pre_line_counts
+                )
+            elif self.configurator.tokens_limit_switch == False and target_platform == "sakura":
                 source_text_list, previous_list = Cache_Manager.process_dictionary_data_lines(
                     self,
                     self.configurator.lines_limit,
                     self.configurator.cache_list,
+                    False,
+                    self.configurator.pre_line_counts
+                )
+            elif self.configurator.tokens_limit_switch == False and target_platform != "sakura":
+                source_text_list, previous_list = Cache_Manager.process_dictionary_data_lines(
+                    self,
+                    self.configurator.lines_limit,
+                    self.configurator.cache_list,
+                    True,
                     self.configurator.pre_line_counts
                 )
 
@@ -183,7 +201,7 @@ class TranslatorTask(Base):
             # 判断结果是否通过检查
             if check_result == False:
                 error = ""
-                if "高频" not in error_content or model_degradation == True:
+                if "退化" not in error_content or model_degradation == True:
                     error = f"译文文本未通过检查，稍后将重试 - {error_content}"
                 else:
                     i = i - 1 # 当检测到模型退化时，无论是否开启重试，均增加一次额外的重试次数，且仅增加一次
@@ -271,7 +289,6 @@ class TranslatorTask(Base):
                 "completion_tokens": 0,
             }
 
-
     # 发起请求
     def request_sakura(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty):
         try:
@@ -286,7 +303,7 @@ class TranslatorTask(Base):
                 top_p = top_p,
                 temperature = temperature,
                 frequency_penalty = frequency_penalty,
-                timeout = 120,
+                timeout = self.configurator.request_timeout,
                 max_tokens = self.configurator.tokens_limit if self.configurator.tokens_limit_switch == True else 512,
                 extra_query = {
                     "do_sample": True,
@@ -332,7 +349,7 @@ class TranslatorTask(Base):
             client = cohere.ClientV2(
                 base_url = self.configurator.base_url,
                 api_key = self.configurator.get_apikey(),
-                timeout = 120,
+                timeout = self.configurator.request_timeout,
             )
 
             response = client.chat(
@@ -448,7 +465,7 @@ class TranslatorTask(Base):
                 messages = messages,
                 temperature = temperature,
                 top_p = top_p,
-                timeout = 120,
+                timeout = self.configurator.request_timeout,
                 max_tokens = 4096,
             )
 
@@ -497,7 +514,7 @@ class TranslatorTask(Base):
                 top_p = top_p,
                 presence_penalty = presence_penalty,
                 frequency_penalty = frequency_penalty,
-                timeout = 120,
+                timeout = self.configurator.request_timeout,
                 max_tokens = 4096,
             )
 

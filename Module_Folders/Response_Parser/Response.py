@@ -1,28 +1,20 @@
-
-# coding:utf-8               
-import json
 import re
-
-
-
-
-
-
+import json
 
 # 回复解析器
 class Response_Parser():
     def __init__(self):
         pass
-    
+
 
     #处理并正则提取翻译内容
     def text_extraction(self,input_str):
 
         # 尝试直接转换为json字典
         try:
-            response_dict = json.loads(input_str) 
+            response_dict = json.loads(input_str)
             return response_dict
-        except :       
+        except :
             pass
 
 
@@ -47,8 +39,8 @@ class Response_Parser():
 
 
             return parsed_dict
-        except :       
-            print("\033[1;33mWarning:\033[0m 回复内容无法正常提取，请反馈\n") 
+        except :
+            print("\033[1;33mWarning:\033[0m 回复内容无法正常提取，请反馈\n")
             return {}
 
 
@@ -59,7 +51,7 @@ class Response_Parser():
         if row_count == 1:
             result = {"0": input_str}
             return  json.dumps(result, ensure_ascii=False)
-        
+
         else:
             str_list = input_str.split("\n")
             ret_json = {}
@@ -85,7 +77,7 @@ class Response_Parser():
             else:
                 check_result = False
                 # 存储错误内容
-                error_content = "AI回复内容出现高频词,并重新翻译"
+                error_content = "模型退化"
                 return check_result,error_content
 
 
@@ -95,7 +87,7 @@ class Response_Parser():
         else:
             check_result = False
             # 存储错误内容
-            error_content = "提取到的文本行数与原来数量不符合,将进行重新翻译"
+            error_content = "原文与译文行数不一致"
             return check_result,error_content
 
 
@@ -105,10 +97,10 @@ class Response_Parser():
         else:
             check_result = False
             # 存储错误内容
-            error_content = "AI回复内容中有未进行翻译的空行,将进行重新翻译"
+            error_content = "译文中有未翻译的空行"
             return check_result,error_content
 
-        
+
         # 检查是否回复了原文
         if 'Return to Original Text Check' in reply_check_switch and reply_check_switch['Return to Original Text Check']:
             if Response_Parser.check_dicts_equal(self,source_text_dict,response_dict):
@@ -116,7 +108,7 @@ class Response_Parser():
             else:
                 check_result = False
                 # 存储错误内容
-                error_content = "AI回复内容与原文相同，未进行翻译，将重新翻译"
+                error_content = "译文与原文完全相同"
                 return check_result,error_content
 
         # 检查是否残留部分原文
@@ -126,7 +118,7 @@ class Response_Parser():
             else:
                 check_result = False
                 # 存储错误内容
-                error_content = "AI回复内容残留部分原文，未进行翻译，将重新翻译"
+                error_content = "译文中残留部分原文"
                 return check_result,error_content
 
 
@@ -152,12 +144,12 @@ class Response_Parser():
                 # 计算交集和并集的大小
                 intersection_size = len(set1.intersection(set2))
                 union_size = len(set1.union(set2))
-                
+
                 # 计算Jaccard相似系数
                 similarity = intersection_size / union_size
 
                 #累加与累计
-                i = i + 1 
+                i = i + 1
                 s = s + similarity
 
             result = s/i
@@ -169,7 +161,7 @@ class Response_Parser():
 
         else:
             return True
- 
+
     # 检查回复内容的文本行数
     def check_text_line_count(self, source_dict, response_dict):
         return (
@@ -204,7 +196,7 @@ class Response_Parser():
             if len(set(s[i:i+count])) == 1:
                 return False
         return True
-    
+
 
     # 检查残留原文的算法
     def detecting_remaining_original_text(self,dictA, dictB, language):
@@ -216,7 +208,7 @@ class Response_Parser():
         # 考量到代码文本，英语不作检查
         if language == "英语" or language == "俄语":
             return True
-        
+
         # 不同语言的标点符号字符集
         punctuation_sets = {
             '日语': r'[\u3000-\u303F\uFF01-\uFF9F]',  # 日文标点符号
@@ -286,4 +278,4 @@ class Response_Parser():
             if  count_results >=2:
                 return False
 
-        return True       
+        return True

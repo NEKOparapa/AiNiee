@@ -3,16 +3,16 @@ from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
 
-from qfluentwidgets import ElevatedCardWidget
+from qfluentwidgets import CardWidget
 from qfluentwidgets import LineEdit
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import StrongBodyLabel
 
-class LineEditCard(ElevatedCardWidget):
+class LineEditCard(CardWidget):
 
     def __init__(self, title: str, description: str, init = None, text_changed = None):
         super().__init__(None)
-        
+
         # 设置容器
         self.setBorderRadius(4)
         self.hbox = QHBoxLayout(self)
@@ -24,7 +24,7 @@ class LineEditCard(ElevatedCardWidget):
         self.vbox.setSpacing(0)
         self.vbox.setContentsMargins(0, 0, 0, 0)
         self.hbox.addWidget(self.vbox_container)
-        
+
         self.title_label = StrongBodyLabel(title, self)
         self.vbox.addWidget(self.title_label)
 
@@ -34,7 +34,7 @@ class LineEditCard(ElevatedCardWidget):
 
         # 填充
         self.hbox.addStretch(1)
-        
+
         # 添加控件
         self.line_edit = LineEdit()
         self.line_edit.setFixedWidth(192)

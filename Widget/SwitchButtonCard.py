@@ -2,16 +2,16 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
 
-from qfluentwidgets import ElevatedCardWidget
+from qfluentwidgets import CardWidget
 from qfluentwidgets import SwitchButton
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import StrongBodyLabel
 
-class SwitchButtonCard(ElevatedCardWidget):
+class SwitchButtonCard(CardWidget):
 
     def __init__(self, title: str, description: str, init = None, checked_changed = None):
         super().__init__(None)
-        
+
         # 设置容器
         self.setBorderRadius(4)
         self.container = QHBoxLayout(self)
@@ -19,11 +19,11 @@ class SwitchButtonCard(ElevatedCardWidget):
 
         # 文本控件
         self.vbox = QVBoxLayout()
-        
+
         self.title_label = StrongBodyLabel(title, self)
         self.description_label = CaptionLabel(description, self)
         self.description_label.setTextColor(QColor(96, 96, 96), QColor(160, 160, 160))
-        
+
         self.vbox.addWidget(self.title_label)
         self.vbox.addWidget(self.description_label)
         self.container.addLayout(self.vbox)

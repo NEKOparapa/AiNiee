@@ -15,6 +15,7 @@ class BasicSettingsPage(QFrame, Base):
         "tokens_limit": 384,
         "pre_line_counts": 3,
         "user_thread_counts": 0,
+        "request_timeout": 120,
         "retry_count_limit": 1,
         "round_limit": 8,
     }
@@ -39,6 +40,7 @@ class BasicSettingsPage(QFrame, Base):
         self.add_widget_04(self.vbox, config)
         self.add_widget_05(self.vbox, config)
         self.vbox.addWidget(Separator())
+        self.add_widget_request_timeout(self.vbox, config)
         self.add_widget_06(self.vbox, config)
         self.add_widget_07(self.vbox, config)
 
@@ -158,6 +160,26 @@ class BasicSettingsPage(QFrame, Base):
             SpinCard(
                 "每个翻译任务携带的参考上文行数",
                 "启用此功能在大部分情况下可以改善翻译结果，但是会少量降低翻译速度（不支持 Sakura v0.9 模型）",
+                init = init,
+                value_changed = value_changed,
+            )
+        )
+
+    # 请求超时时间
+    def add_widget_request_timeout(self, parent, config):
+        def init(widget):
+            widget.set_range(0, 9999999)
+            widget.set_value(config.get("request_timeout"))
+
+        def value_changed(widget, value: int):
+            config = self.load_config()
+            config["request_timeout"] = value
+            self.save_config(config)
+
+        parent.addWidget(
+            SpinCard(
+                "请求超时时间（秒）",
+                "翻译任务发起请求时等待模型回复的最长时间，超时仍未收到回复，则会判断为任务失败（不支持 Google 系列模型）",
                 init = init,
                 value_changed = value_changed,
             )

@@ -2,16 +2,16 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
 
-from qfluentwidgets import ElevatedCardWidget
+from qfluentwidgets import CardWidget
 from qfluentwidgets import ComboBox
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import StrongBodyLabel
 
-class ComboBoxCard(ElevatedCardWidget):
+class ComboBoxCard(CardWidget):
 
     def __init__(self, title: str, description: str, items: list, init = None, current_text_changed = None):
         super().__init__(None)
-        
+
         # 设置容器
         self.setBorderRadius(4)
         self.hbox = QHBoxLayout(self)
@@ -19,7 +19,7 @@ class ComboBoxCard(ElevatedCardWidget):
 
         # 文本控件
         self.vbox = QVBoxLayout()
-        
+
         self.title_label = StrongBodyLabel(title, self)
         self.description_label = CaptionLabel(description, self)
         self.description_label.setTextColor(QColor(96, 96, 96), QColor(160, 160, 160))
@@ -30,7 +30,7 @@ class ComboBoxCard(ElevatedCardWidget):
 
         # 填充
         self.hbox.addStretch(1)
-        
+
         # 下拉框控件
         self.combo_box = ComboBox(self)
         self.combo_box.addItems(items)
