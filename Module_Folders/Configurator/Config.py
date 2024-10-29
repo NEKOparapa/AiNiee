@@ -133,24 +133,6 @@ class Configurator(Base):
             print("[[green]INFO[/]] 已开启自定义系统提示词功能，设置为用户设定的提示词")
             the_prompt = self.system_prompt_content
 
-            # 自动分析语言并补充格式要求语句
-            main_language, ends_with_zh, ends_with_en = self.analyze_string(the_prompt)
-
-            if main_language=="中文" and not ends_with_zh and not ends_with_en:
-
-                end_prompt = '''\n###原文文本格式如下###\n{{"<文本id>":"<原文文本>"}}\n###以json格式输出译文###\n{{"<文本id>":"<已翻译文本>"}}'''
-
-                the_prompt = the_prompt + end_prompt
-
-            elif main_language== "英文"and not ends_with_zh and not ends_with_en:
-
-                end_prompt = '''\n###The format of the original text is as follows###\n{{"<text_id>":"<original text>"}}\n###Output the translation in JSON format### \n{{"<text_id>":"<translated text>"}}'''
-
-                the_prompt = the_prompt + end_prompt
-
-            else:
-                pass
-
             return the_prompt
         else:
             #获取文本源语言下拉框当前选中选项的值
