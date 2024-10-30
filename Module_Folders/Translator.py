@@ -27,7 +27,7 @@ class Translator(Base):
         self.request_limiter = Request_Limiter(configurator)
 
         # 线程锁
-        self.lock = threading.Lock()
+        self.data_lock = threading.Lock()
         self.cache_data_lock = threading.Lock()
         self.cache_file_lock = threading.Lock()
 
@@ -253,7 +253,7 @@ class Translator(Base):
                             request_limiter = self.request_limiter,
                         ).start
                     )
-                    future.add_done_callback(lambda future: self.task_done_callback(future, executor))
+                    future.add_done_callback(self.task_done_callback)
 
         # 等待可能存在的缓存文件写入请求处理完毕
         time.sleep(self.CACHE_FILE_SAVE_INTERVAL/1000)
@@ -344,13 +344,17 @@ class Translator(Base):
         self.print("")
 
     # 翻译任务完成时
-    def task_done_callback(self, future, executor):
+    def task_done_callback(self, future):
         try:
             # 获取结果
             result = future.result()
 
+            # 结果为空则跳过后续的更新步骤
+            if result == None or len(result) == 0:
+                return
+
             # 记录数据
-            with self.lock:
+            with self.data_lock:
                 if result.get("check_result") == True:
                     new = {}
                     new["start_time"] = self.data.get("start_time")
