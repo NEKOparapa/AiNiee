@@ -42,12 +42,15 @@ class Configurator(Base):
         else:
             self.model = self.platforms.get(target_platform).get("model")
 
-        # 获取接口密钥
+        # 解析密钥字符串
+        # 即使字符中没有逗号，split(",") 方法仍然会返回只包含一个完整字符串的列表
         api_key = self.platforms.get(target_platform).get("api_key")
         if api_key == "":
             self.apikey_list = ["no_key_required"]
+            self.apikey_index = 0
         else:
-            self.apikey_list = api_key.replace("\n", "").replace(" ", "").split(",")
+            self.apikey_list = re.sub(r"\s+","", api_key).split(",")
+            self.apikey_index = 0
 
         # 获取接口地址并补齐，v3 结尾是火山，v4 结尾是智谱
         api_url = self.platforms.get(target_platform).get("api_url")
@@ -1096,19 +1099,16 @@ Third: Begin translating line by line from the original text, only translating {
 
     # 轮询获取key列表里的key
     def get_apikey(self):
-        # 如果存有多个key
-        if len(self.apikey_list) > 1:
-            # 如果增加索引值不超过key的个数
-            if (self.key_index + 1) < len(self.apikey_list):
-                self.key_index = self.key_index + 1 #更换APIKEY索引
-            # 如果超过了
-            else :
-                self.key_index = 0
-        # 如果只有一个key
+        # 如果密钥各位为 0，则直接返回固定密钥，以防止越界
+        # 如果密钥个数为 1，或者索引值已达到最大长度，则重置索引值，否则切换到下一个密钥
+        if len(self.apikey_list) == 0:
+            return "no_key_required"
+        elif len(self.apikey_list) == 1 or self.apikey_index >= len(self.apikey_list) - 1:
+            self.apikey_index = 0
+            return self.apikey_list[self.apikey_index]
         else:
-            self.key_index = 0
-
-        return self.apikey_list[self.key_index]
+            self.apikey_index = self.apikey_index + 1
+            return self.apikey_list[self.apikey_index]
 
     # 获取接口的请求参数
     def get_platform_request_args(self):

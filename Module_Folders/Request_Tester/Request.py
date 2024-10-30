@@ -1,4 +1,5 @@
 import os
+import re
 import threading
 
 import cohere                       # 需要安装库pip install cohere
@@ -56,8 +57,9 @@ class Request_Tester(Base):
         failure = []
         success = []
 
-        # 密钥字符串，即使字符中没有逗号，split(",") 方法仍然返回一个只包含一个元素的列表
-        api_keys = api_key.strip().replace("\r", "").replace("\n", "").split(",")
+        # 解析密钥字符串
+        # 即使字符中没有逗号，split(",") 方法仍然会返回只包含一个完整字符串的列表
+        api_keys = re.sub(r"\s+","", api_key).split(",")
 
         for api_key in api_keys:
             # 构建 Prompt
@@ -71,7 +73,7 @@ class Request_Tester(Base):
             self.info(f"接口密钥 - {api_key}")
             self.info(f"模型名称 - {model}")
             self.info("测试指令 - ")
-            self.info(f"{messages}")
+            self.print(f"{messages}")
 
             #尝试请求，并设置各种参数
             try:

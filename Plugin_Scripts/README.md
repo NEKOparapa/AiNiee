@@ -178,7 +178,7 @@ class Example_Plugin(PluginBase):
 
         self.model = ""             #模型选择
         self.apikey_list = [] # 存储key的列表
-        self.key_index = 0  # 方便轮询key的索引
+        self.apikey_index = 0  # 方便轮询key的索引
         self.base_url = 'https://api.openai.com/v1' # api请求地址
         self.max_tokens = 4000
         self.RPM_limit = 3500
