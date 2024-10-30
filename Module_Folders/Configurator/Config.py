@@ -129,7 +129,6 @@ class Configurator(Base):
 
         #如果提示词工程界面的自定义提示词开关打开，则使用自定义提示词
         if self.system_prompt_switch:
-            print("[[green]INFO[/]] 已开启自定义系统提示词功能，设置为用户设定的提示词")
             the_prompt = self.system_prompt_content
 
             return the_prompt
