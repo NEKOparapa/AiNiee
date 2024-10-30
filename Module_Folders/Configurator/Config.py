@@ -69,7 +69,6 @@ class Configurator(Base):
         else:
             os.environ["http_proxy"] = self.proxy_url
             os.environ["https_proxy"] = self.proxy_url
-            print(f"[[green]INFO[/]] 系统代理已启用，代理地址：{self.proxy_url}")
 
         # 获取模型价格（弃用，直接置零）
         self.model_input_price = 0
