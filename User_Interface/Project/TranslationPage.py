@@ -149,17 +149,23 @@ class TranslationPage(QWidget, Base):
         if line < 1000:
             self.line_card.set_unit("Line")
             self.line_card.set_value(f"{line}")
-        else:
+        elif line < 1000 * 1000:
             self.line_card.set_unit("KLine")
-            self.line_card.set_value(f"{(line/ 1000):.2f}")
+            self.line_card.set_value(f"{line / 1000}")
+        else:
+            self.line_card.set_unit("MLine")
+            self.line_card.set_value(f"{(line / 1000 / 1000):.2f}")
 
         remaining_line = self.data.get("total_line", 0) - self.data.get("line", 0)
         if remaining_line < 1000:
             self.remaining_line.set_unit("Line")
             self.remaining_line.set_value(f"{remaining_line}")
-        else:
+        elif remaining_line < 1000 * 1000:
             self.remaining_line.set_unit("KLine")
-            self.remaining_line.set_value(f"{(remaining_line / 1000):.2f}")
+            self.remaining_line.set_value(f"{remaining_line / 1000}")
+        else:
+            self.remaining_line.set_unit("MLine")
+            self.remaining_line.set_value(f"{(remaining_line / 1000 / 1000):.2f}")
 
     # 更新实时任务数
     def update_task(self, event: int, data: dict):
@@ -181,9 +187,12 @@ class TranslationPage(QWidget, Base):
         if token < 1000:
             self.token.set_unit("Token")
             self.token.set_value(f"{token}")
-        else:
+        elif token < 1000 * 1000:
             self.token.set_unit("KToken")
             self.token.set_value(f"{(token / 1000):.2f}")
+        else:
+            self.token.set_unit("MToken")
+            self.token.set_value(f"{(token / 1000 / 1000):.2f}")
 
         speed = self.data.get("total_completion_tokens", 0) / max(1, time.time() - self.data.get("start_time", 0))
         self.waveform.add_value(speed)

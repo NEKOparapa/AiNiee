@@ -111,6 +111,9 @@ class Translator(Base):
         # 读取配置文件
         self.configurator.initialization_from_config_file()
 
+        # 配置线程数
+        self.configurator.configure_thread_count(self.configurator.target_platform)
+
         # 根据是否继续翻译载入项目数据
         default_data = {
             "start_time": time.time(),

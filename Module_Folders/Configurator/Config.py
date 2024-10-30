@@ -27,14 +27,15 @@ class Configurator(Base):
         for key, value in config.items():
             setattr(self, key, value)
 
-        # 设置线程数
-        if self.user_thread_counts != 0:
+    # 配置线程数
+    def configure_thread_count(self, target_platform: str):
+        if self.user_thread_counts > 0:
             self.actual_thread_counts = self.user_thread_counts
         else:
-            self.actual_thread_counts = self.auto_thread_count(self.target_platform, self.platforms.get("sakura").get("api_url"))
+            self.actual_thread_counts = self.auto_thread_count(self.target_platform)
 
     # 配置翻译平台信息
-    def configure_translation_platform(self, target_platform = None, model = None):
+    def configure_translation_platform(self, target_platform, model = None):
         # 获取模型类型
         if model:
             self.model = model
@@ -91,23 +92,18 @@ class Configurator(Base):
         self.RPM_limit = self.RPM_limit * len(self.apikey_list)
         self.TPM_limit = self.TPM_limit * len(self.apikey_list)
 
-    # 计算合适的线程数
-    def  auto_thread_count(self,target_platform,SakuraLLM_address):
+    # 当目标为 sakura 或自定义平台时，尝试自动获取线程数，获取失败则返回默认值
+    def auto_thread_count(self, target_platform):
+        num = -1
+        if target_platform == "sakura" or target_platform.startswith("custom_platform_"):
+            num = self.get_llama_cpp_slots_num(self.platforms.get(target_platform).get("api_url"))
 
-        thread_counts = multiprocessing.cpu_count()
-
-        if target_platform == "sakura":
-
-            print("[[green]INFO[/]] Accessing port to obtain the number of slots !")
-            # 根据slots数量计算线程数
-            num = self.get_llama_cpp_slots_num(SakuraLLM_address)
-            if num != -1:
-                thread_counts =  num
-                print(f"[[green]INFO[/]] Access successful, the number of slots is {thread_counts}")
-            else:
-                print("[[green]INFO[/]] Access failed, please check the backend status")
-
-        return thread_counts
+        if num <= 0:
+            self.info(f"无法自动获取最大任务数量，已自动设置为 4 ...")
+            return 4
+        else:
+            self.info(f"已根据 llama.cpp 接口信息自动设置最大任务数量为 {num} ...")
+            return num
 
     # 获取 llama.cpp 的 slots 数量，获取失败则返回 -1
     def get_llama_cpp_slots_num(self,url: str) -> int:

@@ -114,7 +114,7 @@ class AppSettingsPage(QWidget, Base):
         parent.addWidget(
             SwitchButtonCard(
                 "应用字体优化",
-                "启用此功能后，但是边缘会稍显模糊（将在应用重启后生效）",
+                "启用此功能后，字体的边缘渲染将更加圆润（将在应用重启后生效）",
                 init = init,
                 checked_changed = checked_changed,
             )
