@@ -231,6 +231,8 @@ class Translator(Base):
             self.info(f"接口地址 - {self.configurator.base_url}")
             self.info(f"模型名称 - {self.configurator.model}")
             self.print("")
+            if self.configurator.proxy_enable == True and self.configurator.proxy_url != "":
+                self.info(f"生效中的 网络代理 - {self.configurator.proxy_url}")
             self.info(f"生效中的 RPM 限额 - {self.configurator.RPM_limit}")
             self.info(f"生效中的 TPM 限额 - {self.configurator.TPM_limit}")
             self.info(f"生效中的 MAX_TOKENS 限额 - {self.configurator.max_tokens}")

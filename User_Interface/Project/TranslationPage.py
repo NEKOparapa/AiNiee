@@ -151,7 +151,7 @@ class TranslationPage(QWidget, Base):
             self.line_card.set_value(f"{line}")
         elif line < 1000 * 1000:
             self.line_card.set_unit("KLine")
-            self.line_card.set_value(f"{line / 1000}")
+            self.line_card.set_value(f"{(line / 1000):.2f}")
         else:
             self.line_card.set_unit("MLine")
             self.line_card.set_value(f"{(line / 1000 / 1000):.2f}")
@@ -162,7 +162,7 @@ class TranslationPage(QWidget, Base):
             self.remaining_line.set_value(f"{remaining_line}")
         elif remaining_line < 1000 * 1000:
             self.remaining_line.set_unit("KLine")
-            self.remaining_line.set_value(f"{remaining_line / 1000}")
+            self.remaining_line.set_value(f"{(remaining_line / 1000):.2f}")
         else:
             self.remaining_line.set_unit("MLine")
             self.remaining_line.set_value(f"{(remaining_line / 1000 / 1000):.2f}")
