@@ -813,7 +813,7 @@ class TranslatorTask(Base):
         else:
             rows.append(
                 f"任务耗时 {(time.time() - start_time):.2f} 秒，"
-                + f"文本行数 {row_count} 行，指令消耗 {prompt_tokens} Tokens，结果消耗 {completion_tokens} Tokens"
+                + f"文本行数 {row_count} 行，指令消耗 {prompt_tokens} Tokens，补全消耗 {completion_tokens} Tokens"
             )
 
         # 添加额外日志
