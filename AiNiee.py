@@ -26,9 +26,9 @@
 
 import os
 import sys
-import json
 import multiprocessing
 
+import rapidjson as json
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
@@ -78,11 +78,11 @@ if __name__ == "__main__":
     # 设置全局缩放比例
     if config.get("scale_factor", "") == "50%":
         os.environ["QT_SCALE_FACTOR"] = "0.50"
-    elif config.get("scale_factor", "") ==  "75%":
+    elif config.get("scale_factor", "") == "75%":
         os.environ["QT_SCALE_FACTOR"] = "0.75"
-    elif config.get("scale_factor", "") ==  "150%":
+    elif config.get("scale_factor", "") == "150%":
         os.environ["QT_SCALE_FACTOR"] = "1.50"
-    elif config.get("scale_factor", "") ==  "200%":
+    elif config.get("scale_factor", "") == "200%":
         os.environ["QT_SCALE_FACTOR"] = "2.00"
 
     # 创建全局应用对象

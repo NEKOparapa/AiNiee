@@ -1,11 +1,9 @@
 import os
-import json
 import traceback
 
+import rapidjson as json
 from rich import print
-
 from PyQt5.Qt import Qt
-
 from qfluentwidgets import InfoBar
 from qfluentwidgets import InfoBarPosition
 
@@ -130,7 +128,7 @@ class Base():
             with open(self.CONFIG_PATH, "r", encoding = "utf-8") as reader:
                 config = json.load(reader)
         else:
-            self.error("配置文件不存在 ...")
+            self.warning("配置文件不存在 ...")
 
         return config
 
@@ -143,7 +141,7 @@ class Base():
             with open(self.CONFIG_PATH, "r", encoding = "utf-8") as reader:
                 old = json.load(reader)
         else:
-            self.error("配置文件不存在 ...")
+            self.warning("配置文件不存在 ...")
 
         # 更新配置数据
         for k, v in new.items():
