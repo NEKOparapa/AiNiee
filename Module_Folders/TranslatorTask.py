@@ -1,7 +1,7 @@
 import time
-import json
 import itertools
 
+import rapidjson as json
 from rich import box
 from rich.table import Table
 
@@ -35,6 +35,10 @@ class TranslatorTask(Base):
 
     # 发起请求
     def request(self, target_platform, api_format):
+        # 检测是否需要停止任务
+        if self.configurator.status == Base.STATUS.STOPING:
+            return {}
+
         # 从缓存数据中获取文本并更新这些文本的状态
         with self.translator.cache_data_lock:
             # 获取需要翻译的文本，Sakura 默认原文前文，其他模型有译文优先获取译文前文
