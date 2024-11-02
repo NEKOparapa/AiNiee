@@ -95,8 +95,10 @@ class Translator(Base):
     def translation_continue_check(self, event: int, data: dict):
         translation_continue = False
         try:
-            config = self.load_config()
-            cache = self.load_cache_file(f"{config.get("label_output_path", "")}/cache/AinieeCacheData.json")
+            # 避免读取缓存时锁定文件从而影响缓存写入的任务
+            with self.cache_file_lock:
+                cache = self.load_cache_file(f"{self.load_config().get("label_output_path", "")}/cache/AinieeCacheData.json")
+
             translated_line = [v for v in cache if v.get("translation_status", -1) == 1]
             untranslated_line = [v for v in cache if v.get("translation_status", -1) in (0, 2)]
             translation_continue = len(translated_line) > 0 and len(untranslated_line) > 0
