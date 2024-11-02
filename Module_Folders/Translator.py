@@ -70,6 +70,9 @@ class Translator(Base):
 
     # 翻译结果手动导出事件
     def translation_manual_export(self, event: int, data: dict):
+        if not hasattr(self.configurator, "cache_list") or len(self.configurator.cache_list) == 0:
+            return
+
         # 复制一份数据
         new = copy.deepcopy(self.configurator.cache_list)
 
