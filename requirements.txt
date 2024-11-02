@@ -15,6 +15,7 @@ beautifulsoup4
 pandas
 chardet
 PyYAML
+rapidjson
 
 # Tools
 rich
