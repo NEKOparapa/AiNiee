@@ -304,7 +304,7 @@ class TranslatorTask(Base):
                 temperature = temperature,
                 frequency_penalty = frequency_penalty,
                 timeout = self.configurator.request_timeout,
-                max_tokens = self.configurator.tokens_limit if self.configurator.tokens_limit_switch == True else 512,
+                max_tokens = max(512, self.configurator.tokens_limit) if self.configurator.tokens_limit_switch == True else 512,
                 extra_query = {
                     "do_sample": True,
                     "num_beams": 1,
@@ -751,11 +751,12 @@ class TranslatorTask(Base):
             source_text_dict = self.configurator.replace_before_translation(source_text_dict)
 
         # 如果开启了保留句内换行符功能
-        source_text_dict = Cache_Manager.replace_special_characters(
-            self,
-            source_text_dict,
-            "替换"
-        )
+        if self.configurator.preserve_line_breaks_toggle:
+            source_text_dict = Cache_Manager.replace_special_characters(
+                self,
+                source_text_dict,
+                "替换"
+            )
 
         # 如果开启了携带上文功能，v0.9 版本跳过
         previous_message = ""
