@@ -1,9 +1,10 @@
 import os
 import copy
 import time
-import json
 import threading
 import concurrent.futures
+
+import rapidjson as json
 
 from Base.Base import Base
 from Module_Folders.File_Reader.File1 import File_Reader
@@ -15,8 +16,8 @@ from Module_Folders.TranslatorTask import TranslatorTask
 # 翻译器
 class Translator(Base):
 
-    # 缓存文件保存周期（毫秒）
-    CACHE_FILE_SAVE_INTERVAL = 3000
+    # 缓存文件保存周期
+    CACHE_FILE_SAVE_INTERVAL = 8
 
     def __init__(self, configurator, plugin_manager):
         super().__init__()
@@ -258,7 +259,7 @@ class Translator(Base):
                     future.add_done_callback(self.task_done_callback)
 
         # 等待可能存在的缓存文件写入请求处理完毕
-        time.sleep(self.CACHE_FILE_SAVE_INTERVAL/1000)
+        time.sleep(self.CACHE_FILE_SAVE_INTERVAL)
 
         # 译后处理
         self.translation_post_process()
@@ -403,7 +404,7 @@ class Translator(Base):
     # 定时保存缓存文件
     def save_cache_file_tick(self):
         while True:
-            time.sleep(self.CACHE_FILE_SAVE_INTERVAL / 1000)
+            time.sleep(self.CACHE_FILE_SAVE_INTERVAL)
 
             # 接收到退出信号则停止
             if hasattr(self, "save_cache_file_stop_flag") and self.save_cache_file_stop_flag == True:
@@ -438,16 +439,20 @@ class Translator(Base):
 
     # 保存缓存文件
     def save_cache_file(self, cache, path):
-        new = copy.deepcopy(cache)
+        # 使用浅拷贝创建新的列表
+        new_cache = copy.copy(cache)
 
-        # 更新翻译状态，将翻译中的条目修改为待翻译
-        for item in new:
+        # 更新翻译状态，将翻译中的条目的状态改为待翻译
+        # 注意，字典是可变对象，直接修改其中的数据会影响 cache 中的原始的数据，修改前要使用深拷贝进行复制
+        # 深拷贝是很重的操作，所以只对需要需求的条目进行深拷贝
+        for i, item in enumerate(new_cache):
             if item.get("translation_status", 0) == 2:
-                item["translation_status"] = 0
+                new_cache[i] = copy.deepcopy(item)
+                new_cache[i]["translation_status"] = 0
 
         # 写入缓存文件
         with open(path, "w", encoding = "utf-8") as writer:
-            writer.write(json.dumps(new, indent = 4, ensure_ascii = False))
+            writer.write(json.dumps(new_cache, indent = 4, ensure_ascii = False))
 
     # 读取缓存文件
     def load_cache_file(self, path):

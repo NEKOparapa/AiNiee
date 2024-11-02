@@ -20,3 +20,4 @@ PyYAML
 rich
 tqdm
 jaconv
+python-rapidjson
