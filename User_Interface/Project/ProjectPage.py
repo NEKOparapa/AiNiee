@@ -46,9 +46,7 @@ class ProjectPage(QFrame, Base):
     # 页面每次展示时触发
     def showEvent(self, event: QEvent):
         super().showEvent(event)
-
-        if self.on_show_event is not None:
-            self.on_show_event(self, event)
+        self.show_event(self, event) if hasattr(self, "show_event") else None
 
     # 获取接口列表
     def get_items(self, config) -> list:
@@ -83,7 +81,7 @@ class ProjectPage(QFrame, Base):
 
         def init(widget):
             # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
-            self.on_show_event = lambda _, event: update_widget(widget)
+            self.show_event = lambda _, event: update_widget(widget)
 
         def current_text_changed(widget, text: str):
             config = self.load_config()

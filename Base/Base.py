@@ -51,7 +51,8 @@ class Base():
         self.event_manager_singleton = EventManager()
 
         # 载入并保存默认配置
-        self.save_config(self.load_config_from_default(self.DEFAULT_FILL.SELECT_MODE))
+        if len(self.DEFAULT) > 0:
+            self.save_config(self.load_config_from_default(self.DEFAULT_FILL.SELECT_MODE))
 
     # PRINT
     def print(self, msg: str) -> None:
@@ -140,8 +141,12 @@ class Base():
         if os.path.exists(self.CONFIG_PATH):
             with open(self.CONFIG_PATH, "r", encoding = "utf-8") as reader:
                 old = json.load(reader)
-        else:
-            self.warning("配置文件不存在 ...")
+
+        # 对比新旧数据是否一致，一致则跳过后续步骤
+        # 当字典中包含子字典或子列表时，使用 == 运算符仍然可以进行比较
+        # Python 会递归地比较所有嵌套的结构，确保每个层次的键值对都相等
+        if old == new:
+            return old
 
         # 更新配置数据
         for k, v in new.items():
