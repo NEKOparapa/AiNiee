@@ -93,11 +93,21 @@ class Translator(Base):
 
     # 翻译状态检查事件
     def translation_continue_check(self, event: int, data: dict):
+        # 只有当翻译状态为 无任务 时才检查 继续翻译状态，其他情况直接返回 False
+        if not hasattr(self, "configurator") or self.configurator.status != Base.STATUS.IDLE:
+            self.emit(Base.EVENT.TRANSLATION_CONTINUE_CHECK_DONE, {
+                "translation_continue" : False,
+            })
+            return
+
+        # 开始检查 继续翻译状态
         translation_continue = False
         try:
+            config = self.load_config()
+
             # 避免读取缓存时锁定文件从而影响缓存写入的任务
             with self.cache_file_lock:
-                cache = self.load_cache_file(f"{self.load_config().get("label_output_path", "")}/cache/AinieeCacheData.json")
+                cache = self.load_cache_file(f"{config.get("label_output_path", "")}/cache/AinieeCacheData.json")
 
             translated_line = [v for v in cache if v.get("translation_status", -1) == 1]
             untranslated_line = [v for v in cache if v.get("translation_status", -1) in (0, 2)]
