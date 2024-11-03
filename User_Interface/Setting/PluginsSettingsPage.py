@@ -54,6 +54,7 @@ class PluginsSettingsPage(QFrame, Base):
                 config["plugins_enable"][k] = enable
 
         # 更新插件启用状态
+        self.save_config(config)
         self.plugin_manager.update_plugins_enable(config.get("plugins_enable"))
 
         # 添加控件
