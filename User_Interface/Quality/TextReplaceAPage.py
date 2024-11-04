@@ -203,13 +203,13 @@ class TextReplaceAPage(QFrame, Base):
             dictionary = {}
 
             sheet = openpyxl.load_workbook(path).active
-            for row in range(2, sheet.max_row + 1): # 第一行是标识头，第二行才开始读取
-                cell_value1 = sheet.cell(row=row, column=1).value # 第N行第一列的值
-                cell_value2 = sheet.cell(row=row, column=2).value # 第N行第二列的值
-                cell_value3 = sheet.cell(row=row, column=3).value # 第N行第三列的值
+            for row in range(2, sheet.max_row + 1):                     # 第一行是标识头，第二行才开始读取
+                cell_01 = sheet.cell(row = row, column = 1).value       # 第N行第一列的值
+                cell_02 = sheet.cell(row = row, column = 2).value       # 第N行第二列的值
+                cell_03 = sheet.cell(row = row, column = 3).value       # 第N行第三列的值
 
-                if cell_value1 != "" and cell_value2 != "":
-                    dictionary[cell_value1.strip()] = cell_value2.strip()
+                if cell_01 != None and cell_02 != None and cell_01 != "" and cell_02 != "":
+                    dictionary[str(cell_01).strip()] = str(cell_02).strip()
 
             return dictionary
 
