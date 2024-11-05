@@ -9,35 +9,40 @@ from Plugin_Scripts.Plugin_Base.Plugin_Base import PluginBase
 class MTool_Optimizer(PluginBase):
 
     CODE_PATTERN = (
-        r"\\\{",                    # 放大字体 \{
-        r"\\\}",                    # 缩小字体 \}
-        r"\\G",                     # 显示货币 \G
-        r"\\\$",                    # 打开金币框 \$
-        r"\\\.",                    # 等待0.25秒 \.
-        r"\\\|",                    # 等待1秒 \|
-        r"\\!",                     # 等待按钮按下 \!
-        r"\\>",                     # 在同一行显示文字 \>
-        r"\\<",                     # 取消显示所有文字 \<
-        r"\\\^",                    # 显示文本后不需要等待 \^
-        r"/[A-Z]{1,5}\[\d+\]",      # /C[4]
-        r"/[A-Z]{1,5}<\d+>",        # /C<4>
-        r"\\[A-Z]{1,5}\[\d+\]",     # \FS[29]
-        r"\\[A-Z]{1,5}<\d+>",       # \FS<29>
-        r"/[A-Z]{1,5}\[[A-Z]+\]",   # /C[4]
-        r"/[A-Z]{1,5}<[A-Z]+>",     # /C<4>
-        r"\\[A-Z]{1,5}\[[A-Z]+\]",  # \FS[29]
-        r"\\[A-Z]{1,5}<[A-Z]+>",    # \FS<29>
-        r"\\n",                     # 换行符 \\n
-        r"\r\n",                    # 换行符 \r
-        r"\n",                      # 换行符 \n
-        r"<br>",                    # 换行符
+        r"[/\\][A-Z]{1,5}<[\d]{0,10}>",         # /C<y> /C<1> \FS<xy> \FS<12>
+        r"[/\\][A-Z]{1,5}\[[\d]{0,10}\]",       # /C[x] /C[1] \FS[xy] \FS[12]
+        r"[/\\][A-Z]{1,5}(?=<.{0,10}>)",        # /C<非数字> /C<非数字> \FS<非数字> \FS<非数字> 中的前半部分
+        r"[/\\][A-Z]{1,5}(?=\[.{0,10}\])",      # /C[非数字] /C[非数字] \FS[非数字] \FS[非数字] 中的前半部分
+        r"\\\{",                                # 放大字体 \{
+        r"\\\}",                                # 缩小字体 \}
+        r"\\G",                                 # 显示货币 \G
+        r"\\\$",                                # 打开金币框 \$
+        r"\\\.",                                # 等待0.25秒 \.
+        r"\\\|",                                # 等待1秒 \|
+        r"\\!",                                 # 等待按钮按下 \!
+        # r"\\>",                               # 在同一行显示文字 \>
+        # r"\\<",                               # 取消显示所有文字 \<
+        r"\\\^",                                # 显示文本后不需要等待 \^
+        # r"\\n",                               # 换行符 \\n
+        r"\r\n",                                # 换行符 \r\n
+        r"\n",                                  # 换行符 \n
+        r"\\\\<br>",                            # 换行符 \\<br>
+        r"<br>",                                # 换行符 <br>
     )
+
+    # 匹配 <xyz> [xyz] 形式的代码段，尽可能短的匹配
+    CODE_LOST_PATTERN = (
+        r"<.{0,10}?>",
+        r"\[.{0,10}?\]",
+    )
+
+
 
     def __init__(self):
         super().__init__()
         self.name = "CodeSaver"
         self.description = (
-            "代码拯救者，尝试保留文本中的各种代码段（例如 \FS[29]）以方便进行文本内嵌"
+            "代码救星，尝试保留文本中的各种代码段（例如 \FS[29]）以方便进行文本内嵌"
             + "\n" + "兼容性：支持全部语言；仅支持 Sakura 系列模型；仅支持 T++ 文本；"
         )
 
@@ -89,7 +94,7 @@ class MTool_Optimizer(PluginBase):
         print("")
 
         # 查找代码段
-        pattern = rf"{"|".join(self.CODE_PATTERN)}"
+        pattern = rf"(?:{"|".join(self.CODE_PATTERN)})+"
         for v in tqdm(items):
             source_text = v.get("source_text", "")
 
@@ -116,7 +121,10 @@ class MTool_Optimizer(PluginBase):
         print("")
 
         # 还原文本
-        failed_items = {}
+        failed_items = {
+            "failed": {},
+            "code_lost": {},
+        }
         target_items = [v for v in items if v.get("translation_status", 0) == 1 and len(v.get("code_saver_codes", [])) > 0]
         for item in tqdm(target_items):
             # 还原原文
@@ -137,13 +145,31 @@ class MTool_Optimizer(PluginBase):
                     # 匹配成功标记
                     success = True
 
+            # 检查是否存在代码段丢失
+            code_lost = self.check_code_lost(item.get("source_text", ""), item.get("translated_text", ""))
+
             # 如果以上均匹配失败，则加入失败条目列表中
             if success == False:
-                failed_items[item.get("source_text", "")] = item.get("translated_text", "")
+                failed_items["failed"][item.get("source_text", "")] = item.get("translated_text", "")
+            elif code_lost == True:
+                failed_items["code_lost"][item.get("source_text", "")] = item.get("translated_text", "")
 
         # 将还原失败的条目写入文件
         with open(f"{configurator.label_output_path}/code_saver_failed_items.json", "w", encoding = "utf-8") as writer:
             writer.write(json.dumps(failed_items, indent = 4, ensure_ascii = False))
 
         print("")
-        print(f"[CodeSaver] 已将 {len(failed_items)} 条还原失败的条目写入 [green]{configurator.label_output_path}/code_saver_failed_items.json[/] 文件，请手工修正 ...")
+        print(
+            f"[CodeSaver] 已将 {len(failed_items.get("failed")) + len(failed_items.get("code_lost"))} 条未通过检查的条目写入 [green]{configurator.label_output_path}/code_saver_failed_items.json[/] 文件，请手工修正 ..."
+        )
+
+    # 检查翻译结果是否丢失代码段
+    def check_code_lost(self, source: str, translated: str) -> bool:
+        result = False
+
+        for pattern in self.CODE_LOST_PATTERN:
+            if len(re.findall(pattern, source)) != len(re.findall(pattern, translated)):
+                result = True
+                break
+
+        return result
