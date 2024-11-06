@@ -36,14 +36,13 @@ class MTool_Optimizer(PluginBase):
         r"\[.{0,10}?\]",
     )
 
-
-
     def __init__(self):
         super().__init__()
         self.name = "CodeSaver"
         self.description = (
-            "代码救星，尝试保留文本中的各种代码段（例如 \FS[29]）以方便进行文本内嵌"
-            + "\n" + "兼容性：支持全部语言；仅支持 Sakura 系列模型；仅支持 T++ 文本；"
+            "代码救星，尝试保留文本中的各种代码段（例如 \FS[29]）以简化文本内嵌的工作量"
+            + "\n"
+            + "兼容性：支持全部语言；支持全部模型，但是仅在 Sakura 等部分模型上实际进行过测试；仅支持 T++ 文本；"
         )
 
         self.visibility = True          # 是否在插件设置中显示
@@ -66,14 +65,14 @@ class MTool_Optimizer(PluginBase):
         project = data[0]
 
         # 限制模型
-        if "sakura" not in configurator.target_platform.lower():
-            return
+        # if "sakura" not in configurator.target_platform.lower():
+        #     return
 
         # 限制文本格式
         if "t++" not in project.get("project_type", "").lower():
             return
 
-        # 关闭内置的 保留句内换行符 和 保留首位非文本字符 功能
+        # 关闭内置的 保留句内换行符、保留首位非文本字符 功能
         configurator.text_clear_toggle = False
         configurator.preserve_line_breaks_toggle = False
 
@@ -92,6 +91,11 @@ class MTool_Optimizer(PluginBase):
         print("")
         print("[CodeSaver] 开始执行预处理 ...")
         print("")
+
+        # 构建角色表
+        # actors = {}
+        # for v in [v for v in items if "actors" in v.get("storage_path", "").lower()]:
+        #     actors[f"\\n[{v.get("row_index", 1) - 1}]"] = v.get("source_text", "")
 
         # 查找代码段
         pattern = rf"(?:{"|".join(self.CODE_PATTERN)})+"
@@ -121,9 +125,9 @@ class MTool_Optimizer(PluginBase):
         print("")
 
         # 还原文本
-        failed_items = {
-            "failed": {},
-            "code_lost": {},
+        result = {
+            "占位符失败": {},
+            "代码段丢失": {},
         }
         target_items = [v for v in items if v.get("translation_status", 0) == 1 and len(v.get("code_saver_codes", [])) > 0]
         for item in tqdm(target_items):
@@ -150,17 +154,24 @@ class MTool_Optimizer(PluginBase):
 
             # 如果以上均匹配失败，则加入失败条目列表中
             if success == False:
-                failed_items["failed"][item.get("source_text", "")] = item.get("translated_text", "")
+                result["占位符失败"][item.get("source_text", "")] = item.get("translated_text", "")
             elif code_lost == True:
-                failed_items["code_lost"][item.get("source_text", "")] = item.get("translated_text", "")
+                result["代码段丢失"][item.get("source_text", "")] = item.get("translated_text", "")
 
         # 将还原失败的条目写入文件
-        with open(f"{configurator.label_output_path}/code_saver_failed_items.json", "w", encoding = "utf-8") as writer:
-            writer.write(json.dumps(failed_items, indent = 4, ensure_ascii = False))
+        with open(f"{configurator.label_output_path}/code_saver_result.json", "w", encoding = "utf-8") as writer:
+            writer.write(json.dumps(result, indent = 4, ensure_ascii = False))
+
+        # 计算数量
+        failure_count = len(result.get("占位符失败", {})) + len(result.get("代码段丢失", {}))
+        success_count = len(target_items) - failure_count
 
         print("")
         print(
-            f"[CodeSaver] 已将 {len(failed_items.get("failed")) + len(failed_items.get("code_lost"))} 条未通过检查的条目写入 [green]{configurator.label_output_path}/code_saver_failed_items.json[/] 文件，请手工修正 ..."
+            f"[CodeSaver] 代码还原完成，成功 {success_count} 条，失败 {failure_count} 条，成功率 {(success_count / len(target_items) * 100):.2f}% ..."
+        )
+        print(
+            f"[CodeSaver] 检查结果已写入 [green]{configurator.label_output_path}/code_saver_result.json[/] 文件，请进行手工修正 ..."
         )
 
     # 检查翻译结果是否丢失代码段
