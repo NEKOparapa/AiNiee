@@ -168,7 +168,10 @@ class MTool_Optimizer(PluginBase):
 
         print("")
         print(
-            f"[CodeSaver] 代码还原完成，成功 [green]{success_count}[/] 条，失败 [green]{failure_count}[/] 条，成功率 [green]{(success_count / len(target_items) * 100):.2f}%[/] ..."
+            f"[CodeSaver] 代码还原完成，"
+            + f"成功 [green]{success_count}[/] 条，"
+            + f"失败 [green]{failure_count}[/] 条，"
+            + f"成功率 [green]{(success_count / max(1, len(target_items)) * 100):.2f}[/] % ..."
         )
         print(
             f"[CodeSaver] 检查结果已写入 [green]{configurator.label_output_path}/code_saver_result.json[/] 文件，请检查结果并进行手工修正 ..."
