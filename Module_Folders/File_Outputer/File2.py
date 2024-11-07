@@ -1,34 +1,20 @@
-
-# coding:utf-8               
-import copy
-import datetime
-import json
-import random
 import re
 import os
+import copy
+import json
 
 import shutil
 import zipfile
 
-
-
-from openpyxl import Workbook  
-import ebooklib #需要安装库pip install ebooklib
+import ebooklib # 需要安装库pip install ebooklib
 from ebooklib import epub
-from bs4 import BeautifulSoup #需要安装库pip install beautifulsoup4
-import openpyxl  #需安装库pip install openpyxl
-from openpyxl import Workbook  
-import ebooklib #需要安装库pip install ebooklib
-from ebooklib import epub
-from bs4 import BeautifulSoup #需要安装库pip install beautifulsoup4
-
-
+from openpyxl import Workbook
 
 # 文件输出器
 class File_Outputter():
+
     def __init__(self):
         pass
-    
 
     # 输出json文件
     def output_json_file(self,cache_data, output_path):
@@ -80,8 +66,8 @@ class File_Outputter():
                 os.makedirs(folder_path, exist_ok=True)
             else:
                 # 构建文件输出路径
-                file_path = f'{output_path}/{storage_path}' 
-                
+                file_path = f'{output_path}/{storage_path}'
+
 
 
             # 如果文件路径已经在 path_dict 中，添加到对应的列表中
@@ -302,38 +288,38 @@ class File_Outputter():
                 os.makedirs(folder_path, exist_ok=True)
             else:
                 # 构建文件输出路径
-                file_path = f'{output_path}/{storage_path}' 
-                
+                file_path = f'{output_path}/{storage_path}'
+
 
 
             # 如果文件路径已经在 path_dict 中，添加到对应的列表中
             if file_path in path_dict:
                 if'name' in item:
                     text = {'translation_status': item['translation_status'],
-                            'source_text': item['source_text'], 
+                            'source_text': item['source_text'],
                             'translated_text': item['translated_text'],
                             'name': item['name']}
 
                 else:
                     text = {'translation_status': item['translation_status'],
-                            'source_text': item['source_text'], 
+                            'source_text': item['source_text'],
                             'translated_text': item['translated_text']}
-                    
+
                 path_dict[file_path].append(text)
 
             # 否则，创建一个新的列表
             else:
                 if'name' in item:
                     text = {'translation_status': item['translation_status'],
-                            'source_text': item['source_text'], 
+                            'source_text': item['source_text'],
                             'translated_text': item['translated_text'],
                             'name': item['name']}
 
                 else:
                     text = {'translation_status': item['translation_status'],
-                            'source_text': item['source_text'], 
+                            'source_text': item['source_text'],
                             'translated_text': item['translated_text']}
-                    
+
                 path_dict[file_path] = [text]
 
         # 遍历 path_dict，并将内容写入文件
@@ -372,7 +358,7 @@ class File_Outputter():
                             'message': content['translated_text'],}
                 else:
                     text = {'message': content['translated_text'],}
-                
+
                 output_file.append(text)
 
                 # 如果这个文本没有翻译或者正在翻译
@@ -382,7 +368,7 @@ class File_Outputter():
                                 'message': content['translated_text'],}
                     else:
                         text = {'message': content['translated_text'],}
-                    
+
                     output_file2.append(text)
 
 
@@ -395,38 +381,42 @@ class File_Outputter():
                 with open(file_path_untranslated, 'w', encoding='utf-8') as file:
                     json.dump(output_file2, file, ensure_ascii=False, indent=4)
 
-
     # 输出表格文件
-    def output_excel_file(self,cache_data, output_path):
+    def output_excel_file(self, cache_data, output_path):
         # 缓存数据结构示例
-        ex_cache_data = [
-        {'project_type': 'T++'},
-        {'text_index': 1, 'text_classification': 0, 'translation_status': 1, 'source_text': 'しこトラ！', 'translated_text': '无', 'storage_path': 'TrsData.xlsx', 'file_name': 'TrsData.xlsx', "row_index": 2},
-        {'text_index': 2, 'text_classification': 0, 'translation_status': 0, 'source_text': '室内カメラ', 'translated_text': '无', 'storage_path': 'TrsData.xlsx', 'file_name': 'TrsData.xlsx', "row_index": 3},
-        {'text_index': 3, 'text_classification': 0, 'translation_status': 0, 'source_text': '草草草草', 'translated_text': '11111', 'storage_path': 'DEBUG Folder\\text.xlsx', 'file_name': 'text.xlsx', "row_index": 3},
-        {'text_index': 4, 'text_classification': 0, 'translation_status': 1, 'source_text': '室内カメラ', 'translated_text': '22222', 'storage_path': 'DEBUG Folder\\text.xlsx', 'file_name': 'text.xlsx', "row_index": 4},
-        ]
+        # ex_cache_data = [
+        #     {"project_type": "T++"},
+        #     {"text_index": 1, "text_classification": 0, "translation_status": 1, "source_text": "しこトラ！", "translated_text": "无", "storage_path": "TrsData.xlsx", "file_name": "TrsData.xlsx", "row_index": 2},
+        #     {"text_index": 2, "text_classification": 0, "translation_status": 0, "source_text": "室内カメラ", "translated_text": "无", "storage_path": "TrsData.xlsx", "file_name": "TrsData.xlsx", "row_index": 3},
+        #     {"text_index": 3, "text_classification": 0, "translation_status": 0, "source_text": "草草草草", "translated_text": "11111", "storage_path": "DEBUG Folder\\text.xlsx", "file_name": "text.xlsx", "row_index": 3},
+        #     {"text_index": 4, "text_classification": 0, "translation_status": 1, "source_text": "室内カメラ", "translated_text": "22222", "storage_path": "DEBUG Folder\\text.xlsx", "file_name": "text.xlsx", "row_index": 4},
+        # ]
 
         # 创建一个字典，用于存储翻译数据
         translations_by_path = {}
 
         # 遍历缓存数据
         for item in cache_data:
-            if 'storage_path' in item:
-                path = item['storage_path']
+            if "storage_path" in item:
+                path = item["storage_path"]
 
                 # 如果路径不存在，创建文件夹
                 folder_path = os.path.join(output_path, os.path.dirname(path))
-                os.makedirs(folder_path, exist_ok=True)
+                os.makedirs(folder_path, exist_ok = True)
 
                 # 提取信息
-                source_text = item.get('source_text', '')
-                translated_text = item.get('translated_text', '')
-                row_index = item.get('row_index', '')
-                translation_status = item.get('translation_status', '')
+                source_text = item.get("source_text", "")
+                translated_text = item.get("translated_text", "")
+                row_index = item.get("row_index", -1)
+                translation_status = item.get("translation_status", -1)
 
                 # 构造字典
-                translation_dict = {'translation_status': translation_status,'Source Text': source_text, 'Translated Text': translated_text,"row_index": row_index}
+                translation_dict = {
+                    "translation_status": translation_status,
+                    "source_text": source_text,
+                    "translated_text": translated_text,
+                    "row_index": row_index
+                }
 
                 # 将字典添加到对应路径的列表中
                 if path in translations_by_path:
@@ -445,27 +435,35 @@ class File_Outputter():
             ws = wb.active
 
             # 添加表头
-            ws.append(['Original Text', 'Initial', 'Machine translation', 'Better translation', 'Best translation'])
-
-
+            ws.append(
+                [
+                    "Original Text",
+                    "Initial",
+                    "Machine translation",
+                    "Better translation",
+                    "Best translation",
+                ]
+            )
 
             # 将数据写入工作表
-            for translation_dict in translations_list:
-                row_index = translation_dict['row_index']
-                translation_status = translation_dict['translation_status']
-                
-                # 如果是已经翻译文本，则写入原文与译文
-                if translation_status == 1 :
-                    ws.cell(row=row_index, column=1).value = translation_dict['Source Text']
-                    ws.cell(row=row_index, column=2).value = translation_dict['Translated Text']
+            for item in translations_list:
+                source_text = item.get("source_text", "")
+                translated_text = item.get("translated_text", "")
+                row_index = item.get("row_index", -1)
+                translation_status = item.get("translation_status", -1)
 
-                # 如果是未翻译或不需要翻译文本，则写入原文
+                # 根据翻译状态写入原文及译文
+                # 如果文本是以 = 开始，则加一个空格
+                # 因为 = 开头会被识别成 Excel 公式导致 T++ 导入时 卡住
+                # 加入空格后，虽然还是不能直接导入 T++ ，但是可以手动复制粘贴
+                if translation_status != 1:
+                    ws.cell(row = row_index, column = 1).value = re.sub(r"^=", " =", source_text)
                 else:
-                    ws.cell(row=row_index, column=1).value = translation_dict['Source Text']
+                    ws.cell(row = row_index, column = 1).value = re.sub(r"^=", " =", source_text)
+                    ws.cell(row = row_index, column = 2).value = re.sub(r"^=", " =", translated_text)
 
             # 保存工作簿
             wb.save(file_path)
-
 
     # 输出缓存文件
     def output_cache_file(self,cache_data,output_path):
@@ -484,7 +482,6 @@ class File_Outputter():
         # 输出为JSON文件
         with open(os.path.join(output_path, "AinieeCacheData.json"), "w", encoding="utf-8") as f:
             json.dump(modified_cache_data, f, ensure_ascii=False, indent=4)
-
 
     # 输出srt文件
     def output_srt_file(self,cache_data, output_path):
@@ -523,7 +520,7 @@ class File_Outputter():
                 os.makedirs(folder_path, exist_ok=True)
             else:
                 # 构建文件输出路径
-                file_path = f'{output_path}/{storage_path}' 
+                file_path = f'{output_path}/{storage_path}'
 
 
             # 如果文件路径已经在 path_dict 中，添加到对应的列表中
@@ -571,7 +568,6 @@ class File_Outputter():
             with open(file_path_translated, 'w', encoding='utf-8') as file:
                 file.write(output_file)
 
-
     # 输出lrc文件
     def output_lrc_file(self,cache_data, output_path):
 
@@ -605,20 +601,20 @@ class File_Outputter():
                 os.makedirs(folder_path, exist_ok=True)
             else:
                 # 构建文件输出路径
-                file_path = f'{output_path}/{storage_path}' 
+                file_path = f'{output_path}/{storage_path}'
 
 
             # 如果文件路径已经在 path_dict 中，添加到对应的列表中
             if file_path in text_dict:
                 if 'subtitle_title' in item:
                     text = {'translation_status': item['translation_status'],
-                            'source_text': item['source_text'], 
+                            'source_text': item['source_text'],
                             'translated_text': item['translated_text'],
                             "subtitle_time": item['subtitle_time'],
                             'subtitle_title': item['subtitle_title']}
                 else:
                     text = {'translation_status': item['translation_status'],
-                            'source_text': item['source_text'], 
+                            'source_text': item['source_text'],
                             'translated_text': item['translated_text'],
                             "subtitle_time": item['subtitle_time']}
                 text_dict[file_path].append(text)
@@ -627,13 +623,13 @@ class File_Outputter():
             else:
                 if 'subtitle_title' in item:
                     text = {'translation_status': item['translation_status'],
-                            'source_text': item['source_text'], 
+                            'source_text': item['source_text'],
                             'translated_text': item['translated_text'],
                             "subtitle_time": item['subtitle_time'],
                             'subtitle_title': item['subtitle_title']}
                 else:
                     text = {'translation_status': item['translation_status'],
-                            'source_text': item['source_text'], 
+                            'source_text': item['source_text'],
                             'translated_text': item['translated_text'],
                             "subtitle_time": item['subtitle_time']}
                 text_dict[file_path] = [text]
@@ -674,7 +670,6 @@ class File_Outputter():
             with open(file_path_translated, 'w', encoding='utf-8') as file:
                 file.write(output_file)
 
-
     # 输出txt文件
     def output_txt_file(self,cache_data, output_path):
 
@@ -712,13 +707,13 @@ class File_Outputter():
                 os.makedirs(folder_path, exist_ok=True)
             else:
                 # 构建文件输出路径
-                file_path = f'{output_path}/{storage_path}' 
+                file_path = f'{output_path}/{storage_path}'
 
 
             # 如果文件路径已经在 path_dict 中，添加到对应的列表中
             if file_path in text_dict:
                 text = {'translation_status': item['translation_status'],
-                        'source_text': item['source_text'], 
+                        'source_text': item['source_text'],
                         'translated_text': item['translated_text'],
                         "sentence_indent": item['sentence_indent'],
                         'line_break': item['line_break']}
@@ -727,7 +722,7 @@ class File_Outputter():
             # 否则，创建一个新的列表
             else:
                 text = {'translation_status': item['translation_status'],
-                        'source_text': item['source_text'], 
+                        'source_text': item['source_text'],
                         'translated_text': item['translated_text'],
                         "sentence_indent": item['sentence_indent'],
                         'line_break': item['line_break']}
@@ -757,13 +752,13 @@ class File_Outputter():
                 expected_indent_count = content['sentence_indent']
                 # 获取句尾换行符数
                 line_break_count = content['line_break']
-                
+
                 # 删除句首的所有空格
                 translated_text = content['translated_text'].lstrip()
-                
+
                 # 根据记录的空格数在句首补充空格
                 sentence_indent = "　" * expected_indent_count
-                
+
                 line_break = "\n" * (line_break_count + 1)
 
                 output_file += f'{sentence_indent}{translated_text}{line_break}'
@@ -771,7 +766,6 @@ class File_Outputter():
             # 输出已经翻译的文件
             with open(file_path_translated, 'w', encoding='utf-8') as file:
                 file.write(output_file)
-
 
     # 输出epub文件
     def output_epub_file(self,cache_data, output_path, input_path):
@@ -799,13 +793,13 @@ class File_Outputter():
                 os.makedirs(folder_path, exist_ok=True)
             else:
                 # 构建文件输出路径
-                file_path = f'{output_path}/{storage_path}' 
+                file_path = f'{output_path}/{storage_path}'
 
 
             # 如果文件路径已经在 path_dict 中，添加到对应的列表中
             if file_path in text_dict:
                 text = {'translation_status': item['translation_status'],
-                        'source_text': item['source_text'], 
+                        'source_text': item['source_text'],
                         'translated_text': item['translated_text'],
                         'html': item['html'],
                         "item_id": item['item_id'],}
@@ -814,7 +808,7 @@ class File_Outputter():
             # 否则，创建一个新的列表
             else:
                 text = {'translation_status': item['translation_status'],
-                        'source_text': item['source_text'], 
+                        'source_text': item['source_text'],
                         'translated_text': item['translated_text'],
                         'html': item['html'],
                         "item_id": item['item_id'],}
@@ -849,7 +843,7 @@ class File_Outputter():
 
         # 遍历 path_dict，并将内容写入对应文件中
         for file_path, content_list in text_dict.items():
-    
+
             # 加载EPUB文件
             book = epub.read_epub(file_path)
 
@@ -927,7 +921,7 @@ class File_Outputter():
                     # 写入内容到HTML文件
                     with open(the_file_path, 'w', encoding='utf-8') as file:
                         file.write(content_html)
-        
+
             # 构建修改后的EPUB文件路径
             modified_epub_file = file_path.rsplit('.', 1)[0] + '_translated.epub'
 
@@ -942,15 +936,14 @@ class File_Outputter():
                         relative_file_path = os.path.relpath(full_file_path, extract_path)
                         # 将文件添加到压缩文件中
                         zipf.write(full_file_path, relative_file_path)
-                        
+
             # 删除旧文件
             os.remove(file_path)
             # 删除文件夹
             shutil.rmtree(extract_path)
 
-
     # 输出已经翻译文件
-    def output_translated_content(self,cache_data,output_path,input_path):
+    def output_translated_content(self, cache_data, output_path, input_path):
         # 复制缓存数据到新变量
         try:
            new_cache_data = copy.deepcopy(cache_data)
