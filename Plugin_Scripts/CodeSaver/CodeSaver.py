@@ -32,8 +32,8 @@ class MTool_Optimizer(PluginBase):
 
     # 匹配 <xyz> [xyz] 形式的代码段，尽可能短的匹配
     CODE_LOST_PATTERN = (
-        r"<.{0,10}?>",
-        r"\[.{0,10}?\]",
+        r"<.+?>",
+        r"\[.+?\]",
     )
 
     def __init__(self):
@@ -42,7 +42,7 @@ class MTool_Optimizer(PluginBase):
         self.description = (
             "代码救星，尝试保留文本中的各种代码段（例如 \FS[29]）以简化文本内嵌的工作量"
             + "\n"
-            + "兼容性：支持全部语言；支持全部模型，但是仅在 Sakura 等部分模型上实际进行过测试；仅支持 T++ 文本；"
+            + "兼容性：支持全部语言；支持全部模型，但仅在 Sakura 等模型上进行过实际的测试；仅支持 T++ 文本；"
         )
 
         self.visibility = True          # 是否在插件设置中显示
@@ -126,8 +126,8 @@ class MTool_Optimizer(PluginBase):
 
         # 还原文本
         result = {
-            "占位符失败": {},
             "代码段丢失": {},
+            "占位符还原失败": {},
         }
         target_items = [v for v in items if v.get("translation_status", 0) == 1 and len(v.get("code_saver_codes", [])) > 0]
         for item in tqdm(target_items):
@@ -154,7 +154,7 @@ class MTool_Optimizer(PluginBase):
 
             # 如果以上均匹配失败，则加入失败条目列表中
             if success == False:
-                result["占位符失败"][item.get("source_text", "")] = item.get("translated_text", "")
+                result["占位符还原失败"][item.get("source_text", "")] = item.get("translated_text", "")
             elif code_lost == True:
                 result["代码段丢失"][item.get("source_text", "")] = item.get("translated_text", "")
 
@@ -163,15 +163,15 @@ class MTool_Optimizer(PluginBase):
             writer.write(json.dumps(result, indent = 4, ensure_ascii = False))
 
         # 计算数量
-        failure_count = len(result.get("占位符失败", {})) + len(result.get("代码段丢失", {}))
+        failure_count = len(result.get("代码段丢失", {})) + len(result.get("占位符还原失败", {}))
         success_count = len(target_items) - failure_count
 
         print("")
         print(
-            f"[CodeSaver] 代码还原完成，成功 {success_count} 条，失败 {failure_count} 条，成功率 {(success_count / len(target_items) * 100):.2f}% ..."
+            f"[CodeSaver] 代码还原完成，成功 [green]{success_count}[/] 条，失败 [green]{failure_count}[/] 条，成功率 [green]{(success_count / len(target_items) * 100):.2f}%[/] ..."
         )
         print(
-            f"[CodeSaver] 检查结果已写入 [green]{configurator.label_output_path}/code_saver_result.json[/] 文件，请进行手工修正 ..."
+            f"[CodeSaver] 检查结果已写入 [green]{configurator.label_output_path}/code_saver_result.json[/] 文件，请检查结果并进行手工修正 ..."
         )
 
     # 检查翻译结果是否丢失代码段
