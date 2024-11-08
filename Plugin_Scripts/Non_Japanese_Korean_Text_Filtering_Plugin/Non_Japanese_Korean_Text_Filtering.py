@@ -1,10 +1,10 @@
 import re
 
 from .TextHelper import TextHelper
-from ..Plugin_Base.Plugin_Base import PluginBase
+from ..PluginBase import PluginBase
 
 class Non_Japanese_Korean_Text_Filtering(PluginBase):
-    
+
     def __init__(self):
         super().__init__()
         self.name = "Non_Japanese_Korean_Text_Filtering_Plugin"
@@ -13,7 +13,7 @@ class Non_Japanese_Korean_Text_Filtering(PluginBase):
         self.visibility = True # 是否在插件设置中显示
         self.default_enable = True # 默认启用状态
 
-        self.add_event('text_filter', 5)  # 添加感兴趣的事件和优先级
+        self.add_event('text_filter', PluginBase.PRIORITY.NORMAL)
 
 
     def load(self):
@@ -26,7 +26,7 @@ class Non_Japanese_Korean_Text_Filtering(PluginBase):
                 self.process_text_by_language(event_data, configuration_information.source_language)
                 print(f"[INFO] Non-Japanese/Korean text has been filtered.")
 
-    # 根据目标语言处理缓存列表中的条目 
+    # 根据目标语言处理缓存列表中的条目
     def process_text_by_language(self, cache_list, language):
         if language == "日语":
             for item in cache_list:

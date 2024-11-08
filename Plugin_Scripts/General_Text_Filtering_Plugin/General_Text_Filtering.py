@@ -1,5 +1,5 @@
 import re
-from ..Plugin_Base.Plugin_Base import PluginBase
+from ..PluginBase import PluginBase
 
 
 class General_Text_Filtering(PluginBase):
@@ -11,7 +11,7 @@ class General_Text_Filtering(PluginBase):
         self.visibility = False # 是否在插件设置中显示
         self.default_enable = True # 默认启用状态
 
-        self.add_event('text_filter', 4)  # 添加感兴趣的事件和优先级
+        self.add_event('text_filter', PluginBase.PRIORITY.HIGH)
 
     def load(self):
         print(f"[INFO] {self.name} loaded!")
@@ -31,7 +31,7 @@ class General_Text_Filtering(PluginBase):
     # 忽视空值内容和将整数型，浮点型数字变换为字符型数字函数，且改变翻译状态为7,因为T++读取到整数型数字时，会报错，明明是自己导出来的...
     def filter_text(self,cache_list):
         for entry in cache_list:
-            
+
             storage_path = entry.get('storage_path')
 
             if storage_path:
@@ -107,13 +107,13 @@ class General_Text_Filtering(PluginBase):
                                 # 检查右边字符量是否比左边字符量大N倍
                                 if len(right) > len(left) * 15:
                                     entry['translation_status'] = 0
-                                    
+
                     continue
 
 
     # 检查字符串是否只包含常见的标点符号
     def is_punctuation_string(self,s: str) -> bool:
         """检查字符串是否只包含标点符号"""
-        punctuation = set("!" '"' "#" "$" "%" "&" "'" "(" ")" "*" "+" "," "-" "." "/" "，" "。"  
+        punctuation = set("!" '"' "#" "$" "%" "&" "'" "(" ")" "*" "+" "," "-" "." "/" "，" "。"
                         ":" ";" "<" "=" ">" "?" "@" "[" "\\" "]" "^" "_" "`" "{" "|" "}" "~" "—" "・")
         return all(char in punctuation for char in s)

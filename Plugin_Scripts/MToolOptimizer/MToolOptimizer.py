@@ -1,7 +1,7 @@
 from tqdm import tqdm
 from rich import print
 
-from Plugin_Scripts.Plugin_Base.Plugin_Base import PluginBase
+from Plugin_Scripts.PluginBase import PluginBase
 
 class MToolOptimizer(PluginBase):
 
@@ -17,9 +17,9 @@ class MToolOptimizer(PluginBase):
         self.visibility = True          # 是否在插件设置中显示
         self.default_enable = False     # 默认启用状态
 
-        self.add_event("manual_export", 5)
-        self.add_event("preproces_text", 5)
-        self.add_event("postprocess_text", 5)
+        self.add_event("manual_export", PluginBase.PRIORITY.NORMAL)
+        self.add_event("preproces_text", PluginBase.PRIORITY.NORMAL)
+        self.add_event("postprocess_text", PluginBase.PRIORITY.NORMAL)
 
     def load(self):
         pass

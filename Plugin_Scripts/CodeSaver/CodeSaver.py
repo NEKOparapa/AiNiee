@@ -4,15 +4,37 @@ import json
 from tqdm import tqdm
 from rich import print
 
-from Plugin_Scripts.Plugin_Base.Plugin_Base import PluginBase
+from Plugin_Scripts.PluginBase import PluginBase
 
-class MTool_Optimizer(PluginBase):
+class CodeSaver(PluginBase):
 
-    CODE_PATTERN = (
-        r"[/\\][A-Z]{1,5}<[\d]{0,10}>",         # /C<y> /C<1> \FS<xy> \FS<12>
-        r"[/\\][A-Z]{1,5}\[[\d]{0,10}\]",       # /C[x] /C[1] \FS[xy] \FS[12]
+    CODE_PATTERN_EN = (
+        r"[/\\][A-Z]{1,5}<[\d]{0,10}>",         # /C<1> \FS<12>
+        r"[/\\][A-Z]{1,5}\[[\d]{0,10}\]",       # /C[1] \FS[12]
         r"[/\\][A-Z]{1,5}(?=<.{0,10}>)",        # /C<非数字> /C<非数字> \FS<非数字> \FS<非数字> 中的前半部分
         r"[/\\][A-Z]{1,5}(?=\[.{0,10}\])",      # /C[非数字] /C[非数字] \FS[非数字] \FS[非数字] 中的前半部分
+        r"\\\{",                                # 放大字体 \{
+        r"\\\}",                                # 缩小字体 \}
+        r"\\G",                                 # 显示货币 \G
+        r"\\\$",                                # 打开金币框 \$
+        r"\\\.",                                # 等待0.25秒 \.
+        r"\\\|",                                # 等待1秒 \|
+        r"\\!",                                 # 等待按钮按下 \!
+        # r"\\>",                               # 在同一行显示文字 \>
+        # r"\\<",                               # 取消显示所有文字 \<
+        r"\\\^",                                # 显示文本后不需要等待 \^
+        # r"\\n",                               # 换行符 \\n
+        r"\r\n",                                # 换行符 \r\n
+        r"\n",                                  # 换行符 \n
+        r"\\\\<br>",                            # 换行符 \\<br>
+        r"<br>",                                # 换行符 <br>
+    )
+
+    CODE_PATTERN_NON_EN = (
+        r"[/\\][A-Z]{1,5}<[\dA-Z]{0,10}>",      # /C<y> /C<1> \FS<xy> \FS<12>
+        r"[/\\][A-Z]{1,5}\[[\dA-Z]{0,10}\]",    # /C[x] /C[1] \FS[xy] \FS[12]
+        r"[/\\][A-Z]{1,5}(?=<.{0,10}>)",        # /C<非数字非字母> /C<非数字非字母> \FS<非数字非字母> \FS<非数字非字母> 中的前半部分
+        r"[/\\][A-Z]{1,5}(?=\[.{0,10}\])",      # /C[非数字非字母] /C[非数字非字母] \FS[非数字非字母] \FS[非数字非字母] 中的前半部分
         r"\\\{",                                # 放大字体 \{
         r"\\\}",                                # 缩小字体 \}
         r"\\G",                                 # 显示货币 \G
@@ -48,9 +70,9 @@ class MTool_Optimizer(PluginBase):
         self.visibility = True          # 是否在插件设置中显示
         self.default_enable = False     # 默认启用状态
 
-        self.add_event("manual_export", 5)
-        self.add_event("preproces_text", 5)
-        self.add_event("postprocess_text", 5)
+        self.add_event("manual_export", PluginBase.PRIORITY.NORMAL)
+        self.add_event("preproces_text", PluginBase.PRIORITY.NORMAL)
+        self.add_event("postprocess_text", PluginBase.PRIORITY.NORMAL)
 
     def load(self):
         pass
@@ -97,8 +119,13 @@ class MTool_Optimizer(PluginBase):
         # for v in [v for v in items if "actors" in v.get("storage_path", "").lower()]:
         #     actors[f"\\n[{v.get("row_index", 1) - 1}]"] = v.get("source_text", "")
 
+        # 根据原文语言生成正则表达式
+        if "英语" in configurator.source_language:
+            pattern = rf"(?:{"|".join(self.CODE_PATTERN_EN)})+"
+        else:
+            pattern = rf"(?:{"|".join(self.CODE_PATTERN_NON_EN)})+"
+
         # 查找代码段
-        pattern = rf"(?:{"|".join(self.CODE_PATTERN)})+"
         for v in tqdm(items):
             source_text = v.get("source_text", "")
 
@@ -159,7 +186,8 @@ class MTool_Optimizer(PluginBase):
                 result["代码段丢失"][item.get("source_text", "")] = item.get("translated_text", "")
 
         # 将还原失败的条目写入文件
-        with open(f"{configurator.label_output_path}/code_saver_result.json", "w", encoding = "utf-8") as writer:
+        result_path = f"{configurator.label_output_path}/code_saver_result.json"
+        with open(result_path, "w", encoding = "utf-8") as writer:
             writer.write(json.dumps(result, indent = 4, ensure_ascii = False))
 
         # 计算数量
@@ -174,8 +202,9 @@ class MTool_Optimizer(PluginBase):
             + f"成功率 [green]{(success_count / max(1, len(target_items)) * 100):.2f}[/] % ..."
         )
         print(
-            f"[CodeSaver] 检查结果已写入 [green]{configurator.label_output_path}/code_saver_result.json[/] 文件，请检查结果并进行手工修正 ..."
+            f"[CodeSaver] 检查结果已写入 [green]{result_path}[/] 文件，请检查结果并进行手工修正 ..."
         )
+        print("")
 
     # 检查翻译结果是否丢失代码段
     def check_code_lost(self, source: str, translated: str) -> bool:

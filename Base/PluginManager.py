@@ -1,16 +1,22 @@
 import importlib
 import os
 from pathlib import Path
-from .Plugin_Base.Plugin_Base import PluginBase
+from Plugin_Scripts.PluginBase import PluginBase
 
-class Plugin_Manager:
+class PluginManager:
+
     def __init__(self):
-        self.event_plugins = {}  # 使用字典来存储每个事件对应的插件列表
-        self.plugins_enable = {}  # 记录每个插件的启用状态
+
+        # 使用字典来存储每个事件对应的插件列表
+        self.event_plugins = {}
+
+        # 记录每个插件的启用状态
+        self.plugins_enable = {}
 
     def load_plugin(self, plugin_class):
         plugin_instance = plugin_class()
         plugin_instance.load()
+
         # 注册插件到所有它感兴趣的事件，但不进行排序
         for event_info in plugin_instance.events:
             event_name = event_info['event']
@@ -33,7 +39,7 @@ class Plugin_Manager:
 
             # 根据启用状态进行过滤，默认为启用
             sorted_plugins = [plugin for plugin in sorted_plugins if self.plugins_enable.get(plugin.name, True)]
-            
+
             #print(sorted_plugins) #bug用
             for plugin in sorted_plugins:
                 plugin.on_event(event_name, configuration_information, event_data)
@@ -62,7 +68,7 @@ class Plugin_Manager:
     # 生成插件列表
     def get_plugins(self) -> dict:
         plugins = {}
-        
+
         for k, v in self.event_plugins.items():
             for item in v:
                 if item.visibility == True:

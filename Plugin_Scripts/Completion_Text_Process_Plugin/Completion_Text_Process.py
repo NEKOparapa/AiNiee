@@ -1,5 +1,5 @@
 import re
-from ..Plugin_Base.Plugin_Base import PluginBase
+from ..PluginBase import PluginBase
 
 
 class Completion_Text_Process_Plugin(PluginBase):
@@ -11,7 +11,7 @@ class Completion_Text_Process_Plugin(PluginBase):
         self.visibility = False # 是否在插件设置中显示
         self.default_enable = True # 默认启用状态
 
-        self.add_event('complete_text_process', 5)  # 添加感兴趣的事件和优先级
+        self.add_event('complete_text_process', PluginBase.PRIORITY.NORMAL)
 
     def load(self):
         print(f"[INFO] {self.name} loaded!")
@@ -81,7 +81,7 @@ class Completion_Text_Process_Plugin(PluginBase):
             # 获取逗号前的字符
             quote_position = match.start()
             before_quote = text[quote_position - 1]
-            
+
             # 检查逗号前的字符是否是双引号
             if before_quote == '"':
                 # 如果是双引号，将这一段文本加入到结果中
@@ -89,7 +89,7 @@ class Completion_Text_Process_Plugin(PluginBase):
             else:
                 # 如果不是双引号，将前一个字符换成'"'
                 result.append(text[last_end:quote_position - 1] + '"')
-            
+
             # 更新最后结束的位置
             last_end = quote_position
 
@@ -112,7 +112,7 @@ class Completion_Text_Process_Plugin(PluginBase):
             # 获取逗号前的字符
             quote_position = match.start()
             before_quote = text[quote_position - 1]
-            
+
             # 检查逗号前的字符是否是双引号
             if before_quote == '"':
                 # 如果是双引号，将这一段文本加入到结果中
@@ -120,7 +120,7 @@ class Completion_Text_Process_Plugin(PluginBase):
             else:
                 # 如果不是双引号，将前一个字符换成'"'
                 result.append(text[last_end:quote_position - 1] + '"')
-            
+
             # 更新最后结束的位置
             last_end = quote_position
 
