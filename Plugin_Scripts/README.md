@@ -32,24 +32,27 @@ class PluginBase:
         self.name = "Unnamed Plugin"
         self.description = "No description provided."
 
-        self.visibility = True # 是否在插件设置中显示
-        self.default_enable = True # 默认启用状态
+        self.visibility = True      # 是否在插件设置中显示
+        self.default_enable = True  # 默认启用状态
 
-        self.events = []  # 插件感兴趣的事件列表，使用字典存储事件名和优先级
+        self.events = []            # 插件感兴趣的事件列表，使用字典存储事件名和优先级
 
+    # 加载插件时调用
     def load(self):
-        """加载插件时调用"""
         pass
 
-    def on_event(self, event_name, configuration_information, event_data):
-        """处理事件"""
+    # 处理事件
+    def on_event(self, event: str, configuration_information: dict, event_data: list):
         pass
 
-
-    def add_event(self, event_name, priority):
-        # 添加事件和对应的优先级到事件列表
-        self.events.append({'event': event_name, 'priority': priority})
-
+    # 添加事件
+    def add_event(self, event: str, priority: int):
+        self.events.append(
+            {
+                "event": event,
+                "priority": priority,
+            }
+        )
 ```
 在编写插件时，您需要创建一个继承自`PluginBase`的新类，并实现必要的方法。
 
@@ -76,28 +79,48 @@ class PluginBase:
 ## 示例代码
 以下是一个简单的插件示例，它继承自`PluginBase`并监听了`preproces_text`事件：
 ```python
-from ..Plugin_Base.Plugin_Base import PluginBase
+from Plugin_Scripts.PluginBase import PluginBase
+
 class Example_Plugin(PluginBase):
+
     def __init__(self):
         super().__init__()
-        self.name = "example_Plugin"
-        self.description = "This is an example plugin."
-        self.add_event('postprocess_text', 5)  # 添加感兴趣的事件和触发优先级
+
+        self.name = "GlossaryChecker"
+        self.description = (
+            "指令词典检查器，在翻译完成后检查指令词典中的各个条目是否正确的生效"
+            + "\n"
+            + "兼容性：支持全部语言；支持全部模型；支持全部文本格式；"
+        )
+
+        self.visibility = True          # 是否在插件设置中显示
+        self.default_enable = True      # 默认启用状态
+
+        self.add_event("manual_export", PluginBase.PRIORITY.LOWER)
+        self.add_event("postprocess_text", PluginBase.PRIORITY.LOWER)
 
     def load(self):
-        print(f"[INFO] {self.name} loaded!")
+        pass
 
-    def on_event(self, event_name, configuration_information, event_data):
-        # 事件触发
-        if event_name == "preproces_text":
+    def on_event(self, event, configurator, data):
+        # 检查数据有效性
+        if event == None or len(event) <= 1:
+            return
 
-            # 如果翻译日语或者韩语文本时，则去除非中日韩文本
-            if  configuration_information.source_language == "日语" or  configuration_information.source_language == "韩语":
+        # 初始化
+        items = data[1:]
+        project = data[0]
 
-                # 过滤文本
-                self.preproces_text(event_data)
+        # 如果指令词典未启用或者无内容，则跳过
+        if (
+            configurator.prompt_dictionary_switch == False
+            or configurator.prompt_dictionary_content == None
+            or len(configurator.prompt_dictionary_content) == 0
+        ):
+            return
 
-                print(f"[INFO] Non-Japanese/Korean text has been filtered.")
+        if event in ("manual_export", "postprocess_text"):
+            self.on_postprocess_text(event, configurator, data, items, project)
 ```
 
 

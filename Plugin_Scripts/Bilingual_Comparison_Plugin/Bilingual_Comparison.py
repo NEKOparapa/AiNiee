@@ -1,4 +1,4 @@
-from ..Plugin_Base.Plugin_Base import PluginBase
+from ..PluginBase import PluginBase
 
 
 class Bilingual_Comparison(PluginBase):
@@ -10,7 +10,7 @@ class Bilingual_Comparison(PluginBase):
         self.visibility = True  # 是否在插件设置中显示
         self.default_enable = False  # 默认启用状态
 
-        self.add_event("postprocess_text", 10)  # 添加感兴趣的事件和优先级
+        self.add_event("postprocess_text", PluginBase.PRIORITY.LOWEST)  # 添加感兴趣的事件和优先级
 
     def load(self):
         print(f"[INFO] {self.name} loaded!")

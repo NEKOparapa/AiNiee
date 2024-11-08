@@ -37,7 +37,7 @@ from StevExtraction import jtpp
 from Module_Folders.Translator import Translator
 from Module_Folders.Configurator.Config import Configurator
 from Module_Folders.Request_Tester.Request import Request_Tester
-from Plugin_Scripts.Plugin_Manager import Plugin_Manager
+from Base.PluginManager import PluginManager
 from User_Interface.AppFluentWindow import AppFluentWindow
 
 # 载入配置文件
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     configurator = Configurator()
 
     # 创建全局插件管理器
-    plugin_manager = Plugin_Manager()
+    plugin_manager = PluginManager()
     plugin_manager.load_plugins_from_directory("./Plugin_Scripts")
 
     # 载入配置文件
