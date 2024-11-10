@@ -25,6 +25,9 @@ class TranslatorTask(Base):
         self.configurator = configurator
         self.plugin_manager = plugin_manager
         self.request_limiter = request_limiter
+        self.backups_tokens_limit = self.configurator.tokens_limit
+        self.backups_lines_limit = self.configurator.lines_limit
+
 
     # 并发接口请求分发
     def start(self):
@@ -38,7 +41,12 @@ class TranslatorTask(Base):
         max_retries = 3  # 最大重试次数
         current_retry = 0
         while current_retry < max_retries:
-        # 检测是否需要停止任务
+            if current_retry == 0 :
+                if self.configurator.tokens_limit_switch:
+                    self.configurator.tokens_limit = self.backups_tokens_limit
+                else:
+                    self.configurator.lines_limit = self.backups_lines_limit 
+            # 检测是否需要停止任务
             if self.configurator.status == Base.STATUS.STOPING:
                 return {}
 
@@ -106,18 +114,18 @@ class TranslatorTask(Base):
 
             # 预估 Token 消费，并检查 RPM 和 TPM 限制
             request_tokens_consume = self.request_limiter.num_tokens_from_messages(messages)
-            print(f"Debug: 请求tokens:{request_tokens_consume}")
 
             # 检查是否超过token限制
             if request_tokens_consume > self.configurator.max_tokens:
+                
                 # 如果超过限制,减少行数限制后重试
                 if self.configurator.tokens_limit_switch:
+                    self.backups_tokens_limit = self.configurator.tokens_limit
                     self.configurator.tokens_limit = int(self.configurator.tokens_limit * 0.9)
                 else:
+                    self.backups_lines_limit = self.configurator.lines_limit
                     self.configurator.lines_limit = max(1, int(self.configurator.lines_limit * 0.9))
-                
                 current_retry += 1
-                self.warning(f"Token超出限制({request_tokens_consume}/{self.configurator.max_tokens}),减少批量处理量后重试({current_retry}/{max_retries})...")
                 continue
 
 
@@ -132,7 +140,6 @@ class TranslatorTask(Base):
                     if self.configurator.status == Base.STATUS.STOPING:
                         print(f"Debug: 停止任务")
                         return {}
-                    print(f"Debug: 预估 Token :{request_tokens_consume}")
 
                     # 检查 RPM 和 TPM 限制，如果符合条件，则继续
                     if self.request_limiter.RPM_and_TPM_limit(request_tokens_consume):
@@ -199,6 +206,7 @@ class TranslatorTask(Base):
                         presence_penalty,
                         frequency_penalty
                     )
+                    
                 # 如果请求结果标记为 skip，即有错误发生，则跳过本次循环
                 if skip == True:
                     continue
@@ -291,6 +299,7 @@ class TranslatorTask(Base):
                     self.print("")
 
                     # 翻译任务执行成功则不再重试
+
                     break
 
             # 返回任务结果，如果 check_result 不存在，即请求发生错误，则按照失败处理
