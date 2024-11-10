@@ -35,263 +35,280 @@ class TranslatorTask(Base):
 
     # 发起请求
     def request(self, target_platform, api_format):
+        max_retries = 3  # 最大重试次数
+        current_retry = 0
+        while current_retry < max_retries:
         # 检测是否需要停止任务
-        if self.configurator.status == Base.STATUS.STOPING:
-            return {}
+            if self.configurator.status == Base.STATUS.STOPING:
+                return {}
 
-        # 从缓存数据中获取文本并更新这些文本的状态
-        with self.translator.cache_data_lock:
-            # 获取需要翻译的文本，Sakura 默认原文前文，其他模型有译文优先获取译文前文
-            if self.configurator.tokens_limit_switch == True and target_platform == "sakura":
-                source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(
-                    self,
-                    self.configurator.tokens_limit,
-                    self.configurator.cache_list,
-                    False,
-                    self.configurator.pre_line_counts
-                )
-            elif self.configurator.tokens_limit_switch == True and target_platform != "sakura":
-                source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(
-                    self,
-                    self.configurator.tokens_limit,
-                    self.configurator.cache_list,
-                    True,
-                    self.configurator.pre_line_counts
-                )
-            elif self.configurator.tokens_limit_switch == False and target_platform == "sakura":
-                source_text_list, previous_list = Cache_Manager.process_dictionary_data_lines(
-                    self,
-                    self.configurator.lines_limit,
-                    self.configurator.cache_list,
-                    False,
-                    self.configurator.pre_line_counts
-                )
-            elif self.configurator.tokens_limit_switch == False and target_platform != "sakura":
-                source_text_list, previous_list = Cache_Manager.process_dictionary_data_lines(
-                    self,
-                    self.configurator.lines_limit,
-                    self.configurator.cache_list,
-                    True,
-                    self.configurator.pre_line_counts
-                )
+            # 从缓存数据中获取文本并更新这些文本的状态
+            with self.translator.cache_data_lock:
+                # 获取需要翻译的文本，Sakura 默认原文前文，其他模型有译文优先获取译文前文
+                if self.configurator.tokens_limit_switch == True and target_platform == "sakura":
+                    source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(
+                        self,
+                        self.configurator.tokens_limit,
+                        self.configurator.cache_list,
+                        False,
+                        self.configurator.pre_line_counts
+                    )
+                elif self.configurator.tokens_limit_switch == True and target_platform != "sakura":
+                    source_text_list, previous_list = Cache_Manager.process_dictionary_data_tokens(
+                        self,
+                        self.configurator.tokens_limit,
+                        self.configurator.cache_list,
+                        True,
+                        self.configurator.pre_line_counts
+                    )
+                elif self.configurator.tokens_limit_switch == False and target_platform == "sakura":
+                    source_text_list, previous_list = Cache_Manager.process_dictionary_data_lines(
+                        self,
+                        self.configurator.lines_limit,
+                        self.configurator.cache_list,
+                        False,
+                        self.configurator.pre_line_counts
+                    )
+                elif self.configurator.tokens_limit_switch == False and target_platform != "sakura":
+                    source_text_list, previous_list = Cache_Manager.process_dictionary_data_lines(
+                        self,
+                        self.configurator.lines_limit,
+                        self.configurator.cache_list,
+                        True,
+                        self.configurator.pre_line_counts
+                    )
 
-        # 检查原文文本是否成功
-        if len(source_text_list) == 0:
-            return {}
+            # 检查原文文本是否成功
+            if len(source_text_list) == 0:
+                return {}
 
-        # 将原文文本列表改变为请求格式
-        source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self, source_text_list)
+            # 将原文文本列表改变为请求格式
+            source_text_dict, row_count = Cache_Manager.create_dictionary_from_list(self, source_text_list)
 
-        # 如果原文是日语，清除文本首位中的代码文本，并记录清除信息
-        if self.configurator.source_language == "日语" and self.configurator.text_clear_toggle:
-            source_text_dict, process_info_list = Cache_Manager.process_dictionary(self, source_text_dict)
-            row_count = len(source_text_dict)
+            # 如果原文是日语，清除文本首位中的代码文本，并记录清除信息
+            if self.configurator.source_language == "日语" and self.configurator.text_clear_toggle:
+                source_text_dict, process_info_list = Cache_Manager.process_dictionary(self, source_text_dict)
+                row_count = len(source_text_dict)
 
-        # 生成请求指令
-        if target_platform == "sakura":
-            messages, source_text_str, system_prompt, extra_log = self.generate_prompt_sakura(
-                source_text_dict,
-                previous_list,
-            )
-        else:
-            messages, source_text_str, system_prompt, extra_log = self.generate_prompt(
-                target_platform,
-                api_format,
-                source_text_dict,
-                previous_list
-            )
-
-        # 预估 Token 消费，并检查 RPM 和 TPM 限制
-        request_tokens_consume = self.request_limiter.num_tokens_from_messages(messages)
-
-        # 记录是否检测到模型退化
-        model_degradation = False
-
-        # 开始任务循环
-        i = 0
-        while i < self.configurator.retry_count_limit + 1:
-            while True:
-                # 检测是否需要停止任务
-                if self.configurator.status == Base.STATUS.STOPING:
-                    return {}
-
-                # 检查 RPM 和 TPM 限制，如果符合条件，则继续
-                if self.request_limiter.RPM_and_TPM_limit(request_tokens_consume):
-                    break
-
-                # 如果以上条件都不符合，则间隔 0.5 秒再次检查
-                time.sleep(0.5)
-
-            # 记录任务循环次数
-            i = i + 1
-
-            # 记录开始请求时间
-            start_request_time = time.time()
-
-            # 获取接口的请求参数
-            temperature, top_p, presence_penalty, frequency_penalty = self.configurator.get_platform_request_args()
-
-            # 如果上一次请求出现模型退化，更改参数
-            if model_degradation == True:
-                frequency_penalty = 0.2
-
-            # 发起请求
+            # 生成请求指令
             if target_platform == "sakura":
-                skip, response_content_json, prompt_tokens, completion_tokens = self.request_sakura(
-                    messages,
-                    system_prompt,
-                    temperature,
-                    top_p,
-                    presence_penalty,
-                    frequency_penalty
-                )
-            elif target_platform == "cohere":
-                skip, response_content_json, prompt_tokens, completion_tokens = self.request_cohere(
-                    messages,
-                    system_prompt,
-                    temperature,
-                    top_p,
-                    presence_penalty,
-                    frequency_penalty
-                )
-            elif target_platform == "google":
-                skip, response_content_json, prompt_tokens, completion_tokens = self.request_google(
-                    messages,
-                    system_prompt,
-                    temperature,
-                    top_p,
-                    presence_penalty,
-                    frequency_penalty
-                )
-            elif target_platform == "anthropic" or (target_platform.startswith("custom_platform_") and api_format == "Anthropic"):
-                skip, response_content_json, prompt_tokens, completion_tokens = self.request_anthropic(
-                    messages,
-                    system_prompt,
-                    temperature,
-                    top_p,
-                    presence_penalty,
-                    frequency_penalty
+                messages, source_text_str, system_prompt, extra_log = self.generate_prompt_sakura(
+                    source_text_dict,
+                    previous_list,
                 )
             else:
-                skip, response_content_json, prompt_tokens, completion_tokens = self.request_openai(
-                    messages,
-                    system_prompt,
-                    temperature,
-                    top_p,
-                    presence_penalty,
-                    frequency_penalty
+                messages, source_text_str, system_prompt, extra_log = self.generate_prompt(
+                    target_platform,
+                    api_format,
+                    source_text_dict,
+                    previous_list
                 )
 
-            # 如果请求结果标记为 skip，即有错误发生，则跳过本次循环
-            if skip == True:
+            # 预估 Token 消费，并检查 RPM 和 TPM 限制
+            request_tokens_consume = self.request_limiter.num_tokens_from_messages(messages)
+            print(f"Debug: 请求tokens:{request_tokens_consume}")
+
+            # 检查是否超过token限制
+            if request_tokens_consume > self.configurator.max_tokens:
+                # 如果超过限制,减少行数限制后重试
+                if self.configurator.tokens_limit_switch:
+                    self.configurator.tokens_limit = int(self.configurator.tokens_limit * 0.9)
+                else:
+                    self.configurator.lines_limit = max(1, int(self.configurator.lines_limit * 0.9))
+                
+                current_retry += 1
+                self.warning(f"Token超出限制({request_tokens_consume}/{self.configurator.max_tokens}),减少批量处理量后重试({current_retry}/{max_retries})...")
                 continue
 
-            # 提取回复内容
-            response_dict = Response_Parser.text_extraction(
-                self,
-                response_content_json
-            )
 
-            # 检查回复内容
-            check_result, error_content = Response_Parser.check_response_content(
-                self,
-                self.configurator.reply_check_switch,
-                response_content_json,
-                response_dict,
-                source_text_dict,
-                self.configurator.source_language
-            )
+            # 记录是否检测到模型退化
+            model_degradation = False
 
-            # 判断结果是否通过检查
-            if check_result == False:
-                error = ""
-                if "退化" not in error_content or model_degradation == True:
-                    error = f"译文文本未通过检查，稍后将重试 - {error_content}"
+            # 开始任务循环
+            i = 0
+            while i < self.configurator.retry_count_limit + 1:
+                while True:
+                    # 检测是否需要停止任务
+                    if self.configurator.status == Base.STATUS.STOPING:
+                        print(f"Debug: 停止任务")
+                        return {}
+                    print(f"Debug: 预估 Token :{request_tokens_consume}")
+
+                    # 检查 RPM 和 TPM 限制，如果符合条件，则继续
+                    if self.request_limiter.RPM_and_TPM_limit(request_tokens_consume):
+                        break
+                    # 如果以上条件都不符合，则间隔 0.5 秒再次检查
+                    time.sleep(0.5)
+
+                # 记录任务循环次数
+                i = i + 1
+
+                # 记录开始请求时间
+                start_request_time = time.time()
+
+                # 获取接口的请求参数
+                temperature, top_p, presence_penalty, frequency_penalty = self.configurator.get_platform_request_args()
+
+                # 如果上一次请求出现模型退化，更改参数
+                if model_degradation == True:
+                    frequency_penalty = 0.2
+
+                # 发起请求
+                if target_platform == "sakura":
+                    skip, response_content_json, prompt_tokens, completion_tokens = self.request_sakura(
+                        messages,
+                        system_prompt,
+                        temperature,
+                        top_p,
+                        presence_penalty,
+                        frequency_penalty
+                    )
+                elif target_platform == "cohere":
+                    skip, response_content_json, prompt_tokens, completion_tokens = self.request_cohere(
+                        messages,
+                        system_prompt,
+                        temperature,
+                        top_p,
+                        presence_penalty,
+                        frequency_penalty
+                    )
+                elif target_platform == "google":
+                    skip, response_content_json, prompt_tokens, completion_tokens = self.request_google(
+                        messages,
+                        system_prompt,
+                        temperature,
+                        top_p,
+                        presence_penalty,
+                        frequency_penalty
+                    )
+                elif target_platform == "anthropic" or (target_platform.startswith("custom_platform_") and api_format == "Anthropic"):
+                    skip, response_content_json, prompt_tokens, completion_tokens = self.request_anthropic(
+                        messages,
+                        system_prompt,
+                        temperature,
+                        top_p,
+                        presence_penalty,
+                        frequency_penalty
+                    )
                 else:
-                    i = i - 1 # 当检测到模型退化时，无论是否开启重试，均增加一次额外的重试次数，且仅增加一次
-                    model_degradation = True
-                    error = "译文文本中检查到模型退化现象，稍后将修改请求参数后重试"
-
-                # 打印任务结果
-                self.print("")
-                self.print(
-                    self.generate_log_table(
-                        *self.generate_log_rows(
-                            error,
-                            start_request_time,
-                            row_count,
-                            prompt_tokens,
-                            completion_tokens,
-                            [v.get("source_text") for v in source_text_list],
-                            [v for k, v in response_dict.items()],
-                            extra_log
-                        )
+                    skip, response_content_json, prompt_tokens, completion_tokens = self.request_openai(
+                        messages,
+                        system_prompt,
+                        temperature,
+                        top_p,
+                        presence_penalty,
+                        frequency_penalty
                     )
-                )
-                self.print("")
-            else:
-                # 强制开启换行符还原功能
-                response_dict = Cache_Manager.replace_special_characters(
+                # 如果请求结果标记为 skip，即有错误发生，则跳过本次循环
+                if skip == True:
+                    continue
+
+                # 提取回复内容
+                response_dict = Response_Parser.text_extraction(
                     self,
-                    response_dict,
-                    "还原"
+                    response_content_json
                 )
 
-                # 如果开启译后文本替换功能，则根据用户字典进行替换
-                if self.configurator.post_translation_switch:
-                    response_dict = self.configurator.replace_after_translation(response_dict)
+                # 检查回复内容
+                check_result, error_content = Response_Parser.check_response_content(
+                    self,
+                    self.configurator.reply_check_switch,
+                    response_content_json,
+                    response_dict,
+                    source_text_dict,
+                    self.configurator.source_language
+                )
 
-                # 如果原文是日语，则还原文本的首尾代码字符
-                if self.configurator.source_language == "日语" and self.configurator.text_clear_toggle:
-                    response_dict = Cache_Manager.update_dictionary(self, response_dict, process_info_list)
+                # 判断结果是否通过检查
+                if check_result == False:
+                    error = ""
+                    if "退化" not in error_content or model_degradation == True:
+                        error = f"译文文本未通过检查，稍后将重试 - {error_content}"
+                    else:
+                        i = i - 1 # 当检测到模型退化时，无论是否开启重试，均增加一次额外的重试次数，且仅增加一次
+                        model_degradation = True
+                        error = "译文文本中检查到模型退化现象，稍后将修改请求参数后重试"
 
-                # 更新缓存数据
-                with self.translator.cache_data_lock:
-                    Cache_Manager.update_cache_data(
-                        self,
-                        self.configurator.cache_list,
-                        source_text_list,
-                        response_dict,
-                        self.configurator.model
-                    )
-
-                # 打印任务结果
-                self.print("")
-                self.print(
-                    self.generate_log_table(
-                        *self.generate_log_rows(
-                            "",
-                            start_request_time,
-                            row_count,
-                            prompt_tokens,
-                            completion_tokens,
-                            [v.get("source_text") for v in source_text_list],
-                            [v for k, v in response_dict.items()],
-                            extra_log
+                    # 打印任务结果
+                    self.print("")
+                    self.print(
+                        self.generate_log_table(
+                            *self.generate_log_rows(
+                                error,
+                                start_request_time,
+                                row_count,
+                                prompt_tokens,
+                                completion_tokens,
+                                [v.get("source_text") for v in source_text_list],
+                                [v for k, v in response_dict.items()],
+                                extra_log
+                            )
                         )
                     )
-                )
-                self.print("")
+                    self.print("")
+                else:
+                    # 强制开启换行符还原功能
+                    response_dict = Cache_Manager.replace_special_characters(
+                        self,
+                        response_dict,
+                        "还原"
+                    )
 
-                # 翻译任务执行成功则不再重试
-                break
+                    # 如果开启译后文本替换功能，则根据用户字典进行替换
+                    if self.configurator.post_translation_switch:
+                        response_dict = self.configurator.replace_after_translation(response_dict)
 
-        # 返回任务结果，如果 check_result 不存在，即请求发生错误，则按照失败处理
-        try:
-            check_result == True
-            return {
-                "check_result": check_result,
-                "row_count": row_count,
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-            }
-        except Exception:
-            return {
-                "check_result": False,
-                "row_count": 0,
-                "prompt_tokens": request_tokens_consume,
-                "completion_tokens": 0,
-            }
+                    # 如果原文是日语，则还原文本的首尾代码字符
+                    if self.configurator.source_language == "日语" and self.configurator.text_clear_toggle:
+                        response_dict = Cache_Manager.update_dictionary(self, response_dict, process_info_list)
+
+                    # 更新缓存数据
+                    with self.translator.cache_data_lock:
+                        Cache_Manager.update_cache_data(
+                            self,
+                            self.configurator.cache_list,
+                            source_text_list,
+                            response_dict,
+                            self.configurator.model
+                        )
+
+                    # 打印任务结果
+                    self.print("")
+                    self.print(
+                        self.generate_log_table(
+                            *self.generate_log_rows(
+                                "",
+                                start_request_time,
+                                row_count,
+                                prompt_tokens,
+                                completion_tokens,
+                                [v.get("source_text") for v in source_text_list],
+                                [v for k, v in response_dict.items()],
+                                extra_log
+                            )
+                        )
+                    )
+                    self.print("")
+
+                    # 翻译任务执行成功则不再重试
+                    break
+
+            # 返回任务结果，如果 check_result 不存在，即请求发生错误，则按照失败处理
+            try:
+                check_result == True
+                return {
+                    "check_result": check_result,
+                    "row_count": row_count,
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                }
+            except Exception:
+                return {
+                    "check_result": False,
+                    "row_count": 0,
+                    "prompt_tokens": request_tokens_consume,
+                    "completion_tokens": 0,
+                }
 
     # 发起请求
     def request_sakura(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty):
