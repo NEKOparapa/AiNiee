@@ -89,12 +89,12 @@ class TranslatorTask(Base):
 
         # 生成请求指令
         if target_platform == "sakura":
-            messages, source_text_str, system_prompt, extra_log = self.generate_prompt_sakura(
+            messages, system_prompt, extra_log = self.generate_prompt_sakura(
                 source_text_dict,
                 previous_list,
             )
         else:
-            messages, source_text_str, system_prompt, extra_log = self.generate_prompt(
+            messages, system_prompt, extra_log = self.generate_prompt(
                 target_platform,
                 api_format,
                 source_text_dict,
@@ -110,7 +110,14 @@ class TranslatorTask(Base):
         # 开始任务循环
         i = 0
         while i < self.configurator.retry_count_limit + 1:
+            # 记录任务开始的的时间
+            task_start_time = time.time()
+
             while True:
+                # 检查是否超时，超时则直接跳过当前任务，以避免死循环
+                if time.time() - task_start_time >= self.configurator.request_timeout:
+                    return {}
+
                 # 检测是否需要停止任务
                 if self.configurator.status == Base.STATUS.STOPING:
                     return {}
@@ -124,9 +131,6 @@ class TranslatorTask(Base):
 
             # 记录任务循环次数
             i = i + 1
-
-            # 记录开始请求时间
-            start_request_time = time.time()
 
             # 获取接口的请求参数
             temperature, top_p, presence_penalty, frequency_penalty = self.configurator.get_platform_request_args()
@@ -218,12 +222,12 @@ class TranslatorTask(Base):
                     self.generate_log_table(
                         *self.generate_log_rows(
                             error,
-                            start_request_time,
+                            task_start_time,
                             row_count,
                             prompt_tokens,
                             completion_tokens,
                             [v.get("source_text") for v in source_text_list],
-                            [v for k, v in response_dict.items()],
+                            [v for _, v in response_dict.items()],
                             extra_log
                         )
                     )
@@ -261,12 +265,12 @@ class TranslatorTask(Base):
                     self.generate_log_table(
                         *self.generate_log_rows(
                             "",
-                            start_request_time,
+                            task_start_time,
                             row_count,
                             prompt_tokens,
                             completion_tokens,
                             [v.get("source_text") for v in source_text_list],
-                            [v for k, v in response_dict.items()],
+                            [v for _, v in response_dict.items()],
                             extra_log
                         )
                     )
@@ -728,7 +732,7 @@ class TranslatorTask(Base):
                 }
             )
 
-        return messages, source_text_str, system_prompt, extra_log
+        return messages, system_prompt, extra_log
 
     # 生成指令 Sakura
     def generate_prompt_sakura(self, source_text_dict, previous_list):
@@ -807,7 +811,7 @@ class TranslatorTask(Base):
             }
         )
 
-        return messages, source_text_str, "", extra_log
+        return messages, "", extra_log
 
     # 生成日志行
     def generate_log_rows(self, error, start_time, row_count, prompt_tokens, completion_tokens, source, translated, extra_log):
