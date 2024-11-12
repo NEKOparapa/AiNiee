@@ -69,6 +69,17 @@ class Response_Parser():
         error_content = "0"
 
 
+        # 检查接口是否拒绝翻译
+        if Response_Parser.contains_special_chars(self,response_str):
+            pass
+        else:
+            check_result = False
+            # 存储错误内容
+            error_content = "模型已拒绝翻译，回复内容：" + "\n" + str(response_str)
+            return check_result,error_content
+
+
+
         # 检查模型是否退化，出现高频词
         if 'Model Degradation Check' in reply_check_switch and reply_check_switch['Model Degradation Check']:
             if Response_Parser.model_degradation_detection(self,response_str):
@@ -182,6 +193,12 @@ class Response_Parser():
                 return False
 
         return True
+
+    # 检查接口是否拒绝翻译，而返回一段话
+    def contains_special_chars(self,s: str) -> bool:
+        special_chars = ['{', '"""', ':', '}']
+        return any(char in s for char in special_chars)
+
 
     # 模型退化检测，高频语气词
     def model_degradation_detection(self, s, count=80):
