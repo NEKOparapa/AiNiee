@@ -115,9 +115,11 @@ class ProjectPage(QFrame, Base):
                 [
                     "Txt小说文件",
                     "Srt字幕文件",
+                    "Vtt字幕文件",
                     "Lrc音声文件",
                     "T++导出文件",
                     "Epub小说文件",
+                    "Docx文档文件",
                     "Mtool导出文件",
                     "VNText导出文件",
                     "Ainiee缓存文件",

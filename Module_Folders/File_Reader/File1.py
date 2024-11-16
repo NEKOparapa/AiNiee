@@ -11,7 +11,6 @@ import shutil
 import zipfile
 
 
-
 from openpyxl import Workbook  
 import ebooklib #需要安装库pip install ebooklib
 from ebooklib import epub
@@ -337,14 +336,6 @@ class File_Reader():
 
     # 读取文件夹中树形结构Srt字幕文件
     def read_srt_files (self,folder_path):
-        # 缓存数据结构示例
-        ex_cache_data = [
-        {'project_type': 'Mtool'},
-        {'text_index': 1, 'text_classification': 0, 'translation_status': 0, 'source_text': 'しこトラ！', 'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json'},
-        {'text_index': 2, 'text_classification': 0, 'translation_status': 0, 'source_text': '室内カメラ', 'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json'},
-        {'text_index': 3, 'text_classification': 0, 'translation_status': 0, 'source_text': '室内カメラ', 'translated_text': '无', 'storage_path': 'DEBUG Folder\\Replace the original text.json', 'file_name': 'Replace the original text.json'},
-        ]
-
 
         # 创建缓存数据，并生成文件头信息
         json_data_list = []
@@ -363,7 +354,7 @@ class File_Reader():
         # 遍历文件夹及其子文件夹
         for root, dirs, files in os.walk(folder_path):
             for file in files:
-                # 判断文件是否为 JSON 文件
+                # 判断文件是否为 srt 文件
                 if file.endswith(".srt"):
                     file_path = os.path.join(root, file) # 构建文件路径
                     
@@ -423,6 +414,118 @@ class File_Reader():
 
         return json_data_list
 
+
+    # 读取文件夹中树形结构vtt字幕文件
+    def read_vtt_files (self,folder_path):
+
+        # 创建缓存数据，并生成文件头信息
+        json_data_list = []
+        project_id = File_Reader.generate_project_id(self,"Vtt")
+        json_data_list.append({
+            "project_type": "Vtt",
+            "project_id": project_id,
+        })
+
+        #文本索引初始值
+        i = 1
+        source_text = ''
+        subtitle_number = ''
+        subtitle_time = ''
+
+        # 遍历文件夹及其子文件夹
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                # 存储开头注释文本
+                top_text = ''
+
+                # 判断文件是否为 Vtt 文件
+                if file.endswith(".vtt"):
+                    file_path = os.path.join(root, file) # 构建文件路径
+                    
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+
+                    # 将内容按行分割,并除去换行
+                    lines = content.split('\n')
+
+
+                    # 先截取开头注释行
+                    top_text = ''
+                    for line in lines:
+                        # 截断存储开头文本
+                        if line.isdigit() and (line == "1"):
+                            top_text +='\n'
+                            break
+
+                        elif line == '':
+                            top_text += '\n'
+
+                        elif line != '':
+                            if  top_text:
+                                top_text += '\n' + line
+                            else:
+                                top_text = line
+
+
+                    # 去除开头注释行
+                    cleaned_lines = []
+                    in_header = True  # 标记是否在开头注释部分
+                    for line in lines:
+                        if in_header:
+                            if line.isdigit() and line == "1":
+                                in_header = False  # 遇到第一个数字行，退出开头注释部分
+                        if not in_header:
+                            cleaned_lines.append(line)  # 添加非注释部分的行
+
+                    
+                   
+                    j = 1
+                    # 提取字幕行
+                    for line in cleaned_lines:
+
+                        # 如果行是数字，代表新的字幕开始
+                        if line.isdigit() and (line == str(j)):
+                            subtitle_number = line
+
+                        # 时间码行
+                        elif '-->' in line:
+                            subtitle_time = line
+
+                        # 空行代表字幕文本的结束
+                        elif line == '':
+                            storage_path = os.path.relpath(file_path, folder_path) 
+                            file_name = file
+                            # 将数据存储在字典中
+                            json_data_list.append({
+                                "text_index": i,
+                                "translation_status": 0,
+                                "source_text": source_text,
+                                "translated_text": source_text,
+                                "model": "none",
+                                "subtitle_number": subtitle_number,
+                                "subtitle_time": subtitle_time,
+                                "top_text": top_text,
+                                "storage_path": storage_path,
+                                "file_name": file_name,
+                            })
+
+                            # 增加文本索引值
+                            i = i + 1
+                            j = j + 1
+                            # 清空变量
+                            source_text = ''
+                            subtitle_number = ''
+                            subtitle_time = ''
+
+                        # 其他行是字幕文本行
+                        else:
+                            if  source_text:
+                                source_text += '\n' + line
+                            else:
+                                source_text = line
+
+
+        return json_data_list
 
     # 读取文件夹中树形结构Lrc音声文件
     def read_lrc_files (self,folder_path):
@@ -623,11 +726,11 @@ class File_Reader():
                     parent_path = os.path.dirname(file_path)
                     extract_path = os.path.join(parent_path, 'EpubCache')
 
-                    # 创建解压文件夹
+                    # 创建暂存文件夹
                     if not os.path.exists(extract_path):
                         os.makedirs(extract_path)
 
-                    # 使用zipfile模块打开并解压EPUB文件
+                    # 解压EPUB文件到暂存文件夹中
                     with zipfile.ZipFile(file_path, 'r') as epub_file:
                         # 提取所有文件
                         epub_file.extractall(extract_path)
@@ -717,6 +820,90 @@ class File_Reader():
         return json_data_list
 
 
+    # 读取文件夹中树形结构Docx文件
+    def read_docx_files (self,folder_path):
+
+        # 创建缓存数据，并生成文件头信息
+        json_data_list = []
+        project_id = File_Reader.generate_project_id(self,"Docx")
+        json_data_list.append({
+            "project_type": "Docx",
+            "project_id": project_id,
+        })
+
+        #文本索引初始值
+        i = 1
+
+        # 遍历文件夹及其子文件夹
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                # 判断文件是否为 docx 文件
+                if file.endswith(".docx"):
+
+                    # 构建文件的路径
+                    file_path = os.path.join(root, file)  
+
+                    # 构建解压文件夹路径
+                    parent_path = os.path.dirname(file_path)
+                    extract_path = os.path.join(parent_path, 'DocxCache')
+
+                    # 创建暂存文件夹
+                    if not os.path.exists(extract_path):
+                        os.makedirs(extract_path)
+
+                    # 解压docx文件到暂存文件夹中
+                    with zipfile.ZipFile(file_path, 'r') as docx_file:
+                        # 提取所有文件
+                        docx_file.extractall(extract_path)
+
+                    # 获取文件路径和文件名
+                    storage_path = os.path.relpath(file_path, folder_path)
+                    file_name = file
+
+                    # 构建存储文本的文件路径
+                    the_file_path = os.path.join(extract_path,'word', 'document.xml')
+
+
+                    # 打开对应xml文件
+                    with open(the_file_path, 'r', encoding='utf-8') as file:
+                        # 读取文件内容
+                        xml_content = file.read()
+
+
+                    # 正则表达式匹配运行标签及其内容
+                    p_pattern = r'<w:t[^>/]*>(.*?)</w:t>'
+
+                    # 使用findall函数找到所有匹配的内容
+                    paragraphs = re.findall(p_pattern, xml_content, re.DOTALL)
+
+                    # 过滤掉空的内容
+                    filtered_matches = [match for match in paragraphs if match.strip()]
+
+                    # 遍历每个标签，并提取文本内容
+                    for text in filtered_matches:
+
+                        # 检查一下是否提取到空文本内容和其他特殊内容
+                        if text == "" or text == "\n" or text == " "or text == '\xa0':
+                            continue
+
+                        # 录入缓存
+                        json_data_list.append({
+                            "text_index": i,
+                            "translation_status": 0,
+                            "source_text": text,
+                            "translated_text": text,
+                            "model": "none",
+                            "storage_path": storage_path,
+                            "file_name": file_name,
+                        })                                    
+                        # 增加文本索引值
+                        i = i + 1
+
+            # 删除暂存文件夹
+            shutil.rmtree(extract_path)
+
+        return json_data_list
+
     # 根据文件类型读取文件
     def read_files (self,translation_project,label_input_path):
 
@@ -728,12 +915,16 @@ class File_Reader():
             cache_list = File_Reader.read_vnt_files(self,folder_path = label_input_path)
         elif translation_project == "Srt字幕文件":
             cache_list = File_Reader.read_srt_files(self,folder_path = label_input_path)
+        elif translation_project == "Vtt字幕文件":
+            cache_list = File_Reader.read_vtt_files(self,folder_path = label_input_path)
         elif translation_project == "Lrc音声文件":
             cache_list = File_Reader.read_lrc_files(self,folder_path = label_input_path)
         elif translation_project == "Txt小说文件":
             cache_list = File_Reader.read_txt_files(self,folder_path = label_input_path)
         elif translation_project == "Epub小说文件":
             cache_list = File_Reader.read_epub_files(self,folder_path = label_input_path)
+        elif translation_project == "Docx文档文件":
+            cache_list = File_Reader.read_docx_files(self,folder_path = label_input_path)
         elif translation_project == "Ainiee缓存文件":
             cache_list = File_Reader.read_cache_files(self,folder_path = label_input_path)
         if translation_project == "ParaTranz导出文件":

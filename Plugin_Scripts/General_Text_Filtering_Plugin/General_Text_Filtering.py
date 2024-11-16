@@ -113,7 +113,7 @@ class General_Text_Filtering(PluginBase):
 
     # 检查字符串是否只包含常见的标点符号
     def is_punctuation_string(self,s: str) -> bool:
-        """检查字符串是否只包含标点符号"""
-        punctuation = set("!" '"' "#" "$" "%" "&" "'" "(" ")" "*" "+" "," "-" "." "/" "，" "。"
+        """检查字符串是否只是标点符号与双种空格组合"""
+        punctuation = set(" " " " "!" '"' "#" "$" "%" "&" "'" "(" ")" "*" "+" "," "-" "." "/" "，" "。"
                         ":" ";" "<" "=" ">" "?" "@" "[" "\\" "]" "^" "_" "`" "{" "|" "}" "~" "—" "・")
         return all(char in punctuation for char in s)
