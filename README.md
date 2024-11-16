@@ -12,7 +12,7 @@
   
 <p align="center">
   
-  **AiNiee 是一款专注于Ai翻译的工具，可以用来一键自动翻译RPG SLG游戏，Epub TXT小说，Srt Lrc字幕等等**
+  **AiNiee是一款专注于Ai翻译的工具，可以用来一键自动翻译RPG SLG游戏，Epub Word TXT小说，Srt Vtt Lrc字幕等等。**
 </p>
 
 
