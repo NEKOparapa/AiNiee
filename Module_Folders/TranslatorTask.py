@@ -234,12 +234,13 @@ class TranslatorTask(Base):
                 )
                 self.print("")
             else:
-                # 强制开启换行符还原功能
-                response_dict = Cache_Manager.replace_special_characters(
-                    self,
-                    response_dict,
-                    "还原"
-                )
+                # 如果开启了保留句内换行符功能
+                if self.configurator.preserve_line_breaks_toggle:
+                    response_dict = Cache_Manager.replace_special_characters(
+                        self,
+                        response_dict,
+                        "还原"
+                    )
 
                 # 如果开启译后文本替换功能，则根据用户字典进行替换
                 if self.configurator.post_translation_switch:

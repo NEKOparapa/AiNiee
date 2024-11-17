@@ -1,3 +1,4 @@
+import os
 import re
 import json
 
@@ -5,66 +6,69 @@ from tqdm import tqdm
 from rich import print
 
 from Plugin_Scripts.PluginBase import PluginBase
+from Module_Folders.Configurator.Config import Configurator
 
 class CodeSaver(PluginBase):
 
+    # 角色表文件路径
+    ACTORS_PATH = "Actors.json"
+
+    # 直接替换的 原文-译文 列表
+    REPLACE_PAIR = {
+        # "{self}": "あたし",
+    }
+
+    # 用于英文的代码段规则
     CODE_PATTERN_EN = (
-        r"[/\\][A-Z]{1,5}<[\d]{0,10}>",         # /C<1> \FS<12>
-        r"[/\\][A-Z]{1,5}\[[\d]{0,10}\]",       # /C[1] \FS[12]
-        r"[/\\][A-Z]{1,5}(?=<.{0,10}>)",        # /C<非数字> /C<非数字> \FS<非数字> \FS<非数字> 中的前半部分
-        r"[/\\][A-Z]{1,5}(?=\[.{0,10}\])",      # /C[非数字] /C[非数字] \FS[非数字] \FS[非数字] 中的前半部分
-        r"\\fr",                                # 重置文本的改变
-        r"\\fb",                                # 加粗
-        r"\\fi",                                # 倾斜
-        r"\\\{",                                # 放大字体 \{
-        r"\\\}",                                # 缩小字体 \}
-        r"\\G",                                 # 显示货币 \G
-        r"\\\$",                                # 打开金币框 \$
-        r"\\\.",                                # 等待0.25秒 \.
-        r"\\\|",                                # 等待1秒 \|
-        r"\\!",                                 # 等待按钮按下 \!
-        # r"\\>",                               # 在同一行显示文字 \>
-        # r"\\<",                               # 取消显示所有文字 \<
-        r"\\\^",                                # 显示文本后不需要等待 \^
-        # r"\\n",                               # 换行符 \\n
-        r"\r\n",                                # 换行符 \r\n
-        r"\n",                                  # 换行符 \n
-        r"\\\\<br>",                            # 换行符 \\<br>
-        r"<br>",                                # 换行符 <br>
+        r"\s*" + r"if\(.{0,10}[vs]\[\d+\].{0,10}\)" + r"\s*",           # if(!s[982]) if(v[982] >= 1)
+        r"\s*" + r"en\(.{0,10}[vs]\[\d+\].{0,10}\)" + r"\s*",           # en(!s[982]) en(v[982] >= 1)
+        r"\s*" + r"[/\\][a-z]{1,5}<[\d]{0,10}>" + r"\s*",               # /C<1> \FS<12>
+        r"\s*" + r"[/\\][a-z]{1,5}\[[\d]{0,10}\]" + r"\s*",             # /C[1] \FS[12]
+        r"\s*" + r"[/\\][a-z]{1,5}(?=<.{0,10}>)" + r"\s*",              # /C<非数字> /C<非数字> \FS<非数字> \FS<非数字> 中的前半部分
+        r"\s*" + r"[/\\][a-z]{1,5}(?=\[.{0,10}\])" + r"\s*",            # /C[非数字] /C[非数字] \FS[非数字] \FS[非数字] 中的前半部分
     )
 
+    # 用于非英文的代码段规则
     CODE_PATTERN_NON_EN = (
-        r"[/\\][A-Z]{1,5}<[\dA-Z]{0,10}>",      # /C<y> /C<1> \FS<xy> \FS<12>
-        r"[/\\][A-Z]{1,5}\[[\dA-Z]{0,10}\]",    # /C[x] /C[1] \FS[xy] \FS[12]
-        r"[/\\][A-Z]{1,5}(?=<.{0,10}>)",        # /C<非数字非字母> /C<非数字非字母> \FS<非数字非字母> \FS<非数字非字母> 中的前半部分
-        r"[/\\][A-Z]{1,5}(?=\[.{0,10}\])",      # /C[非数字非字母] /C[非数字非字母] \FS[非数字非字母] \FS[非数字非字母] 中的前半部分
-        r"\\fr",                                # 重置文本的改变
-        r"\\fb",                                # 加粗
-        r"\\fi",                                # 倾斜
-        r"\\\{",                                # 放大字体 \{
-        r"\\\}",                                # 缩小字体 \}
-        r"\\G",                                 # 显示货币 \G
-        r"\\\$",                                # 打开金币框 \$
-        r"\\\.",                                # 等待0.25秒 \.
-        r"\\\|",                                # 等待1秒 \|
-        r"\\!",                                 # 等待按钮按下 \!
-        # r"\\>",                               # 在同一行显示文字 \>
-        # r"\\<",                               # 取消显示所有文字 \<
-        r"\\\^",                                # 显示文本后不需要等待 \^
-        # r"\\n",                               # 换行符 \\n
-        r"\r\n",                                # 换行符 \r\n
-        r"\n",                                  # 换行符 \n
-        r"\\\\<br>",                            # 换行符 \\<br>
-        r"<br>",                                # 换行符 <br>
+        r"\s*" + r"if\(.{0,10}[vs]\[\d+\].{0,10}\)" + r"\s*",           # if(!s[982]) if(v[982] >= 1)
+        r"\s*" + r"en\(.{0,10}[vs]\[\d+\].{0,10}\)" + r"\s*",           # en(!s[982]) en(v[982] >= 1)
+        r"\s*" + r"[/\\][a-z]{1,5}<[\da-z]{0,10}>" + r"\s*",            # /C<y> /C<1> \FS<xy> \FS<12>
+        r"\s*" + r"[/\\][a-z]{1,5}\[[\da-z]{0,10}\]" + r"\s*",          # /C[x] /C[1] \FS[xy] \FS[12]
+        r"\s*" + r"[/\\][a-z]{1,5}(?=<.{0,10}>)" + r"\s*",              # /C<非数字非字母> /C<非数字非字母> \FS<非数字非字母> \FS<非数字非字母> 中的前半部分
+        r"\s*" + r"[/\\][a-z]{1,5}(?=\[.{0,10}\])" + r"\s*",            # /C[非数字非字母] /C[非数字非字母] \FS[非数字非字母] \FS[非数字非字母] 中的前半部分
     )
 
-    # 匹配 <xyz> [xyz] 形式的代码段，尽可能短的匹配
-    CODE_LOST_PATTERN = (
-        r"<.+?>",
-        r"\[.+?\]",
+    # 同时作用于英文于非英文的代码段规则
+    CODE_PATTERN_COMMON = (
+        r"\s*" + r"\\fr" + r"\s*",                                      # 重置文本的改变
+        r"\s*" + r"\\fb" + r"\s*",                                      # 加粗
+        r"\s*" + r"\\fi" + r"\s*",                                      # 倾斜
+        r"\s*" + r"\\\{" + r"\s*",                                      # 放大字体 \{
+        r"\s*" + r"\\\}" + r"\s*",                                      # 缩小字体 \}
+        r"\s*" + r"\\g" + r"\s*",                                       # 显示货币 \G
+        r"\s*" + r"\\\$" + r"\s*",                                      # 打开金币框 \$
+        r"\s*" + r"\\\." + r"\s*",                                      # 等待0.25秒 \.
+        r"\s*" + r"\\\|" + r"\s*",                                      # 等待1秒 \|
+        r"\s*" + r"\\!" + r"\s*",                                       # 等待按钮按下 \!
+        # r"\s*" + r"\\>" + r"\s*",                                     # 在同一行显示文字 \>
+        # r"\s*" + r"\\<" + r"\s*",                                     # 取消显示所有文字 \<
+        r"\s*" + r"\\\^" + r"\s*",                                      # 显示文本后不需要等待 \^
+        # r"\s*" + r"\\n" + r"\s*",                                     # 换行符 \\n
+        r"\s*" + r"\r\n" + r"\s*",                                      # 换行符 \r\n
+        r"\s*" + r"\n" + r"\s*",                                        # 换行符 \n
+        r"\s*" + r"\\\\<br>" + r"\s*",                                  # 换行符 \\<br>
+        r"\s*" + r"<br>" + r"\s*",                                      # 换行符 <br>
     )
 
-    def __init__(self):
+    # 需要进行数量匹配检查的代码段
+    CODE_PATTERN_NUM_MATCH = (
+        "<",
+        ">",
+        "[",
+        "]",
+    )
+
+    def __init__(self) -> None:
         super().__init__()
         self.name = "CodeSaver"
         self.description = (
@@ -80,10 +84,7 @@ class CodeSaver(PluginBase):
         self.add_event("preproces_text", PluginBase.PRIORITY.NORMAL)
         self.add_event("postprocess_text", PluginBase.PRIORITY.NORMAL)
 
-    def load(self):
-        pass
-
-    def on_event(self, event, configurator, data):
+    def on_event(self, event: str, configurator: Configurator, data: dict) -> None:
         # 检查数据有效性
         if event == None or len(event) <= 1:
             return
@@ -91,10 +92,6 @@ class CodeSaver(PluginBase):
         # 初始化
         items = data[1:]
         project = data[0]
-
-        # 限制模型
-        # if "sakura" not in configurator.target_platform.lower():
-        #     return
 
         # 限制文本格式
         if "t++" not in project.get("project_type", "").lower():
@@ -105,13 +102,13 @@ class CodeSaver(PluginBase):
         configurator.preserve_line_breaks_toggle = False
 
         if event == "preproces_text":
-            self.on_preproces_text(items, project, event, configurator, data)
+            self.on_preproces_text(event, configurator, data, items, project)
 
         if event in ("manual_export", "postprocess_text"):
-            self.on_postprocess_text(items, project, event, configurator, data)
+            self.on_postprocess_text(event, configurator, data, items, project)
 
     # 文本预处理事件
-    def on_preproces_text(self, items, project, event, configurator, data):
+    def on_preproces_text(self, event: str, configurator: Configurator, data: dict, items: list[dict], project: list[dict]) -> None:
         # 检查数据是否已经被插件处理过
         if project.get("code_saver_processed", False) == True:
             return
@@ -120,35 +117,64 @@ class CodeSaver(PluginBase):
         print("[CodeSaver] 开始执行预处理 ...")
         print("")
 
-        # 构建角色表
-        # actors = {}
-        # for v in [v for v in items if "actors" in v.get("storage_path", "").lower()]:
-        #     actors[f"\\n[{v.get("row_index", 1) - 1}]"] = v.get("source_text", "")
+        # 加载角色数据
+        names, nicknames = self.load_names(configurator)
 
         # 根据原文语言生成正则表达式
         if "英语" in configurator.source_language:
-            pattern = rf"(?:{"|".join(self.CODE_PATTERN_EN)})+"
+            code_pattern = self.CODE_PATTERN_EN + self.CODE_PATTERN_COMMON
         else:
-            pattern = rf"(?:{"|".join(self.CODE_PATTERN_NON_EN)})+"
+            code_pattern = self.CODE_PATTERN_NON_EN + self.CODE_PATTERN_COMMON
+        pattern = rf"(?:{"|".join(code_pattern)})+"
+        prefix_pattern = f"^(?:{"|".join(code_pattern)})+"
+        suffix_pattern = f"(?:{"|".join(code_pattern)})+$"
 
         # 查找代码段
-        for v in tqdm(items):
-            source_text = v.get("source_text", "")
-
+        for item in tqdm(items):
             # 备份原文
-            v["source_backup"] = source_text
+            item["source_backup"] = item.get("source_text", "")
 
-            # 查找
-            v["code_saver_codes"] = re.findall(pattern, source_text, flags = re.IGNORECASE)
+            # 根据 actors 中的数据还原 角色代码 \N[123] 实际指向的名字
+            item["source_text"] = re.sub(
+                r"\\N\[(\d+)\]",
+                lambda match: self.do_replace(match, names),
+                item.get("source_text"),
+                flags = re.IGNORECASE
+            )
 
-            # 替换
-            v["source_text"] = re.sub(pattern, "↓↓", source_text, flags = re.IGNORECASE)
+            # 根据 actors 中的数据还原 角色代码 \NN[123] 实际指向的名字
+            item["source_text"] = re.sub(
+                r"\\NN\[(\d+)\]",
+                lambda match: self.do_replace(match, nicknames),
+                item.get("source_text"),
+                flags = re.IGNORECASE
+            )
+
+            # 替换其他字符
+            for k, v in self.REPLACE_PAIR.items():
+                item["source_text"] = item.get("source_text").replace(k, v)
+
+            # 查找与替换前缀代码段
+            item["code_saver_prefix_codes"] = re.findall(prefix_pattern, item.get("source_text"), flags = re.IGNORECASE)
+            item["source_text"] = re.sub(prefix_pattern, "", item.get("source_text"), flags = re.IGNORECASE)
+
+            # 查找与替换后缀代码段
+            item["code_saver_suffix_codes"] = re.findall(suffix_pattern, item.get("source_text"), flags = re.IGNORECASE)
+            item["source_text"] = re.sub(suffix_pattern, "", item.get("source_text"), flags = re.IGNORECASE)
+
+            # 查找与替换主体代码段
+            item["code_saver_codes"] = re.findall(pattern, item.get("source_text"), flags = re.IGNORECASE)
+            item["source_text"] = re.sub(pattern, "↓↓", item.get("source_text"), flags = re.IGNORECASE)
+
+            # DEBUG
+            # print(f"prefix - {item.get("code_saver_prefix_codes")}") if len(item.get("code_saver_prefix_codes", [])) > 0 else None
+            # print(f"suffix - {item.get("code_saver_suffix_codes")}") if len(item.get("code_saver_suffix_codes", [])) > 0 else None
 
         # 设置处理标志
         project["code_saver_processed"] = True
 
     # 文本后处理事件
-    def on_postprocess_text(self, items, project, event, configurator, data):
+    def on_postprocess_text(self, event: str, configurator: Configurator, data: dict, items: list[dict], project: list[dict]) -> None:
         # 检查数据是否已经被插件处理过
         if project.get("code_saver_processed", False) == False:
             return
@@ -159,10 +185,9 @@ class CodeSaver(PluginBase):
 
         # 还原文本
         result = {
-            "代码段丢失": {},
-            "占位符还原失败": {},
+            "占位符残留": {},
         }
-        target_items = [v for v in items if v.get("translation_status", 0) == 1 and len(v.get("code_saver_codes", [])) > 0]
+        target_items = [v for v in items if v.get("translation_status", 0) == 1]
         for item in tqdm(target_items):
             # 还原原文
             item["source_text"] = item.get("source_backup", "")
@@ -182,14 +207,23 @@ class CodeSaver(PluginBase):
                     # 匹配成功标记
                     success = True
 
-            # 检查是否存在代码段丢失
-            code_lost = self.check_code_lost(item.get("source_text", ""), item.get("translated_text", ""))
+            # 还原前缀和后缀代码段
+            item["translated_text"] = (
+                "".join(item.get("code_saver_prefix_codes", []))
+                + item.get("translated_text", "")
+                + "".join(item.get("code_saver_suffix_codes", []))
+            )
 
             # 如果以上均匹配失败，则加入失败条目列表中
             if success == False:
-                result["占位符还原失败"][item.get("source_text", "")] = item.get("translated_text", "")
-            elif code_lost == True:
-                result["代码段丢失"][item.get("source_text", "")] = item.get("translated_text", "")
+                result.setdefault("占位符残留", {})[item.get("source_text", "")] = item.get("translated_text", "")
+            else:
+                # 检查是否存在代码段丢失
+                source_text = re.sub(r"\\N{1,2}\[\d+\]", " ", item.get("source_text", ""), flags = re.IGNORECASE)
+                translated_text = item.get("translated_text", "")
+                for code in self.CODE_PATTERN_NUM_MATCH:
+                    if source_text.count(code) != translated_text.count(code):
+                        result.setdefault(f"数量不匹配 - {code}", {})[item.get("source_text", "")] = item.get("translated_text", "")
 
         # 将还原失败的条目写入文件
         result_path = f"{configurator.label_output_path}/code_saver_result.json"
@@ -197,7 +231,8 @@ class CodeSaver(PluginBase):
             writer.write(json.dumps(result, indent = 4, ensure_ascii = False))
 
         # 计算数量
-        failure_count = len(result.get("代码段丢失", {})) + len(result.get("占位符还原失败", {}))
+        # failure_count = len({k for v in result.values() if isinstance(v, dict) for k in v.keys()})
+        failure_count = len(result.get("占位符残留", {}))
         success_count = len(target_items) - failure_count
 
         print("")
@@ -212,13 +247,37 @@ class CodeSaver(PluginBase):
         )
         print("")
 
-    # 检查翻译结果是否丢失代码段
-    def check_code_lost(self, source: str, translated: str) -> bool:
-        result = False
+    # 执行替换
+    def do_replace(self, match: re.Match, names: dict) -> str:
+        i = int(match.group(1))
 
-        for pattern in self.CODE_LOST_PATTERN:
-            if len(re.findall(pattern, source)) != len(re.findall(pattern, translated)):
-                result = True
-                break
+        # 索引在范围内则替换，不在范围内则原文返回
+        if i in names:
+            return names.get(i, "")
+        else:
+            return match.group(0)
 
-        return result
+    # 加载角色数据
+    def load_names(self, configurator: Configurator) -> tuple[dict, dict]:
+        names = {}
+        nicknames = {}
+
+        path = f"{configurator.label_input_path}/{self.ACTORS_PATH}"
+        if not os.path.exists(path):
+            print(f"[CodeSaver] 在输入目录下未找到 [green]{self.ACTORS_PATH}[/] 文件，将跳过 [green]姓名还原[/] 步骤 ...")
+            print(f"[CodeSaver] [green]{self.ACTORS_PATH}[/] 文件一般可以在 [green]RPGMaker MV/MZ[/] 游戏的 [green]data[/] 或者 [green]www\data[/] 文件夹内找到 ...")
+            print(f"[CodeSaver] [green]姓名还原[/] 步骤可以显著提升翻译质量，如您正在翻译 [green]RPGMaker MV/MZ[/] 游戏，建议复制文件后重新开始翻译 ...")
+            print(f"")
+        else:
+            with open(path, "r", encoding = "utf-8") as reader:
+                for item in json.load(reader):
+                    if isinstance(item, dict):
+                        id = item.get("id", -1)
+                        name = item.get("name", "")
+                        nickname = item.get("nickname", "")
+
+                        if id >= 0:
+                            names[id] = name
+                            nicknames[id] = nickname
+
+        return names, nicknames
