@@ -1,13 +1,19 @@
+import os
+import re
 import json
 
 from tqdm import tqdm
 from rich import print
 
 from Plugin_Scripts.PluginBase import PluginBase
+from Module_Folders.Configurator.Config import Configurator
+
 
 class GlossaryChecker(PluginBase):
 
-    def __init__(self):
+    ACTORS_PATH = "Actors.json"
+
+    def __init__(self) -> None:
         super().__init__()
 
         self.name = "GlossaryChecker"
@@ -20,13 +26,10 @@ class GlossaryChecker(PluginBase):
         self.visibility = True          # 是否在插件设置中显示
         self.default_enable = True      # 默认启用状态
 
-        self.add_event("manual_export", PluginBase.PRIORITY.LOWER)
-        self.add_event("postprocess_text", PluginBase.PRIORITY.LOWER)
+        self.add_event("manual_export", PluginBase.PRIORITY.LOW)
+        self.add_event("postprocess_text", PluginBase.PRIORITY.LOW)
 
-    def load(self):
-        pass
-
-    def on_event(self, event, configurator, data):
+    def on_event(self, event, configurator, data) -> None:
         # 检查数据有效性
         if event == None or len(event) <= 1:
             return
@@ -47,10 +50,13 @@ class GlossaryChecker(PluginBase):
             self.on_postprocess_text(event, configurator, data, items, project)
 
     # 文本后处理事件
-    def on_postprocess_text(self, event, configurator, data, items, project):
+    def on_postprocess_text(self, event: str, configurator: Configurator, data: dict, items: list[dict], project: list[dict]) -> None:
         print("")
         print("[GlossaryChecker] 开始执行后处理 ...")
         print("")
+
+        # 加载角色数据
+        names, nicknames = self.load_names(configurator)
 
         # 生成词典
         glossary = {}
@@ -63,13 +69,26 @@ class GlossaryChecker(PluginBase):
             source_text = item.get("source_text", "")
             translated_text = item.get("translated_text", "")
 
+            # 根据 actors 中的数据还原 角色代码 \N[123] 实际指向的名字
+            source_text = re.sub(
+                r"\\N\[(\d+)\]",
+                lambda match: self.do_replace(match, names),
+                source_text,
+                flags = re.IGNORECASE
+            )
+
+            # 根据 actors 中的数据还原 角色代码 \NN[123] 实际指向的名字
+            source_text = re.sub(
+                r"\\NN\[(\d+)\]",
+                lambda match: self.do_replace(match, nicknames),
+                source_text,
+                flags = re.IGNORECASE
+            )
+
             # 依次检查每一个词典条目
             for k, v in glossary.items():
                 if k in source_text and v not in translated_text:
-                    # 添加结果
-                    if result.get(f"{k} -> {v}") == None:
-                        result[f"{k} -> {v}"] = {}
-                    result[f"{k} -> {v}"][source_text] = translated_text
+                    result.setdefault(f"{k} -> {v}", {})[source_text] = translated_text
 
         # 写入文件
         result_path = f"{configurator.label_output_path}/glossary_checker_result.json"
@@ -81,3 +100,35 @@ class GlossaryChecker(PluginBase):
         print("[GlossaryChecker] 指令词典检查已完成 ...")
         print(f"[GlossaryChecker] 检查结果已写入 [green]{result_path}[/] 文件，请检查结果并进行手工修正 ...")
         print("")
+
+    # 执行替换
+    def do_replace(self, match: re.Match, names: dict) -> str:
+        i = int(match.group(1))
+
+        # 索引在范围内则替换，不在范围内则原文返回
+        if i in names:
+            return names.get(i, "")
+        else:
+            return match.group(0)
+
+    # 加载角色数据
+    def load_names(self, configurator: Configurator) -> tuple[dict, dict]:
+        names = {}
+        nicknames = {}
+
+        path = f"{configurator.label_input_path}/{self.ACTORS_PATH}"
+        if not os.path.exists(path):
+            pass
+        else:
+            with open(path, "r", encoding = "utf-8") as reader:
+                for item in json.load(reader):
+                    if isinstance(item, dict):
+                        id = item.get("id", -1)
+                        name = item.get("name", "")
+                        nickname = item.get("nickname", "")
+
+                        if id >= 0:
+                            names[id] = name
+                            nicknames[id] = nickname
+
+        return names, nicknames
