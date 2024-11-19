@@ -117,7 +117,11 @@ class TranslationPage(QWidget, Base):
         if data.get("start_time", None) != None:
             self.data["start_time"] = data.get("start_time")
 
-        total_time = int(time.time() - self.data.get("start_time", 0))
+        if self.data.get("start_time", 0) == 0:
+            total_time = 0
+        else:
+            total_time = int(time.time() - self.data.get("start_time", 0))
+
         if total_time < 60:
             self.time.set_unit("S")
             self.time.set_value(f"{total_time}")
