@@ -7,19 +7,21 @@ import concurrent.futures
 import rapidjson as json
 
 from Base.Base import Base
+from Base.PluginManager import PluginManager
+from Module_Folders.TranslatorTask import TranslatorTask
+from Module_Folders.Configurator.Config import Configurator
 from Module_Folders.File_Reader.File1 import File_Reader
 from Module_Folders.Cache_Manager.Cache import Cache_Manager
 from Module_Folders.File_Outputer.File2 import File_Outputter
 from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
-from Module_Folders.TranslatorTask import TranslatorTask
 
 # 翻译器
 class Translator(Base):
 
-    # 缓存文件保存周期
+    # 缓存文件保存周期（秒）
     CACHE_FILE_SAVE_INTERVAL = 8
 
-    def __init__(self, configurator, plugin_manager):
+    def __init__(self, configurator: Configurator, plugin_manager: PluginManager) -> None:
         super().__init__()
 
         # 初始化
@@ -43,16 +45,16 @@ class Translator(Base):
         threading.Thread(target = self.save_cache_file_tick).start()
 
     # 应用关闭事件
-    def app_shut_down(self, event: int, data: dict):
+    def app_shut_down(self, event: int, data: dict) -> None:
         self.configurator.status = Base.STATUS.STOPING
         self.save_cache_file_stop_flag = True
 
     # 翻译停止事件
-    def translation_stop(self, event: int, data: dict):
+    def translation_stop(self, event: int, data: dict) -> None:
         # 设置运行状态为停止中
         self.configurator.status = Base.STATUS.STOPING
 
-        def target():
+        def target() -> None:
             while True:
                 time.sleep(0.5)
                 if len([t for t in threading.enumerate() if "translator" in t.name]) == 0:
@@ -62,14 +64,14 @@ class Translator(Base):
         threading.Thread(target = target).start()
 
     # 翻译开始事件
-    def translation_start(self, event: int, data: dict):
+    def translation_start(self, event: int, data: dict) -> None:
         threading.Thread(
             target = self.translation_start_target,
             args = (data.get("translation_continue"),),
         ).start()
 
     # 翻译结果手动导出事件
-    def translation_manual_export(self, event: int, data: dict):
+    def translation_manual_export(self, event: int, data: dict) -> None:
         if not hasattr(self.configurator, "cache_list") or len(self.configurator.cache_list) == 0:
             return
 
@@ -91,33 +93,35 @@ class Translator(Base):
             self.configurator.label_input_path,
         )
 
-    # 翻译状态检查事件
-    def translation_continue_check(self, event: int, data: dict):
-        # 只有当翻译状态为 无任务 时才检查 继续翻译状态，其他情况直接返回 False
-        if not hasattr(self, "configurator") or self.configurator.status != Base.STATUS.IDLE:
-            self.emit(Base.EVENT.TRANSLATION_CONTINUE_CHECK_DONE, {
-                "translation_continue" : False,
-            })
-            return
+    # 翻译状态检查
+    def translation_continue_check_target(self) -> None:
+        # 等一下，等页面切换效果结束再执行，避免争抢 CPU 资源，导致 UI 卡顿
+        time.sleep(0.5)
 
-        # 开始检查 继续翻译状态
+        # 检查结果的默认值
         translation_continue = False
-        try:
-            config = self.load_config()
 
-            # 避免读取缓存时锁定文件从而影响缓存写入的任务
-            with self.cache_file_lock:
+        # 只有翻译器已完成初始化，并且翻译状态为 无任务 时才执行检查逻辑，其他情况直接返回默认值
+        if hasattr(self, "configurator") and self.configurator.status == Base.STATUS.IDLE:
+            try:
+                config = self.load_config()
                 cache = self.load_cache_file(f"{config.get("label_output_path", "")}/cache/AinieeCacheData.json")
 
-            translated_line = [v for v in cache if v.get("translation_status", -1) == 1]
-            untranslated_line = [v for v in cache if v.get("translation_status", -1) in (0, 2)]
-            translation_continue = len(translated_line) > 0 and len(untranslated_line) > 0
-        except Exception as e:
-            self.error("缓存文件读取失败 ...", e)
-        finally:
-            self.emit(Base.EVENT.TRANSLATION_CONTINUE_CHECK_DONE, {
-                "translation_continue" : translation_continue,
-            })
+                translated_line = [v for v in cache if v.get("translation_status", -1) == 1]
+                untranslated_line = [v for v in cache if v.get("translation_status", -1) in (0, 2)]
+                translation_continue = len(translated_line) > 0 and len(untranslated_line) > 0
+            except Exception as e:
+                self.error("缓存文件读取失败 ...", e)
+
+        self.emit(Base.EVENT.TRANSLATION_CONTINUE_CHECK_DONE, {
+            "translation_continue" : translation_continue,
+        })
+
+    # 翻译状态检查事件
+    def translation_continue_check(self, event: int, data: dict) -> None:
+        threading.Thread(
+            target = self.translation_continue_check_target
+        ).start()
 
     # 实际的翻译流程
     def translation_start_target(self, translation_continue):
@@ -130,44 +134,39 @@ class Translator(Base):
         # 配置线程数
         self.configurator.configure_thread_count(self.configurator.target_platform)
 
-        # 根据是否继续翻译载入项目数据
-        default_data = {
-            "start_time": time.time(),
-            "total_line": 0,
-            "line": 0,
-            "token": 0,
-            "total_completion_tokens": 0,
-            "time": 0,
-        }
-
-        if translation_continue:
-            # 读取文本
-            try:
-                self.configurator.cache_list = self.load_cache_file(f"{self.configurator.label_output_path}/cache/AinieeCacheData.json")
-            except Exception as e:
-                self.error("翻译项目数据载入失败 ... ", e)
-                return {}
-
-            # 初始化数据
-            if len(self.configurator.cache_list) == 0:
-                self.data = default_data
+        # 生成缓存列表
+        try:
+            if translation_continue == True:
+                self.configurator.cache_list = self.load_cache_file(
+                    f"{self.configurator.label_output_path}/cache/AinieeCacheData.json"
+                )
             else:
-                self.data = self.configurator.cache_list[0].get("data", {})
-                self.data["start_time"] = time.time() - self.data.get("time", 0)
-        else:
-            # 读取文本
-            try:
                 self.configurator.cache_list = File_Reader.read_files(
                     self,
                     self.configurator.translation_project,
                     self.configurator.label_input_path,
                 )
-            except Exception as e:
-                self.error("翻译项目数据载入失败 ... ", e)
-                return {}
+        except Exception as e:
+            self.error("翻译项目数据载入失败 ... ", e)
+            return {}
 
-            # 初始化数据
-            self.data = default_data
+        if len(self.configurator.cache_list) == 0:
+            self.error("翻译项目数据载入失败 ... ", Exception("len(self.configurator.cache_list) == 0"))
+            return {}
+
+        # 从头翻译时加载默认数据
+        if translation_continue == False:
+            self.data = {
+                "start_time": time.time(),
+                "total_line": 0,
+                "line": 0,
+                "token": 0,
+                "total_completion_tokens": 0,
+                "time": 0,
+            }
+        else:
+            self.data = self.configurator.cache_list[0].get("data", {})
+            self.data["start_time"] = time.time() - self.data.get("time", 0)
 
         # 更新翻译进度
         self.emit(Base.EVENT.TRANSLATION_UPDATE, self.data)
@@ -473,9 +472,10 @@ class Translator(Base):
     def load_cache_file(self, path):
         cache = []
 
-        if os.path.exists(path):
-            with open(path, "r", encoding = "utf-8") as reader:
-                cache = json.load(reader)
+        with self.cache_file_lock:
+            if os.path.exists(path):
+                with open(path, "r", encoding = "utf-8") as reader:
+                    cache = json.load(reader)
 
         return cache
 
