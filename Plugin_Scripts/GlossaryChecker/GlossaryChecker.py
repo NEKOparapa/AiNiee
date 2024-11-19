@@ -56,6 +56,8 @@ class GlossaryChecker(PluginBase):
         print("")
 
         # 根据是否为 RPGMaker MV/MZ 文本来决定是否启用 姓名还原 步骤
+        names = []
+        nicknames = []
         if any(re.search(r"\\n{1,2}\[\d+\]", v.get("source_text", ""), flags = re.IGNORECASE) for v in items):
             names, nicknames = self.load_names(f"{configurator.label_input_path}/{self.ACTORS_PATH}")
 
