@@ -4,6 +4,7 @@
 set ROOT=%~dp0
 
 @REM 启动应用
-python -W ignore AiNiee.py
+@REM python -W ignore AiNiee.py
+python AiNiee.py
 
 pause
