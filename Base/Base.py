@@ -1,5 +1,7 @@
 import os
+import threading
 import traceback
+from types import SimpleNamespace
 
 import rapidjson as json
 from rich import print
@@ -12,7 +14,7 @@ from Base.EventManager import EventManager
 class Base():
 
     # 事件列表
-    EVENT = type("GClass", (), {})()
+    EVENT = SimpleNamespace()
     EVENT.API_TEST_DONE = 100                       # API 测试完成
     EVENT.API_TEST_START = 101                      # API 测试开始
     EVENT.TRANSLATION_START = 210                   # 翻译开始
@@ -26,7 +28,7 @@ class Base():
     EVENT.APP_SHUT_DOWN = 1000                      # 应用关闭
 
     # 状态列表
-    STATUS = type("GClass", (), {})()
+    STATUS = SimpleNamespace()
     STATUS.IDLE = 100             # 无任务
     STATUS.API_TEST = 110         # 测试中
     STATUS.TRANSLATION = 120      # 翻译中
@@ -36,7 +38,7 @@ class Base():
     DEFAULT = {}
 
     # 默认配置填充模式
-    DEFAULT_FILL = type("GClass", (), {})()
+    DEFAULT_FILL = SimpleNamespace()
     DEFAULT_FILL.MODE_NORMAL = 10                               # 普通填充，只填充配置字典的直接字段
     DEFAULT_FILL.MODE_TRAVERSAL = 20                            # 遍历填充，遍历默认配置字典中所有子字典，填充所有不存在的值
     DEFAULT_FILL.SELECT_MODE = DEFAULT_FILL.MODE_TRAVERSAL      # 默认为遍历填充
@@ -44,8 +46,11 @@ class Base():
     # 配置文件路径
     CONFIG_PATH = "./Resource/config.json"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+
+        # 线程锁
+        self.config_file_lock = threading.Lock()
 
         # 获取事件管理器单例
         self.event_manager_singleton = EventManager()
@@ -74,7 +79,7 @@ class Base():
         print(f"[[red]WARNING[/]] {msg}")
 
     # Toast
-    def info_toast(self, title, content) -> None:
+    def info_toast(self, title: str, content: str) -> None:
         InfoBar.info(
             title = title,
             content = content,
@@ -86,7 +91,7 @@ class Base():
         )
 
     # Toast
-    def error_toast(self, title, content) -> None:
+    def error_toast(self, title: str, content: str) -> None:
         InfoBar.error(
             title = title,
             content = content,
@@ -98,7 +103,7 @@ class Base():
         )
 
     # Toast
-    def success_toast(self, title, content) -> None:
+    def success_toast(self, title: str, content: str) -> None:
         InfoBar.success(
             title = title,
             content = content,
@@ -110,7 +115,7 @@ class Base():
         )
 
     # Toast
-    def warning_toast(self, title, content) -> None:
+    def warning_toast(self, title: str, content: str) -> None:
         InfoBar.warning(
             title = title,
             content = content,
@@ -125,11 +130,12 @@ class Base():
     def load_config(self) -> dict:
         config = {}
 
-        if os.path.exists(self.CONFIG_PATH):
-            with open(self.CONFIG_PATH, "r", encoding = "utf-8") as reader:
-                config = json.load(reader)
-        else:
-            self.warning("配置文件不存在 ...")
+        with self.config_file_lock:
+            if os.path.exists(self.CONFIG_PATH):
+                with open(self.CONFIG_PATH, "r", encoding = "utf-8") as reader:
+                    config = json.load(reader)
+            else:
+                self.warning("配置文件不存在 ...")
 
         return config
 
@@ -138,9 +144,10 @@ class Base():
         old = {}
 
         # 读取配置文件
-        if os.path.exists(self.CONFIG_PATH):
-            with open(self.CONFIG_PATH, "r", encoding = "utf-8") as reader:
-                old = json.load(reader)
+        with self.config_file_lock:
+            if os.path.exists(self.CONFIG_PATH):
+                with open(self.CONFIG_PATH, "r", encoding = "utf-8") as reader:
+                    old = json.load(reader)
 
         # 对比新旧数据是否一致，一致则跳过后续步骤
         # 当字典中包含子字典或子列表时，使用 == 运算符仍然可以进行比较
@@ -156,8 +163,9 @@ class Base():
                 old[k] = new[k]
 
         # 写入配置文件
-        with open(self.CONFIG_PATH, "w", encoding = "utf-8") as writer:
-            writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
+        with self.config_file_lock:
+            with open(self.CONFIG_PATH, "w", encoding = "utf-8") as writer:
+                writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
 
         return old
 
@@ -181,19 +189,19 @@ class Base():
         return config
 
     # 触发事件
-    def emit(self, event: int, data: dict):
+    def emit(self, event: int, data: dict) -> None:
         EventManager.get_singleton().emit(event, data)
 
     # 订阅事件
-    def subscribe(self, event: int, hanlder: callable):
+    def subscribe(self, event: int, hanlder: callable) -> None:
         EventManager.get_singleton().subscribe(event, hanlder)
 
     # 取消订阅事件
-    def unsubscribe(self, event: int, hanlder: callable):
+    def unsubscribe(self, event: int, hanlder: callable) -> None:
         EventManager.get_singleton().unsubscribe(event, hanlder)
 
     # 检查是否为开发模式
-    def is_debug(self):
+    def is_debug(self) -> bool:
         if not hasattr(Base, "_is_debug"):
             Base._is_debug = os.path.exists("./debug.txt")
 
