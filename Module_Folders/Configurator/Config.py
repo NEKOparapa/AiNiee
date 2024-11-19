@@ -17,6 +17,7 @@ class Configurator(Base):
 
         # 初始化
         self.status = Base.STATUS.IDLE
+        self.cache_list = []
 
     # 读取配置文件
     def initialization_from_config_file(self):
@@ -27,12 +28,15 @@ class Configurator(Base):
         for key, value in config.items():
             setattr(self, key, value)
 
+        # 重置缓存列表
+        self.cache_list = []
+
     # 配置线程数
     def configure_thread_count(self, target_platform: str):
         if self.user_thread_counts > 0:
             self.actual_thread_counts = self.user_thread_counts
         else:
-            self.actual_thread_counts = self.auto_thread_count(self.target_platform)
+            self.actual_thread_counts = self.auto_thread_count(target_platform)
 
     # 配置翻译平台信息
     def configure_translation_platform(self, target_platform, model = None):
@@ -1116,96 +1120,3 @@ Third: Begin translating line by line from the original text, only translating {
             self.platforms.get(self.target_platform).get("presence_penalty"),
             self.platforms.get(self.target_platform).get("frequency_penalty"),
         )
-
-
-    # 更改翻译状态
-    def update_translation_status(self, status, translation_project, untranslated_text_line_count,split_count):
-
-        if status == "开始翻译":
-
-            self.translation_start_time = time.time()
-            self.translation_start_datetime = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
-            self.translation_project_text = translation_project
-            self.status_text = '正在翻译中'
-            self.untranslated_text_line_count = untranslated_text_line_count
-
-            # 重置其他参数
-            self.translated_text_line_count = 0 # 存储已经翻译文本总数
-            self.total_tokens_spent = 0  # 存储已经花费的tokens总数
-            self.total_tokens_successfully_completed = 0  # 存储成功补全的tokens数
-            self.translation_speed_line =  0 # 行速
-            self.translation_speed_token =  0 # tokens速
-            self.num_worker_threads = 0 # 存储并行任务数
-            self.progress = 0.0           # 存储翻译进度
-
-
-        elif status == "暂停翻译中":
-            self.status_text = '翻译暂停中'
-
-
-        elif status == "暂停已翻译":
-            self.status_text = '暂停已翻译'
-            self.translation_speed_line =  0 # 行速
-            self.translation_speed_token =  0 # tokens速
-
-        elif status == "取消翻译中":
-            self.status_text = '取消翻译中'
-
-        elif status == "翻译已取消":
-            self.status_text = '翻译已取消'
-            self.translation_speed_line =  0 # 行速
-            self.translation_speed_token =  0 # tokens速
-
-
-        elif status == "继续翻译":
-            # 重置其他参数
-            self.translated_text_line_count = 0 # 存储已经翻译文本总数
-            self.total_tokens_spent = 0  # 存储已经花费的tokens总数
-            self.total_tokens_successfully_completed = 0  # 存储成功补全的tokens数
-            self.translation_speed_line =  0 # 行速
-            self.translation_speed_token =  0 # tokens速
-            self.num_worker_threads = 0 # 存储并行任务数
-            self.progress = 0.0           # 存储翻译进度
-
-
-        elif status == "拆分翻译":
-            self.status_text = f'第{split_count}轮拆分翻译中'
-            self.translation_project_text = translation_project
-
-        elif status == "翻译完成":
-            self.status_text = '翻译已完成'
-            self.translation_speed_line =  0 # 行速
-            self.translation_speed_token =  0 # tokens速
-            self.num_worker_threads = 0 # 存储并行任务数
-
-    # 更新运行状态参数
-    def update_running_params(self, check_result, translated_line_count, prompt_tokens_used, completion_tokens_used):
-
-        #计算已经翻译的文本数
-        if check_result == 1:
-            # 更新已经翻译的文本数
-            self.translated_text_line_count = self.translated_text_line_count + translated_line_count
-            self.total_tokens_successfully_completed += completion_tokens_used
-
-        # 计算双速
-        elapsed_time_this_run = time.time() - self.translation_start_time
-        self.translation_speed_line =  self.total_tokens_successfully_completed / elapsed_time_this_run
-        self.translation_speed_token =  self.translated_text_line_count / elapsed_time_this_run
-
-        #计算tokens花销
-        self.total_tokens_spent = self.total_tokens_spent + prompt_tokens_used + completion_tokens_used
-
-        #计算进度条
-        result = self.translated_text_line_count / self.untranslated_text_line_count * 100
-        self.progress = int(round(result, 0))
-
-        # 获取当前所有存活的线程
-        alive_threads = threading.enumerate()
-        # 计算子线程数量
-        if (len(alive_threads) - 2) <= 0: # 减去主线程与一个子线程，和一个滞后线程
-            counts = 1
-        else:
-            counts = len(alive_threads) - 2
-
-        self.num_worker_threads = counts
-
