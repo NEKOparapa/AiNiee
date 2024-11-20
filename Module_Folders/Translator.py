@@ -57,7 +57,10 @@ class Translator(Base):
         def target() -> None:
             while True:
                 time.sleep(0.5)
-                if len([t for t in threading.enumerate() if "translator" in t.name]) == 0:
+                if self.translating == False:
+                    self.print(f"")
+                    self.info(f"翻译任务已停止 ...")
+                    self.print(f"")
                     self.emit(Base.EVENT.TRANSLATION_STOP_DONE, {})
                     break
 
@@ -124,7 +127,10 @@ class Translator(Base):
         ).start()
 
     # 实际的翻译流程
-    def translation_start_target(self, translation_continue):
+    def translation_start_target(self, translation_continue) -> None:
+        # 设置内部状态（用于判断翻译任务是否实际在执行）
+        self.translating = True
+
         # 设置翻译状态为正在翻译状态
         self.configurator.status = Base.STATUS.TRANSLATION
 
@@ -148,11 +154,11 @@ class Translator(Base):
                 )
         except Exception as e:
             self.error("翻译项目数据载入失败 ... ", e)
-            return {}
+            return None
 
         if len(self.configurator.cache_list) == 0:
             self.error("翻译项目数据载入失败 ... ", Exception("len(self.configurator.cache_list) == 0"))
-            return {}
+            return None
 
         # 从头翻译时加载默认数据
         if translation_continue == False:
@@ -190,7 +196,10 @@ class Translator(Base):
         for current_round in range(self.configurator.round_limit + 1):
             # 检测是否需要停止任务
             if self.configurator.status == Base.STATUS.STOPING:
-                return {}
+                # 循环次数比实际最大轮次要多一轮，当触发停止翻译的事件时，最后都会从这里退出任务
+                # 执行到这里说明停止任意的任务已经执行完毕，可以重置内部状态了
+                self.translating = False
+                return None
 
             # 开启混合翻译时，根据混合翻译的设置调整接口
             model = None
@@ -277,6 +286,9 @@ class Translator(Base):
 
         # 译后处理
         self.translation_post_process()
+
+        # 重置内部状态（正常完成翻译）
+        self.translating = False
 
         # 发送翻译停止完成的事件
         self.emit(Base.EVENT.TRANSLATION_STOP_DONE, {})
