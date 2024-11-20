@@ -10,14 +10,6 @@ from Module_Folders.Configurator.Config import Configurator
 
 class CodeSaver(PluginBase):
 
-    # 角色表文件路径
-    ACTORS_PATH = "Actors.json"
-
-    # 直接替换的 原文-译文 列表
-    REPLACE_PAIR = {
-        # "{self}": "あたし",
-    }
-
     # 用于英文的代码段规则
     CODE_PATTERN_EN = (
         r"\s*" + r"if\(.{0,10}[vs]\[\d+\].{0,10}\)" + r"\s*",           # if(!s[982]) if(v[982] >= 1)
@@ -113,12 +105,24 @@ class CodeSaver(PluginBase):
         if project.get("code_saver_processed", False) == True:
             return
 
-        print("")
+        print(f"")
         print("[CodeSaver] 开始执行预处理 ...")
-        print("")
+        print(f"")
 
-        # 加载角色数据
-        names, nicknames = self.load_names(configurator)
+        # 根据是否为 RPGMaker MV/MZ 文本来决定是否启用 姓名还原 步骤
+        names = []
+        nicknames = []
+        if any(re.search(r"\\n{1,2}\[\d+\]", v.get("source_text", ""), flags = re.IGNORECASE) for v in items):
+            print(f"[CodeSaver] 判断为 [green]RPGMaker MV/MZ[/] 游戏文本 ...")
+            names, nicknames = self.load_names(f"{configurator.label_input_path}/Actors.json")
+            if len(names) + len(nicknames) > 0:
+                print(f"[CodeSaver] [green]Actors.json[/] 文件加载成功，共加载 {len(names) + len(nicknames)} 条数据，稍后将执行 [green]姓名还原[/] 步骤 ...")
+                print(f"")
+            else:
+                print(f"[CodeSaver] 未在 [green]输入目录[/] 下找到 [green]Actors.json[/] 文件，将跳过 [green]姓名还原[/] 步骤 ...")
+                print(f"[CodeSaver] [green]姓名还原[/] 步骤可以显著提升质量，建议添加 [green]Actors.json[/] 后重新开始 ...")
+                print(f"[CodeSaver] [green]Actors.json[/] 文件一般可以在游戏目录的 [green]data[/] 或者 [green]www\\data[/] 文件夹内找到 ...")
+                print(f"")
 
         # 根据原文语言生成正则表达式
         if "英语" in configurator.source_language:
@@ -134,25 +138,8 @@ class CodeSaver(PluginBase):
             # 备份原文
             item["source_backup"] = item.get("source_text", "")
 
-            # 根据 actors 中的数据还原 角色代码 \N[123] 实际指向的名字
-            item["source_text"] = re.sub(
-                r"\\N\[(\d+)\]",
-                lambda match: self.do_replace(match, names),
-                item.get("source_text"),
-                flags = re.IGNORECASE
-            )
-
-            # 根据 actors 中的数据还原 角色代码 \NN[123] 实际指向的名字
-            item["source_text"] = re.sub(
-                r"\\NN\[(\d+)\]",
-                lambda match: self.do_replace(match, nicknames),
-                item.get("source_text"),
-                flags = re.IGNORECASE
-            )
-
-            # 替换其他字符
-            for k, v in self.REPLACE_PAIR.items():
-                item["source_text"] = item.get("source_text").replace(k, v)
+            # 还原角色代码
+            item["source_text"] = self.replace_name_code(item.get("source_text"), names, nicknames)
 
             # 查找与替换前缀代码段
             item["code_saver_prefix_codes"] = re.findall(prefix_pattern, item.get("source_text"), flags = re.IGNORECASE)
@@ -165,10 +152,6 @@ class CodeSaver(PluginBase):
             # 查找与替换主体代码段
             item["code_saver_codes"] = re.findall(pattern, item.get("source_text"), flags = re.IGNORECASE)
             item["source_text"] = re.sub(pattern, "↓↓", item.get("source_text"), flags = re.IGNORECASE)
-
-            # DEBUG
-            # print(f"prefix - {item.get("code_saver_prefix_codes")}") if len(item.get("code_saver_prefix_codes", [])) > 0 else None
-            # print(f"suffix - {item.get("code_saver_suffix_codes")}") if len(item.get("code_saver_suffix_codes", [])) > 0 else None
 
         # 设置处理标志
         project["code_saver_processed"] = True
@@ -237,15 +220,33 @@ class CodeSaver(PluginBase):
 
         print("")
         print(
-            f"[CodeSaver] 代码还原完成，"
+            f"[CodeSaver] 代码还原已完成，"
             + f"成功 [green]{success_count}[/] 条，"
             + f"失败 [green]{failure_count}[/] 条，"
             + f"成功率 [green]{(success_count / max(1, len(target_items)) * 100):.2f}[/] % ..."
-        )
-        print(
-            f"[CodeSaver] 检查结果已写入 [green]{result_path}[/] 文件，请检查结果并进行手工修正 ..."
+            + "\n"
+            + f"[CodeSaver] 检查结果已写入 [green]{result_path}[/] 文件，请检查结果并进行手工修正 ..."
         )
         print("")
+
+    # 加载角色数据
+    def load_names(self, path: str) -> tuple[dict, dict]:
+        names = {}
+        nicknames = {}
+
+        if os.path.exists(path):
+            with open(path, "r", encoding = "utf-8") as reader:
+                for item in json.load(reader):
+                    if isinstance(item, dict):
+                        id = item.get("id", -1)
+
+                        if not isinstance(id, int):
+                            continue
+
+                        names[id] = item.get("name", "")
+                        nicknames[id] = item.get("nickname", "")
+
+        return names, nicknames
 
     # 执行替换
     def do_replace(self, match: re.Match, names: dict) -> str:
@@ -257,27 +258,22 @@ class CodeSaver(PluginBase):
         else:
             return match.group(0)
 
-    # 加载角色数据
-    def load_names(self, configurator: Configurator) -> tuple[dict, dict]:
-        names = {}
-        nicknames = {}
+    # 还原角色代码
+    def replace_name_code(self, text: str, names: dict, nicknames: dict) -> str:
+        # 根据 actors 中的数据还原 角色代码 \N[123] 实际指向的名字
+        text = re.sub(
+            r"\\n\[(\d+)\]",
+            lambda match: self.do_replace(match, names),
+            text,
+            flags = re.IGNORECASE
+        )
 
-        path = f"{configurator.label_input_path}/{self.ACTORS_PATH}"
-        if not os.path.exists(path):
-            print(f"[CodeSaver] 在输入目录下未找到 [green]{self.ACTORS_PATH}[/] 文件，将跳过 [green]姓名还原[/] 步骤 ...")
-            print(f"[CodeSaver] [green]{self.ACTORS_PATH}[/] 文件一般可以在 [green]RPGMaker MV/MZ[/] 游戏的 [green]data[/] 或者 [green]www\data[/] 文件夹内找到 ...")
-            print(f"[CodeSaver] [green]姓名还原[/] 步骤可以显著提升翻译质量，如您正在翻译 [green]RPGMaker MV/MZ[/] 游戏，建议复制文件后重新开始翻译 ...")
-            print(f"")
-        else:
-            with open(path, "r", encoding = "utf-8") as reader:
-                for item in json.load(reader):
-                    if isinstance(item, dict):
-                        id = item.get("id", -1)
-                        name = item.get("name", "")
-                        nickname = item.get("nickname", "")
+        # 根据 actors 中的数据还原 角色代码 \NN[123] 实际指向的名字
+        text = re.sub(
+            r"\\nn\[(\d+)\]",
+            lambda match: self.do_replace(match, nicknames),
+            text,
+            flags = re.IGNORECASE
+        )
 
-                        if id >= 0:
-                            names[id] = name
-                            nicknames[id] = nickname
-
-        return names, nicknames
+        return text
