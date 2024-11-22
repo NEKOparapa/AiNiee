@@ -55,7 +55,7 @@ class GlossaryChecker(PluginBase):
         print("[GlossaryChecker] 开始执行后处理 ...")
         print("")
 
-        # 根据是否为 RPGMaker MV/MZ 文本来决定是否启用 姓名还原 步骤
+        # 根据是否为 RPGMaker MV/MZ 文本来决定是否启用 角色代码还原 步骤
         names = []
         nicknames = []
         if any(re.search(r"\\n{1,2}\[\d+\]", v.get("source_text", ""), flags = re.IGNORECASE) for v in items):
