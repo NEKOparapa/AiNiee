@@ -109,18 +109,18 @@ class CodeSaver(PluginBase):
         print("[CodeSaver] 开始执行预处理 ...")
         print(f"")
 
-        # 根据是否为 RPGMaker MV/MZ 文本来决定是否启用 姓名还原 步骤
+        # 根据是否为 RPGMaker MV/MZ 文本来决定是否启用 角色代码还原 步骤
         names = []
         nicknames = []
         if any(re.search(r"\\n{1,2}\[\d+\]", v.get("source_text", ""), flags = re.IGNORECASE) for v in items):
             print(f"[CodeSaver] 判断为 [green]RPGMaker MV/MZ[/] 游戏文本 ...")
             names, nicknames = self.load_names(f"{configurator.label_input_path}/Actors.json")
             if len(names) + len(nicknames) > 0:
-                print(f"[CodeSaver] [green]Actors.json[/] 文件加载成功，共加载 {len(names) + len(nicknames)} 条数据，稍后将执行 [green]姓名还原[/] 步骤 ...")
+                print(f"[CodeSaver] [green]Actors.json[/] 文件加载成功，共加载 {len(names) + len(nicknames)} 条数据，稍后将执行 [green]角色代码还原[/] 步骤 ...")
                 print(f"")
             else:
-                print(f"[CodeSaver] 未在 [green]输入目录[/] 下找到 [green]Actors.json[/] 文件，将跳过 [green]姓名还原[/] 步骤 ...")
-                print(f"[CodeSaver] [green]姓名还原[/] 步骤可以显著提升质量，建议添加 [green]Actors.json[/] 后重新开始 ...")
+                print(f"[CodeSaver] 未在 [green]输入目录[/] 下找到 [green]Actors.json[/] 文件，将跳过 [green]角色代码还原[/] 步骤 ...")
+                print(f"[CodeSaver] [green]角色代码还原[/] 步骤可以显著提升质量，建议添加 [green]Actors.json[/] 后重新开始 ...")
                 print(f"[CodeSaver] [green]Actors.json[/] 文件一般可以在游戏目录的 [green]data[/] 或者 [green]www\\data[/] 文件夹内找到 ...")
                 print(f"")
 

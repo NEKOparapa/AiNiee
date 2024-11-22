@@ -110,9 +110,11 @@ class Translator(Base):
                 config = self.load_config()
                 cache = self.load_cache_file(f"{config.get("label_output_path", "")}/cache/AinieeCacheData.json")
 
-                translated_line = [v for v in cache if v.get("translation_status", -1) == 1]
-                untranslated_line = [v for v in cache if v.get("translation_status", -1) in (0, 2)]
-                translation_continue = len(translated_line) > 0 and len(untranslated_line) > 0
+                # 如果同时包含 已翻译 和 未翻译 状态的条目，则说明这是一个尚未完成翻译任务
+                translation_continue = (
+                    any(v.get("translation_status", -1) == 1 for v in cache)
+                    and any(v.get("translation_status", -1) in (0, 2) for v in cache)
+                )
             except Exception as e:
                 self.error("缓存文件读取失败 ...", e)
 
@@ -152,12 +154,12 @@ class Translator(Base):
                     self.configurator.translation_project,
                     self.configurator.label_input_path,
                 )
+
+            # 检查数据是否为空
+            if len(self.configurator.cache_list) == 0:
+                raise Exception("len(self.configurator.cache_list) == 0")
         except Exception as e:
             self.error("翻译项目数据载入失败 ... ", e)
-            return None
-
-        if len(self.configurator.cache_list) == 0:
-            self.error("翻译项目数据载入失败 ... ", Exception("len(self.configurator.cache_list) == 0"))
             return None
 
         # 从头翻译时加载默认数据
