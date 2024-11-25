@@ -248,7 +248,7 @@ class TranslatorTask(Base):
         # 替换 前缀代码段 和 后缀代码段
         prefix_codes = []
         suffix_codes = []
-        if self.configurator.text_clear_toggle == True:
+        if self.configurator.preserve_prefix_and_suffix_codes == True:
             text_dict, prefix_codes, suffix_codes = self.replace_prefix_and_suffix_codes(text_dict, prefix_pattern, suffix_pattern)
 
         # 替换 换行符
@@ -264,7 +264,7 @@ class TranslatorTask(Base):
             text_dict = self.restore_line_breaks(text_dict)
 
         # 还原 前缀代码段 和 后缀代码段
-        if self.configurator.text_clear_toggle == True:
+        if self.configurator.preserve_prefix_and_suffix_codes == True:
             text_dict = self.restore_prefix_and_suffix_codes(text_dict, prefix_codes, suffix_codes)
 
         # 译后替换
