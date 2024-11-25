@@ -1,16 +1,21 @@
 from types import SimpleNamespace
 
+from Module_Folders.Configurator.Config import Configurator
+
+class Priority(SimpleNamespace):
+
+    HIGHEST    = 700
+    HIGHER     = 600
+    HIGH       = 500
+    NORMAL     = 400
+    LOW        = 300
+    LOWER      = 200
+    LOWEST     = 100
+
 class PluginBase:
 
-    # 优先级
-    PRIORITY = SimpleNamespace()
-    PRIORITY.HIGHEST    = 700
-    PRIORITY.HIGHER     = 600
-    PRIORITY.HIGH       = 500
-    PRIORITY.NORMAL     = 400
-    PRIORITY.LOW        = 300
-    PRIORITY.LOWER      = 200
-    PRIORITY.LOWEST     = 100
+    # 优先级列表
+    PRIORITY = Priority()
 
     def __init__(self) -> None:
         self.name = "Unnamed Plugin"
@@ -26,7 +31,7 @@ class PluginBase:
         pass
 
     # 处理事件
-    def on_event(self, event: str, configuration_information: dict, event_data: list) -> None:
+    def on_event(self, event: str, configuration_information: Configurator, event_data: any) -> None:
         pass
 
     # 添加事件

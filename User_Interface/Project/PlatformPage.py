@@ -123,9 +123,9 @@ class PlatformPage(QFrame, Base):
         # 载入配置文件
         config = self.load_config()
         platform = config.get("platforms").get(tag)
-        if self.configurator.status == Base.STATUS.IDLE:
+        if Base.work_status == Base.STATUS.IDLE:
             # 更新运行状态
-            self.configurator.status = Base.STATUS.API_TEST
+            Base.work_status = Base.STATUS.API_TEST
 
             # 创建事件参数
             data = copy.deepcopy(platform)
@@ -140,7 +140,7 @@ class PlatformPage(QFrame, Base):
     # 接口测试完成
     def api_test_done(self, event: int, data: dict):
         # 更新运行状态
-        self.configurator.status = Base.STATUS.IDLE
+        Base.work_status = Base.STATUS.IDLE
 
         if len(data.get("failure", [])) > 0:
             self.error_toast("", f"接口测试结果：成功 {len(data.get("success", []))} 个，失败 {len(data.get("failure", []))} 个 ...")

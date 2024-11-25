@@ -159,7 +159,7 @@ class BasicSettingsPage(QFrame, Base):
         parent.addWidget(
             SpinCard(
                 "每个翻译任务携带的参考上文行数",
-                "启用此功能在大部分情况下可以改善翻译结果，但是会少量降低翻译速度（不支持 Sakura v0.9 模型）",
+                "启用此功能在大部分情况下可以改善长句的翻译质量，但是会降低翻译速度",
                 init = init,
                 value_changed = value_changed,
             )

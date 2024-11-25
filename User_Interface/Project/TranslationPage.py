@@ -29,7 +29,7 @@ class TranslationPage(QWidget, Base):
     STATUS_TEXT = {
         Base.STATUS.IDLE: "无任务",
         Base.STATUS.API_TEST: "测试中",
-        Base.STATUS.TRANSLATION: "翻译中",
+        Base.STATUS.TRANSLATING: "翻译中",
         Base.STATUS.STOPING: "停止中",
     }
 
@@ -93,7 +93,7 @@ class TranslationPage(QWidget, Base):
 
     # 翻译更新事件
     def translation_update(self, event: int, data: dict) -> None:
-        if self.configurator.status in (Base.STATUS.STOPING, Base.STATUS.TRANSLATION):
+        if Base.work_status in (Base.STATUS.STOPING, Base.STATUS.TRANSLATING):
             self.update_time(event, data)
             self.update_line(event, data)
             self.update_token(event, data)
@@ -106,9 +106,10 @@ class TranslationPage(QWidget, Base):
         self.indeterminate_hide()
         self.action_play.setEnabled(True)
         self.action_stop.setEnabled(False)
+        self.action_export.setEnabled(False)
 
         # 设置翻译状态为无任务
-        self.configurator.status = Base.STATUS.IDLE
+        Base.work_status = Base.STATUS.IDLE
 
         # 更新继续翻译按钮状态
         self.emit(Base.EVENT.TRANSLATION_CONTINUE_CHECK, {})
@@ -116,7 +117,7 @@ class TranslationPage(QWidget, Base):
     # 翻译状态检查完成事件
     def translation_continue_check_done(self, event: int, data: dict) -> None:
         self.action_continue.setEnabled(
-            data.get("translation_continue", False) and self.action_play.isEnabled()
+            data.get("continue_status", False) and self.action_play.isEnabled()
         )
 
     # 更新时间
@@ -216,11 +217,11 @@ class TranslationPage(QWidget, Base):
 
     # 更新进度环
     def update_status(self, event: int, data: dict) -> None:
-        if self.configurator.status == Base.STATUS.STOPING:
+        if Base.work_status == Base.STATUS.STOPING:
             percent = self.data.get("line", 0) / max(1, self.data.get("total_line", 0))
             self.ring.setValue(int(percent * 10000))
             self.ring.setFormat(f"停止中\n{percent * 100:.2f}%")
-        elif self.configurator.status == Base.STATUS.TRANSLATION:
+        elif Base.work_status == Base.STATUS.TRANSLATING:
             percent = self.data.get("line", 0) / max(1, self.data.get("total_line", 0))
             self.ring.setValue(int(percent * 10000))
             self.ring.setFormat(f"翻译中\n{percent * 100:.2f}%")
@@ -403,7 +404,7 @@ class TranslationPage(QWidget, Base):
             self.action_stop.setEnabled(True)
             self.action_continue.setEnabled(False)
             self.emit(Base.EVENT.TRANSLATION_START, {
-                "translation_continue": False,
+                "continue_status": False,
             })
 
         self.action_play = parent.add_action(
@@ -435,8 +436,9 @@ class TranslationPage(QWidget, Base):
             self.action_play.setEnabled(False)
             self.action_stop.setEnabled(True)
             self.action_continue.setEnabled(False)
+            self.action_export.setEnabled(True)
             self.emit(Base.EVENT.TRANSLATION_START, {
-                "translation_continue": True,
+                "continue_status": True,
             })
 
         self.action_continue = parent.add_action(
@@ -447,11 +449,12 @@ class TranslationPage(QWidget, Base):
     def add_command_bar_action_export(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def triggered() -> None:
             self.emit(Base.EVENT.TRANSLATION_MANUAL_EXPORT, {})
-            self.success_toast("", "已将完成的翻译内容导出到输出文件夹 ...")
+            self.success_toast("", "已根据当前的翻译数据在输出文件夹下生成翻译文件 ...")
 
-        parent.add_action(
-            Action(FluentIcon.SHARE, "导出已完成的内容", parent, triggered = triggered),
+        self.action_export = parent.add_action(
+            Action(FluentIcon.SHARE, "导出翻译数据", parent, triggered = triggered),
         )
+        self.action_export.setEnabled(False)
 
     # 显示信息条
     def indeterminate_show(self, msg: str) -> None:

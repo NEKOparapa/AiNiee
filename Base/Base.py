@@ -11,57 +11,78 @@ from qfluentwidgets import InfoBarPosition
 
 from Base.EventManager import EventManager
 
+class Event(SimpleNamespace):
+
+    API_TEST_DONE = 100                             # API 测试完成
+    API_TEST_START = 101                            # API 测试开始
+    TRANSLATION_START = 210                         # 翻译开始
+    TRANSLATION_UPDATE = 220                        # 翻译状态更新
+    TRANSLATION_STOP = 230                          # 翻译停止
+    TRANSLATION_STOP_DONE = 231                     # 翻译停止完成
+    TRANSLATION_CONTINUE_CHECK = 240                # 继续翻译状态检查
+    TRANSLATION_CONTINUE_CHECK_DONE = 241           # 继续翻译状态检查完成
+    TRANSLATION_MANUAL_EXPORT = 250                 # 翻译结果手动导出
+    CACHE_FILE_AUTO_SAVE = 300                      # 缓存文件自动保存
+    APP_SHUT_DOWN = 1000                            # 应用关闭
+
+
+class Status(SimpleNamespace):
+
+    IDLE = 1000                                     # 无任务
+    API_TEST = 2000                                 # 测试中
+    TRANSLATING = 3000                              # 翻译中
+    STOPING = 4000                                  # 停止中
+
+class FillMode(SimpleNamespace):
+
+    NORMAL = 10                                     # 普通填充，只填充配置字典的直接字段
+    TRAVERSAL = 20                                  # 遍历填充，遍历默认配置字典中所有子字典，填充所有不存在的值
+
 class Base():
 
     # 事件列表
-    EVENT = SimpleNamespace()
-    EVENT.API_TEST_DONE = 100                       # API 测试完成
-    EVENT.API_TEST_START = 101                      # API 测试开始
-    EVENT.TRANSLATION_START = 210                   # 翻译开始
-    EVENT.TRANSLATION_UPDATE = 220                  # 翻译状态更新
-    EVENT.TRANSLATION_STOP = 230                    # 翻译停止
-    EVENT.TRANSLATION_STOP_DONE = 231               # 翻译停止完成
-    EVENT.TRANSLATION_CONTINUE_CHECK = 240          # 继续翻译状态检查
-    EVENT.TRANSLATION_CONTINUE_CHECK_DONE = 241     # 继续翻译状态检查完成
-    EVENT.TRANSLATION_MANUAL_EXPORT = 250           # 翻译结果手动导出
-    EVENT.CACHE_FILE_AUTO_SAVE = 300                # 缓存文件自动保存
-    EVENT.APP_SHUT_DOWN = 1000                      # 应用关闭
+    EVENT = Event()
 
     # 状态列表
-    STATUS = SimpleNamespace()
-    STATUS.IDLE = 100             # 无任务
-    STATUS.API_TEST = 110         # 测试中
-    STATUS.TRANSLATION = 120      # 翻译中
-    STATUS.STOPING = 130          # 停止中
+    STATUS = Status()
+
+    # 默认配置数据的填充模式
+    FILL_MODE = FillMode()
+    FILL_MODE.SELECT_MODE = FILL_MODE.TRAVERSAL     # 默认为遍历填充
 
     # 默认配置
     DEFAULT = {}
 
-    # 默认配置填充模式
-    DEFAULT_FILL = SimpleNamespace()
-    DEFAULT_FILL.MODE_NORMAL = 10                               # 普通填充，只填充配置字典的直接字段
-    DEFAULT_FILL.MODE_TRAVERSAL = 20                            # 遍历填充，遍历默认配置字典中所有子字典，填充所有不存在的值
-    DEFAULT_FILL.SELECT_MODE = DEFAULT_FILL.MODE_TRAVERSAL      # 默认为遍历填充
-
     # 配置文件路径
     CONFIG_PATH = "./Resource/config.json"
+
+    # 类线程锁
+    CONFIG_FILE_LOCK = threading.Lock()
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        # 线程锁
-        self.config_file_lock = threading.Lock()
+        # 类变量
+        Base.work_status = Base.work_status if hasattr(Base, "work_status") else Base.STATUS.IDLE
 
         # 获取事件管理器单例
         self.event_manager_singleton = EventManager()
 
         # 载入并保存默认配置
         if len(self.DEFAULT) > 0:
-            self.save_config(self.load_config_from_default(self.DEFAULT_FILL.SELECT_MODE))
+            self.save_config(self.load_config_from_default(self.FILL_MODE.SELECT_MODE))
 
     # PRINT
     def print(self, msg: str) -> None:
         print(msg)
+
+    # DEBUG
+    def debug(self, msg: str, e: Exception = None) -> None:
+        if self.is_debug() == True:
+            if e == None:
+                print(f"[[yellow]DEBUG[/]] {msg}")
+            else:
+                print(f"[[yellow]DEBUG[/]] {msg}\n{e}\n{("".join(traceback.format_exception(None, e, e.__traceback__))).strip()}")
 
     # INFO
     def info(self, msg: str) -> None:
@@ -130,7 +151,7 @@ class Base():
     def load_config(self) -> dict:
         config = {}
 
-        with self.config_file_lock:
+        with Base.CONFIG_FILE_LOCK:
             if os.path.exists(self.CONFIG_PATH):
                 with open(self.CONFIG_PATH, "r", encoding = "utf-8") as reader:
                     config = json.load(reader)
@@ -144,7 +165,7 @@ class Base():
         old = {}
 
         # 读取配置文件
-        with self.config_file_lock:
+        with Base.CONFIG_FILE_LOCK:
             if os.path.exists(self.CONFIG_PATH):
                 with open(self.CONFIG_PATH, "r", encoding = "utf-8") as reader:
                     old = json.load(reader)
@@ -163,7 +184,7 @@ class Base():
                 old[k] = new[k]
 
         # 写入配置文件
-        with self.config_file_lock:
+        with Base.CONFIG_FILE_LOCK:
             with open(self.CONFIG_PATH, "w", encoding = "utf-8") as writer:
                 writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
 
@@ -174,7 +195,7 @@ class Base():
         for k, v in new.items():
             if k not in old.keys():
                 old[k] = v
-            elif mode == self.DEFAULT_FILL.MODE_TRAVERSAL and type(old[k]) == dict and type(v) == dict:
+            elif mode == self.FILL_MODE.TRAVERSAL and type(old[k]) == dict and type(v) == dict:
                 self.fill_config(old[k], v, mode)
 
         return old
@@ -203,6 +224,6 @@ class Base():
     # 检查是否为开发模式
     def is_debug(self) -> bool:
         if not hasattr(Base, "_is_debug"):
-            Base._is_debug = os.path.exists("./debug.txt")
+            Base._is_debug = os.path.isfile("./debug.txt")
 
         return Base._is_debug
