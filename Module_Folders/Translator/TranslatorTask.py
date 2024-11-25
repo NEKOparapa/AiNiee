@@ -68,8 +68,8 @@ class TranslatorTask(Base):
         self.plugin_manager = plugin_manager
         self.request_limiter = request_limiter
 
-        # 根据原文语言生成正则表达式，只生成一次
-        if not hasattr(self, "code_pattern") and "英语" in configurator.source_language:
+        # 根据原文语言生成正则表达式
+        if "英语" in configurator.source_language:
             code_pattern = self.CODE_PATTERN_EN + self.CODE_PATTERN_COMMON
             self.prefix_pattern = re.compile(f"^(?:{"|".join(code_pattern)})+", flags = re.IGNORECASE)
             self.suffix_pattern = re.compile(f"(?:{"|".join(code_pattern)})+$", flags = re.IGNORECASE)
@@ -78,123 +78,128 @@ class TranslatorTask(Base):
             self.prefix_pattern = re.compile(f"^(?:{"|".join(code_pattern)})+", flags = re.IGNORECASE)
             self.suffix_pattern = re.compile(f"(?:{"|".join(code_pattern)})+$", flags = re.IGNORECASE)
 
-    # 并发接口请求分发
+    # 启动任务
     def start(self) -> dict:
-        i = 0
-        model_degradation = False
-        while i < self.configurator.retry_count_limit + 1:
-            # 记录任务开始的的时间
-            task_start_time = time.time()
+        return self.request(False)
 
-            while True:
-                # 检查是否超时，超时则直接跳过当前任务，以避免死循环
-                if time.time() - task_start_time >= self.configurator.request_timeout:
-                    return {}
+    # 请求
+    def request(self, degradation_flag: bool) -> dict:
+        # 任务开始的时间
+        task_start_time = time.time()
 
-                # 检测是否需要停止任务
-                if Base.work_status == Base.STATUS.STOPING:
-                    return {}
+        while True:
+            # 检测是否需要停止任务
+            if Base.work_status == Base.STATUS.STOPING:
+                return {}
 
-                # 检查 RPM 和 TPM 限制，如果符合条件，则继续
-                if self.request_limiter.RPM_and_TPM_limit(self.request_tokens_consume):
-                    break
+            # 检查是否超时，超时则直接跳过当前任务，以避免死循环
+            if time.time() - task_start_time >= self.configurator.request_timeout:
+                return {}
 
-                # 如果以上条件都不符合，则间隔 1 秒再次检查
-                time.sleep(1)
-
-            # 记录任务循环次数
-            i = i + 1
-
-            # 发起请求
-            requester = TranslatorRequester(self.configurator, self.plugin_manager)
-            skip, response_str, prompt_tokens, completion_tokens = requester.request(self.messages, self.system_prompt, model_degradation)
-
-            # 如果请求结果标记为 skip，即有错误发生，则跳过本次循环
-            if skip == True:
-                continue
-
-            # 提取回复内容
-            response_dict = Response_Parser.text_extraction(self, response_str)
-
-            # 检查回复内容
-            check_result, error_content = Response_Parser.check_response_content(
-                self,
-                self.configurator.reply_check_switch,
-                response_str,
-                response_dict,
-                self.source_text_dict,
-                self.configurator.source_language
-            )
-
-            # 判断结果是否通过检查
-            if check_result == False:
-                error = ""
-                if "退化" not in error_content or model_degradation == True:
-                    error = f"译文文本未通过检查，稍后将重试 - {error_content}"
-                else:
-                    i = i - 1 # 当检测到模型退化时，无论是否开启重试，均增加一次额外的重试次数，且仅增加一次
-                    model_degradation = True
-                    error = "译文文本中检查到模型退化现象，稍后将修改请求参数后重试"
-
-                # 打印任务结果
-                self.print(
-                    self.generate_log_table(
-                        *self.generate_log_rows(
-                            error,
-                            task_start_time,
-                            prompt_tokens,
-                            completion_tokens,
-                            [v for _, v in self.source_text_dict.items()],
-                            [v for _, v in response_dict.items()],
-                            self.extra_log
-                        )
-                    )
-                )
-            else:
-                # 各种还原步骤
-                # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
-                restore_response_dict = copy.copy(response_dict)
-                restore_response_dict = self.restore_all(restore_response_dict, self.prefix_codes, self.suffix_codes)
-
-                # 更新缓存数据
-                for item, response in zip(self.items, restore_response_dict.values()):
-                    item.set_model(self.configurator.model)
-                    item.set_translated_text(response)
-                    item.set_translation_status(CacheItem.STATUS.TRANSLATED)
-
-                # 打印任务结果
-                self.print(
-                    self.generate_log_table(
-                        *self.generate_log_rows(
-                            "",
-                            task_start_time,
-                            prompt_tokens,
-                            completion_tokens,
-                            [v for _, v in self.source_text_dict.items()],
-                            [v for _, v in response_dict.items()],
-                            self.extra_log
-                        )
-                    )
-                )
-
-                # 翻译任务执行成功则不再重试
+            # 检查 RPM 和 TPM 限制，如果符合条件，则继续
+            if self.request_limiter.RPM_and_TPM_limit(self.request_tokens_consume):
                 break
 
-        # 返回任务结果，如果 check_result 不存在，即请求发生错误，则按照失败处理
-        try:
-            check_result == True
-            return {
-                "check_result": check_result,
-                "row_count": self.row_count,
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-            }
-        except Exception:
+            # 如果以上条件都不符合，则间隔 1 秒再次检查
+            time.sleep(1)
+
+        # 发起请求
+        requester = TranslatorRequester(self.configurator, self.plugin_manager)
+        skip, response_str, prompt_tokens, completion_tokens = requester.request(self.messages, self.system_prompt, degradation_flag)
+
+        # 如果请求结果标记为 skip，即有错误发生，则跳过本次循环
+        if skip == True:
             return {
                 "check_result": False,
                 "row_count": 0,
                 "prompt_tokens": self.request_tokens_consume,
                 "completion_tokens": 0,
+            }
+
+        # 提取回复内容
+        response_dict = Response_Parser.text_extraction(self, response_str)
+
+        # 检查回复内容
+        check_result, error_content = Response_Parser.check_response_content(
+            self,
+            self.configurator.reply_check_switch,
+            response_str,
+            response_dict,
+            self.source_text_dict,
+            self.configurator.source_language
+        )
+
+        # 检查译文
+        retry_flag = False
+        if check_result == False:
+            # 如果检查到模型退化，且不是第一次请求
+            if "退化" in error_content and degradation_flag == False:
+                error = f"译文文本中检查到模型退化现象，正在重试"
+                retry_flag = True
+            # 如果检查到模型退化，且是第一次请求，则再次请求
+            elif "退化" in error_content and degradation_flag == True:
+                error = f"译文文本中检查到模型退化现象，将在下一轮次的翻译中重新翻译"
+            else:
+                error = f"译文文本未通过检查，将在下一轮次的翻译中重新翻译 - {error_content}"
+
+            # 打印任务结果
+            self.print(
+                self.generate_log_table(
+                    *self.generate_log_rows(
+                        error,
+                        task_start_time,
+                        prompt_tokens,
+                        completion_tokens,
+                        [v for _, v in self.source_text_dict.items()],
+                        [v for _, v in response_dict.items()],
+                        self.extra_log
+                    )
+                )
+            )
+        else:
+            # 各种还原步骤
+            # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
+            restore_response_dict = copy.copy(response_dict)
+            restore_response_dict = self.restore_all(restore_response_dict, self.prefix_codes, self.suffix_codes)
+
+            # 更新缓存数据
+            for item, response in zip(self.items, restore_response_dict.values()):
+                item.set_model(self.configurator.model)
+                item.set_translated_text(response)
+                item.set_translation_status(CacheItem.STATUS.TRANSLATED)
+
+            # 打印任务结果
+            self.print(
+                self.generate_log_table(
+                    *self.generate_log_rows(
+                        "",
+                        task_start_time,
+                        prompt_tokens,
+                        completion_tokens,
+                        [v for _, v in self.source_text_dict.items()],
+                        [v for _, v in response_dict.items()],
+                        self.extra_log
+                    )
+                )
+            )
+
+        # 检查到退化且没有重试过时，重试
+        # 否则返回译文检查的结果
+        if retry_flag == True:
+            return self.request(True)
+        elif check_result == False:
+            return {
+                "check_result": False,
+                "row_count": 0,
+                "prompt_tokens": self.request_tokens_consume,
+                "completion_tokens": 0,
+            }
+        else:
+            return {
+                "check_result": check_result,
+                "row_count": self.row_count,
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
             }
 
     # 设置缓存数据
