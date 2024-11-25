@@ -31,8 +31,8 @@ class CharacterizationPromptPage(QFrame, Base):
     }
 
     # 设置默认值填充模式为普通模式
-    DEFAULT_FILL = Base.DEFAULT_FILL
-    DEFAULT_FILL.SELECT_MODE = DEFAULT_FILL.MODE_NORMAL
+    FILL_MODE = Base.FILL_MODE
+    FILL_MODE.SELECT_MODE = FILL_MODE.NORMAL
 
     def __init__(self, text: str, window):
         super().__init__(window)

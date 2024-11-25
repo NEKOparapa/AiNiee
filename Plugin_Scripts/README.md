@@ -182,7 +182,7 @@ class Example_Plugin(PluginBase):
         self.pre_line_counts = 0 # 上文行数
         self.cot_toggle = False # 思维链开关
         self.cn_prompt_toggle = False # 中文提示词开关
-        self.text_clear_toggle = False # 清除首尾非文本字符开关
+        self.preserve_prefix_and_suffix_codes = False # 清除首尾非文本字符开关
         self.preserve_line_breaks_toggle = False # 换行替换翻译开关
         self.response_conversion_toggle = False #中文字形转换开关
         self.round_limit = 6 # 拆分翻译轮次限制

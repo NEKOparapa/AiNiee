@@ -19,7 +19,7 @@ class AdvanceSettingsPage(QFrame, Base):
         "cot_toggle": False,
         "cn_prompt_toggle": True,
         "preserve_line_breaks_toggle": True,
-        "text_clear_toggle": True,
+        "preserve_prefix_and_suffix_codes": True,
         "response_conversion_toggle": False,
         "opencc_preset": "s2t",
         "reply_check_switch": {
@@ -113,20 +113,20 @@ class AdvanceSettingsPage(QFrame, Base):
             )
         )
 
-    # 保留首尾非文本字符
+    # 保留首尾代码段
     def add_widget_04(self, parent, config):
         def widget_init(widget):
-            widget.set_checked(config.get("text_clear_toggle"))
+            widget.set_checked(config.get("preserve_prefix_and_suffix_codes"))
 
         def widget_callback(widget, checked: bool):
             config = self.load_config()
-            config["text_clear_toggle"] = checked
+            config["preserve_prefix_and_suffix_codes"] = checked
             self.save_config(config)
 
         parent.addWidget(
             SwitchButtonCard(
-                "保留首尾非文本字符",
-                "启用此功能后将尝试保留每个句子首尾的非文本字符（仅当源语言为日文时生效）",
+                "保留首尾代码段",
+                "启用此功能后将尝试保留每个句子首尾的代码段",
                 widget_init,
                 widget_callback,
             )

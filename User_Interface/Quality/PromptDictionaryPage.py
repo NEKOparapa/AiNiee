@@ -31,8 +31,8 @@ class PromptDictionaryPage(QFrame, Base):
     }
 
     # 设置默认值填充模式为普通模式
-    DEFAULT_FILL = Base.DEFAULT_FILL
-    DEFAULT_FILL.SELECT_MODE = DEFAULT_FILL.MODE_NORMAL
+    FILL_MODE = Base.FILL_MODE
+    FILL_MODE.SELECT_MODE = FILL_MODE.NORMAL
 
     def __init__(self, text: str, window):
         super().__init__(window)
@@ -64,7 +64,7 @@ class PromptDictionaryPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 "指令词典",
-                "通过构建词典指令来引导模型翻译，可实现统一翻译、矫正人称属性等功能 (不支持 Sakura v0.9 模型)",
+                "通过构建词典指令来引导模型翻译，可实现统一翻译、矫正人称属性等功能",
                 widget_init,
                 widget_callback,
             )

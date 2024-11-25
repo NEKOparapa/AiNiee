@@ -1,23 +1,14 @@
 import os
 import re
-import time
 import json
-import datetime
-import threading
-import multiprocessing
 import urllib.request
 
-from rich import print
 from Base.Base import Base
 
 class Configurator(Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        # 初始化
-        self.status = Base.STATUS.IDLE
-        self.cache_list = []
 
     # 读取配置文件
     def initialization_from_config_file(self):
@@ -27,9 +18,6 @@ class Configurator(Base):
         # 将字典中的每一项赋值到类中的同名属性
         for key, value in config.items():
             setattr(self, key, value)
-
-        # 重置缓存列表
-        self.cache_list = []
 
     # 配置线程数
     def configure_thread_count(self, target_platform: str):
@@ -105,7 +93,7 @@ class Configurator(Base):
             num = self.get_llama_cpp_slots_num(self.platforms.get(target_platform).get("api_url"))
 
         if num <= 0:
-            self.info(f"无法自动获取最大任务数量，已自动设置为 4 ...")
+            self.info("无法自动获取最大任务数量，已自动设置为 4 ...")
             return 4
         else:
             self.info(f"已根据 llama.cpp 接口信息自动设置最大任务数量为 {num} ...")
@@ -1047,76 +1035,3 @@ Third: Begin translating line by line from the original text, only translating {
             the_profile = profile
 
         return the_profile
-
-
-    # 原文文本替换函数
-    def replace_before_translation(self,dict):
-
-        data = self.pre_translation_content
-
-        # 将表格数据存储到中间字典中
-        dictionary = {}
-        for key, value in data.items():
-            key= key.replace('\\n', '\n').replace('\\r', '\r')  #现在只能针对替换，并不能将\\替换为\
-            value= value.replace('\\n', '\n').replace('\\r', '\r')
-            dictionary[key] = value
-
-        #详细版，增加可读性，但遍历整个文本，内存占用较大，当文本较大时，会报错
-        temp_dict = {}     #存储文本替换后的中文本内容
-        for key_a, value_a in dict.items():
-            for key_b, value_b in dictionary.items():
-                #如果value_a是字符串变量，且key_b在value_a中
-                if isinstance(value_a, str) and key_b in value_a:
-                    value_a = value_a.replace(key_b, value_b)
-            temp_dict[key_a] = value_a
-
-
-        return temp_dict
-
-
-    # 译文修正字典函数
-    def replace_after_translation(self,dict):
-
-        data = self.post_translation_content
-
-        # 将表格数据存储到中间字典中
-        dictionary = {}
-        for key, value in data.items():
-            key= key.replace('\\n', '\n').replace('\\r', '\r')  #现在只能针对替换，并不能将\\替换为\
-            value= value.replace('\\n', '\n').replace('\\r', '\r')
-            dictionary[key] = value
-
-        #详细版，增加可读性，但遍历整个文本，内存占用较大，当文本较大时，会报错
-        temp_dict = {}     #存储文本替换后的中文本内容
-        for key_a, value_a in dict.items():
-            for key_b, value_b in dictionary.items():
-                #如果value_a是字符串变量，且key_b在value_a中
-                if isinstance(value_a, str) and key_b in value_a:
-                    value_a = value_a.replace(key_b, value_b)
-            temp_dict[key_a] = value_a
-
-
-        return temp_dict
-
-
-    # 轮询获取key列表里的key
-    def get_apikey(self):
-        # 如果密钥各位为 0，则直接返回固定密钥，以防止越界
-        # 如果密钥个数为 1，或者索引值已达到最大长度，则重置索引值，否则切换到下一个密钥
-        if len(self.apikey_list) == 0:
-            return "no_key_required"
-        elif len(self.apikey_list) == 1 or self.apikey_index >= len(self.apikey_list) - 1:
-            self.apikey_index = 0
-            return self.apikey_list[self.apikey_index]
-        else:
-            self.apikey_index = self.apikey_index + 1
-            return self.apikey_list[self.apikey_index]
-
-    # 获取接口的请求参数
-    def get_platform_request_args(self):
-        return (
-            self.platforms.get(self.target_platform).get("temperature"),
-            self.platforms.get(self.target_platform).get("top_p"),
-            self.platforms.get(self.target_platform).get("presence_penalty"),
-            self.platforms.get(self.target_platform).get("frequency_penalty"),
-        )

@@ -90,7 +90,7 @@ class CodeSaver(PluginBase):
             return
 
         # 关闭内置的 保留句内换行符、保留首位非文本字符 功能
-        configurator.text_clear_toggle = False
+        configurator.preserve_prefix_and_suffix_codes = False
         configurator.preserve_line_breaks_toggle = False
 
         if event == "preproces_text":
