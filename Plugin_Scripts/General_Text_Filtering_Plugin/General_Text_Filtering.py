@@ -72,7 +72,7 @@ class General_Text_Filtering(PluginBase):
 
 
                 # 同上
-                if isinstance(source_text, str) and any(source_text.lower().endswith(ext) for ext in ['.txt', '.wav']):
+                if isinstance(source_text, str) and any(source_text.lower().endswith(ext) for ext in ['.txt', '.wav', '.webp']):
                     entry['translation_status'] = 7
                     continue
 
