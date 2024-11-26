@@ -402,6 +402,7 @@ class TranslationPage(QWidget, Base):
 
             self.action_play.setEnabled(False)
             self.action_stop.setEnabled(True)
+            self.action_export.setEnabled(True)
             self.action_continue.setEnabled(False)
             self.emit(Base.EVENT.TRANSLATION_START, {
                 "continue_status": False,
@@ -423,6 +424,7 @@ class TranslationPage(QWidget, Base):
                 self.indeterminate_show("正在停止翻译任务 ...")
 
                 self.action_stop.setEnabled(False)
+                self.action_export.setEnabled(False)
                 self.emit(Base.EVENT.TRANSLATION_STOP, {})
 
         self.action_stop = parent.add_action(
@@ -435,8 +437,8 @@ class TranslationPage(QWidget, Base):
         def triggered() -> None:
             self.action_play.setEnabled(False)
             self.action_stop.setEnabled(True)
-            self.action_continue.setEnabled(False)
             self.action_export.setEnabled(True)
+            self.action_continue.setEnabled(False)
             self.emit(Base.EVENT.TRANSLATION_START, {
                 "continue_status": True,
             })
