@@ -76,7 +76,7 @@ class CodeSaver(PluginBase):
         self.add_event("preproces_text", PluginBase.PRIORITY.NORMAL)
         self.add_event("postprocess_text", PluginBase.PRIORITY.NORMAL)
 
-    def on_event(self, event: str, configurator: Configurator, data: dict) -> None:
+    def on_event(self, event: str, configurator: Configurator, data: list[dict]) -> None:
         # 检查数据有效性
         if event == None or len(event) <= 1:
             return
@@ -100,7 +100,7 @@ class CodeSaver(PluginBase):
             self.on_postprocess_text(event, configurator, data, items, project)
 
     # 文本预处理事件
-    def on_preproces_text(self, event: str, configurator: Configurator, data: dict, items: list[dict], project: list[dict]) -> None:
+    def on_preproces_text(self, event: str, configurator: Configurator, data: list[dict], items: list[dict], project: dict) -> None:
         # 检查数据是否已经被插件处理过
         if project.get("code_saver_processed", False) == True:
             return
@@ -157,7 +157,7 @@ class CodeSaver(PluginBase):
         project["code_saver_processed"] = True
 
     # 文本后处理事件
-    def on_postprocess_text(self, event: str, configurator: Configurator, data: dict, items: list[dict], project: list[dict]) -> None:
+    def on_postprocess_text(self, event: str, configurator: Configurator, data: list[dict], items: list[dict], project: dict) -> None:
         # 检查数据是否已经被插件处理过
         if project.get("code_saver_processed", False) == False:
             return

@@ -8,7 +8,6 @@ from rich import print
 from Plugin_Scripts.PluginBase import PluginBase
 from Module_Folders.Configurator.Config import Configurator
 
-
 class GlossaryChecker(PluginBase):
 
     ACTORS_PATH = "Actors.json"
@@ -29,7 +28,7 @@ class GlossaryChecker(PluginBase):
         self.add_event("manual_export", PluginBase.PRIORITY.LOW)
         self.add_event("postprocess_text", PluginBase.PRIORITY.LOW)
 
-    def on_event(self, event, configurator, data) -> None:
+    def on_event(self, event: str, configurator: Configurator, data: list[dict]) -> None:
         # 检查数据有效性
         if event == None or len(event) <= 1:
             return
@@ -50,7 +49,7 @@ class GlossaryChecker(PluginBase):
             self.on_postprocess_text(event, configurator, data, items, project)
 
     # 文本后处理事件
-    def on_postprocess_text(self, event: str, configurator: Configurator, data: dict, items: list[dict], project: list[dict]) -> None:
+    def on_postprocess_text(self, event: str, configurator: Configurator, data: list[dict], items: list[dict], project: dict) -> None:
         print("")
         print("[GlossaryChecker] 开始执行后处理 ...")
         print("")

@@ -2,13 +2,14 @@ from tqdm import tqdm
 from rich import print
 
 from Plugin_Scripts.PluginBase import PluginBase
+from Module_Folders.Configurator.Config import Configurator
 
 class MToolOptimizer(PluginBase):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.name = "MToolOptimizer"
 
+        self.name = "MToolOptimizer"
         self.description = (
             "MTool 优化器，优化翻译流程，提升翻译质量，减少 Token 消耗，至多可提升 40% 的翻译速度"
             + "\n" + "兼容性：仅支持 英文、日文、韩文；支持全部模型；仅支持 MTool 文本；"
@@ -21,10 +22,7 @@ class MToolOptimizer(PluginBase):
         self.add_event("preproces_text", PluginBase.PRIORITY.NORMAL)
         self.add_event("postprocess_text", PluginBase.PRIORITY.NORMAL)
 
-    def load(self):
-        pass
-
-    def on_event(self, event, configurator, data):
+    def on_event(self, event: str, configurator: Configurator, data: list[dict]) -> None:
         # 检查数据有效性
         if event == None or len(event) <= 1:
             return
@@ -42,13 +40,13 @@ class MToolOptimizer(PluginBase):
             return
 
         if event == "preproces_text":
-            self.on_preproces_text(items, project, event, configurator, data)
+            self.on_preproces_text(event, configurator, data, items, project)
 
         if event in ("manual_export", "postprocess_text"):
-            self.on_postprocess_text(items, project, event, configurator, data)
+            self.on_postprocess_text(event, configurator, data, items, project)
 
     # 文本预处理事件
-    def on_preproces_text(self, items, project, event, configurator, data):
+    def on_preproces_text(self, event: str, configurator: Configurator, data: list[dict], items: list[dict], project: dict) -> None:
         # 检查数据是否已经被插件处理过
         if project.get("mtool_optimizer_processed", False) == True:
             return
@@ -85,7 +83,7 @@ class MToolOptimizer(PluginBase):
         project["mtool_optimizer_processed"] = True
 
     # 文本后处理事件
-    def on_postprocess_text(self, items, project, event, configurator, data):
+    def on_postprocess_text(self, event: str, configurator: Configurator, data: list[dict], items: list[dict], project: dict) -> None:
         # 检查数据是否已经被插件处理过
         if project.get("mtool_optimizer_processed", False) == False:
             return
@@ -106,11 +104,11 @@ class MToolOptimizer(PluginBase):
         print("")
 
     # 按长度切割字符串
-    def split_string_by_length(self, string, length):
+    def split_string_by_length(self, string: str, length: int) -> list[str]:
         return [string[i:i+length] for i in range(0, len(string), length)]
 
     # 生成短句
-    def generate_short_sentence(self, items, data, language):
+    def generate_short_sentence(self, items, data, language) -> set[str]:
         # 记录实际处理的条目
         seen = set()
 
