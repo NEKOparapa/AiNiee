@@ -1,9 +1,8 @@
 *__pycache__
 
-/input
-/output
-/*词典.json
+/input*
+/output*
+/*词典*.json
+/*实体*.json
 /*debug*.txt
-/*_ainiee.json
-/*profile.json
 /Resource/config.json
