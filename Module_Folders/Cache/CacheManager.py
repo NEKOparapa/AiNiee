@@ -142,12 +142,6 @@ class CacheManager(Base):
             any(v.get_translation_status() == CacheItem.STATUS.UNTRANSLATED for v in self.items)
         )
 
-    # 执行简繁转换
-    def convert_simplified_and_traditional(self, preset: str) -> None:
-        converter = opencc.OpenCC(preset)
-        for item in [item for item in self.items if item.get_translation_status() == CacheItem.STATUS.TRANSLATED]:
-            item.set_translated_text(converter.convert(item.get_translated_text()))
-
     # 生成上文数据条目片段
     def generate_previous_chunks(self, start_item: CacheItem, previous_line_count: int) -> list[CacheItem]:
         result = []

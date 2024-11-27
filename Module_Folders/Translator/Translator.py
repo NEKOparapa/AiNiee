@@ -2,6 +2,7 @@ import time
 import threading
 import concurrent.futures
 
+import opencc
 from tqdm import tqdm
 
 from Base.Base import Base
@@ -72,12 +73,21 @@ class Translator(Base):
             return None
 
         # 触发手动导出插件事件
-        self.plugin_manager.broadcast_event("manual_export", self.config, self.cache_manager.to_list())
+        # 先转换为列表，再交给插件进行处理（兼容旧版接口）
+        cache_list = self.cache_manager.to_list()
+        self.plugin_manager.broadcast_event("manual_export", self.config, cache_list)
+
+        # 如果开启了转换简繁开关功能，则进行文本转换
+        if self.config.response_conversion_toggle:
+            cache_list = self.convert_simplified_and_traditional(self.config.opencc_preset, cache_list)
+            self.print("")
+            self.info(f"已启动自动简繁转换功能，正在使用 {self.config.opencc_preset} 配置进行字形转换 ...")
+            self.print("")
 
         # 写入文件
         File_Outputter.output_translated_content(
             self,
-            self.cache_manager.to_list(),
+            cache_list,
             self.config.label_output_path,
             self.config.label_input_path,
         )
@@ -263,22 +273,21 @@ class Translator(Base):
         time.sleep(CacheManager.SAVE_INTERVAL)
 
         # 触发插件事件
-        # 先转换为列表，在事件结束后再转换回来（兼容旧版接口）
+        # 先转换为列表，再交给插件进行处理（兼容旧版接口）
         cache_list = self.cache_manager.to_list()
         self.plugin_manager.broadcast_event("postprocess_text", self.config, cache_list)
-        self.cache_manager.load_from_list(cache_list)
 
         # 如果开启了转换简繁开关功能，则进行文本转换
         if self.config.response_conversion_toggle:
-            self.cache_manager.convert_simplified_and_traditional(self.config.opencc_preset)
+            cache_list = self.convert_simplified_and_traditional(self.config.opencc_preset, cache_list)
             self.print("")
             self.info(f"已启动自动简繁转换功能，正在使用 {self.config.opencc_preset} 配置进行字形转换 ...")
             self.print("")
 
-        # 将翻译结果写为对应文件
+        # 写入文件
         File_Outputter.output_translated_content(
             self,
-            self.cache_manager.to_list(),
+            cache_list,
             self.config.label_output_path,
             self.config.label_input_path,
         )
@@ -312,6 +321,15 @@ class Translator(Base):
                 model = self.config.mix_translation_settings.get("model_type_3")
 
         return split, model, target_platform
+
+    # 执行简繁转换
+    def convert_simplified_and_traditional(self, preset: str, cache_list: list[dict]) -> list[dict]:
+        converter = opencc.OpenCC(preset)
+
+        for item in [item for item in cache_list if item.get("translation_status") == CacheItem.STATUS.TRANSLATED]:
+            item["translated_text"] = converter.convert(item.get("translated_text"))
+
+        return cache_list
 
     # 翻译任务完成时
     def task_done_callback(self, future: concurrent.futures.Future) -> None:
