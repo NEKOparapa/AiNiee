@@ -9,8 +9,23 @@ from Base.Base import Base
 # 接口请求器
 class TranslatorConfig(Base):
 
+    # 打印时的类型过滤器
+    TYPE_FILTER = (int, str, bool, float, list, dict, tuple)
+
     def __init__(self) -> None:
         super().__init__()
+
+    def __repr__(self) -> str:
+        return (
+            f"{type(self).__name__}({self.get_vars()})"
+        )
+
+    def get_vars(self) -> dict:
+        return {
+            k:v
+            for k, v in vars(self).items()
+            if isinstance(v, __class__.TYPE_FILTER)
+        }
 
     # 初始化
     def initialize(self) -> None:
