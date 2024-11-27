@@ -75,14 +75,12 @@ class PlatformPage(QFrame, Base):
 
     DEFAULT = {}
 
-    def __init__(self, text: str, window, configurator, background_executor = None):
+    def __init__(self, text: str, window):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
         # 全局变量
         self.window = window
-        self.configurator = configurator
-        self.background_executor = background_executor
 
         # 加载并更新预设配置
         self.load_preset()

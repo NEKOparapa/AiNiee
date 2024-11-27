@@ -6,7 +6,7 @@ from tqdm import tqdm
 from rich import print
 
 from Plugin_Scripts.PluginBase import PluginBase
-from Module_Folders.Configurator.Config import Configurator
+from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
 
 class GlossaryChecker(PluginBase):
 
@@ -28,7 +28,7 @@ class GlossaryChecker(PluginBase):
         self.add_event("manual_export", PluginBase.PRIORITY.LOW)
         self.add_event("postprocess_text", PluginBase.PRIORITY.LOW)
 
-    def on_event(self, event: str, configurator: Configurator, data: list[dict]) -> None:
+    def on_event(self, event: str, config: TranslatorConfig, data: list[dict]) -> None:
         # 检查数据有效性
         if event == None or len(event) <= 1:
             return
@@ -39,17 +39,17 @@ class GlossaryChecker(PluginBase):
 
         # 如果指令词典未启用或者无内容，则跳过
         if (
-            configurator.prompt_dictionary_switch == False
-            or configurator.prompt_dictionary_content == None
-            or len(configurator.prompt_dictionary_content) == 0
+            config.prompt_dictionary_switch == False
+            or config.prompt_dictionary_content == None
+            or len(config.prompt_dictionary_content) == 0
         ):
             return
 
         if event in ("manual_export", "postprocess_text"):
-            self.on_postprocess_text(event, configurator, data, items, project)
+            self.on_postprocess_text(event, config, data, items, project)
 
     # 文本后处理事件
-    def on_postprocess_text(self, event: str, configurator: Configurator, data: list[dict], items: list[dict], project: dict) -> None:
+    def on_postprocess_text(self, event: str, config: TranslatorConfig, data: list[dict], items: list[dict], project: dict) -> None:
         print("")
         print("[GlossaryChecker] 开始执行后处理 ...")
         print("")
@@ -58,11 +58,11 @@ class GlossaryChecker(PluginBase):
         names = []
         nicknames = []
         if any(re.search(r"\\n{1,2}\[\d+\]", v.get("source_text", ""), flags = re.IGNORECASE) for v in items):
-            names, nicknames = self.load_names(f"{configurator.label_input_path}/{self.ACTORS_PATH}")
+            names, nicknames = self.load_names(f"{config.label_input_path}/{self.ACTORS_PATH}")
 
         # 生成词典
         glossary = {}
-        for k, v in configurator.prompt_dictionary_content.items():
+        for k, v in config.prompt_dictionary_content.items():
             glossary[k] = v.get("translation", "")
 
         # 查找不匹配项目，查找范围限定在翻译状态为 已翻译 的条目内
@@ -80,7 +80,7 @@ class GlossaryChecker(PluginBase):
                     result.setdefault(f"{k} -> {v}", {})[source_text] = translated_text
 
         # 写入文件
-        result_path = f"{configurator.label_output_path}/glossary_checker_result.json"
+        result_path = f"{config.label_output_path}/glossary_checker_result.json"
         with open(result_path, "w", encoding = "utf-8") as writer:
             writer.write(json.dumps(result, indent = 4, ensure_ascii = False))
 

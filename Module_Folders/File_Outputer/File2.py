@@ -1150,34 +1150,25 @@ class File_Outputter():
             # 删除文件夹
             shutil.rmtree(extract_path)
 
-
     # 输出已经翻译文件
-    def output_translated_content(self, cache_data, output_path, input_path):
-        # 复制缓存数据到新变量
-        try:
-           new_cache_data = copy.deepcopy(cache_data)
-        except:
-            print("[INFO]: 无法正常进行深层复制,改为浅复制")
-            new_cache_data = cache_data.copy()
-
-        # 提取项目列表
-        if new_cache_data[0]["project_type"] == "Mtool":
-            File_Outputter.output_json_file(self,new_cache_data, output_path)
-        elif new_cache_data[0]["project_type"] == "Srt":
-            File_Outputter.output_srt_file(self,new_cache_data, output_path)
-        elif new_cache_data[0]["project_type"] == "Vtt":
-            File_Outputter.output_vtt_file(self,new_cache_data, output_path)
-        elif new_cache_data[0]["project_type"] == "Lrc":
-            File_Outputter.output_lrc_file(self,new_cache_data, output_path)
-        elif new_cache_data[0]["project_type"] == "Vnt":
-            File_Outputter.output_vnt_file(self,new_cache_data, output_path)
-        elif new_cache_data[0]["project_type"] == "Txt":
-            File_Outputter.output_txt_file(self,new_cache_data, output_path)
-        elif new_cache_data[0]["project_type"] == "Epub":
-            File_Outputter.output_epub_file(self,new_cache_data, output_path,input_path)
-        elif new_cache_data[0]["project_type"] == "Docx":
-            File_Outputter.output_docx_file(self,new_cache_data, output_path,input_path)
-        elif new_cache_data[0]["project_type"] == "Paratranz":
-            File_Outputter.output_paratranz_file(self,new_cache_data, output_path)
+    def output_translated_content(self, cache_data, output_path, input_path) -> None:
+        if cache_data[0]["project_type"] == "Mtool":
+            File_Outputter.output_json_file(self, cache_data, output_path)
+        elif cache_data[0]["project_type"] == "Srt":
+            File_Outputter.output_srt_file(self, cache_data, output_path)
+        elif cache_data[0]["project_type"] == "Vtt":
+            File_Outputter.output_vtt_file(self, cache_data, output_path)
+        elif cache_data[0]["project_type"] == "Lrc":
+            File_Outputter.output_lrc_file(self, cache_data, output_path)
+        elif cache_data[0]["project_type"] == "Vnt":
+            File_Outputter.output_vnt_file(self, cache_data, output_path)
+        elif cache_data[0]["project_type"] == "Txt":
+            File_Outputter.output_txt_file(self, cache_data, output_path)
+        elif cache_data[0]["project_type"] == "Epub":
+            File_Outputter.output_epub_file(self, cache_data, output_path, input_path)
+        elif cache_data[0]["project_type"] == "Docx":
+            File_Outputter.output_docx_file(self, cache_data, output_path, input_path)
+        elif cache_data[0]["project_type"] == "Paratranz":
+            File_Outputter.output_paratranz_file(self, cache_data, output_path)
         else:
-            File_Outputter.output_excel_file(self,new_cache_data, output_path)
+            File_Outputter.output_excel_file(self, cache_data, output_path)

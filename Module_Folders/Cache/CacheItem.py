@@ -13,6 +13,7 @@ class Status(SimpleNamespace):
 class CacheItem():
 
     STATUS = Status()
+    TYPE_FILTER = (int, str, bool, float, list, dict, tuple)
 
     def __init__(self, args: dict) -> None:
         super().__init__()
@@ -35,7 +36,7 @@ class CacheItem():
         self.lock = threading.Lock()
 
         # 类变量
-        __class__.token_cache = {}
+        CacheItem.cache = {} if not hasattr(CacheItem, "cache") else CacheItem.cache
 
     def __repr__(self) -> str:
         return (
@@ -46,7 +47,7 @@ class CacheItem():
         return {
             k:v
             for k, v in vars(self).items()
-            if isinstance(v, (int, str, bool, float, list, dict, tuple))
+            if isinstance(v, CacheItem.TYPE_FILTER)
         }
 
     # 获取行号
@@ -132,7 +133,7 @@ class CacheItem():
     # 获取 Token 数量
     def get_token_count(self) -> int:
         with self.lock:
-            if not self.source_text in __class__.token_cache:
-                __class__.token_cache[self.source_text] = len(tiktoken.get_encoding("cl100k_base").encode(self.source_text))
+            if self.source_text not in CacheItem.cache:
+                CacheItem.cache[self.source_text] = len(tiktoken.get_encoding("cl100k_base").encode(self.source_text))
 
-            return __class__.token_cache[self.source_text]
+            return CacheItem.cache[self.source_text]

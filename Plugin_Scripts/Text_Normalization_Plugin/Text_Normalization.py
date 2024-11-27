@@ -20,7 +20,7 @@ class Text_Normalization_Plugin(PluginBase):
         print(f"[INFO] {self.name} loaded!")
 
 
-    def on_event(self, event_name, configuration_information, event_data):
+    def on_event(self, event_name, config, event_data):
 
         # 事件触发
         if event_name == "normalize_text":
@@ -28,13 +28,13 @@ class Text_Normalization_Plugin(PluginBase):
             # 将半角（半角假名）片假名转换为全角（全角假名）片假名
             # 全角（全角）ASCII字符和数字转换为半角（半角）ASCII字符和数字。
             # 此外，全角波浪号（～）等也被规范化。
-            if configuration_information.source_language == "日语":
+            if config.source_language == "日语":
                 for k in event_data.keys():
                     text = jaconv.normalize(event_data.get(k, ""), mode = "NFKC")
                     text = self.remove_spaces(text)
                     event_data[k] = text
 
-            if configuration_information.source_language == "英语":
+            if config.source_language == "英语":
                 for k in event_data.keys():
                     text = unicodedata.normalize('NFKC', event_data.get(k, ""))
                     event_data[k] = text

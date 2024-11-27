@@ -15,7 +15,7 @@ class Bilingual_Comparison(PluginBase):
     def load(self):
         print(f"[INFO] {self.name} loaded!")
 
-    def on_event(self, event_name, configuration_information, event_data):
+    def on_event(self, event_name, config, event_data):
         if event_name == "postprocess_text":
             self.process_dictionary_list(event_data)
 

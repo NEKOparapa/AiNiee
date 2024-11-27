@@ -14,6 +14,7 @@ from qfluentwidgets import NavigationItemPosition
 from qfluentwidgets import NavigationAvatarWidget
 
 from Base.Base import Base
+from Base.PluginManager import PluginManager
 from User_Interface.AppSettingsPage import AppSettingsPage
 from User_Interface.BaseNavigationItem import BaseNavigationItem
 from User_Interface.Project.ProjectPage import ProjectPage
@@ -32,6 +33,7 @@ from User_Interface.Quality.WorldBuildingPromptPage import WorldBuildingPromptPa
 from User_Interface.Quality.CharacterizationPromptPage import CharacterizationPromptPage
 from User_Interface.Quality.TranslationExamplePromptPage import TranslationExamplePromptPage
 
+from StevExtraction import jtpp
 from User_Interface.Extraction_Tool.Export_Source_Text import Widget_export_source_text
 from User_Interface.Extraction_Tool.Import_Translated_Text import Widget_import_translated_text
 from User_Interface.Extraction_Tool.Export_Update_Text import Widget_update_text
@@ -47,7 +49,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         "theme": "dark",
     }
 
-    def __init__(self, version, configurator, plugin_manager, jtpp):
+    def __init__(self, version: str, plugin_manager: PluginManager) -> None:
         super().__init__()
 
         # 载入配置文件
@@ -84,10 +86,10 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.navigationInterface.panel.setReturnButtonVisible(False)
 
         # 添加页面
-        self.add_pages(configurator, plugin_manager, jtpp)
+        self.add_pages(plugin_manager)
 
     # 重写窗口关闭函数
-    def closeEvent(self, event):
+    def closeEvent(self, event) -> None:
         message_box = MessageBox("警告", "确定是否退出程序 ... ？", self)
         message_box.yesButton.setText("确认")
         message_box.cancelButton.setText("取消")
@@ -100,7 +102,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
             event.ignore()
 
     # 切换主题
-    def toggle_theme(self):
+    def toggle_theme(self) -> None:
         config = self.load_config()
 
         if not isDarkTheme():
@@ -113,19 +115,19 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         config = self.save_config(config)
 
     # 打开主页
-    def open_project_page(self):
+    def open_project_page(self) -> None:
         url = QUrl("https://github.com/NEKOparapa/AiNiee")
         QDesktopServices.openUrl(url)
 
     # 开始添加页面
-    def add_pages(self, configurator, plugin_manager, jtpp):
-        self.add_project_pages(configurator, plugin_manager, jtpp)
+    def add_pages(self, plugin_manager: PluginManager) -> None:
+        self.add_project_pages(plugin_manager)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
-        self.add_setting_pages(configurator, plugin_manager, jtpp)
+        self.add_setting_pages(plugin_manager)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
-        self.add_quality_pages(configurator, plugin_manager, jtpp)
+        self.add_quality_pages(plugin_manager)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
-        self.add_stev_extraction_pages(configurator, plugin_manager, jtpp)
+        self.add_stev_extraction_pages(plugin_manager)
 
         # 设置默认页面
         self.switchTo(self.translation_page)
@@ -158,16 +160,16 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         )
 
     # 添加第一节
-    def add_project_pages(self, configurator, plugin_manager, jtpp):
-        self.platform_page = PlatformPage("platform_page", self, configurator)
+    def add_project_pages(self, plugin_manager: PluginManager) -> None:
+        self.platform_page = PlatformPage("platform_page", self)
         self.addSubInterface(self.platform_page, FluentIcon.IOT, "接口管理", NavigationItemPosition.SCROLL)
         self.prject_page = ProjectPage("prject_page", self)
         self.addSubInterface(self.prject_page, FluentIcon.FOLDER, "项目设置", NavigationItemPosition.SCROLL)
-        self.translation_page = TranslationPage("translation_page", self, configurator)
+        self.translation_page = TranslationPage("translation_page", self)
         self.addSubInterface(self.translation_page, FluentIcon.PLAY, "开始翻译", NavigationItemPosition.SCROLL)
 
     # 添加第二节
-    def add_setting_pages(self, configurator, plugin_manager, jtpp):
+    def add_setting_pages(self, plugin_manager: PluginManager) -> None:
         self.basic_settings_page = BasicSettingsPage("basic_settings_page", self)
         self.addSubInterface(self.basic_settings_page, FluentIcon.ZOOM, "基础设置", NavigationItemPosition.SCROLL)
         self.advance_settings_page = AdvanceSettingsPage("advance_settings_page", self)
@@ -178,7 +180,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.addSubInterface(self.mix_translation_settings_page, FluentIcon.EMOJI_TAB_SYMBOLS, "混合翻译设置", NavigationItemPosition.SCROLL)
 
     # 添加第三节
-    def add_quality_pages(self, configurator, plugin_manager, jtpp):
+    def add_quality_pages(self, plugin_manager: PluginManager) -> None:
         self.prompt_dictionary_page = PromptDictionaryPage("prompt_dictionary_page", self)
         self.addSubInterface(self.prompt_dictionary_page, FluentIcon.DICTIONARY, "指令词典", NavigationItemPosition.SCROLL)
 
@@ -203,12 +205,12 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.addSubInterface(self.translation_example_prompt_page, FluentIcon.TILES, "翻译风格示例", parent = self.prompt_optimization_navigation_item)
 
     # 添加第四节
-    def add_stev_extraction_pages(self, configurator, plugin_manager, jtpp):
+    def add_stev_extraction_pages(self, plugin_manager: PluginManager) -> None:
         self.stev_extraction_navigation_item = BaseNavigationItem("stev_extraction_navigation_item", self)
         self.addSubInterface(self.stev_extraction_navigation_item, FluentIcon.ZIP_FOLDER, "StevExtraction", NavigationItemPosition.SCROLL)
-        self.widget_export_source_text = Widget_export_source_text("widget_export_source_text", self,configurator=configurator,jtpp=jtpp)
+        self.widget_export_source_text = Widget_export_source_text("widget_export_source_text", self, jtpp)
         self.addSubInterface(self.widget_export_source_text, FluentIcon.SHARE, "导出文本", parent = self.stev_extraction_navigation_item)
-        self.widget_import_translated_text = Widget_import_translated_text("widget_import_translated_text", self,configurator=configurator,jtpp=jtpp)
+        self.widget_import_translated_text = Widget_import_translated_text("widget_import_translated_text", self, jtpp)
         self.addSubInterface(self.widget_import_translated_text, FluentIcon.DOWNLOAD, "导入文本", parent = self.stev_extraction_navigation_item)
-        self.widget_update_text = Widget_update_text("widget_update_text", self,configurator=configurator,jtpp=jtpp)
+        self.widget_update_text = Widget_update_text("widget_update_text", self, jtpp)
         self.addSubInterface(self.widget_update_text, FluentIcon.UPDATE, "导出增量文本", parent = self.stev_extraction_navigation_item)

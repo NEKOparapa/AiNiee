@@ -15,10 +15,9 @@ from qfluentwidgets import StrongBodyLabel
 from qfluentwidgets import PrimaryPushButton
 
 class Widget_export_source_text(QFrame):#  提取子界面
-    def __init__(self, text: str, parent=None,configurator=None,jtpp=None):#解释器会自动调用这个函数
+    def __init__(self, text: str, parent=None,jtpp=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
-        self.configurator = configurator
         self.jtpp = jtpp
         #设置各个控件-----------------------------------------------------------------------------------------
 
@@ -29,7 +28,7 @@ class Widget_export_source_text(QFrame):#  提取子界面
         layout = QHBoxLayout()
 
 
-        self.labe1_3 = StrongBodyLabel()  
+        self.labe1_3 = StrongBodyLabel()
         self.labe1_3.setText("RPG Maker MV/MZ 的文本提取注入工具")
 
 
@@ -54,14 +53,14 @@ class Widget_export_source_text(QFrame):#  提取子界面
         layout_switch = QHBoxLayout()
 
         #设置“是否日语游戏”标签
-        self.labe1_4 = StrongBodyLabel()  
+        self.labe1_4 = StrongBodyLabel()
         self.labe1_4.setText("是否日语游戏")
 
 
 
         # 设置“是否日语游戏”选择开关
         self.SwitchButton_ja = CheckBox('        ')
-        self.SwitchButton_ja.setChecked(True)    
+        self.SwitchButton_ja.setChecked(True)
         # 绑定选择开关的点击事件
         self.SwitchButton_ja.clicked.connect(self.test)
 
@@ -79,12 +78,12 @@ class Widget_export_source_text(QFrame):#  提取子界面
         layout_input = QHBoxLayout()
 
         #设置“游戏文件夹”标签
-        label4 = StrongBodyLabel()  
+        label4 = StrongBodyLabel()
         label4.setText("游戏文件夹")
 
         #设置“游戏文件夹”显示
-        self.label_input_path = StrongBodyLabel() 
-        self.label_input_path.setText("(游戏根目录文件夹)")  
+        self.label_input_path = StrongBodyLabel()
+        self.label_input_path.setText("(游戏根目录文件夹)")
 
         #设置打开文件按钮
         self.pushButton_input = PushButton('选择文件夹', self, FluentIcon.FOLDER)
@@ -105,11 +104,11 @@ class Widget_export_source_text(QFrame):#  提取子界面
         layout_output = QHBoxLayout()
 
         #设置“输出文件夹”标签
-        label6 = StrongBodyLabel() 
+        label6 = StrongBodyLabel()
         label6.setText("原文存储文件夹")
 
         #设置“输出文件夹”显示
-        self.label_output_path = StrongBodyLabel() 
+        self.label_output_path = StrongBodyLabel()
         self.label_output_path.setText("(游戏原文提取后存放的文件夹)")
 
         #设置输出文件夹按钮
@@ -130,11 +129,11 @@ class Widget_export_source_text(QFrame):#  提取子界面
         layout_data = QHBoxLayout()
 
         #设置“输出文件夹”标签
-        label6 = StrongBodyLabel() 
+        label6 = StrongBodyLabel()
         label6.setText("工程存储文件夹")
 
         #设置“输出文件夹”显示
-        self.label_data_path = StrongBodyLabel() 
+        self.label_data_path = StrongBodyLabel()
         self.label_data_path.setText("(该游戏工程数据存放的文件夹)")
 
         #设置输出文件夹按钮
@@ -230,7 +229,7 @@ class Widget_export_source_text(QFrame):#  提取子界面
         print('[INFO] 开始提取游戏原文,请耐心等待！！！')
 
         #读取配置文件
-        config_path = os.path.join(self.configurator.script_dir, "StevExtraction", "config.yaml")
+        config_path = ".\StevExtraction\config.yaml"
         with open(config_path, 'r', encoding='utf-8') as file:
             config = yaml.safe_load(file)
 

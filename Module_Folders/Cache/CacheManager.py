@@ -1,5 +1,4 @@
 import os
-import copy
 import time
 import threading
 
@@ -108,8 +107,7 @@ class CacheManager(Base):
 
     # 生成列表（兼容旧版接口）
     def to_list(self, items: list[CacheItem] = None) -> list[CacheItem]:
-        results = []
-        results.append(self.project.get_vars())
+        results = [self.project.get_vars()]
 
         # 优先使用参数中的数据
         if items != None:
@@ -143,12 +141,6 @@ class CacheManager(Base):
             and
             any(v.get_translation_status() == CacheItem.STATUS.UNTRANSLATED for v in self.items)
         )
-
-    # 执行简繁转换
-    def convert_simplified_and_traditional(self, preset: str) -> None:
-        converter = opencc.OpenCC(preset)
-        for item in [item for item in self.items if item.get_translation_status() == CacheItem.STATUS.TRANSLATED]:
-            item.set_translated_text(converter.convert(item.get_translated_text()))
 
     # 生成上文数据条目片段
     def generate_previous_chunks(self, start_item: CacheItem, previous_line_count: int) -> list[CacheItem]:

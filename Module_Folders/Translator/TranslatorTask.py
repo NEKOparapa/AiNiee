@@ -9,11 +9,12 @@ from rich.table import Table
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
+from Module_Folders.PromptBuilder import PromptBuilder
 from Module_Folders.Cache.CacheItem import CacheItem
-from Module_Folders.Configurator.Config import Configurator
-from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
-from Module_Folders.Response_Parser.Response import Response_Parser
+from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
 from Module_Folders.Translator.TranslatorRequester import TranslatorRequester
+from Module_Folders.Response_Parser.Response import Response_Parser
+from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
 
 # 接口请求器
 class TranslatorTask(Base):
@@ -60,16 +61,16 @@ class TranslatorTask(Base):
         r"\s*" + r"<br>" + r"\s*",                                      # 换行符 <br>
     )
 
-    def __init__(self, configurator: Configurator, plugin_manager: PluginManager, request_limiter: Request_Limiter) -> None:
+    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager, request_limiter: Request_Limiter) -> None:
         super().__init__()
 
         # 初始化
-        self.configurator = configurator
+        self.config = config
         self.plugin_manager = plugin_manager
         self.request_limiter = request_limiter
 
         # 根据原文语言生成正则表达式
-        if "英语" in configurator.source_language:
+        if "英语" in config.source_language:
             code_pattern = self.CODE_PATTERN_EN + self.CODE_PATTERN_COMMON
             self.prefix_pattern = re.compile(f"^(?:{"|".join(code_pattern)})+", flags = re.IGNORECASE)
             self.suffix_pattern = re.compile(f"(?:{"|".join(code_pattern)})+$", flags = re.IGNORECASE)
@@ -93,18 +94,18 @@ class TranslatorTask(Base):
                 return {}
 
             # 检查是否超时，超时则直接跳过当前任务，以避免死循环
-            if time.time() - task_start_time >= self.configurator.request_timeout:
+            if time.time() - task_start_time >= self.config.request_timeout:
                 return {}
 
             # 检查 RPM 和 TPM 限制，如果符合条件，则继续
-            if self.request_limiter.RPM_and_TPM_limit(self.request_tokens_consume):
+            if self.request_limiter.check_limiter(self.request_tokens_consume):
                 break
 
             # 如果以上条件都不符合，则间隔 1 秒再次检查
             time.sleep(1)
 
         # 发起请求
-        requester = TranslatorRequester(self.configurator, self.plugin_manager)
+        requester = TranslatorRequester(self.config, self.plugin_manager)
         skip, response_str, prompt_tokens, completion_tokens = requester.request(self.messages, self.system_prompt, degradation_flag)
 
         # 如果请求结果标记为 skip，即有错误发生，则跳过本次循环
@@ -122,11 +123,11 @@ class TranslatorTask(Base):
         # 检查回复内容
         check_result, error_content = Response_Parser.check_response_content(
             self,
-            self.configurator.reply_check_switch,
+            self.config.reply_check_switch,
             response_str,
             response_dict,
             self.source_text_dict,
-            self.configurator.source_language
+            self.config.source_language
         )
 
         # 检查译文
@@ -134,11 +135,11 @@ class TranslatorTask(Base):
         if check_result == False:
             # 如果检查到模型退化，且不是第一次请求
             if "退化" in error_content and degradation_flag == False:
-                error = f"译文文本中检查到模型退化现象，正在重试"
+                error = "译文文本中检查到模型退化现象，正在重试"
                 retry_flag = True
             # 如果检查到模型退化，且是第一次请求，则再次请求
             elif "退化" in error_content and degradation_flag == True:
-                error = f"译文文本中检查到模型退化现象，将在下一轮次的翻译中重新翻译"
+                error = "译文文本中检查到模型退化现象，将在下一轮次的翻译中重新翻译"
             else:
                 error = f"译文文本未通过检查，将在下一轮次的翻译中重新翻译 - {error_content}"
 
@@ -164,7 +165,7 @@ class TranslatorTask(Base):
 
             # 更新缓存数据
             for item, response in zip(self.items, restore_response_dict.values()):
-                item.set_model(self.configurator.model)
+                item.set_model(self.config.model)
                 item.set_translated_text(response)
                 item.set_translation_status(CacheItem.STATUS.TRANSLATED)
 
@@ -222,7 +223,7 @@ class TranslatorTask(Base):
         self.row_count = len(self.source_text_dict)
 
         # 触发插件事件 - 文本正规化
-        self.plugin_manager.broadcast_event("normalize_text", self.configurator, self.source_text_dict)
+        self.plugin_manager.broadcast_event("normalize_text", self.config, self.source_text_dict)
 
         # 各种替换步骤
         self.source_text_dict, self.prefix_codes, self.suffix_codes = self.replace_all(self.source_text_dict, self.prefix_pattern, self.suffix_pattern)
@@ -247,17 +248,17 @@ class TranslatorTask(Base):
     # 各种替换步骤
     def replace_all(self, text_dict: dict, prefix_pattern: re.Pattern, suffix_pattern: re.Pattern) -> tuple[dict, dict, dict]:
         # 译前替换
-        if self.configurator.pre_translation_switch == True:
+        if self.config.pre_translation_switch == True:
             text_dict = self.replace_before_translation(text_dict)
 
         # 替换 前缀代码段 和 后缀代码段
         prefix_codes = []
         suffix_codes = []
-        if self.configurator.preserve_prefix_and_suffix_codes == True:
+        if self.config.preserve_prefix_and_suffix_codes == True:
             text_dict, prefix_codes, suffix_codes = self.replace_prefix_and_suffix_codes(text_dict, prefix_pattern, suffix_pattern)
 
         # 替换 换行符
-        if self.configurator.preserve_line_breaks_toggle == True:
+        if self.config.preserve_line_breaks_toggle == True:
             text_dict = self.replace_line_breaks(text_dict)
 
         return text_dict, prefix_codes, suffix_codes
@@ -265,15 +266,15 @@ class TranslatorTask(Base):
     # 各种还原步骤，注意还原中各步骤的执行顺序与替换中各步骤的执行循环相反
     def restore_all(self, text_dict: dict, prefix_codes: dict, suffix_codes: dict) -> dict:
         # 还原 换行符
-        if self.configurator.preserve_line_breaks_toggle == True:
+        if self.config.preserve_line_breaks_toggle == True:
             text_dict = self.restore_line_breaks(text_dict)
 
         # 还原 前缀代码段 和 后缀代码段
-        if self.configurator.preserve_prefix_and_suffix_codes == True:
+        if self.config.preserve_prefix_and_suffix_codes == True:
             text_dict = self.restore_prefix_and_suffix_codes(text_dict, prefix_codes, suffix_codes)
 
         # 译后替换
-        if self.configurator.post_translation_switch == True:
+        if self.config.post_translation_switch == True:
             text_dict = self.replace_after_translation(text_dict)
 
         return text_dict
@@ -316,7 +317,7 @@ class TranslatorTask(Base):
 
     # 译前替换
     def replace_before_translation(self, text_dict: dict) -> dict:
-        pair = self.configurator.pre_translation_content.items()
+        pair = self.config.pre_translation_content.items()
         for k in text_dict:
             text = text_dict[k]
             for src, dst in pair:
@@ -327,7 +328,7 @@ class TranslatorTask(Base):
 
     # 译前替换
     def replace_after_translation(self, text_dict: dict) -> dict:
-        pair = self.configurator.post_translation_content.items()
+        pair = self.config.post_translation_content.items()
         for k in text_dict:
             text = text_dict[k]
             for src, dst in pair:
@@ -344,13 +345,13 @@ class TranslatorTask(Base):
         extra_log = []
 
         # 获取基础系统提示词
-        system_prompt = self.configurator.get_system_prompt()
+        system_prompt = PromptBuilder.get_system_prompt(self.config)
 
         # 如果开启指令词典
         glossary = ""
         glossary_cot = ""
-        if self.configurator.prompt_dictionary_switch:
-            glossary, glossary_cot = self.configurator.build_glossary_prompt(source_text_dict, self.configurator.cn_prompt_toggle)
+        if self.config.prompt_dictionary_switch:
+            glossary, glossary_cot = PromptBuilder.build_glossary_prompt(self.config, source_text_dict)
             if glossary:
                 system_prompt += glossary
                 extra_log.append(f"指令词典已添加：\n{glossary}")
@@ -358,8 +359,8 @@ class TranslatorTask(Base):
         # 如果角色介绍开关打开
         characterization = ""
         characterization_cot = ""
-        if self.configurator.characterization_switch:
-            characterization, characterization_cot = self.configurator.build_characterization(source_text_dict, self.configurator.cn_prompt_toggle)
+        if self.config.characterization_switch:
+            characterization, characterization_cot = PromptBuilder.build_characterization(self.config, source_text_dict)
             if characterization:
                 system_prompt += characterization
                 extra_log.append(f"角色介绍已添加：\n{characterization}")
@@ -367,8 +368,8 @@ class TranslatorTask(Base):
         # 如果启用自定义世界观设定功能
         world_building = ""
         world_building_cot = ""
-        if self.configurator.world_building_switch:
-            world_building, world_building_cot = self.configurator.build_world(self.configurator.cn_prompt_toggle)
+        if self.config.world_building_switch:
+            world_building, world_building_cot = PromptBuilder.build_world(self.config)
             if world_building:
                 system_prompt += world_building
                 extra_log.append(f"世界观设定已添加：\n{world_building}")
@@ -376,22 +377,16 @@ class TranslatorTask(Base):
         # 如果启用自定义行文措辞要求功能
         writing_style = ""
         writing_style_cot = ""
-        if self.configurator.writing_style_switch:
-            writing_style, writing_style_cot = self.configurator.build_writing_style(self.configurator.cn_prompt_toggle)
+        if self.config.writing_style_switch:
+            writing_style, writing_style_cot = PromptBuilder.build_writing_style(self.config)
             if writing_style:
                 system_prompt += writing_style
                 extra_log.append(f"行文措辞要求已添加：\n{writing_style}")
 
         # 获取默认示例前置文本
-        pre_prompt = self.configurator.build_userExamplePrefix(
-            self.configurator.cn_prompt_toggle,
-            self.configurator.cot_toggle
-        )
-        fol_prompt = self.configurator.build_modelExamplePrefix(
-            self.configurator.cn_prompt_toggle,
-            self.configurator.cot_toggle,
-            self.configurator.source_language,
-            self.configurator.target_language,
+        pre_prompt = PromptBuilder.build_userExamplePrefix(self.config)
+        fol_prompt = PromptBuilder.build_modelExamplePrefix(
+            self.config,
             glossary_cot,
             characterization_cot,
             world_building_cot,
@@ -399,11 +394,7 @@ class TranslatorTask(Base):
         )
 
         # 获取默认示例
-        original_exmaple, translation_example_content = self.configurator.build_translation_sample(
-            source_text_dict,
-            self.configurator.source_language,
-            self.configurator.target_language
-        )
+        original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict)
         if original_exmaple and translation_example_content:
             messages.append({
                 "role": "user",
@@ -417,8 +408,8 @@ class TranslatorTask(Base):
             extra_log.append(f"格式译文示例已添加：\n{translation_example_content}")
 
         # 如果启用翻译风格示例功能
-        if self.configurator.translation_example_switch:
-            original_exmaple_3, translation_example_3 = self.configurator.build_translation_example()
+        if self.config.translation_example_switch:
+            original_exmaple_3, translation_example_3 = PromptBuilder.build_translation_example(self.config)
             if original_exmaple_3 and translation_example_3:
                 messages.append({
                     "role": "user",
@@ -433,29 +424,17 @@ class TranslatorTask(Base):
 
         # 如果加上文
         previous = ""
-        if self.configurator.pre_line_counts and previous_text_list:
-            previous = self.configurator.build_pre_text(
-                previous_text_list,
-                self.configurator.cn_prompt_toggle
-            )
+        if self.config.pre_line_counts and previous_text_list:
+            previous = PromptBuilder.build_pre_text(self.config, previous_text_list)
             if previous:
                 extra_log.append(f"参考上文已添加：\n{"\n".join(previous_text_list)}")
 
         # 获取提问时的前置文本
-        pre_prompt = self.configurator.build_userQueryPrefix(
-            self.configurator.cn_prompt_toggle,
-            self.configurator.cot_toggle
-        )
-        fol_prompt = self.configurator.build_modelResponsePrefix(
-            self.configurator.cn_prompt_toggle,
-            self.configurator.cot_toggle
-        )
+        pre_prompt = PromptBuilder.build_userQueryPrefix(self.config)
+        fol_prompt = PromptBuilder.build_modelResponsePrefix(self.config)
 
         # 构建用户信息
-        source_text_str = json.dumps(
-            source_text_dict,
-            ensure_ascii = False
-        )
+        source_text_str = json.dumps(source_text_dict, ensure_ascii = False)
         source_text_str = f"{previous}\n{pre_prompt}```json\n{source_text_str}\n```"
 
         messages.append(
@@ -509,7 +488,7 @@ class TranslatorTask(Base):
         })
 
         # 如果开启了携带上文功能
-        if self.configurator.pre_line_counts and previous_text_list:
+        if self.config.pre_line_counts and previous_text_list:
             messages.append({
                 "role": "user",
                 "content": "将下面的日文文本翻译成中文：" + "\n".join(previous_text_list),
@@ -518,8 +497,8 @@ class TranslatorTask(Base):
 
         # 如果开启了指令词典功能
         gpt_dict_raw_text = ""
-        if self.configurator.prompt_dictionary_switch:
-            glossary_prompt = self.configurator.build_glossary_prompt_sakura(source_text_dict)
+        if self.config.prompt_dictionary_switch:
+            glossary_prompt = PromptBuilder.build_glossary_prompt_sakura(self.config, source_text_dict)
             if glossary_prompt:
                 gpt_dict_text_list = []
                 for gpt in glossary_prompt:

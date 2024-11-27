@@ -62,11 +62,11 @@ class Base():
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        # 类变量
-        Base.work_status = Base.work_status if hasattr(Base, "work_status") else Base.STATUS.IDLE
-
         # 获取事件管理器单例
         self.event_manager_singleton = EventManager()
+
+        # 类变量
+        Base.work_status = Base.STATUS.IDLE if not hasattr(Base, "work_status") else Base.work_status
 
         # 载入并保存默认配置
         if len(self.DEFAULT) > 0:
@@ -152,8 +152,8 @@ class Base():
         config = {}
 
         with Base.CONFIG_FILE_LOCK:
-            if os.path.exists(self.CONFIG_PATH):
-                with open(self.CONFIG_PATH, "r", encoding = "utf-8") as reader:
+            if os.path.exists(Base.CONFIG_PATH):
+                with open(Base.CONFIG_PATH, "r", encoding = "utf-8") as reader:
                     config = json.load(reader)
             else:
                 self.warning("配置文件不存在 ...")
@@ -166,8 +166,8 @@ class Base():
 
         # 读取配置文件
         with Base.CONFIG_FILE_LOCK:
-            if os.path.exists(self.CONFIG_PATH):
-                with open(self.CONFIG_PATH, "r", encoding = "utf-8") as reader:
+            if os.path.exists(Base.CONFIG_PATH):
+                with open(Base.CONFIG_PATH, "r", encoding = "utf-8") as reader:
                     old = json.load(reader)
 
         # 对比新旧数据是否一致，一致则跳过后续步骤
@@ -185,7 +185,7 @@ class Base():
 
         # 写入配置文件
         with Base.CONFIG_FILE_LOCK:
-            with open(self.CONFIG_PATH, "w", encoding = "utf-8") as writer:
+            with open(Base.CONFIG_PATH, "w", encoding = "utf-8") as writer:
                 writer.write(json.dumps(old, indent = 4, ensure_ascii = False))
 
         return old

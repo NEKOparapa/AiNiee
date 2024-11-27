@@ -17,7 +17,7 @@ class General_Text_Filtering(PluginBase):
         print(f"[INFO] {self.name} loaded!")
 
 
-    def on_event(self, event_name, configuration_information, event_data):
+    def on_event(self, event_name, config, event_data):
 
         # 文本预处理事件触发
         if event_name == "text_filter":

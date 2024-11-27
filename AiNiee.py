@@ -29,14 +29,13 @@ import sys
 import multiprocessing
 
 import rapidjson as json
+from rich import print
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 
-from StevExtraction import jtpp
 from Base.PluginManager import PluginManager
 from Module_Folders.Translator.Translator import Translator
-from Module_Folders.Configurator.Config import Configurator
 from Module_Folders.Request_Tester.Request import Request_Tester
 from User_Interface.AppFluentWindow import AppFluentWindow
 
@@ -59,14 +58,10 @@ if __name__ == "__main__":
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
-
-    # 工作目录改为python源代码所在的目录
-    script_dir = os.path.dirname(os.path.abspath(sys.argv[0])) # 获取当前工作目录
+    # 设置工作目录
+    script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     sys.path.append(script_dir)
-    print("[INFO] 当前工作目录是:",script_dir,'\n')
-
-    # 创建全局配置器
-    configurator = Configurator()
+    print(f"[[green]INFO[/]] 当前工作目录为 {script_dir}")
 
     # 创建全局插件管理器
     plugin_manager = PluginManager()
@@ -99,19 +94,14 @@ if __name__ == "__main__":
     # 创建全局窗口对象
     app_fluent_window = AppFluentWindow(
         version = "AiNiee v5.1.2 Dev",
-        configurator = configurator,
         plugin_manager = plugin_manager,
-        jtpp = jtpp,
     )
 
     # 创建全局测试器对象
     request_tester = Request_Tester()
 
     # 创建翻译器对象
-    translator = Translator(
-        configurator = configurator,
-        plugin_manager = plugin_manager,
-    )
+    translator = Translator(plugin_manager = plugin_manager)
 
     # 显示全局窗口
     app_fluent_window.show()
