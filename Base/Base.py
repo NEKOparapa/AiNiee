@@ -62,11 +62,11 @@ class Base():
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        # 类变量
-        Base.work_status = Base.work_status if hasattr(Base, "work_status") else Base.STATUS.IDLE
-
         # 获取事件管理器单例
         self.event_manager_singleton = EventManager()
+
+        # 类变量
+        Base.work_status = Base.STATUS.IDLE if not hasattr(Base, "work_status") else Base.work_status
 
         # 载入并保存默认配置
         if len(self.DEFAULT) > 0:

@@ -1,5 +1,4 @@
 import os
-import copy
 import time
 import threading
 
@@ -108,8 +107,7 @@ class CacheManager(Base):
 
     # 生成列表（兼容旧版接口）
     def to_list(self, items: list[CacheItem] = None) -> list[CacheItem]:
-        results = []
-        results.append(self.project.get_vars())
+        results = [self.project.get_vars()]
 
         # 优先使用参数中的数据
         if items != None:
