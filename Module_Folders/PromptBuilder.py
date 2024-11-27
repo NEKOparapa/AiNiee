@@ -335,13 +335,13 @@ Third: Begin translating line by line from the original text, only translating {
         data = config.prompt_dictionary_content
 
         # 将输入字典中的所有值转换为集合
-        input_values_set = set(value for values in input_dict.values() for value in values)
+        lines = set(line for line in input_dict.values())
 
         # 筛选并构建新字典
         temp_dict = {
             key: {"translation": value["translation"], "info": value.get("info")}
             for key, value in data.items()
-            if key in input_values_set
+            if any(key in lines for lines in lines)
         }
 
         # 如果文本中没有含有字典内容
@@ -403,13 +403,13 @@ Third: Begin translating line by line from the original text, only translating {
         data = config.prompt_dictionary_content
 
         # 将输入字典中的所有值转换为集合
-        input_values_set = set(value for values in input_dict.values() for value in values)
+        lines = set(line for line in input_dict.values())
 
         # 筛选并构建新字典
         temp_dict = {
             key: {"translation": value["translation"], "info": value.get("info")}
             for key, value in data.items()
-            if key in input_values_set
+            if any(key in lines for lines in lines)
         }
 
         # 如果文本中没有含有字典内容
