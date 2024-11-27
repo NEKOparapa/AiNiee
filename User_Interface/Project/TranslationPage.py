@@ -33,13 +33,12 @@ class TranslationPage(QWidget, Base):
         Base.STATUS.STOPING: "停止中",
     }
 
-    def __init__(self, text: str, window: FluentWindow, configurator: dict) -> None:
+    def __init__(self, text: str, window: FluentWindow) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
         # 初始化
         self.window = window
-        self.configurator = configurator
         self.data = {}
 
         # 载入配置文件

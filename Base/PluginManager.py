@@ -27,7 +27,7 @@ class PluginManager:
     def unload_plugin(self, plugin_instance):
         pass
 
-    def broadcast_event(self, event_name, configuration_information=None, event_data=None):
+    def broadcast_event(self, event_name, config=None, event_data=None):
         # 只触发注册了该事件的插件，并在调用前进行排序
         if event_name in self.event_plugins:
             # 根据优先级进行排序
@@ -42,7 +42,7 @@ class PluginManager:
 
             #print(sorted_plugins) #bug用
             for plugin in sorted_plugins:
-                plugin.on_event(event_name, configuration_information, event_data)
+                plugin.on_event(event_name, config, event_data)
 
     def load_plugins_from_directory(self, directory):
         directory_path = Path(directory)

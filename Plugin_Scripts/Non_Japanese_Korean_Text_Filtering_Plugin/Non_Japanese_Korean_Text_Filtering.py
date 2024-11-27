@@ -19,11 +19,11 @@ class Non_Japanese_Korean_Text_Filtering(PluginBase):
     def load(self):
         print(f"[INFO] {self.name} loaded!")
 
-    def on_event(self, event_name, configuration_information, event_data):
+    def on_event(self, event_name, config, event_data):
         # 事件触发
         if event_name == "text_filter":
-            if configuration_information.source_language == "日语" or configuration_information.source_language == "韩语":
-                self.process_text_by_language(event_data, configuration_information.source_language)
+            if config.source_language == "日语" or config.source_language == "韩语":
+                self.process_text_by_language(event_data, config.source_language)
                 print(f"[INFO] Non-Japanese/Korean text has been filtered.")
 
     # 根据目标语言处理缓存列表中的条目

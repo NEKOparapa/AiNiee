@@ -14,10 +14,9 @@ from qfluentwidgets import PrimaryPushButton
 
 
 class Widget_update_text(QFrame):#  更新子界面
-    def __init__(self, text: str, parent=None,configurator=None,jtpp=None):#解释器会自动调用这个函数
+    def __init__(self, text: str, parent=None,jtpp=None):#解释器会自动调用这个函数
         super().__init__(parent=parent)          #调用父类的构造函数
         self.setObjectName(text.replace(' ', '-'))#设置对象名，作用是在NavigationInterface中的addItem中的routeKey参数中使用
-        self.configurator = configurator
         self.jtpp = jtpp
         #设置各个控件-----------------------------------------------------------------------------------------
 
@@ -28,12 +27,12 @@ class Widget_update_text(QFrame):#  更新子界面
         layout_input = QHBoxLayout()
 
         #设置“输入文件夹”标签
-        label4 = StrongBodyLabel()  
+        label4 = StrongBodyLabel()
         label4.setText("游戏文件夹")
 
         #设置“输入文件夹”显示
-        self.label_input_path = StrongBodyLabel() 
-        self.label_input_path.setText("(新版本的游戏根目录文件夹)")  
+        self.label_input_path = StrongBodyLabel()
+        self.label_input_path.setText("(新版本的游戏根目录文件夹)")
 
         #设置打开文件按钮
         self.pushButton_input = PushButton('选择文件夹', self, FluentIcon.FOLDER)
@@ -54,12 +53,12 @@ class Widget_update_text(QFrame):#  更新子界面
         layout_data = QHBoxLayout()
 
         #设置“输入文件夹”标签
-        label4 = StrongBodyLabel()  
+        label4 = StrongBodyLabel()
         label4.setText("工程文件夹")
 
         #设置“输入文件夹”显示
-        self.label_data_path = StrongBodyLabel() 
-        self.label_data_path.setText("(新版本游戏导出的工程数据文件夹)")  
+        self.label_data_path = StrongBodyLabel()
+        self.label_data_path.setText("(新版本游戏导出的工程数据文件夹)")
 
         #设置打开文件按钮
         self.pushButton_data = PushButton('选择文件夹', self, FluentIcon.FOLDER)
@@ -80,11 +79,11 @@ class Widget_update_text(QFrame):#  更新子界面
         layout_translation_folder = QHBoxLayout()
 
         #设置“输出文件夹”标签
-        self.label6 = StrongBodyLabel() 
+        self.label6 = StrongBodyLabel()
         self.label6.setText("译文文件夹")
 
         #设置“输出文件夹”显示
-        self.label_translation_folder = StrongBodyLabel() 
+        self.label_translation_folder = StrongBodyLabel()
         self.label_translation_folder.setText("(旧版本游戏的译文文件存放的文件夹)")
 
         #设置输出文件夹按钮
@@ -104,11 +103,11 @@ class Widget_update_text(QFrame):#  更新子界面
         layout_putput_folder = QHBoxLayout()
 
         #设置“输出文件夹”标签
-        self.label7 = StrongBodyLabel() 
+        self.label7 = StrongBodyLabel()
         self.label7.setText("保存文件夹")
 
         #设置“输出文件夹”显示
-        self.label_output_folder = StrongBodyLabel() 
+        self.label_output_folder = StrongBodyLabel()
         self.label_output_folder.setText("(新版游戏提取到的原文与旧版译文合并后，剩下的需要翻译的原文保存路径)")
 
         #设置输出文件夹按钮
@@ -170,7 +169,7 @@ class Widget_update_text(QFrame):#  更新子界面
         else :
             print('[INFO] 未选择文件夹')
             return  # 直接返回，不执行后续操作
-        
+
     # 选择工程文件夹按钮绑定函数
     def Select_data_folder(self):
         Data_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
@@ -190,7 +189,7 @@ class Widget_update_text(QFrame):#  更新子界面
         else :
             print('[INFO] 未选择文件夹')
             return  # 直接返回，不执行后续操作
-        
+
     # 选择存储文件夹按钮绑定函数
     def Select_save_folder(self):
         save_folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
@@ -200,13 +199,13 @@ class Widget_update_text(QFrame):#  更新子界面
         else :
             print('[INFO] 未选择文件夹')
 
-    
+
     # 导入按钮绑定函数
     def Start_import(self):
         print('[INFO] 开始提取新版本游戏原文,请耐心等待！！！')
 
         #读取配置文件
-        config_path = os.path.join(self.configurator.script_dir, "StevExtraction", "config.yaml")
+        config_path = ".\StevExtraction\config.yaml"
         with open(config_path, 'r', encoding='utf-8') as file:
             config = yaml.safe_load(file)
 

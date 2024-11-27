@@ -9,7 +9,7 @@ import rapidjson as json
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
-from Module_Folders.Configurator.Config import Configurator
+from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
 
 # 接口请求器
 class TranslatorRequester(Base):
@@ -17,18 +17,18 @@ class TranslatorRequester(Base):
     # 类线程锁
     API_KEY_LOCK = threading.Lock()
 
-    def __init__(self, configurator: Configurator, plugin_manager: PluginManager) -> None:
+    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager) -> None:
         super().__init__()
 
         # 初始化
-        self.configurator = configurator
+        self.config = config
         self.plugin_manager = plugin_manager
 
     # 发起请求
     def request(self, messages: list[dict], system_prompt: str, model_degradation: bool) -> tuple[bool, str, int, int]:
         # 获取平台参数
-        target_platform = self.configurator.target_platform
-        api_format = self.configurator.platforms.get(target_platform).get("api_format")
+        target_platform = self.config.target_platform
+        api_format = self.config.platforms.get(target_platform).get("api_format")
 
         # 获取请求参数
         temperature, top_p, presence_penalty, frequency_penalty = self.get_platform_request_args()
@@ -90,40 +90,40 @@ class TranslatorRequester(Base):
         # 如果密钥列表长度为 1，或者索引已达到最大长度，则重置索引
         # 否则切换到下一个密钥
         with TranslatorRequester.API_KEY_LOCK:
-            if len(self.configurator.apikey_list) == 0:
+            if len(self.config.apikey_list) == 0:
                 return "no_key_required"
-            elif len(self.configurator.apikey_list) == 1 or self.configurator.apikey_index >= len(self.configurator.apikey_list) - 1:
-                self.configurator.apikey_index = 0
-                return self.configurator.apikey_list[self.configurator.apikey_index]
+            elif len(self.config.apikey_list) == 1 or self.config.apikey_index >= len(self.config.apikey_list) - 1:
+                self.config.apikey_index = 0
+                return self.config.apikey_list[self.config.apikey_index]
             else:
-                self.configurator.apikey_index = self.configurator.apikey_index + 1
-                return self.configurator.apikey_list[self.configurator.apikey_index]
+                self.config.apikey_index = self.config.apikey_index + 1
+                return self.config.apikey_list[self.config.apikey_index]
 
     # 获取接口的请求参数
     def get_platform_request_args(self) -> tuple[float, float, float, float]:
         return (
-            self.configurator.platforms.get(self.configurator.target_platform).get("temperature"),
-            self.configurator.platforms.get(self.configurator.target_platform).get("top_p"),
-            self.configurator.platforms.get(self.configurator.target_platform).get("presence_penalty"),
-            self.configurator.platforms.get(self.configurator.target_platform).get("frequency_penalty"),
+            self.config.platforms.get(self.config.target_platform).get("temperature"),
+            self.config.platforms.get(self.config.target_platform).get("top_p"),
+            self.config.platforms.get(self.config.target_platform).get("presence_penalty"),
+            self.config.platforms.get(self.config.target_platform).get("frequency_penalty"),
         )
 
     # 发起请求
     def request_sakura(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty) -> tuple[bool, str, int, int]:
         try:
             client = OpenAI(
-                base_url = self.configurator.base_url,
+                base_url = self.config.base_url,
                 api_key = self.get_apikey(),
             )
 
             response = client.chat.completions.create(
-                model = self.configurator.model,
+                model = self.config.model,
                 messages = messages,
                 top_p = top_p,
                 temperature = temperature,
                 frequency_penalty = frequency_penalty,
-                timeout = self.configurator.request_timeout,
-                max_tokens = max(512, self.configurator.tokens_limit) if self.configurator.tokens_limit_switch == True else 512,
+                timeout = self.config.request_timeout,
+                max_tokens = max(512, self.config.tokens_limit) if self.config.tokens_limit_switch == True else 512,
                 extra_query = {
                     "do_sample": True,
                     "num_beams": 1,
@@ -155,7 +155,7 @@ class TranslatorRequester(Base):
         # 调用插件，进行处理
         self.plugin_manager.broadcast_event(
             "sakura_complete_text_process",
-            self.configurator,
+            self.config,
             response_content
         )
 
@@ -172,13 +172,13 @@ class TranslatorRequester(Base):
         try:
             # Cohere SDK 文档 - https://docs.cohere.com/reference/chat
             client = cohere.ClientV2(
-                base_url = self.configurator.base_url,
+                base_url = self.config.base_url,
                 api_key = self.get_apikey(),
-                timeout = self.configurator.request_timeout,
+                timeout = self.config.request_timeout,
             )
 
             response = client.chat(
-                model = self.configurator.model,
+                model = self.config.model,
                 messages = messages,
                 temperature = temperature,
                 p = top_p,
@@ -212,7 +212,7 @@ class TranslatorRequester(Base):
         # 调用插件，进行处理
         self.plugin_manager.broadcast_event(
             "complete_text_process",
-            self.configurator,
+            self.config,
             response_content
         )
 
@@ -228,7 +228,7 @@ class TranslatorRequester(Base):
             )
 
             model = genai.GenerativeModel(
-                model_name = self.configurator.model,
+                model_name = self.config.model,
                 safety_settings = [
                     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
                     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -270,7 +270,7 @@ class TranslatorRequester(Base):
         # 调用插件，进行处理
         self.plugin_manager.broadcast_event(
             "complete_text_process",
-            self.configurator,
+            self.config,
             response_content
         )
 
@@ -280,17 +280,17 @@ class TranslatorRequester(Base):
     def request_anthropic(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty) -> tuple[bool, str, int, int]:
         try:
             client = anthropic.Anthropic(
-                base_url = self.configurator.base_url,
+                base_url = self.config.base_url,
                 api_key = self.get_apikey(),
             )
 
             response = client.messages.create(
-                model = self.configurator.model,
+                model = self.config.model,
                 system = system_prompt,
                 messages = messages,
                 temperature = temperature,
                 top_p = top_p,
-                timeout = self.configurator.request_timeout,
+                timeout = self.config.request_timeout,
                 max_tokens = 4096,
             )
 
@@ -318,7 +318,7 @@ class TranslatorRequester(Base):
         # 调用插件，进行处理
         self.plugin_manager.broadcast_event(
             "complete_text_process",
-            self.configurator,
+            self.config,
             response_content
         )
 
@@ -328,18 +328,18 @@ class TranslatorRequester(Base):
     def request_openai(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty) -> tuple[bool, str, int, int]:
         try:
             client = OpenAI(
-                base_url = self.configurator.base_url,
+                base_url = self.config.base_url,
                 api_key = self.get_apikey(),
             )
 
             response = client.chat.completions.create(
-                model = self.configurator.model,
+                model = self.config.model,
                 messages = messages,
                 temperature = temperature,
                 top_p = top_p,
                 presence_penalty = presence_penalty,
                 frequency_penalty = frequency_penalty,
-                timeout = self.configurator.request_timeout,
+                timeout = self.config.request_timeout,
                 max_tokens = 4096,
             )
 
@@ -367,7 +367,7 @@ class TranslatorRequester(Base):
         # 调用插件，进行处理
         self.plugin_manager.broadcast_event(
             "complete_text_process",
-            self.configurator,
+            self.config,
             response_content
         )
 

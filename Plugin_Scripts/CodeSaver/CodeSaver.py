@@ -6,7 +6,7 @@ from tqdm import tqdm
 from rich import print
 
 from Plugin_Scripts.PluginBase import PluginBase
-from Module_Folders.Configurator.Config import Configurator
+from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
 
 class CodeSaver(PluginBase):
 
@@ -76,7 +76,7 @@ class CodeSaver(PluginBase):
         self.add_event("preproces_text", PluginBase.PRIORITY.NORMAL)
         self.add_event("postprocess_text", PluginBase.PRIORITY.NORMAL)
 
-    def on_event(self, event: str, configurator: Configurator, data: list[dict]) -> None:
+    def on_event(self, event: str, config: TranslatorConfig, data: list[dict]) -> None:
         # 检查数据有效性
         if event == None or len(event) <= 1:
             return
@@ -90,42 +90,42 @@ class CodeSaver(PluginBase):
             return
 
         # 关闭内置的 保留句内换行符、保留首位非文本字符 功能
-        configurator.preserve_prefix_and_suffix_codes = False
-        configurator.preserve_line_breaks_toggle = False
+        config.preserve_prefix_and_suffix_codes = False
+        config.preserve_line_breaks_toggle = False
 
         if event == "preproces_text":
-            self.on_preproces_text(event, configurator, data, items, project)
+            self.on_preproces_text(event, config, data, items, project)
 
         if event in ("manual_export", "postprocess_text"):
-            self.on_postprocess_text(event, configurator, data, items, project)
+            self.on_postprocess_text(event, config, data, items, project)
 
     # 文本预处理事件
-    def on_preproces_text(self, event: str, configurator: Configurator, data: list[dict], items: list[dict], project: dict) -> None:
+    def on_preproces_text(self, event: str, config: TranslatorConfig, data: list[dict], items: list[dict], project: dict) -> None:
         # 检查数据是否已经被插件处理过
         if project.get("code_saver_processed", False) == True:
             return
 
-        print(f"")
+        print("")
         print("[CodeSaver] 开始执行预处理 ...")
-        print(f"")
+        print("")
 
         # 根据是否为 RPGMaker MV/MZ 文本来决定是否启用 角色代码还原 步骤
         names = []
         nicknames = []
         if any(re.search(r"\\n{1,2}\[\d+\]", v.get("source_text", ""), flags = re.IGNORECASE) for v in items):
-            print(f"[CodeSaver] 判断为 [green]RPGMaker MV/MZ[/] 游戏文本 ...")
-            names, nicknames = self.load_names(f"{configurator.label_input_path}/Actors.json")
+            print("[CodeSaver] 判断为 [green]RPGMaker MV/MZ[/] 游戏文本 ...")
+            names, nicknames = self.load_names(f"{config.label_input_path}/Actors.json")
             if len(names) + len(nicknames) > 0:
                 print(f"[CodeSaver] [green]Actors.json[/] 文件加载成功，共加载 {len(names) + len(nicknames)} 条数据，稍后将执行 [green]角色代码还原[/] 步骤 ...")
-                print(f"")
+                print("")
             else:
-                print(f"[CodeSaver] 未在 [green]输入目录[/] 下找到 [green]Actors.json[/] 文件，将跳过 [green]角色代码还原[/] 步骤 ...")
-                print(f"[CodeSaver] [green]角色代码还原[/] 步骤可以显著提升质量，建议添加 [green]Actors.json[/] 后重新开始 ...")
-                print(f"[CodeSaver] [green]Actors.json[/] 文件一般可以在游戏目录的 [green]data[/] 或者 [green]www\\data[/] 文件夹内找到 ...")
-                print(f"")
+                print("[CodeSaver] 未在 [green]输入目录[/] 下找到 [green]Actors.json[/] 文件，将跳过 [green]角色代码还原[/] 步骤 ...")
+                print("[CodeSaver] [green]角色代码还原[/] 步骤可以显著提升质量，建议添加 [green]Actors.json[/] 后重新开始 ...")
+                print("[CodeSaver] [green]Actors.json[/] 文件一般可以在游戏目录的 [green]data[/] 或者 [green]www\\data[/] 文件夹内找到 ...")
+                print("")
 
         # 根据原文语言生成正则表达式
-        if "英语" in configurator.source_language:
+        if "英语" in config.source_language:
             code_pattern = self.CODE_PATTERN_EN + self.CODE_PATTERN_COMMON
         else:
             code_pattern = self.CODE_PATTERN_NON_EN + self.CODE_PATTERN_COMMON
@@ -157,7 +157,7 @@ class CodeSaver(PluginBase):
         project["code_saver_processed"] = True
 
     # 文本后处理事件
-    def on_postprocess_text(self, event: str, configurator: Configurator, data: list[dict], items: list[dict], project: dict) -> None:
+    def on_postprocess_text(self, event: str, config: TranslatorConfig, data: list[dict], items: list[dict], project: dict) -> None:
         # 检查数据是否已经被插件处理过
         if project.get("code_saver_processed", False) == False:
             return
@@ -209,7 +209,7 @@ class CodeSaver(PluginBase):
                         result.setdefault(f"数量不匹配 - {code}", {})[item.get("source_text", "")] = item.get("translated_text", "")
 
         # 将还原失败的条目写入文件
-        result_path = f"{configurator.label_output_path}/code_saver_result.json"
+        result_path = f"{config.label_output_path}/code_saver_result.json"
         with open(result_path, "w", encoding = "utf-8") as writer:
             writer.write(json.dumps(result, indent = 4, ensure_ascii = False))
 
@@ -220,7 +220,7 @@ class CodeSaver(PluginBase):
 
         print("")
         print(
-            f"[CodeSaver] 代码还原已完成，"
+            "[CodeSaver] 代码还原已完成，"
             + f"成功 [green]{success_count}[/] 条，"
             + f"失败 [green]{failure_count}[/] 条，"
             + f"成功率 [green]{(success_count / max(1, len(target_items)) * 100):.2f}[/] % ..."

@@ -42,7 +42,7 @@ class PluginBase:
         pass
 
     # 处理事件
-    def on_event(self, event: str, configuration_information: dict, event_data: list):
+    def on_event(self, event: str, config: dict, event_data: list):
         pass
 
     # 添加事件
@@ -140,7 +140,7 @@ class Example_Plugin(PluginBase):
     | 参数名 | 类型 | 描述 |
     | ------ | ---- | ---- |
     | event_name | string | text_filter |
-    | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
+    | config | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
     | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
 
 
@@ -156,10 +156,10 @@ class Example_Plugin(PluginBase):
     | 参数名 | 类型 | 描述 |
     | ------ | ---- | ---- |
     | event_name | string | preproces_text |
-    | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
+    | config | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
     | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
 
-- `configuration_information`: 全局配置类，用于获取和设置应用程序的配置信息。
+- `config`: 全局配置类，用于获取和设置应用程序的配置信息。
     下面是部分配置信息变量，如果需要获取更多配置信息，可以到Config.py文件中查看，基本在__init__(self,script_dir)与 initialization_from_config_file (self)中
     ```python
         self.script_dir = script_dir          # 根目录路径
@@ -204,8 +204,8 @@ class Example_Plugin(PluginBase):
         self.apikey_index = 0  # 方便轮询key的索引
         self.base_url = 'https://api.openai.com/v1' # api请求地址
         self.max_tokens = 4000
-        self.RPM_limit = 3500
-        self.TPM_limit = 10000000
+        self.rpm_limit = 3500
+        self.tpm_limit = 10000000
 
 
         self.openai_temperature_initialvalue = 0        #AI的随机度，0.8是高随机，0.2是低随机,取值范围0-2
@@ -258,7 +258,7 @@ class Example_Plugin(PluginBase):
     | 参数名 | 类型 | 描述 |
     | ------ | ---- | ---- |
     | event_name | string | normalize_text |
-    | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
+    | config | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
     | event_data | dict | 本次任务的待翻译的原文文本 |
 
 
@@ -293,7 +293,7 @@ class Example_Plugin(PluginBase):
     | 参数名 | 类型 | 描述 |
     | ------ | ---- | ---- |
     | event_name | string | complete_text_process |
-    | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
+    | config | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
     | event_data | string | AI补全生成的全部文本 |
 
 
@@ -312,7 +312,7 @@ class Example_Plugin(PluginBase):
     | 参数名 | 类型 | 描述 |
     | ------ | ---- | ---- |
     | event_name | string | sakura_complete_text_process |
-    | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
+    | config | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
     | event_data | string | AI补全生成的全部文本 |
 
     因为没有返回参数，需要直接处理输入的参数event_data
@@ -330,7 +330,7 @@ class Example_Plugin(PluginBase):
     | 参数名 | 类型 | 描述 |
     | ------ | ---- | ---- |
     | event_name | string | postprocess_text |
-    | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
+    | config | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
     | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
 
 
@@ -346,7 +346,7 @@ class Example_Plugin(PluginBase):
     | 参数名 | 类型 | 描述 |
     | ------ | ---- | ---- |
     | event_name | string | manual_export |
-    | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
+    | config | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
     | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
 
 
@@ -364,7 +364,7 @@ class Example_Plugin(PluginBase):
     | 参数名 | 类型 | 描述 |
     | ------ | ---- | ---- |
     | event_name | string | complete_text_process |
-    | configuration_information | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
+    | config | class | 全局类，包含了在整个应用范围内共享的的配置信息 |
     | event_data | None | None |
 
 

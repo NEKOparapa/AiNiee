@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from Module_Folders.Configurator.Config import Configurator
+from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
 
 class Priority(SimpleNamespace):
 
@@ -31,7 +31,7 @@ class PluginBase:
         pass
 
     # 处理事件
-    def on_event(self, event: str, configuration_information: Configurator, event_data: any) -> None:
+    def on_event(self, event: str, config: TranslatorConfig, event_data: any) -> None:
         pass
 
     # 添加事件
