@@ -426,13 +426,10 @@ Third: Begin translating line by line from the original text, only translating {
 
     # 构造角色设定
     def build_characterization(config: TranslatorConfig, input_dict: dict) -> tuple[str, str]:
-        # 获取字典
-        characterization_dictionary = config.characterization_dictionary
-
         # 将数据存储到中间字典中
         dictionary = {}
-        for key, value in characterization_dictionary.items():
-            dictionary[key] = value
+        for v in config.characterization_data:
+            dictionary[v.get("original_name", "")] = v
 
         # 筛选，如果该key在发送文本中，则存储进新字典中
         temp_dict = {}
