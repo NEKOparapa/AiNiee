@@ -93,7 +93,7 @@ class CharacterizationPromptPage(QFrame, Base):
         self.table.setBorderRadius(4)
         self.table.setBorderVisible(True)
         self.table.setWordWrap(False)
-        self.table.setColumnCount(7)
+        self.table.setColumnCount(len(CharacterizationPromptPage.KEYS))
         self.table.resizeRowsToContents() # 设置行高度自适应内容
         self.table.resizeColumnsToContents() # 设置列宽度自适应内容
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch) # 撑满宽度
@@ -144,11 +144,14 @@ class CharacterizationPromptPage(QFrame, Base):
             config = self.load_config()
             config["characterization_data"].extend(data)
 
-            # 保存配置文件
-            config = self.save_config(config)
-
             # 向表格更新数据
             TableHelper.update_to_table(self.table, config["characterization_data"], CharacterizationPromptPage.KEYS)
+
+            # 从表格加载数据（去重后）
+            config["characterization_data"] = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
+
+            # 保存配置文件
+            config = self.save_config(config)
 
             # 弹出提示
             self.success_toast("", "数据已导入 ...")
@@ -168,11 +171,11 @@ class CharacterizationPromptPage(QFrame, Base):
             data = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
 
             # 导出文件
-            with open(f"{config.get("label_output_path")}/导出_角色介绍.json", "w", encoding = "utf-8") as writer:
+            with open(f"导出_角色介绍.json", "w", encoding = "utf-8") as writer:
                 writer.write(json.dumps(data, indent = 4, ensure_ascii = False))
 
             # 弹出提示
-            self.success_toast("", "数据已导出到输出目录 ...")
+            self.success_toast("", "数据已导出到应用根目录 ...")
 
         parent.add_action(
             Action(FluentIcon.SHARE, "导出", parent, triggered = triggered),
@@ -207,6 +210,9 @@ class CharacterizationPromptPage(QFrame, Base):
 
             # 向表格更新数据
             TableHelper.update_to_table(self.table, config["characterization_data"], CharacterizationPromptPage.KEYS)
+
+            # 从表格加载数据（去重后）
+            config["characterization_data"] = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
 
             # 保存配置文件
             config = self.save_config(config)

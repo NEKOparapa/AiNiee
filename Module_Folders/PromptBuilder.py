@@ -331,98 +331,76 @@ Third: Begin translating line by line from the original text, only translating {
 
     # 构造术语表
     def build_glossary_prompt(config: TranslatorConfig, input_dict: dict) -> tuple[str, str]:
-        # 获取字典内容
-        data = config.prompt_dictionary_content
-
         # 将输入字典中的所有值转换为集合
         lines = set(line for line in input_dict.values())
 
-        # 筛选并构建新字典
-        temp_dict = {
-            key: {"translation": value["translation"], "info": value.get("info")}
-            for key, value in data.items()
-            if any(key in lines for lines in lines)
-        }
+        # 筛选在输入词典中出现过的条目
+        result = [
+            v for v in config.prompt_dictionary_data
+            if any(v.get("srt") in lines for lines in lines)
+        ]
 
-        # 如果文本中没有含有字典内容
-        if not temp_dict:
+        # 数据校验
+        if len(result) == 0:
             return "", ""
 
         # 初始化变量，以免出错
         glossary_prompt_lines = []
-        glossary_prompt_cot_parts = []
+        glossary_prompt_lines_cot = []
 
-        if config.cn_prompt_toggle:
-            # 构建术语表prompt
-            glossary_prompt_lines.append("###术语表###")
-            glossary_prompt_lines.append("|\t原文\t|\t译文\t|\t备注\t|")
+        if config.cn_prompt_toggle == True:
+            # 添加开头
+            glossary_prompt_lines.append(
+                "###术语表###"
+                + "\n" + "|\t原文\t|\t译文\t|\t备注\t|"
+                + "\n" + ("-" * 50)
+            )
+            glossary_prompt_lines_cot.append("- 术语表：提供了")
+
+            # 添加数据
+            for v in result:
+                glossary_prompt_lines.append(f"|\t{v.get("src")}\t|\t{v.get("dst")}\t|\t{v.get("info") if v.get("info") != "" else " "}\t|")
+                glossary_prompt_lines_cot.append(f"“{v.get("src")}”（{v.get("dst")}）")
+
+            # 添加结尾
             glossary_prompt_lines.append("-" * 50)
-
-            # 构建术语表prompt-cot版
-            glossary_prompt_cot_parts.append("- 术语表：提供了")
-
-            for key, value in temp_dict.items():
-                if value.get("info"):
-                    glossary_prompt_lines.append(f"|\t{key}\t|\t{value['translation']}\t|\t{value['info']}\t|")
-                    glossary_prompt_cot_parts.append(f"“{key}”（{value['translation']}）")
-                else:
-                    glossary_prompt_lines.append(f"|\t{key}\t|\t{value['translation']}\t|\t \t|")
-                    glossary_prompt_cot_parts.append(f"“{key}”（{value['translation']}）")
-
-            glossary_prompt_lines.append("-" * 50)
-            glossary_prompt_cot_parts.append("术语及其解释")
+            glossary_prompt_lines_cot.append("术语及其解释")
         else:
-            # 构建术语表prompt
-            glossary_prompt_lines.append("###Glossary###")
-            glossary_prompt_lines.append("|\tOriginal Text\t|\tTranslation\t|\tRemarks\t|")
+            # 添加开头
+            glossary_prompt_lines.append(
+                "###Glossary###"
+                + "\n" + "|\tOriginal Text\t|\tTranslation\t|\tRemarks\t|"
+                + "\n" + ("-" * 50)
+            )
+            glossary_prompt_lines_cot.append("- Glossary:Provides terms such as")
+
+            # 添加数据
+            for v in result:
+                glossary_prompt_lines.append(f"|\t{v.get("src")}\t|\t{v.get("dst")}\t|\t{v.get("info") if v.get("info") != "" else " "}\t|")
+                glossary_prompt_lines_cot.append(f"“{v.get("src")}”（{v.get("dst")}）")
+
+            # 添加结尾
             glossary_prompt_lines.append("-" * 50)
-
-            # 构建术语表prompt-cot版
-            glossary_prompt_cot_parts.append("- Glossary:Provides terms such as")
-
-            for key, value in temp_dict.items():
-                if value.get("info"):
-                    glossary_prompt_lines.append(f"|\t{key}\t|\t{value['translation']}\t|\t{value['info']}\t|")
-                    glossary_prompt_cot_parts.append(f"“{key}”({value['translation']})")
-                else:
-                    glossary_prompt_lines.append(f"|\t{key}\t|\t{value['translation']}\t|\t \t|")
-                    glossary_prompt_cot_parts.append(f"“{key}”({value['translation']})")
-
-            glossary_prompt_lines.append("-" * 50)
-            glossary_prompt_cot_parts.append(" and their explanations.")
+            glossary_prompt_lines_cot.append(" and their explanations.")
 
         # 拼接成最终的字符串
         glossary_prompt = "\n".join(glossary_prompt_lines)
-        glossary_prompt_cot = "".join(glossary_prompt_cot_parts)
+        glossary_prompt_cot = "".join(glossary_prompt_lines_cot)
 
         return glossary_prompt, glossary_prompt_cot
 
-    # 构造术语表(sakura版本)
+    # 构造指令词典 Sakura
     def build_glossary_prompt_sakura(config: TranslatorConfig, input_dict: dict) -> list[dict]:
-        # 获取字典内容
-        data = config.prompt_dictionary_content
-
         # 将输入字典中的所有值转换为集合
         lines = set(line for line in input_dict.values())
 
-        # 筛选并构建新字典
-        temp_dict = {
-            key: {"translation": value["translation"], "info": value.get("info")}
-            for key, value in data.items()
-            if any(key in lines for lines in lines)
-        }
-
-        # 如果文本中没有含有字典内容
-        if not temp_dict:
-            return ""
-
-        # 构建最终的 glossary prompt
-        glossary_prompt = [
-            {"src": key, "dst": value["translation"], "info": value.get("info")}
-            for key, value in temp_dict.items()
+        # 筛选在输入词典中出现过的条目
+        result = [
+            v for v in config.prompt_dictionary_data
+            if any(v.get("src", "") in lines for lines in lines)
         ]
 
-        return glossary_prompt
+        return result
 
     # 构造角色设定
     def build_characterization(config: TranslatorConfig, input_dict: dict) -> tuple[str, str]:

@@ -40,13 +40,13 @@ class TableHelper():
         table.setRowCount(max(12, len(data)))
 
         # 去重
-        data_unique = {v[keys[0]]: v for v in data}
+        data_unique = {v.get(keys[0], ""): v for v in data}
         data = [v for v in data_unique.values()]
 
         # 遍历表格
         for row, v in enumerate(data):
             for col in range(table.columnCount()):
-                table.setItem(row, col, QTableWidgetItem(v[keys[col]]))
+                table.setItem(row, col, QTableWidgetItem(v.get(keys[col], "")))
 
     # 从文件加载数据
     def load_from_file(path: str, keys: list[str]) -> list[dict]:
