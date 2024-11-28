@@ -133,11 +133,11 @@ class TranslatorTask(Base):
         # 检查译文
         retry_flag = False
         if check_result == False:
-            # 如果检查到模型退化，且不是第一次请求
+            # 如果检查到模型退化，并且本次任务中退化标识为 False，则将重试标识设置为 True
             if "退化" in error_content and degradation_flag == False:
                 error = "译文文本中检查到模型退化现象，正在重试"
                 retry_flag = True
-            # 如果检查到模型退化，且是第一次请求，则再次请求
+            # 如果检查到模型退化，并且本次任务中退化标识为 True，则放弃本次任务
             elif "退化" in error_content and degradation_flag == True:
                 error = "译文文本中检查到模型退化现象，将在下一轮次的翻译中重新翻译"
             else:
@@ -151,8 +151,8 @@ class TranslatorTask(Base):
                         task_start_time,
                         prompt_tokens,
                         completion_tokens,
-                        [v for _, v in self.source_text_dict.items()],
-                        [v for _, v in response_dict.items()],
+                        self.source_text_dict.values(),
+                        response_dict.values(),
                         self.extra_log
                     )
                 )
@@ -177,14 +177,14 @@ class TranslatorTask(Base):
                         task_start_time,
                         prompt_tokens,
                         completion_tokens,
-                        [v for _, v in self.source_text_dict.items()],
-                        [v for _, v in response_dict.items()],
+                        self.source_text_dict.values(),
+                        response_dict.values(),
                         self.extra_log
                     )
                 )
             )
 
-        # 检查到退化且没有重试过时，重试
+        # 当重试标识为 True 时，重新发起请求
         # 否则返回译文检查的结果
         if retry_flag == True:
             return self.request(True)

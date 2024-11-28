@@ -57,7 +57,7 @@ class SystemPromptPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 "自定义基础指令",
-                "启用此功能后，将使用本页中设置的提示词向模型发送请求",
+                "启用此功能后，将使用本页中设置的提示词向模型发送请求（不支持 Sakura 模型）",
                 widget_init,
                 widget_callback,
             )

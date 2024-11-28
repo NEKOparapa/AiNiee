@@ -108,7 +108,9 @@ class CacheItem():
     # 设置译文
     def set_translated_text(self, translated_text: str) -> None:
         with self.lock:
-            self.translated_text = translated_text
+            # 有时候模型的回复反序列化以后会是 int 等非字符类型，所以这里要强制转换成字符串
+            # TODO:可能需要更好的处理方式
+            self.translated_text = str(translated_text)
 
     # 获取文件名
     def get_file_name(self) -> str:
