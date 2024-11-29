@@ -30,7 +30,7 @@ class GlossaryChecker(PluginBase):
 
     def on_event(self, event: str, config: TranslatorConfig, data: list[dict]) -> None:
         # 检查数据有效性
-        if event == None or len(event) <= 1:
+        if isinstance(data, list) == False or len(data) < 2:
             return
 
         # 初始化
@@ -40,8 +40,8 @@ class GlossaryChecker(PluginBase):
         # 如果指令词典未启用或者无内容，则跳过
         if (
             config.prompt_dictionary_switch == False
-            or config.prompt_dictionary_content == None
-            or len(config.prompt_dictionary_content) == 0
+            or config.prompt_dictionary_data == None
+            or len(config.prompt_dictionary_data) == 0
         ):
             return
 
@@ -62,8 +62,8 @@ class GlossaryChecker(PluginBase):
 
         # 生成词典
         glossary = {}
-        for k, v in config.prompt_dictionary_content.items():
-            glossary[k] = v.get("translation", "")
+        for v in config.prompt_dictionary_data:
+            glossary[v.get("src", "")] = v.get("dst", "")
 
         # 查找不匹配项目，查找范围限定在翻译状态为 已翻译 的条目内
         result = {}

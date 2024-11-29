@@ -8,23 +8,24 @@ from Widget.ComboBoxCard import ComboBoxCard
 
 class BasicSettingsPage(QFrame, Base):
 
-    DEFAULT = {
-        "lines_limit_switch": True,
-        "tokens_limit_switch": False,
-        "lines_limit": 15,
-        "tokens_limit": 384,
-        "pre_line_counts": 0,
-        "user_thread_counts": 0,
-        "request_timeout": 90,
-        "round_limit": 20,
-    }
-
     def __init__(self, text: str, window):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
-        # 载入配置文件
-        config = self.load_config()
+        # 默认配置
+        self.default = {
+            "lines_limit_switch": True,
+            "tokens_limit_switch": False,
+            "lines_limit": 15,
+            "tokens_limit": 384,
+            "pre_line_counts": 0,
+            "user_thread_counts": 0,
+            "request_timeout": 90,
+            "round_limit": 20,
+        }
+
+        # 载入并保存默认配置
+        config = self.save_config(self.load_config_from_default())
 
         # 设置容器
         self.vbox = QVBoxLayout(self)

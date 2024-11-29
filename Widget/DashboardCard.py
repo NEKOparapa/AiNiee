@@ -1,4 +1,4 @@
-from PyQt5.Qt import Qt
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QHBoxLayout
@@ -12,7 +12,7 @@ class DashboardCard(CardWidget):
 
     def __init__(self, title: str, value: str, unit: str, init = None, clicked = None):
         super().__init__(None)
-        
+
         # 设置容器
         self.setBorderRadius(4)
         self.container = QVBoxLayout(self)
@@ -44,10 +44,10 @@ class DashboardCard(CardWidget):
         self.unit_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
         self.unit_vbox.addSpacing(20)
         self.unit_vbox.addWidget(self.unit_label)
-        
+
         self.value_label = LargeTitleLabel(value, self)
         self.value_label.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
-        
+
         self.body_hbox.addStretch(1)
         self.body_hbox.addWidget(self.value_label, 1)
         self.body_hbox.addSpacing(6)

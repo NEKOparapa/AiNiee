@@ -1,45 +1,56 @@
-from PyQt5.Qt import Qt
-from PyQt5.QtWidgets import QFrame
-from PyQt5.QtWidgets import QHeaderView
-from PyQt5.QtWidgets import QVBoxLayout
-from PyQt5.QtWidgets import QTableWidgetItem
-
+import rapidjson as json
 from qfluentwidgets import Action
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import TableWidget
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QHeaderView
+from PyQt5.QtWidgets import QLayout
+from PyQt5.QtWidgets import QVBoxLayout
+from PyQt5.QtWidgets import QTableWidgetItem
 
 from Base.Base import Base
+from Module_Folders.TableHelper import TableHelper
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
+from User_Interface import AppFluentWindow
 
 class CharacterizationPromptPage(QFrame, Base):
 
-    DEFAULT = {
-        "characterization_switch": False,
-        "characterization_dictionary": {
-            "遠坂凛": {
-                "original_name": "遠坂凛",
-                "translated_name": "远坂凛",
-                "gender": "女",
-                "age": "少女",
-                "personality": "高傲，自满",
-                "speech_style": "大小姐，严厉",
-                "additional_info": "在人前言谈举止高雅，对所有人都用敬语，但在熟人面前本性其实是个爱恶作剧和捉弄自己喜欢的人的小恶魔。"
-            },
-        },
-    }
+    KEYS = (
+        "original_name",
+        "translated_name",
+        "gender",
+        "age",
+        "personality",
+        "speech_style",
+        "additional_info"
+    )
 
-    # 设置默认值填充模式为普通模式
-    FILL_MODE = Base.FILL_MODE
-    FILL_MODE.SELECT_MODE = FILL_MODE.NORMAL
-
-    def __init__(self, text: str, window):
-        super().__init__(window)
+    def __init__(self, text: str, window: AppFluentWindow) -> None:
+        super().__init__(parent = window)
         self.setObjectName(text.replace(" ", "-"))
 
-        # 载入配置文件
-        config = self.load_config()
+        # 默认配置
+        self.default = {
+            "characterization_switch": False,
+            "characterization_data": [
+                {
+                    "original_name": "遠坂凛",
+                    "translated_name": "远坂凛",
+                    "gender": "女",
+                    "age": "少女",
+                    "personality": "高傲，自满",
+                    "speech_style": "大小姐，严厉",
+                    "additional_info": "在人前言谈举止高雅，对所有人都用敬语，但在熟人面前本性其实是个爱恶作剧和捉弄自己喜欢的人的小恶魔。"
+                },
+            ],
+        }
+
+        # 载入并保存默认配置
+        config = self.save_config(self.load_config_from_default())
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -47,16 +58,17 @@ class CharacterizationPromptPage(QFrame, Base):
         self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
         # 添加控件
-        self.add_widget_header(self.container, config)
-        self.add_widget_body(self.container, config)
-        self.add_widget_footer(self.container, config, window)
+        self.add_widget_head(self.container, config, window)
+        self.add_widget_body(self.container, config, window)
+        self.add_widget_foot(self.container, config, window)
 
     # 头部
-    def add_widget_header(self, parent, config):
-        def widget_init(widget):
+    def add_widget_head(self, parent: QLayout, config: dict, window: AppFluentWindow) -> None:
+
+        def init(widget: SwitchButtonCard) -> None:
             widget.set_checked(config.get("characterization_switch"))
 
-        def widget_callback(widget, checked: bool):
+        def checked_changed(widget: SwitchButtonCard, checked: bool) -> None:
             config = self.load_config()
             config["characterization_switch"] = checked
             self.save_config(config)
@@ -65,15 +77,15 @@ class CharacterizationPromptPage(QFrame, Base):
             SwitchButtonCard(
                 "自定义角色介绍",
                 "启用此功能后，将根据本页中设置的信息构建提示词向模型发送请求，仅在逻辑能力强的模型上有效（不支持 Sakura 模型）",
-                widget_init,
-                widget_callback,
+                init = init,
+                checked_changed = checked_changed,
             )
         )
 
     # 主体
-    def add_widget_body(self, parent, config):
+    def add_widget_body(self, parent: QLayout, config: dict, window: AppFluentWindow) -> None:
 
-        def item_changed(item):
+        def item_changed(item: QTableWidgetItem) -> None:
             item.setTextAlignment(Qt.AlignCenter)
 
         self.table = TableWidget(self)
@@ -83,7 +95,7 @@ class CharacterizationPromptPage(QFrame, Base):
         self.table.setBorderRadius(4)
         self.table.setBorderVisible(True)
         self.table.setWordWrap(False)
-        self.table.setColumnCount(7)
+        self.table.setColumnCount(len(CharacterizationPromptPage.KEYS))
         self.table.resizeRowsToContents() # 设置行高度自适应内容
         self.table.resizeColumnsToContents() # 设置列宽度自适应内容
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch) # 撑满宽度
@@ -102,89 +114,79 @@ class CharacterizationPromptPage(QFrame, Base):
         ])
 
         # 向表格更新数据
-        self.update_to_table(self.table, config)
+        TableHelper.update_to_table(self.table, config.get("characterization_data"), CharacterizationPromptPage.KEYS)
 
     # 底部
-    def add_widget_footer(self, parent, config, window):
+    def add_widget_foot(self, parent: QLayout, config: dict, window: AppFluentWindow) -> None:
         self.command_bar_card = CommandBarCard()
         parent.addWidget(self.command_bar_card)
 
         # 添加命令
-        self.add_command_bar_action_01(self.command_bar_card)
-        self.add_command_bar_action_02(self.command_bar_card)
+        self.add_command_bar_action_import(self.command_bar_card, config, window)
+        self.add_command_bar_action_export(self.command_bar_card, config, window)
         self.command_bar_card.add_separator()
-        self.add_command_bar_action_03(self.command_bar_card)
-        self.add_command_bar_action_04(self.command_bar_card, window)
+        self.add_command_bar_action_add(self.command_bar_card, config, window)
+        self.add_command_bar_action_save(self.command_bar_card, config, window)
+        self.command_bar_card.add_separator()
+        self.add_command_bar_action_reset(self.command_bar_card, config, window)
 
-    # 向表格更新数据
-    def update_to_table(self, table, config):
-        datas = []
-        dictionary = config.get("characterization_dictionary", {})
+    # 导入
+    def add_command_bar_action_import(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
 
-        # 构建表格数据
-        for k, v in dictionary.items():
-            datas.append(
-                [
-                    v.get("original_name", "").strip(),
-                    v.get("translated_name", "").strip(),
-                    v.get("gender", "").strip(),
-                    v.get("age", "").strip(),
-                    v.get("personality", "").strip(),
-                    v.get("speech_style", "").strip(),
-                    v.get("additional_info", "").strip(),
-                ]
-            )
+        def triggered() -> None:
+            # 选择文件
+            path, _ = QFileDialog.getOpenFileName(None, "选择文件", "", "json 文件 (*.json);;xlsx 文件 (*.xlsx)")
+            if not isinstance(path, str) or path == "":
+                return
 
-        # 向表格中填充数据
-        table.setRowCount(max(12, len(dictionary)))
-        for row in range(len(datas)):
-            for col in range(table.columnCount()):
-                table.setItem(row, col, QTableWidgetItem(datas[row][col]))
+            # 从文件加载数据
+            data = TableHelper.load_from_file(path, CharacterizationPromptPage.KEYS)
 
-    # 从表格更新数据
-    def update_from_table(self, table, config):
-        config["characterization_dictionary"] = {}
+            # 读取配置文件
+            config = self.load_config()
+            config["characterization_data"].extend(data)
 
-        for row in range(table.rowCount()):
-            data_0 = table.item(row, 0)
-            data_1 = table.item(row, 1)
-            data_2 = table.item(row, 2)
-            data_3 = table.item(row, 3)
-            data_4 = table.item(row, 4)
-            data_5 = table.item(row, 5)
-            data_6 = table.item(row, 6)
+            # 向表格更新数据
+            TableHelper.update_to_table(self.table, config["characterization_data"], CharacterizationPromptPage.KEYS)
 
-            # 判断是否有数据
-            if data_0 == None:
-                continue
+            # 从表格加载数据（去重后）
+            config["characterization_data"] = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
 
-            data_0 = data_0.text().strip()
-            data_1 = data_1.text().strip() if data_1 != None else ""
-            data_2 = data_2.text().strip() if data_2 != None else ""
-            data_3 = data_3.text().strip() if data_3 != None else ""
-            data_4 = data_4.text().strip() if data_4 != None else ""
-            data_5 = data_5.text().strip() if data_5 != None else ""
-            data_6 = data_6.text().strip() if data_6 != None else ""
+            # 保存配置文件
+            config = self.save_config(config)
 
-            # 判断是否有数据
-            if data_0 == "":
-                continue
+            # 弹出提示
+            self.success_toast("", "数据已导入 ...")
 
-            config["characterization_dictionary"][data_0] = {
-                "original_name": data_0,
-                "translated_name": data_1,
-                "gender": data_2,
-                "age": data_3,
-                "personality": data_4,
-                "speech_style": data_5,
-                "additional_info": data_6,
-            }
+        parent.add_action(
+            Action(FluentIcon.DOWNLOAD, "导入", parent, triggered = triggered),
+        )
 
-        return config
+    # 导出
+    def add_command_bar_action_export(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
+
+        def triggered() -> None:
+            # 加载配置文件
+            config = self.load_config()
+
+            # 从表格加载数据
+            data = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
+
+            # 导出文件
+            with open(f"导出_角色介绍.json", "w", encoding = "utf-8") as writer:
+                writer.write(json.dumps(data, indent = 4, ensure_ascii = False))
+
+            # 弹出提示
+            self.success_toast("", "数据已导出到应用根目录 ...")
+
+        parent.add_action(
+            Action(FluentIcon.SHARE, "导出", parent, triggered = triggered),
+        )
 
     # 添加新行
-    def add_command_bar_action_01(self, parent):
-        def callback():
+    def add_command_bar_action_add(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
+
+        def triggered() -> None:
             # 添加新行
             self.table.setRowCount(self.table.rowCount() + 1)
 
@@ -192,39 +194,27 @@ class CharacterizationPromptPage(QFrame, Base):
             self.success_toast("", "新行已添加 ...")
 
         parent.add_action(
-            Action(FluentIcon.ADD_TO, "添加新行", parent, triggered = callback),
+            Action(FluentIcon.ADD_TO, "添加", parent, triggered = triggered),
         )
 
-    # 移除空行
-    def add_command_bar_action_02(self, parent):
-        def callback():
-            # 从表格更新数据，生成一个临时的配置文件
-            config = self.update_from_table(self.table, {})
+    # 保存
+    def add_command_bar_action_save(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
+
+        def triggered() -> None:
+            # 加载配置文件
+            config = self.load_config()
+
+            # 从表格加载数据
+            config["characterization_data"] = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
 
             # 清空表格
             self.table.clearContents()
 
             # 向表格更新数据
-            self.update_to_table(self.table, config)
+            TableHelper.update_to_table(self.table, config["characterization_data"], CharacterizationPromptPage.KEYS)
 
-            # 保存配置文件
-            config = self.save_config(config)
-
-            # 弹出提示
-            self.success_toast("", "空行已移除 ...")
-
-        parent.add_action(
-            Action(FluentIcon.BROOM, "移除空行", parent, triggered = callback),
-        )
-
-    # 保存
-    def add_command_bar_action_03(self, parent):
-        def callback():
-            # 读取配置文件
-            config = self.load_config()
-
-            # 从表格更新数据
-            config = self.update_from_table(self.table, config)
+            # 从表格加载数据（去重后）
+            config["characterization_data"] = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
 
             # 保存配置文件
             config = self.save_config(config)
@@ -233,12 +223,13 @@ class CharacterizationPromptPage(QFrame, Base):
             self.success_toast("", "数据已保存 ...")
 
         parent.add_action(
-            Action(FluentIcon.SAVE, "保存", parent, triggered = callback),
+            Action(FluentIcon.SAVE, "保存", parent, triggered = triggered),
         )
 
     # 重置
-    def add_command_bar_action_04(self, parent, window):
-        def callback():
+    def add_command_bar_action_reset(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
+
+        def triggered() -> None:
             message_box = MessageBox("警告", "是否确认重置为默认数据 ... ？", window)
             message_box.yesButton.setText("确认")
             message_box.cancelButton.setText("取消")
@@ -249,21 +240,21 @@ class CharacterizationPromptPage(QFrame, Base):
             # 清空表格
             self.table.clearContents()
 
-            # 读取配置文件
+            # 加载配置文件
             config = self.load_config()
 
             # 加载默认设置
-            config["characterization_dictionary"] = self.DEFAULT.get("characterization_dictionary")
+            config["characterization_data"] = self.default.get("characterization_data")
 
             # 保存配置文件
             config = self.save_config(config)
 
             # 向表格更新数据
-            self.update_to_table(self.table, config)
+            TableHelper.update_to_table(self.table, config.get("characterization_data"), CharacterizationPromptPage.KEYS)
 
             # 弹出提示
             self.success_toast("", "数据已重置 ...")
 
         parent.add_action(
-            Action(FluentIcon.DELETE, "重置", parent, triggered = callback),
+            Action(FluentIcon.DELETE, "重置", parent, triggered = triggered),
         )

@@ -1,6 +1,6 @@
 
-from PyQt5.Qt import Qt
-from PyQt5.Qt import QEvent
+from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QEvent
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
@@ -15,28 +15,29 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 
 class MixTranslationSettingsPage(QFrame, Base):
 
-    DEFAULT = {
-        "mix_translation_enable": False,
-        "mix_translation_settings": {
-            "translation_platform_1": "openai",
-            "translation_platform_2": "openai",
-            "model_type_2": "",
-            "split_switch_2": False,
-            "translation_platform_3": "openai",
-            "model_type_3": "",
-            "split_switch_3": False
-        },
-    }
-
     def __init__(self, text: str, window):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
+        # 默认配置
+        self.default = {
+            "mix_translation_enable": False,
+            "mix_translation_settings": {
+                "translation_platform_1": "openai",
+                "translation_platform_2": "openai",
+                "model_type_2": "",
+                "split_switch_2": False,
+                "translation_platform_3": "openai",
+                "model_type_3": "",
+                "split_switch_3": False
+            },
+        }
+
+        # 载入并保存默认配置
+        config = self.save_config(self.load_config_from_default())
+
         # 初始化事件列表
         self.on_show_event = []
-
-        # 载入配置文件
-        config = self.load_config()
 
         # 设置主容器
         self.container = QVBoxLayout(self)

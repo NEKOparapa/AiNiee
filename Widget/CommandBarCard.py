@@ -1,4 +1,4 @@
-from PyQt5.Qt import Qt
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QHBoxLayout
 
 from qfluentwidgets import CardWidget

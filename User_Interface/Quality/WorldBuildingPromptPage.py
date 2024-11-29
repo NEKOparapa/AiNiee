@@ -12,19 +12,20 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 
 class WorldBuildingPromptPage(QFrame, Base):
 
-    DEFAULT = {
-        "world_building_switch": False,
-        "world_building_content": (
-            "故事发生在魔法世界，到三十岁还保持童真，就可以学会大火球魔法，成为魔法师。"
-        ),
-    }
-
     def __init__(self, text: str, window):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
-        # 载入配置文件
-        config = self.load_config()
+        # 默认配置
+        self.default = {
+            "world_building_switch": False,
+            "world_building_content": (
+                "故事发生在魔法世界，到三十岁还保持童真，就可以学会大火球魔法，成为魔法师。"
+            ),
+        }
+
+        # 载入并保存默认配置
+        config = self.save_config(self.load_config_from_default())
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -105,11 +106,10 @@ class WorldBuildingPromptPage(QFrame, Base):
             config = self.load_config()
 
             # 加载默认设置
-            for k, v in self.DEFAULT.items():
-                config[k] = v
+            config["world_building_content"] = self.default.get("world_building_content")
 
-            # 加载默认设置
-            config["world_building_content"] = self.DEFAULT.get("world_building_content")
+            # 保存配置文件
+            config = self.save_config(config)
 
             # 向控件更新数据
             self.plain_text_edit.setPlainText(config.get("world_building_content"))

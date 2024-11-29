@@ -4,7 +4,7 @@ import copy
 import random
 from functools import partial
 
-from PyQt5.Qt import QUrl
+from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
@@ -72,8 +72,6 @@ class PlatformPage(QFrame, Base):
             "frequency_penalty",
         ],
     }
-
-    DEFAULT = {}
 
     def __init__(self, text: str, window):
         super().__init__(window)

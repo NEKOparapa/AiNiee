@@ -3,8 +3,8 @@ import sys
 import json
 import subprocess
 
-from PyQt5.Qt import Qt
-from PyQt5.Qt import QTimer
+from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QFileDialog
@@ -23,19 +23,20 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 
 class AppSettingsPage(QWidget, Base):
 
-    DEFAULT = {
-        "proxy_url": "",
-        "proxy_enable": False,
-        "font_hinting": True,
-        "scale_factor": "自动",
-    }
-
     def __init__(self, text: str, window):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
-        # 载入配置文件
-        config = self.load_config()
+        # 默认配置
+        self.default = {
+            "proxy_url": "",
+            "proxy_enable": False,
+            "font_hinting": True,
+            "scale_factor": "自动",
+        }
+
+        # 载入并保存默认配置
+        config = self.save_config(self.load_config_from_default())
 
         # 设置主容器
         self.container = QVBoxLayout(self)

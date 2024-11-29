@@ -24,7 +24,7 @@ class MToolOptimizer(PluginBase):
 
     def on_event(self, event: str, config: TranslatorConfig, data: list[dict]) -> None:
         # 检查数据有效性
-        if event == None or len(event) <= 1:
+        if isinstance(data, list) == False or len(data) < 2:
             return
 
         # 初始化

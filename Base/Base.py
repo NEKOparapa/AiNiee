@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import rapidjson as json
 from rich import print
-from PyQt5.Qt import Qt
+from PyQt5.QtCore import Qt
 from qfluentwidgets import InfoBar
 from qfluentwidgets import InfoBarPosition
 
@@ -33,11 +33,6 @@ class Status(SimpleNamespace):
     TRANSLATING = 3000                              # 翻译中
     STOPING = 4000                                  # 停止中
 
-class FillMode(SimpleNamespace):
-
-    NORMAL = 10                                     # 普通填充，只填充配置字典的直接字段
-    TRAVERSAL = 20                                  # 遍历填充，遍历默认配置字典中所有子字典，填充所有不存在的值
-
 class Base():
 
     # 事件列表
@@ -45,13 +40,6 @@ class Base():
 
     # 状态列表
     STATUS = Status()
-
-    # 默认配置数据的填充模式
-    FILL_MODE = FillMode()
-    FILL_MODE.SELECT_MODE = FILL_MODE.TRAVERSAL     # 默认为遍历填充
-
-    # 默认配置
-    DEFAULT = {}
 
     # 配置文件路径
     CONFIG_PATH = "./Resource/config.json"
@@ -62,15 +50,14 @@ class Base():
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
+        # 默认配置
+        self.default = {}
+
         # 获取事件管理器单例
         self.event_manager_singleton = EventManager()
 
         # 类变量
         Base.work_status = Base.STATUS.IDLE if not hasattr(Base, "work_status") else Base.work_status
-
-        # 载入并保存默认配置
-        if len(self.DEFAULT) > 0:
-            self.save_config(self.load_config_from_default(self.FILL_MODE.SELECT_MODE))
 
     # PRINT
     def print(self, msg: str) -> None:
@@ -191,21 +178,17 @@ class Base():
         return old
 
     # 更新配置
-    def fill_config(self, old: dict, new: dict, mode: int) -> dict:
+    def fill_config(self, old: dict, new: dict) -> dict:
         for k, v in new.items():
             if k not in old.keys():
                 old[k] = v
-            elif mode == self.FILL_MODE.TRAVERSAL and type(old[k]) == dict and type(v) == dict:
-                self.fill_config(old[k], v, mode)
 
         return old
 
     # 用默认值更新并加载配置文件
-    def load_config_from_default(self, mode: int) -> None:
+    def load_config_from_default(self) -> None:
         config = self.load_config()
-
-        if len(self.DEFAULT) > 0:
-            config = self.fill_config(config, self.DEFAULT, mode)
+        config = self.fill_config(config, getattr(self, "default", {}))
 
         return config
 

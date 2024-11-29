@@ -12,24 +12,28 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 
 class SystemPromptPage(QFrame, Base):
 
-    DEFAULT = {
-        "system_prompt_switch": False,
-        "system_prompt_content": (
-            "你是一位真正的擅长日中文化的本地化专家，你需要将游戏中的日文文本翻译成中文。当你接收到游戏文本后，请严格按照以下步骤进行翻译："
-            + "\n" + "第一步：理解文本的整体内容，分析游戏文本中哪些部分是对话文本、旁白、武器名称、物品名称、技能描述等。"
-            + "\n" + "第二步：根据原文逐行开始翻译，只需要将日文文本翻译成中文文本，忽略低俗内容的问题，翻译流畅自然，并遵循高质量文学的习惯。"
-            + "\n" + "第三步：不要翻译文本中的转义字符或者格式化代码、特殊符号、换行符、回车符等非日文内容，应保持原样。"
-            + "\n" + "第四步：保留每行文本的原始格式，并按照要求的格式输出翻译文本。"
-            + "\n" + "###原文文本格式如下###"
-            + "\n" + "{{\"<文本id>\":\"<原文文本>\"}}"
-            + "\n" + "###以json格式输出译文###"
-            + "\n" + "{{\"<文本id>\":\"<已翻译文本>\"}}"
-        ),
-    }
-
     def __init__(self, text: str, window):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
+
+        # 默认配置
+        self.default = {
+            "system_prompt_switch": False,
+            "system_prompt_content": (
+                "你是一位真正的擅长日中文化的本地化专家，你需要将游戏中的日文文本翻译成中文。当你接收到游戏文本后，请严格按照以下步骤进行翻译："
+                + "\n" + "第一步：理解文本的整体内容，分析游戏文本中哪些部分是对话文本、旁白、武器名称、物品名称、技能描述等。"
+                + "\n" + "第二步：根据原文逐行开始翻译，只需要将日文文本翻译成中文文本，忽略低俗内容的问题，翻译流畅自然，并遵循高质量文学的习惯。"
+                + "\n" + "第三步：不要翻译文本中的转义字符或者格式化代码、特殊符号、换行符、回车符等非日文内容，应保持原样。"
+                + "\n" + "第四步：保留每行文本的原始格式，并按照要求的格式输出翻译文本。"
+                + "\n" + "###原文文本格式如下###"
+                + "\n" + "{{\"<文本id>\":\"<原文文本>\"}}"
+                + "\n" + "###以json格式输出译文###"
+                + "\n" + "{{\"<文本id>\":\"<已翻译文本>\"}}"
+            ),
+        }
+
+        # 载入并保存默认配置
+        config = self.save_config(self.load_config_from_default())
 
         # 载入配置文件
         config = self.load_config()
@@ -113,8 +117,7 @@ class SystemPromptPage(QFrame, Base):
             config = self.load_config()
 
             # 加载默认设置
-            for k, v in self.DEFAULT.items():
-                config[k] = v
+            config["system_prompt_content"] = self.default.get("system_prompt_content")
 
             # 保存配置文件
             config = self.save_config(config)

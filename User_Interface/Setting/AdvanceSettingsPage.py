@@ -15,26 +15,27 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 
 class AdvanceSettingsPage(QFrame, Base):
 
-    DEFAULT = {
-        "cot_toggle": False,
-        "cn_prompt_toggle": True,
-        "preserve_line_breaks_toggle": True,
-        "preserve_prefix_and_suffix_codes": True,
-        "response_conversion_toggle": False,
-        "opencc_preset": "s2t",
-        "reply_check_switch": {
-            "Model Degradation Check": True,
-            "Residual Original Text Check": True,
-            "Return to Original Text Check": True,
-        },
-    }
-
     def __init__(self, text: str, window):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
-        # 载入配置文件
-        config = self.load_config()
+        # 默认配置
+        self.default = {
+            "cot_toggle": False,
+            "cn_prompt_toggle": True,
+            "preserve_line_breaks_toggle": True,
+            "preserve_prefix_and_suffix_codes": True,
+            "response_conversion_toggle": False,
+            "opencc_preset": "s2t",
+            "reply_check_switch": {
+                "Model Degradation Check": True,
+                "Residual Original Text Check": True,
+                "Return to Original Text Check": True,
+            },
+        }
+
+        # 载入并保存默认配置
+        config = self.save_config(self.load_config_from_default())
 
         # 设置主容器
         self.vbox = QVBoxLayout(self)

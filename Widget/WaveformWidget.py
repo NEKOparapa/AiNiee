@@ -1,7 +1,7 @@
 import time
 
-from PyQt5.Qt import Qt
-from PyQt5.Qt import QTimer
+from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QFont
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QLabel
