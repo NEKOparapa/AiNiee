@@ -337,7 +337,7 @@ Third: Begin translating line by line from the original text, only translating {
         # 筛选在输入词典中出现过的条目
         result = [
             v for v in config.prompt_dictionary_data
-            if any(v.get("srt") in lines for lines in lines)
+            if any(v.get("src") in lines for lines in lines)
         ]
 
         # 数据校验
@@ -565,17 +565,14 @@ Third: Begin translating line by line from the original text, only translating {
 
     # 构建翻译示例
     def build_translation_example(config: TranslatorConfig) -> tuple[str, str]:
-        data = config.translation_example_content
+        data = config.translation_example_data
 
-        # 将数据存储到中间字典中
-        temp_dict = {key: value for key, value in data.items()}
-
-        if not temp_dict:
+        # 数据校验
+        if len(data) == 0:
             return "", ""
 
-        # 使用 json.dumps 进行序列化
-        original_example = json.dumps({str(i): key for i, key in enumerate(temp_dict)}, ensure_ascii = False)
-        translated_example = json.dumps({str(i): value for i, value in enumerate(temp_dict.values())}, ensure_ascii = False)
+        original_example = json.dumps({str(i): v.get("src") for i, v in enumerate(data)}, ensure_ascii = False)
+        translated_example = json.dumps({str(i): v.get("dst") for i, v in enumerate(data)}, ensure_ascii = False)
 
         return original_example, translated_example
 

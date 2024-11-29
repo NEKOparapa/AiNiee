@@ -18,6 +18,7 @@ from User_Interface import AppFluentWindow
 
 class PromptDictionaryPage(QFrame, Base):
 
+    # 表格每列对应的数据字段
     KEYS = (
         "src",
         "dst",
