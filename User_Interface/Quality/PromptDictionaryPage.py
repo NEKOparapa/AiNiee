@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QHeaderView
 from PyQt5.QtWidgets import QLayout
 from PyQt5.QtWidgets import QVBoxLayout
+from PyQt5.QtWidgets import QTableWidgetItem
 
 from Base.Base import Base
 from Module_Folders.TableHelper import TableHelper
@@ -76,7 +77,7 @@ class PromptDictionaryPage(QFrame, Base):
     # 主体
     def add_widget_body(self, parent: QLayout, config: dict, window: AppFluentWindow) -> None:
 
-        def item_changed(item) -> None:
+        def item_changed(item: QTableWidgetItem) -> None:
             item.setTextAlignment(Qt.AlignCenter)
 
         self.table = TableWidget(self)
