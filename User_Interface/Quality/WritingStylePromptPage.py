@@ -12,19 +12,20 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 
 class WritingStylePromptPage(QFrame, Base):
 
-    DEFAULT = {
-        "writing_style_switch": False,
-        "writing_style_content": (
-            "翻译需保持原文的叙述风格，适当增加文艺性描述，体现人物的情感和环境氛围。"
-        ),
-    }
-
     def __init__(self, text: str, window):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
-        # 载入配置文件
-        config = self.load_config()
+        # 默认配置
+        self.default = {
+            "writing_style_switch": False,
+            "writing_style_content": (
+                "翻译需保持原文的叙述风格，适当增加文艺性描述，体现人物的情感和环境氛围。"
+            ),
+        }
+
+        # 载入并保存默认配置
+        config = self.save_config(self.load_config_from_default())
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -105,11 +106,10 @@ class WritingStylePromptPage(QFrame, Base):
             config = self.load_config()
 
             # 加载默认设置
-            for k, v in self.DEFAULT.items():
-                config[k] = v
+            config["writing_style_content"] = self.default.get("writing_style_content")
 
-            # 加载默认设置
-            config["writing_style_content"] = self.DEFAULT.get("writing_style_content")
+            # 保存配置文件
+            config = self.save_config(config)
 
             # 向控件更新数据
             self.plain_text_edit.setPlainText(config.get("writing_style_content"))

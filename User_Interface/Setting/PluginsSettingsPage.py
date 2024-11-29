@@ -1,6 +1,4 @@
-
-
-from PyQt5.Qt import Qt
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
@@ -12,19 +10,20 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 
 class PluginsSettingsPage(QFrame, Base):
 
-    DEFAULT = {
-        "plugins_enable": {},
-    }
-
     def __init__(self, text: str, window, plugin_manager = None):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
+        # 默认配置
+        self.default = {
+            "plugins_enable": {},
+        }
+
+        # 载入并保存默认配置
+        config = self.save_config(self.load_config_from_default())
+
         # 插件管理器
         self.plugin_manager = plugin_manager
-
-        # 载入配置文件
-        config = self.load_config()
 
         # 设置主容器
         self.container = QVBoxLayout(self)

@@ -25,17 +25,18 @@ class TextReplaceAPage(QFrame, Base):
         "dst",
     )
 
-    DEFAULT = {
-        "pre_translation_switch": True,
-        "pre_translation_data" : [],
-    }
-
     def __init__(self, text: str, window: AppFluentWindow) -> None:
         super().__init__(parent = window)
         self.setObjectName(text.replace(" ", "-"))
 
-        # 载入配置文件
-        config = self.load_config()
+        # 默认配置
+        self.default = {
+            "pre_translation_switch": True,
+            "pre_translation_data" : [],
+        }
+
+        # 载入并保存默认配置
+        config = self.save_config(self.load_config_from_default())
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -223,7 +224,7 @@ class TextReplaceAPage(QFrame, Base):
             config = self.load_config()
 
             # 加载默认设置
-            config["pre_translation_data"] = self.DEFAULT.get("pre_translation_data")
+            config["pre_translation_data"] = self.default.get("pre_translation_data")
 
             # 保存配置文件
             config = self.save_config(config)

@@ -1,8 +1,8 @@
 import os
 import json
 
-from PyQt5.Qt import Qt
-from PyQt5.Qt import QUrl
+from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QUrl
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
 
@@ -14,8 +14,6 @@ from Base.Base import Base
 from Widget.SliderCard import SliderCard
 
 class ArgsEditPage(MessageBoxBase, Base):
-
-    DEFAULT = {}
 
     def __init__(self, window, key):
         super().__init__(window)

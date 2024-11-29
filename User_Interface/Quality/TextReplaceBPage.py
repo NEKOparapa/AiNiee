@@ -25,30 +25,31 @@ class TextReplaceBPage(QFrame, Base):
         "dst",
     )
 
-    DEFAULT = {
-        "post_translation_switch": True,
-        "post_translation_data" : [
-            {
-                "src": "…。",
-                "dst": "…",
-            },
-            {
-                "src": "学姐",
-                "dst": "前辈",
-            },
-            {
-                "src": "学长",
-                "dst": "前辈",
-            },
-        ],
-    }
-
     def __init__(self, text: str, window: AppFluentWindow) -> None:
         super().__init__(parent = window)
         self.setObjectName(text.replace(" ", "-"))
 
-        # 载入配置文件
-        config = self.load_config()
+        # 默认配置
+        self.default = {
+            "post_translation_switch": True,
+            "post_translation_data" : [
+                {
+                    "src": "…。",
+                    "dst": "…",
+                },
+                {
+                    "src": "学姐",
+                    "dst": "前辈",
+                },
+                {
+                    "src": "学长",
+                    "dst": "前辈",
+                },
+            ],
+        }
+
+        # 载入并保存默认配置
+        config = self.save_config(self.load_config_from_default())
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -236,7 +237,7 @@ class TextReplaceBPage(QFrame, Base):
             config = self.load_config()
 
             # 加载默认设置
-            config["post_translation_data"] = self.DEFAULT.get("post_translation_data")
+            config["post_translation_data"] = self.default.get("post_translation_data")
 
             # 保存配置文件
             config = self.save_config(config)

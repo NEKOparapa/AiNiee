@@ -24,8 +24,6 @@ from Widget.CommandBarCard import CommandBarCard
 
 class TranslationPage(QWidget, Base):
 
-    DEFAULT = {}
-
     STATUS_TEXT = {
         Base.STATUS.IDLE: "无任务",
         Base.STATUS.API_TEST: "测试中",
@@ -38,7 +36,6 @@ class TranslationPage(QWidget, Base):
         self.setObjectName(text.replace(" ", "-"))
 
         # 初始化
-        self.window = window
         self.data = {}
 
         # 载入配置文件

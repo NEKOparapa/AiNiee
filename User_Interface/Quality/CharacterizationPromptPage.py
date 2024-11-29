@@ -29,27 +29,28 @@ class CharacterizationPromptPage(QFrame, Base):
         "additional_info"
     )
 
-    DEFAULT = {
-        "characterization_switch": False,
-        "characterization_data": [
-            {
-                "original_name": "遠坂凛",
-                "translated_name": "远坂凛",
-                "gender": "女",
-                "age": "少女",
-                "personality": "高傲，自满",
-                "speech_style": "大小姐，严厉",
-                "additional_info": "在人前言谈举止高雅，对所有人都用敬语，但在熟人面前本性其实是个爱恶作剧和捉弄自己喜欢的人的小恶魔。"
-            },
-        ],
-    }
-
     def __init__(self, text: str, window: AppFluentWindow) -> None:
         super().__init__(parent = window)
         self.setObjectName(text.replace(" ", "-"))
 
-        # 载入配置文件
-        config = self.load_config()
+        # 默认配置
+        self.default = {
+            "characterization_switch": False,
+            "characterization_data": [
+                {
+                    "original_name": "遠坂凛",
+                    "translated_name": "远坂凛",
+                    "gender": "女",
+                    "age": "少女",
+                    "personality": "高傲，自满",
+                    "speech_style": "大小姐，严厉",
+                    "additional_info": "在人前言谈举止高雅，对所有人都用敬语，但在熟人面前本性其实是个爱恶作剧和捉弄自己喜欢的人的小恶魔。"
+                },
+            ],
+        }
+
+        # 载入并保存默认配置
+        config = self.save_config(self.load_config_from_default())
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -243,7 +244,7 @@ class CharacterizationPromptPage(QFrame, Base):
             config = self.load_config()
 
             # 加载默认设置
-            config["characterization_data"] = self.DEFAULT.get("characterization_data")
+            config["characterization_data"] = self.default.get("characterization_data")
 
             # 保存配置文件
             config = self.save_config(config)

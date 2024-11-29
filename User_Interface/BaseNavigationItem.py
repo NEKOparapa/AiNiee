@@ -1,4 +1,4 @@
-from PyQt5.Qt import Qt
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QHBoxLayout
 
@@ -12,7 +12,7 @@ class BaseNavigationItem(QWidget):
 
         self.label = SubtitleLabel("", self)
         self.label.setAlignment(Qt.AlignCenter)
-        
+
         self.hBoxLayout = QHBoxLayout(self)
         self.hBoxLayout.addWidget(self.label, 1, Qt.AlignCenter)
 

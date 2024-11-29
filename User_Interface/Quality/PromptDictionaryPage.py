@@ -26,23 +26,24 @@ class PromptDictionaryPage(QFrame, Base):
         "info",
     )
 
-    DEFAULT = {
-        "prompt_dictionary_switch": True,
-        "prompt_dictionary_data": [
-            {
-                "src": "ダリヤ",
-                "dst": "达莉雅",
-                "info": "女性的名字",
-            }
-        ],
-    }
-
     def __init__(self, text: str, window: AppFluentWindow) -> None:
         super().__init__(parent = window)
         self.setObjectName(text.replace(" ", "-"))
 
-        # 载入配置文件
-        config = self.load_config()
+        # 默认配置
+        self.default = {
+            "prompt_dictionary_switch": True,
+            "prompt_dictionary_data": [
+                {
+                    "src": "ダリヤ",
+                    "dst": "达莉雅",
+                    "info": "女性的名字",
+                }
+            ],
+        }
+
+        # 载入并保存默认配置
+        config = self.save_config(self.load_config_from_default())
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -234,7 +235,7 @@ class PromptDictionaryPage(QFrame, Base):
             config = self.load_config()
 
             # 加载默认设置
-            config["prompt_dictionary_data"] = self.DEFAULT.get("prompt_dictionary_data")
+            config["prompt_dictionary_data"] = self.default.get("prompt_dictionary_data")
 
             # 保存配置文件
             config = self.save_config(config)

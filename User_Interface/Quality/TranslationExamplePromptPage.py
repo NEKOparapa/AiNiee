@@ -25,22 +25,23 @@ class TranslationExamplePromptPage(QFrame, Base):
         "dst",
     )
 
-    DEFAULT = {
-        "translation_example_switch": False,
-        "translation_example_data" : [
-            {
-                "src": "結婚前日、目の前の婚約者はそう言った。",
-                "dst": "婚前一日，其婚約者前，如是云。",
-            }
-        ],
-    }
-
     def __init__(self, text: str, window: AppFluentWindow) -> None:
         super().__init__(parent = window)
         self.setObjectName(text.replace(" ", "-"))
 
-        # 载入配置文件
-        config = self.load_config()
+        # 默认配置
+        self.default = {
+            "translation_example_switch": False,
+            "translation_example_data" : [
+                {
+                    "src": "結婚前日、目の前の婚約者はそう言った。",
+                    "dst": "婚前一日，其婚約者前，如是云。",
+                }
+            ],
+        }
+
+        # 载入并保存默认配置
+        config = self.save_config(self.load_config_from_default())
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -231,7 +232,7 @@ class TranslationExamplePromptPage(QFrame, Base):
             config = self.load_config()
 
             # 加载默认设置
-            config["translation_example_data"] = self.DEFAULT.get("translation_example_data")
+            config["translation_example_data"] = self.default.get("translation_example_data")
 
             # 保存配置文件
             config = self.save_config(config)

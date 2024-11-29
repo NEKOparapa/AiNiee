@@ -1,4 +1,4 @@
-from PyQt5.Qt import Qt
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
 
@@ -14,8 +14,6 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 from Widget.EditableComboBoxCard import EditableComboBoxCard
 
 class APIEditPage(MessageBoxBase, Base):
-
-    DEFAULT = {}
 
     def __init__(self, window, key):
         super().__init__(window)

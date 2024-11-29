@@ -1,4 +1,4 @@
-from PyQt5.Qt import QUrl
+from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication
 
@@ -45,15 +45,16 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
     THEME_COLOR = "#8A95A9"
 
-    DEFAULT = {
-        "theme": "dark",
-    }
-
     def __init__(self, version: str, plugin_manager: PluginManager) -> None:
         super().__init__()
 
-        # 载入配置文件
-        config = self.load_config()
+        # 默认配置
+        self.default = {
+            "theme": "dark",
+        }
+
+        # 载入并保存默认配置
+        config = self.save_config(self.load_config_from_default())
 
         # 打印日志
         if self.is_debug():
