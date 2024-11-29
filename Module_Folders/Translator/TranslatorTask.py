@@ -317,23 +317,23 @@ class TranslatorTask(Base):
 
     # 译前替换
     def replace_before_translation(self, text_dict: dict) -> dict:
-        pair = self.config.pre_translation_content.items()
+        data: list[dict] = self.config.pre_translation_data
+
         for k in text_dict:
-            text = text_dict[k]
-            for src, dst in pair:
-                text = text.replace(src, dst)
-            text_dict[k] = text
+            for v in data:
+                if v.get("src", "") in text_dict[k]:
+                    text_dict[k] = text_dict[k].replace(v.get("src", ""), v.get("dst", ""))
 
         return text_dict
 
     # 译前替换
     def replace_after_translation(self, text_dict: dict) -> dict:
-        pair = self.config.post_translation_content.items()
+        data: list[dict] = self.config.post_translation_data
+
         for k in text_dict:
-            text = text_dict[k]
-            for src, dst in pair:
-                text = text.replace(src, dst)
-            text_dict[k] = text
+            for v in data:
+                if v.get("src", "") in text_dict[k]:
+                    text_dict[k] = text_dict[k].replace(v.get("src", ""), v.get("dst", ""))
 
         return text_dict
 
