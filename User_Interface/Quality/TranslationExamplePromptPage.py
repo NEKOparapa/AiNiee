@@ -159,7 +159,7 @@ class TranslationExamplePromptPage(QFrame, Base):
             data = TableHelper.load_from_table(self.table, TranslationExamplePromptPage.KEYS)
 
             # 导出文件
-            with open(f"导出_指令词典.json", "w", encoding = "utf-8") as writer:
+            with open(f"导出_翻译风格示例.json", "w", encoding = "utf-8") as writer:
                 writer.write(json.dumps(data, indent = 4, ensure_ascii = False))
 
             # 弹出提示
