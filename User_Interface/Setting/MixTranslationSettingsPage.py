@@ -26,10 +26,10 @@ class MixTranslationSettingsPage(QFrame, Base):
                 "translation_platform_1": "openai",
                 "translation_platform_2": "openai",
                 "model_type_2": "",
-                "split_switch_2": False,
+                "split_switch_2": True,
                 "translation_platform_3": "openai",
                 "model_type_3": "",
-                "split_switch_3": False
+                "split_switch_3": True,
             },
         }
 

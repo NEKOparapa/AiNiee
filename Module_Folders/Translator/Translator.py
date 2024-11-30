@@ -310,12 +310,12 @@ class Translator(Base):
         if current_round == 0:
             target_platform = self.config.mix_translation_settings.get("translation_platform_1")
         elif current_round == 1:
-            split = not self.config.mix_translation_settings.get("split_switch_2") # 这里需要注意，设置值为 “不进行切分” 的开关，所以判断是否要进行切分时要取反
+            split = self.config.mix_translation_settings.get("split_switch_2")
             target_platform = self.config.mix_translation_settings.get("translation_platform_2")
             if self.config.mix_translation_settings.get("model_type_2") != "":
                 model = self.config.mix_translation_settings.get("model_type_2")
         elif current_round >= 2:
-            split = not self.config.mix_translation_settings.get("split_switch_3") # 这里需要注意，设置值为 “不进行切分” 的开关，所以判断是否要进行切分时要取反
+            split = self.config.mix_translation_settings.get("split_switch_3")
             target_platform = self.config.mix_translation_settings.get("translation_platform_3")
             if self.config.mix_translation_settings.get("model_type_3") != "":
                 model = self.config.mix_translation_settings.get("model_type_3")
