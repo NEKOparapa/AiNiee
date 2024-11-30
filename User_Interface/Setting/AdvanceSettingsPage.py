@@ -57,27 +57,8 @@ class AdvanceSettingsPage(QFrame, Base):
         # 填充
         self.vbox.addStretch(1)
 
-    # 思维链模式
-    def add_widget_01(self, parent, config):
-        def widget_init(widget):
-            widget.set_checked(config.get("cot_toggle"))
-
-        def widget_callback(widget, checked: bool):
-            config = self.load_config()
-            config["cot_toggle"] = checked
-            self.save_config(config)
-
-        parent.addWidget(
-            SwitchButtonCard(
-                "思维链模式",
-                "思维链（CoT）是一种高级指令模式，在逻辑能力强的模型上可以取得更好的翻译效果，会消耗更多 Token（不支持 Sakura 模型）",
-                widget_init,
-                widget_callback,
-            )
-        )
-
     # 中文提示词
-    def add_widget_02(self, parent, config):
+    def add_widget_01(self, parent, config):
         def widget_init(widget):
             widget.set_checked(config.get("cn_prompt_toggle"))
 
@@ -90,6 +71,25 @@ class AdvanceSettingsPage(QFrame, Base):
             SwitchButtonCard(
                 "中文提示词",
                 "启用此功能后将使用中文提示词，不启用则使用英文提示词（Sakura 模型固定为中文提示词，无需启用此功能）",
+                widget_init,
+                widget_callback,
+            )
+        )
+
+    # 思维链模式
+    def add_widget_02(self, parent, config):
+        def widget_init(widget):
+            widget.set_checked(config.get("cot_toggle"))
+
+        def widget_callback(widget, checked: bool):
+            config = self.load_config()
+            config["cot_toggle"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                "思维链模式",
+                "思维链（CoT）是一种高级指令模式，在逻辑能力强的模型上可以取得更好的翻译效果，会消耗更多 Token（不支持 Sakura 模型）",
                 widget_init,
                 widget_callback,
             )
@@ -108,7 +108,7 @@ class AdvanceSettingsPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 "保留句内换行符",
-                "启用此功能后将尝试保留每个句子内的换行符",
+                "启用此功能后，将尝试保留每个句子内的换行符",
                 widget_init,
                 widget_callback,
             )
@@ -127,7 +127,7 @@ class AdvanceSettingsPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 "保留首尾代码段",
-                "启用此功能后将尝试保留每个句子首尾的代码段",
+                "启用此功能后，将在翻译前移除每行文本开头和结尾的代码段并在翻译后还原",
                 widget_init,
                 widget_callback,
             )
@@ -146,7 +146,7 @@ class AdvanceSettingsPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 "自动简繁转换",
-                "启用此功能后在翻译完成时将按照设置的字形映射规则进行简繁转换",
+                "启用此功能后，在翻译完成时将按照设置的字形映射规则进行简繁转换",
                 widget_init,
                 widget_callback,
             )
@@ -212,7 +212,7 @@ class AdvanceSettingsPage(QFrame, Base):
         parent.addWidget(
             FlowCard(
                 "翻译结果检查",
-                "将在翻译结果中检查激活的规则，如检测到对应情况，则视为任务执行失败（点亮按钮为激活规则）",
+                "将在翻译结果中检查激活的规则（点亮按钮为激活）：如检测到对应情况，则视为任务执行失败",
                 widget_init
             )
         )
