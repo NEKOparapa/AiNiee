@@ -91,6 +91,15 @@ class TableHelper():
                         for i in range(len(keys))
                     })
 
+                # 兼容旧版，保留一段时间用以过度
+                if len(result) == 0 and "src" in keys:
+                    # 将 keys 中的 "src" 替换为 "srt" 然后重试
+                    result = TableHelper.load_from_json_file(path, [("srt" if v == "src" else v) for v in keys])
+
+                    # 将字段换回来
+                    for v in result:
+                        v["src"] = v.get("srt", "")
+
             # 标准 KV 字典
             # [
             #     "ダリヤ": "达莉雅"
