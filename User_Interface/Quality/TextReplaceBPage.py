@@ -38,12 +38,20 @@ class TextReplaceBPage(QFrame, Base):
                     "dst": "…",
                 },
                 {
+                    "src": "学长",
+                    "dst": "前辈",
+                },
+                {
                     "src": "学姐",
                     "dst": "前辈",
                 },
                 {
-                    "src": "学长",
-                    "dst": "前辈",
+                    "src": "学弟",
+                    "dst": "后辈",
+                },
+                {
+                    "src": "学妹",
+                    "dst": "后辈",
                 },
             ],
         }
