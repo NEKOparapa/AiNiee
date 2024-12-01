@@ -25,8 +25,8 @@ class GlossaryChecker(PluginBase):
         self.visibility = True          # 是否在插件设置中显示
         self.default_enable = True      # 默认启用状态
 
-        self.add_event("manual_export", PluginBase.PRIORITY.LOW)
-        self.add_event("postprocess_text", PluginBase.PRIORITY.LOW)
+        self.add_event("manual_export", PluginBase.PRIORITY.LOWER)
+        self.add_event("postprocess_text", PluginBase.PRIORITY.LOWER)
 
     def on_event(self, event: str, config: TranslatorConfig, data: list[dict]) -> None:
         # 检查数据有效性
