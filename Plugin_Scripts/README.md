@@ -153,7 +153,7 @@ class ExamplePlugin(PluginBase):
 
 
     - `event_data`: 全局缓存文本数据，格式与导出的缓存文件一致。
-    ```python
+    ```json
    [
        {
            "row_index": 0,                                                # 在原始文件中的行号
@@ -189,7 +189,7 @@ class ExamplePlugin(PluginBase):
 
 
     - `event_data`: 本次任务的待翻译的原文文本，json格式，key值是从0开始的数字序号
-    ```python
+    ```json
     {
         "0": "弾：ゾンビ攻撃",
         "1": "敵：タイムボム",
