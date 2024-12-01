@@ -19,46 +19,49 @@ from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
 # 接口请求器
 class TranslatorTask(Base):
 
+    # 可能存在的空字符
+    SPACE_PATTERN = r"\s*"
+
     # 用于英文的代码段规则
     CODE_PATTERN_EN = (
-        r"\s*" + r"if\(.{0,10}[vs]\[\d+\].{0,10}\)" + r"\s*",           # if(!s[982]) if(v[982] >= 1)
-        r"\s*" + r"en\(.{0,10}[vs]\[\d+\].{0,10}\)" + r"\s*",           # en(!s[982]) en(v[982] >= 1)
-        r"\s*" + r"[/\\][a-z]{1,5}<[\d]{0,10}>" + r"\s*",               # /C<1> \FS<12>
-        r"\s*" + r"[/\\][a-z]{1,5}\[[\d]{0,10}\]" + r"\s*",             # /C[1] \FS[12]
-        r"\s*" + r"[/\\][a-z]{1,5}(?=<.{0,10}>)" + r"\s*",              # /C<非数字> /C<非数字> \FS<非数字> \FS<非数字> 中的前半部分
-        r"\s*" + r"[/\\][a-z]{1,5}(?=\[.{0,10}\])" + r"\s*",            # /C[非数字] /C[非数字] \FS[非数字] \FS[非数字] 中的前半部分
+        SPACE_PATTERN + r"if\(.{0,5}[vs]\[\d+\].{0,10}\)" + SPACE_PATTERN,            # if(!s[982]) if(s[1623]) if(v[982] >= 1)
+        SPACE_PATTERN + r"en\(.{0,5}[vs]\[\d+\].{0,10}\)" + SPACE_PATTERN,            # en(!s[982]) en(v[982] >= 1)
+        SPACE_PATTERN + r"[/\\][a-z]{1,5}<[\d]{0,10}>" + SPACE_PATTERN,               # /C<1> \FS<12>
+        SPACE_PATTERN + r"[/\\][a-z]{1,5}\[[\d]{0,10}\]" + SPACE_PATTERN,             # /C[1] \FS[12]
+        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=<.{0,10}>)" + SPACE_PATTERN,              # /C<非数字> /C<非数字> \FS<非数字> \FS<非数字> 中的前半部分
+        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=\[.{0,10}\])" + SPACE_PATTERN,            # /C[非数字] /C[非数字] \FS[非数字] \FS[非数字] 中的前半部分
     )
 
     # 用于非英文的代码段规则
     CODE_PATTERN_NON_EN = (
-        r"\s*" + r"if\(.{0,10}[vs]\[\d+\].{0,10}\)" + r"\s*",           # if(!s[982]) if(v[982] >= 1)
-        r"\s*" + r"en\(.{0,10}[vs]\[\d+\].{0,10}\)" + r"\s*",           # en(!s[982]) en(v[982] >= 1)
-        r"\s*" + r"[/\\][a-z]{1,5}<[\da-z]{0,10}>" + r"\s*",            # /C<y> /C<1> \FS<xy> \FS<12>
-        r"\s*" + r"[/\\][a-z]{1,5}\[[\da-z]{0,10}\]" + r"\s*",          # /C[x] /C[1] \FS[xy] \FS[12]
-        r"\s*" + r"[/\\][a-z]{1,5}(?=<.{0,10}>)" + r"\s*",              # /C<非数字非字母> /C<非数字非字母> \FS<非数字非字母> \FS<非数字非字母> 中的前半部分
-        r"\s*" + r"[/\\][a-z]{1,5}(?=\[.{0,10}\])" + r"\s*",            # /C[非数字非字母] /C[非数字非字母] \FS[非数字非字母] \FS[非数字非字母] 中的前半部分
+        SPACE_PATTERN + r"if\(.{0,5}[vs]\[\d+\].{0,10}\)" + SPACE_PATTERN,            # if(!s[982]) if(v[982] >= 1)
+        SPACE_PATTERN + r"en\(.{0,5}[vs]\[\d+\].{0,10}\)" + SPACE_PATTERN,            # en(!s[982]) en(v[982] >= 1)
+        SPACE_PATTERN + r"[/\\][a-z]{1,5}<[\da-z]{0,10}>" + SPACE_PATTERN,            # /C<y> /C<1> \FS<xy> \FS<12>
+        SPACE_PATTERN + r"[/\\][a-z]{1,5}\[[\da-z]{0,10}\]" + SPACE_PATTERN,          # /C[x] /C[1] \FS[xy] \FS[12]
+        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=<.{0,10}>)" + SPACE_PATTERN,              # /C<非数字非字母> /C<非数字非字母> \FS<非数字非字母> \FS<非数字非字母> 中的前半部分
+        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=\[.{0,10}\])" + SPACE_PATTERN,            # /C[非数字非字母] /C[非数字非字母] \FS[非数字非字母] \FS[非数字非字母] 中的前半部分
     )
 
     # 同时作用于英文于非英文的代码段规则
     CODE_PATTERN_COMMON = (
-        r"\s*" + r"\\fr" + r"\s*",                                      # 重置文本的改变
-        r"\s*" + r"\\fb" + r"\s*",                                      # 加粗
-        r"\s*" + r"\\fi" + r"\s*",                                      # 倾斜
-        r"\s*" + r"\\\{" + r"\s*",                                      # 放大字体 \{
-        r"\s*" + r"\\\}" + r"\s*",                                      # 缩小字体 \}
-        r"\s*" + r"\\g" + r"\s*",                                       # 显示货币 \G
-        r"\s*" + r"\\\$" + r"\s*",                                      # 打开金币框 \$
-        r"\s*" + r"\\\." + r"\s*",                                      # 等待0.25秒 \.
-        r"\s*" + r"\\\|" + r"\s*",                                      # 等待1秒 \|
-        r"\s*" + r"\\!" + r"\s*",                                       # 等待按钮按下 \!
-        # r"\s*" + r"\\>" + r"\s*",                                     # 在同一行显示文字 \>
-        # r"\s*" + r"\\<" + r"\s*",                                     # 取消显示所有文字 \<
-        r"\s*" + r"\\\^" + r"\s*",                                      # 显示文本后不需要等待 \^
-        # r"\s*" + r"\\n" + r"\s*",                                     # 换行符 \\n
-        r"\s*" + r"\r\n" + r"\s*",                                      # 换行符 \r\n
-        r"\s*" + r"\n" + r"\s*",                                        # 换行符 \n
-        r"\s*" + r"\\\\<br>" + r"\s*",                                  # 换行符 \\<br>
-        r"\s*" + r"<br>" + r"\s*",                                      # 换行符 <br>
+        SPACE_PATTERN + r"\\fr" + SPACE_PATTERN,                                      # 重置文本的改变
+        SPACE_PATTERN + r"\\fb" + SPACE_PATTERN,                                      # 加粗
+        SPACE_PATTERN + r"\\fi" + SPACE_PATTERN,                                      # 倾斜
+        SPACE_PATTERN + r"\\\{" + SPACE_PATTERN,                                      # 放大字体 \{
+        SPACE_PATTERN + r"\\\}" + SPACE_PATTERN,                                      # 缩小字体 \}
+        SPACE_PATTERN + r"\\g" + SPACE_PATTERN,                                       # 显示货币 \G
+        SPACE_PATTERN + r"\\\$" + SPACE_PATTERN,                                      # 打开金币框 \$
+        SPACE_PATTERN + r"\\\." + SPACE_PATTERN,                                      # 等待0.25秒 \.
+        SPACE_PATTERN + r"\\\|" + SPACE_PATTERN,                                      # 等待1秒 \|
+        SPACE_PATTERN + r"\\!" + SPACE_PATTERN,                                       # 等待按钮按下 \!
+        SPACE_PATTERN + r"\\>" + SPACE_PATTERN,                                       # 在同一行显示文字 \>
+        # SPACE_PATTERN + r"\\<" + SPACE_PATTERN,                                     # 取消显示所有文字 \<
+        SPACE_PATTERN + r"\\\^" + SPACE_PATTERN,                                      # 显示文本后不需要等待 \^
+        # SPACE_PATTERN + r"\\n" + SPACE_PATTERN,                                     # 换行符 \\n
+        SPACE_PATTERN + r"\r\n" + SPACE_PATTERN,                                      # 换行符 \r\n
+        SPACE_PATTERN + r"\n" + SPACE_PATTERN,                                        # 换行符 \n
+        SPACE_PATTERN + r"\\\\<br>" + SPACE_PATTERN,                                  # 换行符 \\<br>
+        SPACE_PATTERN + r"<br>" + SPACE_PATTERN,                                      # 换行符 <br>
     )
 
     def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager, request_limiter: Request_Limiter) -> None:
@@ -71,11 +74,11 @@ class TranslatorTask(Base):
 
         # 根据原文语言生成正则表达式
         if "英语" in config.source_language:
-            code_pattern = self.CODE_PATTERN_EN + self.CODE_PATTERN_COMMON
+            code_pattern = TranslatorTask.CODE_PATTERN_EN + TranslatorTask.CODE_PATTERN_COMMON
             self.prefix_pattern = re.compile(f"^(?:{"|".join(code_pattern)})+", flags = re.IGNORECASE)
             self.suffix_pattern = re.compile(f"(?:{"|".join(code_pattern)})+$", flags = re.IGNORECASE)
         else:
-            code_pattern = self.CODE_PATTERN_NON_EN + self.CODE_PATTERN_COMMON
+            code_pattern = TranslatorTask.CODE_PATTERN_NON_EN + TranslatorTask.CODE_PATTERN_COMMON
             self.prefix_pattern = re.compile(f"^(?:{"|".join(code_pattern)})+", flags = re.IGNORECASE)
             self.suffix_pattern = re.compile(f"(?:{"|".join(code_pattern)})+$", flags = re.IGNORECASE)
 
