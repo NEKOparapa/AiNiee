@@ -170,10 +170,7 @@ class CodeSaver(PluginBase):
         print("")
 
         # 筛选出需要处理的条目
-        target_items = [
-            v for v in items
-            if v.get("translation_status", 0) == 1
-        ]
+        target_items = [v for v in items if v.get("translation_status", 0) == 1]
 
         # 还原文本
         result = {"占位符部分丢失":{}, "占位符全部丢失":{}, "代码数量不匹配":{}}
@@ -207,7 +204,9 @@ class CodeSaver(PluginBase):
 
             # 检查是否存在代码段丢失
             if success == False:
-                if item.get("translated_text", "").count("↓↓") == 0:
+                if len(item.get("code_saver_codes", [])) == 0:
+                    pass
+                elif item.get("translated_text", "").count("↓↓") == 0:
                     result["占位符全部丢失"][item.get("source_text", "")] = item.get("translated_text", "")
                 elif len(item.get("code_saver_codes", [])) != item.get("translated_text", "").count("↓↓"):
                     result["占位符部分丢失"][item.get("source_text", "")] = item.get("translated_text", "")
