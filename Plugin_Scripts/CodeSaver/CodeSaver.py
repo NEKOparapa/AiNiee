@@ -172,11 +172,11 @@ class CodeSaver(PluginBase):
         # 筛选出需要处理的条目
         target_items = [
             v for v in items
-            if len(v.get("code_saver_codes", [])) > 0 and v.get("translation_status", 0) == 1
+            if v.get("translation_status", 0) == 1
         ]
 
         # 还原文本
-        result = {"占位符部分丢失": {}, "占位符全部丢失": {}}
+        result = {"占位符部分丢失":{}, "占位符全部丢失":{}, "代码数量不匹配":{}}
         for item in tqdm(target_items):
             # 还原原文
             item["source_text"] = item.get("source_backup", "")
@@ -208,23 +208,24 @@ class CodeSaver(PluginBase):
             # 检查是否存在代码段丢失
             if success == False:
                 if item.get("translated_text", "").count("↓↓") == 0:
-                    result.setdefault("占位符全部丢失", {})[item.get("source_text", "")] = item.get("translated_text", "")
+                    result["占位符全部丢失"][item.get("source_text", "")] = item.get("translated_text", "")
                 elif len(item.get("code_saver_codes", [])) != item.get("translated_text", "").count("↓↓"):
-                    result.setdefault("占位符部分丢失", {})[item.get("source_text", "")] = item.get("translated_text", "")
+                    result["占位符部分丢失"][item.get("source_text", "")] = item.get("translated_text", "")
             else:
                 source_text = re.sub(r"\\N{1,2}\[\d+\]", " ", item.get("source_text", ""), flags = re.IGNORECASE)
                 translated_text = item.get("translated_text", "")
                 for code in CodeSaver.CODE_PATTERN_NUM_MATCH:
                     if source_text.count(code) != translated_text.count(code):
-                        result.setdefault(f"数量不匹配 - {code}", {})[item.get("source_text", "")] = item.get("translated_text", "")
+                        result["代码数量不匹配"].setdefault(f"{code}", {})[item.get("source_text", "")] = item.get("translated_text", "")
 
         # 将还原失败的条目写入文件
-        result_path = f"{config.label_output_path}/code_saver_result.json"
-        with open(result_path, "w", encoding = "utf-8") as writer:
-            writer.write(json.dumps(result, indent = 4, ensure_ascii = False))
+        for k, v in result.items():
+            result_path = f"{config.label_output_path}/代码救星_结果_{k}.json"
+            with open(result_path, "w", encoding = "utf-8") as writer:
+                writer.write(json.dumps(v, indent = 4, ensure_ascii = False))
 
         # 计算数量
-        failure_count = len(result.get("占位符全部丢失", {})) + len(result.get("占位符部分丢失", {}))
+        failure_count = sum(len(v) for k,v in result.items() if "占位符" in k)
         success_count = len(target_items) - failure_count
 
         print("")
@@ -234,7 +235,7 @@ class CodeSaver(PluginBase):
             + f"失败 [green]{failure_count}[/] 条，"
             + f"成功率 [green]{(success_count / max(1, len(target_items)) * 100):.2f}[/] % ..."
             + "\n"
-            + f"[CodeSaver] 检查结果已写入 [green]{result_path}[/] 文件，请检查结果并进行手工修正 ..."
+            + f"[CodeSaver] 代码还原结果已写入 [green]{config.label_output_path}[/] 目录，请检查结果并进行手工修正 ..."
         )
         print("")
 
