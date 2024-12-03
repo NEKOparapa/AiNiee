@@ -1,10 +1,11 @@
+import re
 from tqdm import tqdm
 from rich import print
 
 from Plugin_Scripts.PluginBase import PluginBase
 from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
 
-class PunctuationRepair(PluginBase):
+class PunctuationFixer(PluginBase):
 
     # 检查项，主要是全半角标点之间的转换
     CHECK_ITEMS = (
@@ -29,15 +30,19 @@ class PunctuationRepair(PluginBase):
         ("）", ")", "」", "’", "”"),
     )
 
+    # 替换项
     REPLACE_ITEMS = (
         ("「", "‘", "“"),
         ("」", "’", "”"),
     )
 
+    # 圆圈数字修复，开头加个空字符来对齐索引和数值
+    CIRCLED_NUMBERS = ("", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "⑪", "⑫", "⑬", "⑭", "⑮", "⑯", "⑰", "⑱", "⑲", "⑳")
+
     def __init__(self) -> None:
         super().__init__()
 
-        self.name = "PunctuationRepair"
+        self.name = "PunctuationFixer"
         self.description = (
             "标点修复器，在翻译完成后，检查译文中的标点符号是否与原文一致，并尝试修复那些不一致的标点符号"
             + "\n"
@@ -73,25 +78,59 @@ class PunctuationRepair(PluginBase):
     # 文本后处理事件
     def on_postprocess_text(self, event: str, config: TranslatorConfig, data: list[dict], items: list[dict], project: dict) -> None:
         print("")
-        print("[PunctuationRepair] 开始执行后处理 ...")
+        print("[PunctuationFixer] 开始执行后处理 ...")
         print("")
 
-        # 一次检查所有已翻译的条目
-        counter = set()
+        # 依次检查已翻译的条目
+        logs = list()
         target_items = [v for v in items if v.get("translation_status", 0) == 1]
-        for i, item in tqdm(enumerate(target_items), total = len(target_items)):
-            for target in PunctuationRepair.CHECK_ITEMS:
-                if self.check(item.get("source_text"), item.get("translated_text"), target) == True:
-                    counter.add(i)
-                    item["translated_text"] = self.replace(item.get("translated_text"), target)
+        for item in tqdm(target_items):
+            # 检查并替换
+            diff = self.check_and_replace(item.get("source_text"), item.get("translated_text"))
 
-            for target in PunctuationRepair.REPLACE_ITEMS:
-                item["translated_text"] = self.replace(item.get("translated_text"), target)
+            # 如果有变化，则更新
+            if diff != item.get("translated_text"):
+                logs.append(f"\n{item.get("source_text")}\n[green]->[/]\n{item.get("translated_text")}\n[green]->[/]\n{diff}\n")
+                item["translated_text"] = diff
 
         # 输出结果
         print("")
-        print(f"[PunctuationRepair] 标点修复已完成，修复标点 {len(counter)}/{len(target_items)} 条 ...")
+        print(f"[PunctuationFixer] 标点修复已完成，修复标点 {len(logs)}/{len(target_items)} 条 ...")
         print("")
+
+    # 检查并替换
+    def check_and_replace(self, src: str, dst: str) -> str:
+        for target in PunctuationFixer.CHECK_ITEMS:
+            if self.check(src, dst, target) == True:
+                dst = self.replace(dst, target)
+
+        # 找出 src 与 dst 中的圆圈数字
+        src_circled_nums = re.findall(r"[①-⑳]", src)
+        dst_circled_nums = re.findall(r"[①-⑳]", dst)
+
+        # 如果有圆圈数字，并且两者的数量不一致（避免误判），则尝试修复
+        if len(src_circled_nums) > 0 and src_circled_nums != dst_circled_nums:
+            # 找到 dst 中在有效值范围内的数字
+            nums = [int(v) for v in re.findall(r"[0-9]+", dst) if 0 < int(v) < len(PunctuationFixer.CIRCLED_NUMBERS)]
+
+            # 筛选出出现次数一样的数字
+            nums = [
+                v for v in nums
+                if nums.count(v) == src_circled_nums.count(PunctuationFixer.CIRCLED_NUMBERS[v])
+            ]
+
+            # 遍历数字列表，将数字替换为对应的圆圈数字
+            for num in nums:
+                dst = re.sub(
+                    r"[0-9]+",
+                    lambda m: self.restore_circled_numbers(m = m, num = num),
+                    dst,
+                )
+
+        for target in PunctuationFixer.REPLACE_ITEMS:
+            dst = self.replace(dst, target)
+
+        return dst
 
     # 检查
     def check(self, src: str, dst: str, target: tuple) -> tuple[str, bool]:
@@ -112,3 +151,10 @@ class PunctuationRepair(PluginBase):
             dst = dst.replace(t, target[0])
 
         return dst
+
+    # 圆圈数字修复
+    def restore_circled_numbers(self, m: re.Match, num: int) -> None:
+        if num != int(m.group(0)):
+            return m.group(0)
+        else:
+            return PunctuationFixer.CIRCLED_NUMBERS[num]
