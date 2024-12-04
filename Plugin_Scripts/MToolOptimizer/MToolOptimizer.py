@@ -1,3 +1,6 @@
+from itertools import zip_longest
+import unicodedata
+
 from tqdm import tqdm
 from rich import print
 
@@ -12,7 +15,7 @@ class MToolOptimizer(PluginBase):
         self.name = "MToolOptimizer"
         self.description = (
             "MTool 优化器，优化翻译流程，提升翻译质量，减少 Token 消耗，至多可提升 40% 的翻译速度"
-            + "\n" + "兼容性：仅支持 英文、日文、韩文；支持全部模型；仅支持 MTool 文本；"
+            + "\n" + "兼容性：支持全部语言；支持全部模型；仅支持 MTool 文本；"
         )
 
         self.visibility = True          # 是否在插件设置中显示
@@ -30,10 +33,6 @@ class MToolOptimizer(PluginBase):
         # 初始化
         items = data[1:]
         project = data[0]
-
-        # 限制语言
-        if config.source_language not in ("英语", "日语", "韩语"):
-            return
 
         # 限制文本格式
         if "mtool" not in project.get("project_type", "").lower():
@@ -57,23 +56,25 @@ class MToolOptimizer(PluginBase):
         print("[MToolOptimizer] 开始执行预处理 ...")
         print("")
 
+        # 记录处理前的条目数量
         orginal_length = len([v for v in items if v.get("translation_status", 0) == 7])
-        texts_to_delete = set()
 
+        # 找到重复短句条目
+        texts_to_delete = set()
         for v in tqdm(items):
             # 备份原文
             v["source_backup"] = v.get("source_text", "")
 
             # 找到需要移除的重复条目
-            results = [v.strip() for v in v.get("source_text", "").splitlines() if v.strip() != ""]
-            texts_to_delete.update(results) if len(results) > 1 else None
+            if v.get("source_text", "").count("\n") > 0:
+                texts_to_delete.update(
+                    [v.strip() for v in v.get("source_text", "").splitlines() if v.strip() != ""]
+                )
 
-        # 移除长句中的换行符，移除重复的短句条目
+        # 移除重复短句条目
         for v in tqdm(items):
-            if len(v.get("source_text").splitlines()) > 1:
-                v["source_text"] = v.get("source_text", "").replace("\r\n", "").replace("\n", "")
-            else:
-                v["translation_status"] = 7 if v.get("source_text", "").strip() in texts_to_delete else v.get("translation_status", 0)
+            if v.get("source_text", "").strip() in texts_to_delete:
+                v["translation_status"] = 7
 
         print("")
         print(f"[MToolOptimizer] 预处理执行成功，已移除 {len([v for v in items if v.get("translation_status", 0) == 7]) - orginal_length} 个重复的条目 ...")
@@ -92,30 +93,13 @@ class MToolOptimizer(PluginBase):
         print("[MToolOptimizer] 开始执行后处理 ...")
         print("")
 
-        # 尝试将包含换行符的长句还原回短句
-        seen = self.generate_short_sentence(
-            items,
-            data,
-            config.source_language
-        )
-
-        print("")
-        print(f"[MToolOptimizer] 后处理执行成功，已还原 {len(seen)} 个条目 ...")
-        print("")
-
-    # 按长度切割字符串
-    def split_string_by_length(self, string: str, length: int) -> list[str]:
-        return [string[i:i+length] for i in range(0, len(string), length)]
-
-    # 生成短句
-    def generate_short_sentence(self, items, data, language) -> set[str]:
         # 记录实际处理的条目
         seen = set()
 
+        # 尝试将包含换行符的长句还原回短句
         for v in tqdm(items):
             # 从备份中恢复原文文本
-            if v.get("source_backup", "") != v.get("source_text", ""):
-                v["source_text"] = v.get("source_backup", "")
+            v["source_text"] = v.get("source_backup", "")
 
             # 获取原文和译文按行切分，并移除空条目以避免连续换行带来的影响
             source_text = v.get("source_text", "").strip()
@@ -123,47 +107,76 @@ class MToolOptimizer(PluginBase):
             lines_source = [v.strip() for v in source_text.splitlines() if v.strip() != ""]
             lines_translated = [v.strip() for v in translated_text.splitlines() if v.strip() != ""]
 
-            # 第一种情况：原文和译文行数相等，则为其中的每一行生成一个新的条目
-            if len(lines_source) > 1 and len(lines_source) == len(lines_translated):
-                for source, translated in zip(lines_source, lines_translated):
-                    # 跳过重复的条目
-                    if source.strip() in seen:
-                        continue
-                    else:
-                        seen.add(source.strip())
+            # 跳过原文只有一行的条目
+            if len(lines_source) <= 1:
+                continue
 
-                    item = v.copy()
-                    item["text_index"] = len(data) + 1
-                    item["source_text"] = source.strip()
-                    item["translated_text"] = translated.strip()
-                    data.append(item)
+            # 统计原文和译文的最大单行显示长度
+            max_length_source = max(self.get_display_length(v) for v in lines_source)
+            max_length_translated = max(self.get_display_length(v) for v in lines_translated)
 
-            # 兜底情况：原文和译文行数不相等，且不满足以上所有的条件，则按固定长度切割
-            elif len(lines_source) > 1 and len(lines_source) != len(lines_translated):
-                # 统计包含换行符的原文的所有子句的最大长度
-                max_length = max(len(line) for line in lines_source)
-
-                # 如果为英语项目（半角字符），则最大长度减半并向下取整
-                if language == "英语":
-                    max_length = max_length // 2
-
+            # 第一种情况：原文和译文行数相等
+            if len(lines_source) == len(lines_translated):
+                data, seen = self.update_data(v, data, lines_source, lines_translated, seen)
+            # 第二种情况：原文行数大于译文行数，且原文最大显示长度不少于译文最大显示长度
+            elif (len(lines_source) > len(lines_translated) and max_length_source >= max_length_translated):
+                data, seen = self.update_data(v, data, lines_source, lines_translated, seen)
+            # 兜底的情况
+            else:
                 # 切分前，先将译文中的换行符移除，避免重复换行，切分长度为子句最大长度 - 1
-                lines_translated = self.split_string_by_length(translated_text.replace("\n", ""), max(1, max_length - 1))
+                lines_translated = self.split_string_by_display_length(
+                    translated_text.replace("\n", "").replace("\n", ""),
+                    max(20, max_length_source - 1)
+                )
 
-                for k, source in enumerate(lines_source):
-                    # 尝试获取对应位置的译文，如果没有则使用一个全角空格，空字符串有时候会被忽略
-                    translated = lines_translated[k] if k < len(lines_translated) else "　"
+                data, seen = self.update_data(v, data, lines_source, lines_translated, seen)
 
-                    # 跳过重复的条目
-                    if source.strip() in seen:
-                        continue
-                    else:
-                        seen.add(source.strip())
+        print("")
+        print(f"[MToolOptimizer] 后处理执行成功，已还原 {len(seen)} 个条目 ...")
+        print("")
 
-                    item = v.copy()
-                    item["text_index"] = len(data) + 1
-                    item["source_text"] = source.strip()
-                    item["translated_text"] = translated.strip()
-                    data.append(item)
+    # 更新数据
+    def update_data(self, target: dict, data: list[dict], lines_s: list[str], lines_t: list[str], seen: set) -> tuple[list[dict], set]:
+        # 按照数据对处理译文，长度不足时，则补齐长度
+        for source, translated in zip_longest(lines_s, lines_t, fillvalue = ""):
+            # 跳过重复的条目
+            if source.strip() in seen:
+                continue
+            else:
+                seen.add(source.strip())
 
-        return seen
+            item = target.copy()
+            item["text_index"] = len(data) + 1
+            item["source_text"] = source.strip() if source.strip() != "" else "　"                  # 注意，空字符串的条目会被忽略，所以使用全角空格填充
+            item["translated_text"] = translated.strip() if translated.strip() != "" else "　"      # 注意，空字符串的条目会被忽略，所以使用全角空格填充
+            data.append(item)
+
+        return data, seen
+
+    # 按显示长度切割字符串
+    def split_string_by_display_length(self, string: str, display_length: int) -> list[str]:
+        result = []
+        current_length = 0
+        current_chunk = []
+
+        for char in string:
+            char_length = self.get_display_length(char)
+            if current_length + char_length > display_length:
+                result.append(''.join(current_chunk))
+                current_chunk = []
+                current_length = 0
+
+            current_chunk.append(char)
+            current_length += char_length
+
+        if current_chunk:
+            result.append(''.join(current_chunk))
+
+        return result
+
+    # 计算字符串的显示长度
+    def get_display_length(self, text: str) -> int:
+        # unicodedata.east_asian_width(c) 返回字符 c 的东亚洲宽度属性。
+        # NaH 表示窄（Narrow）、中立（Neutral）和半宽（Halfwidth）字符，这些字符通常被认为是半角字符。
+        # 其他字符（如全宽字符）的宽度属性为 W 或 F，这些字符被认为是全角字符。
+        return sum(1 if unicodedata.east_asian_width(c) in "NaH" else 2 for c in text)
