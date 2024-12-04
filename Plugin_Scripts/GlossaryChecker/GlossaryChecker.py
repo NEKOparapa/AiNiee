@@ -80,7 +80,7 @@ class GlossaryChecker(PluginBase):
                     result.setdefault(f"{k} -> {v}", {})[source_text] = translated_text
 
         # 写入文件
-        result_path = f"{config.label_output_path}/glossary_checker_result.json"
+        result_path = f"{config.label_output_path}/指令词典检查_结果.json"
         with open(result_path, "w", encoding = "utf-8") as writer:
             writer.write(json.dumps(result, indent = 4, ensure_ascii = False))
 
