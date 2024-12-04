@@ -1,8 +1,6 @@
-from types import SimpleNamespace
-
 from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
 
-class Priority(SimpleNamespace):
+class Priority():
 
     HIGHEST    = 700
     HIGHER     = 600

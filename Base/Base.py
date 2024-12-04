@@ -1,7 +1,6 @@
 import os
 import threading
 import traceback
-from types import SimpleNamespace
 
 import rapidjson as json
 from rich import print
@@ -11,7 +10,7 @@ from qfluentwidgets import InfoBarPosition
 
 from Base.EventManager import EventManager
 
-class Event(SimpleNamespace):
+class Event():
 
     API_TEST_DONE = 100                             # API 测试完成
     API_TEST_START = 101                            # API 测试开始
@@ -26,7 +25,7 @@ class Event(SimpleNamespace):
     APP_SHUT_DOWN = 1000                            # 应用关闭
 
 
-class Status(SimpleNamespace):
+class Status():
 
     IDLE = 1000                                     # 无任务
     API_TEST = 2000                                 # 测试中
