@@ -39,12 +39,16 @@ class PunctuationFixer(PluginBase):
     # 圆圈数字修复，开头加个空字符来对齐索引和数值
     CIRCLED_NUMBERS = ("", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "⑪", "⑫", "⑬", "⑭", "⑮", "⑯", "⑰", "⑱", "⑲", "⑳")
 
+    # 预设编译正则
+    PATTERN_ALL_NUM = re.compile(r"\d+|[①-⑳]", re.IGNORECASE)
+    PATTERN_CIRCLED_NUM = re.compile(r"[①-⑳]", re.IGNORECASE)
+
     def __init__(self) -> None:
         super().__init__()
 
         self.name = "PunctuationFixer"
         self.description = (
-            "标点修复器，在翻译完成后，检查译文中的标点符号是否与原文一致，并尝试修复那些不一致的标点符号"
+            "标点修复器，在翻译完成后，检查译文中的标点符号是否与原文一致，并尝试修复不一致的标点符号"
             + "\n"
             + "兼容性：支持全部语言；支持全部模型；支持全部文本格式；"
         )
@@ -64,12 +68,12 @@ class PunctuationFixer(PluginBase):
         items = data[1:]
         project = data[0]
 
-        # 如果指令词典未启用或者无内容，则跳过
-        if (
-            config.prompt_dictionary_switch == False
-            or config.prompt_dictionary_data == None
-            or len(config.prompt_dictionary_data) == 0
-        ):
+        # 如果指令词典未启用，则跳过
+        if config.prompt_dictionary_switch == False:
+            return
+
+         # 如果指令词典无内容，则跳过
+        if config.prompt_dictionary_data == None or len(config.prompt_dictionary_data) == 0:
             return
 
         if event in ("manual_export", "postprocess_text"):
@@ -100,33 +104,15 @@ class PunctuationFixer(PluginBase):
 
     # 检查并替换
     def check_and_replace(self, src: str, dst: str) -> str:
+        # 修复标点符号
         for target in PunctuationFixer.CHECK_ITEMS:
             if self.check(src, dst, target) == True:
                 dst = self.replace(dst, target)
 
-        # 找出 src 与 dst 中的圆圈数字
-        src_circled_nums = re.findall(r"[①-⑳]", src)
-        dst_circled_nums = re.findall(r"[①-⑳]", dst)
+        # 修复圆圈数字
+        dst = self.fix_circled_numbers(src, dst)
 
-        # 如果有圆圈数字，并且两者的数量不一致（避免误判），则尝试修复
-        if len(src_circled_nums) > 0 and src_circled_nums != dst_circled_nums:
-            # 找到 dst 中在有效值范围内的数字
-            nums = [int(v) for v in re.findall(r"[0-9]+", dst) if 0 < int(v) < len(PunctuationFixer.CIRCLED_NUMBERS)]
-
-            # 筛选出出现次数一样的数字
-            nums = [
-                v for v in nums
-                if nums.count(v) == src_circled_nums.count(PunctuationFixer.CIRCLED_NUMBERS[v])
-            ]
-
-            # 遍历数字列表，将数字替换为对应的圆圈数字
-            for num in nums:
-                dst = re.sub(
-                    r"[0-9]+",
-                    lambda m: self.restore_circled_numbers(m = m, num = num),
-                    dst,
-                )
-
+        # 处理替换项目
         for target in PunctuationFixer.REPLACE_ITEMS:
             dst = self.replace(dst, target)
 
@@ -140,10 +126,10 @@ class PunctuationFixer(PluginBase):
         num_t_y = sum(dst.count(t) for t in target[1:])
 
         # 首先，原文中的目标符号的数量应大于零，否则表示没有需要修复的标点
-        # 然后，原文中的目标符号的数量应不等于译文中的目标符号的数量，否则表示没有需要修复的标点
-        # 然后，如果原文中目标符号和错误符号的数量不应相等，否则容易产生误判
+        # 然后，原文中目标符号和错误符号的数量不应相等，否则无法确定哪个符号是正确的
+        # 然后，原文中的目标符号的数量应大于译文中的目标符号的数量，否则表示没有需要修复的标点
         # 最后，如果原文中目标符号的数量等于译文中目标符号与错误符号的数量之和，则判断为需要修复
-        return num_s_x > 0 and num_s_x != num_t_x and num_s_x != num_s_y and num_s_x == num_t_x + num_t_y
+        return num_s_x > 0 and num_s_x != num_s_y and num_s_x > num_t_x  and num_s_x == num_t_x + num_t_y
 
     # 替换
     def replace(self, dst: str, target: tuple) -> str:
@@ -152,9 +138,59 @@ class PunctuationFixer(PluginBase):
 
         return dst
 
-    # 圆圈数字修复
-    def restore_circled_numbers(self, m: re.Match, num: int) -> None:
-        if num != int(m.group(0)):
-            return m.group(0)
-        else:
-            return PunctuationFixer.CIRCLED_NUMBERS[num]
+    # 修复圆圈数字
+    def fix_circled_numbers(self, src: str, dst: str) -> str:
+        # 找出 src 与 dst 中的圆圈数字
+        src_nums = PunctuationFixer.PATTERN_ALL_NUM.findall(src)
+        dst_nums = PunctuationFixer.PATTERN_ALL_NUM.findall(dst)
+        src_circled_nums = PunctuationFixer.PATTERN_CIRCLED_NUM.findall(src)
+        dst_circled_nums = PunctuationFixer.PATTERN_CIRCLED_NUM.findall(dst)
+
+        # 如果原文中没有圆圈数字，则跳过
+        if len(src_circled_nums) == 0:
+            return dst
+
+        # 如果原文和译文中数字（含圆圈数字）的数量不一致，则跳过
+        if len(src_nums) != len(dst_nums):
+            return dst
+
+        # 如果原文中的圆圈数字数量少于译文中的圆圈数字数量，则跳过
+        if len(src_circled_nums) < len(dst_circled_nums):
+            return dst
+
+        # 遍历原文与译文中的数字（含圆圈数字），尝试恢复
+        for i in range(len(src_nums)):
+            src_num_srt = src_nums[i]
+            dst_num_srt = dst_nums[i]
+            dst_num_int = int(dst_num_srt)
+
+            # 如果原文中该位置不是圆圈数字，则跳过
+            if src_num_srt not in PunctuationFixer.CIRCLED_NUMBERS:
+                continue
+
+            # 如果译文中该位置数值不在有效范围，则跳过
+            if dst_num_int < 0 or dst_num_int >= len(PunctuationFixer.CIRCLED_NUMBERS):
+                continue
+
+            # 如果原文、译文中该位置的圆圈数字不一致，则跳过
+            if src_num_srt != PunctuationFixer.CIRCLED_NUMBERS[dst_num_int]:
+                continue
+
+            # 尝试恢复
+            dst = self.fix_circled_numbers_by_index(dst, i, src_num_srt)
+
+        return dst
+
+    # 通过索引修复圆圈数字
+    def fix_circled_numbers_by_index(self, dst: str, target_i: int, target_str: str) -> str:
+        # 用于标识目标位置
+        i = [0]
+
+        def repl(m: re.Match) -> str:
+            if i[0] != target_i:
+                i[0] = i[0] + 1
+                return m.group(0)
+            else:
+                return target_str
+
+        return PunctuationFixer.PATTERN_ALL_NUM.sub(repl, dst)
