@@ -27,7 +27,7 @@
 ## 继承插件基类
 所有插件必须继承自`PluginBase`类。以下是`PluginBase`类的简化定义：
 ```python
-class Priority(SimpleNamespace):
+class Priority():
 
     HIGHEST    = 700
     HIGHER     = 600

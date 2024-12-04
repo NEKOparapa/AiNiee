@@ -36,8 +36,11 @@ class PunctuationFixer(PluginBase):
         ("」", "’", "”"),
     )
 
-    # 圆圈数字修复，开头加个空字符来对齐索引和数值
-    CIRCLED_NUMBERS = ("", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "⑪", "⑫", "⑬", "⑭", "⑮", "⑯", "⑰", "⑱", "⑲", "⑳")
+    # 圆圈数字列表
+    CIRCLED_NUMBERS = tuple(chr(i) for i in range(0x2460, 0x2474))                                      # ①-⑳
+    CIRCLED_NUMBERS_CJK_01 = tuple(chr(i) for i in range(0x3251, 0x3260))                               # ㉑-㉟
+    CIRCLED_NUMBERS_CJK_02 = tuple(chr(i) for i in range(0x32B1, 0x32C0))                               # ㊱-㊿
+    CIRCLED_NUMBERS_ALL = ("",) + CIRCLED_NUMBERS + CIRCLED_NUMBERS_CJK_01 + CIRCLED_NUMBERS_CJK_02     # 开头加个空字符来对齐索引和数值
 
     # 预设编译正则
     PATTERN_ALL_NUM = re.compile(r"\d+|[①-⑳]", re.IGNORECASE)
@@ -138,6 +141,17 @@ class PunctuationFixer(PluginBase):
 
         return dst
 
+    # 安全转换字符串为整数
+    def safe_int(self, s: str) -> int:
+        result = -1
+
+        try:
+            result = int(s)
+        except Exception as e:
+            pass
+
+        return result
+
     # 修复圆圈数字
     def fix_circled_numbers(self, src: str, dst: str) -> str:
         # 找出 src 与 dst 中的圆圈数字
@@ -162,18 +176,18 @@ class PunctuationFixer(PluginBase):
         for i in range(len(src_nums)):
             src_num_srt = src_nums[i]
             dst_num_srt = dst_nums[i]
-            dst_num_int = int(dst_num_srt)
+            dst_num_int = self.safe_int(dst_num_srt)
 
             # 如果原文中该位置不是圆圈数字，则跳过
-            if src_num_srt not in PunctuationFixer.CIRCLED_NUMBERS:
+            if src_num_srt not in PunctuationFixer.CIRCLED_NUMBERS_ALL:
                 continue
 
             # 如果译文中该位置数值不在有效范围，则跳过
-            if dst_num_int < 0 or dst_num_int >= len(PunctuationFixer.CIRCLED_NUMBERS):
+            if dst_num_int < 0 or dst_num_int >= len(PunctuationFixer.CIRCLED_NUMBERS_ALL):
                 continue
 
             # 如果原文、译文中该位置的圆圈数字不一致，则跳过
-            if src_num_srt != PunctuationFixer.CIRCLED_NUMBERS[dst_num_int]:
+            if src_num_srt != PunctuationFixer.CIRCLED_NUMBERS_ALL[dst_num_int]:
                 continue
 
             # 尝试恢复
@@ -187,10 +201,11 @@ class PunctuationFixer(PluginBase):
         i = [0]
 
         def repl(m: re.Match) -> str:
-            if i[0] != target_i:
+            if i[0] == target_i:
+                i[0] = i[0] + 1
+                return target_str
+            else:
                 i[0] = i[0] + 1
                 return m.group(0)
-            else:
-                return target_str
 
         return PunctuationFixer.PATTERN_ALL_NUM.sub(repl, dst)

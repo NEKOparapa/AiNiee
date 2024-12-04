@@ -1,9 +1,8 @@
 import threading
-from types import SimpleNamespace
 
 import tiktoken
 
-class Status(SimpleNamespace):
+class Status():
 
     UNTRANSLATED = 0        # 待翻译
     TRANSLATED = 1          # 已翻译
