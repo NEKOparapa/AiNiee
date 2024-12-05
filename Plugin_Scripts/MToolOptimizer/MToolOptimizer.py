@@ -1,5 +1,5 @@
-from itertools import zip_longest
 import unicodedata
+from itertools import zip_longest
 
 from tqdm import tqdm
 from rich import print
@@ -14,7 +14,7 @@ class MToolOptimizer(PluginBase):
 
         self.name = "MToolOptimizer"
         self.description = (
-            "MTool 优化器，优化翻译流程，提升翻译质量，减少 Token 消耗，至多可提升 40% 的翻译速度"
+            "MTool 优化器，优化翻译流程，提升翻译质量，减少 Token 消耗，至多节约 40% 的翻译时间"
             + "\n" + "兼容性：支持全部语言；支持全部模型；仅支持 MTool 文本；"
         )
 

@@ -1,8 +1,8 @@
 from tqdm import tqdm
 from rich import print
 
-from Module_Folders.Cache.CacheItem import CacheItem
 from Plugin_Scripts.PluginBase import PluginBase
+from Module_Folders.Cache.CacheItem import CacheItem
 from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
 
 class LanguageFilter(PluginBase):
@@ -77,7 +77,7 @@ class LanguageFilter(PluginBase):
 
         self.name = "LanguageFilter"
         self.description = (
-            "语言过滤器，根据项目设置，对文本中不包含目标语言的条目进行过滤以节约翻译时间与 Token 消耗"
+            "语言过滤器，根据原文语言，对文本中不包含原文语言的条目进行过滤以节约 翻译时间 与 Token 消耗"
             + "\n"
             + "兼容性：支持全部语言；支持全部模型；支持全部文本格式；"
         )
