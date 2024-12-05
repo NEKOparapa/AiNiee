@@ -17,7 +17,7 @@ class GlossaryChecker(PluginBase):
 
         self.name = "GlossaryChecker"
         self.description = (
-            "指令词典检查器，在翻译完成后检查指令词典中的各个条目是否正确的生效"
+            "指令词典检查器，在翻译完成后，检查指令词典中的各个条目是否正确的生效"
             + "\n"
             + "兼容性：支持全部语言；支持全部模型；支持全部文本格式；"
         )
@@ -25,8 +25,8 @@ class GlossaryChecker(PluginBase):
         self.visibility = True          # 是否在插件设置中显示
         self.default_enable = True      # 默认启用状态
 
-        self.add_event("manual_export", PluginBase.PRIORITY.LOWER)
-        self.add_event("postprocess_text", PluginBase.PRIORITY.LOWER)
+        self.add_event("manual_export", PluginBase.PRIORITY.LOW)
+        self.add_event("postprocess_text", PluginBase.PRIORITY.LOW)
 
     def on_event(self, event: str, config: TranslatorConfig, data: list[dict]) -> None:
         # 检查数据有效性

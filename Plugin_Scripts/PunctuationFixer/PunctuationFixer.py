@@ -43,8 +43,8 @@ class PunctuationFixer(PluginBase):
     CIRCLED_NUMBERS_ALL = ("",) + CIRCLED_NUMBERS + CIRCLED_NUMBERS_CJK_01 + CIRCLED_NUMBERS_CJK_02     # 开头加个空字符来对齐索引和数值
 
     # 预设编译正则
-    PATTERN_ALL_NUM = re.compile(r"\d+|[①-⑳]", re.IGNORECASE)
-    PATTERN_CIRCLED_NUM = re.compile(r"[①-⑳]", re.IGNORECASE)
+    PATTERN_ALL_NUM = re.compile(r"\d+|[①-⑳㉑-㉟㊱-㊿]", re.IGNORECASE)
+    PATTERN_CIRCLED_NUM = re.compile(r"[①-⑳㉑-㉟㊱-㊿]", re.IGNORECASE)
 
     def __init__(self) -> None:
         super().__init__()
@@ -59,8 +59,8 @@ class PunctuationFixer(PluginBase):
         self.visibility = True          # 是否在插件设置中显示
         self.default_enable = True     # 默认启用状态
 
-        self.add_event("manual_export", PluginBase.PRIORITY.LOW)
-        self.add_event("postprocess_text", PluginBase.PRIORITY.LOW)
+        self.add_event("manual_export", PluginBase.PRIORITY.HIGH)
+        self.add_event("postprocess_text", PluginBase.PRIORITY.HIGH)
 
     def on_event(self, event: str, config: TranslatorConfig, data: list[dict]) -> None:
         # 检查数据有效性
