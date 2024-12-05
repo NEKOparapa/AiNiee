@@ -386,12 +386,12 @@
 ## 插件说明[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#插件说明)  
 </summary>
 
-- [插件 - 代码救星](CodeSaver)
-- [插件 - 标点修复器](PunctuationFixer)
-- [插件 - 语言过滤器](LanguageFilter)
-- [插件 - 文本规范器](TextNormalizer)
-- [插件 - MTool 优化器](MToolOptimizer)
-- [插件 - 指令词典检查器](GlossaryChecker)
+- [插件 - 代码救星](https://github.com/NEKOparapa/AiNiee/wiki/CodeSaver)
+- [插件 - 标点修复器](https://github.com/NEKOparapa/AiNiee/wiki/PunctuationFixer)
+- [插件 - 语言过滤器](https://github.com/NEKOparapa/AiNiee/wiki/LanguageFilter)
+- [插件 - 文本规范器](https://github.com/NEKOparapa/AiNiee/wiki/TextNormalizer)
+- [插件 - MTool 优化器](https://github.com/NEKOparapa/AiNiee/wiki/MToolOptimizer)
+- [插件 - 指令词典检查器](https://github.com/NEKOparapa/AiNiee/wiki/GlossaryChecker)
 </details>
 
 ---
