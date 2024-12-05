@@ -77,7 +77,7 @@ class LanguageFilter(PluginBase):
 
         self.name = "LanguageFilter"
         self.description = (
-            "语言过滤器，根据原文语言，对文本中不包含原文语言的条目进行过滤以节约 翻译时间 与 Token 消耗"
+            "语言过滤器，在翻译开始前，根据原文语言对文本中的无效条目进行过滤以节约 翻译时间 与 Token 消耗"
             + "\n"
             + "兼容性：支持全部语言；支持全部模型；支持全部文本格式；"
         )

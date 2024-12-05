@@ -17,7 +17,7 @@ class GlossaryChecker(PluginBase):
 
         self.name = "GlossaryChecker"
         self.description = (
-            "指令词典检查器，在翻译完成后检查指令词典中的各个条目是否正确的生效"
+            "指令词典检查器，在翻译完成后，检查指令词典中的各个条目是否正确的生效"
             + "\n"
             + "兼容性：支持全部语言；支持全部模型；支持全部文本格式；"
         )
