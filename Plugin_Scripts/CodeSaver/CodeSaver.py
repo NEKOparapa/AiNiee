@@ -129,12 +129,18 @@ class CodeSaver(PluginBase):
 
         # 根据原文语言生成正则表达式
         if "英语" in config.source_language:
-            code_pattern = CodeSaver.CODE_PATTERN_EN + CodeSaver.CODE_PATTERN_COMMON
+            code_pattern = CodeSaver.CODE_PATTERN_EN
         else:
-            code_pattern = CodeSaver.CODE_PATTERN_NON_EN + CodeSaver.CODE_PATTERN_COMMON
+            code_pattern = CodeSaver.CODE_PATTERN_NON_EN
+            
+        agg_pattern = code_pattern + CodeSaver.CODE_PATTERN_COMMON
+        
+        common_pattern = re.compile(rf"(?:{"|".join(CodeSaver.CODE_PATTERN_COMMON)})+", re.IGNORECASE)
+        
         pattern = re.compile(rf"(?:{"|".join(code_pattern)})+", re.IGNORECASE)
-        prefix_pattern = re.compile(rf"^(?:{"|".join(code_pattern)})+", re.IGNORECASE)
-        suffix_pattern = re.compile(rf"(?:{"|".join(code_pattern)})+$", re.IGNORECASE)
+        
+        prefix_pattern = re.compile(rf"^(?:{"|".join(agg_pattern)})+", re.IGNORECASE)
+        suffix_pattern = re.compile(rf"(?:{"|".join(agg_pattern)})+$", re.IGNORECASE)
 
         # 查找代码段
         for item in tqdm(items):
@@ -155,6 +161,9 @@ class CodeSaver(PluginBase):
             # 查找与替换主体代码段
             item["code_saver_codes"] = pattern.findall(item.get("source_text"))
             item["source_text"] = pattern.sub("↓↓", item.get("source_text"))
+            
+            item["code_saver_common_codes"] = common_pattern.findall(item.get("source_text"))
+            item["source_text"] = common_pattern.sub("→→", item.get("source_text"))
 
         # 设置处理标志
         project["code_saver_processed"] = True
@@ -180,20 +189,60 @@ class CodeSaver(PluginBase):
 
             # 有时候模型会增加 ↓ 的数量，分别判断
             success = False
-            for flag in ("↓↓", "↓↓↓↓", "↓↓↓", "↓"):
-                # 只有当代码段的数量和占位符的数量一致时，才进行还原
-                if len(item.get("code_saver_codes", [])) != item.get("translated_text", "").count(flag):
-                    continue
+            cnt = 0
+            success_common = False
+            cnt_common = 0
+            
+            pattern = r"(?<!↓)(↓+)(?!↓)"  # 匹配孤立的箭头序列
+            arrow_matches = re.findall(pattern, item.get("translated_text", ""))
+            
+            # 如果没有匹配的孤立箭头，跳过
+            if arrow_matches:
+                code_codes = item.get("code_saver_codes", [])
+                code_len = len(code_codes)
 
-                # 匹配成功标记
-                success = True
-
-                # 还原代码段，每次都只替换一个匹配项以确保依次替换
-                for code in item.get("code_saver_codes", []):
-                    item["translated_text"] = item.get("translated_text", "").replace(flag, code, 1)
-
-                # 可能会有残留，清理一下
+                # 对比数量
+                if len(arrow_matches) == code_len:
+                    # 数量一致，逐个替换
+                    
+                    # 匹配成功标记
+                    success = True
+                    
+                    for arrow, code in zip(arrow_matches, code_codes):
+                        item["translated_text"] = item.get("translated_text", "").replace(arrow, code, 1)
+                else:
+                    # 数量不一致，尽可能多替换
+                    cnt = min(len(arrow_matches), code_len)
+                    for i in range(cnt):
+                        item["translated_text"] = item.get("translated_text", "").replace(arrow_matches[i], code_codes[i], 1)
+                # 可能会有残留，清理一下        
                 item["translated_text"] = item.get("translated_text", "").replace("↓", "")
+                
+            common_pattern = r"(?<!→)(→+)(?!→)"  # 匹配孤立的箭头序列
+            common_arrow_matches = re.findall(common_pattern, item.get("translated_text", ""))
+            
+            # 如果没有匹配的孤立箭头，跳过
+            if common_arrow_matches:
+                # 提取 code_saver_common_codes
+                common_codes = item.get("code_saver_common_codes", [])
+                common_len = len(common_codes)
+
+                # 对比数量
+                if len(common_arrow_matches) == common_len:
+                    # 数量一致，逐个替换
+                    
+                    # 匹配成功标记
+                    success_common = True
+                    
+                    for arrow, code in zip(common_arrow_matches, common_codes):
+                        item["translated_text"] = item.get("translated_text", "").replace(arrow, code, 1)
+                else:
+                    # 数量不一致，尽可能多替换
+                    cnt_common = min(len(common_arrow_matches), common_len)
+                    for i in range(cnt_common):
+                        item["translated_text"] = item.get("translated_text", "").replace(common_arrow_matches[i], common_codes[i], 1)
+                # 可能会有残留，清理一下        
+                item["translated_text"] = item.get("translated_text", "").replace("→", "")
 
             # 还原前缀和后缀代码段
             item["translated_text"] = (
@@ -203,13 +252,22 @@ class CodeSaver(PluginBase):
             )
 
             # 检查是否存在代码段丢失
-            if success == False:
-                if len(item.get("code_saver_codes", [])) == 0:
-                    pass
-                elif item.get("translated_text", "").count("↓↓") == 0:
-                    result["占位符全部丢失"][item.get("source_text", "")] = item.get("translated_text", "")
-                elif len(item.get("code_saver_codes", [])) != item.get("translated_text", "").count("↓↓"):
-                    result["占位符部分丢失"][item.get("source_text", "")] = item.get("translated_text", "")
+            if not success or not success_common:
+                if not success:
+                    if len(item.get("code_saver_codes", [])) == 0:
+                        pass
+                    elif cnt == 0:
+                        result["占位符全部丢失"][item.get("source_text", "")] = item.get("translated_text", "")
+                    elif cnt > 0:
+                        result["占位符部分丢失"][item.get("source_text", "")] = item.get("translated_text", "")
+                        
+                if not success_common:
+                    if len(item.get("code_saver_codes", [])) == 0:
+                        pass
+                    elif cnt_common == 0:
+                        result["占位符全部丢失"][item.get("source_text", "")] = item.get("translated_text", "")
+                    elif cnt_common > 0:
+                        result["占位符部分丢失"][item.get("source_text", "")] = item.get("translated_text", "")
             else:
                 source_text = re.sub(r"\\N{1,2}\[\d+\]", " ", item.get("source_text", ""), flags = re.IGNORECASE)
                 translated_text = item.get("translated_text", "")
