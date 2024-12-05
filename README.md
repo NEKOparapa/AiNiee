@@ -12,13 +12,13 @@
   
 <p align="center">
   
-  **AiNiee是一款专注于Ai翻译的工具，可以用来一键自动翻译RPG SLG游戏，Epub Word TXT小说，Srt Vtt Lrc字幕等等。**
+  **AiNiee 是一款专注于 Ai 翻译的工具，可以用来一键自动翻译 游戏、小说、字幕 等文本内容。**
 </p>
 
 
-* **多格式支持**: json/xlsx导出文件、Epub/TXT 小说、Srt/Vtt/Lrc 字幕、Word文档等。
-* **多平台接入**: 支持国内外主流AI接口平台，可方便快速使用OpenAI、Google、Anthropic、Deepseek、智谱等平台的接口。
-* **多语言翻译**:  支持多种语言的互相翻译，例如中文、英文、日文、韩文、俄语等。
+* **多格式**: json/xlsx导出文件、Epub/TXT 小说、Srt/Vtt/Lrc 字幕、Word文档等。
+* **多平台**: 支持国内外主流AI平台，可方便快速使用OpenAI、Google、Anthropic、DeepSeek 系列模型。
+* **多语言**:  支持多种语言的互相翻译，例如中文、英文、日文、韩文、俄语等。
 * **灵活配置**: 自定义请求格式、平台、模型、翻译行数、线程数等。
 * **高效翻译**: 拥有多文件批量翻译、多线程翻译、多key轮询、混合平台翻译等功能。
 * **翻译优化**: 思维链翻译、动态Few-Shot、提示书编写、上文自携带、文本自适应处理、回复检查等。
@@ -60,9 +60,9 @@
       |视频链接|说明|
       |:----:|:-----:|
       |[Mtool教程](https://www.bilibili.com/video/BV1h6421c7MA) |初次使用推荐观看|
-      |[T++教程](https://www.bilibili.com/video/BV18c411K7WN?p=2)|初次使用推荐观看|
+      |[Translator++教程](https://www.bilibili.com/video/BV18c411K7WN?p=2)|初次使用推荐观看|
 
-* **`📖 角色提取工具`**: [KeywordGacha - 使用 AI 技术来自动生成 `实体词语表` 的翻译辅助工具](https://github.com/neavo/KeywordGacha)
+* **`📖 角色提取工具`**: [KeywordGacha - 使用 AI 技术来自动生成实体词语表的翻译辅助工具](https://github.com/neavo/KeywordGacha)
 
 * **`💽 本地模型一键包`**: [SakuraLLMServer - 一键获取免费且高质量的日语翻译能力，可提速 3-5 倍](https://github.com/neavo/SakuraLLMServer)
 
@@ -200,7 +200,7 @@
 <details>
 <summary>
   
-### 如果使用MTOOL进行游戏翻译
+### 如果使用 MTool 进行游戏翻译
 </summary>
 
 *  1.使用Mtool打开游戏,并在翻译功能界面,选择导出游戏原文文件,会在游戏根目录生成：ManualTransFile.json<br>
@@ -232,7 +232,7 @@
 <details>
 <summary>
   
-### 如果使用T++进行游戏翻译
+### 如果使用 Translator++ 进行游戏翻译
 </summary>
   
 * 1.🖱️打开`🔴Translator++`,选择“start a new project”,根据你的游戏图标来选择对应的游戏引擎<br>
@@ -283,7 +283,7 @@
 <details>
 <summary>
  
-### 如果使用StevExtraction进行游戏翻译
+### 如果使用 StevExtraction 进行游戏翻译
 </summary>
 
 *  0.工具详情功能及介绍：[工具原作者页面](https://www.ai2moe.org/topic/10271-jt%EF%BC%8C%E7%9B%AE%E6%A0%87%E6%98%AF%E9%9B%B6%E9%97%A8%E6%A7%9B%E7%9A%84%EF%BC%8C%E5%86%85%E5%B5%8C%E4%BA%86%E5%A4%9A%E4%B8%AA%E8%84%9A%E6%9C%AC%E7%9A%84%E9%9D%92%E6%98%A5%E7%89%88t/) 
@@ -347,7 +347,7 @@
 <details>
 <summary> 
 
-## 常用功能说明[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#常用功能说明) 
+## 常用功能[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#常用功能) 
 </summary>
 
 * ` 多key轮询`
@@ -376,6 +376,22 @@
 
 
   
+</details>
+
+---
+
+<details>
+<summary>
+  
+## 插件说明[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#插件说明)  
+</summary>
+
+- [插件 - 代码救星](CodeSaver)
+- [插件 - 标点修复器](PunctuationFixer)
+- [插件 - 语言过滤器](LanguageFilter)
+- [插件 - 文本规范器](TextNormalizer)
+- [插件 - MTool 优化器](MToolOptimizer)
+- [插件 - 指令词典检查器](GlossaryChecker)
 </details>
 
 ---
