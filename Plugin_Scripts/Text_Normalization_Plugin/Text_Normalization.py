@@ -31,7 +31,7 @@ class Text_Normalization_Plugin(PluginBase):
             if config.source_language == "日语":
                 for k in event_data.keys():
                     text = jaconv.normalize(event_data.get(k, ""), mode = "NFKC")
-                    text = self.remove_spaces(text)
+                    # text = self.remove_spaces(text)
                     event_data[k] = text
 
             if config.source_language == "英语":
