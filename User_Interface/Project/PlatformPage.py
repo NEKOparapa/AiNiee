@@ -316,7 +316,7 @@ class PlatformPage(QFrame, Base):
     def add_head_widget(self, parent, config):
         def init(widget):
             # 添加按钮
-            help_button = PushButton("帮助")
+            help_button = PushButton("教程")
             help_button.setIcon(FluentIcon.HELP)
             help_button.setContentsMargins(4, 0, 4, 0)
             help_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/neavo/SakuraLLMServer")))
