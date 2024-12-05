@@ -43,8 +43,8 @@ class PunctuationFixer(PluginBase):
     CIRCLED_NUMBERS_ALL = ("",) + CIRCLED_NUMBERS + CIRCLED_NUMBERS_CJK_01 + CIRCLED_NUMBERS_CJK_02     # 开头加个空字符来对齐索引和数值
 
     # 预设编译正则
-    PATTERN_ALL_NUM = re.compile(r"\d+|[①-⑳]", re.IGNORECASE)
-    PATTERN_CIRCLED_NUM = re.compile(r"[①-⑳]", re.IGNORECASE)
+    PATTERN_ALL_NUM = re.compile(r"\d+|[①-⑳㉑-㉟㊱-㊿]", re.IGNORECASE)
+    PATTERN_CIRCLED_NUM = re.compile(r"[①-⑳㉑-㉟㊱-㊿]", re.IGNORECASE)
 
     def __init__(self) -> None:
         super().__init__()
