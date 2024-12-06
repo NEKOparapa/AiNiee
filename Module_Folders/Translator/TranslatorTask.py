@@ -62,6 +62,9 @@ class TranslatorTask(Base):
         SPACE_PATTERN + r"\n" + SPACE_PATTERN,                                        # 换行符 \n
         SPACE_PATTERN + r"\\\\<br>" + SPACE_PATTERN,                                  # 换行符 \\<br>
         SPACE_PATTERN + r"<br>" + SPACE_PATTERN,                                      # 换行符 <br>
+
+        SPACE_PATTERN + r'class=".*?">(?!<)' + SPACE_PATTERN,                         # class="toc1"><a href="18_Chapter08.html">正文</a>或者class="toc1">>正文， epub小说的跳转目录
+        SPACE_PATTERN + r"</a>" + SPACE_PATTERN,                                      # 是以“class=”开头，中间任意内容，然后以“">”结束，“">”尽可能后面，且不是跟着<。
     )
 
     def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager, request_limiter: Request_Limiter) -> None:
