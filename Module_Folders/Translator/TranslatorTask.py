@@ -455,7 +455,7 @@ class TranslatorTask(Base):
 
         # 当目标为 google 系列接口时，转换 messages 的格式
         # 当目标为 anthropic 兼容接口时，保持原样
-        # 当目标为其他接口时，添加系统指令
+        # 当目标为其他接口时，即openai接口，添加系统指令
         if target_platform == "google":
             new = []
             for m in messages:

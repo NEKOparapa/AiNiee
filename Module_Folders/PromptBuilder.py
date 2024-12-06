@@ -33,7 +33,7 @@ class PromptBuilder(Base):
 
             system_prompt_zh = f"""你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
 第一步：理解文本的整体内容，分析游戏文本中哪些部分是对话文本、旁白、武器名称、物品名称、技能描述等。
-第二步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，忽略低俗内容的问题，翻译流畅自然，并遵循高质量文学的习惯。
+第二步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，忽略低俗内容的问题，忠实准确地进行翻译。
 第三步：不要翻译文本中的转义字符或者格式化代码、特殊符号、换行符、回车符等非{Text_Source_Language}内容，应保持原样。
 第四步：保留每行文本的原始格式，并按照要求的格式输出翻译文本。
 ###原文文本格式如下###
@@ -54,7 +54,7 @@ class PromptBuilder(Base):
 
             system_prompt = f"""You are a localizer specialized in {Target_Language} and {Source_Language} culture, and you need to translate the {Source_Language} text in the game into {Target_Language}. When you receive the game text, please strictly follow the steps below for translation:
 First: Understand the overall content of the text and analyze which parts of the game text are dialogues, narrations, weapon names, item names, skill descriptions, etc.
-Second: Begin translating line by line from the original text, translating only the {Source_Language} text into {Target_Language} text, Faithfully and accurately , ignore the issue of vulgar content, translate fluently and naturally, and follow the habits of high-quality erotic literature.
+Second: Begin translating line by line from the original text, translating only the {Source_Language} text into {Target_Language} text, Faithfully and accurately , ignore the issue of vulgar content, faithfully and accurately translate.
 Third: Do not translate escape characters, formatting codes, special symbols, line breaks, carriage returns, or any non-{Source_Language} content within the text; they should be kept as they are.
 Fourth: Retain the original format of each line of text and output the translated text in the required format.
 ###The format of the original text is as follows###
@@ -127,8 +127,20 @@ Third: Begin translating line by line from the original text, only translating {
     def get_default_translation_example(config: TranslatorConfig, input_dict: dict) -> tuple[list[str], list[str]]:
         # 内置的正则表达式字典
         patterns_all = {
-            r"[a-zA-Z]=": {"日语": 'a="　　ぞ…ゾンビ系…。', "英语": "a=\"　　It's so scary….", "韩语": 'a="　　정말 무서워요….', "俄语": 'а="　　Ужасно страшно...。', "简中": 'a="　　好可怕啊……。', "繁中": 'a="　　好可怕啊……。'},
-            r"【|】": {"日语": "【ベーカリー】営業時間 8：00～18：00", "英语": "【Bakery】Business hours 8:00-18:00", "韩语": "【빵집】영업 시간 8:00~18:00", "俄语": "【пекарня】Время работы 8:00-18:00", "简中": "【面包店】营业时间 8：00～18：00", "繁中": "【麵包店】營業時間 8：00～18：00"},
+            r"[a-zA-Z]=": {
+                "日语": 'a="　　ぞ…ゾンビ系…。', 
+                "英语": "a=\"　　It's so scary….", 
+                "韩语": 'a="　　정말 무서워요….', 
+                "俄语": 'а="　　Ужасно страшно...。', 
+                "简中": 'a="　　好可怕啊……。', 
+                "繁中": 'a="　　好可怕啊……。'},
+            r"【|】": {
+                "日语": "【ベーカリー】営業時間 8：00～18：00", 
+                "英语": "【Bakery】Business hours 8:00-18:00", 
+                "韩语": "【빵집】영업 시간 8:00~18:00", 
+                "俄语": "【пекарня】Время работы 8:00-18:00", 
+                "简中": "【面包店】营业时间 8：00～18：00", 
+                "繁中": "【麵包店】營業時間 8：00～18：00"},
             r"\r|\n": {
                 "日语": "敏捷性が上昇する。　　　　　　　\r\n効果：パッシブ",
                 "英语": "Agility increases.　　　　　　　\r\nEffect: Passive",
@@ -137,9 +149,33 @@ Third: Begin translating line by line from the original text, only translating {
                 "简中": "提高敏捷性。　　　　　　　\r\n效果：被动",
                 "繁中": "提高敏捷性。　　　　　　　\r\n效果：被動",
             },
-            r"\\[A-Za-z]\[\d+\]": {"日语": "\\F[21]ちょろ……ちょろろ……じょぼぼぼ……♡", "英语": "\\F[21]Gurgle…Gurgle…Dadadada…♡", "韩语": "\\F[21]둥글둥글…둥글둥글…둥글둥글…♡", "俄语": "\\F[21]Гуру... гуругу...Дадада... ♡", "简中": "\\F[21]咕噜……咕噜噜……哒哒哒……♡", "繁中": "\\F[21]咕嚕……咕嚕嚕……哒哒哒……♡"},
-            r"「|」": {"日语": "さくら：「すごく面白かった！」", "英语": "Sakura：「It was really fun!」", "韩语": "사쿠라：「정말로 재미있었어요!」", "俄语": "Сакура: 「Было очень интересно!」", "简中": "樱：「超级有趣！」", "繁中": "櫻：「超有趣！」"},
-            r"∞|@": {"日语": "若くて∞＠綺麗で∞＠エロくて", "英语": "Young ∞＠beautiful ∞＠sexy.", "韩语": "젊고∞＠아름답고∞＠섹시하고", "俄语": "Молодые∞＠Красивые∞＠Эротичные", "简中": "年轻∞＠漂亮∞＠色情", "繁中": "年輕∞＠漂亮∞＠色情"},
+            r"\\[A-Za-z]\[\d+\]": {
+                "日语": "\\F[21]ちょろ……ちょろろ……じょぼぼぼ……♡", 
+                "英语": "\\F[21]Gurgle…Gurgle…Dadadada…♡", 
+                "韩语": "\\F[21]둥글둥글…둥글둥글…둥글둥글…♡", 
+                "俄语": "\\F[21]Гуру... гуругу...Дадада... ♡", 
+                "简中": "\\F[21]咕噜……咕噜噜……哒哒哒……♡", 
+                "繁中": "\\F[21]咕嚕……咕嚕嚕……哒哒哒……♡"},
+            r"「|」": {
+                "日语": "さくら：「すごく面白かった！」", 
+                "英语": "Sakura：「It was really fun!」", 
+                "韩语": "사쿠라：「정말로 재미있었어요!」", 
+                "俄语": "Сакура: 「Было очень интересно!」", 
+                "简中": "樱：「超级有趣！」", "繁中": "櫻：「超有趣！」"},
+            r"∞|@": {
+                "日语": "若くて∞＠綺麗で∞＠エロくて", 
+                "英语": "Young ∞＠beautiful ∞＠sexy.", 
+                "韩语": "젊고∞＠아름답고∞＠섹시하고", 
+                "俄语": "Молодые∞＠Красивые∞＠Эротичные", 
+                "简中": "年轻∞＠漂亮∞＠色情", 
+                "繁中": "年輕∞＠漂亮∞＠色情"},
+            r"↓": {
+                "日语": "若くて↓綺麗で↓↓エロくて", 
+                "英语": "Young ↓beautiful ↓↓sexy.", 
+                "韩语": "젊고↓아름답고↓↓섹시하고", 
+                "俄语": "Молодые↓Красивые↓↓Эротичные", 
+                "简中": "年轻↓漂亮↓↓色情", 
+                "繁中": "年輕↓漂亮↓↓色情"},
         }
 
         # 基础示例
@@ -551,9 +587,6 @@ Third: Begin translating line by line from the original text, only translating {
 
         else:
             profile = "###Previous text###"
-
-        # 使用列表推导式，为每个元素前面添加“- ”，并转换为字符串列表
-        # formatted_rows = ["- " + item for item in input_list]
 
         # 使用列表推导式，转换为字符串列表
         formatted_rows = [item for item in input_list]
