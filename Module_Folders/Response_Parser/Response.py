@@ -142,6 +142,8 @@ class Response_Parser():
 
     # 检查两个字典是否完全相同，即返回了原文
     def check_dicts_equal(self,dict1, dict2):
+
+        # 不检测双行及以下
         if len(dict1) >=3 :
             i = 0
             s = 0
@@ -152,18 +154,32 @@ class Response_Parser():
                 set1 = set(value)
                 set2 = set(value2)
 
+
+                # 定义日本汉字的Unicode范围（这是一个大致范围，可能需要调整）
+                kanji_start = 0x4E00
+                kanji_end = 0x9FFF
+
+                # 剔除原文集合中的汉字
+                set1_test = {char for char in set1 if not (kanji_start <= ord(char) <= kanji_end)}
+                #set2 = {char for char in set2 if not (kanji_start <= ord(char) <= kanji_end)}
+
+                # 如果原文集合为空，说明原文全是汉字，则跳过此行的计算
+                if not set1_test:
+                    continue
+
                 # 计算交集和并集的大小
                 intersection_size = len(set1.intersection(set2))
                 union_size = len(set1.union(set2))
 
-                # 计算Jaccard相似系数
+                # 计算单个文本行的Jaccard相似系数
                 similarity = intersection_size / union_size
 
                 #累加与累计
                 i = i + 1
                 s = s + similarity
 
-            result = s/i
+            # 计算总体相似度，并防止除到0
+            result = s / i if i != 0 else 0
 
             if (result>= 0.85):
                 return False
@@ -172,6 +188,10 @@ class Response_Parser():
 
         else:
             return True
+
+
+
+
 
     # 检查回复内容的文本行数
     def check_text_line_count(self, source_dict, response_dict):
