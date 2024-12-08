@@ -31,10 +31,9 @@
   - 大部分 `小说`、`字幕`、`文档` 文件可以直接翻译
   - 游戏文本需要先使用第三方工具进行提取，比如 [MTool - 使用教程](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartMTool)
 - 选择以下方式之一进行翻译：
-  - 在线接口：需付费但很便宜，无显卡要求，[接口设置说明 - DeepSeek](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartDeepSeek)
+  - 在线接口：需付费但性价比很高，无显卡要求，[接口设置说明 - DeepSeek](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartDeepSeek)
   - 本地接口：免费，需要至少 8G 显存的 Nvidia 显卡，[接口设置说明 - SakuraLLM](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartSakuraLLM)
-- 绝大部分情况下，这两种方式就可以满足你的翻译需求了
-- 强烈建议按照以上步骤跑通以后再折腾其他接口和功能，节约时间，就是节约自己宝贵的人生
+- 绝大部分情况下，这两种方式就是满足你翻译需求的最优解，没特殊需求不需要再去折腾其他的接口了
 
 ##  工具准备[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#工具准备)
    
