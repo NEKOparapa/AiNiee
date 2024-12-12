@@ -244,16 +244,24 @@ Third: Begin translating line by line from the original text, only translating {
     def replace_and_increment(items, prefix) -> list[str]:
         pattern = re.compile(r"{}(\d{{1,2}})".format(re.escape(prefix)))  # 使用双括号来避免KeyError
         result = []  # 用于存储结果的列表
-        n = 1
+        n = 0
+        p = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q']
         for item in items:
             if pattern.search(item):  # 如果在元素中找到匹配的模式
-                new_item, _ = pattern.subn(f"{prefix}{n}", item)  # 替换数字并计数
-                result.append(new_item)  # 将修改后的元素添加到结果列表
+                new_item = item
+                j = 1  # 初始化 j
+                while True:
+                    match = pattern.search(new_item)
+                    if not match:
+                        break
+                    new_item = new_item[:match.start()] + f"{prefix}{p[n]}-{j}" + new_item[match.end():]
+                    j += 1  # 在每次替换后递增 j
+                result.append(new_item)
                 n += 1  # 变量n递增
             else:
                 result.append(item)  # 如果没有匹配，将原始元素添加到结果列表
 
-        return result  # 返回修改后的列表和最终的n值
+        return result  # 返回修改后的列表
 
     # 构建相似格式翻译示例
     def build_adaptive_translation_sample(config: TranslatorConfig, input_dict: dict) -> tuple[list[str], list[str]]:
@@ -267,16 +275,16 @@ Third: Begin translating line by line from the original text, only translating {
 
         # 输出列表1示例
         # ex_dict = [
-        #     "原文テキスト1，原文テキスト2。原文テキスト3#include <iostream>",
-        #     "55345原文テキスト1",
-        #     "原文テキスト1xxxx！",
+        #     "原文テキストA-1，原文テキストA-2。原文テキストA-3#include <iostream>",
+        #     "55345原文テキストB-1",
+        #     "原文テキストC-1xxxx！",
         # ]
 
         # 输出列表2示例
         # ex_dict = [
-        #     "译文文本1，译文文本2。译文文本3#include <iostream>",
-        #     "55345译文文本1",
-        #     "译文文本1xxxx！",
+        #     "译文文本A-1，译文文本A-2。译文文本A-3#include <iostream>",
+        #     "55345译文文本B-1",
+        #     "译文文本C-1xxxx！",
         # ]
 
         # 定义不同语言的正则表达式
