@@ -28,18 +28,18 @@ class TranslatorTask(Base):
         SPACE_PATTERN + r"en\(.{0,5}[vs]\[\d+\].{0,10}\)" + SPACE_PATTERN,            # en(!s[982]) en(v[982] >= 1)
         SPACE_PATTERN + r"[/\\][a-z]{1,5}<[\d]{0,10}>" + SPACE_PATTERN,               # /C<1> \FS<12>
         SPACE_PATTERN + r"[/\\][a-z]{1,5}\[[\d]{0,10}\]" + SPACE_PATTERN,             # /C[1] \FS[12]
-        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=<.{0,10}>)" + SPACE_PATTERN,              # /C<非数字> /C<非数字> \FS<非数字> \FS<非数字> 中的前半部分
-        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=\[.{0,10}\])" + SPACE_PATTERN,            # /C[非数字] /C[非数字] \FS[非数字] \FS[非数字] 中的前半部分
+        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=<[^\d]{0,10}>)" + SPACE_PATTERN,          # /C<非数字> \FS<非数字> 中的前半部分
+        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=\[[^\d]{0,10}\])" + SPACE_PATTERN,        # /C[非数字] \FS[非数字] 中的前半部分
     )
 
     # 用于非英文的代码段规则
     CODE_PATTERN_NON_EN = (
-        SPACE_PATTERN + r"if\(.{0,5}[vs]\[\d+\].{0,10}\)" + SPACE_PATTERN,            # if(!s[982]) if(v[982] >= 1)
+        SPACE_PATTERN + r"if\(.{0,5}[vs]\[\d+\].{0,10}\)" + SPACE_PATTERN,            # if(!s[982]) if(v[982] >= 1) if(v[982] >= 1)
         SPACE_PATTERN + r"en\(.{0,5}[vs]\[\d+\].{0,10}\)" + SPACE_PATTERN,            # en(!s[982]) en(v[982] >= 1)
-        SPACE_PATTERN + r"[/\\][a-z]{1,5}<[\da-z]{0,10}>" + SPACE_PATTERN,            # /C<y> /C<1> \FS<xy> \FS<12>
-        SPACE_PATTERN + r"[/\\][a-z]{1,5}\[[\da-z]{0,10}\]" + SPACE_PATTERN,          # /C[x] /C[1] \FS[xy] \FS[12]
-        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=<.{0,10}>)" + SPACE_PATTERN,              # /C<非数字非字母> /C<非数字非字母> \FS<非数字非字母> \FS<非数字非字母> 中的前半部分
-        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=\[.{0,10}\])" + SPACE_PATTERN,            # /C[非数字非字母] /C[非数字非字母] \FS[非数字非字母] \FS[非数字非字母] 中的前半部分
+        SPACE_PATTERN + r"[/\\][a-z]{1,5}<[a-z\d]{0,10}>" + SPACE_PATTERN,            # /C<y> /C<1> \FS<xy> \FS<12>
+        SPACE_PATTERN + r"[/\\][a-z]{1,5}\[[a-z\d]{0,10}\]" + SPACE_PATTERN,          # /C[x] /C[1] \FS[xy] \FS[12]
+        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=<[^a-z\d]{0,10}>)" + SPACE_PATTERN,       # /C<非数字非字母> \FS<非数字非字母> 中的前半部分
+        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=\[[^a-z\d]{0,10}\])" + SPACE_PATTERN,     # /C[非数字非字母] \FS[非数字非字母] 中的前半部分
     )
 
     # 同时作用于英文于非英文的代码段规则
@@ -58,8 +58,8 @@ class TranslatorTask(Base):
         # SPACE_PATTERN + r"\\<" + SPACE_PATTERN,                                     # 取消显示所有文字 \<
         SPACE_PATTERN + r"\\\^" + SPACE_PATTERN,                                      # 显示文本后不需要等待 \^
         # SPACE_PATTERN + r"\\n" + SPACE_PATTERN,                                     # 换行符 \\n
-        SPACE_PATTERN + r"\r\n" + SPACE_PATTERN,                                      # 换行符 \r\n
-        SPACE_PATTERN + r"\n" + SPACE_PATTERN,                                        # 换行符 \n
+        # SPACE_PATTERN + r"\r\n" + SPACE_PATTERN,                                    # 换行符 \r\n，因为 SPACE_PATTERN 中已包含换行符，所以不需要再次匹配
+        # SPACE_PATTERN + r"\n" + SPACE_PATTERN,                                      # 换行符 \n，因为 SPACE_PATTERN 中已包含换行符，所以不需要再次匹配
         SPACE_PATTERN + r"\\\\<br>" + SPACE_PATTERN,                                  # 换行符 \\<br>
         SPACE_PATTERN + r"<br>" + SPACE_PATTERN,                                      # 换行符 <br>
 
