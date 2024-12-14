@@ -49,10 +49,10 @@ class CodeSaver(PluginBase):
         # SPACE_PATTERN + r"\\<" + SPACE_PATTERN,                                     # 取消显示所有文字 \<
         SPACE_PATTERN + r"\\\^" + SPACE_PATTERN,                                      # 显示文本后不需要等待 \^
         # SPACE_PATTERN + r"\\n" + SPACE_PATTERN,                                     # 换行符 \\n
-        # SPACE_PATTERN + r"\r\n" + SPACE_PATTERN,                                    # 换行符 \r\n，因为 SPACE_PATTERN 中已包含换行符，所以不需要再次匹配
-        # SPACE_PATTERN + r"\n" + SPACE_PATTERN,                                      # 换行符 \n，因为 SPACE_PATTERN 中已包含换行符，所以不需要再次匹配
         SPACE_PATTERN + r"\\\\<br>" + SPACE_PATTERN,                                  # 换行符 \\<br>
         SPACE_PATTERN + r"<br>" + SPACE_PATTERN,                                      # 换行符 <br>
+        "" + r"\r" + "",                                                              # 换行符 \r，该字符本来就是 SPACE_PATTERN 的一部分，不再添加前后缀，避免死循环
+        "" + r"\n" + "",                                                              # 换行符 \n，该字符本来就是 SPACE_PATTERN 的一部分，不再添加前后缀，避免死循环
     )
 
     # 需要进行数量匹配检查的代码段
