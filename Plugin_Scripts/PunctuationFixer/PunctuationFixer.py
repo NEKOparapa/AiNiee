@@ -106,7 +106,7 @@ class PunctuationFixer(PluginBase):
 
         # 输出结果
         print("")
-        print(f"[PunctuationFixer] 标点修复已完成，修复标点 {len(logs)}/{len(target_items)} 条 ...")
+        print(f"[PunctuationFixer] 标点修复已完成，已修复 {len(logs)} 个标点错误的条目 ...")
         print("")
 
     # 检查并替换
