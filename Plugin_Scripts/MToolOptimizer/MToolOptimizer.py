@@ -112,21 +112,21 @@ class MToolOptimizer(PluginBase):
                 continue
 
             # 统计原文和译文的最大单行显示长度
-            max_length_source = max(self.get_display_length(v) for v in lines_source)
-            max_length_translated = max(self.get_display_length(v) for v in lines_translated)
+            max_length_source = max(self.get_display_length(v) for v in lines_source) if len(lines_source) > 0 else 0
+            max_length_translated = max(self.get_display_length(v) for v in lines_translated) if len(lines_translated) > 0 else 0
 
             # 第一种情况：原文和译文行数相等
             if len(lines_source) == len(lines_translated):
                 data, seen = self.update_data(v, data, lines_source, lines_translated, seen)
             # 第二种情况：原文行数大于译文行数，且原文最大显示长度不少于译文最大显示长度
-            elif (len(lines_source) > len(lines_translated) and max_length_source >= max_length_translated):
+            elif len(lines_source) > len(lines_translated) and max_length_source >= max_length_translated:
                 data, seen = self.update_data(v, data, lines_source, lines_translated, seen)
             # 兜底的情况
             else:
-                # 切分前，先将译文中的换行符移除，避免重复换行，切分长度为子句最大长度 - 1
+                # 切分前，先将译文中的换行符移除，避免重复换行，切分长度为子句最大长度 - 2
                 lines_translated = self.split_string_by_display_length(
-                    translated_text.replace("\n", "").replace("\n", ""),
-                    max(20, max_length_source - 1)
+                    translated_text.replace("\r", "").replace("\n", ""),
+                    max(20, max_length_source - 2)
                 )
 
                 data, seen = self.update_data(v, data, lines_source, lines_translated, seen)
