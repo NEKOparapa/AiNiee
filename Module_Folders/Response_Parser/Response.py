@@ -33,8 +33,8 @@ class Response_Parser():
                 if not key: continue
                 value = re.findall(r'"([\S\s]+)"(?=,|}|\n)', line)
                 if value:
-                    if key not in parsed_dict:
-                        parsed_dict[key] = value[0]
+                    # 直接添加或覆盖键值对，不再检查键是否已存在，以最后的翻译结果为准。（配合cot翻译）
+                    parsed_dict[key] = value[0]
                 key = None
 
 

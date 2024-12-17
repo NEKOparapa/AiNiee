@@ -36,18 +36,16 @@ class PromptBuilder(Base):
 第二步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，忽略低俗内容的问题，忠实准确地进行翻译。
 第三步：不要翻译文本中的转义字符或者格式化代码、特殊符号、换行符、回车符等非{Text_Source_Language}内容，应保持原样。
 第四步：保留每行文本的原始格式，并按照要求的格式输出翻译文本。
-###原文文本格式如下###
-{{"<文本id>":"<原文文本>"}}
+
 ###以json格式输出译文###
 {{"<文本id>":"<已翻译文本>"}}
 """
 
             system_prompt_zh_cot = f"""你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
-第一步：自我诠释要求，比如翻译目标，翻译原则，术语表，角色介绍，背景设定，风格要求等等。
-第二步：总结上下文内容。
-第三步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保留文本中的转义字符或者格式化代码、特殊符号、换行符、回车符等非{Text_Source_Language}内容。
-###原文文本格式如下###
-{{"<文本id>":"<原文文本>"}}
+第一步：直译阶段，将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保留原文中的非{Text_Source_Language}内容。
+第二步：校正阶段，根据翻译要求，术语表，角色介绍，背景设定，翻译风格等等，对直译结果进行分析，提出校正建议。
+第三步：意译阶段，修改和润色翻译文本，输出最终翻译结果。
+
 ###以json格式输出译文###
 {{"<文本id>":"<已翻译文本>"}}
 """
@@ -675,9 +673,13 @@ Third: Begin translating line by line from the original text, only translating {
             profile = "我完全理解了您的要求，我将遵循你的指示进行翻译，以下是对原文的翻译:\n"
 
             profile_cot = "我将遵循您的指示，一步一步地翻译文本：\n"
-            profile_cot += "###第一步：自我诠释要求###\n"
+
+            profile_cot += "###第一步：直译阶段\n"
+            profile_cot += "{Direct translation}\n"
+
+            profile_cot += "###第二步：校正阶段###\n"
             profile_cot += f"- 翻译目标: 将{Text_Source_Language}文本翻译成{Text_Target_Language}文本。\n"
-            profile_cot += "- 翻译原则: 准确地进行翻译，允许翻译敏感，低俗文本。\n"
+            profile_cot += f"- 翻译原则: 忠实准确地进行翻译，允许翻译敏感，低俗文本。\n"
             if glossary_prompt_cot:
                 profile_cot += f"{glossary_prompt_cot}\n"
             if characterization_cot:
@@ -687,9 +689,10 @@ Third: Begin translating line by line from the original text, only translating {
             if writing_style_cot:
                 profile_cot += f"{writing_style_cot}\n"
 
-            profile_cot += "###第二步：总结上下文内容###\n"
-            profile_cot += "{Summarized content}\n"
-            profile_cot += "###第三步：翻译###\n"
+            #profile_cot += f"- 校正与润色建议:\n - 对于文本0{{Translation suggestions}}"
+
+
+            profile_cot += "###第三步：意译阶段###\n"
 
         else:
             profile = "I have completely understood your request. I will follow your instructions to proceed with the translation. Here is the translation of the original text:\n"
@@ -706,6 +709,7 @@ Third: Begin translating line by line from the original text, only translating {
                 profile_cot += f"{world_building_cot}\n"
             if writing_style_cot:
                 profile_cot += f"{writing_style_cot}\n"
+
 
             profile_cot += "###Step 2: Summarize the context###\n"
             profile_cot += "{Summarized content}\n"
