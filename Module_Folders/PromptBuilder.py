@@ -245,19 +245,37 @@ Third: Begin translating line by line from the original text, only translating {
         pattern = re.compile(r"{}(\d{{1,2}})".format(re.escape(prefix)))  # 使用双括号来避免KeyError
         result = []  # 用于存储结果的列表
         n = 0
-        p = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q']
+        p = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+
         for item in items:
             if pattern.search(item):  # 如果在元素中找到匹配的模式
                 new_item = item
                 j = 1  # 初始化 j
                 while True:
+
+                    # 正则匹配
                     match = pattern.search(new_item)
+
+                    # 如果没有匹配到，退出
                     if not match:
                         break
+                    
+                    # 防止列表循环越界
+                    if n >= 24:
+                        #print("bug")
+                        n = 0 
+                    
+                    # 替换示例文本后缀
                     new_item = new_item[:match.start()] + f"{prefix}{p[n]}-{j}" + new_item[match.end():]
-                    j += 1  # 在每次替换后递增 j
+
+                    # 在每次替换后递增 j
+                    j += 1  
+                
+                # 替换完之后添加进结果列表
                 result.append(new_item)
-                n += 1  # 变量n递增
+
+                # 变量n递增
+                n += 1  
             else:
                 result.append(item)  # 如果没有匹配，将原始元素添加到结果列表
 

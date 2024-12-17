@@ -163,6 +163,12 @@ class TranslatorTask(Base):
                     )
                 )
             )
+
+            # 打印调试用日志
+            if self.is_debug():
+                print("AI回复内容:")
+                print(response_str)
+
         else:
             # 各种还原步骤
             # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
@@ -189,6 +195,12 @@ class TranslatorTask(Base):
                     )
                 )
             )
+
+            # 打印调试用日志
+            if self.is_debug():
+                print("AI回复内容:")
+                print(response_str)
+
 
         # 当重试标识为 True 时，重新发起请求
         # 否则返回译文检查的结果

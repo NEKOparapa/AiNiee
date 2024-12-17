@@ -82,7 +82,7 @@ class Response_Parser():
 
         # 检查模型是否退化，出现高频词
         if 'Model Degradation Check' in reply_check_switch and reply_check_switch['Model Degradation Check']:
-            if Response_Parser.model_degradation_detection(self,response_str):
+            if Response_Parser.model_degradation_detection(self,source_text_dict,response_str):
                 pass
 
             else:
@@ -221,7 +221,7 @@ class Response_Parser():
 
 
     # 模型退化检测，高频语气词
-    def model_degradation_detection(self, s, count=80):
+    def model_degradation_detection(self,source_text_dict, s, count=80):
         """
         检查字符串中是否存在任何字符连续出现指定次数。
 
@@ -229,6 +229,12 @@ class Response_Parser():
         :param count: 需要检查的连续次数，默认为80
         :return: 如果存在字符连续出现指定次数，则返回False，否则返回True
         """
+
+        # 不检测单行
+        if len(source_text_dict) ==1 :
+           return True
+
+
         for i in range(len(s) - count + 1):
             if len(set(s[i:i+count])) == 1:
                 return False
@@ -246,14 +252,24 @@ class Response_Parser():
         if language == "英语" or language == "俄语":
             return True
 
+        # 避免检查单或者少行字典
+        if len(dict1) <=5 :
+            return True
+
         # 不同语言的标点符号字符集
-        punctuation_sets = {
-            '日语': r'[\u3000-\u303F\uFF01-\uFF9F]',  # 日文标点符号
-            '韩语': r'[\u314F-\u3163\uFF61-\uFF9F]',  # 韩文标点符号和半角标点符号
-            '俄语': r'[\u0400-\u04FF\u0500-\u052F]',  # 俄语字母和扩展字符（含标点）
-            '简中': r'[\u3000-\u303F]',  # 中文标点符号
-            '繁中': r'[\u3000-\u303F]',  # 中文标点符号
-        }
+        punctuation_sets = re.compile(
+            r'['
+            r'\u3000-\u303F'   # CJK符号和标点
+            r'\uFF01-\uFF9F'   # 全角ASCII、半角片假名和日文标点
+            r'\u314F-\u3163'   # 韩文标点符号
+            r'\u0400-\u04FF'   # 俄语字母
+            r'\u0500-\u052F'   # 俄语扩展字符（含标点）
+            r']+', re.UNICODE  # 使用 + 来匹配一个或多个字符
+        )
+
+        # 特定的无法过滤的标点符号集
+        punctuation_list_A = ['(', ')', '・', '?', '·', '～', 'ー']  
+
         # 定义不同语言的文本字符集对应的正则表达式
         patterns_all = {
             '日语': re.compile(
@@ -287,7 +303,7 @@ class Response_Parser():
         }
         # 根据语言选择合适的正则表达式
         pattern = patterns_all.get(language)
-        punctuation_pattern = punctuation_sets.get(language)
+        punctuation_pattern = punctuation_sets
         if not pattern:
             raise ValueError("Unsupported language")
 
@@ -300,19 +316,35 @@ class Response_Parser():
             if key2 in dict1:
                 # 提取字典1值中的文本
                 text1 = dict1[key2]
-                # 移除字典2值中的标点符号
-                text2_clean = re.sub(punctuation_pattern, '', value2)
+                # 移除字典2值中的各种通用的标点符号
+                text2_clean1 = re.sub(punctuation_pattern, '', value2)
+                # 移除字典2值中的特定的标点符号
+                text2_clean2 = Response_Parser.remove_punctuation(self,text2_clean1, punctuation_list_A)
                 # 提取字典2值中的指定语言的文本
-                text2 = pattern.findall(text2_clean)
+                text2 = pattern.findall(text2_clean2)
+                # 提取为空内容，则跳过
+                if text2 =='':
+                    continue
                 # 将列表转换为字符串
                 text2_str = ''.join(text2)
                 # 如果字典2中的残留文本在字典1中的文本中出现，则计数加1
                 if text2_str and (text2_str in text1):
                     count_results += 1
 
-        # 避免检查单或者少行字典
-        if len(dict2) >5 :
-            if  count_results >=2:
-                return False
+        # 根据出现次数判断结果
+        if  count_results >=2:
+            return False
 
         return True
+    
+    # 辅助函数
+    def remove_punctuation(self,input_string, punctuation_list):
+        """
+        移除输入字符串中所有属于标点符号列表的字符。
+
+        :param input_string: 要移除标点的字符串。
+        :param punctuation_list: 需要移除的标点符号列表。
+        :return: 移除了指定标点的新字符串。
+        """
+        result = ''.join(char for char in input_string if char not in punctuation_list)
+        return result
