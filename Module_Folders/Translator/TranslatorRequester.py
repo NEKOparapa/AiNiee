@@ -364,11 +364,15 @@ class TranslatorRequester(Base):
         except Exception:
             completion_tokens = 0
 
+        # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
+
         # 调用插件，进行处理
         self.plugin_manager.broadcast_event(
             "complete_text_process",
             self.config,
             response_content
         )
+
+        # 插件事件过后，恢复字符串类型
 
         return False, response_content, prompt_tokens, completion_tokens
