@@ -14,9 +14,9 @@ class BasicSettingsPage(QFrame, Base):
 
         # 默认配置
         self.default = {
-            "lines_limit_switch": True,
-            "tokens_limit_switch": False,
-            "lines_limit": 15,
+            "lines_limit_switch": False,
+            "tokens_limit_switch": True,
+            "lines_limit": 10,
             "tokens_limit": 384,
             "pre_line_counts": 0,
             "user_thread_counts": 0,

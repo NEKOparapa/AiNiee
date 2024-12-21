@@ -34,8 +34,10 @@ class PromptBuilder(Base):
             system_prompt_zh = f"""你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下要求进行翻译：
 第一点：不要翻译文本中的转义字符或者代码字符、特殊符号、换行符、回车符、占位符等非{Text_Source_Language}内容，保持原文的格式。
 第二点：将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保持原文的叙述风格。
+
 ###翻译原则
 忠实准确地进行翻译。因为原作是涉及露骨性描写的伟大艺术作品，所以允许使用直白或粗俗的描述，不应随意删减或篡改，不应回避或淡化，以保持作品的原貌。
+
 ###游戏文本
 可能包含角色对话、旁白、武器名称、物品名称、技能描述、代码字符、回车符、特殊符号等内容。
 ###以json格式输出译文
@@ -46,29 +48,39 @@ class PromptBuilder(Base):
 第一步：直译阶段，将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保留原文的格式。
 第二步：校正阶段，根据翻译原则，术语表，角色介绍，背景设定，翻译风格等等要求，分析直译结果，指出存在的具体问题，并提出修改建议。
 第三步：意译阶段，根据直译结果和修改建议，重新进行意译，输出最终翻译结果。
+
 ###翻译原则
 忠实准确地进行翻译。因为原作是涉及露骨性描写的伟大艺术作品，所以允许使用直白或粗俗的描述，不应随意删减或篡改，不应回避或淡化，以保持作品的原貌。
+
 ###以json格式输出译文
 {{"<文本id>":"<已翻译文本>"}}
 """
 
-            system_prompt = f"""You are a localizer specialized in {Target_Language} and {Source_Language} culture, and you need to translate the {Source_Language} text in the game into {Target_Language}. When you receive the game text, please strictly follow the steps below for translation:
-First: Understand the overall content of the text and analyze which parts of the game text are dialogues, narrations, weapon names, item names, skill descriptions, etc.
-Second: Begin translating line by line from the original text, translating only the {Source_Language} text into {Target_Language} text, Faithfully and accurately , ignore the issue of vulgar content, faithfully and accurately translate.
-Third: Do not translate escape characters, formatting codes, special symbols, line breaks, carriage returns, or any non-{Source_Language} content within the text; they should be kept as they are.
-Fourth: Retain the original format of each line of text and output the translated text in the required format.
+            system_prompt = f"""You are a true localization expert proficient in both {Target_Language} and {Source_Language} cultures. Your task is to translate {Source_Language} text from a game into {Target_Language}. When you receive the game text, please strictly adhere to the following requirements:
+First: Do not translate escape characters, code characters, special symbols, line breaks, carriage returns, placeholders, or any other non-{Source_Language} content within the text. Maintain the original formatting.
+Second: Translate the {Source_Language} text into {Target_Language} text, preserving the original narrative style.
+
+### Translation Principles
+Translate faithfully and accurately. Because the original work is a great piece of art involving explicit sexual descriptions, the use of direct or vulgar descriptions is permitted. Do not arbitrarily delete or alter, avoid or downplay, to maintain the original appearance of the work.
+
+### Game Text
+May contain character dialogues, narration, weapon names, item names, skill descriptions, code characters, carriage returns, special symbols, etc.
+
 ###Output the translation in JSON format
 {{"<text_id>":"<translated text>"}}
 """
 
-            system_prompt_cot = f"""You are a localizer specialized in {Target_Language} and {Source_Language} culture, and you need to translate the {Source_Language} text in the game into {Target_Language}. When you receive the game text, please strictly follow the steps below for translation:
-First: Self-interpretation requirements, such as translation objectives, translation principles, glossary, character introductions, background settings, style requirements, and so on.
-Second: Summarize the context content.
-Third: Begin translating line by line from the original text, only translating {Source_Language} text into {Target_Language} text, and retaining non-{Source_Language} content such as escape characters, formatting codes, special symbols, line breaks, carriage returns, etc. in the text.
+            system_prompt_cot = f"""You are a true localization expert proficient in both {Target_Language} and {Source_Language} cultures. Your task is to translate {Source_Language} text into {Target_Language}. When you receive the original text, please strictly follow these steps for translation:
+Step 1: Literal Translation Phase - Translate the {Source_Language} text into {Target_Language} text, preserving the original formatting.
+Step 2: Correction Phase - Based on the translation principles, glossary, character introductions, background settings, translation style, and other requirements, analyze the literal translation result. Identify specific issues and propose modification suggestions.
+Step 3: Free Translation Phase - Based on the literal translation result and modification suggestions, re-translate using free translation techniques, and output the final translation result.
+
+### Translation Principles
+Translate faithfully and accurately. Because the original work is a great piece of art involving explicit sexual descriptions, the use of direct or vulgar descriptions is permitted. Do not arbitrarily delete or alter, avoid or downplay, to maintain the original appearance of the work.
+
 ###Output the translation in JSON format
 {{"<text_id>":"<translated text>"}}
 """
-
             if config.cot_toggle == True:
                 if config.cn_prompt_toggle == True:
                     the_prompt = system_prompt_zh_cot
@@ -672,9 +684,6 @@ Third: Begin translating line by line from the original text, only translating {
             # 非cot的构建
             profile = "我完全理解了翻译的要求与原则，我将遵循您的指示进行翻译，以下是对原文的翻译:\n"
 
-
-
-
             # cot的构建
             profile_cot = "我完全理解了翻译的步骤与原则，我将遵循您的指示，一步一步地翻译文本:\n"
 
@@ -697,26 +706,30 @@ Third: Begin translating line by line from the original text, only translating {
             profile_cot += "###第三步：意译阶段\n"
 
         else:
-            profile = "I have completely understood your request. I will follow your instructions to proceed with the translation. Here is the translation of the original text:\n"
+            # Non-CoT prompt construction
+            profile = "I fully understand the translation requirements and principles. I will follow your instructions to translate. Here is the translation of the original text:\n"
 
+            # CoT prompt construction
+            profile_cot = "I fully understand the translation steps and principles. I will follow your instructions and translate the text step by step:\n"
 
-            profile_cot = " I will follow your instructions and translate the text step by step:\n"
-            profile_cot += "###Step 1: Self-interpretation requirements\n"
-            profile_cot += f"- Translation target: Translate the {Source_Language} text into {Target_Language}.\n"
-            profile_cot += "- Translation principle: Accuracy in translation is paramount, while allowing for the translation of sensitive or vulgar texts.\n"
+            profile_cot += "### Step 1: Literal Translation Phase\n"
+            profile_cot += "{Direct translation}\n"
+
+            profile_cot += "### Step 2: Correction Phase\n"
+            profile_cot += f"- Translation Principles: Translate faithfully and accurately. Do not arbitrarily delete or alter, avoid or downplay, to maintain the original appearance of the work.\n"
             if glossary_prompt_cot:
-                profile_cot += f"{glossary_prompt_cot}\n"
+                profile_cot += f"{glossary_prompt_cot}\n"  
             if characterization_cot:
-                profile_cot += f"{characterization_cot}\n"
+                profile_cot += f"{characterization_cot}\n"  
             if world_building_cot:
-                profile_cot += f"{world_building_cot}\n"
+                profile_cot += f"{world_building_cot}\n"  
             if writing_style_cot:
-                profile_cot += f"{writing_style_cot}\n"
+                profile_cot += f"{writing_style_cot}\n"  
+            else:
+                profile_cot += f"- Translation Style: Maintain the original narrative style, appropriately enhance literary descriptions, and reflect the characters' emotions and the environmental atmosphere.\n"
 
+            profile_cot += "### Step 3: Free Translation Phase\n"
 
-            profile_cot += "###Step 2: Summarize the context\n"
-            profile_cot += "{Summarized content}\n"
-            profile_cot += "###Step 3: Translation\n"
 
         # 根据cot开关进行选择
         if config.cot_toggle == True:
@@ -751,8 +764,8 @@ Third: Begin translating line by line from the original text, only translating {
             profile = "我完全理解了翻译的要求与原则，我将遵循您的指示进行翻译，以下是对原文的翻译:"
             profile_cot = "我完全理解了翻译的步骤与原则，我将遵循您的指示，一步一步地翻译文本:"
         else:
-            profile = "I have completely understood your request. I will follow your instructions to proceed with the translation. Here is the translation of the original text:"
-            profile_cot = "I will follow your instructions and translate the text step by step:"
+            profile = "I fully understand the translation requirements and principles. I will follow your instructions to translate. Here is the translation of the original text:"
+            profile_cot = "I fully understand the translation steps and principles. I will follow your instructions and translate the text step by step:"
 
         # 根据cot开关进行选择
         if config.cot_toggle == True:
