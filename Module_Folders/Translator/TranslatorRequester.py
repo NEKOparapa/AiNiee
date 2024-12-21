@@ -152,12 +152,18 @@ class TranslatorRequester(Base):
         except Exception:
             completion_tokens = 0
 
+        # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
+        response_content_dict = {"0":response_content}
+
         # 调用插件，进行处理
         self.plugin_manager.broadcast_event(
-            "sakura_complete_text_process",
+            "sakura_reply_processed",
             self.config,
-            response_content
+            response_content_dict
         )
+
+        # 插件事件过后，恢复字符串类型
+        response_content = response_content_dict["0"]
 
         # Sakura 返回的内容多行文本，将其转换为 JSON 字符串
         json_dict = {}
@@ -209,12 +215,18 @@ class TranslatorRequester(Base):
         except Exception:
             completion_tokens = 0
 
+        # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
+        response_content_dict = {"0":response_content}
+
         # 调用插件，进行处理
         self.plugin_manager.broadcast_event(
-            "complete_text_process",
+            "reply_processed",
             self.config,
-            response_content
+            response_content_dict
         )
+
+        # 插件事件过后，恢复字符串类型
+        response_content = response_content_dict["0"]
 
         return False, response_content, prompt_tokens, completion_tokens
 
@@ -267,12 +279,18 @@ class TranslatorRequester(Base):
         except Exception:
             completion_tokens = 0
 
+        # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
+        response_content_dict = {"0":response_content}
+
         # 调用插件，进行处理
         self.plugin_manager.broadcast_event(
-            "complete_text_process",
+            "reply_processed",
             self.config,
-            response_content
+            response_content_dict
         )
+
+        # 插件事件过后，恢复字符串类型
+        response_content = response_content_dict["0"]
 
         return False, response_content, prompt_tokens, completion_tokens
 
@@ -315,12 +333,18 @@ class TranslatorRequester(Base):
         except Exception:
             completion_tokens = 0
 
+        # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
+        response_content_dict = {"0":response_content}
+
         # 调用插件，进行处理
         self.plugin_manager.broadcast_event(
-            "complete_text_process",
+            "reply_processed",
             self.config,
-            response_content
+            response_content_dict
         )
+
+        # 插件事件过后，恢复字符串类型
+        response_content = response_content_dict["0"]
 
         return False, response_content, prompt_tokens, completion_tokens
 
@@ -364,15 +388,18 @@ class TranslatorRequester(Base):
         except Exception:
             completion_tokens = 0
 
+
         # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
+        response_content_dict = {"0":response_content}
 
         # 调用插件，进行处理
         self.plugin_manager.broadcast_event(
-            "complete_text_process",
+            "reply_processed",
             self.config,
-            response_content
+            response_content_dict
         )
 
         # 插件事件过后，恢复字符串类型
+        response_content = response_content_dict["0"]
 
         return False, response_content, prompt_tokens, completion_tokens

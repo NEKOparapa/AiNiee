@@ -139,7 +139,9 @@
             "model_datas": [
                 "gemini-1.5-flash-8b",
                 "gemini-1.5-flash",
-                "gemini-1.5-pro"
+                "gemini-1.5-pro",
+                "gemini-2.0-flash-exp",
+                "gemini-2.0-flash-thinking-exp-1219"
             ],
             "account_datas": {
                 "免费账号": {
@@ -157,6 +159,16 @@
                         "max_tokens": 128000,
                         "TPM": 32000,
                         "RPM": 2
+                    },
+                    "gemini-2.0-flash-exp": {
+                        "max_tokens": 128000,
+                        "TPM": 1000000,
+                        "RPM": 10
+                    },
+                    "gemini-2.0-flash-thinking-exp-1219": {
+                        "max_tokens": 128000,
+                        "TPM": 1000000,
+                        "RPM": 10
                     }
                 },
                 "付费账号": {
@@ -174,6 +186,17 @@
                         "max_tokens": 128000,
                         "TPM": 4000000,
                         "RPM": 1000
+                    }
+                    ,
+                    "gemini-2.0-flash-exp": {
+                        "max_tokens": 128000,
+                        "TPM": 1000000,
+                        "RPM": 10
+                    },
+                    "gemini-2.0-flash-thinking-exp-1219": {
+                        "max_tokens": 128000,
+                        "TPM": 1000000,
+                        "RPM": 10
                     }
                 }
             },

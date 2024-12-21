@@ -20,8 +20,40 @@ class Response_Parser():
 
         # 尝试正则提取
         try:
+    
+            parsed_dict = {}
+            key = None
+            key_pattern = r'("\d+?"\s*:\s*)'     #按key的位置进行切割
+            lines = re.split(key_pattern, input_str)
+            
+            for i, line in enumerate(lines):
 
-            # 使用正则表达式匹配字符串中的所有键值对
+                # 先寻找到key的值
+                if re.match(key_pattern, line):
+                    key = re.findall(r'\d+', line)[0] 
+                    continue
+
+                if not key:continue
+                
+                # 在寻找value的值
+                if len(lines) >= 2 and i == len(lines) - 1: # 检查是否是最后一行且lines长度大于等于两行
+                    # 使用非贪婪匹配，防止话痨AI在后面再次触发切割位置
+                    value = re.findall(r'"([\S\s]+?)"(?=,|}|\n)', line)
+                else: # 其他一般情况
+                    # 使用贪婪匹配
+                    value = re.findall(r'"([\S\s]+)"(?=,|}|\n)', line)
+                
+                if value:
+                    # 直接添加或覆盖键值对，不再检查键是否已存在，以最后的翻译结果为准。（配合cot翻译）
+                    parsed_dict[key] = value[0]
+
+                # 清空赋值
+                key = None
+
+            return parsed_dict
+
+
+            # 使用正则表达式匹配字符串中的所有键值对（旧）
             parsed_dict = {}
             key = None
             key_pattern = r'("\d+?"\s*:\s*)'
@@ -39,6 +71,8 @@ class Response_Parser():
 
 
             return parsed_dict
+
+
         except :
             print("\033[1;33mWarning:\033[0m 回复内容无法正常提取，请反馈\n")
             return {}

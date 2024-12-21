@@ -11,7 +11,7 @@ class Completion_Text_Process_Plugin(PluginBase):
         self.visibility = False # 是否在插件设置中显示
         self.default_enable = True # 默认启用状态
 
-        self.add_event('complete_text_process', PluginBase.PRIORITY.NORMAL)
+        self.add_event('reply_processed', PluginBase.PRIORITY.NORMAL)
 
     def load(self):
         print(f"[INFO] {self.name} loaded!")
@@ -20,11 +20,10 @@ class Completion_Text_Process_Plugin(PluginBase):
     def on_event(self, event_name, config, event_data):
 
         # 文本预处理事件触发
-        if event_name == "complete_text_process":
+        if event_name == "reply_processed":
 
-            self.remove_json_triple_backticks(event_data)
-            self.replace_newline(event_data)
-            #text = self.repair_double_quotes_2(text)
+            event_data["0"] = self.remove_json_triple_backticks(event_data["0"])
+            event_data["0"] = self.replace_newline(event_data["0"])
 
 
 
@@ -51,13 +50,14 @@ class Completion_Text_Process_Plugin(PluginBase):
         if s.endswith("```"):
             s = s[:-end_len]
 
+        return s
     
 
     # 将文本中的字符型 “\n” 替换为实际的换行符
     def replace_newline(self,input_string):
 
-        input_string.replace('\\n', '\n').replace('\\r', '\r')  #现在只能针对替换，并不能将\\替换为\
+        result = input_string.replace('\\n', '\n').replace('\\r', '\r')  #现在只能针对替换，并不能将\\替换为\
         #input_strings = re.sub(r'\\n', '\n', input_string)
 
-
+        return result
 

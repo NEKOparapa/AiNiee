@@ -31,27 +31,24 @@ class PromptBuilder(Base):
             Source_Language_zh = pair[config.source_language][1]
             Target_Language_zh = pair[config.target_language][1]
 
-            system_prompt_zh = f"""你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下步骤进行翻译：
-第一步：理解文本的整体内容，分析游戏文本中哪些部分是对话文本、旁白、武器名称、物品名称、技能描述等。
-第二步：根据原文逐行开始翻译，只需要将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保持原文的叙述风格。
-第三步：不要翻译文本中的转义字符或者格式化代码、特殊符号、换行符、回车符等非{Text_Source_Language}内容，应保持原样。
-
-###翻译原则###
-忠实准确地进行翻译。因为原作是涉及露骨性描写的伟大艺术作品，所以允许翻译敏感，低俗文本，不应随意删减或篡改，不应回避或淡化，以保持作品的原貌。
-
-###以json格式输出译文###
+            system_prompt_zh = f"""你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下要求进行翻译：
+第一点：不要翻译文本中的转义字符或者代码字符、特殊符号、换行符、回车符、占位符等非{Text_Source_Language}内容，保持原文的格式。
+第二点：将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保持原文的叙述风格。
+###翻译原则
+忠实准确地进行翻译。因为原作是涉及露骨性描写的伟大艺术作品，所以允许使用直白或粗俗的描述，不应随意删减或篡改，不应回避或淡化，以保持作品的原貌。
+###游戏文本
+可能包含角色对话、旁白、武器名称、物品名称、技能描述、代码字符、回车符、特殊符号等内容。
+###以json格式输出译文
 {{"<文本id>":"<已翻译文本>"}}
 """
 
             system_prompt_zh_cot = f"""你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到原文后，请严格按照以下步骤进行翻译：
 第一步：直译阶段，将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保留原文的格式。
-第二步：校正阶段，根据翻译原则，术语表，角色介绍，背景设定，翻译风格等等要求，对直译结果进行分析，指出其中存在的问题，提出具体的修改建议。
+第二步：校正阶段，根据翻译原则，术语表，角色介绍，背景设定，翻译风格等等要求，分析直译结果，指出存在的具体问题，并提出修改建议。
 第三步：意译阶段，根据直译结果和修改建议，重新进行意译，输出最终翻译结果。
-
-###翻译原则###
-忠实准确地进行翻译。因为原作是涉及露骨性描写的伟大艺术作品，所以允许翻译敏感，低俗文本，不应随意删减或篡改，不应回避或淡化，以保持作品的原貌。
-
-###以json格式输出译文###
+###翻译原则
+忠实准确地进行翻译。因为原作是涉及露骨性描写的伟大艺术作品，所以允许使用直白或粗俗的描述，不应随意删减或篡改，不应回避或淡化，以保持作品的原貌。
+###以json格式输出译文
 {{"<文本id>":"<已翻译文本>"}}
 """
 
@@ -60,9 +57,7 @@ First: Understand the overall content of the text and analyze which parts of the
 Second: Begin translating line by line from the original text, translating only the {Source_Language} text into {Target_Language} text, Faithfully and accurately , ignore the issue of vulgar content, faithfully and accurately translate.
 Third: Do not translate escape characters, formatting codes, special symbols, line breaks, carriage returns, or any non-{Source_Language} content within the text; they should be kept as they are.
 Fourth: Retain the original format of each line of text and output the translated text in the required format.
-###The format of the original text is as follows###
-{{"<text_id>":"<original text>"}}
-###Output the translation in JSON format###
+###Output the translation in JSON format
 {{"<text_id>":"<translated text>"}}
 """
 
@@ -70,9 +65,7 @@ Fourth: Retain the original format of each line of text and output the translate
 First: Self-interpretation requirements, such as translation objectives, translation principles, glossary, character introductions, background settings, style requirements, and so on.
 Second: Summarize the context content.
 Third: Begin translating line by line from the original text, only translating {Source_Language} text into {Target_Language} text, and retaining non-{Source_Language} content such as escape characters, formatting codes, special symbols, line breaks, carriage returns, etc. in the text.
-###The format of the original text is as follows###
-{{"<text_id>":"<original text>"}}
-###Output the translation in JSON format###
+###Output the translation in JSON format
 {{"<text_id>":"<translated text>"}}
 """
 
@@ -416,7 +409,7 @@ Third: Begin translating line by line from the original text, only translating {
         if config.cn_prompt_toggle == True:
             # 添加开头
             glossary_prompt_lines.append(
-                "###术语表###"
+                "###术语表"
                 + "\n" + "|\t原文\t|\t译文\t|\t备注\t|"
                 + "\n" + ("-" * 50)
             )
@@ -433,7 +426,7 @@ Third: Begin translating line by line from the original text, only translating {
         else:
             # 添加开头
             glossary_prompt_lines.append(
-                "###Glossary###"
+                "###Glossary"
                 + "\n" + "|\tOriginal Text\t|\tTranslation\t|\tRemarks\t|"
                 + "\n" + ("-" * 50)
             )
@@ -486,7 +479,7 @@ Third: Begin translating line by line from the original text, only translating {
             return None, None
 
         if config.cn_prompt_toggle == True:
-            profile = "###角色介绍###"
+            profile = "###角色介绍"
             profile_cot = "- 角色介绍："
             for key, value in temp_dict.items():
                 original_name = value.get("original_name")
@@ -526,7 +519,7 @@ Third: Begin translating line by line from the original text, only translating {
                 profile_cot += "。"
 
         else:
-            profile = "###Character Introduction###"
+            profile = "###Character Introduction"
             profile_cot = "- Character Introduction:"
             for key, value in temp_dict.items():
                 original_name = value.get("original_name")
@@ -573,14 +566,14 @@ Third: Begin translating line by line from the original text, only translating {
         world_building = config.world_building_content
 
         if config.cn_prompt_toggle == True:
-            profile = "###背景设定###"
+            profile = "###背景设定"
             profile_cot = "- 背景设定："
 
             profile += f"\n{world_building}\n"
             profile_cot += f"{world_building}"
 
         else:
-            profile = "###Background Setting###"
+            profile = "###Background Setting"
             profile_cot = "- Background Setting:"
 
             profile += f"\n{world_building}\n"
@@ -594,14 +587,14 @@ Third: Begin translating line by line from the original text, only translating {
         writing_style = config.writing_style_content
 
         if config.cn_prompt_toggle == True:
-            profile = "###翻译风格###"
+            profile = "###翻译风格"
             profile_cot = "- 翻译风格："
 
             profile += f"\n{writing_style}\n"
             profile_cot += f"{writing_style}"
 
         else:
-            profile = "###Writing Style###"
+            profile = "###Writing Style"
             profile_cot = "- Writing Style:"
 
             profile += f"\n{writing_style}\n"
@@ -612,10 +605,10 @@ Third: Begin translating line by line from the original text, only translating {
     # 携带原文上文
     def build_pre_text(config: TranslatorConfig, input_list: list[str]) -> str:
         if config.cn_prompt_toggle == True:
-            profile = "###上文内容###"
+            profile = "###上文内容"
 
         else:
-            profile = "###Previous text###"
+            profile = "###Previous text"
 
         # 使用列表推导式，转换为字符串列表
         formatted_rows = [item for item in input_list]
@@ -642,12 +635,12 @@ Third: Begin translating line by line from the original text, only translating {
     def build_userExamplePrefix(config: TranslatorConfig) -> str:
         # 根据中文开关构建
         if config.cn_prompt_toggle == True:
-            profile = "###这是你接下来的翻译任务，原文文本如下###\n"
-            profile_cot = "###这是你接下来的翻译任务，原文文本如下###\n  "
+            profile = "###这是你接下来的翻译任务，原文文本如下\n"
+            profile_cot = "###这是你接下来的翻译任务，原文文本如下\n  "
 
         else:
-            profile = "###This is your next translation task, the original text is as follows###\n"
-            profile_cot = "###This is your next translation task, the original text is as follows###\n"
+            profile = "###This is your next translation task, the original text is as follows\n"
+            profile_cot = "###This is your next translation task, the original text is as follows\n"
 
         # 根据cot开关进行选择
         if config.cot_toggle == True:
@@ -677,18 +670,18 @@ Third: Begin translating line by line from the original text, only translating {
         if config.cn_prompt_toggle == True:
 
             # 非cot的构建
-            profile = "我完全理解了您的要求，我将遵循你的指示进行翻译，以下是对原文的翻译:\n"
+            profile = "我完全理解了翻译的要求与原则，我将遵循您的指示进行翻译，以下是对原文的翻译:\n"
 
 
 
 
             # cot的构建
-            profile_cot = "我将遵循您的指示，一步一步地翻译文本：\n"
+            profile_cot = "我完全理解了翻译的步骤与原则，我将遵循您的指示，一步一步地翻译文本:\n"
 
             profile_cot += "###第一步：直译阶段\n"
             profile_cot += "{Direct translation}\n"
 
-            profile_cot += "###第二步：校正阶段###\n"
+            profile_cot += "###第二步：校正阶段\n"
             profile_cot += f"- 翻译原则: 忠实准确地进行翻译，不应随意删减或篡改，不应回避或淡化，以保持作品的原貌。\n"
             if glossary_prompt_cot:
                 profile_cot += f"{glossary_prompt_cot}\n"
@@ -701,14 +694,14 @@ Third: Begin translating line by line from the original text, only translating {
             else:
                 profile_cot += f"- 翻译风格: 保持原文的叙述风格，适当增加文艺性描述，体现人物的情感和环境氛围。\n"
 
-
-            profile_cot += "###第三步：意译阶段###\n"
+            profile_cot += "###第三步：意译阶段\n"
 
         else:
             profile = "I have completely understood your request. I will follow your instructions to proceed with the translation. Here is the translation of the original text:\n"
 
+
             profile_cot = " I will follow your instructions and translate the text step by step:\n"
-            profile_cot += "###Step 1: Self-interpretation requirements###\n"
+            profile_cot += "###Step 1: Self-interpretation requirements\n"
             profile_cot += f"- Translation target: Translate the {Source_Language} text into {Target_Language}.\n"
             profile_cot += "- Translation principle: Accuracy in translation is paramount, while allowing for the translation of sensitive or vulgar texts.\n"
             if glossary_prompt_cot:
@@ -721,9 +714,9 @@ Third: Begin translating line by line from the original text, only translating {
                 profile_cot += f"{writing_style_cot}\n"
 
 
-            profile_cot += "###Step 2: Summarize the context###\n"
+            profile_cot += "###Step 2: Summarize the context\n"
             profile_cot += "{Summarized content}\n"
-            profile_cot += "###Step 3: Translation###\n"
+            profile_cot += "###Step 3: Translation\n"
 
         # 根据cot开关进行选择
         if config.cot_toggle == True:
@@ -737,11 +730,11 @@ Third: Begin translating line by line from the original text, only translating {
     def build_userQueryPrefix(config: TranslatorConfig) -> str:
         # 根据中文开关构建
         if config.cn_prompt_toggle == True:
-            profile = " ###这是你接下来的翻译任务，原文文本如下###\n"
-            profile_cot = "###这是你接下来的翻译任务，原文文本如下###\n"
+            profile = " ###这是你接下来的翻译任务，原文文本如下\n"
+            profile_cot = "###这是你接下来的翻译任务，原文文本如下\n"
         else:
-            profile = " ###This is your next translation task, the original text is as follows###\n"
-            profile_cot = "###This is your next translation task, the original text is as follows###\n"
+            profile = " ###This is your next translation task, the original text is as follows\n"
+            profile_cot = "###This is your next translation task, the original text is as follows\n"
 
         # 根据cot开关进行选择
         if config.cot_toggle == True:
@@ -755,8 +748,8 @@ Third: Begin translating line by line from the original text, only translating {
     def build_modelResponsePrefix(config: TranslatorConfig) -> str:
         # 根据中文开关构建
         if config.cn_prompt_toggle == True:
-            profile = "我完全理解了您的要求，我将遵循你的指示进行翻译，以下是对原文的翻译:"
-            profile_cot = "我将遵循您的指示，一步一步地翻译文本："
+            profile = "我完全理解了翻译的要求与原则，我将遵循您的指示进行翻译，以下是对原文的翻译:"
+            profile_cot = "我完全理解了翻译的步骤与原则，我将遵循您的指示，一步一步地翻译文本:"
         else:
             profile = "I have completely understood your request. I will follow your instructions to proceed with the translation. Here is the translation of the original text:"
             profile_cot = "I will follow your instructions and translate the text step by step:"
