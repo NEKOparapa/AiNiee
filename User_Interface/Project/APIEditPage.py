@@ -197,8 +197,10 @@ class APIEditPage(MessageBoxBase, Base):
             api_url = platforms_config.get("api_url")
             api_key = platforms_config.get("api_key")
             api_format = platforms_config.get("api_format")
+            key_in_settings = platforms_config.get("key_in_settings")
             
-            if not api_key or (self.key.startswith("custom") and not api_url):
+            # 根据key_in_settings判断是否需要检查api_key和api_url
+            if ("api_key" in key_in_settings and not api_key) or ("api_url" in key_in_settings and not api_url):
                 InfoBar.error(
                     title = '错误',
                     content = "请先填写接口地址或密钥",
@@ -214,11 +216,11 @@ class APIEditPage(MessageBoxBase, Base):
             
             if models:
                 # 更新配置文件中的模型列表
-                config["platforms"][self.key]["model_datas"] = models
+                platforms_config["model_datas"] = models
                 self.save_config(config)
                 
                 # 如果当前选中的模型不在新列表中，将其添加到列表中
-                current_model = config["platforms"][self.key]["model"]
+                current_model = platforms_config["model"]
                 if current_model and current_model not in models:
                     models.append(current_model)
                 # 更新列表显示
