@@ -6,10 +6,11 @@ from qfluentwidgets import CardWidget
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import StrongBodyLabel
 from qfluentwidgets import EditableComboBox
+from qfluentwidgets import PushButton
 
 class EditableComboBoxCard(CardWidget):
 
-    def __init__(self, title: str, description: str, items: list[str], init = None, current_text_changed = None, current_index_changed = None):
+    def __init__(self, title: str, description: str, items: list[str], init = None, current_text_changed = None, current_index_changed = None, button = None):
         super().__init__(None)
 
         # 设置容器
@@ -30,6 +31,11 @@ class EditableComboBoxCard(CardWidget):
 
         # 填充
         self.container.addStretch(1)
+
+        # 更新按钮
+        if button:
+            self.button = PushButton(button, self)
+            self.container.addWidget(self.button)
 
         # 下拉框控件
         self.combo_box = EditableComboBox(self)
