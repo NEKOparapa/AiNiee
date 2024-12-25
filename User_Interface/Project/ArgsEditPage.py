@@ -85,8 +85,8 @@ class ArgsEditPage(MessageBoxBase, Base):
     def add_widget_top_p(self, parent, config, preset):
         def init(widget):
             widget.set_range(0, 100)
-            widget.set_text(f"{config.get("platforms").get(self.key).get("top_p"):.2f}")
-            widget.set_value(int(config.get("platforms").get(self.key).get("top_p") * 100))
+            widget.set_text(f"{config.get('platforms').get(self.key).get('top_p'):.2f}")
+            widget.set_value(int(config.get('platforms').get(self.key).get('top_p') * 100))
 
         def value_changed(widget, value):
             widget.set_text(f"{(value / 100):.2f}")
@@ -113,8 +113,8 @@ class ArgsEditPage(MessageBoxBase, Base):
     def add_widget_temperature(self, parent, config, preset):
         def init(widget):
             widget.set_range(0, 200)
-            widget.set_text(f"{config.get("platforms").get(self.key).get("temperature"):.2f}")
-            widget.set_value(int(config.get("platforms").get(self.key).get("temperature") * 100))
+            widget.set_text(f"{config.get('platforms').get(self.key).get('temperature'):.2f}")
+            widget.set_value(int(config.get('platforms').get(self.key).get('temperature') * 100))
 
         def value_changed(widget, value):
             widget.set_text(f"{(value / 100):.2f}")
@@ -141,8 +141,8 @@ class ArgsEditPage(MessageBoxBase, Base):
     def add_widget_presence_penalty(self, parent, config, preset):
         def init(widget):
             widget.set_range(-200, 200)
-            widget.set_text(f"{config.get("platforms").get(self.key).get("presence_penalty"):.2f}")
-            widget.set_value(int(config.get("platforms").get(self.key).get("presence_penalty") * 100))
+            widget.set_text(f"{config.get('platforms').get(self.key).get('presence_penalty'):.2f}")
+            widget.set_value(int(config.get('platforms').get(self.key).get('presence_penalty') * 100))
 
         def value_changed(widget, value):
             widget.set_text(f"{(value / 100):.2f}")
@@ -169,8 +169,8 @@ class ArgsEditPage(MessageBoxBase, Base):
     def add_widget_frequency_penalty(self, parent, config, preset):
         def init(widget):
             widget.set_range(-200, 200)
-            widget.set_text(f"{config.get("platforms").get(self.key).get("frequency_penalty"):.2f}")
-            widget.set_value(int(config.get("platforms").get(self.key).get("frequency_penalty") * 100))
+            widget.set_text(f"{config.get('platforms').get(self.key).get('frequency_penalty'):.2f}")
+            widget.set_value(int(config.get('platforms').get(self.key).get('frequency_penalty') * 100))
 
         def value_changed(widget, value):
             widget.set_text(f"{(value / 100):.2f}")

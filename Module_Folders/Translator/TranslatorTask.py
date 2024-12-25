@@ -78,12 +78,12 @@ class TranslatorTask(Base):
         # 根据原文语言生成正则表达式
         if "英语" in config.source_language:
             code_pattern = TranslatorTask.CODE_PATTERN_EN + TranslatorTask.CODE_PATTERN_COMMON
-            self.prefix_pattern = re.compile(f"^(?:{"|".join(code_pattern)})+", flags = re.IGNORECASE)
-            self.suffix_pattern = re.compile(f"(?:{"|".join(code_pattern)})+$", flags = re.IGNORECASE)
+            self.prefix_pattern = re.compile(f"^(?:{'|'.join(code_pattern)})+", flags = re.IGNORECASE)
+            self.suffix_pattern = re.compile(f"(?:{'|'.join(code_pattern)})+$", flags = re.IGNORECASE)
         else:
             code_pattern = TranslatorTask.CODE_PATTERN_NON_EN + TranslatorTask.CODE_PATTERN_COMMON
-            self.prefix_pattern = re.compile(f"^(?:{"|".join(code_pattern)})+", flags = re.IGNORECASE)
-            self.suffix_pattern = re.compile(f"(?:{"|".join(code_pattern)})+$", flags = re.IGNORECASE)
+            self.prefix_pattern = re.compile(f"^(?:{'|'.join(code_pattern)})+", flags = re.IGNORECASE)
+            self.suffix_pattern = re.compile(f"(?:{'|'.join(code_pattern)})+$", flags = re.IGNORECASE)
 
     # 启动任务
     def start(self) -> dict:
@@ -445,7 +445,8 @@ class TranslatorTask(Base):
         if self.config.pre_line_counts and previous_text_list:
             previous = PromptBuilder.build_pre_text(self.config, previous_text_list)
             if previous:
-                extra_log.append(f"参考上文已添加：\n{"\n".join(previous_text_list)}")
+                #extra_log.append(f"参考上文已添加：\n{'\n'.join(previous_text_list)}")
+                extra_log.append("参考上文已添加：\n" + "\n".join(previous_text_list))
 
         # 获取提问时的前置文本
         pre_prompt = PromptBuilder.build_userQueryPrefix(self.config)
@@ -511,7 +512,8 @@ class TranslatorTask(Base):
                 "role": "user",
                 "content": "将下面的日文文本翻译成中文：" + "\n".join(previous_text_list),
             })
-            extra_log.append(f"参考上文已添加：\n{"\n".join(previous_text_list)}")
+            #extra_log.append(f"参考上文已添加：\n{"\n".join(previous_text_list)}")
+            extra_log.append("参考上文已添加：{\n" + "\n".join(previous_text_list) + "}")
 
         # 如果开启了指令词典功能
         gpt_dict_raw_text = ""

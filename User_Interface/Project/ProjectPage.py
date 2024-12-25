@@ -174,7 +174,7 @@ class ProjectPage(QFrame, Base):
     # 输入文件夹
     def add_widget_05(self, parent, config):
         def widget_init(widget):
-            widget.set_description(f"当前输入文件夹为 {config.get("label_input_path")}")
+            widget.set_description(f"当前输入文件夹为 {config.get('label_input_path')}")
             widget.set_text("选择文件夹")
             widget.set_icon(FluentIcon.FOLDER_ADD)
 
@@ -204,7 +204,7 @@ class ProjectPage(QFrame, Base):
     # 输出文件夹
     def add_widget_06(self, parent, config):
         def widget_init(widget):
-            widget.set_description(f"当前输出文件夹为 {config.get("label_output_path")}")
+            widget.set_description(f"当前输出文件夹为 {config.get('label_output_path')}")
             widget.set_text("选择文件夹")
             widget.set_icon(FluentIcon.FOLDER_ADD)
 

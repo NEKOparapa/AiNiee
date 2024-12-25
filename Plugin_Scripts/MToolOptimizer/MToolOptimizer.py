@@ -77,7 +77,7 @@ class MToolOptimizer(PluginBase):
                 v["translation_status"] = 7
 
         print("")
-        print(f"[MToolOptimizer] 预处理执行成功，已移除 {len([v for v in items if v.get("translation_status", 0) == 7]) - orginal_length} 个重复的条目 ...")
+        print(f"[MToolOptimizer] 预处理执行成功，已移除 {len([v for v in items if v.get('translation_status', 0) == 7]) - orginal_length} 个重复的条目 ...")
         print("")
 
         # 设置处理标志

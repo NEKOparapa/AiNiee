@@ -101,7 +101,7 @@ class PunctuationFixer(PluginBase):
 
             # 如果有变化，则更新
             if diff != item.get("translated_text"):
-                logs.append(f"\n{item.get("source_text")}\n[green]->[/]\n{item.get("translated_text")}\n[green]->[/]\n{diff}\n")
+                logs.append(f"\n{item.get('source_text')}\n[green]->[/]\n{item.get('translated_text')}\n[green]->[/]\n{diff}\n")
                 item["translated_text"] = diff
 
         # 输出结果

@@ -429,8 +429,9 @@ Translate faithfully and accurately. Because the original work is a great piece 
 
             # 添加数据
             for v in result:
-                glossary_prompt_lines.append(f"|\t{v.get("src")}\t|\t{v.get("dst")}\t|\t{v.get("info") if v.get("info") != "" else " "}\t|")
-                glossary_prompt_lines_cot.append(f"“{v.get("src")}”（{v.get("dst")}）")
+                #glossary_prompt_lines.append(f"|\t{v.get("src")}\t|\t{v.get("dst")}\t|\t{v.get("info") if v.get("info") != "" else " "}\t|")
+                glossary_prompt_lines.append(f"|\t{v.get('src')}\t|\t{v.get('dst')}\t|\t{v.get('info') if v.get('info') != '' else ' '}\t|")
+                glossary_prompt_lines_cot.append(f"“{v.get('src')}”（{v.get('dst')}）")
 
             # 添加结尾
             glossary_prompt_lines.append("-" * 50)
@@ -446,8 +447,8 @@ Translate faithfully and accurately. Because the original work is a great piece 
 
             # 添加数据
             for v in result:
-                glossary_prompt_lines.append(f"|\t{v.get("src")}\t|\t{v.get("dst")}\t|\t{v.get("info") if v.get("info") != "" else " "}\t|")
-                glossary_prompt_lines_cot.append(f"“{v.get("src")}”（{v.get("dst")}）")
+                glossary_prompt_lines.append(f"|\t{v.get('src')}\t|\t{v.get('dst')}\t|\t{v.get('info') if v.get('info') != '' else ' '}\t|")
+                glossary_prompt_lines_cot.append(f"“{v.get('src')}”（{v.get('dst')}）")
 
             # 添加结尾
             glossary_prompt_lines.append("-" * 50)
@@ -626,8 +627,9 @@ Translate faithfully and accurately. Because the original work is a great piece 
         formatted_rows = [item for item in input_list]
 
         # 使用换行符将列表元素连接成一个字符串
-        profile += f"\n{"\n".join(formatted_rows)}\n"
-
+        #profile += f"\n{'\n'.join(formatted_rows)}\n"
+        profile += "\n" + "\n".join(formatted_rows) + "\n"
+        
         return profile
 
     # 构建翻译示例
@@ -638,8 +640,8 @@ Translate faithfully and accurately. Because the original work is a great piece 
         if len(data) == 0:
             return "", ""
 
-        original_example = json.dumps({str(i): v.get("src") for i, v in enumerate(data)}, ensure_ascii = False)
-        translated_example = json.dumps({str(i): v.get("dst") for i, v in enumerate(data)}, ensure_ascii = False)
+        original_example = json.dumps({str(i): v.get('src') for i, v in enumerate(data)}, ensure_ascii = False)
+        translated_example = json.dumps({str(i): v.get('dst') for i, v in enumerate(data)}, ensure_ascii = False)
 
         return original_example, translated_example
 

@@ -68,7 +68,8 @@ class Base():
             if e == None:
                 print(f"[[yellow]DEBUG[/]] {msg}")
             else:
-                print(f"[[yellow]DEBUG[/]] {msg}\n{e}\n{("".join(traceback.format_exception(None, e, e.__traceback__))).strip()}")
+                #print(f"[[yellow]DEBUG[/]] {msg}\n{e}\n{("".join(traceback.format_exception(None, e, e.__traceback__))).strip()}")
+                print(f"[[yellow]DEBUG[/]] {msg}\n{e}\n{''.join(traceback.format_exception(None, e, e.__traceback__)).strip()}")
 
     # INFO
     def info(self, msg: str) -> None:
@@ -79,7 +80,8 @@ class Base():
         if e == None:
             print(f"[[red]ERROR[/]] {msg}")
         else:
-            print(f"[[red]ERROR[/]] {msg}\n{e}\n{("".join(traceback.format_exception(None, e, e.__traceback__))).strip()}")
+            #print(f"[[red]ERROR[/]] {msg}\n{e}\n{("".join(traceback.format_exception(None, e, e.__traceback__))).strip()}")
+            print(f"[[red]ERROR[/]] {msg}\n{e}\n{''.join(traceback.format_exception(None, e, e.__traceback__)).strip()}")
 
     # WARNING
     def warning(self, msg: str) -> None:

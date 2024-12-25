@@ -133,9 +133,9 @@ class CodeSaver(PluginBase):
             code_pattern = CodeSaver.CODE_PATTERN_EN + CodeSaver.CODE_PATTERN_COMMON
         else:
             code_pattern = CodeSaver.CODE_PATTERN_NON_EN + CodeSaver.CODE_PATTERN_COMMON
-        pattern = re.compile(rf"(?:{"|".join(code_pattern)})+", re.IGNORECASE)
-        prefix_pattern = re.compile(rf"^(?:{"|".join(code_pattern)})+", re.IGNORECASE)
-        suffix_pattern = re.compile(rf"(?:{"|".join(code_pattern)})+$", re.IGNORECASE)
+        pattern = re.compile(rf"(?:{'|'.join(code_pattern)})+", re.IGNORECASE)
+        prefix_pattern = re.compile(rf"^(?:{'|'.join(code_pattern)})+", re.IGNORECASE)
+        suffix_pattern = re.compile(rf"(?:{'|'.join(code_pattern)})+$", re.IGNORECASE)
 
         # 查找代码段
         for item in tqdm(items):

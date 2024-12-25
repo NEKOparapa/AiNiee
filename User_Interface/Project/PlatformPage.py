@@ -139,9 +139,9 @@ class PlatformPage(QFrame, Base):
         Base.work_status = Base.STATUS.IDLE
 
         if len(data.get("failure", [])) > 0:
-            self.error_toast("", f"接口测试结果：成功 {len(data.get("success", []))} 个，失败 {len(data.get("failure", []))} 个 ...")
+            self.error_toast("", f"接口测试结果：成功 {len(data.get('success', []))} 个，失败 {len(data.get('failure', []))} 个 ...")
         else:
-            self.success_toast("", f"接口测试结果：成功 {len(data.get("success", []))} 个，失败 {len(data.get("failure", []))} 个 ...")
+            self.success_toast("", f"接口测试结果：成功 {len(data.get('success', []))} 个，失败 {len(data.get('failure', []))} 个 ...")
 
     # 加载并更新预设配置
     def load_preset(self):
