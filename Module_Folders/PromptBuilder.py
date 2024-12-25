@@ -33,7 +33,7 @@ class PromptBuilder(Base):
 
             system_prompt_zh = f"""你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下要求进行翻译：
 第一点：不要翻译文本中的转义字符或者代码字符、特殊符号、换行符、回车符、占位符等非{Text_Source_Language}内容，保持原文的格式。
-第二点：将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保持原文的叙述风格。
+第二点：只需翻译普通文本部分,将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保持原文的叙述风格。
 
 ###翻译原则
 忠实准确地进行翻译。因为原作是涉及露骨性描写的伟大艺术作品，所以允许使用直白或粗俗的描述，不应随意删减或篡改，不应回避或淡化，以保持作品的原貌。
@@ -58,7 +58,7 @@ class PromptBuilder(Base):
 
             system_prompt = f"""You are a true localization expert proficient in both {Target_Language} and {Source_Language} cultures. Your task is to translate {Source_Language} text from a game into {Target_Language}. When you receive the game text, please strictly adhere to the following requirements:
 First: Do not translate escape characters, code characters, special symbols, line breaks, carriage returns, placeholders, or any other non-{Source_Language} content within the text. Maintain the original formatting.
-Second: Translate the {Source_Language} text into {Target_Language} text, preserving the original narrative style.
+Second: Translate only the regular text portion. Translate the {Source_Language} into {Target_Language} text, preserving the original narrative style.
 
 ### Translation Principles
 Translate faithfully and accurately. Because the original work is a great piece of art involving explicit sexual descriptions, the use of direct or vulgar descriptions is permitted. Do not arbitrarily delete or alter, avoid or downplay, to maintain the original appearance of the work.
