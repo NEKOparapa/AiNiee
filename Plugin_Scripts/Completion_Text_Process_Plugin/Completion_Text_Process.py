@@ -54,10 +54,15 @@ class Completion_Text_Process_Plugin(PluginBase):
     
 
     # 将文本中的字符型 “\n” 替换为实际的换行符
-    def replace_newline(self,input_string):
+    def replace_newline(self,text):
 
-        result = input_string.replace('\\n', '\n').replace('\\r', '\r')  #现在只能针对替换，并不能将\\替换为\
-        #input_strings = re.sub(r'\\n', '\n', input_string)
+        pattern = r'(?<!\\)\\n'
+        # 替换"\\n"为"\n"
+        replaced_text1 = re.sub(pattern, '\n', text)
 
-        return result
+        pattern = r'(?<!\\)\\r'
+        # 替换"\\r"为"\r"
+        replaced_text2 = re.sub(pattern, '\r', replaced_text1)
+
+        return replaced_text2
 

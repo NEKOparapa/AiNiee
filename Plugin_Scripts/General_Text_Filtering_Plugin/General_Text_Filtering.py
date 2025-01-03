@@ -59,6 +59,11 @@ class General_Text_Filtering(PluginBase):
                     entry['translation_status'] = 7
                     continue
 
+                # 检查文本是仅换行符
+                if source_text in ("\n","\\n","\r","\\r"):
+                    entry['translation_status'] = 7
+                    continue
+
                 # 检查是否仅含标点符号的文本组合
                 if isinstance(source_text, str) and self.is_punctuation_string(source_text):
                     entry['translation_status'] = 7
@@ -66,7 +71,7 @@ class General_Text_Filtering(PluginBase):
 
 
                 #加个检测后缀为MP3，wav，png，这些文件名的文本，都是纯代码文本，所以忽略掉
-                if isinstance(source_text, str) and any(source_text.lower().endswith(ext) for ext in ['.mp3', '.wav', '.png', '.jpg', '.gif', '.rar', '.zip', '.json']):
+                if isinstance(source_text, str) and any(source_text.lower().endswith(ext) for ext in ['.mp3', '.wav', '.png', '.jpg', '.gif', '.rar', '.zip', '.json', '.ogg']):
                     entry['translation_status'] = 7
                     continue
 
