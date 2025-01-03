@@ -775,8 +775,13 @@ class File_Reader():
                             # 使用findall函数找到所有匹配的内容
                             paragraphs = re.findall(p_pattern, html_content, re.DOTALL)
 
-                            # 过滤掉空的内容
-                            filtered_matches = [match for match in paragraphs if match.strip()]
+                            # 修改这里：过滤和处理匹配结果
+                            filtered_matches = []
+                            for match in paragraphs:
+                                # findall 返回的是元组，我们需要找到元组中非空的字符串
+                                text = next((x for x in match if x), '')
+                                if text.strip():
+                                    filtered_matches.append(text)
 
                             # 遍历每个p标签，并提取文本内容
                             for p in filtered_matches:
