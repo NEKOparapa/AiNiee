@@ -770,7 +770,7 @@ class File_Reader():
                             #html_content = item.get_content().decode('utf-8')
 
                             # 正则表达式匹配<p>标签及其内容，包括自闭和的<p/>标签
-                            p_pattern = r'<p[^>/]*>(.*?)</p>|<p[^>/]*/>'
+                            p_pattern = r'<p[^>/]*>(.*?)</p>|<p[^>/]*/>|<h[1-7][^>/]*>(.*?)</h[1-7]>|<h[1-7][^>/]*/>|<li[^>/]*>(.*?)</li>|<li[^>/]*/>'
 
                             # 使用findall函数找到所有匹配的内容
                             paragraphs = re.findall(p_pattern, html_content, re.DOTALL)
@@ -930,3 +930,4 @@ class File_Reader():
         if translation_project == "ParaTranz导出文件":
             cache_list = File_Reader.read_paratranz_files(self,folder_path = label_input_path)
         return cache_list
+    
