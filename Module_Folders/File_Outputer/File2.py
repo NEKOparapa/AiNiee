@@ -9,6 +9,7 @@ import zipfile
 import ebooklib # 需要安装库pip install ebooklib
 from ebooklib import epub
 from openpyxl import Workbook
+from openpyxl.utils import escape
 
 # 文件输出器
 class File_Outputter():
@@ -460,7 +461,13 @@ class File_Outputter():
                     ws.cell(row = row_index, column = 1).value = re.sub(r"^=", " =", source_text)
                 else:
                     ws.cell(row = row_index, column = 1).value = re.sub(r"^=", " =", source_text)
-                    ws.cell(row = row_index, column = 2).value = re.sub(r"^=", " =", translated_text)
+
+                    # 防止含有特殊字符而不符合Excel公式时，导致的写入译文错误
+                    try:
+                        ws.cell(row = row_index, column = 2).value = re.sub(r"^=", " =", translated_text)
+                    except:
+                        escaped_string = escape(translated_text)  # 用自带函数对特殊字符进行转换
+                        ws.cell(row = row_index, column = 2).value = escaped_string
 
             # 保存工作簿
             wb.save(file_path)

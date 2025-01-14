@@ -83,7 +83,7 @@ class LimitEditPage(MessageBoxBase, Base):
         parent.addWidget(
             SpinCard(
                 "每分钟 Token 数",
-                "RPM，即每个密钥在一分钟内能生成的 Token 的最大数量",
+                "TPM，即每个密钥在一分钟内能生成的 Token 的最大数量",
                 init = init,
                 value_changed = value_changed,
             )

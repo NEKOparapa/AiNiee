@@ -769,28 +769,33 @@ class File_Reader():
                             # 获取文本内容并解码（为什么不用这个而进行解压操作呢，因为这个会自动将成对标签改为自适应标签）
                             #html_content = item.get_content().decode('utf-8')
 
-                            # 正则表达式匹配<p>标签及其内容，包括自闭和的<p/>标签
-                            p_pattern = r'<p[^>/]*>(.*?)</p>|<p[^>/]*/>'
+                            # 正则表达式匹配<p>标签及其内容，包括自闭和的<p/>标签，<h1>到<h7>、以及<li>标签
+                            p_pattern = r'<p[^>/]*>(.*?)</p>|<p[^>/]*/>|<h[1-7][^>/]*>(.*?)</h[1-7]>|<h[1-7][^>/]*/>|<li[^>/]*>(.*?)</li>|<li[^>/]*/>'
 
                             # 使用findall函数找到所有匹配的内容
                             paragraphs = re.findall(p_pattern, html_content, re.DOTALL)
 
-                            # 过滤掉空的内容
-                            filtered_matches = [match for match in paragraphs if match.strip()]
+                            # 过滤和处理匹配结果
+                            filtered_matches = []
+                            for match in paragraphs:
+                                # findall 返回的是元组，我们需要找到元组中非空的字符串
+                                text = next((x for x in match if x), '')
+                                if text.strip():
+                                    filtered_matches.append(text)
 
                             # 遍历每个p标签，并提取文本内容
                             for p in filtered_matches:
-                                # 保留原html内容文本
-                                cleaned_text = p
+                                # 保留原html内容文本，方便后面直接按原字符整体替换
+                                html_text = p
 
-                                # 提取纯文本
+                                # 借用库自带的函数来提取纯文本，以免中间还有子标签，影响翻译效果
                                 p_html = "<p>"+ p + "</p>"
                                 soup = BeautifulSoup(p_html, 'html.parser')
                                 text_content = soup.get_text()
 
                                 # 去除前面的空格
                                 text_content = text_content.lstrip()
-                                cleaned_text = cleaned_text.lstrip() 
+                                html_text = html_text.lstrip() 
 
                                 # 检查一下是否提取到空文本内容
                                 if not text_content.strip():
@@ -805,7 +810,7 @@ class File_Reader():
                                     "translation_status": 0,
                                     "source_text": text_content,
                                     "translated_text": text_content,
-                                    "html":cleaned_text,
+                                    "html":html_text,
                                     "model": "none",
                                     "item_id": item_id,
                                     "storage_path": storage_path,

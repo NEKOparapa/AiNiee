@@ -445,7 +445,7 @@
             "api_format": "",
             "rpm_limit": 4096,
             "tpm_limit": 4096000,
-            "token_limit": 4096,
+            "token_limit": 8096,
             "model": "deepseek-chat",
             "top_p": 1.0,
             "temperature": 1.3,

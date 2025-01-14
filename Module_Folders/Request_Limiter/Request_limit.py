@@ -1,9 +1,9 @@
 import time
 import threading
-
 import tiktoken  # 需要安装库pip install tiktoken
 import tiktoken_ext  # 必须导入这两个库，否则打包后无法运行
 from tiktoken_ext import openai_public
+
 
 class Request_Limiter:
 
@@ -45,9 +45,15 @@ class Request_Limiter:
         self.remaining_tokens = min(self.max_tokens, self.remaining_tokens + tokens_to_add)  # 计算新的剩余容量，与最大容量比较，谁小取谁值，避免发送信息超过最大容量
         self.last_time = now  # 改变上次记录时间
 
-        if tokens > self.remaining_tokens:
-            # print("[DEBUG] 已超过剩余tokens：", tokens,'\n' )
+        # 检查是否超过模型最大输入限制
+        if tokens >= self.max_tokens:
+            print("[Warning INFO] 该次任务总tokens量已经超过模型最大输入限制，将进入下次拆分轮次")
             return False
+        
+        # 检查是否超过余量
+        elif tokens >= self.remaining_tokens:
+            return False
+        
         else:
             # print("[DEBUG] 数量足够，剩余tokens：", tokens,'\n' )
             return True
