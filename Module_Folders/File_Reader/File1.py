@@ -865,7 +865,7 @@ class File_Reader():
                     storage_path = os.path.relpath(file_path, folder_path)
                     file_name = file
 
-                    # 构建存储文本的文件路径
+                    # 构建存储主要文本的文件路径
                     the_file_path = os.path.join(extract_path,'word', 'document.xml')
 
 

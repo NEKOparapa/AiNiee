@@ -403,45 +403,45 @@ class TranslatorTask(Base):
                 system_prompt += writing_style
                 extra_log.append(f"行文措辞要求已添加：\n{writing_style}")
 
-        # 获取默认示例前置文本
-        pre_prompt = PromptBuilder.build_userExamplePrefix(self.config)
-        fol_prompt = PromptBuilder.build_modelExamplePrefix(
-            self.config,
-            glossary_cot,
-            characterization_cot,
-            world_building_cot,
-            writing_style_cot
-        )
+        """        # 获取默认示例前置文本
+                pre_prompt = PromptBuilder.build_userExamplePrefix(self.config)
+                fol_prompt = PromptBuilder.build_modelExamplePrefix(
+                    self.config,
+                    glossary_cot,
+                    characterization_cot,
+                    world_building_cot,
+                    writing_style_cot
+                )
 
-        # 获取默认示例
-        original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict)
-        if original_exmaple and translation_example_content:
-            messages.append({
-                "role": "user",
-                "content": f"{pre_prompt}```json\n{original_exmaple}\n```"
-            })
-            messages.append({
-                "role": "assistant",
-                "content": f"{fol_prompt}```json\n{translation_example_content}\n```"
-            })
-            extra_log.append(f"格式原文示例已添加：\n{original_exmaple}")
-            extra_log.append(f"格式译文示例已添加：\n{translation_example_content}")
+                # 获取默认示例
+                original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict)
+                if original_exmaple and translation_example_content:
+                    messages.append({
+                        "role": "user",
+                        "content": f"{pre_prompt}```json\n{original_exmaple}\n```"
+                    })
+                    messages.append({
+                        "role": "assistant",
+                        "content": f"{fol_prompt}```json\n{translation_example_content}\n```"
+                    })
+                    extra_log.append(f"格式原文示例已添加：\n{original_exmaple}")
+                    extra_log.append(f"格式译文示例已添加：\n{translation_example_content}")
 
-        # 如果启用翻译风格示例功能
-        if self.config.translation_example_switch:
-            original_exmaple_3, translation_example_3 = PromptBuilder.build_translation_example(self.config)
-            if original_exmaple_3 and translation_example_3:
-                messages.append({
-                    "role": "user",
-                    "content": original_exmaple_3
-                })
-                messages.append({
-                    "role": "assistant",
-                    "content": translation_example_3
-                })
-                extra_log.append(f"用户原文示例已添加：\n{original_exmaple_3}")
-                extra_log.append(f"用户译文示例已添加：\n{translation_example_3}")
-
+                # 如果启用翻译风格示例功能
+                if self.config.translation_example_switch:
+                    original_exmaple_3, translation_example_3 = PromptBuilder.build_translation_example(self.config)
+                    if original_exmaple_3 and translation_example_3:
+                        messages.append({
+                            "role": "user",
+                            "content": original_exmaple_3
+                        })
+                        messages.append({
+                            "role": "assistant",
+                            "content": translation_example_3
+                        })
+                        extra_log.append(f"用户原文示例已添加：\n{original_exmaple_3}")
+                        extra_log.append(f"用户译文示例已添加：\n{translation_example_3}")
+        """
         # 如果加上文
         previous = ""
         if self.config.pre_line_counts and previous_text_list:
@@ -451,6 +451,7 @@ class TranslatorTask(Base):
 
         # 获取提问时的前置文本
         pre_prompt = PromptBuilder.build_userQueryPrefix(self.config)
+        # 获取模型预输入回复前文
         fol_prompt = PromptBuilder.build_modelResponsePrefix(self.config)
 
         # 构建用户信息
@@ -463,12 +464,12 @@ class TranslatorTask(Base):
                 "content": source_text_str,
             }
         )
-        messages.append(
-            {
-                "role": "assistant",
-                "content": fol_prompt
-            }
-        )
+        """         messages.append(
+                    {
+                        "role": "assistant",
+                        "content": fol_prompt
+                    }
+                )  #deepseek-reasoner不支持该模型预回复消息 """
 
         # 当目标为 google 系列接口时，转换 messages 的格式
         # 当目标为 anthropic 兼容接口时，保持原样

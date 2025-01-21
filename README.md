@@ -424,7 +424,7 @@
 ## 声明[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#声明)   
 该款AI翻译工具仅供个人合法用途,任何使用该工具进行直接或者间接非法盈利活动的行为,均不属于授权范围,也不受到任何支持和认可。
 
-* **`交♂交流群`**:  QQ交流群(主要，答案：github)：82162489零，备用TG群：https://t.me/+JVHbDSGo8SI2Njhl ,
+* **`交♂交流群`**:  QQ交流群(主要，答案：github)：8216248九零，备用TG群：https://t.me/+JVHbDSGo8SI2Njhl ,
 
 ---
 

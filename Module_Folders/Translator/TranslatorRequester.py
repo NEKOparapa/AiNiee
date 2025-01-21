@@ -362,7 +362,7 @@ class TranslatorRequester(Base):
                 temperature = temperature,
                 top_p = top_p,
                 presence_penalty = presence_penalty,
-                frequency_penalty = frequency_penalty,
+                #frequency_penalty = frequency_penalty, #deepseek-reasoner不支持该参数
                 timeout = self.config.request_timeout,
                 max_tokens = 4096,
             )
