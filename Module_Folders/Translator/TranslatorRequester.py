@@ -36,6 +36,9 @@ class TranslatorRequester(Base):
         # 如果上一次请求出现模型退化，更改参数
         frequency_penalty = 0.2 if model_degradation == True else frequency_penalty
 
+        # 存储思考过程，目前是openai类的ds-r模型有该字段内容
+        response_think = "空内容"
+
         if target_platform == "sakura":
             skip, response_content, prompt_tokens, completion_tokens = self.request_sakura(
                 messages,
@@ -73,7 +76,7 @@ class TranslatorRequester(Base):
                 frequency_penalty
             )
         else:
-            skip, response_content, prompt_tokens, completion_tokens = self.request_openai(
+            skip, response_content, prompt_tokens, completion_tokens,response_think = self.request_openai(
                 messages,
                 system_prompt,
                 temperature,
@@ -82,7 +85,7 @@ class TranslatorRequester(Base):
                 frequency_penalty
             )
 
-        return skip, response_content, prompt_tokens, completion_tokens
+        return skip, response_content, prompt_tokens, completion_tokens, response_think
 
     # 轮询获取key列表里的key
     def get_apikey(self) -> str:
@@ -349,7 +352,7 @@ class TranslatorRequester(Base):
         return False, response_content, prompt_tokens, completion_tokens
 
     # 发起请求
-    def request_openai(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty) -> tuple[bool, str, int, int]:
+    def request_openai(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty) -> tuple[bool, str, int, int, str]:
         try:
             client = OpenAI(
                 base_url = self.config.base_url,
@@ -362,13 +365,20 @@ class TranslatorRequester(Base):
                 temperature = temperature,
                 top_p = top_p,
                 presence_penalty = presence_penalty,
-                #frequency_penalty = frequency_penalty, #deepseek-reasoner不支持该参数
+                frequency_penalty = frequency_penalty,
                 timeout = self.config.request_timeout,
                 max_tokens = 4096,
             )
 
             # 提取回复的文本内容
             response_content = response.choices[0].message.content
+
+            # 提取回复的思考过程，目前是openai类的ds-r模型有该字段内容
+            try:
+                response_think = response.choices[0].message.reasoning_content
+            except Exception:
+                response_think = "无内容"
+
         except Exception as e:
             if self.is_debug():
                 self.error("翻译任务错误 ...", e)
@@ -402,4 +412,4 @@ class TranslatorRequester(Base):
         # 插件事件过后，恢复字符串类型
         response_content = response_content_dict["0"]
 
-        return False, response_content, prompt_tokens, completion_tokens
+        return False, response_content, prompt_tokens, completion_tokens, response_think

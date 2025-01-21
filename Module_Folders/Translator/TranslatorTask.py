@@ -114,8 +114,7 @@ class TranslatorTask(Base):
 
         # 发起请求
         requester = TranslatorRequester(self.config, self.plugin_manager)
-        skip, response_str, prompt_tokens, completion_tokens = requester.request(self.messages, self.system_prompt, degradation_flag)
-
+        skip, response_str, prompt_tokens, completion_tokens, response_think = requester.request(self.messages, self.system_prompt, degradation_flag)
         # 如果请求结果标记为 skip，即有错误发生，则跳过本次循环
         if skip == True:
             return {
@@ -168,7 +167,9 @@ class TranslatorTask(Base):
 
             # 打印调试用日志
             if self.is_debug():
-                print("AI回复内容:")
+                print("[AI思考过程]")
+                print(response_think + "\n\n")
+                print("[AI回复内容]")
                 print(response_str)
 
         else:
@@ -200,7 +201,9 @@ class TranslatorTask(Base):
 
             # 打印调试用日志
             if self.is_debug():
-                print("AI回复内容:")
+                print("[AI思考过程]")
+                print(response_think + "\n\n")
+                print("[AI回复内容]")
                 print(response_str)
 
 
@@ -403,45 +406,45 @@ class TranslatorTask(Base):
                 system_prompt += writing_style
                 extra_log.append(f"行文措辞要求已添加：\n{writing_style}")
 
-        """        # 获取默认示例前置文本
-                pre_prompt = PromptBuilder.build_userExamplePrefix(self.config)
-                fol_prompt = PromptBuilder.build_modelExamplePrefix(
-                    self.config,
-                    glossary_cot,
-                    characterization_cot,
-                    world_building_cot,
-                    writing_style_cot
-                )
+        # 获取默认示例前置文本
+        pre_prompt = PromptBuilder.build_userExamplePrefix(self.config)
+        fol_prompt = PromptBuilder.build_modelExamplePrefix(
+            self.config,
+            glossary_cot,
+            characterization_cot,
+            world_building_cot,
+            writing_style_cot
+        )
 
-                # 获取默认示例
-                original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict)
-                if original_exmaple and translation_example_content:
-                    messages.append({
-                        "role": "user",
-                        "content": f"{pre_prompt}```json\n{original_exmaple}\n```"
-                    })
-                    messages.append({
-                        "role": "assistant",
-                        "content": f"{fol_prompt}```json\n{translation_example_content}\n```"
-                    })
-                    extra_log.append(f"格式原文示例已添加：\n{original_exmaple}")
-                    extra_log.append(f"格式译文示例已添加：\n{translation_example_content}")
+        # 获取默认示例
+        original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict)
+        if original_exmaple and translation_example_content:
+            messages.append({
+                "role": "user",
+                "content": f"{pre_prompt}```json\n{original_exmaple}\n```"
+            })
+            messages.append({
+                "role": "assistant",
+                "content": f"{fol_prompt}```json\n{translation_example_content}\n```"
+            })
+            extra_log.append(f"格式原文示例已添加：\n{original_exmaple}")
+            extra_log.append(f"格式译文示例已添加：\n{translation_example_content}")
 
-                # 如果启用翻译风格示例功能
-                if self.config.translation_example_switch:
-                    original_exmaple_3, translation_example_3 = PromptBuilder.build_translation_example(self.config)
-                    if original_exmaple_3 and translation_example_3:
-                        messages.append({
-                            "role": "user",
-                            "content": original_exmaple_3
-                        })
-                        messages.append({
-                            "role": "assistant",
-                            "content": translation_example_3
-                        })
-                        extra_log.append(f"用户原文示例已添加：\n{original_exmaple_3}")
-                        extra_log.append(f"用户译文示例已添加：\n{translation_example_3}")
-        """
+        # 如果启用翻译风格示例功能
+        if self.config.translation_example_switch:
+            original_exmaple_3, translation_example_3 = PromptBuilder.build_translation_example(self.config)
+            if original_exmaple_3 and translation_example_3:
+                messages.append({
+                    "role": "user",
+                    "content": original_exmaple_3
+                })
+                messages.append({
+                    "role": "assistant",
+                    "content": translation_example_3
+                })
+                extra_log.append(f"用户原文示例已添加：\n{original_exmaple_3}")
+                extra_log.append(f"用户译文示例已添加：\n{translation_example_3}")
+
         # 如果加上文
         previous = ""
         if self.config.pre_line_counts and previous_text_list:
