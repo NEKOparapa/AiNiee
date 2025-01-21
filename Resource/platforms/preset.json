@@ -454,7 +454,8 @@
             "account": "",
             "auto_complete": false,
             "model_datas": [
-                "deepseek-chat"
+                "deepseek-chat",
+                "deepseek-reasoner"
             ],
             "account_datas": {},
             "key_in_settings": [
