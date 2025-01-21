@@ -75,8 +75,17 @@ class TranslatorRequester(Base):
                 presence_penalty,
                 frequency_penalty
             )
+        elif target_platform == "deepseek":
+            skip, response_content, prompt_tokens, completion_tokens,response_think = self.request_deepseek(
+                messages,
+                system_prompt,
+                temperature,
+                top_p,
+                presence_penalty,
+                frequency_penalty
+            )
         else:
-            skip, response_content, prompt_tokens, completion_tokens,response_think = self.request_openai(
+            skip, response_content, prompt_tokens, completion_tokens = self.request_openai(
                 messages,
                 system_prompt,
                 temperature,
@@ -352,16 +361,21 @@ class TranslatorRequester(Base):
         return False, response_content, prompt_tokens, completion_tokens
 
     # 发起请求
-    def request_openai(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty) -> tuple[bool, str, int, int, str]:
+    def request_deepseek(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty) -> tuple[bool, str, int, int, str]:
         try:
             client = OpenAI(
                 base_url = self.config.base_url,
                 api_key = self.get_apikey(),
             )
 
+            # 针对ds-r模型的特殊处理，因为该模型不支持模型预输入回复
+            if self.config.model == "deepseek-reasoner":
+                messages_pop = messages[:-1]  # 移除最后一个元素
+
+
             response = client.chat.completions.create(
                 model = self.config.model,
-                messages = messages,
+                messages = messages_pop,
                 temperature = temperature,
                 top_p = top_p,
                 presence_penalty = presence_penalty,
@@ -413,3 +427,61 @@ class TranslatorRequester(Base):
         response_content = response_content_dict["0"]
 
         return False, response_content, prompt_tokens, completion_tokens, response_think
+    
+
+    # 发起请求
+    def request_openai(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty) -> tuple[bool, str, int, int]:
+        try:
+            client = OpenAI(
+                base_url = self.config.base_url,
+                api_key = self.get_apikey(),
+            )
+
+            response = client.chat.completions.create(
+                model = self.config.model,
+                messages = messages,
+                temperature = temperature,
+                top_p = top_p,
+                presence_penalty = presence_penalty,
+                frequency_penalty = frequency_penalty,
+                timeout = self.config.request_timeout,
+                max_tokens = 4096,
+            )
+
+            # 提取回复的文本内容
+            response_content = response.choices[0].message.content
+
+        except Exception as e:
+            if self.is_debug():
+                self.error("翻译任务错误 ...", e)
+            else:
+                self.error(f"翻译任务错误 ... {e}", None)
+            return True, None, None, None
+
+        # 获取指令消耗
+        try:
+            prompt_tokens = int(response.usage.prompt_tokens)
+        except Exception:
+            prompt_tokens = 0
+
+        # 获取回复消耗
+        try:
+            completion_tokens = int(response.usage.completion_tokens)
+        except Exception:
+            completion_tokens = 0
+
+
+        # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
+        response_content_dict = {"0":response_content}
+
+        # 调用插件，进行处理
+        self.plugin_manager.broadcast_event(
+            "reply_processed",
+            self.config,
+            response_content_dict
+        )
+
+        # 插件事件过后，恢复字符串类型
+        response_content = response_content_dict["0"]
+
+        return False, response_content, prompt_tokens, completion_tokens

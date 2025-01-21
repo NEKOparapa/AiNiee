@@ -416,7 +416,7 @@ class TranslatorTask(Base):
             writing_style_cot
         )
 
-        # 获取默认示例
+        # 获取默认示例，并构建动态few-shot
         original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict)
         if original_exmaple and translation_example_content:
             messages.append({
@@ -445,7 +445,7 @@ class TranslatorTask(Base):
                 extra_log.append(f"用户原文示例已添加：\n{original_exmaple_3}")
                 extra_log.append(f"用户译文示例已添加：\n{translation_example_3}")
 
-        # 如果加上文
+        # 如果加上文，获取上文内容
         previous = ""
         if self.config.pre_line_counts and previous_text_list:
             previous = PromptBuilder.build_pre_text(self.config, previous_text_list)
@@ -457,22 +457,25 @@ class TranslatorTask(Base):
         # 获取模型预输入回复前文
         fol_prompt = PromptBuilder.build_modelResponsePrefix(self.config)
 
-        # 构建用户信息
+        # 构建待翻译文本
         source_text_str = json.dumps(source_text_dict, ensure_ascii = False)
         source_text_str = f"{previous}\n{pre_prompt}```json\n{source_text_str}\n```"
 
+        # 构建用户提问信息
         messages.append(
             {
                 "role": "user",
                 "content": source_text_str,
             }
         )
-        """         messages.append(
-                    {
-                        "role": "assistant",
-                        "content": fol_prompt
-                    }
-                )  #deepseek-reasoner不支持该模型预回复消息 """
+
+        # 构建模型预输入回复信息
+        messages.append(
+        {
+            "role": "assistant",
+            "content": fol_prompt
+        }
+        )  #deepseek-reasoner不支持该模型预回复消息
 
         # 当目标为 google 系列接口时，转换 messages 的格式
         # 当目标为 anthropic 兼容接口时，保持原样
