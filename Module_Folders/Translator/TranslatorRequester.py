@@ -372,6 +372,10 @@ class TranslatorRequester(Base):
             if self.config.model == "deepseek-reasoner":
                 messages = messages[:-1]  # 移除最后一个元素
 
+                # 移除构造对话（测试用）
+                #messages.pop(2)  # 从后往前移除，避免索引变化，先移除索引为 2 的元素
+                #messages.pop(1)  # 再移除索引为 1 的元素
+
 
             response = client.chat.completions.create(
                 model = self.config.model,
