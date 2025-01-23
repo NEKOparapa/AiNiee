@@ -57,10 +57,10 @@ class PromptBuilder(Base):
 
     输出：逐句分析，并列出你的问题分析、修改建议和修改原因。如：
         #### 第0句
-            - 初步译文：[此处粘贴初步直译第0句]
-            - 问题分析：... (详细的分析内容)
-            - 修改建议：... 
-            - 修改原因：... (详细的解释)
+            - **初步译文**：[此处粘贴初步直译第0句]
+            - **问题分析**：... (详细的分析内容)
+            - **修改建议**：... 
+            - **修改原因**：... (详细的解释)
 
         #### 第1句
         ... (以此类推，分析和校正每一句译文)
@@ -102,10 +102,10 @@ Step 2: In-depth Revision
 
     Output: Analyze sentence by sentence, and list your problem analysis, revision suggestions, and reasons for revision. For example:
         #### Sentence 0
-            - Initial Translation: [Paste the initial literal translation of sentence 0 here]
-            - Problem Analysis: ... (detailed analysis)
-            - Revision Suggestion: ...
-            - Reason for Revision: ... (detailed explanation)
+            - **Initial Translation**: [Paste the initial literal translation of sentence 0 here]
+            - **Problem Analysis**: ... (detailed analysis)
+            - **Revision Suggestion**: ...
+            - **Reason for Revision**: ... (detailed explanation)
 
         #### Sentence 1
         ... (and so on, analyzing and revising each sentence)
