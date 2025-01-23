@@ -141,7 +141,7 @@
                 "gemini-1.5-flash",
                 "gemini-1.5-pro",
                 "gemini-2.0-flash-exp",
-                "gemini-2.0-flash-thinking-exp-1219"
+                "gemini-2.0-flash-thinking-exp"
             ],
             "account_datas": {
                 "免费账号": {
@@ -165,7 +165,7 @@
                         "TPM": 1000000,
                         "RPM": 10
                     },
-                    "gemini-2.0-flash-thinking-exp-1219": {
+                    "gemini-2.0-flash-thinking-exp": {
                         "max_tokens": 128000,
                         "TPM": 1000000,
                         "RPM": 10

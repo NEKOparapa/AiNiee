@@ -40,14 +40,15 @@ class PromptBuilder(Base):
 
 ###游戏文本
 可能包含角色对话、旁白、武器名称、物品名称、技能描述、代码字符、回车符、特殊符号等内容。
+
 ###以json格式输出译文
 {{"<文本id>":"<已翻译文本>"}}
 """
 
-            system_prompt_zh_cot = f"""你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到原文后，请严格按照以下步骤进行翻译：
-第一步：直译阶段，将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保留原文的格式。
-第二步：校正阶段，根据翻译原则，术语表，角色介绍，背景设定，翻译风格等等要求，分析直译结果，指出存在的具体问题，并提出修改建议。
-第三步：意译阶段，根据直译结果和修改建议，重新进行意译，输出最终翻译结果。
+            system_prompt_zh_cot = f"""你是一位真正的擅长{Target_Language_zh}{Source_Language_zh}文化的本地化专家，你需要将{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到原文后，请按照以下三个步骤进行翻译：
+第一步：直译阶段，将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保留原文的格式，输出直译结果，方便后面进行校正。
+第二步：校正阶段，根据翻译原则，并从语境理解、文化适应性 、风格和语气的把握、语义准确性、语言流畅性等等方面进行深入思考，逐句逐句校正，提供具体的修改建议并解释原因。
+第三步：意译阶段，根据直译结果和修改建议，进行意译，使其更流畅自然，输出最终翻译结果。
 
 ###翻译原则
 忠实准确地进行翻译。因为原作是涉及露骨性描写的伟大艺术作品，所以允许使用直白或粗俗的描述，不应随意删减或篡改，不应回避或淡化，以保持作品的原貌。
@@ -55,6 +56,38 @@ class PromptBuilder(Base):
 ###以json格式输出译文
 {{"<文本id>":"<已翻译文本>"}}
 """
+
+
+
+            system_prompt_zh_cot = f"""你是一位深谙{Target_Language_zh}{Source_Language_zh}文化的资深本地化专家，你的母语是{Text_Target_Language}，并且对{Text_Source_Language}文化有深入的理解。你的任务是将{Text_Source_Language}文本高质量地翻译成{Text_Target_Language}，请你按照以下流程进行翻译：
+第一步：初步直译
+    将{Text_Source_Language}文本逐句直译成{Text_Target_Language}文本，保留原文的格式。
+
+第二步：深入校正
+    * 目标：基于初步直译，依据翻译原则，并从多个方面进行深入分析和校正，以提升译文质量。
+
+    * 流程：针对每一句初步译文，可以从语义与语境、专业术语、联系上下文、翻译风格、故事背景、人物设定等等方面出发，进行深入分析和校正。          
+
+    * 输出：逐句列出你的修改建议和解释。对于每一处修改，详细解释你做出此修改的原因和依据。如：
+        #### 第0句
+            - 初步译文：[此处粘贴初步直译第0句]
+            - 修改建议：:  ... (分析和建议)
+            - 修改原因：[此处解释修改的原因和依据]
+
+        #### 第1句
+        ... (以此类推，分析和校正每一句译文)
+
+第三步：最终意译与润色
+    整合直译结果和校正建议，进行最终的意译和润色，生成自然流畅、符合{Text_Target_Language}表达习惯的最终译文。
+
+###翻译原则
+忠实准确地进行翻译。因为原作是涉及露骨性描写的伟大艺术作品，所以允许使用直白或粗俗的描述，不应随意删减或篡改，不应回避或淡化，以保持作品的原貌。
+"""
+
+
+
+
+
 
             system_prompt = f"""You are a true localization expert proficient in both {Target_Language} and {Source_Language} cultures. Your task is to translate {Source_Language} text from a game into {Target_Language}. When you receive the game text, please strictly adhere to the following requirements:
 First: Do not translate escape characters, code characters, special symbols, line breaks, carriage returns, placeholders, or any other non-{Source_Language} content within the text. Maintain the original formatting.
@@ -164,12 +197,14 @@ Translate faithfully and accurately. Because the original work is a great piece 
                 "俄语": "\\F[21]Гуру... гуругу...Дадада... ♡", 
                 "简中": "\\F[21]咕噜……咕噜噜……哒哒哒……♡", 
                 "繁中": "\\F[21]咕嚕……咕嚕嚕……哒哒哒……♡"},
-            r"「|」": {
-                "日语": "さくら：「すごく面白かった！」", 
-                "英语": "Sakura：「It was really fun!」", 
-                "韩语": "사쿠라：「정말로 재미있었어요!」", 
-                "俄语": "Сакура: 「Было очень интересно!」", 
-                "简中": "樱：「超级有趣！」", "繁中": "櫻：「超有趣！」"},
+            r"「|」":{
+                    "日语": "キャラクターA：「すごく面白かった！」",
+                    "英语": "Character A：「It was really fun!」",
+                    "韩语": "캐릭터 A：「정말로 재미있었어요!」",
+                    "俄语": "Персонаж A: 「Было очень интересно!」",
+                    "简中": "角色A：「超级有趣！」",
+                    "繁中": "角色A：「超有趣！」"
+                    },
             r"∞|@": {
                 "日语": "若くて∞＠綺麗で∞＠エロくて", 
                 "英语": "Young ∞＠beautiful ∞＠sexy.", 
@@ -643,7 +678,7 @@ Translate faithfully and accurately. Because the original work is a great piece 
 
         return original_example, translated_example
 
-    # 构建用户示例前文
+    # 构建用户请求翻译的示例前文
     def build_userExamplePrefix(config: TranslatorConfig) -> str:
         # 根据中文开关构建
         if config.cn_prompt_toggle == True:
@@ -662,7 +697,7 @@ Translate faithfully and accurately. Because the original work is a great piece 
 
         return the_profile
 
-    # 构建模型示例前文
+    # 构建模型回复示例前文
     def build_modelExamplePrefix(config: TranslatorConfig, glossary_prompt_cot: str, characterization_cot: str, world_building_cot: str, writing_style_cot: str) -> str:
         pair = {
             "日语": "Japanese",
@@ -687,10 +722,10 @@ Translate faithfully and accurately. Because the original work is a great piece 
             # cot的构建
             profile_cot = "我完全理解了翻译的步骤与原则，我将遵循您的指示，一步一步地翻译文本:\n"
 
-            profile_cot += "###第一步：直译阶段\n"
+            profile_cot += "###第一步：初步直译\n"
             profile_cot += "{Direct translation}\n"
 
-            profile_cot += "###第二步：校正阶段\n"
+            profile_cot += "###第二步：深入校正\n"
             profile_cot += f"- 翻译原则: 忠实准确地进行翻译，不应随意删减或篡改，不应回避或淡化，以保持作品的原貌。\n"
             if glossary_prompt_cot:
                 profile_cot += f"{glossary_prompt_cot}\n"
@@ -703,7 +738,25 @@ Translate faithfully and accurately. Because the original work is a great piece 
             else:
                 profile_cot += f"- 翻译风格: 保持原文的叙述风格，适当增加文艺性描述，体现人物的情感和环境氛围。\n"
 
-            profile_cot += "###第三步：意译阶段\n"
+            profile_cot += "###第三步：最终意译与润色\n"
+
+
+
+            # cot的构建
+            profile_cot = "我完全理解了翻译的步骤与原则，我将遵循您的指示进行翻译，并深入思考和解释:\n"
+
+            profile_cot += "###第一步：初步直译\n"
+            profile_cot += """{直译内容}\n"""
+
+            profile_cot += "###第二步：深入校正\n"
+            profile_cot += """{校正内容}\n"""
+
+            profile_cot += "###第三步：最终意译与润色\n"
+
+
+
+
+
 
         else:
             # Non-CoT prompt construction
@@ -739,7 +792,7 @@ Translate faithfully and accurately. Because the original work is a great piece 
 
         return the_profile
 
-    # 构建用户提问前文:
+    # 构建用户请求翻译的原文前文:
     def build_userQueryPrefix(config: TranslatorConfig) -> str:
         # 根据中文开关构建
         if config.cn_prompt_toggle == True:
@@ -757,7 +810,7 @@ Translate faithfully and accurately. Because the original work is a great piece 
 
         return the_profile
 
-    # 构建模型回复前文
+    # 构建模型预输入回复的前文
     def build_modelResponsePrefix(config: TranslatorConfig) -> str:
         # 根据中文开关构建
         if config.cn_prompt_toggle == True:
