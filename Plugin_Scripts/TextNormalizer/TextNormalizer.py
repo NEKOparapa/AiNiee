@@ -9,13 +9,13 @@ class TextNormalizer(PluginBase):
 
         self.name = "TextNormalizer"
         self.description = (
-            "文本规范器，在翻译开始前，根据原文语言对文本中不规范的字符（例如半角片假名）进行修正以提升翻译质量"
+            "文本规范器，对文本中不规范的字符（例如半角片假名）进行修正，按需开启"
             + "\n"
             + "兼容性：支持英语、日语；支持全部模型；支持全部文本格式；"
         )
 
         self.visibility = True  # 是否在插件设置中显示
-        self.default_enable = True  # 默认启用状态
+        self.default_enable = False  # 默认启用状态
 
         self.add_event("normalize_text", PluginBase.PRIORITY.NORMAL)
 

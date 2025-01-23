@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QTableWidgetItem
 
 from Base.Base import Base
-from Module_Folders.TableHelper import TableHelper
+from User_Interface.TableHelper.TableHelper import TableHelper
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 from User_Interface import AppFluentWindow
@@ -34,25 +34,9 @@ class TextReplaceBPage(QFrame, Base):
             "post_translation_switch": True,
             "post_translation_data" : [
                 {
-                    "src": "…。",
-                    "dst": "…",
-                },
-                {
-                    "src": "学长",
-                    "dst": "前辈",
-                },
-                {
-                    "src": "学姐",
-                    "dst": "前辈",
-                },
-                {
-                    "src": "学弟",
-                    "dst": "后辈",
-                },
-                {
-                    "src": "学妹",
-                    "dst": "后辈",
-                },
+                    "src": "待替换的文本A",
+                    "dst": "替换后的文本B",
+                }
             ],
         }
 

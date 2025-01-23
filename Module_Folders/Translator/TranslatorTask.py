@@ -9,7 +9,7 @@ from rich.table import Table
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
-from Module_Folders.PromptBuilder import PromptBuilder
+from Module_Folders.PromptBuilder.PromptBuild import PromptBuilder
 from Module_Folders.Cache.CacheItem import CacheItem
 from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
 from Module_Folders.Translator.TranslatorRequester import TranslatorRequester
@@ -153,40 +153,13 @@ class TranslatorTask(Base):
                 error = f"译文文本未通过检查，将在下一轮次的翻译中重新翻译 - {error_content}"
 
             # 打印任务结果
-            self.print(
-                self.generate_log_table(
-                    *self.generate_log_rows(
-                        error,
-                        task_start_time,
-                        prompt_tokens,
-                        completion_tokens,
-                        self.source_text_dict.values(),
-                        response_dict.values(),
-                        self.extra_log
-                    )
-                )
-            )
-
-            # 打印调试用日志
             if self.is_debug():
-                print("[AI思考过程]")
-                print(response_think + "\n\n")
-                print("[AI回复内容]")
-                print(response_str)
+                response_think_log = "[AI思考过程]\n"  + response_think
+                response_str_log = "[AI回复内容]\n"  + response_str
 
-        else:
-            # 各种还原步骤
-            # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
-            restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = self.restore_all(restore_response_dict, self.prefix_codes, self.suffix_codes)
+                self.extra_log.append(response_think_log)
+                self.extra_log.append(response_str_log)
 
-            # 更新缓存数据
-            for item, response in zip(self.items, restore_response_dict.values()):
-                item.set_model(self.config.model)
-                item.set_translated_text(response)
-                item.set_translation_status(CacheItem.STATUS.TRANSLATED)
-
-            # 打印任务结果
             self.print(
                 self.generate_log_table(
                     *self.generate_log_rows(
@@ -201,12 +174,41 @@ class TranslatorTask(Base):
                 )
             )
 
-            # 打印调试用日志
+        else:
+            # 各种还原步骤
+            # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
+            restore_response_dict = copy.copy(response_dict)
+            restore_response_dict = self.restore_all(restore_response_dict, self.prefix_codes, self.suffix_codes)
+
+            # 更新缓存数据
+            for item, response in zip(self.items, restore_response_dict.values()):
+                item.set_model(self.config.model)
+                item.set_translated_text(response)
+                item.set_translation_status(CacheItem.STATUS.TRANSLATED)
+
+            # 打印任务结果
             if self.is_debug():
-                print("[AI思考过程]")
-                print(response_think + "\n\n")
-                print("[AI回复内容]")
-                print(response_str)
+                response_think_log = "[AI思考过程]\n"  + response_think
+                response_str_log = "[AI回复内容]\n"  + response_str
+
+                self.extra_log.append(response_think_log)
+                self.extra_log.append(response_str_log)
+
+            self.print(
+                self.generate_log_table(
+                    *self.generate_log_rows(
+                        "",
+                        task_start_time,
+                        prompt_tokens,
+                        completion_tokens,
+                        self.source_text_dict.values(),
+                        response_dict.values(),
+                        self.extra_log
+                    )
+                )
+            )
+
+
 
 
         # 当重试标识为 True 时，重新发起请求

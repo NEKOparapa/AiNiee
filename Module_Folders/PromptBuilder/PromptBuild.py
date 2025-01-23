@@ -61,7 +61,7 @@ class PromptBuilder(Base):
 
             system_prompt_zh_cot = f"""你是一位深谙{Target_Language_zh}{Source_Language_zh}文化的资深本地化专家，请你按照以下流程进行翻译：
 第一步：初步直译
-    将{Text_Source_Language}文本逐句直译成{Text_Target_Language}文本，保留格式标签、换行符、特殊符号等内容，保持原始格式。
+    将{Text_Source_Language}文本逐句直译成{Text_Target_Language}文本，保留文本中的格式标签、换行符等特殊代码，保持原始格式。
 
 第二步：深入校正
     目标：基于初步直译，依据翻译原则，并从多个方面进行深入分析和校正，以提升译文质量。

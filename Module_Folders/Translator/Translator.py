@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
-from Module_Folders.PromptBuilder import PromptBuilder
+from Module_Folders.PromptBuilder.PromptBuild import PromptBuilder
 from Module_Folders.Cache.CacheItem import CacheItem
 from Module_Folders.Cache.CacheManager import CacheManager
 from Module_Folders.Translator.TranslatorTask import TranslatorTask

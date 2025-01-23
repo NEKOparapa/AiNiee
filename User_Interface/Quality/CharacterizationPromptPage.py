@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QTableWidgetItem
 
 from Base.Base import Base
-from Module_Folders.TableHelper import TableHelper
+from User_Interface.TableHelper.TableHelper import TableHelper
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 from User_Interface import AppFluentWindow

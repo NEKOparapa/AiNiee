@@ -89,7 +89,7 @@ class AdvanceSettingsPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 "思维链模式",
-                "思维链（CoT）是一种高级指令模式，在逻辑能力强的模型上可以取得更好的翻译效果，会消耗更多 Token（不支持 Sakura 模型）",
+                "思维链（CoT）是一种高级指令模式，在逻辑能力强的模型上可以取得更好的翻译效果，会消耗数倍 Token（不支持 Sakura 模型）",
                 widget_init,
                 widget_callback,
             )
