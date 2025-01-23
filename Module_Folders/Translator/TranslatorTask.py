@@ -410,6 +410,15 @@ class TranslatorTask(Base):
                 system_prompt += writing_style
                 extra_log.append(f"行文措辞要求已添加：\n{writing_style}")
 
+
+        # 如果启用翻译风格示例功能
+        if self.config.translation_example_switch:
+            translation_example = PromptBuilder.build_translation_example(self.config)
+            if translation_example:
+                system_prompt += translation_example
+                extra_log.append(f"翻译示例已添加：\n{translation_example}")
+
+
         # 获取默认示例前置文本
         pre_prompt = PromptBuilder.build_userExamplePrefix(self.config)
         fol_prompt = PromptBuilder.build_modelExamplePrefix(
@@ -433,21 +442,6 @@ class TranslatorTask(Base):
             })
             extra_log.append(f"格式原文示例已添加：\n{original_exmaple}")
             extra_log.append(f"格式译文示例已添加：\n{translation_example_content}")
-
-        # 如果启用翻译风格示例功能
-        if self.config.translation_example_switch:
-            original_exmaple_3, translation_example_3 = PromptBuilder.build_translation_example(self.config)
-            if original_exmaple_3 and translation_example_3:
-                messages.append({
-                    "role": "user",
-                    "content": original_exmaple_3
-                })
-                messages.append({
-                    "role": "assistant",
-                    "content": translation_example_3
-                })
-                extra_log.append(f"用户原文示例已添加：\n{original_exmaple_3}")
-                extra_log.append(f"用户译文示例已添加：\n{translation_example_3}")
 
         # 如果加上文，获取上文内容
         previous = ""

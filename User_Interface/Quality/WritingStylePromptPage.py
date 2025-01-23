@@ -20,7 +20,7 @@ class WritingStylePromptPage(QFrame, Base):
         self.default = {
             "writing_style_switch": False,
             "writing_style_content": (
-                "翻译需保持原文的叙述风格，适当增加文艺性描述，体现人物的情感和环境氛围。"
+                "根据原文语境，可以适当调整，使表达更生动形象，提升译文的冲击力与张力"
             ),
         }
 
