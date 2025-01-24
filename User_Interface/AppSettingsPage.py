@@ -125,11 +125,16 @@ class AppSettingsPage(QWidget, Base):
     # 调整模式开关
     def add_switch_debug_mode(self, parent, config):
         def init(widget):
+            # 如果配置文件有该字段，且为真
             if config.get("switch_debug_mode"):
                 switch_value = True
+            
+            # 如果配置文件没有该字段，或者该字段为假，则重新写入
             else:
                 switch_value = False
-                
+                config["switch_debug_mode"] = switch_value
+                self.save_config(config)
+
             widget.set_checked(switch_value)
 
         def checked_changed(widget, checked: bool):
