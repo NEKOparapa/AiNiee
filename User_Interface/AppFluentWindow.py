@@ -56,9 +56,6 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         # 载入并保存默认配置
         config = self.save_config(self.load_config_from_default())
 
-        # 打印日志
-        if self.is_debug():
-            self.warning("调试模式已启用 ...")
 
         # 设置主题颜色
         setThemeColor(self.THEME_COLOR)

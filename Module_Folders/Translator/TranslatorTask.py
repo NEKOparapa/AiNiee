@@ -153,7 +153,7 @@ class TranslatorTask(Base):
                 error = f"译文文本未通过检查，将在下一轮次的翻译中重新翻译 - {error_content}"
 
             # 打印任务结果
-            if self.is_debug():
+            if self.config.switch_debug_mode:
                 response_think_log = "[AI思考过程]\n"  + response_think
                 response_str_log = "[AI回复内容]\n"  + response_str
 
@@ -187,7 +187,7 @@ class TranslatorTask(Base):
                 item.set_translation_status(CacheItem.STATUS.TRANSLATED)
 
             # 打印任务结果
-            if self.is_debug():
+            if self.config.switch_debug_mode:
                 response_think_log = "[AI思考过程]\n"  + response_think
                 response_str_log = "[AI回复内容]\n"  + response_str
 

@@ -64,7 +64,6 @@ class Base():
 
     # DEBUG
     def debug(self, msg: str, e: Exception = None) -> None:
-        if self.is_debug() == True:
             if e == None:
                 print(f"[[yellow]DEBUG[/]] {msg}")
             else:
@@ -203,9 +202,3 @@ class Base():
     def unsubscribe(self, event: int, hanlder: callable) -> None:
         EventManager.get_singleton().unsubscribe(event, hanlder)
 
-    # 检查是否为开发模式
-    def is_debug(self) -> bool:
-        if not hasattr(Base, "_is_debug"):
-            Base._is_debug = os.path.isfile("./debug.txt")
-
-        return Base._is_debug
