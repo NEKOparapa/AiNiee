@@ -7,7 +7,7 @@ import openpyxl
 from chardet import detect
 import csv
 
-version = 'v2.20'
+version = 'v2.21'
 
 csv.field_size_limit(2**30)
 pd.options.display.max_colwidth = None
@@ -267,9 +267,15 @@ class Jr_Tpp():
                     data[i+n]='☆删除☆'
         elif type(data)==dict:
             # 如果key是list,并且文本长度大于1，标记
-            if Dir[0]=='list' and length>1:
-                key_is_list=True
-            data[Dir[0]]=self.__WriteFile(data[Dir[0]],untrs,trsed,Dir[1:],length,code,key_is_list=key_is_list)
+            try:
+                if Dir[0]=='list' and length>1:
+                    key_is_list=True
+                data[Dir[0]]=self.__WriteFile(data[Dir[0]],untrs,trsed,Dir[1:],length,code,key_is_list=key_is_list)
+            except:
+                print(untrs)
+                print(trsed)
+                print(Dir)
+                input(data)
         elif type(data)==str and len(Dir)==0:
             # 写code355,655
             if code in self.sptext.keys():
@@ -1105,6 +1111,18 @@ class Jr_Tpp():
     # 注入游戏，自动处理文件名问题，如有水印(如有），打水印，参数为游戏根目录,翻译数据路径和注入翻译后的json文件保存目录，mark为水印
     def ToGame(self,GameDir,path,OutputPath,mark:str=False):
         self.InputFromeXlsx(path)
+        jsonpath=path.rstrip('\\')+'\\trans.json'
+        if os.path.exists(jsonpath):
+            print('########################正在导入trans.json########################')
+            self.InputFromJson(path=jsonpath)
+        replacepath = path.rstrip('\\') + '\\replace.json'
+        if os.path.exists(replacepath):
+            print('########################正在应用替换字典########################')
+            with open(replacepath, 'r', encoding='utf8') as f:
+                replacedict = json.load(f)
+            for key in replacedict.keys():
+                print(f'{key}--->{replacedict[key]}')
+                self.Replace(key,replacedict[key])
         self.dnb(GameDir)
         self.DNoteB()
         if self.line_length and self.line_length!=-1:
