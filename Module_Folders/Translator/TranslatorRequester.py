@@ -146,10 +146,7 @@ class TranslatorRequester(Base):
             # 提取回复的文本内容
             response_content = response.choices[0].message.content
         except Exception as e:
-            if self.is_debug():
-                self.error("翻译任务错误 ...", e)
-            else:
-                self.error(f"翻译任务错误 ... {e}", None)
+            self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None
 
         # 获取指令消耗
@@ -209,10 +206,7 @@ class TranslatorRequester(Base):
             # 提取回复的文本内容
             response_content = response.message.content[0].text
         except Exception as e:
-            if self.is_debug():
-                self.error("翻译任务错误 ...", e)
-            else:
-                self.error(f"翻译任务错误 ... {e}", None)
+            self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None
 
         # 获取指令消耗
@@ -273,10 +267,7 @@ class TranslatorRequester(Base):
             )
             response_content = response.text
         except Exception as e:
-            if self.is_debug():
-                self.error("翻译任务错误 ...", e)
-            else:
-                self.error(f"翻译任务错误 ... {e}", None)
+            self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None
 
         # 获取指令消耗
@@ -327,10 +318,7 @@ class TranslatorRequester(Base):
             # 提取回复的文本内容
             response_content = response.content[0].text
         except Exception as e:
-            if self.is_debug():
-                self.error("翻译任务错误 ...", e)
-            else:
-                self.error(f"翻译任务错误 ... {e}", None)
+            self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None
 
         # 获取指令消耗
@@ -398,10 +386,7 @@ class TranslatorRequester(Base):
                 response_think = "无内容"
 
         except Exception as e:
-            if self.is_debug():
-                self.error("翻译任务错误 ...", e)
-            else:
-                self.error(f"翻译任务错误 ... {e}", None)
+            self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None
 
         # 获取指令消耗
@@ -456,10 +441,7 @@ class TranslatorRequester(Base):
             response_content = response.choices[0].message.content
 
         except Exception as e:
-            if self.is_debug():
-                self.error("翻译任务错误 ...", e)
-            else:
-                self.error(f"翻译任务错误 ... {e}", None)
+            self.error(f"翻译任务错误 ... {e}", None)
             return True, None, None, None
 
         # 获取指令消耗
