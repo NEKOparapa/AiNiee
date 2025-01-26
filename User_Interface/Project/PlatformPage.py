@@ -172,7 +172,7 @@ class PlatformPage(QFrame, Base):
                     platform[k] = v
 
                 # 如果字段不属于用户自定义字段，且不在保护字段范围内，则使用预设数据更新该字段的值
-                if k not in self.CUSTOM.get("key_in_settings", []) and k not in ("tag", "name", "group"):
+                if k not in self.CUSTOM.get("key_in_settings", []) and k not in ("tag", "name", "group", "model_datas"):
                     platform[k] = v
 
         # 汇总数据并更新配置数据中的接口信息
