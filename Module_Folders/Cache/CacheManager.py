@@ -95,7 +95,8 @@ class CacheManager(Base):
         path = f"{output_path}/cache/AinieeCacheData.json"
         with self.file_lock:
             if not os.path.isfile(path):
-                self.debug("从文件读取缓存数据失败 ...", Exception(f"{path} 文件不存在"))
+                #self.debug("检查输出文件夹，无历史缓存文件.....,")
+                pass
             else:
                 try:
                     with open(path, "r", encoding = "utf-8") as reader:
@@ -103,7 +104,7 @@ class CacheManager(Base):
                         self.project = CacheProject(data[0])
                         self.items = [CacheItem(item) for item in data[1:]]
                 except Exception as e:
-                    self.debug("从文件读取缓存数据失败 ...", e)
+                    self.debug("从历史缓存文件读取数据出现问题 ...", e)
 
     # 生成列表（兼容旧版接口）
     def to_list(self, items: list[CacheItem] = None) -> list[CacheItem]:
