@@ -66,9 +66,9 @@ class TranslatorTask(Base):
         SPACE_PATTERN + r'class=".*?">(?!<)' + SPACE_PATTERN,                         # class="toc1"><a href="18_Chapter08.html">正文</a>或者class="toc1">>正文， epub小说的跳转目录
         SPACE_PATTERN + r"</a>" + SPACE_PATTERN,                                      # 是以“class=”开头，中间任意内容，然后以“">”结束，“">”尽可能后面，且不是跟着<。
 
-        SPACE_PATTERN + r"\\SE\[.{0,15}?\]" + SPACE_PATTERN,                          # se控制代码    
+        SPACE_PATTERN + r"\\SE\[.{0,15}?\]" + SPACE_PATTERN,                          # se控制代码
 
-        SPACE_PATTERN + r'【\\[A-Za-z]+\[[^]]*】\\SE\[[^]]*\]'+ SPACE_PATTERN,        #【\N[1]】\SE[xxx]    
+        SPACE_PATTERN + r'【\\[A-Za-z]+\[[^]]*】\\SE\[[^]]*\]'+ SPACE_PATTERN,        #【\N[1]】\SE[xxx]
     )
 
     def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager, request_limiter: Request_Limiter) -> None:
@@ -139,6 +139,13 @@ class TranslatorTask(Base):
             self.config.source_language
         )
 
+        # 调试信息
+        if self.is_debug():
+            if response_str != "":
+                self.extra_log.append("模型回复内容：\n"  + response_str)
+            if response_think != "":
+                self.extra_log.append("模型思考内容：\n"  + response_think)
+
         # 检查译文
         retry_flag = False
         if check_result == False:
@@ -153,17 +160,10 @@ class TranslatorTask(Base):
                 error = f"译文文本未通过检查，将在下一轮次的翻译中重新翻译 - {error_content}"
 
             # 打印任务结果
-            if self.config.switch_debug_mode:
-                response_think_log = "[AI思考过程]\n"  + response_think
-                response_str_log = "[AI回复内容]\n"  + response_str
-
-                self.extra_log.append(response_think_log)
-                self.extra_log.append(response_str_log)
-
             self.print(
                 self.generate_log_table(
                     *self.generate_log_rows(
-                        "",
+                        error,
                         task_start_time,
                         prompt_tokens,
                         completion_tokens,
@@ -173,7 +173,6 @@ class TranslatorTask(Base):
                     )
                 )
             )
-
         else:
             # 各种还原步骤
             # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
@@ -187,13 +186,6 @@ class TranslatorTask(Base):
                 item.set_translation_status(CacheItem.STATUS.TRANSLATED)
 
             # 打印任务结果
-            if self.config.switch_debug_mode:
-                response_think_log = "[AI思考过程]\n"  + response_think
-                response_str_log = "[AI回复内容]\n"  + response_str
-
-                self.extra_log.append(response_think_log)
-                self.extra_log.append(response_str_log)
-
             self.print(
                 self.generate_log_table(
                     *self.generate_log_rows(
@@ -207,9 +199,6 @@ class TranslatorTask(Base):
                     )
                 )
             )
-
-
-
 
         # 当重试标识为 True 时，重新发起请求
         # 否则返回译文检查的结果

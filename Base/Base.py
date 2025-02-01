@@ -58,16 +58,30 @@ class Base():
         # 类变量
         Base.work_status = Base.STATUS.IDLE if not hasattr(Base, "work_status") else Base.work_status
 
+    # 检查是否处于调试模式
+    def is_debug(self) -> bool:
+        if getattr(Base, "_is_debug", None) == None:
+            Base._is_debug = os.path.isfile("./debug.txt")
+
+        return Base._is_debug
+
+    # 重置调试模式检查状态
+    def reset_debug(self) -> None:
+        Base._is_debug = None
+
     # PRINT
     def print(self, msg: str) -> None:
         print(msg)
 
     # DEBUG
     def debug(self, msg: str, e: Exception = None) -> None:
-            if e == None:
-                print(f"[[yellow]DEBUG[/]] {msg}")
-            else:
-                print(f"[[yellow]DEBUG[/]] {msg}\n{e}\n{("".join(traceback.format_exception(None, e, e.__traceback__))).strip()}")
+        if self.is_debug() == False:
+            return None
+
+        if e == None:
+            print(f"[[yellow]DEBUG[/]] {msg}")
+        else:
+            print(f"[[yellow]DEBUG[/]] {msg}\n{e}\n{("".join(traceback.format_exception(None, e, e.__traceback__))).strip()}")
 
     # INFO
     def info(self, msg: str) -> None:
@@ -201,4 +215,3 @@ class Base():
     # 取消订阅事件
     def unsubscribe(self, event: int, hanlder: callable) -> None:
         EventManager.get_singleton().unsubscribe(event, hanlder)
-

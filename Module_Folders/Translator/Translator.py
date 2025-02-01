@@ -371,4 +371,4 @@ class Translator(Base):
             # 触发翻译进度更新事件
             self.emit(Base.EVENT.TRANSLATION_UPDATE, self.data)
         except Exception as e:
-                self.error(f"翻译任务错误 ... {e}", None)
+            self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)

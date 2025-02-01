@@ -146,7 +146,7 @@ class TranslatorRequester(Base):
             # 提取回复的文本内容
             response_content = response.choices[0].message.content
         except Exception as e:
-            self.error(f"翻译任务错误 ... {e}", None)
+            self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
             return True, None, None, None
 
         # 获取指令消耗
@@ -206,7 +206,7 @@ class TranslatorRequester(Base):
             # 提取回复的文本内容
             response_content = response.message.content[0].text
         except Exception as e:
-            self.error(f"翻译任务错误 ... {e}", None)
+            self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
             return True, None, None, None
 
         # 获取指令消耗
@@ -267,7 +267,7 @@ class TranslatorRequester(Base):
             )
             response_content = response.text
         except Exception as e:
-            self.error(f"翻译任务错误 ... {e}", None)
+            self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
             return True, None, None, None
 
         # 获取指令消耗
@@ -318,7 +318,7 @@ class TranslatorRequester(Base):
             # 提取回复的文本内容
             response_content = response.content[0].text
         except Exception as e:
-            self.error(f"翻译任务错误 ... {e}", None)
+            self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
             return True, None, None, None
 
         # 获取指令消耗
@@ -386,7 +386,7 @@ class TranslatorRequester(Base):
                 response_think = "无内容"
 
         except Exception as e:
-            self.error(f"翻译任务错误 ... {e}", None)
+            self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
             return True, None, None, None
 
         # 获取指令消耗
@@ -400,7 +400,6 @@ class TranslatorRequester(Base):
             completion_tokens = int(response.usage.completion_tokens)
         except Exception:
             completion_tokens = 0
-
 
         # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
         response_content_dict = {"0":response_content}
@@ -416,7 +415,6 @@ class TranslatorRequester(Base):
         response_content = response_content_dict["0"]
 
         return False, response_content, prompt_tokens, completion_tokens, response_think
-    
 
     # 发起请求
     def request_openai(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty) -> tuple[bool, str, int, int]:
@@ -439,9 +437,8 @@ class TranslatorRequester(Base):
 
             # 提取回复的文本内容
             response_content = response.choices[0].message.content
-
         except Exception as e:
-            self.error(f"翻译任务错误 ... {e}", None)
+            self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
             return True, None, None, None
 
         # 获取指令消耗
@@ -455,7 +452,6 @@ class TranslatorRequester(Base):
             completion_tokens = int(response.usage.completion_tokens)
         except Exception:
             completion_tokens = 0
-
 
         # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
         response_content_dict = {"0":response_content}
