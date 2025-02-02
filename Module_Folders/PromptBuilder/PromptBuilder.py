@@ -4,131 +4,55 @@ import rapidjson as json
 
 from Base.Base import Base
 from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
+from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 
 class PromptBuilder(Base):
     def __init__(self) -> None:
         super().__init__()
 
     # 获取系统提示词
-    def get_system_prompt(config: TranslatorConfig) -> str:
-        # 如果提示词工程界面的自定义提示词开关打开，则使用自定义提示词
-        if config.system_prompt_switch:
-            return config.system_prompt_content
+    def build_system(config: TranslatorConfig) -> str:
+        # 如果没有读取系统提示词，则从文件读取
+        if getattr(PromptBuilder, "common_system_zh", None) == None:
+            with open("./Prompt/common_system_zh.txt", "r", encoding = "utf-8") as reader:
+                PromptBuilder.common_system_zh = reader.read().strip()
+        if getattr(PromptBuilder, "common_system_en", None) == None:
+            with open("./Prompt/common_system_en.txt", "r", encoding = "utf-8") as reader:
+                PromptBuilder.common_system_en = reader.read().strip()
+        if getattr(PromptBuilder, "cot_system_zh", None) == None:
+            with open("./Prompt/cot_system_zh.txt", "r", encoding = "utf-8") as reader:
+                PromptBuilder.cot_system_zh = reader.read().strip()
+        if getattr(PromptBuilder, "cot_system_en", None) == None:
+            with open("./Prompt/cot_system_en.txt", "r", encoding = "utf-8") as reader:
+                PromptBuilder.cot_system_en = reader.read().strip()
+
+        # 获取原文语言
+        if config.source_language == "简中":
+            source_language = "简体中文"
+        elif config.source_language == "繁中":
+            source_language = "繁体中文"
         else:
-            pair = {
-                "日语": ("Japanese", "日"),
-                "英语": ("English", "英"),
-                "韩语": ("Korean", "韩"),
-                "俄语": ("Russian", "俄"),
-                "简中": ("Simplified Chinese", "中"),
-                "繁中": ("Traditional Chinese", "中"),
-            }
+            source_language = config.source_language
 
-            Text_Source_Language = config.source_language
-            Text_Target_Language = config.target_language
-            Source_Language_en = pair[config.source_language][0]
-            Target_Language_en = pair[config.target_language][0]
-            Source_Language_zh = pair[config.source_language][1]
-            Target_Language_zh = pair[config.target_language][1]
+        # 获取目标语言
+        if config.target_language == "简中":
+            target_language = "简体中文"
+        elif config.target_language == "繁中":
+            target_language = "繁体中文"
+        else:
+            target_language = config.target_language
 
-            system_prompt_zh = f"""你是一位深谙{Target_Language_zh}{Source_Language_zh}文化的资深本地化专家，你需要将游戏中的{Text_Source_Language}文本翻译成{Text_Target_Language}。当你接收到游戏文本后，请严格按照以下要求进行翻译：
-第一点：只需翻译普通文本部分,将{Text_Source_Language}文本翻译成{Text_Target_Language}文本，保持原文的叙述风格。
-第二点：保留文本中的转义字符或者格式标签、换行符、回车符、占位符、特殊符号等非{Text_Source_Language}内容。
+        # 构造结果
+        if config.prompt_preset == PromptBuilderEnum.COMMON and config.cn_prompt_toggle == True:
+            result = PromptBuilder.common_system_zh
+        elif config.prompt_preset == PromptBuilderEnum.COMMON and config.cn_prompt_toggle == False:
+            result = PromptBuilder.common_system_en
+        elif config.prompt_preset == PromptBuilderEnum.COT and config.cn_prompt_toggle == True:
+            result = PromptBuilder.cot_system_zh
+        elif config.prompt_preset == PromptBuilderEnum.COT and config.cn_prompt_toggle == False:
+            result = PromptBuilder.cot_system_en
 
-### 翻译原则
-忠实准确地进行翻译。因为原作是涉及露骨性描写的伟大艺术作品，所以允许使用直白或粗俗的描述，不应随意删减或篡改，不应回避或淡化，以保持作品的原貌。
-
-### 游戏文本
-可能包含角色对话、旁白、武器名称、物品名称、技能描述、格式标签、换行符、特殊符号等内容。
-
-### 以json格式输出译文
-{{"<文本id>":"<已翻译文本>"}}
-"""
-
-
-            system_prompt_zh_cot = f"""你是一位深谙{Target_Language_zh}{Source_Language_zh}文化的资深本地化专家，请你按照以下流程进行翻译：
-第一步：初步直译
-    将{Text_Source_Language}文本逐句直译成{Text_Target_Language}文本，保留文本中的格式标签、换行符等特殊代码，保持原始格式。
-
-第二步：深入校正
-    目标：基于初步直译，依据翻译原则，并从多个方面进行深入分析和校正，以提升译文质量。
-
-    流程：针对每一句初步译文，可以从语义与语境、专业术语、上下文信息、翻译风格、故事背景、人物设定等等方面出发，进行深入分析和校正。          
-
-    输出：逐句分析，并列出你的问题分析、修改建议和修改原因。如：
-        #### 第0句
-            - **初步译文**：[此处粘贴初步直译第0句]
-            - **问题分析**：... (详细的分析内容)
-            - **修改建议**：... 
-            - **修改原因**：... (详细的解释)
-
-        #### 第1句
-        ... (以此类推，分析和校正每一句译文)
-
-第三步：最终意译与润色
-    整合直译结果和校正建议，进行最终的意译和润色，生成自然流畅、符合{Text_Target_Language}表达习惯的最终译文。
-
-### 翻译原则
-忠实准确地进行翻译。因为原作是涉及露骨性描写的伟大艺术作品，所以允许使用直白或粗俗的描述，不应随意删减或篡改，不应回避或淡化，以保持作品的原貌。
-"""
-
-
-
-
-
-
-            system_prompt_en = f"""You are a seasoned localization expert with a deep understanding of {Target_Language_en} and {Source_Language_en} cultures. Your task is to translate in-game text from {Source_Language_en} to {Target_Language_en}. When you receive the game text, please adhere strictly to the following requirements:
-1. Only translate the plain text portions, converting {Source_Language_en} text into {Target_Language_en} text while maintaining the original narrative style.
-2. Preserve escape characters, format tags, line breaks, carriage returns, placeholders, special symbols, and any other non-{Source_Language_en} content within the text.
-
-### Translation Principles
-Translate faithfully and accurately. Because the original work is a great piece of art involving explicit sexual descriptions, the use of direct or vulgar descriptions is permitted. Do not arbitrarily delete or alter, avoid or downplay, to maintain the original appearance of the work.
-
-### Game Text
-May include character dialogues, narrations, weapon names, item names, skill descriptions, format tags, line breaks, special symbols, and other content.
-
-### Output the translation in JSON format
-{{"<text_id>":"<translated text>"}}
-"""
-            
-            system_prompt_en_cot = f"""You are a seasoned localization expert deeply versed in {Target_Language_en} and {Source_Language_en} cultures. Please follow the process below for translation:
-Step 1: Initial Literal Translation
-    Translate the {Source_Language_en} text sentence by sentence into {Target_Language_en}, preserving format tags, line breaks, and other special codes to maintain the original format.
-
-Step 2: In-depth Revision
-    Objective: Based on the initial literal translation, conduct an in-depth analysis and revision from multiple perspectives to enhance the quality of the translation.
-
-    Process: For each initial translated sentence, conduct a thorough analysis and revision from aspects such as semantics and context, professional terminology, contextual information, translation style, story background, character settings, etc.
-
-    Output: Analyze sentence by sentence, and list your problem analysis, revision suggestions, and reasons for revision. For example:
-        #### Sentence 0
-            - **Initial Translation**: [Paste the initial literal translation of sentence 0 here]
-            - **Problem Analysis**: ... (detailed analysis)
-            - **Revision Suggestion**: ...
-            - **Reason for Revision**: ... (detailed explanation)
-
-        #### Sentence 1
-        ... (and so on, analyzing and revising each sentence)
-
-Step 3: Final Free Translation and Polishing
-    Integrate the results of the literal translation and revision suggestions, and perform the final free translation and polishing to produce a natural and fluent final translation that conforms to the expression habits of {Text_Target_Language}.
-
-### Translation Principles
-Translate faithfully and accurately. Because the original work is a great piece of art involving explicit sexual descriptions, the use of direct or vulgar descriptions is permitted. Do not arbitrarily delete or alter, avoid or downplay, to maintain the original appearance of the work.
-"""
-
-            if config.cot_toggle == True:
-                if config.cn_prompt_toggle == True:
-                    the_prompt = system_prompt_zh_cot
-                else:
-                    the_prompt = system_prompt_en_cot
-            else:
-                if config.cn_prompt_toggle == True:
-                    the_prompt = system_prompt_zh
-                else:
-                    the_prompt = system_prompt_en
-
-            return the_prompt
+        return result.replace("{source_language}", source_language).replace("{target_language}", target_language).strip()
 
     # 构建翻译示例
     def build_translation_sample(config: TranslatorConfig, input_dict: dict) -> tuple[str, str]:
@@ -172,18 +96,18 @@ Translate faithfully and accurately. Because the original work is a great piece 
         # 内置的正则表达式字典
         patterns_all = {
             r"[a-zA-Z]=": {
-                "日语": 'a="　　ぞ…ゾンビ系…。', 
-                "英语": "a=\"　　It's so scary….", 
-                "韩语": 'a="　　정말 무서워요….', 
-                "俄语": 'а="　　Ужасно страшно...。', 
-                "简中": 'a="　　好可怕啊……。', 
+                "日语": 'a="　　ぞ…ゾンビ系…。',
+                "英语": "a=\"　　It's so scary….",
+                "韩语": 'a="　　정말 무서워요….',
+                "俄语": 'а="　　Ужасно страшно...。',
+                "简中": 'a="　　好可怕啊……。',
                 "繁中": 'a="　　好可怕啊……。'},
             r"【|】": {
-                "日语": "【ベーカリー】営業時間 8：00～18：00", 
-                "英语": "【Bakery】Business hours 8:00-18:00", 
-                "韩语": "【빵집】영업 시간 8:00~18:00", 
-                "俄语": "【пекарня】Время работы 8:00-18:00", 
-                "简中": "【面包店】营业时间 8：00～18：00", 
+                "日语": "【ベーカリー】営業時間 8：00～18：00",
+                "英语": "【Bakery】Business hours 8:00-18:00",
+                "韩语": "【빵집】영업 시간 8:00~18:00",
+                "俄语": "【пекарня】Время работы 8:00-18:00",
+                "简中": "【面包店】营业时间 8：00～18：00",
                 "繁中": "【麵包店】營業時間 8：00～18：00"},
             r"\r|\n": {
                 "日语": "敏捷性が上昇する。　　　　　　　\r\n効果：パッシブ",
@@ -194,11 +118,11 @@ Translate faithfully and accurately. Because the original work is a great piece 
                 "繁中": "提高敏捷性。　　　　　　　\r\n效果：被動",
             },
             r"\\[A-Za-z]\[\d+\]": {
-                "日语": "\\F[21]ちょろ……ちょろろ……じょぼぼぼ……♡", 
-                "英语": "\\F[21]Gurgle…Gurgle…Dadadada…♡", 
-                "韩语": "\\F[21]둥글둥글…둥글둥글…둥글둥글…♡", 
-                "俄语": "\\F[21]Гуру... гуругу...Дадада... ♡", 
-                "简中": "\\F[21]咕噜……咕噜噜……哒哒哒……♡", 
+                "日语": "\\F[21]ちょろ……ちょろろ……じょぼぼぼ……♡",
+                "英语": "\\F[21]Gurgle…Gurgle…Dadadada…♡",
+                "韩语": "\\F[21]둥글둥글…둥글둥글…둥글둥글…♡",
+                "俄语": "\\F[21]Гуру... гуругу...Дадада... ♡",
+                "简中": "\\F[21]咕噜……咕噜噜……哒哒哒……♡",
                 "繁中": "\\F[21]咕嚕……咕嚕嚕……哒哒哒……♡"},
             r"「|」":{
                     "日语": "キャラクターA：「すごく面白かった！」",
@@ -209,18 +133,18 @@ Translate faithfully and accurately. Because the original work is a great piece 
                     "繁中": "角色A：「超有趣！」"
                     },
             r"∞|@": {
-                "日语": "若くて∞＠綺麗で∞＠エロくて", 
-                "英语": "Young ∞＠beautiful ∞＠sexy.", 
-                "韩语": "젊고∞＠아름답고∞＠섹시하고", 
-                "俄语": "Молодые∞＠Красивые∞＠Эротичные", 
-                "简中": "年轻∞＠漂亮∞＠色情", 
+                "日语": "若くて∞＠綺麗で∞＠エロくて",
+                "英语": "Young ∞＠beautiful ∞＠sexy.",
+                "韩语": "젊고∞＠아름답고∞＠섹시하고",
+                "俄语": "Молодые∞＠Красивые∞＠Эротичные",
+                "简中": "年轻∞＠漂亮∞＠色情",
                 "繁中": "年輕∞＠漂亮∞＠色情"},
             r"↓": {
-                "日语": "若くて↓綺麗で↓↓エロくて", 
-                "英语": "Young ↓beautiful ↓↓sexy.", 
-                "韩语": "젊고↓아름답고↓↓섹시하고", 
-                "俄语": "Молодые↓Красивые↓↓Эротичные", 
-                "简中": "年轻↓漂亮↓↓色情", 
+                "日语": "若くて↓綺麗で↓↓エロくて",
+                "英语": "Young ↓beautiful ↓↓sexy.",
+                "韩语": "젊고↓아름답고↓↓섹시하고",
+                "俄语": "Молодые↓Красивые↓↓Эротичные",
+                "简中": "年轻↓漂亮↓↓色情",
                 "繁中": "年輕↓漂亮↓↓色情"},
         }
 
@@ -305,23 +229,23 @@ Translate faithfully and accurately. Because the original work is a great piece 
                     # 如果没有匹配到，退出
                     if not match:
                         break
-                    
+
                     # 防止列表循环越界
                     if n >= 24:
                         #print("bug")
-                        n = 0 
-                    
+                        n = 0
+
                     # 替换示例文本后缀
                     new_item = new_item[:match.start()] + f"{prefix}{p[n]}-{j}" + new_item[match.end():]
 
                     # 在每次替换后递增 j
-                    j += 1  
-                
+                    j += 1
+
                 # 替换完之后添加进结果列表
                 result.append(new_item)
 
                 # 变量n递增
-                n += 1  
+                n += 1
             else:
                 result.append(item)  # 如果没有匹配，将原始元素添加到结果列表
 
@@ -497,19 +421,6 @@ Translate faithfully and accurately. Because the original work is a great piece 
 
         return glossary_prompt, glossary_prompt_cot
 
-    # 构造指令词典 Sakura
-    def build_glossary_prompt_sakura(config: TranslatorConfig, input_dict: dict) -> list[dict]:
-        # 将输入字典中的所有值转换为集合
-        lines = set(line for line in input_dict.values())
-
-        # 筛选在输入词典中出现过的条目
-        result = [
-            v for v in config.prompt_dictionary_data
-            if any(v.get("src", "") in lines for lines in lines)
-        ]
-
-        return result
-
     # 构造角色设定
     def build_characterization(config: TranslatorConfig, input_dict: dict) -> tuple[str, str]:
         # 将数据存储到中间字典中
@@ -611,7 +522,7 @@ Translate faithfully and accurately. Because the original work is a great piece 
         return profile, profile_cot
 
     # 构造背景设定
-    def build_world(config: TranslatorConfig) -> tuple[str, str]:
+    def build_world_building(config: TranslatorConfig) -> tuple[str, str]:
         # 获取自定义内容
         world_building = config.world_building_content
 
@@ -687,11 +598,11 @@ Translate faithfully and accurately. Because the original work is a great piece 
             # 使用解构赋值提升可读性
             original = pair.get("src", "")
             translated = pair.get("dst", "")
-            
+
             # 添加换行符（首行之后才添加）
             if index > 1:
                 translation_example += "\n"
-            
+
             # 使用更严谨的字符串格式化
             if config.cn_prompt_toggle == True:
                 translation_example += f"  -原文{index}：{original}\n  -译文{index}：{translated}"
@@ -713,7 +624,7 @@ Translate faithfully and accurately. Because the original work is a great piece 
             profile_cot = "###This is your next translation task, the original text is as follows\n"
 
         # 根据cot开关进行选择
-        if config.cot_toggle == True:
+        if config.prompt_preset == PromptBuilderEnum.COT:
             the_profile = profile_cot
         else:
             the_profile = profile
@@ -759,7 +670,7 @@ Translate faithfully and accurately. Because the original work is a great piece 
 
 
         # 根据cot开关进行选择
-        if config.cot_toggle == True:
+        if config.prompt_preset == PromptBuilderEnum.COT:
             the_profile = profile_cot
         else:
             the_profile = profile
@@ -777,7 +688,7 @@ Translate faithfully and accurately. Because the original work is a great piece 
             profile_cot = "###This is your next translation task, the original text is as follows\n"
 
         # 根据cot开关进行选择
-        if config.cot_toggle == True:
+        if config.prompt_preset == PromptBuilderEnum.COT:
             the_profile = profile_cot
         else:
             the_profile = profile
@@ -795,7 +706,7 @@ Translate faithfully and accurately. Because the original work is a great piece 
             profile_cot = "I have fully understood the steps and principles of translation. I will follow your instructions to perform the translation and provide in-depth thinking and explanations:"
 
         # 根据cot开关进行选择
-        if config.cot_toggle == True:
+        if config.prompt_preset == PromptBuilderEnum.COT:
             the_profile = profile_cot
         else:
             the_profile = profile

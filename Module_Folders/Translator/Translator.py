@@ -7,11 +7,13 @@ from tqdm import tqdm
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
-from Module_Folders.PromptBuilder.PromptBuild import PromptBuilder
 from Module_Folders.Cache.CacheItem import CacheItem
 from Module_Folders.Cache.CacheManager import CacheManager
 from Module_Folders.Translator.TranslatorTask import TranslatorTask
 from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
+from Module_Folders.PromptBuilder.PromptBuilder import PromptBuilder
+from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from Module_Folders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
 from Module_Folders.File_Reader.File1 import File_Reader
 from Module_Folders.File_Outputer.File2 import File_Outputter
 from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
@@ -186,11 +188,6 @@ class Translator(Base):
             # 获取 待翻译 状态的条目数量
             item_count_status_untranslated = self.cache_manager.get_item_count_by_status(CacheItem.STATUS.UNTRANSLATED)
 
-            # 生成混合翻译参数
-            split, model = True, None
-            if self.config.mix_translation_enable == True:
-                split, model, self.config.target_platform = self.generate_mix_translation_params(current_round)
-
             # 判断是否需要继续翻译
             if item_count_status_untranslated == 0:
                 self.print("")
@@ -210,18 +207,17 @@ class Translator(Base):
                 self.data["total_line"] = item_count_status_untranslated
 
             # 第二轮开始对半切分
-            if current_round > 0 and split == True:
+            if current_round > 0:
                 self.config.lines_limit = max(1, int(self.config.lines_limit / 2))
                 self.config.tokens_limit = max(1, int(self.config.tokens_limit / 2))
 
             # 配置翻译平台信息
-            self.config.prepare_for_translation(model)
+            self.config.prepare_for_translation()
 
             # 配置请求限制器，依赖前面的配置信息
             self.request_limiter.set_limit(self.config.max_tokens, self.config.tpm_limit, self.config.rpm_limit)
 
             # 生成缓存数据条目片段
-            t = time.time()
             chunks, previous_chunks = self.cache_manager.generate_item_chunks(
                 "line" if self.config.tokens_limit_switch == False else "token",
                 self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
@@ -237,7 +233,8 @@ class Translator(Base):
                 task.set_previous_items(previous_chunk)
                 task.prepare(
                     self.config.target_platform,
-                    self.config.platforms.get(self.config.target_platform).get("api_format")
+                    self.config.platforms.get(self.config.target_platform).get("api_format"),
+                    self.config.prompt_preset,
                 )
                 tasks.append(task)
             self.print("")
@@ -258,8 +255,17 @@ class Translator(Base):
             self.info(f"生效中的 RPM 限额 - {self.config.rpm_limit}")
             self.info(f"生效中的 TPM 限额 - {self.config.tpm_limit}")
             self.info(f"生效中的 MAX_TOKENS 限额 - {self.config.max_tokens}")
+
+            # 根据提示词规则打印基础指令
+            system = ""
+            if self.config.system_prompt_switch == True:
+                system = self.config.system_prompt_content
+            elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
+                system = PromptBuilder.build_system(self.config)
+            elif self.config.prompt_preset in (PromptBuilderEnum.THINK,):
+                system = PromptBuilderThink.build_system(self.config)
             self.print("")
-            self.info(f"本次任务使用以下基础指令：\n{PromptBuilder.get_system_prompt(self.config)}\n") if self.config.target_platform != "sakura" else None
+            self.info(f"本次任务使用以下基础指令：\n{system}\n") if self.config.target_platform != "sakura" else None
             self.info(f"即将开始执行翻译任务，预计任务总数为 {len(tasks)}, 同时执行的任务数量为 {self.config.actual_thread_counts}，请注意保持网络通畅 ...")
             self.print("")
 
@@ -301,26 +307,6 @@ class Translator(Base):
         # 触发翻译停止完成的事件
         self.emit(Base.EVENT.TRANSLATION_STOP_DONE, {})
         self.plugin_manager.broadcast_event("translation_completed", self.config, None)
-
-    # 生成混合翻译参数
-    def generate_mix_translation_params(self, current_round: int) -> tuple[bool, str, str]:
-        split = True
-        model = None
-
-        if current_round == 0:
-            target_platform = self.config.mix_translation_settings.get("translation_platform_1")
-        elif current_round == 1:
-            split = self.config.mix_translation_settings.get("split_switch_2")
-            target_platform = self.config.mix_translation_settings.get("translation_platform_2")
-            if self.config.mix_translation_settings.get("model_type_2") != "":
-                model = self.config.mix_translation_settings.get("model_type_2")
-        elif current_round >= 2:
-            split = self.config.mix_translation_settings.get("split_switch_3")
-            target_platform = self.config.mix_translation_settings.get("translation_platform_3")
-            if self.config.mix_translation_settings.get("model_type_3") != "":
-                model = self.config.mix_translation_settings.get("model_type_3")
-
-        return split, model, target_platform
 
     # 执行简繁转换
     def convert_simplified_and_traditional(self, preset: str, cache_list: list[dict]) -> list[dict]:
@@ -371,4 +357,4 @@ class Translator(Base):
             # 触发翻译进度更新事件
             self.emit(Base.EVENT.TRANSLATION_UPDATE, self.data)
         except Exception as e:
-                self.error(f"翻译任务错误 ... {e}", None)
+            self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)

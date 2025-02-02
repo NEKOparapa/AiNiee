@@ -23,7 +23,6 @@ from User_Interface.Project.TranslationPage import TranslationPage
 from User_Interface.Setting.BasicSettingsPage import BasicSettingsPage
 from User_Interface.Setting.AdvanceSettingsPage import AdvanceSettingsPage
 from User_Interface.Setting.PluginsSettingsPage import PluginsSettingsPage
-from User_Interface.Setting.MixTranslationSettingsPage import MixTranslationSettingsPage
 from User_Interface.Quality.TextReplaceAPage import TextReplaceAPage
 from User_Interface.Quality.TextReplaceBPage import TextReplaceBPage
 from User_Interface.Quality.PromptDictionaryPage import PromptDictionaryPage
@@ -56,6 +55,9 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         # 载入并保存默认配置
         config = self.save_config(self.load_config_from_default())
 
+        # 打印日志
+        if self.is_debug():
+            self.warning("调试模式已启用 ...")
 
         # 设置主题颜色
         setThemeColor(self.THEME_COLOR)
@@ -174,8 +176,6 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.addSubInterface(self.advance_settings_page, FluentIcon.ALBUM, "高级设置", NavigationItemPosition.SCROLL)
         self.plugins_settings_page = PluginsSettingsPage("plugins_settings_page", self, plugin_manager)
         self.addSubInterface(self.plugins_settings_page, FluentIcon.COMMAND_PROMPT, "插件设置", NavigationItemPosition.SCROLL)
-        self.mix_translation_settings_page = MixTranslationSettingsPage("mix_translation_settings_page", self)
-        self.addSubInterface(self.mix_translation_settings_page, FluentIcon.EMOJI_TAB_SYMBOLS, "混合翻译设置", NavigationItemPosition.SCROLL)
 
     # 添加第三节
     def add_quality_pages(self, plugin_manager: PluginManager) -> None:

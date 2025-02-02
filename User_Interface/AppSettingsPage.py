@@ -23,7 +23,7 @@ from Widget.SwitchButtonCard import SwitchButtonCard
 
 class AppSettingsPage(QWidget, Base):
 
-    def __init__(self, text: str, window):
+    def __init__(self, text: str, window) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
@@ -59,7 +59,7 @@ class AppSettingsPage(QWidget, Base):
         # 添加控件
         self.add_widget_proxy(self.vbox, config)
         self.add_widget_font_hinting(self.vbox, config)
-        self.add_switch_debug_mode(self.vbox, config)
+        self.add_widget_debug_mode(self.vbox, config)
         self.add_widget_scale_factor(self.vbox, config)
         self.add_widget_app_profile(self.vbox, config, window)
 
@@ -67,16 +67,16 @@ class AppSettingsPage(QWidget, Base):
         self.vbox.addStretch(1)
 
     # 网络代理地址
-    def add_widget_proxy(self, parent, config):
+    def add_widget_proxy(self, parent, config) -> None:
 
-        def checked_changed(swicth_button, checked: bool):
+        def checked_changed(swicth_button, checked: bool) -> None:
             swicth_button.setChecked(checked)
 
             config = self.load_config()
             config["proxy_enable"] = checked
             self.save_config(config)
 
-        def init(widget):
+        def init(widget) -> None:
             widget.set_text(config.get("proxy_url"))
             widget.set_fixed_width(256)
             widget.set_placeholder_text("请输入网络代理地址 ...")
@@ -89,7 +89,7 @@ class AppSettingsPage(QWidget, Base):
             widget.add_spacing(8)
             widget.add_widget(swicth_button)
 
-        def text_changed(widget, text: str):
+        def text_changed(widget, text: str) -> None:
             config = self.load_config()
             config["proxy_url"] = text.strip()
             self.save_config(config)
@@ -104,11 +104,11 @@ class AppSettingsPage(QWidget, Base):
         )
 
     # 应用字体优化
-    def add_widget_font_hinting(self, parent, config):
-        def init(widget):
+    def add_widget_font_hinting(self, parent, config) -> None:
+        def init(widget) -> None:
             widget.set_checked(config.get("font_hinting"))
 
-        def checked_changed(widget, checked: bool):
+        def checked_changed(widget, checked: bool) -> None:
             config = self.load_config()
             config["font_hinting"] = checked
             self.save_config(config)
@@ -122,42 +122,35 @@ class AppSettingsPage(QWidget, Base):
             )
         )
 
-    # 调整模式开关
-    def add_switch_debug_mode(self, parent, config):
-        def init(widget):
-            # 如果配置文件有该字段，且为真
-            if config.get("switch_debug_mode"):
-                switch_value = True
-            
-            # 如果配置文件没有该字段，或者该字段为假，则重新写入
+    # 调整模式
+    def add_widget_debug_mode(self, parent, config) -> None:
+        def init(widget) -> None:
+            widget.set_checked(os.path.isfile("./debug.txt"))
+
+        def checked_changed(widget, checked: bool) -> None:
+            if checked == True:
+                open("./debug.txt", "w").close()
             else:
-                switch_value = False
-                config["switch_debug_mode"] = switch_value
-                self.save_config(config)
+                os.remove("./debug.txt") if os.path.isfile("./debug.txt") else None
 
-            widget.set_checked(switch_value)
-
-        def checked_changed(widget, checked: bool):
-            config = self.load_config()
-            config["switch_debug_mode"] = checked
-            self.save_config(config)
+            # 重置调试模式检查状态
+            self.reset_debug()
 
         parent.addWidget(
             SwitchButtonCard(
-                "调试模式开关",
-                "启用此功能后，日志表格会添加完整的AI回复内容",
+                "调试模式",
+                "启用此功能后，应用将显示额外的调试信息",
                 init = init,
                 checked_changed = checked_changed,
             )
         )
 
-
     # 全局缩放比例
-    def add_widget_scale_factor(self, parent, config):
-        def init(widget):
+    def add_widget_scale_factor(self, parent, config) -> None:
+        def init(widget) -> None:
             widget.set_current_index(max(0, widget.find_text(config.get("scale_factor"))))
 
-        def current_text_changed(widget, text: str):
+        def current_text_changed(widget, text: str) -> None:
             config = self.load_config()
             config["scale_factor"] = text
             self.save_config(config)
@@ -173,15 +166,15 @@ class AppSettingsPage(QWidget, Base):
         )
 
     # 应用配置切换
-    def add_widget_app_profile(self, parent, config, window):
+    def add_widget_app_profile(self, parent, config, window) -> None:
 
         # 重启应用
-        def restart_app():
+        def restart_app() -> None:
             subprocess.Popen([sys.executable] + sys.argv)
             sys.exit(0)
 
         # 导入配置文件
-        def import_profile_file(path):
+        def import_profile_file(path) -> None:
             profile = {}
 
             if os.path.exists(path):
@@ -215,7 +208,7 @@ class AppSettingsPage(QWidget, Base):
             QTimer.singleShot(1000, restart_app)
 
         # 导出配置文件
-        def export_profile_file(path):
+        def export_profile_file(path) -> None:
             config = self.load_config()
             del config["platforms"]
 
@@ -225,7 +218,7 @@ class AppSettingsPage(QWidget, Base):
             self.success_toast("", "配置已导出为 \"ainiee_profile.json\" ...")
 
         # 导入按钮点击事件
-        def on_improt_button_clicked():
+        def on_improt_button_clicked() -> None:
             path, _ = QFileDialog.getOpenFileName(None, "选择文件", "", "json files (*.json)")
 
             if path == None or path == "":
@@ -233,7 +226,7 @@ class AppSettingsPage(QWidget, Base):
 
             import_profile_file(path)
         # 导出按钮点击事件
-        def on_exprot_button_clicked():
+        def on_exprot_button_clicked() -> None:
             path = QFileDialog.getExistingDirectory(None, "选择文件夹", "")
 
             if path == None or path == "":
@@ -241,7 +234,7 @@ class AppSettingsPage(QWidget, Base):
 
             export_profile_file(path)
 
-        def init(widget):
+        def init(widget) -> None:
             improt_button = PushButton("导入", self)
             improt_button.setIcon(FluentIcon.DOWNLOAD)
             improt_button.setContentsMargins(4, 0, 4, 0)

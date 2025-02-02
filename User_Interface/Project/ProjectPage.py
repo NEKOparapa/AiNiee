@@ -2,7 +2,6 @@ from PyQt5.QtCore import QEvent
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QVBoxLayout
-
 from qfluentwidgets import FluentIcon
 
 from Base.Base import Base
@@ -11,7 +10,7 @@ from Widget.PushButtonCard import PushButtonCard
 
 class ProjectPage(QFrame, Base):
 
-    def __init__(self, text: str, window):
+    def __init__(self, text: str, window) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
@@ -45,7 +44,7 @@ class ProjectPage(QFrame, Base):
         self.container.addStretch(1)
 
     # 页面每次展示时触发
-    def showEvent(self, event: QEvent):
+    def showEvent(self, event: QEvent) -> None:
         super().showEvent(event)
         self.show_event(self, event) if hasattr(self, "show_event") else None
 
@@ -72,19 +71,19 @@ class ProjectPage(QFrame, Base):
             return ""
 
     # 模型类型
-    def add_widget_01(self, parent, config):
+    def add_widget_01(self, parent, config) -> None:
 
-        def update_widget(widget):
+        def update_widget(widget) -> None:
             config = self.load_config()
 
             widget.set_items(self.get_items(config))
             widget.set_current_index(max(0, widget.find_text(self.find_name_by_tag(config, config.get("target_platform")))))
 
-        def init(widget):
+        def init(widget) -> None:
             # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
             self.show_event = lambda _, event: update_widget(widget)
 
-        def current_text_changed(widget, text: str):
+        def current_text_changed(widget, text: str) -> None:
             config = self.load_config()
             config["target_platform"] = self.find_tag_by_name(config, text)
             self.save_config(config)
@@ -100,11 +99,11 @@ class ProjectPage(QFrame, Base):
         )
 
     # 项目类型
-    def add_widget_02(self, parent, config):
-        def init(widget):
+    def add_widget_02(self, parent, config) -> None:
+        def init(widget) -> None:
             widget.set_current_index(max(0, widget.find_text(config.get("translation_project"))))
 
-        def current_text_changed(widget, text: str):
+        def current_text_changed(widget, text: str) -> None:
             config = self.load_config()
             config["translation_project"] = text
             self.save_config(config)
@@ -132,11 +131,11 @@ class ProjectPage(QFrame, Base):
         )
 
     # 原文语言
-    def add_widget_03(self, parent, config):
-        def init(widget):
+    def add_widget_03(self, parent, config) -> None:
+        def init(widget) -> None:
             widget.set_current_index(max(0, widget.find_text(config.get("source_language"))))
 
-        def current_text_changed(widget, text: str):
+        def current_text_changed(widget, text: str) -> None:
             config = self.load_config()
             config["source_language"] = text
             self.save_config(config)
@@ -152,11 +151,11 @@ class ProjectPage(QFrame, Base):
         )
 
     # 译文语言
-    def add_widget_04(self, parent, config):
-        def init(widget):
+    def add_widget_04(self, parent, config) -> None:
+        def init(widget) -> None:
             widget.set_current_index(max(0, widget.find_text(config.get("target_language"))))
 
-        def current_text_changed(widget, text: str):
+        def current_text_changed(widget, text: str) -> None:
             config = self.load_config()
             config["target_language"] = text
             self.save_config(config)
@@ -172,13 +171,13 @@ class ProjectPage(QFrame, Base):
         )
 
     # 输入文件夹
-    def add_widget_05(self, parent, config):
-        def widget_init(widget):
+    def add_widget_05(self, parent, config) -> None:
+        def widget_init(widget) -> None:
             widget.set_description(f"当前输入文件夹为 {config.get("label_input_path")}")
             widget.set_text("选择文件夹")
             widget.set_icon(FluentIcon.FOLDER_ADD)
 
-        def widget_callback(widget):
+        def widget_callback(widget) -> None:
             # 选择文件夹
             path = QFileDialog.getExistingDirectory(None, "选择文件夹", "")
             if path == None or path == "":
@@ -202,13 +201,13 @@ class ProjectPage(QFrame, Base):
         )
 
     # 输出文件夹
-    def add_widget_06(self, parent, config):
+    def add_widget_06(self, parent, config) -> None:
         def widget_init(widget):
-            widget.set_description(f"当前输出文件夹(*不能与输入相同)为 {config.get("label_output_path")}")
+            widget.set_description(f"当前输出文件夹为 {config.get("label_output_path")}")
             widget.set_text("选择文件夹")
             widget.set_icon(FluentIcon.FOLDER_ADD)
 
-        def widget_callback(widget):
+        def widget_callback(widget) -> None:
             # 选择文件夹
             path = QFileDialog.getExistingDirectory(None, "选择文件夹", "")
             if path == None or path == "":
@@ -224,7 +223,7 @@ class ProjectPage(QFrame, Base):
 
         parent.addWidget(
             PushButtonCard(
-                "输出文件夹",
+                "输出文件夹（注意：不能与输入文件夹相同）",
                 "",
                 widget_init,
                 widget_callback,

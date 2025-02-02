@@ -8,7 +8,7 @@ from Widget.ComboBoxCard import ComboBoxCard
 
 class BasicSettingsPage(QFrame, Base):
 
-    def __init__(self, text: str, window):
+    def __init__(self, text: str, window) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
@@ -47,8 +47,8 @@ class BasicSettingsPage(QFrame, Base):
         self.vbox.addStretch(1) # 确保控件顶端对齐
 
     # 子任务切分模式
-    def add_widget_01(self, parent, config):
-        def init(widget):
+    def add_widget_01(self, parent, config) -> None:
+        def init(widget) -> None:
             lines_limit_switch = config.get("lines_limit_switch")
             tokens_limit_switch = config.get("tokens_limit_switch")
 
@@ -58,7 +58,7 @@ class BasicSettingsPage(QFrame, Base):
             if lines_limit_switch == False and tokens_limit_switch == True:
                 widget.set_current_index(1)
 
-        def current_text_changed(widget, text: str):
+        def current_text_changed(widget, text: str) -> None:
             config = self.load_config()
 
             if text == "行数模式":
@@ -85,12 +85,12 @@ class BasicSettingsPage(QFrame, Base):
         )
 
     # 子任务的最大文本行数
-    def add_widget_02(self, parent, config):
-        def init(widget):
+    def add_widget_02(self, parent, config) -> None:
+        def init(widget) -> None:
             widget.set_range(0, 9999999)
             widget.set_value(config.get("lines_limit"))
 
-        def value_changed(widget, value: int):
+        def value_changed(widget, value: int) -> None:
             config = self.load_config()
             config["lines_limit"] = value
             self.save_config(config)
@@ -105,39 +105,39 @@ class BasicSettingsPage(QFrame, Base):
         )
 
     # 子任务的最大 Token 数量
-    def add_widget_03(self, parent, config):
-        def init(widget):
+    def add_widget_03(self, parent, config) -> None:
+        def init(widget) -> None:
             widget.set_range(0, 9999999)
             widget.set_value(config.get("tokens_limit"))
 
-        def value_changed(widget, value: int):
+        def value_changed(widget, value: int) -> None:
             config = self.load_config()
             config["tokens_limit"] = value
             self.save_config(config)
 
         parent.addWidget(
             SpinCard(
-                "翻译任务的Token数量",
-                "当翻译任务切分模式设置为 Token 模式时，按此值对原文进行切分",
+                "翻译任务的 Token 数量",
+                "当翻译任务切分模式设置为 Token 模式 时，按此值对原文进行切分",
                 init = init,
                 value_changed = value_changed,
             )
         )
 
     # 同时执行的子任务数量
-    def add_widget_04(self, parent, config):
-        def init(widget):
+    def add_widget_04(self, parent, config) -> None:
+        def init(widget) -> None:
             widget.set_range(0, 9999999)
             widget.set_value(config.get("user_thread_counts"))
 
-        def value_changed(widget, value: int):
+        def value_changed(widget, value: int) -> None:
             config = self.load_config()
             config["user_thread_counts"] = value
             self.save_config(config)
 
         parent.addWidget(
             SpinCard(
-                "并发翻译任务数",
+                "并发任务数",
                 "合理设置可以极大的增加翻译速度，请设置为本地模型的 np 值或者参考在线接口的官方文档，设置为 0 为自动模式",
                 init = init,
                 value_changed = value_changed,
@@ -145,12 +145,12 @@ class BasicSettingsPage(QFrame, Base):
         )
 
     # 每个子任务携带的参考上文行数
-    def add_widget_05(self, parent, config):
-        def init(widget):
+    def add_widget_05(self, parent, config) -> None:
+        def init(widget) -> None:
             widget.set_range(0, 9999999)
             widget.set_value(config.get("pre_line_counts"))
 
-        def value_changed(widget, value: int):
+        def value_changed(widget, value: int) -> None:
             config = self.load_config()
             config["pre_line_counts"] = value
             self.save_config(config)
@@ -165,12 +165,12 @@ class BasicSettingsPage(QFrame, Base):
         )
 
     # 请求超时时间
-    def add_widget_request_timeout(self, parent, config):
-        def init(widget):
+    def add_widget_request_timeout(self, parent, config) -> None:
+        def init(widget) -> None:
             widget.set_range(0, 9999999)
             widget.set_value(config.get("request_timeout"))
 
-        def value_changed(widget, value: int):
+        def value_changed(widget, value: int) -> None:
             config = self.load_config()
             config["request_timeout"] = value
             self.save_config(config)
@@ -185,12 +185,12 @@ class BasicSettingsPage(QFrame, Base):
         )
 
     # 翻译流程的最大轮次
-    def add_widget_06(self, parent, config):
-        def init(widget):
+    def add_widget_06(self, parent, config) -> None:
+        def init(widget) -> None:
             widget.set_range(0, 9999999)
             widget.set_value(config.get("round_limit"))
 
-        def value_changed(widget, value: int):
+        def value_changed(widget, value: int) -> None:
             config = self.load_config()
             config["round_limit"] = value
             self.save_config(config)
