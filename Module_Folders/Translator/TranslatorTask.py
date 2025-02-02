@@ -507,18 +507,46 @@ class TranslatorTask(Base):
         # 储存额外日志
         extra_log = []
 
-        # 获取基础系统提示词
+        # 基础提示词
         if self.config.system_prompt_switch == True:
             system = self.config.system_prompt_content
         else:
             system = PromptBuilderThink.build_system(self.config)
 
-        # 添加指令词典
+        # 指令词典
         if self.config.prompt_dictionary_switch == True:
-            glossary = PromptBuilderThink.build_glossary(self.config, source_text_dict)
-            if glossary != "":
-                system = system + "\n" + glossary
-                extra_log.append(glossary)
+            result = PromptBuilderThink.build_glossary(self.config, source_text_dict)
+            if result != "":
+                system = system + "\n" + result
+                extra_log.append(result)
+
+        # 角色介绍
+        if self.config.characterization_switch == True:
+            result = PromptBuilderThink.build_characterization(self.config, source_text_dict)
+            if result != "":
+                system = system + "\n" + result
+                extra_log.append(result)
+
+        # 世界观设定
+        if self.config.world_building_switch == True:
+            result = PromptBuilderThink.build_world_building(self.config)
+            if result != "":
+                system = system + "\n" + result
+                extra_log.append(result)
+
+        # 行文措辞要求
+        if self.config.writing_style_switch == True:
+            result = PromptBuilderThink.build_writing_style(self.config)
+            if result != "":
+                system = system + "\n" + result
+                extra_log.append(result)
+
+        # 翻译风格示例
+        if self.config.translation_example_switch == True:
+            result = PromptBuilderThink.build_translation_example(self.config)
+            if result != "":
+                system = system + "\n" + result
+                extra_log.append(result)
 
         # 构建指令列表
         messages.append(
@@ -545,7 +573,6 @@ class TranslatorTask(Base):
         # 当目标为 其他类型（即 OpenAI 兼容接口）时，保持原样
         else:
             pass
-
 
         return messages, system, extra_log
 

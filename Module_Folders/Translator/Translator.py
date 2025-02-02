@@ -263,7 +263,9 @@ class Translator(Base):
 
             # 根据提示词规则打印基础指令
             system = ""
-            if self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
+            if self.config.system_prompt_switch == True:
+                system = self.config.system_prompt_content
+            elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
                 system = PromptBuilder.build_system(self.config)
             elif self.config.prompt_preset in (PromptBuilderEnum.THINK,):
                 system = PromptBuilderThink.build_system(self.config)
