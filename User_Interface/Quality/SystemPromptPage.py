@@ -9,29 +9,25 @@ from qfluentwidgets import PlainTextEdit
 from Base.Base import Base
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
+from Module_Folders.PromptBuilder.PromptBuilder import PromptBuilder
+from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from Module_Folders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
 
 class SystemPromptPage(QFrame, Base):
 
-    def __init__(self, text: str, window):
+    def __init__(self, text: str, window) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
+
+        # 读取默认提示词
+        system_prompt_switch = ""
+        with open("./Prompt/think_system.txt", "r", encoding = "utf-8") as reader:
+            system_prompt_switch = reader.read().strip()
 
         # 默认配置
         self.default = {
             "system_prompt_switch": False,
-            "system_prompt_content": (
-
-
-                "你是一位深谙日中文化的资深本地化专家，你需要将游戏中的日文文本翻译成中文。当你接收到游戏文本后，请严格按照以下要求进行翻译："
-                + "\n" + "第一点：只需翻译普通文本部分,将日语文本翻译成中文文本，保持原文的叙述风格。"
-                + "\n" + "第二点：保留文本中的转义字符或者格式标签、换行符、回车符、占位符、特殊符号等非日语内容。"
-                + "\n"
-                + "\n" + "###游戏文本"
-                + "\n" + "可能包含角色对话、旁白、武器名称、物品名称、技能描述、格式标签、换行符、特殊符号等内容。"
-                + "\n"
-                + "\n" + "###以json格式输出译文###"
-                + "\n" + "{{\"<文本id>\":\"<已翻译文本>\"}}"
-            ),
+            "system_prompt_content": system_prompt_switch,
         }
 
         # 载入并保存默认配置
@@ -51,11 +47,11 @@ class SystemPromptPage(QFrame, Base):
         self.add_widget_footer(self.container, config, window)
 
     # 头部
-    def add_widget_header(self, parent, config):
-        def widget_init(widget):
+    def add_widget_header(self, parent, config) -> None:
+        def widget_init(widget) -> None:
             widget.set_checked(config.get("system_prompt_switch"))
 
-        def widget_callback(widget, checked: bool):
+        def widget_callback(widget, checked: bool) -> None:
             config = self.load_config()
             config["system_prompt_switch"] = checked
             self.save_config(config)
@@ -70,13 +66,13 @@ class SystemPromptPage(QFrame, Base):
         )
 
     # 主体
-    def add_widget_body(self, parent, config):
+    def add_widget_body(self, parent, config) -> None:
         self.plain_text_edit = PlainTextEdit(self)
         self.plain_text_edit.setPlainText(config.get("system_prompt_content"))
         parent.addWidget(self.plain_text_edit)
 
     # 底部
-    def add_widget_footer(self, parent, config, window):
+    def add_widget_footer(self, parent, config, window) -> None:
         self.command_bar_card = CommandBarCard()
         parent.addWidget(self.command_bar_card)
 
@@ -84,8 +80,8 @@ class SystemPromptPage(QFrame, Base):
         self.add_command_bar_action_01(self.command_bar_card)
         self.add_command_bar_action_02(self.command_bar_card, window)
     # 保存
-    def add_command_bar_action_01(self, parent):
-        def callback():
+    def add_command_bar_action_01(self, parent) -> None:
+        def callback() -> None:
             # 读取配置文件
             config = self.load_config()
 
@@ -103,7 +99,7 @@ class SystemPromptPage(QFrame, Base):
         )
 
     # 重置
-    def add_command_bar_action_02(self, parent, window):
+    def add_command_bar_action_02(self, parent, window) -> None:
         def callback():
             message_box = MessageBox("警告", "是否确认重置为默认数据 ... ？", window)
             message_box.yesButton.setText("确认")

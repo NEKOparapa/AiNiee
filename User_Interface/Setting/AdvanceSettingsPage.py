@@ -1,10 +1,5 @@
-import os
-import json
-from functools import partial
-
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
-
 from qfluentwidgets import PillPushButton
 
 from Base.Base import Base
@@ -12,10 +7,11 @@ from Widget.FlowCard import FlowCard
 from Widget.Separator import Separator
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.SwitchButtonCard import SwitchButtonCard
+from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 
 class AdvanceSettingsPage(QFrame, Base):
 
-    def __init__(self, text: str, window):
+    def __init__(self, text: str, window) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
@@ -23,6 +19,7 @@ class AdvanceSettingsPage(QFrame, Base):
         self.default = {
             "cot_toggle": False,
             "cn_prompt_toggle": True,
+            "prompt_preset": PromptBuilderEnum.COMMON,
             "preserve_line_breaks_toggle": True,
             "preserve_prefix_and_suffix_codes": True,
             "response_conversion_toggle": False,
@@ -43,26 +40,26 @@ class AdvanceSettingsPage(QFrame, Base):
         self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
         # 添加控件
-        self.add_widget_01(self.vbox, config)
-        self.add_widget_02(self.vbox, config)
+        self.add_widget_prompt_language(self.vbox, config)
+        self.add_widget_prompt_preset(self.vbox, config)
         self.vbox.addWidget(Separator())
-        self.add_widget_03(self.vbox, config)
-        self.add_widget_04(self.vbox, config)
+        self.add_widget_line_breaks(self.vbox, config)
+        self.add_widget_prefix_and_suffix_codes(self.vbox, config)
         self.vbox.addWidget(Separator())
-        self.add_widget_05(self.vbox, config)
-        self.add_widget_06(self.vbox, config)
+        self.add_widget_opencc(self.vbox, config)
+        self.add_widget_opencc_preset(self.vbox, config)
         self.vbox.addWidget(Separator())
-        self.add_widget_07(self.vbox, config)
+        self.add_widget_result_check(self.vbox, config)
 
         # 填充
         self.vbox.addStretch(1)
 
     # 中文提示词
-    def add_widget_01(self, parent, config):
-        def widget_init(widget):
+    def add_widget_prompt_language(self, parent, config) -> None:
+        def widget_init(widget) -> None:
             widget.set_checked(config.get("cn_prompt_toggle"))
 
-        def widget_callback(widget, checked: bool):
+        def widget_callback(widget, checked: bool) -> None:
             config = self.load_config()
             config["cn_prompt_toggle"] = checked
             self.save_config(config)
@@ -76,31 +73,56 @@ class AdvanceSettingsPage(QFrame, Base):
             )
         )
 
-    # 思维链模式
-    def add_widget_02(self, parent, config):
-        def widget_init(widget):
-            widget.set_checked(config.get("cot_toggle"))
+    # 提示词预设规则
+    def add_widget_prompt_preset(self, parent, config) -> None:
+        items = {
+            "通用": PromptBuilderEnum.COMMON,
+            "思维链": PromptBuilderEnum.COT,
+            "思考模型": PromptBuilderEnum.THINK,
+        }
 
-        def widget_callback(widget, checked: bool):
+        def init(widget) -> None:
+            prompt_preset = config.get("prompt_preset")
+
+            choice = 0
+            for i, v in enumerate(items.values()):
+                if v == prompt_preset:
+                    choice = i
+                    break
+
+            widget.set_current_index(choice)
+
+        def current_text_changed(widget, text: str) -> None:
+            choice = self.default.get("prompt_preset")
+            for k, v in items.items():
+                if k == text:
+                    choice = v
+                    break
+
             config = self.load_config()
-            config["cot_toggle"] = checked
+            config["prompt_preset"] = choice
             self.save_config(config)
 
         parent.addWidget(
-            SwitchButtonCard(
-                "思维链模式",
-                "思维链（CoT）是一种高级指令模式，在逻辑能力强的模型上可以取得更好的翻译效果，会消耗数倍 Token（不支持 Sakura 模型）",
-                widget_init,
-                widget_callback,
+            ComboBoxCard(
+                "提示词预设规则",
+                (
+                    "通用：默认规则，兼容各种非思考模型；"
+                    + "\n" + "思维链：即 CoT，显著增加消耗，在强力非思考模型上可以取得更好的翻译效果；"
+                    + "\n" + "思考模型：为 DeepSeek-R1 等思考模型优化，在思考模型上可以获得最佳的翻译效果；"
+                ),
+                items.keys(),
+                init = init,
+                current_text_changed = current_text_changed,
             )
         )
 
     # 保留句内换行符
-    def add_widget_03(self, parent, config):
-        def widget_init(widget):
+    def add_widget_line_breaks(self, parent, config) -> None:
+        def widget_init(widget) -> None:
             widget.set_checked(config.get("preserve_line_breaks_toggle"))
 
-        def widget_callback(widget, checked: bool):
+        def widget_callback(widget, checked: bool) -> None:
             config = self.load_config()
             config["preserve_line_breaks_toggle"] = checked
             self.save_config(config)
@@ -115,11 +137,11 @@ class AdvanceSettingsPage(QFrame, Base):
         )
 
     # 保留首尾代码段
-    def add_widget_04(self, parent, config):
-        def widget_init(widget):
+    def add_widget_prefix_and_suffix_codes(self, parent, config) -> None:
+        def widget_init(widget) -> None:
             widget.set_checked(config.get("preserve_prefix_and_suffix_codes"))
 
-        def widget_callback(widget, checked: bool):
+        def widget_callback(widget, checked: bool) -> None:
             config = self.load_config()
             config["preserve_prefix_and_suffix_codes"] = checked
             self.save_config(config)
@@ -134,11 +156,11 @@ class AdvanceSettingsPage(QFrame, Base):
         )
 
     # 自动简繁转换
-    def add_widget_05(self, parent, config):
-        def widget_init(widget):
+    def add_widget_opencc(self, parent, config) -> None:
+        def widget_init(widget) -> None:
             widget.set_checked(config.get("response_conversion_toggle"))
 
-        def widget_callback(widget, checked: bool):
+        def widget_callback(widget, checked: bool) -> None:
             config = self.load_config()
             config["response_conversion_toggle"] = checked
             self.save_config(config)
@@ -152,20 +174,20 @@ class AdvanceSettingsPage(QFrame, Base):
             )
         )
 
-    # 简繁转换字形映射规则
-    def add_widget_06(self, parent, config):
-        def init(widget):
+    # 简繁转换预设规则
+    def add_widget_opencc_preset(self, parent, config) -> None:
+        def init(widget) -> None:
             widget.set_current_index(max(0, widget.find_text(config.get("opencc_preset"))))
 
-        def current_text_changed(widget, text: str):
+        def current_text_changed(widget, text: str) -> None:
             config = self.load_config()
             config["opencc_preset"] = text
             self.save_config(config)
 
         parent.addWidget(
             ComboBoxCard(
-                "简繁转换字形映射规则",
-                "进行简繁转换时的字形映射规则，常用的有：简转繁（s2t）、繁转简（t2s）",
+                "简繁转换预设规则",
+                "进行简繁转换时的字形预设规则，常用的有：简转繁（s2t）、繁转简（t2s）",
                 [
                     "s2t",
                     "s2tw",
@@ -187,10 +209,9 @@ class AdvanceSettingsPage(QFrame, Base):
             )
         )
 
-    # 模型退化检查
-    def add_widget_07(self, parent, config):
-
-        def on_toggled(checked: bool, key):
+    # 结果检查
+    def add_widget_result_check(self, parent, config) -> None:
+        def on_toggled(checked: bool, key) -> None:
             config = self.load_config()
             config["reply_check_switch"][key] = checked
             self.save_config(config)

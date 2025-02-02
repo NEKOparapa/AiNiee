@@ -9,10 +9,12 @@ from rich.table import Table
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
-from Module_Folders.PromptBuilder.PromptBuild import PromptBuilder
 from Module_Folders.Cache.CacheItem import CacheItem
 from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
 from Module_Folders.Translator.TranslatorRequester import TranslatorRequester
+from Module_Folders.PromptBuilder.PromptBuilder import PromptBuilder
+from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from Module_Folders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
 from Module_Folders.Response_Parser.Response import Response_Parser
 from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
 
@@ -116,7 +118,13 @@ class TranslatorTask(Base):
 
         # 发起请求
         requester = TranslatorRequester(self.config, self.plugin_manager)
-        skip, response_str, prompt_tokens, completion_tokens, response_think = requester.request(self.messages, self.system_prompt, degradation_flag)
+        skip, response_think, response_content, prompt_tokens, completion_tokens = requester.request(
+            self.messages,
+            self.system_prompt,
+            self.config.prompt_preset,
+            degradation_flag,
+        )
+
         # 如果请求结果标记为 skip，即有错误发生，则跳过本次循环
         if skip == True:
             return {
@@ -127,24 +135,23 @@ class TranslatorTask(Base):
             }
 
         # 提取回复内容
-        response_dict = Response_Parser.text_extraction(self, response_str)
+        response_dict = Response_Parser.text_extraction(self, response_content)
 
         # 检查回复内容
         check_result, error_content = Response_Parser.check_response_content(
             self,
             self.config.reply_check_switch,
-            response_str,
+            response_content,
             response_dict,
             self.source_text_dict,
             self.config.source_language
         )
 
-        # 调试信息
+        # 模型回复日志
+        if response_think != "":
+            self.extra_log.append("模型思考内容：\n" + response_think)
         if self.is_debug():
-            if response_str != "":
-                self.extra_log.append("模型回复内容：\n"  + response_str)
-            if response_think != "":
-                self.extra_log.append("模型思考内容：\n"  + response_think)
+            self.extra_log.append("模型回复内容：\n" + response_content)
 
         # 检查译文
         retry_flag = False
@@ -169,7 +176,7 @@ class TranslatorTask(Base):
                         completion_tokens,
                         self.source_text_dict.values(),
                         response_dict.values(),
-                        self.extra_log
+                        self.extra_log,
                     )
                 )
             )
@@ -195,7 +202,7 @@ class TranslatorTask(Base):
                         completion_tokens,
                         self.source_text_dict.values(),
                         response_dict.values(),
-                        self.extra_log
+                        self.extra_log,
                     )
                 )
             )
@@ -228,7 +235,7 @@ class TranslatorTask(Base):
         self.previous_items = previous_items
 
     # 预处理
-    def prepare(self, target_platform: str, api_format: str) -> None:
+    def prepare(self, target_platform: str, api_format: str, prompt_preset: int) -> None:
         # 生成上文文本列表
         self.previous_text_list = [v.get_source_text() for v in self.previous_items]
 
@@ -250,7 +257,14 @@ class TranslatorTask(Base):
                 self.source_text_dict,
                 self.previous_text_list,
             )
-        else:
+        elif prompt_preset in (PromptBuilderEnum.THINK,):
+            self.messages, self.system_prompt, self.extra_log = self.generate_prompt_think(
+                target_platform,
+                api_format,
+                self.source_text_dict,
+                self.previous_text_list
+            )
+        elif prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
             self.messages, self.system_prompt, self.extra_log = self.generate_prompt(
                 target_platform,
                 api_format,
@@ -361,7 +375,7 @@ class TranslatorTask(Base):
         extra_log = []
 
         # 获取基础系统提示词
-        system_prompt = PromptBuilder.get_system_prompt(self.config)
+        system_prompt = PromptBuilder.build_system(self.config)
 
         # 如果开启指令词典
         glossary = ""
@@ -399,14 +413,12 @@ class TranslatorTask(Base):
                 system_prompt += writing_style
                 extra_log.append(f"行文措辞要求已添加：\n{writing_style}")
 
-
         # 如果启用翻译风格示例功能
         if self.config.translation_example_switch:
             translation_example = PromptBuilder.build_translation_example(self.config)
             if translation_example:
                 system_prompt += translation_example
                 extra_log.append(f"翻译示例已添加：\n{translation_example}")
-
 
         # 获取默认示例前置文本
         pre_prompt = PromptBuilder.build_userExamplePrefix(self.config)
@@ -488,12 +500,61 @@ class TranslatorTask(Base):
 
         return messages, system_prompt, extra_log
 
-    # 生成指令 Sakura
-    def generate_prompt_sakura(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
+    # 生成指令 - 思考模型
+    def generate_prompt_think(self, target_platform: str, api_format: str, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
+        # 储存指令
+        messages = []
         # 储存额外日志
         extra_log = []
-        # 储存主体指令
+
+        # 获取基础系统提示词
+        if self.config.system_prompt_switch == True:
+            system = self.config.system_prompt_content
+        else:
+            system = PromptBuilderThink.build_system(self.config)
+
+        # 添加指令词典
+        if self.config.prompt_dictionary_switch == True:
+            glossary = PromptBuilderThink.build_glossary(self.config, source_text_dict)
+            if glossary != "":
+                system = system + "\n" + glossary
+                extra_log.append(glossary)
+
+        # 构建指令列表
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    f"{system}" + "\n" + "原文文本：" + "\n" + json.dumps(source_text_dict, indent = None, ensure_ascii = False)
+                ),
+            }
+        )
+
+        # 当目标为 google 系列接口时，转换 messages 的格式
+        if target_platform == "google":
+            new = []
+            for m in messages:
+                new.append({
+                    "role": "model" if m.get("role", "") == "assistant" else m.get("role", ""),
+                    "parts": m.get("content", ""),
+                })
+            messages = new
+        # 当目标为 anthropic 兼容接口时，保持原样
+        elif target_platform == "anthropic" or (target_platform.startswith("custom_platform_") and api_format == "Anthropic"):
+            pass
+        # 当目标为 其他类型（即 OpenAI 兼容接口）时，保持原样
+        else:
+            pass
+
+
+        return messages, system, extra_log
+
+    # 生成指令 Sakura
+    def generate_prompt_sakura(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
+        # 储存指令
         messages = []
+        # 储存额外日志
+        extra_log = []
 
         # 构建系统提示词
         messages.append({
@@ -502,7 +563,7 @@ class TranslatorTask(Base):
         })
 
         # 如果开启了携带上文功能
-        if self.config.pre_line_counts and previous_text_list:
+        if self.config.pre_line_counts == True and previous_text_list != []:
             messages.append({
                 "role": "user",
                 "content": "将下面的日文文本翻译成中文：" + "\n".join(previous_text_list),
@@ -510,33 +571,43 @@ class TranslatorTask(Base):
             extra_log.append(f"参考上文已添加：\n{"\n".join(previous_text_list)}")
 
         # 如果开启了指令词典功能
-        gpt_dict_raw_text = ""
-        if self.config.prompt_dictionary_switch:
-            glossary_prompt = PromptBuilder.build_glossary_prompt_sakura(self.config, source_text_dict)
-            if glossary_prompt:
-                gpt_dict_text_list = []
-                for gpt in glossary_prompt:
-                    src = gpt["src"]
-                    dst = gpt["dst"]
-                    info = gpt["info"] if "info" in gpt.keys() else None
-                    if info:
-                        single = f"{src}->{dst} #{info}"
-                    else:
-                        single = f"{src}->{dst}"
-                    gpt_dict_text_list.append(single)
+        if self.config.prompt_dictionary_switch == True:
+            # 将输入字典中的所有值转换为集合
+            lines = set(line for line in source_text_dict.values())
 
-                gpt_dict_raw_text = "\n".join(gpt_dict_text_list)
-                extra_log.append(f"指令词典已添加：\n{gpt_dict_raw_text}")
+            # 筛选在输入词典中出现过的条目
+            result: list[dict] = [
+                v for v in self.config.prompt_dictionary_data
+                if any(v.get("src", "") in lines for lines in lines)
+            ]
 
-        # 原文数据为 字典，将其转换为多行字符串
-        source_text_str = "\n".join(source_text_dict.values())
+            # 构建指令词典文本
+            dict_lines = []
+            for item in result:
+                src = item.get("src", "")
+                dst = item.get("dst", "")
+                info = item.get("info", None)
+
+                if info == None:
+                    dict_lines.append(f"{src}->{dst}")
+                else:
+                    dict_lines.append(f"{src}->{dst} #{info}")
+
+            # 如果指令词典文本不为空
+            if dict_lines != []:
+                dict_lines_str = "\n".join(dict_lines)
+                extra_log.append(f"指令词典已添加：\n{dict_lines_str}")
 
         # 构建主要提示词
-        if gpt_dict_raw_text == "":
-            user_prompt = "将下面的日文文本翻译成中文：\n" + source_text_str
+        if dict_lines == []:
+            user_prompt = "将下面的日文文本翻译成中文：\n" + "\n".join(source_text_dict.values())
         else:
-            user_prompt = "根据以下术语表（可以为空）：\n" + gpt_dict_raw_text + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：\n" + source_text_str
+            user_prompt = (
+                "根据以下术语表（可以为空）：\n" + dict_lines_str
+                + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：\n" + "\n".join(source_text_dict.values())
+            )
 
+        # 构建指令列表
         messages.append(
             {
                 "role": "user",

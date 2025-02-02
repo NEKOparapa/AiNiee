@@ -7,11 +7,13 @@ from tqdm import tqdm
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
-from Module_Folders.PromptBuilder.PromptBuild import PromptBuilder
 from Module_Folders.Cache.CacheItem import CacheItem
 from Module_Folders.Cache.CacheManager import CacheManager
 from Module_Folders.Translator.TranslatorTask import TranslatorTask
 from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
+from Module_Folders.PromptBuilder.PromptBuilder import PromptBuilder
+from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from Module_Folders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
 from Module_Folders.File_Reader.File1 import File_Reader
 from Module_Folders.File_Outputer.File2 import File_Outputter
 from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
@@ -221,7 +223,6 @@ class Translator(Base):
             self.request_limiter.set_limit(self.config.max_tokens, self.config.tpm_limit, self.config.rpm_limit)
 
             # 生成缓存数据条目片段
-            t = time.time()
             chunks, previous_chunks = self.cache_manager.generate_item_chunks(
                 "line" if self.config.tokens_limit_switch == False else "token",
                 self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
@@ -237,7 +238,8 @@ class Translator(Base):
                 task.set_previous_items(previous_chunk)
                 task.prepare(
                     self.config.target_platform,
-                    self.config.platforms.get(self.config.target_platform).get("api_format")
+                    self.config.platforms.get(self.config.target_platform).get("api_format"),
+                    self.config.prompt_preset,
                 )
                 tasks.append(task)
             self.print("")
@@ -258,8 +260,15 @@ class Translator(Base):
             self.info(f"生效中的 RPM 限额 - {self.config.rpm_limit}")
             self.info(f"生效中的 TPM 限额 - {self.config.tpm_limit}")
             self.info(f"生效中的 MAX_TOKENS 限额 - {self.config.max_tokens}")
+
+            # 根据提示词规则打印基础指令
+            system = ""
+            if self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
+                system = PromptBuilder.build_system(self.config)
+            elif self.config.prompt_preset in (PromptBuilderEnum.THINK,):
+                system = PromptBuilderThink.build_system(self.config)
             self.print("")
-            self.info(f"本次任务使用以下基础指令：\n{PromptBuilder.get_system_prompt(self.config)}\n") if self.config.target_platform != "sakura" else None
+            self.info(f"本次任务使用以下基础指令：\n{system}\n") if self.config.target_platform != "sakura" else None
             self.info(f"即将开始执行翻译任务，预计任务总数为 {len(tasks)}, 同时执行的任务数量为 {self.config.actual_thread_counts}，请注意保持网络通畅 ...")
             self.print("")
 
