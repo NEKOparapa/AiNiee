@@ -17,7 +17,6 @@ class AdvanceSettingsPage(QFrame, Base):
 
         # 默认配置
         self.default = {
-            "cot_toggle": False,
             "cn_prompt_toggle": True,
             "prompt_preset": PromptBuilderEnum.COMMON,
             "preserve_line_breaks_toggle": True,
@@ -105,7 +104,7 @@ class AdvanceSettingsPage(QFrame, Base):
 
         parent.addWidget(
             ComboBoxCard(
-                "提示词预设规则",
+                "提示词预设规则（不支持 Sakura 模型）",
                 (
                     "通用：默认规则，兼容各种非思考模型；"
                     + "\n" + "思维链：即 CoT，显著增加消耗，在强力非思考模型上可以取得更好的翻译效果；"

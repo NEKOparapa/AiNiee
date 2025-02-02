@@ -20,14 +20,14 @@ class SystemPromptPage(QFrame, Base):
         self.setObjectName(text.replace(" ", "-"))
 
         # 读取默认提示词
-        system_prompt_switch = ""
-        with open("./Prompt/think_system.txt", "r", encoding = "utf-8") as reader:
-            system_prompt_switch = reader.read().strip()
+        system_prompt_content = ""
+        with open("./Prompt/common_system_zh.txt", "r", encoding = "utf-8") as reader:
+            system_prompt_content = reader.read().strip()
 
         # 默认配置
         self.default = {
             "system_prompt_switch": False,
-            "system_prompt_content": system_prompt_switch,
+            "system_prompt_content": system_prompt_content,
         }
 
         # 载入并保存默认配置
@@ -79,6 +79,7 @@ class SystemPromptPage(QFrame, Base):
         # 添加命令
         self.add_command_bar_action_01(self.command_bar_card)
         self.add_command_bar_action_02(self.command_bar_card, window)
+
     # 保存
     def add_command_bar_action_01(self, parent) -> None:
         def callback() -> None:
@@ -100,7 +101,7 @@ class SystemPromptPage(QFrame, Base):
 
     # 重置
     def add_command_bar_action_02(self, parent, window) -> None:
-        def callback():
+        def callback() -> None:
             message_box = MessageBox("警告", "是否确认重置为默认数据 ... ？", window)
             message_box.yesButton.setText("确认")
             message_box.cancelButton.setText("取消")
@@ -115,7 +116,15 @@ class SystemPromptPage(QFrame, Base):
             config = self.load_config()
 
             # 加载默认设置
-            config["system_prompt_content"] = self.default.get("system_prompt_content")
+            if config.get("prompt_preset", PromptBuilderEnum.COMMON) == PromptBuilderEnum.COMMON:
+                with open("./Prompt/common_system_zh.txt", "r", encoding = "utf-8") as reader:
+                    config["system_prompt_content"] = reader.read().strip()
+            elif config.get("prompt_preset", PromptBuilderEnum.COMMON) == PromptBuilderEnum.COT:
+                with open("./Prompt/cot_system_zh.txt", "r", encoding = "utf-8") as reader:
+                    config["system_prompt_content"] = reader.read().strip()
+            elif config.get("prompt_preset", PromptBuilderEnum.COMMON) == PromptBuilderEnum.THINK:
+                with open("./Prompt/think_system_zh.txt", "r", encoding = "utf-8") as reader:
+                    config["system_prompt_content"] = reader.read().strip()
 
             # 保存配置文件
             config = self.save_config(config)

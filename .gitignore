@@ -1,9 +1,10 @@
 *__pycache__
 
-/工具集*
-/input*
-/output*
-/*词典*.json
-/*实体*.json
-/*debug*.txt
+/*导出*
+/*词典*
+/*实体*
+/*工具集*
+/*debug*
+/*input*
+/*output*
 /Resource/config.json

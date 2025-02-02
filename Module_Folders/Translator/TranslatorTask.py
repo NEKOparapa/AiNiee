@@ -374,8 +374,11 @@ class TranslatorTask(Base):
         # 储存额外日志
         extra_log = []
 
-        # 获取基础系统提示词
-        system_prompt = PromptBuilder.build_system(self.config)
+        # 基础提示词
+        if self.config.system_prompt_switch == True:
+            system = self.config.system_prompt_content
+        else:
+            system = PromptBuilderThink.build_system(self.config)
 
         # 如果开启指令词典
         glossary = ""
@@ -383,7 +386,7 @@ class TranslatorTask(Base):
         if self.config.prompt_dictionary_switch:
             glossary, glossary_cot = PromptBuilder.build_glossary_prompt(self.config, source_text_dict)
             if glossary:
-                system_prompt += glossary
+                system += glossary
                 extra_log.append(f"指令词典已添加：\n{glossary}")
 
         # 如果角色介绍开关打开
@@ -392,16 +395,16 @@ class TranslatorTask(Base):
         if self.config.characterization_switch:
             characterization, characterization_cot = PromptBuilder.build_characterization(self.config, source_text_dict)
             if characterization:
-                system_prompt += characterization
+                system += characterization
                 extra_log.append(f"角色介绍已添加：\n{characterization}")
 
         # 如果启用自定义世界观设定功能
         world_building = ""
         world_building_cot = ""
         if self.config.world_building_switch:
-            world_building, world_building_cot = PromptBuilder.build_world(self.config)
+            world_building, world_building_cot = PromptBuilder.build_world_building(self.config)
             if world_building:
-                system_prompt += world_building
+                system += world_building
                 extra_log.append(f"世界观设定已添加：\n{world_building}")
 
         # 如果启用自定义行文措辞要求功能
@@ -410,14 +413,14 @@ class TranslatorTask(Base):
         if self.config.writing_style_switch:
             writing_style, writing_style_cot = PromptBuilder.build_writing_style(self.config)
             if writing_style:
-                system_prompt += writing_style
+                system += writing_style
                 extra_log.append(f"行文措辞要求已添加：\n{writing_style}")
 
         # 如果启用翻译风格示例功能
         if self.config.translation_example_switch:
             translation_example = PromptBuilder.build_translation_example(self.config)
             if translation_example:
-                system_prompt += translation_example
+                system += translation_example
                 extra_log.append(f"翻译示例已添加：\n{translation_example}")
 
         # 获取默认示例前置文本
@@ -468,13 +471,8 @@ class TranslatorTask(Base):
             }
         )
 
-        # 构建模型预输入回复信息
-        messages.append(
-        {
-            "role": "assistant",
-            "content": fol_prompt
-        }
-        )  #deepseek-reasoner不支持该模型预回复消息
+        # 构建模型预输入回复信息，deepseek-reasoner 不支持该模型预回复消息
+        messages.append({"role": "assistant", "content": fol_prompt})
 
         # 当目标为 google 系列接口时，转换 messages 的格式
         # 当目标为 anthropic 兼容接口时，保持原样
@@ -494,11 +492,11 @@ class TranslatorTask(Base):
                 0,
                 {
                     "role": "system",
-                    "content": system_prompt
+                    "content": system
                 }
             )
 
-        return messages, system_prompt, extra_log
+        return messages, system, extra_log
 
     # 生成指令 - 思考模型
     def generate_prompt_think(self, target_platform: str, api_format: str, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
