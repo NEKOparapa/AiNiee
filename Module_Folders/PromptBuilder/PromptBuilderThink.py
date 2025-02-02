@@ -47,9 +47,9 @@ class PromptBuilderThink(Base):
         for item in result:
             src = item.get("src", "")
             dst = item.get("dst", "")
-            info = item.get("info", None)
+            info = item.get("info", "")
 
-            if info == None:
+            if info == "":
                 dict_lines.append(f"{src} -> {dst}")
             else:
                 dict_lines.append(f"{src} -> {dst} #{info}")
