@@ -223,7 +223,7 @@ class ProjectPage(QFrame, Base):
 
         parent.addWidget(
             PushButtonCard(
-                "输出文件夹（注意：不能与输入文件夹相同）",
+                "输出文件夹（不能与输入文件夹相同）",
                 "",
                 widget_init,
                 widget_callback,
