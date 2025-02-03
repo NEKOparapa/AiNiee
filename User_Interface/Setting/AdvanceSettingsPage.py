@@ -105,17 +105,8 @@ class AdvanceSettingsPage(QFrame, Base):
 
             config = self.load_config()
             config["prompt_preset"] = choice
-
-            message_box = MessageBox("警告", "是否重置自定义基础提示词 ... ？", window)
-            message_box.yesButton.setText("确认")
-            message_box.cancelButton.setText("取消")
-            if message_box.exec():
-                if config.get("prompt_preset", PromptBuilderEnum.COMMON) in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
-                    config["system_prompt_content"] = PromptBuilder.get_system_default(config)
-                elif config.get("prompt_preset", PromptBuilderEnum.COMMON) == PromptBuilderEnum.THINK:
-                    config["system_prompt_content"] = PromptBuilderThink.get_system_default(config)
-
             self.save_config(config)
+            self.success_toast("", "提示词预设规则切换成功，如您在使用自定义提示词功能，建议重置自定义提示词 ...")
 
         parent.addWidget(
             ComboBoxCard(
