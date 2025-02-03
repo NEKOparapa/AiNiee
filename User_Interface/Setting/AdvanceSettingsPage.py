@@ -1,8 +1,13 @@
 from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QLayout
 from PyQt5.QtWidgets import QVBoxLayout
+from qfluentwidgets import MessageBox
+from qfluentwidgets import FluentWindow
 from qfluentwidgets import PillPushButton
 
 from Base.Base import Base
+from Module_Folders.PromptBuilder.PromptBuilder import PromptBuilder
+from Module_Folders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
 from Widget.FlowCard import FlowCard
 from Widget.Separator import Separator
 from Widget.ComboBoxCard import ComboBoxCard
@@ -11,7 +16,7 @@ from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 
 class AdvanceSettingsPage(QFrame, Base):
 
-    def __init__(self, text: str, window) -> None:
+    def __init__(self, text: str, window: FluentWindow) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
@@ -39,22 +44,22 @@ class AdvanceSettingsPage(QFrame, Base):
         self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
         # 添加控件
-        self.add_widget_prompt_language(self.vbox, config)
-        self.add_widget_prompt_preset(self.vbox, config)
+        self.add_widget_prompt_language(self.vbox, config, window)
+        self.add_widget_prompt_preset(self.vbox, config, window)
         self.vbox.addWidget(Separator())
-        self.add_widget_line_breaks(self.vbox, config)
-        self.add_widget_prefix_and_suffix_codes(self.vbox, config)
+        self.add_widget_line_breaks(self.vbox, config, window)
+        self.add_widget_prefix_and_suffix_codes(self.vbox, config, window)
         self.vbox.addWidget(Separator())
-        self.add_widget_opencc(self.vbox, config)
-        self.add_widget_opencc_preset(self.vbox, config)
+        self.add_widget_opencc(self.vbox, config, window)
+        self.add_widget_opencc_preset(self.vbox, config, window)
         self.vbox.addWidget(Separator())
-        self.add_widget_result_check(self.vbox, config)
+        self.add_widget_result_check(self.vbox, config, window)
 
         # 填充
         self.vbox.addStretch(1)
 
     # 中文提示词
-    def add_widget_prompt_language(self, parent, config) -> None:
+    def add_widget_prompt_language(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def widget_init(widget) -> None:
             widget.set_checked(config.get("cn_prompt_toggle"))
 
@@ -73,7 +78,7 @@ class AdvanceSettingsPage(QFrame, Base):
         )
 
     # 提示词预设规则
-    def add_widget_prompt_preset(self, parent, config) -> None:
+    def add_widget_prompt_preset(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         items = {
             "通用": PromptBuilderEnum.COMMON,
             "思维链": PromptBuilderEnum.COT,
@@ -100,6 +105,16 @@ class AdvanceSettingsPage(QFrame, Base):
 
             config = self.load_config()
             config["prompt_preset"] = choice
+
+            message_box = MessageBox("警告", "是否重置自定义基础提示词 ... ？", window)
+            message_box.yesButton.setText("确认")
+            message_box.cancelButton.setText("取消")
+            if message_box.exec():
+                if config.get("prompt_preset", PromptBuilderEnum.COMMON) in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
+                    config["system_prompt_content"] = PromptBuilder.get_system_default(config)
+                elif config.get("prompt_preset", PromptBuilderEnum.COMMON) == PromptBuilderEnum.THINK:
+                    config["system_prompt_content"] = PromptBuilderThink.get_system_default(config)
+
             self.save_config(config)
 
         parent.addWidget(
@@ -117,7 +132,7 @@ class AdvanceSettingsPage(QFrame, Base):
         )
 
     # 保留句内换行符
-    def add_widget_line_breaks(self, parent, config) -> None:
+    def add_widget_line_breaks(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def widget_init(widget) -> None:
             widget.set_checked(config.get("preserve_line_breaks_toggle"))
 
@@ -136,7 +151,7 @@ class AdvanceSettingsPage(QFrame, Base):
         )
 
     # 保留首尾代码段
-    def add_widget_prefix_and_suffix_codes(self, parent, config) -> None:
+    def add_widget_prefix_and_suffix_codes(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def widget_init(widget) -> None:
             widget.set_checked(config.get("preserve_prefix_and_suffix_codes"))
 
@@ -155,7 +170,7 @@ class AdvanceSettingsPage(QFrame, Base):
         )
 
     # 自动简繁转换
-    def add_widget_opencc(self, parent, config) -> None:
+    def add_widget_opencc(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def widget_init(widget) -> None:
             widget.set_checked(config.get("response_conversion_toggle"))
 
@@ -174,7 +189,7 @@ class AdvanceSettingsPage(QFrame, Base):
         )
 
     # 简繁转换预设规则
-    def add_widget_opencc_preset(self, parent, config) -> None:
+    def add_widget_opencc_preset(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def init(widget) -> None:
             widget.set_current_index(max(0, widget.find_text(config.get("opencc_preset"))))
 
@@ -209,13 +224,13 @@ class AdvanceSettingsPage(QFrame, Base):
         )
 
     # 结果检查
-    def add_widget_result_check(self, parent, config) -> None:
+    def add_widget_result_check(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def on_toggled(checked: bool, key) -> None:
             config = self.load_config()
             config["reply_check_switch"][key] = checked
             self.save_config(config)
 
-        def widget_init(widget):
+        def widget_init(widget) -> None:
             pairs = [
                 ("模型退化检查", "Model Degradation Check"),
                 ("原文返回检查", "Return to Original Text Check"),

@@ -1,4 +1,5 @@
 import re
+from types import SimpleNamespace
 
 import rapidjson as json
 
@@ -10,9 +11,8 @@ class PromptBuilder(Base):
     def __init__(self) -> None:
         super().__init__()
 
-    # 获取系统提示词
-    def build_system(config: TranslatorConfig) -> str:
-        # 如果没有读取系统提示词，则从文件读取
+    # 获取默认系统提示词，优先从内存中读取，如果没有，则从文件中读取
+    def get_system_default(config: TranslatorConfig) -> str:
         if getattr(PromptBuilder, "common_system_zh", None) == None:
             with open("./Prompt/common_system_zh.txt", "r", encoding = "utf-8") as reader:
                 PromptBuilder.common_system_zh = reader.read().strip()
@@ -25,6 +25,31 @@ class PromptBuilder(Base):
         if getattr(PromptBuilder, "cot_system_en", None) == None:
             with open("./Prompt/cot_system_en.txt", "r", encoding = "utf-8") as reader:
                 PromptBuilder.cot_system_en = reader.read().strip()
+
+        # 如果输入的是字典，则转换为命名空间
+        if isinstance(config, dict):
+            namespace = SimpleNamespace()
+            for key, value in config.items():
+                setattr(namespace, key, value)
+            config = namespace
+
+        # 构造结果
+        if config == None:
+            result = PromptBuilder.common_system_zh
+        elif config.prompt_preset == PromptBuilderEnum.COMMON and config.cn_prompt_toggle == True:
+            result = PromptBuilder.common_system_zh
+        elif config.prompt_preset == PromptBuilderEnum.COMMON and config.cn_prompt_toggle == False:
+            result = PromptBuilder.common_system_en
+        elif config.prompt_preset == PromptBuilderEnum.COT and config.cn_prompt_toggle == True:
+            result = PromptBuilder.cot_system_zh
+        elif config.prompt_preset == PromptBuilderEnum.COT and config.cn_prompt_toggle == False:
+            result = PromptBuilder.cot_system_en
+
+        return result
+
+    # 获取系统提示词
+    def build_system(config: TranslatorConfig) -> str:
+        PromptBuilder.get_system_default(config)
 
         # 获取原文语言
         if config.source_language == "简中":
@@ -43,7 +68,9 @@ class PromptBuilder(Base):
             target_language = config.target_language
 
         # 构造结果
-        if config.prompt_preset == PromptBuilderEnum.COMMON and config.cn_prompt_toggle == True:
+        if config == None:
+            result = PromptBuilder.common_system_zh
+        elif config.prompt_preset == PromptBuilderEnum.COMMON and config.cn_prompt_toggle == True:
             result = PromptBuilder.common_system_zh
         elif config.prompt_preset == PromptBuilderEnum.COMMON and config.cn_prompt_toggle == False:
             result = PromptBuilder.common_system_en

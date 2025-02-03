@@ -6,12 +6,17 @@ class PromptBuilderThink(Base):
     def __init__(self) -> None:
         super().__init__()
 
-    # 获取系统提示词
-    def build_system(config: TranslatorConfig) -> str:
-        # 如果没有读取系统提示词，则从文件读取
+    # 获取默认系统提示词，优先从内存中读取，如果没有，则从文件中读取
+    def get_system_default(config: TranslatorConfig) -> str:
         if getattr(PromptBuilderThink, "think_system_zh", None) == None:
             with open("./Prompt/think_system_zh.txt", "r", encoding = "utf-8") as reader:
                 PromptBuilderThink.think_system_zh = reader.read().strip()
+
+        return PromptBuilderThink.think_system_zh
+
+    # 获取系统提示词
+    def build_system(config: TranslatorConfig) -> str:
+        PromptBuilderThink.get_system_default(config)
 
         # 获取原文语言
         if config.source_language == "简中":
