@@ -1,9 +1,12 @@
+from PyQt5.QtCore import QEvent
 from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QLayout
 from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import Action
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
+from qfluentwidgets import FluentWindow
 from qfluentwidgets import PlainTextEdit
 
 from Base.Base import Base
@@ -15,19 +18,14 @@ from Module_Folders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
 
 class SystemPromptPage(QFrame, Base):
 
-    def __init__(self, text: str, window) -> None:
+    def __init__(self, text: str, window: FluentWindow) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
-
-        # 读取默认提示词
-        system_prompt_content = ""
-        with open("./Prompt/common_system_zh.txt", "r", encoding = "utf-8") as reader:
-            system_prompt_content = reader.read().strip()
 
         # 默认配置
         self.default = {
             "system_prompt_switch": False,
-            "system_prompt_content": system_prompt_content,
+            "system_prompt_content": PromptBuilder.get_system_default(None),
         }
 
         # 载入并保存默认配置
@@ -42,12 +40,17 @@ class SystemPromptPage(QFrame, Base):
         self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
         # 添加控件
-        self.add_widget_header(self.container, config)
-        self.add_widget_body(self.container, config)
+        self.add_widget_header(self.container, config, window)
+        self.add_widget_body(self.container, config, window)
         self.add_widget_footer(self.container, config, window)
 
+    # 页面每次展示时触发
+    def showEvent(self, event: QEvent) -> None:
+        super().showEvent(event)
+        self.show_event_body(self, event) if callable(getattr(self, "show_event_body", None)) else None
+
     # 头部
-    def add_widget_header(self, parent, config) -> None:
+    def add_widget_header(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def widget_init(widget) -> None:
             widget.set_checked(config.get("system_prompt_switch"))
 
@@ -66,13 +69,17 @@ class SystemPromptPage(QFrame, Base):
         )
 
     # 主体
-    def add_widget_body(self, parent, config) -> None:
+    def add_widget_body(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+        def update_widget(widget: QFrame) -> None:
+            config = self.load_config()
+            self.plain_text_edit.setPlainText(config.get("system_prompt_content"))
+
         self.plain_text_edit = PlainTextEdit(self)
-        self.plain_text_edit.setPlainText(config.get("system_prompt_content"))
+        self.show_event_body = lambda _, event: update_widget(self.plain_text_edit)
         parent.addWidget(self.plain_text_edit)
 
     # 底部
-    def add_widget_footer(self, parent, config, window) -> None:
+    def add_widget_footer(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         self.command_bar_card = CommandBarCard()
         parent.addWidget(self.command_bar_card)
 
@@ -116,15 +123,10 @@ class SystemPromptPage(QFrame, Base):
             config = self.load_config()
 
             # 加载默认设置
-            if config.get("prompt_preset", PromptBuilderEnum.COMMON) == PromptBuilderEnum.COMMON:
-                with open("./Prompt/common_system_zh.txt", "r", encoding = "utf-8") as reader:
-                    config["system_prompt_content"] = reader.read().strip()
-            elif config.get("prompt_preset", PromptBuilderEnum.COMMON) == PromptBuilderEnum.COT:
-                with open("./Prompt/cot_system_zh.txt", "r", encoding = "utf-8") as reader:
-                    config["system_prompt_content"] = reader.read().strip()
+            if config.get("prompt_preset", PromptBuilderEnum.COMMON) in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
+                config["system_prompt_content"] = PromptBuilder.get_system_default(config)
             elif config.get("prompt_preset", PromptBuilderEnum.COMMON) == PromptBuilderEnum.THINK:
-                with open("./Prompt/think_system_zh.txt", "r", encoding = "utf-8") as reader:
-                    config["system_prompt_content"] = reader.read().strip()
+                config["system_prompt_content"] = PromptBuilderThink.get_system_default(config)
 
             # 保存配置文件
             config = self.save_config(config)
