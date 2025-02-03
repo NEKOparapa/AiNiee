@@ -65,8 +65,8 @@ class AdvanceSettingsPage(QFrame, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                "中文提示词",
-                "启用此功能后将使用中文提示词，不启用则使用英文提示词（Sakura 模型固定为中文提示词，无需启用此功能）",
+                "中文提示词（Sakura 模型无需设置此项）",
+                "启用此功能后将使用中文提示词，不启用则使用英文提示词",
                 widget_init,
                 widget_callback,
             )
@@ -104,7 +104,7 @@ class AdvanceSettingsPage(QFrame, Base):
 
         parent.addWidget(
             ComboBoxCard(
-                "提示词预设规则（不支持 Sakura 模型）",
+                "提示词预设规则（Sakura 模型无需设置此项）",
                 (
                     "通用：默认规则，兼容各种非思考模型；"
                     + "\n" + "思维链：即 CoT，显著增加消耗，在强力非思考模型上可以取得更好的翻译效果；"
