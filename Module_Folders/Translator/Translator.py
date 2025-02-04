@@ -155,6 +155,8 @@ class Translator(Base):
         # 从头翻译时加载默认数据
         if continue_status == False:
             self.data = {
+                "total_requests": 0,
+                "error_requests": 0,
                 "start_time": time.time(),
                 "total_line": 0,
                 "line": 0,
@@ -331,6 +333,8 @@ class Translator(Base):
             with self.data_lock:
                 if result.get("check_result") == True:
                     new = {}
+                    new["total_requests"] = self.data.get("total_requests") + 1
+                    new["error_requests"] = self.data.get("error_requests")
                     new["start_time"] = self.data.get("start_time")
                     new["total_line"] = self.data.get("total_line")
                     new["line"] = self.data.get("line") + result.get("row_count", 0)
@@ -340,6 +344,8 @@ class Translator(Base):
                     self.data = new
                 else:
                     new = {}
+                    new["total_requests"] = self.data.get("total_requests") + 1
+                    new["error_requests"] = self.data.get("error_requests") + 1
                     new["start_time"] = self.data.get("start_time")
                     new["total_line"] = self.data.get("total_line")
                     new["line"] = self.data.get("line")
