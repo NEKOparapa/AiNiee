@@ -378,7 +378,7 @@ class TranslatorTask(Base):
         if self.config.system_prompt_switch == True:
             system = self.config.system_prompt_content
         else:
-            system = PromptBuilderThink.build_system(self.config)
+            system = PromptBuilder.build_system(self.config)
 
         # 如果开启指令词典
         glossary = ""

@@ -352,6 +352,11 @@ class TranslatorRequester(Base):
                 api_key = self.get_apikey(),
             )
 
+            # 针对ds-r模型的特殊处理，因为该模型不支持模型预输入回复
+            if self.config.model == "deepseek-reasoner" or self.config.model == "deepseek-r1":
+                messages = messages[:-1]  # 移除最后一个元素
+
+
             response = client.chat.completions.create(
                 model = self.config.model,
                 messages = messages,
