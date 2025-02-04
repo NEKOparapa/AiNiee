@@ -9,7 +9,7 @@ class PromptBuilderThink(Base):
     # 获取默认系统提示词，优先从内存中读取，如果没有，则从文件中读取
     def get_system_default(config: TranslatorConfig) -> str:
         if getattr(PromptBuilderThink, "think_system_zh", None) == None:
-            with open("./Prompt/think_system_zh.txt", "r", encoding = "utf-8") as reader:
+            with open("./Resource/Prompt/think_system_zh.txt", "r", encoding = "utf-8") as reader:
                 PromptBuilderThink.think_system_zh = reader.read().strip()
 
         return PromptBuilderThink.think_system_zh

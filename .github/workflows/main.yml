@@ -30,7 +30,6 @@ jobs:
 
       - name: Pack Resource
         run: |
-          Copy-Item -Path "Prompt" -Destination "dist\Prompt" -Recurse -Force
           Copy-Item -Path "Resource" -Destination "dist\Resource" -Recurse -Force
           Copy-Item -Path "StevExtraction" -Destination "dist\StevExtraction" -Recurse -Force
           Copy-Item -Path "Plugin_Scripts" -Destination "dist\Plugin_Scripts" -Recurse -Force

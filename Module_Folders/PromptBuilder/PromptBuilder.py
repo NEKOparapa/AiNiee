@@ -14,16 +14,16 @@ class PromptBuilder(Base):
     # 获取默认系统提示词，优先从内存中读取，如果没有，则从文件中读取
     def get_system_default(config: TranslatorConfig) -> str:
         if getattr(PromptBuilder, "common_system_zh", None) == None:
-            with open("./Prompt/common_system_zh.txt", "r", encoding = "utf-8") as reader:
+            with open("./Resource/Prompt/common_system_zh.txt", "r", encoding = "utf-8") as reader:
                 PromptBuilder.common_system_zh = reader.read().strip()
         if getattr(PromptBuilder, "common_system_en", None) == None:
-            with open("./Prompt/common_system_en.txt", "r", encoding = "utf-8") as reader:
+            with open("./Resource/Prompt/common_system_en.txt", "r", encoding = "utf-8") as reader:
                 PromptBuilder.common_system_en = reader.read().strip()
         if getattr(PromptBuilder, "cot_system_zh", None) == None:
-            with open("./Prompt/cot_system_zh.txt", "r", encoding = "utf-8") as reader:
+            with open("./Resource/Prompt/cot_system_zh.txt", "r", encoding = "utf-8") as reader:
                 PromptBuilder.cot_system_zh = reader.read().strip()
         if getattr(PromptBuilder, "cot_system_en", None) == None:
-            with open("./Prompt/cot_system_en.txt", "r", encoding = "utf-8") as reader:
+            with open("./Resource/Prompt/cot_system_en.txt", "r", encoding = "utf-8") as reader:
                 PromptBuilder.cot_system_en = reader.read().strip()
 
         # 如果输入的是字典，则转换为命名空间

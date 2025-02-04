@@ -5,7 +5,7 @@ class Bilingual_Comparison(PluginBase):
     def __init__(self):
         super().__init__()
         self.name = "Bilingual_Comparison_Plugin"
-        self.description = "翻译完成后，输出双语对照结果"
+        self.description = "双语对照插件"+ "\n"+ "最后输出的翻译内容会是【原文+换行符+译文】的双语组合，请谨慎开启"
 
         self.visibility = True  # 是否在插件设置中显示
         self.default_enable = False  # 默认启用状态

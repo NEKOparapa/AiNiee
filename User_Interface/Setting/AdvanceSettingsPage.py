@@ -6,8 +6,6 @@ from qfluentwidgets import FluentWindow
 from qfluentwidgets import PillPushButton
 
 from Base.Base import Base
-from Module_Folders.PromptBuilder.PromptBuilder import PromptBuilder
-from Module_Folders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
 from Widget.FlowCard import FlowCard
 from Widget.Separator import Separator
 from Widget.ComboBoxCard import ComboBoxCard
