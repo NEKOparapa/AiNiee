@@ -42,15 +42,6 @@ class PlatformPage(QFrame, Base):
         "account": "",
         "auto_complete": True,
         "model_datas": [
-            "gpt-4o",
-            "gpt-4o-mini",
-            "gpt-4-turbo",
-            "gpt-3.5-turbo",
-            "claude-3-haiku",
-            "claude-3-sonnet",
-            "claude-3-opus",
-            "claude-3-5-haiku",
-            "claude-3-5-sonnet",
         ],
         "format_datas": [
             "OpenAI",
@@ -172,7 +163,8 @@ class PlatformPage(QFrame, Base):
                     platform[k] = v
 
                 # 如果字段不属于用户自定义字段，且不在保护字段范围内，则使用预设数据更新该字段的值
-                if k not in self.CUSTOM.get("key_in_settings", []) and k not in ("tag", "name", "group"):
+                # 模型数据除外
+                if k not in self.CUSTOM.get("key_in_settings", []) and k not in ("tag", "name", "group", "model_datas"):
                     platform[k] = v
 
         # 汇总数据并更新配置数据中的接口信息
@@ -197,6 +189,26 @@ class PlatformPage(QFrame, Base):
 
         # 更新控件
         self.update_custom_platform_widgets(self.flow_card)
+
+    def rename_platform(self, tag: str):
+        """重命名方法"""
+        def save_new_name(text: str):
+            if text.strip():
+                config = self.load_config()
+                config["platforms"][tag]["name"] = text.strip()
+                self.save_config(config)
+                # 更新显示
+                self.update_custom_platform_widgets(self.flow_card)
+                self.success_toast("", "接口重命名成功✅")
+
+        # 弹出输入对话框
+        message_box = LineEditMessageBox(
+            self.window,
+            "请输入新的接口名称...",
+            message_box_close=lambda widget, text: save_new_name(text)
+        )
+        message_box.line_edit.setText(self.load_config()["platforms"][tag]["name"])
+        message_box.exec()
 
     # 生成 UI 描述数据
     def generate_ui_datas(self, platforms: dict, is_custom: bool) -> list:
@@ -255,6 +267,11 @@ class PlatformPage(QFrame, Base):
                                 FluentIcon.SEND,
                                 "测试接口",
                                 partial(self.api_test, k),
+                            ),
+                            (
+                                FluentIcon.LABEL,
+                                "重命名",
+                                partial(self.rename_platform, k),  # 新增重命名方法
                             ),
                             (
                                 FluentIcon.DELETE,

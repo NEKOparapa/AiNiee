@@ -201,6 +201,35 @@ class APIEditPage(MessageBoxBase, Base):
             config = self.load_config()
             config["platforms"][self.key]["model"] = text.strip()
             self.save_config(config)
+        
+        def on_delete(widget):
+            config = self.load_config()
+            current_text = widget.get_current_text()
+            print(current_text)
+            print(config["platforms"][self.key]["model_datas"])
+            if current_text in config["platforms"][self.key]["model_datas"]:
+                config["platforms"][self.key]["model_datas"].remove(current_text)
+                self.save_config(config)
+                # 更新显示
+                widget.set_items(config.get("platforms").get(self.key).get("model_datas"))
+                self.success_toast("删除成功", "模型已从列表中删除")
+            else:
+                self.warning_toast("删除失败", "该模型不在预设列表中")
+
+        def on_add(widget):
+            # 添加当前模型到列表中
+            config = self.load_config()
+            model_name = config.get("platforms").get(self.key).get("model")
+            if not model_name:
+                self.warning_toast("添加失败", "请先输入模型名称")
+                return
+            if model_name not in config.get("platforms").get(self.key).get("model_datas"):
+                config.get("platforms").get(self.key).get("model_datas").append(model_name)
+                self.save_config(config)
+                widget.set_items(config.get("platforms").get(self.key).get("model_datas"))
+                self.success_toast("添加成功", "模型已添加到列表中")
+            else:
+                self.warning_toast("添加失败", "该模型已存在")
 
         parent.addWidget(
             EditableComboBoxCard(
@@ -209,5 +238,7 @@ class APIEditPage(MessageBoxBase, Base):
                 [],
                 init = init,
                 current_text_changed = current_text_changed,
+                delete_function = on_delete,
+                add_function = on_add,
             )
         )

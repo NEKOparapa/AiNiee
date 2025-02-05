@@ -1,15 +1,17 @@
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
+from PyQt5.QtCore import pyqtSignal
 
-from qfluentwidgets import CardWidget
+from qfluentwidgets import FluentIcon
+from qfluentwidgets import CardWidget,ToolButton
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import StrongBodyLabel
 from qfluentwidgets import EditableComboBox
 
 class EditableComboBoxCard(CardWidget):
 
-    def __init__(self, title: str, description: str, items: list[str], init = None, current_text_changed = None, current_index_changed = None):
+    def __init__(self, title: str, description: str, items: list[str], init = None, current_text_changed = None, current_index_changed = None,delete_function = None,add_function = None):
         super().__init__(None)
 
         # 设置容器
@@ -32,9 +34,24 @@ class EditableComboBoxCard(CardWidget):
         self.container.addStretch(1)
 
         # 下拉框控件
+        self.hbox = QHBoxLayout()
+        # 添加按钮
+        self.add_button = ToolButton(FluentIcon.ADD.icon(color='#19D03A'), self)
+        self.add_button.setFixedSize(30, 30)
+        self.hbox.addWidget(self.add_button)
+        # 下拉框
         self.combo_box = EditableComboBox(self)
         self.combo_box.addItems(items)
-        self.container.addWidget(self.combo_box)
+        self.hbox.addWidget(self.combo_box)
+        
+        
+        # 删除按钮
+        self.delete_button = ToolButton(FluentIcon.DELETE.icon(color='#f1356d'), self)
+        self.delete_button.setFixedSize(30, 30)
+        
+
+        self.hbox.addWidget(self.delete_button)
+        self.container.addLayout(self.hbox)
 
         if init:
             init(self)
@@ -44,6 +61,12 @@ class EditableComboBoxCard(CardWidget):
 
         if current_index_changed:
             self.combo_box.currentIndexChanged.connect(lambda index: current_index_changed(self, index))
+        
+        if delete_function:
+            self.delete_button.clicked.connect(lambda: delete_function(self))
+
+        if add_function:
+            self.add_button.clicked.connect(lambda: add_function(self))
 
     # 设置列表条目
     def set_items(self, items: list) -> None:
@@ -69,3 +92,15 @@ class EditableComboBoxCard(CardWidget):
     # 设置占位符
     def set_placeholder_text(self, text:str) -> None:
         self.combo_box.setPlaceholderText(text)
+
+    def set_delete_button_visible(self, visible: bool) -> None:
+    
+        self.delete_button.setVisible(visible)
+    
+    def set_add_button_visible(self, visible: bool) -> None:
+        self.add_button.setVisible(visible)
+
+    def set_extra_button_visible(self, visible: bool) -> None:
+        self.set_add_button_visible(visible)
+        self.set_delete_button_visible(visible)
+    
