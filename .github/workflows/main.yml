@@ -2,8 +2,6 @@ name: AiNiee-chatgpt Action monitors the main branch commit and automatically pa
 on:
   workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
   push:
-    branches:
-      - main
     tags:
       - "v*" # 匹配所有以v开头的标签，比如 v1.0.0
 

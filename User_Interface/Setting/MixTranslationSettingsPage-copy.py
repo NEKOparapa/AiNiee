@@ -94,6 +94,7 @@ class MixTranslationSettingsPage(QFrame, Base):
     # 通过接口名字获取标签
     def find_tag_by_name(self, config, name: str) -> str:
         results = [v.get("tag") for k, v in config.get("platforms").items() if v.get("name") == name]
+        print(f"find_tag_by_name results: {results}")
         if len(results) > 0:
             return results[0]
         else:
@@ -172,39 +173,27 @@ class MixTranslationSettingsPage(QFrame, Base):
 
     # 第二轮
     def add_widget_03(self, parent, config):
-        # 添加一个引用来存储model card widget
-        self.model_card_widget_2 = None
-
-        # 使其对所有内部函数可见
-        def update_model_widget(widget):
-            config = self.load_config()
-            platform = config.get("mix_translation_settings").get("translation_platform_2")
-            model_datas = self.get_model_datas_by_platform(config, platform)
-            if model_datas:
-                widget.set_items(model_datas)
-                model = config.get("mix_translation_settings").get("model_type_2")
-                widget.set_current_index(max(0, widget.find_text(model)))
 
         def add_translation_platform_2_card(parent):
+
             def update_widget(widget):
                 config = self.load_config()
+
                 widget.set_items(self.get_items(config))
                 widget.set_current_index(max(0, widget.find_text(self.find_name_by_tag(config, config.get("mix_translation_settings").get("translation_platform_2")))))
 
             def init(widget):
+                # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
                 self.on_show_event.append(
                     lambda _, event: update_widget(widget)
                 )
 
             def current_text_changed(widget, text: str):
                 config = self.load_config()
-                platform_tag = self.find_tag_by_name(config, text)
-                config["mix_translation_settings"]["translation_platform_2"] = platform_tag
+
+                config["mix_translation_settings"]["translation_platform_2"] = self.find_tag_by_name(config, text)
+                self.info(f"platform_2: {config.get('mix_translation_settings').get('translation_platform_2')}")
                 self.save_config(config)
-                
-                # 立即更新模型列表
-                if self.model_card_widget_2:
-                    update_model_widget(self.model_card_widget_2)
 
             parent.addWidget(
                 ComboBoxCard(
@@ -217,27 +206,40 @@ class MixTranslationSettingsPage(QFrame, Base):
             )
 
         def add_custom_model_siwtch_2_card(parent):
+            def update_widget(widget):
+                config = self.load_config()
+                # 改成下拉选择
+                platform = config.get("mix_translation_settings").get("translation_platform_2")
+                model_datas = self.get_model_datas_by_platform(config, platform)
+                print(f"model_datas: {model_datas}")
+                widget.set_items(model_datas)
+                model = config.get("mix_translation_settings").get("model_type_2")
+                self.info(f"model: {model}")
+                widget.set_current_index(max(0, widget.find_text(model)))
+            
             def widget_init(widget):
-                
-                self.model_card_widget_2 = widget
+                # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
                 self.on_show_event.append(
-                    lambda _, event: update_model_widget(widget)
+                    lambda _, event: update_widget(widget)
                 )
 
             def widget_callback(widget, text: str):
                 config = self.load_config()
+                print(f"text: {text}")
                 model_name = text.strip()
+                self.info(f"model_name: {model_name}")
                 config["mix_translation_settings"]["model_type_2"] = model_name
                 self.save_config(config)
 
-            model_card = ComboBoxCard(
-                "覆盖模型名称",
-                "在进行第二轮的翻译时，将使用此模型名称覆盖原有的应用设置，留空为不覆盖原有模型名称",
-                [],
-                init=widget_init,
-                current_text_changed=widget_callback,
+            parent.addWidget(
+                ComboBoxCard(
+                    "覆盖模型名称",
+                    "在进行第二轮的翻译时，将使用此模型名称覆盖原有的应用设置，留空为不覆盖原有模型名称",
+                    [],
+                    init=widget_init,
+                    current_text_changed=widget_callback,
+                )
             )
-            parent.addWidget(model_card)
 
         def add_split_switch_2_card(parent):
             def widget_init(widget):
@@ -272,38 +274,26 @@ class MixTranslationSettingsPage(QFrame, Base):
 
     # 后续轮次
     def add_widget_04(self, parent, config):
-        self.model_card_widget_3 = None
-
-        
-        def update_model_widget(widget):
-            config = self.load_config()
-            platform = config.get("mix_translation_settings").get("translation_platform_3")
-            model_datas = self.get_model_datas_by_platform(config, platform)
-            if model_datas:
-                widget.set_items(model_datas)
-                model = config.get("mix_translation_settings").get("model_type_3")
-                widget.set_current_index(max(0, widget.find_text(model)))
 
         def add_translation_platform_3_card(parent):
+
             def update_widget(widget):
                 config = self.load_config()
+
                 widget.set_items(self.get_items(config))
                 widget.set_current_index(max(0, widget.find_text(self.find_name_by_tag(config, config.get("mix_translation_settings").get("translation_platform_3")))))
 
             def init(widget):
+                # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
                 self.on_show_event.append(
                     lambda _, event: update_widget(widget)
                 )
 
             def current_text_changed(widget, text: str):
                 config = self.load_config()
-                platform_tag = self.find_tag_by_name(config, text)
-                config["mix_translation_settings"]["translation_platform_3"] = platform_tag
+
+                config["mix_translation_settings"]["translation_platform_3"] = self.find_tag_by_name(config, text)
                 self.save_config(config)
-                
-                # 立即更新模型列表
-                if self.model_card_widget_3:
-                    update_model_widget(self.model_card_widget_3)
 
             parent.addWidget(
                 ComboBoxCard(
@@ -317,25 +307,22 @@ class MixTranslationSettingsPage(QFrame, Base):
 
         def add_custom_model_siwtch_3_card(parent):
             def widget_init(widget):
-                self.model_card_widget_3 = widget
-                self.on_show_event.append(
-                    lambda _, event: update_model_widget(widget)
-                )
+                widget.set_text(config.get("mix_translation_settings").get("model_type_3"))
+                widget.set_placeholder_text("请输入模型名称 ...")
 
             def widget_callback(widget, text: str):
                 config = self.load_config()
-                model_name = text.strip()
-                config["mix_translation_settings"]["model_type_3"] = model_name
+                config["mix_translation_settings"]["model_type_3"] = text.strip()
                 self.save_config(config)
 
-            model_card = ComboBoxCard(
-                "覆盖模型名称",
-                "在进行后续轮次的翻译时，将使用此模型名称覆盖原有的应用设置，留空为不覆盖原有模型名称",
-                [],
-                init=widget_init,
-                current_text_changed=widget_callback,
+            parent.addWidget(
+                LineEditCard(
+                    "覆盖模型名称",
+                    "在进行后续轮次的翻译时，将使用此模型名称覆盖原有的应用设置，留空为不覆盖原有模型名称",
+                    widget_init,
+                    widget_callback,
+                )
             )
-            parent.addWidget(model_card)
 
         def add_split_switch_3_card(parent):
             def widget_init(widget):

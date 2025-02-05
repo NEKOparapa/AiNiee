@@ -180,6 +180,7 @@ class Translator(Base):
 
         # 开始循环
         for current_round in range(self.config.round_limit + 1):
+            self.info("-------------------------新的轮次开始-------------------------")
             # 检测是否需要停止任务
             if Base.work_status == Base.STATUS.STOPING:
                 # 循环次数比实际最大轮次要多一轮，当触发停止翻译的事件时，最后都会从这里退出任务
@@ -189,6 +190,12 @@ class Translator(Base):
 
             # 获取 待翻译 状态的条目数量
             item_count_status_untranslated = self.cache_manager.get_item_count_by_status(CacheItem.STATUS.UNTRANSLATED)
+            
+            # 混合翻译参数
+            split, model = True, None
+            if self.config.mix_translation_enable == True:
+                split, model, self.config.target_platform = self.generate_mix_translation_params(current_round)
+            
 
             # 判断是否需要继续翻译
             if item_count_status_untranslated == 0:
@@ -208,13 +215,13 @@ class Translator(Base):
             if current_round == 0 and continue_status == False:
                 self.data["total_line"] = item_count_status_untranslated
 
-            # 第二轮开始对半切分
-            if current_round > 0:
+           # 第二轮开始对半切分
+            if current_round > 0 and split == True:
                 self.config.lines_limit = max(1, int(self.config.lines_limit / 2))
                 self.config.tokens_limit = max(1, int(self.config.tokens_limit / 2))
 
             # 配置翻译平台信息
-            self.config.prepare_for_translation()
+            self.config.prepare_for_translation(model)
 
             # 配置请求限制器，依赖前面的配置信息
             self.request_limiter.set_limit(self.config.max_tokens, self.config.tpm_limit, self.config.rpm_limit)
@@ -309,6 +316,24 @@ class Translator(Base):
         # 触发翻译停止完成的事件
         self.emit(Base.EVENT.TRANSLATION_STOP_DONE, {})
         self.plugin_manager.broadcast_event("translation_completed", self.config, None)
+    
+    def generate_mix_translation_params(self, current_round: int) -> tuple[bool, str, str]:
+        split = True
+        model = None
+        if current_round == 0:
+            target_platform = self.config.mix_translation_settings.get("translation_platform_1")
+        elif current_round == 1:
+            split = self.config.mix_translation_settings.get("split_switch_2")
+            target_platform = self.config.mix_translation_settings.get("translation_platform_2")
+            if self.config.mix_translation_settings.get("model_type_2") != "":
+                model = self.config.mix_translation_settings.get("model_type_2")
+        elif current_round >= 2:
+            split = self.config.mix_translation_settings.get("split_switch_3")
+            target_platform = self.config.mix_translation_settings.get("translation_platform_3")
+            if self.config.mix_translation_settings.get("model_type_3") != "":
+                model = self.config.mix_translation_settings.get("model_type_3")
+
+        return split, model, target_platform
 
     # 执行简繁转换
     def convert_simplified_and_traditional(self, preset: str, cache_list: list[dict]) -> list[dict]:

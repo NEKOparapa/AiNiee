@@ -178,7 +178,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.plugins_settings_page = PluginsSettingsPage("plugins_settings_page", self, plugin_manager)
         self.addSubInterface(self.plugins_settings_page, FluentIcon.COMMAND_PROMPT, "插件设置", NavigationItemPosition.SCROLL)
         self.mix_translation_settings_page = MixTranslationSettingsPage("mix_translation_settings_page", self)
-        self.addSubInterface(self.mix_translation_settings_page, FluentIcon.COMMAND_PROMPT, "混合翻译", NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.mix_translation_settings_page, FluentIcon.EMOJI_TAB_SYMBOLS, "混合翻译", NavigationItemPosition.SCROLL)
 
     # 添加第三节
     def add_quality_pages(self, plugin_manager: PluginManager) -> None:

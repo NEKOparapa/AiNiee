@@ -51,9 +51,9 @@ class TranslatorConfig(Base):
             self.info(f"根据 llama.cpp 接口信息，自动设置同时执行的翻译任务数量为 {self.actual_thread_counts} 个 ...")
 
     # 准备翻译
-    def prepare_for_translation(self) -> None:
+    def prepare_for_translation(self, model: str = None) -> None:
         # 获取模型类型
-        self.model = self.platforms.get(self.target_platform).get("model")
+        self.model = model if model != None else self.platforms.get(self.target_platform).get("model")
 
         # 解析密钥字符串
         # 即使字符中没有逗号，split(",") 方法仍然会返回只包含一个完整字符串的列表
