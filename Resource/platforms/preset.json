@@ -40,8 +40,8 @@
             "tpm_limit": 4096000,
             "token_limit": 4096,
             "model": "command-r-plus",
-            "top_p": 0.75,
-            "temperature": 0.3,
+            "top_p": 0.95,
+            "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
             "account": "试用账号",
@@ -636,10 +636,40 @@
                 "top_p"
             ]
         },
+        "volcengine": {
+            "tag": "volcengine",
+            "group": "online",
+            "name": "火山引擎",
+            "api_url": "https://ark.cn-beijing.volces.com/api/v3",
+            "api_key": "",
+            "api_format": "",
+            "rpm_limit": 10000,
+            "tpm_limit": 8000000,
+            "token_limit": 30000,
+            "model": "请填入推理接入点ID",
+            "top_p": 1.0,
+            "temperature": 1.0,
+            "presence_penalty": 0.0,
+            "frequency_penalty": 0.0,
+            "account": "",
+            "auto_complete": false,
+            "model_datas": [
+                "请填入推理接入点ID"
+            ],
+            "account_datas": {},
+            "key_in_settings": [
+                "api_key",
+                "model",
+                "top_p",
+                "temperature",
+                "presence_penalty",
+                "frequency_penalty"
+            ]
+        },
         "dashscope": {
             "tag": "dashscope",
             "group": "online",
-            "name": "DashScope",
+            "name": "阿里云百炼",
             "api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
             "api_key": "",
             "api_format": "",
@@ -695,7 +725,7 @@
         "zhipu": {
             "tag": "zhipu",
             "group": "online",
-            "name": "智谱",
+            "name": "智谱清言",
             "api_url": "https://open.bigmodel.cn/api/paas/v4",
             "api_key": "",
             "api_format": "",

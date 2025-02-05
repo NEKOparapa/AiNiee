@@ -23,7 +23,8 @@ from User_Interface.Project.ArgsEditPage import ArgsEditPage
 from User_Interface.Project.LimitEditPage import LimitEditPage
 
 class PlatformPage(QFrame, Base):
-
+    
+    # 自定义平台默认配置
     CUSTOM = {
         "tag": "",
         "group": "custom",
@@ -312,7 +313,7 @@ class PlatformPage(QFrame, Base):
             self.generate_ui_datas(platforms, True)
         )
 
-    # 添加头部
+    # 添加头部-本地接口
     def add_head_widget(self, parent, config):
         def init(widget):
             # 添加按钮
@@ -337,7 +338,7 @@ class PlatformPage(QFrame, Base):
             )
         )
 
-    # 添加主体
+    # 添加主体-在线接口
     def add_body_widget(self, parent, config):
         platforms = {k:v for k, v in config.get("platforms").items() if v.get("group") == "online"}
         parent.addWidget(
@@ -351,7 +352,7 @@ class PlatformPage(QFrame, Base):
             )
         )
 
-    # 添加底部
+    # 添加底部-自定义接口
     def add_foot_widget(self, parent, config):
 
         def message_box_close(widget, text: str):
