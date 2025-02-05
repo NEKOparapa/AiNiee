@@ -39,6 +39,15 @@ from Module_Folders.Translator.Translator import Translator
 from Module_Folders.Request_Tester.Request import Request_Tester
 from User_Interface.AppFluentWindow import AppFluentWindow
 
+def display_banner():
+    print(" █████  ██ ███    ██ ██ ███████ ███████ ")
+    print("██   ██ ██ ████   ██ ██ ██      ██      ")
+    print("███████ ██ ██ ██  ██ ██ █████   █████   ")
+    print("██   ██ ██ ██  ██ ██ ██ ██      ██      ")
+    print("██   ██ ██ ██   ████ ██ ███████ ███████ ")
+    print("                                        ")
+    print("                                        ")
+
 # 载入配置文件
 def load_config() -> dict:
     config = {}
@@ -61,6 +70,7 @@ if __name__ == "__main__":
     # 设置工作目录
     script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     sys.path.append(script_dir)
+    display_banner()
     print(f"[[green]INFO[/]] 当前工作目录为 {script_dir}")
 
     # 创建全局插件管理器

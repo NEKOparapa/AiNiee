@@ -20,6 +20,7 @@ from User_Interface.BaseNavigationItem import BaseNavigationItem
 from User_Interface.Project.ProjectPage import ProjectPage
 from User_Interface.Project.PlatformPage import PlatformPage
 from User_Interface.Project.TranslationPage import TranslationPage
+from User_Interface.Setting.MixTranslationSettingsPage import MixTranslationSettingsPage
 from User_Interface.Setting.BasicSettingsPage import BasicSettingsPage
 from User_Interface.Setting.AdvanceSettingsPage import AdvanceSettingsPage
 from User_Interface.Setting.PluginsSettingsPage import PluginsSettingsPage
@@ -176,6 +177,8 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.addSubInterface(self.advance_settings_page, FluentIcon.ALBUM, "高级设置", NavigationItemPosition.SCROLL)
         self.plugins_settings_page = PluginsSettingsPage("plugins_settings_page", self, plugin_manager)
         self.addSubInterface(self.plugins_settings_page, FluentIcon.COMMAND_PROMPT, "插件设置", NavigationItemPosition.SCROLL)
+        self.mix_translation_settings_page = MixTranslationSettingsPage("mix_translation_settings_page", self)
+        self.addSubInterface(self.mix_translation_settings_page, FluentIcon.COMMAND_PROMPT, "混合翻译", NavigationItemPosition.SCROLL)
 
     # 添加第三节
     def add_quality_pages(self, plugin_manager: PluginManager) -> None:
