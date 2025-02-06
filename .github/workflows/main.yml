@@ -36,6 +36,7 @@ jobs:
           Copy-Item -Path "StevExtraction" -Destination "dist\StevExtraction" -Recurse -Force
           Copy-Item -Path "Plugin_Scripts" -Destination "dist\Plugin_Scripts" -Recurse -Force
           Compress-Archive -Path "dist" -DestinationPath "AiNiee-$tagName.zip"
+          echo "TAG_NAME=$tagName" >> $env:GITHUB_ENV
 
       - name: Create Release
         id: create_release
@@ -48,5 +49,4 @@ jobs:
           body: TODO new release
           draft: true
           prerelease: false
-          files: |
-            AiNiee-$(("${{ github.ref_name }}" -replace '^v','')).zip
+          files: AiNiee-${{ env.TAG_NAME }}.zip
