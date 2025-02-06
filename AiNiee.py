@@ -40,11 +40,11 @@ from Module_Folders.Request_Tester.Request import Request_Tester
 from User_Interface.AppFluentWindow import AppFluentWindow
 
 def display_banner():
-    print(" █████  ██ ███    ██ ██ ███████ ███████ ")
-    print("██   ██ ██ ████   ██ ██ ██      ██      ")
-    print("███████ ██ ██ ██  ██ ██ █████   █████   ")
-    print("██   ██ ██ ██  ██ ██ ██ ██      ██      ")
-    print("██   ██ ██ ██   ████ ██ ███████ ███████ ")
+    print(" █████   ██  ███    ██  ██  ███████  ███████ ")
+    print("██   ██  ██  ████   ██  ██  ██       ██      ")
+    print("███████  ██  ██ ██  ██  ██  █████    █████   ")
+    print("██   ██  ██  ██  ██ ██  ██  ██       ██      ")
+    print("██   ██  ██  ██   ████  ██  ███████  ███████ ")
     print("                                        ")
     print("                                        ")
 

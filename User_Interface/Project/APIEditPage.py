@@ -205,8 +205,9 @@ class APIEditPage(MessageBoxBase, Base):
         def on_delete(widget):
             config = self.load_config()
             current_text = widget.get_current_text()
-            print(current_text)
-            print(config["platforms"][self.key]["model_datas"])
+            if current_text == "":
+                self.warning_toast("删除失败", "请先输入模型名称")
+                return
             if current_text in config["platforms"][self.key]["model_datas"]:
                 config["platforms"][self.key]["model_datas"].remove(current_text)
                 self.save_config(config)
