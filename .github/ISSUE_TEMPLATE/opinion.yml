@@ -1,0 +1,48 @@
+name: "意见或建议"
+description: "如果你有对项目的需求、功能建议、或其他意见，请使用此模板。"
+title: "[Opinion]: "
+labels: ["enhancement", "discussion"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **⚠ 注意：此处不用于反馈代码报错或编译问题，如果是bug问题反馈，请使用 [问题反馈模板](?template=bug_issue.yml)。**  
+        感谢你的宝贵意见或建议，我们会酌情采纳！
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: "意见/建议内容"
+      description: "请简要描述你的想法或建议。"
+      placeholder: "例如：希望新增xx功能，或者修改xx逻辑。"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: "为什么需要这个功能或修改？"
+      description: "简单说明你提出此意见/建议的原因或背景需求。"
+      placeholder: "例如：在实际项目中遇到xx需求场景；希望提升xx效率；等等。"
+    validations:
+      required: true
+
+  - type: input
+    id: relevance
+    attributes:
+      label: "相关链接或参考"
+      description: "如果你有看到类似实现或参考资料，可在此提供链接。"
+      placeholder: "例如：相关文档链接、RFC、规范文档等"
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: "补充信息"
+      description: "如果有更多信息，可在此补充。"
+      placeholder: "任何与意见或建议相关的额外说明..."
+    validations:
+      required: false

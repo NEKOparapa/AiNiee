@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report!
+        请按照实际情况填写这个反馈模板，带*的为必填项
 
   - type: textarea
     id: bug-description
@@ -65,9 +65,10 @@ body:
     id: translation-split-mode
     attributes:
       label: 翻译任务切分模式
+      description: 基础设置中设置的翻译任务切分模式(下面的根据这个填写)
       options:
-        - 行数
-        - token
+        - 行数模式
+        - Token模式
     validations:
       required: true
 
@@ -75,27 +76,34 @@ body:
     id: translation-line-count
     attributes:
       label: 翻译任务的文本行数
+      description: 基础设置中设置的翻译任务的文本行数
     validations:
-      required: true
+      required: false
 
   - type: input
     id: translation-token-count
     attributes:
       label: 翻译任务的token数量
+      description: 基础设置中设置的翻译任务的token数量
     validations:
-      required: true
+      required: false
 
   - type: input
     id: parallel-tasks
     attributes:
       label: 并行翻译任务数
+      description: 基础设置中设置的并发任务数
     validations:
       required: true
 
-  - type: input
+  - type: dropdown
     id: chinese-prompt
     attributes:
       label: 中文提示词
+      description: 是否启用中文提示词功能
+      options:
+        - 启用
+        - 禁用
     validations:
       required: false
 
@@ -141,7 +149,7 @@ body:
     id: prompt-content
     attributes:
       label: 提示词内容
-      description: 如果启用则填入
+      description: 如果启用了中文提示词，请在此填写具体内容
     validations:
       required: false
 
@@ -157,5 +165,7 @@ body:
     id: additional-context
     attributes:
       label: 额外补充
-      description: Add any other context about the problem here.
+      description: 如有其他需要补充的信息，请在此说明
+      placeholder: 请详细描述其他相关信息...
     validations:
+      required: false
