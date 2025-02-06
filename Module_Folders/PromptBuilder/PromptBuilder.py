@@ -456,7 +456,7 @@ class PromptBuilder(Base):
 
         # 如果没有含有字典内容
         if temp_dict == {}:
-            return None
+            return ""
 
         if config.cn_prompt_toggle == True:
             profile = "###角色介绍"

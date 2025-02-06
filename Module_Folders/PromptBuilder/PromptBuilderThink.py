@@ -92,7 +92,13 @@ class PromptBuilderThink(Base):
         if dict_lines == []:
             return ""
         else:
-            return (
-                "###术语表："
-                + "\n" + "\n".join(dict_lines)
-            )
+            if config.cn_prompt_toggle == True:
+                return (
+                    "###术语表"
+                    + "\n" + "\n".join(dict_lines)
+                )
+            else:
+                return (
+                    "###Glossary"
+                    + "\n" + "\n".join(dict_lines)
+                )                
