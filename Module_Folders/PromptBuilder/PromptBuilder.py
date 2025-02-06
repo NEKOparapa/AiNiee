@@ -26,6 +26,7 @@ class PromptBuilder(Base):
             with open("./Resource/Prompt/cot_system_en.txt", "r", encoding = "utf-8") as reader:
                 PromptBuilder.cot_system_en = reader.read().strip()
 
+
         # 如果输入的是字典，则转换为命名空间
         if isinstance(config, dict):
             namespace = SimpleNamespace()
@@ -51,22 +52,17 @@ class PromptBuilder(Base):
     def build_system(config: TranslatorConfig) -> str:
         PromptBuilder.get_system_default(config)
 
-        # 获取原文语言
-        if config.source_language == "简中":
-            source_language = "简体中文"
-        elif config.source_language == "繁中":
-            source_language = "繁体中文"
-        else:
-            source_language = config.source_language
+        pair = {
+            "日语": "Japanese",
+            "英语": "English",
+            "韩语": "Korean", 
+            "俄语": "Russian",
+            "简中": "Simplified Chinese",
+            "繁中": "Traditional Chinese"
+        }
 
-        # 获取目标语言
-        if config.target_language == "简中":
-            target_language = "简体中文"
-        elif config.target_language == "繁中":
-            target_language = "繁体中文"
-        else:
-            target_language = config.target_language
-
+        source_language = config.source_language
+        target_language = config.target_language
         # 构造结果
         if config == None:
             result = PromptBuilder.common_system_zh
@@ -74,10 +70,14 @@ class PromptBuilder(Base):
             result = PromptBuilder.common_system_zh
         elif config.prompt_preset == PromptBuilderEnum.COMMON and config.cn_prompt_toggle == False:
             result = PromptBuilder.common_system_en
+            source_language = pair[config.source_language]
+            target_language = pair[config.target_language]
         elif config.prompt_preset == PromptBuilderEnum.COT and config.cn_prompt_toggle == True:
             result = PromptBuilder.cot_system_zh
         elif config.prompt_preset == PromptBuilderEnum.COT and config.cn_prompt_toggle == False:
             result = PromptBuilder.cot_system_en
+            source_language = pair[config.source_language]
+            target_language = pair[config.target_language]
 
         return result.replace("{source_language}", source_language).replace("{target_language}", target_language).strip()
 
@@ -389,7 +389,7 @@ class PromptBuilder(Base):
         return source_list3, translated_list3
 
     # 构造术语表
-    def build_glossary_prompt(config: TranslatorConfig, input_dict: dict) -> tuple[str, str]:
+    def build_glossary_prompt(config: TranslatorConfig, input_dict: dict) -> str:
         # 将输入字典中的所有值转换为集合
         lines = set(line for line in input_dict.values())
 
@@ -401,11 +401,10 @@ class PromptBuilder(Base):
 
         # 数据校验
         if len(result) == 0:
-            return "", ""
+            return ""
 
         # 初始化变量，以免出错
         glossary_prompt_lines = []
-        glossary_prompt_lines_cot = []
 
         if config.cn_prompt_toggle == True:
             # 添加开头
@@ -414,16 +413,13 @@ class PromptBuilder(Base):
                 + "\n" + "|\t原文\t|\t译文\t|\t备注\t|"
                 + "\n" + ("-" * 50)
             )
-            glossary_prompt_lines_cot.append("- 术语表：提供了")
 
             # 添加数据
             for v in result:
                 glossary_prompt_lines.append(f"|\t{v.get("src")}\t|\t{v.get("dst")}\t|\t{v.get("info") if v.get("info") != "" else " "}\t|")
-                glossary_prompt_lines_cot.append(f"“{v.get("src")}”（{v.get("dst")}）")
 
             # 添加结尾
             glossary_prompt_lines.append("-" * 50)
-            glossary_prompt_lines_cot.append("术语及其解释")
         else:
             # 添加开头
             glossary_prompt_lines.append(
@@ -431,25 +427,21 @@ class PromptBuilder(Base):
                 + "\n" + "|\tOriginal Text\t|\tTranslation\t|\tRemarks\t|"
                 + "\n" + ("-" * 50)
             )
-            glossary_prompt_lines_cot.append("- Glossary:Provides terms such as")
 
             # 添加数据
             for v in result:
                 glossary_prompt_lines.append(f"|\t{v.get("src")}\t|\t{v.get("dst")}\t|\t{v.get("info") if v.get("info") != "" else " "}\t|")
-                glossary_prompt_lines_cot.append(f"“{v.get("src")}”（{v.get("dst")}）")
 
             # 添加结尾
             glossary_prompt_lines.append("-" * 50)
-            glossary_prompt_lines_cot.append(" and their explanations.")
 
         # 拼接成最终的字符串
         glossary_prompt = "\n".join(glossary_prompt_lines)
-        glossary_prompt_cot = "".join(glossary_prompt_lines_cot)
 
-        return glossary_prompt, glossary_prompt_cot
+        return glossary_prompt
 
     # 构造角色设定
-    def build_characterization(config: TranslatorConfig, input_dict: dict) -> tuple[str, str]:
+    def build_characterization(config: TranslatorConfig, input_dict: dict) -> str:
         # 将数据存储到中间字典中
         dictionary = {}
         for v in config.characterization_data:
@@ -464,11 +456,10 @@ class PromptBuilder(Base):
 
         # 如果没有含有字典内容
         if temp_dict == {}:
-            return None, None
+            return None
 
         if config.cn_prompt_toggle == True:
             profile = "###角色介绍"
-            profile_cot = "- 角色介绍："
             for key, value in temp_dict.items():
                 original_name = value.get("original_name")
                 translated_name = value.get("translated_name")
@@ -481,34 +472,26 @@ class PromptBuilder(Base):
                 profile += f"\n【{original_name}】"
                 if translated_name:
                     profile += f"\n- 译名：{translated_name}"
-                    profile_cot += f"{translated_name}（{original_name}）"
 
                 if gender:
                     profile += f"\n- 性别：{gender}"
-                    profile_cot += f"，{gender}"
 
                 if age:
                     profile += f"\n- 年龄：{age}"
-                    profile_cot += f"，{age}"
 
                 if personality:
                     profile += f"\n- 性格：{personality}"
-                    profile_cot += f"，{personality}"
 
                 if speech_style:
                     profile += f"\n- 说话方式：{speech_style}"
-                    profile_cot += f"，{speech_style}"
 
                 if additional_info:
                     profile += f"\n- 补充信息：{additional_info}"
-                    profile_cot += f"，{additional_info}"
 
                 profile += "\n"
-                profile_cot += "。"
 
         else:
             profile = "###Character Introduction"
-            profile_cot = "- Character Introduction:"
             for key, value in temp_dict.items():
                 original_name = value.get("original_name")
                 translated_name = value.get("translated_name")
@@ -521,93 +504,62 @@ class PromptBuilder(Base):
                 profile += f"\n【{original_name}】"
                 if translated_name:
                     profile += f"\n- Translated_name：{translated_name}"
-                    profile_cot += f"{translated_name}({original_name})"
 
                 if gender:
                     profile += f"\n- Gender：{gender}"
-                    profile_cot += f",{gender}"
 
                 if age:
                     profile += f"\n- Age：{age}"
-                    profile_cot += f",{age}"
 
                 if personality:
                     profile += f"\n- Personality：{personality}"
-                    profile_cot += f",{personality}"
 
                 if speech_style:
                     profile += f"\n- Speech_style：{speech_style}"
-                    profile_cot += f",{speech_style}"
 
                 if additional_info:
                     profile += f"\n- Additional_info：{additional_info}"
-                    profile_cot += f",{additional_info}"
 
                 profile += "\n"
-                profile_cot += "."
 
-        return profile, profile_cot
+        return profile
 
     # 构造背景设定
-    def build_world_building(config: TranslatorConfig) -> tuple[str, str]:
+    def build_world_building(config: TranslatorConfig) -> str:
         # 获取自定义内容
         world_building = config.world_building_content
 
         if config.cn_prompt_toggle == True:
             profile = "###背景设定"
-            profile_cot = "- 背景设定："
 
             profile += f"\n{world_building}\n"
-            profile_cot += f"{world_building}"
 
         else:
             profile = "###Background Setting"
-            profile_cot = "- Background Setting:"
 
             profile += f"\n{world_building}\n"
-            profile_cot += f"{world_building}"
 
-        return profile, profile_cot
+        return profile
 
     # 构造文风要求
-    def build_writing_style(config: TranslatorConfig) -> tuple[str, str]:
+    def build_writing_style(config: TranslatorConfig) -> str:
         # 获取自定义内容
         writing_style = config.writing_style_content
 
         if config.cn_prompt_toggle == True:
             profile = "###翻译风格"
-            profile_cot = "- 翻译风格："
 
             profile += f"\n{writing_style}\n"
-            profile_cot += f"{writing_style}"
 
         else:
             profile = "###Writing Style"
-            profile_cot = "- Writing Style:"
 
             profile += f"\n{writing_style}\n"
-            profile_cot += f"{writing_style}"
-
-        return profile, profile_cot
-
-    # 携带原文上文
-    def build_pre_text(config: TranslatorConfig, input_list: list[str]) -> str:
-        if config.cn_prompt_toggle == True:
-            profile = "###上文内容"
-
-        else:
-            profile = "###Previous text"
-
-        # 使用列表推导式，转换为字符串列表
-        formatted_rows = [item for item in input_list]
-
-        # 使用换行符将列表元素连接成一个字符串
-        profile += f"\n{"\n".join(formatted_rows)}\n"
 
         return profile
 
     # 构建翻译示例
-    def build_translation_example(config: TranslatorConfig) -> tuple[str, str]:
+    def build_translation_example(config: TranslatorConfig) -> str:
         data = config.translation_example_data
 
         # 数据校验
@@ -639,6 +591,22 @@ class PromptBuilder(Base):
 
         return translation_example
 
+    # 携带原文上文
+    def build_pre_text(config: TranslatorConfig, input_list: list[str]) -> str:
+        if config.cn_prompt_toggle == True:
+            profile = "###上文内容"
+
+        else:
+            profile = "###Previous text"
+
+        # 使用列表推导式，转换为字符串列表
+        formatted_rows = [item for item in input_list]
+
+        # 使用换行符将列表元素连接成一个字符串
+        profile += f"\n{"\n".join(formatted_rows)}\n"
+
+        return profile
+
     # 构建用户请求翻译的示例前文
     def build_userExamplePrefix(config: TranslatorConfig) -> str:
         # 根据中文开关构建
@@ -659,7 +627,7 @@ class PromptBuilder(Base):
         return the_profile
 
     # 构建模型回复示例前文
-    def build_modelExamplePrefix(config: TranslatorConfig, glossary_prompt_cot: str, characterization_cot: str, world_building_cot: str, writing_style_cot: str) -> str:
+    def build_modelExamplePrefix(config: TranslatorConfig) -> str:
 
         # 根据中文开关构建
         if config.cn_prompt_toggle == True:

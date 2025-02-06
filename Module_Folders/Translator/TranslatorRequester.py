@@ -353,8 +353,10 @@ class TranslatorRequester(Base):
             )
 
             # 针对ds-r模型的特殊处理，因为该模型不支持模型预输入回复
-            if self.config.model == "deepseek-reasoner" or self.config.model == "deepseek-r1":
-                messages = messages[:-1]  # 移除最后一个元素
+            if self.config.model in {"deepseek-reasoner", "deepseek-r1"}:
+                # 检查一下最后的消息是否用户消息，以免误删。(用户使用了推理模型卻不切换为推理模型提示词的情况)
+                if isinstance(messages[-1], dict) and messages[-1].get('role') != 'user':
+                    messages = messages[:-1]  # 移除最后一个元素
 
 
             response = client.chat.completions.create(
@@ -370,16 +372,18 @@ class TranslatorRequester(Base):
 
             # 提取回复内容
             message = response.choices[0].message
-            if "reasoning_content" in message:
-                response_think = message.get("reasoning_content").strip()
-                response_content = message.content.strip()
-            elif "</think>" in message.content:
+
+            if "</think>" in message.content:
                 splited = message.content.split("</think>")
-                response_think = splited[0].removeprefix("<think>").replace("\n\n", "\n").strip()
-                response_content = splited[-1].strip()
+                response_think = splited[0].removeprefix("<think>").replace("\n\n", "\n")
+                response_content = splited[-1]
             else:
-                response_think = ""
-                response_content = message.content.strip()
+                try:
+                    response_think = message.reasoning_content
+                except Exception:
+                    response_think = ""
+                response_content = message.content
+
         except Exception as e:
             self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
             return True, None, None, None, None

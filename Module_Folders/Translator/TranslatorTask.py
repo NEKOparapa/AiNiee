@@ -382,41 +382,38 @@ class TranslatorTask(Base):
 
         # 如果开启指令词典
         glossary = ""
-        glossary_cot = ""
         if self.config.prompt_dictionary_switch:
-            glossary, glossary_cot = PromptBuilder.build_glossary_prompt(self.config, source_text_dict)
+            glossary = PromptBuilder.build_glossary_prompt(self.config, source_text_dict)
             if glossary:
                 system += glossary
                 extra_log.append(f"指令词典已添加：\n{glossary}")
 
         # 如果角色介绍开关打开
         characterization = ""
-        characterization_cot = ""
         if self.config.characterization_switch:
-            characterization, characterization_cot = PromptBuilder.build_characterization(self.config, source_text_dict)
+            characterization = PromptBuilder.build_characterization(self.config, source_text_dict)
             if characterization:
                 system += characterization
                 extra_log.append(f"角色介绍已添加：\n{characterization}")
 
         # 如果启用自定义世界观设定功能
         world_building = ""
-        world_building_cot = ""
         if self.config.world_building_switch:
-            world_building, world_building_cot = PromptBuilder.build_world_building(self.config)
+            world_building = PromptBuilder.build_world_building(self.config)
             if world_building:
                 system += world_building
                 extra_log.append(f"世界观设定已添加：\n{world_building}")
 
         # 如果启用自定义行文措辞要求功能
         writing_style = ""
-        writing_style_cot = ""
         if self.config.writing_style_switch:
-            writing_style, writing_style_cot = PromptBuilder.build_writing_style(self.config)
+            writing_style = PromptBuilder.build_writing_style(self.config)
             if writing_style:
                 system += writing_style
                 extra_log.append(f"行文措辞要求已添加：\n{writing_style}")
 
         # 如果启用翻译风格示例功能
+        translation_example= ""
         if self.config.translation_example_switch:
             translation_example = PromptBuilder.build_translation_example(self.config)
             if translation_example:
@@ -425,13 +422,7 @@ class TranslatorTask(Base):
 
         # 获取默认示例前置文本
         pre_prompt = PromptBuilder.build_userExamplePrefix(self.config)
-        fol_prompt = PromptBuilder.build_modelExamplePrefix(
-            self.config,
-            glossary_cot,
-            characterization_cot,
-            world_building_cot,
-            writing_style_cot
-        )
+        fol_prompt = PromptBuilder.build_modelExamplePrefix(self.config)
 
         # 获取默认示例，并构建动态few-shot
         original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict)
@@ -474,7 +465,7 @@ class TranslatorTask(Base):
         # 构建模型预输入回复信息，deepseek-reasoner 不支持该模型预回复消息
         messages.append({"role": "assistant", "content": fol_prompt})
 
-        # 当目标为 google 系列接口时，转换 messages 的格式
+        # 当目标为 google 系列接口时，转换 messages 的格式,并添加系统指令
         # 当目标为 anthropic 兼容接口时，保持原样
         # 当目标为其他接口时，即openai接口，添加系统指令
         if target_platform == "google":
@@ -518,45 +509,65 @@ class TranslatorTask(Base):
                 system = system + "\n" + result
                 extra_log.append(result)
 
-        # 角色介绍
-        if self.config.characterization_switch == True:
-            result = PromptBuilderThink.build_characterization(self.config, source_text_dict)
-            if result != "":
-                system = system + "\n" + result
-                extra_log.append(result)
+        # 如果角色介绍开关打开
+        characterization = ""
+        if self.config.characterization_switch:
+            characterization = PromptBuilder.build_characterization(self.config, source_text_dict)
+            if characterization:
+                system += characterization
+                extra_log.append(f"角色介绍已添加：\n{characterization}")
 
-        # 世界观设定
-        if self.config.world_building_switch == True:
-            result = PromptBuilderThink.build_world_building(self.config)
-            if result != "":
-                system = system + "\n" + result
-                extra_log.append(result)
+        # 如果启用自定义世界观设定功能
+        world_building = ""
+        if self.config.world_building_switch:
+            world_building = PromptBuilder.build_world_building(self.config)
+            if world_building:
+                system += world_building
+                extra_log.append(f"世界观设定已添加：\n{world_building}")
 
-        # 行文措辞要求
-        if self.config.writing_style_switch == True:
-            result = PromptBuilderThink.build_writing_style(self.config)
-            if result != "":
-                system = system + "\n" + result
-                extra_log.append(result)
+        # 如果启用自定义行文措辞要求功能
+        writing_style = ""
+        if self.config.writing_style_switch:
+            writing_style = PromptBuilder.build_writing_style(self.config)
+            if writing_style:
+                system += writing_style
+                extra_log.append(f"行文措辞要求已添加：\n{writing_style}")
 
-        # 翻译风格示例
-        if self.config.translation_example_switch == True:
-            result = PromptBuilderThink.build_translation_example(self.config)
-            if result != "":
-                system = system + "\n" + result
-                extra_log.append(result)
+        # 如果启用翻译风格示例功能
+        translation_example= ""
+        if self.config.translation_example_switch:
+            translation_example = PromptBuilder.build_translation_example(self.config)
+            if translation_example:
+                system += translation_example
+                extra_log.append(f"翻译示例已添加：\n{translation_example}")
 
-        # 构建指令列表
+
+        # 如果加上文，获取上文内容
+        previous = ""
+        if self.config.pre_line_counts and previous_text_list:
+            previous = PromptBuilder.build_pre_text(self.config, previous_text_list)
+            if previous:
+                extra_log.append(f"参考上文已添加：\n{"\n".join(previous_text_list)}")
+
+        # 获取提问时的前置文本
+        pre_prompt = PromptBuilder.build_userQueryPrefix(self.config)
+
+
+        # 构建待翻译文本
+        source_text_str = json.dumps(source_text_dict, ensure_ascii = False)
+        source_text_str = f"{previous}\n{pre_prompt}```json\n{source_text_str}\n```"
+
+        # 构建用户提问信息
         messages.append(
             {
                 "role": "user",
-                "content": (
-                    f"{system}" + "\n" + "原文文本：" + "\n" + json.dumps(source_text_dict, indent = None, ensure_ascii = False)
-                ),
+                "content": source_text_str,
             }
         )
 
-        # 当目标为 google 系列接口时，转换 messages 的格式
+        # 当目标为 google 系列接口时，转换 messages 的格式,并添加系统指令
+        # 当目标为 anthropic 兼容接口时，保持原样
+        # 当目标为其他接口时，即openai接口，添加系统指令
         if target_platform == "google":
             new = []
             for m in messages:
@@ -565,12 +576,16 @@ class TranslatorTask(Base):
                     "parts": m.get("content", ""),
                 })
             messages = new
-        # 当目标为 anthropic 兼容接口时，保持原样
         elif target_platform == "anthropic" or (target_platform.startswith("custom_platform_") and api_format == "Anthropic"):
             pass
-        # 当目标为 其他类型（即 OpenAI 兼容接口）时，保持原样
         else:
-            pass
+            messages.insert(
+                0,
+                {
+                    "role": "system",
+                    "content": system
+                }
+            )
 
         return messages, system, extra_log
 
