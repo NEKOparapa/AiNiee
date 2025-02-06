@@ -1,0 +1,161 @@
+name: Bug Report
+description: 异常问题反馈模板
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: 问题描述
+      description: Please provide a detailed description of the bug.
+    validations:
+      required: true
+
+  - type: input
+    id: api-url
+    attributes:
+      label: 接口地址
+      description: 使用官方在线接口时不用填写
+    validations:
+      required: false
+
+  - type: input
+    id: api-format
+    attributes:
+      label: 接口格式
+      description: 使用官方在线接口时不用填写
+    validations:
+      required: false
+
+  - type: input
+    id: model-name
+    attributes:
+      label: 模型名称
+      description: 详细的型号
+    validations:
+      required: true
+
+  - type: input
+    id: project-type
+    attributes:
+      label: 项目类型
+    validations:
+      required: true
+
+  - type: input
+    id: source-language
+    attributes:
+      label: 原文语言
+    validations:
+      required: true
+
+  - type: input
+    id: target-language
+    attributes:
+      label: 译文语言
+    validations:
+      required: true
+
+  - type: dropdown
+    id: translation-split-mode
+    attributes:
+      label: 翻译任务切分模式
+      options:
+        - 行数
+        - token
+    validations:
+      required: true
+
+  - type: input
+    id: translation-line-count
+    attributes:
+      label: 翻译任务的文本行数
+    validations:
+      required: true
+
+  - type: input
+    id: translation-token-count
+    attributes:
+      label: 翻译任务的token数量
+    validations:
+      required: true
+
+  - type: input
+    id: parallel-tasks
+    attributes:
+      label: 并行翻译任务数
+    validations:
+      required: true
+
+  - type: input
+    id: chinese-prompt
+    attributes:
+      label: 中文提示词
+    validations:
+      required: false
+
+  - type: dropdown
+    id: cot-mode
+    attributes:
+      label: 思维链模式
+      options:
+        - 启用
+        - 禁用
+    validations:
+      required: true
+
+  - type: dropdown
+    id: preserve-line-breaks
+    attributes:
+      label: 保留句内换行符
+      options:
+        - 是
+        - 否
+    validations:
+      required: true
+
+  - type: dropdown
+    id: preserve-code-blocks
+    attributes:
+      label: 保留首位代码段
+      options:
+        - 是
+        - 否
+    validations:
+      required: true
+
+  - type: textarea
+    id: custom-instructions
+    attributes:
+      label: 自定义基础指令
+      description: 你启用的所有插件提示词设置
+    validations:
+      required: false
+
+  - type: textarea
+    id: prompt-content
+    attributes:
+      label: 提示词内容
+      description: 如果启用则填入
+    validations:
+      required: false
+
+  - type: textarea
+    id: error-log
+    attributes:
+      label: 报错日志
+      description: 复制出错日志内容或者截图
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 额外补充
+      description: Add any other context about the problem here.
+    validations:
