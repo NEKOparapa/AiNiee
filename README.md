@@ -73,7 +73,7 @@
 
 * **`📖 角色提取工具`**: [KeywordGacha - 使用 AI 技术来自动生成实体词语表的翻译辅助工具](https://github.com/neavo/KeywordGacha)
 
-* **`💽 本地模型一键包`**: [SakuraLLMServer - 一键获取免费且高质量的日语翻译能力，可提速 3-5 倍](https://github.com/neavo/SakuraLLMServer)
+* **`💽 本地模型一键包`**: [OneClickLLAMA - 一键获取免费、快速、高质量的翻译能力](https://github.com/neavo/OneClickLLAMA)
 
 * **`📡 下载地址`**: [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
 
