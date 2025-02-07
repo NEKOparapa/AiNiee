@@ -61,7 +61,7 @@ class PunctuationFixer(PluginBase):
         )
 
         self.visibility = True          # 是否在插件设置中显示
-        self.default_enable = True     # 默认启用状态
+        self.default_enable = False     # 默认启用状态
 
         self.add_event("manual_export", PluginBase.PRIORITY.HIGH)
         self.add_event("postprocess_text", PluginBase.PRIORITY.HIGH)

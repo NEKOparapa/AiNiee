@@ -13,7 +13,7 @@ class Bilingual_Comparison(PluginBase):
         self.add_event("postprocess_text", PluginBase.PRIORITY.LOWEST)  # 添加感兴趣的事件和优先级
 
     def load(self):
-        print(f"[INFO] {self.name} loaded!")
+        pass
 
     def on_event(self, event_name, config, event_data):
         if event_name == "postprocess_text":

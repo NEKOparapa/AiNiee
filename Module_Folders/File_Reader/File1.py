@@ -284,6 +284,10 @@ class File_Reader():
 
                             name = entry.get("name")
                             if name:
+
+                                # 拼接人名和文本
+                                source_text = File_Reader.combine_srt(self,name,source_text)
+
                                 # 将数据存储在字典中
                                 json_data_list.append({
                                     "text_index": i,
@@ -312,6 +316,12 @@ class File_Reader():
 
         return json_data_list
 
+    # 辅助函数，拼接人名与文本
+    def combine_srt(self,srt1, srt2):
+        if srt2 and srt2[0] == '「':  # 检查 srt2 不为空 且 第一个字符是 '['
+            return srt1 + srt2
+        else:
+            return srt1 + '「' + srt2
 
     #读取缓存文件
     def read_cache_files(self,folder_path):

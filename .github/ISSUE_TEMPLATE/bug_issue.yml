@@ -1,4 +1,4 @@
-name: Bug Report
+name: 错误报告 | Bug Report
 description: 异常问题反馈模板
 title: "[Bug]: "
 labels: ["bug"]
@@ -107,15 +107,19 @@ body:
     validations:
       required: false
 
+
   - type: dropdown
-    id: cot-mode
-    attributes:
-      label: 思维链模式
-      options:
-        - 启用
-        - 禁用
-    validations:
-      required: true
+  id: prompt-mode
+  attributes:
+    label: 提示词构造规则
+    description: 高级设置的提示词构造规则
+    options:
+      - 通用
+      - 思维链
+      - 思考模型
+  validations:
+    required: true
+    
 
   - type: dropdown
     id: preserve-line-breaks
