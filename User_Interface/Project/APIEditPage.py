@@ -182,6 +182,7 @@ class APIEditPage(MessageBoxBase, Base):
             )
         )
 
+
     # 模型名称
     def add_widget_model(self, parent, config):
         def init(widget):
@@ -202,12 +203,17 @@ class APIEditPage(MessageBoxBase, Base):
             config["platforms"][self.key]["model"] = text.strip()
             self.save_config(config)
 
-        parent.addWidget(
-            EditableComboBoxCard(
-                "模型名称(可编辑)",
-                "请选择或者输入要使用的模型的名称",
-                [],
-                init = init,
-                current_text_changed = current_text_changed,
-            )
+        def items_changed(widget, items: list[str]): # 处理 items_changed 信号的槽函数
+            config = self.load_config()
+            config["platforms"][self.key]["model_datas"] = items # 更新 model_datas
+            self.save_config(config) # 保存配置
+
+        card = EditableComboBoxCard(
+            "模型名称(可编辑)",
+            "请选择或者输入要使用的模型的名称",
+            [],
+            init = init,
+            current_text_changed = current_text_changed,
         )
+        card.items_changed.connect(lambda items: items_changed(card, items)) # 连接信号
+        parent.addWidget(card)

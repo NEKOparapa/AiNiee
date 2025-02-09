@@ -17,6 +17,14 @@ body:
       required: true
 
   - type: input
+    id: version
+    attributes:
+      label: 软件版本
+      description: 填入使用的软件版本号
+    validations:
+      required: false
+
+  - type: input
     id: api-url
     attributes:
       label: 接口地址
@@ -111,7 +119,7 @@ body:
   - type: dropdown
     id: prompt-mode
     attributes:
-      label: 提示词构造规则
+      label: 提示词构造
       description: 高级设置的提示词构造规则
       options:
         - 通用
