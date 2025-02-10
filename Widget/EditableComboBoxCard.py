@@ -77,7 +77,7 @@ class EditItemsMessageBox(MessageBoxBase):
 class EditableComboBoxCard(CardWidget):
     items_changed = pyqtSignal(list)  # 添加一个信号，用于通知外部选项列表已更改
 
-    def __init__(self, title: str, description: str, items: list[str], init = None, current_text_changed = None, current_index_changed = None,delete_function = None,add_function = None):
+    def __init__(self, title: str, description: str, items: list[str], init = None, current_text_changed = None, current_index_changed = None):
         super().__init__(None)
 
         self._items = items.copy()  # 存储原始 items 列表，用于弹出窗口编辑
@@ -101,12 +101,6 @@ class EditableComboBoxCard(CardWidget):
         self.container.addStretch(1)
 
         # 下拉框控件
-        self.hbox = QHBoxLayout()
-        # 添加按钮
-        self.add_button = ToolButton(FluentIcon.ADD.icon(color='#19D03A'), self)
-        self.add_button.setFixedSize(30, 30)
-        self.hbox.addWidget(self.add_button)
-        # 下拉框
         self.combo_box = EditableComboBox(self)
         self.set_items(items) # 使用 set_items 初始化，确保 _items 被正确设置
         self.container.addWidget(self.combo_box)
@@ -125,12 +119,6 @@ class EditableComboBoxCard(CardWidget):
 
         if current_index_changed:
             self.combo_box.currentIndexChanged.connect(lambda index: current_index_changed(self, index))
-        
-        if delete_function:
-            self.delete_button.clicked.connect(lambda: delete_function(self))
-
-        if add_function:
-            self.add_button.clicked.connect(lambda: add_function(self))
 
     # 设置列表条目
     def set_items(self, items: list) -> None:
@@ -166,4 +154,3 @@ class EditableComboBoxCard(CardWidget):
             if new_items:
                 self.set_items(new_items)
                 self.items_changed.emit(new_items)
-
