@@ -30,9 +30,9 @@ class PromptBuilderLocal(Base):
         # 构造结果
         if config == None:
             result = PromptBuilderLocal.local_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.LOCAL and config.cn_prompt_toggle == True:
+        elif  config.cn_prompt_toggle == True:
             result = PromptBuilderLocal.local_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.LOCAL and config.cn_prompt_toggle == False:
+        elif config.cn_prompt_toggle == False:
             result = PromptBuilderLocal.local_system_en
 
         return result
@@ -56,49 +56,11 @@ class PromptBuilderLocal(Base):
         # 构造结果
         if config == None:
             result = PromptBuilderLocal.local_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.LOCAL and config.cn_prompt_toggle == True:
+        elif config.cn_prompt_toggle == True:
             result = PromptBuilderLocal.local_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.LOCAL and config.cn_prompt_toggle == False:
+        elif config.cn_prompt_toggle == False:
             result = PromptBuilderLocal.local_system_en
             source_language = pair[config.source_language]
             target_language = pair[config.target_language]
 
         return result.replace("{source_language}", source_language).replace("{target_language}", target_language).strip()
-
-    # 构造术语表
-    def build_glossary(config: TranslatorConfig, input_dict: dict) -> tuple[str, str]:
-        # 将输入字典中的所有值转换为集合
-        lines = set(line for line in input_dict.values())
-
-        # 筛选在输入词典中出现过的条目
-        result = [
-            v for v in config.prompt_dictionary_data
-            if any(v.get("src") in lines for lines in lines)
-        ]
-
-        # 构建文本
-        dict_lines = []
-        for item in result:
-            src = item.get("src", "")
-            dst = item.get("dst", "")
-            info = item.get("info", "")
-
-            if info == "":
-                dict_lines.append(f"{src} -> {dst}")
-            else:
-                dict_lines.append(f"{src} -> {dst} #{info}")
-
-        # 返回结果
-        if dict_lines == []:
-            return ""
-        else:
-            if config.cn_prompt_toggle == True:
-                return (
-                    "###术语表"
-                    + "\n" + "\n".join(dict_lines)
-                )
-            else:
-                return (
-                    "###Glossary"
-                    + "\n" + "\n".join(dict_lines)
-                )                

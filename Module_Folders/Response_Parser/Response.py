@@ -188,6 +188,17 @@ class Response_Parser():
                 set1 = set(value)
                 set2 = set(value2)
 
+                
+               # 定义日本汉字的Unicode范围（这是一个大致范围，可能需要调整）
+                kanji_start = 0x4E00
+                kanji_end = 0x9FFF
+                # 剔除原文集合中的汉字
+                set1_test = {char for char in set1 if not (kanji_start <= ord(char) <= kanji_end)}
+                #set2 = {char for char in set2 if not (kanji_start <= ord(char) <= kanji_end)}
+                # 如果原文集合为空，说明原文全是汉字，则跳过此行的计算
+                if not set1_test:
+                    continue
+
 
                 # 计算交集和并集的大小
                 intersection_size = len(set1.intersection(set2))

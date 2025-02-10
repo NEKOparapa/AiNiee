@@ -1,3 +1,4 @@
+import re
 import threading
 
 import cohere                           # pip install cohere
@@ -204,8 +205,23 @@ class TranslatorRequester(Base):
                 timeout = self.config.request_timeout,
             )
 
-            # 提取回复的文本内容
-            response_content = response.choices[0].message.content
+
+            # 提取回复内容
+            message = response.choices[0].message
+
+
+            # 自适应提取推理过程
+            if "</think>" in message.content:
+                splited = message.content.split("</think>")
+                response_think = splited[0].removeprefix("<think>").replace("\n\n", "\n")
+                response_content = splited[-1]
+            else:
+                try:
+                    response_think = message.reasoning_content
+                except Exception:
+                    response_think = ""
+                response_content = message.content
+
         except Exception as e:
             self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
             return True, None, None, None, None
@@ -222,6 +238,11 @@ class TranslatorRequester(Base):
         except Exception:
             completion_tokens = 0
 
+        #print("模型回复内容:\n" + response_content)
+
+        # 提取标签内翻译结果
+        response_content = TranslatorRequester.extract_span_content_regex(self,response_content)
+
         # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
         response_content_dict = {"0":response_content}
 
@@ -235,13 +256,30 @@ class TranslatorRequester(Base):
         # 插件事件过后，恢复字符串类型
         response_content = response_content_dict["0"]
 
-        # Sakura 返回的内容多行文本，将其转换为 JSON 字符串
+
+        # 返回的内容多行文本，将其转换为 JSON 字符串
         json_dict = {}
         for i, line in enumerate(response_content.strip().splitlines()):
             json_dict[str(i)] = line.strip()
         response_content = json.dumps(json_dict, ensure_ascii = False)
 
-        return False, "", response_content, prompt_tokens, completion_tokens
+
+        # 还原换行符
+        response_content = response_content.replace("@", "\n").replace("＠", "\n").replace("∞", "\r")
+
+
+        return False, response_think, response_content, prompt_tokens, completion_tokens
+
+    # 辅助函数，用于提取标签内文本
+    def extract_span_content_regex(self,html_string):
+        span_pattern = r'<span.*?>(.*?)</span>'  # 匹配 <text> 标签及其内容的正则表达式
+        matches = re.findall(span_pattern, html_string, re.IGNORECASE | re.DOTALL) # 查找所有匹配项，忽略大小写和换行符
+
+        if not matches:
+            return html_string  # 如果没有匹配到 <text> 标签，返回原始字符串
+        else:
+            return "\n".join(matches) # 将匹配到的内容用空格连接成一个字符串并返回
+
 
     # 发起请求
     def request_cohere(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty) -> tuple[bool, str, int, int]:

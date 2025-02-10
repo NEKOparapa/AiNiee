@@ -263,12 +263,12 @@ class Translator(Base):
             system = ""
             if self.config.system_prompt_switch == True:
                 system = self.config.system_prompt_content
+            elif self.config.target_platform == "LocalLLM": # 需要放在前面，以免提示词预设的分支覆盖
+                system = PromptBuilderLocal.build_system(self.config)
             elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
                 system = PromptBuilder.build_system(self.config)
             elif self.config.prompt_preset in (PromptBuilderEnum.THINK):
                 system = PromptBuilderThink.build_system(self.config)
-            elif self.config.prompt_preset in (PromptBuilderEnum.LOCAL):
-                system = PromptBuilderLocal.build_system(self.config)
             self.print("")
             self.info(f"本次任务使用以下基础指令：\n{system}\n") if self.config.target_platform != "sakura" else None
             self.info(f"即将开始执行翻译任务，预计任务总数为 {len(tasks)}, 同时执行的任务数量为 {self.config.actual_thread_counts}，请注意保持网络通畅 ...")
