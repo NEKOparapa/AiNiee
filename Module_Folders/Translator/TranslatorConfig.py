@@ -41,8 +41,8 @@ class TranslatorConfig(Base):
         # 如果用户指定了线程数，则使用用户指定的线程数
         if self.user_thread_counts > 0:
             self.actual_thread_counts = self.user_thread_counts
-        # 如果用户没有指定线程数，且目标平台不为 Sakura 或 自定义平台，则使用默认值
-        elif self.user_thread_counts == 0 and not ("sakura" in self.target_platform or "custom_platform_" in self.target_platform):
+        # 如果用户没有指定线程数，且目标平台不为 Sakura,本地小模型 或 自定义平台，则使用默认值
+        elif self.user_thread_counts == 0 and not ("sakura" in self.target_platform or "LocalLLM" in self.target_platform  or "custom_platform_" in self.target_platform):
             self.actual_thread_counts = 8
         # 如果用户没有指定线程数，且目标平台为 Sakura 或 自定义平台，则尝试自动获取
         else:
@@ -89,15 +89,15 @@ class TranslatorConfig(Base):
 
         self.rpm_limit = self.platforms.get(self.target_platform).get("account_datas").get(a, {}).get(m, {}).get("RPM", 0)
         if self.rpm_limit == 0:
-            self.rpm_limit = self.platforms.get(self.target_platform).get("rpm_limit", 4096)    # 当取不到配置文件的预设值，则使用该值
+            self.rpm_limit = self.platforms.get(self.target_platform).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
 
         self.tpm_limit = self.platforms.get(self.target_platform).get("account_datas").get(a, {}).get(m, {}).get("TPM", 0)
         if self.tpm_limit == 0:
-            self.tpm_limit = self.platforms.get(self.target_platform).get("tpm_limit", 10000000)    # 当取不到配置文件的预设值，则使用该值
+            self.tpm_limit = self.platforms.get(self.target_platform).get("tpm_limit", 10000000)    # 当取不到账号类型对应的预设值，则使用该值
 
         self.max_tokens = self.platforms.get(self.target_platform).get("account_datas").get(a, {}).get(m, {}).get("max_tokens", 0)
         if self.max_tokens == 0:
-            self.max_tokens = self.platforms.get(self.target_platform).get("token_limit", 12000)    # 当取不到配置文件的预设值，则使用该值
+            self.max_tokens = self.platforms.get(self.target_platform).get("token_limit", 12000)    # 当取不到账号类型对应的预设值，则使用该值
 
         # 根据密钥数量给 RPM 和 TPM 限额翻倍
         self.rpm_limit = self.rpm_limit * len(self.apikey_list)

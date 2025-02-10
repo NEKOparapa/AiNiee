@@ -257,6 +257,11 @@ class TranslatorTask(Base):
                 self.source_text_dict,
                 self.previous_text_list,
             )
+        if target_platform == "LocalLLM":
+            self.messages, self.system_prompt, self.extra_log = self.generate_prompt_LocalLLM(
+                self.source_text_dict,
+                self.previous_text_list,
+            )
         elif prompt_preset in (PromptBuilderEnum.THINK,):
             self.messages, self.system_prompt, self.extra_log = self.generate_prompt_think(
                 target_platform,
@@ -593,6 +598,66 @@ class TranslatorTask(Base):
             "content": "你是一个轻小说翻译模型，可以流畅通顺地以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，不擅自添加原文中没有的代词。"
         })
 
+        # 如果开启了指令词典功能
+        if self.config.prompt_dictionary_switch == True:
+            # 将输入字典中的所有值转换为集合
+            lines = set(line for line in source_text_dict.values())
+
+            # 筛选在输入词典中出现过的条目
+            result: list[dict] = [
+                v for v in self.config.prompt_dictionary_data
+                if any(v.get("src", "") in lines for lines in lines)
+            ]
+
+            # 构建指令词典文本
+            dict_lines = []
+            for item in result:
+                src = item.get("src", "")
+                dst = item.get("dst", "")
+                info = item.get("info", "")
+
+                if info == "":
+                    dict_lines.append(f"{src}->{dst}")
+                else:
+                    dict_lines.append(f"{src}->{dst} #{info}")
+
+            # 如果指令词典文本不为空
+            if dict_lines != []:
+                dict_lines_str = "\n".join(dict_lines)
+                extra_log.append(f"指令词典已添加：\n{dict_lines_str}")
+
+        # 构建主要提示词
+        if dict_lines == []:
+            user_prompt = "将下面的日文文本翻译成中文：\n" + "\n".join(source_text_dict.values())
+        else:
+            user_prompt = (
+                "根据以下术语表（可以为空）：\n" + dict_lines_str
+                + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：\n" + "\n".join(source_text_dict.values())
+            )
+
+        # 构建指令列表
+        messages.append(
+            {
+                "role": "user",
+                "content": user_prompt,
+            }
+        )
+
+        return messages, "", extra_log
+
+    # 生成指令 LocalLLM
+    def generate_prompt_LocalLLM(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
+        # 储存指令
+        messages = []
+        # 储存额外日志
+        extra_log = []
+
+        # 构建系统提示词
+        messages.append({
+            "role": "system",
+            "content": "你是一个轻小说翻译模型，可以流畅通顺地以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，不擅自添加原文中没有的代词。"
+        })
+
         # 如果开启了携带上文功能
         if self.config.pre_line_counts == True and previous_text_list != []:
             messages.append({
@@ -647,6 +712,7 @@ class TranslatorTask(Base):
         )
 
         return messages, "", extra_log
+
 
     # 生成日志行
     def generate_log_rows(self, error: str, start_time: int, prompt_tokens: int, completion_tokens: int, source: list[str], translated: list[str], extra_log: list[str]) -> tuple[list[str], bool]:

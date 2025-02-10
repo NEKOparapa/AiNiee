@@ -29,6 +29,35 @@
                 "frequency_penalty"
             ]
         },
+        "LocalLLM": {
+            "tag": "LocalLLM",
+            "group": "local",
+            "name": "本地小模型",
+            "api_url": "http://127.0.0.1:8080",
+            "api_key": "",
+            "api_format": "",
+            "rpm_limit": 4096,
+            "tpm_limit": 4096000,
+            "token_limit": 4096,
+            "model": "Qwen2.5-14B",
+            "top_p": 1.0,
+            "temperature": 1.0,
+            "presence_penalty": 0.0,
+            "frequency_penalty": 0.0,
+            "account": "",
+            "auto_complete": false,
+            "model_datas": [
+                "Qwen2.5-14B"
+            ],
+            "account_datas": {},
+            "key_in_settings": [
+                "api_url",
+                "model",
+                "top_p",
+                "temperature",
+                "frequency_penalty"
+            ]
+        },
         "cohere": {
             "tag": "cohere",
             "group": "online",
@@ -451,7 +480,7 @@
             "temperature": 1.3,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "account": "",
+            "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
                 "deepseek-chat",

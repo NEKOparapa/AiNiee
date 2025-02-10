@@ -53,6 +53,15 @@ class TranslatorRequester(Base):
                 presence_penalty,
                 frequency_penalty
             )
+        elif target_platform == "LocalLLM":
+            skip, response_think, response_content, prompt_tokens, completion_tokens = self.request_LocalLLM(
+                messages,
+                system_prompt,
+                temperature,
+                top_p,
+                presence_penalty,
+                frequency_penalty
+            )
         elif target_platform == "cohere":
             skip, response_think, response_content, prompt_tokens, completion_tokens = self.request_cohere(
                 messages,
@@ -137,6 +146,62 @@ class TranslatorRequester(Base):
                     "num_beams": 1,
                     "repetition_penalty": 1.0
                 },
+            )
+
+            # 提取回复的文本内容
+            response_content = response.choices[0].message.content
+        except Exception as e:
+            self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
+            return True, None, None, None, None
+
+        # 获取指令消耗
+        try:
+            prompt_tokens = int(response.usage.prompt_tokens)
+        except Exception:
+            prompt_tokens = 0
+
+        # 获取回复消耗
+        try:
+            completion_tokens = int(response.usage.completion_tokens)
+        except Exception:
+            completion_tokens = 0
+
+        # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
+        response_content_dict = {"0":response_content}
+
+        # 调用插件，进行处理
+        self.plugin_manager.broadcast_event(
+            "sakura_reply_processed",
+            self.config,
+            response_content_dict
+        )
+
+        # 插件事件过后，恢复字符串类型
+        response_content = response_content_dict["0"]
+
+        # Sakura 返回的内容多行文本，将其转换为 JSON 字符串
+        json_dict = {}
+        for i, line in enumerate(response_content.strip().splitlines()):
+            json_dict[str(i)] = line.strip()
+        response_content = json.dumps(json_dict, ensure_ascii = False)
+
+        return False, "", response_content, prompt_tokens, completion_tokens
+
+    # 发起请求
+    def request_LocalLLM(self, messages, system_prompt, temperature, top_p, presence_penalty, frequency_penalty) -> tuple[bool, str, int, int]:
+        try:
+            client = OpenAI(
+                base_url = self.config.base_url,
+                api_key = self.get_apikey(),
+            )
+
+            response = client.chat.completions.create(
+                model = self.config.model,
+                messages = messages,
+                top_p = top_p,
+                temperature = temperature,
+                frequency_penalty = frequency_penalty,
+                timeout = self.config.request_timeout,
             )
 
             # 提取回复的文本内容
@@ -383,6 +448,8 @@ class TranslatorRequester(Base):
             # 提取回复内容
             message = response.choices[0].message
 
+
+            # 自适应提取推理过程
             if "</think>" in message.content:
                 splited = message.content.split("</think>")
                 response_think = splited[0].removeprefix("<think>").replace("\n\n", "\n")

@@ -14,6 +14,7 @@ from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
 from Module_Folders.PromptBuilder.PromptBuilder import PromptBuilder
 from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from Module_Folders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
+from Module_Folders.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
 from Module_Folders.File_Reader.File1 import File_Reader
 from Module_Folders.File_Outputer.File2 import File_Outputter
 from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
@@ -264,8 +265,10 @@ class Translator(Base):
                 system = self.config.system_prompt_content
             elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
                 system = PromptBuilder.build_system(self.config)
-            elif self.config.prompt_preset in (PromptBuilderEnum.THINK,):
+            elif self.config.prompt_preset in (PromptBuilderEnum.THINK):
                 system = PromptBuilderThink.build_system(self.config)
+            elif self.config.prompt_preset in (PromptBuilderEnum.LOCAL):
+                system = PromptBuilderLocal.build_system(self.config)
             self.print("")
             self.info(f"本次任务使用以下基础指令：\n{system}\n") if self.config.target_platform != "sakura" else None
             self.info(f"即将开始执行翻译任务，预计任务总数为 {len(tasks)}, 同时执行的任务数量为 {self.config.actual_thread_counts}，请注意保持网络通畅 ...")

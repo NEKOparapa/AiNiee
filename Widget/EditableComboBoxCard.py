@@ -106,7 +106,7 @@ class EditableComboBoxCard(CardWidget):
         self.container.addWidget(self.combo_box)
 
         # 编辑按钮
-        self.edit_button = ToolButton(FluentIcon.SAVE_AS, self)
+        self.edit_button = ToolButton(FluentIcon.EDIT, self)
         self.edit_button.clicked.connect(self._show_edit_items_popup) # 连接按钮点击事件到弹出窗口函数
         self.container.addWidget(self.edit_button)
 
