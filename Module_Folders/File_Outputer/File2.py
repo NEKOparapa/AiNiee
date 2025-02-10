@@ -355,20 +355,38 @@ class File_Outputter():
             for content in content_list:
                 # 如果这个本已经翻译了，存放对应的文件中
                 if'name' in content:
-                    text = {'name': content['name'],
-                            'message': content['translated_text'],}
+
+                    # 提取原来人名与文本
+                    name =  content['name']
+                    translated_text = content['translated_text']
+                    
+                    # 分割人名与文本
+                    name,translated_text = File_Outputter.extract_strings(self, name, translated_text)
+
+                    # 构建字段
+                    text = {'name': name,
+                            'message': translated_text}
                 else:
-                    text = {'message': content['translated_text'],}
+                    text = {'message': content['translated_text']}
 
                 output_file.append(text)
 
                 # 如果这个文本没有翻译或者正在翻译
                 if content['translation_status'] == 0 or content['translation_status'] == 2:
                     if'name' in content:
-                        text = {'name': content['name'],
-                                'message': content['translated_text'],}
+
+                        # 提取原来人名与文本
+                        name =  content['name']
+                        translated_text = content['translated_text']
+                        
+                        # 分割人名与文本
+                        name,translated_text = File_Outputter.extract_strings(self, name, translated_text)
+
+                        # 构建字段
+                        text = {'name': name,
+                                'message': translated_text}
                     else:
-                        text = {'message': content['translated_text'],}
+                        text = {'message': content['translated_text']}
 
                     output_file2.append(text)
 
@@ -381,6 +399,25 @@ class File_Outputter():
             if output_file2:
                 with open(file_path_untranslated, 'w', encoding='utf-8') as file:
                     json.dump(output_file2, file, ensure_ascii=False, indent=4)
+
+
+    # 辅助函数，提取人名与文本
+    def extract_strings(self, name,dialogue):
+        parts = dialogue.partition("「")  # 使用 partition 分割字符串，保留分隔符
+
+        if parts[1]:  # parts[1] 是分隔符，如果存在，则说明找到了 "「"
+            extracted_name = parts[0].strip()  # 分隔符前的部分为人名
+            extracted_text = (parts[1] + parts[2]).strip()  # 分隔符 + 分隔符后的部分为对话文本
+
+            if extracted_text.startswith("「（"):
+                extracted_text = extracted_text[1:] # 从索引 1 开始切片，移除第一个字符 "「"
+
+        else:
+            extracted_name = name  # 没有 "「"，使用默认人名
+            extracted_text = dialogue.strip()  # 整个对话文本作为内容
+
+        return extracted_name, extracted_text
+        
 
     # 输出表格文件
     def output_excel_file(self, cache_data, output_path):

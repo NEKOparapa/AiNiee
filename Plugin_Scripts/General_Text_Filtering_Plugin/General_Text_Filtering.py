@@ -14,7 +14,7 @@ class General_Text_Filtering(PluginBase):
         self.add_event('text_filter', PluginBase.PRIORITY.HIGH)
 
     def load(self):
-        print(f"[INFO] {self.name} loaded!")
+        pass
 
 
     def on_event(self, event_name, config, event_data):
@@ -24,7 +24,6 @@ class General_Text_Filtering(PluginBase):
 
             self.filter_text(event_data)
 
-            print(f"[INFO] Text has been routinely filtered")
 
 
 

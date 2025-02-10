@@ -145,27 +145,30 @@ class CacheManager(Base):
     # 生成上文数据条目片段
     def generate_previous_chunks(self, start_item: CacheItem, previous_line_count: int) -> list[CacheItem]:
         result = []
-
-        i = start_item.get_text_index() - 1
-        while len(result) < previous_line_count:
-            # 移动索引
-            if i == 0:
-                break
-            else:
-                i = i -1
-                item = self.items[i]
-
+        
+        try:
+            # 获取当前条目在列表中的位置
+            start_index = self.items.index(start_item)
+        except ValueError:
+            return result
+        
+        i = start_index - 1
+        while len(result) < previous_line_count and i >= 0:
+            item = self.items[i]
+            
             # 上文不应跨文件
             if item.get_storage_path() != start_item.get_storage_path():
                 break
-
-            # 上文行号应连续
-            if abs(item.get_row_index() - start_item.get_row_index()) != len(result) + 1:
+            
+            # 检查text_index是否连续递减
+            expected_text_index = start_item.get_text_index() - (len(result) + 1)
+            if item.get_text_index() != expected_text_index:
                 break
-
+            
             result.append(item)
-
-        # 反转列表，让逆序添加的条目变为正序
+            i -= 1  # 继续向前搜索
+            
+        # 反转列表，使顺序与原文一致
         result.reverse()
         return result
 

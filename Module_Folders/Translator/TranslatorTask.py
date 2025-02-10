@@ -345,7 +345,7 @@ class TranslatorTask(Base):
 
         return text_dict
 
-    # 译前替换
+    # 译后替换
     def replace_before_translation(self, text_dict: dict) -> dict:
         data: list[dict] = self.config.pre_translation_data
 
@@ -381,44 +381,39 @@ class TranslatorTask(Base):
             system = PromptBuilder.build_system(self.config)
 
         # 如果开启指令词典
-        glossary = ""
-        if self.config.prompt_dictionary_switch:
+        if self.config.prompt_dictionary_switch == True:
             glossary = PromptBuilder.build_glossary_prompt(self.config, source_text_dict)
-            if glossary:
+            if glossary != "":
                 system += glossary
-                extra_log.append(f"指令词典已添加：\n{glossary}")
+                extra_log.append(glossary)
 
         # 如果角色介绍开关打开
-        characterization = ""
-        if self.config.characterization_switch:
+        if self.config.characterization_switch == True:
             characterization = PromptBuilder.build_characterization(self.config, source_text_dict)
-            if characterization:
+            if characterization != "":
                 system += characterization
-                extra_log.append(f"角色介绍已添加：\n{characterization}")
+                extra_log.append(characterization)
 
         # 如果启用自定义世界观设定功能
-        world_building = ""
-        if self.config.world_building_switch:
+        if self.config.world_building_switch == True:
             world_building = PromptBuilder.build_world_building(self.config)
-            if world_building:
+            if world_building != "":
                 system += world_building
-                extra_log.append(f"世界观设定已添加：\n{world_building}")
+                extra_log.append(world_building)
 
         # 如果启用自定义行文措辞要求功能
-        writing_style = ""
-        if self.config.writing_style_switch:
+        if self.config.writing_style_switch == True:
             writing_style = PromptBuilder.build_writing_style(self.config)
-            if writing_style:
+            if writing_style != "":
                 system += writing_style
-                extra_log.append(f"行文措辞要求已添加：\n{writing_style}")
+                extra_log.append(writing_style)
 
         # 如果启用翻译风格示例功能
-        translation_example= ""
-        if self.config.translation_example_switch:
+        if self.config.translation_example_switch == True:
             translation_example = PromptBuilder.build_translation_example(self.config)
-            if translation_example:
+            if translation_example != "":
                 system += translation_example
-                extra_log.append(f"翻译示例已添加：\n{translation_example}")
+                extra_log.append(translation_example)
 
         # 获取默认示例前置文本
         pre_prompt = PromptBuilder.build_userExamplePrefix(self.config)
@@ -435,15 +430,15 @@ class TranslatorTask(Base):
                 "role": "assistant",
                 "content": f"{fol_prompt}```json\n{translation_example_content}\n```"
             })
-            extra_log.append(f"格式原文示例已添加：\n{original_exmaple}")
-            extra_log.append(f"格式译文示例已添加：\n{translation_example_content}")
+            extra_log.append(f"原文示例已添加：\n{original_exmaple}")
+            extra_log.append(f"译文示例已添加：\n{translation_example_content}")
 
         # 如果加上文，获取上文内容
         previous = ""
         if self.config.pre_line_counts and previous_text_list:
             previous = PromptBuilder.build_pre_text(self.config, previous_text_list)
-            if previous:
-                extra_log.append(f"参考上文已添加：\n{"\n".join(previous_text_list)}")
+            if previous != "":
+                extra_log.append(f"###上文\n{"\n".join(previous_text_list)}")
 
         # 获取提问时的前置文本
         pre_prompt = PromptBuilder.build_userQueryPrefix(self.config)
@@ -510,36 +505,32 @@ class TranslatorTask(Base):
                 extra_log.append(result)
 
         # 如果角色介绍开关打开
-        characterization = ""
-        if self.config.characterization_switch:
+        if self.config.characterization_switch == True:
             characterization = PromptBuilder.build_characterization(self.config, source_text_dict)
             if characterization:
                 system += characterization
-                extra_log.append(f"角色介绍已添加：\n{characterization}")
+                extra_log.append(characterization)
 
         # 如果启用自定义世界观设定功能
-        world_building = ""
-        if self.config.world_building_switch:
+        if self.config.world_building_switch == True:
             world_building = PromptBuilder.build_world_building(self.config)
             if world_building:
                 system += world_building
-                extra_log.append(f"世界观设定已添加：\n{world_building}")
+                extra_log.append(world_building)
 
         # 如果启用自定义行文措辞要求功能
-        writing_style = ""
-        if self.config.writing_style_switch:
+        if self.config.writing_style_switch == True:
             writing_style = PromptBuilder.build_writing_style(self.config)
             if writing_style:
                 system += writing_style
-                extra_log.append(f"行文措辞要求已添加：\n{writing_style}")
+                extra_log.append(writing_style)
 
         # 如果启用翻译风格示例功能
-        translation_example= ""
-        if self.config.translation_example_switch:
+        if self.config.translation_example_switch == True:
             translation_example = PromptBuilder.build_translation_example(self.config)
             if translation_example:
                 system += translation_example
-                extra_log.append(f"翻译示例已添加：\n{translation_example}")
+                extra_log.append(translation_example)
 
 
         # 如果加上文，获取上文内容
@@ -547,7 +538,7 @@ class TranslatorTask(Base):
         if self.config.pre_line_counts and previous_text_list:
             previous = PromptBuilder.build_pre_text(self.config, previous_text_list)
             if previous:
-                extra_log.append(f"参考上文已添加：\n{"\n".join(previous_text_list)}")
+                extra_log.append(f"###上文\n{"\n".join(previous_text_list)}")
 
         # 获取提问时的前置文本
         pre_prompt = PromptBuilder.build_userQueryPrefix(self.config)

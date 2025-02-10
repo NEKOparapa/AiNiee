@@ -651,7 +651,7 @@
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "account": "",
+            "account": "请填入推理接入点ID",
             "auto_complete": false,
             "model_datas": [
                 "请填入推理接入点ID"

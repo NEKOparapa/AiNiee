@@ -33,14 +33,14 @@ class PlatformPage(QFrame, Base):
         "api_key": "",
         "api_format": "OpenAI",
         "rpm_limit": 4096,
-        "tpm_limit": 4096000,
-        "token_limit": 4096,
+        "tpm_limit": 8000000,
+        "token_limit": 8000,
         "model": "gpt-4o",
         "top_p": 1.0,
         "temperature": 1.0,
         "presence_penalty": 0.0,
         "frequency_penalty": 0.0,
-        "account": "",
+        "account": "免费账号",
         "auto_complete": True,
         "model_datas": [
         ],
@@ -233,7 +233,7 @@ class PlatformPage(QFrame, Base):
                             ),
                             # (
                             #     FluentIcon.SCROLL,
-                            #     "编辑限额",
+                            #     "编辑限速",
                             #     partial(self.show_limit_edit_page, k),
                             # ),
                             (
@@ -256,7 +256,7 @@ class PlatformPage(QFrame, Base):
                             ),
                             (
                                 FluentIcon.SCROLL,
-                                "编辑限额",
+                                "编辑限速",
                                 partial(self.show_limit_edit_page, k),
                             ),
                             (

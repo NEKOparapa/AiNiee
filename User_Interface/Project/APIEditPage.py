@@ -182,6 +182,7 @@ class APIEditPage(MessageBoxBase, Base):
             )
         )
 
+
     # 模型名称
     def add_widget_model(self, parent, config):
         def init(widget):
@@ -201,45 +202,18 @@ class APIEditPage(MessageBoxBase, Base):
             config = self.load_config()
             config["platforms"][self.key]["model"] = text.strip()
             self.save_config(config)
-        
-        def on_delete(widget):
-            config = self.load_config()
-            current_text = widget.get_current_text()
-            if current_text == "":
-                self.warning_toast("删除失败", "请先输入模型名称")
-                return
-            if current_text in config["platforms"][self.key]["model_datas"]:
-                config["platforms"][self.key]["model_datas"].remove(current_text)
-                self.save_config(config)
-                # 更新显示
-                widget.set_items(config.get("platforms").get(self.key).get("model_datas"))
-                self.success_toast("删除成功", "模型已从列表中删除")
-            else:
-                self.warning_toast("删除失败", "该模型不在预设列表中")
 
-        def on_add(widget):
-            # 添加当前模型到列表中
+        def items_changed(widget, items: list[str]): # 处理 items_changed 信号的槽函数
             config = self.load_config()
-            model_name = config.get("platforms").get(self.key).get("model")
-            if not model_name:
-                self.warning_toast("添加失败", "请先输入模型名称")
-                return
-            if model_name not in config.get("platforms").get(self.key).get("model_datas"):
-                config.get("platforms").get(self.key).get("model_datas").append(model_name)
-                self.save_config(config)
-                widget.set_items(config.get("platforms").get(self.key).get("model_datas"))
-                self.success_toast("添加成功", "模型已添加到列表中")
-            else:
-                self.warning_toast("添加失败", "该模型已存在")
+            config["platforms"][self.key]["model_datas"] = items # 更新 model_datas
+            self.save_config(config) # 保存配置
 
-        parent.addWidget(
-            EditableComboBoxCard(
-                "模型名称(可编辑)",
-                "请选择或者输入要使用的模型的名称",
-                [],
-                init = init,
-                current_text_changed = current_text_changed,
-                delete_function = on_delete,
-                add_function = on_add,
-            )
+        card = EditableComboBoxCard(
+            "模型名称(可编辑)",
+            "请选择或者输入要使用的模型的名称",
+            [],
+            init = init,
+            current_text_changed = current_text_changed,
         )
+        card.items_changed.connect(lambda items: items_changed(card, items)) # 连接信号
+        parent.addWidget(card)

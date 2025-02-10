@@ -14,7 +14,7 @@ class Completion_Text_Process_Plugin(PluginBase):
         self.add_event('reply_processed', PluginBase.PRIORITY.NORMAL)
 
     def load(self):
-        print(f"[INFO] {self.name} loaded!")
+        pass
 
 
     def on_event(self, event_name, config, event_data):

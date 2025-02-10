@@ -43,7 +43,7 @@ class TranslatorConfig(Base):
             self.actual_thread_counts = self.user_thread_counts
         # 如果用户没有指定线程数，且目标平台不为 Sakura 或 自定义平台，则使用默认值
         elif self.user_thread_counts == 0 and not ("sakura" in self.target_platform or "custom_platform_" in self.target_platform):
-            self.actual_thread_counts = 4
+            self.actual_thread_counts = 8
         # 如果用户没有指定线程数，且目标平台为 Sakura 或 自定义平台，则尝试自动获取
         else:
             num = self.get_llama_cpp_slots_num(self.platforms.get(self.target_platform).get("api_url"))
@@ -70,7 +70,7 @@ class TranslatorConfig(Base):
         auto_complete = self.platforms.get(self.target_platform).get("auto_complete")
         if self.target_platform == "sakura" and not api_url.endswith("/v1"):
             self.base_url = api_url + "/v1"
-        elif auto_complete == True and not api_url.endswith("/v1") and not api_url.endswith("/v3") and not api_url.endswith("/v4"):
+        elif auto_complete == True and not api_url.endswith("/v1") and not api_url.endswith("/v2") and not api_url.endswith("/v3") and not api_url.endswith("/v4"):
             self.base_url = api_url + "/v1"
         else:
             self.base_url = api_url
@@ -89,15 +89,15 @@ class TranslatorConfig(Base):
 
         self.rpm_limit = self.platforms.get(self.target_platform).get("account_datas").get(a, {}).get(m, {}).get("RPM", 0)
         if self.rpm_limit == 0:
-            self.rpm_limit = self.platforms.get(self.target_platform).get("rpm_limit", 4096)
+            self.rpm_limit = self.platforms.get(self.target_platform).get("rpm_limit", 4096)    # 当取不到配置文件的预设值，则使用该值
 
         self.tpm_limit = self.platforms.get(self.target_platform).get("account_datas").get(a, {}).get(m, {}).get("TPM", 0)
         if self.tpm_limit == 0:
-            self.tpm_limit = self.platforms.get(self.target_platform).get("tpm_limit", 4096000)
+            self.tpm_limit = self.platforms.get(self.target_platform).get("tpm_limit", 10000000)    # 当取不到配置文件的预设值，则使用该值
 
         self.max_tokens = self.platforms.get(self.target_platform).get("account_datas").get(a, {}).get(m, {}).get("max_tokens", 0)
         if self.max_tokens == 0:
-            self.max_tokens = self.platforms.get(self.target_platform).get("token_limit", 4096)
+            self.max_tokens = self.platforms.get(self.target_platform).get("token_limit", 12000)    # 当取不到配置文件的预设值，则使用该值
 
         # 根据密钥数量给 RPM 和 TPM 限额翻倍
         self.rpm_limit = self.rpm_limit * len(self.apikey_list)
