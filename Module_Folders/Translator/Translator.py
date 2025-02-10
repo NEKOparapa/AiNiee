@@ -267,7 +267,7 @@ class Translator(Base):
                 system = PromptBuilderLocal.build_system(self.config)
             elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
                 system = PromptBuilder.build_system(self.config)
-            elif self.config.prompt_preset in (PromptBuilderEnum.THINK):
+            elif self.config.prompt_preset == PromptBuilderEnum.THINK:
                 system = PromptBuilderThink.build_system(self.config)
             self.print("")
             self.info(f"本次任务使用以下基础指令：\n{system}\n") if self.config.target_platform != "sakura" else None
