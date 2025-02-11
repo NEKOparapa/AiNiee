@@ -16,6 +16,7 @@ from Module_Folders.PromptBuilder.PromptBuilder import PromptBuilder
 from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from Module_Folders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
 from Module_Folders.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
+from Module_Folders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
 from Module_Folders.Response_Parser.Response import Response_Parser
 from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
 
@@ -258,7 +259,7 @@ class TranslatorTask(Base):
                 self.source_text_dict,
                 self.previous_text_list,
             )
-        if target_platform == "LocalLLM":
+        elif target_platform == "LocalLLM":
             self.messages, self.system_prompt, self.extra_log = self.generate_prompt_LocalLLM(
                 self.source_text_dict,
                 self.previous_text_list,
@@ -594,10 +595,12 @@ class TranslatorTask(Base):
         extra_log = []
 
         # 构建系统提示词
+        system = PromptBuilderSakura.build_system(self.config)
         messages.append({
             "role": "system",
-            "content": "你是一个轻小说翻译模型，可以流畅通顺地以日本轻小说的风格将日文翻译成简体中文，并联系上下文正确使用人称代词，不擅自添加原文中没有的代词。"
+            "content": system
         })
+
 
         # 如果开启了指令词典功能
         if self.config.prompt_dictionary_switch == True:
