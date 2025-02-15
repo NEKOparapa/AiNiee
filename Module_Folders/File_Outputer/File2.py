@@ -6,6 +6,7 @@ import json
 import shutil
 import zipfile
 
+from bs4 import BeautifulSoup
 import ebooklib # 需要安装库pip install ebooklib
 from ebooklib import epub
 from openpyxl import Workbook
@@ -1157,22 +1158,23 @@ class File_Outputter():
             # 打开对应xml文件
             with open(the_file_path, 'r', encoding='utf-8') as file:
                 # 读取文件内容
-                content_xml = file.read()
+                xml_soup = BeautifulSoup(file, 'xml')
 
-            # 遍历缓存数据
-            for content in content_list:
-                # 获取原文本
-                original = content['source_text']
-                # 获取翻译后的文本
-                replacement = content['translated_text']
-
-                # 替换第一个匹配项
-                content_xml = content_xml.replace(original, replacement, 1)
-
+            start_index = 0
+            # 根据 w:t 标签找到原文
+            paragraphs = xml_soup.findAll('w:t')
+            for match in paragraphs:
+                if match.string.strip():
+                    # 在翻译结果中查找是否存在原文，存在则替换并右移开始下标
+                    for content_index in range(start_index, len(content_list)):
+                        if match.string == content_list[content_index]['source_text']:
+                            match.string = content_list[content_index]['translated_text']
+                            start_index = content_index + 1
+                            break
 
             # 写入内容到xml文件
             with open(the_file_path, 'w', encoding='utf-8') as file:
-                file.write(content_xml)
+                file.write(str(xml_soup))
 
             # 构建修改后的docx文件路径
             modified_epub_file = file_path.rsplit('.', 1)[0] + '_translated.docx'
