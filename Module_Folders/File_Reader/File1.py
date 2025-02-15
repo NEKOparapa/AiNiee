@@ -22,7 +22,6 @@ import openpyxl  #需安装库pip install openpyxl
 
 
 
-
 # 文件读取器
 class File_Reader():
     def __init__(self):
@@ -882,32 +881,13 @@ class File_Reader():
                     # 打开对应xml文件
                     with open(the_file_path, 'r', encoding='utf-8') as file:
                         # 读取文件内容
-                        xml_content = file.read()
+                        xml_soup = BeautifulSoup(file, 'xml')
 
-
-                    # 正则表达式匹配运行标签及其内容
-                    #p_pattern = r'<w:t[^>/]*>(.*?)</w:t>'
-                    p_pattern = r'<w:t[^>/]*>([^<]*)</w:t>'
-
-                    #<w:t: 匹配 <w:t 开头。
-
-                    #[^>/]*>: 匹配 <w:t 标签内的任何属性。 [^>/] 表示匹配除了 > 和 / 以外的任何字符零次或多次，然后匹配 >，确保匹配到完整的起始标签。
-
-                    #([^<]*): 这部分是关键的修改。
-
-                    #( 和 ): 表示捕获分组，我们要提取的内容就在这个分组里。
-
-                    #[^<]*: 表示匹配除了 < 以外的任何字符零次或多次。这确保了匹配的内容不会跨越到下一个标签。
-
-                    #</w:t>: 匹配 </w:t> 结尾。
-
-
-
-                    # 使用findall函数找到所有匹配的内容
-                    paragraphs = re.findall(p_pattern, xml_content, re.DOTALL)
+                    # 使用BeautifulSoup解析，找到所有 w:t 标签
+                    paragraphs = xml_soup.findAll('w:t')
 
                     # 过滤掉空的内容
-                    filtered_matches = [match for match in paragraphs if match.strip()]
+                    filtered_matches = [match.string for match in paragraphs if match.string .strip()]
 
                     # 遍历每个标签，并提取文本内容
                     for text in filtered_matches:
@@ -928,9 +908,6 @@ class File_Reader():
                         })                                    
                         # 增加文本索引值
                         i = i + 1
-
-            # 删除暂存文件夹
-            shutil.rmtree(extract_path)
 
         return json_data_list
 
