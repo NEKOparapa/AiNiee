@@ -909,6 +909,9 @@ class File_Reader():
                         # 增加文本索引值
                         i = i + 1
 
+            # 删除暂存文件夹
+            shutil.rmtree(extract_path)
+
         return json_data_list
 
     # 根据文件类型读取文件
