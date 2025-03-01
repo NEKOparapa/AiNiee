@@ -18,10 +18,10 @@ class FlowBasicSettingsPage(QFrame, Base):
             "double_request_switch_settings": False,
             "request_a_platform_settings": "deepseek",
             "request_b_platform_settings": "deepseek",
-            "test_original_text": "ゲオルグ\n「今度こそこの迷宮を封印し、\nイハイラも助け出すために……！",
-            "test_preceding_text": "ゲオルグ\n「休憩は終わりだ。\nそろそろ出発にしよう。",
-            "test_glossary": "deepseek",
-            "test_no_translate_list": "deepseek",
+            "test_original_text": "请输入测试用原文文本",
+            "test_preceding_text": "请输入测试用上文文本",
+            "test_glossary": "请输入测试用术语表",
+            "test_no_translate_list": "请输入测试用禁翻表",
         }
 
         # 载入并保存默认配置
@@ -101,8 +101,11 @@ class FlowBasicSettingsPage(QFrame, Base):
             self.save_config(config)
         parent.addWidget(
             SwitchButtonCard(
-                "拼好翻",
-                "启用此功能后，将按照本页中的设置进行多轮次的翻译，主要用于解决翻译残留等问题",
+                "启用双子星翻译",
+                (
+                    "每个单元翻译任务，都改为流程设计中的翻译流程"
+                    + "\n" + "失效功能：AI构建术语表，AI构建禁翻表，提示词设置"
+                ),
                 widget_init,
                 widget_callback,
             )
@@ -128,7 +131,7 @@ class FlowBasicSettingsPage(QFrame, Base):
 
         combobox_card_a = ComboBoxCard( # 保存实例
             "接口A",
-            "设置当前翻译项目所使用的接口的名称，注意，选择错误将不能进行翻译",
+            "进行第一次请求所使用的接口",
             [],
             init = init,
             current_text_changed = current_text_changed,
@@ -156,7 +159,7 @@ class FlowBasicSettingsPage(QFrame, Base):
 
         combobox_card_b = ComboBoxCard( # 保存实例
             "接口B",
-            "设置当前翻译项目所使用的接口的名称，注意，选择错误将不能进行翻译",
+            "进行第二次请求所使用的接口",
             [],
             init = init,
             current_text_changed = current_text_changed,

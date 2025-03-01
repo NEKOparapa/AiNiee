@@ -81,7 +81,10 @@ class PromptDictionaryPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 "术语表",
-                "通过构建术语表来引导模型翻译，可实现统一翻译、矫正人称属性等功能",
+                (
+                "通过构建术语表来引导模型翻译，可实现统一翻译、矫正人称属性等功能"                
+                + "\n" + "触发机制: 文本含有原名"
+                ),
                 init = init,
                 checked_changed = checked_changed,
             )

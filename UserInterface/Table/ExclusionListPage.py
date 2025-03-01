@@ -83,7 +83,10 @@ class ExclusionListPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 "禁翻表",
-                "通过构建术语表来引导模型翻译，可实现统一翻译、矫正人称属性等功能",
+                (
+                "通过构建禁翻表来引导模型，禁止翻译文本中的特殊标记符，占位符，代码段等内容"                   
+                + "\n" + "触发机制: 文本含有标记符，或者正则表达式提取生效"
+                ),
                 init = init,
                 checked_changed = checked_changed,
             )

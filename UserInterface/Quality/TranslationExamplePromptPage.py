@@ -67,7 +67,7 @@ class TranslationExamplePromptPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 "自定义翻译示例",
-                "启用此功能后，将根据本页中设置的信息构建提示词向模型发送请求，仅在逻辑能力强的模型上有效（不支持 Sakura 模型）",
+                "启用此功能后，将根据本页中设置的内容构建翻译示例，并补充到基础提示词中（不支持本地类模型）",
                 init = init,
                 checked_changed = checked_changed,
             )

@@ -68,7 +68,7 @@ class FlowDesignPage(QFrame, Base):
         # 添加测试控件
         self.CenteredDividerCardA1 = CenteredDividerCard(
             title='|  第一次请求  |',
-            description='居中描述文本，用于展示一些简短的说明信息。',
+            description='根据下面对话的构造，进行第一次请求',
             url='https://qfluentwidgets.com',
             link_text='教程'
         )
@@ -99,7 +99,7 @@ class FlowDesignPage(QFrame, Base):
 
         self.TestBreakpointCardE = TestBreakpointCard(
             title='|  提取阶段  |',
-            description='居中描述文本，用于展示一些简短的说明信息。',
+            description='根据下面提取器的设置，对第一次回复内容并行提取',
             breakpoint_position= 1  # 添加位置参数
         )
         self.TestBreakpointCardE.tool_button.clicked.connect(
@@ -151,7 +151,7 @@ class FlowDesignPage(QFrame, Base):
         # 后续原有组件
         self.TestBreakpointCardB = TestBreakpointCard(
             title='|  第二次请求  |',
-            description='居中描述文本，用于展示一些简短的说明信息。',
+            description='根据下面对话的构造，进行第二次请求',
             breakpoint_position= 2  # 添加位置参数
         )
         self.TestBreakpointCardB.tool_button.clicked.connect(
@@ -185,7 +185,7 @@ class FlowDesignPage(QFrame, Base):
         # 结束阶段后续步骤
         self.TestBreakpointCardG = TestBreakpointCard(
             title='|  提取翻译结果  |',
-            description='居中描述文本，用于展示一些简短的说明信息。',
+            description='从第二次请求回复内容里以textarea标签提取译文',
             breakpoint_position= 3  # 添加位置参数
         )
         self.TestBreakpointCardG.tool_button.clicked.connect(

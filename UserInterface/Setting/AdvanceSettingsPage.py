@@ -69,7 +69,10 @@ class AdvanceSettingsPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 "AI构建术语表",
-                "启用此功能后将使用中文提示词，不启用则使用英文提示词（Sakura 接口无需设置此项）",
+                (
+                    "开启该功能，将由AI辅助生成术语表，自动录入，自动应用到后续翻译任务"
+                    + "\n" + "开启该功能会增加模型负担，建议在强力模型上开启"
+                ),
                 widget_init,
                 widget_callback,
             )
@@ -89,7 +92,10 @@ class AdvanceSettingsPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 "AI构建禁翻表",
-                "启用此功能后将使用中文提示词，不启用则使用英文提示词（Sakura 接口无需设置此项）",
+                (
+                    "开启该功能，将由AI辅助生成禁翻表，自动录入，暂不应用到后续翻译任务"
+                    + "\n" + "开启该功能会增加模型负担，建议在强力模型上开启"
+                ),
                 widget_init,
                 widget_callback,
             )

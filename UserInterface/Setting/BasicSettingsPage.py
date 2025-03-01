@@ -168,7 +168,7 @@ class BasicSettingsPage(QFrame, Base):
         parent.addWidget(
             SpinCard(
                 "参考上文行数",
-                "启用此功能在大部分情况下可以改善长句的翻译质量，但是会降低翻译速度",
+                "行数不宜设置过大，建议10行以内 (不支持本地类接口)",
                 init = init,
                 value_changed = value_changed,
             )
