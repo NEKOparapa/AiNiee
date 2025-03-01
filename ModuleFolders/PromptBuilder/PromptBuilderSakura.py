@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 from Base.Base import Base
-from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 
 
 class PromptBuilderSakura(Base):

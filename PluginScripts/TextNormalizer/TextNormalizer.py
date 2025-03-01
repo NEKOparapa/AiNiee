@@ -2,7 +2,7 @@ import itertools
 import unicodedata
 
 from PluginScripts.PluginBase import PluginBase
-from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 
 class TextNormalizer(PluginBase):
 

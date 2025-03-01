@@ -6,8 +6,8 @@ import opencc
 import rapidjson as json
 
 from Base.Base import Base
-from Module_Folders.Cache.CacheItem import CacheItem
-from Module_Folders.Cache.CacheProject import CacheProject
+from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
 
 class CacheManager(Base):
 

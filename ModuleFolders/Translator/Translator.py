@@ -7,18 +7,18 @@ from tqdm import tqdm
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
-from Module_Folders.Cache.CacheItem import CacheItem
-from Module_Folders.Cache.CacheManager import CacheManager
-from Module_Folders.Translator.TranslatorTask import TranslatorTask
-from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
-from Module_Folders.PromptBuilder.PromptBuilder import PromptBuilder
-from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
-from Module_Folders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
-from Module_Folders.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
-from Module_Folders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
-from Module_Folders.File_Reader.File1 import File_Reader
-from Module_Folders.File_Outputer.File2 import File_Outputter
-from Module_Folders.RequestLimiter.RequestLimiter import RequestLimiter
+from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheManager import CacheManager
+from ModuleFolders.Translator.TranslatorTask import TranslatorTask
+from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
+from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from ModuleFolders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
+from ModuleFolders.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
+from ModuleFolders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
+from ModuleFolders.FileReader.FileReader import FileReader
+from ModuleFolders.FileOutputer.FileOutputer import FileOutputer
+from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
 
 # 翻译器
 class Translator(Base):
@@ -89,7 +89,7 @@ class Translator(Base):
             self.print("")
 
         # 写入文件
-        File_Outputter.output_translated_content(
+        FileOutputer.output_translated_content(
             self,
             cache_list,
             self.config.label_output_path,
@@ -147,7 +147,7 @@ class Translator(Base):
                 self.cache_manager.load_from_file(self.config.label_output_path)
             else:
                 self.cache_manager.load_from_list(
-                    File_Reader.read_files(
+                    FileReader.read_files(
                         self,
                         self.config.translation_project,
                         self.config.label_input_path,
@@ -307,7 +307,7 @@ class Translator(Base):
             self.print("")
 
         # 写入文件
-        File_Outputter.output_translated_content(
+        FileOutputer.output_translated_content(
             self,
             cache_list,
             self.config.label_output_path,

@@ -2,8 +2,8 @@ from tqdm import tqdm
 from rich import print
 
 from PluginScripts.PluginBase import PluginBase
-from Module_Folders.Cache.CacheItem import CacheItem
-from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 
 class LanguageFilter(PluginBase):
 

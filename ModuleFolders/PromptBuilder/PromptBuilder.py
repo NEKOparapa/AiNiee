@@ -4,8 +4,8 @@ from types import SimpleNamespace
 import rapidjson as json
 
 from Base.Base import Base
-from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
-from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 
 class PromptBuilder(Base):
     def __init__(self) -> None:

@@ -1,6 +1,6 @@
 import re
 from Base.Base import Base
-from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 
 
 from DRWidget.TranslationExtractionCard.TranslationExtraction import TranslationExtraction

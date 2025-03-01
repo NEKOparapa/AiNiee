@@ -9,19 +9,19 @@ from rich.table import Table
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
-from Module_Folders.Cache.CacheItem import CacheItem
-from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
-from Module_Folders.Translator.TranslatorRequester import TranslatorRequester
-from Module_Folders.PromptBuilder.PromptBuilder import PromptBuilder
-from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
-from Module_Folders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
-from Module_Folders.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
-from Module_Folders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
-from Module_Folders.PromptBuilder.PromptBuilderDouble import PromptBuilderDouble
-from Module_Folders.ResponseExtractor.ResponseExtractor import ResponseExtractor
-from Module_Folders.ResponseChecker.ResponseChecker import ResponseChecker
-from Module_Folders.RequestLimiter.RequestLimiter import RequestLimiter
-from Module_Folders.Cache.CacheManager import CacheManager
+from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.Translator.TranslatorRequester import TranslatorRequester
+from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
+from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from ModuleFolders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
+from ModuleFolders.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
+from ModuleFolders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
+from ModuleFolders.PromptBuilder.PromptBuilderDouble import PromptBuilderDouble
+from ModuleFolders.ResponseExtractor.ResponseExtractor import ResponseExtractor
+from ModuleFolders.ResponseChecker.ResponseChecker import ResponseChecker
+from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
+from ModuleFolders.Cache.CacheManager import CacheManager
 
 
 

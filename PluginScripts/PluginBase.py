@@ -1,4 +1,4 @@
-from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 
 class Priority():
 

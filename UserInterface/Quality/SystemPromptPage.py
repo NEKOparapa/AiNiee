@@ -11,11 +11,10 @@ from qfluentwidgets import PlainTextEdit
 
 from Base.Base import Base
 from Widget.CommandBarCard import CommandBarCard
-from Widget.SwitchButtonCard import SwitchButtonCard
 from Widget.ComboBoxCard import ComboBoxCard
-from Module_Folders.PromptBuilder.PromptBuilder import PromptBuilder
-from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
-from Module_Folders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
+from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
+from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from ModuleFolders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
 
 class SystemPromptPage(QFrame, Base):
 

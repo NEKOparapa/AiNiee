@@ -10,8 +10,8 @@ import rapidjson as json
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
-from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
-from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 
 
 # 接口请求器

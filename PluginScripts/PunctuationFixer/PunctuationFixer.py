@@ -3,7 +3,7 @@ from tqdm import tqdm
 from rich import print
 
 from PluginScripts.PluginBase import PluginBase
-from Module_Folders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 
 class PunctuationFixer(PluginBase):
 

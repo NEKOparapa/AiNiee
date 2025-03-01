@@ -35,9 +35,9 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 
 from Base.PluginManager import PluginManager
-from Module_Folders.Translator.Translator import Translator
-from Module_Folders.RequestTester.RequestTester import RequestTester
-from Module_Folders.RequestTester.ProcessTester import ProcessTester
+from ModuleFolders.Translator.Translator import Translator
+from ModuleFolders.RequestTester.RequestTester import RequestTester
+from ModuleFolders.RequestTester.ProcessTester import ProcessTester
 from UserInterface.AppFluentWindow import AppFluentWindow
 
 # 载入配置文件

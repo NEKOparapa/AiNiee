@@ -10,7 +10,7 @@ from Widget.FlowCard import FlowCard
 from Widget.Separator import Separator
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.SwitchButtonCard import SwitchButtonCard
-from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 
 class AdvanceSettingsPage(QFrame, Base):
 
