@@ -20,7 +20,7 @@ class ResponseChecker():
         else:
             check_result = False
             # 存储错误内容
-            error_content = "模型已拒绝翻译，回复内容：" + "\n" + str(response_str)
+            error_content = "模型已拒绝翻译或格式错误，回复内容：" + "\n" + str(response_str)
             return check_result,error_content
 
 
@@ -189,8 +189,8 @@ class ResponseChecker():
         dict1 = dictA.copy()
         dict2 = dictB.copy()
 
-        # 考量到代码文本，英语不作检查
-        if language == "英语" or language == "俄语":
+        # 考量到代码文本，不支持的语言不作检查
+        if language not in ("日语","韩语","简中","繁中"):
             return True
 
         # 避免检查单或者少行字典
@@ -222,11 +222,6 @@ class ResponseChecker():
             '韩语': re.compile(
                 r'['
                 r'\uAC00-\uD7AF'  # 韩文字母
-                r']+', re.UNICODE
-            ),
-            '俄语': re.compile(
-                r'['
-                r'\u0400-\u04FF'  # 俄语字母
                 r']+', re.UNICODE
             ),
             '简中': re.compile(
@@ -273,7 +268,7 @@ class ResponseChecker():
                     count_results += 1
 
         # 根据出现次数判断结果
-        if  count_results >=2:
+        if  count_results >=5:
             return False
 
         return True
