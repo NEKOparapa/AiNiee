@@ -17,8 +17,13 @@ from Module_Folders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from Module_Folders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
 from Module_Folders.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
 from Module_Folders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
-from Module_Folders.Response_Parser.Response import Response_Parser
-from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
+from Module_Folders.PromptBuilder.PromptBuilderDouble import PromptBuilderDouble
+from Module_Folders.ResponseExtractor.ResponseExtractor import ResponseExtractor
+from Module_Folders.ResponseChecker.ResponseChecker import ResponseChecker
+from Module_Folders.RequestLimiter.RequestLimiter import RequestLimiter
+from Module_Folders.Cache.CacheManager import CacheManager
+
+
 
 # 接口请求器
 class TranslatorTask(Base):
@@ -75,13 +80,29 @@ class TranslatorTask(Base):
         SPACE_PATTERN + r'【\\[A-Za-z]+\[[^]]*】\\SE\[[^]]*\]'+ SPACE_PATTERN,        #【\N[1]】\SE[xxx]
     )
 
-    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager, request_limiter: Request_Limiter) -> None:
+    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager, request_limiter: RequestLimiter, cache_manager: CacheManager) -> None:
         super().__init__()
 
         # 初始化
         self.config = config
         self.plugin_manager = plugin_manager
         self.request_limiter = request_limiter
+        self.cache_manager = cache_manager
+
+        # 初始化参数
+        self.messages = []
+        self.messages_a = []  
+        self.messages_b = []    
+        self.system_prompt = ""  
+        self.system_prompt_a = ""  
+        self.system_prompt_b = ""  
+
+        self.extra_log = []
+
+
+        # 占位符替换字典
+        self.replace_dict = {}
+
 
         # 根据原文语言生成正则表达式
         if "英语" in config.source_language:
@@ -95,15 +116,18 @@ class TranslatorTask(Base):
 
     # 启动任务
     def start(self) -> dict:
-        return self.request(False)
+        if self.config.double_request_switch_settings == True:
+            return self.unit_DRtranslation_task()
+        else:
+            return self.unit_translation_task()
 
-    # 请求
-    def request(self, degradation_flag: bool) -> dict:
+    # 单请求翻译任务
+    def unit_translation_task(self) -> dict:
         # 任务开始的时间
         task_start_time = time.time()
 
         while True:
-            # 检测是否需要停止任务
+            # 检测是否收到停止翻译事件
             if Base.work_status == Base.STATUS.STOPING:
                 return {}
 
@@ -118,16 +142,21 @@ class TranslatorTask(Base):
             # 如果以上条件都不符合，则间隔 1 秒再次检查
             time.sleep(1)
 
+        # 获取接口配置信息包
+        platform_config = self.config.get_platform_configuration("singleReq")
+
+        # 读取术语表更新系统提示词,因为核心流程限制，而加上的挫版补丁.....
+        self.system_prompt = self.update_sysprompt_glossary(self.config,self.system_prompt, self.config.prompt_dictionary_data, self.source_text_dict)
+
         # 发起请求
         requester = TranslatorRequester(self.config, self.plugin_manager)
-        skip, response_think, response_content, prompt_tokens, completion_tokens = requester.request(
+        skip, response_think, response_content, prompt_tokens, completion_tokens = requester.sent_request(
             self.messages,
             self.system_prompt,
-            self.config.prompt_preset,
-            degradation_flag,
+            platform_config
         )
 
-        # 如果请求结果标记为 skip，即有错误发生，则跳过本次循环
+        # 如果请求结果标记为 skip，即有运行错误发生，则直接返回错误信息，停止后续任务
         if skip == True:
             return {
                 "check_result": False,
@@ -137,10 +166,10 @@ class TranslatorTask(Base):
             }
 
         # 提取回复内容
-        response_dict = Response_Parser.text_extraction(self, response_content)
+        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
 
         # 检查回复内容
-        check_result, error_content = Response_Parser.check_response_content(
+        check_result, error_content = ResponseChecker.check_response_content(
             self,
             self.config.reply_check_switch,
             response_content,
@@ -156,17 +185,8 @@ class TranslatorTask(Base):
             self.extra_log.append("模型回复内容：\n" + response_content)
 
         # 检查译文
-        retry_flag = False
         if check_result == False:
-            # 如果检查到模型退化，并且本次任务中退化标识为 False，则将重试标识设置为 True
-            if "退化" in error_content and degradation_flag == False:
-                error = "译文文本中检查到模型退化现象，正在重试"
-                retry_flag = True
-            # 如果检查到模型退化，并且本次任务中退化标识为 True，则放弃本次任务
-            elif "退化" in error_content and degradation_flag == True:
-                error = "译文文本中检查到模型退化现象，将在下一轮次的翻译中重新翻译"
-            else:
-                error = f"译文文本未通过检查，将在下一轮次的翻译中重新翻译 - {error_content}"
+            error = f"译文文本未通过检查，将在下一轮次的翻译中重新翻译 - {error_content}"
 
             # 打印任务结果
             self.print(
@@ -188,9 +208,218 @@ class TranslatorTask(Base):
             restore_response_dict = copy.copy(response_dict)
             restore_response_dict = self.restore_all(restore_response_dict, self.prefix_codes, self.suffix_codes)
 
-            # 更新缓存数据
+            # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
                 item.set_model(self.config.model)
+                item.set_translated_text(response)
+                item.set_translation_status(CacheItem.STATUS.TRANSLATED)
+
+            # 更新术语表与禁翻表到配置文件中
+            self.config.update_glossary_ntl_config(glossary_result, NTL_result)
+
+
+            # 打印任务结果
+            self.print(
+                self.generate_log_table(
+                    *self.generate_log_rows(
+                        "",
+                        task_start_time,
+                        prompt_tokens,
+                        completion_tokens,
+                        self.source_text_dict.values(),
+                        response_dict.values(),
+                        self.extra_log,
+                    )
+                )
+            )
+
+
+        # 否则返回译文检查的结果
+        if check_result == False:
+            return {
+                "check_result": False,
+                "row_count": 0,
+                "prompt_tokens": self.request_tokens_consume,
+                "completion_tokens": 0,
+            }
+        else:
+            return {
+                "check_result": check_result,
+                "row_count": self.row_count,
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+            }
+
+
+    # 双请求翻译任务
+    def unit_DRtranslation_task(self) -> dict:
+        # 任务开始的时间
+        task_start_time = time.time()
+
+        while True:
+            # 检测是否收到停止翻译事件
+            if Base.work_status == Base.STATUS.STOPING:
+                return {}
+
+            # 检查是否超时，超时则直接跳过当前任务，以避免死循环
+            if time.time() - task_start_time >= self.config.request_timeout:
+                return {}
+
+            # 检查 RPM 和 TPM 限制，如果符合条件，则继续
+            if self.request_limiter.check_limiter(self.request_tokens_consume):
+                break
+
+
+            # 如果以上条件都不符合，则间隔 1 秒再次检查
+            time.sleep(1)
+
+
+        # 构造初始替换字典
+        previous_text = PromptBuilderDouble.get_previous_text(self, self.previous_text_list) # 上文
+        source_text_str = PromptBuilderDouble.get_source_text(self, self.source_text_dict) # 原文
+        glossary = PromptBuilderDouble.get_glossary(self, self.config, self.source_text_dict) # 术语表
+        code = PromptBuilderDouble.build_ntl_prompt(self, self.config, self.source_text_dict) # 禁翻表
+
+        self.replace_dict = {
+            "{original_text}":source_text_str,
+            "{previous_text}":previous_text,
+            "{glossary}":glossary,
+            "{code_text}":code
+        }
+
+
+        # 进行文本占位符替换
+        messages, system_content = PromptBuilderDouble.replace_message_content(self,
+            self.replace_dict,
+            self.messages_a,
+            self.system_prompt_a
+        )
+
+        # 获取第一次平台配置信息包
+        platform_config = self.config.get_platform_configuration("doubleReqA")
+        model_a = platform_config["model_name"]
+
+        # 发起第一次请求
+        requester = TranslatorRequester(self.config, self.plugin_manager)
+        skip, response_think, response_content, prompt_tokens_a, completion_tokens_a = requester.sent_request(
+            messages,
+            system_content,
+            platform_config
+        )
+
+        # 如果请求结果标记为 skip，即有运行错误发生，则直接返回错误信息，停止后续任务
+        if skip == True:
+            return {
+                "check_result": False,
+                "row_count": 0,
+                "prompt_tokens": self.request_tokens_consume,
+                "completion_tokens": 0,
+            }
+        
+        # 提取回复内容
+        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
+        # 更新术语表与禁翻表到配置文件中
+        self.config.update_glossary_ntl_config(glossary_result, NTL_result)
+
+
+        # 模型回复日志
+        if response_think != "":
+            self.extra_log.append("第一次模型思考内容：\n" + response_think)
+        if self.is_debug():
+            self.extra_log.append("第一次模型回复内容：\n" + response_content)
+
+
+        # 进行提取阶段,并更新替换字典
+        self.replace_dict,self.extra_log = PromptBuilderDouble.process_extraction_phase(self,
+            self.config, 
+            self.replace_dict,
+            response_think,
+            response_content,
+            self.extra_log
+        )
+
+
+        # 进行第二次文本占位符替换
+        messages, system_content = PromptBuilderDouble.replace_message_content(self,
+            self.replace_dict,
+            self.messages_b,
+            self.system_prompt_b
+        )
+
+
+        # 获取第二次平台配置信息包
+        platform_config = self.config.get_platform_configuration("doubleReqB")
+        model_b = platform_config["model_name"]
+
+        # 发起第二次请求
+        requester = TranslatorRequester(self.config, self.plugin_manager)
+        skip, response_think, response_content, prompt_tokens_b, completion_tokens_b = requester.sent_request(
+            messages,
+            system_content,
+            platform_config
+        )
+
+
+        # 如果请求结果标记为 skip，即有运行错误发生，则直接返回错误信息，停止后续任务
+        if skip == True:
+            return {
+                "check_result": False,
+                "row_count": 0,
+                "prompt_tokens": self.request_tokens_consume,
+                "completion_tokens": 0,
+            }
+
+        # 提取回复内容
+        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
+
+        # 检查回复内容
+        check_result, error_content = ResponseChecker.check_response_content(
+            self,
+            self.config.reply_check_switch,
+            response_content,
+            response_dict,
+            self.source_text_dict,
+            self.config.source_language
+        )
+
+        # 模型回复日志
+        if response_think != "":
+            self.extra_log.append("第二次模型思考内容：\n" + response_think)
+        if self.is_debug():
+            self.extra_log.append("第二次模型回复内容：\n" + response_content)
+
+        # 合并消耗和模型号
+        prompt_tokens = prompt_tokens_a + prompt_tokens_b
+        completion_tokens = completion_tokens_a + completion_tokens_b
+        model = model_a + " and " + model_b
+
+        # 检查译文
+        if check_result == False:
+            error = f"译文文本未通过检查，将在下一轮次的翻译中重新翻译 - {error_content}"
+
+            # 打印任务结果
+            self.print(
+                self.generate_log_table(
+                    *self.generate_log_rows(
+                        error,
+                        task_start_time,
+                        prompt_tokens,
+                        completion_tokens,
+                        self.source_text_dict.values(),
+                        response_dict.values(),
+                        self.extra_log,
+                    )
+                )
+            )
+        else:
+            # 各种还原步骤
+            # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
+            restore_response_dict = copy.copy(response_dict)
+            restore_response_dict = self.restore_all(restore_response_dict, self.prefix_codes, self.suffix_codes)
+
+            # 更新译文结果到缓存数据中
+            for item, response in zip(self.items, restore_response_dict.values()):
+                item.set_model(model)
                 item.set_translated_text(response)
                 item.set_translation_status(CacheItem.STATUS.TRANSLATED)
 
@@ -209,11 +438,9 @@ class TranslatorTask(Base):
                 )
             )
 
-        # 当重试标识为 True 时，重新发起请求
+
         # 否则返回译文检查的结果
-        if retry_flag == True:
-            return self.request(True)
-        elif check_result == False:
+        if check_result == False:
             return {
                 "check_result": False,
                 "row_count": 0,
@@ -228,6 +455,8 @@ class TranslatorTask(Base):
                 "completion_tokens": completion_tokens,
             }
 
+
+
     # 设置缓存数据
     def set_items(self, items: list[CacheItem]) -> None:
         self.items = items
@@ -236,8 +465,9 @@ class TranslatorTask(Base):
     def set_previous_items(self, previous_items: list[CacheItem]) -> None:
         self.previous_items = previous_items
 
-    # 预处理
-    def prepare(self, target_platform: str, api_format: str, prompt_preset: int) -> None:
+    # 消息构建预处理
+    def prepare(self, target_platform: str, prompt_preset: int) -> None:
+
         # 生成上文文本列表
         self.previous_text_list = [v.get_source_text() for v in self.previous_items]
 
@@ -250,11 +480,15 @@ class TranslatorTask(Base):
         # 触发插件事件 - 文本正规化
         self.plugin_manager.broadcast_event("normalize_text", self.config, self.source_text_dict)
 
-        # 各种替换步骤
+        # 各种替换步骤，译前替换，提取首位代码段
         self.source_text_dict, self.prefix_codes, self.suffix_codes = self.replace_all(self.source_text_dict, self.prefix_pattern, self.suffix_pattern)
 
         # 生成请求指令
-        if target_platform == "sakura":
+        if self.config.double_request_switch_settings == True:
+            self.messages_a, self.system_prompt_a = self.generate_prompt_DRA()
+            self.messages_b, self.system_prompt_b = self.generate_prompt_DRB()
+
+        elif target_platform == "sakura":
             self.messages, self.system_prompt, self.extra_log = self.generate_prompt_sakura(
                 self.source_text_dict,
                 self.previous_text_list,
@@ -266,21 +500,24 @@ class TranslatorTask(Base):
             )
         elif prompt_preset in (PromptBuilderEnum.THINK,):
             self.messages, self.system_prompt, self.extra_log = self.generate_prompt_think(
-                target_platform,
-                api_format,
                 self.source_text_dict,
                 self.previous_text_list
             )
-        elif prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
+        elif prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.CUSTOM):
             self.messages, self.system_prompt, self.extra_log = self.generate_prompt(
-                target_platform,
-                api_format,
                 self.source_text_dict,
                 self.previous_text_list
             )
 
-        # 预估 Token 消费，并检查 RPM 和 TPM 限制
-        self.request_tokens_consume = self.request_limiter.num_tokens_from_messages(self.messages)
+        # 预估 Token 消费,暂时版本，双请求无法正确计算tpm与tokens消耗
+        self.request_tokens_consume = self.request_limiter.calculate_tokens(
+            self.messages,
+            self.messages_a, 
+            self.messages_b,   
+            self.system_prompt,
+            self.system_prompt_a,
+            self.system_prompt_b
+            )
 
     # 各种替换步骤
     def replace_all(self, text_dict: dict, prefix_pattern: re.Pattern, suffix_pattern: re.Pattern) -> tuple[dict, dict, dict]:
@@ -294,17 +531,10 @@ class TranslatorTask(Base):
         if self.config.preserve_prefix_and_suffix_codes == True:
             text_dict, prefix_codes, suffix_codes = self.replace_prefix_and_suffix_codes(text_dict, prefix_pattern, suffix_pattern)
 
-        # 替换 换行符
-        if self.config.preserve_line_breaks_toggle == True:
-            text_dict = self.replace_line_breaks(text_dict)
-
         return text_dict, prefix_codes, suffix_codes
 
     # 各种还原步骤，注意还原中各步骤的执行顺序与替换中各步骤的执行循环相反
     def restore_all(self, text_dict: dict, prefix_codes: dict, suffix_codes: dict) -> dict:
-        # 还原 换行符
-        if self.config.preserve_line_breaks_toggle == True:
-            text_dict = self.restore_line_breaks(text_dict)
 
         # 还原 前缀代码段 和 后缀代码段
         if self.config.preserve_prefix_and_suffix_codes == True:
@@ -316,19 +546,6 @@ class TranslatorTask(Base):
 
         return text_dict
 
-    # 替换换行符
-    def replace_line_breaks(self, text_dict: dict) -> dict:
-        for k in text_dict:
-            text_dict[k] = text_dict[k].replace("\n", "＠").replace("\r", "∞")
-
-        return text_dict
-
-    # 还原换行符
-    def restore_line_breaks(self, text_dict: dict) -> dict:
-        for k in text_dict:
-            text_dict[k] = text_dict[k].replace("@", "\n").replace("＠", "\n").replace("∞", "\r")
-
-        return text_dict
 
     # 替换 前缀代码段、后缀代码段
     def replace_prefix_and_suffix_codes(self, text_dict: dict, prefix_pattern: re.Pattern, suffix_pattern: re.Pattern) -> tuple[dict, dict, dict]:
@@ -375,24 +592,46 @@ class TranslatorTask(Base):
         return text_dict
 
     # 生成指令
-    def generate_prompt(self, target_platform: str, api_format: str, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
+    def generate_prompt(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
         # 储存指令
         messages = []
         # 储存额外日志
         extra_log = []
 
         # 基础提示词
-        if self.config.system_prompt_switch == True:
+        if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:
             system = self.config.system_prompt_content
         else:
             system = PromptBuilder.build_system(self.config)
 
-        # 如果开启指令词典
+        # 如果开启自动构建术语表
+        if self.config.auto_glossary_toggle == True:
+            glossary_criteria = PromptBuilder.build_glossary_extraction_criteria(self.config)
+            if glossary_criteria != "":
+                system += glossary_criteria
+                extra_log.append(glossary_criteria)
+
+        # 如果开启自动构建禁翻表
+        if self.config.auto_exclusion_list_toggle == True:
+            ntl_criteria = PromptBuilder.build_ntl_extraction_criteria(self.config)
+            if ntl_criteria != "":
+                system += ntl_criteria
+                extra_log.append(ntl_criteria)
+
+        # 如果开启术语表
         if self.config.prompt_dictionary_switch == True:
             glossary = PromptBuilder.build_glossary_prompt(self.config, source_text_dict)
             if glossary != "":
                 system += glossary
                 extra_log.append(glossary)
+
+        # 如果开启禁翻表
+        if self.config.exclusion_list_switch == True:
+            ntl = PromptBuilder.build_ntl_prompt(self.config, source_text_dict)
+            if ntl != "":
+                system += ntl
+                extra_log.append(ntl)
+
 
         # 如果角色介绍开关打开
         if self.config.characterization_switch == True:
@@ -431,11 +670,11 @@ class TranslatorTask(Base):
         if original_exmaple and translation_example_content:
             messages.append({
                 "role": "user",
-                "content": f"{pre_prompt}```json\n{original_exmaple}\n```"
+                "content": f"{pre_prompt}<textarea>\n{original_exmaple}\n</textarea>"
             })
             messages.append({
                 "role": "assistant",
-                "content": f"{fol_prompt}```json\n{translation_example_content}\n```"
+                "content": f"{fol_prompt}<textarea>\n{translation_example_content}\n</textarea>"
             })
             extra_log.append(f"原文示例已添加：\n{original_exmaple}")
             extra_log.append(f"译文示例已添加：\n{translation_example_content}")
@@ -452,9 +691,12 @@ class TranslatorTask(Base):
         # 获取模型预输入回复前文
         fol_prompt = PromptBuilder.build_modelResponsePrefix(self.config)
 
-        # 构建待翻译文本
-        source_text_str = json.dumps(source_text_dict, ensure_ascii = False)
-        source_text_str = f"{previous}\n{pre_prompt}```json\n{source_text_str}\n```"
+        # 构建待翻译文本 (添加序号)
+        numbered_lines = []
+        for index, line in enumerate(source_text_dict.values()):
+            numbered_lines.append(f"{index + 1}. {line}") # 添加序号和 "." 分隔符
+        source_text_str = "\n".join(numbered_lines)
+        source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text_str}\n</textarea>"
 
         # 构建用户提问信息
         messages.append(
@@ -467,49 +709,50 @@ class TranslatorTask(Base):
         # 构建模型预输入回复信息，deepseek-reasoner 不支持该模型预回复消息
         messages.append({"role": "assistant", "content": fol_prompt})
 
-        # 当目标为 google 系列接口时，转换 messages 的格式,并添加系统指令
-        # 当目标为 anthropic 兼容接口时，保持原样
-        # 当目标为其他接口时，即openai接口，添加系统指令
-        if target_platform == "google":
-            new = []
-            for m in messages:
-                new.append({
-                    "role": "model" if m.get("role", "") == "assistant" else m.get("role", ""),
-                    "parts": m.get("content", ""),
-                })
-            messages = new
-        elif target_platform == "anthropic" or (target_platform.startswith("custom_platform_") and api_format == "Anthropic"):
-            pass
-        else:
-            messages.insert(
-                0,
-                {
-                    "role": "system",
-                    "content": system
-                }
-            )
 
         return messages, system, extra_log
 
     # 生成指令 - 思考模型
-    def generate_prompt_think(self, target_platform: str, api_format: str, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
+    def generate_prompt_think(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
         # 储存指令
         messages = []
         # 储存额外日志
         extra_log = []
 
         # 基础提示词
-        if self.config.system_prompt_switch == True:
+        if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:
             system = self.config.system_prompt_content
         else:
             system = PromptBuilderThink.build_system(self.config)
 
-        # 指令词典
+        # 如果开启自动构建术语表
+        if self.config.auto_glossary_toggle == True:
+            glossary_criteria = PromptBuilder.build_glossary_extraction_criteria(self.config)
+            if glossary_criteria != "":
+                system += glossary_criteria
+                extra_log.append(glossary_criteria)
+
+        # 如果开启自动构建禁翻表
+        if self.config.auto_exclusion_list_toggle == True:
+            ntl_criteria = PromptBuilder.build_ntl_extraction_criteria(self.config)
+            if ntl_criteria != "":
+                system += ntl_criteria
+                extra_log.append(ntl_criteria)
+
+        # 如果开启术语表
         if self.config.prompt_dictionary_switch == True:
-            result = PromptBuilderThink.build_glossary(self.config, source_text_dict)
+            result = PromptBuilder.build_glossary_prompt(self.config, source_text_dict)
             if result != "":
                 system = system + "\n" + result
                 extra_log.append(result)
+
+        # 如果开启禁翻表
+        if self.config.exclusion_list_switch == True:
+            ntl = PromptBuilder.build_ntl_prompt(self.config, source_text_dict)
+            if ntl != "":
+                system += ntl
+                extra_log.append(ntl)
+
 
         # 如果角色介绍开关打开
         if self.config.characterization_switch == True:
@@ -552,8 +795,8 @@ class TranslatorTask(Base):
 
 
         # 构建待翻译文本
-        source_text_str = json.dumps(source_text_dict, ensure_ascii = False)
-        source_text_str = f"{previous}\n{pre_prompt}```json\n{source_text_str}\n```"
+        source_text_str = "\n".join(source_text_dict.values())
+        source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text_str}\n</textarea>"
 
         # 构建用户提问信息
         messages.append(
@@ -562,28 +805,6 @@ class TranslatorTask(Base):
                 "content": source_text_str,
             }
         )
-
-        # 当目标为 google 系列接口时，转换 messages 的格式,并添加系统指令
-        # 当目标为 anthropic 兼容接口时，保持原样
-        # 当目标为其他接口时，即openai接口，添加系统指令
-        if target_platform == "google":
-            new = []
-            for m in messages:
-                new.append({
-                    "role": "model" if m.get("role", "") == "assistant" else m.get("role", ""),
-                    "parts": m.get("content", ""),
-                })
-            messages = new
-        elif target_platform == "anthropic" or (target_platform.startswith("custom_platform_") and api_format == "Anthropic"):
-            pass
-        else:
-            messages.insert(
-                0,
-                {
-                    "role": "system",
-                    "content": system
-                }
-            )
 
         return messages, system, extra_log
 
@@ -594,48 +815,23 @@ class TranslatorTask(Base):
         # 储存额外日志
         extra_log = []
 
-        # 构建系统提示词
         system = PromptBuilderSakura.build_system(self.config)
-        messages.append({
-            "role": "system",
-            "content": system
-        })
 
 
-        # 如果开启了指令词典功能
+        # 如果开启术语表
+        glossary = ""
         if self.config.prompt_dictionary_switch == True:
-            # 将输入字典中的所有值转换为集合
-            lines = set(line for line in source_text_dict.values())
+            glossary = PromptBuilderSakura.build_glossary(self.config, source_text_dict)
+            if glossary != "":
+                extra_log.append(glossary)
 
-            # 筛选在输入词典中出现过的条目
-            result: list[dict] = [
-                v for v in self.config.prompt_dictionary_data
-                if any(v.get("src", "") in lines for lines in lines)
-            ]
-
-            # 构建指令词典文本
-            dict_lines = []
-            for item in result:
-                src = item.get("src", "")
-                dst = item.get("dst", "")
-                info = item.get("info", "")
-
-                if info == "":
-                    dict_lines.append(f"{src}->{dst}")
-                else:
-                    dict_lines.append(f"{src}->{dst} #{info}")
-
-            # 如果指令词典文本不为空
-            if dict_lines != []:
-                dict_lines_str = "\n".join(dict_lines)
-                extra_log.append(f"指令词典已添加：\n{dict_lines_str}")
 
         # 构建主要提示词
-        if dict_lines == []:
+        if glossary == "":
             user_prompt = "将下面的日文文本翻译成中文：\n" + "\n".join(source_text_dict.values())
         else:
             user_prompt = (
-                "根据以下术语表（可以为空）：\n" + dict_lines_str
+                "根据以下术语表（可以为空）：\n" + glossary
                 + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：\n" + "\n".join(source_text_dict.values())
             )
 
@@ -647,7 +843,7 @@ class TranslatorTask(Base):
             }
         )
 
-        return messages, "", extra_log
+        return messages, system, extra_log
 
     # 生成指令 LocalLLM
     def generate_prompt_LocalLLM(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
@@ -657,24 +853,28 @@ class TranslatorTask(Base):
         extra_log = []
 
         # 基础提示词
-        if self.config.system_prompt_switch == True:
-            system = self.config.system_prompt_content
-        else:
-            system = PromptBuilderLocal.build_system(self.config)
+        system = PromptBuilderLocal.build_system(self.config)
 
         # 指令词典
         if self.config.prompt_dictionary_switch == True:
-            result = PromptBuilderThink.build_glossary(self.config, source_text_dict)
+            result = PromptBuilder.build_glossary(self.config, source_text_dict)
             if result != "":
                 system = system + "\n" + result
                 extra_log.append(result)
 
-
-        text_dict = TranslatorTask.replace_line_breaks(self,source_text_dict)
-
+        # 如果开启禁翻表
+        if self.config.exclusion_list_switch == True:
+            ntl = PromptBuilder.build_ntl_prompt(self.config, source_text_dict)
+            if ntl != "":
+                system += ntl
+                extra_log.append(ntl)
 
         # 构建待翻译文本
-        source_text_str = "<span>\n" + "\n".join(text_dict.values()) +"\n</span>"
+        numbered_lines = []
+        for index, line in enumerate(source_text_dict.values()):
+            numbered_lines.append(f"{index + 1}. {line}") # 添加序号和 "." 分隔符
+        source_text_str = "\n".join(numbered_lines)
+        source_text_str = f"<textarea>\n{source_text_str}\n</textarea>"
 
         # 构建用户提问信息
         messages.append(
@@ -684,16 +884,135 @@ class TranslatorTask(Base):
             }
         )
 
-        # 添加系统指令
-        messages.insert(
-            0,
-            {
-                "role": "system",
-                "content": system
-            }
-        )
 
         return messages, system, extra_log
+
+    # 构造通用信息结构 第一次请求
+    def generate_prompt_DRA(self):
+        """构建通用消息结构"""
+
+        # 获取流程设计配置
+        request_cards = self.config.flow_design_list["request_phase_a"]
+
+        messages = []
+        system_content = ""
+
+        for card in request_cards:
+            if card["type"] == "DialogueFragmentCard":
+                settings = card["settings"]
+                role_mapping = {
+                    "系统": "system",
+                    "用户": "user",
+                    "模型": "assistant"
+                }
+
+                role = role_mapping.get(settings["role"], "user")
+                content = settings["content"]
+
+
+                # 记录系统消息
+                if role == "system":
+                    system_content = content
+
+                # 只在角色不是 "system" 时才添加到 messages 列表
+                if role != "system":
+                    messages.append({
+                        "role": role,
+                        "content": content
+                    })
+                settings["system_info"] = content 
+
+
+        return messages, system_content
+
+    # 构造通用信息结构 第二次请求
+    def generate_prompt_DRB(self):
+        """构建通用消息结构"""
+
+        # 获取流程设计配置
+        request_cards = self.config.flow_design_list["request_phase_b"]
+
+        messages = []
+        system_content = ""
+
+        for card in request_cards:
+            if card["type"] == "DialogueFragmentCard":
+                settings = card["settings"]
+                role_mapping = {
+                    "系统": "system",
+                    "用户": "user",
+                    "模型": "assistant"
+                }
+
+                role = role_mapping.get(settings["role"], "user")
+                content = settings["content"]
+
+
+                # 记录系统消息
+                if role == "system":
+                    system_content = content
+
+                # 只在角色不是 "system" 时才添加到 messages 列表
+                if role != "system":
+                    messages.append({
+                        "role": role,
+                        "content": content
+                    })
+                settings["system_info"] = content 
+
+        return messages, system_content
+
+    # 更新系统提示词的术语表内容(因为是特殊处理的补丁，很多判断要重新加入，后续提示词相关更新需要重点关注该函数，以免bug)
+    def update_sysprompt_glossary(self,config,system_prompt, prompt_dictionary_data, source_text_dict):
+
+        # 应用开关检查
+        if config.prompt_dictionary_switch == False:
+            return system_prompt
+        
+        # 本地接口不适用
+        if config.target_platform == "sakura":
+            return system_prompt
+
+        if config.target_platform == "LocalLLM":
+            return system_prompt
+
+
+        # 生成符合条件的术语条目
+        entries = []
+        for item in prompt_dictionary_data:
+            src = item.get("src", "")
+            # 检查原文是否在任意源文本中出现
+            if any(src in text for text in source_text_dict.values()):
+                dst = item.get("dst", "")
+                info = item.get("info", "")
+                entries.append(f"{src}|{dst}|{info}")
+        
+        # 构建新术语表
+        if config.target_language in ("简中", "繁中"):
+            term_table = "###术语表\n原文|译文|备注"
+        else:
+            term_table = "###Glossary\nOriginal Text|Translation|Remarks"
+        if entries:
+            term_table += "\n" + "\n".join(entries)
+            term_table += "\n\n"
+        else:
+            return system_prompt
+        
+        # 处理系统提示
+        if "###术语表" in system_prompt:
+            # 正则匹配术语表区块（含标题行）
+            pattern = r'###术语表[^\#]*'
+            return re.sub(pattern, term_table, system_prompt, flags=re.DOTALL)
+        
+        elif "###Glossary" in system_prompt:
+            # 正则匹配术语表区块（含标题行）
+            pattern = r'###Glossary[^\#]*'
+            return re.sub(pattern, term_table, system_prompt, flags=re.DOTALL)
+        
+        else:
+            # 直接拼接新术语表
+            delimiter = "\n" if system_prompt and not system_prompt.endswith("\n") else ""
+            return f"{system_prompt}{delimiter}\n{term_table}"
 
 
     # 生成日志行
@@ -743,3 +1062,4 @@ class TranslatorTask(Base):
                 table.add_row(*row)
 
         return table
+    

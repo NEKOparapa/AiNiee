@@ -5,74 +5,6 @@ from PyQt5.QtCore import pyqtSignal
 from qfluentwidgets import CardWidget, CaptionLabel, LineEdit, MessageBoxBase, PushButton, StrongBodyLabel, EditableComboBox, SubtitleLabel,FluentIcon, ToolButton
 
 
-class EditItemsMessageBox(MessageBoxBase):
-    """自定义消息框，用于编辑选项"""
-
-    def __init__(self, items: list[str], parent=None):
-        super().__init__(parent)
-        self.titleLabel = SubtitleLabel('编辑选项', self)
-        self.viewLayout.addWidget(self.titleLabel)
-
-        # 创建垂直布局用于存放所有选项行
-        self.rows_layout = QVBoxLayout()
-        self.rows_layout.setSpacing(0)  # 设置控件之间的固定间距为0像素
-        self.rows_layout.setContentsMargins(0, 0, 0, 0)  # 设置布局的边距为0
-        self.viewLayout.addLayout(self.rows_layout)
-
-        # 初始化添加现有选项
-        for item in items:
-            self._add_row(item)
-
-        # 添加“新增”按钮
-        self.add_button = PushButton('添加', self)
-        self.add_button.clicked.connect(self._add_new_row)
-        self.viewLayout.addWidget(self.add_button)
-
-        # 设置对话框最小宽度
-        self.widget.setMinimumWidth(450)
-
-    def _add_row(self, text=''):
-        """添加单行（输入框+删除按钮）"""
-        row_widget = QWidget()
-        h_layout = QHBoxLayout(row_widget)
-
-        # 输入框
-        line_edit = LineEdit(row_widget)
-        line_edit.setText(text)
-
-        # 删除按钮
-        delete_btn = ToolButton(FluentIcon.DELETE, row_widget)
-        delete_btn.clicked.connect(lambda: self._delete_row(row_widget))
-
-        # 将控件加入布局
-        h_layout.addWidget(line_edit, 1)  # 输入框扩展填充
-        h_layout.addWidget(delete_btn)
-
-        self.rows_layout.addWidget(row_widget)
-
-    def _delete_row(self, row_widget):
-        """删除指定行"""
-        self.rows_layout.removeWidget(row_widget)
-        row_widget.deleteLater()
-
-    def _add_new_row(self):
-        """添加新空行"""
-        self._add_row('')
-
-    def get_items(self) -> list[str]:
-        """获取所有非空选项（自动去除首尾空格）"""
-        items = []
-        for i in range(self.rows_layout.count()):
-            row_widget = self.rows_layout.itemAt(i).widget()
-            if row_widget:
-                line_edit = row_widget.findChild(LineEdit)
-                if line_edit:
-                    text = line_edit.text().strip()
-                    if text:  # 检查文本是否非空，防止用户空添加
-                        items.append(text)
-        return items
-
-
 
 class EditableComboBoxCard(CardWidget):
     items_changed = pyqtSignal(list)  # 添加一个信号，用于通知外部选项列表已更改
@@ -155,3 +87,71 @@ class EditableComboBoxCard(CardWidget):
                 self.set_items(new_items)
                 self.items_changed.emit(new_items)
 
+
+
+class EditItemsMessageBox(MessageBoxBase):
+    """自定义消息框，用于编辑选项"""
+
+    def __init__(self, items: list[str], parent=None):
+        super().__init__(parent)
+        self.titleLabel = SubtitleLabel('编辑选项', self)
+        self.viewLayout.addWidget(self.titleLabel)
+
+        # 创建垂直布局用于存放所有选项行
+        self.rows_layout = QVBoxLayout()
+        self.rows_layout.setSpacing(0)  # 设置控件之间的固定间距为0像素
+        self.rows_layout.setContentsMargins(0, 0, 0, 0)  # 设置布局的边距为0
+        self.viewLayout.addLayout(self.rows_layout)
+
+        # 初始化添加现有选项
+        for item in items:
+            self._add_row(item)
+
+        # 添加“新增”按钮
+        self.add_button = PushButton('添加', self)
+        self.add_button.clicked.connect(self._add_new_row)
+        self.viewLayout.addWidget(self.add_button)
+
+        # 设置对话框最小宽度
+        self.widget.setMinimumWidth(450)
+
+    def _add_row(self, text=''):
+        """添加单行（输入框+删除按钮）"""
+        row_widget = QWidget()
+        h_layout = QHBoxLayout(row_widget)
+
+        # 输入框
+        line_edit = LineEdit(row_widget)
+        line_edit.setText(text)
+
+        # 删除按钮
+        delete_btn = ToolButton(FluentIcon.DELETE, row_widget)
+        delete_btn.clicked.connect(lambda: self._delete_row(row_widget))
+
+        # 将控件加入布局
+        h_layout.addWidget(line_edit, 1)  # 输入框扩展填充
+        h_layout.addWidget(delete_btn)
+
+        self.rows_layout.addWidget(row_widget)
+
+    def _delete_row(self, row_widget):
+        """删除指定行"""
+        self.rows_layout.removeWidget(row_widget)
+        row_widget.deleteLater()
+
+    def _add_new_row(self):
+        """添加新空行"""
+        self._add_row('')
+
+    def get_items(self) -> list[str]:
+        """获取所有非空选项（自动去除首尾空格）"""
+        items = []
+        for i in range(self.rows_layout.count()):
+            row_widget = self.rows_layout.itemAt(i).widget()
+            if row_widget:
+                line_edit = row_widget.findChild(LineEdit)
+                if line_edit:
+                    text = line_edit.text().strip()
+                    if text:  # 检查文本是否非空，防止用户空添加
+                        items.append(text)
+        return items

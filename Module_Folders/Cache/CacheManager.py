@@ -172,8 +172,62 @@ class CacheManager(Base):
         result.reverse()
         return result
 
-    # 生成缓存数据条目片段
+
+    # 开始生成缓存数据片段
     def generate_item_chunks(self, limit_type: str, limit_count: int, previous_line_count: int) -> tuple[list[list[CacheItem]], list[list[CacheItem]]]:
+        chunks = []
+        previous_chunks = []
+
+        # 根据限制类型确定交叉限制参数
+        if limit_type == "token":
+            cross_max = 30  # 行数限制
+        elif limit_type == "line":
+            cross_max = 8000  # token限制
+        else:
+            raise ValueError("Invalid limit_type, must be 'token' or 'line'")
+
+        chunk = []
+        chunk_length = 0
+        cross_length = 0  # 交叉限制累计值（行数/tokens）
+
+        for item in [v for v in self.items if v.get_translation_status() == CacheItem.STATUS.UNTRANSLATED]:
+            # 计算当前条目长度和交叉长度
+            if limit_type == "token":
+                current_length = item.get_token_count()
+                cross_increment = 1  # 按行计数
+            else:
+                current_length = 1  # 按行计数
+                cross_increment = item.get_token_count()
+
+            # 判断是否结束当前chunk的条件（第一条不判断）
+            if len(chunk) > 0:
+                exceed_primary = (chunk_length + current_length) > limit_count
+                exceed_cross = (cross_length + cross_increment) > cross_max
+                path_changed = item.get_storage_path() != chunk[-1].get_storage_path()
+
+                if exceed_primary or exceed_cross or path_changed:
+                    chunks.append(chunk)
+                    previous_chunks.append(self.generate_previous_chunks(chunk[0], previous_line_count))
+                    # 重置累计值
+                    chunk = []
+                    chunk_length = 0
+                    cross_length = 0
+
+            # 添加条目到当前chunk
+            chunk.append(item)
+            chunk_length += current_length
+            cross_length += cross_increment
+
+        # 处理最后一个chunk
+        if len(chunk) > 0:
+            chunks.append(chunk)
+            previous_chunks.append(self.generate_previous_chunks(chunk[0], previous_line_count))
+
+        return chunks, previous_chunks
+    
+
+    # 生成缓存数据条目片段
+    def generate_item_chunks_old(self, limit_type: str, limit_count: int, previous_line_count: int) -> tuple[list[list[CacheItem]], list[list[CacheItem]]]:
         chunks = []
         previous_chunks = []
 

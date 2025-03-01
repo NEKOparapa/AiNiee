@@ -24,6 +24,8 @@ class Event():
     CACHE_FILE_AUTO_SAVE = 300                      # 缓存文件自动保存
     APP_SHUT_DOWN = 1000                            # 应用关闭
 
+    NEW_PROCESS_START = 500     # 新流程开始
+    NEW_PROCESS_DONE = 501      # 新流程完成
 
 class Status():
 
@@ -31,6 +33,7 @@ class Status():
     API_TEST = 2000                                 # 测试中
     TRANSLATING = 3000                              # 翻译中
     STOPING = 4000                                  # 停止中
+    NEW_PROCESS_TEST = 3500     # 新流程测试中
 
 class Base():
 
@@ -189,19 +192,38 @@ class Base():
 
         return old
 
-    # 更新配置
+    # 更新合并配置
     def fill_config(self, old: dict, new: dict) -> dict:
+
+        """深度合并字典"""
+        for k, v in new.items():
+            if isinstance(v, dict) and k in old:
+                # 递归合并子字典
+                old[k] = self.fill_config(old[k], v)
+            elif k not in old:
+                old[k] = v
+        return old
+
+        """合并字典"""
         for k, v in new.items():
             if k not in old.keys():
                 old[k] = v
 
         return old
+    
 
     # 用默认值更新并加载配置文件
     def load_config_from_default(self) -> None:
-        config = self.load_config()
-        config = self.fill_config(config, getattr(self, "default", {}))
-
+        # 1. 加载已有配置
+        config = self.load_config()  # 从文件读取用户配置
+        
+        # 2. 合并默认配置
+        config = self.fill_config(
+            old=config,  # 用户现有配置
+            new=getattr(self, "default", {})  # 当前类的默认配置
+        )
+        
+        # 3. 返回合并结果
         return config
 
     # 触发事件

@@ -38,3 +38,39 @@ class PromptBuilderSakura(Base):
 
 
         return result
+
+
+
+    # 构造术语表
+    def build_glossary(config: TranslatorConfig, input_dict: dict) -> str:
+        # 将输入字典中的所有值转换为集合
+        lines = set(line for line in input_dict.values())
+
+        # 筛选在输入词典中出现过的条目
+        result: list[dict] = [
+            v for v in config.prompt_dictionary_data
+            if any(v.get("src", "") in lines for lines in lines)
+        ]
+
+        if len(result) == 0:
+            return ""
+
+        # 构建指令词典文本
+        dict_lines = []
+        for item in result:
+            src = item.get("src", "")
+            dst = item.get("dst", "")
+            info = item.get("info", "")
+
+            if info == "":
+                dict_lines.append(f"{src}->{dst}")
+            else:
+                dict_lines.append(f"{src}->{dst} #{info}")
+
+        # 如果指令词典文本不为空
+        if dict_lines != []:
+            dict_lines_str = "\n".join(dict_lines)
+        else:
+            return ""
+
+        return dict_lines_str

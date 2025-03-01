@@ -1,5 +1,5 @@
-翻译成{target_language}，逐行翻译，轻小说风格，以span标签输出译文：
-<span>
+翻译成{target_language}，逐行翻译，轻小说风格，以textarea标签输出译文：
+<textarea>
 {target_language}文本
-</span>
+</textarea>
 

@@ -30,9 +30,9 @@ class PromptBuilderLocal(Base):
         # 构造结果
         if config == None:
             result = PromptBuilderLocal.local_system_zh
-        elif  config.cn_prompt_toggle == True:
+        elif  config.target_language in ("简中", "繁中"):
             result = PromptBuilderLocal.local_system_zh
-        elif config.cn_prompt_toggle == False:
+        elif config.target_language not in ("简中", "繁中"):
             result = PromptBuilderLocal.local_system_en
 
         return result
@@ -56,9 +56,9 @@ class PromptBuilderLocal(Base):
         # 构造结果
         if config == None:
             result = PromptBuilderLocal.local_system_zh
-        elif config.cn_prompt_toggle == True:
+        elif config.target_language in ("简中", "繁中"):
             result = PromptBuilderLocal.local_system_zh
-        elif config.cn_prompt_toggle == False:
+        elif config.target_language not in ("简中", "繁中"):
             result = PromptBuilderLocal.local_system_en
             source_language = pair[config.source_language]
             target_language = pair[config.target_language]

@@ -68,3 +68,4 @@ class CacheProject():
     def set_data(self, data: dict) -> None:
         with self.lock:
             self.data = data
+

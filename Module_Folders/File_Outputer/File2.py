@@ -587,9 +587,9 @@ class File_Outputter():
 
             # 创建已翻译文本的新文件路径
             if old_filename.endswith(".srt"):
-                file_name_translated = old_filename.replace(".srt", "") + "_translated.srt"
+                file_name_translated = old_filename.replace(".srt", "") + ".translated.srt"
             else:
-                file_name_translated = old_filename + "_translated.srt"
+                file_name_translated = old_filename + ".translated.srt"
             file_path_translated = os.path.join(folder_path, file_name_translated)
 
 

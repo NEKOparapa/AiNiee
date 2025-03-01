@@ -36,8 +36,9 @@ from PyQt5.QtWidgets import QApplication
 
 from Base.PluginManager import PluginManager
 from Module_Folders.Translator.Translator import Translator
-from Module_Folders.Request_Tester.Request import Request_Tester
-from User_Interface.AppFluentWindow import AppFluentWindow
+from Module_Folders.RequestTester.RequestTester import RequestTester
+from Module_Folders.RequestTester.ProcessTester import ProcessTester
+from UserInterface.AppFluentWindow import AppFluentWindow
 
 # 载入配置文件
 def load_config() -> dict:
@@ -65,7 +66,7 @@ if __name__ == "__main__":
 
     # 创建全局插件管理器
     plugin_manager = PluginManager()
-    plugin_manager.load_plugins_from_directory("./Plugin_Scripts")
+    plugin_manager.load_plugins_from_directory("./PluginScripts")
 
     # 载入配置文件
     config = load_config()
@@ -93,14 +94,17 @@ if __name__ == "__main__":
 
     # 创建全局窗口对象
     app_fluent_window = AppFluentWindow(
-        version = "AiNiee v5.2.5.1",
+        version = "AiNiee v6 bete",
         plugin_manager = plugin_manager,
     )
 
-    # 创建全局测试器对象
-    request_tester = Request_Tester()
+    # 创建全局接口测试器对象，并初始化订阅事件
+    request_tester = RequestTester()
 
-    # 创建翻译器对象
+    # 创建全局流程测试器对象，并初始化订阅事件
+    process_tester = ProcessTester()
+
+    # 创建翻译器对象，并初始化订阅事件
     translator = Translator(plugin_manager = plugin_manager)
 
     # 显示全局窗口

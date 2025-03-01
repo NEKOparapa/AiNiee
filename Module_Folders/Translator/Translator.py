@@ -18,7 +18,7 @@ from Module_Folders.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
 from Module_Folders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
 from Module_Folders.File_Reader.File1 import File_Reader
 from Module_Folders.File_Outputer.File2 import File_Outputter
-from Module_Folders.Request_Limiter.Request_limit import Request_Limiter
+from Module_Folders.RequestLimiter.RequestLimiter import RequestLimiter
 
 # 翻译器
 class Translator(Base):
@@ -30,7 +30,7 @@ class Translator(Base):
         self.plugin_manager = plugin_manager
         self.config = TranslatorConfig()
         self.cache_manager = CacheManager()
-        self.request_limiter = Request_Limiter()
+        self.request_limiter = RequestLimiter()
 
         # 线程锁
         self.data_lock = threading.Lock()
@@ -128,11 +128,18 @@ class Translator(Base):
         # 设置翻译状态为正在翻译状态
         Base.work_status = Base.STATUS.TRANSLATING
 
-        # 初始化
+        # 读取配置文件，并保存到该类中
         self.config.initialize()
 
         # 请求线程数
-        self.config.request_thread_counts()
+        self.config.thread_counts_setting()  
+
+        # 配置翻译平台信息
+        self.config.prepare_for_translation()
+
+        # 配置请求限制器
+        self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
+
 
         # 生成缓存列表
         try:
@@ -151,12 +158,14 @@ class Translator(Base):
             if self.cache_manager.get_item_count() == 0:
                 raise Exception("self.cache_manager.get_item_count() == 0")
         except Exception as e:
-            self.error("翻译项目数据载入失败 ... ", e)
+            self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型 ... ", e)
             return None
+
+
 
         # 从头翻译时加载默认数据
         if continue_status == False:
-            self.data = {
+            self.project_status_data = {
                 "total_requests": 0,
                 "error_requests": 0,
                 "start_time": time.time(),
@@ -167,11 +176,11 @@ class Translator(Base):
                 "time": 0,
             }
         else:
-            self.data = self.cache_manager.get_project_data()
-            self.data["start_time"] = time.time() - self.data.get("time", 0)
+            self.project_status_data = self.cache_manager.get_project_data()
+            self.project_status_data["start_time"] = time.time() - self.project_status_data.get("time", 0)
 
         # 更新翻译进度
-        self.emit(Base.EVENT.TRANSLATION_UPDATE, self.data)
+        self.emit(Base.EVENT.TRANSLATION_UPDATE, self.project_status_data)
 
         # 触发插件事件
         # 先转换为列表，在事件结束后再转换回来（兼容旧版接口）
@@ -179,6 +188,9 @@ class Translator(Base):
         self.plugin_manager.broadcast_event("text_filter", self.config, cache_list)
         self.plugin_manager.broadcast_event("preproces_text", self.config, cache_list)
         self.cache_manager.load_from_list(cache_list)
+
+
+
 
         # 开始循环
         for current_round in range(self.config.round_limit + 1):
@@ -208,39 +220,30 @@ class Translator(Base):
 
             # 第一轮时且不是继续翻译时，记录总行数
             if current_round == 0 and continue_status == False:
-                self.data["total_line"] = item_count_status_untranslated
+                self.project_status_data["total_line"] = item_count_status_untranslated
 
             # 第二轮开始对半切分
             if current_round > 0:
                 self.config.lines_limit = max(1, int(self.config.lines_limit / 2))
                 self.config.tokens_limit = max(1, int(self.config.tokens_limit / 2))
 
-            # 配置翻译平台信息
-            self.config.prepare_for_translation()
 
-            # 配置请求限制器，依赖前面的配置信息
-            self.request_limiter.set_limit(self.config.max_tokens, self.config.tpm_limit, self.config.rpm_limit)
-
-            # 生成缓存数据条目片段
+            # 生成缓存数据条目片段的合集列表，原文列表与上文列表一一对应
             chunks, previous_chunks = self.cache_manager.generate_item_chunks(
                 "line" if self.config.tokens_limit_switch == False else "token",
                 self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
                 self.config.pre_line_counts
             )
 
-            # 生成翻译任务
-            tasks = []
+            # 生成翻译单元任务的合集列表
+            tasks_list = []
             self.print("")
             for chunk, previous_chunk in tqdm(zip(chunks, previous_chunks), desc = "生成翻译任务", total = len(chunks)):
-                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter)
-                task.set_items(chunk)
-                task.set_previous_items(previous_chunk)
-                task.prepare(
-                    self.config.target_platform,
-                    self.config.platforms.get(self.config.target_platform).get("api_format"),
-                    self.config.prompt_preset,
-                )
-                tasks.append(task)
+                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter, self.cache_manager) # 实例化
+                task.set_items(chunk)  #传入该任务待翻译原文
+                task.set_previous_items(previous_chunk) # 传入该任务待翻译原文的上文
+                task.prepare(self.config.target_platform,self.config.prompt_preset) # 预先构建消息列表
+                tasks_list.append(task)
             self.print("")
 
             # 输出开始翻译的日志
@@ -251,37 +254,42 @@ class Translator(Base):
             self.info(f"原文语言 - {self.config.source_language}")
             self.info(f"译文语言 - {self.config.target_language}")
             self.print("")
-            self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get("name", "未知")}")
-            self.info(f"接口地址 - {self.config.base_url}")
-            self.info(f"模型名称 - {self.config.model}")
-            self.print("")
-            self.info(f"生效中的 网络代理 - {self.config.proxy_url}") if self.config.proxy_enable == True and self.config.proxy_url != "" else None
-            self.info(f"生效中的 RPM 限额 - {self.config.rpm_limit}")
-            self.info(f"生效中的 TPM 限额 - {self.config.tpm_limit}")
-            self.info(f"生效中的 MAX_TOKENS 限额 - {self.config.max_tokens}")
+            if self.config.double_request_switch_settings == False:
+                self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get("name", "未知")}")
+                self.info(f"接口地址 - {self.config.base_url}")
+                self.info(f"模型名称 - {self.config.model}")
+                self.print("")
+                self.info(f"生效中的 网络代理 - {self.config.proxy_url}") if self.config.proxy_enable == True and self.config.proxy_url != "" else None
+                self.info(f"生效中的 RPM 限额 - {self.config.rpm_limit}")
+                self.info(f"生效中的 TPM 限额 - {self.config.tpm_limit}")
 
-            # 根据提示词规则打印基础指令
-            system = ""
-            if self.config.system_prompt_switch == True:
-                system = self.config.system_prompt_content
-            elif self.config.target_platform == "LocalLLM": # 需要放在前面，以免提示词预设的分支覆盖
-                system = PromptBuilderLocal.build_system(self.config)
-            elif self.config.target_platform == "sakura": # 需要放在前面，以免提示词预设的分支覆盖
-                system = PromptBuilderSakura.build_system(self.config)
-            elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
-                system = PromptBuilder.build_system(self.config)
-            elif self.config.prompt_preset == PromptBuilderEnum.THINK:
-                system = PromptBuilderThink.build_system(self.config)
-            self.print("")
-            self.info(f"本次任务使用以下基础指令：\n{system}\n") 
-            self.info(f"即将开始执行翻译任务，预计任务总数为 {len(tasks)}, 同时执行的任务数量为 {self.config.actual_thread_counts}，请注意保持网络通畅 ...")
+                # 根据提示词规则打印基础指令
+                system = ""
+                if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:
+                    system = self.config.system_prompt_content
+                elif self.config.target_platform == "LocalLLM": # 需要放在前面，以免提示词预设的分支覆盖
+                    system = PromptBuilderLocal.build_system(self.config)
+                elif self.config.target_platform == "sakura": # 需要放在前面，以免提示词预设的分支覆盖
+                    system = PromptBuilderSakura.build_system(self.config)
+                elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
+                    system = PromptBuilder.build_system(self.config)
+                elif self.config.prompt_preset == PromptBuilderEnum.THINK:
+                    system = PromptBuilderThink.build_system(self.config)
+                self.print("")
+                if system:
+                    self.info(f"本次任务使用以下基础指令：\n{system}\n") 
+                    
+            self.info(f"即将开始执行翻译任务，预计任务总数为 {len(tasks_list)}, 同时执行的任务数量为 {self.config.actual_thread_counts}，请注意保持网络通畅 ...")
             self.print("")
 
-            # 开始执行翻译任务
+            # 开始执行翻译任务,构建异步线程池
             with concurrent.futures.ThreadPoolExecutor(max_workers = self.config.actual_thread_counts, thread_name_prefix = "translator") as executor:
-                for task in tasks:
+                for task in tasks_list:
                     future = executor.submit(task.start)
-                    future.add_done_callback(self.task_done_callback)
+                    future.add_done_callback(self.task_done_callback) # 为future对象添加一个回调函数，当任务完成时会被调用，更新数据
+
+
+
 
         # 等待可能存在的缓存文件写入请求处理完毕
         time.sleep(CacheManager.SAVE_INTERVAL)
@@ -325,7 +333,7 @@ class Translator(Base):
 
         return cache_list
 
-    # 翻译任务完成时
+    # 单个翻译任务完成时,更新项目进度状态
     def task_done_callback(self, future: concurrent.futures.Future) -> None:
         try:
             # 获取结果
@@ -339,34 +347,34 @@ class Translator(Base):
             with self.data_lock:
                 if result.get("check_result") == True:
                     new = {}
-                    new["total_requests"] = self.data.get("total_requests") + 1
-                    new["error_requests"] = self.data.get("error_requests")
-                    new["start_time"] = self.data.get("start_time")
-                    new["total_line"] = self.data.get("total_line")
-                    new["line"] = self.data.get("line") + result.get("row_count", 0)
-                    new["token"] = self.data.get("token") + result.get("prompt_tokens", 0) + result.get("completion_tokens", 0)
-                    new["total_completion_tokens"] = self.data.get("total_completion_tokens") + result.get("completion_tokens")
-                    new["time"] = time.time() - self.data.get("start_time")
-                    self.data = new
+                    new["total_requests"] = self.project_status_data.get("total_requests") + 1
+                    new["error_requests"] = self.project_status_data.get("error_requests")
+                    new["start_time"] = self.project_status_data.get("start_time")
+                    new["total_line"] = self.project_status_data.get("total_line")
+                    new["line"] = self.project_status_data.get("line") + result.get("row_count", 0)
+                    new["token"] = self.project_status_data.get("token") + result.get("prompt_tokens", 0) + result.get("completion_tokens", 0)
+                    new["total_completion_tokens"] = self.project_status_data.get("total_completion_tokens") + result.get("completion_tokens")
+                    new["time"] = time.time() - self.project_status_data.get("start_time")
+                    self.project_status_data = new
                 else:
                     new = {}
-                    new["total_requests"] = self.data.get("total_requests") + 1
-                    new["error_requests"] = self.data.get("error_requests") + 1
-                    new["start_time"] = self.data.get("start_time")
-                    new["total_line"] = self.data.get("total_line")
-                    new["line"] = self.data.get("line")
-                    new["token"] = self.data.get("token") + result.get("prompt_tokens", 0) + result.get("completion_tokens", 0)
-                    new["total_completion_tokens"] = self.data.get("total_completion_tokens")
-                    new["time"] = time.time() - self.data.get("start_time")
-                    self.data = new
+                    new["total_requests"] = self.project_status_data.get("total_requests") + 1
+                    new["error_requests"] = self.project_status_data.get("error_requests") + 1
+                    new["start_time"] = self.project_status_data.get("start_time")
+                    new["total_line"] = self.project_status_data.get("total_line")
+                    new["line"] = self.project_status_data.get("line")
+                    new["token"] = self.project_status_data.get("token") + result.get("prompt_tokens", 0) + result.get("completion_tokens", 0)
+                    new["total_completion_tokens"] = self.project_status_data.get("total_completion_tokens")
+                    new["time"] = time.time() - self.project_status_data.get("start_time")
+                    self.project_status_data = new
 
             # 更新翻译进度到缓存数据
-            self.cache_manager.set_project_data(self.data)
+            self.cache_manager.set_project_data(self.project_status_data)
 
             # 请求保存缓存文件
             self.cache_manager.require_save_to_file(self.config.label_output_path)
 
             # 触发翻译进度更新事件
-            self.emit(Base.EVENT.TRANSLATION_UPDATE, self.data)
+            self.emit(Base.EVENT.TRANSLATION_UPDATE, self.project_status_data)
         except Exception as e:
             self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)

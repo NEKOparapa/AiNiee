@@ -57,7 +57,7 @@ class LineEditCard(CardWidget):
 
     # 获取文本
     def get_text(self) -> str:
-        self.line_edit.text()
+        return self.line_edit.text()
 
     # 设置文本
     def set_text(self, text: str) -> None:

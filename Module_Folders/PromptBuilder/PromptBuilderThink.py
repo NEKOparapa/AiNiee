@@ -30,9 +30,9 @@ class PromptBuilderThink(Base):
         # 构造结果
         if config == None:
             result = PromptBuilderThink.think_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.THINK and config.cn_prompt_toggle == True:
+        elif config.prompt_preset == PromptBuilderEnum.THINK and config.target_language in ("简中", "繁中"):
             result = PromptBuilderThink.think_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.THINK and config.cn_prompt_toggle == False:
+        elif config.prompt_preset == PromptBuilderEnum.THINK and config.target_language not in ("简中", "繁中"):
             result = PromptBuilderThink.think_system_en
 
         return result
@@ -56,9 +56,9 @@ class PromptBuilderThink(Base):
         # 构造结果
         if config == None:
             result = PromptBuilderThink.think_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.THINK and config.cn_prompt_toggle == True:
+        elif config.prompt_preset == PromptBuilderEnum.THINK and config.target_language in ("简中", "繁中"):
             result = PromptBuilderThink.think_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.THINK and config.cn_prompt_toggle == False:
+        elif config.prompt_preset == PromptBuilderEnum.THINK and config.target_language not in ("简中", "繁中"):
             result = PromptBuilderThink.think_system_en
             source_language = pair[config.source_language]
             target_language = pair[config.target_language]
@@ -92,7 +92,7 @@ class PromptBuilderThink(Base):
         if dict_lines == []:
             return ""
         else:
-            if config.cn_prompt_toggle == True:
+            if config.target_language in ("简中", "繁中"):
                 return (
                     "###术语表"
                     + "\n" + "\n".join(dict_lines)
