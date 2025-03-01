@@ -288,7 +288,7 @@ class PlatformPage(QFrame, Base):
             drop_down_push_button.setContentsMargins(4, 0, 4, 0) # 左、上、右、下
             widget.add_widget(drop_down_push_button)
 
-            menu = RoundMenu(drop_down_push_button)
+            menu = RoundMenu(item.get("name"))  # 修改为传递菜单标题，以免出现输入类型错误
             for k, v in enumerate(item.get("menus")):
                 menu.addAction(
                     Action(
