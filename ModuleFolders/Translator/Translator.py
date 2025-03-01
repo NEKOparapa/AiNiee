@@ -153,14 +153,17 @@ class Translator(Base):
                         self.config.label_input_path,
                     )
                 )
-
-            # 检查数据是否为空
-            if self.cache_manager.get_item_count() == 0:
-                raise Exception("self.cache_manager.get_item_count() == 0")
         except Exception as e:
+            self.translating = False # 更改状态
             self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型 ... ", e)
             return None
-
+        
+        
+        # 检查数据是否为空
+        if self.cache_manager.get_item_count() == 0:
+            self.translating = False # 更改状态
+            self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型 ... ")
+            return None
 
 
         # 从头翻译时加载默认数据
