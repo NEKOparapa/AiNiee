@@ -24,6 +24,7 @@ class SystemPromptPage(QFrame, Base):
 
         # 默认配置
         self.default = {
+            "prompt_preset":PromptBuilderEnum.COMMON,
             "system_prompt_switch": False,
             "system_prompt_content": PromptBuilder.get_system_default(None),
         }
