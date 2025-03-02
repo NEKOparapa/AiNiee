@@ -2,11 +2,11 @@ import re
 from ..PluginBase import PluginBase
 
 
-class General_Text_Filtering(PluginBase):
+class GeneralTextFilter(PluginBase):
     def __init__(self):
         super().__init__()
-        self.name = "General_Text_Filtering_Plugin"
-        self.description = "This is an example plugin."
+        self.name = "GeneralTextFilter"
+        self.description = "GeneralTextFilter"
 
         self.visibility = False # 是否在插件设置中显示
         self.default_enable = True # 默认启用状态
@@ -92,6 +92,9 @@ class General_Text_Filtering(PluginBase):
                     entry['translation_status'] = 7
                     continue
 
+                # 检查通过后的文本预处理
+                entry['source_text'] = source_text.replace('\n\n', '\n').replace('\r\n', '\n')
+
                 # 检查文本是否为空
                 if source_text:
                     # 正则表达式匹配<sg ?: ?>>格式的文本
@@ -111,8 +114,8 @@ class General_Text_Filtering(PluginBase):
                                 # 检查右边字符量是否比左边字符量大N倍
                                 if len(right) > len(left) * 15:
                                     entry['translation_status'] = 0
-
                     continue
+
 
 
     # 检查字符串是否只包含常见的标点符号
