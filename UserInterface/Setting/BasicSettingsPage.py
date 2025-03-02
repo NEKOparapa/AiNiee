@@ -20,8 +20,8 @@ class BasicSettingsPage(QFrame, Base):
             "tokens_limit": 384,
             "pre_line_counts": 0,
             "user_thread_counts": 0,
-            "request_timeout": 90,
-            "round_limit": 20,
+            "request_timeout": 120,
+            "round_limit": 10,
         }
 
         # 载入并保存默认配置

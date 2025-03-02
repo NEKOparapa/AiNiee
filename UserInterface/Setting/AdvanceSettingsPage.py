@@ -70,7 +70,7 @@ class AdvanceSettingsPage(QFrame, Base):
             SwitchButtonCard(
                 "AI构建术语表",
                 (
-                    "开启该功能，将由AI辅助生成术语表，自动录入，自动应用到后续翻译任务"
+                    "将由AI辅助生成术语表，自动录入，自动应用到后续翻译任务"
                     + "\n" + "开启该功能会增加模型负担，建议在强力模型上开启 (不支持本地类接口)"
                 ),
                 widget_init,
@@ -93,7 +93,7 @@ class AdvanceSettingsPage(QFrame, Base):
             SwitchButtonCard(
                 "AI构建禁翻表",
                 (
-                    "开启该功能，将由AI辅助生成禁翻表，自动录入，暂不应用到后续翻译任务"
+                    "将由AI辅助生成禁翻表，自动录入，暂不应用到后续翻译任务"
                     + "\n" + "开启该功能会增加模型负担，建议在强力模型上开启 (不支持本地类接口)"
                 ),
                 widget_init,

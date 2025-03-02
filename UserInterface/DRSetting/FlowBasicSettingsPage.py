@@ -18,8 +18,8 @@ class FlowBasicSettingsPage(QFrame, Base):
             "double_request_switch_settings": False,
             "request_a_platform_settings": "deepseek",
             "request_b_platform_settings": "deepseek",
-            "test_original_text": "请输入测试用原文文本",
-            "test_preceding_text": "请输入测试用上文文本",
+            "test_original_text": "ゲオルグ\n「今度こそこの迷宮を封印し、\nイハイラも助け出すために……！",
+            "test_preceding_text": "ゲオルグ\n「休憩は終わりだ。\nそろそろ出発にしよう。",
             "test_glossary": "请输入测试用术语表",
             "test_no_translate_list": "请输入测试用禁翻表",
         }
