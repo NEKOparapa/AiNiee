@@ -198,16 +198,16 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.writing_style_prompt_page = WritingStylePromptPage("writing_style_prompt_page", self)
         self.addSubInterface(self.writing_style_prompt_page, FluentIcon.PENCIL_INK, "翻译风格", parent = self.prompt_optimization_navigation_item)
         self.translation_example_prompt_page = TranslationExamplePromptPage("translation_example_prompt_page", self)
-        self.addSubInterface(self.translation_example_prompt_page, FluentIcon.TILES, "翻译示例", parent = self.prompt_optimization_navigation_item)
+        self.addSubInterface(self.translation_example_prompt_page, FluentIcon.FIT_PAGE, "翻译示例", parent = self.prompt_optimization_navigation_item)
 
     # 添加第三节
     def add_double_request_pages(self, plugin_manager: PluginManager) -> None:
         self.double_request_settings_page = BaseNavigationItem("double_request_settings_page", self)
-        self.addSubInterface(self.double_request_settings_page, FluentIcon.BOOK_SHELF, "双子星翻译", NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.double_request_settings_page, FluentIcon.TILES, "双子星翻译", NavigationItemPosition.SCROLL)
         self.flow_basic_settings_page =FlowBasicSettingsPage("flow_basic_settings_page", self)
-        self.addSubInterface(self.flow_basic_settings_page, FluentIcon.DICTIONARY, "基础设置", parent = self.double_request_settings_page)
+        self.addSubInterface(self.flow_basic_settings_page, FluentIcon.ZOOM, "基础设置", parent = self.double_request_settings_page)
         self.flow_design_page =FlowDesignPage("flow_design_page", self)
-        self.addSubInterface(self.flow_design_page, FluentIcon.DICTIONARY, "流程设计", parent = self.double_request_settings_page)
+        self.addSubInterface(self.flow_design_page, FluentIcon.VIDEO, "流程设计", parent = self.double_request_settings_page)
 
 
     # 添加第四节

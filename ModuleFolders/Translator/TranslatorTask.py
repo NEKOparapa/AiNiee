@@ -171,7 +171,7 @@ class TranslatorTask(Base):
         # 检查回复内容
         check_result, error_content = ResponseChecker.check_response_content(
             self,
-            self.config.reply_check_switch,
+            self.config.response_check_switch,
             response_content,
             response_dict,
             self.source_text_dict,
@@ -375,7 +375,7 @@ class TranslatorTask(Base):
         # 检查回复内容
         check_result, error_content = ResponseChecker.check_response_content(
             self,
-            self.config.reply_check_switch,
+            self.config.response_check_switch,
             response_content,
             response_dict,
             self.source_text_dict,

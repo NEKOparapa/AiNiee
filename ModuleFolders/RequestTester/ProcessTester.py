@@ -206,15 +206,15 @@ class ProcessTester(Base):
         # ================== 响应阶段日志 ==================
         self.print("")
         self.info(f"接口响应结果")
-        
-        self.info("[回复内容]\n")
-        self.print(f"{response_content.strip()}\n")
-        
+
         if response_think:
             self.info("[思考过程]\n")
             self.print(f"{response_think.strip()}\n")
+
+        self.info("[回复内容]\n")
+        self.print(f"{response_content.strip()}\n")
         
-        
+
         # 保存响应结果
         config[f"request_{phase_flag}_response_content"] = response_content
         config[f"request_{phase_flag}_response_think"] = response_think

@@ -115,14 +115,18 @@ class TranslatorConfig(Base):
         # 如果用户指定了线程数，则使用用户指定的线程数
         if self.user_thread_counts > 0:
             self.actual_thread_counts = self.user_thread_counts
-        # 如果用户没有指定线程数，且目标平台不为 Sakura,本地小模型 或 自定义平台，则使用默认值
-        elif self.user_thread_counts == 0 and not ("sakura" in self.target_platform or "LocalLLM" in self.target_platform  or "custom_platform_" in self.target_platform):
-            self.actual_thread_counts = 8
-        # 如果用户没有指定线程数，且目标平台为 Sakura 或 自定义平台，则尝试自动获取
-        else:
+
+        # 如果是本地类接口，尝试访问slots数
+        elif self.target_platform in ("sakura","LocalLLM"):
             num = self.get_llama_cpp_slots_num(self.platforms.get(self.target_platform).get("api_url"))
             self.actual_thread_counts = num if num > 0 else 4
             self.info(f"根据 llama.cpp 接口信息，自动设置同时执行的翻译任务数量为 {self.actual_thread_counts} 个 ...")
+
+        # 如果用户没有指定线程数，则自动计算
+        else :
+            self.actual_thread_counts = self.calculate_thread_count(self.rpm_limit)
+            print(self.actual_thread_counts)
+
 
     # 准备翻译
     def prepare_for_translation(self) -> None:
@@ -395,6 +399,31 @@ class TranslatorConfig(Base):
         finally:
             return num
         
+
+    def calculate_thread_count(self,rpm_limit):
+
+        min_rpm = 1
+        max_rpm = 10000
+        min_threads = 1
+        max_threads = 100
+
+        if rpm_limit <= min_rpm:
+            rpm_threads = min_threads
+        elif rpm_limit >= max_rpm:
+            rpm_threads = max_threads
+        else:
+            # 线性插值计算 RPM 对应的线程数
+            rpm_threads = min_threads + (rpm_limit - min_rpm) * (max_threads - min_threads) / (max_rpm - min_rpm)
+
+        rpm_threads = int(round(rpm_threads)) # 四舍五入取整
+
+        # 确保线程数在 1-100 范围内，并使用 CPU 核心数作为辅助上限 
+        # 更简洁的方式是直接限制在 1-100 范围内，因为 100 通常已经足够高
+        actual_thread_counts = max(1, min(100, rpm_threads)) # 限制在 1-100
+
+        return actual_thread_counts
+
+
     # 获取配置信息包
     def get_platform_configuration(self,platform_type):
 
@@ -451,3 +480,6 @@ class TranslatorConfig(Base):
 
 
         return params
+
+
+

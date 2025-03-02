@@ -131,11 +131,11 @@ class Translator(Base):
         # 读取配置文件，并保存到该类中
         self.config.initialize()
 
-        # 请求线程数
-        self.config.thread_counts_setting()  
-
         # 配置翻译平台信息
         self.config.prepare_for_translation()
+
+        # 请求线程数
+        self.config.thread_counts_setting()  # 需要在平台信息配置后面，依赖前面的数值 
 
         # 配置请求限制器
         self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
@@ -282,6 +282,22 @@ class Translator(Base):
                 if system:
                     self.info(f"本次任务使用以下基础指令：\n{system}\n") 
                     
+            else:
+                self.info(f"第一次请求的接口 - {self.config.platforms.get(self.config.request_a_platform_settings, {}).get("name", "未知")}")
+                self.info(f"接口地址 - {self.config.base_url_a}")
+                self.info(f"模型名称 - {self.config.model_a}")
+                self.print("")
+
+                self.info(f"第二次请求的借口 - {self.config.platforms.get(self.config.request_b_platform_settings, {}).get("name", "未知")}")
+                self.info(f"接口地址 - {self.config.base_url_b}")
+                self.info(f"模型名称 - {self.config.model_b}")
+                self.print("")
+
+                self.info(f"生效中的 网络代理 - {self.config.proxy_url}") if self.config.proxy_enable == True and self.config.proxy_url != "" else None
+                self.info(f"生效中的 RPM 限额 - {self.config.rpm_limit}")
+                self.info(f"生效中的 TPM 限额 - {self.config.tpm_limit}")
+                self.print("")
+
             self.info(f"即将开始执行翻译任务，预计任务总数为 {len(tasks_list)}, 同时执行的任务数量为 {self.config.actual_thread_counts}，请注意保持网络通畅 ...")
             self.print("")
 

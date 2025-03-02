@@ -7,7 +7,7 @@ class ResponseChecker():
 
 
     # 检查回复内容是否存在问题
-    def check_response_content(self,reply_check_switch,response_str,response_dict,source_text_dict,source_language):
+    def check_response_content(self,response_check_switch_check_switch,response_str,response_dict,source_text_dict,source_language):
         # 存储检查结果
         check_result = False
         # 存储错误内容
@@ -26,7 +26,7 @@ class ResponseChecker():
 
 
         # 检查模型是否退化，出现高频词
-        if 'model_degradation_check' in reply_check_switch and reply_check_switch['model_degradation_check']:
+        if 'model_degradation_check' in response_check_switch_check_switch and response_check_switch_check_switch['model_degradation_check']:
             if ResponseChecker.model_degradation_detection(self,source_text_dict,response_str):
                 pass
 
@@ -58,7 +58,7 @@ class ResponseChecker():
 
 
         # 检查是否回复了原文
-        if 'return_to_original_text_check' in reply_check_switch and reply_check_switch['return_to_original_text_check']:
+        if 'return_to_original_text_check' in response_check_switch_check_switch and response_check_switch_check_switch['return_to_original_text_check']:
             if ResponseChecker.check_dicts_equal(self,source_text_dict,response_dict):
                 pass
             else:
@@ -68,7 +68,7 @@ class ResponseChecker():
                 return check_result,error_content
 
         # 检查是否残留部分原文
-        if 'residual_original_text_check' in reply_check_switch and reply_check_switch['residual_original_text_check']:
+        if 'residual_original_text_check' in response_check_switch_check_switch and response_check_switch_check_switch['residual_original_text_check']:
             if ResponseChecker.detecting_remaining_original_text(self,source_text_dict,response_dict,source_language):
                 pass
             else:

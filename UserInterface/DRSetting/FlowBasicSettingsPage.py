@@ -104,7 +104,7 @@ class FlowBasicSettingsPage(QFrame, Base):
                 "启用双子星翻译",
                 (
                     "每个单元翻译任务，都改为流程设计中的翻译流程"
-                    + "\n" + "失效功能：AI构建术语表，AI构建禁翻表，提示词设置"
+                    + "\n" + "失效功能：项目设置的接口设置，AI构建术语表，AI构建禁翻表，提示词设置"
                 ),
                 widget_init,
                 widget_callback,
