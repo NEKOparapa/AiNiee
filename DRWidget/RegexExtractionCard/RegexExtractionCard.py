@@ -19,7 +19,7 @@ class RegexExtractionCard(CardWidget):
             "system_info": '',
             "input_source": "第一次回复内容",
             "extract_rule": "",
-            "placeholder": "{extracted_regular_expression_content}",
+            "placeholder": "{extracted_rex_content}",
             "repetitive_processing": "last"
         }
         # UI控件初始化
