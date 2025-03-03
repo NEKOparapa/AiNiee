@@ -89,14 +89,14 @@ class LanguageFilter(PluginBase):
 
     def on_event(self, event: str, config: TranslatorConfig, data: list[dict]) -> None:
         # 检查数据有效性
-        if isinstance(data, list) == False or len(data) < 2:
+        if not isinstance(data, list) or len(data) < 2:
             return
 
         # 初始化
         items = data[1:]
         project = data[0]
 
-        if event in ("text_filter",):
+        if event == "text_filter":
             self.on_text_filter(event, config, data, items, project)
 
     # 文本后处理事件
@@ -109,7 +109,7 @@ class LanguageFilter(PluginBase):
         has_any = None
         if config.source_language in ("简中", "繁中"):
             has_any = self.has_any_cjk
-        if config.source_language == "英语":
+        elif config.source_language in ("英语", "西班牙语", "法语", "德语"):
             has_any = self.has_any_latin
         elif config.source_language == "韩语":
             has_any = self.has_any_korean
@@ -120,10 +120,10 @@ class LanguageFilter(PluginBase):
 
         # 筛选出无效条目并标记为已排除
         target = []
-        if has_any != None:
+        if has_any is not None:
             target = [
                 v for v in items
-                if isinstance(v.get("source_text", 0), str) == False or has_any(v.get("source_text", "")) == False
+                if not isinstance(v.get("source_text", ""), str) or not has_any(v["source_text"])
             ]
             for item in tqdm(target):
                 item["translation_status"] = CacheItem.STATUS.EXCLUED
@@ -135,9 +135,7 @@ class LanguageFilter(PluginBase):
 
     # 判断字符是否为汉字（中文）字符
     def is_cjk(self, char: str) -> bool:
-        return (
-            LanguageFilter.CJK[0] <= char <= LanguageFilter.CJK[1]
-        )
+        return LanguageFilter.CJK[0] <= char <= LanguageFilter.CJK[1]
 
     # 判断字符是否为拉丁字符
     def is_latin(self, char: str) -> bool:
@@ -146,7 +144,7 @@ class LanguageFilter(PluginBase):
             or LanguageFilter.LATIN_2[0] <= char <= LanguageFilter.LATIN_2[1]
             or LanguageFilter.LATIN_EXTENDED_A[0] <= char <= LanguageFilter.LATIN_EXTENDED_A[1]
             or LanguageFilter.LATIN_EXTENDED_B[0] <= char <= LanguageFilter.LATIN_EXTENDED_B[1]
-            or LanguageFilter.LATIN_PUNCTUATION_SUPPLEMENTAL[0] <= char <= LanguageFilter.LATIN_PUNCTUATION_SUPPLEMENTAL[1]
+            or LanguageFilter.LATIN_SUPPLEMENTAL[0] <= char <= LanguageFilter.LATIN_SUPPLEMENTAL[1]
         )
 
     # 判断字符是否为韩文（含汉字）字符

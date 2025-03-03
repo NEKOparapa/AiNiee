@@ -1,193 +1,239 @@
 import os
-
 import re
 import shutil
 import zipfile
-
-
-import ebooklib # 需要安装库pip install ebooklib
+import ebooklib
 from ebooklib import epub
-
-
+from bs4 import BeautifulSoup
 
 class EpubWriter():
     def __init__(self):
         pass
 
-
-    # 输出epub文件
-    def output_epub_file(self,cache_data, output_path, input_path):
-
-        # 创建中间存储文本
+    def output_epub_file(self, cache_data, output_path, input_path):
         text_dict = {}
 
-        # 遍历缓存数据
+        # 分类处理缓存数据
         for item in cache_data:
-            # 忽略不包含 'storage_path' 的项
             if 'storage_path' not in item:
                 continue
 
-            # 获取相对文件路径
             storage_path = item['storage_path']
-            # 获取文件名
             file_name = item['file_name']
+            file_path = f'{output_path}/{storage_path}'
 
-            if file_name != storage_path :
-                # 构建文件输出路径
-                file_path = f'{output_path}/{storage_path}'
-                # 获取输出路径的上一级路径，使用os.path.dirname
+            if file_name != storage_path:
                 folder_path = os.path.dirname(file_path)
-                # 如果路径不存在，则创建
                 os.makedirs(folder_path, exist_ok=True)
-            else:
-                # 构建文件输出路径
-                file_path = f'{output_path}/{storage_path}'
 
+            text = {
+                'translation_status': item['translation_status'],
+                'source_text': item['source_text'],
+                'translated_text': item['translated_text'],
+                'original_html': item['original_html'],
+                "tag_type": item['tag_type'],
+                "item_id": item['item_id'],
+            }
+            text_dict.setdefault(file_path, []).append(text)
 
-            # 如果文件路径已经在 path_dict 中，添加到对应的列表中
-            if file_path in text_dict:
-                text = {'translation_status': item['translation_status'],
-                        'source_text': item['source_text'],
-                        'translated_text': item['translated_text'],
-                        'html': item['html'],
-                        "item_id": item['item_id'],}
-                text_dict[file_path].append(text)
+        # 创建输出目录并复制原始文件
+        os.makedirs(output_path, exist_ok=True)
+        EpubWriter._copy_epub_files(self,input_path, output_path)
 
-            # 否则，创建一个新的列表
-            else:
-                text = {'translation_status': item['translation_status'],
-                        'source_text': item['source_text'],
-                        'translated_text': item['translated_text'],
-                        'html': item['html'],
-                        "item_id": item['item_id'],}
-                text_dict[file_path] = [text]
-
-
-
-
-        # 创建输出
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
-
-        # 将输入路径里面的所有epub文件复制到输出路径
-        for dirpath, dirnames, filenames in os.walk(input_path):
-            for filename in filenames:
-                # 检查文件扩展名是否为.epub
-                if filename.endswith('.epub'):
-                    # 构建源文件和目标文件的完整路径
-                    src_file_path = os.path.join(dirpath, filename)
-                    # 计算相对于输入路径的相对路径
-                    relative_path = os.path.relpath(src_file_path, start=input_path)
-                    # 构建目标文件的完整路径
-                    dst_file_path = os.path.join(output_path, relative_path)
-
-                    # 创建目标文件的目录（如果不存在）
-                    os.makedirs(os.path.dirname(dst_file_path), exist_ok=True)
-                    # 复制文件
-                    shutil.copy2(src_file_path, dst_file_path)
-                    #print(f'Copied: {src_file_path} -> {dst_file_path}')
-
-
-
-        # 遍历 path_dict，并将内容写入对应文件中
+        # 处理每个EPUB文件
         for file_path, content_list in text_dict.items():
-
-            # 加载EPUB文件
             book = epub.read_epub(file_path)
-
-            # 构建解压文件夹路径
             parent_path = os.path.dirname(file_path)
-            extract_path = os.path.join(parent_path, 'EpubCache')
-
-            # 创建解压文件夹
-            if not os.path.exists(extract_path):
-                os.makedirs(extract_path)
-
-            # 使用zipfile模块打开并解压EPUB文件
+            
+            # 创建两个解压目录
+            extract_paths = {
+                'translated': os.path.join(parent_path, 'EpubCacheTranslated'),
+                'bilingual': os.path.join(parent_path, 'EpubCacheBilingual')
+            }
+            
+            # 解压到两个目录
             with zipfile.ZipFile(file_path, 'r') as epub_file:
-                # 提取所有文件
-                epub_file.extractall(extract_path)
+                epub_file.extractall(extract_paths['translated'])
+            shutil.copytree(extract_paths['translated'], extract_paths['bilingual'])
 
-            # 遍历书籍中的所有内容
-            for item in book.get_items():
-                # 检查是否是文本内容
-                if item.get_type() == ebooklib.ITEM_DOCUMENT:
+            # 处理两个版本
+            EpubWriter._process_version(self,book, extract_paths['translated'], 'translated', content_list)
+            EpubWriter._process_version(self,book, extract_paths['bilingual'], 'bilingual', content_list)
 
-                    # 获取文件的唯一ID及文件名
-                    item_id = item.get_id()
-                    file_name = os.path.basename(item.get_name())
+            # 打包生成两个版本
+            EpubWriter._package_version(self,file_path, extract_paths['translated'], '_translated')
+            EpubWriter._package_version(self,file_path, extract_paths['bilingual'], '_bilingual')
 
-                    # 遍历文件夹中的所有文件,找到该文件，因为上面给的相对路径与epub解压后路径是不准的
-                    for root, dirs, files in os.walk(extract_path):
-                        for filename in files:
-                            # 如果文件名匹配
-                            if filename == file_name:
-                                # 构建完整的文件路径
-                                the_file_path = os.path.join(root, filename)
-
-                    # 打开对应HTML文件
-                    with open(the_file_path, 'r', encoding='utf-8') as file:
-                        # 读取文件内容
-                        content_html = file.read()
-
-                    # 遍历缓存数据
-                    for content in content_list:
-                        # 如果找到匹配的文件id
-                        if item_id == content['item_id']:
-                            # 获取原文本
-                            original = content['source_text']
-                            # 获取翻译后的文本
-                            replacement = content['translated_text']
-
-                            # 获取html标签化的文本
-                            html = content['html']
-                            html = str(html)
-
-                            # 删除 &#13;\n\t\t\t\t
-                            html = html.replace("&#13;\n\t\t\t\t", "")
-
-                            if"Others who have read our chapters and offered similar assistance have" in html:
-                                print("ce")
-
-                            # 有且只有一个a标签，则改变替换文本，以保留跳转功能
-                            if (re.match( r'^(?:<a(?:\s[^>]*?)?>[^<]*?</a>)*$', html) is not None):
-                                # 针对跳转标签的保留，使用正则表达式搜索<a>标签内的文本
-                                a_tag_pattern = re.compile(r'<a[^>]*>(.*?)</a>')
-                                matches = a_tag_pattern.findall(html)
-
-                                if len(matches) == 1:
-                                    html = matches[0]
-
-
-                            # 如果原文与译文不为空，则替换原hrml文件中的文本
-                            if (original and replacement):
-                                # 替换第一个匹配项
-                                content_html = content_html.replace(html, replacement, 1)
-                                #content_html  = re.sub(original, replacement, content_html, count=1)
-
-
-                    # 写入内容到HTML文件
-                    with open(the_file_path, 'w', encoding='utf-8') as file:
-                        file.write(content_html)
-
-            # 构建修改后的EPUB文件路径
-            modified_epub_file = file_path.rsplit('.', 1)[0] + '_translated.epub'
-
-            # 创建ZipFile对象，准备写入压缩文件
-            with zipfile.ZipFile(modified_epub_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                # 遍历文件夹中的所有文件和子文件夹
-                for root, dirs, files in os.walk(extract_path):
-                    for file in files:
-                        # 获取文件的完整路径
-                        full_file_path = os.path.join(root, file)
-                        # 获取文件在压缩文件中的相对路径
-                        relative_file_path = os.path.relpath(full_file_path, extract_path)
-                        # 将文件添加到压缩文件中
-                        zipf.write(full_file_path, relative_file_path)
-
-            # 删除旧文件
+            # 清理临时文件
             os.remove(file_path)
-            # 删除文件夹
-            shutil.rmtree(extract_path)
+            shutil.rmtree(extract_paths['translated'])
+            shutil.rmtree(extract_paths['bilingual'])
 
+    # 对epub文件进行译文写入
+    def _process_version(self, book, extract_path, version, content_list):
+        for item in book.get_items():
+            if item.get_type() == ebooklib.ITEM_DOCUMENT:
+                item_id = item.get_id()
+                file_name = os.path.basename(item.get_name())
+                the_file_path = EpubWriter._find_file_path(self,extract_path, file_name)
+                
+                if not the_file_path:
+                    continue
 
+                with open(the_file_path, 'r+', encoding='utf-8') as file:
+                    content_html = file.read()
+                    file.seek(0)
+                    
+                    for content in content_list:
+                        if content['translation_status'] == 1 and content['item_id'] == item_id:
+                            original_html = content['original_html']
+                            translated_text = content['translated_text']
+                            source_text = content['source_text']
+                            
+                            if version == 'translated':
+                                new_html = EpubWriter._rebuild_translated_tag(self,original_html, translated_text)
+                            else:
+                                new_html = EpubWriter._rebuild_bilingual_tag(self,original_html, translated_text)
+                            
+                            content_html = content_html.replace(original_html, new_html, 1)
+                    
+                    file.write(content_html)
+                    file.truncate()
+
+    # 处理特定标签结构
+    def _handle_specific_tag_structure(self, original_html, translated_text, version):
+        """
+        处理特定HTML标签结构，返回处理后的HTML或None（未匹配时）
+        """
+        soup = BeautifulSoup(original_html, 'html.parser')
+        li_tag = soup.find('li')
+        if li_tag and len(li_tag.contents) == 1 and li_tag.a and len(li_tag.a.contents) == 1:
+            a_tag = li_tag.a
+            a_tag.string = translated_text
+            return str(soup)
+        return None
+
+    # 构建译文版本标签
+    def _rebuild_translated_tag(self, original_html, translated_text):
+        # 优先处理特定标签结构
+        handled_html = EpubWriter._handle_specific_tag_structure(self, original_html, translated_text, 'translated')
+        if handled_html:
+            return handled_html
+        
+        # 默认BeautifulSoup处理逻辑
+        try:
+            soup = BeautifulSoup(original_html, 'html.parser')
+            original_tag = soup.find()
+            if not original_tag:
+                return translated_text
+
+            original_text = original_tag.get_text()
+            processed_translated = EpubWriter._copy_leading_spaces(self, original_text, translated_text)
+
+            new_tag = soup.new_tag(original_tag.name)
+            new_tag.attrs = original_tag.attrs.copy()
+            
+            if original_tag.is_empty_element:
+                return str(new_tag)
+                
+            new_tag.string = processed_translated
+            return str(new_tag)
+        except Exception as e:
+            print(f"Error rebuilding translated tag: {e}")
+            return translated_text
+
+    # 构建双语版本标签
+    def _rebuild_bilingual_tag(self, original_html, translated_text):
+        # 样式配置常量
+        ORIGINAL_STYLE = {
+            'opacity': '0.8',
+            'color': '#888',
+            'font-size': '0.85em',
+            'font-style': 'italic',
+            'margin-top': '0.5em'
+        }
+        
+        try:
+            soup = BeautifulSoup(original_html, 'html.parser')
+            original_tag = soup.find()
+
+            # 处理无原生标签的兜底逻辑
+            if not original_tag:
+                original_text = soup.get_text()
+                processed_trans = EpubWriter._copy_leading_spaces(self,original_text, translated_text)
+                style_str = '; '.join([f"{k}:{v}" for k,v in ORIGINAL_STYLE.items()])
+                return f'''<div class="bilingual-container">
+                            <div class="translated-text">{processed_trans}</div>
+                            <div class="original-text" style="{style_str}">{original_html}</div>
+                        </div>'''
+
+            # 处理有效标签
+            original_text = original_tag.get_text()
+            processed_trans = EpubWriter._copy_leading_spaces(self,original_text, translated_text)
+
+            # 构建容器标签（保留原始标签类型）
+            container_tag = soup.new_tag(original_tag.name)
+            container_tag.attrs = {k:v for k,v in original_tag.attrs.items() if k != 'id'}
+            container_tag['class'] = container_tag.get('class', []) + ['bilingual-container']
+
+            # 译文部分（主内容）
+            trans_tag = soup.new_tag('div', **{'class': 'translated-text'})
+            trans_tag.string = processed_trans
+
+            # 原文部分（样式增强）
+            original_tag['class'] = original_tag.get('class', []) + ['original-text']
+            existing_style = original_tag.get('style', '').rstrip(';')
+            new_style = '; '.join([f"{k}:{v}!important" for k,v in ORIGINAL_STYLE.items()])
+            original_tag['style'] = f"{existing_style}; {new_style}".strip('; ')
+            original_tag.attrs.pop('id', None)
+
+            # 组合结构
+            container_tag.append(trans_tag)
+            container_tag.append(original_tag)
+
+            return str(container_tag)
+        except Exception as e:
+            print(f"Bilingual generation error: {e}")
+            # 异常情况保持双语结构
+            style_str = '; '.join([f"{k}:{v}" for k,v in ORIGINAL_STYLE.items()])
+            return f'''<div class="bilingual-container">
+                        <div class="translated-text">{translated_text}</div>
+                        <div class="original-text" style="{style_str}">{original_html}</div>
+                    </div>'''
+        
+
+    # 构建文件路径
+    def _find_file_path(self, extract_path, target_file):
+        for root, _, files in os.walk(extract_path):
+            for file in files:
+                if file == target_file:
+                    return os.path.join(root, file)
+        return None
+
+    # 打包epub文件
+    def _package_version(self, orig_path, extract_path, suffix):
+        new_path = orig_path.rsplit('.', 1)[0] + f'{suffix}.epub'
+        with zipfile.ZipFile(new_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, _, files in os.walk(extract_path):
+                for file in files:
+                    full_path = os.path.join(root, file)
+                    rel_path = os.path.relpath(full_path, extract_path)
+                    zipf.write(full_path, rel_path)
+    # 复制epub文件
+    def _copy_epub_files(self, input_path, output_path):
+        for dirpath, _, filenames in os.walk(input_path):
+            for filename in filenames:
+                if filename.endswith('.epub'):
+                    src = os.path.join(dirpath, filename)
+                    rel_path = os.path.relpath(src, input_path)
+                    dst = os.path.join(output_path, rel_path)
+                    os.makedirs(os.path.dirname(dst), exist_ok=True)
+                    shutil.copy2(src, dst)
+
+    # 复制前导空格
+    def _copy_leading_spaces(self, source_text, target_text):
+        """复制源文本的前导空格到目标文本"""
+        # 修改正则以同时匹配半角空格和全角空格（\u3000）
+        leading_spaces = re.match(r'^[ \u3000]+', source_text)
+        leading_spaces = leading_spaces.group(0) if leading_spaces else ''
+        return leading_spaces + target_text.lstrip()

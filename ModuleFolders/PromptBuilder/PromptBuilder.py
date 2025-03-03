@@ -58,7 +58,10 @@ class PromptBuilder(Base):
             "韩语": "Korean", 
             "俄语": "Russian",
             "简中": "Simplified Chinese",
-            "繁中": "Traditional Chinese"
+            "繁中": "Traditional Chinese",
+            "法语": "French",
+            "德语": "German",
+            "西班牙语": "Spanish",
         }
 
         source_language = config.source_language
@@ -92,7 +95,7 @@ class PromptBuilder(Base):
         #list1, list3 = PromptBuilder.get_default_translation_example(config, input_dict)
 
         # 获取自适应示例（无法构建英语的）
-        if config.source_language in ["日语","韩语","俄语","简中","繁中"]:
+        if config.source_language in ["日语","韩语","俄语","简中","繁中","法语","德语","西班牙语"]:
             list2, list4 = PromptBuilder.build_adaptive_translation_sample(config, input_dict)
 
         # 将两个列表合并
@@ -109,6 +112,9 @@ class PromptBuilder(Base):
                     "简中": "示例文本",
                     "繁中": "翻譯示例文本",
                     "英语": "Sample Text",
+                    "西班牙语": "Texto de ejemplo",
+                    "法语": "Exemple de texte",
+                    "德语": "Beispieltext",
                 }
             }
 
@@ -155,7 +161,7 @@ class PromptBuilder(Base):
         source_list = []
         translated_list = []
 
-        # 内置的正则表达式字典
+        # 内置的正则表达式字典（缺少新增语言）
         patterns_all = {
             r"[a-zA-Z]=": {
                 "日语": 'a="　　ぞ…ゾンビ系…。',
@@ -325,39 +331,29 @@ class PromptBuilder(Base):
                 r"["
                 r"\u3041-\u3096"  # 平假名
                 r"\u30A0-\u30FF"  # 片假名
-                r"\u4E00-\u9FAF"  # 汉字（CJK统一表意文字）
-                r"]+",
+                r"\u4E00-\u9FAF"  # 汉字
+                "]+",
                 re.UNICODE,
             ),
-            "韩语": re.compile(
-                r"["
-                r"\uAC00-\uD7AF"  # 韩文字母
-                r"]+",
-                re.UNICODE,
+            "韩语": re.compile(r"[\uAC00-\uD7AF]+", re.UNICODE),  # 韩文字母
+            "俄语": re.compile(r"[\u0400-\u04FF]+", re.UNICODE),  # 俄语字母
+            "简中": re.compile(r"[\u4E00-\u9FA5]+", re.UNICODE),  # 简体中文
+            "繁中": re.compile(r"[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]+", re.UNICODE),
+            "西班牙语": re.compile(
+                r"[a-zA-ZÁÉÍÓÚÑáéíóúñÜü]+",  # 覆盖西班牙语特殊字符
+                re.UNICODE
             ),
-            "俄语": re.compile(
-                r"["
-                r"\u0400-\u04FF"  # 俄语字母
-                r"]+",
-                re.UNICODE,
+            "法语": re.compile(
+                r"[a-zA-ZÀ-ÿ]+",  # 覆盖所有法语重音字符
+                re.UNICODE
             ),
-            "简中": re.compile(
-                r"["
-                r"\u4E00-\u9FA5"  # 简体汉字
-                r"]+",
-                re.UNICODE,
-            ),
-            "繁中": re.compile(
-                r"["
-                r"\u3400-\u4DBF"  # 扩展A区汉字
-                r"\u4E00-\u9FFF"  # 基本汉字
-                r"\uF900-\uFAFF"  # 兼容汉字
-                r"]+",
-                re.UNICODE,
+            "德语": re.compile(
+                r"[a-zA-ZÄÖÜäöüß]+",  # 德语特殊字符
+                re.UNICODE
             ),
         }
 
-        # 定义不同语言的翻译示例
+        # 定义不同语言的翻译示例（新增三种语言）
         text_all = {
             "日语": "例示テキスト",
             "韩语": "예시 텍스트",
@@ -365,45 +361,43 @@ class PromptBuilder(Base):
             "简中": "示例文本",
             "繁中": "翻譯示例文本",
             "英语": "Sample Text",
+            "西班牙语": "Texto de ejemplo",
+            "法语": "Exemple de texte",
+            "德语": "Beispieltext",
         }
 
-        # 根据输入选择相应语言的正则表达式与翻译示例
+        # 根据输入选择正则表达式与翻译文本
         pattern = patterns_all[config.source_language]
         source_text = text_all[config.source_language]
         translated_text = text_all[config.target_language]
 
-        # 输出列表
-        source_list = []
-        translated_list = []
+        source_list, translated_list = [], []
+        counter = 1  # 统一计数器保证编号同步
 
-        # 初始化
-        i = 1
-        j = 1
-
-        # 遍历字典的每个值
-        for _, value in input_dict.items():
+        for value in input_dict.values():
             if pattern.search(value):
-                # 替换文本
-                source_value = pattern.sub(lambda m: f"{source_text}{i}", value)
-                translated_value = pattern.sub(lambda m: f"{translated_text}{j}", value)
-                i += 1
-                j += 1
-                source_list.append(source_value)
-                translated_list.append(translated_value)
+                # 使用相同计数器生成编号
+                src = pattern.sub(lambda _: f"{source_text}{counter}", value)
+                trans = pattern.sub(lambda _: f"{translated_text}{counter}", value)
+                source_list.append(src)
+                translated_list.append(trans)
+                counter += 1
 
-        # 过滤输出列表，删除只包含"测试替换"+三位数字内结尾的元素
-        source_list1 = [item for item in source_list if not item.startswith(source_text) or not (item[-1].isdigit() or (len(item) > 1 and item[-2].isdigit()) or (len(item) > 2 and item[-3].isdigit()))]
-        translated_list1 = [item for item in translated_list if not item.startswith(translated_text) or not (item[-1].isdigit() or (len(item) > 1 and item[-2].isdigit()) or (len(item) > 2 and item[-3].isdigit()))]
+        # 优化过滤逻辑（保持原有逻辑，添加注释说明）
+        def filter_func(items, text):
+            return [item for item in items 
+                    if not item.startswith(text)  # 排除纯示例开头的项
+                    or not any(c.isdigit() for c in item[-3:])]  # 排除末尾3字符含数字的项
 
-        # 清除过多相似元素
-        source_list2 = PromptBuilder.clean_list(source_list1)
-        translated_list2 = PromptBuilder.clean_list(translated_list1)
+        # 清理和重新编号
+        source_cleaned = PromptBuilder.clean_list(filter_func(source_list, source_text))
+        trans_cleaned = PromptBuilder.clean_list(filter_func(translated_list, translated_text))
 
-        # 重新调整翻译示例后缀数字
-        source_list3 = PromptBuilder.replace_and_increment(source_list2, source_text)
-        translated_list3 = PromptBuilder.replace_and_increment(translated_list2, translated_text)
-
-        return source_list3, translated_list3
+        # 最终编号处理
+        return (
+            PromptBuilder.replace_and_increment(source_cleaned, source_text),
+            PromptBuilder.replace_and_increment(trans_cleaned, translated_text)
+        )
 
     # 构造术语表
     def build_glossary_prompt(config: TranslatorConfig, input_dict: dict) -> str:
@@ -826,14 +820,3 @@ class PromptBuilder(Base):
 
         return the_profile
     
-
-        profile = ""
-
-        if input_list:
-            # 使用列表推导式，转换为字符串列表
-            formatted_rows = [item for item in input_list]
-
-            # 使用换行符将列表元素连接成一个字符串
-            profile += f"\n{"\n".join(formatted_rows)}\n"
-
-        return profile

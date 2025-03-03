@@ -18,9 +18,9 @@ from qfluentwidgets import PrimaryDropDownPushButton
 from Base.Base import Base
 from Widget.FlowCard import FlowCard
 from Widget.LineEditMessageBox import LineEditMessageBox
-from UserInterface.Project.APIEditPage import APIEditPage
-from UserInterface.Project.ArgsEditPage import ArgsEditPage
-from UserInterface.Project.LimitEditPage import LimitEditPage
+from UserInterface.Platform.APIEditPage import APIEditPage
+from UserInterface.Platform.ArgsEditPage import ArgsEditPage
+from UserInterface.Platform.LimitEditPage import LimitEditPage
 
 class PlatformPage(QFrame, Base):
     

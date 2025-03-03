@@ -18,10 +18,11 @@ from Base.PluginManager import PluginManager
 
 from UserInterface.AppSettingsPage import AppSettingsPage
 from UserInterface.BaseNavigationItem import BaseNavigationItem
-from UserInterface.Project.ProjectPage import ProjectPage
-from UserInterface.Project.PlatformPage import PlatformPage
-from UserInterface.Project.TranslationPage import TranslationPage
+from UserInterface.Platform.PlatformPage import PlatformPage
 
+from UserInterface.Monitoring.TranslationPage import TranslationPage
+
+from UserInterface.Setting.ProjectSettingsPage import ProjectSettingsPage
 from UserInterface.Setting.BasicSettingsPage import BasicSettingsPage
 from UserInterface.Setting.AdvanceSettingsPage import AdvanceSettingsPage
 from UserInterface.Setting.PluginsSettingsPage import PluginsSettingsPage
@@ -174,7 +175,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
     def add_project_pages(self, plugin_manager: PluginManager) -> None:
         self.platform_page = PlatformPage("platform_page", self)
         self.addSubInterface(self.platform_page, FluentIcon.IOT, "接口管理", NavigationItemPosition.SCROLL)
-        self.prject_page = ProjectPage("prject_page", self)
+        self.prject_page = ProjectSettingsPage("ProjectSettingsPagee", self)
         self.addSubInterface(self.prject_page, FluentIcon.FOLDER, "项目设置", NavigationItemPosition.SCROLL)
         self.translation_page = TranslationPage("translation_page", self)
         self.addSubInterface(self.translation_page, FluentIcon.PLAY, "开始翻译", NavigationItemPosition.SCROLL)

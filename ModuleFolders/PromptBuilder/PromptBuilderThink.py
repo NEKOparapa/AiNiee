@@ -47,7 +47,10 @@ class PromptBuilderThink(Base):
             "韩语": "Korean", 
             "俄语": "Russian",
             "简中": "Simplified Chinese",
-            "繁中": "Traditional Chinese"
+            "繁中": "Traditional Chinese",
+            "法语": "French",
+            "德语": "German",
+            "西班牙语": "Spanish",
         }
 
         source_language = config.source_language

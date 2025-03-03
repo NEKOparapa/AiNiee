@@ -8,7 +8,7 @@ from Base.Base import Base
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.PushButtonCard import PushButtonCard
 
-class ProjectPage(QFrame, Base):
+class ProjectSettingsPage(QFrame, Base):
 
     def __init__(self, text: str, window) -> None:
         super().__init__(window)
@@ -144,7 +144,7 @@ class ProjectPage(QFrame, Base):
             ComboBoxCard(
                 "原文语言",
                 "设置当前翻译项目所使用的原始文本的语言，注意，选择错误将不能进行翻译",
-                ["日语", "英语", "韩语", "俄语", "简中", "繁中"],
+                ["日语", "英语", "韩语", "俄语", "德语", "法语", "简中", "繁中", "西班牙语"],
                 init = init,
                 current_text_changed = current_text_changed,
             )
@@ -164,7 +164,7 @@ class ProjectPage(QFrame, Base):
             ComboBoxCard(
                 "译文语言",
                 "设置当前翻译项目所期望的译文文本的语言，注意，选择错误将不能进行翻译",
-                ["简中", "繁中", "日语", "英语", "韩语"],
+                ["简中", "繁中", "英语", "日语", "韩语", "俄语", "德语", "法语", "西班牙语"],
                 init = init,
                 current_text_changed = current_text_changed,
             )
