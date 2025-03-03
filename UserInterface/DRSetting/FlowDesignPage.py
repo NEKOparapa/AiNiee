@@ -67,9 +67,9 @@ class FlowDesignPage(QFrame, Base):
 
         # 添加测试控件
         self.CenteredDividerCardA1 = CenteredDividerCard(
-            title='|  第一次请求  |',
+            title='|  第一请求  |',
             description='根据下面对话的构造，进行第一次请求',
-            url='https://qfluentwidgets.com',
+            url='https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D',
             link_text='教程'
         )
         self.vbox.addWidget(self.CenteredDividerCardA1)
@@ -150,7 +150,7 @@ class FlowDesignPage(QFrame, Base):
 
         # 后续原有组件
         self.TestBreakpointCardB = TestBreakpointCard(
-            title='|  第二次请求  |',
+            title='|  第二请求  |',
             description='根据下面对话的构造，进行第二次请求',
             breakpoint_position= 2  # 添加位置参数
         )
