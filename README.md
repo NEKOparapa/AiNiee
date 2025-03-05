@@ -19,15 +19,15 @@
 
 * **多格式支持**: 支持 JSON/XLSX 数据文件、Epub/TXT 小说、Srt/Vtt/Lrc 字幕、Word 文档等多种格式，满足多样化需求。
 
-* **多平台AI支持**: 无缝对接 OpenAI、Google、Anthropic、DeepSeek 等国内外主流 AI 平台，灵活选择，快速使用。
+* **多平台支持**: 无缝对接 OpenAI、Google、Anthropic、DeepSeek 等国内外主流 AI 平台，灵活选择，快速使用。
 
 * **多语言互译**: 覆盖中文、英文、日文、韩文、俄语、西班牙语、法语、德语等多种语言，打破语言壁垒。
 
-* **强大插件扩展**: 内置 双语对照器、Mtool 翻译优化器、文本过滤器、T++代码救星、文本规范器等实用插件，功能更强大。
+* **强大插件扩展**: 内置 双语对照器、Mtool 翻译优化器、文本过滤器、文本规范器等实用插件，功能更强大。
 
 * **高效批量翻译**: 多文件批量翻译、多线程并行处理、多 Key 轮询机制，效率倍增。
 
-* **长文本专属优化**: 独家实现完美破限、批翻译格式、思维链翻译、动态 Few-shot、自动术语统一、上下文理解、译文自动检查等技术，突破长文本翻译局限，保证译文连贯性。
+* **长文本专属优化**: 独家实现完美破限、批翻译格式、思维链翻译、动态 Few-shot、自动术语统一、自动保留代码段、上下文理解、译文自动检查等技术，突破长文本翻译局限，保证译文连贯性。
 
 * **高质量翻译追求**:提供提示词设置、AI 术语表、AI 禁翻表、文本替换、双子星翻译等高级功能，满足对翻译质量有更高要求的用户。
 
@@ -346,7 +346,6 @@
 ## 插件说明[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#插件说明)  
 </summary>
 
-- [插件 - 代码救星](https://github.com/NEKOparapa/AiNiee/wiki/CodeSaver)
 - [插件 - 标点修复器](https://github.com/NEKOparapa/AiNiee/wiki/PunctuationFixer)
 - [插件 - 语言过滤器](https://github.com/NEKOparapa/AiNiee/wiki/LanguageFilter)
 - [插件 - 文本规范器](https://github.com/NEKOparapa/AiNiee/wiki/TextNormalizer)
@@ -359,16 +358,16 @@
 <details>
 <summary>
 
-## 常见问题[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#常见问题)  
+## 贡献指南[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#贡献指南)  
 </summary>
 
-* 【如何反馈自己在使用中遇到的问题】————————将CMD窗口（黑黑的那个框框）的内容完整截图下来，里面有程序运行日志，还有软件界面设置截图，然后将问题描述清晰带上截图到群里或者issue提问。当进一步排除问题，需要到原文本或者翻译后文本时，请压缩并上传。
 
-* 【翻译“卡住”了】————————如果运行日志中，无错误提醒，请耐心等待
+* **`开发增强插件`**: 请根据[插件编写指南](https://github.com/NEKOparapa/AiNiee/blob/main/PluginScripts/README.md)进行开发更强功能插件
 
-* 【mtool导入翻译文本后，显示一句原文一句译文，或者原文与译文混杂，或者全部原文】————————更新mtool到最新版，或者找mtool作者反馈该问题
+* **`增加支持文件`**: 需要有一定的代码编程能力，拉取源码进行改进。文件具体读取代码在ModuleFolders\FileReader与FileOutputer文件夹中。文件读写功能分发在FileReader与FileOutputer。UI支持在UserInterface\Setting的ProjectSettingsPage。
+
+* **`完善正则库`**: 正则库的完备将极大帮助游戏内嵌工作的进行，并利用下一次游戏翻译工作和造福其他翻译用户，正则库在Resource\Regex文件夹中
   
-* 【翻译后文本导入到T++不完全，部分未能百分百导入全部译文】————————在非RPGMVZ游戏中，出现该问题比较多，使用最新赞助版T++可以缓解，还可以自己手动打开表格，自己复制粘贴进去
 
 </details>
 

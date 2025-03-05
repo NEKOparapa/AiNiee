@@ -94,6 +94,11 @@ class GeneralTextFilter(PluginBase):
 
                 # 检查通过后的文本预处理
                 entry['source_text'] = source_text.replace('\n\n', '\n').replace('\r\n', '\n')
+                # 检查字符串开头和结尾是否为换行符
+                if source_text.startswith('\n') or source_text.endswith('\n'):
+                    # 剔除字符串开头和结尾的换行符
+                    entry['source_text'] = source_text.strip('\n')
+                    
 
                 # 检查文本是否为空
                 if source_text:

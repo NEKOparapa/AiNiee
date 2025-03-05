@@ -53,10 +53,12 @@ class PromptBuilderDouble(Base):
         lines = set(line for line in input_dict.values())
 
         # 筛选在输入词典中出现过的条目
-        result = [
-            v for v in prompt_dictionary_data
-            if any(v.get("src") in lines for lines in lines)
-        ]
+        result = []
+        for v in prompt_dictionary_data:
+            src_lower = v.get("src").lower() # 将术语表中的 src 转换为小写
+            if any(src_lower in line.lower() for line in lines): # 将原文行也转换为小写进行比较
+                result.append(v)
+
 
         # 数据校验
         if len(result) == 0:

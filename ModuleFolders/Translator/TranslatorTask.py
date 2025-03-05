@@ -1,4 +1,5 @@
 import copy
+import os
 import re
 import time
 import itertools
@@ -6,6 +7,7 @@ import itertools
 import rapidjson as json
 from rich import box
 from rich.table import Table
+from typing import List, Dict, Tuple
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
@@ -25,436 +27,303 @@ from ModuleFolders.Cache.CacheManager import CacheManager
 
 
 
-# 接口请求器
 class TranslatorTask(Base):
 
-    # 可能存在的空字符
-    SPACE_PATTERN = r"\s*"
-
-    # 用于英文的代码段规则
-    CODE_PATTERN_EN = (
-        SPACE_PATTERN + r"if\(.{0,5}[vs]\[\d+\].{0,10}\)" + SPACE_PATTERN,            # if(!s[982]) if(s[1623]) if(v[982] >= 1)
-        SPACE_PATTERN + r"en\(.{0,5}[vs]\[\d+\].{0,10}\)" + SPACE_PATTERN,            # en(!s[982]) en(v[982] >= 1)
-        SPACE_PATTERN + r"[/\\][a-z]{1,5}<[\d]{0,10}>" + SPACE_PATTERN,               # /C<1> \FS<12>
-        SPACE_PATTERN + r"[/\\][a-z]{1,5}\[[\d]{0,10}\]" + SPACE_PATTERN,             # /C[1] \FS[12]
-        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=<[^\d]{0,10}>)" + SPACE_PATTERN,          # /C<非数字> \FS<非数字> 中的前半部分
-        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=\[[^\d]{0,10}\])" + SPACE_PATTERN,        # /C[非数字] \FS[非数字] 中的前半部分
-    )
-
-    # 用于非英文的代码段规则
-    CODE_PATTERN_NON_EN = (
-        SPACE_PATTERN + r"if\(.{0,5}[vs]\[\d+\].{0,10}\)" + SPACE_PATTERN,            # if(!s[982]) if(v[982] >= 1) if(v[982] >= 1)
-        SPACE_PATTERN + r"en\(.{0,5}[vs]\[\d+\].{0,10}\)" + SPACE_PATTERN,            # en(!s[982]) en(v[982] >= 1)
-        SPACE_PATTERN + r"[/\\][a-z]{1,5}<[a-z\d]{0,10}>" + SPACE_PATTERN,            # /C<y> /C<1> \FS<xy> \FS<12>
-        SPACE_PATTERN + r"[/\\][a-z]{1,5}\[[a-z\d]{0,10}\]" + SPACE_PATTERN,          # /C[x] /C[1] \FS[xy] \FS[12]
-        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=<[^a-z\d]{0,10}>)" + SPACE_PATTERN,       # /C<非数字非字母> \FS<非数字非字母> 中的前半部分
-        SPACE_PATTERN + r"[/\\][a-z]{1,5}(?=\[[^a-z\d]{0,10}\])" + SPACE_PATTERN,     # /C[非数字非字母] \FS[非数字非字母] 中的前半部分
-    )
-
-    # 同时作用于英文于非英文的代码段规则
-    CODE_PATTERN_COMMON = (
-        SPACE_PATTERN + r"\\fr" + SPACE_PATTERN,                                      # 重置文本的改变
-        SPACE_PATTERN + r"\\fb" + SPACE_PATTERN,                                      # 加粗
-        SPACE_PATTERN + r"\\fi" + SPACE_PATTERN,                                      # 倾斜
-        SPACE_PATTERN + r"\\\{" + SPACE_PATTERN,                                      # 放大字体 \{
-        SPACE_PATTERN + r"\\\}" + SPACE_PATTERN,                                      # 缩小字体 \}
-        SPACE_PATTERN + r"\\g" + SPACE_PATTERN,                                       # 显示货币 \G
-        SPACE_PATTERN + r"\\\$" + SPACE_PATTERN,                                      # 打开金币框 \$
-        SPACE_PATTERN + r"\\\." + SPACE_PATTERN,                                      # 等待0.25秒 \.
-        SPACE_PATTERN + r"\\\|" + SPACE_PATTERN,                                      # 等待1秒 \|
-        SPACE_PATTERN + r"\\!" + SPACE_PATTERN,                                       # 等待按钮按下 \!
-        SPACE_PATTERN + r"\\>" + SPACE_PATTERN,                                       # 在同一行显示文字 \>
-        # SPACE_PATTERN + r"\\<" + SPACE_PATTERN,                                     # 取消显示所有文字 \<
-        SPACE_PATTERN + r"\\\^" + SPACE_PATTERN,                                      # 显示文本后不需要等待 \^
-        # SPACE_PATTERN + r"\\n" + SPACE_PATTERN,                                     # 换行符 \\n
-        SPACE_PATTERN + r"\\\\<br>" + SPACE_PATTERN,                                  # 换行符 \\<br>
-        SPACE_PATTERN + r"<br>" + SPACE_PATTERN,                                      # 换行符 <br>
-        "" + r"\r" + "",                                                              # 换行符 \r，该字符本来就是 SPACE_PATTERN 的一部分，不再添加前后缀，避免死循环
-        "" + r"\n" + "",                                                              # 换行符 \n，该字符本来就是 SPACE_PATTERN 的一部分，不再添加前后缀，避免死循环
-
-        SPACE_PATTERN + r'class=".*?">(?!<)' + SPACE_PATTERN,                         # class="toc1"><a href="18_Chapter08.html">正文</a>或者class="toc1">>正文， epub小说的跳转目录
-        SPACE_PATTERN + r"</a>" + SPACE_PATTERN,                                      # 是以“class=”开头，中间任意内容，然后以“">”结束，“">”尽可能后面，且不是跟着<。
-
-        SPACE_PATTERN + r"\\SE\[.{0,15}?\]" + SPACE_PATTERN,                          # se控制代码
-
-        SPACE_PATTERN + r'【\\[A-Za-z]+\[[^]]*】\\SE\[[^]]*\]'+ SPACE_PATTERN,        #【\N[1]】\SE[xxx]
-    )
-
-    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager, request_limiter: RequestLimiter, cache_manager: CacheManager) -> None:
+    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager, 
+                 request_limiter: RequestLimiter, cache_manager: CacheManager) -> None:
         super().__init__()
 
-        # 初始化
         self.config = config
         self.plugin_manager = plugin_manager
         self.request_limiter = request_limiter
         self.cache_manager = cache_manager
 
-        # 初始化参数
+        # 初始化消息存储
         self.messages = []
         self.messages_a = []  
         self.messages_b = []    
         self.system_prompt = ""  
         self.system_prompt_a = ""  
         self.system_prompt_b = ""  
+        self.regex_dir = "./Resource/Regex/regex.json" 
 
+        # 初始化辅助数据结构
         self.extra_log = []
-
-
-        # 占位符替换字典
         self.replace_dict = {}
+        # 占位符顺序存储结构
+        self.placeholder_order = {}
+
+        # 预处理正则表达式
+        self.code_pattern_list = self._prepare_regex_patterns()
+        self.prefix_pattern, self.suffix_pattern = self._build_patterns()
 
 
-        # 根据原文语言生成正则表达式
-        if "英语" in config.source_language:
-            code_pattern = TranslatorTask.CODE_PATTERN_EN + TranslatorTask.CODE_PATTERN_COMMON
-            self.prefix_pattern = re.compile(f"^(?:{"|".join(code_pattern)})+", flags = re.IGNORECASE)
-            self.suffix_pattern = re.compile(f"(?:{"|".join(code_pattern)})+$", flags = re.IGNORECASE)
-        else:
-            code_pattern = TranslatorTask.CODE_PATTERN_NON_EN + TranslatorTask.CODE_PATTERN_COMMON
-            self.prefix_pattern = re.compile(f"^(?:{"|".join(code_pattern)})+", flags = re.IGNORECASE)
-            self.suffix_pattern = re.compile(f"(?:{"|".join(code_pattern)})+$", flags = re.IGNORECASE)
+    def _load_regex_patterns(self, json_file_path: str) -> List[str]:
+        """从JSON文件加载正则表达式"""
+        try:
+            with open(json_file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return [item["regex"] for item in data if isinstance(item, dict) and "regex" in item]
+        except Exception as e:
+            print(f"加载正则表达式失败: {str(e)}")
+            return []
 
-    # 启动任务
-    def start(self) -> dict:
-        if self.config.double_request_switch_settings == True:
-            return self.unit_DRtranslation_task()
-        else:
-            return self.unit_translation_task()
 
-    # 单请求翻译任务
-    def unit_translation_task(self) -> dict:
-        # 任务开始的时间
-        task_start_time = time.time()
+    def _prepare_regex_patterns(self) -> List[str]:
+        """准备所有需要使用的正则表达式模式"""
+        patterns = []
 
-        while True:
-            # 检测是否收到停止翻译事件
-            if Base.work_status == Base.STATUS.STOPING:
-                return {}
+        # 从文件加载基础正则
+        file_patterns = self._load_regex_patterns(self.regex_dir)
+        patterns.extend(file_patterns)
 
-            # 检查是否超时，超时则直接跳过当前任务，以避免死循环
-            if time.time() - task_start_time >= self.config.request_timeout:
-                return {}
+        # 处理禁翻表数据
+        exclusion_patterns = []
+        for item in self.config.exclusion_list_data:
+            if regex := item.get("regex"):
+                exclusion_patterns.append(regex)
+            else:
+                # 转义特殊字符并添加为普通匹配
+                exclusion_patterns.append(re.escape(item["markers"]))
+        patterns.extend(exclusion_patterns)
 
-            # 检查 RPM 和 TPM 限制，如果符合条件，则继续
-            if self.request_limiter.check_limiter(self.request_tokens_consume):
-                break
+        return patterns
 
-            # 如果以上条件都不符合，则间隔 1 秒再次检查
-            time.sleep(1)
+    def _build_patterns(self) -> Tuple[re.Pattern, re.Pattern]:
+        """构建前后缀正则表达式对象"""
+        if not self.code_pattern_list:
+            return re.compile(""), re.compile("")
 
-        # 获取接口配置信息包
-        platform_config = self.config.get_platform_configuration("singleReq")
+        # 为每个模式添加空白匹配能力
+        enhanced_patterns = [
+            fr"\s*{p}\s*"  # 允许前后有任意空白
+            if not any(c in p for c in ("^", "$", "\\s"))  # 避免重复空白匹配
+            else p
+            for p in self.code_pattern_list
+        ]
 
-        # 读取术语表更新系统提示词,因为核心流程限制，而加上的挫版补丁.....
-        self.system_prompt = self.update_sysprompt_glossary(self.config,self.system_prompt, self.config.prompt_dictionary_data, self.source_text_dict)
-
-        # 发起请求
-        requester = TranslatorRequester(self.config, self.plugin_manager)
-        skip, response_think, response_content, prompt_tokens, completion_tokens = requester.sent_request(
-            self.messages,
-            self.system_prompt,
-            platform_config
+        combined = "|".join(enhanced_patterns)
+        return (
+            re.compile(fr"^(?:{combined})+", re.IGNORECASE|re.MULTILINE),
+            re.compile(fr"(?:{combined})+$", re.IGNORECASE|re.MULTILINE)
         )
 
-        # 如果请求结果标记为 skip，即有运行错误发生，则直接返回错误信息，停止后续任务
-        if skip == True:
-            return {
-                "check_result": False,
-                "row_count": 0,
-                "prompt_tokens": self.request_tokens_consume,
-                "completion_tokens": 0,
-            }
 
-        # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
-
-        # 检查回复内容
-        check_result, error_content = ResponseChecker.check_response_content(
-            self,
-            self.config.response_check_switch,
-            response_content,
-            response_dict,
-            self.source_text_dict,
-            self.config.source_language
-        )
-
-        # 模型回复日志
-        if response_think != "":
-            self.extra_log.append("模型思考内容：\n" + response_think)
-        if self.is_debug():
-            self.extra_log.append("模型回复内容：\n" + response_content)
-
-        # 检查译文
-        if check_result == False:
-            error = f"译文文本未通过检查，将在下一轮次的翻译中重新翻译 - {error_content}"
-
-            # 打印任务结果
-            self.print(
-                self.generate_log_table(
-                    *self.generate_log_rows(
-                        error,
-                        task_start_time,
-                        prompt_tokens,
-                        completion_tokens,
-                        self.source_text_dict.values(),
-                        response_dict.values(),
-                        self.extra_log,
-                    )
-                )
-            )
-        else:
-            # 各种还原步骤
-            # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
-            restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = self.restore_all(restore_response_dict, self.prefix_codes, self.suffix_codes)
-
-            # 更新译文结果到缓存数据中
-            for item, response in zip(self.items, restore_response_dict.values()):
-                item.set_model(self.config.model)
-                item.set_translated_text(response)
-                item.set_translation_status(CacheItem.STATUS.TRANSLATED)
-
-            # 更新术语表与禁翻表到配置文件中
-            self.config.update_glossary_ntl_config(glossary_result, NTL_result)
+    def _build_special_placeholder_pattern(self) -> re.Pattern:
+        """构建特殊占位符匹配的正则表达式"""
+        enhanced_patterns = []
+        for p in self.code_pattern_list:
+            # 若模式不包含边界或空白控制，则添加空白匹配
+            if not any(c in p for c in ("^", "$", "\\s")):
+                enhanced = fr"\s*{p}\s*"
+            else:
+                enhanced = p
+            enhanced_patterns.append(enhanced)
+        combined = "|".join(enhanced_patterns)
+        return re.compile(combined, re.IGNORECASE | re.MULTILINE)
 
 
-            # 打印任务结果
-            self.print(
-                self.generate_log_table(
-                    *self.generate_log_rows(
-                        "",
-                        task_start_time,
-                        prompt_tokens,
-                        completion_tokens,
-                        self.source_text_dict.values(),
-                        response_dict.values(),
-                        self.extra_log,
-                    )
-                )
-            )
-
-
-        # 否则返回译文检查的结果
-        if check_result == False:
-            return {
-                "check_result": False,
-                "row_count": 0,
-                "prompt_tokens": self.request_tokens_consume,
-                "completion_tokens": 0,
-            }
-        else:
-            return {
-                "check_result": check_result,
-                "row_count": self.row_count,
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-            }
-
-
-    # 双请求翻译任务
-    def unit_DRtranslation_task(self) -> dict:
-        # 任务开始的时间
-        task_start_time = time.time()
-
-        while True:
-            # 检测是否收到停止翻译事件
-            if Base.work_status == Base.STATUS.STOPING:
-                return {}
-
-            # 检查是否超时，超时则直接跳过当前任务，以避免死循环
-            if time.time() - task_start_time >= self.config.request_timeout:
-                return {}
-
-            # 检查 RPM 和 TPM 限制，如果符合条件，则继续
-            if self.request_limiter.check_limiter(self.request_tokens_consume):
-                break
-
-
-            # 如果以上条件都不符合，则间隔 1 秒再次检查
-            time.sleep(1)
-
-
-        # 构造初始替换字典
-        previous_text = PromptBuilderDouble.get_previous_text(self, self.previous_text_list) # 上文
-        source_text_str = PromptBuilderDouble.get_source_text(self, self.source_text_dict) # 原文
-        glossary = PromptBuilderDouble.get_glossary(self, self.config, self.source_text_dict) # 术语表
-        code = PromptBuilderDouble.build_ntl_prompt(self, self.config, self.source_text_dict) # 禁翻表
-
-        self.replace_dict = {
-            "{original_text}":source_text_str,
-            "{previous_text}":previous_text,
-            "{glossary}":glossary,
-            "{code_text}":code
-        }
-
-
-        # 进行文本占位符替换
-        messages, system_content = PromptBuilderDouble.replace_message_content(self,
-            self.replace_dict,
-            self.messages_a,
-            self.system_prompt_a
-        )
-
-        # 获取第一次平台配置信息包
-        platform_config = self.config.get_platform_configuration("doubleReqA")
-        model_a = platform_config["model_name"]
-
-        # 发起第一次请求
-        requester = TranslatorRequester(self.config, self.plugin_manager)
-        skip, response_think, response_content, prompt_tokens_a, completion_tokens_a = requester.sent_request(
-            messages,
-            system_content,
-            platform_config
-        )
-
-        # 如果请求结果标记为 skip，即有运行错误发生，则直接返回错误信息，停止后续任务
-        if skip == True:
-            return {
-                "check_result": False,
-                "row_count": 0,
-                "prompt_tokens": self.request_tokens_consume,
-                "completion_tokens": 0,
-            }
+    def replace_all(self, target_platform, text_dict: Dict[str, str], prefix_pattern: re.Pattern, suffix_pattern: re.Pattern) -> Tuple[Dict[str, str], Dict, Dict]:
+        """执行全部替换操作"""
+        processed = {k: v for k, v in text_dict.items()}
+        prefix_codes, suffix_codes = {}, {}
         
-        # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
-        # 更新术语表与禁翻表到配置文件中
-        self.config.update_glossary_ntl_config(glossary_result, NTL_result)
+        # 初始化占位符字典
+        self.placeholder_order.clear()
+
+        if self.config.auto_process_text_code_segment:
+            # 处理前后缀
+            processed, prefix_codes, suffix_codes = self._process_affixes(
+                processed, prefix_pattern, suffix_pattern)
+            
+            # 新增特殊文本占位替换
+            processed = self._replace_special_placeholders(target_platform,processed)
+
+        if self.config.pre_translation_switch:
+            processed = self._replace_before_translation(processed)
+
+        return processed, prefix_codes, suffix_codes
+
+    def restore_all(self, text_dict: Dict[str, str], prefix_codes: Dict, suffix_codes: Dict) -> Dict[str, str]:
+        """执行全部还原操作"""
+        restored = text_dict.copy()
+
+        if self.config.auto_process_text_code_segment:
+            restored = self._restore_affixes(restored, prefix_codes, suffix_codes)
+            restored = self._restore_special_placeholders(restored)
+
+        if self.config.post_translation_switch:
+            restored = self._replace_after_translation(restored)
+
+        return restored
+
+    def _replace_special_placeholders(self, target_platform, text_dict: Dict[str, str]) -> Dict[str, str]:
+        """特殊文本占位替换
+
+        Args:
+            target_platform: 目标平台名称，例如 "sakura" 或其他
+            text_dict: 包含文本的字典
+
+        Returns:
+            替换占位符后的文本字典
+        """
+        pattern = self._build_special_placeholder_pattern()
+
+        new_dict = {}
+        for key, text in text_dict.items():
+            placeholders: List[Dict[str, str]] = []
+            count = 0  # 用于跟踪替换次数
+
+            def replacer(match: re.Match) -> str:
+                nonlocal count
+                if count >= 3:
+                    return match.group()  # 超过3次不替换
+
+                original = match.group()
+                count += 1
+                if target_platform == "sakura":
+                    # Sakura 平台使用下箭头，并根据 count 增加数量
+                    placeholder = "↓" * count
+                else:
+                    # 其他平台使用原始的占位符格式
+                    placeholder = f"_placeholder{count}_"
+
+                # 记录占位符和原始文本的映射关系
+                placeholders.append({
+                    "placeholder": placeholder,
+                    "original": original
+                })
+                return placeholder
+
+            # 执行正则替换并保存映射关系
+            processed_text = pattern.sub(replacer, text)
+            self.placeholder_order[key] = placeholders
+            new_dict[key] = processed_text
+
+        return new_dict
+    
+
+    def _restore_special_placeholders(self, text_dict: Dict[str, str]) -> Dict[str, str]:
+        """占位符还原"""
+
+        new_dic = {}
+
+        for key, text in text_dict.items():
+            placeholders = self.placeholder_order.get(key, [])
+            
+            if not placeholders:
+                new_dic[key] = text
+
+            else:
+                for item in placeholders:
+                    placeholder_text = item.get("placeholder")
+                    original_text = item.get("original") 
+
+                    text = text.replace(placeholder_text, original_text, 1)
+
+                new_dic[key] = text
+        
+        # 检查未能正确替换用
+        for value in new_dic.values():
+            if isinstance(value, str): 
+                placeholder_pattern = r'placeholder'
+
+                if re.search(placeholder_pattern, value):
+                    pass
+                    #print("bug------")
 
 
-        # 模型回复日志
-        if response_think != "":
-            self.extra_log.append("第一次模型思考内容：\n" + response_think)
-        if self.is_debug():
-            self.extra_log.append("第一次模型回复内容：\n" + response_content)
+        return new_dic
 
 
-        # 进行提取阶段,并更新替换字典
-        self.replace_dict,self.extra_log = PromptBuilderDouble.process_extraction_phase(self,
-            self.config, 
-            self.replace_dict,
-            response_think,
-            response_content,
-            self.extra_log
-        )
+
+    def _process_affixes(self, text_dict: Dict[str, str], prefix_pat: re.Pattern, suffix_pat: re.Pattern) -> Tuple[Dict[str, str], Dict, Dict]:
+        """处理前后缀提取"""
+        prefixes = {}
+        suffixes = {}
+        
+        for key, text in text_dict.items():
+            # 前缀提取（保留原始空白）
+            prefix_matches = []
+            while (match := prefix_pat.search(text)) and match.start() == 0:
+                prefix_matches.append(match.group())  # 保留原始内容（包括换行符）
+                text = text[match.end():]
+            prefixes[key] = prefix_matches
+
+            # 后缀提取（保留原始空白）
+            suffix_matches = []
+            while (match := suffix_pat.search(text)) and match.end() == len(text):
+                suffix_matches.insert(0, match.group())  # 保留原始内容
+                text = text[:match.start()]
+            suffixes[key] = suffix_matches
+
+            # 检查中间文本是否为空,避免提取完前后缀后内容为空（暂时解决方法）
+            if not text:
+                has_prefix = len(prefix_matches) > 0
+                has_suffix = len(suffix_matches) > 0
+
+                if has_prefix and has_suffix:
+                    # 比较总字符长度
+                    prefix_len = sum(len(p) for p in prefix_matches)
+                    suffix_len = sum(len(s) for s in suffix_matches)
+                    
+                    if prefix_len <= suffix_len:
+                        # 还原前缀并清空
+                        text = ''.join(prefix_matches)
+                        prefixes[key] = []
+                    else:
+                        # 还原后缀并清空
+                        text = ''.join(suffix_matches)
+                        suffixes[key] = []
+                elif has_prefix:
+                    # 仅还原前缀
+                    text = ''.join(prefix_matches)
+                    prefixes[key] = []
+                elif has_suffix:
+                    # 仅还原后缀
+                    text = ''.join(suffix_matches)
+                    suffixes[key] = []
+
+            text_dict[key] = text
+
+        return text_dict, prefixes, suffixes
 
 
-        # 进行第二次文本占位符替换
-        messages, system_content = PromptBuilderDouble.replace_message_content(self,
-            self.replace_dict,
-            self.messages_b,
-            self.system_prompt_b
-        )
+    def _restore_affixes(self, text_dict: Dict[str, str], prefixes: Dict, suffixes: Dict) -> Dict[str, str]:
+        """还原前后缀（保留原始空白）"""
+        for key in text_dict:
+            # 直接拼接保留原始空白
+            prefix_str = ''.join(prefixes.get(key, []))
+            suffix_str = ''.join(suffixes.get(key, []))
+            
+            # 保留中间内容的原始前后空白
+            restored = f"{prefix_str}{text_dict[key]}{suffix_str}"
+            text_dict[key] = restored
+            
+        return text_dict
 
 
-        # 获取第二次平台配置信息包
-        platform_config = self.config.get_platform_configuration("doubleReqB")
-        model_b = platform_config["model_name"]
+    # 译后替换
+    def replace_before_translation(self, text_dict: dict) -> dict:
+        data: list[dict] = self.config.pre_translation_data
 
-        # 发起第二次请求
-        requester = TranslatorRequester(self.config, self.plugin_manager)
-        skip, response_think, response_content, prompt_tokens_b, completion_tokens_b = requester.sent_request(
-            messages,
-            system_content,
-            platform_config
-        )
+        for k in text_dict:
+            for v in data:
+                if v.get("src", "") in text_dict[k]:
+                    text_dict[k] = text_dict[k].replace(v.get("src", ""), v.get("dst", ""))
 
+        return text_dict
 
-        # 如果请求结果标记为 skip，即有运行错误发生，则直接返回错误信息，停止后续任务
-        if skip == True:
-            return {
-                "check_result": False,
-                "row_count": 0,
-                "prompt_tokens": self.request_tokens_consume,
-                "completion_tokens": 0,
-            }
+    # 译前替换
+    def replace_after_translation(self, text_dict: dict) -> dict:
+        data: list[dict] = self.config.post_translation_data
 
-        # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
+        for k in text_dict:
+            for v in data:
+                if v.get("src", "") in text_dict[k]:
+                    text_dict[k] = text_dict[k].replace(v.get("src", ""), v.get("dst", ""))
 
-        # 检查回复内容
-        check_result, error_content = ResponseChecker.check_response_content(
-            self,
-            self.config.response_check_switch,
-            response_content,
-            response_dict,
-            self.source_text_dict,
-            self.config.source_language
-        )
-
-        # 模型回复日志
-        if response_think != "":
-            self.extra_log.append("第二次模型思考内容：\n" + response_think)
-        if self.is_debug():
-            self.extra_log.append("第二次模型回复内容：\n" + response_content)
-
-        # 合并消耗和模型号
-        prompt_tokens = prompt_tokens_a + prompt_tokens_b
-        completion_tokens = completion_tokens_a + completion_tokens_b
-        model = model_a + " and " + model_b
-
-        # 检查译文
-        if check_result == False:
-            error = f"译文文本未通过检查，将在下一轮次的翻译中重新翻译 - {error_content}"
-
-            # 打印任务结果
-            self.print(
-                self.generate_log_table(
-                    *self.generate_log_rows(
-                        error,
-                        task_start_time,
-                        prompt_tokens,
-                        completion_tokens,
-                        self.source_text_dict.values(),
-                        response_dict.values(),
-                        self.extra_log,
-                    )
-                )
-            )
-        else:
-            # 各种还原步骤
-            # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
-            restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = self.restore_all(restore_response_dict, self.prefix_codes, self.suffix_codes)
-
-            # 更新译文结果到缓存数据中
-            for item, response in zip(self.items, restore_response_dict.values()):
-                item.set_model(model)
-                item.set_translated_text(response)
-                item.set_translation_status(CacheItem.STATUS.TRANSLATED)
-
-            # 打印任务结果
-            self.print(
-                self.generate_log_table(
-                    *self.generate_log_rows(
-                        "",
-                        task_start_time,
-                        prompt_tokens,
-                        completion_tokens,
-                        self.source_text_dict.values(),
-                        response_dict.values(),
-                        self.extra_log,
-                    )
-                )
-            )
-
-
-        # 否则返回译文检查的结果
-        if check_result == False:
-            return {
-                "check_result": False,
-                "row_count": 0,
-                "prompt_tokens": self.request_tokens_consume,
-                "completion_tokens": 0,
-            }
-        else:
-            return {
-                "check_result": check_result,
-                "row_count": self.row_count,
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-            }
-
+        return text_dict
 
 
     # 设置缓存数据
@@ -481,7 +350,7 @@ class TranslatorTask(Base):
         self.plugin_manager.broadcast_event("normalize_text", self.config, self.source_text_dict)
 
         # 各种替换步骤，译前替换，提取首位代码段
-        self.source_text_dict, self.prefix_codes, self.suffix_codes = self.replace_all(self.source_text_dict, self.prefix_pattern, self.suffix_pattern)
+        self.source_text_dict, self.prefix_codes, self.suffix_codes = self.replace_all(target_platform, self.source_text_dict, self.prefix_pattern, self.suffix_pattern)
 
         # 生成请求指令
         if self.config.double_request_switch_settings == True:
@@ -518,78 +387,6 @@ class TranslatorTask(Base):
             self.system_prompt_a,
             self.system_prompt_b
             )
-
-    # 各种替换步骤
-    def replace_all(self, text_dict: dict, prefix_pattern: re.Pattern, suffix_pattern: re.Pattern) -> tuple[dict, dict, dict]:
-        # 译前替换
-        if self.config.pre_translation_switch == True:
-            text_dict = self.replace_before_translation(text_dict)
-
-        # 替换 前缀代码段 和 后缀代码段
-        prefix_codes = []
-        suffix_codes = []
-        if self.config.preserve_prefix_and_suffix_codes == True:
-            text_dict, prefix_codes, suffix_codes = self.replace_prefix_and_suffix_codes(text_dict, prefix_pattern, suffix_pattern)
-
-        return text_dict, prefix_codes, suffix_codes
-
-    # 各种还原步骤，注意还原中各步骤的执行顺序与替换中各步骤的执行循环相反
-    def restore_all(self, text_dict: dict, prefix_codes: dict, suffix_codes: dict) -> dict:
-
-        # 还原 前缀代码段 和 后缀代码段
-        if self.config.preserve_prefix_and_suffix_codes == True:
-            text_dict = self.restore_prefix_and_suffix_codes(text_dict, prefix_codes, suffix_codes)
-
-        # 译后替换
-        if self.config.post_translation_switch == True:
-            text_dict = self.replace_after_translation(text_dict)
-
-        return text_dict
-
-
-    # 替换 前缀代码段、后缀代码段
-    def replace_prefix_and_suffix_codes(self, text_dict: dict, prefix_pattern: re.Pattern, suffix_pattern: re.Pattern) -> tuple[dict, dict, dict]:
-        prefix_codes = {}
-        suffix_codes = {}
-        for k in text_dict:
-            # 查找与替换前缀代码段
-            prefix_codes[k] = prefix_pattern.findall(text_dict[k])
-            text_dict[k] = prefix_pattern.sub("", text_dict[k])
-
-            # 查找与替换后缀代码段
-            suffix_codes[k] = suffix_pattern.findall(text_dict[k])
-            text_dict[k] = suffix_pattern.sub("", text_dict[k])
-
-        return text_dict, prefix_codes, suffix_codes
-
-    # 恢复 前缀代码段、后缀代码段
-    def restore_prefix_and_suffix_codes(self, text_dict: dict, prefix_codes: dict, suffix_codes: dict) -> dict:
-        for k in text_dict:
-            text_dict[k] = "".join(prefix_codes[k]) +  text_dict[k] + "".join(suffix_codes[k])
-
-        return text_dict
-
-    # 译后替换
-    def replace_before_translation(self, text_dict: dict) -> dict:
-        data: list[dict] = self.config.pre_translation_data
-
-        for k in text_dict:
-            for v in data:
-                if v.get("src", "") in text_dict[k]:
-                    text_dict[k] = text_dict[k].replace(v.get("src", ""), v.get("dst", ""))
-
-        return text_dict
-
-    # 译前替换
-    def replace_after_translation(self, text_dict: dict) -> dict:
-        data: list[dict] = self.config.post_translation_data
-
-        for k in text_dict:
-            for v in data:
-                if v.get("src", "") in text_dict[k]:
-                    text_dict[k] = text_dict[k].replace(v.get("src", ""), v.get("dst", ""))
-
-        return text_dict
 
     # 生成指令
     def generate_prompt(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
@@ -1024,7 +821,7 @@ class TranslatorTask(Base):
         else:
             rows.append(
                 f"任务耗时 {(time.time() - start_time):.2f} 秒，"
-                + f"文本行数 {len(source)} 行，指令消耗 {prompt_tokens} Tokens，补全消耗 {completion_tokens} Tokens"
+                + f"文本行数 {len(source)} 行，提示消耗 {prompt_tokens} Tokens，补全消耗 {completion_tokens} Tokens"
             )
 
         # 添加额外日志
@@ -1063,3 +860,346 @@ class TranslatorTask(Base):
 
         return table
     
+
+    # 启动任务
+    def start(self) -> dict:
+        if self.config.double_request_switch_settings == True:
+            return self.unit_DRtranslation_task()
+        else:
+            return self.unit_translation_task()
+
+
+    # 单请求翻译任务
+    def unit_translation_task(self) -> dict:
+        # 任务开始的时间
+        task_start_time = time.time()
+
+        while True:
+            # 检测是否收到停止翻译事件
+            if Base.work_status == Base.STATUS.STOPING:
+                return {}
+
+            # 检查是否超时，超时则直接跳过当前任务，以避免死循环
+            if time.time() - task_start_time >= self.config.request_timeout:
+                return {}
+
+            # 检查 RPM 和 TPM 限制，如果符合条件，则继续
+            if self.request_limiter.check_limiter(self.request_tokens_consume):
+                break
+
+            # 如果以上条件都不符合，则间隔 1 秒再次检查
+            time.sleep(1)
+
+        # 获取接口配置信息包
+        platform_config = self.config.get_platform_configuration("singleReq")
+
+        # 读取术语表更新系统提示词,因为核心流程限制，而加上的挫版补丁.....
+        self.system_prompt = self.update_sysprompt_glossary(self.config,self.system_prompt, self.config.prompt_dictionary_data, self.source_text_dict)
+
+        # 发起请求
+        requester = TranslatorRequester(self.config, self.plugin_manager)
+        skip, response_think, response_content, prompt_tokens, completion_tokens = requester.sent_request(
+            self.messages,
+            self.system_prompt,
+            platform_config
+        )
+
+        # 如果请求结果标记为 skip，即有运行错误发生，则直接返回错误信息，停止后续任务
+        if skip == True:
+            return {
+                "check_result": False,
+                "row_count": 0,
+                "prompt_tokens": self.request_tokens_consume,
+                "completion_tokens": 0,
+            }
+
+        # 提取回复内容
+        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
+
+        # 检查回复内容
+        check_result, error_content = ResponseChecker.check_response_content(
+            self,
+            self.config.response_check_switch,
+            response_content,
+            response_dict,
+            self.source_text_dict,
+            self.config.source_language
+        )
+
+        # 模型回复日志
+        if response_think != "":
+            self.extra_log.append("模型思考内容：\n" + response_think)
+        if self.is_debug():
+            self.extra_log.append("模型回复内容：\n" + response_content)
+
+        # 检查译文
+        if check_result == False:
+            error = f"译文文本未通过检查，将在下一轮次的翻译中重新翻译 - {error_content}"
+
+            # 打印任务结果
+            self.print(
+                self.generate_log_table(
+                    *self.generate_log_rows(
+                        error,
+                        task_start_time,
+                        prompt_tokens,
+                        completion_tokens,
+                        self.source_text_dict.values(),
+                        response_dict.values(),
+                        self.extra_log,
+                    )
+                )
+            )
+        else:
+            # 各种还原步骤
+            # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
+            restore_response_dict = copy.copy(response_dict)
+            restore_response_dict = self.restore_all(restore_response_dict, self.prefix_codes, self.suffix_codes)
+
+            # 更新译文结果到缓存数据中
+            for item, response in zip(self.items, restore_response_dict.values()):
+                item.set_model(self.config.model)
+                item.set_translated_text(response)
+                item.set_translation_status(CacheItem.STATUS.TRANSLATED)
+
+            # 更新术语表与禁翻表到配置文件中
+            self.config.update_glossary_ntl_config(glossary_result, NTL_result)
+
+
+            # 打印任务结果
+            self.print(
+                self.generate_log_table(
+                    *self.generate_log_rows(
+                        "",
+                        task_start_time,
+                        prompt_tokens,
+                        completion_tokens,
+                        self.source_text_dict.values(),
+                        response_dict.values(),
+                        self.extra_log,
+                    )
+                )
+            )
+
+
+        # 否则返回译文检查的结果
+        if check_result == False:
+            return {
+                "check_result": False,
+                "row_count": 0,
+                "prompt_tokens": self.request_tokens_consume,
+                "completion_tokens": 0,
+            }
+        else:
+            return {
+                "check_result": check_result,
+                "row_count": self.row_count,
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+            }
+
+
+    # 双请求翻译任务
+    def unit_DRtranslation_task(self) -> dict:
+        # 任务开始的时间
+        task_start_time = time.time()
+
+        while True:
+            # 检测是否收到停止翻译事件
+            if Base.work_status == Base.STATUS.STOPING:
+                return {}
+
+            # 检查是否超时，超时则直接跳过当前任务，以避免死循环
+            if time.time() - task_start_time >= self.config.request_timeout:
+                return {}
+
+            # 检查 RPM 和 TPM 限制，如果符合条件，则继续
+            if self.request_limiter.check_limiter(self.request_tokens_consume):
+                break
+
+
+            # 如果以上条件都不符合，则间隔 1 秒再次检查
+            time.sleep(1)
+
+
+        # 构造初始替换字典
+        previous_text = PromptBuilderDouble.get_previous_text(self, self.previous_text_list) # 上文
+        source_text_str = PromptBuilderDouble.get_source_text(self, self.source_text_dict) # 原文
+        glossary = PromptBuilderDouble.get_glossary(self, self.config, self.source_text_dict) # 术语表
+        code = PromptBuilderDouble.build_ntl_prompt(self, self.config, self.source_text_dict) # 禁翻表
+
+        self.replace_dict = {
+            "{original_text}":source_text_str,
+            "{previous_text}":previous_text,
+            "{glossary}":glossary,
+            "{code_text}":code
+        }
+
+
+        # 进行文本占位符替换
+        messages, system_content = PromptBuilderDouble.replace_message_content(self,
+            self.replace_dict,
+            self.messages_a,
+            self.system_prompt_a
+        )
+
+        # 获取第一次平台配置信息包
+        platform_config = self.config.get_platform_configuration("doubleReqA")
+        model_a = platform_config["model_name"]
+
+        # 发起第一次请求
+        requester = TranslatorRequester(self.config, self.plugin_manager)
+        skip, response_think, response_content, prompt_tokens_a, completion_tokens_a = requester.sent_request(
+            messages,
+            system_content,
+            platform_config
+        )
+
+        # 如果请求结果标记为 skip，即有运行错误发生，则直接返回错误信息，停止后续任务
+        if skip == True:
+            return {
+                "check_result": False,
+                "row_count": 0,
+                "prompt_tokens": self.request_tokens_consume,
+                "completion_tokens": 0,
+            }
+        
+        # 提取回复内容
+        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
+        # 更新术语表与禁翻表到配置文件中
+        self.config.update_glossary_ntl_config(glossary_result, NTL_result)
+
+
+        # 模型回复日志
+        if response_think != "":
+            self.extra_log.append("第一次模型思考内容：\n" + response_think)
+        if self.is_debug():
+            self.extra_log.append("第一次模型回复内容：\n" + response_content)
+
+
+        # 进行提取阶段,并更新替换字典
+        self.replace_dict,self.extra_log = PromptBuilderDouble.process_extraction_phase(self,
+            self.config, 
+            self.replace_dict,
+            response_think,
+            response_content,
+            self.extra_log
+        )
+
+
+        # 进行第二次文本占位符替换
+        messages, system_content = PromptBuilderDouble.replace_message_content(self,
+            self.replace_dict,
+            self.messages_b,
+            self.system_prompt_b
+        )
+
+
+        # 获取第二次平台配置信息包
+        platform_config = self.config.get_platform_configuration("doubleReqB")
+        model_b = platform_config["model_name"]
+
+        # 发起第二次请求
+        requester = TranslatorRequester(self.config, self.plugin_manager)
+        skip, response_think, response_content, prompt_tokens_b, completion_tokens_b = requester.sent_request(
+            messages,
+            system_content,
+            platform_config
+        )
+
+
+        # 如果请求结果标记为 skip，即有运行错误发生，则直接返回错误信息，停止后续任务
+        if skip == True:
+            return {
+                "check_result": False,
+                "row_count": 0,
+                "prompt_tokens": self.request_tokens_consume,
+                "completion_tokens": 0,
+            }
+
+        # 提取回复内容
+        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
+
+        # 检查回复内容
+        check_result, error_content = ResponseChecker.check_response_content(
+            self,
+            self.config.response_check_switch,
+            response_content,
+            response_dict,
+            self.source_text_dict,
+            self.config.source_language
+        )
+
+        # 模型回复日志
+        if response_think != "":
+            self.extra_log.append("第二次模型思考内容：\n" + response_think)
+        if self.is_debug():
+            self.extra_log.append("第二次模型回复内容：\n" + response_content)
+
+        # 合并消耗和模型号
+        prompt_tokens = prompt_tokens_a + prompt_tokens_b
+        completion_tokens = completion_tokens_a + completion_tokens_b
+        model = model_a + " and " + model_b
+
+        # 检查译文
+        if check_result == False:
+            error = f"译文文本未通过检查，将在下一轮次的翻译中重新翻译 - {error_content}"
+
+            # 打印任务结果
+            self.print(
+                self.generate_log_table(
+                    *self.generate_log_rows(
+                        error,
+                        task_start_time,
+                        prompt_tokens,
+                        completion_tokens,
+                        self.source_text_dict.values(),
+                        response_dict.values(),
+                        self.extra_log,
+                    )
+                )
+            )
+        else:
+            # 各种还原步骤
+            # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
+            restore_response_dict = copy.copy(response_dict)
+            restore_response_dict = self.restore_all(restore_response_dict, self.prefix_codes, self.suffix_codes)
+
+            # 更新译文结果到缓存数据中
+            for item, response in zip(self.items, restore_response_dict.values()):
+                item.set_model(model)
+                item.set_translated_text(response)
+                item.set_translation_status(CacheItem.STATUS.TRANSLATED)
+
+            # 打印任务结果
+            self.print(
+                self.generate_log_table(
+                    *self.generate_log_rows(
+                        "",
+                        task_start_time,
+                        prompt_tokens,
+                        completion_tokens,
+                        self.source_text_dict.values(),
+                        response_dict.values(),
+                        self.extra_log,
+                    )
+                )
+            )
+
+
+        # 否则返回译文检查的结果
+        if check_result == False:
+            return {
+                "check_result": False,
+                "row_count": 0,
+                "prompt_tokens": self.request_tokens_consume,
+                "completion_tokens": 0,
+            }
+        else:
+            return {
+                "check_result": check_result,
+                "row_count": self.row_count,
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+            }
+

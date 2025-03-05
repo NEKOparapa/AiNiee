@@ -121,10 +121,10 @@ class PromptBuilder(Base):
             combined_list.append(base_example["base"][config.source_language])
             combined_list2.append(base_example["base"][config.target_language])
 
-        # 限制示例总数量为3个，如果多了，则从最后往前开始削减
-        if len(combined_list) > 3:
-            combined_list = combined_list[:3]
-            combined_list2 = combined_list2[:3]
+        # 限制示例总数量为4个，如果多了，则从最后往前开始削减
+        if len(combined_list) > 4:
+            combined_list = combined_list[:4]
+            combined_list2 = combined_list2[:4]
 
 
         # 创建空字典
@@ -405,10 +405,11 @@ class PromptBuilder(Base):
         lines = set(line for line in input_dict.values())
 
         # 筛选在输入词典中出现过的条目
-        result = [
-            v for v in config.prompt_dictionary_data
-            if any(v.get("src") in lines for lines in lines)
-        ]
+        result = []
+        for v in config.prompt_dictionary_data:
+            src_lower = v.get("src").lower() # 将术语表中的 src 转换为小写
+            if any(src_lower in line.lower() for line in lines): # 将原文行也转换为小写进行比较
+                result.append(v)
 
         # 数据校验
         if len(result) == 0:
@@ -504,9 +505,9 @@ class PromptBuilder(Base):
 
         # 构建结果字符串
         if config.target_language in ("简中", "繁中"):
-            result = "\n###禁翻表"
+            result = "\n###禁翻表"+ "\n特殊标记符|备注"
         else:
-            result = "\n###Non-Translation List"
+            result = "\n###Non-Translation List"+ "\nSpecial marker|Remarks"
 
         for markers, info in exclusion_dict.items():
             result += f"\n{markers}|{info}" if info else f"\n{markers}|"

@@ -1,0 +1,82 @@
+[
+    {
+      "regex": "if\\(.{0,5}[vs]\\[\\d+\\].{0,10}\\)",
+      "description": "if 条件判断 (if(!s[982]), if(v[982] >= 1))"
+    },
+    {
+      "regex": "en\\(.{0,5}[vs]\\[\\d+\\].{0,10}\\)",
+      "description": "en 条件判断 (en(!s[982]), en(v[982] >= 1))"
+    },
+    {
+      "regex": "[\\\\/][a-z]{1,5}<[a-z\\d]{0,10}>",
+      "description": "/C<y> /C<1> \\FS<xy> \\FS<12>"
+    },
+    {
+      "regex": "[\\\\/][a-z]{1,5}\\[[a-z\\d]{0,10}\\]",
+      "description": "/C[x] /C[1] \\FS[xy] \\FS[12]"
+    },
+    {
+      "regex": "[\\\\/][a-z]{1,5}(?=<[^a-z\\d]{0,10}>)",
+      "description": "/C<非数字非字母> \\FS<非数字非字母> 中的前半部分"
+    },
+    {
+      "regex": "[\\\\/][a-z]{1,5}(?=\\[[^a-z\\d]{0,10}\\])",
+      "description": "/C[非数字非字母] \\FS[非数字非字母] 中的前半部分"
+    },
+    {
+      "regex": "\\\\fr",
+      "description": "重置文本的改变 \\fr"
+    },
+    {
+      "regex": "\\\\fb",
+      "description": "加粗 \\fb"
+    },
+    {
+      "regex": "\\\\fi",
+      "description": "倾斜 \\fi"
+    },
+    {
+      "regex": "\\\\g",
+      "description": "显示货币 \\G"
+    },
+    {
+      "regex": "\\\\$",
+      "description": "打开金币框 \\$"
+    },
+    {
+      "regex": "\\\\.",
+      "description": "等待0.25秒 \\."
+    },
+    {
+      "regex": "\\\\\\|",
+      "description": "等待1秒 \\|"
+    },
+    {
+      "regex": "\\\\!",
+      "description": "等待按钮按下 \\!"
+    },
+    {
+      "regex": "\\\\>",
+      "description": "在同一行显示文字 \\>"
+    },
+    {
+      "regex": "\\\\^",
+      "description": "显示文本后不需要等待 \\^"
+    },
+    {
+      "regex": "\\\\<br>",
+      "description": "换行符 \\<br>"
+    },
+    {
+      "regex": "<br>",
+      "description": "换行符 <br>"
+    },
+    {
+      "regex": "\\\\SE\\[.{0,15}?\\]",
+      "description": "se控制代码 \\SE[...]"
+    },
+    {
+      "regex": "【\\\\[A-Za-z]+\\[[^\\]]*】\\\\SE\\[[^\\]]*\\]",
+      "description": "复杂SE控制代码 【\\N[1]】\\SE[xxx]"
+    }
+  ]

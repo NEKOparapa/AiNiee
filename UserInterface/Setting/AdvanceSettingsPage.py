@@ -22,7 +22,7 @@ class AdvanceSettingsPage(QFrame, Base):
         self.default = {
             "auto_glossary_toggle": False,
             "auto_exclusion_list_toggle": False,
-            "preserve_prefix_and_suffix_codes": True,
+            "auto_process_text_code_segment": False,
             "response_conversion_toggle": False,
             "opencc_preset": "s2t",
             "response_check_switch": {
@@ -44,7 +44,7 @@ class AdvanceSettingsPage(QFrame, Base):
         self.add_widget_auto_glossary(self.vbox, config, window)
         self.add_widget_auto_exclusion_list(self.vbox, config, window)
         self.vbox.addWidget(Separator())
-        self.add_widget_prefix_and_suffix_codes(self.vbox, config, window)
+        self.add_auto_process_text_code_segment(self.vbox, config, window)
         self.vbox.addWidget(Separator())
         self.add_widget_opencc(self.vbox, config, window)
         self.add_widget_opencc_preset(self.vbox, config, window)
@@ -71,7 +71,7 @@ class AdvanceSettingsPage(QFrame, Base):
                 "AI构建术语表",
                 (
                     "将由AI辅助生成术语表，自动录入，自动应用到后续翻译任务"
-                    + "\n" + "开启该功能会增加模型负担，建议在强力模型上开启 (不支持本地类接口)"
+                    + "\n" + "开启该功能会增加模型负担，建议在强力模型上开启，不支持本地类接口"
                 ),
                 widget_init,
                 widget_callback,
@@ -94,7 +94,8 @@ class AdvanceSettingsPage(QFrame, Base):
                 "AI构建禁翻表",
                 (
                     "将由AI辅助生成禁翻表，自动录入，暂不应用到后续翻译任务"
-                    + "\n" + "开启该功能会增加模型负担，建议在强力模型上开启 (不支持本地类接口)"
+                    + "\n" + "开启该功能会增加模型负担，建议在强力模型上开启，不支持本地类接口"
+                    + "\n" + "建议在进行游戏内嵌文本翻译时开启，提取内容有时存在问题，需要手动检查过滤"
                 ),
                 widget_init,
                 widget_callback,
@@ -104,19 +105,21 @@ class AdvanceSettingsPage(QFrame, Base):
 
 
     # 保留首尾代码段
-    def add_widget_prefix_and_suffix_codes(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+    def add_auto_process_text_code_segment(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def widget_init(widget) -> None:
-            widget.set_checked(config.get("preserve_prefix_and_suffix_codes"))
+            widget.set_checked(config.get("auto_process_text_code_segment"))
 
         def widget_callback(widget, checked: bool) -> None:
             config = self.load_config()
-            config["preserve_prefix_and_suffix_codes"] = checked
+            config["auto_process_text_code_segment"] = checked
             self.save_config(config)
 
         parent.addWidget(
             SwitchButtonCard(
-                "保留首尾代码段",
-                "启用此功能后，将在翻译前移除每行文本开头和结尾的代码段并在翻译后还原",
+                "自动处理文本代码段",
+                (
+                    "启用此功能后，联动默认正则库与禁翻表，将在翻译前移除首尾的代码段，占位中间的代码段，并在翻译后还原"
+                ),
                 widget_init,
                 widget_callback,
             )
