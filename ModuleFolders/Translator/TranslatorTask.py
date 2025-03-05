@@ -186,7 +186,7 @@ class TranslatorTask(Base):
                     placeholder = "↓" * count
                 else:
                     # 其他平台使用原始的占位符格式
-                    placeholder = f"_placeholder{count}_"
+                    placeholder = f"""{{_placeholder{count}_}}"""
 
                 # 记录占位符和原始文本的映射关系
                 placeholders.append({
@@ -652,9 +652,9 @@ class TranslatorTask(Base):
         # 基础提示词
         system = PromptBuilderLocal.build_system(self.config)
 
-        # 指令词典
+        # 术语表
         if self.config.prompt_dictionary_switch == True:
-            result = PromptBuilder.build_glossary(self.config, source_text_dict)
+            result = PromptBuilder.build_glossary_prompt(self.config, source_text_dict)
             if result != "":
                 system = system + "\n" + result
                 extra_log.append(result)
@@ -665,6 +665,7 @@ class TranslatorTask(Base):
             if ntl != "":
                 system += ntl
                 extra_log.append(ntl)
+
 
         # 构建待翻译文本
         numbered_lines = []
