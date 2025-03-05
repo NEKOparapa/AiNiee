@@ -368,8 +368,9 @@
 
 * **`增加支持文件`**: 需要有一定的代码编程能力，拉取源码进行改进。文件具体读取代码在ModuleFolders\FileReader与FileOutputer文件夹中。文件读写功能分发在FileReader与FileOutputer。UI支持在UserInterface\Setting的ProjectSettingsPage。
 
-* **`完善正则库`**: 正则库的完备将极大帮助游戏内嵌工作的进行，并利用下一次游戏翻译工作和造福其他翻译用户，正则库在Resource\Regex文件夹中
-  
+* **`完善正则库`**: 正则库的完备将极大帮助游戏内嵌工作的进行，并利好下一次游戏翻译工作和造福其他翻译用户，正则库在Resource\Regex文件夹中
+
+* **`改进翻译流程`**: [翻译文本测试项目](https://github.com/NEKOparapa/AiNiee-Test-Dataset)里面包含常用场景的一些数据文本，可以改进测试数据，或者以测试数据表现改进AiNiee翻译流程
 
 </details>
 
