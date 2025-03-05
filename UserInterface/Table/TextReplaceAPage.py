@@ -31,7 +31,7 @@ class TextReplaceAPage(QFrame, Base):
 
         # 默认配置
         self.default = {
-            "pre_translation_switch": True,
+            "pre_translation_switch": False,
             "pre_translation_data" : [],
         }
 

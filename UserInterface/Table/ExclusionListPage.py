@@ -32,7 +32,7 @@ class ExclusionListPage(QFrame, Base):
 
         # 默认配置
         self.default = {
-            "exclusion_list_switch": True,
+            "exclusion_list_switch": False,
             "exclusion_list_data": [
                 {
                     "markers": "//F[N1]",

@@ -140,7 +140,7 @@ class TranslatorTask(Base):
             processed = self._replace_special_placeholders(target_platform,processed)
 
         if self.config.pre_translation_switch:
-            processed = self._replace_before_translation(processed)
+            processed = self.replace_before_translation(processed)
 
         return processed, prefix_codes, suffix_codes
 
@@ -153,7 +153,7 @@ class TranslatorTask(Base):
             restored = self._restore_special_placeholders(restored)
 
         if self.config.post_translation_switch:
-            restored = self._replace_after_translation(restored)
+            restored = self.replace_after_translation(restored)
 
         return restored
 

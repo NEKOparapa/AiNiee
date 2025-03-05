@@ -32,7 +32,7 @@ class PromptDictionaryPage(QFrame, Base):
 
         # 默认配置
         self.default = {
-            "prompt_dictionary_switch": True,
+            "prompt_dictionary_switch": False,
             "prompt_dictionary_data": [
                 {
                     "src": "ダリヤ",

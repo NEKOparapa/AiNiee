@@ -31,7 +31,7 @@ class TextReplaceBPage(QFrame, Base):
 
         # 默认配置
         self.default = {
-            "post_translation_switch": True,
+            "post_translation_switch": False,
             "post_translation_data" : [
                 {
                     "src": "待替换的文本A",
