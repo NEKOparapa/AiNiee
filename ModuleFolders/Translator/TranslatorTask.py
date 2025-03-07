@@ -915,7 +915,7 @@ class TranslatorTask(Base):
             }
 
         # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
+        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.config, self.source_text_dict, response_content)
 
         # 检查回复内容
         check_result, error_content = ResponseChecker.check_response_content(
@@ -1066,7 +1066,7 @@ class TranslatorTask(Base):
             }
         
         # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
+        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.config, self.source_text_dict, response_content)
         # 更新术语表与禁翻表到配置文件中
         self.config.update_glossary_ntl_config(glossary_result, NTL_result)
 
@@ -1119,7 +1119,7 @@ class TranslatorTask(Base):
             }
 
         # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
+        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.config, self.source_text_dict, response_content)
 
         # 检查回复内容
         check_result, error_content = ResponseChecker.check_response_content(

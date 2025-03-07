@@ -183,7 +183,7 @@ class AdvanceSettingsPage(QFrame, Base):
     def add_widget_result_check(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def on_toggled(checked: bool, key) -> None:
             config = self.load_config()
-            config["reply_check_switch"][key] = checked
+            config["response_check_switch"][key] = checked
             self.save_config(config)
 
         def widget_init(widget) -> None:

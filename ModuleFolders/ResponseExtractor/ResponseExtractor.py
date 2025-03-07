@@ -1,5 +1,4 @@
 import re
-import json
 
 # 回复解析器
 class ResponseExtractor():
@@ -9,11 +8,11 @@ class ResponseExtractor():
 
 
     #处理并正则提取翻译内容
-    def text_extraction(self,source_text_dict,html_string):
+    def text_extraction(self,config,source_text_dict,html_string):
 
         try:
             # 提取译文结果
-            translation_result= ResponseExtractor.extract_translation(self,source_text_dict,html_string)
+            translation_result= ResponseExtractor.extract_translation(self,config,source_text_dict,html_string)
 
             # 提取术语表结果
             glossary_result= ResponseExtractor.extract_glossary(self,html_string)
@@ -28,7 +27,7 @@ class ResponseExtractor():
 
 
     # 提取翻译结果内容
-    def extract_translation(self,source_text_dict,html_string):
+    def extract_translation(self,config,source_text_dict,html_string):
         
         # 提取翻译文本
         text_dict = ResponseExtractor.label_text_extraction(self,html_string)
@@ -43,7 +42,8 @@ class ResponseExtractor():
         translation_result= ResponseExtractor.generate_text_by_newlines(self,newlines_in_dict,text_dict)
 
         # 去除数字序号
-        translation_result = ResponseExtractor.remove_numbered_prefix(self,translation_result)
+        if config.target_platform != "sakura":
+            translation_result = ResponseExtractor.remove_numbered_prefix(self,translation_result)
 
 
         return translation_result
@@ -292,18 +292,42 @@ class ResponseExtractor():
                 continue
             
             original = parts[0]
-            comment = parts[1] if len(parts) >= 2 else ""
+            info = parts[1] if len(parts) >= 2 else ""
             
-            # 过滤表头行
-            if original.lower() in ("markers", "标记符", "备注"):
-                continue
 
-            # 过滤提取错行
-            if comment.lower() in ("|"):
+            # 检查并过滤错误内容
+            if ResponseExtractor._is_invalid_entry(self,original, info):
                 continue
-
-            # 有效性检查：原文和译文不能为空
-            if original :
-                entries.append((original, comment))
+            else:
+                entries.append((original, info))
         
         return entries
+
+
+    def _is_invalid_entry(self, original, info):
+        """判断条目是否需要过滤"""
+        # 非空检查
+        if not original :
+            return True
+        
+        # 过滤表头行
+        if original.lower() in ("markers", "标记符", "备注"):
+            return True
+
+        # 过滤提取错行
+        if info.lower() in ("|"):
+            return True
+
+        # 过滤换行符或制表符
+        if original == '\n' or original == '\t' or original == '\r':
+            return True
+        
+        # 过滤纯数字（匹配整数）
+        if re.fullmatch(r'^\d+$', original) :
+            return True
+        
+        # 过滤纯英文（匹配大小写字母组合）
+        if re.fullmatch(r'^[a-zA-Z]+$', original) :
+            return True
+        
+        return False
