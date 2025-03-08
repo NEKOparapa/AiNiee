@@ -25,7 +25,7 @@ from ModuleFolders.ResponseChecker.ResponseChecker import ResponseChecker
 from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Cache.CacheManager import CacheManager
 
-
+from ModuleFolders.TextProcessor.TextProcessor import TextProcessor
 
 class TranslatorTask(Base):
 
@@ -68,7 +68,6 @@ class TranslatorTask(Base):
             print(f"加载正则表达式失败: {str(e)}")
             return []
 
-
     def _prepare_regex_patterns(self) -> List[str]:
         """准备所有需要使用的正则表达式模式"""
         patterns = []
@@ -109,223 +108,6 @@ class TranslatorTask(Base):
         )
 
 
-    def _build_special_placeholder_pattern(self) -> re.Pattern:
-        """构建特殊占位符匹配的正则表达式"""
-        enhanced_patterns = []
-        for p in self.code_pattern_list:
-            # 若模式不包含边界或空白控制，则添加空白匹配
-            if not any(c in p for c in ("^", "$", "\\s")):
-                enhanced = fr"\s*{p}\s*"
-            else:
-                enhanced = p
-            enhanced_patterns.append(enhanced)
-        combined = "|".join(enhanced_patterns)
-        return re.compile(combined, re.IGNORECASE | re.MULTILINE)
-
-
-    def replace_all(self, target_platform, text_dict: Dict[str, str], prefix_pattern: re.Pattern, suffix_pattern: re.Pattern) -> Tuple[Dict[str, str], Dict, Dict]:
-        """执行全部替换操作"""
-        processed = {k: v for k, v in text_dict.items()}
-        prefix_codes, suffix_codes = {}, {}
-        
-        # 初始化占位符字典
-        self.placeholder_order.clear()
-
-        if self.config.auto_process_text_code_segment:
-            # 处理前后缀
-            processed, prefix_codes, suffix_codes = self._process_affixes(
-                processed, prefix_pattern, suffix_pattern)
-            
-            # 新增特殊文本占位替换
-            processed = self._replace_special_placeholders(target_platform,processed)
-
-        if self.config.pre_translation_switch:
-            processed = self.replace_before_translation(processed)
-
-        return processed, prefix_codes, suffix_codes
-
-    def restore_all(self, text_dict: Dict[str, str], prefix_codes: Dict, suffix_codes: Dict) -> Dict[str, str]:
-        """执行全部还原操作"""
-        restored = text_dict.copy()
-
-        if self.config.auto_process_text_code_segment:
-            restored = self._restore_affixes(restored, prefix_codes, suffix_codes)
-            restored = self._restore_special_placeholders(restored)
-
-        if self.config.post_translation_switch:
-            restored = self.replace_after_translation(restored)
-
-        return restored
-
-    def _replace_special_placeholders(self, target_platform, text_dict: Dict[str, str]) -> Dict[str, str]:
-        """特殊文本占位替换
-
-        Args:
-            target_platform: 目标平台名称，例如 "sakura" 或其他
-            text_dict: 包含文本的字典
-
-        Returns:
-            替换占位符后的文本字典
-        """
-        pattern = self._build_special_placeholder_pattern()
-
-        new_dict = {}
-        for key, text in text_dict.items():
-            placeholders: List[Dict[str, str]] = []
-            count = 0  # 用于跟踪替换次数
-
-            def replacer(match: re.Match) -> str:
-                nonlocal count
-                if count >= 3:
-                    return match.group()  # 超过3次不替换
-
-                original = match.group()
-                count += 1
-                if target_platform == "sakura":
-                    # Sakura 平台使用下箭头，并根据 count 增加数量
-                    placeholder = "↓" * count
-                else:
-                    # 其他平台使用原始的占位符格式
-                    placeholder = f"""{{_placeholder{count}_}}"""
-
-                # 记录占位符和原始文本的映射关系
-                placeholders.append({
-                    "placeholder": placeholder,
-                    "original": original
-                })
-                return placeholder
-
-            # 执行正则替换并保存映射关系
-            processed_text = pattern.sub(replacer, text)
-            self.placeholder_order[key] = placeholders
-            new_dict[key] = processed_text
-
-        return new_dict
-    
-
-    def _restore_special_placeholders(self, text_dict: Dict[str, str]) -> Dict[str, str]:
-        """占位符还原"""
-
-        new_dic = {}
-
-        for key, text in text_dict.items():
-            placeholders = self.placeholder_order.get(key, [])
-            
-            if not placeholders:
-                new_dic[key] = text
-
-            else:
-                for item in placeholders:
-                    placeholder_text = item.get("placeholder")
-                    original_text = item.get("original") 
-
-                    text = text.replace(placeholder_text, original_text, 1)
-
-                new_dic[key] = text
-        
-        # 检查未能正确替换用
-        for value in new_dic.values():
-            if isinstance(value, str): 
-                placeholder_pattern = r'placeholder'
-
-                if re.search(placeholder_pattern, value):
-                    pass
-                    #print("bug------")
-
-
-        return new_dic
-
-
-
-    def _process_affixes(self, text_dict: Dict[str, str], prefix_pat: re.Pattern, suffix_pat: re.Pattern) -> Tuple[Dict[str, str], Dict, Dict]:
-        """处理前后缀提取"""
-        prefixes = {}
-        suffixes = {}
-        
-        for key, text in text_dict.items():
-            # 前缀提取（保留原始空白）
-            prefix_matches = []
-            while (match := prefix_pat.search(text)) and match.start() == 0:
-                prefix_matches.append(match.group())  # 保留原始内容（包括换行符）
-                text = text[match.end():]
-            prefixes[key] = prefix_matches
-
-            # 后缀提取（保留原始空白）
-            suffix_matches = []
-            while (match := suffix_pat.search(text)) and match.end() == len(text):
-                suffix_matches.insert(0, match.group())  # 保留原始内容
-                text = text[:match.start()]
-            suffixes[key] = suffix_matches
-
-            # 检查中间文本是否为空,避免提取完前后缀后内容为空（暂时解决方法）
-            if not text:
-                has_prefix = len(prefix_matches) > 0
-                has_suffix = len(suffix_matches) > 0
-
-                if has_prefix and has_suffix:
-                    # 比较总字符长度
-                    prefix_len = sum(len(p) for p in prefix_matches)
-                    suffix_len = sum(len(s) for s in suffix_matches)
-                    
-                    if prefix_len <= suffix_len:
-                        # 还原前缀并清空
-                        text = ''.join(prefix_matches)
-                        prefixes[key] = []
-                    else:
-                        # 还原后缀并清空
-                        text = ''.join(suffix_matches)
-                        suffixes[key] = []
-                elif has_prefix:
-                    # 仅还原前缀
-                    text = ''.join(prefix_matches)
-                    prefixes[key] = []
-                elif has_suffix:
-                    # 仅还原后缀
-                    text = ''.join(suffix_matches)
-                    suffixes[key] = []
-
-            text_dict[key] = text
-
-        return text_dict, prefixes, suffixes
-
-
-    def _restore_affixes(self, text_dict: Dict[str, str], prefixes: Dict, suffixes: Dict) -> Dict[str, str]:
-        """还原前后缀（保留原始空白）"""
-        for key in text_dict:
-            # 直接拼接保留原始空白
-            prefix_str = ''.join(prefixes.get(key, []))
-            suffix_str = ''.join(suffixes.get(key, []))
-            
-            # 保留中间内容的原始前后空白
-            restored = f"{prefix_str}{text_dict[key]}{suffix_str}"
-            text_dict[key] = restored
-            
-        return text_dict
-
-
-    # 译后替换
-    def replace_before_translation(self, text_dict: dict) -> dict:
-        data: list[dict] = self.config.pre_translation_data
-
-        for k in text_dict:
-            for v in data:
-                if v.get("src", "") in text_dict[k]:
-                    text_dict[k] = text_dict[k].replace(v.get("src", ""), v.get("dst", ""))
-
-        return text_dict
-
-    # 译前替换
-    def replace_after_translation(self, text_dict: dict) -> dict:
-        data: list[dict] = self.config.post_translation_data
-
-        for k in text_dict:
-            for v in data:
-                if v.get("src", "") in text_dict[k]:
-                    text_dict[k] = text_dict[k].replace(v.get("src", ""), v.get("dst", ""))
-
-        return text_dict
-
-
     # 设置缓存数据
     def set_items(self, items: list[CacheItem]) -> None:
         self.items = items
@@ -350,7 +132,7 @@ class TranslatorTask(Base):
         self.plugin_manager.broadcast_event("normalize_text", self.config, self.source_text_dict)
 
         # 各种替换步骤，译前替换，提取首位代码段
-        self.source_text_dict, self.prefix_codes, self.suffix_codes = self.replace_all(target_platform, self.source_text_dict, self.prefix_pattern, self.suffix_pattern)
+        self.source_text_dict, self.prefix_codes, self.suffix_codes,self.placeholder_order = TextProcessor.replace_all(self, self.config, self.source_text_dict, self.prefix_pattern, self.suffix_pattern,self.code_pattern_list,self.placeholder_order)
 
         # 生成请求指令
         if self.config.double_request_switch_settings == True:
@@ -955,7 +737,7 @@ class TranslatorTask(Base):
             # 各种还原步骤
             # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
             restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = self.restore_all(restore_response_dict, self.prefix_codes, self.suffix_codes)
+            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order)
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
@@ -1164,7 +946,7 @@ class TranslatorTask(Base):
             # 各种还原步骤
             # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
             restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = self.restore_all(restore_response_dict, self.prefix_codes, self.suffix_codes)
+            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order)
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):

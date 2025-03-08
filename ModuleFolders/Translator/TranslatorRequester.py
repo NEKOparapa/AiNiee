@@ -226,7 +226,7 @@ class TranslatorRequester(Base):
 
         # 调用插件，进行处理
         self.plugin_manager.broadcast_event(
-            "LocalLLM_reply_processed",
+            "reply_processed",
             self.config,
             response_content_dict
         )
@@ -462,6 +462,7 @@ class TranslatorRequester(Base):
             top_p = platform_config.get("top_p")
             presence_penalty = platform_config.get("presence_penalty")
             frequency_penalty = platform_config.get("frequency_penalty")
+            extra_body = platform_config.get("extra_body","{}")
 
             # 插入系统消息
             if system_prompt:
@@ -488,6 +489,7 @@ class TranslatorRequester(Base):
             # 部分平台和模型不接受frequency_penalty参数
             if presence_penalty == 0 and frequency_penalty == 0:
                 response = client.chat.completions.create(
+                    extra_body = extra_body,
                     model = model_name,
                     messages = messages,
                     temperature = temperature,
@@ -498,6 +500,7 @@ class TranslatorRequester(Base):
 
             else:
                 response = client.chat.completions.create(
+                    extra_body = extra_body,
                     model = model_name,
                     messages = messages,
                     temperature = temperature,

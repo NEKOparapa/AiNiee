@@ -172,7 +172,7 @@ class ProcessTester(Base):
     def _generic_process_phase(self, config, phase_flag):
         """通用请求处理阶段"""
         # 获取平台配置
-        api_key, api_url, model_name, api_format = self.get_platform_config(phase_flag)
+        api_key, api_url, model_name, api_format,extra_body = self.get_platform_config(phase_flag)
         
         # 构建消息列表
         messages, system_content = self._build_messages(config[f"request_phase_{phase_flag}"])
@@ -183,6 +183,7 @@ class ProcessTester(Base):
         self.info("[接口参数]")
         self.print(f"  → 接口地址: {api_url}")
         self.print(f"  → 模型名称: {model_name}")
+        self.print(f"  → 额外参数: {extra_body}")
         self.print(f"  → 接口密钥: {'*'*(len(api_key)-4)}{api_key[-4:]}")  # 隐藏敏感信息
         
         if system_content:
@@ -199,6 +200,7 @@ class ProcessTester(Base):
             api_key=api_key,
             api_url=api_url,
             model_name=model_name,
+            extra_body= extra_body,
             messages=messages,
             system_content=system_content
         )
@@ -255,14 +257,14 @@ class ProcessTester(Base):
         return messages, system_content
     
     # 接口调用分发
-    def _call_api(self, api_format, api_key, api_url, model_name, messages, system_content):
+    def _call_api(self, api_format, api_key, api_url, model_name,extra_body, messages, system_content):
         """统一API调用接口"""
         response_content = ""
         response_think = ""
         
         try:
             if api_format == "OpenAI":
-                return self._handle_openai(api_key, api_url, model_name, messages, system_content)
+                return self._handle_openai(api_key, api_url, model_name,extra_body, messages, system_content)
             elif api_format == "Google":
                 return self._handle_google(api_key, api_url, model_name, messages, system_content)
             elif api_format == "Anthropic":
@@ -276,9 +278,9 @@ class ProcessTester(Base):
         return response_content, response_think
 
     # 各平台接口具体实现
-    def _handle_openai(self, api_key, api_url, model_name, messages, system_content):
+    def _handle_openai(self, api_key, api_url, model_name,extra_body, messages, system_content):
         client = OpenAI(base_url=api_url, api_key=api_key)
-        response = client.chat.completions.create(model=model_name, messages=messages)
+        response = client.chat.completions.create(model=model_name,extra_body=extra_body, messages=messages)
         message = response.choices[0].message
         
 
@@ -396,6 +398,7 @@ class ProcessTester(Base):
         api_format = platform_config["api_format"]
         model_name = platform_config["model"]
         auto_complete = platform_config["auto_complete"]
+        extra_body = platform_config.get("extra_body","{}")
         
         # 处理API密钥（取第一个有效密钥）
         cleaned_keys = re.sub(r"\s+", "", api_keys)
@@ -423,7 +426,7 @@ class ProcessTester(Base):
             os.environ["https_proxy"] = proxy_url
             self.info(f"[系统代理]  {proxy_url}")
 
-        return api_key,api_url,model_name,api_format
+        return api_key,api_url,model_name,api_format,extra_body
 
     # 构建初始替换表
     def get_flow_Basic_settings(self):

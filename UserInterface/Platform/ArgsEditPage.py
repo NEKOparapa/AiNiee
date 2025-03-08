@@ -6,12 +6,13 @@ from PyQt5.QtCore import QUrl
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
 
-from qfluentwidgets import HyperlinkLabel
+from qfluentwidgets import HyperlinkLabel, PlainTextEdit
 from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 
 from Base.Base import Base
 from Widget.SliderCard import SliderCard
+from Widget.GroupCard import GroupCard
 
 class ArgsEditPage(MessageBoxBase, Base):
 
@@ -47,6 +48,11 @@ class ArgsEditPage(MessageBoxBase, Base):
         self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
         self.scroller.setWidget(self.vbox_parent)
 
+
+        # extra_body
+        if "extra_body" in config.get("platforms").get(self.key).get("key_in_settings"):
+            self.add_widget_extra_body(self.vbox, config)
+
         # top_p
         if "top_p" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_top_p(self.vbox, config, preset)
@@ -80,6 +86,51 @@ class ArgsEditPage(MessageBoxBase, Base):
             self.error(f"未找到 {path} 文件 ...")
 
         return result
+
+
+
+    # 自定义Body
+    def add_widget_extra_body(self, parent, config):
+
+        def text_changed(widget):
+            try:
+                config = self.load_config()
+
+                extra_body_str = widget.toPlainText().strip()
+                if not extra_body_str:
+                    config["platforms"][self.key]["extra_body"] = {}
+                else:
+                    extra_body_dict = json.loads(extra_body_str.replace("'", "\""))
+                    if extra_body_dict is None:
+                        extra_body_dict = {}
+                        
+                    config["platforms"][self.key]["extra_body"] = extra_body_dict
+
+                self.save_config(config)
+            except:
+                pass
+
+        def init(widget):
+            plain_text_edit = PlainTextEdit(self)
+
+            extra_body = config.get("platforms").get(self.key).get("extra_body")
+            if not extra_body:
+                plain_text_edit.setPlainText("")
+            else:
+                plain_text_edit.setPlainText(json.dumps(extra_body))
+
+            plain_text_edit.setPlaceholderText("请输入自定义Body ...")
+            plain_text_edit.textChanged.connect(lambda: text_changed(plain_text_edit))
+            widget.addWidget(plain_text_edit)
+
+        parent.addWidget(
+            GroupCard(
+                "extra_body",
+                "请输入自定义Body，例如 {\"provider\": {\"order\": [\"DeepInfra\", \"Together\"], \"allow_fallbacks\": false}}",
+                init = init,
+            )
+        )
+
 
     # top_p
     def add_widget_top_p(self, parent, config, preset):

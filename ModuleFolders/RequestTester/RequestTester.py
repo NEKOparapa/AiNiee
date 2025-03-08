@@ -35,6 +35,7 @@ class RequestTester(Base):
         auto_complete = data.get("auto_complete")
         proxy_url = data.get("proxy_url")
         proxy_enable = data.get("proxy_enable")
+        extra_body = data.get("extra_body","{}")
 
         # 获取接口地址并补齐，v3 结尾是火山，v4 结尾是智谱
         if tag == "sakura" and not api_url.endswith("/v1"):
@@ -72,13 +73,14 @@ class RequestTester(Base):
             self.info(f"接口地址 - {api_url}")
             self.info(f"接口密钥 - {api_key}")
             self.info(f"模型名称 - {model}")
+            self.info(f"额外参数 - {extra_body}")
             self.info("测试指令 - ")
             self.print(f"{messages}")
 
             #尝试请求，并设置各种参数
             try:
                 # 获取回复内容
-                content = self.request_for_content(tag, api_url, api_key, api_format, model, messages)
+                content = self.request_for_content(tag, api_url, api_key, api_format, model, messages, extra_body)
 
                 # 打印日志
                 self.info("接口测试成功 ...")
@@ -145,7 +147,7 @@ class RequestTester(Base):
         return messages
 
     # 请求测试
-    def request_for_content(self, tag: str, api_url: str, api_key: str, api_format: str, model: str, messages: list):
+    def request_for_content(self, tag: str, api_url: str, api_key: str, api_format: str, model: str, messages: list, extra_body):
         if tag == "cohere":
             client = cohere.Client(
                 api_key = api_key if api_key != "" else "no_key_required",
@@ -212,11 +214,12 @@ class RequestTester(Base):
         else:
             client = OpenAI(
                 api_key = api_key if api_key != "" else "no_key_required",
-                base_url = api_url,
+                base_url = api_url
             )
 
             response = client.chat.completions.create(
                 model = model,
+                extra_body = extra_body,
                 messages = messages,
             )
 

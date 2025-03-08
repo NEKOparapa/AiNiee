@@ -3,7 +3,7 @@ import os
 import re
 
 from openpyxl import Workbook
-from openpyxl.utils import escape
+from openpyxl.utils.escape import escape
 
 class TPPWriter():
     def __init__(self):
@@ -92,9 +92,11 @@ class TPPWriter():
                     # 防止含有特殊字符而不符合Excel公式时，导致的写入译文错误
                     try:
                         ws.cell(row = row_index, column = 2).value = re.sub(r"^=", " =", translated_text)
-                    except:
-                        escaped_string = escape(translated_text)  # 用自带函数对特殊字符进行转换
-                        ws.cell(row = row_index, column = 2).value = escaped_string
+                    except :
+                        # 过滤非法控制字符并转义XML特殊字符
+                        filtered_text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', translated_text)
+                        escaped_string = escape(filtered_text)
+                        ws.cell(row=row_index, column=2).value = escaped_string
 
             # 保存工作簿
             wb.save(file_path)
