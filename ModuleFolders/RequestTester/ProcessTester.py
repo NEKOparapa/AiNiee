@@ -398,7 +398,7 @@ class ProcessTester(Base):
         api_format = platform_config["api_format"]
         model_name = platform_config["model"]
         auto_complete = platform_config["auto_complete"]
-        extra_body = platform_config.get("extra_body","{}")
+        extra_body = platform_config.get("extra_body",{})
         
         # 处理API密钥（取第一个有效密钥）
         cleaned_keys = re.sub(r"\s+", "", api_keys)

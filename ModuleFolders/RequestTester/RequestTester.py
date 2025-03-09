@@ -35,7 +35,7 @@ class RequestTester(Base):
         auto_complete = data.get("auto_complete")
         proxy_url = data.get("proxy_url")
         proxy_enable = data.get("proxy_enable")
-        extra_body = data.get("extra_body","{}")
+        extra_body = data.get("extra_body",{})
 
         # 获取接口地址并补齐，v3 结尾是火山，v4 结尾是智谱
         if tag == "sakura" and not api_url.endswith("/v1"):
