@@ -288,7 +288,7 @@ class Translator(Base):
                 self.info(f"模型名称 - {self.config.model_a}")
                 self.print("")
 
-                self.info(f"第二次请求的借口 - {self.config.platforms.get(self.config.request_b_platform_settings, {}).get("name", "未知")}")
+                self.info(f"第二次请求的接口 - {self.config.platforms.get(self.config.request_b_platform_settings, {}).get("name", "未知")}")
                 self.info(f"接口地址 - {self.config.base_url_b}")
                 self.info(f"模型名称 - {self.config.model_b}")
                 self.print("")

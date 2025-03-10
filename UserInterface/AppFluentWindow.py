@@ -67,7 +67,14 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
         # 打印日志
         if self.is_debug():
-            self.warning("调试模式已启用 ...")
+            self.info("Debug mode is enabled ...")
+
+        # 读取多语言界面配置信息
+        self.multilingual_interface_dict = self.load_translations(self.translation_json_file)
+
+        # 更换界面语言
+        current_language = config.get("interface_language_setting","简中")
+        self.set_current_language (current_language)
 
         # 设置主题颜色
         setThemeColor(self.THEME_COLOR)
@@ -153,7 +160,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
             routeKey = "theme_navigation_button",
             widget = NavigationPushButton(
                 FluentIcon.CONSTRACT,
-                "变换自如",
+                "主题切换",
                 False
             ),
             onClick = self.toggle_theme,
@@ -229,7 +236,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
     # 添加第五节
     def add_stev_extraction_pages(self, plugin_manager: PluginManager) -> None:
         self.stev_extraction_navigation_item = BaseNavigationItem("stev_extraction_navigation_item", self)
-        self.addSubInterface(self.stev_extraction_navigation_item, FluentIcon.ZIP_FOLDER, "StevExtraction", NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.stev_extraction_navigation_item, FluentIcon.ZIP_FOLDER, self.tra("StevExtraction"), NavigationItemPosition.SCROLL)
         self.widget_export_source_text = Widget_export_source_text("widget_export_source_text", self, jtpp)
         self.addSubInterface(self.widget_export_source_text, FluentIcon.SHARE, "导出文本", parent = self.stev_extraction_navigation_item)
         self.widget_import_translated_text = Widget_import_translated_text("widget_import_translated_text", self, jtpp)

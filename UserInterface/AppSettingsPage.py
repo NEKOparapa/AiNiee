@@ -33,6 +33,7 @@ class AppSettingsPage(QWidget, Base):
             "proxy_enable": False,
             "font_hinting": True,
             "scale_factor": "自动",
+            "interface_language_setting": "简中",
         }
 
         # 载入并保存默认配置
@@ -61,6 +62,7 @@ class AppSettingsPage(QWidget, Base):
         self.add_widget_font_hinting(self.vbox, config)
         self.add_widget_debug_mode(self.vbox, config)
         self.add_widget_scale_factor(self.vbox, config)
+        self.add_widget_interface_language_setting(self.vbox, config)
         self.add_widget_app_profile(self.vbox, config, window)
 
         # 填充
@@ -164,6 +166,29 @@ class AppSettingsPage(QWidget, Base):
                 current_text_changed = current_text_changed,
             )
         )
+
+
+    # 语言
+    def add_widget_interface_language_setting(self, parent, config) -> None:
+        def init(widget) -> None:
+            widget.set_current_index(max(0, widget.find_text(config.get("interface_language_setting"))))
+
+        def current_text_changed(widget, text: str) -> None:
+            config = self.load_config()
+            config["interface_language_setting"] = text
+            self.save_config(config)
+
+        parent.addWidget(
+            ComboBoxCard(
+                "界面语言设置",
+                "启用此功能后，应用界面将按照所选语言进行显示（将在应用重启后生效）",
+                ["简中", "繁中", "English", "日本語"],
+                init = init,
+                current_text_changed = current_text_changed,
+            )
+        )
+
+
 
     # 应用配置切换
     def add_widget_app_profile(self, parent, config, window) -> None:

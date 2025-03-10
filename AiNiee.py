@@ -62,7 +62,7 @@ if __name__ == "__main__":
     # 设置工作目录
     script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     sys.path.append(script_dir)
-    print(f"[[green]INFO[/]] 当前工作目录为 {script_dir}")
+    print(f"[[green]INFO[/]] Current working directory is {script_dir}")
 
     # 创建全局插件管理器
     plugin_manager = PluginManager()

@@ -355,7 +355,7 @@ class TranslatorRequester(Base):
                 generation_config = {
                     "temperature": temperature,
                     "top_p": top_p,
-                    "max_output_tokens": 4096,
+                    "max_output_tokens": 7096,
                 },
             )
             response_content = response.text

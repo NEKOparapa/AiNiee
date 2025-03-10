@@ -8,11 +8,11 @@ class ResponseExtractor():
 
 
     #处理并正则提取翻译内容
-    def text_extraction(self,config,source_text_dict,html_string):
+    def text_extraction(self,source_text_dict,html_string):
 
         try:
             # 提取译文结果
-            translation_result= ResponseExtractor.extract_translation(self,config,source_text_dict,html_string)
+            translation_result= ResponseExtractor.extract_translation(self,source_text_dict,html_string)
 
             # 提取术语表结果
             glossary_result= ResponseExtractor.extract_glossary(self,html_string)
@@ -27,7 +27,7 @@ class ResponseExtractor():
 
 
     # 提取翻译结果内容
-    def extract_translation(self,config,source_text_dict,html_string):
+    def extract_translation(self,source_text_dict,html_string):
         
         # 提取翻译文本
         text_dict = ResponseExtractor.label_text_extraction(self,html_string)
@@ -40,10 +40,6 @@ class ResponseExtractor():
 
         # 合并调整翻译文本
         translation_result= ResponseExtractor.generate_text_by_newlines(self,newlines_in_dict,text_dict)
-
-        # 去除数字序号
-        if config.target_platform != "sakura":
-            translation_result = ResponseExtractor.remove_numbered_prefix(self,translation_result)
 
 
         return translation_result
@@ -66,14 +62,14 @@ class ResponseExtractor():
                 output_dict[str(line_number)] = line
                 line_number += 1
 
-        # 检查是否有任何行以数字序号+英文句点开头（主要是为了兼容Sakura模型接口）
+        # 如果没有找到任何以数字序号开头的行，则直接返回原始的行号字典（主要是为了兼容Sakura模型接口）
         has_numbered_prefix = False
         for value in output_dict.values():
             if re.match(r'^\d+\.', value):
                 has_numbered_prefix = True
                 break  # 只要找到一行符合条件就跳出循环
 
-        # 后处理：只有当存在以数字序号开头的行时才进行
+        # 从第一个以数字序号开头的行开始，保留之后的所有行(主要是有些AI会在译文内容前面加点说明)
         if has_numbered_prefix:
             filtered_dict = {}
             found = False
@@ -172,24 +168,35 @@ class ResponseExtractor():
         Returns:
             一个新的字典，其中值已经去除数字前缀（如果存在）。
         """
-        output_dict = {}
-        for key, value in input_dict.items():
-            if isinstance(value, str):  # 确保值是字符串类型，避免处理非字符串值时出错
-                # 使用正则表达式匹配以数字和英文句点开头的模式
-                match = re.match(r"^\d+\.\s*", value)  # ^ 表示字符串开头，\d+ 表示一个或多个数字，\. 表示英文句点，\s* 表示零个或多个空白字符（可选）
-                if match:
-                    # 如果匹配成功，则去除匹配到的前缀
-                    prefix_length = match.end()  # 获取匹配到的前缀的结束位置
-                    modified_value = value[prefix_length:]  # 切片字符串，去除前缀部分
-                    output_dict[key] = modified_value
-                else:
-                    # 如果不匹配，则保持原始值
-                    output_dict[key] = value
-            else:
-                # 如果值不是字符串，则保持原始值
-                output_dict[key] = value
-        return output_dict
 
+        # 如果没有找到任何以数字序号开头的行，则直接返回原始的行号字典（主要是为了兼容Sakura模型接口）
+        has_numbered_prefix = False
+        for value in input_dict.values():
+            if re.match(r'^\d+\.', value):
+                has_numbered_prefix = True
+                break  # 只要找到一行符合条件就跳出循环
+
+        if has_numbered_prefix:
+            output_dict = {}
+            for key, value in input_dict.items():
+                if isinstance(value, str):  # 确保值是字符串类型，避免处理非字符串值时出错
+                    # 使用正则表达式匹配以数字和英文句点开头的模式
+                    match = re.match(r"^\d+\.\s*", value)  # ^ 表示字符串开头，\d+ 表示一个或多个数字，\. 表示英文句点，\s* 表示零个或多个空白字符（可选）
+                    if match:
+                        # 如果匹配成功，则去除匹配到的前缀
+                        prefix_length = match.end()  # 获取匹配到的前缀的结束位置
+                        modified_value = value[prefix_length:]  # 切片字符串，去除前缀部分
+                        output_dict[key] = modified_value
+                    else:
+                        # 如果不匹配，则保持原始值
+                        output_dict[key] = value
+                else:
+                    # 如果值不是字符串，则保持原始值
+                    output_dict[key] = value
+            return output_dict
+
+        else:
+            return input_dict
 
 
 

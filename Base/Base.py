@@ -61,6 +61,43 @@ class Base():
         # 类变量
         Base.work_status = Base.STATUS.IDLE if not hasattr(Base, "work_status") else Base.work_status
 
+        # 多语言配置路径
+        self.translation_json_file = "./Resource/Localization"
+        # 当前语言
+        self.current_interface_language = "简中"
+        # 多语言界面配置信息
+        self.multilingual_interface_dict = {}
+
+
+    # 读取多语言配置信息
+    def load_translations(self,folder_path):
+        combined_data = {}  # 用于存储合并后的数据，并实现去重
+
+        for filename in os.listdir(folder_path):
+            if filename.endswith(".json"):
+                filepath = os.path.join(folder_path, filename)
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    for top_level_key in data: # 遍历 "some1", "some2" 这样的顶级键
+                        for key, value in data[top_level_key].items(): # 遍历二级键，如 "确定", "我的应用"
+                            combined_data[key] = value # 使用键来去重，如果键已存在，则会被覆盖 
+        return combined_data
+
+    # 设置当前语言
+    def set_current_language(self, current_language):
+        self.current_interface_language = current_language
+
+    # UI文本翻译
+    def tra(self, text):
+        translation = self.multilingual_interface_dict.get(text) # 尝试获取 text 对应的内部字典
+        if translation: # 如果找到了 text 对应的内部字典
+            translation_text = translation.get(self.current_interface_language) # 尝试获取当前语言的翻译
+            if translation_text: # 如果找到了当前语言的翻译
+                return translation_text
+            
+        return text # 如果任何查找失败，返回原始文本
+
+
     # 检查是否处于调试模式
     def is_debug(self) -> bool:
         if getattr(Base, "_is_debug", None) == None:

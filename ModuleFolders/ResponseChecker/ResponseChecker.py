@@ -7,32 +7,31 @@ class ResponseChecker():
 
 
     # 检查回复内容是否存在问题
-    def check_response_content(self,response_check_switch_check_switch,response_str,response_dict,source_text_dict,source_language):
+    def check_response_content(self,config,target_platform,response_str,response_dict,source_text_dict):
         # 存储检查结果
         check_result = False
-        # 存储错误内容
         error_content = "0"
 
+        # 获取需要的配置信息
+        source_language = config.source_language
+        response_check_switch = config.response_check_switch
 
         # 检查接口是否拒绝翻译
         if ResponseChecker.contains_special_chars(self,response_str):
             pass
         else:
             check_result = False
-            # 存储错误内容
             error_content = "模型已拒绝翻译或格式错误，回复内容：" + "\n" + str(response_str)
             return check_result,error_content
 
 
-
         # 检查模型是否退化，出现高频词
-        if 'model_degradation_check' in response_check_switch_check_switch and response_check_switch_check_switch['model_degradation_check']:
+        if 'model_degradation_check' in response_check_switch and response_check_switch['model_degradation_check']:
             if ResponseChecker.model_degradation_detection(self,source_text_dict,response_str):
                 pass
 
             else:
                 check_result = False
-                # 存储错误内容
                 error_content = "模型出现退化"
                 return check_result,error_content
 
@@ -42,7 +41,6 @@ class ResponseChecker():
             pass
         else:
             check_result = False
-            # 存储错误内容
             error_content = "原文与译文行数不一致"
             return check_result,error_content
 
@@ -52,28 +50,34 @@ class ResponseChecker():
             pass
         else:
             check_result = False
-            # 存储错误内容
             error_content = "译文中有未翻译的空行"
             return check_result,error_content
 
+        # 检查数字序号是否正确
+        if target_platform != "sakura":
+            if ResponseChecker.check_dict_order(self,response_dict):
+                pass
+            else:
+                check_result = False
+                error_content = "返回的文本格式有误"
+                return check_result,error_content
 
         # 检查是否回复了原文
-        if 'return_to_original_text_check' in response_check_switch_check_switch and response_check_switch_check_switch['return_to_original_text_check']:
+        if 'return_to_original_text_check' in response_check_switch and response_check_switch['return_to_original_text_check']:
             if ResponseChecker.check_dicts_equal(self,source_text_dict,response_dict):
                 pass
             else:
                 check_result = False
-                # 存储错误内容
                 error_content = "译文与原文完全相同"
                 return check_result,error_content
 
+
         # 检查是否残留部分原文
-        if 'residual_original_text_check' in response_check_switch_check_switch and response_check_switch_check_switch['residual_original_text_check']:
+        if 'residual_original_text_check' in response_check_switch and response_check_switch['residual_original_text_check']:
             if ResponseChecker.detecting_remaining_original_text(self,source_text_dict,response_dict,source_language):
                 pass
             else:
                 check_result = False
-                # 存储错误内容
                 error_content = "译文中残留部分原文"
                 return check_result,error_content
 
@@ -84,6 +88,31 @@ class ResponseChecker():
         error_content = "检查无误"
         return check_result,error_content
 
+
+    # 检查数字序号是否正确
+    def check_dict_order(self,input_dict):
+        """
+        检查输入的字典，字典的key是从零开始增加的字符数字，值是文本。
+        顺序检查每个值的开头是否是以数字序号+英文句点开头，并且是从1开始增加的数字序号，
+        全部检查通过返回真，反之返回假。
+
+        Args:
+            input_dict (dict): 输入的字典，key为字符数字，value为文本。
+
+        Returns:
+            bool: 检查全部通过返回True，否则返回False。
+        """
+        expected_num = 1  # 期望的起始序号
+        keys = sorted(input_dict.keys(), key=int)  # 获取排序后的key，确保按数字顺序检查
+
+        for key in keys:
+            value = input_dict[key]
+            prefix = str(expected_num) + "."
+            if not value.startswith(prefix):
+                return False  # 值没有以期望的序号开头
+            expected_num += 1  # 序号递增
+
+        return True  # 所有检查都通过
 
     # 检查两个字典是否完全相同，即返回了原文
     def check_dicts_equal(self,dict1, dict2):

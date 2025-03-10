@@ -697,17 +697,21 @@ class TranslatorTask(Base):
             }
 
         # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.config, self.source_text_dict, response_content)
+        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
 
         # 检查回复内容
         check_result, error_content = ResponseChecker.check_response_content(
             self,
-            self.config.response_check_switch,
+            self.config,
+            self.config.target_platform,
             response_content,
             response_dict,
             self.source_text_dict,
-            self.config.source_language
         )
+
+        # 去除回复内容的数字序号
+        response_dict = ResponseExtractor.remove_numbered_prefix(self,response_dict)
+
 
         # 模型回复日志
         if response_think != "":
@@ -848,7 +852,8 @@ class TranslatorTask(Base):
             }
         
         # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.config, self.source_text_dict, response_content)
+        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
+
         # 更新术语表与禁翻表到配置文件中
         self.config.update_glossary_ntl_config(glossary_result, NTL_result)
 
@@ -901,17 +906,21 @@ class TranslatorTask(Base):
             }
 
         # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.config, self.source_text_dict, response_content)
+        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self,  self.source_text_dict, response_content)
 
         # 检查回复内容
         check_result, error_content = ResponseChecker.check_response_content(
             self,
-            self.config.response_check_switch,
+            self.config,
+            self.config.request_b_platform_settings,
             response_content,
             response_dict,
-            self.source_text_dict,
-            self.config.source_language
+            self.source_text_dict
         )
+
+        # 去除回复内容的数字序号
+        response_dict = ResponseExtractor.remove_numbered_prefix(self,response_dict)
+
 
         # 模型回复日志
         if response_think != "":

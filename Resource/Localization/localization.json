@@ -1,0 +1,36 @@
+{
+
+  "some1": {
+    "确定": {
+      "简中": "确定",
+      "繁中": "确定",
+      "English": "OK",
+      "日本語": "OK"
+    }
+  },
+
+  "some2": {
+    "我的应用": {
+      "简中": "我的应用",
+      "繁中": "我的应用",
+      "English": "My Application",
+      "日本語": "Mon Application"
+    },
+    "用户名": {
+      "简中": "用户名",
+      "繁中": "用户名",
+      "English": "Username:",
+      "日本語": "Nom d'utilisateur:"
+    },
+    "StevExtraction": {
+      "简中": "用户名",
+      "繁中": "StevExtraction",
+      "English": "StevExtraction:",
+      "日本語": "StevExtraction"
+    }
+
+
+
+  }
+
+}
