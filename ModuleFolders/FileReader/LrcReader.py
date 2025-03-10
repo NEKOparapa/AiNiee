@@ -1,5 +1,5 @@
-import json
 import os
+import re
 
 
 class LrcReader():
