@@ -18,7 +18,7 @@ class LimitEditPage(MessageBoxBase, Base):
 
         # 设置框体
         self.widget.setFixedSize(960, 720)
-        self.yesButton.setText("关闭")
+        self.yesButton.setText(self.tra("关闭"))
         self.cancelButton.hide()
 
         # 载入配置文件
@@ -61,8 +61,8 @@ class LimitEditPage(MessageBoxBase, Base):
 
         parent.addWidget(
             SpinCard(
-                "每分钟请求数",
-                "RPM，即每个密钥在一分钟内能响应的请求的最大数量",
+                self.tra("每分钟请求数"),
+                self.tra("RPM，即每个密钥在一分钟内能响应的请求的最大数量"),
                 init = init,
                 value_changed = value_changed,
             )
@@ -81,8 +81,8 @@ class LimitEditPage(MessageBoxBase, Base):
 
         parent.addWidget(
             SpinCard(
-                "每分钟 Token 数",
-                "TPM，即每个密钥在一分钟内能生成的 Token 的最大数量",
+                self.tra("每分钟 Token 数"),
+                self.tra("TPM，即每个密钥在一分钟内能生成的 Token 的最大数量"),
                 init = init,
                 value_changed = value_changed,
             )

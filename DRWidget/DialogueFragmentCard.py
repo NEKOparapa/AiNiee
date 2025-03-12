@@ -1,14 +1,13 @@
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QColor, QFont
-from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QFrame, QSizePolicy,
-                             QLabel, QInputDialog)
+from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout)
 
-from qfluentwidgets import (CardWidget, CaptionLabel, MessageBoxBase, PlainTextEdit, StrongBodyLabel, SubtitleLabel, ToolButton, ComboBox,
-                            FluentIcon, BodyLabel, isDarkTheme)
+from qfluentwidgets import (CardWidget, CaptionLabel, MessageBoxBase, PlainTextEdit,ToolButton, ComboBox,
+                            FluentIcon, BodyLabel)
 
 from Widget.Separator import Separator
+from Base.Base import Base
 
-class DialogueFragmentCard(CardWidget):
+class DialogueFragmentCard(CardWidget,Base):
     contentChanged = pyqtSignal(str)  # 内容变化信号
     delete_requested = pyqtSignal()
     config_changed = pyqtSignal(dict)
@@ -16,7 +15,22 @@ class DialogueFragmentCard(CardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumWidth(300)
+        # 初始化角色选项数据
+        self._setup_role_data()
+        # 布局
         self._setup_ui()
+
+    def _setup_role_data(self):
+        """初始化角色多语言数据"""
+        self.role_pairs = [
+            (self.tra("用户"), "user"),
+            (self.tra("模型"), "assistant"),
+            (self.tra("系统"), "system")
+        ]
+        self.translated_role_pairs = [
+            (self.tra(display), value) for display, value in self.role_pairs
+        ]
+        self.role_options = [display for display, _ in self.translated_role_pairs]
 
     def _setup_ui(self):
         # 主布局
@@ -30,7 +44,7 @@ class DialogueFragmentCard(CardWidget):
         # 左侧角色选择
         role_layout = QHBoxLayout()
         self.role_combo = ComboBox(self)
-        self.role_combo.addItems(["用户", "模型", "系统"])
+        self.role_combo.addItems(self.role_options)  # 使用翻译后的选项
         role_layout.addWidget(self.role_combo, alignment=Qt.AlignLeft)
         role_layout.setSpacing(8)
         
@@ -76,17 +90,29 @@ class DialogueFragmentCard(CardWidget):
         main_layout.addWidget(self.response_label)
 
 
-        # 连接信号
+        # 编辑按钮连接信号
         self.edit_btn.clicked.connect(self._on_edit_clicked)
-        # 连接信号
-        self.delete_btn.clicked.connect(self._on_delete_clicked)
-        self.role_combo.currentTextChanged.connect(self._emit_config_update)
         self.contentChanged.connect(self._emit_config_update)
+
+        # 删除按钮连接信号
+        self.delete_btn.clicked.connect(self._on_delete_clicked)
+
+        # 用户组下拉框连接信号
+        self.role_combo.currentTextChanged.connect(self._emit_config_update)
+
 
 
     def load_config(self, settings):
         """从用户配置加载数据，初始化属性"""
-        self.role_combo.setCurrentText(settings.get("role", "用户"))
+        # 根据存储的值设置当前选项
+        current_value = settings.get("role", "user")
+        index = next(
+            (i for i, (_, value) in enumerate(self.translated_role_pairs) if value == current_value),
+            0  # 默认第一个选项
+        )
+        self.role_combo.setCurrentIndex(max(0, index))
+        
+        # 原有内容初始化保持不变
         self.set_content(settings.get("content", ""))
 
 
@@ -95,9 +121,16 @@ class DialogueFragmentCard(CardWidget):
         self.delete_requested.emit()
 
     def _emit_config_update(self):
-        """发送配置更新"""
+        """发送配置更新（新增角色值转换）"""
+        current_display = self.role_combo.currentText()
+        # 查找对应的存储值
+        current_value = next(
+            (value for display, value in self.translated_role_pairs if display == current_display),
+            "user"  # 默认值
+        )
+        
         self.config_changed.emit({
-            "role": self.role_combo.currentText(),
+            "role": current_value,  # 存储原始值
             "content": self.content(),
             "system_info": self.system_label.text()
         })
@@ -120,7 +153,7 @@ class DialogueFragmentCard(CardWidget):
         """设置内容文本"""
         self.content_label.setText(text)
         self.content_label.adjustSize()
-        self.adjustSize()
+
 
     def set_system_info(self, text: str):
         """设置系统提示信息"""
@@ -132,7 +165,7 @@ class DialogueFragmentCard(CardWidget):
             self.system_label.clear()
             self.system_separator.setVisible(False)
             self.system_label.setVisible(False)
-        self.adjustSize()
+
 
     def set_response_info(self, text: str):
         """设置AI回复信息"""
@@ -144,11 +177,10 @@ class DialogueFragmentCard(CardWidget):
             self.response_label.clear()
             self.response_separator.setVisible(False)
             self.response_label.setVisible(False)
-        self.adjustSize()
 
 
     def content(self) -> str:
-        """获取内容文本"""
+        """获取编辑框的文本"""
         return self.content_label.text()
 
 

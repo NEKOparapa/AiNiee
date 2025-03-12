@@ -1,4 +1,3 @@
-import os
 import yaml
 
 from PyQt5.QtWidgets import QFrame

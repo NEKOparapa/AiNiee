@@ -32,7 +32,7 @@ class AppSettingsPage(QWidget, Base):
             "proxy_url": "",
             "proxy_enable": False,
             "font_hinting": True,
-            "scale_factor": "自动",
+            "scale_factor": "AUTO",
             "interface_language_setting": "简中",
         }
 
@@ -81,11 +81,11 @@ class AppSettingsPage(QWidget, Base):
         def init(widget) -> None:
             widget.set_text(config.get("proxy_url"))
             widget.set_fixed_width(256)
-            widget.set_placeholder_text("请输入网络代理地址 ...")
+            widget.set_placeholder_text(self.tra("请输入网络代理地址"))
 
             swicth_button = SwitchButton()
-            swicth_button.setOnText("启用")
-            swicth_button.setOffText("禁用")
+            swicth_button.setOnText(self.tra("启用"))
+            swicth_button.setOffText(self.tra("禁用"))
             swicth_button.setChecked(config.get("proxy_enable", False))
             swicth_button.checkedChanged.connect(lambda checked: checked_changed(swicth_button, checked))
             widget.add_spacing(8)
@@ -98,8 +98,8 @@ class AppSettingsPage(QWidget, Base):
 
         parent.addWidget(
             LineEditCard(
-                "网络代理地址",
-                "启用该功能后，将使用设置的代理地址向接口发送请求，例如 http://127.0.0.1:7890",
+                self.tra("网络代理地址"),
+                self.tra("启用该功能后，将使用设置的代理地址向接口发送请求，例如 http://127.0.0.1:7890"),
                 init = init,
                 text_changed = text_changed,
             )
@@ -117,8 +117,8 @@ class AppSettingsPage(QWidget, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                "应用字体优化",
-                "启用此功能后，字体的边缘渲染将更加圆润（将在应用重启后生效）",
+                self.tra("应用字体优化"),
+                self.tra("启用此功能后，字体的边缘渲染将更加圆润（将在应用重启后生效）"),
                 init = init,
                 checked_changed = checked_changed,
             )
@@ -140,8 +140,8 @@ class AppSettingsPage(QWidget, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                "调试模式",
-                "启用此功能后，应用将显示额外的调试信息",
+                self.tra("调试模式"),
+                self.tra("启用此功能后，应用将显示额外的调试信息"),
                 init = init,
                 checked_changed = checked_changed,
             )
@@ -159,9 +159,9 @@ class AppSettingsPage(QWidget, Base):
 
         parent.addWidget(
             ComboBoxCard(
-                "全局缩放比例",
-                "启用此功能后，应用界面将按照所选比例进行缩放（将在应用重启后生效）",
-                ["自动", "50%", "75%", "150%", "200%"],
+                self.tra("全局缩放比例"),
+                self.tra("启用此功能后，应用界面将按照所选比例进行缩放（将在应用重启后生效）"),
+                ["AUTO", "50%", "75%", "150%", "200%"],
                 init = init,
                 current_text_changed = current_text_changed,
             )
@@ -180,8 +180,8 @@ class AppSettingsPage(QWidget, Base):
 
         parent.addWidget(
             ComboBoxCard(
-                "界面语言设置",
-                "启用此功能后，应用界面将按照所选语言进行显示（将在应用重启后生效）",
+                self.tra("界面语言设置"),
+                self.tra("应用界面将按照所选语言进行显示（将在应用重启后生效）"),
                 ["简中", "繁中", "English", "日本語"],
                 init = init,
                 current_text_changed = current_text_changed,
@@ -206,19 +206,19 @@ class AppSettingsPage(QWidget, Base):
                 with open(path, "r", encoding = "utf-8") as reader:
                     profile = json.load(reader)
             else:
-                self.error_toast("", "配置文件不存在！")
+                self.error_toast("", self.tra("配置文件不存在！"))
                 return
 
             if len(profile) == 0 or "target_platform" not in profile:
-                self.error_toast("", "配置文件内容未通过校验！")
+                self.error_toast("", self.tra("配置文件内容未通过校验！"))
                 return
 
             # 确认框
-            message_box = MessageBox("警告", "是否确认导入选中的配置文件，导入后应用将自动重启 ...", window)
-            message_box.yesButton.setText("确认")
-            message_box.cancelButton.setText("取消")
+            message_box = MessageBox("Warning", self.tra("是否确认导入选中的配置文件，导入后应用将自动重启"), window)
+            message_box.yesButton.setText(self.tra("确认"))
+            message_box.cancelButton.setText(self.tra("取消"))
             if message_box.exec():
-                self.success_toast("", "配置文件导入成功，应用即将自动重启！")
+                self.success_toast("", self.tra("配置文件导入成功，应用即将自动重启！"))
             else:
                 return
 
@@ -240,11 +240,12 @@ class AppSettingsPage(QWidget, Base):
             with open(f"{path}/ainiee_profile.json", "w", encoding = "utf-8") as writer:
                 writer.write(json.dumps(config, indent = 4, ensure_ascii = False))
 
-            self.success_toast("", "配置已导出为 \"ainiee_profile.json\" ...")
+            info_cont = self.tra("配置已导出为") + " \"ainiee_profile.json\" ..."
+            self.success_toast("", info_cont)
 
         # 导入按钮点击事件
         def on_improt_button_clicked() -> None:
-            path, _ = QFileDialog.getOpenFileName(None, "选择文件", "", "json files (*.json)")
+            path, _ = QFileDialog.getOpenFileName(None, self.tra("选择文件"), "", "json files (*.json)")
 
             if path == None or path == "":
                 return
@@ -252,7 +253,7 @@ class AppSettingsPage(QWidget, Base):
             import_profile_file(path)
         # 导出按钮点击事件
         def on_exprot_button_clicked() -> None:
-            path = QFileDialog.getExistingDirectory(None, "选择文件夹", "")
+            path = QFileDialog.getExistingDirectory(None, self.tra("选择文件夹"), "")
 
             if path == None or path == "":
                 return
@@ -260,12 +261,12 @@ class AppSettingsPage(QWidget, Base):
             export_profile_file(path)
 
         def init(widget) -> None:
-            improt_button = PushButton("导入", self)
+            improt_button = PushButton(self.tra("导入"), self)
             improt_button.setIcon(FluentIcon.DOWNLOAD)
             improt_button.setContentsMargins(4, 0, 4, 0)
             improt_button.clicked.connect(on_improt_button_clicked)
 
-            export_button = PushButton("导出", self)
+            export_button = PushButton(self.tra("导出"), self)
             export_button.setIcon(FluentIcon.SHARE)
             export_button.setContentsMargins(4, 0, 4, 0)
             export_button.clicked.connect(on_exprot_button_clicked)
@@ -276,8 +277,8 @@ class AppSettingsPage(QWidget, Base):
 
         parent.addWidget(
             EmptyCard(
-                "应用配置切换",
-                "可以将当前应用的除接口信息以外的所有设置导出为配置文件，以方便根据不同项目切换配置（导入配置后应用将自动重启）",
+                self.tra("应用配置切换"),
+                self.tra("可以将当前应用的除接口信息以外的所有设置导出为配置文件，以方便根据不同项目切换配置（导入配置后应用将自动重启）"),
                 init = init,
             )
         )

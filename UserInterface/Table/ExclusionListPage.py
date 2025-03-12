@@ -82,10 +82,9 @@ class ExclusionListPage(QFrame, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                "禁翻表",
-                (
-                "通过构建禁翻表来引导模型，禁止翻译文本中的特殊标记符，占位符，代码段等内容"                   
-                + "\n" + "触发机制: 文本含有标记符，或者正则表达式提取生效"
+                self.tra("禁翻表"),
+                self.tra(
+                "通过构建禁翻表来引导模型，禁止翻译文本中的特殊标记符，占位符，代码段等内容\n触发机制: 文本含有标记符，或者正则表达式提取生效"
                 ),
                 init = init,
                 checked_changed = checked_changed,
@@ -112,12 +111,15 @@ class ExclusionListPage(QFrame, Base):
         self.table.itemChanged.connect(item_changed)
 
         # 设置水平表头并隐藏垂直表头
+        info_cont1 = self.tra("标记符")
+        info_cont2 = self.tra("备注")
+        info_cont3 = self.tra("正则")
         self.table.verticalHeader().setDefaultAlignment(Qt.AlignCenter)
         self.table.setHorizontalHeaderLabels(
             [
-                "标记符",
-                "备注",
-                "正则",
+                info_cont1,
+                info_cont2,
+                info_cont3,
             ],
         )
 
@@ -133,9 +135,10 @@ class ExclusionListPage(QFrame, Base):
         self.add_command_bar_action_import(self.command_bar_card, config, window)
         self.add_command_bar_action_export(self.command_bar_card, config, window)
         self.command_bar_card.add_separator()
-        self.add_command_bar_action_add(self.command_bar_card, config, window)
-        self.add_command_bar_action_save(self.command_bar_card, config, window)
+        self.add_command_bar_action_insert(self.command_bar_card, config, window)  # 新增插入行按钮
+        self.add_command_bar_action_removeselectedline(self.command_bar_card, config, window)
         self.command_bar_card.add_separator()
+        self.add_command_bar_action_save(self.command_bar_card, config, window)
         self.add_command_bar_action_reset(self.command_bar_card, config, window)
 
     # 导入
@@ -143,7 +146,7 @@ class ExclusionListPage(QFrame, Base):
 
         def triggered() -> None:
             # 选择文件
-            path, _ = QFileDialog.getOpenFileName(None, "选择文件", "", "json 文件 (*.json);;xlsx 文件 (*.xlsx)")
+            path, _ = QFileDialog.getOpenFileName(None, self.tra("选择文件"), "", "json 文件 (*.json);;xlsx 文件 (*.xlsx)")
             if not isinstance(path, str) or path == "":
                 return
 
@@ -164,46 +167,34 @@ class ExclusionListPage(QFrame, Base):
             config = self.save_config(config)
 
             # 弹出提示
-            self.success_toast("", "数据已导入 ...")
+            info_cont1 = self.tra("数据已导入") + "..."
+            self.success_toast("", info_cont1)
 
         parent.add_action(
-            Action(FluentIcon.DOWNLOAD, "导入", parent, triggered = triggered),
+            Action(FluentIcon.DOWNLOAD, self.tra("导入"), parent, triggered = triggered),
         )
 
     # 导出
     def add_command_bar_action_export(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
 
         def triggered() -> None:
-            # 加载配置文件
-            config = self.load_config()
 
             # 从表格加载数据
             data = TableHelper.load_from_table(self.table, ExclusionListPage.KEYS)
 
             # 导出文件
-            with open(f"导出_禁翻表.json", "w", encoding = "utf-8") as writer:
+            info_cont1 = self.tra("导出_禁翻表")+ ".json"
+            with open(info_cont1, "w", encoding = "utf-8") as writer:
                 writer.write(json.dumps(data, indent = 4, ensure_ascii = False))
 
             # 弹出提示
-            self.success_toast("", "数据已导出到应用根目录 ...")
+            info_cont2 = self.tra("数据已导出到应用根目录") + "..."
+            self.success_toast("", info_cont2)
 
         parent.add_action(
-            Action(FluentIcon.SHARE, "导出", parent, triggered = triggered),
+            Action(FluentIcon.SHARE, self.tra("导出"), parent, triggered = triggered),
         )
 
-    # 添加新行
-    def add_command_bar_action_add(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
-
-        def triggered() -> None:
-            # 添加新行
-            self.table.setRowCount(self.table.rowCount() + 1)
-
-            # 弹出提示
-            self.success_toast("", "新行已添加 ...")
-
-        parent.add_action(
-            Action(FluentIcon.ADD_TO, "添加", parent, triggered = triggered),
-        )
 
     # 保存
     def add_command_bar_action_save(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
@@ -228,19 +219,21 @@ class ExclusionListPage(QFrame, Base):
             config = self.save_config(config)
 
             # 弹出提示
-            self.success_toast("", "数据已保存 ...")
+            info_cont1 = self.tra("数据已保存")+ " ... "
+            self.success_toast("", info_cont1)
 
         parent.add_action(
-            Action(FluentIcon.SAVE, "保存", parent, triggered = triggered),
+            Action(FluentIcon.SAVE, self.tra("保存"), parent, triggered = triggered),
         )
 
     # 重置
     def add_command_bar_action_reset(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
 
         def triggered() -> None:
-            message_box = MessageBox("警告", "是否确认重置为默认数据 ... ？", window)
-            message_box.yesButton.setText("确认")
-            message_box.cancelButton.setText("取消")
+            info_cont1 = self.tra("是否确认重置为默认数据")  + " ... ？"
+            message_box = MessageBox("Warning", info_cont1, window)
+            message_box.yesButton.setText(self.tra("确认"))
+            message_box.cancelButton.setText(self.tra("取消") )
 
             if not message_box.exec():
                 return
@@ -261,8 +254,55 @@ class ExclusionListPage(QFrame, Base):
             TableHelper.update_to_table(self.table, config.get("exclusion_list_data"), ExclusionListPage.KEYS)
 
             # 弹出提示
-            self.success_toast("", "数据已重置 ...")
+            info_cont2 = self.tra("数据已重置")  + " ... "
+            self.success_toast("", info_cont2)
 
         parent.add_action(
-            Action(FluentIcon.DELETE, "重置", parent, triggered = triggered),
+            Action(FluentIcon.DELETE, self.tra("重置"), parent, triggered = triggered),
+        )
+
+    # 移除选取行
+    def add_command_bar_action_removeselectedline(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
+        def triggered() -> None:
+            indices = self.table.selectionModel().selectedRows()
+            if not indices:
+                return
+            
+            for index in reversed(sorted(indices)):
+                self.table.removeRow(index.row())
+
+            self.table.selectRow(-1)
+
+            # 提示操作完成
+            info_cont = self.tra("选取行已移除") + "..."
+            self.success_toast("", info_cont)
+
+
+        parent.add_action(
+            Action(FluentIcon.REMOVE_FROM, self.tra("移除选取行"), parent, triggered = triggered),
+        )
+
+    # 插入行
+    def add_command_bar_action_insert(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
+
+        def triggered() -> None:
+            # 获取所有选中的行号（去重）
+            selected_rows = {item.row() for item in self.table.selectedItems()}
+            # 按降序排序以正确处理多选插入
+            sorted_rows = sorted(selected_rows, reverse=True)
+
+            if not sorted_rows:
+                # 没有选中行时在末尾添加
+                self.table.setRowCount(self.table.rowCount() + 1)
+            else:
+                for row in sorted_rows:
+                    self.table.insertRow(row + 1)  # 在选中行下方插入
+
+            # 提示操作完成
+            info_cont = self.tra("新行已插入") + "..."
+            self.success_toast("", info_cont)
+
+        # 创建并添加Action到命令栏
+        parent.add_action(
+            Action(FluentIcon.ADD_TO, self.tra("插入行"), parent, triggered=triggered)
         )

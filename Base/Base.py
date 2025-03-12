@@ -35,6 +35,12 @@ class Status():
     STOPING = 4000                                  # 停止中
     NEW_PROCESS_TEST = 3500     # 新流程测试中
 
+class Language():
+    LANG_SIMPLIFIED_CHINESE = "简中"
+    LANG_TRADITIONAL_CHINESE = "繁中"
+    LANG_ENGLISH = "English"
+
+
 class Base():
 
     # 事件列表
@@ -43,11 +49,34 @@ class Base():
     # 状态列表
     STATUS = Status()
 
+    # 语言列表
+    LANGUAGE = Language()  #类属性
+
     # 配置文件路径
     CONFIG_PATH = "./Resource/config.json"
 
     # 类线程锁
     CONFIG_FILE_LOCK = threading.Lock()
+
+    # 多语言界面配置信息 (类变量)
+    multilingual_interface_dict = {}
+
+    # 当前语言 (类变量)
+    current_interface_language = LANGUAGE.LANG_SIMPLIFIED_CHINESE
+
+    # 多语言配置路径
+    translation_json_file = "./Resource/Localization"
+
+    # UI文本翻译
+    @classmethod # 类方法，因为要访问类变量
+    def tra(cls, text): # 修改为 cls
+        translation = cls.multilingual_interface_dict.get(text) # 使用 cls.multilingual_interface_dict
+        if translation:
+            translation_text = translation.get(cls.current_interface_language) # 使用 cls.current_interface_language
+            if translation_text:
+                return translation_text
+        return text
+
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -61,41 +90,23 @@ class Base():
         # 类变量
         Base.work_status = Base.STATUS.IDLE if not hasattr(Base, "work_status") else Base.work_status
 
-        # 多语言配置路径
-        self.translation_json_file = "./Resource/Localization"
-        # 当前语言
-        self.current_interface_language = "简中"
-        # 多语言界面配置信息
-        self.multilingual_interface_dict = {}
 
-
-    # 读取多语言配置信息
-    def load_translations(self,folder_path):
-        combined_data = {}  # 用于存储合并后的数据，并实现去重
-
+    # 读取多语言配置信息方法
+    def load_translations(cls, folder_path):
+        combined_data = {}
         for filename in os.listdir(folder_path):
             if filename.endswith(".json"):
                 filepath = os.path.join(folder_path, filename)
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    for top_level_key in data: # 遍历 "some1", "some2" 这样的顶级键
-                        for key, value in data[top_level_key].items(): # 遍历二级键，如 "确定", "我的应用"
-                            combined_data[key] = value # 使用键来去重，如果键已存在，则会被覆盖 
+                try: 
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        for top_level_key in data:
+                            for key, value in data[top_level_key].items():
+                                combined_data[key] = value
+                except Exception as e:
+                    print(f"[red]Error loading translation file {filename}: {e}[/red]")
+                    traceback.print_exc() # 打印更详细的错误信息
         return combined_data
-
-    # 设置当前语言
-    def set_current_language(self, current_language):
-        self.current_interface_language = current_language
-
-    # UI文本翻译
-    def tra(self, text):
-        translation = self.multilingual_interface_dict.get(text) # 尝试获取 text 对应的内部字典
-        if translation: # 如果找到了 text 对应的内部字典
-            translation_text = translation.get(self.current_interface_language) # 尝试获取当前语言的翻译
-            if translation_text: # 如果找到了当前语言的翻译
-                return translation_text
-            
-        return text # 如果任何查找失败，返回原始文本
 
 
     # 检查是否处于调试模式

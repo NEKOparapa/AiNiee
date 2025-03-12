@@ -23,7 +23,7 @@ class APIEditPage(MessageBoxBase, Base):
 
         # 设置框体
         self.widget.setFixedSize(960, 720)
-        self.yesButton.setText("关闭")
+        self.yesButton.setText(self.tra("关闭"))
         self.cancelButton.hide()
 
         # 载入配置文件
@@ -78,7 +78,8 @@ class APIEditPage(MessageBoxBase, Base):
         def init(widget):
             widget.set_text(config.get("platforms").get(self.key).get("api_url"))
             widget.set_fixed_width(256)
-            widget.set_placeholder_text("请输入接口地址 ...")
+            info_cont = self.tra("请输入接口地址") + " ..."
+            widget.set_placeholder_text(info_cont)
 
         def text_changed(widget, text: str):
             config = self.load_config()
@@ -87,8 +88,8 @@ class APIEditPage(MessageBoxBase, Base):
 
         parent.addWidget(
             LineEditCard(
-                "接口地址",
-                "请输入接口地址，例如 https://api.deepseek.com",
+                self.tra("接口地址"),
+                self.tra("请输入接口地址，例如 https://api.deepseek.com"),
                 init = init,
                 text_changed = text_changed,
             )
@@ -106,8 +107,8 @@ class APIEditPage(MessageBoxBase, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                "接口地址自动补全",
-                "将自动为你填写接口地址，例如 https://api.deepseek.com -> https://api.deepseek.com/v1",
+                self.tra("接口地址自动补全"),
+                self.tra("将自动为你填写接口地址，例如 https://api.deepseek.com -> https://api.deepseek.com/v1"),
                 init = init,
                 checked_changed = checked_changed,
             )
@@ -124,14 +125,14 @@ class APIEditPage(MessageBoxBase, Base):
         def init(widget):
             plain_text_edit = PlainTextEdit(self)
             plain_text_edit.setPlainText(config.get("platforms").get(self.key).get("api_key"))
-            plain_text_edit.setPlaceholderText("请输入接口密钥 ...")
+            plain_text_edit.setPlaceholderText(self.tra("请输入接口密钥"))
             plain_text_edit.textChanged.connect(lambda: text_changed(plain_text_edit))
             widget.addWidget(plain_text_edit)
 
         parent.addWidget(
             GroupCard(
-                "接口密钥",
-                "请输入接口密钥，例如 sk-d0daba12345678fd8eb7b8d31c123456，多个密钥之间请使用半角逗号（,）分隔",
+                self.tra("接口密钥"),
+                self.tra("请输入接口密钥，例如 sk-d0daba12345678fd8eb7b8d31c123456，多个密钥之间请使用半角逗号（,）分隔"),
                 init = init,
             )
         )
@@ -151,8 +152,8 @@ class APIEditPage(MessageBoxBase, Base):
 
         parent.addWidget(
             ComboBoxCard(
-                "接口格式",
-                "请选择接口格式，大部分模型使用 OpenAI 格式，部分中转站的 Claude 模型则使用 Anthropic 格式",
+                self.tra("接口格式"),
+                self.tra("请选择接口格式，大部分模型使用 OpenAI 格式，部分中转站的 Claude 模型则使用 Anthropic 格式"),
                 [],
                 init = init,
                 current_text_changed = current_text_changed,
@@ -161,24 +162,47 @@ class APIEditPage(MessageBoxBase, Base):
 
     # 账户类型
     def add_widget_account(self, parent, config):
-        def init(widget):
-            platform = config.get("platforms").get(self.key)
+        # 获取当前平台配置
+        platform = config.get("platforms").get(self.key)
+        
+        # 提取账户类型原始键并生成翻译后的键值对 (显示文本, 存储值)
+        account_datas = platform.get("account_datas", {})
+        account_keys = list(account_datas.keys())
+        translated_pairs = [(self.tra(key), key) for key in account_keys]  # 关键翻译步骤
+        
+        def init(widget) -> None:
+            """初始化时根据存储的原始键设置当前选项"""
+            current_value = platform.get("account", "")
+            
+            # 通过原始键查找对应索引
+            index = next(
+                (i for i, (_, key) in enumerate(translated_pairs) if key == current_value),
+                0  # 默认第一个选项
+            )
+            widget.set_current_index(max(0, index))
 
-            widget.set_items(platform.get("account_datas"))
-            widget.set_current_index(max(0, widget.find_text(platform.get("account"))))
-
-        def current_text_changed(widget, text: str):
+        def current_text_changed(widget, text: str) -> None:
+            """选项变化时存储对应的原始键"""
+            # 通过显示文本查找原始键
+            value = next(
+                (key for display, key in translated_pairs if display == text),
+                account_keys[0] if account_keys else ""  # 默认第一个键
+            )
+            
             config = self.load_config()
-            config["platforms"][self.key]["account"] = text.strip()
+            config["platforms"][self.key]["account"] = value
             self.save_config(config)
+
+        # 创建带翻译的选项列表
+        options = [display for display, _ in translated_pairs]
 
         parent.addWidget(
             ComboBoxCard(
-                "账户类型",
-                "请选择账户类型",
-                [],
-                init = init,
-                current_text_changed = current_text_changed,
+                self.tra("账户类型"),
+                self.tra("请选择账户类型"),
+                options,
+                init=init,
+                current_text_changed=current_text_changed
             )
         )
 
@@ -196,7 +220,7 @@ class APIEditPage(MessageBoxBase, Base):
             widget.set_items(items)
             widget.set_fixed_width(256)
             widget.set_current_index(max(0, widget.find_text(platforms.get("model"))))
-            widget.set_placeholder_text("请输入模型名称 ...")
+            widget.set_placeholder_text(self.tra("请输入模型名称"))
 
         def current_text_changed(widget, text: str):
             config = self.load_config()
@@ -209,8 +233,8 @@ class APIEditPage(MessageBoxBase, Base):
             self.save_config(config) # 保存配置
 
         card = EditableComboBoxCard(
-            "模型名称(可编辑)",
-            "请选择或者输入要使用的模型的名称",
+            self.tra("模型名称(可编辑)"),
+            self.tra("请选择或者输入要使用的模型的名称"),
             [],
             init = init,
             current_text_changed = current_text_changed,

@@ -1,18 +1,12 @@
-import re
-import threading
-
 import cohere                           # pip install cohere
 import anthropic                        # pip install anthropic
 import google.generativeai as genai     # pip install google-generativeai
 from openai import OpenAI               # pip install openai
 
-import rapidjson as json
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
-from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
-
 
 # 接口请求器
 class TranslatorRequester(Base):

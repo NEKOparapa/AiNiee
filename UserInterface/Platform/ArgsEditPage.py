@@ -24,7 +24,7 @@ class ArgsEditPage(MessageBoxBase, Base):
 
         # 设置框体
         self.widget.setFixedSize(960, 720)
-        self.yesButton.setText("关闭")
+        self.yesButton.setText(self.tra("关闭"))
         self.cancelButton.hide()
 
         # 载入配置文件
@@ -119,14 +119,15 @@ class ArgsEditPage(MessageBoxBase, Base):
             else:
                 plain_text_edit.setPlainText(json.dumps(extra_body))
 
-            plain_text_edit.setPlaceholderText("请输入自定义Body ...")
+            info_cont = self.tra("请输入自定义Body")
+            plain_text_edit.setPlaceholderText(info_cont)
             plain_text_edit.textChanged.connect(lambda: text_changed(plain_text_edit))
             widget.addWidget(plain_text_edit)
 
         parent.addWidget(
             GroupCard(
                 "extra_body",
-                "请输入自定义Body，例如 {\"provider\": {\"order\": [\"DeepInfra\", \"Together\"], \"allow_fallbacks\": false}}",
+                self.tra("请输入自定义Body，例如 {\"provider\": {\"order\": [\"DeepInfra\", \"Together\"], \"allow_fallbacks\": false}}"),
                 init = init,
             )
         )
@@ -151,10 +152,11 @@ class ArgsEditPage(MessageBoxBase, Base):
         else:
             default_value = preset.get("platforms").get("openai").get("top_p")
 
+        info_cont = self.tra("请谨慎设置，对于目标接口，此参数的默认值为") + f" {default_value}"
         parent.addWidget(
             SliderCard(
                 "top_p",
-                f"请谨慎设置，错误的值可能导致结果异常或者请求报错，对于目标接口，此参数的默认值为 {default_value}",
+                info_cont,
                 init = init,
                 value_changed = value_changed,
             )
@@ -179,10 +181,11 @@ class ArgsEditPage(MessageBoxBase, Base):
         else:
             default_value = preset.get("platforms").get("openai").get("temperature")
 
+        info_cont = self.tra("请谨慎设置，对于目标接口，此参数的默认值为") + f" {default_value}"
         parent.addWidget(
             SliderCard(
                 "temperature",
-                f"请谨慎设置，错误的值可能导致结果异常或者请求报错，对于目标接口，此参数的默认值为 {default_value}",
+                info_cont,
                 init = init,
                 value_changed = value_changed,
             )
@@ -207,10 +210,11 @@ class ArgsEditPage(MessageBoxBase, Base):
         else:
             default_value = preset.get("platforms").get("openai").get("presence_penalty")
 
+        info_cont = self.tra("请谨慎设置，对于目标接口，此参数的默认值为") + f" {default_value}"
         parent.addWidget(
             SliderCard(
                 "presence_penalty",
-                f"请谨慎设置，错误的值可能导致结果异常或者请求报错，对于目标接口，此参数的默认值为 {default_value}",
+                info_cont,
                 init = init,
                 value_changed = value_changed,
             )
@@ -235,10 +239,11 @@ class ArgsEditPage(MessageBoxBase, Base):
         else:
             default_value = preset.get("platforms").get("openai").get("frequency_penalty")
 
+        info_cont = self.tra("请谨慎设置，对于目标接口，此参数的默认值为") + f" {default_value}"
         parent.addWidget(
             SliderCard(
                 "frequency_penalty",
-                f"请谨慎设置，错误的值可能导致结果异常或者请求报错，对于目标接口，此参数的默认值为 {default_value}",
+                info_cont,
                 init = init,
                 value_changed = value_changed,
             )
@@ -263,7 +268,7 @@ class ArgsEditPage(MessageBoxBase, Base):
         if self.key == "anthropic":
             url = "https://docs.anthropic.com/en/api/getting-started"
 
-        hyper_link_label = HyperlinkLabel(QUrl(url), "点击查看文档")
+        hyper_link_label = HyperlinkLabel(QUrl(url), self.tra("点击查看文档"))
         hyper_link_label.setUnderlineVisible(True)
 
         parent.addSpacing(16)

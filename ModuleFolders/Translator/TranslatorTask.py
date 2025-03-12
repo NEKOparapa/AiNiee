@@ -480,13 +480,8 @@ class TranslatorTask(Base):
         for card in request_cards:
             if card["type"] == "DialogueFragmentCard":
                 settings = card["settings"]
-                role_mapping = {
-                    "系统": "system",
-                    "用户": "user",
-                    "模型": "assistant"
-                }
 
-                role = role_mapping.get(settings["role"], "user")
+                role = settings["role"]
                 content = settings["content"]
 
 
@@ -518,13 +513,8 @@ class TranslatorTask(Base):
         for card in request_cards:
             if card["type"] == "DialogueFragmentCard":
                 settings = card["settings"]
-                role_mapping = {
-                    "系统": "system",
-                    "用户": "user",
-                    "模型": "assistant"
-                }
 
-                role = role_mapping.get(settings["role"], "user")
+                role = settings["role"]
                 content = settings["content"]
 
 
@@ -568,7 +558,7 @@ class TranslatorTask(Base):
                 entries.append(f"{src}|{dst}|{info}")
         
         # 构建新术语表
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             term_table = "###术语表\n原文|译文|备注"
         else:
             term_table = "###Glossary\nOriginal Text|Translation|Remarks"

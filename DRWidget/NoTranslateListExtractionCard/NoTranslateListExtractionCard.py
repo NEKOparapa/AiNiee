@@ -6,8 +6,9 @@ from qfluentwidgets import (CardWidget, CaptionLabel, ToolButton,
                             FluentIcon, BodyLabel, StrongBodyLabel)
 
 from Widget.Separator import Separator
+from Base.Base import Base
 
-class NoTranslateListExtractionCard(CardWidget):
+class NoTranslateListExtractionCard(CardWidget,Base):
     delete_requested = pyqtSignal()  # 删除请求信号
     config_changed = pyqtSignal(dict)  # 配置变更信号
 
@@ -33,7 +34,7 @@ class NoTranslateListExtractionCard(CardWidget):
 
         # ------------------ 第一部分：头部 ------------------
         header_layout = QHBoxLayout()
-        title_label = StrongBodyLabel("禁翻表提取器", self)
+        title_label = StrongBodyLabel(self.tra("禁翻表提取器"), self)
         self.delete_btn = ToolButton(FluentIcon.DELETE, self)
 
         header_layout.addWidget(title_label)
@@ -70,9 +71,9 @@ class NoTranslateListExtractionCard(CardWidget):
         description_layout.setSpacing(16)
 
         # 创建三个信息块
-        input_block = create_info_block("输入源", "第一次回复内容")
-        rule_block = create_info_block("提取规则", "提取code标签内容，并记录到禁翻表")
-        placeholder_block = create_info_block("文本占位符", "{extracted_code_content}")
+        input_block = create_info_block(self.tra("输入源"), self.tra("第一次回复内容"))
+        rule_block = create_info_block(self.tra("提取规则"), self.tra("提取code标签内容，并记录到禁翻表"))
+        placeholder_block = create_info_block(self.tra("文本占位符"), "{extracted_code_content}")
 
         # 添加块到布局并设置拉伸比例
         description_layout.addWidget(input_block, 1)

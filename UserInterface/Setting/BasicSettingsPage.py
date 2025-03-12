@@ -65,32 +65,58 @@ class BasicSettingsPage(QFrame, Base):
 
     # 子任务切分模式
     def add_widget_01(self, parent, config) -> None:
-        def init(widget) -> None:
-            lines_limit_switch = config.get("lines_limit_switch")
-            tokens_limit_switch = config.get("tokens_limit_switch")
+        # 定义模式配对列表（显示文本, 存储值）
+        mode_pairs = [
+            (self.tra("行数模式"), "lines"),
+            (self.tra("Token模式"), "tokens")
+        ]
+        
+        # 生成翻译后的配对列表
+        translated_pairs = [(self.tra(display), value) for display, value in mode_pairs]
 
-            if lines_limit_switch and not tokens_limit_switch:
-                widget.set_current_index(0)
-            elif not lines_limit_switch and tokens_limit_switch:
-                widget.set_current_index(1)
+        def init(widget) -> None:
+            """初始化时根据配置设置当前选项"""
+            current_config = self.load_config()
+            
+            # 根据配置确定当前模式值
+            if current_config.get("lines_limit_switch", False):
+                current_value = "lines"
+            else:
+                current_value = "tokens"
+                
+            # 通过存储值查找对应的索引
+            index = next(
+                (i for i, (_, value) in enumerate(translated_pairs) if value == current_value),
+                0  # 默认选择第一个选项
+            )
+            widget.set_current_index(max(0, index))
 
         def current_text_changed(widget, text: str) -> None:
+            """选项变化时更新配置"""
+            # 通过显示文本查找对应的存储值
+            value = next(
+                (value for display, value in translated_pairs if display == text),
+                "tokens"  # 默认值
+            )
+            
             config = self.load_config()
-
-            if text == "行数模式":
+            if value == "lines":
                 config["lines_limit_switch"] = True
                 config["tokens_limit_switch"] = False
-            elif text == "Token 模式":
+            else:
                 config["lines_limit_switch"] = False
                 config["tokens_limit_switch"] = True
-
+                
             self.save_config(config)
             self.update_limit_cards_visibility(config)
 
+        # 创建选项列表（使用翻译后的显示文本）
+        options = [display for display, value in translated_pairs]
+
         self.mode_combo_box = ComboBoxCard(
-            "翻译任务切分模式",
-            "选择翻译任务切分的模式",
-            ["行数模式", "Token 模式"],
+            self.tra("翻译任务切分模式"),
+            self.tra("选择翻译任务切分的模式"),
+            options,
             init=init,
             current_text_changed=current_text_changed,
         )
@@ -108,8 +134,8 @@ class BasicSettingsPage(QFrame, Base):
             self.save_config(config)
 
         self.lines_limit_card = SpinCard(
-            "翻译任务的文本行数",
-            "当翻译任务切分模式设置为 行数模式 时，按此值对原文进行切分",
+            self.tra("翻译任务的文本行数"),
+            self.tra("当翻译任务切分模式设置为 行数模式 时，按此值对原文进行切分"),
             init=init,
             value_changed=value_changed,
         )
@@ -127,8 +153,8 @@ class BasicSettingsPage(QFrame, Base):
             self.save_config(config)
 
         self.tokens_limit_card = SpinCard(
-            "翻译任务的 Token 数量",
-            "当翻译任务切分模式设置为 Token 模式 时，按此值对原文进行切分",
+            self.tra("翻译任务的 Token 数量"),
+            self.tra("当翻译任务切分模式设置为 Token 模式 时，按此值对原文进行切分"),
             init=init,
             value_changed=value_changed,
         )
@@ -147,8 +173,8 @@ class BasicSettingsPage(QFrame, Base):
 
         parent.addWidget(
             SpinCard(
-                "并发任务数",
-                "合理设置可以极大的增加翻译速度，请设置为本地模型的 np 值或者参考在线接口的官方文档，设置为 0 为自动模式",
+                self.tra("并发任务数"),
+                self.tra("合理设置可以极大的增加翻译速度，请设置为本地模型的 np 值或者参考在线接口的官方文档，设置为 0 为自动模式"),
                 init = init,
                 value_changed = value_changed,
             )
@@ -167,8 +193,8 @@ class BasicSettingsPage(QFrame, Base):
 
         parent.addWidget(
             SpinCard(
-                "参考上文行数",
-                "行数不宜设置过大，建议10行以内 (不支持本地类接口)",
+                self.tra("参考上文行数"),
+                self.tra("行数不宜设置过大，建议10行以内 (不支持本地类接口)"),
                 init = init,
                 value_changed = value_changed,
             )
@@ -187,8 +213,8 @@ class BasicSettingsPage(QFrame, Base):
 
         parent.addWidget(
             SpinCard(
-                "请求超时时间（秒）",
-                "翻译任务发起请求时等待模型回复的最长时间，超时仍未收到回复，则会判断为任务失败（不支持 Google 系列模型）",
+                self.tra("请求超时时间(s)"),
+                self.tra("翻译任务发起请求时等待模型回复的最长时间，超时仍未收到回复，则会判断为任务失败"),
                 init = init,
                 value_changed = value_changed,
             )
@@ -207,8 +233,8 @@ class BasicSettingsPage(QFrame, Base):
 
         parent.addWidget(
             SpinCard(
-                "翻译流程的最大轮次",
-                "当完成一轮翻译后，如果还有未翻译的条目，将重新开始新的翻译流程，直到翻译完成或者达到最大轮次",
+                self.tra("翻译流程的最大轮次"),
+                self.tra("当完成一轮翻译后，如果还有未翻译的条目，将重新开始新的翻译流程，直到翻译完成或者达到最大轮次"),
                 init = init,
                 value_changed = value_changed,
             )

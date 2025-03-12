@@ -1,0 +1,258 @@
+{
+  "PART_1": {
+    "接口测试正在执行中，请稍后再试": {
+      "简中": "接口测试正在执行中，请稍后再试",
+      "繁中": "介面測試執行中，請稍後再試",
+      "English": "Interface test in progress, please wait...",
+      "日本語": "インターフェースのテストを実行中です。しばらくお待ちください。"
+    },
+    "接口测试结果：成功": {
+      "简中": "接口测试结果：成功",
+      "繁中": "介面測試結果：成功",
+      "English": "Interface test result: Success",
+      "日本語": "インターフェースのテスト結果：成功"
+    },
+    "失败": {
+      "简中": "失败",
+      "繁中": "失敗",
+      "English": "Failed",
+      "日本語": "失敗"
+    },
+    "教程": {
+      "简中": "教程",
+      "繁中": "教學",
+      "English": "Tutorial",
+      "日本語": "チュートリアル"
+    },
+    "请输入新的接口名称": {
+      "简中": "请输入新的接口名称",
+      "繁中": "請輸入新的介面名稱",
+      "English": "Enter new interface name",
+      "日本語": "新しいインターフェース名を入力してください"
+    },
+    "新增": {
+      "简中": "新增",
+      "繁中": "新增",
+      "English": "Add",
+      "日本語": "新規追加"
+    }
+  },
+
+  "PART_2": {
+    "编辑接口": {
+      "简中": "编辑接口",
+      "繁中": "編輯介面",
+      "English": "Edit Interface",
+      "日本語": "インターフェースを編集"
+    },
+    "编辑限速": {
+      "简中": "编辑限速",
+      "繁中": "編輯限速",
+      "English": "Edit Rate Limit",
+      "日本語": "レート制限を編集"
+    },
+    "编辑参数": {
+      "简中": "编辑参数",
+      "繁中": "編輯參數",
+      "English": "Edit Parameters",
+      "日本語": "パラメータを編集"
+    },
+    "测试接口": {
+      "简中": "测试接口",
+      "繁中": "測試介面",
+      "English": "Test Interface",
+      "日本語": "インターフェースをテスト"
+    },
+    "删除接口": {
+      "简中": "删除接口",
+      "繁中": "刪除介面",
+      "English": "Delete Interface",
+      "日本語": "インターフェースを削除"
+    },
+    "本地接口": {
+      "简中": "本地接口",
+      "繁中": "本地介面",
+      "English": "Local Interface",
+      "日本語": "ローカルインターフェース"
+    },
+    "管理应用内置的本地大语言模型的接口": {
+      "简中": "管理应用内置的本地大语言模型的接口",
+      "繁中": "管理應用程式內建的本地大型語言模型的介面",
+      "English": "Manage local LLM interfaces",
+      "日本語": "ローカルLLMインターフェースを管理"
+    },
+    "官方接口": {
+      "简中": "官方接口",
+      "繁中": "官方介面",
+      "English": "Official Interface",
+      "日本語": "公式インターフェース"
+    }
+    ,
+    "管理应用内置的主流大语言模型的官方接口": {
+      "简中": "管理应用内置的主流大语言模型的官方接口",
+      "繁中": "管理應用程式內建的主流大型語言模型的官方介面",
+      "English": "Manage official mainstream LLM interfaces",
+      "日本語": "公式主流LLMインターフェースを管理"
+    },
+    "自定义接口": {
+      "简中": "自定义接口",
+      "繁中": "自訂介面",
+      "English": "Custom Interface",
+      "日本語": "カスタムインターフェース"
+    },
+    "在此添加和管理任何符合 OpenAI 格式或者 Anthropic 格式的大语言模型的接口": {
+      "简中": "在此添加和管理任何符合 OpenAI 格式或者 Anthropic 格式的大语言模型的接口",
+      "繁中": "在此新增和管理任何符合 OpenAI 格式或 Anthropic 格式的大型語言模型的介面",
+      "English": "Add & manage OpenAI/Anthropic format LLM interfaces here",
+      "日本語": "OpenAI/Anthropic形式のLLMインターフェースをここに追加・管理"
+    }
+  },
+
+  "PART_3": {
+    "请输入接口地址": {
+      "简中": "请输入接口地址",
+      "繁中": "請輸入介面位址",
+      "English": "Enter API address",
+      "日本語": "APIアドレスを入力してください"
+    },
+    "接口地址": {
+      "简中": "接口地址",
+      "繁中": "介面位址",
+      "English": "API Address",
+      "日本語": "APIアドレス"
+    },
+    "请输入接口地址，例如 https://api.deepseek.com": {
+      "简中": "请输入接口地址，例如 https://api.deepseek.com",
+      "繁中": "請輸入介面位址，例如 https://api.deepseek.com",
+      "English": "Enter API address, e.g., https://api.deepseek.com",
+      "日本語": "APIアドレスを入力してください（例：https://api.deepseek.com）"
+    },
+    "接口地址自动补全": {
+      "简中": "接口地址自动补全",
+      "繁中": "介面位址自動完成",
+      "English": "API address autocomplete",
+      "日本語": "APIアドレスの自動補完"
+    },
+    "接口格式": {
+      "简中": "接口格式",
+      "繁中": "介面格式",
+      "English": "API Format",
+      "日本語": "API形式"
+    },
+    "请选择接口格式，大部分模型使用 OpenAI 格式，部分中转站的 Claude 模型则使用 Anthropic 格式": {
+      "简中": "请选择接口格式，大部分模型使用 OpenAI 格式，部分中转站的 Claude 模型则使用 Anthropic 格式",
+      "繁中": "請選擇介面格式，大多數模型使用 OpenAI 格式，部分中轉站的 Claude 模型則使用 Anthropic 格式",
+      "English": "Select API format (OpenAI or Anthropic)",
+      "日本語": "API形式を選択（OpenAIまたはAnthropic）"
+    },
+    "将自动为你填写接口地址，例如 https://api.deepseek.com -> https://api.deepseek.com/v1": {
+      "简中": "将自动为你填写接口地址，例如 https://api.deepseek.com -> https://api.deepseek.com/v1",
+      "繁中": "將自動為您填寫介面位址，例如 https://api.deepseek.com -> https://api.deepseek.com/v1",
+      "English": "Auto-fill API address (e.g., https://api.deepseek.com -> https://api.deepseek.com/v1)",
+      "日本語": "APIアドレスを自動入力 (例：https://api.deepseek.com -> https://api.deepseek.com/v1)"
+    },
+    "接口密钥": {
+      "简中": "接口密钥",
+      "繁中": "介面金鑰",
+      "English": "API Key",
+      "日本語": "APIキー"
+    },
+    "请输入接口密钥，例如 sk-d0daba12345678fd8eb7b8d31c123456，多个密钥之间请使用半角逗号（,）分隔": {
+      "简中": "请输入接口密钥，例如 sk-d0daba12345678fd8eb7b8d31c123456，多个密钥之间请使用半角逗号（,）分隔",
+      "繁中": "請輸入介面金鑰，例如 sk-d0daba12345678fd8eb7b8d31c123456，多個金鑰之間請使用半形逗號（,）分隔",
+      "English": "Enter API key (comma-separated for multiple keys)",
+      "日本語": "APIキーを入力（複数キーはカンマ区切り）"
+    },
+    "账户类型": {
+      "简中": "账户类型",
+      "繁中": "帳戶類型",
+      "English": "Account Type",
+      "日本語": "アカウントタイプ"
+    }
+    ,
+    "请选择账户类型": {
+      "简中": "请选择账户类型",
+      "繁中": "請選擇帳戶類型",
+      "English": "Select account type",
+      "日本語": "アカウントタイプを選択してください"
+    },
+    "请输入模型名称": {
+      "简中": "请输入模型名称",
+      "繁中": "請輸入模型名稱",
+      "English": "Enter model name",
+      "日本語": "モデル名を入力してください"
+    },
+    "模型名称(可编辑)": {
+      "简中": "模型名称(可编辑)",
+      "繁中": "模型名稱 (可編輯)",
+      "English": "Model Name (Editable)",
+      "日本語": "モデル名（編集可能）"
+    },
+    "请选择或者输入要使用的模型的名称": {
+      "简中": "请选择或者输入要使用的模型的名称",
+      "繁中": "請選擇或輸入要使用的模型名稱",
+      "English": "Select or enter model name",
+      "日本語": "モデル名を選択または入力"
+    }
+  },
+
+  "PART_4": {
+    "请输入自定义Body": {
+      "简中": "请输入自定义Body",
+      "繁中": "請輸入自訂Body",
+      "English": "Enter custom Body",
+      "日本語": "カスタムBodyを入力してください"
+    },
+    "请输入自定义Body，例如 {\"provider\": {\"order\": [\"DeepInfra\", \"Together\"], \"allow_fallbacks\": false}}": {
+      "简中": "请输入自定义Body，例如 {\"provider\": {\"order\": [\"DeepInfra\", \"Together\"], \"allow_fallbacks\": false}}",
+      "繁中": "請輸入自訂Body，例如 {\"provider\": {\"order\": [\"DeepInfra\", \"Together\"], \"allow_fallbacks\": false}}",
+      "English": "Enter custom Body (e.g., {\"provider\": ...})",
+      "日本語": "カスタムBodyを入力（例：{\"provider\": ...}）"
+    },
+    "请谨慎设置，对于目标接口，此参数的默认值为": {
+      "简中": "请谨慎设置，对于目标接口，此参数的默认值为",
+      "繁中": "請謹慎設定，對於目標介面，此參數的預設值為",
+      "English": "Set with caution. Default value for this API is",
+      "日本語": "注意して設定してください。このAPIのデフォルト値は"
+    },
+    "点击查看文档": {
+      "简中": "点击查看文档",
+      "繁中": "點擊查看文件",
+      "English": "View documentation",
+      "日本語": "ドキュメントを見る"
+    }
+  },
+
+  "PART_5": {
+    "每分钟请求数": {
+      "简中": "每分钟请求数",
+      "繁中": "每分鐘請求數",
+      "English": "Requests Per Minute (RPM)",
+      "日本語": "1分あたりのリクエスト数 (RPM)"
+    },
+    "RPM，即每个密钥在一分钟内能响应的请求的最大数量": {
+      "简中": "RPM，即每个密钥在一分钟内能响应的请求的最大数量",
+      "繁中": "RPM，即每個金鑰在一分鐘內能回應的請求的最大數量",
+      "English": "RPM (Max requests per key per minute)",
+      "日本語": "RPM (キーあたりの最大リクエスト数/分)"
+    },
+    "每分钟 Token 数": {
+      "简中": "每分钟 Token 数",
+      "繁中": "每分鐘 Token 數",
+      "English": "Tokens Per Minute (TPM)",
+      "日本語": "1分あたりのトークン数 (TPM)"
+    },
+    "TPM，即每个密钥在一分钟内能生成的 Token 的最大数量": {
+      "简中": "TPM，即每个密钥在一分钟内能生成的 Token 的最大数量",
+      "繁中": "TPM，即每個金鑰在一分鐘內能產生的 Token 的最大數量",
+      "English": "TPM (Max tokens per key per minute)",
+      "日本語": "TPM (キーあたりの最大トークン数/分)"
+    },
+    "关闭": {
+      "简中": "关闭",
+      "繁中": "關閉",
+      "English": "Off",
+      "日本語": "オフ"
+    }
+  }
+}

@@ -24,27 +24,27 @@ class FileReader():
     # 根据文件类型读取文件
     def read_files (self,translation_project,label_input_path):
 
-        if translation_project == "Mtool导出文件":
+        if translation_project == "Mtool":
             cache_list = MToolReader.read_mtool_files(self,folder_path = label_input_path)
-        elif translation_project == "T++导出文件":
+        elif translation_project == "Tpp":
             cache_list = TPPReader.read_tpp_files (self,folder_path = label_input_path)
-        elif translation_project == "VNText导出文件":
+        elif translation_project == "Vnt":
             cache_list = VntReader.read_vnt_files(self,folder_path = label_input_path)
-        elif translation_project == "Srt字幕文件":
+        elif translation_project == "Srt":
             cache_list = SrtReader.read_srt_files(self,folder_path = label_input_path)
-        elif translation_project == "Vtt字幕文件":
+        elif translation_project == "Vtt":
             cache_list = VttReader.read_vtt_files(self,folder_path = label_input_path)
-        elif translation_project == "Lrc音声文件":
+        elif translation_project == "Lrc":
             cache_list = LrcReader.read_lrc_files(self,folder_path = label_input_path)
-        elif translation_project == "Txt小说文件":
+        elif translation_project == "Txt":
             cache_list = TxtReader.read_txt_files(self,folder_path = label_input_path)
-        elif translation_project == "Epub小说文件":
+        elif translation_project == "Epub":
             cache_list = EpubReader.read_epub_files(self,folder_path = label_input_path)
-        elif translation_project == "Docx文档文件":
+        elif translation_project == "Docx":
             cache_list = DocxReader.read_docx_files(self,folder_path = label_input_path)
-        elif translation_project == "Ainiee缓存文件":
+        elif translation_project == "Ainiee_cache":
             cache_list = FileReader.read_cache_files(self,folder_path = label_input_path)
-        if translation_project == "ParaTranz导出文件":
+        if translation_project == "Paratranz":
             cache_list = ParatranzReader.read_paratranz_files(self,folder_path = label_input_path)
         return cache_list
 

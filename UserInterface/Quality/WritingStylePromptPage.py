@@ -49,8 +49,8 @@ class WritingStylePromptPage(QFrame, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                "自定义翻译风格",
-                "启用此功能后，将根据本页中设置的内容构建翻译风格要求，并补充到基础提示词中（不支持本地类模型）",
+                self.tra("自定义翻译风格"),
+                self.tra("启用此功能后，将根据本页中设置的内容构建翻译风格要求，并补充到基础提示词中（不支持本地类模型）"),
                 widget_init,
                 widget_callback,
             )
@@ -83,18 +83,20 @@ class WritingStylePromptPage(QFrame, Base):
             config = self.save_config(config)
 
             # 弹出提示
-            self.success_toast("", "数据已保存 ...")
+            info_cont = self.tra("数据已保存") + " ..."
+            self.success_toast("", info_cont)
 
         parent.add_action(
-            Action(FluentIcon.SAVE, "保存", parent, triggered = callback),
+            Action(FluentIcon.SAVE, self.tra("保存"), parent, triggered = callback),
         )
 
     # 重置
     def add_command_bar_action_02(self, parent, window):
         def callback():
-            message_box = MessageBox("警告", "是否确认重置为默认数据 ... ？", window)
-            message_box.yesButton.setText("确认")
-            message_box.cancelButton.setText("取消")
+            info_cont1 = self.tra("是否确认重置为默认数据")  + " ... ？"
+            message_box = MessageBox("Warning", info_cont1, window)
+            message_box.yesButton.setText(self.tra("确认"))
+            message_box.cancelButton.setText(self.tra("取消"))
 
             if not message_box.exec():
                 return
@@ -115,8 +117,9 @@ class WritingStylePromptPage(QFrame, Base):
             self.plain_text_edit.setPlainText(config.get("writing_style_content"))
 
             # 弹出提示
-            self.success_toast("", "数据已重置 ...")
+            info_cont2 = self.tra("数据已重置")  + " ... "
+            self.success_toast("", info_cont2)
 
         parent.add_action(
-            Action(FluentIcon.DELETE, "重置", parent, triggered = callback),
+            Action(FluentIcon.DELETE,self.tra("重置"), parent, triggered = callback),
         )

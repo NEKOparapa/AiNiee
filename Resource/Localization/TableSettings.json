@@ -1,0 +1,118 @@
+{
+  "PART_1": {
+    "术语表": {
+      "简中": "术语表",
+      "繁中": "術語表",
+      "English": "Glossary",
+      "日本語": "用語集"
+    },
+    "通过构建术语表来引导模型翻译，可实现统一翻译、矫正人称属性等功能\n触发机制: 文本含有原名": {
+      "简中": "通过构建术语表来引导模型翻译，可实现统一翻译、矫正人称属性等功能\n触发机制: 文本含有原名",
+      "繁中": "通過構建術語表來引導模型翻譯，可實現統一翻譯、校正人稱屬性等功能\n觸發機制: 文本含有原名",
+      "English": "Guide model translation using a glossary for consistent terms and person attribute correction.\nTrigger: Text contains original term.",
+      "日本語": "用語集を構築してモデル翻訳をガイドし、翻訳の統一と人称属性の修正を実現します。\nトリガー：テキストに原文が含まれる場合"
+    },
+    "原文": {
+      "简中": "原文",
+      "繁中": "原文",
+      "English": "Original Text",
+      "日本語": "原文"
+    },
+    "译文": {
+      "简中": "译文",
+      "繁中": "譯文",
+      "English": "Translation",
+      "日本語": "翻訳文"
+    },
+    "描述": {
+      "简中": "描述",
+      "繁中": "描述",
+      "English": "Description",
+      "日本語": "説明"
+    },
+    "导出_术语表": {
+      "简中": "导出_术语表",
+      "繁中": "導出_術語表",
+      "English": "Export Glossary",
+      "日本語": "用語集をエクスポート"
+    }
+  },
+
+  "PART_2": {
+    "禁翻表": {
+      "简中": "禁翻表",
+      "繁中": "禁譯表",
+      "English": "Do Not Translate List",
+      "日本語": "禁翻リスト"
+    },
+    "通过构建禁翻表来引导模型，禁止翻译文本中的特殊标记符，占位符，代码段等内容\n触发机制: 文本含有标记符，或者正则表达式提取生效": {
+      "简中": "通过构建禁翻表来引导模型，禁止翻译文本中的特殊标记符，占位符，代码段等内容\n触发机制: 文本含有标记符，或者正则表达式提取生效",
+      "繁中": "通過構建禁譯表來引導模型，禁止翻譯文本中的特殊標記符、佔位符、代碼段等內容\n觸發機制: 文本含有標記符，或者正則表達式提取生效",
+      "English": "Guide the model with a do-not-translate list to prevent translation of markers, placeholders, code, etc.\nTrigger: Text contains markers or regex extraction is active.",
+      "日本語": "禁翻リストを構築してモデルをガイドし、テキスト内のマーカー、プレースホルダー、コードなどの翻訳を禁止します。\nトリガー：テキストにマーカーが含まれるか、正規表現による抽出が有効な場合"
+    },
+    "标记符": {
+      "简中": "标记符",
+      "繁中": "標記符",
+      "English": "Marker",
+      "日本語": "マーカー"
+    },
+    "备注": {
+      "简中": "备注",
+      "繁中": "備註",
+      "English": "Notes",
+      "日本語": "備考"
+    },
+    "正则": {
+      "简中": "正则",
+      "繁中": "正則",
+      "English": "Regex",
+      "日本語": "正規表現"
+    },
+    "导出_禁翻表": {
+      "简中": "导出_禁翻表",
+      "繁中": "導出_禁譯表",
+      "English": "Export Do Not Translate List",
+      "日本語": "禁翻リストをエクスポート"
+    }
+  },
+
+  "PART_3": {
+    "译前替换": {
+      "简中": "译前替换",
+      "繁中": "譯前替換",
+      "English": "Pre-translation Replacement",
+      "日本語": "翻訳前置換"
+    },
+    "在翻译开始前，将原文中匹配的部分替换为指定的文本，执行的顺序为从上到下依次替换": {
+      "简中": "在翻译开始前，将原文中匹配的部分替换为指定的文本，执行的顺序为从上到下依次替换",
+      "繁中": "在翻譯開始前，將原文中匹配的部分替換為指定的文本，執行的順序為從上到下依次替換",
+      "English": "Before translation, replace matched text in the original with specified text, sequentially from top to bottom.",
+      "日本語": "翻訳開始前に、原文の一致箇所を指定テキストに置換します。上から順に実行されます。"
+    },
+    "导出_译前替换": {
+      "简中": "导出_译前替换",
+      "繁中": "導出_譯前替換",
+      "English": "Export Pre-translation Replacement",
+      "日本語": "翻訳前置換をエクスポート"
+    },
+    "译后替换": {
+      "简中": "译后替换",
+      "繁中": "譯後替換",
+      "English": "Post-translation Replacement",
+      "日本語": "翻訳後置換"
+    },
+    "在翻译完成后，将译文中匹配的部分替换为指定的文本，执行的顺序为从上到下依次替换": {
+      "简中": "在翻译完成后，将译文中匹配的部分替换为指定的文本，执行的顺序为从上到下依次替换",
+      "繁中": "在翻譯完成後，將譯文中匹配的部分替換為指定的文本，執行的順序為從上到下依次替換",
+      "English": "After translation, replace matched text in the translation with specified text, sequentially from top to bottom.",
+      "日本語": "翻訳完了後、訳文の一致箇所を指定テキストに置換します。上から順に実行されます。"
+    },
+    "导出_译后替换": {
+      "简中": "导出_译后替换",
+      "繁中": "導出_譯後替換",
+      "English": "Export Post-translation Replacement",
+      "日本語": "翻訳後置換をエクスポート"
+    }
+  }
+}

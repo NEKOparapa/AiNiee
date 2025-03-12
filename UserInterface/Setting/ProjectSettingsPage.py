@@ -17,9 +17,9 @@ class ProjectSettingsPage(QFrame, Base):
         # 默认配置
         self.default = {
             "target_platform": "deepseek",
-            "translation_project": "Mtool导出文件",
-            "source_language": "日语",
-            "target_language": "简中",
+            "translation_project": "Txt",
+            "source_language": "japanese",
+            "target_language": "chinese_simplified",
             "label_input_path": "./input",
             "label_output_path": "./output",
         }
@@ -90,8 +90,8 @@ class ProjectSettingsPage(QFrame, Base):
 
         parent.addWidget(
             ComboBoxCard(
-                "接口名称",
-                "设置当前翻译项目所使用的接口的名称，注意，选择错误将不能进行翻译",
+                self.tra("接口名称"),
+                self.tra("设置当前翻译项目所使用的接口的名称，注意，选择错误将不能进行翻译"),
                 [],
                 init = init,
                 current_text_changed = current_text_changed,
@@ -100,91 +100,189 @@ class ProjectSettingsPage(QFrame, Base):
 
     # 项目类型
     def add_widget_02(self, parent, config) -> None:
+        # 定义项目类型与值的配对列表（显示文本, 存储值）
+        project_pairs = [
+            (self.tra("Txt小说文件"), "Txt"),
+            (self.tra("Srt字幕文件"), "Srt"),
+            (self.tra("Vtt字幕文件"), "Vtt"),
+            (self.tra("Lrc音声文件"), "Lrc"),
+            (self.tra("T++导出文件"), "Tpp"),
+            (self.tra("Epub小说文件"), "Epub"),
+            (self.tra("Docx文档文件"), "Docx"),
+            (self.tra("Mtool导出文件"), "Mtool"),
+            (self.tra("VNText导出文件"), "Vnt"),
+            (self.tra("Ainiee缓存文件"), "Ainiee_cache"),
+            (self.tra("ParaTranz导出文件"), "Paratranz"),
+        ]
+
+        # 生成翻译后的配对列表
+        translated_pairs = [(self.tra(display), value) for display, value in project_pairs]
+
         def init(widget) -> None:
-            widget.set_current_index(max(0, widget.find_text(config.get("translation_project"))))
+            """初始化时根据存储的值设置当前选项"""
+            current_config = self.load_config()
+            current_value = current_config.get("translation_project", "Txt")
+            
+            # 通过值查找对应的索引
+            index = next(
+                (i for i, (_, value) in enumerate(translated_pairs) if value == current_value),
+                0  # 默认选择第一个选项
+            )
+            widget.set_current_index(max(0, index))
 
         def current_text_changed(widget, text: str) -> None:
+            """选项变化时存储对应的值"""
+            # 通过显示文本查找对应的值
+            value = next(
+                (value for display, value in translated_pairs if display == text),
+                "Txt"  # 默认值
+            )
+            
             config = self.load_config()
-            config["translation_project"] = text
+            config["translation_project"] = value
             self.save_config(config)
+
+        # 创建选项列表（使用翻译后的显示文本）
+        options = [display for display, value in translated_pairs]
 
         parent.addWidget(
             ComboBoxCard(
-                "项目类型",
-                "设置当前翻译项目所使用的原始文本的格式，注意，选择错误将不能进行翻译",
-                [
-                    "Txt小说文件",
-                    "Srt字幕文件",
-                    "Vtt字幕文件",
-                    "Lrc音声文件",
-                    "T++导出文件",
-                    "Epub小说文件",
-                    "Docx文档文件",
-                    "Mtool导出文件",
-                    "VNText导出文件",
-                    "Ainiee缓存文件",
-                    "ParaTranz导出文件",
-                ],
-                init = init,
-                current_text_changed = current_text_changed,
+                self.tra("项目类型"),
+                self.tra("设置当前翻译项目所使用的原始文本的格式，注意，选择错误将不能进行翻译"),
+                options,
+                init=init,
+                current_text_changed=current_text_changed
             )
         )
 
+
     # 原文语言
     def add_widget_03(self, parent, config) -> None:
+        # 定义语言与值的配对列表（显示文本, 存储值）
+        source_language_pairs = [
+            (self.tra("日语"), "japanese"),
+            (self.tra("英语"), "english"),
+            (self.tra("韩语"), "korean"),
+            (self.tra("俄语"), "russian"),
+            (self.tra("德语"), "german"),
+            (self.tra("法语"), "french"),
+            (self.tra("简中"), "chinese_simplified"),
+            (self.tra("繁中"), "chinese_traditional"),
+            (self.tra("西班牙语"), "spanish"),
+        ]
+
+        # 生成翻译后的配对列表
+        translated_pairs = [(self.tra(display), value) for display, value in source_language_pairs]
+
         def init(widget) -> None:
-            widget.set_current_index(max(0, widget.find_text(config.get("source_language"))))
+            """初始化时根据存储的值设置当前选项"""
+            current_config = self.load_config()
+            current_value = current_config.get("source_language", "japanese")
+            
+            # 通过值查找对应的索引
+            index = next(
+                (i for i, (_, value) in enumerate(translated_pairs) if value == current_value),
+                0  # 默认选择第一个选项
+            )
+            widget.set_current_index(max(0, index))
 
         def current_text_changed(widget, text: str) -> None:
+            """选项变化时存储对应的值"""
+            # 通过显示文本查找对应的值
+            value = next(
+                (value for display, value in translated_pairs if display == text),
+                "japanese"  # 默认值
+            )
+            
             config = self.load_config()
-            config["source_language"] = text
+            config["source_language"] = value
             self.save_config(config)
+
+        # 创建选项列表（使用翻译后的显示文本）
+        options = [display for display, _ in translated_pairs]
 
         parent.addWidget(
             ComboBoxCard(
-                "原文语言",
-                "设置当前翻译项目所使用的原始文本的语言，注意，选择错误将不能进行翻译",
-                ["日语", "英语", "韩语", "俄语", "德语", "法语", "简中", "繁中", "西班牙语"],
-                init = init,
-                current_text_changed = current_text_changed,
+                self.tra("原文语言"),
+                self.tra("设置当前翻译项目所使用的原始文本的语言，注意，选择错误将不能进行翻译"),
+                options,
+                init=init,
+                current_text_changed=current_text_changed
             )
         )
 
     # 译文语言
     def add_widget_04(self, parent, config) -> None:
+        # 定义语言与值的配对列表（显示文本, 存储值）
+        target_language_pairs = [
+            (self.tra("简中"), "chinese_simplified"),
+            (self.tra("繁中"), "chinese_traditional"),
+            (self.tra("英语"), "english"),
+            (self.tra("日语"), "japanese"),
+            (self.tra("韩语"), "korean"),
+            (self.tra("俄语"), "russian"),
+            (self.tra("德语"), "german"),
+            (self.tra("法语"), "french"),
+            (self.tra("西班牙语"), "spanish"),
+        ]
+
+        # 生成翻译后的配对列表
+        translated_pairs = [(self.tra(display), value) for display, value in target_language_pairs]
+
         def init(widget) -> None:
-            widget.set_current_index(max(0, widget.find_text(config.get("target_language"))))
+            """初始化时根据存储的值设置当前选项"""
+            current_config = self.load_config()
+            current_value = current_config.get("target_language", "chinese_simplified")
+            
+            # 通过值查找对应的索引
+            index = next(
+                (i for i, (_, value) in enumerate(translated_pairs) if value == current_value),
+                0  # 默认选择第一个选项
+            )
+            widget.set_current_index(max(0, index))
 
         def current_text_changed(widget, text: str) -> None:
+            """选项变化时存储对应的值"""
+            # 通过显示文本查找对应的值
+            value = next(
+                (value for display, value in translated_pairs if display == text),
+                "chinese_simplified"  # 默认值
+            )
+            
             config = self.load_config()
-            config["target_language"] = text
+            config["target_language"] = value
             self.save_config(config)
+
+        # 创建选项列表（使用翻译后的显示文本）
+        options = [display for display, _ in translated_pairs]
 
         parent.addWidget(
             ComboBoxCard(
-                "译文语言",
-                "设置当前翻译项目所期望的译文文本的语言，注意，选择错误将不能进行翻译",
-                ["简中", "繁中", "英语", "日语", "韩语", "俄语", "德语", "法语", "西班牙语"],
-                init = init,
-                current_text_changed = current_text_changed,
+                self.tra("译文语言"),
+                self.tra("设置当前翻译项目所期望的译文文本的语言，注意，选择错误将不能进行翻译"),
+                options,
+                init=init,
+                current_text_changed=current_text_changed
             )
         )
 
     # 输入文件夹
     def add_widget_05(self, parent, config) -> None:
         def widget_init(widget) -> None:
-            widget.set_description(f"当前输入文件夹为 {config.get("label_input_path")}")
-            widget.set_text("选择文件夹")
+            info_cont = self.tra("当前输入文件夹为") + f" {config.get("label_input_path")}"
+            widget.set_description(info_cont)
+            widget.set_text(self.tra("选择文件夹"))
             widget.set_icon(FluentIcon.FOLDER_ADD)
 
         def widget_callback(widget) -> None:
             # 选择文件夹
-            path = QFileDialog.getExistingDirectory(None, "选择文件夹", "")
+            path = QFileDialog.getExistingDirectory(None,  self.tra("选择文件夹"), "")
             if path == None or path == "":
                 return
 
             # 更新UI
-            widget.set_description(f"当前输入文件夹为 {path.strip()}")
+            info_cont = self.tra("当前输入文件夹为") + f" {path.strip()}"
+            widget.set_description(info_cont)
 
             # 更新并保存配置
             config = self.load_config()
@@ -193,7 +291,7 @@ class ProjectSettingsPage(QFrame, Base):
 
         parent.addWidget(
             PushButtonCard(
-                "输入文件夹",
+                self.tra("输入文件夹"),
                 "",
                 widget_init,
                 widget_callback,
@@ -203,8 +301,9 @@ class ProjectSettingsPage(QFrame, Base):
     # 输出文件夹
     def add_widget_06(self, parent, config) -> None:
         def widget_init(widget):
-            widget.set_description(f"当前输出文件夹为 {config.get("label_output_path")}")
-            widget.set_text("选择文件夹")
+            info_cont = self.tra("当前输出文件夹为") + f" {config.get("label_output_path")}"
+            widget.set_description(info_cont)
+            widget.set_text(self.tra("选择文件夹"))
             widget.set_icon(FluentIcon.FOLDER_ADD)
 
         def widget_callback(widget) -> None:
@@ -214,7 +313,8 @@ class ProjectSettingsPage(QFrame, Base):
                 return
 
             # 更新UI
-            widget.set_description(f"当前输出文件夹为 {path.strip()}")
+            info_cont = self.tra("当前输出文件夹为") + f" {path.strip()}"
+            widget.set_description(info_cont)
 
             # 更新并保存配置
             config = self.load_config()
@@ -223,7 +323,7 @@ class ProjectSettingsPage(QFrame, Base):
 
         parent.addWidget(
             PushButtonCard(
-                "输出文件夹（不能与输入文件夹相同）",
+                self.tra("输出文件夹(不能与输入文件夹相同)"),
                 "",
                 widget_init,
                 widget_callback,

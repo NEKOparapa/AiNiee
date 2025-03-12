@@ -6,8 +6,9 @@ from qfluentwidgets import (CardWidget, CaptionLabel, LineEdit, ToolButton,
                             FluentIcon, BodyLabel, StrongBodyLabel)
 
 from Widget.Separator import Separator
+from Base.Base import Base
 
-class TagExtractionCard(CardWidget):
+class TagExtractionCard(CardWidget,Base):
     delete_requested = pyqtSignal()  # 删除请求信号
     config_changed = pyqtSignal(dict)  # 配置变更信号
 
@@ -35,7 +36,7 @@ class TagExtractionCard(CardWidget):
 
         # ------------------ 第一部分：头部 ------------------
         header_layout = QHBoxLayout()
-        title_label = StrongBodyLabel("标签提取器", self)
+        title_label = StrongBodyLabel(self.tra("标签提取器"), self)
         self.delete_btn = ToolButton(FluentIcon.DELETE, self)
 
         header_layout.addWidget(title_label)
@@ -99,9 +100,9 @@ class TagExtractionCard(CardWidget):
         description_layout.setSpacing(16)
 
         # 创建信息块
-        input_source_block = create_info_block("输入源", BodyLabel(self.default_config["input_source"])) # 输入源保持 BodyLabel
-        rule_block = create_input_block("提取规则", self.extract_rule_input, prefix="最后的", suffix="标签内文本") # 提取规则改成输入框
-        placeholder_block = create_input_block("文本占位符", self.placeholder_input, prefix="", suffix="") # 文本占位符改成输入框
+        input_source_block = create_info_block(self.tra("输入源"), BodyLabel(self.tra("第一次回复内容"))) # 输入源保持 BodyLabel
+        rule_block = create_input_block(self.tra("提取规则"), self.extract_rule_input, prefix=self.tra("最后的"), suffix=self.tra("标签内文本")) # 提取规则改成输入框
+        placeholder_block = create_input_block(self.tra("文本占位符"), self.placeholder_input, prefix="", suffix="") # 文本占位符改成输入框
 
 
         # 添加块到布局并设置拉伸比例

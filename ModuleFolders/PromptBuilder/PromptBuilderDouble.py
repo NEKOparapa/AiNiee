@@ -67,7 +67,7 @@ class PromptBuilderDouble(Base):
         # 初始化变量，以免出错
         glossary_prompt_lines = []
 
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             # 添加开头
             glossary_prompt_lines.append(
             ("\n" + "原文|译文|备注")
@@ -136,7 +136,7 @@ class PromptBuilderDouble(Base):
             return ""
 
         # 构建结果字符串
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             result = "\n标记符|备注"
         else:
             result = "\nMarker|Remarks"

@@ -101,10 +101,9 @@ class FlowBasicSettingsPage(QFrame, Base):
             self.save_config(config)
         parent.addWidget(
             SwitchButtonCard(
-                "启用双子星翻译",
-                (
-                    "每个单元翻译任务，都改为流程设计中的翻译流程"
-                    + "\n" + "失效功能：项目设置的接口设置，AI构建术语表，AI构建禁翻表，提示词设置"
+                self.tra("启用双子星翻译"),
+                self.tra(
+                    "每个单元翻译任务，都改为流程设计中的翻译流程\n失效功能：项目设置的接口设置，AI构建术语表，AI构建禁翻表，提示词设置"
                 ),
                 widget_init,
                 widget_callback,
@@ -130,8 +129,8 @@ class FlowBasicSettingsPage(QFrame, Base):
             self.save_config(config)
 
         combobox_card_a = ComboBoxCard( # 保存实例
-            "接口A",
-            "进行第一次请求所使用的接口",
+            self.tra("接口A"),
+            self.tra("进行第一次请求所使用的接口"),
             [],
             init = init,
             current_text_changed = current_text_changed,
@@ -158,8 +157,8 @@ class FlowBasicSettingsPage(QFrame, Base):
             self.save_config(config)
 
         combobox_card_b = ComboBoxCard( # 保存实例
-            "接口B",
-            "进行第二次请求所使用的接口",
+            self.tra("接口B"),
+            self.tra("进行第二次请求所使用的接口"),
             [],
             init = init,
             current_text_changed = current_text_changed,
@@ -178,8 +177,8 @@ class FlowBasicSettingsPage(QFrame, Base):
             self.save_config(config)
         parent.addWidget(
             PlainTextEditCard(
-                "测试用原文",
-                "用于验证测试效果的待翻译原文，文本占位符为 {original_text}，全局生效",
+                self.tra("测试用原文"),
+                self.tra("用于验证测试效果的待翻译原文，文本占位符为 {original_text}，全局生效"),
                 widget_init,
                 text_changed,
                 min_height=100
@@ -196,8 +195,8 @@ class FlowBasicSettingsPage(QFrame, Base):
             self.save_config(config)
         parent.addWidget(
             PlainTextEditCard(
-                "测试用上文",
-                "用于验证测试效果的的上文语境内容，文本占位符为 {previous_text}，全局生效",
+                self.tra("测试用上文"),
+                self.tra("用于验证测试效果的的上文语境内容，文本占位符为 {previous_text}，全局生效"),
                 widget_init,
                 text_changed,
                 min_height=100
@@ -214,8 +213,8 @@ class FlowBasicSettingsPage(QFrame, Base):
             self.save_config(config)
         parent.addWidget(
             PlainTextEditCard(
-                "测试用术语表",
-                "用于验证测试效果的术语表，文本占位符为 {glossary}，全局生效",
+                self.tra("测试用术语表"),
+                self.tra("用于验证测试效果的术语表，文本占位符为 {glossary}，全局生效"),
                 widget_init,
                 text_changed,
                 min_height=100
@@ -232,8 +231,8 @@ class FlowBasicSettingsPage(QFrame, Base):
             self.save_config(config)
         parent.addWidget(
             PlainTextEditCard(
-                "测试用禁翻表",
-                "用于验证测试效果的禁翻表，文本占位符为 {code_text}，全局生效",
+                self.tra("测试用禁翻表"),
+                self.tra("用于验证测试效果的禁翻表，文本占位符为 {code_text}，全局生效"),
                 widget_init,
                 text_changed,
                 min_height=100

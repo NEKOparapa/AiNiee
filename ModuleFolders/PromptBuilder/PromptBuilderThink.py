@@ -30,9 +30,9 @@ class PromptBuilderThink(Base):
         # 构造结果
         if config == None:
             result = PromptBuilderThink.think_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.THINK and config.target_language in ("简中", "繁中"):
+        elif config.prompt_preset == PromptBuilderEnum.THINK and config.target_language in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilderThink.think_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.THINK and config.target_language not in ("简中", "繁中"):
+        elif config.prompt_preset == PromptBuilderEnum.THINK and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilderThink.think_system_en
 
         return result
@@ -41,30 +41,43 @@ class PromptBuilderThink(Base):
     def build_system(config: TranslatorConfig) -> str:
         PromptBuilderThink.get_system_default(config)
 
-        pair = {
-            "日语": "Japanese",
-            "英语": "English",
-            "韩语": "Korean", 
-            "俄语": "Russian",
-            "简中": "Simplified Chinese",
-            "繁中": "Traditional Chinese",
-            "法语": "French",
-            "德语": "German",
-            "西班牙语": "Spanish",
+        pair_en = {
+            "japanese": "Japanese",
+            "english": "English",
+            "korean": "Korean", 
+            "russian": "Russian",
+            "chinese_simplified": "Simplified Chinese",
+            "chinese_traditional": "Traditional Chinese",
+            "french": "French",
+            "german": "German",
+            "spanish": "Spanish",
         }
 
-        source_language = config.source_language
-        target_language = config.target_language
+        pair = { 
+            "japanese": "日语",
+            "english": "英语",
+            "korean": "韩语",
+            "russian": "俄语",
+            "chinese_simplified": "简体中文",
+            "chinese_traditional": "繁体中文",
+            "french": "法语",
+            "german": "德语",
+            "spanish": "西班牙语",
+        }
+
+        source_language = pair[config.source_language]
+        target_language = pair[config.target_language]
+
 
         # 构造结果
         if config == None:
             result = PromptBuilderThink.think_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.THINK and config.target_language in ("简中", "繁中"):
+        elif config.prompt_preset == PromptBuilderEnum.THINK and config.target_language in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilderThink.think_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.THINK and config.target_language not in ("简中", "繁中"):
+        elif config.prompt_preset == PromptBuilderEnum.THINK and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilderThink.think_system_en
-            source_language = pair[config.source_language]
-            target_language = pair[config.target_language]
+            source_language = pair_en[config.source_language]
+            target_language = pair_en[config.target_language]
 
         return result.replace("{source_language}", source_language).replace("{target_language}", target_language).strip()
 
@@ -95,7 +108,7 @@ class PromptBuilderThink(Base):
         if dict_lines == []:
             return ""
         else:
-            if config.target_language in ("简中", "繁中"):
+            if config.target_language in ("chinese_simplified", "chinese_traditional"):
                 return (
                     "###术语表"
                     + "\n" + "\n".join(dict_lines)

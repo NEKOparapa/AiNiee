@@ -232,13 +232,16 @@ class ProcessTester(Base):
         for card in request_cards:
             if card["type"] == "DialogueFragmentCard":
                 settings = card["settings"]
-                role_mapping = {
-                    "系统": "system",
-                    "用户": "user",
-                    "模型": "assistant"
-                }
+
+                #role_mapping = {
+                #    "系统": "system",
+                #    "用户": "user",
+                #    "模型": "assistant"
+                #}
                 
-                role = role_mapping.get(settings["role"], "user")
+                #role = role_mapping.get(settings["role"], "user")
+
+                role = settings["role"]
                 content = settings["content"]
 
                 # 替换文本占位符

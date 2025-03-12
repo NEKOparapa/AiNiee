@@ -219,7 +219,7 @@ class ResponseChecker():
         dict2 = dictB.copy()
 
         # 考量到代码文本，不支持的语言不作检查
-        if language not in ("日语","韩语","简中","繁中"):
+        if language not in ("japanese","korean","chinese_simplified","chinese_traditional"):
             return True
 
         # 避免检查单或者少行字典
@@ -242,23 +242,23 @@ class ResponseChecker():
 
         # 定义不同语言的文本字符集对应的正则表达式
         patterns_all = {
-            '日语': re.compile(
+            'japanese': re.compile(
                 r'['
                 r'\u3041-\u3096'  # 平假名
                 r'\u30A0-\u30FF'  # 片假名
                 r']+', re.UNICODE
             ),
-            '韩语': re.compile(
+            'korean': re.compile(
                 r'['
                 r'\uAC00-\uD7AF'  # 韩文字母
                 r']+', re.UNICODE
             ),
-            '简中': re.compile(
+            'chinese_simplified': re.compile(
                 r'['
                 r'\u4E00-\u9FA5'  # 简体汉字
                 r']+', re.UNICODE
             ),
-            '繁中': re.compile(
+            'chinese_traditional': re.compile(
                 r'['
                 r'\u3400-\u4DBF'  # 扩展A区汉字
                 r'\u4E00-\u9FFF'  # 基本汉字

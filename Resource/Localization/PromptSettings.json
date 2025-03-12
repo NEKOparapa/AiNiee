@@ -1,0 +1,298 @@
+{
+  "PART_1": {
+    "提示词预设规则切换成功": {
+      "简中": "提示词预设规则切换成功",
+      "繁中": "提示詞預設規則切換成功",
+      "English": "Prompt preset rule switched successfully",
+      "日本語": "プロンプトプリセットルール切り替え成功"
+    },
+    "基础提示词预设": {
+      "简中": "基础提示词预设",
+      "繁中": "基礎提示詞預設",
+      "English": "Basic prompt presets",
+      "日本語": "基本プロンプトプリセット"
+    },
+    "通用：综合通用，花费最少，兼容各种模型，完美破限": {
+      "简中": "通用：综合通用，花费最少，兼容各种模型，完美破限",
+      "繁中": "通用：綜合通用，花費最少，相容各種模型，完美破限",
+      "English": "General: Universal compatibility, lowest cost, compatible with all models, perfect for breaking limits",
+      "日本語": "汎用：総合汎用、低コスト、各種モデル互換、制限突破に最適"
+    },
+    "思维链：融入翻译三步法，提升思考深度，极大增加输出内容，极大增加消耗，提升文学质量，适合普通模型，完美破限": {
+      "简中": "思维链：融入翻译三步法，提升思考深度，极大增加输出内容，极大增加消耗，提升文学质量，适合普通模型，完美破限",
+      "繁中": "思維鏈：融入翻譯三步法，提升思考深度，極大增加輸出內容，極大增加消耗，提升文學質量，適合普通模型，完美破限",
+      "English": "Chain of Thought: Incorporates 3-step translation method, enhances thinking depth, greatly increases output content, greatly increases consumption, improves literary quality, suitable for common models, perfect for breaking limits",
+      "日本語": "思考連鎖：翻訳三段階法を組み込み、思考深度を向上、出力内容を大幅増加、消費を大幅増加、文学的品質を向上、普通モデルに最適、制限突破に最適"
+    },
+    "推理模型：精简流程，为 DeepSeek-R1 等推理模型优化，释放推理模型的思考能力，获得最佳翻译质量": {
+      "简中": "推理模型：精简流程，为 DeepSeek-R1 等推理模型优化，释放推理模型的思考能力，获得最佳翻译质量",
+      "繁中": "推理模型：精簡流程，為 DeepSeek-R1 等推理模型優化，釋放推理模型的思考能力，獲得最佳翻譯質量",
+      "English": "Reasoning Model: Streamlined process, optimized for reasoning models like DeepSeek-R1, unleash the reasoning ability of the model, achieve the best translation quality",
+      "日本語": "推論モデル：プロセスを簡略化、DeepSeek-R1などの推論モデルに最適化、推論モデルの思考能力を解放、最高の翻訳品質を実現"
+    },
+    "自定义提示词：将使用下方填入的内容作为系统提示词": {
+      "简中": "自定义提示词：将使用下方填入的内容作为系统提示词",
+      "繁中": "自訂提示詞：將使用下方填入的內容作為系統提示詞",
+      "English": "Custom Prompt: Will use the content entered below as the system prompt",
+      "日本語": "カスタムプロンプト：下記に入力された内容をシステムプロンプトとして使用"
+    }
+  },
+  "PART_2": {
+    "数据已保存": {
+      "简中": "数据已保存",
+      "繁中": "數據已儲存",
+      "English": "Data saved",
+      "日本語": "データ保存済み"
+    },
+    "保存": {
+      "简中": "保存",
+      "繁中": "儲存",
+      "English": "Save",
+      "日本語": "保存"
+    },
+    "是否确认重置为默认数据": {
+      "简中": "是否确认重置为默认数据",
+      "繁中": "是否確認重置為預設數據",
+      "English": "Confirm reset to default data?",
+      "日本語": "デフォルトデータにリセットしてもよろしいですか？"
+    },
+    "确认": {
+      "简中": "确认",
+      "繁中": "確認",
+      "English": "Confirm",
+      "日本語": "確認"
+    },
+    "取消": {
+      "简中": "取消",
+      "繁中": "取消",
+      "English": "Cancel",
+      "日本語": "キャンセル"
+    },
+    "数据已重置": {
+      "简中": "数据已重置",
+      "繁中": "數據已重置",
+      "English": "Data reset",
+      "日本語": "データリセット済み"
+    },
+    "重置": {
+      "简中": "重置",
+      "繁中": "重置",
+      "English": "Reset",
+      "日本語": "リセット"
+    },
+    "插入行": {
+      "简中": "插入行",
+      "繁中": "插入行",
+      "English": "Insert row",
+      "日本語": "行を挿入"
+    },
+    "新行已插入": {
+      "简中": "新行已插入",
+      "繁中": "新行已插入",
+      "English": "New row inserted",
+      "日本語": "新しい行が挿入されました"
+    },
+    "移除选取行": {
+      "简中": "移除选取行",
+      "繁中": "移除選取行",
+      "English": "Remove selected row",
+      "日本語": "選択行を削除"
+    },
+    "选取行已移除": {
+      "简中": "选取行已移除",
+      "繁中": "選取行已移除",
+      "English": "Selected row removed",
+      "日本語": "選択行が削除されました"
+    }
+  },
+  "PART_3": {
+    "自定义角色介绍": {
+      "简中": "自定义角色介绍",
+      "繁中": "自訂角色介紹",
+      "English": "Custom character introduction",
+      "日本語": "カスタムキャラクター紹介"
+    },
+    "启用此功能后，将根据本页中设置的构建角色介绍，并补充到基础提示词中（不支持本地类模型）": {
+      "简中": "启用此功能后，将根据本页中设置的构建角色介绍，并补充到基础提示词中（不支持本地类模型）",
+      "繁中": "啟用此功能後，將根據本頁中設定的構建角色介紹，並補充到基礎提示詞中（不支援本地類模型）",
+      "English": "When enabled, character introduction will be built based on the settings on this page and added to the basic prompt (local models are not supported)",
+      "日本語": "この機能を有効にすると、このページの設定に基づいてキャラクター紹介が構築され、基本プロンプトに追加されます（ローカルモデルはサポートされていません）"
+    },
+    "原名": {
+      "简中": "原名",
+      "繁中": "原名",
+      "English": "Original name",
+      "日本語": "原名"
+    },
+    "译名": {
+      "简中": "译名",
+      "繁中": "譯名",
+      "English": "Translated name",
+      "日本語": "訳名"
+    },
+    "性别": {
+      "简中": "性别",
+      "繁中": "性別",
+      "English": "Gender",
+      "日本語": "性別"
+    },
+    "年龄": {
+      "简中": "年龄",
+      "繁中": "年齡",
+      "English": "Age",
+      "日本語": "年齢"
+    },
+    "性格": {
+      "简中": "性格",
+      "繁中": "性格",
+      "English": "Personality",
+      "日本語": "性格"
+    },
+    "说话风格": {
+      "简中": "说话风格",
+      "繁中": "說話風格",
+      "English": "Speaking style",
+      "日本語": "話し方"
+    },
+    "补充信息": {
+      "简中": "补充信息",
+      "繁中": "補充資訊",
+      "English": "Additional information",
+      "日本語": "補足情報"
+    },
+    "选择文件": {
+      "简中": "选择文件",
+      "繁中": "選擇檔案",
+      "English": "Select file",
+      "日本語": "ファイルを選択"
+    },
+    "数据已导入": {
+      "简中": "数据已导入",
+      "繁中": "數據已導入",
+      "English": "Data imported",
+      "日本語": "データインポート済み"
+    },
+    "导入": {
+      "简中": "导入",
+      "繁中": "導入",
+      "English": "Import",
+      "日本語": "インポート"
+    },
+    "导出_角色介绍": {
+      "简中": "导出_角色介绍",
+      "繁中": "導出_角色介紹",
+      "English": "Export_Character Introduction",
+      "日本語": "エクスポート_キャラクター紹介"
+    },
+    "导出_翻译示例": {
+      "简中": "导出_翻译示例",
+      "繁中": "導出_翻譯範例",
+      "English": "Export_Translation Example",
+      "日本語": "エクスポート_翻訳例"
+    },
+    "数据已导出到应用根目录": {
+      "简中": "数据已导出到应用根目录",
+      "繁中": "數據已導出到應用程式根目錄",
+      "English": "Data exported to application root directory",
+      "日本語": "データはアプリケーションのルートディレクトリにエクスポートされました"
+    },
+    "导出": {
+      "简中": "导出",
+      "繁中": "導出",
+      "English": "Export",
+      "日本語": "エクスポート"
+    },
+    "新行已添加": {
+      "简中": "新行已添加",
+      "繁中": "新行已新增",
+      "English": "New row added",
+      "日本語": "新しい行が追加されました"
+    },
+    "添加": {
+      "简中": "添加",
+      "繁中": "新增",
+      "English": "Add",
+      "日本語": "追加"
+    },
+    "数据已保存": {
+      "简中": "数据已保存",
+      "繁中": "數據已儲存",
+      "English": "Data saved",
+      "日本語": "データ保存済み"
+    },
+    "保存": {
+      "简中": "保存",
+      "繁中": "儲存",
+      "English": "Save",
+      "日本語": "保存"
+    },
+    "是否确认重置为默认数据": {
+      "简中": "是否确认重置为默认数据",
+      "繁中": "是否確認重置為預設數據",
+      "English": "Confirm reset to default data?",
+      "日本語": "デフォルトデータにリセットしてもよろしいですか？"
+    },
+    "确认": {
+      "简中": "确认",
+      "繁中": "確認",
+      "English": "Confirm",
+      "日本語": "確認"
+    },
+    "取消": {
+      "简中": "取消",
+      "繁中": "取消",
+      "English": "Cancel",
+      "日本語": "キャンセル"
+    },
+    "数据已重置": {
+      "简中": "数据已重置",
+      "繁中": "數據已重置",
+      "English": "Data reset",
+      "日本語": "データリセット済み"
+    },
+    "重置": {
+      "简中": "重置",
+      "繁中": "重置",
+      "English": "Reset",
+      "日本語": "リセット"
+    }
+  },
+  "PART_4": {
+    "自定义背景设定": {
+      "简中": "自定义背景设定",
+      "繁中": "自訂背景設定",
+      "English": "Custom background setting",
+      "日本語": "カスタム背景設定"
+    },
+    "启用此功能后，将根据本页中设置的内容构建背景设定提示，并补充到基础提示词中（不支持本地类模型）": {
+      "简中": "启用此功能后，将根据本页中设置的内容构建背景设定提示，并补充到基础提示词中（不支持本地类模型）",
+      "繁中": "啟用此功能後，將根據本頁中設定的內容構建背景設定提示，並補充到基礎提示詞中（不支援本地類模型）",
+      "English": "When enabled, background setting prompt will be built based on the settings on this page and added to the basic prompt (local models are not supported)",
+      "日本語": "この機能を有効にすると、このページの設定に基づいて背景設定プロンプトが構築され、基本プロンプトに追加されます（ローカルモデルはサポートされていません）"
+    },
+    "自定义翻译风格": {
+      "简中": "自定义翻译风格",
+      "繁中": "自訂翻譯風格",
+      "English": "Custom translation style",
+      "日本語": "カスタム翻訳スタイル"
+    },
+    "启用此功能后，将根据本页中设置的内容构建翻译风格要求，并补充到基础提示词中（不支持本地类模型）": {
+      "简中": "启用此功能后，将根据本页中设置的内容构建翻译风格要求，并补充到基础提示词中（不支持本地类模型）",
+      "繁中": "啟用此功能後，將根據本頁中設定的內容構建翻譯風格要求，並補充到基礎提示詞中（不支援本地類模型）",
+      "English": "When enabled, translation style requirement will be built based on the settings on this page and added to the basic prompt (local models are not supported)",
+      "日本語": "この機能を有効にすると、このページの設定に基づいて翻訳スタイルの要求が構築され、基本プロンプトに追加されます（ローカルモデルはサポートされていません）"
+    },
+    "自定义翻译示例": {
+      "简中": "自定义翻译示例",
+      "繁中": "自訂翻譯範例",
+      "English": "Custom translation example",
+      "日本語": "カスタム翻訳例"
+    },
+    "启用此功能后，将根据本页中设置的内容构建翻译示例，并补充到基础提示词中（不支持本地类模型）": {
+      "简中": "启用此功能后，将根据本页中设置的内容构建翻译示例，并补充到基础提示词中（不支持本地类模型）",
+      "繁中": "啟用此功能後，將根據本頁中設定的內容構建翻譯範例，並補充到基礎提示詞中（不支援本地類模型）",
+      "English": "When enabled, translation example will be built based on the settings on this page and added to the basic prompt (local models are not supported)",
+      "日本語": "この機能を有効にすると、このページの設定に基づいて翻訳例が構築され、基本プロンプトに追加されます（ローカルモデルはサポートされていません）"
+    }
+  }
+}

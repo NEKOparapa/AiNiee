@@ -6,8 +6,9 @@ from qfluentwidgets import (CardWidget, CaptionLabel, ToolButton,
                             FluentIcon, BodyLabel, StrongBodyLabel)
 
 from Widget.Separator import Separator
+from Base.Base import Base
 
-class ThoughtExtractionCard(CardWidget):
+class ThoughtExtractionCard(CardWidget,Base):
     delete_requested = pyqtSignal()  # 删除请求信号
     config_changed = pyqtSignal(dict)  # 配置变更信号
 
@@ -17,7 +18,7 @@ class ThoughtExtractionCard(CardWidget):
         self.default_config = {
             "extractor_type": "ThoughtExtraction",
             "system_info": '',
-            "input_source": "第一次请求的推理过程",
+            "input_source": "第一次回复的推理过程",
             "extract_rule": "复制",
             "placeholder": "{extracted_reasoning_content}",
             "repetitive_processing": "last"
@@ -33,7 +34,7 @@ class ThoughtExtractionCard(CardWidget):
 
         # ------------------ 第一部分：头部 ------------------
         header_layout = QHBoxLayout()
-        title_label = StrongBodyLabel("推理过程提取器", self)
+        title_label = StrongBodyLabel(self.tra("推理过程提取器"), self)
         self.delete_btn = ToolButton(FluentIcon.DELETE, self)
 
         header_layout.addWidget(title_label)
@@ -70,9 +71,9 @@ class ThoughtExtractionCard(CardWidget):
         description_layout.setSpacing(16)
 
         # 创建三个信息块
-        input_block = create_info_block("输入源", "第一次回复的推理过程")
-        rule_block = create_info_block("提取规则", "复制")
-        placeholder_block = create_info_block("文本占位符", "{extracted_reasoning_content}")
+        input_block = create_info_block(self.tra("输入源"), self.tra("第一次回复的推理过程"))
+        rule_block = create_info_block(self.tra("提取规则"), self.tra("复制"))
+        placeholder_block = create_info_block(self.tra("文本占位符"), "{extracted_reasoning_content}")
 
         # 添加块到布局并设置拉伸比例
         description_layout.addWidget(input_block, 1)

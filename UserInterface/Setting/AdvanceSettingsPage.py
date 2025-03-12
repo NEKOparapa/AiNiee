@@ -68,10 +68,9 @@ class AdvanceSettingsPage(QFrame, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                "AI构建术语表",
-                (
-                    "将由AI辅助生成术语表，自动录入，自动应用到后续翻译任务"
-                    + "\n" + "开启该功能会增加模型负担，建议在强力模型上开启，不支持本地类接口"
+                self.tra("AI构建术语表"),
+                self.tra(
+                "将由AI辅助生成术语表，自动录入，自动应用到后续翻译任务\n开启该功能会增加模型负担，建议在强力模型上开启，不支持本地类接口"
                 ),
                 widget_init,
                 widget_callback,
@@ -91,11 +90,9 @@ class AdvanceSettingsPage(QFrame, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                "AI构建禁翻表",
-                (
-                    "将由AI辅助生成禁翻表，自动录入，暂不应用到后续翻译任务"
-                    + "\n" + "开启该功能会增加模型负担，建议在强力模型上开启，不支持本地类接口"
-                    + "\n" + "建议在翻译游戏内嵌文本时开启，提取内容有时存在问题，需要手动检查过滤"
+                self.tra("AI构建禁翻表"),
+                self.tra(
+                "将由AI辅助生成禁翻表，自动录入，暂不应用到后续翻译任务\n开启该功能会增加模型负担，建议在强力模型上开启，不支持本地类接口\n建议在翻译游戏内嵌文本时开启，提取内容有时存在问题，需要手动检查过滤"
                 ),
                 widget_init,
                 widget_callback,
@@ -116,9 +113,9 @@ class AdvanceSettingsPage(QFrame, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                "自动处理文本代码段",
-                (
-                    "启用此功能后，联动正则库与禁翻表，将在翻译前移除首尾的代码段，占位中间的代码段，并在翻译后还原"
+                self.tra("自动处理文本代码段"),
+                self.tra(
+                "启用此功能后，联动正则库与禁翻表，将在翻译前移除首尾的代码段，占位中间的代码段，并在翻译后还原"
                 ),
                 widget_init,
                 widget_callback,
@@ -137,8 +134,8 @@ class AdvanceSettingsPage(QFrame, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                "自动简繁转换",
-                "启用此功能后，在翻译完成时将按照设置的字形映射规则进行简繁转换",
+                self.tra("自动简繁转换"),
+                self.tra("启用此功能后，在翻译完成时将按照设置的字形映射规则进行简繁转换"),
                 widget_init,
                 widget_callback,
             )
@@ -156,8 +153,8 @@ class AdvanceSettingsPage(QFrame, Base):
 
         parent.addWidget(
             ComboBoxCard(
-                "简繁转换预设规则",
-                "进行简繁转换时的字形预设规则，常用的有：简转繁（s2t）、繁转简（t2s）",
+                self.tra("简繁转换预设规则"),
+                self.tra("进行简繁转换时的字形预设规则，常用的有：简转繁（s2t）、繁转简（t2s）"),
                 [
                     "s2t",
                     "s2tw",
@@ -187,10 +184,15 @@ class AdvanceSettingsPage(QFrame, Base):
             self.save_config(config)
 
         def widget_init(widget) -> None:
+
+            info_cont1 = self.tra("模型退化检查")
+            info_cont2 = self.tra("原文返回检查")
+            info_cont3 = self.tra("翻译残留检查")
+
             pairs = [
-                ("模型退化检查", "model_degradation_check"),
-                ("原文返回检查", "return_to_original_text_check"),
-                ("翻译残留检查", "residual_original_text_check"),
+                (info_cont1, "model_degradation_check"),
+                (info_cont2, "return_to_original_text_check"),
+                (info_cont3, "residual_original_text_check"),
             ]
 
             for v in pairs:
@@ -202,8 +204,8 @@ class AdvanceSettingsPage(QFrame, Base):
 
         parent.addWidget(
             FlowCard(
-                "翻译结果检查",
-                "将在翻译结果中检查激活的规则（点亮按钮为激活）：如检测到对应情况，则视为任务执行失败",
+                self.tra("翻译结果检查"),
+                self.tra("将在翻译结果中检查激活的规则（点亮按钮为激活）：如检测到对应情况，则视为任务执行失败"),
                 widget_init
             )
         )

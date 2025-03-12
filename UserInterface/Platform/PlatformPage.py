@@ -132,7 +132,7 @@ class PlatformPage(QFrame, Base):
             # 触发事件
             self.emit(Base.EVENT.API_TEST_START, data)
         else:
-            self.warning_toast("", "接口测试正在执行中，请稍后再试 ...")
+            self.warning_toast("", self.tra("接口测试正在执行中，请稍后再试"))
 
     # 接口测试完成
     def api_test_done(self, event: int, data: dict):
@@ -140,9 +140,11 @@ class PlatformPage(QFrame, Base):
         Base.work_status = Base.STATUS.IDLE
 
         if len(data.get("failure", [])) > 0:
-            self.error_toast("", f"接口测试结果：成功 {len(data.get("success", []))} 个，失败 {len(data.get("failure", []))} 个 ...")
+            info_cont = self.tra("接口测试结果：成功") + f"{len(data.get("success", []))}"+ "......" + self.tra("失败") + f"{len(data.get("failure", []))}" + "......"
+            self.error_toast("", info_cont)
         else:
-            self.success_toast("", f"接口测试结果：成功 {len(data.get("success", []))} 个，失败 {len(data.get("failure", []))} 个 ...")
+            info_cont = self.tra("接口测试结果：成功") + f"{len(data.get("success", []))}"+ "......" + self.tra("失败") + f"{len(data.get("failure", []))}" + "......"
+            self.success_toast("", info_cont)
 
     # 加载并更新预设配置
     def load_preset(self):
@@ -211,12 +213,12 @@ class PlatformPage(QFrame, Base):
                         "menus": [
                             (
                                 FluentIcon.EDIT,
-                                "编辑接口",
+                                self.tra("编辑接口"),
                                 partial(self.show_api_edit_page, k),
                             ),
                             (
                                 FluentIcon.DEVELOPER_TOOLS,
-                                "编辑参数",
+                                self.tra("编辑参数"),
                                 partial(self.show_args_edit_page, k),
                             ),
                             # (
@@ -226,7 +228,7 @@ class PlatformPage(QFrame, Base):
                             # ),
                             (
                                 FluentIcon.SEND,
-                                "测试接口",
+                                self.tra("测试接口"),
                                 partial(self.api_test, k),
                             ),
                         ],
@@ -239,27 +241,27 @@ class PlatformPage(QFrame, Base):
                         "menus": [
                             (
                                 FluentIcon.EDIT,
-                                "编辑接口",
+                                self.tra("编辑接口"),
                                 partial(self.show_api_edit_page, k),
                             ),
                             (
                                 FluentIcon.SCROLL,
-                                "编辑限速",
+                                self.tra("编辑限速"),
                                 partial(self.show_limit_edit_page, k),
                             ),
                             (
                                 FluentIcon.DEVELOPER_TOOLS,
-                                "编辑参数",
+                                self.tra("编辑参数"),
                                 partial(self.show_args_edit_page, k),
                             ),
                             (
                                 FluentIcon.SEND,
-                                "测试接口",
+                                self.tra("测试接口"),
                                 partial(self.api_test, k),
                             ),
                             (
                                 FluentIcon.DELETE,
-                                "删除接口",
+                                self.tra("删除接口"),
                                 partial(self.delete_platform, k),
                             ),
                         ],
@@ -317,7 +319,7 @@ class PlatformPage(QFrame, Base):
     def add_head_widget(self, parent, config):
         def init(widget):
             # 添加按钮
-            help_button = PushButton("教程")
+            help_button = PushButton(self.tra("教程"))
             help_button.setIcon(FluentIcon.HELP)
             help_button.setContentsMargins(4, 0, 4, 0)
             help_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/SakuraLLM/SakuraLLM/wiki")))
@@ -332,8 +334,8 @@ class PlatformPage(QFrame, Base):
         platforms = {k:v for k, v in config.get("platforms").items() if v.get("group") == "local"}
         parent.addWidget(
             FlowCard(
-                "本地接口",
-                "管理应用内置的本地大语言模型的接口",
+                self.tra("本地接口"),
+                self.tra("管理应用内置的本地大语言模型的接口"),
                 init = init,
             )
         )
@@ -343,8 +345,8 @@ class PlatformPage(QFrame, Base):
         platforms = {k:v for k, v in config.get("platforms").items() if v.get("group") == "online"}
         parent.addWidget(
             FlowCard(
-                "官方接口",
-                "管理应用内置的主流大语言模型的官方接口",
+                self.tra("官方接口"),
+                self.tra("管理应用内置的主流大语言模型的官方接口"),
                 init = lambda widget: self.init_drop_down_push_button(
                     widget,
                     self.generate_ui_datas(platforms, False),
@@ -374,7 +376,7 @@ class PlatformPage(QFrame, Base):
         def on_add_button_clicked(widget):
             message_box = LineEditMessageBox(
                 self.window,
-                "请输入新的接口名称 ...",
+                self.tra("请输入新的接口名称"),
                 message_box_close = message_box_close
             )
 
@@ -382,7 +384,7 @@ class PlatformPage(QFrame, Base):
 
         def init(widget):
             # 添加新增按钮
-            add_button = PushButton("新增")
+            add_button = PushButton(self.tra("新增"))
             add_button.setIcon(FluentIcon.ADD_TO)
             add_button.setContentsMargins(4, 0, 4, 0)
             add_button.clicked.connect(lambda: on_add_button_clicked(self))
@@ -392,8 +394,8 @@ class PlatformPage(QFrame, Base):
             self.update_custom_platform_widgets(widget)
 
         self.flow_card = FlowCard(
-            "自定义接口",
-            "在此添加和管理任何符合 OpenAI 格式或者 Anthropic 格式的大语言模型的接口",
+            self.tra("自定义接口"),
+            self.tra("在此添加和管理任何符合 OpenAI 格式或者 Anthropic 格式的大语言模型的接口"),
             init = init,
         )
         parent.addWidget(self.flow_card)

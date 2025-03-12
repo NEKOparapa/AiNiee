@@ -6,8 +6,9 @@ from qfluentwidgets import (CardWidget, CaptionLabel, LineEdit, ToolButton,
                             FluentIcon, BodyLabel, StrongBodyLabel, ComboBox)
 
 from Widget.Separator import Separator
+from Base.Base import Base
 
-class RegexExtractionCard(CardWidget):
+class RegexExtractionCard(CardWidget,Base):
     delete_requested = pyqtSignal()  # 删除请求信号
     config_changed = pyqtSignal(dict)  # 配置变更信号
 
@@ -43,7 +44,7 @@ class RegexExtractionCard(CardWidget):
 
         # ------------------ 第一部分：头部 ------------------
         header_layout = QHBoxLayout()
-        title_label = StrongBodyLabel("简易正则提取器", self)
+        title_label = StrongBodyLabel(self.tra("简易正则提取器"), self)
         self.delete_btn = ToolButton(FluentIcon.DELETE, self)
 
         header_layout.addWidget(title_label)
@@ -60,10 +61,10 @@ class RegexExtractionCard(CardWidget):
         description_layout.setSpacing(16)
 
         # 创建信息块
-        input_source_block = self._create_info_block("输入源", BodyLabel(self.default_config["input_source"]))
-        rule_block = self._create_input_block("正则表达式", self.extract_rule_input, prefix="", suffix="")
-        placeholder_block = self._create_input_block("文本占位符", self.placeholder_input, prefix="", suffix="")
-        repetitive_block = self._create_processing_block("多项处理", self.combo_box)  # 新增重复处理块
+        input_source_block = self._create_info_block(self.tra("输入源"), BodyLabel(self.tra("第一次回复内容")))
+        rule_block = self._create_input_block(self.tra("正则表达式"), self.extract_rule_input, prefix="", suffix="")
+        placeholder_block = self._create_input_block(self.tra("文本占位符"), self.placeholder_input, prefix="", suffix="")
+        repetitive_block = self._create_processing_block(self.tra("多项处理"), self.combo_box)  # 新增重复处理块
 
         # 将占位符和重复处理组合成水平布局
         combined_block = QFrame()

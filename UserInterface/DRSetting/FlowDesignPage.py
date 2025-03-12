@@ -67,10 +67,10 @@ class FlowDesignPage(QFrame, Base):
 
         # 添加测试控件
         self.CenteredDividerCardA1 = CenteredDividerCard(
-            title='|  第一请求  |',
-            description='根据下面对话的构造，进行第一次请求',
+            title=self.tra('|  第一请求  |'),
+            description=self.tra('根据下面对话的构造，进行第一次请求'),
             url='https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D',
-            link_text='教程'
+            link_text=self.tra('教程')
         )
         self.vbox.addWidget(self.CenteredDividerCardA1)
 
@@ -86,7 +86,7 @@ class FlowDesignPage(QFrame, Base):
         # 添加动态插入按钮到专用容器
         self.add_button_A = TransparentDropDownToolButton(FIF.ADD, self)
         self.menu_A = RoundMenu(parent=self)
-        self.add_action_A = Action("添加对话卡片")
+        self.add_action_A = Action(self.tra("添加对话卡片"))
         self.menu_A.addAction(self.add_action_A)
         self.add_button_A.setMenu(self.menu_A)
         self.button_layout_A.addWidget(self.add_button_A)
@@ -98,8 +98,8 @@ class FlowDesignPage(QFrame, Base):
 
 
         self.TestBreakpointCardE = TestBreakpointCard(
-            title='|  提取阶段  |',
-            description='根据下面提取器的设置，对第一次回复内容并行提取',
+            title=self.tra('|  提取阶段  |'),
+            description=self.tra('根据下面提取器的设置，对第一次回复内容并行提取'),
             breakpoint_position= 1  # 添加位置参数
         )
         self.TestBreakpointCardE.tool_button.clicked.connect(
@@ -119,13 +119,13 @@ class FlowDesignPage(QFrame, Base):
         # 添加动态插入按钮到专用容器
         self.add_button_E = TransparentDropDownToolButton(FIF.ADD, self)
         self.menu_E = RoundMenu(parent=self)
-        self.add_action_E1 = Action("译文提取器")
-        self.add_action_E2 = Action("回复提取器")
-        self.add_action_E3 = Action("思考提取器")
-        self.add_action_E4 = Action("标签提取器")
-        self.add_action_E5 = Action("正则提取器")
-        self.add_action_E6 = Action("术语表提取器")
-        self.add_action_E7 = Action("禁翻表提取器")
+        self.add_action_E1 = Action(self.tra("译文提取器"))
+        self.add_action_E2 = Action(self.tra("回复提取器"))
+        self.add_action_E3 = Action(self.tra("思考提取器"))
+        self.add_action_E4 = Action(self.tra("标签提取器"))
+        self.add_action_E5 = Action(self.tra("正则提取器"))
+        self.add_action_E6 = Action(self.tra("术语表提取器"))
+        self.add_action_E7 = Action(self.tra("禁翻表提取器"))
         self.menu_E.addAction(self.add_action_E1)
         self.menu_E.addAction(self.add_action_E2)
         self.menu_E.addAction(self.add_action_E3)
@@ -150,8 +150,8 @@ class FlowDesignPage(QFrame, Base):
 
         # 后续原有组件
         self.TestBreakpointCardB = TestBreakpointCard(
-            title='|  第二请求  |',
-            description='根据下面对话的构造，进行第二次请求',
+            title=self.tra('|  第二请求  |'),
+            description=self.tra('根据下面对话的构造，进行第二次请求'),
             breakpoint_position= 2  # 添加位置参数
         )
         self.TestBreakpointCardB.tool_button.clicked.connect(
@@ -173,7 +173,7 @@ class FlowDesignPage(QFrame, Base):
         # 添加动态插入按钮到专用容器
         self.add_button_B = TransparentDropDownToolButton(FIF.ADD, self)
         self.menu_B = RoundMenu(parent=self)
-        self.add_action_B = Action("添加对话卡片")
+        self.add_action_B = Action(self.tra("添加对话卡片"))
         self.menu_B.addAction(self.add_action_B)
         self.add_button_B.setMenu(self.menu_B)
         self.button_layout_B.addWidget(self.add_button_B)
@@ -184,8 +184,8 @@ class FlowDesignPage(QFrame, Base):
 
         # 结束阶段后续步骤
         self.TestBreakpointCardG = TestBreakpointCard(
-            title='|  提取翻译结果  |',
-            description='从第二次请求回复内容里以textarea标签提取译文',
+            title=self.tra('|  提取翻译结果  |'),
+            description=self.tra('从第二次请求回复内容里以textarea标签提取译文'),
             breakpoint_position= 3  # 添加位置参数
         )
         self.TestBreakpointCardG.tool_button.clicked.connect(
@@ -195,8 +195,8 @@ class FlowDesignPage(QFrame, Base):
 
         # 结束阶段卡片
         self.EndPhaseCard = EndPhaseCard(
-            title='录入翻译结果',
-            description='自动检查翻译结果，并录入到缓存中。',
+            title=self.tra('录入翻译结果'),
+            description=self.tra('自动检查翻译结果，并录入到缓存中'),
         )
         self.vbox.addWidget(self.EndPhaseCard)
 
@@ -218,74 +218,6 @@ class FlowDesignPage(QFrame, Base):
         # 初始化完成后，根据用户配置加载卡片
         self.initialize_cards_from_config(self.default["flow_design_list"])  
 
-
-    def export_config(self):
-        """导出配置到运行目录"""
-        config_data = self.default["flow_design_list"]
-        
-        with open(f"导出_流程设计配置.json", "w", encoding = "utf-8") as writer:
-            writer.write(json.dumps(config_data, indent = 4, ensure_ascii = False))
-
-        # 弹出提示
-        self.success_toast("", "数据已导出到应用根目录 ...")
-
-
-    def import_config(self):
-        """从文件导入配置"""
-        filepath, _ = QFileDialog.getOpenFileName(
-            self, "选择配置文件", "",
-            "JSON文件 (*.json)", options=QFileDialog.Options()
-        )
-        
-        if not filepath:
-            return
-
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                imported_data = json.load(f)
-            
-            # 验证配置格式
-            if not self._validate_config(imported_data):
-                return
-
-            # 清除现有界面
-            self.clear_interface()
-            
-            # 更新配置数据
-            self.default["flow_design_list"] = imported_data
-            
-            # 重新初始化界面
-            self.initialize_cards_from_config(imported_data)
-            self.save_config(self.default)
-            
-            # 弹出提示
-            self.success_toast("", "已导入配置文件 ...")
-
-        except Exception as e:
-            pass
-
-    def _validate_config(self, config):
-        """验证配置结构"""
-        required_keys = {
-            "test_target_breakpoint_position", 
-            "actual_running_breakpoint_position",
-            "request_phase_a",
-            "extraction_phase",
-            "request_phase_b"
-        }
-        return required_keys.issubset(config.keys())
-
-    def clear_interface(self):
-        """清除所有动态生成的卡片"""
-        # 删除所有卡片部件
-        for card_id in list(self.cards.keys()):
-            card = self.cards.pop(card_id)
-            card.deleteLater()
-        
-        # 清空配置数据
-        phases = ["request_phase_a", "extraction_phase", "request_phase_b"]
-        for phase in phases:
-            self.default["flow_design_list"][phase].clear()
 
     def initialize_cards_from_config(self, config):
         """根据配置初始化所有卡片"""
@@ -480,7 +412,7 @@ class FlowDesignPage(QFrame, Base):
             test_params["test_target_breakpoint_position"] = breakpoint_position
             self.emit(Base.EVENT.NEW_PROCESS_START, test_params)
         else:
-            self.warning_toast("", "已有测试进行中")
+            self.warning_toast("", self.tra("已有测试进行中"))
 
     def process_done_handler(self, event: int, data: dict):
         """处理测试完成"""
@@ -492,9 +424,9 @@ class FlowDesignPage(QFrame, Base):
         
         # 显示消息条
         if success:
-            self.success_toast("", f"流程测试成功")
+            self.success_toast("", self.tra("流程测试成功"))
         else:
-            self.error_toast("", f"流程测试失败")
+            self.error_toast("", self.tra("流程测试失败"))
 
         # 更新所有卡片的系统提示
         phases = ["request_phase_a", "extraction_phase", "request_phase_b"]
@@ -512,15 +444,85 @@ class FlowDesignPage(QFrame, Base):
         if request_a_content:
             if phase_a := self.default["flow_design_list"].get("request_phase_a"):
                 if last_card := self.cards.get(phase_a[-1]["id"]):
-                    new_system = "[INFO]第一次AI回复内容:\n" + request_a_content
+                    new_system = self.tra("[INFO] 第一次AI回复内容:") +"\n" + request_a_content
                     last_card.set_response_info(new_system)
         
         # 更新第三阶段最后一个卡片
         if request_b_content:
             if phase_b := self.default["flow_design_list"].get("request_phase_b"):
                 if last_card := self.cards.get(phase_b[-1]["id"]):
-                    new_system = "[INFO]第二次AI回复内容:\n" + request_b_content
+                    new_system = self.tra("[INFO] 第二次AI回复内容:") +"\n" + request_b_content
                     last_card.set_response_info(new_system)
         
         # 持久化保存
         self.save_config(self.default)
+
+
+    def export_config(self):
+        """导出配置到运行目录"""
+        config_data = self.default["flow_design_list"]
+        
+        info_cont = self.tra("导出_流程设计配置") + ".json"
+        with open(info_cont, "w", encoding = "utf-8") as writer:
+            writer.write(json.dumps(config_data, indent = 4, ensure_ascii = False))
+
+        # 弹出提示
+        self.success_toast("", self.tra("数据已导出到应用根目录"))
+
+
+    def import_config(self):
+        """从文件导入配置"""
+        filepath, _ = QFileDialog.getOpenFileName(
+            self, self.tra("选择配置文件"), "",
+            "JSON文件 (*.json)", options=QFileDialog.Options()
+        )
+        
+        if not filepath:
+            return
+
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                imported_data = json.load(f)
+            
+            # 验证配置格式
+            if not self._validate_config(imported_data):
+                return
+
+            # 清除现有界面
+            self.clear_interface()
+            
+            # 更新配置数据
+            self.default["flow_design_list"] = imported_data
+            
+            # 重新初始化界面
+            self.initialize_cards_from_config(imported_data)
+            self.save_config(self.default)
+            
+            # 弹出提示
+            self.success_toast("", self.tra("已导入配置文件"))
+
+        except Exception as e:
+            pass
+
+    def _validate_config(self, config):
+        """验证配置结构"""
+        required_keys = {
+            "test_target_breakpoint_position", 
+            "actual_running_breakpoint_position",
+            "request_phase_a",
+            "extraction_phase",
+            "request_phase_b"
+        }
+        return required_keys.issubset(config.keys())
+
+    def clear_interface(self):
+        """清除所有动态生成的卡片"""
+        # 删除所有卡片部件
+        for card_id in list(self.cards.keys()):
+            card = self.cards.pop(card_id)
+            card.deleteLater()
+        
+        # 清空配置数据
+        phases = ["request_phase_a", "extraction_phase", "request_phase_b"]
+        for phase in phases:
+            self.default["flow_design_list"][phase].clear()

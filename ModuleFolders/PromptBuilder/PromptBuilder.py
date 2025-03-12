@@ -37,13 +37,13 @@ class PromptBuilder(Base):
         # 构造结果
         if config == None:
             result = PromptBuilder.common_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.COMMON and config.target_language in ("简中", "繁中"):
+        elif config.prompt_preset == PromptBuilderEnum.COMMON and config.target_language in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.common_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.COMMON and config.target_language not in ("简中", "繁中"):
+        elif config.prompt_preset == PromptBuilderEnum.COMMON and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.common_system_en
-        elif config.prompt_preset == PromptBuilderEnum.COT and config.target_language in ("简中", "繁中"):
+        elif config.prompt_preset == PromptBuilderEnum.COT and config.target_language in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.cot_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.COT and config.target_language not in ("简中", "繁中"):
+        elif config.prompt_preset == PromptBuilderEnum.COT and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.cot_system_en
 
         return result
@@ -52,35 +52,48 @@ class PromptBuilder(Base):
     def build_system(config: TranslatorConfig) -> str:
         PromptBuilder.get_system_default(config)
 
-        pair = {
-            "日语": "Japanese",
-            "英语": "English",
-            "韩语": "Korean", 
-            "俄语": "Russian",
-            "简中": "Simplified Chinese",
-            "繁中": "Traditional Chinese",
-            "法语": "French",
-            "德语": "German",
-            "西班牙语": "Spanish",
+        pair_en = {
+            "japanese": "Japanese",
+            "english": "English",
+            "korean": "Korean", 
+            "russian": "Russian",
+            "chinese_simplified": "Simplified Chinese",
+            "chinese_traditional": "Traditional Chinese",
+            "french": "French",
+            "german": "German",
+            "spanish": "Spanish",
         }
 
-        source_language = config.source_language
-        target_language = config.target_language
+        pair = { 
+            "japanese": "日语",
+            "english": "英语",
+            "korean": "韩语",
+            "russian": "俄语",
+            "chinese_simplified": "简体中文",
+            "chinese_traditional": "繁体中文",
+            "french": "法语",
+            "german": "德语",
+            "spanish": "西班牙语",
+        }
+
+        source_language = pair[config.source_language]
+        target_language = pair[config.target_language]
+
         # 构造结果
         if config == None:
             result = PromptBuilder.common_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.COMMON and config.target_language in ("简中", "繁中"):
+        elif config.prompt_preset == PromptBuilderEnum.COMMON and config.target_language in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.common_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.COMMON and config.target_language not in ("简中", "繁中"):
+        elif config.prompt_preset == PromptBuilderEnum.COMMON and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.common_system_en
-            source_language = pair[config.source_language]
-            target_language = pair[config.target_language]
-        elif config.prompt_preset == PromptBuilderEnum.COT and config.target_language in ("简中", "繁中"):
+            source_language = pair_en[config.source_language]
+            target_language = pair_en[config.target_language]
+        elif config.prompt_preset == PromptBuilderEnum.COT and config.target_language in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.cot_system_zh
-        elif config.prompt_preset == PromptBuilderEnum.COT and config.target_language not in ("简中", "繁中"):
+        elif config.prompt_preset == PromptBuilderEnum.COT and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.cot_system_en
-            source_language = pair[config.source_language]
-            target_language = pair[config.target_language]
+            source_language = pair_en[config.source_language]
+            target_language = pair_en[config.target_language]
 
         return result.replace("{source_language}", source_language).replace("{target_language}", target_language).strip()
 
@@ -94,8 +107,8 @@ class PromptBuilder(Base):
         # 获取特定示例
         #list1, list3 = PromptBuilder.get_default_translation_example(config, input_dict)
 
-        # 获取自适应示例（无法构建英语的）
-        if config.source_language in ["日语","韩语","俄语","简中","繁中","法语","德语","西班牙语"]:
+        # 获取自适应示例（无法构建english的）
+        if config.source_language in ["japanese","korean","russian","chinese_simplified","chinese_traditional","french","german","spanish"]:
             list2, list4 = PromptBuilder.build_adaptive_translation_sample(config, input_dict)
 
         # 将两个列表合并
@@ -106,15 +119,15 @@ class PromptBuilder(Base):
         if not combined_list:
             base_example = {
                 "base": {
-                    "日语": "例示テキスト",
-                    "韩语": "예시 텍스트",
-                    "俄语": "Пример текста",
-                    "简中": "示例文本",
-                    "繁中": "翻譯示例文本",
-                    "英语": "Sample Text",
-                    "西班牙语": "Texto de ejemplo",
-                    "法语": "Exemple de texte",
-                    "德语": "Beispieltext",
+                    "japanese": "1.例示テキスト",
+                    "korean": "1.예시 텍스트",
+                    "russian": "1.Пример текста",
+                    "chinese_simplified": "1.示例文本",
+                    "chinese_traditional": "1.翻譯示例文本",
+                    "english": "1.Sample Text",
+                    "spanish": "1.Texto de ejemplo",
+                    "french": "1.Exemple de texte",
+                    "german": "1.Beispieltext",
                 }
             }
 
@@ -164,56 +177,56 @@ class PromptBuilder(Base):
         # 内置的正则表达式字典（缺少新增语言）
         patterns_all = {
             r"[a-zA-Z]=": {
-                "日语": 'a="　　ぞ…ゾンビ系…。',
-                "英语": "a=\"　　It's so scary….",
-                "韩语": 'a="　　정말 무서워요….',
-                "俄语": 'а="　　Ужасно страшно...。',
-                "简中": 'a="　　好可怕啊……。',
-                "繁中": 'a="　　好可怕啊……。'},
+                "japanese": 'a="　　ぞ…ゾンビ系…。',
+                "english": "a=\"　　It's so scary….",
+                "korean": 'a="　　정말 무서워요….',
+                "russian": 'а="　　Ужасно страшно...。',
+                "chinese_simplified": 'a="　　好可怕啊……。',
+                "chinese_traditional": 'a="　　好可怕啊……。'},
             r"【|】": {
-                "日语": "【ベーカリー】営業時間 8：00～18：00",
-                "英语": "【Bakery】Business hours 8:00-18:00",
-                "韩语": "【빵집】영업 시간 8:00~18:00",
-                "俄语": "【пекарня】Время работы 8:00-18:00",
-                "简中": "【面包店】营业时间 8：00～18：00",
-                "繁中": "【麵包店】營業時間 8：00～18：00"},
+                "japanese": "【ベーカリー】営業時間 8：00～18：00",
+                "english": "【Bakery】Business hours 8:00-18:00",
+                "korean": "【빵집】영업 시간 8:00~18:00",
+                "russian": "【пекарня】Время работы 8:00-18:00",
+                "chinese_simplified": "【面包店】营业时间 8：00～18：00",
+                "chinese_traditional": "【麵包店】營業時間 8：00～18：00"},
             r"\r|\n": {
-                "日语": "敏捷性が上昇する。　　　　　　　\r\n効果：パッシブ",
-                "英语": "Agility increases.　　　　　　　\r\nEffect: Passive",
-                "韩语": "민첩성이 상승한다.　　　　　　　\r\n효과：패시브",
-                "俄语": "Повышает ловкость.　　　　　　　\r\nЭффект: Пассивный",
-                "简中": "提高敏捷性。　　　　　　　\r\n效果：被动",
-                "繁中": "提高敏捷性。　　　　　　　\r\n效果：被動",
+                "japanese": "敏捷性が上昇する。　　　　　　　\r\n効果：パッシブ",
+                "english": "Agility increases.　　　　　　　\r\nEffect: Passive",
+                "korean": "민첩성이 상승한다.　　　　　　　\r\n효과：패시브",
+                "russian": "Повышает ловкость.　　　　　　　\r\nЭффект: Пассивный",
+                "chinese_simplified": "提高敏捷性。　　　　　　　\r\n效果：被动",
+                "chinese_traditional": "提高敏捷性。　　　　　　　\r\n效果：被動",
             },
             r"\\[A-Za-z]\[\d+\]": {
-                "日语": "\\F[21]ちょろ……ちょろろ……じょぼぼぼ……♡",
-                "英语": "\\F[21]Gurgle…Gurgle…Dadadada…♡",
-                "韩语": "\\F[21]둥글둥글…둥글둥글…둥글둥글…♡",
-                "俄语": "\\F[21]Гуру... гуругу...Дадада... ♡",
-                "简中": "\\F[21]咕噜……咕噜噜……哒哒哒……♡",
-                "繁中": "\\F[21]咕嚕……咕嚕嚕……哒哒哒……♡"},
+                "japanese": "\\F[21]ちょろ……ちょろろ……じょぼぼぼ……♡",
+                "english": "\\F[21]Gurgle…Gurgle…Dadadada…♡",
+                "korean": "\\F[21]둥글둥글…둥글둥글…둥글둥글…♡",
+                "russian": "\\F[21]Гуру... гуругу...Дадада... ♡",
+                "chinese_simplified": "\\F[21]咕噜……咕噜噜……哒哒哒……♡",
+                "chinese_traditional": "\\F[21]咕嚕……咕嚕嚕……哒哒哒……♡"},
             r"「|」":{
-                    "日语": "キャラクターA：「すごく面白かった！」",
-                    "英语": "Character A：「It was really fun!」",
-                    "韩语": "캐릭터 A：「정말로 재미있었어요!」",
-                    "俄语": "Персонаж A: 「Было очень интересно!」",
-                    "简中": "角色A：「超级有趣！」",
-                    "繁中": "角色A：「超有趣！」"
+                    "japanese": "キャラクターA：「すごく面白かった！」",
+                    "english": "Character A：「It was really fun!」",
+                    "korean": "캐릭터 A：「정말로 재미있었어요!」",
+                    "russian": "Персонаж A: 「Было очень интересно!」",
+                    "chinese_simplified": "角色A：「超级有趣！」",
+                    "chinese_traditional": "角色A：「超有趣！」"
                     },
             r"∞|@": {
-                "日语": "若くて∞＠綺麗で∞＠エロくて",
-                "英语": "Young ∞＠beautiful ∞＠sexy.",
-                "韩语": "젊고∞＠아름답고∞＠섹시하고",
-                "俄语": "Молодые∞＠Красивые∞＠Эротичные",
-                "简中": "年轻∞＠漂亮∞＠色情",
-                "繁中": "年輕∞＠漂亮∞＠色情"},
+                "japanese": "若くて∞＠綺麗で∞＠エロくて",
+                "english": "Young ∞＠beautiful ∞＠sexy.",
+                "korean": "젊고∞＠아름답고∞＠섹시하고",
+                "russian": "Молодые∞＠Красивые∞＠Эротичные",
+                "chinese_simplified": "年轻∞＠漂亮∞＠色情",
+                "chinese_traditional": "年輕∞＠漂亮∞＠色情"},
             r"↓": {
-                "日语": "若くて↓綺麗で↓↓エロくて",
-                "英语": "Young ↓beautiful ↓↓sexy.",
-                "韩语": "젊고↓아름답고↓↓섹시하고",
-                "俄语": "Молодые↓Красивые↓↓Эротичные",
-                "简中": "年轻↓漂亮↓↓色情",
-                "繁中": "年輕↓漂亮↓↓色情"},
+                "japanese": "若くて↓綺麗で↓↓エロくて",
+                "english": "Young ↓beautiful ↓↓sexy.",
+                "korean": "젊고↓아름답고↓↓섹시하고",
+                "russian": "Молодые↓Красивые↓↓Эротичные",
+                "chinese_simplified": "年轻↓漂亮↓↓色情",
+                "chinese_traditional": "年輕↓漂亮↓↓色情"},
         }
 
         for _, value in input_dict.items():
@@ -327,7 +340,7 @@ class PromptBuilder(Base):
 
         # 定义不同语言的正则表达式
         patterns_all = {
-            "日语": re.compile(
+            "japanese": re.compile(
                 r"["
                 r"\u3041-\u3096"  # 平假名
                 r"\u30A0-\u30FF"  # 片假名
@@ -335,19 +348,19 @@ class PromptBuilder(Base):
                 "]+",
                 re.UNICODE,
             ),
-            "韩语": re.compile(r"[\uAC00-\uD7AF]+", re.UNICODE),  # 韩文字母
-            "俄语": re.compile(r"[\u0400-\u04FF]+", re.UNICODE),  # 俄语字母
-            "简中": re.compile(r"[\u4E00-\u9FA5]+", re.UNICODE),  # 简体中文
-            "繁中": re.compile(r"[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]+", re.UNICODE),
-            "西班牙语": re.compile(
-                r"[a-zA-ZÁÉÍÓÚÑáéíóúñÜü]+",  # 覆盖西班牙语特殊字符
+            "korean": re.compile(r"[\uAC00-\uD7AF]+", re.UNICODE),  # 韩文字母
+            "russian": re.compile(r"[\u0400-\u04FF]+", re.UNICODE),  # russian字母
+            "chinese_simplified": re.compile(r"[\u4E00-\u9FA5]+", re.UNICODE),  # 简体中文
+            "chinese_traditional": re.compile(r"[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]+", re.UNICODE),
+            "spanish": re.compile(
+                r"[a-zA-ZÁÉÍÓÚÑáéíóúñÜü]+",  # 覆盖spanish特殊字符
                 re.UNICODE
             ),
-            "法语": re.compile(
+            "french": re.compile(
                 r"[a-zA-ZÀ-ÿ]+",  # 覆盖所有法语重音字符
                 re.UNICODE
             ),
-            "德语": re.compile(
+            "german": re.compile(
                 r"[a-zA-ZÄÖÜäöüß]+",  # 德语特殊字符
                 re.UNICODE
             ),
@@ -355,15 +368,15 @@ class PromptBuilder(Base):
 
         # 定义不同语言的翻译示例（新增三种语言）
         text_all = {
-            "日语": "例示テキスト",
-            "韩语": "예시 텍스트",
-            "俄语": "Пример текста",
-            "简中": "示例文本",
-            "繁中": "翻譯示例文本",
-            "英语": "Sample Text",
-            "西班牙语": "Texto de ejemplo",
-            "法语": "Exemple de texte",
-            "德语": "Beispieltext",
+            "japanese": "例示テキスト",
+            "korean": "예시 텍스트",
+            "russian": "Пример текста",
+            "chinese_simplified": "示例文本",
+            "chinese_traditional": "翻譯示例文本",
+            "english": "Sample Text",
+            "spanish": "Texto de ejemplo",
+            "french": "Exemple de texte",
+            "german": "Beispieltext",
         }
 
         # 根据输入选择正则表达式与翻译文本
@@ -418,7 +431,7 @@ class PromptBuilder(Base):
         # 初始化变量，以免出错
         glossary_prompt_lines = []
 
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             # 添加开头
             glossary_prompt_lines.append(
                 "\n###术语表"
@@ -449,7 +462,7 @@ class PromptBuilder(Base):
     # 构造提取术语表要求
     def build_glossary_extraction_criteria(config: TranslatorConfig) -> str:
 
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "\n\n###提取文本中角色名，以glossary标签返回\n"
             profile += "<glossary>\n"
             profile += "原文|译文|备注\n"
@@ -504,7 +517,7 @@ class PromptBuilder(Base):
             return ""
 
         # 构建结果字符串
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             result = "\n###禁翻表"+ "\n特殊标记符|备注"
         else:
             result = "\n###Non-Translation List"+ "\nSpecial marker|Remarks"
@@ -517,7 +530,7 @@ class PromptBuilder(Base):
     # 构造提取禁翻表要求
     def build_ntl_extraction_criteria(config: TranslatorConfig) -> str:
 
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "\n\n###提取文本中标记符，如 {name}, //F[N1],以code标签返回\n"
             profile += "<code>\n"
             profile += "标记符|备注\n"
@@ -548,7 +561,7 @@ class PromptBuilder(Base):
         if temp_dict == {}:
             return ""
 
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "\n###角色介绍"
             for key, value in temp_dict.items():
                 original_name = value.get("original_name")
@@ -619,7 +632,7 @@ class PromptBuilder(Base):
         # 获取自定义内容
         world_building = config.world_building_content
 
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "\n###背景设定"
 
             profile += f"\n{world_building}\n"
@@ -636,7 +649,7 @@ class PromptBuilder(Base):
         # 获取自定义内容
         writing_style = config.writing_style_content
 
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "\n###翻译风格"
 
             profile += f"\n{writing_style}\n"
@@ -657,7 +670,7 @@ class PromptBuilder(Base):
             return ""
 
         # 构建翻译示例字符串
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             translation_example = "\n###翻译示例\n"
 
         else:
@@ -673,7 +686,7 @@ class PromptBuilder(Base):
                 translation_example += "\n"
 
             # 使用更严谨的字符串格式化
-            if config.target_language in ("简中", "繁中"):
+            if config.target_language in ("chinese_simplified", "chinese_traditional"):
                 translation_example += f"  -原文{index}：{original}\n  -译文{index}：{translated}"
 
             else:
@@ -683,7 +696,7 @@ class PromptBuilder(Base):
 
     # 携带原文上文
     def build_pre_text(config: TranslatorConfig, input_list: list[str]) -> str:
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "###上文内容\n"
             profile += "<previous>\n"
 
@@ -704,7 +717,7 @@ class PromptBuilder(Base):
     # 构建用户请求翻译的示例前文
     def build_userExamplePrefix(config: TranslatorConfig) -> str:
         # 根据中文开关构建
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "###这是你接下来的翻译任务，原文文本如下\n"
             profile_cot = "###这是你接下来的翻译任务，原文文本如下\n  "
 
@@ -724,7 +737,7 @@ class PromptBuilder(Base):
     def build_modelExamplePrefix(config: TranslatorConfig) -> str:
 
         # 根据中文开关构建
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
 
             # 非cot的构建
             profile = "我完全理解了翻译的要求与原则，我将遵循您的指示进行翻译，以下是对原文的翻译:\n"
@@ -769,7 +782,7 @@ class PromptBuilder(Base):
     # 构建用户请求翻译的原文前文:
     def build_userQueryPrefix(config: TranslatorConfig) -> str:
         # 根据中文开关构建
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = " ###这是你接下来的翻译任务，原文文本如下\n"
             profile_cot = "###这是你接下来的翻译任务，原文文本如下\n"
         else:
@@ -787,7 +800,7 @@ class PromptBuilder(Base):
     # 构建模型预输入回复的前文
     def build_modelResponsePrefix(config: TranslatorConfig) -> str:
         # 根据中文开关构建
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "我完全理解了翻译的要求与原则，我将遵循您的指示进行翻译，以下是对原文的翻译:"
             profile_cot = "我完全理解了翻译的步骤与原则，我将遵循您的指示进行翻译，并深入思考和解释:"
         else:
@@ -805,7 +818,7 @@ class PromptBuilder(Base):
     # 构建用户请求翻译的示例前文
     def build_userExamplePrefix(config: TranslatorConfig) -> str:
         # 根据中文开关构建
-        if config.target_language in ("简中", "繁中"):
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "###这是你接下来的翻译任务，原文文本如下\n"
             profile_cot = "###这是你接下来的翻译任务，原文文本如下\n  "
 
