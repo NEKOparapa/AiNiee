@@ -1475,6 +1475,7 @@ class Jr_Tpp:
         """
         path = os.path.join(data_path, "name")  # 构造输出目录的路径
         os.makedirs(path, exist_ok=True)  # 确保输出目录存在
+        self.LabelName(without) # 标记地址中包含 "name" 的文本行，以便后续提取。
         # 搜索标签为 "Name" 的文本行，并导出为 JSON 文件
         namedict = self.JsonBySearch(
             "Name", 3, OutputName=os.path.join(path, "Name.json"), regex=False
