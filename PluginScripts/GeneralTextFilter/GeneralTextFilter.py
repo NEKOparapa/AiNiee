@@ -70,25 +70,25 @@ class GeneralTextFilter(PluginBase):
 
 
                 #加个检测后缀为MP3，wav，png，这些文件名的文本，都是纯代码文本，所以忽略掉
-                if isinstance(source_text, str) and any(source_text.lower().endswith(ext) for ext in ['.mp3', '.wav', '.png', '.jpg', '.gif', '.rar', '.zip', '.json', '.ogg']):
+                if isinstance(source_text, str) and any(source_text.endswith(ext) for ext in ['.mp3', '.wav', '.png', '.jpg', '.gif', '.rar', '.zip', '.json', '.ogg']):
                     entry['translation_status'] = 7
                     continue
 
 
                 # 同上
-                if isinstance(source_text, str) and any(source_text.lower().endswith(ext) for ext in ['.txt', '.wav', '.webp']):
+                if isinstance(source_text, str) and any(source_text.endswith(ext) for ext in ['.txt', '.wav', '.webp']):
                     entry['translation_status'] = 7
                     continue
 
 
                 # 检查开头的
-                if isinstance(source_text, str) and any(source_text.lower().startswith(ext) for ext in ['MapData/', 'SE/', 'BGS', '0=', 'BGM/', 'FIcon/', '<input type=', 'width:', '<div ']):
+                if isinstance(source_text, str) and any(source_text.startswith(ext) for ext in ['MapData/', 'SE/', 'BGS', '0=', 'BGM/', 'FIcon/', '<input type=', 'width:', '<div ']):
                     entry['translation_status'] = 7
                     continue
 
 
                 # 检查开头的
-                if isinstance(source_text, str) and any(source_text.lower().startswith(ext) for ext in ['EV0']):
+                if isinstance(source_text, str) and any(source_text.startswith(ext) for ext in ['EV0']):
                     entry['translation_status'] = 7
                     continue
 

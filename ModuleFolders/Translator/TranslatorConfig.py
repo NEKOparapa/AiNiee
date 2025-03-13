@@ -28,6 +28,10 @@ class TranslatorConfig(Base):
         self.apikey_index_b = 0
         self.apikey_list_b = []
 
+        # 术语表数据缓冲区
+        self.glossary_buffer_data = []
+
+
     def __repr__(self) -> str:
         return (
             f"{type(self).__name__}({self.get_vars()})"
@@ -131,6 +135,10 @@ class TranslatorConfig(Base):
     # 准备翻译
     def prepare_for_translation(self) -> None:
 
+        # 初始化术语表缓存区
+        self.glossary_buffer_data = []
+
+        # 单请求配置
         if self.double_request_switch_settings == False:
             # 获取目标平台
             target_platform = self.target_platform
@@ -161,23 +169,15 @@ class TranslatorConfig(Base):
 
 
             # 获取接口限额
-            a = self.platforms.get(target_platform).get("account")
-            m = self.platforms.get(target_platform).get("model")
-
-            self.rpm_limit = self.platforms.get(target_platform).get("account_datas").get(a, {}).get(m, {}).get("RPM", 0)
-            if self.rpm_limit == 0:
-                self.rpm_limit = self.platforms.get(target_platform).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
-
-            self.tpm_limit = self.platforms.get(target_platform).get("account_datas").get(a, {}).get(m, {}).get("TPM", 0)
-            if self.tpm_limit == 0:
-                self.tpm_limit = self.platforms.get(target_platform).get("tpm_limit", 10000000)    # 当取不到账号类型对应的预设值，则使用该值
+            self.rpm_limit = self.platforms.get(target_platform).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
+            self.tpm_limit = self.platforms.get(target_platform).get("tpm_limit", 10000000)    # 当取不到账号类型对应的预设值，则使用该值
 
 
             # 根据密钥数量给 RPM 和 TPM 限额翻倍
             self.rpm_limit = self.rpm_limit * len(self.apikey_list)
             self.tpm_limit = self.tpm_limit * len(self.apikey_list)
 
-
+        # 双请求配置
         else:
             target_platform_a = self.request_a_platform_settings
 
@@ -207,16 +207,9 @@ class TranslatorConfig(Base):
 
 
             # 获取接口限额
-            a = self.platforms.get(target_platform_a).get("account")
-            m = self.platforms.get(target_platform_a).get("model")
 
-            self.rpm_limit_a = self.platforms.get(target_platform_a).get("account_datas").get(a, {}).get(m, {}).get("RPM", 0)
-            if self.rpm_limit_a == 0:
-                self.rpm_limit_a= self.platforms.get(target_platform_a).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
-
-            self.tpm_limit_a = self.platforms.get(target_platform_a).get("account_datas").get(a, {}).get(m, {}).get("TPM", 0)
-            if self.tpm_limit_a == 0:
-                self.tpm_limit_a = self.platforms.get(target_platform_a).get("tpm_limit", 10000000)    # 当取不到账号类型对应的预设值，则使用该值
+            self.rpm_limit_a= self.platforms.get(target_platform_a).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
+            self.tpm_limit_a = self.platforms.get(target_platform_a).get("tpm_limit", 10000000)    # 当取不到账号类型对应的预设值，则使用该值
 
 
             # 根据密钥数量给 RPM 和 TPM 限额翻倍
@@ -254,16 +247,8 @@ class TranslatorConfig(Base):
 
 
             # 获取接口限额
-            a = self.platforms.get(target_platform_b).get("account")
-            m = self.platforms.get(target_platform_b).get("model")
-
-            self.rpm_limit_b = self.platforms.get(target_platform_b).get("account_datas").get(a, {}).get(m, {}).get("RPM", 0)
-            if self.rpm_limit_b == 0:
-                self.rpm_limit_b= self.platforms.get(target_platform_b).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
-
-            self.tpm_limit_b = self.platforms.get(target_platform_b).get("account_datas").get(a, {}).get(m, {}).get("TPM", 0)
-            if self.tpm_limit_b == 0:
-                self.tpm_limit_b = self.platforms.get(target_platform_b).get("tpm_limit", 10000000)    # 当取不到账号类型对应的预设值，则使用该值
+            self.rpm_limit_b= self.platforms.get(target_platform_b).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
+            self.tpm_limit_b = self.platforms.get(target_platform_b).get("tpm_limit", 10000000)    # 当取不到账号类型对应的预设值，则使用该值
 
 
             # 根据密钥数量给 RPM 和 TPM 限额翻倍
@@ -297,11 +282,18 @@ class TranslatorConfig(Base):
             return ""
 
         with self._config_lock:
+
             # 更新术语表
-            self.prompt_dictionary_data = self.update_glossary_2_dict(self.prompt_dictionary_data, glossary_entries)
+            if glossary_entries:
+                # 更新术语表缓存区
+                self.glossary_buffer_data = self.update_glossary_buffer(self.glossary_buffer_data, glossary_entries)
+
+                # 更新术语表配置区
+                self.prompt_dictionary_data = self.update_prompt_dictionary(self.glossary_buffer_data, self.prompt_dictionary_data)
 
             # 更新禁翻表
-            self.exclusion_list_data = self.update_ntl_2_dict(self.exclusion_list_data,  ntl_entries)
+            if ntl_entries:
+                self.exclusion_list_data = self.update_ntl_2_dict(self.exclusion_list_data,  ntl_entries)
 
             # 保存新配置
             config = self.load_config()
@@ -312,48 +304,71 @@ class TranslatorConfig(Base):
             self.save_config(config)
 
 
-    def update_glossary_2_dict(self,original_data, glossary_entries):
+    # 更新术语表缓存区
+    def update_glossary_buffer(self,glossary_buffer_data, glossary_entries):
         """
-        将术语表内容合并到现有数据列表中
-        
-        参数：
-            original_data (list): 原始数据列表，元素为包含src/dst/info的字典
-            glossary_entries (list): 需要合并的术语表，元素为(原文,译文,备注)元组
-            
-        返回：
-            list: 合并后的新列表数据（深拷贝）
+        根据 glossary_entries 更新 glossary_buffer_data。
+
+        Args:
+            glossary_buffer_data: 词汇表缓冲区数据，列表结构，每个元素是包含 src, dst, info, count 字段的字典。
+            glossary_entries: 新的词汇条目列表，列表结构，每个元素是 (src, dst, info) 元组。
+
+        Returns:
+            更新后的 glossary_buffer_data。
         """
-        # 深拷贝原始数据避免修改原对象
-        new_data = copy.deepcopy(original_data)
-        
-        # 空值快速返回
-        if not glossary_entries:
-            return new_data
-        
-        # 构建源词存在集合
-        existing_src = {item["src"] for item in new_data}
-        
-        # 转换术语表为字典格式
-        for entry in glossary_entries:
-            # 跳过格式不规范的条目
-            if len(entry) < 2:
-                continue
-            
-            src = entry[0].strip()
-            dst = entry[1].strip()
-            info = entry[2].strip() if len(entry) > 2 and entry[2] else ""
-            
-            # 重复检查
-            if src not in existing_src:
-                new_data.append({
+        for src, dst, info in glossary_entries:
+            found = False
+            for entry in glossary_buffer_data:
+                if entry["src"] == src:
+                    entry["count"] += 1
+                    if not entry["info"]:  # 检查 info 是否为空 (None, '', 或 False 都被认为是空)
+                        entry["info"] = info
+                    found = True
+                    break  # 找到条目后跳出内循环
+            if not found:
+                glossary_buffer_data.append({
                     "src": src,
                     "dst": dst,
-                    "info": info
+                    "info": info,
+                    "count": 1
                 })
-                existing_src.add(src)  # 更新存在集合
-        
-        return new_data
 
+        return glossary_buffer_data
+
+    # 更新术语表配置区
+    def update_prompt_dictionary(self,glossary_buffer_data, prompt_dictionary_data):
+        """
+        根据 glossary_buffer_data 的内容更新 prompt_dictionary_data。
+
+        检查 glossary_buffer_data 中 count >= 3 的条目，如果 prompt_dictionary_data 中没有，则添加到 prompt_dictionary_data 中。
+        如果 prompt_dictionary_data 中已经存在相同 src 的条目，则跳过。
+
+        Args:
+            glossary_buffer_data: 包含缓冲词汇数据的列表，每个元素是一个字典，包含 "src", "dst", "info", "count" 键。
+            prompt_dictionary_data: 包含提示词典数据的列表，每个元素是一个字典，包含 "src", "dst", "info" 键。
+
+        Returns:
+            更新后的 prompt_dictionary_data 列表。
+        """
+
+        prompt_srcs = {item['src'] for item in prompt_dictionary_data}  # 使用集合快速查找已存在的 src
+
+        for buffer_item in glossary_buffer_data:
+            if buffer_item['count'] >= 4:
+                src = buffer_item['src']
+                if src not in prompt_srcs:
+                    # 如果 prompt_dictionary_data 中没有相同的 src，则添加
+                    new_entry = {
+                        "src": src,
+                        "dst": buffer_item['dst'],
+                        "info": buffer_item['info']
+                    }
+                    prompt_dictionary_data.append(new_entry)
+                    prompt_srcs.add(src) # 更新 prompt_srcs 集合，避免重复添加
+
+        return prompt_dictionary_data
+
+    # 更新禁翻表配置
     def update_ntl_2_dict(self,original_data, ntl_entries):
 
         # 深拷贝原始数据避免修改原对象
@@ -399,7 +414,7 @@ class TranslatorConfig(Base):
         finally:
             return num
         
-
+    # 线性计算并发线程数
     def calculate_thread_count(self,rpm_limit):
 
         min_rpm = 1

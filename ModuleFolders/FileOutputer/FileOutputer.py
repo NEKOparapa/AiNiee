@@ -14,7 +14,7 @@ from ModuleFolders.FileOutputer.LrcWriter import LrcWriter
 from ModuleFolders.FileOutputer.TxtWriter import TxtWriter
 from ModuleFolders.FileOutputer.EpubWriter import EpubWriter
 from ModuleFolders.FileOutputer.DocxWriter import DocxWriter
-
+from ModuleFolders.FileOutputer.MdWriter import MdWriter
 
 
 
@@ -61,6 +61,8 @@ class FileOutputer():
             VntWriter.output_vnt_file(self, cache_data, output_path)
         elif cache_data[0]["project_type"] == "Txt":
             TxtWriter.output_txt_file(self, cache_data, output_path)
+        elif cache_data[0]["project_type"] == "Md":
+            MdWriter.output_md_file(self, cache_data, output_path)
         elif cache_data[0]["project_type"] == "Epub":
             EpubWriter.output_epub_file(self, cache_data, output_path, input_path)
         elif cache_data[0]["project_type"] == "Docx":

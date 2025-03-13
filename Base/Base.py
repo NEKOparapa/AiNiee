@@ -35,10 +35,6 @@ class Status():
     STOPING = 4000                                  # 停止中
     NEW_PROCESS_TEST = 3500     # 新流程测试中
 
-class Language():
-    LANG_SIMPLIFIED_CHINESE = "简中"
-    LANG_TRADITIONAL_CHINESE = "繁中"
-    LANG_ENGLISH = "English"
 
 
 class Base():
@@ -48,9 +44,6 @@ class Base():
 
     # 状态列表
     STATUS = Status()
-
-    # 语言列表
-    LANGUAGE = Language()  #类属性
 
     # 配置文件路径
     CONFIG_PATH = "./Resource/config.json"
@@ -62,7 +55,7 @@ class Base():
     multilingual_interface_dict = {}
 
     # 当前语言 (类变量)
-    current_interface_language = LANGUAGE.LANG_SIMPLIFIED_CHINESE
+    current_interface_language = "简中"
 
     # 多语言配置路径
     translation_json_file = "./Resource/Localization"

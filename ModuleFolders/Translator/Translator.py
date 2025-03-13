@@ -155,14 +155,14 @@ class Translator(Base):
                 )
         except Exception as e:
             self.translating = False # 更改状态
-            self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型 ... ", e)
+            self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ... ", e)
             return None
         
         
         # 检查数据是否为空
         if self.cache_manager.get_item_count() == 0:
             self.translating = False # 更改状态
-            self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型 ... ")
+            self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ... ")
             return None
 
 

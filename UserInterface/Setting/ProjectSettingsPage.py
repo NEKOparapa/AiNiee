@@ -103,12 +103,13 @@ class ProjectSettingsPage(QFrame, Base):
         # 定义项目类型与值的配对列表（显示文本, 存储值）
         project_pairs = [
             (self.tra("Txt小说文件"), "Txt"),
+            (self.tra("Epub小说文件"), "Epub"),
+            (self.tra("Docx文档文件"), "Docx"),
             (self.tra("Srt字幕文件"), "Srt"),
             (self.tra("Vtt字幕文件"), "Vtt"),
             (self.tra("Lrc音声文件"), "Lrc"),
+            (self.tra("Md文档文件"), "Md"),
             (self.tra("T++导出文件"), "Tpp"),
-            (self.tra("Epub小说文件"), "Epub"),
-            (self.tra("Docx文档文件"), "Docx"),
             (self.tra("Mtool导出文件"), "Mtool"),
             (self.tra("VNText导出文件"), "Vnt"),
             (self.tra("Ainiee缓存文件"), "Ainiee_cache"),

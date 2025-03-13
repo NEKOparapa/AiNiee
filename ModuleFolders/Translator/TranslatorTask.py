@@ -1,5 +1,4 @@
 import copy
-import os
 import re
 import time
 import itertools
@@ -7,7 +6,7 @@ import itertools
 import rapidjson as json
 from rich import box
 from rich.table import Table
-from typing import List, Dict, Tuple
+from typing import List, Tuple
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
@@ -373,8 +372,11 @@ class TranslatorTask(Base):
         pre_prompt = PromptBuilder.build_userQueryPrefix(self.config)
 
 
-        # 构建待翻译文本
-        source_text_str = "\n".join(source_text_dict.values())
+        # 构建待翻译文本 (添加序号)
+        numbered_lines = []
+        for index, line in enumerate(source_text_dict.values()):
+            numbered_lines.append(f"{index + 1}. {line}") # 添加序号和 "." 分隔符
+        source_text_str = "\n".join(numbered_lines)
         source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text_str}\n</textarea>"
 
         # 构建用户提问信息
@@ -533,7 +535,7 @@ class TranslatorTask(Base):
         return messages, system_content
 
     # 更新系统提示词的术语表内容(因为是特殊处理的补丁，很多判断要重新加入，后续提示词相关更新需要重点关注该函数，以免bug)
-    def update_sysprompt_glossary(self,config,system_prompt, prompt_dictionary_data, source_text_dict):
+    def update_sysprompt_glossary(self,config,system_prompt,glossary_buffer_data, prompt_dictionary_data, source_text_dict):
 
         # 应用开关检查
         if config.prompt_dictionary_switch == False:
@@ -546,10 +548,22 @@ class TranslatorTask(Base):
         if config.target_platform == "LocalLLM":
             return system_prompt
 
+        # 复制数据
+        dict1 = copy.deepcopy(glossary_buffer_data)
+        dict2 = copy.deepcopy(prompt_dictionary_data)
+
+        # 合并术语表
+        merged = {item['src']: item for item in dict1} # 创建基于src的字典，优先保留prompt条目
+        merged.update({item['src']: item for item in dict2})
+        # 移除glossary条目中的count字段，保持格式
+        result_dict =  [
+            {"src": k, "dst": v["dst"], "info": v["info"]}
+            for k, v in merged.items()
+        ]
 
         # 生成符合条件的术语条目
         entries = []
-        for item in prompt_dictionary_data:
+        for item in result_dict:
             src = item.get("src", "")
             # 检查原文是否在任意源文本中出现
             if any(src in text for text in source_text_dict.values()):
@@ -667,7 +681,7 @@ class TranslatorTask(Base):
         platform_config = self.config.get_platform_configuration("singleReq")
 
         # 读取术语表更新系统提示词,因为核心流程限制，而加上的挫版补丁.....
-        self.system_prompt = self.update_sysprompt_glossary(self.config,self.system_prompt, self.config.prompt_dictionary_data, self.source_text_dict)
+        self.system_prompt = self.update_sysprompt_glossary(self.config,self.system_prompt,self.config.glossary_buffer_data, self.config.prompt_dictionary_data, self.source_text_dict)
 
         # 发起请求
         requester = TranslatorRequester(self.config, self.plugin_manager)

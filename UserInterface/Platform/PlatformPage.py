@@ -39,7 +39,6 @@ class PlatformPage(QFrame, Base):
         "temperature": 1.0,
         "presence_penalty": 0.0,
         "frequency_penalty": 0.0,
-        "account": "免费账号",
         "auto_complete": True,
         "model_datas": [
             "gpt-4o",
@@ -56,7 +55,6 @@ class PlatformPage(QFrame, Base):
             "OpenAI",
             "Anthropic",
         ],
-        "account_datas": {},
         "extra_body": {},
         "key_in_settings": [
             "api_url",
@@ -217,15 +215,15 @@ class PlatformPage(QFrame, Base):
                                 partial(self.show_api_edit_page, k),
                             ),
                             (
+                                FluentIcon.SCROLL,
+                                self.tra("编辑限速"),
+                                partial(self.show_limit_edit_page, k),
+                            ),
+                            (
                                 FluentIcon.DEVELOPER_TOOLS,
                                 self.tra("编辑参数"),
                                 partial(self.show_args_edit_page, k),
                             ),
-                            # (
-                            #     FluentIcon.SCROLL,
-                            #     "编辑限速",
-                            #     partial(self.show_limit_edit_page, k),
-                            # ),
                             (
                                 FluentIcon.SEND,
                                 self.tra("测试接口"),

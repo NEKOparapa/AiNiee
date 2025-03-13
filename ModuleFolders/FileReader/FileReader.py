@@ -15,6 +15,7 @@ from ModuleFolders.FileReader.LrcReader import LrcReader
 from ModuleFolders.FileReader.TxtReader import TxtReader
 from ModuleFolders.FileReader.EpubReader import EpubReader
 from ModuleFolders.FileReader.DocxReader import DocxReader
+from ModuleFolders.FileReader.MdReader import MdReader
 
 # 文件读取器
 class FileReader():
@@ -42,10 +43,12 @@ class FileReader():
             cache_list = EpubReader.read_epub_files(self,folder_path = label_input_path)
         elif translation_project == "Docx":
             cache_list = DocxReader.read_docx_files(self,folder_path = label_input_path)
+        elif translation_project == "Md":
+            cache_list = MdReader.read_md_files(self,folder_path = label_input_path)
+        elif translation_project == "Paratranz":
+            cache_list = ParatranzReader.read_paratranz_files(self,folder_path = label_input_path)
         elif translation_project == "Ainiee_cache":
             cache_list = FileReader.read_cache_files(self,folder_path = label_input_path)
-        if translation_project == "Paratranz":
-            cache_list = ParatranzReader.read_paratranz_files(self,folder_path = label_input_path)
         return cache_list
 
 

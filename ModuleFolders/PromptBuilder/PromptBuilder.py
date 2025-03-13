@@ -119,15 +119,15 @@ class PromptBuilder(Base):
         if not combined_list:
             base_example = {
                 "base": {
-                    "japanese": "1.例示テキスト",
-                    "korean": "1.예시 텍스트",
-                    "russian": "1.Пример текста",
-                    "chinese_simplified": "1.示例文本",
-                    "chinese_traditional": "1.翻譯示例文本",
-                    "english": "1.Sample Text",
-                    "spanish": "1.Texto de ejemplo",
-                    "french": "1.Exemple de texte",
-                    "german": "1.Beispieltext",
+                    "japanese": "例示テキスト",
+                    "korean": "예시 텍스트",
+                    "russian": "Пример текста",
+                    "chinese_simplified": "示例文本",
+                    "chinese_traditional": "翻譯示例文本",
+                    "english": "Sample Text",
+                    "spanish": "Texto de ejemplo",
+                    "french": "Exemple de texte",
+                    "german": "Beispieltext",
                 }
             }
 

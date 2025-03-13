@@ -25,6 +25,14 @@ body:
       required: false
 
   - type: input
+    id: api
+    attributes:
+      label: 接口平台
+      description: 填入使用的接口平台
+    validations:
+      required: false
+
+  - type: input
     id: api-url
     attributes:
       label: 接口地址

@@ -62,10 +62,6 @@ class APIEditPage(MessageBoxBase, Base):
         if "api_format" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_format(self.vbox, config)
 
-        # 账户类型
-        if "account" in config.get("platforms").get(self.key).get("key_in_settings"):
-            self.add_widget_account(self.vbox, config)
-
         # 模型名称
         if "model" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_model(self.vbox, config)
@@ -157,52 +153,6 @@ class APIEditPage(MessageBoxBase, Base):
                 [],
                 init = init,
                 current_text_changed = current_text_changed,
-            )
-        )
-
-    # 账户类型
-    def add_widget_account(self, parent, config):
-        # 获取当前平台配置
-        platform = config.get("platforms").get(self.key)
-        
-        # 提取账户类型原始键并生成翻译后的键值对 (显示文本, 存储值)
-        account_datas = platform.get("account_datas", {})
-        account_keys = list(account_datas.keys())
-        translated_pairs = [(self.tra(key), key) for key in account_keys]  # 关键翻译步骤
-        
-        def init(widget) -> None:
-            """初始化时根据存储的原始键设置当前选项"""
-            current_value = platform.get("account", "")
-            
-            # 通过原始键查找对应索引
-            index = next(
-                (i for i, (_, key) in enumerate(translated_pairs) if key == current_value),
-                0  # 默认第一个选项
-            )
-            widget.set_current_index(max(0, index))
-
-        def current_text_changed(widget, text: str) -> None:
-            """选项变化时存储对应的原始键"""
-            # 通过显示文本查找原始键
-            value = next(
-                (key for display, key in translated_pairs if display == text),
-                account_keys[0] if account_keys else ""  # 默认第一个键
-            )
-            
-            config = self.load_config()
-            config["platforms"][self.key]["account"] = value
-            self.save_config(config)
-
-        # 创建带翻译的选项列表
-        options = [display for display, _ in translated_pairs]
-
-        parent.addWidget(
-            ComboBoxCard(
-                self.tra("账户类型"),
-                self.tra("请选择账户类型"),
-                options,
-                init=init,
-                current_text_changed=current_text_changed
             )
         )
 

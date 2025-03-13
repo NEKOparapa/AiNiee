@@ -24,8 +24,7 @@ class TextProcessor(Base):
         # 自动处理代码段
         if config.auto_process_text_code_segment:
             # 处理前后缀
-            processed, prefix_codes, suffix_codes = TextProcessor._process_affixes(self,
-                processed, prefix_pattern, suffix_pattern)
+            processed, prefix_codes, suffix_codes = TextProcessor._process_affixes(self,processed, prefix_pattern, suffix_pattern)
             
             # 新增特殊文本占位替换
             processed, placeholder_order = TextProcessor._replace_special_placeholders(self, config.target_platform,processed, placeholder_order,code_pattern_list)
@@ -47,8 +46,8 @@ class TextProcessor(Base):
 
         # 自动处理代码段
         if config.auto_process_text_code_segment:
-            restored = TextProcessor._restore_affixes(self,restored, prefix_codes, suffix_codes)
             restored = TextProcessor._restore_special_placeholders(self,restored,placeholder_order)
+            restored = TextProcessor._restore_affixes(self,restored, prefix_codes, suffix_codes)
 
         # 译后替换
         if config.post_translation_switch:

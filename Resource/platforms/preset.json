@@ -14,12 +14,10 @@
             "temperature": 0.1,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "account": "",
             "auto_complete": false,
             "model_datas": [
                 "Sakura-v1.0"
             ],
-            "account_datas": {},
             "key_in_settings": [
                 "api_url",
                 "model",
@@ -42,12 +40,10 @@
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "account": "",
             "auto_complete": false,
             "model_datas": [
                 "Qwen2.5-7B"
             ],
-            "account_datas": {},
             "key_in_settings": [
                 "api_url",
                 "model",
@@ -63,14 +59,13 @@
             "api_url": "https://api.cohere.com",
             "api_key": "",
             "api_format": "Cohere",
-            "rpm_limit": 2000,
-            "tpm_limit": 100000000,
+            "rpm_limit": 10,
+            "tpm_limit": 9999999,
             "model": "command-r-plus",
             "top_p": 0.95,
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "account": "试用账号",
             "auto_complete": false,
             "model_datas": [
                 "command",
@@ -79,56 +74,9 @@
                 "c4ai-aya-expanse-8b",
                 "c4ai-aya-expanse-32b"
             ],
-            "account_datas": {
-                "试用账号": {
-                    "command": {
-                        "TPM": 9999999,
-                        "RPM": 10
-                    },
-                    "command-r": {
-                        "TPM": 9999999,
-                        "RPM": 10
-                    },
-                    "command-r-plus": {
-                        "TPM": 9999999,
-                        "RPM": 10
-                    },
-                    "c4ai-aya-expanse-8b": {
-                        "TPM": 9999999,
-                        "RPM": 10
-                    },
-                    "c4ai-aya-expanse-32b": {
-                        "TPM": 9999999,
-                        "RPM": 10
-                    }
-                },
-                "生产账号": {
-                    "command": {
-                        "TPM": 9999999,
-                        "RPM": 10000
-                    },
-                    "command-r": {
-                        "TPM": 9999999,
-                        "RPM": 10000
-                    },
-                    "command-r-plus": {
-                        "TPM": 9999999,
-                        "RPM": 10000
-                    },
-                    "c4ai-aya-expanse-8b": {
-                        "TPM": 9999999,
-                        "RPM": 10000
-                    },
-                    "c4ai-aya-expanse-32b": {
-                        "TPM": 9999999,
-                        "RPM": 10000
-                    }
-                }
-            },
             "key_in_settings": [
                 "api_key",
                 "model",
-                "account",
                 "temperature",
                 "top_p",
                 "presence_penalty",
@@ -142,14 +90,13 @@
             "api_url": "",
             "api_key": "",
             "api_format": "Google",
-            "rpm_limit": 2000,
-            "tpm_limit": 100000000,
+            "rpm_limit": 15,
+            "tpm_limit": 320000,
             "model": "gemini-1.5-flash",
             "top_p": 0.95,
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
                 "gemini-1.5-flash-8b",
@@ -158,57 +105,9 @@
                 "gemini-2.0-flash-exp",
                 "gemini-2.0-flash-thinking-exp"
             ],
-            "account_datas": {
-                "免费账号": {
-                    "gemini-1.0-flash-8b": {
-                        "TPM": 320000,
-                        "RPM": 15
-                    },
-                    "gemini-1.5-flash": {
-                        "TPM": 1000000,
-                        "RPM": 15
-                    },
-                    "gemini-1.5-pro": {
-                        "TPM": 320000,
-                        "RPM": 2
-                    },
-                    "gemini-2.0-flash-exp": {
-                        "TPM": 1000000,
-                        "RPM": 10
-                    },
-                    "gemini-2.0-flash-thinking-exp": {
-                        "TPM": 1000000,
-                        "RPM": 10
-                    }
-                },
-                "付费账号": {
-                    "gemini-1.0-flash-8b": {
-                        "TPM": 120000,
-                        "RPM": 4000
-                    },
-                    "gemini-1.5-flash": {
-                        "TPM": 4000000,
-                        "RPM": 2000
-                    },
-                    "gemini-1.5-pro": {
-                        "TPM": 4000000,
-                        "RPM": 1000
-                    }
-                    ,
-                    "gemini-2.0-flash-exp": {
-                        "TPM": 1000000,
-                        "RPM": 10
-                    },
-                    "gemini-2.0-flash-thinking-exp-1219": {
-                        "TPM": 1000000,
-                        "RPM": 10
-                    }
-                }
-            },
             "key_in_settings": [
                 "api_key",
                 "model",
-                "account",
                 "temperature",
                 "top_p"
             ]
@@ -220,14 +119,14 @@
             "api_url": "https://api.openai.com/v1",
             "api_key": "",
             "api_format": "OpenAI",
-            "rpm_limit": 2000,
-            "tpm_limit": 100000000,
+            "rpm_limit": 3500,
+            "tpm_limit": 600000,
             "model": "gpt-3.5-turbo",
             "top_p": 1.0,
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "account": "免费账号",
+
             "auto_complete": false,
             "model_datas": [
                 "gpt-3.5-turbo",
@@ -236,170 +135,9 @@
                 "gpt-4o-mini",
                 "gpt-4-turbo"
             ],
-            "account_datas": {
-                "免费账号": {
-                    "gpt-3.5-turbo": {
-                        "TPM": 40000,
-                        "RPM": 3
-                    }
-                },
-                "付费账号(等级1)": {
-                    "gpt-3.5-turbo": {
-                        "TPM": 60000,
-                        "RPM": 3500
-                    },
-                    "gpt-4": {
-                        "TPM": 10000,
-                        "RPM": 500
-                    },
-                    "gpt-4o": {
-                        "TPM": 300000,
-                        "RPM": 500
-                    },
-                    "gpt-4o-mini": {
-                        "TPM": 600000,
-                        "RPM": 500
-                    },
-                    "gpt-4-turbo": {
-                        "TPM": 300000,
-                        "RPM": 500
-                    },
-                    "o1-mini": {
-                        "TPM": 200000,
-                        "RPM": 500
-                    },
-                    "o1-preview": {
-                        "TPM": 30000,
-                        "RPM": 500
-                    }
-                },
-                "付费账号(等级2)": {
-                    "gpt-3.5-turbo": {
-                        "TPM": 80000,
-                        "RPM": 3500
-                    },
-                    "gpt-4": {
-                        "TPM": 40000,
-                        "RPM": 5000
-                    },
-                    "gpt-4o": {
-                        "TPM": 600000,
-                        "RPM": 5000
-                    },
-                    "gpt-4o-mini": {
-                        "TPM": 80000,
-                        "RPM": 5000
-                    },
-                    "gpt-4-turbo": {
-                        "TPM": 600000,
-                        "RPM": 5000
-                    },
-                    "o1-mini": {
-                        "TPM": 2000000,
-                        "RPM": 5000
-                    },
-                    "o1-preview": {
-                        "TPM": 450000,
-                        "RPM": 5000
-                    }
-                },
-                "付费账号(等级3)": {
-                    "gpt-3.5-turbo": {
-                        "TPM": 160000,
-                        "RPM": 5000
-                    },
-                    "gpt-4": {
-                        "max_tokens": 8000,
-                        "TPM": 80000,
-                        "RPM": 5000
-                    },
-                    "gpt-4o": {
-                        "TPM": 600000,
-                        "RPM": 5000
-                    },
-                    "gpt-4o-mini": {
-                        "TPM": 160000,
-                        "RPM": 5000
-                    },
-                    "gpt-4-turbo": {
-                        "TPM": 600000,
-                        "RPM": 5000
-                    },
-                    "o1-mini": {
-                        "TPM": 4000000,
-                        "RPM": 5000
-                    },
-                    "o1-preview": {
-                        "TPM": 800000,
-                        "RPM": 5000
-                    }
-                },
-                "付费账号(等级4)": {
-                    "gpt-3.5-turbo": {
-                        "TPM": 1000000,
-                        "RPM": 10000
-                    },
-                    "gpt-4": {
-                        "max_tokens": 8000,
-                        "TPM": 300000,
-                        "RPM": 10000
-                    },
-                    "gpt-4o": {
-                        "TPM": 900000,
-                        "RPM": 10000
-                    },
-                    "gpt-4o-mini": {
-                        "TPM": 100000,
-                        "RPM": 10000
-                    },
-                    "gpt-4-turbo": {
-                        "TPM": 900000,
-                        "RPM": 10000
-                    },
-                    "o1-mini": {
-                        "TPM": 10000000,
-                        "RPM": 10000
-                    },
-                    "o1-preview": {
-                        "TPM": 2000000,
-                        "RPM": 10000
-                    }
-                },
-                "付费账号(等级5)": {
-                    "gpt-3.5-turbo": {
-                        "TPM": 2000000,
-                        "RPM": 10000
-                    },
-                    "gpt-4": {
-                        "TPM": 300000,
-                        "RPM": 10000
-                    },
-                    "gpt-4o": {
-                        "TPM": 1200000,
-                        "RPM": 10000
-                    },
-                    "gpt-4o-mini": {
-                        "TPM": 15000000,
-                        "RPM": 10000
-                    },
-                    "gpt-4-turbo": {
-                        "TPM": 1200000,
-                        "RPM": 10000
-                    },
-                    "o1-mini": {
-                        "TPM": 150000000,
-                        "RPM": 10000
-                    },
-                    "o1-preview": {
-                        "TPM": 30000000,
-                        "RPM": 10000
-                    }
-                }
-            },
             "key_in_settings": [
                 "api_key",
                 "model",
-                "account",
                 "top_p",
                 "temperature",
                 "presence_penalty",
@@ -420,13 +158,11 @@
             "temperature": 1.3,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
                 "deepseek-chat",
                 "deepseek-reasoner"
             ],
-            "account_datas": {},
             "key_in_settings": [
                 "api_key",
                 "model",
@@ -450,7 +186,6 @@
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
                 "claude-3-haiku",
@@ -459,122 +194,9 @@
                 "claude-3-5-sonnet",
                 "claude-3-opus"
             ],
-            "account_datas": {
-                "免费账号": {
-                    "claude-3-haiku": {
-                        "TPM": 20000,
-                        "RPM": 5
-                    },
-                    "claude-3-5-haiku": {
-                        "TPM": 20000,
-                        "RPM": 5
-                    },
-                    "claude-3-sonnet": {
-                        "TPM": 20000,
-                        "RPM": 5
-                    },
-                    "claude-3-5-sonnet": {
-                        "TPM": 20000,
-                        "RPM": 5
-                    },
-                    "claude-3-opus": {
-                        "TPM": 20000,
-                        "RPM": 5
-                    }
-                },
-                "付费账号(等级1)": {
-                    "claude-3-haiku": {
-                        "TPM": 50000,
-                        "RPM": 50
-                    },
-                    "claude-3-5-haiku": {
-                        "TPM": 50000,
-                        "RPM": 50
-                    },
-                    "claude-3-sonnet": {
-                        "TPM": 40000,
-                        "RPM": 50
-                    },
-                    "claude-3-5-sonnet": {
-                        "TPM": 40000,
-                        "RPM": 50
-                    },
-                    "claude-3-opus": {
-                        "TPM": 20000,
-                        "RPM": 50
-                    }
-                },
-                "付费账号(等级2)": {
-                    "claude-3-haiku": {
-                        "TPM": 100000,
-                        "RPM": 1000
-                    },
-                    "claude-3-5-haiku": {
-                        "TPM": 100000,
-                        "RPM": 1000
-                    },
-                    "claude-3-sonnet": {
-                        "TPM": 80000,
-                        "RPM": 1000
-                    },
-                    "claude-3-5-sonnet": {
-                        "TPM": 80000,
-                        "RPM": 1000
-                    },
-                    "claude-3-opus": {
-                        "TPM": 40000,
-                        "RPM": 1000
-                    }
-                },
-                "付费账号(等级3)": {
-                    "claude-3-haiku": {
-                        "TPM": 200000,
-                        "RPM": 2000
-                    },
-                    "claude-3-5-haiku": {
-                        "TPM": 200000,
-                        "RPM": 2000
-                    },
-                    "claude-3-sonnet": {
-                        "TPM": 160000,
-                        "RPM": 2000
-                    },
-                    "claude-3-5-sonnet": {
-                        "TPM": 160000,
-                        "RPM": 2000
-                    },
-                    "claude-3-opus": {
-                        "TPM": 80000,
-                        "RPM": 2000
-                    }
-                },
-                "付费账号(等级4)": {
-                    "claude-3-haiku": {
-                        "TPM": 400000,
-                        "RPM": 4000
-                    },
-                    "claude-3-5-haiku": {
-                        "TPM": 400000,
-                        "RPM": 4000
-                    },
-                    "claude-3-sonnet": {
-                        "TPM": 400000,
-                        "RPM": 4000
-                    },
-                    "claude-3-5-sonnet": {
-                        "TPM": 400000,
-                        "RPM": 4000
-                    },
-                    "claude-3-opus": {
-                        "TPM": 400000,
-                        "RPM": 4000
-                    }
-                }
-            },
             "key_in_settings": [
                 "api_key",
                 "model",
-                "account",
                 "temperature",
                 "top_p"
             ]
@@ -593,14 +215,12 @@
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "account": "通用账号",
             "auto_complete": false,
             "model_datas": [
                 "doubao-1-5-pro-32k-250115",
                 "deepseek-v3-241226",
                 "deepseek-r1-250120"
             ],
-            "account_datas": {},
             "key_in_settings": [
                 "api_key",
                 "model",
@@ -617,14 +237,13 @@
             "api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
             "api_key": "",
             "api_format": "OpenAI",
-            "rpm_limit": 4096,
-            "tpm_limit": 4096000,
+            "rpm_limit": 150,
+            "tpm_limit": 1500000,
             "model": "qwen-turbo",
             "top_p": 1.0,
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "account": "默认",
             "auto_complete": false,
             "model_datas": [
                 "qwen-turbo",
@@ -632,26 +251,6 @@
                 "qwen-max",
                 "qwen-long"
             ],
-            "account_datas": {
-                "默认": {
-                    "qwen-turbo": {
-                        "TPM": 500000,
-                        "RPM": 500
-                    },
-                    "qwen-plus": {
-                        "TPM": 200000,
-                        "RPM": 200
-                    },
-                    "qwen-max": {
-                        "TPM": 100000,
-                        "RPM": 60
-                    },
-                    "qwen-long": {
-                        "TPM": 1500000,
-                        "RPM": 100
-                    }
-                }
-            },
             "key_in_settings": [
                 "api_key",
                 "model",
@@ -668,14 +267,13 @@
             "api_url": "https://open.bigmodel.cn/api/paas/v4",
             "api_key": "",
             "api_format": "OpenAI",
-            "rpm_limit": 2000,
-            "tpm_limit": 100000000,
+            "rpm_limit": 30,
+            "tpm_limit": 100000,
             "model": "glm-4-flash",
             "top_p": 1.0,
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
                 "glm-4-flash",
@@ -684,145 +282,9 @@
                 "glm-4-0520",
                 "glm-4-plus"
             ],
-            "account_datas": {
-                "免费账号": {
-                    "glm-4-flash": {
-                        "TPM": 100000,
-                        "RPM": 200
-                    },
-                    "glm-4-flashx": {
-                        "TPM": 100000,
-                        "RPM": 50
-                    },
-                    "glm-4-air": {
-                        "TPM": 100000,
-                        "RPM": 100
-                    },
-                    "glm-4-0520": {
-                        "TPM": 100000,
-                        "RPM": 20
-                    },
-                    "glm-4-plus": {
-                        "TPM": 100000,
-                        "RPM": 20
-                    }
-                },
-                "付费账号(等级1)": {
-                    "glm-4-flash": {
-                        "TPM": 100000,
-                        "RPM": 300
-                    },
-                    "glm-4-flashx": {
-                        "TPM": 100000,
-                        "RPM": 100
-                    },
-                    "glm-4-air": {
-                        "TPM": 100000,
-                        "RPM": 150
-                    },
-                    "glm-4-0520": {
-                        "TPM": 100000,
-                        "RPM": 30
-                    },
-                    "glm-4-plus": {
-                        "TPM": 100000,
-                        "RPM": 100
-                    }
-                },
-                "付费账号(等级2)": {
-                    "glm-4-flash": {
-                        "TPM": 100000,
-                        "RPM": 500
-                    },
-                    "glm-4-flashx": {
-                        "TPM": 100000,
-                        "RPM": 200
-                    },
-                    "glm-4-air": {
-                        "TPM": 100000,
-                        "RPM": 200
-                    },
-                    "glm-4-0520": {
-                        "TPM": 100000,
-                        "RPM": 40
-                    },
-                    "glm-4-plus": {
-                        "TPM": 100000,
-                        "RPM": 200
-                    }
-                },
-                "付费账号(等级3)": {
-                    "glm-4-flash": {
-                        "TPM": 100000,
-                        "RPM": 800
-                    },
-                    "glm-4-flashx": {
-                        "max_tokens":5000,
-                        "TPM": 100000,
-                        "RPM": 300
-                    },
-                    "glm-4-air": {
-                        "TPM": 100000,
-                        "RPM": 500
-                    },
-                    "glm-4-0520": {
-                        "TPM": 100000,
-                        "RPM": 50
-                    },
-                    "glm-4-plus": {
-                        "TPM": 100000,
-                        "RPM": 300
-                    }
-                },
-                "付费账号(等级4)": {
-                    "glm-4-flash": {
-                        "TPM": 100000,
-                        "RPM": 1000
-                    },
-                    "glm-4-flashx": {
-                        "TPM": 100000,
-                        "RPM": 400
-                    },
-                    "glm-4-air": {
-                        "TPM": 100000,
-                        "RPM": 	1000
-                    },
-                    "glm-4-0520": {
-                        "TPM": 100000,
-                        "RPM": 80
-                    },
-                    "glm-4-plus": {
-                        "TPM": 100000,
-                        "RPM": 400
-                    }
-                },
-                "付费账号(等级5)": {
-                    "glm-4-flash": {
-                        "TPM": 100000,
-                        "RPM": 1500
-                    },
-                    "glm-4-flashx": {
-                        "TPM": 100000,
-                        "RPM": 500
-                    },
-                    "glm-4-air": {
-                        "TPM": 100000,
-                        "RPM": 1500
-                    },
-                    "glm-4-0520": {
-                        "TPM": 100000,
-                        "RPM": 100
-                    },
-                    "glm-4-plus": {
-                        "TPM": 100000,
-                        "RPM": 500
-                    }
-                }
-            },
             "key_in_settings": [
                 "api_key",
                 "model",
-                "account",
                 "top_p",
                 "temperature",
                 "presence_penalty",
@@ -836,88 +298,21 @@
             "api_url": "https://api.lingyiwanwu.com/v1",
             "api_key": "",
             "api_format": "OpenAI",
-            "rpm_limit": 2000,
-            "tpm_limit": 100000000,
+            "rpm_limit": 10,
+            "tpm_limit": 120000,
             "model": "yi-lightning",
             "top_p": 1.0,
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
                 "yi-lightning",
                 "yi-large"
             ],
-            "account_datas": {
-                "免费账号": {
-                    "yi-lightning": {
-                        "TPM": 32000,
-                        "RPM": 4
-                    },
-                    "yi-large": {
-                        "max_tokens": 16000,
-                        "TPM": 32000,
-                        "RPM": 4
-                    }
-                },
-                "付费账号(等级1)": {
-                    "yi-lightning": {
-                        "TPM": 120000,
-                        "RPM": 10
-                    },
-                    "yi-large": {
-                        "max_tokens": 16000,
-                        "TPM": 80000,
-                        "RPM": 10
-                    }
-                },
-                "付费账号(等级2)": {
-                    "yi-lightning": {
-                        "TPM": 240000,
-                        "RPM": 40
-                    },
-                    "yi-large": {
-                        "TPM": 120000,
-                        "RPM": 40
-                    }
-                },
-                "付费账号(等级3)": {
-                    "yi-lightning": {
-                        "max_tokens": 4000,
-                        "TPM": 300000,
-                        "RPM": 120
-                    },
-                    "yi-large": {
-                        "TPM": 160000,
-                        "RPM": 120
-                    }
-                },
-                "付费账号(等级4)": {
-                    "yi-lightning": {
-                        "TPM": 480000,
-                        "RPM": 120
-                    },
-                    "yi-large": {
-                        "TPM": 240000,
-                        "RPM": 120
-                    }
-                },
-                "付费账号(等级5)": {
-                    "yi-lightning": {
-                        "TPM": 800000,
-                        "RPM": 200
-                    },
-                    "yi-large": {
-                        "TPM": 400000,
-                        "RPM": 200
-                    }
-                }
-            },
             "key_in_settings": [
                 "api_key",
                 "model",
-                "account",
                 "top_p",
                 "temperature",
                 "presence_penalty",
@@ -931,110 +326,22 @@
             "api_url": "https://api.moonshot.cn/v1",
             "api_key": "",
             "api_format": "OpenAI",
-            "rpm_limit": 2000,
-            "tpm_limit": 100000000,
+            "rpm_limit": 3,
+            "tpm_limit": 32000,
             "model": "moonshot-v1-8k",
             "top_p": 1.0,
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
-            "account": "免费账号",
             "auto_complete": false,
             "model_datas": [
                 "moonshot-v1-8k",
                 "moonshot-v1-32k",
                 "moonshot-v1-128k"
             ],
-            "account_datas": {
-                "免费账号": {
-                    "moonshot-v1-8k": {
-                        "TPM": 32000,
-                        "RPM": 3
-                    },
-                    "moonshot-v1-32k": {
-                        "TPM": 32000,
-                        "RPM": 3
-                    },
-                    "moonshot-v1-128k": {
-                        "TPM": 32000,
-                        "RPM": 3
-                    }
-                },
-                "付费账号(等级1)": {
-                    "moonshot-v1-8k": {
-                        "TPM": 128000,
-                        "RPM": 200
-                    },
-                    "moonshot-v1-32k": {
-                        "TPM": 128000,
-                        "RPM": 200
-                    },
-                    "moonshot-v1-128k": {
-                        "TPM": 128000,
-                        "RPM": 200
-                    }
-                },
-                "付费账号(等级2)": {
-                    "moonshot-v1-8k": {
-                        "TPM": 128000,
-                        "RPM": 500
-                    },
-                    "moonshot-v1-32k": {
-                        "TPM": 128000,
-                        "RPM": 500
-                    },
-                    "moonshot-v1-128k": {
-                        "TPM": 128000,
-                        "RPM": 500
-                    }
-                },
-                "付费账号(等级3)": {
-                    "moonshot-v1-8k": {
-                        "TPM": 384000,
-                        "RPM": 5000
-                    },
-                    "moonshot-v1-32k": {
-                        "TPM": 384000,
-                        "RPM": 5000
-                    },
-                    "moonshot-v1-128k": {
-                        "TPM": 384000,
-                        "RPM": 5000
-                    }
-                },
-                "付费账号(等级4)": {
-                    "moonshot-v1-8k": {
-                        "TPM": 768000,
-                        "RPM": 5000
-                    },
-                    "moonshot-v1-32k": {
-                        "TPM": 768000,
-                        "RPM": 5000
-                    },
-                    "moonshot-v1-128k": {
-                        "TPM": 768000,
-                        "RPM": 5000
-                    }
-                },
-                "付费账号(等级5)": {
-                    "moonshot-v1-8k": {
-                        "TPM": 2000000,
-                        "RPM": 10000
-                    },
-                    "moonshot-v1-32k": {
-                        "TPM": 2000000,
-                        "RPM": 10000
-                    },
-                    "moonshot-v1-128k": {
-                        "TPM": 2000000,
-                        "RPM": 10000
-                    }
-                }
-            },
             "key_in_settings": [
                 "api_key",
                 "model",
-                "account",
                 "top_p",
                 "temperature",
                 "presence_penalty",

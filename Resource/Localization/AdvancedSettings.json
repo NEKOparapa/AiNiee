@@ -18,11 +18,11 @@
       "English": "AI No-Translate List Generation",
       "日本語": "AI禁翻表作成"
     },
-    "将由AI辅助生成禁翻表，自动录入，暂不应用到后续翻译任务\n开启该功能会增加模型负担，建议在强力模型上开启，不支持本地类接口\n建议在翻译游戏内嵌文本时开启，提取内容有时存在问题，需要手动检查过滤": {
-      "简中": "将由AI辅助生成禁翻表，自动录入，暂不应用到后续翻译任务\n开启该功能会增加模型负担，建议在强力模型上开启，不支持本地类接口\n建议在翻译游戏内嵌文本时开启，提取内容有时存在问题，需要手动检查过滤",
-      "繁中": "將由AI輔助生成禁譯表，自動錄入，暫不應用於後續翻譯任務。\n啟用此功能會增加模型負擔，建議在高效能模型上啟用，不支援本機介面。\n建議翻譯遊戲內嵌文字時啟用，提取內容可能存在問題，需手動檢查過濾。",
-      "English": "AI-powered no-translate list generation, auto-entry, not yet applied to translations.\nEnabling this feature increases model load. Recommended for powerful models only; local interfaces are not supported.\nRecommended for in-game text translation; content extraction may require manual review.",
-      "日本語": "AIによる禁翻表生成、自動登録。翻訳には未適用。\n有効にするとモデル負荷が増加。強力なモデル推奨。ローカルインターフェースは非対応。\nゲーム内テキスト翻訳推奨。抽出内容に問題がある場合、手動確認が必要。"
+    "将由AI辅助生成禁翻表，自动录入，暂不应用到后续翻译任务\n开启该功能会增加模型负担，建议在推理模型上开启，不支持本地类接口\n建议在翻译游戏内嵌文本时开启，提取内容有时存在问题，需要手动检查过滤": {
+      "简中": "将由AI辅助生成禁翻表，自动录入，暂不应用到后续翻译任务\n开启该功能会增加模型负担，建议在推理模型上开启，不支持本地类接口\n建议在翻译游戏内嵌文本时开启，提取内容有时存在问题，需要手动检查过滤",
+      "繁中": "將由AI輔助生成禁翻表，自動錄入，暫不應用到後續翻譯任務\n開啟此功能會增加模型負擔，建議在推論模型上開啟，不支援本地端介面\n建議在翻譯遊戲內嵌文本時開啟，提取內容有時存在問題，需要手動檢查過濾",
+      "English": "AI will assist in generating a translation blacklist, automatically entered, but not yet applied to subsequent translation tasks.\nEnabling this feature will increase model load. It is recommended to enable it on inference models and does not support local interfaces.\nIt is recommended to enable it when translating game embedded text. Content extraction may have issues, requiring manual checking and filtering.",
+      "日本語": "AIにより翻訳禁止リストを生成、自動入力しますが、まだ今後の翻訳タスクには適用されません。\nこの機能を有効にするとモデル負荷が増加します。推論モデルでの有効化を推奨、ローカルインターフェースは非対応です。\nゲーム内テキスト翻訳での有効化を推奨します。内容抽出に問題がある場合があり、手動での確認とフィルタリングが必要です。"
     },
     "自动处理文本代码段": {
       "简中": "自动处理文本代码段",

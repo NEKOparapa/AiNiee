@@ -243,20 +243,53 @@ class ResponseExtractor():
             original, translation = parts[0], parts[1]
             comment = parts[2] if len(parts) >= 3 else ""
             
-            # 过滤表头行（兼容中英文表头）
-            if original.lower() in ("原文", "source", "原名"):
-                continue
 
-            # 过滤提取错行
-            if comment.lower() in ("|"):
-                continue
 
-            # 有效性检查：原文和译文不能为空
-            if original and translation:
+            # 检查并过滤错误内容
+            if ResponseExtractor._is_invalid_glossary_entry(self,original, translation, comment):
+                continue
+            else:
                 entries.append((original, translation, comment))
         
         return entries
     
+
+
+    def _is_invalid_glossary_entry(self, original, translation, info):
+        """判断条目是否需要过滤"""
+        # 非空检查
+        if not original.strip() :
+            return True
+        
+        # 过滤表头行
+        if original.strip().lower() in ("原文", "source", "原名"):
+            return True
+
+        # 过滤无翻译行
+        if original.strip() == translation.strip():
+            return True
+
+        # 过滤提取错行
+        if translation.lower() in ("|"):
+            return True
+
+        # 过滤有点无语的东西
+        if original.lower() in ("俺", "我", "俺たち", "姉ちゃん"):
+            return True
+
+        # 过滤换行符或制表符
+        if original == '\n' or original == '\t' or original == '\r':
+            return True
+        
+        # 过滤纯数字（匹配整数）
+        if re.fullmatch(r'^\d+$', original) :
+            return True
+        
+        
+        return False
+
+
+
 
     # 提取回复中的禁翻表内容
     def extract_ntl(self, text):
@@ -303,7 +336,7 @@ class ResponseExtractor():
             
 
             # 检查并过滤错误内容
-            if ResponseExtractor._is_invalid_entry(self,original, info):
+            if ResponseExtractor._is_invalid_NTL_entry(self,original, info):
                 continue
             else:
                 entries.append((original, info))
@@ -311,10 +344,10 @@ class ResponseExtractor():
         return entries
 
 
-    def _is_invalid_entry(self, original, info):
+    def _is_invalid_NTL_entry(self, original, info):
         """判断条目是否需要过滤"""
         # 非空检查
-        if not original :
+        if not original.strip() :
             return True
         
         # 过滤表头行
@@ -325,16 +358,28 @@ class ResponseExtractor():
         if info.lower() in ("|"):
             return True
 
+        # 过滤常见符号
+        if original.strip().lower() in ("#","「","」","『","』","※","★","？","！","～","…","♥","^^","『』","♪","･･･","ー","（ ）","!!","无","\\n"):
+            return True
+
         # 过滤换行符或制表符
-        if original == '\n' or original == '\t' or original == '\r':
+        if original.strip() == '\n' or original.strip() == '\t' or original.strip() == '\r':
             return True
         
         # 过滤纯数字（匹配整数）
-        if re.fullmatch(r'^\d+$', original) :
+        if re.fullmatch(r'^\d+$', original):
             return True
         
         # 过滤纯英文（匹配大小写字母组合）
-        if re.fullmatch(r'^[a-zA-Z]+$', original) :
+        if re.fullmatch(r'^[a-zA-Z]+$', original):
+            return True
+
+        # 新增：过滤被方括号/中文括号包围的数字（如[32]、【57】）
+        if re.fullmatch(r'^[\[【]\d+[\]】]$', original):
+            return True
+
+        # 新增：过滤纯英文字母和数字的组合（如abc123）
+        if re.fullmatch(r'^[a-zA-Z0-9]+$', original):
             return True
         
         return False

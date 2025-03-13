@@ -6,6 +6,18 @@
       "English": "Txt Novel File",
       "日本語": "Txt小説ファイル"
     },
+    "Epub小说文件": {
+      "简中": "Epub小说文件",
+      "繁中": "Epub小說檔案",
+      "English": "Epub Novel File",
+      "日本語": "Epub小説ファイル"
+    },
+    "Docx文档文件": {
+      "简中": "Docx文档文件",
+      "繁中": "Docx文件檔案",
+      "English": "Docx Document File",
+      "日本語": "Docxドキュメントファイル"
+    },
     "Srt字幕文件": {
       "简中": "Srt字幕文件",
       "繁中": "Srt字幕檔案",
@@ -24,23 +36,17 @@
       "English": "LRC Lyrics File",
       "日本語": "LRC歌詞ファイル"
     },
+    "Md文档文件": {
+      "简中": "Md文档文件",
+      "繁中": "Md文件檔案",
+      "English": "Md Document File",
+      "日本語": "Mdドキュメントファイル"
+    },
     "T++导出文件": {
       "简中": "T++导出文件",
       "繁中": "T++導出檔案",
       "English": "T++ Export File",
       "日本語": "T++エクスポートファイル"
-    },
-    "Epub小说文件": {
-      "简中": "Epub小说文件",
-      "繁中": "Epub小說檔案",
-      "English": "Epub Novel File",
-      "日本語": "Epub小説ファイル"
-    },
-    "Docx文档文件": {
-      "简中": "Docx文档文件",
-      "繁中": "Docx文件檔案",
-      "English": "Docx Document File",
-      "日本語": "Docxドキュメントファイル"
     },
     "Mtool导出文件": {
       "简中": "Mtool导出文件",

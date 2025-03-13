@@ -44,10 +44,6 @@
       "description": "打开金币框 \\$"
     },
     {
-      "regex": "\\\\.",
-      "description": "等待0.25秒 \\."
-    },
-    {
       "regex": "\\\\\\|",
       "description": "等待1秒 \\|"
     },
@@ -78,5 +74,60 @@
     {
       "regex": "【\\\\[A-Za-z]+\\[[^\\]]*】\\\\SE\\[[^\\]]*\\]",
       "description": "复杂SE控制代码 【\\N[1]】\\SE[xxx]"
+    },
+    {
+      "regex": "<[A-Za-z]+:\\d+>",
+      "description": "标签结构 <Tag:数字>"
+    },
+    {
+      "regex": "\\$[^$]+\\$",
+      "description": "匹配被$包裹的随机内容 $...$"
+    },
+    {
+      "regex": "\\\\[A-Za-z]\\[\\d+\\]>",
+      "description": "带标签的任意字母控制代码 \\X[数字]>"
+    },
+    {
+      "regex": "\\\\[A-Za-z]\\[\\d+\\]",
+      "description": "任意字母控制代码 \\X[数字]"
+    },
+    {
+        "regex": "\\\\h\\[[^\\]]*\\]\\\\name",
+        "description": "h控制代码和name组合 \\h[...]\\name"
+    },
+    {
+      "regex": "\\\\name",
+      "description": "控制代码\\name"
+    },
+    {
+        "regex": "\\\\AA\\[F\\]",
+        "description": "控制代码 \\AA[F]"
+    },
+    {
+        "regex": "@\\d+",
+        "description": "@数字"
+    },
+    {
+        "regex": "\\\\FA\\[[^\\]]*\\]\\\\SE\\[[^\\]]*\\]",
+        "description": "组合控制代码 \\FA[...]\\SE[...]"
+    },
+    {
+        "regex": "<ill:\\d+",
+        "description": "标签结构 <ill:数字"
+    },
+    {
+        "regex": "<plus:\\\\C\\[\\d+\\]",
+        "description": "标签结构 <plus:\\C[数字]"
+    },
+    {
+        "regex": "<minus:\\\\C\\[\\d+\\]",
+        "description": "标签结构 <minus:\\C[数字]"
+    },
+    {
+        "regex": "<br:\\\\I\\[\\d+\\]",
+        "description": "标签结构 <br:\\I[数字]"
     }
   ]
+
+
+                                                                                            || <C>
