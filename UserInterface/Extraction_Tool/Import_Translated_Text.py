@@ -257,7 +257,9 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         print('[INFO] 开始注入译文到游戏文件中,请耐心等待！！！')
 
         #读取配置文件
-        config_path = ".\StevExtraction\config.yaml"
+        current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        config_path = os.path.join(current_dir, "StevExtraction", "config.yaml")
+
         with open(config_path, 'r', encoding='utf-8') as file:
             config = yaml.safe_load(file)
 
@@ -280,4 +282,3 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         #导入文本
         pj=self.jtpp.Jr_Tpp(config,config['save_path'])
         pj.ToGame(config['game_path'],config['translation_path'],config['output_path'],config['mark'])
-

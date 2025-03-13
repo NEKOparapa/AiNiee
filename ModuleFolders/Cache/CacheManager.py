@@ -36,10 +36,12 @@ class CacheManager(Base):
 
     # 保存缓存到文件
     def save_to_file(self) -> None:
-        path = f"{self.save_to_file_require_path}/cache/AinieeCacheData.json"
+        path = os.path.join(
+            self.save_to_file_require_path, "cache", "AinieeCacheData.json"
+        )
         with self.file_lock:
-            with open(path, "w", encoding = "utf-8") as writer:
-                writer.write(json.dumps(self.to_list(self.items), ensure_ascii = False))
+            with open(path, "w", encoding="utf-8") as writer:
+                writer.write(json.dumps(self.to_list(self.items), ensure_ascii=False))
 
     # 保存缓存到文件的定时任务
     def save_to_file_tick(self) -> None:
@@ -92,13 +94,15 @@ class CacheManager(Base):
         self.reset()
 
         # 读取文件
-        path = f"{output_path}/cache/AinieeCacheData.json"
+        path = os.path.join(output_path, "cache", "AinieeCacheData.json")
         with self.file_lock:
             if not os.path.isfile(path):
-                self.debug("从文件读取缓存数据失败 ...", Exception(f"{path} 文件不存在"))
+                self.debug(
+                    "从文件读取缓存数据失败 ...", Exception(f"{path} 文件不存在")
+                )
             else:
                 try:
-                    with open(path, "r", encoding = "utf-8") as reader:
+                    with open(path, "r", encoding="utf-8") as reader:
                         data = json.load(reader)
                         self.project = CacheProject(data[0])
                         self.items = [CacheItem(item) for item in data[1:]]
@@ -145,33 +149,32 @@ class CacheManager(Base):
     # 生成上文数据条目片段
     def generate_previous_chunks(self, start_item: CacheItem, previous_line_count: int) -> list[CacheItem]:
         result = []
-        
+
         try:
             # 获取当前条目在列表中的位置
             start_index = self.items.index(start_item)
         except ValueError:
             return result
-        
+
         i = start_index - 1
         while len(result) < previous_line_count and i >= 0:
             item = self.items[i]
-            
+
             # 上文不应跨文件
             if item.get_storage_path() != start_item.get_storage_path():
                 break
-            
+
             # 检查text_index是否连续递减
             expected_text_index = start_item.get_text_index() - (len(result) + 1)
             if item.get_text_index() != expected_text_index:
                 break
-            
+
             result.append(item)
             i -= 1  # 继续向前搜索
-            
+
         # 反转列表，使顺序与原文一致
         result.reverse()
         return result
-
 
     # 开始生成缓存数据片段
     def generate_item_chunks(self, limit_type: str, limit_count: int, previous_line_count: int) -> tuple[list[list[CacheItem]], list[list[CacheItem]]]:
@@ -224,7 +227,6 @@ class CacheManager(Base):
             previous_chunks.append(self.generate_previous_chunks(chunk[0], previous_line_count))
 
         return chunks, previous_chunks
-    
 
     # 生成缓存数据条目片段
     def generate_item_chunks_old(self, limit_type: str, limit_count: int, previous_line_count: int) -> tuple[list[list[CacheItem]], list[list[CacheItem]]]:
