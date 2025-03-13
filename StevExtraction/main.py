@@ -1,239 +1,207 @@
-from jtpp import Jr_Tpp
-from jtpp import version
-from ruamel.yaml import YAML
+import os
 import traceback
+import logging
+
+from jtpp import Jr_Tpp, version
+from ruamel.yaml import YAML
 
 
-print('jtpp_{}'.format(version))
-print('main_v1.02')
+class MainApp:
+    def __init__(self):
+        """初始化主应用程序类."""
+        self.config = self.read_config()  # 读取配置
+        self.pj = None  # 初始化 Jr_Tpp 对象
+        self.logger = self.setup_logger()  # 设置日志记录器
+        self.print_version()  # 打印版本信息
+
+    def print_version(self):
+        """打印版本信息."""
+        print(f"jtpp_{version}")
+        print("main_v2.00")
+
+    def setup_logger(self):
+        """设置日志记录器."""
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.INFO)
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        ch = logging.StreamHandler()
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+        return logger
+
+    def read_config(self):
+        """读取配置文件 config.yaml."""
+        config_path = "config.yaml"
+        try:
+            yaml = YAML(typ="safe")
+            with open(config_path, "r", encoding="utf8") as f:
+                config = yaml.load(f)
+
+            # 规范化路径
+            for key in [
+                "game_path",
+                "save_path",
+                "translation_path",
+                "output_path",
+                "data_path",
+            ]:
+                config[key] = os.path.normpath(config.get(key, ""))
+
+            # 确保配置项存在并提供默认值
+            defaults = {
+                "mark": 0,
+                "NameWithout": [],
+                "ReadCode": [],
+                "BlackDir": [],
+                "BlackCode": [],
+                "BlackFiles": [],
+                "codewithnames": [],
+                "line_length": 40,
+                "sumcode": [],
+                "note_percent": 0.2,
+                "ja": 1,
+                "sptext": {},
+                "auto_linefeed_js": "自动换行.js",
+                "need2check_filename": "need2check.json",
+                "project_data_dir": "data",
+                "project_dir_name": "翻译工程文件",
+            }
+            for key, value in defaults.items():
+                config.setdefault(key, value)
+
+            return config
+
+        except FileNotFoundError:
+            print(f"错误：未找到配置文件 '{config_path}'。请确保文件存在。")
+            exit(1)
+        except Exception as e:
+            print(f"读取配置文件时发生未知错误：{e}")
+            print(traceback.format_exc())
+            exit(1)
+
+    def get_user_choice(self, prompt, valid_choices):
+        """获取用户输入的选择，并验证选择是否有效."""
+        while True:
+            choice = input(prompt)
+            if choice in valid_choices:
+                return choice
+            print("无效选择，请重试。")
+
+    def run(self):
+        """运行主程序."""
+        start_page = (
+            "1. 一键读取游戏数据并保存\n"
+            "2. 加载翻译工程\n"
+            "3. 游戏版本更新\n"
+            "0. 退出\n"
+        )
+        start_keys = ["1", "2", "3", "0"]
+
+        main_page = (
+            "1. 一键注入翻译\n"
+            "2. 保存翻译工程\n"
+            "3. 加载翻译工程\n"
+            "4. 导出翻译xlsx文件\n"
+            "5. 重新加载配置文件\n"
+            "0. 退出\n"
+        )
+        main_keys = ["1", "2", "3", "4", "5", "0"]
+
+        try:
+            while True:  # 初始菜单循环
+                res = self.get_user_choice(start_page, start_keys)
+                if res == "1":
+                    self.one_click_read_and_save()
+                    break  # 进入主菜单
+                elif res == "3":
+                    self.update_game_version()
+                    break  # 进入主菜单
+                elif res == "2":
+                    self.load_project()
+                    break  # 进入主菜单
+                elif res == "0":
+                    exit(0)
+
+            while True:  # 主菜单循环
+                res = self.get_user_choice(main_page, main_keys)
+                if res == "1":
+                    self.one_click_inject()
+                elif res == "2":
+                    self.save_project()
+                elif res == "3":
+                    self.load_project()
+                elif res == "4":
+                    self.export_translation()
+                elif res == "5":
+                    self.reload_config()
+                elif res == "0":
+                    break
+
+        except Exception as e:
+            print(traceback.format_exc())
+            print(e)
+            input("发生错误，请上报bug")
+
+    def one_click_read_and_save(self):
+        """一键读取游戏数据并保存."""
+        self.pj = Jr_Tpp(self.config)
+        self.pj.FromGame(
+            self.config["game_path"], self.config["save_path"], self.config["data_path"]
+        )
+        input(
+            "已成功读取游戏数据，提取到的名字保存在Name.json中\n"
+            "请在翻译完名字以后，将其导入到ainiee的术语表中\n"
+            f'然后翻译{os.path.join(self.config["save_path"], "data")}中的xlsx文件\n'
+        )
+
+    def update_game_version(self):
+        """游戏版本更新."""
+        self.pj = Jr_Tpp(self.config)
+        self.pj.Update(
+            self.config["game_path"],
+            self.config["translation_path"],
+            self.config["save_path"],
+            self.config["data_path"],
+        )
+
+    def load_project(self):
+        """加载翻译工程."""
+        self.pj = Jr_Tpp(self.config, self.config["save_path"])
+
+    def one_click_inject(self):
+        """一键注入翻译."""
+        if self.pj is None:
+            print("请先加载翻译工程或读取游戏数据。")
+            return
+        self.pj.ToGame(
+            self.config["game_path"],
+            self.config["translation_path"],
+            self.config["output_path"],
+            self.config["mark"],
+        )
+
+    def save_project(self):
+        """保存翻译工程."""
+        if self.pj is None:
+            print("请先加载翻译工程或读取游戏数据。")
+            return
+        self.pj.Save(self.config["save_path"])
+
+    def export_translation(self):
+        """导出翻译 xlsx 文件."""
+        if self.pj is None:
+            print("请先加载翻译工程或读取游戏数据。")
+            return
+        self.pj.Output(self.config["save_path"])
+
+    def reload_config(self):
+        """重新加载配置文件."""
+        self.config = self.read_config()
+        if self.pj:
+            self.pj.ApplyConfig(self.config)
+        print("已重新加载配置文件")
 
 
-# t++标红标蓝行需要找对应code
-# code对应地址
-# "Plugin Command": "356","Control Variables": "122","Script": "655",
-redcode = ['356', '655', '122']
-# "Comment": "108","Comment More": "408",
-bluecode = ['108', '408']
-bluedir = [r'System.json\switches', r'System.json\variables']
-# "Show Choices": "102","Show Text Attributes": "101","Show Text": "401","Show Scrolling Text": "405",
-# "Show Scrolling Text Attributes": "105","Change Actor Name": "320","Change Actor Nickname": "324",
-# "Choice": "402"应该和102一起来
-textcode = ['-1', '401', '101', '102','105','405','320',"324"]  # 需要被翻译的大概只有这些，-1是没有code的
-# "Label": "118","Jump to Label": "119","Conditional Branch": "111","Show Picture": "231",
-emptycode = ['357', '657', '111', '118', '119'] # t++没有提取的，应该不止
-RPG_CODE={
-  "Empty": "0",
-  "Show Text Attributes": "101",
-  "Show Choices": "102",
-  "Input Number": "103",
-  "Select Key Item": "104",
-  "Show Scrolling Text Attributes": "105",
-  "Comment": "108",
-  "Conditional Branch": "111",
-  "Loop": "112",
-  "Break Loop": "113",
-  "Exit Event Processing": "115",
-  "Call Common Event": "117",
-  "Label": "118",
-  "Jump to Label": "119",
-  "Control Switches": "121",
-  "Control Variables": "122",
-  "Control Self Switch": "123",
-  "Control Timer": "124",
-  "Change Gold": "125",
-  "Change Items": "126",
-  "Change Weapons": "127",
-  "Change Armor": "128",
-  "Change Party Member": "129",
-  "Change Battle BGM": "132",
-  "Change Battle End ME": "133",
-  "Change Save Access": "134",
-  "Change Menu Access": "135",
-  "Change Encounter": "136",
-  "Change Formation Access": "137",
-  "Change Window Color": "138",
-  "Transfer Player": "201",
-  "Set Vehicle Location": "202",
-  "Set Event Location": "203",
-  "Scroll Map": "204",
-  "Set Move Route": "205",
-  "Get on/off Vehicle": "206",
-  "Change Transparency": "211",
-  "Show Animation": "212",
-  "Shot Balloon Icon": "213",
-  "Erase Event": "214",
-  "Change Player Followers": "216",
-  "Gather Followers": "217",
-  "Fadeout Screen": "221",
-  "Fadein Screen": "222",
-  "Tint Screen": "223",
-  "Flash Screen": "224",
-  "Shake Screen": "225",
-  "Wait": "230",
-  "Show Picture": "231",
-  "Move Picture": "232",
-  "Rotate Picture": "233",
-  "Tint Picture": "234",
-  "Erase Picture": "235",
-  "Set Weather Effects": "236",
-  "Play BGM": "241",
-  "Fadeout BGM": "242",
-  "Save BGM": "243",
-  "Replay BGM": "244",
-  "Play BGS": "245",
-  "Fadeout BGS": "246",
-  "Play ME": "249",
-  "Play SE": "250",
-  "Stop SE": "251",
-  "Play Movie": "261",
-  "Change Map Display": "281",
-  "Change Tileset": "282",
-  "Change Battle Back": "283",
-  "Change Parallax Back": "284",
-  "Get Location Info": "285",
-  "Battle Processing": "301",
-  "Shop Processing": "302",
-  "Name Input Processing": "303",
-  "Change HP": "311",
-  "Change MP": "312",
-  "Change State": "313",
-  "Recover All": "314",
-  "Change EXP": "315",
-  "Change Level": "316",
-  "Change Parameters": "317",
-  "Change Skills": "318",
-  "Change Equipment": "319",
-  "Change Actor Name": "320",
-  "Change Actor Class": "321",
-  "Change Actor Graphic": "322",
-  "Change Vehicle Graphic": "323",
-  "Change Actor Nickname": "324",
-  "Change Actor Profile": "325",
-  "Change Enemy HP": "331",
-  "Change Enemy MP": "332",
-  "Change Enemy State": "333",
-  "Enemy Recover All": "334",
-  "Enemy Appear": "335",
-  "Enemy Transform": "336",
-  "Show Battle Animation": "337",
-  "Force Action": "339",
-  "Abort Battle": "340",
-  "Open Menu Screen": "351",
-  "Open Save Screen": "352",
-  "Game Over": "353",
-  "Return to Title Screen": "354",
-  "Script Header": "355",
-  "Plugin Command": "356",
-  "Show Text": "401",
-  "Choice": "402",
-  "Choice Cancel": "403",
-  "Choices End": "404",
-  "Show Scrolling Text": "405",
-  "Comment More": "408",
-  "Else": "411",
-  "Branch End": "412",
-  "Repeat Above": "413",
-  "If Win": "601",
-  "If Escape": "602",
-  "If Lose": "603",
-  "Battle Processing End": "604",
-  "Shop Item": "605",
-  "Script": "655"
-}
-
-def readconfig():
-    try:
-        yaml = YAML(typ='safe')
-        with open('config.yaml', 'r', encoding='utf8') as f:
-            config = yaml.load(f)
-        # 确保config中数据齐全
-        game_path=config['game_path']
-        save_path=config['save_path']
-        translation_path=config['translation_path']
-        mark=config['mark']
-        NameWithout=config['NameWithout']
-        ReadCode=config['ReadCode']
-        BlackDir=config['BlackDir']
-        BlackCode=config['BlackCode']
-        BlackFiles=config['BlackFiles']
-        codewithnames=config['codewithnames']
-        output_path=config['output_path']
-        line_length=config['line_length']
-        data_path=config['data_path']
-        sumcode=config['sumcode']
-        note_percent=config['note_percent']
-        ja=config['ja']
-    except Exception as e:
-        print(e)
-        input('没有找到格式正确的config.yaml文件，请确保其存在于与exe同级文件夹内')
-    return config
-
-config=readconfig()
-startpage='1.一键读取游戏数据并保存\n' \
-          '2.加载翻译工程\n' \
-          '3.游戏版本更新\n'
-key=['1','2','3']
-try:
-    while 1:
-        res=0
-        while res not in key:
-            res = input(startpage)
-        if res=='1':
-            pj=Jr_Tpp(config)
-            pj.FromGame(config['game_path'],config['save_path'],config['data_path'])
-            input('已成功读取游戏数据，提取到的名字保存在Name.json中\n'
-                  '请在翻译完名字以后，将其导入到ainiee的提示词典中\n'
-                  '然后翻译{}\\data中的xlsx文件\n'.format(config['save_path']))
-        elif res=='3':
-            pj = Jr_Tpp(config)
-            pj.Update(config['game_path'],config['translation_path'],config['save_path'],config['data_path'])
-        else:
-            pj = Jr_Tpp(config,config['save_path'])
-        mainpage = '1.一键注入翻译\n' \
-                   '2.保存翻译工程\n' \
-                   '3.加载翻译工程\n' \
-                   '4.导出翻译xlsx文件\n' \
-                   '5.重新加载配置文件\n'
-        while 1:
-            res=0
-            while res not in ['1','2','3','4','5']:
-                res = input(mainpage)
-            if res=='1':
-                pj.ToGame(config['game_path'],config['translation_path'],config['output_path'],config['mark'])
-            elif res=='2':
-                pj.Save(config['save_path'])
-            elif res=='3':
-                pj = Jr_Tpp(config,config['save_path'])
-            elif res=='4':
-                pj.Output(config['save_path'])
-            elif res=='5':
-                config=readconfig()
-                pj.ApplyConfig(config)
-                print('已重新加载配置文件')
-except Exception as e:
-    print(traceback.format_exc())
-    print(e)
-    input('发生错误，请上报bug')
-# 读
-# test=Jr_Tpp(config)
-#
-# test.ReadGame(config['game_path'])
-# test.Display(namelist=['Map122.json'])
-# print('\n{}'.format(test.ProgramData['Map122.json'].loc['虚ろな目をした女性','地址']))
-# test.GetName()
-# test.InputFromJson(path=r'res/TrsData.json')
-# test.Save('data')
-# 写
-# test=Jr_Tpp_LOAD('data')
-# translation_path=r'jt++\ainiee'
-# test.InputFromeXlsx(translation_path)
-# test.Save('data')
-# test.OutputBySearch('自身命中',1)
-# outputpath='D:\ggsddu\old\QFT\system\mytrs\jt++\output'
-# test.ToGmae(config['GameDir'],translation_path,outputpath,config['mark'])
-# test.Save('data')
-# test.DNoteB()
-# test.Save('data')
-# # test.DisplayBySearch('name',2,BigSmall=True)
-# print(test.GetFileNames())
-# test.Display(namelist=['Actors.json'])
+if __name__ == "__main__":
+    app = MainApp()
+    app.run()
