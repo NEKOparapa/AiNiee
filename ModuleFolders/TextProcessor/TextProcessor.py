@@ -1,7 +1,4 @@
 import re
-
-
-import rapidjson as json
 from typing import List, Dict, Tuple
 
 from Base.Base import Base
@@ -64,7 +61,6 @@ class TextProcessor(Base):
         Args:
             target_platform: 目标平台名称，例如 "sakura" 或其他
             text_dict: 包含文本的字典
-
         Returns:
             替换占位符后的文本字典
         """
@@ -77,8 +73,8 @@ class TextProcessor(Base):
 
             def replacer(match: re.Match) -> str:
                 nonlocal count
-                if count >= 3:
-                    return match.group()  # 超过3次不替换
+                if count >= 5:
+                    return match.group()  # 超过5次不替换
 
                 original = match.group()
                 count += 1
@@ -105,7 +101,11 @@ class TextProcessor(Base):
     
 
     def _build_special_placeholder_pattern(self,code_pattern_list) -> re.Pattern:
-        """构建特殊占位符匹配的正则表达式"""
+        """构建特殊占位符匹配的正则表达式
+        注意：
+        对于 \\\\. 模式，增强后的正则变为 \s*\\\\.\s*，这会匹配反斜杠前后可能的空白（包括换行符 \n）。
+        如果文本中的反斜杠附近存在换行符（例如 ...\.\n...），增强后的正则会连带匹配到 \n。        
+        """
         enhanced_patterns = []
         for p in code_pattern_list:
             # 若模式不包含边界或空白控制，则添加空白匹配

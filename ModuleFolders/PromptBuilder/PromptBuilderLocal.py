@@ -2,7 +2,6 @@ from types import SimpleNamespace
 
 from Base.Base import Base
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
-from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 
 class PromptBuilderLocal(Base):
 

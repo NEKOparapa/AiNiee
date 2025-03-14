@@ -1,8 +1,6 @@
 import re
 from types import SimpleNamespace
 
-import rapidjson as json
-
 from Base.Base import Base
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
@@ -134,10 +132,10 @@ class PromptBuilder(Base):
             combined_list.append(base_example["base"][config.source_language])
             combined_list2.append(base_example["base"][config.target_language])
 
-        # 限制示例总数量为4个，如果多了，则从最后往前开始削减
-        if len(combined_list) > 4:
-            combined_list = combined_list[:4]
-            combined_list2 = combined_list2[:4]
+        # 限制示例总数量为3个，如果多了，则从最后往前开始削减
+        if len(combined_list) > 3:
+            combined_list = combined_list[:3]
+            combined_list2 = combined_list2[:3]
 
 
         # 创建空字典

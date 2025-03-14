@@ -273,8 +273,12 @@ class ResponseExtractor():
         if translation.lower() in ("|"):
             return True
 
+        # 过滤过长行
+        if len(original) > 40 or len(translation) > 40:
+            return True
+
         # 过滤有点无语的东西
-        if original.lower() in ("俺", "我", "俺たち", "姉ちゃん"):
+        if original.lower() in ("俺", "俺たち", "姉ちゃん", "我", "你", "他", "她"):
             return True
 
         # 过滤换行符或制表符

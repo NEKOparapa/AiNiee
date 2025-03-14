@@ -59,7 +59,7 @@ class ResponseChecker():
                 pass
             else:
                 check_result = False
-                error_content = "返回的文本格式有误"
+                error_content = "返回的文本行数不一致"
                 return check_result,error_content
 
         # 检查是否回复了原文

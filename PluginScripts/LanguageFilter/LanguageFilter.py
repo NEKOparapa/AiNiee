@@ -107,15 +107,15 @@ class LanguageFilter(PluginBase):
 
         # 根据目标语言设置对应的筛选函数
         has_any = None
-        if config.source_language in ("简中", "繁中"):
+        if config.source_language in ("chinese_simplified", "chinese_traditional"):
             has_any = self.has_any_cjk
-        elif config.source_language in ("英语", "西班牙语", "法语", "德语"):
+        elif config.source_language in ("english", "spanish", "french", "german"):
             has_any = self.has_any_latin
-        elif config.source_language == "韩语":
+        elif config.source_language == "korean":
             has_any = self.has_any_korean
-        elif config.source_language == "俄语":
+        elif config.source_language == "russian":
             has_any = self.has_any_russian
-        elif config.source_language == "日语":
+        elif config.source_language == "japanes":
             has_any = self.has_any_japanese
 
         # 筛选出无效条目并标记为已排除
