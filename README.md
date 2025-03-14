@@ -57,7 +57,7 @@
 
 * **第三步：开始翻译**
 
-- 点击开始翻译按钮，剩下进行等待任务的完成。
+  - 点击开始翻译按钮，剩下等待任务的完成。
 
 
 ##  工具准备[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#工具准备)
