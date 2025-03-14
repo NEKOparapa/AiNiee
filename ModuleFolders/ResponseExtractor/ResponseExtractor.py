@@ -278,9 +278,13 @@ class ResponseExtractor():
             return True
 
         # 过滤有点无语的东西
-        if original.lower() in ("俺", "俺たち", "姉ちゃん", "我", "你", "他", "她"):
+        if original.lower() in ("俺", "俺たち", "姉ちゃん", "彼女", "我", "你", "他", "她"):
             return True
-
+        
+        # 增加过滤检查，过滤下划线+随机英文+下划线文本内容，像“_HERO_”这样的内容
+        if re.fullmatch(r'_([a-zA-Z]+)_', original):
+            return True
+        
         # 过滤换行符或制表符
         if original == '\n' or original == '\t' or original == '\r':
             return True
@@ -355,7 +359,7 @@ class ResponseExtractor():
             return True
         
         # 过滤表头行
-        if original.lower() in ("markers", "标记符", "备注"):
+        if original.lower() in ("markers", "标记符", "备注","原文", "source"):
             return True
 
         # 过滤提取错行
@@ -363,7 +367,7 @@ class ResponseExtractor():
             return True
 
         # 过滤常见符号
-        if original.strip().lower() in ("#","「","」","『","』","※","★","？","！","～","…","♥","^^","『』","♪","･･･","ー","（ ）","!!","无","\\n"):
+        if original.strip().lower() in ("#","「","」","『","』","※","★","？","！","～","…","♥","♡","^^","『』","♪","･･･","ー","（ ）","!!","无","\\n"):
             return True
 
         # 过滤换行符或制表符

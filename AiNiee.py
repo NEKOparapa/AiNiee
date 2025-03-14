@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
     # 创建全局窗口对象
     app_fluent_window = AppFluentWindow(
-        version = "AiNiee6.1 dev",
+        version = "AiNiee6.1",
         plugin_manager = plugin_manager,
     )
 

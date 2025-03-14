@@ -340,7 +340,7 @@ class TranslatorConfig(Base):
         """
         根据 glossary_buffer_data 的内容更新 prompt_dictionary_data。
 
-        检查 glossary_buffer_data 中 count >= 3 的条目，如果 prompt_dictionary_data 中没有，则添加到 prompt_dictionary_data 中。
+        检查 glossary_buffer_data 中 count >= x 的条目，如果 prompt_dictionary_data 中没有，则添加到 prompt_dictionary_data 中。
         如果 prompt_dictionary_data 中已经存在相同 src 的条目，则跳过。
 
         Args:
@@ -354,7 +354,7 @@ class TranslatorConfig(Base):
         prompt_srcs = {item['src'] for item in prompt_dictionary_data}  # 使用集合快速查找已存在的 src
 
         for buffer_item in glossary_buffer_data:
-            if buffer_item['count'] >= 4:
+            if buffer_item['count'] >= 3:
                 src = buffer_item['src']
                 if src not in prompt_srcs:
                     # 如果 prompt_dictionary_data 中没有相同的 src，则添加
