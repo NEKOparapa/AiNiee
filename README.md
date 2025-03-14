@@ -36,6 +36,7 @@
 ---
 
 ## AiNiee三步走 📢
+
 * **第一步：配置接口**
   - 在线接口：需付费但性价比很高，无显卡要求，全语言支持，[接口设置说明 - DeepSeek](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartDeepSeek)
   - 在线接口：同上，如果Deepseek官网无法正常使用，可换该接口，[接口设置说明 - 火山引擎](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartHuo)
@@ -120,18 +121,16 @@
 
 *  OpenAI官方配置示例:
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/官方账号设置.png" width="600" height="400"><br>
-  
-    >`账号类型`: 新注册账号为免费账号，有各种限制，单号速度不快<br>
-  
+
     > `模型选择`: 请自行了解模型之间的区别后再进行更改。<br>
   
     >`API KEY`: 填入由OpenAi账号生成的api_key<br>
   
 
-*  代理平台配置示例:
+*  自定义平台配置示例:
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/代理账号设置.png" width="600" height="400"><br> 
     
-    >`请求地址`: 填入国内代理平台提供的请求地址,示例：`https://api.XXXXX.com` ,不要在后面单带一个`/`
+    >`请求地址`: 填入中转平台提供的请求地址,示例：`https://api.XXXXX.com` ,不要在后面单带一个`/`
 
     >`自动补全`: 会在上面输入的请求地址自动补全“v1”
     
@@ -139,7 +138,7 @@
 
     >`模型选择`: 可下拉选择，也可以自行填入模型名字<br>
 
-    >`API KEY`: 填入国内代理平台给你生成的API KEY<br>
+    >`API KEY`: 填入中转平台给你生成的API KEY<br>
 
 
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/代理账号速率价格设置.png" width="600" height="400"><br> 
