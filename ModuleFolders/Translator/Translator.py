@@ -280,7 +280,7 @@ class Translator(Base):
                     system = PromptBuilderThink.build_system(self.config)
                 self.print("")
                 if system:
-                    self.info(f"本次任务使用以下基础指令：\n{system}\n") 
+                    self.info(f"本次任务使用以下基础提示词：\n{system}\n") 
                     
             else:
                 self.info(f"第一次请求的接口 - {self.config.platforms.get(self.config.request_a_platform_settings, {}).get("name", "未知")}")

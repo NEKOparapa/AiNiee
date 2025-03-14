@@ -155,20 +155,19 @@ class VntWriter():
                     json.dump(output_file2, file, ensure_ascii=False, indent=4)
 
 
-    # 辅助函数，提取人名与文本
-    def extract_strings(self, name,dialogue):
-        parts = dialogue.partition("「")  # 使用 partition 分割字符串，保留分隔符
-
-        if parts[1]:  # parts[1] 是分隔符，如果存在，则说明找到了 "「"
-            extracted_name = parts[0].strip()  # 分隔符前的部分为人名
-            extracted_text = (parts[1] + parts[2]).strip()  # 分隔符 + 分隔符后的部分为对话文本
-
-            if extracted_text.startswith("「（"):
-                extracted_text = extracted_text[1:] # 从索引 1 开始切片，移除第一个字符 "「"
-
-        else:
-            extracted_name = name  # 没有 "「"，使用默认人名
-            extracted_text = dialogue.strip()  # 整个对话文本作为内容
-
-        return extracted_name, extracted_text
-        
+    def extract_strings(self, name, dialogue):
+        # 检查是否以【开头
+        if dialogue.startswith("【"):
+            name_len = len(name)
+            # 计算需要检查的字符范围（原人名长度 + 5）
+            check_range = name_len + 5
+            # 在限定范围内查找】的位置
+            end_pos = dialogue.find("】", 0, check_range)
+            
+            if end_pos != -1:
+                # 提取新人名并保留剩余文本
+                return (dialogue[1:end_pos], 
+                        dialogue[end_pos+1:].lstrip())
+                        
+        # 不满足条件时返回原参数
+        return name, dialogue

@@ -55,11 +55,11 @@ class ResponseChecker():
 
         # 检查数字序号是否正确
         if target_platform != "sakura":
-            if ResponseChecker.check_dict_order(self,response_dict):
+            if ResponseChecker.check_dict_order(self,source_text_dict,response_dict):
                 pass
             else:
                 check_result = False
-                error_content = "返回的文本行数不一致"
+                error_content = "返回的文本格式与要求不一致"
                 return check_result,error_content
 
         # 检查是否回复了原文
@@ -90,7 +90,7 @@ class ResponseChecker():
 
 
     # 检查数字序号是否正确
-    def check_dict_order(self,input_dict):
+    def check_dict_order(self,source_text_dict,input_dict):
         """
         检查输入的字典，字典的key是从零开始增加的字符数字，值是文本。
         顺序检查每个值的开头是否是以数字序号+英文句点开头，并且是从1开始增加的数字序号，
@@ -102,6 +102,10 @@ class ResponseChecker():
         Returns:
             bool: 检查全部通过返回True，否则返回False。
         """
+        if (len(source_text_dict) == 1) and (len(input_dict) == 1):
+            return True  # 一行就不检查了
+
+
         expected_num = 1  # 期望的起始序号
         keys = sorted(input_dict.keys(), key=int)  # 获取排序后的key，确保按数字顺序检查
 

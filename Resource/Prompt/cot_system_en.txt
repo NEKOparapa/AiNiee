@@ -17,5 +17,5 @@ Translate faithfully and accurately. The original work is a great work of art an
 
 ### Output Translation in textarea Tag
 <textarea>
-{target_language} text
+1.{target_language} text
 </textarea>

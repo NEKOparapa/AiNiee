@@ -5,5 +5,5 @@
 
 ###以textarea标签输出译文
 <textarea>
-{target_language}文本
+1.{target_language}文本
 </textarea>

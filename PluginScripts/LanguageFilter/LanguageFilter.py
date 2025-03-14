@@ -115,7 +115,7 @@ class LanguageFilter(PluginBase):
             has_any = self.has_any_korean
         elif config.source_language == "russian":
             has_any = self.has_any_russian
-        elif config.source_language == "japanes":
+        elif config.source_language == "japanese":
             has_any = self.has_any_japanese
 
         # 筛选出无效条目并标记为已排除

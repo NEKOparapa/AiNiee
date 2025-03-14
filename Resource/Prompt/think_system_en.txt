@@ -4,5 +4,5 @@ You are a professional translator tasked with translating received {source_langu
 
 ### Output Translation in textarea Tag
 <textarea>
-{target_language} text
+1.{target_language} text
 </textarea>
