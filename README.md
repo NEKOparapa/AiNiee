@@ -17,7 +17,7 @@
 
 
 
-* **多格式支持**: 支持 JSON/XLSX 数据文件、Epub/TXT 小说、Srt/Vtt/Lrc 字幕、Word 文档等多种格式，满足多样化需求。
+* **多格式支持**: 支持 JSON/XLSX 数据文件、Epub/TXT 小说、Srt/Vtt/Lrc 字幕、Word/MD 文档等多种格式，满足多样化需求。
 
 * **多平台支持**: 无缝对接 OpenAI、Google、Anthropic、DeepSeek 等国内外主流 AI 平台，灵活选择，快速使用。
 
