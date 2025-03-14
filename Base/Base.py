@@ -58,7 +58,7 @@ class Base():
     current_interface_language = "简中"
 
     # 多语言配置路径
-    translation_json_file = "./Resource/Localization"
+    translation_json_file = os.path.join(".", "Resource", "Localization")
 
     # UI文本翻译
     @classmethod # 类方法，因为要访问类变量
@@ -105,7 +105,8 @@ class Base():
     # 检查是否处于调试模式
     def is_debug(self) -> bool:
         if getattr(Base, "_is_debug", None) == None:
-            Base._is_debug = os.path.isfile("./debug.txt")
+            debug_path = os.path.join(".", "debug.txt")
+            Base._is_debug = os.path.isfile(debug_path)
 
         return Base._is_debug
 

@@ -44,8 +44,9 @@ from UserInterface.AppFluentWindow import AppFluentWindow
 def load_config() -> dict:
     config = {}
 
-    if os.path.exists("./Resource/config.json"):
-        with open("./Resource/config.json", "r", encoding = "utf-8") as reader:
+    config_path = os.path.join(".", "Resource", "config.json")
+    if os.path.exists(config_path):
+        with open(config_path, "r", encoding = "utf-8") as reader:
             config = json.load(reader)
 
     return config
@@ -66,7 +67,8 @@ if __name__ == "__main__":
 
     # 创建全局插件管理器
     plugin_manager = PluginManager()
-    plugin_manager.load_plugins_from_directory("./PluginScripts")
+    plugin_path = os.path.join(".", "PluginScripts")
+    plugin_manager.load_plugins_from_directory(plugin_path)
 
     # 载入配置文件
     config = load_config()

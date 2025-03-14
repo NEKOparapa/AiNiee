@@ -1,4 +1,5 @@
 import copy
+import os
 import re
 import time
 import itertools
@@ -44,8 +45,8 @@ class TranslatorTask(Base):
         self.system_prompt = ""  
         self.system_prompt_a = ""  
         self.system_prompt_b = ""  
-        self.regex_dir = "./Resource/Regex/regex.json" 
-
+        self.regex_dir =  os.path.join(".", "Resource", "Regex", "regex.json")
+        
         # 初始化辅助数据结构
         self.extra_log = []
         self.replace_dict = {}

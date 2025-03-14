@@ -127,13 +127,15 @@ class AppSettingsPage(QWidget, Base):
     # 调整模式
     def add_widget_debug_mode(self, parent, config) -> None:
         def init(widget) -> None:
-            widget.set_checked(os.path.isfile("./debug.txt"))
+            debug_path = os.path.join(".", "debug.txt")
+            widget.set_checked(os.path.isfile(debug_path))
 
         def checked_changed(widget, checked: bool) -> None:
+            debug_path = os.path.join(".", "debug.txt")
             if checked == True:
-                open("./debug.txt", "w").close()
+                open(debug_path, "w").close()
             else:
-                os.remove("./debug.txt") if os.path.isfile("./debug.txt") else None
+                os.remove(debug_path) if os.path.isfile(debug_path) else None
 
             # 重置调试模式检查状态
             self.reset_debug()

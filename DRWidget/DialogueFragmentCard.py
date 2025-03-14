@@ -205,4 +205,5 @@ class EditContentMessageBox(MessageBoxBase):
         self.viewLayout.addWidget(self.text_edit)
         
         # 调整对话框尺寸
-        self.widget.setMinimumWidth(700)
+        self.widget.setMinimumWidth(900)
+        self.widget.setMinimumHeight(600)
