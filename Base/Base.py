@@ -46,7 +46,7 @@ class Base():
     STATUS = Status()
 
     # 配置文件路径
-    CONFIG_PATH = "./Resource/config.json"
+    CONFIG_PATH = os.path.join(".", "Resource", "config.json")
 
     # 类线程锁
     CONFIG_FILE_LOCK = threading.Lock()
