@@ -35,16 +35,30 @@
 
 ---
 
-## 快速开始 📢
-- 从 [发布页](https://github.com/NEKOparapa/AiNiee/releases) 下载应用并解压运行
-- 准备好要翻译的原文文本文件，并放入`输入文件夹`（默认为应用目录内的 `input` 文件夹）
-  - 大部分 `小说`、`字幕`、`文档` 文件可以直接翻译
-  - 游戏文本需要先使用第三方工具进行提取，比如 [MTool - 使用教程](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartMTool)
-- 选择以下方式之一进行翻译：
+## AiNiee三步走 📢
+* **第一步：配置接口**
   - 在线接口：需付费但性价比很高，无显卡要求，全语言支持，[接口设置说明 - DeepSeek](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartDeepSeek)
   - 在线接口：同上，如果Deepseek官网无法正常使用，可换该接口，[接口设置说明 - 火山引擎](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartHuo)
   - 本地接口：免费，需要 8G+ 显存的 Nvidia 显卡，只支持日中，[接口设置说明 - SakuraLLM](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartSakuraLLM)
-- 绝大部分情况下，这两种方式就是满足你翻译需求的最优解，没特殊需求不需要再去折腾其他的接口了
+
+* **第二步：项目设置**
+
+  >`接口名称`: 选择你之前设置的接口<br>
+
+  >`项目类型`: 选择待翻译的文件类型<br>
+
+  >`原文语言`: 选择相应的原文文本语言<br>
+
+  >`译文语言`: 你希望翻译成的语言<br>
+
+  >`输入文件夹`: 把原文件放在这个文件夹内<br>
+
+  >`输出文件夹`: 选择翻译后文件的存储文件夹，请不要和输入文件夹一个路径<br>
+
+* **第三步：开始翻译**
+
+- 点击开始翻译按钮，剩下进行等待任务的完成。
+
 
 ##  工具准备[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#工具准备)
    
