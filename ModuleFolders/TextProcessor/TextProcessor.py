@@ -101,7 +101,7 @@ class TextProcessor(Base):
     
 
     def _build_special_placeholder_pattern(self,code_pattern_list) -> re.Pattern:
-        """构建特殊占位符匹配的正则表达式
+        r"""构建特殊占位符匹配的正则表达式
         注意：
         对于 \\\\. 模式，增强后的正则变为 \s*\\\\.\s*，这会匹配反斜杠前后可能的空白（包括换行符 \n）。
         如果文本中的反斜杠附近存在换行符（例如 ...\.\n...），增强后的正则会连带匹配到 \n。        
