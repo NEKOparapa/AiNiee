@@ -355,7 +355,7 @@
 
 *   基础提示词:<br>
 
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/基础设置.png" width="600" height="400"><br>
+    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/提示词设置/基础提示词设置.png" width="600" height="400"><br>
     
     >`通用`: 综合通用，花费最少，兼容各种模型，完美破限<br>
 
