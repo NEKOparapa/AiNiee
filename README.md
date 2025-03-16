@@ -108,12 +108,22 @@
       |[SExtractor](https://github.com/satan53x/SExtractor)|上手复杂，功能强大，推荐大佬使用|
 
 
+ * **`📖术语表预提取工具`**
+
+      |工具名|说明|
+      |:----:|:-----:|
+      |[小说工具箱](https://books.fishhawk.top/workspace/toolbox)|术语表辅助制作工具|
+      |[KeywordGacha](https://github.com/neavo/KeywordGacha) |使用 AI 技术来自动生成实体词语表的翻译辅助工具|
+
+
  * **`📺游戏翻译视频教程`**
 
       |视频链接|说明|
       |:----:|:-----:|
       |[Mtool教程](https://www.bilibili.com/video/BV1h6421c7MA) |初次使用推荐观看|
       |[Translator++教程](https://www.bilibili.com/video/BV1LgfoYzEaX/?share_source=copy_web&vd_source=b0eede35fc5eaa5c382509c6040d6501)|初次使用推荐观看|
+
+
 
 </details>
 
@@ -307,11 +317,6 @@
     >`每分钟tokens数`: TPM (tokens per minute)每分钟向模型接口发送的tokens总数（类似字符总数）
 
 
-*  SakuraLLM配置:
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sakura/SakuraLLM.png" width="600" height="400"><br>
-
-    > 模型部署与应用设置请参考 [SakuraLLM - 适配轻小说/Galgame的日中翻译大模型](https://github.com/SakuraLLM/SakuraLLM/wiki)
-
 </details>
   
 
@@ -327,7 +332,7 @@
 
     ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/基础设置.png" width="600" height="400"><br>
     
-    >`项目类型`: 需要翻译的原文文件<br>
+    >`项目类型`: 需要翻译的原文文件类型<br>
 
     >`接口名称`: 翻译文本时希望使用的接口平台<br>
 
@@ -335,11 +340,33 @@
 
     >`译文语言`: 你希望翻译成的语言<br>
   
-    >`输入文件夹`: 选择你需要翻译的原文文件,把原文尽量放在一个干净的文件夹内，文件夹内没有其他文件，因为会读取该文件夹内所有相关的文件，包括子文件<br>
+    >`输入文件夹`: 选择你需要翻译的原文文件,把原文尽量放在一个干净的文件夹内，文件夹内没有其他文件，因为会读取该文件夹内所有相同的的文件类型，包括子文件<br>
   
     >`输出文件夹`: 选择翻译后文件的存储文件夹，请不要和输入文件夹一个路径<br>
 
 </details>
+
+
+<details>
+<summary> 
+
+### 提示词设置
+</summary>
+
+*   基础提示词:<br>
+
+    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/基础设置.png" width="600" height="400"><br>
+    
+    >`通用`: 综合通用，花费最少，兼容各种模型，完美破限<br>
+
+    >`思维链`: 融入翻译三步法，提升思考深度，极大增加输出内容，极大增加消耗，提升文学质量，适合普通模型，完美破限<br>
+
+    >`推理模型`: 精简流程，为 DeepSeek-R1 等推理模型优化，释放推理模型的思考能力，获得最佳翻译质量<br>
+
+    >`自定义提示词`: 系统提示词将更改为你所写内容<br>
+    
+</details>
+
 
 
 
