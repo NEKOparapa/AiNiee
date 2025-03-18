@@ -286,7 +286,7 @@ class TranslatorTask(Base):
                 # 为多行文本中的每一行添加子序号（从大到1倒序排列）
                 total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):
-                    numbered_text += f"#{total_lines - sub_index}~{sub_line}~\n"
+                    numbered_text += f"#{total_lines - sub_index}*{sub_line}*\n"
                 # 添加多行文本标记结束
                 numbered_text += "</multiline>"
                 numbered_lines.append(numbered_text)
@@ -399,12 +399,17 @@ class TranslatorTask(Base):
             # 检查是否为多行文本
             if "\n" in line:
                 lines = line.split("\n")
-                line_count = len(lines)
+                # line_count = len(lines)
                 # 添加多行文本标记开始
-                numbered_text = f"{index + 1}. <multiline lines=\"{line_count}\">\n"
-                # 为多行文本中的每一行添加子序号
+                # 已省略  lines=\"{line_count}\"
+                numbered_text = f"{index + 1}. \n<multiline>\n"
+                # # 为多行文本中的每一行添加子序号
+                # for sub_index, sub_line in enumerate(lines):
+                #     numbered_text += f"#{sub_index + 1}~{sub_line}~\n"
+                # 为多行文本中的每一行添加子序号（从大到1倒序排列）
+                total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):
-                    numbered_text += f"{sub_index + 1}. {sub_line}\n"
+                    numbered_text += f"#{total_lines - sub_index}*{sub_line}*\n"
                 # 添加多行文本标记结束
                 numbered_text += "</multiline>"
                 numbered_lines.append(numbered_text)
