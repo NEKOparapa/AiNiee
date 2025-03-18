@@ -29,7 +29,7 @@ from ModuleFolders.TextProcessor.TextProcessor import TextProcessor
 
 class TranslatorTask(Base):
 
-    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager, 
+    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager,
                  request_limiter: RequestLimiter, cache_manager: CacheManager) -> None:
         super().__init__()
 
@@ -40,13 +40,13 @@ class TranslatorTask(Base):
 
         # 初始化消息存储
         self.messages = []
-        self.messages_a = []  
-        self.messages_b = []    
-        self.system_prompt = ""  
-        self.system_prompt_a = ""  
-        self.system_prompt_b = ""  
+        self.messages_a = []
+        self.messages_b = []
+        self.system_prompt = ""
+        self.system_prompt_a = ""
+        self.system_prompt_b = ""
         self.regex_dir =  os.path.join(".", "Resource", "Regex", "regex.json")
-        
+
         # 初始化辅助数据结构
         self.extra_log = []
         self.replace_dict = {}
@@ -163,8 +163,8 @@ class TranslatorTask(Base):
         # 预估 Token 消费,暂时版本，双请求无法正确计算tpm与tokens消耗
         self.request_tokens_consume = self.request_limiter.calculate_tokens(
             self.messages,
-            self.messages_a, 
-            self.messages_b,   
+            self.messages_a,
+            self.messages_b,
             self.system_prompt,
             self.system_prompt_a,
             self.system_prompt_b
@@ -273,7 +273,27 @@ class TranslatorTask(Base):
         # 构建待翻译文本 (添加序号)
         numbered_lines = []
         for index, line in enumerate(source_text_dict.values()):
-            numbered_lines.append(f"{index + 1}. {line}") # 添加序号和 "." 分隔符
+            # 检查是否为多行文本
+            if "\n" in line:
+                lines = line.split("\n")
+                # line_count = len(lines)
+                # 添加多行文本标记开始
+                # 已省略  lines=\"{line_count}\"
+                numbered_text = f"{index + 1}. \n<multiline>\n"
+                # # 为多行文本中的每一行添加子序号
+                # for sub_index, sub_line in enumerate(lines):
+                #     numbered_text += f"#{sub_index + 1}~{sub_line}~\n"
+                # 为多行文本中的每一行添加子序号（从大到1倒序排列）
+                total_lines = len(lines)
+                for sub_index, sub_line in enumerate(lines):
+                    numbered_text += f"#{total_lines - sub_index}~{sub_line}~\n"
+                # 添加多行文本标记结束
+                numbered_text += "</multiline>"
+                numbered_lines.append(numbered_text)
+            else:
+                # 单行文本直接添加序号
+                numbered_lines.append(f"{index + 1}. {line}")
+
         source_text_str = "\n".join(numbered_lines)
         source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text_str}\n</textarea>"
 
@@ -376,7 +396,22 @@ class TranslatorTask(Base):
         # 构建待翻译文本 (添加序号)
         numbered_lines = []
         for index, line in enumerate(source_text_dict.values()):
-            numbered_lines.append(f"{index + 1}. {line}") # 添加序号和 "." 分隔符
+            # 检查是否为多行文本
+            if "\n" in line:
+                lines = line.split("\n")
+                line_count = len(lines)
+                # 添加多行文本标记开始
+                numbered_text = f"{index + 1}. <multiline lines=\"{line_count}\">\n"
+                # 为多行文本中的每一行添加子序号
+                for sub_index, sub_line in enumerate(lines):
+                    numbered_text += f"{sub_index + 1}. {sub_line}\n"
+                # 添加多行文本标记结束
+                numbered_text += "</multiline>"
+                numbered_lines.append(numbered_text)
+            else:
+                # 单行文本直接添加序号
+                numbered_lines.append(f"{index + 1}. {line}")
+
         source_text_str = "\n".join(numbered_lines)
         source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text_str}\n</textarea>"
 
@@ -498,7 +533,7 @@ class TranslatorTask(Base):
                         "role": role,
                         "content": content
                     })
-                settings["system_info"] = content 
+                settings["system_info"] = content
 
 
         return messages, system_content
@@ -531,7 +566,7 @@ class TranslatorTask(Base):
                         "role": role,
                         "content": content
                     })
-                settings["system_info"] = content 
+                settings["system_info"] = content
 
         return messages, system_content
 
@@ -541,7 +576,7 @@ class TranslatorTask(Base):
         # 应用开关检查
         if config.prompt_dictionary_switch == False:
             return system_prompt
-        
+
         # 本地接口不适用
         if config.target_platform == "sakura":
             return system_prompt
@@ -571,7 +606,7 @@ class TranslatorTask(Base):
                 dst = item.get("dst", "")
                 info = item.get("info", "")
                 entries.append(f"{src}|{dst}|{info}")
-        
+
         # 构建新术语表
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             term_table = "###术语表\n原文|译文|备注"
@@ -582,18 +617,18 @@ class TranslatorTask(Base):
             term_table += "\n\n"
         else:
             return system_prompt
-        
+
         # 处理系统提示
         if "###术语表" in system_prompt:
             # 正则匹配术语表区块（含标题行）
             pattern = r'###术语表[^\#]*'
             return re.sub(pattern, term_table, system_prompt, flags=re.DOTALL)
-        
+
         elif "###Glossary" in system_prompt:
             # 正则匹配术语表区块（含标题行）
             pattern = r'###Glossary[^\#]*'
             return re.sub(pattern, term_table, system_prompt, flags=re.DOTALL)
-        
+
         else:
             # 直接拼接新术语表
             delimiter = "\n" if system_prompt and not system_prompt.endswith("\n") else ""
@@ -647,7 +682,7 @@ class TranslatorTask(Base):
                 table.add_row(*row)
 
         return table
-    
+
 
     # 启动任务
     def start(self) -> dict:
@@ -855,7 +890,7 @@ class TranslatorTask(Base):
                 "prompt_tokens": self.request_tokens_consume,
                 "completion_tokens": 0,
             }
-        
+
         # 提取回复内容
         response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
 
@@ -872,7 +907,7 @@ class TranslatorTask(Base):
 
         # 进行提取阶段,并更新替换字典
         self.replace_dict,self.extra_log = PromptBuilderDouble.process_extraction_phase(self,
-            self.config, 
+            self.config,
             self.replace_dict,
             response_think,
             response_content,

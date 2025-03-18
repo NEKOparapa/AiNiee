@@ -28,7 +28,7 @@ class ResponseExtractor():
 
     # 提取翻译结果内容
     def extract_translation(self,source_text_dict,html_string):
-        
+
         # 提取翻译文本
         text_dict = ResponseExtractor.label_text_extraction(self,html_string)
 
@@ -56,7 +56,43 @@ class ResponseExtractor():
 
         # 只处理最后一个 textarea 标签的内容
         last_content = textarea_contents[-1]
-        lines = last_content.strip().splitlines()
+
+        def process_multiline(match):
+            # lines_attr = match.group(1)
+            content = match.group(2)
+
+            # # 提取lines属性的值
+            # 已省略行数标记，暂时不需要
+            # lines_count = int(re.search(r'lines="(\d+)"', lines_attr).group(1))
+
+            # 分割内容行
+            content_lines = content.strip().splitlines()
+            # actual_lines = len(content_lines)
+
+            # # 仅当声明行数与实际行数不一致时才输出
+            # if lines_count != actual_lines:
+            #     print(f"---- 生成行数不一致！multiline标签声明行数: {lines_count}, 实际行数: {actual_lines} ----")
+
+            # 去掉每行前面的数字序号，并提取内容
+            processed_lines = []
+            for line in content_lines:
+                # 匹配 #数字~文本~ 格式
+                match = re.search(r'^#\d+~(.+)~$', line.strip())
+                if match:
+                    processed_text = match.group(1)
+                    processed_lines.append(processed_text)
+                else:
+                    # 如果不符合预期格式，保留原行
+                    processed_lines.append(line)
+
+            # 返回处理后的内容（不包含multi标签）
+            return '\n'.join(processed_lines)
+
+        # 处理所有的multiline标签
+        processed_content = re.sub(r'\n?<multiline(.*?)>(.*?)</multiline>', process_multiline, last_content,
+                                   flags=re.DOTALL)
+
+        lines = processed_content.strip().splitlines()
         for line in lines:
             if line:
                 output_dict[str(line_number)] = line
@@ -204,10 +240,10 @@ class ResponseExtractor():
     def extract_glossary(self, text):
         """
         从文本中提取<glossary>标签内的术语表
-        
+
         参数：
             text (str): 原始文本内容
-            
+
         返回：
             list[tuple]: 包含(原文, 译文, 备注)的列表，没有匹配内容时返回空列表
         """
@@ -217,32 +253,32 @@ class ResponseExtractor():
             text,
             re.DOTALL | re.IGNORECASE
         )
-        
+
         if not glossary_match:
             return []
-        
+
         content = glossary_match.group(1).strip()
         if not content:
             return []
-        
+
         # 解析具体条目
         entries = []
-        
+
         for line in content.split('\n'):
             line = line.strip()
             if not line:
                 continue  # 跳过空行
-            
+
             # 使用分隔符拆分字段（最多拆分成3个部分）
             parts = [part.strip() for part in line.split('|', 2)]
-            
+
             # 有效性检查：至少需要原文和译文两个字段
             if len(parts) < 2:
                 continue
-            
+
             original, translation = parts[0], parts[1]
             comment = parts[2] if len(parts) >= 3 else ""
-            
+
 
 
             # 检查并过滤错误内容
@@ -250,9 +286,9 @@ class ResponseExtractor():
                 continue
             else:
                 entries.append((original, translation, comment))
-        
+
         return entries
-    
+
 
 
     def _is_invalid_glossary_entry(self, original, translation, info):
@@ -260,7 +296,7 @@ class ResponseExtractor():
         # 非空检查
         if not original.strip() :
             return True
-        
+
         # 过滤表头行
         if original.strip().lower() in ("原文", "source", "原名"):
             return True
@@ -280,20 +316,20 @@ class ResponseExtractor():
         # 过滤有点无语的东西
         if original.lower() in ("俺", "俺たち", "姉ちゃん", "彼女", "我", "你", "他", "她"):
             return True
-        
+
         # 增加过滤检查，过滤下划线+随机英文+下划线文本内容，像“_HERO_”这样的内容
         if re.fullmatch(r'_([a-zA-Z]+)_', original):
             return True
-        
+
         # 过滤换行符或制表符
         if original == '\n' or original == '\t' or original == '\r':
             return True
-        
+
         # 过滤纯数字（匹配整数）
         if re.fullmatch(r'^\d+$', original) :
             return True
-        
-        
+
+
         return False
 
 
@@ -303,10 +339,10 @@ class ResponseExtractor():
     def extract_ntl(self, text):
         """
         从文本中提取<code>标签内的术语表
-        
+
         参数：
             text (str): 原始文本内容
-            
+
         返回：
             list[tuple]: 包含(原文, 译文, 备注)的列表，没有匹配内容时返回空列表
         """
@@ -316,39 +352,39 @@ class ResponseExtractor():
             text,
             re.DOTALL | re.IGNORECASE
         )
-        
+
         if not code_match:
             return []
-        
+
         content = code_match.group(1).strip()
         if not content:
             return []
-        
+
         # 解析具体条目
         entries = []
-        
+
         for line in content.split('\n'):
             line = line.strip()
             if not line:
                 continue  # 跳过空行
-            
+
             # 使用分隔符拆分字段（最多拆分成2个部分）
             parts = [part.strip() for part in line.split('|', 1)]
-            
+
             # 有效性检查：至少需要原文和译文两个字段
             if len(parts) < 1:
                 continue
-            
+
             original = parts[0]
             info = parts[1] if len(parts) >= 2 else ""
-            
+
 
             # 检查并过滤错误内容
             if ResponseExtractor._is_invalid_NTL_entry(self,original, info):
                 continue
             else:
                 entries.append((original, info))
-        
+
         return entries
 
 
@@ -357,7 +393,7 @@ class ResponseExtractor():
         # 非空检查
         if not original.strip() :
             return True
-        
+
         # 过滤表头行
         if original.lower() in ("markers", "标记符", "备注","原文", "source"):
             return True
@@ -373,11 +409,11 @@ class ResponseExtractor():
         # 过滤换行符或制表符
         if original.strip() == '\n' or original.strip() == '\t' or original.strip() == '\r':
             return True
-        
+
         # 过滤纯数字（匹配整数）
         if re.fullmatch(r'^\d+$', original):
             return True
-        
+
         # 过滤纯英文（匹配大小写字母组合）
         if re.fullmatch(r'^[a-zA-Z]+$', original):
             return True
@@ -389,5 +425,5 @@ class ResponseExtractor():
         # 新增：过滤纯英文字母和数字的组合（如abc123）
         if re.fullmatch(r'^[a-zA-Z0-9]+$', original):
             return True
-        
+
         return False
