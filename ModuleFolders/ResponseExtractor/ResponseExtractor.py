@@ -82,8 +82,8 @@ class ResponseExtractor():
                     processed_text = match.group(1)
                     processed_lines.append(processed_text)
                 else:
-                    # 如果不符合预期格式，保留原行
-                    processed_lines.append(line)
+                    # 如果不符合预期格式，返回空行
+                    processed_lines.append("")
 
             # 返回处理后的内容（不包含multi标签）
             return '\n'.join(processed_lines)
