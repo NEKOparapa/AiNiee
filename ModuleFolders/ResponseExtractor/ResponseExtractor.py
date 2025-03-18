@@ -77,7 +77,7 @@ class ResponseExtractor():
             processed_lines = []
             for line in content_lines:
                 # 匹配 #数字~文本~ 格式
-                match = re.search(r'^#\d+~(.+)~$', line.strip())
+                match = re.search(r'^#\d+\*(.+)\*$', line.strip())
                 if match:
                     processed_text = match.group(1)
                     processed_lines.append(processed_text)
