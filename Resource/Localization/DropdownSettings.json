@@ -54,6 +54,12 @@
       "English": "Mtool Export File",
       "日本語": "Mtoolエクスポートファイル"
     },
+    "Renpy导出文件": {
+      "简中": "Renpy导出文件",
+      "繁中": "Renpy導出檔案",
+      "English": "Renpy Export File",
+      "日本語": "Renpyエクスポートファイル"
+    },
     "VNText导出文件": {
       "简中": "VNText导出文件",
       "繁中": "VNText導出檔案",

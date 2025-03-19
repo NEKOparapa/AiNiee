@@ -170,7 +170,7 @@ class TranslatorTask(Base):
             self.system_prompt_b
             )
 
-    # 生成指令
+    # 生成信息结构
     def generate_prompt(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
         # 储存指令
         messages = []
@@ -276,26 +276,17 @@ class TranslatorTask(Base):
             # 检查是否为多行文本
             if "\n" in line:
                 lines = line.split("\n")
-                # line_count = len(lines)
-                # 添加多行文本标记开始
-                # 已省略  lines=\"{line_count}\"
-                numbered_text = f"{index + 1}. \n<multiline>\n"
-                # # 为多行文本中的每一行添加子序号
-                # for sub_index, sub_line in enumerate(lines):
-                #     numbered_text += f"#{sub_index + 1}~{sub_line}~\n"
-                # 为多行文本中的每一行添加子序号（从大到1倒序排列）
-                total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):
-                    numbered_text += f"#{total_lines - sub_index}*{sub_line}*\n"
-                # 添加多行文本标记结束
-                numbered_text += "</multiline>"
-                numbered_lines.append(numbered_text)
+                    numbered_text = f"{index + 1}.{sub_index + 1}.{sub_line}"
+                    numbered_lines.append(numbered_text)
             else:
                 # 单行文本直接添加序号
-                numbered_lines.append(f"{index + 1}. {line}")
+                numbered_lines.append(f"{index + 1}.{line}")
 
         source_text_str = "\n".join(numbered_lines)
         source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text_str}\n</textarea>"
+
+        print(source_text_str)
 
         # 构建用户提问信息
         messages.append(
@@ -311,7 +302,7 @@ class TranslatorTask(Base):
 
         return messages, system, extra_log
 
-    # 生成指令 - 思考模型
+    # 生成信息结构 - 思考模型
     def generate_prompt_think(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
         # 储存指令
         messages = []
@@ -399,23 +390,12 @@ class TranslatorTask(Base):
             # 检查是否为多行文本
             if "\n" in line:
                 lines = line.split("\n")
-                # line_count = len(lines)
-                # 添加多行文本标记开始
-                # 已省略  lines=\"{line_count}\"
-                numbered_text = f"{index + 1}. \n<multiline>\n"
-                # # 为多行文本中的每一行添加子序号
-                # for sub_index, sub_line in enumerate(lines):
-                #     numbered_text += f"#{sub_index + 1}~{sub_line}~\n"
-                # 为多行文本中的每一行添加子序号（从大到1倒序排列）
-                total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):
-                    numbered_text += f"#{total_lines - sub_index}*{sub_line}*\n"
-                # 添加多行文本标记结束
-                numbered_text += "</multiline>"
-                numbered_lines.append(numbered_text)
+                    numbered_text = f"{index + 1}.{sub_index + 1}.{sub_line}"
+                    numbered_lines.append(numbered_text)
             else:
                 # 单行文本直接添加序号
-                numbered_lines.append(f"{index + 1}. {line}")
+                numbered_lines.append(f"{index + 1}.{line}")
 
         source_text_str = "\n".join(numbered_lines)
         source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text_str}\n</textarea>"
@@ -430,7 +410,7 @@ class TranslatorTask(Base):
 
         return messages, system, extra_log
 
-    # 生成指令 Sakura
+    # 生成信息结构 Sakura
     def generate_prompt_sakura(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
         # 储存指令
         messages = []
@@ -467,7 +447,7 @@ class TranslatorTask(Base):
 
         return messages, system, extra_log
 
-    # 生成指令 LocalLLM
+    # 生成信息结构 LocalLLM
     def generate_prompt_LocalLLM(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
         # 储存指令
         messages = []
@@ -492,10 +472,19 @@ class TranslatorTask(Base):
                 extra_log.append(ntl)
 
 
-        # 构建待翻译文本
+        # 构建待翻译文本 (添加序号)
         numbered_lines = []
         for index, line in enumerate(source_text_dict.values()):
-            numbered_lines.append(f"{index + 1}. {line}") # 添加序号和 "." 分隔符
+            # 检查是否为多行文本
+            if "\n" in line:
+                lines = line.split("\n")
+                for sub_index, sub_line in enumerate(lines):
+                    numbered_text = f"{index + 1}.{sub_index + 1}.{sub_line}"
+                    numbered_lines.append(numbered_text)
+            else:
+                # 单行文本直接添加序号
+                numbered_lines.append(f"{index + 1}.{line}")
+
         source_text_str = "\n".join(numbered_lines)
         source_text_str = f"<textarea>\n{source_text_str}\n</textarea>"
 
@@ -755,7 +744,8 @@ class TranslatorTask(Base):
         )
 
         # 去除回复内容的数字序号
-        response_dict = ResponseExtractor.remove_numbered_prefix(self,response_dict)
+        if  self.config.target_platform != "sakura":
+            response_dict = ResponseExtractor.remove_numbered_prefix(self, self.source_text_dict, response_dict)
 
 
         # 模型回复日志
@@ -964,7 +954,7 @@ class TranslatorTask(Base):
         )
 
         # 去除回复内容的数字序号
-        response_dict = ResponseExtractor.remove_numbered_prefix(self,response_dict)
+        response_dict = ResponseExtractor.remove_numbered_prefix(self, self.source_text_dict, response_dict)
 
 
         # 模型回复日志

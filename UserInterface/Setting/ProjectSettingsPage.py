@@ -111,6 +111,7 @@ class ProjectSettingsPage(QFrame, Base):
             (self.tra("Md文档文件"), "Md"),
             (self.tra("T++导出文件"), "Tpp"),
             (self.tra("Mtool导出文件"), "Mtool"),
+            (self.tra("Renpy导出文件"), "Renpy"),
             (self.tra("VNText导出文件"), "Vnt"),
             (self.tra("Ainiee缓存文件"), "Ainiee_cache"),
             (self.tra("ParaTranz导出文件"), "Paratranz"),

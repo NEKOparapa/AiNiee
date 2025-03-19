@@ -41,7 +41,7 @@ class ResponseChecker():
             pass
         else:
             check_result = False
-            error_content = "原文与译文行数不一致"
+            error_content = "回复文本行数不一致"
             return check_result,error_content
 
 
@@ -50,7 +50,7 @@ class ResponseChecker():
             pass
         else:
             check_result = False
-            error_content = "译文中有未翻译的空行"
+            error_content = "原文与译文行数不一致"
             return check_result,error_content
 
         # 检查数字序号是否正确
@@ -59,7 +59,7 @@ class ResponseChecker():
                 pass
             else:
                 check_result = False
-                error_content = "返回的文本格式与要求不一致"
+                error_content = "文本格式与要求不一致"
                 return check_result,error_content
 
         # 检查是否回复了原文
@@ -301,7 +301,7 @@ class ResponseChecker():
                     count_results += 1
 
         # 根据出现次数判断结果
-        if  count_results >=5:
+        if  count_results >=3:
             return False
 
         return True

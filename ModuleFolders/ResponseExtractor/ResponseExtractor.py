@@ -45,7 +45,7 @@ class ResponseExtractor():
         return translation_result
 
 
-    # 辅助函数，正则提取标签文本内容(可能需要改进为正则提取)
+    # 辅助函数，正则提取标签文本内容
     def label_text_extraction(self, html_string):
         textarea_contents = re.findall(r'<textarea.*?>(.*?)</textarea>', html_string, re.DOTALL)
         if not textarea_contents:
@@ -56,43 +56,7 @@ class ResponseExtractor():
 
         # 只处理最后一个 textarea 标签的内容
         last_content = textarea_contents[-1]
-
-        def process_multiline(match):
-            # lines_attr = match.group(1)
-            content = match.group(2)
-
-            # # 提取lines属性的值
-            # 已省略行数标记，暂时不需要
-            # lines_count = int(re.search(r'lines="(\d+)"', lines_attr).group(1))
-
-            # 分割内容行
-            content_lines = content.strip().splitlines()
-            # actual_lines = len(content_lines)
-
-            # # 仅当声明行数与实际行数不一致时才输出
-            # if lines_count != actual_lines:
-            #     print(f"---- 生成行数不一致！multiline标签声明行数: {lines_count}, 实际行数: {actual_lines} ----")
-
-            # 去掉每行前面的数字序号，并提取内容
-            processed_lines = []
-            for line in content_lines:
-                # 匹配 #数字*文本* 格式
-                match = re.search(r'^#\d+\*(.+)\*$', line.strip())
-                if match:
-                    processed_text = match.group(1)
-                    processed_lines.append(processed_text)
-                else:
-                    # 如果不符合预期格式，返回空行
-                    processed_lines.append("")
-
-            # 返回处理后的内容（不包含multi标签）
-            return '\n'.join(processed_lines)
-
-        # 处理所有的multiline标签
-        processed_content = re.sub(r'\n?<multiline(.*?)>(.*?)</multiline>', process_multiline, last_content,
-                                   flags=re.DOTALL)
-
-        lines = processed_content.strip().splitlines()
+        lines = last_content.strip().splitlines()
         for line in lines:
             if line:
                 output_dict[str(line_number)] = line
@@ -122,7 +86,6 @@ class ResponseExtractor():
             return filtered_dict
         else:
             return output_dict  # 如果没有找到数字序号开头的行，则返回原始字典
-
 
     # 辅助函数，统计原文中的换行符
     def count_newlines_in_dict_values(self,source_text_dict):
@@ -194,45 +157,49 @@ class ResponseExtractor():
         return result_dict
 
     # 辅助函数，去除数字序号
-    def remove_numbered_prefix(self, input_dict):
+    def remove_numbered_prefix(self,source_text_dict,translation_text_dict):
         """
-        遍历字典的值，检查每个值是否以数字加英文句点开头，如果是，则去除第一个匹配项。
-
-        Args:
-            input_dict: 输入的字典。
-
-        Returns:
-            一个新的字典，其中值已经去除数字前缀（如果存在）。
+        根据源文本的换行符数量，动态去除输入文本中对应的层级数字序号。
+        
+        逻辑说明：
+        1. 源文本中换行符数量决定了序号层级（m个换行符对应m+1个子行）
+        2. 主序号由字典键值+1决定（如键'0'的主序号是1，键'1'的主序号是2）
+        3. 根据换行符数量选择匹配模式：
+        - 无换行符：匹配"主序号."
+        - 有换行符：匹配"主序号.子序号."
         """
-
-        # 如果没有找到任何以数字序号开头的行，则直接返回原始的行号字典（主要是为了兼容Sakura模型接口）
-        has_numbered_prefix = False
-        for value in input_dict.values():
-            if re.match(r'^\d+\.', value):
-                has_numbered_prefix = True
-                break  # 只要找到一行符合条件就跳出循环
-
-        if has_numbered_prefix:
-            output_dict = {}
-            for key, value in input_dict.items():
-                if isinstance(value, str):  # 确保值是字符串类型，避免处理非字符串值时出错
-                    # 使用正则表达式匹配以数字和英文句点开头的模式
-                    match = re.match(r"^\d+\.\s*", value)  # ^ 表示字符串开头，\d+ 表示一个或多个数字，\. 表示英文句点，\s* 表示零个或多个空白字符（可选）
-                    if match:
-                        # 如果匹配成功，则去除匹配到的前缀
-                        prefix_length = match.end()  # 获取匹配到的前缀的结束位置
-                        modified_value = value[prefix_length:]  # 切片字符串，去除前缀部分
-                        output_dict[key] = modified_value
-                    else:
-                        # 如果不匹配，则保持原始值
-                        output_dict[key] = value
+        
+        output_dict = {}
+        for key, value in translation_text_dict.items():
+            if not isinstance(value, str):
+                output_dict[key] = value
+                continue
+            
+            # 获取源文本的换行符数量
+            source_text = source_text_dict.get(key, "")
+            newline_count = source_text.count("\n")
+            
+            # 分割输入文本为多行处理
+            lines = value.split("\n")
+            cleaned_lines = []
+            
+            for line in lines:
+                # 根据换行情况构建匹配模式
+                if newline_count == 0:
+                    # 匹配"主序号."模式（如"1."）
+                    pattern = rf"^\d+\.\s*"  # 行首正则
                 else:
-                    # 如果值不是字符串，则保持原始值
-                    output_dict[key] = value
-            return output_dict
-
-        else:
-            return input_dict
+                    # 匹配"主序号.子序号."模式（如"2.1."）
+                    pattern = rf"^\d+\.\d+\.\s*"
+                
+                # 执行替换操作
+                cleaned_line = re.sub(pattern, "", line)
+                cleaned_lines.append(cleaned_line)
+            
+            # 重组处理后的文本
+            output_dict[key] = "\n".join(cleaned_lines)
+        
+        return output_dict
 
 
 

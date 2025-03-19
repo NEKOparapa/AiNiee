@@ -16,6 +16,7 @@ from ModuleFolders.FileReader.TxtReader import TxtReader
 from ModuleFolders.FileReader.EpubReader import EpubReader
 from ModuleFolders.FileReader.DocxReader import DocxReader
 from ModuleFolders.FileReader.MdReader import MdReader
+from ModuleFolders.FileReader.RenpyReader import RenpyReader
 
 # 文件读取器
 class FileReader():
@@ -45,6 +46,8 @@ class FileReader():
             cache_list = DocxReader.read_docx_files(self,folder_path = label_input_path)
         elif translation_project == "Md":
             cache_list = MdReader.read_md_files(self,folder_path = label_input_path)
+        elif translation_project == "Renpy":
+            cache_list = RenpyReader.read_renpy_files(self,folder_path = label_input_path)
         elif translation_project == "Paratranz":
             cache_list = ParatranzReader.read_paratranz_files(self,folder_path = label_input_path)
         elif translation_project == "Ainiee_cache":

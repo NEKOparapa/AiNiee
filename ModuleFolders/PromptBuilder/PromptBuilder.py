@@ -153,16 +153,38 @@ class PromptBuilder(Base):
         # 将原文本字典转换成行文本，并加上数字序号
         if source_dict:
 
-            source_numbered_lines = []
-            for index_s, line in enumerate(source_dict.values()):
-                source_numbered_lines.append(f"{index_s + 1}. {line}") # 添加序号和 "." 分隔符
+            # 构建原文示例
+            numbered_lines = []
+            for index, line in enumerate(source_dict.values()):
+                # 检查是否为多行文本
+                if "\n" in line:
+                    lines = line.split("\n")
+                    for sub_index, sub_line in enumerate(lines):
+                        numbered_text = f"{index + 1}.{sub_index + 1}.{sub_line}"
+                        numbered_lines.append(numbered_text)
+                else:
+                    # 单行文本直接添加序号
+                    numbered_lines.append(f"{index + 1}.{line}")
 
+            source_str = "\n".join(numbered_lines)
+
+
+            # 构建原文示例
             target_numbered_lines = []
-            for index_t, line in enumerate(target_dict.values()):
-                target_numbered_lines.append(f"{index_t + 1}. {line}") # 添加序号和 "." 分隔符
+            for index, line in enumerate(target_dict.values()):
+                # 检查是否为多行文本
+                if "\n" in line:
+                    lines = line.split("\n")
+                    for sub_index, sub_line in enumerate(lines):
+                        numbered_text = f"{index + 1}.{sub_index + 1}.{sub_line}"
+                        target_numbered_lines.append(numbered_text)
+                else:
+                    # 单行文本直接添加序号
+                    target_numbered_lines.append(f"{index + 1}.{line}")
 
-            source_str = "\n".join( source_numbered_lines)
-            target_str = "\n".join( target_numbered_lines)
+            target_str = "\n".join(target_numbered_lines)
+
+
 
         return source_str, target_str
 

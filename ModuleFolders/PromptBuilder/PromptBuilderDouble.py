@@ -19,10 +19,19 @@ class PromptBuilderDouble(Base):
     # 获取双请求专用原文
     def get_source_text(self,source_text_dict: dict) -> str:
 
+        # 构建待翻译文本 (添加序号)
         numbered_lines = []
-
         for index, line in enumerate(source_text_dict.values()):
-            numbered_lines.append(f"{index + 1}. {line}") # 添加序号和 "." 分隔符
+            # 检查是否为多行文本
+            if "\n" in line:
+                lines = line.split("\n")
+                for sub_index, sub_line in enumerate(lines):
+                    numbered_text = f"{index + 1}.{sub_index + 1}.{sub_line}"
+                    numbered_lines.append(numbered_text)
+            else:
+                # 单行文本直接添加序号
+                numbered_lines.append(f"{index + 1}.{line}")
+
         source_text_str = "\n".join(numbered_lines)
 
         return source_text_str
