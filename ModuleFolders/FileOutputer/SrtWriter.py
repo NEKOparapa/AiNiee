@@ -12,14 +12,22 @@ class SrtWriter:
             if "storage_path" not in item:
                 continue
 
+            # 原始文件路径（译文版本用）
             file_path = os.path.join(output_path, item["storage_path"])
             folder_path = os.path.dirname(file_path)
             os.makedirs(folder_path, exist_ok=True)
 
-            # 构建翻译版和双语版的文件路径
+            # 构建翻译版文件路径
             base, ext = os.path.splitext(file_path)
             translated_path = f"{base}.translated{ext}"
-            bilingual_path = f"{base}.bilingual{ext}"
+
+            # 构建双语版文件路径（移动到 bilingual 子目录）
+            storage_path = item["storage_path"]
+            dir_part = os.path.dirname(storage_path)  # 原文件的目录结构
+            file_name_part = os.path.basename(storage_path)  # 原文件名
+            file_name, ext_part = os.path.splitext(file_name_part)
+            bilingual_file = f"{file_name}.bilingual{ext_part}"
+            bilingual_path = os.path.join(output_path, "bilingual_srt", dir_part, bilingual_file)
 
             # 处理译文版本
             translated_entry = {
@@ -44,11 +52,10 @@ class SrtWriter:
                     bilingual_dict[bilingual_path] = []
                 bilingual_dict[bilingual_path].append(bilingual_entry)
 
-        # 写入译文版本文件
+        # 写入译文版本文件（保持原目录结构）
         for file_path, contents in translated_dict.items():
             output = []
             for content in contents:
-                # 跳过空文本（可选）
                 if not content["text"]:
                     continue
                 block = [
@@ -58,16 +65,19 @@ class SrtWriter:
                     ""
                 ]
                 output.append("\n".join(block).strip())
-            if output:  # 确保有内容才写入
+            if output:
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write("\n\n".join(output))
 
-        # 写入双语版本文件
+        # 写入双语版本文件（新目录结构）
         for file_path, contents in bilingual_dict.items():
             output = []
-            entry_number = 1  # 条目编号从1开始递增
+            entry_number = 1
+            # 确保目标目录存在
+            folder = os.path.dirname(file_path)
+            os.makedirs(folder, exist_ok=True)
+            
             for entry in contents:
-                # 添加原文条目（如果有内容）
                 if entry["original"]:
                     original_block = [
                         str(entry_number),
@@ -77,7 +87,6 @@ class SrtWriter:
                     ]
                     output.append("\n".join(original_block).strip())
                     entry_number += 1
-                # 添加译文条目（如果有内容）
                 if entry["translated"]:
                     translated_block = [
                         str(entry_number),
@@ -87,6 +96,6 @@ class SrtWriter:
                     ]
                     output.append("\n".join(translated_block).strip())
                     entry_number += 1
-            if output:  # 确保有内容才写入
+            if output:
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write("\n\n".join(output))

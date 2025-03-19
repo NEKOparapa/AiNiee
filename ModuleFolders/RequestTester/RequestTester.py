@@ -71,7 +71,7 @@ class RequestTester(Base):
             self.info("正在进行接口测试 ...")
             self.info(f"接口名称 - {name}")
             self.info(f"接口地址 - {api_url}")
-            self.info(f"接口密钥 - {api_key}")
+            self.info(f"接口密钥 - {'*'*(len(api_key)-8)}{api_key[-8:]}") # 隐藏敏感信息
             self.info(f"模型名称 - {model}")
             self.info(f"额外参数 - {extra_body}")
             self.info("测试指令 - ")

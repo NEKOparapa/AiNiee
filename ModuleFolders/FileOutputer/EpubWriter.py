@@ -60,9 +60,16 @@ class EpubWriter():
             EpubWriter._process_version(self,book, extract_paths['translated'], 'translated', content_list)
             EpubWriter._process_version(self,book, extract_paths['bilingual'], 'bilingual', content_list)
 
-            # 打包生成两个版本
-            EpubWriter._package_version(self,file_path, extract_paths['translated'], '_translated')
-            EpubWriter._package_version(self,file_path, extract_paths['bilingual'], '_bilingual')
+            # 打包生成两个版本并获取路径
+            translated_path = EpubWriter._package_version(self, file_path, extract_paths['translated'], '_translated')
+            bilingual_path = EpubWriter._package_version(self, file_path, extract_paths['bilingual'], '_bilingual')
+
+            # 移动双语版本到 bilingual 子目录
+            bilingual_output_dir = os.path.join(output_path, 'bilingual_epub')
+            relative_path = os.path.relpath(bilingual_path, output_path)
+            target_path = os.path.join(bilingual_output_dir, relative_path)
+            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+            shutil.move(bilingual_path, target_path)
 
             # 清理临时文件
             os.remove(file_path)
@@ -219,6 +226,8 @@ class EpubWriter():
                     full_path = os.path.join(root, file)
                     rel_path = os.path.relpath(full_path, extract_path)
                     zipf.write(full_path, rel_path)
+        return new_path  # 返回生成的文件路径
+    
     # 复制epub文件
     def _copy_epub_files(self, input_path, output_path):
         for dirpath, _, filenames in os.walk(input_path):

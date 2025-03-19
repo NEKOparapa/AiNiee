@@ -507,8 +507,7 @@ class TranslatorRequester(Base):
 
             # 提取回复内容
             message = response.choices[0].message
-
-
+            
             # 自适应提取推理过程
             if "</think>" in message.content:
                 splited = message.content.split("</think>")

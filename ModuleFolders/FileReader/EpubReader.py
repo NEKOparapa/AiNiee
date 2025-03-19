@@ -57,14 +57,15 @@ class EpubReader():
                                 # 获取文本内容并解码（为什么不用这个而进行解压操作呢，因为这个会自动将成对标签改为自适应标签）
                                 # html_content = item.get_content().decode('utf-8')
 
-                            # 修改后的正则字典，只包含成对标签，暂不考虑自闭合标签
+                            # 正则字典，只包含成对标签，暂不考虑自闭合标签
                             tag_patterns_dict = {
-                                "p": r"<p[^>]*>(.*?)</p>",  # 匹配 <p>...</p>
-                                "heading": r"<h[1-7][^>]*>(.*?)</h[1-7]>",  # 匹配 <h1-h7>...</h1-h7>
-                                "li": r"<li[^>]*>(.*?)</li>",  # 匹配 <li>...</li>
-                                "text": r"<text[^>]*>(.*?)</text>",  # 匹配 <text>...</text>
+                                "p": r"<p[^>]*>(.*?)</p>",
+                                "heading": r"<h[1-7][^>]*>(.*?)</h[1-7]>",
+                                "li": r"<li[^>]*>(.*?)</li>",
+                                "text": r"<text[^>]*>(.*?)</text>",
+                                "div": r"<div[^>]*>(.*?)</div>",  # div标签要放在最后面，这是提取不到前面任何文本内容再考虑的标签
                             }
-
+                            
                             for tag_type, pattern in tag_patterns_dict.items():
                                 # 使用 finditer 查找所有匹配项，可以迭代处理
                                 for match in re.finditer(pattern, html_content, re.DOTALL):
@@ -77,7 +78,12 @@ class EpubReader():
                                     if not text_content: # 检查一下是否提取到空文本内容
                                         continue
 
-                                    item_id = item.get_id()
+                                    # 对div标签进行额外检查
+                                    if tag_type == "div":
+                                        # 检查是否包含禁止的子标签
+                                        forbidden_tags = soup.find(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'text'])
+                                        if forbidden_tags is not None:
+                                            continue  # 跳过包含禁止标签的div
 
                                     json_data_list.append({
                                         "text_index": i,
@@ -96,3 +102,4 @@ class EpubReader():
                     shutil.rmtree(extract_path)
 
         return json_data_list
+    

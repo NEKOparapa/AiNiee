@@ -286,8 +286,6 @@ class TranslatorTask(Base):
         source_text_str = "\n".join(numbered_lines)
         source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text_str}\n</textarea>"
 
-        print(source_text_str)
-
         # 构建用户提问信息
         messages.append(
             {

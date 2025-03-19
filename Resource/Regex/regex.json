@@ -134,6 +134,50 @@
     {
         "regex": "<br:\\\\I\\[\\d+\\]",
         "description": "标签结构 <br:\\I[数字]"
+    },
+    {
+      "regex": "\\{w=wt\\d+\\}",
+      "description": "w控制代码 {w=wt数字}"
+    },
+    {
+      "regex": "\\{image=[^}]*\\}",
+      "description": "image标签 {image=...}"
+    },
+    {
+      "regex": "\\{/aw\\}",
+      "description": "关闭aw标签 {/aw}"
+    },
+    {
+      "regex": "\\{aw\\}",
+      "description": "aw标签 {aw}"
+    },
+    {
+      "regex": "\\{p\\}",
+      "description": "单p标签 {p}"
+    },
+    {
+      "regex": "\\{p\\}\\{p\\}.*?",
+      "description": "连续p标签 {p}{p}..."
+    },
+    {
+      "regex": "\\{size=\\d+\\}",
+      "description": "size标签 {size=数字}"
+    },
+    {
+      "regex": "\\{/size\\}",
+      "description": "关闭size标签 {/size}"
+    },
+    {
+      "regex": "\\{nm\\}[\\s\\S]*?\\{/nm\\}",
+      "description": "nm标签块 {nm}...{/nm}"
+    },
+    {
+      "regex": "\\{fast\\}",
+      "description": "fast标签 {fast}"
+    },
+    {
+      "regex": "\\{a=[^}]*\\}",
+      "description": "a标签 {a=...}"
     }
   ]
 
