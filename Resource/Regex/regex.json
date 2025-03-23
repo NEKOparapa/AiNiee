@@ -1,5 +1,9 @@
 [
     {
+      "regex": "\\\\font\\[\\d+\\]\\\\c\\[\\d+\\]\\\\f\\[\\d+\\]A+",
+      "description": "匹配 \\font[数字]\\c[数字]\\f[数字]\\A+ 格式的内容，用于过滤字体、颜色、字号等控制代码"
+    },
+    {
       "regex": "if\\(.{0,5}[vs]\\[\\d+\\].{0,10}\\)",
       "description": "if 条件判断 (if(!s[982]), if(v[982] >= 1))"
     },
@@ -68,10 +72,6 @@
       "description": "换行符 \\<br>"
     },
     {
-      "regex": "<br>",
-      "description": "换行符 <br>"
-    },
-    {
       "regex": "\\\\SE\\[.{0,15}?\\]",
       "description": "se控制代码 \\SE[...]"
     },
@@ -84,7 +84,15 @@
       "description": "标签结构 <Tag:数字>"
     },
     {
+      "regex": "\\\\cself[\\d+\\]",
+      "description": "\\cself[40]"
+    },
+    {
       "regex": "\\$[^$]+\\$",
+      "description": "匹配被$包裹的随机内容 $...$"
+    },
+    {
+      "regex": "\\$(.*?)\\$",
       "description": "匹配被$包裹的随机内容 $...$"
     },
     {
@@ -113,7 +121,7 @@
     },
     {
       "regex": "\\\\ws",
-      "description": "@数字"
+      "description": "\\ws"
     },
     {
         "regex": "\\\\FA\\[[^\\]]*\\]\\\\SE\\[[^\\]]*\\]",
@@ -144,12 +152,20 @@
       "description": "image标签 {image=...}"
     },
     {
-      "regex": "\\{/aw\\}",
-      "description": "关闭aw标签 {/aw}"
+      "regex": "\\{color=[^}]*\\}",
+      "description": "color标签 {color=...}"
+    },
+    {
+      "regex": "\\{/color\\}",
+      "description": "关闭color标签 {/color}"
     },
     {
       "regex": "\\{aw\\}",
       "description": "aw标签 {aw}"
+    },
+    {
+      "regex": "\\{/aw\\}",
+      "description": "关闭aw标签 {/aw}"
     },
     {
       "regex": "\\{p\\}",

@@ -159,28 +159,34 @@ class PromptBuilder(Base):
                 # 检查是否为多行文本
                 if "\n" in line:
                     lines = line.split("\n")
+                    numbered_text = f""
                     for sub_index, sub_line in enumerate(lines):
-                        numbered_text = f"{index + 1}.{sub_index + 1}.{sub_line}"
-                        numbered_lines.append(numbered_text)
+                        numbered_text += f"""{index + 1}.{sub_index}.({sub_line})\n"""
+                    numbered_text = numbered_text.rstrip('\n')
+                    numbered_lines.append(numbered_text)
                 else:
                     # 单行文本直接添加序号
                     numbered_lines.append(f"{index + 1}.{line}")
 
+
             source_str = "\n".join(numbered_lines)
 
 
-            # 构建原文示例
+            # 构建译文示例
             target_numbered_lines = []
             for index, line in enumerate(target_dict.values()):
                 # 检查是否为多行文本
                 if "\n" in line:
                     lines = line.split("\n")
+                    numbered_text = f""
                     for sub_index, sub_line in enumerate(lines):
-                        numbered_text = f"{index + 1}.{sub_index + 1}.{sub_line}"
-                        target_numbered_lines.append(numbered_text)
+                        numbered_text += f"""{index + 1}.{sub_index}.({sub_line})\n"""
+                    numbered_text = numbered_text.rstrip('\n')
+                    target_numbered_lines.append(numbered_text)
                 else:
                     # 单行文本直接添加序号
                     target_numbered_lines.append(f"{index + 1}.{line}")
+
 
             target_str = "\n".join(target_numbered_lines)
 
@@ -416,11 +422,12 @@ class PromptBuilder(Base):
                 translated_list.append(trans)
                 counter += 1
 
-        # 优化过滤逻辑（保持原有逻辑，添加注释说明）
+        # 优化过滤逻辑
         def filter_func(items, text):
             return [item for item in items 
-                    if not item.startswith(text)  # 排除纯示例开头的项
-                    or not any(c.isdigit() for c in item[-3:])]  # 排除末尾3字符含数字的项
+                    if (not item.startswith(text)  # 排除纯示例开头的项
+                        or not any(c.isdigit() for c in item[-3:]))  # 排除末尾3字符含数字的项
+                    and len(item) <= 80]  #过滤不超过设定长度的项
 
         # 清理和重新编号
         source_cleaned = PromptBuilder.clean_list(filter_func(source_list, source_text))
@@ -538,9 +545,9 @@ class PromptBuilder(Base):
 
         # 构建结果字符串
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
-            result = "\n###禁翻表"+ "\n特殊标记符|备注"
+            result = "\n###禁翻表，以下特殊标记符无需翻译改动"+ "\n特殊标记符|备注"
         else:
-            result = "\n###Non-Translation List"+ "\nSpecial marker|Remarks"
+            result = "\n###Non-Translation List,Leave the following marked content untranslated and unmodified"+ "\nSpecial marker|Remarks"
 
         for markers, info in exclusion_dict.items():
             result += f"\n{markers}|{info}" if info else f"\n{markers}|"

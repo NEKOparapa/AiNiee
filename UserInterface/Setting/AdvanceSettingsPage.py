@@ -22,7 +22,7 @@ class AdvanceSettingsPage(QFrame, Base):
         self.default = {
             "auto_glossary_toggle": False,
             "auto_exclusion_list_toggle": False,
-            "auto_process_text_code_segment": False,
+            "auto_process_text_code_segment": True,
             "response_conversion_toggle": False,
             "opencc_preset": "s2t",
             "response_check_switch": {

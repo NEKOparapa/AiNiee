@@ -104,8 +104,10 @@ class ResponseExtractor():
 
         for key, text in source_text_dict.items():
             newline_count = text.count('\n')  # 使用字符串的count()方法统计换行符数量
-            newline_counts[key] = newline_count  # 将统计结果存入新字典，键保持不变
-
+            if newline_count == 0:
+                newline_counts[key] = newline_count  # 将统计结果存入新字典，键保持不变
+            else:
+                newline_counts[key] = newline_count 
         return newline_counts
 
     # 辅助函数，根据换行符数量生成最终译文字典，与原文字典进行一一对应
@@ -201,6 +203,65 @@ class ResponseExtractor():
         
         return output_dict
 
+    # 去除数字序号及括号
+    def remove_numbered_prefix(self, source_text_dict, translation_text_dict):
+        output_dict = {}
+        for key, value in translation_text_dict.items():
+            if not isinstance(value, str):
+                output_dict[key] = value
+                continue
+            
+            source_text = source_text_dict.get(key, "")
+            source_lines = source_text.split('\n')
+            translation_lines = value.split('\n')
+            cleaned_lines = []
+            
+            for i, line in enumerate(translation_lines):
+
+                # 去除数字序号 (只匹配 "1.", "1.2." 等)
+                temp_line = re.sub(r'^\s*\d+\.(\d+\.)?\s*', '', line)
+
+                source_line = source_lines[i] if i < len(source_lines) else ""
+                
+                # 计算源行开头的左括号数量
+                stripped_source = source_line.lstrip()
+                leading_source = 0
+                for char in stripped_source:
+                    if char in ('(', '（'):
+                        leading_source += 1
+                    else:
+                        break
+                
+                # 计算源行结尾的右括号数量
+                stripped_source_end = source_line.rstrip()
+                trailing_source = 0
+                for char in reversed(stripped_source_end):
+                    if char in (')', '）'):
+                        trailing_source += 1
+                    else:
+                        break
+            
+                # 处理译行开头的左括号
+                leading_match = re.match(r'^(\s*)([\(\（]*)', temp_line)
+                if leading_match:
+                    space, brackets = leading_match.groups()
+                    adjusted = brackets[:leading_source]
+                    remaining = temp_line[len(space) + len(brackets):]
+                    temp_line = f"{space}{adjusted}{remaining}"
+                
+                # 处理译行结尾的右括号
+                trailing_match = re.search(r'([\)\）]*)(\s*)$', temp_line)
+                if trailing_match:
+                    brackets, space_end = trailing_match.groups()
+                    adjusted = brackets[:trailing_source]
+                    remaining = temp_line[:-len(brackets + space_end)] if (brackets + space_end) else temp_line
+                    temp_line = f"{remaining}{adjusted}{space_end}"
+                
+                cleaned_lines.append(temp_line.strip())
+            
+            output_dict[key] = '\n'.join(cleaned_lines)
+        
+        return output_dict
 
 
     # 提取回复中的术语表内容

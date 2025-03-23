@@ -83,7 +83,7 @@ class TextProcessor(Base):
                     placeholder = "↓" * count
                 else:
                     # 其他平台使用原始的占位符格式
-                    placeholder = f"""{{_placeholder{count}_}}"""
+                    placeholder = f"""{{_p{count}_}}"""
 
                 # 记录占位符和原始文本的映射关系
                 placeholders.append({
@@ -108,11 +108,7 @@ class TextProcessor(Base):
         """
         enhanced_patterns = []
         for p in code_pattern_list:
-            # 若模式不包含边界或空白控制，则添加空白匹配
-            if not any(c in p for c in ("^", "$", "\\s")):
-                enhanced = fr"\s*{p}\s*"
-            else:
-                enhanced = p
+            enhanced = fr"\s*{p}\s*"
             enhanced_patterns.append(enhanced)
         combined = "|".join(enhanced_patterns)
         return re.compile(combined, re.IGNORECASE | re.MULTILINE)
