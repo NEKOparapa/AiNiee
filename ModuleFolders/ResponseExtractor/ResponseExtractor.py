@@ -1,3 +1,4 @@
+import ast
 import re
 
 # 回复解析器
@@ -29,6 +30,8 @@ class ResponseExtractor():
     # 提取翻译结果内容
     def extract_translation(self,source_text_dict,html_string):
 
+        # 处理新格式至原始格式
+        html_string = ResponseExtractor.convert_array_to_numbered_format(self,html_string)
         # 提取翻译文本
         text_dict = ResponseExtractor.label_text_extraction(self,html_string)
 
@@ -44,6 +47,75 @@ class ResponseExtractor():
 
         return translation_result
 
+    # 新增函数：处理数组格式的文本
+    def convert_array_to_numbered_format(self, html_string):
+        """
+        处理新的数组格式HTML字符串，转换为原来的格式。
+
+        Args:
+            html_string: 包含数组格式的HTML字符串。
+
+        Returns:
+            处理后的HTML字符串，格式与原来一致。
+        """
+        textarea_contents = re.findall(r'<textarea.*?>(.*?)</textarea>', html_string, re.DOTALL)
+        if not textarea_contents:
+            return html_string  # 如果没有找到 textarea 标签，返回原始字符串
+
+        result_lines = []
+        last_content = textarea_contents[-1]
+        lines = last_content.strip().splitlines()
+
+        current_line_num = None
+        array_content_lines = []
+
+        for line in lines:
+            # 检查是否为数组开始行
+            array_start_match = re.match(r'^(\d+)\. ?\[$', line.strip())
+            if array_start_match:
+                current_line_num = array_start_match.group(1)
+                array_content_lines = []
+                continue
+
+            # 检查是否为数组结束行
+            if line.strip() == ']':
+                if current_line_num and array_content_lines:
+                    try:
+                        # 处理收集到的数组内容
+                        converted_items = []
+                        for i, item in enumerate(array_content_lines):
+                            # 提取[n]#(文本)格式
+                            text_match = re.match(r'^[\"|“”]#\d+\[(\d+)]\*(.*?)[\"|”“],?$', item.strip())
+                            if text_match:
+                                item_num = text_match.group(1)
+                                text = text_match.group(2)
+                                # 如果字符串去除首尾空白字符后为空，则跳过
+                                if not text.strip():
+                                    continue
+                                # 传过来的原始html字符串会发生奇怪的多次转义问题，这里先用ast解析处理一下
+                                text = ast.literal_eval('"' + text + '"')
+                                converted_items.append(f"{current_line_num}.{item_num}.({text})")
+
+                        # 添加转换后的行
+                        result_lines.extend(converted_items)
+                    except (SyntaxError, ValueError, IndexError) as e:
+                        # 只捕获可能的解析错误类型
+                        result_lines.append(f"{current_line_num}.(解析错误: {str(e)})")
+
+                    current_line_num = None
+                continue
+
+            # 如果在数组内容中，添加到数组内容行
+            if current_line_num is not None:
+                array_content_lines.append(line.strip())
+            else:
+                # 处理普通行，去掉序号后多余的空格
+                modified_line = re.sub(r'(\d+\.) ', r'\1', line)
+                # 保留处理后的普通行
+                result_lines.append(modified_line)
+
+        # 重新构建textarea内容
+        return f"<textarea>\n{chr(10).join(result_lines)}\n</textarea>"
 
     # 辅助函数，正则提取标签文本内容
     def label_text_extraction(self, html_string):
@@ -107,7 +179,7 @@ class ResponseExtractor():
             if newline_count == 0:
                 newline_counts[key] = newline_count  # 将统计结果存入新字典，键保持不变
             else:
-                newline_counts[key] = newline_count 
+                newline_counts[key] = newline_count
         return newline_counts
 
     # 辅助函数，根据换行符数量生成最终译文字典，与原文字典进行一一对应
@@ -170,21 +242,21 @@ class ResponseExtractor():
         - 无换行符：匹配"主序号."
         - 有换行符：匹配"主序号.子序号."
         """
-        
+
         output_dict = {}
         for key, value in translation_text_dict.items():
             if not isinstance(value, str):
                 output_dict[key] = value
                 continue
-            
+
             # 获取源文本的换行符数量
             source_text = source_text_dict.get(key, "")
             newline_count = source_text.count("\n")
-            
+
             # 分割输入文本为多行处理
             lines = value.split("\n")
             cleaned_lines = []
-            
+
             for line in lines:
                 # 根据换行情况构建匹配模式
                 if newline_count == 0:
@@ -193,14 +265,14 @@ class ResponseExtractor():
                 else:
                     # 匹配"主序号.子序号."模式（如"2.1."）
                     pattern = rf"^\d+\.\d+\.\s*"
-                
+
                 # 执行替换操作
                 cleaned_line = re.sub(pattern, "", line)
                 cleaned_lines.append(cleaned_line)
-            
+
             # 重组处理后的文本
             output_dict[key] = "\n".join(cleaned_lines)
-        
+
         return output_dict
 
     # 去除数字序号及括号
@@ -210,19 +282,19 @@ class ResponseExtractor():
             if not isinstance(value, str):
                 output_dict[key] = value
                 continue
-            
+
             source_text = source_text_dict.get(key, "")
             source_lines = source_text.split('\n')
             translation_lines = value.split('\n')
             cleaned_lines = []
-            
+
             for i, line in enumerate(translation_lines):
 
                 # 去除数字序号 (只匹配 "1.", "1.2." 等)
                 temp_line = re.sub(r'^\s*\d+\.(\d+\.)?\s*', '', line)
 
                 source_line = source_lines[i] if i < len(source_lines) else ""
-                
+
                 # 计算源行开头的左括号数量
                 stripped_source = source_line.lstrip()
                 leading_source = 0
@@ -231,7 +303,7 @@ class ResponseExtractor():
                         leading_source += 1
                     else:
                         break
-                
+
                 # 计算源行结尾的右括号数量
                 stripped_source_end = source_line.rstrip()
                 trailing_source = 0
@@ -240,7 +312,7 @@ class ResponseExtractor():
                         trailing_source += 1
                     else:
                         break
-            
+
                 # 处理译行开头的左括号
                 leading_match = re.match(r'^(\s*)([\(\（]*)', temp_line)
                 if leading_match:
@@ -248,7 +320,7 @@ class ResponseExtractor():
                     adjusted = brackets[:leading_source]
                     remaining = temp_line[len(space) + len(brackets):]
                     temp_line = f"{space}{adjusted}{remaining}"
-                
+
                 # 处理译行结尾的右括号
                 trailing_match = re.search(r'([\)\）]*)(\s*)$', temp_line)
                 if trailing_match:
@@ -256,11 +328,11 @@ class ResponseExtractor():
                     adjusted = brackets[:trailing_source]
                     remaining = temp_line[:-len(brackets + space_end)] if (brackets + space_end) else temp_line
                     temp_line = f"{remaining}{adjusted}{space_end}"
-                
+
                 cleaned_lines.append(temp_line.strip())
-            
+
             output_dict[key] = '\n'.join(cleaned_lines)
-        
+
         return output_dict
 
 
