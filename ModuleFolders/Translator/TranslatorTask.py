@@ -49,34 +49,30 @@ class TranslatorTask(Base):
 
         # 初始化辅助数据结构
         self.extra_log = []
+        # 双请求翻译的文本占位符替换
         self.replace_dict = {}
+        # 前后缀处理信息存储
+        self.prefix_codes = {}
+        self.suffix_codes = {}
         # 占位符顺序存储结构
         self.placeholder_order = {}
 
-        # 预处理正则表达式
+        # 读取正则表达式
         self.code_pattern_list = self._prepare_regex_patterns()
-        self.prefix_pattern, self.suffix_pattern = self._build_patterns()
 
-
-    def _load_regex_patterns(self, json_file_path: str) -> List[str]:
-        """从JSON文件加载正则表达式"""
-        try:
-            with open(json_file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                return [item["regex"] for item in data if isinstance(item, dict) and "regex" in item]
-        except Exception as e:
-            print(f"加载正则表达式失败: {str(e)}")
-            return []
-
+    # 读取正则库和禁翻表的正则
     def _prepare_regex_patterns(self) -> List[str]:
         """准备所有需要使用的正则表达式模式"""
+
         patterns = []
 
-        # 从文件加载基础正则
-        file_patterns = self._load_regex_patterns(self.regex_dir)
+        # 从正则库加载基础正则
+        with open(self.regex_dir, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            file_patterns =  [item["regex"] for item in data if isinstance(item, dict) and "regex" in item]
         patterns.extend(file_patterns)
 
-        # 处理禁翻表数据
+        # 合并禁翻表数据
         exclusion_patterns = []
         for item in self.config.exclusion_list_data:
             if regex := item.get("regex"):
@@ -87,23 +83,6 @@ class TranslatorTask(Base):
         patterns.extend(exclusion_patterns)
 
         return patterns
-
-    def _build_patterns(self) -> Tuple[re.Pattern, re.Pattern]:
-        """构建前后缀正则表达式对象"""
-        if not self.code_pattern_list:
-            return re.compile(""), re.compile("")
-
-        # 为每个模式添加前后空白换行匹配能力
-        enhanced_patterns = []
-        for p in self.code_pattern_list:
-            enhanced = fr"\s*{p}\s*"
-            enhanced_patterns.append(enhanced)
-
-        combined = "|".join(enhanced_patterns)
-        return (
-            re.compile(fr"^(?:{combined})+", re.IGNORECASE|re.MULTILINE),
-            re.compile(fr"(?:{combined})+$", re.IGNORECASE|re.MULTILINE)
-        )
 
 
     # 设置缓存数据
@@ -129,8 +108,8 @@ class TranslatorTask(Base):
         # 触发插件事件 - 文本正规化
         self.plugin_manager.broadcast_event("normalize_text", self.config, self.source_text_dict)
 
-        # 各种替换步骤，译前替换，提取首位代码段
-        self.source_text_dict, self.prefix_codes, self.suffix_codes,self.placeholder_order = TextProcessor.replace_all(self, self.config, self.source_text_dict, self.prefix_pattern, self.suffix_pattern,self.code_pattern_list,self.placeholder_order)
+        # 各种替换步骤，译前替换，提取首尾与占位中间代码
+        self.source_text_dict, self.prefix_codes, self.suffix_codes,self.placeholder_order = TextProcessor.replace_all(self, self.config, self.source_text_dict,self.code_pattern_list)
 
         # 生成请求指令
         if self.config.double_request_switch_settings == True:
@@ -737,7 +716,7 @@ class TranslatorTask(Base):
             }
 
         # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
+        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content,self.config.target_language)
 
         # 检查回复内容
         check_result, error_content = ResponseChecker.check_response_content(
@@ -893,7 +872,7 @@ class TranslatorTask(Base):
             }
 
         # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
+        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content,self.config.target_language)
 
         # 更新术语表与禁翻表到配置文件中
         self.config.update_glossary_ntl_config(glossary_result, NTL_result)
@@ -947,7 +926,7 @@ class TranslatorTask(Base):
             }
 
         # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self,  self.source_text_dict, response_content)
+        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self,  self.source_text_dict, response_content,self.config.target_language)
 
         # 检查回复内容
         check_result, error_content = ResponseChecker.check_response_content(

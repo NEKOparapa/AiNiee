@@ -84,7 +84,7 @@
       "description": "标签结构 <Tag:数字>"
     },
     {
-      "regex": "\\\\cself[\\d+\\]",
+      "regex": "\\\\cself\\[\\d+\\]",
       "description": "\\cself[40]"
     },
     {
@@ -122,6 +122,10 @@
     {
       "regex": "\\\\ws",
       "description": "\\ws"
+    },
+    {
+      "regex": "\\\\wm\\\\w\\[\\d+\\]",
+      "description": "\\wm \\w[180]"
     },
     {
         "regex": "\\\\FA\\[[^\\]]*\\]\\\\SE\\[[^\\]]*\\]",
@@ -168,6 +172,14 @@
       "description": "关闭aw标签 {/aw}"
     },
     {
+      "regex": "\\{i\\}",
+      "description": "i标签 {i}"
+    },
+    {
+      "regex": "\\{/i\\}",
+      "description": "关闭i标签 {/i}"
+    },
+    {
       "regex": "\\{p\\}",
       "description": "单p标签 {p}"
     },
@@ -194,6 +206,10 @@
     {
       "regex": "\\{a=[^}]*\\}",
       "description": "a标签 {a=...}"
+    },
+    {
+      "regex": "(?:\\r?\\n){2}",
+      "description": "双换行符，跨平台换行符版本（兼容 \r\n\r\n 或 \n\n 等），最后面"
     }
   ]
 

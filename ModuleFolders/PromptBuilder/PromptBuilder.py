@@ -490,15 +490,15 @@ class PromptBuilder(Base):
     def build_glossary_extraction_criteria(config: TranslatorConfig) -> str:
 
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
-            profile = "\n\n###提取文本中角色名，以glossary标签返回\n"
-            profile += "<glossary>\n"
-            profile += "原文|译文|备注\n"
-            profile += "</glossary>\n"
+            profile = "\n\n###如果文本中出现具体角色名，则以character并列标签返回，没有则不返回\n"
+            profile += "<character>\n"
+            profile += "原名|译名|备注\n"
+            profile += "</character>\n"
         else:
-            profile = "\n\n### Extract character names from the text and return them using glossary tags\n"
-            profile += "<glossary>\n"
-            profile += "Original Text|Translation|Remarks\n"
-            profile += "</glossary>\n"
+            profile = "\n\n### If specific character names appear in the text, return them with the character label, otherwise do not return\n"
+            profile += "<character>\n"
+            profile += "Original Name|Translated Name|Remarks\n"
+            profile += "</character>\n"
 
         return profile
 
@@ -558,12 +558,12 @@ class PromptBuilder(Base):
     def build_ntl_extraction_criteria(config: TranslatorConfig) -> str:
 
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
-            profile = "\n\n###提取文本中标记符，如 {name}, //F[N1],以code标签返回\n"
+            profile = "\n\n###如果文本中出现标记符, 如 {name}, //F[N1],则以code并列标签返回，没有则不返回\n"
             profile += "<code>\n"
             profile += "标记符|备注\n"
             profile += "</code>\n"
         else:
-            profile = "\n\n### Extract markers from the text, such as {name}, //F[N1], and return them within `code` tags\n"
+            profile = "\n\n### If markers appear in the text, such as {name}, //F[N1], return them with the code label, otherwise do not return\n"
             profile += "<code>\n"
             profile += "Marker|Remarks\n"
             profile += "</code>\n"

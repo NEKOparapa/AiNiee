@@ -274,7 +274,7 @@ class TranslatorConfig(Base):
             os.environ["http_proxy"] = self.proxy_url
             os.environ["https_proxy"] = self.proxy_url
 
-
+    # 更新术语表与禁翻表到配置中
     def update_glossary_ntl_config(self, glossary_entries, ntl_entries):
         
         # 检测一下是不是空，免得浪费性能

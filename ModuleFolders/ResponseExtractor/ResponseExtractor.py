@@ -1,4 +1,5 @@
 import re
+import string
 
 # 回复解析器
 class ResponseExtractor():
@@ -8,14 +9,14 @@ class ResponseExtractor():
 
 
     #处理并正则提取翻译内容
-    def text_extraction(self,source_text_dict,html_string):
+    def text_extraction(self, source_text_dict, html_string, target_language):
 
         try:
             # 提取译文结果
             translation_result= ResponseExtractor.extract_translation(self,source_text_dict,html_string)
 
             # 提取术语表结果
-            glossary_result= ResponseExtractor.extract_glossary(self,html_string)
+            glossary_result= ResponseExtractor.extract_glossary(self,html_string, target_language)
 
             # 提取禁翻表结果
             NTL_result = NTL_result = ResponseExtractor.extract_ntl(self,html_string)
@@ -263,11 +264,10 @@ class ResponseExtractor():
         
         return output_dict
 
-
     # 提取回复中的术语表内容
-    def extract_glossary(self, text):
+    def extract_glossary(self, text, target_language):
         """
-        从文本中提取<glossary>标签内的术语表
+        从文本中提取<character>标签内的术语表
 
         参数：
             text (str): 原始文本内容
@@ -275,9 +275,9 @@ class ResponseExtractor():
         返回：
             list[tuple]: 包含(原文, 译文, 备注)的列表，没有匹配内容时返回空列表
         """
-        # 匹配完整的glossary标签内容（支持多行内容）
+        # 匹配完整的character标签内容（支持多行内容）
         glossary_match = re.search(
-            r'<glossary[^>]*>(.*?)</glossary>',  # 兼容标签属性
+            r'<character[^>]*>(.*?)</character>',  # 兼容标签属性
             text,
             re.DOTALL | re.IGNORECASE
         )
@@ -310,42 +310,53 @@ class ResponseExtractor():
 
 
             # 检查并过滤错误内容
-            if ResponseExtractor._is_invalid_glossary_entry(self,original, translation, comment):
+            if ResponseExtractor._is_invalid_glossary_entry(self,original, translation, comment, target_language):
                 continue
             else:
                 entries.append((original, translation, comment))
 
         return entries
 
-
-
-    def _is_invalid_glossary_entry(self, original, translation, info):
+    # 术语表过滤规则
+    def _is_invalid_glossary_entry(self, original, translation, info, target_language):
         """判断条目是否需要过滤"""
         # 非空检查
         if not original.strip() :
             return True
 
         # 过滤表头行
-        if original.strip().lower() in ("原文", "source", "原名"):
+        if original.strip().lower() in ("原文", "原名", "名字", "source", "original", "name"):
+            return True
+
+        # 过滤提取错行
+        if translation.strip() in ("|"):
+            return True
+
+        # 过滤提取错行
+        if (info) and (info.strip() in ("|")):
             return True
 
         # 过滤无翻译行
         if original.strip() == translation.strip():
             return True
 
-        # 过滤提取错行
-        if translation.lower() in ("|"):
+        # 过滤翻译成罗马音(待改进，可以精简一个输入参数)
+        if (target_language != "english") and (ResponseExtractor.is_pure_english_text(self,translation)):
             return True
 
         # 过滤过长行
-        if len(original) > 40 or len(translation) > 40:
+        if len(original) > 20 or len(translation) > 20:
             return True
 
         # 过滤有点无语的东西
-        if original.lower() in ("俺", "俺たち", "姉ちゃん", "彼女", "我", "你", "他", "她"):
+        if original.lower() in ("俺", "俺たち", "なし", "姉ちゃん", "彼女", "我", "私", "你", "他", "她"):
             return True
 
-        # 增加过滤检查，过滤下划线+随机英文+下划线文本内容，像“_HERO_”这样的内容
+        # 过滤有点无语的东西
+        if translation.lower() in ("主人"):
+            return True
+
+        # 过滤下划线+随机英文+下划线文本内容，像“_HERO_”这样的内容
         if re.fullmatch(r'_([a-zA-Z]+)_', original):
             return True
 
@@ -360,8 +371,21 @@ class ResponseExtractor():
 
         return False
 
+    # 检查是否纯英文
+    def is_pure_english_text(self,text):
+        """
+        检查给定的文本是否为纯英文字母（允许空格和换行符）。
 
+        Args:
+            text: 要检查的文本字符串。
 
+        Returns:
+            如果文本是纯英文字母，则返回 True，否则返回 False。
+        """
+        for char in text:
+            if char not in string.ascii_letters and char != ' ' and char != '\n':
+                return False
+        return True
 
     # 提取回复中的禁翻表内容
     def extract_ntl(self, text):
@@ -415,7 +439,7 @@ class ResponseExtractor():
 
         return entries
 
-
+    # 禁翻表过滤规则
     def _is_invalid_NTL_entry(self, original, info):
         """判断条目是否需要过滤"""
         # 非空检查
