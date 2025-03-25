@@ -120,7 +120,7 @@ class Translator(Base):
             "continue_status" : continue_status,
         })
 
-    # 实际的翻译流程
+    # 翻译主流程
     def translation_start_target(self, continue_status: bool) -> None:
         # 设置内部状态（用于判断翻译任务是否实际在执行）
         self.translating = True
@@ -191,9 +191,6 @@ class Translator(Base):
         self.plugin_manager.broadcast_event("text_filter", self.config, cache_list)
         self.plugin_manager.broadcast_event("preproces_text", self.config, cache_list)
         self.cache_manager.load_from_list(cache_list)
-
-
-
 
         # 开始循环
         for current_round in range(self.config.round_limit + 1):
@@ -341,7 +338,7 @@ class Translator(Base):
 
         # 触发翻译停止完成的事件
         self.emit(Base.EVENT.TRANSLATION_STOP_DONE, {})
-        self.plugin_manager.broadcast_event("translation_completed", self.config, None)
+        self.plugin_manager.broadcast_event("translation_completed", self.config, cache_list)
 
     # 执行简繁转换
     def convert_simplified_and_traditional(self, preset: str, cache_list: list[dict]) -> list[dict]:

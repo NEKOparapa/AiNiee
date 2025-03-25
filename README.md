@@ -117,6 +117,15 @@
       |[KeywordGacha](https://github.com/neavo/KeywordGacha) |使用 AI 技术来自动生成实体词语表的翻译辅助工具|
 
 
+ * **`📖本地模型运行工具`**
+
+      |工具名|说明|
+      |:----:|:-----:|
+      |[Sakura_Launcher_GUI](https://github.com/PiDanShouRouZhouXD/Sakura_Launcher_GUI)|Sakura模型的专属GUI启动器|
+      |[OneClickLLAMA](https://github.com/neavo/OneClickLLAMA) |一键运行 Qwen2.5 SakuraLLM 等本地 LLM 模型|
+      |[LM Studio](https://lmstudio.ai/download) |一个本地部署大语言模型（LLM）平台，致力于简化LLM的使用和管理。|
+      |[ollama](https://ollama.com/) |开源跨平台大模型工具 Get up and running with Llama 3.3, DeepSeek-R1, Phi-4, Gemma 3, and other large language models.|
+
  * **`📺游戏翻译视频教程`**
 
       |视频链接|说明|
@@ -219,7 +228,7 @@
 ### 如果使用 StevExtraction 进行游戏翻译
 </summary>
 
-*  0.工具详情功能及介绍：[工具原作者页面](https://www.ai2moe.org/topic/10271-jt%EF%BC%8C%E7%9B%AE%E6%A0%87%E6%98%AF%E9%9B%B6%E9%97%A8%E6%A7%9B%E7%9A%84%EF%BC%8C%E5%86%85%E5%B5%8C%E4%BA%86%E5%A4%9A%E4%B8%AA%E8%84%9A%E6%9C%AC%E7%9A%84%E9%9D%92%E6%98%A5%E7%89%88t/) 
+*  0.工具详情功能及介绍：[工具原作者页面](https://www.ai2.moe/topic/10271-%E8%87%AA%E5%88%9B%E5%B7%A5%E5%85%B7%E7%BF%BB%E8%AF%91%E5%B7%A5%E5%85%B7rpg%E7%BF%BB%E8%AF%91jt%EF%BC%8C%E7%9B%AE%E6%A0%87%E6%98%AF%E9%9B%B6%E9%97%A8%E6%A7%9B%E7%9A%84%EF%BC%8C%E5%86%85%E5%B5%8C%E4%BA%86%E5%A4%9A%E4%B8%AA%E8%84%9A%E6%9C%AC%E7%9A%84%E9%9D%92%E6%98%A5%E7%89%88t214%E5%BA%A6%E7%9B%98/) 
 
 
 *  1.在提取页面进行提取,目前只能适应于RPG Maker MVMZ游戏，能提取到游戏的原文和人物名字
