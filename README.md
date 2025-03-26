@@ -36,12 +36,15 @@
 ## AiNiee三步走 📢
 
 * **第一步：配置接口**
+  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第一步.png" style="width: 80%;">
+
   - 在线接口：需付费但性价比很高，无显卡要求，全语言支持，[接口设置说明 - DeepSeek](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartDeepSeek)
   - 在线接口：同上，如果Deepseek官网无法正常使用，可换该接口，[接口设置说明 - 火山引擎](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartHuo)
   - SakuraLLM接口：免费，需要 8G+ 显存的 Nvidia 显卡，只支持日中，[接口设置说明 - SakuraLLM](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartSakuraLLM)
 
 * **第二步：项目设置**
-
+  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第二步.png" style="width: 80%;">
+  
   >`接口名称`: 选择你之前设置的接口<br>
 
   >`项目类型`: 选择待翻译的文件类型，小说、字幕、文档可直接进行翻译，游戏需要文本提取工具进行配合<br>
@@ -56,7 +59,9 @@
 
 * **第三步：开始翻译**
 
-  - 点击开始翻译按钮，剩下等待任务的完成。
+  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第三步.png" style="width: 80%;">
+
+  - 点击开始按钮，剩下等待任务的完成。
 
   - [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
 
