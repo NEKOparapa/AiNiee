@@ -10,7 +10,7 @@ class TranslationCheckPlugin(PluginBase):
         self.name = "TranslationCheckPlugin"
         self.description = "翻译功能检查插件，用于翻译结果与功能运行评估，包括术语表、禁翻表、换行符和自动处理等。\n错误信息文件将输出到 output 文件夹。"
         self.visibility = True
-        self.default_enable = True
+        self.default_enable = False
         self.add_event("translation_completed", PluginBase.PRIORITY.LOWEST)
 
     def load(self):
@@ -378,27 +378,34 @@ class TranslationCheckPlugin(PluginBase):
                      # 处理 pattern_to_check 编译失败的情况（理论上不应发生）
                      continue
         return errors
-
+    
 
     def check_auto_process(self, source_text, translated_text, patterns):
         """检查自动处理功能 (基于 patterns 列表), 返回错误信息列表"""
         errors = []
-        # patterns 已在调用前检查过非空
+
+        # 确保输入是字符串，如果不是则视为空字符串处理或保持原样以便后续处理
+        _source_text = source_text if isinstance(source_text, str) else ""
+        _translated_text = translated_text if isinstance(translated_text, str) else ""
+
+        # --- 去除尾部所有换行符 ---
+        _source_text = _source_text.rstrip('\n')
+        _translated_text = _translated_text.rstrip('\n')
+
+        # patterns 已在调用前检查过非空 
         for pattern in patterns:
             try:
                 # 使用 finditer 获取所有匹配
-                for match in re.finditer(pattern, source_text):
+                for match in re.finditer(pattern, _source_text):
                     matched_text = match.group(0)
-                    # 检查译文中是否“原样”包含这个匹配到的文本
-                    if matched_text not in translated_text:
-                        # 优化错误信息，显示匹配规则和具体内容
+                    # 检查处理过的译文中是否“原样”包含这个匹配到的文本
+                    if matched_text not in _translated_text:
                         # 对 pattern 做截断，防止过长
                         pattern_display = pattern[:50] + '...' if len(pattern) > 50 else pattern
                         error_msg = f"⚙️[自动处理错误] 规则 '{pattern_display}' 匹配到 '{matched_text}'，但译文缺少此内容"
                         if error_msg not in errors:
                              errors.append(error_msg)
             except re.error:
-                 # 忽略无效的 pattern （理论上 prepare_regex_patterns 会过滤）
                  continue
         return errors
 
@@ -406,9 +413,19 @@ class TranslationCheckPlugin(PluginBase):
     def check_newline(self, source_text, translated_text):
         """检查换行符数量一致性, 返回错误信息列表"""
         errors = []
-        # 确保文本是字符串类型
-        source_newlines = source_text.count('\n') if isinstance(source_text, str) else 0
-        translated_newlines = translated_text.count('\n') if isinstance(translated_text, str) else 0
+
+        # 确保输入是字符串，如果不是则视为空字符串处理或保持原样以便后续处理
+        _source_text = source_text if isinstance(source_text, str) else ""
+        _translated_text = translated_text if isinstance(translated_text, str) else ""
+
+        # --- 去除尾部所有换行符 ---
+        _source_text = _source_text.rstrip('\n')
+        _translated_text = _translated_text.rstrip('\n')
+
+        # 在处理过的文本上计算换行符数量
+        source_newlines = _source_text.count('\n')
+        translated_newlines = _translated_text.count('\n')
+
         if source_newlines != translated_newlines:
             error_msg = f"📃[换行符错误] 原文有 {source_newlines} 个换行符，译文有 {translated_newlines} 个"
             errors.append(error_msg)
