@@ -7,7 +7,7 @@ class RenpyWriter():
         pass
 
     def output_renpy_file(self, data, output_path, input_path):
-        """写入翻译后的rpy文件"""
+        """写入翻译后的rpy文件，兼容两种格式"""
         # 先复制整个目录结构
         if os.path.exists(output_path):
             shutil.rmtree(output_path)
@@ -18,7 +18,7 @@ class RenpyWriter():
         for item in data:
             if "new_line_num" not in item:
                 continue
-            
+
             full_path = os.path.join(output_path, item["storage_path"])
             file_map.setdefault(full_path, []).append(item)
 
@@ -35,14 +35,25 @@ class RenpyWriter():
                 if line_num >= len(lines):
                     continue
 
-                old_line = lines[line_num]
                 new_trans = item["translated_text"]
+                format_type = item["format_type"]
 
-                # 保留原格式生成新行
-                parts = old_line.split('"', 2)
-                if len(parts) >= 3:
-                    new_line = f'{parts[0]}"{new_trans}"{parts[2]}'
-                    lines[line_num] = new_line
+                if format_type == "old_new":
+                    old_line = lines[line_num]
+                    # 保留原格式生成新行
+                    parts = old_line.split('"', 2)
+                    if len(parts) >= 3:
+                        new_line = f'{parts[0]}"{new_trans}"{parts[2]}'
+                        lines[line_num] = new_line
+                elif format_type == "comment_tag":
+                    old_line = lines[line_num]
+                    tag = item["tag"]
+                    # 保留tag生成新行
+                    parts = old_line.split('"', 1)
+                    if len(parts) >= 2:
+                        new_line = f'    {tag} "{new_trans}"{parts[1][len(parts[1].split("\"",1)[0]):]}' # fix for tag with space
+                        lines[line_num] = new_line
+
 
             # 写回文件
             with open(file_path, "w", encoding="utf-8") as f:

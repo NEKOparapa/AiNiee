@@ -256,7 +256,7 @@ class TranslatorTask(Base):
                 numbered_text = f""
                 for sub_index, sub_line in enumerate(lines):
                     numbered_text += f"""{index + 1}.{sub_index}.({sub_line})\n"""
-                numbered_text = numbered_text.rstrip('\n')
+                numbered_text = numbered_text.rstrip('\n') 
                 numbered_lines.append(numbered_text)
             else:
                 # 单行文本直接添加序号

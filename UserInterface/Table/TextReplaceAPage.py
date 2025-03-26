@@ -23,6 +23,7 @@ class TextReplaceAPage(QFrame, Base):
     KEYS = (
         "src",
         "dst",
+        "regex",
     )
 
     def __init__(self, text: str, window: AppFluentWindow) -> None:
@@ -93,6 +94,7 @@ class TextReplaceAPage(QFrame, Base):
             [
                 "src",
                 "dst",
+                "regex",
             ],
         )
 
