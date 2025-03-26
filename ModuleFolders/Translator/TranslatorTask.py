@@ -253,11 +253,13 @@ class TranslatorTask(Base):
             # 检查是否为多行文本
             if "\n" in line:
                 lines = line.split("\n")
-                numbered_text = f""
-                for sub_index, sub_line in enumerate(lines):
-                    numbered_text += f"""{index + 1}.{sub_index}.({sub_line})\n"""
-                numbered_text = numbered_text.rstrip('\n') 
-                numbered_lines.append(numbered_text)
+                # 为每行添加前缀
+                formatted_lines = [
+                    f"v{index + 1}.{len(lines) - i - 1} → {sub_line[:-1] if sub_line.endswith(' ') else sub_line}"
+                    for i, sub_line in enumerate(lines)]
+                # 创建JSON数组并格式化（缩进为0个空格）
+                json_array = json.dumps(formatted_lines, ensure_ascii=False, indent=0)
+                numbered_lines.append(f"{index + 1}.{json_array}")
             else:
                 # 单行文本直接添加序号
                 numbered_lines.append(f"{index + 1}.{line}")
@@ -369,12 +371,13 @@ class TranslatorTask(Base):
             # 检查是否为多行文本
             if "\n" in line:
                 lines = line.split("\n")
-                total_lines = len(lines)
-                numbered_text = f""
-                for sub_index, sub_line in enumerate(lines):
-                    numbered_text += f"""{index + 1}.{sub_index}.({sub_line})\n"""
-                numbered_text = numbered_text.rstrip('\n')
-                numbered_lines.append(numbered_text)
+                # 为每行添加前缀
+                formatted_lines = [
+                    f"v{index + 1}.{len(lines) - i - 1} → {sub_line[:-1] if sub_line.endswith(' ') else sub_line}"
+                    for i, sub_line in enumerate(lines)]
+                # 创建JSON数组并格式化（缩进为0个空格）
+                json_array = json.dumps(formatted_lines, ensure_ascii=False, indent=0)
+                numbered_lines.append(f"{index + 1}.{json_array}")
             else:
                 # 单行文本直接添加序号
                 numbered_lines.append(f"{index + 1}.{line}")
@@ -460,12 +463,13 @@ class TranslatorTask(Base):
             # 检查是否为多行文本
             if "\n" in line:
                 lines = line.split("\n")
-                total_lines = len(lines)
-                numbered_text = f""
-                for sub_index, sub_line in enumerate(lines):
-                    numbered_text += f"""{index + 1}.{sub_index}.({sub_line})\n"""
-                numbered_text = numbered_text.rstrip('\n')
-                numbered_lines.append(numbered_text)
+                # 为每行添加前缀
+                formatted_lines = [
+                    f"v{index + 1}.{len(lines) - i - 1} → {sub_line[:-1] if sub_line.endswith(' ') else sub_line}"
+                    for i, sub_line in enumerate(lines)]
+                # 创建JSON数组并格式化（缩进为0个空格）
+                json_array = json.dumps(formatted_lines, ensure_ascii=False, indent=0)
+                numbered_lines.append(f"{index + 1}.{json_array}")
             else:
                 # 单行文本直接添加序号
                 numbered_lines.append(f"{index + 1}.{line}")
