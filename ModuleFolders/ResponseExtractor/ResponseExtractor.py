@@ -86,7 +86,7 @@ class ResponseExtractor():
                         converted_items = []
                         for i, item in enumerate(array_content_lines):
                             # 提取[n]#(文本)格式
-                            text_match = re.match(r'^[\"|“”]#\d+\[(\d+)]\*(.*?)[\"|”“],?$', item.strip())
+                            text_match = re.match(r'^[\"|“”]v\d+\.(\d+) ?→ ?(.*?)[\"|”“],?$', item.strip())
                             if text_match:
                                 item_num = text_match.group(1)
                                 text = text_match.group(2)

@@ -255,7 +255,7 @@ class TranslatorTask(Base):
                 lines = line.split("\n")
                 # 为每行添加前缀
                 formatted_lines = [
-                    f"#{index + 1}[{len(lines) - i - 1}]*{sub_line[:-1] if sub_line.endswith(' ') else sub_line}"
+                    f"v{index + 1}.{len(lines) - i - 1} → {sub_line[:-1] if sub_line.endswith(' ') else sub_line}"
                     for i, sub_line in enumerate(lines)]
                 # 创建JSON数组并格式化（缩进为0个空格）
                 json_array = json.dumps(formatted_lines, ensure_ascii=False, indent=0)
@@ -373,7 +373,7 @@ class TranslatorTask(Base):
                 lines = line.split("\n")
                 # 为每行添加前缀
                 formatted_lines = [
-                    f"#{index + 1}[{len(lines) - i - 1}]*{sub_line[:-1] if sub_line.endswith(' ') else sub_line}"
+                    f"v{index + 1}.{len(lines) - i - 1} → {sub_line[:-1] if sub_line.endswith(' ') else sub_line}"
                     for i, sub_line in enumerate(lines)]
                 # 创建JSON数组并格式化（缩进为0个空格）
                 json_array = json.dumps(formatted_lines, ensure_ascii=False, indent=0)
@@ -465,7 +465,7 @@ class TranslatorTask(Base):
                 lines = line.split("\n")
                 # 为每行添加前缀
                 formatted_lines = [
-                    f"#{index + 1}[{len(lines) - i - 1}]*{sub_line[:-1] if sub_line.endswith(' ') else sub_line}"
+                    f"v{index + 1}.{len(lines) - i - 1} → {sub_line[:-1] if sub_line.endswith(' ') else sub_line}"
                     for i, sub_line in enumerate(lines)]
                 # 创建JSON数组并格式化（缩进为0个空格）
                 json_array = json.dumps(formatted_lines, ensure_ascii=False, indent=0)
