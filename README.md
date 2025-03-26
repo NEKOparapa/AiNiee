@@ -23,7 +23,7 @@
 
 * **多语言互译**: 覆盖中文、英文、日文、韩文、俄语、西班牙语、法语、德语等多种语言，打破语言壁垒。
 
-* **强大插件扩展**: 内置 双语对照器、Mtool 翻译优化器、文本过滤器、文本规范器等实用插件，功能更强大。
+* **强大插件扩展**: 内置 双语对照器、翻译功能检查器、文本过滤器、文本规范器等实用插件，功能更强大。
 
 * **高效批量翻译**: 多文件批量翻译、多线程并行处理、多 Key 轮询机制，效率倍增。
 
@@ -36,12 +36,15 @@
 ## AiNiee三步走 📢
 
 * **第一步：配置接口**
+  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第一步.png">
+
   - 在线接口：需付费但性价比很高，无显卡要求，全语言支持，[接口设置说明 - DeepSeek](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartDeepSeek)
   - 在线接口：同上，如果Deepseek官网无法正常使用，可换该接口，[接口设置说明 - 火山引擎](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartHuo)
-  - 本地接口：免费，需要 8G+ 显存的 Nvidia 显卡，只支持日中，[接口设置说明 - SakuraLLM](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartSakuraLLM)
+  - SakuraLLM接口：免费，需要 8G+ 显存的 Nvidia 显卡，只支持日中，[接口设置说明 - SakuraLLM](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartSakuraLLM)
 
 * **第二步：项目设置**
-
+  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第二步.png">
+  
   >`接口名称`: 选择你之前设置的接口<br>
 
   >`项目类型`: 选择待翻译的文件类型，小说、字幕、文档可直接进行翻译，游戏需要文本提取工具进行配合<br>
@@ -56,7 +59,9 @@
 
 * **第三步：开始翻译**
 
-  - 点击开始翻译按钮，剩下等待任务的完成。
+  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第三步.png">
+
+  - 点击开始按钮，剩下等待任务的完成。
 
   - [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
 
@@ -124,7 +129,7 @@
       |[Sakura_Launcher_GUI](https://github.com/PiDanShouRouZhouXD/Sakura_Launcher_GUI)|Sakura模型的专属GUI启动器|
       |[OneClickLLAMA](https://github.com/neavo/OneClickLLAMA) |一键运行 Qwen2.5 SakuraLLM 等本地 LLM 模型|
       |[LM Studio](https://lmstudio.ai/download) |一个本地部署大语言模型（LLM）平台，致力于简化LLM的使用和管理。|
-      |[ollama](https://ollama.com/) |开源跨平台大模型工具 Get up and running with Llama 3.3, DeepSeek-R1, Phi-4, Gemma 3, and other large language models.|
+      |[ollama](https://ollama.com/) |开源跨平台大模型工具 |
 
  * **`📺游戏翻译视频教程`**
 
@@ -132,7 +137,7 @@
       |:----:|:-----:|
       |[Mtool教程](https://www.bilibili.com/video/BV1h6421c7MA) |初次使用推荐观看|
       |[Translator++教程](https://www.bilibili.com/video/BV1LgfoYzEaX/?share_source=copy_web&vd_source=b0eede35fc5eaa5c382509c6040d6501)|初次使用推荐观看|
-
+      |[Wolf游戏教程](https://www.bilibili.com/video/BV1SnXbYiEjQ/?share_source=copy_web&vd_source=b0eede35fc5eaa5c382509c6040d6501)|初次使用推荐观看|
 
 
 </details>
