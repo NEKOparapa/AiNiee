@@ -16,6 +16,7 @@ from ModuleFolders.FileOutputer.EpubWriter import EpubWriter
 from ModuleFolders.FileOutputer.DocxWriter import DocxWriter
 from ModuleFolders.FileOutputer.MdWriter import MdWriter
 from ModuleFolders.FileOutputer.RenpyWriter import RenpyWriter
+from ModuleFolders.FileOutputer.TransWriter import TransWriter
 
 
 
@@ -69,6 +70,8 @@ class FileOutputer():
             DocxWriter.output_docx_file(self, cache_data, output_path, input_path)
         elif cache_data[0]["project_type"] == "Renpy":
             RenpyWriter.output_renpy_file(self, cache_data, output_path, input_path)
+        elif cache_data[0]["project_type"] == "Trans":
+            TransWriter.output_trans_file(self, cache_data, output_path, input_path)
         elif cache_data[0]["project_type"] == "Paratranz":
             ParatranzWriter.output_paratranz_file(self, cache_data, output_path)
         elif cache_data[0]["project_type"] == "T++":
