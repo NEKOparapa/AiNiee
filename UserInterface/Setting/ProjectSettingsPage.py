@@ -125,6 +125,48 @@ class ProjectSettingsPage(QFrame, Base):
             current_config = self.load_config()
             current_value = current_config.get("translation_project", "Txt")
             
+            # 旧配置兼容层转换(后续版本再删除)
+            if current_value == "Txt小说文件":
+                current_value = "Txt"
+                current_config["translation_project"] = current_value
+                self.save_config(current_config)
+            elif current_value == "Srt字幕文件":
+                current_value = "Srt"
+                current_config["translation_project"] = current_value
+                self.save_config(current_config)
+            elif current_value == "Vtt字幕文件":
+                current_value = "Vtt"
+                current_config["translation_project"] = current_value
+                self.save_config(current_config)
+            elif current_value == "Lrc音声文件":
+                current_value = "Lrc"
+                current_config["translation_project"] = current_value
+                self.save_config(current_config)
+            elif current_value == "Epub小说文件":
+                current_value = "Epub"
+                current_config["translation_project"] = current_value
+                self.save_config(current_config)
+            elif current_value == "Docx文档文件":
+                current_value = "Docx"
+                current_config["translation_project"] = current_value
+                self.save_config(current_config)
+            elif current_value == "Mtool导出文件":
+                current_value = "Mtool"
+                current_config["translation_project"] = current_value
+                self.save_config(current_config)
+            elif current_value == "T++导出文件":
+                current_value = "Tpp"
+                current_config["translation_project"] = current_value
+                self.save_config(current_config)
+            elif current_value == "VNText导出文件":
+                current_value = "Vnt"
+                current_config["translation_project"] = current_value
+                self.save_config(current_config)
+            elif current_value == "ParaTranz导出文件":
+                current_value = "Paratranz"
+                current_config["translation_project"] = current_value
+                self.save_config(current_config)
+                
             # 通过值查找对应的索引
             index = next(
                 (i for i, (_, value) in enumerate(translated_pairs) if value == current_value),
@@ -181,6 +223,46 @@ class ProjectSettingsPage(QFrame, Base):
             current_config = self.load_config()
             current_value = current_config.get("source_language", "japanese")
             
+
+            # 旧配置兼容层转换(后续版本再删除)
+            if current_value == "日语":
+                current_value = "japanese"
+                current_config["source_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "英语":
+                current_value = "english"
+                current_config["source_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "韩语":
+                current_value = "korean"
+                current_config["source_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "俄语":
+                current_value = "russian"
+                current_config["source_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "德语":
+                current_value = "german"
+                current_config["source_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "法语":
+                current_value = "french"
+                current_config["source_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "简中":
+                current_value = "chinese_simplified"
+                current_config["source_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "繁中":
+                current_value = "chinese_traditional"
+                current_config["source_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "西班牙语":
+                current_value = "spanish"
+                current_config["source_language"] = current_value
+                self.save_config(current_config)
+
+
             # 通过值查找对应的索引
             index = next(
                 (i for i, (_, value) in enumerate(translated_pairs) if value == current_value),
@@ -236,6 +318,45 @@ class ProjectSettingsPage(QFrame, Base):
             current_config = self.load_config()
             current_value = current_config.get("target_language", "chinese_simplified")
             
+            # 旧配置兼容层转换(后续版本再删除)
+            if current_value == "日语":
+                current_value = "japanese"
+                current_config["target_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "英语":
+                current_value = "english"
+                current_config["target_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "韩语":
+                current_value = "korean"
+                current_config["target_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "俄语":
+                current_value = "russian"
+                current_config["target_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "德语":
+                current_value = "german"
+                current_config["target_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "法语":
+                current_value = "french"
+                current_config["target_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "简中":
+                current_value = "chinese_simplified"
+                current_config["target_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "繁中":
+                current_value = "chinese_traditional"
+                current_config["target_language"] = current_value
+                self.save_config(current_config)
+            elif current_value == "西班牙语":
+                current_value = "spanish"
+                current_config["target_language"] = current_value
+                self.save_config(current_config)
+
+
             # 通过值查找对应的索引
             index = next(
                 (i for i, (_, value) in enumerate(translated_pairs) if value == current_value),

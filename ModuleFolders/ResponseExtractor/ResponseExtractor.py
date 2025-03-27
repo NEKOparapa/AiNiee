@@ -421,15 +421,15 @@ class ResponseExtractor():
             return True
 
         # 过滤有点无语的东西
-        if original.lower() in ("俺", "俺たち", "なし", "姉ちゃん", "彼女", "我", "私", "你", "他", "她"):
-            return True
-
-        # 过滤有点无语的东西
-        if translation.lower() in ("主人"):
+        if ResponseExtractor.should_filter(self,original):
             return True
 
         # 过滤下划线+随机英文+下划线文本内容，像“_HERO_”这样的内容
         if re.fullmatch(r'_([a-zA-Z]+)_', original):
+            return True
+
+        # 过滤随机英文+数字，像“P1”这样的内容
+        if re.fullmatch(r'[a-zA-Z]\d+', original):
             return True
 
         # 过滤换行符或制表符
@@ -442,6 +442,83 @@ class ResponseExtractor():
 
 
         return False
+    
+    # 检查是否是人称代词
+    def should_filter(self,original):
+        """
+        检查输入的字符串是否在要过滤的列表中。
+        (Check if the input string is in the list to be filtered.)
+        """
+
+        pronouns_and_others_to_filter = {
+            # == 无语的东西 ==
+            "俺", "俺たち", "なし", "姉ちゃん", "男性", "彼女", "乙女", "彼", "ト", "僕", "我", "私",
+            "你", "他", "她", "主人", # 中文代词也保留
+
+            # == 补充的日语人称代词 ==
+            # --- 第一人称 (单数) ---
+            "わたくし",  # Watakushi (更正式/谦虚的 "我")
+            "あたし",    # Atashi (非正式，通常女性使用)
+            "わし",      # Washi (一些老年男性或方言中的 "我")
+            "うち",      # Uchi (关西地区常用，有时年轻女性也用)
+            "自分",      # Jibun ("自己"，有时用作第一人称)
+            "小生",      # Shousei (男性自谦语，多用于书面)
+            "我輩",      # Wagahai (较古老、自大的 "吾辈")
+
+            # --- 第一人称 (复数) ---
+            "私たち",    # Watashitachi ("我们"，通用)
+            "わたくしたち",# Watakushitachi (更正式/谦虚的 "我们")
+            "あたしたち",# Atashitachi (非正式，通常女性使用)
+            "僕ら",      # Bokura ("我们"，男性，非正式)
+            "僕たち",    # Bokutachi ("我们"，男性)
+            "俺ら",      # Orera ("我们"，男性，非常非正式)
+            # "俺たち" 已经在您的列表中
+            "我々",      # Wareware ("我们"，非常正式，演讲、文章中常用)
+
+            # --- 第二人称 (单数) ---
+            "あなた",    # Anata ("你"，通用，但有时根据语境可能显得生疏或亲密)
+            "あんた",    # Anta (Anata 的不礼貌/非常随意的形式)
+            "君",        # Kimi ("你"，通常上级对下级、男性之间、或歌词中使用)
+            "お前",      # Omae ("你"，非常随意，可能亲密也可能粗鲁)
+            "貴様",      # Kisama ("你"，非常粗鲁，用于骂人)
+            "そちら",    # Sochira ("您那边"，较礼貌的指代方式)
+            "貴方",      # Anata (あなた 的汉字写法，通用)
+            "貴女",      # Anata (あなた 的汉字写法，专指女性)
+            "汝",        # Nanji/Nare (古语/文学作品中的 "你")
+
+            # --- 第二人称 (复数) ---
+            "あなたたち", # Anatatachi ("你们")
+            "あなた方",  # Anatagata ("各位"，比 あなたたち 更礼貌)
+            "あんたたち", # Antatachi (非正式的 "你们")
+            "君たち",    # Kimitachi ("你们"，对下级或同辈)
+            "君ら",      # Kimira (比 Kimitachi 更随意的 "你们")
+            "お前たち",  # Omaetachi (随意的 "你们")
+            "お前ら",    # Omaera (非常随意的 "你们")
+            "貴様ら",    # Kisamara (粗鲁的 "你们")
+
+            # --- 第三人称 (单数) ---
+            # "彼" (Kare - 他/男友) 和 "彼女" (Kanojo - 她/女友) 已经在您的列表中
+            "あの人",    # Ano hito ("那个人"，较常用且礼貌)
+            "あの方",    # Ano kata ("那位"，更礼貌)
+            "あいつ",    # Aitsu ("那家伙"，随意，可能不礼貌)
+            "こいつ",    # Koitsu ("这家伙"，随意，可能不礼貌)
+            "そいつ",    # Soitsu ("那家伙"，指离听者近的人/物，随意)
+
+            # --- 第三人称 (复数) ---
+            "彼ら",      # Karera ("他们"，可指男性群体或男女混合群体)
+            "彼女ら",    # Kanojora ("她们"，专指女性群体，不如 彼ら 常用)
+            "あの人たち",# Ano hitotachi ("那些人")
+            "あの方々",  # Ano katagata ("那些位"，更礼貌)
+            "あいつら",  # Aitsura ("那些家伙"，随意，可能不礼貌)
+            "こいつら",  # Koitsura ("这些家伙"，随意，可能不礼貌)
+            "そいつら",  # Soitsura ("那些家伙"，指离听者近的，随意)
+        }
+
+        if original.lower() in pronouns_and_others_to_filter:
+            return True
+        return False
+
+
 
     # 检查是否纯英文
     def is_pure_english_text(self,text):

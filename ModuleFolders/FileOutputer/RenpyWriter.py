@@ -8,10 +8,10 @@ class RenpyWriter():
 
     def output_renpy_file(self, data, output_path, input_path):
         """写入翻译后的rpy文件，兼容两种格式"""
-        # 先复制整个目录结构
-        if os.path.exists(output_path):
-            shutil.rmtree(output_path)
-        shutil.copytree(input_path, output_path)
+
+        # 创建输出目录并复制原始文件
+        os.makedirs(output_path, exist_ok=True)
+        RenpyWriter._copy_renpy_files(self,input_path, output_path)
 
         # 按文件分组数据
         file_map = {}
@@ -58,3 +58,15 @@ class RenpyWriter():
             # 写回文件
             with open(file_path, "w", encoding="utf-8") as f:
                 f.writelines(lines)
+
+
+    # 复制renpy文件
+    def _copy_renpy_files(self, input_path, output_path):
+        for dirpath, _, filenames in os.walk(input_path):
+            for filename in filenames:
+                if filename.endswith('.rpy'):
+                    src = os.path.join(dirpath, filename)
+                    rel_path = os.path.relpath(src, input_path)
+                    dst = os.path.join(output_path, rel_path)
+                    os.makedirs(os.path.dirname(dst), exist_ok=True)
+                    shutil.copy2(src, dst)
