@@ -22,8 +22,6 @@ class TPPWriter():
 
         # 创建一个字典，用于存储翻译数据
         translations_by_path = {}
-        # 收集未翻译条目
-        untranslated_entries = []
 
         # 遍历缓存数据
         for item in cache_data:
@@ -40,15 +38,6 @@ class TPPWriter():
                 row_index = item.get("row_index", -1)
                 translation_status = item.get("translation_status", -1)
 
-                # 收集未翻译条目
-                if translation_status == 0:
-                    entry = {
-                        "file_path": path,
-                        "file_name": item.get("file_name", ""),
-                        "row_number": row_index,
-                        "source_text": source_text
-                    }
-                    untranslated_entries.append(entry)
 
                 # 构造字典
                 translation_dict = {
@@ -112,10 +101,4 @@ class TPPWriter():
 
             # 保存工作簿
             wb.save(file_path)
-
-        # 写入未翻译JSON文件
-        if untranslated_entries:
-            json_path = os.path.join(output_path, "未能成功翻译文本.json")
-            with open(json_path, "w", encoding="utf-8") as f:
-                json.dump(untranslated_entries, f, ensure_ascii=False, indent=2)
 
