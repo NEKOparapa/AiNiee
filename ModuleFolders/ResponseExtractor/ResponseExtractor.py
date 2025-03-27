@@ -86,16 +86,15 @@ class ResponseExtractor():
                         converted_items = []
                         for i, item in enumerate(array_content_lines):
                             # 提取[n]#(文本)格式
-                            text_match = re.match(r'^[\"|“”]v\d+\.(\d+) ?→ ?(.*?)[\"|”“],?$', item.strip())
+                            text_match = re.match(r'^[\"|“”]v\d+\.\[#(\d+)]\*(.*?)[\"|”“],?$', item.strip())
                             if text_match:
-                                item_num = text_match.group(1)
                                 text = text_match.group(2)
                                 # 如果字符串去除首尾空白字符后为空，则跳过
                                 if not text.strip():
                                     continue
                                 # 传过来的原始html字符串会发生奇怪的多次转义问题，这里先用ast解析处理一下
                                 text = ast.literal_eval('"' + text + '"')
-                                converted_items.append(f"{current_line_num}.{item_num}.({text})")
+                                converted_items.append(f"{current_line_num}.{i}.({text})")
 
                         # 添加转换后的行
                         result_lines.extend(converted_items)
