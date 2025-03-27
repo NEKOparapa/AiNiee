@@ -44,7 +44,7 @@ class TPPReader():
                         #第1列的值不为空，和第2列的值为空，是未翻译内容
                         if cell_value1 and cell_value2 is  None:
                             
-                            translated_text = "无"
+                            translated_text = ""
                             cache_list.append({
                                 "text_index": i,
                                 "translation_status": 0,

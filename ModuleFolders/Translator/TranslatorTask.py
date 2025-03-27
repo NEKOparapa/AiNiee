@@ -147,7 +147,7 @@ class TranslatorTask(Base):
             self.system_prompt_b
             )
 
-    # 生成信息结构 - 通用
+    # 生成信息结构 - 通用和思维链
     def generate_prompt(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
         # 储存指令
         messages = []
