@@ -48,7 +48,7 @@ class ResponseExtractor():
 
         return translation_result
 
-    # 新增函数：处理数组格式的文本
+    # 新增函数（暂时兼容处理）：处理数组格式的文本
     def convert_array_to_numbered_format(self, html_string):
         """
         处理新的数组格式HTML字符串，转换为原来的格式。
@@ -85,7 +85,7 @@ class ResponseExtractor():
                         # 处理收集到的数组内容
                         converted_items = []
                         for i, item in enumerate(array_content_lines):
-                            # 提取[n]#(文本)格式
+                            # 提取 v主序号.[#倒序多行文本序号]*文本 格式
                             text_match = re.match(r'^[\"|“”]v\d+\.\[#(\d+)]\*(.*?)[\"|”“],?$', item.strip())
                             if text_match:
                                 text = text_match.group(2)
