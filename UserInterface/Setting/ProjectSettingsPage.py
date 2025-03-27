@@ -110,6 +110,7 @@ class ProjectSettingsPage(QFrame, Base):
             (self.tra("Lrc音声文件"), "Lrc"),
             (self.tra("Md文档文件"), "Md"),
             (self.tra("T++导出文件"), "Tpp"),
+            (self.tra("Trans工程文件"), "Trans"),
             (self.tra("Mtool导出文件"), "Mtool"),
             (self.tra("Renpy导出文件"), "Renpy"),
             (self.tra("VNText导出文件"), "Vnt"),
