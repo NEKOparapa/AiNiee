@@ -37,9 +37,9 @@ class TransReader:
                         translated_text = text_pair[1]
 
                         # 确定该特定条目的标签
-                        tag = "None"
+                        tags = None
                         if idx < len(tags_list):
-                            tag = tags_list[idx] # 可能为 null 或类似 "red" 的字符串
+                            tags = tags_list[idx] # 可能为 null 或类似 "red" 的字符串
 
                         # 存储提取的信息
                         cache_data.append({
@@ -47,7 +47,7 @@ class TransReader:
                             "translation_status": 0, 
                             "source_text": source_text,
                             "translated_text": translated_text,
-                            "tag": tag, 
+                            "tags": tags, 
                             "model": "none", 
                             "storage_path": rel_path, # .trans 文件的相对路径
                             "file_name": file, # .trans 文件的名称
