@@ -1,4 +1,4 @@
-name: Bug Report
+name: 错误报告 | Bug Report
 description: 异常问题反馈模板
 title: "[Bug]: "
 labels: ["bug"]
@@ -15,6 +15,22 @@ body:
       description: Please provide a detailed description of the bug.
     validations:
       required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 软件版本
+      description: 填入使用的软件版本号
+    validations:
+      required: false
+
+  - type: input
+    id: api
+    attributes:
+      label: 接口平台
+      description: 填入使用的接口平台
+    validations:
+      required: false
 
   - type: input
     id: api-url
@@ -75,18 +91,11 @@ body:
   - type: input
     id: translation-line-count
     attributes:
-      label: 翻译任务的文本行数
-      description: 基础设置中设置的翻译任务的文本行数
+      label: 翻译任务的具体切分数
+      description: 基础设置中翻译任务的文本行数或者token数量
     validations:
       required: false
 
-  - type: input
-    id: translation-token-count
-    attributes:
-      label: 翻译任务的token数量
-      description: 基础设置中设置的翻译任务的token数量
-    validations:
-      required: false
 
   - type: input
     id: parallel-tasks
@@ -96,62 +105,29 @@ body:
     validations:
       required: true
 
-  - type: dropdown
-    id: chinese-prompt
-    attributes:
-      label: 中文提示词
-      description: 是否启用中文提示词功能
-      options:
-        - 启用
-        - 禁用
-    validations:
-      required: false
 
   - type: dropdown
-    id: cot-mode
+    id: prompt-mode
     attributes:
-      label: 思维链模式
+      label: 提示词预设
+      description: 提示词设置的基础提示词预设
       options:
-        - 启用
-        - 禁用
+        - 通用
+        - 思维链
+        - 推理模型
+        - 自定义提示词
     validations:
       required: true
-
-  - type: dropdown
-    id: preserve-line-breaks
-    attributes:
-      label: 保留句内换行符
-      options:
-        - 是
-        - 否
-    validations:
-      required: true
-
-  - type: dropdown
-    id: preserve-code-blocks
-    attributes:
-      label: 保留首位代码段
-      options:
-        - 是
-        - 否
-    validations:
-      required: true
-
-  - type: textarea
-    id: custom-instructions
-    attributes:
-      label: 自定义基础指令
-      description: 你启用的所有插件提示词设置
-    validations:
-      required: false
+    
 
   - type: textarea
     id: prompt-content
     attributes:
       label: 提示词内容
-      description: 如果启用了中文提示词，请在此填写具体内容
+      description: 如果启用了自定义提示词，请在此填写具体内容
     validations:
       required: false
+
 
   - type: textarea
     id: error-log

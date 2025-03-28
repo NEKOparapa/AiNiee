@@ -24,6 +24,8 @@ class Event():
     CACHE_FILE_AUTO_SAVE = 300                      # 缓存文件自动保存
     APP_SHUT_DOWN = 1000                            # 应用关闭
 
+    NEW_PROCESS_START = 500     # 新流程开始
+    NEW_PROCESS_DONE = 501      # 新流程完成
 
 class Status():
 
@@ -31,6 +33,9 @@ class Status():
     API_TEST = 2000                                 # 测试中
     TRANSLATING = 3000                              # 翻译中
     STOPING = 4000                                  # 停止中
+    NEW_PROCESS_TEST = 3500     # 新流程测试中
+
+
 
 class Base():
 
@@ -41,10 +46,30 @@ class Base():
     STATUS = Status()
 
     # 配置文件路径
-    CONFIG_PATH = "./Resource/config.json"
+    CONFIG_PATH = os.path.join(".", "Resource", "config.json")
 
     # 类线程锁
     CONFIG_FILE_LOCK = threading.Lock()
+
+    # 多语言界面配置信息 (类变量)
+    multilingual_interface_dict = {}
+
+    # 当前语言 (类变量)
+    current_interface_language = "简中"
+
+    # 多语言配置路径
+    translation_json_file = os.path.join(".", "Resource", "Localization")
+
+    # UI文本翻译
+    @classmethod # 类方法，因为要访问类变量
+    def tra(cls, text): # 修改为 cls
+        translation = cls.multilingual_interface_dict.get(text) # 使用 cls.multilingual_interface_dict
+        if translation:
+            translation_text = translation.get(cls.current_interface_language) # 使用 cls.current_interface_language
+            if translation_text:
+                return translation_text
+        return text
+
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -58,10 +83,30 @@ class Base():
         # 类变量
         Base.work_status = Base.STATUS.IDLE if not hasattr(Base, "work_status") else Base.work_status
 
+
+    # 读取多语言配置信息方法
+    def load_translations(cls, folder_path):
+        combined_data = {}
+        for filename in os.listdir(folder_path):
+            if filename.endswith(".json"):
+                filepath = os.path.join(folder_path, filename)
+                try: 
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        for top_level_key in data:
+                            for key, value in data[top_level_key].items():
+                                combined_data[key] = value
+                except Exception as e:
+                    print(f"[red]Error loading translation file {filename}: {e}[/red]")
+                    traceback.print_exc() # 打印更详细的错误信息
+        return combined_data
+
+
     # 检查是否处于调试模式
     def is_debug(self) -> bool:
         if getattr(Base, "_is_debug", None) == None:
-            Base._is_debug = os.path.isfile("./debug.txt")
+            debug_path = os.path.join(".", "debug.txt")
+            Base._is_debug = os.path.isfile(debug_path)
 
         return Base._is_debug
 
@@ -189,19 +234,38 @@ class Base():
 
         return old
 
-    # 更新配置
+    # 更新合并配置
     def fill_config(self, old: dict, new: dict) -> dict:
+
+        """深度合并字典"""
+        for k, v in new.items():
+            if isinstance(v, dict) and k in old:
+                # 递归合并子字典
+                old[k] = self.fill_config(old[k], v)
+            elif k not in old:
+                old[k] = v
+        return old
+
+        """合并字典"""
         for k, v in new.items():
             if k not in old.keys():
                 old[k] = v
 
         return old
+    
 
     # 用默认值更新并加载配置文件
     def load_config_from_default(self) -> None:
-        config = self.load_config()
-        config = self.fill_config(config, getattr(self, "default", {}))
-
+        # 1. 加载已有配置
+        config = self.load_config()  # 从文件读取用户配置
+        
+        # 2. 合并默认配置
+        config = self.fill_config(
+            old=config,  # 用户现有配置
+            new=getattr(self, "default", {})  # 当前类的默认配置
+        )
+        
+        # 3. 返回合并结果
         return config
 
     # 触发事件

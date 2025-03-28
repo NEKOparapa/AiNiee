@@ -1,0 +1,96 @@
+{
+  "PART_1": {
+    "AI构建术语表": {
+      "简中": "AI构建术语表",
+      "繁中": "AI建構術語表",
+      "English": "AI Glossary Generation",
+      "日本語": "AI用語集作成"
+    },
+    "将由AI辅助生成术语表，自动录入，自动应用到后续翻译任务\n开启该功能会增加模型负担，建议在强力模型上开启，不支持本地类接口": {
+      "简中": "将由AI辅助生成术语表，自动录入，自动应用到后续翻译任务\n开启该功能会增加模型负担，建议在强力模型上开启，不支持本地类接口",
+      "繁中": "將由AI輔助生成術語表，自動錄入，並自動應用於後續翻譯任務。\n啟用此功能會增加模型負擔，建議在高效能模型上啟用，不支援本機介面。",
+      "English": "AI-powered glossary generation, auto-entry, and application to future translations.\nEnabling this feature increases model load. Recommended for powerful models only; local interfaces are not supported.",
+      "日本語": "AIによる用語集生成、自動登録、翻訳タスクへの自動適用。\n有効にするとモデル負荷が増加します。強力なモデル推奨。ローカルインターフェースは非対応。"
+    },
+    "AI构建禁翻表": {
+      "简中": "AI构建禁翻表",
+      "繁中": "AI建構禁譯表",
+      "English": "AI No-Translate List Generation",
+      "日本語": "AI禁翻表作成"
+    },
+    "将由AI辅助生成禁翻表，自动录入，暂不应用到后续翻译任务\n开启该功能会增加模型负担，建议在推理模型上开启，不支持本地类接口\n建议在翻译游戏内嵌文本时开启，提取内容有时存在问题，需要手动检查过滤": {
+      "简中": "将由AI辅助生成禁翻表，自动录入，暂不应用到后续翻译任务\n开启该功能会增加模型负担，建议在推理模型上开启，不支持本地类接口\n建议在翻译游戏内嵌文本时开启，提取内容有时存在问题，需要手动检查过滤",
+      "繁中": "將由AI輔助生成禁翻表，自動錄入，暫不應用到後續翻譯任務\n開啟此功能會增加模型負擔，建議在推論模型上開啟，不支援本地端介面\n建議在翻譯遊戲內嵌文本時開啟，提取內容有時存在問題，需要手動檢查過濾",
+      "English": "AI will assist in generating a translation blacklist, automatically entered, but not yet applied to subsequent translation tasks.\nEnabling this feature will increase model load. It is recommended to enable it on inference models and does not support local interfaces.\nIt is recommended to enable it when translating game embedded text. Content extraction may have issues, requiring manual checking and filtering.",
+      "日本語": "AIにより翻訳禁止リストを生成、自動入力しますが、まだ今後の翻訳タスクには適用されません。\nこの機能を有効にするとモデル負荷が増加します。推論モデルでの有効化を推奨、ローカルインターフェースは非対応です。\nゲーム内テキスト翻訳での有効化を推奨します。内容抽出に問題がある場合があり、手動での確認とフィルタリングが必要です。"
+    },
+    "自动处理文本代码段": {
+      "简中": "自动处理文本代码段",
+      "繁中": "自動處理文字程式碼段",
+      "English": "Automatic Code Segment Handling",
+      "日本語": "自動コードセグメント処理"
+    },
+    "启用此功能后，联动正则库与禁翻表，将在翻译前移除首尾的代码段，占位中间的代码段，并在翻译后还原": {
+      "简中": "启用此功能后，联动正则库与禁翻表，将在翻译前移除首尾的代码段，占位中间的代码段，并在翻译后还原",
+      "繁中": "啟用後，聯動正規表示式庫與禁譯表，翻譯前移除首尾程式碼段，中間程式碼段替換為佔位符，翻譯後還原。",
+      "English": "Enabled: Links regex library & no-translate list. Removes leading/trailing code pre-translation, placeholders middle code, restores post-translation.",
+      "日本語": "有効時：正規表現ライブラリと禁翻表を連携。翻訳前に先頭/末尾コードを除去、中間コードをプレースホルダーに置換、翻訳後に復元。"
+    },
+    "自动简繁转换": {
+      "简中": "自动简繁转换",
+      "繁中": "自動簡繁轉換",
+      "English": "Automatic Simplified/Traditional Conversion",
+      "日本語": "自動 簡体/繁体字 変換"
+    },
+    "启用此功能后，在翻译完成时将按照设置的字形映射规则进行简繁转换": {
+      "简中": "启用此功能后，在翻译完成时将按照设置的字形映射规则进行简繁转换",
+      "繁中": "啟用後，翻譯完成時將依照設定的字形映射規則進行簡繁轉換。",
+      "English": "Enabled: Applies set character map for Simplified/Traditional conversion post-translation.",
+      "日本語": "有効時：設定された字形マップに基づき、翻訳後に簡体/繁体字変換を適用。"
+    },
+    "简繁转换预设规则": {
+      "简中": "简繁转换预设规则",
+      "繁中": "簡繁轉換預設規則",
+      "English": "Simplified/Traditional Conversion Presets",
+      "日本語": "簡体/繁体字 変換プリセット"
+    },
+    "进行简繁转换时的字形预设规则，常用的有：简转繁（s2t）、繁转简（t2s）": {
+      "简中": "进行简繁转换时的字形预设规则，常用的有：简转繁（s2t）、繁转简（t2s）",
+      "繁中": "簡繁轉換字形預設規則，常用：簡轉繁（s2t）、繁轉簡（t2s）。",
+      "English": "Conversion presets for Simplified/Traditional Chinese. Common: s2t, t2s.",
+      "日本語": "簡体/繁体字変換の字形プリセット。例：簡→繁(s2t)、繁→簡(t2s)。"
+    }
+  },
+  "PART_2": {
+    "模型退化检查": {
+      "简中": "模型退化检查",
+      "繁中": "模型退化檢查",
+      "English": "Model Degradation Check",
+      "日本語": "モデル劣化チェック"
+    },
+    "原文返回检查": {
+      "简中": "原文返回检查",
+      "繁中": "原文返回檢查",
+      "English": "Original Text Check",
+      "日本語": "原文チェック"
+    },
+    "翻译残留检查": {
+      "简中": "翻译残留检查",
+      "繁中": "翻譯殘留檢查",
+      "English": "Translation Artifact Check",
+      "日本語": "翻訳アーティファクト チェック"
+    },
+    "翻译结果检查": {
+      "简中": "翻译结果检查",
+      "繁中": "翻譯結果檢查",
+      "English": "Translation Result Check",
+      "日本語": "翻訳結果チェック"
+    },
+    "将在翻译结果中检查激活的规则（点亮按钮为激活）：如检测到对应情况，则视为任务执行失败": {
+      "简中": "将在翻译结果中检查激活的规则（点亮按钮为激活）：如检测到对应情况，则视为任务执行失败",
+      "繁中": "將在翻譯結果中檢查已啟用的規則（點亮的按鈕表示已啟用）：如偵測到符合規則的情況，則視為任務執行失敗。",
+      "English": "Checks enabled rules in translation results (lit buttons = enabled). Task fails if rules are triggered.",
+      "日本語": "翻訳結果で有効ルールをチェック (点灯ボタン＝有効)。ルール違反時タスク失敗。"
+    }
+  }
+}

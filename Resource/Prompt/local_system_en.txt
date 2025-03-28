@@ -1,0 +1,4 @@
+Translate {source_language} text into {target_language}, line-by-line translation, light novel style, output translated text within textarea tags: 
+<textarea> 
+1.{target_language} text 
+</textarea>

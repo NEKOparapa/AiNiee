@@ -12,194 +12,135 @@
   
 <p align="center">
   
-  **AiNiee 是一款专注于 Ai 翻译的工具，可以用来一键自动翻译 游戏、小说、字幕 等复杂的长文本内容。**
+  **AiNiee 是一款专注于 Ai 翻译的工具，一键自动翻译 游戏、小说、字幕、文档 等复杂的长文本内容。**
 </p>
 
 
-* **多格式**: json/xlsx导出文件、Epub/TXT 小说、Srt/Vtt/Lrc 字幕、Word文档等。
-* **多平台**: 支持国内外主流AI平台，可方便快速使用OpenAI、Google、Anthropic、DeepSeek 系列模型。
-* **多语言**:  支持多种语言的互相翻译，例如中文、英文、日文、韩文、俄语等。
-* **灵活配置**: 自定义请求格式、平台、模型、翻译行数、线程数等。
-* **高效翻译**: 拥有多文件批量翻译、多线程翻译、多key轮询、混合平台翻译等功能。
-* **翻译优化**: 针对复杂的长文本进行优化，AI术语表，COT翻译、动态Few-Shot、提示书编写、联系上下文、文本自适应处理、回复检查等。
+
+* **多格式支持**: 支持 json/xlsx/rpy 数据文件、Epub/TXT 小说、Srt/Vtt/Lrc 字幕、Word/MD 文档等多种格式，满足多样化需求。
+
+* **多平台支持**: 无缝对接 OpenAI、Google、Anthropic、DeepSeek 等国内外主流 AI 平台，灵活选择，快速使用。
+
+* **多语言互译**: 覆盖中文、英文、日文、韩文、俄语、西班牙语、法语、德语等多种语言，打破语言壁垒。
+
+* **强大插件扩展**: 内置 双语对照器、翻译功能检查器、文本过滤器、文本规范器等实用插件，功能更强大。
+
+* **高效批量翻译**: 多文件批量翻译、多线程并行处理、多 Key 轮询机制，效率倍增。
+
+* **长文本专属优化**: 独家实现完美破限、tag翻译格式、思维链翻译、动态 Few-shot、自动术语统一、自动保留代码段、上下文理解、译文自动检查等技术，突破长文本翻译局限，保证译文连贯性。
+
+* **高质量翻译追求**:提供提示词设置、AI 术语表、AI 禁翻表、文本替换、[双子星翻译](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D)等高级功能，满足对翻译质量有更高要求的用户。
 
 ---
 
-## 快速开始 📢
-- 从 [发布页](https://github.com/NEKOparapa/AiNiee/releases) 下载应用并解压运行
-- 准备好要翻译的原文文本文件，并放入`输入文件夹`（默认为应用目录内的 `input` 文件夹）
-  - 大部分 `小说`、`字幕`、`文档` 文件可以直接翻译
-  - 游戏文本需要先使用第三方工具进行提取，比如 [MTool - 使用教程](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartMTool)
-- 选择以下方式之一进行翻译：
+## AiNiee三步走 📢
+
+* **第一步：配置接口**
+  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第一步.png">
+
   - 在线接口：需付费但性价比很高，无显卡要求，全语言支持，[接口设置说明 - DeepSeek](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartDeepSeek)
-  - 本地接口：免费，需要 8G+ 显存的 Nvidia 显卡，只支持日中，[接口设置说明 - SakuraLLM](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartSakuraLLM)
-- 绝大部分情况下，这两种方式就是满足你翻译需求的最优解，没特殊需求不需要再去折腾其他的接口了
+  - 在线接口：同上，如果Deepseek官网无法正常使用，可换该接口，[接口设置说明 - 火山引擎](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartHuo)
+  - SakuraLLM接口：免费，需要 8G+ 显存的 Nvidia 显卡，只支持日中，[接口设置说明 - SakuraLLM](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartSakuraLLM)
 
-##  工具准备[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#工具准备)
+* **第二步：项目设置**
+  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第二步.png">
+  
+  >`接口名称`: 选择你之前设置的接口<br>
+
+  >`项目类型`: 选择待翻译的文件类型，小说、字幕、文档可直接进行翻译，游戏需要文本提取工具进行配合<br>
+
+  >`原文语言`: 选择相应的原文文本语言<br>
+
+  >`译文语言`: 你希望翻译成的语言<br>
+
+  >`输入文件夹`: 把原文件放在这个文件夹内<br>
+
+  >`输出文件夹`: 选择翻译后文件的存储文件夹，请不要和输入文件夹一个路径<br>
+
+* **第三步：开始翻译**
+
+  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第三步.png">
+
+  - 点击开始按钮，剩下等待任务的完成。
+
+  - [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
+
+---
+
+##  接口简介[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#接口简介)
    
- * **`📖文本提取工具`**
 
-
-      |工具名|介绍|
-      |:----:|:-----:|
-      |[Mtool](https://afdian.com/p/d42dd1e234aa11eba42452540025c377)|上手简单，推荐新人使用|
-      |[Translator++](https://dreamsavior.net/download/)|上手中等，功能强大，推荐大佬使用|
-      |[SExtractor](https://github.com/satan53x/SExtractor)|上手复杂，功能强大，推荐大佬使用|
-
-   
  * **`🤖AI调用平台`**
 
       |支持平台|模型|白嫖情况|模型价格|限制情况|
       |:-----:|:-----:|:-----:|:-----:|:-----:|
-      |[OpenAI平台](https://platform.openai.com/)|ChatGPT系列|现无免费额度|贵|用途广泛|
-      |[GooGle平台](https://makersuite.google.com/app/apikey?hl=zh-cn)|Gemini系列|免费账号可白嫖，速度缓慢|贵|用途广泛|
-      |[Cohere平台](https://dashboard.cohere.com/)|Command系列|免费账号可白嫖，速度一般|一般|用途广泛|
-      |[Anthropic平台](https://console.anthropic.com/dashboard)|Claude系列|免费账号绑卡可白嫖少量额度，速度缓慢|贵|用途广泛|
-      |[月之暗面平台](https://platform.moonshot.cn/console/info)|Moonshot系列|注册送少量免费额度|一般|用途广泛|
-      |[零一万物平台](https://platform.lingyiwanwu.com/playground)|Yi系列|注册送少量免费额度|一般|安全限制|
-      |[智谱平台](https://open.bigmodel.cn/overview)|GLM系列|注册送少量免费额度|一般|安全限制|
-      |[Deepseek平台](https://platform.deepseek.com/usage)|Deepseek系列|注册送少量免费额度，速度极快|便宜|用途广泛|
-      |[Dashscope平台](https://dashscope.console.aliyun.com/playground) |千问系列|注册送大量免费额度|便宜|安全限制|
-      |[Volcengine平台](https://console.volcengine.com/ark)|豆包系列|注册送大量免费额度，速度极快|便宜|用途广泛|
-      |[SakuraLLM](https://github.com/SakuraLLM/SakuraLLM)  |Sakura系列| 本地模型，需显卡 [点击查看一键包](https://github.com/neavo/SakuraLLMServer) |免费|用途广泛|
+      |[OpenAI](https://platform.openai.com/)|ChatGPT系列|现无免费额度|贵|用途广泛|
+      |[GooGle](https://makersuite.google.com/app/apikey?hl=zh-cn)|Gemini系列|免费账号可白嫖，速度缓慢|贵|用途广泛|
+      |[Cohere](https://dashboard.cohere.com/)|Command系列|免费账号可白嫖，速度一般|一般|用途广泛|
+      |[Anthropic](https://console.anthropic.com/dashboard)|Claude系列|免费账号绑卡可白嫖少量额度，速度缓慢|贵|用途广泛|
+      |[Deepseek](https://platform.deepseek.com/usage)|Deepseek系列|注册送少量免费额度，速度极快|便宜|用途广泛|
+      |[月之暗面](https://platform.moonshot.cn/console/info)|Moonshot系列|注册送少量免费额度|一般|用途广泛|
+      |[零一万物](https://platform.lingyiwanwu.com/playground)|Yi系列|注册送少量免费额度|一般|安全限制|
+      |[智谱清言](https://open.bigmodel.cn/overview)|GLM系列|注册送少量免费额度|一般|安全限制|
+      |[阿里云百炼](https://bailian.console.aliyun.com/) |千问系列|注册送大量免费额度|便宜|安全限制|
+      |[火山引擎](https://console.volcengine.com/ark)|豆包系列|注册送大量免费额度，速度极快|便宜|用途广泛|
+      |[SakuraLLM](https://github.com/SakuraLLM/SakuraLLM)  |Sakura系列| 本地模型，需显卡  |免费|用途广泛|
+      |[本地小模型](https://huggingface.co/models)  |开源模型| 本地模型，需显卡  |免费|用途广泛|
 
 
- * **`📺视频教程`**
-
-      |视频链接|说明|
-      |:----:|:-----:|
-      |[Mtool教程](https://www.bilibili.com/video/BV1h6421c7MA) |初次使用推荐观看|
-      |[Translator++教程](https://www.bilibili.com/video/BV18c411K7WN?p=2)|初次使用推荐观看|
-
-* **`📖 角色提取工具`**: [KeywordGacha - 使用 AI 技术来自动生成实体词语表的翻译辅助工具](https://github.com/neavo/KeywordGacha)
-
-* **`💽 本地模型一键包`**: [SakuraLLMServer - 一键获取免费且高质量的日语翻译能力，可提速 3-5 倍](https://github.com/neavo/SakuraLLMServer)
-
-* **`📡 下载地址`**: [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
-
-* **`🟪 魔法工具`**:**强烈建议**您选择优质稳定的代理工具,不然接口会报错Connection eror或者一直没有回复
-   
 ---
 
 <details>
 <summary>
   
-## 使用方法[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#使用方法)
+## 游戏翻译[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#游戏翻译)
 </summary>
-
-
-
-<details>
-<summary>
-
-### 接口管理
-</summary>
-
-*  OpenAI官方配置示例:
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/官方账号设置.png" width="600" height="400"><br>
-  
-    >`账号类型`: 新注册账号为免费账号，有各种限制，单号速度不快<br>
-  
-    > `模型选择`: 请自行了解模型之间的区别后再进行更改。<br>
-  
-    >`API KEY`: 填入由OpenAi账号生成的api_key<br>
-  
-
-*  代理平台配置示例:
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/代理账号设置.png" width="600" height="400"><br> 
-    
-    >`请求地址`: 填入国内代理平台提供的请求地址,示例：`https://api.XXXXX.com` ,不要在后面单带一个`/`
-
-    >`自动补全`: 会在上面输入的请求地址自动补全“v1”
-    
-    >`请求格式`: 根据中转能够支持的请求格式进行选择，一般是openai格式
-
-    >`模型选择`: 可下拉选择，也可以自行填入模型名字<br>
-
-    >`API KEY`: 填入国内代理平台给你生成的API KEY<br>
-
-
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/代理账号速率价格设置.png" width="600" height="400"><br> 
-
-    >`每次发送文本上限`: 限制每次发送文本的容量大小，以tokens为单位
-  
-    >`每分钟请求数`: RPM (requests per minute)每分钟向模型接口发送的翻译任务数量
-  
-    >`每分钟tokens数`: TPM (tokens per minute)每分钟向模型接口发送的tokens总数（类似字符总数）
-
-
-*  SakuraLLM配置:
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sakura/SakuraLLM.png" width="600" height="400"><br>
-
-    > 模型部署与应用设置请参考 [SakuraLLMServer - 一键获取免费且高质量的日语翻译能力](https://github.com/neavo/SakuraLLMServer)
-
-</details>
-  
 
 
 <details>
 <summary> 
 
-### 项目设置
+### 工具准备
 </summary>
 
-*   配置示例:<br>
+ * **`📖游戏文本提取工具`**
 
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/基础设置.png" width="600" height="400"><br>
-    
-    >`项目类型`: 需要翻译的原文文件<br>
-
-    >`接口名称`: 翻译文本时希望使用的平台<br>
-
-    >`原文语言`: 根据你需要翻译游戏的语言选择相应的源语言<br>
-
-    >`译文语言`: 你希望翻译成的语言<br>
-  
-    >`输入文件夹`: 选择你需要翻译的原文文件,把原文尽量放在一个干净的文件夹内，文件夹内没有其他文件，因为会读取该文件夹内所有相关的文件，包括子文件<br>
-  
-    >`输出文件夹`: 选择翻译后文件的存储文件夹，请不要和输入文件夹一个路径<br>
+      |工具名|介绍|项目类型|
+      |:----:|:-----:|:-----:|
+      |[Mtool](https://afdian.com/p/d42dd1e234aa11eba42452540025c377)|上手简单，推荐新人使用|Mtool导出文件|
+      |[ParaTranzr](https://paratranz.cn/projects)|上手中等，功能强大，推荐大佬使用|ParaTranzr导出文件|
+      |[RenPy SDK](https://www.renpy.org/latest.html)|上手中等，功能强大，推荐大佬使用|renpy导出文件|
+      |[Translator++](https://dreamsavior.net/download/)|上手中等，功能强大，推荐大佬使用|T++导出文件|
+      |[SExtractor](https://github.com/satan53x/SExtractor)|上手复杂，功能强大，推荐大佬使用|Mtool或者VNText导出文件|
 
 
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/发送设置.png" width="600" height="400"><br>
+ * **`📖术语表预提取工具`**
 
-    >`行数切分模式`: 每次请求翻译的文本行数。行数设置越大,整体的翻译效果会更好,上下文更加流畅,但每次请求回复速度会越慢,回复的内容越容易出错，请根据模型类型来进行设置。<br>
-
-    >`tokens数切分模式`: 每次请求翻译的文本tokens数，整体效果和行数模式差不多，只不过这个可以更加精确控制发送的大小，从而提高效率<br>
-
-    >`翻译任务并发数`: 请根据翻译平台的速率进行设置，线程数越大，越容易吃满速率限制，翻译速度越快。多出的线程数不会影响翻译，但会增加电脑性能消耗<br>
-
-    >`携带上文行数`: 弱小的模型不建议携带上文，且不建议携带过多行数<br>
-    
-    >`翻译流程最大轮次限制`: 有些在上一轮始终无法成功翻译的文本会进行拆分，并进入下一轮次翻译，如此循环翻译。所以是限制循环拆分的最大轮次数<br>  
+      |工具名|说明|
+      |:----:|:-----:|
+      |[小说工具箱](https://books.fishhawk.top/workspace/toolbox)|术语表辅助制作工具|
+      |[KeywordGacha](https://github.com/neavo/KeywordGacha) |使用 AI 技术来自动生成实体词语表的翻译辅助工具|
 
 
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/专项设置.png" width="600" height="400"><br>
+ * **`📖本地模型运行工具`**
 
-    >`使用思维链翻译`: 会与提示书功能进行联动，让AI主动思考已经提供的上文，角色，背景等等信息，当然消耗会翻倍，并且建议在高性能模型下使用。<br>
+      |工具名|说明|
+      |:----:|:-----:|
+      |[Sakura_Launcher_GUI](https://github.com/PiDanShouRouZhouXD/Sakura_Launcher_GUI)|Sakura模型的专属GUI启动器|
+      |[OneClickLLAMA](https://github.com/neavo/OneClickLLAMA) |一键运行 Qwen2.5 SakuraLLM 等本地 LLM 模型|
+      |[LM Studio](https://lmstudio.ai/download) |一个本地部署大语言模型（LLM）平台，致力于简化LLM的使用和管理。|
+      |[ollama](https://ollama.com/) |开源跨平台大模型工具 |
 
-    >`使用中文提示词`: 会更改发送的prompt结构为全中文结构，部分大模型会在中文提示词下表现更优。<br>
+ * **`📺游戏翻译视频教程`**
 
-    >`保留句内换行符`: 在翻译前将换行符替换成特殊字符，再进行翻译，AI仍会吞符号，不是百分百保留。<br>
+      |视频链接|说明|
+      |:----:|:-----:|
+      |[Mtool教程](https://www.bilibili.com/video/BV1h6421c7MA) |初次使用推荐观看|
+      |[Translator++教程](https://www.bilibili.com/video/BV1LgfoYzEaX/?share_source=copy_web&vd_source=b0eede35fc5eaa5c382509c6040d6501)|初次使用推荐观看|
+      |[Wolf游戏教程](https://www.bilibili.com/video/BV1SnXbYiEjQ/?share_source=copy_web&vd_source=b0eede35fc5eaa5c382509c6040d6501)|初次使用推荐观看|
 
-    >`保留首尾非文本字符`: 主要用于T++导出的文本，该工具导出的文本带很多代码文本，可以截取处理了首尾的占位代码等，翻译了，再复原回来<br>
-
-    >`中文字形转换`: 可以将翻译后的中文字体进行简体，繁体，香港体等待进行转换。配置文件说明，请参考 https://github.com/BYVoid/OpenCC<br>
-
-
-
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/混合翻译设置.png" width="600" height="400"><br>
-
-    >`首轮翻译平台`: 文本会首先以当初设置的翻译行数进行翻译， 如果翻译时出现错误回复次数达到限制，则进入下轮次再次翻译<br>
-
-    >`次轮翻译平台`: 将之前没能成功翻译的文本拆分翻译，会重新自动计算翻译行数，并更换翻译平台，如果不设置，则沿用上轮设置的翻译平台<br>
-
-    >`末轮翻译平台`: 后续的所有轮次都使用该次指定的翻译平台，如果不设置，则沿用上轮设置的翻译平台<br>
-
-    >`更换轮次时不拆分`: 更换翻译轮次时不会对文本进行拆分，继续按设置行数翻译<br>  
 
 </details>
-
-
 
 
 
@@ -292,7 +233,7 @@
 ### 如果使用 StevExtraction 进行游戏翻译
 </summary>
 
-*  0.工具详情功能及介绍：[工具原作者页面](https://www.ai2moe.org/topic/10271-jt%EF%BC%8C%E7%9B%AE%E6%A0%87%E6%98%AF%E9%9B%B6%E9%97%A8%E6%A7%9B%E7%9A%84%EF%BC%8C%E5%86%85%E5%B5%8C%E4%BA%86%E5%A4%9A%E4%B8%AA%E8%84%9A%E6%9C%AC%E7%9A%84%E9%9D%92%E6%98%A5%E7%89%88t/) 
+*  0.工具详情功能及介绍：[工具原作者页面](https://www.ai2.moe/topic/10271-%E8%87%AA%E5%88%9B%E5%B7%A5%E5%85%B7%E7%BF%BB%E8%AF%91%E5%B7%A5%E5%85%B7rpg%E7%BF%BB%E8%AF%91jt%EF%BC%8C%E7%9B%AE%E6%A0%87%E6%98%AF%E9%9B%B6%E9%97%A8%E6%A7%9B%E7%9A%84%EF%BC%8C%E5%86%85%E5%B5%8C%E4%BA%86%E5%A4%9A%E4%B8%AA%E8%84%9A%E6%9C%AC%E7%9A%84%E9%9D%92%E6%98%A5%E7%89%88t214%E5%BA%A6%E7%9B%98/) 
 
 
 *  1.在提取页面进行提取,目前只能适应于RPG Maker MVMZ游戏，能提取到游戏的原文和人物名字
@@ -349,11 +290,122 @@
 </details>
 
 ---
+<details>
+<summary>
+  
+## 功能说明[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#功能说明)  
+</summary>
+
+<details>
+<summary>
+
+### 接口管理
+</summary>
+
+*  OpenAI官方配置示例:
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/官方账号设置.png" width="600" height="400"><br>
+
+    > `模型选择`: 请自行了解模型之间的区别后再进行更改。<br>
+  
+    >`API KEY`: 填入由OpenAi账号生成的api_key<br>
+  
+
+*  自定义平台配置示例:
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/代理账号设置.png" width="600" height="400"><br> 
+    
+    >`请求地址`: 填入中转平台提供的请求地址,示例：`https://api.XXXXX.com` ,不要在后面单带一个`/`
+
+    >`自动补全`: 会在上面输入的请求地址自动补全“v1”
+    
+    >`请求格式`: 根据中转能够支持的请求格式进行选择，一般是openai格式
+
+    >`模型选择`: 可下拉选择，也可以自行填入模型名字<br>
+
+    >`API KEY`: 填入中转平台给你生成的API KEY<br>
+
+
+    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/代理账号速率价格设置.png" width="600" height="400"><br> 
+
+  
+    >`每分钟请求数`: RPM (requests per minute)每分钟向模型接口发送的翻译任务数量
+  
+    >`每分钟tokens数`: TPM (tokens per minute)每分钟向模型接口发送的tokens总数（类似字符总数）
+
+
+</details>
+  
+
+
 
 <details>
 <summary> 
 
-## 常用功能[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#常用功能) 
+### 项目设置
+</summary>
+
+*   配置示例:<br>
+
+    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/基础设置.png" width="600" height="400"><br>
+    
+    >`项目类型`: 需要翻译的原文文件类型<br>
+
+    >`接口名称`: 翻译文本时希望使用的接口平台<br>
+
+    >`原文语言`: 选择相应的原文文本语言<br>
+
+    >`译文语言`: 你希望翻译成的语言<br>
+  
+    >`输入文件夹`: 选择你需要翻译的原文文件,把原文尽量放在一个干净的文件夹内，文件夹内没有其他文件，因为会读取该文件夹内所有相同的的文件类型，包括子文件<br>
+  
+    >`输出文件夹`: 选择翻译后文件的存储文件夹，请不要和输入文件夹一个路径<br>
+
+</details>
+
+
+<details>
+<summary> 
+
+### 提示词设置
+</summary>
+
+*   基础提示词:<br>
+
+    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/提示词设置/基础提示词设置.png" width="600" height="400"><br>
+    
+    >`通用`: 综合通用，花费最少，兼容各种模型，完美破限<br>
+
+    >`思维链`: 融入翻译三步法，提升思考深度，极大增加输出内容，极大增加消耗，提升文学质量，适合普通模型，完美破限<br>
+
+    >`推理模型`: 精简流程，为 DeepSeek-R1 等推理模型优化，释放推理模型的思考能力，获得最佳翻译质量<br>
+
+    >`自定义提示词`: 系统提示词将更改为你所写内容<br>
+    
+</details>
+
+
+
+
+
+<details>
+<summary>
+  
+### 插件说明
+</summary>
+
+- [插件 - 标点修复器](https://github.com/NEKOparapa/AiNiee/wiki/PunctuationFixer)
+- [插件 - 语言过滤器](https://github.com/NEKOparapa/AiNiee/wiki/LanguageFilter)
+- [插件 - 文本规范器](https://github.com/NEKOparapa/AiNiee/wiki/TextNormalizer)
+- [插件 - MTool 优化器](https://github.com/NEKOparapa/AiNiee/wiki/MToolOptimizer)
+</details>
+
+
+
+
+
+<details>
+<summary> 
+
+### 其他说明
 </summary>
 
 * ` 多key轮询`
@@ -365,54 +417,37 @@
 * ` 配置迁移`
   >配置信息都会存储在resource的config.json中，下载新版本可以把它复制到新版本的resource中。
   
-* ` 自定义模型`
-  >在代理平台页面中，选择相应的请求格式，并在模型选择的下拉框中直接输入模型名字，可以自定义组合发送格式与模型。如果想在官方接口调用新模型，需要自行编辑Resource/platform文件夹里的模型信息文件。
-
 * `缓存文件`
-  >当翻译遇到问题时，可以之后更改翻译项目为缓存文件，并在输入文件夹选择该缓存文件所在的文件夹进行继续翻译。当继续翻译Epub小说文件时，还需要把原来的文件和缓存文件放在同一个文件夹里面。
-  
-* `导出已翻译文件`
-  >会将已经翻译好的内容和未翻译的内容导出。mtool项目与Paratranz项目会分为两个文件，会带有不同的后缀。T++项目会仍然是同一个文件里，已翻译文本的右边会有内容，未翻译的没有。其他项目都会混合在一个文件里输出。
-  
-* `指令词典`
-  >用来统一名词的翻译，让AI翻译的人名，物品名词，怪物名词，特殊名词能够翻译成你想要的样子。备注信息可写可不写
+   >当翻译遇到问题时，可以之后更改翻译项目为缓存文件，并在输入文件夹选择该缓存文件所在的文件夹进行继续翻译。当继续翻译Epub与word文件时，还需要把原来的文件和缓存文件放在同一个文件夹里面。
 
-* `提示词优化`
-  >用来提高翻译的准确度和流畅性，写好各种内容，配合高性能模型，能够提升翻译的质量
-  
+* `双子星翻译`
+   >[详细介绍链接](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D) 双请求结构的翻译流程，大佬们探索AI可能性的新玩具。
+
 </details>
 
----
 
-<details>
-<summary>
-  
-## 插件说明[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#插件说明)  
-</summary>
-
-- [插件 - 代码救星](https://github.com/NEKOparapa/AiNiee/wiki/CodeSaver)
-- [插件 - 标点修复器](https://github.com/NEKOparapa/AiNiee/wiki/PunctuationFixer)
-- [插件 - 语言过滤器](https://github.com/NEKOparapa/AiNiee/wiki/LanguageFilter)
-- [插件 - 文本规范器](https://github.com/NEKOparapa/AiNiee/wiki/TextNormalizer)
-- [插件 - MTool 优化器](https://github.com/NEKOparapa/AiNiee/wiki/MToolOptimizer)
-- [插件 - 指令词典检查器](https://github.com/NEKOparapa/AiNiee/wiki/GlossaryChecker)
 </details>
+
+
 
 ---
 
 <details>
 <summary>
 
-## 常见问题[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#常见问题)  
+## 贡献指南[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#贡献指南)  
 </summary>
 
-* 【如何反馈自己在使用中遇到的问题】————————将CMD窗口（黑黑的那个框框）的内容完整截图下来，里面有程序运行日志，还有软件界面设置截图，然后将问题描述清晰带上截图到群里或者issue提问。当进一步排除问题，需要到原文本或者翻译后文本时，请压缩并上传。
 
-* 【翻译“卡住”了】————————如果运行日志中，无错误提醒，请耐心等待
+* **`开发增强插件`**: 请根据[插件编写指南](https://github.com/NEKOparapa/AiNiee/blob/main/PluginScripts/README.md)进行开发更强功能插件
 
-* 【mtool导入翻译文本后，显示一句原文一句译文，或者原文与译文混杂，或者全部原文】————————更新mtool到最新版，或者找mtool作者反馈该问题
-  
-* 【翻译后文本导入到T++不完全，部分未能百分百导入全部译文】————————在非RPGMVZ游戏中，出现该问题比较多，使用最新赞助版T++可以缓解，还可以自己手动打开表格，自己复制粘贴进去
+* **`改进或增加支持文件`**: 需要有一定的代码编程能力，拉取源码进行改进。文件具体读取代码在ModuleFolders\FileReader与FileOutputer文件夹中。文件读写功能分发在FileReader与FileOutputer。UI支持在UserInterface\Setting的ProjectSettingsPage。
+
+* **`完善正则库`**: 正则库的完备将极大帮助游戏内嵌工作的进行，并利好下一次游戏翻译工作和造福其他翻译用户，正则库在[Resource\Regex](https://github.com/NEKOparapa/AiNiee/blob/main/Resource/Regex/regex.json)文件夹中
+
+* **`改进翻译流程`**: [翻译文本测试项目](https://github.com/NEKOparapa/AiNiee-Test-Dataset)里面包含常用场景的一些数据文本，可以改进测试数据，或者以测试数据表现改进AiNiee翻译流程
+
+* **`改进界面翻译`**: 多语言界面的UI文本可能翻译不够准确合适，可以提交你的修改意见，或者直接进行修改。本地化文本在[Resource\Localization](https://github.com/NEKOparapa/AiNiee/tree/main/Resource/Localization)文件夹中
 
 </details>
 

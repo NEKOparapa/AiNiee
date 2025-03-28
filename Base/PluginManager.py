@@ -1,7 +1,7 @@
 import importlib
 import os
 from pathlib import Path
-from Plugin_Scripts.PluginBase import PluginBase
+from PluginScripts.PluginBase import PluginBase
 
 class PluginManager:
 

@@ -1,0 +1,5 @@
+将{source_language}文本翻译成{target_language}，逐行翻译，轻小说风格，以textarea标签输出译文：
+<textarea>
+1.{target_language}文本
+</textarea>
+

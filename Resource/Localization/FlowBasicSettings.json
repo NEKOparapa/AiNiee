@@ -1,0 +1,91 @@
+{
+  "PART_1": {
+    "启用双子星翻译": {
+      "简中": "启用双子星翻译",
+      "繁中": "啟用双子星翻譯",
+      "English": "Enable Gemini Translation",
+      "日本語": "Gemini翻訳を有効にする"
+    },
+    "每个单元翻译任务，都改为流程设计中的翻译流程\n失效功能：项目设置的接口设置，AI构建术语表，AI构建禁翻表，提示词设置": {
+      "简中": "每个单元翻译任务，都改为流程设计中的翻译流程。\n以下功能将失效：项目设置的接口设置、AI构建术语表、AI构建禁翻表、提示词设置",
+      "繁中": "每個單元翻譯任務，都改為流程設計中的翻譯流程。\n以下功能將失效：專案設定的介面設定、AI 建構術語表、AI 建構禁翻表、提示詞設定",
+      "English": "Switch to workflow-based translation for all units.\nThe following features will be disabled: Project Settings Interface, AI Glossary Builder, AI Do-Not-Translate List Builder, Prompt Settings",
+      "日本語": "すべてのユニット翻訳タスクをワークフローベースの翻訳プロセスに切り替えます。\n以下の機能は無効になります：プロジェクト設定のインターフェース設定、AI用語集の構築、AI禁輸リストの構築、プロンプト設定"
+    },
+    "接口A": {
+      "简中": "接口A",
+      "繁中": "介面 A",
+      "English": "Interface A",
+      "日本語": "インターフェースA"
+    },
+    "进行第一次请求所使用的接口": {
+      "简中": "进行第一次请求所使用的接口",
+      "繁中": "介面 A (首次請求)",
+      "English": "Interface A (First Request)",
+      "日本語": "インターフェースA (初回リクエスト)"
+    },
+    "接口B": {
+      "简中": "接口B",
+      "繁中": "介面 B",
+      "English": "Interface B",
+      "日本語": "インターフェースB"
+    },
+    "进行第二次请求所使用的接口": {
+      "简中": "进行第二次请求所使用的接口",
+      "繁中": "介面 B (二次請求)",
+      "English": "Interface B (Second Request)",
+      "日本語": "インターフェースB (2回目リクエスト)"
+    }
+  },
+
+  "PART_2": {
+    "测试用原文": {
+      "简中": "测试原文",
+      "繁中": "測試原文",
+      "English": "Test Source Text",
+      "日本語": "テスト原文"
+    },
+    "用于验证测试效果的待翻译原文，文本占位符为 {original_text}，全局生效": {
+      "简中": "用于验证测试效果的待翻译原文。占位符：{original_text}，全局生效",
+      "繁中": "用於驗證測試效果的待翻譯原文。佔位符：{original_text}，全域生效",
+      "English": "Source text for testing. Placeholder: {original_text}, global scope",
+      "日本語": "テスト効果検証用の原文。プレースホルダー：{original_text}、グローバルに有効"
+    },
+    "测试用上文": {
+      "简中": "测试上文",
+      "繁中": "測試上文",
+      "English": "Test Context Text",
+      "日本語": "テスト上文"
+    },
+    "用于验证测试效果的的上文语境内容，文本占位符为 {previous_text}，全局生效": {
+      "简中": "用于验证测试效果的上文语境内容。占位符：{previous_text}，全局生效",
+      "繁中": "用於驗證測試效果的上文語境內容。佔位符：{previous_text}，全域生效",
+      "English": "Context text for testing. Placeholder: {previous_text}, global scope",
+      "日本語": "テスト効果検証用の上文コンテキスト。プレースホルダー：{previous_text}、グローバルに有効"
+    },
+    "测试用术语表": {
+      "简中": "测试术语表",
+      "繁中": "測試術語表",
+      "English": "Test Glossary",
+      "日本語": "テスト用語集"
+    },
+    "用于验证测试效果的术语表，文本占位符为 {glossary}，全局生效": {
+      "简中": "用于验证测试效果的术语表。占位符：{glossary}，全局生效",
+      "繁中": "用於驗證測試效果的術語表。佔位符：{glossary}，全域生效",
+      "English": "Glossary for testing. Placeholder: {glossary}, global scope",
+      "日本語": "テスト効果検証用の用語集。プレースホルダー：{glossary}、グローバルに有効"
+    },
+    "测试用禁翻表": {
+      "简中": "测试禁翻表",
+      "繁中": "測試禁翻表",
+      "English": "Test Do-Not-Translate List",
+      "日本語": "テスト禁輸リスト"
+    },
+    "用于验证测试效果的禁翻表，文本占位符为 {code_text}，全局生效": {
+      "简中": "用于验证测试效果的禁翻表。占位符：{code_text}，全局生效",
+      "繁中": "用於驗證測試效果的禁翻表。佔位符：{code_text}，全域生效",
+      "English": "Do-Not-Translate list for testing. Placeholder: {code_text}, global scope",
+      "日本語": "テスト効果検証用の禁輸リスト。プレースホルダー：{code_text}、グローバルに有効"
+    }
+  }
+}
