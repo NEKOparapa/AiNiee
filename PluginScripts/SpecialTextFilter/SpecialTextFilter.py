@@ -1,5 +1,5 @@
+import re
 from ..PluginBase import PluginBase
-
 
 class SpecialTextFilter(PluginBase):
     def __init__(self):
@@ -30,10 +30,36 @@ class SpecialTextFilter(PluginBase):
                 SpecialTextFilter.filter_trans_text(self, items)
 
 
+            # 针对MD项目的处理
+            if "md"  in project.get("project_type", "").lower():
+
+                SpecialTextFilter.filter_md_text(self, items)
+
     # 特殊文本过滤器
     def filter_trans_text(self,cache_list):
         for entry in cache_list:
             tags = entry.get('tags',"")
             if "red" in tags:
-                entry['translation_status'] = 7
+                entry['translation_status'] =  7
 
+
+
+    # 特殊文本过滤器
+    def filter_md_text(self,cache_list):
+
+        # 1.  ![...](http://...) and ![...](data:image...)
+        REGEX_INLINE_IMAGE = re.compile(r"^\s*!\[[^\]]*\]\([^)]*\)\s*$")
+
+        # 2.  ![alt][id]
+        REGEX_REF_IMAGE_USAGE = re.compile(r"^\s*!\[[^\]]*\]\[[^\]]+\]\s*$")
+
+        # 3.  [id]: url "title" or [id]: <url> "title"
+        REGEX_REF_DEFINITION = re.compile(r"^\s*\[[^\]]+\]:\s*<?.*>?\s*(?:(?:\".*\")|(?:'.*'))?\s*$")
+
+        for entry in cache_list:
+            source_text = entry.get('source_text')
+
+            if REGEX_INLINE_IMAGE.match(source_text) or \
+               REGEX_REF_IMAGE_USAGE.match(source_text) or \
+               REGEX_REF_DEFINITION.match(source_text):
+                entry['translation_status'] = 7
