@@ -1,6 +1,7 @@
 import ast
 import re
 import string
+from typing import Dict, List
 
 # 回复解析器
 class ResponseExtractor():
@@ -32,7 +33,8 @@ class ResponseExtractor():
     def extract_translation(self,source_text_dict,html_string):
 
         # 处理新格式至原始格式
-        html_string = ResponseExtractor.convert_array_to_numbered_format(self,html_string)
+        #html_string = ResponseExtractor.convert_array_to_numbered_format(self,html_string)
+
         # 提取翻译文本
         text_dict = ResponseExtractor.label_text_extraction(self,html_string)
 
@@ -44,7 +46,6 @@ class ResponseExtractor():
 
         # 合并调整翻译文本
         translation_result= ResponseExtractor.generate_text_by_newlines(self,newlines_in_dict,text_dict)
-
 
         return translation_result
 
@@ -119,22 +120,17 @@ class ResponseExtractor():
 
     # 辅助函数，正则提取标签文本内容
     def label_text_extraction(self, html_string):
+
+        # 只提取最后一个 textarea 标签的内容
         textarea_contents = re.findall(r'<textarea.*?>(.*?)</textarea>', html_string, re.DOTALL)
         if not textarea_contents:
             return {}  # 如果没有找到 textarea 标签，返回空字典
-
-        output_dict = {}
-        line_number = 0
-
-        # 只处理最后一个 textarea 标签的内容
         last_content = textarea_contents[-1]
-        lines = last_content.strip().splitlines()
-        for line in lines:
-            if line:
-                output_dict[str(line_number)] = line
-                line_number += 1
 
-        # 如果没有找到任何以数字序号开头的行，则直接返回原始的行号字典（主要是为了兼容Sakura模型接口）
+        # 提取文本存储到字典中
+        output_dict = ResponseExtractor.extract_text_to_dict(self,last_content)
+
+        # 如果没有找到任何以数字序号开头的行，则直接返回原始的行号字典，不进行接下来的处理（主要是为了兼容Sakura模型接口）
         has_numbered_prefix = False
         for value in output_dict.values():
             if re.match(r'^\d+\.', value):
@@ -158,6 +154,79 @@ class ResponseExtractor():
             return filtered_dict
         else:
             return output_dict  # 如果没有找到数字序号开头的行，则返回原始字典
+
+    # 提取文本为字典
+    def extract_text_to_dict(self, input_string: str) -> Dict[str, str]:
+        """
+        从特定格式的字符串中提取内容并存入字典 (修正版，处理内部引号)。
+
+        Args:
+            text: 输入的字符串。
+
+        Returns:
+            一个字典，键是'0', '1', '2'...，值是提取到的文本行。
+        """
+        # 1. 初步分割: 按主序号分割成块
+        blocks = re.split(r'\n(?=\d+\.)', input_string.strip())
+
+        extracted_items = []
+
+        # 2. 处理每个块
+        for block in blocks:
+            block = block.strip()
+            if not block:
+                continue
+
+            # 3. 判断块类型
+            # 简单判断：如果包含 '[' 和 ']' 认为是列表块 (可能需要更严格的判断)
+            # 检查开头是否是 数字+[ 开头，更精确
+            is_list_block_start = re.match(r'\d+\.\s*\[', block)
+            is_list_block_end = block.endswith(']')
+
+            # if '[' in block and ']' in block: # 改为更精确的判断
+            if is_list_block_start and is_list_block_end:
+                # 4.1 列表块处理
+                try:
+                    # 找到第一个 [ 和最后一个 ]
+                    start_index = block.find('[')
+                    end_index = block.rfind(']') # rfind 查找最后一个
+
+                    if start_index != -1 and end_index != -1 and start_index < end_index:
+                        list_content = block[start_index + 1:end_index]
+                        lines = list_content.splitlines() # 按行分割
+
+                        for line in lines:
+                            cleaned_line = line.strip() # 去除前后空白
+
+                            # 检查是否是有效的被引号包裹的条目
+                            if cleaned_line.startswith('"') and (cleaned_line.endswith('"') or cleaned_line.endswith('",')):
+                                # 去除末尾可能的逗号
+                                if cleaned_line.endswith('",'):
+                                    cleaned_line = cleaned_line[:-1] # 去掉逗号
+
+                                # 去除首尾的双引号
+                                # 加个长度判断防止 "" 的情况出错
+                                if len(cleaned_line) >= 2:
+                                    item = cleaned_line[1:-1]
+                                    extracted_items.append(item)
+                    else:
+                        # 如果找不到匹配的 []，或者结构不对，按文本块处理 (可选)
+                        print(f"警告：检测到可能的列表块但结构不符: {block[:50]}...")
+                        extracted_items.append(block) # 或者跳过，根据需求
+
+                except Exception as e:
+                    print(f"处理列表块时出错: {block[:50]}... 错误: {e}")
+                    # 出错时可以选择将整个块添加或跳过
+                    extracted_items.append(block)
+            else:
+                # 4.2 文本块: 直接添加
+                extracted_items.append(block)
+
+        # 5. 生成最终字典
+        result_dict = {str(i): item for i, item in enumerate(extracted_items)}
+
+        return result_dict
+
 
     # 辅助函数，统计原文中的换行符
     def count_newlines_in_dict_values(self,source_text_dict):
@@ -230,50 +299,6 @@ class ResponseExtractor():
 
         return result_dict
 
-    # 辅助函数，去除数字序号
-    def remove_numbered_prefix(self,source_text_dict,translation_text_dict):
-        """
-        根据源文本的换行符数量，动态去除输入文本中对应的层级数字序号。
-        
-        逻辑说明：
-        1. 源文本中换行符数量决定了序号层级（m个换行符对应m+1个子行）
-        2. 主序号由字典键值+1决定（如键'0'的主序号是1，键'1'的主序号是2）
-        3. 根据换行符数量选择匹配模式：
-        - 无换行符：匹配"主序号."
-        - 有换行符：匹配"主序号.子序号."
-        """
-
-        output_dict = {}
-        for key, value in translation_text_dict.items():
-            if not isinstance(value, str):
-                output_dict[key] = value
-                continue
-
-            # 获取源文本的换行符数量
-            source_text = source_text_dict.get(key, "")
-            newline_count = source_text.count("\n")
-
-            # 分割输入文本为多行处理
-            lines = value.split("\n")
-            cleaned_lines = []
-
-            for line in lines:
-                # 根据换行情况构建匹配模式
-                if newline_count == 0:
-                    # 匹配"主序号."模式（如"1."）
-                    pattern = rf"^\d+\.\s*"  # 行首正则
-                else:
-                    # 匹配"主序号.子序号."模式（如"2.1."）
-                    pattern = rf"^\d+\.\d+\.\s*"
-
-                # 执行替换操作
-                cleaned_line = re.sub(pattern, "", line)
-                cleaned_lines.append(cleaned_line)
-
-            # 重组处理后的文本
-            output_dict[key] = "\n".join(cleaned_lines)
-
-        return output_dict
 
     # 去除数字序号及括号
     def remove_numbered_prefix(self, source_text_dict, translation_text_dict):

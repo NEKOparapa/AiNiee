@@ -92,7 +92,7 @@ class TextProcessor(Base):
                 if target_platform == "sakura":
                     placeholder = "↓" * sakura_match_count
                 else:
-                    placeholder = f"{{P{global_match_count}}}" # 使用全局计数
+                    placeholder = f"[P{global_match_count}]" # 使用全局计数
 
                 # 暂存替换信息
                 replacement_info_holder.append({

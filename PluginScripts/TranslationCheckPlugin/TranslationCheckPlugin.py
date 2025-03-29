@@ -448,7 +448,7 @@ class TranslationCheckPlugin(PluginBase):
         # 确保输入是字符串，如果不是则视为空字符串处理或保持原样以便后续处理
         translated_text = translated_text if isinstance(translated_text, str) else ""
 
-        placeholder = "{P"
+        placeholder = "[P"
 
         if placeholder in translated_text:
             error_msg = f"📃[占位符残留] 译文中残留有 {placeholder} 占位符，未能还原成功"

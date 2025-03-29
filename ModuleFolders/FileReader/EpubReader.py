@@ -85,6 +85,14 @@ class EpubReader():
                                         if forbidden_tags is not None:
                                             continue  # 跳过包含禁止标签的div
 
+                                    # 对li标签进行额外检查，因为有些p标签内容嵌套在li标签里面
+                                    if tag_type == "li":
+                                        # 检查是否包含禁止的子标签
+                                        forbidden_tags = soup.find(['p'])
+                                        if forbidden_tags is not None:
+                                            continue  # 跳过包含禁止标签的li
+
+
                                     json_data_list.append({
                                         "text_index": i,
                                         "translation_status": 0,
