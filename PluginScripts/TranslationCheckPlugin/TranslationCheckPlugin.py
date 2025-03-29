@@ -84,7 +84,8 @@ class TranslationCheckPlugin(PluginBase):
             "prompt_dictionary_errors": 0,
             "exclusion_list_errors": 0,
             "auto_process_errors": 0,
-            "newline_errors": 0
+            "newline_errors": 0,
+            "placeholder_errors": 0
         }
         
         # 初始化项目报告相关变量
@@ -190,6 +191,11 @@ class TranslationCheckPlugin(PluginBase):
                 if errors:
                     check_summary["newline_errors"] += len(errors)
                     current_entry_errors.extend(errors)
+                # 占位符检查总是执行
+                errors = self.check_placeholder_residue( translated_text)
+                if errors:
+                    check_summary["placeholder_errors"] += len(errors)
+                    current_entry_errors.extend(errors)
 
             if current_entry_errors: # 如果当前条目有错误，则添加到结构化错误日志
                 total_error_count += len(current_entry_errors)
@@ -218,6 +224,9 @@ class TranslationCheckPlugin(PluginBase):
                      summary_messages.append(f"  - ⚙️ 自动处理检查: {check_summary['auto_process_errors']} 个错误 ⚠️")
                 if check_summary["newline_errors"] > 0:
                      summary_messages.append(f"  - 📃 换行符检查: {check_summary['newline_errors']} 个错误 ⚠️")
+                if check_summary["placeholder_errors"] > 0:
+                     summary_messages.append(f"  - 📃 占位符残留检查: {check_summary['placeholder_errors']} 个错误 ⚠️")
+
                 if any(e['errors'][0] == "🚧 [WARNING] 条目未翻译 " for e in error_entries if e['errors']):
                      untranslated_count = sum(1 for e in error_entries if e['errors'] and e['errors'][0] == "🚧 [WARNING] 条目未翻译 ")
                      summary_messages.append(f"  - 🚧 未翻译条目: {untranslated_count} 个 ⚠️")
@@ -428,5 +437,20 @@ class TranslationCheckPlugin(PluginBase):
 
         if source_newlines != translated_newlines:
             error_msg = f"📃[换行符错误] 原文有 {source_newlines} 个换行符，译文有 {translated_newlines} 个"
+            errors.append(error_msg)
+        return errors
+
+
+    def check_placeholder_residue(self,  translated_text):
+        """检查占位符残留, 返回错误信息列表"""
+        errors = []
+
+        # 确保输入是字符串，如果不是则视为空字符串处理或保持原样以便后续处理
+        translated_text = translated_text if isinstance(translated_text, str) else ""
+
+        placeholder = "{P"
+
+        if placeholder in translated_text:
+            error_msg = f"📃[占位符残留] 译文中残留有 {placeholder} 占位符，未能还原成功"
             errors.append(error_msg)
         return errors
