@@ -170,32 +170,37 @@ class TranslationCheckPlugin(PluginBase):
 
             elif translation_status == 1: # 已翻译条目
                 # 各项检查，并将错误信息添加到 current_entry_errors
+                # 术语表检查
                 if prompt_dictionary_switch and prompt_dictionary_data:
                     errors = self.check_prompt_dictionary(source_text, translated_text, prompt_dictionary_data)
                     if errors:
                         check_summary["prompt_dictionary_errors"] += len(errors)
                         current_entry_errors.extend(errors)
+                # 禁翻表功能检查
                 if exclusion_list_switch and exclusion_list_data:
                     errors = self.check_exclusion_list(source_text, translated_text, exclusion_list_data)
                     if errors:
                         check_summary["exclusion_list_errors"] += len(errors)
                         current_entry_errors.extend(errors)
-                # 仅在 auto_process 开关打开且 patterns 非空时检查
+                # 自动处理检查
                 if auto_process_text_code_segment and patterns:
                     errors = self.check_auto_process(source_text, translated_text, patterns)
                     if errors:
                         check_summary["auto_process_errors"] += len(errors)
                         current_entry_errors.extend(errors)
-                # 换行符检查总是执行
+                # 占位符检查
+                if auto_process_text_code_segment:
+                    errors = self.check_placeholder_residue( translated_text)
+                    if errors:
+                        check_summary["placeholder_errors"] += len(errors)
+                        current_entry_errors.extend(errors)
+
+                # 换行符检查
                 errors = self.check_newline(source_text, translated_text)
                 if errors:
                     check_summary["newline_errors"] += len(errors)
                     current_entry_errors.extend(errors)
-                # 占位符检查总是执行
-                errors = self.check_placeholder_residue( translated_text)
-                if errors:
-                    check_summary["placeholder_errors"] += len(errors)
-                    current_entry_errors.extend(errors)
+
 
             if current_entry_errors: # 如果当前条目有错误，则添加到结构化错误日志
                 total_error_count += len(current_entry_errors)
@@ -222,10 +227,10 @@ class TranslationCheckPlugin(PluginBase):
                      summary_messages.append(f"  - 🚫 禁翻表检查: {check_summary['exclusion_list_errors']} 个错误 ⚠️")
                 if check_summary["auto_process_errors"] > 0:
                      summary_messages.append(f"  - ⚙️ 自动处理检查: {check_summary['auto_process_errors']} 个错误 ⚠️")
+                if check_summary["placeholder_errors"] > 0:
+                     summary_messages.append(f"  - 🍩 占位符残留检查: {check_summary['placeholder_errors']} 个错误 ⚠️")
                 if check_summary["newline_errors"] > 0:
                      summary_messages.append(f"  - 📃 换行符检查: {check_summary['newline_errors']} 个错误 ⚠️")
-                if check_summary["placeholder_errors"] > 0:
-                     summary_messages.append(f"  - 📃 占位符残留检查: {check_summary['placeholder_errors']} 个错误 ⚠️")
 
                 if any(e['errors'][0] == "🚧 [WARNING] 条目未翻译 " for e in error_entries if e['errors']):
                      untranslated_count = sum(1 for e in error_entries if e['errors'] and e['errors'][0] == "🚧 [WARNING] 条目未翻译 ")
@@ -444,13 +449,14 @@ class TranslationCheckPlugin(PluginBase):
     def check_placeholder_residue(self,  translated_text):
         """检查占位符残留, 返回错误信息列表"""
         errors = []
-
+        
         # 确保输入是字符串，如果不是则视为空字符串处理或保持原样以便后续处理
         translated_text = translated_text if isinstance(translated_text, str) else ""
-
-        placeholder = "[P"
-
-        if placeholder in translated_text:
-            error_msg = f"📃[占位符残留] 译文中残留有 {placeholder} 占位符，未能还原成功"
+        
+        # 正则表达式匹配 [P+数字] 格式的占位符
+        pattern = r'\[P\d+\]'  # 匹配示例：[P3]、[P25]、[P999]
+        
+        if re.search(pattern, translated_text):
+            error_msg = f"🍩[占位符残留] 译文中残留有类似[P数字]的占位符，未能还原成功（示例：{re.findall(pattern, translated_text)[0]}）"
             errors.append(error_msg)
         return errors

@@ -158,7 +158,7 @@ class ResponseExtractor():
     # 提取文本为字典
     def extract_text_to_dict(self, input_string: str) -> Dict[str, str]:
         """
-        从特定格式的字符串中提取内容并存入字典 (修正版，处理内部引号)。
+        从特定格式的字符串中提取内容并存入字典。
 
         Args:
             text: 输入的字符串。
@@ -193,7 +193,7 @@ class ResponseExtractor():
 
                     if start_index != -1 and end_index != -1 and start_index < end_index:
                         list_content = block[start_index + 1:end_index]
-                        lines = list_content.splitlines() # 按行分割
+                        lines = list_content.split("\n") # 按行分割，不能用splitlines()，会自动从 /r/n或者/r处自动分行，并且得和原文的行切割一致
 
                         for line in lines:
                             cleaned_line = line.strip() # 去除前后空白
