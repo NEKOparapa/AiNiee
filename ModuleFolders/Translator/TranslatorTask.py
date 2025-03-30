@@ -252,7 +252,7 @@ class TranslatorTask(Base):
         for index, line in enumerate(source_text_dict.values()):
             # 检查是否为多行文本
             if "\n" in line:
-                lines = line.split("\n")
+                lines = line.split("\n")  # 需要与回复提取的行分割方法一致
                 numbered_text = f"{index + 1}.[\n"
                 total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):

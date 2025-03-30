@@ -159,6 +159,7 @@ class ResponseExtractor():
     def extract_text_to_dict(self, input_string: str) -> Dict[str, str]:
         """
         从特定格式的字符串中提取内容并存入字典。
+        （目前因为AI偶尔会合并翻译，回复的列表块最后一个元素内容是这样的:"3.1."或者"3.1.[换行符]"，所以后期会检查出换行符不一致）
 
         Args:
             text: 输入的字符串。
@@ -300,7 +301,7 @@ class ResponseExtractor():
         return result_dict
 
 
-    # 去除数字序号及括号
+    # 去除数字序号及括号（可能需要删除括号删除方法）
     def remove_numbered_prefix(self, source_text_dict, translation_text_dict):
         output_dict = {}
         for key, value in translation_text_dict.items():

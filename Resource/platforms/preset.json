@@ -99,11 +99,11 @@
             "frequency_penalty": 0.0,
             "auto_complete": false,
             "model_datas": [
-                "gemini-1.5-flash-8b",
                 "gemini-1.5-flash",
                 "gemini-1.5-pro",
                 "gemini-2.0-flash-exp",
-                "gemini-2.0-flash-thinking-exp"
+                "gemini-2.0-flash-thinking-exp",
+                "gemini-2.5-pro-exp-03-25"
             ],
             "key_in_settings": [
                 "api_key",
