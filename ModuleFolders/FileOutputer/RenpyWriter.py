@@ -1,7 +1,7 @@
 import os
 import shutil
 
-
+# 改进点:现在还没能正确处理文本中含有双引号的问题
 class RenpyWriter():
     def __init__(self):
         pass

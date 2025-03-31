@@ -410,11 +410,11 @@ class ResponseExtractor():
             return True
 
         # 过滤提取错行
-        if translation.strip() in ("|"):
+        if translation and "|" in translation:
             return True
 
         # 过滤提取错行
-        if (info) and (info.strip() in ("|")):
+        if info and "|" in info:
             return True
 
         # 过滤无翻译行
