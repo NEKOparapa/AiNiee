@@ -202,12 +202,10 @@ class ResponseExtractor():
                 continue
 
             # 3. 判断块类型
-            # 简单判断：如果包含 '[' 和 ']' 认为是列表块 (可能需要更严格的判断)
-            # 检查开头是否是 数字+[ 开头，更精确
+            # 检查块的开头是否是 数字+[ 开头，结尾是否是 ]
             is_list_block_start = re.match(r'\d+\.\s*\[', block)
             is_list_block_end = block.endswith(']')
 
-            # if '[' in block and ']' in block: # 改为更精确的判断
             if is_list_block_start and is_list_block_end:
                 # 4.1 列表块处理
                 try:
@@ -324,7 +322,7 @@ class ResponseExtractor():
         return result_dict
 
 
-    # 去除数字序号及括号（可能需要删除括号删除方法）
+    # 去除数字序号及括号
     def remove_numbered_prefix(self, source_text_dict, translation_text_dict):
         output_dict = {}
         for key, value in translation_text_dict.items():
@@ -333,7 +331,6 @@ class ResponseExtractor():
                 continue
 
             source_text = source_text_dict.get(key, "")
-            source_lines = source_text.split('\n')
             translation_lines = value.split('\n')
             cleaned_lines = []
 
@@ -341,42 +338,6 @@ class ResponseExtractor():
 
                 # 去除数字序号 (只匹配 "1.", "1.2." 等)
                 temp_line = re.sub(r'^\s*\d+\.(\d+\.)?\s*', '', line)
-
-                source_line = source_lines[i] if i < len(source_lines) else ""
-
-                # 计算源行开头的左括号数量
-                stripped_source = source_line.lstrip()
-                leading_source = 0
-                for char in stripped_source:
-                    if char in ('(', '（'):
-                        leading_source += 1
-                    else:
-                        break
-
-                # 计算源行结尾的右括号数量
-                stripped_source_end = source_line.rstrip()
-                trailing_source = 0
-                for char in reversed(stripped_source_end):
-                    if char in (')', '）'):
-                        trailing_source += 1
-                    else:
-                        break
-
-                # 处理译行开头的左括号
-                leading_match = re.match(r'^(\s*)([\(\（]*)', temp_line)
-                if leading_match:
-                    space, brackets = leading_match.groups()
-                    adjusted = brackets[:leading_source]
-                    remaining = temp_line[len(space) + len(brackets):]
-                    temp_line = f"{space}{adjusted}{remaining}"
-
-                # 处理译行结尾的右括号
-                trailing_match = re.search(r'([\)\）]*)(\s*)$', temp_line)
-                if trailing_match:
-                    brackets, space_end = trailing_match.groups()
-                    adjusted = brackets[:trailing_source]
-                    remaining = temp_line[:-len(brackets + space_end)] if (brackets + space_end) else temp_line
-                    temp_line = f"{remaining}{adjusted}{space_end}"
 
                 cleaned_lines.append(temp_line.strip())
 

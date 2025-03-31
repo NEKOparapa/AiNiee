@@ -51,7 +51,7 @@ class RenpyWriter():
                     # 保留tag生成新行
                     parts = old_line.split('"', 1)
                     if len(parts) >= 2:
-                        new_line = f'    {tag} "{new_trans}"{parts[1][len(parts[1].split("\"",1)[0]):]}' # fix for tag with space
+                        new_line = f'    {tag} "{new_trans}{parts[1][len(parts[1].split("\"",1)[0]):]}' # fix for tag with space
                         lines[line_num] = new_line
 
 
