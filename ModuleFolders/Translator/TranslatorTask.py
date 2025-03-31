@@ -744,7 +744,7 @@ class TranslatorTask(Base):
 
 
         # 模型回复日志
-        if response_think != "":
+        if response_think:
             self.extra_log.append("模型思考内容：\n" + response_think)
         if self.is_debug():
             # 将v数字.[#数字]*的[#数字]方括号前添加转义符，不然无法正常打印
@@ -890,7 +890,7 @@ class TranslatorTask(Base):
 
 
         # 模型回复日志
-        if response_think != "":
+        if response_think:
             self.extra_log.append("第一次模型思考内容：\n" + response_think)
         if self.is_debug():
             self.extra_log.append("第一次模型回复内容：\n" + response_content)
