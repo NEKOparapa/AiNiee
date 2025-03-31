@@ -200,10 +200,9 @@ class ResponseExtractor():
                             cleaned_line = line.strip() # 去除前后空白
 
                             # 检查是否是有效的被引号包裹的条目
-                            if cleaned_line.startswith('"') and (cleaned_line.endswith('"') or cleaned_line.endswith('",')):
-                                # 去除末尾可能的逗号
-                                if cleaned_line.endswith('",'):
-                                    cleaned_line = cleaned_line[:-1] # 去掉逗号
+                            if re.match(r'^[\"“”].*[\"“”][,，]?$', cleaned_line):
+                                # 去除末尾可能的逗号（包括中英文逗号）
+                                cleaned_line = re.sub(r'([\"“”])[,，]$', r'\1', cleaned_line)
 
                                 # 去除首尾的双引号
                                 # 加个长度判断防止 "" 的情况出错
@@ -316,8 +315,8 @@ class ResponseExtractor():
 
             for i, line in enumerate(translation_lines):
 
-                # 去除数字序号 (只匹配 "1.", "1.2." 等)
-                temp_line = re.sub(r'^\s*\d+\.(\d+\.)?\s*', '', line)
+                # 去除数字序号 (只匹配 "1.", "1.2..." 等)
+                temp_line = re.sub(r'^\s*\d+\.(\d+(?:\.{3}|…{1,2}))?\s*', '', line)
 
                 source_line = source_lines[i] if i < len(source_lines) else ""
 
