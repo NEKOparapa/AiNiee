@@ -11,23 +11,46 @@ class ResponseExtractor():
 
 
     #处理并正则提取翻译内容
-    def text_extraction(self, source_text_dict, html_string, target_language):
+    def text_extraction(self, source_text_dict, response_content, target_language):
 
         try:
             # 提取译文结果
-            translation_result= ResponseExtractor.extract_translation(self,source_text_dict,html_string)
+            translation_result= ResponseExtractor.extract_translation(self,source_text_dict,response_content)
 
             # 提取术语表结果
-            glossary_result= ResponseExtractor.extract_glossary(self,html_string, target_language)
+            glossary_result= ResponseExtractor.extract_glossary(self,response_content, target_language)
 
             # 提取禁翻表结果
-            NTL_result = NTL_result = ResponseExtractor.extract_ntl(self,html_string)
+            NTL_result = NTL_result = ResponseExtractor.extract_ntl(self,response_content)
 
             return translation_result, glossary_result, NTL_result
         except :
             print("\033[1;33mWarning:\033[0m 回复内容无法正常提取，请反馈\n")
             return {},{},{}
 
+    #处理并正则提取翻译内容(sakura接口专用)
+    def text_extraction_sakura(self, response_content):
+
+        try:
+            # 提取译文结果
+            textarea_contents = re.findall(r'<textarea.*?>(.*?)</textarea>', response_content, re.DOTALL)
+            if not textarea_contents:
+                return {}  # 如果没有找到 textarea 标签，返回空字典
+            last_content = textarea_contents[-1]
+
+            # 转换成字典
+            translation_result = {}
+            line_number = 0
+            lines = last_content.strip().split("\n")
+            for line in lines:
+                if line:
+                    translation_result[str(line_number)] = line
+                    line_number += 1
+
+            return translation_result,{},{}
+        except :
+            print("\033[1;33mWarning:\033[0m 回复内容无法正常提取，请反馈\n")
+            return {},{},{}
 
     # 提取翻译结果内容
     def extract_translation(self,source_text_dict,html_string):
