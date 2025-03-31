@@ -192,6 +192,8 @@ class TranslatorRequester(Base):
             else:
                 try:
                     response_think = message.reasoning_content
+                    if not response_think:
+                        response_think = ""
                 except Exception:
                     response_think = ""
                 response_content = message.content
@@ -516,6 +518,8 @@ class TranslatorRequester(Base):
             else:
                 try:
                     response_think = message.reasoning_content
+                    if not response_think:
+                        response_think = ""
                 except Exception:
                     response_think = ""
                 response_content = message.content

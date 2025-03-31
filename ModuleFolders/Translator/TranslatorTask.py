@@ -729,7 +729,10 @@ class TranslatorTask(Base):
             }
 
         # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content,self.config.target_language)
+        if  self.config.target_platform != "sakura":
+            response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content,self.config.target_language)
+        else:
+            response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction_sakura(self, response_content)
 
         # 检查回复内容
         check_result, error_content = ResponseChecker.check_response_content(
@@ -741,13 +744,19 @@ class TranslatorTask(Base):
             self.source_text_dict,
         )
 
+        # 
+        #for key, value in response_dict.items():
+        #    if isinstance(value, str) and (value.startswith('[') or value.endswith(']')):
+        #        print(f"错误：键 '{key}' 的值 '{value}' 以 '[' 开头或以 ']' 结尾。")
+
+
         # 去除回复内容的数字序号
         if  self.config.target_platform != "sakura":
             response_dict = ResponseExtractor.remove_numbered_prefix(self, self.source_text_dict, response_dict)
 
 
         # 模型回复日志
-        if response_think != "":
+        if response_think:
             self.extra_log.append("模型思考内容：\n" + response_think)
         if self.is_debug():
             self.extra_log.append("模型回复内容：\n" + response_content)
@@ -784,7 +793,6 @@ class TranslatorTask(Base):
 
             # 更新术语表与禁翻表到配置文件中
             self.config.update_glossary_ntl_config(glossary_result, NTL_result)
-
 
             # 打印任务结果
             self.print(
@@ -892,7 +900,7 @@ class TranslatorTask(Base):
 
 
         # 模型回复日志
-        if response_think != "":
+        if response_think:
             self.extra_log.append("第一次模型思考内容：\n" + response_think)
         if self.is_debug():
             self.extra_log.append("第一次模型回复内容：\n" + response_content)

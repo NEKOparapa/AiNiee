@@ -11,23 +11,46 @@ class ResponseExtractor():
 
 
     #处理并正则提取翻译内容
-    def text_extraction(self, source_text_dict, html_string, target_language):
+    def text_extraction(self, source_text_dict, response_content, target_language):
 
         try:
             # 提取译文结果
-            translation_result= ResponseExtractor.extract_translation(self,source_text_dict,html_string)
+            translation_result= ResponseExtractor.extract_translation(self,source_text_dict,response_content)
 
             # 提取术语表结果
-            glossary_result= ResponseExtractor.extract_glossary(self,html_string, target_language)
+            glossary_result= ResponseExtractor.extract_glossary(self,response_content, target_language)
 
             # 提取禁翻表结果
-            NTL_result = NTL_result = ResponseExtractor.extract_ntl(self,html_string)
+            NTL_result = NTL_result = ResponseExtractor.extract_ntl(self,response_content)
 
             return translation_result, glossary_result, NTL_result
         except :
             print("\033[1;33mWarning:\033[0m 回复内容无法正常提取，请反馈\n")
             return {},{},{}
 
+    #处理并正则提取翻译内容(sakura接口专用)
+    def text_extraction_sakura(self, response_content):
+
+        try:
+            # 提取译文结果
+            textarea_contents = re.findall(r'<textarea.*?>(.*?)</textarea>', response_content, re.DOTALL)
+            if not textarea_contents:
+                return {}  # 如果没有找到 textarea 标签，返回空字典
+            last_content = textarea_contents[-1]
+
+            # 转换成字典
+            translation_result = {}
+            line_number = 0
+            lines = last_content.strip().split("\n")
+            for line in lines:
+                if line:
+                    translation_result[str(line_number)] = line
+                    line_number += 1
+
+            return translation_result,{},{}
+        except :
+            print("\033[1;33mWarning:\033[0m 回复内容无法正常提取，请反馈\n")
+            return {},{},{}
 
     # 提取翻译结果内容
     def extract_translation(self,source_text_dict,html_string):
@@ -179,12 +202,10 @@ class ResponseExtractor():
                 continue
 
             # 3. 判断块类型
-            # 简单判断：如果包含 '[' 和 ']' 认为是列表块 (可能需要更严格的判断)
-            # 检查开头是否是 数字+[ 开头，更精确
+            # 检查块的开头是否是 数字+[ 开头，结尾是否是 ]
             is_list_block_start = re.match(r'\d+\.\s*\[', block)
             is_list_block_end = block.endswith(']')
 
-            # if '[' in block and ']' in block: # 改为更精确的判断
             if is_list_block_start and is_list_block_end:
                 # 4.1 列表块处理
                 try:
@@ -300,7 +321,7 @@ class ResponseExtractor():
         return result_dict
 
 
-    # 去除数字序号及括号（可能需要删除括号删除方法）
+    # 去除数字序号及括号
     def remove_numbered_prefix(self, source_text_dict, translation_text_dict):
         output_dict = {}
         for key, value in translation_text_dict.items():
@@ -309,7 +330,6 @@ class ResponseExtractor():
                 continue
 
             source_text = source_text_dict.get(key, "")
-            source_lines = source_text.split('\n')
             translation_lines = value.split('\n')
             cleaned_lines = []
 
@@ -317,42 +337,6 @@ class ResponseExtractor():
 
                 # 去除数字序号 (只匹配 "1.", "1.2..." 等)
                 temp_line = re.sub(r'^\s*\d+\.(\d+(?:\.{3}|…{1,2}))?\s*', '', line)
-
-                source_line = source_lines[i] if i < len(source_lines) else ""
-
-                # 计算源行开头的左括号数量
-                stripped_source = source_line.lstrip()
-                leading_source = 0
-                for char in stripped_source:
-                    if char in ('(', '（'):
-                        leading_source += 1
-                    else:
-                        break
-
-                # 计算源行结尾的右括号数量
-                stripped_source_end = source_line.rstrip()
-                trailing_source = 0
-                for char in reversed(stripped_source_end):
-                    if char in (')', '）'):
-                        trailing_source += 1
-                    else:
-                        break
-
-                # 处理译行开头的左括号
-                leading_match = re.match(r'^(\s*)([\(\（]*)', temp_line)
-                if leading_match:
-                    space, brackets = leading_match.groups()
-                    adjusted = brackets[:leading_source]
-                    remaining = temp_line[len(space) + len(brackets):]
-                    temp_line = f"{space}{adjusted}{remaining}"
-
-                # 处理译行结尾的右括号
-                trailing_match = re.search(r'([\)\）]*)(\s*)$', temp_line)
-                if trailing_match:
-                    brackets, space_end = trailing_match.groups()
-                    adjusted = brackets[:trailing_source]
-                    remaining = temp_line[:-len(brackets + space_end)] if (brackets + space_end) else temp_line
-                    temp_line = f"{remaining}{adjusted}{space_end}"
 
                 cleaned_lines.append(temp_line.strip())
 
@@ -425,11 +409,11 @@ class ResponseExtractor():
             return True
 
         # 过滤提取错行
-        if translation.strip() in ("|"):
+        if translation and "|" in translation:
             return True
 
         # 过滤提取错行
-        if (info) and (info.strip() in ("|")):
+        if info and "|" in info:
             return True
 
         # 过滤无翻译行
