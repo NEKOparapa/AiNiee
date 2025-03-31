@@ -127,7 +127,7 @@ class ResponseChecker():
 
         return True  # 所有检查都通过
 
-    # 检查数字序号是否正确
+    # 检查多行文本回复内容行数是否正确
     def check_multiline_text(self, source_text_dict, input_dict):
         """
         检查输入字典中的多行文本块是否正确翻译，包括行数和每行内容的完整性。
@@ -165,13 +165,14 @@ class ResponseChecker():
                     # 移除序号部分（如"1.2..."）
                     content_after_prefix = re.sub(r'^\s*\d+\.(\d+(?:\.{3}|…{1,2}))?\s*', '', line).strip()
 
-                    # 如果最后一行是空的，但源文本的对应行有内容，则失败
-                    if not content_after_prefix and i < len(source_lines) - 1:
-                        return False
-
-                    # 如果是最后一行，检查是否缺少了源文本中的内容
-                    if i == len(input_lines) - 1 and not content_after_prefix and source_lines[i].strip():
-                        return False
+                    # 如果回复行为空
+                    if not content_after_prefix:
+                        # 检查对应的源文本行是否也为空
+                        if not source_lines[i].strip():
+                            continue
+                        else:
+                            # 源文本有内容但翻译没有，不通过检查
+                            return False
 
         return True  # 所有检查都通过
 
