@@ -62,6 +62,15 @@ class ResponseChecker():
                 error_content = "译文文本出现错行串行"
                 return check_result,error_content
 
+        # 检查多行文本块是否回复正确行数
+        if target_platform != "sakura":
+            if ResponseChecker.check_multiline_text(self, source_text_dict, response_dict):
+                pass
+            else:
+                check_result = False
+                error_content = "译文多行文本行数不一致"
+                return check_result, error_content
+
         # 检查是否回复了原文
         if 'return_to_original_text_check' in response_check_switch and response_check_switch['return_to_original_text_check']:
             if ResponseChecker.check_dicts_equal(self,source_text_dict,response_dict):
@@ -115,6 +124,54 @@ class ResponseChecker():
             if not value.startswith(prefix):
                 return False  # 值没有以期望的序号开头
             expected_num += 1  # 序号递增
+
+        return True  # 所有检查都通过
+
+    # 检查数字序号是否正确
+    def check_multiline_text(self, source_text_dict, input_dict):
+        """
+        检查输入字典中的多行文本块是否正确翻译，包括行数和每行内容的完整性。
+
+        Args:
+            source_text_dict (dict): 源文本字典，key为字符数字，value为文本。
+            input_dict (dict): 输入的字典，key为字符数字，value为文本。
+
+        Returns:
+            bool: 所有多行文本块检查通过返回True，否则返回False。
+        """
+        # 获取排序后的key，确保按数字顺序检查
+        keys = sorted(source_text_dict.keys(), key=int)
+
+        for key in keys:
+            # 检查key是否存在于输入字典中
+            if key not in input_dict:
+                return False
+
+            source_text = source_text_dict[key]
+            input_text = input_dict[key]
+
+            # 如果源文本包含换行符，则需要检查每一行
+            if '\n' in source_text:
+                # 分割成行
+                source_lines = source_text.split('\n')
+                input_lines = input_text.split('\n')
+
+                # 检查行数是否匹配
+                if len(source_lines) != len(input_lines):
+                    return False
+
+                # 检查每一行是否都有实际内容（除了序号和格式标记外）
+                for i, line in enumerate(input_lines):
+                    # 移除序号部分（如"1.2..."）
+                    content_after_prefix = re.sub(r'^\s*\d+\.(\d+(?:\.{3}|…{1,2}))?\s*', '', line).strip()
+
+                    # 如果最后一行是空的，但源文本的对应行有内容，则失败
+                    if not content_after_prefix and i < len(source_lines) - 1:
+                        return False
+
+                    # 如果是最后一行，检查是否缺少了源文本中的内容
+                    if i == len(input_lines) - 1 and not content_after_prefix and source_lines[i].strip():
+                        return False
 
         return True  # 所有检查都通过
 

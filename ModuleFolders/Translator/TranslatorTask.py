@@ -256,10 +256,12 @@ class TranslatorTask(Base):
                 numbered_text = f"{index + 1}.[\n"
                 total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):
-                    numbered_text += f""""{index + 1}.{total_lines - sub_index}.{sub_line}",\n"""
-                numbered_text = numbered_text.rstrip('\n') 
-                numbered_text = numbered_text.rstrip(',') 
-                numbered_text += f"\n]" # 用json.dumps会影响到原文的转义字符
+                    # 如果原始行尾有空格则去掉一个，经实验也在某种？程度上能够减少合并
+                    sub_line = sub_line[:-1] if sub_line and sub_line[-1].isspace() else sub_line
+                    numbered_text += f""""{index + 1}.{total_lines - sub_index}...{sub_line}",\n"""
+                numbered_text = numbered_text.rstrip('\n')
+                numbered_text = numbered_text.rstrip(',')
+                numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
                 numbered_lines.append(numbered_text)
             else:
                 # 单行文本直接添加序号
@@ -375,10 +377,12 @@ class TranslatorTask(Base):
                 numbered_text = f"{index + 1}.[\n"
                 total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):
-                    numbered_text += f""""{index + 1}.{total_lines - sub_index}.{sub_line}",\n"""
-                numbered_text = numbered_text.rstrip('\n') 
-                numbered_text = numbered_text.rstrip(',') 
-                numbered_text += f"\n]" # 用json.dumps会影响到原文的转义字符
+                    # 如果原始行尾有空格则去掉一个，经实验也在某种？程度上能够减少合并
+                    sub_line = sub_line[:-1] if sub_line and sub_line[-1].isspace() else sub_line
+                    numbered_text += f""""{index + 1}.{total_lines - sub_index}...{sub_line}",\n"""
+                numbered_text = numbered_text.rstrip('\n')
+                numbered_text = numbered_text.rstrip(',')
+                numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
                 numbered_lines.append(numbered_text)
             else:
                 # 单行文本直接添加序号
@@ -468,10 +472,12 @@ class TranslatorTask(Base):
                 numbered_text = f"{index + 1}.[\n"
                 total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):
-                    numbered_text += f""""{index + 1}.{total_lines - sub_index}.{sub_line}",\n"""
-                numbered_text = numbered_text.rstrip('\n') 
-                numbered_text = numbered_text.rstrip(',') 
-                numbered_text += f"\n]" # 用json.dumps会影响到原文的转义字符
+                    # 如果原始行尾有空格则去掉一个，经实验也在某种？程度上能够减少合并
+                    sub_line = sub_line[:-1] if sub_line and sub_line[-1].isspace() else sub_line
+                    numbered_text += f""""{index + 1}.{total_lines - sub_index}...{sub_line}",\n"""
+                numbered_text = numbered_text.rstrip('\n')
+                numbered_text = numbered_text.rstrip(',')
+                numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
                 numbered_lines.append(numbered_text)
             else:
                 # 单行文本直接添加序号
@@ -753,8 +759,6 @@ class TranslatorTask(Base):
         if response_think:
             self.extra_log.append("模型思考内容：\n" + response_think)
         if self.is_debug():
-            # 将v数字.[#数字]*的[#数字]方括号前添加转义符，不然无法正常打印
-            response_content = re.sub(r'(v\d+\.)\[(#\d+)]\*', r'\1\\[\2]*', response_content)
             self.extra_log.append("模型回复内容：\n" + response_content)
 
         # 检查译文
