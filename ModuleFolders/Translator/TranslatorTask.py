@@ -744,11 +744,6 @@ class TranslatorTask(Base):
             self.source_text_dict,
         )
 
-        # 
-        #for key, value in response_dict.items():
-        #    if isinstance(value, str) and (value.startswith('[') or value.endswith(']')):
-        #        print(f"错误：键 '{key}' 的值 '{value}' 以 '[' 开头或以 ']' 结尾。")
-
 
         # 去除回复内容的数字序号
         if  self.config.target_platform != "sakura":

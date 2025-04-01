@@ -129,7 +129,7 @@ class ResponseChecker():
         return True  # 所有检查都通过
 
     # 检查多行文本回复内容行数是否正确
-    def check_multiline_text(self, source_text_dict, input_dict):
+    def check_multiline_text(self, source_text_dict, translated_dict):
         """
         检查输入字典中的多行文本块是否正确翻译，包括行数和每行内容的完整性。
 
@@ -140,30 +140,42 @@ class ResponseChecker():
         Returns:
             bool: 所有多行文本块检查通过返回True，否则返回False。
         """
+
+        if (len(source_text_dict) == 1) and (len(translated_dict) == 1):
+            return True  # 一行就不检查了
+
         # 获取排序后的key，确保按数字顺序检查
         keys = sorted(source_text_dict.keys(), key=int)
 
         for key in keys:
             # 检查key是否存在于输入字典中
-            if key not in input_dict:
+            if key not in translated_dict:
                 return False
 
             source_text = source_text_dict[key]
-            input_text = input_dict[key]
+            translated_text = translated_dict[key]
 
             # 如果源文本包含换行符，则需要检查每一行
             if '\n' in source_text:
                 # 分割成行
                 source_lines = source_text.split('\n')
-                input_lines = input_text.split('\n')
+                input_lines = translated_text.split('\n')
+
+                # 去除头尾的空格和换行符
+                trimmed_source_text = source_text.strip()
+                trimmed_translated_text = translated_text.strip()
+
+                # 在处理过的文本上计算文本内的换行符数量
+                source_newlines = trimmed_source_text.count('\n')
+                translated_newlines = trimmed_translated_text.count('\n')
 
                 # 检查行数是否匹配
-                if len(source_lines) != len(input_lines):
+                if source_newlines != translated_newlines:
                     return False
 
                 # 检查每一行是否都有实际内容（除了序号和格式标记外）
                 for i, line in enumerate(input_lines):
-                    # 移除序号部分（如"1.2..."）
+                    # 移除序号部分（如"1.2."）
                     content_after_prefix = re.sub(r'^\s*\d+\.(\d+\.)?\s*', '', line).strip()
 
                     # 如果回复行为空

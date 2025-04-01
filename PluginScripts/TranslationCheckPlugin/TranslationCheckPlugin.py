@@ -432,13 +432,13 @@ class TranslationCheckPlugin(PluginBase):
         _source_text = source_text if isinstance(source_text, str) else ""
         _translated_text = translated_text if isinstance(translated_text, str) else ""
 
-        # --- 去除尾部所有换行符 ---
-        _source_text = _source_text.rstrip('\n')
-        _translated_text = _translated_text.rstrip('\n')
+        # 去除头尾的空格和换行符
+        trimmed_source_text = _source_text.strip()
+        trimmed_translated_text = _translated_text.strip()
 
-        # 在处理过的文本上计算换行符数量
-        source_newlines = _source_text.count('\n')
-        translated_newlines = _translated_text.count('\n')
+        # 在处理过的文本上计算文本内的换行符数量
+        source_newlines = trimmed_source_text.count('\n')
+        translated_newlines = trimmed_translated_text.count('\n')
 
         if source_newlines != translated_newlines:
             error_msg = f"📃[换行符错误] 原文有 {source_newlines} 个换行符，译文有 {translated_newlines} 个"

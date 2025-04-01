@@ -81,30 +81,21 @@ class ResponseExtractor():
         # 提取文本存储到字典中
         output_dict = ResponseExtractor.extract_text_to_dict(self,last_content)
 
-        # 如果没有找到任何以数字序号开头的行，则直接返回原始的行号字典，不进行接下来的处理（主要是为了兼容Sakura模型接口）
-        has_numbered_prefix = False
-        for value in output_dict.values():
-            if re.match(r'^\d+\.', value):
-                has_numbered_prefix = True
-                break  # 只要找到一行符合条件就跳出循环
-
         # 从第一个以数字序号开头的行开始，保留之后的所有行(主要是有些AI会在译文内容前面加点说明)
-        if has_numbered_prefix:
-            filtered_dict = {}
-            found = False
-            # 按行号顺序遍历
-            for key in sorted(output_dict.keys(), key=lambda k: int(k)):
-                value = output_dict[key]
-                if not found:
-                    if re.match(r'^\d+\.', value):  # 匹配以数字和句点开头的行
-                        found = True
-                    else:
-                        continue
-                if found:
-                    filtered_dict[key] = value
-            return filtered_dict
-        else:
-            return output_dict  # 如果没有找到数字序号开头的行，则返回原始字典
+        filtered_dict = {}
+        found = False
+        # 按行号顺序遍历
+        for key in sorted(output_dict.keys(), key=lambda k: int(k)):
+            value = output_dict[key]
+            if not found:
+                if re.match(r'^\d+\.', value):  # 匹配以数字和句点开头的行
+                    found = True
+                else:
+                    continue
+            if found:
+                filtered_dict[key] = value
+
+        return filtered_dict
 
     # 提取文本为字典
     def extract_text_to_dict(self, input_string: str) -> Dict[str, str]:
@@ -301,11 +292,9 @@ class ResponseExtractor():
             processed_text = '\n'.join(cleaned_lines)
 
             # 移除尾部的 "/n] (及其前面的空格)
-            final_text = re.sub(r'\s*"/n\]$', '', processed_text) 
+            final_text = re.sub(r'\s*"\n\]$', '', processed_text) 
             output_dict[key] = final_text
         return output_dict
-
-
 
     # 提取回复中的术语表内容
     def extract_glossary(self, text, target_language):
@@ -488,8 +477,6 @@ class ResponseExtractor():
         if original.lower() in pronouns_and_others_to_filter:
             return True
         return False
-
-
 
     # 检查是否纯英文
     def is_pure_english_text(self,text):

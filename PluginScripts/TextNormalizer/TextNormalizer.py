@@ -114,4 +114,4 @@ class TextNormalizer(PluginBase):
         text = "".join([TextNormalizer.CUSTOM_RULE.get(char, char) for char in text])
 
         # 返回结果
-        return text.strip()
+        return text
