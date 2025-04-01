@@ -285,14 +285,14 @@ class ResponseExtractor():
             cleaned_lines = []
             for i, line in enumerate(translation_lines):
 
-                # 去除数字序号 (只匹配 "1.", "1.2." 等)
-                temp_line = re.sub(r'^\s*\d+\.(\d+\.)?\s*', '', line)
-                cleaned_lines.append(temp_line.strip())
+                # 去除数字序号 (只匹配 "1.", "1.2." 等，并保留原文中的缩进空格)
+                temp_line = re.sub(r'^\s*\d+\.(\d+\.)?', '', line)
+                cleaned_lines.append(temp_line)
 
             processed_text = '\n'.join(cleaned_lines)
 
-            # 移除尾部的 "/n] (及其前面的空格)
-            final_text = re.sub(r'\s*"\n\]$', '', processed_text) 
+            # 移除尾部的 "/n]或者/n] (及其前面的空格)
+            final_text = re.sub(r'\s*"?\n\]$', '', processed_text)
             output_dict[key] = final_text
         return output_dict
 

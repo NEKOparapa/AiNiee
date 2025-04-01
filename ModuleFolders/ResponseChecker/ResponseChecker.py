@@ -155,23 +155,24 @@ class ResponseChecker():
             source_text = source_text_dict[key]
             translated_text = translated_dict[key]
 
+
+            # 去除头尾的空格和换行符
+            trimmed_source_text = source_text.strip()
+            trimmed_translated_text = translated_text.strip()
+
+            # 在处理过的文本上计算文本内的换行符数量
+            source_newlines = trimmed_source_text.count('\n')
+            translated_newlines = trimmed_translated_text.count('\n')
+
+            # 检查行数是否匹配，要放在外面进行比较，因为source_text可能没有换行符，而译文就有
+            if source_newlines != translated_newlines:
+                return False
+
             # 如果源文本包含换行符，则需要检查每一行
-            if '\n' in source_text:
+            if '\n' in source_text: 
                 # 分割成行
                 source_lines = source_text.split('\n')
                 input_lines = translated_text.split('\n')
-
-                # 去除头尾的空格和换行符
-                trimmed_source_text = source_text.strip()
-                trimmed_translated_text = translated_text.strip()
-
-                # 在处理过的文本上计算文本内的换行符数量
-                source_newlines = trimmed_source_text.count('\n')
-                translated_newlines = trimmed_translated_text.count('\n')
-
-                # 检查行数是否匹配
-                if source_newlines != translated_newlines:
-                    return False
 
                 # 检查每一行是否都有实际内容（除了序号和格式标记外）
                 for i, line in enumerate(input_lines):
