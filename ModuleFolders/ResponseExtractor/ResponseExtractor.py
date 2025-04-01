@@ -283,26 +283,29 @@ class ResponseExtractor():
 
     # 去除数字序号及括号
     def remove_numbered_prefix(self, source_text_dict, translation_text_dict):
+
         output_dict = {}
         for key, value in translation_text_dict.items():
+
             if not isinstance(value, str):
                 output_dict[key] = value
                 continue
-
-            source_text = source_text_dict.get(key, "")
             translation_lines = value.split('\n')
             cleaned_lines = []
-
             for i, line in enumerate(translation_lines):
 
                 # 去除数字序号 (只匹配 "1.", "1.2." 等)
                 temp_line = re.sub(r'^\s*\d+\.(\d+\.)?\s*', '', line)
-
                 cleaned_lines.append(temp_line.strip())
 
-            output_dict[key] = '\n'.join(cleaned_lines)
+            processed_text = '\n'.join(cleaned_lines)
 
+            # 移除尾部的 "/n] (及其前面的空格)
+            final_text = re.sub(r'\s*"/n\]$', '', processed_text) 
+            output_dict[key] = final_text
         return output_dict
+
+
 
     # 提取回复中的术语表内容
     def extract_glossary(self, text, target_language):
