@@ -62,7 +62,7 @@ class DocxReader():
                     paragraphs = xml_soup.findAll('w:t')
 
                     # 过滤掉空的内容
-                    filtered_matches = [match.string for match in paragraphs if match.string .strip()]
+                    filtered_matches = [match.string for match in paragraphs if isinstance(match.string, str) and match.string.strip()]
 
                     # 遍历每个标签，并提取文本内容
                     for text in filtered_matches:

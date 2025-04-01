@@ -104,7 +104,7 @@ class DocxWriter():
             # 根据 w:t 标签找到原文
             paragraphs = xml_soup.findAll('w:t')
             for match in paragraphs:
-                if match.string.strip():
+                if isinstance(match.string, str) and match.string.strip():
                     # 在翻译结果中查找是否存在原文，存在则替换并右移开始下标
                     for content_index in range(start_index, len(content_list)):
                         if match.string == content_list[content_index]['source_text']:
