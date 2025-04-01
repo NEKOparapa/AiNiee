@@ -14,6 +14,10 @@ class TextProcessor(Base):
         processed_text = {k: v for k, v in text_dict.items()}
         prefix_codes, suffix_codes, placeholder_order = {}, {}, {}
 
+        # 译前替换
+        if config.pre_translation_switch:
+            processed_text = TextProcessor.replace_before_translation(self,config, processed_text) 
+
         # 自动处理代码段
         if config.auto_process_text_code_segment:
             # 处理前后缀 
@@ -25,10 +29,6 @@ class TextProcessor(Base):
                 processed_text,
                 code_pattern_list
             )
-
-        # 译前替换
-        if config.pre_translation_switch:
-            processed_text = TextProcessor.replace_before_translation(self,config, processed_text) 
 
         # 数字序号预处理
         processed_text = TextProcessor.digital_sequence_preprocessing(self,processed_text) 

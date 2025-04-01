@@ -64,11 +64,12 @@ class ResponseChecker():
 
         # 检查多行文本块是否回复正确行数
         if target_platform != "sakura":
-            if ResponseChecker.check_multiline_text(self, source_text_dict, response_dict):
-                pass
+            if 'newline_character_count_check' in response_check_switch and response_check_switch['newline_character_count_check']:
+                if  ResponseChecker.check_multiline_text(self, source_text_dict, response_dict):
+                    pass
             else:
                 check_result = False
-                error_content = "译文多行文本行数不一致"
+                error_content = "译文换行符数量不一致"
                 return check_result, error_content
 
         # 检查是否回复了原文
@@ -163,7 +164,7 @@ class ResponseChecker():
                 # 检查每一行是否都有实际内容（除了序号和格式标记外）
                 for i, line in enumerate(input_lines):
                     # 移除序号部分（如"1.2..."）
-                    content_after_prefix = re.sub(r'^\s*\d+\.(\d+(?:\.{3}|…{1,2}))?\s*', '', line).strip()
+                    content_after_prefix = re.sub(r'^\s*\d+\.(\d+\.)?\s*', '', line).strip()
 
                     # 如果回复行为空
                     if not content_after_prefix:
