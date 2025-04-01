@@ -27,6 +27,11 @@ class Event():
     NEW_PROCESS_START = 500     # 新流程开始
     NEW_PROCESS_DONE = 501      # 新流程完成
 
+    APP_UPDATE_CHECK: int = 600                             # 检查更新
+    APP_UPDATE_CHECK_DONE: int = 610                        # 检查更新完成
+    APP_UPDATE_DOWNLOAD: int = 620                          # 下载应用
+    APP_UPDATE_DOWNLOAD_UPDATE: int = 630                   # 下载应用更新
+
 class Status():
 
     IDLE = 1000                                     # 无任务

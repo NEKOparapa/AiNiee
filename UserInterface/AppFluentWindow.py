@@ -47,6 +47,8 @@ from UserInterface.Extraction_Tool.Export_Source_Text import Widget_export_sourc
 from UserInterface.Extraction_Tool.Import_Translated_Text import Widget_import_translated_text
 from UserInterface.Extraction_Tool.Export_Update_Text import Widget_update_text
 
+from ModuleFolders.VersionManager import VersionManager
+
 class AppFluentWindow(FluentWindow, Base): #主窗口
 
     APP_WIDTH = 1280
