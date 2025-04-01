@@ -33,11 +33,6 @@ class GeneralTextFilter(PluginBase):
             if storage_path:
                 source_text = entry.get('source_text')
 
-                # 检查文本是否为空
-                if source_text == None:
-                    entry['translation_status'] = 7
-                    continue
-
                 # 检查文本是否为数值变量
                 if  isinstance(source_text, (int, float)) :
                     entry['source_text'] = str(source_text)
@@ -47,6 +42,11 @@ class GeneralTextFilter(PluginBase):
                 # 检查文本是否为字符型数字
                 if (isinstance(source_text, str) and source_text.isdigit()):
                     entry['source_text'] = str(source_text)
+                    entry['translation_status'] = 7
+                    continue
+
+                # 检查文本是否为空
+                if source_text == None:
                     entry['translation_status'] = 7
                     continue
 
