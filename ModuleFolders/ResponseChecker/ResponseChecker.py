@@ -155,7 +155,6 @@ class ResponseChecker():
             source_text = source_text_dict[key]
             translated_text = translated_dict[key]
 
-
             # 去除头尾的空格和换行符
             trimmed_source_text = source_text.strip()
             trimmed_translated_text = translated_text.strip()
@@ -164,7 +163,7 @@ class ResponseChecker():
             source_newlines = trimmed_source_text.count('\n')
             translated_newlines = trimmed_translated_text.count('\n')
 
-            # 检查行数是否匹配，要放在外面进行比较，因为source_text可能没有换行符，而译文就有
+            # 检查换行符数是否匹配，要放在外面进行比较，因为source_text可能没有换行符，而译文就有
             if source_newlines != translated_newlines:
                 return False
 

@@ -85,7 +85,8 @@ class TranslationCheckPlugin(PluginBase):
             "exclusion_list_errors": 0,
             "auto_process_errors": 0,
             "newline_errors": 0,
-            "placeholder_errors": 0
+            "placeholder_errors": 0,
+            "numbered_prefix_errors": 0
         }
         
         # 初始化项目报告相关变量
@@ -195,6 +196,12 @@ class TranslationCheckPlugin(PluginBase):
                         check_summary["placeholder_errors"] += len(errors)
                         current_entry_errors.extend(errors)
 
+                # 数字序号检查
+                errors = self.check_numbered_prefix( translated_text)
+                if errors:
+                    check_summary["numbered_prefix_errors"] += len(errors)
+                    current_entry_errors.extend(errors)
+
                 # 换行符检查
                 errors = self.check_newline(source_text, translated_text)
                 if errors:
@@ -229,6 +236,8 @@ class TranslationCheckPlugin(PluginBase):
                      summary_messages.append(f"  - ⚙️ 自动处理检查: {check_summary['auto_process_errors']} 个错误 ⚠️")
                 if check_summary["placeholder_errors"] > 0:
                      summary_messages.append(f"  - 🍩 占位符残留检查: {check_summary['placeholder_errors']} 个错误 ⚠️")
+                if check_summary["numbered_prefix_errors"] > 0:
+                     summary_messages.append(f"  - 🔢 数字序号检查: {check_summary['numbered_prefix_errors']} 个错误 ⚠️")
                 if check_summary["newline_errors"] > 0:
                      summary_messages.append(f"  - 📃 换行符检查: {check_summary['newline_errors']} 个错误 ⚠️")
 
@@ -458,5 +467,20 @@ class TranslationCheckPlugin(PluginBase):
         
         if re.search(pattern, translated_text):
             error_msg = f"🍩[占位符残留] 译文中残留有类似[P数字]的占位符，未能还原成功（示例：{re.findall(pattern, translated_text)[0]}）"
+            errors.append(error_msg)
+        return errors
+
+    def check_numbered_prefix(self,  translated_text):
+        """检查数字序号残留, 返回错误信息列表"""
+        errors = []
+        
+        # 确保输入是字符串，如果不是则视为空字符串处理或保持原样以便后续处理
+        translated_text = translated_text if isinstance(translated_text, str) else ""
+        
+        # 正则表达式匹配 1.2. 格式的占位符
+        pattern = r'\d+\.\d+\.'  # 匹配示例：1.2.
+        
+        if re.search(pattern, translated_text):
+            error_msg = f"🔢[数字序号残留] 译文中残留数字子序号，未能清除成功（示例：{re.findall(pattern, translated_text)[0]}）"
             errors.append(error_msg)
         return errors
