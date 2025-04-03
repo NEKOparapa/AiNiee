@@ -70,7 +70,10 @@ class TxtWriter():
                 clean_source = content['source_text'].lstrip()
                 source_line = f"{indent}{clean_source}"
                 translated_line = f"{indent}{clean_translated}"
-                bilingual_block = f"{source_line}\n{translated_line}\n{line_break}"
+                # 判断是否在双语文本对后面加换行符，让排版不那么紧凑
+                if content['line_break'] == 0:
+                    line_break = line_break + "\n"
+                bilingual_block = f"{source_line}\n{translated_line}{line_break}"
                 bilingual_content.append(bilingual_block)
 
             # 写入译文版

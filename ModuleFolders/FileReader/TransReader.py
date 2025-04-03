@@ -29,6 +29,7 @@ class TransReader:
 
                     data_list = category_data.get("data", [])
                     tags_list = category_data.get("tags", []) # 如果缺失，默认为空列表
+                    parameters_list = category_data.get("parameters", []) # 如果缺失，默认为空列表
 
                     # 遍历每对文本 [原文，翻译]
                     for idx, text_pair in enumerate(data_list):
@@ -41,8 +42,15 @@ class TransReader:
                         if idx < len(tags_list):
                             tags = tags_list[idx] # 可能为 null 或类似 "red" 的字符串
 
-                        # 存储提取的信息
-                        cache_data.append({
+                        # 确定该特定条目的人名
+                        parameters = None
+                        rowInfoText = None
+                        if idx < len(parameters_list):
+                            parameters = parameters_list[idx]
+                            if parameters:
+                                rowInfoText = parameters[0].get("rowInfoText", "")  # 可能为 具体人名 或类似 "\\v[263]" 的字符串
+
+                        entry_data = {
                             "text_index": text_index,
                             "translation_status": 0, 
                             "source_text": source_text,
@@ -53,6 +61,19 @@ class TransReader:
                             "file_name": file, # .trans 文件的名称
                             "file_category": file_category, # 例如："data/Actors.json"
                             "data_index": idx, # 类别 "data" 列表中的索引
-                        })
+                        }
+
+                        # 根据提取信息补充人名
+                        if rowInfoText:
+                            # 直接拼接[人名]+文本，较为粗糙简单
+                            entry_data["source_text"] = TransReader.combine_srt(self,rowInfoText, source_text)
+                            entry_data["name"] = rowInfoText
+
+                        # 存储提取的信息
+                        cache_data.append(entry_data)
                         text_index += 1
         return cache_data
+
+
+    def combine_srt(self, name, text):
+        return f"[{name}]{text}"
