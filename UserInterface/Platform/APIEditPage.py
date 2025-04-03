@@ -58,6 +58,18 @@ class APIEditPage(MessageBoxBase, Base):
         if "api_key" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_key(self.vbox, config)
 
+        # 接口区域
+        if "region" in config.get("platforms").get(self.key).get("key_in_settings"):
+            self.add_widget_region(self.vbox, config)
+
+        # 接口密钥
+        if "access_key" in config.get("platforms").get(self.key).get("key_in_settings"):
+            self.add_widget_access_key(self.vbox, config)
+
+        # 接口密钥
+        if "secret_key" in config.get("platforms").get(self.key).get("key_in_settings"):
+            self.add_widget_secret_key(self.vbox, config)
+
         # 接口格式
         if "api_format" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_format(self.vbox, config)
@@ -132,6 +144,90 @@ class APIEditPage(MessageBoxBase, Base):
                 init = init,
             )
         )
+
+
+     # 接口密钥
+    def add_widget_access_key(self, parent, config):
+        
+        def text_changed(widget):
+            config = self.load_config()
+            config["platforms"][self.key]["access_key"] = widget.toPlainText().strip()
+            self.save_config(config)
+
+        def init(widget):
+            plain_text_edit = PlainTextEdit(self)
+            plain_text_edit.setPlainText(config.get("platforms").get(self.key).get("access_key"))
+            plain_text_edit.setPlaceholderText(self.tra("请输入AWS Access Key"))
+            plain_text_edit.textChanged.connect(lambda: text_changed(plain_text_edit))
+            widget.addWidget(plain_text_edit)
+
+        parent.addWidget(
+            GroupCard(
+                self.tra("AWS Access Key"),
+                self.tra("请输入AWS Access Key"),
+                init = init,
+            )
+        )
+
+     # 接口密钥
+    def add_widget_secret_key(self, parent, config):
+
+        def text_changed(widget):
+            config = self.load_config()
+            config["platforms"][self.key]["secret_key"] = widget.toPlainText().strip()
+            self.save_config(config)
+
+        def init(widget):
+            plain_text_edit = PlainTextEdit(self)
+            plain_text_edit.setPlainText(config.get("platforms").get(self.key).get("secret_key"))
+            plain_text_edit.setPlaceholderText(self.tra("请输入AWS Secret Key"))
+            plain_text_edit.textChanged.connect(lambda: text_changed(plain_text_edit))
+            widget.addWidget(plain_text_edit)
+
+        parent.addWidget(
+            GroupCard(
+                self.tra("AWS Secret Key"),
+                self.tra("请输入AWS Secret Key"),
+                init = init,
+            )
+        )
+
+    # 接口区域
+    def add_widget_region(self, parent, config):
+
+        def init(widget):
+            platforms = config.get("platforms").get(self.key)
+
+            # 如果默认区域列表中不存在该条目，则添加
+            items = platforms.get("region_datas")
+            if platforms.get("region") != "" and platforms.get("region") not in platforms.get("region_datas"):
+                items.append(platforms.get("region"))
+
+            widget.set_items(items)
+            widget.set_fixed_width(256)
+            widget.set_current_index(max(0, widget.find_text(platforms.get("region"))))
+            widget.set_placeholder_text(self.tra("请输入区域"))
+
+        def current_text_changed(widget, text: str):
+            config = self.load_config()
+            config["platforms"][self.key]["region"] = text.strip()
+            self.save_config(config)
+
+        def items_changed(widget, items: list[str]): # 处理 items_changed 信号的槽函数
+            config = self.load_config()
+            config["platforms"][self.key]["region_datas"] = items # 更新 region_datas
+            self.save_config(config) # 保存配置
+
+        card = EditableComboBoxCard(
+            self.tra("区域(可编辑)"),
+            self.tra("请选择或者输入要使用的区域"),
+            [],
+            init = init,
+            current_text_changed = current_text_changed,
+        )
+        card.items_changed.connect(lambda items: items_changed(card, items)) # 连接信号
+        parent.addWidget(card)
+
 
     # 接口格式
     def add_widget_format(self, parent, config):
