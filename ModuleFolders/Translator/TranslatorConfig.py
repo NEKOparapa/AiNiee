@@ -448,6 +448,9 @@ class TranslatorConfig(Base):
             api_key = self.get_next_apikey()
             api_format = self.platforms.get(target_platform).get("api_format")
             model_name = self.model
+            region = self.platforms.get(target_platform).get("region",'')
+            access_key = self.platforms.get(target_platform).get("access_key",'')
+            secret_key = self.platforms.get(target_platform).get("secret_key",'')
             request_timeout = self.request_timeout
             temperature = self.platforms.get(target_platform).get("temperature")
             top_p = self.platforms.get(target_platform).get("top_p")
@@ -461,6 +464,9 @@ class TranslatorConfig(Base):
             api_key = self.get_next_apikey_a()
             api_format = self.platforms.get(target_platform).get("api_format")
             model_name = self.model_a
+            region = self.platforms.get(target_platform).get("region",'')
+            access_key = self.platforms.get(target_platform).get("access_key",'')
+            secret_key = self.platforms.get(target_platform).get("secret_key",'')
             request_timeout = self.request_timeout
             temperature = self.platforms.get(target_platform).get("temperature")
             top_p = self.platforms.get(target_platform).get("top_p")
@@ -474,6 +480,9 @@ class TranslatorConfig(Base):
             api_key = self.get_next_apikey_b()
             api_format = self.platforms.get(target_platform).get("api_format")
             model_name = self.model_b
+            region = self.platforms.get(target_platform).get("region",'')
+            access_key = self.platforms.get(target_platform).get("access_key",'')
+            secret_key = self.platforms.get(target_platform).get("secret_key",'')
             request_timeout = self.request_timeout
             temperature = self.platforms.get(target_platform).get("temperature")
             top_p = self.platforms.get(target_platform).get("top_p")
@@ -488,6 +497,9 @@ class TranslatorConfig(Base):
             "api_key": api_key,
             "api_format": api_format,
             "model_name": model_name,
+            "region": region,
+            "access_key": access_key,
+            "secret_key": secret_key,
             "request_timeout": request_timeout,
             "temperature": temperature,
             "top_p": top_p,
