@@ -1,8 +1,13 @@
-<p align="center">
+<div align="center">
   <a href="https://github.com/NEKOparapa/AiNiee-chatgpt">
     <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/logo.png" width=60% height=60%>
   </a>
-<p>
+</div>
+
+<div align="center">
+  
+  **一键解决你99%的烦恼，一键享受丝滑般的翻译**
+</div>
 
 ---
 
@@ -10,10 +15,12 @@
 ## 软件介绍🧾 
 
   
-<p align="center">
-  
-  **AiNiee 是一款专注于 Ai 翻译的工具，一键自动翻译 游戏、小说、字幕、文档 等复杂的长文本内容。**
-</p>
+<div align="center">
+
+**AiNiee 是一款专注于 Ai 翻译的工具，一键自动翻译 游戏、小说、字幕、文档 等复杂的长文本内容。**
+
+
+</div>
 
 
 
