@@ -75,10 +75,13 @@ class TranslatorTask(Base):
         # 合并禁翻表数据
         exclusion_patterns = []
         for item in self.config.exclusion_list_data:
+            
+            # 读取正则表达式
             if regex := item.get("regex"):
                 exclusion_patterns.append(regex)
+
+            # 将标记符，转义为特殊字符并添加为普通匹配
             else:
-                # 转义特殊字符并添加为普通匹配
                 exclusion_patterns.append(re.escape(item["markers"]))
         patterns.extend(exclusion_patterns)
 
