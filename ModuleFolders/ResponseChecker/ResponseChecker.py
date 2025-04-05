@@ -67,10 +67,10 @@ class ResponseChecker():
             if 'newline_character_count_check' in response_check_switch and response_check_switch['newline_character_count_check']:
                 if  ResponseChecker.check_multiline_text(self, source_text_dict, response_dict):
                     pass
-            else:
-                check_result = False
-                error_content = "译文换行符数量不一致"
-                return check_result, error_content
+                else:
+                    check_result = False
+                    error_content = "译文换行符数量不一致"
+                    return check_result, error_content
 
         # 检查是否回复了原文
         if 'return_to_original_text_check' in response_check_switch and response_check_switch['return_to_original_text_check']:
