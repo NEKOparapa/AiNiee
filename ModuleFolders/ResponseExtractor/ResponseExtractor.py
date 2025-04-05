@@ -129,7 +129,7 @@ class ResponseExtractor():
             if not block:
                 continue
 
-        # 3. 尝试匹配列表块模式 (N.[ ... ])
+            # 3. 尝试匹配列表块模式 (N.[ ... ])
             # re.DOTALL 使 '.' 可以匹配换行符
             list_block_match = re.match(r'^\d+\.\s*\[(.*)\]$', block, re.DOTALL)
             if list_block_match:
@@ -137,7 +137,7 @@ class ResponseExtractor():
                 list_content = list_block_match.group(1).strip()
                 # 再次判断是否是列表块内容
                 if list_content and list_content.startswith('"'):
-                    
+
                     # 4.1 列表块处理
                     items_in_block: List[str] = []
                     current_pos = 0
@@ -150,18 +150,18 @@ class ResponseExtractor():
                             current_pos += 1
 
                         if current_pos >= len_content:
-                            break # 到达内容末尾
+                            break  # 到达内容末尾
 
                         # 列表项必须以引号开头
                         if list_content[current_pos] != '"':
-                            print(f"警告：列表块 '{block[:30]}...' 内在位置 {current_pos} 检测到非预期字符（应为 双引号），内容片段: ...{list_content[current_pos:current_pos+30]}...")
+                            print(f"警告：列表块 '{block[:30]}...' 内在位置 {current_pos} 检测到非预期字符（应为 双引号），内容片段: ...{list_content[current_pos:current_pos + 30]}...")
                             # 决定是跳到下一个可能的逗号还是终止此块的处理
                             next_comma = list_content.find(',', current_pos)
                             if next_comma != -1:
                                 current_pos = next_comma + 1
                                 continue
                             else:
-                                break # 无法恢复，结束此块
+                                break  # 无法恢复，结束此块
 
                         start_quote_pos = current_pos
 
@@ -173,9 +173,9 @@ class ResponseExtractor():
                             end_quote_pos = list_content.find('"', search_pos)
 
                             if end_quote_pos == -1:
-                                print(f"警告：列表块 '{block[:30]}...' 内检测到未闭合的引号，起始于位置 {start_quote_pos}: ...{list_content[start_quote_pos:start_quote_pos+50]}...")
-                                current_pos = len_content # 标记为处理完毕（虽然是异常结束）
-                                break # 跳出内部查找循环
+                                print(f"警告：列表块 '{block[:30]}...' 内检测到未闭合的引号，起始于位置 {start_quote_pos}: ...{list_content[start_quote_pos:start_quote_pos + 50]}...")
+                                current_pos = len_content  # 标记为处理完毕（虽然是异常结束）
+                                break  # 跳出内部查找循环
 
                             # 检查这个引号是否是真正的结束引号
                             # 真正的结束引号后面应该是逗号、或者块的结尾（允许中间有空格）
@@ -187,7 +187,7 @@ class ResponseExtractor():
                             if next_char_idx == len_content or list_content[next_char_idx] == ',':
                                 # 提取引号之间的内容，并去除首尾可能存在的空白符
                                 # 这会保留内部的 N.N. 格式
-                                item_content = list_content[start_quote_pos + 1 : end_quote_pos].strip()
+                                item_content = list_content[start_quote_pos + 1: end_quote_pos].strip()
                                 items_in_block.append(item_content)
 
                                 # 移动指针到逗号之后或内容末尾，准备找下一个项
@@ -197,7 +197,19 @@ class ResponseExtractor():
                                     current_pos += 1
 
                                 found_end_quote = True
-                                break # 找到了当前项，跳出内部查找循环
+                                break  # 找到了当前项，跳出内部查找循环
+                            # 新增：检查是否是下一个编号项的开始（以引号开头且引号后紧跟数字.数字.格式）
+                            # 目前发现ds有漏掉引号后逗号的毛病，增强一下健壮性
+                            elif (next_char_idx < len_content and list_content[next_char_idx] == '"' and
+                                  re.match(r'\"\d+\.\d+\.', list_content[next_char_idx:min(next_char_idx + 12, len_content)])):
+                                # 提取当前项内容
+                                item_content = list_content[start_quote_pos + 1: end_quote_pos].strip()
+                                items_in_block.append(item_content)
+
+                                # 移动指针到下一个引号位置，准备处理下一项
+                                current_pos = next_char_idx
+                                found_end_quote = True
+                                break  # 找到了当前项，跳出内部查找循环
                             else:
                                 # 这个引号是内容的一部分（内部引号），继续向后查找
                                 search_pos = end_quote_pos + 1
@@ -205,7 +217,7 @@ class ResponseExtractor():
 
                         # 如果内部循环是因为找不到闭合引号或其他错误而结束的
                         if not found_end_quote:
-                            break # 结束外部 while 循环对此块的处理
+                            break  # 结束外部 while 循环对此块的处理
 
                     # 将从该列表块中成功提取的所有项添加到总列表中
                     extracted_items.extend(items_in_block)
