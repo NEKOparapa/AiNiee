@@ -732,7 +732,7 @@ class TranslatorTask(Base):
         if  self.config.target_platform != "sakura":
             response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content,self.config.target_language)
         else:
-            response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction_sakura(self, response_content)
+            response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction_sakura(self, self.source_text_dict, response_content)
 
         # 检查回复内容
         check_result, error_content = ResponseChecker.check_response_content(

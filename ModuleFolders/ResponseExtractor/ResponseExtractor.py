@@ -29,7 +29,7 @@ class ResponseExtractor():
             return {},{},{}
 
     #处理并正则提取翻译内容(sakura接口专用)
-    def text_extraction_sakura(self, response_content):
+    def text_extraction_sakura(self, source_text_dict,response_content):
 
         try:
             # 提取译文结果
@@ -46,6 +46,16 @@ class ResponseExtractor():
                 if line:
                     translation_result[str(line_number)] = line
                     line_number += 1
+
+            if not translation_result:
+                return {},{},{} 
+
+            # 计算原文行数
+            newlines_in_dict = ResponseExtractor.count_newlines_in_dict_values(self,source_text_dict)
+
+            # 合并调整翻译文本
+            translation_result= ResponseExtractor.generate_text_by_newlines(self,newlines_in_dict,translation_result)
+
 
             return translation_result,{},{}
         except :

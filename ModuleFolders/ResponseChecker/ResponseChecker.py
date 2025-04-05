@@ -141,9 +141,6 @@ class ResponseChecker():
             bool: 所有多行文本块检查通过返回True，否则返回False。
         """
 
-        if (len(source_text_dict) == 1) and (len(translated_dict) == 1):
-            return True  # 一行就不检查了
-
         # 获取排序后的key，确保按数字顺序检查
         keys = sorted(source_text_dict.keys(), key=int)
 

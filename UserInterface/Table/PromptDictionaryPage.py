@@ -35,9 +35,9 @@ class PromptDictionaryPage(QFrame, Base):
             "prompt_dictionary_switch": False,
             "prompt_dictionary_data": [
                 {
-                    "src": "ダリヤ",
-                    "dst": "达莉雅",
-                    "info": "女性的名字",
+                    "src": "",
+                    "dst": "",
+                    "info": "",
                 }
             ],
         }
@@ -82,7 +82,7 @@ class PromptDictionaryPage(QFrame, Base):
             SwitchButtonCard(
                 self.tra("术语表"),
                 self.tra(
-                "通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n触发机制: 文本含有原名"
+                "通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n触发机制: 文本含有原名\n示例:  ダリヤ -> 达莉雅 (女性的名字)"
                 ),
                 init = init,
                 checked_changed = checked_changed,
