@@ -42,4 +42,4 @@ class VntReader():
         return json_data_list
 
     def combine_srt(self, name, text):
-        return f"【{name}】{text}"
+        return f"[{name}]{text}"

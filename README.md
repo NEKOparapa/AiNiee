@@ -1,8 +1,13 @@
-<p align="center">
+<div align="center">
   <a href="https://github.com/NEKOparapa/AiNiee-chatgpt">
     <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/logo.png" width=60% height=60%>
   </a>
-<p>
+</div>
+
+<div align="center">
+  
+  **一键解决你99%的烦恼，一键享受丝滑般的翻译**
+</div>
 
 ---
 
@@ -10,10 +15,12 @@
 ## 软件介绍🧾 
 
   
-<p align="center">
-  
-  **AiNiee 是一款专注于 Ai 翻译的工具，一键自动翻译 游戏、小说、字幕、文档 等复杂的长文本内容。**
-</p>
+<div align="center">
+
+**AiNiee 是一款专注于 Ai 翻译的工具，一键自动翻译 游戏、小说、字幕、文档 等复杂的长文本内容。**
+
+
+</div>
 
 
 
@@ -79,6 +86,7 @@
       |[Cohere](https://dashboard.cohere.com/)|Command系列|免费账号可白嫖，速度一般|一般|用途广泛|
       |[Anthropic](https://console.anthropic.com/dashboard)|Claude系列|免费账号绑卡可白嫖少量额度，速度缓慢|贵|用途广泛|
       |[Deepseek](https://platform.deepseek.com/usage)|Deepseek系列|注册送少量免费额度，速度极快|便宜|用途广泛|
+      |[Amazon Bedrock](https://aws.amazon.com/cn/bedrock/)|Claude或其他系列|速度极快|贵|安全限制|
       |[月之暗面](https://platform.moonshot.cn/console/info)|Moonshot系列|注册送少量免费额度|一般|用途广泛|
       |[零一万物](https://platform.lingyiwanwu.com/playground)|Yi系列|注册送少量免费额度|一般|安全限制|
       |[智谱清言](https://open.bigmodel.cn/overview)|GLM系列|注册送少量免费额度|一般|安全限制|
@@ -131,6 +139,17 @@
       |[LM Studio](https://lmstudio.ai/download) |一个本地部署大语言模型（LLM）平台，致力于简化LLM的使用和管理。|
       |[ollama](https://ollama.com/) |开源跨平台大模型工具 |
 
+
+</details>
+
+
+
+<details>
+<summary>
+  
+### 翻译教程
+</summary>
+
  * **`📺游戏翻译视频教程`**
 
       |视频链接|说明|
@@ -140,203 +159,16 @@
       |[Wolf游戏教程](https://www.bilibili.com/video/BV1SnXbYiEjQ/?share_source=copy_web&vd_source=b0eede35fc5eaa5c382509c6040d6501)|初次使用推荐观看|
 
 
-</details>
+ * **`📺游戏翻译图文教程`**
 
+      |视频链接|说明|
+      |:----:|:-----:|
+      |[Mtool教程](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Mtool) |适合新人，懒人翻译RPG,RenPY,Krkr等游戏，进行外挂式翻译|
+      |[Translator++教程（工程版）](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Translator--%EF%BC%88%E5%B7%A5%E7%A8%8B%E6%96%87%E4%BB%B6%E7%89%88%EF%BC%89)|适合翻译RPG,RenPY,Krkr等等游戏，进行内嵌式翻译|
+      |[Translator++教程（表格版）](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Translator-%EF%BC%88%E7%94%B5%E5%AD%90%E8%A1%A8%E6%A0%BC%E7%89%88%EF%BC%89)|适合翻译RPG,RenPY,Krkr等等游戏，进行内嵌式翻译（旧版教程）|
+      |[Paratranz游戏教程](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Paratranz)|适合翻译各类大型游戏的MOD|
+      |[StevExtraction工具教程](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90StevExtraction)|适合翻译RPGmakerMZ/MZ游戏|
 
-
-<details>
-<summary>
-  
-### 如果使用 MTool 进行游戏翻译
-</summary>
-
-*  1.使用Mtool打开游戏,并在翻译功能界面,选择导出游戏原文文件,会在游戏根目录生成：ManualTransFile.json<br>
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导出原文1.png" width="600" height="400"> | 
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导出原文2.png" width="600" height="400"><br>
-  
-*  2.在`翻译设置`界面的`翻译项目`选择`🔵Mtool导出文件`,并配置翻译设置<br>
-    >配置示例:<br>
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/翻译设置Mtool.png" width="600" height="400"><br>
-    
-  
-* 3.🖱️到开始翻译页面，点击**开始翻译**按钮,看控制台输出日志或者进度条。之后等待翻译进度到百分百,自动生成翻译好的文件在输出文件夹中
-    > 正在进行翻译<br>
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/UI界面正在翻译.png"  width="600" height="400">
-   
-
-    > 已经完成翻译<br>
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/UI界面翻译完成.png" width="600" height="400">
-
-
-* 4.回到`🔵Mtool`工具,依然在翻译功能界面,选择加载翻译文件,选择翻译后的文件即可
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Mtool/导入译文.png" width="600" height="400"> 
-
-</details>
-
-
-
-
-<details>
-<summary>
-  
-### 如果使用 Translator++ 进行游戏翻译（工程文件版）
-</summary>
-  
-* 1.🖱️打开`🔴Translator++`,选择“start a new project”,根据你的游戏图标来选择对应的游戏引擎<br>
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/新建工程1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/新建工程2.png" width="600" height="400"><br>
-    
-* 2.选择你的游戏文件,创建新工程,软件会自动解包和导入游戏数据<br>
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/新建工程3.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/新建工程4.png" width="600" height="400">
-    
-    > 当弹出提示框,问你：**Do you  also want to load JavaScript files**时,选择**Cancel**,加载脚本里的文本修改容易出错
-
-* 3.🖱️点"Options"按钮,选择"Preferences",选择"UI Language",选择简体中文,方便之后操作<br>
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/汉化设置1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/汉化设置2.png" width="600" height="400"><br>
-    
-* 4.点左上角的导出工程,选择导出格式为XML格式到你指定的文件夹,生成data文件夹<br>
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/导出工程1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/导出工程2.png" width="600" height="400">
-    
-    > 当弹出提示框,问如何处理标记列,就点击红色和选择**Do not process row with selected tag**,或者不设置直接导出,因为这工具暂时存在bug,无法过滤标记内容
-    
-* 5.在`翻译设置`界面的`翻译项目`选择`🔴T++导出文件`,配置翻译设置<br>
-    > 配置示例<br>
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/翻译配置Tpp.png" width="600" height="400"><br>
-    > `项目文件夹`: 选择之前`🔴Translator++`导出的项目文件夹data<br>
-    > `输出文件夹`: 选择翻译后项目文件夹的存储文件夹<br>
-
-    
-* 6.🖱️到开始翻译页面，点**开始翻译**按钮,等待翻译进度到百分百,生成翻译好的data文件夹在输出文件夹中<br>
-    > 1.回到`🔴Translator++`+,点击导入工程,选择从电子表格导入翻译,点击“Import Folder”,选择输出文件夹里的data文件夹,点击导入<br>
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/导入工程1.png" width="600" height="400"> | 
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/导入工程2.png" width="600" height="400"><br>
-
-    > 2.🖱️右键左侧区域,移到"全部选择",选择"Create Automation",选择"对每行",复制粘贴下面的代码运行<br>
-  
-* 7.对**红色标签内容进行修改**,这些内容不能翻译,以免游戏脚本出现错误。
-  ```JavaScript
-  if (this.tags) {
-    if (this.tags.includes("red")) this.cells[1]=this.cells[0];
-  }
-  ```
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/处理错误1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/处理错误2.png" width="600" height="400">
-  
-   > 3.查看左边文件有哪个没有到达百分百的,寻找到空行并自行翻译
-  
-* 8.最后选择导出工程,选择导出到文件夹,指定**你的游戏目录里的data文件夹的上一级文件夹**,原文件会被替换,请注意备份原游戏
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/修改游戏1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/修改游戏2.png" width="600" height="400">
-</details>
-
-
-
-
-<details>
-<summary>
-  
-### 如果使用 Translator++ 进行游戏翻译(电子表格版)
-</summary>
-  
-* 1.🖱️打开`🔴Translator++`,选择“start a new project”,根据你的游戏图标来选择对应的游戏引擎<br>
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/新建工程1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/新建工程2.png" width="600" height="400"><br>
-    
-* 2.选择你的游戏文件,创建新工程,软件会自动解包和导入游戏数据<br>
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/新建工程3.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/新建工程4.png" width="600" height="400">
-    
-    > 当弹出提示框,问你：**Do you  also want to load JavaScript files**时,选择**Cancel**,加载脚本里的文本修改容易出错
-
-* 3.🖱️点"Options"按钮,选择"Preferences",选择"UI Language",选择简体中文,方便之后操作<br>
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/汉化设置1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/汉化设置2.png" width="600" height="400"><br>
-    
-* 4.点左上角的导出工程,选择导出格式为XML格式到你指定的文件夹,生成data文件夹<br>
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/导出工程1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/导出工程2.png" width="600" height="400">
-    
-    > 当弹出提示框,问如何处理标记列,就点击红色和选择**Do not process row with selected tag**,或者不设置直接导出,因为这工具暂时存在bug,无法过滤标记内容
-    
-* 5.在`翻译设置`界面的`翻译项目`选择`🔴T++导出文件`,配置翻译设置<br>
-    > 配置示例<br>
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/翻译配置Tpp.png" width="600" height="400"><br>
-    > `项目文件夹`: 选择之前`🔴Translator++`导出的项目文件夹data<br>
-    > `输出文件夹`: 选择翻译后项目文件夹的存储文件夹<br>
-
-    
-* 6.🖱️到开始翻译页面，点**开始翻译**按钮,等待翻译进度到百分百,生成翻译好的data文件夹在输出文件夹中<br>
-    > 1.回到`🔴Translator++`+,点击导入工程,选择从电子表格导入翻译,点击“Import Folder”,选择输出文件夹里的data文件夹,点击导入<br>
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/导入工程1.png" width="600" height="400"> | 
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/导入工程2.png" width="600" height="400"><br>
-
-    > 2.🖱️右键左侧区域,移到"全部选择",选择"Create Automation",选择"对每行",复制粘贴下面的代码运行<br>
-  
-* 7.对**红色标签内容进行修改**,这些内容不能翻译,以免游戏脚本出现错误。
-  ```JavaScript
-  if (this.tags) {
-    if (this.tags.includes("red")) this.cells[1]=this.cells[0];
-  }
-  ```
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/处理错误1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/处理错误2.png" width="600" height="400">
-  
-   > 3.查看左边文件有哪个没有到达百分百的,寻找到空行并自行翻译
-  
-* 8.最后选择导出工程,选择导出到文件夹,指定**你的游戏目录里的data文件夹的上一级文件夹**,原文件会被替换,请注意备份原游戏
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/修改游戏1.png" width="600" height="400"> | <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Tpp/修改游戏2.png" width="600" height="400">
-</details>
-
-
-
-
-<details>
-<summary>
- 
-### 如果使用 StevExtraction 进行游戏翻译
-</summary>
-
-*  0.工具详情功能及介绍：[工具原作者页面](https://www.ai2.moe/topic/10271-%E8%87%AA%E5%88%9B%E5%B7%A5%E5%85%B7%E7%BF%BB%E8%AF%91%E5%B7%A5%E5%85%B7rpg%E7%BF%BB%E8%AF%91jt%EF%BC%8C%E7%9B%AE%E6%A0%87%E6%98%AF%E9%9B%B6%E9%97%A8%E6%A7%9B%E7%9A%84%EF%BC%8C%E5%86%85%E5%B5%8C%E4%BA%86%E5%A4%9A%E4%B8%AA%E8%84%9A%E6%9C%AC%E7%9A%84%E9%9D%92%E6%98%A5%E7%89%88t214%E5%BA%A6%E7%9B%98/) 
-
-
-*  1.在提取页面进行提取,目前只能适应于RPG Maker MVMZ游戏，能提取到游戏的原文和人物名字
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Extraction/提取原文.png" width="600" height="400"> <br>
-    >`是否日语游戏`: 根据游戏进行选择<br>
-
-    >`是否翻译note类型文本`: # 在翻译ACT游戏时，尝试关闭该选项，否则大概率无法攻击或攻击没有效果<br>
-
-    >`游戏文件夹`: 游戏根目录<br>
-
-    >`原文存储文件夹`: 提取到的游戏原文存储的地方<br>
-  
-    >`工程存储文件夹`: 关于这个游戏的工程数据存储的地方，后面注入还会用到<br>
-  
-  
-*  2.在`翻译设置`界面的`翻译项目`选择`🔵T++导出文件`,并配置翻译设置
-
-
-*  3.注入回原文
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Extraction/注入译文.png"  width="600" height="400"> <br>
-    
-    >`游戏文件夹`: 游戏根目录<br>
-
-    >`译文文件夹`: 之前经过翻译的原文文件<br>
-  
-    >`工程文件夹`: 之前这个游戏的工程数据存储的地方<br>
-
-    >`存储文件夹`: 注入译文后存储的地方<br>
-
-</details>
-
-
-
-
-<details>
-<summary>
-
-### 如果使用 Paratranz 进行游戏翻译
-</summary>
-
-*  0.工具详情：[官方网站](https://paratranz.cn/) 这是一个专用于业余翻译工作的站点，与 Ainiee 的对接主要用于预先对文本进行机翻，之后可以进行校对。
-
-*  1.在项目的 `文件管理` 界面，对需要进行翻译的原文，执行 `下载原始数据` ，将下载下来的数据复制到 `翻译设置` 中的 `输入文件夹` 目录
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Paratranz/Paratranz_export.png" width="600" height="400"> <br>
-*  2.在`翻译设置`界面的`翻译项目`选择`🔵Paratranz导出文件`,并配置翻译设置<br>
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Paratranz/project_type.png" width="600" height="400"> <br>
-*  3.🖱️到开始翻译页面，点击**开始翻译**按钮,看控制台输出日志或者进度条。之后等待翻译进度到百分百,自动生成翻译好的文件在输出文件夹中
-*  4.回到 `Paratranz`工具,依然在 `文件管理` 界面,选择 `导入译文` ,选择翻译后的 json 文件进行导入即可
 </details>
 
 

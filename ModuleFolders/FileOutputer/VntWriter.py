@@ -156,18 +156,28 @@ class VntWriter():
 
 
     def extract_strings(self, name, dialogue):
-        # 检查是否以【开头
-        if dialogue.startswith("【"):
-            name_len = len(name)
-            # 计算需要检查的字符范围（原人名长度 + 5）
-            check_range = name_len + 5
-            # 在限定范围内查找】的位置
-            end_pos = dialogue.find("】", 0, check_range)
-            
-            if end_pos != -1:
-                # 提取新人名并保留剩余文本
-                return (dialogue[1:end_pos], 
-                        dialogue[end_pos+1:].lstrip())
-                        
-        # 不满足条件时返回原参数
+        if dialogue.startswith("["):
+            # 计算原name中的"]"数量
+            count_in_name = name.count("]")
+            required_closing_brackets = count_in_name + 1  # 需要匹配的"]"总数
+            current_pos = 0
+            found_brackets = 0
+            end_pos = -1
+
+            # 查找第 (count_in_name + 1) 个"]"
+            while found_brackets < required_closing_brackets:
+                next_pos = dialogue.find("]", current_pos)
+                if next_pos == -1:  # 没有足够的"]"，直接返回原值
+                    break
+                found_brackets += 1
+                end_pos = next_pos  # 更新最后一个"]"的位置
+                current_pos = next_pos + 1  # 继续往后搜索
+
+            # 如果找到足够数量的"]"，则分割字符串
+            if found_brackets == required_closing_brackets:
+                extracted_name = dialogue[1:end_pos]
+                remaining_dialogue = dialogue[end_pos+1:].lstrip()
+                return (extracted_name, remaining_dialogue)
+        
+        # 其他情况直接返回原值
         return name, dialogue

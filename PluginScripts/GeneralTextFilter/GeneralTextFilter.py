@@ -67,7 +67,7 @@ class GeneralTextFilter(PluginBase):
 
 
                 #加个检测后缀为MP3，wav，png，这些文件名的文本，都是纯代码文本，所以忽略掉
-                if isinstance(source_text, str) and any(source_text.endswith(ext) for ext in ['.mp3', '.wav', '.png', '.jpg', '.gif', '.rar', '.zip', '.json', '.ogg', '.txt', '.mps']):
+                if isinstance(source_text, str) and any(source_text.endswith(ext) for ext in ['.mp3', '.wav', '.png', '.jpg', '.gif', '.rar', '.zip', '.json', '.ogg', '.txt', '.mps', '.woff']):
                     entry['translation_status'] = 7
                     continue
 
