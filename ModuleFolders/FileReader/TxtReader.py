@@ -21,6 +21,7 @@ class TxtReader(BaseSourceReader):
     def support_file(self):
         return "txt"
 
+    # 读取单个txt的文本及其他信息
     def read_source_file(self, file_path: Path) -> list[CacheItem]:
         items = []
         # 切行

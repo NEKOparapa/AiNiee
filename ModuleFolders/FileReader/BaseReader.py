@@ -46,7 +46,7 @@ class BaseSourceReader(ABC):
             return False
         return True
 
-
+# 存储文本对及翻译状态信息
 def text_to_cache_item(source_text, translated_text: str = None):
     item = CacheItem({})
     item.set_source_text(source_text)

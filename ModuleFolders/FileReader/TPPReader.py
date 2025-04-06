@@ -40,8 +40,8 @@ class TPPReader(BaseSourceReader):
                 else:
                     translated_text = ''
                     translation_status = CacheItem.STATUS.UNTRANSLATED
-                item = text_to_cache_item(source_text, translated_text)
-                item.set_translation_status(translation_status)
-                item.set_row_index(row)
+                item = text_to_cache_item(source_text, translated_text) # 存储文本对
+                item.set_translation_status(translation_status) # 更新翻译状态
+                item.set_row_index(row) # 存储行数信息
                 items.append(item)
         return items

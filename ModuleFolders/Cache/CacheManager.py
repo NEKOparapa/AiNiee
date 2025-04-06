@@ -83,16 +83,17 @@ class CacheManager(Base):
         self.reset()
 
         try:
-            self.project = CacheProject(data[0])
-            self.items = [CacheItem(item) for item in data[1:]]
+            self.project = CacheProject(data[0]) # 项目头信息
+            self.items = [CacheItem(item) for item in data[1:]] # 文本对信息
         except Exception as e:
             self.debug("从列表读取缓存数据失败 ...", e)
 
+    # 从元组中读取缓存数据
     def load_from_tuple(self, data: tuple[CacheProject, list[CacheItem]]):
         self.reset()
         try:
-            self.project = data[0]
-            self.items = data[1]
+            self.project = data[0] # 项目头信息
+            self.items = data[1] # 文本对信息
         except Exception as e:
             self.debug("从元组读取缓存数据失败 ...", e)
 
