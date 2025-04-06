@@ -7,6 +7,7 @@ import itertools
 import rapidjson as json
 from rich import box
 from rich.table import Table
+from rich.markup import escape
 from typing import List, Tuple
 
 from Base.Base import Base
@@ -674,7 +675,7 @@ class TranslatorTask(Base):
 
         for row in rows:
             if isinstance(row, str):
-                table.add_row(row)
+                table.add_row(escape(row, re.compile(r"(\\*)(\[(?!bright_blue\]|\/\])[a-z#/@][^[]*?)").sub))
             else:
                 table.add_row(*row)
 
