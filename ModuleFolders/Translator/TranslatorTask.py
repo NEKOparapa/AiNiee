@@ -75,10 +75,13 @@ class TranslatorTask(Base):
         # 合并禁翻表数据
         exclusion_patterns = []
         for item in self.config.exclusion_list_data:
+            
+            # 读取正则表达式
             if regex := item.get("regex"):
                 exclusion_patterns.append(regex)
+
+            # 将标记符，转义为特殊字符并添加为普通匹配
             else:
-                # 转义特殊字符并添加为普通匹配
                 exclusion_patterns.append(re.escape(item["markers"]))
         patterns.extend(exclusion_patterns)
 
@@ -732,7 +735,7 @@ class TranslatorTask(Base):
         if  self.config.target_platform != "sakura":
             response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content,self.config.target_language)
         else:
-            response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction_sakura(self, response_content)
+            response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction_sakura(self, self.source_text_dict, response_content)
 
         # 检查回复内容
         check_result, error_content = ResponseChecker.check_response_content(
