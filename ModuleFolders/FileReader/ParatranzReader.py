@@ -1,80 +1,62 @@
 import json
-import os
+from pathlib import Path
+
+from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.FileReader.BaseReader import (
+    BaseSourceReader,
+    InputConfig,
+    text_to_cache_item
+)
 
 
-class ParatranzReader():
-    def __init__(self):
-        pass
-
-
-    # 读取文件夹中树形结构Paratranz json 文件
-    def read_paratranz_files(self, folder_path):
-        # 待处理的json接口例
-        # [
-        #     {
-        #         "key": "Activate",
-        #         "original": "カードをプレイ",
-        #         "translation": "出牌",
-        #         "context": null
-        #     }
-        # ]
-        # 缓存数据结构示例
-        ex_cache_data = [
+class ParatranzReader(BaseSourceReader):
+    """读取文件夹中树形结构Paratranz json 文件
+        待处理的json接口例
+        [
+            {
+                "key": "Activate",
+                "original": "カードをプレイ",
+                "translation": "出牌",
+                "context": null
+            }
+        ]
+        缓存数据结构示例
+        [
             {'project_type': 'Paratranz'},
             {'text_index': 1, 'text_classification': 0, 'translation_status': 0, 'source_text': 'しこトラ！',
-             'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json', 'key': 'txtKey',
-             'context': ''},
+                'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json', 'key': 'txtKey',
+                'context': ''},
             {'text_index': 2, 'text_classification': 0, 'translation_status': 0, 'source_text': '室内カメラ',
-             'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json', 'key': 'txtKey',
-             'context': ''},
+                'translated_text': '无', 'storage_path': 'TrsData.json', 'file_name': 'TrsData.json', 'key': 'txtKey',
+                'context': ''},
             {'text_index': 3, 'text_classification': 0, 'translation_status': 0, 'source_text': '室内カメラ',
-             'translated_text': '无', 'storage_path': 'DEBUG Folder\\Replace the original text.json',
-             'file_name': 'Replace the original text.json', 'key': 'txtKey', 'context': ''},
+                'translated_text': '无', 'storage_path': 'DEBUG Folder\\Replace the original text.json',
+                'file_name': 'Replace the original text.json', 'key': 'txtKey', 'context': ''},
         ]
+    """
+    def __init__(self, input_config: InputConfig):
+        super().__init__(input_config)
 
-        # 创建缓存数据，并生成文件头信息
-        json_data_list = []
-        json_data_list.append({
-            "project_type": "Paratranz"
-        })
+    @classmethod
+    def get_project_type(cls):
+        return "Paratranz"
 
-        # 文本索引初始值
-        i = 1
+    @property
+    def support_file(self):
+        return "json"
 
-        # 遍历文件夹及其子文件夹
-        for root, dirs, files in os.walk(folder_path):
-            for file in files:
-                # 判断文件是否为 JSON 文件
-                if file.endswith(".json"):
-                    file_path = os.path.join(root, file)  # 构建文件路径
+    def read_source_file(self, file_path: Path) -> list[CacheItem]:
 
-                    # 读取 JSON 文件内容
-                    with open(file_path, 'r', encoding='utf-8') as json_file:
-                        json_data = json.load(json_file)
+        json_list = json.loads(file_path.read_text(encoding='utf-8'))
 
-                        # 提取键值对
-                        for item in json_data:
-                            # 根据 JSON 文件内容的数据结构，获取相应字段值
-                            source_text = item.get('original', '')  # 获取原文，如果没有则默认为空字符串
-                            translated_text = item.get('translation', '')  # 获取翻译，如果没有则默认为空字符串
-                            key = item.get('key', '')  # 获取键值，如果没有则默认为空字符串
-                            context = item.get('context', '')  # 获取上下文信息，如果没有则默认为空字符串
-                            storage_path = os.path.relpath(file_path, folder_path)
-                            file_name = file
-                            # 将数据存储在字典中
-                            json_data_list.append({
-                                "text_index": i,
-                                "translation_status": 0,
-                                "source_text": source_text,
-                                "translated_text": translated_text,
-                                "model": "none",
-                                "storage_path": storage_path,
-                                "file_name": file_name,
-                                "key": key,
-                                "context": context
-                            })
-
-                            # 增加文本索引值
-                            i = i + 1
-
-        return json_data_list
+        items = []
+        # 提取键值对
+        for json_item in json_list:
+            # 根据 JSON 文件内容的数据结构，获取相应字段值
+            source_text = json_item.get('original', '')  # 获取原文，如果没有则默认为空字符串
+            translated_text = json_item.get('translation', '')  # 获取翻译，如果没有则默认为空字符串
+            item = text_to_cache_item(source_text, translated_text)
+            item.key = json_item.get('key', '')  # 获取键值，如果没有则默认为空字符串
+            item.context = json_item.get('context', '')  # 获取上下文信息，如果没有则默认为空字符串
+            items.append(item)
+        return items

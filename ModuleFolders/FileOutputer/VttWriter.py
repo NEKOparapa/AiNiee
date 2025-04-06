@@ -1,38 +1,32 @@
-import os
+from pathlib import Path
+
+from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.FileOutputer.BaseWriter import (
+    BaseTranslatedWriter,
+    OutputConfig
+)
 
 
-class VttWriter:
-    def __init__(self):
-        pass
+class VttWriter(BaseTranslatedWriter):
+    def __init__(self, output_config: OutputConfig):
+        super().__init__(output_config)
 
-    def output_vtt_file(self, cache_data, output_path):
-        from collections import defaultdict
-        file_dict = defaultdict(list)
-
-        # 收集数据
-        for item in cache_data:
-            if 'storage_path' not in item:
-                continue
-            
-            path = os.path.join(output_path, item['storage_path'])
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            
-            # 构建完整块结构
+    def write_translated_file(
+        self, translation_file_path: Path, items: list[CacheItem],
+        source_file_path: Path = None
+    ):
+        # 头信息
+        header = f"{items[0].top_text}\n\n"
+        output_lines = []
+        for item in items:
             block = []
-            if item.get('subtitle_number'):
-                block.append(str(item['subtitle_number']))
-            block.append(item['subtitle_time'])
-            block.append(item['translated_text'])
-            
-            file_dict[path].append('\n'.join(block))
+            if getattr(item, "subtitle_number", None):
+                block.append(str(item.subtitle_number))
+            block.append(item.subtitle_time)
+            block.append(item.get_translated_text())
+            output_lines.append("\n".join(block))
+        translation_file_path.write_text(header + "\n\n\n".join(output_lines), encoding="utf-8")
 
-        # 写入文件
-        for path, blocks in file_dict.items():
-            translated_path = path.replace('.vtt', '_translated.vtt')
-            
-            with open(translated_path, 'w', encoding='utf-8') as f:
-                # 写入头信息
-                f.write(cache_data[1]['top_text'] + '\n\n')
-                
-                # 写入字幕块
-                f.write('\n\n\n'.join(blocks))
+    @classmethod
+    def get_project_type(self):
+        return "Vtt"
