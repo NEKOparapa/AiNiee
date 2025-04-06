@@ -88,6 +88,14 @@ class CacheManager(Base):
         except Exception as e:
             self.debug("从列表读取缓存数据失败 ...", e)
 
+    def load_from_tuple(self, data: tuple[CacheProject, list[CacheItem]]):
+        self.reset()
+        try:
+            self.project = data[0]
+            self.items = data[1]
+        except Exception as e:
+            self.debug("从元组读取缓存数据失败 ...", e)
+
     # 从文件读取缓存数据
     def load_from_file(self, output_path: str) -> None:
         # 重置数据
