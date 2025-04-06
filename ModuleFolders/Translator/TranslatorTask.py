@@ -56,6 +56,8 @@ class TranslatorTask(Base):
         self.suffix_codes = {}
         # 占位符顺序存储结构
         self.placeholder_order = {}
+        # 前后换行空格处理信息存储
+        self.affix_whitespace_storage = {}
 
         # 读取正则表达式
         self.code_pattern_list = self._prepare_regex_patterns()
@@ -112,7 +114,7 @@ class TranslatorTask(Base):
         self.plugin_manager.broadcast_event("normalize_text", self.config, self.source_text_dict)
 
         # 各种替换步骤，译前替换，提取首尾与占位中间代码
-        self.source_text_dict, self.prefix_codes, self.suffix_codes,self.placeholder_order = TextProcessor.replace_all(self, self.config, self.source_text_dict,self.code_pattern_list)
+        self.source_text_dict, self.prefix_codes, self.suffix_codes,self.placeholder_order,self.affix_whitespace_storage = TextProcessor.replace_all(self, self.config, self.source_text_dict,self.code_pattern_list)
 
         # 生成请求指令
         if self.config.double_request_switch_settings == True:
@@ -781,7 +783,7 @@ class TranslatorTask(Base):
             # 各种还原步骤
             # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
             restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order)
+            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage)
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
@@ -994,7 +996,7 @@ class TranslatorTask(Base):
             # 各种还原步骤
             # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
             restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order)
+            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order,self.affix_whitespace_storage)
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
