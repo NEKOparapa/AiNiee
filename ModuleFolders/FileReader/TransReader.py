@@ -47,7 +47,7 @@ class TransReader:
                         rowInfoText = None
                         if idx < len(parameters_list):
                             parameters = parameters_list[idx]
-                            if parameters:
+                            if parameters and len(parameters) > 0 and isinstance(parameters[0], dict):
                                 rowInfoText = parameters[0].get("rowInfoText", "")  # 可能为 具体人名 或类似 "\\v[263]" 的字符串
 
                         entry_data = {
