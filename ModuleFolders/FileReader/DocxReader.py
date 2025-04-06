@@ -1,90 +1,35 @@
+from pathlib import Path
 
-import os
-import shutil
-import zipfile
-
-from bs4 import BeautifulSoup #需要安装库pip install beautifulsoup4
-
-
-class DocxReader():
-    def __init__(self):
-        pass
+from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.FileAccessor.DocxAccessor import DocxAccessor
+from ModuleFolders.FileReader.BaseReader import (
+    BaseSourceReader,
+    InputConfig,
+    text_to_cache_item
+)
 
 
-    # 读取文件夹中树形结构Docx文件
-    def read_docx_files (self,folder_path):
+class DocxReader(BaseSourceReader):
+    def __init__(self, input_config: InputConfig, file_accessor: DocxAccessor):
+        super().__init__(input_config)
+        self.file_accessor = file_accessor
 
-        # 创建缓存数据，并生成文件头信息
-        json_data_list = []
-        json_data_list.append({
-            "project_type": "Docx",
-        })
+    @classmethod
+    def get_project_type(cls):
+        return 'Docx'
 
-        #文本索引初始值
-        i = 1
+    @property
+    def support_file(self):
+        return 'docx'
 
-        # 遍历文件夹及其子文件夹
-        for root, dirs, files in os.walk(folder_path):
-            for file in files:
-                # 判断文件是否为 docx 文件
-                if file.endswith(".docx"):
-
-                    # 构建文件的路径
-                    file_path = os.path.join(root, file)  
-
-                    # 构建解压文件夹路径
-                    parent_path = os.path.dirname(file_path)
-                    extract_path = os.path.join(parent_path, 'DocxCache')
-
-                    # 创建暂存文件夹
-                    if not os.path.exists(extract_path):
-                        os.makedirs(extract_path)
-
-                    # 解压docx文件到暂存文件夹中
-                    with zipfile.ZipFile(file_path, 'r') as docx_file:
-                        # 提取所有文件
-                        docx_file.extractall(extract_path)
-
-                    # 获取文件路径和文件名
-                    storage_path = os.path.relpath(file_path, folder_path)
-                    file_name = file
-
-                    # 构建存储主要文本的文件路径
-                    the_file_path = os.path.join(extract_path,'word', 'document.xml')
-
-
-                    # 打开对应xml文件
-                    with open(the_file_path, 'r', encoding='utf-8') as file:
-                        # 读取文件内容
-                        xml_soup = BeautifulSoup(file, 'xml')
-
-                    # 使用BeautifulSoup解析，找到所有 w:t 标签
-                    paragraphs = xml_soup.findAll('w:t')
-
-                    # 过滤掉空的内容
-                    filtered_matches = [match.string for match in paragraphs if isinstance(match.string, str) and match.string.strip()]
-
-                    # 遍历每个标签，并提取文本内容
-                    for text in filtered_matches:
-
-                        # 检查一下是否提取到空文本内容和其他特殊内容
-                        if text == "" or text == "\n" or text == " "or text == '\xa0':
-                            continue
-
-                        # 录入缓存
-                        json_data_list.append({
-                            "text_index": i,
-                            "translation_status": 0,
-                            "source_text": text,
-                            "translated_text": text,
-                            "model": "none",
-                            "storage_path": storage_path,
-                            "file_name": file_name,
-                        })                                    
-                        # 增加文本索引值
-                        i = i + 1
-
-            # 删除暂存文件夹
-            shutil.rmtree(extract_path)
-
-        return json_data_list
+    def read_source_file(self, file_path: Path) -> list[CacheItem]:
+        xml_soup = self.file_accessor.read_content(file_path)
+        paragraphs = xml_soup.find_all('w:t')
+        self.file_accessor.clear_temp(file_path)
+        # 过滤掉空的内容
+        filtered_matches = (match.string for match in paragraphs if isinstance(match.string, str) and match.string.strip())
+        items = [
+            text_to_cache_item(text) for text in filtered_matches
+            if not (text == "" or text == "\n" or text == " " or text == '\xa0')
+        ]
+        return items
