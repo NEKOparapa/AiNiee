@@ -49,7 +49,7 @@ class TransReader(BaseSourceReader):
                 rowInfoText = None
                 if idx < len(parameters_list):
                     parameters = parameters_list[idx]
-                    if parameters and len(parameters) > 0 and isinstance(parameters[0], dict):
+                    if parameters and len(parameters) > 0 and isinstance(parameters[0], dict): # 有些人名信息并没有以字典存储
                         rowInfoText = parameters[0].get("rowInfoText", "")  # 可能为 具体人名 或类似 "\\v[263]" 的字符串
 
                 item = text_to_cache_item(source_text, translated_text)
