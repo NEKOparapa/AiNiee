@@ -675,7 +675,7 @@ class TranslatorTask(Base):
 
         for row in rows:
             if isinstance(row, str):
-                table.add_row(escape(row, re.compile(r"(\\*)(\[(?!bright_blue\]|\/\])[a-z#/@][^[]*?)").sub))
+                table.add_row(escape(row, re.compile(r"(\\*)(\[(?!bright_blue\]|\/\])[a-z#/@][^[]*?)").sub)) # 修复rich table不显示[]内容问题
             else:
                 table.add_row(*row)
 
