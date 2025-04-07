@@ -46,7 +46,7 @@ class CacheItem():
         return {
             k:v
             for k, v in vars(self).items()
-            if isinstance(v, CacheItem.TYPE_FILTER)
+            if isinstance(v, CacheItem.TYPE_FILTER) 
         }
 
     # 获取行号

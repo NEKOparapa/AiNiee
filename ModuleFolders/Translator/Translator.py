@@ -31,6 +31,8 @@ class Translator(Base):
         self.config = TranslatorConfig()
         self.cache_manager = CacheManager()
         self.request_limiter = RequestLimiter()
+        self.file_reader = FileReader()
+        self.file_writer = FileOutputer()
 
         # 线程锁
         self.data_lock = threading.Lock()
@@ -89,8 +91,7 @@ class Translator(Base):
             self.print("")
 
         # 写入文件
-        FileOutputer.output_translated_content(
-            self,
+        self.file_writer.output_translated_content(
             cache_list,
             self.config.label_output_path,
             self.config.label_input_path,
@@ -146,9 +147,8 @@ class Translator(Base):
             if continue_status == True:
                 self.cache_manager.load_from_file(self.config.label_output_path)
             else:
-                self.cache_manager.load_from_list(
-                    FileReader.read_files(
-                        self,
+                self.cache_manager.load_from_tuple(
+                    self.file_reader.read_files(
                         self.config.translation_project,
                         self.config.label_input_path,
                     )
@@ -323,8 +323,7 @@ class Translator(Base):
             self.print("")
 
         # 写入文件
-        FileOutputer.output_translated_content(
-            self,
+        self.file_writer.output_translated_content(
             cache_list,
             self.config.label_output_path,
             self.config.label_input_path,

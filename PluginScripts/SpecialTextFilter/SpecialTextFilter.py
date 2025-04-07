@@ -39,7 +39,7 @@ class SpecialTextFilter(PluginBase):
     def filter_trans_text(self,cache_list):
         for entry in cache_list:
             tags = entry.get('tags',"")
-            if "red" in tags:
+            if tags and ("red" in tags):
                 entry['translation_status'] =  7
 
 

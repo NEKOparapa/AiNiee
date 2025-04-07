@@ -1,10 +1,16 @@
            
-import datetime
 import json
 import os
-import random
+from pathlib import Path
+from functools import partial
+from typing import Callable
 
-
+from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
+from ModuleFolders.FileAccessor.DocxAccessor import DocxAccessor
+from ModuleFolders.FileAccessor.EpubAccessor import EpubAccessor
+from ModuleFolders.FileReader.BaseReader import BaseSourceReader, InputConfig
+from ModuleFolders.FileReader.DirectoryReader import DirectoryReader
 from ModuleFolders.FileReader.MToolReader import MToolReader
 from ModuleFolders.FileReader.ParatranzReader import ParatranzReader
 from ModuleFolders.FileReader.TPPReader import TPPReader
@@ -19,57 +25,49 @@ from ModuleFolders.FileReader.MdReader import MdReader
 from ModuleFolders.FileReader.RenpyReader import RenpyReader
 from ModuleFolders.FileReader.TransReader import TransReader
 
+
 # 文件读取器
 class FileReader():
     def __init__(self):
-        pass
-    
+        self.reader_factory_dict = {}  # 工厂地图
+        self._register_system_reader()
+
+    # 初始化时，注册所有内置支持的文件/项目类型。
+    def _register_system_reader(self):
+        self.register_reader(MToolReader.get_project_type(), MToolReader)
+        self.register_reader("Tpp", TPPReader)
+        self.register_reader(VntReader.get_project_type(), VntReader)
+        self.register_reader(SrtReader.get_project_type(), SrtReader)
+        self.register_reader(VttReader.get_project_type(), VttReader)
+        self.register_reader(LrcReader.get_project_type(), LrcReader)
+        self.register_reader(TxtReader.get_project_type(), TxtReader)
+        self.register_reader(EpubReader.get_project_type(), partial(EpubReader, file_accessor=EpubAccessor())) # 预先绑定额外参数
+        self.register_reader(DocxReader.get_project_type(), partial(DocxReader, file_accessor=DocxAccessor()))
+        self.register_reader(MdReader.get_project_type(), MdReader)
+        self.register_reader(RenpyReader.get_project_type(), RenpyReader)
+        self.register_reader(TransReader.get_project_type(), TransReader)
+        self.register_reader(ParatranzReader.get_project_type(), ParatranzReader)
+
+    def register_reader(self, project_type: str, reader_factory: Callable[[InputConfig], BaseSourceReader]):
+        self.reader_factory_dict[project_type] = reader_factory
+
     # 根据文件类型读取文件
     def read_files (self,translation_project,label_input_path):
-
-        if translation_project == "Mtool":
-            cache_list = MToolReader.read_mtool_files(self,folder_path = label_input_path)
-        elif translation_project == "Tpp":
-            cache_list = TPPReader.read_tpp_files (self,folder_path = label_input_path)
-        elif translation_project == "Vnt":
-            cache_list = VntReader.read_vnt_files(self,folder_path = label_input_path)
-        elif translation_project == "Srt":
-            cache_list = SrtReader.read_srt_files(self,folder_path = label_input_path)
-        elif translation_project == "Vtt":
-            cache_list = VttReader.read_vtt_files(self,folder_path = label_input_path)
-        elif translation_project == "Lrc":
-            cache_list = LrcReader.read_lrc_files(self,folder_path = label_input_path)
-        elif translation_project == "Txt":
-            cache_list = TxtReader.read_txt_files(self,folder_path = label_input_path)
-        elif translation_project == "Epub":
-            cache_list = EpubReader.read_epub_files(self,folder_path = label_input_path)
-        elif translation_project == "Docx":
-            cache_list = DocxReader.read_docx_files(self,folder_path = label_input_path)
-        elif translation_project == "Md":
-            cache_list = MdReader.read_md_files(self,folder_path = label_input_path)
-        elif translation_project == "Renpy":
-            cache_list = RenpyReader.read_renpy_files(self,folder_path = label_input_path)
-        elif translation_project == "Trans":
-            cache_list = TransReader.read_trans_files(self,folder_path = label_input_path)
-        elif translation_project == "Paratranz":
-            cache_list = ParatranzReader.read_paratranz_files(self,folder_path = label_input_path)
+        # 检查传入的项目类型是否已经被注册。
+        if translation_project in self.reader_factory_dict:
+            # 目前都使用相同的默认配置
+            default_input_config = InputConfig(Path(label_input_path))
+            # 绑定配置，使工厂变成无参
+            reader_factory = partial(self.reader_factory_dict[translation_project], default_input_config)
+            # 创建对象，接收配置好、无参数的 reader_factory
+            reader = DirectoryReader(reader_factory) 
+            # 再次获取路径对象
+            source_directory = Path(label_input_path)
+            # 读取整个目录
+            cache_list = reader.read_source_directory(source_directory) 
         elif translation_project == "Ainiee_cache":
-            cache_list = FileReader.read_cache_files(self,folder_path = label_input_path)
+            cache_list = self.read_cache_files(folder_path=label_input_path)
         return cache_list
-
-
-    # 生成项目ID
-    def generate_project_id(self,prefix):
-        # 获取当前时间，并将其格式化为数字字符串
-        current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-
-        # 生成5位随机数
-        random_number = random.randint(10000, 99999)
-
-        # 组合生成项目ID
-        project_id = f"{current_time}{prefix}{random_number}"
-        
-        return project_id
 
 
     #读取缓存文件
@@ -90,4 +88,8 @@ class FileReader():
         # 读取 JSON 文件内容
         with open(json_file_path, 'r', encoding='utf-8') as json_file:
             data = json.load(json_file)
-            return data
+            project = CacheProject(data[0])
+            items = [CacheItem(item) for item in data[1:]]
+            return (project, items)
+
+

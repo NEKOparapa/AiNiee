@@ -56,6 +56,8 @@ class TranslatorTask(Base):
         self.suffix_codes = {}
         # 占位符顺序存储结构
         self.placeholder_order = {}
+        # 前后换行空格处理信息存储
+        self.affix_whitespace_storage = {}
 
         # 读取正则表达式
         self.code_pattern_list = self._prepare_regex_patterns()
@@ -75,10 +77,13 @@ class TranslatorTask(Base):
         # 合并禁翻表数据
         exclusion_patterns = []
         for item in self.config.exclusion_list_data:
+            
+            # 读取正则表达式
             if regex := item.get("regex"):
                 exclusion_patterns.append(regex)
+
+            # 将标记符，转义为特殊字符并添加为普通匹配
             else:
-                # 转义特殊字符并添加为普通匹配
                 exclusion_patterns.append(re.escape(item["markers"]))
         patterns.extend(exclusion_patterns)
 
@@ -109,7 +114,7 @@ class TranslatorTask(Base):
         self.plugin_manager.broadcast_event("normalize_text", self.config, self.source_text_dict)
 
         # 各种替换步骤，译前替换，提取首尾与占位中间代码
-        self.source_text_dict, self.prefix_codes, self.suffix_codes,self.placeholder_order = TextProcessor.replace_all(self, self.config, self.source_text_dict,self.code_pattern_list)
+        self.source_text_dict, self.prefix_codes, self.suffix_codes,self.placeholder_order,self.affix_whitespace_storage = TextProcessor.replace_all(self, self.config, self.source_text_dict,self.code_pattern_list)
 
         # 生成请求指令
         if self.config.double_request_switch_settings == True:
@@ -732,7 +737,7 @@ class TranslatorTask(Base):
         if  self.config.target_platform != "sakura":
             response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content,self.config.target_language)
         else:
-            response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction_sakura(self, response_content)
+            response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction_sakura(self, self.source_text_dict, response_content)
 
         # 检查回复内容
         check_result, error_content = ResponseChecker.check_response_content(
@@ -778,7 +783,7 @@ class TranslatorTask(Base):
             # 各种还原步骤
             # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
             restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order)
+            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage)
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
@@ -991,7 +996,7 @@ class TranslatorTask(Base):
             # 各种还原步骤
             # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
             restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order)
+            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order,self.affix_whitespace_storage)
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
