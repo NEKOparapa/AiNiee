@@ -37,6 +37,11 @@ class RequestTester(Base):
         proxy_enable = data.get("proxy_enable")
         extra_body = data.get("extra_body",{})
 
+        #add amazonbedrock parameters
+        region = data.get("region")
+        access_key = data.get("access_key")
+        secret_key = data.get("secret_key")
+
         # 获取接口地址并补齐，v3 结尾是火山，v4 结尾是智谱
         if tag == "sakura" and not api_url.endswith("/v1"):
             api_url = api_url + "/v1"
@@ -80,7 +85,10 @@ class RequestTester(Base):
             #尝试请求，并设置各种参数
             try:
                 # 获取回复内容
-                content = self.request_for_content(tag, api_url, api_key, api_format, model, messages, extra_body)
+                if tag == "amazonbedrock":
+                    content = self.request_for_content_amazonbedrock(tag, access_key, secret_key, region, model, messages, extra_body)
+                else:
+                    content = self.request_for_content(tag, api_url, api_key, api_format, model, messages, extra_body)
 
                 # 打印日志
                 self.info("接口测试成功 ...")
@@ -130,6 +138,14 @@ class RequestTester(Base):
                 {
                     "role": "user",
                     "content": "小可爱，你在干嘛"
+                },
+            ]
+        elif tag == "amazonbedrock":
+           
+            messages = [
+                {
+                    "role": "user",
+                    "content": [{"text":"小可爱，你在干嘛"}]
                 },
             ]
         else:
@@ -211,6 +227,7 @@ class RequestTester(Base):
             )
 
             return response.content[0].text.strip()
+        
         else:
             client = OpenAI(
                 api_key = api_key if api_key != "" else "no_key_required",
@@ -224,3 +241,22 @@ class RequestTester(Base):
             )
 
             return response.choices[0].message.content.strip()
+
+    # 请求测试 amazonbedrock
+    def request_for_content_amazonbedrock(self, tag: str, access_key: str, secret_key: str, region: str, model: str, messages: list, extra_body):
+        
+            import boto3
+            client = boto3.client("bedrock-runtime",
+                                    region_name=region,
+                                    aws_access_key_id=access_key,
+                                    aws_secret_access_key=secret_key)
+            response = client.converse(
+                    modelId=model,
+                    system=[{"text":"你不是AI助手，你是我的女朋友欣雨，接下来你必须以女朋友的方式回复我。"}],
+                    messages=messages,
+                    inferenceConfig={"maxTokens": 4096},
+                )
+                
+
+            # 提取回复的文本内容
+            return response["output"]["message"]["content"][0]["text"]
