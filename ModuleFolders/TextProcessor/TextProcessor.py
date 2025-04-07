@@ -162,8 +162,11 @@ class TextProcessor(Base):
             return [], []
         enhanced_patterns = []
         for p in code_pattern_list:
-            enhanced = fr"\s*{p}\s*"
-            enhanced_patterns.append(enhanced)
+            if p:
+                enhanced = fr"\s*{p}\s*"
+                enhanced_patterns.append(enhanced)
+            else:
+                print ("[INFO] 空输入正则")
         # 前后缀使用相同的模式列表
         return enhanced_patterns, enhanced_patterns
 
