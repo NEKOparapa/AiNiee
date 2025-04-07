@@ -262,8 +262,7 @@ class TranslatorTask(Base):
                 numbered_text = f"{index + 1}.[\n"
                 total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):
-                    # 如果原始行尾有空格则去掉一个，经实验也在某种？程度上能够减少合并
-                    sub_line = sub_line[:-1] if sub_line and sub_line[-1].isspace() else sub_line
+                    # 不去除空白内容，保留\r其他平台的换行符，虽然AI回复不一定保留...
                     numbered_text += f""""{index + 1}.{total_lines - sub_index}.{sub_line}",\n"""
                 numbered_text = numbered_text.rstrip('\n')
                 numbered_text = numbered_text.rstrip(',')
@@ -383,8 +382,6 @@ class TranslatorTask(Base):
                 numbered_text = f"{index + 1}.[\n"
                 total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):
-                    # 如果原始行尾有空格则去掉一个，经实验也在某种？程度上能够减少合并
-                    sub_line = sub_line[:-1] if sub_line and sub_line[-1].isspace() else sub_line
                     numbered_text += f""""{index + 1}.{total_lines - sub_index}.{sub_line}",\n"""
                 numbered_text = numbered_text.rstrip('\n')
                 numbered_text = numbered_text.rstrip(',')
@@ -478,8 +475,6 @@ class TranslatorTask(Base):
                 numbered_text = f"{index + 1}.[\n"
                 total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):
-                    # 如果原始行尾有空格则去掉一个，经实验也在某种？程度上能够减少合并
-                    sub_line = sub_line[:-1] if sub_line and sub_line[-1].isspace() else sub_line
                     numbered_text += f""""{index + 1}.{total_lines - sub_index}.{sub_line}",\n"""
                 numbered_text = numbered_text.rstrip('\n')
                 numbered_text = numbered_text.rstrip(',')
