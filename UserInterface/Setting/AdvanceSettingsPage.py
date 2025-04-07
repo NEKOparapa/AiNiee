@@ -22,13 +22,14 @@ class AdvanceSettingsPage(QFrame, Base):
         self.default = {
             "auto_glossary_toggle": False,
             "auto_exclusion_list_toggle": False,
-            "auto_process_text_code_segment": True,
+            "auto_process_text_code_segment": False,
             "response_conversion_toggle": False,
             "opencc_preset": "s2t",
             "response_check_switch": {
                 "model_degradation_check": True,
                 "return_to_original_text_check": True,
                 "residual_original_text_check": True,
+                "newline_character_count_check": True,
             },
         }
 
@@ -101,7 +102,7 @@ class AdvanceSettingsPage(QFrame, Base):
 
 
 
-    # 保留首尾代码段
+    # 自动处理代码文本
     def add_auto_process_text_code_segment(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def widget_init(widget) -> None:
             widget.set_checked(config.get("auto_process_text_code_segment"))
@@ -188,11 +189,13 @@ class AdvanceSettingsPage(QFrame, Base):
             info_cont1 = self.tra("模型退化检查")
             info_cont2 = self.tra("原文返回检查")
             info_cont3 = self.tra("翻译残留检查")
+            info_cont4 = self.tra("换行符数检查")
 
             pairs = [
                 (info_cont1, "model_degradation_check"),
                 (info_cont2, "return_to_original_text_check"),
                 (info_cont3, "residual_original_text_check"),
+                (info_cont4, "newline_character_count_check"),
             ]
 
             for v in pairs:

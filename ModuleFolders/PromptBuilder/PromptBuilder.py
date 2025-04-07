@@ -159,15 +159,17 @@ class PromptBuilder(Base):
                 # 检查是否为多行文本
                 if "\n" in line:
                     lines = line.split("\n")
-                    numbered_text = f""
+                    numbered_text = f"{index + 1}.[\n"
+                    total_lines = len(lines)
                     for sub_index, sub_line in enumerate(lines):
-                        numbered_text += f"""{index + 1}.{sub_index}.({sub_line})\n"""
+                        numbered_text += f""""{index + 1}.{total_lines - sub_index}.{sub_line}",\n"""
                     numbered_text = numbered_text.rstrip('\n')
+                    numbered_text = numbered_text.rstrip(',')
+                    numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
                     numbered_lines.append(numbered_text)
                 else:
                     # 单行文本直接添加序号
                     numbered_lines.append(f"{index + 1}.{line}")
-
 
             source_str = "\n".join(numbered_lines)
 
@@ -178,10 +180,13 @@ class PromptBuilder(Base):
                 # 检查是否为多行文本
                 if "\n" in line:
                     lines = line.split("\n")
-                    numbered_text = f""
+                    numbered_text = f"{index + 1}.[\n"
+                    total_lines = len(lines)
                     for sub_index, sub_line in enumerate(lines):
-                        numbered_text += f"""{index + 1}.{sub_index}.({sub_line})\n"""
+                        numbered_text += f""""{index + 1}.{total_lines - sub_index}.{sub_line}",\n"""
                     numbered_text = numbered_text.rstrip('\n')
+                    numbered_text = numbered_text.rstrip(',')
+                    numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
                     target_numbered_lines.append(numbered_text)
                 else:
                     # 单行文本直接添加序号
@@ -515,29 +520,29 @@ class PromptBuilder(Base):
         # 处理正则匹配
         for element in exclusion_list_data:
             regex = element.get("regex", "").strip()
+            marker = element.get("markers", "").strip()
             info = element.get("info", "")
             
+            # 检查是否写正则，如果写了，只处理正则
             if regex:
+                # 避免错误正则，导致崩溃
                 try:
+                    # 编译正则表达式字符串为模式对象
                     pattern = re.compile(regex)
+                    # 寻找文本中所有符合正则的文本内容
                     for text in texts:
                         for match in pattern.finditer(text):
                             markers = match.group(0)
-                            if markers not in exclusion_dict:
+                            # 避免重复添加
+                            if markers not in exclusion_dict: 
                                 exclusion_dict[markers] = info
                 except re.error:
                     pass
-        
-        # 处理示例检查
-        for element in exclusion_list_data:
-            markers = element.get("markers", "").strip()
-            info = element.get("info", "")
-            
-            if markers:
-                # 检查示例是否存在于任意文本中
-                found = any(markers in text for text in texts)
-                if found and markers not in exclusion_dict:
-                    exclusion_dict[markers] = info
+            # 没写正则，只处理标记符        
+            else:
+                found = any(marker in text for text in texts)
+                if found and marker not in exclusion_dict:  # 避免重复添加
+                    exclusion_dict[marker] = info
         
         # 检查内容是否为空
         if not exclusion_dict :

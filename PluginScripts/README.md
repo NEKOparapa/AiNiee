@@ -290,10 +290,9 @@ class ExamplePlugin(PluginBase):
 
     | 参数名 | 类型 | 描述 |
     | ------ | ---- | ---- |
-    | event_name | string | complete_text_process |
+    | event_name | string | translation_completed |
     | config | TranslatorConfig | 全局类，包含了在整个应用范围内共享的的配置信息 |
-    | event_data | None | None |
-
+    | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
 
 ## 贡献指南
 1. Fork本项目

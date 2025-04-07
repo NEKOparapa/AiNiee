@@ -123,7 +123,7 @@ class LanguageFilter(PluginBase):
         if has_any is not None:
             target = [
                 v for v in items
-                if not isinstance(v.get("source_text", ""), str) or not has_any(v["source_text"])
+                if not isinstance(v.get("source_text", ""), str) or not has_any(v.get("source_text", ""))
             ]
             for item in tqdm(target):
                 item["translation_status"] = CacheItem.STATUS.EXCLUED

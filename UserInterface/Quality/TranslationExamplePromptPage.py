@@ -34,8 +34,8 @@ class TranslationExamplePromptPage(QFrame, Base):
             "translation_example_switch": False,
             "translation_example_data" : [
                 {
-                    "src": "結婚前日、目の前の婚約者はそう言った。",
-                    "dst": "婚前一日，其婚約者前，如是云。",
+                    "src": "",
+                    "dst": "",
                 }
             ],
         }

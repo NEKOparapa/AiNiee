@@ -14,6 +14,13 @@ class TextProcessor(Base):
         processed_text = {k: v for k, v in text_dict.items()}
         prefix_codes, suffix_codes, placeholder_order = {}, {}, {}
 
+        # 预处理文本前后的空格与换行
+        processed_text, affix_whitespace_storage = TextProcessor.strip_and_record_affix_whitespace(self,processed_text) 
+
+        # 译前替换
+        if config.pre_translation_switch:
+            processed_text = TextProcessor.replace_before_translation(self,config, processed_text) 
+
         # 自动处理代码段
         if config.auto_process_text_code_segment:
             # 处理前后缀 
@@ -26,17 +33,13 @@ class TextProcessor(Base):
                 code_pattern_list
             )
 
-        # 译前替换
-        if config.pre_translation_switch:
-            processed_text = TextProcessor.replace_before_translation(self,config, processed_text) 
-
         # 数字序号预处理
         processed_text = TextProcessor.digital_sequence_preprocessing(self,processed_text) 
 
-        return processed_text, prefix_codes, suffix_codes, placeholder_order
+        return processed_text, prefix_codes, suffix_codes, placeholder_order, affix_whitespace_storage
 
     # 译后文本处理
-    def restore_all(self, config, text_dict: Dict[str, str], prefix_codes: Dict, suffix_codes: Dict, placeholder_order: Dict) -> Dict[str, str]:
+    def restore_all(self, config, text_dict: Dict[str, str], prefix_codes: Dict, suffix_codes: Dict, placeholder_order: Dict, affix_whitespace_storage: Dict) -> Dict[str, str]:
         """执行全部还原操作"""
         restored = text_dict.copy()
 
@@ -53,6 +56,9 @@ class TextProcessor(Base):
 
         # 数字序号恢复
         restored = TextProcessor.digital_sequence_recovery(self,restored) 
+
+        # 前后缀的换行空格恢复
+        restored = TextProcessor.restore_affix_whitespace(self, affix_whitespace_storage, restored) 
 
         return restored
 
@@ -92,7 +98,7 @@ class TextProcessor(Base):
                 if target_platform == "sakura":
                     placeholder = "↓" * sakura_match_count
                 else:
-                    placeholder = f"{{P{global_match_count}}}" # 使用全局计数
+                    placeholder = f"[P{global_match_count}]" # 使用全局计数
 
                 # 暂存替换信息
                 replacement_info_holder.append({
@@ -413,6 +419,84 @@ class TextProcessor(Base):
 
         return text_dict
 
+    # 预提取前后缀的空格与换行
+    def strip_and_record_affix_whitespace(self, text_dict):
+        r"""
+        预处理字典中的文本值，移除前后缀的空白字符（空格、换行等），
+        并将移除的信息存储在另一个字典中。
+
+        Args:
+            text_dict (dict): 输入的字典，键为标识符，值为包含潜在前后缀空白的字符串。
+                            例如：{'0': '\n  text  \n'}
+
+        Returns:
+            tuple: 包含两个字典的元组：
+            - processed_text_dict (dict): 处理后的字典，值的文本变得“干净”。
+                                            例如：{'0': 'text'}
+            - processing_info (dict): 存储了每个键对应的前后缀信息的字典。
+                                        例如：{'0': {'prefix': '\n  ', 'suffix': '  \n'}}
+        """
+        processed_text_dict = {}
+        processing_info = {}
+        # 正则表达式：匹配开头的空白字符(^(\s*))，中间的任意字符(.*?)，结尾的空白字符((\s*)$)
+        # re.DOTALL 让 '.' 可以匹配换行符
+        pattern = re.compile(r'^(\s*)(.*?)(\s*)$', re.DOTALL)
+
+        for key, original_text in text_dict.items():
+            if not isinstance(original_text, str):
+                # 如果值不是字符串，可以选择跳过、报错或原样保留
+                # 这里选择原样保留，并且不记录处理信息
+                processed_text_dict[key] = original_text
+                continue
+
+            match = pattern.match(original_text)
+            if match:
+                prefix = match.group(1)  # 捕获的前缀空白
+                core_text = match.group(2) # 捕获的中间“干净”文本
+                suffix = match.group(3)  # 捕获的后缀空白
+
+                processed_text_dict[key] = core_text
+                processing_info[key] = {
+                    'prefix': prefix, 
+                    'suffix': suffix
+                }
+            else:
+                # 理论上，上面的正则应该能匹配所有字符串，包括空字符串
+                # 但为了健壮性，可以加个处理（虽然在这个模式下不太可能进入）
+                processed_text_dict[key] = original_text # 原样保留
+                processing_info[key] = {'prefix': '', 'suffix': ''} # 记录为空白
+
+        return processed_text_dict, processing_info
+
+    # 还原前后缀的空格与换行
+    def restore_affix_whitespace(self, processing_info, processed_dict):
+        r"""
+        根据预处理时存储的信息，将前后缀空白还原到处理后的（可能已翻译的）文本字典中。
+
+        Args:
+            processed_dict (dict): 经过预处理（且可能已翻译）的字典。
+                                例如：{'0': 'translated text'}
+            processing_info (dict): 包含原始前后缀信息的字典。
+                                    例如：{'0': {'prefix': '\n  ', 'suffix': '  \n'}}
+
+        Returns:
+            dict: 还原了前后缀空白的最终字典。
+                例如：{'0': '\n  translated text  \n'}
+        """
+        restored_text_dict = {}
+
+        for key, core_text in processed_dict.items():
+            if key in processing_info:
+                info = processing_info[key]
+                prefix = info.get('prefix', '') # 安全获取，如果键不存在则返回空字符串
+                suffix = info.get('suffix', '') # 安全获取
+                restored_text_dict[key] = prefix + core_text + suffix
+            else:
+                # 如果某个键在处理信息中不存在（可能在翻译过程中新增或删除了条目）
+                # 则直接保留处理后的文本，不添加前后缀
+                restored_text_dict[key] = core_text
+
+        return restored_text_dict
 
 
 

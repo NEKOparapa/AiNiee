@@ -1,16 +1,16 @@
 import json
-import os
+from pathlib import Path
+
+from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.FileOutputer.BaseWriter import (
+    BaseTranslatedWriter,
+    OutputConfig
+)
 
 
-class VntWriter():
-    def __init__(self):
-        pass
-
-    # 输出vnt文件
-    def output_vnt_file(self,cache_data, output_path):
-
-        # 输出文件格式示例
-        ex_output =  [
+class VntWriter(BaseTranslatedWriter):
+    """输出文件格式示例
+        [
             {
                 "name": "玲",
                 "message": "「……おはよう」"
@@ -18,156 +18,60 @@ class VntWriter():
             {
                 "message": "　心の内では、ムシャクシャした気持ちは未だに鎮まっていなかった。"
             }
-            ]
+        }
+    """
+    def __init__(self, output_config: OutputConfig):
+        super().__init__(output_config)
 
-        # 创建中间存储字典，这个存储已经翻译的内容
-        path_dict = {}
+    def write_translated_file(
+        self, translation_file_path: Path, items: list[CacheItem],
+        source_file_path: Path = None
+    ):
+        output_list = []
+        # 转换中间字典的格式为最终输出格式
+        for item in items:
+            # 如果这个本已经翻译了，存放对应的文件中
+            if getattr(item, "name", None):
 
-        # 遍历缓存数据
-        for item in cache_data:
-            # 忽略不包含 'storage_path' 的项
-            if 'storage_path' not in item:
-                continue
+                # 分割人名与文本
+                name, translated_text = self.extract_strings(item.name, item.get_translated_text())
 
-            # 获取相对文件路径
-            storage_path = item['storage_path']
-            # 获取文件名
-            file_name = item['file_name']
-
-            if file_name != storage_path :
-                # 构建文件输出路径
-                file_path = f'{output_path}/{storage_path}'
-                # 获取输出路径的上一级路径，使用os.path.dirname
-                folder_path = os.path.dirname(file_path)
-                # 如果路径不存在，则创建
-                os.makedirs(folder_path, exist_ok=True)
+                # 构建字段
+                text = {"name": name, "message": translated_text}
             else:
-                # 构建文件输出路径
-                file_path = f'{output_path}/{storage_path}'
-
-
-
-            # 如果文件路径已经在 path_dict 中，添加到对应的列表中
-            if file_path in path_dict:
-                if'name' in item:
-                    text = {'translation_status': item['translation_status'],
-                            'source_text': item['source_text'],
-                            'translated_text': item['translated_text'],
-                            'name': item['name']}
-
-                else:
-                    text = {'translation_status': item['translation_status'],
-                            'source_text': item['source_text'],
-                            'translated_text': item['translated_text']}
-
-                path_dict[file_path].append(text)
-
-            # 否则，创建一个新的列表
-            else:
-                if'name' in item:
-                    text = {'translation_status': item['translation_status'],
-                            'source_text': item['source_text'],
-                            'translated_text': item['translated_text'],
-                            'name': item['name']}
-
-                else:
-                    text = {'translation_status': item['translation_status'],
-                            'source_text': item['source_text'],
-                            'translated_text': item['translated_text']}
-
-                path_dict[file_path] = [text]
-
-        # 遍历 path_dict，并将内容写入文件
-        for file_path, content_list in path_dict.items():
-
-            # 提取文件路径的文件夹路径和文件名
-            folder_path, old_filename = os.path.split(file_path)
-
-
-            # 创建已翻译文本的新文件路径
-            if old_filename.endswith(".json"):
-                file_name_translated = old_filename.replace(".json", "") + "_translated.json"
-            else:
-                file_name_translated = old_filename + "_translated.json"
-            file_path_translated = os.path.join(folder_path, file_name_translated)
-
-
-            # 创建未翻译文本的新文件路径
-            if old_filename.endswith(".json"):
-                file_name_untranslated = old_filename.replace(".json", "") + "_untranslated.json"
-            else:
-                file_name_untranslated = old_filename + "_untranslated.json"
-            file_path_untranslated = os.path.join(folder_path, file_name_untranslated)
-
-            # 存储已经翻译的文本
-            output_file = []
-
-            #存储未翻译的文本
-            output_file2 = []
-
-            # 转换中间字典的格式为最终输出格式
-            for content in content_list:
-                # 如果这个本已经翻译了，存放对应的文件中
-                if'name' in content:
-
-                    # 提取原来人名与文本
-                    name =  content['name']
-                    translated_text = content['translated_text']
-                    
-                    # 分割人名与文本
-                    name,translated_text = VntWriter.extract_strings(self, name, translated_text)
-
-                    # 构建字段
-                    text = {'name': name,
-                            'message': translated_text}
-                else:
-                    text = {'message': content['translated_text']}
-
-                output_file.append(text)
-
-                # 如果这个文本没有翻译或者正在翻译
-                if content['translation_status'] == 0 or content['translation_status'] == 2:
-                    if'name' in content:
-
-                        # 提取原来人名与文本
-                        name =  content['name']
-                        translated_text = content['translated_text']
-                        
-                        # 分割人名与文本
-                        name,translated_text = VntWriter.extract_strings(self, name, translated_text)
-
-                        # 构建字段
-                        text = {'name': name,
-                                'message': translated_text}
-                    else:
-                        text = {'message': content['translated_text']}
-
-                    output_file2.append(text)
-
-
-            # 输出已经翻译的文件
-            with open(file_path_translated, 'w', encoding='utf-8') as file:
-                json.dump(output_file, file, ensure_ascii=False, indent=4)
-
-            # 输出未翻译的内容
-            if output_file2:
-                with open(file_path_untranslated, 'w', encoding='utf-8') as file:
-                    json.dump(output_file2, file, ensure_ascii=False, indent=4)
-
+                text = {"message": item.get_translated_text()}
+            output_list.append(text)
+        json_content = json.dumps(output_list, ensure_ascii=False, indent=4)
+        translation_file_path.write_text(json_content, encoding="utf-8")
+        # 未保留未翻译输出
 
     def extract_strings(self, name, dialogue):
-        # 检查是否以【开头
-        if dialogue.startswith("【"):
-            name_len = len(name)
-            # 计算需要检查的字符范围（原人名长度 + 5）
-            check_range = name_len + 5
-            # 在限定范围内查找】的位置
-            end_pos = dialogue.find("】", 0, check_range)
-            
-            if end_pos != -1:
-                # 提取新人名并保留剩余文本
-                return (dialogue[1:end_pos], 
-                        dialogue[end_pos+1:].lstrip())
-                        
-        # 不满足条件时返回原参数
+        if dialogue.startswith("["):
+            # 计算原name中的"]"数量
+            count_in_name = name.count("]")
+            required_closing_brackets = count_in_name + 1  # 需要匹配的"]"总数
+            current_pos = 0
+            found_brackets = 0
+            end_pos = -1
+
+            # 查找第 (count_in_name + 1) 个"]"
+            while found_brackets < required_closing_brackets:
+                next_pos = dialogue.find("]", current_pos)
+                if next_pos == -1:  # 没有足够的"]"，直接返回原值
+                    break
+                found_brackets += 1
+                end_pos = next_pos  # 更新最后一个"]"的位置
+                current_pos = next_pos + 1  # 继续往后搜索
+
+            # 如果找到足够数量的"]"，则分割字符串
+            if found_brackets == required_closing_brackets:
+                extracted_name = dialogue[1:end_pos]
+                remaining_dialogue = dialogue[end_pos + 1:].lstrip()
+                return (extracted_name, remaining_dialogue)
+
+        # 其他情况直接返回原值
         return name, dialogue
+
+    @classmethod
+    def get_project_type(self):
+        return "Vnt"

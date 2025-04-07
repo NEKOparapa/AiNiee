@@ -1,79 +1,67 @@
-import os
+from pathlib import Path
 
-class SrtReader:
-    def __init__(self):
-        pass
+from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.FileReader.BaseReader import (
+    BaseSourceReader,
+    InputConfig,
+    text_to_cache_item
+)
 
-    def read_srt_files(self, folder_path):
-        json_data_list = [{"project_type": "Srt"}]
-        text_index = 1  # 全局文本索引
 
-        for root, _, files in os.walk(folder_path):
-            for file in files:
-                if not file.endswith(".srt"):
-                    continue
+class SrtReader(BaseSourceReader):
+    def __init__(self, input_config: InputConfig):
+        super().__init__(input_config)
 
-                file_path = os.path.join(root, file)
-                with open(file_path, "r", encoding="utf-8") as f:
-                    lines = [line.rstrip("\n").lstrip("\ufeff") for line in f]
+    @classmethod
+    def get_project_type(cls):
+        return "Srt"
 
+    @property
+    def support_file(self):
+        return "srt"
+
+    def read_source_file(self, file_path: Path) -> list[CacheItem]:
+        lines = [line.lstrip("\ufeff").strip() for line in file_path.read_text(encoding="utf-8").splitlines()]
+
+        current_block = None
+        items = []
+        for line in lines:
+
+            # 新字幕块开始
+            if current_block is None:
+                if line.isdigit():
+                    current_block = {
+                        "number": line,
+                        "time": None,
+                        "text": []
+                    }
+                continue
+
+            # 处理时间轴
+            if current_block["time"] is None:
+                if "-->" in line:
+                    current_block["time"] = line
+                else:
+                    # 时间轴格式错误，丢弃当前块
+                    current_block = None
+                continue
+
+            # 处理文本内容
+            if not line:
+                # 遇到空行，保存当前块
+                items.append(self._block_to_item(current_block))
                 current_block = None
-                storage_path = os.path.relpath(file_path, folder_path)
+            else:
+                current_block["text"].append(line)
 
-                for line in lines:
-                    line = line.strip()
+        # 处理文件末尾未以空行结束的情况
+        if current_block is not None:
+            items.append(self._block_to_item(current_block))
+        return items
 
-                    # 新字幕块开始
-                    if current_block is None:
-                        if line.isdigit():
-                            current_block = {
-                                "number": line,
-                                "time": None,
-                                "text": []
-                            }
-                        continue
-
-                    # 处理时间轴
-                    if current_block["time"] is None:
-                        if "-->" in line:
-                            current_block["time"] = line
-                        else:
-                            # 时间轴格式错误，丢弃当前块
-                            current_block = None
-                        continue
-
-                    # 处理文本内容
-                    if not line:
-                        # 遇到空行，保存当前块
-                        json_data_list.append({
-                            "text_index": text_index,
-                            "translation_status": 0,
-                            "source_text": "\n".join(current_block["text"]),
-                            "translated_text": "\n".join(current_block["text"]),
-                            "model": "none",
-                            "subtitle_number": current_block["number"],
-                            "subtitle_time": current_block["time"],
-                            "storage_path": storage_path,
-                            "file_name": file,
-                        })
-                        text_index += 1
-                        current_block = None
-                    else:
-                        current_block["text"].append(line)
-
-                # 处理文件末尾未以空行结束的情况
-                if current_block is not None:
-                    json_data_list.append({
-                        "text_index": text_index,
-                        "translation_status": 0,
-                        "source_text": "\n".join(current_block["text"]),
-                        "translated_text": "\n".join(current_block["text"]),
-                        "model": "none",
-                        "subtitle_number": current_block["number"],
-                        "subtitle_time": current_block["time"],
-                        "storage_path": storage_path,
-                        "file_name": file,
-                    })
-                    text_index += 1
-
-        return json_data_list
+    def _block_to_item(self, block):
+        source_text = "\n".join(block["text"])
+        item = text_to_cache_item(source_text)
+        item.subtitle_number = block["number"]
+        item.subtitle_time = block["time"]
+        return item

@@ -56,6 +56,8 @@ class TranslatorTask(Base):
         self.suffix_codes = {}
         # 占位符顺序存储结构
         self.placeholder_order = {}
+        # 前后换行空格处理信息存储
+        self.affix_whitespace_storage = {}
 
         # 读取正则表达式
         self.code_pattern_list = self._prepare_regex_patterns()
@@ -75,10 +77,13 @@ class TranslatorTask(Base):
         # 合并禁翻表数据
         exclusion_patterns = []
         for item in self.config.exclusion_list_data:
+            
+            # 读取正则表达式
             if regex := item.get("regex"):
                 exclusion_patterns.append(regex)
+
+            # 将标记符，转义为特殊字符并添加为普通匹配
             else:
-                # 转义特殊字符并添加为普通匹配
                 exclusion_patterns.append(re.escape(item["markers"]))
         patterns.extend(exclusion_patterns)
 
@@ -109,7 +114,7 @@ class TranslatorTask(Base):
         self.plugin_manager.broadcast_event("normalize_text", self.config, self.source_text_dict)
 
         # 各种替换步骤，译前替换，提取首尾与占位中间代码
-        self.source_text_dict, self.prefix_codes, self.suffix_codes,self.placeholder_order = TextProcessor.replace_all(self, self.config, self.source_text_dict,self.code_pattern_list)
+        self.source_text_dict, self.prefix_codes, self.suffix_codes,self.placeholder_order,self.affix_whitespace_storage = TextProcessor.replace_all(self, self.config, self.source_text_dict,self.code_pattern_list)
 
         # 生成请求指令
         if self.config.double_request_switch_settings == True:
@@ -252,11 +257,16 @@ class TranslatorTask(Base):
         for index, line in enumerate(source_text_dict.values()):
             # 检查是否为多行文本
             if "\n" in line:
-                lines = line.split("\n")
-                numbered_text = f""
+                lines = line.split("\n")  # 需要与回复提取的行分割方法一致
+                numbered_text = f"{index + 1}.[\n"
+                total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):
-                    numbered_text += f"""{index + 1}.{sub_index}.({sub_line})\n"""
-                numbered_text = numbered_text.rstrip('\n') 
+                    # 如果原始行尾有空格则去掉一个，经实验也在某种？程度上能够减少合并
+                    sub_line = sub_line[:-1] if sub_line and sub_line[-1].isspace() else sub_line
+                    numbered_text += f""""{index + 1}.{total_lines - sub_index}.{sub_line}",\n"""
+                numbered_text = numbered_text.rstrip('\n')
+                numbered_text = numbered_text.rstrip(',')
+                numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
                 numbered_lines.append(numbered_text)
             else:
                 # 单行文本直接添加序号
@@ -369,11 +379,15 @@ class TranslatorTask(Base):
             # 检查是否为多行文本
             if "\n" in line:
                 lines = line.split("\n")
+                numbered_text = f"{index + 1}.[\n"
                 total_lines = len(lines)
-                numbered_text = f""
                 for sub_index, sub_line in enumerate(lines):
-                    numbered_text += f"""{index + 1}.{sub_index}.({sub_line})\n"""
+                    # 如果原始行尾有空格则去掉一个，经实验也在某种？程度上能够减少合并
+                    sub_line = sub_line[:-1] if sub_line and sub_line[-1].isspace() else sub_line
+                    numbered_text += f""""{index + 1}.{total_lines - sub_index}.{sub_line}",\n"""
                 numbered_text = numbered_text.rstrip('\n')
+                numbered_text = numbered_text.rstrip(',')
+                numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
                 numbered_lines.append(numbered_text)
             else:
                 # 单行文本直接添加序号
@@ -460,11 +474,15 @@ class TranslatorTask(Base):
             # 检查是否为多行文本
             if "\n" in line:
                 lines = line.split("\n")
+                numbered_text = f"{index + 1}.[\n"
                 total_lines = len(lines)
-                numbered_text = f""
                 for sub_index, sub_line in enumerate(lines):
-                    numbered_text += f"""{index + 1}.{sub_index}.({sub_line})\n"""
+                    # 如果原始行尾有空格则去掉一个，经实验也在某种？程度上能够减少合并
+                    sub_line = sub_line[:-1] if sub_line and sub_line[-1].isspace() else sub_line
+                    numbered_text += f""""{index + 1}.{total_lines - sub_index}.{sub_line}",\n"""
                 numbered_text = numbered_text.rstrip('\n')
+                numbered_text = numbered_text.rstrip(',')
+                numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
                 numbered_lines.append(numbered_text)
             else:
                 # 单行文本直接添加序号
@@ -716,7 +734,10 @@ class TranslatorTask(Base):
             }
 
         # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content,self.config.target_language)
+        if  self.config.target_platform != "sakura":
+            response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content,self.config.target_language)
+        else:
+            response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction_sakura(self, self.source_text_dict, response_content)
 
         # 检查回复内容
         check_result, error_content = ResponseChecker.check_response_content(
@@ -728,13 +749,14 @@ class TranslatorTask(Base):
             self.source_text_dict,
         )
 
+
         # 去除回复内容的数字序号
         if  self.config.target_platform != "sakura":
             response_dict = ResponseExtractor.remove_numbered_prefix(self, self.source_text_dict, response_dict)
 
 
         # 模型回复日志
-        if response_think != "":
+        if response_think:
             self.extra_log.append("模型思考内容：\n" + response_think)
         if self.is_debug():
             self.extra_log.append("模型回复内容：\n" + response_content)
@@ -761,7 +783,7 @@ class TranslatorTask(Base):
             # 各种还原步骤
             # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
             restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order)
+            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage)
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
@@ -771,7 +793,6 @@ class TranslatorTask(Base):
 
             # 更新术语表与禁翻表到配置文件中
             self.config.update_glossary_ntl_config(glossary_result, NTL_result)
-
 
             # 打印任务结果
             self.print(
@@ -879,7 +900,7 @@ class TranslatorTask(Base):
 
 
         # 模型回复日志
-        if response_think != "":
+        if response_think:
             self.extra_log.append("第一次模型思考内容：\n" + response_think)
         if self.is_debug():
             self.extra_log.append("第一次模型回复内容：\n" + response_content)
@@ -975,7 +996,7 @@ class TranslatorTask(Base):
             # 各种还原步骤
             # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
             restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order)
+            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order,self.affix_whitespace_storage)
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):

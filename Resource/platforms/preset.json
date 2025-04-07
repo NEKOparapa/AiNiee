@@ -99,11 +99,11 @@
             "frequency_penalty": 0.0,
             "auto_complete": false,
             "model_datas": [
-                "gemini-1.5-flash-8b",
                 "gemini-1.5-flash",
                 "gemini-1.5-pro",
                 "gemini-2.0-flash-exp",
-                "gemini-2.0-flash-thinking-exp"
+                "gemini-2.0-flash-thinking-exp",
+                "gemini-2.5-pro-exp-03-25"
             ],
             "key_in_settings": [
                 "api_key",
@@ -196,6 +196,50 @@
             ],
             "key_in_settings": [
                 "api_key",
+                "model",
+                "temperature",
+                "top_p"
+            ]
+        },
+        "amazonbedrock": {
+            "tag": "amazonbedrock",
+            "group": "online",
+            "name": "Amazon Bedrock",
+            "region": "us-east-1",
+            "access_key": "",
+            "secret_key": "",
+            "api_key": "",
+            "api_url": "",
+            "api_format": "Amazon Bedrock",
+            "rpm_limit": 2000,
+            "tpm_limit": 100000000,
+            "model": "claude-3-haiku",
+            "top_p": 0.95,
+            "temperature": 1.0,
+            "presence_penalty": 0.0,
+            "frequency_penalty": 0.0,
+            "auto_complete": false,
+            "region_datas": [
+                "us-east-1",
+                "us-east-2",
+                "us-west-2",
+                "eu-west-1"
+            ],
+            "model_datas": [
+                "anthropic.claude-3-haiku-20240307-v1:0",
+                "anthropic.claude-3-sonnet-20240229-v1:0",
+                "us.anthropic.claude-3-5-haiku-20241022-v1:0",
+                "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+                "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+                "amazon.nova-lite-v1:0",
+                "amazon.nova-micro-v1:0",
+                "amazon.nova-pro-v1:0",
+                "us.deepseek.r1-v1:0"
+            ],
+            "key_in_settings": [
+                "region",
+                "access_key",
+                "secret_key",
                 "model",
                 "temperature",
                 "top_p"

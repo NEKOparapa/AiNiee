@@ -32,7 +32,7 @@ class ResponseChecker():
 
             else:
                 check_result = False
-                error_content = "模型出现退化"
+                error_content = "模型出现退化现象"
                 return check_result,error_content
 
 
@@ -50,7 +50,7 @@ class ResponseChecker():
             pass
         else:
             check_result = False
-            error_content = "原文与译文行数不一致"
+            error_content = "原文与译文行数无法对应"
             return check_result,error_content
 
         # 检查数字序号是否正确
@@ -59,8 +59,18 @@ class ResponseChecker():
                 pass
             else:
                 check_result = False
-                error_content = "文本格式与要求不一致"
+                error_content = "译文文本出现错行串行"
                 return check_result,error_content
+
+        # 检查多行文本块是否回复正确行数
+        if target_platform != "sakura":
+            if 'newline_character_count_check' in response_check_switch and response_check_switch['newline_character_count_check']:
+                if  ResponseChecker.check_multiline_text(self, source_text_dict, response_dict):
+                    pass
+                else:
+                    check_result = False
+                    error_content = "译文换行符数量不一致"
+                    return check_result, error_content
 
         # 检查是否回复了原文
         if 'return_to_original_text_check' in response_check_switch and response_check_switch['return_to_original_text_check']:
@@ -115,6 +125,64 @@ class ResponseChecker():
             if not value.startswith(prefix):
                 return False  # 值没有以期望的序号开头
             expected_num += 1  # 序号递增
+
+        return True  # 所有检查都通过
+
+    # 检查多行文本回复内容行数是否正确
+    def check_multiline_text(self, source_text_dict, translated_dict):
+        """
+        检查输入字典中的多行文本块是否正确翻译，包括行数和每行内容的完整性。
+
+        Args:
+            source_text_dict (dict): 源文本字典，key为字符数字，value为文本。
+            input_dict (dict): 输入的字典，key为字符数字，value为文本。
+
+        Returns:
+            bool: 所有多行文本块检查通过返回True，否则返回False。
+        """
+
+        # 获取排序后的key，确保按数字顺序检查
+        keys = sorted(source_text_dict.keys(), key=int)
+
+        for key in keys:
+            # 检查key是否存在于输入字典中
+            if key not in translated_dict:
+                return False
+
+            source_text = source_text_dict[key]
+            translated_text = translated_dict[key]
+
+            # 去除头尾的空格和换行符
+            trimmed_source_text = source_text.strip()
+            trimmed_translated_text = translated_text.strip()
+
+            # 在处理过的文本上计算文本内的换行符数量
+            source_newlines = trimmed_source_text.count('\n')
+            translated_newlines = trimmed_translated_text.count('\n')
+
+            # 检查换行符数是否匹配，要放在外面进行比较，因为source_text可能没有换行符，而译文就有
+            if source_newlines != translated_newlines:
+                return False
+
+            # 如果源文本包含换行符，则需要检查每一行
+            if '\n' in source_text: 
+                # 分割成行
+                source_lines = source_text.split('\n')
+                input_lines = translated_text.split('\n')
+
+                # 检查每一行是否都有实际内容（除了序号和格式标记外）
+                for i, line in enumerate(input_lines):
+                    # 移除序号部分（如"1.2."）
+                    content_after_prefix = re.sub(r'^\s*\d+\.(\d+\.)?\s*', '', line).strip()
+
+                    # 如果回复行为空
+                    if not content_after_prefix:
+                        # 检查对应的源文本行是否也为空
+                        if not source_lines[i].strip():
+                            continue
+                        else:
+                            # 源文本有内容但翻译没有，不通过检查
+                            return False
 
         return True  # 所有检查都通过
 
@@ -301,7 +369,7 @@ class ResponseChecker():
                     count_results += 1
 
         # 根据出现次数判断结果
-        if  count_results >=3:
+        if  count_results >=2:
             return False
 
         return True

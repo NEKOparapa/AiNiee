@@ -1,45 +1,40 @@
 import json
-import os
+from pathlib import Path
 
-class VntReader():
-    def __init__(self):
-        pass
+from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.FileReader.BaseReader import (
+    BaseSourceReader,
+    InputConfig,
+    text_to_cache_item
+)
 
-    def read_vnt_files(self, folder_path):
-        json_data_list = [{"project_type": "Vnt"}]
-        i = 1
 
-        for root, _, files in os.walk(folder_path):
-            for file in files:
-                if file.endswith(".json"):
-                    file_path = os.path.join(root, file)
-                    with open(file_path, 'r', encoding='utf-8') as json_file:
-                        json_data = json.load(json_file)
-                        for entry in json_data:
-                            source_text = entry["message"]
-                            storage_path = os.path.relpath(file_path, folder_path)
-                            file_name = file
+class VntReader(BaseSourceReader):
+    def __init__(self, input_config: InputConfig):
+        super().__init__(input_config)
 
-                            name = entry.get("name")
-                            entry_data = {
-                                "text_index": i,
-                                "translation_status": 0,
-                                "source_text": source_text,
-                                "translated_text": source_text,
-                                "model": "none",
-                                "storage_path": storage_path,
-                                "file_name": file_name,
-                            }
+    @classmethod
+    def get_project_type(cls):
+        return "Vnt"
 
-                            if name:
-                                # 直接拼接【人名】+文本
-                                entry_data["source_text"] = VntReader.combine_srt(self,name, source_text)
-                                entry_data["name"] = name
-                            
-                            json_data_list.append(entry_data)
-                            i += 1
+    @property
+    def support_file(self):
+        return "json"
 
-        return json_data_list
+    def read_source_file(self, file_path: Path) -> list[CacheItem]:
+        json_data = json.loads(file_path.read_text(encoding="utf-8"))
+        items = []
+        for entry in json_data:
+            source_text = entry["message"]
+            item = text_to_cache_item(source_text)
+            name = entry.get("name")
+            if name:
+                # 直接拼接【人名】+文本
+                new_source_text = self.combine_srt(name, source_text)
+                item.set_source_text(new_source_text)
+                item.name = name
+            items.append(item)
+        return items
 
     def combine_srt(self, name, text):
-        return f"【{name}】{text}"
+        return f"[{name}]{text}"

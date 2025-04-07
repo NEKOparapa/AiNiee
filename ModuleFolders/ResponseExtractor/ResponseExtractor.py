@@ -1,5 +1,7 @@
+import ast
 import re
 import string
+from typing import Dict, List
 
 # 回复解析器
 class ResponseExtractor():
@@ -9,23 +11,56 @@ class ResponseExtractor():
 
 
     #处理并正则提取翻译内容
-    def text_extraction(self, source_text_dict, html_string, target_language):
+    def text_extraction(self, source_text_dict, response_content, target_language):
 
         try:
             # 提取译文结果
-            translation_result= ResponseExtractor.extract_translation(self,source_text_dict,html_string)
+            translation_result= ResponseExtractor.extract_translation(self,source_text_dict,response_content)
 
             # 提取术语表结果
-            glossary_result= ResponseExtractor.extract_glossary(self,html_string, target_language)
+            glossary_result= ResponseExtractor.extract_glossary(self,response_content, target_language)
 
             # 提取禁翻表结果
-            NTL_result = NTL_result = ResponseExtractor.extract_ntl(self,html_string)
+            NTL_result = NTL_result = ResponseExtractor.extract_ntl(self,response_content)
 
             return translation_result, glossary_result, NTL_result
         except :
             print("\033[1;33mWarning:\033[0m 回复内容无法正常提取，请反馈\n")
             return {},{},{}
 
+    #处理并正则提取翻译内容(sakura接口专用)
+    def text_extraction_sakura(self, source_text_dict,response_content):
+
+        try:
+            # 提取译文结果
+            textarea_contents = re.findall(r'<textarea.*?>(.*?)</textarea>', response_content, re.DOTALL)
+            if not textarea_contents:
+                return {}  # 如果没有找到 textarea 标签，返回空字典
+            last_content = textarea_contents[-1]
+
+            # 转换成字典
+            translation_result = {}
+            line_number = 0
+            lines = last_content.strip().split("\n")
+            for line in lines:
+                if line:
+                    translation_result[str(line_number)] = line
+                    line_number += 1
+
+            if not translation_result:
+                return {},{},{} 
+
+            # 计算原文行数
+            newlines_in_dict = ResponseExtractor.count_newlines_in_dict_values(self,source_text_dict)
+
+            # 合并调整翻译文本
+            translation_result= ResponseExtractor.generate_text_by_newlines(self,newlines_in_dict,translation_result)
+
+
+            return translation_result,{},{}
+        except :
+            print("\033[1;33mWarning:\033[0m 回复内容无法正常提取，请反馈\n")
+            return {},{},{}
 
     # 提取翻译结果内容
     def extract_translation(self,source_text_dict,html_string):
@@ -42,51 +77,165 @@ class ResponseExtractor():
         # 合并调整翻译文本
         translation_result= ResponseExtractor.generate_text_by_newlines(self,newlines_in_dict,text_dict)
 
-
         return translation_result
-
 
     # 辅助函数，正则提取标签文本内容
     def label_text_extraction(self, html_string):
+
+        # 只提取最后一个 textarea 标签的内容
         textarea_contents = re.findall(r'<textarea.*?>(.*?)</textarea>', html_string, re.DOTALL)
         if not textarea_contents:
             return {}  # 如果没有找到 textarea 标签，返回空字典
-
-        output_dict = {}
-        line_number = 0
-
-        # 只处理最后一个 textarea 标签的内容
         last_content = textarea_contents[-1]
-        lines = last_content.strip().splitlines()
-        for line in lines:
-            if line:
-                output_dict[str(line_number)] = line
-                line_number += 1
 
-        # 如果没有找到任何以数字序号开头的行，则直接返回原始的行号字典（主要是为了兼容Sakura模型接口）
-        has_numbered_prefix = False
-        for value in output_dict.values():
-            if re.match(r'^\d+\.', value):
-                has_numbered_prefix = True
-                break  # 只要找到一行符合条件就跳出循环
+        # 提取文本存储到字典中
+        output_dict = ResponseExtractor.extract_text_to_dict(self,last_content)
 
         # 从第一个以数字序号开头的行开始，保留之后的所有行(主要是有些AI会在译文内容前面加点说明)
-        if has_numbered_prefix:
-            filtered_dict = {}
-            found = False
-            # 按行号顺序遍历
-            for key in sorted(output_dict.keys(), key=lambda k: int(k)):
-                value = output_dict[key]
-                if not found:
-                    if re.match(r'^\d+\.', value):  # 匹配以数字和句点开头的行
-                        found = True
-                    else:
-                        continue
-                if found:
-                    filtered_dict[key] = value
-            return filtered_dict
-        else:
-            return output_dict  # 如果没有找到数字序号开头的行，则返回原始字典
+        filtered_dict = {}
+        found = False
+        # 按行号顺序遍历
+        for key in sorted(output_dict.keys(), key=lambda k: int(k)):
+            value = output_dict[key]
+            if not found:
+                if re.match(r'^\d+\.', value):  # 匹配以数字和句点开头的行
+                    found = True
+                else:
+                    continue
+            if found:
+                filtered_dict[key] = value
+
+        return filtered_dict
+
+    # 提取文本为字典
+    def extract_text_to_dict(self, input_string: str) -> Dict[str, str]:
+        """
+        从特定格式的字符串中提取内容并存入字典 。
+        （目前因为AI偶尔会合并翻译，回复的列表块最后一个元素内容是这样的:"3.1."或者"3.1.[换行符]文本内容"，所以后期会检查出换行符不一致）
+        Args:
+            text: 输入的字符串。
+
+        Returns:
+            一个字典，键是'0', '1', '2'...，值是提取到的文本行。
+        """
+        # 1. 初步分割: 按主序号分割成块
+        blocks = re.split(r'\n(?=\d+\.)', input_string.strip())
+
+        extracted_items = []
+
+        # 2. 处理每个块
+        for block in blocks:
+            block = block.strip()
+            if not block:
+                continue
+
+            # 3. 尝试匹配列表块模式 (N.[ ... ])
+            # re.DOTALL 使 '.' 可以匹配换行符
+            list_block_match = re.match(r'^\d+\.\s*\[(.*)\]$', block, re.DOTALL)
+            if list_block_match:
+
+                list_content = list_block_match.group(1).strip()
+                # 再次判断是否是列表块内容
+                if list_content and list_content.startswith('"'):
+
+                    # 4.1 列表块处理
+                    items_in_block: List[str] = []
+                    current_pos = 0
+                    len_content = len(list_content)
+
+                    while current_pos < len_content:
+                        # --- 查找列表项的开始 ---
+                        # 跳过前导空格和逗号
+                        while current_pos < len_content and (list_content[current_pos].isspace() or list_content[current_pos] == ','):
+                            current_pos += 1
+
+                        if current_pos >= len_content:
+                            break  # 到达内容末尾
+
+                        # 列表项必须以引号开头
+                        if list_content[current_pos] != '"':
+                            print(f"警告：列表块 '{block[:30]}...' 内在位置 {current_pos} 检测到非预期字符（应为 双引号），内容片段: ...{list_content[current_pos:current_pos + 30]}...")
+                            # 决定是跳到下一个可能的逗号还是终止此块的处理
+                            next_comma = list_content.find(',', current_pos)
+                            if next_comma != -1:
+                                current_pos = next_comma + 1
+                                continue
+                            else:
+                                break  # 无法恢复，结束此块
+
+                        start_quote_pos = current_pos
+
+                        # --- 查找对应的结束引号 ---
+                        search_pos = start_quote_pos + 1
+                        found_end_quote = False
+                        while search_pos < len_content:
+                            # 查找下一个引号
+                            end_quote_pos = list_content.find('"', search_pos)
+
+                            if end_quote_pos == -1:
+                                print(f"警告：列表块 '{block[:30]}...' 内检测到未闭合的引号，起始于位置 {start_quote_pos}: ...{list_content[start_quote_pos:start_quote_pos + 50]}...")
+                                current_pos = len_content  # 标记为处理完毕（虽然是异常结束）
+                                break  # 跳出内部查找循环
+
+                            # 检查这个引号是否是真正的结束引号
+                            # 真正的结束引号后面应该是逗号、或者块的结尾（允许中间有空格）
+                            next_char_idx = end_quote_pos + 1
+                            while next_char_idx < len_content and list_content[next_char_idx].isspace():
+                                next_char_idx += 1
+
+                            # 如果是结尾或者后面是逗号，则认为是结束引号
+                            if next_char_idx == len_content or list_content[next_char_idx] == ',':
+                                # 提取引号之间的内容，并去除首尾可能存在的空白符
+                                # 这会保留内部的 N.N. 格式
+                                item_content = list_content[start_quote_pos + 1: end_quote_pos].strip()
+                                items_in_block.append(item_content)
+
+                                # 移动指针到逗号之后或内容末尾，准备找下一个项
+                                current_pos = next_char_idx
+                                # 如果后面是逗号，还要跳过逗号
+                                if current_pos < len_content and list_content[current_pos] == ',':
+                                    current_pos += 1
+
+                                found_end_quote = True
+                                break  # 找到了当前项，跳出内部查找循环
+                            # 新增：检查是否是下一个编号项的开始（以引号开头且引号后紧跟数字.数字.格式）
+                            # 目前发现ds有漏掉引号后逗号的毛病，增强一下健壮性
+                            elif (next_char_idx < len_content and list_content[next_char_idx] == '"' and
+                                  re.match(r'\"\d+\.\d+\.', list_content[next_char_idx:min(next_char_idx + 12, len_content)])):
+                                # 提取当前项内容
+                                item_content = list_content[start_quote_pos + 1: end_quote_pos].strip()
+                                items_in_block.append(item_content)
+
+                                # 移动指针到下一个引号位置，准备处理下一项
+                                current_pos = next_char_idx
+                                found_end_quote = True
+                                break  # 找到了当前项，跳出内部查找循环
+                            else:
+                                # 这个引号是内容的一部分（内部引号），继续向后查找
+                                search_pos = end_quote_pos + 1
+                                # 继续内部 while 循环
+
+                        # 如果内部循环是因为找不到闭合引号或其他错误而结束的
+                        if not found_end_quote:
+                            break  # 结束外部 while 循环对此块的处理
+
+                    # 将从该列表块中成功提取的所有项添加到总列表中
+                    extracted_items.extend(items_in_block)
+
+                else:
+                    # 如果方括号内的内容不像带引号列表 (例如 "9.[社团活动后]")
+                    # 将整个原始块（包括 N.[...] ）视为一个单独的文本项。
+                    extracted_items.append(block)
+
+            else:
+                # 4.2 文本块: 不是 N.[...] 格式，直接添加整个块内容
+                extracted_items.append(block)
+
+        # 5. 生成最终字典
+        result_dict = {str(i): item for i, item in enumerate(extracted_items)}
+
+        return result_dict
+
 
     # 辅助函数，统计原文中的换行符
     def count_newlines_in_dict_values(self,source_text_dict):
@@ -108,7 +257,7 @@ class ResponseExtractor():
             if newline_count == 0:
                 newline_counts[key] = newline_count  # 将统计结果存入新字典，键保持不变
             else:
-                newline_counts[key] = newline_count 
+                newline_counts[key] = newline_count
         return newline_counts
 
     # 辅助函数，根据换行符数量生成最终译文字典，与原文字典进行一一对应
@@ -159,109 +308,29 @@ class ResponseExtractor():
 
         return result_dict
 
-    # 辅助函数，去除数字序号
-    def remove_numbered_prefix(self,source_text_dict,translation_text_dict):
-        """
-        根据源文本的换行符数量，动态去除输入文本中对应的层级数字序号。
-        
-        逻辑说明：
-        1. 源文本中换行符数量决定了序号层级（m个换行符对应m+1个子行）
-        2. 主序号由字典键值+1决定（如键'0'的主序号是1，键'1'的主序号是2）
-        3. 根据换行符数量选择匹配模式：
-        - 无换行符：匹配"主序号."
-        - 有换行符：匹配"主序号.子序号."
-        """
-        
-        output_dict = {}
-        for key, value in translation_text_dict.items():
-            if not isinstance(value, str):
-                output_dict[key] = value
-                continue
-            
-            # 获取源文本的换行符数量
-            source_text = source_text_dict.get(key, "")
-            newline_count = source_text.count("\n")
-            
-            # 分割输入文本为多行处理
-            lines = value.split("\n")
-            cleaned_lines = []
-            
-            for line in lines:
-                # 根据换行情况构建匹配模式
-                if newline_count == 0:
-                    # 匹配"主序号."模式（如"1."）
-                    pattern = rf"^\d+\.\s*"  # 行首正则
-                else:
-                    # 匹配"主序号.子序号."模式（如"2.1."）
-                    pattern = rf"^\d+\.\d+\.\s*"
-                
-                # 执行替换操作
-                cleaned_line = re.sub(pattern, "", line)
-                cleaned_lines.append(cleaned_line)
-            
-            # 重组处理后的文本
-            output_dict[key] = "\n".join(cleaned_lines)
-        
-        return output_dict
 
     # 去除数字序号及括号
     def remove_numbered_prefix(self, source_text_dict, translation_text_dict):
+
         output_dict = {}
         for key, value in translation_text_dict.items():
+
             if not isinstance(value, str):
                 output_dict[key] = value
                 continue
-            
-            source_text = source_text_dict.get(key, "")
-            source_lines = source_text.split('\n')
             translation_lines = value.split('\n')
             cleaned_lines = []
-            
             for i, line in enumerate(translation_lines):
 
-                # 去除数字序号 (只匹配 "1.", "1.2." 等)
-                temp_line = re.sub(r'^\s*\d+\.(\d+\.)?\s*', '', line)
+                # 去除数字序号 (只匹配 "1.", "1.2." 等，并保留原文中的缩进空格)
+                temp_line = re.sub(r'^\s*\d+\.(\d+\.)?', '', line)
+                cleaned_lines.append(temp_line)
 
-                source_line = source_lines[i] if i < len(source_lines) else ""
-                
-                # 计算源行开头的左括号数量
-                stripped_source = source_line.lstrip()
-                leading_source = 0
-                for char in stripped_source:
-                    if char in ('(', '（'):
-                        leading_source += 1
-                    else:
-                        break
-                
-                # 计算源行结尾的右括号数量
-                stripped_source_end = source_line.rstrip()
-                trailing_source = 0
-                for char in reversed(stripped_source_end):
-                    if char in (')', '）'):
-                        trailing_source += 1
-                    else:
-                        break
-            
-                # 处理译行开头的左括号
-                leading_match = re.match(r'^(\s*)([\(\（]*)', temp_line)
-                if leading_match:
-                    space, brackets = leading_match.groups()
-                    adjusted = brackets[:leading_source]
-                    remaining = temp_line[len(space) + len(brackets):]
-                    temp_line = f"{space}{adjusted}{remaining}"
-                
-                # 处理译行结尾的右括号
-                trailing_match = re.search(r'([\)\）]*)(\s*)$', temp_line)
-                if trailing_match:
-                    brackets, space_end = trailing_match.groups()
-                    adjusted = brackets[:trailing_source]
-                    remaining = temp_line[:-len(brackets + space_end)] if (brackets + space_end) else temp_line
-                    temp_line = f"{remaining}{adjusted}{space_end}"
-                
-                cleaned_lines.append(temp_line.strip())
-            
-            output_dict[key] = '\n'.join(cleaned_lines)
-        
+            processed_text = '\n'.join(cleaned_lines)
+
+            # 移除尾部的 "/n]或者/n] (及其前面的空格)
+            final_text = re.sub(r'\s*"?\n\]$', '', processed_text)
+            output_dict[key] = final_text
         return output_dict
 
     # 提取回复中的术语表内容
@@ -329,11 +398,11 @@ class ResponseExtractor():
             return True
 
         # 过滤提取错行
-        if translation.strip() in ("|"):
+        if translation and "|" in translation:
             return True
 
         # 过滤提取错行
-        if (info) and (info.strip() in ("|")):
+        if info and "|" in info:
             return True
 
         # 过滤无翻译行
@@ -445,8 +514,6 @@ class ResponseExtractor():
         if original.lower() in pronouns_and_others_to_filter:
             return True
         return False
-
-
 
     # 检查是否纯英文
     def is_pure_english_text(self,text):

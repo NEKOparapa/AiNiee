@@ -47,7 +47,7 @@ class RequestLimiter:
 
         # 检查是否超过模型最大输入限制
         if tokens >= self.max_tokens:
-            print("[Warning INFO] 该次任务总tokens量已经超过模型最大输入限制，将进入下次拆分轮次")
+            print("[Warning INFO] 该次任务的文本总tokens量已经超过最大输入限制，将直接进入下次拆分轮次")
             return False
         
         # 检查是否超过余量
