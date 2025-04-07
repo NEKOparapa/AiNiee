@@ -36,8 +36,12 @@ class TransWriter(BaseTranslatedWriter):
                 parameters_list[data_index][0]["translation"] = name
 
             # 仅当翻译实际改变时才写入，译文文本在第二个元素
-            if data_list[data_index][1] != new_translation:
-                data_list[data_index][1] = new_translation
+            if len(data_list[data_index]) > 1:  # 检查长度是否至少为2,保证有译文位置
+                if data_list[data_index][1] != new_translation:
+                    data_list[data_index][1] = new_translation
+            else:
+                # 处理列表只有一个元素或没有元素的情况
+                data_list[data_index].append(new_translation)
 
         # 写回修改后的内容
         json_content = json.dumps(trans_content, ensure_ascii=False, indent=4)
