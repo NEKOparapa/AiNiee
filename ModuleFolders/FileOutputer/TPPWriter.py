@@ -66,4 +66,4 @@ class TPPWriter(BaseTranslatedWriter):
 
     @classmethod
     def get_project_type(self):
-        return "T++"
+        return "Tpp"

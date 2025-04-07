@@ -16,7 +16,7 @@ class TPPReader(BaseSourceReader):
 
     @classmethod
     def get_project_type(cls):
-        return "T++"
+        return "Tpp"
 
     @property
     def support_file(self):

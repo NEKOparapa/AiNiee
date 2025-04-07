@@ -35,7 +35,7 @@ class FileReader():
     # 初始化时，注册所有内置支持的文件/项目类型。
     def _register_system_reader(self):
         self.register_reader(MToolReader.get_project_type(), MToolReader)
-        self.register_reader("Tpp", TPPReader)
+        self.register_reader(TPPReader.get_project_type(), TPPReader)
         self.register_reader(VntReader.get_project_type(), VntReader)
         self.register_reader(SrtReader.get_project_type(), SrtReader)
         self.register_reader(VttReader.get_project_type(), VttReader)
