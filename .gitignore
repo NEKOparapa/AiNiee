@@ -9,3 +9,5 @@
 /*output*
 /Resource/config.json
 .venv
+dist/
+build/
