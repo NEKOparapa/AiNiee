@@ -124,6 +124,8 @@ class TxtReader(BaseSourceReader):
     def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
         items = []
         # 切行
+        # 使用 `BaseReader` 中的 `read_file_safely` 函数正确读取多种编码的文件，并将原始编码与行尾序列保存至 `CacheProject` 类中
+        # 可供后续的 `Writer` 使用
         lines = read_file_safely(file_path, cache_project).split(cache_project.get_line_ending())
         for j, line in enumerate(lines):
             if line.strip() == '':  # 跳过空行
@@ -241,6 +243,9 @@ class BaseBilingualWriter(BaseTranslationWriter):
 3. `output_root` 代表输出的根目录，也就是用户界面 项目配置 -> 输出文件夹，此处译文文件直接在 输出文件夹 下输出，而双语文件在 输出文件夹的子文件夹`bilingual_txt` 下输出
 4. `file_encoding` 代表从之前Reader中保存至 `CacheProject` 中的 `file_encoding`（原始文件编码）
 5. `line_ending` 代表从之前Reader中保存至 `CacheProject` 中的 `line_ending`（原始行尾序列）
+6. **特别注意**：
+
+    `file_encoding` 与 `line_ending` 仅当在 `XxxReader` 的 `read_source_file` 函数中使用了 `read_file_safely` 函数后才存在，否则将使用`utf-8`与系统默认行尾序列的组合
 
 ```python
 OutputConfig(
@@ -263,6 +268,9 @@ OutputConfig(
 4. 译文和双语的区别在于怎么替换原文片段，建议抽出公共方法如 `_write_translation_file`，把替换原文片段的逻辑作为参数传入
 5. 此处用到了 `CacheItem` 中未定义的属性 `item.sentence_indent` ，如果不保证属性存在请使用 `getattr`
 6. 保存文件时的 `encoding=self.translated_encoding` 从之前Reader中保存至 `CacheProject` 中的 `file_encoding` 项中获取<br/>（若需要原始的行尾序列，可添加配置 `newline=self.translated_line_ending` 实现）
+7. **特别注意**：
+
+    `translated_encoding` 与 `translated_line_ending` 仅当在 `XxxReader` 的 `read_source_file` 函数中使用了 `read_file_safely` 函数后才存在，否则将使用`utf-8`与系统默认行尾序列的组合
 
 ```python
 class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
