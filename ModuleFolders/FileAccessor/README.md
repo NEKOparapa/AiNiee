@@ -106,6 +106,9 @@ class BaseSourceReader(ABC):
 4. `CacheItem` 中只定义了通用的属性，若实在有需要可直接给 `CacheItem` 赋值，如 `item.sentence_indent = spaces`
 5. 为保持可读性和可维护性，一些复杂的计算逻辑可提取成函数如 `_count_next_empty_line`
 6. 使用了 `BaseReader` 中的 `read_file_safely` 函数，可以试图正确读取多种编码的文件，并将文件的原始编码与行尾序列保存至 `CacheProject` 类中，供后续的 `Writer` 使用
+7. **特别注意**：
+
+    `read_file_safely` 函数仅支持纯文本读取，请在仅当文本为纯文本时才使用
 
 ```python
 class TxtReader(BaseSourceReader):
