@@ -116,49 +116,25 @@ def read_file_safely(file_path: Union[str, pathlib.Path], cache_project: CachePr
 
     # 读取文件内容
     with open(file_path, 'rb') as f:
-        raw_bytes = f.read(4)  # 读取前4个字节用于检测BOM
-        f.seek(0)  # 重置文件指针
-        content_bytes = f.read()  # 读取整个文件内容
+        content_bytes = f.read()
 
-    detected_encoding = None
-    content = ""
+    # 优先使用chardet检测编码
+    detection_result = chardet.detect(content_bytes)
+    # 检测到的编码
+    detected_encoding = detection_result['encoding']
+    # 置信度
+    confidence = detection_result['confidence']
 
-    # 首先检查BOM标记（这部分非常可靠）
-    if raw_bytes.startswith(b'\xef\xbb\xbf'):
-        detected_encoding = 'utf-8-sig'
-    elif raw_bytes.startswith(b'\xff\xfe'):
-        detected_encoding = 'utf-16-le'
-    elif raw_bytes.startswith(b'\xfe\xff'):
-        detected_encoding = 'utf-16-be'
-    elif raw_bytes.startswith(b'\xff\xfe\x00\x00'):
-        detected_encoding = 'utf-32-le'
-    elif raw_bytes.startswith(b'\x00\x00\xfe\xff'):
-        detected_encoding = 'utf-32-be'
-
-    # 如果检测到BOM，使用对应的编码
-    if detected_encoding:
+    # 如果置信度太低，尝试原来的编码列表
+    if not detected_encoding or confidence < 0.75:
+        content, detected_encoding = decode_content_bytes(content_bytes)
+    else:
+        # 使用chardet检测到的编码
         try:
             content = content_bytes.decode(detected_encoding)
         except UnicodeDecodeError:
-            # 即使有BOM也解码失败，这种情况很少见
-            detected_encoding = None  # 重置，继续尝试其他方法
-
-    # 如果没有BOM或BOM解码失败，使用chardet
-    if not detected_encoding:
-        detection_result = chardet.detect(content_bytes)
-        detected_encoding = detection_result['encoding']
-        confidence = detection_result['confidence']
-
-        # 如果置信度太低，尝试原来的编码列表
-        if not detected_encoding or confidence < 0.75:
+            # 即使chardet也失败了，尝试您的编码列表
             content, detected_encoding = decode_content_bytes(content_bytes)
-        else:
-            # 使用chardet检测到的编码
-            try:
-                content = content_bytes.decode(detected_encoding)
-            except UnicodeDecodeError:
-                # 即使chardet也失败了，尝试您的编码列表
-                content, detected_encoding = decode_content_bytes(content_bytes)
 
     # 检测换行符格式
     detected_line_ending = detect_newlines(content)
