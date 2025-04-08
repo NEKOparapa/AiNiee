@@ -118,6 +118,7 @@ def read_file_safely(file_path: Union[str, pathlib.Path], cache_project: CachePr
         content_bytes = f.read()  # 读取整个文件内容
 
     detected_encoding = None
+    content = ""
 
     # 检查BOM标记
     if raw_bytes.startswith(b'\xef\xbb\xbf'):
