@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Union
 
+import chardet
+
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheProject import CacheProject
 
@@ -94,6 +96,7 @@ def detect_newlines(content: str) -> str:
 def read_file_safely(file_path: Union[str, pathlib.Path], cache_project: CacheProject) -> str:
     """
     安全地读取文本文件，自动检测并使用正确的编码和换行符格式，并将这些信息保存到cache_project中。
+    结合BOM检测和chardet库进行编码识别
 
     Args:
         file_path: 文件路径，可以是字符串或Path对象
@@ -111,7 +114,7 @@ def read_file_safely(file_path: Union[str, pathlib.Path], cache_project: CachePr
     if isinstance(file_path, str):
         file_path = pathlib.Path(file_path)
 
-    # 首先读取文件的前几个字节来检查BOM
+    # 读取文件内容
     with open(file_path, 'rb') as f:
         raw_bytes = f.read(4)  # 读取前4个字节用于检测BOM
         f.seek(0)  # 重置文件指针
@@ -120,7 +123,7 @@ def read_file_safely(file_path: Union[str, pathlib.Path], cache_project: CachePr
     detected_encoding = None
     content = ""
 
-    # 检查BOM标记
+    # 首先检查BOM标记（这部分非常可靠）
     if raw_bytes.startswith(b'\xef\xbb\xbf'):
         detected_encoding = 'utf-8-sig'
     elif raw_bytes.startswith(b'\xff\xfe'):
@@ -134,31 +137,28 @@ def read_file_safely(file_path: Union[str, pathlib.Path], cache_project: CachePr
 
     # 如果检测到BOM，使用对应的编码
     if detected_encoding:
-        content = content_bytes.decode(detected_encoding)
-    else:
-        # 没有BOM，尝试常见编码
-        encodings = ['utf-8', 'utf-16-le', 'utf-16-be', 'gbk', 'gb2312', 'big5', 'shift-jis']
+        try:
+            content = content_bytes.decode(detected_encoding)
+        except UnicodeDecodeError:
+            # 即使有BOM也解码失败，这种情况很少见
+            detected_encoding = None  # 重置，继续尝试其他方法
 
-        # 尝试所有编码
-        decode_errors = []
-        for encoding in encodings:
+    # 如果没有BOM或BOM解码失败，使用chardet
+    if not detected_encoding:
+        detection_result = chardet.detect(content_bytes)
+        detected_encoding = detection_result['encoding']
+        confidence = detection_result['confidence']
+
+        # 如果置信度太低，尝试原来的编码列表
+        if not detected_encoding or confidence < 0.75:
+            content, detected_encoding = decode_content_bytes(content_bytes)
+        else:
+            # 使用chardet检测到的编码
             try:
-                content = content_bytes.decode(encoding)
-                detected_encoding = encoding
-                break
-            except UnicodeDecodeError as e:
-                decode_errors.append((encoding, str(e)))
-
-        # 如果所有尝试都失败，抛出详细的异常
-        if not detected_encoding:
-            error_details = '\n'.join([f"{enc}: {err}" for enc, err in decode_errors])
-            raise UnicodeDecodeError(
-                "unknown",
-                content_bytes,
-                0,
-                len(content_bytes),
-                f"无法使用任何可靠的编码读取文件。尝试了以下编码:\n{error_details}"
-            )
+                content = content_bytes.decode(detected_encoding)
+            except UnicodeDecodeError:
+                # 即使chardet也失败了，尝试您的编码列表
+                content, detected_encoding = decode_content_bytes(content_bytes)
 
     # 检测换行符格式
     detected_line_ending = detect_newlines(content)
@@ -168,3 +168,29 @@ def read_file_safely(file_path: Union[str, pathlib.Path], cache_project: CachePr
     cache_project.set_line_ending(detected_line_ending)
 
     return content
+
+
+def decode_content_bytes(content_bytes):
+    detected_encoding = None
+    content = ""
+
+    encodings = ['utf-8', 'utf-16-le', 'utf-16-be', 'gbk', 'gb2312', 'big5', 'shift-jis']
+    decode_errors = []
+    for encoding in encodings:
+        try:
+            content = content_bytes.decode(encoding)
+            detected_encoding = encoding
+            break
+        except UnicodeDecodeError as e:
+            decode_errors.append((encoding, str(e)))
+    # 如果所有尝试都失败，抛出详细的异常
+    if not detected_encoding:
+        error_details = '\n'.join([f"{enc}: {err}" for enc, err in decode_errors])
+        raise UnicodeDecodeError(
+            "unknown",
+            content_bytes,
+            0,
+            len(content_bytes),
+            f"无法使用任何可靠的编码读取文件。尝试了chardet和以下编码:\n{error_details}"
+        )
+    return content, detected_encoding
