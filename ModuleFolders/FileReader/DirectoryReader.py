@@ -21,7 +21,7 @@ class DirectoryReader:
                 for file in files:
                     file_path = root / file
                     if reader.can_read(file_path): # 检查是否为目标类型文件
-                        for item in reader.read_source_file(file_path): # 读取单个文件的文本信息，并添加其他信息
+                        for item in reader.read_source_file(file_path, cache_project): # 读取单个文件的文本信息，并添加其他信息
                             item.set_text_index(text_index)
                             item.set_model('none')
                             item.set_storage_path(str(file_path.relative_to(source_directory)))

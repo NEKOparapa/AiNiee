@@ -1,8 +1,12 @@
+import os
+import pathlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Union
 
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
 
 
 @dataclass
@@ -36,7 +40,7 @@ class BaseSourceReader(ABC):
         pass
 
     @abstractmethod
-    def read_source_file(self, file_path: Path) -> list[CacheItem]:
+    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
         """读取文件内容，并返回原文(译文)片段"""
         pass
 
@@ -45,6 +49,7 @@ class BaseSourceReader(ABC):
         if file_path.suffix.replace('.', '', 1) != self.support_file:
             return False
         return True
+
 
 # 存储文本对及翻译状态信息
 def text_to_cache_item(source_text, translated_text: str = None):
@@ -55,3 +60,110 @@ def text_to_cache_item(source_text, translated_text: str = None):
     item.set_translated_text(translated_text)
     item.set_translation_status(CacheItem.STATUS.UNTRANSLATED)
     return item
+
+
+def detect_newlines(content: str) -> str:
+    """
+    检测文本内容中使用的换行符类型
+
+    Args:
+        content: 文本内容（字符串类型）
+
+    Returns:
+        str: 检测到的换行符（'\r\n', '\n', 或 '\r'）
+    """
+    crlf_count = content.count('\r\n')  # Windows: \r\n
+    lf_count = content.count('\n') - crlf_count  # Unix/Linux/macOS: \n (减去CRLF中的\n)
+    cr_count = content.count('\r') - crlf_count  # 旧Mac: \r (减去CRLF中的\r)
+
+    # 判断主要使用的换行符
+    if crlf_count > lf_count and crlf_count > cr_count:
+        # Windows 系统的换行符
+        return "\r\n"
+    elif lf_count > crlf_count and lf_count > cr_count:
+        # Unix/Linux 系统的换行符
+        return "\n"
+    elif cr_count > crlf_count and cr_count > lf_count:
+        # 早期 Mac OS 的换行符
+        return "\r"
+    else:
+        # 默认使用系统对应的换行符
+        return os.linesep
+
+
+def read_file_safely(file_path: Union[str, pathlib.Path], cache_project: CacheProject) -> str:
+    """
+    安全地读取文本文件，自动检测并使用正确的编码和换行符格式，并将这些信息保存到cache_project中。
+
+    Args:
+        file_path: 文件路径，可以是字符串或Path对象
+        cache_project: 缓存项目对象，用于存储文件的编码和换行符信息
+
+    Returns:
+        str: 文件内容
+
+    Raises:
+        UnicodeDecodeError: 当无法用任何可靠的编码读取文件时
+        FileNotFoundError: 当文件不存在时
+        PermissionError: 当没有权限读取文件时
+    """
+    # 确保file_path是Path对象
+    if isinstance(file_path, str):
+        file_path = pathlib.Path(file_path)
+
+    # 首先读取文件的前几个字节来检查BOM
+    with open(file_path, 'rb') as f:
+        raw_bytes = f.read(4)  # 读取前4个字节用于检测BOM
+        f.seek(0)  # 重置文件指针
+        content_bytes = f.read()  # 读取整个文件内容
+
+    detected_encoding = None
+
+    # 检查BOM标记
+    if raw_bytes.startswith(b'\xef\xbb\xbf'):
+        detected_encoding = 'utf-8-sig'
+    elif raw_bytes.startswith(b'\xff\xfe'):
+        detected_encoding = 'utf-16-le'
+    elif raw_bytes.startswith(b'\xfe\xff'):
+        detected_encoding = 'utf-16-be'
+    elif raw_bytes.startswith(b'\xff\xfe\x00\x00'):
+        detected_encoding = 'utf-32-le'
+    elif raw_bytes.startswith(b'\x00\x00\xfe\xff'):
+        detected_encoding = 'utf-32-be'
+
+    # 如果检测到BOM，使用对应的编码
+    if detected_encoding:
+        content = content_bytes.decode(detected_encoding)
+    else:
+        # 没有BOM，尝试常见编码
+        encodings = ['utf-8', 'utf-16-le', 'utf-16-be', 'gbk', 'gb2312', 'big5', 'shift-jis']
+
+        # 尝试所有编码
+        decode_errors = []
+        for encoding in encodings:
+            try:
+                content = content_bytes.decode(encoding)
+                detected_encoding = encoding
+                break
+            except UnicodeDecodeError as e:
+                decode_errors.append((encoding, str(e)))
+
+        # 如果所有尝试都失败，抛出详细的异常
+        if not detected_encoding:
+            error_details = '\n'.join([f"{enc}: {err}" for enc, err in decode_errors])
+            raise UnicodeDecodeError(
+                "unknown",
+                content_bytes,
+                0,
+                len(content_bytes),
+                f"无法使用任何可靠的编码读取文件。尝试了以下编码:\n{error_details}"
+            )
+
+    # 检测换行符格式
+    detected_line_ending = detect_newlines(content)
+
+    # 将检测到的编码和换行符格式保存到cache_project中
+    cache_project.set_file_encoding(detected_encoding)
+    cache_project.set_line_ending(detected_line_ending)
+
+    return content

@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
@@ -25,7 +26,7 @@ class RenpyReader(BaseSourceReader):
     NEW_FORMAT_PARTTERN = re.compile(r'#\s*([a-zA-Z]+(?: [a-zA-Z]+)?)\s*"(.*?)"')
     CODE_LINE_TAG_PATTERN = re.compile(r'([a-zA-Z]+(?: [a-zA-Z]+)?)\s*"(.*?)"')
 
-    def read_source_file(self, file_path: Path) -> list[CacheItem]:
+    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
         lines = file_path.read_text(encoding="utf-8").splitlines()
 
         entries = []

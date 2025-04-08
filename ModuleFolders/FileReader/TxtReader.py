@@ -1,10 +1,11 @@
 from pathlib import Path
 
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    text_to_cache_item
+    text_to_cache_item, read_file_safely
 )
 
 
@@ -22,10 +23,10 @@ class TxtReader(BaseSourceReader):
         return "txt"
 
     # 读取单个txt的文本及其他信息
-    def read_source_file(self, file_path: Path) -> list[CacheItem]:
+    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
         items = []
         # 切行
-        lines = file_path.read_text(encoding='utf-8').split('\n')
+        lines = read_file_safely(file_path, cache_project).split(cache_project.get_line_ending())
         for j, line in enumerate(lines):
             if line.strip() == '':  # 跳过空行
                 continue

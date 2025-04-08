@@ -54,9 +54,12 @@ class FileOutputer():
     # 输出已经翻译文件
     def output_translated_content(self, cache_data, output_path, input_path) -> None:
         cache_data_iter = iter(cache_data)
-        project_type = next(cache_data_iter)["project_type"]
+        base_info = next(cache_data_iter)
+        project_type = base_info["project_type"]
+        file_encoding = base_info["file_encoding"]
+        line_ending = base_info["line_ending"]
         if project_type in self.writer_factory_dict:
-            output_config = self._get_writer_default_config(project_type, Path(output_path))
+            output_config = self._get_writer_default_config(project_type, file_encoding, line_ending, Path(output_path))
             # 绑定配置，使工厂变成无参
             writer_factory = partial(self.writer_factory_dict[project_type], output_config)
             items = list(map(CacheItem, cache_data_iter))
@@ -66,11 +69,11 @@ class FileOutputer():
             writer.write_translation_directory(items, source_directory)
 
 
-    def _get_writer_default_config(self, project_type, output_path: Path):
-        default_translated_config = TranslationOutputConfig(True, "_translated", output_path)
+    def _get_writer_default_config(self, project_type, file_encoding, line_ending, output_path: Path):
+        default_translated_config = TranslationOutputConfig(True, "_translated", output_path, file_encoding, line_ending)
         if project_type == SrtWriter.get_project_type():
             return OutputConfig(
-                TranslationOutputConfig(True, ".translated", output_path),
+                TranslationOutputConfig(True, ".translated", output_path, file_encoding, line_ending),
                 TranslationOutputConfig(True, '.bilingual', output_path / "bilingual_srt"),
             )
         elif project_type == TxtWriter.get_project_type():
