@@ -4,10 +4,9 @@ import json
 import signal
 import threading
 import requests
-from PyQt5.QtCore import QUrl, pyqtSignal, QObject
-from PyQt5.QtWidgets import (QVBoxLayout,QDialog, QLabel, 
-QProgressBar, QPushButton, QHBoxLayout)
-
+from PyQt5.QtCore import QUrl, pyqtSignal, QObject, Qt, QSize
+from PyQt5.QtWidgets import (QVBoxLayout, QDialog, QLabel,QGraphicsDropShadowEffect,
+QProgressBar, QPushButton, QHBoxLayout, QFrame, QGridLayout, QWidget, QStyle)
 from PyQt5.QtGui import QDesktopServices
 from qfluentwidgets import MessageBox
 
@@ -134,88 +133,245 @@ class VersionManager(Base):
                     download_info = json.load(f)
 
                 if download_info.get("status") == "paused":
-                    # 有未完成的下载，提示是否继续
-                    msg_box = MessageBox(
-                        self.tra("继续下载"),
-                        self.tra("发现未完成的下载，是否继续？"),
-                        self.main_window
-                    )
-                    msg_box.yesButton.setText(self.tra("继续下载"))
-                    msg_box.cancelButton.setText(self.tra("重新下载"))
-
-                    if msg_box.exec():
-                        # 继续下载，直接调用下载函数
-                        self._start_download_with_url(download_info.get("url"))
-                        return
-                    else:
-                        # 重新下载，删除临时文件
-                        try:
-                            os.remove(temp_filename)
-                            os.remove(download_info_file)
-                        except Exception as e:
-                            self.error(f"Error removing temporary files: {e}")
+                    # 不放逻辑
+                    pass
             except Exception as e:
                 self.error(f"Error checking paused download: {e}")
 
         # 检查更新
         has_update, latest_version = self.check_for_updates()
-        
+
 
         # 创建更新对话框
         self.update_dialog = QDialog(self.main_window)
         self.update_dialog.setWindowTitle(self.tra("软件更新"))
-        self.update_dialog.setMinimumWidth(400)
+        self.update_dialog.setFixedSize(440, 280)
+        
 
         # 创建布局
         layout = QVBoxLayout()
+        layout.setContentsMargins(20, 30, 20, 20)
+        layout.setSpacing(10)
+        
+
+        # 标题图标和文本
+        header_layout = QHBoxLayout()
+        icon_label = QLabel()
+        title_label = QLabel(self.tra("软件更新"))
+        title_label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        header_layout.addWidget(icon_label)
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
+
+        # 关闭按钮
+        close_button = QPushButton()
+        close_button.setIcon(self.update_dialog.style().standardIcon(QStyle.SP_TitleBarCloseButton))
+        close_button.setFixedSize(24, 24)
+        close_button.setStyleSheet("background: transparent; border: none;")
+        close_button.clicked.connect(self.update_dialog.reject)
+        header_layout.addWidget(close_button)
+
+        layout.addLayout(header_layout)
+
+        # 分隔线
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        line.setStyleSheet("background-color: #E0E0E0;")
+        layout.addWidget(line)
+        layout.addSpacing(10)
 
         # 版本信息
-        version_label = QLabel(f"{self.tra('当前版本')}: {self.current_version}")
-        latest_version_label = QLabel(f"{self.tra('最新版本')}: {latest_version}")
-        layout.addWidget(version_label)
-        layout.addWidget(latest_version_label)
+        version_info_layout = QGridLayout()
+        version_info_layout.setContentsMargins(10, 10, 10, 10)
+        version_info_layout.setVerticalSpacing(15)
+
+        current_version_title = QLabel(f"{self.tra('当前版本')}:")
+        current_version_title.setStyleSheet("color: #666666;")
+        current_version_value = QLabel(f"{self.current_version}")
+        current_version_value.setStyleSheet("font-weight: bold;")
+
+        latest_version_title = QLabel(f"{self.tra('最新版本')}:")
+        latest_version_title.setStyleSheet("color: #666666;")
+        latest_version_value = QLabel(f"{latest_version}")
+        latest_version_value.setStyleSheet("font-weight: bold;")
+
+        version_info_layout.addWidget(current_version_title, 0, 0)
+        version_info_layout.addWidget(current_version_value, 0, 1)
+        version_info_layout.addWidget(latest_version_title, 1, 0)
+        version_info_layout.addWidget(latest_version_value, 1, 1)
+        version_info_layout.setColumnStretch(1, 1)
+
+        version_frame = QFrame()
+        version_frame.setLayout(version_info_layout)
+        version_frame.setStyleSheet("background-color: #f8f8f8; border-radius: 5px;")
+        layout.addWidget(version_frame)
 
         # Progress bar (initially hidden)
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
         self.progress_bar.setVisible(False)
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #E0E0E0;
+                border-radius: 3px;
+                background-color: #F5F5F5;
+                height: 20px;
+                text-align: center;
+            }
+            QProgressBar::chunk {
+                background-color: #4CAF50;
+                width: 10px;
+                margin: 0px;
+            }
+        """)
         layout.addWidget(self.progress_bar)
 
         # Status label
         self.status_label = QLabel("")
+        self.status_label.setStyleSheet("color: #666666;")
+        self.status_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.status_label)
 
-        button_layout = QHBoxLayout()
+        layout.addStretch()
 
+        # 按钮布局
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
+
+        # 更新按钮
         self.update_button = QPushButton(self.tra("开始更新"))
         self.update_button.clicked.connect(self._start_update)
+        self.update_button.setMinimumHeight(40)
+        self.update_button.setStyleSheet("""
+            QPushButton {
+                background-color: #1A1A1A;
+                color: white;
+                border-radius: 5px;
+                font-weight: bold;
+                padding: 6px 20px;
+            }
+            QPushButton:hover {
+                background-color: #333333;
+            }
+            QPushButton:pressed {
+                background-color: #000000;
+            }
+        """)
 
+        # 暂停按钮
         self.pause_button = QPushButton(self.tra("暂停"))
         self.pause_button.clicked.connect(self._pause_update)
         self.pause_button.setEnabled(False)
         self.pause_button.setVisible(False)
+        self.pause_button.setStyleSheet("""
+            QPushButton {
+                background-color: #F5F5F5;
+                border: 1px solid #CCCCCC;
+                border-radius: 5px;
+                padding: 6px 20px;
+            }
+            QPushButton:hover {
+                background-color: #EBEBEB;
+            }
+        """)
 
+        # 继续按钮
         self.resume_button = QPushButton(self.tra("继续"))
         self.resume_button.clicked.connect(self._resume_update)
         self.resume_button.setEnabled(False)
         self.resume_button.setVisible(False)
+        self.resume_button.setStyleSheet("""
+            QPushButton {
+                background-color: #F5F5F5;
+                border: 1px solid #CCCCCC;
+                border-radius: 5px;
+                padding: 6px 20px;
+            }
+            QPushButton:hover {
+                background-color: #EBEBEB;
+            }
+        """)
 
+        # 取消按钮
         self.cancel_button = QPushButton(self.tra("取消"))
         self.cancel_button.clicked.connect(self._cancel_update)
+        self.cancel_button.setMinimumHeight(40)
+        self.cancel_button.setStyleSheet("""
+            QPushButton {
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
+                border-radius: 5px;
+                padding: 6px 20px;
+            }
+            QPushButton:hover {
+                background-color: #F5F5F5;
+            }
+        """)
 
+        # 查看发布页按钮
         self.view_release_button = QPushButton(self.tra("查看发布页"))
         self.view_release_button.clicked.connect(self._open_release_page)
+        self.view_release_button.setCursor(Qt.PointingHandCursor)
+        self.view_release_button.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                color: #1976D2;
+                text-decoration: none;
+            }
+            QPushButton:hover {
+                color: #0D47A1;
+                text-decoration: underline;
+            }
+        """)
+        
+        self.view_release_button.setIconSize(QSize(16, 16))
 
-        button_layout.addWidget(self.update_button)
-        button_layout.addWidget(self.pause_button)
-        button_layout.addWidget(self.resume_button)
-        button_layout.addWidget(self.cancel_button)
-        button_layout.addWidget(self.view_release_button)
+        # 添加按钮到布局
+        button_container = QWidget()
+        button_container_layout = QHBoxLayout(button_container)
+        button_container_layout.setContentsMargins(0, 0, 0, 0)
+        button_container_layout.setSpacing(10)
 
-        layout.addLayout(button_layout)
+        # 左侧放置更新和取消按钮
+        left_buttons = QHBoxLayout()
+        left_buttons.addWidget(self.update_button)
+        left_buttons.addWidget(self.cancel_button)
+        button_container_layout.addLayout(left_buttons)
 
+        # 右侧放置查看发布页按钮
+        right_buttons = QHBoxLayout()
+        right_buttons.addWidget(self.view_release_button)
+        button_container_layout.addLayout(right_buttons)
+
+        # 添加暂停和继续按钮（初始隐藏）
+        button_container_layout.addWidget(self.pause_button)
+        button_container_layout.addWidget(self.resume_button)
+
+        layout.addWidget(button_container)
+
+        # 设置对话框布局
         self.update_dialog.setLayout(layout)
+
+
+        self.update_dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+
+        
+        self.update_dialog.setStyleSheet("""
+            QDialog {
+                background-color: #DDB2AE;
+                border-radius: 8px;
+            }
+        """)
+
+    
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(10)
+        shadow.setOffset(0, 0)
+        shadow.setColor(Qt.black)
+        self.update_dialog.setGraphicsEffect(shadow)
         self.update_dialog.exec_()
 
     def _start_download_with_url(self, url):
