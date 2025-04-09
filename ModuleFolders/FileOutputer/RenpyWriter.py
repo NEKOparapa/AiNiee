@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 from typing import List 
 
 from ModuleFolders.Cache.CacheItem import CacheItem
@@ -33,7 +34,7 @@ class RenpyWriter(BaseTranslatedWriter):
 
             original_line = lines[line_num]
             new_trans = item.translated_text # 新的翻译文本
-            new_trans = new_trans.replace('"', '\\"') # 转义双引号
+            new_trans = re.sub(r'(?<!\\)"',r'\\"', new_trans) # 转义双引号
 
             # 查找原始行中第一个和最后一个双引号的索引
             first_quote_index = original_line.find('"')
