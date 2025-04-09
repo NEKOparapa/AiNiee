@@ -2,10 +2,11 @@ import re
 from pathlib import Path
 
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    text_to_cache_item
+    text_to_cache_item, read_file_safely
 )
 
 
@@ -24,11 +25,11 @@ class LrcReader(BaseSourceReader):
     TITLE_PATTERN = re.compile(r'\[ti:(.*?)\]')
     TIMESTAMP_LYRIC_PATTERN = re.compile(r'(\[([0-9:.]+)\])(.*)')
 
-    def read_source_file(self, file_path: Path) -> list[CacheItem]:
-        content = file_path.read_text(encoding='utf-8')
+    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
+        content = read_file_safely(file_path, cache_project)
 
         # 切行
-        lyrics = content.split('\n')
+        lyrics = content.split(cache_project.get_line_ending())
         items = []
         subtitle_title = ''
         for line in lyrics:

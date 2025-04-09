@@ -3,6 +3,7 @@ from pathlib import Path
 import openpyxl  # 需安装库pip install openpyxl
 
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
@@ -22,7 +23,7 @@ class TPPReader(BaseSourceReader):
     def support_file(self):
         return "xlsx"
 
-    def read_source_file(self, file_path: Path) -> list[CacheItem]:
+    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
         wb = openpyxl.load_workbook(file_path)
         sheet = wb.active
         items = []

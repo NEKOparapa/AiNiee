@@ -65,7 +65,7 @@ class BaseSourceReader(ABC):
         pass
 
     @abstractmethod
-    def read_source_file(self, file_path: Path) -> list[CacheItem]:
+    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
         """读取文件内容，并返回原文(译文)片段"""
         pass
 
@@ -105,6 +105,10 @@ class BaseSourceReader(ABC):
 3. 在 `read_source_file` 读取源文件，把源文档会被分拆成多个片段，并返回原文片段列表 `list[CacheItem]`
 4. `CacheItem` 中只定义了通用的属性，若实在有需要可直接给 `CacheItem` 赋值，如 `item.sentence_indent = spaces`
 5. 为保持可读性和可维护性，一些复杂的计算逻辑可提取成函数如 `_count_next_empty_line`
+6. 使用了 `BaseReader` 中的 `read_file_safely` 函数，可以试图正确读取多种编码的文件，并将文件的原始编码与行尾序列保存至 `CacheProject` 类中，供后续的 `Writer` 使用
+7. **特别注意**：
+
+    `read_file_safely` 函数仅支持纯文本读取，请在仅当文本为纯文本时才使用
 
 ```python
 class TxtReader(BaseSourceReader):
@@ -120,10 +124,12 @@ class TxtReader(BaseSourceReader):
     def support_file(self):
         return "txt"
 
-    def read_source_file(self, file_path: Path) -> list[CacheItem]:
+    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
         items = []
         # 切行
-        lines = file_path.read_text(encoding='utf-8').split('\n')
+        # 使用 `BaseReader` 中的 `read_file_safely` 函数正确读取多种编码的文件，并将原始编码与行尾序列保存至 `CacheProject` 类中
+        # 可供后续的 `Writer` 使用
+        lines = read_file_safely(file_path, cache_project).split(cache_project.get_line_ending())
         for j, line in enumerate(lines):
             if line.strip() == '':  # 跳过空行
                 continue
@@ -162,6 +168,10 @@ class BaseTranslationWriter(ABC):
     """Writer基类，在其生命周期内可以输出多个文件"""
     def __init__(self, output_config: OutputConfig) -> None:
         self.output_config = output_config
+
+        # 提取译文输出的编码和换行符配置
+        self.translated_encoding = output_config.translated_config.file_encoding or "utf-8"
+        self.translated_line_ending = output_config.translated_config.line_ending or os.linesep
 
     NOT_TRANSLATED_STATUS = (CacheItem.STATUS.UNTRANSLATED, CacheItem.STATUS.TRANSLATING)
 
@@ -234,14 +244,21 @@ class BaseBilingualWriter(BaseTranslationWriter):
 1. `TxtWriter` 要同时支持译文输出和双语输出，所以 `bilingual_config.enable` 也是 `True`
 2. `name_suffix` 代表输出文件的后缀，如果后缀是 `_translated`，那么 `aaa.txt` 的译文文件名是 `aaa_translated.txt`
 3. `output_root` 代表输出的根目录，也就是用户界面 项目配置 -> 输出文件夹，此处译文文件直接在 输出文件夹 下输出，而双语文件在 输出文件夹的子文件夹`bilingual_txt` 下输出
+4. `file_encoding` 代表从之前Reader中保存至 `CacheProject` 中的 `file_encoding`（原始文件编码）
+5. `line_ending` 代表从之前Reader中保存至 `CacheProject` 中的 `line_ending`（原始行尾序列）
+6. **特别注意**：
+
+    `file_encoding` 与 `line_ending` 仅当在 `XxxReader` 的 `read_source_file` 函数中使用了 `read_file_safely` 函数后才存在，否则将使用`utf-8`与系统默认行尾序列的组合
 
 ```python
 OutputConfig(
     translated_config=TranslationOutputConfig(
-        enabled=True, name_suffix="_translated", output_root=output_path
+        enabled=True, name_suffix="_translated", output_root=output_path, 
+        file_encoding=file_encoding, line_ending=line_ending
     ),
     bilingual_config=TranslationOutputConfig(
-        enabled=True, name_suffix="_bilingual", output_root=output_path / "bilingual_txt"
+        enabled=True, name_suffix="_bilingual", output_root=output_path / "bilingual_txt", 
+        file_encoding=file_encoding, line_ending=line_ending
     ),
 )
 ```
@@ -253,6 +270,10 @@ OutputConfig(
 3. 在 `write_bilingual_file` 方法中输出双语文件，在 `write_translated_file` 方法中输出译文文件
 4. 译文和双语的区别在于怎么替换原文片段，建议抽出公共方法如 `_write_translation_file`，把替换原文片段的逻辑作为参数传入
 5. 此处用到了 `CacheItem` 中未定义的属性 `item.sentence_indent` ，如果不保证属性存在请使用 `getattr`
+6. 保存文件时的 `encoding=self.translated_encoding` 从之前Reader中保存至 `CacheProject` 中的 `file_encoding` 项中获取<br/>（若需要原始的行尾序列，可添加配置 `newline=self.translated_line_ending` 实现）
+7. **特别注意**：
+
+    `translated_encoding` 与 `translated_line_ending` 仅当在 `XxxReader` 的 `read_source_file` 函数中使用了 `read_file_safely` 函数后才存在，否则将使用`utf-8`与系统默认行尾序列的组合
 
 ```python
 class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
@@ -276,7 +297,7 @@ class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
         item_to_line: Callable[[CacheItem], str],
     ):
         lines = list(map(item_to_line, items))
-        translation_file_path.write_text("".join(lines), encoding="utf-8")
+        translation_file_path.write_text("".join(lines), encoding=self.translated_encoding)
 
     def _item_to_bilingual_line(self, item: CacheItem):
         indent = "　" * item.sentence_indent

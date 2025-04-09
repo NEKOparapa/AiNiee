@@ -2,10 +2,11 @@ import re
 from pathlib import Path
 
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    text_to_cache_item
+    text_to_cache_item, read_file_safely
 )
 
 
@@ -23,8 +24,8 @@ class VttReader(BaseSourceReader):
 
     TIME_CODE_PATTERN = re.compile(r"(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})")
 
-    def read_source_file(self, file_path: Path) -> list[CacheItem]:
-        content = file_path.read_text(encoding='utf-8').strip()
+    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
+        content = read_file_safely(file_path, cache_project).strip()
 
         header, body = self._split_header_body(content)
         blocks = self._split_blocks(body)

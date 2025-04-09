@@ -1,3 +1,4 @@
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,6 +11,8 @@ class TranslationOutputConfig:
     enabled: bool = False
     name_suffix: str = ""
     output_root: Path = None
+    file_encoding: str = ""
+    line_ending: str = ""
 
 
 @dataclass
@@ -28,6 +31,10 @@ class BaseTranslationWriter(ABC):
     """Writer基类，在其生命周期内可以输出多个文件"""
     def __init__(self, output_config: OutputConfig) -> None:
         self.output_config = output_config
+
+        # 提取译文输出的编码和换行符配置
+        self.translated_encoding = output_config.translated_config.file_encoding or "utf-8"
+        self.translated_line_ending = output_config.translated_config.line_ending or os.linesep
 
     NOT_TRANSLATED_STATUS = (CacheItem.STATUS.UNTRANSLATED, CacheItem.STATUS.TRANSLATING)
 

@@ -9,6 +9,9 @@ class CacheProject():
         self.project_id: str = ""
         self.project_type: str = ""
         self.data: dict = {}
+        # 新增值，用于保存文件编码与换行符类型
+        self.file_encoding: str = ""  # 默认为空表示无特定reader编码需求
+        self.line_ending: str = ""  # 默认为空表示无特定reader编码需求
 
         # 初始化
         for k, v in args.items():
@@ -68,4 +71,24 @@ class CacheProject():
     def set_data(self, data: dict) -> None:
         with self.lock:
             self.data = data
+
+    # 获取文件编码
+    def get_file_encoding(self) -> str:
+        with self.lock:
+            return self.file_encoding
+
+    # 设置文件编码
+    def set_file_encoding(self, encoding: str) -> None:
+        with self.lock:
+            self.file_encoding = encoding
+
+    # 获取换行符类型
+    def get_line_ending(self) -> str:
+        with self.lock:
+            return self.line_ending
+
+    # 设置换行符类型
+    def set_line_ending(self, line_ending: str) -> None:
+        with self.lock:
+            self.line_ending = line_ending
 

@@ -39,7 +39,7 @@ class SrtWriter(BaseBilingualWriter, BaseTranslatedWriter):
             for block in yield_block(item):
                 output.append("\n".join(block).strip())
         if output:
-            translation_file_path.write_text("\n\n".join(output), encoding="utf-8")
+            translation_file_path.write_text("\n\n".join(output), encoding=self.translated_encoding)
 
     def _map_to_translated_item(self, item: CacheItem):
         block = [

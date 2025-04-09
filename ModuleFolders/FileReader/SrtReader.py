@@ -1,10 +1,11 @@
 from pathlib import Path
 
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    text_to_cache_item
+    text_to_cache_item, read_file_safely
 )
 
 
@@ -20,8 +21,8 @@ class SrtReader(BaseSourceReader):
     def support_file(self):
         return "srt"
 
-    def read_source_file(self, file_path: Path) -> list[CacheItem]:
-        lines = [line.lstrip("\ufeff").strip() for line in file_path.read_text(encoding="utf-8").splitlines()]
+    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
+        lines = [line.strip() for line in read_file_safely(file_path, cache_project).split(cache_project.get_line_ending())]
 
         current_block = None
         items = []

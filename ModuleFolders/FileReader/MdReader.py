@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader.BaseReader import BaseSourceReader, InputConfig
 from ModuleFolders.FileReader.TxtReader import TxtReader
 
@@ -8,7 +9,7 @@ from ModuleFolders.FileReader.TxtReader import TxtReader
 class MdReader(BaseSourceReader):
     def __init__(self, input_config: InputConfig):
         super().__init__(input_config)
-        self.txt_reader = TxtReader(input_config, 2)  # 简单复用TxtReader，如有另外实现请删除
+        self.txt_reader = TxtReader(input_config, None)  # 简单复用TxtReader，如有另外实现请删除
 
     def __enter__(self):
         self.txt_reader.__enter__()
@@ -26,8 +27,8 @@ class MdReader(BaseSourceReader):
     def support_file(self):
         return "md"
 
-    def read_source_file(self, file_path: Path) -> list[CacheItem]:
-        items = self.txt_reader.read_source_file(file_path)
+    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
+        items = self.txt_reader.read_source_file(file_path, cache_project)
         for item in items:
             item.original_line = item.get_source_text()
         return items
