@@ -74,7 +74,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: Beta
-          release_name: AiNiee-Beta 开发测试版本，由最新源码自动打包
+          name: AiNiee-Beta 开发测试版本，由最新源码自动打包
+          body: AiNiee-Beta 开发测试版本，由最新源码自动打包
           draft: false
           prerelease: true
           files: AiNiee-Beta.zip
