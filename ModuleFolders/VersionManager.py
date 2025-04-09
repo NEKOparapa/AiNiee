@@ -29,13 +29,13 @@ class VersionManager(Base):
         self.update_dialog = None
         self.signals = UpdaterSignals()
 
-        # Connect signals
+
         self.signals.progress_updated.connect(self._update_progress)
         self.signals.download_completed.connect(self._download_completed)
         self.signals.download_failed.connect(self._download_failed)
 
     def _get_current_version(self):
-        """Get the current version from the Version file"""
+        """从Version中获取版本"""
         try:
             with open("Version", "r", encoding="utf-8") as f:
                 return f.read().strip()
@@ -44,7 +44,7 @@ class VersionManager(Base):
             return "0.0.0"
 
     def check_for_updates(self):
-        """Check if updates are available"""
+        """检查是否需要更新"""
         try:
             response = requests.get(self.GITHUB_API_URL, timeout=10)
             if response.status_code == 200:
@@ -73,11 +73,11 @@ class VersionManager(Base):
             return False, self.current_version
 
     def _compare_versions(self, version1, version2):
-        """Compare two version strings"""
+        """比较版本号"""
         v1_parts = [int(x) for x in version1.split(".")]
         v2_parts = [int(x) for x in version2.split(".")]
 
-        # Pad with zeros if needed
+        # 填充版本号，使得版本号的位数相同
         while len(v1_parts) < 3:
             v1_parts.append(0)
         while len(v2_parts) < 3:
@@ -128,7 +128,6 @@ class VersionManager(Base):
         self.status_label = QLabel("")
         layout.addWidget(self.status_label)
 
-        # Buttons
         button_layout = QHBoxLayout()
 
         self.update_button = QPushButton(self.tra("开始更新"))
@@ -162,7 +161,7 @@ class VersionManager(Base):
         self.update_dialog.exec_()
 
     def _start_update(self):
-        """Start the update process"""
+        """开始更新进程"""
         self.progress_bar.setVisible(True)
         self.status_label.setText(self.tra("正在下载更新..."))
         self.update_button.setEnabled(False)
@@ -184,7 +183,7 @@ class VersionManager(Base):
                         break
 
                 if download_url:
-                    # Start download in a separate thread
+                    # 在单独的线程中启动下载
                     self.download_thread = threading.Thread(
                         target=self._download_update,
                         args=(download_url,)
@@ -206,15 +205,15 @@ class VersionManager(Base):
             self.pause_button.setVisible(False)
 
     def _download_update(self, url):
-        """Download the update file"""
+        """下载更新文件"""
         try:
-            # Create downloads directory if it doesn't exist
+            # 如果目录不存在，则创建
             os.makedirs("downloads", exist_ok=True)
 
-            # Download file
+
             local_filename = os.path.join("downloads", "AiNiee-update.zip")
 
-            # Stream the download to show progress
+            # 显示下载进度
             with requests.get(url, stream=True) as r:
                 r.raise_for_status()
                 total_size = int(r.headers.get('content-length', 0))
@@ -275,7 +274,7 @@ class VersionManager(Base):
             if self.update_dialog:
                 self.update_dialog.accept()
 
-            # Run the updater
+            # 通过rust更新器更新
             self._run_updater(filename)
         else:
             self.status_label.setText(self.tra("更新已下载，将在下次启动时安装"))
@@ -324,25 +323,39 @@ class VersionManager(Base):
         if self.latest_version_url:
             QDesktopServices.openUrl(QUrl(self.latest_version_url))
 
+    def _update_version_file(self, new_version):
+        """更新Version文件中的版本号"""
+        try:
+            with open("Version", "w", encoding="utf-8") as f:
+                f.write(new_version)
+            self.info(f"Updated Version file to {new_version}")
+            return True
+        except Exception as e:
+            self.error(f"Failed to update Version file: {e}")
+            return False
+
     def _run_updater(self, update_file):
         """Run the updater executable"""
         try:
             # Get the current directory
             current_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
+            # 更新Version文件
+            self._update_version_file(self.latest_version)
+
             # Run the updater
             import subprocess
             updater_path = os.path.join(current_dir, "updater.exe")
 
             if os.path.exists(updater_path):
-                # Start the updater and exit the application
+                # 启动更新器并退出应用程序
                 subprocess.Popen([
                     updater_path,
                     update_file,
                     current_dir
                 ])
 
-                # Exit the application
+                # 退出应用程序
                 self.emit(Base.EVENT.APP_SHUT_DOWN, {})
                 sys.exit(0)
             else:

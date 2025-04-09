@@ -96,7 +96,7 @@ fn main() -> Result<()> {
     
     // 等待主程序退出
     for i in 0..60 {
-        if !is_file_locked("app.exe") {
+        if !is_file_locked("AiNiee.exe") {
             break;
         } else {
             info!("准备中 {}", "…".repeat(i + 1));
@@ -119,7 +119,7 @@ fn main() -> Result<()> {
         extract_zip(&src, temp_dir.to_str().unwrap())?;
         
         // 移动文件
-        let extracted_folder = temp_dir.join("LinguaGacha");
+        let extracted_folder = temp_dir.join("dist");
         copy_directory(&extracted_folder, &PathBuf::from(&dst))?;
         
        
