@@ -7,6 +7,7 @@ cmd = [
     "--clean", # Clean PyInstaller cache and remove temporary files before building.
     "--onefile", # Create a one-file bundled executable.
     "--noconfirm", # Replace output directory (default: SPECPATH/dist/SPECNAME) without asking for confirmation
+    # "--distpath=./dist/AiNiee" #指定输出目录
 ]
 
 if os.path.exists("./requirements.txt"):

@@ -1,4 +1,4 @@
-name: AiNiee-chatgpt Action monitors the main branch commit and automatically packs it into an exe file to Beta release.
+name: AiNiee Beta Build.
 on:
   workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
   push:
@@ -12,6 +12,28 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      
+      - name: Build Rust Updater
+        shell: cmd
+        run: |
+          cd rust_updater
+          cargo build --release --package updater
+      
+      # 可以减少rust更新器和python可执行文件大小
+      - name: Install UPX
+        shell: cmd
+        run: |
+          choco install upx -y
+      
+      - name: Compress Rust Binaries
+        shell: cmd
+        run: |
+          upx --best --lzma .\rust_updater\target\release\updater.exe
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -33,6 +55,8 @@ jobs:
           Copy-Item -Path "Resource" -Destination "dist\Resource" -Recurse -Force
           Copy-Item -Path "StevExtraction" -Destination "dist\StevExtraction" -Recurse -Force
           Copy-Item -Path "PluginScripts" -Destination "dist\PluginScripts" -Recurse -Force
+          Copy-Item -Path ".\rust_updater\target\release\updater.exe" -Destination "dist\updater.exe" -Force
+          Copy-Item -path "Version" -Destination "dist\Version" -Force
           Compress-Archive -Path "dist" -DestinationPath "AiNiee-Beta.zip"
 
       - name: Delete release
@@ -41,25 +65,17 @@ jobs:
           tag_name: Beta
           delete_release: true
         env:
-          GITHUB_TOKEN: ${{ secrets.AINIEE }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create release
+      - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.AINIEE }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: Beta
-          release_name: AiNiee-Beta 开发测试版本，由最新源码自动打包
+          name: AiNiee-Beta 开发测试版本，由最新源码自动打包
+          body: AiNiee-Beta 开发测试版本，由最新源码自动打包
           draft: false
           prerelease: true
-
-      - name: Upload file
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.AINIEE }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./AiNiee-Beta.zip
-          asset_name: AiNiee-Beta.zip
-          asset_content_type: application/octet-stream
+          files: AiNiee-Beta.zip

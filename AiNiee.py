@@ -40,6 +40,15 @@ from ModuleFolders.RequestTester.RequestTester import RequestTester
 from ModuleFolders.RequestTester.ProcessTester import ProcessTester
 from UserInterface.AppFluentWindow import AppFluentWindow
 
+def display_banner():
+    print(" █████   ██  ███    ██  ██  ███████  ███████ ")
+    print("██   ██  ██  ████   ██  ██  ██       ██      ")
+    print("███████  ██  ██ ██  ██  ██  █████    █████   ")
+    print("██   ██  ██  ██  ██ ██  ██  ██       ██      ")
+    print("██   ██  ██  ██   ████  ██  ███████  ███████ ")
+    print("                                        ")
+    print("                                        ")
+
 # 载入配置文件
 def load_config() -> dict:
     config = {}
@@ -63,6 +72,7 @@ if __name__ == "__main__":
     # 设置工作目录
     script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     sys.path.append(script_dir)
+    display_banner()
     print(f"[[green]INFO[/]] Current working directory is {script_dir}")
 
     # 创建全局插件管理器
