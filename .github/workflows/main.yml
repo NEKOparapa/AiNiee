@@ -12,6 +12,28 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      
+      - name: Build Rust Updater
+        shell: cmd
+        run: |
+          cd rust_updater
+          cargo build --release --package updater
+      
+      # 可以减少rust更新器和python可执行文件大小
+      - name: Install UPX
+        shell: cmd
+        run: |
+          choco install upx -y
+      
+      - name: Compress Rust Binaries
+        shell: cmd
+        run: |
+          upx --best --lzma .\rust_updater\target\release\updater.exe
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -33,6 +55,8 @@ jobs:
           Copy-Item -Path "Resource" -Destination "dist\Resource" -Recurse -Force
           Copy-Item -Path "StevExtraction" -Destination "dist\StevExtraction" -Recurse -Force
           Copy-Item -Path "PluginScripts" -Destination "dist\PluginScripts" -Recurse -Force
+          xcopy ".\rust_updater\target\release\updater.exe" ".\dist\updater.exe" /Q /Y
+          
           Compress-Archive -Path "dist" -DestinationPath "AiNiee-Beta.zip"
 
       - name: Delete release

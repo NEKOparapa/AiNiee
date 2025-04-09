@@ -1,3 +1,4 @@
+///  这个更新器一般情况下不需要再次构建，可以删除我在工作流中添加的构建流程
 use std::fs::{self, File};
 use std::io;
 use std::path::{Path, PathBuf};
@@ -10,7 +11,7 @@ use simple_logger::SimpleLogger;
 use zip::ZipArchive;
 
 #[derive(Parser, Debug)]
-#[clap(author, version, about = "LinguaGacha 更新程序")]
+#[clap(author, version, about = "Ainiee 更新器")]
 struct Args {
     /// 源文件路径（ZIP文件）
     #[clap(index = 1)]
@@ -121,18 +122,18 @@ fn main() -> Result<()> {
         let extracted_folder = temp_dir.join("LinguaGacha");
         copy_directory(&extracted_folder, &PathBuf::from(&dst))?;
         
-        // 清理临时目录
+       
         fs::remove_dir_all(temp_dir)?;
         
         Ok(())
     })();
     
-    // 删除源文件
+   
     if let Err(e) = fs::remove_file(&src) {
         error!("无法删除源文件: {}", e);
     }
     
-    // 打印结果
+
     match result {
         Ok(_) => {
             info!("文件更新成功 …");
@@ -146,7 +147,7 @@ fn main() -> Result<()> {
         }
     }
     
-    // 等待关闭
+  
     info!("10 秒后自动关闭本窗口 …");
     info!("This window will automatically close in 10 seconds …");
     sleep(Duration::from_secs(10));
