@@ -46,33 +46,32 @@ class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
 
     def _item_to_final_line(self, item: CacheItem, item_to_line_func: Callable):
         """处理最后一个项目，只保留原始换行符"""
-        indent = "　" * item.sentence_indent
+        indent = item.sentence_indent
+        # 保留原始换行符
+        original_line_break = "\n" * item.line_break if item.line_break > 0 else ""
 
         if item_to_line_func == self._item_to_bilingual_line:
-            # 对于双语模式，保留原始换行符
-            original_line_break = "\n" * item.line_break if item.line_break > 0 else ""
             return (
                 f"{indent}{item.get_source_text().lstrip()}\n"
                 f"{indent}{item.get_translated_text().lstrip()}{original_line_break}"
             )
         else:  # item_to_line_func == self._item_to_translated_line
-            # 对于翻译模式，保留原始换行符
-            original_line_break = "\n" * item.line_break if item.line_break > 0 else ""
             return f"{indent}{item.get_translated_text().lstrip()}{original_line_break}"
 
     def _item_to_bilingual_line(self, item: CacheItem):
-        indent = "　" * item.sentence_indent
         # 至少2个换行，让双语排版不那么紧凑
         line_break = "\n" * max(item.line_break + 1, 2)
+        indent = item.sentence_indent
+
         return (
             f"{indent}{item.get_source_text().lstrip()}\n"
             f"{indent}{item.get_translated_text().lstrip()}{line_break}"
         )
 
     def _item_to_translated_line(self, item: CacheItem):
-        indent = "　" * item.sentence_indent
         line_break = "\n" * (item.line_break + 1)
-        return f"{indent}{item.get_translated_text().lstrip()}{line_break}"
+
+        return f"{item.sentence_indent}{item.get_translated_text().lstrip()}{line_break}"
 
     @classmethod
     def get_project_type(self):

@@ -9,7 +9,7 @@ from ModuleFolders.FileReader.TxtReader import TxtReader
 class MdReader(BaseSourceReader):
     def __init__(self, input_config: InputConfig):
         super().__init__(input_config)
-        self.txt_reader = TxtReader(input_config, 2)  # 简单复用TxtReader，如有另外实现请删除
+        self.txt_reader = TxtReader(input_config, None)  # 简单复用TxtReader，如有另外实现请删除
 
     def __enter__(self):
         self.txt_reader.__enter__()
