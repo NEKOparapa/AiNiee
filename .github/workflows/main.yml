@@ -68,7 +68,7 @@ jobs:
         with:
           tag_name: Beta
           delete_release: true
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.AINIEE }}
 
       - name: Create Release
         id: create_release
@@ -80,4 +80,4 @@ jobs:
           draft: false
           prerelease: true
           files: AiNiee-Beta.zip
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.AINIEE }}
