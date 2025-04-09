@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
@@ -64,7 +65,7 @@ class RenpyReader(BaseSourceReader):
             return i, line
         return None
 
-    def read_source_file(self, file_path: Path) -> List[CacheItem]:
+    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
 
         lines = file_path.read_text(encoding="utf-8").splitlines()
 
