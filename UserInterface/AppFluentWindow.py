@@ -162,6 +162,11 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
                         self.version_manager.current_version, latest_version
                     )
                 )
+            else:
+                self.info_toast(
+                    self.tra("更新检查"),
+                    self.tra("当前已是最新版本")
+                )
 
     # 开始添加页面
     def add_pages(self, plugin_manager: PluginManager) -> None:
