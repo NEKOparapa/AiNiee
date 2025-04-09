@@ -263,7 +263,9 @@ class TranslatorTask(Base):
                 total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):
                     # 不去除空白内容，保留\r其他平台的换行符，虽然AI回复不一定保留...
-                    numbered_text += f""""{index + 1}.{total_lines - sub_index}.{sub_line}",\n"""
+                    # 仅当 **只有一个** 尾随空格时才去除
+                    sub_line = sub_line[:-1] if re.match(r'.*[^ ] $', sub_line) else sub_line
+                    numbered_text += f""""{index + 1}.{total_lines - sub_index}.,{sub_line}",\n"""
                 numbered_text = numbered_text.rstrip('\n')
                 numbered_text = numbered_text.rstrip(',')
                 numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
@@ -382,7 +384,9 @@ class TranslatorTask(Base):
                 numbered_text = f"{index + 1}.[\n"
                 total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):
-                    numbered_text += f""""{index + 1}.{total_lines - sub_index}.{sub_line}",\n"""
+                    # 仅当 **只有一个** 尾随空格时才去除
+                    sub_line = sub_line[:-1] if re.match(r'.*[^ ] $', sub_line) else sub_line
+                    numbered_text += f""""{index + 1}.{total_lines - sub_index}.,{sub_line}",\n"""
                 numbered_text = numbered_text.rstrip('\n')
                 numbered_text = numbered_text.rstrip(',')
                 numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
@@ -475,7 +479,9 @@ class TranslatorTask(Base):
                 numbered_text = f"{index + 1}.[\n"
                 total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):
-                    numbered_text += f""""{index + 1}.{total_lines - sub_index}.{sub_line}",\n"""
+                    # 仅当 **只有一个** 尾随空格时才去除
+                    sub_line = sub_line[:-1] if re.match(r'.*[^ ] $', sub_line) else sub_line
+                    numbered_text += f""""{index + 1}.{total_lines - sub_index}.,{sub_line}",\n"""
                 numbered_text = numbered_text.rstrip('\n')
                 numbered_text = numbered_text.rstrip(',')
                 numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符

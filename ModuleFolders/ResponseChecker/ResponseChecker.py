@@ -173,7 +173,7 @@ class ResponseChecker():
                 # 检查每一行是否都有实际内容（除了序号和格式标记外）
                 for i, line in enumerate(input_lines):
                     # 移除序号部分（如"1.2."）
-                    content_after_prefix = re.sub(r'^\s*\d+\.(\d+\.)?\s*', '', line).strip()
+                    content_after_prefix = re.sub(r'^\s*\d+\.\d+\.[,，\s]\s*', '', line).strip()
 
                     # 如果回复行为空
                     if not content_after_prefix:
