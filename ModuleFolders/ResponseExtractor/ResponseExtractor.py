@@ -24,8 +24,8 @@ class ResponseExtractor():
             NTL_result = NTL_result = ResponseExtractor.extract_ntl(self,response_content)
 
             return translation_result, glossary_result, NTL_result
-        except :
-            print("\033[1;33mWarning:\033[0m 回复内容无法正常提取，请反馈\n")
+        except Exception as e:
+            print(f"\033[1;33mWarning:\033[0m 回复内容无法正常提取，请反馈\n错误信息: {str(e)}")
             return {},{},{}
 
     #处理并正则提取翻译内容(sakura接口专用)
@@ -58,8 +58,8 @@ class ResponseExtractor():
 
 
             return translation_result,{},{}
-        except :
-            print("\033[1;33mWarning:\033[0m 回复内容无法正常提取，请反馈\n")
+        except Exception as e:
+            print(f"\033[1;33mWarning:\033[0m 回复内容无法正常提取，请反馈\n错误信息: {str(e)}")
             return {},{},{}
 
     # 提取翻译结果内容
@@ -107,6 +107,14 @@ class ResponseExtractor():
 
         return filtered_dict
 
+    # 查找下一个引号（同时支持英文引号和中文结束引号）
+    def find_next_quote(self, text, start_pos):
+        pattern = re.compile(r'[”\"]')
+        match = pattern.search(text, start_pos)
+        if match:
+            return match.start()
+        return -1
+
     # 提取文本为字典
     def extract_text_to_dict(self, input_string: str) -> Dict[str, str]:
         """
@@ -153,7 +161,7 @@ class ResponseExtractor():
                             break  # 到达内容末尾
 
                         # 列表项必须以引号开头
-                        if list_content[current_pos] != '"':
+                        if list_content[current_pos] not in ['“', '"']:
                             print(f"警告：列表块 '{block[:30]}...' 内在位置 {current_pos} 检测到非预期字符（应为 双引号），内容片段: ...{list_content[current_pos:current_pos + 30]}...")
                             # 决定是跳到下一个可能的逗号还是终止此块的处理
                             next_comma = list_content.find(',', current_pos)
@@ -170,7 +178,7 @@ class ResponseExtractor():
                         found_end_quote = False
                         while search_pos < len_content:
                             # 查找下一个引号
-                            end_quote_pos = list_content.find('"', search_pos)
+                            end_quote_pos = ResponseExtractor.find_next_quote(self, list_content, search_pos)
 
                             if end_quote_pos == -1:
                                 print(f"警告：列表块 '{block[:30]}...' 内检测到未闭合的引号，起始于位置 {start_quote_pos}: ...{list_content[start_quote_pos:start_quote_pos + 50]}...")
@@ -200,8 +208,8 @@ class ResponseExtractor():
                                 break  # 找到了当前项，跳出内部查找循环
                             # 新增：检查是否是下一个编号项的开始（以引号开头且引号后紧跟数字.数字.格式）
                             # 目前发现ds有漏掉引号后逗号的毛病，增强一下健壮性
-                            elif (next_char_idx < len_content and list_content[next_char_idx] == '"' and
-                                  re.match(r'\"\d+\.\d+\.', list_content[next_char_idx:min(next_char_idx + 12, len_content)])):
+                            elif (next_char_idx < len_content and list_content[next_char_idx] in ['”', '"'] and
+                                  re.match(r'\"\d+\.\d+\.[,，\s]', list_content[next_char_idx:min(next_char_idx + 12, len_content)])):
                                 # 提取当前项内容
                                 item_content = list_content[start_quote_pos + 1: end_quote_pos].strip()
                                 items_in_block.append(item_content)
@@ -323,7 +331,7 @@ class ResponseExtractor():
             for i, line in enumerate(translation_lines):
 
                 # 去除数字序号 (只匹配 "1.", "1.2." 等，并保留原文中的缩进空格)
-                temp_line = re.sub(r'^\s*\d+\.(\d+\.)?', '', line)
+                temp_line = re.sub(r'^\s*\d+\.(\d+\.[,，\s])?', '', line)
                 cleaned_lines.append(temp_line)
 
             processed_text = '\n'.join(cleaned_lines)
