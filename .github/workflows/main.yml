@@ -65,26 +65,16 @@ jobs:
           tag_name: Beta
           delete_release: true
         env:
-          GITHUB_TOKEN: ${{ secrets.AINIEE }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create release
+      - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.AINIEE }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: Beta
           release_name: AiNiee-Beta 开发测试版本，由最新源码自动打包
           draft: false
           prerelease: true
-
-      - name: Upload file
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.AINIEE }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./AiNiee-Beta.zip
-          asset_name: AiNiee-Beta.zip
-          asset_content_type: application/octet-stream
-
+          files: AiNiee-Beta.zip
