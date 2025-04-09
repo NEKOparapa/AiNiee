@@ -132,7 +132,7 @@ class TranslatorConfig(Base):
             print(self.actual_thread_counts)
 
 
-    # 准备翻译
+    # 准备翻译（石山，待改进）
     def prepare_for_translation(self) -> None:
 
         # 初始化术语表缓存区
