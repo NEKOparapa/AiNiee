@@ -25,22 +25,12 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Build Rust Updater
-        shell: cmd
-        run: |
-          cd rust_updater
-          cargo build --release --package updater
 
       # 可以减少rust更新器和python可执行文件大小
       - name: Install UPX
         shell: cmd
         run: |
           choco install upx -y
-
-      - name: Compress Rust Binaries
-        shell: cmd
-        run: |
-          upx --best --lzma .\Tools\rust_updater\target\release\updater.exe
 
       - name: Set up Python
         uses: actions/setup-python@v5
