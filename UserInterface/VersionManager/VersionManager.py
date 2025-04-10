@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import json
 import signal
@@ -21,10 +22,10 @@ class VersionManager(Base):
     # GitHub API URL for releases
     GITHUB_API_URL = "https://api.github.com/repos/NEKOparapa/AiNiee/releases/latest"
 
-    def __init__(self, main_window=None):
+    def __init__(self, main_window=None, version = "0.0.0"):
         super().__init__()
         self.main_window = main_window
-        self.current_version = self._get_current_version()
+        self.current_version = self._get_current_version(version)
         self.latest_version = None
         self.latest_version_url = None
         self.download_thread = None
@@ -36,13 +37,13 @@ class VersionManager(Base):
         self.signals.download_completed.connect(self._download_completed)
         self.signals.download_failed.connect(self._download_failed)
 
-    def _get_current_version(self):
-        """从Version中获取版本"""
-        try:
-            with open("Version", "r", encoding="utf-8") as f:
-                return f.read().strip()
-        except Exception as e:
-            self.error(f"Failed to read current version: {e}")
+    def _get_current_version(self,version):
+        # re.search 会查找字符串中第一个匹配该模式的位置
+        match = re.search(r'\d+(\.\d+)*', version)
+
+        if match:
+            return match.group(0) # 返回整个匹配到的字符串
+        else:
             return "0.0.0"
 
     def check_for_updates(self):
@@ -620,17 +621,6 @@ class VersionManager(Base):
         if self.latest_version_url:
             QDesktopServices.openUrl(QUrl(self.latest_version_url))
 
-    def _update_version_file(self, new_version):
-        """更新Version文件中的版本号"""
-        try:
-            with open("Version", "w", encoding="utf-8") as f:
-                f.write(new_version)
-            self.info(f"Updated Version file to {new_version}")
-            return True
-        except Exception as e:
-            self.error(f"Failed to update Version file: {e}")
-            return False
-
     def _run_updater(self, update_file):
         """Run the updater executable"""
         try:
@@ -639,7 +629,7 @@ class VersionManager(Base):
 
 
             import subprocess
-            updater_path = os.path.join(current_dir, "updater.exe")
+            updater_path = os.path.join(current_dir, "Resource", "Updater", "updater.exe")
 
             if os.path.exists(updater_path):
                 # 使用PowerShell启动更新器
@@ -657,8 +647,6 @@ class VersionManager(Base):
                 # 退出当前程序
                 os.kill(os.getpid(), signal.SIGTERM)
 
-                # 更新Version文件
-                self._update_version_file(self.latest_version)
             else:
                 self.error(f"Updater not found: {updater_path}")
                 self.status_label.setText(self.tra("更新程序未找到"))

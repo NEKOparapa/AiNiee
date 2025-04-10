@@ -41,13 +41,12 @@ from UserInterface.Quality.WorldBuildingPromptPage import WorldBuildingPromptPag
 from UserInterface.Quality.CharacterizationPromptPage import CharacterizationPromptPage
 from UserInterface.Quality.TranslationExamplePromptPage import TranslationExamplePromptPage
 
-
 from StevExtraction import jtpp
 from UserInterface.Extraction_Tool.Export_Source_Text import Widget_export_source_text
 from UserInterface.Extraction_Tool.Import_Translated_Text import Widget_import_translated_text
 from UserInterface.Extraction_Tool.Export_Update_Text import Widget_update_text
 
-from ModuleFolders.VersionManager import VersionManager
+from UserInterface.VersionManager.VersionManager import VersionManager
 
 class AppFluentWindow(FluentWindow, Base): #主窗口
 
@@ -90,10 +89,11 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.titleBar.iconLabel.hide()
 
         # 初始化版本管理器
-        self.version_manager = VersionManager(self)
+        self.version_manager = VersionManager(self, version)
 
         # 设置定时器检查更新（在应用加载完成后）
-        QTimer.singleShot(3000, self.check_for_updates)
+        # 暂时不使用，需改进，避免冻结界面
+        #QTimer.singleShot(3000, self.check_for_updates)
 
         # 设置启动位置
         desktop = QApplication.desktop().availableGeometry()
@@ -112,7 +112,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         # 添加页面
         self.add_pages(plugin_manager)
 
-    # 重写窗口关闭函数
+    # 窗口关闭函数
     def closeEvent(self, event) -> None:
         info_cont = self.tra("确定是否退出程序") + " ... ？"
         message_box = MessageBox("Warning", info_cont, self)

@@ -7,7 +7,7 @@ on:
 
 # Add permissions needed for release management
 permissions:
-  contents: write    # This permission is required for creating/deleting releases and tags
+  contents: write    # Required for creating/deleting releases, tags, and generating release notes
 
 jobs:
   build:
@@ -15,7 +15,10 @@ jobs:
 
     steps:
       - name: Checkout repository
+        # Fetch depth 0 is needed for generate_release_notes to find previous tags/commits
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches all history for all branches and tags
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -37,7 +40,7 @@ jobs:
       - name: Compress Rust Binaries
         shell: cmd
         run: |
-          upx --best --lzma .\rust_updater\target\release\updater.exe
+          upx --best --lzma .\Tools\rust_updater\target\release\updater.exe
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -64,20 +67,21 @@ jobs:
           Compress-Archive -Path "dist" -DestinationPath "AiNiee-Beta.zip"
 
       - name: Delete release
-        uses: dev-drprasad/delete-tag-and-release@v1.1
+        uses: dev-drprasad/delete-tag-and-release@v1.1 
         with:
           tag_name: Beta
           delete_release: true
           github_token: ${{ secrets.AINIEE }}
+        continue-on-error: true
 
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: Beta
-          name: AiNiee-Beta 开发测试版本，由最新源码自动打包
-          body: AiNiee-Beta 开发测试版本，由最新源码自动打包
+          name: AiNiee-Beta 开发测试版本，由最新源码自动打包 
           draft: false
           prerelease: true
+          generate_release_notes: true 
           files: AiNiee-Beta.zip
           token: ${{ secrets.AINIEE }}
