@@ -5,12 +5,14 @@ import json
 import signal
 import threading
 import requests
-from PyQt5.QtCore import QUrl, pyqtSignal, QObject, Qt, QSize
-from PyQt5.QtWidgets import (QVBoxLayout, QDialog, QLabel,QGraphicsDropShadowEffect,
-QProgressBar, QPushButton, QHBoxLayout, QFrame, QGridLayout, QWidget, QStyle)
+from PyQt5.QtCore import QUrl, pyqtSignal, QObject, Qt
+from PyQt5.QtWidgets import (QVBoxLayout, QDialog, QHBoxLayout, QGridLayout, QWidget)
 from PyQt5.QtGui import QDesktopServices
-from qfluentwidgets import MessageBox
 
+from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, StrongBodyLabel,
+                            CaptionLabel, PrimaryPushButton, PushButton, ProgressBar,
+                            TransparentToolButton, HyperlinkButton, FluentIcon,
+                            InfoBar, InfoBarPosition, SubtitleLabel)
 from Base.Base import Base
 
 class UpdaterSignals(QObject):
@@ -31,7 +33,6 @@ class VersionManager(Base):
         self.download_thread = None
         self.update_dialog = None
         self.signals = UpdaterSignals()
-
 
         self.signals.progress_updated.connect(self._update_progress)
         self.signals.download_completed.connect(self._download_completed)
@@ -142,237 +143,144 @@ class VersionManager(Base):
         # 检查更新
         has_update, latest_version = self.check_for_updates()
 
-
-        # 创建更新对话框
+       
         self.update_dialog = QDialog(self.main_window)
         self.update_dialog.setWindowTitle(self.tra("软件更新"))
-        self.update_dialog.setFixedSize(440, 280)
+        self.update_dialog.setFixedSize(480, 350)
+        self.update_dialog.setWindowFlags(Qt.Dialog | Qt.MSWindowsFixedSizeDialogHint)
         
-
-        # 创建布局
-        layout = QVBoxLayout()
-        layout.setContentsMargins(20, 30, 20, 20)
-        layout.setSpacing(10)
+        # 创建主布局
+        main_layout = QVBoxLayout(self.update_dialog)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(12)
         
+        # 创建标题卡片
+        title_card = CardWidget(self.update_dialog)
+        title_layout = QHBoxLayout(title_card)
+        title_layout.setContentsMargins(16, 16, 16, 16)
 
-        # 标题图标和文本
-        header_layout = QHBoxLayout()
-        icon_label = QLabel()
-        title_label = QLabel(self.tra("软件更新"))
-        title_label.setStyleSheet("font-size: 16px; font-weight: bold;")
-        header_layout.addWidget(icon_label)
-        header_layout.addWidget(title_label)
-        header_layout.addStretch()
+        title_icon = TransparentToolButton(FluentIcon.SYNC, self.update_dialog)
+        title_icon.setFixedSize(32, 32)
+        title_layout.addWidget(title_icon)
+        title_label = TitleLabel(self.tra("软件更新"), title_card)
+        
+        title_layout.addWidget(title_label)
+        title_layout.addStretch(1)
+        main_layout.addWidget(title_card)
 
-        # 关闭按钮
-        close_button = QPushButton()
-        close_button.setIcon(self.update_dialog.style().standardIcon(QStyle.SP_TitleBarCloseButton))
-        close_button.setFixedSize(24, 24)
-        close_button.setStyleSheet("background: transparent; border: none;")
-        close_button.clicked.connect(self.update_dialog.reject)
-        header_layout.addWidget(close_button)
+        # 版本信息卡片
+        version_card = CardWidget(self.update_dialog)
+        version_layout = QGridLayout(version_card)
+        version_layout.setContentsMargins(16, 16, 16, 16)
+        version_layout.setVerticalSpacing(4)
+        version_layout.setHorizontalSpacing(12)
 
-        layout.addLayout(header_layout)
+        # 当前版本
+        current_version_label = CaptionLabel(self.tra("当前版本") + ":", version_card)
+        current_version_value = StrongBodyLabel(self.current_version, version_card)
 
-        # 分隔线
-        line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
-        line.setStyleSheet("background-color: #E0E0E0;")
-        layout.addWidget(line)
-        layout.addSpacing(10)
+        # 最新版本
+        latest_version_label = CaptionLabel(self.tra("最新版本") + ":", version_card)
+        latest_version_value = StrongBodyLabel(latest_version, version_card)
+        latest_version_value.setProperty("colorful", True)
 
-        # 版本信息
-        version_info_layout = QGridLayout()
-        version_info_layout.setContentsMargins(10, 10, 10, 10)
-        version_info_layout.setVerticalSpacing(15)
+        # 如果有新版本，显示为特别颜色
+        if self._compare_versions(latest_version, self.current_version) > 0:
+            latest_version_value.setStyleSheet("color: #2196F3;")
 
-        current_version_title = QLabel(f"{self.tra('当前版本')}:")
-        current_version_title.setStyleSheet("color: #666666;")
-        current_version_value = QLabel(f"{self.current_version}")
-        current_version_value.setStyleSheet("font-weight: bold;")
+        version_layout.addWidget(current_version_label, 0, 0, Qt.AlignLeft)
+        version_layout.addWidget(current_version_value, 0, 1, Qt.AlignLeft)
+        version_layout.addWidget(latest_version_label, 1, 0, Qt.AlignLeft)
+        version_layout.addWidget(latest_version_value, 1, 1, Qt.AlignLeft)
 
-        latest_version_title = QLabel(f"{self.tra('最新版本')}:")
-        latest_version_title.setStyleSheet("color: #666666;")
-        latest_version_value = QLabel(f"{latest_version}")
-        latest_version_value.setStyleSheet("font-weight: bold;")
+        # 版本说明文本
+        version_info_text = BodyLabel(self.tra("新版本包含了重要的更新和功能改进"), version_card)
+        version_layout.addWidget(version_info_text, 2, 0, 1, 2)
 
-        version_info_layout.addWidget(current_version_title, 0, 0)
-        version_info_layout.addWidget(current_version_value, 0, 1)
-        version_info_layout.addWidget(latest_version_title, 1, 0)
-        version_info_layout.addWidget(latest_version_value, 1, 1)
-        version_info_layout.setColumnStretch(1, 1)
+        main_layout.addWidget(version_card)
 
-        version_frame = QFrame()
-        version_frame.setLayout(version_info_layout)
-        version_frame.setStyleSheet("background-color: #f8f8f8; border-radius: 5px;")
-        layout.addWidget(version_frame)
+        # 进度卡片
+        progress_card = CardWidget(self.update_dialog)
+        progress_layout = QVBoxLayout(progress_card)
+        progress_layout.setContentsMargins(16, 16, 16, 16)
+        progress_layout.setSpacing(8)
 
-        # Progress bar (initially hidden)
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
+        # 进度条
+        self.progress_bar = ProgressBar(progress_card)
         self.progress_bar.setVisible(False)
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                border: 1px solid #E0E0E0;
-                border-radius: 3px;
-                background-color: #F5F5F5;
-                height: 20px;
-                text-align: center;
-            }
-            QProgressBar::chunk {
-                background-color: #4CAF50;
-                width: 10px;
-                margin: 0px;
-            }
-        """)
-        layout.addWidget(self.progress_bar)
 
-        # Status label
-        self.status_label = QLabel("")
-        self.status_label.setStyleSheet("color: #666666;")
+        # 状态标签
+        self.status_label = SubtitleLabel("", progress_card)
         self.status_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.status_label)
+        progress_layout.addWidget(self.progress_bar)
+        progress_layout.addWidget(self.status_label)
 
-        layout.addStretch()
+        main_layout.addWidget(progress_card)
 
-        # 按钮布局
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(10)
+        # 按钮卡片
+        button_card = CardWidget(self.update_dialog)
+        button_layout = QHBoxLayout(button_card)
+        button_layout.setContentsMargins(16, 16, 16, 16)
+        button_layout.setSpacing(8)
+
+        # 左侧按钮区域
+        left_buttons = QWidget(button_card)
+        left_buttons_layout = QHBoxLayout(left_buttons)
+        left_buttons_layout.setContentsMargins(0, 0, 0, 0)
+        left_buttons_layout.setSpacing(8)
 
         # 更新按钮
-        self.update_button = QPushButton(self.tra("开始更新"))
+        self.update_button = PrimaryPushButton(self.tra("开始更新"), button_card)
         self.update_button.clicked.connect(self._start_update)
-        self.update_button.setMinimumHeight(40)
-        self.update_button.setStyleSheet("""
-            QPushButton {
-                background-color: #1A1A1A;
-                color: white;
-                border-radius: 5px;
-                font-weight: bold;
-                padding: 6px 20px;
-            }
-            QPushButton:hover {
-                background-color: #333333;
-            }
-            QPushButton:pressed {
-                background-color: #000000;
-            }
-        """)
+        # 取消按钮
+        self.cancel_button = PushButton(self.tra("取消"), button_card)
+        self.cancel_button.clicked.connect(self._cancel_update)
 
         # 暂停按钮
-        self.pause_button = QPushButton(self.tra("暂停"))
+        self.pause_button = PushButton(self.tra("暂停"), button_card)
         self.pause_button.clicked.connect(self._pause_update)
-        self.pause_button.setEnabled(False)
         self.pause_button.setVisible(False)
-        self.pause_button.setStyleSheet("""
-            QPushButton {
-                background-color: #F5F5F5;
-                border: 1px solid #CCCCCC;
-                border-radius: 5px;
-                padding: 6px 20px;
-            }
-            QPushButton:hover {
-                background-color: #EBEBEB;
-            }
-        """)
+        self.pause_button.setEnabled(False)
 
         # 继续按钮
-        self.resume_button = QPushButton(self.tra("继续"))
+        self.resume_button = PushButton(self.tra("继续"), button_card)
         self.resume_button.clicked.connect(self._resume_update)
-        self.resume_button.setEnabled(False)
         self.resume_button.setVisible(False)
-        self.resume_button.setStyleSheet("""
-            QPushButton {
-                background-color: #F5F5F5;
-                border: 1px solid #CCCCCC;
-                border-radius: 5px;
-                padding: 6px 20px;
-            }
-            QPushButton:hover {
-                background-color: #EBEBEB;
-            }
-        """)
+        self.resume_button.setEnabled(False)
 
-        # 取消按钮
-        self.cancel_button = QPushButton(self.tra("取消"))
-        self.cancel_button.clicked.connect(self._cancel_update)
-        self.cancel_button.setMinimumHeight(40)
-        self.cancel_button.setStyleSheet("""
-            QPushButton {
-                background-color: #FFFFFF;
-                border: 1px solid #E0E0E0;
-                border-radius: 5px;
-                padding: 6px 20px;
-            }
-            QPushButton:hover {
-                background-color: #F5F5F5;
-            }
-        """)
+        left_buttons_layout.addWidget(self.update_button)
+        left_buttons_layout.addWidget(self.cancel_button)
+        left_buttons_layout.addWidget(self.pause_button)
+        left_buttons_layout.addWidget(self.resume_button)
 
-        # 查看发布页按钮
-        self.view_release_button = QPushButton(self.tra("查看发布页"))
+        # 右侧按钮区域
+        right_buttons = QWidget(button_card)
+        right_buttons_layout = QHBoxLayout(right_buttons)
+        right_buttons_layout.setContentsMargins(0, 0, 0, 0)
+
+        # 查看发布页链接
+        self.view_release_button = HyperlinkButton(
+            FluentIcon.LINK,
+            self.latest_version_url if self.latest_version_url else "#",
+            self.tra("查看发布页"),
+        )
         self.view_release_button.clicked.connect(self._open_release_page)
-        self.view_release_button.setCursor(Qt.PointingHandCursor)
-        self.view_release_button.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                border: none;
-                color: #1976D2;
-                text-decoration: none;
-            }
-            QPushButton:hover {
-                color: #0D47A1;
-                text-decoration: underline;
-            }
-        """)
-        
-        self.view_release_button.setIconSize(QSize(16, 16))
 
-        # 添加按钮到布局
-        button_container = QWidget()
-        button_container_layout = QHBoxLayout(button_container)
-        button_container_layout.setContentsMargins(0, 0, 0, 0)
-        button_container_layout.setSpacing(10)
+        right_buttons_layout.addWidget(self.view_release_button)
 
-        # 左侧放置更新和取消按钮
-        left_buttons = QHBoxLayout()
-        left_buttons.addWidget(self.update_button)
-        left_buttons.addWidget(self.cancel_button)
-        button_container_layout.addLayout(left_buttons)
+        button_layout.addWidget(left_buttons)
+        button_layout.addStretch(1)
+        button_layout.addWidget(right_buttons)
 
-        # 右侧放置查看发布页按钮
-        right_buttons = QHBoxLayout()
-        right_buttons.addWidget(self.view_release_button)
-        button_container_layout.addLayout(right_buttons)
+        main_layout.addWidget(button_card)
 
-        # 添加暂停和继续按钮（初始隐藏）
-        button_container_layout.addWidget(self.pause_button)
-        button_container_layout.addWidget(self.resume_button)
+        # 如果没有更新，禁用更新按钮
+        if not has_update:
+            self.update_button.setEnabled(False)
+            version_info_text.setText(self.tra("您已经使用最新版本"))
+            self.status_label.setText(self.tra("无需更新"))
 
-        layout.addWidget(button_container)
-
-        # 设置对话框布局
-        self.update_dialog.setLayout(layout)
-
-
-        self.update_dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
-
-        
-        self.update_dialog.setStyleSheet("""
-            QDialog {
-                background-color: #DDB2AE;
-                border-radius: 8px;
-            }
-        """)
-
-    
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(10)
-        shadow.setOffset(0, 0)
-        shadow.setColor(Qt.black)
-        self.update_dialog.setGraphicsEffect(shadow)
+        # 显示对话框
         self.update_dialog.exec_()
 
     def _start_download_with_url(self, url):
@@ -423,15 +331,40 @@ class VersionManager(Base):
                     self.status_label.setText(self.tra("未找到下载文件"))
                     self.update_button.setEnabled(True)
                     self.pause_button.setVisible(False)
+                    # 使用 InfoBar 显示错误信息
+                    if self.main_window:
+                        self.main_window.error_toast(self.tra("下载错误"), self.tra("未找到可下载的更新文件"))
             else:
                 self.status_label.setText(self.tra("获取下载链接失败"))
                 self.update_button.setEnabled(True)
                 self.pause_button.setVisible(False)
+                # 使用 InfoBar 显示错误信息
+                if self.main_window:
+                    InfoBar.error(
+                        title=self.tra("连接错误"),
+                        content=self.tra("无法连接到更新服务器"),
+                        orient=Qt.Horizontal,
+                        isClosable=True,
+                        position=InfoBarPosition.TOP,
+                        duration=3000,
+                        parent=self.main_window
+                    )
         except Exception as e:
             self.error(f"Error starting update: {e}")
             self.status_label.setText(self.tra("更新失败"))
             self.update_button.setEnabled(True)
             self.pause_button.setVisible(False)
+            # 使用 InfoBar 显示错误信息
+            if self.main_window:
+                InfoBar.error(
+                    title=self.tra("更新错误"),
+                    content=str(e),
+                    orient=Qt.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP,
+                    duration=3000,
+                    parent=self.main_window
+                )
 
     def _download_update(self, url):
         """下载更新文件，支持断点续传"""
@@ -549,6 +482,8 @@ class VersionManager(Base):
         """Update the progress bar"""
         if self.progress_bar:
             self.progress_bar.setValue(progress)
+            if progress >= 100:
+                self.status_label.setText(self.tra("下载完成，准备安装..."))
 
     def _download_completed(self, filename):
         """Handle download completion"""
@@ -559,7 +494,7 @@ class VersionManager(Base):
         # 然后显示确认对话框
         msg_box = MessageBox(
             self.tra("更新确认"),
-            self.tra("下载完成，是否立即安装更新？\n\n安装过程中应用将会关闭。\n如果选择“稍后安装”，可以通过更新按钮重新安装。"),
+            self.tra("下载完成，是否立即安装更新？\n\n安装过程中应用将会关闭。\n如果选择'稍后安装'，可以通过更新按钮重新安装。"),
             self.main_window
         )
         msg_box.yesButton.setText(self.tra("立即安装"))
@@ -576,10 +511,7 @@ class VersionManager(Base):
 
             # 显示成功提示
             if self.main_window:
-                self.main_window.success_toast(
-                    self.tra("更新已下载"),
-                    self.tra("更新已下载，可以通过更新按钮重新安装")
-                )
+                self.main_window.success_toast(self.tra("更新已下载"), self.tra("更新已下载，可以通过更新按钮重新安装"))
 
     def _download_failed(self, error_msg):
         """Handle download failure"""
@@ -587,6 +519,18 @@ class VersionManager(Base):
         self.update_button.setEnabled(True)
         self.pause_button.setVisible(False)
         self.resume_button.setVisible(False)
+
+        
+        if self.main_window:
+            InfoBar.error(
+                title=self.tra("下载失败"),
+                content=error_msg,
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=3000,
+                parent=self.main_window
+            )
 
     def _pause_update(self):
         """Pause the update download"""
@@ -613,8 +557,9 @@ class VersionManager(Base):
         # 如果下载线程正在运行，设置取消标志
         if self.download_thread and self.download_thread.is_alive():
             self._cancel_download = True
-            # 显示取消提示（不使用info_toast，因为它需要QWidget父组件）
-            self.info(self.tra("正在取消下载，请稍候..."))
+            # 显示取消提示
+            if self.main_window:
+                self.main_window.warning_toast(self.tra("下载取消"), self.tra("正在取消下载，请稍候..."))
 
     def _open_release_page(self):
         """Open the release page in browser"""
@@ -650,6 +595,28 @@ class VersionManager(Base):
             else:
                 self.error(f"Updater not found: {updater_path}")
                 self.status_label.setText(self.tra("更新程序未找到"))
+                # 显示错误提示
+                if self.main_window:
+                    InfoBar.error(
+                        title=self.tra("更新错误"),
+                        content=self.tra("找不到更新程序，请手动下载安装最新版本"),
+                        orient=Qt.Horizontal,
+                        isClosable=True,
+                        position=InfoBarPosition.TOP,
+                        duration=3000,
+                        parent=self.main_window
+                    )
         except Exception as e:
             self.error(f"Failed to run updater: {e}")
             self.status_label.setText(f"{self.tra('启动更新程序失败')}: {str(e)}")
+            # 显示错误提示
+            if self.main_window:
+                InfoBar.error(
+                    title=self.tra("更新错误"),
+                    content=f"{self.tra('启动更新程序失败')}: {str(e)}",
+                    orient=Qt.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP,
+                    duration=3000,
+                    parent=self.main_window
+                )
