@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QUrl, QTimer
+from PyQt5.QtCore import QUrl, QTimer, QThread, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication
 
@@ -48,6 +48,21 @@ from UserInterface.Extraction_Tool.Export_Update_Text import Widget_update_text
 
 from UserInterface.VersionManager.VersionManager import VersionManager
 
+
+class UpdateCheckerThread(QThread):
+    """自动检查更新线程"""
+    update_available_signal = pyqtSignal(bool, str)
+
+    def __init__(self, version_manager):
+        super().__init__()
+        self.version_manager = version_manager
+
+    def run(self):
+        """在子线程中运行更新检查逻辑"""
+        has_update, latest_version = self.version_manager.check_for_updates()
+        self.update_available_signal.emit(has_update, latest_version)
+
+
 class AppFluentWindow(FluentWindow, Base): #主窗口
 
     APP_WIDTH = 1280
@@ -92,8 +107,8 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.version_manager = VersionManager(self, version)
 
         # 设置定时器检查更新（在应用加载完成后）
-        # 暂时不使用，需改进，避免冻结界面
-        #QTimer.singleShot(3000, self.check_for_updates)
+        # 使用子线程进行更新检查，避免冻结界面
+        QTimer.singleShot(3000, self.check_for_updates)
 
         # 设置启动位置
         desktop = QApplication.desktop().availableGeometry()
@@ -154,19 +169,25 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         # 检查是否开启了自动检查更新
         config = self.load_config()
         if config.get("auto_check_update", True):
-            has_update, latest_version = self.version_manager.check_for_updates()
-            if has_update:
-                self.success_toast(
-                    self.tra("发现新版本"),
-                    self.tra("当前版本: {0}, 最新版本: {1}, 点击更新按钮进行更新").format(
-                        self.version_manager.current_version, latest_version
-                    )
+            # 创建并启动更新检查线程
+            self.update_checker_thread = UpdateCheckerThread(self.version_manager)
+            self.update_checker_thread.update_available_signal.connect(self._on_update_check_completed)
+            self.update_checker_thread.start()
+
+    # 更新检查完成的回调
+    def _on_update_check_completed(self, has_update: bool, latest_version: str) -> None:
+        if has_update:
+            self.success_toast(
+                self.tra("发现新版本"),
+                self.tra("当前版本: {0}, 最新版本: {1}, 点击更新按钮进行更新").format(
+                    self.version_manager.current_version, latest_version
                 )
-            else:
-                self.info_toast(
-                    self.tra("更新检查"),
-                    self.tra("当前已是最新版本")
-                )
+            )
+        else:
+            self.info_toast(
+                self.tra("更新检查"),
+                self.tra("当前已是最新版本")
+            )
 
     # 开始添加页面
     def add_pages(self, plugin_manager: PluginManager) -> None:
