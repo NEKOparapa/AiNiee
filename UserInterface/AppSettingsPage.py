@@ -34,6 +34,7 @@ class AppSettingsPage(QWidget, Base):
             "font_hinting": True,
             "scale_factor": "AUTO",
             "interface_language_setting": "简中",
+            "auto_check_update": True,
         }
 
         # 载入并保存默认配置
@@ -63,6 +64,7 @@ class AppSettingsPage(QWidget, Base):
         self.add_widget_debug_mode(self.vbox, config)
         self.add_widget_scale_factor(self.vbox, config)
         self.add_widget_interface_language_setting(self.vbox, config)
+        #self.add_widget_auto_check_update(self.vbox, config) # 暂时不适应，需改进，会冻结界面
         self.add_widget_app_profile(self.vbox, config, window)
 
         # 填充
@@ -190,6 +192,24 @@ class AppSettingsPage(QWidget, Base):
             )
         )
 
+    # 自动检查更新
+    def add_widget_auto_check_update(self, parent, config) -> None:
+        def init(widget) -> None:
+            widget.set_checked(config.get("auto_check_update", True))
+
+        def checked_changed(widget, checked: bool) -> None:
+            config = self.load_config()
+            config["auto_check_update"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("自动检查更新"),
+                self.tra("启用此功能后，应用将在启动时自动检查是否有新版本"),
+                init = init,
+                checked_changed = checked_changed,
+            )
+        )
 
 
     # 应用配置切换

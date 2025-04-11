@@ -1,0 +1,12 @@
+[package]
+name = "updater"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+zip = "0.6"
+anyhow = "1.0"
+thiserror = "1.0"
+log = "0.4"
+simple_logger = "4.2"
+clap = { version = "4.3", features = ["derive"] }

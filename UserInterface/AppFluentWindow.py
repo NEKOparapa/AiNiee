@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QUrl
+from PyQt5.QtCore import QUrl, QTimer
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication
 
@@ -41,11 +41,12 @@ from UserInterface.Quality.WorldBuildingPromptPage import WorldBuildingPromptPag
 from UserInterface.Quality.CharacterizationPromptPage import CharacterizationPromptPage
 from UserInterface.Quality.TranslationExamplePromptPage import TranslationExamplePromptPage
 
-
 from StevExtraction import jtpp
 from UserInterface.Extraction_Tool.Export_Source_Text import Widget_export_source_text
 from UserInterface.Extraction_Tool.Import_Translated_Text import Widget_import_translated_text
 from UserInterface.Extraction_Tool.Export_Update_Text import Widget_update_text
+
+from UserInterface.VersionManager.VersionManager import VersionManager
 
 class AppFluentWindow(FluentWindow, Base): #主窗口
 
@@ -87,6 +88,13 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.setWindowTitle(version)
         self.titleBar.iconLabel.hide()
 
+        # 初始化版本管理器
+        self.version_manager = VersionManager(self, version)
+
+        # 设置定时器检查更新（在应用加载完成后）
+        # 暂时不使用，需改进，避免冻结界面
+        #QTimer.singleShot(3000, self.check_for_updates)
+
         # 设置启动位置
         desktop = QApplication.desktop().availableGeometry()
         self.move(desktop.width()//2 - self.width()//2, desktop.height()//2 - self.height()//2)
@@ -104,7 +112,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         # 添加页面
         self.add_pages(plugin_manager)
 
-    # 重写窗口关闭函数
+    # 窗口关闭函数
     def closeEvent(self, event) -> None:
         info_cont = self.tra("确定是否退出程序") + " ... ？"
         message_box = MessageBox("Warning", info_cont, self)
@@ -137,6 +145,29 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         url = QUrl("https://github.com/NEKOparapa/AiNiee")
         QDesktopServices.openUrl(url)
 
+    # 显示更新对话框
+    def show_update_dialog(self) -> None:
+        self.version_manager.show_update_dialog()
+
+    # 检查更新
+    def check_for_updates(self) -> None:
+        # 检查是否开启了自动检查更新
+        config = self.load_config()
+        if config.get("auto_check_update", True):
+            has_update, latest_version = self.version_manager.check_for_updates()
+            if has_update:
+                self.success_toast(
+                    self.tra("发现新版本"),
+                    self.tra("当前版本: {0}, 最新版本: {1}, 点击更新按钮进行更新").format(
+                        self.version_manager.current_version, latest_version
+                    )
+                )
+            else:
+                self.info_toast(
+                    self.tra("更新检查"),
+                    self.tra("当前已是最新版本")
+                )
+
     # 开始添加页面
     def add_pages(self, plugin_manager: PluginManager) -> None:
         self.add_project_pages(plugin_manager)
@@ -165,6 +196,18 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
                 False
             ),
             onClick = self.toggle_theme,
+            position = NavigationItemPosition.BOTTOM
+        )
+
+        # 更新按钮
+        self.navigationInterface.addWidget(
+            routeKey = "update_navigation_button",
+            widget = NavigationPushButton(
+                FluentIcon.UPDATE,
+                self.tra("检查更新"),
+                False
+            ),
+            onClick = self.show_update_dialog,
             position = NavigationItemPosition.BOTTOM
         )
 
