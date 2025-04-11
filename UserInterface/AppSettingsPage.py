@@ -61,10 +61,10 @@ class AppSettingsPage(QWidget, Base):
         # 添加控件
         self.add_widget_proxy(self.vbox, config)
         self.add_widget_font_hinting(self.vbox, config)
+        self.add_widget_auto_check_update(self.vbox, config) # 使用子线程进行更新检查
         self.add_widget_debug_mode(self.vbox, config)
         self.add_widget_scale_factor(self.vbox, config)
         self.add_widget_interface_language_setting(self.vbox, config)
-        #self.add_widget_auto_check_update(self.vbox, config) # 暂时不适应，需改进，会冻结界面
         self.add_widget_app_profile(self.vbox, config, window)
 
         # 填充
