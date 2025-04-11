@@ -36,9 +36,12 @@ class TxtReader(BaseSourceReader):
             if not line.strip() and i != 0:
                 continue
 
+            # 去掉文本开头的空格
+            line_lstrip = line.lstrip()
             # 获取文本行开头的原始空格
-            spaces = line[:len(line)-len(line.lstrip())]
-            item = text_to_cache_item(line)
+            spaces = line[:len(line) - len(line_lstrip)]
+
+            item = text_to_cache_item(line_lstrip)
             # 原始空格保存至变量中，后续Writer中还原
             item.sentence_indent = spaces
             item.line_break = self._count_next_empty_line(lines, i)

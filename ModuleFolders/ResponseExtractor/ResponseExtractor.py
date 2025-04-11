@@ -107,21 +107,13 @@ class ResponseExtractor():
 
         return filtered_dict
 
-    # 查找下一个引号（同时支持英文引号和中文结束引号）
-    def find_next_quote(self, text, start_pos):
-        pattern = re.compile(r'[”\"]')
-        match = pattern.search(text, start_pos)
-        if match:
-            return match.start()
-        return -1
-
     # 提取文本为字典
     def extract_text_to_dict(self, input_string: str) -> Dict[str, str]:
         """
         从特定格式的字符串中提取内容并存入字典 。
         （目前因为AI偶尔会合并翻译，回复的列表块最后一个元素内容是这样的:"3.1."或者"3.1.[换行符]文本内容"，所以后期会检查出换行符不一致）
         Args:
-            text: 输入的字符串。
+            input_string: 输入的字符串。
 
         Returns:
             一个字典，键是'0', '1', '2'...，值是提取到的文本行。
@@ -139,111 +131,82 @@ class ResponseExtractor():
 
             # 3. 尝试匹配列表块模式 (N.[ ... ])
             # re.DOTALL 使 '.' 可以匹配换行符
-            list_block_match = re.match(r'^\d+\.\s*\[(.*)\]$', block, re.DOTALL)
+            list_block_match = re.match(r'^\d+\.\s*\[(.*)]$', block, re.DOTALL)
             if list_block_match:
-
                 list_content = list_block_match.group(1).strip()
-                # 再次判断是否是列表块内容
-                if list_content and list_content.startswith('"'):
-
-                    # 4.1 列表块处理
-                    items_in_block: List[str] = []
-                    current_pos = 0
-                    len_content = len(list_content)
-
-                    while current_pos < len_content:
-                        # --- 查找列表项的开始 ---
-                        # 跳过前导空格和逗号
-                        while current_pos < len_content and (list_content[current_pos].isspace() or list_content[current_pos] == ','):
-                            current_pos += 1
-
-                        if current_pos >= len_content:
-                            break  # 到达内容末尾
-
-                        # 列表项必须以引号开头
-                        if list_content[current_pos] not in ['“', '"']:
-                            print(f"警告：列表块 '{block[:30]}...' 内在位置 {current_pos} 检测到非预期字符（应为 双引号），内容片段: ...{list_content[current_pos:current_pos + 30]}...")
-                            # 决定是跳到下一个可能的逗号还是终止此块的处理
-                            next_comma = list_content.find(',', current_pos)
-                            if next_comma != -1:
-                                current_pos = next_comma + 1
-                                continue
-                            else:
-                                break  # 无法恢复，结束此块
-
-                        start_quote_pos = current_pos
-
-                        # --- 查找对应的结束引号 ---
-                        search_pos = start_quote_pos + 1
-                        found_end_quote = False
-                        while search_pos < len_content:
-                            # 查找下一个引号
-                            end_quote_pos = ResponseExtractor.find_next_quote(self, list_content, search_pos)
-
-                            if end_quote_pos == -1:
-                                print(f"警告：列表块 '{block[:30]}...' 内检测到未闭合的引号，起始于位置 {start_quote_pos}: ...{list_content[start_quote_pos:start_quote_pos + 50]}...")
-                                current_pos = len_content  # 标记为处理完毕（虽然是异常结束）
-                                break  # 跳出内部查找循环
-
-                            # 检查这个引号是否是真正的结束引号
-                            # 真正的结束引号后面应该是逗号、或者块的结尾（允许中间有空格）
-                            next_char_idx = end_quote_pos + 1
-                            while next_char_idx < len_content and list_content[next_char_idx].isspace():
-                                next_char_idx += 1
-
-                            # 如果是结尾或者后面是逗号，则认为是结束引号
-                            if next_char_idx == len_content or list_content[next_char_idx] == ',':
-                                # 提取引号之间的内容，并去除首尾可能存在的空白符
-                                # 这会保留内部的 N.N. 格式
-                                item_content = list_content[start_quote_pos + 1: end_quote_pos].strip()
-                                items_in_block.append(item_content)
-
-                                # 移动指针到逗号之后或内容末尾，准备找下一个项
-                                current_pos = next_char_idx
-                                # 如果后面是逗号，还要跳过逗号
-                                if current_pos < len_content and list_content[current_pos] == ',':
-                                    current_pos += 1
-
-                                found_end_quote = True
-                                break  # 找到了当前项，跳出内部查找循环
-                            # 新增：检查是否是下一个编号项的开始（以引号开头且引号后紧跟数字.数字.格式）
-                            # 目前发现ds有漏掉引号后逗号的毛病，增强一下健壮性
-                            elif (next_char_idx < len_content and list_content[next_char_idx] in ['”', '"'] and
-                                  re.match(r'\"\d+\.\d+\.[,，\s]', list_content[next_char_idx:min(next_char_idx + 12, len_content)])):
-                                # 提取当前项内容
-                                item_content = list_content[start_quote_pos + 1: end_quote_pos].strip()
-                                items_in_block.append(item_content)
-
-                                # 移动指针到下一个引号位置，准备处理下一项
-                                current_pos = next_char_idx
-                                found_end_quote = True
-                                break  # 找到了当前项，跳出内部查找循环
-                            else:
-                                # 这个引号是内容的一部分（内部引号），继续向后查找
-                                search_pos = end_quote_pos + 1
-                                # 继续内部 while 循环
-
-                        # 如果内部循环是因为找不到闭合引号或其他错误而结束的
-                        if not found_end_quote:
-                            break  # 结束外部 while 循环对此块的处理
-
-                    # 将从该列表块中成功提取的所有项添加到总列表中
-                    extracted_items.extend(items_in_block)
-
+                # 再次判断是否是列表块内容(通过以特定模式开始作为判断)
+                if list_content and re.match(r'^\s*["“”]\s*\d+\.\d+\.[,，\s]', list_content):
+                    items = ResponseExtractor.extract_mixed_quotes(self, list_content)
+                    extracted_items.extend(items)
                 else:
                     # 如果方括号内的内容不像带引号列表 (例如 "9.[社团活动后]")
                     # 将整个原始块（包括 N.[...] ）视为一个单独的文本项。
                     extracted_items.append(block)
-
             else:
                 # 4.2 文本块: 不是 N.[...] 格式，直接添加整个块内容
                 extracted_items.append(block)
 
         # 5. 生成最终字典
         result_dict = {str(i): item for i, item in enumerate(extracted_items)}
-
         return result_dict
 
+    def extract_mixed_quotes(self, text: str) -> List[str]:
+        """
+        从文本中提取引号包围的内容，处理嵌套引号。
+
+        Args:
+            text: 要处理的文本
+
+        Returns:
+            提取出的内容列表
+        """
+        result = []
+
+        # 首先尝试找到所有可能的列表项边界
+        # 这个模式匹配：引号 + 可能的空白 + 数字.数字.
+        boundary_pattern = r'["“”][^"“”]*?\d+\.\d+\.[,，\s]'
+        boundaries = [m.start() for m in re.finditer(boundary_pattern, text)]
+
+        # 如果找不到边界，尝试寻找任何引号
+        if not boundaries:
+            # 查找任何引号的位置
+            quote_pattern = r'["“”]'
+            boundaries = [m.start() for m in re.finditer(quote_pattern, text)]
+
+        # 如果还是找不到，返回空列表
+        if not boundaries:
+            return []
+
+        # 添加文本结束作为最后一个边界
+        boundaries.append(len(text))
+
+        # 逐对处理边界
+        for i in range(len(boundaries) - 1):
+            segment = text[boundaries[i]:boundaries[i + 1]].strip()
+
+            # 查找该段内的第一个引号和最后一个引号
+            first_quote = None
+            last_quote = None
+
+            for j, char in enumerate(segment):
+                if char in ['"', '“', '”']:
+                    if first_quote is None:
+                        first_quote = j
+                    last_quote = j
+
+            # 如果找到了引号对
+            if first_quote is not None and last_quote is not None and first_quote < last_quote:
+                # 提取引号之间的内容
+                content = segment[first_quote + 1:last_quote].strip()
+                if content:
+                    result.append(content)
+            else:
+                # 未找到引号对（具体是末尾的）时，判断是否以引号+数字.数字.开头
+                # 如果是则尝试去掉开头的引号
+                match = re.match(r'^\s*["“”]\s*(\d+\.\d+\.[,，\s].*)', segment)
+                if match:
+                    result.append(match.group(1))
+        return result
 
     # 辅助函数，统计原文中的换行符
     def count_newlines_in_dict_values(self,source_text_dict):
