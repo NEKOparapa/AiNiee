@@ -347,6 +347,14 @@
 
 ---
 
+## 特别声明[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#特别声明)   
+AiNiee能够不断发展迭代至今，其关键功能框架均源于项目创立以来的持续个人研发、用户反馈建议以及大佬们PR的共同努力与创造。
+这是两年以来一个不断摸索、持续改进、共同构筑的过程，才形成了AiNiee如今相对成熟和完整的AI翻译体系。
+
+---
+
+
+
 ## 赞助💖
 [![xxxx](https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sponsor/徽章.png)](https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sponsor/赞赏码.png)
 
