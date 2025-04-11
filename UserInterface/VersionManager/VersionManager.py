@@ -1,3 +1,4 @@
+# TODO ui在深色模式显示存在问题，需要修复
 import os
 import re
 import sys
@@ -7,7 +8,7 @@ import threading
 import requests
 from PyQt5.QtCore import QUrl, pyqtSignal, QObject, Qt
 from PyQt5.QtWidgets import (QVBoxLayout, QDialog, QHBoxLayout, QGridLayout, QWidget)
-from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtGui import QDesktopServices,QColor
 
 from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, StrongBodyLabel,
                             CaptionLabel, PrimaryPushButton, PushButton, ProgressBar,
@@ -146,13 +147,13 @@ class VersionManager(Base):
        
         self.update_dialog = QDialog(self.main_window)
         self.update_dialog.setWindowTitle(self.tra("软件更新"))
-        self.update_dialog.setFixedSize(480, 350)
+        self.update_dialog.setFixedSize(480, 380)
         self.update_dialog.setWindowFlags(Qt.Dialog | Qt.MSWindowsFixedSizeDialogHint)
         
         # 创建主布局
         main_layout = QVBoxLayout(self.update_dialog)
         main_layout.setContentsMargins(16, 16, 16, 16)
-        main_layout.setSpacing(12)
+        main_layout.setSpacing(6)
         
         # 创建标题卡片
         title_card = CardWidget(self.update_dialog)
@@ -168,11 +169,11 @@ class VersionManager(Base):
         title_layout.addStretch(1)
         main_layout.addWidget(title_card)
 
-        # 版本信息卡片
+        # 在版本信息卡片部分修改
         version_card = CardWidget(self.update_dialog)
         version_layout = QGridLayout(version_card)
-        version_layout.setContentsMargins(16, 16, 16, 16)
-        version_layout.setVerticalSpacing(4)
+        version_layout.setContentsMargins(10, 16, 16, 16)
+        version_layout.setVerticalSpacing(6)
         version_layout.setHorizontalSpacing(12)
 
         # 当前版本
@@ -194,26 +195,52 @@ class VersionManager(Base):
         version_layout.addWidget(latest_version_value, 1, 1, Qt.AlignLeft)
 
         # 版本说明文本
+        # TODO 也许可以考虑从release的body中提取信息。但考虑到篇幅，可能不太合适（也许可以有概括部分）
         version_info_text = BodyLabel(self.tra("新版本包含了重要的更新和功能改进"), version_card)
+        version_info_text.setMinimumHeight(20)  # 设置最小高度
         version_layout.addWidget(version_info_text, 2, 0, 1, 2)
+
+        
+        version_card.setMinimumHeight(100)
 
         main_layout.addWidget(version_card)
 
-        # 进度卡片
+        # 进度卡片 - 添加百分比标签
         progress_card = CardWidget(self.update_dialog)
         progress_layout = QVBoxLayout(progress_card)
         progress_layout.setContentsMargins(16, 16, 16, 16)
         progress_layout.setSpacing(8)
 
+        # 左进度条，右百分比标签
+        progress_hor_layout = QHBoxLayout()
+        progress_hor_layout.setSpacing(10)
+
         # 进度条
         self.progress_bar = ProgressBar(progress_card)
         self.progress_bar.setVisible(False)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setFixedHeight(8)
+        self.progress_bar.setCustomBarColor("#A9DCD7", "#32E838") # 浅色和深色
+        progress_hor_layout.addWidget(self.progress_bar, 1) 
+
+        # 百分比标签
+        self.percentage_label = SubtitleLabel("0%", progress_card)
+        self.percentage_label.setVisible(False)
+        self.percentage_label.setMinimumWidth(50)  # 设置最小宽度确保有足够空间
+        self.percentage_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        progress_hor_layout.addWidget(self.percentage_label)
+        progress_layout.addLayout(progress_hor_layout)
 
         # 状态标签
         self.status_label = SubtitleLabel("", progress_card)
         self.status_label.setAlignment(Qt.AlignCenter)
-        progress_layout.addWidget(self.progress_bar)
+        self.status_label.setWordWrap(True)  # 允许文本换行
+        self.status_label.setMinimumHeight(30)  # 设置最小高度
+
         progress_layout.addWidget(self.status_label)
+
+     
+        progress_card.setMinimumHeight(100)
 
         main_layout.addWidget(progress_card)
 
@@ -291,6 +318,8 @@ class VersionManager(Base):
 
         # 更新UI
         self.progress_bar.setVisible(True)
+        self.percentage_label.setVisible(True)
+        self.percentage_label.setText("0%")
         self.status_label.setText(self.tra("正在下载更新..."))
         self.update_button.setEnabled(False)
         self.pause_button.setVisible(True)
@@ -308,6 +337,8 @@ class VersionManager(Base):
     def _start_update(self):
         """开始更新进程"""
         self.progress_bar.setVisible(True)
+        self.percentage_label.setVisible(True)
+        self.percentage_label.setText("0%")
         self.status_label.setText(self.tra("正在获取下载链接..."))
         self.update_button.setEnabled(False)
 
@@ -331,30 +362,33 @@ class VersionManager(Base):
                     self.status_label.setText(self.tra("未找到下载文件"))
                     self.update_button.setEnabled(True)
                     self.pause_button.setVisible(False)
-                    # 使用 InfoBar 显示错误信息
+                    self.percentage_label.setVisible(False)
+                    
                     if self.main_window:
-                        self.main_window.error_toast(self.tra("下载错误"), self.tra("未找到可下载的更新文件"))
+                                self.main_window.error_toast(self.tra("下载错误"), self.tra("未找到可下载的更新文件"))
             else:
                 self.status_label.setText(self.tra("获取下载链接失败"))
                 self.update_button.setEnabled(True)
                 self.pause_button.setVisible(False)
+                self.percentage_label.setVisible(False)
                 # 使用 InfoBar 显示错误信息
                 if self.main_window:
                     InfoBar.error(
                         title=self.tra("连接错误"),
                         content=self.tra("无法连接到更新服务器"),
-                        orient=Qt.Horizontal,
-                        isClosable=True,
-                        position=InfoBarPosition.TOP,
-                        duration=3000,
-                        parent=self.main_window
-                    )
+                    orient=Qt.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP,
+                    duration=3000,
+                    parent=self.main_window
+                )
         except Exception as e:
             self.error(f"Error starting update: {e}")
             self.status_label.setText(self.tra("更新失败"))
             self.update_button.setEnabled(True)
             self.pause_button.setVisible(False)
-            # 使用 InfoBar 显示错误信息
+            self.percentage_label.setVisible(False)
+           
             if self.main_window:
                 InfoBar.error(
                     title=self.tra("更新错误"),
@@ -479,9 +513,10 @@ class VersionManager(Base):
             self.signals.download_failed.emit(str(e))
 
     def _update_progress(self, progress):
-        """Update the progress bar"""
-        if self.progress_bar:
+        """Update the progress bar and percentage label"""
+        if self.progress_bar and self.percentage_label:
             self.progress_bar.setValue(progress)
+            self.percentage_label.setText(f"{progress}%")
             if progress >= 100:
                 self.status_label.setText(self.tra("下载完成，准备安装..."))
 
@@ -519,8 +554,9 @@ class VersionManager(Base):
         self.update_button.setEnabled(True)
         self.pause_button.setVisible(False)
         self.resume_button.setVisible(False)
+        self.percentage_label.setVisible(False)
 
-        
+
         if self.main_window:
             InfoBar.error(
                 title=self.tra("下载失败"),
