@@ -88,7 +88,7 @@ class ResponseChecker():
                 return check_result,error_content
 
         # 检查是否成功保留全部的占位符
-        if placeholder_order and ResponseChecker.check_placeholders_exist(self,placeholder_order,response_dict):
+        if  ResponseChecker.check_placeholders_exist(self,placeholder_order,response_dict):
             pass
         else:
             check_result = False
@@ -119,7 +119,9 @@ class ResponseChecker():
             如果所有定义的占位符都存在于其对应的文本段落中，则返回 True；
             否则返回 False。
         """
-        all_found = True  # 假设所有占位符都存在，直到发现反例
+        # 非空检查
+        if not placeholder_info:
+            return True
 
         # 遍历占位符信息字典中的每个段落 ID 和对应的占位符列表
         for text_id, placeholder_list in placeholder_info.items():
@@ -144,10 +146,9 @@ class ResponseChecker():
 
                 # 核心检查：占位符是否存在于文本中
                 if placeholder not in segment_text:
-                    all_found = False
                     return False  # 发现一个缺失，即可确定结果为 False，提前退出
 
-        return all_found
+        return True
 
 
 
