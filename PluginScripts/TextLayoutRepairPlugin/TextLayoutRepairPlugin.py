@@ -5,7 +5,7 @@ class TextLayoutRepairPlugin(PluginBase):
     def __init__(self):
         super().__init__()
         self.name = "TextLayoutRepairPlugin"
-        self.description = "文本排版修复插件"+ "\n"+ "根据原文进行恢复，译文中缺失的前导空格与「」" 
+        self.description = "文本排版修复插件"+ "\n"+ "根据原文进行恢复，译文中缺失的前导空格与「」『』" 
 
         self.visibility = True  # 是否在插件设置中显示
         self.default_enable = False  # 默认启用状态
@@ -34,7 +34,7 @@ class TextLayoutRepairPlugin(PluginBase):
 
 
 
-    # 排版修复算法，改进点：文本内有多个嵌套「」时，无法正常处理
+    # 排版修复算法，改进点：文本内有多个嵌套「」时，无法正常处理，需改进合并规则
     def fix_typography(self,original_text: str, translated_text: str) -> str:
         """
         修复译文的排版，使其匹配原文的某些排版特征。
@@ -123,5 +123,48 @@ class TextLayoutRepairPlugin(PluginBase):
             # 如果找到了需要替换的引号，执行替换 (只替换最后一个)
             if replace_index != -1:
                 result = result[:replace_index] + '」' + result[replace_index + 1:]
+
+
+        # --- 4. 检查并替换左引号『 --- 
+        # 条件：原文存在『，译文尚无『，且译文存在 " 或 “
+        if '『' in original_text and '『' not in result:
+            # 查找第一个 " 或 “ 的位置
+            first_double_quote_index = result.find('"')
+            first_opening_quote_index = result.find('“')
+
+            # 确定要替换的引号及其位置 (选择最左边的)
+            replace_index = -1
+            if first_double_quote_index != -1 and first_opening_quote_index != -1:
+                replace_index = min(first_double_quote_index, first_opening_quote_index)
+            elif first_double_quote_index != -1:
+                replace_index = first_double_quote_index
+            elif first_opening_quote_index != -1:
+                replace_index = first_opening_quote_index
+
+            # 如果找到了需要替换的引号，执行替换 (只替换第一个)
+            if replace_index != -1:
+                result = result[:replace_index] + '『' + result[replace_index + 1:]
+
+        # --- 5. 检查并替换右引号』 --- 
+        # 条件：原文存在』，译文尚无』，且译文存在 " 或 ”
+        if '』' in original_text and '』' not in result:
+            # 查找最后一个 " 或 ” 的位置
+            last_double_quote_index = result.rfind('"')
+            last_closing_quote_index = result.rfind('”')
+
+            # 确定要替换的引号及其位置 (选择最右边的)
+            replace_index = -1
+            if last_double_quote_index != -1 and last_closing_quote_index != -1:
+                replace_index = max(last_double_quote_index, last_closing_quote_index)
+            elif last_double_quote_index != -1:
+                replace_index = last_double_quote_index
+            elif last_closing_quote_index != -1:
+                replace_index = last_closing_quote_index
+
+            # 如果找到了需要替换的引号，执行替换 (只替换最后一个)
+            if replace_index != -1:
+                result = result[:replace_index] + '』' + result[replace_index + 1:]
+
+
 
         return result
