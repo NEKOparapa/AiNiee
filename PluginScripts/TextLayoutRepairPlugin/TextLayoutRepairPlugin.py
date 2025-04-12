@@ -103,7 +103,7 @@ class TextLayoutRepairPlugin(PluginBase):
 
         # --- 3. 检查并替换右引号」 ---
         # 条件：原文存在」，且译文存在"或”
-        if '」' in original_text('」' not in translated_text):
+        if '」' in original_text and  ('」' not in translated_text):
             # 查找最后一个"或”的位置 (注意右引号是 ”)
             last_double_quote_index = result.rfind('"')
             last_closing_quote_index = result.rfind('”')
