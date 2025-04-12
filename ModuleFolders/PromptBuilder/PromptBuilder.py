@@ -460,6 +460,10 @@ class PromptBuilder(Base):
         if len(result) == 0:
             return ""
 
+        # 避免空的默认内容
+        if len(result) == 1 and (result[0]["src"] == ""):
+            return ""
+
         # 初始化变量，以免出错
         glossary_prompt_lines = []
 

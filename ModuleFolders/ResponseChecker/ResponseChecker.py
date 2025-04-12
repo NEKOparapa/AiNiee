@@ -7,7 +7,7 @@ class ResponseChecker():
 
 
     # 检查回复内容是否存在问题
-    def check_response_content(self,config,target_platform,response_str,response_dict,source_text_dict):
+    def check_response_content(self,config,target_platform,placeholder_order,response_str,response_dict,source_text_dict):
         # 存储检查结果
         check_result = False
         error_content = "0"
@@ -24,7 +24,6 @@ class ResponseChecker():
             error_content = "模型已拒绝翻译或格式错误，回复内容：" + "\n" + str(response_str)
             return check_result,error_content
 
-
         # 检查模型是否退化，出现高频词
         if 'model_degradation_check' in response_check_switch and response_check_switch['model_degradation_check']:
             if ResponseChecker.model_degradation_detection(self,source_text_dict,response_str):
@@ -35,7 +34,6 @@ class ResponseChecker():
                 error_content = "模型出现退化现象"
                 return check_result,error_content
 
-
         # 检查文本行数
         if ResponseChecker.check_text_line_count(self,source_text_dict,response_dict):
             pass
@@ -43,7 +41,6 @@ class ResponseChecker():
             check_result = False
             error_content = "回复文本行数不一致"
             return check_result,error_content
-
 
         # 检查文本空行
         if ResponseChecker.check_empty_response(self,response_dict):
@@ -81,7 +78,6 @@ class ResponseChecker():
                 error_content = "译文与原文完全相同"
                 return check_result,error_content
 
-
         # 检查是否残留部分原文
         if 'residual_original_text_check' in response_check_switch and response_check_switch['residual_original_text_check']:
             if ResponseChecker.detecting_remaining_original_text(self,source_text_dict,response_dict,source_language):
@@ -91,12 +87,68 @@ class ResponseChecker():
                 error_content = "译文中残留部分原文"
                 return check_result,error_content
 
+        # 检查是否成功保留全部的占位符
+        if ResponseChecker.check_placeholders_exist(self,placeholder_order,response_dict):
+            pass
+        else:
+            check_result = False
+            error_content = "未能正确保留全部的占位符"
+            return check_result,error_content
+
 
         # 如果检查都没有问题
         check_result = True
         # 存储错误内容
         error_content = "检查无误"
         return check_result,error_content
+
+
+    # 检查是否成功保留全部的占位符
+    def check_placeholders_exist(self,placeholder_info: dict, translated_dict: dict) -> bool:
+        """
+        检查 translated_dict 中的文本是否包含 placeholder_info 中定义的所有占位符。
+
+        Args:
+            placeholder_info: 包含占位符信息的字典。
+                            键是段落 ID (字符串), 值是包含占位符字典的列表。
+                            每个占位符字典包含 "placeholder" (占位符字符串) 键。
+            translated_dict: 包含文本内容的字典。
+                        键是段落 ID (字符串), 值是对应的文本字符串。
+
+        Returns:
+            如果所有定义的占位符都存在于其对应的文本段落中，则返回 True；
+            否则返回 False。
+        """
+        all_found = True  # 假设所有占位符都存在，直到发现反例
+
+        # 遍历占位符信息字典中的每个段落 ID 和对应的占位符列表
+        for text_id, placeholder_list in placeholder_info.items():
+            # 检查文本内容字典中是否存在对应的段落 ID
+            if text_id not in translated_dict:
+                return False
+
+            # 获取对应段落的文本内容
+            segment_text = translated_dict[text_id]
+
+            # 如果当前段落没有需要检查的占位符，则跳到下一个段落
+            if not placeholder_list:
+                continue
+
+            # 遍历当前段落需要检查的所有占位符
+            for placeholder_data in placeholder_list:
+                placeholder = placeholder_data.get("placeholder")
+
+                # 确保 'placeholder' 键存在且值是字符串
+                if not placeholder or not isinstance(placeholder, str):
+                    continue 
+
+                # 核心检查：占位符是否存在于文本中
+                if placeholder not in segment_text:
+                    all_found = False
+                    return False  # 发现一个缺失，即可确定结果为 False，提前退出
+
+        return all_found
+
 
 
     # 检查数字序号是否正确

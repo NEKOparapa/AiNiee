@@ -48,9 +48,9 @@ class TranslatorTask(Base):
         self.system_prompt_b = ""
         self.regex_dir =  os.path.join(".", "Resource", "Regex", "regex.json")
 
-        # 初始化辅助数据结构
+        # 输出日志存储
         self.extra_log = []
-        # 双请求翻译的文本占位符替换
+        # 双请求翻译的文本占位符替换字典
         self.replace_dict = {}
         # 前后缀处理信息存储
         self.prefix_codes = {}
@@ -746,6 +746,7 @@ class TranslatorTask(Base):
             self,
             self.config,
             self.config.target_platform,
+            self.placeholder_order,
             response_content,
             response_dict,
             self.source_text_dict,
@@ -956,6 +957,7 @@ class TranslatorTask(Base):
             self,
             self.config,
             self.config.request_b_platform_settings,
+            self.placeholder_order,
             response_content,
             response_dict,
             self.source_text_dict
