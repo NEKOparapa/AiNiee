@@ -88,7 +88,7 @@ class ResponseChecker():
                 return check_result,error_content
 
         # 检查是否成功保留全部的占位符
-        if ResponseChecker.check_placeholders_exist(self,placeholder_order,response_dict):
+        if placeholder_order and ResponseChecker.check_placeholders_exist(self,placeholder_order,response_dict):
             pass
         else:
             check_result = False
