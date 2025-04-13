@@ -7,11 +7,10 @@ from typing import Callable
 
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheProject import CacheProject
-from ModuleFolders.FileAccessor.DocxAccessor import DocxAccessor
-from ModuleFolders.FileAccessor.EpubAccessor import EpubAccessor
 from ModuleFolders.FileReader.BaseReader import BaseSourceReader, InputConfig
 from ModuleFolders.FileReader.DirectoryReader import DirectoryReader
 from ModuleFolders.FileReader.MToolReader import MToolReader
+from ModuleFolders.FileReader.OfficeConversionReader import OfficeConversionDocReader, OfficeConversionPdfReader
 from ModuleFolders.FileReader.ParatranzReader import ParatranzReader
 from ModuleFolders.FileReader.TPPReader import TPPReader
 from ModuleFolders.FileReader.VntReader import VntReader
@@ -41,12 +40,14 @@ class FileReader():
         self.register_reader(VttReader.get_project_type(), VttReader)
         self.register_reader(LrcReader.get_project_type(), LrcReader)
         self.register_reader(TxtReader.get_project_type(), TxtReader)
-        self.register_reader(EpubReader.get_project_type(), partial(EpubReader, file_accessor=EpubAccessor())) # 预先绑定额外参数
-        self.register_reader(DocxReader.get_project_type(), partial(DocxReader, file_accessor=DocxAccessor()))
+        self.register_reader(EpubReader.get_project_type(), EpubReader)
+        self.register_reader(DocxReader.get_project_type(), DocxReader)
         self.register_reader(MdReader.get_project_type(), MdReader)
         self.register_reader(RenpyReader.get_project_type(), RenpyReader)
         self.register_reader(TransReader.get_project_type(), TransReader)
         self.register_reader(ParatranzReader.get_project_type(), ParatranzReader)
+        self.register_reader(OfficeConversionPdfReader.get_project_type(), OfficeConversionPdfReader)
+        self.register_reader(OfficeConversionDocReader.get_project_type(), OfficeConversionDocReader)
 
     def register_reader(self, project_type: str, reader_factory: Callable[[InputConfig], BaseSourceReader]):
         self.reader_factory_dict[project_type] = reader_factory

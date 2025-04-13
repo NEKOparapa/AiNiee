@@ -116,6 +116,8 @@ class ProjectSettingsPage(QFrame, Base):
             (self.tra("VNText导出文件"), "Vnt"),
             (self.tra("Ainiee缓存文件"), "Ainiee_cache"),
             (self.tra("ParaTranz导出文件"), "Paratranz"),
+            (self.tra('Pdf文档文件 (需要Microsoft Office)'), "OfficeConversionPdf"),
+            (self.tra('Doc文档文件 (需要Microsoft Office)'), "OfficeConversionDoc"),
         ]
 
         # 生成翻译后的配对列表

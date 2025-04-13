@@ -17,6 +17,7 @@
     - [Writer生命周期](#writer生命周期)
     - [Writer示例代码](#writer示例代码)
   - [Accessor介绍（可选）](#accessor介绍可选)
+  - [FileConverter介绍（可选）](#fileconverter介绍可选)
   - [贡献指南](#贡献指南)
 
 ## 读写器编写步骤
@@ -29,6 +30,7 @@
    在项目的 `ModuleFolders/FileReader` 和 `ModuleFolders/FileOutputer` 目录下创建新的 `.py` 文件， 例如 `XXXReader.py, XXXWriter.py` 。
 3. **编写读写器代码** 按照以下模板编写您的读写器代码，并确保继承自对应的基类。
 4. **复杂文件访问（可选）** 部分文件的读写逻辑比较复杂，可以把文件本身的读写逻辑抽取出来，参考 `DocxAccessor` 。
+5. **复杂文件转换（可选）** 部分文件可能无法直接翻译，可以把转换成中间格式做翻译，再转换回来，参考 `OfficeFileConverter` 。
 
 ## Reader介绍
 
@@ -323,6 +325,11 @@ class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
 1. Accessor主要是把复杂的文件读写逻辑从 Reader/Writer 中剥离，通过 `content` 与 Reader/Writer 交互
 2. Reader/Writer 只用关心如何读取/修改 `content`，而具体怎么从文件中读取 `content` 还是把 `content` 写入到文件则由Accessor负责
 3. 参考`DocxReader` 和 `DocxWriter` 读取和写入都用到了 `DocxAccessor` 的 `read_content` 方法
+
+## FileConverter介绍（可选）
+
+1. Converter主要是把难以直接读写的文件格式转换成易读写中间格式。
+2. 参考 `OfficeConversionReader` 和 `OfficeConversionWriter` 通过 `OfficeFileConverter` 把 pdf 文件转换成 docx 文件实现翻译。
 
 ## 贡献指南
 
