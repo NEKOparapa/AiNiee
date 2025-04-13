@@ -160,7 +160,7 @@ class VersionManager(Base):
         title_layout = QHBoxLayout(title_card)
         title_layout.setContentsMargins(16, 16, 16, 16)
 
-        title_icon = TransparentToolButton(FluentIcon.SYNC, self.update_dialog)
+        title_icon = TransparentToolButton(FluentIcon.UPDATE, self.update_dialog)
         title_icon.setFixedSize(32, 32)
         title_layout.addWidget(title_icon)
         title_label = TitleLabel(self.tra("软件更新"), title_card)

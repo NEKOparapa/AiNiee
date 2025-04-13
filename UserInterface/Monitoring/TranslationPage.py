@@ -2,25 +2,64 @@ import time
 import threading
 
 from PyQt5.QtGui import QColor
-from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtCore import QTimer, QTime
+from PyQt5.QtWidgets import QWidget, QDialog, QLabel, QPushButton
 from PyQt5.QtWidgets import QLayout
 from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import Action
 from qfluentwidgets import FluentIcon
-from qfluentwidgets import FlowLayout
+from qfluentwidgets import FlowLayout, TimePicker
 from qfluentwidgets import MessageBox
 from qfluentwidgets import FluentWindow
 from qfluentwidgets import ProgressRing
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import IndeterminateProgressRing
+from qfluentwidgets import PrimaryPushButton
 
 from Base.Base import Base
 from Widget.DashboardCard import DashboardCard
 from Widget.WaveformWidget import WaveformWidget
 from Widget.CommandBarCard import CommandBarCard
+
+
+class ScheduledTranslationDialog(QDialog, Base):
+    """
+    定时开始翻译对话框
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(self.tra("定时开始翻译"))
+        self.resize(240, 150)
+
+        # 创建布局
+        layout = QVBoxLayout(self)
+
+        # 添加说明标签
+        info_label = QLabel(self.tra("请设置开始翻译的时间："))
+        layout.addWidget(info_label)
+
+        self.time_picker = TimePicker(self)
+        current_time = QTime.currentTime()
+        self.time_picker.setTime(current_time)
+        
+        layout.addWidget(self.time_picker)
+
+        # 添加按钮
+        button_layout = QHBoxLayout()
+        self.confirm_button = PrimaryPushButton(self.tra("确定"))
+        self.cancel_button = QPushButton(self.tra("取消"))
+
+        self.confirm_button.clicked.connect(self.accept)
+        self.cancel_button.clicked.connect(self.reject)
+
+        button_layout.addWidget(self.confirm_button)
+        button_layout.addWidget(self.cancel_button)
+        layout.addLayout(button_layout)
+
+    def get_scheduled_time(self):
+        return self.time_picker.getTime()
 
 class TranslationPage(QWidget, Base):
 
@@ -37,6 +76,7 @@ class TranslationPage(QWidget, Base):
 
         # 初始化
         self.data = {}
+        self.scheduled_timer = None
 
         # 载入配置文件
         config = self.load_config()
@@ -74,6 +114,10 @@ class TranslationPage(QWidget, Base):
     # 应用关闭事件
     def app_shut_down(self, event: int, data: dict) -> None:
         self.update_ui_tick_stop_flag = True
+        # 取消定时翻译任务
+        if self.scheduled_timer is not None:
+            self.scheduled_timer.stop()
+            self.scheduled_timer = None
 
     # 更新 UI 定时器
     def update_ui_tick(self) -> None:
@@ -81,7 +125,7 @@ class TranslationPage(QWidget, Base):
             time.sleep(1)
 
             # 接收到退出信号则停止
-            if hasattr(self, "update_ui_tick_stop_flag") and self.update_ui_tick_stop_flag == True:
+            if hasattr(self, "update_ui_tick_stop_flag") and self.update_ui_tick_stop_flag:
                 break
 
             # 触发翻译更新事件来更新 UI
@@ -119,7 +163,7 @@ class TranslationPage(QWidget, Base):
 
     # 更新时间
     def update_time(self, event: int, data: dict) -> None:
-        if data.get("start_time", None) != None:
+        if data.get("start_time", None) is not None:
             self.data["start_time"] = data.get("start_time")
 
         if self.data.get("start_time", 0) == 0:
@@ -150,7 +194,7 @@ class TranslationPage(QWidget, Base):
 
     # 更新行数
     def update_line(self, event: int, data: dict) -> None:
-        if data.get("line", None) != None and data.get("total_line", None) != None:
+        if data.get("line", None) is not None and data.get("total_line", None) is not None:
             self.data["line"] = data.get("line")
             self.data["total_line"] = data.get("total_line")
 
@@ -188,7 +232,7 @@ class TranslationPage(QWidget, Base):
 
     # 更新 Token 数据
     def update_token(self, event: int, data: dict) -> None:
-        if data.get("token", None) != None and data.get("total_completion_tokens", None) != None:
+        if data.get("token", None) is not None and data.get("total_completion_tokens", None) is not None:
             self.data["token"] = data.get("token")
             self.data["total_completion_tokens"] = data.get("total_completion_tokens")
 
@@ -328,7 +372,8 @@ class TranslationPage(QWidget, Base):
         self.add_command_bar_action_continue(self.command_bar_card, config, window)
         self.command_bar_card.add_separator()
         self.add_command_bar_action_export(self.command_bar_card, config, window)
-
+        self.command_bar_card.add_separator()
+        self.add_command_bar_action_schedule(self.command_bar_card, config, window)
         # 添加信息条
         self.indeterminate = IndeterminateProgressRing()
         self.indeterminate.setFixedSize(16, 16)
@@ -435,6 +480,12 @@ class TranslationPage(QWidget, Base):
     # 开始
     def add_command_bar_action_play(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def triggered() -> None:
+            # 如果有定时任务，先取消
+            if self.scheduled_timer is not None:
+                self.scheduled_timer.stop()
+                self.scheduled_timer = None
+                self.action_schedule.setText(self.tra("定时开始"))
+
             if self.action_continue.isEnabled():
                 info_cont1 = self.tra("将重置尚未完成的翻译任务，是否确认开始新的翻译任务") + "  ... ？"
                 message_box = MessageBox("Warning", info_cont1, window)
@@ -455,7 +506,7 @@ class TranslationPage(QWidget, Base):
                 "continue_status": False,
             })
 
-        info_cont4 = self.tra("开始") 
+        info_cont4 = self.tra("开始")
         self.action_play = parent.add_action(
             Action(FluentIcon.PLAY, info_cont4, parent, triggered = triggered)
         )
@@ -463,6 +514,12 @@ class TranslationPage(QWidget, Base):
     # 停止
     def add_command_bar_action_stop(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def triggered() -> None:
+            # 如果有定时任务，先取消
+            if self.scheduled_timer is not None:
+                self.scheduled_timer.stop()
+                self.scheduled_timer = None
+                self.action_schedule.setText(self.tra("定时开始"))
+
             info_cont1 = self.tra("停止的翻译任务可以随时继续翻译，是否确定停止任务") + "  ... ？"
             message_box = MessageBox("Warning", info_cont1, window)
             info_cont2 = self.tra("确认")
@@ -479,11 +536,78 @@ class TranslationPage(QWidget, Base):
                 self.action_export.setEnabled(False)
                 self.emit(Base.EVENT.TRANSLATION_STOP, {})
 
-        info_cont5 = self.tra("停止") 
+        info_cont5 = self.tra("停止")
         self.action_stop = parent.add_action(
             Action(FluentIcon.CANCEL_MEDIUM, info_cont5, parent,  triggered = triggered),
         )
         self.action_stop.setEnabled(False)
+
+    # 定时开始翻译
+    def add_command_bar_action_schedule(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+        def triggered() -> None:
+            # 如果已经有定时任务，则取消
+            if self.scheduled_timer is not None:
+                self.scheduled_timer.stop()
+                self.scheduled_timer = None
+                self.action_schedule.setText(self.tra("定时开始"))
+                info_cont = self.tra("定时翻译任务已取消") + "  ... "
+                self.success_toast("", info_cont)
+                return
+
+            # 创建定时对话框
+            dialog = ScheduledTranslationDialog(parent=self)
+            if dialog.exec_():
+                scheduled_time = dialog.get_scheduled_time()
+                current_time = QTime.currentTime()
+
+                # 计算当前时间到设定时间的毫秒数
+                current_seconds = current_time.hour() * 3600 + current_time.minute() * 60 + current_time.second()
+                scheduled_seconds = scheduled_time.hour() * 3600 + scheduled_time.minute() * 60 + scheduled_time.second()
+
+                # 如果设定时间小于当前时间，则认为是明天的时间
+                if scheduled_seconds <= current_seconds:
+                    scheduled_seconds += 24 * 3600  # 添加一天的秒数
+
+                # 计算时间差异（毫秒）
+                msec_diff = (scheduled_seconds - current_seconds) * 1000
+
+                # 创建定时器
+                self.scheduled_timer = QTimer(self)
+                self.scheduled_timer.setSingleShot(True)
+                self.scheduled_timer.timeout.connect(self.start_scheduled_translation)
+                self.scheduled_timer.start(msec_diff)
+
+                # 更新按钮文本
+                time_str = scheduled_time.toString("HH:mm:ss")
+                self.action_schedule.setText(self.tra("取消定时") + f" ({time_str})")
+
+                # 显示提示
+                info_cont = self.tra("已设置定时翻译任务，将在") + f" {time_str} " + self.tra("开始翻译") + "  ... "
+                self.success_toast("", info_cont)
+
+        info_cont = self.tra("定时开始")
+        self.action_schedule = parent.add_action(
+            Action(FluentIcon.DATE_TIME, info_cont, parent, triggered = triggered),
+        )
+
+    # 开始定时翻译
+    def start_scheduled_translation(self) -> None:
+        # 重置定时器
+        self.scheduled_timer = None
+        self.action_schedule.setText(self.tra("定时开始"))
+
+        # 开始翻译
+        self.action_play.setEnabled(False)
+        self.action_stop.setEnabled(True)
+        self.action_export.setEnabled(True)
+        self.action_continue.setEnabled(False)
+        self.emit(Base.EVENT.TRANSLATION_START, {
+            "continue_status": False,
+        })
+
+        # 显示提示
+        info_cont = self.tra("定时翻译任务已开始") + "  ... "
+        self.success_toast("", info_cont)
 
     # 继续翻译
     def add_command_bar_action_continue(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
@@ -496,7 +620,7 @@ class TranslationPage(QWidget, Base):
                 "continue_status": True,
             })
 
-        info_cont = self.tra("继续翻译") 
+        info_cont = self.tra("继续翻译")
         self.action_continue = parent.add_action(
             Action(FluentIcon.ROTATE, info_cont, parent, triggered = triggered),
         )
@@ -508,7 +632,7 @@ class TranslationPage(QWidget, Base):
             info_cont = self.tra("已根据当前的翻译数据在输出文件夹下生成翻译文件") + "  ... "
             self.success_toast("", info_cont)
 
-        info_cont2 = self.tra("导出翻译数据") 
+        info_cont2 = self.tra("导出翻译数据")
         self.action_export = parent.add_action(
             Action(FluentIcon.SHARE, info_cont2, parent, triggered = triggered),
         )
