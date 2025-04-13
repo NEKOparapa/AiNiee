@@ -3,11 +3,11 @@ import threading
 
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import QTimer, QTime
-from PyQt5.QtWidgets import QWidget, QDialog, QLabel, QPushButton
+from PyQt5.QtWidgets import QWidget,QLabel
 from PyQt5.QtWidgets import QLayout
 from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
-
+from qfluentwidgets import MessageBoxBase, StrongBodyLabel
 from qfluentwidgets import Action
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import FlowLayout, TimePicker
@@ -16,7 +16,6 @@ from qfluentwidgets import FluentWindow
 from qfluentwidgets import ProgressRing
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import IndeterminateProgressRing
-from qfluentwidgets import PrimaryPushButton
 
 from Base.Base import Base
 from Widget.DashboardCard import DashboardCard
@@ -24,39 +23,36 @@ from Widget.WaveformWidget import WaveformWidget
 from Widget.CommandBarCard import CommandBarCard
 
 
-class ScheduledTranslationDialog(QDialog, Base):
+class ScheduledTranslationDialog(MessageBoxBase, Base):
     """
     定时开始翻译对话框
     """
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle(self.tra("定时开始翻译"))
-        self.resize(240, 150)
+    def __init__(self, parent=None,title: str = "定时开始翻译", message_box_close = None):
+        super().__init__(parent=parent)
+        
+        self.message_box_close = message_box_close
 
-        # 创建布局
-        layout = QVBoxLayout(self)
+        # 设置框体
+        self.yesButton.setText(self.tra("确定"))
+        self.cancelButton.setText((self.tra("取消")))
+
+        self.viewLayout.setContentsMargins(16, 16, 16, 16)
+        self.title_label = StrongBodyLabel(title, self)
+        self.viewLayout.addWidget(self.title_label)
 
         # 添加说明标签
         info_label = QLabel(self.tra("请设置开始翻译的时间："))
-        layout.addWidget(info_label)
+        self.viewLayout.addWidget(info_label)
 
         self.time_picker = TimePicker(self)
         current_time = QTime.currentTime()
         self.time_picker.setTime(current_time)
         
-        layout.addWidget(self.time_picker)
+        self.viewLayout.addWidget(self.time_picker)
 
-        # 添加按钮
-        button_layout = QHBoxLayout()
-        self.confirm_button = PrimaryPushButton(self.tra("确定"))
-        self.cancel_button = QPushButton(self.tra("取消"))
+        self.yesButton.clicked.connect(self.accept)
+        self.cancelButton.clicked.connect(self.reject)
 
-        self.confirm_button.clicked.connect(self.accept)
-        self.cancel_button.clicked.connect(self.reject)
-
-        button_layout.addWidget(self.confirm_button)
-        button_layout.addWidget(self.cancel_button)
-        layout.addLayout(button_layout)
 
     def get_scheduled_time(self):
         return self.time_picker.getTime()
@@ -555,7 +551,7 @@ class TranslationPage(QWidget, Base):
                 return
 
             # 创建定时对话框
-            dialog = ScheduledTranslationDialog(parent=self)
+            dialog = ScheduledTranslationDialog(parent=window,title=self.tra("定时翻译"))
             if dialog.exec_():
                 scheduled_time = dialog.get_scheduled_time()
                 current_time = QTime.currentTime()
