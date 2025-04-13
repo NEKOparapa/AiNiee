@@ -15,9 +15,9 @@ from ModuleFolders.FileOutputer.BaseWriter import (
 
 
 class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
-    def __init__(self, output_config: OutputConfig, file_accessor: EpubAccessor):
+    def __init__(self, output_config: OutputConfig):
         super().__init__(output_config)
-        self.file_accessor = file_accessor
+        self.file_accessor = EpubAccessor()
 
     def write_bilingual_file(
         self, translation_file_path: Path, items: list[CacheItem],

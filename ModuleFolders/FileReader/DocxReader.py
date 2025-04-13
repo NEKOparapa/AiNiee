@@ -11,9 +11,9 @@ from ModuleFolders.FileReader.BaseReader import (
 
 
 class DocxReader(BaseSourceReader):
-    def __init__(self, input_config: InputConfig, file_accessor: DocxAccessor):
+    def __init__(self, input_config: InputConfig):
         super().__init__(input_config)
-        self.file_accessor = file_accessor
+        self.file_accessor = DocxAccessor()
 
     @classmethod
     def get_project_type(cls):

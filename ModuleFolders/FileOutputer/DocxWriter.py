@@ -9,9 +9,9 @@ from ModuleFolders.FileOutputer.BaseWriter import (
 
 
 class DocxWriter(BaseTranslatedWriter):
-    def __init__(self, output_config: OutputConfig, file_accessor: DocxAccessor):
+    def __init__(self, output_config: OutputConfig):
         super().__init__(output_config)
-        self.file_accessor = file_accessor
+        self.file_accessor = DocxAccessor()
 
     def write_translated_file(
         self, translation_file_path: Path, items: list[CacheItem],
