@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import QTableWidgetItem
 
 from Base.Base import Base
 from UserInterface.TableHelper.TableHelper import TableHelper
+from UserInterface.NameExtractor.NameExtractor import NameExtractor
 from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface import AppFluentWindow
@@ -138,6 +139,8 @@ class PromptDictionaryPage(QFrame, Base):
         self.command_bar_card.add_separator()
         self.add_command_bar_action_save(self.command_bar_card, config, window)
         self.add_command_bar_action_reset(self.command_bar_card, config, window)
+        self.command_bar_card.add_separator()
+        self.add_command_bar_name_extractor(self.command_bar_card, config, window)
 
 
 
@@ -309,3 +312,25 @@ class PromptDictionaryPage(QFrame, Base):
             Action(FluentIcon.ADD_TO, self.tra("插入行"), parent, triggered=triggered)
         )
 
+    # 一键提取
+    def add_command_bar_name_extractor(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
+
+        def triggered() -> None:
+            # 选择文件夹
+            path = QFileDialog.getExistingDirectory(None,  self.tra("选择文件夹"), "")
+            if path == None or path == "":
+                return
+
+            # 从文件加载数据
+            data = NameExtractor.extract_names_from_folder(self,path)
+
+            # 向表格更新数据
+            TableHelper.update_to_table(self.table, data, PromptDictionaryPage.KEYS)
+
+            # 弹出提示
+            info_cont1 = self.tra("人名信息已提取") + "..."
+            self.success_toast("", info_cont1)
+
+        parent.add_action(
+            Action(FluentIcon.DOWNLOAD, self.tra("一键提取"), parent, triggered = triggered),
+        )

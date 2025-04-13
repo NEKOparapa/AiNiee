@@ -61,7 +61,7 @@ class NameExtractor:
         # 考虑了可能存在的空格和可选参数
         pattern = re.compile(r'^\s*define\s+\w+\s*=\s*Character\s*\(\s*"([^"]+)"')
 
-        with file_path.open("r", encoding="utf-8") as f:
+        with file_path.open("r", encoding="utf-8-sig") as f: # 小心行头标识
             for line in f:
                 match = pattern.match(line)
                 if match:
@@ -180,13 +180,13 @@ class NameExtractor:
                 # 处理单个文件
                 try:
                     if file_extension == '.trans':
-                        extracted_set = self.extract_names_from_trans(file_path)
+                        extracted_set = NameExtractor.extract_names_from_trans(self, file_path)
 
                     elif file_extension == '.rpy':
-                        extracted_set = self.extract_names_from_rpy(file_path)
+                        extracted_set = NameExtractor.extract_names_from_rpy(self, file_path)
 
                     elif file_extension == '.json':
-                        extracted_set = self.extract_names_from_json(file_path)
+                        extracted_set = NameExtractor.extract_names_from_json(self, file_path)
 
                     # 将提取到的人名更新进人名集合
                     if extracted_set:
@@ -200,7 +200,7 @@ class NameExtractor:
                     print(f"Warning: Error processing file '{file_path}': {e}")
 
         # 进行特殊去重
-        deduplicated_names = self.deduplicate_names(all_names)
+        deduplicated_names = NameExtractor.deduplicate_names(self, all_names)
 
         # 格式化输出
         output_list = [
