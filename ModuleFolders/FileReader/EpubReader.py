@@ -14,9 +14,9 @@ from ModuleFolders.FileReader.BaseReader import (
 
 
 class EpubReader(BaseSourceReader):
-    def __init__(self, input_config: InputConfig, file_accessor: EpubAccessor):
+    def __init__(self, input_config: InputConfig):
         super().__init__(input_config)
-        self.file_accessor = file_accessor
+        self.file_accessor = EpubAccessor()
 
     @classmethod
     def get_project_type(cls):
