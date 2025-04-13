@@ -198,7 +198,7 @@ class PlatformPage(QFrame, Base):
         self.save_config(config)
 
         # 更新所有控件
-        self.update_all_platform_widgets()
+        self.update_custom_platform_widgets(self.flow_card)
 
     # 重命名平台
     def rename_platform(self, tag: str) -> None:

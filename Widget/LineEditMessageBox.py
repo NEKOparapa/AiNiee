@@ -4,7 +4,7 @@ from qfluentwidgets import StrongBodyLabel
 
 class LineEditMessageBox(MessageBoxBase):
 
-    def __init__(self, window, title:str, message_box_close:callable = None):
+    def __init__(self, window, title:str, message_box_close:callable = None, default_text:str = ""):
         super().__init__(parent = window)
 
         # 初始化
@@ -25,6 +25,7 @@ class LineEditMessageBox(MessageBoxBase):
         self.line_edit = LineEdit(self)
         self.line_edit.setFixedWidth(256)
         self.line_edit.setClearButtonEnabled(True)
+        self.line_edit.setText(default_text)
         self.viewLayout.addWidget(self.line_edit)
 
     # 重写验证方法
