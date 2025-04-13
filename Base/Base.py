@@ -125,10 +125,10 @@ class Base():
 
     # DEBUG
     def debug(self, msg: str, e: Exception = None) -> None:
-        if self.is_debug() == False:
+        if self.is_debug() is False:
             return None
 
-        if e == None:
+        if e is None:
             print(f"[[yellow]DEBUG[/]] {msg}")
         else:
             print(f"[[yellow]DEBUG[/]] {msg}\n{e}\n{("".join(traceback.format_exception(None, e, e.__traceback__))).strip()}")
@@ -139,7 +139,7 @@ class Base():
 
     # ERROR
     def error(self, msg: str, e: Exception = None) -> None:
-        if e == None:
+        if e is None:
             print(f"[[red]ERROR[/]] {msg}")
         else:
             print(f"[[red]ERROR[/]] {msg}\n{e}\n{("".join(traceback.format_exception(None, e, e.__traceback__))).strip()}")

@@ -23,7 +23,7 @@ from UserInterface.Platform.ArgsEditPage import ArgsEditPage
 from UserInterface.Platform.LimitEditPage import LimitEditPage
 
 class PlatformPage(QFrame, Base):
-    
+
     # 自定义平台默认配置
     CUSTOM = {
         "tag": "",
@@ -35,11 +35,12 @@ class PlatformPage(QFrame, Base):
         "rpm_limit": 4096,
         "tpm_limit": 8000000,
         "model": "gpt-4o",
-        "top_p": 1.0,
+        "top_p": 0.9,
         "temperature": 1.0,
         "presence_penalty": 0.0,
         "frequency_penalty": 0.0,
         "auto_complete": True,
+        # 自定义平台一般不需要太多默认模型
         "model_datas": [
             "gpt-4o",
             "gpt-4o-mini",
@@ -196,8 +197,56 @@ class PlatformPage(QFrame, Base):
         # 保存配置文件
         self.save_config(config)
 
-        # 更新控件
+        # 更新所有控件
         self.update_custom_platform_widgets(self.flow_card)
+
+    # 重命名平台
+    def rename_platform(self, tag: str) -> None:
+        # 定义对话框关闭时的回调函数
+        def message_box_close(widget, new_name: str):
+            if not new_name.strip():
+                self.warning_toast("", self.tra("接口名称不能为空"))
+                return
+
+    
+            config = self.load_config()
+
+            # 检查平台是否存在
+            if tag not in config["platforms"]:
+                self.error_toast("", self.tra("接口不存在"))
+                return
+
+            # 更新平台名称
+            config["platforms"][tag]["name"] = new_name.strip()
+
+            # 保存配置文件
+            self.save_config(config)
+
+            # 更新所有控件
+            self.update_custom_platform_widgets(self.flow_card)
+
+            self.success_toast("", self.tra("接口重命名成功"))
+
+        # 载入配置文件
+        config = self.load_config()
+
+        # 检查平台是否存在
+        if tag not in config["platforms"]:
+            self.error_toast("", self.tra("接口不存在"))
+            return
+
+        
+        current_name = config["platforms"][tag].get("name", "")
+
+        
+        message_box = LineEditMessageBox(
+            self.window,
+            self.tra("请输入新的接口名称"),
+            message_box_close=message_box_close,
+            default_text=current_name # 设置默认文本为当前名称
+        )
+
+        message_box.exec()
 
     # 生成 UI 描述数据
     def generate_ui_datas(self, platforms: dict, is_custom: bool) -> list:
@@ -241,6 +290,11 @@ class PlatformPage(QFrame, Base):
                                 FluentIcon.EDIT,
                                 self.tra("编辑接口"),
                                 partial(self.show_api_edit_page, k),
+                            ),
+                            (
+                                FluentIcon.ALBUM,
+                                self.tra("重命名接口"),
+                                partial(self.rename_platform, k),
                             ),
                             (
                                 FluentIcon.SCROLL,
@@ -302,7 +356,7 @@ class PlatformPage(QFrame, Base):
                 menu.addSeparator() if k != len(item.get("menus")) - 1 else None
             drop_down_push_button.setMenu(menu)
 
-    # 更新自定义平台控件
+   
     def update_custom_platform_widgets(self, widget):
         config = self.load_config()
         platforms = {k:v for k, v in config.get("platforms").items() if v.get("group") == "custom"}
@@ -368,7 +422,7 @@ class PlatformPage(QFrame, Base):
             config["platforms"][tag] = platform
             self.save_config(config)
 
-            # 更新UI
+            # 更新ui
             self.update_custom_platform_widgets(self.flow_card)
 
         def on_add_button_clicked(widget):
@@ -388,7 +442,7 @@ class PlatformPage(QFrame, Base):
             add_button.clicked.connect(lambda: on_add_button_clicked(self))
             widget.add_widget_to_head(add_button)
 
-            # 更新控件
+            # 更新ui
             self.update_custom_platform_widgets(widget)
 
         self.flow_card = FlowCard(
