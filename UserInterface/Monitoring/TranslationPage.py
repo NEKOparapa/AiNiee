@@ -547,7 +547,7 @@ class TranslationPage(QWidget, Base):
                 self.scheduled_timer = None
                 self.action_schedule.setText(self.tra("定时开始"))
                 info_cont = self.tra("定时翻译任务已取消") + "  ... "
-                self.success_toast("", info_cont)
+                window.success_toast("", info_cont)
                 return
 
             # 创建定时对话框
@@ -556,12 +556,22 @@ class TranslationPage(QWidget, Base):
                 scheduled_time = dialog.get_scheduled_time()
                 current_time = QTime.currentTime()
 
+                # 检查时间是否有效 ---
+                if scheduled_time <= current_time:
+                    # 如果选择的时间是过去或现在
+                    warning_box = MessageBox(self.tra("无效时间"), self.tra("不能设置过去或当前时间为定时翻译时间！"), window)
+                    warning_box.yesButton.setText(self.tra("知道了"))
+                    warning_box.cancelButton.hide() 
+                    warning_box.exec()
+                    return # 不设置定时任务
+                
+
                 # 计算当前时间到设定时间的毫秒数
                 current_seconds = current_time.hour() * 3600 + current_time.minute() * 60 + current_time.second()
                 scheduled_seconds = scheduled_time.hour() * 3600 + scheduled_time.minute() * 60 + scheduled_time.second()
 
-                # 如果设定时间小于当前时间，则认为是明天的时间
-                if scheduled_seconds <= current_seconds:
+                # 如果设定时间小于当前时间，则认为是明天的时间 (等于的情况已被上面处理)
+                if scheduled_seconds < current_seconds:
                     scheduled_seconds += 24 * 3600  # 添加一天的秒数
 
                 # 计算时间差异（毫秒）
@@ -575,11 +585,11 @@ class TranslationPage(QWidget, Base):
 
                 # 更新按钮文本
                 time_str = scheduled_time.toString("HH:mm:ss")
-                self.action_schedule.setText(self.tra("取消定时") + f" ({time_str})")
+                self.action_schedule.setText(f"{time_str}")
 
                 # 显示提示
-                info_cont = self.tra("已设置定时翻译任务，将在") + f" {time_str} " + self.tra("开始翻译") + "  ... "
-                self.success_toast("", info_cont)
+                info_cont =  f" {time_str} " + self.tra("开始翻译") + "  ... "
+                window.success_toast(self.tra("已设置定时翻译任务，将在"), info_cont)
 
         info_cont = self.tra("定时开始")
         self.action_schedule = parent.add_action(
@@ -593,6 +603,7 @@ class TranslationPage(QWidget, Base):
         self.action_schedule.setText(self.tra("定时开始"))
 
         # 开始翻译
+        self.info("定时翻译任务已开始 ...")
         self.action_play.setEnabled(False)
         self.action_stop.setEnabled(True)
         self.action_export.setEnabled(True)
@@ -601,9 +612,9 @@ class TranslationPage(QWidget, Base):
             "continue_status": False,
         })
 
-        # 显示提示
-        info_cont = self.tra("定时翻译任务已开始") + "  ... "
-        self.success_toast("", info_cont)
+        # # 显示提示
+        # info_cont = self.tra("定时翻译任务已开始") + "  ... "
+        # self.success_toast("", info_cont)
 
     # 继续翻译
     def add_command_bar_action_continue(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
