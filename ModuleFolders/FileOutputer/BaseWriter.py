@@ -19,6 +19,7 @@ class TranslationOutputConfig:
 class OutputConfig:
     translated_config: TranslationOutputConfig = None
     bilingual_config: TranslationOutputConfig = None
+    input_root: Path = None
 
     def __post_init__(self):
         if self.translated_config is None:
