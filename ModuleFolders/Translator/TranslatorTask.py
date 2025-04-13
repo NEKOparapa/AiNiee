@@ -719,7 +719,7 @@ class TranslatorTask(Base):
         self.system_prompt = self.update_sysprompt_glossary(self.config,self.system_prompt,self.config.glossary_buffer_data, self.config.prompt_dictionary_data, self.source_text_dict)
 
         # 发起请求
-        requester = TranslatorRequester(self.config, self.plugin_manager)
+        requester = TranslatorRequester()
         skip, response_think, response_content, prompt_tokens, completion_tokens = requester.sent_request(
             self.messages,
             self.system_prompt,
@@ -879,7 +879,7 @@ class TranslatorTask(Base):
         model_a = platform_config["model_name"]
 
         # 发起第一次请求
-        requester = TranslatorRequester(self.config, self.plugin_manager)
+        requester = TranslatorRequester()
         skip, response_think, response_content, prompt_tokens_a, completion_tokens_a = requester.sent_request(
             messages,
             system_content,
@@ -932,7 +932,7 @@ class TranslatorTask(Base):
         model_b = platform_config["model_name"]
 
         # 发起第二次请求
-        requester = TranslatorRequester(self.config, self.plugin_manager)
+        requester = TranslatorRequester()
         skip, response_think, response_content, prompt_tokens_b, completion_tokens_b = requester.sent_request(
             messages,
             system_content,

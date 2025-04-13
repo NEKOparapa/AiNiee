@@ -5,22 +5,17 @@ from openai import OpenAI               # pip install openai
 
 
 from Base.Base import Base
-from Base.PluginManager import PluginManager
-from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 
 # 接口请求器
 class TranslatorRequester(Base):
 
 
-    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager) -> None:
+    def __init__(self) -> None:
         super().__init__()
-
-        # 初始化
-        self.config = config
-        self.plugin_manager = plugin_manager
+        pass
 
     # 分发请求
-    def sent_request(self, messages: list[dict], system_prompt: str,platform_config) -> tuple[bool, str, int, int]:
+    def sent_request(self, messages: list[dict], system_prompt: str,platform_config: dict) -> tuple[bool, str, int, int]:
         # 获取平台参数
         target_platform = platform_config.get("target_platform")
         api_format = platform_config.get("api_format")
@@ -105,7 +100,7 @@ class TranslatorRequester(Base):
                 temperature = temperature,
                 frequency_penalty = frequency_penalty,
                 timeout = request_timeout,
-                max_tokens = max(512, self.config.tokens_limit) if self.config.tokens_limit_switch == True else 512,
+                max_tokens = 512,
                 extra_query = {
                     "do_sample": True,
                     "num_beams": 1,
@@ -130,19 +125,6 @@ class TranslatorRequester(Base):
             completion_tokens = int(response.usage.completion_tokens)
         except Exception:
             completion_tokens = 0
-
-        # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
-        response_content_dict = {"0":response_content}
-
-        # 调用插件，进行处理
-        self.plugin_manager.broadcast_event(
-            "sakura_reply_processed",
-            self.config,
-            response_content_dict
-        )
-
-        # 插件事件过后，恢复字符串类型
-        response_content = response_content_dict["0"]
 
         # Sakura 返回的内容多行文本，将其转换为 textarea标签包裹，方便提取
         response_content = "<textarea>\n" + response_content + "\n</textarea>"
@@ -220,27 +202,6 @@ class TranslatorRequester(Base):
         except Exception:
             completion_tokens = 0
 
-        #print("模型回复内容:\n" + response_content)
-
-
-        # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
-        response_content_dict = {"0":response_content}
-
-        # 调用插件，进行处理
-        self.plugin_manager.broadcast_event(
-            "reply_processed",
-            self.config,
-            response_content_dict
-        )
-
-        # 插件事件过后，恢复字符串类型
-        response_content = response_content_dict["0"]
-
-        # 提取多标签情况的翻译文本,整合在一个标签里面，方便后面再次提取
-        #response_content = TranslatorRequester.extract_span_content_regex(self,response_content)
-
-
-
         return False, response_think, response_content, prompt_tokens, completion_tokens
 
     # 发起请求
@@ -303,19 +264,6 @@ class TranslatorRequester(Base):
         except Exception:
             completion_tokens = 0
 
-        # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
-        response_content_dict = {"0":response_content}
-
-        # 调用插件，进行处理
-        self.plugin_manager.broadcast_event(
-            "reply_processed",
-            self.config,
-            response_content_dict
-        )
-
-        # 插件事件过后，恢复字符串类型
-        response_content = response_content_dict["0"]
-
         return False, "", response_content, prompt_tokens, completion_tokens
 
     # 发起请求
@@ -377,19 +325,6 @@ class TranslatorRequester(Base):
         except Exception:
             completion_tokens = 0
 
-        # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
-        response_content_dict = {"0":response_content}
-
-        # 调用插件，进行处理
-        self.plugin_manager.broadcast_event(
-            "reply_processed",
-            self.config,
-            response_content_dict
-        )
-
-        # 插件事件过后，恢复字符串类型
-        response_content = response_content_dict["0"]
-
         return False, "", response_content, prompt_tokens, completion_tokens
     
     # 发起请求
@@ -447,19 +382,6 @@ class TranslatorRequester(Base):
         except Exception:
             completion_tokens = 0
 
-        # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
-        response_content_dict = {"0":response_content}
-
-        # 调用插件，进行处理
-        self.plugin_manager.broadcast_event(
-            "reply_processed",
-            self.config,
-            response_content_dict
-        )
-
-        # 插件事件过后，恢复字符串类型
-        response_content = response_content_dict["0"]
-
         return False, "", response_content, prompt_tokens, completion_tokens
     
     # 发起请求
@@ -513,19 +435,6 @@ class TranslatorRequester(Base):
         except Exception:
             completion_tokens = 0
 
-        # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
-        response_content_dict = {"0":response_content}
-
-        # 调用插件，进行处理
-        self.plugin_manager.broadcast_event(
-            "reply_processed",
-            self.config,
-            response_content_dict
-        )
-
-        # 插件事件过后，恢复字符串类型
-        response_content = response_content_dict["0"]
-
         return False, "", response_content, prompt_tokens, completion_tokens
     
     # 发起请求
@@ -572,19 +481,6 @@ class TranslatorRequester(Base):
             completion_tokens = int(response.usage.completion_tokens)
         except Exception:
             completion_tokens = 0
-
-        # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
-        response_content_dict = {"0":response_content}
-
-        # 调用插件，进行处理
-        self.plugin_manager.broadcast_event(
-            "reply_processed",
-            self.config,
-            response_content_dict
-        )
-
-        # 插件事件过后，恢复字符串类型
-        response_content = response_content_dict["0"]
 
         return False, "", response_content, prompt_tokens, completion_tokens
 
@@ -681,18 +577,5 @@ class TranslatorRequester(Base):
             completion_tokens = int(response.usage.completion_tokens)
         except Exception:
             completion_tokens = 0
-
-        # 将回复内容包装进可变数据容器里，使之可以被修改，并自动传回
-        response_content_dict = {"0":response_content}
-
-        # 调用插件，进行处理
-        self.plugin_manager.broadcast_event(
-            "reply_processed",
-            self.config,
-            response_content_dict
-        )
-
-        # 插件事件过后，恢复字符串类型
-        response_content = response_content_dict["0"]
 
         return False, response_think, response_content, prompt_tokens, completion_tokens

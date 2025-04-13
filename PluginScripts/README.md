@@ -199,57 +199,6 @@ class ExamplePlugin(PluginBase):
     }
     ```
 
-
-### 回复后文本处理事件：reply_processed
-
-1. **触发位置**
-
-    每次接受到AI的回复后触发。
-
-2. **传入参数**
-
-    | 参数名 | 类型 | 描述 |
-    | ------ | ---- | ---- |
-    | event_name | string | reply_processed |
-    | config | TranslatorConfig | 全局类，包含了在整个应用范围内共享的的配置信息 |
-    | event_data | string | AI补全生成的全部文本 |
-
-
-    因为没有返回参数，需要直接处理输入的参数event_data
-
-
-
-    - `event_data`: 本次任务的待翻译的原文文本，json格式，仅一个键值对
-    ```json
-    {
-        "0": "AI回复的全部文本",
-    }
-    ```
-
-### 回复后文本处理事件(sakura)：sakura_reply_processed
-
-1. **触发位置**
-
-    每次接受到AI的回复后触发,只在使用Sakura模型时触发
-
-2. **传入参数**
-
-    | 参数名 | 类型 | 描述 |
-    | ------ | ---- | ---- |
-    | event_name | string | sakura_reply_processed |
-    | config | TranslatorConfig | 全局类，包含了在整个应用范围内共享的的配置信息 |
-    | event_data | string | AI补全生成的全部文本 |
-
-    因为没有返回参数，需要直接处理输入的参数event_data
-
-
-    - `event_data`: 本次任务的待翻译的原文文本，json格式 ，仅一个键值对
-    ```json
-    {
-        "0": "AI回复的全部文本",
-    }
-    ```
-
 ### 文本后处理事件：postprocess_text
 
 1. **触发位置**
