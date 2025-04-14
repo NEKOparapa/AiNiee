@@ -262,10 +262,6 @@ class TranslatorConfig(Base):
             self.tpm_limit = min(self.tpm_limit_a,self.tpm_limit_b)
 
 
-
-
-
-
         # 设置网络代理(共用设置)
         if self.proxy_enable == False or self.proxy_url == "":
             os.environ.pop("http_proxy", None)
