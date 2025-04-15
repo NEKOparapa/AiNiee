@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileAccessor.DocxAccessor import DocxAccessor
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
@@ -23,7 +22,7 @@ class DocxReader(BaseSourceReader):
     def support_file(self):
         return 'docx'
 
-    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
+    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
         xml_soup = self.file_accessor.read_content(file_path)
         paragraphs = xml_soup.find_all('w:t')
         self.file_accessor.clear_temp(file_path)

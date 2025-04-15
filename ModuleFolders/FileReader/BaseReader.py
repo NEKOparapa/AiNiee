@@ -42,7 +42,7 @@ class BaseSourceReader(ABC):
         pass
 
     @abstractmethod
-    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
+    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
         """读取文件内容，并返回原文(译文)片段"""
         pass
 
@@ -93,7 +93,8 @@ def detect_newlines(content: str) -> str:
         return os.linesep
 
 
-def read_file_safely(file_path: Union[str, pathlib.Path], cache_project: CacheProject) -> str:
+# UNUSED: 暂时不使用之前这个读取文件的函数
+def _read_file_safely(file_path: Union[str, pathlib.Path], cache_project: CacheProject) -> str:
     """
     安全地读取文本文件，自动检测并使用正确的编码和换行符格式，并将这些信息保存到cache_project中。
     结合BOM检测和chardet库进行编码识别

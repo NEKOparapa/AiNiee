@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
@@ -22,7 +21,7 @@ class VntReader(BaseSourceReader):
     def support_file(self):
         return "json"
 
-    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
+    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
             json_data = json.loads(file_path.read_text(encoding="utf-8"))
             items = []
             for entry in json_data:
