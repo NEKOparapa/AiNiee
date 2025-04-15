@@ -208,7 +208,6 @@ class PlatformPage(QFrame, Base):
                 self.warning_toast("", self.tra("接口名称不能为空"))
                 return
 
-    
             config = self.load_config()
 
             # 检查平台是否存在

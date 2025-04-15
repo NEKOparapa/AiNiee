@@ -37,7 +37,7 @@ class AnthropicRequester(Base):
             # 提取回复的文本内容
             response_content = response.content[0].text
         except Exception as e:
-            self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
+            self.error(f"请求任务错误 ... {e}", e if self.is_debug() else None)
             return True, None, None, None, None
 
         # 获取指令消耗

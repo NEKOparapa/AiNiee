@@ -10,6 +10,7 @@ from qfluentwidgets import InfoBarPosition
 
 from Base.EventManager import EventManager
 
+# 事件列表
 class Event():
 
     API_TEST_DONE = 100                             # API 测试完成
@@ -32,14 +33,17 @@ class Event():
     APP_UPDATE_DOWNLOAD: int = 620                          # 下载应用
     APP_UPDATE_DOWNLOAD_UPDATE: int = 630                   # 下载应用更新
 
+    GLOSS_TRANSLATION_START = 700                           # 术语表翻译 开始
+    GLOSS_TRANSLATION_DONE = 701                            # 术语表翻译 完成
+
+# 软件运行状态列表
 class Status():
 
     IDLE = 1000                                     # 无任务
-    API_TEST = 2000                                 # 测试中
     TRANSLATING = 3000                              # 翻译中
     STOPING = 4000                                  # 停止中
-    NEW_PROCESS_TEST = 3500     # 新流程测试中
-
+    API_TEST = 2000                                 # 接口测试中
+    GLOSS_TRANSLATION = 5000                        # 术语表翻译中
 
 
 class Base():
