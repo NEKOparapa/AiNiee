@@ -1,3 +1,4 @@
+import copy
 import rapidjson as json
 from qfluentwidgets import Action
 from qfluentwidgets import FluentIcon
@@ -34,14 +35,11 @@ class PromptDictionaryPage(QFrame, Base):
         # 默认配置
         self.default = {
             "prompt_dictionary_switch": False,
-            "prompt_dictionary_data": [
-                {
-                    "src": "",
-                    "dst": "",
-                    "info": "",
-                }
-            ],
+            "prompt_dictionary_data": [],
         }
+
+        # 订阅术语表完成事件
+        self.subscribe(Base.EVENT.GLOSS_TRANSLATION_DONE, self.glossary_translation_done)
 
         # 载入并保存默认配置
         config = self.save_config(self.load_config_from_default())
@@ -141,7 +139,7 @@ class PromptDictionaryPage(QFrame, Base):
         self.add_command_bar_action_reset(self.command_bar_card, config, window)
         self.command_bar_card.add_separator()
         self.add_command_bar_name_extractor(self.command_bar_card, config, window)
-
+        self.add_command_bar_glossary_translation(self.command_bar_card, config, window)
 
 
     # 导入
@@ -334,3 +332,48 @@ class PromptDictionaryPage(QFrame, Base):
         parent.add_action(
             Action(FluentIcon.DOWNLOAD, self.tra("一键提取"), parent, triggered = triggered),
         )
+
+
+    # 一键翻译
+    def add_command_bar_glossary_translation(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
+
+        def triggered() -> None:
+            if Base.work_status == Base.STATUS.IDLE:
+                # 更新运行状态
+                Base.work_status = Base.STATUS.GLOSS_TRANSLATION
+
+                # 获取配置参数
+                config = self.load_config()
+                platform_tag = config.get(f"target_platform")
+                platform = config.get("platforms").get(platform_tag)
+                data = copy.deepcopy(platform)
+                data["proxy_url"] = config.get("proxy_url")
+                data["proxy_enable"] = config.get("proxy_enable")
+                data["target_language"] = config.get("target_language")
+
+                # 获取表格数据
+                data["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
+
+                # 触发事件
+                self.emit(Base.EVENT.GLOSS_TRANSLATION_START, data)
+            else:
+                self.warning_toast("", self.tra("软件正在执行其他任务中，请稍后再试"))
+
+        parent.add_action(
+            Action(FluentIcon.DOWNLOAD, self.tra("一键翻译"), parent, triggered = triggered),
+        )
+
+
+    # 术语表翻译完成
+    def glossary_translation_done(self, event: int, data: dict):
+        # 更新运行状态
+        Base.work_status = Base.STATUS.IDLE
+
+        print("术语表翻译完成 ...")
+        # 获取翻译后数据
+
+        # 获取当前表格数据
+
+        # 根据翻译后数据，合并更新表格数据
+
+        # 重新填入到表格中

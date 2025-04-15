@@ -1,4 +1,5 @@
 import json
+import copy
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QFileDialog, QFrame, QHBoxLayout, QWidget, QVBoxLayout
 from qfluentwidgets import ( SingleDirectionScrollArea,Action,RoundMenu,FluentIcon as FIF,TransparentDropDownToolButton)
@@ -390,10 +391,9 @@ class FlowDesignPage(QFrame, Base):
     def start_process_test(self, breakpoint_position):
         """启动测试流程"""
         if Base.work_status == Base.STATUS.IDLE:
-            Base.work_status = Base.STATUS.NEW_PROCESS_TEST
+            Base.work_status = Base.STATUS.API_TEST
             
             # 创建深拷贝避免修改原始数据
-            import copy
             test_params = copy.deepcopy(self.default["flow_design_list"])
             
             # 清理测试参数中的四个字段

@@ -135,14 +135,14 @@ class Translator(Base):
         # 配置翻译平台信息
         self.config.prepare_for_translation()
 
-        # 请求线程数
+        # 配置请求线程数
         self.config.thread_counts_setting()  # 需要在平台信息配置后面，依赖前面的数值 
 
         # 配置请求限制器
         self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
 
 
-        # 生成缓存列表
+        # 读取输入文件夹的文件，生成缓存
         try:
             if continue_status == True:
                 self.cache_manager.load_from_file(self.config.label_output_path)

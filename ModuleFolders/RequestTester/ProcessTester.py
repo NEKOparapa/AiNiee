@@ -373,7 +373,7 @@ class ProcessTester(Base):
         return text
     
     def _handle_rex_extraction(self, content: str, think: str, settings: dict) -> str:
-        """标签提取实现"""
+        """正则提取实现"""
         Extraction = RegexExtractor()
         text = Extraction.extract_rex(content,settings)
         return text
