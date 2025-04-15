@@ -207,9 +207,31 @@ class ResponseExtractor():
                         # 组合数字和文本，保留匹配到的 `text_part` 原始文本
                         assembled_content = f"{number_part},{text_part}"
                         result.append(assembled_content)
-                except IndexError:
-                    # 处理组不存在的情况
-                    rich.print(f"[[red]WARNING[/]] Could not extract expected groups from match: {escape(match.group(0))}")
+                    else:
+                        # 更详细地指明哪个部分为空
+                        missing_parts = []
+                        if number_part is None:
+                            missing_parts.append("数字部分")
+                        if text_part is None:
+                            missing_parts.append("文本部分")
+
+                        # 输出更详细的警告信息
+                        rich.print(
+                            f"[[red]WARNING[/]] 多行文本 提取失败：{', '.join(missing_parts)}为空。"
+                            f"原始文本：{escape(match.group(0))[:50]}{'...' if len(match.group(0)) > 50 else ''} "
+                        )
+                except IndexError as e:
+                    # 处理组不存在的情况，添加更详细的错误信息
+                    rich.print(
+                        f"[[red]WARNING[/]] 多行文本 提取索引错误：{str(e)}。无法从匹配中提取预期组。"
+                        f"原始文本：{escape(match.group(0))[:50]}{'...' if len(match.group(0)) > 50 else ''} "
+                    )
+            else:
+                # 添加未匹配情况的日志
+                if segment and len(segment.strip()) > 0:  # 只记录非空段落
+                    rich.print(
+                        f"[[red]WARNING[/]] 多行文本 未找到匹配段落：{escape(segment[:50])}{'...' if len(segment) > 50 else ''} "
+                    )
 
         return result
 
