@@ -11,14 +11,14 @@ class ResponseExtractor():
 
     # 多行文本数字匹配格式
     # 目前有两个匹配组，第一个为标准数字序号部分，第二个为可能出现的多余引号组（常见于deepseek-v3）
-    multiline_number_prefix = r'(\d+\.\d+\.)(")?[,，\s]?(?(2)"|)'
+    multiline_number_prefix = r'(\d+\.\d+\.)(")?[,，\s]?(?(2)"|)?'
 
     # 判断多行文本开始的正则
     multiline_start_reg = re.compile(fr'^\s*["“”]\s*{multiline_number_prefix}')
     # 提取多行文本边界的正则
     boundary_pattern_reg = re.compile(fr'["“”][^"“”]*?{multiline_number_prefix}')
     # 提取规范数字序号与正文的正则
-    extract_num_text_reg = re.compile(fr'["“”][^"“”]*?{multiline_number_prefix}(.*?)["“”]?[,，]?$' )
+    extract_num_text_reg = re.compile(fr'["“”][^"“”]*?{multiline_number_prefix}(.*?)["“”]?[,，]?$')
 
     def __init__(self):
         pass
