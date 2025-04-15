@@ -55,19 +55,24 @@ class DirectoryWriter:
             use_original_encoding = True
 
             # 检查所有文本是否可以用原始编码表示
-            for item in items:
-                if item.translated_text and not can_encode_text(item.translated_text, original_encoding):
-                    use_original_encoding = False
-                    break
+            # 如果原始编码已经是UTF-8，跳过检查
+            if original_encoding.lower() == 'utf-8':
+                pass  # UTF-8可以表示所有字符，无需检查
+            else:
+                # 检查所有文本是否可以用原始编码表示
+                for item in items:
+                    if item.translated_text and not can_encode_text(item.translated_text, original_encoding):
+                        use_original_encoding = False
+                        break
 
             # 决定使用的编码
             actual_encoding = original_encoding if use_original_encoding else 'utf-8'
-            # 临时修改writer的编码设置
+            # 修改writer的编码设置
             writer.translated_encoding = actual_encoding
 
             rich.print(
                 f"[[green]INFO[/]] 正在写入文件 使用编码: {actual_encoding} "
-                f"{'(原始编码)' if use_original_encoding else f'(由{original_encoding}编码回退)'}"
+                f"{'(原始编码)' if use_original_encoding else f'(由原始编码 {original_encoding} 变更)'}"
             )
 
             # 把翻译片段按文件名分组
