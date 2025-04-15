@@ -149,7 +149,7 @@ class ResponseExtractor():
                 list_content = list_block_match.group(1).strip()
                 # 再次判断是否是列表块内容(通过以特定模式开始作为判断)
                 if list_content and ResponseExtractor.multiline_start_reg.match(list_content):
-                    items = ResponseExtractor.extract_mixed_quotes(self, list_content)
+                    items = ResponseExtractor.extract_multiline_content(self, list_content)
                     extracted_items.extend(items)
                 else:
                     # 如果方括号内的内容不像带引号列表 (例如 "9.[社团活动后]")
@@ -163,7 +163,7 @@ class ResponseExtractor():
         result_dict = {str(i): item for i, item in enumerate(extracted_items)}
         return result_dict
 
-    def extract_mixed_quotes(self, text: str) -> List[str]:
+    def extract_multiline_content(self, text: str) -> List[str]:
         """
         从文本中提取引号包围的内容，处理嵌套引号。
 
