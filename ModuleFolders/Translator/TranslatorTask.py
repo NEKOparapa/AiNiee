@@ -14,7 +14,7 @@ from Base.Base import Base
 from Base.PluginManager import PluginManager
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
-from ModuleFolders.Translator.TranslatorRequester import TranslatorRequester
+from ModuleFolders.LLMRequester.LLMRequester import LLMRequester
 from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from ModuleFolders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
@@ -46,7 +46,6 @@ class TranslatorTask(Base):
         self.system_prompt = ""
         self.system_prompt_a = ""
         self.system_prompt_b = ""
-        self.regex_dir =  os.path.join(".", "Resource", "Regex", "regex.json")
 
         # 输出日志存储
         self.extra_log = []
@@ -61,6 +60,7 @@ class TranslatorTask(Base):
         self.affix_whitespace_storage = {}
 
         # 读取正则表达式
+        self.regex_dir =  os.path.join(".", "Resource", "Regex", "regex.json")
         self.code_pattern_list = self._prepare_regex_patterns()
 
     # 读取正则库和禁翻表的正则
@@ -719,7 +719,7 @@ class TranslatorTask(Base):
         self.system_prompt = self.update_sysprompt_glossary(self.config,self.system_prompt,self.config.glossary_buffer_data, self.config.prompt_dictionary_data, self.source_text_dict)
 
         # 发起请求
-        requester = TranslatorRequester()
+        requester = LLMRequester()
         skip, response_think, response_content, prompt_tokens, completion_tokens = requester.sent_request(
             self.messages,
             self.system_prompt,
@@ -879,7 +879,7 @@ class TranslatorTask(Base):
         model_a = platform_config["model_name"]
 
         # 发起第一次请求
-        requester = TranslatorRequester()
+        requester = LLMRequester()
         skip, response_think, response_content, prompt_tokens_a, completion_tokens_a = requester.sent_request(
             messages,
             system_content,
@@ -932,7 +932,7 @@ class TranslatorTask(Base):
         model_b = platform_config["model_name"]
 
         # 发起第二次请求
-        requester = TranslatorRequester()
+        requester = LLMRequester()
         skip, response_think, response_content, prompt_tokens_b, completion_tokens_b = requester.sent_request(
             messages,
             system_content,

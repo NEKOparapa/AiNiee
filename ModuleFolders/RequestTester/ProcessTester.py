@@ -16,6 +16,8 @@ from DRWidget.NoTranslateListExtractionCard.NoTranslateListExtraction import NoT
 from DRWidget.RegexExtractionCard.RegexExtraction import RegexExtractor
 from DRWidget.TagExtractionCard.TagExtraction import TagExtractor
 
+
+# 改进点：不支持亚马逊云平台接口
 class ProcessTester(Base):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -232,14 +234,6 @@ class ProcessTester(Base):
         for card in request_cards:
             if card["type"] == "DialogueFragmentCard":
                 settings = card["settings"]
-
-                #role_mapping = {
-                #    "系统": "system",
-                #    "用户": "user",
-                #    "模型": "assistant"
-                #}
-                
-                #role = role_mapping.get(settings["role"], "user")
 
                 role = settings["role"]
                 content = settings["content"]
