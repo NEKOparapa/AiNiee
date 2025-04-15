@@ -2,12 +2,23 @@ import re
 import string
 from typing import Dict, List
 
+import rich
+from rich.markup import escape
+
+
 # 回复解析器
 class ResponseExtractor():
 
     # 多行文本数字匹配格式
     # 目前有两个匹配组，第一个为标准数字序号部分，第二个为可能出现的多余引号组（常见于deepseek-v3）
     multiline_number_prefix = r'(\d+\.\d+\.)(")?[,，\s]?(?(2)"|)'
+
+    # 判断多行文本开始的正则
+    multiline_start_reg = re.compile(fr'^\s*["“”]\s*{multiline_number_prefix}')
+    # 提取多行文本边界的正则
+    boundary_pattern_reg = re.compile(fr'["“”][^"“”]*?{multiline_number_prefix}')
+    # 提取规范数字序号与正文的正则
+    extract_num_text_reg = re.compile(fr'["“”][^"“”]*?{multiline_number_prefix}(.*?)["“”]?[,，]?$' )
 
     def __init__(self):
         pass
@@ -137,7 +148,7 @@ class ResponseExtractor():
             if list_block_match:
                 list_content = list_block_match.group(1).strip()
                 # 再次判断是否是列表块内容(通过以特定模式开始作为判断)
-                if list_content and re.match(fr'^\s*["“”]\s*{ResponseExtractor.multiline_number_prefix}', list_content):
+                if list_content and ResponseExtractor.multiline_start_reg.match(list_content):
                     items = ResponseExtractor.extract_mixed_quotes(self, list_content)
                     extracted_items.extend(items)
                 else:
@@ -161,82 +172,46 @@ class ResponseExtractor():
 
         Returns:
             提取出的内容列表
+            从捕获组1获取标准序号`n.n.`，然后从捕获组3获取正文，随后组装这两个组（以英文逗号分隔）并返回
         """
         result = []
 
         # 首先尝试找到所有可能的列表项边界
         # 这个模式匹配：引号 + 可能的空白 + 数字.数字.,
-        boundary_pattern = fr'["“”][^"“”]*?{ResponseExtractor.multiline_number_prefix}'
+        boundaries = [m.start() for m in ResponseExtractor.boundary_pattern_reg.finditer(text)]
 
-        boundaries = []
-        number_formats = []
-
-        # 收集边界位置和对应的序号格式
-        for m in re.finditer(boundary_pattern, text):
-            boundaries.append(m.start())
-            # 捕获序号部分
-            if m.group(1):
-                number_formats.append(m.group(1))
-            else:
-                number_formats.append(None)
-
-        # 如果找不到边界，尝试寻找任何引号
-        if not boundaries:
-            # 查找任何引号的位置
-            quote_pattern = r'["“”]'
-            boundaries = [m.start() for m in re.finditer(quote_pattern, text)]
-            number_formats = [None] * len(boundaries)
-
-        # 如果还是找不到，返回空列表
+        # 如果找不到边界，返回空列表
         if not boundaries:
             return []
 
         # 添加文本结束作为最后一个边界
         boundaries.append(len(text))
-        number_formats.append(None)
 
         # 逐对处理边界
         for i in range(len(boundaries) - 1):
             segment = text[boundaries[i]:boundaries[i + 1]].strip()
-            current_number_format = number_formats[i]
 
-            # 查找该段内的第一个引号和最后一个引号
-            first_quote = None
-            last_quote = None
+            # 目前的 `multiline_number_prefix` 中有两个匹配组：
+            # 第一个匹配数字序号n.n. 第二个匹配可能出现的多余引号
+            # 因此这里的 `extract_num_text_reg` 使用第三个匹配组进行正文获取
+            match = ResponseExtractor.extract_num_text_reg.search(segment)
 
-            for j, char in enumerate(segment):
-                if char in ['"', '“', '”']:
-                    if first_quote is None:
-                        first_quote = j
-                    last_quote = j
+            if match:
+                try:
+                    # 提取第1组(数字)和第3组(文本)
+                    number_part = match.group(1)
+                    text_part = match.group(3)
 
-            # 如果找到了引号对
-            if first_quote is not None and last_quote is not None and first_quote < last_quote:
-                # 提取引号之间的内容
-                content = segment[first_quote + 1:last_quote].strip()
-                if content:
-                    # 重建标准格式文本
-                    ResponseExtractor.rebuild_content(self, content, current_number_format, result)
-            else:
-                # 未找到引号对（具体是末尾的）时，判断是否以引号+数字.数字.开头
-                match = re.match(r'^\s*["“”]\s*(\d+\.\d+\..*)', segment)
-                if match:
-                    # 如果是则尝试去掉开头的引号
-                    content = match.group(1)
-                    # 重建标准格式文本
-                    ResponseExtractor.rebuild_content(self, content, current_number_format, result)
+                    # 确保两个组都被成功捕获
+                    if number_part is not None and text_part is not None:
+                        # 组合数字和文本，保留匹配到的 `text_part` 原始文本
+                        assembled_content = f"{number_part},{text_part}"
+                        result.append(assembled_content)
+                except IndexError:
+                    # 处理组不存在的情况
+                    rich.print(f"[[red]WARNING[/]] Could not extract expected groups from match: {escape(match.group(0))}")
+
         return result
-
-    def rebuild_content(self, content, current_number_format, result):
-        number_match = re.match(fr'{ResponseExtractor.multiline_number_prefix}(.*)', content)
-        if number_match:
-            # 标准化序号格式并重建内容
-            # 注意，因为此处`multiline_number_prefix`中有两个匹配组，所以这里是`group(3)`获取正文
-            content_part = number_match.group(3)
-            standardized_content = f"{current_number_format},{content_part}"
-            result.append(standardized_content)
-        else:
-            result.append(content)
 
     # 辅助函数，统计原文中的换行符
     def count_newlines_in_dict_values(self,source_text_dict):
