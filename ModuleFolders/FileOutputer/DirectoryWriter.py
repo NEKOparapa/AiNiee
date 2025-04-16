@@ -56,8 +56,9 @@ class DirectoryWriter:
 
             # 检查所有文本是否可以用原始编码表示
             # 如果原始编码已经是UTF-8，跳过检查
-            if original_encoding.lower() == 'utf-8':
-                pass  # UTF-8可以表示所有字符，无需检查
+            # 如果原始编码为非纯文本，跳过检查
+            if original_encoding.lower() == 'utf-8' or original_encoding.startswith("non_text"):
+                pass  # UTF-8可以表示所有字符，无需检查 / 非纯文本不需要检查
             else:
                 # 检查所有文本是否可以用原始编码表示
                 for item in items:

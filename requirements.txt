@@ -21,3 +21,4 @@ rich
 tqdm
 jaconv
 python-rapidjson
+magika
