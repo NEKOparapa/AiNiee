@@ -18,7 +18,9 @@ class ResponseExtractor():
     # 提取多行文本边界的正则
     boundary_pattern_reg = re.compile(fr'["“”][^"“”]*?{multiline_number_prefix}')
     # 提取规范数字序号与正文的正则
-    extract_num_text_reg = re.compile(fr'["“”][^"“”]*?{multiline_number_prefix}(.*?)["“”]?[,，]?$')
+    extract_num_text_reg = re.compile(
+        fr'["“”][^"“”]*?{multiline_number_prefix}(.*?)(?:\n["“”][,，]|["“”]\n[,，]|["“”]?[,，]?)$'
+    )
 
     def __init__(self):
         pass
@@ -204,8 +206,10 @@ class ResponseExtractor():
 
                     # 确保两个组都被成功捕获
                     if number_part is not None and text_part is not None:
+                        # 去除`text_part`中可能出现的`number_part`
+                        cleaned_text_part = text_part.replace(number_part, '').replace(number_part.rstrip('.'), '')
                         # 组合数字和文本，保留匹配到的 `text_part` 原始文本
-                        assembled_content = f"{number_part},{text_part}"
+                        assembled_content = f"{number_part},{cleaned_text_part}"
                         result.append(assembled_content)
                     else:
                         # 更详细地指明哪个部分为空
