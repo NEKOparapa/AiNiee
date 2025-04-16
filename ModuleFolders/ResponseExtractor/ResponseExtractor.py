@@ -16,11 +16,11 @@ class ResponseExtractor:
     multiline_quote_suffix = r'(?:\n["“”][,，]|["“”]\n[,，]|["“”]?[,，]?)$'
 
     # 判断多行文本开始的正则
-    multiline_start_reg = re.compile(fr'^\s*["“”]\s*{multiline_number_prefix}')
+    multiline_start_reg = re.compile(rf'^\s*["“”]\s*{multiline_number_prefix}')
     # 提取多行文本边界的正则
-    boundary_pattern_reg = re.compile(fr'["“”][^"“”]*?{multiline_number_prefix}')
+    boundary_pattern_reg = re.compile(f'["“”][^"“”]*?{multiline_number_prefix}')
     # 提取规范数字序号与正文的正则
-    extract_num_text_reg = re.compile(fr'["“”][^"“”]*?{multiline_number_prefix}(.*?){multiline_quote_suffix}')
+    extract_num_text_reg = re.compile(f'["“”][^"“”]*?{multiline_number_prefix}(.*?){multiline_quote_suffix}')
 
     def __init__(self):
         pass
