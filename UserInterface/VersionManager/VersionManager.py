@@ -1,4 +1,3 @@
-# TODO ui在深色模式显示存在问题，需要修复
 import os
 import re
 import sys
@@ -13,13 +12,25 @@ from PyQt5.QtGui import QDesktopServices,QColor
 from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, StrongBodyLabel,
                             CaptionLabel, PrimaryPushButton, PushButton, ProgressBar,
                             TransparentToolButton, HyperlinkButton, FluentIcon,
-                            InfoBar, InfoBarPosition, SubtitleLabel)
+                            InfoBar, InfoBarPosition, SubtitleLabel, MessageBoxBase)
 from Base.Base import Base
 
 class UpdaterSignals(QObject):
     progress_updated = pyqtSignal(int)
     download_completed = pyqtSignal(str)
     download_failed = pyqtSignal(str)
+
+# 更新对话框
+class UpdateMessageBox(MessageBoxBase):
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+        self.hideCancelButton()
+        self.hideYesButton()
+
+        self.viewLayout.setContentsMargins(10, 10, 8, 8)
+        self.viewLayout.setSpacing(6)
+        self.buttonGroup.hide()
+
 
 class VersionManager(Base):
     # GitHub API URL for releases
@@ -65,16 +76,20 @@ class VersionManager(Base):
 
                 self.latest_version_url = data["html_url"]
 
-                # Compare versions
+                # 比较版本
                 if self._compare_versions(self.latest_version, self.current_version) > 0:
                     return True, self.latest_version
                 else:
                     return False, self.current_version
             else:
                 self.error(f"Failed to check for updates: {response.status_code}")
+                
+                self.check_error = f"HTTP错误: {response.status_code}"
                 return False, self.current_version
         except Exception as e:
             self.error(f"Error checking for updates: {e}")
+            
+            self.check_error = str(e)
             return False, self.current_version
 
     def _compare_versions(self, version1, version2):
@@ -97,7 +112,7 @@ class VersionManager(Base):
         return 0
 
     def show_update_dialog(self):
-        """Show the update dialog"""
+        """显示更新对话框"""
         if self.main_window is None:
             self.error("Main window reference is not set")
             return
@@ -141,20 +156,17 @@ class VersionManager(Base):
             except Exception as e:
                 self.error(f"Error checking paused download: {e}")
 
+        # 初始化错误状态
+        self.check_error = None
+
         # 检查更新
         has_update, latest_version = self.check_for_updates()
+        # 使用实例变量中的错误信息
+        check_error = getattr(self, 'check_error', None)
 
-       
-        self.update_dialog = QDialog(self.main_window)
-        self.update_dialog.setWindowTitle(self.tra("软件更新"))
-        self.update_dialog.setFixedSize(480, 380)
-        self.update_dialog.setWindowFlags(Qt.Dialog | Qt.MSWindowsFixedSizeDialogHint)
-        
-        # 创建主布局
-        main_layout = QVBoxLayout(self.update_dialog)
-        main_layout.setContentsMargins(16, 16, 16, 16)
-        main_layout.setSpacing(6)
-        
+        # 创建更新对话框
+        self.update_dialog = UpdateMessageBox(self.main_window)
+
         # 创建标题卡片
         title_card = CardWidget(self.update_dialog)
         title_layout = QHBoxLayout(title_card)
@@ -164,10 +176,11 @@ class VersionManager(Base):
         title_icon.setFixedSize(32, 32)
         title_layout.addWidget(title_icon)
         title_label = TitleLabel(self.tra("软件更新"), title_card)
-        
+
         title_layout.addWidget(title_label)
         title_layout.addStretch(1)
-        main_layout.addWidget(title_card)
+        title_card.setMinimumWidth(400)
+        self.update_dialog.viewLayout.addWidget(title_card)
 
         # 在版本信息卡片部分修改
         version_card = CardWidget(self.update_dialog)
@@ -182,12 +195,19 @@ class VersionManager(Base):
 
         # 最新版本
         latest_version_label = CaptionLabel(self.tra("最新版本") + ":", version_card)
-        latest_version_value = StrongBodyLabel(latest_version, version_card)
-        latest_version_value.setProperty("colorful", True)
 
-        # 如果有新版本，显示为特别颜色
-        if self._compare_versions(latest_version, self.current_version) > 0:
-            latest_version_value.setStyleSheet("color: #2196F3;")
+        if check_error is not None:
+            # 检查失败，显示错误信息
+            latest_version_value = StrongBodyLabel(self.tra("检查错误"), version_card)
+            latest_version_value.setStyleSheet("color: #E53935;") # 红色错误提示
+        else:
+            # 检查成功，显示版本信息
+            latest_version_value = StrongBodyLabel(latest_version, version_card)
+            latest_version_value.setProperty("colorful", True)
+
+            # 如果有新版本，显示为特别颜色
+            if self._compare_versions(latest_version, self.current_version) > 0:
+                latest_version_value.setStyleSheet("color: #2196F3;")
 
         version_layout.addWidget(current_version_label, 0, 0, Qt.AlignLeft)
         version_layout.addWidget(current_version_value, 0, 1, Qt.AlignLeft)
@@ -200,10 +220,10 @@ class VersionManager(Base):
         version_info_text.setMinimumHeight(20)  # 设置最小高度
         version_layout.addWidget(version_info_text, 2, 0, 1, 2)
 
-        
+
         version_card.setMinimumHeight(100)
 
-        main_layout.addWidget(version_card)
+        self.update_dialog.viewLayout.addWidget(version_card)
 
         # 进度卡片 - 添加百分比标签
         progress_card = CardWidget(self.update_dialog)
@@ -221,7 +241,7 @@ class VersionManager(Base):
         self.progress_bar.setValue(0)
         self.progress_bar.setFixedHeight(8)
         self.progress_bar.setCustomBarColor("#A9DCD7", "#32E838") # 浅色和深色
-        progress_hor_layout.addWidget(self.progress_bar, 1) 
+        progress_hor_layout.addWidget(self.progress_bar, 1)
 
         # 百分比标签
         self.percentage_label = SubtitleLabel("0%", progress_card)
@@ -239,10 +259,10 @@ class VersionManager(Base):
 
         progress_layout.addWidget(self.status_label)
 
-     
+
         progress_card.setMinimumHeight(100)
 
-        main_layout.addWidget(progress_card)
+        self.update_dialog.viewLayout.addWidget(progress_card)
 
         # 按钮卡片
         button_card = CardWidget(self.update_dialog)
@@ -298,11 +318,19 @@ class VersionManager(Base):
         button_layout.addWidget(left_buttons)
         button_layout.addStretch(1)
         button_layout.addWidget(right_buttons)
+        button_card.setMinimumHeight(50)
+        self.update_dialog.viewLayout.addWidget(button_card)
 
-        main_layout.addWidget(button_card)
-
-        # 如果没有更新，禁用更新按钮
-        if not has_update:
+        # 处理不同状态
+        if check_error is not None:
+            # 检查失败
+            self.update_button.setEnabled(False)
+            version_info_text.setText(self.tra("无法检查更新，请稍后再试"))
+            self.status_label.setText(f"{self.tra('检查失败')}: {check_error}")
+            # 禁用发布页链接
+            self.view_release_button.setEnabled(False)
+        elif not has_update:
+            # 没有更新
             self.update_button.setEnabled(False)
             version_info_text.setText(self.tra("您已经使用最新版本"))
             self.status_label.setText(self.tra("无需更新"))
@@ -363,7 +391,7 @@ class VersionManager(Base):
                     self.update_button.setEnabled(True)
                     self.pause_button.setVisible(False)
                     self.percentage_label.setVisible(False)
-                    
+
                     if self.main_window:
                                 self.main_window.error_toast(self.tra("下载错误"), self.tra("未找到可下载的更新文件"))
             else:
@@ -388,7 +416,7 @@ class VersionManager(Base):
             self.update_button.setEnabled(True)
             self.pause_button.setVisible(False)
             self.percentage_label.setVisible(False)
-           
+
             if self.main_window:
                 InfoBar.error(
                     title=self.tra("更新错误"),

@@ -51,7 +51,7 @@ from UserInterface.VersionManager.VersionManager import VersionManager
 
 class UpdateCheckerThread(QThread):
     """自动检查更新线程"""
-    update_available_signal = pyqtSignal(bool, str)
+    update_available_signal = pyqtSignal(bool, str, bool)
 
     def __init__(self, version_manager):
         super().__init__()
@@ -59,8 +59,17 @@ class UpdateCheckerThread(QThread):
 
     def run(self):
         """在子线程中运行更新检查逻辑"""
+        # 初始化错误状态
+        self.version_manager.check_error = None
+
+        # 检查更新
         has_update, latest_version = self.version_manager.check_for_updates()
-        self.update_available_signal.emit(has_update, latest_version)
+
+        # 检查是否有错误
+        check_failed = hasattr(self.version_manager, 'check_error') and self.version_manager.check_error is not None
+
+        # 发送信号，包含检查是否失败的状态
+        self.update_available_signal.emit(has_update, latest_version, check_failed)
 
 
 class AppFluentWindow(FluentWindow, Base): #主窗口
@@ -175,8 +184,15 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
             self.update_checker_thread.start()
 
     # 更新检查完成的回调
-    def _on_update_check_completed(self, has_update: bool, latest_version: str) -> None:
-        if has_update:
+    def _on_update_check_completed(self, has_update: bool, latest_version: str, check_failed: bool) -> None:
+        if check_failed:
+            # 检查失败时显示错误提示
+            self.warning_toast(
+                self.tra("更新检查失败"),
+                self.tra("请检查报错信息")
+            )
+        elif has_update:
+            # 发现新版本
             self.success_toast(
                 self.tra("发现新版本"),
                 self.tra("当前版本: {0}, 最新版本: {1}, 点击更新按钮进行更新").format(
@@ -184,6 +200,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
                 )
             )
         else:
+            # 已是最新版本
             self.info_toast(
                 self.tra("更新检查"),
                 self.tra("当前已是最新版本")
