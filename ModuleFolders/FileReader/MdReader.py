@@ -27,7 +27,7 @@ class MdReader(BaseSourceReader):
         return "md"
 
     def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
-        items = self.txt_reader.read_source_file(file_path, cache_project)
+        items = self.txt_reader.read_source_file(file_path, detected_encoding)
         for item in items:
             item.original_line = item.get_source_text()
         return items
