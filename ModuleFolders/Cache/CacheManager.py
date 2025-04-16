@@ -2,12 +2,12 @@ import os
 import time
 import threading
 
-import opencc
 import rapidjson as json
 
 from Base.Base import Base
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheProject import CacheProject
+
 
 class CacheManager(Base):
 

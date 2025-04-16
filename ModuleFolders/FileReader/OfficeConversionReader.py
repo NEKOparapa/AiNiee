@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileConverter.OfficeFileConverter import OfficeFileConverter
 from ModuleFolders.FileReader.BaseReader import BaseSourceReader, InputConfig
 from ModuleFolders.FileReader.DocxReader import DocxReader
@@ -34,7 +33,7 @@ class OfficeConversionReader(BaseSourceReader):
     def support_file(self) -> str:
         return self._support_file
 
-    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
+    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
         rel_path = file_path.relative_to(self.input_config.input_root)
         tmp_docx_path = (
             self.input_config.input_root / self.tmp_directory / rel_path

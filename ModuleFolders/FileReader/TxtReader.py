@@ -1,11 +1,10 @@
 from pathlib import Path
 
 from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    text_to_cache_item, read_file_safely
+    text_to_cache_item
 )
 
 
@@ -23,12 +22,11 @@ class TxtReader(BaseSourceReader):
         return "txt"
 
     # 读取单个txt的文本及其他信息
-    def read_source_file(self, file_path: Path, cache_project: CacheProject) -> list[CacheItem]:
+    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
         items = []
         # 切行
-        # 使用 `BaseReader` 中的 `read_file_safely` 函数正确读取多种编码的文件，并将原始编码与行尾序列保存至 `CacheProject` 类中
-        # 可供后续的 `Writer` 使用
-        lines = read_file_safely(file_path, cache_project).split(cache_project.get_line_ending())
+        # 使用传入的 `detected_encoding` 参数正确读取未知编码的纯文本文件，并使用`splitlines()`正确切分行
+        lines = file_path.read_text(encoding=detected_encoding).splitlines()
 
         for i, line in enumerate(lines):
             # 如果当前行是空行
