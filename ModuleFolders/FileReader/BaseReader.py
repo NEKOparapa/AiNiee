@@ -52,6 +52,11 @@ class BaseSourceReader(ABC):
             return False
         return True
 
+    @classmethod
+    def is_environ_supported(cls) -> bool:
+        """用于判断当前环境是否支持该reader"""
+        return True
+
 
 # 存储文本对及翻译状态信息
 def text_to_cache_item(source_text, translated_text: str = None):

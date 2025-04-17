@@ -53,6 +53,11 @@ class BaseTranslationWriter(ABC):
         """获取Writer对应的项目类型标识符（用于动态实例化），如 Mtool"""
         pass
 
+    @classmethod
+    def is_environ_supported(cls) -> bool:
+        """用于判断当前环境是否支持该writer"""
+        return True
+
 
 class BaseTranslatedWriter(BaseTranslationWriter):
     """译文输出基类"""

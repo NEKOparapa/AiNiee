@@ -23,7 +23,7 @@ from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
 # 翻译器
 class Translator(Base):
 
-    def __init__(self, plugin_manager: PluginManager) -> None:
+    def __init__(self, plugin_manager: PluginManager, file_reader: FileReader, file_writer: FileOutputer) -> None:
         super().__init__()
 
         # 初始化
@@ -31,8 +31,8 @@ class Translator(Base):
         self.config = TranslatorConfig()
         self.cache_manager = CacheManager()
         self.request_limiter = RequestLimiter()
-        self.file_reader = FileReader()
-        self.file_writer = FileOutputer()
+        self.file_reader = file_reader
+        self.file_writer = file_writer
 
         # 线程锁
         self.data_lock = threading.Lock()

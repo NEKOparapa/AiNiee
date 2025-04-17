@@ -1,8 +1,5 @@
 from pathlib import Path
 
-import pythoncom
-from win32com import client
-
 from ModuleFolders.FileConverter.BaseConverter import BaseFileConverter
 
 
@@ -15,6 +12,9 @@ class OfficeFileConverter(BaseFileConverter):
     }
 
     def __enter__(self):
+        import pythoncom
+        from win32com import client
+
         pythoncom.CoInitialize()
         try:
             self.office = client.Dispatch("Word.Application")
@@ -26,6 +26,8 @@ class OfficeFileConverter(BaseFileConverter):
             pythoncom.CoUninitialize()
 
     def __exit__(self, exc_type, exc, exc_tb):
+        import pythoncom
+
         if self.office:
             self.office.Quit()
         pythoncom.CoUninitialize()

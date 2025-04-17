@@ -1,3 +1,4 @@
+import platform
 import shutil
 from pathlib import Path
 
@@ -63,6 +64,10 @@ class OfficeConversionWriter(BaseTranslatedWriter):
             self.docx_writer.write_translated_file(tmp_translation_docx_path, items, tmp_source_docx_path)
             if self.converter.can_convert(tmp_translation_docx_path, translation_file_path):
                 self.converter.convert_file(tmp_translation_docx_path, translation_file_path)
+
+    @classmethod
+    def is_environ_supported(cls) -> bool:
+        return platform.system() == 'Windows'
 
 
 class OfficeConversionPdfWriter(OfficeConversionWriter):

@@ -1,3 +1,4 @@
+import platform
 from pathlib import Path
 
 from ModuleFolders.Cache.CacheItem import CacheItem
@@ -43,6 +44,10 @@ class OfficeConversionReader(BaseSourceReader):
                 self.converter.convert_file(file_path, tmp_docx_path)
             return self.docx_reader.read_source_file(tmp_docx_path, detected_encoding)
         return []
+
+    @classmethod
+    def is_environ_supported(cls) -> bool:
+        return platform.system() == 'Windows'
 
 
 class OfficeConversionPdfReader(OfficeConversionReader):
