@@ -19,6 +19,7 @@ from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface import AppFluentWindow
 
+# 改进点: 部分功能代码需要合并进TableHelper中
 class PromptDictionaryPage(QFrame, Base):
 
     # 表格每列对应的数据字段
@@ -322,8 +323,19 @@ class PromptDictionaryPage(QFrame, Base):
             # 从文件加载数据
             data = NameExtractor.extract_names_from_folder(self,path)
 
+            # 读取配置文件
+            config = self.load_config()
+            config["prompt_dictionary_data"].extend(data)
+
             # 向表格更新数据
-            TableHelper.update_to_table(self.table, data, PromptDictionaryPage.KEYS)
+            TableHelper.update_to_table(self.table, config["prompt_dictionary_data"], PromptDictionaryPage.KEYS)
+
+            # 从表格加载数据（去重后）
+            config["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
+
+            # 保存配置文件
+            config = self.save_config(config)
+
 
             # 弹出提示
             info_cont1 = self.tra("人名信息已提取") + "..."
@@ -369,11 +381,43 @@ class PromptDictionaryPage(QFrame, Base):
         # 更新运行状态
         Base.work_status = Base.STATUS.IDLE
 
-        print("术语表翻译完成 ...")
-        # 获取翻译后数据
+        # 分析返回数据的运行状态
+        status = data.get("status")
+        if status =="null":
+            # 运行状态异常
+            self.error_toast("", self.tra("术语表内容为空") + "...")
+            return
+        elif status == "error":
+            # 运行状态异常
+            self.error_toast("", self.tra("术语表翻译失败") + "...")
+            return
+        elif status == "success":
+            # 运行状态正常
+            self.success_toast("", self.tra("术语表翻译成功") + "...")
+            # 获取翻译结果
+            updated_data = data.get("updated_data")
 
-        # 获取当前表格数据
+            # 从表格加载数据
+            prompt_dictionary_data_table = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
 
-        # 根据翻译后数据，合并更新表格数据
+            # 根据翻译后数据，合并更新表格数据
+            for i in range(len(prompt_dictionary_data_table)):
+                for j in range(len(updated_data)):
+                    if (prompt_dictionary_data_table[i]["src"] == updated_data[j]["src"]) and (not prompt_dictionary_data_table[i]["dst"]) :
+                        prompt_dictionary_data_table[i]["dst"] = updated_data[j]["dst"]
+                        break
 
-        # 重新填入到表格中
+            # 清空表格
+            self.table.clearContents()
+
+            # 向表格更新数据
+            TableHelper.update_to_table(self.table, prompt_dictionary_data_table, PromptDictionaryPage.KEYS)
+
+            # 加载配置文件
+            config = self.load_config()
+
+            # 从表格加载数据（去重后）
+            config["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
+
+            # 保存配置文件
+            config = self.save_config(config)

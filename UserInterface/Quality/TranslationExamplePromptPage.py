@@ -32,12 +32,7 @@ class TranslationExamplePromptPage(QFrame, Base):
         # 默认配置
         self.default = {
             "translation_example_switch": False,
-            "translation_example_data" : [
-                {
-                    "src": "",
-                    "dst": "",
-                }
-            ],
+            "translation_example_data" : [],
         }
 
         # 载入并保存默认配置
