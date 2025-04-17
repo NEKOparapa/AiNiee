@@ -17,7 +17,8 @@ class ParatranzReader(BaseSourceReader):
                 "key": "Activate",
                 "original": "カードをプレイ",
                 "translation": "出牌",
-                "context": null
+                "context": null,
+                "stage": 1
             }
         ]
         缓存数据结构示例
@@ -53,9 +54,15 @@ class ParatranzReader(BaseSourceReader):
         # 提取键值对
         for json_item in json_list:
             # 根据 JSON 文件内容的数据结构，获取相应字段值
+            stage = json_item.get('stage', 0)
+            if stage == 0: # stage 0为未翻译，详见https://paratranz.cn/docs
+                translation_status = CacheItem.STATUS.UNTRANSLATED
+            else:
+                translation_status = CacheItem.STATUS.TRANSLATED
             source_text = json_item.get('original', '')  # 获取原文，如果没有则默认为空字符串
             translated_text = json_item.get('translation', '')  # 获取翻译，如果没有则默认为空字符串
             item = text_to_cache_item(source_text, translated_text)
+            item.set_translation_status(translation_status) # 更新翻译状态
             item.key = json_item.get('key', '')  # 获取键值，如果没有则默认为空字符串
             item.context = json_item.get('context', '')  # 获取上下文信息，如果没有则默认为空字符串
             items.append(item)
