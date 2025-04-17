@@ -35,6 +35,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 
 from Base.PluginManager import PluginManager
+from ModuleFolders.FileOutputer.FileOutputer import FileOutputer
+from ModuleFolders.FileReader.FileReader import FileReader
 from ModuleFolders.Translator.Translator import Translator
 from ModuleFolders.RequestTester.RequestTester import RequestTester
 from ModuleFolders.RequestTester.ProcessTester import ProcessTester
@@ -80,6 +82,9 @@ if __name__ == "__main__":
     plugin_path = os.path.join(".", "PluginScripts")
     plugin_manager.load_plugins_from_directory(plugin_path)
 
+    file_reader = FileReader()
+    file_writer = FileOutputer()
+
     # 载入配置文件
     config = load_config()
 
@@ -108,6 +113,7 @@ if __name__ == "__main__":
     app_fluent_window = AppFluentWindow(
         version = "AiNiee6.2.4 dev",
         plugin_manager = plugin_manager,
+        support_project_types=file_reader.get_support_project_types(),
     )
 
     # 创建全局接口测试器对象，并初始化订阅事件
@@ -117,7 +123,9 @@ if __name__ == "__main__":
     process_tester = ProcessTester()
 
     # 创建翻译器对象，并初始化订阅事件
-    translator = Translator(plugin_manager = plugin_manager)
+    translator = Translator(
+        plugin_manager = plugin_manager, file_reader=file_reader, file_writer=file_writer
+    )
 
     # 显示全局窗口
     app_fluent_window.show()

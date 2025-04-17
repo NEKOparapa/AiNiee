@@ -1,6 +1,6 @@
 from functools import partial
 from pathlib import Path
-from typing import Callable
+from typing import Type
 
 
 
@@ -32,25 +32,28 @@ class FileOutputer():
         self.writer_factory_dict = {}
         self._register_system_writer()
 
-    def register_writer(self, project_type, writer_factory: Callable[[OutputConfig], BaseTranslationWriter]):
-        self.writer_factory_dict[project_type] = writer_factory
+    def register_writer(self, writer_class: Type[BaseTranslationWriter], **init_kwargs):
+        """如果writer可注册，则根据project_type进行注册"""
+        if writer_class.is_environ_supported():
+            writer_factory = partial(writer_class, **init_kwargs) if init_kwargs else writer_class
+            self.writer_factory_dict[writer_class.get_project_type()] = writer_factory
 
     def _register_system_writer(self):
-        self.register_writer(MToolWriter.get_project_type(), MToolWriter)
-        self.register_writer(SrtWriter.get_project_type(), SrtWriter)
-        self.register_writer(VttWriter.get_project_type(), VttWriter)
-        self.register_writer(LrcWriter.get_project_type(), LrcWriter)
-        self.register_writer(VntWriter.get_project_type(), VntWriter)
-        self.register_writer(TxtWriter.get_project_type(), TxtWriter)
-        self.register_writer(MdWriter.get_project_type(), MdWriter)
-        self.register_writer(EpubWriter.get_project_type(), EpubWriter)
-        self.register_writer(DocxWriter.get_project_type(), DocxWriter)
-        self.register_writer(RenpyWriter.get_project_type(), RenpyWriter)
-        self.register_writer(TransWriter.get_project_type(), TransWriter)
-        self.register_writer(ParatranzWriter.get_project_type(), ParatranzWriter)
-        self.register_writer(TPPWriter.get_project_type(), TPPWriter)
-        self.register_writer(OfficeConversionPdfWriter.get_project_type(), OfficeConversionPdfWriter)
-        self.register_writer(OfficeConversionDocWriter.get_project_type(), OfficeConversionDocWriter)
+        self.register_writer(MToolWriter)
+        self.register_writer(SrtWriter)
+        self.register_writer(VttWriter)
+        self.register_writer(LrcWriter)
+        self.register_writer(VntWriter)
+        self.register_writer(TxtWriter)
+        self.register_writer(MdWriter)
+        self.register_writer(EpubWriter)
+        self.register_writer(DocxWriter)
+        self.register_writer(RenpyWriter)
+        self.register_writer(TransWriter)
+        self.register_writer(ParatranzWriter)
+        self.register_writer(TPPWriter)
+        self.register_writer(OfficeConversionPdfWriter)
+        self.register_writer(OfficeConversionDocWriter)
 
     # 输出已经翻译文件
     def output_translated_content(self, cache_data, output_path, input_path) -> None:

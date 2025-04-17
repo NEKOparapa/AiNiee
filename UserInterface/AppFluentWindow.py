@@ -79,7 +79,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
     THEME_COLOR = "#8A95A9"
 
-    def __init__(self, version: str, plugin_manager: PluginManager) -> None:
+    def __init__(self, version: str, plugin_manager: PluginManager, support_project_types: set[str]) -> None:
         super().__init__()
 
         # 默认配置
@@ -134,7 +134,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.navigationInterface.panel.setReturnButtonVisible(False)
 
         # 添加页面
-        self.add_pages(plugin_manager)
+        self.add_pages(plugin_manager, support_project_types)
 
     # 窗口关闭函数
     def closeEvent(self, event) -> None:
@@ -207,8 +207,8 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
             )
 
     # 开始添加页面
-    def add_pages(self, plugin_manager: PluginManager) -> None:
-        self.add_project_pages(plugin_manager)
+    def add_pages(self, plugin_manager: PluginManager, support_project_types: set[str]) -> None:
+        self.add_project_pages(plugin_manager, support_project_types)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
         self.add_setting_pages(plugin_manager)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
@@ -261,10 +261,10 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         )
 
     # 添加第一节
-    def add_project_pages(self, plugin_manager: PluginManager) -> None:
+    def add_project_pages(self, plugin_manager: PluginManager, support_project_types: set[str]) -> None:
         self.platform_page = PlatformPage("platform_page", self)
         self.addSubInterface(self.platform_page, FluentIcon.IOT, self.tra("接口管理"), NavigationItemPosition.SCROLL)
-        self.prject_page = ProjectSettingsPage("ProjectSettingsPagee", self)
+        self.prject_page = ProjectSettingsPage("ProjectSettingsPagee", self, support_project_types)
         self.addSubInterface(self.prject_page, FluentIcon.FOLDER, self.tra("项目设置"), NavigationItemPosition.SCROLL)
         self.translation_page = TranslationPage("translation_page", self)
         self.addSubInterface(self.translation_page, FluentIcon.PLAY, self.tra("开始翻译"), NavigationItemPosition.SCROLL)

@@ -10,9 +10,10 @@ from Widget.PushButtonCard import PushButtonCard
 
 class ProjectSettingsPage(QFrame, Base):
 
-    def __init__(self, text: str, window) -> None:
+    def __init__(self, text: str, window, support_project_types: set[str]) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
+        self.support_project_types = support_project_types
 
         # 默认配置
         self.default = {
@@ -121,7 +122,7 @@ class ProjectSettingsPage(QFrame, Base):
         ]
 
         # 生成翻译后的配对列表
-        translated_pairs = [(self.tra(display), value) for display, value in project_pairs]
+        translated_pairs = [(self.tra(display), value) for display, value in project_pairs if value in self.support_project_types]
 
         def init(widget) -> None:
             """初始化时根据存储的值设置当前选项"""

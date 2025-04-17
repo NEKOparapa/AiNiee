@@ -3,7 +3,7 @@ import json
 import os
 from pathlib import Path
 from functools import partial
-from typing import Callable
+from typing import Type
 
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheProject import CacheProject
@@ -33,24 +33,27 @@ class FileReader():
 
     # 初始化时，注册所有内置支持的文件/项目类型。
     def _register_system_reader(self):
-        self.register_reader(MToolReader.get_project_type(), MToolReader)
-        self.register_reader(TPPReader.get_project_type(), TPPReader)
-        self.register_reader(VntReader.get_project_type(), VntReader)
-        self.register_reader(SrtReader.get_project_type(), SrtReader)
-        self.register_reader(VttReader.get_project_type(), VttReader)
-        self.register_reader(LrcReader.get_project_type(), LrcReader)
-        self.register_reader(TxtReader.get_project_type(), TxtReader)
-        self.register_reader(EpubReader.get_project_type(), EpubReader)
-        self.register_reader(DocxReader.get_project_type(), DocxReader)
-        self.register_reader(MdReader.get_project_type(), MdReader)
-        self.register_reader(RenpyReader.get_project_type(), RenpyReader)
-        self.register_reader(TransReader.get_project_type(), TransReader)
-        self.register_reader(ParatranzReader.get_project_type(), ParatranzReader)
-        self.register_reader(OfficeConversionPdfReader.get_project_type(), OfficeConversionPdfReader)
-        self.register_reader(OfficeConversionDocReader.get_project_type(), OfficeConversionDocReader)
+        self.register_reader(MToolReader)
+        self.register_reader(TPPReader)
+        self.register_reader(VntReader)
+        self.register_reader(SrtReader)
+        self.register_reader(VttReader)
+        self.register_reader(LrcReader)
+        self.register_reader(TxtReader)
+        self.register_reader(EpubReader)
+        self.register_reader(DocxReader)
+        self.register_reader(MdReader)
+        self.register_reader(RenpyReader)
+        self.register_reader(TransReader)
+        self.register_reader(ParatranzReader)
+        self.register_reader(OfficeConversionPdfReader)
+        self.register_reader(OfficeConversionDocReader)
 
-    def register_reader(self, project_type: str, reader_factory: Callable[[InputConfig], BaseSourceReader]):
-        self.reader_factory_dict[project_type] = reader_factory
+    def register_reader(self, reader_class: Type[BaseSourceReader], **init_kwargs):
+        """如果reader可注册，则根据project_type进行注册"""
+        if reader_class.is_environ_supported():
+            reader_factory = partial(reader_class, **init_kwargs) if init_kwargs else reader_class
+            self.reader_factory_dict[reader_class.get_project_type()] = reader_factory
 
     # 根据文件类型读取文件
     def read_files (self,translation_project,label_input_path):
@@ -93,4 +96,5 @@ class FileReader():
             items = [CacheItem(item) for item in data[1:]]
             return (project, items)
 
-
+    def get_support_project_types(self) -> set[str]:
+        return set(self.reader_factory_dict.keys())
