@@ -7,18 +7,20 @@ from rich.markup import escape
 
 
 # 回复解析器
-class ResponseExtractor():
+class ResponseExtractor:
 
     # 多行文本数字匹配格式
     # 目前有两个匹配组，第一个为标准数字序号部分，第二个为可能出现的多余引号组（常见于deepseek-v3）
     multiline_number_prefix = r'(\d+\.\d+\.)(")?[,，\s]?(?(2)"|)?'
+    # 多行文本段结束后缀
+    multiline_quote_suffix = r'(?:\n["“”][,，]|["“”]\n[,，]|["“”]?[,，]?)$'
 
     # 判断多行文本开始的正则
-    multiline_start_reg = re.compile(fr'^\s*["“”]\s*{multiline_number_prefix}')
+    multiline_start_reg = re.compile(rf'^\s*["“”]\s*{multiline_number_prefix}')
     # 提取多行文本边界的正则
-    boundary_pattern_reg = re.compile(fr'["“”][^"“”]*?{multiline_number_prefix}')
+    boundary_pattern_reg = re.compile(f'["“”][^"“”]*?{multiline_number_prefix}')
     # 提取规范数字序号与正文的正则
-    extract_num_text_reg = re.compile(fr'["“”][^"“”]*?{multiline_number_prefix}(.*?)["“”]?[,，]?$')
+    extract_num_text_reg = re.compile(f'["“”][^"“”]*?{multiline_number_prefix}(.*?){multiline_quote_suffix}')
 
     def __init__(self):
         pass
@@ -204,8 +206,10 @@ class ResponseExtractor():
 
                     # 确保两个组都被成功捕获
                     if number_part is not None and text_part is not None:
+                        # 去除`text_part`中可能出现的`number_part`
+                        cleaned_text_part = text_part.replace(number_part, '').replace(number_part.rstrip('.'), '')
                         # 组合数字和文本，保留匹配到的 `text_part` 原始文本
-                        assembled_content = f"{number_part},{text_part}"
+                        assembled_content = f"{number_part},{cleaned_text_part}"
                         result.append(assembled_content)
                     else:
                         # 更详细地指明哪个部分为空

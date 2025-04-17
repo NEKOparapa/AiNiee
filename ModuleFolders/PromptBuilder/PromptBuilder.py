@@ -162,7 +162,7 @@ class PromptBuilder(Base):
                     numbered_text = f"{index + 1}.[\n"
                     total_lines = len(lines)
                     for sub_index, sub_line in enumerate(lines):
-                        numbered_text += f""""{index + 1}.{total_lines - sub_index}.,{sub_line}",\n"""
+                        numbered_text += f'"{index + 1}.{total_lines - sub_index}.,{sub_line}",\n'
                     numbered_text = numbered_text.rstrip('\n')
                     numbered_text = numbered_text.rstrip(',')
                     numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
@@ -183,7 +183,7 @@ class PromptBuilder(Base):
                     numbered_text = f"{index + 1}.[\n"
                     total_lines = len(lines)
                     for sub_index, sub_line in enumerate(lines):
-                        numbered_text += f""""{index + 1}.{total_lines - sub_index}.,{sub_line}",\n"""
+                        numbered_text += f'"{index + 1}.{total_lines - sub_index}.,{sub_line}",\n'
                     numbered_text = numbered_text.rstrip('\n')
                     numbered_text = numbered_text.rstrip(',')
                     numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符

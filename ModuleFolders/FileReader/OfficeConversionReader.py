@@ -41,7 +41,7 @@ class OfficeConversionReader(BaseSourceReader):
         if self.converter.can_convert(file_path, tmp_docx_path):
             if not tmp_docx_path.exists():
                 self.converter.convert_file(file_path, tmp_docx_path)
-            return self.docx_reader.read_source_file(tmp_docx_path, cache_project)
+            return self.docx_reader.read_source_file(tmp_docx_path, detected_encoding)
         return []
 
 
