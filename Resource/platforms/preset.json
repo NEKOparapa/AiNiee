@@ -278,6 +278,7 @@
             "auto_complete": false,
             "model_datas": [
                 "doubao-1-5-pro-32k-250115",
+                "doubao-1-5-thinking-pro-250415",
                 "deepseek-v3-250324",
                 "deepseek-r1-250120"
             ],

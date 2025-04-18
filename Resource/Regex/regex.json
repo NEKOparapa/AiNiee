@@ -112,6 +112,14 @@
       "description": "控制代码\\name"
     },
     {
+      "regex": "\\\\gold",
+      "description": "控制代码\\gold"
+    },
+    {
+      "regex": "\\\\count",
+      "description": "控制代码\\count"
+    },
+    {
         "regex": "\\\\AA\\[F\\]",
         "description": "控制代码 \\AA[F]"
     },

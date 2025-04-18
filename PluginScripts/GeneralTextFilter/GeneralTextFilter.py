@@ -90,7 +90,7 @@ class GeneralTextFilter(PluginBase):
 
 
                 # 检查开头的
-                if isinstance(source_text, str) and any(source_text.startswith(ext) for ext in ['EV0']):
+                if isinstance(source_text, str) and any(source_text.startswith(ext) for ext in ['EV0', '\img']):
                     entry['translation_status'] = 7
                     continue
 
