@@ -5,6 +5,7 @@ from typing import Callable, Union
 
 import chardet
 import rich
+from magika.types import OverwriteReason
 
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheProject import CacheProject
@@ -40,9 +41,12 @@ def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: fl
 
     # 使用Magika检测文件类型
     result = get_magika().identify_path(file_path)
+    non_text = not result.output.is_text
+    is_low_confidence = result.prediction.overwrite_reason == OverwriteReason.LOW_CONFIDENCE
 
-    # 检查文件类型是否为文本类型
-    if not result.output.is_text:
+    # 如果文件为非文本类型且没有触发`is_low_confidence`条件。则返回non_text/xxx
+    # 否则继续使用chardet检查编码
+    if non_text and not is_low_confidence:
         # 非文本文件，返回non_text前缀加上检测到的标签
         return f"non_text/{result.output.label}"
 
