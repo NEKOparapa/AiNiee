@@ -29,8 +29,8 @@ class RenpyReader(BaseSourceReader):
         return "rpy"
 
     # 用于查找潜在标签的正则表达式（字母、数字、下划线、空格，首字母后允许）
-    # 允许简单的标签如 'sy' 或复杂的标签如 'narrator happy'
-    TAG_PATTERN = re.compile(r"^\s*([a-zA-Z][\w\s]*)\s+\"")
+    # 允许简单的标签如 'sy' 或复杂的标签如 'narrator happy', 'narrator @ happy'
+    TAG_PATTERN = re.compile(r"^\s*([a-zA-Z][\w\s@]*)\s+\"")
     # 用于检查行是否以翻译注释行格式开头的正则表达式
     COMMENT_TRANSLATION_START_PATTERN = re.compile(r"^\s*#\s*")
     # 用于检查行是否以翻译代码行格式开头的正则表达式（标签或仅引号）
