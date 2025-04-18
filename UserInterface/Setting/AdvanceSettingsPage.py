@@ -26,7 +26,6 @@ class AdvanceSettingsPage(QFrame, Base):
             "response_conversion_toggle": False,
             "opencc_preset": "s2t",
             "response_check_switch": {
-                "model_degradation_check": True,
                 "return_to_original_text_check": True,
                 "residual_original_text_check": True,
                 "newline_character_count_check": True,
@@ -186,16 +185,14 @@ class AdvanceSettingsPage(QFrame, Base):
 
         def widget_init(widget) -> None:
 
-            info_cont1 = self.tra("模型退化检查")
-            info_cont2 = self.tra("原文返回检查")
-            info_cont3 = self.tra("翻译残留检查")
-            info_cont4 = self.tra("换行符数检查")
+            info_cont1 = self.tra("原文返回检查")
+            info_cont2 = self.tra("翻译残留检查")
+            info_cont3 = self.tra("换行符数检查")
 
             pairs = [
-                (info_cont1, "model_degradation_check"),
-                (info_cont2, "return_to_original_text_check"),
-                (info_cont3, "residual_original_text_check"),
-                (info_cont4, "newline_character_count_check"),
+                (info_cont1, "return_to_original_text_check"),
+                (info_cont2, "residual_original_text_check"),
+                (info_cont3, "newline_character_count_check"),
             ]
 
             for v in pairs:

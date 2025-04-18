@@ -24,16 +24,6 @@ class ResponseChecker():
             error_content = "模型已拒绝翻译或格式错误，回复内容：" + "\n" + str(response_str)
             return check_result,error_content
 
-        # 检查模型是否退化，出现高频词
-        if 'model_degradation_check' in response_check_switch and response_check_switch['model_degradation_check']:
-            if ResponseChecker.model_degradation_detection(self,source_text_dict,response_str):
-                pass
-
-            else:
-                check_result = False
-                error_content = "模型出现退化现象"
-                return check_result,error_content
-
         # 检查文本行数
         if ResponseChecker.check_text_line_count(self,source_text_dict,response_dict):
             pass
@@ -314,26 +304,6 @@ class ResponseChecker():
         special_chars = ['<', '>', '/']
         return any(char in s for char in special_chars)
 
-
-    # 模型退化检测，高频语气词
-    def model_degradation_detection(self,source_text_dict, s, count=80):
-        """
-        检查字符串中是否存在任何字符连续出现指定次数。
-
-        :param s: 输入的字符串
-        :param count: 需要检查的连续次数，默认为80
-        :return: 如果存在字符连续出现指定次数，则返回False，否则返回True
-        """
-
-        # 不检测单行
-        if len(source_text_dict) ==1 :
-           return True
-
-
-        for i in range(len(s) - count + 1):
-            if len(set(s[i:i+count])) == 1:
-                return False
-        return True
 
 
     # 检查残留原文的算法
