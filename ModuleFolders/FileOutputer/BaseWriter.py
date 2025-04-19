@@ -1,7 +1,9 @@
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
+from typing import TypedDict
 
 from ModuleFolders.Cache.CacheItem import CacheItem
 
@@ -28,6 +30,11 @@ class OutputConfig:
             self.bilingual_config = TranslationOutputConfig(False, "_bilingual")
 
 
+class WriterInitParams(TypedDict):
+    """writer的初始化参数，必须包含output_config，其他参数随意"""
+    output_config: OutputConfig
+
+
 class BaseTranslationWriter(ABC):
     """Writer基类，在其生命周期内可以输出多个文件"""
     def __init__(self, output_config: OutputConfig) -> None:
@@ -36,6 +43,22 @@ class BaseTranslationWriter(ABC):
         # 提取译文输出的编码和换行符配置
         self.translated_encoding = output_config.translated_config.file_encoding or "utf-8"
         self.translated_line_ending = output_config.translated_config.line_ending or os.linesep
+
+    class TranslationMode(Enum):
+        TRANSLATED = ('translated_config', 'write_translated_file')
+        BILINGUAL = ('bilingual_config', 'write_bilingual_file')
+
+        def __init__(self, config_attr, write_method) -> None:
+            self.config_attr = config_attr
+            self.write_method = write_method
+
+    def can_write(self, mode: TranslationMode) -> bool:
+        """判断writer是否支持该输出方式"""
+        if mode == self.TranslationMode.TRANSLATED:
+            return isinstance(self, BaseTranslatedWriter) and self.output_config.translated_config.enabled
+        elif mode == self.TranslationMode.BILINGUAL:
+            return isinstance(self, BaseBilingualWriter) and self.output_config.bilingual_config.enabled
+        return False
 
     NOT_TRANSLATED_STATUS = (CacheItem.STATUS.UNTRANSLATED, CacheItem.STATUS.TRANSLATING)
 

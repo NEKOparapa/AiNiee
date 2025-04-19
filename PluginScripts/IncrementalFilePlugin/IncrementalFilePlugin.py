@@ -42,12 +42,12 @@ class IncrementalFilePlugin(PluginBase):
 
                 cache_line_set, cache_items = cache_event_dict[line['storage_path']]
                 # 防止中间插入的行遍历完迭代器
-                if line['source_text'] not in cache_line_set:
+                if line.get('source_text', '') not in cache_line_set:
                     continue
                 for cache_line in cache_items:
 
                     # 在缓存中找到当前的片段
-                    if cache_line.source_text == line['source_text']:
+                    if cache_line.source_text == line.get('source_text', ''):
 
                         # 更新已翻译的片段
                         if cache_line.translation_status == CacheItem.STATUS.TRANSLATED:

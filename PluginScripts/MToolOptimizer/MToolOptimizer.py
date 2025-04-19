@@ -36,14 +36,16 @@ class MToolOptimizer(PluginBase):
         project = data[0]
 
         # 限制文本格式
-        if "mtool" not in project.get("project_type", "").lower():
+        if "Mtool" not in project.get("file_project_types", ()):
             return
 
         if event == "preproces_text":
-            self.on_preproces_text(event, config, data, items, project)
+            mtool_items = [line for line in data if line.get("file_project_type") == 'Mtool']
+            self.on_preproces_text(event, config, data, mtool_items, project)
 
         if event in ("manual_export", "postprocess_text"):
-            self.on_postprocess_text(event, config, data, items, project)
+            mtool_items = [line for line in data if line.get("file_project_type") == 'Mtool']
+            self.on_postprocess_text(event, config, data, mtool_items, project)
 
     # 文本预处理事件
     def on_preproces_text(self, event: str, config: TranslatorConfig, data: list[dict], items: list[dict], project: dict) -> None:

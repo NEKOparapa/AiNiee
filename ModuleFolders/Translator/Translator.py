@@ -151,6 +151,7 @@ class Translator(Base):
                     self.file_reader.read_files(
                         self.config.translation_project,
                         self.config.label_input_path,
+                        self.config.label_input_exclude_rule
                     )
                 )
         except Exception as e:

@@ -77,6 +77,18 @@
       "繁中": "輸出資料夾 (不能與輸入資料夾相同)",
       "English": "Output Folder (Cannot be the same as input folder)",
       "日本語": "出力フォルダー (入力フォルダーと同じにすることはできません)"
+    },
+    "输入文件/目录排除规则":{
+      "简中": "输入文件/目录排除规则",
+      "繁中": "輸入檔案/目錄排除規則",
+      "English": "Input file/directory exclusion rules",
+      "日本語": "ファイル/ディレクトリ除外ルールを入力"
+    },
+    "*.log 表示排除所有结尾为 .log 的文件，aaa/* 表示排除输入文件夹下整个 aaa 目录，多个规则用英文逗号分隔":{
+      "简中": "*.log 表示排除所有结尾为 .log 的文件，aaa/* 表示排除输入文件夹下整个 aaa 目录，多个规则用英文逗号分隔",
+      "繁中": "*.log 表示排除所有結尾為 .log 的檔案，aaa/* 表示排除輸入資料夾下整個 aaa 目錄，多個規則用英文逗號分隔",
+      "English": "*.log means excluding all files ending with .log. aaa/* means excluding the entire aaa directory under the input folder.\n Multiple rules should be separated by English commas.",
+      "日本語": "*.log は .log で終わるすべてのファイルを除外し、aaa/* は入力フォルダ内の aaa ディレクトリ全体を除外します\n複数のルールは英語のカンマで区切ってください"
     }
   }
 }

@@ -8,10 +8,9 @@ from ModuleFolders.FileReader.DocxReader import DocxReader
 
 
 class OfficeConversionReader(BaseSourceReader):
-    def __init__(self, input_config: InputConfig, support_file, tmp_directory='office_cache') -> None:
+    def __init__(self, input_config: InputConfig, tmp_directory='office_cache') -> None:
         super().__init__(input_config)
         self.tmp_directory = tmp_directory
-        self._support_file = support_file
         self.tmp_file_type = '.docx'
 
         self.docx_reader = DocxReader(input_config)
@@ -25,14 +24,6 @@ class OfficeConversionReader(BaseSourceReader):
     def __exit__(self, exc_type, exc, exc_tb):
         self.converter.__exit__(exc_type, exc, exc_tb)
         self.docx_reader.__exit__(exc_type, exc, exc_tb)
-
-    @classmethod
-    def get_project_type(cls) -> str:
-        return 'OfficeConversion'
-
-    @property
-    def support_file(self) -> str:
-        return self._support_file
 
     def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
         rel_path = file_path.relative_to(self.input_config.input_root)
@@ -49,10 +40,15 @@ class OfficeConversionReader(BaseSourceReader):
     def is_environ_supported(cls) -> bool:
         return platform.system() == 'Windows'
 
+    @property
+    def exclude_rules(self) -> list[str]:
+        return [f'{self.tmp_directory}/*']
+
 
 class OfficeConversionPdfReader(OfficeConversionReader):
-    def __init__(self, input_config: InputConfig, tmp_directory='office_cache') -> None:
-        super().__init__(input_config, 'pdf', tmp_directory)
+    @property
+    def support_file(self) -> str:
+        return 'pdf'
 
     @classmethod
     def get_project_type(cls) -> str:
@@ -60,8 +56,9 @@ class OfficeConversionPdfReader(OfficeConversionReader):
 
 
 class OfficeConversionDocReader(OfficeConversionReader):
-    def __init__(self, input_config: InputConfig, tmp_directory='office_cache') -> None:
-        super().__init__(input_config, 'doc', tmp_directory)
+    @property
+    def support_file(self) -> str:
+        return 'doc'
 
     @classmethod
     def get_project_type(cls) -> str:

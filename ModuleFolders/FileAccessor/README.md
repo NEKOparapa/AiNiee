@@ -71,16 +71,37 @@ class BaseSourceReader(ABC):
         """读取文件内容，并返回原文(译文)片段"""
         pass
 
-    def can_read(self, file_path: Path) -> bool:
+    def can_read(self, file_path: Path, fast=True) -> bool:
         """验证文件兼容性，返回False则不会读取该文件"""
-        if file_path.suffix.replace('.', '', 1) != self.support_file:
+        if fast:
+            return self.can_read_by_extension(file_path)
+        try:
+            return self.can_read_by_content(file_path)
+        except Exception:
             return False
-        return True
 
     @classmethod
     def is_environ_supported(cls) -> bool:
         """用于判断当前环境是否支持该reader"""
         return True
+
+    def can_read_by_extension(self, file_path: Path):
+        """根据文件后缀判断是否可读"""
+        return file_path.suffix.replace('.', '', 1) == self.support_file
+
+    def can_read_by_content(self, file_path: Path) -> bool:
+        """根据文件内容判断是否可读"""
+        # 默认实现用后缀判断
+        return self.can_read_by_extension(file_path)
+
+    def get_file_project_type(self, file_path: Path) -> str:
+        """根据文件判断项目类型，无法判断时返回None"""
+        return self.get_project_type()
+
+    @property
+    def exclude_rules(self) -> list[str]:
+        """用于排除缓存文件/目录"""
+        return []
 ```
 
 ### Reader生命周期
@@ -184,6 +205,22 @@ class BaseTranslationWriter(ABC):
         # 提取译文输出的编码和换行符配置
         self.translated_encoding = output_config.translated_config.file_encoding or "utf-8"
         self.translated_line_ending = output_config.translated_config.line_ending or os.linesep
+
+    class TranslationMode(Enum):
+        TRANSLATED = ('translated_config', 'write_translated_file')
+        BILINGUAL = ('bilingual_config', 'write_bilingual_file')
+
+        def __init__(self, config_attr, write_method) -> None:
+            self.config_attr = config_attr
+            self.write_method = write_method
+
+    def can_write(self, mode: TranslationMode) -> bool:
+        """判断writer是否支持该输出方式"""
+        if mode == self.TranslationMode.TRANSLATED:
+            return isinstance(self, BaseTranslatedWriter) and self.output_config.translated_config.enabled
+        elif mode == self.TranslationMode.BILINGUAL:
+            return isinstance(self, BaseBilingualWriter) and self.output_config.bilingual_config.enabled
+        return False
 
     NOT_TRANSLATED_STATUS = (CacheItem.STATUS.UNTRANSLATED, CacheItem.STATUS.TRANSLATING)
 

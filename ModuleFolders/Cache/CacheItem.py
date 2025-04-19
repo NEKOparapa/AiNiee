@@ -26,6 +26,7 @@ class CacheItem():
         self.translated_text: str = ""
         self.file_name: str = ""
         self.storage_path: str = ""
+        self.file_project_type: str = ""
 
         # 初始化
         for k, v in args.items():
@@ -133,6 +134,16 @@ class CacheItem():
     def set_storage_path(self, storage_path: str) -> None:
         with self.lock:
             self.storage_path = storage_path
+
+    # 获取文件项目类型
+    def get_file_project_type(self) -> str:
+        with self.lock:
+            return self.file_project_type
+
+    # 设置文件项目类型
+    def set_file_project_type(self, file_project_type) -> None:
+        with self.lock:
+            self.file_project_type = file_project_type
 
     # 获取 Token 数量
     def get_token_count(self) -> int:
