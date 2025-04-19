@@ -86,7 +86,8 @@ class TranslationCheckPlugin(PluginBase):
             "auto_process_errors": 0,
             "newline_errors": 0,
             "placeholder_errors": 0,
-            "numbered_prefix_errors": 0
+            "numbered_prefix_errors": 0,
+            "example_text_errors": 0
         }
         
         # 初始化项目报告相关变量
@@ -202,6 +203,12 @@ class TranslationCheckPlugin(PluginBase):
                     check_summary["numbered_prefix_errors"] += len(errors)
                     current_entry_errors.extend(errors)
 
+                # 示例文本复读检查
+                errors = self.check_example_text( translated_text)
+                if errors:
+                    check_summary["example_text_errors"] += len(errors)
+                    current_entry_errors.extend(errors)
+
                 # 换行符检查
                 errors = self.check_newline(source_text, translated_text)
                 if errors:
@@ -238,6 +245,8 @@ class TranslationCheckPlugin(PluginBase):
                      summary_messages.append(f"  - 🍩 占位符残留检查: {check_summary['placeholder_errors']} 个错误 ⚠️")
                 if check_summary["numbered_prefix_errors"] > 0:
                      summary_messages.append(f"  - 🔢 数字序号检查: {check_summary['numbered_prefix_errors']} 个错误 ⚠️")
+                if check_summary["example_text_errors"] > 0:
+                     summary_messages.append(f"  - 💦 示例文本复读检查: {check_summary['example_text_errors']} 个错误 ⚠️")
                 if check_summary["newline_errors"] > 0:
                      summary_messages.append(f"  - 📃 换行符检查: {check_summary['newline_errors']} 个错误 ⚠️")
 
@@ -484,3 +493,21 @@ class TranslationCheckPlugin(PluginBase):
             error_msg = f"🔢[数字序号残留] 译文中残留数字子序号，未能清除成功（示例：{re.findall(pattern, translated_text)[0]}）"
             errors.append(error_msg)
         return errors
+    
+    # 针对“示例文本[随机字母]-[随机数字]”的残留检查，目前只针对中文进行检查
+    def check_example_text(self, translated_text):
+        """检查示例文本复读, 返回错误信息列表"""
+        errors = []
+        
+        # 确保输入是字符串，如果不是则视为空字符串处理或保持原样以便后续处理
+        translated_text = translated_text if isinstance(translated_text, str) else ""
+        
+        # 正则表达式匹配 示例文本B-1 格式的示例复读文本
+        # 匹配示例：示例文本B-1
+        pattern = r'示例文本[A-Z]-\d+'
+        
+        if re.search(pattern, translated_text):
+            error_msg = f"🔢[示例文本复读] 译文中出现示例文本复读问题，未能正确翻译（示例：{re.findall(pattern, translated_text)[0]}）"
+            errors.append(error_msg)
+        return errors
+
