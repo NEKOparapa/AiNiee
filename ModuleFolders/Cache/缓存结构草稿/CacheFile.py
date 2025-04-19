@@ -8,8 +8,8 @@ class CacheFile:
     """文件级缓存容器"""
     def __init__(self, file_args: dict):
         # 文件元数据
-        self.file_name: str = ""
         self.storage_path: str = ""
+        self.file_name: str = ""
         self.file_encoding: str = "utf-8"  # 默认编码
         self.line_ending: str = "\n"        # 默认换行符
         
@@ -22,7 +22,10 @@ class CacheFile:
         self._lock = threading.RLock()  # 可重入锁
 
     def __repr__(self) -> str:
-        return f"CacheFile({self.file_name}, items={len(self.items)})"
+        return f"CacheFile({self.storage_path}, items={len(self.items)})"
+
+    def get_vars(self) -> dict:
+        return {k: v for k, v in vars(self).items() if k not in ('items', '_lock')}
 
     def add_item(self, item: CacheItem) -> None:
         """线程安全添加缓存项"""

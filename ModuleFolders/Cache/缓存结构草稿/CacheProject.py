@@ -21,16 +21,25 @@ class CacheProject:
     def __repr__(self) -> str:
         return f"CacheProject({self.project_id}, files={len(self.files)})"
 
+    def get_vars(self) -> dict:
+        """获取可序列化属性（不包含文件和锁）"""
+        with self._lock:
+            # 排除 files 和 _lock
+            return {k: v for k, v in vars(self).items() if not k.startswith('_') and k != 'files'}
+
+    # 添加文件
     def add_file(self, file: CacheFile) -> None:
         """线程安全添加文件"""
         with self._lock:
             self.files[file.storage_path] = file
 
+    # 根据相对路径获取文件
     def get_file(self, storage_path: str) -> CacheFile:
         """线程安全获取文件"""
         with self._lock:
             return self.files.get(storage_path)
 
+    # 获取全部文件
     def get_all_files(self) -> List[CacheFile]:
         """获取全部文件副本"""
         with self._lock:
@@ -38,61 +47,21 @@ class CacheProject:
 
     # 获取项目 ID
     def get_project_id(self) -> str:
-        with self.lock:
+        with self._lock:
             return self.project_id
 
     # 设置项目 ID
     def set_project_id(self, project_id: str) -> None:
-        with self.lock:
+        with self._lock:
             self.project_id = project_id
 
     # 获取项目类型
     def get_project_type(self) -> str:
-        with self.lock:
+        with self._lock:
             return self.project_type
 
     # 设置项目类型
     def set_project_type(self, project_type: str) -> None:
-        with self.lock:
+        with self._lock:
             self.project_type = project_type
-
-    # 获取翻译状态
-    def get_translation_status(self) -> int:
-        with self.lock:
-            return self.translation_status
-
-    # 设置翻译状态
-    def set_translation_status(self, translation_status: int) -> None:
-        with self.lock:
-            self.translation_status = translation_status
-
-    # 获取数据
-    def get_data(self) -> dict:
-        with self.lock:
-            return self.data
-
-    # 设置数据
-    def set_data(self, data: dict) -> None:
-        with self.lock:
-            self.data = data
-
-    # 获取文件编码
-    def get_file_encoding(self) -> str:
-        with self.lock:
-            return self.file_encoding
-
-    # 设置文件编码
-    def set_file_encoding(self, encoding: str) -> None:
-        with self.lock:
-            self.file_encoding = encoding
-
-    # 获取换行符类型
-    def get_line_ending(self) -> str:
-        with self.lock:
-            return self.line_ending
-
-    # 设置换行符类型
-    def set_line_ending(self, line_ending: str) -> None:
-        with self.lock:
-            self.line_ending = line_ending
 

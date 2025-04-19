@@ -2,7 +2,7 @@ import os
 import time
 import threading
 import rapidjson as json
-from typing import List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from Base.Base import Base
 from ModuleFolders.Cache.CacheItem import CacheItem, Status
@@ -40,13 +40,44 @@ class CacheManager(Base):
             with open(path, "w", encoding="utf-8") as writer:
                 writer.write(json.dumps(self._serialize_data(), ensure_ascii=False))
 
-    def _serialize_data(self) -> list:
-        """生成序列化数据：包含Project、Files及其Items"""
-        data = [self.project.get_vars()]
+    def _serialize_data(self) -> Dict[str, Any]:
+        """
+        生成序列化数据字典：包含Project元数据、Files字典及其嵌套的Items列表。
+        返回结构:
+        {
+            "project_args": {"project_id": "123", "project_type": "type", ...},
+            "files": {
+                "path/to/file1.txt": {
+                    "file_args": {"storage_path": "...", "file_name": "...", ...},
+                    "items": [
+                        {"text_index": 0, "source_text": "...", ...},
+                        ...
+                    ]
+                },
+                "path/to/file2.txt": { ... }
+            }
+        }
+        """
+        project_data = {
+            "project_args": self.project.get_vars(),
+            "files": {}
+        }
+
+        # 遍历所有文件
         for file in self.project.get_all_files():
-            data.append(file.get_vars())
-            data.extend([item.get_vars() for item in file.get_all_items()])
-        return data
+            # 获取文件元数据 (不包含 items 和 _lock)
+            file_args = {k: v for k, v in vars(file).items() if not k.startswith('_') and k != 'items'}
+
+            # 获取该文件的所有 item 数据
+            items_data = [item.get_vars() for item in file.get_all_items()]
+
+            # 组装文件数据
+            project_data["files"][file.storage_path] = {
+                "file_args": file_args,
+                "items": items_data
+            }
+
+        return project_data
 
     # 保存缓存到文件的定时任务
     def save_to_file_tick(self) -> None:
@@ -64,46 +95,46 @@ class CacheManager(Base):
         self.save_to_file_require_path = output_path
         self.save_to_file_require_flag = True
 
+    # 生成数据数据字典
+    def to_list(self) -> list:
+        """生成序列化字典（包含所有层级数据）"""
+        return self._serialize_data()
+
     # 重置数据
     def reset(self) -> None:
         """重置数据"""
         self.project = CacheProject({})
 
-    # 从列表读取缓存数据
-    def load_from_list(self, data: list) -> None:
-        """从列表加载数据"""
+    # 从字典读取缓存数据
+    def load_from_list(self, data: Dict[str, Any]) -> None:
+        """从字典加载数据"""
+        # 重置数据
         self.reset()
-        if not data:
-            return
-        try:
-            self.project = CacheProject(data[0])
-            current_file = None
-            for entry in data[1:]:
-                if "file_encoding" in entry or "line_ending" in entry:  # 识别为CacheFile
-                    current_file = CacheFile(entry)
-                    self.project.add_file(current_file)
-                else:  # 识别为CacheItem
-                    if not current_file or current_file.storage_path != entry.get("storage_path"):
-                        self._create_file_from_item(entry)
-                        current_file = self.project.get_file(entry["storage_path"])
-                    current_file.add_item(CacheItem(entry))
-        except Exception as e:
-            self.debug("加载列表数据失败", e)
 
-    def _create_file_from_item(self, item_data: dict) -> None:
-        """根据Item数据创建CacheFile"""
-        storage_path = item_data.get("storage_path")
-        if not storage_path or self.project.get_file(storage_path):
-            return
-        file_args = {
-            "file_name": item_data.get("file_name", ""),
-            "storage_path": storage_path,
-            "file_encoding": item_data.get("file_encoding", "utf-8"),
-            "line_ending": item_data.get("line_ending", "\n")
-        }
-        self.project.add_file(CacheFile(file_args))
+        # 1. 加载项目元数据
+        project_args = data.get("project_args", {})
+        self.project = CacheProject(project_args)
 
-    # 从元组中读取缓存数据
+        # 2. 加载文件和条目
+        files_data = data.get("files", {})
+        for storage_path, file_info in files_data.items():
+
+            # 2.1 创建 CacheFile
+            file_args = file_info.get("file_args", {})
+            # 确保 storage_path 一致性
+            file_args["storage_path"] = storage_path
+            cache_file = CacheFile(file_args)
+
+            # 2.2 添加 CacheItems 到 CacheFile
+            items_data = file_info.get("items", [])
+            for item_data in items_data:
+                cache_item = CacheItem(item_data)
+                cache_file.add_item(cache_item)
+
+            # 2.3 将 CacheFile 添加到 CacheProject
+            self.project.add_file(cache_file)
+
+    # 从元组中读取缓存数据（需要改动）
     def load_from_tuple(self, data: tuple[CacheProject, list[CacheItem]]):
         self.reset()
         try:
@@ -128,10 +159,10 @@ class CacheManager(Base):
 
     # 获取某翻译状态的条目数量
     def get_item_count_by_status(self, status: int) -> int:
-        """按状态统计缓存项"""
         count = 0
         for file in self.project.get_all_files():
-            count += sum(1 for item in file.get_all_items() if item.get_translation_status() == status)
+            count += sum(1 for item in file.get_all_items() 
+                        if item.get_translation_status() == status)
         return count
 
     # 检测是否存在需要翻译的条目
