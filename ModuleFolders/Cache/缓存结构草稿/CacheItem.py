@@ -14,7 +14,7 @@ class CacheItem:
     STATUS = Status()
     TYPE_FILTER = (int, str, bool, float, list, dict, tuple)
 
-    def __init__(self, args: dict):
+    def __init__(self, item_args: dict):
         super().__init__()
 
         # 基础属性
@@ -25,7 +25,7 @@ class CacheItem:
         self.translated_text: str = ""
         
         # 初始化预设属性，并允许灵活添加新属性
-        for k, v in args.items():
+        for k, v in item_args.items():
             setattr(self, k, v)
         
         # 实例级线程锁

@@ -1,7 +1,6 @@
 import threading
 from typing import Dict, List
 from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.Cache.CacheFile import CacheFile
 
 class CacheProject:
@@ -16,26 +15,26 @@ class CacheProject:
             setattr(self, k, v)
         
         # 文件存储
-        self._files: Dict[str, CacheFile] = {}  # 使用storage_path作为键
+        self.files: Dict[str, CacheFile] = {}  # 使用storage_path作为键
         self._lock = threading.RLock()
 
     def __repr__(self) -> str:
-        return f"CacheProject({self.project_id}, files={len(self._files)})"
+        return f"CacheProject({self.project_id}, files={len(self.files)})"
 
     def add_file(self, file: CacheFile) -> None:
         """线程安全添加文件"""
         with self._lock:
-            self._files[file.storage_path] = file
+            self.files[file.storage_path] = file
 
     def get_file(self, storage_path: str) -> CacheFile:
         """线程安全获取文件"""
         with self._lock:
-            return self._files.get(storage_path)
+            return self.files.get(storage_path)
 
     def get_all_files(self) -> List[CacheFile]:
         """获取全部文件副本"""
         with self._lock:
-            return list(self._files.values())
+            return list(self.files.values())
 
     # 获取项目 ID
     def get_project_id(self) -> str:

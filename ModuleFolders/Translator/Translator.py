@@ -240,7 +240,7 @@ class Translator(Base):
             tasks_list = []
             self.print("")
             for chunk, previous_chunk in tqdm(zip(chunks, previous_chunks), desc = "生成翻译任务", total = len(chunks)):
-                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter, self.cache_manager) # 实例化
+                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter) # 实例化
                 task.set_items(chunk)  #传入该任务待翻译原文
                 task.set_previous_items(previous_chunk) # 传入该任务待翻译原文的上文
                 task.prepare(self.config.target_platform,self.config.prompt_preset) # 预先构建消息列表

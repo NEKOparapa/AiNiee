@@ -30,14 +30,12 @@ from ModuleFolders.TextProcessor.TextProcessor import TextProcessor
 
 class TranslatorTask(Base):
 
-    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager,
-                 request_limiter: RequestLimiter, cache_manager: CacheManager) -> None:
+    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager,request_limiter: RequestLimiter) -> None:
         super().__init__()
 
         self.config = config
         self.plugin_manager = plugin_manager
         self.request_limiter = request_limiter
-        self.cache_manager = cache_manager
 
         # 初始化消息存储
         self.messages = []
