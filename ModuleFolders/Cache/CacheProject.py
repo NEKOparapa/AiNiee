@@ -12,6 +12,8 @@ class CacheProject():
         # 新增值，用于保存文件编码与换行符类型
         self.file_encoding: str = ""  # 默认为空表示无特定reader编码需求
         self.line_ending: str = ""  # 默认为空表示无特定reader编码需求
+        # 用于保存文件实际项目类型，用于插件的判断
+        self.file_project_types = []
 
         # 初始化
         for k, v in args.items():
@@ -92,3 +94,12 @@ class CacheProject():
         with self.lock:
             self.line_ending = line_ending
 
+    # 获取文件实际项目类型
+    def get_file_project_types(self) -> frozenset:
+        with self.lock:
+            return self.file_project_types
+
+    # 设置文件实际项目类型
+    def set_file_project_types(self, file_project_types: frozenset) -> None:
+        with self.lock:
+            self.file_project_types = file_project_types

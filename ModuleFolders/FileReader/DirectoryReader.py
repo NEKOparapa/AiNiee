@@ -1,3 +1,4 @@
+import fnmatch
 import pathlib
 from collections import Counter
 from pathlib import Path
@@ -67,8 +68,20 @@ def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: fl
 
 
 class DirectoryReader:
-    def __init__(self, create_reader: Callable[[], BaseSourceReader]):
+    def __init__(self, create_reader: Callable[[], BaseSourceReader], exclude_ruls: list[str]):
         self.create_reader = create_reader  # 工厂函数
+
+        self.exclude_files = {rule for rule in exclude_ruls if "/" not in rule}
+        self.exclude_paths = {rule for rule in exclude_ruls if "/" in rule}
+
+    def is_exclude(self, file_path: Path, source_directory: Path):
+        if any(fnmatch.fnmatch(file_path.name, rule) for rule in self.exclude_files):
+            return True
+
+        rel_path_str = str(file_path.relative_to(source_directory))
+        if any(fnmatch.fnmatch(rel_path_str, pattern) for pattern in self.exclude_paths):
+            return True
+        return False
 
     # 树状读取文件夹内同类型文件
     def read_source_directory(self, source_directory: Path) -> tuple[CacheProject, list[CacheItem]]:
@@ -88,18 +101,21 @@ class DirectoryReader:
         items = []  # 文本对信息
         encoding_counter = Counter()  # 用于统计编码出现次数
 
+        file_project_types = set()
         with self.create_reader() as reader:
             cache_project.set_project_type(reader.get_project_type())
 
             for root, _, files in source_directory.walk():  # 递归遍历文件夹
                 for file in files:
                     file_path = root / file
-                    if reader.can_read(file_path):  # 检查是否为目标类型文件
+                    # 检查是否被排除，以及是否是目标类型文件
+                    if not self.is_exclude(file_path, source_directory) and reader.can_read(file_path):
                         # 猜测的文件编码
                         detected_encoding = detect_file_encoding(file_path)
 
                         # 统计编码出现次数
-                        encoding_counter[detected_encoding] += 1
+                        if not detected_encoding.startswith('non_text'):
+                            encoding_counter[detected_encoding] += 1
 
                         # 确定要使用的编码
                         # 如果 `detect_file_encoding` 返回的是 `non_text` 开头（非纯文本）
@@ -113,8 +129,13 @@ class DirectoryReader:
                             item.set_model('none')
                             item.set_storage_path(str(file_path.relative_to(source_directory)))
                             item.set_file_name(file_path.name)
+                            item.set_file_project_type(reader.get_file_project_type(file_path))
                             items.append(item)
                             text_index += 1
+                            file_project_types.add(reader.get_file_project_type(file_path))
+
+        # 设置目录下包含的文件项目类型，用于快速判断
+        cache_project.set_file_project_types(list(file_project_types))
 
         # 设置项目的默认编码为最常见的编码
         if encoding_counter:

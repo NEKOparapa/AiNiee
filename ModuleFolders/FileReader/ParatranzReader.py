@@ -67,3 +67,10 @@ class ParatranzReader(BaseSourceReader):
             item.context = json_item.get('context', '')  # 获取上下文信息，如果没有则默认为空字符串
             items.append(item)
         return items
+
+    def can_read_by_content(self, file_path: Path) -> bool:
+        # 即使不是对应编码也不影响英文的key
+        content = json.loads(file_path.read_text(encoding='utf-8', errors='ignore'))
+        if not isinstance(content, list):
+            return False
+        return all(isinstance(line, dict) and "original" in line for line in content)

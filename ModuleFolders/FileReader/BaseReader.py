@@ -3,7 +3,7 @@ import pathlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Union
+from typing import TypedDict, Union
 
 import chardet
 
@@ -14,6 +14,11 @@ from ModuleFolders.Cache.CacheProject import CacheProject
 @dataclass
 class InputConfig:
     input_root: Path
+
+
+class ReaderInitParams(TypedDict):
+    """reader的初始化参数，必须包含input_config，其他参数随意"""
+    input_config: InputConfig
 
 
 class BaseSourceReader(ABC):
@@ -46,16 +51,32 @@ class BaseSourceReader(ABC):
         """读取文件内容，并返回原文(译文)片段"""
         pass
 
-    def can_read(self, file_path: Path) -> bool:
+    def can_read(self, file_path: Path, fast=True) -> bool:
         """验证文件兼容性，返回False则不会读取该文件"""
-        if file_path.suffix.replace('.', '', 1) != self.support_file:
+        if fast:
+            return self.can_read_by_extension(file_path)
+        try:
+            return self.can_read_by_content(file_path)
+        except Exception:
             return False
-        return True
 
     @classmethod
     def is_environ_supported(cls) -> bool:
         """用于判断当前环境是否支持该reader"""
         return True
+
+    def can_read_by_extension(self, file_path: Path):
+        """根据文件后缀判断是否可读"""
+        return file_path.suffix.replace('.', '', 1) == self.support_file
+
+    def can_read_by_content(self, file_path: Path) -> bool:
+        """根据文件内容判断是否可读"""
+        # 默认实现用后缀判断
+        return self.can_read_by_extension(file_path)
+
+    def get_file_project_type(self, file_path: Path) -> str:
+        """根据文件判断项目类型，无法判断时返回None"""
+        return self.get_project_type()
 
 
 # 存储文本对及翻译状态信息

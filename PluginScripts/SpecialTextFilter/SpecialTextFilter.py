@@ -25,15 +25,15 @@ class SpecialTextFilter(PluginBase):
             project = event_data[0]
 
             # 正对trans项目的处理
-            if "trans"  in project.get("project_type", "").lower():
+            if "Trans" in project.get("file_project_types", ()):
 
-                SpecialTextFilter.filter_trans_text(self, items)
+                SpecialTextFilter.filter_trans_text(self, (item for item in items if item.get("file_project_type") == 'Trans'))
 
 
             # 针对MD项目的处理
-            if "md"  in project.get("project_type", "").lower():
+            if "Md" in project.get("file_project_types", ()):
 
-                SpecialTextFilter.filter_md_text(self, items)
+                SpecialTextFilter.filter_md_text(self, (item for item in items if item.get("file_project_type") == 'Md'))
 
     # 特殊文本过滤器
     def filter_trans_text(self,cache_list):
