@@ -6,6 +6,7 @@ from qfluentwidgets import FluentIcon
 
 from Base.Base import Base
 from Widget.ComboBoxCard import ComboBoxCard
+from Widget.LineEditCard import LineEditCard
 from Widget.PushButtonCard import PushButtonCard
 
 class ProjectSettingsPage(QFrame, Base):
@@ -22,6 +23,7 @@ class ProjectSettingsPage(QFrame, Base):
             "source_language": "japanese",
             "target_language": "chinese_simplified",
             "label_input_path": "./input",
+            "label_input_exclude_rule": "",
             "label_output_path": "./output",
         }
 
@@ -39,6 +41,7 @@ class ProjectSettingsPage(QFrame, Base):
         self.add_widget_03(self.container, config)
         self.add_widget_04(self.container, config)
         self.add_widget_05(self.container, config)
+        self.add_widget_exclude_rule(self.container, config)
         self.add_widget_06(self.container, config)
 
         # 填充
@@ -119,6 +122,7 @@ class ProjectSettingsPage(QFrame, Base):
             (self.tra("ParaTranz导出文件"), "Paratranz"),
             (self.tra('Pdf文档文件 (需要Microsoft Office)'), "OfficeConversionPdf"),
             (self.tra('Doc文档文件 (需要Microsoft Office)'), "OfficeConversionDoc"),
+            (self.tra("自动识别文件类型"), "AutoType")
         ]
 
         # 生成翻译后的配对列表
@@ -454,5 +458,27 @@ class ProjectSettingsPage(QFrame, Base):
                 "",
                 widget_init,
                 widget_callback,
+            )
+        )
+
+    # 文件/目录排除规则
+    def add_widget_exclude_rule(self, parent, config) -> None:
+
+        def init(widget) -> None:
+            widget.set_text(config.get("label_input_exclude_rule"))
+            widget.set_fixed_width(256)
+            widget.set_placeholder_text(self.tra("*.log,aaa/*"))
+
+        def text_changed(widget, text: str) -> None:
+            config = self.load_config()
+            config["label_input_exclude_rule"] = text.strip()
+            self.save_config(config)
+
+        parent.addWidget(
+            LineEditCard(
+                self.tra("输入文件/目录排除规则"),
+                self.tra("*.log 表示排除所有结尾为 .log 的文件，aaa/* 表示排除输入文件夹下整个 aaa 目录，多个规则用英文逗号分隔"),
+                init=init,
+                text_changed=text_changed,
             )
         )
