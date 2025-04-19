@@ -15,6 +15,8 @@ class CacheItem:
     TYPE_FILTER = (int, str, bool, float, list, dict, tuple)
 
     def __init__(self, args: dict):
+        super().__init__()
+
         # 基础属性
         self.text_index: int = 0
         self.translation_status: int = Status.UNTRANSLATED
@@ -22,7 +24,7 @@ class CacheItem:
         self.source_text: str = ""
         self.translated_text: str = ""
         
-        # 初始化自定义属性
+        # 初始化预设属性，并允许灵活添加新属性
         for k, v in args.items():
             setattr(self, k, v)
         
@@ -36,7 +38,7 @@ class CacheItem:
         """获取可序列化属性"""
         return {
             k: v for k, v in vars(self).items() 
-            if isinstance(v, self.TYPE_FILTER)
+            if isinstance(v,  CacheItem.TYPE_FILTER)
         }
 
     # 获取行号
