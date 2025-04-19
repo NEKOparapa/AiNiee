@@ -78,6 +78,11 @@ class BaseSourceReader(ABC):
         """根据文件判断项目类型，无法判断时返回None"""
         return self.get_project_type()
 
+    @property
+    def exclude_rules(self) -> list[str]:
+        """用于排除缓存文件/目录"""
+        return []
+
 
 # 存储文本对及翻译状态信息
 def text_to_cache_item(source_text, translated_text: str = None):

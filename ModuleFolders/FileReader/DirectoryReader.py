@@ -68,11 +68,16 @@ def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: fl
 
 
 class DirectoryReader:
-    def __init__(self, create_reader: Callable[[], BaseSourceReader], exclude_ruls: list[str]):
+    def __init__(self, create_reader: Callable[[], BaseSourceReader], exclude_rules: list[str]):
         self.create_reader = create_reader  # 工厂函数
 
-        self.exclude_files = {rule for rule in exclude_ruls if "/" not in rule}
-        self.exclude_paths = {rule for rule in exclude_ruls if "/" in rule}
+        self.exclude_files = set()
+        self.exclude_paths = set()
+        self._update_exclude_rules(exclude_rules)
+
+    def _update_exclude_rules(self, exclude_rules):
+        self.exclude_files.update({rule for rule in exclude_rules if "/" not in rule})
+        self.exclude_paths.update({rule for rule in exclude_rules if "/" in rule})
 
     def is_exclude(self, file_path: Path, source_directory: Path):
         if any(fnmatch.fnmatch(file_path.name, rule) for rule in self.exclude_files):
@@ -103,6 +108,7 @@ class DirectoryReader:
 
         file_project_types = set()
         with self.create_reader() as reader:
+            self._update_exclude_rules(reader.exclude_rules)
             cache_project.set_project_type(reader.get_project_type())
 
             for root, _, files in source_directory.walk():  # 递归遍历文件夹

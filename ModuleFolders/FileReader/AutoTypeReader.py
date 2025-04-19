@@ -127,3 +127,10 @@ class AutoTypeReader(BaseSourceReader):
             if reader.support_file == extension and reader.can_read(file_path, fast=False):
                 return reader.get_file_project_type(file_path)
         return None
+
+    @property
+    def exclude_rules(self) -> list[str]:
+        rules = []
+        for reader in self._readers.values():
+            rules.extend(reader.exclude_rules)
+        return rules

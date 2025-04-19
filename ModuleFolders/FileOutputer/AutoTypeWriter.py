@@ -43,6 +43,19 @@ class AutoTypeWriter(BaseBilingualWriter, BaseTranslatedWriter):
         else:
             raise ValueError(f"不支持的writer工厂`{writer_factory}`")
 
+    def __exit__(self, exc_type, exc, exc_tb):
+        errors = []
+        for project_type in list(self._active_writers):
+            try:
+                writer = self._writers[project_type]
+                writer.__exit__(exc_type, exc, exc_tb)
+            except Exception as e:
+                errors.append(f"释放{writer}失败: {str(e)}")
+            finally:
+                self._active_writers.discard(project_type)  # 确保移除
+        if errors:
+            raise RuntimeError("释放时发生异常:\n" + "\n".join(errors))
+
     def write_bilingual_file(
         self, translation_file_path: Path, items: list[CacheItem],
         source_file_path: Path = None
@@ -72,6 +85,7 @@ class AutoTypeWriter(BaseBilingualWriter, BaseTranslatedWriter):
             write_translation_file = getattr(writer, translation_mode.write_method)
             if file_project_type not in self._active_writers:
                 writer.__enter__()
+                self._active_writers.add(file_project_type)
             write_translation_file(translation_file_path, items, source_file_path)
 
     @classmethod

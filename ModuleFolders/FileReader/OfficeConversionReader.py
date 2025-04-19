@@ -40,6 +40,10 @@ class OfficeConversionReader(BaseSourceReader):
     def is_environ_supported(cls) -> bool:
         return platform.system() == 'Windows'
 
+    @property
+    def exclude_rules(self) -> list[str]:
+        return [f'{self.tmp_directory}/*']
+
 
 class OfficeConversionPdfReader(OfficeConversionReader):
     @property

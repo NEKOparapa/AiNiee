@@ -53,6 +53,7 @@ class BaseTranslationWriter(ABC):
             self.write_method = write_method
 
     def can_write(self, mode: TranslationMode) -> bool:
+        """判断writer是否支持该输出方式"""
         if mode == self.TranslationMode.TRANSLATED:
             return isinstance(self, BaseTranslatedWriter) and self.output_config.translated_config.enabled
         elif mode == self.TranslationMode.BILINGUAL:
