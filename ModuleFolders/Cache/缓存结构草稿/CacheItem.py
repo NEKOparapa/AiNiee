@@ -11,12 +11,11 @@ class Status():
 
 class CacheItem:
     """缓存项基类"""
+    STATUS = Status()
     TYPE_FILTER = (int, str, bool, float, list, dict, tuple)
-    _token_cache = {}  # 类级别的token缓存
 
     def __init__(self, args: dict):
         # 基础属性
-        self.row_index: int = 0
         self.text_index: int = 0
         self.translation_status: int = Status.UNTRANSLATED
         self.model: str = ""
