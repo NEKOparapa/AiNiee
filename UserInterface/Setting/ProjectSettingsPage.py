@@ -8,6 +8,7 @@ from Base.Base import Base
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.LineEditCard import LineEditCard
 from Widget.PushButtonCard import PushButtonCard
+from Widget.SwitchButtonCard import SwitchButtonCard
 
 class ProjectSettingsPage(QFrame, Base):
 
@@ -25,6 +26,7 @@ class ProjectSettingsPage(QFrame, Base):
             "label_input_path": "./input",
             "label_input_exclude_rule": "",
             "label_output_path": "./output",
+            "auto_set_output_path": True
         }
 
         # 载入并保存默认配置
@@ -43,6 +45,7 @@ class ProjectSettingsPage(QFrame, Base):
         self.add_widget_05(self.container, config)
         self.add_widget_exclude_rule(self.container, config)
         self.add_widget_06(self.container, config)
+        self.add_widget_07(self.container, config)
 
         # 填充
         self.container.addStretch(1)
@@ -123,6 +126,7 @@ class ProjectSettingsPage(QFrame, Base):
             (self.tra('Pdf文档文件 (需要Microsoft Office)'), "OfficeConversionPdf"),
             (self.tra('Doc文档文件 (需要Microsoft Office)'), "OfficeConversionDoc"),
             (self.tra("自动识别文件类型"), "AutoType")
+
         ]
 
         # 生成翻译后的配对列表
@@ -131,7 +135,7 @@ class ProjectSettingsPage(QFrame, Base):
         def init(widget) -> None:
             """初始化时根据存储的值设置当前选项"""
             current_config = self.load_config()
-            current_value = current_config.get("translation_project", "Txt")
+            current_value = current_config.get("translation_project", "AutoType")
             
             # 旧配置兼容层转换(后续版本再删除)
             if current_value == "Txt小说文件":
@@ -187,7 +191,7 @@ class ProjectSettingsPage(QFrame, Base):
             # 通过显示文本查找对应的值
             value = next(
                 (value for display, value in translated_pairs if display == text),
-                "Txt"  # 默认值
+                "AutoType"  # 默认值
             )
             
             config = self.load_config()
@@ -429,6 +433,28 @@ class ProjectSettingsPage(QFrame, Base):
             )
         )
 
+    # 文件/目录排除规则
+    def add_widget_exclude_rule(self, parent, config) -> None:
+
+        def init(widget) -> None:
+            widget.set_text(config.get("label_input_exclude_rule"))
+            widget.set_fixed_width(256)
+            widget.set_placeholder_text(self.tra("*.log,aaa/*"))
+
+        def text_changed(widget, text: str) -> None:
+            config = self.load_config()
+            config["label_input_exclude_rule"] = text.strip()
+            self.save_config(config)
+
+        parent.addWidget(
+            LineEditCard(
+                self.tra("输入文件/目录排除规则"),
+                self.tra("*.log 表示排除所有结尾为 .log 的文件，aaa/* 表示排除输入文件夹下整个 aaa 目录，多个规则用英文逗号分隔"),
+                init=init,
+                text_changed=text_changed,
+            )
+        )
+
     # 输出文件夹
     def add_widget_06(self, parent, config) -> None:
         def widget_init(widget):
@@ -461,24 +487,21 @@ class ProjectSettingsPage(QFrame, Base):
             )
         )
 
-    # 文件/目录排除规则
-    def add_widget_exclude_rule(self, parent, config) -> None:
+    # 自动设置输出文件夹开关
+    def add_widget_07(self, parent, config) -> None:
+        def widget_init(widget) -> None:
+            widget.set_checked(config.get("auto_set_output_path"))
 
-        def init(widget) -> None:
-            widget.set_text(config.get("label_input_exclude_rule"))
-            widget.set_fixed_width(256)
-            widget.set_placeholder_text(self.tra("*.log,aaa/*"))
-
-        def text_changed(widget, text: str) -> None:
+        def widget_callback(widget, checked: bool) -> None:
             config = self.load_config()
-            config["label_input_exclude_rule"] = text.strip()
+            config["auto_set_output_path"] = checked
             self.save_config(config)
 
         parent.addWidget(
-            LineEditCard(
-                self.tra("输入文件/目录排除规则"),
-                self.tra("*.log 表示排除所有结尾为 .log 的文件，aaa/* 表示排除输入文件夹下整个 aaa 目录，多个规则用英文逗号分隔"),
-                init=init,
-                text_changed=text_changed,
+            SwitchButtonCard(
+                self.tra("自动设置输出文件夹"),
+                self.tra("启用此功能后，设置为输入文件夹的平级目录，比如输入文件夹为D:/Test/Input，输出文件夹将设置为D:/Test/AiNiee_Output"),
+                widget_init,
+                widget_callback,
             )
         )
