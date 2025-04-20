@@ -388,7 +388,7 @@ class ResponseChecker():
                     count_results += 1                   
 
         # 根据出现次数判断结果
-        print("count_results:", count_results)  # 调试输出
+        #print("count_results:", count_results)  # 调试输出
         if  count_results >=1:
             return False
 

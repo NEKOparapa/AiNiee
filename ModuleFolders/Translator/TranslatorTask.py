@@ -88,7 +88,6 @@ class TranslatorTask(Base):
 
         return patterns
 
-
     # 设置缓存数据
     def set_items(self, items: list[CacheItem]) -> None:
         self.items = items
@@ -650,8 +649,16 @@ class TranslatorTask(Base):
 
         # 原文译文对比
         pair = ""
-        for source, translated in itertools.zip_longest(source, translated, fillvalue = ""):
-            pair = pair + "\n" + f"{source} [bright_blue]-->[/] {translated}"
+        # 修复变量名冲突问题，将循环变量改为 s 和 t
+        for idx, (s, t) in enumerate(itertools.zip_longest(source, translated, fillvalue=""), 1):
+            pair += f"\n--- Pair {idx} ---\n"
+            # 处理原文和译文的换行，分割成多行
+            s_lines = s.split('\n') if s is not None else ['']
+            t_lines = t.split('\n') if t is not None else ['']
+            # 逐行对比，确保对齐
+            for s_line, t_line in itertools.zip_longest(s_lines, t_lines, fillvalue=""):
+                pair += f"{s_line} [bright_blue]-->[/] {t_line}\n"
+        
         rows.append(pair.strip())
 
         return rows, error == ""
