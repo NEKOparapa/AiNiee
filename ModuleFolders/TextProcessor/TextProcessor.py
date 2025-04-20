@@ -14,12 +14,12 @@ class TextProcessor(Base):
         processed_text = {k: v for k, v in text_dict.items()}
         prefix_codes, suffix_codes, placeholder_order = {}, {}, {}
 
-        # 预处理文本前后的空格与换行
-        processed_text, affix_whitespace_storage = TextProcessor.strip_and_record_affix_whitespace(self,processed_text) 
-
         # 译前替换
         if config.pre_translation_switch:
             processed_text = TextProcessor.replace_before_translation(self,config, processed_text) 
+
+        # 预处理文本前后的空格与换行
+        processed_text, affix_whitespace_storage = TextProcessor.strip_and_record_affix_whitespace(self,processed_text) 
 
         # 自动处理代码段
         if config.auto_process_text_code_segment:
