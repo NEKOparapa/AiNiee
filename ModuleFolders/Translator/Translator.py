@@ -329,7 +329,7 @@ class Translator(Base):
         if self.config.auto_set_output_path == True:
             abs_input_path = os.path.abspath(self.config.label_input_path)
             parent_dir = os.path.dirname(abs_input_path)
-            output_folder_name = "AiNiee_Output"
+            output_folder_name = "AiNieeOutput"
             self.config.label_output_path = os.path.join(parent_dir, output_folder_name)
 
         # 写入文件
