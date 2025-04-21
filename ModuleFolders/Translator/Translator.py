@@ -1,3 +1,4 @@
+import os
 import time
 import threading
 import concurrent.futures
@@ -240,7 +241,7 @@ class Translator(Base):
             tasks_list = []
             self.print("")
             for chunk, previous_chunk in tqdm(zip(chunks, previous_chunks), desc = "生成翻译任务", total = len(chunks)):
-                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter, self.cache_manager) # 实例化
+                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter) # 实例化
                 task.set_items(chunk)  #传入该任务待翻译原文
                 task.set_previous_items(previous_chunk) # 传入该任务待翻译原文的上文
                 task.prepare(self.config.target_platform,self.config.prompt_preset) # 预先构建消息列表
@@ -322,6 +323,14 @@ class Translator(Base):
             self.print("")
             self.info(f"已启动自动简繁转换功能，正在使用 {self.config.opencc_preset} 配置进行字形转换 ...")
             self.print("")
+
+        # 如果开启自动设置输出文件夹功能，设置为输入文件夹的平级目录，比如输入文件夹为D:/Test/Input，输出文件夹将设置为D:/Test/AiNiee_Output
+        # 并考虑到./input与其他平台的路径分隔符问题
+        if self.config.auto_set_output_path == True:
+            abs_input_path = os.path.abspath(self.config.label_input_path)
+            parent_dir = os.path.dirname(abs_input_path)
+            output_folder_name = "AiNieeOutput"
+            self.config.label_output_path = os.path.join(parent_dir, output_folder_name)
 
         # 写入文件
         self.file_writer.output_translated_content(

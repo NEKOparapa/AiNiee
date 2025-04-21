@@ -13,6 +13,8 @@ class LocalLLMRequester(Base):
 
             api_url = platform_config.get("api_url")
             api_key = platform_config.get("api_key")
+            if not api_key:
+                api_key = "none_api_key"
             model_name = platform_config.get("model_name")
             request_timeout = platform_config.get("request_timeout", 60)
             temperature = platform_config.get("temperature", 1.0)

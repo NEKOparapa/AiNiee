@@ -12,6 +12,7 @@ from qfluentwidgets import PlainTextEdit
 from Base.Base import Base
 from Widget.CommandBarCard import CommandBarCard
 from Widget.ComboBoxCard import ComboBoxCard
+from Widget.SwitchButtonCard import SwitchButtonCard
 from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from ModuleFolders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
@@ -25,7 +26,7 @@ class SystemPromptPage(QFrame, Base):
         # 默认配置
         self.default = {
             "prompt_preset":PromptBuilderEnum.COMMON,
-            "system_prompt_switch": False,
+            "few_shot_and_example_switch": True,
             "system_prompt_content": PromptBuilder.get_system_default(None),
         }
 
@@ -42,6 +43,7 @@ class SystemPromptPage(QFrame, Base):
 
         # 添加控件
         self.add_widget_header(self.container, config, window)
+        self.add_widget_few_shot_and_example(self.container, config, window)
         self.add_widget_body(self.container, config, window)
         self.add_widget_footer(self.container, config, window)
 
@@ -50,7 +52,7 @@ class SystemPromptPage(QFrame, Base):
         super().showEvent(event)
         self.show_event_body(self, event) if callable(getattr(self, "show_event_body", None)) else None
 
-    # 头部
+    # 基础提示词预设选项
     def add_widget_header(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         # 定义预设配对列表（显示文本, 存储值）
         preset_pairs = [
@@ -89,8 +91,8 @@ class SystemPromptPage(QFrame, Base):
         # 构建多语言描述（保持原有翻译方式）
         info_cont1 = self.tra("通用：综合通用，花费最少，兼容各种模型，完美破限") 
         info_cont2 = self.tra("思维链：融入翻译三步法，提升思考深度，极大增加输出内容，极大增加消耗，提升文学质量，适合普通模型，完美破限")
-        info_cont3 = self.tra("推理模型：精简流程，为 DeepSeek-R1 等推理模型优化，释放推理模型的思考能力，获得最佳翻译质量")
-        info_cont4 = self.tra("自定义提示词：将使用下方填入的内容作为系统提示词")
+        info_cont3 = self.tra("推理模型：为 DeepSeek-R1 等推理模型优化，释放推理模型的思考能力，获得最佳翻译质量")
+        info_cont4 = self.tra("自定义提示词：将使用下面文本框填入的内容作为系统提示词，不支持本地接口")
 
         parent.addWidget(
             ComboBoxCard(
@@ -102,7 +104,28 @@ class SystemPromptPage(QFrame, Base):
             )
         )
 
-    # 主体
+    # 示例模块和预回复模块开关
+    def add_widget_few_shot_and_example(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+
+        def init(widget: SwitchButtonCard) -> None:
+            widget.set_checked(config.get("few_shot_and_example_switch"))
+
+        def checked_changed(widget: SwitchButtonCard, checked: bool) -> None:
+            config = self.load_config()
+            config["few_shot_and_example_switch"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("动态示例和预回复功能"),
+                self.tra("启用此功能后，将在构建整体的翻译提示词时，自动生成动态Few-shot和构建模型预回复内容，不支持本地接口"),
+                init = init,
+                checked_changed = checked_changed,
+            )
+        )
+
+
+    # 自定义提示词内容输入框
     def add_widget_body(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def update_widget(widget: QFrame) -> None:
             config = self.load_config()

@@ -310,33 +310,31 @@ class ResponseChecker():
     def detecting_remaining_original_text(self,dictA, dictB, language):
 
         # 使用复制变量，避免影响到原变量
-        dict1 = dictA.copy()
-        dict2 = dictB.copy()
+        dict_src = dictA.copy()
+        dict_dst = dictB.copy()
 
         # 考量到代码文本，不支持的语言不作检查
         if language not in ("japanese","korean","chinese_simplified","chinese_traditional"):
             return True
 
         # 避免检查单或者少行字典
-        if len(dict1) <=5 :
+        if len(dict_src) <=3 :
             return True
 
-        # 不同语言的标点符号字符集
-        punctuation_sets = re.compile(
+        # 不同语言的通用标点符号字符集
+        punctuation_pattern_sets = re.compile(
             r'['
             r'\u3000-\u303F'   # CJK符号和标点
             r'\uFF01-\uFF9F'   # 全角ASCII、半角片假名和日文标点
-            r'\u314F-\u3163'   # 韩文标点符号
-            r'\u0400-\u04FF'   # 俄语字母
             r'\u0500-\u052F'   # 俄语扩展字符（含标点）
             r']+', re.UNICODE  # 使用 + 来匹配一个或多个字符
         )
 
         # 特定的无法过滤的标点符号集
-        punctuation_list_A = ['(', ')', '・', '?', '？', '『', '』', '（', '）', '＜', '＞', '·', '～', 'ー', '@', '＠', '·', '.', '♡', '…', '。', '！', '、', '，']  
+        punctuation_list = ['(', ')', '・', '?', '？', '『', '』', '（', '）', '＜', '＞', '·', '～', 'ー', '@', '＠', '·', '.', '♡', '…', '。', '！', '、', '，']  
 
         # 定义不同语言的文本字符集对应的正则表达式
-        patterns_all = {
+        patterns_language = {
             'japanese': re.compile(
                 r'['
                 r'\u3041-\u3096'  # 平假名
@@ -361,38 +359,37 @@ class ResponseChecker():
                 r']+', re.UNICODE
             ),
         }
-        # 根据语言选择合适的正则表达式
-        pattern = patterns_all.get(language)
-        punctuation_pattern = punctuation_sets
-        if not pattern:
-            raise ValueError("Unsupported language")
 
         # 存储计数结果的字典
         count_results = 0
 
-        # 遍历字典2中的每个键值对
-        for key2, value2 in dict2.items():
-            # 检查字典1中是否有对应的键
-            if key2 in dict1:
-                # 提取字典1值中的文本
-                text1 = dict1[key2]
-                # 移除字典2值中的各种通用的标点符号
-                text2_clean1 = re.sub(punctuation_pattern, '', value2)
-                # 移除字典2值中的特定的标点符号
-                text2_clean2 = ResponseChecker.remove_punctuation(self,text2_clean1, punctuation_list_A)
-                # 提取字典2值中的指定语言的文本
-                text2 = pattern.findall(text2_clean2)
-                # 提取为空内容，则跳过
-                if text2 =='':
+        # 遍历译文字典中的每个键值对
+        for key_dst, value_dst in dict_dst.items():
+
+            # 提取译文中的指定语言的文本
+            text_lsit =  patterns_language.get(language).findall(value_dst)
+            # 提取为空内容，则跳过
+            if not text_lsit:
+                continue
+
+            # 循环处理，移除译文中的所有标点符号，并进行检查
+            for text in text_lsit:
+                # 移除标点符号
+                text = re.sub(punctuation_pattern_sets, '', text)
+                text = ResponseChecker.remove_punctuation(self,text, punctuation_list)
+
+                # 如果移除后为空，则跳过
+                if not text:
                     continue
-                # 将列表转换为字符串
-                text2_str = ''.join(text2)
-                # 如果字典2中的残留文本在字典1中的文本中出现，则计数加1
-                if text2_str and (text2_str in text1):
-                    count_results += 1
+
+                # 检查是否有原文残留
+                text_src = dict_src[key_dst]
+                if text_src and (text in text_src):
+                    count_results += 1                   
 
         # 根据出现次数判断结果
-        if  count_results >=2:
+        #print("count_results:", count_results)  # 调试输出
+        if  count_results >=1:
             return False
 
         return True

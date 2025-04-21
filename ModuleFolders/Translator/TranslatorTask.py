@@ -8,7 +8,7 @@ import rapidjson as json
 from rich import box
 from rich.table import Table
 from rich.markup import escape
-from typing import List, Tuple
+from typing import List
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
@@ -24,7 +24,6 @@ from ModuleFolders.PromptBuilder.PromptBuilderDouble import PromptBuilderDouble
 from ModuleFolders.ResponseExtractor.ResponseExtractor import ResponseExtractor
 from ModuleFolders.ResponseChecker.ResponseChecker import ResponseChecker
 from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
-from ModuleFolders.Cache.CacheManager import CacheManager
 
 from ModuleFolders.TextProcessor.TextProcessor import TextProcessor
 from PluginScripts.LanguageFilter.LanguageFilter import LanguageFilter
@@ -32,14 +31,12 @@ from PluginScripts.LanguageFilter.LanguageFilter import LanguageFilter
 
 class TranslatorTask(Base):
 
-    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager,
-                 request_limiter: RequestLimiter, cache_manager: CacheManager) -> None:
+    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager,request_limiter: RequestLimiter) -> None:
         super().__init__()
 
         self.config = config
         self.plugin_manager = plugin_manager
         self.request_limiter = request_limiter
-        self.cache_manager = cache_manager
 
         # 初始化消息存储
         self.messages = []
@@ -92,7 +89,6 @@ class TranslatorTask(Base):
 
         return patterns
 
-
     # 设置缓存数据
     def set_items(self, items: list[CacheItem]) -> None:
         self.items = items
@@ -140,12 +136,7 @@ class TranslatorTask(Base):
                 self.source_text_dict,
                 self.previous_text_list,
             )
-        elif prompt_preset in (PromptBuilderEnum.THINK,):
-            self.messages, self.system_prompt, self.extra_log = self.generate_prompt_think(
-                self.source_text_dict,
-                self.previous_text_list
-            )
-        elif prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.CUSTOM):
+        elif prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT,PromptBuilderEnum.THINK, PromptBuilderEnum.CUSTOM):
             self.messages, self.system_prompt, self.extra_log = self.generate_prompt(
                 self.source_text_dict,
                 self.previous_text_list
@@ -161,18 +152,22 @@ class TranslatorTask(Base):
             self.system_prompt_b
             )
 
-    # 生成信息结构 - 通用和思维链
+    # 生成信息结构 - 通用和思维链和推理模型(通用与推理模型与自定义使用同一提示词框架，除了系统提示词不同。思维链使用不同的框架，系统提示词也不同)
     def generate_prompt(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
         # 储存指令
         messages = []
         # 储存额外日志
         extra_log = []
 
-        # 基础提示词
-        if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:
+        # 基础系统提示词
+        if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:  # 自定义提示词
             system = self.config.system_prompt_content
+
+        elif self.config.prompt_preset == PromptBuilderEnum.THINK: # 推理模型提示词
+            system = PromptBuilderThink.build_system(self.config)
+
         else:
-            system = PromptBuilder.build_system(self.config)
+            system = PromptBuilder.build_system(self.config)  # 通用与思维链提示词
 
         # 如果开启自动构建术语表
         if self.config.auto_glossary_toggle == True:
@@ -231,23 +226,26 @@ class TranslatorTask(Base):
                 system += translation_example
                 extra_log.append(translation_example)
 
-        # 获取默认示例前置文本
-        pre_prompt = PromptBuilder.build_userExamplePrefix(self.config)
-        fol_prompt = PromptBuilder.build_modelExamplePrefix(self.config)
+        # 构建动态few-shot
+        if self.config.few_shot_and_example_switch == True:
 
-        # 获取默认示例，并构建动态few-shot
-        original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict)
-        if original_exmaple and translation_example_content:
-            messages.append({
-                "role": "user",
-                "content": f"{pre_prompt}<textarea>\n{original_exmaple}\n</textarea>"
-            })
-            messages.append({
-                "role": "assistant",
-                "content": f"{fol_prompt}<textarea>\n{translation_example_content}\n</textarea>"
-            })
-            extra_log.append(f"原文示例已添加：\n{original_exmaple}")
-            extra_log.append(f"译文示例已添加：\n{translation_example_content}")
+            # 获取默认示例前置文本
+            pre_prompt = PromptBuilder.build_userExamplePrefix(self.config)
+            fol_prompt = PromptBuilder.build_modelExamplePrefix(self.config)
+
+            # 获取具体动态示例内容
+            original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict)
+            if original_exmaple and translation_example_content:
+                messages.append({
+                    "role": "user",
+                    "content": f"{pre_prompt}<textarea>\n{original_exmaple}\n</textarea>"
+                })
+                messages.append({
+                    "role": "assistant",
+                    "content": f"{fol_prompt}<textarea>\n{translation_example_content}\n</textarea>"
+                })
+                extra_log.append(f"原文示例已添加：\n{original_exmaple}")
+                extra_log.append(f"译文示例已添加：\n{translation_example_content}")
 
         # 如果加上文，获取上文内容
         previous = ""
@@ -256,12 +254,10 @@ class TranslatorTask(Base):
             if previous != "":
                 extra_log.append(f"###上文\n{"\n".join(previous_text_list)}")
 
-        # 获取提问时的前置文本
+        # 获取用户提问时的前置文本
         pre_prompt = PromptBuilder.build_userQueryPrefix(self.config)
-        # 获取模型预输入回复前文
-        fol_prompt = PromptBuilder.build_modelResponsePrefix(self.config)
 
-        # 构建待翻译文本 (添加序号)
+        # 构建待翻译文本
         numbered_lines = []
         for index, line in enumerate(source_text_dict.values()):
             # 检查是否为多行文本
@@ -296,123 +292,12 @@ class TranslatorTask(Base):
         )
 
         # 构建模型预输入回复信息，deepseek-reasoner 不支持该模型预回复消息
-        messages.append({"role": "assistant", "content": fol_prompt})
+        if self.config.few_shot_and_example_switch == True:
+            # 获取模型预输入回复前文
+            fol_prompt = PromptBuilder.build_modelResponsePrefix(self.config)
+            # 构建模型预输入回复信息
+            messages.append({"role": "assistant", "content": fol_prompt})
 
-
-        return messages, system, extra_log
-
-    # 生成信息结构 - 思考模型
-    def generate_prompt_think(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
-        # 储存指令
-        messages = []
-        # 储存额外日志
-        extra_log = []
-
-        # 基础提示词
-        if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:
-            system = self.config.system_prompt_content
-        else:
-            system = PromptBuilderThink.build_system(self.config)
-
-        # 如果开启自动构建术语表
-        if self.config.auto_glossary_toggle == True:
-            glossary_criteria = PromptBuilder.build_glossary_extraction_criteria(self.config)
-            if glossary_criteria != "":
-                system += glossary_criteria
-                extra_log.append(glossary_criteria)
-
-        # 如果开启自动构建禁翻表
-        if self.config.auto_exclusion_list_toggle == True:
-            ntl_criteria = PromptBuilder.build_ntl_extraction_criteria(self.config)
-            if ntl_criteria != "":
-                system += ntl_criteria
-                extra_log.append(ntl_criteria)
-
-        # 如果开启术语表
-        if self.config.prompt_dictionary_switch == True:
-            result = PromptBuilder.build_glossary_prompt(self.config, source_text_dict)
-            if result != "":
-                system = system + "\n" + result
-                extra_log.append(result)
-
-        # 如果开启禁翻表
-        if self.config.exclusion_list_switch == True:
-            ntl = PromptBuilder.build_ntl_prompt(self.config, source_text_dict)
-            if ntl != "":
-                system += ntl
-                extra_log.append(ntl)
-
-
-        # 如果角色介绍开关打开
-        if self.config.characterization_switch == True:
-            characterization = PromptBuilder.build_characterization(self.config, source_text_dict)
-            if characterization:
-                system += characterization
-                extra_log.append(characterization)
-
-        # 如果启用自定义世界观设定功能
-        if self.config.world_building_switch == True:
-            world_building = PromptBuilder.build_world_building(self.config)
-            if world_building:
-                system += world_building
-                extra_log.append(world_building)
-
-        # 如果启用自定义行文措辞要求功能
-        if self.config.writing_style_switch == True:
-            writing_style = PromptBuilder.build_writing_style(self.config)
-            if writing_style:
-                system += writing_style
-                extra_log.append(writing_style)
-
-        # 如果启用翻译风格示例功能
-        if self.config.translation_example_switch == True:
-            translation_example = PromptBuilder.build_translation_example(self.config)
-            if translation_example:
-                system += translation_example
-                extra_log.append(translation_example)
-
-
-        # 如果加上文，获取上文内容
-        previous = ""
-        if self.config.pre_line_counts and previous_text_list:
-            previous = PromptBuilder.build_pre_text(self.config, previous_text_list)
-            if previous:
-                extra_log.append(f"###上文\n{"\n".join(previous_text_list)}")
-
-        # 获取提问时的前置文本
-        pre_prompt = PromptBuilder.build_userQueryPrefix(self.config)
-
-
-        # 构建待翻译文本 (添加序号)
-        numbered_lines = []
-        for index, line in enumerate(source_text_dict.values()):
-            # 检查是否为多行文本
-            if "\n" in line:
-                lines = line.split("\n")
-                numbered_text = f"{index + 1}.[\n"
-                total_lines = len(lines)
-                for sub_index, sub_line in enumerate(lines):
-                    # 仅当 **只有一个** 尾随空格时才去除
-                    sub_line = sub_line[:-1] if re.match(r'.*[^ ] $', sub_line) else sub_line
-                    numbered_text += f'"{index + 1}.{total_lines - sub_index}.,{sub_line}",\n'
-                numbered_text = numbered_text.rstrip('\n')
-                numbered_text = numbered_text.rstrip(',')
-                numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
-                numbered_lines.append(numbered_text)
-            else:
-                # 单行文本直接添加序号
-                numbered_lines.append(f"{index + 1}.{line}")
-
-        source_text_str = "\n".join(numbered_lines)
-        source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text_str}\n</textarea>"
-
-        # 构建用户提问信息
-        messages.append(
-            {
-                "role": "user",
-                "content": source_text_str,
-            }
-        )
 
         return messages, system, extra_log
 
@@ -660,8 +545,16 @@ class TranslatorTask(Base):
 
         # 原文译文对比
         pair = ""
-        for source, translated in itertools.zip_longest(source, translated, fillvalue = ""):
-            pair = pair + "\n" + f"{source} [bright_blue]-->[/] {translated}"
+        # 修复变量名冲突问题，将循环变量改为 s 和 t
+        for idx, (s, t) in enumerate(itertools.zip_longest(source, translated, fillvalue=""), 1):
+            pair += f"\n--- Pair {idx} ---\n"
+            # 处理原文和译文的换行，分割成多行
+            s_lines = s.split('\n') if s is not None else ['']
+            t_lines = t.split('\n') if t is not None else ['']
+            # 逐行对比，确保对齐
+            for s_line, t_line in itertools.zip_longest(s_lines, t_lines, fillvalue=""):
+                pair += f"{s_line} [bright_blue]-->[/] {t_line}\n"
+        
         rows.append(pair.strip())
 
         return rows, error == ""
