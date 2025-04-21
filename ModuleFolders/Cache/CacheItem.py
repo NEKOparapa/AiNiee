@@ -27,6 +27,8 @@ class CacheItem():
         self.file_name: str = ""
         self.storage_path: str = ""
         self.file_project_type: str = ""
+        # 当前行的语言代码
+        self.lang_code = ["", 0.0]  # 格式: [语言代码, 置信度]
 
         # 初始化
         for k, v in args.items():
@@ -144,6 +146,26 @@ class CacheItem():
     def set_file_project_type(self, file_project_type) -> None:
         with self.lock:
             self.file_project_type = file_project_type
+
+    # 设置当前项的语言及置信度
+    def get_lang_code(self) -> str:
+        """获取语言代码"""
+        with self.lock:
+            if isinstance(self.lang_code, list) and len(self.lang_code) > 0:
+                return self.lang_code[0]
+            return "" if not isinstance(self.lang_code, str) else self.lang_code
+
+    def get_lang_confidence(self) -> float:
+        """获取语言置信度"""
+        with self.lock:
+            if isinstance(self.lang_code, list) and len(self.lang_code) > 1:
+                return float(self.lang_code[1])
+            return 0.0
+
+    def set_lang_code_with_confidence(self, lang_code: str, confidence: float = 0.0) -> None:
+        """设置语言代码和置信度"""
+        with self.lock:
+            self.lang_code = [lang_code, confidence]
 
     # 获取 Token 数量
     def get_token_count(self) -> int:

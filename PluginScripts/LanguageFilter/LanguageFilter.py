@@ -87,51 +87,211 @@ class LanguageFilter(PluginBase):
 
         self.add_event("text_filter", PluginBase.PRIORITY.NORMAL)
 
-    def on_event(self, event: str, config: TranslatorConfig, data: list[dict]) -> None:
-        # 检查数据有效性
-        if not isinstance(data, list) or len(data) < 2:
-            return
-
-        # 初始化
-        items = data[1:]
-        project = data[0]
-
-        if event == "text_filter":
-            self.on_text_filter(event, config, data, items, project)
-
-    # 文本后处理事件
-    def on_text_filter(self, event: str, config: TranslatorConfig, data: list[dict], items: list[dict], project: dict) -> None:
+    def on_text_filter(self, event: str, config: TranslatorConfig, data: list[dict], items: list[dict],
+                       project: dict) -> None:
         print("")
         print("[LanguageFilter] 开始执行预处理 ...")
         print("")
 
-        # 根据目标语言设置对应的筛选函数
-        has_any = None
-        if config.source_language in ("chinese_simplified", "chinese_traditional"):
-            has_any = self.has_any_cjk
-        elif config.source_language in ("english", "spanish", "french", "german"):
-            has_any = self.has_any_latin
-        elif config.source_language == "korean":
-            has_any = self.has_any_korean
-        elif config.source_language == "russian":
-            has_any = self.has_any_russian
-        elif config.source_language == "japanese":
-            has_any = self.has_any_japanese
+        target = []  # 存储需要排除的条目
 
-        # 筛选出无效条目并标记为已排除
-        target = []
-        if has_any is not None:
-            target = [
-                v for v in items
-                if not isinstance(v.get("source_text", ""), str) or not has_any(v.get("source_text", ""))
-            ]
-            for item in tqdm(target):
-                item["translation_status"] = CacheItem.STATUS.EXCLUED
+        # 自动检测语言模式
+        if config.source_language == "auto":
+            print("[LanguageFilter] 使用自动检测语言模式...")
+
+            # 获取项目中存储的语言信息
+            file_props = project.get("file_props", {})
+
+            # 按文件路径分组
+            items_by_path = {}
+            for item in items:
+                path = str(item.get("storage_path", ""))
+                if path not in items_by_path:
+                    items_by_path[path] = []
+                items_by_path[path].append(item)
+
+            # 计算项目中出现次数最多的语言
+            most_common_language = self.get_most_common_language(file_props)
+            print(f"[LanguageFilter] 项目中出现次数最多的语言: {most_common_language}")
+
+            # 处理每个文件中的条目
+            for path, file_items in items_by_path.items():
+                # 获取当前文件检测到的语言统计信息
+                language_stats = []
+                if path in file_props and "language_stats" in file_props[path]:
+                    language_stats = file_props[path]["language_stats"]
+
+                # 如果没有检测到语言或语言未知，使用项目中最常见的语言
+                if not language_stats or language_stats[0][0] == 'un':
+                    print(f"[LanguageFilter] 警告：文件 {path} 没有检测到语言信息，使用项目主要语言 {most_common_language}")
+                    first_language = most_common_language
+                    second_language = None
+                else:
+                    # 获取检测到的第一个语言
+                    first_language = language_stats[0][0]
+                    # 检测到的第二个语言（如果有的话）
+                    second_language = language_stats[1][0] if len(language_stats) > 1 else None
+
+                # 决定使用哪种语言进行过滤
+                filter_language = first_language
+
+                # 如果第一个检测到的语言与目标语言相同
+                if self.map_language_code_to_name(first_language) == config.target_language:
+                    if second_language:
+                        # 如果有第二个语言，我们需要保留包含第二语言的文本
+                        filter_language = second_language
+                        print(
+                            f"[LanguageFilter] 文件 {path} 检测到的第一语言 {first_language} 与目标语言相同，"
+                            f"使用第二语言 {second_language} 过滤"
+                        )
+                    else:
+                        # 如果没有第二个语言，文件主要是目标语言
+                        # 我们需要反转过滤逻辑，使用相反的条件：保留那些不符合目标语言特征的文本
+                        print(
+                            f"[LanguageFilter] 文件 {path} 只检测到与目标语言相同的语言 {first_language}，"
+                            f"将只翻译不符合该语言特征的文本"
+                        )
+
+                        # 这种情况需要特殊处理，标记所有文本为排除，除非它不包含目标语言的字符
+                        has_any = self.get_filter_function(first_language)
+                        if has_any is not None:
+                            # 找出那些包含目标语言字符的文本，将它们标记为排除
+                            for item in file_items:
+                                text = item.get("source_text", "")
+                                if isinstance(text, str) and has_any(text):
+                                    target.append(item)
+
+                        # 跳过后续处理，因为我们已经直接处理了所有条目
+                        continue
+                else:
+                    # 检测到的语言与目标语言不同，使用检测到的第一语言
+                    print(f"[LanguageFilter] 文件 {path} 使用检测到的语言 {filter_language} 过滤")
+
+                # 设置过滤函数
+                has_any = self.get_filter_function(filter_language)
+
+                if has_any is not None:
+                    # 筛选出无效条目
+                    filtered_items = [
+                        item for item in file_items
+                        if not isinstance(item.get("source_text", ""), str) or not has_any(item.get("source_text", ""))
+                    ]
+
+                    target.extend(filtered_items)
+        else:
+            # 原有的非自动检测模式
+            has_any = None
+            if config.source_language in ("chinese_simplified", "chinese_traditional"):
+                has_any = self.has_any_cjk
+            elif config.source_language in ("english", "spanish", "french", "german"):
+                has_any = self.has_any_latin
+            elif config.source_language == "korean":
+                has_any = self.has_any_korean
+            elif config.source_language == "russian":
+                has_any = self.has_any_russian
+            elif config.source_language == "japanese":
+                has_any = self.has_any_japanese
+
+            # 筛选出无效条目并标记为已排除
+            if has_any is not None:
+                target = [
+                    v for v in items
+                    if not isinstance(v.get("source_text", ""), str) or not has_any(v.get("source_text", ""))
+                ]
+
+        for item in tqdm(target):
+            item["translation_status"] = CacheItem.STATUS.EXCLUED
 
         # 输出结果
         print("")
         print(f"[LanguageFilter] 语言过滤已完成，共过滤 {len(target)} 个不包含目标语言的条目 ...")
         print("")
+
+    def get_most_common_language(self, file_props: dict) -> str:
+        """
+        计算项目中出现次数最多的语言
+
+        Args:
+            file_props: 项目中所有文件的属性字典
+
+        Returns:
+            出现次数最多的语言代码
+        """
+        # 语言计数字典
+        language_counts = {}
+
+        # 遍历所有文件的语言统计信息
+        for path, props in file_props.items():
+            if "language_stats" in props and props["language_stats"]:
+                for lang_stat in props["language_stats"]:
+                    if len(lang_stat) >= 2 and lang_stat[0] != 'un':  # 跳过未知语言
+                        lang_code = lang_stat[0]
+                        count = lang_stat[1] if len(lang_stat) > 1 else 1
+
+                        if lang_code in language_counts:
+                            language_counts[lang_code] += count
+                        else:
+                            language_counts[lang_code] = count
+
+        # 如果没有找到任何语言，返回英语作为默认值
+        if not language_counts:
+            return "en"
+
+        # 找出出现次数最多的语言
+        most_common_lang = max(language_counts.items(), key=lambda x: x[1])[0]
+
+        return most_common_lang
+
+    def get_filter_function(self, language_code: str):
+        """根据语言代码获取相应的语言过滤函数"""
+        # 语言代码到过滤函数的映射
+        code_to_function = {
+            # 中文
+            'zh': self.has_any_cjk,
+            'zh-cn': self.has_any_cjk,
+            'zh-tw': self.has_any_cjk,
+            'yue': self.has_any_cjk,
+            # 英语和拉丁语系
+            'en': self.has_any_latin,
+            'es': self.has_any_latin,
+            'fr': self.has_any_latin,
+            'de': self.has_any_latin,
+            # 韩语
+            'ko': self.has_any_korean,
+            # 俄语
+            'ru': self.has_any_russian,
+            # 日语
+            'ja': self.has_any_japanese
+        }
+
+        # 尝试直接匹配
+        if language_code in code_to_function:
+            return code_to_function[language_code]
+
+        # 尝试匹配前两个字符
+        if language_code and language_code[:2] in code_to_function:
+            return code_to_function[language_code[:2]]
+
+        # 未知语言默认使用拉丁文过滤函数
+        print(f"[LanguageFilter] 警告：未知的语言代码 {language_code}，使用默认的拉丁文过滤函数")
+        return self.has_any_latin
+
+    def map_language_code_to_name(self, language_code: str) -> str:
+        """将语言代码映射到语言名称"""
+        mapping = {
+            "zh": "chinese_simplified",
+            "zh-cn": "chinese_simplified",
+            "zh-tw": "chinese_traditional",
+            "yue": "chinese_traditional",
+            "en": "english",
+            "es": "spanish",
+            "fr": "french",
+            "de": "german",
+            "ko": "korean",
+            "ru": "russian",
+            "ja": "japanese"
+        }
+        return mapping.get(language_code, language_code)
 
     # 判断字符是否为汉字（中文）字符
     def is_cjk(self, char: str) -> bool:

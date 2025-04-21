@@ -27,6 +27,8 @@ from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Cache.CacheManager import CacheManager
 
 from ModuleFolders.TextProcessor.TextProcessor import TextProcessor
+from PluginScripts.LanguageFilter.LanguageFilter import LanguageFilter
+
 
 class TranslatorTask(Base):
 
@@ -116,6 +118,12 @@ class TranslatorTask(Base):
 
         # 各种替换步骤，译前替换，提取首尾与占位中间代码
         self.source_text_dict, self.prefix_codes, self.suffix_codes,self.placeholder_order,self.affix_whitespace_storage = TextProcessor.replace_all(self, self.config, self.source_text_dict,self.code_pattern_list)
+
+        # 获取items（chunk）中的文件对应的语言类型
+        storage_path = self.items[0].get_storage_path()
+        # 获取项目配置的目标翻译语言
+        target_lang = self.config.target_language
+        first_source_lang = self.cache_manager.project.get_file_language_stats(storage_path)[0][0]
 
         # 生成请求指令
         if self.config.double_request_switch_settings == True:

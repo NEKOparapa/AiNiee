@@ -1,14 +1,36 @@
 import os
 import pathlib
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict, Union
 
 import chardet
+from fast_langdetect import LangDetectConfig, LangDetector
 
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheProject import CacheProject
+
+# 单例实现
+_LANG_DETECTOR_INSTANCE = None
+
+
+def get_lang_detector():
+    """获取语言检测器的全局单例实例"""
+    global _LANG_DETECTOR_INSTANCE
+    if _LANG_DETECTOR_INSTANCE is None:
+        config = LangDetectConfig(cache_dir="../../Resource/Models/fast-langdetect")
+        _LANG_DETECTOR_INSTANCE = LangDetector(config)
+    return _LANG_DETECTOR_INSTANCE
+
+
+def is_symbols_only(text: str):
+    cleaned_text = text.strip()
+    if not cleaned_text:  # 检查是否为空字符串
+        return False
+    # 检查每个字符是否都不是字母数字
+    return all(not c.isalnum() for c in cleaned_text)
 
 
 @dataclass
@@ -23,6 +45,7 @@ class ReaderInitParams(TypedDict):
 
 class BaseSourceReader(ABC):
     """Reader基类，在其生命周期内可以输入多个文件"""
+
     def __init__(self, input_config: InputConfig) -> None:
         self.input_config = input_config
 
@@ -92,6 +115,17 @@ def text_to_cache_item(source_text, translated_text: str = None):
         translated_text = source_text
     item.set_translated_text(translated_text)
     item.set_translation_status(CacheItem.STATUS.UNTRANSLATED)
+    # 设置语言检测结果与置信度
+    cleaned_text = re.sub(r'\s+', ' ', source_text.strip())
+    if is_symbols_only(cleaned_text):
+        lang = 'symbols_only'
+        score = 1.0
+    else:
+        # 将检测长度限制在100个字符内，抑制警告`fast-langdetect`
+        lang_result = get_lang_detector().detect(cleaned_text[:100], low_memory=True)
+        lang = lang_result.get('lang')
+        score = lang_result.get('score')
+    item.set_lang_code_with_confidence(lang, score)
     return item
 
 

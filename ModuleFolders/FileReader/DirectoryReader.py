@@ -1,10 +1,12 @@
 import fnmatch
+import json
 import pathlib
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Callable, Union
 
 import chardet
+import charset_normalizer
 import rich
 from magika.types import OverwriteReason
 
@@ -40,31 +42,45 @@ def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: fl
     if isinstance(file_path, str):
         file_path = pathlib.Path(file_path)
 
-    # 使用Magika检测文件类型
-    result = get_magika().identify_path(file_path)
-    non_text = not result.output.is_text
-    is_low_confidence = result.prediction.overwrite_reason == OverwriteReason.LOW_CONFIDENCE
+    try:
+        # 使用Magika检测文件类型
+        result = get_magika().identify_path(file_path)
+        non_text = not result.output.is_text
+        is_low_confidence = result.prediction.overwrite_reason == OverwriteReason.LOW_CONFIDENCE
 
-    # 如果文件为非文本类型且没有触发`is_low_confidence`条件。则返回non_text/xxx
-    # 否则继续使用chardet检查编码
-    if non_text and not is_low_confidence:
-        # 非文本文件，返回non_text前缀加上检测到的标签
-        return f"non_text/{result.output.label}"
+        # 如果文件为非文本类型且没有触发`is_low_confidence`条件。则返回non_text/xxx
+        if non_text and not is_low_confidence:
+            # 非文本文件，返回non_text前缀加上检测到的标签
+            return f"non_text/{result.output.label}"
 
-    # 读取文件内容
-    with open(file_path, 'rb') as f:
-        content_bytes = f.read()
+        cn_result = charset_normalizer.from_path(file_path).best()
 
-    # 文件是文本类型，使用chardet检测编码
-    detection_result = chardet.detect(content_bytes)
-    detected_encoding = detection_result['encoding']
-    confidence = detection_result['confidence']
+        # 如果`charset_normalizer`有检测到结果，直接使用结果
+        if cn_result:
+            detected_encoding = cn_result.encoding
+            confidence = 1.0
+        else:
+            # 如果没有检测到结果，回退到使用`chardet`
+            rich.print(f"[[red]WARNING[/]] 文件 {file_path} 使用`charset_normalizer`检测失败，回退到`chardet`")
 
-    # 如果没有检测到编码或置信度低于阈值，返回默认编码'utf-8'
-    if not detected_encoding or confidence < min_confidence:
-        return 'utf-8'
+            # 读取文件内容
+            with open(file_path, 'rb') as f:
+                content_bytes = f.read()
 
-    return detected_encoding
+            # 文件是文本类型，使用chardet检测编码
+            detection_result = chardet.detect(content_bytes)
+            detected_encoding = detection_result['encoding']
+            confidence = detection_result['confidence']
+
+        # 如果没有检测到编码或置信度低于阈值，返回默认编码'utf-8'
+        if not detected_encoding or confidence < min_confidence:
+            return 'utf-8'
+
+        return detected_encoding
+
+    except Exception as e:
+        print(f"[[red]ERROR[/]] 文件 {file_path} 检测过程出错: {str(e)}")
+        return 'utf-8'  # 出错时返回默认编码
 
 
 class DirectoryReader:
@@ -104,7 +120,11 @@ class DirectoryReader:
         cache_project = CacheProject({})  # 项目头信息
         text_index = 1  # 文本索引
         items = []  # 文本对信息
-        encoding_counter = Counter()  # 用于统计编码出现次数
+
+        # 语言统计：{file_path: {lang_code: (count, total_confidence)}}
+        language_stats = defaultdict(lambda: defaultdict(lambda: [0, 0.0]))
+        # 每个文件的有效项目总数（排除symbols_only）
+        file_valid_items_count = defaultdict(int)
 
         file_project_types = set()
         with self.create_reader() as reader:
@@ -119,56 +139,74 @@ class DirectoryReader:
                         # 猜测的文件编码
                         detected_encoding = detect_file_encoding(file_path)
 
-                        # 统计编码出现次数
-                        if not detected_encoding.startswith('non_text'):
-                            encoding_counter[detected_encoding] += 1
-
                         # 确定要使用的编码
-                        # 如果 `detect_file_encoding` 返回的是 `non_text` 开头（非纯文本）
-                        # 则默认将传给 `read_source_file` 的编码设置为 `utf-8`
                         encoding_to_use = "utf-8" if detected_encoding.startswith("non_text") else detected_encoding
 
+                        relative_path = str(file_path.relative_to(source_directory))
+
+                        # 保存文件编码信息
+                        cache_project.set_file_original_encoding(relative_path, encoding_to_use)
+
                         # 使用检测到的编码读取文件内容
-                        # 读取单个文件的文本信息，并添加其他信息
                         for item in reader.read_source_file(file_path, encoding_to_use):
                             item.set_text_index(text_index)
                             item.set_model('none')
-                            item.set_storage_path(str(file_path.relative_to(source_directory)))
+                            item.set_storage_path(relative_path)
                             item.set_file_name(file_path.name)
                             item.set_file_project_type(reader.get_file_project_type(file_path))
                             items.append(item)
+
+                            lang_code = item.get_lang_code()
+
+                            # 只统计非symbols_only的语言
+                            if lang_code != "symbols_only":
+                                lang_confidence = item.get_lang_confidence()
+                                # 更新语言统计：[计数, 累计置信度]
+                                stats = language_stats[relative_path][lang_code]
+                                stats[0] += 1  # 增加计数
+                                stats[1] += lang_confidence  # 累加置信度
+
+                                # 累计有效项目总数
+                                file_valid_items_count[relative_path] += 1
+
                             text_index += 1
                             file_project_types.add(reader.get_file_project_type(file_path))
 
-        # 设置目录下包含的文件项目类型，用于快速判断
-        cache_project.set_file_project_types(list(file_project_types))
+            # 设置目录下包含的文件项目类型，用于快速判断
+            cache_project.set_file_project_types(list(file_project_types))
 
-        # 设置项目的默认编码为最常见的编码
-        if encoding_counter:
-            # 获取所有编码及其文件数量，从多到少排序
-            all_encodings = encoding_counter.most_common()
-            total_files = sum(encoding_counter.values())
+            # 处理语言统计结果
+            language_counter = {}
+            for file_path, lang_stats in language_stats.items():
+                # 只有存在有效项目的文件才进行处理
+                if file_valid_items_count[file_path] > 0:
+                    threshold = file_valid_items_count[file_path] * 0.2  # 有效项目总数的20%
 
-            # 打印编码统计信息
-            rich.print("\n[[green]INFO[/]] 编码统计情况:")
-            print("-" * 40)
-            print(f"{'编码':<15} | {'文件数量':<10} | {'比例':<10}")
-            print("-" * 40)
+                    # 计算平均置信度并筛选
+                    filtered_langs = []
+                    for lang, (count, total_confidence) in lang_stats.items():
+                        avg_confidence = total_confidence / count
 
-            for encoding, count in all_encodings:
-                percentage = (count / total_files) * 100
-                print(f"{encoding:<15} | {count:<10} | {percentage:.2f}%")
+                        # 应用筛选条件：次数超过阈值且平均置信度>=0.6
+                        if count >= threshold and avg_confidence >= 0.6:
+                            filtered_langs.append((lang, count, avg_confidence))
 
-            # 设置最常见的编码为项目默认编码
-            most_common_encoding = all_encodings[0][0]
-            print("-" * 40)
-            rich.print(
-                f"[[green]INFO[/]] 项目默认编码设置为: {most_common_encoding} (共 {all_encodings[0][1]} 个文件, "
-                f"占比 {(all_encodings[0][1] / total_files) * 100:.2f}%)"
-            )
+                    # 按出现次数降序排序，相同次数按语言代码排序
+                    if filtered_langs:
+                        sorted_langs = sorted(filtered_langs, key=lambda x: (-x[1], x[0]))
+                        language_counter[file_path] = sorted_langs
 
-            cache_project.set_file_encoding(most_common_encoding)
-        else:
-            rich.print("[[red]WARNING[/]] 未检测到任何文件编码信息")
+            # 处理未出现在language_counter中的文件
+            valid_file_paths = set(file_valid_items_count.keys())
+            files_in_counter = set(language_counter.keys())
+            missing_files = valid_file_paths - files_in_counter
 
-        return cache_project, items
+            # 为未统计到有效语言的文件添加默认值
+            for file_path in missing_files:
+                # un表示未知语言
+                language_counter[file_path] = [('un', 0, -1.0)]
+
+            # 保存（过滤后的）每个文件对应的语言信息
+            cache_project.set_file_language_counter(language_counter)
+
+            return cache_project, items

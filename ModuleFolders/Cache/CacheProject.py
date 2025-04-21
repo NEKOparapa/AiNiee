@@ -14,6 +14,9 @@ class CacheProject():
         self.line_ending: str = ""  # 默认为空表示无特定reader编码需求
         # 用于保存文件实际项目类型，用于插件的判断
         self.file_project_types = []
+        # 用于保存每个文件的原始编码与检测到的语言行与置信度
+        # key为文件路径，value为对应的属性dict
+        self.file_props = {}
 
         # 初始化
         for k, v in args.items():
@@ -103,3 +106,39 @@ class CacheProject():
     def set_file_project_types(self, file_project_types: frozenset) -> None:
         with self.lock:
             self.file_project_types = file_project_types
+
+    # 设置文件的原始编码
+    def set_file_original_encoding(self, file_path: str, encoding: str) -> None:
+        with self.lock:
+            if file_path not in self.file_props:
+                self.file_props[file_path] = {}
+            self.file_props[file_path]['original_encoding'] = encoding
+
+    # 获取文件的原始编码
+    def get_file_original_encoding(self, file_path: str) -> str:
+        with self.lock:
+            if file_path in self.file_props and 'original_encoding' in self.file_props[file_path]:
+                return self.file_props[file_path]['original_encoding']
+            return ""
+
+    # 设置文件的语言计数器
+    def set_file_language_counter(self, language_counter: dict) -> None:
+        """
+        设置检测到的语言次数与对应的平均置信度
+
+        Args:
+            language_counter: 文件语言计数信息，格式为 {文件路径: [[语言, 次数, 置信度], ...]}
+                             例如: {"ManualTransFile.json": [["ja", 14614, 0.9390868317395493]]}
+        """
+        with self.lock:
+            for file_path, stats in language_counter.items():
+                if file_path not in self.file_props:
+                    self.file_props[file_path] = {}
+                self.file_props[file_path]['language_stats'] = stats
+
+    # 获取文件的语言统计信息
+    def get_file_language_stats(self, file_path: str) -> list:
+        with self.lock:
+            if file_path in self.file_props and 'language_stats' in self.file_props[file_path]:
+                return self.file_props[file_path]['language_stats']
+            return []
