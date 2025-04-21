@@ -142,6 +142,18 @@ class Translator(Base):
         # 配置请求限制器
         self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
 
+        # 如果开启自动设置输出文件夹功能，设置为输入文件夹的平级目录
+        if self.config.auto_set_output_path == True:
+            abs_input_path = os.path.abspath(self.config.label_input_path)
+            parent_dir = os.path.dirname(abs_input_path)
+            output_folder_name = "AiNieeOutput"
+            self.config.label_output_path = os.path.join(parent_dir, output_folder_name)
+
+           # 保存新配置
+            config = self.load_config()
+            config["label_output_path"] = self.config.label_output_path
+            self.save_config(config)
+
 
         # 读取输入文件夹的文件，生成缓存
         try:
@@ -323,14 +335,6 @@ class Translator(Base):
             self.print("")
             self.info(f"已启动自动简繁转换功能，正在使用 {self.config.opencc_preset} 配置进行字形转换 ...")
             self.print("")
-
-        # 如果开启自动设置输出文件夹功能，设置为输入文件夹的平级目录，比如输入文件夹为D:/Test/Input，输出文件夹将设置为D:/Test/AiNiee_Output
-        # 并考虑到./input与其他平台的路径分隔符问题
-        if self.config.auto_set_output_path == True:
-            abs_input_path = os.path.abspath(self.config.label_input_path)
-            parent_dir = os.path.dirname(abs_input_path)
-            output_folder_name = "AiNieeOutput"
-            self.config.label_output_path = os.path.join(parent_dir, output_folder_name)
 
         # 写入文件
         self.file_writer.output_translated_content(
