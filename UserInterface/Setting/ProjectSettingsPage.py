@@ -82,8 +82,8 @@ class ProjectSettingsPage_A(QFrame, Base):
         self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
         # 添加控件
-        self.add_widget_test(self.container, config)
-        self.add_widget_01(self.container, config)
+        self.add_widget_folder_drop(self.container, config)
+        self.add_widget_api(self.container, config)
 
         # 填充
         self.container.addStretch(1)
@@ -117,7 +117,7 @@ class ProjectSettingsPage_A(QFrame, Base):
 
 
     # 输入文件夹
-    def add_widget_test(self, parent: QLayout, config: dict) -> None:
+    def add_widget_folder_drop(self, parent: QLayout, config: dict) -> None:
 
         def widget_callback(widget: FolderDropCard, path: str) -> None:
             # path 参数直接由信号提供
@@ -151,7 +151,7 @@ class ProjectSettingsPage_A(QFrame, Base):
 
 
     # 模型类型
-    def add_widget_01(self, parent, config) -> None:
+    def add_widget_api(self, parent, config) -> None:
 
         def update_widget(widget) -> None:
             config = self.load_config()
@@ -170,7 +170,7 @@ class ProjectSettingsPage_A(QFrame, Base):
 
         parent.addWidget(
             ComboBoxCard(
-                self.tra("接口名称"),
+                self.tra("接口平台"),
                 self.tra("设置当前翻译项目所使用的接口的名称，注意，选择错误将不能进行翻译"),
                 [],
                 init = init,
