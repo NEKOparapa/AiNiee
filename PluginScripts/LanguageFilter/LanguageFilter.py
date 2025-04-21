@@ -240,7 +240,11 @@ class LanguageFilter(PluginBase):
 
             # 计算项目中出现次数最多的语言
             most_common_language = get_most_common_language(file_props)
-            print(f"[LanguageFilter] 项目中出现次数最多的语言: {most_common_language}")
+            # 获取可读更强的名称
+            en_source_lang, source_language, _, _ = get_language_display_names(most_common_language, 'chinese_simplified')
+            print(f"[LanguageFilter] 项目中出现次数最多语言: "
+                  f"{most_common_language} - {en_source_lang}/{source_language}")
+            print("")
 
             # 处理每个文件中的条目
             for path, file_items in items_by_path.items():
@@ -291,9 +295,9 @@ class LanguageFilter(PluginBase):
 
                         # 跳过后续处理，因为我们已经直接处理了所有条目
                         continue
-                else:
-                    # 检测到的语言与目标语言不同，使用检测到的第一语言
-                    print(f"[LanguageFilter] 文件 {path} 使用检测到的语言 {filter_language} 过滤")
+                # else:
+                #     # 检测到的语言与目标语言不同，使用检测到的第一语言
+                #     print(f"[LanguageFilter] 文件 {path} 使用检测到的语言 {filter_language} 过滤")
 
                 # 设置过滤函数
                 has_any = self.get_filter_function(filter_language)

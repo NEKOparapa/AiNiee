@@ -40,8 +40,6 @@ def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: fl
             confidence = 1.0
         else:
             # 如果没有检测到结果，回退到使用`chardet`
-            rich.print(f"[[red]WARNING[/]] 文件 {file_path} 使用`charset_normalizer`检测失败，回退到使用`chardet`检测")
-
             # 读取文件内容
             with open(file_path, 'rb') as f:
                 content_bytes = f.read()
@@ -50,6 +48,8 @@ def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: fl
             detection_result = chardet.detect(content_bytes)
             detected_encoding = detection_result['encoding']
             confidence = detection_result['confidence']
+
+            rich.print(f"[[red]WARNING[/]] 文件 {file_path} 编码检测失败，回退到使用`chardet`检测: {detected_encoding} - {confidence}")
 
         # 如果没有检测到编码或置信度低于阈值，返回默认编码'utf-8'
         if not detected_encoding or confidence < min_confidence:
