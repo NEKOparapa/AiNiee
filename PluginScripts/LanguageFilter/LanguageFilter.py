@@ -242,7 +242,7 @@ class LanguageFilter(PluginBase):
             most_common_language = get_most_common_language(file_props)
             # 获取可读更强的名称
             en_source_lang, source_language, _, _ = get_language_display_names(most_common_language, 'chinese_simplified')
-            print(f"[LanguageFilter] 项目中出现次数最多语言: "
+            print(f"[LanguageFilter] 项目主要语言: "
                   f"{most_common_language} - {en_source_lang}/{source_language}")
             print("")
 
@@ -255,7 +255,7 @@ class LanguageFilter(PluginBase):
 
                 # 如果没有检测到语言或语言未知，使用项目中最常见的语言
                 if not language_stats or language_stats[0][0] == 'un':
-                    print(f"[LanguageFilter] 警告：文件 {path} 没有检测到语言信息，使用项目主要语言 {most_common_language}")
+                    print(f"[[red]WARNING[/]] [LanguageFilter] 文件 {path} 没有检测到语言信息，使用项目主要语言 {most_common_language}")
                     first_language = most_common_language
                     second_language = None
                 else:
@@ -285,7 +285,7 @@ class LanguageFilter(PluginBase):
                         )
 
                         # 这种情况需要特殊处理，标记所有文本为排除，除非它不包含目标语言的字符
-                        has_any = self.get_filter_function(first_language)
+                        has_any = self.get_filter_function(first_language, path)
                         if has_any is not None:
                             # 找出那些包含目标语言字符的文本，将它们标记为排除
                             for item in file_items:
@@ -300,7 +300,7 @@ class LanguageFilter(PluginBase):
                 #     print(f"[LanguageFilter] 文件 {path} 使用检测到的语言 {filter_language} 过滤")
 
                 # 设置过滤函数
-                has_any = self.get_filter_function(filter_language)
+                has_any = self.get_filter_function(filter_language, path)
 
                 if has_any is not None:
                     # 筛选出无效条目
@@ -339,7 +339,7 @@ class LanguageFilter(PluginBase):
         print(f"[LanguageFilter] 语言过滤已完成，共过滤 {len(target)} 个不包含目标语言的条目 ...")
         print("")
 
-    def get_filter_function(self, language_code: str):
+    def get_filter_function(self, language_code: str, path: str):
         """根据语言代码获取相应的语言过滤函数"""
         # 语言代码到过滤函数的映射
         code_to_function = {
@@ -370,7 +370,7 @@ class LanguageFilter(PluginBase):
             return code_to_function[language_code[:2]]
 
         # 未知语言默认使用拉丁文过滤函数
-        print(f"[LanguageFilter] 警告：未知的语言代码 {language_code}，使用默认的拉丁文过滤函数")
+        print(f"[[red]WARNING[/]] [LanguageFilter] 文件 {path} 未知的语言代码 {language_code}，使用默认的拉丁文过滤函数")
         return self.has_any_latin
 
     # 判断字符是否为汉字（中文）字符
