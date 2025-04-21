@@ -1,9 +1,88 @@
+import langcodes
 from tqdm import tqdm
 from rich import print
 
 from PluginScripts.PluginBase import PluginBase
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
+
+
+pair_en = {
+    "japanese": "Japanese",
+    "english": "English",
+    "korean": "Korean",
+    "russian": "Russian",
+    "chinese_simplified": "Simplified Chinese",
+    "chinese_traditional": "Traditional Chinese",
+    "french": "French",
+    "german": "German",
+    "spanish": "Spanish",
+}
+
+pair = {
+    "japanese": "日语",
+    "english": "英语",
+    "korean": "韩语",
+    "russian": "俄语",
+    "chinese_simplified": "简体中文",
+    "chinese_traditional": "繁体中文",
+    "french": "法语",
+    "german": "德语",
+    "spanish": "西班牙语",
+}
+
+
+def map_language_code_to_name(language_code: str) -> str:
+    """将语言代码映射到语言名称"""
+    mapping = {
+        "zh": "chinese_simplified",
+        "zh-cn": "chinese_simplified",
+        "zh-tw": "chinese_traditional",
+        "yue": "chinese_traditional",
+        "en": "english",
+        "es": "spanish",
+        "fr": "french",
+        "de": "german",
+        "ko": "korean",
+        "ru": "russian",
+        "ja": "japanese"
+    }
+    return mapping.get(language_code, language_code)
+
+
+def get_language_display_names(source_lang, target_lang):
+    """
+    获取源语言和目标语言的显示名称
+
+    Args:
+        source_lang: 源语言代码
+        target_lang: 目标语言代码
+
+    Returns:
+        tuple: ((英文源语言名, 中文源语言名), (英文目标语言名, 中文目标语言名))
+    """
+    # 处理源语言
+    langcodes_lang = langcodes.Language.get(source_lang)
+    if langcodes_lang:
+        en_source_lang = langcodes_lang.display_name()
+        source_language = langcodes_lang.display_name('zh-Hans')
+    else:
+        # 处理特殊情况
+        if source_lang == 'un':
+            en_source_lang = 'UnspecifiedLanguage'
+            source_language = '未指定的语言'
+        elif source_lang == 'auto':
+            en_source_lang = 'Auto Detect'
+            source_language = '自动检测'
+        else:
+            en_source_lang = pair_en[source_lang]
+            source_language = pair[source_lang]
+
+    # 处理目标语言
+    en_target_language = pair_en[target_lang]
+    target_language = pair[target_lang]
+
+    return en_source_lang, source_language, en_target_language, target_language
 
 class LanguageFilter(PluginBase):
 
@@ -87,8 +166,20 @@ class LanguageFilter(PluginBase):
 
         self.add_event("text_filter", PluginBase.PRIORITY.NORMAL)
 
-    def on_text_filter(self, event: str, config: TranslatorConfig, data: list[dict], items: list[dict],
-                       project: dict) -> None:
+    def on_event(self, event: str, config: TranslatorConfig, data: list[dict]) -> None:
+        # 检查数据有效性
+        if not isinstance(data, list) or len(data) < 2:
+            return
+
+        # 初始化
+        items = data[1:]
+        project = data[0]
+
+        if event == "text_filter":
+            self.on_text_filter(event, config, data, items, project)
+
+    # 文本后处理事件
+    def on_text_filter(self, event: str, config: TranslatorConfig, data: list[dict], items: list[dict], project: dict) -> None:
         print("")
         print("[LanguageFilter] 开始执行预处理 ...")
         print("")
@@ -136,7 +227,7 @@ class LanguageFilter(PluginBase):
                 filter_language = first_language
 
                 # 如果第一个检测到的语言与目标语言相同
-                if self.map_language_code_to_name(first_language) == config.target_language:
+                if map_language_code_to_name(first_language) == config.target_language:
                     if second_language:
                         # 如果有第二个语言，我们需要保留包含第二语言的文本
                         filter_language = second_language
@@ -275,23 +366,6 @@ class LanguageFilter(PluginBase):
         # 未知语言默认使用拉丁文过滤函数
         print(f"[LanguageFilter] 警告：未知的语言代码 {language_code}，使用默认的拉丁文过滤函数")
         return self.has_any_latin
-
-    def map_language_code_to_name(self, language_code: str) -> str:
-        """将语言代码映射到语言名称"""
-        mapping = {
-            "zh": "chinese_simplified",
-            "zh-cn": "chinese_simplified",
-            "zh-tw": "chinese_traditional",
-            "yue": "chinese_traditional",
-            "en": "english",
-            "es": "spanish",
-            "fr": "french",
-            "de": "german",
-            "ko": "korean",
-            "ru": "russian",
-            "ja": "japanese"
-        }
-        return mapping.get(language_code, language_code)
 
     # 判断字符是否为汉字（中文）字符
     def is_cjk(self, char: str) -> bool:

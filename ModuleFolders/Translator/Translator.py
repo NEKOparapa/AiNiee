@@ -241,7 +241,7 @@ class Translator(Base):
             tasks_list = []
             self.print("")
             for chunk, previous_chunk in tqdm(zip(chunks, previous_chunks), desc = "生成翻译任务", total = len(chunks)):
-                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter) # 实例化
+                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter, self.cache_manager) # 实例化
                 task.set_items(chunk)  #传入该任务待翻译原文
                 task.set_previous_items(previous_chunk) # 传入该任务待翻译原文的上文
                 task.prepare(self.config.target_platform,self.config.prompt_preset) # 预先构建消息列表
@@ -267,6 +267,7 @@ class Translator(Base):
 
                 # 根据提示词规则打印基础指令
                 system = ""
+                sl = self.config.source_language
                 if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:
                     system = self.config.system_prompt_content
                 elif self.config.target_platform == "LocalLLM": # 需要放在前面，以免提示词预设的分支覆盖
@@ -274,9 +275,9 @@ class Translator(Base):
                 elif self.config.target_platform == "sakura": # 需要放在前面，以免提示词预设的分支覆盖
                     system = PromptBuilderSakura.build_system(self.config)
                 elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
-                    system = PromptBuilder.build_system(self.config)
+                    system = PromptBuilder.build_system(self.config, sl)
                 elif self.config.prompt_preset == PromptBuilderEnum.THINK:
-                    system = PromptBuilderThink.build_system(self.config)
+                    system = PromptBuilderThink.build_system(self.config, sl)
                 self.print("")
                 if system:
                     self.info(f"本次任务使用以下基础提示词：\n{system}\n") 

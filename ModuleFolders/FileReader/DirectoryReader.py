@@ -7,23 +7,12 @@ from typing import Callable, Union
 
 import chardet
 import charset_normalizer
+import langcodes
 import rich
-from magika.types import OverwriteReason
 
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader.BaseReader import BaseSourceReader
-
-# 全局单例
-_MAGIKA_INSTANCE = None
-
-
-def get_magika():
-    global _MAGIKA_INSTANCE
-    if _MAGIKA_INSTANCE is None:
-        from magika import Magika
-        _MAGIKA_INSTANCE = Magika()
-    return _MAGIKA_INSTANCE
 
 
 def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: float = 0.75) -> str:
@@ -43,16 +32,6 @@ def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: fl
         file_path = pathlib.Path(file_path)
 
     try:
-        # 使用Magika检测文件类型
-        result = get_magika().identify_path(file_path)
-        non_text = not result.output.is_text
-        is_low_confidence = result.prediction.overwrite_reason == OverwriteReason.LOW_CONFIDENCE
-
-        # 如果文件为非文本类型且没有触发`is_low_confidence`条件。则返回non_text/xxx
-        if non_text and not is_low_confidence:
-            # 非文本文件，返回non_text前缀加上检测到的标签
-            return f"non_text/{result.output.label}"
-
         cn_result = charset_normalizer.from_path(file_path).best()
 
         # 如果`charset_normalizer`有检测到结果，直接使用结果
@@ -61,7 +40,7 @@ def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: fl
             confidence = 1.0
         else:
             # 如果没有检测到结果，回退到使用`chardet`
-            rich.print(f"[[red]WARNING[/]] 文件 {file_path} 使用`charset_normalizer`检测失败，回退到`chardet`")
+            rich.print(f"[[red]WARNING[/]] 文件 {file_path} 使用`charset_normalizer`检测失败，回退到使用`chardet`检测")
 
             # 读取文件内容
             with open(file_path, 'rb') as f:

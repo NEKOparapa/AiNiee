@@ -21,4 +21,7 @@ rich
 tqdm
 jaconv
 python-rapidjson
-magika
+# 语言检测
+fast-langdetect
+language-data
+langcodes
