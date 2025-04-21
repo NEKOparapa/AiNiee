@@ -3,6 +3,7 @@ import os
 import re
 import time
 import itertools
+from dataclasses import dataclass
 
 import rapidjson as json
 from rich import box
@@ -28,6 +29,12 @@ from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
 
 from ModuleFolders.TextProcessor.TextProcessor import TextProcessor
 from PluginScripts.LanguageFilter import LanguageFilter
+
+
+@dataclass
+class SourceLang:
+    new: str
+    most_common: str
 
 
 class TranslatorTask(Base):
@@ -79,7 +86,7 @@ class TranslatorTask(Base):
         # 合并禁翻表数据
         exclusion_patterns = []
         for item in self.config.exclusion_list_data:
-            
+
             # 读取正则表达式
             if regex := item.get("regex"):
                 exclusion_patterns.append(regex)
@@ -142,7 +149,7 @@ class TranslatorTask(Base):
             return first_source_lang
 
     # 消息构建预处理
-    def prepare(self, target_platform: str, prompt_preset: int) -> None:
+    def prepare(self, target_platform: str, prompt_preset: int, most_common_lang: str) -> None:
 
         # 生成上文文本列表
         self.previous_text_list = [v.get_source_text() for v in self.previous_items]
@@ -164,9 +171,9 @@ class TranslatorTask(Base):
         # 获取项目配置的目标翻译语言
         target_lang = self.config.target_language
         # 获取适合的源语言
-        source_lang = self.get_source_language_for_file(storage_path, target_lang)
+        new_source_lang = self.get_source_language_for_file(storage_path, target_lang)
         # 将source_lang赋予self
-        self.source_lang = source_lang
+        self.source_lang = SourceLang(new=new_source_lang, most_common=most_common_lang)
 
         # 生成请求指令
         if self.config.double_request_switch_settings == True:
@@ -177,19 +184,16 @@ class TranslatorTask(Base):
             self.messages, self.system_prompt, self.extra_log = self.generate_prompt_sakura(
                 self.source_text_dict,
                 self.previous_text_list,
-                source_lang
             )
         elif target_platform == "LocalLLM":
             self.messages, self.system_prompt, self.extra_log = self.generate_prompt_LocalLLM(
                 self.source_text_dict,
                 self.previous_text_list,
-                source_lang
             )
         elif prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT,PromptBuilderEnum.THINK, PromptBuilderEnum.CUSTOM):
             self.messages, self.system_prompt, self.extra_log = self.generate_prompt(
                 self.source_text_dict,
                 self.previous_text_list,
-                source_lang
             )
 
         # 预估 Token 消费,暂时版本，双请求无法正确计算tpm与tokens消耗
@@ -203,7 +207,7 @@ class TranslatorTask(Base):
             )
 
     # 生成信息结构 - 通用和思维链和推理模型(通用与推理模型与自定义使用同一提示词框架，除了系统提示词不同。思维链使用不同的框架，系统提示词也不同)
-    def generate_prompt(self, source_text_dict: dict, previous_text_list: list[str], source_lang: str) -> tuple[list[dict], str, list[str]]:
+    def generate_prompt(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
         # 储存指令
         messages = []
         # 储存额外日志
@@ -214,10 +218,10 @@ class TranslatorTask(Base):
             system = self.config.system_prompt_content
 
         elif self.config.prompt_preset == PromptBuilderEnum.THINK: # 推理模型提示词
-            system = PromptBuilderThink.build_system(self.config, source_lang)
+            system = PromptBuilderThink.build_system(self.config, self.source_lang.new)
 
         else:
-            system = PromptBuilder.build_system(self.config, source_lang)  # 通用与思维链提示词
+            system = PromptBuilder.build_system(self.config, self.source_lang.new)  # 通用与思维链提示词
 
         # 如果开启自动构建术语表
         if self.config.auto_glossary_toggle == True:
@@ -284,7 +288,7 @@ class TranslatorTask(Base):
             fol_prompt = PromptBuilder.build_modelExamplePrefix(self.config)
 
             # 获取具体动态示例内容
-            original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict, source_lang)
+            original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict, self.source_lang)
             if original_exmaple and translation_example_content:
                 messages.append({
                     "role": "user",
@@ -352,13 +356,13 @@ class TranslatorTask(Base):
         return messages, system, extra_log
 
     # 生成信息结构 - Sakura
-    def generate_prompt_sakura(self, source_text_dict: dict, previous_text_list: list[str], source_lang: str) -> tuple[list[dict], str, list[str]]:
+    def generate_prompt_sakura(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
         # 储存指令
         messages = []
         # 储存额外日志
         extra_log = []
 
-        system = PromptBuilderSakura.build_system(self.config, source_lang)
+        system = PromptBuilderSakura.build_system(self.config, self.source_lang.new)
 
 
         # 如果开启术语表
@@ -389,14 +393,14 @@ class TranslatorTask(Base):
         return messages, system, extra_log
 
     # 生成信息结构 - LocalLLM
-    def generate_prompt_LocalLLM(self, source_text_dict: dict, previous_text_list: list[str], source_lang: str) -> tuple[list[dict], str, list[str]]:
+    def generate_prompt_LocalLLM(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
         # 储存指令
         messages = []
         # 储存额外日志
         extra_log = []
 
         # 基础提示词
-        system = PromptBuilderLocal.build_system(self.config, source_lang)
+        system = PromptBuilderLocal.build_system(self.config, self.source_lang.new)
 
         # 术语表
         if self.config.prompt_dictionary_switch == True:
@@ -604,7 +608,7 @@ class TranslatorTask(Base):
             # 逐行对比，确保对齐
             for s_line, t_line in itertools.zip_longest(s_lines, t_lines, fillvalue=""):
                 pair += f"{s_line} [bright_blue]-->[/] {t_line}\n"
-        
+
         rows.append(pair.strip())
 
         return rows, error == ""

@@ -108,6 +108,11 @@ class CacheProject():
             self.file_project_types = file_project_types
 
     # 设置文件的原始编码
+    def get_file_props(self) -> dict:
+        with self.lock:
+            return self.file_props
+
+    # 设置文件的原始编码
     def set_file_original_encoding(self, file_path: str, encoding: str) -> None:
         with self.lock:
             if file_path not in self.file_props:

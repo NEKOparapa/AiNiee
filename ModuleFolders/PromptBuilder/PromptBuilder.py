@@ -4,6 +4,8 @@ from types import SimpleNamespace
 import langcodes
 
 from Base.Base import Base
+from Base.PluginManager import PluginManager
+from ModuleFolders.Translator import TranslatorTask
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from PluginScripts.LanguageFilter import LanguageFilter
@@ -75,16 +77,22 @@ class PromptBuilder(Base):
         return result.replace("{source_language}", source_language).replace("{target_language}", target_language).strip()
 
     # 构建翻译示例
-    def build_translation_sample(config: TranslatorConfig, input_dict: dict, source_lang: str) -> tuple[str, str]:
+    def build_translation_sample(config: TranslatorConfig, input_dict: dict, source_lang: "TranslatorTask.SourceLang") -> tuple[str, str]:
         list1 = []
         list3 = []
         list2 = []
         list4 = []
 
         # 获取特定示例
-        #list1, list3 = PromptBuilder.get_default_translation_example(config, input_dict)
+        #list1, list3 = PromptBuilder.get_default_translation_example(config, input_dict, source_lang)
 
-        conv_source_lang = LanguageFilter.map_language_code_to_name(source_lang)
+        conv_source_lang = LanguageFilter.map_language_code_to_name(source_lang.new)
+        if conv_source_lang == 'un':
+            # 获取语言过滤器是否已开启
+            plugin_manager = PluginManager()
+            if 'LanguageFilter' in plugin_manager.get_enabled_plugins():
+                conv_source_lang = LanguageFilter.map_language_code_to_name(source_lang.most_common)
+
         # 获取自适应示例（无法构建english的）
         if conv_source_lang in ["japanese","korean","russian","chinese_simplified","chinese_traditional","french","german","spanish"]:
             list2, list4 = PromptBuilder.build_adaptive_translation_sample(config, input_dict, conv_source_lang)
@@ -109,9 +117,9 @@ class PromptBuilder(Base):
                 }
             }
 
-            source_base_example = base_example["base"][conv_source_lang]
             # 如果没有对应的示例语言，默认使用英文
-            combined_list.append(source_base_example if source_base_example else "Sample Text")
+            source_base_example = base_example["base"].get(conv_source_lang, "Sample Text")
+            combined_list.append(source_base_example)
             combined_list2.append(base_example["base"][config.target_language])
 
         # 限制示例总数量为3个，如果多了，则从最后往前开始削减
@@ -248,7 +256,7 @@ class PromptBuilder(Base):
             for pattern, translation_sample in patterns_all.items():
                 # 检查值是否符合正则表达
                 if re.search(pattern, value):
-                    translation_sample = translation_sample[conv_source_lang]
+                    translation_sample = translation_sample.get(conv_source_lang)
                     # 如果未在结果列表中，则添加
                     if translation_sample and translation_sample not in source_list:
                         source_list.append(translation_sample)

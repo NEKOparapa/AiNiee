@@ -3,15 +3,24 @@ import os
 from pathlib import Path
 from PluginScripts.PluginBase import PluginBase
 
+
 class PluginManager:
+    _instance = None
+    _initialized = False
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(PluginManager, cls).__new__(cls)
+        return cls._instance
 
     def __init__(self):
-
-        # 使用字典来存储每个事件对应的插件列表
-        self.event_plugins = {}
-
-        # 记录每个插件的启用状态
-        self.plugins_enable = {}
+        # 确保__init__只执行一次
+        if not PluginManager._initialized:
+            # 使用字典来存储每个事件对应的插件列表
+            self.event_plugins = {}
+            # 记录每个插件的启用状态
+            self.plugins_enable = {}
+            PluginManager._initialized = True
 
     def load_plugin(self, plugin_class):
         plugin_instance = plugin_class()
@@ -71,8 +80,19 @@ class PluginManager:
 
         for k, v in self.event_plugins.items():
             for item in v:
-                if item.visibility == True:
+                if item.visibility:
                     plugins[item.name] = item
+
+        return plugins
+
+    # 生成插件列表
+    def get_enabled_plugins(self) -> set:
+        plugins = set()
+
+        for k, v in self.event_plugins.items():
+            for item in v:
+                if item.visibility and self.plugins_enable.get(item.name, True):
+                    plugins.add(item.name)
 
         return plugins
 

@@ -84,6 +84,43 @@ def get_language_display_names(source_lang, target_lang):
 
     return en_source_lang, source_language, en_target_language, target_language
 
+
+def get_most_common_language(file_props: dict) -> str:
+    """
+    计算项目中出现次数最多的语言
+
+    Args:
+        file_props: 项目中所有文件的属性字典
+
+    Returns:
+        出现次数最多的语言代码
+    """
+    # 语言计数字典
+    language_counts = {}
+
+    # 遍历所有文件的语言统计信息
+    for path, props in file_props.items():
+        if "language_stats" in props and props["language_stats"]:
+            for lang_stat in props["language_stats"]:
+                if len(lang_stat) >= 2 and lang_stat[0] != 'un':  # 跳过未知语言
+                    lang_code = lang_stat[0]
+                    count = lang_stat[1] if len(lang_stat) > 1 else 1
+
+                    if lang_code in language_counts:
+                        language_counts[lang_code] += count
+                    else:
+                        language_counts[lang_code] = count
+
+    # 如果没有找到任何语言，返回英语作为默认值
+    if not language_counts:
+        return "en"
+
+    # 找出出现次数最多的语言
+    most_common_lang = max(language_counts.items(), key=lambda x: x[1])[0]
+
+    return most_common_lang
+
+
 class LanguageFilter(PluginBase):
 
     # 平假名
@@ -202,7 +239,7 @@ class LanguageFilter(PluginBase):
                 items_by_path[path].append(item)
 
             # 计算项目中出现次数最多的语言
-            most_common_language = self.get_most_common_language(file_props)
+            most_common_language = get_most_common_language(file_props)
             print(f"[LanguageFilter] 项目中出现次数最多的语言: {most_common_language}")
 
             # 处理每个文件中的条目
@@ -297,41 +334,6 @@ class LanguageFilter(PluginBase):
         print("")
         print(f"[LanguageFilter] 语言过滤已完成，共过滤 {len(target)} 个不包含目标语言的条目 ...")
         print("")
-
-    def get_most_common_language(self, file_props: dict) -> str:
-        """
-        计算项目中出现次数最多的语言
-
-        Args:
-            file_props: 项目中所有文件的属性字典
-
-        Returns:
-            出现次数最多的语言代码
-        """
-        # 语言计数字典
-        language_counts = {}
-
-        # 遍历所有文件的语言统计信息
-        for path, props in file_props.items():
-            if "language_stats" in props and props["language_stats"]:
-                for lang_stat in props["language_stats"]:
-                    if len(lang_stat) >= 2 and lang_stat[0] != 'un':  # 跳过未知语言
-                        lang_code = lang_stat[0]
-                        count = lang_stat[1] if len(lang_stat) > 1 else 1
-
-                        if lang_code in language_counts:
-                            language_counts[lang_code] += count
-                        else:
-                            language_counts[lang_code] = count
-
-        # 如果没有找到任何语言，返回英语作为默认值
-        if not language_counts:
-            return "en"
-
-        # 找出出现次数最多的语言
-        most_common_lang = max(language_counts.items(), key=lambda x: x[1])[0]
-
-        return most_common_lang
 
     def get_filter_function(self, language_code: str):
         """根据语言代码获取相应的语言过滤函数"""

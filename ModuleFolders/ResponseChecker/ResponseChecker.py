@@ -16,7 +16,7 @@ class ResponseChecker():
         error_content = "0"
 
         # 获取需要的配置信息
-        source_language = LanguageFilter.map_language_code_to_name(source_lang)
+        source_language = LanguageFilter.map_language_code_to_name(source_lang.new)
         response_check_switch = config.response_check_switch
 
         # 检查接口是否拒绝翻译

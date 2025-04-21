@@ -20,6 +20,8 @@ from ModuleFolders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
 from ModuleFolders.FileReader.FileReader import FileReader
 from ModuleFolders.FileOutputer.FileOutputer import FileOutputer
 from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
+from PluginScripts.LanguageFilter import LanguageFilter
+
 
 # 翻译器
 class Translator(Base):
@@ -240,11 +242,13 @@ class Translator(Base):
             # 生成翻译单元任务的合集列表
             tasks_list = []
             self.print("")
+            # 获取项目中出现次数最多的语言
+            most_common_language = LanguageFilter.get_most_common_language(self.cache_manager.project.get_file_props())
             for chunk, previous_chunk in tqdm(zip(chunks, previous_chunks), desc = "生成翻译任务", total = len(chunks)):
                 task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter, self.cache_manager) # 实例化
                 task.set_items(chunk)  #传入该任务待翻译原文
                 task.set_previous_items(previous_chunk) # 传入该任务待翻译原文的上文
-                task.prepare(self.config.target_platform,self.config.prompt_preset) # 预先构建消息列表
+                task.prepare(self.config.target_platform,self.config.prompt_preset, most_common_language) # 预先构建消息列表
                 tasks_list.append(task)
             self.print("")
 
