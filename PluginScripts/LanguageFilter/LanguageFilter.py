@@ -111,7 +111,7 @@ def get_most_common_language(file_props: dict) -> str:
                     else:
                         language_counts[lang_code] = count
 
-    # 如果没有找到任何语言，返回英语作为默认值
+    # 如果没有找到任何语言，返回日语作为默认值
     if not language_counts:
         return "ja"
 
