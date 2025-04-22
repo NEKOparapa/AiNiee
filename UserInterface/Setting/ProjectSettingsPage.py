@@ -190,7 +190,7 @@ class ProjectSettingsPage_B(QFrame, Base):
         # 默认配置
         self.default = {
             "translation_project": "AutoType",
-            "source_language": "japanese",
+            "source_language": "auto",
             "target_language": "chinese_simplified",
             "label_input_exclude_rule": "",
             "label_output_path": "./output",
