@@ -5,7 +5,7 @@ class TextLayoutRepairPlugin(PluginBase):
     def __init__(self):
         super().__init__()
         self.name = "TextLayoutRepairPlugin"
-        self.description = "文本排版修复插件"+ "\n"+ "根据原文进行恢复，译文中缺失的前导空格与「」『』" 
+        self.description = "文本排版修复插件"+ "\n"+ "根据原文进行恢复，译文中缺失的前导空格与各类标点符号" 
 
         self.visibility = True  # 是否在插件设置中显示
         self.default_enable = False  # 默认启用状态
