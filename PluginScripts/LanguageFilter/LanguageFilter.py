@@ -245,81 +245,28 @@ class LanguageFilter(PluginBase):
             most_common_language = get_most_common_language(file_props)
             # 获取可读更强的名称
             en_source_lang, source_language, _, _ = get_language_display_names(most_common_language, 'chinese_simplified')
-            print(f"[LanguageFilter] 项目主要语言: "
-                  f"{most_common_language} - {en_source_lang}/{source_language}")
+            print(f"[LanguageFilter] 项目主要语言: {most_common_language} - {en_source_lang}/{source_language}")
             print("")
 
             # 处理每个文件中的条目
             for path, file_items in items_by_path.items():
-                # 获取当前文件检测到的语言统计信息
-                language_stats = []
-                if path in file_props and "language_stats" in file_props[path]:
-                    language_stats = file_props[path]["language_stats"]
+                # 获取语言信息
+                language_stats = file_props.get(path, {}).get("language_stats", [])
 
-                # 如果没有检测到语言，使用项目中最常见的语言
+                # 确定使用的语言
                 if not language_stats:
                     print(f"[[red]WARNING[/]] [LanguageFilter] 文件 {path} 没有检测到语言信息，使用项目主要语言 {most_common_language}")
                     first_language = most_common_language
-                    second_language = None
                 else:
-                    # 获取检测到的第一个语言
                     first_language = language_stats[0][0]
-                    # 检测到的第二个语言（如果有的话）
-                    second_language = language_stats[1][0] if len(language_stats) > 1 else None
 
-                # 决定使用哪种语言进行过滤
-                filter_language = first_language
-
-                # 如果第一个检测到的语言与目标语言相同
+                # 根据不同情况分别处理
                 if map_language_code_to_name(first_language) == config.target_language:
-                    # 如果没有第二个语言，文件主要是目标语言
-                    # 我们需要反转过滤逻辑，使用相反的条件：保留那些不符合目标语言特征的文本
-                    print(
-                        f"[LanguageFilter] 文件 {path} 检测到的主要语言 {first_language} 与目标语言相同，"
-                        f"将只翻译不符合该语言特征的文本"
-                    )
-
-                    # 这种情况需要特殊处理，标记所有文本为排除，除非它不包含目标语言的字符
-                    has_any = self.get_filter_function(first_language, path)
-                    if has_any is not None:
-                        # 找出那些包含目标语言字符的文本，将它们标记为排除
-                        for item in file_items:
-                            text = item.get("source_text", "")
-                            if isinstance(text, str) and has_any(text):
-                                target.append(item)
-
-                    # 跳过后续处理，因为我们已经直接处理了所有条目
-                    continue
-                # else:
-                #     # 检测到的语言与目标语言不同，使用检测到的第一语言
-                #     print(f"[LanguageFilter] 文件 {path} 使用检测到的语言 {filter_language} 过滤")
-
-                # 如果文件检测到的语言未知，则过滤该文件内置信度较低的行
-                if first_language == 'un':
-                    print(f"[LanguageFilter] 文件 {path} 未检测到具体语言，将只翻译置信度较高的文本行")
-
-                    # 寻找置信度低于0.6的文本行
-                    for item in file_items:
-                        text: str = item.get("source_text", "")
-                        # 获取置信度分数
-                        lang_score: float = item.get("lang_code", ["un", 1.0])[1]
-                        if not isinstance(text, str) or lang_score < 0.6:
-                            target.append(item)
-
-                    # 跳过后续处理，因为我们已经直接处理了所有条目
-                    continue
-
-                # 设置过滤函数
-                has_any = self.get_filter_function(filter_language, path)
-
-                if has_any is not None:
-                    # 筛选出无效条目
-                    filtered_items = [
-                        item for item in file_items
-                        if not isinstance(item.get("source_text", ""), str) or not has_any(item.get("source_text", ""))
-                    ]
-
-                    target.extend(filtered_items)
+                    target.extend(self._filter_target_language_match(path, file_items, first_language))
+                elif first_language == 'un':
+                    target.extend(self._filter_unknown_language(path, file_items))
+                else:
+                    target.extend(self._filter_normal_language(path, file_items, first_language))
         else:
             # 原有的非自动检测模式
             has_any = None
@@ -380,8 +327,8 @@ class LanguageFilter(PluginBase):
             return code_to_function[language_code[:2]]
 
         # 未知语言默认使用拉丁文过滤函数
-        print(f"[[red]WARNING[/]] [LanguageFilter] 文件 {path} 未知的语言代码 {language_code}，使用默认的拉丁文过滤函数")
-        return self.has_any_latin
+        print(f"[[red]WARNING[/]] [LanguageFilter] 文件 {path} 未知的语言代码 {language_code}，无法使用内置语言过滤函数")
+        return None
 
     # 判断字符是否为汉字（中文）字符
     def is_cjk(self, char: str) -> bool:
@@ -450,3 +397,37 @@ class LanguageFilter(PluginBase):
     # 检查字符串是否包含至少一个日文（含汉字）字符
     def has_any_japanese(self, text: str) -> bool:
         return any(self.is_japanese(char) for char in text)
+
+    def _filter_target_language_match(self, path, file_items, language):
+        """处理检测语言与目标语言相同的情况"""
+        print(f"[LanguageFilter] 文件 {path} 检测到的主要语言 {language} 与译文语言相同，将只翻译不符合该语言特征的文本")
+
+        has_any = self.get_filter_function(language, path)
+        if has_any is not None:
+            return [item for item in file_items
+                    if isinstance(item.get("source_text", ""), str) and
+                    has_any(item.get("source_text", "")) and
+                    item.get("lang_code", ["un", 1.0])[0] == language]
+        else:
+            return [item for item in file_items
+                    if isinstance(item.get("source_text", ""), str) and
+                    item.get("lang_code", ["un", 1.0])[0] == language]
+
+    def _filter_unknown_language(self, path, file_items):
+        """处理未知语言的文件"""
+        print(f"[LanguageFilter] 文件 {path} 未检测到具体语言，将只翻译置信度较高的文本行")
+
+        return [item for item in file_items
+                if not isinstance(item.get("source_text", ""), str) or
+                item.get("lang_code", ["un", 1.0])[1] < 0.5]
+
+    def _filter_normal_language(self, path, file_items, language):
+        """处理一般语言情况"""
+        has_any = self.get_filter_function(language, path)
+
+        if has_any is not None:
+            return [item for item in file_items
+                    if not isinstance(item.get("source_text", ""), str) or
+                    not has_any(item.get("source_text", ""))]
+
+        return []
