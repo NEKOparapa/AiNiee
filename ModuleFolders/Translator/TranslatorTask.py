@@ -128,7 +128,7 @@ class TranslatorTask(Base):
 
         # 如果没有语言统计信息，返回'un'
         if not language_stats:
-            return 'UnspecifiedLanguage'
+            return 'un'
 
         # 获取第一种语言
         first_source_lang = language_stats[0][0]

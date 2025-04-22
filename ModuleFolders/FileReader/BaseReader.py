@@ -126,7 +126,7 @@ def text_to_cache_item(source_text, translated_text: str = None):
     cleaned_text = re.sub(r'\s+', ' ', source_text.strip())
     if is_symbols_only(cleaned_text):
         lang = 'symbols_only'
-        score = 1.0
+        score = -1.0
     else:
         # 将检测长度限制在100个字符内，抑制警告`fast-langdetect`
         lang_result = get_lang_detector().detect(cleaned_text[:100], low_memory=True)

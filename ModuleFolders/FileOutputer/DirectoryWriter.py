@@ -91,12 +91,15 @@ class DirectoryWriter:
                         write_translation_file = getattr(writer, translation_mode.write_method)
 
                         # 执行写入
-                        # 为每个文件单独决定编码
-                        writer.checked_file_encodings[translation_file_path] = actual_encoding
-                        rich.print(
-                            f"[[green]INFO[/]] 正在写入文件 {storage_path}({translation_mode}), 使用编码: {actual_encoding} "
-                            f"{'(原始编码)' if use_original_encoding else f'(由原始编码 {original_encoding} 变更)'}"
-                        )
+                        # 判断是否为直接写出（原始）的翻译文件
+                        is_direct_trans_file = translation_mode == BaseTranslationWriter.TranslationMode.TRANSLATED
+                        # 为每个文件单独决定编码，同时仅将原始的译文设置为对应编码
+                        writer.checked_file_encodings[translation_file_path] = actual_encoding if is_direct_trans_file else "utf-8"
+                        if is_direct_trans_file:
+                            rich.print(
+                                f"[[green]INFO[/]] 正在写入文件 {storage_path}, 使用编码: {actual_encoding} "
+                                f"{'(原始编码)' if use_original_encoding else f'(由原始编码 {original_encoding} 变更)'}"
+                            )
                         write_translation_file(translation_file_path, file_items, source_file_path)
 
             # 文件写入完成后清除字典属性

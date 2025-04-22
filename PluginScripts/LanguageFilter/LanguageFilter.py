@@ -111,9 +111,12 @@ def get_most_common_language(file_props: dict) -> str:
                     else:
                         language_counts[lang_code] = count
 
-    # 如果没有找到任何语言，返回日语作为默认值
+    # 如果没有找到任何语言，返回未知语言作为默认值
     if not language_counts:
-        return "ja"
+        print(
+            f"[[red]WARNING[/]] [LanguageFilter] 当前项目没有检测到主要语言信息"
+        )
+        return "un"
 
     # 找出出现次数最多的语言
     most_common_lang = max(language_counts.items(), key=lambda x: x[1])[0]
@@ -253,8 +256,8 @@ class LanguageFilter(PluginBase):
                 if path in file_props and "language_stats" in file_props[path]:
                     language_stats = file_props[path]["language_stats"]
 
-                # 如果没有检测到语言或语言未知，使用项目中最常见的语言
-                if not language_stats or language_stats[0][0] == 'un':
+                # 如果没有检测到语言，使用项目中最常见的语言
+                if not language_stats:
                     print(f"[[red]WARNING[/]] [LanguageFilter] 文件 {path} 没有检测到语言信息，使用项目主要语言 {most_common_language}")
                     first_language = most_common_language
                     second_language = None
@@ -269,35 +272,42 @@ class LanguageFilter(PluginBase):
 
                 # 如果第一个检测到的语言与目标语言相同
                 if map_language_code_to_name(first_language) == config.target_language:
-                    if second_language:
-                        # 如果有第二个语言，我们需要保留包含第二语言的文本
-                        filter_language = second_language
-                        print(
-                            f"[LanguageFilter] 文件 {path} 检测到的第一语言 {first_language} 与目标语言相同，"
-                            f"使用第二语言 {second_language} 过滤"
-                        )
-                    else:
-                        # 如果没有第二个语言，文件主要是目标语言
-                        # 我们需要反转过滤逻辑，使用相反的条件：保留那些不符合目标语言特征的文本
-                        print(
-                            f"[LanguageFilter] 文件 {path} 只检测到与目标语言相同的语言 {first_language}，"
-                            f"将只翻译不符合该语言特征的文本"
-                        )
+                    # 如果没有第二个语言，文件主要是目标语言
+                    # 我们需要反转过滤逻辑，使用相反的条件：保留那些不符合目标语言特征的文本
+                    print(
+                        f"[LanguageFilter] 文件 {path} 检测到的主要语言 {first_language} 与目标语言相同，"
+                        f"将只翻译不符合该语言特征的文本"
+                    )
 
-                        # 这种情况需要特殊处理，标记所有文本为排除，除非它不包含目标语言的字符
-                        has_any = self.get_filter_function(first_language, path)
-                        if has_any is not None:
-                            # 找出那些包含目标语言字符的文本，将它们标记为排除
-                            for item in file_items:
-                                text = item.get("source_text", "")
-                                if isinstance(text, str) and has_any(text):
-                                    target.append(item)
+                    # 这种情况需要特殊处理，标记所有文本为排除，除非它不包含目标语言的字符
+                    has_any = self.get_filter_function(first_language, path)
+                    if has_any is not None:
+                        # 找出那些包含目标语言字符的文本，将它们标记为排除
+                        for item in file_items:
+                            text = item.get("source_text", "")
+                            if isinstance(text, str) and has_any(text):
+                                target.append(item)
 
-                        # 跳过后续处理，因为我们已经直接处理了所有条目
-                        continue
+                    # 跳过后续处理，因为我们已经直接处理了所有条目
+                    continue
                 # else:
                 #     # 检测到的语言与目标语言不同，使用检测到的第一语言
                 #     print(f"[LanguageFilter] 文件 {path} 使用检测到的语言 {filter_language} 过滤")
+
+                # 如果文件检测到的语言未知，则过滤该文件内置信度较低的行
+                if first_language == 'un':
+                    print(f"[LanguageFilter] 文件 {path} 未检测到具体语言，将只翻译置信度较高的文本行")
+
+                    # 寻找置信度低于0.6的文本行
+                    for item in file_items:
+                        text: str = item.get("source_text", "")
+                        # 获取置信度分数
+                        lang_score: float = item.get("lang_code", ["un", 1.0])[1]
+                        if not isinstance(text, str) or lang_score < 0.6:
+                            target.append(item)
+
+                    # 跳过后续处理，因为我们已经直接处理了所有条目
+                    continue
 
                 # 设置过滤函数
                 has_any = self.get_filter_function(filter_language, path)
