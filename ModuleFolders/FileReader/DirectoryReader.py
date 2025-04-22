@@ -1,13 +1,11 @@
 import fnmatch
-import json
 import pathlib
-from collections import Counter, defaultdict
+from collections import defaultdict
 from pathlib import Path
 from typing import Callable, Union
 
 import chardet
 import charset_normalizer
-import langcodes
 import rich
 
 from ModuleFolders.Cache.CacheItem import CacheItem
@@ -17,15 +15,14 @@ from ModuleFolders.FileReader.BaseReader import BaseSourceReader
 
 def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: float = 0.75) -> str:
     """
-    使用Magika检测文件类型，如果是非纯文本则返回'non_text/{label}'，
-    如果是纯文本则使用chardet检测编码。
+    使用`charset_normalizer`与`chardet`检测文件编码
 
     Args:
         file_path: 要检测的文件路径
         min_confidence: chardet检测编码的最低置信度阈值，低于此值将返回默认编码'utf-8'
 
     Returns:
-        str: 对于非文本文件返回'non_text/{label}'，对于文本文件返回检测到的编码
+        str: 默认/检测失败时返回`utf-8`，否则返回检测到的编码
     """
     # 确保file_path是Path对象
     if isinstance(file_path, str):
@@ -53,6 +50,7 @@ def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: fl
 
         # 如果没有检测到编码或置信度低于阈值，返回默认编码'utf-8'
         if not detected_encoding or confidence < min_confidence:
+            rich.print(f"[[red]WARNING[/]] 文件 {file_path} 编码检测失败，默认使用`utf-8`编码")
             return 'utf-8'
 
         return detected_encoding
