@@ -113,7 +113,7 @@ def get_most_common_language(file_props: dict) -> str:
 
     # 如果没有找到任何语言，返回英语作为默认值
     if not language_counts:
-        return "en"
+        return "ja"
 
     # 找出出现次数最多的语言
     most_common_lang = max(language_counts.items(), key=lambda x: x[1])[0]

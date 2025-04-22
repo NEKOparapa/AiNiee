@@ -1,6 +1,7 @@
 import os
 import pathlib
 import re
+import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,7 +21,13 @@ def get_lang_detector():
     """获取语言检测器的全局单例实例"""
     global _LANG_DETECTOR_INSTANCE
     if _LANG_DETECTOR_INSTANCE is None:
-        config = LangDetectConfig(cache_dir="../../Resource/Models/fast-langdetect")
+        # 设置模型目录
+        script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+        sys.path.append(script_dir)
+        model_path = os.path.join(script_dir, "Resource", "Models", "fast-langdetect")
+        print(f"!!!!!!!!!{model_path}")
+
+        config = LangDetectConfig(cache_dir=model_path)
         _LANG_DETECTOR_INSTANCE = LangDetector(config)
     return _LANG_DETECTOR_INSTANCE
 

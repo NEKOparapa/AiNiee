@@ -30,13 +30,13 @@ class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
         item_to_line: Callable[[CacheItem], str],
     ):
         if not items:
-            translation_file_path.write_text("", encoding=self.translated_encoding)
+            translation_file_path.write_text("", encoding=self.checked_file_encodings[translation_file_path])
             return
 
         # 处理所有项目
         lines = list(map(item_to_line, items))
 
-        translation_file_path.write_text("".join(lines), encoding=self.translated_encoding)
+        translation_file_path.write_text("".join(lines), encoding=self.checked_file_encodings[translation_file_path])
 
     def _item_to_bilingual_line(self, item: CacheItem):
         # 至少2个换行，让双语排版不那么紧凑

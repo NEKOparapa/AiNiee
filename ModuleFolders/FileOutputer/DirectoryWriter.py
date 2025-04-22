@@ -46,35 +46,36 @@ class DirectoryWriter:
     ):
         """translation_directory 用于覆盖配置"""
         with self.create_writer() as writer:
-            # 首先检查所有文本是否可以用原始编码表示
-            original_encoding = writer.translated_encoding
-            use_original_encoding = True
-
-            # 检查所有文本是否可以用原始编码表示
-            # 如果原始编码已经是UTF-8，跳过检查
-            # 如果原始编码为非纯文本，跳过检查
-            if original_encoding.lower() == 'utf-8' or original_encoding.startswith("non_text"):
-                pass  # UTF-8可以表示所有字符，无需检查 / 非纯文本不需要检查
-            else:
-                # 检查所有文本是否可以用原始编码表示
-                for item in items:
-                    if item.translated_text and not can_encode_text(item.translated_text, original_encoding):
-                        use_original_encoding = False
-                        break
-
-            # 决定使用的编码
-            actual_encoding = original_encoding if use_original_encoding else 'utf-8'
-            # 修改writer的编码设置
-            writer.translated_encoding = actual_encoding
-
-            rich.print(
-                f"[[green]INFO[/]] 正在写入文件 使用编码: {actual_encoding} "
-                f"{'(原始编码)' if use_original_encoding else f'(由原始编码 {original_encoding} 变更)'}"
-            )
-
+            # 获取项目的文件属性
+            proj_file_props = writer.proj_file_props
             # 把翻译片段按文件名分组
             items_dict = group_to_list(items, lambda x: x.get_storage_path())
+
             for storage_path, file_items in items_dict.items():
+                # 获取文件的原始编码
+                if storage_path in proj_file_props and "original_encoding" in proj_file_props[storage_path]:
+                    original_encoding = proj_file_props[storage_path]["original_encoding"]
+                else:
+                    # 默认使用UTF-8
+                    original_encoding = "utf-8"
+
+                use_original_encoding = True
+
+                # 检查该文件的所有文本是否可以用原始编码表示
+                # 如果原始编码已经是UTF-8，跳过检查
+                # 如果原始编码为非纯文本，跳过检查
+                if original_encoding.lower() == 'utf-8' or original_encoding.startswith("non_text"):
+                    pass  # UTF-8可以表示所有字符，无需检查 / 非纯文本不需要检查
+                else:
+                    # 检查所有文本是否可以用原始编码表示
+                    for item in file_items:
+                        if item.translated_text and not can_encode_text(item.translated_text, original_encoding):
+                            use_original_encoding = False
+                            break
+
+                # 决定使用的编码
+                actual_encoding = original_encoding if use_original_encoding else 'utf-8'
+
                 source_file_path = source_directory / storage_path
                 for translation_mode in BaseTranslationWriter.TranslationMode:
                     if writer.can_write(translation_mode):
@@ -90,7 +91,16 @@ class DirectoryWriter:
                         write_translation_file = getattr(writer, translation_mode.write_method)
 
                         # 执行写入
+                        # 为每个文件单独决定编码
+                        writer.checked_file_encodings[translation_file_path] = actual_encoding
+                        rich.print(
+                            f"[[green]INFO[/]] 正在写入文件 {storage_path}({translation_mode}), 使用编码: {actual_encoding} "
+                            f"{'(原始编码)' if use_original_encoding else f'(由原始编码 {original_encoding} 变更)'}"
+                        )
                         write_translation_file(translation_file_path, file_items, source_file_path)
+
+            # 文件写入完成后清除字典属性
+            writer.checked_file_encodings.clear()
 
     @classmethod
     def with_file_suffix(self, file_path: str, name_suffix: str) -> Path:

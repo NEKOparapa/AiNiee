@@ -1,9 +1,12 @@
 import os
+import threading
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import TypedDict
+
+import rich
 
 from ModuleFolders.Cache.CacheItem import CacheItem
 
@@ -13,8 +16,7 @@ class TranslationOutputConfig:
     enabled: bool = False
     name_suffix: str = ""
     output_root: Path = None
-    file_encoding: str = ""
-    line_ending: str = ""
+    file_props: dict = None
 
 
 @dataclass
@@ -30,6 +32,54 @@ class OutputConfig:
             self.bilingual_config = TranslationOutputConfig(False, "_bilingual")
 
 
+class NewFileEncDict:
+    def __init__(self):
+        self._dict = {}
+        self._lock = threading.Lock()
+
+    def __getitem__(self, key):
+        with self._lock:
+            return self._dict[key]
+
+    def __setitem__(self, key, value):
+        with self._lock:
+            self._dict[key] = value
+
+    def get(self, key, default=None):
+        with self._lock:
+            return self._dict.get(key, default)
+
+    def clear(self):
+        """清空字典中的所有项"""
+        with self._lock:
+            rich.print(f"[[green]INFO[/]] 文件写入完成, 共{len(self._dict)}个文件")
+            self._dict.clear()
+
+    def __str__(self):
+        """当使用print()打印字典时调用"""
+        with self._lock:
+            return str(self._dict)
+
+    def __repr__(self):
+        """在交互式环境中显示字典内容时调用"""
+        with self._lock:
+            return repr(self._dict)
+
+    def __contains__(self, key):
+        """支持 'key in dict' 操作"""
+        with self._lock:
+            return key in self._dict
+
+    def __len__(self):
+        """支持 len(dict) 操作"""
+        with self._lock:
+            return len(self._dict)
+
+
+# 创建一个全局实例
+global_new_file_enc_dict = NewFileEncDict()
+
+
 class WriterInitParams(TypedDict):
     """writer的初始化参数，必须包含output_config，其他参数随意"""
     output_config: OutputConfig
@@ -40,9 +90,10 @@ class BaseTranslationWriter(ABC):
     def __init__(self, output_config: OutputConfig) -> None:
         self.output_config = output_config
 
-        # 提取译文输出的编码和换行符配置
-        self.translated_encoding = output_config.translated_config.file_encoding or "utf-8"
-        self.translated_line_ending = output_config.translated_config.line_ending or os.linesep
+        # 提取项目的（多个）文件属性（编码，语言等）
+        self.proj_file_props = output_config.translated_config.file_props
+        # 检查兼容性后的文件属性（仅包含每个文件的编码）
+        self.checked_file_encodings = global_new_file_enc_dict
 
     class TranslationMode(Enum):
         TRANSLATED = ('translated_config', 'write_translated_file')
