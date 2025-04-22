@@ -189,8 +189,7 @@ class ProjectSettingsPage_B(QFrame, Base):
 
         # 默认配置
         self.default = {
-            "target_platform": "deepseek",
-            "translation_project": "Txt",
+            "translation_project": "AutoType",
             "source_language": "japanese",
             "target_language": "chinese_simplified",
             "label_input_exclude_rule": "",
