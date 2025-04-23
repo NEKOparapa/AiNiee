@@ -6,7 +6,6 @@ from PluginScripts.PluginBase import PluginBase
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 
-
 pair_en = {
     "japanese": "Japanese",
     "english": "English",
@@ -50,6 +49,22 @@ def map_language_code_to_name(language_code: str) -> str:
     return mapping.get(language_code, language_code)
 
 
+def map_language_name_to_code(language_name: str) -> str:
+    """将语言名称映射回语言代码"""
+    mapping = {
+        "chinese_simplified": "zh",
+        "chinese_traditional": "zh",  # 也映射到zh
+        "english": "en",
+        "spanish": "es",
+        "french": "fr",
+        "german": "de",
+        "korean": "ko",
+        "russian": "ru",
+        "japanese": "ja"
+    }
+    return mapping.get(language_name, language_name)
+
+
 def get_language_display_names(source_lang, target_lang):
     """
     获取源语言和目标语言的显示名称
@@ -61,22 +76,24 @@ def get_language_display_names(source_lang, target_lang):
     Returns:
         tuple: ((英文源语言名, 中文源语言名), (英文目标语言名, 中文目标语言名))
     """
+    # 转换语言代码
+    conv_source_lang = map_language_name_to_code(source_lang)
     # 处理源语言
-    langcodes_lang = langcodes.Language.get(source_lang)
+    langcodes_lang = langcodes.Language.get(conv_source_lang)
     if langcodes_lang:
         en_source_lang = langcodes_lang.display_name()
         source_language = langcodes_lang.display_name('zh-Hans')
     else:
         # 处理特殊情况
-        if source_lang == 'un':
+        if conv_source_lang == 'un':
             en_source_lang = 'UnspecifiedLanguage'
             source_language = '未指定的语言'
-        elif source_lang == 'auto':
+        elif conv_source_lang == 'auto':
             en_source_lang = 'Auto Detect'
             source_language = '自动检测'
         else:
-            en_source_lang = pair_en[source_lang]
-            source_language = pair[source_lang]
+            en_source_lang = pair_en[conv_source_lang]
+            source_language = pair[conv_source_lang]
 
     # 处理目标语言
     en_target_language = pair_en[target_lang]
@@ -125,7 +142,6 @@ def get_most_common_language(file_props: dict) -> str:
 
 
 class LanguageFilter(PluginBase):
-
     # 平假名
     HIRAGANA = ("\u3040", "\u309F")
 
@@ -164,12 +180,12 @@ class LanguageFilter(PluginBase):
     CJK_SYMBOLS_AND_PUNCTUATION = ("\u3000", "\u303F")
     HALFWIDTH_AND_FULLWIDTH_FORMS = ("\uFF00", "\uFFEF")
     OTHER_CJK_PUNCTUATION = (
-        "\u30FB"    # ・ 在片假名 ["\u30A0", "\u30FF"] 范围内
+        "\u30FB"  # ・ 在片假名 ["\u30A0", "\u30FF"] 范围内
     )
 
     # 拉丁字符
-    LATIN_1 = ("\u0041", "\u005A") # 大写字母 A-Z
-    LATIN_2 = ("\u0061", "\u007A") # 小写字母 a-z
+    LATIN_1 = ("\u0041", "\u005A")  # 大写字母 A-Z
+    LATIN_2 = ("\u0061", "\u007A")  # 小写字母 a-z
     LATIN_EXTENDED_A = ("\u0100", "\u017F")
     LATIN_EXTENDED_B = ("\u0180", "\u024F")
     LATIN_SUPPLEMENTAL = ("\u00A0", "\u00FF")
@@ -183,26 +199,26 @@ class LanguageFilter(PluginBase):
     LATIN_PUNCTUATION_SUPPLEMENTAL = ("\u2E00", "\u2E7F")
 
     # 俄文字符
-    CYRILLIC_BASIC = ("\u0410", "\u044F")               # 基本俄文字母 (大写字母 А-Я, 小写字母 а-я)
-    CYRILLIC_SUPPLEMENT = ("\u0500", "\u052F")          # 俄文字符扩展区（补充字符，包括一些历史字母和其他斯拉夫语言字符）
-    CYRILLIC_EXTENDED_A = ("\u2C00", "\u2C5F")          # 扩展字符 A 区块（历史字母和一些东斯拉夫语言字符）
-    CYRILLIC_EXTENDED_B = ("\u0300", "\u04FF")          # 扩展字符 B 区块（更多历史字母）
-    CYRILLIC_SUPPLEMENTAL = ("\u1C80", "\u1C8F")        # 俄文字符补充字符集，包括一些少见和历史字符
+    CYRILLIC_BASIC = ("\u0410", "\u044F")  # 基本俄文字母 (大写字母 А-Я, 小写字母 а-я)
+    CYRILLIC_SUPPLEMENT = ("\u0500", "\u052F")  # 俄文字符扩展区（补充字符，包括一些历史字母和其他斯拉夫语言字符）
+    CYRILLIC_EXTENDED_A = ("\u2C00", "\u2C5F")  # 扩展字符 A 区块（历史字母和一些东斯拉夫语言字符）
+    CYRILLIC_EXTENDED_B = ("\u0300", "\u04FF")  # 扩展字符 B 区块（更多历史字母）
+    CYRILLIC_SUPPLEMENTAL = ("\u1C80", "\u1C8F")  # 俄文字符补充字符集，包括一些少见和历史字符
     CYRILLIC_SUPPLEMENTAL_EXTRA = ("\u2DE0", "\u2DFF")  # 其他扩展字符（例如：斯拉夫语言的一些符号）
-    CYRILLIC_OTHER = ("\u0500", "\u050F")               # 其他字符区块（包括斯拉夫语系其他语言的字符，甚至一些特殊符号）
+    CYRILLIC_OTHER = ("\u0500", "\u050F")  # 其他字符区块（包括斯拉夫语系其他语言的字符，甚至一些特殊符号）
 
     def __init__(self) -> None:
         super().__init__()
 
         self.name = "LanguageFilter"
         self.description = (
-            "语言过滤器，在翻译开始前，根据原文语言对文本中的无效条目进行过滤以节约 翻译时间 与 Token 消耗"
-            + "\n"
-            + "兼容性：支持全部语言；支持全部模型；支持全部文本格式；"
+                "语言过滤器，在翻译开始前，根据原文语言对文本中的无效条目进行过滤以节约 翻译时间 与 Token 消耗"
+                + "\n"
+                + "兼容性：支持全部语言；支持全部模型；支持全部文本格式；"
         )
 
-        self.visibility = True          # 是否在插件设置中显示
-        self.default_enable = True      # 默认启用状态
+        self.visibility = True  # 是否在插件设置中显示
+        self.default_enable = True  # 默认启用状态
 
         self.add_event("text_filter", PluginBase.PRIORITY.NORMAL)
 
@@ -219,7 +235,8 @@ class LanguageFilter(PluginBase):
             self.on_text_filter(event, config, data, items, project)
 
     # 文本后处理事件
-    def on_text_filter(self, event: str, config: TranslatorConfig, data: list[dict], items: list[dict], project: dict) -> None:
+    def on_text_filter(self, event: str, config: TranslatorConfig, data: list[dict], items: list[dict],
+                       project: dict) -> None:
         print("")
         print("[LanguageFilter] 开始执行预处理 ...")
         print("")
@@ -244,7 +261,8 @@ class LanguageFilter(PluginBase):
             # 计算项目中出现次数最多的语言
             most_common_language = get_most_common_language(file_props)
             # 获取可读更强的名称
-            en_source_lang, source_language, _, _ = get_language_display_names(most_common_language, 'chinese_simplified')
+            en_source_lang, source_language, _, _ = get_language_display_names(most_common_language,
+                                                                               'chinese_simplified')
             print(f"[LanguageFilter] 项目主要语言: {most_common_language} - {en_source_lang}/{source_language}")
             print("")
 
@@ -255,7 +273,9 @@ class LanguageFilter(PluginBase):
 
                 # 确定使用的语言
                 if not language_stats:
-                    print(f"[[red]WARNING[/]] [LanguageFilter] 文件 {path} 没有检测到语言信息，使用项目主要语言 {most_common_language}")
+                    print(
+                        f"[[red]WARNING[/]] [LanguageFilter] 文件 {path} 没有检测到语言信息，使用项目主要语言 {most_common_language}"
+                    )
                     first_language = most_common_language
                 else:
                     first_language = language_stats[0][0]
@@ -268,25 +288,8 @@ class LanguageFilter(PluginBase):
                 else:
                     target.extend(self._filter_normal_language(path, file_items, first_language))
         else:
-            # 原有的非自动检测模式
-            has_any = None
-            if config.source_language in ("chinese_simplified", "chinese_traditional"):
-                has_any = self.has_any_cjk
-            elif config.source_language in ("english", "spanish", "french", "german"):
-                has_any = self.has_any_latin
-            elif config.source_language == "korean":
-                has_any = self.has_any_korean
-            elif config.source_language == "russian":
-                has_any = self.has_any_russian
-            elif config.source_language == "japanese":
-                has_any = self.has_any_japanese
-
-            # 筛选出无效条目并标记为已排除
-            if has_any is not None:
-                target = [
-                    v for v in items
-                    if not isinstance(v.get("source_text", ""), str) or not has_any(v.get("source_text", ""))
-                ]
+            # 原有的非自动检测模式，优化为使用统一的函数
+            target.extend(self._filter_normal_language(None, items, config.source_language))
 
         for item in tqdm(target):
             item["translation_status"] = CacheItem.STATUS.EXCLUED
@@ -337,45 +340,47 @@ class LanguageFilter(PluginBase):
     # 判断字符是否为拉丁字符
     def is_latin(self, char: str) -> bool:
         return (
-            LanguageFilter.LATIN_1[0] <= char <= LanguageFilter.LATIN_1[1]
-            or LanguageFilter.LATIN_2[0] <= char <= LanguageFilter.LATIN_2[1]
-            or LanguageFilter.LATIN_EXTENDED_A[0] <= char <= LanguageFilter.LATIN_EXTENDED_A[1]
-            or LanguageFilter.LATIN_EXTENDED_B[0] <= char <= LanguageFilter.LATIN_EXTENDED_B[1]
-            or LanguageFilter.LATIN_SUPPLEMENTAL[0] <= char <= LanguageFilter.LATIN_SUPPLEMENTAL[1]
+                LanguageFilter.LATIN_1[0] <= char <= LanguageFilter.LATIN_1[1]
+                or LanguageFilter.LATIN_2[0] <= char <= LanguageFilter.LATIN_2[1]
+                or LanguageFilter.LATIN_EXTENDED_A[0] <= char <= LanguageFilter.LATIN_EXTENDED_A[1]
+                or LanguageFilter.LATIN_EXTENDED_B[0] <= char <= LanguageFilter.LATIN_EXTENDED_B[1]
+                or LanguageFilter.LATIN_SUPPLEMENTAL[0] <= char <= LanguageFilter.LATIN_SUPPLEMENTAL[1]
         )
 
     # 判断字符是否为韩文（含汉字）字符
     def is_korean(self, char: str) -> bool:
         return (
-            LanguageFilter.CJK[0] <= char <= LanguageFilter.CJK[1]
-            or LanguageFilter.HANGUL_JAMO[0] <= char <= LanguageFilter.HANGUL_JAMO[1]
-            or LanguageFilter.HANGUL_JAMO_EXTENDED_A[0] <= char <= LanguageFilter.HANGUL_JAMO_EXTENDED_A[1]
-            or LanguageFilter.HANGUL_JAMO_EXTENDED_B[0] <= char <= LanguageFilter.HANGUL_JAMO_EXTENDED_B[1]
-            or LanguageFilter.HANGUL_SYLLABLES[0] <= char <= LanguageFilter.HANGUL_SYLLABLES[1]
-            or LanguageFilter.HANGUL_COMPATIBILITY_JAMO[0] <= char <= LanguageFilter.HANGUL_COMPATIBILITY_JAMO[1]
+                LanguageFilter.CJK[0] <= char <= LanguageFilter.CJK[1]
+                or LanguageFilter.HANGUL_JAMO[0] <= char <= LanguageFilter.HANGUL_JAMO[1]
+                or LanguageFilter.HANGUL_JAMO_EXTENDED_A[0] <= char <= LanguageFilter.HANGUL_JAMO_EXTENDED_A[1]
+                or LanguageFilter.HANGUL_JAMO_EXTENDED_B[0] <= char <= LanguageFilter.HANGUL_JAMO_EXTENDED_B[1]
+                or LanguageFilter.HANGUL_SYLLABLES[0] <= char <= LanguageFilter.HANGUL_SYLLABLES[1]
+                or LanguageFilter.HANGUL_COMPATIBILITY_JAMO[0] <= char <= LanguageFilter.HANGUL_COMPATIBILITY_JAMO[1]
         )
 
     # 判断字符是否为俄文字符
     def is_russian(self, char: str) -> bool:
         return (
-            LanguageFilter.CYRILLIC_BASIC[0] <= char <= LanguageFilter.CYRILLIC_BASIC[1]
-            or LanguageFilter.CYRILLIC_SUPPLEMENT[0] <= char <= LanguageFilter.CYRILLIC_SUPPLEMENT[1]
-            or LanguageFilter.CYRILLIC_EXTENDED_A[0] <= char <= LanguageFilter.CYRILLIC_EXTENDED_A[1]
-            or LanguageFilter.CYRILLIC_EXTENDED_B[0] <= char <= LanguageFilter.CYRILLIC_EXTENDED_B[1]
-            or LanguageFilter.CYRILLIC_SUPPLEMENTAL[0] <= char <= LanguageFilter.CYRILLIC_SUPPLEMENTAL[1]
-            or LanguageFilter.CYRILLIC_SUPPLEMENTAL_EXTRA[0] <= char <= LanguageFilter.CYRILLIC_SUPPLEMENTAL_EXTRA[1]
-            or LanguageFilter.CYRILLIC_OTHER[0] <= char <= LanguageFilter.CYRILLIC_OTHER[1]
+                LanguageFilter.CYRILLIC_BASIC[0] <= char <= LanguageFilter.CYRILLIC_BASIC[1]
+                or LanguageFilter.CYRILLIC_SUPPLEMENT[0] <= char <= LanguageFilter.CYRILLIC_SUPPLEMENT[1]
+                or LanguageFilter.CYRILLIC_EXTENDED_A[0] <= char <= LanguageFilter.CYRILLIC_EXTENDED_A[1]
+                or LanguageFilter.CYRILLIC_EXTENDED_B[0] <= char <= LanguageFilter.CYRILLIC_EXTENDED_B[1]
+                or LanguageFilter.CYRILLIC_SUPPLEMENTAL[0] <= char <= LanguageFilter.CYRILLIC_SUPPLEMENTAL[1]
+                or LanguageFilter.CYRILLIC_SUPPLEMENTAL_EXTRA[0] <= char <= LanguageFilter.CYRILLIC_SUPPLEMENTAL_EXTRA[
+                    1]
+                or LanguageFilter.CYRILLIC_OTHER[0] <= char <= LanguageFilter.CYRILLIC_OTHER[1]
         )
 
     # 判断字符是否为日文（含汉字）字符
     def is_japanese(self, char: str) -> bool:
         return (
-            LanguageFilter.CJK[0] <= char <= LanguageFilter.CJK[1]
-            or LanguageFilter.KATAKANA[0] <= char <= LanguageFilter.KATAKANA[1]
-            or LanguageFilter.HIRAGANA[0] <= char <= LanguageFilter.HIRAGANA[1]
-            or LanguageFilter.KATAKANA_HALF_WIDTH[0] <= char <= LanguageFilter.KATAKANA_HALF_WIDTH[1]
-            or LanguageFilter.KATAKANA_PHONETIC_EXTENSIONS[0] <= char <= LanguageFilter.KATAKANA_PHONETIC_EXTENSIONS[1]
-            or LanguageFilter.VOICED_SOUND_MARKS[0] <= char <= LanguageFilter.VOICED_SOUND_MARKS[1]
+                LanguageFilter.CJK[0] <= char <= LanguageFilter.CJK[1]
+                or LanguageFilter.KATAKANA[0] <= char <= LanguageFilter.KATAKANA[1]
+                or LanguageFilter.HIRAGANA[0] <= char <= LanguageFilter.HIRAGANA[1]
+                or LanguageFilter.KATAKANA_HALF_WIDTH[0] <= char <= LanguageFilter.KATAKANA_HALF_WIDTH[1]
+                or LanguageFilter.KATAKANA_PHONETIC_EXTENSIONS[0] <= char <=
+                LanguageFilter.KATAKANA_PHONETIC_EXTENSIONS[1]
+                or LanguageFilter.VOICED_SOUND_MARKS[0] <= char <= LanguageFilter.VOICED_SOUND_MARKS[1]
         )
 
     # 检查字符串是否包含至少一个汉字（中文）字符
@@ -405,12 +410,15 @@ class LanguageFilter(PluginBase):
         has_any = self.get_filter_function(language, path)
         if has_any is not None:
             return [item for item in file_items
-                    if isinstance(item.get("source_text", ""), str) and
-                    has_any(item.get("source_text", "")) and
-                    item.get("lang_code", ["un", 1.0])[0] == language]
+                    if not isinstance(item.get("source_text", ""), str) or
+                    item.get("lang_code", ["un", 1.0])[0] == 'symbols_only' or
+                    (has_any(item.get("source_text", "")) and
+                     item.get("lang_code", ["un", 1.0])[0] == language)]
         else:
+            # 过滤原文检测语言与行语言相同的行
             return [item for item in file_items
-                    if isinstance(item.get("source_text", ""), str) and
+                    if not isinstance(item.get("source_text", ""), str) or
+                    item.get("lang_code", ["un", 1.0])[0] == 'symbols_only' or
                     item.get("lang_code", ["un", 1.0])[0] == language]
 
     def _filter_unknown_language(self, path, file_items):
@@ -423,11 +431,18 @@ class LanguageFilter(PluginBase):
 
     def _filter_normal_language(self, path, file_items, language):
         """处理一般语言情况"""
-        has_any = self.get_filter_function(language, path)
+        # 将Ainiee内置语言代码映射为fasttext标准语言代码
+        cove_lang = map_language_name_to_code(language)
+        # 获取语言处理函数
+        has_any = self.get_filter_function(cove_lang, path)
 
         if has_any is not None:
             return [item for item in file_items
                     if not isinstance(item.get("source_text", ""), str) or
-                    not has_any(item.get("source_text", ""))]
-
-        return []
+                    not has_any(item.get("source_text", "")) or  # 不包含源语言字符
+                    item.get("lang_code", [cove_lang, 1.0])[0] != cove_lang]  # 或检测语言不是源语言
+        else:
+            # 如果没有对应的语言过滤器，过滤原文检测语言与行语言**不**相同的行
+            return [item for item in file_items
+                    if not isinstance(item.get("source_text", ""), str) or
+                    item.get("lang_code", [cove_lang, 1.0])[0] != cove_lang]
