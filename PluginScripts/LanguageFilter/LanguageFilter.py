@@ -440,9 +440,11 @@ class LanguageFilter(PluginBase):
             return [item for item in file_items
                     if not isinstance(item.get("source_text", ""), str) or
                     not has_any(item.get("source_text", "")) or  # 不包含源语言字符
-                    item.get("lang_code", [cove_lang, 1.0])[0] != cove_lang]  # 或检测语言不是源语言
+                    (item.get("lang_code", [cove_lang, 1.0])[0] != cove_lang and
+                     item.get("lang_code", [cove_lang, 1.0])[1] >= 0.6)]  # 或检测语言不是源语言且置信度高于0.6
         else:
             # 如果没有对应的语言过滤器，过滤原文检测语言与行语言**不**相同的行
             return [item for item in file_items
                     if not isinstance(item.get("source_text", ""), str) or
-                    item.get("lang_code", [cove_lang, 1.0])[0] != cove_lang]
+                    (item.get("lang_code", [cove_lang, 1.0])[0] != cove_lang and
+                     item.get("lang_code", [cove_lang, 1.0])[1] >= 0.6)]
