@@ -23,11 +23,9 @@ def get_lang_detector():
     if _LANG_DETECTOR_INSTANCE is None:
         # 设置模型目录
         script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-        sys.path.append(script_dir)
         model_path = os.path.join(script_dir, "Resource", "Models", "fast-langdetect")
-        print(f"!!!!!!!!!{model_path}")
 
-        config = LangDetectConfig(cache_dir=model_path)
+        config = LangDetectConfig(cache_dir=model_path, custom_model_path=os.path.join(model_path, "lid.176.ftz"))
         _LANG_DETECTOR_INSTANCE = LangDetector(config)
     return _LANG_DETECTOR_INSTANCE
 
