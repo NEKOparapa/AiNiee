@@ -5,18 +5,15 @@ import threading
 import textwrap
 
 from Base.Base import Base
-import cohere                       # 需要安装库pip install cohere
-import anthropic                    # 需要安装库pip install anthropic
-from google import genai
 from google.genai import types
 from google.genai.types import Content, Part
-from openai import OpenAI               # pip install openai
 
 from DRWidget.TranslationExtractionCard.TranslationExtraction import TranslationExtraction
 from DRWidget.GlossaryExtractionCard.GlossaryExtraction import GlossaryExtraction
 from DRWidget.NoTranslateListExtractionCard.NoTranslateListExtraction import NoTranslateListExtraction
 from DRWidget.RegexExtractionCard.RegexExtraction import RegexExtractor
 from DRWidget.TagExtractionCard.TagExtraction import TagExtractor
+from ModuleFolders.LLMRequester.LLMClientFactory import LLMClientFactory
 
 
 # 改进点：不支持亚马逊云平台接口
@@ -37,44 +34,41 @@ class ProcessTester(Base):
 
         # 全局文本替换表
         self.rex_list = {
-            "{original_text}":"测试文本",
-            "{previous_text}":"测试文本",
-            "{glossary}":"测试文本",
-            "{code_text}":"测试文本",
+            "{original_text}": "测试文本",
+            "{previous_text}": "测试文本",
+            "{glossary}": "测试文本",
+            "{code_text}": "测试文本",
         }
-
 
         # 订阅流程测试开始事件
         self.subscribe(Base.EVENT.NEW_PROCESS_START, self.run_test_start)
 
     # 响应测试开始事件
     def run_test_start(self, event: int, data: dict):
-        thread = threading.Thread(target = self.run_test, args = (event, data))
+        thread = threading.Thread(target=self.run_test, args=(event, data))
         thread.start()
 
-
     # 测试方法框架
-    def run_test(self,event, config):
+    def run_test(self, event, config):
         success = False
-        result = config # 结果存储字典，本质还是原来的配置结构，只是更新其中的某些字段
+        result = config  # 结果存储字典，本质还是原来的配置结构，只是更新其中的某些字段
 
         # 实现具体的流程测试逻辑
         try:
-           # 实现具体的流程测试逻辑
-            result,success = self.test_processor(config)
+            # 实现具体的流程测试逻辑
+            result, success = self.test_processor(config)
 
         except Exception as e:
             self.error("流程测试失败", e)
-        
+
         # 触发事件，并返回数据
         self.emit(Base.EVENT.NEW_PROCESS_DONE, {
             "success": success,
             "result": result
         })
 
-        
     # 具体测试方法
-    def test_processor(self,config):
+    def test_processor(self, config):
 
         breakpoint = int(config["test_target_breakpoint_position"])
         result = {}
@@ -89,15 +83,15 @@ class ProcessTester(Base):
 
                 result = self._process_phase_a(config)
                 if breakpoint == 1:
-                    return result,True
+                    return result, True
         except Exception as e:
             self.error("第一次请求测试失败", e)
-            return result,False
+            return result, False
 
         # 阶段2：提取阶段
         try:
             if breakpoint >= 2:
-                
+
                 # 打印日志
                 self.print("\n\n")
                 self.info("正在进行提取阶段测试-----------------------------------------")
@@ -110,31 +104,30 @@ class ProcessTester(Base):
                 self.print("")
 
                 if breakpoint == 2:
-                    return result,True
-                
+                    return result, True
+
 
         except Exception as e:
             self.error("提取流程测试失败", e)
-            return result,False      
+            return result, False
 
-        # 阶段3：第二个请求
+            # 阶段3：第二个请求
 
         try:
             if breakpoint >= 3:
-
                 self.print("\n\n")
                 self.info("正在进行第二次请求测试-----------------------------------------")
                 self.print("")
 
                 result = self._process_phase_b(config)
         except Exception as e:
-            self.error("第二次请求测试失败", e)  
-            return result,False  
-        
-        return result,True
+            self.error("第二次请求测试失败", e)
+            return result, False
+
+        return result, True
 
     # 处理第一阶段
-    def _process_phase_a(self,config):
+    def _process_phase_a(self, config):
 
         # 初始化测试用文本
         self.rex_list = self.get_flow_Basic_settings()
@@ -142,18 +135,18 @@ class ProcessTester(Base):
         return self._generic_process_phase(config, "a")
 
     # 处理提取阶段
-    def _process_extraction_phase(self,config):
+    def _process_extraction_phase(self, config):
         """处理提取阶段"""
         response_content = config["request_a_response_content"]
         response_think = config["request_a_response_think"]
-        
+
         for card in config["extraction_phase"]:
             extractor_type = card["settings"]["extractor_type"]
             handler = self.EXTRACTOR_HANDLERS.get(extractor_type)
-            
+
             if handler:
                 # 提取文本
-                result =  handler(response_content,response_think,card["settings"])
+                result = handler(response_content, response_think, card["settings"])
                 # 提取占位符
                 placeholder = card["settings"]["placeholder"]
 
@@ -162,38 +155,36 @@ class ProcessTester(Base):
                     self.rex_list[placeholder] = result
 
                 card["settings"]["system_info"] = result
-        
+
         config["actual_running_breakpoint_position"] = "2"
 
         return config
 
     # 处理第二阶段
-    def _process_phase_b(self,config):
+    def _process_phase_b(self, config):
         return self._generic_process_phase(config, "b")
-
-
 
     def _generic_process_phase(self, config, phase_flag):
         """通用请求处理阶段"""
         # 获取平台配置
-        api_key, api_url, model_name, api_format,extra_body = self.get_platform_config(phase_flag)
-        
+        api_key, api_url, model_name, api_format, extra_body = self.get_platform_config(phase_flag)
+
         # 构建消息列表
         messages, system_content = self._build_messages(config[f"request_phase_{phase_flag}"])
 
         # ================== 请求阶段日志 ==================
-        
+
         # 结构化输出请求参数
         self.info("[接口参数]")
         self.print(f"  → 接口地址: {api_url}")
         self.print(f"  → 模型名称: {model_name}")
         self.print(f"  → 额外参数: {extra_body}")
-        self.print(f"  → 接口密钥: {'*'*(len(api_key)-4)}{api_key[-4:]}")  # 隐藏敏感信息
-        
+        self.print(f"  → 接口密钥: {'*' * (len(api_key) - 4)}{api_key[-4:]}")  # 隐藏敏感信息
+
         if system_content:
             self.info("[系统提示词]\n")
-            self.print(f"{system_content.strip()}\n" )
-        
+            self.print(f"{system_content.strip()}\n")
+
         self.info("[消息内容]")
         self.print(json.dumps(messages, indent=2, ensure_ascii=False))  # 结构化JSON输出
         self.info("\n⌛ 正在进行接口请求...")
@@ -204,11 +195,11 @@ class ProcessTester(Base):
             api_key=api_key,
             api_url=api_url,
             model_name=model_name,
-            extra_body= extra_body,
+            extra_body=extra_body,
             messages=messages,
             system_content=system_content
         )
-        
+
         # ================== 响应阶段日志 ==================
         self.print("")
         self.info(f"接口响应结果")
@@ -219,20 +210,19 @@ class ProcessTester(Base):
 
         self.info("[回复内容]\n")
         self.print(f"{response_content.strip()}\n")
-        
 
         # 保存响应结果
         config[f"request_{phase_flag}_response_content"] = response_content
         config[f"request_{phase_flag}_response_think"] = response_think
         config["actual_running_breakpoint_position"] = phase_flag
-        
+
         return config
 
     def _build_messages(self, request_cards):
         """构建通用消息结构"""
         messages = []
         system_content = ""
-        
+
         for card in request_cards:
             if card["type"] == "DialogueFragmentCard":
                 settings = card["settings"]
@@ -246,24 +236,24 @@ class ProcessTester(Base):
                 # 记录系统消息
                 if role == "system":
                     system_content = content
-                
+
                 messages.append({
                     "role": role,
                     "content": content
                 })
                 settings["system_info"] = content
-        
+
         return messages, system_content
-    
+
     # 接口调用分发
-    def _call_api(self, api_format, api_key, api_url, model_name,extra_body, messages, system_content):
+    def _call_api(self, api_format, api_key, api_url, model_name, extra_body, messages, system_content):
         """统一API调用接口"""
         response_content = ""
         response_think = ""
-        
+
         try:
             if api_format == "OpenAI":
-                return self._handle_openai(api_key, api_url, model_name,extra_body, messages, system_content)
+                return self._handle_openai(api_key, api_url, model_name, extra_body, messages, system_content)
             elif api_format == "Google":
                 return self._handle_google(api_key, api_url, model_name, messages, system_content)
             elif api_format == "Anthropic":
@@ -273,15 +263,14 @@ class ProcessTester(Base):
         except Exception as e:
             self.error(f"{api_format} API调用失败")
             raise
-        
+
         return response_content, response_think
 
     # 各平台接口具体实现
-    def _handle_openai(self, api_key, api_url, model_name,extra_body, messages, system_content):
-        client = OpenAI(base_url=api_url, api_key=api_key)
-        response = client.chat.completions.create(model=model_name,extra_body=extra_body, messages=messages)
+    def _handle_openai(self, api_key, api_url, model_name, extra_body, messages, system_content):
+        client = LLMClientFactory().get_openai_client({"api_key": api_key, "api_url": api_url})
+        response = client.chat.completions.create(model=model_name, extra_body=extra_body, messages=messages)
         message = response.choices[0].message
-        
 
         # 自适应提取推理过程
         if "</think>" in message.content:
@@ -294,7 +283,7 @@ class ProcessTester(Base):
             except Exception:
                 response_think = ""
             response_content = message.content
-        
+
         return response_content, response_think
 
     def _handle_google(self, api_key, api_url, model_name, messages, system_content):
@@ -307,7 +296,7 @@ class ProcessTester(Base):
         ]
 
         # 创建 Gemini Developer API 客户端（非 Vertex AI API）
-        client = genai.Client(api_key=api_key)
+        client = LLMClientFactory.get_google_client({"api_key": api_key})
 
         # 生成文本内容
         response = client.models.generate_content(
@@ -317,26 +306,9 @@ class ProcessTester(Base):
                 system_instruction=system_content,
                 max_output_tokens=32768 if model_name.startswith("gemini-2.5") else 8192,
                 safety_settings=[
-                    types.SafetySetting(
-                        category='HARM_CATEGORY_HARASSMENT',
-                        threshold='BLOCK_NONE',
-                    ),
-                    types.SafetySetting(
-                        category='HARM_CATEGORY_HATE_SPEECH',
-                        threshold='BLOCK_NONE',
-                    ),
-                    types.SafetySetting(
-                        category='HARM_CATEGORY_SEXUALLY_EXPLICIT',
-                        threshold='BLOCK_NONE',
-                    ),
-                    types.SafetySetting(
-                        category='HARM_CATEGORY_DANGEROUS_CONTENT',
-                        threshold='BLOCK_NONE',
-                    ),
-                    types.SafetySetting(
-                        category='HARM_CATEGORY_CIVIC_INTEGRITY',
-                        threshold='BLOCK_NONE',
-                    )
+                    types.SafetySetting(category=f'HARM_CATEGORY_{cat}', threshold='BLOCK_NONE')
+                    for cat in
+                    ["HARASSMENT", "HATE_SPEECH", "SEXUALLY_EXPLICIT", "DANGEROUS_CONTENT", "CIVIC_INTEGRITY"]
                 ]
             ),
         )
@@ -344,28 +316,26 @@ class ProcessTester(Base):
         return response.text, ""
 
     def _handle_anthropic(self, api_key, api_url, model_name, messages, system_content):
-        client = anthropic.Anthropic(api_key=api_key, base_url=api_url)
-        
+        client = LLMClientFactory.get_anthropic_client({"api_key": api_key, "api_url": api_url})
+
         processed_messages = [
             {"role": m["role"], "content": m["content"]}
             for m in messages if m["role"] != "system"
         ]
-        
+
         response = client.messages.create(
             model=model_name,
             messages=processed_messages,
             system=system_content,
             max_tokens=8000
         )
-        
+
         return response.content[0].text, ""
 
     def _handle_cohere(self, api_key, api_url, model_name, messages, system_content):
-        client = cohere.ClientV2(api_key=api_key)
+        client = LLMClientFactory.get_cohere_client({"api_key": api_key, "api_url": api_url})
         response = client.chat(model=model_name, messages=messages, safety_mode="NONE")
         return response.message.content[0].text, ""
-
-
 
     # 提取处理方法的实现
     def _handle_translation_extraction(self, content: str, think: str, settings: dict) -> str:
@@ -383,7 +353,7 @@ class ProcessTester(Base):
         """思考提取实现"""
         text = think
         return text
-    
+
     def _handle_glossary_extraction(self, content: str, think: str, settings: dict) -> str:
         """术语表提取实现"""
         Extraction = GlossaryExtraction()
@@ -399,25 +369,24 @@ class ProcessTester(Base):
     def _handle_tag_extraction(self, content: str, think: str, settings: dict) -> str:
         """标签提取实现"""
         Extraction = TagExtractor()
-        text = Extraction.extract_tag(content,settings)
+        text = Extraction.extract_tag(content, settings)
         return text
-    
+
     def _handle_rex_extraction(self, content: str, think: str, settings: dict) -> str:
         """正则提取实现"""
         Extraction = RegexExtractor()
-        text = Extraction.extract_rex(content,settings)
+        text = Extraction.extract_rex(content, settings)
         return text
-    
 
     # 获取配置信息
     def get_platform_config(self, platform):
         """获取指定平台的配置信息"""
         # 读取配置文件
         user_config = self.load_config()
-        
+
         # 获取平台配置标识
         platform_tag = user_config.get(f"request_{platform}_platform_settings")
-        
+
         # 读取平台基础配置
         platform_config = user_config["platforms"][platform_tag]
         api_url = platform_config["api_url"]
@@ -425,12 +394,12 @@ class ProcessTester(Base):
         api_format = platform_config["api_format"]
         model_name = platform_config["model"]
         auto_complete = platform_config["auto_complete"]
-        extra_body = platform_config.get("extra_body",{})
-        
+        extra_body = platform_config.get("extra_body", {})
+
         # 处理API密钥（取第一个有效密钥）
         cleaned_keys = re.sub(r"\s+", "", api_keys)
         api_key = cleaned_keys.split(",")[0] if cleaned_keys else ""
-        
+
         # 自动补全API地址
         if platform_tag == "sakura" and not api_url.endswith("/v1"):
             api_url += "/v1"
@@ -438,7 +407,6 @@ class ProcessTester(Base):
             version_suffixes = ["/v1", "/v2", "/v3", "/v4"]
             if not any(api_url.endswith(suffix) for suffix in version_suffixes):
                 api_url += "/v1"
-        
 
         # 网络代理设置
         proxy_url = user_config.get("proxy_url")
@@ -453,14 +421,13 @@ class ProcessTester(Base):
             os.environ["https_proxy"] = proxy_url
             self.info(f"[系统代理]  {proxy_url}")
 
-        return api_key,api_url,model_name,api_format,extra_body
+        return api_key, api_url, model_name, api_format, extra_body
 
     # 构建初始替换表
     def get_flow_Basic_settings(self):
         # 读取配置文件
         user_config = self.load_config()
-        
-        
+
         # 读取平台基础配置
         test_original_text = user_config["test_original_text"]
         test_preceding_text = user_config["test_preceding_text"]
@@ -468,17 +435,17 @@ class ProcessTester(Base):
         test_no_translate_list = user_config["test_no_translate_list"]
 
         result = {
-            "{original_text}":test_original_text,
-            "{previous_text}":test_preceding_text,
-            "{glossary}":test_glossary,
-            "{code_text}":test_no_translate_list,
+            "{original_text}": test_original_text,
+            "{previous_text}": test_preceding_text,
+            "{glossary}": test_glossary,
+            "{code_text}": test_no_translate_list,
         }
 
         return result
 
     # 文本替换方法
-    def replace_content(self, replace_dict,text=None):
-        
+    def replace_content(self, replace_dict, text=None):
+
         # 处理文本变量
         replaced_text = None
         if text is not None:
@@ -490,8 +457,8 @@ class ProcessTester(Base):
                 replaced_text = new_text
             else:
                 replaced_text = text  # 保留空字符串
-        
-        return  replaced_text
+
+        return replaced_text
 
     # 替换字典日志打印方法
     def log_rex_list(self):
@@ -509,16 +476,16 @@ class ProcessTester(Base):
         for i, (key, value) in enumerate(self.rex_list.items(), 1):
             # 键值对基础行
             key_str = f"[{i}] {key}".ljust(max_key_width + 4)  # 带序号的键
-            value_lines = textwrap.wrap(str(value), width=line_width) # 使用固定行宽进行wrap
+            value_lines = textwrap.wrap(str(value), width=line_width)  # 使用固定行宽进行wrap
 
             # 首行特殊处理
             log_lines.append(f"{key_str} : {value_lines[0]}" if value_lines else f"{key_str} : ")
 
             # 后续换行处理，统一缩进
             for line in value_lines[1:]:
-                log_lines.append(indent + line) # 统一使用 indent 进行缩进
+                log_lines.append(indent + line)  # 统一使用 indent 进行缩进
 
-            log_lines.append("") # 添加空行
+            log_lines.append("")  # 添加空行
 
         log_lines.append("=" * line_width)
 

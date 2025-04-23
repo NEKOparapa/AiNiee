@@ -1,6 +1,6 @@
-from openai import OpenAI               # pip install openai
-
 from Base.Base import Base
+from ModuleFolders.LLMRequester.LLMClientFactory import LLMClientFactory
+
 
 # 接口请求器
 class SakuraRequester(Base):
@@ -10,11 +10,6 @@ class SakuraRequester(Base):
     # 发起请求
     def request_sakura(self, messages, system_prompt, platform_config) -> tuple[bool, str, str, int, int]:
         try:
-
-            api_url = platform_config.get("api_url")
-            api_key = platform_config.get("api_key")
-            if not api_key:
-                api_key = "none_api_key"
             model_name = platform_config.get("model_name")
             request_timeout = platform_config.get("request_timeout", 60)
             temperature = platform_config.get("temperature", 0.1)
@@ -30,20 +25,18 @@ class SakuraRequester(Base):
                         "content": system_prompt
                     })
 
-            client = OpenAI(
-                base_url = api_url,
-                api_key = api_key,
-            )
+            # 从工厂获取客户端
+            client = LLMClientFactory().get_openai_client_sakura(platform_config)
 
             response = client.chat.completions.create(
-                model = model_name,
-                messages = messages,
-                top_p = top_p,
-                temperature = temperature,
-                frequency_penalty = frequency_penalty,
-                timeout = request_timeout,
-                max_tokens = 512,
-                extra_query = {
+                model=model_name,
+                messages=messages,
+                top_p=top_p,
+                temperature=temperature,
+                frequency_penalty=frequency_penalty,
+                timeout=request_timeout,
+                max_tokens=512,
+                extra_query={
                     "do_sample": True,
                     "num_beams": 1,
                     "repetition_penalty": 1.0

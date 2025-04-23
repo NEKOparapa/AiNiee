@@ -1,7 +1,7 @@
 # System
 pyinstaller
 openai
-cohere==5.10.0
+cohere
 anthropic
 tiktoken
 numpy
@@ -9,12 +9,13 @@ openpyxl
 PyQt5
 PyQt-Fluent-Widgets[full]
 opencc
-google-generativeai
+google-genai
 ebooklib
 beautifulsoup4
 pandas
 chardet
 PyYAML
+httpx[http2]
 
 # Tools
 rich

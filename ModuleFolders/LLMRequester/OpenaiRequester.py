@@ -1,6 +1,6 @@
-from openai import OpenAI               # pip install openai
-
 from Base.Base import Base
+from ModuleFolders.LLMRequester.LLMClientFactory import LLMClientFactory
+
 
 # 接口请求器
 class OpenaiRequester(Base):
@@ -8,18 +8,16 @@ class OpenaiRequester(Base):
         pass
 
     # 发起请求
-    def request_openai(self, messages, system_prompt,platform_config) -> tuple[bool, str, str, int, int]:
+    def request_openai(self, messages, system_prompt, platform_config) -> tuple[bool, str, str, int, int]:
         try:
             # 获取具体配置
-            api_url = platform_config.get("api_url")
-            api_key = platform_config.get("api_key")
             model_name = platform_config.get("model_name")
             request_timeout = platform_config.get("request_timeout", 60)
             temperature = platform_config.get("temperature", 1.0)
             top_p = platform_config.get("top_p", 1.0)
             presence_penalty = platform_config.get("presence_penalty", 0)
             frequency_penalty = platform_config.get("frequency_penalty", 0)
-            extra_body = platform_config.get("extra_body","{}")
+            extra_body = platform_config.get("extra_body", "{}")
 
             # 插入系统消息
             if system_prompt:
@@ -30,11 +28,8 @@ class OpenaiRequester(Base):
                         "content": system_prompt
                     })
 
-
-            client = OpenAI(
-                base_url = api_url,
-                api_key= api_key,
-            )
+            # 从工厂获取客户端
+            client = LLMClientFactory().get_openai_client(platform_config)
 
             # 针对ds-r模型的特殊处理，因为该模型不支持模型预输入回复
             if model_name in {"deepseek-reasoner", "deepseek-r1", "DeepSeek-R1"}:
@@ -42,35 +37,34 @@ class OpenaiRequester(Base):
                 if isinstance(messages[-1], dict) and messages[-1].get('role') != 'user':
                     messages = messages[:-1]  # 移除最后一个元素
 
-
             # 部分平台和模型不接受frequency_penalty参数
             if presence_penalty == 0 and frequency_penalty == 0:
                 response = client.chat.completions.create(
-                    extra_body = extra_body,
-                    model = model_name,
-                    messages = messages,
-                    temperature = temperature,
-                    top_p = top_p,
-                    timeout = request_timeout,
-                    stream = False
+                    extra_body=extra_body,
+                    model=model_name,
+                    messages=messages,
+                    temperature=temperature,
+                    top_p=top_p,
+                    timeout=request_timeout,
+                    stream=False
                 )
 
             else:
                 response = client.chat.completions.create(
-                    extra_body = extra_body,
-                    model = model_name,
-                    messages = messages,
-                    temperature = temperature,
-                    top_p = top_p,
-                    presence_penalty = presence_penalty,
-                    frequency_penalty = frequency_penalty,
-                    timeout = request_timeout,
-                    stream = False
+                    extra_body=extra_body,
+                    model=model_name,
+                    messages=messages,
+                    temperature=temperature,
+                    top_p=top_p,
+                    presence_penalty=presence_penalty,
+                    frequency_penalty=frequency_penalty,
+                    timeout=request_timeout,
+                    stream=False
                 )
 
             # 提取回复内容
             message = response.choices[0].message
-            
+
             # 自适应提取推理过程
             if "</think>" in message.content:
                 splited = message.content.split("</think>")
