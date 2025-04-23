@@ -1,4 +1,5 @@
-import google.generativeai as genai     # pip install google-generativeai
+from google import genai
+from google.genai import types
 
 from Base.Base import Base
 
@@ -22,33 +23,44 @@ class GoogleRequester(Base):
                 "parts": [m["content"]]
             } for m in messages if m["role"] != "system"]
 
+            # 创建 Gemini Developer API 客户端（非 Vertex AI API）
+            client = genai.Client(api_key=api_key)
 
-            # Gemini SDK 文档 - https://ai.google.dev/api?hl=zh-cn&lang=python
-            genai.configure(
-                api_key = api_key,
-                transport = "rest",
-            )
-
-            model = genai.GenerativeModel(
-                model_name = model_name,
-                safety_settings = [
-                    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-                ],
-                system_instruction = system_prompt,
+            # 生成文本内容
+            response = client.models.generate_content(
+                model=model_name,
+                contents=processed_messages,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    max_output_tokens=32768 if model_name.startswith("gemini-2.5") else 8192,
+                    temperature=temperature,
+                    top_p=top_p,
+                    safety_settings=[
+                        types.SafetySetting(
+                            category='HARM_CATEGORY_HARASSMENT',
+                            threshold='BLOCK_NONE',
+                        ),
+                        types.SafetySetting(
+                            category='HARM_CATEGORY_HATE_SPEECH',
+                            threshold='BLOCK_NONE',
+                        ),
+                        types.SafetySetting(
+                            category='HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                            threshold='BLOCK_NONE',
+                        ),
+                        types.SafetySetting(
+                            category='HARM_CATEGORY_DANGEROUS_CONTENT',
+                            threshold='BLOCK_NONE',
+                        ),
+                        types.SafetySetting(
+                            category='HARM_CATEGORY_CIVIC_INTEGRITY',
+                            threshold='BLOCK_NONE',
+                        )
+                    ]
+                ),
             )
 
             # 提取回复的文本内容
-            response = model.generate_content(
-                processed_messages,
-                generation_config = {
-                    "temperature": temperature,
-                    "top_p": top_p,
-                    "max_output_tokens": 7096,
-                },
-            )
             response_content = response.text
         except Exception as e:
             self.error(f"请求任务错误 ... {e}", e if self.is_debug() else None)
