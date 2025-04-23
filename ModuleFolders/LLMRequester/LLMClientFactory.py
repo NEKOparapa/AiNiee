@@ -9,6 +9,37 @@ import cohere
 from google import genai
 
 
+def create_httpx_client(
+        http2=True,
+        max_connections=128,
+        max_keepalive_connections=64,
+        keepalive_expiry=30,
+        **kwargs
+):
+    """
+    创建配置好的HTTP客户端
+
+    参数:
+        http2: 是否启用HTTP/2
+        max_connections: 最大并发连接数
+        max_keepalive_connections: 最大保持活跃的连接数
+        keepalive_expiry: 连接保持活跃的秒数
+        **kwargs: 传递给httpx.Client的其他参数
+
+    返回:
+        配置好的httpx.Client实例
+    """
+    return httpx.Client(
+        http2=http2,
+        limits=httpx.Limits(
+            max_connections=max_connections,
+            max_keepalive_connections=max_keepalive_connections,
+            keepalive_expiry=keepalive_expiry
+        ),
+        **kwargs
+    )
+
+
 class LLMClientFactory:
     """LLM客户端工厂 - 集中管理和缓存不同类型的LLM客户端"""
 
@@ -79,28 +110,25 @@ class LLMClientFactory:
 
     # 各种客户端创建函数
     def _create_openai_client(self, config, api_key):
-        http_client = httpx.Client(http2=True)
         return OpenAI(
             base_url=config.get("api_url"),
             api_key=api_key,
-            http_client=http_client
+            http_client=create_httpx_client()
         )
 
     def _create_anthropic_client(self, config):
-        http_client = httpx.Client(http2=True)
         return anthropic.Anthropic(
             base_url=config.get("api_url"),
             api_key=config.get("api_key"),
-            http_client=http_client
+            http_client=create_httpx_client()
         )
 
     def _create_anthropic_bedrock(self, config):
-        http_client = httpx.Client(http2=True)
         return anthropic.AnthropicBedrock(
             aws_region=config.get("region"),
             aws_access_key=config.get("access_key"),
             aws_secret_key=config.get("secret_key"),
-            http_client=http_client
+            http_client=create_httpx_client()
         )
 
     def _create_boto3_bedrock(self, config):
@@ -112,12 +140,11 @@ class LLMClientFactory:
         )
 
     def _create_cohere_client(self, config):
-        http_client = httpx.Client(http2=True)
         return cohere.ClientV2(
             base_url=config.get("api_url"),
             api_key=config.get("api_key"),
             timeout=config.get("request_timeout", 60),
-            httpx_client=http_client
+            httpx_client=create_httpx_client()
         )
 
     def _create_google_client(self, config):
