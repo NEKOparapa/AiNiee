@@ -155,8 +155,7 @@ class TextProcessor(Base):
                 # 使用原始字符串避免过多反斜杠转义问题
                 enhanced = fr"\s*{p}\s*"
                 enhanced_patterns.append(enhanced)
-            else:
-                print ("[INFO] 空输入正则")
+
         return enhanced_patterns
 
     def _build_affixes_patterns(self, code_pattern_list: List[str]) -> Tuple[List[str], List[str]]:
@@ -168,8 +167,7 @@ class TextProcessor(Base):
             if p:
                 enhanced = fr"\s*{p}\s*"
                 enhanced_patterns.append(enhanced)
-            else:
-                print ("[INFO] 空输入正则")
+
         # 前后缀使用相同的模式列表
         return enhanced_patterns, enhanced_patterns
 
