@@ -112,6 +112,17 @@ class BaseSourceReader(ABC):
         return []
 
 
+# 方法1：使用标记替换法（推荐）
+def clean_text(source_text):
+    # 步骤1：先将所有换行符替换为一个特殊标记
+    text_with_marker = re.sub(r'\r\n|\r|\n', '__NEWLINE__', source_text)
+
+    # 步骤2：正常处理其他空白字符
+    cleaned_text = re.sub(r'\s+', ' ', text_with_marker.strip())
+
+    # 步骤3：将标记替换回字面的'\n'
+    return cleaned_text.replace('__NEWLINE__', '\\n')
+
 # 存储文本对及翻译状态信息
 def text_to_cache_item(source_text, translated_text: str = None):
     item = CacheItem({})
@@ -121,7 +132,7 @@ def text_to_cache_item(source_text, translated_text: str = None):
     item.set_translated_text(translated_text)
     item.set_translation_status(CacheItem.STATUS.UNTRANSLATED)
     # 设置语言检测结果与置信度
-    cleaned_text = re.sub(r'\s+', ' ', source_text.strip())
+    cleaned_text = clean_text(source_text.strip())
     if is_symbols_only(cleaned_text):
         lang = 'symbols_only'
         score = -1.0
