@@ -1,5 +1,8 @@
+import json
+
 from google import genai
 from google.genai import types
+from google.genai.types import Content, Part
 
 from Base.Base import Base
 
@@ -18,10 +21,13 @@ class GoogleRequester(Base):
             top_p = platform_config.get("top_p", 1.0)
 
             # 重新处理openai格式的消息为google格式
-            processed_messages = [{
-                "role": "model" if m["role"] == "assistant" else m["role"],
-                "parts": [m["content"]]
-            } for m in messages if m["role"] != "system"]
+            processed_messages = [
+                Content(
+                    role="model" if m["role"] == "assistant" else m["role"],
+                    parts=[Part.from_text(text=m["content"])]
+                )
+                for m in messages if m["role"] != "system"
+            ]
 
             # 创建 Gemini Developer API 客户端（非 Vertex AI API）
             client = genai.Client(api_key=api_key)
