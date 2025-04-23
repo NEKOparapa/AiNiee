@@ -554,9 +554,9 @@ class PromptBuilder(Base):
 
         # 构建结果字符串
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
-            result = "\n###禁翻表，以下特殊标记符无需翻译改动"+ "\n特殊标记符|备注"
+            result = "\n###禁翻表，以下特殊标记符无需翻译"+ "\n特殊标记符|备注"
         else:
-            result = "\n###Non-Translation List,Leave the following marked content untranslated and unmodified"+ "\nSpecial marker|Remarks"
+            result = "\n###Non-Translation List,Leave the following marked content untranslated"+ "\nSpecial marker|Remarks"
 
         for markers, info in exclusion_dict.items():
             result += f"\n{markers}|{info}" if info else f"\n{markers}|"
