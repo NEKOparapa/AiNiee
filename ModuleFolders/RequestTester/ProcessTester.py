@@ -7,7 +7,9 @@ import textwrap
 from Base.Base import Base
 import cohere                       # 需要安装库pip install cohere
 import anthropic                    # 需要安装库pip install anthropic
-import google.generativeai as genai # 需要安装库pip install -U google-generativeai
+from google import genai
+from google.genai import types
+from google.genai.types import Content, Part
 from openai import OpenAI               # pip install openai
 
 from DRWidget.TranslationExtractionCard.TranslationExtraction import TranslationExtraction
@@ -296,21 +298,49 @@ class ProcessTester(Base):
         return response_content, response_think
 
     def _handle_google(self, api_key, api_url, model_name, messages, system_content):
-        genai.configure(api_key=api_key, transport="rest")
-        
-        processed_messages = [{
-            "role": "model" if m["role"] == "assistant" else m["role"],
-            "parts": [m["content"]]
-        } for m in messages if m["role"] != "system"]
-        
-        model = genai.GenerativeModel(
-            model_name=model_name,
-            system_instruction=system_content,
-            safety_settings={f"HARM_CATEGORY_{cat}": "BLOCK_NONE" 
-                for cat in ["HARASSMENT", "HATE_SPEECH", "SEXUALLY_EXPLICIT", "DANGEROUS_CONTENT"]}
+        processed_messages = [
+            Content(
+                role="model" if m["role"] == "assistant" else m["role"],
+                parts=[Part.from_text(text=m["content"])]
+            )
+            for m in messages if m["role"] != "system"
+        ]
+
+        # 创建 Gemini Developer API 客户端（非 Vertex AI API）
+        client = genai.Client(api_key=api_key)
+
+        # 生成文本内容
+        response = client.models.generate_content(
+            model=model_name,
+            contents=processed_messages,
+            config=types.GenerateContentConfig(
+                system_instruction=system_content,
+                max_output_tokens=32768 if model_name.startswith("gemini-2.5") else 8192,
+                safety_settings=[
+                    types.SafetySetting(
+                        category='HARM_CATEGORY_HARASSMENT',
+                        threshold='BLOCK_NONE',
+                    ),
+                    types.SafetySetting(
+                        category='HARM_CATEGORY_HATE_SPEECH',
+                        threshold='BLOCK_NONE',
+                    ),
+                    types.SafetySetting(
+                        category='HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                        threshold='BLOCK_NONE',
+                    ),
+                    types.SafetySetting(
+                        category='HARM_CATEGORY_DANGEROUS_CONTENT',
+                        threshold='BLOCK_NONE',
+                    ),
+                    types.SafetySetting(
+                        category='HARM_CATEGORY_CIVIC_INTEGRITY',
+                        threshold='BLOCK_NONE',
+                    )
+                ]
+            ),
         )
-        
-        response = model.generate_content(processed_messages)
+
         return response.text, ""
 
     def _handle_anthropic(self, api_key, api_url, model_name, messages, system_content):
