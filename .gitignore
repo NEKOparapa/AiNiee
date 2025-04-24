@@ -11,3 +11,8 @@
 .venv
 dist/
 build/
+
+# IDE配置
+.idea/
+# 构建文件
+*.spec

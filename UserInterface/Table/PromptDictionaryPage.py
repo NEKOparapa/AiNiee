@@ -82,7 +82,7 @@ class PromptDictionaryPage(QFrame, Base):
             SwitchButtonCard(
                 self.tra("术语表"),
                 self.tra(
-                "通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n触发机制: 文本含有原名\n示例:  ダリヤ -> 达莉雅 (女性的名字)"
+                "通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n触发机制: 文本含有原名\n填写示例:  ダリヤ  |  达莉雅  |  女性的名字"
                 ),
                 init = init,
                 checked_changed = checked_changed,
@@ -342,7 +342,7 @@ class PromptDictionaryPage(QFrame, Base):
             self.success_toast("", info_cont1)
 
         parent.add_action(
-            Action(FluentIcon.DOWNLOAD, self.tra("一键提取"), parent, triggered = triggered),
+            Action(FluentIcon.PEOPLE, self.tra("角色提取"), parent, triggered = triggered),
         )
 
 
@@ -372,7 +372,7 @@ class PromptDictionaryPage(QFrame, Base):
                 self.warning_toast("", self.tra("软件正在执行其他任务中，请稍后再试"))
 
         parent.add_action(
-            Action(FluentIcon.DOWNLOAD, self.tra("一键翻译"), parent, triggered = triggered),
+            Action(FluentIcon.SEND_FILL, self.tra("简单翻译"), parent, triggered = triggered),
         )
 
 

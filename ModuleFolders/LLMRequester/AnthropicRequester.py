@@ -1,6 +1,11 @@
-import anthropic                        # pip install anthropic
-
 from Base.Base import Base
+from ModuleFolders.LLMRequester.LLMClientFactory import LLMClientFactory
+
+
+def is_claude3_model(model_name):
+    """判断是否为Claude 3系列模型"""
+    return any(variant in model_name for variant in ["3-haiku", "3-opus", "3-sonnet"])
+
 
 # 接口请求器
 class AnthropicRequester(Base):
@@ -8,30 +13,24 @@ class AnthropicRequester(Base):
         pass
 
     # 发起请求
-    def request_anthropic(self, messages, system_prompt,platform_config) -> tuple[bool, str, str, int, int]:
+    def request_anthropic(self, messages, system_prompt, platform_config) -> tuple[bool, str, str, int, int]:
         try:
-
-            api_url = platform_config.get("api_url")
-            api_key = platform_config.get("api_key")
             model_name = platform_config.get("model_name")
             request_timeout = platform_config.get("request_timeout", 60)
             temperature = platform_config.get("temperature", 1.0)
             top_p = platform_config.get("top_p", 1.0)
 
-
-            client = anthropic.Anthropic(
-                base_url = api_url,
-                api_key = api_key,
-            )
+            # 从工厂获取客户端
+            client = LLMClientFactory().get_anthropic_client(platform_config)
 
             response = client.messages.create(
-                model = model_name,
-                system = system_prompt,
-                messages = messages,
-                temperature = temperature,
-                top_p = top_p,
-                timeout = request_timeout,
-                max_tokens = 4096,
+                model=model_name,
+                system=system_prompt,
+                messages=messages,
+                temperature=temperature,
+                top_p=top_p,
+                timeout=request_timeout,
+                max_tokens=4096 if is_claude3_model(model_name) else 8192,
             )
 
             # 提取回复的文本内容

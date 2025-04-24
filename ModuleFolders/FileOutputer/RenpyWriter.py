@@ -34,7 +34,12 @@ class RenpyWriter(BaseTranslatedWriter):
 
             original_line = lines[line_num]
             new_trans = item.translated_text # 新的翻译文本
-            new_trans = re.sub(r'(?<!\\)"',r'\\"', new_trans) # 转义双引号
+
+            # 转义双引号，双引号的前面没有反斜杠或者双引号，和后面没有双引号
+            pattern = r'(?<![\\"])"(?![\\"])'
+            replacement = r'\\"' 
+            new_trans = re.sub(pattern, replacement,  new_trans)
+
 
             # 查找原始行中第一个和最后一个双引号的索引
             first_quote_index = original_line.find('"')
