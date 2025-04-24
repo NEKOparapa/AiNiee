@@ -13,7 +13,7 @@ from DRWidget.GlossaryExtractionCard.GlossaryExtraction import GlossaryExtractio
 from DRWidget.NoTranslateListExtractionCard.NoTranslateListExtraction import NoTranslateListExtraction
 from DRWidget.RegexExtractionCard.RegexExtraction import RegexExtractor
 from DRWidget.TagExtractionCard.TagExtraction import TagExtractor
-from ModuleFolders.LLMRequester.LLMClientFactory import LLMClientFactory
+from ModuleFolders.LLMRequester.LLMRequester import LLMRequester
 
 
 # 改进点：不支持亚马逊云平台接口
@@ -167,19 +167,12 @@ class ProcessTester(Base):
     def _generic_process_phase(self, config, phase_flag):
         """通用请求处理阶段"""
         # 获取平台配置
-        api_key, api_url, model_name, api_format, extra_body = self.get_platform_config(phase_flag)
+        platform_config = self.get_platform_config(phase_flag)
 
         # 构建消息列表
         messages, system_content = self._build_messages(config[f"request_phase_{phase_flag}"])
 
         # ================== 请求阶段日志 ==================
-
-        # 结构化输出请求参数
-        self.info("[接口参数]")
-        self.print(f"  → 接口地址: {api_url}")
-        self.print(f"  → 模型名称: {model_name}")
-        self.print(f"  → 额外参数: {extra_body}")
-        self.print(f"  → 接口密钥: {'*' * (len(api_key) - 4)}{api_key[-4:]}")  # 隐藏敏感信息
 
         if system_content:
             self.info("[系统提示词]\n")
@@ -190,14 +183,14 @@ class ProcessTester(Base):
         self.info("\n⌛ 正在进行接口请求...")
 
         # ================== 执行API调用 ==================
-        response_content, response_think = self._call_api(
-            api_format=api_format,
-            api_key=api_key,
-            api_url=api_url,
-            model_name=model_name,
-            extra_body=extra_body,
-            messages=messages,
-            system_content=system_content
+
+
+        #尝试请求
+        requester = LLMRequester()
+        skip, response_think, response_content, prompt_tokens, completion_tokens = requester.sent_request(
+            messages,
+            system_content,
+            platform_config
         )
 
         # ================== 响应阶段日志 ==================
@@ -245,97 +238,6 @@ class ProcessTester(Base):
 
         return messages, system_content
 
-    # 接口调用分发
-    def _call_api(self, api_format, api_key, api_url, model_name, extra_body, messages, system_content):
-        """统一API调用接口"""
-        response_content = ""
-        response_think = ""
-
-        try:
-            if api_format == "OpenAI":
-                return self._handle_openai(api_key, api_url, model_name, extra_body, messages, system_content)
-            elif api_format == "Google":
-                return self._handle_google(api_key, api_url, model_name, messages, system_content)
-            elif api_format == "Anthropic":
-                return self._handle_anthropic(api_key, api_url, model_name, messages, system_content)
-            elif api_format == "Cohere":
-                return self._handle_cohere(api_key, api_url, model_name, messages, system_content)
-        except Exception as e:
-            self.error(f"{api_format} API调用失败")
-            raise
-
-        return response_content, response_think
-
-    # 各平台接口具体实现
-    def _handle_openai(self, api_key, api_url, model_name, extra_body, messages, system_content):
-        client = LLMClientFactory().get_openai_client({"api_key": api_key, "api_url": api_url})
-        response = client.chat.completions.create(model=model_name, extra_body=extra_body, messages=messages)
-        message = response.choices[0].message
-
-        # 自适应提取推理过程
-        if "</think>" in message.content:
-            splited = message.content.split("</think>")
-            response_think = splited[0].removeprefix("<think>").replace("\n\n", "\n")
-            response_content = splited[-1]
-        else:
-            try:
-                response_think = message.reasoning_content
-            except Exception:
-                response_think = ""
-            response_content = message.content
-
-        return response_content, response_think
-
-    def _handle_google(self, api_key, api_url, model_name, messages, system_content):
-        processed_messages = [
-            Content(
-                role="model" if m["role"] == "assistant" else m["role"],
-                parts=[Part.from_text(text=m["content"])]
-            )
-            for m in messages if m["role"] != "system"
-        ]
-
-        # 创建 Gemini Developer API 客户端（非 Vertex AI API）
-        client = LLMClientFactory.get_google_client({"api_key": api_key})
-
-        # 生成文本内容
-        response = client.models.generate_content(
-            model=model_name,
-            contents=processed_messages,
-            config=types.GenerateContentConfig(
-                system_instruction=system_content,
-                max_output_tokens=32768 if model_name.startswith("gemini-2.5") else 8192,
-                safety_settings=[
-                    types.SafetySetting(category=f'HARM_CATEGORY_{cat}', threshold='BLOCK_NONE')
-                    for cat in
-                    ["HARASSMENT", "HATE_SPEECH", "SEXUALLY_EXPLICIT", "DANGEROUS_CONTENT", "CIVIC_INTEGRITY"]
-                ]
-            ),
-        )
-
-        return response.text, ""
-
-    def _handle_anthropic(self, api_key, api_url, model_name, messages, system_content):
-        client = LLMClientFactory.get_anthropic_client({"api_key": api_key, "api_url": api_url})
-
-        processed_messages = [
-            {"role": m["role"], "content": m["content"]}
-            for m in messages if m["role"] != "system"
-        ]
-
-        response = client.messages.create(
-            model=model_name,
-            messages=processed_messages,
-            system=system_content,
-            max_tokens=8000
-        )
-
-        return response.content[0].text, ""
-
-    def _handle_cohere(self, api_key, api_url, model_name, messages, system_content):
-        client = LLMClientFactory.get_cohere_client({"api_key": api_key, "api_url": api_url})
-        response = client.chat(model=model_name, messages=messages, safety_mode="NONE")
-        return response.message.content[0].text, ""
 
     # 提取处理方法的实现
     def _handle_translation_extraction(self, content: str, think: str, settings: dict) -> str:
@@ -392,8 +294,10 @@ class ProcessTester(Base):
         api_url = platform_config["api_url"]
         api_keys = platform_config["api_key"]
         api_format = platform_config["api_format"]
+        region = platform_config.get("region", "")
+        access_key = platform_config.get("access_key", "")
+        secret_key = platform_config.get("secret_key", "")
         model_name = platform_config["model"]
-        auto_complete = platform_config["auto_complete"]
         extra_body = platform_config.get("extra_body", {})
 
         # 处理API密钥（取第一个有效密钥）
@@ -401,12 +305,22 @@ class ProcessTester(Base):
         api_key = cleaned_keys.split(",")[0] if cleaned_keys else ""
 
         # 自动补全API地址
+        auto_complete = platform_config["auto_complete"]
         if platform_tag == "sakura" and not api_url.endswith("/v1"):
             api_url += "/v1"
         elif auto_complete:
             version_suffixes = ["/v1", "/v2", "/v3", "/v4"]
             if not any(api_url.endswith(suffix) for suffix in version_suffixes):
                 api_url += "/v1"
+
+
+        # 结构化输出请求参数
+        self.info("[接口参数]")
+        self.print(f"  → 接口地址: {api_url}")
+        self.print(f"  → 模型名称: {model_name}")
+        self.print(f"  → 额外参数: {extra_body}")
+        self.print(f"  → 接口密钥: {'*' * (len(api_key) - 4)}{api_key[-4:]}")  # 隐藏敏感信息
+
 
         # 网络代理设置
         proxy_url = user_config.get("proxy_url")
@@ -421,7 +335,23 @@ class ProcessTester(Base):
             os.environ["https_proxy"] = proxy_url
             self.info(f"[系统代理]  {proxy_url}")
 
-        return api_key, api_url, model_name, api_format, extra_body
+
+
+        # 构建配置包
+        platform_config = {
+            "target_platform": platform_tag,
+            "api_url": api_url,
+            "api_key": api_key,
+            "api_format": api_format,
+            "model_name": model_name,
+            "region":  region,
+            "access_key":  access_key,
+            "secret_key": secret_key,
+            "extra_body": extra_body
+        }
+
+
+        return platform_config
 
     # 构建初始替换表
     def get_flow_Basic_settings(self):

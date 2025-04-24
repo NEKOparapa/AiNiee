@@ -33,13 +33,7 @@ class ExclusionListPage(QFrame, Base):
         # 默认配置
         self.default = {
             "exclusion_list_switch": False,
-            "exclusion_list_data": [
-                {
-                    "markers": "",
-                    "info": "",
-                    "regex": "",
-                }
-            ],
+            "exclusion_list_data": [],
         }
 
         # 载入并保存默认配置
@@ -84,7 +78,7 @@ class ExclusionListPage(QFrame, Base):
             SwitchButtonCard(
                 self.tra("禁翻表"),
                 self.tra(
-                "通过构建禁翻表来引导模型，禁止翻译文本中的特殊标记符，占位符，代码段等内容\n触发机制: 文本含有标记符，或者正则表达式提取生效\n示例:  //F[N1]  游戏文本标记符号  //[A-Z]\\[.*?\\]"
+                "通过构建禁翻表来引导模型，禁止翻译文本中的特殊标记符，占位符，代码段等内容\n触发机制: 文本含有标记符，或者正则表达式提取生效\n填写示例:  //F[N1]  |  游戏文本标记符号  |  //[A-Z]\\[.*?\\]"
                 ),
                 init = init,
                 checked_changed = checked_changed,

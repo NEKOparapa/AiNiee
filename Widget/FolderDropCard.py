@@ -10,6 +10,8 @@ from qfluentwidgets import (CardWidget, StrongBodyLabel, isDarkTheme, BodyLabel)
 # 改进点：亮暗主题颜色区别不大，需要两套和UI风格更加和谐的颜色方案
 # 改进点：初始化展示软件支持的各种文件类型
 # 改进点：当打开自动设置输出文件夹时，自动显示输出文件夹的路径，但会耦合
+# 改进点：中间加一个按钮，点击后可以打开文件夹，并且一样可以设置输出路径
+# 改进点：监听主题变化，自动更新颜色
 class FolderDropLabel(BodyLabel):
     """
     一个自定义QLabel，用于接收拖放的文件夹。

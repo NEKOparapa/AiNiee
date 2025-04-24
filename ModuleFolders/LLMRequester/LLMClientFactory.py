@@ -55,8 +55,10 @@ class LLMClientFactory:
 
     def get_openai_client(self, config: Dict[str, Any]) -> OpenAI:
         """获取OpenAI客户端"""
+        # 展示需要到的配置项
         api_key = config.get("api_key")
-        key = ("openai", config.get("api_url"), api_key)
+        api_url = config.get("api_url")
+        key = ("openai", api_url, api_key)
         return self._get_cached_client(key, lambda: self._create_openai_client(config, api_key))
 
     def get_openai_client_local(self, config: Dict[str, Any]) -> OpenAI:
@@ -64,7 +66,8 @@ class LLMClientFactory:
         api_key = config.get("api_key")
         if not api_key:
             api_key = "none_api_key"
-        key = ("openai_local", config.get("api_url"), api_key)
+        api_url = config.get("api_url")
+        key = ("openai_local", api_url, api_key)
         return self._get_cached_client(key, lambda: self._create_openai_client(config, api_key))
 
     def get_openai_client_sakura(self, config: Dict[str, Any]) -> OpenAI:
@@ -72,32 +75,44 @@ class LLMClientFactory:
         api_key = config.get("api_key")
         if not api_key:
             api_key = "none_api_key"
-        key = ("openai_sakura", config.get("api_url"), api_key)
+        api_url = config.get("api_url")
+        key = ("openai_sakura", api_url, api_key)
         return self._get_cached_client(key, lambda: self._create_openai_client(config, api_key))
 
     def get_anthropic_client(self, config: Dict[str, Any]) -> anthropic.Anthropic:
         """获取Anthropic客户端"""
-        key = ("anthropic", config.get("api_url"), config.get("api_key"))
+        api_key = config.get("api_key")
+        api_url = config.get("api_url")
+        key = ("anthropic", api_url, api_key)
         return self._get_cached_client(key, lambda: self._create_anthropic_client(config))
 
     def get_anthropic_bedrock(self, config: Dict[str, Any]) -> anthropic.AnthropicBedrock:
         """获取AnthropicBedrock客户端"""
-        key = ("anthropic_bedrock", config.get("region"), config.get("access_key"), config.get("secret_key"))
+        region = config.get("region")
+        access_key = config.get("access_key")
+        secret_key = config.get("secret_key")
+        key = ("anthropic_bedrock", region, access_key, secret_key)
         return self._get_cached_client(key, lambda: self._create_anthropic_bedrock(config))
 
     def get_boto3_bedrock(self, config: Dict[str, Any]) -> Any:
         """获取boto3 bedrock客户端"""
-        key = ("boto3_bedrock", config.get("region"), config.get("access_key"), config.get("secret_key"))
+        region = config.get("region")
+        access_key = config.get("access_key")
+        secret_key = config.get("secret_key")
+        key = ("boto3_bedrock", region, access_key, secret_key)
         return self._get_cached_client(key, lambda: self._create_boto3_bedrock(config))
 
     def get_cohere_client(self, config: Dict[str, Any]) -> cohere.ClientV2:
         """获取Cohere客户端"""
-        key = ("cohere", config.get("api_url"), config.get("api_key"))
+        api_key = config.get("api_key")
+        api_url = config.get("api_url")
+        key = ("cohere", api_url, api_key)
         return self._get_cached_client(key, lambda: self._create_cohere_client(config))
 
     def get_google_client(self, config: Dict[str, Any]) -> genai.Client:
         """获取Google AI客户端"""
-        key = ("google", config.get("api_key"))
+        api_key = config.get("api_key")
+        key = ("google", api_key)
         return self._get_cached_client(key, lambda: self._create_google_client(config))
 
     def _get_cached_client(self, key, factory_func):

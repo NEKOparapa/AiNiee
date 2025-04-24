@@ -262,6 +262,19 @@ class TranslatorConfig(Base):
             self.tpm_limit = min(self.tpm_limit_a,self.tpm_limit_b)
 
 
+        # 如果开启自动设置输出文件夹功能，设置为输入文件夹的平级目录
+        if self.auto_set_output_path == True:
+            abs_input_path = os.path.abspath(self.label_input_path)
+            parent_dir = os.path.dirname(abs_input_path)
+            output_folder_name = "AiNieeOutput"
+            self.label_output_path = os.path.join(parent_dir, output_folder_name)
+
+           # 保存新配置
+            config = self.load_config()
+            config["label_output_path"] = self.label_output_path
+            self.save_config(config)
+
+
         # 设置网络代理(共用设置)
         if self.proxy_enable == False or self.proxy_url == "":
             os.environ.pop("http_proxy", None)

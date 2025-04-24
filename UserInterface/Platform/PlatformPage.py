@@ -291,8 +291,8 @@ class PlatformPage(QFrame, Base):
                                 partial(self.show_api_edit_page, k),
                             ),
                             (
-                                FluentIcon.ALBUM,
-                                self.tra("重命名接口"),
+                                FluentIcon.LABEL,
+                                self.tra("更名接口"),
                                 partial(self.rename_platform, k),
                             ),
                             (
@@ -306,14 +306,14 @@ class PlatformPage(QFrame, Base):
                                 partial(self.show_args_edit_page, k),
                             ),
                             (
-                                FluentIcon.SEND,
-                                self.tra("测试接口"),
-                                partial(self.api_test, k),
-                            ),
-                            (
                                 FluentIcon.DELETE,
                                 self.tra("删除接口"),
                                 partial(self.delete_platform, k),
+                            ),
+                            (
+                                FluentIcon.SEND,
+                                self.tra("测试接口"),
+                                partial(self.api_test, k),
                             ),
                         ],
                     },
@@ -355,7 +355,7 @@ class PlatformPage(QFrame, Base):
                 menu.addSeparator() if k != len(item.get("menus")) - 1 else None
             drop_down_push_button.setMenu(menu)
 
-   
+    # 更新自定义平台控件
     def update_custom_platform_widgets(self, widget):
         config = self.load_config()
         platforms = {k:v for k, v in config.get("platforms").items() if v.get("group") == "custom"}
