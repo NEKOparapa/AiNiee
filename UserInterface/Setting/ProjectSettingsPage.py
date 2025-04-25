@@ -557,12 +557,28 @@ class ProjectSettingsPage_B(QFrame, Base):
             config["label_output_path"] = path.strip()
             self.save_config(config)
 
+        # 拖拽文件夹回调
+        def drop_callback(widget, dropped_text) -> None:
+            if not dropped_text:
+                return
+
+            # 更新UI
+            info_cont = self.tra("当前输出文件夹为") + f" {dropped_text.strip()}"
+            widget.set_description(info_cont)
+
+            # 更新并保存配置
+            config = self.load_config()
+            config["label_output_path"] = dropped_text.strip()
+            self.save_config(config)
+
+
         parent.addWidget(
             PushButtonCard(
                 self.tra("输出文件夹(不能与输入文件夹相同)"),
                 "",
                 widget_init,
                 widget_callback,
+                drop_callback,
             )
         )
 
