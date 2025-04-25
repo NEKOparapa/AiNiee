@@ -117,7 +117,7 @@ class ProjectSettingsPage_A(QFrame, Base):
         self.spacer = QWidget(self)
         self.spacer.setFixedHeight(10)
         self.container.addWidget(self.spacer)
-       
+
 
         # 文件拖放区域
         self.file_drop_area = QWidget(self)
@@ -129,8 +129,8 @@ class ProjectSettingsPage_A(QFrame, Base):
         # 创建虚线边框容器
         self.drop_container = QWidget(self)
         self.drop_container.setObjectName("dropContainer")
-        self.drop_container.setMinimumHeight(400)  
-        self.drop_container.setMinimumWidth(400) 
+        self.drop_container.setMinimumHeight(400)
+        self.drop_container.setMinimumWidth(400)
         self.drop_container.setStyleSheet("""
             #dropContainer {
                 border: 1px dashed #6a6a6a;
@@ -152,13 +152,13 @@ class ProjectSettingsPage_A(QFrame, Base):
         # 创建一个容器来居中放置图标和文本
         self.icon_text_container = QWidget(self)
         self.icon_text_layout = QVBoxLayout(self.icon_text_container)
-        self.icon_text_layout.setContentsMargins(0, 8, 0, 8)  # 上下添加间距
-        self.icon_text_layout.setSpacing(10)  # 图标和文本之间的间距
+        self.icon_text_layout.setContentsMargins(0, 8, 0, 8)
+        self.icon_text_layout.setSpacing(5)
         self.icon_text_layout.setAlignment(Qt.AlignCenter)
 
-        # 上传图标 (使用SVG)
+        # 上传图标
         self.upload_icon = QSvgWidget(self)
-        self.upload_icon.setFixedSize(48, 48)
+        self.upload_icon.setFixedSize(72, 72)
 
         # 上传图标的SVG内容
         upload_svg = """
@@ -178,6 +178,44 @@ class ProjectSettingsPage_A(QFrame, Base):
         # 加载SVG文件
         self.upload_icon.load(self.temp_svg_file.name)
 
+        # 获取配置文件中的初始路径
+        initial_path = config.get("label_input_path", "")
+        # 创建路径显示容器
+        self.path_container = QWidget(self)
+        self.path_container.setObjectName("pathContainer")
+        self.path_container.setStyleSheet("""
+            #pathContainer {
+                border-radius: 4px;
+                padding: 2px;
+                margin-top: 20px;  /* 增加与上方元素的间距 */
+            }
+        """)
+
+        # 创建水平布局
+        self.path_layout = QHBoxLayout(self.path_container)
+        self.path_layout.setContentsMargins(0, 5, 0, 5)
+        self.path_layout.setSpacing(5)
+        self.path_layout.setAlignment(Qt.AlignCenter)  # 让文本居中显示
+
+        # 添加提示文本
+        self.path_prompt = BodyLabel(self.tra("当前输入文件夹路径为："), self)
+        self.path_prompt.setStyleSheet("""
+            color: #AAAAAA;
+            font-size: 13px;
+        """)
+        self.path_layout.addWidget(self.path_prompt)
+
+        # 显示当前路径
+        path_text = initial_path if initial_path and initial_path != "./input" else ""
+        self.path_label = BodyLabel(path_text, self)
+        self.path_label.setStyleSheet("""
+            color: #6A9BFF;
+            font-size: 15px;
+            font-weight: bold;
+        """)
+        # 不再使用 stretch factor，让文本自然居中
+        self.path_layout.addWidget(self.path_label)
+
         # 创建文件拖放标签
         self.folder_drop_label = FolderDropLabel(self.tra("将输入文件夹拖拽到此处"), self)
         self.folder_drop_label.pathDropped.connect(self.on_path_dropped)
@@ -186,7 +224,8 @@ class ProjectSettingsPage_A(QFrame, Base):
             background: transparent;
             border: none;
             color: #FFFFFF;
-            font-size: 16px;
+            font-size: 18px;
+            font-weight: bold;
         """)
         self.folder_drop_label.setFixedHeight(30)
         self.folder_drop_label.setAlignment(Qt.AlignCenter)
@@ -198,15 +237,14 @@ class ProjectSettingsPage_A(QFrame, Base):
         # 将容器添加到拖放区域
         self.drop_layout.addWidget(self.icon_text_container)
 
-        # 获取配置文件中的初始路径
-        initial_path = config.get("label_input_path", "")
+
         if initial_path and initial_path != "./input":
             self.folder_drop_label.set_path(initial_path)
 
         # 添加到布局
         self.drop_layout.addWidget(self.folder_drop_label)
 
-        
+
 
         # 创建底部容器
         self.bottom_container = QWidget(self)
@@ -224,7 +262,7 @@ class ProjectSettingsPage_A(QFrame, Base):
         """)
         self.bottom_layout.addWidget(self.or_label)
 
-        # 选择文件夹按钮 - 使用绿色风格
+        # 选择文件夹按钮
         self.select_folder_button = PrimaryPushButton(FluentIcon.FOLDER,self.tra("选择输入文件夹") ,self)
         self.select_folder_button.setFixedSize(150, 36)
         self.select_folder_button.clicked.connect(self.select_folder)
@@ -243,16 +281,14 @@ class ProjectSettingsPage_A(QFrame, Base):
 
         # 添加虚线边框容器到主布局
         self.file_drop_layout.addWidget(self.drop_container)
-        # 显示当前路径
-        path_text = initial_path if initial_path and initial_path != "./input" else ""
-        self.path_label = BodyLabel(path_text, self)
-        self.path_label.setAlignment(Qt.AlignCenter)
-        self.path_label.setStyleSheet("""
-            color: #6A9BFF;
-            font-size: 12px;
-            margin-top: 5px;
-        """)
-        self.bottom_layout.addWidget(self.path_label)
+
+
+        # 添加路径容器到底部布局
+        self.bottom_layout.addWidget(self.path_container)
+
+        # 初始时如果没有路径则隐藏路径容器
+        if not path_text:
+            self.path_container.setVisible(False)
 
         # 添加到主容器
         self.container.addWidget(self.file_drop_area)
@@ -323,6 +359,8 @@ class ProjectSettingsPage_A(QFrame, Base):
         # 更新UI
         self.folder_drop_label.set_path(path)
         self.path_label.setText(path)
+        # 确保路径容器可见
+        self.path_container.setVisible(True)
 
         # 更新配置
         config = self.load_config()
@@ -336,6 +374,8 @@ class ProjectSettingsPage_A(QFrame, Base):
 
         # 更新UI
         self.path_label.setText(path)
+        # 确保路径容器可见
+        self.path_container.setVisible(True)
 
         # 更新配置
         config = self.load_config()
@@ -346,10 +386,14 @@ class ProjectSettingsPage_A(QFrame, Base):
         """路径变更回调"""
         if not path:
             self.path_label.setText("")
+            # 隐藏路径容器
+            self.path_container.setVisible(False)
             return
 
         # 更新UI
-        # self.path_label.setText(path)
+        self.path_label.setText(path)
+        # 确保路径容器可见
+        self.path_container.setVisible(True)
 
     # 获取接口列表
     def get_items(self, config) -> list:
