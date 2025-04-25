@@ -103,16 +103,21 @@ class ProjectSettingsPage_A(QFrame, Base):
         # 添加到主容器
         self.container.addWidget(self.header_widget)
 
+         # 添加间距
+        self.spacer = QWidget(self)
+        self.spacer.setFixedHeight(5)
+        self.container.addWidget(self.spacer)
+
         # 添加分割线
         self.separator = QWidget(self)
-        self.separator.setFixedHeight(1)
+        self.separator.setFixedHeight(2)
         self.separator.setStyleSheet("background-color: #3A3A3A;")
         self.container.addWidget(self.separator)
 
-        # 添加间距
         self.spacer = QWidget(self)
-        self.spacer.setFixedHeight(20)
+        self.spacer.setFixedHeight(10)
         self.container.addWidget(self.spacer)
+       
 
         # 文件拖放区域
         self.file_drop_area = QWidget(self)
@@ -125,7 +130,7 @@ class ProjectSettingsPage_A(QFrame, Base):
         self.drop_container = QWidget(self)
         self.drop_container.setObjectName("dropContainer")
         self.drop_container.setMinimumHeight(400)  
-        self.drop_container.setMinimumWidth(500) 
+        self.drop_container.setMinimumWidth(400) 
         self.drop_container.setStyleSheet("""
             #dropContainer {
                 border: 1px dashed #6a6a6a;
@@ -153,7 +158,7 @@ class ProjectSettingsPage_A(QFrame, Base):
 
         # 上传图标 (使用SVG)
         self.upload_icon = QSvgWidget(self)
-        self.upload_icon.setFixedSize(30, 30)
+        self.upload_icon.setFixedSize(48, 48)
 
         # 上传图标的SVG内容
         upload_svg = """
@@ -220,7 +225,7 @@ class ProjectSettingsPage_A(QFrame, Base):
         self.bottom_layout.addWidget(self.or_label)
 
         # 选择文件夹按钮 - 使用绿色风格
-        self.select_folder_button = PrimaryPushButton(FluentIcon.FOLDER,self.tra("选择文件夹") ,self)
+        self.select_folder_button = PrimaryPushButton(FluentIcon.FOLDER,self.tra("选择输入文件夹") ,self)
         self.select_folder_button.setFixedSize(150, 36)
         self.select_folder_button.clicked.connect(self.select_folder)
 
