@@ -1,6 +1,7 @@
 # System
 pyinstaller
 openai
+boto3
 cohere
 anthropic
 tiktoken
