@@ -27,6 +27,7 @@ python-rapidjson
 # 谷歌的AI推理管道（只用到了语言检测功能，会在打包时忽略掉cv2/jax/jaxlib/scipy）
 # 注意，cv2依赖的排除是通过卸载掉`opencv-contrib-python`依赖实现的，其余通过PyInstaller实现
 # 新版本存在打包后dll动态库加载失败的问题，等后续更新
+protobuf==4.25.7
 mediapipe==0.10.14
 # 获取iso语言代码对应的友好名称
 language-data
