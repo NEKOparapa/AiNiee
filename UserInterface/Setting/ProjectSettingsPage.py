@@ -1,8 +1,9 @@
-from PyQt5.QtCore import QEvent, Qt
+from PyQt5.QtCore import QEvent, Qt, QUrl
 from PyQt5.QtWidgets import QFrame, QLabel, QStackedWidget, QHBoxLayout, QWidget
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtSvg import QSvgWidget
+from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QDragMoveEvent
 from qfluentwidgets import (FluentIcon, SegmentedWidget, StrongBodyLabel,
                            BodyLabel, PrimaryPushButton, ComboBox, isDarkTheme)
 
@@ -12,6 +13,70 @@ from Widget.LineEditCard import LineEditCard
 from Widget.PushButtonCard import PushButtonCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 from Widget.FolderDropCard import FolderDropLabel
+
+
+class DragDropContainer(QWidget):
+    """
+    可接收拖放的容器，用于扩大拖放区域
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)  # 允许拖放
+        self.parent = parent
+        # 确保能够正确应用样式
+        self.setAttribute(Qt.WA_StyledBackground, True)
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        """处理拖放进入事件，检查是否为本地文件系统 URL"""
+        if event.mimeData().hasUrls():
+            # 检查是否至少有一个是本地文件系统 URL
+            has_local_file = any(url.isLocalFile() for url in event.mimeData().urls())
+            if has_local_file:
+                event.acceptProposedAction()
+                return
+        event.ignore()
+
+    def dragMoveEvent(self, event: QDragMoveEvent):
+        """处理拖动移动事件"""
+        event.acceptProposedAction()  
+
+    def dropEvent(self, event: QDropEvent):
+        """处理拖放事件，将事件传递给父窗口的folder_drop_label处理"""
+        if hasattr(self.parent, 'folder_drop_label'):
+            # 将拖放事件传递给folder_drop_label处理
+            self.parent.folder_drop_label.dropEvent(event)
+        else:
+            event.ignore()
+
+# 自定义可拖放的SVG控件
+class DraggableSvgWidget(QSvgWidget):
+    """
+    可接收拖放的SVG控件
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True) 
+        self.parent = parent
+        self.setAttribute(Qt.WA_StyledBackground, True)
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        if event.mimeData().hasUrls():
+            has_local_file = any(url.isLocalFile() for url in event.mimeData().urls())
+            if has_local_file:
+                event.acceptProposedAction()
+                return
+        event.ignore()
+
+    def dragMoveEvent(self, event: QDragMoveEvent):
+        """处理拖动移动事件"""
+        event.acceptProposedAction()  
+
+    def dropEvent(self, event: QDropEvent):
+        if hasattr(self.parent, 'folder_drop_label'):
+            # 将拖放事件传递给folder_drop_label处理
+            self.parent.folder_drop_label.dropEvent(event)
+        else:
+            event.ignore()
 
 class ProjectSettingsPage(QFrame, Base):
 
@@ -91,9 +156,23 @@ class ProjectSettingsPage_A(QFrame, Base):
         self.header_layout = QHBoxLayout(self.header_widget)
         self.header_layout.setContentsMargins(0, 0, 0, 0)
 
+        # 标题和提示容器
+        self.title_container = QWidget(self)
+        self.title_layout = QVBoxLayout(self.title_container)
+        self.title_layout.setContentsMargins(0, 0, 0, 0)
+        self.title_layout.setSpacing(3)  # 标题和提示之间的间距
+
         # 标题
         self.title_label = StrongBodyLabel(self.tra("接口平台"), self)
-        self.header_layout.addWidget(self.title_label)
+        self.title_layout.addWidget(self.title_label)
+
+        # 提示文本
+        self.tip_label = BodyLabel(self.tra("选择翻译接口，选择错误将导致翻译失败"), self)
+        self.tip_label.setObjectName("tipLabel")
+        self.update_tip_label_style()
+        self.title_layout.addWidget(self.tip_label)
+
+        self.header_layout.addWidget(self.title_container)
 
         # 填充
         self.header_layout.addStretch(1)
@@ -131,27 +210,27 @@ class ProjectSettingsPage_A(QFrame, Base):
         self.file_drop_layout.setAlignment(Qt.AlignCenter)
 
         # 创建虚线边框容器
-        self.drop_container = QWidget(self)
+        self.drop_container = DragDropContainer(self)
         self.drop_container.setObjectName("dropContainer")
         self.drop_container.setMinimumHeight(400)
         self.drop_container.setMinimumWidth(400)
-        # 根据主题设置样式
+        
         self.update_drop_container_style()
 
         self.drop_layout = QVBoxLayout(self.drop_container)
-        self.drop_layout.setContentsMargins(0, 0, 0, 0)  # 移除内边距
+        self.drop_layout.setContentsMargins(0, 0, 0, 0)
         self.drop_layout.setSpacing(5)
         self.drop_layout.setAlignment(Qt.AlignCenter)
 
         # 创建一个容器来居中放置图标和文本
-        self.icon_text_container = QWidget(self)
+        self.icon_text_container = DragDropContainer(self)
         self.icon_text_layout = QVBoxLayout(self.icon_text_container)
         self.icon_text_layout.setContentsMargins(0, 8, 0, 8)
         self.icon_text_layout.setSpacing(5)
         self.icon_text_layout.setAlignment(Qt.AlignCenter)
 
         # 上传图标
-        self.upload_icon = QSvgWidget(self)
+        self.upload_icon = DraggableSvgWidget(self)
         self.upload_icon.setFixedSize(72, 72)
 
         # 上传图标的SVG内容
@@ -200,7 +279,7 @@ class ProjectSettingsPage_A(QFrame, Base):
         # 显示当前路径
         path_text = initial_path if initial_path and initial_path != "./input" else ""
         self.path_label = BodyLabel(path_text, self)
-        # 根据主题设置路径文本颜色
+       
         self.update_path_label_style()
         # 不再使用 stretch factor，让文本自然居中
         self.path_layout.addWidget(self.path_label)
@@ -209,7 +288,7 @@ class ProjectSettingsPage_A(QFrame, Base):
         self.folder_drop_label = FolderDropLabel(self.tra("将输入文件夹拖拽到此处"), self)
         self.folder_drop_label.pathDropped.connect(self.on_path_dropped)
         self.folder_drop_label.pathChanged.connect(self.on_path_changed)
-        # 根据主题设置文本颜色
+       
         self.update_folder_drop_label_style()
         self.folder_drop_label.setFixedHeight(30)
         self.folder_drop_label.setAlignment(Qt.AlignCenter)
@@ -278,10 +357,10 @@ class ProjectSettingsPage_A(QFrame, Base):
         # 初始化接口平台下拉菜单
         self.init_platform_combo(config)
 
-        # 填充
+    
         self.container.addStretch(1)
 
-    # 页面每次展示时触发
+
     def showEvent(self, event: QEvent) -> None:
         super().showEvent(event)
         # 更新接口平台列表
@@ -343,7 +422,7 @@ class ProjectSettingsPage_A(QFrame, Base):
         # 更新UI
         self.folder_drop_label.set_path(path)
         self.path_label.setText(path)
-        # 确保路径容器可见
+
         self.path_container.setVisible(True)
 
         # 更新配置
@@ -356,9 +435,8 @@ class ProjectSettingsPage_A(QFrame, Base):
         if not path:
             return
 
-        # 更新UI
+    
         self.path_label.setText(path)
-        # 确保路径容器可见
         self.path_container.setVisible(True)
 
         # 更新配置
@@ -376,7 +454,6 @@ class ProjectSettingsPage_A(QFrame, Base):
 
         # 更新UI
         self.path_label.setText(path)
-        # 确保路径容器可见
         self.path_container.setVisible(True)
 
     # 获取接口列表
@@ -401,6 +478,7 @@ class ProjectSettingsPage_A(QFrame, Base):
         else:
             return ""
 
+###################################样式切换部分#############################################
     # 更新所有样式
     def update_all_styles(self):
         """更新所有需要根据主题调整的样式"""
@@ -410,6 +488,7 @@ class ProjectSettingsPage_A(QFrame, Base):
         self.update_path_label_style()
         self.update_folder_drop_label_style()
         self.update_or_label_style()
+        self.update_tip_label_style()
 
     # 更新分割线样式
     def update_separator_style(self):
@@ -421,7 +500,7 @@ class ProjectSettingsPage_A(QFrame, Base):
 
     # 更新拖放容器样式
     def update_drop_container_style(self):
-        """根据主题更新拖放容器样式"""
+        
         if isDarkTheme():
             self.drop_container.setStyleSheet("""
                 #dropContainer {
@@ -451,7 +530,7 @@ class ProjectSettingsPage_A(QFrame, Base):
 
     # 更新路径提示文本样式
     def update_path_prompt_style(self):
-        """根据主题更新路径提示文本样式"""
+        
         if isDarkTheme():
             self.path_prompt.setStyleSheet("""
                 color: #AAAAAA;
@@ -465,7 +544,7 @@ class ProjectSettingsPage_A(QFrame, Base):
 
     # 更新路径标签样式
     def update_path_label_style(self):
-        """根据主题更新路径标签样式"""
+        
         if isDarkTheme():
             self.path_label.setStyleSheet("""
                 color: #6A9BFF;
@@ -481,7 +560,7 @@ class ProjectSettingsPage_A(QFrame, Base):
 
     # 更新文件夹拖放标签样式
     def update_folder_drop_label_style(self):
-        """根据主题更新文件夹拖放标签样式"""
+        
         if isDarkTheme():
             self.folder_drop_label.setStyleSheet("""
                 background: transparent;
@@ -501,7 +580,7 @@ class ProjectSettingsPage_A(QFrame, Base):
 
     # 更新"或者"标签样式
     def update_or_label_style(self):
-        """根据主题更新"或者"标签样式"""
+        
         if isDarkTheme():
             self.or_label.setStyleSheet("""
                 color: #AAAAAA;
@@ -513,10 +592,32 @@ class ProjectSettingsPage_A(QFrame, Base):
                 font-size: 12px;
             """)
 
+    # 更新提示文本样式
+    def update_tip_label_style(self):
+       
+        if isDarkTheme():
+            self.tip_label.setStyleSheet("""
+                #tipLabel {
+                    color: #FF9090;
+                    font-size: 14px;
+                    font-style: italic;
+                    font-weight: bold;
+                }
+            """)
+        else:
+            self.tip_label.setStyleSheet("""
+                #tipLabel {
+                    color: #D05050;
+                    font-size: 14px;
+                    font-style: italic;
+                    font-weight: bold;
+                }
+            """)
+
     # 主题变化事件处理
     def on_theme_changed(self, event: int, data: dict):
         """处理主题变化事件"""
-        # 更新所有样式
+        
         self.update_all_styles()
 
 
