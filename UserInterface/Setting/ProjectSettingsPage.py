@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtSvg import QSvgWidget
 from qfluentwidgets import (FluentIcon, SegmentedWidget, StrongBodyLabel,
-                           BodyLabel, PrimaryPushButton, ComboBox)
+                           BodyLabel, PrimaryPushButton, ComboBox, isDarkTheme)
 
 from Base.Base import Base
 from Widget.ComboBoxCard import ComboBoxCard
@@ -75,6 +75,9 @@ class ProjectSettingsPage_A(QFrame, Base):
             "label_input_path": "./input",
         }
 
+        # 订阅主题变化事件
+        self.subscribe(Base.EVENT.THEME_CHANGED, self.on_theme_changed)
+
         # 载入并保存默认配置
         config = self.save_config(self.load_config_from_default())
 
@@ -111,7 +114,8 @@ class ProjectSettingsPage_A(QFrame, Base):
         # 添加分割线
         self.separator = QWidget(self)
         self.separator.setFixedHeight(2)
-        self.separator.setStyleSheet("background-color: #3A3A3A;")
+        # 根据主题设置分割线颜色
+        self.update_separator_style()
         self.container.addWidget(self.separator)
 
         self.spacer = QWidget(self)
@@ -131,18 +135,8 @@ class ProjectSettingsPage_A(QFrame, Base):
         self.drop_container.setObjectName("dropContainer")
         self.drop_container.setMinimumHeight(400)
         self.drop_container.setMinimumWidth(400)
-        self.drop_container.setStyleSheet("""
-            #dropContainer {
-                border: 1px dashed #6a6a6a;
-                border-radius: 8px;
-                background-color: rgba(60, 60, 60, 0.3);
-            }
-
-            #dropContainer:hover {
-                border-color: #8a8aff;
-                background-color: rgba(80, 80, 95, 0.5);
-            }
-        """)
+        # 根据主题设置样式
+        self.update_drop_container_style()
 
         self.drop_layout = QVBoxLayout(self.drop_container)
         self.drop_layout.setContentsMargins(0, 0, 0, 0)  # 移除内边距
@@ -199,20 +193,15 @@ class ProjectSettingsPage_A(QFrame, Base):
 
         # 添加提示文本
         self.path_prompt = BodyLabel(self.tra("当前输入文件夹路径为："), self)
-        self.path_prompt.setStyleSheet("""
-            color: #AAAAAA;
-            font-size: 13px;
-        """)
+        # 根据主题设置文本颜色
+        self.update_path_prompt_style()
         self.path_layout.addWidget(self.path_prompt)
 
         # 显示当前路径
         path_text = initial_path if initial_path and initial_path != "./input" else ""
         self.path_label = BodyLabel(path_text, self)
-        self.path_label.setStyleSheet("""
-            color: #6A9BFF;
-            font-size: 15px;
-            font-weight: bold;
-        """)
+        # 根据主题设置路径文本颜色
+        self.update_path_label_style()
         # 不再使用 stretch factor，让文本自然居中
         self.path_layout.addWidget(self.path_label)
 
@@ -220,13 +209,8 @@ class ProjectSettingsPage_A(QFrame, Base):
         self.folder_drop_label = FolderDropLabel(self.tra("将输入文件夹拖拽到此处"), self)
         self.folder_drop_label.pathDropped.connect(self.on_path_dropped)
         self.folder_drop_label.pathChanged.connect(self.on_path_changed)
-        self.folder_drop_label.setStyleSheet("""
-            background: transparent;
-            border: none;
-            color: #FFFFFF;
-            font-size: 18px;
-            font-weight: bold;
-        """)
+        # 根据主题设置文本颜色
+        self.update_folder_drop_label_style()
         self.folder_drop_label.setFixedHeight(30)
         self.folder_drop_label.setAlignment(Qt.AlignCenter)
 
@@ -256,10 +240,8 @@ class ProjectSettingsPage_A(QFrame, Base):
         # 或者文本
         self.or_label = BodyLabel(self.tra("或者"), self)
         self.or_label.setAlignment(Qt.AlignCenter)
-        self.or_label.setStyleSheet("""
-            color: #AAAAAA;
-            font-size: 12px;
-        """)
+        # 根据主题设置文本颜色
+        self.update_or_label_style()
         self.bottom_layout.addWidget(self.or_label)
 
         # 选择文件夹按钮
@@ -305,6 +287,8 @@ class ProjectSettingsPage_A(QFrame, Base):
         # 更新接口平台列表
         config = self.load_config()
         self.update_platform_combo(config)
+        # 更新所有样式
+        self.update_all_styles()
 
     # 清理临时文件
     def __del__(self):
@@ -416,6 +400,124 @@ class ProjectSettingsPage_A(QFrame, Base):
             return results[0]
         else:
             return ""
+
+    # 更新所有样式
+    def update_all_styles(self):
+        """更新所有需要根据主题调整的样式"""
+        self.update_separator_style()
+        self.update_drop_container_style()
+        self.update_path_prompt_style()
+        self.update_path_label_style()
+        self.update_folder_drop_label_style()
+        self.update_or_label_style()
+
+    # 更新分割线样式
+    def update_separator_style(self):
+        """根据主题更新分割线样式"""
+        if isDarkTheme():
+            self.separator.setStyleSheet("background-color: #3A3A3A;")
+        else:
+            self.separator.setStyleSheet("background-color: #D0D0D0;")
+
+    # 更新拖放容器样式
+    def update_drop_container_style(self):
+        """根据主题更新拖放容器样式"""
+        if isDarkTheme():
+            self.drop_container.setStyleSheet("""
+                #dropContainer {
+                    border: 1px dashed #6a6a6a;
+                    border-radius: 8px;
+                    background-color: rgba(60, 60, 60, 0.3);
+                }
+
+                #dropContainer:hover {
+                    border-color: #8a8aff;
+                    background-color: rgba(80, 80, 95, 0.5);
+                }
+            """)
+        else:
+            self.drop_container.setStyleSheet("""
+                #dropContainer {
+                    border: 1px dashed #aaaaaa;
+                    border-radius: 8px;
+                    background-color: rgba(240, 240, 240, 0.5);
+                }
+
+                #dropContainer:hover {
+                    border-color: #6666ff;
+                    background-color: rgba(232, 232, 255, 0.7);
+                }
+            """)
+
+    # 更新路径提示文本样式
+    def update_path_prompt_style(self):
+        """根据主题更新路径提示文本样式"""
+        if isDarkTheme():
+            self.path_prompt.setStyleSheet("""
+                color: #AAAAAA;
+                font-size: 13px;
+            """)
+        else:
+            self.path_prompt.setStyleSheet("""
+                color: #707070;
+                font-size: 13px;
+            """)
+
+    # 更新路径标签样式
+    def update_path_label_style(self):
+        """根据主题更新路径标签样式"""
+        if isDarkTheme():
+            self.path_label.setStyleSheet("""
+                color: #6A9BFF;
+                font-size: 15px;
+                font-weight: bold;
+            """)
+        else:
+            self.path_label.setStyleSheet("""
+                color: #3366CC;
+                font-size: 15px;
+                font-weight: bold;
+            """)
+
+    # 更新文件夹拖放标签样式
+    def update_folder_drop_label_style(self):
+        """根据主题更新文件夹拖放标签样式"""
+        if isDarkTheme():
+            self.folder_drop_label.setStyleSheet("""
+                background: transparent;
+                border: none;
+                color: #FFFFFF;
+                font-size: 18px;
+                font-weight: bold;
+            """)
+        else:
+            self.folder_drop_label.setStyleSheet("""
+                background: transparent;
+                border: none;
+                color: #303030;
+                font-size: 18px;
+                font-weight: bold;
+            """)
+
+    # 更新"或者"标签样式
+    def update_or_label_style(self):
+        """根据主题更新"或者"标签样式"""
+        if isDarkTheme():
+            self.or_label.setStyleSheet("""
+                color: #AAAAAA;
+                font-size: 12px;
+            """)
+        else:
+            self.or_label.setStyleSheet("""
+                color: #707070;
+                font-size: 12px;
+            """)
+
+    # 主题变化事件处理
+    def on_theme_changed(self, event: int, data: dict):
+        """处理主题变化事件"""
+        # 更新所有样式
+        self.update_all_styles()
 
 
 # 详细设置

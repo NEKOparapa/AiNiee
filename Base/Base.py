@@ -24,6 +24,7 @@ class Event():
     TRANSLATION_MANUAL_EXPORT = 250                 # 翻译结果手动导出
     CACHE_FILE_AUTO_SAVE = 300                      # 缓存文件自动保存
     APP_SHUT_DOWN = 1000                            # 应用关闭
+    THEME_CHANGED = 1100                            # 主题变化
 
     NEW_PROCESS_START = 500     # 新流程开始
     NEW_PROCESS_DONE = 501      # 新流程完成
@@ -99,7 +100,7 @@ class Base():
         for filename in os.listdir(folder_path):
             if filename.endswith(".json"):
                 filepath = os.path.join(folder_path, filename)
-                try: 
+                try:
                     with open(filepath, 'r', encoding='utf-8') as f:
                         data = json.load(f)
                         for top_level_key in data:
@@ -261,19 +262,19 @@ class Base():
                 old[k] = v
 
         return old
-    
+
 
     # 用默认值更新并加载配置文件
     def load_config_from_default(self) -> None:
         # 1. 加载已有配置
         config = self.load_config()  # 从文件读取用户配置
-        
+
         # 2. 合并默认配置
         config = self.fill_config(
             old=config,  # 用户现有配置
             new=getattr(self, "default", {})  # 当前类的默认配置
         )
-        
+
         # 3. 返回合并结果
         return config
 
