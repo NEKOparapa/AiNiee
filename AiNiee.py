@@ -27,6 +27,7 @@
 import os
 import sys
 import multiprocessing
+import warnings
 
 import rapidjson as json
 from rich import print
@@ -42,6 +43,15 @@ from ModuleFolders.RequestTester.RequestTester import RequestTester
 from ModuleFolders.RequestTester.ProcessTester import ProcessTester
 from UserInterface.AppFluentWindow import AppFluentWindow
 
+# 过滤protobuf的警告信息
+warnings.filterwarnings(
+    action='ignore',
+    message=r'.*SymbolDatabase\.GetPrototype\(\) is deprecated.*',  # 使用正则表达式匹配警告消息
+    category=UserWarning,
+    module=r'google\.protobuf\.symbol_database'  # 警告来源的模块 (正则)
+)
+
+
 def display_banner():
     print(" █████   ██  ███    ██  ██  ███████  ███████ ")
     print("██   ██  ██  ████   ██  ██  ██       ██      ")
@@ -51,16 +61,18 @@ def display_banner():
     print("                                        ")
     print("                                        ")
 
+
 # 载入配置文件
 def load_config() -> dict:
     config = {}
 
     config_path = os.path.join(".", "Resource", "config.json")
     if os.path.exists(config_path):
-        with open(config_path, "r", encoding = "utf-8") as reader:
+        with open(config_path, "r", encoding="utf-8") as reader:
             config = json.load(reader)
 
     return config
+
 
 if __name__ == "__main__":
     # 开启子进程支持
@@ -111,8 +123,8 @@ if __name__ == "__main__":
 
     # 创建全局窗口对象
     app_fluent_window = AppFluentWindow(
-        version = "AiNiee6.3 dev",
-        plugin_manager = plugin_manager,
+        version="AiNiee6.3 dev",
+        plugin_manager=plugin_manager,
         support_project_types=file_reader.get_support_project_types(),
     )
 
@@ -124,7 +136,7 @@ if __name__ == "__main__":
 
     # 创建翻译器对象，并初始化订阅事件
     translator = Translator(
-        plugin_manager = plugin_manager, file_reader=file_reader, file_writer=file_writer
+        plugin_manager=plugin_manager, file_reader=file_reader, file_writer=file_writer
     )
 
     # 显示全局窗口
