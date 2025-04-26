@@ -5,8 +5,6 @@ import threading
 import textwrap
 
 from Base.Base import Base
-from google.genai import types
-from google.genai.types import Content, Part
 
 from DRWidget.TranslationExtractionCard.TranslationExtraction import TranslationExtraction
 from DRWidget.GlossaryExtractionCard.GlossaryExtraction import GlossaryExtraction

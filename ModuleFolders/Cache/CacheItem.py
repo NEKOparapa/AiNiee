@@ -28,7 +28,8 @@ class CacheItem():
         self.storage_path: str = ""
         self.file_project_type: str = ""
         # 当前行的语言代码
-        self.lang_code = ["", 1.0]  # 格式: [语言代码, 置信度]
+        # 格式: [语言代码, 置信度]
+        self.lang_code: list | None = None
 
         # 初始化
         for k, v in args.items():

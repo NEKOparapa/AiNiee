@@ -10,7 +10,7 @@ import rich
 
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheProject import CacheProject
-from ModuleFolders.FileReader.BaseReader import BaseSourceReader
+from ModuleFolders.FileReader.BaseReader import BaseSourceReader, close_lang_detector
 
 
 def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: float = 0.75) -> str:
@@ -135,8 +135,8 @@ class DirectoryReader:
 
                             lang_code = item.get_lang_code()
 
-                            # 只统计非symbols_only的语言
-                            if lang_code != "symbols_only":
+                            # 只统计检测到有效语言代码的item行
+                            if lang_code:
                                 lang_confidence = item.get_lang_confidence()
                                 # 更新语言统计：[计数, 累计置信度]
                                 stats = language_stats[relative_path][lang_code]
@@ -164,8 +164,8 @@ class DirectoryReader:
                     for lang, (count, total_confidence) in lang_stats.items():
                         avg_confidence = total_confidence / count
 
-                        # 应用筛选条件：次数超过阈值且平均置信度>=0.6
-                        if count >= threshold and avg_confidence >= 0.6:
+                        # 应用筛选条件：次数超过阈值且平均置信度>=0.7
+                        if count >= threshold and avg_confidence >= 0.7:
                             filtered_langs.append((lang, count, avg_confidence))
 
                     # 按出现次数降序排序，相同次数按语言代码排序
@@ -185,5 +185,8 @@ class DirectoryReader:
 
             # 保存（过滤后的）每个文件对应的语言信息
             cache_project.set_file_language_counter(language_counter)
+
+            # 关闭mediapipe的推理任务，释放资源
+            close_lang_detector()
 
             return cache_project, items

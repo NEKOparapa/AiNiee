@@ -2,32 +2,62 @@ import os
 import pathlib
 import re
 import sys
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict, Union
 
 import chardet
-from fast_langdetect import LangDetectConfig, LangDetector
+import rich
+from mediapipe.tasks.python import text, BaseOptions
+from mediapipe.tasks.python.text import LanguageDetector
 
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheProject import CacheProject
 
 # 单例实现
-_LANG_DETECTOR_INSTANCE = None
+_LANG_DETECTOR_INSTANCE: LanguageDetector | None = None
 
 
 def get_lang_detector():
     """获取语言检测器的全局单例实例"""
     global _LANG_DETECTOR_INSTANCE
     if _LANG_DETECTOR_INSTANCE is None:
+        rich.print("[[green]INFO[/]] Loading MediaPipe Language Detector...")
+        # Record start time
+        start_time = time.time()
+
         # 设置模型目录
         script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-        model_path = os.path.join(script_dir, "Resource", "Models", "fast-langdetect")
+        model_path = os.path.join(script_dir, "Resource", "Models", "mediapipe", "language_detector.tflite")
 
-        config = LangDetectConfig(cache_dir=model_path, custom_model_path=os.path.join(model_path, "lid.176.ftz"))
-        _LANG_DETECTOR_INSTANCE = LangDetector(config)
+        base_options = BaseOptions(model_asset_path=model_path)
+        options = text.LanguageDetectorOptions(base_options=base_options, max_results=1)
+        _LANG_DETECTOR_INSTANCE = text.LanguageDetector.create_from_options(options)
+
+        # Calculate load time in milliseconds
+        load_time_ms = (time.time() - start_time) * 1000
+        rich.print(f"[[green]INFO[/]] MediaPipe Language Detector Loaded! ({load_time_ms:.2f} ms)")
     return _LANG_DETECTOR_INSTANCE
+
+
+def close_lang_detector():
+    """关闭并释放语言检测器的全局单例实例"""
+    global _LANG_DETECTOR_INSTANCE
+    if _LANG_DETECTOR_INSTANCE is not None:
+        # MediaPipe任务通常有close方法用于释放资源
+        try:
+            _LANG_DETECTOR_INSTANCE.close()
+            rich.print("[[green]INFO[/]] MediaPipe Language Detector closed!")
+        except AttributeError:
+            # 如果没有close方法，尝试其他可能的清理方法
+            if hasattr(_LANG_DETECTOR_INSTANCE, 'release'):
+                _LANG_DETECTOR_INSTANCE.release()
+        finally:
+            # 无论如何都将实例设置为None，允许垃圾回收
+            _LANG_DETECTOR_INSTANCE = None
+    return True
 
 
 def is_symbols_only(text: str):
@@ -123,6 +153,7 @@ def clean_text(source_text):
     # 步骤3：将标记替换回字面的'\n'
     return cleaned_text.replace('__NEWLINE__', '\\n')
 
+
 # 存储文本对及翻译状态信息
 def text_to_cache_item(source_text, translated_text: str = None):
     item = CacheItem({})
@@ -137,11 +168,19 @@ def text_to_cache_item(source_text, translated_text: str = None):
         lang = 'symbols_only'
         score = -1.0
     else:
-        # 将检测长度限制在100个字符内，抑制警告`fast-langdetect`
-        lang_result = get_lang_detector().detect(cleaned_text[:100], low_memory=True)
-        lang = lang_result.get('lang')
-        score = lang_result.get('score')
-    item.set_lang_code_with_confidence(lang, score)
+        # 使用mediapipe的语言检测任务
+        lang_result = get_lang_detector().detect(cleaned_text).detections
+        if not lang_result:
+            lang = 'un'
+            score = -1.0
+        else:
+            lang = lang_result[0].language_code
+            score = lang_result[0].probability
+
+    # 新增行为，将低于0分的行（item）的lang_code字段保留为None
+    if score > 0.0:
+        item.set_lang_code_with_confidence(lang, score)
+
     return item
 
 
