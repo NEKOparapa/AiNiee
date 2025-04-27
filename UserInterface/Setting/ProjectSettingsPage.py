@@ -128,7 +128,13 @@ class ProjectSettingsPage_A(QFrame, Base):
             # 更新并保存配置
             current_config = self.load_config()
             current_config["label_input_path"] = path.strip()
-            current_config["path_hit_count"] = widget.getHitCount()
+
+            # 超限清空
+            path_hit_count = widget.getHitCount()
+            if path_hit_count>=10000:
+                path_hit_count = 0
+
+            current_config["path_hit_count"] = path_hit_count
 
             self.save_config(current_config)
 
