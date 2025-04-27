@@ -1,10 +1,10 @@
 import os
 
 from PyQt5.QtWidgets import (QSizePolicy, QVBoxLayout,  QHBoxLayout)
-from PyQt5.QtCore import Qt, pyqtSignal, QUrl, QObject, QTimer
-from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QDragMoveEvent
+from PyQt5.QtCore import Qt, pyqtSignal, QUrl, QObject, QTimer 
+from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QDragMoveEvent, QFontMetrics
 
-from qfluentwidgets import (CardWidget, StrongBodyLabel, BodyLabel)
+from qfluentwidgets import (CardWidget, StrongBodyLabel, isDarkTheme, BodyLabel)
 
 
 # 改进点：亮暗主题颜色区别不大，需要两套和UI风格更加和谐的颜色方案
@@ -21,7 +21,7 @@ class FolderDropLabel(BodyLabel):
     - 发射包含文件夹路径的信号。
     """
     pathDropped = pyqtSignal(str)
-    pathChanged = pyqtSignal(str)
+    pathChanged = pyqtSignal(str) 
 
     def __init__(self, prompt_text="将文件夹拖拽到此处", parent=None):
         super().__init__(parent)
@@ -43,19 +43,74 @@ class FolderDropLabel(BodyLabel):
              self._set_style_state("idle")
 
     def _set_style_state(self, state="idle", path=""):
-        """根据状态设置拖拽框的样式，但不再显示背景色和边框"""
-        # 不再设置背景色和边框，只处理文本
+        """根据状态和亮暗主题设置拖拽框的样式"""
+        base_style = """
+            FolderDropLabel {{
+                border-radius: 5px;
+                padding: 10px;
+                background-color: {background_color};
+                border: 2px {border_style} {border_color};
+                color: {text_color};
+            }}
+        """
+        style_sheet = ""
+        dark_mode = isDarkTheme()
+
+        # --- 定义颜色方案 ---
+        # idle: 默认状态
+        # hover: 鼠标悬停状态
+        # dragging: 拖动状态
+        # success: 成功状态（文件夹路径有效）
+        # reset: 重置状态（无效路径或空路径）
+        if dark_mode:
+            colors = {
+                "idle":     {"bg": "rgba(60, 60, 60, 0.5)", "border": "#6a6a6a", "text": "#e0e0e0", "style": "dashed"},
+                "hover":    {"bg": "rgba(80, 80, 95, 0.7)", "border": "#8a8aff", "text": "#e0e0e0", "style": "dashed"},
+                "dragging": {"bg": "rgba(95, 95, 115, 0.8)","border": "#aaaaff", "text": "#e0e0e0", "style": "dashed"},
+                "success":  {"bg": "rgba(45, 80, 60, 0.7)", "border": "#5CBE88", "text": "#e0e0e0", "style": "solid"},
+                "reset":    {"bg": "rgba(60, 60, 60, 0.5)", "border": "#6a6a6a", "text": "#e0e0e0", "style": "dashed"},
+            }
+        else: # Light Mode
+            colors = {
+                "idle":     {"bg": "rgba(240, 240, 240, 0.5)", "border": "#aaa", "text": "#303030", "style": "dashed"},
+                "hover":    {"bg": "rgba(232, 232, 255, 0.7)", "border": "#66f", "text": "#303030", "style": "dashed"},
+                "dragging": {"bg": "rgba(208, 208, 255, 0.8)","border": "#33f", "text": "#303030", "style": "dashed"},
+                "success":  {"bg": "rgba(232, 255, 232, 0.7)", "border": "#5c5", "text": "#303030", "style": "solid"},
+                "reset":    {"bg": "rgba(240, 240, 240, 0.5)", "border": "#aaa", "text": "#303030", "style": "dashed"},
+            }
+
+        # 获取当前状态的颜色
+        current_colors = colors.get(state, colors["reset"]) # 默认使用 reset 颜色
+
+        style_sheet = base_style.format(
+            background_color=current_colors["bg"],
+            border_style=current_colors["style"],
+            border_color=current_colors["border"],
+            text_color=current_colors["text"]
+        )
 
         # --- 设置文本 ---
         if state == "success":
-            # 不再显示路径，只保持原始提示文本
-            self.setText(self._prompt_text)
-            self.setToolTip(path)  # 仍然保留工具提示
+            # 确保在设置文本前应用样式，以便获取正确的字体信息
+            self.setStyleSheet(style_sheet)
+            QTimer.singleShot(0, lambda p=path: self._set_elided_text(p))
+            self.setToolTip(path)
         else:
             self.setText(self._prompt_text)
             self.setToolTip("")
+            self.setStyleSheet(style_sheet) # 应用样式
 
-    # 不再需要 _set_elided_text 方法，因为我们不再显示路径
+    def _set_elided_text(self, path):
+        """ 辅助函数，用于设置省略的文本 """
+        if self.width() > 20: # 确保宽度有效
+            fm = QFontMetrics(self.font())
+            # 减去左右 padding (10+10) 和一点额外空间
+            available_width = self.width() - 24
+            elided_text = fm.elidedText(path, Qt.ElideMiddle, available_width)
+            self.setText(elided_text)
+        else:
+            # 如果宽度不足，可能显示不正确，可以设置一个默认值或只显示部分
+            self.setText("...")
 
 
     def reset(self):
@@ -145,7 +200,9 @@ class FolderDropLabel(BodyLabel):
     def leaveEvent(self, event):
         """处理鼠标离开事件，恢复到之前的状态"""
         if self.acceptDrops():
-            # 恢复到之前的状态
+            # 如果当前状态是 hover (意味着之前是 idle)，则恢复到 idle
+            # 如果当前状态不是 hover (可能是 dragging 中途离开，或者已经是 success)，则恢复到基础状态
+            current_style = self.styleSheet() # 检查当前样式是否是 hover
             self._update_style() # 恢复到 idle 或 success 状态
         super().leaveEvent(event)
 
@@ -164,7 +221,7 @@ class FolderDropCard(CardWidget):
         super().__init__(parent)
 
         self.setBorderRadius(4)
-        self.container = QHBoxLayout(self) #
+        self.container = QHBoxLayout(self) # 
         self.container.setContentsMargins(16, 16, 16, 16)
 
         self.vbox = QVBoxLayout()
@@ -187,7 +244,7 @@ class FolderDropCard(CardWidget):
         self.vbox.addWidget(self.title_label)
         self.vbox.addWidget(self.folder_drop_label)
 
-        self.container.addLayout(self.vbox)
+        self.container.addLayout(self.vbox)  
 
         # 使用 QTimer 延迟设置初始路径，确保 label 大小已确定
         if initial_path:

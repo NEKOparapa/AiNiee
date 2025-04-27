@@ -17,7 +17,6 @@ pandas
 chardet
 PyYAML
 httpx[http2]
-boto3
 
 # Tools
 rich

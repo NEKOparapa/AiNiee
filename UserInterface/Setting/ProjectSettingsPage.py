@@ -1,82 +1,16 @@
-from PyQt5.QtCore import QEvent, Qt, QUrl
-from PyQt5.QtWidgets import QFrame, QLabel, QStackedWidget, QHBoxLayout, QWidget
+from PyQt5.QtCore import QEvent
+from PyQt5.QtWidgets import QFrame, QLabel, QLayout, QStackedWidget
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QVBoxLayout
-from PyQt5.QtSvg import QSvgWidget
-from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QDragMoveEvent
-from qfluentwidgets import (FluentIcon, SegmentedWidget, StrongBodyLabel,
-                           BodyLabel, PrimaryPushButton, ComboBox, isDarkTheme)
+from qfluentwidgets import FluentIcon, SegmentedWidget
 
 from Base.Base import Base
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.LineEditCard import LineEditCard
 from Widget.PushButtonCard import PushButtonCard
 from Widget.SwitchButtonCard import SwitchButtonCard
-from Widget.FolderDropCard import FolderDropLabel
+from Widget.GameDropCard import GameDropCard
 
-
-class DragDropContainer(QWidget):
-    """
-    可接收拖放的容器，用于扩大拖放区域
-    """
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setAcceptDrops(True)  # 允许拖放
-        self.parent = parent
-        # 确保能够正确应用样式
-        self.setAttribute(Qt.WA_StyledBackground, True)
-
-    def dragEnterEvent(self, event: QDragEnterEvent):
-        """处理拖放进入事件，检查是否为本地文件系统 URL"""
-        if event.mimeData().hasUrls():
-            # 检查是否至少有一个是本地文件系统 URL
-            has_local_file = any(url.isLocalFile() for url in event.mimeData().urls())
-            if has_local_file:
-                event.acceptProposedAction()
-                return
-        event.ignore()
-
-    def dragMoveEvent(self, event: QDragMoveEvent):
-        """处理拖动移动事件"""
-        event.acceptProposedAction()  
-
-    def dropEvent(self, event: QDropEvent):
-        """处理拖放事件，将事件传递给父窗口的folder_drop_label处理"""
-        if hasattr(self.parent, 'folder_drop_label'):
-            # 将拖放事件传递给folder_drop_label处理
-            self.parent.folder_drop_label.dropEvent(event)
-        else:
-            event.ignore()
-
-# 自定义可拖放的SVG控件
-class DraggableSvgWidget(QSvgWidget):
-    """
-    可接收拖放的SVG控件
-    """
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setAcceptDrops(True) 
-        self.parent = parent
-        self.setAttribute(Qt.WA_StyledBackground, True)
-
-    def dragEnterEvent(self, event: QDragEnterEvent):
-        if event.mimeData().hasUrls():
-            has_local_file = any(url.isLocalFile() for url in event.mimeData().urls())
-            if has_local_file:
-                event.acceptProposedAction()
-                return
-        event.ignore()
-
-    def dragMoveEvent(self, event: QDragMoveEvent):
-        """处理拖动移动事件"""
-        event.acceptProposedAction()  
-
-    def dropEvent(self, event: QDropEvent):
-        if hasattr(self.parent, 'folder_drop_label'):
-            # 将拖放事件传递给folder_drop_label处理
-            self.parent.folder_drop_label.dropEvent(event)
-        else:
-            event.ignore()
 
 class ProjectSettingsPage(QFrame, Base):
 
@@ -138,10 +72,8 @@ class ProjectSettingsPage_A(QFrame, Base):
         self.default = {
             "target_platform": "deepseek",
             "label_input_path": "./input",
+            "path_hit_count": 0,
         }
-
-        # 订阅主题变化事件
-        self.subscribe(Base.EVENT.THEME_CHANGED, self.on_theme_changed)
 
         # 载入并保存默认配置
         config = self.save_config(self.load_config_from_default())
@@ -151,310 +83,17 @@ class ProjectSettingsPage_A(QFrame, Base):
         self.container.setSpacing(8)
         self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
-        # 顶部区域 - 接口平台选择
-        self.header_widget = QWidget(self)
-        self.header_layout = QHBoxLayout(self.header_widget)
-        self.header_layout.setContentsMargins(0, 0, 0, 0)
-
-        # 标题和提示容器
-        self.title_container = QWidget(self)
-        self.title_layout = QVBoxLayout(self.title_container)
-        self.title_layout.setContentsMargins(0, 0, 0, 0)
-        self.title_layout.setSpacing(3)  # 标题和提示之间的间距
-
-        # 标题
-        self.title_label = StrongBodyLabel(self.tra("接口平台"), self)
-        self.title_layout.addWidget(self.title_label)
-
-        # 提示文本
-        self.tip_label = BodyLabel(self.tra("选择翻译接口，选择错误将导致翻译失败"), self)
-        self.tip_label.setObjectName("tipLabel")
-        self.update_tip_label_style()
-        self.title_layout.addWidget(self.tip_label)
-
-        self.header_layout.addWidget(self.title_container)
+        # 添加控件
+        self.add_widget_api(self.container, config)
+        self.add_widget_folder_drop(self.container, config)
 
         # 填充
-        self.header_layout.addStretch(1)
-
-        # 下拉菜单
-        self.platform_combo = ComboBox(self)
-        self.platform_combo.setMinimumWidth(150)
-        self.header_layout.addWidget(self.platform_combo)
-
-        # 添加到主容器
-        self.container.addWidget(self.header_widget)
-
-         # 添加间距
-        self.spacer = QWidget(self)
-        self.spacer.setFixedHeight(5)
-        self.container.addWidget(self.spacer)
-
-        # 添加分割线
-        self.separator = QWidget(self)
-        self.separator.setFixedHeight(2)
-        # 根据主题设置分割线颜色
-        self.update_separator_style()
-        self.container.addWidget(self.separator)
-
-        self.spacer = QWidget(self)
-        self.spacer.setFixedHeight(10)
-        self.container.addWidget(self.spacer)
-
-
-        # 文件拖放区域
-        self.file_drop_area = QWidget(self)
-        self.file_drop_layout = QVBoxLayout(self.file_drop_area)
-        self.file_drop_layout.setContentsMargins(0, 0, 0, 0)
-        self.file_drop_layout.setSpacing(15)
-        self.file_drop_layout.setAlignment(Qt.AlignCenter)
-
-        # 创建虚线边框容器
-        self.drop_container = DragDropContainer(self)
-        self.drop_container.setObjectName("dropContainer")
-        self.drop_container.setMinimumHeight(400)
-        self.drop_container.setMinimumWidth(400)
-        
-        self.update_drop_container_style()
-
-        self.drop_layout = QVBoxLayout(self.drop_container)
-        self.drop_layout.setContentsMargins(0, 0, 0, 0)
-        self.drop_layout.setSpacing(5)
-        self.drop_layout.setAlignment(Qt.AlignCenter)
-
-        # 创建一个容器来居中放置图标和文本
-        self.icon_text_container = DragDropContainer(self)
-        self.icon_text_layout = QVBoxLayout(self.icon_text_container)
-        self.icon_text_layout.setContentsMargins(0, 8, 0, 8)
-        self.icon_text_layout.setSpacing(5)
-        self.icon_text_layout.setAlignment(Qt.AlignCenter)
-
-        # 上传图标
-        self.upload_icon = DraggableSvgWidget(self)
-        self.upload_icon.setFixedSize(72, 72)
-
-        # 上传图标的SVG内容
-        upload_svg = """
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#AAAAAA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-        </svg>
-        """
-
-        # 创建临时文件来存储SVG内容
-        import tempfile
-        self.temp_svg_file = tempfile.NamedTemporaryFile(suffix='.svg', delete=False)
-        self.temp_svg_file.write(upload_svg.encode('utf-8'))
-        self.temp_svg_file.close()
-
-        # 加载SVG文件
-        self.upload_icon.load(self.temp_svg_file.name)
-
-        # 获取配置文件中的初始路径
-        initial_path = config.get("label_input_path", "")
-        # 创建路径显示容器
-        self.path_container = QWidget(self)
-        self.path_container.setObjectName("pathContainer")
-        self.path_container.setStyleSheet("""
-            #pathContainer {
-                border-radius: 4px;
-                padding: 2px;
-                margin-top: 20px;  /* 增加与上方元素的间距 */
-            }
-        """)
-
-        # 创建水平布局
-        self.path_layout = QHBoxLayout(self.path_container)
-        self.path_layout.setContentsMargins(0, 5, 0, 5)
-        self.path_layout.setSpacing(5)
-        self.path_layout.setAlignment(Qt.AlignCenter)  # 让文本居中显示
-
-        # 添加提示文本
-        self.path_prompt = BodyLabel(self.tra("当前输入文件夹路径为："), self)
-        # 根据主题设置文本颜色
-        self.update_path_prompt_style()
-        self.path_layout.addWidget(self.path_prompt)
-
-        # 显示当前路径
-        path_text = initial_path if initial_path and initial_path != "./input" else ""
-        self.path_label = BodyLabel(path_text, self)
-       
-        self.update_path_label_style()
-        # 不再使用 stretch factor，让文本自然居中
-        self.path_layout.addWidget(self.path_label)
-
-        # 创建文件拖放标签
-        self.folder_drop_label = FolderDropLabel(self.tra("将输入文件夹拖拽到此处"), self)
-        self.folder_drop_label.pathDropped.connect(self.on_path_dropped)
-        self.folder_drop_label.pathChanged.connect(self.on_path_changed)
-       
-        self.update_folder_drop_label_style()
-        self.folder_drop_label.setFixedHeight(30)
-        self.folder_drop_label.setAlignment(Qt.AlignCenter)
-
-        # 添加图标和文本到容器
-        self.icon_text_layout.addWidget(self.upload_icon, 0, Qt.AlignCenter)
-        self.icon_text_layout.addWidget(self.folder_drop_label, 0, Qt.AlignCenter)
-
-        # 将容器添加到拖放区域
-        self.drop_layout.addWidget(self.icon_text_container)
-
-
-        if initial_path and initial_path != "./input":
-            self.folder_drop_label.set_path(initial_path)
-
-        # 添加到布局
-        self.drop_layout.addWidget(self.folder_drop_label)
-
-
-
-        # 创建底部容器
-        self.bottom_container = QWidget(self)
-        self.bottom_layout = QVBoxLayout(self.bottom_container)
-        self.bottom_layout.setContentsMargins(0, 10, 0, 0)
-        self.bottom_layout.setSpacing(10)
-        self.bottom_layout.setAlignment(Qt.AlignCenter)
-
-        # 或者文本
-        self.or_label = BodyLabel(self.tra("或者"), self)
-        self.or_label.setAlignment(Qt.AlignCenter)
-        # 根据主题设置文本颜色
-        self.update_or_label_style()
-        self.bottom_layout.addWidget(self.or_label)
-
-        # 选择文件夹按钮
-        self.select_folder_button = PrimaryPushButton(FluentIcon.FOLDER,self.tra("选择输入文件夹") ,self)
-        self.select_folder_button.setFixedSize(150, 36)
-        self.select_folder_button.clicked.connect(self.select_folder)
-
-        # 按钮容器用于居中
-        self.button_container = QWidget(self)
-        self.button_layout = QHBoxLayout(self.button_container)
-        self.button_layout.setContentsMargins(0, 0, 0, 0)
-        self.button_layout.setAlignment(Qt.AlignCenter)
-        self.button_layout.addWidget(self.select_folder_button)
-
-        self.bottom_layout.addWidget(self.button_container)
-
-        # 添加底部容器到主布局
-        self.drop_layout.addWidget(self.bottom_container)
-
-        # 添加虚线边框容器到主布局
-        self.file_drop_layout.addWidget(self.drop_container)
-
-
-        # 添加路径容器到底部布局
-        self.bottom_layout.addWidget(self.path_container)
-
-        # 初始时如果没有路径则隐藏路径容器
-        if not path_text:
-            self.path_container.setVisible(False)
-
-        # 添加到主容器
-        self.container.addWidget(self.file_drop_area)
-
-        # 初始化接口平台下拉菜单
-        self.init_platform_combo(config)
-
-    
         self.container.addStretch(1)
 
-
+    # 页面每次展示时触发
     def showEvent(self, event: QEvent) -> None:
         super().showEvent(event)
-        # 更新接口平台列表
-        config = self.load_config()
-        self.update_platform_combo(config)
-        # 更新所有样式
-        self.update_all_styles()
-
-    # 清理临时文件
-    def __del__(self):
-        try:
-            if hasattr(self, 'temp_svg_file') and self.temp_svg_file:
-                import os
-                if os.path.exists(self.temp_svg_file.name):
-                    os.unlink(self.temp_svg_file.name)
-        except Exception:
-            pass
-
-    def init_platform_combo(self, config):
-        """初始化接口平台下拉菜单"""
-        self.update_platform_combo(config)
-        # 连接信号
-        self.platform_combo.currentTextChanged.connect(self.on_platform_changed)
-
-    def update_platform_combo(self, config):
-        """更新接口平台下拉菜单"""
-        # 保存当前选中的文本
-        current_text = self.platform_combo.currentText()
-
-        # 清空并重新添加项目
-        self.platform_combo.clear()
-        items = self.get_items(config)
-        self.platform_combo.addItems(items)
-
-        # 设置当前选中项
-        current_platform = self.find_name_by_tag(config, config.get("target_platform"))
-        if current_platform in items:
-            self.platform_combo.setCurrentText(current_platform)
-        elif current_text in items:
-            self.platform_combo.setCurrentText(current_text)
-        elif items:
-            self.platform_combo.setCurrentIndex(0)
-
-    def on_platform_changed(self, text):
-        """接口平台变更回调"""
-        if not text:
-            return
-
-        config = self.load_config()
-        config["target_platform"] = self.find_tag_by_name(config, text)
-        self.save_config(config)
-
-    def select_folder(self):
-        """选择文件夹按钮点击回调"""
-        path = QFileDialog.getExistingDirectory(self, self.tra("选择输入文件夹"), "")
-        if not path:
-            return
-
-        # 更新UI
-        self.folder_drop_label.set_path(path)
-        self.path_label.setText(path)
-
-        self.path_container.setVisible(True)
-
-        # 更新配置
-        config = self.load_config()
-        config["label_input_path"] = path
-        self.save_config(config)
-
-    def on_path_dropped(self, path):
-        """路径拖放回调"""
-        if not path:
-            return
-
-    
-        self.path_label.setText(path)
-        self.path_container.setVisible(True)
-
-        # 更新配置
-        config = self.load_config()
-        config["label_input_path"] = path
-        self.save_config(config)
-
-    def on_path_changed(self, path):
-        """路径变更回调"""
-        if not path:
-            self.path_label.setText("")
-            # 隐藏路径容器
-            self.path_container.setVisible(False)
-            return
-
-        # 更新UI
-        self.path_label.setText(path)
-        self.path_container.setVisible(True)
+        self.show_event(self, event) if hasattr(self, "show_event") else None
 
     # 获取接口列表
     def get_items(self, config) -> list:
@@ -478,147 +117,59 @@ class ProjectSettingsPage_A(QFrame, Base):
         else:
             return ""
 
-###################################样式切换部分#############################################
-    # 更新所有样式
-    def update_all_styles(self):
-        """更新所有需要根据主题调整的样式"""
-        self.update_separator_style()
-        self.update_drop_container_style()
-        self.update_path_prompt_style()
-        self.update_path_label_style()
-        self.update_folder_drop_label_style()
-        self.update_or_label_style()
-        self.update_tip_label_style()
+    # 输入文件夹
+    def add_widget_folder_drop(self, parent: QLayout, config: dict) -> None:
 
-    # 更新分割线样式
-    def update_separator_style(self):
-        """根据主题更新分割线样式"""
-        if isDarkTheme():
-            self.separator.setStyleSheet("background-color: #3A3A3A;")
-        else:
-            self.separator.setStyleSheet("background-color: #D0D0D0;")
+        def widget_callback(widget: GameDropCard, path: str) -> None:
+            # path 参数直接由信号提供
+            if not path: # 检查路径是否有效
+                return
 
-    # 更新拖放容器样式
-    def update_drop_container_style(self):
-        
-        if isDarkTheme():
-            self.drop_container.setStyleSheet("""
-                #dropContainer {
-                    border: 1px dashed #6a6a6a;
-                    border-radius: 8px;
-                    background-color: rgba(60, 60, 60, 0.3);
-                }
+            # 更新并保存配置
+            current_config = self.load_config()
+            current_config["label_input_path"] = path.strip()
+            current_config["path_hit_count"] = widget.getHitCount()
 
-                #dropContainer:hover {
-                    border-color: #8a8aff;
-                    background-color: rgba(80, 80, 95, 0.5);
-                }
-            """)
-        else:
-            self.drop_container.setStyleSheet("""
-                #dropContainer {
-                    border: 1px dashed #aaaaaa;
-                    border-radius: 8px;
-                    background-color: rgba(240, 240, 240, 0.5);
-                }
+            self.save_config(current_config)
 
-                #dropContainer:hover {
-                    border-color: #6666ff;
-                    background-color: rgba(232, 232, 255, 0.7);
-                }
-            """)
+        # 获取配置文件中的初始路径
+        initial_path = config.get("label_input_path", "./input")
+        initial_hits = config.get("path_hit_count", 0) 
 
-    # 更新路径提示文本样式
-    def update_path_prompt_style(self):
-        
-        if isDarkTheme():
-            self.path_prompt.setStyleSheet("""
-                color: #AAAAAA;
-                font-size: 13px;
-            """)
-        else:
-            self.path_prompt.setStyleSheet("""
-                color: #707070;
-                font-size: 13px;
-            """)
+        drag_card = GameDropCard(
+            init=initial_path,
+            path_changed=widget_callback,
+            initial_hit_count=initial_hits # 传递初始命中次数
+        )
+        parent.addWidget(drag_card)
 
-    # 更新路径标签样式
-    def update_path_label_style(self):
-        
-        if isDarkTheme():
-            self.path_label.setStyleSheet("""
-                color: #6A9BFF;
-                font-size: 15px;
-                font-weight: bold;
-            """)
-        else:
-            self.path_label.setStyleSheet("""
-                color: #3366CC;
-                font-size: 15px;
-                font-weight: bold;
-            """)
+    # 模型类型
+    def add_widget_api(self, parent, config) -> None:
 
-    # 更新文件夹拖放标签样式
-    def update_folder_drop_label_style(self):
-        
-        if isDarkTheme():
-            self.folder_drop_label.setStyleSheet("""
-                background: transparent;
-                border: none;
-                color: #FFFFFF;
-                font-size: 18px;
-                font-weight: bold;
-            """)
-        else:
-            self.folder_drop_label.setStyleSheet("""
-                background: transparent;
-                border: none;
-                color: #303030;
-                font-size: 18px;
-                font-weight: bold;
-            """)
+        def update_widget(widget) -> None:
+            config = self.load_config()
 
-    # 更新"或者"标签样式
-    def update_or_label_style(self):
-        
-        if isDarkTheme():
-            self.or_label.setStyleSheet("""
-                color: #AAAAAA;
-                font-size: 12px;
-            """)
-        else:
-            self.or_label.setStyleSheet("""
-                color: #707070;
-                font-size: 12px;
-            """)
+            widget.set_items(self.get_items(config))
+            widget.set_current_index(max(0, widget.find_text(self.find_name_by_tag(config, config.get("target_platform")))))
 
-    # 更新提示文本样式
-    def update_tip_label_style(self):
-       
-        if isDarkTheme():
-            self.tip_label.setStyleSheet("""
-                #tipLabel {
-                    color: #FF9090;
-                    font-size: 14px;
-                    font-style: italic;
-                    font-weight: bold;
-                }
-            """)
-        else:
-            self.tip_label.setStyleSheet("""
-                #tipLabel {
-                    color: #D05050;
-                    font-size: 14px;
-                    font-style: italic;
-                    font-weight: bold;
-                }
-            """)
+        def init(widget) -> None:
+            # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
+            self.show_event = lambda _, event: update_widget(widget)
 
-    # 主题变化事件处理
-    def on_theme_changed(self, event: int, data: dict):
-        """处理主题变化事件"""
-        
-        self.update_all_styles()
+        def current_text_changed(widget, text: str) -> None:
+            config = self.load_config()
+            config["target_platform"] = self.find_tag_by_name(config, text)
+            self.save_config(config)
+
+        parent.addWidget(
+            ComboBoxCard(
+                self.tra("接口平台"),
+                self.tra("设置当前翻译项目所使用的接口的名称，注意，选择错误将不能进行翻译"),
+                [],
+                init = init,
+                current_text_changed = current_text_changed,
+            )
+        )
 
 
 # 详细设置
@@ -690,7 +241,7 @@ class ProjectSettingsPage_B(QFrame, Base):
             """初始化时根据存储的值设置当前选项"""
             current_config = self.load_config()
             current_value = current_config.get("translation_project", "AutoType")
-
+            
             # 旧配置兼容层转换(后续版本再删除)
             if current_value == "Txt小说文件":
                 current_value = "Txt"
@@ -732,7 +283,7 @@ class ProjectSettingsPage_B(QFrame, Base):
                 current_value = "Paratranz"
                 current_config["translation_project"] = current_value
                 self.save_config(current_config)
-
+                
             # 通过值查找对应的索引
             index = next(
                 (i for i, (_, value) in enumerate(translated_pairs) if value == current_value),
@@ -747,7 +298,7 @@ class ProjectSettingsPage_B(QFrame, Base):
                 (value for display, value in translated_pairs if display == text),
                 "AutoType"  # 默认值
             )
-
+            
             config = self.load_config()
             config["translation_project"] = value
             self.save_config(config)
@@ -787,7 +338,7 @@ class ProjectSettingsPage_B(QFrame, Base):
             """初始化时根据存储的值设置当前选项"""
             current_config = self.load_config()
             current_value = current_config.get("source_language", "japanese")
-
+            
 
             # 旧配置兼容层转换(后续版本再删除)
             if current_value == "日语":
@@ -842,7 +393,7 @@ class ProjectSettingsPage_B(QFrame, Base):
                 (value for display, value in translated_pairs if display == text),
                 "japanese"  # 默认值
             )
-
+            
             config = self.load_config()
             config["source_language"] = value
             self.save_config(config)
@@ -882,7 +433,7 @@ class ProjectSettingsPage_B(QFrame, Base):
             """初始化时根据存储的值设置当前选项"""
             current_config = self.load_config()
             current_value = current_config.get("target_language", "chinese_simplified")
-
+            
             # 旧配置兼容层转换(后续版本再删除)
             if current_value == "日语":
                 current_value = "japanese"
@@ -936,7 +487,7 @@ class ProjectSettingsPage_B(QFrame, Base):
                 (value for display, value in translated_pairs if display == text),
                 "chinese_simplified"  # 默认值
             )
-
+            
             config = self.load_config()
             config["target_language"] = value
             self.save_config(config)
@@ -987,7 +538,7 @@ class ProjectSettingsPage_B(QFrame, Base):
         def widget_callback(widget) -> None:
             # 选择文件夹
             path = QFileDialog.getExistingDirectory(None, "选择文件夹", "")
-            if path is None or path == "":
+            if path == None or path == "":
                 return
 
             # 更新UI

@@ -164,9 +164,6 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
         config = self.save_config(config)
 
-        # 发送主题变化事件
-        self.emit(Base.EVENT.THEME_CHANGED, {"theme": config["theme"]})
-
     # 打开主页
     def open_project_page(self) -> None:
         url = QUrl("https://github.com/NEKOparapa/AiNiee")
