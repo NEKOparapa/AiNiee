@@ -5,7 +5,7 @@ import random
 from functools import partial
 
 from PyQt5.QtCore import QUrl
-from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtGui import QDesktopServices, QIcon
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
 
@@ -139,10 +139,10 @@ class PlatformPage(QFrame, Base):
         Base.work_status = Base.STATUS.IDLE
 
         if len(data.get("failure", [])) > 0:
-            info_cont = self.tra("接口测试结果：成功") + f"{len(data.get("success", []))}"+ "......" + self.tra("失败") + f"{len(data.get("failure", []))}" + "......"
+            info_cont = self.tra("接口测试结果：成功") + f"   {len(data.get("success", []))}"+ "......" + self.tra("失败") + f"{   len(data.get("failure", []))}" + "......"
             self.error_toast("", info_cont)
         else:
-            info_cont = self.tra("接口测试结果：成功") + f"{len(data.get("success", []))}"+ "......" + self.tra("失败") + f"{len(data.get("failure", []))}" + "......"
+            info_cont = self.tra("接口测试结果：成功") + f"   {len(data.get("success", []))}"+ "......" + self.tra("失败") + f"{   len(data.get("failure", []))}" + "......"
             self.success_toast("", info_cont)
 
     # 加载并更新预设配置
@@ -256,6 +256,7 @@ class PlatformPage(QFrame, Base):
                 ui_datas.append(
                     {
                         "name": v.get("name"),
+                        "icon": v.get("icon"),
                         "menus": [
                             (
                                 FluentIcon.EDIT,
@@ -284,6 +285,7 @@ class PlatformPage(QFrame, Base):
                 ui_datas.append(
                     {
                         "name": v.get("name"),
+                        "icon": v.get("icon"),
                         "menus": [
                             (
                                 FluentIcon.EDIT,
@@ -337,8 +339,14 @@ class PlatformPage(QFrame, Base):
     def init_drop_down_push_button(self, widget, datas):
         for item in datas:
             drop_down_push_button = PrimaryDropDownPushButton(item.get("name"))
+            if item.get("icon"):
+                icon_name = item.get("icon") + '.png'
+                icon_path = os.path.join(".", "Resource", "platforms", "Icon", icon_name)                                                  
+                drop_down_push_button.setIcon(QIcon(icon_path))
+
             drop_down_push_button.setFixedWidth(192)
             drop_down_push_button.setContentsMargins(4, 0, 4, 0) # 左、上、右、下
+
             widget.add_widget(drop_down_push_button)
 
             menu = RoundMenu(item.get("name"))  # 修改为传递菜单标题，以免出现输入类型错误

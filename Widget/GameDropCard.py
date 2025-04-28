@@ -181,7 +181,7 @@ class DragDropArea(QWidget):
             InfoBlockWidget("文档\n Docx\n MD",QColor("#A9DFBF")),
             InfoBlockWidget("字幕\n Srt\n Vtt\n Lrc", QColor("#FAD7A0")),
             InfoBlockWidget("外挂游戏\n Mtool", QColor("#D8BFD8")),
-            InfoBlockWidget("内嵌游戏\n T++\n Renpy \n VNText", QColor("#AFEEEE")),
+            InfoBlockWidget("内嵌游戏\n Renpy\n VNText \n SExtractor", QColor("#AFEEEE")),
             InfoBlockWidget("数据文件\n I18Next \n ParaTranz", QColor("#F08080")),
             InfoBlockWidget("特别文档\n PDF\n DOC", QColor("#E6E6FA")),
             InfoBlockWidget("工程文件\n .trans", QColor("#FFFACD")),
@@ -193,6 +193,10 @@ class DragDropArea(QWidget):
         # 水平布局，包含按钮和计数标签
         bottom_bar_layout = QHBoxLayout() 
 
+        # 占位标签
+        self.NoneLabel2 = CaptionLabel(f"       ", self)
+        self.NoneLabel2.setAlignment(Qt.AlignVCenter) # 垂直居中        
+
         self.selectButton = PrimaryPushButton(FluentIcon.FOLDER,"拖拽/选择输入文件夹",self) # 创建主操作按钮
         self.selectButton.clicked.connect(self._select_folder) # 连接按钮点击事件到选择文件夹方法
 
@@ -201,6 +205,7 @@ class DragDropArea(QWidget):
         self.hitCountLabel.setAlignment(Qt.AlignRight | Qt.AlignVCenter) # 右对齐，垂直居中
 
         # 使用 Stretch 来实现按钮居中和标签靠右
+        bottom_bar_layout.addWidget(self.NoneLabel2)
         bottom_bar_layout.addStretch(1) # 左侧弹性空间
         bottom_bar_layout.addWidget(self.selectButton) # 中间按钮
         bottom_bar_layout.addStretch(1) # 右侧弹性空间
@@ -211,17 +216,22 @@ class DragDropArea(QWidget):
         path_bar_layout = QHBoxLayout() # 水平布局，包含显示标签和占位标签
 
         # 占位标签
-        self.NoneLabel = CaptionLabel(f"       ", self)
-        self.NoneLabel.setAlignment(Qt.AlignRight | Qt.AlignVCenter) # 右对齐，垂直居中
-        
+        self.NoneLabel2 = CaptionLabel(f"       ", self)
+        self.NoneLabel2.setAlignment(Qt.AlignVCenter) # 垂直居中       
+
         # 路径标签
         self.pathLabel = BodyLabel("未选择路径", self) 
         self.pathLabel.setAlignment(Qt.AlignCenter) # 文本居中对齐
 
+        # 占位标签
+        self.NoneLabel3 = CaptionLabel(f"       ", self)
+        self.NoneLabel3.setAlignment(Qt.AlignRight | Qt.AlignVCenter) # 右对齐，垂直居中
+
+        path_bar_layout.addWidget(self.NoneLabel2) 
         path_bar_layout.addStretch(1) # 左侧弹性空间
         path_bar_layout.addWidget(self.pathLabel) 
         path_bar_layout.addStretch(1) # 右侧弹性空间
-        path_bar_layout.addWidget(self.NoneLabel) # 靠右的标签
+        path_bar_layout.addWidget(self.NoneLabel3) # 靠右的标签
 
         # ===== 组装布局 =====
         layout.addWidget(flow_container)  # 添加包含信息块的流式布局容器

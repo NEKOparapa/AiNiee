@@ -77,7 +77,10 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
     APP_WIDTH = 1280
     APP_HEIGHT = 800
 
-    THEME_COLOR = "#8A95A9"
+    THEME_COLOR = "#808b9d"
+    # THEME_COLOR = "#9aabad"
+    # THEME_COLOR = "#8f93e6" 
+    # THEME_COLOR = "#8A95A9" 
 
     def __init__(self, version: str, plugin_manager: PluginManager, support_project_types: set[str]) -> None:
         super().__init__()
