@@ -16,6 +16,7 @@
     - [Writer基类](#writer基类)
     - [Writer生命周期](#writer生命周期)
     - [Writer示例代码](#writer示例代码)
+  - [缓存介绍](#缓存介绍)
   - [Accessor介绍（可选）](#accessor介绍可选)
   - [FileConverter介绍（可选）](#fileconverter介绍可选)
   - [贡献指南](#贡献指南)
@@ -36,7 +37,7 @@
 
 ### Reader基类
 
-在编写Reader时，您需要创建一个继承自 `BaseSourceReader` 的新类，并实现 `get_project_type`、`support_file`和`read_source_file` 方法。
+在编写Reader时，您需要创建一个继承自 `BaseSourceReader` 的新类，并实现 `get_project_type`、`support_file`和`on_read_source` 方法。
 
 以下是 `BaseSourceReader` 类的简化定义：
 
@@ -66,10 +67,29 @@ class BaseSourceReader(ABC):
         """该读取器支持处理的文件扩展名（不带点），如 json"""
         pass
 
-    @abstractmethod
-    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
+    def read_source_file(self, file_path: Path) -> CacheFile:
         """读取文件内容，并返回原文(译文)片段"""
+        # 模板方法
+        pre_read_metadata = self.pre_read_source(file_path)
+        file_data = self.on_read_source(file_path, pre_read_metadata)
+        file_data.encoding = pre_read_metadata.encoding
+        return self.post_read_source(file_data)
+
+    def pre_read_source(self, file_path: Path) -> PreReadMetadata:
+        """读取文件之前的操作，可以是检测文件编码"""
+        # 猜测的文件编码
+        detected_encoding = detect_file_encoding(file_path)
+        use_encoding = detected_encoding if not detected_encoding.startswith("non_text") else "utf-8"
+        return PreReadMetadata(encoding=use_encoding)
+
+    @abstractmethod
+    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
+        """接收pre_read_source的结果，读取文件内容，并返回原文(译文)片段"""
         pass
+
+    def post_read_source(self, file_data: CacheFile) -> CacheFile:
+        """对原文(译文)片段做统一处理"""
+        return file_data
 
     def can_read(self, file_path: Path, fast=True) -> bool:
         """验证文件兼容性，返回False则不会读取该文件"""
@@ -118,7 +138,7 @@ class BaseSourceReader(ABC):
 
 3. **文件读取**
 
-    Reader接收的文件满足 `can_read` 则执行 `read_source_file` 方法
+    Reader接收的文件满足 `can_read` 则执行 `on_read_source` 方法
 
 4. **Reader销毁**
 
@@ -130,30 +150,31 @@ class BaseSourceReader(ABC):
 
 1. 用户界面的 Txt小说文件 对应 `get_project_type` 里声明的 `Txt`
 2. 该Reader只支持 `support_file` 中声明的 `txt` 类型文件类型
-3. 在 `read_source_file` 读取源文件，把源文档会被分拆成多个片段，并返回原文片段列表 `list[CacheItem]`
+3. 在 `on_read_source` 读取源文件，把源文档会被分拆成多个片段，并返回原文片段列表 `list[CacheItem]`
 4. `CacheItem` 中只定义了通用的属性，若实在有需要可直接给 `CacheItem` 赋值，如 `item.sentence_indent = spaces`
 5. 为保持可读性和可维护性，一些复杂的计算逻辑可提取成函数如 `_count_next_empty_line`
 6. 使用了从 `DirectoryReader` 传入的 `detected_encoding` 参数，适用于大部分情况下的**纯文本**可靠解码
 
 ```python
 class TxtReader(BaseSourceReader):
-    def __init__(self, input_config: InputConfig, max_empty_line_check=2):
+    def __init__(self, input_config: InputConfig, max_empty_line_check=None):
         super().__init__(input_config)
         self.max_empty_line_check = max_empty_line_check
 
     @classmethod
     def get_project_type(cls):
-        return "Txt"
+        return ProjectType.TXT
 
     @property
     def support_file(self):
         return "txt"
 
-    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
+    # 读取单个txt的文本及其他信息
+    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
         items = []
         # 切行
         # 使用传入的 `detected_encoding` 参数正确读取未知编码的纯文本文件，并使用`splitlines()`正确切分行
-        lines = file_path.read_text(encoding=detected_encoding).splitlines()
+        lines = file_path.read_text(encoding=pre_read_metadata.encoding).splitlines()
 
         for i, line in enumerate(lines):
             # 如果当前行是空行
@@ -165,13 +186,15 @@ class TxtReader(BaseSourceReader):
             line_lstrip = line.lstrip()
             # 获取文本行开头的原始空格
             spaces = line[:len(line) - len(line_lstrip)]
+            extra = {
+                "sentence_indent": spaces,
+                # 原始空格保存至变量中，后续Writer中还原
+                "line_break": self._count_next_empty_line(lines, i)
+            }
+            item = CacheItem(source_text=line_lstrip, extra=extra)
 
-            item = text_to_cache_item(line_lstrip)
-            # 原始空格保存至变量中，后续Writer中还原
-            item.sentence_indent = spaces
-            item.line_break = self._count_next_empty_line(lines, i)
             items.append(item)
-        return items
+        return CacheFile(items=items)
 
     def _count_next_empty_line(self, lines, line_index):
         """检查后续行是否连续空行，最多检查 max_empty_line_check 行"""
@@ -222,8 +245,6 @@ class BaseTranslationWriter(ABC):
             return isinstance(self, BaseBilingualWriter) and self.output_config.bilingual_config.enabled
         return False
 
-    NOT_TRANSLATED_STATUS = (CacheItem.STATUS.UNTRANSLATED, CacheItem.STATUS.TRANSLATING)
-
     def __enter__(self):
         """申请整个Writer生命周期用到的耗时资源，单个文件的资源则在write_xxx_file方法中申请释放"""
         return self
@@ -243,34 +264,71 @@ class BaseTranslationWriter(ABC):
         """用于判断当前环境是否支持该writer"""
         return True
 
+
 class BaseTranslatedWriter(BaseTranslationWriter):
     """译文输出基类"""
 
-    @abstractmethod
     def write_translated_file(
-        self, translation_file_path: Path, items: list[CacheItem],
+        self, translation_file_path: Path, cache_file: CacheFile,
         source_file_path: Path = None,
     ):
         """输出译文文件"""
+        pre_write_metadata = self.pre_write_translated(cache_file)
+        self.on_write_translated(translation_file_path, cache_file, pre_write_metadata, source_file_path)
+        self.post_write_translated(translation_file_path)
+
+    def pre_write_translated(self, cache_file: CacheFile) -> PreWriteMetadata:
+        """根据文件内容做输出前操作，如输出编码检测"""
+        return PreWriteMetadata()
+
+    @abstractmethod
+    def on_write_translated(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
+        source_file_path: Path = None,
+    ):
+        """执行实际的文件写入操作"""
+        pass
+
+    def post_write_translated(self, translation_file_path: Path):
+        """输出后操作，如验证"""
         pass
 
 
 class BaseBilingualWriter(BaseTranslationWriter):
     """双语输出基类"""
 
-    @abstractmethod
     def write_bilingual_file(
-        self, translation_file_path: Path, items: list[CacheItem],
+        self, translation_file_path: Path, cache_file: CacheFile,
         source_file_path: Path = None,
     ):
         """输出双语文件"""
+        pre_write_metadata = self.pre_write_bilingual(cache_file)
+        self.on_write_bilingual(translation_file_path, cache_file, pre_write_metadata, source_file_path)
+        self.post_write_bilingual(translation_file_path)
+
+    def pre_write_bilingual(self, cache_file: CacheFile) -> PreWriteMetadata:
+        """根据文件内容做输出前操作，如输出编码检测"""
+        return PreWriteMetadata()
+
+    @abstractmethod
+    def on_write_bilingual(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
+        source_file_path: Path = None,
+    ):
+        """执行实际的文件写入操作"""
+        pass
+
+    def post_write_bilingual(self, translation_file_path: Path):
+        """输出后操作，如验证"""
         pass
 ```
 
 ### Writer生命周期
 
 1. **Writer注册**
-   - 所有的Writer都在 `FileOutputer` 实例化的时候通过 `_register_system_Writer` 方法注册
+   - 所有的Writer都在 `FileOutputer` 实例化的时候通过 `register_writer` 方法注册
    - 为保证通用性，注册的内容为 Writer工厂，可以简单理解为一个创建 Writer 的函数
 
 2. **Writer实例化**
@@ -283,7 +341,7 @@ class BaseBilingualWriter(BaseTranslationWriter):
 
     1. 当Writer的 `output_config` 中 `enable` 了对应的输出方式
     2. 正确的继承了对应的输出基类
-    3. 则执行具体的 `write_xxx_file` 方法，如译文输出就是 `write_translated_file`
+    3. 则执行具体的 `on_write_xxx` 方法，如译文输出就是 `on_write_translated`
     4. 部分文档需要保留原文的复杂样式，此时可使用方法参数中的 `source_file_path` 读取到源文档，再结合译文做文档重构，参考 `RenpyWriter`
 
 4. **Writer销毁**
@@ -327,43 +385,63 @@ class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
     def __init__(self, output_config: OutputConfig):
         super().__init__(output_config)
 
-    def write_bilingual_file(
-        self, translation_file_path: Path, items: list[CacheItem],
+    def on_write_bilingual(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
         source_file_path: Path = None,
     ):
-        self._write_translation_file(translation_file_path, items, self._item_to_bilingual_line)
+        self._write_translation_file(translation_file_path, cache_file, pre_write_metadata, self._item_to_bilingual_line)
 
-    def write_translated_file(
-        self, translation_file_path: Path, items: list[CacheItem],
-        source_file_path: Path = None
+    def on_write_translated(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
+        source_file_path: Path = None,
     ):
-        self._write_translation_file(translation_file_path, items, self._item_to_translated_line)
+        self._write_translation_file(translation_file_path, cache_file, pre_write_metadata, self._item_to_translated_line)
 
     def _write_translation_file(
-        self, translation_file_path: Path, items: list[CacheItem],
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
         item_to_line: Callable[[CacheItem], str],
     ):
-        lines = list(map(item_to_line, items))
+        if not cache_file.items:
+            translation_file_path.touch()
+            return
+
+        # 处理所有项目
+        lines = list(map(item_to_line, cache_file.items))
+
         translation_file_path.write_text("".join(lines), encoding=self.translated_encoding)
 
     def _item_to_bilingual_line(self, item: CacheItem):
-        indent = "　" * item.sentence_indent
         # 至少2个换行，让双语排版不那么紧凑
-        line_break = "\n" * max(item.line_break + 1, 2)
+        line_break = "\n" * max(item.require_extra("line_break") + 1, 2)
+        indent = item.require_extra("sentence_indent")
+
         return (
-            f"{indent}{item.get_source_text().lstrip()}\n"
-            f"{indent}{item.get_translated_text().lstrip()}{line_break}"
+            f"{indent}{item.source_text.lstrip()}\n"
+            f"{indent}{item.translated_text.lstrip()}{line_break}"
         )
 
     def _item_to_translated_line(self, item: CacheItem):
-        indent = "　" * item.sentence_indent
-        line_break = "\n" * (item.line_break + 1)
-        return f"{indent}{item.get_translated_text().lstrip()}{line_break}"
+        line_break = "\n" * (item.require_extra("line_break") + 1)
+
+        return f"{item.require_extra("sentence_indent")}{item.translated_text.lstrip()}{line_break}"
 
     @classmethod
     def get_project_type(self):
-        return "Txt"
+        return ProjectType.TXT
 ```
+
+## 缓存介绍
+
+当前有三个层级的缓存对象 `CacheProject` `CacheFile` `CacheItem`，其分别对应 项目(目录)、文件、条目
+
+1. `CacheProject` 用于存储项目相关的信息，如项目类型、项目统计信息等。
+2. `CacheFile` 用于存储文件相关的信息，如文件相对路径，文件编码等。
+3. `CacheItem` 用于存储条目相关的信息，如原文，模型等。
+4. 如果要新增公共属性（也就是每个reader/writer都会用到的属性），请加到对应的类中。比如要增加文件的公共属性，则在 `CacheFile` 类中添加。
+5. **三个类都不允许额外的属性**，如果有额外属性请放到 `extra` 中。比如 txt 的条目需要换行数，则把属性 `line_break` 放到 `CacheItem` 的 `extra` 中
 
 ## Accessor介绍（可选）
 
