@@ -99,10 +99,10 @@ class TranslatorTask(Base):
     def prepare(self, target_platform: str, prompt_preset: int) -> None:
 
         # 生成上文文本列表
-        self.previous_text_list = [v.get_source_text() for v in self.previous_items]
+        self.previous_text_list = [v.source_text for v in self.previous_items]
 
         # 生成原文文本字典
-        self.source_text_dict = {str(i): v.get_source_text() for i, v in enumerate(self.items)}
+        self.source_text_dict = {str(i): v.source_text for i, v in enumerate(self.items)}
 
         # 生成文本行数信息
         self.row_count = len(self.source_text_dict)
@@ -683,9 +683,10 @@ class TranslatorTask(Base):
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
-                item.set_model(self.config.model)
-                item.set_translated_text(response)
-                item.set_translation_status(CacheItem.STATUS.TRANSLATED)
+                with item.atomic_scope():
+                    item.model = self.config.model
+                    item.translated_text = response
+                    item.translation_status = CacheItem.STATUS.TRANSLATED
 
             # 更新术语表与禁翻表到配置文件中
             self.config.update_glossary_ntl_config(glossary_result, NTL_result)
@@ -897,9 +898,10 @@ class TranslatorTask(Base):
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
-                item.set_model(model)
-                item.set_translated_text(response)
-                item.set_translation_status(CacheItem.STATUS.TRANSLATED)
+                with item.atomic_scope():
+                    item.model = model
+                    item.translated_text = response
+                    item.translation_status = CacheItem.STATUS.TRANSLATED
 
             # 打印任务结果
             self.print(
