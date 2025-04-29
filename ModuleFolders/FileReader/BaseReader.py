@@ -66,9 +66,7 @@ class BaseSourceReader(ABC):
     def pre_read_source(self, file_path: Path) -> PreReadMetadata:
         """读取文件之前的操作，可以是检测文件编码"""
         # 猜测的文件编码
-        detected_encoding = detect_file_encoding(file_path)
-        use_encoding = detected_encoding if not detected_encoding.startswith("non_text") else "utf-8"
-        return PreReadMetadata(encoding=use_encoding)
+        return PreReadMetadata()
 
     @abstractmethod
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
