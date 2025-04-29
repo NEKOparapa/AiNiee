@@ -2,6 +2,9 @@ import json
 import os
 import re
 import time
+
+from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
 from ..PluginBase import PluginBase
 
 class TranslationCheckPlugin(PluginBase):
@@ -16,7 +19,7 @@ class TranslationCheckPlugin(PluginBase):
     def load(self):
         pass
 
-    def on_event(self, event_name, config, event_data):
+    def on_event(self, event_name, config, event_data: CacheProject):
         if event_name == "translation_completed":
             self.check_cache(config, event_data)
 
@@ -54,7 +57,7 @@ class TranslationCheckPlugin(PluginBase):
             patterns.extend(exclusion_patterns)
         return patterns
 
-    def check_cache(self, config, cache_list):
+    def check_cache(self, config, cache_data: CacheProject):
         error_entries = [] # 存储结构化错误信息
         output_path = config.label_output_path
         timestamp = time.strftime("%Y%m%d-%H%M%S")
@@ -99,133 +102,125 @@ class TranslationCheckPlugin(PluginBase):
         total_line = 0
         translated_line = 0
 
-        # 先处理项目报告条目（如果存在）
-        project_entry = next((entry for entry in cache_list if entry.get("project_type")), None)
+        project_type = cache_data.project_type
+        data = cache_data.stats_data
+        start_time = data.start_time
+        total_completion_tokens = data.total_completion_tokens
+        total_requests = data.total_requests
+        error_requests = data.error_requests
+        total_line = data.total_line
+        translated_line = data.line
+        end_time = time.time()
 
-        if project_entry:
-            project_type = project_entry.get("project_type","")
-            data = project_entry.get("data", {})
-            start_time = data.get("start_time")
-            total_completion_tokens = data.get("total_completion_tokens", 0) # 提供默认值
-            total_requests = data.get("total_requests", 0)
-            error_requests = data.get("error_requests", 0)
-            total_line = data.get("total_line", 0)
-            translated_line = data.get("line", 0) # 假设 'line' 是已翻译行数
-            end_time = time.time()
+        if start_time: # 确保 start_time 有效
+            elapsed_time = end_time - start_time
+            tokens_per_second = total_completion_tokens / elapsed_time if elapsed_time > 0 else 0
+            performance_level = self.map_performance_level(tokens_per_second) # 使用新的映射函数
 
-            if start_time: # 确保 start_time 有效
-                elapsed_time = end_time - start_time
-                tokens_per_second = total_completion_tokens / elapsed_time if elapsed_time > 0 else 0
-                performance_level = self.map_performance_level(tokens_per_second) # 使用新的映射函数
-
-                project_report = [
-                    "=" * 60,
-                    "          💻 项目运行报告 💻          ",
-                    "─" * 60,
-                    f"  📌 项目类型: {project_type}",
-                    f"  ⏱ 开始时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}",
-                    f"  🏁 结束时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}",
-                    f"  ⏳ 运行时长: {elapsed_time:.2f} 秒",
-                    f"  📨 总请求数: {total_requests}",
-                    f"  ❌ 错误请求数: {error_requests}",
-                    f"  📝 总行数: {total_line}",
-                    f"  ✅ 翻译行数: {translated_line}",
-                    f"  ⚡ Tokens速度: {tokens_per_second:.2f} t/s",
-                    "─" * 60,
-                    "          📊 性能评估报告 📊          ",
-                    f"{performance_level}",
-                    "=" * 60 + "\n"
-                ]
-                print("\n".join(project_report)) # 项目报告直接输出到控制台
-                project_report_logged = True # 标记已输出
-            else:
-                print("[WARNING][TranslationCheckPlugin] 项目报告条目缺少有效的 'start_time'。")
-
+            project_report = [
+                "=" * 60,
+                "          💻 项目运行报告 💻          ",
+                "─" * 60,
+                f"  📌 项目类型: {project_type}",
+                f"  ⏱ 开始时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}",
+                f"  🏁 结束时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}",
+                f"  ⏳ 运行时长: {elapsed_time:.2f} 秒",
+                f"  📨 总请求数: {total_requests}",
+                f"  ❌ 错误请求数: {error_requests}",
+                f"  📝 总行数: {total_line}",
+                f"  ✅ 翻译行数: {translated_line}",
+                f"  ⚡ Tokens速度: {tokens_per_second:.2f} t/s",
+                "─" * 60,
+                "          📊 性能评估报告 📊          ",
+                f"{performance_level}",
+                "=" * 60 + "\n"
+            ]
+            print("\n".join(project_report)) # 项目报告直接输出到控制台
+            project_report_logged = True # 标记已输出
+        else:
+            print("[WARNING][TranslationCheckPlugin] 项目报告条目缺少有效的 'start_time'。")
 
         # 再处理文本检查条目
-        for entry in cache_list:
-            # 跳过项目报告条目，因为它已处理
-            if entry.get("project_type"):
-                continue
+        for file in cache_data.files.values():
+            for entry in file.items:
 
-            # 文本条目检查逻辑...
-            source_text = entry.get("source_text")
-            translated_text = entry.get("translated_text")
-            translation_status = entry.get("translation_status")
-            storage_path = entry.get("storage_path")
-            file_name = entry.get("file_name") if entry.get("file_name") else "Unknown File"
-            text_index = entry.get("text_index")
+                # 文本条目检查逻辑...
+                source_text = entry.source_text
+                translated_text = entry.translated_text
+                translation_status = entry.translation_status
+                storage_path = file.storage_path
+                file_name = file.file_name if file.file_name else "Unknown File"
+                text_index = entry.text_index
 
-            # 安全获取文本，避免 None 导致后续检查出错
-            source_text = source_text if source_text is not None else ""
-            translated_text = translated_text if translated_text is not None else ""
+                # 安全获取文本，避免 None 导致后续检查出错
+                source_text = source_text if source_text is not None else ""
+                translated_text = translated_text if translated_text is not None else ""
 
+                if translation_status == CacheItem.STATUS.EXCLUED:  # 已被过滤
+                    continue # 跳过被过滤的条目
 
-            if translation_status == 7: # 已被过滤
-                continue # 跳过被过滤的条目
+                current_entry_errors = [] # 存储当前条目的错误信息
 
-            current_entry_errors = [] # 存储当前条目的错误信息
+                if translation_status == 0: # 未翻译
+                    error_msg = "🚧 [WARNING] 条目未翻译 "
+                    current_entry_errors.append(error_msg) # 记录错误
 
-            if translation_status == 0: # 未翻译
-                error_msg = "🚧 [WARNING] 条目未翻译 "
-                current_entry_errors.append(error_msg) # 记录错误
+                elif translation_status == 1: # 已翻译条目
+                    # 各项检查，并将错误信息添加到 current_entry_errors
+                    # 术语表检查
+                    if prompt_dictionary_switch and prompt_dictionary_data:
+                        errors = self.check_prompt_dictionary(source_text, translated_text, prompt_dictionary_data)
+                        if errors:
+                            check_summary["prompt_dictionary_errors"] += len(errors)
+                            current_entry_errors.extend(errors)
+                    # 禁翻表功能检查
+                    if exclusion_list_switch and exclusion_list_data:
+                        errors = self.check_exclusion_list(source_text, translated_text, exclusion_list_data)
+                        if errors:
+                            check_summary["exclusion_list_errors"] += len(errors)
+                            current_entry_errors.extend(errors)
+                    # 自动处理检查
+                    if auto_process_text_code_segment and patterns:
+                        errors = self.check_auto_process(source_text, translated_text, patterns)
+                        if errors:
+                            check_summary["auto_process_errors"] += len(errors)
+                            current_entry_errors.extend(errors)
+                    # 占位符检查
+                    if auto_process_text_code_segment:
+                        errors = self.check_placeholder_residue( translated_text)
+                        if errors:
+                            check_summary["placeholder_errors"] += len(errors)
+                            current_entry_errors.extend(errors)
 
-            elif translation_status == 1: # 已翻译条目
-                # 各项检查，并将错误信息添加到 current_entry_errors
-                # 术语表检查
-                if prompt_dictionary_switch and prompt_dictionary_data:
-                    errors = self.check_prompt_dictionary(source_text, translated_text, prompt_dictionary_data)
+                    # 数字序号检查
+                    errors = self.check_numbered_prefix( translated_text)
                     if errors:
-                        check_summary["prompt_dictionary_errors"] += len(errors)
+                        check_summary["numbered_prefix_errors"] += len(errors)
                         current_entry_errors.extend(errors)
-                # 禁翻表功能检查
-                if exclusion_list_switch and exclusion_list_data:
-                    errors = self.check_exclusion_list(source_text, translated_text, exclusion_list_data)
+
+                    # 示例文本复读检查
+                    errors = self.check_example_text( translated_text)
                     if errors:
-                        check_summary["exclusion_list_errors"] += len(errors)
+                        check_summary["example_text_errors"] += len(errors)
                         current_entry_errors.extend(errors)
-                # 自动处理检查
-                if auto_process_text_code_segment and patterns:
-                    errors = self.check_auto_process(source_text, translated_text, patterns)
+
+                    # 换行符检查
+                    errors = self.check_newline(source_text, translated_text)
                     if errors:
-                        check_summary["auto_process_errors"] += len(errors)
-                        current_entry_errors.extend(errors)
-                # 占位符检查
-                if auto_process_text_code_segment:
-                    errors = self.check_placeholder_residue( translated_text)
-                    if errors:
-                        check_summary["placeholder_errors"] += len(errors)
+                        check_summary["newline_errors"] += len(errors)
                         current_entry_errors.extend(errors)
 
-                # 数字序号检查
-                errors = self.check_numbered_prefix( translated_text)
-                if errors:
-                    check_summary["numbered_prefix_errors"] += len(errors)
-                    current_entry_errors.extend(errors)
 
-                # 示例文本复读检查
-                errors = self.check_example_text( translated_text)
-                if errors:
-                    check_summary["example_text_errors"] += len(errors)
-                    current_entry_errors.extend(errors)
-
-                # 换行符检查
-                errors = self.check_newline(source_text, translated_text)
-                if errors:
-                    check_summary["newline_errors"] += len(errors)
-                    current_entry_errors.extend(errors)
-
-
-            if current_entry_errors: # 如果当前条目有错误，则添加到结构化错误日志
-                total_error_count += len(current_entry_errors)
-                error_entries.append({
-                    "file_name": file_name,
-                    "storage_path": storage_path,
-                    "text_index": text_index,
-                    "source_text": source_text,
-                    "translated_text": translated_text,
-                    "errors": current_entry_errors
-                })
+                if current_entry_errors: # 如果当前条目有错误，则添加到结构化错误日志
+                    total_error_count += len(current_entry_errors)
+                    error_entries.append({
+                        "file_name": file_name,
+                        "storage_path": storage_path,
+                        "text_index": text_index,
+                        "source_text": source_text,
+                        "translated_text": translated_text,
+                        "errors": current_entry_errors
+                    })
 
 
         # 输出检查总结到控制台 (仅当有文本条目被检查过才输出总结)
@@ -236,25 +231,25 @@ class TranslationCheckPlugin(PluginBase):
             if total_error_count > 0:
                 summary_messages.append(f"          ❌ 共发现 {total_error_count} 个潜在问题 ❌")
                 if check_summary["prompt_dictionary_errors"] > 0:
-                     summary_messages.append(f"  - 📚 术语表检查: {check_summary['prompt_dictionary_errors']} 个错误 ⚠️")
+                    summary_messages.append(f"  - 📚 术语表检查: {check_summary['prompt_dictionary_errors']} 个错误 ⚠️")
                 if check_summary["exclusion_list_errors"] > 0:
-                     summary_messages.append(f"  - 🚫 禁翻表检查: {check_summary['exclusion_list_errors']} 个错误 ⚠️")
+                    summary_messages.append(f"  - 🚫 禁翻表检查: {check_summary['exclusion_list_errors']} 个错误 ⚠️")
                 if check_summary["auto_process_errors"] > 0:
-                     summary_messages.append(f"  - ⚙️ 自动处理检查: {check_summary['auto_process_errors']} 个错误 ⚠️")
+                    summary_messages.append(f"  - ⚙️ 自动处理检查: {check_summary['auto_process_errors']} 个错误 ⚠️")
                 if check_summary["placeholder_errors"] > 0:
-                     summary_messages.append(f"  - 🍩 占位符残留检查: {check_summary['placeholder_errors']} 个错误 ⚠️")
+                    summary_messages.append(f"  - 🍩 占位符残留检查: {check_summary['placeholder_errors']} 个错误 ⚠️")
                 if check_summary["numbered_prefix_errors"] > 0:
-                     summary_messages.append(f"  - 🔢 数字序号检查: {check_summary['numbered_prefix_errors']} 个错误 ⚠️")
+                    summary_messages.append(f"  - 🔢 数字序号检查: {check_summary['numbered_prefix_errors']} 个错误 ⚠️")
                 if check_summary["example_text_errors"] > 0:
-                     summary_messages.append(f"  - 💦 示例文本复读检查: {check_summary['example_text_errors']} 个错误 ⚠️")
+                    summary_messages.append(f"  - 💦 示例文本复读检查: {check_summary['example_text_errors']} 个错误 ⚠️")
                 if check_summary["newline_errors"] > 0:
-                     summary_messages.append(f"  - 📃 换行符检查: {check_summary['newline_errors']} 个错误 ⚠️")
+                    summary_messages.append(f"  - 📃 换行符检查: {check_summary['newline_errors']} 个错误 ⚠️")
 
                 if any(e['errors'][0] == "🚧 [WARNING] 条目未翻译 " for e in error_entries if e['errors']):
-                     untranslated_count = sum(1 for e in error_entries if e['errors'] and e['errors'][0] == "🚧 [WARNING] 条目未翻译 ")
-                     summary_messages.append(f"  - 🚧 未翻译条目: {untranslated_count} 个 ⚠️")
+                    untranslated_count = sum(1 for e in error_entries if e['errors'] and e['errors'][0] == "🚧 [WARNING] 条目未翻译 ")
+                    summary_messages.append(f"  - 🚧 未翻译条目: {untranslated_count} 个 ⚠️")
 
-            elif cache_list and len(cache_list) > (1 if project_entry else 0) : # 确保有文本条目被检查过
+            elif any(cache_data.items_iter()):  # 上面遍历了所有items，所以只要items不为空就能确保有文本条目被检查过
                 summary_messages.append("✅ 恭喜！所有已翻译条目的检查项均未发现明显错误 🎉🎉🎉")
             else: # 如果 cache_list 为空或只有项目报告
                  summary_messages.append("ℹ️ 未检查任何文本条目。")
@@ -272,7 +267,7 @@ class TranslationCheckPlugin(PluginBase):
             except IOError as e:
                 print(f"[ERROR][TranslationCheckPlugin] 无法写入错误日志文件 '{json_error_filepath}': {e}")
 
-        elif total_error_count == 0 and cache_list and len(cache_list) > (1 if project_entry else 0):
+        elif total_error_count == 0 and any(cache_data.items_iter()):  # 上面遍历了所有items，所以只要items不为空就能确保有文本条目被检查过
             print("[INFO][TranslationCheckPlugin] 所有已检查条目均无错误，未生成错误日志文件。")
         # 如果没有文本条目被检查，则不输出此信息
 

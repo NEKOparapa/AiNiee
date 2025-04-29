@@ -1,4 +1,6 @@
-from ..PluginBase import PluginBase
+from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
+from PluginScripts.PluginBase import PluginBase
 
 
 class BilingualPlugin(PluginBase):
@@ -16,18 +18,16 @@ class BilingualPlugin(PluginBase):
     def load(self):
         pass
 
-    def on_event(self, event_name, config, event_data):
+    def on_event(self, event_name, config, event_data: CacheProject):
         if event_name in ("manual_export", "postprocess_text"):
             self.process_dictionary_list(event_data)
 
-    def process_dictionary_list(self, cache_list):
-        for entry in cache_list:
-            storage_path = entry.get("storage_path")
+    def process_dictionary_list(self, event_data: CacheProject):
+        for entry in event_data.items_iter():
 
-            if storage_path:
-                source_text = entry.get("source_text")
-                translated_text = entry.get("translated_text")
-                translation_status = entry.get("translation_status")
+            source_text = entry.source_text
+            translated_text = entry.translated_text
+            translation_status = entry.translation_status
 
-                if translation_status == 1:
-                    entry["translated_text"] = translated_text+ "\n" + source_text
+            if translation_status == CacheItem.STATUS.TRANSLATED:
+                entry.translated_text = translated_text + "\n" + source_text

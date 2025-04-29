@@ -1,9 +1,12 @@
+from collections import defaultdict
 import unicodedata
 from itertools import zip_longest
 
 from tqdm import tqdm
 from rich import print
 
+from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject, ProjectType
 from PluginScripts.PluginBase import PluginBase
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 
@@ -26,32 +29,29 @@ class MToolOptimizer(PluginBase):
         self.add_event("preproces_text", PluginBase.PRIORITY.NORMAL)
         self.add_event("postprocess_text", PluginBase.PRIORITY.NORMAL)
 
-    def on_event(self, event: str, config: TranslatorConfig, data: list[dict]) -> None:
-        # 检查数据有效性
-        if isinstance(data, list) == False or len(data) < 2:
-            return
-
-        # 初始化
-        items = data[1:]
-        project = data[0]
+    def on_event(self, event: str, config: TranslatorConfig, data: CacheProject) -> None:
 
         # 限制文本格式
-        if "Mtool" not in project.get("file_project_types", ()):
+        if ProjectType.MTOOL not in data.file_project_types:
             return
 
         if event == "preproces_text":
-            mtool_items = [line for line in data if line.get("file_project_type") == 'Mtool']
-            self.on_preproces_text(event, config, data, mtool_items, project)
+            # 检查数据是否已经被插件处理过
+            if data.get_extra("mtool_optimizer_processed", False):
+                return
+            mtool_items = list(data.items_iter(ProjectType.MTOOL))
+            self.on_preproces_text(event, config, mtool_items)
+            data.set_extra("mtool_optimizer_processed", True)
 
         if event in ("manual_export", "postprocess_text"):
-            mtool_items = [line for line in data if line.get("file_project_type") == 'Mtool']
-            self.on_postprocess_text(event, config, data, mtool_items, project)
+            # 检查数据是否已经被插件处理过
+            if not data.get_extra("mtool_optimizer_processed", False):
+                return
+            mtool_items = list(data.items_iter(ProjectType.MTOOL))
+            self.on_postprocess_text(event, config, mtool_items)
 
     # 文本预处理事件
-    def on_preproces_text(self, event: str, config: TranslatorConfig, data: list[dict], items: list[dict], project: dict) -> None:
-        # 检查数据是否已经被插件处理过
-        if project.get("mtool_optimizer_processed", False) == True:
-            return
+    def on_preproces_text(self, event: str, config: TranslatorConfig, items: list[CacheItem]) -> None:
 
         # 检查需要移除的条目
         # 将包含换行符的长句拆分，然后查找与这些拆分后得到的短句相同的句子并移除它们
@@ -60,37 +60,29 @@ class MToolOptimizer(PluginBase):
         print("")
 
         # 记录处理前的条目数量
-        orginal_length = len([v for v in items if v.get("translation_status", 0) == 7])
+        orginal_length = len([v for v in items if v.translation_status == CacheItem.STATUS.EXCLUED])
 
         # 找到重复短句条目
         texts_to_delete = set()
         for v in tqdm(items):
-            # 备份原文
-            v["source_backup"] = v.get("source_text", "")
 
             # 找到需要移除的重复条目
-            if v.get("source_text", "").count("\n") > 0:
+            if v.source_text.find("\n") >= 0:
                 texts_to_delete.update(
-                    [v.strip() for v in v.get("source_text", "").splitlines() if v.strip() != ""]
+                    v.strip() for v in v.source_text.splitlines() if v.strip() != ""
                 )
 
         # 移除重复短句条目
         for v in tqdm(items):
-            if v.get("source_text", "").strip() in texts_to_delete:
-                v["translation_status"] = 7
+            if v.source_text.strip() in texts_to_delete:
+                v.translation_status = CacheItem.STATUS.EXCLUED
 
         print("")
-        print(f"[MToolOptimizer] 预处理执行成功，已移除 {len([v for v in items if v.get("translation_status", 0) == 7]) - orginal_length} 个重复的条目 ...")
+        print(f"[MToolOptimizer] 预处理执行成功，已移除 {len([v for v in items if v.translation_status == CacheItem.STATUS.EXCLUED]) - orginal_length} 个重复的条目 ...")
         print("")
-
-        # 设置处理标志
-        project["mtool_optimizer_processed"] = True
 
     # 文本后处理事件
-    def on_postprocess_text(self, event: str, config: TranslatorConfig, data: list[dict], items: list[dict], project: dict) -> None:
-        # 检查数据是否已经被插件处理过
-        if project.get("mtool_optimizer_processed", False) == False:
-            return
+    def on_postprocess_text(self, event: str, config: TranslatorConfig, items: list[CacheItem]) -> None:
 
         print("")
         print("[MToolOptimizer] 开始执行后处理 ...")
@@ -99,14 +91,18 @@ class MToolOptimizer(PluginBase):
         # 记录实际处理的条目
         seen = set()
 
+        # 找到短句，并按原文分组
+        source_text_mapping = defaultdict[str, list[CacheItem]](list)
+        for item in items:
+            if item.source_text.find("\n") == -1:
+                source_text_mapping[item.source_text.strip()].append(item)
+
         # 尝试将包含换行符的长句还原回短句
         for v in tqdm(items):
-            # 从备份中恢复原文文本
-            v["source_text"] = v.get("source_backup", "")
 
             # 获取原文和译文按行切分，并移除空条目以避免连续换行带来的影响
-            source_text = v.get("source_text", "").strip()
-            translated_text = v.get("translated_text", "").strip()
+            source_text = v.source_text.strip()
+            translated_text = v.translated_text.strip()
             lines_source = [v.strip() for v in source_text.splitlines() if v.strip() != ""]
             lines_translated = [v.strip() for v in translated_text.splitlines() if v.strip() != ""]
 
@@ -120,10 +116,10 @@ class MToolOptimizer(PluginBase):
 
             # 第一种情况：原文和译文行数相等
             if len(lines_source) == len(lines_translated):
-                data, seen = self.update_data(v, data, lines_source, lines_translated, seen)
+                self.update_data(lines_source, lines_translated, seen, source_text_mapping)
             # 第二种情况：原文行数大于译文行数，且原文最大显示长度不少于译文最大显示长度
             elif len(lines_source) > len(lines_translated) and max_length_source >= max_length_translated:
-                data, seen = self.update_data(v, data, lines_source, lines_translated, seen)
+                self.update_data(lines_source, lines_translated, seen, source_text_mapping)
             # 兜底的情况
             else:
                 # 切分前，先将译文中的换行符移除，避免重复换行，切分长度为子句最大长度 - 2
@@ -132,14 +128,14 @@ class MToolOptimizer(PluginBase):
                     max(20, max_length_source - 2)
                 )
 
-                data, seen = self.update_data(v, data, lines_source, lines_translated, seen)
+                self.update_data(lines_source, lines_translated, seen, source_text_mapping)
 
         print("")
         print(f"[MToolOptimizer] 后处理执行成功，已还原 {len(seen)} 个条目 ...")
         print("")
 
     # 更新数据
-    def update_data(self, target: dict, data: list[dict], lines_s: list[str], lines_t: list[str], seen: set) -> tuple[list[dict], set]:
+    def update_data(self, lines_s: list[str], lines_t: list[str], seen: set, source_text_mapping: defaultdict[str, list[CacheItem]]):
         # 按照数据对处理译文，长度不足时，则补齐长度
         for source, translated in zip_longest(lines_s, lines_t, fillvalue = ""):
             # 跳过重复的条目
@@ -148,13 +144,10 @@ class MToolOptimizer(PluginBase):
             else:
                 seen.add(source.strip())
 
-            item = target.copy()
-            item["text_index"] = len(data) + 1
-            item["source_text"] = source.strip() if source.strip() != "" else "　"                  # 注意，空字符串的条目会被忽略，所以使用全角空格填充
-            item["translated_text"] = translated.strip() if translated.strip() != "" else "　"      # 注意，空字符串的条目会被忽略，所以使用全角空格填充
-            data.append(item)
-
-        return data, seen
+            # 更新短句的译文
+            for item in source_text_mapping.get(source.strip(), ()):
+                item.translated_text = translated.strip() if translated.strip() != "" else "　"
+                item.translation_status = CacheItem.STATUS.TRANSLATED
 
     # 按显示长度切割字符串
     def split_string_by_display_length(self, string: str, display_length: int) -> list[str]:

@@ -1,6 +1,7 @@
 from tqdm import tqdm
 from rich import print
 
+from ModuleFolders.Cache.CacheProject import CacheProject
 from PluginScripts.PluginBase import PluginBase
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
@@ -87,20 +88,13 @@ class LanguageFilter(PluginBase):
 
         self.add_event("text_filter", PluginBase.PRIORITY.NORMAL)
 
-    def on_event(self, event: str, config: TranslatorConfig, data: list[dict]) -> None:
-        # 检查数据有效性
-        if not isinstance(data, list) or len(data) < 2:
-            return
-
-        # 初始化
-        items = data[1:]
-        project = data[0]
+    def on_event(self, event: str, config: TranslatorConfig, data: CacheProject) -> None:
 
         if event == "text_filter":
-            self.on_text_filter(event, config, data, items, project)
+            self.on_text_filter(event, config, data)
 
     # 文本后处理事件
-    def on_text_filter(self, event: str, config: TranslatorConfig, data: list[dict], items: list[dict], project: dict) -> None:
+    def on_text_filter(self, event: str, config: TranslatorConfig, data: CacheProject) -> None:
         print("")
         print("[LanguageFilter] 开始执行预处理 ...")
         print("")
@@ -122,11 +116,11 @@ class LanguageFilter(PluginBase):
         target = []
         if has_any is not None:
             target = [
-                v for v in items
-                if not isinstance(v.get("source_text", ""), str) or not has_any(v.get("source_text", ""))
+                v for v in data.items_iter()
+                if not isinstance(v.source_text, str) or not has_any(v.source_text)
             ]
             for item in tqdm(target):
-                item["translation_status"] = CacheItem.STATUS.EXCLUED
+                item.translation_status = CacheItem.STATUS.EXCLUED
 
         # 输出结果
         print("")
