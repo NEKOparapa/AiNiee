@@ -1,5 +1,8 @@
-import re 
+from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
+
 from ..PluginBase import PluginBase
+
 
 class TextLayoutRepairPlugin(PluginBase):
     def __init__(self):
@@ -13,26 +16,23 @@ class TextLayoutRepairPlugin(PluginBase):
         self.add_event("postprocess_text", PluginBase.PRIORITY.LOWEST)  # 添加感兴趣的事件和优先级
         self.add_event("manual_export", PluginBase.PRIORITY.LOWEST)
 
-
     def load(self):
         pass
 
-    def on_event(self, event_name, config, event_data):
+    def on_event(self, event_name, config, event_data: CacheProject):
         if event_name in ("manual_export", "postprocess_text"):
             self.process_dictionary_list(event_data)
 
-    def process_dictionary_list(self, cache_list):
-        for entry in cache_list:
-            storage_path = entry.get("storage_path")
+    def process_dictionary_list(self, cache_list: CacheProject):
+        for entry in cache_list.items_iter():
 
-            if storage_path:
-                source_text = entry.get("source_text")
-                translated_text = entry.get("translated_text")
-                translation_status = entry.get("translation_status")
+            source_text = entry.source_text
+            translated_text = entry.translated_text
+            translation_status = entry.translation_status
 
-                # 仅处理已翻译的条目
-                if source_text and translated_text and translation_status == 1:
-                    entry["translated_text"] = self.fix_typography(source_text, translated_text)
+            if translation_status == CacheItem.STATUS.TRANSLATED:
+                entry.translated_text = self.fix_typography(source_text, translated_text)
+
 
 
     def fix_typography(self, original_text: str, translated_text: str) -> str:

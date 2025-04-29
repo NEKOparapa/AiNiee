@@ -1,7 +1,6 @@
-from itertools import groupby
-
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheManager import CacheManager
+from ModuleFolders.Cache.CacheProject import CacheProject
 from PluginScripts.PluginBase import PluginBase
 
 
@@ -20,38 +19,31 @@ class IncrementalFilePlugin(PluginBase):
         # 为保证增量文本读取在其他插件之前，用最高优先级
         self.add_event("text_filter", PluginBase.PRIORITY.HIGHEST)
 
-    def on_event(self, event_name, config, event_data):
+    def on_event(self, event_name, config, event_data: CacheProject):
         if event_name == "text_filter":
             self.read_incremental_files(config, event_data)
 
-    def read_incremental_files(self, config, event_data):
+    def read_incremental_files(self, config, event_data: CacheProject):
 
         cache_manager = CacheManager()
         cache_manager.load_from_file(config.label_output_path)
+        cache_files = cache_manager.project.files
 
-        cache_event_dict = {}
+        for file in event_data.files.values():
+            if file.storage_path in cache_files:
+                cache_line_set = set(x.source_text for x in cache_files[file.storage_path].items)
+                cache_items = iter(cache_files[file.storage_path].items)  # 用迭代器代替下标
 
-        # groupby需要key有序，storage_path本身有序，不需要重排
-        for k, v in groupby(cache_manager.items, lambda x: x.storage_path):
-            cache_item_list = list(v)
-            cache_line_set = set(x.source_text for x in cache_item_list)
-            cache_event_dict[k] = (cache_line_set, iter(cache_item_list))  # 用迭代器代替下标
-
-        for line in event_data:
-            if line.get('storage_path') in cache_event_dict:
-
-                cache_line_set, cache_items = cache_event_dict[line['storage_path']]
-                # 防止中间插入的行遍历完迭代器
-                if line.get('source_text', '') not in cache_line_set:
-                    continue
-                for cache_line in cache_items:
-
-                    # 在缓存中找到当前的片段
-                    if cache_line.source_text == line.get('source_text', ''):
-
-                        # 更新已翻译的片段
-                        if cache_line.translation_status == CacheItem.STATUS.TRANSLATED:
-                            line['translation_status'] = cache_line.translation_status
-                            line['model'] = cache_line.model
-                            line['translated_text'] = cache_line.translated_text
-                        break
+                for line in file.items:
+                    # 防止中间插入的行遍历完迭代器
+                    if line.source_text not in cache_line_set:
+                        continue
+                    for cache_line in cache_items:
+                        # 在缓存中找到当前的片段
+                        if cache_line.source_text == line.source_text:
+                            # 更新已翻译的片段
+                            if cache_line.translation_status == CacheItem.STATUS.TRANSLATED and line.translation_status == CacheItem.STATUS.UNTRANSLATED:
+                                line.translation_status = cache_line.translation_status
+                                line.model = cache_line.model
+                                line.translated_text = cache_line.translated_text
+                            break
