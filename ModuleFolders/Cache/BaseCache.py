@@ -65,7 +65,7 @@ class DictMixin:
         elif data is None:
             return None
         elif hasattr(type_, "_fields") and issubclass(type_, tuple) and isinstance(data, (list, tuple)):
-            return type_(cls._from_define(Any, x) for x in data)
+            return type_(*(cls._from_define(Any, x) for x in data))
 
         type_origin = get_origin(type_)
         args = get_args(type_)
