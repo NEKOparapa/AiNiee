@@ -1,3 +1,5 @@
+import re
+
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheProject import CacheProject
 
