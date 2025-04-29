@@ -1,10 +1,9 @@
-from collections import defaultdict
 from pathlib import Path
 from typing import Callable
 
 import rich
 
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileOutputer.BaseWriter import (
     BaseBilingualWriter,
     BaseTranslatedWriter,
@@ -24,13 +23,6 @@ def can_encode_text(text: str, encoding: str) -> bool:
         return False
 
 
-def group_to_list[E, R](arr: list[E], key: Callable[[E], R]):
-    result = defaultdict[R, list[E]](list)
-    for x in arr:
-        result[key(x)].append(x)
-    return result
-
-
 class DirectoryWriter:
     def __init__(self, create_writer: Callable[[], BaseTranslationWriter]):
         self.create_writer = create_writer
@@ -41,7 +33,7 @@ class DirectoryWriter:
     }
 
     def write_translation_directory(
-        self, items: list[CacheItem], source_directory: Path,
+        self, project: CacheProject, source_directory: Path,
         translation_directory: Path = None,
     ):
         """translation_directory 用于覆盖配置"""
@@ -57,7 +49,7 @@ class DirectoryWriter:
                 pass  # UTF-8可以表示所有字符，无需检查 / 非纯文本不需要检查
             else:
                 # 检查所有文本是否可以用原始编码表示
-                for item in items:
+                for item in project.items_iter():
                     if item.translated_text and not can_encode_text(item.translated_text, original_encoding):
                         use_original_encoding = False
                         break
@@ -73,8 +65,7 @@ class DirectoryWriter:
             )
 
             # 把翻译片段按文件名分组
-            items_dict = group_to_list(items, lambda x: x.get_storage_path())
-            for storage_path, file_items in items_dict.items():
+            for storage_path, file_items in project.files.items():
                 source_file_path = source_directory / storage_path
                 for translation_mode in BaseTranslationWriter.TranslationMode:
                     if writer.can_write(translation_mode):

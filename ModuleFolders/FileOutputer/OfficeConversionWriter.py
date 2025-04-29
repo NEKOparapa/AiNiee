@@ -2,11 +2,13 @@ import platform
 import shutil
 from pathlib import Path
 
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheFile import CacheFile
+from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileConverter.OfficeFileConverter import OfficeFileConverter
 from ModuleFolders.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
-    OutputConfig
+    OutputConfig,
+    PreWriteMetadata
 )
 from ModuleFolders.FileOutputer.DocxWriter import DocxWriter
 
@@ -35,12 +37,8 @@ class OfficeConversionWriter(BaseTranslatedWriter):
         if input_temp_root.exists():
             shutil.rmtree(input_temp_root)
 
-    @classmethod
-    def get_project_type(cls) -> str:
-        return "OfficeConversion"
-
     def write_translated_file(
-        self, translation_file_path: Path, items: list[CacheItem],
+        self, translation_file_path: Path, cache_file: CacheFile,
         source_file_path: Path = None,
     ):
         rel_path = translation_file_path.relative_to(self.output_config.translated_config.output_root)
@@ -61,9 +59,17 @@ class OfficeConversionWriter(BaseTranslatedWriter):
             if not tmp_translation_docx_path.parent.exists():
                 tmp_translation_docx_path.parent.mkdir(parents=True)
             # 翻译中间格式文件
-            self.docx_writer.write_translated_file(tmp_translation_docx_path, items, tmp_source_docx_path)
+            self.docx_writer.write_translated_file(tmp_translation_docx_path, cache_file, tmp_source_docx_path)
             if self.converter.can_convert(tmp_translation_docx_path, translation_file_path):
                 self.converter.convert_file(tmp_translation_docx_path, translation_file_path)
+
+    def on_write_translated(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
+        source_file_path: Path = None,
+    ):
+        # 重载抽象方法，实际不需要使用
+        raise NotImplementedError
 
     @classmethod
     def is_environ_supported(cls) -> bool:
@@ -73,10 +79,10 @@ class OfficeConversionWriter(BaseTranslatedWriter):
 class OfficeConversionPdfWriter(OfficeConversionWriter):
     @classmethod
     def get_project_type(cls) -> str:
-        return "OfficeConversionPdf"
+        return ProjectType.OFFICE_CONVERSION_PDF
 
 
 class OfficeConversionDocWriter(OfficeConversionWriter):
     @classmethod
     def get_project_type(cls) -> str:
-        return "OfficeConversionDoc"
+        return ProjectType.OFFICE_CONVERSION_DOC

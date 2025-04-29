@@ -2,10 +2,12 @@ import json
 from pathlib import Path
 
 # 假定这些导入相对于项目结构是正确的
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheFile import CacheFile
+from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
-    OutputConfig
+    OutputConfig,
+    PreWriteMetadata
 )
 
 
@@ -29,19 +31,20 @@ class VntWriter(BaseTranslatedWriter):
     def __init__(self, output_config: OutputConfig):
         super().__init__(output_config)
 
-    def write_translated_file(
-        self, translation_file_path: Path, items: list[CacheItem],
-        source_file_path: Path = None
+    def on_write_translated(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
+        source_file_path: Path = None,
     ):
         output_list = []
         # 转换中间字典的格式为最终输出格式
-        for item in items:
+        for item in cache_file.items:
             # 一次性获取翻译后的文本
-            translated_text_full = item.get_translated_text()
+            translated_text_full = item.translated_text
             text = None # 初始化text字典
 
             # --- 首先检查 'names' ---
-            original_names = getattr(item, "names", None)
+            original_names = item.get_extra("names")
             # 确保它是一个非空列表
             if isinstance(original_names, list) and original_names:
                 # 处理 'names' 字段
@@ -51,9 +54,9 @@ class VntWriter(BaseTranslatedWriter):
                 text = {"names": original_names, "message": remaining_message}
 
             # --- 如果 'names' 未被处理，则检查 'name' ---
-            elif text is None and getattr(item, "name", None):
-                 # 处理 'name' 字段（使用原始逻辑）
-                original_name = item.name
+            elif text is None and item.get_extra("name"):
+                # 处理 'name' 字段（使用原始逻辑）
+                original_name = item.require_extra("name")
                 # 处理前确保 name 不为空
                 if original_name:
                     updated_name, remaining_message = self.extract_strings(
@@ -61,7 +64,7 @@ class VntWriter(BaseTranslatedWriter):
                     )
                     text = {"name": original_name, "message": remaining_message}
                 else: # 处理 'name' 属性存在但为空的情况
-                     text = {"message": translated_text_full}
+                    text = {"message": translated_text_full}
 
             # --- 后备处理：没有 'name' 或 'names' ---
             # 如果 text 仍然是 None，表示既没有找到 'names' 也没有找到 'name' 或它们未被成功处理
@@ -171,4 +174,4 @@ class VntWriter(BaseTranslatedWriter):
 
     @classmethod
     def get_project_type(self):
-        return "Vnt"
+        return ProjectType.VNT

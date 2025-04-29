@@ -3,10 +3,12 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 # 假定这些导入相对于项目结构是正确的
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheFile import CacheFile
+from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
-    OutputConfig
+    OutputConfig,
+    PreWriteMetadata
 )
 
 
@@ -20,7 +22,7 @@ class I18nextWriter(BaseTranslatedWriter):
 
     @classmethod
     def get_project_type(cls):
-        return "I18next" # 与 Reader 保持一致
+        return ProjectType.I18NEXT  # 与 Reader 保持一致
 
     def _set_value_by_path(self, data_dict: Dict, path: List[str], value: Any):
         """
@@ -41,24 +43,24 @@ class I18nextWriter(BaseTranslatedWriter):
         last_key = path[-1]
         current_level[last_key] = value
 
-    def write_translated_file(
-        self, translation_file_path: Path, items: list[CacheItem],
-        source_file_path: Path = None # source_file_path 在此实现中未使用
+    def on_write_translated(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
+        source_file_path: Path = None,
     ):
         """
         将 CacheItem 列表写入 i18next JSON 文件。
         """
         output_data = {} # 用于构建最终 JSON 结构的字典
 
-        for item in items:
-            path: List[str] = item.i18next_path
+        for item in cache_file.items:
+            path: List[str] = item.require_extra("i18next_path")
 
             # 获取翻译后的文本
-            translated_text = item.get_translated_text() # 假设这个方法返回最终要写入的字符串
+            translated_text = item.translated_text  # 假设这个方法返回最终要写入的字符串
 
             # 使用辅助函数将翻译文本按路径设置到 output_data 中
             self._set_value_by_path(output_data, path, translated_text)
-
 
         json_content = json.dumps(output_data, ensure_ascii=False, indent=4)
 

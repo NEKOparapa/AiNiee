@@ -5,6 +5,7 @@ from typing import Type
 
 
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileOutputer.AutoTypeWriter import AutoTypeWriter
 from ModuleFolders.FileOutputer.BaseWriter import BaseTranslationWriter, OutputConfig, TranslationOutputConfig, WriterInitParams
 from ModuleFolders.FileOutputer.DirectoryWriter import DirectoryWriter
@@ -60,21 +61,20 @@ class FileOutputer():
         self.register_writer(AutoTypeWriter, writer_factories=self.writer_factory_dict.values())
 
     # 输出已经翻译文件
-    def output_translated_content(self, cache_data, output_path, input_path) -> None:
-        cache_data_iter = iter(cache_data)
-        base_info = next(cache_data_iter)
-        project_type = base_info["project_type"]
-        file_encoding = base_info["file_encoding"]
-        line_ending = base_info["line_ending"]
+    def output_translated_content(self, cache_data: CacheProject, output_path, input_path) -> None:
+        # cache_data_iter = iter(cache_data)
+        # base_info = next(cache_data_iter)
+        project_type = cache_data.project_type
+        project_encoding = cache_data.detected_encoding
+        project_line_ending = cache_data.detected_line_ending
         if project_type in self.writer_factory_dict:
-            writer_iinit_params = self._get_writer_init_params(project_type, file_encoding, line_ending, Path(output_path), Path(input_path))
+            writer_iinit_params = self._get_writer_init_params(project_type, project_encoding, project_line_ending, Path(output_path), Path(input_path))
             # 绑定配置，使工厂变成无参
             writer_factory = partial(self.writer_factory_dict[project_type], **writer_iinit_params)
-            items = list(map(CacheItem, cache_data_iter))
             source_directory = Path(input_path)
             writer = DirectoryWriter(writer_factory)
             # 为防止双语输出路径被覆盖，这里不传translation_directory
-            writer.write_translation_directory(items, source_directory)
+            writer.write_translation_directory(cache_data, source_directory)
 
     def _get_writer_init_params(self, project_type, file_encoding, line_ending, output_path: Path, input_path: Path):
         output_config = self._get_writer_default_config(project_type, file_encoding, line_ending, output_path, input_path)
