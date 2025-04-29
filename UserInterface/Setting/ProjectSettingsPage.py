@@ -10,7 +10,8 @@ from Widget.ComboBoxCard import ComboBoxCard
 from Widget.LineEditCard import LineEditCard
 from Widget.PushButtonCard import PushButtonCard
 from Widget.SwitchButtonCard import SwitchButtonCard
-from Widget.FolderDropCard import FolderDropCard
+from Widget.GameDropCard import GameDropCard
+
 
 class ProjectSettingsPage(QFrame, Base):
 
@@ -72,6 +73,7 @@ class ProjectSettingsPage_A(QFrame, Base):
         self.default = {
             "target_platform": "deepseek",
             "label_input_path": "./input",
+            "path_hit_count": 0,
         }
 
         # 载入并保存默认配置
@@ -83,8 +85,8 @@ class ProjectSettingsPage_A(QFrame, Base):
         self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
         # 添加控件
-        self.add_widget_folder_drop(self.container, config)
         self.add_widget_api(self.container, config)
+        self.add_widget_folder_drop(self.container, config)
 
         # 填充
         self.container.addStretch(1)
@@ -116,40 +118,37 @@ class ProjectSettingsPage_A(QFrame, Base):
         else:
             return ""
 
-
     # 输入文件夹
     def add_widget_folder_drop(self, parent: QLayout, config: dict) -> None:
 
-        def widget_callback(widget: FolderDropCard, path: str) -> None:
+        def widget_callback(widget: GameDropCard, path: str) -> None:
             # path 参数直接由信号提供
             if not path: # 检查路径是否有效
-                print("无效的路径或回调触发时路径为空")
-                # 重置路径
-                widget.reset() 
                 return
-
-            #print(f"路径拖放回调触发: {path}") # 调试信息
 
             # 更新并保存配置
             current_config = self.load_config()
             current_config["label_input_path"] = path.strip()
+
+            # 超限清空
+            path_hit_count = widget.getHitCount()
+            if path_hit_count>=10000:
+                path_hit_count = 0
+
+            current_config["path_hit_count"] = path_hit_count
+
             self.save_config(current_config)
-            #print(f"配置已更新: test_path = {path.strip()}")
 
         # 获取配置文件中的初始路径
-        initial_path = config.get("label_input_path", "") # 使用空字符串作为默认值
+        initial_path = config.get("label_input_path", "./input")
+        initial_hits = config.get("path_hit_count", 0) 
 
-        drop_card = FolderDropCard(
-            title=self.tra("将输入文件夹拖拽到此处"),
-            prompt_text=self.tra("输入文件夹路径"),
-            initial_path=initial_path if initial_path else None, # 如果为空则不设置初始路径
-            path_dropped_callback=widget_callback,
-            parent=self
+        drag_card = GameDropCard(
+            init=initial_path,
+            path_changed=widget_callback,
+            initial_hit_count=initial_hits # 传递初始命中次数
         )
-
-        parent.addWidget(drop_card)
-
-
+        parent.addWidget(drag_card)
 
     # 模型类型
     def add_widget_api(self, parent, config) -> None:
@@ -558,12 +557,28 @@ class ProjectSettingsPage_B(QFrame, Base):
             config["label_output_path"] = path.strip()
             self.save_config(config)
 
+        # 拖拽文件夹回调
+        def drop_callback(widget, dropped_text) -> None:
+            if not dropped_text:
+                return
+
+            # 更新UI
+            info_cont = self.tra("当前输出文件夹为") + f" {dropped_text.strip()}"
+            widget.set_description(info_cont)
+
+            # 更新并保存配置
+            config = self.load_config()
+            config["label_output_path"] = dropped_text.strip()
+            self.save_config(config)
+
+
         parent.addWidget(
             PushButtonCard(
                 self.tra("输出文件夹(不能与输入文件夹相同)"),
                 "",
                 widget_init,
                 widget_callback,
+                drop_callback,
             )
         )
 

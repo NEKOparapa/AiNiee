@@ -318,7 +318,7 @@ class ResponseChecker():
             return True
 
         # 避免检查单或者少行字典
-        if len(dict_src) <=3 :
+        if len(dict_src) <=1 :
             return True
 
         # 不同语言的通用标点符号字符集
@@ -384,8 +384,17 @@ class ResponseChecker():
 
                 # 检查是否有原文残留
                 text_src = dict_src[key_dst]
-                if text_src and (text in text_src):
-                    count_results += 1                   
+                if text_src:
+
+                    # 检查是否在原文中
+                    if  text in text_src:
+                        count_results += 1        
+
+                    # 如果没有，则检查是否有原文的单个在原文中
+                    else:
+                        for char in text:
+                            if char in text_src:
+                                count_results += 1                 
 
         # 根据出现次数判断结果
         #print("count_results:", count_results)  # 调试输出
