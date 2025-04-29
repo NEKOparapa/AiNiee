@@ -1,11 +1,13 @@
 from pathlib import Path
 
+from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileAccessor.DocxAccessor import DocxAccessor
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    text_to_cache_item
+    PreReadMetadata
 )
 
 
@@ -16,20 +18,20 @@ class DocxReader(BaseSourceReader):
 
     @classmethod
     def get_project_type(cls):
-        return 'Docx'
+        return ProjectType.DOCX
 
     @property
     def support_file(self):
         return 'docx'
 
-    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
+    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
         xml_soup = self.file_accessor.read_content(file_path)
         paragraphs = xml_soup.find_all('w:t')
         self.file_accessor.clear_temp(file_path)
         # 过滤掉空的内容
         filtered_matches = (match.string for match in paragraphs if isinstance(match.string, str) and match.string.strip())
         items = [
-            text_to_cache_item(text) for text in filtered_matches
+            CacheItem(source_text=text) for text in filtered_matches
             if not (text == "" or text == "\n" or text == " " or text == '\xa0')
         ]
-        return items
+        return CacheFile(items=items)

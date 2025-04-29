@@ -5,7 +5,7 @@ from pathlib import Path
 from functools import partial
 from typing import Type
 
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheManager import CacheManager
 from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader.AutoTypeReader import AutoTypeReader
 from ModuleFolders.FileReader.BaseReader import BaseSourceReader, InputConfig, ReaderInitParams
@@ -81,7 +81,7 @@ class FileReader():
             # 再次获取路径对象
             source_directory = Path(label_input_path)
             # 读取整个目录
-            cache_list = reader.read_source_directory(source_directory) 
+            cache_list = reader.read_source_directory(source_directory)
         elif translation_project == "Ainiee_cache":
             cache_list = self.read_cache_files(folder_path=label_input_path)
         return cache_list
@@ -103,11 +103,7 @@ class FileReader():
         json_file_path = os.path.join(folder_path, json_files[0])
 
         # 读取 JSON 文件内容
-        with open(json_file_path, 'r', encoding='utf-8') as json_file:
-            data = json.load(json_file)
-            project = CacheProject(data[0])
-            items = [CacheItem(item) for item in data[1:]]
-            return (project, items)
+        return CacheManager.read_from_file(json_file_path)
 
     def get_support_project_types(self) -> set[str]:
         return set(self.reader_factory_dict.keys())

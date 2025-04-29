@@ -5,12 +5,8 @@ from typing import Callable
 
 import rich
 
-
-from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader.BaseReader import BaseSourceReader
-
-
 
 
 class DirectoryReader:
@@ -35,7 +31,7 @@ class DirectoryReader:
         return False
 
     # 树状读取文件夹内同类型文件
-    def read_source_directory(self, source_directory: Path) -> tuple[CacheProject, list[CacheItem]]:
+    def read_source_directory(self, source_directory: Path) -> CacheProject:
         """
         树状读取文件夹内同类型文件，检测每个文件的编码，并在最后设置项目的默认编码。
 
@@ -43,19 +39,16 @@ class DirectoryReader:
             source_directory: 源文件目录
 
         Returns:
-            tuple: 包含 (cache_project, items) 的元组
-                - cache_project: 项目头信息
-                - items: 文本项列表
+            CacheProject: 包含项目信息和文件内容
         """
-        cache_project = CacheProject({})  # 项目头信息
+        cache_project = CacheProject()  # 项目头信息
         text_index = 1  # 文本索引
-        items = []  # 文本对信息
+
         encoding_counter = Counter()  # 用于统计编码出现次数
 
-        file_project_types = set()
         with self.create_reader() as reader:
             self._update_exclude_rules(reader.exclude_rules)
-            cache_project.set_project_type(reader.get_project_type())
+            cache_project.project_type = reader.get_project_type()
 
             for root, _, files in source_directory.walk():  # 递归遍历文件夹
                 for file in files:
@@ -63,19 +56,45 @@ class DirectoryReader:
                     # 检查是否被排除，以及是否是目标类型文件
                     if not self.is_exclude(file_path, source_directory) and reader.can_read(file_path):
 
+                        # 使用检测到的编码读取文件内容
                         # 读取单个文件的文本信息，并添加其他信息
-                        for item in reader.read_source_file(file_path, "utf-8"):
-                            item.set_text_index(text_index)
-                            item.set_model('none')
-                            item.set_storage_path(str(file_path.relative_to(source_directory)))
-                            item.set_file_name(file_path.name)
-                            item.set_file_project_type(reader.get_file_project_type(file_path))
-                            items.append(item)
+                        cache_file = reader.read_source_file(file_path)
+                        cache_file.storage_path = str(file_path.relative_to(source_directory))
+                        cache_file.file_project_type = reader.get_file_project_type(file_path)
+                        for item in cache_file.items:
+                            item.text_index = text_index
+                            item.model = 'none'
                             text_index += 1
-                            file_project_types.add(reader.get_file_project_type(file_path))
+                        if cache_file.items:
+                            cache_project.add_file(cache_file)
+                        encoding_counter[cache_file.encoding] += 1
 
-        # 设置目录下包含的文件项目类型，用于快速判断
-        cache_project.set_file_project_types(list(file_project_types))
+        # 设置项目的默认编码为最常见的编码
+        if encoding_counter:
+            # 获取所有编码及其文件数量，从多到少排序
+            all_encodings = encoding_counter.most_common()
+            total_files = sum(encoding_counter.values())
 
+            # 打印编码统计信息
+            rich.print("\n[[green]INFO[/]] 编码统计情况:")
+            print("-" * 40)
+            print(f"{'编码':<15} | {'文件数量':<10} | {'比例':<10}")
+            print("-" * 40)
 
-        return cache_project, items
+            for encoding, count in all_encodings:
+                percentage = (count / total_files) * 100
+                print(f"{encoding:<15} | {count:<10} | {percentage:.2f}%")
+
+            # 设置最常见的编码为项目默认编码
+            most_common_encoding = all_encodings[0][0]
+            print("-" * 40)
+            rich.print(
+                f"[[green]INFO[/]] 项目默认编码设置为: {most_common_encoding} (共 {all_encodings[0][1]} 个文件, "
+                f"占比 {(all_encodings[0][1] / total_files) * 100:.2f}%)"
+            )
+
+            cache_project.detected_encoding = most_common_encoding
+        else:
+            rich.print("[[red]WARNING[/]] 未检测到任何文件编码信息")
+
+        return cache_project
