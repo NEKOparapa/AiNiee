@@ -5,7 +5,7 @@ from enum import Enum
 from pathlib import Path
 from typing import TypedDict
 
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheFile import CacheFile
 
 
 @dataclass
@@ -35,6 +35,10 @@ class WriterInitParams(TypedDict):
     output_config: OutputConfig
 
 
+class PreWriteMetadata:
+    encoding: str = "utf-8"
+
+
 class BaseTranslationWriter(ABC):
     """Writer基类，在其生命周期内可以输出多个文件"""
     def __init__(self, output_config: OutputConfig) -> None:
@@ -60,8 +64,6 @@ class BaseTranslationWriter(ABC):
             return isinstance(self, BaseBilingualWriter) and self.output_config.bilingual_config.enabled
         return False
 
-    NOT_TRANSLATED_STATUS = (CacheItem.STATUS.UNTRANSLATED, CacheItem.STATUS.TRANSLATING)
-
     def __enter__(self):
         """申请整个Writer生命周期用到的耗时资源，单个文件的资源则在write_xxx_file方法中申请释放"""
         return self
@@ -85,22 +87,58 @@ class BaseTranslationWriter(ABC):
 class BaseTranslatedWriter(BaseTranslationWriter):
     """译文输出基类"""
 
-    @abstractmethod
     def write_translated_file(
-        self, translation_file_path: Path, items: list[CacheItem],
+        self, translation_file_path: Path, cache_file: CacheFile,
         source_file_path: Path = None,
     ):
         """输出译文文件"""
+        pre_write_metadata = self.pre_write_translated(cache_file)
+        self.on_write_translated(translation_file_path, cache_file, pre_write_metadata, source_file_path)
+        self.post_write_translated(translation_file_path)
+
+    def pre_write_translated(self, cache_file: CacheFile) -> PreWriteMetadata:
+        """根据文件内容做输出前操作，如输出编码检测"""
+        return PreWriteMetadata()
+
+    @abstractmethod
+    def on_write_translated(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
+        source_file_path: Path = None,
+    ):
+        """执行实际的文件写入操作"""
+        pass
+
+    def post_write_translated(self, translation_file_path: Path):
+        """输出后操作，如验证"""
         pass
 
 
 class BaseBilingualWriter(BaseTranslationWriter):
     """双语输出基类"""
 
-    @abstractmethod
     def write_bilingual_file(
-        self, translation_file_path: Path, items: list[CacheItem],
+        self, translation_file_path: Path, cache_file: CacheFile,
         source_file_path: Path = None,
     ):
         """输出双语文件"""
+        pre_write_metadata = self.pre_write_bilingual(cache_file)
+        self.on_write_bilingual(translation_file_path, cache_file, pre_write_metadata, source_file_path)
+        self.post_write_bilingual(translation_file_path)
+
+    def pre_write_bilingual(self, cache_file: CacheFile) -> PreWriteMetadata:
+        """根据文件内容做输出前操作，如输出编码检测"""
+        return PreWriteMetadata()
+
+    @abstractmethod
+    def on_write_bilingual(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
+        source_file_path: Path = None,
+    ):
+        """执行实际的文件写入操作"""
+        pass
+
+    def post_write_bilingual(self, translation_file_path: Path):
+        """输出后操作，如验证"""
         pass

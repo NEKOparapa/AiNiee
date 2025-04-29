@@ -1,12 +1,14 @@
-from pathlib import Path
 import re
-from typing import List 
+from pathlib import Path
 
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheFile import CacheFile
+from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
-    OutputConfig
+    OutputConfig,
+    PreWriteMetadata
 )
+
 
 class RenpyWriter(BaseTranslatedWriter):
     def __init__(self, output_config: OutputConfig):
@@ -14,26 +16,27 @@ class RenpyWriter(BaseTranslatedWriter):
 
     @classmethod
     def get_project_type(self):
-        return "Renpy"
+        return ProjectType.RENPY
 
-    def write_translated_file(
-        self, translation_file_path: Path, items: List[CacheItem], 
+    def on_write_translated(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
         source_file_path: Path = None,
     ):
         # 读取行，保留换行符
         lines = source_file_path.read_text(encoding="utf-8").splitlines(True)
 
         # 按行号降序排序项目，以避免修改期间索引偏移问题
-        new_items = sorted(items, key=lambda x: x.new_line_num, reverse=True)
+        new_items = sorted(cache_file.items, key=lambda x: x.require_extra("new_line_num"), reverse=True)
 
         for item in new_items:
-            line_num = item.new_line_num # 这是要修改的行号（'new' 行或代码行）
+            line_num = item.require_extra("new_line_num")  # 这是要修改的行号（'new' 行或代码行）
             if line_num < 0 or line_num >= len(lines):
                 print(f"警告: 项目的行号 {line_num} 无效。正在跳过。")
                 continue
 
             original_line = lines[line_num]
-            new_trans = item.translated_text # 新的翻译文本
+            new_trans = item.translated_text  # 新的翻译文本
 
             # 转义双引号，双引号的前面没有反斜杠或者双引号，和后面没有双引号
             pattern = r'(?<![\\"])"(?![\\"])'

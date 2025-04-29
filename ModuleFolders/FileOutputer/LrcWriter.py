@@ -1,9 +1,11 @@
 from pathlib import Path
 
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheFile import CacheFile
+from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
-    OutputConfig
+    OutputConfig,
+    PreWriteMetadata
 )
 
 
@@ -11,8 +13,9 @@ class LrcWriter(BaseTranslatedWriter):
     def __init__(self, output_config: OutputConfig):
         super().__init__(output_config)
 
-    def write_translated_file(
-        self, translation_file_path: Path, items: list[CacheItem],
+    def on_write_translated(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
         source_file_path: Path = None,
     ):
         """输出文件格式示例
@@ -21,15 +24,15 @@ class LrcWriter(BaseTranslatedWriter):
         [00:06.78]法案特殊情報部隊一番対処得フィルレイやセルドツナイカーです 今回例の犯罪組織への潜入が成功しましたのでご報告させていただきます
         """
         output_lines = []
+        if subtitle_title := cache_file.get_extra("subtitle_title"):
+            output_lines.append(f"[{subtitle_title}]\n")
         # 转换中间字典的格式为最终输出格式
-        for item in items:
+        for item in cache_file.items:
             # 获取字幕时间轴
-            subtitle_time = item.subtitle_time
+            subtitle_time = item.require_extra("subtitle_time")
             # 获取字幕文本内容
-            subtitle_text = item.get_translated_text()
+            subtitle_text = item.translated_text
 
-            if hasattr(item, "subtitle_title"):
-                output_lines.append(f"[{item.subtitle_title}]\n")
             output_lines.append(f"[{subtitle_time}]{subtitle_text}\n")
 
         # 输出已经翻译的文件
@@ -37,4 +40,4 @@ class LrcWriter(BaseTranslatedWriter):
 
     @classmethod
     def get_project_type(self):
-        return "Lrc"
+        return ProjectType.LRC

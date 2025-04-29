@@ -1,10 +1,12 @@
 import json
 from pathlib import Path
 
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheFile import CacheFile
+from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
-    OutputConfig
+    OutputConfig,
+    PreWriteMetadata
 )
 
 
@@ -12,16 +14,17 @@ class TransWriter(BaseTranslatedWriter):
     def __init__(self, output_config: OutputConfig):
         super().__init__(output_config)
 
-    def write_translated_file(
-        self, translation_file_path: Path, items: list[CacheItem],
-        source_file_path: Path = None
+    def on_write_translated(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
+        source_file_path: Path = None,
     ):
         trans_content = json.loads(source_file_path.read_text(encoding="utf-8"))
-        for item in items:
-            file_category = getattr(item, "file_category", "")
-            data_index = getattr(item, "data_index", "")
-            new_translation = item.get_translated_text()
-            name = getattr(item, "name", "")
+        for item in cache_file.items:
+            file_category = item.get_extra("file_category", "")
+            data_index = item.get_extra("data_index", "")
+            new_translation = item.translated_text
+            name = item.get_extra("name", "")
 
             # 导航并更新，带有检查
             category_data = trans_content["project"]["files"][file_category]
@@ -76,4 +79,4 @@ class TransWriter(BaseTranslatedWriter):
 
     @classmethod
     def get_project_type(self):
-        return "Trans"
+        return ProjectType.TRANS

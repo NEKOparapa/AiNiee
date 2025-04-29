@@ -2,12 +2,14 @@ from functools import partial
 from pathlib import Path
 from typing import Callable, Iterable, Type
 
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheFile import CacheFile
+from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileOutputer.BaseWriter import (
     BaseBilingualWriter,
     BaseTranslatedWriter,
     BaseTranslationWriter,
-    OutputConfig
+    OutputConfig,
+    PreWriteMetadata
 )
 
 
@@ -57,27 +59,27 @@ class AutoTypeWriter(BaseBilingualWriter, BaseTranslatedWriter):
             raise RuntimeError("释放时发生异常:\n" + "\n".join(errors))
 
     def write_bilingual_file(
-        self, translation_file_path: Path, items: list[CacheItem],
-        source_file_path: Path = None
-    ):
-        self._write_translation_file(
-            translation_file_path, items, source_file_path, BaseTranslationWriter.TranslationMode.BILINGUAL
-        )
-
-    def write_translated_file(
-        self, translation_file_path: Path, items: list[CacheItem],
+        self, translation_file_path: Path, cache_file: CacheFile,
         source_file_path: Path = None,
     ):
         self._write_translation_file(
-            translation_file_path, items, source_file_path, BaseTranslationWriter.TranslationMode.TRANSLATED
+            translation_file_path, cache_file, source_file_path, BaseTranslationWriter.TranslationMode.BILINGUAL
+        )
+
+    def write_translated_file(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        source_file_path: Path = None,
+    ):
+        self._write_translation_file(
+            translation_file_path, cache_file, source_file_path, BaseTranslationWriter.TranslationMode.TRANSLATED
         )
 
     def _write_translation_file(
-        self, translation_file_path: Path, items: list[CacheItem],
+        self, translation_file_path: Path, cache_file: CacheFile,
         source_file_path: Path,
         translation_mode: BaseTranslationWriter.TranslationMode
     ):
-        file_project_type = items[0].file_project_type if items else ''
+        file_project_type = cache_file.file_project_type
         if file_project_type not in self._writers:
             return
         writer = self._writers[file_project_type]
@@ -86,8 +88,24 @@ class AutoTypeWriter(BaseBilingualWriter, BaseTranslatedWriter):
             if file_project_type not in self._active_writers:
                 writer.__enter__()
                 self._active_writers.add(file_project_type)
-            write_translation_file(translation_file_path, items, source_file_path)
+            write_translation_file(translation_file_path, cache_file, source_file_path)
+
+    def on_write_bilingual(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
+        source_file_path: Path = None,
+    ):
+        # 重载抽象方法，实际不需要使用
+        raise NotImplementedError
+
+    def on_write_translated(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
+        source_file_path: Path = None,
+    ):
+        # 重载抽象方法，实际不需要使用
+        raise NotImplementedError
 
     @classmethod
     def get_project_type(self):
-        return "AutoType"
+        return ProjectType.AUTO_TYPE

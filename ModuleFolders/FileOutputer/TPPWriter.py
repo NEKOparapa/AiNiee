@@ -4,10 +4,13 @@ from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.utils.escape import escape
 
+from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
-    OutputConfig
+    OutputConfig,
+    PreWriteMetadata
 )
 
 
@@ -23,9 +26,10 @@ class TPPWriter(BaseTranslatedWriter):
         "Best translation",
     ]
 
-    def write_translated_file(
-        self, translation_file_path: Path, items: list[CacheItem],
-        source_file_path: Path = None
+    def on_write_translated(
+        self, translation_file_path: Path, cache_file: CacheFile,
+        pre_write_metadata: PreWriteMetadata,
+        source_file_path: Path = None,
     ):
         # 创建一个工作簿
         wb = Workbook()
@@ -37,11 +41,11 @@ class TPPWriter(BaseTranslatedWriter):
         ws.append(self.WORKBOOK_HEADER)
 
         # 将数据写入工作表
-        for item in items:
-            source_text = item.get_source_text() or ""
-            translated_text = item.get_translated_text() or ""
-            row_index = item.get_row_index() if item.get_row_index() else -1
-            translation_status = item.get_translation_status()
+        for item in cache_file.items:
+            source_text = item.source_text or ""
+            translated_text = item.translated_text or ""
+            row_index = item.get_extra("row_index", -1)
+            translation_status = item.translation_status
 
             # 根据翻译状态写入原文及译文
             # 如果文本是以 = 开始，则加一个空格
@@ -66,4 +70,4 @@ class TPPWriter(BaseTranslatedWriter):
 
     @classmethod
     def get_project_type(self):
-        return "Tpp"
+        return ProjectType.TPP
