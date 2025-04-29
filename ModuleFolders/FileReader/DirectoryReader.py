@@ -67,34 +67,5 @@ class DirectoryReader:
                             text_index += 1
                         if cache_file.items:
                             cache_project.add_file(cache_file)
-                        encoding_counter[cache_file.encoding] += 1
-
-        # 设置项目的默认编码为最常见的编码
-        if encoding_counter:
-            # 获取所有编码及其文件数量，从多到少排序
-            all_encodings = encoding_counter.most_common()
-            total_files = sum(encoding_counter.values())
-
-            # 打印编码统计信息
-            rich.print("\n[[green]INFO[/]] 编码统计情况:")
-            print("-" * 40)
-            print(f"{'编码':<15} | {'文件数量':<10} | {'比例':<10}")
-            print("-" * 40)
-
-            for encoding, count in all_encodings:
-                percentage = (count / total_files) * 100
-                print(f"{encoding:<15} | {count:<10} | {percentage:.2f}%")
-
-            # 设置最常见的编码为项目默认编码
-            most_common_encoding = all_encodings[0][0]
-            print("-" * 40)
-            rich.print(
-                f"[[green]INFO[/]] 项目默认编码设置为: {most_common_encoding} (共 {all_encodings[0][1]} 个文件, "
-                f"占比 {(all_encodings[0][1] / total_files) * 100:.2f}%)"
-            )
-
-            cache_project.detected_encoding = most_common_encoding
-        else:
-            rich.print("[[red]WARNING[/]] 未检测到任何文件编码信息")
 
         return cache_project
