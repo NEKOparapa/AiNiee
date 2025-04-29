@@ -3,10 +3,12 @@ from functools import lru_cache, partial
 from pathlib import Path
 from typing import Callable, Iterable, Type
 
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheFile import CacheFile
+from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
+    PreReadMetadata,
     ReaderInitParams
 )
 
@@ -95,7 +97,7 @@ class AutoTypeReader(BaseSourceReader):
 
     @classmethod
     def get_project_type(cls):
-        return 'AutoType'
+        return ProjectType.AUTO_TYPE
 
     @property
     def support_file(self):
@@ -110,15 +112,19 @@ class AutoTypeReader(BaseSourceReader):
     def can_read_by_content(self, file_path: Path) -> bool:
         return self.get_file_project_type(file_path) is not None
 
-    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
+    def read_source_file(self, file_path: Path) -> CacheFile:
         project_type = self.get_file_project_type(file_path)
         if not project_type or project_type not in self._readers:
-            return []
+            return CacheFile()
         reader = self._readers[project_type]
         if reader not in self._active_readers:
             reader.__enter__()  # 实际使用时才申请资源
             self._active_readers.add(reader.get_project_type())
-        return reader.read_source_file(file_path, detected_encoding)
+        return reader.read_source_file(file_path)
+
+    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
+        # 重载抽象方法，实际不需要使用
+        raise NotImplementedError()
 
     def __get_file_project_type(self, file_path: Path):
         extension = self._get_extension(file_path)

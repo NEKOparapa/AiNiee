@@ -2,11 +2,13 @@ from pathlib import Path
 
 import openpyxl  # 需安装库pip install openpyxl
 
+from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    text_to_cache_item
+    PreReadMetadata
 )
 
 
@@ -16,13 +18,13 @@ class TPPReader(BaseSourceReader):
 
     @classmethod
     def get_project_type(cls):
-        return "Tpp"
+        return ProjectType.TPP
 
     @property
     def support_file(self):
         return "xlsx"
 
-    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
+    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
         wb = openpyxl.load_workbook(file_path)
         sheet = wb.active
         items = []
@@ -40,8 +42,12 @@ class TPPReader(BaseSourceReader):
                 else:
                     translated_text = ''
                     translation_status = CacheItem.STATUS.UNTRANSLATED
-                item = text_to_cache_item(source_text, translated_text) # 存储文本对
-                item.set_translation_status(translation_status) # 更新翻译状态
-                item.set_row_index(row) # 存储行数信息
+
+                item = CacheItem(
+                    source_text=source_text,
+                    translated_text=translated_text,
+                    translation_status=translation_status,
+                    extra={"row_index": row},
+                )
                 items.append(item)
-        return items
+        return CacheFile(items=items)

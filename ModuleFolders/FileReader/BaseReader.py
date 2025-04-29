@@ -1,4 +1,3 @@
-import os
 import pathlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -7,8 +6,13 @@ from typing import TypedDict, Union
 
 import chardet
 
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheProject import CacheProject
+from ModuleFolders.FileReader.ReaderDetection import (
+    decode_content_bytes,
+    detect_file_encoding,
+    detect_newlines
+)
 
 
 @dataclass
@@ -19,6 +23,11 @@ class InputConfig:
 class ReaderInitParams(TypedDict):
     """reader的初始化参数，必须包含input_config，其他参数随意"""
     input_config: InputConfig
+
+
+@dataclass
+class PreReadMetadata:
+    encoding: str = "utf-8"
 
 
 class BaseSourceReader(ABC):
@@ -46,10 +55,29 @@ class BaseSourceReader(ABC):
         """该读取器支持处理的文件扩展名（不带点），如 json"""
         pass
 
-    @abstractmethod
-    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
+    def read_source_file(self, file_path: Path) -> CacheFile:
         """读取文件内容，并返回原文(译文)片段"""
+        # 模板方法
+        pre_read_metadata = self.pre_read_source(file_path)
+        file_data = self.on_read_source(file_path, pre_read_metadata)
+        file_data.encoding = pre_read_metadata.encoding
+        return self.post_read_source(file_data)
+
+    def pre_read_source(self, file_path: Path) -> PreReadMetadata:
+        """读取文件之前的操作，可以是检测文件编码"""
+        # 猜测的文件编码
+        detected_encoding = detect_file_encoding(file_path)
+        use_encoding = detected_encoding if not detected_encoding.startswith("non_text") else "utf-8"
+        return PreReadMetadata(encoding=use_encoding)
+
+    @abstractmethod
+    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
+        """接收pre_read_source的结果，读取文件内容，并返回原文(译文)片段"""
         pass
+
+    def post_read_source(self, file_data: CacheFile) -> CacheFile:
+        """对原文(译文)片段做统一处理"""
+        return file_data
 
     def can_read(self, file_path: Path, fast=True) -> bool:
         """验证文件兼容性，返回False则不会读取该文件"""
@@ -82,46 +110,6 @@ class BaseSourceReader(ABC):
     def exclude_rules(self) -> list[str]:
         """用于排除缓存文件/目录"""
         return []
-
-
-# 存储文本对及翻译状态信息
-def text_to_cache_item(source_text, translated_text: str = None):
-    item = CacheItem({})
-    item.set_source_text(source_text)
-    if translated_text is None:
-        translated_text = source_text
-    item.set_translated_text(translated_text)
-    item.set_translation_status(CacheItem.STATUS.UNTRANSLATED)
-    return item
-
-
-def detect_newlines(content: str) -> str:
-    """
-    检测文本内容中使用的换行符类型
-
-    Args:
-        content: 文本内容（字符串类型）
-
-    Returns:
-        str: 检测到的换行符（'\r\n', '\n', 或 '\r'）
-    """
-    crlf_count = content.count('\r\n')  # Windows: \r\n
-    lf_count = content.count('\n') - crlf_count  # Unix/Linux/macOS: \n (减去CRLF中的\n)
-    cr_count = content.count('\r') - crlf_count  # 旧Mac: \r (减去CRLF中的\r)
-
-    # 判断主要使用的换行符
-    if crlf_count > lf_count and crlf_count > cr_count:
-        # Windows 系统的换行符
-        return "\r\n"
-    elif lf_count > crlf_count and lf_count > cr_count:
-        # Unix/Linux 系统的换行符
-        return "\n"
-    elif cr_count > crlf_count and cr_count > lf_count:
-        # 早期 Mac OS 的换行符
-        return "\r"
-    else:
-        # 默认使用系统对应的换行符
-        return os.linesep
 
 
 # UNUSED: 暂时不使用之前这个读取文件的函数
@@ -176,29 +164,3 @@ def _read_file_safely(file_path: Union[str, pathlib.Path], cache_project: CacheP
     cache_project.set_line_ending(detected_line_ending)
 
     return content
-
-
-def decode_content_bytes(content_bytes):
-    detected_encoding = None
-    content = ""
-
-    encodings = ['utf-8', 'utf-16-le', 'utf-16-be', 'gbk', 'gb2312', 'big5', 'shift-jis']
-    decode_errors = []
-    for encoding in encodings:
-        try:
-            content = content_bytes.decode(encoding)
-            detected_encoding = encoding
-            break
-        except UnicodeDecodeError as e:
-            decode_errors.append((encoding, str(e)))
-    # 如果所有尝试都失败，抛出详细的异常
-    if not detected_encoding:
-        error_details = '\n'.join([f"{enc}: {err}" for enc, err in decode_errors])
-        raise UnicodeDecodeError(
-            "unknown",
-            content_bytes,
-            0,
-            len(content_bytes),
-            f"无法使用任何可靠的编码读取文件。尝试了chardet和以下编码:\n{error_details}"
-        )
-    return content, detected_encoding

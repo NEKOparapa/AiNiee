@@ -1,11 +1,13 @@
 import json
 from pathlib import Path
 
+from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    text_to_cache_item
+    PreReadMetadata
 )
 
 
@@ -15,36 +17,34 @@ class VntReader(BaseSourceReader):
 
     @classmethod
     def get_project_type(cls):
-        return "Vnt"
+        return ProjectType.VNT
 
     @property
     def support_file(self):
         return "json"
 
-    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
+    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
         json_data = json.loads(file_path.read_text(encoding="utf-8"))
         items = []
         for entry in json_data:
             source_text = entry["message"]
-            item = text_to_cache_item(source_text)
             names = entry.get("names", [])  # 默认获取空列表
             name = entry.get("name", "")    # 默认获取空字符串
 
+            extra = {}
             if names:
                 # 处理names列表，拼接每个名字
                 name_tags = ''.join([f'[{n}]' for n in names])
-                new_source_text = f"{name_tags}{source_text}"
-                item.set_source_text(new_source_text)
-                item.names = names
+                source_text = f"{name_tags}{source_text}"
+                extra["names"] = names
             elif name:
                 # 处理单个name字段
-                new_source_text = self.combine_srt(name, source_text)
-                item.set_source_text(new_source_text)
-                item.name = name
+                source_text = self.combine_srt(name, source_text)
+                extra["name"] = name
             # 无name或names字段时不处理
-
+            item = CacheItem(source_text=source_text, extra=extra)
             items.append(item)
-        return items
+        return CacheFile(items=items)
 
     def combine_srt(self, name, text):
         return f"[{name}]{text}"

@@ -1,11 +1,14 @@
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+
+from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    text_to_cache_item
+    PreReadMetadata
 )
 
 
@@ -19,7 +22,7 @@ class I18nextReader(BaseSourceReader):
 
     @classmethod
     def get_project_type(cls):
-        return "I18next"
+        return ProjectType.I18NEXT
 
     @property
     def support_file(self):
@@ -62,13 +65,13 @@ class I18nextReader(BaseSourceReader):
                 pass
         return items
 
-    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
+    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
         """
         读取 i18next JSON 文件，提取所有嵌套的键值对，并存储路径信息。
         """
         items = []
 
-        content = file_path.read_text(encoding=detected_encoding or 'utf-8')
+        content = file_path.read_text(encoding=pre_read_metadata.encoding)
         json_data = json.loads(content)
 
         # 扁平化 JSON 获取 (路径列表, 值)
@@ -76,10 +79,8 @@ class I18nextReader(BaseSourceReader):
 
         for path_list, value in flat_items_with_path:
 
-            item = text_to_cache_item(value)
+            items.append(
+                CacheItem(source_text=value, extra={"i18next_path": path_list})
+            )
 
-            item.i18next_path = path_list
-
-            items.append(item)
-
-        return items
+        return CacheFile(items=items)

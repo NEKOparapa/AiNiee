@@ -1,11 +1,13 @@
 import json
 from pathlib import Path
 
+from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    text_to_cache_item
+    PreReadMetadata
 )
 
 
@@ -16,22 +18,22 @@ class MToolReader(BaseSourceReader):
 
     @classmethod
     def get_project_type(cls):
-        return "Mtool"
+        return ProjectType.MTOOL
 
     @property
     def support_file(self):
         return "json"
 
-    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
+    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
         items = []
-        json_data = json.loads(file_path.read_text(encoding='utf-8'))
+        json_data = json.loads(file_path.read_text(encoding=pre_read_metadata.encoding))
 
         # 提取键值对
         for key, value in json_data.items():
             # 根据 JSON 文件内容的数据结构，获取相应字段值
-            item = text_to_cache_item(key, value)
+            item = CacheItem(source_text=key, translated_text=value)
             items.append(item)
-        return items
+        return CacheFile(items=items)
 
     def can_read_by_content(self, file_path: Path) -> bool:
         # {"source_text1": "source_text1?", "source_text2": "source_text2?"}

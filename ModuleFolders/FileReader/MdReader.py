@@ -1,7 +1,12 @@
 from pathlib import Path
 
-from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.FileReader.BaseReader import BaseSourceReader, InputConfig
+from ModuleFolders.Cache.CacheFile import CacheFile
+from ModuleFolders.Cache.CacheProject import ProjectType
+from ModuleFolders.FileReader.BaseReader import (
+    BaseSourceReader,
+    InputConfig,
+    PreReadMetadata
+)
 from ModuleFolders.FileReader.TxtReader import TxtReader
 
 
@@ -20,14 +25,18 @@ class MdReader(BaseSourceReader):
 
     @classmethod
     def get_project_type(cls):
-        return "Md"
+        return ProjectType.MD
 
     @property
     def support_file(self):
         return "md"
 
-    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
-        items = self.txt_reader.read_source_file(file_path, detected_encoding)
-        for item in items:
-            item.original_line = item.get_source_text()
-        return items
+    def read_source_file(self, file_path: Path) -> CacheFile:
+        cache_file = self.txt_reader.read_source_file(file_path)
+        for item in cache_file.items:
+            item.set_extra("original_line", item.source_text)
+        return cache_file
+
+    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
+        # 重载抽象方法，实际不需要使用
+        raise NotImplementedError

@@ -2,12 +2,15 @@ import re
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    text_to_cache_item
+    PreReadMetadata
 )
+
 
 class RenpyReader(BaseSourceReader):
     """
@@ -22,7 +25,7 @@ class RenpyReader(BaseSourceReader):
 
     @classmethod
     def get_project_type(cls):
-        return "Renpy"
+        return ProjectType.RENPY
 
     @property
     def support_file(self):
@@ -64,9 +67,9 @@ class RenpyReader(BaseSourceReader):
             return i, line
         return None
 
-    def read_source_file(self, file_path: Path, detected_encoding: str) -> list[CacheItem]:
+    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
 
-        lines = file_path.read_text(encoding="utf-8").splitlines()
+        lines = file_path.read_text(encoding=pre_read_metadata.encoding).splitlines()
 
         entries = []
         i = 0
@@ -166,10 +169,11 @@ class RenpyReader(BaseSourceReader):
         for entry in entries:
             # 对于注释格式，使用注释中的 source，否则使用 'old' 中的 source
             source_text = entry["source"]
-            item = text_to_cache_item(source_text, entry["translated"])
-            item.new_line_num = entry["new_line_num"]
-            item.format_type = entry["format_type"]
-            item.tag = entry.get("tag") # 使用 .get() 以确保安全
+            extra = {
+                "new_line_num": entry["new_line_num"],
+                "format_type": entry["format_type"],
+                "tag": entry.get("tag"),  # 使用 .get() 以确保安全
+            }
+            item = CacheItem(source_text=source_text, translated_text=entry["translated"], extra=extra)
             items.append(item)
-
-        return items
+        return CacheFile(items=items)
