@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import FluentIcon, SegmentedWidget
 
 from Base.Base import Base
+from ModuleFolders.Cache.CacheProject import ProjectType
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.LineEditCard import LineEditCard
 from Widget.PushButtonCard import PushButtonCard
@@ -220,23 +221,23 @@ class ProjectSettingsPage_B(QFrame, Base):
     def add_widget_02(self, parent, config) -> None:
         # 定义项目类型与值的配对列表（显示文本, 存储值）
         project_pairs = [
-            (self.tra("Txt小说文件"), "Txt"),
-            (self.tra("Epub小说文件"), "Epub"),
-            (self.tra("Docx文档文件"), "Docx"),
-            (self.tra("Srt字幕文件"), "Srt"),
-            (self.tra("Vtt字幕文件"), "Vtt"),
-            (self.tra("Lrc音声文件"), "Lrc"),
-            (self.tra("Md文档文件"), "Md"),
-            (self.tra("T++导出文件"), "Tpp"),
-            (self.tra("Trans工程文件"), "Trans"),
-            (self.tra("Mtool导出文件"), "Mtool"),
-            (self.tra("Renpy导出文件"), "Renpy"),
-            (self.tra("VNText导出文件"), "Vnt"),
+            (self.tra("Txt小说文件"), ProjectType.TXT),
+            (self.tra("Epub小说文件"), ProjectType.EPUB),
+            (self.tra("Docx文档文件"), ProjectType.DOCX),
+            (self.tra("Srt字幕文件"), ProjectType.SRT),
+            (self.tra("Vtt字幕文件"), ProjectType.VTT),
+            (self.tra("Lrc音声文件"), ProjectType.LRC),
+            (self.tra("Md文档文件"), ProjectType.MD),
+            (self.tra("T++导出文件"), ProjectType.TPP),
+            (self.tra("Trans工程文件"), ProjectType.TRANS),
+            (self.tra("Mtool导出文件"), ProjectType.MTOOL),
+            (self.tra("Renpy导出文件"), ProjectType.RENPY),
+            (self.tra("VNText导出文件"), ProjectType.VNT),
             (self.tra("Ainiee缓存文件"), "Ainiee_cache"),
-            (self.tra("ParaTranz导出文件"), "Paratranz"),
-            (self.tra('Pdf文档文件 (需要Microsoft Office)'), "OfficeConversionPdf"),
-            (self.tra('Doc文档文件 (需要Microsoft Office)'), "OfficeConversionDoc"),
-            (self.tra("自动识别文件类型"), "AutoType")
+            (self.tra("ParaTranz导出文件"), ProjectType.PARATRANZ),
+            (self.tra('Pdf文档文件 (需要Microsoft Office)'), ProjectType.OFFICE_CONVERSION_PDF),
+            (self.tra('Doc文档文件 (需要Microsoft Office)'), ProjectType.OFFICE_CONVERSION_DOC),
+            (self.tra("自动识别文件类型"), ProjectType.AUTO_TYPE)
 
         ]
 

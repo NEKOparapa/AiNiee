@@ -21,9 +21,10 @@ class OfficeFileConverter(BaseFileConverter):
             self.office.Visible = False  # 不显示 Word 界面
             self.office.DisplayAlerts = False  # 关闭所有弹窗
             self.office.AutomationSecurity = 1  # 禁用宏和安全性弹窗（重要！）
-        except:
-            print("不能打开Word程序，请确保安装了 Microsoft Office")
+            return self
+        except Exception as e:
             pythoncom.CoUninitialize()
+            raise RuntimeError("不能打开Word程序，请确保安装了 Microsoft Office") from e
 
     def __exit__(self, exc_type, exc, exc_tb):
         import pythoncom
