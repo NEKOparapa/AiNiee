@@ -15,12 +15,18 @@ class EpubAccessor:
         return file_path.parent / self.temp_folder
 
     def read_content(self, source_file_path: Path, temp_root: Path = None):
+
+        # 解压epub文件到暂存文件夹
         extract_path = temp_root if temp_root else self.temp_path_of(source_file_path)
         ZipUtil.decompress_zip_to_path(source_file_path, extract_path)
 
-        # 由于ebook给的相对路径与epub解压后路径是不准 遍历文件夹中的所有文件,找到文件
+        # 由于ebook给的相对路径与epub解压后路径是不准 遍历文件夹中的所有文件
         book_file_dict = self._get_book_file_dict(extract_path)
-        book = epub.read_epub(source_file_path)  # 加载EPUB文件
+
+        # 读取原epub文件
+        book = epub.read_epub(source_file_path) 
+
+        # 提取解压后epub文件中的文本内容
         result: dict[str, str] = {}
         for item in book.get_items():
             # 检查是否是文本内容
