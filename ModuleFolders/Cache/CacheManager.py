@@ -196,7 +196,7 @@ class CacheManager(Base):
                 continue
             current_chunk, current_length = [], 0
             for item in items:
-                item_length = item.get_token_count() if limit_type == "token" else 1
+                item_length = item.token_count if limit_type == "token" else 1
                 if current_chunk and (current_length + item_length > limit_count):
                     chunks.append(current_chunk)
                     previous_chunks.append(

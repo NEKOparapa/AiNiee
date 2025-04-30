@@ -3,7 +3,6 @@ import time
 import threading
 import concurrent.futures
 from typing import Iterator
-
 import opencc
 from tqdm import tqdm
 
@@ -80,19 +79,19 @@ class Translator(Base):
 
         # 触发手动导出插件事件
         # 先转换为列表，再交给插件进行处理（兼容旧版接口）
-        cache_list = self.cache_manager.to_list()
-        self.plugin_manager.broadcast_event("manual_export", self.config, cache_list)
+        # cache_list = self.cache_manager.to_list() # 注意：旧的 to_list() 可能需要根据新的缓存结构调整 # 移除旧的转换
+        self.plugin_manager.broadcast_event("manual_export", self.config, self.cache_manager.project) # 传递 CacheProject
 
         # 如果开启了转换简繁开关功能，则进行文本转换
         if self.config.response_conversion_toggle:
-            cache_list = self.convert_simplified_and_traditional(self.config.opencc_preset, cache_list)
+            self.convert_simplified_and_traditional(self.config.opencc_preset, self.cache_manager.project.items_iter()) # 传递迭代器
             self.print("")
             self.info(f"已启动自动简繁转换功能，正在使用 {self.config.opencc_preset} 配置进行字形转换 ...")
             self.print("")
 
         # 写入文件
         self.file_writer.output_translated_content(
-            cache_list,
+            self.cache_manager.project, # 传递 CacheProject
             self.config.label_output_path,
             self.config.label_input_path,
         )
@@ -136,7 +135,7 @@ class Translator(Base):
         self.config.prepare_for_translation()
 
         # 配置请求线程数
-        self.config.thread_counts_setting()  # 需要在平台信息配置后面，依赖前面的数值 
+        self.config.thread_counts_setting()  # 需要在平台信息配置后面，依赖前面的数值
 
         # 配置请求限制器
         self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
@@ -157,8 +156,8 @@ class Translator(Base):
             self.translating = False # 更改状态
             self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ... ", e)
             return None
-        
-        
+
+
         # 检查数据是否为空
         if self.cache_manager.get_item_count() == 0:
             self.translating = False # 更改状态
@@ -170,8 +169,20 @@ class Translator(Base):
             self.project_status_data = CacheProjectStatistics()
             self.cache_manager.project.stats_data = self.project_status_data
         else:
+            # 确保 stats_data 存在且是正确的类型
             self.project_status_data = self.cache_manager.project.stats_data
-            self.project_status_data.start_time = time.time() - self.project_status_data.start_time
+            if not isinstance(self.project_status_data, CacheProjectStatistics):
+                 self.project_status_data = CacheProjectStatistics() # 如果丢失或类型错误，则重新创建
+                 self.cache_manager.project.stats_data = self.project_status_data
+            # 只有当 start_time 是浮点数时才进行计算
+            if isinstance(self.project_status_data.start_time, float):
+                 # 修正：续翻时应该直接使用记录的 time，而不是重新计算
+                 # self.project_status_data.start_time = time.time() - self.project_status_data.start_time
+                 pass # 保持原来的 time 值
+            else:
+                 # 如果 start_time 不是浮点数（可能是 None 或其他类型），则重置开始时间
+                 self.project_status_data.start_time = time.time()
+
 
         # 更新翻译进度
         self.emit(Base.EVENT.TRANSLATION_UPDATE, self.project_status_data.to_dict())
@@ -179,6 +190,17 @@ class Translator(Base):
         # 触发插件事件
         self.plugin_manager.broadcast_event("text_filter", self.config, self.cache_manager.project)
         self.plugin_manager.broadcast_event("preproces_text", self.config, self.cache_manager.project)
+
+        # --- Conditional cProfile Initialization ---
+        profiler = None
+        profiled_one_task = False
+        if self.is_debug():
+            try:
+                import cProfile
+                profiler = cProfile.Profile()
+            except ImportError:
+                self.warning("cProfile module not found. Performance profiling is disabled.")
+        # --- End Conditional cProfile Initialization ---
 
         # 开始循环
         for current_round in range(self.config.round_limit + 1):
@@ -226,28 +248,65 @@ class Translator(Base):
             # 生成翻译单元任务的合集列表
             tasks_list = []
             self.print("")
-            for chunk, previous_chunk in tqdm(zip(chunks, previous_chunks), desc = "生成翻译任务", total = len(chunks)):
+
+            for chunk, previous_chunk in tqdm(zip(chunks, previous_chunks), desc = self.tra("生成翻译任务"), total = len(chunks)):
                 task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter) # 实例化
                 task.set_items(chunk)  #传入该任务待翻译原文
                 task.set_previous_items(previous_chunk) # 传入该任务待翻译原文的上文
+
+                # --- Conditional cProfile ---
+                should_profile_this_task = self.is_debug() and profiler is not None and not profiled_one_task
+                if should_profile_this_task:
+                    self.info("[Profiler] 正在分析第一次 task.prepare() 调用...")
+                    profiler.enable()
+
                 task.prepare(self.config.target_platform,self.config.prompt_preset) # 预先构建消息列表
+
+                if should_profile_this_task:
+                    profiler.disable()
+                    profiled_one_task = True # 设置标志位，确保只分析一次
+
+                    # --- Print Stats (only if debug and profiled) ---
+                    try:
+                        import io
+                        import pstats
+                        s = io.StringIO()
+                        # 按累计时间排序
+                        sortby = pstats.SortKey.CUMULATIVE
+                        ps = pstats.Stats(profiler, stream=s).sort_stats(sortby)
+                        self.print("\n" + "="*80)
+                        self.print("--- cProfile Stats for one task.prepare() call (Top 50 by Cumulative Time) ---")
+                        ps.print_stats(50) # 打印统计信息到 StringIO
+                        self.print(s.getvalue()) # 打印缓冲区内容
+                        self.print("--- End cProfile Stats ---")
+                        self.print("="*80 + "\n")
+                    except ImportError:
+                         self.warning("pstats or io module not found. Cannot print profiling stats.")
+                    except Exception as e:
+                         self.error("Error printing profiling stats:", e)
+                    # --- End Print Stats ---
+                # --- End Conditional cProfile ---
+
                 tasks_list.append(task)
             self.print("")
 
-            # 输出开始翻译的日志
+            # 输出开始翻译的日志 (保持不变)
+            # ... (省略日志输出代码) ...
             self.print("")
             self.info(f"当前轮次 - {current_round + 1}")
             self.info(f"最大轮次 - {self.config.round_limit}")
-            self.info(f"项目类型 - {self.config.translation_project}")
-            self.info(f"原文语言 - {self.config.source_language}")
-            self.info(f"译文语言 - {self.config.target_language}")
+            self.info(f"项目类型 - {self.tra(self.config.translation_project)}") # 使用 tra
+            self.info(f"原文语言 - {self.tra(self.config.source_language)}") # 使用 tra
+            self.info(f"译文语言 - {self.tra(self.config.target_language)}") # 使用 tra
             self.print("")
             if self.config.double_request_switch_settings == False:
-                self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get("name", "未知")}")
+                platform_name = self.config.platforms.get(self.config.target_platform, {}).get("name", self.tra("未知"))
+                self.info(f"接口名称 - {self.tra(platform_name)}") # 使用 tra
                 self.info(f"接口地址 - {self.config.base_url}")
                 self.info(f"模型名称 - {self.config.model}")
                 self.print("")
-                self.info(f"生效中的 网络代理 - {self.config.proxy_url}") if self.config.proxy_enable == True and self.config.proxy_url != "" else None
+                if self.config.proxy_enable == True and self.config.proxy_url != "":
+                    self.info(f"生效中的 网络代理 - {self.config.proxy_url}")
                 self.info(f"生效中的 RPM 限额 - {self.config.rpm_limit}")
                 self.info(f"生效中的 TPM 限额 - {self.config.tpm_limit}")
 
@@ -265,20 +324,20 @@ class Translator(Base):
                     system = PromptBuilderThink.build_system(self.config)
                 self.print("")
                 if system:
-                    self.info(f"本次任务使用以下基础提示词：\n{system}\n") 
-                    
+                    self.info(f"本次任务使用以下基础提示词：\n{system}\n")
             else:
-                self.info(f"第一次请求的接口 - {self.config.platforms.get(self.config.request_a_platform_settings, {}).get("name", "未知")}")
+                platform_a_name = self.config.platforms.get(self.config.request_a_platform_settings, {}).get("name", self.tra("未知"))
+                platform_b_name = self.config.platforms.get(self.config.request_b_platform_settings, {}).get("name", self.tra("未知"))
+                self.info(f"第一次请求的接口 - {self.tra(platform_a_name)}") # 使用 tra
                 self.info(f"接口地址 - {self.config.base_url_a}")
                 self.info(f"模型名称 - {self.config.model_a}")
                 self.print("")
-
-                self.info(f"第二次请求的接口 - {self.config.platforms.get(self.config.request_b_platform_settings, {}).get("name", "未知")}")
+                self.info(f"第二次请求的接口 - {self.tra(platform_b_name)}") # 使用 tra
                 self.info(f"接口地址 - {self.config.base_url_b}")
                 self.info(f"模型名称 - {self.config.model_b}")
                 self.print("")
-
-                self.info(f"生效中的 网络代理 - {self.config.proxy_url}") if self.config.proxy_enable == True and self.config.proxy_url != "" else None
+                if self.config.proxy_enable == True and self.config.proxy_url != "":
+                     self.info(f"生效中的 网络代理 - {self.config.proxy_url}")
                 self.info(f"生效中的 RPM 限额 - {self.config.rpm_limit}")
                 self.info(f"生效中的 TPM 限额 - {self.config.tpm_limit}")
                 self.print("")
@@ -299,7 +358,7 @@ class Translator(Base):
         time.sleep(CacheManager.SAVE_INTERVAL)
 
         # 触发插件事件
-        # 先转换为列表，再交给插件进行处理（兼容旧版接口）
+        # 先转换为列表，再交给插件进行处理（兼容旧版接口） # 移除旧转换
         self.plugin_manager.broadcast_event("postprocess_text", self.config, self.cache_manager.project)
 
         # 如果开启了转换简繁开关功能，则进行文本转换
@@ -351,8 +410,11 @@ class Translator(Base):
                 self.project_status_data.line += result.get("row_count", 0)
                 self.project_status_data.token += result.get("prompt_tokens", 0) + result.get("completion_tokens", 0)
                 self.project_status_data.total_completion_tokens += result.get("completion_tokens", 0)
-                self.project_status_data.time = time.time() - self.project_status_data.start_time
+                # 修正：应该累加时间，而不是覆盖
+                current_elapsed_time = time.time() - self.project_status_data.start_time
+                self.project_status_data.time = current_elapsed_time
                 stats_dict = self.project_status_data.to_dict()
+
 
             # 请求保存缓存文件
             self.cache_manager.require_save_to_file(self.config.label_output_path)

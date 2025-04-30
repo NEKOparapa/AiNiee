@@ -25,6 +25,7 @@ from ModuleFolders.ResponseExtractor.ResponseExtractor import ResponseExtractor
 from ModuleFolders.ResponseChecker.ResponseChecker import ResponseChecker
 from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
 
+# 导入 TextProcessor
 from ModuleFolders.TextProcessor.TextProcessor import TextProcessor
 
 class TranslatorTask(Base):
@@ -56,34 +57,50 @@ class TranslatorTask(Base):
         # 前后换行空格处理信息存储
         self.affix_whitespace_storage = {}
 
-        # 读取正则表达式
-        self.regex_dir =  os.path.join(".", "Resource", "Regex", "regex.json")
+        # --- 修改：读取正则表达式并初始化 TextProcessor ---
+        self.regex_dir = os.path.join(".", "Resource", "Regex", "regex.json")
         self.code_pattern_list = self._prepare_regex_patterns()
+        # 在这里创建 TextProcessor 实例，并传递预编译所需的正则列表和配置
+        self.text_processor = TextProcessor(self.code_pattern_list, config=self.config) # 传递 config
+        # --- 修改 End ---
 
     # 读取正则库和禁翻表的正则
     def _prepare_regex_patterns(self) -> List[str]:
         """准备所有需要使用的正则表达式模式"""
-
         patterns = []
 
         # 从正则库加载基础正则
-        with open(self.regex_dir, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            file_patterns =  [item["regex"] for item in data if isinstance(item, dict) and "regex" in item]
-        patterns.extend(file_patterns)
+        regex_file_path = self.regex_dir # 使用实例变量
+        if os.path.exists(regex_file_path):
+            try:
+                with open(regex_file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    # 确保 data 是列表且 item 是字典
+                    file_patterns = [item["regex"] for item in data if isinstance(item, dict) and "regex" in item]
+                    patterns.extend(file_patterns)
+            except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
+                 # 使用 Base 的 error 方法记录日志
+                self.error(f"加载正则文件 '{regex_file_path}' 失败", e)
+        else:
+             # 使用 Base 的 warning 方法记录日志
+            self.warning(f"正则文件未找到: '{regex_file_path}'")
 
-        # 合并禁翻表数据
-        exclusion_patterns = []
-        for item in self.config.exclusion_list_data:
-            
-            # 读取正则表达式
-            if regex := item.get("regex"):
-                exclusion_patterns.append(regex)
 
-            # 将标记符，转义为特殊字符并添加为普通匹配
-            else:
-                exclusion_patterns.append(re.escape(item["markers"]))
-        patterns.extend(exclusion_patterns)
+        # 合并禁翻表数据 (确保 config.exclusion_list_data 是列表)
+        exclusion_list_data = getattr(self.config, 'exclusion_list_data', [])
+        if exclusion_list_data and isinstance(exclusion_list_data, list):
+            exclusion_patterns = []
+            for item in exclusion_list_data:
+                # 确保 item 是字典
+                if not isinstance(item, dict):
+                    continue
+                # 读取正则表达式
+                if regex := item.get("regex"):
+                    exclusion_patterns.append(regex)
+                # 将标记符，转义为特殊字符并添加为普通匹配
+                elif markers := item.get("markers"):
+                    exclusion_patterns.append(re.escape(markers))
+            patterns.extend(exclusion_patterns)
 
         return patterns
 
@@ -110,8 +127,12 @@ class TranslatorTask(Base):
         # 触发插件事件 - 文本正规化
         self.plugin_manager.broadcast_event("normalize_text", self.config, self.source_text_dict)
 
+        # --- 修改：使用 self.text_processor 实例 ---
         # 各种替换步骤，译前替换，提取首尾与占位中间代码
-        self.source_text_dict, self.prefix_codes, self.suffix_codes,self.placeholder_order,self.affix_whitespace_storage = TextProcessor.replace_all(self, self.config, self.source_text_dict,self.code_pattern_list)
+        self.source_text_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage = self.text_processor.replace_all(
+            self.config, self.source_text_dict # 不再传递 code_pattern_list
+        )
+        # --- 修改 End ---
 
         # 生成请求指令
         if self.config.double_request_switch_settings == True:
@@ -144,6 +165,8 @@ class TranslatorTask(Base):
             self.system_prompt_b
             )
 
+    # --- generate_prompt* 系列函数保持不变 ---
+    # (为简洁起见，省略这些函数的代码，它们不需要修改)
     # 生成信息结构 - 通用和思维链和推理模型(通用与推理模型与自定义使用同一提示词框架，除了系统提示词不同。思维链使用不同的框架，系统提示词也不同)
     def generate_prompt(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
         # 储存指令
@@ -500,7 +523,7 @@ class TranslatorTask(Base):
             term_table += "\n" + "\n".join(entries)
             term_table += "\n\n"
         else:
-            return system_prompt
+            return system_prompt # 如果没有条目符合条件，返回原始系统提示
 
         # 处理系统提示
         if "###术语表" in system_prompt:
@@ -546,7 +569,7 @@ class TranslatorTask(Base):
             # 逐行对比，确保对齐
             for s_line, t_line in itertools.zip_longest(s_lines, t_lines, fillvalue=""):
                 pair += f"{s_line} [bright_blue]-->[/] {t_line}\n"
-        
+
         rows.append(pair.strip())
 
         return rows, error == ""
@@ -676,10 +699,12 @@ class TranslatorTask(Base):
                 )
             )
         else:
-            # 各种还原步骤
-            # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
+            # --- 修改：使用 self.text_processor 实例 ---
             restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage)
+            restore_response_dict = self.text_processor.restore_all(
+                self.config, restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage
+            )
+            # --- 修改 End ---
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
@@ -891,10 +916,12 @@ class TranslatorTask(Base):
                 )
             )
         else:
-            # 各种还原步骤
-            # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
+            # --- 修改：使用 self.text_processor 实例 ---
             restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order,self.affix_whitespace_storage)
+            restore_response_dict = self.text_processor.restore_all( # 使用实例调用
+                self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order,self.affix_whitespace_storage
+            )
+            # --- 修改 End ---
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
@@ -934,4 +961,3 @@ class TranslatorTask(Base):
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
             }
-
