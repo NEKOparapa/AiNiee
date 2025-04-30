@@ -24,7 +24,7 @@ from ModuleFolders.FileReader.DocxReader import DocxReader
 from ModuleFolders.FileReader.MdReader import MdReader
 from ModuleFolders.FileReader.RenpyReader import RenpyReader
 from ModuleFolders.FileReader.TransReader import TransReader
-
+from ModuleFolders.FileReader.I18nextReader import I18nextReader
 
 # 文件读取器
 class FileReader():
@@ -45,6 +45,7 @@ class FileReader():
         self.register_reader(DocxReader)
         self.register_reader(MdReader)
         self.register_reader(RenpyReader)
+        self.register_reader(I18nextReader)
         self.register_reader(TransReader)
         self.register_reader(ParatranzReader)
         self.register_reader(OfficeConversionPdfReader)

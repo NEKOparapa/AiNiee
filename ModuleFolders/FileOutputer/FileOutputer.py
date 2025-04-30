@@ -23,7 +23,7 @@ from ModuleFolders.FileOutputer.DocxWriter import DocxWriter
 from ModuleFolders.FileOutputer.MdWriter import MdWriter
 from ModuleFolders.FileOutputer.RenpyWriter import RenpyWriter
 from ModuleFolders.FileOutputer.TransWriter import TransWriter
-
+from ModuleFolders.FileOutputer.I18nextWriter import I18nextWriter
 
 
 
@@ -52,6 +52,7 @@ class FileOutputer():
         self.register_writer(DocxWriter)
         self.register_writer(RenpyWriter)
         self.register_writer(TransWriter)
+        self.register_writer(I18nextWriter)
         self.register_writer(ParatranzWriter)
         self.register_writer(TPPWriter)
         self.register_writer(OfficeConversionPdfWriter)
