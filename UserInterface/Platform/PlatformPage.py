@@ -9,14 +9,13 @@ from PyQt5.QtGui import QDesktopServices, QIcon
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
 
-from qfluentwidgets import Action
+from qfluentwidgets import Action, DropDownPushButton, PrimaryPushButton
 from qfluentwidgets import RoundMenu
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import PushButton
-from qfluentwidgets import PrimaryDropDownPushButton
 
 from Base.Base import Base
-from Widget.FlowCard import FlowCard
+from Widget.APITypeCard import APITypeCard
 from Widget.LineEditMessageBox import LineEditMessageBox
 from UserInterface.Platform.APIEditPage import APIEditPage
 from UserInterface.Platform.ArgsEditPage import ArgsEditPage
@@ -338,7 +337,7 @@ class PlatformPage(QFrame, Base):
     # 初始化下拉按钮
     def init_drop_down_push_button(self, widget, datas):
         for item in datas:
-            drop_down_push_button = PrimaryDropDownPushButton(item.get("name"))
+            drop_down_push_button = DropDownPushButton(item.get("name"))
             if item.get("icon"):
                 icon_name = item.get("icon") + '.png'
                 icon_path = os.path.join(".", "Resource", "platforms", "Icon", icon_name)                                                  
@@ -390,9 +389,10 @@ class PlatformPage(QFrame, Base):
                 self.generate_ui_datas(platforms, False),
             )
 
+        # 本地接口分类的接口数据 
         platforms = {k:v for k, v in config.get("platforms").items() if v.get("group") == "local"}
         parent.addWidget(
-            FlowCard(
+            APITypeCard(
                 self.tra("本地接口"),
                 self.tra("管理应用内置的本地大语言模型的接口"),
                 init = init,
@@ -401,9 +401,10 @@ class PlatformPage(QFrame, Base):
 
     # 添加主体-在线接口
     def add_body_widget(self, parent, config):
+
         platforms = {k:v for k, v in config.get("platforms").items() if v.get("group") == "online"}
         parent.addWidget(
-            FlowCard(
+            APITypeCard(
                 self.tra("官方接口"),
                 self.tra("管理应用内置的主流大语言模型的官方接口"),
                 init = lambda widget: self.init_drop_down_push_button(
@@ -443,7 +444,7 @@ class PlatformPage(QFrame, Base):
 
         def init(widget):
             # 添加新增按钮
-            add_button = PushButton(self.tra("新增"))
+            add_button = PrimaryPushButton(self.tra("新增"))
             add_button.setIcon(FluentIcon.ADD_TO)
             add_button.setContentsMargins(4, 0, 4, 0)
             add_button.clicked.connect(lambda: on_add_button_clicked(self))
@@ -452,7 +453,7 @@ class PlatformPage(QFrame, Base):
             # 更新ui
             self.update_custom_platform_widgets(widget)
 
-        self.flow_card = FlowCard(
+        self.flow_card = APITypeCard(
             self.tra("自定义接口"),
             self.tra("在此添加和管理任何符合 OpenAI 格式或者 Anthropic 格式的大语言模型的接口"),
             init = init,

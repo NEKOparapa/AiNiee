@@ -197,7 +197,7 @@ class DragDropArea(QWidget):
         self.NoneLabel2 = CaptionLabel(f"       ", self)
         self.NoneLabel2.setAlignment(Qt.AlignVCenter) # 垂直居中        
 
-        self.selectButton = PrimaryPushButton(FluentIcon.FOLDER,"拖拽/选择输入文件夹",self) # 创建主操作按钮
+        self.selectButton = PrimaryPushButton(FluentIcon.FOLDER_ADD,"拖拽/选择输入文件夹",self) # 创建主操作按钮
         self.selectButton.clicked.connect(self._select_folder) # 连接按钮点击事件到选择文件夹方法
 
         # 命中计数标签
