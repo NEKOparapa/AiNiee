@@ -276,27 +276,23 @@ class ThreadSafeCache(DictMixin):
              super().__setattr__(name, value)
 
     def __getattribute__(self, name: str) -> Any:
-        # 每次获取非私有、非 callable 属性都加锁
-        # 特殊方法（如 __init__）不加锁
-        if name.startswith("_") or name in ("__init__", "__post_init__", "to_dict", "from_dict", "_from_define", "_to_dict_part", "atomic_scope"):
-             return super().__getattribute__(name)
+        # 特殊方法或私有属性不加锁
+        if name.startswith("_") or name == "__class__": # 仅保留必要的特殊检查
+            return super().__getattribute__(name)
 
         attr = super().__getattribute__(name)
 
-        # callable 通常不需要加锁，除非它们修改了实例状态且需要线程安全
+        # 可调用对象通常不加锁 (除非它们修改状态且需同步)
         if callable(attr):
             return attr
 
-        lock = getattr(self, "_lock", None) # 安全地获取锁
+        # 对于非私有、非可调用的数据属性，加锁并重新获取最新值
+        lock = getattr(self, "_lock", None)
         if lock:
             with lock:
-                # 在锁内重新获取属性，以防在等待锁时属性被其他线程修改
-                # 但对于简单属性读取，直接返回第一次获取的 attr 通常也可以
-                # 这里选择重新获取以保证最新值
-                return super().__getattribute__(name)
-        else: # 锁未初始化
-            return attr
-
+                return super().__getattribute__(name) # 重新获取保证最新
+        else:
+            return attr # 锁未初始化时直接返回
 
     @contextmanager
     def atomic_scope(self):
