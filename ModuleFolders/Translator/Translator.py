@@ -79,20 +79,18 @@ class Translator(Base):
             return None
 
         # 触发手动导出插件事件
-        # 先转换为列表，再交给插件进行处理（兼容旧版接口）
-        cache_list = self.cache_manager.to_list()
-        self.plugin_manager.broadcast_event("manual_export", self.config, cache_list)
+        self.plugin_manager.broadcast_event("manual_export", self.config, self.cache_manager.project)
 
         # 如果开启了转换简繁开关功能，则进行文本转换
         if self.config.response_conversion_toggle:
-            cache_list = self.convert_simplified_and_traditional(self.config.opencc_preset, cache_list)
+            self.convert_simplified_and_traditional(self.config.opencc_preset, self.cache_manager.project.items_iter())
             self.print("")
             self.info(f"已启动自动简繁转换功能，正在使用 {self.config.opencc_preset} 配置进行字形转换 ...")
             self.print("")
 
         # 写入文件
         self.file_writer.output_translated_content(
-            cache_list,
+            self.cache_manager.project,
             self.config.label_output_path,
             self.config.label_input_path,
         )
@@ -299,7 +297,6 @@ class Translator(Base):
         time.sleep(CacheManager.SAVE_INTERVAL)
 
         # 触发插件事件
-        # 先转换为列表，再交给插件进行处理（兼容旧版接口）
         self.plugin_manager.broadcast_event("postprocess_text", self.config, self.cache_manager.project)
 
         # 如果开启了转换简繁开关功能，则进行文本转换
