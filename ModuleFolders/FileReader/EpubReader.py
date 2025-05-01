@@ -35,6 +35,8 @@ class EpubReader(BaseSourceReader):
         # 有些p标签内容嵌套在li标签里面,
         ("li", r"<li[^>]*>(.*?)</li>", ['p']),
         ("text", r"<text[^>]*>(.*?)</text>", []),
+        ("blockquote", r"<blockquote[^>]*>(.*?)</blockquote>", []),
+        ("td", r"<td[^>]*>(.*?)</td>", []),
 
         # div标签要放在最后面，这是提取不到前面任何文本内容再考虑的标签
         ("div", r"<div[^>]*>(.*?)</div>", ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'text']),
