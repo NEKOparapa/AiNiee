@@ -108,7 +108,7 @@ class ArgsEditPage(MessageBoxBase, Base):
         parent.addWidget(
             SwitchButtonCard(
                 self.tra("think_switch"),
-                self.tra("think_switch"),
+                self.tra("思考模式开关"),
                 init = init,
                 checked_changed = checked_changed,
             )
@@ -130,7 +130,7 @@ class ArgsEditPage(MessageBoxBase, Base):
         parent.addWidget(
             ComboBoxCard(
                 self.tra("think_depth"),
-                self.tra("think_depth"),
+                self.tra("思考深度"),
                 [],
                 init = init,
                 current_text_changed = current_text_changed,
