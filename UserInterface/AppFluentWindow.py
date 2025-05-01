@@ -88,7 +88,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
         # 默认配置
         self.default = {
-            "theme": "dark",
+            "theme": "light",
         }
 
         # 载入并保存默认配置

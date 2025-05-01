@@ -2,63 +2,11 @@
 import os
 from pathlib import Path
 
-import chardet
-from magika.types import OverwriteReason
-
-# 全局单例
-_MAGIKA_INSTANCE = None
-
-
-def get_magika():
-    global _MAGIKA_INSTANCE
-    if _MAGIKA_INSTANCE is None:
-        from magika import Magika
-        _MAGIKA_INSTANCE = Magika()
-    return _MAGIKA_INSTANCE
 
 
 def detect_file_encoding(file_path: str | Path, min_confidence: float = 0.75) -> str:
-    """
-    使用Magika检测文件类型，如果是非纯文本则返回'non_text/{label}'，
-    如果是纯文本则使用chardet检测编码。
 
-    Args:
-        file_path: 要检测的文件路径
-        min_confidence: chardet检测编码的最低置信度阈值，低于此值将返回默认编码'utf-8'
-
-    Returns:
-        str: 对于非文本文件返回'non_text/{label}'，对于文本文件返回检测到的编码
-    """
-    # 确保file_path是Path对象
-    if isinstance(file_path, str):
-        file_path = Path(file_path)
-
-    # 使用Magika检测文件类型
-    result = get_magika().identify_path(file_path)
-    non_text = not result.output.is_text
-    is_low_confidence = result.prediction.overwrite_reason == OverwriteReason.LOW_CONFIDENCE
-
-    # 如果文件为非文本类型且没有触发`is_low_confidence`条件。则返回non_text/xxx
-    # 否则继续使用chardet检查编码
-    if non_text and not is_low_confidence:
-        # 非文本文件，返回non_text前缀加上检测到的标签
-        return f"non_text/{result.output.label}"
-
-    # 读取文件内容
-    with open(file_path, 'rb') as f:
-        content_bytes = f.read()
-
-    # 文件是文本类型，使用chardet检测编码
-    detection_result = chardet.detect(content_bytes)
-    detected_encoding = detection_result['encoding']
-    confidence = detection_result['confidence']
-
-    # 如果没有检测到编码或置信度低于阈值，返回默认编码'utf-8'
-    if not detected_encoding or confidence < min_confidence:
-        return 'utf-8'
-
-    return detected_encoding
-
+    return 'utf-8'
 
 def detect_newlines(content: str) -> str:
     """
