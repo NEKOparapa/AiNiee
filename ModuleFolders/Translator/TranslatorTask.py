@@ -3,12 +3,13 @@ import os
 import re
 import time
 import itertools
+import json # 确保导入 json
+from typing import List, Tuple, Dict # 确保导入 Tuple 和 Dict
 
-import rapidjson as json
+import rapidjson # 保持 rapidjson 导入，如果其他地方仍在使用
 from rich import box
 from rich.table import Table
 from rich.markup import escape
-from typing import List
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
@@ -25,6 +26,7 @@ from ModuleFolders.ResponseExtractor.ResponseExtractor import ResponseExtractor
 from ModuleFolders.ResponseChecker.ResponseChecker import ResponseChecker
 from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
 
+# 导入 TextProcessor
 from ModuleFolders.TextProcessor.TextProcessor import TextProcessor
 
 class TranslatorTask(Base):
@@ -56,36 +58,69 @@ class TranslatorTask(Base):
         # 前后换行空格处理信息存储
         self.affix_whitespace_storage = {}
 
-        # 读取正则表达式
-        self.regex_dir =  os.path.join(".", "Resource", "Regex", "regex.json")
-        self.code_pattern_list = self._prepare_regex_patterns()
+        # --- 修改：读取正则表达式并初始化 TextProcessor ---
+        # 读取并编译正则表达式模式
+        self.compiled_code_patterns_with_source = self._prepare_regex_patterns() #<-- 统一变量名
+        # 创建 TextProcessor 实例，传递配置对象（可能包含译前/译后规则）
+        self.text_processor = TextProcessor(config=self.config)
+        # --- 修改 End ---
 
-    # 读取正则库和禁翻表的正则
-    def _prepare_regex_patterns(self) -> List[str]:
-        """准备所有需要使用的正则表达式模式"""
 
+    # 读取正则库和禁翻表的正则，并进行预编译
+    def _prepare_regex_patterns(self) -> List[Tuple[str, re.Pattern]]: # <--- 修改返回类型
+        """准备所有需要使用的正则表达式模式，返回 (原始字符串, 编译后对象) 的元组列表"""
         patterns = []
+        compiled_patterns_with_source = [] # 修改变量名
 
         # 从正则库加载基础正则
-        with open(self.regex_dir, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            file_patterns =  [item["regex"] for item in data if isinstance(item, dict) and "regex" in item]
-        patterns.extend(file_patterns)
+        regex_file_path = os.path.join(".", "Resource", "Regex", "regex.json")
+        if os.path.exists(regex_file_path):
+            try:
+                with open(regex_file_path, 'r', encoding='utf-8') as f:
+                    # 使用 rapidjson 加载以提高性能
+                    data = rapidjson.load(f)
+                    # 确保 data 是列表且 item 是字典
+                    file_patterns = [item["regex"] for item in data if isinstance(item, dict) and "regex" in item]
+                    patterns.extend(file_patterns)
+            except (FileNotFoundError, rapidjson.JSONDecodeError, KeyError, TypeError) as e: # 添加 TypeError
+                self.error(f"加载正则文件 '{regex_file_path}' 失败", e) # 使用 Base.error
+        else:
+            self.warning(f"正则文件未找到: '{regex_file_path}'") # 使用 Base.warning
 
-        # 合并禁翻表数据
-        exclusion_patterns = []
-        for item in self.config.exclusion_list_data:
-            
-            # 读取正则表达式
-            if regex := item.get("regex"):
-                exclusion_patterns.append(regex)
+        # 合并禁翻表数据 (确保 config.exclusion_list_data 是列表)
+        exclusion_list_data = getattr(self.config, 'exclusion_list_data', [])
+        exclusion_patterns = [] # 单独存储禁翻表的模式字符串
+        if exclusion_list_data and isinstance(exclusion_list_data, list):
+            for item in exclusion_list_data:
+                # 确保 item 是字典
+                if not isinstance(item, dict):
+                    continue
+                # 读取正则表达式
+                if regex_str := item.get("regex"): # 使用 walrus 操作符简化
+                    # 验证正则表达式有效性
+                     try:
+                         re.compile(regex_str) # 尝试编译但不存储
+                         exclusion_patterns.append(regex_str)
+                     except re.error as e:
+                         self.warning(f"禁翻表中无效的正则表达式，已跳过: '{regex_str}', 错误: {e}") # 使用 Base.warning
+                # 将标记符，转义为特殊字符并添加为普通匹配
+                elif markers := item.get("markers"): # 使用 markers 字段
+                     exclusion_patterns.append(re.escape(markers)) # 转义 markers
 
-            # 将标记符，转义为特殊字符并添加为普通匹配
-            else:
-                exclusion_patterns.append(re.escape(item["markers"]))
         patterns.extend(exclusion_patterns)
 
-        return patterns
+        # 编译所有模式
+        for pattern_str in patterns:
+            if pattern_str: # 跳过空字符串
+                try:
+                    # 编译并添加 (原始字符串, 编译对象)
+                    compiled_pattern = re.compile(pattern_str, re.IGNORECASE | re.MULTILINE)
+                    compiled_patterns_with_source.append((pattern_str, compiled_pattern))
+                except re.error as e:
+                    self.warning(f"正则表达式编译失败，已跳过: '{pattern_str}', 错误: {e}") # 使用 Base.warning
+                    continue # 跳过无效模式
+
+        return compiled_patterns_with_source
 
     # 设置缓存数据
     def set_items(self, items: list[CacheItem]) -> None:
@@ -110,8 +145,13 @@ class TranslatorTask(Base):
         # 触发插件事件 - 文本正规化
         self.plugin_manager.broadcast_event("normalize_text", self.config, self.source_text_dict)
 
+        # --- 修改：使用 self.text_processor 实例 ---
         # 各种替换步骤，译前替换，提取首尾与占位中间代码
-        self.source_text_dict, self.prefix_codes, self.suffix_codes,self.placeholder_order,self.affix_whitespace_storage = TextProcessor.replace_all(self, self.config, self.source_text_dict,self.code_pattern_list)
+        # <--- 修正这里，传递编译好的模式 -->
+        self.source_text_dict, self.prefix_codes, self.suffix_codes,self.placeholder_order,self.affix_whitespace_storage = self.text_processor.replace_all(
+            self.config, self.source_text_dict, self.compiled_code_patterns_with_source # <--- 添加缺失的参数
+        )
+        # --- 修改 End ---
 
         # 生成请求指令
         if self.config.double_request_switch_settings == True:
@@ -134,7 +174,7 @@ class TranslatorTask(Base):
                 self.previous_text_list
             )
 
-        # 预估 Token 消费,暂时版本，双请求无法正确计算tpm与tokens消耗
+        # 预估 Token 消费
         self.request_tokens_consume = self.request_limiter.calculate_tokens(
             self.messages,
             self.messages_a,
@@ -144,6 +184,9 @@ class TranslatorTask(Base):
             self.system_prompt_b
             )
 
+    # =============================================
+    # --- generate_prompt* 系列函数保持不变 ---
+    # =============================================
     # 生成信息结构 - 通用和思维链和推理模型(通用与推理模型与自定义使用同一提示词框架，除了系统提示词不同。思维链使用不同的框架，系统提示词也不同)
     def generate_prompt(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
         # 储存指令
@@ -272,8 +315,6 @@ class TranslatorTask(Base):
 
         source_text_str = "\n".join(numbered_lines)
         source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text_str}\n</textarea>"
-
-        #print(source_text_str)
 
         # 构建用户提问信息
         messages.append(
@@ -453,6 +494,10 @@ class TranslatorTask(Base):
                 settings["system_info"] = content
 
         return messages, system_content
+    # =============================================
+    # --- generate_prompt* 系列函数结束 ---
+    # =============================================
+
 
     # 更新系统提示词的术语表内容(因为是特殊处理的补丁，很多判断要重新加入，后续提示词相关更新需要重点关注该函数，以免bug)
     def update_sysprompt_glossary(self,config,system_prompt,glossary_buffer_data, prompt_dictionary_data, source_text_dict):
@@ -546,7 +591,7 @@ class TranslatorTask(Base):
             # 逐行对比，确保对齐
             for s_line, t_line in itertools.zip_longest(s_lines, t_lines, fillvalue=""):
                 pair += f"{s_line} [bright_blue]-->[/] {t_line}\n"
-        
+
         rows.append(pair.strip())
 
         return rows, error == ""
@@ -639,11 +684,26 @@ class TranslatorTask(Base):
             self,
             self.config,
             self.config.target_platform,
-            self.placeholder_order,
+            self.placeholder_order, # 传递 placeholder_order
             response_content,
-            response_dict,
-            self.source_text_dict,
+            response_dict,         # 传递提取出的译文
+            self.source_text_dict, # 传递原始（占位符处理后）的原文
         )
+
+        # --- Debugging Placeholder Issue ---
+        if self.is_debug() and not check_result and "未能正确保留全部的占位符" in error_content:
+            self.debug(f"占位符检查失败! Task ID (approximated by first item index): {self.items[0].text_index if self.items else 'N/A'}")
+            for key in self.placeholder_order:
+                expected_placeholders = [p.get('placeholder', 'MISSING_PH') for p in self.placeholder_order.get(key, [])]
+                actual_text = response_dict.get(key, "KEY_NOT_FOUND_IN_RESPONSE")
+                if expected_placeholders: # 只打印包含预期占位符的 key
+                    self.debug(f"  Key '{key}':")
+                    self.debug(f"    Expected Placeholders: {expected_placeholders}")
+                    self.debug(f"    Actual Text (after extraction): {repr(actual_text[:100])}...")
+                    missing = [p for p in expected_placeholders if isinstance(actual_text, str) and p not in actual_text]
+                    if missing:
+                        self.debug(f"    [!] Missing: {missing}")
+        # --- End Debugging ---
 
 
         # 去除回复内容的数字序号
@@ -669,17 +729,19 @@ class TranslatorTask(Base):
                         task_start_time,
                         prompt_tokens,
                         completion_tokens,
-                        self.source_text_dict.values(),
-                        response_dict.values(),
+                        list(self.source_text_dict.values()), # 确保传递列表
+                        list(response_dict.values()),      # 确保传递列表
                         self.extra_log,
                     )
                 )
             )
         else:
-            # 各种还原步骤
-            # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
+            # --- 修改：使用 self.text_processor 实例 ---
             restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage)
+            restore_response_dict = self.text_processor.restore_all(
+                self.config, restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage
+            )
+            # --- 修改 End ---
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
@@ -699,8 +761,8 @@ class TranslatorTask(Base):
                         task_start_time,
                         prompt_tokens,
                         completion_tokens,
-                        self.source_text_dict.values(),
-                        response_dict.values(),
+                        list(self.source_text_dict.values()), # 确保传递列表
+                        list(response_dict.values()),      # 确保传递列表
                         self.extra_log,
                     )
                 )
@@ -851,11 +913,27 @@ class TranslatorTask(Base):
             self,
             self.config,
             self.config.request_b_platform_settings,
-            self.placeholder_order,
+            self.placeholder_order, # 传递 placeholder_order
             response_content,
-            response_dict,
-            self.source_text_dict
+            response_dict,         # 传递提取出的译文
+            self.source_text_dict  # 传递原始（占位符处理后）的原文
         )
+
+        # --- Debugging Placeholder Issue ---
+        if self.is_debug() and not check_result and "未能正确保留全部的占位符" in error_content:
+            self.debug(f"占位符检查失败! Task ID (approximated by first item index): {self.items[0].text_index if self.items else 'N/A'}")
+            for key in self.placeholder_order:
+                expected_placeholders = [p.get('placeholder', 'MISSING_PH') for p in self.placeholder_order.get(key, [])]
+                actual_text = response_dict.get(key, "KEY_NOT_FOUND_IN_RESPONSE")
+                if expected_placeholders: # 只打印包含预期占位符的 key
+                    self.debug(f"  Key '{key}':")
+                    self.debug(f"    Expected Placeholders: {expected_placeholders}")
+                    self.debug(f"    Actual Text (after extraction): {repr(actual_text[:100])}...")
+                    missing = [p for p in expected_placeholders if isinstance(actual_text, str) and p not in actual_text]
+                    if missing:
+                        self.debug(f"    [!] Missing: {missing}")
+        # --- End Debugging ---
+
 
         # 去除回复内容的数字序号
         response_dict = ResponseExtractor.remove_numbered_prefix(self, self.source_text_dict, response_dict)
@@ -884,17 +962,19 @@ class TranslatorTask(Base):
                         task_start_time,
                         prompt_tokens,
                         completion_tokens,
-                        self.source_text_dict.values(),
-                        response_dict.values(),
+                        list(self.source_text_dict.values()), # 确保传递列表
+                        list(response_dict.values()),      # 确保传递列表
                         self.extra_log,
                     )
                 )
             )
         else:
-            # 各种还原步骤
-            # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
+            # --- 修改：使用 self.text_processor 实例 ---
             restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order,self.affix_whitespace_storage)
+            restore_response_dict = self.text_processor.restore_all( # 使用实例调用
+                self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order,self.affix_whitespace_storage
+            )
+            # --- 修改 End ---
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
@@ -911,8 +991,8 @@ class TranslatorTask(Base):
                         task_start_time,
                         prompt_tokens,
                         completion_tokens,
-                        self.source_text_dict.values(),
-                        response_dict.values(),
+                        list(self.source_text_dict.values()), # 确保传递列表
+                        list(response_dict.values()),      # 确保传递列表
                         self.extra_log,
                     )
                 )
@@ -934,4 +1014,3 @@ class TranslatorTask(Base):
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
             }
-
