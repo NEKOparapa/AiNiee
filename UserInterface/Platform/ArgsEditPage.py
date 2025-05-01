@@ -13,6 +13,8 @@ from qfluentwidgets import SingleDirectionScrollArea
 from Base.Base import Base
 from Widget.SliderCard import SliderCard
 from Widget.GroupCard import GroupCard
+from Widget.SwitchButtonCard import SwitchButtonCard
+from Widget.ComboBoxCard import ComboBoxCard
 
 class ArgsEditPage(MessageBoxBase, Base):
 
@@ -69,8 +71,13 @@ class ArgsEditPage(MessageBoxBase, Base):
         if "frequency_penalty" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_frequency_penalty(self.vbox, config, preset)
 
-        # 添加链接
-        self.add_widget_url(self.vbox, config, preset)
+        # think_switch
+        if "think_switch" in config.get("platforms").get(self.key).get("key_in_settings"):
+            self.add_widget_think_switch(self.vbox, config)
+
+        # think_depth
+        if "think_depth" in config.get("platforms").get(self.key).get("key_in_settings"):
+            self.add_widget_think_depth(self.vbox, config)
 
         # 填充
         self.vbox.addStretch(1)
@@ -86,6 +93,49 @@ class ArgsEditPage(MessageBoxBase, Base):
             self.error(f"未找到 {path} 文件 ...")
 
         return result
+
+
+    # 思考开关
+    def add_widget_think_switch(self, parent, config):
+        def init(widget):
+            widget.set_checked(config.get("platforms").get(self.key).get("think_switch"))
+
+        def checked_changed(widget, checked: bool):
+            config = self.load_config()
+            config["platforms"][self.key]["think_switch"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("think_switch"),
+                self.tra("思考模式开关"),
+                init = init,
+                checked_changed = checked_changed,
+            )
+        )
+
+    # 思考深度
+    def add_widget_think_depth(self, parent, config):
+        def init(widget):
+            platform = config.get("platforms").get(self.key)
+
+            widget.set_items(["low","medium","high"])
+            widget.set_current_index(max(0, widget.find_text(platform.get("think_depth"))))
+
+        def current_text_changed(widget, text: str):
+            config = self.load_config()
+            config["platforms"][self.key]["think_depth"] = text.strip()
+            self.save_config(config)
+
+        parent.addWidget(
+            ComboBoxCard(
+                self.tra("think_depth"),
+                self.tra("思考深度"),
+                [],
+                init = init,
+                current_text_changed = current_text_changed,
+            )
+        )
 
 
 
@@ -131,7 +181,6 @@ class ArgsEditPage(MessageBoxBase, Base):
                 init = init,
             )
         )
-
 
     # top_p
     def add_widget_top_p(self, parent, config, preset):
@@ -248,28 +297,3 @@ class ArgsEditPage(MessageBoxBase, Base):
                 value_changed = value_changed,
             )
         )
-
-    # 添加链接
-    def add_widget_url(self, parent, config, preset):
-        url = "https://platform.openai.com/docs/api-reference/chat/create"
-
-        if self.key == "cohere":
-            url = "https://docs.cohere.com/reference/chat"
-
-        if self.key == "google":
-            url = "https://ai.google.dev/api/generate-content"
-
-        if self.key == "sakura":
-            url = "https://github.com/SakuraLLM/SakuraLLM#%E6%8E%A8%E7%90%86"
-
-        if self.key == "deepseek":
-            url = "https://api-docs.deepseek.com/zh-cn/quick_start/parameter_settings"
-
-        if self.key == "anthropic":
-            url = "https://docs.anthropic.com/en/api/getting-started"
-
-        hyper_link_label = HyperlinkLabel(QUrl(url), self.tra("点击查看文档"))
-        hyper_link_label.setUnderlineVisible(True)
-
-        parent.addSpacing(16)
-        parent.addWidget(hyper_link_label, alignment = Qt.AlignHCenter)

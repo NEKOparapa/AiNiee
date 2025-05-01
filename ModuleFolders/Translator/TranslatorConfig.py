@@ -466,6 +466,8 @@ class TranslatorConfig(Base):
             presence_penalty = self.platforms.get(target_platform).get("presence_penalty")
             frequency_penalty = self.platforms.get(target_platform).get("frequency_penalty")
             extra_body = self.platforms.get(target_platform).get("extra_body",{})
+            think_switch = self.platforms.get(target_platform).get("think_switch")
+            think_depth = self.platforms.get(target_platform).get("think_depth")
 
         elif platform_type == "doubleReqA":
             target_platform = self.request_a_platform_settings
@@ -482,6 +484,8 @@ class TranslatorConfig(Base):
             presence_penalty = self.platforms.get(target_platform).get("presence_penalty")
             frequency_penalty = self.platforms.get(target_platform).get("frequency_penalty")
             extra_body = self.platforms.get(target_platform).get("extra_body",{})
+            think_switch = self.platforms.get(target_platform).get("think_switch")
+            think_depth = self.platforms.get(target_platform).get("think_depth")
 
         elif platform_type == "doubleReqB":
             target_platform = self.request_b_platform_settings
@@ -498,7 +502,8 @@ class TranslatorConfig(Base):
             presence_penalty = self.platforms.get(target_platform).get("presence_penalty")
             frequency_penalty = self.platforms.get(target_platform).get("frequency_penalty")
             extra_body = self.platforms.get(target_platform).get("extra_body",{})
-
+            think_switch = self.platforms.get(target_platform).get("think_switch")
+            think_depth = self.platforms.get(target_platform).get("think_depth")
 
         params = {
             "target_platform": target_platform,
@@ -514,7 +519,9 @@ class TranslatorConfig(Base):
             "top_p": top_p,
             "presence_penalty": presence_penalty,
             "frequency_penalty": frequency_penalty,
-            "extra_body": extra_body
+            "extra_body": extra_body,
+            "think_switch": think_switch,
+            "think_depth": think_depth
         }
 
 

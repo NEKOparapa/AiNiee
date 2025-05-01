@@ -233,6 +233,7 @@ class ProjectSettingsPage_B(QFrame, Base):
             (self.tra("Mtool导出文件"), ProjectType.MTOOL),
             (self.tra("Renpy导出文件"), ProjectType.RENPY),
             (self.tra("VNText导出文件"), ProjectType.VNT),
+            (self.tra("I18Next导出文件"), ProjectType.I18NEXT),
             (self.tra("Ainiee缓存文件"), "Ainiee_cache"),
             (self.tra("ParaTranz导出文件"), ProjectType.PARATRANZ),
             (self.tra('Pdf文档文件 (需要Microsoft Office)'), ProjectType.OFFICE_CONVERSION_PDF),
