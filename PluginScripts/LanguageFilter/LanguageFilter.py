@@ -2,6 +2,8 @@ from tqdm import tqdm
 from rich import print
 
 from ModuleFolders.Cache.CacheProject import CacheProject
+from ModuleFolders.Translator.TranslatorUtil import get_most_common_language, get_language_display_names, \
+    map_language_code_to_name, map_language_name_to_code
 from PluginScripts.PluginBase import PluginBase
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
@@ -99,28 +101,48 @@ class LanguageFilter(PluginBase):
         print("[LanguageFilter] 开始执行预处理 ...")
         print("")
 
-        # 根据目标语言设置对应的筛选函数
-        has_any = None
-        if config.source_language in ("chinese_simplified", "chinese_traditional"):
-            has_any = self.has_any_cjk
-        elif config.source_language in ("english", "spanish", "french", "german"):
-            has_any = self.has_any_latin
-        elif config.source_language == "korean":
-            has_any = self.has_any_korean
-        elif config.source_language == "russian":
-            has_any = self.has_any_russian
-        elif config.source_language == "japanese":
-            has_any = self.has_any_japanese
+        target = []  # 存储需要排除的条目
 
-        # 筛选出无效条目并标记为已排除
-        target = []
-        if has_any is not None:
-            target = [
-                v for v in data.items_iter()
-                if not isinstance(v.source_text, str) or not has_any(v.source_text)
-            ]
-            for item in tqdm(target):
-                item.translation_status = CacheItem.STATUS.EXCLUED
+        # 自动检测语言模式
+        if config.source_language == "auto":
+            print("[LanguageFilter] 使用自动检测语言模式...")
+
+            # 计算项目中出现次数最多的语言
+            most_common_language = get_most_common_language(data)
+            # 获取可读更强的名称
+            en_source_lang, source_language, _, _ = get_language_display_names(most_common_language,
+                                                                               'chinese_simplified')
+            print(f"[LanguageFilter] 项目主要语言: {most_common_language} - {en_source_lang}/{source_language}")
+
+            # 处理每个文件中的条目
+            for path, file in data.files.items():
+                # 获取语言信息
+                language_stats = file.language_stats
+                # 原文片段列表
+                file_items = file.items
+
+                # 确定使用的语言
+                if not language_stats:
+                    print(
+                        f"[[red]WARNING[/]] [LanguageFilter] 文件 {path} 没有检测到语言信息，使用项目主要语言 {most_common_language}"
+                    )
+                    first_language = most_common_language
+                else:
+                    first_language = language_stats[0][0]
+
+                # 根据不同情况分别处理
+                if map_language_code_to_name(first_language) == config.target_language:
+                    target.extend(self._filter_target_language_match(path, file_items, first_language))
+                elif first_language == 'un':
+                    target.extend(self._filter_unknown_language(path, file_items))
+                else:
+                    target.extend(self._filter_normal_language(path, file_items, first_language))
+        else:
+            # 原有的非自动检测模式，优化为使用统一的函数
+            target.extend(self._filter_normal_language(None, data.items_iter(), config.source_language))
+
+        for item in tqdm(target):
+            item["translation_status"] = CacheItem.STATUS.EXCLUDED
 
         # 输出结果
         print("")
@@ -196,3 +218,86 @@ class LanguageFilter(PluginBase):
     # 检查字符串是否包含至少一个日文（含汉字）字符
     def has_any_japanese(self, text: str) -> bool:
         return any(self.is_japanese(char) for char in text)
+
+    def get_filter_function(self, language_code: str, path: str):
+        """根据语言代码获取相应的语言过滤函数"""
+        # 语言代码到过滤函数的映射
+        code_to_function = {
+            # 中文
+            'zh': self.has_any_cjk,
+            'zh-cn': self.has_any_cjk,
+            'zh-tw': self.has_any_cjk,
+            'yue': self.has_any_cjk,
+            # 英语和拉丁语系
+            'en': self.has_any_latin,
+            'es': self.has_any_latin,
+            'fr': self.has_any_latin,
+            'de': self.has_any_latin,
+            # 韩语
+            'ko': self.has_any_korean,
+            # 俄语
+            'ru': self.has_any_russian,
+            # 日语
+            'ja': self.has_any_japanese
+        }
+
+        # 尝试直接匹配
+        if language_code in code_to_function:
+            return code_to_function[language_code]
+
+        # 尝试匹配前两个字符
+        if language_code and language_code[:2] in code_to_function:
+            return code_to_function[language_code[:2]]
+
+        # 未知语言默认使用拉丁文过滤函数
+        print(f"[[red]WARNING[/]] [LanguageFilter] 文件 {path} 未知的语言代码 {language_code}，无法使用内置语言过滤函数")
+        return None
+
+    def _filter_target_language_match(self, path, file_items, language):
+        """处理检测语言与目标语言相同的情况"""
+        print(f"[LanguageFilter] 文件 {path} 检测到的主要语言 {language} 与译文语言相同，将只翻译不符合该语言特征的文本")
+
+        has_any = self.get_filter_function(language, path)
+        if has_any is not None:
+            return [item for item in file_items
+                    if not isinstance(item.source_text, str) or
+                    not item.lang_code or
+                    (has_any(item.source_text) and
+                     item.lang_code[0] == language and
+                     item.lang_code[1] > 0.78)]
+        else:
+            # 过滤原文检测语言与行语言相同的行
+            return [item for item in file_items
+                    if not isinstance(item.source_text, str) or
+                    not item.lang_code or
+                    (item.lang_code[0] == language and
+                     item.lang_code[1] > 0.78)]
+
+    def _filter_unknown_language(self, path, file_items):
+        """处理未知语言的文件"""
+        print(f"[LanguageFilter] 文件 {path} 未检测到具体语言，将只翻译置信度较高（大于0.7）的文本行")
+
+        return [item for item in file_items
+                if not isinstance(item.source_text, str) or
+                not item.lang_code or
+                item.lang_code[1] < 0.7]
+
+    def _filter_normal_language(self, path, file_items, language):
+        """处理一般语言情况"""
+        # 将Ainiee内置语言代码映射为fasttext标准语言代码
+        cove_lang = map_language_name_to_code(language)
+        # 获取语言处理函数
+        has_any = self.get_filter_function(cove_lang, path)
+
+        if has_any is not None:
+            return [item for item in file_items
+                    if not isinstance(item.source_text, str) or
+                    not has_any(item.source_text) or  # 不包含源语言字符
+                    (item.get_lang_code(default_lang=cove_lang)[0] != cove_lang and  # 此处默认值使用cove_lang避免可能的值缺失导致所有项都被移除
+                     item.get_lang_code(default_lang=cove_lang)[1] >= 0.78)]  # 或检测语言不是源语言且置信度高于0.78
+        else:
+            # 如果没有对应的语言过滤器，过滤原文检测语言与行语言**不**相同的行
+            return [item for item in file_items
+                    if not isinstance(item.source_text, str) or
+                    (item.get_lang_code(default_lang=cove_lang)[0] != cove_lang and
+                     item.get_lang_code(default_lang=cove_lang)[1] >= 0.78)]

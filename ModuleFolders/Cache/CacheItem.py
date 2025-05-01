@@ -7,12 +7,11 @@ import tiktoken
 from ModuleFolders.Cache.BaseCache import ExtraMixin, ThreadSafeCache
 
 
-class Status():
-
-    UNTRANSLATED = 0        # 待翻译
-    TRANSLATED = 1          # 已翻译
-    TRANSLATING = 2         # 翻译中（弃用）
-    EXCLUED = 7             # 已排除
+class Status:
+    UNTRANSLATED = 0  # 待翻译
+    TRANSLATED = 1  # 已翻译
+    TRANSLATING = 2  # 翻译中（弃用）
+    EXCLUDED = 7  # 已排除
 
 
 @dataclass(repr=False)
@@ -40,5 +39,11 @@ class CacheItem(ThreadSafeCache, ExtraMixin):
     @cache
     def get_token_count(cls, text) -> int:
         return len(tiktoken.get_encoding("cl100k_base").encode(text))
+
+    def get_lang_code(self, default_lang=None):
+        """获取语言代码，可选择使用默认值"""
+        if self.lang_code is None and default_lang is not None:
+            return [default_lang, 1.0]
+        return self.lang_code
 
     STATUS: ClassVar[Status] = Status
