@@ -70,60 +70,104 @@ class NameExtractor:
                         names.add(name)
         return names
 
-    def extract_names_from_json(self,file_path: Path) -> set:
+    def _find_names_recursively(self, data, names):
         """
-        从 .json 文件中提取人名，区分 VNText 和 RPG 两种类型。
+        递归地在嵌套的数据结构（字典和列表）中查找键为 "name" 且值为字符串的条目。
+        并将找到的非空字符串添加到 names 集合中。
+
+        Args:
+            data: 当前要搜索的数据片段（可以是任何类型）。
+            names: 用于存储找到的名称的集合（原地修改）。
+        """
+        if isinstance(data, dict):
+            # 如果是字典，遍历键值对
+            for key, value in data.items():
+                # 检查键是否为 "name" 且值是否为字符串
+                if key == "name" and isinstance(value, str):
+                    stripped_name = value.strip()
+                    if stripped_name:  # 确保添加的不是空字符串
+                        names.add(stripped_name)
+                # 对值进行递归调用，以处理嵌套结构
+                NameExtractor._find_names_recursively(self,value, names)
+        elif isinstance(data, list):
+            # 如果是列表，遍历列表中的每个元素
+            for item in data:
+                # 对列表中的每个元素进行递归调用
+                NameExtractor._find_names_recursively(self,item, names)
+        # 其他类型（如字符串、数字、布尔值、None）则忽略，因为它们不能包含 "name" 键
+
+    def extract_names_from_json(self, file_path: Path):
+        """
+        从 .json 文件中提取名称。
+
+        - 首先尝试识别是否为 VNText (顶层列表元素含 "message") 或 RPG (顶层列表元素含 "id" 和 "traits") 结构。
+        - 如果是 VNText 或 RPG 类型，则按照特定规则从顶层列表元素中提取名称。
+        - 如果不是可识别的 VNText 或 RPG 结构，则递归查找整个 JSON 数据中所有键为 "name"
+          且值为非空字符串的条目。
         """
         names = set()
+
 
         content = file_path.read_text(encoding="utf-8")
         data = json.loads(content)
 
-        # 检查是否为列表类型
-        if not isinstance(data, list) or not data:
-            return names
-
-        first_valid_element = None
-        for element in data:
-            if element is not None:
-                if isinstance(element, dict):
-                    first_valid_element = element
-                    break 
-
-        if first_valid_element is None:
-            return names
-
+        # --- 类型检测逻辑 ---
         is_vntext = False
         is_rpg = False
+        type_detection_possible = isinstance(data, list) and data # 只有顶层是列表且非空时才进行vnt/rpg检测
 
-        if "message" in first_valid_element:
-            is_vntext = True
+        if type_detection_possible:
+            first_valid_dict_element = None
+            for element in data:
+                if isinstance(element, dict): # 查找第一个字典元素用于类型判断
+                    first_valid_dict_element = element
+                    break
 
-        elif "id" in first_valid_element and "traits" in first_valid_element:
-            is_rpg = True
+            if first_valid_dict_element:
+                if "message" in first_valid_dict_element:
+                    is_vntext = True
+                elif "id" in first_valid_dict_element and "traits" in first_valid_dict_element:
+                    is_rpg = True
+        # --- 类型检测结束 ---
 
-        for item in data:
-            if not isinstance(item, dict):
-                continue
+        # --- 提取逻辑 ---
+        if is_vntext or is_rpg:
+            # --- 保留原有的 VNT/RPG 处理逻辑 ---
+            # 这种情况下，我们只关心顶层列表中的字典
+            for item in data: # 此时已知 data 是列表
+                if not isinstance(item, dict):
+                    continue
 
-            if is_vntext:
+                if is_vntext:
+                    # 提取 VNText 的 name 和 names
+                    name = item.get("name")
+                    if isinstance(name, str):
+                        stripped_name = name.strip()
+                        if stripped_name:
+                            names.add(stripped_name)
 
-                name = item.get("name")
-                if isinstance(name, str) and name.strip():
-                    names.add(name.strip())
+                    names_list = item.get("names")
+                    if isinstance(names_list, list):
+                        for n in names_list:
+                            if isinstance(n, str):
+                                stripped_n = n.strip()
+                                if stripped_n:
+                                    names.add(stripped_n)
+                elif is_rpg: # is_rpg is True
+                    # 提取 RPG 的 name
+                    name = item.get("name")
+                    if isinstance(name, str):
+                       stripped_name = name.strip()
+                       if stripped_name:
+                           names.add(stripped_name)
+            # --- VNT/RPG 处理结束 ---
 
-                names_list = item.get("names")
-                if isinstance(names_list, list):
-                    for n in names_list:
-                        if isinstance(n, str) and n.strip():
-                            names.add(n.strip())
+        else:
+            # 如果不是可识别的 VNT/RPG 类型 (或者顶层不是列表)，则对整个数据结构进行递归搜索
+            #NameExtractor._find_names_recursively(self,data, names)
+            pass
 
-            elif is_rpg:
-                name = item.get("name")
-                if isinstance(name, str) and name.strip():
-                    names.add(name.strip())
-
-        return names 
+        return names
 
 
 
