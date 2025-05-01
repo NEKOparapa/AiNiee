@@ -18,6 +18,8 @@ class OpenaiRequester(Base):
             presence_penalty = platform_config.get("presence_penalty", 0)
             frequency_penalty = platform_config.get("frequency_penalty", 0)
             extra_body = platform_config.get("extra_body", "{}")
+            think_switch = platform_config.get("think_switch")
+            think_depth = platform_config.get("think_depth")
 
             # 插入系统消息
             if system_prompt:
@@ -37,30 +39,35 @@ class OpenaiRequester(Base):
                 if isinstance(messages[-1], dict) and messages[-1].get('role') != 'user':
                     messages = messages[:-1]  # 移除最后一个元素
 
-            # 部分平台和模型不接受frequency_penalty参数
-            if presence_penalty == 0 and frequency_penalty == 0:
-                response = client.chat.completions.create(
-                    extra_body=extra_body,
-                    model=model_name,
-                    messages=messages,
-                    temperature=temperature,
-                    top_p=top_p,
-                    timeout=request_timeout,
-                    stream=False
-                )
 
-            else:
-                response = client.chat.completions.create(
-                    extra_body=extra_body,
-                    model=model_name,
-                    messages=messages,
-                    temperature=temperature,
-                    top_p=top_p,
-                    presence_penalty=presence_penalty,
-                    frequency_penalty=frequency_penalty,
-                    timeout=request_timeout,
-                    stream=False
-                )
+            # 参数基础配置
+            base_params = {
+                "extra_body": extra_body,
+                "model": model_name,
+                "messages": messages,
+                "temperature": temperature,
+                "top_p": top_p,
+                "timeout": request_timeout,
+                "stream": False
+            }
+
+            # 仅当至少一个 penalty 不为 0 时添加参数
+            if presence_penalty != 0 or frequency_penalty != 0:
+                base_params.update({
+                    "presence_penalty": presence_penalty,
+                    "frequency_penalty": frequency_penalty
+                })
+
+            # 开启思考开关时添加参数
+            if think_switch:
+                base_params.update({
+                    "reasoning_effort": think_depth
+                })
+
+
+            # 发起请求
+            response = client.chat.completions.create(**base_params)
+
 
             # 提取回复内容
             message = response.choices[0].message

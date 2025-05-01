@@ -16,6 +16,8 @@ class GoogleRequester(Base):
             model_name = platform_config.get("model_name")
             temperature = platform_config.get("temperature", 1.0)
             top_p = platform_config.get("top_p", 1.0)
+            think_switch = platform_config.get("think_switch")
+            think_depth = platform_config.get("think_depth")
 
             # 重新处理openai格式的消息为google格式
             processed_messages = [
@@ -28,6 +30,7 @@ class GoogleRequester(Base):
 
             # 创建 Gemini Developer API 客户端（非 Vertex AI API）
             client = LLMClientFactory().get_google_client(platform_config)
+
 
             # 生成文本内容
             response = client.models.generate_content(

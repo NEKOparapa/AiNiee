@@ -38,6 +38,8 @@ class PlatformPage(QFrame, Base):
         "temperature": 1.0,
         "presence_penalty": 0.0,
         "frequency_penalty": 0.0,
+        "think_switch": False,
+        "think_depth": "low",
         "auto_complete": True,
         # 自定义平台一般不需要太多默认模型
         "model_datas": [
@@ -69,6 +71,8 @@ class PlatformPage(QFrame, Base):
             "presence_penalty",
             "frequency_penalty",
             "extra_body",
+            "think_switch",
+            "think_depth"
         ],
     }
 

@@ -10,7 +10,7 @@ from ModuleFolders.LLMRequester.GoogleRequester import GoogleRequester
 from ModuleFolders.LLMRequester.AnthropicRequester import AnthropicRequester
 from ModuleFolders.LLMRequester.AmazonbedrockRequester import AmazonbedrockRequester
 from ModuleFolders.LLMRequester.OpenaiRequester import OpenaiRequester
-
+from ModuleFolders.LLMRequester.DashscopeRequester import DashscopeRequester
 
 # 接口请求器
 class LLMRequester(Base):
@@ -62,6 +62,13 @@ class LLMRequester(Base):
             )
         elif target_platform == "amazonbedrock":
             skip, response_think, response_content, prompt_tokens, completion_tokens = AmazonbedrockRequester.request_amazonbedrock(
+                self,
+                messages,
+                system_prompt,
+                platform_config,
+            )
+        elif target_platform == "dashscope":
+            skip, response_think, response_content, prompt_tokens, completion_tokens = DashscopeRequester.request_openai(
                 self,
                 messages,
                 system_prompt,

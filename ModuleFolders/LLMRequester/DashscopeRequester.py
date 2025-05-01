@@ -2,28 +2,23 @@ from Base.Base import Base
 from ModuleFolders.LLMRequester.LLMClientFactory import LLMClientFactory
 
 
-# 接口请求器
-class LocalLLMRequester(Base):
+# 因为各家思考模式的开关设置不同.............................
+class DashscopeRequester(Base):
     def __init__(self) -> None:
         pass
 
     # 发起请求
-    def request_LocalLLM(self, messages, system_prompt, platform_config) -> tuple[bool, str, str, int, int]:
+    def request_openai(self, messages, system_prompt, platform_config) -> tuple[bool, str, str, int, int]:
         try:
+            # 获取具体配置
             model_name = platform_config.get("model_name")
             request_timeout = platform_config.get("request_timeout", 60)
             temperature = platform_config.get("temperature", 1.0)
             top_p = platform_config.get("top_p", 1.0)
+            presence_penalty = platform_config.get("presence_penalty", 0)
             frequency_penalty = platform_config.get("frequency_penalty", 0)
+            extra_body = platform_config.get("extra_body", "{}")
             think_switch = platform_config.get("think_switch")
-
-
-            # 假如打开了思考开关
-            if think_switch:
-                extra_body={"enable_thinking": True}
-            else:
-                extra_body={}
-
 
             # 插入系统消息
             if system_prompt:
@@ -34,18 +29,34 @@ class LocalLLMRequester(Base):
                         "content": system_prompt
                     })
 
-            # 从工厂获取客户端
-            client = LLMClientFactory().get_openai_client_local(platform_config)
+            # 参数基础配置
+            base_params = {
+                "model": model_name,
+                "messages": messages,
+                "temperature": temperature,
+                "top_p": top_p,
+                "timeout": request_timeout,
+                "stream": False
+            }
 
-            response = client.chat.completions.create(
-                extra_body=extra_body,
-                model=model_name,
-                messages=messages,
-                top_p=top_p,
-                temperature=temperature,
-                frequency_penalty=frequency_penalty,
-                timeout=request_timeout,
-            )
+            # 仅当至少一个 penalty 不为 0 时添加参数
+            if presence_penalty != 0 or frequency_penalty != 0:
+                base_params.update({
+                    "presence_penalty": presence_penalty,
+                    "frequency_penalty": frequency_penalty
+                })
+
+            # 开启思考开关时添加参数
+            if think_switch:
+                base_params.update({
+                    "extra_body": {"enable_thinking": True}
+                })
+
+            # 从工厂获取客户端
+            client = LLMClientFactory().get_openai_client(platform_config)
+
+            # 发起请求
+            response = client.chat.completions.create(**base_params)
 
             # 提取回复内容
             message = response.choices[0].message

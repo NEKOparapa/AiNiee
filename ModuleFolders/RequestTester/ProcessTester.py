@@ -299,6 +299,8 @@ class ProcessTester(Base):
         secret_key = platform_config.get("secret_key", "")
         model_name = platform_config["model"]
         extra_body = platform_config.get("extra_body", {})
+        think_switch = platform_config.get("think_switch")
+        think_depth = platform_config.get("think_depth")
 
         # 处理API密钥（取第一个有效密钥）
         cleaned_keys = re.sub(r"\s+", "", api_keys)
@@ -347,7 +349,9 @@ class ProcessTester(Base):
             "region":  region,
             "access_key":  access_key,
             "secret_key": secret_key,
-            "extra_body": extra_body
+            "extra_body": extra_body,
+            "think_switch":  think_switch,
+            "think_depth": think_depth
         }
 
 
