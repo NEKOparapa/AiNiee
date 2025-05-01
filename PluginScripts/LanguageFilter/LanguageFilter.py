@@ -6,8 +6,8 @@ from PluginScripts.PluginBase import PluginBase
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 
-class LanguageFilter(PluginBase):
 
+class LanguageFilter(PluginBase):
     # 平假名
     HIRAGANA = ("\u3040", "\u309F")
 
@@ -46,12 +46,12 @@ class LanguageFilter(PluginBase):
     CJK_SYMBOLS_AND_PUNCTUATION = ("\u3000", "\u303F")
     HALFWIDTH_AND_FULLWIDTH_FORMS = ("\uFF00", "\uFFEF")
     OTHER_CJK_PUNCTUATION = (
-        "\u30FB"    # ・ 在片假名 ["\u30A0", "\u30FF"] 范围内
+        "\u30FB"  # ・ 在片假名 ["\u30A0", "\u30FF"] 范围内
     )
 
     # 拉丁字符
-    LATIN_1 = ("\u0041", "\u005A") # 大写字母 A-Z
-    LATIN_2 = ("\u0061", "\u007A") # 小写字母 a-z
+    LATIN_1 = ("\u0041", "\u005A")  # 大写字母 A-Z
+    LATIN_2 = ("\u0061", "\u007A")  # 小写字母 a-z
     LATIN_EXTENDED_A = ("\u0100", "\u017F")
     LATIN_EXTENDED_B = ("\u0180", "\u024F")
     LATIN_SUPPLEMENTAL = ("\u00A0", "\u00FF")
@@ -65,26 +65,26 @@ class LanguageFilter(PluginBase):
     LATIN_PUNCTUATION_SUPPLEMENTAL = ("\u2E00", "\u2E7F")
 
     # 俄文字符
-    CYRILLIC_BASIC = ("\u0410", "\u044F")               # 基本俄文字母 (大写字母 А-Я, 小写字母 а-я)
-    CYRILLIC_SUPPLEMENT = ("\u0500", "\u052F")          # 俄文字符扩展区（补充字符，包括一些历史字母和其他斯拉夫语言字符）
-    CYRILLIC_EXTENDED_A = ("\u2C00", "\u2C5F")          # 扩展字符 A 区块（历史字母和一些东斯拉夫语言字符）
-    CYRILLIC_EXTENDED_B = ("\u0300", "\u04FF")          # 扩展字符 B 区块（更多历史字母）
-    CYRILLIC_SUPPLEMENTAL = ("\u1C80", "\u1C8F")        # 俄文字符补充字符集，包括一些少见和历史字符
+    CYRILLIC_BASIC = ("\u0410", "\u044F")  # 基本俄文字母 (大写字母 А-Я, 小写字母 а-я)
+    CYRILLIC_SUPPLEMENT = ("\u0500", "\u052F")  # 俄文字符扩展区（补充字符，包括一些历史字母和其他斯拉夫语言字符）
+    CYRILLIC_EXTENDED_A = ("\u2C00", "\u2C5F")  # 扩展字符 A 区块（历史字母和一些东斯拉夫语言字符）
+    CYRILLIC_EXTENDED_B = ("\u0300", "\u04FF")  # 扩展字符 B 区块（更多历史字母）
+    CYRILLIC_SUPPLEMENTAL = ("\u1C80", "\u1C8F")  # 俄文字符补充字符集，包括一些少见和历史字符
     CYRILLIC_SUPPLEMENTAL_EXTRA = ("\u2DE0", "\u2DFF")  # 其他扩展字符（例如：斯拉夫语言的一些符号）
-    CYRILLIC_OTHER = ("\u0500", "\u050F")               # 其他字符区块（包括斯拉夫语系其他语言的字符，甚至一些特殊符号）
+    CYRILLIC_OTHER = ("\u0500", "\u050F")  # 其他字符区块（包括斯拉夫语系其他语言的字符，甚至一些特殊符号）
 
     def __init__(self) -> None:
         super().__init__()
 
         self.name = "LanguageFilter"
         self.description = (
-            "语言过滤器，在翻译开始前，根据原文语言对文本中的无效条目进行过滤以节约 翻译时间 与 Token 消耗"
-            + "\n"
-            + "兼容性：支持全部语言；支持全部模型；支持全部文本格式；"
+                "语言过滤器，在翻译开始前，根据原文语言对文本中的无效条目进行过滤以节约 翻译时间 与 Token 消耗"
+                + "\n"
+                + "兼容性：支持全部语言；支持全部模型；支持全部文本格式；"
         )
 
-        self.visibility = True          # 是否在插件设置中显示
-        self.default_enable = True      # 默认启用状态
+        self.visibility = True  # 是否在插件设置中显示
+        self.default_enable = True  # 默认启用状态
 
         self.add_event("text_filter", PluginBase.PRIORITY.NORMAL)
 
@@ -134,45 +134,47 @@ class LanguageFilter(PluginBase):
     # 判断字符是否为拉丁字符
     def is_latin(self, char: str) -> bool:
         return (
-            LanguageFilter.LATIN_1[0] <= char <= LanguageFilter.LATIN_1[1]
-            or LanguageFilter.LATIN_2[0] <= char <= LanguageFilter.LATIN_2[1]
-            or LanguageFilter.LATIN_EXTENDED_A[0] <= char <= LanguageFilter.LATIN_EXTENDED_A[1]
-            or LanguageFilter.LATIN_EXTENDED_B[0] <= char <= LanguageFilter.LATIN_EXTENDED_B[1]
-            or LanguageFilter.LATIN_SUPPLEMENTAL[0] <= char <= LanguageFilter.LATIN_SUPPLEMENTAL[1]
+                LanguageFilter.LATIN_1[0] <= char <= LanguageFilter.LATIN_1[1]
+                or LanguageFilter.LATIN_2[0] <= char <= LanguageFilter.LATIN_2[1]
+                or LanguageFilter.LATIN_EXTENDED_A[0] <= char <= LanguageFilter.LATIN_EXTENDED_A[1]
+                or LanguageFilter.LATIN_EXTENDED_B[0] <= char <= LanguageFilter.LATIN_EXTENDED_B[1]
+                or LanguageFilter.LATIN_SUPPLEMENTAL[0] <= char <= LanguageFilter.LATIN_SUPPLEMENTAL[1]
         )
 
     # 判断字符是否为韩文（含汉字）字符
     def is_korean(self, char: str) -> bool:
         return (
-            LanguageFilter.CJK[0] <= char <= LanguageFilter.CJK[1]
-            or LanguageFilter.HANGUL_JAMO[0] <= char <= LanguageFilter.HANGUL_JAMO[1]
-            or LanguageFilter.HANGUL_JAMO_EXTENDED_A[0] <= char <= LanguageFilter.HANGUL_JAMO_EXTENDED_A[1]
-            or LanguageFilter.HANGUL_JAMO_EXTENDED_B[0] <= char <= LanguageFilter.HANGUL_JAMO_EXTENDED_B[1]
-            or LanguageFilter.HANGUL_SYLLABLES[0] <= char <= LanguageFilter.HANGUL_SYLLABLES[1]
-            or LanguageFilter.HANGUL_COMPATIBILITY_JAMO[0] <= char <= LanguageFilter.HANGUL_COMPATIBILITY_JAMO[1]
+                LanguageFilter.CJK[0] <= char <= LanguageFilter.CJK[1]
+                or LanguageFilter.HANGUL_JAMO[0] <= char <= LanguageFilter.HANGUL_JAMO[1]
+                or LanguageFilter.HANGUL_JAMO_EXTENDED_A[0] <= char <= LanguageFilter.HANGUL_JAMO_EXTENDED_A[1]
+                or LanguageFilter.HANGUL_JAMO_EXTENDED_B[0] <= char <= LanguageFilter.HANGUL_JAMO_EXTENDED_B[1]
+                or LanguageFilter.HANGUL_SYLLABLES[0] <= char <= LanguageFilter.HANGUL_SYLLABLES[1]
+                or LanguageFilter.HANGUL_COMPATIBILITY_JAMO[0] <= char <= LanguageFilter.HANGUL_COMPATIBILITY_JAMO[1]
         )
 
     # 判断字符是否为俄文字符
     def is_russian(self, char: str) -> bool:
         return (
-            LanguageFilter.CYRILLIC_BASIC[0] <= char <= LanguageFilter.CYRILLIC_BASIC[1]
-            or LanguageFilter.CYRILLIC_SUPPLEMENT[0] <= char <= LanguageFilter.CYRILLIC_SUPPLEMENT[1]
-            or LanguageFilter.CYRILLIC_EXTENDED_A[0] <= char <= LanguageFilter.CYRILLIC_EXTENDED_A[1]
-            or LanguageFilter.CYRILLIC_EXTENDED_B[0] <= char <= LanguageFilter.CYRILLIC_EXTENDED_B[1]
-            or LanguageFilter.CYRILLIC_SUPPLEMENTAL[0] <= char <= LanguageFilter.CYRILLIC_SUPPLEMENTAL[1]
-            or LanguageFilter.CYRILLIC_SUPPLEMENTAL_EXTRA[0] <= char <= LanguageFilter.CYRILLIC_SUPPLEMENTAL_EXTRA[1]
-            or LanguageFilter.CYRILLIC_OTHER[0] <= char <= LanguageFilter.CYRILLIC_OTHER[1]
+                LanguageFilter.CYRILLIC_BASIC[0] <= char <= LanguageFilter.CYRILLIC_BASIC[1]
+                or LanguageFilter.CYRILLIC_SUPPLEMENT[0] <= char <= LanguageFilter.CYRILLIC_SUPPLEMENT[1]
+                or LanguageFilter.CYRILLIC_EXTENDED_A[0] <= char <= LanguageFilter.CYRILLIC_EXTENDED_A[1]
+                or LanguageFilter.CYRILLIC_EXTENDED_B[0] <= char <= LanguageFilter.CYRILLIC_EXTENDED_B[1]
+                or LanguageFilter.CYRILLIC_SUPPLEMENTAL[0] <= char <= LanguageFilter.CYRILLIC_SUPPLEMENTAL[1]
+                or LanguageFilter.CYRILLIC_SUPPLEMENTAL_EXTRA[0] <= char <= LanguageFilter.CYRILLIC_SUPPLEMENTAL_EXTRA[
+                    1]
+                or LanguageFilter.CYRILLIC_OTHER[0] <= char <= LanguageFilter.CYRILLIC_OTHER[1]
         )
 
     # 判断字符是否为日文（含汉字）字符
     def is_japanese(self, char: str) -> bool:
         return (
-            LanguageFilter.CJK[0] <= char <= LanguageFilter.CJK[1]
-            or LanguageFilter.KATAKANA[0] <= char <= LanguageFilter.KATAKANA[1]
-            or LanguageFilter.HIRAGANA[0] <= char <= LanguageFilter.HIRAGANA[1]
-            or LanguageFilter.KATAKANA_HALF_WIDTH[0] <= char <= LanguageFilter.KATAKANA_HALF_WIDTH[1]
-            or LanguageFilter.KATAKANA_PHONETIC_EXTENSIONS[0] <= char <= LanguageFilter.KATAKANA_PHONETIC_EXTENSIONS[1]
-            or LanguageFilter.VOICED_SOUND_MARKS[0] <= char <= LanguageFilter.VOICED_SOUND_MARKS[1]
+                LanguageFilter.CJK[0] <= char <= LanguageFilter.CJK[1]
+                or LanguageFilter.KATAKANA[0] <= char <= LanguageFilter.KATAKANA[1]
+                or LanguageFilter.HIRAGANA[0] <= char <= LanguageFilter.HIRAGANA[1]
+                or LanguageFilter.KATAKANA_HALF_WIDTH[0] <= char <= LanguageFilter.KATAKANA_HALF_WIDTH[1]
+                or LanguageFilter.KATAKANA_PHONETIC_EXTENSIONS[0] <= char <=
+                LanguageFilter.KATAKANA_PHONETIC_EXTENSIONS[1]
+                or LanguageFilter.VOICED_SOUND_MARKS[0] <= char <= LanguageFilter.VOICED_SOUND_MARKS[1]
         )
 
     # 检查字符串是否包含至少一个汉字（中文）字符
