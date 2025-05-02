@@ -46,15 +46,15 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
         self, translation_file_path: Path, cache_file: CacheFile,
         source_file_path: Path, translate_html_tag: Callable[[str, str], str]
     ):
-        temp_root = self.file_accessor.temp_path_of(source_file_path)
-        content = self.file_accessor.read_content(source_file_path, temp_root)
+        content = self.file_accessor.read_content(source_file_path)
 
         # groupby需要key有序，item_id本身有序，不需要重排
         translated_item_dict = {
             k: list(v)
             for k, v in groupby(cache_file.items, key=lambda x: x.require_extra("item_id"))
         }
-        for item_id, html_content in content.items():
+        translation_content = {}
+        for item_id, item_filename, html_content in content:
             if item_id not in translated_item_dict:
                 continue
             for item in translated_item_dict[item_id]:
@@ -63,11 +63,10 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
                     translated_text = item.translated_text
                     new_html = translate_html_tag(original_html, translated_text)
                     html_content = html_content.replace(original_html, new_html, 1)
-            content[item_id] = html_content
+            translation_content[item_filename] = html_content
         self.file_accessor.write_content(
-            content, translation_file_path, source_file_path, temp_root
+            translation_content, translation_file_path, source_file_path
         )
-        self.file_accessor.clear_temp(source_file_path, temp_root)
 
     # 处理特定标签结构(需改进合并规则)
     def _handle_specific_tag_structure(self, original_html, translated_text, version):

@@ -27,7 +27,6 @@ class DocxReader(BaseSourceReader):
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
         xml_soup = self.file_accessor.read_content(file_path)
         paragraphs = xml_soup.find_all('w:t')
-        self.file_accessor.clear_temp(file_path)
         # 过滤掉空的内容
         filtered_matches = (match.string for match in paragraphs if isinstance(match.string, str) and match.string.strip())
         items = [
