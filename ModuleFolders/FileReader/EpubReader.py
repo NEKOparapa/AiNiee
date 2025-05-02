@@ -45,7 +45,7 @@ class EpubReader(BaseSourceReader):
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
 
         items = []
-        for item_id, html_content in self.file_accessor.read_content(file_path).items():
+        for item_id, _, html_content in self.file_accessor.read_content(file_path):
             for tag_type, pattern, forbidden_tags in self.TAG_PATTERNS_LIST:
                 # 使用 finditer 查找所有匹配项，可以迭代处理
                 for match in re.finditer(pattern, html_content, re.DOTALL):
@@ -69,5 +69,4 @@ class EpubReader(BaseSourceReader):
                         "item_id": item_id,
                     }
                     items.append(CacheItem(source_text=text_content, extra=extra))
-        self.file_accessor.clear_temp(file_path)
         return CacheFile(items=items)
