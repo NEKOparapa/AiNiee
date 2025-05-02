@@ -70,9 +70,9 @@ class NameExtractor:
                         names.add(name)
         return names
 
-    def _find_names_recursively(self, data, names):
+    def _find_names_recursively(self, data, names, key_name):
         """
-        递归地在嵌套的数据结构（字典和列表）中查找键为 "name" 且值为字符串的条目。
+        递归地在嵌套的数据结构（字典和列表）中查找键为 "key_name" 且值为字符串的条目。
         并将找到的非空字符串添加到 names 集合中。
 
         Args:
@@ -82,19 +82,19 @@ class NameExtractor:
         if isinstance(data, dict):
             # 如果是字典，遍历键值对
             for key, value in data.items():
-                # 检查键是否为 "name" 且值是否为字符串
-                if key == "name" and isinstance(value, str):
+                # 检查键是否为 "key_name" 且值是否为字符串
+                if key == key_name and isinstance(value, str):
                     stripped_name = value.strip()
                     if stripped_name:  # 确保添加的不是空字符串
                         names.add(stripped_name)
                 # 对值进行递归调用，以处理嵌套结构
-                NameExtractor._find_names_recursively(self,value, names)
+                NameExtractor._find_names_recursively(self,value, names, key_name)
         elif isinstance(data, list):
             # 如果是列表，遍历列表中的每个元素
             for item in data:
                 # 对列表中的每个元素进行递归调用
-                NameExtractor._find_names_recursively(self,item, names)
-        # 其他类型（如字符串、数字、布尔值、None）则忽略，因为它们不能包含 "name" 键
+                NameExtractor._find_names_recursively(self,item, names, key_name)
+        # 其他类型（如字符串、数字、布尔值、None）则忽略，因为它们不能包含 "key_name" 键
 
     def extract_names_from_json(self, file_path: Path):
         """
@@ -164,7 +164,7 @@ class NameExtractor:
 
         else:
             # 如果不是可识别的 VNT/RPG 类型 (或者顶层不是列表)，则对整个数据结构进行递归搜索
-            #NameExtractor._find_names_recursively(self,data, names)
+            NameExtractor._find_names_recursively(self,data, names,"display_name")
             pass
 
         return names
