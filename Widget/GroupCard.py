@@ -2,7 +2,7 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
 
-from qfluentwidgets import CardWidget
+from qfluentwidgets import CardWidget, HorizontalSeparator
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import StrongBodyLabel
 
@@ -24,12 +24,8 @@ class GroupCard(CardWidget):
         self.container.addWidget(self.description_label)
 
         # 添加分割线
-        line = QFrame(self)
-        line.setFixedHeight(1)
-        line.setStyleSheet("QFrame { background-color: #C0C0C0; }")
-        self.container.addSpacing(4)
-        self.container.addWidget(line)
-        self.container.addSpacing(4)
+        self.line = HorizontalSeparator(self)
+        self.container.addWidget(self.line)
 
         # 添加流式布局容器
         self.vbox_container = QFrame(self)

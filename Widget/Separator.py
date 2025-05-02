@@ -16,3 +16,7 @@ class Separator(QWidget):
         line.setFixedHeight(1)
         line.setStyleSheet("QWidget { background-color: #C0C0C0; }")
         self.vbox.addWidget(line)
+
+
+        # 这个库有HorizontalSeparator与VerticalSeparator
+        # 但是没有Separator

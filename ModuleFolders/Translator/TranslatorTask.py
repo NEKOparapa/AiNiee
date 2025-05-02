@@ -543,7 +543,7 @@ class TranslatorTask(Base):
         pair = ""
         # 修复变量名冲突问题，将循环变量改为 s 和 t
         for idx, (s, t) in enumerate(itertools.zip_longest(source, translated, fillvalue=""), 1):
-            pair += f"\n--- Text {idx} ---\n"
+            pair += f"\n"
             # 处理原文和译文的换行，分割成多行
             s_lines = s.split('\n') if s is not None else ['']
             t_lines = t.split('\n') if t is not None else ['']
