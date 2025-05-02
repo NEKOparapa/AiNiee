@@ -2,7 +2,7 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget 
 
 from qfluentwidgets import (
-    CardWidget, FlowLayout, CaptionLabel, StrongBodyLabel,
+    CardWidget, FlowLayout, CaptionLabel, StrongBodyLabel,HorizontalSeparator,
     IconWidget, FluentIcon 
 )
 
@@ -68,13 +68,9 @@ class APITypeCard(CardWidget):
         self.container.addWidget(self.head_container)
 
         # --- 分割线 ---
-        line = QFrame(self)
-        line.setFixedHeight(1)
-        line.setStyleSheet("QFrame { background-color: #C0C0C0; }")
-        self.container.addSpacing(2)
-        self.container.addWidget(line)
-        self.container.addSpacing(2)
 
+        self.line = HorizontalSeparator(self)
+        self.container.addWidget(self.line)
 
         # --- 流式布局区域 ---
         self.flow_container = QFrame(self) # Frame 用于容纳 FlowLayout
