@@ -194,7 +194,8 @@ class ProjectSettingsPage_B(QFrame, Base):
             "target_language": "chinese_simplified",
             "label_input_exclude_rule": "",
             "label_output_path": "./output",
-            "auto_set_output_path": True
+            "auto_set_output_path": True,
+            "keep_original_encoding": False,
         }
 
         # 载入并保存默认配置
@@ -212,6 +213,7 @@ class ProjectSettingsPage_B(QFrame, Base):
         self.add_widget_exclude_rule(self.container, config)
         self.add_widget_06(self.container, config)
         self.add_widget_07(self.container, config)
+        self.add_widget_08(self.container, config)
 
         # 填充
         self.container.addStretch(1)
@@ -597,6 +599,26 @@ class ProjectSettingsPage_B(QFrame, Base):
             SwitchButtonCard(
                 self.tra("自动设置输出文件夹"),
                 self.tra("启用此功能后，设置为输入文件夹的平级目录，比如输入文件夹为D:/Test/Input，输出文件夹将设置为D:/Test/AiNieeOutput"),
+                widget_init,
+                widget_callback,
+            )
+        )
+
+    # 自动设置输出文件夹开关
+    def add_widget_08(self, parent, config) -> None:
+        def widget_init(widget) -> None:
+            widget.set_checked(config.get("keep_original_encoding"))
+
+        def widget_callback(widget, checked: bool) -> None:
+            config = self.load_config()
+            config["keep_original_encoding"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("保持输入输出文件编码一致"),
+                self.tra("启用此功能后，输出译文文件的编码将保持为与输入原文文件的编码一致（若字符不兼容，仍会使用utf-8），"
+                         "关闭后将始终使用 utf-8 编码（无特殊情况保持关闭即可）"),
                 widget_init,
                 widget_callback,
             )

@@ -42,7 +42,7 @@ class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
         # 处理所有项目
         lines = list(map(item_to_line, cache_file.items))
 
-        translation_file_path.write_text("".join(lines), encoding=self.translated_encoding)
+        translation_file_path.write_text("".join(lines), encoding=pre_write_metadata.encoding)
 
     def _item_to_bilingual_line(self, item: CacheItem):
         # 至少2个换行，让双语排版不那么紧凑

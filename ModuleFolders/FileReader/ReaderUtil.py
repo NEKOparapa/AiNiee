@@ -3,7 +3,6 @@ import pathlib
 import re
 import sys
 import time
-from pathlib import Path
 from typing import Union
 
 import chardet
@@ -15,8 +14,12 @@ from mediapipe.tasks.python.text import LanguageDetector
 from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
 
-# 单例实现
 _LANG_DETECTOR_INSTANCE: LanguageDetector | None = None
+"""语言检测器单例实现"""
+HAS_UNUSUAL_ENG_REGEX = re.compile(
+    r"^(?:(?=.*_)(?=.*[a-zA-Z0-9])\S*|(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]*)$"
+)
+"""预编译正则 匹配包含 至少一个下划线和至少一个字母与数字且没有空白字符 或者 只由字母和数字组成且必须同时包含至少一个字母与数字 的字符串"""
 
 
 def get_lang_detector():
@@ -136,7 +139,7 @@ def detect_language_with_context(item: CacheItem, index: int, file_data: CacheFi
     Returns:
         tuple: (语言代码, 置信度)
     """
-    min_text_length = 6  # 定义短文本的阈值
+    # min_text_length = 6  # 定义短文本的阈值
 
     # 获取原文并清理
     source_text = item.source_text
@@ -146,35 +149,40 @@ def detect_language_with_context(item: CacheItem, index: int, file_data: CacheFi
     if is_symbols_only(cleaned_text):
         return 'symbols_only', -1.0
 
-    # 处理短文本：获取上下文
-    if len(cleaned_text) < min_text_length:
-        # 构建上下文文本
-        context_texts = []
-
-        # 获取前一个项目的文本(如果存在)
-        if index > 0:
-            prev_text = clean_text(file_data.items[index - 1].source_text.strip())
-            context_texts.append(prev_text)
-
-        # 添加当前文本
-        context_texts.append(cleaned_text)
-
-        # 获取后一个项目的文本(如果存在)
-        if index < len(file_data.items) - 1:
-            next_text = clean_text(file_data.items[index + 1].source_text.strip())
-            context_texts.append(next_text)
-
-        # 用换行符连接上下文
-        detection_text = "\n".join(context_texts)
-    else:
-        # 文本长度足够，直接使用当前文本
-        detection_text = cleaned_text
+    # Todo: 处理短文本：获取上下文（暂时不采用）
+    # if len(cleaned_text) < min_text_length:
+    #     # 构建上下文文本
+    #     context_texts = []
+    #
+    #     # 获取前一个项目的文本(如果存在)
+    #     if index > 0:
+    #         prev_text = clean_text(file_data.items[index - 1].source_text.strip())
+    #         context_texts.append(prev_text)
+    #
+    #     # 添加当前文本
+    #     context_texts.append(cleaned_text)
+    #
+    #     # 获取后一个项目的文本(如果存在)
+    #     if index < len(file_data.items) - 1:
+    #         next_text = clean_text(file_data.items[index + 1].source_text.strip())
+    #         context_texts.append(next_text)
+    #
+    #     # 用表意换行符连接上下文
+    #     detection_text = "\\n".join(context_texts)
+    # else:
+    #     # 文本长度足够，直接使用当前文本
+    #     detection_text = cleaned_text
 
     # 使用mediapipe的语言检测任务
-    lang_result = get_lang_detector().detect(detection_text).detections
+    lang_result = get_lang_detector().detect(cleaned_text).detections
     if not lang_result:
         return 'un', -1.0
     else:
+        probability = lang_result[0].probability
+        """获取到的置信度"""
+        if HAS_UNUSUAL_ENG_REGEX.match(cleaned_text):
+            # 如果匹配到目标字符，则置信度降低0.15
+            probability -= 0.15
         return lang_result[0].language_code, lang_result[0].probability
 
 

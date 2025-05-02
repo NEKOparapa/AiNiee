@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Callable
 
 from ModuleFolders.Cache.CacheProject import CacheProject
+from ModuleFolders.FileReader import ReaderUtil
 from ModuleFolders.FileReader.BaseReader import BaseSourceReader
 
 
@@ -73,7 +74,7 @@ class DirectoryReader:
                             if lang_code:
                                 lang_confidence = lang_code[1]
                                 # 更新语言统计：[计数, 累计置信度]
-                                stats = language_stats[cache_file.storage_path][lang_code]
+                                stats = language_stats[cache_file.storage_path][lang_code[0]]
                                 stats[0] += 1  # 增加计数
                                 stats[1] += lang_confidence  # 累加置信度
                                 # 累计有效项目总数
@@ -93,14 +94,25 @@ class DirectoryReader:
                 for lang, (count, total_confidence) in lang_stats.items():
                     avg_confidence = total_confidence / count
 
-                    # 应用筛选条件：次数超过阈值且平均置信度>=0.7
-                    if count >= threshold and avg_confidence >= 0.7:
+                    # 应用筛选条件：次数超过阈值且平均置信度>=0.75
+                    if count >= threshold and avg_confidence >= 0.75:
                         filtered_langs.append((lang, count, avg_confidence))
 
                 # 按出现次数降序排序，相同次数按语言代码排序
                 if filtered_langs:
                     sorted_langs = sorted(filtered_langs, key=lambda x: (-x[1], x[0]))
                     language_counter[file_path] = sorted_langs
+                else:
+                    # 补充条件：如果没有满足原条件的语言，检查是否有出现次数>1且平均置信度>0.95的语言
+                    high_confidence_langs = []
+                    for lang, (count, total_confidence) in lang_stats.items():
+                        avg_confidence = total_confidence / count
+                        if count > 1 and avg_confidence > 0.95:
+                            high_confidence_langs.append((lang, count, avg_confidence))
+
+                    if high_confidence_langs:
+                        sorted_langs = sorted(high_confidence_langs, key=lambda x: (-x[1], x[0]))
+                        language_counter[file_path] = sorted_langs
 
         # 处理未出现在language_counter中的文件
         valid_file_paths = set(file_valid_items_count.keys())
@@ -115,5 +127,8 @@ class DirectoryReader:
         # 为对应的CacheFile添加语言统计属性
         for file_path, langs in language_counter.items():
             cache_project.get_file(file_path).language_stats = langs
+
+        # 释放语言检测器
+        ReaderUtil.close_lang_detector()
 
         return cache_project

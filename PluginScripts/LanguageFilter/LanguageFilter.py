@@ -111,7 +111,7 @@ class LanguageFilter(PluginBase):
             # 获取可读更强的名称
             en_source_lang, source_language, _, _ = TranslatorUtil.get_language_display_names(most_common_language,
                                                                                'chinese_simplified')
-            print(f"[LanguageFilter] 项目主要语言: {most_common_language} - {en_source_lang}/{source_language}")
+            print(f"[LanguageFilter] 项目主要使用语言: {most_common_language} - {en_source_lang}/{source_language}")
 
             # 处理每个文件中的条目
             for path, file in data.files.items():
@@ -128,6 +128,10 @@ class LanguageFilter(PluginBase):
                     first_language = most_common_language
                 else:
                     first_language = language_stats[0][0]
+                    if first_language != 'un':
+                        print(
+                            f"[[green]INFO[/]] [LanguageFilter] 文件 {path} 主要语言为 {first_language}"
+                        )
 
                 # 根据不同情况分别处理
                 if TranslatorUtil.map_language_code_to_name(first_language) == config.target_language:
@@ -141,7 +145,7 @@ class LanguageFilter(PluginBase):
             target.extend(self._filter_normal_language(None, data.items_iter(), config.source_language))
 
         for item in tqdm(target):
-            item["translation_status"] = CacheItem.STATUS.EXCLUDED
+            item.translation_status = CacheItem.STATUS.EXCLUDED
 
         # 输出结果
         print("")
@@ -263,23 +267,23 @@ class LanguageFilter(PluginBase):
                     not item.lang_code or
                     (has_any(item.source_text) and
                      item.lang_code[0] == language and
-                     item.lang_code[1] > 0.78)]
+                     item.lang_code[1] > 0.85)]
         else:
             # 过滤原文检测语言与行语言相同的行
             return [item for item in file_items
                     if not isinstance(item.source_text, str) or
                     not item.lang_code or
                     (item.lang_code[0] == language and
-                     item.lang_code[1] > 0.78)]
+                     item.lang_code[1] > 0.85)]
 
     def _filter_unknown_language(self, path, file_items):
         """处理未知语言的文件"""
-        print(f"[LanguageFilter] 文件 {path} 未检测到具体语言，将只翻译置信度较高（大于0.7）的文本行")
+        print(f"[LanguageFilter] 文件 {path} 未检测到具体语言，将只翻译置信度较高（大于0.75）的文本行")
 
         return [item for item in file_items
                 if not isinstance(item.source_text, str) or
                 not item.lang_code or
-                item.lang_code[1] < 0.7]
+                item.lang_code[1] < 0.75]
 
     def _filter_normal_language(self, path, file_items, language):
         """处理一般语言情况"""
@@ -293,10 +297,10 @@ class LanguageFilter(PluginBase):
                     if not isinstance(item.source_text, str) or
                     not has_any(item.source_text) or  # 不包含源语言字符
                     (item.get_lang_code(default_lang=cove_lang)[0] != cove_lang and  # 此处默认值使用cove_lang避免可能的值缺失导致所有项都被移除
-                     item.get_lang_code(default_lang=cove_lang)[1] >= 0.78)]  # 或检测语言不是源语言且置信度高于0.78
+                     item.get_lang_code(default_lang=cove_lang)[1] > 0.85)]  # 或检测语言不是源语言且置信度高于0.78
         else:
             # 如果没有对应的语言过滤器，过滤原文检测语言与行语言**不**相同的行
             return [item for item in file_items
                     if not isinstance(item.source_text, str) or
                     (item.get_lang_code(default_lang=cove_lang)[0] != cove_lang and
-                     item.get_lang_code(default_lang=cove_lang)[1] >= 0.78)]
+                     item.get_lang_code(default_lang=cove_lang)[1] > 0.85)]
