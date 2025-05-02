@@ -399,6 +399,7 @@ class PlatformPage(QFrame, Base):
             APITypeCard(
                 self.tra("本地接口"),
                 self.tra("管理应用内置的本地大语言模型的接口"),
+                icon = FluentIcon.CONNECT,
                 init = init,
             )
         )
@@ -411,6 +412,7 @@ class PlatformPage(QFrame, Base):
             APITypeCard(
                 self.tra("官方接口"),
                 self.tra("管理应用内置的主流大语言模型的官方接口"),
+                icon = FluentIcon.ROBOT,
                 init = lambda widget: self.init_drop_down_push_button(
                     widget,
                     self.generate_ui_datas(platforms, False),
@@ -460,6 +462,7 @@ class PlatformPage(QFrame, Base):
         self.flow_card = APITypeCard(
             self.tra("自定义接口"),
             self.tra("在此添加和管理任何符合 OpenAI 格式或者 Anthropic 格式的大语言模型的接口"),
+            icon = FluentIcon.ASTERISK,
             init = init,
         )
         parent.addWidget(self.flow_card)
