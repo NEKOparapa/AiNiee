@@ -1,8 +1,8 @@
 import shutil
 from pathlib import Path
+import zipfile
 
-import ebooklib
-from ebooklib import epub
+from bs4 import BeautifulSoup
 
 from ModuleFolders.FileAccessor import ZipUtil
 
@@ -23,20 +23,13 @@ class EpubAccessor:
         # 由于ebook给的相对路径与epub解压后路径是不准 遍历文件夹中的所有文件
         book_file_dict = self._get_book_file_dict(extract_path)
 
-        # 读取原epub文件
-        book = epub.read_epub(source_file_path) 
-
         # 提取解压后epub文件中的文本内容
         result: dict[str, str] = {}
-        for item in book.get_items():
-            # 检查是否是文本内容
-            if item.get_type() == ebooklib.ITEM_DOCUMENT:
-                # 获取文件的唯一ID及文件名
-                item_id = item.get_id()
-                file_name = Path(item.get_name()).name
-                if file_name in book_file_dict:
-                    html_content = book_file_dict[file_name].read_text(encoding='utf-8')
-                    result[item_id] = html_content
+        for item_id, item_name in self.read_items(source_file_path).items():
+            file_name = Path(item_name).name
+            if file_name in book_file_dict:
+                html_content = book_file_dict[file_name].read_text(encoding='utf-8')
+                result[item_id] = html_content
         return result
 
     def write_content(
@@ -50,14 +43,11 @@ class EpubAccessor:
 
         # 由于ebook给的相对路径与epub解压后路径是不准 遍历文件夹中的所有文件,找到文件
         book_file_dict = self._get_book_file_dict(extract_path)
-        book = epub.read_epub(source_file_path)
-        for item in book.get_items():
-            # 检查是否是文本内容
-            if item.get_type() == ebooklib.ITEM_DOCUMENT:
-                item_id = item.get_id()
-                file_name = Path(item.get_name()).name
-                if item_id in content and file_name in book_file_dict:
-                    book_file_dict[file_name].write_text(content[item_id], encoding='utf-8')
+
+        for item_id, item_name in self.read_items(source_file_path).items():
+            file_name = Path(item_name).name
+            if item_id in content and file_name in book_file_dict:
+                book_file_dict[file_name].write_text(content[item_id], encoding='utf-8')
         ZipUtil.compress_to_zip_file(extract_path, write_file_path)
 
     def clear_temp(self, file_path: Path, temp_root: Path = None):
@@ -70,3 +60,22 @@ class EpubAccessor:
             file: root / file
             for root, _, files in extract_path.walk() for file in files
         }
+
+    def read_items(self, file_path: Path) -> dict[str, str]:
+        with zipfile.ZipFile(file_path, 'r') as zipf:
+            meta_content = zipf.read("META-INF/container.xml")
+            meta_soup = BeautifulSoup(meta_content, "xml")
+            opf_file = None
+
+            for root_file in meta_soup.select('container rootfiles rootfile'):
+                if root_file.get("media-type") == "application/oebps-package+xml":
+                    opf_file = root_file.get("full-path")
+            if opf_file is None:
+                return {}
+            items = {}
+            opf_soup = BeautifulSoup(zipf.read(opf_file), "xml")
+            for item in opf_soup.select("manifest item"):
+                # 检查是否是文本内容
+                if item.get("media-type") == "application/xhtml+xml":
+                    items[item["id"]] = item["href"]
+            return items
