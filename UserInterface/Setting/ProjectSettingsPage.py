@@ -190,7 +190,7 @@ class ProjectSettingsPage_B(QFrame, Base):
         # 默认配置
         self.default = {
             "translation_project": "AutoType",
-            "source_language": "japanese",
+            "source_language": "auto",
             "target_language": "chinese_simplified",
             "label_input_exclude_rule": "",
             "label_output_path": "./output",
@@ -330,6 +330,7 @@ class ProjectSettingsPage_B(QFrame, Base):
     def add_widget_03(self, parent, config) -> None:
         # 定义语言与值的配对列表（显示文本, 存储值）
         source_language_pairs = [
+            (self.tra("自动检测"), "auto"),
             (self.tra("日语"), "japanese"),
             (self.tra("英语"), "english"),
             (self.tra("韩语"), "korean"),
@@ -347,8 +348,7 @@ class ProjectSettingsPage_B(QFrame, Base):
         def init(widget) -> None:
             """初始化时根据存储的值设置当前选项"""
             current_config = self.load_config()
-            current_value = current_config.get("source_language", "japanese")
-            
+            current_value = current_config.get("source_language", "auto")
 
             # 旧配置兼容层转换(后续版本再删除)
             if current_value == "日语":
@@ -401,7 +401,7 @@ class ProjectSettingsPage_B(QFrame, Base):
             # 通过显示文本查找对应的值
             value = next(
                 (value for display, value in translated_pairs if display == text),
-                "japanese"  # 默认值
+                "auto"  # 默认值
             )
             
             config = self.load_config()
