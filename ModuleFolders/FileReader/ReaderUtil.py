@@ -143,6 +143,9 @@ def detect_language_with_context(item: CacheItem, index: int, file_data: CacheFi
 
     # 获取原文并清理
     source_text = item.source_text
+    if not source_text:
+        return 'no_text', -1.0
+
     cleaned_text = clean_text(source_text.strip())
 
     # 检查是否只包含符号
