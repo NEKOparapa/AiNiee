@@ -407,7 +407,7 @@ class TranslationPage(QWidget, Base):
 
     # 进度环
     def add_ring_card(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
-        self.ring = ProgressRingCard(title="进度条",
+        self.ring = ProgressRingCard(title="翻译进度",
                                      icon=FluentIcon.PIE_SINGLE,
                                      min_value= 0,
                                      max_value= 10000,
