@@ -128,7 +128,7 @@ class CacheManager(Base):
         for old_item in data_iter:
             storage_path = old_item["storage_path"]
             if storage_path not in files_props:
-                files_props[storage_path] = {"items": [], "extra": {}}
+                files_props[storage_path] = {"items": [], "extra": {}, "file_project_type": project_data["project_type"]}
             new_item = CacheItem.from_dict(old_item)
             for k, v in old_item.items():
                 if k == 'file_name':
