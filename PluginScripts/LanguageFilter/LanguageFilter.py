@@ -2,8 +2,7 @@ from tqdm import tqdm
 from rich import print
 
 from ModuleFolders.Cache.CacheProject import CacheProject
-from ModuleFolders.Translator.TranslatorUtil import get_most_common_language, get_language_display_names, \
-    map_language_code_to_name, map_language_name_to_code
+from ModuleFolders.Translator import TranslatorUtil
 from PluginScripts.PluginBase import PluginBase
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
@@ -108,9 +107,9 @@ class LanguageFilter(PluginBase):
             print("[LanguageFilter] 使用自动检测语言模式...")
 
             # 计算项目中出现次数最多的语言
-            most_common_language = get_most_common_language(data)
+            most_common_language = TranslatorUtil.get_most_common_language(data)
             # 获取可读更强的名称
-            en_source_lang, source_language, _, _ = get_language_display_names(most_common_language,
+            en_source_lang, source_language, _, _ = TranslatorUtil.get_language_display_names(most_common_language,
                                                                                'chinese_simplified')
             print(f"[LanguageFilter] 项目主要语言: {most_common_language} - {en_source_lang}/{source_language}")
 
@@ -131,7 +130,7 @@ class LanguageFilter(PluginBase):
                     first_language = language_stats[0][0]
 
                 # 根据不同情况分别处理
-                if map_language_code_to_name(first_language) == config.target_language:
+                if TranslatorUtil.map_language_code_to_name(first_language) == config.target_language:
                     target.extend(self._filter_target_language_match(path, file_items, first_language))
                 elif first_language == 'un':
                     target.extend(self._filter_unknown_language(path, file_items))
@@ -285,7 +284,7 @@ class LanguageFilter(PluginBase):
     def _filter_normal_language(self, path, file_items, language):
         """处理一般语言情况"""
         # 将Ainiee内置语言代码映射为fasttext标准语言代码
-        cove_lang = map_language_name_to_code(language)
+        cove_lang = TranslatorUtil.map_language_name_to_code(language)
         # 获取语言处理函数
         has_any = self.get_filter_function(cove_lang, path)
 

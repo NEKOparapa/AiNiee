@@ -13,6 +13,7 @@ from typing import List
 from Base.Base import Base
 from Base.PluginManager import PluginManager
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Translator import Translator
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 from ModuleFolders.LLMRequester.LLMRequester import LLMRequester
 from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
@@ -27,14 +28,17 @@ from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
 
 from ModuleFolders.TextProcessor.TextProcessor import TextProcessor
 
+
 class TranslatorTask(Base):
 
-    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager,request_limiter: RequestLimiter) -> None:
+    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager, request_limiter: RequestLimiter, source_lang: "Translator.SourceLang") -> None:
         super().__init__()
 
         self.config = config
         self.plugin_manager = plugin_manager
         self.request_limiter = request_limiter
+        # 新的源语言对象
+        self.source_lang = source_lang
 
         # 初始化消息存储
         self.messages = []
@@ -128,10 +132,10 @@ class TranslatorTask(Base):
                 self.source_text_dict,
                 self.previous_text_list,
             )
-        elif prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT,PromptBuilderEnum.THINK, PromptBuilderEnum.CUSTOM):
+        elif prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK, PromptBuilderEnum.CUSTOM):
             self.messages, self.system_prompt, self.extra_log = self.generate_prompt(
                 self.source_text_dict,
-                self.previous_text_list
+                self.previous_text_list,
             )
 
         # 预估 Token 消费,暂时版本，双请求无法正确计算tpm与tokens消耗
@@ -155,11 +159,11 @@ class TranslatorTask(Base):
         if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:  # 自定义提示词
             system = self.config.system_prompt_content
 
-        elif self.config.prompt_preset == PromptBuilderEnum.THINK: # 推理模型提示词
-            system = PromptBuilderThink.build_system(self.config)
+        elif self.config.prompt_preset == PromptBuilderEnum.THINK:  # 推理模型提示词
+            system = PromptBuilderThink.build_system(self.config, self.source_lang.new)
 
         else:
-            system = PromptBuilder.build_system(self.config)  # 通用与思维链提示词
+            system = PromptBuilder.build_system(self.config, self.source_lang.new)  # 通用与思维链提示词
 
         # 如果开启自动构建术语表
         if self.config.auto_glossary_toggle == True:
@@ -226,7 +230,7 @@ class TranslatorTask(Base):
             fol_prompt = PromptBuilder.build_modelExamplePrefix(self.config)
 
             # 获取具体动态示例内容
-            original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict)
+            original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict, self.source_lang)
             if original_exmaple and translation_example_content:
                 messages.append({
                     "role": "user",
@@ -300,7 +304,7 @@ class TranslatorTask(Base):
         # 储存额外日志
         extra_log = []
 
-        system = PromptBuilderSakura.build_system(self.config)
+        system = PromptBuilderSakura.build_system(self.config, self.source_lang.new)
 
 
         # 如果开启术语表
@@ -338,7 +342,7 @@ class TranslatorTask(Base):
         extra_log = []
 
         # 基础提示词
-        system = PromptBuilderLocal.build_system(self.config)
+        system = PromptBuilderLocal.build_system(self.config, self.source_lang.new)
 
         # 术语表
         if self.config.prompt_dictionary_switch == True:
@@ -643,6 +647,7 @@ class TranslatorTask(Base):
             response_content,
             response_dict,
             self.source_text_dict,
+            self.source_lang
         )
 
 
@@ -854,7 +859,8 @@ class TranslatorTask(Base):
             self.placeholder_order,
             response_content,
             response_dict,
-            self.source_text_dict
+            self.source_text_dict,
+            self.source_lang
         )
 
         # 去除回复内容的数字序号

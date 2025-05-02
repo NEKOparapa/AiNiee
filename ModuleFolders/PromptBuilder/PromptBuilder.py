@@ -2,6 +2,7 @@ import re
 from types import SimpleNamespace
 
 from Base.Base import Base
+from ModuleFolders.Translator import TranslatorUtil, Translator
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 
@@ -47,35 +48,8 @@ class PromptBuilder(Base):
         return result
 
     # 获取系统提示词
-    def build_system(config: TranslatorConfig) -> str:
-        PromptBuilder.get_system_default(config)
-
-        pair_en = {
-            "japanese": "Japanese",
-            "english": "English",
-            "korean": "Korean", 
-            "russian": "Russian",
-            "chinese_simplified": "Simplified Chinese",
-            "chinese_traditional": "Traditional Chinese",
-            "french": "French",
-            "german": "German",
-            "spanish": "Spanish",
-        }
-
-        pair = { 
-            "japanese": "日语",
-            "english": "英语",
-            "korean": "韩语",
-            "russian": "俄语",
-            "chinese_simplified": "简体中文",
-            "chinese_traditional": "繁体中文",
-            "french": "法语",
-            "german": "德语",
-            "spanish": "西班牙语",
-        }
-
-        source_language = pair[config.source_language]
-        target_language = pair[config.target_language]
+    def build_system(config: TranslatorConfig, source_lang: str) -> str:
+        en_sl, source_language, en_tl, target_language = TranslatorUtil.get_language_display_names(source_lang, config.target_language)
 
         # 构造结果
         if config == None:
@@ -84,30 +58,35 @@ class PromptBuilder(Base):
             result = PromptBuilder.common_system_zh
         elif config.prompt_preset == PromptBuilderEnum.COMMON and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.common_system_en
-            source_language = pair_en[config.source_language]
-            target_language = pair_en[config.target_language]
+            source_language = en_sl
+            target_language = en_tl
         elif config.prompt_preset == PromptBuilderEnum.COT and config.target_language in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.cot_system_zh
         elif config.prompt_preset == PromptBuilderEnum.COT and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.cot_system_en
-            source_language = pair_en[config.source_language]
-            target_language = pair_en[config.target_language]
+            source_language = en_sl
+            target_language = en_tl
 
         return result.replace("{source_language}", source_language).replace("{target_language}", target_language).strip()
 
     # 构建翻译示例
-    def build_translation_sample(config: TranslatorConfig, input_dict: dict) -> tuple[str, str]:
+    def build_translation_sample(config: TranslatorConfig, input_dict: dict, source_lang: "Translator.SourceLang") -> tuple[str, str]:
         list1 = []
         list3 = []
         list2 = []
         list4 = []
 
         # 获取特定示例
-        #list1, list3 = PromptBuilder.get_default_translation_example(config, input_dict)
+        #list1, list3 = PromptBuilder.get_default_translation_example(config, input_dict, source_lang)
+
+        conv_source_lang = TranslatorUtil.map_language_code_to_name(source_lang.new)
+        if conv_source_lang == 'un':
+            conv_source_lang = TranslatorUtil.map_language_code_to_name(source_lang.most_common)
 
         # 获取自适应示例（无法构建english的）
-        if config.source_language in ["japanese","korean","russian","chinese_simplified","chinese_traditional","french","german","spanish"]:
-            list2, list4 = PromptBuilder.build_adaptive_translation_sample(config, input_dict)
+        if conv_source_lang in ["japanese", "korean", "russian", "chinese_simplified", "chinese_traditional", "french",
+                                "german", "spanish"]:
+            list2, list4 = PromptBuilder.build_adaptive_translation_sample(config, input_dict, conv_source_lang)
 
         # 将两个列表合并
         combined_list = list1 + list2
@@ -129,7 +108,9 @@ class PromptBuilder(Base):
                 }
             }
 
-            combined_list.append(base_example["base"][config.source_language])
+            # 如果没有对应的示例语言，默认使用英文
+            source_base_example = base_example["base"].get(conv_source_lang, "Sample Text")
+            combined_list.append(source_base_example)
             combined_list2.append(base_example["base"][config.target_language])
 
         # 限制示例总数量为3个，如果多了，则从最后往前开始削减
@@ -200,7 +181,7 @@ class PromptBuilder(Base):
         return source_str, target_str
 
     # 辅助函数，构建特定翻译示例
-    def get_default_translation_example(config: TranslatorConfig, input_dict: dict) -> tuple[list[str], list[str]]:
+    def get_default_translation_example(config: TranslatorConfig, input_dict: dict, source_lang: str) -> tuple[list[str], list[str]]:
         # 内置的正则表达式字典
         source_list = []
         translated_list = []
@@ -260,13 +241,16 @@ class PromptBuilder(Base):
                 "chinese_traditional": "年輕↓漂亮↓↓色情"},
         }
 
+        conv_source_lang = TranslatorUtil.map_language_code_to_name(source_lang)
+
         for _, value in input_dict.items():
             for pattern, translation_sample in patterns_all.items():
                 # 检查值是否符合正则表达
                 if re.search(pattern, value):
+                    translation_sample = translation_sample.get(conv_source_lang)
                     # 如果未在结果列表中，则添加
-                    if translation_sample[config.source_language] not in source_list:
-                        source_list.append(translation_sample[config.source_language])
+                    if translation_sample and translation_sample not in source_list:
+                        source_list.append(translation_sample)
                         translated_list.append(translation_sample[config.target_language])
 
 
@@ -346,7 +330,7 @@ class PromptBuilder(Base):
         return result  # 返回修改后的列表
 
     # 构建相似格式翻译示例
-    def build_adaptive_translation_sample(config: TranslatorConfig, input_dict: dict) -> tuple[list[str], list[str]]:
+    def build_adaptive_translation_sample(config: TranslatorConfig, input_dict: dict, conv_source_lang: str) -> tuple[list[str], list[str]]:
         # 输入字典示例
         # ex_dict = {
         #     "0": "こんにちは，こんにちは。こんにちは#include <iostream>",
@@ -411,8 +395,8 @@ class PromptBuilder(Base):
         }
 
         # 根据输入选择正则表达式与翻译文本
-        pattern = patterns_all[config.source_language]
-        source_text = text_all[config.source_language]
+        pattern = patterns_all[conv_source_lang]
+        source_text = text_all[conv_source_lang]
         translated_text = text_all[config.target_language]
 
         source_list, translated_list = [], []
