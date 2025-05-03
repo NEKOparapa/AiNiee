@@ -28,7 +28,7 @@ class VttWriter(BaseTranslatedWriter):
             block.append(item.require_extra("subtitle_time"))
             block.append(item.translated_text)
             output_lines.append("\n".join(block))
-        translation_file_path.write_text(header + "\n\n\n".join(output_lines), encoding=self.translated_encoding)
+        translation_file_path.write_text(header + "\n\n\n".join(output_lines), encoding=pre_write_metadata.encoding)
 
     @classmethod
     def get_project_type(self):

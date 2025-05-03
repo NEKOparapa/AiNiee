@@ -2,9 +2,6 @@ from functools import partial
 from pathlib import Path
 from typing import Type
 
-
-
-from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileOutputer.AutoTypeWriter import AutoTypeWriter
 from ModuleFolders.FileOutputer.BaseWriter import BaseTranslationWriter, OutputConfig, TranslationOutputConfig, WriterInitParams
@@ -26,9 +23,8 @@ from ModuleFolders.FileOutputer.TransWriter import TransWriter
 from ModuleFolders.FileOutputer.I18nextWriter import I18nextWriter
 
 
-
 # 文件输出器
-class FileOutputer():
+class FileOutputer:
 
     def __init__(self):
         self.writer_factory_dict = {}
@@ -66,10 +62,8 @@ class FileOutputer():
         # cache_data_iter = iter(cache_data)
         # base_info = next(cache_data_iter)
         project_type = cache_data.project_type
-        project_encoding = cache_data.detected_encoding
-        project_line_ending = cache_data.detected_line_ending
         if project_type in self.writer_factory_dict:
-            writer_iinit_params = self._get_writer_init_params(project_type, project_encoding, project_line_ending, Path(output_path), Path(input_path))
+            writer_iinit_params = self._get_writer_init_params(project_type, Path(output_path), Path(input_path))
             # 绑定配置，使工厂变成无参
             writer_factory = partial(self.writer_factory_dict[project_type], **writer_iinit_params)
             source_directory = Path(input_path)
@@ -77,13 +71,11 @@ class FileOutputer():
             # 为防止双语输出路径被覆盖，这里不传translation_directory
             writer.write_translation_directory(cache_data, source_directory)
 
-    def _get_writer_init_params(self, project_type, file_encoding, line_ending, output_path: Path, input_path: Path):
-        output_config = self._get_writer_default_config(project_type, file_encoding, line_ending, output_path, input_path)
+    def _get_writer_init_params(self, project_type, output_path: Path, input_path: Path):
+        output_config = self._get_writer_default_config(project_type, output_path, input_path)
         if project_type == AutoTypeWriter.get_project_type():
             writer_init_params_factory = partial(
                 self._get_writer_init_params,
-                file_encoding=file_encoding,
-                line_ending=line_ending,
                 output_path=output_path,
                 input_path=input_path,
             )
@@ -91,11 +83,11 @@ class FileOutputer():
             return WriterInitParams(output_config=output_config, writer_init_params_factory=writer_init_params_factory)
         return WriterInitParams(output_config=output_config)
 
-    def _get_writer_default_config(self, project_type, file_encoding, line_ending, output_path: Path, input_path: Path):
-        default_translated_config = TranslationOutputConfig(True, "_translated", output_path, file_encoding, line_ending)
+    def _get_writer_default_config(self, project_type, output_path: Path, input_path: Path):
+        default_translated_config = TranslationOutputConfig(True, "_translated", output_path)
         if project_type == SrtWriter.get_project_type():
             return OutputConfig(
-                TranslationOutputConfig(True, ".translated", output_path, file_encoding, line_ending),
+                TranslationOutputConfig(True, ".translated", output_path),
                 TranslationOutputConfig(True, '.bilingual', output_path / "bilingual_srt"),
                 input_path
             )

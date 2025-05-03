@@ -1,18 +1,10 @@
-import pathlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TypedDict, Union
-
-import chardet
+from typing import TypedDict
 
 from ModuleFolders.Cache.CacheFile import CacheFile
-from ModuleFolders.Cache.CacheProject import CacheProject
-from ModuleFolders.FileReader.ReaderDetection import (
-    decode_content_bytes,
-    detect_file_encoding,
-    detect_newlines
-)
+from ModuleFolders.FileReader.ReaderUtil import detect_file_encoding, detect_language_with_context
 
 
 @dataclass
@@ -32,6 +24,7 @@ class PreReadMetadata:
 
 class BaseSourceReader(ABC):
     """Reader基类，在其生命周期内可以输入多个文件"""
+
     def __init__(self, input_config: InputConfig) -> None:
         self.input_config = input_config
 
@@ -66,7 +59,7 @@ class BaseSourceReader(ABC):
     def pre_read_source(self, file_path: Path) -> PreReadMetadata:
         """读取文件之前的操作，可以是检测文件编码"""
         # 猜测的文件编码
-        return PreReadMetadata()
+        return PreReadMetadata(encoding=detect_file_encoding(file_path))
 
     @abstractmethod
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
@@ -75,6 +68,13 @@ class BaseSourceReader(ABC):
 
     def post_read_source(self, file_data: CacheFile) -> CacheFile:
         """对原文(译文)片段做统一处理"""
+        for i, item in enumerate(file_data.items):
+            # 获取每一行的具体语言与分数
+            lang, score = detect_language_with_context(item, i, file_data)
+            # 将分数大于0的语言检测结果保存到item，否则保持为None
+            if score > 0.0:
+                item.lang_code = [lang, score]
+
         return file_data
 
     def can_read(self, file_path: Path, fast=True) -> bool:
@@ -108,57 +108,3 @@ class BaseSourceReader(ABC):
     def exclude_rules(self) -> list[str]:
         """用于排除缓存文件/目录"""
         return []
-
-
-# UNUSED: 暂时不使用之前这个读取文件的函数
-def _read_file_safely(file_path: Union[str, pathlib.Path], cache_project: CacheProject) -> str:
-    """
-    安全地读取文本文件，自动检测并使用正确的编码和换行符格式，并将这些信息保存到cache_project中。
-    结合BOM检测和chardet库进行编码识别
-
-    Args:
-        file_path: 文件路径，可以是字符串或Path对象
-        cache_project: 缓存项目对象，用于存储文件的编码和换行符信息
-
-    Returns:
-        str: 文件内容
-
-    Raises:
-        UnicodeDecodeError: 当无法用任何可靠的编码读取文件时
-        FileNotFoundError: 当文件不存在时
-        PermissionError: 当没有权限读取文件时
-    """
-    # 确保file_path是Path对象
-    if isinstance(file_path, str):
-        file_path = pathlib.Path(file_path)
-
-    # 读取文件内容
-    with open(file_path, 'rb') as f:
-        content_bytes = f.read()
-
-    # 优先使用chardet检测编码
-    detection_result = chardet.detect(content_bytes)
-    # 检测到的编码
-    detected_encoding = detection_result['encoding']
-    # 置信度
-    confidence = detection_result['confidence']
-
-    # 如果置信度太低，尝试原来的编码列表
-    if not detected_encoding or confidence < 0.75:
-        content, detected_encoding = decode_content_bytes(content_bytes)
-    else:
-        # 使用chardet检测到的编码
-        try:
-            content = content_bytes.decode(detected_encoding)
-        except UnicodeDecodeError:
-            # 即使chardet也失败了，尝试您的编码列表
-            content, detected_encoding = decode_content_bytes(content_bytes)
-
-    # 检测换行符格式
-    detected_line_ending = detect_newlines(content)
-
-    # 将检测到的编码和换行符格式保存到cache_project中
-    cache_project.set_file_encoding(detected_encoding)
-    cache_project.set_line_ending(detected_line_ending)
-
-    return content

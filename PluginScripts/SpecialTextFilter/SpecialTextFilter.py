@@ -41,7 +41,7 @@ class SpecialTextFilter(PluginBase):
         for entry in cache_list:
             tags = entry.get_extra('tags', ())
             if tags and ("red" in tags):
-                entry.translation_status = CacheItem.STATUS.EXCLUED
+                entry.translation_status = CacheItem.STATUS.EXCLUDED
 
     MD_EXCLUDE_REGEXS = (
         # 1.  ![...](http://...) and ![...](data:image...)
@@ -59,4 +59,4 @@ class SpecialTextFilter(PluginBase):
             source_text = entry.source_text
 
             if any(regex.match(source_text) for regex in self.MD_EXCLUDE_REGEXS):
-                entry.translation_status = CacheItem.STATUS.EXCLUED
+                entry.translation_status = CacheItem.STATUS.EXCLUDED

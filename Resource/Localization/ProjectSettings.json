@@ -6,11 +6,29 @@
       "English": "Interface Name",
       "日本語": "インターフェース名"
     },
+    "接口平台": {
+      "简中": "API接口平台",
+      "繁中": "API接口平台",
+      "English": "API Platform",
+      "日本語": "APIプラットフォーム"
+    },
     "设置当前翻译项目所使用的接口的名称，注意，选择错误将不能进行翻译": {
       "简中": "设置翻译接口，选错将导致翻译失败",
       "繁中": "設定翻譯介面，選錯將導致翻譯失敗",
-      "English": "Set Translation Interface (Incorrect selection will cause translation failure)",
+      "English": "Set Translation Platform (Incorrect selection will cause translation failure)",
       "日本語": "翻訳インターフェースを設定 (選択を誤ると翻訳に失敗します)"
+    },
+    "当前路径": {
+      "简中": "当前路径",
+      "繁中": "當前路徑",
+      "English": "Current Path",
+      "日本語": "現在のパス"
+    },
+    "拖拽/选择输入文件夹": {
+      "简中": "拖拽/选择输入文件夹",
+      "繁中": "拖曳/選擇輸入資料夾",
+      "English": "Drag & Drop / Select Input Folder",
+      "日本語": "ドラッグ＆ドロップ/入力フォルダーを選択"
     },
     "设置当前翻译项目所使用的原始文本的格式，注意，选择错误将不能进行翻译": {
       "简中": "设置原文格式，选错将导致翻译失败",
@@ -89,6 +107,30 @@
       "繁中": "*.log 表示排除所有結尾為 .log 的檔案，aaa/* 表示排除輸入資料夾下整個 aaa 目錄，多個規則用英文逗號分隔",
       "English": "*.log means excluding all files ending with .log. aaa/* means excluding the entire aaa directory under the input folder.\n Multiple rules should be separated by English commas.",
       "日本語": "*.log は .log で終わるすべてのファイルを除外し、aaa/* は入力フォルダ内の aaa ディレクトリ全体を除外します\n複数のルールは英語のカンマで区切ってください"
+    },
+    "自动设置输出文件夹": {
+      "简中": "自动设置输出文件夹",
+      "繁中": "自動設置輸出資料夾",
+      "English": "Automatically set output folder",
+      "日本語": "出力フォルダーを自動設定"
+    },
+    "启用此功能后，设置为输入文件夹的平级目录，比如输入文件夹为D:/Test/Input，输出文件夹将设置为D:/Test/AiNieeOutput": {
+      "简中": "启用此功能后，设置为输入文件夹的平级目录，\n比如输入文件夹为 D:/Test/Input，输出文件夹将设置为 D:/Test/AiNieeOutput",
+      "繁中": "啟用此功能後，設置為輸入資料夾的同層級目錄，\n例如輸入資料夾為 D:/Test/Input，輸出資料夾將設置為 D:/Test/AiNieeOutput",
+      "English": "When enabled, sets the output folder to a sibling directory of the input folder. \nE.g., if input is D:/Test/Input, output will be D:/Test/AiNieeOutput.",
+      "日本語": "この機能を有効にすると、出力フォルダーは入力フォルダーと同じ階層のディレクトリーに設定されます。\n例：入力フォルダーが「D:/Test/Input」の場合、出力フォルダーは「D:/Test/AiNieeOutput」になります。"
+    },
+    "保持输入输出文件编码一致": {
+      "简中": "保持输入输出文件编码一致",
+      "繁中": "保持輸入輸出檔案編碼一致",
+      "English": "Keep input and output file encoding consistent",
+      "日本語": "入出力ファイルのエンコーディングを一致させる"
+    },
+    "启用此功能后，输出译文文件的编码将保持为与输入原文文件的编码一致（若字符不兼容，仍会使用utf-8），关闭后将始终使用 utf-8 编码（无特殊情况保持关闭即可）": {
+      "简中": "启用此功能后，输出译文文件的编码将保持为与输入原文文件的编码一致（若字符不兼容，仍会使用utf-8），\n关闭后将始终使用 utf-8 编码（无特殊情况保持关闭即可）",
+      "繁中": "啟用此功能後，輸出譯文檔案的編碼將保持為與輸入原文檔案的編碼一致（若字元不相容，仍會使用 utf-8），\n關閉後將始終使用 utf-8 編碼（無特殊情況保持關閉即可）",
+      "English": "When enabled, the output translated file's encoding will match the input original file's encoding (falls back to UTF-8 if characters are incompatible). \nWhen disabled, UTF-8 encoding will always be used. (Leave disabled under normal circumstances)",
+      "日本語": "この機能を有効にすると、出力翻訳ファイルのエンコーディングは入力原文ファイルのエンコーディングと一致します（文字に互換性がない場合はutf-8を使用します）。\n無効にすると、常にutf-8エンコーディングを使用します。（通常はオフのままで問題ありません）"
     }
   }
 }

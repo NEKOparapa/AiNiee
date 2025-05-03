@@ -29,7 +29,7 @@ class ScheduledTranslationDialog(MessageBoxBase, Base):
     """
     def __init__(self, parent=None,title: str = "定时开始翻译", message_box_close = None):
         super().__init__(parent=parent)
-        
+
         self.message_box_close = message_box_close
 
         # 设置框体
@@ -47,7 +47,7 @@ class ScheduledTranslationDialog(MessageBoxBase, Base):
         self.time_picker = TimePicker(self)
         current_time = QTime.currentTime()
         self.time_picker.setTime(current_time)
-        
+
         self.viewLayout.addWidget(self.time_picker)
 
         self.yesButton.clicked.connect(self.accept)
@@ -204,7 +204,7 @@ class TranslationPage(QWidget, Base):
 
         translated_line = self.data.get("line", 0)
         total_line = self.data.get("total_line", 0)
-        remaining_line = max(0, total_line - translated_line) 
+        remaining_line = max(0, total_line - translated_line)
 
         t_value_str: str
         t_unit_str: str
@@ -349,7 +349,7 @@ class TranslationPage(QWidget, Base):
         #self.add_remaining_line_card(self.head_hbox, config, window)
         self.add_time_card(self.head_hbox, config, window)
         self.add_remaining_time_card(self.head_hbox, config, window)
-        
+
 
 
         # 添加到主容器
@@ -364,14 +364,14 @@ class TranslationPage(QWidget, Base):
 
 
         self.add_ring_card(self.flow_layout, config, window)
-        self.add_waveform_card(self.flow_layout, config, window)        
+        self.add_waveform_card(self.flow_layout, config, window)
 
         self.add_speed_card(self.flow_layout, config, window)
         self.add_stability_card(self.flow_layout, config, window)
         self.add_task_card(self.flow_layout, config, window)
         self.add_token_card(self.flow_layout, config, window)
 
-        
+
 
         self.container.addWidget(self.flow_container, 1)
 
@@ -407,7 +407,7 @@ class TranslationPage(QWidget, Base):
 
     # 进度环
     def add_ring_card(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
-        self.ring = ProgressRingCard(title="翻译进度",
+        self.ring = ProgressRingCard(title=self.tra("翻译进度"),
                                      icon=FluentIcon.PIE_SINGLE,
                                      min_value= 0,
                                      max_value= 10000,
@@ -420,7 +420,7 @@ class TranslationPage(QWidget, Base):
 
     # 波形图
     def add_waveform_card(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
-        self.waveform = WaveformCard("波形图",
+        self.waveform = WaveformCard(self.tra("波形图"),
                                      icon=FluentIcon.MARKET
                                     )
         self.waveform.set_draw_grid(False)  # 关闭网格线
@@ -663,7 +663,7 @@ class TranslationPage(QWidget, Base):
                 self.action_schedule.setText(f"{time_str}")
 
                 # 显示提示
-                info_cont =  f" {time_str} " + self.tra("开始翻译") + "  ... "
+                info_cont =  f" {time_str} " + self.tra("定时开始翻译") + "  ... "
                 window.success_toast(self.tra("已设置定时翻译任务，将在"), info_cont)
 
         info_cont = self.tra("定时开始")

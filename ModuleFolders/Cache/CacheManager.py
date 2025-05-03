@@ -195,12 +195,12 @@ class CacheManager(Base):
         # 直接切片获取所需范围的条目，切片会自动处理边界情况，例如 from_idx=0
         collected = all_items[from_idx:to_idx]
 
-        return collected 
-
+        return collected
 
     # 生成待翻译片段
-    def generate_item_chunks(self, limit_type: str, limit_count: int, previous_line_count: int) -> Tuple[List[List[CacheItem]], List[List[CacheItem]]]:
-        chunks, previous_chunks = [], []
+    def generate_item_chunks(self, limit_type: str, limit_count: int, previous_line_count: int) -> \
+            Tuple[List[List[CacheItem]], List[List[CacheItem]], List[str]]:
+        chunks, previous_chunks, file_paths = [], [], []  # 添加 file_paths 初始化
 
         # 遍历所有文件
         for file in self.project.files.values():
@@ -220,7 +220,6 @@ class CacheManager(Base):
 
                 # 如果当前片段长度加上当前条目长度超过限制，则将当前片段添加到结果列表中，并重置当前片段
                 if current_chunk and (current_length + item_length > limit_count):
-
                     # 添加到原文片段列表
                     chunks.append(current_chunk)
 
@@ -229,16 +228,18 @@ class CacheManager(Base):
                         self.generate_previous_chunks(items, previous_line_count, file.index_of(current_chunk[0].text_index))
                     )
 
+                    # 添加chunk对应的文件路径
+                    file_paths.append(file.storage_path)  # 添加文件路径记录
+
                     # 重置片段暂存容器
                     current_chunk, current_length = [], 0
 
-                # 添加当前条目    
+                # 添加当前条目
                 current_chunk.append(item)
                 current_length += item_length
 
-            # 处理最后一个未添加到 chunks 的片段    
+            # 处理最后一个未添加到 chunks 的片段
             if current_chunk:
-
                 # 添加到原文片段列表
                 chunks.append(current_chunk)
 
@@ -247,5 +248,8 @@ class CacheManager(Base):
                     self.generate_previous_chunks(items, previous_line_count, file.index_of(current_chunk[0].text_index))
                 )
 
-        # 返回结果列表        
-        return chunks, previous_chunks
+                # 添加chunk对应的文件路径
+                file_paths.append(file.storage_path)  # 添加文件路径记录
+
+        # 返回结果列表
+        return chunks, previous_chunks, file_paths  # 修改返回值，添加file_paths

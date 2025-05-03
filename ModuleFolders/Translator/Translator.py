@@ -1,7 +1,7 @@
-import os
 import time
 import threading
 import concurrent.futures
+from dataclasses import dataclass
 from typing import Iterator
 
 import opencc
@@ -12,6 +12,7 @@ from Base.PluginManager import PluginManager
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheManager import CacheManager
 from ModuleFolders.Cache.CacheProject import CacheProjectStatistics
+from ModuleFolders.Translator import TranslatorUtil
 from ModuleFolders.Translator.TranslatorTask import TranslatorTask
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
@@ -22,6 +23,14 @@ from ModuleFolders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
 from ModuleFolders.FileReader.FileReader import FileReader
 from ModuleFolders.FileOutputer.FileOutputer import FileOutputer
 from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
+from ModuleFolders.Translator.TranslatorUtil import get_most_common_language
+
+
+@dataclass
+class SourceLang:
+    new: str
+    most_common: str
+
 
 # 翻译器
 class Translator(Base):
@@ -213,9 +222,8 @@ class Translator(Base):
                 self.config.lines_limit = max(1, int(self.config.lines_limit / 2))
                 self.config.tokens_limit = max(1, int(self.config.tokens_limit / 2))
 
-
             # 生成缓存数据条目片段的合集列表，原文列表与上文列表一一对应
-            chunks, previous_chunks = self.cache_manager.generate_item_chunks(
+            chunks, previous_chunks, file_paths = self.cache_manager.generate_item_chunks(
                 "line" if self.config.tokens_limit_switch == False else "token",
                 self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
                 self.config.pre_line_counts
@@ -224,11 +232,19 @@ class Translator(Base):
             # 生成翻译单元任务的合集列表
             tasks_list = []
             self.print("")
-            for chunk, previous_chunk in tqdm(zip(chunks, previous_chunks), desc = "生成翻译任务", total = len(chunks)):
-                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter) # 实例化
-                task.set_items(chunk)  #传入该任务待翻译原文
-                task.set_previous_items(previous_chunk) # 传入该任务待翻译原文的上文
-                task.prepare(self.config.target_platform,self.config.prompt_preset) # 预先构建消息列表
+            # 获取项目中出现次数最多的语言
+            most_common_language = get_most_common_language(self.cache_manager.project)
+            for chunk, previous_chunk, file_path in tqdm(zip(chunks, previous_chunks, file_paths),
+                                                         desc="生成翻译任务", total=len(chunks)):
+                # 获取适合的源语言
+                new_source_lang = self.get_source_language_for_file(file_path)
+                # 组装新源语言的对象
+                source_lang = SourceLang(new=new_source_lang, most_common=most_common_language)
+
+                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter, source_lang)  # 实例化
+                task.set_items(chunk)  # 传入该任务待翻译原文
+                task.set_previous_items(previous_chunk)  # 传入该任务待翻译原文的上文
+                task.prepare(self.config.target_platform, self.config.prompt_preset)  # 预先构建消息列表
                 tasks_list.append(task)
             self.print("")
 
@@ -251,20 +267,21 @@ class Translator(Base):
 
                 # 根据提示词规则打印基础指令
                 system = ""
+                s_lang = self.config.source_language
                 if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:
                     system = self.config.system_prompt_content
-                elif self.config.target_platform == "LocalLLM": # 需要放在前面，以免提示词预设的分支覆盖
-                    system = PromptBuilderLocal.build_system(self.config)
-                elif self.config.target_platform == "sakura": # 需要放在前面，以免提示词预设的分支覆盖
-                    system = PromptBuilderSakura.build_system(self.config)
+                elif self.config.target_platform == "LocalLLM":  # 需要放在前面，以免提示词预设的分支覆盖
+                    system = PromptBuilderLocal.build_system(self.config, s_lang)
+                elif self.config.target_platform == "sakura":  # 需要放在前面，以免提示词预设的分支覆盖
+                    system = PromptBuilderSakura.build_system(self.config, s_lang)
                 elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
-                    system = PromptBuilder.build_system(self.config)
+                    system = PromptBuilder.build_system(self.config, s_lang)
                 elif self.config.prompt_preset == PromptBuilderEnum.THINK:
-                    system = PromptBuilderThink.build_system(self.config)
+                    system = PromptBuilderThink.build_system(self.config, s_lang)
                 self.print("")
                 if system:
                     self.info(f"本次任务使用以下基础提示词：\n{system}\n") 
-                    
+
             else:
                 self.info(f"第一次请求的接口 - {self.config.platforms.get(self.config.request_a_platform_settings, {}).get("name", "未知")}")
                 self.info(f"接口地址 - {self.config.base_url_a}")
@@ -288,10 +305,7 @@ class Translator(Base):
             with concurrent.futures.ThreadPoolExecutor(max_workers = self.config.actual_thread_counts, thread_name_prefix = "translator") as executor:
                 for task in tasks_list:
                     future = executor.submit(task.start)
-                    future.add_done_callback(self.task_done_callback) # 为future对象添加一个回调函数，当任务完成时会被调用，更新数据
-
-
-
+                    future.add_done_callback(self.task_done_callback)  # 为future对象添加一个回调函数，当任务完成时会被调用，更新数据
 
         # 等待可能存在的缓存文件写入请求处理完毕
         time.sleep(CacheManager.SAVE_INTERVAL)
@@ -358,3 +372,44 @@ class Translator(Base):
             self.emit(Base.EVENT.TRANSLATION_UPDATE, stats_dict)
         except Exception as e:
             self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
+
+    def get_source_language_for_file(self, storage_path: str) -> str:
+        """
+        为文件确定适当的源语言
+        Args:
+            storage_path: 文件存储路径
+        Returns:
+            确定的源语言代码
+        """
+        # 获取配置文件中预置的源语言配置
+        config_s_lang = self.config.source_language
+        config_t_lang = self.config.target_language
+
+        # 如果源语言配置不是自动配置，则直接返回源语言配置，否则使用下面获取到的lang_code
+        if config_s_lang != 'auto':
+            return config_s_lang
+
+        # 获取文件的语言统计信息
+        language_stats = self.cache_manager.project.get_file(storage_path).language_stats
+
+        # 如果没有语言统计信息，返回'un'
+        if not language_stats:
+            return 'un'
+
+        # 获取第一种语言
+        first_source_lang = language_stats[0][0]
+
+        # 将first_source_lang转换为与target_lang相同格式的语言名称，方便比较
+        first_source_lang_name = TranslatorUtil.map_language_code_to_name(first_source_lang)
+
+        # 检查第一语言是否与目标语言一致
+        if first_source_lang_name == config_t_lang:
+            # 如果一致，尝试使用第二种语言
+            if len(language_stats) > 1:
+                return language_stats[1][0]  # 返回第二种语言
+            else:
+                # 没有第二种语言，返回'un'
+                return 'un'
+        else:
+            # 如果不一致，直接使用第一种语言
+            return first_source_lang

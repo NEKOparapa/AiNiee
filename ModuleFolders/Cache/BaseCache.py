@@ -3,7 +3,8 @@ import threading
 from contextlib import contextmanager
 from dataclasses import dataclass, field, fields
 from reprlib import Repr
-from typing import Any, ClassVar, get_args, get_origin
+from types import UnionType
+from typing import Any, ClassVar, get_args, get_origin, Union
 
 _ATOMIC_TYPES = frozenset([
     bool,
@@ -55,6 +56,20 @@ class DictMixin:
 
     @classmethod
     def _from_define(cls, type_, data) -> Any:
+        # 首先检查type_是否为Union类型
+        if get_origin(type_) in [Union, UnionType]:  # Union类型的处理
+            args = get_args(type_)
+            # 尝试使用能够匹配的第一个类型
+            for arg in args:
+                if arg is type(None) and data is None:
+                    return None
+                try:
+                    return cls._from_define(arg, data)
+                except (ValueError, TypeError):
+                    continue
+            # 如果都不匹配，直接返回数据
+            return data
+
         if type_ in _ATOMIC_TYPES and type(data) in _ATOMIC_TYPES:
             # 基本数据类型
             return data
@@ -72,7 +87,7 @@ class DictMixin:
 
         # 容器类型必须定义泛型
         if type_origin is None or args is None:
-            raise ValueError(f"不支持的类型 {type_}")
+            raise ValueError(f"不支持的类型 {type_} {data} {args}")
         elif issubclass(type_origin, tuple) and isinstance(data, (list, tuple)):
             # 元组
             if len(args) == 2 and args[1] is Ellipsis:

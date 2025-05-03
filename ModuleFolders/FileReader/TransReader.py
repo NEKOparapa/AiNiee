@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import rich
+
 from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheProject import ProjectType
@@ -38,7 +40,19 @@ class TransReader(BaseSourceReader):
             # 遍历每对文本 [原文，翻译]
             for idx, text_pair in enumerate(data_list):
 
-                # 获取原文内容
+                # --- 新增检查 ---
+                if not isinstance(text_pair, (list, tuple)):
+                    rich.print(
+                        f"[[red]WARNING[/]] 在文件 '{file_path}' 的类别 '{file_category}' 索引 {idx} 处发现非列表/元组项：{text_pair}，已跳过。")
+                    continue  # 跳过这个无效项
+
+                if len(text_pair) == 0:
+                    rich.print(
+                        f"[[red]WARNING[/]] 在文件 '{file_path}' 的类别 '{file_category}' 索引 {idx} 处发现空项：{text_pair}，已跳过。")
+                    continue  # 跳过这个空项
+                # --- 检查结束 ---
+
+                # 安全获取原文内容
                 source_text = text_pair[0]
 
                 # 获取译文内容，并且防止列表越界，有些trans文件没有译文位置

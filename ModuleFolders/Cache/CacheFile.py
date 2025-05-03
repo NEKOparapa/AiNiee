@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Any
+from typing import Any, Union
 
 from ModuleFolders.Cache.BaseCache import ExtraMixin, ThreadSafeCache
 from ModuleFolders.Cache.CacheItem import CacheItem
@@ -20,11 +20,14 @@ class CacheFile(ThreadSafeCache, ExtraMixin):
     file_project_type: str = ""
     """文件项目类型"""
 
-    line_ending: str = "\n"
+    line_ending: str = os.linesep
     """默认换行符"""
 
     items: list[CacheItem] = field(default_factory=list)
     """原文片段列表"""
+
+    language_stats: list[Union[str, int, float]] = field(default_factory=list)
+    """检测到的语言次数与对应的平均置信度，可能有多种语言的存在"""
 
     extra: dict[str, Any] = field(default_factory=dict)
     """额外属性，用于存储特定reader产生的文件的额外属性，共用属性请加到CacheFile中"""
