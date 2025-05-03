@@ -58,7 +58,6 @@ class DirectoryReader:
                     # 检查是否被排除，以及是否是目标类型文件
                     if not self.is_exclude(file_path, source_directory) and reader.can_read(file_path):
 
-                        # 使用检测到的编码读取文件内容
                         # 读取单个文件的文本信息，并添加其他信息
                         cache_file = reader.read_source_file(file_path)
                         cache_file.storage_path = str(file_path.relative_to(source_directory))
@@ -68,7 +67,7 @@ class DirectoryReader:
                             item.model = 'none'
                             text_index += 1
 
-                            # New: 统计语言信息
+                            # 统计每行的语言信息
                             lang_code = item.lang_code
                             # 只统计检测到有效语言代码的item行
                             if lang_code:

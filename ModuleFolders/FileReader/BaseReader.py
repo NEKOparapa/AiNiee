@@ -7,19 +7,19 @@ from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.FileReader.ReaderUtil import detect_file_encoding, detect_language_with_context
 
 
+
 @dataclass
 class InputConfig:
     input_root: Path
+
+@dataclass
+class PreReadMetadata:
+    encoding: str = "utf-8"
 
 
 class ReaderInitParams(TypedDict):
     """reader的初始化参数，必须包含input_config，其他参数随意"""
     input_config: InputConfig
-
-
-@dataclass
-class PreReadMetadata:
-    encoding: str = "utf-8"
 
 
 class BaseSourceReader(ABC):
@@ -50,22 +50,30 @@ class BaseSourceReader(ABC):
 
     def read_source_file(self, file_path: Path) -> CacheFile:
         """读取文件内容，并返回原文(译文)片段"""
-        # 模板方法
-        pre_read_metadata = self.pre_read_source(file_path)
-        file_data = self.on_read_source(file_path, pre_read_metadata)
-        file_data.encoding = pre_read_metadata.encoding
-        return self.post_read_source(file_data)
+        # 模板流程
+        pre_read_metadata = self.pre_read_source(file_path) # 读取文件之前的操作，可以放文件编码方法或其他
+        file_data = self.on_read_source(file_path, pre_read_metadata) # 读取文件内容，并返回原文(译文)片段，由各个reader实现不同的专属的方法
+        file_data.encoding = pre_read_metadata.encoding # 设置文件编码
+        post_file_data = self.post_read_source(file_data) # 读取文件之后的操作，可以是语言检测等
 
+        return post_file_data
+
+
+    # 读取文件之前的操作
     def pre_read_source(self, file_path: Path) -> PreReadMetadata:
-        """读取文件之前的操作，可以是检测文件编码"""
-        # 猜测的文件编码
-        return PreReadMetadata(encoding=detect_file_encoding(file_path))
+        """读取文件之前的操作，可以是检测文件编码等"""
+        # 检测文件编码
+        metadata = PreReadMetadata(encoding=detect_file_encoding(file_path))
 
+        return metadata
+
+    # 读取文件原文，由各个reader实现方法
     @abstractmethod
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
         """接收pre_read_source的结果，读取文件内容，并返回原文(译文)片段"""
         pass
 
+    # 读取文件之后的操作
     def post_read_source(self, file_data: CacheFile) -> CacheFile:
         """对原文(译文)片段做统一处理"""
         for i, item in enumerate(file_data.items):
@@ -77,6 +85,7 @@ class BaseSourceReader(ABC):
 
         return file_data
 
+    # 验证文件是否由该reader读取
     def can_read(self, file_path: Path, fast=True) -> bool:
         """验证文件兼容性，返回False则不会读取该文件"""
         if fast:

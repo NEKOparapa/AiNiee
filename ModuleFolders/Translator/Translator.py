@@ -153,13 +153,15 @@ class Translator(Base):
             if continue_status == True:
                 self.cache_manager.load_from_file(self.config.label_output_path)
             else:
-                self.cache_manager.load_from_project(
-                    self.file_reader.read_files(
+                # 读取输入文件夹的文件，生成缓存
+                CacheProject = self.file_reader.read_files(
                         self.config.translation_project,
                         self.config.label_input_path,
                         self.config.label_input_exclude_rule
                     )
-                )
+                # 读取完成后，保存到缓存管理器中
+                self.cache_manager.load_from_project(CacheProject)
+
         except Exception as e:
             self.translating = False # 更改状态
             self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ... ", e)
@@ -229,14 +231,15 @@ class Translator(Base):
                 self.config.pre_line_counts
             )
 
-            # 生成翻译单元任务的合集列表
-            tasks_list = []
+
             self.print("")
-            # 获取项目中出现次数最多的语言
+            # 计算项目中出现次数最多的语言
             most_common_language = get_most_common_language(self.cache_manager.project)
-            for chunk, previous_chunk, file_path in tqdm(zip(chunks, previous_chunks, file_paths),
-                                                         desc="生成翻译任务", total=len(chunks)):
-                # 获取适合的源语言
+
+            # 生成翻译任务合集列表
+            tasks_list = []
+            for chunk, previous_chunk, file_path in tqdm(zip(chunks, previous_chunks, file_paths),desc="生成翻译任务", total=len(chunks)):
+                # 计算该任务所处文件的主要源语言
                 new_source_lang = self.get_source_language_for_file(file_path)
                 # 组装新源语言的对象
                 source_lang = SourceLang(new=new_source_lang, most_common=most_common_language)

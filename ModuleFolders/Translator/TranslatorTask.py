@@ -226,19 +226,19 @@ class TranslatorTask(Base):
         if self.config.few_shot_and_example_switch == True:
 
             # 获取默认示例前置文本
-            pre_prompt = PromptBuilder.build_userExamplePrefix(self.config)
-            fol_prompt = PromptBuilder.build_modelExamplePrefix(self.config)
+            pre_prompt_example = PromptBuilder.build_userExamplePrefix(self.config)
+            fol_prompt_example = PromptBuilder.build_modelExamplePrefix(self.config)
 
             # 获取具体动态示例内容
             original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict, self.source_lang)
             if original_exmaple and translation_example_content:
                 messages.append({
                     "role": "user",
-                    "content": f"{pre_prompt}<textarea>\n{original_exmaple}\n</textarea>"
+                    "content": f"{pre_prompt_example}<textarea>\n{original_exmaple}\n</textarea>"
                 })
                 messages.append({
                     "role": "assistant",
-                    "content": f"{fol_prompt}<textarea>\n{translation_example_content}\n</textarea>"
+                    "content": f"{fol_prompt_example}<textarea>\n{translation_example_content}\n</textarea>"
                 })
                 extra_log.append(f"原文示例已添加：\n{original_exmaple}")
                 extra_log.append(f"译文示例已添加：\n{translation_example_content}")
@@ -248,7 +248,7 @@ class TranslatorTask(Base):
         if self.config.pre_line_counts and previous_text_list:
             previous = PromptBuilder.build_pre_text(self.config, previous_text_list)
             if previous != "":
-                extra_log.append(f"###上文\n{"\n".join(previous_text_list)}")
+                extra_log.append(f"###上文内容\n{"\n".join(previous_text_list)}")
 
         # 获取用户提问时的前置文本
         pre_prompt = PromptBuilder.build_userQueryPrefix(self.config)

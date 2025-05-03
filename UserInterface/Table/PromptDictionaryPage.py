@@ -338,7 +338,7 @@ class PromptDictionaryPage(QFrame, Base):
 
 
             # 弹出提示
-            info_cont1 = self.tra("人名信息已提取") + "..."
+            info_cont1 = self.tra("术语信息已提取") + "..."
             self.success_toast("", info_cont1)
 
         parent.add_action(

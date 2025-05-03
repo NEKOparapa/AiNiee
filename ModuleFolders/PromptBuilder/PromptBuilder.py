@@ -76,12 +76,17 @@ class PromptBuilder(Base):
         list2 = []
         list4 = []
 
-        # 获取特定示例
-        #list1, list3 = PromptBuilder.get_default_translation_example(config, input_dict, source_lang)
-
         conv_source_lang = TranslatorUtil.map_language_code_to_name(source_lang.new)
         if conv_source_lang == 'un':
             conv_source_lang = TranslatorUtil.map_language_code_to_name(source_lang.most_common)
+
+        # 检测原文语言是否能够构建动态示例
+        if conv_source_lang not in ["japanese", "korean", "russian", "chinese_simplified", "chinese_traditional", "french",
+                                "german", "spanish", "english"]:
+            return "", ""
+
+        # 获取特定示例
+        #list1, list3 = PromptBuilder.get_default_translation_example(config, input_dict, source_lang)
 
         # 获取自适应示例（无法构建english的）
         if conv_source_lang in ["japanese", "korean", "russian", "chinese_simplified", "chinese_traditional", "french",
@@ -92,7 +97,7 @@ class PromptBuilder(Base):
         combined_list = list1 + list2
         combined_list2 = list3 + list4
 
-        # 如果都没有示例则添加基础示例
+        # 如果前面都没能构成动态示例，则根据语言添加基础示例
         if not combined_list:
             base_example = {
                 "base": {
@@ -117,7 +122,6 @@ class PromptBuilder(Base):
         if len(combined_list) > 3:
             combined_list = combined_list[:3]
             combined_list2 = combined_list2[:3]
-
 
         # 创建空字典
         source_dict = {}

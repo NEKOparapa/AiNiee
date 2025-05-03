@@ -9,6 +9,7 @@ from PyQt5.QtCore import QRectF, Qt, QPoint, QRect, QTimer, pyqtSignal
 
 from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, FlowLayout, FluentIcon, PrimaryPushButton
 
+from Base.Base import Base
 
 class InfoBlockWidget(QWidget):
     """信息块组件 (圆角+折角+透明)"""
@@ -124,8 +125,6 @@ class InfoBlockWidget(QWidget):
 
         if self.display_mode == "aim":
             # --- 绘制文本准心 ---
-            # 定义准心字符图案 (使用换行符 \n)
-            # 可以根据喜好调整图案
             # 方案一：简单十字
             # reticle_text = "    \n--+--\n    "
             # 方案二：带边框感觉
@@ -144,7 +143,7 @@ class InfoBlockWidget(QWidget):
         # --- 结束绘制内容 ---
 
 
-class DragDropArea(QWidget):
+class DragDropArea(Base,QWidget):
     """实现拖拽功能的区域，包含信息块、按钮、路径显示和命中计数"""
     folderDropped = pyqtSignal(str) # 当有文件夹被成功拖入或选择时发射此信号，传递文件夹路径
     # hitCountChanged = pyqtSignal(int) # (可选) 如果需要在命中时立即通知外部，可以添加此信号
@@ -171,7 +170,7 @@ class DragDropArea(QWidget):
 
         # ===== 信息块区域为流式布局 =====
         flow_container = QWidget() # 创建一个容器控件来容纳流式布局
-        info_layout = FlowLayout(flow_container, needAni=True) # 使用 qfluentwidgets 的流式布局，允许动画
+        info_layout = FlowLayout(flow_container, needAni=False) # 使用 qfluentwidgets 的流式布局，不运行动画
         info_layout.setHorizontalSpacing(15) # 设置信息块之间的水平间距
         info_layout.setVerticalSpacing(15) # 增加垂直间距
 
@@ -197,7 +196,8 @@ class DragDropArea(QWidget):
         self.NoneLabel2 = CaptionLabel(f"       ", self)
         self.NoneLabel2.setAlignment(Qt.AlignVCenter) # 垂直居中        
 
-        self.selectButton = PrimaryPushButton(FluentIcon.FOLDER_ADD,"拖拽/选择输入文件夹",self) # 创建主操作按钮
+        info = self.tra("拖拽/选择输入文件夹")
+        self.selectButton = PrimaryPushButton(FluentIcon.FOLDER_ADD,info,self) # 创建主操作按钮
         self.selectButton.clicked.connect(self._select_folder) # 连接按钮点击事件到选择文件夹方法
 
         # 命中计数标签
@@ -220,7 +220,7 @@ class DragDropArea(QWidget):
         self.NoneLabel2.setAlignment(Qt.AlignVCenter) # 垂直居中       
 
         # 路径标签
-        self.pathLabel = BodyLabel("未选择路径", self) 
+        self.pathLabel = BodyLabel("NO PATH", self) 
         self.pathLabel.setAlignment(Qt.AlignCenter) # 文本居中对齐
 
         # 占位标签
@@ -241,7 +241,8 @@ class DragDropArea(QWidget):
 
     def _select_folder(self):
         """处理点击选择文件夹按钮的事件"""
-        folder_path = QFileDialog.getExistingDirectory(self, "选择文件夹")
+        info = self.tra("选择文件夹")
+        folder_path = QFileDialog.getExistingDirectory(self, info)
         if folder_path:
             self.update_path(folder_path)
             button_center_global = self.selectButton.mapToGlobal(self.selectButton.rect().center())
@@ -253,7 +254,8 @@ class DragDropArea(QWidget):
         """更新当前路径，并更新界面显示"""
         self.current_path = path
         display_path = path if len(path) < 50 else f"...{path[-47:]}"
-        self.pathLabel.setText(f"当前路径: {display_path}")
+        info = self.tra("当前路径") + ": "
+        self.pathLabel.setText(f"{info}{display_path}")
         self.pathLabel.setToolTip(path)
         self.folderDropped.emit(path)
 

@@ -31,9 +31,9 @@
       "日本語": "ドラッグ＆ドロップ/入力フォルダーを選択"
     },
     "设置当前翻译项目所使用的原始文本的格式，注意，选择错误将不能进行翻译": {
-      "简中": "设置原文格式，选错将导致翻译失败",
-      "繁中": "設定原文格式，選錯將導致翻譯失敗",
-      "English": "Set Source Text Format (Incorrect selection will cause translation failure)",
+      "简中": "设置原文类型，选错将导致翻译失败",
+      "繁中": "設定原文類型，選錯將導致翻譯失敗",
+      "English": "Set Source Text Type (Incorrect selection will cause translation failure)",
       "日本語": "原文テキスト形式を設定 (選択を誤ると翻訳に失敗します)"
     },
     "项目类型": {

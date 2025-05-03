@@ -21,7 +21,7 @@ HAS_UNUSUAL_ENG_REGEX = re.compile(
 )
 """预编译正则 匹配包含 至少一个下划线和至少一个字母与数字且没有空白字符 或者 只由字母和数字组成且必须同时包含至少一个字母与数字 的字符串"""
 
-
+# 加载语言检测器(全局)
 def get_lang_detector():
     """获取语言检测器的全局单例实例"""
     global _LANG_DETECTOR_INSTANCE
@@ -43,7 +43,7 @@ def get_lang_detector():
         rich.print(f"[[green]INFO[/]] MediaPipe Language Detector Loaded! ({load_time_ms:.2f} ms)")
     return _LANG_DETECTOR_INSTANCE
 
-
+# 释放语言检测器
 def close_lang_detector():
     """关闭并释放语言检测器的全局单例实例"""
     global _LANG_DETECTOR_INSTANCE
@@ -61,26 +61,7 @@ def close_lang_detector():
             _LANG_DETECTOR_INSTANCE = None
     return True
 
-
-def is_symbols_only(source_text: str):
-    cleaned_text = source_text.strip()
-    if not cleaned_text:  # 检查是否为空字符串
-        return False
-    # 检查每个字符是否都不是字母数字
-    return all(not c.isalnum() for c in cleaned_text)
-
-
-def clean_text(source_text):
-    # 步骤1：先将所有换行符替换为一个特殊标记
-    text_with_marker = re.sub(r'\r\n|\r|\n', '__NEWLINE__', source_text)
-
-    # 步骤2：正常处理其他空白字符
-    cleaned_text = re.sub(r'\s+', ' ', text_with_marker.strip())
-
-    # 步骤3：将标记替换回字面的'\n'
-    return cleaned_text.replace('__NEWLINE__', '\\n')
-
-
+# 检测文件编码
 def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: float = 0.75) -> str:
     """
     使用`charset_normalizer`与`chardet`检测文件编码
@@ -127,7 +108,7 @@ def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: fl
         print(f"[[red]ERROR[/]] 文件 {file_path} 检测过程出错: {str(e)}")
         return 'utf-8'  # 出错时返回默认编码
 
-
+# 检测文本语言
 def detect_language_with_context(item: CacheItem, index: int, file_data: CacheFile) -> tuple[str, float]:
     """检测语言，为短文本提供上下文支持
 
@@ -188,7 +169,27 @@ def detect_language_with_context(item: CacheItem, index: int, file_data: CacheFi
             probability -= 0.15
         return lang_result[0].language_code, lang_result[0].probability
 
+# 辅助函数，用于清理文本
+def clean_text(source_text):
+    # 步骤1：先将所有换行符替换为一个特殊标记
+    text_with_marker = re.sub(r'\r\n|\r|\n', '__NEWLINE__', source_text)
 
+    # 步骤2：正常处理其他空白字符
+    cleaned_text = re.sub(r'\s+', ' ', text_with_marker.strip())
+
+    # 步骤3：将标记替换回字面的'\n'
+    return cleaned_text.replace('__NEWLINE__', '\\n')
+
+# 辅助函数，用于检查文本是否只包含符号
+def is_symbols_only(source_text: str):
+    cleaned_text = source_text.strip()
+    if not cleaned_text:  # 检查是否为空字符串
+        return False
+    # 检查每个字符是否都不是字母数字
+    return all(not c.isalnum() for c in cleaned_text)
+
+
+# 检测换行符类型
 def detect_newlines(content: str) -> str:
     """
     检测文本内容中使用的换行符类型

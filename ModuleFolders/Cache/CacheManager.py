@@ -252,4 +252,4 @@ class CacheManager(Base):
                 file_paths.append(file.storage_path)  # 添加文件路径记录
 
         # 返回结果列表
-        return chunks, previous_chunks, file_paths  # 修改返回值，添加file_paths
+        return chunks, previous_chunks, file_paths 
