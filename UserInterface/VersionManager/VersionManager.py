@@ -5,9 +5,9 @@ import json
 import signal
 import threading
 import requests
-from PyQt5.QtCore import QUrl, pyqtSignal, QObject, Qt
+from PyQt5.QtCore import pyqtSignal, QObject, Qt
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QGridLayout, QWidget)
-from PyQt5.QtGui import QDesktopServices
+
 
 from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, StrongBodyLabel,
                             CaptionLabel, PrimaryPushButton, PushButton, ProgressBar,
@@ -20,6 +20,10 @@ class UpdaterSignals(QObject):
     download_completed = pyqtSignal(str)
     download_failed = pyqtSignal(str)
     update_check_completed = pyqtSignal(bool, str, bool, str)  # has_update, latest_version, check_failed, error_message
+    download_url_found = pyqtSignal(str)  # 找到下载URL
+    download_url_not_found = pyqtSignal()  # 未找到下载URL
+    connection_error = pyqtSignal(int)  # 连接错误，参数为状态码
+    general_error = pyqtSignal(str)  # 一般错误，参数为错误信息
 
 # 更新对话框
 class UpdateMessageBox(MessageBoxBase):
@@ -51,6 +55,10 @@ class VersionManager(Base):
         self.signals.download_completed.connect(self._download_completed)
         self.signals.download_failed.connect(self._download_failed)
         self.signals.update_check_completed.connect(self._update_dialog_after_check)
+        self.signals.download_url_found.connect(self._start_download_with_url_from_main_thread)
+        self.signals.download_url_not_found.connect(lambda: self._show_download_error(self.tra("未找到可下载的更新文件")))
+        self.signals.connection_error.connect(self._show_connection_error)
+        self.signals.general_error.connect(self._show_download_error)
 
     def _get_current_version(self,version):
         # re.search 会查找字符串中第一个匹配该模式的位置
@@ -415,7 +423,11 @@ class VersionManager(Base):
         self.status_label.setText(self.tra("正在获取下载链接..."))
         self.update_button.setEnabled(False)
 
-        # 获取下载 URL
+        # 在后台线程中获取下载URL
+        threading.Thread(target=self._get_download_url_in_background, daemon=True).start()
+
+    def _get_download_url_in_background(self):
+        """在后台线程中获取下载URL"""
         try:
             response = requests.get(self.GITHUB_API_URL, timeout=10)
             if response.status_code == 200:
@@ -428,50 +440,60 @@ class VersionManager(Base):
                         download_url = asset["browser_download_url"]
                         break
 
+                # 改用信号更新Ui
                 if download_url:
-                    # 使用下载链接开始下载
-                    self._start_download_with_url(download_url)
+                    # 发送找到下载URL的信号
+                    self.signals.download_url_found.emit(download_url)
                 else:
-                    self.status_label.setText(self.tra("未找到下载文件"))
-                    self.update_button.setEnabled(True)
-                    self.pause_button.setVisible(False)
-                    self.percentage_label.setVisible(False)
-
-                    if self.main_window:
-                                self.main_window.error_toast(self.tra("下载错误"), self.tra("未找到可下载的更新文件"))
+                    # 发送未找到下载URL的信号
+                    self.signals.download_url_not_found.emit()
             else:
-                self.status_label.setText(self.tra("获取下载链接失败"))
-                self.update_button.setEnabled(True)
-                self.pause_button.setVisible(False)
-                self.percentage_label.setVisible(False)
-                # 使用 InfoBar 显示错误信息
-                if self.main_window:
-                    InfoBar.error(
-                        title=self.tra("连接错误"),
-                        content=self.tra("无法连接到更新服务器"),
-                    orient=Qt.Horizontal,
-                    isClosable=True,
-                    position=InfoBarPosition.TOP,
-                    duration=3000,
-                    parent=self.main_window
-                )
+                # 发送连接错误信号
+                self.signals.connection_error.emit(response.status_code)
         except Exception as e:
             self.error(f"Error starting update: {e}")
-            self.status_label.setText(self.tra("更新失败"))
-            self.update_button.setEnabled(True)
-            self.pause_button.setVisible(False)
-            self.percentage_label.setVisible(False)
+            # 发送一般错误信号
+            self.signals.general_error.emit(str(e))
 
-            if self.main_window:
-                InfoBar.error(
-                    title=self.tra("更新错误"),
-                    content=str(e),
-                    orient=Qt.Horizontal,
-                    isClosable=True,
-                    position=InfoBarPosition.TOP,
-                    duration=3000,
-                    parent=self.main_window
-                )
+    def _start_download_with_url_from_main_thread(self, url):
+        """从主线程中调用_start_download_with_url"""
+        self._start_download_with_url(url)
+
+    def _show_download_error(self, error_msg):
+        """显示下载错误"""
+        self.status_label.setText(self.tra("更新失败"))
+        self.update_button.setEnabled(True)
+        self.pause_button.setVisible(False)
+        self.percentage_label.setVisible(False)
+
+        if self.main_window:
+            InfoBar.error(
+                title=self.tra("下载错误"),
+                content=error_msg,
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=3000,
+                parent=self.main_window
+            )
+
+    def _show_connection_error(self, status_code):
+        """显示连接错误"""
+        self.status_label.setText(self.tra("获取下载链接失败"))
+        self.update_button.setEnabled(True)
+        self.pause_button.setVisible(False)
+        self.percentage_label.setVisible(False)
+
+        if self.main_window:
+            InfoBar.error(
+                title=self.tra("连接错误"),
+                content=f"{self.tra('无法连接到更新服务器')} ({status_code})",
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=3000,
+                parent=self.main_window
+            )
 
     def _download_update(self, url):
         """下载更新文件，支持断点续传"""
