@@ -39,6 +39,10 @@ class PromptBuilderLocal(Base):
 
     # 获取系统提示词
     def build_system(config: TranslatorConfig, source_lang: str) -> str:
+
+        # 获取默认系统提示词
+        PromptBuilderLocal.get_system_default(config)
+
         en_sl, source_language, en_tl, target_language = TranslatorUtil.get_language_display_names(source_lang, config.target_language)
 
         # 构造结果
