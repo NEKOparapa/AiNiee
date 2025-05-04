@@ -184,7 +184,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.version_manager.show_update_dialog()
 
         # 恢复按钮文本和状态
-        QTimer.singleShot(2000, lambda: self._restore_update_button(original_text))
+        QTimer.singleShot(1000, lambda: self._restore_update_button(original_text))
 
     # 恢复更新按钮状态
     def _restore_update_button(self, original_text: str) -> None:
