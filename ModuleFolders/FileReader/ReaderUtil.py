@@ -26,7 +26,7 @@ def get_lang_detector():
     """获取语言检测器的全局单例实例"""
     global _LANG_DETECTOR_INSTANCE
     if _LANG_DETECTOR_INSTANCE is None:
-        rich.print("[[green]INFO[/]] Loading MediaPipe Language Detector...")
+        rich.print("[[green]INFO[/]] 加载 MediaPipe 文本语言检测器中...")
         # Record start time
         start_time = time.time()
 
@@ -40,7 +40,7 @@ def get_lang_detector():
 
         # Calculate load time in milliseconds
         load_time_ms = (time.time() - start_time) * 1000
-        rich.print(f"[[green]INFO[/]] MediaPipe Language Detector Loaded! ({load_time_ms:.2f} ms)")
+        rich.print(f"[[green]INFO[/]] MediaPipe 文本语言检测器已加载! ({load_time_ms:.2f} ms)")
     return _LANG_DETECTOR_INSTANCE
 
 # 释放语言检测器
@@ -51,7 +51,7 @@ def close_lang_detector():
         # MediaPipe任务通常有close方法用于释放资源
         try:
             _LANG_DETECTOR_INSTANCE.close()
-            rich.print("[[green]INFO[/]] MediaPipe Language Detector closed!")
+            rich.print("[[green]INFO[/]]  MediaPipe 文本语言检测器已释放!")
         except AttributeError:
             # 如果没有close方法，尝试其他可能的清理方法
             if hasattr(_LANG_DETECTOR_INSTANCE, 'release'):

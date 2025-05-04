@@ -48,11 +48,12 @@ class BaseSourceReader(ABC):
         """该读取器支持处理的文件扩展名（不带点），如 json"""
         pass
 
-    def read_source_file(self, file_path: Path) -> CacheFile:
-        """读取文件内容，并返回原文(译文)片段"""
+    # 读取原文文件的处理流程（改进点：非自动检测语言情况下不使用检测器）
+    def read_source_file(self, file_path: Path, source_language:str) -> CacheFile:
+        """读取文件内容，并检测各种信息"""
         # 模板流程
         pre_read_metadata = self.pre_read_source(file_path) # 读取文件之前的操作，可以放文件编码方法或其他
-        file_data = self.on_read_source(file_path, pre_read_metadata) # 读取文件内容，并返回原文(译文)片段，由各个reader实现不同的专属的方法
+        file_data = self.on_read_source(file_path, pre_read_metadata) # 读取单个文件中所有原文文本，由各个reader实现不同的专属的方法
         file_data.encoding = pre_read_metadata.encoding # 设置文件编码
         post_file_data = self.post_read_source(file_data) # 读取文件之后的操作，可以是语言检测等
 
@@ -62,8 +63,14 @@ class BaseSourceReader(ABC):
     # 读取文件之前的操作
     def pre_read_source(self, file_path: Path) -> PreReadMetadata:
         """读取文件之前的操作，可以是检测文件编码等"""
-        # 检测文件编码
-        metadata = PreReadMetadata(encoding=detect_file_encoding(file_path))
+
+        # 限定文件类型，只检测txt，srt，vtt，lrc等文件编码，检测大型文件编码会很慢，例如epub，trans
+        if file_path.suffix in [".txt", ".srt", ".vtt", ".lrc"]:
+            # 检测文件编码
+            metadata = PreReadMetadata(encoding=detect_file_encoding(file_path))
+        else:
+            # 固定编码
+            metadata = PreReadMetadata(encoding="utf-8")
 
         return metadata
 
