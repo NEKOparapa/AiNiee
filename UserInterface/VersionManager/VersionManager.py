@@ -6,8 +6,8 @@ import signal
 import threading
 import requests
 from PyQt5.QtCore import QUrl, pyqtSignal, QObject, Qt
-from PyQt5.QtWidgets import (QVBoxLayout, QDialog, QHBoxLayout, QGridLayout, QWidget)
-from PyQt5.QtGui import QDesktopServices,QColor
+from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QGridLayout, QWidget)
+from PyQt5.QtGui import QDesktopServices
 
 from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, StrongBodyLabel,
                             CaptionLabel, PrimaryPushButton, PushButton, ProgressBar,
@@ -84,7 +84,7 @@ class VersionManager(Base):
             else:
                 self.error(f"Failed to check for updates: {response.status_code}")
                 
-                self.check_error = f"HTTP错误: {response.status_code}"
+                self.check_error = f"{self.tra("HTTP错误")}: {response.status_code}"
                 return False, self.current_version
         except Exception as e:
             self.error(f"Error checking for updates: {e}")
