@@ -19,6 +19,7 @@ class UpdaterSignals(QObject):
     progress_updated = pyqtSignal(int)
     download_completed = pyqtSignal(str)
     download_failed = pyqtSignal(str)
+    update_check_completed = pyqtSignal(bool, str, bool, str)  # has_update, latest_version, check_failed, error_message
 
 # 更新对话框
 class UpdateMessageBox(MessageBoxBase):
@@ -49,6 +50,7 @@ class VersionManager(Base):
         self.signals.progress_updated.connect(self._update_progress)
         self.signals.download_completed.connect(self._download_completed)
         self.signals.download_failed.connect(self._download_failed)
+        self.signals.update_check_completed.connect(self._update_dialog_after_check)
 
     def _get_current_version(self,version):
         # re.search 会查找字符串中第一个匹配该模式的位置
@@ -83,12 +85,12 @@ class VersionManager(Base):
                     return False, self.current_version
             else:
                 self.error(f"Failed to check for updates: {response.status_code}")
-                
+
                 self.check_error = f"{self.tra("HTTP错误")}: {response.status_code}"
                 return False, self.current_version
         except Exception as e:
             self.error(f"Error checking for updates: {e}")
-            
+
             self.check_error = str(e)
             return False, self.current_version
 
@@ -156,15 +158,7 @@ class VersionManager(Base):
             except Exception as e:
                 self.error(f"Error checking paused download: {e}")
 
-        # 初始化错误状态
-        self.check_error = None
-
-        # 检查更新
-        has_update, latest_version = self.check_for_updates()
-        # 使用实例变量中的错误信息
-        check_error = getattr(self, 'check_error', None)
-
-        # 创建更新对话框
+        # 创建更新对话框 - 先显示加载状态
         self.update_dialog = UpdateMessageBox(self.main_window)
 
         # 创建标题卡片
@@ -182,6 +176,64 @@ class VersionManager(Base):
         title_card.setMinimumWidth(400)
         self.update_dialog.viewLayout.addWidget(title_card)
 
+        # 创建加载状态卡片
+        loading_card = CardWidget(self.update_dialog)
+        loading_card.setObjectName("loading_card")  
+        loading_layout = QVBoxLayout(loading_card)
+        loading_layout.setContentsMargins(16, 16, 16, 16)
+
+        # 加载状态文本
+        loading_label = SubtitleLabel(self.tra("正在检查更新..."), loading_card)
+        loading_label.setAlignment(Qt.AlignCenter)
+        loading_layout.addWidget(loading_label)
+
+        # 添加到对话框
+        self.update_dialog.viewLayout.addWidget(loading_card)
+
+        # 显示对话框
+        self.update_dialog.show()
+
+        # 在后台线程中检查更新
+        threading.Thread(target=self._check_update_in_background, daemon=True).start()
+
+    def _check_update_in_background(self):
+        """在后台线程中检查更新并更新UI"""
+        try:
+            # 初始化错误状态
+            self.check_error = None
+
+            # 检查更新
+            has_update, latest_version = self.check_for_updates()
+
+            # 使用实例变量中的错误信息
+            check_error = getattr(self, 'check_error', None)
+
+            # 通过信号在主线程中更新UI
+            self.signals.update_check_completed.emit(
+                has_update,
+                latest_version,
+                check_error is not None,
+                check_error if check_error else ""
+            )
+        except Exception as e:
+            self.error(f"Error in background update check: {e}")
+            # 通过信号在主线程中更新UI，显示错误
+            self.signals.update_check_completed.emit(
+                False,
+                self.current_version,
+                True,
+                str(e)
+            )
+
+    def _update_dialog_after_check(self, has_update, latest_version, check_failed, error_message):
+        """更新检查完成后更新对话框内容"""
+        # 移除加载状态卡片
+        for i in range(self.update_dialog.viewLayout.count()):
+            widget = self.update_dialog.viewLayout.itemAt(i).widget()
+            if widget and widget.objectName() == "loading_card":
+                widget.setParent(None)
+                break
+
         # 在版本信息卡片部分修改
         version_card = CardWidget(self.update_dialog)
         version_layout = QGridLayout(version_card)
@@ -196,7 +248,7 @@ class VersionManager(Base):
         # 最新版本
         latest_version_label = CaptionLabel(self.tra("最新版本") + ":", version_card)
 
-        if check_error is not None:
+        if check_failed:
             # 检查失败，显示错误信息
             latest_version_value = StrongBodyLabel(self.tra("检查错误"), version_card)
             latest_version_value.setStyleSheet("color: #E53935;") # 红色错误提示
@@ -220,9 +272,7 @@ class VersionManager(Base):
         version_info_text.setMinimumHeight(20)  # 设置最小高度
         version_layout.addWidget(version_info_text, 2, 0, 1, 2)
 
-
         version_card.setMinimumHeight(100)
-
         self.update_dialog.viewLayout.addWidget(version_card)
 
         # 进度卡片 - 添加百分比标签
@@ -259,9 +309,7 @@ class VersionManager(Base):
 
         progress_layout.addWidget(self.status_label)
 
-
         progress_card.setMinimumHeight(100)
-
         self.update_dialog.viewLayout.addWidget(progress_card)
 
         # 按钮卡片
@@ -311,7 +359,7 @@ class VersionManager(Base):
             self.latest_version_url if self.latest_version_url else "#",
             self.tra("查看发布页"),
         )
-        self.view_release_button.clicked.connect(self._open_release_page)
+        
 
         right_buttons_layout.addWidget(self.view_release_button)
 
@@ -322,11 +370,11 @@ class VersionManager(Base):
         self.update_dialog.viewLayout.addWidget(button_card)
 
         # 处理不同状态
-        if check_error is not None:
+        if check_failed:
             # 检查失败
             self.update_button.setEnabled(False)
             version_info_text.setText(self.tra("无法检查更新，请稍后再试"))
-            self.status_label.setText(f"{self.tra('检查失败')}: {check_error}")
+            self.status_label.setText(f"{self.tra('检查失败')}: {error_message}")
             # 禁用发布页链接
             self.view_release_button.setEnabled(False)
         elif not has_update:
@@ -334,9 +382,6 @@ class VersionManager(Base):
             self.update_button.setEnabled(False)
             version_info_text.setText(self.tra("您已经使用最新版本"))
             self.status_label.setText(self.tra("无需更新"))
-
-        # 显示对话框
-        self.update_dialog.exec_()
 
     def _start_download_with_url(self, url):
         """使用指定URL开始下载"""
@@ -625,11 +670,7 @@ class VersionManager(Base):
             if self.main_window:
                 self.main_window.warning_toast(self.tra("下载取消"), self.tra("正在取消下载，请稍候..."))
 
-    def _open_release_page(self):
-        """Open the release page in browser"""
-        if self.latest_version_url:
-            QDesktopServices.openUrl(QUrl(self.latest_version_url))
-
+    
     def _run_updater(self, update_file):
         """Run the updater executable"""
         try:

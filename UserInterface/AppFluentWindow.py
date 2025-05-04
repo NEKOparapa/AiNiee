@@ -80,8 +80,8 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
     # THEME_COLOR = "#00aeec"
     THEME_COLOR = "#808b9d"
     # THEME_COLOR = "#9aabad"
-    # THEME_COLOR = "#8f93e6" 
-    # THEME_COLOR = "#8A95A9" 
+    # THEME_COLOR = "#8f93e6"
+    # THEME_COLOR = "#8A95A9"
 
     def __init__(self, version: str, plugin_manager: PluginManager, support_project_types: set[str]) -> None:
         super().__init__()
@@ -175,7 +175,21 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
     # 显示更新对话框
     def show_update_dialog(self) -> None:
+        # 更新按钮文本，提示正在检查
+        original_text = self.update_button.text()
+        self.update_button.setText(self.tra("正在检查更新..."))
+        self.update_button.setEnabled(False)
+
+        # 显示更新对话框
         self.version_manager.show_update_dialog()
+
+        # 恢复按钮文本和状态
+        QTimer.singleShot(2000, lambda: self._restore_update_button(original_text))
+
+    # 恢复更新按钮状态
+    def _restore_update_button(self, original_text: str) -> None:
+        self.update_button.setText(original_text)
+        self.update_button.setEnabled(True)
 
     # 检查更新
     def check_for_updates(self) -> None:
@@ -242,13 +256,14 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         )
 
         # 更新按钮
+        self.update_button = NavigationPushButton(
+            FluentIcon.UPDATE,
+            self.tra("检查更新"),
+            False
+        )
         self.navigationInterface.addWidget(
             routeKey = "update_navigation_button",
-            widget = NavigationPushButton(
-                FluentIcon.UPDATE,
-                self.tra("检查更新"),
-                False
-            ),
+            widget = self.update_button,
             onClick = self.show_update_dialog,
             position = NavigationItemPosition.BOTTOM
         )
