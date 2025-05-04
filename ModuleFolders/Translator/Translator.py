@@ -149,15 +149,21 @@ class Translator(Base):
         self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
 
         # 读取输入文件夹的文件，生成缓存
+        self.print("")
+        self.info(f"正在读取输入文件夹中的文件 ...")
         try:
-            if continue_status == True:
+            # 继续翻译时，直接读取缓存文件
+            if continue_status == True: 
                 self.cache_manager.load_from_file(self.config.label_output_path)
+            
+            # 初开始翻译
             else:
                 # 读取输入文件夹的文件，生成缓存
                 CacheProject = self.file_reader.read_files(
                         self.config.translation_project,
                         self.config.label_input_path,
-                        self.config.label_input_exclude_rule
+                        self.config.label_input_exclude_rule,
+                        self.config.source_language
                     )
                 # 读取完成后，保存到缓存管理器中
                 self.cache_manager.load_from_project(CacheProject)
@@ -167,20 +173,39 @@ class Translator(Base):
             self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ... ", e)
             return None
         
-        
         # 检查数据是否为空
         if self.cache_manager.get_item_count() == 0:
             self.translating = False # 更改状态
             self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ... ")
             return None
 
-        # 从头翻译时加载默认数据
+        # 输出每个文件的检测信息
+        for _, file in self.cache_manager.project.files.items():
+            # 获取信息
+            language_stats = file.language_stats
+            storage_path = file.storage_path
+            encoding = file.encoding
+            file_project_type = file.file_project_type
+
+            # 输出信息
+            self.print("")
+            self.info(f"已经载入文件 - {storage_path}")
+            self.info(f"文件类型 - {file_project_type}")
+            self.info(f"文件编码 - {encoding}")
+            self.info(f"语言统计 - {language_stats}")
+
+        self.info(f"翻译项目数据全部载入成功 ...")
+        self.print("")
+
+        # 初开始翻译时，生成监控数据
         if continue_status == False:
             self.project_status_data = CacheProjectStatistics()
             self.cache_manager.project.stats_data = self.project_status_data
+        # 继续翻译时加载存储的监控数据
         else:
             self.project_status_data = self.cache_manager.project.stats_data
-            self.project_status_data.start_time = time.time() - self.project_status_data.start_time
+            self.project_status_data.start_time = time.time() # 重置开始时间
+            self.project_status_data.total_completion_tokens = 0 # 重置完成的token数量
 
         # 更新翻译进度
         self.emit(Base.EVENT.TRANSLATION_UPDATE, self.project_status_data.to_dict())
@@ -231,13 +256,13 @@ class Translator(Base):
                 self.config.pre_line_counts
             )
 
-
-            self.print("")
             # 计算项目中出现次数最多的语言
             most_common_language = get_most_common_language(self.cache_manager.project)
 
             # 生成翻译任务合集列表
             tasks_list = []
+            print("")
+            self.info(f"正在生成翻译任务 ...")
             for chunk, previous_chunk, file_path in tqdm(zip(chunks, previous_chunks, file_paths),desc="生成翻译任务", total=len(chunks)):
                 # 计算该任务所处文件的主要源语言
                 new_source_lang = self.get_source_language_for_file(file_path)
@@ -249,6 +274,7 @@ class Translator(Base):
                 task.set_previous_items(previous_chunk)  # 传入该任务待翻译原文的上文
                 task.prepare(self.config.target_platform, self.config.prompt_preset)  # 预先构建消息列表
                 tasks_list.append(task)
+            self.info(f"已经生成全部翻译任务 ...")
             self.print("")
 
             # 输出开始翻译的日志
@@ -302,6 +328,7 @@ class Translator(Base):
                 self.print("")
 
             self.info(f"即将开始执行翻译任务，预计任务总数为 {len(tasks_list)}, 同时执行的任务数量为 {self.config.actual_thread_counts}，请注意保持网络通畅 ...")
+            time.sleep(5)
             self.print("")
 
             # 开始执行翻译任务,构建异步线程池

@@ -234,34 +234,6 @@ class TranslationPage(QWidget, Base):
             self.combined_line_card.set_left_data(value=t_value_str, unit=t_unit_str)
             self.combined_line_card.set_right_data(value=r_value_str, unit=r_unit_str)
 
-    # 更新行数（备用）
-    def update_line_old(self, event: int, data: dict) -> None:
-        if data.get("line", None) is not None and data.get("total_line", None) is not None:
-            self.data["line"] = data.get("line")
-            self.data["total_line"] = data.get("total_line")
-
-        line = self.data.get("line", 0)
-        if line < 1000:
-            self.line_card.set_unit("Line")
-            self.line_card.set_value(f"{line}")
-        elif line < 1000 * 1000:
-            self.line_card.set_unit("KLine")
-            self.line_card.set_value(f"{(line / 1000):.2f}")
-        else:
-            self.line_card.set_unit("MLine")
-            self.line_card.set_value(f"{(line / 1000 / 1000):.2f}")
-
-        remaining_line = self.data.get("total_line", 0) - self.data.get("line", 0)
-        if remaining_line < 1000:
-            self.remaining_line.set_unit("Line")
-            self.remaining_line.set_value(f"{remaining_line}")
-        elif remaining_line < 1000 * 1000:
-            self.remaining_line.set_unit("KLine")
-            self.remaining_line.set_value(f"{(remaining_line / 1000):.2f}")
-        else:
-            self.remaining_line.set_unit("MLine")
-            self.remaining_line.set_value(f"{(remaining_line / 1000 / 1000):.2f}")
-
     # 更新实时任务数
     def update_task(self, event: int, data: dict) -> None:
         task = len([t for t in threading.enumerate() if "translator" in t.name])
@@ -451,30 +423,6 @@ class TranslationPage(QWidget, Base):
             )
         self.remaining_time.setFixedSize(204, 204)
         parent.addWidget(self.remaining_time)
-
-    # 翻译行数（备用）
-    def add_line_card(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
-        info_cont = self.tra("翻译行数")
-        self.line_card = DashboardCard(
-                title = info_cont,
-                value = "Line",
-                unit = "",
-                icon=FluentIcon.COMPLETED,
-            )
-        self.line_card.setFixedSize(204, 204)
-        parent.addWidget(self.line_card)
-
-    # 剩余行数（备用）
-    def add_remaining_line_card(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
-        info_cont = self.tra("剩余行数")
-        self.remaining_line = DashboardCard(
-                title = info_cont,
-                value = "Line",
-                unit = "",
-                icon=FluentIcon.PRINT,
-            )
-        self.remaining_line.setFixedSize(204, 204)
-        parent.addWidget(self.remaining_line)
 
     # 行数统计
     def add_combined_line_card(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
