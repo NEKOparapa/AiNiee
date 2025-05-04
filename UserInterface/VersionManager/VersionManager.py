@@ -178,7 +178,7 @@ class VersionManager(Base):
 
         # 创建加载状态卡片
         loading_card = CardWidget(self.update_dialog)
-        loading_card.setObjectName("loading_card")  
+        loading_card.setObjectName("loading_card")
         loading_layout = QVBoxLayout(loading_card)
         loading_layout.setContentsMargins(16, 16, 16, 16)
 
@@ -359,7 +359,7 @@ class VersionManager(Base):
             self.latest_version_url if self.latest_version_url else "#",
             self.tra("查看发布页"),
         )
-        
+
 
         right_buttons_layout.addWidget(self.view_release_button)
 
@@ -586,7 +586,7 @@ class VersionManager(Base):
             self.signals.download_failed.emit(str(e))
 
     def _update_progress(self, progress):
-        """Update the progress bar and percentage label"""
+        """更新进度条和百分比标签"""
         if self.progress_bar and self.percentage_label:
             self.progress_bar.setValue(progress)
             self.percentage_label.setText(f"{progress}%")
@@ -622,13 +622,25 @@ class VersionManager(Base):
                 self.main_window.success_toast(self.tra("更新已下载"), self.tra("更新已下载，可以通过更新按钮重新安装"))
 
     def _download_failed(self, error_msg):
-        """Handle download failure"""
+        """Handle download failure or pause"""
+        # 检查是否是暂停状态
+        if error_msg == self.tra("下载已暂停"):
+            # 暂停状态，显示继续按钮
+            self.status_label.setText(self.tra("下载已暂停"))
+            self.update_button.setEnabled(False)
+            self.pause_button.setVisible(False)
+            self.resume_button.setVisible(True)
+            self.resume_button.setEnabled(True)
+
+            # 不显示错误提示，因为这是用户主动操作
+            return
+
+        # 其他失败情况
         self.status_label.setText(f"{self.tra('下载失败')}: {error_msg}")
         self.update_button.setEnabled(True)
         self.pause_button.setVisible(False)
         self.resume_button.setVisible(False)
         self.percentage_label.setVisible(False)
-
 
         if self.main_window:
             InfoBar.error(
@@ -642,20 +654,44 @@ class VersionManager(Base):
             )
 
     def _pause_update(self):
-        """Pause the update download"""
+        # 只设置暂停标志，UI更新由_download_failed方法处理
         self._pause_download = True
+        # 禁用暂停按钮，防止用户多次点击
         self.pause_button.setEnabled(False)
-        self.resume_button.setVisible(True)
-        self.resume_button.setEnabled(True)
-        self.status_label.setText(self.tra("下载已暂停"))
 
     def _resume_update(self):
         """Resume the update download"""
         self._pause_download = False
-        self.resume_button.setEnabled(False)
+        self.resume_button.setVisible(False)
         self.pause_button.setVisible(True)
         self.pause_button.setEnabled(True)
-        self.status_label.setText(self.tra("正在下载更新..."))
+        self.status_label.setText(self.tra("正在恢复下载..."))
+
+        # 读取下载信息文件，获取URL
+        try:
+            download_info_file = os.path.join("downloads", "download_info.json")
+            if os.path.exists(download_info_file):
+                with open(download_info_file, 'r') as f:
+                    download_info = json.load(f)
+
+                # 获取URL并重新开始下载
+                url = download_info.get("url")
+                if url:
+                    # 启动下载线程
+                    self.download_thread = threading.Thread(
+                        target=self._download_update,
+                        args=(url,)
+                    )
+                    self.download_thread.daemon = True
+                    self.download_thread.start()
+                    return
+        except Exception as e:
+            self.error(f"Error resuming download: {e}")
+
+        # 如果恢复失败，显示错误信息
+        self.status_label.setText(self.tra("恢复下载失败"))
+        self.update_button.setEnabled(True)
+        self.resume_button.setVisible(False)
 
     def _cancel_update(self):
         """Cancel the update process"""
@@ -670,7 +706,7 @@ class VersionManager(Base):
             if self.main_window:
                 self.main_window.warning_toast(self.tra("下载取消"), self.tra("正在取消下载，请稍候..."))
 
-    
+
     def _run_updater(self, update_file):
         """Run the updater executable"""
         try:
