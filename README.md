@@ -58,15 +58,7 @@
   
   >`接口名称`: 选择你之前设置的接口<br>
 
-  >`项目类型`: 选择待翻译的文件类型，小说、字幕、文档可直接进行翻译，游戏需要文本提取工具进行配合<br>
-
-  >`原文语言`: 选择相应的原文文本语言<br>
-
-  >`译文语言`: 你希望翻译成的语言<br>
-
-  >`输入文件夹`: 把原文件放在这个文件夹内<br>
-
-  >`输出文件夹`: 选择翻译后文件的存储文件夹，请不要和输入文件夹一个路径<br>
+  >`输入文件夹`: 将原文件单独放置一个新的文件夹，并将该文件夹拖入框内<br>
 
 * **第三步：开始翻译**
 
@@ -90,6 +82,7 @@
       |[Cohere](https://dashboard.cohere.com/)|Command系列|免费账号可白嫖，速度一般|一般|用途广泛|
       |[Anthropic](https://console.anthropic.com/dashboard)|Claude系列|免费账号绑卡可白嫖少量额度，速度缓慢|贵|用途广泛|
       |[Deepseek](https://platform.deepseek.com/usage)|Deepseek系列|注册送少量免费额度，速度极快|便宜|用途广泛|
+      |[xAI](https://x.ai/)|Grok系列|绑卡预付费，送150刀|一般|用途广泛|
       |[Amazon Bedrock](https://aws.amazon.com/cn/bedrock/)|Claude或其他系列|速度极快|贵|安全限制|
       |[月之暗面](https://platform.moonshot.cn/console/info)|Moonshot系列|注册送少量免费额度|一般|用途广泛|
       |[零一万物](https://platform.lingyiwanwu.com/playground)|Yi系列|注册送少量免费额度|一般|安全限制|
@@ -126,7 +119,7 @@
       |[SExtractor](https://github.com/satan53x/SExtractor)|上手复杂，功能强大，推荐大佬使用|Mtool或者VNText导出文件|
 
 
- * **`📖术语表预提取工具`**
+ * **`🚡术语表预提取工具`**
 
       |工具名|说明|
       |:----:|:-----:|
@@ -134,7 +127,7 @@
       |[KeywordGacha](https://github.com/neavo/KeywordGacha) |使用 AI 技术来自动生成实体词语表的翻译辅助工具|
 
 
- * **`📖本地模型运行工具`**
+ * **`🧰本地模型运行工具`**
 
       |工具名|说明|
       |:----:|:-----:|
@@ -163,7 +156,7 @@
       |[Wolf游戏教程](https://www.bilibili.com/video/BV1SnXbYiEjQ/?share_source=copy_web&vd_source=b0eede35fc5eaa5c382509c6040d6501)|初次使用推荐观看|
 
 
- * **`📺游戏翻译图文教程`**
+ * **`🎫游戏翻译图文教程`**
 
       |视频链接|说明|
       |:----:|:-----:|
@@ -196,7 +189,7 @@
 *  OpenAI官方配置示例:
     > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/官方账号设置.png" width="600" height="400"><br>
 
-    > `模型选择`: 请自行了解模型之间的区别后再进行更改。<br>
+    > `模型选择`: 填入该平台提供服务的模型。<br>
   
     >`API KEY`: 填入由OpenAi账号生成的api_key<br>
   
@@ -283,7 +276,6 @@
 ### 插件说明
 </summary>
 
-- [插件 - 标点修复器](https://github.com/NEKOparapa/AiNiee/wiki/PunctuationFixer)
 - [插件 - 语言过滤器](https://github.com/NEKOparapa/AiNiee/wiki/LanguageFilter)
 - [插件 - 文本规范器](https://github.com/NEKOparapa/AiNiee/wiki/TextNormalizer)
 - [插件 - MTool 优化器](https://github.com/NEKOparapa/AiNiee/wiki/MToolOptimizer)
