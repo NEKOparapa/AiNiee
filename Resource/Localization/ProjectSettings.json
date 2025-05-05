@@ -143,6 +143,57 @@
       "繁中": "啟用此功能後，輸出譯文檔案的編碼將保持為與輸入原文檔案的編碼一致（若字元不相容，仍會使用 utf-8），\n關閉後將始終使用 utf-8 編碼（無特殊情況保持關閉即可）",
       "English": "When enabled, the output translated file's encoding will match the input original file's encoding (falls back to UTF-8 if characters are incompatible). \nWhen disabled, UTF-8 encoding will always be used. (Leave disabled under normal circumstances)",
       "日本語": "この機能を有効にすると、出力翻訳ファイルのエンコーディングは入力原文ファイルのエンコーディングと一致します（文字に互換性がない場合はutf-8を使用します）。\n無効にすると、常にutf-8エンコーディングを使用します。（通常はオフのままで問題ありません）"
+    } 
+  },
+
+"PART_2": { 
+    "书籍": {
+      "简中": "书籍",
+      "繁中": "書籍",
+      "English": "Books",
+      "日本語": "書籍"
+    },
+    "文档": {
+      "简中": "文档",
+      "繁中": "文件",
+      "English": "Documents",
+      "日本語": "ドキュメント"
+    },
+    "字幕": {
+      "简中": "字幕",
+      "繁中": "字幕",
+      "English": "Subtitles",
+      "日本語": "字幕"
+    },
+    "游戏挂载": {
+      "简中": "游戏挂载",
+      "繁中": "遊戲掛載",
+      "English": "Game Mounting",
+      "日本語": "ゲームマウント"
+    },
+    "游戏内嵌": {
+      "简中": "游戏内嵌",
+      "繁中": "遊戲內嵌",
+      "English": "Game Embedded",
+      "日本語": "ゲーム内蔵"
+    },
+    "数据文件": {
+      "简中": "数据文件",
+      "繁中": "資料檔案",
+      "English": "Data Files",
+      "日本語": "データファイル"
+    },
+    "特别文档": {
+      "简中": "特别文档",
+      "繁中": "特別文件",
+      "English": "Special Documents",
+      "日本語": "特別文書"
+    },
+    "工程文件": {
+      "简中": "工程文件",
+      "繁中": "工程檔案",
+      "English": "Project Files",
+      "日本語": "プロジェクトファイル"
     }
   }
 }

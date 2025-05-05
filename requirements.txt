@@ -4,22 +4,21 @@ openai
 boto3
 cohere
 anthropic
+google-genai
 tiktoken
 numpy
 openpyxl
 PyQt5
 PyQt-Fluent-Widgets[full]
 opencc
-google-genai
-ebooklib
 beautifulsoup4
-pandas
 chardet
 PyYAML
 requests
 httpx[http2]
 
 # Tools
+pandas
 rich
 tqdm
 jaconv

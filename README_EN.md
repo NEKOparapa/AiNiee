@@ -87,7 +87,6 @@
       |:----:|:-----:|:-----:|
       |[Mtool](https://afdian.com/p/d42dd1e234aa11eba42452540025c377)|Easy to use, recommended for beginners|Mtool export files|
       |[Translator++](https://dreamsavior.net/download/)|Supports multiple game engines|Translator++ export files|
-      |[Locale Emulator](https://github.com/xupefei/Locale-Emulator)|Solves Japanese game encoding issues|N/A|
 
  * **`🚡Translation Auxiliary Tools`**
 
@@ -120,7 +119,6 @@
       |Video Link|Description|
       |:----:|:-----:|
       |[Mtool Tutorial](https://www.bilibili.com/video/BV1h6421c7MA) |Recommended for first-time users|
-      |[GalTransl Tutorial](https://www.bilibili.com/video/BV1Yw411q7Zv/?share_source=copy_web&vd_source=b0eede35fc5eaa5c382509c6040d6501) |Recommended for first-time users|
       |[Wolf Game Tutorial](https://www.bilibili.com/video/BV1SnXbYiEjQ/?share_source=copy_web&vd_source=b0eede35fc5eaa5c382509c6040d6501)|Recommended for first-time users|
 
  * **`🎫Game Translation Text Tutorials`**

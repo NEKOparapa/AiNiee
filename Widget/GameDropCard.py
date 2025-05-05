@@ -11,7 +11,7 @@ from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, FlowLayout, Flue
 
 from Base.Base import Base
 
-class InfoBlockWidget(QWidget):
+class InfoBlockWidget(Base,QWidget):
     """信息块组件 (圆角+折角+透明)"""
     def __init__(self, text, color=QColor("#E0E0E0"), parent=None):
         super().__init__(parent)
@@ -174,16 +174,26 @@ class DragDropArea(Base,QWidget):
         info_layout.setHorizontalSpacing(15) # 设置信息块之间的水平间距
         info_layout.setVerticalSpacing(15) # 增加垂直间距
 
+        # 文本翻译
+        info1 = self.tra("书籍")
+        info2 = self.tra("文档")
+        info3 = self.tra("字幕")
+        info4 = self.tra("游戏挂载")
+        info5 = self.tra("游戏内嵌")
+        info6 = self.tra("数据文件")
+        info7 = self.tra("特别文档")    
+        info8 = self.tra("工程文件")
+
         # 创建多个信息块实例
         self.info_blocks = [
-            InfoBlockWidget("小说\n Epub\n TXT", QColor("#AED6F1")),
-            InfoBlockWidget("文档\n Docx\n MD",QColor("#A9DFBF")),
-            InfoBlockWidget("字幕\n Srt\n Vtt\n Lrc", QColor("#FAD7A0")),
-            InfoBlockWidget("外挂游戏\n Mtool", QColor("#D8BFD8")),
-            InfoBlockWidget("内嵌游戏\n Renpy\n VNText \n SExtractor", QColor("#AFEEEE")),
-            InfoBlockWidget("数据文件\n I18Next \n ParaTranz", QColor("#F08080")),
-            InfoBlockWidget("特别文档\n PDF\n DOC", QColor("#E6E6FA")),
-            InfoBlockWidget("工程文件\n .trans", QColor("#FFFACD")),
+            InfoBlockWidget(f"{info1}\n Epub\n TXT", QColor("#AED6F1")),
+            InfoBlockWidget(f"{info2}\n Docx\n MD",QColor("#A9DFBF")),
+            InfoBlockWidget(f"{info3}\n Srt\n Vtt\n Lrc", QColor("#FAD7A0")),
+            InfoBlockWidget(f"{info4}\n Mtool", QColor("#D8BFD8")),
+            InfoBlockWidget(f"{info5}\n Renpy\n VNText \n SExtractor", QColor("#AFEEEE")),
+            InfoBlockWidget(f"{info6}\n I18Next \n ParaTranz", QColor("#F08080")),
+            InfoBlockWidget(f"{info7}\n PDF\n DOC", QColor("#E6E6FA")),
+            InfoBlockWidget(f"{info8}\n .trans", QColor("#FFFACD")),
         ]
         # 将信息块添加到流式布局
         for block in self.info_blocks:
