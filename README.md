@@ -165,6 +165,7 @@
       |[Translator++教程（表格版）](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Translator-%EF%BC%88%E7%94%B5%E5%AD%90%E8%A1%A8%E6%A0%BC%E7%89%88%EF%BC%89)|适合翻译RPG,RenPY,Krkr等等游戏，进行内嵌式翻译（旧版教程）|
       |[Paratranz游戏教程](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Paratranz)|适合翻译各类大型游戏的MOD|
       |[StevExtraction工具教程](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90StevExtraction)|适合翻译RPGmakerMZ/MZ游戏|
+      |[综合游戏翻译超详细教程](https://www.notion.so/AI-1d43d31f89b280f6bd61e12580652ce5?pvs=4)|适合翻译各类游戏，制作高质量的内嵌补丁|
 
 </details>
 
@@ -220,52 +221,18 @@
   
 
 
-
 <details>
 <summary> 
 
-### 项目设置
+### 编辑中
 </summary>
 
-*   配置示例:<br>
 
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/基础设置.png" width="600" height="400"><br>
-    
-    >`项目类型`: 需要翻译的原文文件类型<br>
-
-    >`接口名称`: 翻译文本时希望使用的接口平台<br>
-
-    >`原文语言`: 选择相应的原文文本语言<br>
-
-    >`译文语言`: 你希望翻译成的语言<br>
-  
-    >`输入文件夹`: 选择你需要翻译的原文文件,把原文尽量放在一个干净的文件夹内，文件夹内没有其他文件，因为会读取该文件夹内所有相同的的文件类型，包括子文件<br>
-  
-    >`输出文件夹`: 选择翻译后文件的存储文件夹，请不要和输入文件夹一个路径<br>
-
-</details>
-
-
-<details>
-<summary> 
-
-### 提示词设置
-</summary>
-
-*   基础提示词:<br>
-
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/提示词设置/基础提示词设置.png" width="600" height="400"><br>
-    
-    >`通用`: 综合通用，花费最少，兼容各种模型，完美破限<br>
-
-    >`思维链`: 融入翻译三步法，提升思考深度，极大增加输出内容，极大增加消耗，提升文学质量，适合普通模型，完美破限<br>
-
-    >`推理模型`: 精简流程，为 DeepSeek-R1 等推理模型优化，释放推理模型的思考能力，获得最佳翻译质量<br>
-
-    >`自定义提示词`: 系统提示词将更改为你所写内容<br>
+- [插件 - 语言过滤器](https://github.com/NEKOparapa/AiNiee/wiki/LanguageFilter)
+- [插件 - 文本规范器](https://github.com/NEKOparapa/AiNiee/wiki/TextNormalizer)
+- [插件 - MTool 优化器](https://github.com/NEKOparapa/AiNiee/wiki/MToolOptimizer)
     
 </details>
-
 
 
 
@@ -280,7 +247,6 @@
 - [插件 - 文本规范器](https://github.com/NEKOparapa/AiNiee/wiki/TextNormalizer)
 - [插件 - MTool 优化器](https://github.com/NEKOparapa/AiNiee/wiki/MToolOptimizer)
 </details>
-
 
 
 
