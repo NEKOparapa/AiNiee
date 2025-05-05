@@ -56,9 +56,9 @@
 * **第二步：项目设置**
   > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第二步.png">
   
-  >`接口名称`: 选择你之前设置的接口<br>
+  >`API接口平台`: 选择你之前设置的接口<br>
 
-  >`输入文件夹`: 将原文件单独放置一个新的文件夹，并将该文件夹拖入框内<br>
+  >`输入文件夹`: 将原文文件单独放置一个新的文件夹，并将该文件夹拖入框内，小说、字幕、文档可直接进行翻译，游戏需要文本提取工具进行配合。<br>
 
 * **第三步：开始翻译**
 
@@ -70,30 +70,6 @@
 
 ---
 
-##  接口简介[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#接口简介)
-   
-
- * **`🤖AI调用平台`**
-
-      |支持平台|模型|白嫖情况|模型价格|限制情况|
-      |:-----:|:-----:|:-----:|:-----:|:-----:|
-      |[OpenAI](https://platform.openai.com/)|ChatGPT系列|现无免费额度|贵|用途广泛|
-      |[GooGle](https://makersuite.google.com/app/apikey?hl=zh-cn)|Gemini系列|免费账号可白嫖，速度缓慢|贵|用途广泛|
-      |[Cohere](https://dashboard.cohere.com/)|Command系列|免费账号可白嫖，速度一般|一般|用途广泛|
-      |[Anthropic](https://console.anthropic.com/dashboard)|Claude系列|免费账号绑卡可白嫖少量额度，速度缓慢|贵|用途广泛|
-      |[Deepseek](https://platform.deepseek.com/usage)|Deepseek系列|注册送少量免费额度，速度极快|便宜|用途广泛|
-      |[xAI](https://x.ai/)|Grok系列|绑卡预付费，送150刀|一般|用途广泛|
-      |[Amazon Bedrock](https://aws.amazon.com/cn/bedrock/)|Claude或其他系列|速度极快|贵|安全限制|
-      |[月之暗面](https://platform.moonshot.cn/console/info)|Moonshot系列|注册送少量免费额度|一般|用途广泛|
-      |[零一万物](https://platform.lingyiwanwu.com/playground)|Yi系列|注册送少量免费额度|一般|安全限制|
-      |[智谱清言](https://open.bigmodel.cn/overview)|GLM系列|注册送少量免费额度|一般|安全限制|
-      |[阿里云百炼](https://bailian.console.aliyun.com/) |千问系列|注册送大量免费额度|便宜|安全限制|
-      |[火山引擎](https://console.volcengine.com/ark)|豆包系列|注册送大量免费额度，速度极快|便宜|用途广泛|
-      |[SakuraLLM](https://github.com/SakuraLLM/SakuraLLM)  |Sakura系列| 本地模型，需显卡  |免费|用途广泛|
-      |[本地小模型](https://huggingface.co/models)  |开源模型| 本地模型，需显卡  |免费|用途广泛|
-
-
----
 
 <details>
 <summary>

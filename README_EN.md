@@ -43,56 +43,28 @@
 ## Three Steps to Use AiNiee 📢
 
 * **Step 1: Configure Interface**
-  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第一步.png">
+  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/Step1.png">
 
   - Online Interface: Paid but cost-effective, no GPU requirements, full language support, [Interface Setup Guide - DeepSeek](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartDeepSeek)
   - Online Interface: Same as above, if DeepSeek official website is not accessible, you can use this alternative, [Interface Setup Guide - Volcano Engine](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartHuo)
   - SakuraLLM Interface: Free, requires Nvidia GPU with 8GB+ VRAM, only supports Japanese-Chinese translation, [Interface Setup Guide - SakuraLLM](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartSakuraLLM)
 
 * **Step 2: Project Settings**
-  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第二步.png">
+  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/Step2.png">
   
   >`Interface Name`: Select the interface you configured earlier<br>
 
-  >`Project Type`: Select the file type to be translated; novels, subtitles, documents can be translated directly, games require text extraction tools<br>
-
-  >`Source Language`: Select the language of the original text<br>
+  >`Input Folder`: Place the original files in this folder; novels, subtitles, documents can be translated directly, games require text extraction tools<br>
 
   >`Target Language`: The language you want to translate to<br>
 
-  >`Input Folder`: Place the original files in this folder<br>
-
-  >`Output Folder`: Select a folder to store the translated files, please use a different path from the input folder<br>
-
 * **Step 3: Start Translation**
 
-  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第三步.png">
+  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/Step3.png">
 
   - Click the start button and wait for the task to complete.
 
   - [AiNiee Download Link](https://github.com/NEKOparapa/AiNiee/releases)
-
----
-
-##  Interface Introduction[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#interface-introduction)
-   
-
- * **`🤖AI Platforms`**
-
-      |Supported Platforms|Models|Free Options|Model Price|Limitations|
-      |:-----:|:-----:|:-----:|:-----:|:-----:|
-      |[OpenAI](https://platform.openai.com/)|ChatGPT Series|No free quota currently|Expensive|Widely applicable|
-      |[Google](https://makersuite.google.com/app/apikey?hl=zh-cn)|Gemini Series|Free accounts available, slow speed|Expensive|Widely applicable|
-      |[Cohere](https://dashboard.cohere.com/)|Command Series|Free accounts available, moderate speed|Average|Widely applicable|
-      |[Anthropic](https://console.anthropic.com/)|Claude Series|No free quota|Expensive|Widely applicable|
-      |[DeepSeek](https://platform.deepseek.com/)|DeepSeek Series|No free quota|Inexpensive|Widely applicable|
-      |[Moonshot](https://platform.moonshot.cn/)|Moonshot Series|No free quota|Inexpensive|Widely applicable|
-      |[Sakura](https://github.com/SakuraLLM/Sakura-13B-Galgame)|Sakura Series|Free local model|Free|Japanese-Chinese only|
-      |[Ollama](https://ollama.com/)|Various Models|Free local model|Free|Limited capabilities|
-      |[LM Studio](https://lmstudio.ai/)|Various Models|Free local model|Free|Limited capabilities|
-      |[Huoshan](https://www.volcengine.com/)|Huoshan Series|No free quota|Inexpensive|Widely applicable|
-      |[Zhipu](https://open.bigmodel.cn/)|GLM Series|No free quota|Inexpensive|Widely applicable|
-      |[Baidu](https://cloud.baidu.com/product/wenxinworkshop)|ERNIE Series|No free quota|Inexpensive|Widely applicable|
 
 ---
 
@@ -114,11 +86,7 @@
       |Tool Name|Introduction|Project Type|
       |:----:|:-----:|:-----:|
       |[Mtool](https://afdian.com/p/d42dd1e234aa11eba42452540025c377)|Easy to use, recommended for beginners|Mtool export files|
-      |[GalTransl](https://github.com/XD2333/GalTransl)|Comprehensive features, suitable for experienced users|GalTransl export files|
-      |[StevExtraction](https://github.com/regomne/chinesize/tree/master/StevExtraction)|Supports RPGmaker MV/MZ games|StevExtraction export files|
-      |[Wolf RPG Editor Translator](https://github.com/jctaoo/WolfrpgTranslator)|Supports Wolf RPG Editor games|Wolf RPG export files|
       |[Translator++](https://dreamsavior.net/download/)|Supports multiple game engines|Translator++ export files|
-      |[RPGMV-Translator](https://github.com/miaowm5/RPGMV-Translator)|Supports RPGmaker MV games|RPGMV-Translator export files|
       |[Locale Emulator](https://github.com/xupefei/Locale-Emulator)|Solves Japanese game encoding issues|N/A|
 
  * **`📖Translation Auxiliary Tools`**
@@ -175,193 +143,9 @@
 <details>
 <summary>
   
-## Feature Description[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#feature-description)  
+## Function Description[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#function-description)  
 </summary>
 
-<details>
-<summary>
-
-### Interface Management
-</summary>
-
-*   Configuration example:<br>
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/接口设置.png" width="600" height="400"><br>
-  
-    > `Model Selection`: Please understand the differences between models before making changes.<br>
-  
-    >`API KEY`: Enter the api_key generated by your OpenAI account<br>
-  
-    >`Base URL`: Enter the API request address, the default is OpenAI's official address<br>
-  
-    >`Proxy`: Optional, if you need to use a proxy to access the API<br>
-  
-    >`Organization`: Optional, for OpenAI's organization ID<br>
-  
-    >`Temperature`: Controls the randomness of the model's output, higher values make the output more random<br>
-  
-    >`Timeout`: API request timeout in seconds, increase if you experience timeout errors<br>
-
-*  Custom Platform Configuration Example:
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/代理账号设置.png" width="600" height="400"><br> 
-    
-    > `Platform`: Select the AI platform you want to use<br>
-  
-    > `Model`: Select the model provided by the platform<br>
-  
-    > `API Key`: Enter the API key for the selected platform<br>
-  
-    > `Base URL`: Enter the API request address for the selected platform<br>
-  
-    > `Proxy`: Optional, if you need to use a proxy to access the API<br>
-  
-    > `Temperature`: Controls the randomness of the model's output<br>
-  
-    > `Timeout`: API request timeout in seconds<br>
-  
-    >`Tokens per minute`: TPM (tokens per minute) - total number of tokens sent to the model interface per minute (similar to total character count)
-
-
-
-</details>
-  
-
-
-
-<details>
-<summary> 
-
-### Project Settings
-</summary>
-
-*   Configuration example:<br>
-
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/基础设置.png" width="600" height="400"><br>
-    
-    >`Project Type`: Type of original file to be translated<br>
-
-    >`Interface Name`: Select the interface you configured earlier<br>
-
-    >`Source Language`: Select the language of the original text<br>
-
-    >`Target Language`: The language you want to translate to<br>
-
-    >`Input Folder`: Place the original files in this folder<br>
-  
-    >`Output Folder`: Select a folder to store the translated files, please use a different path from the input folder<br>
-
-</details>
-
-
-<details>
-<summary> 
-
-### Prompt Settings
-</summary>
-
-*   Basic Prompts:<br>
-
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/提示词设置/基础提示词设置.png" width="600" height="400"><br>
-    
-    >`Basic Prompt`: Basic instructions for the AI, telling it how to translate<br>
-
-    >`Background Setting`: Provide background information about the content to be translated<br>
-
-    >`Role Introduction`: Define a specific role for the AI to assume during translation<br>
-
-    >`Translation Style`: Specify the desired style of the translation<br>
-
-    >`Translation Example`: Provide examples of good translations to guide the AI<br>
-
-*   Advanced Settings:<br>
-
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/提示词设置/高级设置.png" width="600" height="400"><br>
-    
-    >`Translation Threads`: Number of simultaneous translation threads, increase for faster translation but higher API consumption<br>
-
-    >`Context Window`: Number of previous translations to include as context for better consistency<br>
-
-    >`Max Tokens`: Maximum number of tokens the AI can generate in a response<br>
-
-    >`Retry Times`: Number of times to retry when API requests fail<br>
-
-    >`Retry Interval`: Time to wait between retry attempts<br>
-
-    >`Split Length`: Character length at which to split long texts for translation<br>
-
-*   Plugin Settings:<br>
-
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/提示词设置/插件设置.png" width="600" height="400"><br>
-    
-    > Enable or disable various plugins to enhance the translation process:
-    > - Bilingual Comparator: Creates side-by-side bilingual output
-    > - Translation Function Checker: Verifies translation quality
-    > - Text Filter: Filters out content that doesn't need translation
-    > - Text Normalizer: Standardizes text formatting
-
-</details>
-
-
-<details>
-<summary> 
-
-### Text Replacement
-</summary>
-
-*   Pre-translation Replacement:<br>
-
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/提示词设置/译前替换.png" width="600" height="400"><br>
-    
-    > Replace specific text patterns before sending to the AI for translation
-
-*   Post-translation Replacement:<br>
-
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/提示词设置/译后替换.png" width="600" height="400"><br>
-    
-    > Replace specific text patterns in the translated output
-
-</details>
-
-
-<details>
-<summary> 
-
-### Terminology Management
-</summary>
-
-*   Glossary:<br>
-
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/提示词设置/术语表.png" width="600" height="400"><br>
-    
-    > Define specific terms and their translations to ensure consistency
-
-*   Do Not Translate List:<br>
-
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/提示词设置/禁翻表.png" width="600" height="400"><br>
-    
-    > Specify terms that should not be translated
-
-</details>
-
-
-<details>
-<summary> 
-
-### Workflow Design
-</summary>
-
-*   Gemini Translation:<br>
-
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/提示词设置/双子星翻译.png" width="600" height="400"><br>
-    
-    > Configure the advanced dual-request translation process for higher quality results
-
-*   Workflow Settings:<br>
-
-    ><img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/提示词设置/流程设计.png" width="600" height="400"><br>
-    
-    > Customize the translation workflow to suit specific needs
-
-</details>
 
 
 <details>
@@ -370,11 +154,8 @@
 ### Plugin Introduction
 </summary>
 
-* [Plugin - Bilingual Comparator](https://github.com/NEKOparapa/AiNiee/wiki/BilingualComparator)
-* [Plugin - Translation Function Checker](https://github.com/NEKOparapa/AiNiee/wiki/TranslationFunctionChecker)
 * [Plugin - Language Filter](https://github.com/NEKOparapa/AiNiee/wiki/LanguageFilter)
 * [Plugin - Text Normalizer](https://github.com/NEKOparapa/AiNiee/wiki/TextNormalizer)
-* [Plugin - MTool Optimizer](https://github.com/NEKOparapa/AiNiee/wiki/MToolOptimizer)
 </details>
 
 
@@ -443,8 +224,3 @@ This AI translation tool is for personal legal use only. Any direct or indirect 
 * **`Community Groups`**: TG Group: https://t.me/+JVHbDSGo8SI2Njhl
 
 ---
-
-
-
-## Sponsorship💖
-[![xxxx](https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sponsor/徽章.png)](https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/Sponsor/赞赏码.png)
