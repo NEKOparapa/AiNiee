@@ -229,11 +229,7 @@ class Widget_export_source_text(QFrame):#  提取子界面
         print('[INFO] 开始提取游戏原文,请耐心等待！！！')
 
         #读取配置文件
-        # 方法: 使用 os.path.join()
-        # 获取 AiNiee.py 所在目录
-        current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        # 构建 config.yaml 的完整路径, StevExtraction 在 AiNiee 的子目录下
-        config_path = os.path.join(current_dir, "StevExtraction", "config.yaml")
+        config_path = os.path.join(".", "StevExtraction", "config.yaml") 
 
         with open(config_path, 'r', encoding='utf-8') as file:
             config = yaml.safe_load(file)
