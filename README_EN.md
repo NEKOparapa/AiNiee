@@ -52,11 +52,11 @@
 * **Step 2: Project Settings**
   > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/Step2.png">
   
-  >`Interface Name`: Select the interface you configured earlier<br>
-
-  >`Input Folder`: Place the original files in this folder; novels, subtitles, documents can be translated directly, games require text extraction tools<br>
+  >`API Platform`: Select the interface you configured earlier<br>
 
   >`Target Language`: The language you want to translate to<br>
+
+  >`Input Folder`: Place the original files in this folder; novels, subtitles, documents can be translated directly, games require text extraction tools<br>
 
 * **Step 3: Start Translation**
 
@@ -89,14 +89,14 @@
       |[Translator++](https://dreamsavior.net/download/)|Supports multiple game engines|Translator++ export files|
       |[Locale Emulator](https://github.com/xupefei/Locale-Emulator)|Solves Japanese game encoding issues|N/A|
 
- * **`📖Translation Auxiliary Tools`**
+ * **`🚡Translation Auxiliary Tools`**
 
       |Tool Name|Description|
       |:----:|:-----:|
       |[Novel Toolbox](https://books.fishhawk.top/workspace/toolbox)|Terminology table creation assistant tool|
       |[KeywordGacha](https://github.com/neavo/KeywordGacha) |AI-powered tool for automatically generating entity term translations|
 
- * **`📖Local Model Running Tools`**
+ * **`🧰Local Model Running Tools`**
 
       |Tool Name|Description|
       |:----:|:-----:|
@@ -123,15 +123,12 @@
       |[GalTransl Tutorial](https://www.bilibili.com/video/BV1Yw411q7Zv/?share_source=copy_web&vd_source=b0eede35fc5eaa5c382509c6040d6501) |Recommended for first-time users|
       |[Wolf Game Tutorial](https://www.bilibili.com/video/BV1SnXbYiEjQ/?share_source=copy_web&vd_source=b0eede35fc5eaa5c382509c6040d6501)|Recommended for first-time users|
 
- * **`📺Game Translation Text Tutorials`**
+ * **`🎫Game Translation Text Tutorials`**
 
       |Tutorial Link|Description|
       |:----:|:-----:|
       |[Mtool Tool Tutorial](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Mtool)|Suitable for translating RPGmaker MV/MZ games|
-      |[GalTransl Tool Tutorial](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90GalTransl)|Suitable for translating Galgame|
-      |[Wolf RPG Tool Tutorial](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90WolfRPG)|Suitable for translating Wolf RPG Editor games|
-      |[StevExtraction Tool Tutorial](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90StevExtraction)|Suitable for translating RPGmakerMZ/MZ games|
-
+      |[Translator++ Tool Tutorial](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Translator--%EF%BC%88%E5%B7%A5%E7%A8%8B%E6%96%87%E4%BB%B6%E7%89%88%EF%BC%89)|Suitable for translating RPG,RenPY,Krkr games|
 </details>
 
 

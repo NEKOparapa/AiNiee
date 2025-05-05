@@ -27,9 +27,12 @@ class ProjectSettingsPage(QFrame, Base):
         self.A_settings = ProjectSettingsPage_A('A_settings', window)  # 创建实例，指向界面
         self.B_settings = ProjectSettingsPage_B('B_settings', window, support_project_types)  # 创建实例，指向界面
 
+        info_cont1 = self.tra("快速设置")
+        info_cont2 = self.tra("详细设置")
+
         # 添加子界面到分段式导航栏
-        self.addSubInterface(self.A_settings, 'A_settings', '快速设置')
-        self.addSubInterface(self.B_settings, 'B_settings', '详细设置')
+        self.addSubInterface(self.A_settings, 'A_settings', info_cont1)
+        self.addSubInterface(self.B_settings, 'B_settings', info_cont2)
 
         # 将分段式导航栏和堆叠式窗口添加到垂直布局中
         self.vBoxLayout.addWidget(self.pivot)

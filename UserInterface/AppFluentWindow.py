@@ -239,10 +239,6 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         # 设置默认页面
         self.switchTo(self.translation_page)
 
-        # 应用设置按钮
-        self.app_settings_page = AppSettingsPage("app_settings_page", self)
-        self.addSubInterface(self.app_settings_page, FluentIcon.SETTING, self.tra("应用设置"), NavigationItemPosition.BOTTOM)
-
         # 主题切换按钮
         self.navigationInterface.addWidget(
             routeKey = "theme_navigation_button",
@@ -267,6 +263,10 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
             onClick = self.show_update_dialog,
             position = NavigationItemPosition.BOTTOM
         )
+
+        # 应用设置按钮
+        self.app_settings_page = AppSettingsPage("app_settings_page", self)
+        self.addSubInterface(self.app_settings_page, FluentIcon.SETTING, self.tra("应用设置"), NavigationItemPosition.BOTTOM)
 
         # 项目主页按钮
         self.navigationInterface.addWidget(
