@@ -1,3 +1,4 @@
+import os
 from PyQt5.QtCore import QUrl, QTimer, QThread, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication
@@ -269,11 +270,12 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.addSubInterface(self.app_settings_page, FluentIcon.SETTING, self.tra("应用设置"), NavigationItemPosition.BOTTOM)
 
         # 项目主页按钮
+        Avatar_path = os.path.join(".", "Resource", "Logo", "Avatar.png")
         self.navigationInterface.addWidget(
             routeKey = "avatar_navigation_widget",
             widget = NavigationAvatarWidget(
                 "NEKOparapa",
-                "Resource/Avatar.png",
+                Avatar_path,
             ),
             onClick = self.open_project_page,
             position = NavigationItemPosition.BOTTOM

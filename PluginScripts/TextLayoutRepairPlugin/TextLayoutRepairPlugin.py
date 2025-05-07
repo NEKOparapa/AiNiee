@@ -160,9 +160,6 @@ class TextLayoutRepairPlugin(PluginBase):
 
                 translated_stripped = "".join(temp_translated_list) # 转换回字符串
 
-
-
-
         # --- 阶段3: 处理内部可以全局替换的标点符号 ---
         # 定义标点替换映射：key 是原文期望的标点，value 是译文中可能出现的需要被替换的标点列表
         punctuation_map = {
@@ -179,8 +176,47 @@ class TextLayoutRepairPlugin(PluginBase):
                 # 在译文中全局替换替代标点为原文标点
                 translated_stripped = translated_stripped.replace(alt_punc, original_punc)
 
+        # --- 阶段4: 针对多行文本的双引号处理 ---
+        original_stripped , translated_stripped = self.check_and_adjust_quotes(original_stripped, translated_stripped)
 
         # --- 最终处理: 还原前后空白 ---
         # 将处理过的核心文本与原文的前后空白结合
         result = leading_whitespace + translated_stripped + trailing_whitespace
         return result
+    
+
+    # 处理多行文本的双引号问题，有些AI会在多行文本时，将每一行当作一句话进行翻译，导致每一行都加上了双引号
+    def check_and_adjust_quotes(self,original, translation):
+        # 分割原文和译文为行
+        original_lines = original.splitlines()
+        translation_lines = translation.splitlines()
+
+        # 检查是否多行文本,且行数一致
+        if len(original_lines) <= 1 or len(original_lines) !=len(translation_lines):
+            return original, translation
+
+        modified_translation = []
+
+        for orig_line, trans_line in zip(original_lines, translation_lines):
+
+            if len(trans_line) >= 2 and trans_line.startswith('"'):
+                # 获取原文行首字符
+                orig_start = orig_line[0] if len(orig_line) > 0 else ''
+
+                # 如果原文首不符合要求，则去掉译文双引号
+                if orig_start not in {'"', '“'} :
+                    trans_line = trans_line[1:]
+
+            if len(trans_line) >= 2 and trans_line.endswith('"'):
+                # 获取原文行尾字符
+                orig_end = orig_line[-1] if len(orig_line) > 0 else ''
+
+                # 如果原文尾不符合要求，则去掉译文双引号
+                if orig_end not in {'"', '”'}:
+                    trans_line = trans_line[:-1]
+
+            modified_translation.append(trans_line)
+
+        # 重建译文文本
+        adjusted_translation = '\n'.join(modified_translation)
+        return original, adjusted_translation

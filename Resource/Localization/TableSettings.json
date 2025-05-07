@@ -6,11 +6,11 @@
       "English": "Glossary",
       "日本語": "用語集"
     },
-    "通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n触发机制: 文本含有原名\n填写示例:  ダリヤ  |  达莉雅  |  女性的名字": {
-      "简中": "通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n触发机制: 文本含有原名\n填写示例:  ダリヤ  |  达莉雅  |  女性的名字",
-      "繁中": "透過建立術語表來引導模型翻譯，可實現統一翻譯、補充資訊等功能。\n觸發機制：文本含有來源術語。\n範例：ダリヤ  |  達莉雅  |  女性的名字",
-      "English": "Use a glossary to guide model translation for consistent translations, supplementary info, etc.\nTrigger: When the text contains the source term.\nExample: ダリヤ  |  Dahlia  |  Female name",
-      "日本語": "用語集を構築してモデル翻訳を誘導し、翻訳の統一や情報補足などを実現します。\nトリガー：テキストに元の用語が含まれている場合。\n例： 达莉雅  |  ダリヤ  |  女性の名前"
+    "通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n△触发机制: 文本含有原名  ◯填写示例:  ダリヤ  |  达莉雅  |  女性的名字": {
+      "简中": "通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n△触发机制: 文本含有原名  ◯填写示例:  ダリヤ  |  达莉雅  |  女性的名字",
+      "繁中": "透過建立術語表來引導模型翻譯，可實現統一翻譯、補充資訊等功能。\n△觸發機制：文本含有來源術語。  ◯範例：ダリヤ  |  達莉雅  |  女性的名字",
+      "English": "Use a glossary to guide model translation for consistent translations, supplementary info, etc.\n△Trigger: When the text contains the source term.  ◯Example: ダリヤ  |  Dahlia  |  Female name",
+      "日本語": "用語集を構築してモデル翻訳を誘導し、翻訳の統一や情報補足などを実現します。\n△トリガー：テキストに元の用語が含まれている場合。  ◯例： 达莉雅  |  ダリヤ  |  女性の名前"
     },
     "原文": {
       "简中": "原文",
@@ -71,6 +71,96 @@
       "繁中": "術語表翻譯成功",
       "English": "Glossary Translation Successful",
       "日本語": "用語集の翻訳に成功しました"
+    },
+    "全部": {
+      "简中": "全部",
+      "繁中": "全部",
+      "English": "All",
+      "日本語": "全て"
+    },
+    "提示": {
+      "简中": "提示",
+      "繁中": "提示",
+      "English": "Notice",
+      "日本語": "通知"
+    },
+    "全部行数": {
+      "简中": "全部行数",
+      "繁中": "全部行數",
+      "English": "Total Lines",
+      "日本語": "全行数"
+    },
+    "原文本": {
+      "简中": "原文本",
+      "繁中": "原文",
+      "English": "Source Text",
+      "日本語": "原文"
+    },
+    "目标文本": {
+      "简中": "目标文本",
+      "繁中": "目標文本",
+      "English": "Target Text",
+      "日本語": "訳文"
+    },
+    "搜索表格内容...": {
+      "简中": "搜索表格内容...",
+      "繁中": "搜尋表格內容...",
+      "English": "Search table content...",
+      "日本語": "表内を検索..."
+    },
+    "上一个结果": {
+      "简中": "上一个结果",
+      "繁中": "上一個結果",
+      "English": "Previous result",
+      "日本語": "前の結果"
+    },
+    "下一个结果": {
+      "简中": "下一个结果",
+      "繁中": "下一個結果",
+      "English": "Next result",
+      "日本語": "次の結果"
+    },
+    "在指定文件夹中未找到符合条件的角色名": {
+      "简中": "在指定文件夹中未找到符合条件的角色名",
+      "繁中": "在指定資料夾中未找到符合條件的角色名稱",
+      "English": "No matching character names found in the specified folder",
+      "日本語": "指定フォルダに該当するキャラクター名が見つかりません"
+    },
+    "均已存在于术语表中": {
+      "简中": "均已存在于术语表中",
+      "繁中": "均已存在於術語表中",
+      "English": "All already exist in the glossary",
+      "日本語": "全て用語集に既に存在しています"
+    },
+    "术语信息已提取并添加": {
+      "简中": "术语信息已提取并添加",
+      "繁中": "術語資訊已提取並添加",
+      "English": "Term information has been extracted and added",
+      "日本語": "用語情報を抽出し追加しました"
+    },
+    "提取失败": {
+      "简中": "提取失败",
+      "繁中": "提取失敗",
+      "English": "Extraction failed",
+      "日本語": "抽出に失敗しました"
+    },
+    "没有需要翻译的术语": {
+      "简中": "没有需要翻译的术语",
+      "繁中": "沒有需要翻譯的術語",
+      "English": "No terms need translation",
+      "日本語": "翻訳が必要な用語はありません"
+    },
+    "术语表翻译任务已开始...": {
+      "简中": "术语表翻译任务已开始...",
+      "繁中": "術語表翻譯任務已開始...",
+      "English": "Glossary translation task has started...",
+      "日本語": "用語集翻訳タスクを開始しました..."
+    },
+    "翻译完成，但没有数据被更新": {
+      "简中": "翻译完成，但没有数据被更新",
+      "繁中": "翻譯完成，但沒有資料被更新",
+      "English": "Translation completed but no data was updated",
+      "日本語": "翻訳は完了しましたが、データは更新されませんでした"
     }
   },
 
@@ -81,11 +171,11 @@
       "English": "Do Not Translate List",
       "日本語": "禁翻リスト"
     },
-    "通过构建禁翻表来引导模型，禁止翻译文本中的特殊标记符，占位符，代码段等内容\n触发机制: 文本含有标记符，或者正则表达式提取生效\n填写示例:  //F[N1]  |  游戏文本标记符号  |  //[A-Z]\\[.*?\\]": {
-      "简中": "通过构建禁翻表来引导模型，禁止翻译文本中的特殊标记符，占位符，代码段等内容\n触发机制: 文本含有标记符，或者正则表达式提取生效\n填写示例:  //F[N1]  |  游戏文本标记符号  |  //[A-Z]\\[.*?\\]",
-      "繁中": "透過構建禁翻表來引導模型，禁止翻譯文本中的特殊標記符、佔位符、代碼段等內容。\n觸發機制：當文本含有指定標記符，或符合正則表達式時觸發。\n示例：//F[N1]  |  遊戲文本標記符  |  //[A-Z]\\[.*?\\] ",
-      "English": "Build a 'Do Not Translate' list to guide the model, preventing translation of specific elements like special markers, placeholders, and code snippets.\nTrigger: Activates when text contains specified markers or matches a regular expression.\nExample: //F[N1]  |  Game text marker  |  //[A-Z]\\[.*?\\]",
-      "日本語": "翻訳禁止リストを作成してモデルを誘導し、テキスト内の特殊マーカー、プレースホルダー、コード断片などの翻訳を防止します。\nトリガー：テキストに指定マーカーが含まれるか、正規表現に一致した場合に作動。\n例：//F[N1]  |  ゲームテキストマーカー  |  //[A-Z]\\[.*?\\]"
+    "通过构建禁翻表来引导模型，禁止翻译文本中的特殊标记符，占位符，代码段等内容\n△触发机制: 文本含有标记符，或者正则表达式提取生效  ◯填写示例:  //F[N1]  |  游戏文本标记符号  |  //[A-Z]\\[.*?\\]": {
+      "简中": "通过构建禁翻表来引导模型，禁止翻译文本中的特殊标记符，占位符，代码段等内容\n△触发机制: 文本含有标记符，或者正则表达式提取生效。  ◯填写示例:  //F[N1]  |  游戏文本标记符号  |  //[A-Z]\\[.*?\\]",
+      "繁中": "透過構建禁翻表來引導模型，禁止翻譯文本中的特殊標記符、佔位符、代碼段等內容。\n△觸發機制：當文本含有指定標記符，或符合正則表達式時觸發。  ◯示例：//F[N1]  |  遊戲文本標記符  |  //[A-Z]\\[.*?\\] ",
+      "English": "Build a 'Do Not Translate' list to guide the model, preventing translation of specific elements like special markers, placeholders, and code snippets.  ◯Trigger: Activates when text contains specified markers or matches a regular expression.\nExample: //F[N1]  |  Game text marker  |  //[A-Z]\\[.*?\\]",
+      "日本語": "翻訳禁止リストを作成してモデルを誘導し、テキスト内の特殊マーカー、プレースホルダー、コード断片などの翻訳を防止します。\n△トリガー：テキストに指定マーカーが含まれるか、正規表現に一致した場合に作動。  ◯例：//F[N1]  |  ゲームテキストマーカー  |  //[A-Z]\\[.*?\\]"
     },
     "标记符": {
       "简中": "标记符",

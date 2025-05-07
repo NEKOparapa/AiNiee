@@ -2,7 +2,7 @@ import re
 from types import SimpleNamespace
 
 from Base.Base import Base
-from ModuleFolders.Translator import TranslatorUtil, Translator
+from ModuleFolders.Translator import TranslatorUtil
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 
