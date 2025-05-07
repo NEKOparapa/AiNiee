@@ -317,12 +317,8 @@ class TranslationPage(QWidget, Base):
 
         # 添加两个控件
         self.add_combined_line_card(self.head_hbox, config, window)
-        #self.add_line_card(self.head_hbox, config, window)
-        #self.add_remaining_line_card(self.head_hbox, config, window)
         self.add_time_card(self.head_hbox, config, window)
         self.add_remaining_time_card(self.head_hbox, config, window)
-
-
 
         # 添加到主容器
         self.container.addWidget(self.head_hbox_container, 1)
@@ -338,11 +334,10 @@ class TranslationPage(QWidget, Base):
         self.add_ring_card(self.flow_layout, config, window)
         self.add_waveform_card(self.flow_layout, config, window)
 
+        self.add_token_card(self.flow_layout, config, window)
+        self.add_task_card(self.flow_layout, config, window)
         self.add_speed_card(self.flow_layout, config, window)
         self.add_stability_card(self.flow_layout, config, window)
-        self.add_task_card(self.flow_layout, config, window)
-        self.add_token_card(self.flow_layout, config, window)
-
 
 
         self.container.addWidget(self.flow_container, 1)
