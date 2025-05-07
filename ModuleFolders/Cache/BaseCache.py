@@ -5,7 +5,7 @@ import dataclasses
 from contextlib import contextmanager
 from dataclasses import dataclass, field, fields, is_dataclass
 from reprlib import Repr
-from typing import Any, ClassVar, Type, Union, get_args, get_origin, Optional, TypeVar, GenericAlias as TypingGenericAlias
+from typing import Any, ClassVar, Type, Union, get_args, get_origin, Optional, TypeVar, Dict, GenericAlias as TypingGenericAlias
 import types
 
 # 定义原子类型集合，这些类型在序列化/反序列化时通常直接处理或有简单转换
@@ -404,22 +404,27 @@ class ThreadSafeCache(DictMixin):
 
     def __getattribute__(self, name: str) -> Any:
         """线程安全地获取属性值。"""
-        # 同样，使用 `object.__getattribute__` 来获取 `_lock` 和初始的属性值，
-        # 以避免递归调用此 `__getattribute__` 方法。
-        lock = object.__getattribute__(self, "_lock") # 假设 `_lock` 此时已存在（在 __post_init__ 后）
-        initial_value = object.__getattribute__(self, name)
+        try:
+            # 尝试获取锁。如果锁还未在 __post_init__ 中创建，会触发 AttributeError
+            lock = object.__getattribute__(self, "_lock")
 
-        # 对于“公共”属性（非私有、非锁本身），并且该属性不是可调用对象（即不是方法），
-        # 则在锁的保护下重新获取该值。
-        # 这是为了确保读取到的是最新的值（如果其他线程可能修改它），
-        # 并且对于可变对象，确保操作的原子性（尽管这里只返回引用）。
-        # 对于方法（可调用对象），它们通常不包含可变状态或其状态由其自身管理，所以直接返回初始获取的引用。
-        if not name.startswith("_") and name != "_lock" and not callable(initial_value):
-            with lock:
-                return object.__getattribute__(self, name) # 在锁内重新获取
-        
-        # 对于私有属性、锁本身、或可调用属性（方法），直接返回初始获取的值。
-        return initial_value
+            # 如果锁存在，则继续原有的逻辑
+            initial_value = object.__getattribute__(self, name)
+
+            # 对于“公共”属性（非私有、非锁本身），并且该属性不是可调用对象（即不是方法），
+            # 则在锁的保护下重新获取该值。
+            if not name.startswith("_") and name != "_lock" and not callable(initial_value):
+                with lock:
+                    # 在锁内重新获取并返回
+                    return object.__getattribute__(self, name)
+            
+            # 对于私有属性、锁本身、或可调用属性（方法），直接返回初始获取的值。
+            return initial_value
+
+        except AttributeError:
+            # 如果捕获到 AttributeError，说明 _lock 属性还不存在（对象正在初始化早期）
+            # 在这种情况下，直接获取并返回请求的属性，不加锁。
+            return object.__getattribute__(self, name)
 
     @contextmanager
     def atomic_scope(self):
