@@ -4,23 +4,13 @@ from typing import Callable
 import rich
 
 from ModuleFolders.Cache.CacheProject import CacheProject
+from ModuleFolders.FileOutputer import WriterUtil
 from ModuleFolders.FileOutputer.BaseWriter import (
     BaseBilingualWriter,
     BaseTranslatedWriter,
     BaseTranslationWriter,
     TranslationOutputConfig
 )
-
-
-def can_encode_text(text: str, encoding: str) -> bool:
-    """检查文本是否可以用指定编码正确表示"""
-    if not text:
-        return True
-    try:
-        text.encode(encoding, errors='strict')
-        return True
-    except UnicodeEncodeError:
-        return False
 
 
 class DirectoryWriter:
@@ -38,32 +28,6 @@ class DirectoryWriter:
     ):
         """translation_directory 用于覆盖配置"""
         with self.create_writer() as writer:
-            # 首先检查所有文本是否可以用原始编码表示
-            original_encoding = writer.translated_encoding
-            use_original_encoding = True
-
-            # 检查所有文本是否可以用原始编码表示
-            # 如果原始编码已经是UTF-8，跳过检查
-            # 如果原始编码为非纯文本，跳过检查
-            if original_encoding.lower() == 'utf-8' or original_encoding.startswith("non_text"):
-                pass  # UTF-8可以表示所有字符，无需检查 / 非纯文本不需要检查
-            else:
-                # 检查所有文本是否可以用原始编码表示
-                for item in project.items_iter():
-                    if item.translated_text and not can_encode_text(item.translated_text, original_encoding):
-                        use_original_encoding = False
-                        break
-
-            # 决定使用的编码
-            actual_encoding = original_encoding if use_original_encoding else 'utf-8'
-            # 修改writer的编码设置
-            writer.translated_encoding = actual_encoding
-
-            rich.print(
-                f"[[green]INFO[/]] 正在写入文件 使用编码: {actual_encoding} "
-                f"{'(原始编码)' if use_original_encoding else f'(由原始编码 {original_encoding} 变更)'}"
-            )
-
             # 把翻译片段按文件名分组
             for storage_path, file_items in project.files.items():
                 source_file_path = source_directory / storage_path
@@ -82,6 +46,8 @@ class DirectoryWriter:
 
                         # 执行写入
                         write_translation_file(translation_file_path, file_items, source_file_path)
+        # 释放Ainiee配置实例
+        WriterUtil.release_ainiee_config()
 
     @classmethod
     def with_file_suffix(self, file_path: str, name_suffix: str) -> Path:

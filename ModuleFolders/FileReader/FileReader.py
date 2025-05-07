@@ -26,7 +26,7 @@ from ModuleFolders.FileReader.RenpyReader import RenpyReader
 from ModuleFolders.FileReader.TransReader import TransReader
 from ModuleFolders.FileReader.I18nextReader import I18nextReader
 
-# 文件读取器
+# 文件读取器(分发入口)
 class FileReader():
     def __init__(self):
         self.reader_factory_dict = {}  # 工厂地图
@@ -69,8 +69,8 @@ class FileReader():
             return ReaderInitParams(input_config=input_config, reader_init_params_factory=reader_init_params_factory)
         return ReaderInitParams(input_config=input_config)
 
-    # 根据文件类型读取文件
-    def read_files (self,translation_project,label_input_path, exclude_rule_str):
+    # 根据文件类型读取文件，并返回缓存对象
+    def read_files (self,translation_project,label_input_path, exclude_rule_str,source_language):
         # 检查传入的项目类型是否已经被注册。
         if translation_project in self.reader_factory_dict:
             # 获取初始化参数
@@ -81,8 +81,8 @@ class FileReader():
             reader = DirectoryReader(reader_factory, exclude_rule_str.split(','))
             # 再次获取路径对象
             source_directory = Path(label_input_path)
-            # 读取整个目录
-            cache_list = reader.read_source_directory(source_directory)
+            # 读取整个输入目录,生成缓存对象
+            cache_list = reader.read_source_directory(source_directory,source_language)
         elif translation_project == "Ainiee_cache":
             cache_list = self.read_cache_files(folder_path=label_input_path)
         return cache_list

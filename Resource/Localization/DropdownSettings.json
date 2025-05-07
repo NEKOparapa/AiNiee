@@ -48,11 +48,11 @@
       "English": "T++ Export File",
       "日本語": "T++エクスポートファイル"
     },
-    "Tanrs工程文件": {
-      "简中": "Tanrs工程文件",
-      "繁中": "Tanrs工程檔案",
-      "English": "Tanrs Project Files",
-      "日本語": "Tanrsプロジェクトファイル"
+    "Trans工程文件": {
+      "简中": "Trans工程文件",
+      "繁中": "Trans工程檔案",
+      "English": "Trans Project Files",
+      "日本語": "Transプロジェクトファイル"
     },
     "Mtool导出文件": {
       "简中": "Mtool导出文件",
@@ -72,11 +72,11 @@
       "English": "VNText Export File",
       "日本語": "VNTextエクスポートファイル"
     },
-    "Ainiee缓存文件": {
-      "简中": "Ainiee缓存文件",
-      "繁中": "Ainiee快取檔案",
-      "English": "Ainiee Cache File",
-      "日本語": "Ainieeキャッシュファイル"
+    "I18Next数据文件": {
+      "简中": "I18Next数据文件",
+      "繁中": "I18Next數據文件",
+      "English": "I18Next Data File",
+      "日本語": "I18Nextデータファイル"
     },
     "ParaTranz导出文件": {
       "简中": "ParaTranz导出文件",
@@ -105,6 +105,12 @@
   },
 
   "PART_2": {
+    "自动检测": {
+      "简中": "自动检测",
+      "繁中": "自動檢測",
+      "English": "Auto-detect",
+      "日本語": "自動検出"
+    },
     "简中": {
       "简中": "简中",
       "繁中": "簡中",

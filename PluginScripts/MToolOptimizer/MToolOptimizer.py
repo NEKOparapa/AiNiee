@@ -60,7 +60,7 @@ class MToolOptimizer(PluginBase):
         print("")
 
         # 记录处理前的条目数量
-        orginal_length = len([v for v in items if v.translation_status == CacheItem.STATUS.EXCLUED])
+        orginal_length = len([v for v in items if v.translation_status == CacheItem.STATUS.EXCLUDED])
 
         # 找到重复短句条目
         texts_to_delete = set()
@@ -75,10 +75,10 @@ class MToolOptimizer(PluginBase):
         # 移除重复短句条目
         for v in tqdm(items):
             if v.source_text.strip() in texts_to_delete:
-                v.translation_status = CacheItem.STATUS.EXCLUED
+                v.translation_status = CacheItem.STATUS.EXCLUDED
 
         print("")
-        print(f"[MToolOptimizer] 预处理执行成功，已移除 {len([v for v in items if v.translation_status == CacheItem.STATUS.EXCLUED]) - orginal_length} 个重复的条目 ...")
+        print(f"[MToolOptimizer] 预处理执行成功，已移除 {len([v for v in items if v.translation_status == CacheItem.STATUS.EXCLUDED]) - orginal_length} 个重复的条目 ...")
         print("")
 
     # 文本后处理事件

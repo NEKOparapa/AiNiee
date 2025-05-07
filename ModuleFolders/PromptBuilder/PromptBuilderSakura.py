@@ -30,7 +30,7 @@ class PromptBuilderSakura(Base):
         return result
 
     # 获取系统提示词
-    def build_system(config: TranslatorConfig) -> str:
+    def build_system(config: TranslatorConfig, _source_lang: str) -> str:
         PromptBuilderSakura.get_system_default(config)
 
         # 构造结果

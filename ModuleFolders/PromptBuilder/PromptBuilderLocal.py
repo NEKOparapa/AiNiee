@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 from Base.Base import Base
+from ModuleFolders.Translator import TranslatorUtil
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 
 class PromptBuilderLocal(Base):
@@ -37,35 +38,12 @@ class PromptBuilderLocal(Base):
         return result
 
     # 获取系统提示词
-    def build_system(config: TranslatorConfig) -> str:
+    def build_system(config: TranslatorConfig, source_lang: str) -> str:
+
+        # 获取默认系统提示词
         PromptBuilderLocal.get_system_default(config)
 
-        pair_en = {
-            "japanese": "Japanese",
-            "english": "English",
-            "korean": "Korean", 
-            "russian": "Russian",
-            "chinese_simplified": "Simplified Chinese",
-            "chinese_traditional": "Traditional Chinese",
-            "french": "French",
-            "german": "German",
-            "spanish": "Spanish",
-        }
-
-        pair = { 
-            "japanese": "日语",
-            "english": "英语",
-            "korean": "韩语",
-            "russian": "俄语",
-            "chinese_simplified": "简体中文",
-            "chinese_traditional": "繁体中文",
-            "french": "法语",
-            "german": "德语",
-            "spanish": "西班牙语",
-        }
-
-        source_language = pair[config.source_language]
-        target_language = pair[config.target_language]
+        en_sl, source_language, en_tl, target_language = TranslatorUtil.get_language_display_names(source_lang, config.target_language)
 
         # 构造结果
         if config == None:
@@ -74,7 +52,7 @@ class PromptBuilderLocal(Base):
             result = PromptBuilderLocal.local_system_zh
         elif config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilderLocal.local_system_en
-            source_language = pair_en[config.source_language]
-            target_language = pair_en[config.target_language]
+            source_language = en_sl
+            target_language = en_tl
 
         return result.replace("{source_language}", source_language).replace("{target_language}", target_language).strip()

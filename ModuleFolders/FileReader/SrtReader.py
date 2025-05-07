@@ -23,7 +23,8 @@ class SrtReader(BaseSourceReader):
         return "srt"
 
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
-        lines = [line.strip() for line in file_path.read_text(encoding=pre_read_metadata.encoding).splitlines()]
+        # 读取文件内容并去除 BOM，即.lstrip("\ufeff")
+        lines = [line.strip().lstrip("\ufeff") for line in file_path.read_text(encoding=pre_read_metadata.encoding).splitlines()]
 
         current_block = None
         items = []

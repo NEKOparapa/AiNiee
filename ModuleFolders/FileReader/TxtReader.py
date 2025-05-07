@@ -36,8 +36,8 @@ class TxtReader(BaseSourceReader):
             if not line.strip() and i != 0:
                 continue
 
-            # 去掉文本开头的空格
-            line_lstrip = line.lstrip()
+            # 去掉文本开头的空格和 BOM
+            line_lstrip = line.lstrip().lstrip("\ufeff")
             # 获取文本行开头的原始空格
             spaces = line[:len(line) - len(line_lstrip)]
             extra = {

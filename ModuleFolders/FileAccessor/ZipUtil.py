@@ -24,3 +24,20 @@ def compress_to_zip_file(compress_path: Path, zip_file_path: Path):
     else:
         with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
             zipf.write(compress_path)
+
+
+def replace_in_zip_file(
+    src_zip_file_path: Path, dst_zip_file_path: Path,
+    content: dict[str, str],
+):
+    with (
+        zipfile.ZipFile(src_zip_file_path, 'r') as zin,
+        zipfile.ZipFile(dst_zip_file_path, 'w') as zout,
+    ):
+        # 遍历原始 ZIP 中的所有文件
+        for item in zin.infolist():
+            # 如果是目标文件，替换为新内容
+            if item.filename in content:
+                zout.writestr(item, content[item.filename])
+            else:  # 否则直接复制
+                zout.writestr(item, zin.read(item.filename))

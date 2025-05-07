@@ -24,17 +24,29 @@
       "English": "Chain of Thought: Incorporates 3-step translation method, enhances thinking depth, greatly increases output content, greatly increases consumption, improves literary quality, suitable for common models, perfect for breaking limits",
       "日本語": "思考連鎖：翻訳三段階法を組み込み、思考深度を向上、出力内容を大幅増加、消費を大幅増加、文学的品質を向上、普通モデルに最適、制限突破に最適"
     },
-    "推理模型：精简流程，为 DeepSeek-R1 等推理模型优化，释放推理模型的思考能力，获得最佳翻译质量": {
-      "简中": "推理模型：精简流程，为 DeepSeek-R1 等推理模型优化，释放推理模型的思考能力，获得最佳翻译质量",
-      "繁中": "推理模型：精簡流程，為 DeepSeek-R1 等推理模型優化，釋放推理模型的思考能力，獲得最佳翻譯質量",
-      "English": "Reasoning Model: Streamlined process, optimized for reasoning models like DeepSeek-R1, unleash the reasoning ability of the model, achieve the best translation quality",
-      "日本語": "推論モデル：プロセスを簡略化、DeepSeek-R1などの推論モデルに最適化、推論モデルの思考能力を解放、最高の翻訳品質を実現"
+    "推理模型：为 DeepSeek-R1 等推理模型优化，释放推理模型的思考能力，获得最佳翻译质量": {
+      "简中": "推理模型：为 DeepSeek-R1 等推理模型优化，释放推理模型的思考能力，获得最佳翻译质量",
+      "繁中": "推理模型：為 DeepSeek-R1 等推理模型優化，釋放推理模型的思考能力，獲得最佳翻譯質量",
+      "English": "Reasoning Model: Optimized for reasoning models like DeepSeek-R1, unleash the reasoning ability of the model, achieve the best translation quality",
+      "日本語": "推論モデル：DeepSeek-R1などの推論モデルに最適化、推論モデルの思考能力を解放、最高の翻訳品質を実現"
     },
-    "自定义提示词：将使用下方填入的内容作为系统提示词": {
-      "简中": "自定义提示词：将使用下方填入的内容作为系统提示词",
-      "繁中": "自訂提示詞：將使用下方填入的內容作為系統提示詞",
-      "English": "Custom Prompt: Will use the content entered below as the system prompt",
-      "日本語": "カスタムプロンプト：下記に入力された内容をシステムプロンプトとして使用"
+    "动态示例和预回复功能": {
+        "简中": "动态示例和预回复功能",
+        "繁中": "動態範例和預先回覆功能",
+        "English": "Dynamic Examples and Pre-Reply Feature",
+        "日本語": "動的サンプルと事前返信機能"
+    },
+    "启用此功能后，将在构建整体的翻译提示词时，自动生成动态Few-shot和构建模型预回复内容，不支持本地接口": {
+        "简中": "启用此功能后，将在构建整体的翻译提示词时，自动生成动态Few-shot和构建模型预回复内容，不支持本地接口",
+        "繁中": "啟用此功能後，在構建整體的翻譯提示詞時，將自動產生動態Few-shot和模型預先回覆內容，不支援本地接口",
+        "English": "When enabled, dynamic Few-shot examples and model pre-reply content will be automatically generated when constructing the overall translation prompt. Local APIs are not supported.",
+        "日本語": "この機能を有効にすると、翻訳プロンプト構築時に動的Few-shotとモデルの事前返信コンテンツが自動生成されます。ローカルインターフェースには非対応です"
+    },
+    "自定义提示词：将使用下面文本框填入的内容作为系统提示词，不支持本地接口": {
+      "简中": "自定义提示词：将使用下面文本框填入的内容作为系统提示词，不支持本地接口",
+      "繁中": "自訂提示詞：將使用下方填入的內容作為系統提示詞，不支援本地接口",
+      "English": "Custom Prompt: Will use the content entered below as the system prompt Local APIs are not supported.",
+      "日本語": "カスタムプロンプト：下記に入力された内容をシステムプロンプトとして使用。ローカルインターフェースには非対応です"
     }
   },
   "PART_2": {
@@ -85,6 +97,12 @@
       "繁中": "插入行",
       "English": "Insert row",
       "日本語": "行を挿入"
+    },
+    "删除行": {
+      "简中": "删除行",
+      "繁中": "刪除列",
+      "English": "Delete Row",
+      "日本語": "行を削除"
     },
     "新行已插入": {
       "简中": "新行已插入",

@@ -13,15 +13,15 @@ from qfluentwidgets import FluentIcon
 from qfluentwidgets import FlowLayout, TimePicker
 from qfluentwidgets import MessageBox
 from qfluentwidgets import FluentWindow
-from qfluentwidgets import ProgressRing
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import IndeterminateProgressRing
 
 from Base.Base import Base
 from Widget.DashboardCard import DashboardCard
-from Widget.WaveformWidget import WaveformWidget
+from Widget.WaveformCard import WaveformCard
+from Widget.ProgressRingCard import ProgressRingCard
 from Widget.CommandBarCard import CommandBarCard
-
+from Widget.CombinedLineCard import CombinedLineCard
 
 class ScheduledTranslationDialog(MessageBoxBase, Base):
     """
@@ -29,7 +29,7 @@ class ScheduledTranslationDialog(MessageBoxBase, Base):
     """
     def __init__(self, parent=None,title: str = "定时开始翻译", message_box_close = None):
         super().__init__(parent=parent)
-        
+
         self.message_box_close = message_box_close
 
         # 设置框体
@@ -47,7 +47,7 @@ class ScheduledTranslationDialog(MessageBoxBase, Base):
         self.time_picker = TimePicker(self)
         current_time = QTime.currentTime()
         self.time_picker.setTime(current_time)
-        
+
         self.viewLayout.addWidget(self.time_picker)
 
         self.yesButton.clicked.connect(self.accept)
@@ -86,7 +86,6 @@ class TranslationPage(QWidget, Base):
         self.add_widget_head(self.container, config, window)
         self.add_widget_body(self.container, config, window)
         self.add_widget_foot(self.container, config, window)
-
         # 注册事件
         self.subscribe(Base.EVENT.TRANSLATION_UPDATE, self.translation_update)
         self.subscribe(Base.EVENT.TRANSLATION_STOP_DONE, self.translation_stop_done)
@@ -157,6 +156,15 @@ class TranslationPage(QWidget, Base):
             data.get("continue_status", False) and self.action_play.isEnabled()
         )
 
+    # 缓存文件自动保存时间
+    def cache_file_auto_save(self, event: int, data: dict) -> None:
+        if self.indeterminate.isHidden():
+            info_cont = self.tra("缓存文件保存中") + " ..."
+            self.indeterminate_show(info_cont)
+
+            # 延迟关闭
+            QTimer.singleShot(1500, lambda: self.indeterminate_hide())
+
     # 更新时间
     def update_time(self, event: int, data: dict) -> None:
         if data.get("start_time", None) is not None:
@@ -194,27 +202,37 @@ class TranslationPage(QWidget, Base):
             self.data["line"] = data.get("line")
             self.data["total_line"] = data.get("total_line")
 
-        line = self.data.get("line", 0)
-        if line < 1000:
-            self.line_card.set_unit("Line")
-            self.line_card.set_value(f"{line}")
-        elif line < 1000 * 1000:
-            self.line_card.set_unit("KLine")
-            self.line_card.set_value(f"{(line / 1000):.2f}")
-        else:
-            self.line_card.set_unit("MLine")
-            self.line_card.set_value(f"{(line / 1000 / 1000):.2f}")
+        translated_line = self.data.get("line", 0)
+        total_line = self.data.get("total_line", 0)
+        remaining_line = max(0, total_line - translated_line)
 
-        remaining_line = self.data.get("total_line", 0) - self.data.get("line", 0)
-        if remaining_line < 1000:
-            self.remaining_line.set_unit("Line")
-            self.remaining_line.set_value(f"{remaining_line}")
-        elif remaining_line < 1000 * 1000:
-            self.remaining_line.set_unit("KLine")
-            self.remaining_line.set_value(f"{(remaining_line / 1000):.2f}")
+        t_value_str: str
+        t_unit_str: str
+        if translated_line < 1000:
+            t_unit_str = "Line"
+            t_value_str = f"{translated_line}"
+        elif translated_line < 1000 * 1000:
+            t_unit_str = "KLine"
+            t_value_str = f"{(translated_line / 1000):.2f}"
         else:
-            self.remaining_line.set_unit("MLine")
-            self.remaining_line.set_value(f"{(remaining_line / 1000 / 1000):.2f}")
+            t_unit_str = "MLine"
+            t_value_str = f"{(translated_line / 1000 / 1000):.2f}"
+
+        r_value_str: str
+        r_unit_str: str
+        if remaining_line < 1000:
+            r_unit_str = "Line"
+            r_value_str = f"{remaining_line}"
+        elif remaining_line < 1000 * 1000:
+            r_unit_str = "KLine"
+            r_value_str = f"{(remaining_line / 1000):.2f}"
+        else:
+            r_unit_str = "MLine"
+            r_value_str = f"{(remaining_line / 1000 / 1000):.2f}"
+
+        if hasattr(self, 'combined_line_card') and self.combined_line_card:
+            self.combined_line_card.set_left_data(value=t_value_str, unit=t_unit_str)
+            self.combined_line_card.set_right_data(value=r_value_str, unit=r_unit_str)
 
     # 更新实时任务数
     def update_task(self, event: int, data: dict) -> None:
@@ -252,7 +270,6 @@ class TranslationPage(QWidget, Base):
             self.speed.set_unit("KT/S")
             self.speed.set_value(f"{(speed / 1000):.2f}")
 
-
     # 更新稳定性
     def update_stability(self, event: int, data: dict) -> None:
         # 如果传入数据中包含新的请求统计，则更新数据
@@ -278,64 +295,33 @@ class TranslationPage(QWidget, Base):
     def update_status(self, event: int, data: dict) -> None:
         if Base.work_status == Base.STATUS.STOPING:
             percent = self.data.get("line", 0) / max(1, self.data.get("total_line", 0))
-            self.ring.setValue(int(percent * 10000))
+            self.ring.set_value(int(percent * 10000))
             info_cont = self.tra("停止中") + "\n" + f"{percent * 100:.2f}%"
-            self.ring.setFormat(info_cont)
+            self.ring.set_format(info_cont)
         elif Base.work_status == Base.STATUS.TRANSLATING:
             percent = self.data.get("line", 0) / max(1, self.data.get("total_line", 0))
-            self.ring.setValue(int(percent * 10000))
+            self.ring.set_value(int(percent * 10000))
             info_cont = self.tra("翻译中") + "\n" + f"{percent * 100:.2f}%"
-            self.ring.setFormat(info_cont)
+            self.ring.set_format(info_cont)
         else:
-            self.ring.setValue(0)
+            self.ring.set_value(0)
             info_cont = self.tra("无任务")
-            self.ring.setFormat(info_cont)
-
-    # 缓存文件自动保存时间
-    def cache_file_auto_save(self, event: int, data: dict) -> None:
-        if self.indeterminate.isHidden():
-            info_cont = self.tra("缓存文件保存中") + " ..."
-            self.indeterminate_show(info_cont)
-
-            # 延迟关闭
-            QTimer.singleShot(1500, lambda: self.indeterminate_hide())
+            self.ring.set_format(info_cont)
 
     # 头部
     def add_widget_head(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         self.head_hbox_container = QWidget(self)
-        self.head_hbox = QHBoxLayout(self.head_hbox_container)
-        parent.addWidget(self.head_hbox_container)
+        self.head_hbox = FlowLayout(self.head_hbox_container, needAni = False)
+        self.head_hbox.setSpacing(8)
+        self.head_hbox.setContentsMargins(0, 0, 0, 0)
 
-        # 波形图
-        self.waveform = WaveformWidget()
-        self.waveform.set_matrix_size(100, 20)
+        # 添加两个控件
+        self.add_combined_line_card(self.head_hbox, config, window)
+        self.add_time_card(self.head_hbox, config, window)
+        self.add_remaining_time_card(self.head_hbox, config, window)
 
-        waveform_vbox_container = QWidget()
-        waveform_vbox = QVBoxLayout(waveform_vbox_container)
-        waveform_vbox.addStretch(1)
-        waveform_vbox.addWidget(self.waveform)
-
-        # 进度环
-        self.ring = ProgressRing()
-        self.ring.setRange(0, 10000)
-        self.ring.setValue(0)
-        self.ring.setTextVisible(True)
-        self.ring.setStrokeWidth(12)
-        self.ring.setFixedSize(140, 140)
-        info_cont = self.tra("无任务")
-        self.ring.setFormat(info_cont)
-
-        ring_vbox_container = QWidget()
-        ring_vbox = QVBoxLayout(ring_vbox_container)
-        ring_vbox.addStretch(1)
-        ring_vbox.addWidget(self.ring)
-
-        # 添加控件
-        self.head_hbox.addWidget(ring_vbox_container)
-        self.head_hbox.addSpacing(8)
-        self.head_hbox.addStretch(1)
-        self.head_hbox.addWidget(waveform_vbox_container)
-        self.head_hbox.addStretch(1)
+        # 添加到主容器
+        self.container.addWidget(self.head_hbox_container, 1)
 
     # 中部
     def add_widget_body(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
@@ -344,14 +330,15 @@ class TranslationPage(QWidget, Base):
         self.flow_layout.setSpacing(8)
         self.flow_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.add_time_card(self.flow_layout, config, window)
-        self.add_remaining_time_card(self.flow_layout, config, window)
-        self.add_line_card(self.flow_layout, config, window)
-        self.add_remaining_line_card(self.flow_layout, config, window)
-        self.add_speed_card(self.flow_layout, config, window)
+
+        self.add_ring_card(self.flow_layout, config, window)
+        self.add_waveform_card(self.flow_layout, config, window)
+
         self.add_token_card(self.flow_layout, config, window)
         self.add_task_card(self.flow_layout, config, window)
+        self.add_speed_card(self.flow_layout, config, window)
         self.add_stability_card(self.flow_layout, config, window)
+
 
         self.container.addWidget(self.flow_container, 1)
 
@@ -385,6 +372,29 @@ class TranslationPage(QWidget, Base):
         self.command_bar_card.add_spacing(4)
         self.command_bar_card.add_widget(self.indeterminate)
 
+    # 进度环
+    def add_ring_card(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+        self.ring = ProgressRingCard(title=self.tra("翻译进度"),
+                                     icon=FluentIcon.PIE_SINGLE,
+                                     min_value= 0,
+                                     max_value= 10000,
+                                     ring_size=(140, 140),
+                                     text_visible=True)
+        self.ring.setFixedSize(204, 204)
+        info_cont = self.tra("无任务")
+        self.ring.set_format(info_cont)
+        parent.addWidget(self.ring)
+
+    # 波形图
+    def add_waveform_card(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+        self.waveform = WaveformCard(self.tra("波形图"),
+                                     icon=FluentIcon.MARKET
+                                    )
+        self.waveform.set_draw_grid(False)  # 关闭网格线
+        self.waveform.setFixedSize(633, 204)
+        parent.addWidget(self.waveform)
+
+
     # 累计时间
     def add_time_card(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         info_cont = self.tra("累计时间")
@@ -392,6 +402,7 @@ class TranslationPage(QWidget, Base):
                 title = info_cont,
                 value = "Time",
                 unit = "",
+                icon=FluentIcon.STOP_WATCH,
             )
         self.time.setFixedSize(204, 204)
         parent.addWidget(self.time)
@@ -403,31 +414,33 @@ class TranslationPage(QWidget, Base):
                 title = info_cont,
                 value = "Time",
                 unit = "",
+                icon=FluentIcon.FRIGID,
             )
         self.remaining_time.setFixedSize(204, 204)
         parent.addWidget(self.remaining_time)
 
-    # 翻译行数
-    def add_line_card(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
-        info_cont = self.tra("翻译行数")
-        self.line_card = DashboardCard(
-                title = info_cont,
-                value = "Line",
-                unit = "",
-            )
-        self.line_card.setFixedSize(204, 204)
-        parent.addWidget(self.line_card)
+    # 行数统计
+    def add_combined_line_card(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+        """Adds the combined line count card to the parent layout."""
+        main_title = self.tra("行数统计") 
+        left_title = self.tra("已翻译")
+        right_title = self.tra("剩余")
 
-    # 剩余行数
-    def add_remaining_line_card(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
-        info_cont = self.tra("剩余行数")
-        self.remaining_line = DashboardCard(
-                title = info_cont,
-                value = "Line",
-                unit = "",
-            )
-        self.remaining_line.setFixedSize(204, 204)
-        parent.addWidget(self.remaining_line)
+        self.combined_line_card = CombinedLineCard(
+            title=main_title,
+            icon=FluentIcon.PRINT, 
+            left_title=left_title,
+            right_title=right_title,
+            initial_left_value="0",   
+            initial_left_unit="Line",
+            initial_right_value="0", 
+            initial_right_unit="Line",
+            parent=window 
+        )
+
+        self.combined_line_card.setFixedSize(416, 204) 
+
+        parent.addWidget(self.combined_line_card)
 
     # 平均速度
     def add_speed_card(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
@@ -436,6 +449,7 @@ class TranslationPage(QWidget, Base):
                 title = info_cont,
                 value = "T/S",
                 unit = "",
+                icon=FluentIcon.SPEED_HIGH,
             )
         self.speed.setFixedSize(204, 204)
         parent.addWidget(self.speed)
@@ -447,6 +461,7 @@ class TranslationPage(QWidget, Base):
                 title =  info_cont,
                 value = "Token",
                 unit = "",
+                icon=FluentIcon.CALORIES,
             )
         self.token.setFixedSize(204, 204)
         parent.addWidget(self.token)
@@ -458,6 +473,7 @@ class TranslationPage(QWidget, Base):
                 title = info_cont,
                 value = "T",
                 unit = "",
+                icon=FluentIcon.SCROLL,
             )
         self.task.setFixedSize(204, 204)
         parent.addWidget(self.task)
@@ -469,8 +485,10 @@ class TranslationPage(QWidget, Base):
                 title = info_cont,
                 value = "%",
                 unit = "",
+                icon=FluentIcon.TRAIN,
             )
         self.stability.setFixedSize(204, 204)
+        #self.stability.set_value_color("orange")
         parent.addWidget(self.stability)
 
     # 开始
@@ -588,7 +606,7 @@ class TranslationPage(QWidget, Base):
                 self.action_schedule.setText(f"{time_str}")
 
                 # 显示提示
-                info_cont =  f" {time_str} " + self.tra("开始翻译") + "  ... "
+                info_cont =  f" {time_str} " + self.tra("定时开始翻译") + "  ... "
                 window.success_toast(self.tra("已设置定时翻译任务，将在"), info_cont)
 
         info_cont = self.tra("定时开始")

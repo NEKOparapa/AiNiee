@@ -1,5 +1,8 @@
 import re
 
+from ModuleFolders.Translator import TranslatorUtil
+
+
 # 回复解析器
 class ResponseChecker():
     def __init__(self):
@@ -7,13 +10,13 @@ class ResponseChecker():
 
 
     # 检查回复内容是否存在问题
-    def check_response_content(self,config,target_platform,placeholder_order,response_str,response_dict,source_text_dict):
+    def check_response_content(self,config,target_platform,placeholder_order,response_str,response_dict,source_text_dict,source_lang):
         # 存储检查结果
         check_result = False
         error_content = "0"
 
         # 获取需要的配置信息
-        source_language = config.source_language
+        source_language = TranslatorUtil.map_language_code_to_name(source_lang.new)
         response_check_switch = config.response_check_switch
 
         # 检查接口是否拒绝翻译
@@ -331,7 +334,7 @@ class ResponseChecker():
         )
 
         # 特定的无法过滤的标点符号集
-        punctuation_list = ['(', ')', '・', '?', '？', '『', '』', '（', '）', '＜', '＞', '·', '～', 'ー', '@', '＠', '·', '.', '♡', '…', '。', '！', '、', '，']  
+        punctuation_list = ['(', ')', '・', '?', '？', '『', '』', '（', '）', '＜', '＞', '·', '～', 'ー', '@', '＠', '·', '.', '♡', '…', '。', '！', '、', '，', 'の']  
 
         # 定义不同语言的文本字符集对应的正则表达式
         patterns_language = {

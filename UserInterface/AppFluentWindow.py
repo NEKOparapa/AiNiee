@@ -1,5 +1,6 @@
+import os
 from PyQt5.QtCore import QUrl, QTimer, QThread, pyqtSignal
-from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtGui import QDesktopServices,QIcon
 from PyQt5.QtWidgets import QApplication
 
 from qfluentwidgets import Theme
@@ -80,8 +81,8 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
     # THEME_COLOR = "#00aeec"
     THEME_COLOR = "#808b9d"
     # THEME_COLOR = "#9aabad"
-    # THEME_COLOR = "#8f93e6" 
-    # THEME_COLOR = "#8A95A9" 
+    # THEME_COLOR = "#8f93e6"
+    # THEME_COLOR = "#8A95A9"
 
     def __init__(self, version: str, plugin_manager: PluginManager, support_project_types: set[str]) -> None:
         super().__init__()
@@ -114,6 +115,8 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.resize(self.APP_WIDTH, self.APP_HEIGHT)
         self.setMinimumSize(self.APP_WIDTH, self.APP_HEIGHT)
         self.setWindowTitle(version)
+        # 解决任务栏图标不显示问题
+        self.setWindowIcon(QIcon(os.path.join(".", "Resource", "Logo", "Avatar.png")))
         self.titleBar.iconLabel.hide()
 
         # 初始化版本管理器
@@ -175,7 +178,21 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
     # 显示更新对话框
     def show_update_dialog(self) -> None:
+        # 更新按钮文本，提示正在检查
+        original_text = self.update_button.text()
+        self.update_button.setText(self.tra("正在检查更新..."))
+        self.update_button.setEnabled(False)
+
+        # 显示更新对话框
         self.version_manager.show_update_dialog()
+
+        # 恢复按钮文本和状态
+        QTimer.singleShot(1000, lambda: self._restore_update_button(original_text))
+
+    # 恢复更新按钮状态
+    def _restore_update_button(self, original_text: str) -> None:
+        self.update_button.setText(original_text)
+        self.update_button.setEnabled(True)
 
     # 检查更新
     def check_for_updates(self) -> None:
@@ -225,10 +242,6 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         # 设置默认页面
         self.switchTo(self.translation_page)
 
-        # 应用设置按钮
-        self.app_settings_page = AppSettingsPage("app_settings_page", self)
-        self.addSubInterface(self.app_settings_page, FluentIcon.SETTING, self.tra("应用设置"), NavigationItemPosition.BOTTOM)
-
         # 主题切换按钮
         self.navigationInterface.addWidget(
             routeKey = "theme_navigation_button",
@@ -242,23 +255,29 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         )
 
         # 更新按钮
+        self.update_button = NavigationPushButton(
+            FluentIcon.UPDATE,
+            self.tra("检查更新"),
+            False
+        )
         self.navigationInterface.addWidget(
             routeKey = "update_navigation_button",
-            widget = NavigationPushButton(
-                FluentIcon.UPDATE,
-                self.tra("检查更新"),
-                False
-            ),
+            widget = self.update_button,
             onClick = self.show_update_dialog,
             position = NavigationItemPosition.BOTTOM
         )
 
+        # 应用设置按钮
+        self.app_settings_page = AppSettingsPage("app_settings_page", self)
+        self.addSubInterface(self.app_settings_page, FluentIcon.SETTING, self.tra("应用设置"), NavigationItemPosition.BOTTOM)
+
         # 项目主页按钮
+        Avatar_path = os.path.join(".", "Resource", "Logo", "Avatar.png")
         self.navigationInterface.addWidget(
             routeKey = "avatar_navigation_widget",
             widget = NavigationAvatarWidget(
                 "NEKOparapa",
-                "Resource/Avatar.png",
+                Avatar_path,
             ),
             onClick = self.open_project_page,
             position = NavigationItemPosition.BOTTOM

@@ -5,9 +5,9 @@ import json
 import signal
 import threading
 import requests
-from PyQt5.QtCore import QUrl, pyqtSignal, QObject, Qt
-from PyQt5.QtWidgets import (QVBoxLayout, QDialog, QHBoxLayout, QGridLayout, QWidget)
-from PyQt5.QtGui import QDesktopServices,QColor
+from PyQt5.QtCore import pyqtSignal, QObject, Qt
+from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QGridLayout, QWidget)
+
 
 from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, StrongBodyLabel,
                             CaptionLabel, PrimaryPushButton, PushButton, ProgressBar,
@@ -19,6 +19,11 @@ class UpdaterSignals(QObject):
     progress_updated = pyqtSignal(int)
     download_completed = pyqtSignal(str)
     download_failed = pyqtSignal(str)
+    update_check_completed = pyqtSignal(bool, str, bool, str)  # has_update, latest_version, check_failed, error_message
+    download_url_found = pyqtSignal(str)  # 找到下载URL
+    download_url_not_found = pyqtSignal()  # 未找到下载URL
+    connection_error = pyqtSignal(int)  # 连接错误，参数为状态码
+    general_error = pyqtSignal(str)  # 一般错误，参数为错误信息
 
 # 更新对话框
 class UpdateMessageBox(MessageBoxBase):
@@ -49,6 +54,11 @@ class VersionManager(Base):
         self.signals.progress_updated.connect(self._update_progress)
         self.signals.download_completed.connect(self._download_completed)
         self.signals.download_failed.connect(self._download_failed)
+        self.signals.update_check_completed.connect(self._update_dialog_after_check)
+        self.signals.download_url_found.connect(self._start_download_with_url_from_main_thread)
+        self.signals.download_url_not_found.connect(lambda: self._show_download_error(self.tra("未找到可下载的更新文件")))
+        self.signals.connection_error.connect(self._show_connection_error)
+        self.signals.general_error.connect(self._show_download_error)
 
     def _get_current_version(self,version):
         # re.search 会查找字符串中第一个匹配该模式的位置
@@ -83,12 +93,12 @@ class VersionManager(Base):
                     return False, self.current_version
             else:
                 self.error(f"Failed to check for updates: {response.status_code}")
-                
-                self.check_error = f"HTTP错误: {response.status_code}"
+
+                self.check_error = f"{self.tra("HTTP错误")}: {response.status_code}"
                 return False, self.current_version
         except Exception as e:
             self.error(f"Error checking for updates: {e}")
-            
+
             self.check_error = str(e)
             return False, self.current_version
 
@@ -156,15 +166,7 @@ class VersionManager(Base):
             except Exception as e:
                 self.error(f"Error checking paused download: {e}")
 
-        # 初始化错误状态
-        self.check_error = None
-
-        # 检查更新
-        has_update, latest_version = self.check_for_updates()
-        # 使用实例变量中的错误信息
-        check_error = getattr(self, 'check_error', None)
-
-        # 创建更新对话框
+        # 创建更新对话框 - 先显示加载状态
         self.update_dialog = UpdateMessageBox(self.main_window)
 
         # 创建标题卡片
@@ -182,6 +184,64 @@ class VersionManager(Base):
         title_card.setMinimumWidth(400)
         self.update_dialog.viewLayout.addWidget(title_card)
 
+        # 创建加载状态卡片
+        loading_card = CardWidget(self.update_dialog)
+        loading_card.setObjectName("loading_card")
+        loading_layout = QVBoxLayout(loading_card)
+        loading_layout.setContentsMargins(16, 16, 16, 16)
+
+        # 加载状态文本
+        loading_label = SubtitleLabel(self.tra("正在检查更新..."), loading_card)
+        loading_label.setAlignment(Qt.AlignCenter)
+        loading_layout.addWidget(loading_label)
+
+        # 添加到对话框
+        self.update_dialog.viewLayout.addWidget(loading_card)
+
+        # 显示对话框
+        self.update_dialog.show()
+
+        # 在后台线程中检查更新
+        threading.Thread(target=self._check_update_in_background, daemon=True).start()
+
+    def _check_update_in_background(self):
+        """在后台线程中检查更新并更新UI"""
+        try:
+            # 初始化错误状态
+            self.check_error = None
+
+            # 检查更新
+            has_update, latest_version = self.check_for_updates()
+
+            # 使用实例变量中的错误信息
+            check_error = getattr(self, 'check_error', None)
+
+            # 通过信号在主线程中更新UI
+            self.signals.update_check_completed.emit(
+                has_update,
+                latest_version,
+                check_error is not None,
+                check_error if check_error else ""
+            )
+        except Exception as e:
+            self.error(f"Error in background update check: {e}")
+            # 通过信号在主线程中更新UI，显示错误
+            self.signals.update_check_completed.emit(
+                False,
+                self.current_version,
+                True,
+                str(e)
+            )
+
+    def _update_dialog_after_check(self, has_update, latest_version, check_failed, error_message):
+        """更新检查完成后更新对话框内容"""
+        # 移除加载状态卡片
+        for i in range(self.update_dialog.viewLayout.count()):
+            widget = self.update_dialog.viewLayout.itemAt(i).widget()
+            if widget and widget.objectName() == "loading_card":
+                widget.setParent(None)
+                break
+
         # 在版本信息卡片部分修改
         version_card = CardWidget(self.update_dialog)
         version_layout = QGridLayout(version_card)
@@ -196,7 +256,7 @@ class VersionManager(Base):
         # 最新版本
         latest_version_label = CaptionLabel(self.tra("最新版本") + ":", version_card)
 
-        if check_error is not None:
+        if check_failed:
             # 检查失败，显示错误信息
             latest_version_value = StrongBodyLabel(self.tra("检查错误"), version_card)
             latest_version_value.setStyleSheet("color: #E53935;") # 红色错误提示
@@ -220,9 +280,7 @@ class VersionManager(Base):
         version_info_text.setMinimumHeight(20)  # 设置最小高度
         version_layout.addWidget(version_info_text, 2, 0, 1, 2)
 
-
         version_card.setMinimumHeight(100)
-
         self.update_dialog.viewLayout.addWidget(version_card)
 
         # 进度卡片 - 添加百分比标签
@@ -259,9 +317,7 @@ class VersionManager(Base):
 
         progress_layout.addWidget(self.status_label)
 
-
         progress_card.setMinimumHeight(100)
-
         self.update_dialog.viewLayout.addWidget(progress_card)
 
         # 按钮卡片
@@ -311,7 +367,7 @@ class VersionManager(Base):
             self.latest_version_url if self.latest_version_url else "#",
             self.tra("查看发布页"),
         )
-        self.view_release_button.clicked.connect(self._open_release_page)
+
 
         right_buttons_layout.addWidget(self.view_release_button)
 
@@ -322,11 +378,11 @@ class VersionManager(Base):
         self.update_dialog.viewLayout.addWidget(button_card)
 
         # 处理不同状态
-        if check_error is not None:
+        if check_failed:
             # 检查失败
             self.update_button.setEnabled(False)
             version_info_text.setText(self.tra("无法检查更新，请稍后再试"))
-            self.status_label.setText(f"{self.tra('检查失败')}: {check_error}")
+            self.status_label.setText(f"{self.tra('检查失败')}: {error_message}")
             # 禁用发布页链接
             self.view_release_button.setEnabled(False)
         elif not has_update:
@@ -334,9 +390,6 @@ class VersionManager(Base):
             self.update_button.setEnabled(False)
             version_info_text.setText(self.tra("您已经使用最新版本"))
             self.status_label.setText(self.tra("无需更新"))
-
-        # 显示对话框
-        self.update_dialog.exec_()
 
     def _start_download_with_url(self, url):
         """使用指定URL开始下载"""
@@ -370,7 +423,11 @@ class VersionManager(Base):
         self.status_label.setText(self.tra("正在获取下载链接..."))
         self.update_button.setEnabled(False)
 
-        # 获取下载 URL
+        # 在后台线程中获取下载URL
+        threading.Thread(target=self._get_download_url_in_background, daemon=True).start()
+
+    def _get_download_url_in_background(self):
+        """在后台线程中获取下载URL"""
         try:
             response = requests.get(self.GITHUB_API_URL, timeout=10)
             if response.status_code == 200:
@@ -383,50 +440,60 @@ class VersionManager(Base):
                         download_url = asset["browser_download_url"]
                         break
 
+                # 改用信号更新Ui
                 if download_url:
-                    # 使用下载链接开始下载
-                    self._start_download_with_url(download_url)
+                    # 发送找到下载URL的信号
+                    self.signals.download_url_found.emit(download_url)
                 else:
-                    self.status_label.setText(self.tra("未找到下载文件"))
-                    self.update_button.setEnabled(True)
-                    self.pause_button.setVisible(False)
-                    self.percentage_label.setVisible(False)
-
-                    if self.main_window:
-                                self.main_window.error_toast(self.tra("下载错误"), self.tra("未找到可下载的更新文件"))
+                    # 发送未找到下载URL的信号
+                    self.signals.download_url_not_found.emit()
             else:
-                self.status_label.setText(self.tra("获取下载链接失败"))
-                self.update_button.setEnabled(True)
-                self.pause_button.setVisible(False)
-                self.percentage_label.setVisible(False)
-                # 使用 InfoBar 显示错误信息
-                if self.main_window:
-                    InfoBar.error(
-                        title=self.tra("连接错误"),
-                        content=self.tra("无法连接到更新服务器"),
-                    orient=Qt.Horizontal,
-                    isClosable=True,
-                    position=InfoBarPosition.TOP,
-                    duration=3000,
-                    parent=self.main_window
-                )
+                # 发送连接错误信号
+                self.signals.connection_error.emit(response.status_code)
         except Exception as e:
             self.error(f"Error starting update: {e}")
-            self.status_label.setText(self.tra("更新失败"))
-            self.update_button.setEnabled(True)
-            self.pause_button.setVisible(False)
-            self.percentage_label.setVisible(False)
+            # 发送一般错误信号
+            self.signals.general_error.emit(str(e))
 
-            if self.main_window:
-                InfoBar.error(
-                    title=self.tra("更新错误"),
-                    content=str(e),
-                    orient=Qt.Horizontal,
-                    isClosable=True,
-                    position=InfoBarPosition.TOP,
-                    duration=3000,
-                    parent=self.main_window
-                )
+    def _start_download_with_url_from_main_thread(self, url):
+        """从主线程中调用_start_download_with_url"""
+        self._start_download_with_url(url)
+
+    def _show_download_error(self, error_msg):
+        """显示下载错误"""
+        self.status_label.setText(self.tra("更新失败"))
+        self.update_button.setEnabled(True)
+        self.pause_button.setVisible(False)
+        self.percentage_label.setVisible(False)
+
+        if self.main_window:
+            InfoBar.error(
+                title=self.tra("下载错误"),
+                content=error_msg,
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=3000,
+                parent=self.main_window
+            )
+
+    def _show_connection_error(self, status_code):
+        """显示连接错误"""
+        self.status_label.setText(self.tra("获取下载链接失败"))
+        self.update_button.setEnabled(True)
+        self.pause_button.setVisible(False)
+        self.percentage_label.setVisible(False)
+
+        if self.main_window:
+            InfoBar.error(
+                title=self.tra("连接错误"),
+                content=f"{self.tra('无法连接到更新服务器')} ({status_code})",
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=3000,
+                parent=self.main_window
+            )
 
     def _download_update(self, url):
         """下载更新文件，支持断点续传"""
@@ -541,7 +608,7 @@ class VersionManager(Base):
             self.signals.download_failed.emit(str(e))
 
     def _update_progress(self, progress):
-        """Update the progress bar and percentage label"""
+        """更新进度条和百分比标签"""
         if self.progress_bar and self.percentage_label:
             self.progress_bar.setValue(progress)
             self.percentage_label.setText(f"{progress}%")
@@ -577,13 +644,25 @@ class VersionManager(Base):
                 self.main_window.success_toast(self.tra("更新已下载"), self.tra("更新已下载，可以通过更新按钮重新安装"))
 
     def _download_failed(self, error_msg):
-        """Handle download failure"""
+        """Handle download failure or pause"""
+        # 检查是否是暂停状态
+        if error_msg == self.tra("下载已暂停"):
+            # 暂停状态，显示继续按钮
+            self.status_label.setText(self.tra("下载已暂停"))
+            self.update_button.setEnabled(False)
+            self.pause_button.setVisible(False)
+            self.resume_button.setVisible(True)
+            self.resume_button.setEnabled(True)
+
+            # 不显示错误提示，因为这是用户主动操作
+            return
+
+        # 其他失败情况
         self.status_label.setText(f"{self.tra('下载失败')}: {error_msg}")
         self.update_button.setEnabled(True)
         self.pause_button.setVisible(False)
         self.resume_button.setVisible(False)
         self.percentage_label.setVisible(False)
-
 
         if self.main_window:
             InfoBar.error(
@@ -597,20 +676,44 @@ class VersionManager(Base):
             )
 
     def _pause_update(self):
-        """Pause the update download"""
+        # 只设置暂停标志，UI更新由_download_failed方法处理
         self._pause_download = True
+        # 禁用暂停按钮，防止用户多次点击
         self.pause_button.setEnabled(False)
-        self.resume_button.setVisible(True)
-        self.resume_button.setEnabled(True)
-        self.status_label.setText(self.tra("下载已暂停"))
 
     def _resume_update(self):
         """Resume the update download"""
         self._pause_download = False
-        self.resume_button.setEnabled(False)
+        self.resume_button.setVisible(False)
         self.pause_button.setVisible(True)
         self.pause_button.setEnabled(True)
-        self.status_label.setText(self.tra("正在下载更新..."))
+        self.status_label.setText(self.tra("正在恢复下载..."))
+
+        # 读取下载信息文件，获取URL
+        try:
+            download_info_file = os.path.join("downloads", "download_info.json")
+            if os.path.exists(download_info_file):
+                with open(download_info_file, 'r') as f:
+                    download_info = json.load(f)
+
+                # 获取URL并重新开始下载
+                url = download_info.get("url")
+                if url:
+                    # 启动下载线程
+                    self.download_thread = threading.Thread(
+                        target=self._download_update,
+                        args=(url,)
+                    )
+                    self.download_thread.daemon = True
+                    self.download_thread.start()
+                    return
+        except Exception as e:
+            self.error(f"Error resuming download: {e}")
+
+        # 如果恢复失败，显示错误信息
+        self.status_label.setText(self.tra("恢复下载失败"))
+        self.update_button.setEnabled(True)
+        self.resume_button.setVisible(False)
 
     def _cancel_update(self):
         """Cancel the update process"""
@@ -625,10 +728,6 @@ class VersionManager(Base):
             if self.main_window:
                 self.main_window.warning_toast(self.tra("下载取消"), self.tra("正在取消下载，请稍候..."))
 
-    def _open_release_page(self):
-        """Open the release page in browser"""
-        if self.latest_version_url:
-            QDesktopServices.openUrl(QUrl(self.latest_version_url))
 
     def _run_updater(self, update_file):
         """Run the updater executable"""

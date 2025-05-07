@@ -1,7 +1,7 @@
-import os
 import time
 import threading
 import concurrent.futures
+from dataclasses import dataclass
 from typing import Iterator
 
 import opencc
@@ -12,6 +12,7 @@ from Base.PluginManager import PluginManager
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheManager import CacheManager
 from ModuleFolders.Cache.CacheProject import CacheProjectStatistics
+from ModuleFolders.Translator import TranslatorUtil
 from ModuleFolders.Translator.TranslatorTask import TranslatorTask
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
@@ -22,6 +23,14 @@ from ModuleFolders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
 from ModuleFolders.FileReader.FileReader import FileReader
 from ModuleFolders.FileOutputer.FileOutputer import FileOutputer
 from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
+from ModuleFolders.Translator.TranslatorUtil import get_most_common_language
+
+
+@dataclass
+class SourceLang:
+    new: str
+    most_common: str
+
 
 # 翻译器
 class Translator(Base):
@@ -140,22 +149,29 @@ class Translator(Base):
         self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
 
         # 读取输入文件夹的文件，生成缓存
+        self.print("")
+        self.info(f"正在读取输入文件夹中的文件 ...")
         try:
-            if continue_status == True:
+            # 继续翻译时，直接读取缓存文件
+            if continue_status == True: 
                 self.cache_manager.load_from_file(self.config.label_output_path)
+            
+            # 初开始翻译
             else:
-                self.cache_manager.load_from_project(
-                    self.file_reader.read_files(
+                # 读取输入文件夹的文件，生成缓存
+                CacheProject = self.file_reader.read_files(
                         self.config.translation_project,
                         self.config.label_input_path,
-                        self.config.label_input_exclude_rule
+                        self.config.label_input_exclude_rule,
+                        self.config.source_language
                     )
-                )
+                # 读取完成后，保存到缓存管理器中
+                self.cache_manager.load_from_project(CacheProject)
+
         except Exception as e:
             self.translating = False # 更改状态
             self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ... ", e)
             return None
-        
         
         # 检查数据是否为空
         if self.cache_manager.get_item_count() == 0:
@@ -163,13 +179,33 @@ class Translator(Base):
             self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ... ")
             return None
 
-        # 从头翻译时加载默认数据
+        # 输出每个文件的检测信息
+        for _, file in self.cache_manager.project.files.items():
+            # 获取信息
+            language_stats = file.language_stats
+            storage_path = file.storage_path
+            encoding = file.encoding
+            file_project_type = file.file_project_type
+
+            # 输出信息
+            self.print("")
+            self.info(f"已经载入文件 - {storage_path}")
+            self.info(f"文件类型 - {file_project_type}")
+            self.info(f"文件编码 - {encoding}")
+            self.info(f"语言统计 - {language_stats}")
+
+        self.info(f"翻译项目数据全部载入成功 ...")
+        self.print("")
+
+        # 初开始翻译时，生成监控数据
         if continue_status == False:
             self.project_status_data = CacheProjectStatistics()
             self.cache_manager.project.stats_data = self.project_status_data
+        # 继续翻译时加载存储的监控数据
         else:
             self.project_status_data = self.cache_manager.project.stats_data
-            self.project_status_data.start_time = time.time() - self.project_status_data.start_time
+            self.project_status_data.start_time = time.time() # 重置开始时间
+            self.project_status_data.total_completion_tokens = 0 # 重置完成的token数量
 
         # 更新翻译进度
         self.emit(Base.EVENT.TRANSLATION_UPDATE, self.project_status_data.to_dict())
@@ -213,23 +249,32 @@ class Translator(Base):
                 self.config.lines_limit = max(1, int(self.config.lines_limit / 2))
                 self.config.tokens_limit = max(1, int(self.config.tokens_limit / 2))
 
-
             # 生成缓存数据条目片段的合集列表，原文列表与上文列表一一对应
-            chunks, previous_chunks = self.cache_manager.generate_item_chunks(
+            chunks, previous_chunks, file_paths = self.cache_manager.generate_item_chunks(
                 "line" if self.config.tokens_limit_switch == False else "token",
                 self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
                 self.config.pre_line_counts
             )
 
-            # 生成翻译单元任务的合集列表
+            # 计算项目中出现次数最多的语言
+            most_common_language = get_most_common_language(self.cache_manager.project)
+
+            # 生成翻译任务合集列表
             tasks_list = []
-            self.print("")
-            for chunk, previous_chunk in tqdm(zip(chunks, previous_chunks), desc = "生成翻译任务", total = len(chunks)):
-                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter) # 实例化
-                task.set_items(chunk)  #传入该任务待翻译原文
-                task.set_previous_items(previous_chunk) # 传入该任务待翻译原文的上文
-                task.prepare(self.config.target_platform,self.config.prompt_preset) # 预先构建消息列表
+            print("")
+            self.info(f"正在生成翻译任务 ...")
+            for chunk, previous_chunk, file_path in tqdm(zip(chunks, previous_chunks, file_paths),desc="生成翻译任务", total=len(chunks)):
+                # 计算该任务所处文件的主要源语言
+                new_source_lang = self.get_source_language_for_file(file_path)
+                # 组装新源语言的对象
+                source_lang = SourceLang(new=new_source_lang, most_common=most_common_language)
+
+                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter, source_lang)  # 实例化
+                task.set_items(chunk)  # 传入该任务待翻译原文
+                task.set_previous_items(previous_chunk)  # 传入该任务待翻译原文的上文
+                task.prepare(self.config.target_platform, self.config.prompt_preset)  # 预先构建消息列表
                 tasks_list.append(task)
+            self.info(f"已经生成全部翻译任务 ...")
             self.print("")
 
             # 输出开始翻译的日志
@@ -251,20 +296,21 @@ class Translator(Base):
 
                 # 根据提示词规则打印基础指令
                 system = ""
+                s_lang = self.config.source_language
                 if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:
                     system = self.config.system_prompt_content
-                elif self.config.target_platform == "LocalLLM": # 需要放在前面，以免提示词预设的分支覆盖
-                    system = PromptBuilderLocal.build_system(self.config)
-                elif self.config.target_platform == "sakura": # 需要放在前面，以免提示词预设的分支覆盖
-                    system = PromptBuilderSakura.build_system(self.config)
+                elif self.config.target_platform == "LocalLLM":  # 需要放在前面，以免提示词预设的分支覆盖
+                    system = PromptBuilderLocal.build_system(self.config, s_lang)
+                elif self.config.target_platform == "sakura":  # 需要放在前面，以免提示词预设的分支覆盖
+                    system = PromptBuilderSakura.build_system(self.config, s_lang)
                 elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
-                    system = PromptBuilder.build_system(self.config)
+                    system = PromptBuilder.build_system(self.config, s_lang)
                 elif self.config.prompt_preset == PromptBuilderEnum.THINK:
-                    system = PromptBuilderThink.build_system(self.config)
+                    system = PromptBuilderThink.build_system(self.config, s_lang)
                 self.print("")
                 if system:
                     self.info(f"本次任务使用以下基础提示词：\n{system}\n") 
-                    
+
             else:
                 self.info(f"第一次请求的接口 - {self.config.platforms.get(self.config.request_a_platform_settings, {}).get("name", "未知")}")
                 self.info(f"接口地址 - {self.config.base_url_a}")
@@ -282,16 +328,14 @@ class Translator(Base):
                 self.print("")
 
             self.info(f"即将开始执行翻译任务，预计任务总数为 {len(tasks_list)}, 同时执行的任务数量为 {self.config.actual_thread_counts}，请注意保持网络通畅 ...")
+            time.sleep(5)
             self.print("")
 
             # 开始执行翻译任务,构建异步线程池
             with concurrent.futures.ThreadPoolExecutor(max_workers = self.config.actual_thread_counts, thread_name_prefix = "translator") as executor:
                 for task in tasks_list:
                     future = executor.submit(task.start)
-                    future.add_done_callback(self.task_done_callback) # 为future对象添加一个回调函数，当任务完成时会被调用，更新数据
-
-
-
+                    future.add_done_callback(self.task_done_callback)  # 为future对象添加一个回调函数，当任务完成时会被调用，更新数据
 
         # 等待可能存在的缓存文件写入请求处理完毕
         time.sleep(CacheManager.SAVE_INTERVAL)
@@ -358,3 +402,44 @@ class Translator(Base):
             self.emit(Base.EVENT.TRANSLATION_UPDATE, stats_dict)
         except Exception as e:
             self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
+
+    def get_source_language_for_file(self, storage_path: str) -> str:
+        """
+        为文件确定适当的源语言
+        Args:
+            storage_path: 文件存储路径
+        Returns:
+            确定的源语言代码
+        """
+        # 获取配置文件中预置的源语言配置
+        config_s_lang = self.config.source_language
+        config_t_lang = self.config.target_language
+
+        # 如果源语言配置不是自动配置，则直接返回源语言配置，否则使用下面获取到的lang_code
+        if config_s_lang != 'auto':
+            return config_s_lang
+
+        # 获取文件的语言统计信息
+        language_stats = self.cache_manager.project.get_file(storage_path).language_stats
+
+        # 如果没有语言统计信息，返回'un'
+        if not language_stats:
+            return 'un'
+
+        # 获取第一种语言
+        first_source_lang = language_stats[0][0]
+
+        # 将first_source_lang转换为与target_lang相同格式的语言名称，方便比较
+        first_source_lang_name = TranslatorUtil.map_language_code_to_name(first_source_lang)
+
+        # 检查第一语言是否与目标语言一致
+        if first_source_lang_name == config_t_lang:
+            # 如果一致，尝试使用第二种语言
+            if len(language_stats) > 1:
+                return language_stats[1][0]  # 返回第二种语言
+            else:
+                # 没有第二种语言，返回'un'
+                return 'un'
+        else:
+            # 如果不一致，直接使用第一种语言
+            return first_source_lang

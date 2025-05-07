@@ -37,7 +37,7 @@ class TableHelper():
     # 向表格更新数据
     def update_to_table(table: TableWidget, data: list[dict], keys: list[str]) -> None:
         # 设置表格行数
-        table.setRowCount(max(12, len(data)))
+        table.setRowCount(max(11, len(data)))
 
         # 去重
         data_unique = {v.get(keys[0], ""): v for v in data}

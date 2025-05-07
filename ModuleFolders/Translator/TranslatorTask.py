@@ -14,6 +14,7 @@ from rich.markup import escape
 from Base.Base import Base
 from Base.PluginManager import PluginManager
 from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Translator import Translator
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 from ModuleFolders.LLMRequester.LLMRequester import LLMRequester
 from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
@@ -29,14 +30,17 @@ from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
 # 导入 TextProcessor
 from ModuleFolders.TextProcessor.TextProcessor import TextProcessor
 
+
 class TranslatorTask(Base):
 
-    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager,request_limiter: RequestLimiter) -> None:
+    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager, request_limiter: RequestLimiter, source_lang: "Translator.SourceLang") -> None:
         super().__init__()
 
         self.config = config
         self.plugin_manager = plugin_manager
         self.request_limiter = request_limiter
+        # 新的源语言对象
+        self.source_lang = source_lang
 
         # 初始化消息存储
         self.messages = []
@@ -168,10 +172,10 @@ class TranslatorTask(Base):
                 self.source_text_dict,
                 self.previous_text_list,
             )
-        elif prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT,PromptBuilderEnum.THINK, PromptBuilderEnum.CUSTOM):
+        elif prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK, PromptBuilderEnum.CUSTOM):
             self.messages, self.system_prompt, self.extra_log = self.generate_prompt(
                 self.source_text_dict,
-                self.previous_text_list
+                self.previous_text_list,
             )
 
         # 预估 Token 消费
@@ -198,11 +202,11 @@ class TranslatorTask(Base):
         if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:  # 自定义提示词
             system = self.config.system_prompt_content
 
-        elif self.config.prompt_preset == PromptBuilderEnum.THINK: # 推理模型提示词
-            system = PromptBuilderThink.build_system(self.config)
+        elif self.config.prompt_preset == PromptBuilderEnum.THINK:  # 推理模型提示词
+            system = PromptBuilderThink.build_system(self.config, self.source_lang.new)
 
         else:
-            system = PromptBuilder.build_system(self.config)  # 通用与思维链提示词
+            system = PromptBuilder.build_system(self.config, self.source_lang.new)  # 通用与思维链提示词
 
         # 如果开启自动构建术语表
         if self.config.auto_glossary_toggle == True:
@@ -265,19 +269,19 @@ class TranslatorTask(Base):
         if self.config.few_shot_and_example_switch == True:
 
             # 获取默认示例前置文本
-            pre_prompt = PromptBuilder.build_userExamplePrefix(self.config)
-            fol_prompt = PromptBuilder.build_modelExamplePrefix(self.config)
+            pre_prompt_example = PromptBuilder.build_userExamplePrefix(self.config)
+            fol_prompt_example = PromptBuilder.build_modelExamplePrefix(self.config)
 
             # 获取具体动态示例内容
-            original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict)
+            original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict, self.source_lang)
             if original_exmaple and translation_example_content:
                 messages.append({
                     "role": "user",
-                    "content": f"{pre_prompt}<textarea>\n{original_exmaple}\n</textarea>"
+                    "content": f"{pre_prompt_example}<textarea>\n{original_exmaple}\n</textarea>"
                 })
                 messages.append({
                     "role": "assistant",
-                    "content": f"{fol_prompt}<textarea>\n{translation_example_content}\n</textarea>"
+                    "content": f"{fol_prompt_example}<textarea>\n{translation_example_content}\n</textarea>"
                 })
                 extra_log.append(f"原文示例已添加：\n{original_exmaple}")
                 extra_log.append(f"译文示例已添加：\n{translation_example_content}")
@@ -287,7 +291,7 @@ class TranslatorTask(Base):
         if self.config.pre_line_counts and previous_text_list:
             previous = PromptBuilder.build_pre_text(self.config, previous_text_list)
             if previous != "":
-                extra_log.append(f"###上文\n{"\n".join(previous_text_list)}")
+                extra_log.append(f"###上文内容\n{"\n".join(previous_text_list)}")
 
         # 获取用户提问时的前置文本
         pre_prompt = PromptBuilder.build_userQueryPrefix(self.config)
@@ -341,7 +345,7 @@ class TranslatorTask(Base):
         # 储存额外日志
         extra_log = []
 
-        system = PromptBuilderSakura.build_system(self.config)
+        system = PromptBuilderSakura.build_system(self.config, self.source_lang.new)
 
 
         # 如果开启术语表
@@ -379,7 +383,7 @@ class TranslatorTask(Base):
         extra_log = []
 
         # 基础提示词
-        system = PromptBuilderLocal.build_system(self.config)
+        system = PromptBuilderLocal.build_system(self.config, self.source_lang.new)
 
         # 术语表
         if self.config.prompt_dictionary_switch == True:
@@ -584,7 +588,7 @@ class TranslatorTask(Base):
         pair = ""
         # 修复变量名冲突问题，将循环变量改为 s 和 t
         for idx, (s, t) in enumerate(itertools.zip_longest(source, translated, fillvalue=""), 1):
-            pair += f"\n--- Text {idx} ---\n"
+            pair += f"\n"
             # 处理原文和译文的换行，分割成多行
             s_lines = s.split('\n') if s is not None else ['']
             t_lines = t.split('\n') if t is not None else ['']
@@ -686,8 +690,9 @@ class TranslatorTask(Base):
             self.config.target_platform,
             self.placeholder_order, # 传递 placeholder_order
             response_content,
-            response_dict,         # 传递提取出的译文
-            self.source_text_dict, # 传递原始（占位符处理后）的原文
+            response_dict,
+            self.source_text_dict,
+            self.source_lang
         )
 
         # --- Debugging Placeholder Issue ---
@@ -915,8 +920,9 @@ class TranslatorTask(Base):
             self.config.request_b_platform_settings,
             self.placeholder_order, # 传递 placeholder_order
             response_content,
-            response_dict,         # 传递提取出的译文
-            self.source_text_dict  # 传递原始（占位符处理后）的原文
+            response_dict,
+            self.source_text_dict,
+            self.source_lang
         )
 
         # --- Debugging Placeholder Issue ---

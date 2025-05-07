@@ -1,11 +1,24 @@
-import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import TypedDict
 
+import rich
+
 from ModuleFolders.Cache.CacheFile import CacheFile
+from ModuleFolders.FileOutputer import WriterUtil
+
+
+def can_encode_text(text: str, encoding: str) -> bool:
+    """检查文本是否可以用指定编码正确表示"""
+    if not text:
+        return True
+    try:
+        text.encode(encoding, errors='strict')
+        return True
+    except UnicodeEncodeError:
+        return False
 
 
 @dataclass
@@ -13,8 +26,6 @@ class TranslationOutputConfig:
     enabled: bool = False
     name_suffix: str = ""
     output_root: Path = None
-    file_encoding: str = ""
-    line_ending: str = ""
 
 
 @dataclass
@@ -35,6 +46,7 @@ class WriterInitParams(TypedDict):
     output_config: OutputConfig
 
 
+@dataclass
 class PreWriteMetadata:
     encoding: str = "utf-8"
 
@@ -43,10 +55,6 @@ class BaseTranslationWriter(ABC):
     """Writer基类，在其生命周期内可以输出多个文件"""
     def __init__(self, output_config: OutputConfig) -> None:
         self.output_config = output_config
-
-        # 提取译文输出的编码和换行符配置
-        self.translated_encoding = output_config.translated_config.file_encoding or "utf-8"
-        self.translated_line_ending = output_config.translated_config.line_ending or os.linesep
 
     class TranslationMode(Enum):
         TRANSLATED = ('translated_config', 'write_translated_file')
@@ -92,13 +100,43 @@ class BaseTranslatedWriter(BaseTranslationWriter):
         source_file_path: Path = None,
     ):
         """输出译文文件"""
-        pre_write_metadata = self.pre_write_translated(cache_file)
+        pre_write_metadata = self.pre_write_translated(translation_file_path, cache_file)
         self.on_write_translated(translation_file_path, cache_file, pre_write_metadata, source_file_path)
         self.post_write_translated(translation_file_path)
 
-    def pre_write_translated(self, cache_file: CacheFile) -> PreWriteMetadata:
+    def pre_write_translated(self, translation_file_path: Path, cache_file: CacheFile) -> PreWriteMetadata:
         """根据文件内容做输出前操作，如输出编码检测"""
-        return PreWriteMetadata()
+        # 原始文件编码（默认为utf-8）
+        original_encoding = cache_file.encoding or "utf-8"
+        # 是否使用原始编码
+        use_original_encoding = True
+
+        if original_encoding.lower() == 'utf-8' or original_encoding.startswith("non_text"):
+            pass  # UTF-8可以表示所有字符，无需检查 / 非纯文本不需要检查
+        else:
+            # 检查所有文本是否可以用原始编码表示
+            for item in cache_file.items:
+                if item.translated_text and not can_encode_text(item.translated_text, original_encoding):
+                    use_original_encoding = False
+                    break
+
+        # 决定使用的编码
+        # 获取配置文件是否保持原有编码
+        keep_original_encoding_config = WriterUtil.get_ainiee_config().keep_original_encoding
+        if keep_original_encoding_config in (None, False):
+            actual_encoding = 'utf-8'
+        else:
+            actual_encoding = original_encoding if use_original_encoding else 'utf-8'
+
+        # 除了直接输出的译文之外的文件统一使用utf-8
+        if "_translated" not in translation_file_path.name:
+            actual_encoding = "utf-8"
+        else:
+            rich.print(
+                f"[[green]INFO[/]] 正在写入文件 {translation_file_path}, 使用编码: {original_encoding} -> {actual_encoding}"
+            )
+
+        return PreWriteMetadata(encoding=actual_encoding)
 
     @abstractmethod
     def on_write_translated(
