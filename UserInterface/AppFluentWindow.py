@@ -1,6 +1,6 @@
 import os
 from PyQt5.QtCore import QUrl, QTimer, QThread, pyqtSignal
-from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtGui import QDesktopServices,QIcon
 from PyQt5.QtWidgets import QApplication
 
 from qfluentwidgets import Theme
@@ -115,6 +115,8 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.resize(self.APP_WIDTH, self.APP_HEIGHT)
         self.setMinimumSize(self.APP_WIDTH, self.APP_HEIGHT)
         self.setWindowTitle(version)
+        # 解决任务栏图标不显示问题
+        self.setWindowIcon(QIcon(os.path.join(".", "Resource", "Logo", "Avatar.png")))
         self.titleBar.iconLabel.hide()
 
         # 初始化版本管理器
