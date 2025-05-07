@@ -12,6 +12,7 @@ PyQt5
 PyQt-Fluent-Widgets[full]
 opencc
 beautifulsoup4
+lxml
 chardet
 PyYAML
 requests
