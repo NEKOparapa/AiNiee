@@ -80,11 +80,7 @@ class PromptDictionaryPage(QFrame, Base):
             menu.addAction(Action(FluentIcon.REMOVE_FROM, self.tra("删除行"), triggered=self._handle_remove_selected_rows))
             menu.addSeparator()
 
-        menu.addAction(Action(FluentIcon.DOWNLOAD, self.tra("导入"), triggered=self._handle_import))
-        menu.addAction(Action(FluentIcon.SHARE, self.tra("导出"), triggered=self._handle_export))
-
         # 行数统计
-        menu.addSeparator()
         row_count = self.table.rowCount()
         row_count_action = Action(FluentIcon.LEAF,f"{self.tra('全部行数')}: {row_count}")
         row_count_action.setEnabled(False) # 使其不可点击，仅作为信息显示
@@ -92,67 +88,6 @@ class PromptDictionaryPage(QFrame, Base):
 
         global_pos = self.table.mapToGlobal(pos)
         menu.exec_(global_pos, ani=True)
-
-    # 处理导入
-    def _handle_import(self) -> None:
-
-        path, _ = QFileDialog.getOpenFileName(self, self.tra("选择文件"), "", "json 文件 (*.json);;xlsx 文件 (*.xlsx)")
-        if not isinstance(path, str) or path == "":
-            return
-        data = TableHelper.load_from_file(path, PromptDictionaryPage.KEYS)
-        config = self.load_config()
-
-        # 去重逻辑
-        current_data = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
-        current_src_set = {item['src'] for item in current_data if item.get('src')} # 处理潜在的空 src
-        new_data_filtered = [item for item in data if item.get('src') and item['src'] not in current_src_set] # 确保导入的项目具有 src
-
-        if not new_data_filtered and data: # 如果所有导入的项目都已存在，则通知
-            self.info_toast(self.tra("信息"), self.tra("导入的数据项均已存在于当前表格中"))
-            return
-        elif not new_data_filtered and not data: # 如果文件为空或格式无效，则通知
-             self.warning_toast(self.tra("警告"), self.tra("未从文件中加载到有效数据"))
-             return
-
-        # 更新并保存
-        # 合并现有数据（来自表格状态）+ 新的已过滤数据
-        combined_data = current_data + new_data_filtered
-        config["prompt_dictionary_data"] = combined_data # 直接更新配置
-
-        # 在再次从表格保存配置*之前*更新表格
-        TableHelper.update_to_table(self.table, config["prompt_dictionary_data"], PromptDictionaryPage.KEYS)
-        self.table.resizeRowsToContents() # 导入后调整行高
-
-        # 现在将可能已修改的表格状态保存回配置
-        config["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
-        self.save_config(config)
-        self._reset_search() # 导入后重置搜索
-        self._reset_sort_indicator() # 导入后重置排序
-        self.success_toast("", self.tra("数据已导入并更新") + f" ({len(new_data_filtered)} {self.tra('项')})...")
-
-    # 处理导出
-    def _handle_export(self) -> None:
-
-        data = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
-        if not data:
-            self.warning_toast("", self.tra("表格中没有数据可导出"))
-            return
-
-        default_filename = self.tra("导出_术语表") + ".json"
-        path, _ = QFileDialog.getSaveFileName(self, self.tra("导出文件"), default_filename, "JSON 文件 (*.json)")
-
-        if not path:
-            return
-
-        if path.lower().endswith(".json"):
-            with open(path, "w", encoding="utf-8") as writer:
-                writer.write(json.dumps(data, indent=4, ensure_ascii=False))
-        else:
-            self.error_toast(self.tra("导出失败"), self.tra("不支持的文件扩展名"))
-            return
-
-        self.success_toast("", self.tra("数据已导出到") + f": {path}")
-
 
     # 处理删除选定行
     def _handle_remove_selected_rows(self) -> None:
@@ -516,6 +451,9 @@ class PromptDictionaryPage(QFrame, Base):
         self.add_command_bar_action_save(self.command_bar_card, config, window)
         self.add_command_bar_action_reset(self.command_bar_card, config, window)
         self.command_bar_card.add_separator()
+        self.add_command_bar_action_import(self.command_bar_card, config, window)
+        self.add_command_bar_action_export(self.command_bar_card, config, window)
+        self.command_bar_card.add_separator()
         self.add_command_bar_name_extractor(self.command_bar_card, config, window)
         self.add_command_bar_glossary_translation(self.command_bar_card, config, window)
 
@@ -557,6 +495,77 @@ class PromptDictionaryPage(QFrame, Base):
         parent.add_action(
             Action(FluentIcon.DELETE, self.tra("重置"), parent, triggered = triggered),
         )
+
+    # 导入
+    def add_command_bar_action_import(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
+
+        def triggered() -> None:
+            path, _ = QFileDialog.getOpenFileName(self, self.tra("选择文件"), "", "json 文件 (*.json);;xlsx 文件 (*.xlsx)")
+            if not isinstance(path, str) or path == "":
+                return
+            data = TableHelper.load_from_file(path, PromptDictionaryPage.KEYS)
+            config = self.load_config()
+
+            # 去重逻辑
+            current_data = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
+            current_src_set = {item['src'] for item in current_data if item.get('src')} # 处理潜在的空 src
+            new_data_filtered = [item for item in data if item.get('src') and item['src'] not in current_src_set] # 确保导入的项目具有 src
+
+            if not new_data_filtered and data: # 如果所有导入的项目都已存在，则通知
+                self.info_toast(self.tra("信息"), self.tra("导入的数据项均已存在于当前表格中"))
+                return
+            elif not new_data_filtered and not data: # 如果文件为空或格式无效，则通知
+                self.warning_toast(self.tra("警告"), self.tra("未从文件中加载到有效数据"))
+                return
+
+            # 更新并保存
+            # 合并现有数据（来自表格状态）+ 新的已过滤数据
+            combined_data = current_data + new_data_filtered
+            config["prompt_dictionary_data"] = combined_data # 直接更新配置
+
+            # 在再次从表格保存配置*之前*更新表格
+            TableHelper.update_to_table(self.table, config["prompt_dictionary_data"], PromptDictionaryPage.KEYS)
+            self.table.resizeRowsToContents() # 导入后调整行高
+
+            # 现在将可能已修改的表格状态保存回配置
+            config["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
+            self.save_config(config)
+            self._reset_search() # 导入后重置搜索
+            self._reset_sort_indicator() # 导入后重置排序
+            self.success_toast("", self.tra("数据已导入并更新") + f" ({len(new_data_filtered)} {self.tra('项')})...")
+
+        parent.add_action(
+            Action(FluentIcon.DOWNLOAD, self.tra("导入"), parent, triggered = triggered),
+        )
+
+    # 导出
+    def add_command_bar_action_export(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
+
+        def triggered() -> None:
+            data = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
+            if not data:
+                self.warning_toast("", self.tra("表格中没有数据可导出"))
+                return
+
+            default_filename = self.tra("导出_术语表") + ".json"
+            path, _ = QFileDialog.getSaveFileName(self, self.tra("导出文件"), default_filename, "JSON 文件 (*.json)")
+
+            if not path:
+                return
+
+            if path.lower().endswith(".json"):
+                with open(path, "w", encoding="utf-8") as writer:
+                    writer.write(json.dumps(data, indent=4, ensure_ascii=False))
+            else:
+                self.error_toast(self.tra("导出失败"), self.tra("不支持的文件扩展名"))
+                return
+
+            self.success_toast("", self.tra("数据已导出到") + f": {path}")
+
+        parent.add_action(
+            Action(FluentIcon.SHARE, self.tra("导出"), parent, triggered = triggered),
+        )
+
 
     # 角色提取
     def add_command_bar_name_extractor(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
