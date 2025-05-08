@@ -108,7 +108,7 @@ class LanguageFilter(PluginBase):
             # 计算项目中出现次数最多的语言
             most_common_language = TranslatorUtil.get_most_common_language(data)
             # 获取可读更强的名称
-            en_source_lang, source_language, _, _ = TranslatorUtil.get_language_display_names(most_common_language,'chinese_simplified')
+            en_source_lang, source_language, _, _ = TranslatorUtil.get_language_display_names(most_common_language, 'chinese_simplified')
             print(f"[LanguageFilter] 项目主要使用语言: {most_common_language} - {en_source_lang}/{source_language}")
 
             # 处理每个文件中的条目

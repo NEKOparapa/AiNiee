@@ -6,6 +6,7 @@ from typing import Callable
 from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader import ReaderUtil
 from ModuleFolders.FileReader.BaseReader import BaseSourceReader
+from ModuleFolders.FileReader.LanguageDetectorONNX import LanguageDetectorONNX
 
 
 class DirectoryReader:
@@ -130,5 +131,6 @@ class DirectoryReader:
 
         # 释放语言检测器
         ReaderUtil.close_lang_detector()
+        LanguageDetectorONNX().release()
 
         return cache_project

@@ -1,225 +1,222 @@
 [
-    {
-      "regex": "\\\\font\\[\\d+\\]\\\\c\\[\\d+\\]\\\\f\\[\\d+\\]A+",
-      "description": "匹配 \\font[数字]\\c[数字]\\f[数字]\\A+ 格式的内容，用于过滤字体、颜色、字号等控制代码"
-    },
-    {
-      "regex": "if\\(.{0,5}[vs]\\[\\d+\\].{0,10}\\)",
-      "description": "if 条件判断 (if(!s[982]), if(v[982] >= 1))"
-    },
-    {
-      "regex": "en\\(.{0,5}[vs]\\[\\d+\\].{0,10}\\)",
-      "description": "en 条件判断 (en(!s[982]), en(v[982] >= 1))"
-    },
-    {
-      "regex": "[\\\\/][a-z]{1,5}<[a-z\\d]{0,10}>",
-      "description": "/C<y> /C<1> \\FS<xy> \\FS<12>"
-    },
-    {
-      "regex": "[\\\\/][a-z]{1,5}\\[[a-z\\d]{0,10}\\]",
-      "description": "/C[x] /C[1] \\FS[xy] \\FS[12]"
-    },
-    {
-      "regex": "[\\\\/][a-z]{1,5}(?=<[^a-z\\d]{0,10}>)",
-      "description": "/C<非数字非字母> \\FS<非数字非字母> 中的前半部分"
-    },
-    {
-      "regex": "[\\\\/][a-z]{1,5}(?=\\[[^a-z\\d]{0,10}\\])",
-      "description": "/C[非数字非字母] \\FS[非数字非字母] 中的前半部分"
-    },
-    {
-      "regex": "\\\\fr",
-      "description": "重置文本的改变 \\fr"
-    },
-    {
-      "regex": "\\\\fb",
-      "description": "加粗 \\fb"
-    },
-    {
-      "regex": "\\\\fi",
-      "description": "倾斜 \\fi"
-    },
-    {
-      "regex": "\\\\g",
-      "description": "显示货币 \\G"
-    },
-    {
-      "regex": "\\\\$",
-      "description": "打开金币框 \\$"
-    },
-    {
-      "regex": "\\\\\\|",
-      "description": "等待1秒 \\|"
-    },
-    {
-      "regex": "\\\\\\.",
-      "description": "等待0.25秒 \\."
-    },
-    {
-      "regex": "\\\\!",
-      "description": "等待按钮按下 \\!"
-    },
-    {
-      "regex": "\\\\>",
-      "description": "在同一行显示文字 \\>"
-    },
-    {
-      "regex": "\\\\^",
-      "description": "显示文本后不需要等待 \\^"
-    },
-    {
-      "regex": "\\\\<br>",
-      "description": "换行符 \\<br>"
-    },
-    {
-      "regex": "\\\\SE\\[.{0,15}?\\]",
-      "description": "se控制代码 \\SE[...]"
-    },
-    {
-      "regex": "【\\\\[A-Za-z]+\\[[^\\]]*】\\\\SE\\[[^\\]]*\\]",
-      "description": "复杂SE控制代码 【\\N[1]】\\SE[xxx]"
-    },
-    {
-      "regex": "<[A-Za-z]+:\\d+>",
-      "description": "标签结构 <Tag:数字>"
-    },
-    {
-      "regex": "\\\\cself\\[\\d+\\]",
-      "description": "\\cself[40]"
-    },
-    {
-      "regex": "\\$[^$]+\\$",
-      "description": "匹配被$包裹的随机内容 $...$"
-    },
-    {
-      "regex": "\\\\[A-Za-z]\\[\\d+\\]>",
-      "description": "带标签的任意字母控制代码 \\X[数字]>"
-    },
-    {
-      "regex": "\\\\[A-Za-z]\\[\\d+\\]",
-      "description": "任意字母控制代码 \\X[数字]"
-    },
-    {
-        "regex": "\\\\h\\[[^\\]]*\\]\\\\name",
-        "description": "h控制代码和name组合 \\h[...]\\name"
-    },
-    {
-      "regex": "\\\\name",
-      "description": "控制代码\\name"
-    },
-    {
-      "regex": "\\\\gold",
-      "description": "控制代码\\gold"
-    },
-    {
-      "regex": "\\\\count",
-      "description": "控制代码\\count"
-    },
-    {
-        "regex": "\\\\AA\\[F\\]",
-        "description": "控制代码 \\AA[F]"
-    },
-    {
-        "regex": "@\\d+",
-        "description": "@数字"
-    },
-    {
-      "regex": "\\\\ws",
-      "description": "\\ws"
-    },
-    {
-      "regex": "\\\\wm\\\\w\\[\\d+\\]",
-      "description": "\\wm \\w[180]"
-    },
-    {
-        "regex": "\\\\FA\\[[^\\]]*\\]\\\\SE\\[[^\\]]*\\]",
-        "description": "组合控制代码 \\FA[...]\\SE[...]"
-    },
-    {
-        "regex": "<ill:\\d+",
-        "description": "标签结构 <ill:数字"
-    },
-    {
-        "regex": "<plus:\\\\C\\[\\d+\\]",
-        "description": "标签结构 <plus:\\C[数字]"
-    },
-    {
-        "regex": "<minus:\\\\C\\[\\d+\\]",
-        "description": "标签结构 <minus:\\C[数字]"
-    },
-    {
-        "regex": "<br:\\\\I\\[\\d+\\]",
-        "description": "标签结构 <br:\\I[数字]"
-    },
-    {
-      "regex": "\\{w=wt\\d+\\}",
-      "description": "w控制代码 {w=wt数字}"
-    },
-    {
-      "regex": "\\{image=[^}]*\\}",
-      "description": "image标签 {image=...}"
-    },
-    {
-      "regex": "\\{color=[^}]*\\}",
-      "description": "color标签 {color=...}"
-    },
-    {
-      "regex": "\\{/color\\}",
-      "description": "关闭color标签 {/color}"
-    },
-    {
-      "regex": "\\{aw\\}",
-      "description": "aw标签 {aw}"
-    },
-    {
-      "regex": "\\{/aw\\}",
-      "description": "关闭aw标签 {/aw}"
-    },
-    {
-      "regex": "\\{i\\}",
-      "description": "i标签 {i}"
-    },
-    {
-      "regex": "\\{/i\\}",
-      "description": "关闭i标签 {/i}"
-    },
-    {
-      "regex": "\\{p\\}",
-      "description": "单p标签 {p}"
-    },
-    {
-      "regex": "\\{p\\}\\{p\\}.*?",
-      "description": "连续p标签 {p}{p}..."
-    },
-    {
-      "regex": "\\{size=\\d+\\}",
-      "description": "size标签 {size=数字}"
-    },
-    {
-      "regex": "\\{/size\\}",
-      "description": "关闭size标签 {/size}"
-    },
-    {
-      "regex": "\\{nm\\}[\\s\\S]*?\\{/nm\\}",
-      "description": "nm标签块 {nm}...{/nm}"
-    },
-    {
-      "regex": "\\{fast\\}",
-      "description": "fast标签 {fast}"
-    },
-    {
-      "regex": "\\{a=[^}]*\\}",
-      "description": "a标签 {a=...}"
-    },
-    {
-      "regex": "\\\\A+",
-      "description": "\\A+ 前缀"
-    },
-    {
-      "regex": "(?:\\r?\\n){2}",
-      "description": "双换行符正则放最后面，跨平台换行符版本（兼容 \r\n\r\n 或 \n\n 等）。有些太过短小的代码，没必要进行替换，区别不大，但是可以随便放在检查正则里"
-    }
-  ]
-
-
-                                                                                            
+  {
+    "regex": "\\\\font\\[\\d+\\]\\\\c\\[\\d+\\]\\\\f\\[\\d+\\]A+",
+    "description": "匹配 \\font[数字]\\c[数字]\\f[数字]\\A+ 格式的内容，用于过滤字体、颜色、字号等控制代码"
+  },
+  {
+    "regex": "if\\(.{0,5}[vs]\\[\\d+\\].{0,10}\\)",
+    "description": "if 条件判断 (if(!s[982]), if(v[982] >= 1))"
+  },
+  {
+    "regex": "en\\(.{0,5}[vs]\\[\\d+\\].{0,10}\\)",
+    "description": "en 条件判断 (en(!s[982]), en(v[982] >= 1))"
+  },
+  {
+    "regex": "[\\\\/][a-z]{1,5}<[a-z\\d]{0,10}>",
+    "description": "/C<y> /C<1> \\FS<xy> \\FS<12>"
+  },
+  {
+    "regex": "[\\\\/][a-z]{1,5}\\[[a-z\\d]{0,10}\\]",
+    "description": "/C[x] /C[1] \\FS[xy] \\FS[12]"
+  },
+  {
+    "regex": "[\\\\/][a-z]{1,5}(?=<[^a-z\\d]{0,10}>)",
+    "description": "/C<非数字非字母> \\FS<非数字非字母> 中的前半部分"
+  },
+  {
+    "regex": "[\\\\/][a-z]{1,5}(?=\\[[^a-z\\d]{0,10}\\])",
+    "description": "/C[非数字非字母] \\FS[非数字非字母] 中的前半部分"
+  },
+  {
+    "regex": "\\\\fr",
+    "description": "重置文本的改变 \\fr"
+  },
+  {
+    "regex": "\\\\fb",
+    "description": "加粗 \\fb"
+  },
+  {
+    "regex": "\\\\fi",
+    "description": "倾斜 \\fi"
+  },
+  {
+    "regex": "\\\\g",
+    "description": "显示货币 \\G"
+  },
+  {
+    "regex": "\\\\$",
+    "description": "打开金币框 \\$"
+  },
+  {
+    "regex": "\\\\\\|",
+    "description": "等待1秒 \\|"
+  },
+  {
+    "regex": "\\\\\\.",
+    "description": "等待0.25秒 \\."
+  },
+  {
+    "regex": "\\\\!",
+    "description": "等待按钮按下 \\!"
+  },
+  {
+    "regex": "\\\\>",
+    "description": "在同一行显示文字 \\>"
+  },
+  {
+    "regex": "\\\\^",
+    "description": "显示文本后不需要等待 \\^"
+  },
+  {
+    "regex": "\\\\<br>",
+    "description": "换行符 \\<br>"
+  },
+  {
+    "regex": "\\\\SE\\[.{0,15}?\\]",
+    "description": "se控制代码 \\SE[...]"
+  },
+  {
+    "regex": "【\\\\[A-Za-z]+\\[[^\\]]*】\\\\SE\\[[^\\]]*\\]",
+    "description": "复杂SE控制代码 【\\N[1]】\\SE[xxx]"
+  },
+  {
+    "regex": "<[A-Za-z]+:\\d+>",
+    "description": "标签结构 <Tag:数字>"
+  },
+  {
+    "regex": "\\\\cself\\[\\d+\\]",
+    "description": "\\cself[40]"
+  },
+  {
+    "regex": "\\$[^$]+\\$",
+    "description": "匹配被$包裹的随机内容 $...$"
+  },
+  {
+    "regex": "\\\\[A-Za-z]\\[\\d+\\]>",
+    "description": "带标签的任意字母控制代码 \\X[数字]>"
+  },
+  {
+    "regex": "\\\\[A-Za-z]\\[\\d+\\]",
+    "description": "任意字母控制代码 \\X[数字]"
+  },
+  {
+    "regex": "\\\\h\\[[^\\]]*\\]\\\\name",
+    "description": "h控制代码和name组合 \\h[...]\\name"
+  },
+  {
+    "regex": "\\\\name",
+    "description": "控制代码\\name"
+  },
+  {
+    "regex": "\\\\gold",
+    "description": "控制代码\\gold"
+  },
+  {
+    "regex": "\\\\count",
+    "description": "控制代码\\count"
+  },
+  {
+    "regex": "\\\\AA\\[F\\]",
+    "description": "控制代码 \\AA[F]"
+  },
+  {
+    "regex": "@\\d+",
+    "description": "@数字"
+  },
+  {
+    "regex": "\\\\ws",
+    "description": "\\ws"
+  },
+  {
+    "regex": "\\\\wm\\\\w\\[\\d+\\]",
+    "description": "\\wm \\w[180]"
+  },
+  {
+    "regex": "\\\\FA\\[[^\\]]*\\]\\\\SE\\[[^\\]]*\\]",
+    "description": "组合控制代码 \\FA[...]\\SE[...]"
+  },
+  {
+    "regex": "<ill:\\d+",
+    "description": "标签结构 <ill:数字"
+  },
+  {
+    "regex": "<plus:\\\\C\\[\\d+\\]",
+    "description": "标签结构 <plus:\\C[数字]"
+  },
+  {
+    "regex": "<minus:\\\\C\\[\\d+\\]",
+    "description": "标签结构 <minus:\\C[数字]"
+  },
+  {
+    "regex": "<br:\\\\I\\[\\d+\\]",
+    "description": "标签结构 <br:\\I[数字]"
+  },
+  {
+    "regex": "\\{w=wt\\d+\\}",
+    "description": "w控制代码 {w=wt数字}"
+  },
+  {
+    "regex": "\\{image=[^}]*\\}",
+    "description": "image标签 {image=...}"
+  },
+  {
+    "regex": "\\{color=[^}]*\\}",
+    "description": "color标签 {color=...}"
+  },
+  {
+    "regex": "\\{/color\\}",
+    "description": "关闭color标签 {/color}"
+  },
+  {
+    "regex": "\\{aw\\}",
+    "description": "aw标签 {aw}"
+  },
+  {
+    "regex": "\\{/aw\\}",
+    "description": "关闭aw标签 {/aw}"
+  },
+  {
+    "regex": "\\{i\\}",
+    "description": "i标签 {i}"
+  },
+  {
+    "regex": "\\{/i\\}",
+    "description": "关闭i标签 {/i}"
+  },
+  {
+    "regex": "\\{p\\}",
+    "description": "单p标签 {p}"
+  },
+  {
+    "regex": "\\{p\\}\\{p\\}.*?",
+    "description": "连续p标签 {p}{p}..."
+  },
+  {
+    "regex": "\\{size=\\d+\\}",
+    "description": "size标签 {size=数字}"
+  },
+  {
+    "regex": "\\{/size\\}",
+    "description": "关闭size标签 {/size}"
+  },
+  {
+    "regex": "\\{nm\\}[\\s\\S]*?\\{/nm\\}",
+    "description": "nm标签块 {nm}...{/nm}"
+  },
+  {
+    "regex": "\\{fast\\}",
+    "description": "fast标签 {fast}"
+  },
+  {
+    "regex": "\\{a=[^}]*\\}",
+    "description": "a标签 {a=...}"
+  },
+  {
+    "regex": "\\\\A+",
+    "description": "\\A+ 前缀"
+  },
+  {
+    "regex": "(?:\\r?\\n){2}",
+    "description": "双换行符正则放最后面，跨平台换行符版本（兼容 \r\n\r\n 或 \n\n 等）。有些太过短小的代码，没必要进行替换，区别不大，但是可以随便放在检查正则里"
+  }
+]

@@ -3,14 +3,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict
 
-from ModuleFolders.Cache.CacheFile import CacheFile
-from ModuleFolders.FileReader.ReaderUtil import detect_file_encoding, detect_language_with_context
+from tqdm import tqdm
 
+from ModuleFolders.Cache.CacheFile import CacheFile
+from ModuleFolders.FileReader.ReaderUtil import detect_file_encoding, detect_language_with_mediapipe, \
+    detect_language_with_onnx
 
 
 @dataclass
 class InputConfig:
     input_root: Path
+
 
 @dataclass
 class PreReadMetadata:
@@ -49,16 +52,15 @@ class BaseSourceReader(ABC):
         pass
 
     # 读取原文文件的处理流程（改进点：非自动检测语言情况下不使用检测器）
-    def read_source_file(self, file_path: Path, source_language:str) -> CacheFile:
+    def read_source_file(self, file_path: Path, source_language: str) -> CacheFile:
         """读取文件内容，并检测各种信息"""
         # 模板流程
-        pre_read_metadata = self.pre_read_source(file_path) # 读取文件之前的操作，可以放文件编码方法或其他
-        file_data = self.on_read_source(file_path, pre_read_metadata) # 读取单个文件中所有原文文本，由各个reader实现不同的专属的方法
-        file_data.encoding = pre_read_metadata.encoding # 设置文件编码
-        post_file_data = self.post_read_source(file_data) # 读取文件之后的操作，可以是语言检测等
+        pre_read_metadata = self.pre_read_source(file_path)  # 读取文件之前的操作，可以放文件编码方法或其他
+        file_data = self.on_read_source(file_path, pre_read_metadata)  # 读取单个文件中所有原文文本，由各个reader实现不同的专属的方法
+        file_data.encoding = pre_read_metadata.encoding  # 设置文件编码
+        post_file_data = self.post_read_source(file_data)  # 读取文件之后的操作，可以是语言检测等
 
         return post_file_data
-
 
     # 读取文件之前的操作
     def pre_read_source(self, file_path: Path) -> PreReadMetadata:
@@ -82,13 +84,24 @@ class BaseSourceReader(ABC):
 
     # 读取文件之后的操作
     def post_read_source(self, file_data: CacheFile) -> CacheFile:
-        """对原文(译文)片段做统一处理"""
-        for i, item in enumerate(file_data.items):
-            # 获取每一行的具体语言与分数
-            lang, score = detect_language_with_context(item, i, file_data)
-            # 将分数大于0的语言检测结果保存到item，否则保持为None
-            if score > 0.0:
-                item.lang_code = [lang, score]
+        """对原文(译文)片段做统一处理，使用批处理方式"""
+        batch_size = 128
+        items = file_data.items
+        total_items = len(items)
+
+        # 使用tqdm显示批处理进度
+        for batch_start in tqdm(range(0, total_items, batch_size), desc=f"批量语言检测中 ({file_data.file_name})"):
+            batch_end = min(batch_start + batch_size, total_items)
+            batch_items = items[batch_start:batch_end]
+
+            # 批量检测语言
+            # batch_results = detect_language_with_mediapipe(batch_items, batch_start, file_data)
+            batch_results = detect_language_with_onnx(batch_items, batch_start, file_data)
+
+            # 将检测结果保存回对应的item
+            for i, (lang, final_score, raw_score) in enumerate(batch_results):
+                if final_score > 0.0:
+                    items[batch_start + i].lang_code = [lang, final_score, raw_score]
 
         return file_data
 

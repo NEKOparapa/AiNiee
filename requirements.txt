@@ -29,6 +29,9 @@ python-rapidjson
 # 新版本存在打包后dll动态库加载失败的问题，等后续更新
 protobuf==4.25.7
 mediapipe==0.10.14
+onnxruntime==1.20.1
+onnxruntime-directml==1.20.1
+transformers
 # 获取iso语言代码对应的友好名称
 language-data
 langcodes
