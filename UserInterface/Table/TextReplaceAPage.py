@@ -461,7 +461,7 @@ class TextReplaceAPage(QFrame, Base):
     # 保存方法
     def save_data(self) -> None:
         config = self.load_config()
-        config["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, TextReplaceAPage.KEYS)
+        config["pre_translation_data"] = TableHelper.load_from_table(self.table, TextReplaceAPage.KEYS)
         self.save_config(config)
         self.success_toast("", self.tra("数据已保存") + " ... ")
 
@@ -477,9 +477,9 @@ class TextReplaceAPage(QFrame, Base):
 
         self.table.setRowCount(0)
         config = self.load_config()
-        config["prompt_dictionary_data"] = copy.deepcopy(self.default.get("prompt_dictionary_data", []))
+        config["pre_translation_data"] = copy.deepcopy(self.default.get("pre_translation_data", []))
         self.save_config(config)
-        TableHelper.update_to_table(self.table, config.get("prompt_dictionary_data"), TextReplaceAPage.KEYS)
+        TableHelper.update_to_table(self.table, config.get("pre_translation_data"), TextReplaceAPage.KEYS)
         self.table.resizeRowsToContents()
         self._reset_search() # 重置后重置搜索
         self._reset_sort_indicator() # 重置后重置排序
@@ -508,14 +508,14 @@ class TextReplaceAPage(QFrame, Base):
         # 更新并保存
         # 合并现有数据（来自表格状态）+ 新的已过滤数据
         combined_data = current_data + new_data_filtered
-        config["prompt_dictionary_data"] = combined_data # 直接更新配置
+        config["pre_translation_data"] = combined_data # 直接更新配置
 
         # 在再次从表格保存配置*之前*更新表格
-        TableHelper.update_to_table(self.table, config["prompt_dictionary_data"], TextReplaceAPage.KEYS)
+        TableHelper.update_to_table(self.table, config["pre_translation_data"], TextReplaceAPage.KEYS)
         self.table.resizeRowsToContents() # 导入后调整行高
 
         # 现在将可能已修改的表格状态保存回配置
-        config["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, TextReplaceAPage.KEYS)
+        config["pre_translation_data"] = TableHelper.load_from_table(self.table, TextReplaceAPage.KEYS)
         self.save_config(config)
         self._reset_search() # 导入后重置搜索
         self._reset_sort_indicator() # 导入后重置排序
