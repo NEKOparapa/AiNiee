@@ -47,14 +47,15 @@
 
   - Online Interface: Paid but cost-effective, no GPU requirements, full language support, [Interface Setup Guide - DeepSeek](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartDeepSeek)
   - Online Interface: Same as above, if DeepSeek official website is not accessible, you can use this alternative, [Interface Setup Guide - Volcano Engine](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartHuo)
+  
 * **Step 2: Project Settings**
   > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/Step2.png">
   
-  >`API Platform`: Select the interface you configured earlier<br>
+  - API Platform: Select the interface you configured earlier<br>
 
-  >`Target Language`: The language you want to translate to<br>
+  - Target Language: The language you want to translate to<br>
 
-  >`Input Folder`: Place the original files in this folder; novels, subtitles, documents can be translated directly, games require text extraction tools<br>
+  - Input Folder: Place the original files in this folder; novels, subtitles, documents can be translated directly, games require text extraction tools<br>
 
 * **Step 3: Start Translation**
 
