@@ -144,18 +144,15 @@
 </details>
 
 
-
-
 </details>
 
 ---
+
 <details>
 <summary>
   
 ## 功能说明[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#功能说明)  
 </summary>
-
-
 
 
 
@@ -166,11 +163,11 @@
 </summary>
 
 - [功能 ‐ 接口管理](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8A%9F%E8%83%BD%E2%80%90%E6%8E%A5%E5%8F%A3%E7%AE%A1%E7%90%86)
+- [功能 ‐ 双子星翻译](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D)
 
 </details>
 
   
-
 
 <details>
 <summary> 
@@ -186,18 +183,16 @@
 
 
 
-
 <details>
 <summary>
   
 ### 插件说明
 </summary>
 
-
-- [插件 - 文本规范器](https://github.com/NEKOparapa/AiNiee/wiki/TextNormalizer)
+- [插件 - 语言过滤器](https://github.com/NEKOparapa/AiNiee/wiki/%E6%8F%92%E4%BB%B6%E2%80%90LanguageFilter)
+- [插件 - 文本规范器](https://github.com/NEKOparapa/AiNiee/wiki/%E6%8F%92%E4%BB%B6%E2%80%90TextNormalizer)
 
 </details>
-
 
 
 
@@ -215,9 +210,6 @@
 
 * ` 配置迁移`
   >配置信息都会存储在resource的config.json中，下载新版本可以把它复制到新版本的resource中。
-  
-* `缓存文件`
-   >当翻译遇到问题时，可以之后更改翻译项目为缓存文件，并在输入文件夹选择该缓存文件所在的文件夹进行继续翻译。当继续翻译Epub与word文件时，还需要把原来的文件和缓存文件放在同一个文件夹里面。
 
 * `双子星翻译`
    >[详细介绍链接](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D) 双请求结构的翻译流程，大佬们探索AI可能性的新玩具。
