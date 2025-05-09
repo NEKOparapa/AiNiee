@@ -155,8 +155,8 @@
 ## 功能说明[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#功能说明)  
 </summary>
 
-<details>
-<summary>
+
+
 
 
 <details>
@@ -164,7 +164,6 @@
   
 ### 设置说明
 </summary>
-
 
 - [功能 ‐ 接口管理](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8A%9F%E8%83%BD%E2%80%90%E6%8E%A5%E5%8F%A3%E7%AE%A1%E7%90%86)
 
@@ -178,7 +177,6 @@
 
 ### 表格说明
 </summary>
-
 
 - [表格 - AI术语表](https://github.com/NEKOparapa/AiNiee/wiki/%E8%A1%A8%E6%A0%BC%E2%80%90AI%E6%9C%AF%E8%AF%AD%E8%A1%A8%E4%BB%8B%E7%BB%8D)
 - [表格 - AI禁翻表](https://github.com/NEKOparapa/AiNiee/wiki/%E8%A1%A8%E6%A0%BC%E2%80%90AI%E7%A6%81%E7%BF%BB%E8%A1%A8%E4%BB%8B%E7%BB%8D)
