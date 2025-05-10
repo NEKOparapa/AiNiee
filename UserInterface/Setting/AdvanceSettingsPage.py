@@ -112,9 +112,9 @@ class AdvanceSettingsPage(QFrame, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                self.tra("自动处理文本代码段"),
+                self.tra("自动预处理文本"),
                 self.tra(
-                "启用此功能后，联动正则库与禁翻表，将在翻译前移除首尾的代码段，占位中间的代码段，并在翻译后还原"
+                "启用此功能后，根据正则库与禁翻表，将在翻译前移除文本首尾的非翻译内容，占位文本中间的非翻译内容，并在翻译后还原"
                 ),
                 widget_init,
                 widget_callback,

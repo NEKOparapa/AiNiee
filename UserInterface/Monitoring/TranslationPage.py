@@ -84,7 +84,6 @@ class TranslationPage(QWidget, Base):
 
         # 添加控件
         self.add_widget_head(self.container, config, window)
-        self.add_widget_body(self.container, config, window)
         self.add_widget_foot(self.container, config, window)
         # 注册事件
         self.subscribe(Base.EVENT.TRANSLATION_UPDATE, self.translation_update)
@@ -317,35 +316,20 @@ class TranslationPage(QWidget, Base):
 
         # 添加两个控件
         self.add_combined_line_card(self.head_hbox, config, window)
-        #self.add_line_card(self.head_hbox, config, window)
-        #self.add_remaining_line_card(self.head_hbox, config, window)
         self.add_time_card(self.head_hbox, config, window)
         self.add_remaining_time_card(self.head_hbox, config, window)
 
+        self.add_ring_card(self.head_hbox, config, window)
+        self.add_waveform_card(self.head_hbox, config, window)
+
+        self.add_token_card(self.head_hbox, config, window)
+        self.add_task_card(self.head_hbox, config, window)
+        self.add_speed_card(self.head_hbox, config, window)
+        self.add_stability_card(self.head_hbox, config, window)
 
 
         # 添加到主容器
         self.container.addWidget(self.head_hbox_container, 1)
-
-    # 中部
-    def add_widget_body(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
-        self.flow_container = QWidget(self)
-        self.flow_layout = FlowLayout(self.flow_container, needAni = False)
-        self.flow_layout.setSpacing(8)
-        self.flow_layout.setContentsMargins(0, 0, 0, 0)
-
-
-        self.add_ring_card(self.flow_layout, config, window)
-        self.add_waveform_card(self.flow_layout, config, window)
-
-        self.add_speed_card(self.flow_layout, config, window)
-        self.add_stability_card(self.flow_layout, config, window)
-        self.add_task_card(self.flow_layout, config, window)
-        self.add_token_card(self.flow_layout, config, window)
-
-
-
-        self.container.addWidget(self.flow_container, 1)
 
     # 底部
     def add_widget_foot(self, parent: QLayout, config: dict, window: FluentWindow) -> None:

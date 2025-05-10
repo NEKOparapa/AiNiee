@@ -196,6 +196,10 @@
       "description": "\\A+ 前缀"
     },
     {
+      "regex": "\\\\n",
+      "description": "字符型换行符"
+    },
+    {
       "regex": "(?:\\r?\\n){2}",
       "description": "双换行符，跨平台换行符版本（兼容 \r\n\r\n 或 \n\n 等）"
     },

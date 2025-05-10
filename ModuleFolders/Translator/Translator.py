@@ -328,7 +328,7 @@ class Translator(Base):
                 self.print("")
 
             self.info(f"即将开始执行翻译任务，预计任务总数为 {len(tasks_list)}, 同时执行的任务数量为 {self.config.actual_thread_counts}，请注意保持网络通畅 ...")
-            time.sleep(5)
+            time.sleep(3)
             self.print("")
 
             # 开始执行翻译任务,构建异步线程池
