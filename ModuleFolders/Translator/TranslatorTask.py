@@ -37,6 +37,8 @@ class TranslatorTask(Base):
         self.config = config
         self.plugin_manager = plugin_manager
         self.request_limiter = request_limiter
+        self.text_processor = TextProcessor(self.config) # 文本处理器
+
         # 新的源语言对象
         self.source_lang = source_lang
 
@@ -60,36 +62,6 @@ class TranslatorTask(Base):
         # 前后换行空格处理信息存储
         self.affix_whitespace_storage = {}
 
-        # 读取正则表达式
-        self.regex_dir =  os.path.join(".", "Resource", "Regex", "regex.json")
-        self.code_pattern_list = self._prepare_regex_patterns()
-
-    # 读取正则库和禁翻表的正则
-    def _prepare_regex_patterns(self) -> List[str]:
-        """准备所有需要使用的正则表达式模式"""
-
-        patterns = []
-
-        # 从正则库加载基础正则
-        with open(self.regex_dir, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            file_patterns =  [item["regex"] for item in data if isinstance(item, dict) and "regex" in item]
-        patterns.extend(file_patterns)
-
-        # 合并禁翻表数据
-        exclusion_patterns = []
-        for item in self.config.exclusion_list_data:
-            
-            # 读取正则表达式
-            if regex := item.get("regex"):
-                exclusion_patterns.append(regex)
-
-            # 将标记符，转义为特殊字符并添加为普通匹配
-            else:
-                exclusion_patterns.append(re.escape(item["markers"]))
-        patterns.extend(exclusion_patterns)
-
-        return patterns
 
     # 设置缓存数据
     def set_items(self, items: list[CacheItem]) -> None:
@@ -115,8 +87,13 @@ class TranslatorTask(Base):
         self.plugin_manager.broadcast_event("normalize_text", self.config, self.source_text_dict)
 
         # 各种替换步骤，译前替换，提取首尾与占位中间代码
-        self.source_text_dict, self.prefix_codes, self.suffix_codes,self.placeholder_order,self.affix_whitespace_storage = TextProcessor.replace_all(self, self.config, self.source_text_dict,self.code_pattern_list)
-
+        self.source_text_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage = \
+            self.text_processor.replace_all(
+                self.config,
+                self.source_lang.new, 
+                self.source_text_dict
+            )
+        
         # 生成请求指令
         if self.config.double_request_switch_settings == True:
             self.messages_a, self.system_prompt_a = self.generate_prompt_DRA()
@@ -684,7 +661,7 @@ class TranslatorTask(Base):
             # 各种还原步骤
             # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
             restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage)
+            restore_response_dict = self.text_processor.restore_all(self.config, restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage)
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
@@ -900,7 +877,7 @@ class TranslatorTask(Base):
             # 各种还原步骤
             # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
             restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = TextProcessor.restore_all(self,self.config,restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order,self.affix_whitespace_storage)
+            restore_response_dict = self.text_processor.restore_all(self.config, restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order,self.affix_whitespace_storage)
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
