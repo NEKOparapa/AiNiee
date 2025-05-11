@@ -1,12 +1,11 @@
 import fnmatch
-from collections import  defaultdict
+from collections import defaultdict
 from pathlib import Path
 from typing import Callable
 
 from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader import ReaderUtil
 from ModuleFolders.FileReader.BaseReader import BaseSourceReader
-from ModuleFolders.FileReader.LanguageDetectorONNX import LanguageDetectorONNX
 
 
 class DirectoryReader:
@@ -79,7 +78,7 @@ class DirectoryReader:
                                 stats[1] += lang_confidence  # 累加置信度
                                 # 累计有效项目总数
                                 file_valid_items_count[cache_file.storage_path] += 1
-                                
+
                         if cache_file.items:
                             cache_project.add_file(cache_file)
 

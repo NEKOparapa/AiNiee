@@ -3,13 +3,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict
 
-import rich
 from tqdm import tqdm
 
 from ModuleFolders.Cache.CacheFile import CacheFile
-from ModuleFolders.FileReader import ReaderUtil
-from ModuleFolders.FileReader.ReaderUtil import detect_file_encoding, detect_language_with_mediapipe, \
-    detect_language_with_onnx, clean_text, remove_symbols, detect_language_with_pycld2
+from ModuleFolders.FileReader.ReaderUtil import detect_file_encoding, detect_language_with_mediapipe
 
 
 @dataclass
