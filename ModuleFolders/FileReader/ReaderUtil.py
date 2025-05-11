@@ -7,15 +7,12 @@ from typing import Union
 
 import chardet
 import charset_normalizer
-import pycld2
 import rich
-from langcodes import Language
 from mediapipe.tasks.python import text, BaseOptions
 from mediapipe.tasks.python.text import LanguageDetector
 
 from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.FileReader.LanguageDetectorONNX import LanguageDetectorONNX
 
 _LANG_DETECTOR_INSTANCE: LanguageDetector | None = None
 """语言检测器单例实现"""
@@ -199,154 +196,154 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
     return results
 
 
-def detect_language_with_onnx(items: list[CacheItem], _start_index: int, _file_data: CacheFile) -> \
-        list[tuple[list[str], float, float]]:
-    """批量检测语言（ONNX版本）
+# def detect_language_with_onnx(items: list[CacheItem], _start_index: int, _file_data: CacheFile) -> \
+#         list[tuple[list[str], float, float]]:
+#     """批量检测语言（ONNX版本）
+#
+#     Args:
+#         items: 当前处理的缓存项列表
+#         _start_index: 批次中第一项在items列表中的起始索引
+#         _file_data: 包含所有项的文件数据
+#
+#     Returns:
+#         list[tuple]: 每项对应的(语言代码, 置信度)列表
+#     """
+#     # 初始化结果列表
+#     results = []
+#
+#     # 准备有效文本的列表和对应的清理后文本
+#     valid_texts = []
+#     valid_indices = []
+#     cleaned_texts = []
+#
+#     for i, item in enumerate(items):
+#         # 获取原文并清理
+#         source_text = item.source_text
+#         if source_text is None or not source_text.strip():
+#             results.append((['no_text'], -1.0, -1.0))
+#             continue
+#
+#         cleaned_text = clean_text(source_text)
+#
+#         # 检查是否只包含符号
+#         if is_symbols_only(cleaned_text):
+#             results.append((['symbols_only'], -1.0, -1.0))
+#             continue
+#
+#         no_symbols_text = remove_symbols(cleaned_text)
+#         if not no_symbols_text:
+#             results.append((['no_text'], -1.0, -1.0))
+#             continue
+#
+#         valid_texts.append(no_symbols_text)
+#         valid_indices.append(len(results))
+#         cleaned_texts.append(cleaned_text)
+#         results.append(None)  # 添加占位符
+#
+#     if valid_texts:
+#         # 使用批量预测方法
+#         batch_results = LanguageDetectorONNX().predict_batch(valid_texts)
+#
+#         if batch_results:
+#             # 处理预测结果
+#             for i, result in enumerate(batch_results):
+#                 if result is None or i >= len(valid_indices):
+#                     continue
+#
+#                 _, lang_code, raw_prob, top_scores = result
+#                 result_idx = valid_indices[i]
+#                 cleaned_text = cleaned_texts[i]
+#                 onnx_langs = [top_3_score[0] for top_3_score in top_scores]
+#
+#                 final_prob = raw_prob
+#                 if HAS_UNUSUAL_ENG_REGEX.match(cleaned_text):
+#                     # 如果匹配到目标字符，则最高置信度降低0.15
+#                     final_prob -= 0.15
+#
+#                 # 如果有至少两个识别结果，则使用最高置信度减去第二个
+#                 if len(top_scores) >= 2:
+#                     # 最终的置信度
+#                     final_prob -= top_scores[1][1]  # 第二高分数
+#
+#                 results[result_idx] = (onnx_langs, final_prob, raw_prob)
+#
+#     # 处理未成功预测的项
+#     for i in range(len(results)):
+#         if results[i] is None:
+#             results[i] = (['un'], -1.0, -1.0)
+#
+#     return results
 
-    Args:
-        items: 当前处理的缓存项列表
-        _start_index: 批次中第一项在items列表中的起始索引
-        _file_data: 包含所有项的文件数据
 
-    Returns:
-        list[tuple]: 每项对应的(语言代码, 置信度)列表
-    """
-    # 初始化结果列表
-    results = []
-
-    # 准备有效文本的列表和对应的清理后文本
-    valid_texts = []
-    valid_indices = []
-    cleaned_texts = []
-
-    for i, item in enumerate(items):
-        # 获取原文并清理
-        source_text = item.source_text
-        if source_text is None or not source_text.strip():
-            results.append((['no_text'], -1.0, -1.0))
-            continue
-
-        cleaned_text = clean_text(source_text)
-
-        # 检查是否只包含符号
-        if is_symbols_only(cleaned_text):
-            results.append((['symbols_only'], -1.0, -1.0))
-            continue
-
-        no_symbols_text = remove_symbols(cleaned_text)
-        if not no_symbols_text:
-            results.append((['no_text'], -1.0, -1.0))
-            continue
-
-        valid_texts.append(no_symbols_text)
-        valid_indices.append(len(results))
-        cleaned_texts.append(cleaned_text)
-        results.append(None)  # 添加占位符
-
-    if valid_texts:
-        # 使用批量预测方法
-        batch_results = LanguageDetectorONNX().predict_batch(valid_texts)
-
-        if batch_results:
-            # 处理预测结果
-            for i, result in enumerate(batch_results):
-                if result is None or i >= len(valid_indices):
-                    continue
-
-                _, lang_code, raw_prob, top_scores = result
-                result_idx = valid_indices[i]
-                cleaned_text = cleaned_texts[i]
-                onnx_langs = [top_3_score[0] for top_3_score in top_scores]
-
-                final_prob = raw_prob
-                if HAS_UNUSUAL_ENG_REGEX.match(cleaned_text):
-                    # 如果匹配到目标字符，则最高置信度降低0.15
-                    final_prob -= 0.15
-
-                # 如果有至少两个识别结果，则使用最高置信度减去第二个
-                if len(top_scores) >= 2:
-                    # 最终的置信度
-                    final_prob -= top_scores[1][1]  # 第二高分数
-
-                results[result_idx] = (onnx_langs, final_prob, raw_prob)
-
-    # 处理未成功预测的项
-    for i in range(len(results)):
-        if results[i] is None:
-            results[i] = (['un'], -1.0, -1.0)
-
-    return results
-
-
-def detect_language_with_pycld2(items: list[CacheItem], _start_index: int, _file_data: CacheFile) -> \
-        list[tuple[list[str], float, float]]:
-    """批量检测语言（pycld2版本）
-
-    Args:
-        items: 当前处理的缓存项列表
-        _start_index: 批次中第一项在items列表中的起始索引
-        _file_data: 包含所有项的文件数据
-
-    Returns:
-        list[tuple]: 每项对应的(语言代码列表, 调整后置信度, 原始置信度)列表
-    """
-    # 初始化结果列表
-    results = []
-
-    for item in items:
-        # 获取原文并清理
-        source_text = item.source_text
-        if source_text is None or not source_text.strip():
-            results.append((['no_text'], -1.0, -1.0))
-            continue
-
-        cleaned_text = clean_text(source_text)
-
-        # 检查是否只包含符号
-        if is_symbols_only(cleaned_text):
-            results.append((['symbols_only'], -1.0, -1.0))
-            continue
-
-        try:
-            # 使用pycld2进行语言检测
-            no_symbols_text = remove_symbols(cleaned_text)
-            if not no_symbols_text:
-                results.append((['no_text'], -1.0, -1.0))
-                continue
-
-            is_reliable, _, details = pycld2.detect(no_symbols_text, bestEffort=True, isPlainText=True)
-
-            if not is_reliable or not details:
-                results.append((['un'], -1.0, -1.0))
-                continue
-
-            # 提取语言代码和置信度（使用langcode标准化）
-            language_codes = [Language.get(lang[1]).language for lang in details]
-
-            # 计算置信度 - 从percent转换为0-1范围的概率
-            probabilities = [lang[2] / 100.0 for lang in details]
-
-            raw_prob = probabilities[0] if probabilities else 0.0
-            first_prob = raw_prob
-
-            if HAS_UNUSUAL_ENG_REGEX.match(cleaned_text):
-                # 如果匹配到目标字符，则最高置信度降低0.15
-                first_prob -= 0.15
-
-            # 如果有至少两个识别结果，则使用最高置信度减去第二个
-            if len(probabilities) >= 2:
-                first_prob -= probabilities[1]
-
-            results.append((language_codes, first_prob, raw_prob))
-
-        except pycld2.error as _e:
-            # 处理文本太短或无法处理的情况
-            results.append((['detection_error'], -1.0, -1.0))
-        except Exception as _e:
-            # 处理其他异常情况
-            results.append((['error'], -1.0, -1.0))
-
-    return results
+# def detect_language_with_pycld2(items: list[CacheItem], _start_index: int, _file_data: CacheFile) -> \
+#         list[tuple[list[str], float, float]]:
+#     """批量检测语言（pycld2版本）
+#
+#     Args:
+#         items: 当前处理的缓存项列表
+#         _start_index: 批次中第一项在items列表中的起始索引
+#         _file_data: 包含所有项的文件数据
+#
+#     Returns:
+#         list[tuple]: 每项对应的(语言代码列表, 调整后置信度, 原始置信度)列表
+#     """
+#     # 初始化结果列表
+#     results = []
+#
+#     for item in items:
+#         # 获取原文并清理
+#         source_text = item.source_text
+#         if source_text is None or not source_text.strip():
+#             results.append((['no_text'], -1.0, -1.0))
+#             continue
+#
+#         cleaned_text = clean_text(source_text)
+#
+#         # 检查是否只包含符号
+#         if is_symbols_only(cleaned_text):
+#             results.append((['symbols_only'], -1.0, -1.0))
+#             continue
+#
+#         try:
+#             # 使用pycld2进行语言检测
+#             no_symbols_text = remove_symbols(cleaned_text)
+#             if not no_symbols_text:
+#                 results.append((['no_text'], -1.0, -1.0))
+#                 continue
+#
+#             is_reliable, _, details = pycld2.detect(no_symbols_text, bestEffort=True, isPlainText=True)
+#
+#             if not is_reliable or not details:
+#                 results.append((['un'], -1.0, -1.0))
+#                 continue
+#
+#             # 提取语言代码和置信度（使用langcode标准化）
+#             language_codes = [Language.get(lang[1]).language for lang in details]
+#
+#             # 计算置信度 - 从percent转换为0-1范围的概率
+#             probabilities = [lang[2] / 100.0 for lang in details]
+#
+#             raw_prob = probabilities[0] if probabilities else 0.0
+#             first_prob = raw_prob
+#
+#             if HAS_UNUSUAL_ENG_REGEX.match(cleaned_text):
+#                 # 如果匹配到目标字符，则最高置信度降低0.15
+#                 first_prob -= 0.15
+#
+#             # 如果有至少两个识别结果，则使用最高置信度减去第二个
+#             if len(probabilities) >= 2:
+#                 first_prob -= probabilities[1]
+#
+#             results.append((language_codes, first_prob, raw_prob))
+#
+#         except pycld2.error as _e:
+#             # 处理文本太短或无法处理的情况
+#             results.append((['detection_error'], -1.0, -1.0))
+#         except Exception as _e:
+#             # 处理其他异常情况
+#             results.append((['error'], -1.0, -1.0))
+#
+#     return results
 
 
 # 辅助函数，用于清理文本
