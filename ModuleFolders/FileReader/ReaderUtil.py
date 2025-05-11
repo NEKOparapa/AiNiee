@@ -7,7 +7,9 @@ from typing import Union
 
 import chardet
 import charset_normalizer
+import pycld2
 import rich
+from langcodes import Language
 from mediapipe.tasks.python import text, BaseOptions
 from mediapipe.tasks.python.text import LanguageDetector
 
@@ -21,6 +23,8 @@ HAS_UNUSUAL_ENG_REGEX = re.compile(
     r"^(?:(?=.*_)(?=.*[a-zA-Z0-9])\S*|(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]*)$"
 )
 """预编译正则 匹配包含 至少一个下划线和至少一个字母与数字且没有空白字符 或者 只由字母和数字组成且必须同时包含至少一个字母与数字 的字符串"""
+CLEAN_TEXT_PATTERN = re.compile(r'\\{1,2}[a-zA-Z]{1,2}\[\d+]|if\(.{0,8}[vs]\[\d+].{0,16}\)|\\n')
+"""预编译正则 清理文本使用"""
 
 
 # 加载语言检测器(全局)
@@ -49,7 +53,7 @@ def get_lang_detector():
             # 使用 model_asset_buffer 而不是 model_asset_path
             base_options = BaseOptions(model_asset_buffer=model_buffer)
             # 20250504改动：获取最多两个结果用于重新计算置信度
-            options = text.LanguageDetectorOptions(base_options=base_options, max_results=2)
+            options = text.LanguageDetectorOptions(base_options=base_options, max_results=3, score_threshold=0.0002)
             _LANG_DETECTOR_INSTANCE = text.LanguageDetector.create_from_options(options)
 
             # 计算加载时间（毫秒）
@@ -136,7 +140,7 @@ def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: fl
 
 # 检测文本语言
 def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _file_data: CacheFile) -> \
-        list[tuple[str, float, float]]:
+        list[tuple[list[str], float, float]]:
     """批量检测语言（Mediapipe版本）
 
     Args:
@@ -157,23 +161,29 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
         # 获取原文并清理
         source_text = item.source_text
         if source_text is None or not source_text.strip():
-            results.append(('no_text', -1.0, -1.0))
+            results.append((['no_text'], -1.0, -1.0))
             continue
 
         cleaned_text = clean_text(source_text)
 
         # 检查是否只包含符号
         if is_symbols_only(cleaned_text):
-            results.append(('symbols_only', -1.0, -1.0))
+            results.append((['symbols_only'], -1.0, -1.0))
             continue
 
         # 使用mediapipe的语言检测任务
-        lang_result = detector.detect(remove_symbols(cleaned_text)).detections
+        no_symbols_text = remove_symbols(cleaned_text)
+        if not no_symbols_text:
+            results.append((['no_text'], -1.0, -1.0))
+            continue
+
+        lang_result = detector.detect(no_symbols_text).detections
         if not lang_result:
-            results.append(('un', -1.0, -1.0))
+            results.append((['un'], -1.0, -1.0))
         else:
             raw_prob = lang_result[0].probability
             first_prob = raw_prob
+            mediapipe_langs = [detection.language_code for detection in lang_result]
 
             if HAS_UNUSUAL_ENG_REGEX.match(cleaned_text):
                 # 如果匹配到目标字符，则最高置信度降低0.15
@@ -184,13 +194,13 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
                 # 最终的mediapipe置信度
                 first_prob -= lang_result[1].probability
 
-            results.append((lang_result[0].language_code, first_prob, raw_prob))
+            results.append((mediapipe_langs, first_prob, raw_prob))
 
     return results
 
 
 def detect_language_with_onnx(items: list[CacheItem], _start_index: int, _file_data: CacheFile) -> \
-        list[tuple[str, float, float]]:
+        list[tuple[list[str], float, float]]:
     """批量检测语言（ONNX版本）
 
     Args:
@@ -213,17 +223,22 @@ def detect_language_with_onnx(items: list[CacheItem], _start_index: int, _file_d
         # 获取原文并清理
         source_text = item.source_text
         if source_text is None or not source_text.strip():
-            results.append(('no_text', -1.0, -1.0))
+            results.append((['no_text'], -1.0, -1.0))
             continue
 
         cleaned_text = clean_text(source_text)
 
         # 检查是否只包含符号
         if is_symbols_only(cleaned_text):
-            results.append(('symbols_only', -1.0, -1.0))
+            results.append((['symbols_only'], -1.0, -1.0))
             continue
 
-        valid_texts.append(remove_symbols(cleaned_text))
+        no_symbols_text = remove_symbols(cleaned_text)
+        if not no_symbols_text:
+            results.append((['no_text'], -1.0, -1.0))
+            continue
+
+        valid_texts.append(no_symbols_text)
         valid_indices.append(len(results))
         cleaned_texts.append(cleaned_text)
         results.append(None)  # 添加占位符
@@ -238,9 +253,10 @@ def detect_language_with_onnx(items: list[CacheItem], _start_index: int, _file_d
                 if result is None or i >= len(valid_indices):
                     continue
 
-                _, lang_code, raw_prob, top_3_scores = result
+                _, lang_code, raw_prob, top_scores = result
                 result_idx = valid_indices[i]
                 cleaned_text = cleaned_texts[i]
+                onnx_langs = [top_3_score[0] for top_3_score in top_scores]
 
                 final_prob = raw_prob
                 if HAS_UNUSUAL_ENG_REGEX.match(cleaned_text):
@@ -248,16 +264,87 @@ def detect_language_with_onnx(items: list[CacheItem], _start_index: int, _file_d
                     final_prob -= 0.15
 
                 # 如果有至少两个识别结果，则使用最高置信度减去第二个
-                if len(top_3_scores) >= 2:
+                if len(top_scores) >= 2:
                     # 最终的置信度
-                    final_prob -= top_3_scores[1][1]  # 第二高分数
+                    final_prob -= top_scores[1][1]  # 第二高分数
 
-                results[result_idx] = (lang_code, final_prob, raw_prob)
+                results[result_idx] = (onnx_langs, final_prob, raw_prob)
 
     # 处理未成功预测的项
     for i in range(len(results)):
         if results[i] is None:
-            results[i] = ('un', -1.0, -1.0)
+            results[i] = (['un'], -1.0, -1.0)
+
+    return results
+
+
+def detect_language_with_pycld2(items: list[CacheItem], _start_index: int, _file_data: CacheFile) -> \
+        list[tuple[list[str], float, float]]:
+    """批量检测语言（pycld2版本）
+
+    Args:
+        items: 当前处理的缓存项列表
+        _start_index: 批次中第一项在items列表中的起始索引
+        _file_data: 包含所有项的文件数据
+
+    Returns:
+        list[tuple]: 每项对应的(语言代码列表, 调整后置信度, 原始置信度)列表
+    """
+    # 初始化结果列表
+    results = []
+
+    for item in items:
+        # 获取原文并清理
+        source_text = item.source_text
+        if source_text is None or not source_text.strip():
+            results.append((['no_text'], -1.0, -1.0))
+            continue
+
+        cleaned_text = clean_text(source_text)
+
+        # 检查是否只包含符号
+        if is_symbols_only(cleaned_text):
+            results.append((['symbols_only'], -1.0, -1.0))
+            continue
+
+        try:
+            # 使用pycld2进行语言检测
+            no_symbols_text = remove_symbols(cleaned_text)
+            if not no_symbols_text:
+                results.append((['no_text'], -1.0, -1.0))
+                continue
+
+            is_reliable, _, details = pycld2.detect(no_symbols_text, bestEffort=True, isPlainText=True)
+
+            if not is_reliable or not details:
+                results.append((['un'], -1.0, -1.0))
+                continue
+
+            # 提取语言代码和置信度（使用langcode标准化）
+            language_codes = [Language.get(lang[1]).language for lang in details]
+
+            # 计算置信度 - 从percent转换为0-1范围的概率
+            probabilities = [lang[2] / 100.0 for lang in details]
+
+            raw_prob = probabilities[0] if probabilities else 0.0
+            first_prob = raw_prob
+
+            if HAS_UNUSUAL_ENG_REGEX.match(cleaned_text):
+                # 如果匹配到目标字符，则最高置信度降低0.15
+                first_prob -= 0.15
+
+            # 如果有至少两个识别结果，则使用最高置信度减去第二个
+            if len(probabilities) >= 2:
+                first_prob -= probabilities[1]
+
+            results.append((language_codes, first_prob, raw_prob))
+
+        except pycld2.error as _e:
+            # 处理文本太短或无法处理的情况
+            results.append((['detection_error'], -1.0, -1.0))
+        except Exception as _e:
+            # 处理其他异常情况
+            results.append((['error'], -1.0, -1.0))
 
     return results
 
@@ -269,7 +356,7 @@ def clean_text(source_text):
     text_with_marker = re.sub(r'\r\n|\r|\n', '__NEWLINE__', source_text)
 
     # 步骤2：处理一些特殊标记
-    cleaned_text = re.sub(r'\\[a-zA-Z]{1,2}\[\d+]|\\n', ' ', text_with_marker)
+    cleaned_text = CLEAN_TEXT_PATTERN.sub(' ', text_with_marker.strip())
 
     # 步骤3：将标记替换回一个空格
     return cleaned_text.replace('__NEWLINE__', ' ')
@@ -285,8 +372,13 @@ def is_symbols_only(source_text: str):
 
 
 def remove_symbols(source_text):
-    # 去除所有其他字符（包括空格和符号）后的字符串
-    return ''.join(char for char in source_text if char.isalnum())
+    # 去除标点和特殊字符(根据需要保留部分符号)
+    source_text = re.sub(r'[^\w\s「」『』，。、〜！？,.]', '', source_text)
+
+    # 去除多余空格
+    source_text = re.sub(r'\s+', ' ', source_text).strip()
+
+    return source_text
 
 
 # 检测换行符类型

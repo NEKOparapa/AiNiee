@@ -38,7 +38,7 @@ class LanguageDetectorONNX:
         script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
         model_path = os.path.join(script_dir, "Resource", "Models", "language_detection-ONNX")
 
-        self.onnx_model_path = os.path.join(model_path, "onnx", "model_fp16.onnx")
+        self.onnx_model_path = os.path.join(model_path, "onnx", "model_int8.onnx")
         self.tokenizer_path = model_path
         self.ort_session = None
         self.tokenizer = None
@@ -177,21 +177,38 @@ class LanguageDetectorONNX:
 
                 # 4. 后处理 - 计算概率 (置信度)
                 probabilities = softmax(logits)  # softmax 在最后一个维度上操作
+                # 先计算argmax获取最高预测结果
                 predicted_class_id = np.argmax(probabilities)
+                predicted_label = self.id2label.get(predicted_class_id, "Unknown")
                 confidence_score = float(probabilities[predicted_class_id])
 
-                # 5. 映射到标签
-                predicted_label = self.id2label.get(predicted_class_id, "Unknown")
-                # 处理为短语言代码
-                predicted_label = Language.get(predicted_label).language
+                # 创建临时字典，合并yue和zh
+                temp_scores = {}
+                for j, prob in enumerate(probabilities):
+                    lang_code = self.id2label.get(j, f"ID_{j}")
+                    lang_name = Language.get(lang_code).language
 
-                # 6. 创建所有分数的字典并获取 top 3
-                all_scores = {self.id2label.get(j, f"ID_{j}"): float(prob)
-                              for j, prob in enumerate(probabilities)}
-                sorted_scores = sorted(all_scores.items(), key=lambda item: item[1], reverse=True)
-                top_3_scores_list = sorted_scores[:3]
+                    # 将yue统一标记为zh
+                    if lang_name == 'yue':
+                        lang_name = 'zh'
 
-                results_list.append((i, predicted_label, confidence_score, top_3_scores_list))
+                    # 如果zh或yue已存在，保留概率较高的值
+                    if lang_name in temp_scores:
+                        temp_scores[lang_name] = max(temp_scores[lang_name], float(prob))
+                    else:
+                        temp_scores[lang_name] = float(prob)
+
+                # 排序并过滤
+                sorted_scores = sorted(temp_scores.items(), key=lambda item: item[1], reverse=True)
+                top_scores = [item for item in sorted_scores if item[1] > 0.0002][:5]
+
+                # 如果预测标签是yue，也转换为zh
+                if Language.get(predicted_label).language == 'yue':
+                    predicted_label = 'zh'
+                else:
+                    predicted_label = Language.get(predicted_label).language
+
+                results_list.append((i, predicted_label, confidence_score, top_scores))
 
             # 如果你修改了 predict 方法返回元组，这里也需要对应修改
             # return [(res['label'], res['confidence'], res['top_3_scores']) for res in results_list]

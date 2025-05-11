@@ -265,40 +265,40 @@ class LanguageFilter(PluginBase):
                     not item.lang_code or
                     (has_any(item.source_text) and
                      item.lang_code[0] == language and
-                     item.lang_code[1] > 0.85)]
+                     item.lang_code[1] > 0.92)]
         else:
             # 过滤原文检测语言与行语言相同的行
             return [item for item in file_items
                     if not isinstance(item.source_text, str) or
                     not item.lang_code or
                     (item.lang_code[0] == language and
-                     item.lang_code[1] > 0.85)]
+                     item.lang_code[1] > 0.92)]
 
     def _filter_unknown_language(self, path, file_items):
         """处理未知语言的文件"""
-        print(f"[LanguageFilter] 文件 {path} 未检测到具体语言，将只翻译置信度较高（大于0.75）的文本行")
+        print(f"[LanguageFilter] 文件 {path} 未检测到具体语言，将只翻译置信度较高（大于0.8）的文本行")
 
         return [item for item in file_items
                 if not isinstance(item.source_text, str) or
                 not item.lang_code or
-                item.lang_code[1] < 0.75]
+                item.lang_code[1] < 0.8]
 
     def _filter_normal_language(self, path, file_items, language):
         """处理一般语言情况"""
         # 将Ainiee内置语言代码映射为fasttext标准语言代码
-        cove_lang = TranslatorUtil.map_language_name_to_code(language)
+        main_source_lang = TranslatorUtil.map_language_name_to_code(language)
         # 获取语言处理函数
-        has_any = self.get_filter_function(cove_lang, path)
+        has_any = self.get_filter_function(main_source_lang, path)
 
         if has_any is not None:
             return [item for item in file_items
                     if not isinstance(item.source_text, str) or
                     not has_any(item.source_text) or  # 不包含源语言字符
-                    (item.get_lang_code(default_lang=cove_lang)[0] != cove_lang and  # 此处默认值使用cove_lang避免可能的值缺失导致所有项都被移除
-                     item.get_lang_code(default_lang=cove_lang)[1] > 0.85)]  # 或检测语言不是源语言且置信度高于0.78
+                    (item.get_lang_code(default_lang=main_source_lang)[0] != main_source_lang and  # 此处默认值使用cove_lang避免可能的值缺失导致所有项都被移除
+                     item.get_lang_code(default_lang=main_source_lang)[1] > 0.92)]  # 或检测语言不是源语言且置信度高于0.9
         else:
             # 如果没有对应的语言过滤器，过滤原文检测语言与行语言**不**相同的行
             return [item for item in file_items
                     if not isinstance(item.source_text, str) or
-                    (item.get_lang_code(default_lang=cove_lang)[0] != cove_lang and
-                     item.get_lang_code(default_lang=cove_lang)[1] > 0.85)]
+                    (item.get_lang_code(default_lang=main_source_lang)[0] != main_source_lang and
+                     item.get_lang_code(default_lang=main_source_lang)[1] > 0.92)]

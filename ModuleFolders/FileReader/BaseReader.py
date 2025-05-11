@@ -3,11 +3,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict
 
+import rich
 from tqdm import tqdm
 
 from ModuleFolders.Cache.CacheFile import CacheFile
+from ModuleFolders.FileReader import ReaderUtil
 from ModuleFolders.FileReader.ReaderUtil import detect_file_encoding, detect_language_with_mediapipe, \
-    detect_language_with_onnx
+    detect_language_with_onnx, clean_text, remove_symbols, detect_language_with_pycld2
 
 
 @dataclass
@@ -58,6 +60,7 @@ class BaseSourceReader(ABC):
         pre_read_metadata = self.pre_read_source(file_path)  # 读取文件之前的操作，可以放文件编码方法或其他
         file_data = self.on_read_source(file_path, pre_read_metadata)  # 读取单个文件中所有原文文本，由各个reader实现不同的专属的方法
         file_data.encoding = pre_read_metadata.encoding  # 设置文件编码
+        file_data.storage_path = file_path  # 临时设置一个路径
         post_file_data = self.post_read_source(file_data)  # 读取文件之后的操作，可以是语言检测等
 
         return post_file_data
@@ -88,20 +91,67 @@ class BaseSourceReader(ABC):
         batch_size = 128
         items = file_data.items
         total_items = len(items)
+        num_batches = (total_items + batch_size - 1) // batch_size
 
+        # 保存需要使用cld2再次检查的文本
+        # items_for_cld2 = []
         # 使用tqdm显示批处理进度
-        for batch_start in tqdm(range(0, total_items, batch_size), desc=f"批量语言检测中 ({file_data.file_name})"):
+        progress_bar = tqdm(range(0, total_items, batch_size), total=num_batches,
+                            desc=f"正在进行mediapipe语言检测 ({file_data.file_name})", unit="批次")
+        for batch_start in progress_bar:
             batch_end = min(batch_start + batch_size, total_items)
             batch_items = items[batch_start:batch_end]
+            end_index = min(batch_start + batch_size, total_items)
+
+            progress_bar.set_postfix_str(f"项目: {batch_start + 1}-{end_index}")
 
             # 批量检测语言
-            # batch_results = detect_language_with_mediapipe(batch_items, batch_start, file_data)
-            batch_results = detect_language_with_onnx(batch_items, batch_start, file_data)
+            batch_results = detect_language_with_mediapipe(batch_items, batch_start, file_data)
+            # batch_results = detect_language_with_onnx(batch_items, batch_start, file_data)
+            # batch_results = detect_language_with_pycld2(batch_items, batch_start, file_data)
 
             # 将检测结果保存回对应的item
-            for i, (lang, final_score, raw_score) in enumerate(batch_results):
-                if final_score > 0.0:
-                    items[batch_start + i].lang_code = [lang, final_score, raw_score]
+            for i, (mp_langs, mp_score, _) in enumerate(batch_results):
+                cur_item = items[batch_start + i]
+
+                # 初始化使用cld2结果（如果有效）
+                if mp_score > 0.0:
+                    cur_item.lang_code = (mp_langs[0], mp_score)
+
+                # # # 如果mediapipe的分数大于0.92，保存后再次使用cld2进行一次检测
+                # if mp_score >= 0.92:
+                #     # 将该文本添加到需要再次检查的列表中
+                #     items_for_cld2.append(cur_item)
+
+        # # 批处理完成后，使用cld2模型检测不确定的文本
+        # if items_for_cld2:
+        #     rich.print(f"[[green]INFO[/]] 使用cld2再次检查 {len(items_for_cld2)} 个不确定的文本项")
+        #
+        #     # 使用tqdm显示cld2检测进度
+        #     cld2_progress = tqdm(range(0, len(items_for_cld2), batch_size),
+        #                          desc=f"cld2语言检测 ({file_data.file_name})",
+        #                          unit="批次")
+        #
+        #     for cld2_batch_start in cld2_progress:
+        #         cld2_batch_end = min(cld2_batch_start + batch_size, len(items_for_cld2))
+        #         cld2_batch_items = [item for item in items_for_cld2[cld2_batch_start:cld2_batch_end]]
+        #
+        #         # 修正进度条显示
+        #         cld2_progress.set_postfix_str(f"项目: {cld2_batch_start + 1}-{cld2_batch_end}")
+        #
+        #         # 执行cld2语言检测
+        #         cld2_batch_results = detect_language_with_pycld2(cld2_batch_items, 0, file_data)
+        #
+        #         # 更新检测结果
+        #         for i, (cld2_langs, cld2_score, _) in enumerate(cld2_batch_results):
+        #             # 直接使用items_for_cld2中的引用
+        #             cur_item = items_for_cld2[cld2_batch_start + i]
+        #
+        #             # 如果cld2检测结果的置信度大于0.95，使用它
+        #             if cld2_score >= 0.95:
+        #                 cur_item.lang_code = (cld2_langs[0], cld2_score)
+        #
+        #     rich.print(f"[[green]INFO[/]] cld2检测完成，已更新不确定文本的语言标识")
 
         return file_data
 
