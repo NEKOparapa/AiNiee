@@ -276,17 +276,20 @@ class LanguageFilter(PluginBase):
 
     def _filter_unknown_language(self, path, file_items):
         """处理未知语言的文件"""
-        print(f"[LanguageFilter] 文件 {path} 未检测到具体语言，将只翻译置信度较高（大于0.8）的文本行")
+        print(f"[LanguageFilter] 文件 {path} 未检测到具体语言，将只翻译置信度较高（大于0.75）的文本行")
 
         return [item for item in file_items
                 if not isinstance(item.source_text, str) or
                 not item.lang_code or
-                item.lang_code[1] < 0.8]
+                item.lang_code[1] < 0.75]
 
     def _filter_normal_language(self, file, file_items, language):
         """处理一般语言情况"""
         # 将Ainiee内置语言代码映射为ISO标准语言代码
         main_source_lang = TranslatorUtil.map_language_name_to_code(language)
+        # 如果返回的代码是繁中，重新映射回zh代码
+        if main_source_lang == 'zh-Hant':
+            main_source_lang = 'zh'
         # 获取语言处理函数
         has_any = self.get_filter_function(main_source_lang, file.file_name)
 

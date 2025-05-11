@@ -32,8 +32,10 @@ def map_language_code_to_name(language_code: str) -> str:
     mapping = {
         "zh": "chinese_simplified",
         "zh-cn": "chinese_simplified",
+        "zh-Hans": "chinese_simplified",
         "zh-tw": "chinese_traditional",
         "yue": "chinese_traditional",
+        "zh-Hant": "chinese_traditional",
         "en": "english",
         "es": "spanish",
         "fr": "french",
@@ -49,7 +51,7 @@ def map_language_name_to_code(language_name: str) -> str:
     """将语言名称映射回语言代码"""
     mapping = {
         "chinese_simplified": "zh",
-        "chinese_traditional": "zh",  # 也映射到zh
+        "chinese_traditional": "zh-Hant",  # 单独映射到繁中代码
         "english": "en",
         "spanish": "es",
         "french": "fr",
