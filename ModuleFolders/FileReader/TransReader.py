@@ -158,6 +158,12 @@ class TransReader(BaseSourceReader):
         if source_text.strip().startswith("<PLM"):
             return True
 
+        # 过滤rpgmaker动画
+        if contexts and isinstance(contexts, list) :
+                context = contexts[0]
+                # 如果是Animations文件里面的文本
+                if context.startswith("Animations"):
+                        return True
 
         return False
 
