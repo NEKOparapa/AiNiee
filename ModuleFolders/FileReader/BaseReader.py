@@ -114,44 +114,12 @@ class BaseSourceReader(ABC):
             for i, (mp_langs, mp_score, _) in enumerate(batch_results):
                 cur_item = items[batch_start + i]
 
-                # 初始化使用cld2结果（如果有效）
+                # 初始化使用mediapipe结果（如果有效）
                 if mp_score > 0.0:
-                    cur_item.lang_code = (mp_langs[0], mp_score)
+                    # 创建除了主要语言外的其他语言列表
+                    other_langs = mp_langs[1:] if len(mp_langs) > 1 else []
 
-                # # # 如果mediapipe的分数大于0.92，保存后再次使用cld2进行一次检测
-                # if mp_score >= 0.92:
-                #     # 将该文本添加到需要再次检查的列表中
-                #     items_for_cld2.append(cur_item)
-
-        # # 批处理完成后，使用cld2模型检测不确定的文本
-        # if items_for_cld2:
-        #     rich.print(f"[[green]INFO[/]] 使用cld2再次检查 {len(items_for_cld2)} 个不确定的文本项")
-        #
-        #     # 使用tqdm显示cld2检测进度
-        #     cld2_progress = tqdm(range(0, len(items_for_cld2), batch_size),
-        #                          desc=f"cld2语言检测 ({file_data.file_name})",
-        #                          unit="批次")
-        #
-        #     for cld2_batch_start in cld2_progress:
-        #         cld2_batch_end = min(cld2_batch_start + batch_size, len(items_for_cld2))
-        #         cld2_batch_items = [item for item in items_for_cld2[cld2_batch_start:cld2_batch_end]]
-        #
-        #         # 修正进度条显示
-        #         cld2_progress.set_postfix_str(f"项目: {cld2_batch_start + 1}-{cld2_batch_end}")
-        #
-        #         # 执行cld2语言检测
-        #         cld2_batch_results = detect_language_with_pycld2(cld2_batch_items, 0, file_data)
-        #
-        #         # 更新检测结果
-        #         for i, (cld2_langs, cld2_score, _) in enumerate(cld2_batch_results):
-        #             # 直接使用items_for_cld2中的引用
-        #             cur_item = items_for_cld2[cld2_batch_start + i]
-        #
-        #             # 如果cld2检测结果的置信度大于0.95，使用它
-        #             if cld2_score >= 0.95:
-        #                 cur_item.lang_code = (cld2_langs[0], cld2_score)
-        #
-        #     rich.print(f"[[green]INFO[/]] cld2检测完成，已更新不确定文本的语言标识")
+                    cur_item.lang_code = (mp_langs[0], mp_score, other_langs)
 
         return file_data
 

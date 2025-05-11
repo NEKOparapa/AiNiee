@@ -52,8 +52,8 @@ def get_lang_detector():
 
             # 使用 model_asset_buffer 而不是 model_asset_path
             base_options = BaseOptions(model_asset_buffer=model_buffer)
-            # 20250504改动：获取最多两个结果用于重新计算置信度
-            options = text.LanguageDetectorOptions(base_options=base_options, max_results=3, score_threshold=0.0002)
+            # 20250504改动：获取最多四个结果用于重新计算置信度
+            options = text.LanguageDetectorOptions(base_options=base_options, max_results=4, score_threshold=0.0001)
             _LANG_DETECTOR_INSTANCE = text.LanguageDetector.create_from_options(options)
 
             # 计算加载时间（毫秒）
@@ -359,7 +359,7 @@ def clean_text(source_text):
     cleaned_text = CLEAN_TEXT_PATTERN.sub(' ', text_with_marker.strip())
 
     # 步骤3：将标记替换回一个空格
-    return cleaned_text.replace('__NEWLINE__', ' ')
+    return cleaned_text.replace('__NEWLINE__', r'\n')
 
 
 # 辅助函数，用于检查文本是否只包含符号
