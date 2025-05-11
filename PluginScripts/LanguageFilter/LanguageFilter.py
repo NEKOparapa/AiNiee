@@ -108,7 +108,7 @@ class LanguageFilter(PluginBase):
             # 计算项目中出现次数最多的语言
             most_common_language = TranslatorUtil.get_most_common_language(data)
             # 获取可读更强的名称
-            en_source_lang, source_language, _, _ = TranslatorUtil.get_language_display_names(most_common_language,'chinese_simplified')
+            en_source_lang, source_language, _, _ = TranslatorUtil.get_language_display_names(most_common_language, 'chinese_simplified')
             print(f"[LanguageFilter] 项目主要使用语言: {most_common_language} - {en_source_lang}/{source_language}")
 
             # 处理每个文件中的条目
@@ -137,7 +137,7 @@ class LanguageFilter(PluginBase):
                 elif first_language == 'un':
                     target.extend(self._filter_unknown_language(path, file_items))
                 else:
-                    target.extend(self._filter_normal_language(path, file_items, first_language))
+                    target.extend(self._filter_normal_language(file, file_items, first_language))
         else:
             # 原有的非自动检测模式，优化为使用统一的函数
             target.extend(self._filter_normal_language(None, data.items_iter(), config.source_language))
@@ -265,40 +265,65 @@ class LanguageFilter(PluginBase):
                     not item.lang_code or
                     (has_any(item.source_text) and
                      item.lang_code[0] == language and
-                     item.lang_code[1] > 0.85)]
+                     item.lang_code[1] > 0.92)]
         else:
             # 过滤原文检测语言与行语言相同的行
             return [item for item in file_items
                     if not isinstance(item.source_text, str) or
                     not item.lang_code or
                     (item.lang_code[0] == language and
-                     item.lang_code[1] > 0.85)]
+                     item.lang_code[1] > 0.92)]
 
     def _filter_unknown_language(self, path, file_items):
         """处理未知语言的文件"""
-        print(f"[LanguageFilter] 文件 {path} 未检测到具体语言，将只翻译置信度较高（大于0.75）的文本行")
+        print(f"[LanguageFilter] 文件 {path} 未检测到具体语言，将只翻译置信度较高（大于0.8）的文本行")
 
         return [item for item in file_items
                 if not isinstance(item.source_text, str) or
                 not item.lang_code or
-                item.lang_code[1] < 0.75]
+                item.lang_code[1] < 0.8]
 
-    def _filter_normal_language(self, path, file_items, language):
+    def _filter_normal_language(self, file, file_items, language):
         """处理一般语言情况"""
-        # 将Ainiee内置语言代码映射为fasttext标准语言代码
-        cove_lang = TranslatorUtil.map_language_name_to_code(language)
+        # 将Ainiee内置语言代码映射为ISO标准语言代码
+        main_source_lang = TranslatorUtil.map_language_name_to_code(language)
         # 获取语言处理函数
-        has_any = self.get_filter_function(cove_lang, path)
+        has_any = self.get_filter_function(main_source_lang, file.file_name)
 
-        if has_any is not None:
-            return [item for item in file_items
-                    if not isinstance(item.source_text, str) or
-                    not has_any(item.source_text) or  # 不包含源语言字符
-                    (item.get_lang_code(default_lang=cove_lang)[0] != cove_lang and  # 此处默认值使用cove_lang避免可能的值缺失导致所有项都被移除
-                     item.get_lang_code(default_lang=cove_lang)[1] > 0.85)]  # 或检测语言不是源语言且置信度高于0.78
-        else:
-            # 如果没有对应的语言过滤器，过滤原文检测语言与行语言**不**相同的行
-            return [item for item in file_items
-                    if not isinstance(item.source_text, str) or
-                    (item.get_lang_code(default_lang=cove_lang)[0] != cove_lang and
-                     item.get_lang_code(default_lang=cove_lang)[1] > 0.85)]
+        # 获取当前文件的低置信度语言统计
+        lc_languages = set()
+        if file.lc_language_stats:
+            lc_languages = {lang for lang, _, _ in file.lc_language_stats}
+
+        filtered_items = []
+        for item in file_items:
+            if not isinstance(item.source_text, str):
+                filtered_items.append(item)
+                continue
+
+            lang_info = item.get_lang_code(default_lang=main_source_lang)
+            detected_lang, confidence = lang_info[0], lang_info[1]
+            other_langs = lang_info[2] if len(lang_info) > 2 else []
+
+            # 判断是否不需要过滤:
+            # 1. 检测语言与主要源语言不同
+            # 2. 检测语言出现在低置信度语言统计中
+            # 3. 其他语言列表中包含主要源语言
+            not_filter_for_lc = (
+                    detected_lang != main_source_lang and
+                    detected_lang in lc_languages and
+                    main_source_lang in other_langs
+            )
+
+            if not_filter_for_lc:
+                continue
+
+            # 原有的过滤逻辑
+            if has_any is not None:
+                if not has_any(item.source_text) or (detected_lang != main_source_lang and confidence > 0.92):
+                    filtered_items.append(item)
+            else:
+                if detected_lang != main_source_lang and confidence > 0.92:
+                    filtered_items.append(item)
+
+        return filtered_items

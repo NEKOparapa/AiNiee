@@ -1,5 +1,5 @@
 import fnmatch
-from collections import  defaultdict
+from collections import defaultdict
 from pathlib import Path
 from typing import Callable
 
@@ -78,41 +78,57 @@ class DirectoryReader:
                                 stats[1] += lang_confidence  # 累加置信度
                                 # 累计有效项目总数
                                 file_valid_items_count[cache_file.storage_path] += 1
-                                
+
                         if cache_file.items:
                             cache_project.add_file(cache_file)
 
         # 处理语言统计结果
         language_counter = {}
+        low_confidence_language_counter = {}
+
         for file_path, lang_stats in language_stats.items():
             # 只有存在有效项目的文件才进行处理
             if file_valid_items_count[file_path] > 0:
-                threshold = file_valid_items_count[file_path] * 0.2  # 有效项目总数的20%
+                high_threshold = file_valid_items_count[file_path] * 0.1  # 有效项目总数的10%
+                low_threshold = file_valid_items_count[file_path] * 0.01  # 有效项目总数的1%
 
-                # 计算平均置信度并筛选
-                filtered_langs = []
+                # 先计算所有语言的平均置信度
+                all_langs = []
                 for lang, (count, total_confidence) in lang_stats.items():
                     avg_confidence = total_confidence / count
-
-                    # 应用筛选条件：次数超过阈值且平均置信度>=0.75
-                    if count >= threshold and avg_confidence >= 0.75:
-                        filtered_langs.append((lang, count, avg_confidence))
+                    all_langs.append((lang, count, avg_confidence))
 
                 # 按出现次数降序排序，相同次数按语言代码排序
-                if filtered_langs:
-                    sorted_langs = sorted(filtered_langs, key=lambda x: (-x[1], x[0]))
-                    language_counter[file_path] = sorted_langs
-                else:
-                    # 补充条件：如果没有满足原条件的语言，检查是否有出现次数>1且平均置信度>0.95的语言
-                    high_confidence_langs = []
-                    for lang, (count, total_confidence) in lang_stats.items():
-                        avg_confidence = total_confidence / count
-                        if count > 1 and avg_confidence > 0.95:
-                            high_confidence_langs.append((lang, count, avg_confidence))
+                sorted_langs = sorted(all_langs, key=lambda x: (-x[1], x[0]))
 
-                    if high_confidence_langs:
-                        sorted_langs = sorted(high_confidence_langs, key=lambda x: (-x[1], x[0]))
-                        language_counter[file_path] = sorted_langs
+                # 筛选高置信度语言
+                high_confidence_langs = []
+                for lang, count, avg_confidence in sorted_langs:
+                    # 应用筛选条件：次数超过阈值且平均置信度大于等于0.9
+                    if count >= high_threshold and avg_confidence >= 0.9:
+                        high_confidence_langs.append((lang, count, avg_confidence))
+
+                # 如果没有满足高置信度条件的语言，检查是否有出现次数>1且平均置信度>=0.95的语言
+                if not high_confidence_langs:
+                    high_confidence_alt_langs = []
+                    for lang, count, avg_confidence in sorted_langs:
+                        if count > 1 and avg_confidence >= 0.95:
+                            high_confidence_alt_langs.append((lang, count, avg_confidence))
+
+                    if high_confidence_alt_langs:
+                        language_counter[file_path] = high_confidence_alt_langs
+                else:
+                    language_counter[file_path] = high_confidence_langs
+
+                # 筛选低置信度语言
+                low_confidence_langs = []
+                for lang, count, avg_confidence in sorted_langs:
+                    # 应用筛选条件：出现次数大于等于低阈值或者平均置信度大于等于0.4小于0.9
+                    if low_threshold <= count < high_threshold or (count > 1 and 0.4 <= avg_confidence < 0.9):
+                        low_confidence_langs.append((lang, count, avg_confidence))
+
+                if low_confidence_langs:
+                    low_confidence_language_counter[file_path] = low_confidence_langs
 
         # 处理未出现在language_counter中的文件
         valid_file_paths = set(file_valid_items_count.keys())
@@ -127,6 +143,9 @@ class DirectoryReader:
         # 为对应的CacheFile添加语言统计属性
         for file_path, langs in language_counter.items():
             cache_project.get_file(file_path).language_stats = langs
+        # 添加低置信度语言统计
+        for file_path, langs in low_confidence_language_counter.items():
+            cache_project.get_file(file_path).lc_language_stats = langs
 
         # 释放语言检测器
         ReaderUtil.close_lang_detector()
