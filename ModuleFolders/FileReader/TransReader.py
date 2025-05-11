@@ -91,6 +91,16 @@ class TransReader(BaseSourceReader):
                     if parameters and len(parameters) > 0 and isinstance(parameters[0], dict):  # 有些人名信息并没有以字典存储
                         rowInfoText = parameters[0].get("rowInfoText", "")  # 可能为 具体人名 或类似 "\\v[263]" 的字符串
 
+                # 过滤不需要翻译的文本
+                if isinstance(source_text, str) and self.filter_trans_text( source_text, tags, contexts) :
+                    translation_status = CacheItem.STATUS.EXCLUDED # 改变为不需要翻译
+
+                    # 添加处理过的标签注释
+                    if tags is None:
+                        tags = ["purple"]
+                    else:
+                        tags.append("purple")
+
                 # 额外属性
                 extra = {
                     "tags": tags,
@@ -104,10 +114,6 @@ class TransReader(BaseSourceReader):
                     translation_status=translation_status,
                     extra=extra
                 )
-
-                # 过滤不需要翻译的文本
-                if isinstance(source_text, str) and self.filter_trans_text( source_text, tags, contexts) :
-                    item.translation_status = CacheItem.STATUS.EXCLUDED
 
                 # 如果有人名，则对原文本进行二次处理
                 if rowInfoText:
