@@ -454,10 +454,44 @@ class TextProcessor(Base):
             match = pattern_to_use.match(original_text)
             if match:
                 prefix, core_text, suffix = match.group(1), match.group(2), match.group(3)
-                if prefix == "[": core_text, prefix = "[" + core_text, "" # 特殊处理，前缀是左方括号
-                if suffix == "]": core_text, suffix = core_text + "]", "" # 特殊处理，后缀是右方括号
-                if suffix.isdigit(): core_text, suffix = core_text + suffix, "" # 特殊处理，后缀是数字
-                if not core_text.strip(): core_text, prefix, suffix = original_text, '', '' # 特殊处理，提取后，中间内容为空
+
+                # 特殊处理
+                # 处理前缀
+                if prefix: # 确保前缀不为空
+                    if prefix.endswith('['):
+                        core_text = '[' + core_text
+                        prefix = prefix[:-1]
+                    elif prefix.endswith('{'): 
+                        core_text = '{' + core_text
+                        prefix = prefix[:-1]
+                    elif prefix.endswith('（'): 
+                        core_text = '（' + core_text
+                        prefix = prefix[:-1]
+                    elif prefix.endswith('('): 
+                        core_text = '(' + core_text
+                        prefix = prefix[:-1]
+                # 处理后缀
+                if suffix: # 确保后缀不为空
+                    if suffix.startswith(']'):
+                        core_text = core_text + ']'
+                        suffix = suffix[1:]
+                    elif suffix.startswith('}'): 
+                        core_text = core_text + '}'
+                        suffix = suffix[1:]
+                    elif suffix.startswith('）'): 
+                        core_text = core_text + '）'
+                        suffix = suffix[1:]
+                    elif suffix.startswith(')'): 
+                        core_text = core_text + ')'
+                        suffix = suffix[1:]
+
+                # 提取的内容是数字
+                if suffix and suffix.isdigit(): 
+                    core_text, suffix = core_text + suffix, ""
+
+                # 确保核心内容不为空
+                if not core_text.strip(): 
+                    core_text, prefix, suffix = original_text, '', ''
                     
                 processed_text_dict[key] = core_text
                 processing_info[key] = {'prefix': prefix, 'suffix': suffix}
