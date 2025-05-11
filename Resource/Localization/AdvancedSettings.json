@@ -24,17 +24,17 @@
       "English": "AI will assist in generating a translation blacklist, automatically entered, but not yet applied to subsequent translation tasks.\nEnabling this feature will increase model load. It is recommended to enable it on inference models and does not support local interfaces.\nIt is recommended to enable it when translating game embedded text. Content extraction may have issues, requiring manual checking and filtering.",
       "日本語": "AIにより翻訳禁止リストを生成、自動入力しますが、まだ今後の翻訳タスクには適用されません。\nこの機能を有効にするとモデル負荷が増加します。推論モデルでの有効化を推奨、ローカルインターフェースは非対応です。\nゲーム内テキスト翻訳での有効化を推奨します。内容抽出に問題がある場合があり、手動での確認とフィルタリングが必要です。"
     },
-    "自动处理文本代码段": {
-      "简中": "自动处理文本代码段",
-      "繁中": "自動處理文字程式碼段",
-      "English": "Automatic Code Segment Handling",
-      "日本語": "自動コードセグメント処理"
+    "自动预处理文本": {
+        "简中": "自动预处理文本",
+        "繁中": "自動預處理文本",
+        "English": "Automatic Text Preprocessing",
+        "日本語": "テキスト自動前処理"
     },
-    "启用此功能后，联动正则库与禁翻表，将在翻译前移除首尾的代码段，占位中间的代码段，并在翻译后还原": {
-      "简中": "启用此功能后，联动正则库与禁翻表，将在翻译前移除首尾的代码段，占位中间的代码段，并在翻译后还原",
-      "繁中": "啟用後，聯動正規表示式庫與禁譯表，翻譯前移除首尾程式碼段，中間程式碼段替換為佔位符，翻譯後還原。",
-      "English": "Enabled: Links regex library & no-translate list. Removes leading/trailing code pre-translation, placeholders middle code, restores post-translation.",
-      "日本語": "有効時：正規表現ライブラリと禁翻表を連携。翻訳前に先頭/末尾コードを除去、中間コードをプレースホルダーに置換、翻訳後に復元。"
+    "启用此功能后，根据正则库与禁翻表，将在翻译前移除文本首尾的非翻译内容，占位文本中间的非翻译内容，并在翻译后还原": {
+        "简中": "启用此功能后，根据正则库与禁翻表，将在翻译前移除文本首尾的非翻译内容，占位文本中间的非翻译内容，并在翻译后还原",
+        "繁中": "啟用此功能後，根據正規表示式庫與禁譯表，將在翻譯前移除文字首尾的非翻譯內容、佔位符中間的非翻譯內容，並在翻譯後復原",
+        "English": "When enabled, non-translatable content at text boundaries and within placeholders will be temporarily removed during translation based on regex library and exclusion list, then restored after translation",
+        "日本語": "有効化すると、正規表現ライブラリと翻訳禁止リストに基づき、翻訳前後でテキストの前後端およびプレースホルダ内の非翻訳コンテンツを一時削除・復元します"
     },
     "自动简繁转换": {
       "简中": "自动简繁转换",

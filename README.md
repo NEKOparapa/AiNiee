@@ -55,9 +55,8 @@
 * **第二步：项目设置**
   > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第二步.png">
   
-  >`API接口平台`: 选择你之前设置的接口<br>
-
-  >`输入文件夹`: 将原文文件单独放置一个新的文件夹，并将该文件夹拖入框内，小说、字幕、文档可直接进行翻译，游戏需要文本提取工具进行配合。<br>
+  - API接口平台：选择你第一步设置的接口名字<br>
+  - 输入文件夹：将原文文件单独放置新的文件夹，并将该文件夹拖入框内。小说、字幕、文档可直接进行翻译，游戏需要文本提取工具进行配合。<br>
 
 * **第三步：开始翻译**
 
@@ -129,87 +128,58 @@
       |[Mtool教程](https://www.bilibili.com/video/BV1h6421c7MA) |初次使用推荐观看|
       |[Translator++教程](https://www.bilibili.com/video/BV1LgfoYzEaX/?share_source=copy_web&vd_source=b0eede35fc5eaa5c382509c6040d6501)|初次使用推荐观看|
       |[Wolf游戏教程](https://www.bilibili.com/video/BV1SnXbYiEjQ/?share_source=copy_web&vd_source=b0eede35fc5eaa5c382509c6040d6501)|初次使用推荐观看|
-
+      |[人名读取教程](https://www.bilibili.com/video/BV1j1VyzqERD/?share_source=copy_web&vd_source=b0eede35fc5eaa5c382509c6040d6501)|进阶翻译推荐观看|
 
  * **`🎫游戏翻译图文教程`**
 
       |视频链接|说明|
       |:----:|:-----:|
       |[Mtool教程](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Mtool) |适合新人，懒人翻译RPG,RenPY,Krkr等游戏，进行外挂式翻译|
-      |[Translator++教程（工程版）](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Translator--%EF%BC%88%E5%B7%A5%E7%A8%8B%E6%96%87%E4%BB%B6%E7%89%88%EF%BC%89)|适合翻译RPG,RenPY,Krkr等等游戏，进行内嵌式翻译|
-      |[Translator++教程（表格版）](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Translator-%EF%BC%88%E7%94%B5%E5%AD%90%E8%A1%A8%E6%A0%BC%E7%89%88%EF%BC%89)|适合翻译RPG,RenPY,Krkr等等游戏，进行内嵌式翻译（旧版教程）|
-      |[Paratranz游戏教程](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Paratranz)|适合翻译各类大型游戏的MOD|
-      |[StevExtraction工具教程](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90StevExtraction)|适合翻译RPGmakerMZ/MZ游戏|
+      |[Translator++教程](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Translator--%EF%BC%88%E5%B7%A5%E7%A8%8B%E6%96%87%E4%BB%B6%E7%89%88%EF%BC%89)|适合翻译RPG,RenPY,Krkr等等游戏，进行内嵌式翻译|
+      |[Paratranz教程](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Paratranz)|适合翻译各类大型游戏的MOD|
+      |[StevExtraction教程](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90StevExtraction)|适合翻译RPGmakerMZ/MZ游戏|
       |[Unity翻译教程](https://zhuanlan.zhihu.com/p/1894065679927313655)|适合翻译unity游戏|
       |[综合游戏翻译超详细教程](https://www.notion.so/AI-1d43d31f89b280f6bd61e12580652ce5?pvs=4)|适合翻译各类游戏，制作高质量的内嵌补丁|
 
 </details>
 
 
-
-
 </details>
 
 ---
+
 <details>
 <summary>
   
 ## 功能说明[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#功能说明)  
 </summary>
 
+
+
 <details>
 <summary>
-
-### 接口管理
+  
+### 设置说明
 </summary>
 
-*  OpenAI官方配置示例:
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/官方账号设置.png" width="600" height="400"><br>
-
-    > `模型选择`: 填入该平台提供服务的模型。<br>
-  
-    >`API KEY`: 填入由OpenAi账号生成的api_key<br>
-  
-
-*  自定义平台配置示例:
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/代理账号设置.png" width="600" height="400"><br> 
-    
-    >`请求地址`: 填入中转平台提供的请求地址,示例：`https://api.XXXXX.com` ,不要在后面单带一个`/`
-
-    >`自动补全`: 会在上面输入的请求地址自动补全“v1”
-    
-    >`请求格式`: 根据中转能够支持的请求格式进行选择，一般是openai格式
-
-    >`模型选择`: 可下拉选择，也可以自行填入模型名字<br>
-
-    >`API KEY`: 填入中转平台给你生成的API KEY<br>
-
-
-    > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee-chatgpt/main/Example%20image/翻译设置/代理账号速率价格设置.png" width="600" height="400"><br> 
-
-  
-    >`每分钟请求数`: RPM (requests per minute)每分钟向模型接口发送的翻译任务数量
-  
-    >`每分钟tokens数`: TPM (tokens per minute)每分钟向模型接口发送的tokens总数（类似字符总数）
-
+- [功能 ‐ 接口管理](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8A%9F%E8%83%BD%E2%80%90%E6%8E%A5%E5%8F%A3%E7%AE%A1%E7%90%86)
+- [功能 ‐ 双子星翻译](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D)
 
 </details>
-  
 
+  
 
 <details>
 <summary> 
 
-### 编辑中
+### 表格说明
 </summary>
 
-
-- [插件 - 语言过滤器](https://github.com/NEKOparapa/AiNiee/wiki/LanguageFilter)
-- [插件 - 文本规范器](https://github.com/NEKOparapa/AiNiee/wiki/TextNormalizer)
-- [插件 - MTool 优化器](https://github.com/NEKOparapa/AiNiee/wiki/MToolOptimizer)
+- [表格 - AI术语表](https://github.com/NEKOparapa/AiNiee/wiki/%E8%A1%A8%E6%A0%BC%E2%80%90AI%E6%9C%AF%E8%AF%AD%E8%A1%A8%E4%BB%8B%E7%BB%8D)
+- [表格 - AI禁翻表](https://github.com/NEKOparapa/AiNiee/wiki/%E8%A1%A8%E6%A0%BC%E2%80%90AI%E7%A6%81%E7%BF%BB%E8%A1%A8%E4%BB%8B%E7%BB%8D)
+- [表格 - 文本替换](https://github.com/NEKOparapa/AiNiee/wiki/%E8%A1%A8%E6%A0%BC%E2%80%90%E6%96%87%E6%9C%AC%E6%9B%BF%E6%8D%A2%E4%BB%8B%E7%BB%8D)
     
 </details>
-
 
 
 
@@ -219,11 +189,10 @@
 ### 插件说明
 </summary>
 
-- [插件 - 语言过滤器](https://github.com/NEKOparapa/AiNiee/wiki/LanguageFilter)
-- [插件 - 文本规范器](https://github.com/NEKOparapa/AiNiee/wiki/TextNormalizer)
-- [插件 - MTool 优化器](https://github.com/NEKOparapa/AiNiee/wiki/MToolOptimizer)
-</details>
+- [插件 - 语言过滤器](https://github.com/NEKOparapa/AiNiee/wiki/%E6%8F%92%E4%BB%B6%E2%80%90LanguageFilter)
+- [插件 - 文本规范器](https://github.com/NEKOparapa/AiNiee/wiki/%E6%8F%92%E4%BB%B6%E2%80%90TextNormalizer)
 
+</details>
 
 
 
@@ -241,9 +210,6 @@
 
 * ` 配置迁移`
   >配置信息都会存储在resource的config.json中，下载新版本可以把它复制到新版本的resource中。
-  
-* `缓存文件`
-   >当翻译遇到问题时，可以之后更改翻译项目为缓存文件，并在输入文件夹选择该缓存文件所在的文件夹进行继续翻译。当继续翻译Epub与word文件时，还需要把原来的文件和缓存文件放在同一个文件夹里面。
 
 * `双子星翻译`
    >[详细介绍链接](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D) 双请求结构的翻译流程，大佬们探索AI可能性的新玩具。

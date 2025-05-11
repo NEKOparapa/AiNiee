@@ -1,7 +1,7 @@
 import copy
 import rapidjson as json
 from qfluentwidgets import (Action, FluentIcon, MessageBox, TableWidget, RoundMenu,
-                            LineEdit, DropDownPushButton, TransparentToolButton, BodyLabel)
+                            LineEdit, DropDownPushButton, ToolButton, TransparentToolButton, BodyLabel)
 
 from PyQt5.QtCore import QEvent, Qt, QPoint, QTimer
 from PyQt5.QtWidgets import (QFrame, QFileDialog, QHeaderView, QLayout, QVBoxLayout,
@@ -9,7 +9,6 @@ from PyQt5.QtWidgets import (QFrame, QFileDialog, QHeaderView, QLayout, QVBoxLay
 
 from Base.Base import Base
 from UserInterface.TableHelper.TableHelper import TableHelper
-from Widget.CommandBarCard import CommandBarCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface import AppFluentWindow
 
@@ -49,7 +48,6 @@ class ExclusionListPage(QFrame, Base):
 
         self.add_widget_head(self.container, config, window)
         self.add_widget_body(self.container, config, window)
-        self.add_widget_foot(self.container, config, window)
 
         self._reset_search()
 
@@ -77,11 +75,7 @@ class ExclusionListPage(QFrame, Base):
             menu.addAction(Action(FluentIcon.REMOVE_FROM, self.tra("删除行"), triggered=self._handle_remove_selected_rows))
             menu.addSeparator()
 
-        menu.addAction(Action(FluentIcon.DOWNLOAD, self.tra("导入"), triggered=self._handle_import))
-        menu.addAction(Action(FluentIcon.SHARE, self.tra("导出"), triggered=self._handle_export))
-
         # 行数统计
-        menu.addSeparator()
         row_count = self.table.rowCount()
         row_count_action = Action(FluentIcon.LEAF,f"{self.tra('全部行数')}: {row_count}")
         row_count_action.setEnabled(False) # 使其不可点击，仅作为信息显示
@@ -89,67 +83,6 @@ class ExclusionListPage(QFrame, Base):
 
         global_pos = self.table.mapToGlobal(pos)
         menu.exec_(global_pos, ani=True)
-
-    # 处理导入
-    def _handle_import(self) -> None:
-
-        path, _ = QFileDialog.getOpenFileName(self, self.tra("选择文件"), "", "json 文件 (*.json);;xlsx 文件 (*.xlsx)")
-        if not isinstance(path, str) or path == "":
-            return
-        data = TableHelper.load_from_file(path, ExclusionListPage.KEYS)
-        config = self.load_config()
-
-        # 去重逻辑
-        current_data = TableHelper.load_from_table(self.table, ExclusionListPage.KEYS)
-        current_src_set = {item['src'] for item in current_data if item.get('src')} # 处理潜在的空 src
-        new_data_filtered = [item for item in data if item.get('src') and item['src'] not in current_src_set] # 确保导入的项目具有 src
-
-        if not new_data_filtered and data: # 如果所有导入的项目都已存在，则通知
-            self.info_toast(self.tra("信息"), self.tra("导入的数据项均已存在于当前表格中"))
-            return
-        elif not new_data_filtered and not data: # 如果文件为空或格式无效，则通知
-             self.warning_toast(self.tra("警告"), self.tra("未从文件中加载到有效数据"))
-             return
-
-        # 更新并保存
-        # 合并现有数据（来自表格状态）+ 新的已过滤数据
-        combined_data = current_data + new_data_filtered
-        config["exclusion_list_data"] = combined_data # 直接更新配置
-
-        # 在再次从表格保存配置*之前*更新表格
-        TableHelper.update_to_table(self.table, config["exclusion_list_data"], ExclusionListPage.KEYS)
-        self.table.resizeRowsToContents() # 导入后调整行高
-
-        # 现在将可能已修改的表格状态保存回配置
-        config["exclusion_list_data"] = TableHelper.load_from_table(self.table, ExclusionListPage.KEYS)
-        self.save_config(config)
-        self._reset_search() # 导入后重置搜索
-        self._reset_sort_indicator() # 导入后重置排序
-        self.success_toast("", self.tra("数据已导入并更新") + f" ({len(new_data_filtered)} {self.tra('项')})...")
-
-    # 处理导出
-    def _handle_export(self) -> None:
-
-        data = TableHelper.load_from_table(self.table, ExclusionListPage.KEYS)
-        if not data:
-            self.warning_toast("", self.tra("表格中没有数据可导出"))
-            return
-
-        default_filename = self.tra("导出_禁翻表") + ".json"
-        path, _ = QFileDialog.getSaveFileName(self, self.tra("导出文件"), default_filename, "JSON 文件 (*.json)")
-
-        if not path:
-            return
-
-        if path.lower().endswith(".json"):
-            with open(path, "w", encoding="utf-8") as writer:
-                writer.write(json.dumps(data, indent=4, ensure_ascii=False))
-        else:
-            self.error_toast(self.tra("导出失败"), self.tra("不支持的文件扩展名"))
-            return
-
-        self.success_toast("", self.tra("数据已导出到") + f": {path}")
-
 
     # 处理删除选定行
     def _handle_remove_selected_rows(self) -> None:
@@ -203,7 +136,7 @@ class ExclusionListPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 self.tra("禁翻表"),
-                self.tra("通过构建禁翻表来引导模型，禁止翻译文本中的特殊标记符，占位符，代码段等内容\n△触发机制: 文本含有标记符，或者正则表达式提取生效  ◯填写示例:  //F[N1]  |  游戏文本标记符号  |  //[A-Z]\\[.*?\\]"),
+                self.tra("通过构建禁翻表来引导模型，禁止翻译文本中的特殊标记符，占位符，代码段等内容\n△触发机制: 文本含有标记符，或者正则表达式匹配生效  ◯填写示例:  //F[N1]  |  游戏文本标记符号  |  //[A-Z]\\[.*?\\]"),
                 init=init,
                 checked_changed=checked_changed,
             )
@@ -367,6 +300,28 @@ class ExclusionListPage(QFrame, Base):
         self.search_next_button.setEnabled(False) # 初始禁用
         layout.addWidget(self.search_next_button)
 
+        # 5.保存重置导入导出按钮
+        layout.addStretch(1) # 添加拉伸项以将按钮推到右侧
+        self.save_button = ToolButton(FluentIcon.SAVE, self)
+        self.save_button.setToolTip(self.tra("保存"))
+        self.save_button.clicked.connect(self.save_data)
+        layout.addWidget(self.save_button)
+
+        self.reset_button = ToolButton(FluentIcon.DELETE, self)
+        self.reset_button.setToolTip(self.tra("重置"))
+        self.reset_button.clicked.connect(self.reset_data)
+        layout.addWidget(self.reset_button)
+
+        self.import_button = ToolButton(FluentIcon.DOWNLOAD, self)
+        self.import_button.setToolTip(self.tra("导入"))
+        self.import_button.clicked.connect(self.import_data)
+        layout.addWidget(self.import_button)
+
+        self.export_button = ToolButton(FluentIcon.SHARE, self)
+        self.export_button.setToolTip(self.tra("导出"))
+        self.export_button.clicked.connect(self.export_data)
+        layout.addWidget(self.export_button)
+
         return toolbar_widget
 
     # 设置搜索字段
@@ -503,51 +458,88 @@ class ExclusionListPage(QFrame, Base):
 
         self._update_search_ui() # 更新标签和按钮状态
 
+    # 保存方法
+    def save_data(self) -> None:
+        config = self.load_config()
+        config["exclusion_list_data"] = TableHelper.load_from_table(self.table, ExclusionListPage.KEYS)
+        self.save_config(config)
+        self.success_toast("", self.tra("数据已保存") + " ... ")
 
-    # 底部命令栏
-    def add_widget_foot(self, parent: QLayout, config: dict, window: AppFluentWindow) -> None:
+    # 重置方法
+    def reset_data(self) -> None:
+        info_cont1 = self.tra("是否确认重置为默认数据") + " ... ？"
+        message_box = MessageBox(self.tra("警告"), info_cont1, self.window())
+        message_box.yesButton.setText(self.tra("确认"))
+        message_box.cancelButton.setText(self.tra("取消"))
 
-        self.command_bar_card = CommandBarCard()
-        parent.addWidget(self.command_bar_card)
+        if not message_box.exec():
+            return
 
-        self.add_command_bar_action_save(self.command_bar_card, config, window)
-        self.add_command_bar_action_reset(self.command_bar_card, config, window)
+        self.table.setRowCount(0)
+        config = self.load_config()
+        config["exclusion_list_data"] = copy.deepcopy(self.default.get("exclusion_list_data", []))
+        self.save_config(config)
+        TableHelper.update_to_table(self.table, config.get("exclusion_list_data"), ExclusionListPage.KEYS)
+        self.table.resizeRowsToContents()
+        self._reset_search() # 重置后重置搜索
+        self._reset_sort_indicator() # 重置后重置排序
+        self.success_toast("", self.tra("数据已重置") + " ... ")
 
-    # 保存
-    def add_command_bar_action_save(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
+    # 导入方法
+    def import_data(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, self.tra("选择文件"), "", "json 文件 (*.json);;xlsx 文件 (*.xlsx)")
+        if not isinstance(path, str) or path == "":
+            return
+        data = TableHelper.load_from_file(path, ExclusionListPage.KEYS)
+        config = self.load_config()
 
-        def triggered() -> None:
-            config = self.load_config()
-            config["exclusion_list_data"] = TableHelper.load_from_table(self.table, ExclusionListPage.KEYS)
-            self.save_config(config)
-            self.success_toast("", self.tra("数据已保存") + " ... ")
+        # 去重逻辑
+        current_data = TableHelper.load_from_table(self.table, ExclusionListPage.KEYS)
+        current_src_set = {item['src'] for item in current_data if item.get('src')} # 处理潜在的空 src
+        new_data_filtered = [item for item in data if item.get('src') and item['src'] not in current_src_set] # 确保导入的项目具有 src
 
-        parent.add_action(
-            Action(FluentIcon.SAVE, self.tra("保存"), parent, triggered = triggered),
-        )
+        if not new_data_filtered and data: # 如果所有导入的项目都已存在，则通知
+            self.info_toast(self.tra("信息"), self.tra("导入的数据项均已存在于当前表格中"))
+            return
+        elif not new_data_filtered and not data: # 如果文件为空或格式无效，则通知
+            self.warning_toast(self.tra("警告"), self.tra("未从文件中加载到有效数据"))
+            return
 
-    # 重置
-    def add_command_bar_action_reset(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
+        # 更新并保存
+        # 合并现有数据（来自表格状态）+ 新的已过滤数据
+        combined_data = current_data + new_data_filtered
+        config["exclusion_list_data"] = combined_data # 直接更新配置
 
-        def triggered() -> None:
-            info_cont1 = self.tra("是否确认重置为默认数据") + " ... ？"
-            message_box = MessageBox(self.tra("警告"), info_cont1, self.window())
-            message_box.yesButton.setText(self.tra("确认"))
-            message_box.cancelButton.setText(self.tra("取消"))
+        # 在再次从表格保存配置*之前*更新表格
+        TableHelper.update_to_table(self.table, config["exclusion_list_data"], ExclusionListPage.KEYS)
+        self.table.resizeRowsToContents() # 导入后调整行高
 
-            if not message_box.exec():
-                return
+        # 现在将可能已修改的表格状态保存回配置
+        config["exclusion_list_data"] = TableHelper.load_from_table(self.table, ExclusionListPage.KEYS)
+        self.save_config(config)
+        self._reset_search() # 导入后重置搜索
+        self._reset_sort_indicator() # 导入后重置排序
+        self.success_toast("", self.tra("数据已导入并更新") + f" ({len(new_data_filtered)} {self.tra('项')})...")
 
-            self.table.setRowCount(0)
-            config = self.load_config()
-            config["exclusion_list_data"] = copy.deepcopy(self.default.get("exclusion_list_data", []))
-            self.save_config(config)
-            TableHelper.update_to_table(self.table, config.get("exclusion_list_data"), ExclusionListPage.KEYS)
-            self.table.resizeRowsToContents()
-            self._reset_search() # 重置后重置搜索
-            self._reset_sort_indicator() # 重置后重置排序
-            self.success_toast("", self.tra("数据已重置") + " ... ")
+    # 导出方法
+    def export_data(self) -> None:
+        data = TableHelper.load_from_table(self.table, ExclusionListPage.KEYS)
+        if not data:
+            self.warning_toast("", self.tra("表格中没有数据可导出"))
+            return
 
-        parent.add_action(
-            Action(FluentIcon.DELETE, self.tra("重置"), parent, triggered = triggered),
-        )
+        default_filename = self.tra("导出_术语表") + ".json"
+        path, _ = QFileDialog.getSaveFileName(self, self.tra("导出文件"), default_filename, "JSON 文件 (*.json)")
+
+        if not path:
+            return
+
+        if path.lower().endswith(".json"):
+            with open(path, "w", encoding="utf-8") as writer:
+                writer.write(json.dumps(data, indent=4, ensure_ascii=False))
+        else:
+            self.error_toast(self.tra("导出失败"), self.tra("不支持的文件扩展名"))
+            return
+
+        self.success_toast("", self.tra("数据已导出到") + f": {path}")
+
