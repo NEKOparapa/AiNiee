@@ -372,7 +372,7 @@ def is_symbols_only(source_text: str):
 
 def remove_symbols(source_text):
     # 去除标点和特殊字符(根据需要保留部分符号)
-    source_text = re.sub(r'[^\w\s「」『』，。、〜！？,.\\]', '', source_text)
+    source_text = re.sub(r'[^\w\s「」『』，。、〜？,.]', '', source_text)
 
     # 去除所有数字
     source_text = re.sub(r'\d+', '', source_text)
