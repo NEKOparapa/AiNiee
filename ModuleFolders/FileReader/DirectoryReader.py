@@ -138,7 +138,6 @@ class DirectoryReader:
                 # 筛选低置信度语言
                 low_confidence_langs = []
                 for lang, count, avg_confidence in sorted_langs:
-                    print(lang, count, avg_confidence)
                     # 应用筛选条件：出现次数大于等于低阈值或者平均置信度大于等于0.3小于0.8
                     if low_threshold <= count < high_threshold or (count > 1 and 0.3 <= avg_confidence < 0.8):
                         low_confidence_langs.append((lang, count, avg_confidence))
