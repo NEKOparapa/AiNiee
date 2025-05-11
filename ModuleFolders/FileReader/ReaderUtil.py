@@ -20,7 +20,9 @@ HAS_UNUSUAL_ENG_REGEX = re.compile(
     r"^(?:(?=.*_)(?=.*[a-zA-Z0-9])\S*|(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]*)$"
 )
 """预编译正则 匹配包含 至少一个下划线和至少一个字母与数字且没有空白字符 或者 只由字母和数字组成且必须同时包含至少一个字母与数字 的字符串"""
-CLEAN_TEXT_PATTERN = re.compile(r'\\{1,2}[a-zA-Z]{1,2}\[\d+]|if\(.{0,8}[vs]\[\d+].{0,16}\)|\\n')
+CLEAN_TEXT_PATTERN = re.compile(
+    r'\\{1,2}[a-zA-Z]{1,2}\[\d+]|if\(.{0,8}[vs]\[\d+].{0,16}\)|\\n|<[a-zA-Z]+:.*?>|[a-zA-Z]+\d+'
+)
 """预编译正则 清理文本使用"""
 
 
@@ -136,7 +138,7 @@ def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: fl
 
 
 # 检测文本语言
-def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _file_data: CacheFile) -> \
+def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _file_data: CacheFile | None) -> \
         list[tuple[list[str], float, float]]:
     """批量检测语言（Mediapipe版本）
 
@@ -355,8 +357,8 @@ def clean_text(source_text):
     # 步骤2：处理一些特殊标记
     cleaned_text = CLEAN_TEXT_PATTERN.sub(' ', text_with_marker.strip())
 
-    # 步骤3：将标记替换回一个空格
-    return cleaned_text.replace('__NEWLINE__', r'\n')
+    # 步骤3：将标记替换回空字符串
+    return cleaned_text.replace('__NEWLINE__', ' ')
 
 
 # 辅助函数，用于检查文本是否只包含符号
@@ -370,12 +372,19 @@ def is_symbols_only(source_text: str):
 
 def remove_symbols(source_text):
     # 去除标点和特殊字符(根据需要保留部分符号)
-    source_text = re.sub(r'[^\w\s「」『』，。、〜！？,.]', '', source_text)
+    source_text = re.sub(r'[^\w\s「」『』，。、〜！？,.\\]', '', source_text)
+
+    # 去除所有数字
+    source_text = re.sub(r'\d+', '', source_text)
 
     # 去除多余空格
     source_text = re.sub(r'\s+', ' ', source_text).strip()
 
-    return source_text
+    # 去除文本前后的转义换行符(\n)
+    source_text = re.sub(r'^(\\n)+', '', source_text)  # 去除开头的\n
+    source_text = re.sub(r'(\\n)+$', '', source_text)  # 去除结尾的\n
+
+    return source_text.strip()
 
 
 # 检测换行符类型

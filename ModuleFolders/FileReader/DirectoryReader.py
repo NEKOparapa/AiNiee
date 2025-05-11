@@ -3,6 +3,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Callable
 
+from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader import ReaderUtil
 from ModuleFolders.FileReader.BaseReader import BaseSourceReader
@@ -47,6 +48,8 @@ class DirectoryReader:
         language_stats = defaultdict(lambda: defaultdict(lambda: [0, 0.0]))
         # 每个文件的有效项目总数（排除symbols_only）
         file_valid_items_count = defaultdict(int)
+        # 按文件分组源文字
+        source_texts = defaultdict(list[str])
 
         with self.create_reader() as reader:
             self._update_exclude_rules(reader.exclude_rules)
@@ -78,6 +81,7 @@ class DirectoryReader:
                                 stats[1] += lang_confidence  # 累加置信度
                                 # 累计有效项目总数
                                 file_valid_items_count[cache_file.storage_path] += 1
+                                source_texts[cache_file.storage_path].append(item.source_text)
 
                         if cache_file.items:
                             cache_project.add_file(cache_file)
@@ -98,33 +102,45 @@ class DirectoryReader:
                     avg_confidence = total_confidence / count
                     all_langs.append((lang, count, avg_confidence))
 
-                # 按出现次数降序排序，相同次数按语言代码排序
-                sorted_langs = sorted(all_langs, key=lambda x: (-x[1], x[0]))
+                # 按出现次数降序排序，相同次数按置信度降序排序
+                sorted_langs = sorted(all_langs, key=lambda x: (-x[1], -x[2]))
 
                 # 筛选高置信度语言
                 high_confidence_langs = []
                 for lang, count, avg_confidence in sorted_langs:
-                    # 应用筛选条件：次数超过阈值且平均置信度大于等于0.9
-                    if count >= high_threshold and avg_confidence >= 0.9:
+                    # 应用筛选条件：次数超过阈值且平均置信度大于等于0.82
+                    if count >= high_threshold and avg_confidence >= 0.82:
                         high_confidence_langs.append((lang, count, avg_confidence))
 
-                # 如果没有满足高置信度条件的语言，检查是否有出现次数>1且平均置信度>=0.95的语言
+                # 如果没有满足高置信度条件的语言，检查是否有出现次数>1且平均置信度>=0.92的语言
                 if not high_confidence_langs:
                     high_confidence_alt_langs = []
                     for lang, count, avg_confidence in sorted_langs:
-                        if count > 1 and avg_confidence >= 0.95:
+                        if count > 1 and avg_confidence >= 0.92:
                             high_confidence_alt_langs.append((lang, count, avg_confidence))
 
                     if high_confidence_alt_langs:
                         language_counter[file_path] = high_confidence_alt_langs
+                    else:
+                        # 如果到这里了还没有high_confidence_langs的结果，使用mp对所有有效文字进行检测
+                        mp_langs, mp_score, _ = ReaderUtil.detect_language_with_mediapipe(
+                            [CacheItem(source_text='\n'.join(source_texts[file_path]))], 0, None
+                        )[0]
+                        if mp_score >= 0.92:
+                            # 添加到language_counter
+                            language_counter[file_path] = [(mp_langs[0], len(source_texts[file_path]), mp_score)]
+
+                            # 将检测到的语言从sorted_langs中删除
+                            sorted_langs = [lang_item for lang_item in sorted_langs if lang_item[0] != mp_langs[0]]
                 else:
                     language_counter[file_path] = high_confidence_langs
 
                 # 筛选低置信度语言
                 low_confidence_langs = []
                 for lang, count, avg_confidence in sorted_langs:
-                    # 应用筛选条件：出现次数大于等于低阈值或者平均置信度大于等于0.4小于0.9
-                    if low_threshold <= count < high_threshold or (count > 1 and 0.4 <= avg_confidence < 0.9):
+                    print(lang, count, avg_confidence)
+                    # 应用筛选条件：出现次数大于等于低阈值或者平均置信度大于等于0.3小于0.8
+                    if low_threshold <= count < high_threshold or (count > 1 and 0.3 <= avg_confidence < 0.8):
                         low_confidence_langs.append((lang, count, avg_confidence))
 
                 if low_confidence_langs:
