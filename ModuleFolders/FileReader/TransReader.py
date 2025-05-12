@@ -171,6 +171,28 @@ class TransReader(BaseSourceReader):
                 if context.startswith("Animations"):
                         return True
 
+        # 过滤map事件名
+        if contexts and isinstance(contexts, list) :
+                context = contexts[0]
+                # 如果是map件里面的文本
+                if ("events" in context ) and context.startswith("Map") and context.endswith("name"):
+                        return True
+
+        # 过滤CommonEvents事件名
+        if contexts and isinstance(contexts, list) :
+                context = contexts[0]
+                # 如果是CommonEvents文件里面的文本
+                if context.startswith("CommonEvents") and context.endswith("name"):
+                        return True
+
+
+        # 过滤MapInfos事件名
+        if contexts and isinstance(contexts, list) :
+                context = contexts[0]
+                # 如果是MapInfos文件里面的文本
+                if context.startswith("MapInfos") and context.endswith("name"):
+                        return True
+
         return False
 
     # 识别出部分战斗日志文本
@@ -182,7 +204,7 @@ class TransReader(BaseSourceReader):
         例如: \C[27], \N[HeroName], \V[10=5]
         """
         # 1. 定义代码标签的正则表达式
-        tag_pattern = r"\\([a-zA-Z])\[.*?\]" 
+        tag_pattern = r"\\([a-zA-Z]+)\[.*?\]" 
 
         # 2. 移除所有匹配到的代码标签
         text_without_tags = re.sub(tag_pattern, "", text)
