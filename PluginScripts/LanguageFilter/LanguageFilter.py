@@ -144,8 +144,12 @@ class LanguageFilter(PluginBase):
             print("[LanguageFilter] 使用指定语言模式...")
             print(f"[LanguageFilter] 项目主要使用语言: {config.source_language}")
             for path, file in data.files.items():
+                # 原文片段列表
+                file_items = file.items
+
                 # 原有的非自动检测模式，优化为使用统一的函数
-                target.extend(self._filter_normal_language(file, data.items_iter(), config.source_language))
+                #target.extend(self._filter_normal_language(file, data.items_iter(), config.source_language)) # 性能更好
+                target.extend(self._filter_normal_language(file, file_items, config.source_language))
 
         print("")
         for item in tqdm(target):
