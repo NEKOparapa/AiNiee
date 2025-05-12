@@ -369,10 +369,17 @@ class ResponseChecker():
         # 遍历译文字典中的每个键值对
         for key_dst, value_dst in dict_dst.items():
 
-            # 提取译文中的指定语言的文本
+            # 分组提取译文中的指定语言的文本
             text_lsit =  patterns_language.get(language).findall(value_dst)
             # 提取为空内容，则跳过
             if not text_lsit:
+                continue
+
+            # 获取对应原文
+            text_src = dict_src[key_dst]
+
+            # 检查是否注音文本
+            if ResponseChecker.contains_specific_format_single_comma(self,text_src):
                 continue
 
             # 循环处理，移除译文中的所有标点符号，并进行检查
@@ -386,7 +393,6 @@ class ResponseChecker():
                     continue
 
                 # 检查是否有原文残留
-                text_src = dict_src[key_dst]
                 if text_src:
 
                     # 检查是否在原文中
@@ -417,3 +423,23 @@ class ResponseChecker():
         """
         result = ''.join(char for char in input_string if char not in punctuation_list)
         return result
+
+    # 辅助函数，检测rpgmaker游戏的人名注音文本
+    def contains_specific_format_single_comma(self,text: str) -> bool:
+        """
+        判断输入的文本是否含有特定格式的子字符串。
+        格式为：\r[必须有任意文本,可能有文本]，且方括号内只能有一个逗号。
+        例如：\r[助平,すけべい] 或 \r[くん,]
+
+        Args:
+            text (str): 需要检查的输入文本。
+
+        Returns:
+            bool: 如果文本中含有该格式的子字符串，则返回 True，否则返回 False。
+        """
+        pattern = r"(?:\r|\\r)\[[^,\]]+,[^,\]]*\]"
+
+        if re.search(pattern, text):
+            return True
+        else:
+            return False
