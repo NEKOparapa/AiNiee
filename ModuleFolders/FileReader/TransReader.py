@@ -169,45 +169,51 @@ class TransReader(BaseSourceReader):
                 else:
                     return True
 
-        # 过滤图片调用代码
-        if source_text.strip().startswith("<PLM"):
-            return True
-
-        # 过滤rpgmaker动画
+        # 过滤Animations文件
         if contexts and isinstance(contexts, list) :
                 context = contexts[0]
                 # 如果是Animations文件里面的文本
                 if context.startswith("Animations"):
                         return True
 
-        # 过滤map事件名
+        # 过滤MapInfos文件
         if contexts and isinstance(contexts, list) :
                 context = contexts[0]
-                # 如果是map件里面的文本
-                if ("events" in context ) and context.startswith("Map") and context.endswith("name"):
+                # 如果是MapInfos文件里面的文本
+                if context.startswith("MapInfos") :
                         return True
 
-        # 过滤CommonEvents事件名
+        # 过滤Tilesets文件
+        if contexts and isinstance(contexts, list) :
+                context = contexts[0]
+                # 如果是MapInfos文件里面的文本
+                if context.startswith("Tilesets") :
+                        return True
+
+        # 过滤CommonEvents 调用名
         if contexts and isinstance(contexts, list) :
                 context = contexts[0]
                 # 如果是CommonEvents文件里面的文本
                 if context.startswith("CommonEvents") and context.endswith("name"):
                         return True
 
-
-        # 过滤MapInfos事件名
-        if contexts and isinstance(contexts, list) :
-                context = contexts[0]
-                # 如果是MapInfos文件里面的文本
-                if context.startswith("MapInfos") and context.endswith("name"):
-                        return True
-
-        # 过滤Troops事件名
+        # 过滤Troops 调用名
         if contexts and isinstance(contexts, list) :
                 context = contexts[0]
                 # 如果是Troops文件里面的文本
                 if context.startswith("Troops") and context.endswith("name"):
                         return True
+
+        # 过滤所有事件名
+        if contexts and isinstance(contexts, list) :
+                context = contexts[0]
+                # 如果是map件里面的文本
+                if ("events" in context ) and context.endswith("name"):
+                        return True
+
+        # 过滤图片调用代码
+        if source_text.strip().startswith("<PLM"):
+            return True
 
         return False
 

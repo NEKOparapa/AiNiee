@@ -32,7 +32,7 @@ class ResponseChecker():
             pass
         else:
             check_result = False
-            error_content = "回复文本行数不一致"
+            error_content = "【行数错误】 - 行数不一致"
             return check_result,error_content
 
         # 检查文本空行
@@ -40,7 +40,7 @@ class ResponseChecker():
             pass
         else:
             check_result = False
-            error_content = "原文与译文行数无法对应"
+            error_content = "【行数错误】 - 行数无法对应"
             return check_result,error_content
 
         # 检查数字序号是否正确
@@ -49,7 +49,7 @@ class ResponseChecker():
                 pass
             else:
                 check_result = False
-                error_content = "译文文本出现错行串行"
+                error_content = "【行数错误】 - 出现错行串行"
                 return check_result,error_content
 
         # 检查多行文本块是否回复正确行数
@@ -59,7 +59,7 @@ class ResponseChecker():
                     pass
                 else:
                     check_result = False
-                    error_content = "译文换行符数量不一致"
+                    error_content = "【换行符数】 - 译文换行符数量不一致"
                     return check_result, error_content
 
         # 检查是否回复了原文
@@ -68,7 +68,7 @@ class ResponseChecker():
                 pass
             else:
                 check_result = False
-                error_content = "译文与原文完全相同"
+                error_content = "【返回原文】 - 译文与原文完全相同"
                 return check_result,error_content
 
         # 检查是否残留部分原文
@@ -77,7 +77,7 @@ class ResponseChecker():
                 pass
             else:
                 check_result = False
-                error_content = "译文中残留部分原文"
+                error_content = "【翻译残留】 - 译文中残留部分原文"
                 return check_result,error_content
 
         # 检查是否成功保留全部的占位符
@@ -85,7 +85,7 @@ class ResponseChecker():
             pass
         else:
             check_result = False
-            error_content = "未能正确保留全部的占位符"
+            error_content = "【自动处理】 - 未正确保留全部的占位符"
             return check_result,error_content
 
 
