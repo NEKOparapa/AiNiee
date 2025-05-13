@@ -380,6 +380,7 @@ class ResponseChecker():
 
             # 检查是否注音文本
             if ResponseChecker.contains_specific_format_single_comma(self,text_src):
+                print("已过滤原文：" + text_src)
                 continue
 
             # 循环处理，移除译文中的所有标点符号，并进行检查
@@ -429,7 +430,7 @@ class ResponseChecker():
         """
         判断输入的文本是否含有特定格式的子字符串。
         格式为：\r[必须有任意文本,可能有文本]，且方括号内只能有一个逗号。
-        例如：\r[助平,すけべい] 或 \r[くん,]
+        例如：\r[助平,すけべい] 或 \r[くん,] 或 [P1][くん,]
 
         Args:
             text (str): 需要检查的输入文本。
@@ -437,8 +438,9 @@ class ResponseChecker():
         Returns:
             bool: 如果文本中含有该格式的子字符串，则返回 True，否则返回 False。
         """
-        pattern = r"(?:\r|\\r)\[[^,\]]+,[^,\]]*\]"
+        pattern = r"(?:\\r|\[P\d+\])?\[[^,\]]+,[^,\]]*\]"
 
+        # 使用 re.search 在文本中查找匹配项
         if re.search(pattern, text):
             return True
         else:

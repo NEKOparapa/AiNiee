@@ -97,9 +97,9 @@ class TransReader(BaseSourceReader):
 
                     # 添加处理过的标签注释
                     if tags is None:
-                        tags = ["purple"]
+                        tags = ["indigo"]
                     else:
-                        tags.append("purple")
+                        tags.append("indigo")
 
                 # 额外属性
                 extra = {
@@ -135,9 +135,18 @@ class TransReader(BaseSourceReader):
 
         # 过滤特定文本以外的红色标签
         if tags and ("red" in tags):
-            # 如果检查出战斗日志文本，则跳过
+            # 如果检查出战斗日志文本
             if self.check_english_letters_after_tags(source_text):
-                pass
+
+                if contexts and isinstance(contexts, list) :
+                    context = contexts[0]
+                    # 如果是插件文本，而非指令文本
+                    if ("script" in context):
+                        pass
+                    else:
+                        return True
+                else:
+                    return True
             else:
                 return True
 
@@ -193,6 +202,13 @@ class TransReader(BaseSourceReader):
                 if context.startswith("MapInfos") and context.endswith("name"):
                         return True
 
+        # 过滤Troops事件名
+        if contexts and isinstance(contexts, list) :
+                context = contexts[0]
+                # 如果是Troops文件里面的文本
+                if context.startswith("Troops") and context.endswith("name"):
+                        return True
+
         return False
 
     # 识别出部分战斗日志文本
@@ -208,11 +224,13 @@ class TransReader(BaseSourceReader):
 
         # 2. 移除所有匹配到的代码标签
         text_without_tags = re.sub(tag_pattern, "", text)
-
-        # 3. 检查剩余文本中是否包含任何英文字母
-        if re.search(r"[a-zA-Z]", text_without_tags):
+        text_cleaned = re.sub(r'\s+', '', text_without_tags)  # 移除所有空白字符
+        # 比如文本为\C[7]\I[2456]，提取完标签文本后为空
+        if not text_cleaned:
             return False
-        elif not text_without_tags.strip():
+
+        # 3. 检查剩余文本中是否包含任何英文字母,比如b_0001或者单个字母，但会误伤3p这样的文本
+        if re.search(r"[a-zA-Z]", text_cleaned):
             return False
         else:
             return True
