@@ -11,8 +11,8 @@ from google import genai
 
 def create_httpx_client(
         http2=True,
-        max_connections=128,
-        max_keepalive_connections=64,
+        max_connections=256,
+        max_keepalive_connections=128,
         keepalive_expiry=30,
         **kwargs
 ):

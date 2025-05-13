@@ -29,6 +29,9 @@ class CacheFile(ThreadSafeCache, ExtraMixin):
     language_stats: list[Union[str, int, float]] = field(default_factory=list)
     """检测到的语言次数与对应的平均置信度，可能有多种语言的存在"""
 
+    lc_language_stats: list[Union[str, int, float]] = field(default_factory=list)
+    """检测到的低置信度的语言统计，主要在语言检测器中有用"""
+
     extra: dict[str, Any] = field(default_factory=dict)
     """额外属性，用于存储特定reader产生的文件的额外属性，共用属性请加到CacheFile中"""
 

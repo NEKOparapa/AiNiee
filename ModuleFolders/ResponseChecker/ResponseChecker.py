@@ -32,7 +32,7 @@ class ResponseChecker():
             pass
         else:
             check_result = False
-            error_content = "回复文本行数不一致"
+            error_content = "【行数错误】 - 行数不一致"
             return check_result,error_content
 
         # 检查文本空行
@@ -40,7 +40,7 @@ class ResponseChecker():
             pass
         else:
             check_result = False
-            error_content = "原文与译文行数无法对应"
+            error_content = "【行数错误】 - 行数无法对应"
             return check_result,error_content
 
         # 检查数字序号是否正确
@@ -49,7 +49,7 @@ class ResponseChecker():
                 pass
             else:
                 check_result = False
-                error_content = "译文文本出现错行串行"
+                error_content = "【行数错误】 - 出现错行串行"
                 return check_result,error_content
 
         # 检查多行文本块是否回复正确行数
@@ -59,7 +59,7 @@ class ResponseChecker():
                     pass
                 else:
                     check_result = False
-                    error_content = "译文换行符数量不一致"
+                    error_content = "【换行符数】 - 译文换行符数量不一致"
                     return check_result, error_content
 
         # 检查是否回复了原文
@@ -68,7 +68,7 @@ class ResponseChecker():
                 pass
             else:
                 check_result = False
-                error_content = "译文与原文完全相同"
+                error_content = "【返回原文】 - 译文与原文完全相同"
                 return check_result,error_content
 
         # 检查是否残留部分原文
@@ -77,7 +77,7 @@ class ResponseChecker():
                 pass
             else:
                 check_result = False
-                error_content = "译文中残留部分原文"
+                error_content = "【翻译残留】 - 译文中残留部分原文"
                 return check_result,error_content
 
         # 检查是否成功保留全部的占位符
@@ -85,7 +85,7 @@ class ResponseChecker():
             pass
         else:
             check_result = False
-            error_content = "未能正确保留全部的占位符"
+            error_content = "【自动处理】 - 未正确保留全部的占位符"
             return check_result,error_content
 
 
@@ -369,10 +369,18 @@ class ResponseChecker():
         # 遍历译文字典中的每个键值对
         for key_dst, value_dst in dict_dst.items():
 
-            # 提取译文中的指定语言的文本
+            # 分组提取译文中的指定语言的文本
             text_lsit =  patterns_language.get(language).findall(value_dst)
             # 提取为空内容，则跳过
             if not text_lsit:
+                continue
+
+            # 获取对应原文
+            text_src = dict_src[key_dst]
+
+            # 检查是否注音文本
+            if ResponseChecker.contains_specific_format_single_comma(self,text_src):
+                print("已过滤原文：" + text_src)
                 continue
 
             # 循环处理，移除译文中的所有标点符号，并进行检查
@@ -386,7 +394,6 @@ class ResponseChecker():
                     continue
 
                 # 检查是否有原文残留
-                text_src = dict_src[key_dst]
                 if text_src:
 
                     # 检查是否在原文中
@@ -417,3 +424,24 @@ class ResponseChecker():
         """
         result = ''.join(char for char in input_string if char not in punctuation_list)
         return result
+
+    # 辅助函数，检测rpgmaker游戏的人名注音文本
+    def contains_specific_format_single_comma(self,text: str) -> bool:
+        """
+        判断输入的文本是否含有特定格式的子字符串。
+        格式为：\r[必须有任意文本,可能有文本]，且方括号内只能有一个逗号。
+        例如：\r[助平,すけべい] 或 \r[くん,] 或 [P1][くん,]
+
+        Args:
+            text (str): 需要检查的输入文本。
+
+        Returns:
+            bool: 如果文本中含有该格式的子字符串，则返回 True，否则返回 False。
+        """
+        pattern = r"(?:\\r|\[P\d+\])?\[[^,\]]+,[^,\]]*\]"
+
+        # 使用 re.search 在文本中查找匹配项
+        if re.search(pattern, text):
+            return True
+        else:
+            return False

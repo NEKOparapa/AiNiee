@@ -21,8 +21,10 @@ class CacheItem(ThreadSafeCache, ExtraMixin):
     model: str = ''
     source_text: str = ''
     translated_text: str = None
-    lang_code: list | None = None
-    """当前行的语言代码 格式: [语言代码, 置信度]"""
+    text_to_detect: str = None
+    """处理后的待（语言）检测文本"""
+    lang_code: tuple[str, float, list[str]] | None = None
+    """当前行的语言代码 格式: [语言代码, 置信度, 原始置信度(去掉了)，除最高置信度外的语言代码列表]"""
     extra: dict[str, Any] = field(default_factory=dict)
     """额外属性，用于存储特定reader产生的原文片段的额外属性，共用属性请加到CacheItem中"""
 
