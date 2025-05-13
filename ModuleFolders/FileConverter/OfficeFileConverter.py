@@ -29,7 +29,8 @@ class OfficeFileConverter(BaseFileConverter):
     def __exit__(self, exc_type, exc, exc_tb):
         import pythoncom
 
-        if self.office:
+        # Dispatch函数会复用已有的Word进程，多次退出会导致后面的com对象没有Quit函数
+        if self.office and hasattr(self.office, 'Quit'):
             self.office.Quit()
         pythoncom.CoUninitialize()
 
