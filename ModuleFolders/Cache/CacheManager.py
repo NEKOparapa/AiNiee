@@ -67,6 +67,15 @@ class CacheManager(Base):
             with open(path, "wb") as writer:
                 writer.write(content_bytes)
 
+            # 写入项目整体翻译状态文件
+            total_line = self.project.stats_data.total_line # 获取需翻译总行数
+            line = self.project.stats_data.line # 获取已翻译行数
+            json_data = {"total_line": total_line, "line": line }
+
+            json_path = os.path.join(self.save_to_file_require_path, "cache", "ProjectStatistics.json")
+            with open(json_path, "w", encoding="utf-8") as writer:
+                json.dump(json_data, writer, ensure_ascii=False, indent=4)  # 直接写入 JSON 数据
+
     # 保存缓存到文件的定时任务
     def save_to_file_tick(self) -> None:
         """定时保存任务"""

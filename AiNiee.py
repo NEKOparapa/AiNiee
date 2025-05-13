@@ -157,7 +157,7 @@ if __name__ == "__main__":
     # 创建全局窗口对象(高性能消耗)
     from UserInterface.AppFluentWindow import AppFluentWindow
     app_fluent_window = AppFluentWindow(
-        version="AiNiee6.5",
+        version="AiNiee6.5.1 dev",
         plugin_manager=plugin_manager,
         support_project_types=file_reader.get_support_project_types(),
     )
