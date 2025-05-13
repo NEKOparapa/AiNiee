@@ -88,7 +88,7 @@ class BaseSourceReader(ABC):
             lang, score = detect_language_with_context(item, i, file_data)
             # 将分数大于0的语言检测结果保存到item，否则保持为None
             if score > 0.0:
-                item.lang_code = [lang, score]
+                item.lang_code = (lang, score)
 
         return file_data
 

@@ -5,7 +5,7 @@ from itertools import zip_longest
 from tqdm import tqdm
 from rich import print
 
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Cache.CacheProject import CacheProject, ProjectType
 from PluginScripts.PluginBase import PluginBase
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
@@ -60,7 +60,7 @@ class MToolOptimizer(PluginBase):
         print("")
 
         # 记录处理前的条目数量
-        orginal_length = len([v for v in items if v.translation_status == CacheItem.STATUS.EXCLUDED])
+        orginal_length = len([v for v in items if v.translation_status == TranslationStatus.EXCLUDED])
 
         # 找到重复短句条目
         texts_to_delete = set()
@@ -75,10 +75,10 @@ class MToolOptimizer(PluginBase):
         # 移除重复短句条目
         for v in tqdm(items):
             if v.source_text.strip() in texts_to_delete:
-                v.translation_status = CacheItem.STATUS.EXCLUDED
+                v.translation_status = TranslationStatus.EXCLUDED
 
         print("")
-        print(f"[MToolOptimizer] 预处理执行成功，已移除 {len([v for v in items if v.translation_status == CacheItem.STATUS.EXCLUDED]) - orginal_length} 个重复的条目 ...")
+        print(f"[MToolOptimizer] 预处理执行成功，已移除 {len([v for v in items if v.translation_status == TranslationStatus.EXCLUDED]) - orginal_length} 个重复的条目 ...")
         print("")
 
     # 文本后处理事件
@@ -147,7 +147,7 @@ class MToolOptimizer(PluginBase):
             # 更新短句的译文
             for item in source_text_mapping.get(source.strip(), ()):
                 item.translated_text = translated.strip() if translated.strip() != "" else "　"
-                item.translation_status = CacheItem.STATUS.TRANSLATED
+                item.translation_status = TranslationStatus.TRANSLATED
 
     # 按显示长度切割字符串
     def split_string_by_display_length(self, string: str, display_length: int) -> list[str]:

@@ -1,4 +1,4 @@
-from ModuleFolders.Cache.CacheItem import Status
+from ModuleFolders.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Cache.CacheProject import CacheProject
 from PluginScripts.PluginBase import PluginBase
 
@@ -34,37 +34,37 @@ class GeneralTextFilter(PluginBase):
             # 检查文本是否为数值变量
             if isinstance(source_text, (int, float)):
                 entry.source_text = str(source_text)
-                entry.translation_status = Status.EXCLUDED
+                entry.translation_status = TranslationStatus.EXCLUDED
                 continue
 
             # 检查文本是否为字符型数字
             if (isinstance(source_text, str) and source_text.isdigit()):
-                entry.translation_status = Status.EXCLUDED
+                entry.translation_status = TranslationStatus.EXCLUDED
                 continue
 
             # 检查文本是否为空
             if source_text is None or source_text.strip() == "":
-                entry.translation_status = Status.EXCLUDED
+                entry.translation_status = TranslationStatus.EXCLUDED
                 continue
 
             # 检查文本是仅换行符
             if source_text.strip() in ("\n", "\\n", "\r", "\\r"):
-                entry.translation_status = Status.EXCLUDED
+                entry.translation_status = TranslationStatus.EXCLUDED
                 continue
 
             # 检查是否仅含标点符号的文本组合
             if isinstance(source_text, str) and self.is_punctuation_string(source_text):
-                entry.translation_status = Status.EXCLUDED
+                entry.translation_status = TranslationStatus.EXCLUDED
                 continue
 
             #加个检测后缀为MP3，wav，png，这些文件名的文本，都是纯代码文本，所以忽略掉
             if isinstance(source_text, str) and self._get_file_suffix(source_text.rstrip()) in self.EXCLUDE_FILE_SUFFIX:
-                entry.translation_status = Status.EXCLUDED
+                entry.translation_status = TranslationStatus.EXCLUDED
                 continue
 
             # 检查开头的
             if isinstance(source_text, str) and any(source_text.startswith(ext) for ext in self.EXCLUDE_PREFIX):
-                entry.translation_status = Status.EXCLUDED
+                entry.translation_status = TranslationStatus.EXCLUDED
                 continue
 
     # 检查字符串是否只包含常见的标点符号

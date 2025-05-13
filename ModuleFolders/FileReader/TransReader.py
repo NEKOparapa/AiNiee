@@ -4,7 +4,7 @@ from pathlib import Path
 import rich
 
 from ModuleFolders.Cache.CacheFile import CacheFile
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
@@ -63,9 +63,9 @@ class TransReader(BaseSourceReader):
 
                 # 检查翻译状态，过滤已翻译内容
                 if translated_text:
-                    translation_status = CacheItem.STATUS.TRANSLATED
+                    translation_status = TranslationStatus.TRANSLATED
                 else:
-                    translation_status = CacheItem.STATUS.UNTRANSLATED
+                    translation_status = TranslationStatus.UNTRANSLATED
 
                 # 确定该特定条目的标签
                 tags = None

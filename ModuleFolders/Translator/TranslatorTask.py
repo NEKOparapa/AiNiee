@@ -12,7 +12,7 @@ from typing import List
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Translator import Translator
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 from ModuleFolders.LLMRequester.LLMRequester import LLMRequester
@@ -668,7 +668,7 @@ class TranslatorTask(Base):
                 with item.atomic_scope():
                     item.model = self.config.model
                     item.translated_text = response
-                    item.translation_status = CacheItem.STATUS.TRANSLATED
+                    item.translation_status = TranslationStatus.TRANSLATED
 
             # 更新术语表与禁翻表到配置文件中
             self.config.update_glossary_ntl_config(glossary_result, NTL_result)
@@ -884,7 +884,7 @@ class TranslatorTask(Base):
                 with item.atomic_scope():
                     item.model = model
                     item.translated_text = response
-                    item.translation_status = CacheItem.STATUS.TRANSLATED
+                    item.translation_status = TranslationStatus.TRANSLATED
 
             # 打印任务结果
             self.print(

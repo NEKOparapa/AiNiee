@@ -1,4 +1,4 @@
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Cache.CacheManager import CacheManager
 from ModuleFolders.Cache.CacheProject import CacheProject
 from PluginScripts.PluginBase import PluginBase
@@ -42,7 +42,7 @@ class IncrementalFilePlugin(PluginBase):
                         # 在缓存中找到当前的片段
                         if cache_line.source_text == line.source_text:
                             # 更新已翻译的片段
-                            if cache_line.translation_status == CacheItem.STATUS.TRANSLATED and line.translation_status == CacheItem.STATUS.UNTRANSLATED:
+                            if cache_line.translation_status == TranslationStatus.TRANSLATED and line.translation_status == TranslationStatus.UNTRANSLATED:
                                 line.translation_status = cache_line.translation_status
                                 line.model = cache_line.model
                                 line.translated_text = cache_line.translated_text

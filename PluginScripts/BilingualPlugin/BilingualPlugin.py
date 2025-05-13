@@ -1,4 +1,4 @@
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Cache.CacheProject import CacheProject
 from PluginScripts.PluginBase import PluginBase
 
@@ -29,5 +29,5 @@ class BilingualPlugin(PluginBase):
             translated_text = entry.translated_text
             translation_status = entry.translation_status
 
-            if translation_status == CacheItem.STATUS.TRANSLATED:
+            if translation_status == TranslationStatus.TRANSLATED:
                 entry.translated_text = translated_text + "\n" + source_text

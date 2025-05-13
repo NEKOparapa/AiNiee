@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from ModuleFolders.Cache.CacheFile import CacheFile
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
@@ -58,9 +58,9 @@ class ParatranzReader(BaseSourceReader):
             # 根据 JSON 文件内容的数据结构，获取相应字段值
             stage = json_item.get('stage', 0)
             if stage == 0:  # stage 0为未翻译，详见https://paratranz.cn/docs
-                translation_status = CacheItem.STATUS.UNTRANSLATED
+                translation_status = TranslationStatus.UNTRANSLATED
             else:
-                translation_status = CacheItem.STATUS.TRANSLATED
+                translation_status = TranslationStatus.TRANSLATED
             source_text = json_item.get('original', '')  # 获取原文，如果没有则默认为空字符串
             translated_text = json_item.get('translation', '')  # 获取翻译，如果没有则默认为空字符串
             extra = {

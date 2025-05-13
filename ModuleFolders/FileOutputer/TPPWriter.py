@@ -5,7 +5,7 @@ from openpyxl import Workbook
 from openpyxl.utils.escape import escape
 
 from ModuleFolders.Cache.CacheFile import CacheFile
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
@@ -51,7 +51,7 @@ class TPPWriter(BaseTranslatedWriter):
             # 如果文本是以 = 开始，则加一个空格
             # 因为 = 开头会被识别成 Excel 公式导致 T++ 导入时 卡住
             # 加入空格后，虽然还是不能直接导入 T++ ，但是可以手动复制粘贴
-            if translation_status != CacheItem.STATUS.TRANSLATED:
+            if translation_status != TranslationStatus.TRANSLATED:
                 ws.cell(row=row_index, column=1).value = re.sub(r"^=", " =", source_text)
             else:
                 ws.cell(row=row_index, column=1).value = re.sub(r"^=", " =", source_text)

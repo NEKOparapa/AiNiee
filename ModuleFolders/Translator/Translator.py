@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Cache.CacheManager import CacheManager
 from ModuleFolders.Cache.CacheProject import CacheProjectStatistics
 from ModuleFolders.Translator import TranslatorUtil
@@ -224,7 +224,7 @@ class Translator(Base):
                 return None
 
             # 获取 待翻译 状态的条目数量
-            item_count_status_untranslated = self.cache_manager.get_item_count_by_status(CacheItem.STATUS.UNTRANSLATED)
+            item_count_status_untranslated = self.cache_manager.get_item_count_by_status(TranslationStatus.UNTRANSLATED)
 
             # 判断是否需要继续翻译
             if item_count_status_untranslated == 0:
@@ -372,7 +372,7 @@ class Translator(Base):
         converter = opencc.OpenCC(preset)
 
         for item in cache_list:
-            if item.translation_status == CacheItem.STATUS.TRANSLATED:
+            if item.translation_status == TranslationStatus.TRANSLATED:
                 item.translated_text = converter.convert(item.translated_text)
 
     # 单个翻译任务完成时,更新项目进度状态
