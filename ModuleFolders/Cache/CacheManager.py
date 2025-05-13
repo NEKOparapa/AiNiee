@@ -4,11 +4,12 @@ import time
 from dataclasses import fields
 from typing import List, Tuple
 
+import msgspec
 import rapidjson as json
 
 from Base.Base import Base
 from ModuleFolders.Cache.CacheFile import CacheFile
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Cache.CacheProject import (
     CacheProject,
     CacheProjectStatistics
@@ -62,8 +63,9 @@ class CacheManager(Base):
         path = os.path.join(self.save_to_file_require_path, "cache", "AinieeCacheData.json")
         with self.file_lock:
             os.makedirs(os.path.dirname(path), exist_ok=True)
-            with open(path, "w", encoding="utf-8") as writer:
-                writer.write(json.dumps(self.project.to_dict(), ensure_ascii=False))
+            content_bytes = msgspec.json.encode(self.project)
+            with open(path, "wb") as writer:
+                writer.write(content_bytes)
 
     # 保存缓存到文件的定时任务
     def save_to_file_tick(self) -> None:
@@ -95,14 +97,17 @@ class CacheManager(Base):
 
     @classmethod
     def read_from_file(cls, cache_path) -> CacheProject:
-        with open(cache_path, "r", encoding="utf-8") as reader:
-            content = json.load(reader)
-        if isinstance(content, list):
-            # 旧版缓存
-            return cls._read_from_old_content(content)
-        else:
-            # 新版缓存
-            return CacheProject.from_dict(content)
+        with open(cache_path, "rb") as reader:
+            content_bytes = reader.read()
+        try:
+            # 反序列化严格按照dataclass定义，如source_text这种非optional类型不能为None，否则反序列化失败
+            return msgspec.json.decode(content_bytes, type=CacheProject)
+        except msgspec.ValidationError:
+            content = json.loads(content_bytes.decode('utf-8'))
+            if isinstance(content, dict):
+                return CacheProject.from_dict(content)
+            else:
+                return cls._read_from_old_content(content)
 
     @classmethod
     def _read_from_old_content(cls, content: list) -> CacheProject:
@@ -128,7 +133,12 @@ class CacheManager(Base):
         for old_item in data_iter:
             storage_path = old_item["storage_path"]
             if storage_path not in files_props:
-                files_props[storage_path] = {"items": [], "extra": {}, "file_project_type": project_data["project_type"]}
+                files_props[storage_path] = {
+                    "items": [],
+                    "extra": {},
+                    "file_project_type": project_data["project_type"],
+                    'storage_path': storage_path,
+                }
             new_item = CacheItem.from_dict(old_item)
             for k, v in old_item.items():
                 if k == 'file_name':
@@ -164,9 +174,9 @@ class CacheManager(Base):
         has_untranslated = False
         for item in self.project.items_iter():
             status = item.translation_status
-            if status == CacheItem.STATUS.TRANSLATED:
+            if status == TranslationStatus.TRANSLATED:
                 has_translated = True
-            elif status == CacheItem.STATUS.UNTRANSLATED:
+            elif status == TranslationStatus.UNTRANSLATED:
                 has_untranslated = True
             if has_translated and has_untranslated:
                 return True
@@ -205,7 +215,7 @@ class CacheManager(Base):
         # 遍历所有文件
         for file in self.project.files.values():
             # 过滤掉已翻译的条目
-            items = [item for item in file.items if item.translation_status == CacheItem.STATUS.UNTRANSLATED]
+            items = [item for item in file.items if item.translation_status == TranslationStatus.UNTRANSLATED]
 
             # 如果没有需要翻译的条目，则跳过
             if not items:
