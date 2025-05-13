@@ -30,7 +30,7 @@ class DocxReader(BaseSourceReader):
         # 过滤掉空的内容
         filtered_matches = (match.string for match in paragraphs if isinstance(match.string, str) and match.string.strip())
         items = [
-            CacheItem(source_text=text) for text in filtered_matches
+            CacheItem(source_text=str(text)) for text in filtered_matches
             if not (text == "" or text == "\n" or text == " " or text == '\xa0')
         ]
         return CacheFile(items=items)
