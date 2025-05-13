@@ -91,7 +91,7 @@ class TransReader(BaseSourceReader):
                     if parameters and len(parameters) > 0 and isinstance(parameters[0], dict):  # 有些人名信息并没有以字典存储
                         rowInfoText = parameters[0].get("rowInfoText", "")  # 可能为 具体人名 或类似 "\\v[263]" 的字符串
 
-                # 过滤不需要翻译的文本
+                # 过滤不需要翻译的文本，放在这里进行处理是因为contexts太大了，后面解决性能消耗后，转移到其他地方
                 if isinstance(source_text, str) and self.filter_trans_text( source_text, tags, contexts) :
                     translation_status = CacheItem.STATUS.EXCLUDED # 改变为不需要翻译
 
@@ -135,14 +135,14 @@ class TransReader(BaseSourceReader):
 
         # 过滤特定文本以外的红色标签
         if tags and ("red" in tags):
-            # 如果检查出战斗日志文本
-            if self.check_english_letters_after_tags(source_text):
-
-                if contexts and isinstance(contexts, list) :
-                    context = contexts[0]
-                    # 如果是插件文本，而非指令文本
-                    if ("script" in context):
+            if contexts and isinstance(contexts, list) :
+                context = contexts[0]
+                # 如果是插件文本，而非指令文本
+                if ("script" in context):
+                    # 如果检查出战斗日志文本
+                    if self.check_english_letters_after_tags(source_text):
                         pass
+        
                     else:
                         return True
                 else:
@@ -166,6 +166,11 @@ class TransReader(BaseSourceReader):
                 # 如果检查出插件文本，则跳过
                 if self.isNamePopTag(source_text):
                     pass
+            
+                # 如果检查出战斗日志文本
+                elif self.check_english_letters_after_tags(source_text):
+                    pass
+
                 else:
                     return True
 
