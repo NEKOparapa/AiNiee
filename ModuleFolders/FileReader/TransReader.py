@@ -133,6 +133,10 @@ class TransReader(BaseSourceReader):
     # 特殊文本过滤器-trans项目
     def filter_trans_text(self, source_text: str, tags, contexts):
 
+        # 保留绿色安全标签
+        if tags and ("green" in tags):
+            return False
+
         # 过滤特定文本以外的红色标签
         if tags and ("red" in tags):
             if contexts and isinstance(contexts, list) :
