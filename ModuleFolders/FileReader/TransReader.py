@@ -5,7 +5,7 @@ import re
 import rich
 
 from ModuleFolders.Cache.CacheFile import CacheFile
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
@@ -58,7 +58,7 @@ class TransReader(BaseSourceReader):
                     continue  # 跳过这个空项
 
                 # 初始翻译状态
-                translation_status = CacheItem.STATUS.UNTRANSLATED
+                translation_status = TranslationStatus.UNTRANSLATED
 
 
 
@@ -67,7 +67,7 @@ class TransReader(BaseSourceReader):
                     translated_text = text_pair[1]
 
                     if translated_text:
-                        translation_status = CacheItem.STATUS.TRANSLATED
+                        translation_status = TranslationStatus.TRANSLATED
 
 
                 # 获取原文内容
@@ -93,7 +93,7 @@ class TransReader(BaseSourceReader):
 
                 # 过滤不需要翻译的文本，放在这里进行处理是因为contexts太大了，后面解决性能消耗后，转移到其他地方
                 if isinstance(source_text, str) and self.filter_trans_text( source_text, tags, contexts) :
-                    translation_status = CacheItem.STATUS.EXCLUDED # 改变为不需要翻译
+                    translation_status = TranslationStatus.EXCLUDED  # 改变为不需要翻译
 
                     # 添加处理过的标签注释
                     if tags is None:

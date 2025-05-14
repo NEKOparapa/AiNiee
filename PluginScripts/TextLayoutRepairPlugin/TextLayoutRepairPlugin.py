@@ -1,6 +1,6 @@
 import re
 
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Cache.CacheProject import CacheProject
 
 from ..PluginBase import PluginBase
@@ -32,7 +32,7 @@ class TextLayoutRepairPlugin(PluginBase):
             translated_text = entry.translated_text
             translation_status = entry.translation_status
 
-            if translation_status == CacheItem.STATUS.TRANSLATED:
+            if translation_status == TranslationStatus.TRANSLATED:
                 entry.translated_text = self.fix_typography(source_text, translated_text)
 
 

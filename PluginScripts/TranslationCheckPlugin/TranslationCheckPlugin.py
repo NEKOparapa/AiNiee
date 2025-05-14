@@ -3,7 +3,7 @@ import os
 import re
 import time
 
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Cache.CacheProject import CacheProject
 from ..PluginBase import PluginBase
 
@@ -156,7 +156,7 @@ class TranslationCheckPlugin(PluginBase):
                 source_text = source_text if source_text is not None else ""
                 translated_text = translated_text if translated_text is not None else ""
 
-                if translation_status == CacheItem.STATUS.EXCLUDED:  # 已被过滤
+                if translation_status == TranslationStatus.EXCLUDED:  # 已被过滤
                     continue # 跳过被过滤的条目
 
                 current_entry_errors = [] # 存储当前条目的错误信息

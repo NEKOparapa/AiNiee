@@ -32,3 +32,4 @@ mediapipe==0.10.14
 # 获取iso语言代码对应的友好名称
 language-data
 langcodes
+msgspec

@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Any, Union
+from typing import Any
 
 from ModuleFolders.Cache.BaseCache import ExtraMixin, ThreadSafeCache
 from ModuleFolders.Cache.CacheItem import CacheItem
@@ -26,10 +26,10 @@ class CacheFile(ThreadSafeCache, ExtraMixin):
     items: list[CacheItem] = field(default_factory=list)
     """原文片段列表"""
 
-    language_stats: list[Union[str, int, float]] = field(default_factory=list)
+    language_stats: list[tuple[str, int, float]] = field(default_factory=list)
     """检测到的语言次数与对应的平均置信度，可能有多种语言的存在"""
 
-    lc_language_stats: list[Union[str, int, float]] = field(default_factory=list)
+    lc_language_stats: list[tuple[str, int, float]] = field(default_factory=list)
     """检测到的低置信度的语言统计，主要在语言检测器中有用"""
 
     extra: dict[str, Any] = field(default_factory=dict)
@@ -58,3 +58,6 @@ class CacheFile(ThreadSafeCache, ExtraMixin):
 
     def index_of(self, text_index):
         return self.items_index_dict[text_index]
+
+    def _extra(self) -> dict[str, Any]:
+        return self.extra

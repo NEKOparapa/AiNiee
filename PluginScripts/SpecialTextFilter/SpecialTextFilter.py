@@ -1,7 +1,7 @@
 import re
 from typing import Iterator
 
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Cache.CacheProject import CacheProject, ProjectType
 from ..PluginBase import PluginBase
 
@@ -47,4 +47,4 @@ class SpecialTextFilter(PluginBase):
             source_text = entry.source_text
 
             if any(regex.match(source_text) for regex in MD_EXCLUDE_REGEXS):
-                entry.translation_status = CacheItem.STATUS.EXCLUDED
+                entry.translation_status = TranslationStatus.EXCLUDED

@@ -4,7 +4,7 @@ from rich import print
 from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.Translator import TranslatorUtil
 from PluginScripts.PluginBase import PluginBase
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 
 
@@ -153,7 +153,7 @@ class LanguageFilter(PluginBase):
 
         print("")
         for item in tqdm(target):
-            item.translation_status = CacheItem.STATUS.EXCLUDED
+            item.translation_status = TranslationStatus.EXCLUDED
 
         # 输出结果
         print(f"[LanguageFilter] 语言过滤已完成，共过滤 {len(target)} 个不包含目标语言的条目 ...")

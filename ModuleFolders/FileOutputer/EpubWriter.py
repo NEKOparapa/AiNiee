@@ -6,7 +6,7 @@ from typing import Callable
 from bs4 import BeautifulSoup
 
 from ModuleFolders.Cache.CacheFile import CacheFile
-from ModuleFolders.Cache.CacheItem import CacheItem
+from ModuleFolders.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileAccessor.EpubAccessor import EpubAccessor
 from ModuleFolders.FileOutputer.BaseWriter import (
@@ -58,7 +58,7 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
             if item_id not in translated_item_dict:
                 continue
             for item in translated_item_dict[item_id]:
-                if item.translation_status == CacheItem.STATUS.TRANSLATED:
+                if item.translation_status == TranslationStatus.TRANSLATED:
                     original_html = item.require_extra("original_html")
                     translated_text = item.translated_text
                     new_html = translate_html_tag(original_html, translated_text)
