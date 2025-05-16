@@ -30,17 +30,16 @@ class EpubReader(BaseSourceReader):
 
     # 正则字典，只包含成对标签，暂不考虑自闭合标签
     TAG_PATTERNS_LIST = [
-        ("p", r"<p[^>]*>(.*?)</p>", []),
-        ("heading", r"<h[1-7][^>]*>(.*?)</h[1-7]>", []),
+        ("heading", r"<h[1-7]\b[^>]*>(.*?)</h[1-7]>", []),
+        ("li", r"<li\b[^>]*>(.*?)</li>", ['p']), # 有些p标签内容嵌套在li标签里
+        ("p", r"<p\b[^>]*>(.*?)</p>", []),
 
-        # 有些p标签内容嵌套在li标签里面,
-        ("li", r"<li[^>]*>(.*?)</li>", ['p']),
-        ("text", r"<text[^>]*>(.*?)</text>", []),
-        ("blockquote", r"<blockquote[^>]*>(.*?)</blockquote>", []),
-        ("td", r"<td[^>]*>(.*?)</td>", []),
+        ("blockquote", r"<blockquote\b[^>]*>(.*?)</blockquote>", []),
+        ("text", r"<text\b[^>]*>(.*?)</text>", []),
+        ("td", r"<td\b[^>]*>(.*?)</td>", []),
 
         # div标签要放在最后面，这是提取不到前面任何文本内容再考虑的标签
-        ("div", r"<div[^>]*>(.*?)</div>", ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'text', 'blockquote', 'td']),
+        ("div", r"<div\b[^>]*>(.*?)</div>", ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'li', 'text', 'blockquote', 'td']),
     ]
 
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
@@ -50,15 +49,18 @@ class EpubReader(BaseSourceReader):
             for tag_type, pattern, forbidden_tags in self.TAG_PATTERNS_LIST:
                 # 使用 finditer 查找所有匹配项，可以迭代处理
                 for match in re.finditer(pattern, html_content, re.DOTALL):
-                    html_text = match.group(0)  # 完整匹配到的HTML标签
+                    html_text_A = match.group(0)  # 完整匹配到的HTML标签
+
+                    # 针对同名嵌套标签内容的处理。正则提取时标签提前闭合，而造成的提取错误。只提取同名子标签的内容，放弃父级标签的内容
+                    html_text_B = self.extract_inner_html_from_incomplete_tag(html_text_A)
 
                     # 处理多层嵌套标签的情况，找到存储文本内容的标签
-                    tag_type, html_text = self.extract_epub_content_refined(html_text)
-                    if not html_text: 
+                    tag_type, html_text_C = self.extract_epub_content_refined(html_text_B)
+                    if not html_text_C: 
                         continue
 
                     # 提取纯文本，并处理嵌套标签
-                    soup = BeautifulSoup(html_text, 'html.parser')
+                    soup = BeautifulSoup(html_text_C, 'html.parser')
                     text_content = soup.get_text(strip=True)
 
                     if not text_content:  # 检查一下是否提取到空文本内容
@@ -69,8 +71,9 @@ class EpubReader(BaseSourceReader):
                         forbidden_soup_elemnt = soup.find(forbidden_tags)
                         if forbidden_soup_elemnt is not None:
                             continue
+                        
                     extra = {
-                        "original_html": html_text,
+                        "original_html": html_text_C,
                         "tag_type": tag_type,
                         "item_id": item_id,
                     }
@@ -165,3 +168,60 @@ class EpubReader(BaseSourceReader):
         else:
             # 如果正则匹配失败，回退到BeautifulSoup生成
             return current_tag.name, str(current_tag)
+        
+    # 提取同名嵌套标签的完整子标签内容
+    def extract_inner_html_from_incomplete_tag(self,html_string: str) -> str:
+        """
+        识别残缺的非闭合标签内容，并自动提取第一个符合条件的同名子标签的原始内容。
+        如果不是残缺标签，或者没有找到合适的子标签，则返回原内容。
+        提取子标签时，使用正则表达式以获取原始字符串内容。
+
+        Args:
+            html_string: HTML内容字符串
+
+        Returns:
+            处理后的HTML内容 (可能是原始子标签的字符串，或原输入内容)
+        """
+        # 确定第一个标签的名称
+        first_tag_name_match = re.match(rf'<([a-zA-Z][a-zA-Z0-9]*)(?![a-zA-Z0-9\-_])', html_string)
+        if not first_tag_name_match:
+            # 如果字符串不是以一个可识别的标签开头，则返回原内容
+            return html_string
+
+        tag_name = first_tag_name_match.group(1)
+
+        # 构建用于查找开标签和闭标签的正则表达式 (忽略大小写)
+        open_tag_pattern = rf'<{tag_name}(?![a-zA-Z0-9\-_])[^>]*>'
+        close_tag_pattern = rf'</{tag_name}>'
+
+        # 统计开标签和闭标签的数量
+        open_tags_found = re.findall(open_tag_pattern, html_string, re.IGNORECASE)
+        close_tags_found = re.findall(close_tag_pattern, html_string, re.IGNORECASE)
+
+        # 如果开标签数量大于闭标签数量，则认为可能是残缺标签
+        if len(open_tags_found) > len(close_tags_found):
+            # 找到第一个主开标签的结束位置，以便从其后开始搜索子标签
+            first_actual_open_tag_match = re.search(open_tag_pattern, html_string, re.IGNORECASE)
+            
+            if not first_actual_open_tag_match:
+                return html_string 
+                
+            # 从第一个主开标签之后的内容中搜索子标签
+            search_start_offset = first_actual_open_tag_match.end()
+            remaining_html = html_string[search_start_offset:]
+
+            # 构建正则表达式以查找第一个完整的、同名的子标签
+            inner_complete_tag_pattern = rf'(<{tag_name}(?![a-zA-Z0-9\-_])[^>]*>.*?</{tag_name}>)'
+            
+            match_inner_complete_tag = re.search(
+                inner_complete_tag_pattern,
+                remaining_html,
+                re.DOTALL | re.IGNORECASE  
+            )
+
+            if match_inner_complete_tag:
+                # 如果找到，返回该子标签的完整原始内容
+                return match_inner_complete_tag.group(1)
+        
+        # 如果标签不是残缺的，或者没有找到符合条件的子标签，则返回原内容
+        return html_string
