@@ -149,7 +149,7 @@ class TransReader(BaseSourceReader):
         # 过滤特定文本以外的红色标签
         if tags and ("red" in tags):
             # 如果是插件文本，而非命令文本
-            if self.check_list_conditions(contexts=contexts, middle_list = ["StringLiteral","script"]) :
+            if self.check_list_conditions(contexts=contexts, middle_list = ["StringLiteral"]) :
                 # 如果检查出纯日志文本
                 if self.check_english_letters_after_tags(source_text):
                     pass
