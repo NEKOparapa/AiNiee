@@ -21,9 +21,9 @@ HAS_UNUSUAL_ENG_REGEX = re.compile(
 )
 """预编译正则 匹配包含 至少一个下划线和至少一个字母与数字且没有空白字符 或者 只由字母和数字组成且必须同时包含至少一个字母与数字 的字符串"""
 CLEAN_TEXT_PATTERN = re.compile(
-    r'\\{1,2}[a-zA-Z]{1,2}\[\d+]|if\(.{0,8}[vs]\[\d+].{0,16}\)|\\n|<[a-zA-Z]+:.*?>|[a-zA-Z]+\d+'
+    r'\\{1,2}[a-zA-Z]{1,2}\[\d+]|if\(.{0,8}[vs]\[\d+].{0,16}\)|\\n|[a-zA-Z]+\d+'
 )
-"""预编译正则 清理文本使用"""
+"""修改后的预编译正则，移除了标签模式"""
 
 
 # 加载语言检测器(全局)
@@ -159,7 +159,8 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
     for item in items:
         # 获取原文并清理
         source_text = item.source_text
-        if source_text is None or not source_text.strip():
+        # 20250518 fix: 修复行不为字符串时的异常
+        if source_text is None or not isinstance(source_text, str) or not source_text.strip():
             results.append((['no_text'], -1.0, -1.0))
             continue
 
@@ -350,15 +351,30 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
 
 # 辅助函数，用于清理文本
 # 20250504改动：取消清理文本中的空白字符
+# 20250518改动：获取特殊标签中的内容
 def clean_text(source_text):
-    # 步骤1：先将所有换行符替换为一个特殊标记
+    # 先将所有换行符替换为一个特殊标记
     text_with_marker = re.sub(r'\r\n|\r|\n', '__NEWLINE__', source_text)
 
-    # 步骤2：处理一些特殊标记
-    cleaned_text = CLEAN_TEXT_PATTERN.sub(' ', text_with_marker.strip())
+    # 处理标签，有条件地保留内容
+    def tag_handler(match):
+        content = match.group(1)
+        # 如果内容是纯数字，不保留
+        if content.isdigit():
+            return ' '
+        # 如果内容匹配特殊正则，不保留
+        if HAS_UNUSUAL_ENG_REGEX.match(content):
+            return ' '
+        # 其他情况保留内容
+        return content + ' '
 
-    # 步骤3：将标记替换回空字符串
-    return cleaned_text.replace('__NEWLINE__', ' ')
+    text_with_content = re.sub(r'<[a-zA-Z]+:(.*?)>', tag_handler, text_with_marker.strip())
+    # 处理其他需要替换的模式
+    cleaned_text = CLEAN_TEXT_PATTERN.sub(' ', text_with_content)
+    # 将标记替换回空字符串
+    cleaned_text = cleaned_text.replace('__NEWLINE__', ' ')
+    # 返回去除可能的多个连续空格后的字符串
+    return re.sub(r'\s+', ' ', cleaned_text).strip()
 
 
 # 辅助函数，用于检查文本是否只包含符号

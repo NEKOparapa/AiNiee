@@ -270,7 +270,8 @@ class LanguageFilter(PluginBase):
         has_any = self.get_filter_function(language, path)
         if has_any is not None:
             return [item for item in file_items
-                    if not isinstance(item.source_text, str) or
+                    if item.translation_status == TranslationStatus.EXCLUDED or
+                    not isinstance(item.source_text, str) or
                     not item.lang_code or
                     (has_any(item.source_text) and
                      item.lang_code[0] == language and
@@ -278,7 +279,8 @@ class LanguageFilter(PluginBase):
         else:
             # 过滤原文检测语言与行语言相同的行
             return [item for item in file_items
-                    if not isinstance(item.source_text, str) or
+                    if item.translation_status == TranslationStatus.EXCLUDED or
+                    not isinstance(item.source_text, str) or
                     not item.lang_code or
                     (item.lang_code[0] == language and
                      item.lang_code[1] > 0.92)]
@@ -288,7 +290,8 @@ class LanguageFilter(PluginBase):
         print(f"[LanguageFilter] 文件 {path} 未检测到具体语言，将只翻译置信度较高（大于0.75）的文本行")
 
         return [item for item in file_items
-                if not isinstance(item.source_text, str) or
+                if item.translation_status == TranslationStatus.EXCLUDED or
+                not isinstance(item.source_text, str) or
                 not item.lang_code or
                 item.lang_code[1] < 0.75]
 
@@ -309,6 +312,11 @@ class LanguageFilter(PluginBase):
 
         filtered_items = []
         for item in file_items:
+            # 如果item已经被标记为排除，直接添加
+            if item.translation_status == TranslationStatus.EXCLUDED:
+                filtered_items.append(item)
+                continue
+
             if not isinstance(item.source_text, str):
                 filtered_items.append(item)
                 continue
