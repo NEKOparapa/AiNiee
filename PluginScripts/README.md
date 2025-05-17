@@ -17,7 +17,7 @@
 1. **环境准备**
    确保您的开发环境满足以下要求：
    - Python 3.12
-   - 相关依赖库（请查看`requirements.txt`）
+   - 相关依赖库（请查看`requirements.txt` 和 `requirements_no_deps.txt`）
 2. **创建插件文件**
    在项目的`Plugin_Scripts`目录下创建新的子文件夹，并创建新的Python文件，例如`my_plugin.py`。
 3. **编写插件代码**
