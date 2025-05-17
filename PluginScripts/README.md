@@ -152,21 +152,26 @@ class ExamplePlugin(PluginBase):
     | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
 
 
-    - `event_data`: 全局缓存文本数据，格式与导出的缓存文件一致。
-    ```json
-   [
-       {
-           "row_index": 0,                                                # 在原始文件中的行号
-           "text_index": 3,                                               # 在整个翻译任务中的索引号
-           "translation_status": 1,                                       # 翻译状态，枚举值：0 - 待翻译，1 - 已翻译，2 - 翻译中，7 - 已排除
-           "model": "gpt-4o",                                             # 翻译使用的模型
-           "source_text": "「すまない、ダリヤ。婚約を破棄させてほしい」",     # 原文
-           "translated_text": "「对不起，达莉亚。请允许我解除婚约」",        # 译文
-           "file_name": "sample.txt",                                     # 原始文件名
-           "storage_path": "sample.txt",                                  # 原始路径
-       },
-       {},
-   ]
+    - `event_data`: 全局缓存文本数据，格式与导出的缓存文件一致。主要有三层结构project，files，items，每个层有固定属性和拓展属性，更详细具体可查看\ModuleFolders\Cache内的缓存结构代码
+
+    ```python
+
+    {
+        "project_id": "aaa",                          #项目ID
+        "project_type": "Type",                       #项目类型
+        "files": {
+            "path/to/file1.txt": {                    # 文件路径
+                "storage_path": "...",                # 相对路径
+                "file_project_type": "...",           # 文件类型
+                "file_name": "...",                   # 原始文件名
+                "items": {                            # 该文件内的所有文本条目
+                    1: {"text_index": 1, "source_text": "...", ...},  # 文本索引号，原文文本，译文文本，翻译模型
+                    2: {"text_index": 2, "source_text": "...", ...},  # 翻译状态，枚举值：0 - 待翻译，1 - 已翻译，2 - 翻译中，7 - 已排除
+                }                                                     
+            },
+            "path/to/file2.txt": { ... }
+        }
+    }
     ```
 
 
