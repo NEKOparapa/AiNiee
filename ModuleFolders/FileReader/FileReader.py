@@ -11,7 +11,7 @@ from ModuleFolders.FileReader.AutoTypeReader import AutoTypeReader
 from ModuleFolders.FileReader.BaseReader import BaseSourceReader, InputConfig, ReaderInitParams
 from ModuleFolders.FileReader.DirectoryReader import DirectoryReader
 from ModuleFolders.FileReader.MToolReader import MToolReader
-from ModuleFolders.FileReader.OfficeConversionReader import OfficeConversionDocReader, OfficeConversionPdfReader
+from ModuleFolders.FileReader.OfficeConversionReader import OfficeConversionDocReader
 from ModuleFolders.FileReader.ParatranzReader import ParatranzReader
 from ModuleFolders.FileReader.TPPReader import TPPReader
 from ModuleFolders.FileReader.VntReader import VntReader
@@ -25,6 +25,7 @@ from ModuleFolders.FileReader.MdReader import MdReader
 from ModuleFolders.FileReader.RenpyReader import RenpyReader
 from ModuleFolders.FileReader.TransReader import TransReader
 from ModuleFolders.FileReader.I18nextReader import I18nextReader
+from ModuleFolders.FileReader.BabeldocPdfReader import BabeldocPdfReader
 
 # 文件读取器(分发入口)
 class FileReader():
@@ -48,8 +49,8 @@ class FileReader():
         self.register_reader(I18nextReader)
         self.register_reader(TransReader)
         self.register_reader(ParatranzReader)
-        self.register_reader(OfficeConversionPdfReader)
         self.register_reader(OfficeConversionDocReader)
+        self.register_reader(BabeldocPdfReader)
 
         # 检验是否有歧义
         AutoTypeReader.verify_reader_factories(self.reader_factory_dict.values())

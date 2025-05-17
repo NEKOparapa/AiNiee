@@ -26,7 +26,7 @@
 1. **环境准备**
    确保您的开发环境满足以下要求：
    - Python 3.12
-   - 相关依赖库（请查看 `requirements.txt` ）
+   - 相关依赖库（请查看 `requirements.txt` 和 `requirements_no_deps.txt`）
 2. **读写器文件**
    在项目的 `ModuleFolders/FileReader` 和 `ModuleFolders/FileOutputer` 目录下创建新的 `.py` 文件， 例如 `XXXReader.py, XXXWriter.py` 。
 3. **编写读写器代码** 按照以下模板编写您的读写器代码，并确保继承自对应的基类。

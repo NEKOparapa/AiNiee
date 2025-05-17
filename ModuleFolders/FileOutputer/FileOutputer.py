@@ -7,7 +7,7 @@ from ModuleFolders.FileOutputer.AutoTypeWriter import AutoTypeWriter
 from ModuleFolders.FileOutputer.BaseWriter import BaseTranslationWriter, OutputConfig, TranslationOutputConfig, WriterInitParams
 from ModuleFolders.FileOutputer.DirectoryWriter import DirectoryWriter
 from ModuleFolders.FileOutputer.MToolWriter import MToolWriter
-from ModuleFolders.FileOutputer.OfficeConversionWriter import OfficeConversionDocWriter, OfficeConversionPdfWriter
+from ModuleFolders.FileOutputer.OfficeConversionWriter import OfficeConversionDocWriter
 from ModuleFolders.FileOutputer.ParatranzWriter import ParatranzWriter
 from ModuleFolders.FileOutputer.TPPWriter import TPPWriter
 from ModuleFolders.FileOutputer.VntWriter import VntWriter
@@ -21,6 +21,7 @@ from ModuleFolders.FileOutputer.MdWriter import MdWriter
 from ModuleFolders.FileOutputer.RenpyWriter import RenpyWriter
 from ModuleFolders.FileOutputer.TransWriter import TransWriter
 from ModuleFolders.FileOutputer.I18nextWriter import I18nextWriter
+from ModuleFolders.FileOutputer.BabeldocPdfWriter import BabeldocPdfWriter
 
 
 # 文件输出器
@@ -51,8 +52,8 @@ class FileOutputer:
         self.register_writer(I18nextWriter)
         self.register_writer(ParatranzWriter)
         self.register_writer(TPPWriter)
-        self.register_writer(OfficeConversionPdfWriter)
         self.register_writer(OfficeConversionDocWriter)
+        self.register_writer(BabeldocPdfWriter)
 
         # 由于values是引用，最先注册和最后注册都一样
         self.register_writer(AutoTypeWriter, writer_factories=self.writer_factory_dict.values())
@@ -101,6 +102,12 @@ class FileOutputer:
             return OutputConfig(
                 default_translated_config,
                 TranslationOutputConfig(True, "_bilingual", output_path / "bilingual_epub"),
+                input_path
+            )
+        elif project_type == BabeldocPdfWriter.get_project_type():
+            return OutputConfig(
+                default_translated_config,
+                TranslationOutputConfig(True, "_bilingual", output_path / "bilingual_pdf"),
                 input_path
             )
         elif project_type == AutoTypeWriter.get_project_type():

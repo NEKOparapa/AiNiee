@@ -240,8 +240,8 @@ class ProjectSettingsPage_B(QFrame, Base):
             (self.tra("VNText导出文件"), ProjectType.VNT),
             (self.tra("I18Next数据文件"), ProjectType.I18NEXT),
             (self.tra("ParaTranz导出文件"), ProjectType.PARATRANZ),
-            (self.tra('Pdf文档文件 (需要Microsoft Office)'), ProjectType.OFFICE_CONVERSION_PDF),
             (self.tra('Doc文档文件 (需要Microsoft Office)'), ProjectType.OFFICE_CONVERSION_DOC),
+            (self.tra('Pdf文档文件 (pdf2zh/BabelDOC)'), ProjectType.BABELDOC_PDF),
             (self.tra("自动识别文件类型"), ProjectType.AUTO_TYPE)
 
         ]
