@@ -137,88 +137,63 @@ class TransReader(BaseSourceReader):
         if tags and ("green" in tags):
             return False
 
-        # 过滤特定文本以外的红色标签
-        if tags and ("red" in tags):
-            if contexts and isinstance(contexts, list) :
-                context = contexts[0]
-                # 如果是插件文本，而非指令文本
-                if ("script" in context):
-                    # 如果检查出战斗日志文本
-                    if self.check_english_letters_after_tags(source_text):
-                        pass
-        
-                    else:
-                        return True
-                else:
-                    return True
-            else:
-                return True
+        # 保留常见插件文本
+        if self.isTagText(source_text):
+            return False
+
 
         # 过滤全部蓝色标签
         if tags and ("blue" in tags):
-            # 如果检查出插件文本，则跳过
-            if self.isNamePopTag(source_text):
-                pass
+            return True
+
+        # 过滤特定文本以外的红色标签
+        if tags and ("red" in tags):
+            # 如果是插件文本，而非命令文本
+            if self.check_list_conditions(contexts=contexts, middle_list = ["StringLiteral"]) :
+                # 如果检查出纯日志文本
+                if self.check_english_letters_after_tags(source_text):
+                    pass
+    
+                else:
+                    return True
             else:
                 return True
 
         # 过滤全部note文本
-        if contexts and isinstance(contexts, list) :
-            context = contexts[0]
-            # 如果是note文本
-            if context.endswith('note'):
-                # 如果检查出插件文本，则跳过
-                if self.isNamePopTag(source_text):
-                    pass
-            
-                # 如果检查出战斗日志文本
-                elif self.check_english_letters_after_tags(source_text):
-                    pass
-
-                else:
-                    return True
+        if self.check_list_conditions(contexts=contexts, end_str="note"):
+            # 如果检查出纯日志文本
+            if self.check_english_letters_after_tags(source_text):
+                pass
+            else:
+                return True
 
         # 过滤Animations文件
-        if contexts and isinstance(contexts, list) :
-                context = contexts[0]
-                # 如果是Animations文件里面的文本
-                if context.startswith("Animations"):
-                        return True
+        if self.check_list_conditions(contexts=contexts, start_str="Animations") :
+            return True
 
         # 过滤MapInfos文件
-        if contexts and isinstance(contexts, list) :
-                context = contexts[0]
-                # 如果是MapInfos文件里面的文本
-                if context.startswith("MapInfos") :
-                        return True
-
+        if self.check_list_conditions(contexts=contexts, start_str="MapInfos") :
+            return True
+        
         # 过滤Tilesets文件
-        if contexts and isinstance(contexts, list) :
-                context = contexts[0]
-                # 如果是MapInfos文件里面的文本
-                if context.startswith("Tilesets") :
-                        return True
+        if self.check_list_conditions(contexts=contexts, start_str="Tilesets") :
+            return True
 
-        # 过滤CommonEvents 调用名
-        if contexts and isinstance(contexts, list) :
-                context = contexts[0]
-                # 如果是CommonEvents文件里面的文本
-                if context.startswith("CommonEvents") and context.endswith("name"):
-                        return True
+        # 过滤CommonEvents 调用事件名
+        if self.check_list_conditions(contexts=contexts, start_str="CommonEvents", end_str="name") :
+            return True
 
-        # 过滤Troops 调用名
-        if contexts and isinstance(contexts, list) :
-                context = contexts[0]
-                # 如果是Troops文件里面的文本
-                if context.startswith("Troops") and context.endswith("name"):
-                        return True
+        # 过滤Troops 调用事件名
+        if self.check_list_conditions(contexts=contexts, start_str="Troops", end_str="name") :
+            return True
+
+        # 过滤Actors的profile字段
+        if self.check_list_conditions(contexts=contexts, start_str="Actors", end_str="profile") :
+            return True
 
         # 过滤所有事件名
-        if contexts and isinstance(contexts, list) :
-                context = contexts[0]
-                # 如果是map件里面的文本
-                if ("events" in context ) and context.endswith("name"):
-                        return True
+        if self.check_list_conditions(contexts=contexts, end_str="name", middle_list = ["events"]) :
+            return True
 
         # 过滤图片调用代码
         if source_text.strip().startswith("<PLM"):
@@ -250,8 +225,43 @@ class TransReader(BaseSourceReader):
         else:
             return True
 
-    # 识别namePop插件文本
-    def isNamePopTag(self, text: str):
-        # 检查是否以 <namePop: 开头，以 > 结尾
-        is_tag = text.startswith("<namePop:") and text.endswith(">")
-        return is_tag
+    # 识别插件文本
+    def isTagText(self, text: str):
+        # 检查是否信息提示插件
+        if text.startswith("<infowindow") and text.endswith(">"):
+            return True
+        # 检查是否是地图名字显示插件
+        if text.startswith("<namePop:") and text.endswith(">"):
+            return True
+        return False
+    
+    # 检查字段路径内容
+    def check_list_conditions(self, contexts: list[str],start_str: str = None,end_str: str = None,middle_list: list[str] = None) -> bool:
+
+        # 检查空列表
+        if not contexts:
+            return False
+
+        # 1. 检查 str_a (开头字符串)
+        if start_str is not None:
+            # 检查 list_a 中的每个元素
+            for item_in_a in contexts:
+                if not item_in_a.startswith(start_str):
+                    return False  
+
+        # 2. 检查 str_b (结尾字符串)
+        if end_str is not None:
+            for item_in_a in contexts:
+                if not item_in_a.endswith(end_str):
+                    return False
+
+        # 3. 检查 list_b (包含所有子字符串)
+        if middle_list is not None and middle_list: 
+            for item_in_a in contexts:
+                # 对于 list_a 中的每一个元素，检查它是否包含 list_b 中的所有子字符串
+                for sub_item_in_b in middle_list:
+                    if sub_item_in_b not in item_in_a:
+                        return False # item_in_a 没有包含 list_b 中的某个元素
+
+        # 如果所有检查都通过了
+        return True

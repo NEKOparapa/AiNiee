@@ -16,27 +16,21 @@
 
   
 <div align="center">
-
-**AiNiee is a tool focused on AI translation, offering one-click automatic translation for games, novels, subtitles, documents, and other complex long-text content.**
-
-
+<strong>AiNiee</strong> is a tool specializing in AI translation,<br>enabling one-click automatic translation of complex long-text content such as games, books, subtitles, and documents.
 </div>
 
+*   **All-in-One Format Support, Broad Coverage**
+    *   🎮 **Game Translation**: In-depth support for game text export tools like Mtool, Renpy, Translator++, ParaTranzr, VNText, and SExtractor.
+    *   📚 **Diverse Support**: Effortlessly processes I18Next data, Epub/TXT e-books, Srt/Vtt/Lrc subtitles, Word/PDF/MD documents, and more.
 
+*   **Smart & Efficient, Saves Time & Effort**
+    *   🚀 **One-Click Operation**: Simply drag and drop; automatically identifies files and languages, no setup required.
+    *   ⏱️ **Rapid Translation**: Get your translated text in the time it takes to enjoy a cup of tea.
 
-* **Multi-format Support**: Supports various formats including json/xlsx/rpy data files, Epub/TXT novels, Srt/Vtt/Lrc subtitles, Word/MD documents, meeting diverse needs.
+*   **Optimized for Long Texts, Exceptional Quality**
+    *   🎯 **Overcoming Limitations**: Employs techniques like streamlined translation formats, chain-of-thought translation, AI glossaries, and contextual awareness to ensure coherence and accuracy in long-text translations.
 
-* **Multi-platform Support**: Seamlessly integrates with mainstream AI platforms both domestic and international, such as OpenAI, Google, Anthropic, DeepSeek, offering flexible choices and quick usage.
-
-* **Multi-language Translation**: Covers Chinese, English, Japanese, Korean, Russian, Spanish, French, German, and many other languages, breaking down language barriers.
-
-* **Powerful Plugin Extensions**: Built-in useful plugins such as Bilingual Comparator, Translation Function Checker, Text Filter, Text Normalizer, enhancing functionality.
-
-* **Efficient Batch Translation**: Multi-file batch translation, multi-threaded parallel processing, multi-key polling mechanism, greatly improving efficiency.
-
-* **Long Text Optimization**: Exclusive technologies including perfect limit breaking, tag translation format, chain-of-thought translation, dynamic few-shot, automatic terminology unification, automatic code segment preservation, context understanding, and automatic translation checking, breaking through long text translation limitations and ensuring translation coherence.
-
-* **High-quality Translation Pursuit**: Provides advanced features such as prompt settings, AI terminology table, AI do-not-translate list, text replacement, [Gemini Translation](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D) for users with higher translation quality requirements.
+    *   💎 **Quality Focus**: Supports prompt adjustments for basic instructions, character introductions, background settings, translation styles, etc. Features the [Gemini Translation](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D) capability to meet the needs of users with higher demands for translation quality.
 
 ---
 
@@ -70,38 +64,19 @@
 <details>
 <summary>
 
-## Game Translation[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#game-translation)
+## Feature Description[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#feature-description)
 </summary>
+
 
 
 <details>
-<summary> 
+<summary>
 
-### Tool Preparation
+### Settings Description
 </summary>
 
- * **`📖Game Text Extraction Tools`**
-
-      |Tool Name|Introduction|Project Type|
-      |:----:|:-----:|:-----:|
-      |[Mtool](https://afdian.com/p/d42dd1e234aa11eba42452540025c377)|Easy to use, recommended for beginners|Mtool export files|
-      |[Translator++](https://dreamsavior.net/download/)|Supports multiple game engines|Translator++ export files|
-
- * **`🚡Translation Auxiliary Tools`**
-
-      |Tool Name|Description|
-      |:----:|:-----:|
-      |[Novel Toolbox](https://books.fishhawk.top/workspace/toolbox)|Terminology table creation assistant tool|
-      |[KeywordGacha](https://github.com/neavo/KeywordGacha) |AI-powered tool for automatically generating entity term translations|
-
- * **`🧰Local Model Running Tools`**
-
-      |Tool Name|Description|
-      |:----:|:-----:|
-      |[Sakura_Launcher_GUI](https://github.com/PiDanShouRouZhouXD/Sakura_Launcher_GUI)|Dedicated GUI launcher for Sakura models|
-      |[Text-generation-webui](https://github.com/oobabooga/text-generation-webui) |Web UI for running text generation models locally|
-      |[LM Studio](https://lmstudio.ai/download) |A local large language model (LLM) platform designed to simplify the use and management of LLMs|
-      |[ollama](https://ollama.com/) |Open-source cross-platform large model tool|
+- [Feature - API Management](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8A%9F%E8%83%BD%E2%80%90%E6%8E%A5%E5%8F%A3%E7%AE%A1%E7%90%86)
+- [Feature - Gemini Translation](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D)
 
 </details>
 
@@ -109,80 +84,54 @@
 
 <details>
 <summary>
-  
-### Translation Tutorials
+
+### Table Description
 </summary>
 
- * **`📺Game Translation Video Tutorials`**
-
-      |Video Link|Description|
-      |:----:|:-----:|
-      |[Mtool Tutorial](https://www.bilibili.com/video/BV1h6421c7MA) |Recommended for first-time users|
-      |[Wolf Game Tutorial](https://www.bilibili.com/video/BV1SnXbYiEjQ/?share_source=copy_web&vd_source=b0eede35fc5eaa5c382509c6040d6501)|Recommended for first-time users|
-
- * **`🎫Game Translation Text Tutorials`**
-
-      |Tutorial Link|Description|
-      |:----:|:-----:|
-      |[Mtool Tool Tutorial](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Mtool)|Suitable for translating RPGmaker MV/MZ games|
-      |[Translator++ Tool Tutorial](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Translator--%EF%BC%88%E5%B7%A5%E7%A8%8B%E6%96%87%E4%BB%B6%E7%89%88%EF%BC%89)|Suitable for translating RPG,RenPY,Krkr games|
-</details>
-
-
-
+- [Table - AI Glossary](https://github.com/NEKOparapa/AiNiee/wiki/%E8%A1%A8%E6%A0%BC%E2%80%90AI%E6%9C%AF%E8%AF%AD%E8%A1%A8%E4%BB%8B%E7%BB%8D)
+- [Table - AI Do Not Translate List](https://github.com/NEKOparapa/AiNiee/wiki/%E8%A1%A8%E6%A0%BC%E2%80%90AI%E7%A6%81%E7%BF%BB%E8%A1%A8%E4%BB%8B%E7%BB%8D)
+- [Table - Text Replacement](https://github.com/NEKOparapa/AiNiee/wiki/%E8%A1%A8%E6%A0%BC%E2%80%90%E6%96%87%E6%9C%AC%E6%9B%BF%E6%8D%A2%E4%BB%8B%E7%BB%8D)
 
 </details>
 
----
+
+
+
 <details>
 <summary>
-  
-## Function Description[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#function-description)  
+
+### Plugin Description
 </summary>
+
+- [Plugin - Language Filter](https://github.com/NEKOparapa/AiNiee/wiki/%E6%8F%92%E4%BB%B6%E2%80%90LanguageFilter)
+- [Plugin - Text Normalizer](https://github.com/NEKOparapa/AiNiee/wiki/%E6%8F%92%E4%BB%B6%E2%80%90TextNormalizer)
+
+</details>
 
 
 
 <details>
-<summary> 
+<summary>
 
-### Plugin Introduction
+### Other Notes
 </summary>
 
-* [Plugin - Language Filter](https://github.com/NEKOparapa/AiNiee/wiki/LanguageFilter)
-* [Plugin - Text Normalizer](https://github.com/NEKOparapa/AiNiee/wiki/TextNormalizer)
-</details>
+* `Multiple Key Rotation`
+  > If you want to use multiple keys to distribute the load and speed up translation based on the number of keys, please use keys from the same account type. When inputting, add an English comma between each key, without line breaks. For example: key1,key2,key3
 
+* `Batch File Translation`
+  > Simply place all files that need translation into the input folder. It also supports multi-folder structures.
 
-
-
-
-<details>
-<summary> 
-
-### Other Information
-</summary>
-
-* ` Multi-key Polling`
-  >If you want to use multiple keys to share the consumption pressure and accelerate translation based on the number of keys, please use keys from the same type of account. When inputting, add an English comma between each key without line breaks. For example: key1,key2,key3
-
-* ` Batch File Translation`
-  >Simply place all files of the same type in the input folder. Multi-folder structures are also supported.
-
-* ` Configuration Migration`
-  >Configuration information is stored in the config.json file in the resource folder. When downloading a new version, you can copy it to the resource folder of the new version.
-  
-* `Cache Files`
-   >When translation encounters problems, you can later change the translation project to cache files and select the folder containing the cache file in the input folder to continue translation. When continuing to translate Epub and Word files, you also need to place the original file and the cache file in the same folder.
-
-* `Gemini Translation`
-   >[Detailed introduction link](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D) A translation process with a dual-request structure, a new tool for experts to explore AI possibilities.
+* `Configuration Migration`
+  > Configuration information is stored in `resource/config.json`. When you download a new version, you can copy this file to the `resource` folder of the new version.
 
 </details>
 
 
+
+
+
 </details>
-
-
 
 ---
 
@@ -198,8 +147,6 @@
 * **`Improve or Add Supported Files`**: Requires some programming ability to pull the source code and make improvements. Specific file reading code is in the ModuleFolders\FileReader and FileOutputer folders. [Reader-Writer System Development Guide](https://github.com/NEKOparapa/AiNiee/blob/main/ModuleFolders/FileAccessor/README.md). UI support is in UserInterface\Setting\ProjectSettingsPage.
 
 * **`Improve the Regex Library`**: A comprehensive regex library will greatly help with in-game embedding work and benefit future game translation work and other translation users. The regex library is in the [Resource\Regex](https://github.com/NEKOparapa/AiNiee/blob/main/Resource/Regex/regex.json) folder
-
-* **`Improve the Translation Process`**: The [Translation Text Test Project](https://github.com/NEKOparapa/AiNiee-Test-Dataset) contains some data texts for common scenarios. You can improve the test data or improve the AiNiee translation process based on test data performance
 
 * **`Improve Interface Translation`**: The UI text for multilingual interfaces may not be translated accurately or appropriately. You can submit your modification suggestions or make changes directly. Localization text is in the [Resource\Localization](https://github.com/NEKOparapa/AiNiee/tree/main/Resource/Localization) folder
 

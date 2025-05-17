@@ -528,7 +528,7 @@ class TextReplaceAPage(QFrame, Base):
             self.warning_toast("", self.tra("表格中没有数据可导出"))
             return
 
-        default_filename = self.tra("导出_术语表") + ".json"
+        default_filename = self.tra("导出_译前替换") + ".json"
         path, _ = QFileDialog.getSaveFileName(self, self.tra("导出文件"), default_filename, "JSON 文件 (*.json)")
 
         if not path:

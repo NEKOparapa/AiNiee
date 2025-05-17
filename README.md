@@ -20,27 +20,21 @@
 
   
 <div align="center">
-
-**AiNiee 是一款专注于 Ai 翻译的工具，一键自动翻译 游戏、小说、字幕、文档 等复杂的长文本内容。**
-
-
+<strong>AiNiee</strong> 是一款专注于 AI 翻译的工具，<br>一键自动翻译游戏、书籍、字幕、文档等复杂长文本内容。
 </div>
 
 
+* **格式全能，覆盖广泛**
+    * 🎮 **游戏翻译**：深度支持 Mtool, Renpy, Translator++, ParaTranzr, VNText, SExtractor 等游戏文本导出工具。
+    * 📚 **多样支持**：轻松处理 I18Next 数据、Epub/TXT 电子书、Srt/Vtt/Lrc 字幕、Word/PDF/MD 文档等。
 
-* **多格式支持**: 支持 json/xlsx/rpy 数据文件、Epub/TXT 小说、Srt/Vtt/Lrc 字幕、Word/MD 文档等多种格式，满足多样化需求。
+* **智能高效，省时省心**
+    * 🚀 **一键操作**：一拖一点，自动识别文件与语言，无需设置。
+    * ⏱️ **极速翻译**：喝杯奶茶的工夫，就能拿到译文。
 
-* **多平台支持**: 无缝对接 OpenAI、Google、Anthropic、DeepSeek 等国内外主流 AI 平台，灵活选择，快速使用。
-
-* **多语言互译**: 覆盖中文、英文、日文、韩文、俄语、西班牙语、法语、德语等多种语言，打破语言壁垒。
-
-* **强大插件扩展**: 内置 双语对照器、翻译功能检查器、文本过滤器、文本规范器等实用插件，功能更强大。
-
-* **高效批量翻译**: 多文件批量翻译、多线程并行处理、多 Key 轮询机制，效率倍增。
-
-* **长文本专属优化**: 独家实现完美破限、tag翻译格式、思维链翻译、动态 Few-shot、自动术语统一、自动保留代码段、上下文理解、译文自动检查等技术，突破长文本翻译局限，保证译文连贯性。
-
-* **高质量翻译追求**:提供提示词设置、AI 术语表、AI 禁翻表、文本替换、[双子星翻译](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D)等高级功能，满足对翻译质量有更高要求的用户。
+* **长文优化，质量出众**
+    * 🎯 **突破局限**：采用轻盈翻译格式、思维链翻译、AI 术语表、上下文关联等技术，确保长文本翻译的连贯性与准确性。
+    * 💎 **质量追求**：支持基础提示、角色介绍、背景设定、翻译风格等提示词调整，拥有[双子星翻译](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D)功能，满足对翻译质量有更高要求的用户。
 
 ---
 
@@ -206,13 +200,10 @@
   >如果想使用多个key来分担消耗压力，根据key数量进行加速翻译，请使用同类型账号的key，而且输入时在每个key中间加上英文逗号，不要换行。例如：key1,key2,key3
 
 * ` 批量文件翻译`
-  >把所有相同类型的文件放在输入文件夹即可，也支持多文件夹结构
+  >把所有需要翻译的文件放在输入文件夹即可，也支持多文件夹结构
 
 * ` 配置迁移`
   >配置信息都会存储在resource的config.json中，下载新版本可以把它复制到新版本的resource中。
-
-* `双子星翻译`
-   >[详细介绍链接](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D) 双请求结构的翻译流程，大佬们探索AI可能性的新玩具。
 
 </details>
 
@@ -236,8 +227,6 @@
 
 * **`完善正则库`**: 正则库的完备将极大帮助游戏内嵌工作的进行，并利好下一次游戏翻译工作和造福其他翻译用户，正则库在[Resource\Regex](https://github.com/NEKOparapa/AiNiee/blob/main/Resource/Regex/regex.json)文件夹中
 
-* **`改进翻译流程`**: [翻译文本测试项目](https://github.com/NEKOparapa/AiNiee-Test-Dataset)里面包含常用场景的一些数据文本，可以改进测试数据，或者以测试数据表现改进AiNiee翻译流程
-
 * **`改进界面翻译`**: 多语言界面的UI文本可能翻译不够准确合适，可以提交你的修改意见，或者直接进行修改。本地化文本在[Resource\Localization](https://github.com/NEKOparapa/AiNiee/tree/main/Resource/Localization)文件夹中
 
 </details>
@@ -252,7 +241,7 @@ AiNiee能够不断发展迭代至今，其关键功能框架均源于项目创�
 
 该款AI翻译工具仅供个人合法用途,任何使用该工具进行直接或者间接非法盈利活动的行为,均不属于授权范围,也不受到任何支持和认可。
 
-* **`交♂交流群`**:  QQ交流群(主要，答案：github)：8216248九零，备用TG群：https://t.me/+JVHbDSGo8SI2Njhl ,
+* **`交♂交流群`**:  QQ交流群(主要活跃，答案：github)：8216248九零，备用TG群：https://t.me/+JVHbDSGo8SI2Njhl ,
 
 ---
 
