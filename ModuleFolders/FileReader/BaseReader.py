@@ -6,6 +6,7 @@ from typing import TypedDict
 from tqdm import tqdm
 
 from ModuleFolders.Cache.CacheFile import CacheFile
+from ModuleFolders.Cache.CacheItem import TranslationStatus
 from ModuleFolders.FileReader.ReaderUtil import detect_file_encoding, detect_language_with_mediapipe
 
 
@@ -117,6 +118,9 @@ class BaseSourceReader(ABC):
                     other_langs = mp_langs[1:] if len(mp_langs) > 1 else []
 
                     cur_item.lang_code = (mp_langs[0], mp_score, other_langs)
+                else:
+                    # 低于0分的直接标记为排除翻译
+                    cur_item.translation_status = TranslationStatus.EXCLUDED
 
         return file_data
 
