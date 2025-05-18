@@ -4,10 +4,6 @@
   </a>
 </div>
 
-<div align="center">
-  
-  **One-click solution for 99% of your translation troubles, enjoy smooth translation experience**
-</div>
 
 ---
 

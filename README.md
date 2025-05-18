@@ -4,10 +4,6 @@
   </a>
 </div>
 
-<div align="center">
-  
-  **一键解决你99%的烦恼，一键享受丝滑般的翻译**
-</div>
 
 <div align="center">
   <a href="README_EN.md">English</a> | 简体中文

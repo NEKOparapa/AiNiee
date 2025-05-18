@@ -191,8 +191,8 @@ class TextLayoutRepairPlugin(PluginBase):
         original_lines = original.splitlines()
         translation_lines = translation.splitlines()
 
-        # 检查是否多行文本,且行数一致
-        if len(original_lines) <= 1 or len(original_lines) !=len(translation_lines):
+        # 检查行数一致
+        if  len(original_lines) !=len(translation_lines):
             return original, translation
 
         modified_translation = []
@@ -204,7 +204,7 @@ class TextLayoutRepairPlugin(PluginBase):
                 orig_start = orig_line[0] if len(orig_line) > 0 else ''
 
                 # 如果原文首不符合要求，则去掉译文双引号
-                if orig_start not in {'"', '“'} :
+                if orig_start not in {'"', '“', '「'} :
                     trans_line = trans_line[1:]
 
             if len(trans_line) >= 2 and trans_line.endswith('"'):
@@ -212,7 +212,7 @@ class TextLayoutRepairPlugin(PluginBase):
                 orig_end = orig_line[-1] if len(orig_line) > 0 else ''
 
                 # 如果原文尾不符合要求，则去掉译文双引号
-                if orig_end not in {'"', '”'}:
+                if orig_end not in {'"', '”', '」'}:
                     trans_line = trans_line[:-1]
 
             modified_translation.append(trans_line)
