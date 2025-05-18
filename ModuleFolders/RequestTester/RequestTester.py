@@ -41,7 +41,7 @@ class RequestTester(Base):
         secret_key = data.get("secret_key")
 
         # 自动补全API地址
-        if platform_tag == "sakura" and not api_url.endswith("/v1"):
+        if (platform_tag == "sakura" or platform_tag == "LocalLLM") and not api_url.endswith("/v1"):
             api_url += "/v1"
         elif auto_complete:
             version_suffixes = ["/v1", "/v2", "/v3", "/v4"]

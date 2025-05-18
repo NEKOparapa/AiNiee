@@ -159,7 +159,7 @@ class TranslatorConfig(Base):
             # 获取接口地址并补齐
             api_url = self.platforms.get(target_platform).get("api_url")
             auto_complete = self.platforms.get(target_platform).get("auto_complete")
-            if target_platform == "sakura" and not api_url.endswith("/v1"):
+            if (target_platform == "sakura" or target_platform == "LocalLLM") and not api_url.endswith("/v1"):
                 self.base_url = api_url + "/v1"
             elif auto_complete == True and not api_url.endswith("/v1") and not api_url.endswith("/v2") and not api_url.endswith("/v3") and not api_url.endswith("/v4"):
                 self.base_url = api_url + "/v1"
