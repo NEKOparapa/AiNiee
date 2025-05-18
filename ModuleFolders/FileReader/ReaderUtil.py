@@ -16,6 +16,7 @@ from ModuleFolders.Cache.CacheItem import CacheItem
 
 _LANG_DETECTOR_INSTANCE: LanguageDetector | None = None
 """语言检测器单例实现"""
+
 HAS_UNUSUAL_ENG_REGEX = re.compile(
     r"^(?:(?=.*_)(?=.*[a-zA-Z0-9])\S*|(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]*)$"
 )
@@ -24,6 +25,25 @@ CLEAN_TEXT_PATTERN = re.compile(
     r'\\{1,2}[a-zA-Z]{1,2}\[\d+]|if\(.{0,8}[vs]\[\d+].{0,16}\)|\\n|[a-zA-Z]+\d+'
 )
 """修改后的预编译正则，移除了标签模式"""
+NON_LATIN_ISO_CODES = [
+    'zh',  # 中文
+    'ja',  # 日语
+    'ko',  # 韩语
+    'ar',  # 阿拉伯语
+    'ru',  # 俄语
+    'he',  # 希伯来语
+    'hi',  # 印地语
+    'th',  # 泰语
+    'bn',  # 孟加拉语
+    'el',  # 希腊语
+    'hy',  # 亚美尼亚语
+    'ka',  # 格鲁吉亚语
+    'ta',  # 泰米尔语
+    'ml',  # 马拉雅拉姆语
+    'ur',  # 乌尔都语
+    'fa'   # 波斯语
+]
+"""ISO 639-1非西文语言代码列表"""
 
 
 # 加载语言检测器(全局)
@@ -184,6 +204,24 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
             raw_prob = lang_result[0].probability
             first_prob = raw_prob
             mediapipe_langs = [detection.language_code for detection in lang_result]
+
+            # 判断识别后的语言是否有非西文语言
+            has_non_latin = bool(set(mediapipe_langs) & set(NON_LATIN_ISO_CODES))
+            if has_non_latin:
+                # 如果有非西文语言出现，去掉所有的英文字母与一些符号后再识别
+                non_latin_text = re.sub(r"[a-zA-Z'-]+", ' ', no_symbols_text)
+                # 去除多余空格
+                non_latin_text = re.sub(r'\s+', ' ', non_latin_text).strip()
+                # 进行重新识别
+                non_latin_lang_result = detector.detect(non_latin_text).detections
+                # 如果有识别结果才重置结果
+                if non_latin_lang_result:
+                    # 重置lang_result
+                    lang_result = non_latin_lang_result
+                    # 重置三个变量
+                    raw_prob = lang_result[0].probability
+                    first_prob = raw_prob
+                    mediapipe_langs = [detection.language_code for detection in lang_result]
 
             if HAS_UNUSUAL_ENG_REGEX.match(cleaned_text):
                 # 如果匹配到目标字符，则最高置信度降低0.15
@@ -388,7 +426,7 @@ def is_symbols_only(source_text: str):
 
 def remove_symbols(source_text):
     # 去除标点和特殊字符(根据需要保留部分符号)
-    source_text = re.sub(r'[^\w\s「」『』，。、〜？,.]', '', source_text)
+    source_text = re.sub(r"[^\w\s「」『』，。、〜？,.'-]", '', source_text)
 
     # 去除所有数字
     source_text = re.sub(r'\d+', '', source_text)
