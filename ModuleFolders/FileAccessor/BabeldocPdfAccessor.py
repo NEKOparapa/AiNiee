@@ -42,6 +42,9 @@ class PdfSourceVisitor(BaseTranslator):
         # do_translate本身是多线程操作，但是更换为单线程的线程池后没有线程安全问题
         self.source_texts: list[str] = []
 
+    def translate(self, text, *args, **kwargs):
+        return self.do_translate(text)
+
     def do_translate(self, text, rate_limit_params: dict = None):
         self.source_texts.append(text)
         return text
@@ -55,6 +58,9 @@ class TranslatedItemsTranslator(BaseTranslator):
         super().__init__('', '', True)
         self.source_texts = set(x.source_text for x in items)
         self.translated_iter = ((x.source_text, x.translated_text) for x in items)
+
+    def translate(self, text, *args, **kwargs):
+        return self.do_translate(text)
 
     def do_translate(self, text, rate_limit_params: dict = None):
         if text in self.source_texts:
