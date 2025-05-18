@@ -400,7 +400,7 @@ class ResponseExtractor:
             return True
 
         # 过滤表头行
-        if original.strip().lower() in ("原文", "原名", "名字", "source", "original", "name"):
+        if original.strip().lower() in ("原文", "原名", "名字", "source", "original", "name", "|"):
             return True
 
         # 过滤提取错行
@@ -433,6 +433,10 @@ class ResponseExtractor:
 
         # 过滤随机英文+数字，像“P1”这样的内容
         if re.fullmatch(r'[a-zA-Z]\d+', original):
+            return True
+
+        # 过滤占位符，像[P1]
+        if re.fullmatch(r'\[[a-zA-Z]\d+\]', original):
             return True
 
         # 过滤换行符或制表符
