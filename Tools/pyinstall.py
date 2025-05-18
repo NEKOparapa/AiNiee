@@ -7,13 +7,14 @@ cmd = [
     "--clean",  # Clean PyInstaller cache and remove temporary files before building.
     "--onefile",  # Create a one-file bundled executable.
     "--noconfirm",  # Replace output directory (default: SPECPATH/dist/SPECNAME) without asking for confirmation
+    "--hidden-import=babeldoc",
+    "--collect-all=babeldoc",
     # "--distpath=./dist/AiNiee" #指定输出目录
 ]
 
 # 需要排除的软件包
 # 由mediapipe导入，但不需要这些任务，会增加很多大小
 MODULES_TO_EXCLUDE = [
-    "jax",
     "jaxlib",
     "scipy",
 ]
@@ -25,6 +26,11 @@ for module_name in MODULES_TO_EXCLUDE:
 
 if os.path.exists("./requirements.txt"):
     with open("./requirements.txt", "r", encoding="utf-8") as reader:
+        for line in reader:
+            if "#" not in line:
+                cmd.append("--hidden-import=" + line.strip())
+
+    with open("./requirements_no_deps.txt", "r", encoding="utf-8") as reader:
         for line in reader:
             if "#" not in line:
                 cmd.append("--hidden-import=" + line.strip())

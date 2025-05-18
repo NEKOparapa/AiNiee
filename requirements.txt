@@ -24,12 +24,46 @@ rich
 tqdm
 jaconv
 python-rapidjson
-# 谷歌的AI推理管道（只用到了语言检测功能，会在打包时忽略掉cv2/jax/jaxlib/scipy）
-# 注意，cv2依赖的排除是通过卸载掉`opencv-contrib-python`依赖实现的，其余通过PyInstaller实现
-# 新版本存在打包后dll动态库加载失败的问题，等后续更新
 protobuf==4.25.7
-mediapipe==0.10.14
 # 获取iso语言代码对应的友好名称
 language-data
 langcodes
 msgspec
+
+# mediapipe
+absl-py
+attrs>=19.1.0
+flatbuffers>=2.0
+matplotlib
+sounddevice>=0.4.4
+
+# BabelDOC
+# onnx 新版本打包后不能运行，这里使用 onnx==1.16.1 onnxruntime==1.20.1
+# 安装zstd需要 Microsoft C++ Build Tools，改为安装pyzstd
+# rapidocr-onnxruntime 依赖了 opencv-python，所以去除了 opencv-python-headless
+# 不使用 babeldoc.document_il.midend.detect_scanned_file.DetectScannedFile 所以去除 scikit-image>=0.25.2
+bitstring>=4.3.0
+configargparse>=1.7
+httpx[socks]>=0.27.0
+huggingface-hub>=0.27.0
+numpy>=2.0.2
+onnx==1.16.1
+onnxruntime==1.20.1
+openai>=1.59.3
+orjson>=3.10.14
+pdfminer-six==20250416
+peewee>=3.17.8
+psutil>=7.0.0
+pymupdf>=1.25.1
+rich>=13.9.4
+toml>=0.10.2
+tqdm>=4.67.1
+xsdata[cli,lxml,soap]>=24.12
+msgpack>=1.1.0
+pydantic>=2.10.6
+tenacity>=9.0.0
+freetype-py>=2.5.1
+tiktoken>=0.9.0
+python-levenshtein>=0.27.1
+rapidocr-onnxruntime>=1.4.4
+pyzstd
