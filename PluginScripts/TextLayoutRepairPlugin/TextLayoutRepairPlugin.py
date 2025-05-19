@@ -188,8 +188,8 @@ class TextLayoutRepairPlugin(PluginBase):
     # 处理多行文本的双引号问题，有些AI会在多行文本时，将每一行当作一句话进行翻译，导致每一行都加上了双引号
     def check_and_adjust_quotes(self,original, translation):
         # 分割原文和译文为行
-        original_lines = original.splitlines()
-        translation_lines = translation.splitlines()
+        original_lines = original.split("\n")
+        translation_lines = translation.split("\n")
 
         # 检查行数一致
         if  len(original_lines) !=len(translation_lines):
