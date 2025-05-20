@@ -275,14 +275,6 @@ class TranslatorConfig(Base):
             self.save_config(config)
 
 
-        # 设置网络代理(共用设置)
-        if self.proxy_enable == False or self.proxy_url == "":
-            os.environ.pop("http_proxy", None)
-            os.environ.pop("https_proxy", None)
-        else:
-            os.environ["http_proxy"] = self.proxy_url
-            os.environ["https_proxy"] = self.proxy_url
-
     # 更新术语表与禁翻表到配置中
     def update_glossary_ntl_config(self, glossary_entries, ntl_entries):
         

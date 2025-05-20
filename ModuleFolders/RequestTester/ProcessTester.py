@@ -321,22 +321,6 @@ class ProcessTester(Base):
         self.print(f"  → 额外参数: {extra_body}")
         self.print(f"  → 接口密钥: {'*' * (len(api_key) - 4)}{api_key[-4:]}")  # 隐藏敏感信息
 
-
-        # 网络代理设置
-        proxy_url = user_config.get("proxy_url")
-        proxy_enable = user_config.get("proxy_enable")
-
-        # 获取并设置网络代理
-        if proxy_enable == False or proxy_url == "":
-            os.environ.pop("http_proxy", None)
-            os.environ.pop("https_proxy", None)
-        else:
-            os.environ["http_proxy"] = proxy_url
-            os.environ["https_proxy"] = proxy_url
-            self.info(f"[系统代理]  {proxy_url}")
-
-
-
         # 构建配置包
         platform_config = {
             "target_platform": platform_tag,
