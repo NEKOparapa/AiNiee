@@ -41,6 +41,7 @@ from UserInterface.Quality.WritingStylePromptPage import WritingStylePromptPage
 from UserInterface.Quality.WorldBuildingPromptPage import WorldBuildingPromptPage
 from UserInterface.Quality.CharacterizationPromptPage import CharacterizationPromptPage
 from UserInterface.Quality.TranslationExamplePromptPage import TranslationExamplePromptPage
+#from UserInterface.EditView.EditViewPage import EditViewPage
 
 from StevExtraction import jtpp
 from UserInterface.Extraction_Tool.Export_Source_Text import Widget_export_source_text
@@ -340,6 +341,9 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
     # 添加第五节
     def add_stev_extraction_pages(self, plugin_manager: PluginManager) -> None:
+        #self.edit_view_page = EditViewPage("edit_view_page", self)
+        #self.addSubInterface(self.edit_view_page, FluentIcon.UPDATE, self.tra("测试页面"), NavigationItemPosition.SCROLL)
+
         self.stev_extraction_navigation_item = BaseNavigationItem("stev_extraction_navigation_item", self)
         self.addSubInterface(self.stev_extraction_navigation_item, FluentIcon.ZIP_FOLDER, self.tra("StevExtraction"), NavigationItemPosition.SCROLL)
         self.widget_export_source_text = Widget_export_source_text("widget_export_source_text", self, jtpp)

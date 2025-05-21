@@ -306,7 +306,7 @@ class ProcessTester(Base):
 
         # 自动补全API地址
         auto_complete = platform_config["auto_complete"]
-        if platform_tag == "sakura" and not api_url.endswith("/v1"):
+        if (platform_tag == "sakura" or platform_tag == "LocalLLM")  and not api_url.endswith("/v1"):
             api_url += "/v1"
         elif auto_complete:
             version_suffixes = ["/v1", "/v2", "/v3", "/v4"]
@@ -320,22 +320,6 @@ class ProcessTester(Base):
         self.print(f"  → 模型名称: {model_name}")
         self.print(f"  → 额外参数: {extra_body}")
         self.print(f"  → 接口密钥: {'*' * (len(api_key) - 4)}{api_key[-4:]}")  # 隐藏敏感信息
-
-
-        # 网络代理设置
-        proxy_url = user_config.get("proxy_url")
-        proxy_enable = user_config.get("proxy_enable")
-
-        # 获取并设置网络代理
-        if proxy_enable == False or proxy_url == "":
-            os.environ.pop("http_proxy", None)
-            os.environ.pop("https_proxy", None)
-        else:
-            os.environ["http_proxy"] = proxy_url
-            os.environ["https_proxy"] = proxy_url
-            self.info(f"[系统代理]  {proxy_url}")
-
-
 
         # 构建配置包
         platform_config = {

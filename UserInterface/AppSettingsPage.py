@@ -80,6 +80,19 @@ class AppSettingsPage(QWidget, Base):
             config["proxy_enable"] = checked
             self.save_config(config)
 
+            # 获取并设置网络代理
+            proxy_url = config["proxy_url"]
+            if checked == False or proxy_url == "":
+                os.environ.pop("http_proxy", None)
+                os.environ.pop("https_proxy", None)
+                info = self.tra("网络代理已关闭")
+                self.info(info)
+            else:
+                os.environ["http_proxy"] = proxy_url
+                os.environ["https_proxy"] = proxy_url
+                info = self.tra("网络代理已启用，代理地址")
+                self.info(f"{info}：{proxy_url}")
+
         def init(widget) -> None:
             widget.set_text(config.get("proxy_url"))
             widget.set_fixed_width(256)
@@ -92,6 +105,18 @@ class AppSettingsPage(QWidget, Base):
             swicth_button.checkedChanged.connect(lambda checked: checked_changed(swicth_button, checked))
             widget.add_spacing(8)
             widget.add_widget(swicth_button)
+
+            # 获取并设置网络代理
+            checked = config["proxy_enable"]
+            proxy_url = config["proxy_url"]
+            if checked == False or proxy_url == "":
+                os.environ.pop("http_proxy", None)
+                os.environ.pop("https_proxy", None)
+            else:
+                os.environ["http_proxy"] = proxy_url
+                os.environ["https_proxy"] = proxy_url
+                info = self.tra("网络代理已启用，代理地址")
+                self.info(f"{info}：{proxy_url}")
 
         def text_changed(widget, text: str) -> None:
             config = self.load_config()

@@ -187,6 +187,9 @@ class ResponseChecker():
             bool: 所有多行文本块检查通过返回True，否则返回False。
         """
 
+        if (len(source_text_dict) == 1) and (len(translated_dict) == 1):
+            return True  # 一行就不检查了
+
         # 获取排序后的key，确保按数字顺序检查
         keys = sorted(source_text_dict.keys(), key=int)
 
@@ -204,7 +207,11 @@ class ResponseChecker():
 
             # 在处理过的文本上计算文本内的换行符数量
             source_newlines = trimmed_source_text.count('\n')
+            # 检查原文中的转义换行符
+            source_newlines += trimmed_source_text.count('\\n')
+
             translated_newlines = trimmed_translated_text.count('\n')
+            translated_newlines += trimmed_translated_text.count('\\n')
 
             # 检查换行符数是否匹配，要放在外面进行比较，因为source_text可能没有换行符，而译文就有
             if source_newlines != translated_newlines:

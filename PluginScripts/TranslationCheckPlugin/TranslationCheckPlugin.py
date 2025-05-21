@@ -451,7 +451,11 @@ class TranslationCheckPlugin(PluginBase):
 
         # 在处理过的文本上计算文本内的换行符数量
         source_newlines = trimmed_source_text.count('\n')
+        # 检查原文中的转义换行符
+        source_newlines += trimmed_source_text.count('\\n')
+
         translated_newlines = trimmed_translated_text.count('\n')
+        translated_newlines += trimmed_translated_text.count('\\n')
 
         if source_newlines != translated_newlines:
             error_msg = f"📃[换行符错误] 原文有 {source_newlines} 个换行符，译文有 {translated_newlines} 个"

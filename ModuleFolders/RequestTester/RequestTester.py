@@ -33,8 +33,6 @@ class RequestTester(Base):
         api_format = data.get("api_format")
         model_name = data.get("model")
         auto_complete = data.get("auto_complete")
-        proxy_url = data.get("proxy_url")
-        proxy_enable = data.get("proxy_enable")
         extra_body = data.get("extra_body",{})
         region = data.get("region")
         access_key = data.get("access_key")
@@ -47,15 +45,6 @@ class RequestTester(Base):
             version_suffixes = ["/v1", "/v2", "/v3", "/v4"]
             if not any(api_url.endswith(suffix) for suffix in version_suffixes):
                 api_url += "/v1"
-
-        # 获取并设置网络代理
-        if proxy_enable == False or proxy_url == "":
-            os.environ.pop("http_proxy", None)
-            os.environ.pop("https_proxy", None)
-        else:
-            os.environ["http_proxy"] = proxy_url
-            os.environ["https_proxy"] = proxy_url
-            self.info(f"系统代理已启用，代理地址：{proxy_url}")
 
         # 测试结果
         failure = []

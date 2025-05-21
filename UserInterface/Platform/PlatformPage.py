@@ -128,8 +128,6 @@ class PlatformPage(QFrame, Base):
 
             # 创建事件参数
             data = copy.deepcopy(platform)
-            data["proxy_url"] = config.get("proxy_url")
-            data["proxy_enable"] = config.get("proxy_enable")
 
             # 触发事件
             self.emit(Base.EVENT.API_TEST_START, data)

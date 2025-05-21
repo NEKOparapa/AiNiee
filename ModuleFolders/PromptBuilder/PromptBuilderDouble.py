@@ -19,15 +19,23 @@ class PromptBuilderDouble(Base):
     # 获取双请求专用原文
     def get_source_text(self,source_text_dict: dict) -> str:
 
-        # 构建待翻译文本 (添加序号)
+        # 构建待翻译文本
         numbered_lines = []
         for index, line in enumerate(source_text_dict.values()):
             # 检查是否为多行文本
             if "\n" in line:
-                lines = line.split("\n")
+                lines = line.split("\n")  # 需要与回复提取的行分割方法一致
+                numbered_text = f"{index + 1}.[\n"
+                total_lines = len(lines)
                 for sub_index, sub_line in enumerate(lines):
-                    numbered_text = f"{index + 1}.{sub_index + 1}.{sub_line}"
-                    numbered_lines.append(numbered_text)
+                    # 不去除空白内容，保留\r其他平台的换行符，虽然AI回复不一定保留...
+                    # 仅当 **只有一个** 尾随空格时才去除
+                    sub_line = sub_line[:-1] if re.match(r'.*[^ ] $', sub_line) else sub_line
+                    numbered_text += f'"{index + 1}.{total_lines - sub_index}.,{sub_line}",\n'
+                numbered_text = numbered_text.rstrip('\n')
+                numbered_text = numbered_text.rstrip(',')
+                numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
+                numbered_lines.append(numbered_text)
             else:
                 # 单行文本直接添加序号
                 numbered_lines.append(f"{index + 1}.{line}")
