@@ -18,13 +18,6 @@ class BabeldocPdfReader(BaseSourceReader):
         abs_tmp_directory = input_config.input_root / self.tmp_directory
         self.file_accessor = BabeldocPdfAccessor(abs_tmp_directory, None)
 
-    def __enter__(self):
-        self.file_accessor.__enter__()
-        return self
-
-    def __exit__(self, exc_type, exc, exc_tb):
-        self.file_accessor.__exit__(exc_type, exc, exc_tb)
-
     @classmethod
     def get_project_type(self):
         return ProjectType.BABELDOC_PDF
