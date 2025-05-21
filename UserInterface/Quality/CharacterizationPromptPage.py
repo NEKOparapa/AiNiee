@@ -311,8 +311,8 @@ class CharacterizationPromptPage(QFrame, Base):
 
             # 去重逻辑
             current_data = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
-            current_src_set = {item['src'] for item in current_data if item.get('src')} # 处理潜在的空 src
-            new_data_filtered = [item for item in data if item.get('src') and item['src'] not in current_src_set] # 确保导入的项目具有 src
+            current_src_set = {item['original_name'] for item in current_data if item.get('original_name')} # 处理潜在的空 original_name
+            new_data_filtered = [item for item in data if item.get('original_name') and item['original_name'] not in current_src_set] # 确保导入的项目具有 original_name
 
             if not new_data_filtered and data: # 如果所有导入的项目都已存在，则通知
                 self.info_toast(self.tra("信息"), self.tra("导入的数据项均已存在于当前表格中"))
@@ -333,7 +333,6 @@ class CharacterizationPromptPage(QFrame, Base):
             # 现在将可能已修改的表格状态保存回配置
             config["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
             self.save_config(config)
-            self._reset_search() # 导入后重置搜索
             self._reset_sort_indicator() # 导入后重置排序
             self.success_toast("", self.tra("数据已导入并更新") + f" ({len(new_data_filtered)} {self.tra('项')})...")
 
@@ -350,7 +349,7 @@ class CharacterizationPromptPage(QFrame, Base):
                 self.warning_toast("", self.tra("表格中没有数据可导出"))
                 return
 
-            default_filename = self.tra("导出_术语表") + ".json"
+            default_filename = self.tra("导出_角色介绍") + ".json"
             path, _ = QFileDialog.getSaveFileName(self, self.tra("导出文件"), default_filename, "JSON 文件 (*.json)")
 
             if not path:
