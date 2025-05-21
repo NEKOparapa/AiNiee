@@ -19,12 +19,7 @@ class BabeldocPdfWriter(BaseBilingualWriter, BaseTranslatedWriter):
         self.abs_tmp_directory = output_config.input_root / self.tmp_directory
         self.file_accessor = BabeldocPdfAccessor(self.abs_tmp_directory, output_config)
 
-    def __enter__(self):
-        self.file_accessor.__enter__()
-        return self
-
     def __exit__(self, exc_type, exc, exc_tb):
-        self.file_accessor.__exit__(exc_type, exc, exc_tb)
         if self.abs_tmp_directory.exists():
             shutil.rmtree(self.abs_tmp_directory)
 
