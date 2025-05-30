@@ -85,7 +85,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
     # THEME_COLOR = "#8f93e6"
     # THEME_COLOR = "#8A95A9"
 
-    def __init__(self, version: str, plugin_manager: PluginManager, support_project_types: set[str]) -> None:
+    def __init__(self, version: str, plugin_manager: PluginManager, support_project_types: list[str]) -> None:
         super().__init__()
 
         # 默认配置
@@ -229,7 +229,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
             )
 
     # 开始添加页面
-    def add_pages(self, plugin_manager: PluginManager, support_project_types: set[str]) -> None:
+    def add_pages(self, plugin_manager: PluginManager, support_project_types: list[str]) -> None:
         self.add_project_pages(plugin_manager, support_project_types)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
         self.add_setting_pages(plugin_manager)
@@ -285,7 +285,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         )
 
     # 添加第一节
-    def add_project_pages(self, plugin_manager: PluginManager, support_project_types: set[str]) -> None:
+    def add_project_pages(self, plugin_manager: PluginManager, support_project_types: list[str]) -> None:
         self.platform_page = PlatformPage("platform_page", self)
         self.addSubInterface(self.platform_page, FluentIcon.IOT, self.tra("接口管理"), NavigationItemPosition.SCROLL)
         self.prject_page = ProjectSettingsPage("ProjectSettingsPagee", self, support_project_types)

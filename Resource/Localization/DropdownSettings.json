@@ -1,102 +1,102 @@
 {
   "project_pairs": {
-    "Txt小说文件": {
+    "Txt": {
       "简中": "Txt小说文件",
       "繁中": "Txt小說檔案",
       "English": "Txt Novel File",
       "日本語": "Txt小説ファイル"
     },
-    "Epub小说文件": {
+    "Epub": {
       "简中": "Epub小说文件",
       "繁中": "Epub小說檔案",
       "English": "Epub Novel File",
       "日本語": "Epub小説ファイル"
     },
-    "Docx文档文件": {
+    "Docx": {
       "简中": "Docx文档文件",
       "繁中": "Docx文件檔案",
       "English": "Docx Document File",
       "日本語": "Docxドキュメントファイル"
     },
-    "Srt字幕文件": {
+    "Srt": {
       "简中": "Srt字幕文件",
       "繁中": "Srt字幕檔案",
       "English": "SRT Subtitle File",
       "日本語": "SRT字幕ファイル"
     },
-    "Vtt字幕文件": {
+    "Vtt": {
       "简中": "Vtt字幕文件",
       "繁中": "Vtt字幕檔案",
       "English": "VTT Subtitle File",
       "日本語": "VTT字幕ファイル"
     },
-    "Lrc音声文件": {
+    "Lrc": {
       "简中": "Lrc音声文件",
       "繁中": "Lrc歌詞檔案",
       "English": "LRC Lyrics File",
       "日本語": "LRC歌詞ファイル"
     },
-    "Md文档文件": {
+    "Md": {
       "简中": "Md文档文件",
       "繁中": "Md文件檔案",
       "English": "Md Document File",
       "日本語": "Mdドキュメントファイル"
     },
-    "T++导出文件": {
+    "Tpp": {
       "简中": "T++导出文件",
       "繁中": "T++導出檔案",
       "English": "T++ Export File",
       "日本語": "T++エクスポートファイル"
     },
-    "Trans工程文件": {
+    "Trans": {
       "简中": "Trans工程文件",
       "繁中": "Trans工程檔案",
       "English": "Trans Project Files",
       "日本語": "Transプロジェクトファイル"
     },
-    "Mtool导出文件": {
+    "Mtool": {
       "简中": "Mtool导出文件",
       "繁中": "Mtool導出檔案",
       "English": "Mtool Export File",
       "日本語": "Mtoolエクスポートファイル"
     },
-    "Renpy导出文件": {
+    "Renpy": {
       "简中": "Renpy导出文件",
       "繁中": "Renpy導出檔案",
       "English": "Renpy Export File",
       "日本語": "Renpyエクスポートファイル"
     },
-    "VNText导出文件": {
+    "Vnt": {
       "简中": "VNText导出文件",
       "繁中": "VNText導出檔案",
       "English": "VNText Export File",
       "日本語": "VNTextエクスポートファイル"
     },
-    "I18Next数据文件": {
+    "I18next": {
       "简中": "I18Next数据文件",
       "繁中": "I18Next數據文件",
       "English": "I18Next Data File",
       "日本語": "I18Nextデータファイル"
     },
-    "ParaTranz导出文件": {
+    "Paratranz": {
       "简中": "ParaTranz导出文件",
       "繁中": "ParaTranz導出檔案",
       "English": "ParaTranz Export File",
       "日本語": "ParaTranzエクスポートファイル"
     },
-    "Doc文档文件 (需要Microsoft Office)": {
+    "OfficeConversionDoc": {
       "简中": "Doc文档文件 (需要Microsoft Office)",
       "繁中": "Doc文件檔案 (需要Microsoft Office)",
       "English": "Doc Document File (requires Microsoft Office)",
       "日本語": "Docドキュメントファイル (Microsoft Officeが必要)"
     },
-    "Pdf文档文件 (pdf2zh/BabelDOC)": {
+    "BabeldocPdf": {
       "简中": "Pdf文档文件 (pdf2zh/BabelDOC)",
       "繁中": "Pdf文件檔案 (pdf2zh/BabelDOC)",
       "English": "Pdf Document File (pdf2zh/BabelDOC)",
       "日本語": "Pdfドキュメントファイル (pdf2zh/BabelDOC)"
     },
-    "自动识别文件类型": {
+    "AutoType": {
       "简中": "自动识别文件类型",
       "繁中": "自動識別檔案類型",
       "English": "Automatically identify file types",

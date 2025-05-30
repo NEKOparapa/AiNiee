@@ -22,6 +22,7 @@ from ModuleFolders.FileOutputer.RenpyWriter import RenpyWriter
 from ModuleFolders.FileOutputer.TransWriter import TransWriter
 from ModuleFolders.FileOutputer.I18nextWriter import I18nextWriter
 from ModuleFolders.FileOutputer.BabeldocPdfWriter import BabeldocPdfWriter
+from PluginScripts.IOPlugins.CustomRegistry import CustomWriter
 
 
 # 文件输出器
@@ -54,6 +55,9 @@ class FileOutputer:
         self.register_writer(TPPWriter)
         self.register_writer(OfficeConversionDocWriter)
         self.register_writer(BabeldocPdfWriter)
+
+        # 注册插件式 Writer
+        CustomWriter.register_writers(self)
 
         # 由于values是引用，最先注册和最后注册都一样
         self.register_writer(AutoTypeWriter, writer_factories=self.writer_factory_dict.values())

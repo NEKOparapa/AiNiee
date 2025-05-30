@@ -1,12 +1,9 @@
-           
-import json
 import os
 from pathlib import Path
 from functools import partial
 from typing import Type
 
 from ModuleFolders.Cache.CacheManager import CacheManager
-from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader.AutoTypeReader import AutoTypeReader
 from ModuleFolders.FileReader.BaseReader import BaseSourceReader, InputConfig, ReaderInitParams
 from ModuleFolders.FileReader.DirectoryReader import DirectoryReader
@@ -26,6 +23,8 @@ from ModuleFolders.FileReader.RenpyReader import RenpyReader
 from ModuleFolders.FileReader.TransReader import TransReader
 from ModuleFolders.FileReader.I18nextReader import I18nextReader
 from ModuleFolders.FileReader.BabeldocPdfReader import BabeldocPdfReader
+from PluginScripts.IOPlugins.CustomRegistry import CustomReader
+
 
 # 文件读取器(分发入口)
 class FileReader():
@@ -35,22 +34,25 @@ class FileReader():
 
     # 初始化时，注册所有内置支持的文件/项目类型。
     def _register_system_reader(self):
-        self.register_reader(MToolReader)
-        self.register_reader(TPPReader)
-        self.register_reader(VntReader)
-        self.register_reader(SrtReader)
-        self.register_reader(VttReader)
-        self.register_reader(LrcReader)
         self.register_reader(TxtReader)
         self.register_reader(EpubReader)
         self.register_reader(DocxReader)
+        self.register_reader(SrtReader)
+        self.register_reader(VttReader)
+        self.register_reader(LrcReader)
         self.register_reader(MdReader)
-        self.register_reader(RenpyReader)
-        self.register_reader(I18nextReader)
+        self.register_reader(TPPReader)
         self.register_reader(TransReader)
+        self.register_reader(MToolReader)
+        self.register_reader(RenpyReader)
+        self.register_reader(VntReader)
+        self.register_reader(I18nextReader)
         self.register_reader(ParatranzReader)
         self.register_reader(OfficeConversionDocReader)
         self.register_reader(BabeldocPdfReader)
+
+        # 注册插件式 Reader
+        CustomReader.register_readers(self)
 
         # 检验是否有歧义
         AutoTypeReader.verify_reader_factories(self.reader_factory_dict.values())
@@ -107,5 +109,9 @@ class FileReader():
         # 读取 JSON 文件内容
         return CacheManager.read_from_file(json_file_path)
 
-    def get_support_project_types(self) -> set[str]:
-        return set(self.reader_factory_dict.keys())
+    def get_support_project_types(self) -> list[str]:
+        # 把自动检测类型放到第一个
+        return [
+            AutoTypeReader.get_project_type(),
+            *(project_type for project_type in self.reader_factory_dict.keys() if project_type != AutoTypeReader.get_project_type())
+        ]
