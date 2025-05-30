@@ -19,6 +19,7 @@
   - [缓存介绍](#缓存介绍)
   - [Accessor介绍（可选）](#accessor介绍可选)
   - [FileConverter介绍（可选）](#fileconverter介绍可选)
+  - [插件式读写器解释（可选）](#插件式读写器解释可选)
   - [贡献指南](#贡献指南)
 
 ## 读写器编写步骤
@@ -453,6 +454,21 @@ class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
 
 1. Converter主要是把难以直接读写的文件格式转换成易读写中间格式。
 2. 参考 `OfficeConversionReader` 和 `OfficeConversionWriter` 通过 `OfficeFileConverter` 把 pdf 文件转换成 docx 文件实现翻译。
+
+## 插件式读写器解释（可选）
+
+插件式读写器主要用于处理一些冷门的文件类型，也支持在打包后的程序中增加新的实现。
+
+1. 文件存放路径：
+   - 插件文件统一存放在 PluginScripts/IOPlugins 目录下
+   - 新增的插件读写器也需放置于此目录
+   - 注意：该目录下的文件不纳入代码版本管理（详见 .gitignore 文件）
+2. 实现要求：
+
+   - 自定义读取器：需继承 CustomReader 类
+   - 自定义输出器：需继承 CustomWriter 类，并选择继承以下基类：
+      - BaseTranslationWriter
+      - BaseTranslatedWriter
 
 ## 贡献指南
 
