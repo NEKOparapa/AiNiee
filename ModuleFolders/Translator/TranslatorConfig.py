@@ -23,10 +23,6 @@ class TranslatorConfig(Base):
         self._api_key_lock = threading.Lock()
         self.apikey_index = 0
         self.apikey_list = []
-        self.apikey_index_a = 0
-        self.apikey_list_a = []
-        self.apikey_index_b = 0
-        self.apikey_list_b = []
 
         # 术语表数据缓冲区
         self.glossary_buffer_data = []
@@ -65,46 +61,6 @@ class TranslatorConfig(Base):
 
             return key
 
-    def get_next_apikey_a(self) -> str:
-        """
-        线程安全的轮询获取 API Key
-        """
-        with self._api_key_lock:
-            if not self.apikey_list_a:
-                return "no_key_required"
-            
-            # 边界检查
-            if self.apikey_index_a >= len(self.apikey_list_a):
-                self.apikey_index_a = 0
-
-            key = self.apikey_list_a[self.apikey_index_a]
-
-            # 更新索引（如果还有下一个 key，则递增，否则归零）
-            if len(self.apikey_list_a) > 1:
-                self.apikey_index_a = (self.apikey_index_a + 1) % len(self.apikey_list_a)
-
-            return key
-
-    def get_next_apikey_b(self) -> str:
-        """
-        线程安全的轮询获取 API Key
-        """
-        with self._api_key_lock:
-            if not self.apikey_list_b:
-                return "no_key_required"
-            
-            # 边界检查
-            if self.apikey_index_b >= len(self.apikey_list_b):
-                self.apikey_index_b = 0
-
-            key = self.apikey_list_b[self.apikey_index_b]
-
-            # 更新索引（如果还有下一个 key，则递增，否则归零）
-            if len(self.apikey_list_b) > 1:
-                self.apikey_index_b = (self.apikey_index_b + 1) % len(self.apikey_list_b)
-
-            return key
-
     # 读取配置文件
     def initialize(self) -> None:
         # 读取配置文件
@@ -132,134 +88,47 @@ class TranslatorConfig(Base):
             print(self.actual_thread_counts)
 
 
-    # 准备翻译（石山，待改进）
+    # 准备翻译
     def prepare_for_translation(self) -> None:
 
         # 初始化术语表缓存区
         self.glossary_buffer_data = []
 
-        # 单请求配置
-        if self.double_request_switch_settings == False:
-            # 获取目标平台
-            target_platform = self.target_platform
+        # 获取目标平台
+        target_platform = self.target_platform
 
-            # 获取模型类型
-            self.model = self.platforms.get(target_platform).get("model")
+        # 获取模型类型
+        self.model = self.platforms.get(target_platform).get("model")
 
-            # 解析密钥字符串
-            # 即使字符中没有逗号，split(",") 方法仍然会返回只包含一个完整字符串的列表
-            api_key = self.platforms.get(target_platform).get("api_key")
-            if api_key == "":
-                self.apikey_list = ["no_key_required"]
-                self.apikey_index = 0
-            else:
-                self.apikey_list = re.sub(r"\s+","", api_key).split(",")
-                self.apikey_index = 0
-
-            # 获取接口地址并补齐
-            api_url = self.platforms.get(target_platform).get("api_url")
-            auto_complete = self.platforms.get(target_platform).get("auto_complete")
-            if (target_platform == "sakura" or target_platform == "LocalLLM") and not api_url.endswith("/v1"):
-                self.base_url = api_url + "/v1"
-            elif auto_complete == True and not api_url.endswith("/v1") and not api_url.endswith("/v2") and not api_url.endswith("/v3") and not api_url.endswith("/v4"):
-                self.base_url = api_url + "/v1"
-            else:
-                self.base_url = api_url
-
-
-
-            # 获取接口限额
-            self.rpm_limit = self.platforms.get(target_platform).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
-            self.tpm_limit = self.platforms.get(target_platform).get("tpm_limit", 10000000)    # 当取不到账号类型对应的预设值，则使用该值
-
-
-            # 根据密钥数量给 RPM 和 TPM 限额翻倍
-            self.rpm_limit = self.rpm_limit * len(self.apikey_list)
-            self.tpm_limit = self.tpm_limit * len(self.apikey_list)
-
-        # 双请求配置
+        # 解析密钥字符串
+        # 即使字符中没有逗号，split(",") 方法仍然会返回只包含一个完整字符串的列表
+        api_key = self.platforms.get(target_platform).get("api_key")
+        if api_key == "":
+            self.apikey_list = ["no_key_required"]
+            self.apikey_index = 0
         else:
-            target_platform_a = self.request_a_platform_settings
+            self.apikey_list = re.sub(r"\s+","", api_key).split(",")
+            self.apikey_index = 0
 
-            # 获取模型类型
-            self.model_a = self.platforms.get(target_platform_a).get("model")
+        # 获取接口地址并补齐
+        api_url = self.platforms.get(target_platform).get("api_url")
+        auto_complete = self.platforms.get(target_platform).get("auto_complete")
+        if (target_platform == "sakura" or target_platform == "LocalLLM") and not api_url.endswith("/v1"):
+            self.base_url = api_url + "/v1"
+        elif auto_complete == True and not api_url.endswith("/v1") and not api_url.endswith("/v2") and not api_url.endswith("/v3") and not api_url.endswith("/v4"):
+            self.base_url = api_url + "/v1"
+        else:
+            self.base_url = api_url
 
-            # 解析密钥字符串
-            # 即使字符中没有逗号，split(",") 方法仍然会返回只包含一个完整字符串的列表
-            api_key_a = self.platforms.get(target_platform_a).get("api_key")
-            if api_key_a == "":
-                self.apikey_list_a = ["no_key_required"]
-                self.apikey_index_a = 0
-            else:
-                self.apikey_list_a = re.sub(r"\s+","", api_key_a).split(",")
-                self.apikey_index_a = 0
-
-            # 获取接口地址并补齐
-            api_url_a = self.platforms.get(target_platform_a).get("api_url")
-            auto_complete_a = self.platforms.get(target_platform_a).get("auto_complete")
-            if target_platform_a == "sakura" and not api_url_a.endswith("/v1"):
-                self.base_url_a = api_url_a + "/v1"
-            elif auto_complete_a == True and not api_url_a.endswith("/v1") and not api_url_a.endswith("/v2") and not api_url_a.endswith("/v3") and not api_url_a.endswith("/v4"):
-                self.base_url_a = api_url_a + "/v1"
-            else:
-                self.base_url_a = api_url_a
+        # 获取接口限额
+        self.rpm_limit = self.platforms.get(target_platform).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
+        self.tpm_limit = self.platforms.get(target_platform).get("tpm_limit", 10000000)    # 当取不到账号类型对应的预设值，则使用该值
 
 
+        # 根据密钥数量给 RPM 和 TPM 限额翻倍
+        self.rpm_limit = self.rpm_limit * len(self.apikey_list)
+        self.tpm_limit = self.tpm_limit * len(self.apikey_list)
 
-            # 获取接口限额
-
-            self.rpm_limit_a= self.platforms.get(target_platform_a).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
-            self.tpm_limit_a = self.platforms.get(target_platform_a).get("tpm_limit", 10000000)    # 当取不到账号类型对应的预设值，则使用该值
-
-
-            # 根据密钥数量给 RPM 和 TPM 限额翻倍
-            self.rpm_limit_a = self.rpm_limit_a * len(self.apikey_list_a)
-            self.tpm_limit_a = self.tpm_limit_a * len(self.apikey_list_a)
-
-
-
-
-            target_platform_b = self.request_b_platform_settings
-
-            # 获取模型类型
-            self.model_b = self.platforms.get(target_platform_b).get("model")
-
-            # 解析密钥字符串
-            # 即使字符中没有逗号，split(",") 方法仍然会返回只包含一个完整字符串的列表
-            api_key_b = self.platforms.get(target_platform_b).get("api_key")
-            if api_key_b == "":
-                self.apikey_list_b = ["no_key_required"]
-                self.apikey_index_b = 0
-            else:
-                self.apikey_list_b = re.sub(r"\s+","", api_key_b).split(",")
-                self.apikey_index_b = 0
-
-            # 获取接口地址并补齐
-            api_url_b = self.platforms.get(target_platform_b).get("api_url")
-            auto_complete_b = self.platforms.get(target_platform_b).get("auto_complete")
-            if target_platform_b == "sakura" and not api_url_b.endswith("/v1"):
-                self.base_url_b = api_url_b + "/v1"
-            elif auto_complete_b == True and not api_url_b.endswith("/v1") and not api_url_b.endswith("/v2") and not api_url_b.endswith("/v3") and not api_url_b.endswith("/v4"):
-                self.base_url_b = api_url_b + "/v1"
-            else:
-                self.base_url_b = api_url_b
-
-
-
-            # 获取接口限额
-            self.rpm_limit_b= self.platforms.get(target_platform_b).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
-            self.tpm_limit_b = self.platforms.get(target_platform_b).get("tpm_limit", 10000000)    # 当取不到账号类型对应的预设值，则使用该值
-
-
-            # 根据密钥数量给 RPM 和 TPM 限额翻倍
-            self.rpm_limit_b = self.rpm_limit_b * len(self.apikey_list_b)
-            self.tpm_limit_b = self.tpm_limit_b * len(self.apikey_list_b)
-
-
-
-            # 取两者最低速
-            self.rpm_limit = min(self.rpm_limit_a,self.rpm_limit_b)
-            self.tpm_limit = min(self.tpm_limit_a,self.tpm_limit_b)
 
 
         # 如果开启自动设置输出文件夹功能，设置为输入文件夹的平级目录
@@ -307,16 +176,6 @@ class TranslatorConfig(Base):
 
     # 更新术语表缓存区
     def update_glossary_buffer(self,glossary_buffer_data, glossary_entries):
-        """
-        根据 glossary_entries 更新 glossary_buffer_data。
-
-        Args:
-            glossary_buffer_data: 词汇表缓冲区数据，列表结构，每个元素是包含 src, dst, info, count 字段的字典。
-            glossary_entries: 新的词汇条目列表，列表结构，每个元素是 (src, dst, info) 元组。
-
-        Returns:
-            更新后的 glossary_buffer_data。
-        """
         for src, dst, info in glossary_entries:
             found = False
             for entry in glossary_buffer_data:
@@ -338,19 +197,6 @@ class TranslatorConfig(Base):
 
     # 更新术语表配置区
     def update_prompt_dictionary(self,glossary_buffer_data, prompt_dictionary_data):
-        """
-        根据 glossary_buffer_data 的内容更新 prompt_dictionary_data。
-
-        检查 glossary_buffer_data 中 count >= x 的条目，如果 prompt_dictionary_data 中没有，则添加到 prompt_dictionary_data 中。
-        如果 prompt_dictionary_data 中已经存在相同 src 的条目，则跳过。
-
-        Args:
-            glossary_buffer_data: 包含缓冲词汇数据的列表，每个元素是一个字典，包含 "src", "dst", "info", "count" 键。
-            prompt_dictionary_data: 包含提示词典数据的列表，每个元素是一个字典，包含 "src", "dst", "info" 键。
-
-        Returns:
-            更新后的 prompt_dictionary_data 列表。
-        """
 
         prompt_srcs = {item['src'] for item in prompt_dictionary_data}  # 使用集合快速查找已存在的 src
 
@@ -440,7 +286,7 @@ class TranslatorConfig(Base):
         return actual_thread_counts
 
 
-    # 获取配置信息包
+    # 获取接口配置信息包
     def get_platform_configuration(self,platform_type):
 
         if platform_type == "singleReq":
@@ -449,42 +295,6 @@ class TranslatorConfig(Base):
             api_key = self.get_next_apikey()
             api_format = self.platforms.get(target_platform).get("api_format")
             model_name = self.model
-            region = self.platforms.get(target_platform).get("region",'')
-            access_key = self.platforms.get(target_platform).get("access_key",'')
-            secret_key = self.platforms.get(target_platform).get("secret_key",'')
-            request_timeout = self.request_timeout
-            temperature = self.platforms.get(target_platform).get("temperature")
-            top_p = self.platforms.get(target_platform).get("top_p")
-            presence_penalty = self.platforms.get(target_platform).get("presence_penalty")
-            frequency_penalty = self.platforms.get(target_platform).get("frequency_penalty")
-            extra_body = self.platforms.get(target_platform).get("extra_body",{})
-            think_switch = self.platforms.get(target_platform).get("think_switch")
-            think_depth = self.platforms.get(target_platform).get("think_depth")
-
-        elif platform_type == "doubleReqA":
-            target_platform = self.request_a_platform_settings
-            api_url = self.base_url_a
-            api_key = self.get_next_apikey_a()
-            api_format = self.platforms.get(target_platform).get("api_format")
-            model_name = self.model_a
-            region = self.platforms.get(target_platform).get("region",'')
-            access_key = self.platforms.get(target_platform).get("access_key",'')
-            secret_key = self.platforms.get(target_platform).get("secret_key",'')
-            request_timeout = self.request_timeout
-            temperature = self.platforms.get(target_platform).get("temperature")
-            top_p = self.platforms.get(target_platform).get("top_p")
-            presence_penalty = self.platforms.get(target_platform).get("presence_penalty")
-            frequency_penalty = self.platforms.get(target_platform).get("frequency_penalty")
-            extra_body = self.platforms.get(target_platform).get("extra_body",{})
-            think_switch = self.platforms.get(target_platform).get("think_switch")
-            think_depth = self.platforms.get(target_platform).get("think_depth")
-
-        elif platform_type == "doubleReqB":
-            target_platform = self.request_b_platform_settings
-            api_url = self.base_url_b
-            api_key = self.get_next_apikey_b()
-            api_format = self.platforms.get(target_platform).get("api_format")
-            model_name = self.model_b
             region = self.platforms.get(target_platform).get("region",'')
             access_key = self.platforms.get(target_platform).get("access_key",'')
             secret_key = self.platforms.get(target_platform).get("secret_key",'')

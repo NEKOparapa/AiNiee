@@ -30,7 +30,7 @@ class OfficeConversionReader(BaseSourceReader):
         self.converter.__exit__(exc_type, exc, exc_tb)
         self.docx_reader.__exit__(exc_type, exc, exc_tb)
 
-    def read_source_file(self, file_path: Path, source_language) -> CacheFile:
+    def read_source_file(self, file_path: Path) -> CacheFile:
         rel_path = file_path.relative_to(self.input_config.input_root)
         tmp_docx_path = (
             self.input_config.input_root / self.tmp_directory / rel_path
@@ -38,7 +38,7 @@ class OfficeConversionReader(BaseSourceReader):
         if self.converter.can_convert(file_path, tmp_docx_path):
             if not tmp_docx_path.exists():
                 self.converter.convert_file(file_path, tmp_docx_path)
-            return self.docx_reader.read_source_file(tmp_docx_path, source_language)
+            return self.docx_reader.read_source_file(tmp_docx_path)
         return CacheFile()
 
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:

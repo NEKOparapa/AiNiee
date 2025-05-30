@@ -197,34 +197,6 @@ class TextProcessor(Base):
             entry_placeholders: List[Dict[str, str]] = []
             sakura_match_count = 0
 
-            current_pattern_str_for_replacer = "" # Will be set in the loop
-
-            def create_replacer(pattern_obj_for_replacer: re.Pattern):
-                nonlocal global_match_count, sakura_match_count, entry_placeholders 
-                
-                current_pattern_str_for_replacer = pattern_obj_for_replacer.pattern
-
-                def replacer_inner(match):
-                    nonlocal global_match_count, sakura_match_count 
-                    if global_match_count >= 50:
-                        return match.group(0)
-
-                    global_match_count += 1
-                    sakura_match_count += 1
-                    original_match_val = match.group(0)
-                    
-                    placeholder_val = f"[P{global_match_count}]"
-                    if target_platform == "sakura":
-                        placeholder_val = "↓" * sakura_match_count
-                    
-                    entry_placeholders.append({
-                        "placeholder": placeholder_val,
-                        "original": original_match_val,
-                        "pattern": current_pattern_str_for_replacer
-                    })
-                    return placeholder_val
-                return replacer_inner
-
             for pattern_obj in compiled_placeholder_patterns:
 
                 single_pattern_replacements: List[Dict[str, str]] = []

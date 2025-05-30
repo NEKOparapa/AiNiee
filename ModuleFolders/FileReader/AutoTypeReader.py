@@ -112,7 +112,7 @@ class AutoTypeReader(BaseSourceReader):
     def can_read_by_content(self, file_path: Path) -> bool:
         return self.get_file_project_type(file_path) is not None
 
-    def read_source_file(self, file_path: Path, source_language) -> CacheFile:
+    def read_source_file(self, file_path: Path) -> CacheFile:
         project_type = self.get_file_project_type(file_path)
         if not project_type or project_type not in self._readers:
             return CacheFile()
@@ -120,7 +120,7 @@ class AutoTypeReader(BaseSourceReader):
         if reader not in self._active_readers:
             reader.__enter__()  # 实际使用时才申请资源
             self._active_readers.add(reader.get_project_type())
-        return reader.read_source_file(file_path, source_language)
+        return reader.read_source_file(file_path)
 
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
         # 重载抽象方法，实际不需要使用

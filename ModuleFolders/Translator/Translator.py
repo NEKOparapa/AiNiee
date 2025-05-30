@@ -123,8 +123,6 @@ class Translator(Base):
         # 只有翻译状态为 无任务 时才执行检查逻辑，其他情况直接返回默认值
         if Base.work_status == Base.STATUS.IDLE:
             config = self.load_config()
-            #self.cache_manager.load_from_file(config.get("label_output_path", ""))
-            #continue_status = self.cache_manager.get_continue_status()
 
             # 过渡方案，通过状态数据小文件来判断
             continue_status = self.check_project_statistics(config.get("label_output_path", ""))
@@ -190,8 +188,7 @@ class Translator(Base):
                 CacheProject = self.file_reader.read_files(
                         self.config.translation_project,
                         self.config.label_input_path,
-                        self.config.label_input_exclude_rule,
-                        self.config.source_language
+                        self.config.label_input_exclude_rule
                     )
                 # 读取完成后，保存到缓存管理器中
                 self.cache_manager.load_from_project(CacheProject)
@@ -235,14 +232,14 @@ class Translator(Base):
             self.project_status_data.start_time = time.time() # 重置开始时间
             self.project_status_data.total_completion_tokens = 0 # 重置完成的token数量
 
-        # 更新翻译进度
+        # 更新监控面板信息
         self.emit(Base.EVENT.TRANSLATION_UPDATE, self.project_status_data.to_dict())
 
         # 触发插件事件
         self.plugin_manager.broadcast_event("text_filter", self.config, self.cache_manager.project)
         self.plugin_manager.broadcast_event("preproces_text", self.config, self.cache_manager.project)
 
-        # 开始循环
+        # 根据最大轮次循环
         for current_round in range(self.config.round_limit + 1):
             # 检测是否需要停止任务
             if Base.work_status == Base.STATUS.STOPING:
@@ -313,47 +310,30 @@ class Translator(Base):
             self.info(f"原文语言 - {self.config.source_language}")
             self.info(f"译文语言 - {self.config.target_language}")
             self.print("")
-            if self.config.double_request_switch_settings == False:
-                self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get("name", "未知")}")
-                self.info(f"接口地址 - {self.config.base_url}")
-                self.info(f"模型名称 - {self.config.model}")
-                self.print("")
-                self.info(f"生效中的 网络代理 - {self.config.proxy_url}") if self.config.proxy_enable == True and self.config.proxy_url != "" else None
-                self.info(f"生效中的 RPM 限额 - {self.config.rpm_limit}")
-                self.info(f"生效中的 TPM 限额 - {self.config.tpm_limit}")
+            self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get("name", "未知")}")
+            self.info(f"接口地址 - {self.config.base_url}")
+            self.info(f"模型名称 - {self.config.model}")
+            self.print("")
+            self.info(f"生效中的 网络代理 - {self.config.proxy_url}") if self.config.proxy_enable == True and self.config.proxy_url != "" else None
+            self.info(f"生效中的 RPM 限额 - {self.config.rpm_limit}")
+            self.info(f"生效中的 TPM 限额 - {self.config.tpm_limit}")
 
-                # 根据提示词规则打印基础指令
-                system = ""
-                s_lang = self.config.source_language
-                if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:
-                    system = self.config.system_prompt_content
-                elif self.config.target_platform == "LocalLLM":  # 需要放在前面，以免提示词预设的分支覆盖
-                    system = PromptBuilderLocal.build_system(self.config, s_lang)
-                elif self.config.target_platform == "sakura":  # 需要放在前面，以免提示词预设的分支覆盖
-                    system = PromptBuilderSakura.build_system(self.config, s_lang)
-                elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
-                    system = PromptBuilder.build_system(self.config, s_lang)
-                elif self.config.prompt_preset == PromptBuilderEnum.THINK:
-                    system = PromptBuilderThink.build_system(self.config, s_lang)
-                self.print("")
-                if system:
-                    self.info(f"本次任务使用以下基础提示词：\n{system}\n") 
-
-            else:
-                self.info(f"第一次请求的接口 - {self.config.platforms.get(self.config.request_a_platform_settings, {}).get("name", "未知")}")
-                self.info(f"接口地址 - {self.config.base_url_a}")
-                self.info(f"模型名称 - {self.config.model_a}")
-                self.print("")
-
-                self.info(f"第二次请求的接口 - {self.config.platforms.get(self.config.request_b_platform_settings, {}).get("name", "未知")}")
-                self.info(f"接口地址 - {self.config.base_url_b}")
-                self.info(f"模型名称 - {self.config.model_b}")
-                self.print("")
-
-                self.info(f"生效中的 网络代理 - {self.config.proxy_url}") if self.config.proxy_enable == True and self.config.proxy_url != "" else None
-                self.info(f"生效中的 RPM 限额 - {self.config.rpm_limit}")
-                self.info(f"生效中的 TPM 限额 - {self.config.tpm_limit}")
-                self.print("")
+            # 根据提示词规则打印基础指令
+            system = ""
+            s_lang = self.config.source_language
+            if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:
+                system = self.config.system_prompt_content
+            elif self.config.target_platform == "LocalLLM":  # 需要放在前面，以免提示词预设的分支覆盖
+                system = PromptBuilderLocal.build_system(self.config, s_lang)
+            elif self.config.target_platform == "sakura":  # 需要放在前面，以免提示词预设的分支覆盖
+                system = PromptBuilderSakura.build_system(self.config, s_lang)
+            elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
+                system = PromptBuilder.build_system(self.config, s_lang)
+            elif self.config.prompt_preset == PromptBuilderEnum.THINK:
+                system = PromptBuilderThink.build_system(self.config, s_lang)
+            self.print("")
+            if system:
+                self.info(f"本次任务使用以下基础提示词：\n{system}\n") 
 
             self.info(f"即将开始执行翻译任务，预计任务总数为 {len(tasks_list)}, 同时执行的任务数量为 {self.config.actual_thread_counts}，请注意保持网络通畅 ...")
             time.sleep(3)
@@ -373,10 +353,16 @@ class Translator(Base):
 
         # 如果开启了转换简繁开关功能，则进行文本转换
         if self.config.response_conversion_toggle:
-            self.convert_simplified_and_traditional(self.config.opencc_preset, self.cache_manager.project.items_iter())
+
             self.print("")
             self.info(f"已启动自动简繁转换功能，正在使用 {self.config.opencc_preset} 配置进行字形转换 ...")
             self.print("")
+
+            converter = opencc.OpenCC(self.config.opencc_preset)
+            cache_list = self.cache_manager.project.items_iter()
+            for item in cache_list:
+                if item.translation_status == TranslationStatus.TRANSLATED:
+                    item.translated_text = converter.convert(item.translated_text)
 
         # 写入文件
         self.file_writer.output_translated_content(
@@ -395,13 +381,6 @@ class Translator(Base):
         self.emit(Base.EVENT.TRANSLATION_STOP_DONE, {})
         self.plugin_manager.broadcast_event("translation_completed", self.config, self.cache_manager.project)
 
-    # 执行简繁转换
-    def convert_simplified_and_traditional(self, preset: str, cache_list: Iterator[CacheItem]):
-        converter = opencc.OpenCC(preset)
-
-        for item in cache_list:
-            if item.translation_status == TranslationStatus.TRANSLATED:
-                item.translated_text = converter.convert(item.translated_text)
 
     # 单个翻译任务完成时,更新项目进度状态
     def task_done_callback(self, future: concurrent.futures.Future) -> None:

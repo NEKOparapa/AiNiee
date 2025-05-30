@@ -400,7 +400,11 @@ class ResponseExtractor:
             return True
 
         # 过滤表头行
-        if original.strip().lower() in ("原文", "原名", "名字", "source", "original", "name", "|"):
+        if original.strip().lower() in ("原文", "原名", "名字", "source", "original", "name"):
+            return True
+
+        # 过滤提取错行
+        if original and "|" in original:
             return True
 
         # 过滤提取错行
@@ -460,7 +464,7 @@ class ResponseExtractor:
         pronouns_and_others_to_filter = {
             # == 无语的东西 ==
             "俺", "俺たち", "なし", "姉ちゃん", "男性", "彼女", "乙女", "彼", "ト", "僕", "我", "私",
-            "你", "他", "她", "主人", # 中文代词也保留
+            "你", "他", "她", "主人", "男", "女", "小孩", "父", "母", "娘", "子宮", 
 
             # == 补充的日语人称代词 ==
             # --- 第一人称 (单数) ---
@@ -601,15 +605,19 @@ class ResponseExtractor:
             return True
 
         # 过滤表头行
-        if original.lower() in ("markers", "标记符", "备注","原文", "source"):
+        if original.lower() in ("markers", "标记符", "备注","原文", "source", "source"):
             return True
 
         # 过滤提取错行
-        if info.lower() in ("|"):
+        if original and "|" in original:
+            return True
+
+        # 过滤提取错行
+        if info and "|" in info:
             return True
 
         # 过滤常见符号
-        if original.strip() in ("#","「","」","『","』","※","★","？","！","～","…","♥","♡","^^","『』","♪","･･･","ー","（ ）","!!","无","\\n"):
+        if original.strip() in ("#","-","...","「","」","『","』","※","★","？","！","～","…","♥","♡","^^","『』","♪","･･･","ー","（ ）","!!","无","\\n"):
             return True
 
         # 过滤换行符或制表符
@@ -624,11 +632,15 @@ class ResponseExtractor:
         if re.fullmatch(r'^[a-zA-Z]+$', original):
             return True
 
-        # 新增：过滤被方括号/中文括号包围的数字（如[32]、【57】）
+        # 过滤被方括号/中文括号包围的数字（如[32]、【57】）
         if re.fullmatch(r'^[\[【]\d+[\]】]$', original):
             return True
 
-        # 新增：过滤纯英文字母和数字的组合（如abc123）
+        # 过滤占位符，像[P1]
+        if re.fullmatch(r'\[[a-zA-Z]\d+\]', original):
+            return True
+
+        # 过滤纯英文字母和数字的组合（如abc123）
         if re.fullmatch(r'^[a-zA-Z0-9]+$', original):
             return True
 

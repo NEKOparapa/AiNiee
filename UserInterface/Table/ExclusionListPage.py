@@ -495,8 +495,8 @@ class ExclusionListPage(QFrame, Base):
 
         # 去重逻辑
         current_data = TableHelper.load_from_table(self.table, ExclusionListPage.KEYS)
-        current_src_set = {item['src'] for item in current_data if item.get('src')} # 处理潜在的空 src
-        new_data_filtered = [item for item in data if item.get('src') and item['src'] not in current_src_set] # 确保导入的项目具有 src
+        current_src_set = {item['markers'] for item in current_data if item.get('markers')} # 处理潜在的空 markers
+        new_data_filtered = [item for item in data if item.get('markers') and item['markers'] not in current_src_set] # 确保导入的项目具有 markers
 
         if not new_data_filtered and data: # 如果所有导入的项目都已存在，则通知
             self.info_toast(self.tra("信息"), self.tra("导入的数据项均已存在于当前表格中"))

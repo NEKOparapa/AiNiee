@@ -316,7 +316,6 @@ class TranslationExamplePromptPage(QFrame, Base):
             # 现在将可能已修改的表格状态保存回配置
             config["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, TranslationExamplePromptPage.KEYS)
             self.save_config(config)
-            self._reset_search() # 导入后重置搜索
             self._reset_sort_indicator() # 导入后重置排序
             self.success_toast("", self.tra("数据已导入并更新") + f" ({len(new_data_filtered)} {self.tra('项')})...")
 
@@ -333,7 +332,7 @@ class TranslationExamplePromptPage(QFrame, Base):
                 self.warning_toast("", self.tra("表格中没有数据可导出"))
                 return
 
-            default_filename = self.tra("导出_术语表") + ".json"
+            default_filename = self.tra("导出_翻译示例") + ".json"
             path, _ = QFileDialog.getSaveFileName(self, self.tra("导出文件"), default_filename, "JSON 文件 (*.json)")
 
             if not path:

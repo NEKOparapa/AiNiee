@@ -65,7 +65,6 @@ class AppSettingsPage(QWidget, Base):
         self.add_widget_debug_mode(self.vbox, config)
         self.add_widget_scale_factor(self.vbox, config)
         self.add_widget_interface_language_setting(self.vbox, config)
-        self.add_widget_app_profile(self.vbox, config, window)
 
         # 填充
         self.vbox.addStretch(1)
@@ -237,95 +236,3 @@ class AppSettingsPage(QWidget, Base):
         )
 
 
-    # 应用配置切换
-    def add_widget_app_profile(self, parent, config, window) -> None:
-
-        # 重启应用
-        def restart_app() -> None:
-            subprocess.Popen([sys.executable] + sys.argv)
-            sys.exit(0)
-
-        # 导入配置文件
-        def import_profile_file(path) -> None:
-            profile = {}
-
-            if os.path.exists(path):
-                with open(path, "r", encoding = "utf-8") as reader:
-                    profile = json.load(reader)
-            else:
-                self.error_toast("", self.tra("配置文件不存在！"))
-                return
-
-            if len(profile) == 0 or "target_platform" not in profile:
-                self.error_toast("", self.tra("配置文件内容未通过校验！"))
-                return
-
-            # 确认框
-            message_box = MessageBox("Warning", self.tra("是否确认导入选中的配置文件，导入后应用将自动重启"), window)
-            message_box.yesButton.setText(self.tra("确认"))
-            message_box.cancelButton.setText(self.tra("取消"))
-            if message_box.exec():
-                self.success_toast("", self.tra("配置文件导入成功，应用即将自动重启！"))
-            else:
-                return
-
-            # 保存配置文件
-            config = self.load_config()
-            for k, v in profile.items():
-                if k != "platforms":
-                    config[k] = v
-            self.save_config(config)
-
-            # 重启应用
-            QTimer.singleShot(1000, restart_app)
-
-        # 导出配置文件
-        def export_profile_file(path) -> None:
-            config = self.load_config()
-            del config["platforms"]
-
-            with open(f"{path}/ainiee_profile.json", "w", encoding = "utf-8") as writer:
-                writer.write(json.dumps(config, indent = 4, ensure_ascii = False))
-
-            info_cont = self.tra("配置已导出为") + " \"ainiee_profile.json\" ..."
-            self.success_toast("", info_cont)
-
-        # 导入按钮点击事件
-        def on_improt_button_clicked() -> None:
-            path, _ = QFileDialog.getOpenFileName(None, self.tra("选择文件"), "", "json files (*.json)")
-
-            if path == None or path == "":
-                return
-
-            import_profile_file(path)
-        # 导出按钮点击事件
-        def on_exprot_button_clicked() -> None:
-            path = QFileDialog.getExistingDirectory(None, self.tra("选择文件夹"), "")
-
-            if path == None or path == "":
-                return
-
-            export_profile_file(path)
-
-        def init(widget) -> None:
-            improt_button = PushButton(self.tra("导入"), self)
-            improt_button.setIcon(FluentIcon.DOWNLOAD)
-            improt_button.setContentsMargins(4, 0, 4, 0)
-            improt_button.clicked.connect(on_improt_button_clicked)
-
-            export_button = PushButton(self.tra("导出"), self)
-            export_button.setIcon(FluentIcon.SHARE)
-            export_button.setContentsMargins(4, 0, 4, 0)
-            export_button.clicked.connect(on_exprot_button_clicked)
-
-            widget.add_widget(improt_button)
-            widget.add_spacing(16)
-            widget.add_widget(export_button)
-
-        parent.addWidget(
-            EmptyCard(
-                self.tra("应用配置切换"),
-                self.tra("可以将当前应用的除接口信息以外的所有设置导出为配置文件，以方便根据不同项目切换配置（导入配置后应用将自动重启）"),
-                init = init,
-            )
-        )

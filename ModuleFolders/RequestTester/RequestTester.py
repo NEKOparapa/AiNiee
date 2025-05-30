@@ -6,7 +6,7 @@ from Base.Base import Base
 from ModuleFolders.LLMRequester.LLMRequester import LLMRequester
 
 
-# 接口测试器(后面改造成通用请求器，用来承担UI触发的各种额外的请求任务，接口测试可以和流程测试合并)
+# 接口测试器(后面改造成通用请求器，用来承担UI触发的各种额外的请求任务)
 class RequestTester(Base):
 
     def __init__(self, *args, **kwargs):
