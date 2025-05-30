@@ -71,7 +71,7 @@ class FileReader():
         return ReaderInitParams(input_config=input_config)
 
     # 根据文件类型读取文件，并返回缓存对象
-    def read_files (self,translation_project,label_input_path, exclude_rule_str,source_language):
+    def read_files (self,translation_project,label_input_path, exclude_rule_str):
         # 检查传入的项目类型是否已经被注册。
         if translation_project in self.reader_factory_dict:
             # 获取初始化参数
@@ -83,7 +83,7 @@ class FileReader():
             # 再次获取路径对象
             source_directory = Path(label_input_path)
             # 读取整个输入目录,生成缓存对象
-            cache_list = reader.read_source_directory(source_directory,source_language)
+            cache_list = reader.read_source_directory(source_directory)
         elif translation_project == "Ainiee_cache":
             cache_list = self.read_cache_files(folder_path=label_input_path)
         return cache_list

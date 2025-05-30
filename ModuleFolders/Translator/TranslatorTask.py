@@ -21,7 +21,6 @@ from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from ModuleFolders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
 from ModuleFolders.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
 from ModuleFolders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
-from ModuleFolders.PromptBuilder.PromptBuilderDouble import PromptBuilderDouble
 from ModuleFolders.ResponseExtractor.ResponseExtractor import ResponseExtractor
 from ModuleFolders.ResponseChecker.ResponseChecker import ResponseChecker
 from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
@@ -39,21 +38,15 @@ class TranslatorTask(Base):
         self.request_limiter = request_limiter
         self.text_processor = TextProcessor(self.config) # 文本处理器
 
-        # 新的源语言对象
+        # 源语言对象
         self.source_lang = source_lang
 
-        # 初始化消息存储
+        # 提示词与信息内容存储
         self.messages = []
-        self.messages_a = []
-        self.messages_b = []
         self.system_prompt = ""
-        self.system_prompt_a = ""
-        self.system_prompt_b = ""
 
         # 输出日志存储
         self.extra_log = []
-        # 双请求翻译的文本占位符替换字典
-        self.replace_dict = {}
         # 前后缀处理信息存储
         self.prefix_codes = {}
         self.suffix_codes = {}
@@ -95,11 +88,7 @@ class TranslatorTask(Base):
             )
         
         # 生成请求指令
-        if self.config.double_request_switch_settings == True:
-            self.messages_a, self.system_prompt_a = self.generate_prompt_DRA()
-            self.messages_b, self.system_prompt_b = self.generate_prompt_DRB()
-
-        elif target_platform == "sakura":
+        if target_platform == "sakura":
             self.messages, self.system_prompt, self.extra_log = self.generate_prompt_sakura(
                 self.source_text_dict,
                 self.previous_text_list,
@@ -115,15 +104,8 @@ class TranslatorTask(Base):
                 self.previous_text_list,
             )
 
-        # 预估 Token 消费,暂时版本，双请求无法正确计算tpm与tokens消耗
-        self.request_tokens_consume = self.request_limiter.calculate_tokens(
-            self.messages,
-            self.messages_a,
-            self.messages_b,
-            self.system_prompt,
-            self.system_prompt_a,
-            self.system_prompt_b
-            )
+        # 预估 Token 消费
+        self.request_tokens_consume = self.request_limiter.calculate_tokens(self.messages,self.system_prompt,)
 
     # 生成信息结构 - 通用和思维链和推理模型(通用与推理模型与自定义使用同一提示词框架，除了系统提示词不同。思维链使用不同的框架，系统提示词也不同)
     def generate_prompt(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
@@ -370,71 +352,6 @@ class TranslatorTask(Base):
 
         return messages, system, extra_log
 
-    # 构造通用信息结构 第一次请求
-    def generate_prompt_DRA(self):
-        """构建通用消息结构"""
-
-        # 获取流程设计配置
-        request_cards = self.config.flow_design_list["request_phase_a"]
-
-        messages = []
-        system_content = ""
-
-        for card in request_cards:
-            if card["type"] == "DialogueFragmentCard":
-                settings = card["settings"]
-
-                role = settings["role"]
-                content = settings["content"]
-
-
-                # 记录系统消息
-                if role == "system":
-                    system_content = content
-
-                # 只在角色不是 "system" 时才添加到 messages 列表
-                if role != "system":
-                    messages.append({
-                        "role": role,
-                        "content": content
-                    })
-                settings["system_info"] = content
-
-
-        return messages, system_content
-
-    # 构造通用信息结构 第二次请求
-    def generate_prompt_DRB(self):
-        """构建通用消息结构"""
-
-        # 获取流程设计配置
-        request_cards = self.config.flow_design_list["request_phase_b"]
-
-        messages = []
-        system_content = ""
-
-        for card in request_cards:
-            if card["type"] == "DialogueFragmentCard":
-                settings = card["settings"]
-
-                role = settings["role"]
-                content = settings["content"]
-
-
-                # 记录系统消息
-                if role == "system":
-                    system_content = content
-
-                # 只在角色不是 "system" 时才添加到 messages 列表
-                if role != "system":
-                    messages.append({
-                        "role": role,
-                        "content": content
-                    })
-                settings["system_info"] = content
-
-        return messages, system_content
-
     # 更新系统提示词的术语表内容(因为是特殊处理的补丁，很多判断要重新加入，后续提示词相关更新需要重点关注该函数，以免bug)
     def update_sysprompt_glossary(self,config,system_prompt,glossary_buffer_data, prompt_dictionary_data, source_text_dict):
 
@@ -619,7 +536,6 @@ class TranslatorTask(Base):
         check_result, error_content = ResponseChecker.check_response_content(
             self,
             self.config,
-            self.config.target_platform,
             self.placeholder_order,
             response_content,
             response_dict,
@@ -704,217 +620,3 @@ class TranslatorTask(Base):
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
             }
-
-
-    # 双请求翻译任务
-    def unit_DRtranslation_task(self) -> dict:
-        # 任务开始的时间
-        task_start_time = time.time()
-
-        while True:
-            # 检测是否收到停止翻译事件
-            if Base.work_status == Base.STATUS.STOPING:
-                return {}
-
-            # 检查是否超时，超时则直接跳过当前任务，以避免死循环
-            if time.time() - task_start_time >= self.config.request_timeout:
-                return {}
-
-            # 检查 RPM 和 TPM 限制，如果符合条件，则继续
-            if self.request_limiter.check_limiter(self.request_tokens_consume):
-                break
-
-
-            # 如果以上条件都不符合，则间隔 1 秒再次检查
-            time.sleep(1)
-
-
-        # 构造初始替换字典
-        previous_text = PromptBuilderDouble.get_previous_text(self, self.previous_text_list) # 上文
-        source_text_str = PromptBuilderDouble.get_source_text(self, self.source_text_dict) # 原文
-        glossary = PromptBuilderDouble.get_glossary(self, self.config, self.source_text_dict) # 术语表
-        code = PromptBuilderDouble.build_ntl_prompt(self, self.config, self.source_text_dict) # 禁翻表
-
-        self.replace_dict = {
-            "{original_text}":source_text_str,
-            "{previous_text}":previous_text,
-            "{glossary}":glossary,
-            "{code_text}":code
-        }
-
-
-        # 进行文本占位符替换
-        messages, system_content = PromptBuilderDouble.replace_message_content(self,
-            self.replace_dict,
-            self.messages_a,
-            self.system_prompt_a
-        )
-
-        # 获取第一次平台配置信息包
-        platform_config = self.config.get_platform_configuration("doubleReqA")
-        model_a = platform_config["model_name"]
-
-        # 发起第一次请求
-        requester = LLMRequester()
-        skip, response_think, response_content, prompt_tokens_a, completion_tokens_a = requester.sent_request(
-            messages,
-            system_content,
-            platform_config
-        )
-
-        # 如果请求结果标记为 skip，即有运行错误发生，则直接返回错误信息，停止后续任务
-        if skip == True:
-            return {
-                "check_result": False,
-                "row_count": 0,
-                "prompt_tokens": self.request_tokens_consume,
-                "completion_tokens": 0,
-            }
-
-        # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content,self.config.target_language)
-
-        # 更新术语表与禁翻表到配置文件中
-        self.config.update_glossary_ntl_config(glossary_result, NTL_result)
-
-
-        # 模型回复日志
-        if response_think:
-            self.extra_log.append("第一次模型思考内容：\n" + response_think)
-        if self.is_debug():
-            self.extra_log.append("第一次模型回复内容：\n" + response_content)
-
-
-        # 进行提取阶段,并更新替换字典
-        self.replace_dict,self.extra_log = PromptBuilderDouble.process_extraction_phase(self,
-            self.config,
-            self.replace_dict,
-            response_think,
-            response_content,
-            self.extra_log
-        )
-
-
-        # 进行第二次文本占位符替换
-        messages, system_content = PromptBuilderDouble.replace_message_content(self,
-            self.replace_dict,
-            self.messages_b,
-            self.system_prompt_b
-        )
-
-
-        # 获取第二次平台配置信息包
-        platform_config = self.config.get_platform_configuration("doubleReqB")
-        model_b = platform_config["model_name"]
-
-        # 发起第二次请求
-        requester = LLMRequester()
-        skip, response_think, response_content, prompt_tokens_b, completion_tokens_b = requester.sent_request(
-            messages,
-            system_content,
-            platform_config
-        )
-
-
-        # 如果请求结果标记为 skip，即有运行错误发生，则直接返回错误信息，停止后续任务
-        if skip == True:
-            return {
-                "check_result": False,
-                "row_count": 0,
-                "prompt_tokens": self.request_tokens_consume,
-                "completion_tokens": 0,
-            }
-
-        # 提取回复内容
-        response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self,  self.source_text_dict, response_content,self.config.target_language)
-
-        # 检查回复内容
-        check_result, error_content = ResponseChecker.check_response_content(
-            self,
-            self.config,
-            self.config.request_b_platform_settings,
-            self.placeholder_order,
-            response_content,
-            response_dict,
-            self.source_text_dict,
-            self.source_lang
-        )
-
-        # 去除回复内容的数字序号
-        response_dict = ResponseExtractor.remove_numbered_prefix(self, self.source_text_dict, response_dict)
-
-
-        # 模型回复日志
-        if response_think != "":
-            self.extra_log.append("第二次模型思考内容：\n" + response_think)
-        if self.is_debug():
-            self.extra_log.append("第二次模型回复内容：\n" + response_content)
-
-        # 合并消耗和模型号
-        prompt_tokens = prompt_tokens_a + prompt_tokens_b
-        completion_tokens = completion_tokens_a + completion_tokens_b
-        model = model_a + " and " + model_b
-
-        # 检查译文
-        if check_result == False:
-            error = f"译文文本未通过检查，将在下一轮次的翻译中重新翻译 - {error_content}"
-
-            # 打印任务结果
-            self.print(
-                self.generate_log_table(
-                    *self.generate_log_rows(
-                        error,
-                        task_start_time,
-                        prompt_tokens,
-                        completion_tokens,
-                        self.source_text_dict.values(),
-                        response_dict.values(),
-                        self.extra_log,
-                    )
-                )
-            )
-        else:
-            # 各种还原步骤
-            # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
-            restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = self.text_processor.restore_all(self.config, restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order,self.affix_whitespace_storage)
-
-            # 更新译文结果到缓存数据中
-            for item, response in zip(self.items, restore_response_dict.values()):
-                with item.atomic_scope():
-                    item.model = model
-                    item.translated_text = response
-                    item.translation_status = TranslationStatus.TRANSLATED
-
-            # 打印任务结果
-            self.print(
-                self.generate_log_table(
-                    *self.generate_log_rows(
-                        "",
-                        task_start_time,
-                        prompt_tokens,
-                        completion_tokens,
-                        self.source_text_dict.values(),
-                        response_dict.values(),
-                        self.extra_log,
-                    )
-                )
-            )
-
-
-        # 否则返回译文检查的结果
-        if check_result == False:
-            return {
-                "check_result": False,
-                "row_count": 0,
-                "prompt_tokens": self.request_tokens_consume,
-                "completion_tokens": 0,
-            }
-        else:
-            return {
-                "check_result": check_result,
-                "row_count": self.row_count,
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-            }
-

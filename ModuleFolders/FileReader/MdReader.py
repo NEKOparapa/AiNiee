@@ -31,8 +31,8 @@ class MdReader(BaseSourceReader):
     def support_file(self):
         return "md"
 
-    def read_source_file(self, file_path: Path, source_language) -> CacheFile:
-        cache_file = self.txt_reader.read_source_file(file_path, source_language)
+    def read_source_file(self, file_path: Path) -> CacheFile:
+        cache_file = self.txt_reader.read_source_file(file_path)
         for item in cache_file.items:
             item.set_extra("original_line", item.source_text)
         return cache_file

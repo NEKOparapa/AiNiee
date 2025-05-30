@@ -169,11 +169,6 @@ if __name__ == "__main__":
     from ModuleFolders.RequestTester.RequestTester import RequestTester
     request_tester = RequestTester()
 
-    # 创建全局流程测试器对象，并初始化订阅事件
-    from ModuleFolders.RequestTester.ProcessTester import ProcessTester
-    process_tester = ProcessTester()
-
-
     update_splash_message(splash, "正在加载翻译器... (75%)", app)
 
     # 创建翻译器对象，并初始化订阅事件(高性能消耗)

@@ -10,7 +10,7 @@ class ResponseChecker():
 
 
     # 检查回复内容是否存在问题
-    def check_response_content(self,config,target_platform,placeholder_order,response_str,response_dict,source_text_dict,source_lang):
+    def check_response_content(self,config,placeholder_order,response_str,response_dict,source_text_dict,source_lang):
         # 存储检查结果
         check_result = False
         error_content = "0"
@@ -18,6 +18,7 @@ class ResponseChecker():
         # 获取需要的配置信息
         source_language = TranslatorUtil.map_language_code_to_name(source_lang.new)
         response_check_switch = config.response_check_switch
+        target_platform = config.target_platform
 
         # 检查接口是否拒绝翻译
         if ResponseChecker.contains_special_chars(self,response_str):
