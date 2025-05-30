@@ -15,7 +15,7 @@ from Widget.GameDropCard import GameDropCard
 
 class ProjectSettingsPage(QFrame, Base):
 
-    def __init__(self, text: str, window, support_project_types: set[str]) -> None:
+    def __init__(self, text: str, window, support_project_types: list[str]) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
@@ -185,7 +185,7 @@ class ProjectSettingsPage_A(QFrame, Base):
 # 详细设置
 class ProjectSettingsPage_B(QFrame, Base):
 
-    def __init__(self, text: str, window, support_project_types: set[str]) -> None:
+    def __init__(self, text: str, window, support_project_types: list[str]) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
         self.support_project_types = support_project_types
@@ -225,29 +225,7 @@ class ProjectSettingsPage_B(QFrame, Base):
     # 项目类型
     def add_widget_02(self, parent, config) -> None:
         # 定义项目类型与值的配对列表（显示文本, 存储值）
-        project_pairs = [
-            (self.tra("Txt小说文件"), ProjectType.TXT),
-            (self.tra("Epub小说文件"), ProjectType.EPUB),
-            (self.tra("Docx文档文件"), ProjectType.DOCX),
-            (self.tra("Srt字幕文件"), ProjectType.SRT),
-            (self.tra("Vtt字幕文件"), ProjectType.VTT),
-            (self.tra("Lrc音声文件"), ProjectType.LRC),
-            (self.tra("Md文档文件"), ProjectType.MD),
-            (self.tra("T++导出文件"), ProjectType.TPP),
-            (self.tra("Trans工程文件"), ProjectType.TRANS),
-            (self.tra("Mtool导出文件"), ProjectType.MTOOL),
-            (self.tra("Renpy导出文件"), ProjectType.RENPY),
-            (self.tra("VNText导出文件"), ProjectType.VNT),
-            (self.tra("I18Next数据文件"), ProjectType.I18NEXT),
-            (self.tra("ParaTranz导出文件"), ProjectType.PARATRANZ),
-            (self.tra('Doc文档文件 (需要Microsoft Office)'), ProjectType.OFFICE_CONVERSION_DOC),
-            (self.tra('Pdf文档文件 (pdf2zh/BabelDOC)'), ProjectType.BABELDOC_PDF),
-            (self.tra("自动识别文件类型"), ProjectType.AUTO_TYPE)
-
-        ]
-
-        # 生成翻译后的配对列表
-        translated_pairs = [(self.tra(display), value) for display, value in project_pairs if value in self.support_project_types]
+        translated_pairs = [(self.tra(project_type), project_type) for project_type in self.support_project_types]
 
         def init(widget) -> None:
             """初始化时根据存储的值设置当前选项"""
