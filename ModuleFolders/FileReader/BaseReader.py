@@ -52,7 +52,7 @@ class BaseSourceReader(ABC):
         pass
 
     # 读取原文文件的处理流程（改进点：非自动检测语言情况下不使用检测器）
-    def read_source_file(self, file_path: Path, source_language: str) -> CacheFile:
+    def read_source_file(self, file_path: Path) -> CacheFile:
         """读取文件内容，并检测各种信息"""
         # 模板流程
         pre_read_metadata = self.pre_read_source(file_path)  # 读取文件之前的操作，可以放文件编码方法或其他

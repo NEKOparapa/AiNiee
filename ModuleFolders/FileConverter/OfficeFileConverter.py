@@ -7,6 +7,7 @@ class OfficeFileConverter(BaseFileConverter):
 
     FILE_SUFFIX_MAPPING = {
         ".doc": 0,  # wdFormatDocument
+        ".rtf": 6,  # wdFormatRTF
         ".docx": 16,  # wdFormatDocumentDefault
         ".pdf": 17,  # wdFormatPDF
     }

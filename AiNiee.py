@@ -1,4 +1,4 @@
-#
+ #
 #                        _oo0oo_
 #                       o8888888o
 #                       88" . "88
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     # 创建全局窗口对象(高性能消耗)
     from UserInterface.AppFluentWindow import AppFluentWindow
     app_fluent_window = AppFluentWindow(
-        version="AiNiee6.5.1",
+        version="AiNiee6.5.2 dev",
         plugin_manager=plugin_manager,
         support_project_types=file_reader.get_support_project_types(),
     )
@@ -168,11 +168,6 @@ if __name__ == "__main__":
     # 创建全局接口测试器对象，并初始化订阅事件
     from ModuleFolders.RequestTester.RequestTester import RequestTester
     request_tester = RequestTester()
-
-    # 创建全局流程测试器对象，并初始化订阅事件
-    from ModuleFolders.RequestTester.ProcessTester import ProcessTester
-    process_tester = ProcessTester()
-
 
     update_splash_message(splash, "正在加载翻译器... (75%)", app)
 

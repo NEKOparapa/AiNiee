@@ -106,36 +106,12 @@ class RequestLimiter:
 
         return num_tokens
     
-    def calculate_tokens(self, message1, message_a, message_b, text1, text_a, text_b):
+    def calculate_tokens(self, message1, text1,):
         """
         根据输入的消息和文本，计算tokens消耗并返回。
 
-        如果 message1 与 text1 都不为空，则只计算 message1 和 text1 的 tokens 消耗之和。
-        如果 message1 与 text1 中至少有一个为空，则计算 (message_a 与 text_a 的 tokens 消耗之和) 
-        和 (message_b 与 text_b 的 tokens 消耗之和)，取两者中的最大值返回。
-
-        Args:
-            message1: 消息1，期望是 num_tokens_from_messages 方法接受的消息列表格式。
-            message_a: 消息a，期望是 num_tokens_from_messages 方法接受的消息列表格式。
-            message_b: 消息b，期望是 num_tokens_from_messages 方法接受的消息列表格式。
-            text1: 文本1，字符串。
-            text_a: 文本a，字符串。
-            text_b: 文本b，字符串。
-
-        Returns:
-            int: 计算得到的tokens消耗值。
         """
-        if message1 and text1: # 检查 message1 和 text1 是否都不为空 (这里假设不为空意味着有实际内容，可以根据您的实际情况调整判断标准)
+        if message1 and text1:
             tokens1 = self.num_tokens_from_messages(message1)
             tokens_text1 = self.num_tokens_from_str(text1)
             return tokens1 + tokens_text1
-        else:
-            tokens_a = self.num_tokens_from_messages(message_a)
-            tokens_text_a = self.num_tokens_from_str(text_a)
-            sum_tokens_a = tokens_a + tokens_text_a
-
-            tokens_b = self.num_tokens_from_messages(message_b)
-            tokens_text_b = self.num_tokens_from_str(text_b)
-            sum_tokens_b = tokens_b + tokens_text_b
-
-            return max(sum_tokens_a, sum_tokens_b)
