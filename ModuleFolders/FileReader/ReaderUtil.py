@@ -153,7 +153,7 @@ def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: fl
         return detected_encoding
 
     except Exception as e:
-        print(f"[[red]ERROR[/]] 文件 {file_path} 检测过程出错: {str(e)}")
+        rich.print(f"[[red]ERROR[/]] 文件 {file_path} 检测过程出错: {str(e)}")
         return 'utf-8'  # 出错时返回默认编码
 
 
@@ -437,6 +437,12 @@ def remove_symbols(source_text):
     # 去除文本前后的转义换行符(\n)
     source_text = re.sub(r'^(\\n)+', '', source_text)  # 去除开头的\n
     source_text = re.sub(r'(\\n)+$', '', source_text)  # 去除结尾的\n
+
+    # 再次去掉所有符号
+    no_symbols_and_num_text = ''.join(char for char in source_text if char.isalnum())
+    # 判断字符串长度，如果小于等于5则直接返回，使用这个字符串作为语言判断依据
+    if len(no_symbols_and_num_text) <= 5:
+        return no_symbols_and_num_text
 
     return source_text.strip()
 
