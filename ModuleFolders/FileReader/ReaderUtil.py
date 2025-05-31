@@ -8,6 +8,7 @@ from typing import Union
 import chardet
 import charset_normalizer
 import rich
+from bs4 import BeautifulSoup
 from mediapipe.tasks.python import text, BaseOptions
 from mediapipe.tasks.python.text import LanguageDetector
 
@@ -424,6 +425,12 @@ def is_symbols_only(source_text: str):
     return all(not c.isalnum() for c in cleaned_text)
 
 
+# 辅助函数，用于去除文字中的html标签
+def remove_html_tags(source_text):
+    soup = BeautifulSoup(source_text, 'html.parser')
+    return soup.get_text()
+
+
 def remove_symbols(source_text):
     # 去除标点和特殊字符(根据需要保留部分符号)
     source_text = re.sub(r"[^\w\s「」『』，。、〜？,.'-]", '', source_text)
@@ -433,6 +440,9 @@ def remove_symbols(source_text):
 
     # 去除多余空格
     source_text = re.sub(r'\s+', ' ', source_text).strip()
+
+    # 去除html标签
+    source_text = remove_html_tags(source_text)
 
     # 去除文本前后的转义换行符(\n)
     source_text = re.sub(r'^(\\n)+', '', source_text)  # 去除开头的\n
