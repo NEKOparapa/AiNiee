@@ -185,16 +185,16 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
             results.append((['no_text'], -1.0, -1.0))
             continue
 
+        # 检测是否匹配目标正则
+        if HAS_UNUSUAL_ENG_REGEX.match(source_text.strip()):
+            results.append((['un'], -1.0, -1.0))
+            continue
+
         cleaned_text = clean_text(source_text)
 
         # 检查是否只包含符号
         if is_symbols_only(cleaned_text):
             results.append((['symbols_only'], -1.0, -1.0))
-            continue
-
-        # 检测是否匹配目标正则
-        if HAS_UNUSUAL_ENG_REGEX.match(cleaned_text):
-            results.append((['un'], -1.0, -1.0))
             continue
 
         # 使用mediapipe的语言检测任务
