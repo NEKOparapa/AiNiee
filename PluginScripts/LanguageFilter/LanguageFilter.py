@@ -287,13 +287,13 @@ class LanguageFilter(PluginBase):
 
     def _filter_unknown_language(self, path, file_items):
         """处理未知语言的文件"""
-        print(f"[LanguageFilter] 文件 {path} 未检测到具体语言，将只翻译置信度较高（大于0.75）的文本行")
+        print(f"[LanguageFilter] 文件 {path} 未检测到具体语言，将只翻译置信度较高（大于0.82）的文本行")
 
         return [item for item in file_items
                 if item.translation_status == TranslationStatus.EXCLUDED or
                 not isinstance(item.source_text, str) or
                 not item.lang_code or
-                item.lang_code[1] < 0.75]
+                item.lang_code[1] < 0.82]
 
     def _filter_normal_language(self, file, file_items, language):
         """处理一般语言情况"""
