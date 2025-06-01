@@ -94,7 +94,8 @@ class DirectoryReader:
         for file_path, lang_stats in language_stats.items():
             # 只有存在有效项目的文件才进行处理
             if file_valid_items_count[file_path] > 0:
-                high_threshold = max(file_valid_items_count[file_path] * 0.1, 2)  # 有效项目总数的10%
+                high_threshold = max(file_valid_items_count[file_path] * 0.1, 1)  # 有效项目总数的10%
+                mid_threshold = max(file_valid_items_count[file_path] * 0.05, 1)  # 有效项目总数的5%
                 low_threshold = max(file_valid_items_count[file_path] * 0.01, 1)  # 有效项目总数的1%
 
                 # 先计算所有语言的平均置信度
@@ -111,23 +112,20 @@ class DirectoryReader:
                 for lang, count, avg_confidence in sorted_langs:
                     # 应用筛选条件：次数超过阈值且平均置信度大于等于0.82
                     if count >= high_threshold and avg_confidence >= 0.82 or \
-                            count >= low_threshold and avg_confidence >= 0.92:
+                            count >= mid_threshold and avg_confidence >= 0.92 or \
+                            count >= low_threshold and avg_confidence >= 0.96:
                         high_confidence_langs.append((lang, count, avg_confidence))
                 # 获取有效语言列表
                 hc_langs_set = {lang for lang, count, avg_confidence in high_confidence_langs}
 
                 # 如果到这里了还没有high_confidence_langs的结果，使用mp对所有有效文字进行检测
-                if not high_confidence_langs:
+                if not high_confidence_langs and len(source_texts[file_path]) > 0:
                     mp_langs, mp_score, _ = ReaderUtil.detect_language_with_mediapipe(
                         [CacheItem(source_text='\n'.join(source_texts[file_path]))], 0, None
                     )[0]
                     if mp_score >= 0.92:
                         # 添加到language_counter
                         language_counter[file_path] = [(mp_langs[0], len(source_texts[file_path]), mp_score)]
-                        # 排除掉特定格式文字的翻译
-                        for item in cache_project.get_file(file_path).items:
-                            if HAS_UNUSUAL_ENG_REGEX.match(item.source_text.strip()):
-                                item.translation_status = TranslationStatus.EXCLUDED
 
                         # 添加到 hc_langs_set
                         hc_langs_set.add(mp_langs[0])
