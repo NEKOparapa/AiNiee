@@ -42,7 +42,7 @@ NON_LATIN_ISO_CODES = [
     'ta',  # 泰米尔语
     'ml',  # 马拉雅拉姆语
     'ur',  # 乌尔都语
-    'fa'   # 波斯语
+    'fa'  # 波斯语
 ]
 """ISO 639-1非西文语言代码列表"""
 
@@ -215,7 +215,7 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
             has_non_latin = bool(set(mediapipe_langs) & set(NON_LATIN_ISO_CODES))
             if has_non_latin:
                 # 如果有非西文语言出现，去掉所有的英文字母与一些符号后再识别
-                non_latin_text = re.sub(r"[a-zA-Z'-]+", ' ', no_symbols_text)
+                non_latin_text = re.sub(r"[a-zA-Z\uFF21-\uFF3A\uFF41-\uFF5A'-]+", ' ', no_symbols_text)
                 # 去除多余空格
                 non_latin_text = re.sub(r'\s+', ' ', non_latin_text).strip()
                 # 进行重新识别
@@ -456,6 +456,19 @@ def remove_symbols(source_text):
         return no_symbols_and_num_text
 
     return source_text.strip()
+
+
+def make_final_detect_text(item: CacheItem):
+    no_symbols_text = remove_symbols(clean_text(item.source_text))
+
+    langs = set([item.lang_code[0]] + item.lang_code[2])
+    has_non_latin = bool(langs & set(NON_LATIN_ISO_CODES))
+    if has_non_latin:
+        # 如果有非西文语言出现，去掉所有的英文字母与一些符号后再识别
+        non_latin_text = re.sub(r"[a-zA-Z\uFF21-\uFF3A\uFF41-\uFF5A'-]+", ' ', no_symbols_text)
+        # 去除多余空格
+        return re.sub(r'\s+', ' ', non_latin_text).strip()
+    return no_symbols_text
 
 
 # 检测换行符类型

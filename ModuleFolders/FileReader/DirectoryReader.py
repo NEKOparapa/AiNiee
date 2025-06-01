@@ -3,11 +3,11 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Callable
 
-from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
+from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.FileReader import ReaderUtil
 from ModuleFolders.FileReader.BaseReader import BaseSourceReader
-from ModuleFolders.FileReader.ReaderUtil import HAS_UNUSUAL_ENG_REGEX
+from ModuleFolders.FileReader.ReaderUtil import make_final_detect_text
 
 
 class DirectoryReader:
@@ -82,7 +82,9 @@ class DirectoryReader:
                                 stats[1] += lang_confidence  # 累加置信度
                                 # 累计有效项目总数
                                 file_valid_items_count[cache_file.storage_path] += 1
-                                source_texts[cache_file.storage_path].append(item.source_text)
+
+                                # 添加行至后续使用
+                                source_texts[cache_file.storage_path].append(make_final_detect_text(item))
 
                         if cache_file.items:
                             cache_project.add_file(cache_file)
