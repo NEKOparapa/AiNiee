@@ -23,7 +23,7 @@ HAS_UNUSUAL_ENG_REGEX = re.compile(
 )
 """预编译正则 匹配包含 至少一个下划线和至少一个字母与数字且没有空白字符 或者 只由字母和数字组成且必须同时包含至少一个字母与数字 的字符串"""
 CLEAN_TEXT_PATTERN = re.compile(
-    r'\\{1,2}[a-zA-Z]{1,2}\[\d+]|if\(.{0,8}[vs]\[\d+].{0,16}\)|\\n|[a-zA-Z]+\d+'
+    r'\\{1,2}[a-zA-Z]{1,2}\[\d+]|if\(.{0,8}[vs]\[\d+].{0,16}\)|\\n|[a-zA-Z]+\d+(?!\d*[a-zA-Z]|\d*\s+[a-zA-Z])'
 )
 """修改后的预编译正则，移除了标签模式"""
 NON_LATIN_ISO_CODES = [
@@ -192,6 +192,11 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
             results.append((['symbols_only'], -1.0, -1.0))
             continue
 
+        # 检测是否匹配目标正则
+        if HAS_UNUSUAL_ENG_REGEX.match(cleaned_text):
+            results.append((['un'], -1.0, -1.0))
+            continue
+
         # 使用mediapipe的语言检测任务
         no_symbols_text = remove_symbols(cleaned_text)
         if not no_symbols_text:
@@ -223,10 +228,6 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
                     raw_prob = lang_result[0].probability
                     first_prob = raw_prob
                     mediapipe_langs = [detection.language_code for detection in lang_result]
-
-            if HAS_UNUSUAL_ENG_REGEX.match(cleaned_text):
-                # 如果匹配到目标字符，则最高置信度降低0.15
-                first_prob -= 0.15
 
             # 如果有至少两个识别结果，则使用最高置信度减去第二个
             if len(lang_result) >= 2:
