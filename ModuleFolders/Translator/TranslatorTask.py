@@ -1,14 +1,11 @@
 import copy
-import os
 import re
 import time
 import itertools
 
-import rapidjson as json
 from rich import box
 from rich.table import Table
 from rich.markup import escape
-from typing import List
 
 from Base.Base import Base
 from Base.PluginManager import PluginManager
@@ -124,19 +121,6 @@ class TranslatorTask(Base):
         else:
             system = PromptBuilder.build_system(self.config, self.source_lang.new)  # 通用与思维链提示词
 
-        # 如果开启自动构建术语表
-        if self.config.auto_glossary_toggle == True:
-            glossary_criteria = PromptBuilder.build_glossary_extraction_criteria(self.config)
-            if glossary_criteria != "":
-                system += glossary_criteria
-                extra_log.append(glossary_criteria)
-
-        # 如果开启自动构建禁翻表
-        if self.config.auto_exclusion_list_toggle == True:
-            ntl_criteria = PromptBuilder.build_ntl_extraction_criteria(self.config)
-            if ntl_criteria != "":
-                system += ntl_criteria
-                extra_log.append(ntl_criteria)
 
         # 如果开启术语表
         if self.config.prompt_dictionary_switch == True:
@@ -274,13 +258,37 @@ class TranslatorTask(Base):
                 extra_log.append(glossary)
 
 
+
+        # 构建待翻译文本 (添加序号)
+        numbered_lines = []
+        for index, line in enumerate(source_text_dict.values()):
+            # 检查是否为多行文本
+            if "\n" in line:
+                lines = line.split("\n")
+                numbered_text = f"{index + 1}.[\n"
+                total_lines = len(lines)
+                for sub_index, sub_line in enumerate(lines):
+                    # 仅当 **只有一个** 尾随空格时才去除
+                    sub_line = sub_line[:-1] if re.match(r'.*[^ ] $', sub_line) else sub_line
+                    numbered_text += f'"{index + 1}.{total_lines - sub_index}.,{sub_line}",\n'
+                numbered_text = numbered_text.rstrip('\n')
+                numbered_text = numbered_text.rstrip(',')
+                numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
+                numbered_lines.append(numbered_text)
+            else:
+                # 单行文本直接添加序号
+                numbered_lines.append(f"{index + 1}.{line}")
+
+        source_text_str = "\n".join(numbered_lines)
+
+
         # 构建主要提示词
         if glossary == "":
-            user_prompt = "将下面的日文文本翻译成中文：\n" + "\n".join(source_text_dict.values())
+            user_prompt = "将下面的日文文本翻译成中文：\n" + source_text_str
         else:
             user_prompt = (
                 "根据以下术语表（可以为空）：\n" + glossary
-                + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：\n" + "\n".join(source_text_dict.values())
+                + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：\n" + source_text_str
             )
 
         # 构建指令列表
@@ -309,14 +317,6 @@ class TranslatorTask(Base):
             if result != "":
                 system = system + "\n" + result
                 extra_log.append(result)
-
-        # 如果开启禁翻表
-        if self.config.exclusion_list_switch == True:
-            ntl = PromptBuilder.build_ntl_prompt(self.config, source_text_dict)
-            if ntl != "":
-                system += ntl
-                extra_log.append(ntl)
-
 
         # 构建待翻译文本 (添加序号)
         numbered_lines = []
@@ -351,71 +351,6 @@ class TranslatorTask(Base):
 
 
         return messages, system, extra_log
-
-    # 更新系统提示词的术语表内容(因为是特殊处理的补丁，很多判断要重新加入，后续提示词相关更新需要重点关注该函数，以免bug)
-    def update_sysprompt_glossary(self,config,system_prompt,glossary_buffer_data, prompt_dictionary_data, source_text_dict):
-
-        # 应用开关检查
-        if config.prompt_dictionary_switch == False:
-            return system_prompt
-
-        # 本地接口不适用
-        if config.target_platform == "sakura":
-            return system_prompt
-
-        if config.target_platform == "LocalLLM":
-            return system_prompt
-
-        # 复制数据
-        dict1 = copy.deepcopy(glossary_buffer_data)
-        dict2 = copy.deepcopy(prompt_dictionary_data)
-
-        # 合并术语表
-        merged = {item['src']: item for item in dict1} # 创建基于src的字典，优先保留prompt条目
-        merged.update({item['src']: item for item in dict2})
-        # 移除glossary条目中的count字段，保持格式
-        result_dict =  [
-            {"src": k, "dst": v["dst"], "info": v["info"]}
-            for k, v in merged.items()
-        ]
-
-        # 生成符合条件的术语条目
-        entries = []
-        for item in result_dict:
-            src = item.get("src", "")
-            # 检查原文是否在任意源文本中出现
-            if any(src in text for text in source_text_dict.values()):
-                dst = item.get("dst", "")
-                info = item.get("info", "")
-                entries.append(f"{src}|{dst}|{info}")
-
-        # 构建新术语表
-        if config.target_language in ("chinese_simplified", "chinese_traditional"):
-            term_table = "###术语表\n原文|译文|备注"
-        else:
-            term_table = "###Glossary\nOriginal Text|Translation|Remarks"
-        if entries:
-            term_table += "\n" + "\n".join(entries)
-            term_table += "\n\n"
-        else:
-            return system_prompt
-
-        # 处理系统提示
-        if "###术语表" in system_prompt:
-            # 正则匹配术语表区块（含标题行）
-            pattern = r'###术语表[^\#]*'
-            return re.sub(pattern, term_table, system_prompt, flags=re.DOTALL)
-
-        elif "###Glossary" in system_prompt:
-            # 正则匹配术语表区块（含标题行）
-            pattern = r'###Glossary[^\#]*'
-            return re.sub(pattern, term_table, system_prompt, flags=re.DOTALL)
-
-        else:
-            # 直接拼接新术语表
-            delimiter = "\n" if system_prompt and not system_prompt.endswith("\n") else ""
-            return f"{system_prompt}{delimiter}\n{term_table}"
-
 
     # 生成日志行
     def generate_log_rows(self, error: str, start_time: int, prompt_tokens: int, completion_tokens: int, source: list[str], translated: list[str], extra_log: list[str]) -> tuple[list[str], bool]:
@@ -506,9 +441,6 @@ class TranslatorTask(Base):
         # 获取接口配置信息包
         platform_config = self.config.get_platform_configuration("singleReq")
 
-        # 读取术语表更新系统提示词,因为核心流程限制，而加上的挫版补丁.....
-        self.system_prompt = self.update_sysprompt_glossary(self.config,self.system_prompt,self.config.glossary_buffer_data, self.config.prompt_dictionary_data, self.source_text_dict)
-
         # 发起请求
         requester = LLMRequester()
         skip, response_think, response_content, prompt_tokens, completion_tokens = requester.sent_request(
@@ -527,10 +459,7 @@ class TranslatorTask(Base):
             }
 
         # 提取回复内容
-        if  self.config.target_platform != "sakura":
-            response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content,self.config.target_language)
-        else:
-            response_dict, glossary_result, NTL_result = ResponseExtractor.text_extraction_sakura(self, self.source_text_dict, response_content)
+        response_dict = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
 
         # 检查回复内容
         check_result, error_content = ResponseChecker.check_response_content(
@@ -543,10 +472,8 @@ class TranslatorTask(Base):
             self.source_lang
         )
 
-
         # 去除回复内容的数字序号
-        if  self.config.target_platform != "sakura":
-            response_dict = ResponseExtractor.remove_numbered_prefix(self, self.source_text_dict, response_dict)
+        response_dict = ResponseExtractor.remove_numbered_prefix(self, response_dict)
 
 
         # 模型回复日志
@@ -574,8 +501,7 @@ class TranslatorTask(Base):
                 )
             )
         else:
-            # 各种还原步骤
-            # 先复制一份，以免影响原有数据，response_dict 为字符串字典，所以浅拷贝即可
+            # 各种翻译后处理
             restore_response_dict = copy.copy(response_dict)
             restore_response_dict = self.text_processor.restore_all(self.config, restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage)
 
@@ -586,8 +512,6 @@ class TranslatorTask(Base):
                     item.translated_text = response
                     item.translation_status = TranslationStatus.TRANSLATED
 
-            # 更新术语表与禁翻表到配置文件中
-            self.config.update_glossary_ntl_config(glossary_result, NTL_result)
 
             # 打印任务结果
             self.print(

@@ -19,8 +19,6 @@ class AdvanceSettingsPage(QFrame, Base):
 
         # 默认配置
         self.default = {
-            "auto_glossary_toggle": False,
-            "auto_exclusion_list_toggle": False,
             "auto_process_text_code_segment": False,
             "response_conversion_toggle": False,
             "opencc_preset": "s2t",
@@ -40,9 +38,6 @@ class AdvanceSettingsPage(QFrame, Base):
         self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
         # 添加控件
-        self.add_widget_auto_glossary(self.vbox, config, window)
-        self.add_widget_auto_exclusion_list(self.vbox, config, window)
-        self.vbox.addWidget(Separator())
         self.add_auto_process_text_code_segment(self.vbox, config, window)
         self.vbox.addWidget(Separator())
         self.add_widget_opencc(self.vbox, config, window)
@@ -54,53 +49,7 @@ class AdvanceSettingsPage(QFrame, Base):
         self.vbox.addStretch(1)
 
 
-    # 自动术语表
-    def add_widget_auto_glossary(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
-        # 初始化控件状态
-        def widget_init(widget) -> None:
-            widget.set_checked(config.get("auto_glossary_toggle"))
-        # 监控控件变化，更新配置并保存
-        def widget_callback(widget, checked: bool) -> None:
-            config = self.load_config()
-            config["auto_glossary_toggle"] = checked
-            self.save_config(config)
-
-        parent.addWidget(
-            SwitchButtonCard(
-                self.tra("AI构建术语表"),
-                self.tra(
-                "将由AI辅助生成术语表，自动录入，自动应用到后续翻译任务\n开启该功能会增加模型负担，建议在强力模型上开启，不支持本地类接口"
-                ),
-                widget_init,
-                widget_callback,
-            )
-        )
-
-
-    # 自动禁翻表
-    def add_widget_auto_exclusion_list(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
-        def widget_init(widget) -> None:
-            widget.set_checked(config.get("auto_exclusion_list_toggle"))
-
-        def widget_callback(widget, checked: bool) -> None:
-            config = self.load_config()
-            config["auto_exclusion_list_toggle"] = checked
-            self.save_config(config)
-
-        parent.addWidget(
-            SwitchButtonCard(
-                self.tra("AI构建禁翻表"),
-                self.tra(
-                "将由AI辅助生成禁翻表，自动录入，暂不应用到后续翻译任务\n开启该功能会增加模型负担，建议在推理模型上开启，不支持本地类接口\n建议在翻译游戏内嵌文本时开启，提取内容有时存在问题，需要手动检查过滤"
-                ),
-                widget_init,
-                widget_callback,
-            )
-        )
-
-
-
-    # 自动处理代码文本
+    # 自动预处理
     def add_auto_process_text_code_segment(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def widget_init(widget) -> None:
             widget.set_checked(config.get("auto_process_text_code_segment"))
