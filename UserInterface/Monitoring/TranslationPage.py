@@ -59,13 +59,6 @@ class ScheduledTranslationDialog(MessageBoxBase, Base):
 
 class TranslationPage(QWidget, Base):
 
-    STATUS_TEXT = {
-        Base.STATUS.IDLE: "No Task",
-        Base.STATUS.API_TEST: "Testing",
-        Base.STATUS.TRANSLATING: "Translating",
-        Base.STATUS.STOPING: "Stopping",
-    }
-
     def __init__(self, text: str, window: FluentWindow) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))

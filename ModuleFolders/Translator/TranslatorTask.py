@@ -411,10 +411,7 @@ class TranslatorTask(Base):
 
     # 启动任务
     def start(self) -> dict:
-        if self.config.double_request_switch_settings == True:
-            return self.unit_DRtranslation_task()
-        else:
-            return self.unit_translation_task()
+        return self.unit_translation_task()
 
 
     # 单请求翻译任务

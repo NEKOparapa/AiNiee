@@ -5,8 +5,9 @@ from Base.Base import Base
 from Widget.SpinCard import SpinCard
 from Widget.Separator import Separator
 from Widget.ComboBoxCard import ComboBoxCard
+from Widget.SwitchButtonCard import SwitchButtonCard
 
-class BasicSettingsPage(QFrame, Base):
+class TaskSettingsPage(QFrame, Base):
 
     def __init__(self, text: str, window) -> None:
         super().__init__(window)
@@ -17,8 +18,7 @@ class BasicSettingsPage(QFrame, Base):
             "lines_limit_switch": False,
             "tokens_limit_switch": True,
             "lines_limit": 10,
-            "tokens_limit": 384,
-            "pre_line_counts": 0,
+            "tokens_limit": 512,
             "user_thread_counts": 0,
             "request_timeout": 120,
             "round_limit": 10,
@@ -43,7 +43,6 @@ class BasicSettingsPage(QFrame, Base):
         self.add_widget_03(self.vbox, config)
         self.vbox.addWidget(Separator())
         self.add_widget_04(self.vbox, config)
-        self.add_widget_05(self.vbox, config)
         self.vbox.addWidget(Separator())
         self.add_widget_request_timeout(self.vbox, config)
         self.add_widget_06(self.vbox, config)
@@ -114,8 +113,8 @@ class BasicSettingsPage(QFrame, Base):
         options = [display for display, value in translated_pairs]
 
         self.mode_combo_box = ComboBoxCard(
-            self.tra("翻译任务切分模式"),
-            self.tra("选择翻译任务切分的模式"),
+            self.tra("任务切分模式"),
+            self.tra("选择任务切分的模式"),
             options,
             init=init,
             current_text_changed=current_text_changed,
@@ -134,8 +133,8 @@ class BasicSettingsPage(QFrame, Base):
             self.save_config(config)
 
         self.lines_limit_card = SpinCard(
-            self.tra("翻译任务的文本行数"),
-            self.tra("当翻译任务切分模式设置为 行数模式 时，按此值对原文进行切分"),
+            self.tra("任务的文本行数"),
+            self.tra("当任务切分模式设置为 行数模式 时，按此值对原文进行切分"),
             init=init,
             value_changed=value_changed,
         )
@@ -153,8 +152,8 @@ class BasicSettingsPage(QFrame, Base):
             self.save_config(config)
 
         self.tokens_limit_card = SpinCard(
-            self.tra("翻译任务的 Token 数量"),
-            self.tra("当翻译任务切分模式设置为 Token 模式 时，按此值对原文进行切分"),
+            self.tra("任务的 Token 数量"),
+            self.tra("当任务切分模式设置为 Token 模式 时，按此值对原文进行切分"),
             init=init,
             value_changed=value_changed,
         )
@@ -180,25 +179,6 @@ class BasicSettingsPage(QFrame, Base):
             )
         )
 
-    # 每个子任务携带的参考上文行数
-    def add_widget_05(self, parent, config) -> None:
-        def init(widget) -> None:
-            widget.set_range(0, 9999999)
-            widget.set_value(config.get("pre_line_counts"))
-
-        def value_changed(widget, value: int) -> None:
-            config = self.load_config()
-            config["pre_line_counts"] = value
-            self.save_config(config)
-
-        parent.addWidget(
-            SpinCard(
-                self.tra("参考上文行数"),
-                self.tra("行数不宜设置过大，建议10行以内 (不支持本地类接口)"),
-                init = init,
-                value_changed = value_changed,
-            )
-        )
 
     # 请求超时时间
     def add_widget_request_timeout(self, parent, config) -> None:
@@ -214,13 +194,13 @@ class BasicSettingsPage(QFrame, Base):
         parent.addWidget(
             SpinCard(
                 self.tra("请求超时时间(s)"),
-                self.tra("翻译任务发起请求时等待模型回复的最长时间，超时仍未收到回复，则会判断为任务失败"),
+                self.tra("任务发起请求时等待模型回复的最长时间，超时仍未收到回复，则会判断为任务失败"),
                 init = init,
                 value_changed = value_changed,
             )
         )
 
-    # 翻译流程的最大轮次
+    # 任务流程的最大轮次
     def add_widget_06(self, parent, config) -> None:
         def init(widget) -> None:
             widget.set_range(0, 9999999)
@@ -233,9 +213,10 @@ class BasicSettingsPage(QFrame, Base):
 
         parent.addWidget(
             SpinCard(
-                self.tra("翻译流程的最大轮次"),
+                self.tra("任务流程的最大轮次"),
                 self.tra("当完成一轮翻译后，如果还有未翻译的条目，将重新开始新的翻译流程，直到翻译完成或者达到最大轮次"),
                 init = init,
                 value_changed = value_changed,
             )
         )
+
