@@ -136,6 +136,7 @@ class TranslatorConfig(Base):
             actual_thread_counts = self.calculate_thread_count(rpm_limit)
             self.info(f"根据账号类型和接口限额，自动设置同时执行的翻译任务数量为 {actual_thread_counts} 个 ...")
 
+        return actual_thread_counts
 
     # 获取 llama.cpp 的 slots 数量，获取失败则返回 -1
     def get_llama_cpp_slots_num(self,url: str) -> int:

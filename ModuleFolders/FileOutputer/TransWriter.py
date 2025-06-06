@@ -65,6 +65,10 @@ class TransWriter(BaseTranslatedWriter):
         translation_file_path.write_text(json_content, encoding="utf-8")
 
     def extract_strings(self, name, dialogue):
+        # 验证数据类型
+        if not isinstance(dialogue, str) or not isinstance(name, str):
+            return name, dialogue
+
         if dialogue.startswith("["):
             # 计算原name中的"]"数量
             count_in_name = name.count("]")
