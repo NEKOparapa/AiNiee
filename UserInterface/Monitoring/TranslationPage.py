@@ -311,12 +311,12 @@ class TranslationPage(QWidget, Base):
         self.add_combined_line_card(self.head_hbox, config, window)
         self.add_time_card(self.head_hbox, config, window)
         self.add_remaining_time_card(self.head_hbox, config, window)
+        self.add_token_card(self.head_hbox, config, window)
+        self.add_task_card(self.head_hbox, config, window)
 
         self.add_ring_card(self.head_hbox, config, window)
         self.add_waveform_card(self.head_hbox, config, window)
 
-        self.add_token_card(self.head_hbox, config, window)
-        self.add_task_card(self.head_hbox, config, window)
         self.add_speed_card(self.head_hbox, config, window)
         self.add_stability_card(self.head_hbox, config, window)
 

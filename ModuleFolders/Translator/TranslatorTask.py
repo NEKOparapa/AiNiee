@@ -15,7 +15,6 @@ from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 from ModuleFolders.LLMRequester.LLMRequester import LLMRequester
 from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
-from ModuleFolders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
 from ModuleFolders.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
 from ModuleFolders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
 from ModuleFolders.ResponseExtractor.ResponseExtractor import ResponseExtractor
@@ -95,7 +94,7 @@ class TranslatorTask(Base):
                 self.source_text_dict,
                 self.previous_text_list,
             )
-        elif prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK, PromptBuilderEnum.CUSTOM):
+        else:
             self.messages, self.system_prompt, self.extra_log = self.generate_prompt(
                 self.source_text_dict,
                 self.previous_text_list,
@@ -104,7 +103,7 @@ class TranslatorTask(Base):
         # 预估 Token 消费
         self.request_tokens_consume = self.request_limiter.calculate_tokens(self.messages,self.system_prompt,)
 
-    # 生成信息结构 - 通用和思维链和推理模型(通用与推理模型与自定义使用同一提示词框架，除了系统提示词不同。思维链使用不同的框架，系统提示词也不同)
+    # 生成信息结构 - 通用
     def generate_prompt(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
         # 储存指令
         messages = []
@@ -112,14 +111,10 @@ class TranslatorTask(Base):
         extra_log = []
 
         # 基础系统提示词
-        if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:  # 自定义提示词
-            system = self.config.system_prompt_content
-
-        elif self.config.prompt_preset == PromptBuilderEnum.THINK:  # 推理模型提示词
-            system = PromptBuilderThink.build_system(self.config, self.source_lang.new)
-
+        if self.config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK):
+            system = PromptBuilder.build_system(self.config, self.source_lang.new)
         else:
-            system = PromptBuilder.build_system(self.config, self.source_lang.new)  # 通用与思维链提示词
+            system = self.config.translation_prompt_selection["prompt_content"]  # 自定义提示词
 
 
         # 如果开启术语表
@@ -166,7 +161,9 @@ class TranslatorTask(Base):
                 extra_log.append(translation_example)
 
         # 构建动态few-shot
-        if self.config.few_shot_and_example_switch == True:
+        switch_A = self.config.few_shot_and_example_switch # 打开动态示例开关时
+        switch_B = self.config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.COMMON #仅在通用提示词
+        if switch_A and switch_B:
 
             # 获取默认示例前置文本
             pre_prompt_example = PromptBuilder.build_userExamplePrefix(self.config)
@@ -193,36 +190,13 @@ class TranslatorTask(Base):
             if previous != "":
                 extra_log.append(f"###上文内容\n{"\n".join(previous_text_list)}")
 
-        # 获取用户提问时的前置文本
-        pre_prompt = PromptBuilder.build_userQueryPrefix(self.config)
 
         # 构建待翻译文本
-        numbered_lines = []
-        for index, line in enumerate(source_text_dict.values()):
-            # 检查是否为多行文本
-            if "\n" in line:
-                lines = line.split("\n")  # 需要与回复提取的行分割方法一致
-                numbered_text = f"{index + 1}.[\n"
-                total_lines = len(lines)
-                for sub_index, sub_line in enumerate(lines):
-                    # 不去除空白内容，保留\r其他平台的换行符，虽然AI回复不一定保留...
-                    # 仅当 **只有一个** 尾随空格时才去除
-                    sub_line = sub_line[:-1] if re.match(r'.*[^ ] $', sub_line) else sub_line
-                    numbered_text += f'"{index + 1}.{total_lines - sub_index}.,{sub_line}",\n'
-                numbered_text = numbered_text.rstrip('\n')
-                numbered_text = numbered_text.rstrip(',')
-                numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
-                numbered_lines.append(numbered_text)
-            else:
-                # 单行文本直接添加序号
-                numbered_lines.append(f"{index + 1}.{line}")
+        source_text = PromptBuilder.build_source_text(self.config,source_text_dict)
+        pre_prompt = PromptBuilder.build_userQueryPrefix(self.config) # 用户提问前置文本
+        source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text}\n</textarea>"
 
-        source_text_str = "\n".join(numbered_lines)
-        source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text_str}\n</textarea>"
-
-        #print(source_text_str)
-
-        # 构建用户提问信息
+        # 构建用户信息
         messages.append(
             {
                 "role": "user",
@@ -230,11 +204,10 @@ class TranslatorTask(Base):
             }
         )
 
-        # 构建模型预输入回复信息，deepseek-reasoner 不支持该模型预回复消息
-        if self.config.few_shot_and_example_switch == True:
-            # 获取模型预输入回复前文
+        # 构建预输入回复信息
+        switch_C = self.config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COT, PromptBuilderEnum.COMMON) 
+        if switch_A and switch_C:
             fol_prompt = PromptBuilder.build_modelResponsePrefix(self.config)
-            # 构建模型预输入回复信息
             messages.append({"role": "assistant", "content": fol_prompt})
 
 
@@ -257,38 +230,16 @@ class TranslatorTask(Base):
             if glossary != "":
                 extra_log.append(glossary)
 
-
-
-        # 构建待翻译文本 (添加序号)
-        numbered_lines = []
-        for index, line in enumerate(source_text_dict.values()):
-            # 检查是否为多行文本
-            if "\n" in line:
-                lines = line.split("\n")
-                numbered_text = f"{index + 1}.[\n"
-                total_lines = len(lines)
-                for sub_index, sub_line in enumerate(lines):
-                    # 仅当 **只有一个** 尾随空格时才去除
-                    sub_line = sub_line[:-1] if re.match(r'.*[^ ] $', sub_line) else sub_line
-                    numbered_text += f'"{index + 1}.{total_lines - sub_index}.,{sub_line}",\n'
-                numbered_text = numbered_text.rstrip('\n')
-                numbered_text = numbered_text.rstrip(',')
-                numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
-                numbered_lines.append(numbered_text)
-            else:
-                # 单行文本直接添加序号
-                numbered_lines.append(f"{index + 1}.{line}")
-
-        source_text_str = "\n".join(numbered_lines)
-
+        # 构建待翻译文本
+        source_text = PromptBuilder.build_source_text(self.config,source_text_dict)
 
         # 构建主要提示词
         if glossary == "":
-            user_prompt = "将下面的日文文本翻译成中文：\n" + source_text_str
+            user_prompt = "将下面的日文文本翻译成中文：\n" + source_text
         else:
             user_prompt = (
                 "根据以下术语表（可以为空）：\n" + glossary
-                + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：\n" + source_text_str
+                + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：\n" + source_text
             )
 
         # 构建指令列表
@@ -317,29 +268,12 @@ class TranslatorTask(Base):
             if result != "":
                 system = system + "\n" + result
                 extra_log.append(result)
+        
+        # 构建待翻译文本
+        source_text = PromptBuilder.build_source_text(self.config,source_text_dict)
+        pre_prompt = PromptBuilder.build_userQueryPrefix(self.config) # 用户提问前置文本
+        source_text_str = f"{pre_prompt}<textarea>\n{source_text}\n</textarea>"
 
-        # 构建待翻译文本 (添加序号)
-        numbered_lines = []
-        for index, line in enumerate(source_text_dict.values()):
-            # 检查是否为多行文本
-            if "\n" in line:
-                lines = line.split("\n")
-                numbered_text = f"{index + 1}.[\n"
-                total_lines = len(lines)
-                for sub_index, sub_line in enumerate(lines):
-                    # 仅当 **只有一个** 尾随空格时才去除
-                    sub_line = sub_line[:-1] if re.match(r'.*[^ ] $', sub_line) else sub_line
-                    numbered_text += f'"{index + 1}.{total_lines - sub_index}.,{sub_line}",\n'
-                numbered_text = numbered_text.rstrip('\n')
-                numbered_text = numbered_text.rstrip(',')
-                numbered_text += f"\n]"  # 用json.dumps会影响到原文的转义字符
-                numbered_lines.append(numbered_text)
-            else:
-                # 单行文本直接添加序号
-                numbered_lines.append(f"{index + 1}.{line}")
-
-        source_text_str = "\n".join(numbered_lines)
-        source_text_str = f"<textarea>\n{source_text_str}\n</textarea>"
 
         # 构建用户提问信息
         messages.append(

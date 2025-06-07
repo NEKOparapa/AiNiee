@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
 
-from qfluentwidgets import CardWidget
+from qfluentwidgets import CardWidget, HorizontalSeparator
 from qfluentwidgets import FlowLayout
 from qfluentwidgets import CaptionLabel
 from qfluentwidgets import StrongBodyLabel
@@ -43,9 +43,7 @@ class FlowCard(CardWidget):
         self.head_hbox.addStretch(1)
 
         # 添加分割线
-        line = QFrame(self)
-        line.setFixedHeight(1)
-        line.setStyleSheet("QFrame { background-color: #C0C0C0; }")
+        line = HorizontalSeparator()
         self.container.addSpacing(4)
         self.container.addWidget(line)
         self.container.addSpacing(4)

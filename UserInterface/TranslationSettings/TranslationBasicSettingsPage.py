@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QEvent
 from PyQt5.QtWidgets import QFileDialog, QFrame
 from PyQt5.QtWidgets import QVBoxLayout
-from qfluentwidgets import FluentIcon
+from qfluentwidgets import FluentIcon, HorizontalSeparator
 
 from Base.Base import Base
 from Widget.ComboBoxCard import ComboBoxCard
@@ -35,10 +35,13 @@ class TranslationBasicSettingsPage(QFrame, Base):
 
         # 添加控件
         self.add_widget_api(self.container, config)
+        self.container.addWidget(HorizontalSeparator())
         self.add_widget_03(self.container, config)
         self.add_widget_04(self.container, config)
+        self.container.addWidget(HorizontalSeparator())
         self.add_widget_06(self.container, config)
         self.add_widget_07(self.container, config)
+        self.container.addWidget(HorizontalSeparator())
         self.add_widget_08(self.container, config)
         # 填充
         self.container.addStretch(1)
@@ -97,8 +100,6 @@ class TranslationBasicSettingsPage(QFrame, Base):
                 current_text_changed = current_text_changed,
             )
         )
-
-
 
     # 原文语言
     def add_widget_03(self, parent, config) -> None:
@@ -210,7 +211,6 @@ class TranslationBasicSettingsPage(QFrame, Base):
                 current_text_changed=current_text_changed
             )
         )
-
 
     # 输出文件夹
     def add_widget_06(self, parent, config) -> None:

@@ -1,13 +1,12 @@
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QLayout
 from PyQt5.QtWidgets import QVBoxLayout
-from qfluentwidgets import FluentWindow
+from qfluentwidgets import FluentWindow, HorizontalSeparator
 from qfluentwidgets import PillPushButton
 
 from Base.Base import Base
 from Widget.SpinCard import SpinCard
 from Widget.FlowCard import FlowCard
-from Widget.Separator import Separator
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
@@ -41,14 +40,13 @@ class TranslationAdvanceSettingsPage(QFrame, Base):
 
         # 添加控件
         self.add_widget_05(self.vbox, config)
-        self.vbox.addWidget(Separator())
         self.add_widget_few_shot_and_example(self.vbox, config, window)
-        self.vbox.addWidget(Separator())
+        self.vbox.addWidget(HorizontalSeparator())
         self.add_auto_process_text_code_segment(self.vbox, config, window)
-        self.vbox.addWidget(Separator())
+        self.vbox.addWidget(HorizontalSeparator())
         self.add_widget_opencc(self.vbox, config, window)
         self.add_widget_opencc_preset(self.vbox, config, window)
-        self.vbox.addWidget(Separator())
+        self.vbox.addWidget(HorizontalSeparator())
         self.add_widget_result_check(self.vbox, config, window)
 
         # 填充

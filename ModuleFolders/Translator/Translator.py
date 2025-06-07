@@ -19,7 +19,6 @@ from ModuleFolders.Translator.TranslatorTask import TranslatorTask
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
-from ModuleFolders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
 from ModuleFolders.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
 from ModuleFolders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
 from ModuleFolders.FileReader.FileReader import FileReader
@@ -311,23 +310,20 @@ class Translator(Base):
             self.info(f"接口地址 - {self.config.base_url}")
             self.info(f"模型名称 - {self.config.model}")
             self.print("")
-            self.info(f"生效中的 网络代理 - {self.config.proxy_url}") if self.config.proxy_enable == True and self.config.proxy_url != "" else None
-            self.info(f"生效中的 RPM 限额 - {self.config.rpm_limit}")
-            self.info(f"生效中的 TPM 限额 - {self.config.tpm_limit}")
+            self.info(f"RPM 限额 - {self.config.rpm_limit}")
+            self.info(f"TPM 限额 - {self.config.tpm_limit}")
 
             # 根据提示词规则打印基础指令
             system = ""
             s_lang = self.config.source_language
-            if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:
-                system = self.config.system_prompt_content
-            elif self.config.target_platform == "LocalLLM":  # 需要放在前面，以免提示词预设的分支覆盖
+            if self.config.target_platform == "LocalLLM":  # 需要放在前面，以免提示词预设的分支覆盖
                 system = PromptBuilderLocal.build_system(self.config, s_lang)
             elif self.config.target_platform == "sakura":  # 需要放在前面，以免提示词预设的分支覆盖
                 system = PromptBuilderSakura.build_system(self.config, s_lang)
-            elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
+            elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK):
                 system = PromptBuilder.build_system(self.config, s_lang)
-            elif self.config.prompt_preset == PromptBuilderEnum.THINK:
-                system = PromptBuilderThink.build_system(self.config, s_lang)
+            else:
+                system = self.config.translation_prompt_selection["prompt_content"]
             self.print("")
             if system:
                 self.info(f"本次任务使用以下基础提示词：\n{system}\n") 
