@@ -2,11 +2,11 @@ import json
 import os
 import threading
 import time
-from PyQt5.QtCore import Qt, QSize, pyqtSignal, QMetaObject, Q_ARG
+from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from PyQt5.QtWidgets import (QFrame, QLayout, QTreeWidgetItem,
                              QWidget, QHBoxLayout, QVBoxLayout, QLabel,
                              QSplitter, QStackedWidget)
-from qfluentwidgets import (Action,  CaptionLabel, FlowLayout, PrimarySplitPushButton, PushButton, RoundMenu,  ToggleToolButton, TransparentDropDownPushButton, TransparentPushButton,
+from qfluentwidgets import (Action,  CaptionLabel, FlowLayout, MessageBox, PrimarySplitPushButton, PushButton, RoundMenu,  ToggleToolButton, TransparentDropDownPushButton, TransparentPushButton,
                             TreeWidget, TabBar, FluentIcon as FIF, CardWidget,
                             ProgressBar)
 
@@ -64,11 +64,15 @@ class StartupPage(Base,QWidget):
         # 添加弹簧
         self.container.addStretch(1)
 
-    # 显示继续按钮
-    def show_continue_btn(self):
-        self.continue_button.show()
+    # 显示隐藏继续按钮
+    def show_continue_button(self, show: bool) -> None:
+        if show:
+            self.continue_button.show()
+        else:
+            self.continue_button.hide()
 
-    # 输入的文件/目录排除规则
+
+    # 文件/目录排除规则
     def add_widget_exclude_rule(self, parent, config) -> None:
 
         def init(widget) -> None:
@@ -156,7 +160,7 @@ class StartupPage(Base,QWidget):
 
 
 # 顶部工具栏
-class CustomToolbar(CardWidget):
+class CustomToolbar(Base,CardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedHeight(55)
@@ -184,8 +188,20 @@ class CustomToolbar(CardWidget):
         self.layout.addWidget(self.button5)
         self.layout.addStretch(1)
 
+        # 导出按钮点击事件
+        self.button5.clicked.connect(self.command_export)
+
+    # 导出已完成的内容
+    def command_export(self) -> None:
+        # 触发导出事件
+        self.emit(Base.EVENT.TRANSLATION_MANUAL_EXPORT, {})
+
+        info_cont = self.tra("已根据当前的翻译数据在输出文件夹下生成翻译文件") + "  ... "
+        self.success_toast("", info_cont)
+
+
 # 底部命令栏
-class BottomCommandBar(CardWidget):
+class BottomCommandBar(Base,CardWidget):
     arrowClicked = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -228,7 +244,8 @@ class BottomCommandBar(CardWidget):
 
         self.start_btn = PrimarySplitPushButton(FIF.PLAY, '开始翻译')
         self.start_btn.setFlyout(self.menu)
-        self.continue_btn = TransparentPushButton(FIF.ROTATE, '继续') # 这个 "继续" 按钮是底部命令栏的，与我们添加的启动页按钮不同
+        self.continue_btn = TransparentPushButton(FIF.ROTATE, '继续') 
+        self.continue_btn.setEnabled(False)  # 初始不可用
         self.stop_btn = TransparentPushButton(FIF.CANCEL_MEDIUM, '终止')
         self.schedule_btn = TransparentPushButton(FIF.DATE_TIME, '定时')
         self.arrow_btn = ToggleToolButton()
@@ -252,8 +269,94 @@ class BottomCommandBar(CardWidget):
 
         self.arrow_btn.clicked.connect(self.on_arrow_clicked)
 
+        # 注册事件
+        self.subscribe(Base.EVENT.TRANSLATION_STOP_DONE, self.translation_stop_done)  # 监听翻译停止完成事件
+
+        # 连接按钮
+        self.start_btn.clicked.connect(self.command_play)  # 开始按钮
+        self.stop_btn.clicked.connect(self.command_stop)  # 停止按钮
+        self.continue_btn.clicked.connect(self.command_continue)  # 继续按钮
+
+    # 启用关闭继续翻译按钮
+    def enable_continue_button(self, enable: bool) -> None:
+        self.continue_btn.setEnabled(enable)
+
+    # 监控页面展开信号
     def on_arrow_clicked(self):
         self.arrowClicked.emit()
+
+    # 开始
+    def command_play(self) -> None:
+
+        if self.continue_btn.isEnabled():
+            info_cont1 = self.tra("将重置尚未完成的翻译任务，是否确认开始新的翻译任务") + "  ... ？"
+            message_box = MessageBox("Warning", info_cont1, self.window())
+            info_cont2 = self.tra("确认")
+            message_box.yesButton.setText(info_cont2)
+            info_cont3 = self.tra("取消")
+            message_box.cancelButton.setText(info_cont3)
+
+            # 点击取消，则不触发开始翻译事件
+            if not message_box.exec():
+                return
+
+        self.start_btn.setEnabled(False)
+        self.stop_btn.setEnabled(True)
+        self.continue_btn.setEnabled(False)
+
+        # 触发开始翻译事件
+        self.emit(Base.EVENT.TRANSLATION_START, {
+            "continue_status": False,
+        })
+
+        # 如果监控页面未展开，则自动展开
+        if not self.arrow_btn.isChecked():  # 如果监控页面未展开
+            self.arrow_btn.setChecked(True)  # 激活展开按钮
+            self.arrowClicked.emit()  # 发出展开信号
+
+    # 停止
+    def command_stop(self) -> None:
+
+        info_cont1 = self.tra("是否确定停止任务") + "  ... ？"
+        message_box = MessageBox("Warning", info_cont1, self.window()) 
+        info_cont2 = self.tra("确认")
+        message_box.yesButton.setText(info_cont2)
+        info_cont3 = self.tra("取消")
+        message_box.cancelButton.setText(info_cont3)
+
+        # 确认则触发停止翻译事件
+        if message_box.exec():
+            info_cont4 = self.tra("正在停止翻译任务") + "  ... "
+            print(info_cont4)
+
+            self.stop_btn.setEnabled(False)
+
+            # 触发停止翻译事件
+            self.emit(Base.EVENT.TRANSLATION_STOP, {})
+
+    # 继续翻译
+    def command_continue(self) -> None:
+        self.start_btn.setEnabled(False)
+        self.stop_btn.setEnabled(True)
+        self.continue_btn.setEnabled(False)
+
+        # 触发开始翻译事件，但发送不同参数
+        self.emit(Base.EVENT.TRANSLATION_START, {
+            "continue_status": True,
+        })
+
+
+    # 翻译停止完成事件
+    def translation_stop_done(self, event: int, data: dict) -> None:
+        self.start_btn.setEnabled(True)
+        self.stop_btn.setEnabled(False)
+
+        # 设置翻译状态为无任务
+        Base.work_status = Base.STATUS.IDLE
+
+        # 触发翻译状态检查事件
+        self.emit(Base.EVENT.TRANSLATION_CONTINUE_CHECK, {})
+
 
 # 层级浏览器
 class NavigationCard(CardWidget):
@@ -290,7 +393,7 @@ class NavigationCard(CardWidget):
         self.tree.expandAll()
         self.tree.setHeaderHidden(True)
 
-# 信息展示框
+# 内容标签区
 class PageCard(CardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -306,7 +409,7 @@ class PageCard(CardWidget):
         self.stacked_widget = QStackedWidget(self)
         self.layout.addWidget(self.stacked_widget)
 
-# 具体展示页
+# 标签页
 class TabInterface(QWidget):
     def __init__(self, text: str, parent=None):
         super().__init__(parent=parent)
@@ -616,9 +719,12 @@ class DrawerPage(Base,QWidget):
 # 主界面
 class EditViewPage(Base,QFrame):
 
-    def __init__(self, text: str, window,support_project_types) -> None:
+    def __init__(self, text: str, window, plugin_manager, cache_manager, file_reader) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
+
+        self.cache_manager = cache_manager  # 缓存管理器
+        self.file_reader = file_reader  # 文件读取器
 
         # 创建主布局
         main_layout = QVBoxLayout(self)
@@ -630,6 +736,7 @@ class EditViewPage(Base,QFrame):
         main_layout.addWidget(self.top_stacked_widget)
 
         # 创建启动页面
+        support_project_types = self.file_reader.get_support_project_types()  # 获取支持的项目类型
         self.startup_page = StartupPage(support_project_types = support_project_types)
 
         # 创建主界面控件
@@ -725,22 +832,116 @@ class EditViewPage(Base,QFrame):
 
         # 根据翻译状态，更新界面
         if self.continue_status == True :
-            self.startup_page.show_continue_btn()
-            pass
+            # 启动页显示继续翻译按钮
+            self.startup_page.show_continue_button(True)
+            # 启用底部命令栏的继续按钮
+            self.bottom_bar_main.enable_continue_button(True)
             #self.top_stacked_widget.setCurrentIndex(1) # 切换到主界面
 
+        else:
+            self.startup_page.show_continue_button(False)
+            self.bottom_bar_main.enable_continue_button(False)
 
     # 处理拖拽文件夹路径改变信号
     def on_folder_selected(self, path: str):
-        print(f"切换到主界面，选择的文件夹: {path}")
+
+        # 获取配置信息
+        config = self.load_config()
+        translation_project = config.get("translation_project", "AutoType")  # 获取翻译项目类型
+        label_input_path = config.get("label_input_path", "./input")   # 获取输入文件夹路径
+        label_input_exclude_rule = config.get("label_input_exclude_rule", "")  # 获取输入文件夹排除规则
+
+        # 读取输入文件夹的文件，生成缓存
+        self.print("")
+        self.info(f"正在读取输入文件夹中的文件 ...")
+        try:
+            # 读取输入文件夹的文件，生成缓存
+            CacheProject = self.file_reader.read_files(
+                    translation_project,
+                    label_input_path,
+                    label_input_exclude_rule
+                )
+            # 读取完成后，保存到缓存管理器中
+            self.cache_manager.load_from_project(CacheProject)
+
+        except Exception as e:
+            self.translating = False # 更改状态
+            self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ... ", e)
+            return None
+
+        # 检查数据是否为空
+        if self.cache_manager.get_item_count() == 0:
+            self.translating = False # 更改状态
+            self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ... ")
+            return None
+
+        # 输出每个文件的检测信息
+        for _, file in self.cache_manager.project.files.items():
+            # 获取信息
+            language_stats = file.language_stats
+            storage_path = file.storage_path
+            encoding = file.encoding
+            file_project_type = file.file_project_type
+
+            # 输出信息
+            self.print("")
+            self.info(f"已经载入文件 - {storage_path}")
+            self.info(f"文件类型 - {file_project_type}")
+            self.info(f"文件编码 - {encoding}")
+            self.info(f"语言统计 - {language_stats}")
+
+        self.info(f"项目数据全部载入成功 ...")
+        self.print("")
+
+        # 切换到主界面
         self.top_stacked_widget.setCurrentWidget(self.main_interface)
 
     # 从启动页的“继续”按钮点击后，切换到主界面
     def show_main_interface_from_startup_continue(self):
-        print("从启动页点击“继续”，切换到主界面")
+        # 获取配置信息
+        config = self.load_config()
+        label_output_path = config.get("label_output_path", "./output")   # 获取输入文件夹路径
+
+        # 读取输入文件夹的文件
+        self.print("")
+        self.info(f"正在读取缓存文件 ...")
+        try:
+            # 直接读取缓存文件
+            self.cache_manager.load_from_file(label_output_path)
+
+        except Exception as e:
+            self.translating = False # 更改状态
+            self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ... ", e)
+            return None
+
+        # 检查数据是否为空
+        if self.cache_manager.get_item_count() == 0:
+            self.translating = False # 更改状态
+            self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ... ")
+            return None
+
+        # 输出每个文件的检测信息
+        for _, file in self.cache_manager.project.files.items():
+            # 获取信息
+            language_stats = file.language_stats
+            storage_path = file.storage_path
+            encoding = file.encoding
+            file_project_type = file.file_project_type
+
+            # 输出信息
+            self.print("")
+            self.info(f"已经载入文件 - {storage_path}")
+            self.info(f"文件类型 - {file_project_type}")
+            self.info(f"文件编码 - {encoding}")
+            self.info(f"语言统计 - {language_stats}")
+
+        self.info(f"项目数据全部载入成功 ...")
+        self.print("")
+
+        # 切换到主界面
         self.top_stacked_widget.setCurrentWidget(self.main_interface)
 
-
+    # 监控页面切换
     def toggle_page(self):
         current_index = self.stacked_widget.currentIndex()
         new_index = 1 - current_index

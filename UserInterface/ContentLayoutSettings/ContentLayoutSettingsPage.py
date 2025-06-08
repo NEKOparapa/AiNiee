@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QHBoxLayout
 from qfluentwidgets import SubtitleLabel
 
 
-class TypesettingSettingsPage(QWidget):
+class ContentLayoutSettingsPage(QWidget):
 
     def __init__(self, text: str, parent = None):
         super().__init__(parent = parent)
