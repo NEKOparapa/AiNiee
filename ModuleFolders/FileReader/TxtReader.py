@@ -36,13 +36,14 @@ class TxtReader(BaseSourceReader):
             if not line.strip() and i != 0:
                 continue
 
-            # 去掉文本开头的空格和 BOM
-            line_lstrip = line.lstrip().lstrip("\ufeff")
+            # 去掉文本开头的BOM
+            line_lstrip = line.lstrip("\ufeff")
             # 获取文本行开头的原始空格
-            spaces = line[:len(line) - len(line_lstrip)]
+            # spaces = line[:len(line) - len(line_lstrip)]
             extra = {
-                "sentence_indent": spaces,
                 # 原始空格保存至变量中，后续Writer中还原
+                # 20250609改动，统一为文本处理器中进行处理
+                "sentence_indent": '',
                 "line_break": self._count_next_empty_line(lines, i)
             }
             item = CacheItem(source_text=line_lstrip, extra=extra)
