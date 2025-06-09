@@ -1,21 +1,22 @@
 import json
 import os
 import re
-from typing import List, Dict, Tuple, Any, Optional 
+from typing import List, Dict, Tuple, Any, Optional
 
-from Base.Base import Base 
+from Base.Base import Base
+
 
 class TextProcessor(Base):
     # 定义日语字符集的正则表达式
     JAPANESE_CHAR_SET_CONTENT = (
-        r'\u3040-\u309F'  
-        r'\u30A0-\u30FF'  
-        r'\u30FB-\u30FE'  
-        r'\uFF65-\uFF9F'  
-        r'\u4E00-\u9FFF'  
-        r'\u3400-\u4DBF'  
-        r'\u3001-\u303F'  
-        r'\uff01-\uff5e'  
+        r'\u3040-\u309F'
+        r'\u30A0-\u30FF'
+        r'\u30FB-\u30FE'
+        r'\uFF65-\uFF9F'
+        r'\u4E00-\u9FFF'
+        r'\u3400-\u4DBF'
+        r'\u3001-\u303F'
+        r'\uff01-\uff5e'
     )
 
     # 正则库路径
@@ -26,7 +27,7 @@ class TextProcessor(Base):
     RE_DIGITAL_SEQ_REC_STR = r'^【(\d+)】'
     RE_WHITESPACE_AFFIX_STR = r'^(\s*)(.*?)(\s*)$'
 
-    def __init__(self, config: Any): 
+    def __init__(self, config: Any):
         super().__init__()
 
         current_regex_dir = self.DEFAULT_REGEX_DIR
@@ -34,18 +35,17 @@ class TextProcessor(Base):
         # 预编译固定处理的正则表达式
         self.RE_DIGITAL_SEQ_PRE = re.compile(self.RE_DIGITAL_SEQ_PRE_STR)
         self.RE_DIGITAL_SEQ_REC = re.compile(self.RE_DIGITAL_SEQ_REC_STR)
-        self.RE_WHITESPACE_AFFIX = re.compile(self.RE_WHITESPACE_AFFIX_STR, re.DOTALL)
-        
+
+        # 多行处理正则（使用MULTILINE标志）
+        self.RE_WHITESPACE_AFFIX = re.compile(self.RE_WHITESPACE_AFFIX_STR, re.MULTILINE)
+
+        # 日语字符处理正则
         ja_affix_pattern_str = (
             rf'(^[^{self.JAPANESE_CHAR_SET_CONTENT}]*)'  # Group 1: Prefix
-            rf'(.*?)'                                   # Group 2: Core text
-            rf'([^{self.JAPANESE_CHAR_SET_CONTENT}]*$)' # Group 3: Suffix
+            rf'(.*?)'  # Group 2: Core text
+            rf'([^{self.JAPANESE_CHAR_SET_CONTENT}]*$)'  # Group 3: Suffix
         )
-
-
-        # 预编译日语字符集的正则
-        self.RE_JA_AFFIX = re.compile(ja_affix_pattern_str, re.DOTALL)
-
+        self.RE_JA_AFFIX = re.compile(ja_affix_pattern_str, re.MULTILINE)
 
         # 预编译文本前后替换正则
         self.pre_translation_rules_compiled = self._compile_translation_rules(
@@ -54,7 +54,6 @@ class TextProcessor(Base):
         self.post_translation_rules_compiled = self._compile_translation_rules(
             config.post_translation_data
         )
-
 
         # 预编译自动处理正则
         code_pattern_strings = self._prepare_code_pattern_strings(
@@ -65,17 +64,151 @@ class TextProcessor(Base):
             code_pattern_strings, r"\s*{p}\s*"
         )
         self.auto_compiled_patterns = [
-            re.compile(p_str, re.IGNORECASE | re.MULTILINE) 
+            re.compile(p_str, re.IGNORECASE | re.MULTILINE)
             for p_str in special_placeholder_pattern_strings if p_str
         ]
 
+    def _normalize_line_endings(self, text: str) -> Tuple[str, str]:
+        """
+        统一换行符为 \n，并记录原始换行符类型
+        返回: (标准化后的文本, 原始换行符类型)
+        """
+        if '\r\n' in text:
+            return text.replace('\r\n', '\n'), '\r\n'
+        elif '\r' in text:
+            return text.replace('\r', '\n'), '\r'
+        else:
+            return text, '\n'
+
+    def _restore_line_endings(self, text: str, original_ending: str) -> str:
+        """还原原始换行符"""
+        if original_ending != '\n':
+            return text.replace('\n', original_ending)
+        return text
+
+    def _handle_special_characters(self, prefix: str, core_text: str, suffix: str) -> Tuple[str, str, str]:
+        """处理特殊字符边界"""
+        # 处理前缀
+        if prefix:
+            if prefix.endswith('['):
+                core_text = '[' + core_text
+                prefix = prefix[:-1]
+            elif prefix.endswith('{'):
+                core_text = '{' + core_text
+                prefix = prefix[:-1]
+            elif prefix.endswith('（'):
+                core_text = '（' + core_text
+                prefix = prefix[:-1]
+            elif prefix.endswith('('):
+                core_text = '(' + core_text
+                prefix = prefix[:-1]
+
+        # 处理后缀
+        if suffix:
+            if suffix.startswith(']'):
+                core_text = core_text + ']'
+                suffix = suffix[1:]
+            elif suffix.startswith('}'):
+                core_text = core_text + '}'
+                suffix = suffix[1:]
+            elif suffix.startswith('）'):
+                core_text = core_text + '）'
+                suffix = suffix[1:]
+            elif suffix.startswith(')'):
+                core_text = core_text + ')'
+                suffix = suffix[1:]
+
+        # 数字后缀处理
+        if suffix and suffix.isdigit():
+            core_text, suffix = core_text + suffix, ""
+
+        return prefix, core_text, suffix
+
+    def _process_multiline_text(self, text: str, source_lang: str) -> Tuple[str, Dict]:
+        """处理多行文本"""
+        # 统一换行符
+        normalized_text, original_ending = self._normalize_line_endings(text)
+
+        # 按行分割
+        lines = normalized_text.split('\n')
+
+        # 选择正则模式
+        pattern = self.RE_WHITESPACE_AFFIX
+        if source_lang == 'ja' or source_lang == 'japanese':
+            pattern = self.RE_JA_AFFIX
+
+        processed_lines = []
+        lines_info = []
+
+        for line in lines:
+            if not line and len(lines) > 1:  # 空行处理
+                processed_lines.append('')
+                lines_info.append({'prefix': '', 'suffix': '', 'is_empty': True})
+                continue
+
+            match = pattern.match(line)
+            if match:
+                prefix, core_text, suffix = match.group(1), match.group(2), match.group(3)
+
+                # 应用特殊字符处理
+                prefix, core_text, suffix = self._handle_special_characters(prefix, core_text, suffix)
+
+                # 确保核心内容不为空
+                if not core_text.strip() and line.strip():
+                    core_text, prefix, suffix = line, '', ''
+
+                processed_lines.append(core_text)
+                lines_info.append({'prefix': prefix, 'suffix': suffix, 'is_empty': False})
+            else:
+                processed_lines.append(line)
+                lines_info.append({'prefix': '', 'suffix': '', 'is_empty': False})
+
+        # 重新组合
+        processed_text = '\n'.join(processed_lines)
+
+        return processed_text, {
+            'type': 'multiline',
+            'line_ending': original_ending,
+            'lines_info': lines_info
+        }
+
+    def _create_empty_info(self) -> Dict:
+        """创建空的处理信息"""
+        return {
+            'type': 'single',
+            'line_ending': '\n',
+            'lines_info': [{'prefix': '', 'suffix': '', 'is_empty': False}]
+        }
+
+    def _restore_multiline_text(self, text: str, info: Dict) -> str:
+        """还原多行文本"""
+        lines = text.split('\n')
+        lines_info = info.get('lines_info', [])
+        original_ending = info.get('line_ending', '\n')
+
+        restored_lines = []
+        for i, line in enumerate(lines):
+            if i < len(lines_info):
+                line_info = lines_info[i]
+                if line_info.get('is_empty', False):
+                    restored_lines.append('')
+                else:
+                    prefix = line_info.get('prefix', '')
+                    suffix = line_info.get('suffix', '')
+                    restored_lines.append(f"{prefix}{line}{suffix}")
+            else:
+                restored_lines.append(line)
+
+        # 还原原始换行符
+        restored_text = '\n'.join(restored_lines)
+        return self._restore_line_endings(restored_text, original_ending)
 
     def _compile_translation_rules(self, rules_data: Optional[List[Dict]]) -> List[Dict]:
         compiled_rules = []
         if not rules_data:
             return compiled_rules
-            
-        # 遍历文本替换的数据    
+
+        # 遍历文本替换的数据
         for rule in rules_data:
             new_rule = rule.copy()
 
@@ -92,7 +225,8 @@ class TextProcessor(Base):
         # 读取正则库内容
         with open(regex_dir_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            file_patterns = [item["regex"] for item in data if isinstance(item, dict) and "regex" in item and item["regex"]]
+            file_patterns = [item["regex"] for item in data
+                             if isinstance(item, dict) and "regex" in item and item["regex"]]
         patterns.extend(file_patterns)
 
         # 读取禁翻表内容
@@ -109,23 +243,23 @@ class TextProcessor(Base):
         enhanced_patterns = []
         if base_patterns:
             for p in base_patterns:
-                if p:  
+                if p:
                     try:
                         enhanced = format_string.format(p=p)
                         enhanced_patterns.append(enhanced)
-                    except KeyError: 
-                        enhanced_patterns.append(p) 
+                    except KeyError:
+                        enhanced_patterns.append(p)
         return enhanced_patterns
 
     # 译前文本处理
-    def replace_all(self, config, source_lang: str, text_dict: Dict[str, str]) -> Tuple[Dict[str, str], Dict, Dict, Dict, Dict]:
-
+    def replace_all(self, config, source_lang: str, text_dict: Dict[str, str]) -> \
+            Tuple[Dict[str, str], Dict, Dict, Dict, Dict]:
         # 存储处理后信息的变量
         processed_text = {k: v for k, v in text_dict.items()}
         prefix_codes: Dict[str, List[Dict]] = {}
         suffix_codes: Dict[str, List[Dict]] = {}
         placeholder_order: Dict[str, List[Dict[str, str]]] = {}
-        affix_whitespace_storage: Dict[str, Dict[str,str]] = {}
+        affix_whitespace_storage: Dict[str, Dict] = {}
 
         # 获取各个配置信息,减少再次传递
         pre_translation_switch = config.pre_translation_switch
@@ -134,18 +268,17 @@ class TextProcessor(Base):
 
         # 译前替换
         if pre_translation_switch:
-            processed_text = self.replace_before_translation(processed_text) 
+            processed_text = self.replace_before_translation(processed_text)
 
-        # 空白换行，非日语文本前后缀处理
-        processed_text, affix_whitespace_storage = self.strip_and_record_affixes(processed_text, source_lang) 
+        # 空白换行，非日语文本前后缀处理（支持多行）
+        processed_text, affix_whitespace_storage = self.strip_and_record_affixes(processed_text, source_lang)
 
         # 自动预处理
         if auto_process_text_code_segment:
-
             # 自动处理前后缀
             processed_text, prefix_codes, suffix_codes = self._process_affixes(
-                processed_text, 
-                self.auto_compiled_patterns, 
+                processed_text,
+                self.auto_compiled_patterns,
                 self.auto_compiled_patterns
             )
 
@@ -156,18 +289,19 @@ class TextProcessor(Base):
                 self.auto_compiled_patterns
             )
 
-        #处理数字序号    
-        processed_text = self.digital_sequence_preprocessing(processed_text) 
+        # 处理数字序号
+        processed_text = self.digital_sequence_preprocessing(processed_text)
 
         return processed_text, prefix_codes, suffix_codes, placeholder_order, affix_whitespace_storage
 
     # 译后文本处理
-    def restore_all(self, config, text_dict: Dict[str, str], prefix_codes: Dict, suffix_codes: Dict, placeholder_order: Dict, affix_whitespace_storage: Dict) -> Dict[str, str]:
+    def restore_all(self, config, text_dict: Dict[str, str], prefix_codes: Dict, suffix_codes: Dict,
+                    placeholder_order: Dict, affix_whitespace_storage: Dict) -> Dict[str, str]:
         restored = text_dict.copy()
 
         # 获取各个配置信息
         auto_process_text_code_segment = config.auto_process_text_code_segment
-        post_translation_switch = config.post_translation_switch 
+        post_translation_switch = config.post_translation_switch
 
         # 自动处理还原
         if auto_process_text_code_segment:
@@ -176,18 +310,20 @@ class TextProcessor(Base):
 
         # 译后替换
         if post_translation_switch:
-            restored = self.replace_after_translation(restored) 
+            restored = self.replace_after_translation(restored)
 
         # 数字序号还原
-        restored = self.digital_sequence_recovery(restored) 
+        restored = self.digital_sequence_recovery(restored)
 
-        # 前后空白换行，非日语文本还原
-        restored = self.restore_affix_whitespace(affix_whitespace_storage, restored) 
+        # 前后空白换行，非日语文本还原（支持多行）
+        restored = self.restore_affix_whitespace(affix_whitespace_storage, restored)
 
         return restored
 
     # 处理并占位文本中间内容
-    def _replace_special_placeholders(self, target_platform: str, text_dict: Dict[str, str], compiled_placeholder_patterns: List[re.Pattern]) -> Tuple[Dict[str, str], Dict[str, List[Dict[str, str]]]]:
+    def _replace_special_placeholders(self, target_platform: str, text_dict: Dict[str, str],
+                                      compiled_placeholder_patterns: List[re.Pattern]) -> \
+            Tuple[Dict[str, str], Dict[str, List[Dict[str, str]]]]:
         new_dict = {}
         placeholder_order: Dict[str, List[Dict[str, str]]] = {}
         global_match_count = 0
@@ -198,15 +334,14 @@ class TextProcessor(Base):
             sakura_match_count = 0
 
             for pattern_obj in compiled_placeholder_patterns:
-
                 single_pattern_replacements: List[Dict[str, str]] = []
-                
+
                 def replacer_for_this_pattern(match_obj):
                     nonlocal global_match_count, sakura_match_count, single_pattern_replacements
-                    
+
                     if global_match_count >= 50:
                         return match_obj.group(0)
-                    
+
                     global_match_count += 1
                     sakura_match_count += 1
                     original_match_val = match_obj.group(0)
@@ -214,32 +349,32 @@ class TextProcessor(Base):
                     placeholder_val = f"[P{global_match_count}]"
                     if target_platform == "sakura":
                         placeholder_val = "↓" * sakura_match_count
-                    
+
                     single_pattern_replacements.append({
                         "placeholder": placeholder_val,
                         "original": original_match_val,
-                        "pattern": pattern_obj.pattern 
+                        "pattern": pattern_obj.pattern
                     })
                     return placeholder_val
 
-
                 try:
                     current_text = pattern_obj.sub(replacer_for_this_pattern, current_text)
-                    entry_placeholders.extend(single_pattern_replacements) 
-                except Exception as e: 
+                    entry_placeholders.extend(single_pattern_replacements)
+                except Exception as e:
                     print(f"[Warning]: 占位正则替换出现问题！！ pattern '{pattern_obj.pattern}' on key '{key}': {e}")
-                    continue 
-                
+                    continue
+
                 if global_match_count >= 50:
-                    break 
-            
+                    break
+
             placeholder_order[key] = entry_placeholders
             new_dict[key] = current_text
-        
+
         return new_dict, placeholder_order
 
     # 还原特殊占位符
-    def _restore_special_placeholders(self, text_dict: Dict[str, str], placeholder_order: Dict[str, List[Dict[str, str]]]) -> Dict[str, str]:
+    def _restore_special_placeholders(self, text_dict: Dict[str, str],
+                                      placeholder_order: Dict[str, List[Dict[str, str]]]) -> Dict[str, str]:
         new_dic = {}
         for key, text in text_dict.items():
             placeholders_for_key = placeholder_order.get(key, [])
@@ -248,19 +383,21 @@ class TextProcessor(Base):
                 new_dic[key] = text
             else:
                 restored_text = text
-                for item in reversed(placeholders_for_key): 
+                for item in reversed(placeholders_for_key):
                     placeholder_text = item.get("placeholder")
                     original_text_val = item.get("original")
                     if placeholder_text is not None and original_text_val is not None:
-                         if placeholder_text in restored_text:
-                             restored_text = restored_text.replace(placeholder_text, original_text_val, 1)
-                         else:
-                             print(f"[Warning]: Placeholder '{placeholder_text}' not found in text for key '{key}' during restoration. Original: '{original_text_val}'")
+                        if placeholder_text in restored_text:
+                            restored_text = restored_text.replace(placeholder_text, original_text_val, 1)
+                        else:
+                            print(f"[Warning]: Placeholder '{placeholder_text}' not found in text for key '{key}' during restoration. Original: '{original_text_val}'")
                 new_dic[key] = restored_text
         return new_dic
 
     # 处理前后缀
-    def _process_affixes(self, text_dict: Dict[str, str], compiled_prefix_patterns: List[re.Pattern], compiled_suffix_patterns: List[re.Pattern]) -> Tuple[Dict[str, str], Dict[str, List[Dict]], Dict[str, List[Dict]]]:
+    def _process_affixes(self, text_dict: Dict[str, str], compiled_prefix_patterns: List[re.Pattern],
+                         compiled_suffix_patterns: List[re.Pattern]) -> \
+            Tuple[Dict[str, str], Dict[str, List[Dict]], Dict[str, List[Dict]]]:
         prefix_codes: Dict[str, List[Dict]] = {}
         suffix_codes: Dict[str, List[Dict]] = {}
         processed_text_dict = {}
@@ -299,7 +436,7 @@ class TextProcessor(Base):
                             current_suffixes.insert(0, {"suffix": suffix_text, "pattern": pattern_obj.pattern})
                             current_text = current_text[:best_match.start()]
                             made_change = True
-                except Exception as e: 
+                except Exception as e:
                     print(f"[Warning]: 后缀正则匹配出现问题！！ Regex error for suffix pattern '{pattern_obj.pattern}' on key '{key}': {e}")
                     continue
 
@@ -313,7 +450,7 @@ class TextProcessor(Base):
                     if prefix_len > suffix_len:
                         current_text = current_text + temp_suffix_str
                         current_suffixes = []
-                    else: 
+                    else:
                         current_text = temp_prefix_str + current_text
                         current_prefixes = []
                 elif current_prefixes:
@@ -322,7 +459,7 @@ class TextProcessor(Base):
                 elif current_suffixes:
                     current_text = current_text + temp_suffix_str
                     current_suffixes = []
-            
+
             processed_text_dict[key] = current_text
             prefix_codes[key] = current_prefixes
             suffix_codes[key] = current_suffixes
@@ -330,7 +467,8 @@ class TextProcessor(Base):
         return processed_text_dict, prefix_codes, suffix_codes
 
     # 还原前后缀
-    def _restore_affixes(self, text_dict: Dict[str, str], prefix_codes: Dict[str, List[Dict]], suffix_codes: Dict[str, List[Dict]]) -> Dict[str, str]:
+    def _restore_affixes(self, text_dict: Dict[str, str], prefix_codes: Dict[str, List[Dict]],
+                         suffix_codes: Dict[str, List[Dict]]) -> Dict[str, str]:
         restored_dict = {}
         for key, text in text_dict.items():
             # 按原始顺序拼接所有提取的前缀
@@ -356,14 +494,14 @@ class TextProcessor(Base):
                 # 如果有已经编译好的正则
                 if compiled_regex_obj:
                     current_text = compiled_regex_obj.sub(dst_text, current_text)
-                    continue 
+                    continue
 
-                # 没有正则，则按照原文替换
-                elif src_text and src_text in current_text: 
+                    # 没有正则，则按照原文替换
+                elif src_text and src_text in current_text:
                     current_text = current_text.replace(src_text, dst_text)
 
-            if current_text != original_text_val: 
-                 processed_text_dict[k] = current_text
+            if current_text != original_text_val:
+                processed_text_dict[k] = current_text
 
         return processed_text_dict
 
@@ -388,97 +526,55 @@ class TextProcessor(Base):
                     current_text = current_text.replace(src_text, dst_text)
 
             if current_text != original_text_val:
-                 processed_text_dict[k] = current_text
+                processed_text_dict[k] = current_text
 
         return processed_text_dict
 
     # 处理数字序列
     def digital_sequence_preprocessing(self, text_dict: dict) -> dict:
-        for k in text_dict: 
+        for k in text_dict:
             # 将例如 "1." 替换为 "【1】"，只替换文本开头的第一个匹配项
             text_dict[k] = self.RE_DIGITAL_SEQ_PRE.sub(r'【\1】', text_dict[k], count=1)
         return text_dict
 
     # 还原数字序列
     def digital_sequence_recovery(self, text_dict: dict) -> dict:
-        for k in text_dict: 
+        for k in text_dict:
             text_dict[k] = self.RE_DIGITAL_SEQ_REC.sub(r'\1.', text_dict[k], count=1)
         return text_dict
 
-    # 处理前后缀的空格与换行，以及非日语文本
-    def strip_and_record_affixes(self, text_dict: Dict[str,str], source_lang: str) -> Tuple[Dict[str,str], Dict[str,Dict[str,str]]]:
-        processed_text_dict: Dict[str,str] = {}
-        processing_info: Dict[str,Dict[str,str]] = {}
-        
-        # 根据源语言选择正则表达式
-        pattern_to_use = self.RE_WHITESPACE_AFFIX
-        if source_lang == 'ja' or source_lang == 'japanese':
-            pattern_to_use = self.RE_JA_AFFIX
-            
-        for key, original_text in text_dict.items():
+    # 处理前后缀的空格与换行，以及非日语文本（支持多行）
+    def strip_and_record_affixes(self, text_dict: Dict[str, str], source_lang: str) -> \
+            Tuple[Dict[str, str], Dict[str, Dict]]:
+        processed_text_dict: Dict[str, str] = {}
+        processing_info: Dict[str, Dict] = {}
 
+        for key, original_text in text_dict.items():
             # 检查是否是字符串
             if not isinstance(original_text, str):
-                processed_text_dict[key] = original_text 
-                processing_info[key] = {'prefix': '', 'suffix': ''} 
+                processed_text_dict[key] = original_text
+                processing_info[key] = self._create_empty_info()
                 continue
 
-            match = pattern_to_use.match(original_text)
-            if match:
-                prefix, core_text, suffix = match.group(1), match.group(2), match.group(3)
+            # 统一使用多行处理
+            processed_text, info = self._process_multiline_text(original_text, source_lang)
+            processed_text_dict[key] = processed_text
+            processing_info[key] = info
 
-                # 特殊处理
-                # 处理前缀
-                if prefix: # 确保前缀不为空
-                    if prefix.endswith('['):
-                        core_text = '[' + core_text
-                        prefix = prefix[:-1]
-                    elif prefix.endswith('{'): 
-                        core_text = '{' + core_text
-                        prefix = prefix[:-1]
-                    elif prefix.endswith('（'): 
-                        core_text = '（' + core_text
-                        prefix = prefix[:-1]
-                    elif prefix.endswith('('): 
-                        core_text = '(' + core_text
-                        prefix = prefix[:-1]
-                # 处理后缀
-                if suffix: # 确保后缀不为空
-                    if suffix.startswith(']'):
-                        core_text = core_text + ']'
-                        suffix = suffix[1:]
-                    elif suffix.startswith('}'): 
-                        core_text = core_text + '}'
-                        suffix = suffix[1:]
-                    elif suffix.startswith('）'): 
-                        core_text = core_text + '）'
-                        suffix = suffix[1:]
-                    elif suffix.startswith(')'): 
-                        core_text = core_text + ')'
-                        suffix = suffix[1:]
-
-                # 提取的内容是数字
-                if suffix and suffix.isdigit(): 
-                    core_text, suffix = core_text + suffix, ""
-
-                # 确保核心内容不为空
-                if not core_text.strip(): 
-                    core_text, prefix, suffix = original_text, '', ''
-                    
-                processed_text_dict[key] = core_text
-                processing_info[key] = {'prefix': prefix, 'suffix': suffix}
-            else: 
-                processed_text_dict[key] = original_text
-                processing_info[key] = {'prefix': '', 'suffix': ''}
         return processed_text_dict, processing_info
 
-    # 还原前后缀的空格与换行
-    def restore_affix_whitespace(self, processing_info: Dict[str,Dict[str,str]], processed_dict: Dict[str,str]) -> Dict[str,str]:
-        restored_text_dict: Dict[str,str] = {}
+    # 还原前后缀的空格与换行（支持多行）
+    def restore_affix_whitespace(self, processing_info: Dict[str, Dict], processed_dict: Dict[str, str]) -> Dict[str, str]:
+        restored_text_dict: Dict[str, str] = {}
+
         for key, core_text in processed_dict.items():
             info = processing_info.get(key)
-            if info:
-                restored_text_dict[key] = info.get('prefix', '') + core_text + info.get('suffix', '')
-            else:
-                restored_text_dict[key] = core_text 
+            if not info:
+                restored_text_dict[key] = core_text
+                continue
+
+            # 使用多行还原逻辑
+            restored_text = self._restore_multiline_text(core_text, info)
+            restored_text_dict[key] = restored_text
+
         return restored_text_dict
