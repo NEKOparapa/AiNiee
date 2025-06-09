@@ -18,7 +18,6 @@ class ResponseChecker():
         # 获取需要的配置信息
         source_language = TranslatorUtil.map_language_code_to_name(source_lang.new)
         response_check_switch = config.response_check_switch
-        target_platform = config.target_platform
 
         # 检查接口是否拒绝翻译
         if ResponseChecker.contains_special_chars(self,response_str):
@@ -45,23 +44,21 @@ class ResponseChecker():
             return check_result,error_content
 
         # 检查数字序号是否正确
-        if target_platform != "sakura":
-            if ResponseChecker.check_dict_order(self,source_text_dict,response_dict):
+        if ResponseChecker.check_dict_order(self,source_text_dict,response_dict):
+            pass
+        else:
+            check_result = False
+            error_content = "【行数错误】 - 出现错行串行"
+            return check_result,error_content
+
+        # 检查多行文本块是否回复正确行数
+        if 'newline_character_count_check' in response_check_switch and response_check_switch['newline_character_count_check']:
+            if  ResponseChecker.check_multiline_text(self, source_text_dict, response_dict):
                 pass
             else:
                 check_result = False
-                error_content = "【行数错误】 - 出现错行串行"
-                return check_result,error_content
-
-        # 检查多行文本块是否回复正确行数
-        if target_platform != "sakura":
-            if 'newline_character_count_check' in response_check_switch and response_check_switch['newline_character_count_check']:
-                if  ResponseChecker.check_multiline_text(self, source_text_dict, response_dict):
-                    pass
-                else:
-                    check_result = False
-                    error_content = "【换行符数】 - 译文换行符数量不一致"
-                    return check_result, error_content
+                error_content = "【换行符数】 - 译文换行符数量不一致"
+                return check_result, error_content
 
         # 检查是否回复了原文
         if 'return_to_original_text_check' in response_check_switch and response_check_switch['return_to_original_text_check']:

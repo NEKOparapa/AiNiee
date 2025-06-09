@@ -63,6 +63,7 @@ class TransReader(BaseSourceReader):
 
 
                 # 检查翻译状态，过滤已翻译内容
+                translated_text = ""
                 if len(text_pair) >= 2: # 获取译文内容，并且防止列表越界，有些trans文件没有译文位置
                     translated_text = text_pair[1]
 

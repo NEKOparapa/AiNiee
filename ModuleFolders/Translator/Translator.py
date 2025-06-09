@@ -4,14 +4,12 @@ import time
 import threading
 import concurrent.futures
 from dataclasses import dataclass
-from typing import Iterator
 
 import opencc
 from tqdm import tqdm
 
 from Base.Base import Base
-from Base.PluginManager import PluginManager
-from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
+from ModuleFolders.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Cache.CacheManager import CacheManager
 from ModuleFolders.Cache.CacheProject import CacheProjectStatistics
 from ModuleFolders.Translator import TranslatorUtil
@@ -19,11 +17,8 @@ from ModuleFolders.Translator.TranslatorTask import TranslatorTask
 from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
 from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
-from ModuleFolders.PromptBuilder.PromptBuilderThink import PromptBuilderThink
 from ModuleFolders.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
 from ModuleFolders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
-from ModuleFolders.FileReader.FileReader import FileReader
-from ModuleFolders.FileOutputer.FileOutputer import FileOutputer
 from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Translator.TranslatorUtil import get_most_common_language
 
@@ -37,22 +32,21 @@ class SourceLang:
 # 翻译器
 class Translator(Base):
 
-    def __init__(self, plugin_manager: PluginManager, file_reader: FileReader, file_writer: FileOutputer) -> None:
+    def __init__(self, plugin_manager,cache_manager, file_reader, file_writer) -> None:
         super().__init__()
 
         # 初始化
         self.plugin_manager = plugin_manager
-        self.config = TranslatorConfig()
-        self.cache_manager = CacheManager()
-        self.request_limiter = RequestLimiter()
+        self.cache_manager = cache_manager
         self.file_reader = file_reader
         self.file_writer = file_writer
+        self.config = TranslatorConfig()
+        self.request_limiter = RequestLimiter()
 
         # 注册事件
         self.subscribe(Base.EVENT.TRANSLATION_STOP, self.translation_stop)
         self.subscribe(Base.EVENT.TRANSLATION_START, self.translation_start)
         self.subscribe(Base.EVENT.TRANSLATION_MANUAL_EXPORT, self.translation_manual_export)
-        self.subscribe(Base.EVENT.TRANSLATION_CONTINUE_CHECK, self.translation_continue_check)
         self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
 
     # 应用关闭事件
@@ -106,54 +100,6 @@ class Translator(Base):
             self.config.label_input_path,
         )
 
-    # 继续翻译状态检查事件
-    def translation_continue_check(self, event: int, data: dict) -> None:
-        threading.Thread(
-            target = self.translation_continue_check_target
-        ).start()
-
-    # 继续翻译状态检查
-    def translation_continue_check_target(self) -> None:
-        # 等一下，等页面切换效果结束再执行，避免争抢 CPU 资源，导致 UI 卡顿
-        time.sleep(0.5)
-
-        # 检查结果的默认值
-        continue_status = False
-
-        # 只有翻译状态为 无任务 时才执行检查逻辑，其他情况直接返回默认值
-        if Base.work_status == Base.STATUS.IDLE:
-            config = self.load_config()
-
-            # 过渡方案，通过状态数据小文件来判断
-            continue_status = self.check_project_statistics(config.get("label_output_path", ""))
-
-        self.emit(Base.EVENT.TRANSLATION_CONTINUE_CHECK_DONE, {
-            "continue_status" : continue_status,
-        })
-
-    # 继续翻译状态判断方法
-    def check_project_statistics(self, folder_path: str) -> bool:
-
-        cache_folder_path = os.path.join(folder_path, "cache")
-
-        if not os.path.isdir(cache_folder_path):
-            return False
-
-        json_file_path = os.path.join(cache_folder_path, "ProjectStatistics.json")
-        if not os.path.isfile(json_file_path):
-            return False
-
-        # 获取小文件
-        with open(json_file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        total_line = data["total_line"] # 获取需翻译行数
-        line = data["line"] # 获取已翻译行数
-
-        if total_line == line:
-            return False
-        else:
-            return True
-
     # 翻译主流程
     def translation_start_target(self, continue_status: bool) -> None:
         # 设置内部状态（用于判断翻译任务是否实际在执行）
@@ -168,59 +114,8 @@ class Translator(Base):
         # 配置翻译平台信息
         self.config.prepare_for_translation()
 
-        # 配置请求线程数
-        self.config.thread_counts_setting()  # 需要在平台信息配置后面，依赖前面的数值 
-
         # 配置请求限制器
         self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
-
-        # 读取输入文件夹的文件，生成缓存
-        self.print("")
-        self.info(f"正在读取输入文件夹中的文件 ...")
-        try:
-            # 继续翻译时，直接读取缓存文件
-            if continue_status == True: 
-                self.cache_manager.load_from_file(self.config.label_output_path)
-            
-            # 初开始翻译
-            else:
-                # 读取输入文件夹的文件，生成缓存
-                CacheProject = self.file_reader.read_files(
-                        self.config.translation_project,
-                        self.config.label_input_path,
-                        self.config.label_input_exclude_rule
-                    )
-                # 读取完成后，保存到缓存管理器中
-                self.cache_manager.load_from_project(CacheProject)
-
-        except Exception as e:
-            self.translating = False # 更改状态
-            self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ... ", e)
-            return None
-        
-        # 检查数据是否为空
-        if self.cache_manager.get_item_count() == 0:
-            self.translating = False # 更改状态
-            self.error("翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ... ")
-            return None
-
-        # 输出每个文件的检测信息
-        for _, file in self.cache_manager.project.files.items():
-            # 获取信息
-            language_stats = file.language_stats
-            storage_path = file.storage_path
-            encoding = file.encoding
-            file_project_type = file.file_project_type
-
-            # 输出信息
-            self.print("")
-            self.info(f"已经载入文件 - {storage_path}")
-            self.info(f"文件类型 - {file_project_type}")
-            self.info(f"文件编码 - {encoding}")
-            self.info(f"语言统计 - {language_stats}")
-
-        self.info(f"翻译项目数据全部载入成功 ...")
-        self.print("")
 
         # 初开始翻译时，生成监控数据
         if continue_status == False:
@@ -314,23 +209,20 @@ class Translator(Base):
             self.info(f"接口地址 - {self.config.base_url}")
             self.info(f"模型名称 - {self.config.model}")
             self.print("")
-            self.info(f"生效中的 网络代理 - {self.config.proxy_url}") if self.config.proxy_enable == True and self.config.proxy_url != "" else None
-            self.info(f"生效中的 RPM 限额 - {self.config.rpm_limit}")
-            self.info(f"生效中的 TPM 限额 - {self.config.tpm_limit}")
+            self.info(f"RPM 限额 - {self.config.rpm_limit}")
+            self.info(f"TPM 限额 - {self.config.tpm_limit}")
 
             # 根据提示词规则打印基础指令
             system = ""
             s_lang = self.config.source_language
-            if self.config.prompt_preset == PromptBuilderEnum.CUSTOM:
-                system = self.config.system_prompt_content
-            elif self.config.target_platform == "LocalLLM":  # 需要放在前面，以免提示词预设的分支覆盖
+            if self.config.target_platform == "LocalLLM":  # 需要放在前面，以免提示词预设的分支覆盖
                 system = PromptBuilderLocal.build_system(self.config, s_lang)
             elif self.config.target_platform == "sakura":  # 需要放在前面，以免提示词预设的分支覆盖
                 system = PromptBuilderSakura.build_system(self.config, s_lang)
-            elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT):
+            elif self.config.prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK):
                 system = PromptBuilder.build_system(self.config, s_lang)
-            elif self.config.prompt_preset == PromptBuilderEnum.THINK:
-                system = PromptBuilderThink.build_system(self.config, s_lang)
+            else:
+                system = self.config.translation_prompt_selection["prompt_content"]
             self.print("")
             if system:
                 self.info(f"本次任务使用以下基础提示词：\n{system}\n") 

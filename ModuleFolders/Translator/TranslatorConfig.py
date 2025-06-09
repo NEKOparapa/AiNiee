@@ -2,7 +2,6 @@ import os
 import re
 import threading
 import urllib
-import copy
 
 import rapidjson as json
 
@@ -23,9 +22,6 @@ class TranslatorConfig(Base):
         self._api_key_lock = threading.Lock()
         self.apikey_index = 0
         self.apikey_list = []
-
-        # 术语表数据缓冲区
-        self.glossary_buffer_data = []
 
 
     def __repr__(self) -> str:
@@ -70,29 +66,8 @@ class TranslatorConfig(Base):
         for key, value in config.items():
             setattr(self, key, value)
 
-    # 请求线程数
-    def thread_counts_setting(self) -> None:
-        # 如果用户指定了线程数，则使用用户指定的线程数
-        if self.user_thread_counts > 0:
-            self.actual_thread_counts = self.user_thread_counts
-
-        # 如果是本地类接口，尝试访问slots数
-        elif self.target_platform in ("sakura","LocalLLM"):
-            num = self.get_llama_cpp_slots_num(self.platforms.get(self.target_platform).get("api_url"))
-            self.actual_thread_counts = num if num > 0 else 4
-            self.info(f"根据 llama.cpp 接口信息，自动设置同时执行的翻译任务数量为 {self.actual_thread_counts} 个 ...")
-
-        # 如果用户没有指定线程数，则自动计算
-        else :
-            self.actual_thread_counts = self.calculate_thread_count(self.rpm_limit)
-            print(self.actual_thread_counts)
-
-
     # 准备翻译
     def prepare_for_translation(self) -> None:
-
-        # 初始化术语表缓存区
-        self.glossary_buffer_data = []
 
         # 获取目标平台
         target_platform = self.target_platform
@@ -100,8 +75,7 @@ class TranslatorConfig(Base):
         # 获取模型类型
         self.model = self.platforms.get(target_platform).get("model")
 
-        # 解析密钥字符串
-        # 即使字符中没有逗号，split(",") 方法仍然会返回只包含一个完整字符串的列表
+        # 分割密钥字符串
         api_key = self.platforms.get(target_platform).get("api_key")
         if api_key == "":
             self.apikey_list = ["no_key_required"]
@@ -110,26 +84,24 @@ class TranslatorConfig(Base):
             self.apikey_list = re.sub(r"\s+","", api_key).split(",")
             self.apikey_index = 0
 
-        # 获取接口地址并补齐
-        api_url = self.platforms.get(target_platform).get("api_url")
+        # 获取接口地址并自动补全
+        self.base_url = self.platforms.get(target_platform).get("api_url")
         auto_complete = self.platforms.get(target_platform).get("auto_complete")
-        if (target_platform == "sakura" or target_platform == "LocalLLM") and not api_url.endswith("/v1"):
-            self.base_url = api_url + "/v1"
-        elif auto_complete == True and not api_url.endswith("/v1") and not api_url.endswith("/v2") and not api_url.endswith("/v3") and not api_url.endswith("/v4"):
-            self.base_url = api_url + "/v1"
-        else:
-            self.base_url = api_url
+
+        if (target_platform == "sakura" or target_platform == "LocalLLM") and not self.base_url.endswith("/v1"):
+            self.base_url += "/v1"
+        elif auto_complete:
+            version_suffixes = ["/v1", "/v2", "/v3", "/v4"]
+            if not any(self.base_url.endswith(suffix) for suffix in version_suffixes):
+                self.base_url += "/v1"
 
         # 获取接口限额
         self.rpm_limit = self.platforms.get(target_platform).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
         self.tpm_limit = self.platforms.get(target_platform).get("tpm_limit", 10000000)    # 当取不到账号类型对应的预设值，则使用该值
 
-
         # 根据密钥数量给 RPM 和 TPM 限额翻倍
         self.rpm_limit = self.rpm_limit * len(self.apikey_list)
         self.tpm_limit = self.tpm_limit * len(self.apikey_list)
-
-
 
         # 如果开启自动设置输出文件夹功能，设置为输入文件夹的平级目录
         if self.auto_set_output_path == True:
@@ -143,110 +115,28 @@ class TranslatorConfig(Base):
             config["label_output_path"] = self.label_output_path
             self.save_config(config)
 
-
-    # 更新术语表与禁翻表到配置中
-    def update_glossary_ntl_config(self, glossary_entries, ntl_entries):
-        
-        # 检测一下是不是空，免得浪费性能
-        if (not glossary_entries) and (not ntl_entries):
-            return ""
-
-        with self._config_lock:
-
-            # 更新术语表
-            if glossary_entries:
-                # 更新术语表缓存区
-                self.glossary_buffer_data = self.update_glossary_buffer(self.glossary_buffer_data, glossary_entries)
-
-                # 更新术语表配置区
-                self.prompt_dictionary_data = self.update_prompt_dictionary(self.glossary_buffer_data, self.prompt_dictionary_data)
-
-            # 更新禁翻表
-            if ntl_entries:
-                self.exclusion_list_data = self.update_ntl_2_dict(self.exclusion_list_data,  ntl_entries)
-
-            # 保存新配置
-            config = self.load_config()
-
-            config["prompt_dictionary_data"] = self.prompt_dictionary_data
-            config["exclusion_list_data"] = self.exclusion_list_data
-
-            self.save_config(config)
+        # 计算实际线程数
+        self.actual_thread_counts = self.thread_counts_setting(self.user_thread_counts,self.target_platform,self.rpm_limit)
 
 
-    # 更新术语表缓存区
-    def update_glossary_buffer(self,glossary_buffer_data, glossary_entries):
-        for src, dst, info in glossary_entries:
-            found = False
-            for entry in glossary_buffer_data:
-                if entry["src"] == src:
-                    entry["count"] += 1
-                    if not entry["info"]:  # 检查 info 是否为空 (None, '', 或 False 都被认为是空)
-                        entry["info"] = info
-                    found = True
-                    break  # 找到条目后跳出内循环
-            if not found:
-                glossary_buffer_data.append({
-                    "src": src,
-                    "dst": dst,
-                    "info": info,
-                    "count": 1
-                })
+    # 自动计算实际请求线程数
+    def thread_counts_setting(self,user_thread_counts,target_platform,rpm_limit) -> None:
+        # 如果用户指定了线程数，则使用用户指定的线程数
+        if user_thread_counts > 0:
+            actual_thread_counts = user_thread_counts
 
-        return glossary_buffer_data
+        # 如果是本地类接口，尝试访问slots数
+        elif target_platform in ("sakura","LocalLLM"):
+            num = self.get_llama_cpp_slots_num(self.platforms.get(target_platform).get("api_url"))
+            actual_thread_counts = num if num > 0 else 4
+            self.info(f"根据 llama.cpp 接口信息，自动设置同时执行的翻译任务数量为 {actual_thread_counts} 个 ...")
 
-    # 更新术语表配置区
-    def update_prompt_dictionary(self,glossary_buffer_data, prompt_dictionary_data):
+        # 如果用户没有指定线程数，则自动计算
+        else :
+            actual_thread_counts = self.calculate_thread_count(rpm_limit)
+            self.info(f"根据账号类型和接口限额，自动设置同时执行的翻译任务数量为 {actual_thread_counts} 个 ...")
 
-        prompt_srcs = {item['src'] for item in prompt_dictionary_data}  # 使用集合快速查找已存在的 src
-
-        for buffer_item in glossary_buffer_data:
-            if buffer_item['count'] >= 3:
-                src = buffer_item['src']
-                if src not in prompt_srcs:
-                    # 如果 prompt_dictionary_data 中没有相同的 src，则添加
-                    new_entry = {
-                        "src": src,
-                        "dst": buffer_item['dst'],
-                        "info": buffer_item['info']
-                    }
-                    prompt_dictionary_data.append(new_entry)
-                    prompt_srcs.add(src) # 更新 prompt_srcs 集合，避免重复添加
-
-        return prompt_dictionary_data
-
-    # 更新禁翻表配置
-    def update_ntl_2_dict(self,original_data, ntl_entries):
-
-        # 深拷贝原始数据避免修改原对象
-        new_data = copy.deepcopy(original_data)
-        
-        # 空值快速返回
-        if not ntl_entries:
-            return new_data
-        
-        # 构建源词存在集合
-        existing_src = {item["markers"] for item in new_data}
-        
-        # 转换术语表为字典格式
-        for entry in ntl_entries:
-            # 跳过格式不规范的条目
-            if len(entry) < 1:
-                continue
-            
-            src = entry[0].strip()
-            info = entry[1].strip() if len(entry) > 1 and entry[1] else ""
-            
-            # 重复检查
-            if src not in existing_src:
-                new_data.append({
-                    "markers": src,
-                    "info": info,
-                    "regex": ""
-                })
-                existing_src.add(src)  # 更新存在集合
-        
-        return new_data
+        return actual_thread_counts
 
     # 获取 llama.cpp 的 slots 数量，获取失败则返回 -1
     def get_llama_cpp_slots_num(self,url: str) -> int:

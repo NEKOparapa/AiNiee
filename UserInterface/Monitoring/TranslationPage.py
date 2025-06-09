@@ -59,13 +59,6 @@ class ScheduledTranslationDialog(MessageBoxBase, Base):
 
 class TranslationPage(QWidget, Base):
 
-    STATUS_TEXT = {
-        Base.STATUS.IDLE: "No Task",
-        Base.STATUS.API_TEST: "Testing",
-        Base.STATUS.TRANSLATING: "Translating",
-        Base.STATUS.STOPING: "Stopping",
-    }
-
     def __init__(self, text: str, window: FluentWindow) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
@@ -318,12 +311,12 @@ class TranslationPage(QWidget, Base):
         self.add_combined_line_card(self.head_hbox, config, window)
         self.add_time_card(self.head_hbox, config, window)
         self.add_remaining_time_card(self.head_hbox, config, window)
+        self.add_token_card(self.head_hbox, config, window)
+        self.add_task_card(self.head_hbox, config, window)
 
         self.add_ring_card(self.head_hbox, config, window)
         self.add_waveform_card(self.head_hbox, config, window)
 
-        self.add_token_card(self.head_hbox, config, window)
-        self.add_task_card(self.head_hbox, config, window)
         self.add_speed_card(self.head_hbox, config, window)
         self.add_stability_card(self.head_hbox, config, window)
 

@@ -15,37 +15,46 @@ from qfluentwidgets import NavigationItemPosition
 from qfluentwidgets import NavigationAvatarWidget
 
 from Base.Base import Base
-from Base.PluginManager import PluginManager
-
-from UserInterface.AppSettingsPage import AppSettingsPage
 from UserInterface.BaseNavigationItem import BaseNavigationItem
-from UserInterface.Platform.PlatformPage import PlatformPage
 
+from UserInterface.VersionManager.VersionManager import VersionManager
+from UserInterface.AppSettingsPage import AppSettingsPage
+
+from UserInterface.Platform.PlatformPage import PlatformPage
+from UserInterface.Setting.ProjectSettingsPage import ProjectSettingsPage
 from UserInterface.Monitoring.TranslationPage import TranslationPage
 
-from UserInterface.Setting.ProjectSettingsPage import ProjectSettingsPage
-from UserInterface.Setting.BasicSettingsPage import BasicSettingsPage
-from UserInterface.Setting.AdvanceSettingsPage import AdvanceSettingsPage
-from UserInterface.Setting.PluginsSettingsPage import PluginsSettingsPage
+from UserInterface.Settings.TaskSettingsPage import TaskSettingsPage
+
+from UserInterface.TranslationSettings.TranslationBasicSettingsPage import TranslationBasicSettingsPage
+from UserInterface.TranslationSettings.TranslationAdvanceSettingsPage import TranslationAdvanceSettingsPage
+from UserInterface.TranslationSettings.PluginsSettingsPage import PluginsSettingsPage
+
+from UserInterface.TranslationSettings.SystemPromptPage import SystemPromptPage
+from UserInterface.TranslationSettings.WritingStylePromptPage import WritingStylePromptPage
+from UserInterface.TranslationSettings.WorldBuildingPromptPage import WorldBuildingPromptPage
+from UserInterface.TranslationSettings.CharacterizationPromptPage import CharacterizationPromptPage
+from UserInterface.TranslationSettings.TranslationExamplePromptPage import TranslationExamplePromptPage
+
+from UserInterface.PolishingSettings.PolishingSettingsPage import PolishingSettingsPage
+from UserInterface.PolishingSettings.PolishingBasicSettingsPage import PolishingBasicSettingsPage
+from UserInterface.PolishingSettings.PolishingSystemPromptPage import PolishingSystemPromptPage
+
+from UserInterface.ContentLayoutSettings.ContentLayoutSettingsPage import ContentLayoutSettingsPage
+from UserInterface.ContentLayoutSettings.ContentLayoutBasicSettingsPage import ContentLayoutBasicSettingsPage
+from UserInterface.ContentLayoutSettings.ContentLayoutSystemPromptPage import ContentLayoutSystemPromptPage
+
 
 from UserInterface.Table.TextReplaceAPage import TextReplaceAPage
 from UserInterface.Table.TextReplaceBPage import TextReplaceBPage
 from UserInterface.Table.PromptDictionaryPage import PromptDictionaryPage
 from UserInterface.Table.ExclusionListPage import ExclusionListPage
 
-from UserInterface.Quality.SystemPromptPage import SystemPromptPage
-from UserInterface.Quality.WritingStylePromptPage import WritingStylePromptPage
-from UserInterface.Quality.WorldBuildingPromptPage import WorldBuildingPromptPage
-from UserInterface.Quality.CharacterizationPromptPage import CharacterizationPromptPage
-from UserInterface.Quality.TranslationExamplePromptPage import TranslationExamplePromptPage
-from UserInterface.EditView.EditViewPage import EditViewPage
-
 from StevExtraction import jtpp
 from UserInterface.Extraction_Tool.Export_Source_Text import Widget_export_source_text
 from UserInterface.Extraction_Tool.Import_Translated_Text import Widget_import_translated_text
 from UserInterface.Extraction_Tool.Export_Update_Text import Widget_update_text
-
-from UserInterface.VersionManager.VersionManager import VersionManager
+from UserInterface.EditView.EditViewPage import EditViewPage
 
 
 class UpdateCheckerThread(QThread):
@@ -78,7 +87,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
     THEME_COLOR = "#808b9d"
 
 
-    def __init__(self, version: str, plugin_manager: PluginManager, support_project_types: list[str]) -> None:
+    def __init__(self, version: str, plugin_manager, cache_manager, file_reader) -> None:
         super().__init__()
 
         # 默认配置
@@ -135,7 +144,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.navigationInterface.panel.setReturnButtonVisible(False)
 
         # 添加页面
-        self.add_pages(plugin_manager, support_project_types)
+        self.add_pages(plugin_manager, cache_manager, file_reader)
 
     # 窗口关闭函数
     def closeEvent(self, event) -> None:
@@ -222,17 +231,19 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
             )
 
     # 开始添加页面
-    def add_pages(self, plugin_manager: PluginManager, support_project_types: list[str]) -> None:
-        self.add_project_pages(plugin_manager, support_project_types)
+    def add_pages(self, plugin_manager, cache_manager, file_reader) -> None:
+        self.add_project_pages(plugin_manager, cache_manager, file_reader)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
-        self.add_setting_pages(plugin_manager)
+        self.add_translation_setting_pages(plugin_manager)
+        self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
+        self.add_task_setting_pages(plugin_manager)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
         self.add_quality_pages(plugin_manager)
-        self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
-        self.add_stev_extraction_pages(plugin_manager, support_project_types)
+        #self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
+        #self.add_stev_extraction_pages(plugin_manager, cache_manager, file_reader)
 
         # 设置默认页面
-        self.switchTo(self.translation_page)
+        self.switchTo(self.edit_view_page)
 
         # 主题切换按钮
         self.navigationInterface.addWidget(
@@ -276,24 +287,32 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         )
 
     # 添加第一节
-    def add_project_pages(self, plugin_manager: PluginManager, support_project_types: list[str]) -> None:
+    def add_project_pages(self, plugin_manager, cache_manager, file_reader) -> None:
         self.platform_page = PlatformPage("platform_page", self)
         self.addSubInterface(self.platform_page, FluentIcon.IOT, self.tra("接口管理"), NavigationItemPosition.SCROLL)
-        self.prject_page = ProjectSettingsPage("ProjectSettingsPagee", self, support_project_types)
-        self.addSubInterface(self.prject_page, FluentIcon.FOLDER, self.tra("项目设置"), NavigationItemPosition.SCROLL)
-        self.translation_page = TranslationPage("translation_page", self)
-        self.addSubInterface(self.translation_page, FluentIcon.PLAY, self.tra("开始翻译"), NavigationItemPosition.SCROLL)
+
+        self.edit_view_page = EditViewPage("edit_view_page", self, plugin_manager, cache_manager, file_reader)
+        self.addSubInterface(self.edit_view_page, FluentIcon.PLAY, self.tra("开始翻译"), NavigationItemPosition.SCROLL)  
+
 
     # 添加第二节
-    def add_setting_pages(self, plugin_manager: PluginManager) -> None:
-        self.basic_settings_page = BasicSettingsPage("basic_settings_page", self)
-        self.addSubInterface(self.basic_settings_page, FluentIcon.ZOOM, self.tra("基础设置"), NavigationItemPosition.SCROLL)
-        self.advance_settings_page = AdvanceSettingsPage("advance_settings_page", self)
-        self.addSubInterface(self.advance_settings_page, FluentIcon.ALBUM, self.tra("高级设置"), NavigationItemPosition.SCROLL)
+    def add_task_setting_pages(self, plugin_manager) -> None:
+        self.task_settings_page = TaskSettingsPage("task_settings_page", self)
+        self.addSubInterface(self.task_settings_page, FluentIcon.ZOOM, self.tra("任务设置"), NavigationItemPosition.SCROLL)
         self.plugins_settings_page = PluginsSettingsPage("plugins_settings_page", self, plugin_manager)
         self.addSubInterface(self.plugins_settings_page, FluentIcon.COMMAND_PROMPT, self.tra("插件设置"), NavigationItemPosition.SCROLL)
+
+    # 添加第三节
+    def add_translation_setting_pages(self, plugin_manager) -> None:
+        self.TranslationSettings = BaseNavigationItem("TranslationSettings", self)
+        self.addSubInterface(self.TranslationSettings, FluentIcon.BOOK_SHELF, self.tra("翻译设置"), NavigationItemPosition.SCROLL)
+        self.translation_basic_settings_page = TranslationBasicSettingsPage("translation_basic_settings_page", self)
+        self.addSubInterface(self.translation_basic_settings_page, FluentIcon.ALBUM, self.tra("基础设置"), parent = self.TranslationSettings)
+        self.translation_advance_settings_page = TranslationAdvanceSettingsPage("translation_advance_settings_page", self)
+        self.addSubInterface(self.translation_advance_settings_page, FluentIcon.ALBUM, self.tra("高级设置"), parent = self.TranslationSettings)
+
         self.prompt_optimization_navigation_item = BaseNavigationItem("prompt_optimization_navigation_item", self)
-        self.addSubInterface(self.prompt_optimization_navigation_item, FluentIcon.BOOK_SHELF, self.tra("提示词设置"), NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.prompt_optimization_navigation_item, FluentIcon.BOOK_SHELF, self.tra("提示词设置"),parent = self.TranslationSettings)
         self.system_prompt_page = SystemPromptPage("system_prompt_page", self)
         self.addSubInterface(self.system_prompt_page, FluentIcon.LABEL, self.tra("基础提示"), parent = self.prompt_optimization_navigation_item)
         self.characterization_prompt_page = CharacterizationPromptPage("characterization_prompt_page", self)
@@ -305,9 +324,22 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.translation_example_prompt_page = TranslationExamplePromptPage("translation_example_prompt_page", self)
         self.addSubInterface(self.translation_example_prompt_page, FluentIcon.FIT_PAGE, self.tra("翻译示例"), parent = self.prompt_optimization_navigation_item)
 
+        self.PolishingSettingsPage = PolishingSettingsPage("PolishingSettingsPage", self)
+        self.addSubInterface(self.PolishingSettingsPage, FluentIcon.BOOK_SHELF, self.tra("润色设置"), NavigationItemPosition.SCROLL)
+        self.PolishingBasicSettingsPage = PolishingBasicSettingsPage("PolishingBasicSettingsPage", self)
+        self.addSubInterface(self.PolishingBasicSettingsPage, FluentIcon.ALBUM, self.tra("基础设置"), parent = self.PolishingSettingsPage)
+        self.PolishingSystemPromptPage = PolishingSystemPromptPage("PolishingSystemPromptPage", self)
+        self.addSubInterface(self.PolishingSystemPromptPage, FluentIcon.LABEL, self.tra("基础提示"), parent = self.PolishingSettingsPage)
+
+        self.ContentLayoutSettingsPage = ContentLayoutSettingsPage("LayoutSettingsPage", self)
+        self.addSubInterface(self.ContentLayoutSettingsPage, FluentIcon.BOOK_SHELF, self.tra("排版设置"), NavigationItemPosition.SCROLL)
+        self.ContentLayoutBasicSettingsPage = ContentLayoutBasicSettingsPage("ContentLayoutBasicSettingsPage", self)
+        self.addSubInterface(self.ContentLayoutBasicSettingsPage, FluentIcon.ALBUM, self.tra("基础设置"), parent = self.ContentLayoutSettingsPage)
+        self.ContentLayoutSystemPromptPage = ContentLayoutSystemPromptPage("ContentLayoutSystemPromptPage", self)
+        self.addSubInterface(self.ContentLayoutSystemPromptPage, FluentIcon.LABEL, self.tra("基础提示"), parent = self.ContentLayoutSettingsPage)
 
     # 添加第四节
-    def add_quality_pages(self, plugin_manager: PluginManager) -> None:
+    def add_quality_pages(self, plugin_manager) -> None:
         self.prompt_dictionary_page = PromptDictionaryPage("prompt_dictionary_page", self)
         self.addSubInterface(self.prompt_dictionary_page, FluentIcon.DICTIONARY, self.tra("术语表"), NavigationItemPosition.SCROLL)
         self.exclusion_list_page = ExclusionListPage("exclusion_list_page", self)
@@ -322,9 +354,10 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
 
     # 添加第五节
-    def add_stev_extraction_pages(self, plugin_manager: PluginManager, support_project_types) -> None:
-        self.edit_view_page = EditViewPage("edit_view_page", self, support_project_types)
-        self.addSubInterface(self.edit_view_page, FluentIcon.UPDATE, self.tra("测试页面"), NavigationItemPosition.SCROLL)
+    def add_stev_extraction_pages(self, plugin_manager, cache_manager, file_reader) -> None:
+
+        self.prject_page = ProjectSettingsPage("ProjectSettingsPagee", self, file_reader)
+        self.addSubInterface(self.prject_page, FluentIcon.FOLDER, self.tra("项目设置"), NavigationItemPosition.SCROLL)
 
         #self.stev_extraction_navigation_item = BaseNavigationItem("stev_extraction_navigation_item", self)
         #self.addSubInterface(self.stev_extraction_navigation_item, FluentIcon.ZIP_FOLDER, self.tra("StevExtraction"), NavigationItemPosition.SCROLL)

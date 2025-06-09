@@ -134,48 +134,49 @@ if __name__ == "__main__":
         font.setHintingPreference(QFont.PreferNoHinting)
     app.setFont(font)
 
-
-    update_splash_message(splash, "正在加载插件管理器... (10%)", app) # 跟新启动页消息
-
     # 创建全局插件管理器
+    update_splash_message(splash, "正在加载插件管理器... (10%)", app) # 更新启动页消息
     from Base.PluginManager import PluginManager
     plugin_manager = PluginManager()
     plugin_path = os.path.join(".", "PluginScripts")
     plugin_manager.load_plugins_from_directory(plugin_path)
 
-
-    update_splash_message(splash, "正在加载文件读写器... (25%)", app) 
+    # 创建全局缓存器
+    update_splash_message(splash, "正在加缓存器... (15%)", app)
+    from ModuleFolders.Cache.CacheManager import CacheManager
+    cache_manager = CacheManager()
 
     # 创建全局文件读写器(高性能消耗)
+    update_splash_message(splash, "正在加载文件读写器... (25%)", app) 
     from ModuleFolders.FileReader.FileReader import FileReader
     file_reader = FileReader()
     from ModuleFolders.FileOutputer.FileOutputer import FileOutputer
     file_writer = FileOutputer()
 
 
+    # 创建窗口对象(高性能消耗)
     update_splash_message(splash, "正在加载核心组件... (50%)", app)
-
-    # 创建全局窗口对象(高性能消耗)
     from UserInterface.AppFluentWindow import AppFluentWindow
     app_fluent_window = AppFluentWindow(
         version="AiNiee6.5.2 dev",
         plugin_manager=plugin_manager,
-        support_project_types=file_reader.get_support_project_types(),
+        cache_manager=cache_manager,
+        file_reader =file_reader,
     )
 
-
-    update_splash_message(splash, "正在加载测试器组件... (60%)", app)
-
-    # 创建全局接口测试器对象，并初始化订阅事件
+    # 创建接口测试器对象，并初始化订阅事件
+    update_splash_message(splash, "正在加载测试器... (60%)", app)
     from ModuleFolders.RequestTester.RequestTester import RequestTester
     request_tester = RequestTester()
 
-    update_splash_message(splash, "正在加载翻译器... (75%)", app)
-
     # 创建翻译器对象，并初始化订阅事件(高性能消耗)
+    update_splash_message(splash, "正在加载翻译器... (75%)", app)
     from ModuleFolders.Translator.Translator import Translator
     translator = Translator(
-        plugin_manager=plugin_manager, file_reader=file_reader, file_writer=file_writer
+        plugin_manager=plugin_manager,
+        cache_manager=cache_manager,
+        file_reader=file_reader, 
+        file_writer=file_writer
     )
 
 

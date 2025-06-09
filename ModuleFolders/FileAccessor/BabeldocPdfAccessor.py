@@ -1,9 +1,11 @@
-import threading
 from concurrent.futures import Executor, Future
 from concurrent.futures.thread import _WorkItem
 from pathlib import Path
 
 from babeldoc import progress_monitor
+from babeldoc.document_il.babeldoc_exception.BabelDOCException import (
+    ExtractTextError
+)
 from babeldoc.document_il.midend import il_translator
 from babeldoc.document_il.translator.translator import BaseTranslator
 from babeldoc.docvision.doclayout import DocLayoutModel
@@ -91,22 +93,7 @@ class MainThreadExecutor(Executor):
 
 
 class TranslationStage:
-    def __init__(
-        self,
-        name: str,
-        total: int,
-        pm: ProgressMonitor,
-        weight: float,
-        lock: threading.Lock,
-    ):
-        self.name = name
-        self.display_name = name
-        self.current = 0
-        self.total = total
-        self.pm = pm
-        self.run_time = 0
-        self.weight = weight
-        self.lock = lock
+    __init__ = progress_monitor.TranslationStage.__init__
 
     def __enter__(self):
         # 在read_content 和 write_content 中对pm附加的属性 pm.pbar_manager = Progress()
@@ -187,6 +174,8 @@ class BabeldocPdfAccessor:
             with ProgressMonitor(new_stages) as pm, TranslationStage.create_progress() as pbar_manager:
                 pm.pbar_manager = pbar_manager
                 _do_translate_single(pm, babeldoc_translation_config)
+        except ExtractTextError:
+            print(f"`{source_file_path!s}` 不包含可复制的文本，可能是扫描件，不处理")
         except FinishReading:
             pass
         finally:
@@ -215,6 +204,8 @@ class BabeldocPdfAccessor:
             with ProgressMonitor(TRANSLATE_STAGES) as pm, TranslationStage.create_progress() as pbar_manager:
                 pm.pbar_manager = pbar_manager
                 result = _do_translate_single(pm, babeldoc_translation_config)
+        except ExtractTextError:
+            print(f"`{source_file_path!s}` 不包含可复制的文本，可能是扫描件，不处理")
         finally:
             il_translator.PriorityThreadPoolExecutor = self._OldExecutor
             progress_monitor.TranslationStage = self._OldTranslationStage

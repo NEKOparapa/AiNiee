@@ -1,17 +1,16 @@
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QLayout
 from PyQt5.QtWidgets import QVBoxLayout
-from qfluentwidgets import MessageBox
-from qfluentwidgets import FluentWindow
+from qfluentwidgets import FluentWindow, HorizontalSeparator
 from qfluentwidgets import PillPushButton
 
 from Base.Base import Base
+from Widget.SpinCard import SpinCard
 from Widget.FlowCard import FlowCard
-from Widget.Separator import Separator
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 
-class AdvanceSettingsPage(QFrame, Base):
+class TranslationAdvanceSettingsPage(QFrame, Base):
 
     def __init__(self, text: str, window: FluentWindow) -> None:
         super().__init__(window)
@@ -19,8 +18,8 @@ class AdvanceSettingsPage(QFrame, Base):
 
         # 默认配置
         self.default = {
-            "auto_glossary_toggle": False,
-            "auto_exclusion_list_toggle": False,
+            "pre_line_counts": 0,
+            "few_shot_and_example_switch": True,
             "auto_process_text_code_segment": False,
             "response_conversion_toggle": False,
             "opencc_preset": "s2t",
@@ -40,67 +39,60 @@ class AdvanceSettingsPage(QFrame, Base):
         self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
         # 添加控件
-        self.add_widget_auto_glossary(self.vbox, config, window)
-        self.add_widget_auto_exclusion_list(self.vbox, config, window)
-        self.vbox.addWidget(Separator())
+        self.add_widget_05(self.vbox, config)
+        self.add_widget_few_shot_and_example(self.vbox, config, window)
+        self.vbox.addWidget(HorizontalSeparator())
         self.add_auto_process_text_code_segment(self.vbox, config, window)
-        self.vbox.addWidget(Separator())
+        self.vbox.addWidget(HorizontalSeparator())
         self.add_widget_opencc(self.vbox, config, window)
         self.add_widget_opencc_preset(self.vbox, config, window)
-        self.vbox.addWidget(Separator())
+        self.vbox.addWidget(HorizontalSeparator())
         self.add_widget_result_check(self.vbox, config, window)
 
         # 填充
         self.vbox.addStretch(1)
 
+    # 每个子任务携带的参考上文行数
+    def add_widget_05(self, parent, config) -> None:
+        def init(widget) -> None:
+            widget.set_range(0, 9999999)
+            widget.set_value(config.get("pre_line_counts"))
 
-    # 自动术语表
-    def add_widget_auto_glossary(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
-        # 初始化控件状态
-        def widget_init(widget) -> None:
-            widget.set_checked(config.get("auto_glossary_toggle"))
-        # 监控控件变化，更新配置并保存
-        def widget_callback(widget, checked: bool) -> None:
+        def value_changed(widget, value: int) -> None:
             config = self.load_config()
-            config["auto_glossary_toggle"] = checked
+            config["pre_line_counts"] = value
+            self.save_config(config)
+
+        parent.addWidget(
+            SpinCard(
+                self.tra("参考上文行数"),
+                self.tra("行数不宜设置过大，建议10行以内 (不支持本地类接口)"),
+                init = init,
+                value_changed = value_changed,
+            )
+        )
+
+    # 示例模块和预回复模块开关
+    def add_widget_few_shot_and_example(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+
+        def init(widget: SwitchButtonCard) -> None:
+            widget.set_checked(config.get("few_shot_and_example_switch"))
+
+        def checked_changed(widget: SwitchButtonCard, checked: bool) -> None:
+            config = self.load_config()
+            config["few_shot_and_example_switch"] = checked
             self.save_config(config)
 
         parent.addWidget(
             SwitchButtonCard(
-                self.tra("AI构建术语表"),
-                self.tra(
-                "将由AI辅助生成术语表，自动录入，自动应用到后续翻译任务\n开启该功能会增加模型负担，建议在强力模型上开启，不支持本地类接口"
-                ),
-                widget_init,
-                widget_callback,
+                self.tra("动态示例和预回复功能"),
+                self.tra("启用此功能后，将在构建整体的翻译提示词时，自动生成动态Few-shot和构建模型预回复内容，不支持本地接口"),
+                init = init,
+                checked_changed = checked_changed,
             )
         )
 
-
-    # 自动禁翻表
-    def add_widget_auto_exclusion_list(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
-        def widget_init(widget) -> None:
-            widget.set_checked(config.get("auto_exclusion_list_toggle"))
-
-        def widget_callback(widget, checked: bool) -> None:
-            config = self.load_config()
-            config["auto_exclusion_list_toggle"] = checked
-            self.save_config(config)
-
-        parent.addWidget(
-            SwitchButtonCard(
-                self.tra("AI构建禁翻表"),
-                self.tra(
-                "将由AI辅助生成禁翻表，自动录入，暂不应用到后续翻译任务\n开启该功能会增加模型负担，建议在推理模型上开启，不支持本地类接口\n建议在翻译游戏内嵌文本时开启，提取内容有时存在问题，需要手动检查过滤"
-                ),
-                widget_init,
-                widget_callback,
-            )
-        )
-
-
-
-    # 自动处理代码文本
+    # 自动预处理
     def add_auto_process_text_code_segment(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
         def widget_init(widget) -> None:
             widget.set_checked(config.get("auto_process_text_code_segment"))

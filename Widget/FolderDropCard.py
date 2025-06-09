@@ -1,8 +1,8 @@
 import os
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QSizePolicy
-from PyQt5.QtGui import QPainter, QPen, QColor, QBrush, QFont, QPainterPath
-from PyQt5.QtCore import QRect, QRectF, Qt, pyqtSignal
-from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, FlowLayout, FluentIcon, PrimaryPushButton
+from PyQt5.QtGui import QPainter, QPen, QColor, QFont, QPainterPath
+from PyQt5.QtCore import QRect, Qt, pyqtSignal
+from qfluentwidgets import BodyLabel, CardWidget,  FluentIcon, PrimaryPushButton
 
 class InfoBlockWidget(QWidget):
     def __init__(self, text, color=QColor("#E0E0E0"), parent=None):
@@ -91,9 +91,9 @@ class DragDropArea(QWidget):
 
         # 信息块区域
         flow_container = QWidget()
-        info_layout = FlowLayout(flow_container, needAni=False)
-        info_layout.setHorizontalSpacing(15)
-        info_layout.setVerticalSpacing(15)
+        info_layout = QHBoxLayout(flow_container)
+        #info_layout.setHorizontalSpacing(15)
+        #info_layout.setVerticalSpacing(15)
 
         # 简化信息块创建
         block_info = [
@@ -107,15 +107,23 @@ class DragDropArea(QWidget):
             ("工程文件\n .trans", "#FFFACD"),
         ]
 
+        # 添加弹簧
+        info_layout.addStretch(1)
+        # 创建信息块
         self.info_blocks = [InfoBlockWidget(text, color) for text, color in block_info]
         for block in self.info_blocks:
             info_layout.addWidget(block)
+        # 添加弹簧
+        info_layout.addStretch(1)
 
         # 底部按钮区域
         bottom_layout = QHBoxLayout()
+        self.satr_button = PrimaryPushButton(FluentIcon.PLAY, "读取", self)
+        self.satr_button.clicked.connect(self._get_folder)
         self.selectButton = PrimaryPushButton(FluentIcon.FOLDER_ADD, "拖拽/选择输入文件夹", self)
         self.selectButton.clicked.connect(self._select_folder)
         bottom_layout.addStretch(1)
+        bottom_layout.addWidget(self.satr_button)
         bottom_layout.addWidget(self.selectButton)
         bottom_layout.addStretch(1)
 
@@ -132,6 +140,11 @@ class DragDropArea(QWidget):
         layout.addStretch(1)
         layout.addLayout(path_layout)
         layout.addLayout(bottom_layout)
+
+    def _get_folder(self):
+        folder_path = self.current_path
+        if folder_path:
+            self.update_path(folder_path)
 
     def _select_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "选择文件夹")
