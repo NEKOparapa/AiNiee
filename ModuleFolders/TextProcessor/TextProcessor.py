@@ -68,23 +68,68 @@ class TextProcessor(Base):
             for p_str in special_placeholder_pattern_strings if p_str
         ]
 
-    def _normalize_line_endings(self, text: str) -> Tuple[str, str]:
+    def _normalize_line_endings(self, text: str) -> Tuple[str, List[Tuple[int, str]]]:
         """
-        统一换行符为 \n，并记录原始换行符类型
-        返回: (标准化后的文本, 原始换行符类型)
+        统一换行符为 \n，并记录每个换行符的原始类型和位置
+        返回: (标准化后的文本, 换行符位置和类型列表)
         """
-        if '\r\n' in text:
-            return text.replace('\r\n', '\n'), '\r\n'
-        elif '\r' in text:
-            return text.replace('\r', '\n'), '\r'
-        else:
-            return text, '\n'
+        if not ('\r' in text or '\n' in text):
+            return text, []
 
-    def _restore_line_endings(self, text: str, original_ending: str) -> str:
-        """还原原始换行符"""
-        if original_ending != '\n':
-            return text.replace('\n', original_ending)
-        return text
+        # 记录每个换行符的位置和类型
+        line_endings = []
+        normalized_text = ""
+        i = 0
+        line_pos = 0  # 在标准化文本中的行位置
+
+        while i < len(text):
+            if i < len(text) - 1 and text[i:i + 2] == '\r\n':
+                # Windows 换行符
+                line_endings.append((line_pos, '\r\n'))
+                normalized_text += '\n'
+                i += 2
+                line_pos += 1
+            elif text[i] == '\r':
+                # Mac 经典换行符
+                line_endings.append((line_pos, '\r'))
+                normalized_text += '\n'
+                i += 1
+                line_pos += 1
+            elif text[i] == '\n':
+                # Unix 换行符
+                line_endings.append((line_pos, '\n'))
+                normalized_text += '\n'
+                i += 1
+                line_pos += 1
+            else:
+                normalized_text += text[i]
+                i += 1
+
+        return normalized_text, line_endings
+
+    def _restore_line_endings(self, text: str, line_endings: List[Tuple[int, str]]) -> str:
+        """根据记录的换行符信息还原原始格式"""
+        if not line_endings:
+            return text
+
+        lines = text.split('\n')
+        if len(lines) <= 1:
+            return text
+
+        # 重建文本，使用对应的原始换行符
+        result = []
+        for i, line in enumerate(lines[:-1]):  # 最后一行后面没有换行符
+            result.append(line)
+            if i < len(line_endings):
+                result.append(line_endings[i][1])
+            else:
+                result.append('\n')  # 默认使用 \n
+
+        # 添加最后一行
+        if lines:
+            result.append(lines[-1])
+
+        return ''.join(result)
 
     def _handle_special_characters(self, prefix: str, core_text: str, suffix: str) -> Tuple[str, str, str]:
         """处理特殊字符边界"""
@@ -127,7 +172,7 @@ class TextProcessor(Base):
     def _process_multiline_text(self, text: str, source_lang: str) -> Tuple[str, Dict]:
         """处理多行文本"""
         # 统一换行符
-        normalized_text, original_ending = self._normalize_line_endings(text)
+        normalized_text, line_endings = self._normalize_line_endings(text)
 
         # 按行分割
         lines = normalized_text.split('\n')
@@ -168,7 +213,7 @@ class TextProcessor(Base):
 
         return processed_text, {
             'type': 'multiline',
-            'line_ending': original_ending,
+            'line_endings': line_endings,
             'lines_info': lines_info
         }
 
@@ -184,7 +229,7 @@ class TextProcessor(Base):
         """还原多行文本"""
         lines = text.split('\n')
         lines_info = info.get('lines_info', [])
-        original_ending = info.get('line_ending', '\n')
+        line_endings = info.get('line_endings', [])
 
         restored_lines = []
         for i, line in enumerate(lines):
@@ -201,7 +246,7 @@ class TextProcessor(Base):
 
         # 还原原始换行符
         restored_text = '\n'.join(restored_lines)
-        return self._restore_line_endings(restored_text, original_ending)
+        return self._restore_line_endings(restored_text, line_endings)
 
     def _compile_translation_rules(self, rules_data: Optional[List[Dict]]) -> List[Dict]:
         compiled_rules = []
