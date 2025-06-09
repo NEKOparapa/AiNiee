@@ -26,6 +26,19 @@ CLEAN_TEXT_PATTERN = re.compile(
     r'\\{1,2}[a-zA-Z]{1,2}\[\d+]|if\(.{0,8}[vs]\[\d+].{0,16}\)|\\n|[a-zA-Z]+\d+(?!\d*[a-zA-Z]|\d*\s+[a-zA-Z])'
 )
 """修改后的预编译正则，移除了标签模式"""
+
+JS_VAR_PATTERN = re.compile(
+    r'\b[a-zA-Z_$][a-zA-Z0-9_$]*\.[a-zA-Z_$][a-zA-Z0-9_$]*'
+)
+"""预编译正则 匹配js变量模式"""
+TAG_STYLE_PATTERN = re.compile(
+    r'\[([a-zA-Z]\w*)\s*(\s+\w+\s*=\s*(?:"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'|[^\s\]]+))*\s*]'
+)
+"""预编译正则 匹配tag样式的文本内容 比如 [div] [div class="container"] [button onclick=handleClick] 等"""
+EXTRACT_TAG_ATTR_VALUE_PATTERN = re.compile(
+    r'\w+\s*=\s*(["\'])((?:\\.|(?!\1).)*)\1'
+)
+"""预编译正则 提取tag样式的属性值（带引号才提取） 比如 [div class="container"] 提取出container 等"""
 NON_LATIN_ISO_CODES = [
     'zh',  # 中文
     'ja',  # 日语
@@ -218,16 +231,18 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
                 non_latin_text = re.sub(r"[a-zA-Z\uFF21-\uFF3A\uFF41-\uFF5A'-]+", ' ', no_symbols_text)
                 # 去除多余空格
                 non_latin_text = re.sub(r'\s+', ' ', non_latin_text).strip()
-                # 进行重新识别
-                non_latin_lang_result = detector.detect(non_latin_text).detections
-                # 如果有识别结果才重置结果
-                if non_latin_lang_result:
-                    # 重置lang_result
-                    lang_result = non_latin_lang_result
-                    # 重置三个变量
-                    raw_prob = lang_result[0].probability
-                    first_prob = raw_prob
-                    mediapipe_langs = [detection.language_code for detection in lang_result]
+                # 判断是否为空字符串，非空串才重新识别
+                if non_latin_text:
+                    # 进行重新识别
+                    non_latin_lang_result = detector.detect(non_latin_text).detections
+                    # 如果有识别结果才重置结果
+                    if non_latin_lang_result:
+                        # 重置lang_result
+                        lang_result = non_latin_lang_result
+                        # 重置三个变量
+                        raw_prob = lang_result[0].probability
+                        first_prob = raw_prob
+                        mediapipe_langs = [detection.language_code for detection in lang_result]
 
             # 如果有至少两个识别结果，则使用最高置信度减去第二个
             if len(lang_result) >= 2:
@@ -389,12 +404,34 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
 #     return results
 
 
+def replace_tags_with_values(text):
+    """简洁但功能完整的版本"""
+
+    def replacer(match):
+        # 提取所有属性值（支持单双引号和转义）
+        values = EXTRACT_TAG_ATTR_VALUE_PATTERN.findall(match.group(0))
+        return f" {' '.join(value[1] for value in values)} "
+
+    return TAG_STYLE_PATTERN.sub(replacer, text)
+
+
 # 辅助函数，用于清理文本
 # 20250504改动：取消清理文本中的空白字符
 # 20250518改动：获取特殊标签中的内容
 def clean_text(source_text):
     # 先将所有换行符替换为一个特殊标记
     text_with_marker = re.sub(r'\r\n|\r|\n', '__NEWLINE__', source_text)
+    # 将标记替换回空字符串
+    cleaned_text = text_with_marker.replace('__NEWLINE__', ' ')
+    # 去除js变量
+    cleaned_text = JS_VAR_PATTERN.sub('', cleaned_text)
+    # 提取、拼接tag属性值
+    cleaned_text = replace_tags_with_values(cleaned_text)
+    # 去除html标签
+    cleaned_text = remove_html_tags(cleaned_text).strip()
+    # 去除文本前后的转义换行符(\n)
+    cleaned_text = re.sub(r'^(\\n)+', '', cleaned_text)  # 去除开头的\n
+    cleaned_text = re.sub(r'(\\n)+$', '', cleaned_text)  # 去除结尾的\n
 
     # 处理标签，有条件地保留内容
     def tag_handler(match):
@@ -408,11 +445,9 @@ def clean_text(source_text):
         # 其他情况保留内容
         return content + ' '
 
-    text_with_content = re.sub(r'<[a-zA-Z]+:(.*?)>', tag_handler, text_with_marker.strip())
+    cleaned_text = re.sub(r'<[a-zA-Z]+:(.*?)>', tag_handler, cleaned_text.strip())
     # 处理其他需要替换的模式
-    cleaned_text = CLEAN_TEXT_PATTERN.sub(' ', text_with_content)
-    # 将标记替换回空字符串
-    cleaned_text = cleaned_text.replace('__NEWLINE__', ' ')
+    cleaned_text = CLEAN_TEXT_PATTERN.sub(' ', cleaned_text)
     # 返回去除可能的多个连续空格后的字符串
     return re.sub(r'\s+', ' ', cleaned_text).strip()
 
@@ -441,13 +476,6 @@ def remove_symbols(source_text):
 
     # 去除多余空格
     source_text = re.sub(r'\s+', ' ', source_text).strip()
-
-    # 去除html标签
-    source_text = remove_html_tags(source_text)
-
-    # 去除文本前后的转义换行符(\n)
-    source_text = re.sub(r'^(\\n)+', '', source_text)  # 去除开头的\n
-    source_text = re.sub(r'(\\n)+$', '', source_text)  # 去除结尾的\n
 
     # 再次去掉所有符号
     no_symbols_and_num_text = ''.join(char for char in source_text if char.isalnum())
