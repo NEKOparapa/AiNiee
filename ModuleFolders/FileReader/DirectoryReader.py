@@ -128,7 +128,7 @@ class DirectoryReader:
                     mp_langs, mp_score, _ = ReaderUtil.detect_language_with_mediapipe(
                         [CacheItem(source_text='\n'.join(source_texts[file_path]))], 0, None
                     )[0]
-                    if mp_score >= 0.92:
+                    if mp_score >= 0.82:
                         # 添加到language_counter
                         language_counter[file_path] = [(mp_langs[0], len(source_texts[file_path]), mp_score)]
 
