@@ -474,14 +474,19 @@ def remove_symbols(source_text):
     # 去除所有数字
     source_text = re.sub(r'\d+', '', source_text)
 
-    # 去除多余空格
-    source_text = re.sub(r'\s+', ' ', source_text).strip()
+    # 先处理连续的标点符号，保留一个（没有处理`'`符号）
+    source_text = re.sub(r"([\s「」『』，。、〜？,.-]+)", lambda m: m.group(1)[0] + ' ', source_text)
+
+    # 再处理连续的空格
+    source_text = re.sub(r'\s+', ' ', source_text.strip())
 
     # 再次去掉所有符号
     no_symbols_and_num_text = ''.join(char for char in source_text if char.isalnum())
     # 判断字符串长度，如果小于等于5则直接返回，使用这个字符串作为语言判断依据
     if len(no_symbols_and_num_text) <= 5:
-        return no_symbols_and_num_text
+        # 保留空格的字符串
+        keep_space_text = ''.join(char for char in source_text if char.isalnum() or char.isspace())
+        return keep_space_text.strip()
 
     return source_text.strip()
 
