@@ -541,7 +541,7 @@ class TextProcessor(Base):
                     current_text = compiled_regex_obj.sub(dst_text, current_text)
                     continue
 
-                    # 没有正则，则按照原文替换
+                # 没有正则，则按照原文替换
                 elif src_text and src_text in current_text:
                     current_text = current_text.replace(src_text, dst_text)
 
