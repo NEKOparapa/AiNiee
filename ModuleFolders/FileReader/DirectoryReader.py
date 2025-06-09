@@ -84,7 +84,9 @@ class DirectoryReader:
                                 file_valid_items_count[cache_file.storage_path] += 1
 
                                 # 添加行至后续使用
-                                source_texts[cache_file.storage_path].append(make_final_detect_text(item))
+                                final_detect_text = make_final_detect_text(item)
+                                if final_detect_text:
+                                    source_texts[cache_file.storage_path].append(final_detect_text)
 
                         if cache_file.items:
                             cache_project.add_file(cache_file)
@@ -96,8 +98,8 @@ class DirectoryReader:
         for file_path, lang_stats in language_stats.items():
             # 只有存在有效项目的文件才进行处理
             if file_valid_items_count[file_path] > 0:
-                high_threshold = max(file_valid_items_count[file_path] * 0.1, 1)  # 有效项目总数的10%
-                mid_threshold = max(file_valid_items_count[file_path] * 0.05, 1)  # 有效项目总数的5%
+                high_threshold = max(file_valid_items_count[file_path] * 0.1, 3)  # 有效项目总数的10%
+                mid_threshold = max(file_valid_items_count[file_path] * 0.05, 2)  # 有效项目总数的5%
                 low_threshold = max(file_valid_items_count[file_path] * 0.01, 1)  # 有效项目总数的1%
 
                 # 先计算所有语言的平均置信度

@@ -30,12 +30,11 @@ import multiprocessing
 import warnings
 
 import rapidjson as json
+from bs4 import MarkupResemblesLocatorWarning
 from rich import print
 from PyQt5.QtGui import QFont, QIcon, QColor
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QSplashScreen
-
-
 
 
 # 过滤protobuf的警告信息
@@ -45,6 +44,8 @@ warnings.filterwarnings(
     category=UserWarning,
     module=r'google\.protobuf\.symbol_database'  # 警告来源的模块 (正则)
 )
+# 过滤pBeautiful Soup的警告信息
+warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 def display_banner():
     print(" █████   ██  ███    ██  ██  ███████  ███████ ")
