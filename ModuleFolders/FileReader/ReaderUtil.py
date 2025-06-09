@@ -86,7 +86,10 @@ def get_lang_detector():
             # 使用 model_asset_buffer 而不是 model_asset_path
             base_options = BaseOptions(model_asset_buffer=model_buffer)
             # 20250504改动：获取最多四个结果用于重新计算置信度
-            options = text.LanguageDetectorOptions(base_options=base_options, max_results=4, score_threshold=0.0001)
+            # 20250609改动：在识别结果中过滤苗语(hmn)
+            options = text.LanguageDetectorOptions(base_options=base_options,
+                                                   max_results=4, score_threshold=0.0001,
+                                                   category_denylist=["hmn"])
             _LANG_DETECTOR_INSTANCE = text.LanguageDetector.create_from_options(options)
 
             # 计算加载时间（毫秒）
