@@ -97,10 +97,11 @@ class DirectoryReader:
 
         for file_path, lang_stats in language_stats.items():
             # 只有存在有效项目的文件才进行处理
-            if file_valid_items_count[file_path] > 0:
-                high_threshold = max(file_valid_items_count[file_path] * 0.1, 3)  # 有效项目总数的10%
-                mid_threshold = max(file_valid_items_count[file_path] * 0.05, 2)  # 有效项目总数的5%
-                low_threshold = max(file_valid_items_count[file_path] * 0.01, 1)  # 有效项目总数的1%
+            current_file_items_count = file_valid_items_count[file_path]
+            if current_file_items_count > 0:
+                high_threshold = max(current_file_items_count * 0.1, min(current_file_items_count, 3))  # 有效项目总数的10%
+                mid_threshold = max(current_file_items_count * 0.05, min(current_file_items_count, 2))  # 有效项目总数的5%
+                low_threshold = max(current_file_items_count * 0.01, 1)  # 有效项目总数的1%
 
                 # 先计算所有语言的平均置信度
                 all_langs = []
