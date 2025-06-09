@@ -77,7 +77,7 @@ class Translator(Base):
             args = (data.get("continue_status"),),
         ).start()
 
-    # 翻译结果手动导出事件
+    # 手动导出事件
     def translation_manual_export(self, event: int, data: dict) -> None:
         # 确保当前状态为 翻译中
         if Base.work_status != Base.STATUS.TRANSLATING:
@@ -88,7 +88,16 @@ class Translator(Base):
 
         # 如果开启了转换简繁开关功能，则进行文本转换
         if self.config.response_conversion_toggle:
-            self.convert_simplified_and_traditional(self.config.opencc_preset, self.cache_manager.project.items_iter())
+            self.print("")
+            self.info(f"已启动自动简繁转换功能，正在使用 {self.config.opencc_preset} 配置进行字形转换 ...")
+            self.print("")
+
+            converter = opencc.OpenCC(self.config.opencc_preset)
+            cache_list = self.cache_manager.project.items_iter()
+            for item in cache_list:
+                if item.translation_status == TranslationStatus.TRANSLATED:
+                    item.translated_text = converter.convert(item.translated_text)
+
             self.print("")
             self.info(f"已启动自动简繁转换功能，正在使用 {self.config.opencc_preset} 配置进行字形转换 ...")
             self.print("")

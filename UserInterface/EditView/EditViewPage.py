@@ -3,202 +3,17 @@ import os
 import threading
 import time
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
-from PyQt5.QtWidgets import (QFrame, QLayout, QTreeWidgetItem,
+from PyQt5.QtWidgets import (QFrame, QSizePolicy, QTreeWidgetItem,
                              QWidget, QHBoxLayout, QVBoxLayout, QLabel,
                              QSplitter, QStackedWidget)
-from qfluentwidgets import (Action,  CaptionLabel, FlowLayout, MessageBox, PrimarySplitPushButton, PushButton, RoundMenu,  ToggleToolButton, TransparentDropDownPushButton, TransparentPushButton,
+from qfluentwidgets import (Action,  CaptionLabel, MessageBox, PrimarySplitPushButton, PushButton, RoundMenu,  ToggleToolButton, TransparentDropDownToolButton, TransparentPushButton, TransparentToolButton,
                             TreeWidget, TabBar, FluentIcon as FIF, CardWidget,
                             ProgressBar)
 
 from Base.Base import Base
-from Widget.DashboardCard import DashboardCard
-from Widget.WaveformCard import WaveformCard
-from Widget.LineEditCard import LineEditCard
-from Widget.ProgressRingCard import ProgressRingCard
-from Widget.FolderDropCard import FolderDropCard
-from Widget.CombinedLineCard import CombinedLineCard
-from Widget.ComboBoxCard import ComboBoxCard
 
-
-# 开始页面
-class StartupPage(Base,QWidget):
-    folderSelected = pyqtSignal(str)  # 定义信号，用于通知文件夹路径选择
-    continueButtonPressed = pyqtSignal() # 定义信号，当继续按钮被点击时发出
-
-    def __init__(self, support_project_types=None, parent=None):
-        super().__init__(parent)
-        self.support_project_types = support_project_types
-
-        # 默认配置
-        self.default = {
-            "label_input_exclude_rule": "",
-            "translation_project": "AutoType",
-            "label_input_path": "./input",
-        }
-
-        # 载入并保存默认配置
-        config = self.save_config(self.load_config_from_default())
-
-        # 设置主容器
-        self.container = QVBoxLayout(self)
-        self.container.setSpacing(8)
-        self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
-
-        # 添加组件
-        self.add_widget_exclude_rule(self.container, config)
-        self.add_widget_projecttype(self.container, config)
-        self.add_widget_folder_drop(self.container, config)
-
-        # 添加“继续”按钮
-        self.bottom_button_layout = QHBoxLayout()
-        self.continue_button = PushButton(FIF.CARE_RIGHT_SOLID, self.tra("继续项目"), self)
-        self.continue_button.setFixedWidth(120) # 可以根据需要调整宽度
-        self.continue_button.setFixedHeight(32)
-        self.continue_button.hide() # 初始隐藏
-        self.continue_button.clicked.connect(self.continueButtonPressed.emit) # 点击时发出信号
-        self.bottom_button_layout.addStretch(1) 
-        self.bottom_button_layout.addWidget(self.continue_button)
-        self.bottom_button_layout.addStretch(1) 
-        self.container.addLayout(self.bottom_button_layout) # 将按钮布局添加到主容器
-
-        # 添加弹簧
-        self.container.addStretch(1)
-
-    # 显示隐藏继续按钮
-    def show_continue_button(self, show: bool) -> None:
-        if show:
-            self.continue_button.show()
-        else:
-            self.continue_button.hide()
-
-
-    # 文件/目录排除规则
-    def add_widget_exclude_rule(self, parent, config) -> None:
-
-        def init(widget) -> None:
-            widget.set_text(config.get("label_input_exclude_rule"))
-            widget.set_fixed_width(256)
-            widget.set_placeholder_text(self.tra("*.log,aaa/*"))
-
-        def text_changed(widget, text: str) -> None:
-            config = self.load_config()
-            config["label_input_exclude_rule"] = text.strip()
-            self.save_config(config)
-
-        parent.addWidget(
-            LineEditCard(
-                self.tra("输入文件/目录排除规则"),
-                self.tra("*.log 表示排除所有结尾为 .log 的文件，aaa/* 表示排除输入文件夹下整个 aaa 目录，多个规则用英文逗号分隔"),
-                init=init,
-                text_changed=text_changed,
-            )
-        )
-
-    # 项目类型
-    def add_widget_projecttype(self, parent, config) -> None:
-
-        # 生成翻译后的配对列表
-        translated_pairs = [(self.tra(project_type), project_type) for project_type in self.support_project_types]
-
-        def init(widget) -> None:
-            """初始化时根据存储的值设置当前选项"""
-            current_config = self.load_config()
-            current_value = current_config.get("translation_project", "AutoType")
-
-            # 通过值查找对应的索引
-            index = next(
-                (i for i, (_, value) in enumerate(translated_pairs) if value == current_value),
-                0  # 默认选择第一个选项
-            )
-            widget.set_current_index(max(0, index))
-
-        def current_text_changed(widget, text: str) -> None:
-            """选项变化时存储对应的值"""
-            # 通过显示文本查找对应的值
-            value = next(
-                (value for display, value in translated_pairs if display == text),
-                "AutoType"  # 默认值
-            )
-
-            config = self.load_config()
-            config["translation_project"] = value
-            self.save_config(config)
-
-        # 创建选项列表（使用翻译后的显示文本）
-        options = [display for display, value in translated_pairs]
-
-        parent.addWidget(
-            ComboBoxCard(
-                self.tra("项目类型"),
-                self.tra("设置当前翻译项目所使用的原始文本的格式，注意，选择错误将不能进行翻译"),
-                options,
-                init=init,
-                current_text_changed=current_text_changed
-            )
-        )
-
-    # 输入文件夹
-    def add_widget_folder_drop(self, parent: QLayout, config: dict) -> None:
-
-        def widget_callback(path: str) -> None:
-            # 更新并保存配置
-            current_config = self.load_config()
-            current_config["label_input_path"] = path.strip()
-            self.save_config(current_config)
-
-            # 发出信号通知文件夹已选择
-            self.folderSelected.emit(path)
-
-        # 获取配置文件中的初始路径
-        initial_path = config.get("label_input_path", "./input")
-
-        drag_card = FolderDropCard(
-            init=initial_path,  # 传入初始路径
-            path_changed=widget_callback,
-        )
-        parent.addWidget(drag_card)
-
-
-# 顶部工具栏
-class CustomToolbar(Base,CardWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setFixedHeight(55)
-        self.layout = QHBoxLayout(self)
-        self.layout.setContentsMargins(8, 5, 8, 5)
-        self.layout.setSpacing(8)
-
-        self.button1 = TransparentDropDownPushButton(FIF.SEARCH, "搜索")
-        self.button2 = TransparentDropDownPushButton(FIF.MAIL, "筛选")
-        self.button3 = TransparentDropDownPushButton(FIF.MAIL, "提取")
-        self.button4 = TransparentDropDownPushButton(FIF.MAIL, "处理")
-        self.button5 = TransparentPushButton(FIF.SHARE, "导出")
-
-        button_icon_size = QSize(18, 18)
-        button_height = 32
-
-        for btn in [self.button1, self.button2, self.button3]:
-            btn.setIconSize(button_icon_size)
-            btn.setFixedHeight(button_height)
-
-        self.layout.addWidget(self.button1)
-        self.layout.addWidget(self.button2)
-        self.layout.addWidget(self.button3)
-        self.layout.addWidget(self.button4)
-        self.layout.addWidget(self.button5)
-        self.layout.addStretch(1)
-
-        # 导出按钮点击事件
-        self.button5.clicked.connect(self.command_export)
-
-    # 导出已完成的内容
-    def command_export(self) -> None:
-        # 触发导出事件
-        self.emit(Base.EVENT.TRANSLATION_MANUAL_EXPORT, {})
-
-        info_cont = self.tra("已根据当前的翻译数据在输出文件夹下生成翻译文件") + "  ... "
-        self.success_toast("", info_cont)
-
+from UserInterface.EditView.MonitoringPage import MonitoringPage
+from UserInterface.EditView.StartupPage import StartupPage
 
 # 底部命令栏
 class BottomCommandBar(Base,CardWidget):
@@ -206,7 +21,7 @@ class BottomCommandBar(Base,CardWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(80)
+        self.setFixedHeight(60)
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(8, 5, 8, 5)
         self.layout.setSpacing(12)
@@ -248,6 +63,7 @@ class BottomCommandBar(Base,CardWidget):
         self.continue_btn.setEnabled(False)  # 初始不可用
         self.stop_btn = TransparentPushButton(FIF.CANCEL_MEDIUM, '终止')
         self.schedule_btn = TransparentPushButton(FIF.DATE_TIME, '定时')
+        self.export_btn = TransparentPushButton(FIF.SHARE, "导出")
         self.arrow_btn = ToggleToolButton()
         self.arrow_btn.setIcon(FIF.UP)
         self.arrow_btn.setIconSize(QSize(16, 16))
@@ -265,6 +81,7 @@ class BottomCommandBar(Base,CardWidget):
         self.layout.addWidget(self.continue_btn)
         self.layout.addWidget(self.stop_btn)
         self.layout.addWidget(self.schedule_btn)
+        self.layout.addWidget(self.export_btn)
         self.layout.addWidget(self.arrow_btn)
 
         self.arrow_btn.clicked.connect(self.on_arrow_clicked)
@@ -276,6 +93,15 @@ class BottomCommandBar(Base,CardWidget):
         self.start_btn.clicked.connect(self.command_play)  # 开始按钮
         self.stop_btn.clicked.connect(self.command_stop)  # 停止按钮
         self.continue_btn.clicked.connect(self.command_continue)  # 继续按钮
+        self.export_btn.clicked.connect(self.command_export) # 导出按钮
+
+    # 导出已完成的内容
+    def command_export(self) -> None:
+        # 触发导出事件
+        self.emit(Base.EVENT.TRANSLATION_MANUAL_EXPORT, {})
+
+        info_cont = self.tra("已根据当前的翻译数据在输出文件夹下生成翻译文件") + "  ... "
+        self.success_toast("", info_cont)
 
     # 启用关闭继续翻译按钮
     def enable_continue_button(self, enable: bool) -> None:
@@ -357,15 +183,38 @@ class BottomCommandBar(Base,CardWidget):
         # 触发翻译状态检查事件
         self.emit(Base.EVENT.TRANSLATION_CONTINUE_CHECK, {})
 
-
 # 层级浏览器
 class NavigationCard(CardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.tree = TreeWidget(self)
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(10, 10, 10, 10)
+        self.layout.setSpacing(8)  # 增加间距
+        
+        # 添加工具栏到层级浏览器顶部
+        self.toolbar = QWidget()
+        self.toolbar_layout = QHBoxLayout(self.toolbar)
+        self.toolbar_layout.setContentsMargins(0, 0, 0, 0)
+        self.toolbar_layout.setSpacing(8)
+        
+        # 搜索按钮
+        self.search_button = TransparentToolButton(FIF.SEARCH)
+        # 筛选按钮
+        self.filter_button = TransparentToolButton(FIF.FILTER)
+
+        # 添加到布局
+        self.toolbar_layout.addStretch(1)  
+        self.toolbar_layout.addWidget(self.search_button)
+        self.toolbar_layout.addWidget(self.filter_button)
+        self.toolbar_layout.addStretch(1)  
+
+        # 将工具栏添加到主布局
+        self.layout.addWidget(self.toolbar)
+        
+        # 添加层级浏览器
+        self.tree = TreeWidget(self)
         self.layout.addWidget(self.tree)
+        
         self.populate_tree()
 
     def populate_tree(self):
@@ -393,21 +242,67 @@ class NavigationCard(CardWidget):
         self.tree.expandAll()
         self.tree.setHeaderHidden(True)
 
-# 内容标签区
+# 标签栏
 class PageCard(CardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(10, 10, 10, 10)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
+
+        # 创建水平布局用于放置 TabBar 和按钮
+        tab_layout = QHBoxLayout()
+
+        # 创建并配置 TabBar
         self.tab_bar = TabBar(self)
-        self.tab_bar.setTabMaximumWidth(220)
+        self.tab_bar.setTabMaximumWidth(160)
         self.tab_bar.setTabShadowEnabled(False)
         self.tab_bar.setTabSelectedBackgroundColor(Qt.white, Qt.lightGray)
         self.tab_bar.setScrollable(True)
-        self.layout.addWidget(self.tab_bar)
+
+        # 创建按钮容器
+        button_container = QWidget()
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.setSpacing(5)
+
+        # 创建视图切换按钮
+        self.view_button = TransparentToolButton(FIF.VIEW)
+        self.view_button.setIconSize(QSize(16, 16))
+        self.view_button.clicked.connect(self.on_view_button_clicked)
+
+        # 创建功能菜单
+        self.function_menu = RoundMenu(parent=self)
+        self.function_menu.addAction(Action(FIF.SAVE, '保存当前标签'))
+        self.function_menu.addAction(Action(FIF.SAVE_AS, '另存为...'))
+        self.function_menu.addAction(Action(FIF.PRINT, '打印'))
+        self.function_menu.addSeparator()
+        self.function_menu.addAction(Action(FIF.SETTING, '设置'))
+
+        # 创建功能菜单按钮
+        self.menu_button = TransparentDropDownToolButton(FIF.MENU)
+        self.menu_button.setIconSize(QSize(16, 16))
+        self.menu_button.setMenu(self.function_menu)
+
+        # 将按钮添加到按钮容器布局
+        button_layout.addWidget(self.view_button)
+        button_layout.addWidget(self.menu_button)
+
+
+        # 将 TabBar 和按钮容器添加到水平布局
+        tab_layout.addWidget(self.tab_bar, 1)  # 参数 1 表示该控件是可拉伸的
+        tab_layout.addWidget(button_container) # 参数 0 (默认) 表示该控件不拉伸，保持原始大小
+
+        # 将水平布局添加到主布局
+        self.layout.addLayout(tab_layout)
+
+        # 创建并添加 QStackedWidget
         self.stacked_widget = QStackedWidget(self)
         self.layout.addWidget(self.stacked_widget)
+
+    def on_view_button_clicked(self):
+        """视图切换按钮的占位功能"""
+        MessageBox("视图切换", "视图切换按钮被点击", self).exec()
 
 # 标签页
 class TabInterface(QWidget):
@@ -418,303 +313,6 @@ class TabInterface(QWidget):
         self.vBoxLayout.setAlignment(Qt.AlignCenter)
         self.vBoxLayout.addWidget(self.label, 0, Qt.AlignCenter)
         self.setObjectName(text.replace(' ', '-'))
-
-# 监控页面
-class DrawerPage(Base,QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        # 设置主容器
-        self.container = QVBoxLayout(self)
-        self.container.setSpacing(8)
-        self.container.setContentsMargins(24, 24, 24, 24)  # 左、上、右、下
-
-        # 添加控件
-        self.head_hbox_container = QWidget(self)
-        self.head_hbox = FlowLayout(self.head_hbox_container, needAni=False)
-        self.head_hbox.setSpacing(8)
-        self.head_hbox.setContentsMargins(0, 0, 0, 0)
-
-        # 添加卡片控件
-        self.add_combined_line_card(self.head_hbox)
-        self.add_token_card(self.head_hbox)
-        self.add_task_card(self.head_hbox)
-        self.add_time_card(self.head_hbox)
-        self.add_remaining_time_card(self.head_hbox)
-        self.add_ring_card(self.head_hbox)
-        self.add_waveform_card(self.head_hbox)
-        self.add_speed_card(self.head_hbox)
-        self.add_stability_card(self.head_hbox)
-
-        # 添加到主容器
-        self.container.addWidget(self.head_hbox_container, 1)
-
-        # 注册事件
-        self.subscribe(Base.EVENT.TRANSLATION_UPDATE, self.translation_update)
-
-        # 监控页面数据存储
-        self.data = {}
-
-
-    # 进度环
-    def add_ring_card(self, parent: QLayout) -> None:
-        self.ring = ProgressRingCard(title="任务进度",
-                                    icon=FIF.PIE_SINGLE,
-                                    min_value=0,
-                                    max_value=10000,
-                                    ring_size=(140, 140),
-                                    text_visible=True)
-        self.ring.setFixedSize(204, 204)
-        self.ring.set_format("无任务")
-        parent.addWidget(self.ring)
-
-    # 波形图
-    def add_waveform_card(self, parent: QLayout) -> None:
-        self.waveform = WaveformCard("波形图",
-                                    icon=FIF.MARKET
-                                    )
-        self.waveform.set_draw_grid(False)  # 关闭网格线
-        self.waveform.setFixedSize(633, 204)
-        parent.addWidget(self.waveform)
-
-    # 累计时间
-    def add_time_card(self, parent: QLayout) -> None:
-        self.time = DashboardCard(
-                title="累计时间",
-                value="Time",
-                unit="",
-                icon=FIF.STOP_WATCH,
-            )
-        self.time.setFixedSize(204, 204)
-        parent.addWidget(self.time)
-
-    # 剩余时间
-    def add_remaining_time_card(self, parent: QLayout) -> None:
-        self.remaining_time = DashboardCard(
-                title="剩余时间",
-                value="Time",
-                unit="",
-                icon=FIF.FRIGID,
-            )
-        self.remaining_time.setFixedSize(204, 204)
-        parent.addWidget(self.remaining_time)
-
-    # 行数统计
-    def add_combined_line_card(self, parent: QLayout) -> None:
-
-        self.combined_line_card = CombinedLineCard(
-            title="行数统计",
-            icon=FIF.PRINT,
-            left_title="已完成",
-            right_title="剩余",
-            initial_left_value="0",
-            initial_left_unit="Line",
-            initial_right_value="0",
-            initial_right_unit="Line",
-            parent=self
-        )
-
-        self.combined_line_card.setFixedSize(416, 204)
-        parent.addWidget(self.combined_line_card)
-
-    # 平均速度
-    def add_speed_card(self, parent: QLayout) -> None:
-        self.speed = DashboardCard(
-                title="平均速度",
-                value="T/S",
-                unit="",
-                icon=FIF.SPEED_HIGH,
-            )
-        self.speed.setFixedSize(204, 204)
-        parent.addWidget(self.speed)
-
-    # 累计消耗
-    def add_token_card(self, parent: QLayout) -> None:
-        self.token = DashboardCard(
-                title="累计消耗",
-                value="Token",
-                unit="",
-                icon=FIF.CALORIES,
-            )
-        self.token.setFixedSize(204, 204)
-        parent.addWidget(self.token)
-
-    # 并行任务
-    def add_task_card(self, parent: QLayout) -> None:
-        self.task = DashboardCard(
-                title="实时任务数",
-                value="0",
-                unit="",
-                icon=FIF.SCROLL,
-            )
-        self.task.setFixedSize(204, 204)
-        parent.addWidget(self.task)
-
-    # 稳定性
-    def add_stability_card(self, parent: QLayout) -> None:
-        self.stability = DashboardCard(
-                title="任务稳定性",
-                value="%",
-                unit="",
-                icon=FIF.TRAIN,
-            )
-        self.stability.setFixedSize(204, 204)
-        parent.addWidget(self.stability)
-
-
-    # 监控页面更新事件
-    def translation_update(self, event: int, data: dict) -> None:
-        if Base.work_status in (Base.STATUS.STOPING, Base.STATUS.TRANSLATING):
-            self.update_time(event, data)
-            self.update_line(event, data)
-            self.update_token(event, data)
-            self.update_stability(event, data)
-
-        self.update_task(event, data)
-        self.update_status(event, data)
-
-    # 更新时间
-    def update_time(self, event: int, data: dict) -> None:
-        if data.get("start_time", None) is not None:
-            self.data["start_time"] = data.get("start_time")
-
-        if self.data.get("start_time", 0) == 0:
-            total_time = 0
-        else:
-            total_time = int(time.time() - self.data.get("start_time", 0))
-
-        if total_time < 60:
-            self.time.set_unit("S")
-            self.time.set_value(f"{total_time}")
-        elif total_time < 60 * 60:
-            self.time.set_unit("M")
-            self.time.set_value(f"{(total_time / 60):.2f}")
-        else:
-            self.time.set_unit("H")
-            self.time.set_value(f"{(total_time / 60 / 60):.2f}")
-
-        remaining_time = int(total_time / max(1, self.data.get("line", 0)) * (self.data.get("total_line", 0) - self.data.get("line", 0)))
-        if remaining_time < 60:
-            self.remaining_time.set_unit("S")
-            self.remaining_time.set_value(f"{remaining_time}")
-        elif remaining_time < 60 * 60:
-            self.remaining_time.set_unit("M")
-            self.remaining_time.set_value(f"{(remaining_time / 60):.2f}")
-        else:
-            self.remaining_time.set_unit("H")
-            self.remaining_time.set_value(f"{(remaining_time / 60 / 60):.2f}")
-
-    # 更新行数
-    def update_line(self, event: int, data: dict) -> None:
-        if data.get("line", None) is not None and data.get("total_line", None) is not None:
-            self.data["line"] = data.get("line")
-            self.data["total_line"] = data.get("total_line")
-
-        translated_line = self.data.get("line", 0)
-        total_line = self.data.get("total_line", 0)
-        remaining_line = max(0, total_line - translated_line)
-
-        t_value_str: str
-        t_unit_str: str
-        if translated_line < 1000:
-            t_unit_str = "Line"
-            t_value_str = f"{translated_line}"
-        elif translated_line < 1000 * 1000:
-            t_unit_str = "KLine"
-            t_value_str = f"{(translated_line / 1000):.2f}"
-        else:
-            t_unit_str = "MLine"
-            t_value_str = f"{(translated_line / 1000 / 1000):.2f}"
-
-        r_value_str: str
-        r_unit_str: str
-        if remaining_line < 1000:
-            r_unit_str = "Line"
-            r_value_str = f"{remaining_line}"
-        elif remaining_line < 1000 * 1000:
-            r_unit_str = "KLine"
-            r_value_str = f"{(remaining_line / 1000):.2f}"
-        else:
-            r_unit_str = "MLine"
-            r_value_str = f"{(remaining_line / 1000 / 1000):.2f}"
-
-        if hasattr(self, 'combined_line_card') and self.combined_line_card:
-            self.combined_line_card.set_left_data(value=t_value_str, unit=t_unit_str)
-            self.combined_line_card.set_right_data(value=r_value_str, unit=r_unit_str)
-
-    # 更新实时任务数
-    def update_task(self, event: int, data: dict) -> None:
-        task = len([t for t in threading.enumerate() if "translator" in t.name])
-        if task < 1000:
-            self.task.set_unit("Task")
-            self.task.set_value(f"{task}")
-        else:
-            self.task.set_unit("KTask")
-            self.task.set_value(f"{(task / 1000):.2f}")
-
-    # 更新 Token 数据
-    def update_token(self, event: int, data: dict) -> None:
-        if data.get("token", None) is not None and data.get("total_completion_tokens", None) is not None:
-            self.data["token"] = data.get("token")
-            self.data["total_completion_tokens"] = data.get("total_completion_tokens")
-
-        token = self.data.get("token", 0)
-        if token < 1000:
-            self.token.set_unit("Token")
-            self.token.set_value(f"{token}")
-        elif token < 1000 * 1000:
-            self.token.set_unit("KToken")
-            self.token.set_value(f"{(token / 1000):.2f}")
-        else:
-            self.token.set_unit("MToken")
-            self.token.set_value(f"{(token / 1000 / 1000):.2f}")
-
-        speed = self.data.get("total_completion_tokens", 0) / max(1, time.time() - self.data.get("start_time", 0))
-        self.waveform.add_value(speed)
-        if speed < 1000:
-            self.speed.set_unit("T/S")
-            self.speed.set_value(f"{speed:.2f}")
-        else:
-            self.speed.set_unit("KT/S")
-            self.speed.set_value(f"{(speed / 1000):.2f}")
-
-    # 更新稳定性
-    def update_stability(self, event: int, data: dict) -> None:
-        # 如果传入数据中包含新的请求统计，则更新数据
-        if data.get("total_requests") is not None and data.get("error_requests") is not None:
-            self.data["total_requests"] = data["total_requests"]
-            self.data["error_requests"] = data["error_requests"]
-
-        # 获取总请求数和错误请求数（默认值为0）
-        total_requests = self.data.get("total_requests", 0)
-        error_requests = self.data.get("error_requests", 0)  # 修正变量名错误
-
-        # 计算稳定性百分比（成功率）
-        if total_requests == 0:
-            stability_percent = 0.0
-        else:
-            stability_percent = ((total_requests - error_requests) / total_requests) * 100  # 成功率计算
-
-        # 设置单位和格式化百分比值（保留两位小数）
-        self.stability.set_unit("%")
-        self.stability.set_value(f"{stability_percent:.2f}")
-
-    # 更新进度环
-    def update_status(self, event: int, data: dict) -> None:
-        if Base.work_status == Base.STATUS.STOPING:
-            percent = self.data.get("line", 0) / max(1, self.data.get("total_line", 0))
-            self.ring.set_value(int(percent * 10000))
-            info_cont = self.tra("停止中") + "\n" + f"{percent * 100:.2f}%"
-            self.ring.set_format(info_cont)
-        elif Base.work_status == Base.STATUS.TRANSLATING:
-            percent = self.data.get("line", 0) / max(1, self.data.get("total_line", 0))
-            self.ring.set_value(int(percent * 10000))
-            info_cont = self.tra("翻译中") + "\n" + f"{percent * 100:.2f}%"
-            self.ring.set_format(info_cont)
-        else:
-            self.ring.set_value(0)
-            info_cont = self.tra("无任务")
-            self.ring.set_format(info_cont)
-
 
 # 主界面
 class EditViewPage(Base,QFrame):
@@ -745,8 +343,7 @@ class EditViewPage(Base,QFrame):
         self.main_interface_layout.setContentsMargins(0, 0, 0, 0)  # 四周边距归零
         self.main_interface_layout.setSpacing(0)  # 控件间距归零
 
-        # 向主界面添加工具栏和堆叠控件
-        self.custom_toolbar = CustomToolbar()
+        # 向主界面添加堆叠控件
         self.stacked_widget = QStackedWidget()
 
         # 主页面设置
@@ -761,18 +358,16 @@ class EditViewPage(Base,QFrame):
         self.main_page_layout.addWidget(self.splitter)
 
         # 监控页面设置
-        self.drawer_page = DrawerPage()
+        self.monitoring_page = MonitoringPage()
 
         # 向堆叠控件添加页面，即信息展示页面与监控页面
         self.stacked_widget.addWidget(self.main_page)
-        self.stacked_widget.addWidget(self.drawer_page)
-        #self.stacked_widget.setCurrentIndex(1)  # 默认显示启动页
+        self.stacked_widget.addWidget(self.monitoring_page)
 
         # 底部命令栏设置
         self.bottom_bar_main = BottomCommandBar()
 
         # 组装主界面
-        self.main_interface_layout.addWidget(self.custom_toolbar)
         self.main_interface_layout.addWidget(self.stacked_widget)
         self.main_interface_layout.addWidget(self.bottom_bar_main)
 
@@ -781,6 +376,7 @@ class EditViewPage(Base,QFrame):
         self.top_stacked_widget.addWidget(self.main_interface)
 
         # 设置初始页面
+        #self.stacked_widget.setCurrentIndex(1)  # 默认显示启动页
         self.top_stacked_widget.setCurrentIndex(0)  # 默认显示启动页
 
         # 连接各种信号

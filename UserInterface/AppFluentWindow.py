@@ -21,14 +21,13 @@ from UserInterface.VersionManager.VersionManager import VersionManager
 from UserInterface.AppSettingsPage import AppSettingsPage
 
 from UserInterface.Platform.PlatformPage import PlatformPage
-from UserInterface.Setting.ProjectSettingsPage import ProjectSettingsPage
-from UserInterface.Monitoring.TranslationPage import TranslationPage
+from UserInterface.EditView.EditViewPage import EditViewPage
 
 from UserInterface.Settings.TaskSettingsPage import TaskSettingsPage
+from UserInterface.Settings.PluginsSettingsPage import PluginsSettingsPage
 
 from UserInterface.TranslationSettings.TranslationBasicSettingsPage import TranslationBasicSettingsPage
 from UserInterface.TranslationSettings.TranslationAdvanceSettingsPage import TranslationAdvanceSettingsPage
-from UserInterface.TranslationSettings.PluginsSettingsPage import PluginsSettingsPage
 
 from UserInterface.TranslationSettings.SystemPromptPage import SystemPromptPage
 from UserInterface.TranslationSettings.WritingStylePromptPage import WritingStylePromptPage
@@ -54,7 +53,7 @@ from StevExtraction import jtpp
 from UserInterface.Extraction_Tool.Export_Source_Text import Widget_export_source_text
 from UserInterface.Extraction_Tool.Import_Translated_Text import Widget_import_translated_text
 from UserInterface.Extraction_Tool.Export_Update_Text import Widget_update_text
-from UserInterface.EditView.EditViewPage import EditViewPage
+
 
 
 class UpdateCheckerThread(QThread):
@@ -355,10 +354,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
     # 添加第五节
     def add_stev_extraction_pages(self, plugin_manager, cache_manager, file_reader) -> None:
-
-        self.prject_page = ProjectSettingsPage("ProjectSettingsPagee", self, file_reader)
-        self.addSubInterface(self.prject_page, FluentIcon.FOLDER, self.tra("项目设置"), NavigationItemPosition.SCROLL)
-
+        pass
         #self.stev_extraction_navigation_item = BaseNavigationItem("stev_extraction_navigation_item", self)
         #self.addSubInterface(self.stev_extraction_navigation_item, FluentIcon.ZIP_FOLDER, self.tra("StevExtraction"), NavigationItemPosition.SCROLL)
         #self.widget_export_source_text = Widget_export_source_text("widget_export_source_text", self, jtpp)
