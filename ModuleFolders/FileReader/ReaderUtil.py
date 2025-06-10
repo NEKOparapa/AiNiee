@@ -18,12 +18,21 @@ from ModuleFolders.Cache.CacheItem import CacheItem
 _LANG_DETECTOR_INSTANCE: LanguageDetector | None = None
 """语言检测器单例实现"""
 
+VARIOUS_LETTERS_RANGE = r'a-zA-Z\uFF21-\uFF3A\uFF41-\uFF5A'
+"""标准字母与全角字母的范围"""
 HAS_UNUSUAL_ENG_REGEX = re.compile(
-    r"^(?:(?=.*_)(?=.*[a-zA-Z0-9])\S*|(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]*)$"
+    "^(?:"
+    fr"(?=.*_)(?=.*[{VARIOUS_LETTERS_RANGE}\d])\S*|"
+    fr"(?=.*[{VARIOUS_LETTERS_RANGE}])(?=.*\d)[{VARIOUS_LETTERS_RANGE}\d]*|"
+    "dummy"
+    ")$"
 )
 """预编译正则 匹配包含 至少一个下划线和至少一个字母与数字且没有空白字符 或者 只由字母和数字组成且必须同时包含至少一个字母与数字 的字符串"""
 CLEAN_TEXT_PATTERN = re.compile(
-    r'\\{1,2}[a-zA-Z]{1,2}\[\d+]|if\(.{0,8}[vs]\[\d+].{0,16}\)|\\n|[a-zA-Z]+\d+(?!\d*[a-zA-Z]|\d*\s+[a-zA-Z])'
+    fr'\\{{1,2}}[{VARIOUS_LETTERS_RANGE}]{{1,2}}\[\d+]|'
+    r'if\(.{0,16}[vs]\[\d+].{0,16}\)|'
+    r'\\n|'
+    fr'[{VARIOUS_LETTERS_RANGE}]+\d+(?!\d*[{VARIOUS_LETTERS_RANGE}])'
 )
 """修改后的预编译正则，移除了标签模式"""
 
@@ -219,6 +228,11 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
             results.append((['no_text'], -1.0, -1.0))
             continue
 
+        # 再次检查是否仅包含符号
+        if is_symbols_only(no_symbols_text):
+            results.append((['symbols_only_again'], -1.0, -1.0))
+            continue
+
         lang_result = detector.detect(no_symbols_text).detections
         if not lang_result:
             results.append((['un'], -1.0, -1.0))
@@ -231,7 +245,7 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
             has_non_latin = bool(set(mediapipe_langs) & set(NON_LATIN_ISO_CODES))
             if has_non_latin:
                 # 如果有非西文语言出现，去掉所有的英文字母与一些符号后再识别
-                non_latin_text = re.sub(r"[a-zA-Z\uFF21-\uFF3A\uFF41-\uFF5A'-]+", ' ', no_symbols_text)
+                non_latin_text = re.sub(fr"[{VARIOUS_LETTERS_RANGE}'-]+", ' ', no_symbols_text)
                 # 去除多余空格
                 non_latin_text = re.sub(r'\s+', ' ', non_latin_text).strip()
                 # 判断是否为空字符串，非空串才重新识别
@@ -438,7 +452,7 @@ def clean_text(source_text):
 
     # 处理标签，有条件地保留内容
     def tag_handler(match):
-        content = match.group(1)
+        content: str = match.group(1).strip()
         # 如果内容是纯数字，不保留
         if content.isdigit():
             return ' '
@@ -501,7 +515,7 @@ def make_final_detect_text(item: CacheItem):
     has_non_latin = bool(langs & set(NON_LATIN_ISO_CODES))
     if has_non_latin:
         # 如果有非西文语言出现，去掉所有的英文字母与一些符号后再识别
-        non_latin_text = re.sub(r"[a-zA-Z\uFF21-\uFF3A\uFF41-\uFF5A'-]+", ' ', no_symbols_text)
+        non_latin_text = re.sub(fr"[{VARIOUS_LETTERS_RANGE}'-]+", ' ', no_symbols_text)
         # 去除多余空格
         return re.sub(r'\s+', ' ', non_latin_text).strip()
     return no_symbols_text

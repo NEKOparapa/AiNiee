@@ -88,6 +88,10 @@ class DirectoryReader:
                                 if final_detect_text:
                                     source_texts[cache_file.storage_path].append(final_detect_text)
 
+                        # 补充缺失的字典项
+                        if not language_stats[cache_file.storage_path]:
+                            language_stats[cache_file.storage_path] = defaultdict(lambda: [0, 0.0])
+
                         if cache_file.items:
                             cache_project.add_file(cache_file)
 
@@ -124,16 +128,19 @@ class DirectoryReader:
                 hc_langs_set = {lang for lang, count, avg_confidence in high_confidence_langs}
 
                 # 如果到这里了还没有high_confidence_langs的结果，使用mp对所有有效文字进行检测
-                if not high_confidence_langs and len(source_texts[file_path]) > 0:
-                    mp_langs, mp_score, _ = ReaderUtil.detect_language_with_mediapipe(
-                        [CacheItem(source_text='\n'.join(source_texts[file_path]))], 0, None
-                    )[0]
-                    if mp_score >= 0.82:
-                        # 添加到language_counter
-                        language_counter[file_path] = [(mp_langs[0], len(source_texts[file_path]), mp_score)]
+                if not high_confidence_langs:
+                    if len(source_texts[file_path]) > 0:
+                        mp_langs, mp_score, _ = ReaderUtil.detect_language_with_mediapipe(
+                            [CacheItem(source_text='\n'.join(source_texts[file_path]))], 0, None
+                        )[0]
+                        if mp_score >= 0.82:
+                            # 添加到language_counter
+                            language_counter[file_path] = [(mp_langs[0], len(source_texts[file_path]), mp_score)]
 
-                        # 添加到 hc_langs_set
-                        hc_langs_set.add(mp_langs[0])
+                            # 添加到 hc_langs_set
+                            hc_langs_set.add(mp_langs[0])
+                    else:
+                        language_counter[file_path] = [('un', len(source_texts[file_path]), -1.0)]
                 else:
                     language_counter[file_path] = high_confidence_langs
 
@@ -147,6 +154,8 @@ class DirectoryReader:
 
                 if low_confidence_langs:
                     low_confidence_language_counter[file_path] = low_confidence_langs
+            else:
+                language_counter[file_path] = [('un', 0, -1.0)]
 
         # 处理未出现在language_counter中的文件
         valid_file_paths = set(file_valid_items_count.keys())
