@@ -1,8 +1,8 @@
 from types import SimpleNamespace
 
 from Base.Base import Base
-from ModuleFolders.Translator import TranslatorUtil
-from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.TaskExecutor import TranslatorUtil
+from ModuleFolders.TaskExecutor.TaskConfig import TaskConfig
 
 class PromptBuilderLocal(Base):
 
@@ -10,7 +10,7 @@ class PromptBuilderLocal(Base):
         super().__init__()
 
     # 获取默认系统提示词，优先从内存中读取，如果没有，则从文件中读取
-    def get_system_default(config: TranslatorConfig) -> str:
+    def get_system_default(config: TaskConfig) -> str:
         if getattr(PromptBuilderLocal, "local_system_zh", None) == None:
             with open("./Resource/Prompt/local_system_zh.txt", "r", encoding = "utf-8") as reader:
                 PromptBuilderLocal.local_system_zh = reader.read().strip()
@@ -38,7 +38,7 @@ class PromptBuilderLocal(Base):
         return result
 
     # 获取系统提示词
-    def build_system(config: TranslatorConfig, source_lang: str) -> str:
+    def build_system(config: TaskConfig, source_lang: str) -> str:
 
         # 获取默认系统提示词
         PromptBuilderLocal.get_system_default(config)

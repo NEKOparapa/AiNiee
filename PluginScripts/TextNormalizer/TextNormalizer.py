@@ -2,7 +2,7 @@ import itertools
 import unicodedata
 
 from PluginScripts.PluginBase import PluginBase
-from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.TaskExecutor.TaskConfig import TaskConfig
 
 class TextNormalizer(PluginBase):
 
@@ -93,12 +93,12 @@ class TextNormalizer(PluginBase):
 
         self.add_event("normalize_text", PluginBase.PRIORITY.NORMAL)
 
-    def on_event(self, event: str, config: TranslatorConfig, data: dict) -> None:
+    def on_event(self, event: str, config: TaskConfig, data: dict) -> None:
         if event in ("normalize_text",):
             self.on_normalize_text(event, config, data)
 
     # 文本规范化事件
-    def on_normalize_text(self, event: str, config: TranslatorConfig, data: dict) -> None:
+    def on_normalize_text(self, event: str, config: TaskConfig, data: dict) -> None:
         for k in data.keys():
             data[k] = self.normalize(data.get(k, ""))
 

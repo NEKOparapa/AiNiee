@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 from Base.Base import Base
-from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.TaskExecutor.TaskConfig import TaskConfig
 
 
 class PromptBuilderSakura(Base):
@@ -10,7 +10,7 @@ class PromptBuilderSakura(Base):
         super().__init__()
 
     # 获取默认系统提示词，优先从内存中读取，如果没有，则从文件中读取
-    def get_system_default(config: TranslatorConfig) -> str:
+    def get_system_default(config: TaskConfig) -> str:
         if getattr(PromptBuilderSakura, "sakura_system_zh", None) == None:
             with open("./Resource/Prompt/sakura_system_zh.txt", "r", encoding = "utf-8") as reader:
                 PromptBuilderSakura.sakura_system_zh = reader.read().strip()
@@ -30,7 +30,7 @@ class PromptBuilderSakura(Base):
         return result
 
     # 获取系统提示词
-    def build_system(config: TranslatorConfig, _source_lang: str) -> str:
+    def build_system(config: TaskConfig, _source_lang: str) -> str:
         PromptBuilderSakura.get_system_default(config)
 
         # 构造结果
@@ -42,7 +42,7 @@ class PromptBuilderSakura(Base):
 
 
     # 构造术语表
-    def build_glossary(config: TranslatorConfig, input_dict: dict) -> str:
+    def build_glossary(config: TaskConfig, input_dict: dict) -> str:
         # 将输入字典中的所有值转换为集合
         lines = set(line for line in input_dict.values())
 

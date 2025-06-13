@@ -1,5 +1,5 @@
 from ModuleFolders.Cache.CacheProject import CacheProject
-from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.TaskExecutor.TaskConfig import TaskConfig
 
 
 class Priority():
@@ -31,7 +31,7 @@ class PluginBase:
         pass
 
     # 处理事件
-    def on_event(self, event: str, config: TranslatorConfig, event_data: CacheProject | dict) -> None:
+    def on_event(self, event: str, config: TaskConfig, event_data: CacheProject | dict) -> None:
         pass
 
     # 添加事件

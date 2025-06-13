@@ -158,7 +158,7 @@ if __name__ == "__main__":
     update_splash_message(splash, "正在加载核心组件... (50%)", app)
     from UserInterface.AppFluentWindow import AppFluentWindow
     app_fluent_window = AppFluentWindow(
-        version="AiNiee6.5.2 dev",
+        version="AiNiee6.6 dev",
         plugin_manager=plugin_manager,
         cache_manager=cache_manager,
         file_reader =file_reader,
@@ -166,13 +166,13 @@ if __name__ == "__main__":
 
     # 创建接口测试器对象，并初始化订阅事件
     update_splash_message(splash, "正在加载测试器... (60%)", app)
-    from ModuleFolders.RequestTester.RequestTester import RequestTester
-    request_tester = RequestTester()
+    from ModuleFolders.SimpleExecutor.SimpleExecutor import SimpleExecutor
+    simple_executor = SimpleExecutor()
 
     # 创建翻译器对象，并初始化订阅事件(高性能消耗)
     update_splash_message(splash, "正在加载翻译器... (75%)", app)
-    from ModuleFolders.Translator.Translator import Translator
-    translator = Translator(
+    from ModuleFolders.TaskExecutor.TaskExecutor import TaskExecutor
+    task_executor = TaskExecutor(
         plugin_manager=plugin_manager,
         cache_manager=cache_manager,
         file_reader=file_reader, 

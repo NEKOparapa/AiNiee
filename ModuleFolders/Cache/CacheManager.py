@@ -8,6 +8,7 @@ import msgspec
 import rapidjson as json
 
 from Base.Base import Base
+from ModuleFolders.TaskExecutor.TaskType import TaskType
 from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Cache.CacheProject import (
@@ -29,7 +30,7 @@ class CacheManager(Base):
         self.file_lock = threading.Lock()
 
         # 注册事件
-        self.subscribe(Base.EVENT.TRANSLATION_START, self.start_interval_saving)
+        self.subscribe(Base.EVENT.TASK_START, self.start_interval_saving)
         self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
 
     def start_interval_saving(self, event: int, data: dict):
@@ -199,12 +200,9 @@ class CacheManager(Base):
             return []
 
         # 计算实际要获取的上文的起始索引 (包含)
-        # max(0, ...) 确保不会低于列表下界
-        # 起始点 start_idx - previous_item_count
         from_idx = max(0, start_idx - previous_item_count)
 
         # 计算实际要获取的上文的结束索引 (不包含)
-        # min(start_idx, len(all_items)) 确保不会超过当前块的起始或列表上界
         to_idx = min(start_idx, len(all_items)) # 通常就是 start_idx
 
         # 如果计算出的范围无效，返回空列表
@@ -217,14 +215,18 @@ class CacheManager(Base):
         return collected
 
     # 生成待翻译片段
-    def generate_item_chunks(self, limit_type: str, limit_count: int, previous_line_count: int) -> \
+    def generate_item_chunks(self, limit_type: str, limit_count: int, previous_line_count: int, task_mode) -> \
             Tuple[List[List[CacheItem]], List[List[CacheItem]], List[str]]:
         chunks, previous_chunks, file_paths = [], [], []  # 添加 file_paths 初始化
 
         # 遍历所有文件
         for file in self.project.files.values():
-            # 过滤掉已翻译的条目
-            items = [item for item in file.items if item.translation_status == TranslationStatus.UNTRANSLATED]
+
+            # 根据任务模式筛选条目
+            if task_mode == TaskType.TRANSLATION : # 选取未翻译条目
+                items = [item for item in file.items if item.translation_status == TranslationStatus.UNTRANSLATED]
+            elif task_mode == TaskType.POLISH: # 选取已翻译条目
+                items = [item for item in file.items if item.translation_status == TranslationStatus.TRANSLATED]
 
             # 如果没有需要翻译的条目，则跳过
             if not items:

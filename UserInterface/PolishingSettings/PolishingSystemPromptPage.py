@@ -5,7 +5,7 @@ from qfluentwidgets import CaptionLabel, CardWidget, FluentWindow, HorizontalSep
 
 
 from Base.Base import Base
-from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
+from ModuleFolders.PromptBuilder.PromptBuilderPolishing import PromptBuilderPolishing
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 
 # 提示词卡片
@@ -287,16 +287,8 @@ class PolishingSystemPromptPage(QFrame, Base):
 
         # 获取系统预设提示词内容
         conmon_name = "通用"
-        common_id = PromptBuilderEnum.COMMON
-        common_prompt_content = PromptBuilder.get_system_default(config,PromptBuilderEnum.COMMON)
-
-        cot_name = "思维链"
-        cot_id = PromptBuilderEnum.COT
-        coT_prompt_content = PromptBuilder.get_system_default(config,PromptBuilderEnum.COT)
-
-        think_name = "推理模型"
-        think_id = PromptBuilderEnum.THINK
-        think_prompt_content = PromptBuilder.get_system_default(config,PromptBuilderEnum.THINK)
+        common_id = PromptBuilderEnum.REFINEMENT_COMMON
+        common_prompt_content = PromptBuilderPolishing.get_system_default(config)
 
         # 组装默认提示词列表
         default_prompt = [
@@ -304,18 +296,6 @@ class PolishingSystemPromptPage(QFrame, Base):
                 "id": common_id,
                 "name": conmon_name,
                 "content": common_prompt_content,
-                "type": "system"
-            },
-            {
-                "id": cot_id,
-                "name": cot_name,
-                "content": coT_prompt_content,
-                "type": "system"
-            },
-            {
-                "id": think_id,
-                "name": think_name,
-                "content": think_prompt_content,
                 "type": "system"
             }
         ]

@@ -8,23 +8,7 @@ from qfluentwidgets import (
 
 class APITypeCard(CardWidget):
     def __init__(self, title: str, description: str, icon: FluentIcon = None, parent: QWidget = None, init=None):
-        """
-        初始化 API 类型卡片。
 
-        Parameters
-        ----------
-        title : str
-            卡片的标题。
-        description : str
-            卡片的描述性文字。
-        icon : FluentIcon, optional
-            显示在标题左侧的图标 (例如 FluentIcon.DEVELOPER_TOOLS)。默认为 None。
-        parent : QWidget, optional
-            父控件。默认为 None。
-        init : callable, optional
-            一个回调函数，在卡片初始化结束时调用，传入卡片实例 self。
-            可用于在创建后立即向卡片添加特定控件。默认为 None。
-        """
         super().__init__(parent)
 
         # --- 基础设置 ---
@@ -59,7 +43,6 @@ class APITypeCard(CardWidget):
         self.text_vbox.addWidget(self.title_label)
 
         self.description_label = CaptionLabel(description, self)
-        self.description_label.setTextColor(QColor(96, 96, 96), QColor(160, 160, 160))
         self.text_vbox.addWidget(self.description_label)
 
         self.head_hbox.addWidget(self.text_container, 1) # 让文本区域占据主要空间

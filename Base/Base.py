@@ -15,23 +15,27 @@ class Event():
 
     API_TEST_DONE = 100                             # API 测试完成
     API_TEST_START = 101                            # API 测试开始
-    TRANSLATION_START = 210                         # 翻译开始
-    TRANSLATION_UPDATE = 220                        # 翻译状态更新
-    TRANSLATION_STOP = 230                          # 翻译停止
-    TRANSLATION_STOP_DONE = 231                     # 翻译停止完成
-    TRANSLATION_CONTINUE_CHECK = 240                # 继续翻译状态检查
-    TRANSLATION_CONTINUE_CHECK_DONE = 241           # 继续翻译状态检查完成
-    TRANSLATION_MANUAL_EXPORT = 250                 # 翻译结果手动导出
+    TASK_START = 210                         # 翻译开始
+    TASK_UPDATE = 220                        # 翻译状态更新
+    TASK_STOP = 230                          # 翻译停止
+    TASK_STOP_DONE = 231                     # 翻译停止完成
+    TASK_COMPLETED = 232                          # 翻译完成
+
+    TASK_CONTINUE_CHECK = 240                # 继续翻译状态检查
+    TASK_CONTINUE_CHECK_DONE = 241           # 继续翻译状态检查完成
+    TASK_MANUAL_EXPORT = 250                 # 翻译结果手动导出
     CACHE_FILE_AUTO_SAVE = 300                      # 缓存文件自动保存
-    APP_SHUT_DOWN = 1000                            # 应用关闭
+
 
     APP_UPDATE_CHECK: int = 600                             # 检查更新
     APP_UPDATE_CHECK_DONE: int = 610                        # 检查更新完成
     APP_UPDATE_DOWNLOAD: int = 620                          # 下载应用
     APP_UPDATE_DOWNLOAD_UPDATE: int = 630                   # 下载应用更新
 
-    GLOSS_TRANSLATION_START = 700                           # 术语表翻译 开始
-    GLOSS_TRANSLATION_DONE = 701                            # 术语表翻译 完成
+    GLOSS_TASK_START = 700                           # 术语表翻译 开始
+    GLOSS_TASK_DONE = 701                            # 术语表翻译 完成
+
+    APP_SHUT_DOWN = 1000                            # 应用关闭
 
 # 软件运行状态列表
 class Status():
@@ -40,7 +44,7 @@ class Status():
     TRANSLATING = 3000                              # 翻译中
     STOPING = 4000                                  # 停止中
     API_TEST = 2000                                 # 接口测试中
-    GLOSS_TRANSLATION = 5000                        # 术语表翻译中
+    GLOSS_TASK = 5000                        # 术语表翻译中
 
 
 class Base():
