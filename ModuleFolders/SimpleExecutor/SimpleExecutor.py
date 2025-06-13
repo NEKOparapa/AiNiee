@@ -7,7 +7,7 @@ from ModuleFolders.LLMRequester.LLMRequester import LLMRequester
 
 
 # 接口测试器(后面改造成通用请求器，用来承担UI触发的各种额外的请求任务)
-class RequestTester(Base):
+class SimpleExecutor(Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -16,7 +16,7 @@ class RequestTester(Base):
         self.subscribe(Base.EVENT.API_TEST_START, self.api_test_start)
 
         # 订阅术语表翻译开始事件
-        self.subscribe(Base.EVENT.GLOSS_TRANSLATION_START, self.glossary_translation_start)
+        self.subscribe(Base.EVENT.GLOSS_TASK_START, self.glossary_translation_start)
 
     # 响应接口测试开始事件
     def api_test_start(self, event: int, data: dict):
@@ -153,7 +153,7 @@ class RequestTester(Base):
         prompt_dictionary_data = data.get("prompt_dictionary_data")
         if not prompt_dictionary_data:
             self.info("没有需要翻译的术语")
-            self.emit(Base.EVENT.GLOSS_TRANSLATION_DONE, {
+            self.emit(Base.EVENT.GLOSS_TASK_DONE, {
                 "status": "null",
                 "updated_data": prompt_dictionary_data
             })
@@ -185,7 +185,7 @@ class RequestTester(Base):
         untranslated_items = [item for item in prompt_dictionary_data if not item.get("dst")]
         if not untranslated_items:
             self.info("没有需要翻译的术语")
-            self.emit(Base.EVENT.GLOSS_TRANSLATION_DONE, {
+            self.emit(Base.EVENT.GLOSS_TASK_DONE, {
                 "status": "null",
                 "updated_data": prompt_dictionary_data
             })
@@ -268,7 +268,7 @@ class RequestTester(Base):
             # 如果请求失败，返回失败信息
             if skip:
                 self.error(f"第 {group_idx+1}/{total_groups} 组翻译失败")
-                self.emit(Base.EVENT.GLOSS_TRANSLATION_DONE, {
+                self.emit(Base.EVENT.GLOSS_TASK_DONE, {
                     "status": "error",
                     "message": f"第 {group_idx+1} 组翻译请求失败",
                     "updated_data": None
@@ -293,7 +293,7 @@ class RequestTester(Base):
                     
             except Exception as e:
                 self.error(f"翻译结果解析失败: {str(e)}")
-                self.emit(Base.EVENT.GLOSS_TRANSLATION_DONE, {
+                self.emit(Base.EVENT.GLOSS_TASK_DONE, {
                     "status": "error",
                     "message": f"第 {group_idx+1} 组结果解析失败",
                     "updated_data": None
@@ -320,7 +320,7 @@ class RequestTester(Base):
                 f"└ 最终状态: {'成功' if translated_count == len(untranslated_items) else '失败'}")
         
         # 发送完成事件
-        self.emit(Base.EVENT.GLOSS_TRANSLATION_DONE, {
+        self.emit(Base.EVENT.GLOSS_TASK_DONE, {
             "status": "success",
             "updated_data": prompt_dictionary_data
         })

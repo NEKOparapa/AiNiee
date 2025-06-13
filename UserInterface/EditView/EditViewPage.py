@@ -14,6 +14,7 @@ from Base.Base import Base
 
 from UserInterface.EditView.MonitoringPage import MonitoringPage
 from UserInterface.EditView.StartupPage import StartupPage
+from ModuleFolders.TaskExecutor.TaskType import TaskType
 
 # 底部命令栏
 class BottomCommandBar(Base,CardWidget):
@@ -25,6 +26,9 @@ class BottomCommandBar(Base,CardWidget):
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(8, 5, 8, 5)
         self.layout.setSpacing(12)
+
+        # 初始化当前模式
+        self.current_mode = TaskType.TRANSLATION  # 默认模式为翻译
 
         self.back_btn = PushButton(FIF.RETURN, "返回")
         self.back_btn.setIconSize(QSize(16, 16))
@@ -38,8 +42,7 @@ class BottomCommandBar(Base,CardWidget):
         top_row = QHBoxLayout()
         self.project_name = CaptionLabel('项目名字')
         self.project_name.setFixedWidth(200)
-        self.progress_status = CaptionLabel("235/1578")
-        self.progress_status.setTextColor("#404040")
+        self.progress_status = CaptionLabel("0/0")
         top_row.addWidget(self.project_name, alignment=Qt.AlignLeft)
         top_row.addStretch()
         top_row.addWidget(self.progress_status, alignment=Qt.AlignRight)
@@ -54,14 +57,19 @@ class BottomCommandBar(Base,CardWidget):
         project_layout.addWidget(self.progress_bar)
         project_layout.addStretch(1)
 
+        # 创建翻译和润色的下拉菜单
         self.menu = RoundMenu(parent=self)
-        self.menu.addAction(Action(FIF.ALBUM, '开始润色'))
+        self.translate_action = Action(FIF.PLAY, '开始翻译')
+        self.polish_action = Action(FIF.ALBUM, '开始润色')
+        self.menu.addAction(self.translate_action)
+        self.menu.addAction(self.polish_action)
 
+        # 初始按钮
         self.start_btn = PrimarySplitPushButton(FIF.PLAY, '开始翻译')
         self.start_btn.setFlyout(self.menu)
-        self.continue_btn = TransparentPushButton(FIF.ROTATE, '继续') 
+        self.continue_btn = TransparentPushButton(FIF.ROTATE, '继续')
         self.continue_btn.setEnabled(False)  # 初始不可用
-        self.stop_btn = TransparentPushButton(FIF.CANCEL_MEDIUM, '终止')
+        self.stop_btn = TransparentPushButton(FIF.CANCEL_MEDIUM, '停止')
         self.schedule_btn = TransparentPushButton(FIF.DATE_TIME, '定时')
         self.export_btn = TransparentPushButton(FIF.SHARE, "导出")
         self.arrow_btn = ToggleToolButton()
@@ -87,19 +95,35 @@ class BottomCommandBar(Base,CardWidget):
         self.arrow_btn.clicked.connect(self.on_arrow_clicked)
 
         # 注册事件
-        self.subscribe(Base.EVENT.TRANSLATION_STOP_DONE, self.translation_stop_done)  # 监听翻译停止完成事件
+        self.subscribe(Base.EVENT.TASK_STOP_DONE, self.translation_stop_done)
 
         # 连接按钮
-        self.start_btn.clicked.connect(self.command_play)  # 开始按钮
-        self.stop_btn.clicked.connect(self.command_stop)  # 停止按钮
-        self.continue_btn.clicked.connect(self.command_continue)  # 继续按钮
-        self.export_btn.clicked.connect(self.command_export) # 导出按钮
+        self.start_btn.clicked.connect(self.command_play)
+        self.stop_btn.clicked.connect(self.command_stop)
+        self.continue_btn.clicked.connect(self.command_continue)
+        self.export_btn.clicked.connect(self.command_export)
+
+        # 连接菜单项的点击事件
+        self.translate_action.triggered.connect(
+            lambda: self._on_mode_selected(TaskType.TRANSLATION, self.translate_action)
+        )
+        self.polish_action.triggered.connect(
+            lambda: self._on_mode_selected(TaskType.POLISH, self.polish_action)
+        )
+
+        # 注册事件
+        self.subscribe(Base.EVENT.TASK_UPDATE, self.data_update) # 监听监控数据更新事件
+
+
+    # 处理模式选择的函数
+    def _on_mode_selected(self, mode: str, action: Action):
+        self.current_mode = mode
+        self.start_btn.setText(action.text())
+        print(f"模式已切换为: {self.current_mode}")
 
     # 导出已完成的内容
     def command_export(self) -> None:
-        # 触发导出事件
-        self.emit(Base.EVENT.TRANSLATION_MANUAL_EXPORT, {})
-
+        self.emit(Base.EVENT.TASK_MANUAL_EXPORT, {})
         info_cont = self.tra("已根据当前的翻译数据在输出文件夹下生成翻译文件") + "  ... "
         self.success_toast("", info_cont)
 
@@ -111,9 +135,27 @@ class BottomCommandBar(Base,CardWidget):
     def on_arrow_clicked(self):
         self.arrowClicked.emit()
 
+    # 底部进度条更新事件
+    def data_update(self, event: int, data: dict) -> None:
+        # 检查是否包含进度信息
+        if data.get("line") is not None and data.get("total_line") is not None:
+            line = data.get("line")
+            total_line = data.get("total_line")
+
+            # 更新进度文本标签 (例如 "15/100")
+            self.progress_status.setText(f"{line}/{total_line}")
+
+            # 更新进度条
+            if total_line > 0:
+                percentage = int((line / total_line) * 100)
+                self.progress_bar.setValue(percentage)
+
+            else:
+                # 如果总行数为0，则将进度条重置为0
+                self.progress_bar.setValue(0)
+
     # 开始
     def command_play(self) -> None:
-
         if self.continue_btn.isEnabled():
             info_cont1 = self.tra("将重置尚未完成的翻译任务，是否确认开始新的翻译任务") + "  ... ？"
             message_box = MessageBox("Warning", info_cont1, self.window())
@@ -121,8 +163,6 @@ class BottomCommandBar(Base,CardWidget):
             message_box.yesButton.setText(info_cont2)
             info_cont3 = self.tra("取消")
             message_box.cancelButton.setText(info_cont3)
-
-            # 点击取消，则不触发开始翻译事件
             if not message_box.exec():
                 return
 
@@ -130,58 +170,49 @@ class BottomCommandBar(Base,CardWidget):
         self.stop_btn.setEnabled(True)
         self.continue_btn.setEnabled(False)
 
-        # 触发开始翻译事件
-        self.emit(Base.EVENT.TRANSLATION_START, {
+        # 触发翻译开始事件
+        self.emit(Base.EVENT.TASK_START, {
             "continue_status": False,
+            "current_mode": self.current_mode  # 发送当前选择的模式
         })
 
-        # 如果监控页面未展开，则自动展开
-        if not self.arrow_btn.isChecked():  # 如果监控页面未展开
-            self.arrow_btn.setChecked(True)  # 激活展开按钮
-            self.arrowClicked.emit()  # 发出展开信号
+        # 自动展开监控页面
+        if not self.arrow_btn.isChecked():
+            self.arrow_btn.setChecked(True)
+            self.arrowClicked.emit()
 
     # 停止
     def command_stop(self) -> None:
-
         info_cont1 = self.tra("是否确定停止任务") + "  ... ？"
-        message_box = MessageBox("Warning", info_cont1, self.window()) 
+        message_box = MessageBox("Warning", info_cont1, self.window())
         info_cont2 = self.tra("确认")
         message_box.yesButton.setText(info_cont2)
         info_cont3 = self.tra("取消")
         message_box.cancelButton.setText(info_cont3)
 
-        # 确认则触发停止翻译事件
         if message_box.exec():
             info_cont4 = self.tra("正在停止翻译任务") + "  ... "
             print(info_cont4)
-
             self.stop_btn.setEnabled(False)
-
-            # 触发停止翻译事件
-            self.emit(Base.EVENT.TRANSLATION_STOP, {})
+            self.emit(Base.EVENT.TASK_STOP, {})
 
     # 继续翻译
     def command_continue(self) -> None:
         self.start_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
-        self.continue_btn.setEnabled(False)
 
-        # 触发开始翻译事件，但发送不同参数
-        self.emit(Base.EVENT.TRANSLATION_START, {
+        print(f"模式: {self.current_mode}")
+        self.emit(Base.EVENT.TASK_START, {
             "continue_status": True,
+            "current_mode": self.current_mode # 发送当前选择的模式
         })
-
 
     # 翻译停止完成事件
     def translation_stop_done(self, event: int, data: dict) -> None:
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
-
-        # 设置翻译状态为无任务
         Base.work_status = Base.STATUS.IDLE
-
-        # 触发翻译状态检查事件
-        self.emit(Base.EVENT.TRANSLATION_CONTINUE_CHECK, {})
+        self.emit(Base.EVENT.TASK_CONTINUE_CHECK, {})
 
 # 层级浏览器
 class NavigationCard(CardWidget):
@@ -199,13 +230,10 @@ class NavigationCard(CardWidget):
         
         # 搜索按钮
         self.search_button = TransparentToolButton(FIF.SEARCH)
-        # 筛选按钮
-        self.filter_button = TransparentToolButton(FIF.FILTER)
 
         # 添加到布局
         self.toolbar_layout.addStretch(1)  
         self.toolbar_layout.addWidget(self.search_button)
-        self.toolbar_layout.addWidget(self.filter_button)
         self.toolbar_layout.addStretch(1)  
 
         # 将工具栏添加到主布局
@@ -273,11 +301,13 @@ class PageCard(CardWidget):
 
         # 创建功能菜单
         self.function_menu = RoundMenu(parent=self)
-        self.function_menu.addAction(Action(FIF.SAVE, '保存当前标签'))
-        self.function_menu.addAction(Action(FIF.SAVE_AS, '另存为...'))
-        self.function_menu.addAction(Action(FIF.PRINT, '打印'))
+        self.function_menu.addAction(Action(FIF.SAVE, 'AI排版'))
+        self.function_menu.addAction(Action(FIF.SAVE, 'AI总结'))
         self.function_menu.addSeparator()
-        self.function_menu.addAction(Action(FIF.SETTING, '设置'))
+        self.function_menu.addAction(Action(FIF.PRINT, '删除翻译'))
+        self.function_menu.addAction(Action(FIF.PRINT, '删除润色'))
+        self.function_menu.addSeparator()
+        self.function_menu.addAction(Action(FIF.SETTING, '当前文件信息'))
 
         # 创建功能菜单按钮
         self.menu_button = TransparentDropDownToolButton(FIF.MENU)
@@ -382,7 +412,7 @@ class EditViewPage(Base,QFrame):
         # 连接各种信号
         self.startup_page.folderSelected.connect(self.on_folder_selected) # 连接信号到界面切换和路径处理
         self.startup_page.continueButtonPressed.connect(self.show_main_interface_from_startup_continue) # 继续按钮点击具体事件
-        self.bottom_bar_main.back_btn.clicked.connect(lambda: self.top_stacked_widget.setCurrentIndex(0))  # 返回按钮绑定
+        self.bottom_bar_main.back_btn.clicked.connect(self.on_back_button_clicked)  # 返回按钮绑定
         self.nav_card.tree.itemClicked.connect(self.on_tree_item_clicked)  # 树形项点击事件
         self.page_card.tab_bar.currentChanged.connect(self.on_tab_changed)  # 标签页切换事件
         self.page_card.tab_bar.tabCloseRequested.connect(self.on_tab_close_requested)  # 标签页关闭请求
@@ -438,7 +468,7 @@ class EditViewPage(Base,QFrame):
             self.startup_page.show_continue_button(False)
             self.bottom_bar_main.enable_continue_button(False)
 
-    # 处理拖拽文件夹路径改变信号
+    # 输入文件夹路径改变信号
     def on_folder_selected(self, path: str):
 
         # 获取配置信息
@@ -492,7 +522,7 @@ class EditViewPage(Base,QFrame):
         # 切换到主界面
         self.top_stacked_widget.setCurrentWidget(self.main_interface)
 
-    # 从启动页的“继续”按钮点击后，切换到主界面
+    # 启动页继续项目按钮事件
     def show_main_interface_from_startup_continue(self):
         # 获取配置信息
         config = self.load_config()
@@ -537,7 +567,15 @@ class EditViewPage(Base,QFrame):
         # 切换到主界面
         self.top_stacked_widget.setCurrentWidget(self.main_interface)
 
-    # 监控页面切换
+    # 底部命令栏返回按钮事件
+    def on_back_button_clicked(self):
+
+        if Base.work_status == Base.STATUS.IDLE:
+            # 如果当前工作状态为空闲，则直接切换到启动页面
+            self.top_stacked_widget.setCurrentIndex(0)
+            return
+        
+    # 展开按钮事件，展开或收起监控页面
     def toggle_page(self):
         current_index = self.stacked_widget.currentIndex()
         new_index = 1 - current_index
@@ -567,7 +605,7 @@ class EditViewPage(Base,QFrame):
         # 立即切换到新创建的页面
         self.page_card.stacked_widget.setCurrentWidget(new_tab)
 
-    # 标签切换
+    # 标签页点击事件，切换到对应的页面
     def on_tab_changed(self, index):
         if index >= 0:
             tab_text = self.page_card.tab_bar.tabText(index)
@@ -586,7 +624,7 @@ class EditViewPage(Base,QFrame):
         # 移除其他特殊字符（保留中文字符）
         return ''.join(c for c in cleaned if c.isalnum() or c == '-')
 
-    # 标签删除事件
+    # 标签页删除事件
     def on_tab_close_requested(self, index):
         tab_text = self.page_card.tab_bar.tabText(index)
         for i in range(self.page_card.stacked_widget.count()):

@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import FluentIcon, HorizontalSeparator
 
 from Base.Base import Base
+from Widget.SpinCard import SpinCard
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.PushButtonCard import PushButtonCard
 from Widget.SwitchButtonCard import SwitchButtonCard
@@ -17,8 +18,9 @@ class PolishingBasicSettingsPage(QFrame, Base):
 
         # 默认配置
         self.default = {
-            "polishing_target_platform": "deepseek",
-            "polishing_output_path": "./output",
+            "polishing_mode_selection": "translated_text_polish",
+            "polishing_pre_line_counts": 0,
+            "polishing_output_path": "./polish_output",
             "polishing_auto_set_output_path": True,
         }
 
@@ -31,10 +33,12 @@ class PolishingBasicSettingsPage(QFrame, Base):
         self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
         # 添加控件
-        self.add_widget_api(self.container, config)
+        self.add_widget_polishing_mode(self.container, config)
         self.container.addWidget(HorizontalSeparator())
-        self.add_widget_06(self.container, config)
-        self.add_widget_07(self.container, config)
+        self.add_widget_pre_line(self.container, config)
+        self.container.addWidget(HorizontalSeparator())
+        self.add_widget_output(self.container, config)
+        self.add_widget_auto_output(self.container, config)
         # 填充
         self.container.addStretch(1)
 
@@ -43,58 +47,83 @@ class PolishingBasicSettingsPage(QFrame, Base):
         super().showEvent(event)
         self.show_event(self, event) if hasattr(self, "show_event") else None
 
-    # 获取接口列表
-    def get_items(self, config) -> list:
-        return [v.get("name") for k, v in config.get("platforms").items()]
-
-    # 通过接口名字获取标签
-    def find_tag_by_name(self, config, name: str) -> str:
-        results = [v.get("tag") for k, v in config.get("platforms").items() if v.get("name") == name]
-
-        if len(results) > 0:
-            return results[0]
-        else:
-            return ""
-
-    # 通过接口标签获取名字
-    def find_name_by_tag(self, config, tag: str) -> str:
-        results = [v.get("name") for k, v in config.get("platforms").items() if v.get("tag") == tag]
-
-        if len(results) > 0:
-            return results[0]
-        else:
-            return ""
-
-    # 模型类型
-    def add_widget_api(self, parent, config) -> None:
-
-        def update_widget(widget) -> None:
-            config = self.load_config()
-
-            widget.set_items(self.get_items(config))
-            widget.set_current_index(max(0, widget.find_text(self.find_name_by_tag(config, config.get("polishing_target_platform")))))
+    # 润色模式
+    def add_widget_polishing_mode(self, parent, config) -> None:
+        # 定义模式配对列表（显示文本, 存储值）
+        mode_pairs = [
+            (self.tra("原文"), "source_text_polish"),
+            (self.tra("译文"), "translated_text_polish")
+        ]
+        
+        # 生成翻译后的配对列表
+        translated_pairs = [(self.tra(display), value) for display, value in mode_pairs]
 
         def init(widget) -> None:
-            # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
-            self.show_event = lambda _, event: update_widget(widget)
+            current_config = self.load_config()
+            
+            # 根据配置确定当前模式值
+            if current_config.get("polishing_mode_selection", "") == "translated_text_polish":
+                current_value = "translated_text_polish"
+            else:
+                current_value = "source_text_polish"
+                
+            # 通过存储值查找对应的索引
+            index = next(
+                (i for i, (_, value) in enumerate(translated_pairs) if value == current_value),
+                0  # 默认选择第一个选项
+            )
+            widget.set_current_index(max(0, index))
 
         def current_text_changed(widget, text: str) -> None:
+            # 通过显示文本查找对应的存储值
+            value = next(
+                (value for display, value in translated_pairs if display == text),
+                "translated_text_polish"  # 默认值
+            )
+            
             config = self.load_config()
-            config["polishing_target_platform"] = self.find_tag_by_name(config, text)
+            if value == "translated_text_polish":
+                config["polishing_mode_selection"] = "translated_text_polish"
+            else:
+                config["polishing_mode_selection"] = "source_text_polish"
+                
+            self.save_config(config)
+
+        # 创建选项列表（使用翻译后的显示文本）
+        options = [display for display, value in translated_pairs]
+
+        self.mode_combo_box = ComboBoxCard(
+            self.tra("润色模式选择"),
+            self.tra("选择需要润色的文本范围，选择原文将润色原文，选择译文将润色翻译后的文本"),
+            options,
+            init=init,
+            current_text_changed=current_text_changed,
+        )
+        parent.addWidget(self.mode_combo_box)
+
+
+    # 参考上文行数
+    def add_widget_pre_line(self, parent, config) -> None:
+        def init(widget) -> None:
+            widget.set_range(0, 9999999)
+            widget.set_value(config.get("polishing_pre_line_counts"))
+
+        def value_changed(widget, value: int) -> None:
+            config = self.load_config()
+            config["polishing_pre_line_counts"] = value
             self.save_config(config)
 
         parent.addWidget(
-            ComboBoxCard(
-                self.tra("接口平台"),
-                self.tra("设置当前翻译项目所使用的接口的名称，注意，选择错误将不能进行翻译"),
-                [],
+            SpinCard(
+                self.tra("参考上文行数"),
+                self.tra("行数不宜设置过大，建议10行以内"),
                 init = init,
-                current_text_changed = current_text_changed,
+                value_changed = value_changed,
             )
         )
 
     # 输出文件夹
-    def add_widget_06(self, parent, config) -> None:
+    def add_widget_output(self, parent, config) -> None:
         def widget_init(widget):
             info_cont = self.tra("当前输出文件夹为") + f" {config.get("polishing_output_path")}"
             widget.set_description(info_cont)
@@ -142,7 +171,7 @@ class PolishingBasicSettingsPage(QFrame, Base):
         )
 
     # 自动设置输出文件夹开关
-    def add_widget_07(self, parent, config) -> None:
+    def add_widget_auto_output(self, parent, config) -> None:
         def widget_init(widget) -> None:
             widget.set_checked(config.get("polishing_auto_set_output_path"))
 
@@ -154,7 +183,7 @@ class PolishingBasicSettingsPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 self.tra("自动设置输出文件夹"),
-                self.tra("启用此功能后，设置为输入文件夹的平级目录，比如输入文件夹为D:/Test/Input，输出文件夹将设置为D:/Test/AiNieeOutput"),
+                self.tra("启用此功能后，设置为输入文件夹的平级目录，比如输入文件夹为D:/Test/Input，输出文件夹将设置为D:/Test/PolishingOutput"),
                 widget_init,
                 widget_callback,
             )

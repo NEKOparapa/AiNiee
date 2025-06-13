@@ -26,10 +26,10 @@ class MonitoringPage(Base,QWidget):
 
         # 添加卡片控件
         self.add_combined_line_card(self.head_hbox)
-        self.add_token_card(self.head_hbox)
-        self.add_task_card(self.head_hbox)
         self.add_time_card(self.head_hbox)
         self.add_remaining_time_card(self.head_hbox)
+        self.add_token_card(self.head_hbox)
+        self.add_task_card(self.head_hbox)
         self.add_ring_card(self.head_hbox)
         self.add_waveform_card(self.head_hbox)
         self.add_speed_card(self.head_hbox)
@@ -39,7 +39,8 @@ class MonitoringPage(Base,QWidget):
         self.container.addWidget(self.head_hbox_container, 1)
 
         # 注册事件
-        self.subscribe(Base.EVENT.TRANSLATION_UPDATE, self.translation_update)
+        self.subscribe(Base.EVENT.TASK_UPDATE, self.data_update) # 监听监控数据更新事件
+        self.subscribe(Base.EVENT.TASK_COMPLETED, self.data_update)  # 监听任务完成事件
 
         # 监控页面数据存储
         self.data = {}
@@ -152,7 +153,7 @@ class MonitoringPage(Base,QWidget):
 
 
     # 监控页面更新事件
-    def translation_update(self, event: int, data: dict) -> None:
+    def data_update(self, event: int, data: dict) -> None:
         if Base.work_status in (Base.STATUS.STOPING, Base.STATUS.TRANSLATING):
             self.update_time(event, data)
             self.update_line(event, data)
@@ -298,7 +299,7 @@ class MonitoringPage(Base,QWidget):
         elif Base.work_status == Base.STATUS.TRANSLATING:
             percent = self.data.get("line", 0) / max(1, self.data.get("total_line", 0))
             self.ring.set_value(int(percent * 10000))
-            info_cont = self.tra("翻译中") + "\n" + f"{percent * 100:.2f}%"
+            info_cont = self.tra("任务中") + "\n" + f"{percent * 100:.2f}%"
             self.ring.set_format(info_cont)
         else:
             self.ring.set_value(0)

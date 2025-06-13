@@ -47,7 +47,6 @@ class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
     def _item_to_bilingual_line(self, item: CacheItem):
         # 至少2个换行，让双语排版不那么紧凑，但用户说不需要，要原文排版
         line_break = "\n" * max(item.require_extra("line_break") + 1, 1)
-        _indent = item.require_extra("sentence_indent")
 
         return (
             f"{item.source_text}\n"
@@ -57,7 +56,6 @@ class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
     def _item_to_translated_line(self, item: CacheItem):
         line_break = "\n" * (item.require_extra("line_break") + 1)
 
-        # 原来有{item.require_extra("sentence_indent")}与translated_text的.lstrip()，现在不需要了
         return f"{item.translated_text}{line_break}"
 
     @classmethod

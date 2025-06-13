@@ -10,8 +10,8 @@ from rich.markup import escape
 from Base.Base import Base
 from Base.PluginManager import PluginManager
 from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
-from ModuleFolders.Translator import Translator
-from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.TaskExecutor import TaskExecutor
+from ModuleFolders.TaskExecutor.TaskConfig import TaskConfig
 from ModuleFolders.LLMRequester.LLMRequester import LLMRequester
 from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
@@ -26,7 +26,7 @@ from ModuleFolders.TextProcessor.TextProcessor import TextProcessor
 
 class TranslatorTask(Base):
 
-    def __init__(self, config: TranslatorConfig, plugin_manager: PluginManager, request_limiter: RequestLimiter, source_lang: "Translator.SourceLang") -> None:
+    def __init__(self, config: TaskConfig, plugin_manager: PluginManager, request_limiter: RequestLimiter, source_lang: "TaskExecutor.SourceLang") -> None:
         super().__init__()
 
         self.config = config
@@ -61,7 +61,7 @@ class TranslatorTask(Base):
         self.previous_items = previous_items
 
     # 消息构建预处理
-    def prepare(self, target_platform: str, prompt_preset: int) -> None:
+    def prepare(self, target_platform: str) -> None:
 
         # 生成上文文本列表
         self.previous_text_list = [v.source_text for v in self.previous_items]
@@ -286,63 +286,6 @@ class TranslatorTask(Base):
 
         return messages, system, extra_log
 
-    # 生成日志行
-    def generate_log_rows(self, error: str, start_time: int, prompt_tokens: int, completion_tokens: int, source: list[str], translated: list[str], extra_log: list[str]) -> tuple[list[str], bool]:
-        rows = []
-
-        if error != "":
-            rows.append(error)
-        else:
-            rows.append(
-                f"任务耗时 {(time.time() - start_time):.2f} 秒，"
-                + f"文本行数 {len(source)} 行，提示消耗 {prompt_tokens} Tokens，补全消耗 {completion_tokens} Tokens"
-            )
-
-        # 添加额外日志
-        for v in extra_log:
-            rows.append(v.strip())
-
-        # 原文译文对比
-        pair = ""
-        # 修复变量名冲突问题，将循环变量改为 s 和 t
-        for idx, (s, t) in enumerate(itertools.zip_longest(source, translated, fillvalue=""), 1):
-            pair += f"\n"
-            # 处理原文和译文的换行，分割成多行
-            s_lines = s.split('\n') if s is not None else ['']
-            t_lines = t.split('\n') if t is not None else ['']
-            # 逐行对比，确保对齐
-            for s_line, t_line in itertools.zip_longest(s_lines, t_lines, fillvalue=""):
-                pair += f"{s_line} [bright_blue]-->[/] {t_line}\n"
-        
-        rows.append(pair.strip())
-
-        return rows, error == ""
-
-    # 生成日志表格
-    def generate_log_table(self, rows: list, success: bool) -> Table:
-        table = Table(
-            box = box.ASCII2,
-            expand = True,
-            title = " ",
-            caption = " ",
-            highlight = True,
-            show_lines = True,
-            show_header = False,
-            show_footer = False,
-            collapse_padding = True,
-            border_style = "green" if success else "red",
-        )
-        table.add_column("", style = "white", ratio = 1, overflow = "fold")
-
-        for row in rows:
-            if isinstance(row, str):
-                table.add_row(escape(row, re.compile(r"(\\*)(\[(?!bright_blue\]|\/\])[a-z#/@][^[]*?)").sub)) # 修复rich table不显示[]内容问题
-            else:
-                table.add_row(*row)
-
-        return table
-
-
     # 启动任务
     def start(self) -> dict:
         return self.unit_translation_task()
@@ -370,7 +313,7 @@ class TranslatorTask(Base):
             time.sleep(1)
 
         # 获取接口配置信息包
-        platform_config = self.config.get_platform_configuration("singleReq")
+        platform_config = self.config.get_platform_configuration("translationReq")
 
         # 发起请求
         requester = LLMRequester()
@@ -475,3 +418,60 @@ class TranslatorTask(Base):
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
             }
+
+
+    # 生成日志行
+    def generate_log_rows(self, error: str, start_time: int, prompt_tokens: int, completion_tokens: int, source: list[str], translated: list[str], extra_log: list[str]) -> tuple[list[str], bool]:
+        rows = []
+
+        if error != "":
+            rows.append(error)
+        else:
+            rows.append(
+                f"任务耗时 {(time.time() - start_time):.2f} 秒，"
+                + f"文本行数 {len(source)} 行，提示消耗 {prompt_tokens} Tokens，补全消耗 {completion_tokens} Tokens"
+            )
+
+        # 添加额外日志
+        for v in extra_log:
+            rows.append(v.strip())
+
+        # 原文译文对比
+        pair = ""
+        # 修复变量名冲突问题，将循环变量改为 s 和 t
+        for idx, (s, t) in enumerate(itertools.zip_longest(source, translated, fillvalue=""), 1):
+            pair += f"\n"
+            # 处理原文和译文的换行，分割成多行
+            s_lines = s.split('\n') if s is not None else ['']
+            t_lines = t.split('\n') if t is not None else ['']
+            # 逐行对比，确保对齐
+            for s_line, t_line in itertools.zip_longest(s_lines, t_lines, fillvalue=""):
+                pair += f"{s_line} [bright_blue]-->[/] {t_line}\n"
+        
+        rows.append(pair.strip())
+
+        return rows, error == ""
+
+    # 生成日志表格
+    def generate_log_table(self, rows: list, success: bool) -> Table:
+        table = Table(
+            box = box.ASCII2,
+            expand = True,
+            title = " ",
+            caption = " ",
+            highlight = True,
+            show_lines = True,
+            show_header = False,
+            show_footer = False,
+            collapse_padding = True,
+            border_style = "green" if success else "red",
+        )
+        table.add_column("", style = "white", ratio = 1, overflow = "fold")
+
+        for row in rows:
+            if isinstance(row, str):
+                table.add_row(escape(row, re.compile(r"(\\*)(\[(?!bright_blue\]|\/\])[a-z#/@][^[]*?)").sub)) # 修复rich table不显示[]内容问题
+            else:
+                table.add_row(*row)
+
+        return table

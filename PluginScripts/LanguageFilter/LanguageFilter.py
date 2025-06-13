@@ -2,10 +2,10 @@ from tqdm import tqdm
 from rich import print
 
 from ModuleFolders.Cache.CacheProject import CacheProject
-from ModuleFolders.Translator import TranslatorUtil
+from ModuleFolders.TaskExecutor import TranslatorUtil
 from PluginScripts.PluginBase import PluginBase
 from ModuleFolders.Cache.CacheItem import TranslationStatus
-from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.TaskExecutor.TaskConfig import TaskConfig
 
 
 class LanguageFilter(PluginBase):
@@ -89,13 +89,13 @@ class LanguageFilter(PluginBase):
 
         self.add_event("text_filter", PluginBase.PRIORITY.NORMAL)
 
-    def on_event(self, event: str, config: TranslatorConfig, data: CacheProject) -> None:
+    def on_event(self, event: str, config: TaskConfig, data: CacheProject) -> None:
 
         if event == "text_filter":
             self.on_text_filter(event, config, data)
 
     # 文本后处理事件
-    def on_text_filter(self, event: str, config: TranslatorConfig, data: CacheProject) -> None:
+    def on_text_filter(self, event: str, config: TaskConfig, data: CacheProject) -> None:
         print("")
         print("[LanguageFilter] 开始执行预处理 ...")
 

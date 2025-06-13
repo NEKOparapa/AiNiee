@@ -1,21 +1,22 @@
 from PyQt5.QtCore import QEvent
-from PyQt5.QtWidgets import QFrame, QLabel, QLayout, QStackedWidget
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QFileDialog, QFrame, QLabel, QLayout, QStackedWidget
 from PyQt5.QtWidgets import QVBoxLayout
-from qfluentwidgets import FluentIcon, SegmentedWidget
+from qfluentwidgets import FluentIcon, FluentWindow, HorizontalSeparator, PillPushButton, SegmentedWidget
 
 from Base.Base import Base
-from ModuleFolders.Cache.CacheProject import ProjectType
 from Widget.ComboBoxCard import ComboBoxCard
-from Widget.LineEditCard import LineEditCard
 from Widget.PushButtonCard import PushButtonCard
 from Widget.SwitchButtonCard import SwitchButtonCard
-from Widget.GameDropCard import GameDropCard
+from Widget.ComboBoxCard import ComboBoxCard
+from Widget.SpinCard import SpinCard
+from Widget.FlowCard import FlowCard
 
 
-class ProjectSettingsPage(QFrame, Base):
 
-    def __init__(self, text: str, window, support_project_types: list[str]) -> None:
+
+class TranslationSettingsPage(QFrame, Base):
+
+    def __init__(self, text: str, window) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
@@ -24,11 +25,11 @@ class ProjectSettingsPage(QFrame, Base):
         self.stackedWidget = QStackedWidget(self)  # 创建一个 QStackedWidget 实例，堆叠式窗口
         self.vBoxLayout = QVBoxLayout(self)  # 创建一个垂直布局管理器
 
-        self.A_settings = ProjectSettingsPage_A('A_settings', window)  # 创建实例，指向界面
-        self.B_settings = ProjectSettingsPage_B('B_settings', window, support_project_types)  # 创建实例，指向界面
+        self.A_settings = TranslationBasicSettingsPage('A_settings', window)  # 创建实例，指向界面
+        self.B_settings = TranslationAdvanceSettingsPage('B_settings', window)  # 创建实例，指向界面
 
-        info_cont1 = self.tra("快速设置")
-        info_cont2 = self.tra("详细设置")
+        info_cont1 = self.tra("基础设置")
+        info_cont2 = self.tra("高级设置")
 
         # 添加子界面到分段式导航栏
         self.addSubInterface(self.A_settings, 'A_settings', info_cont1)
@@ -65,8 +66,8 @@ class ProjectSettingsPage(QFrame, Base):
         self.pivot.setCurrentItem(widget.objectName())
 
 
-# 快速设置
-class ProjectSettingsPage_A(QFrame, Base):
+
+class TranslationBasicSettingsPage(QFrame, Base):
 
     def __init__(self, text: str, window) -> None:
         super().__init__(window)
@@ -74,128 +75,9 @@ class ProjectSettingsPage_A(QFrame, Base):
 
         # 默认配置
         self.default = {
-            "target_platform": "deepseek",
-            "label_input_path": "./input",
-            "path_hit_count": 0,
-        }
-
-        # 载入并保存默认配置
-        config = self.save_config(self.load_config_from_default())
-
-        # 设置主容器
-        self.container = QVBoxLayout(self)
-        self.container.setSpacing(8)
-        self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
-
-        # 添加控件
-        self.add_widget_api(self.container, config)
-        self.add_widget_folder_drop(self.container, config)
-
-        # 填充
-        self.container.addStretch(1)
-
-    # 页面每次展示时触发
-    def showEvent(self, event: QEvent) -> None:
-        super().showEvent(event)
-        self.show_event(self, event) if hasattr(self, "show_event") else None
-
-    # 获取接口列表
-    def get_items(self, config) -> list:
-        return [v.get("name") for k, v in config.get("platforms").items()]
-
-    # 通过接口名字获取标签
-    def find_tag_by_name(self, config, name: str) -> str:
-        results = [v.get("tag") for k, v in config.get("platforms").items() if v.get("name") == name]
-
-        if len(results) > 0:
-            return results[0]
-        else:
-            return ""
-
-    # 通过接口标签获取名字
-    def find_name_by_tag(self, config, tag: str) -> str:
-        results = [v.get("name") for k, v in config.get("platforms").items() if v.get("tag") == tag]
-
-        if len(results) > 0:
-            return results[0]
-        else:
-            return ""
-
-    # 输入文件夹
-    def add_widget_folder_drop(self, parent: QLayout, config: dict) -> None:
-
-        def widget_callback(widget: GameDropCard, path: str) -> None:
-            # path 参数直接由信号提供
-            if not path: # 检查路径是否有效
-                return
-
-            # 更新并保存配置
-            current_config = self.load_config()
-            current_config["label_input_path"] = path.strip()
-
-            # 超限清空
-            path_hit_count = widget.getHitCount()
-            if path_hit_count>=10000:
-                path_hit_count = 0
-
-            current_config["path_hit_count"] = path_hit_count
-
-            self.save_config(current_config)
-
-        # 获取配置文件中的初始路径
-        initial_path = config.get("label_input_path", "./input")
-        initial_hits = config.get("path_hit_count", 0) 
-
-        drag_card = GameDropCard(
-            init=initial_path,
-            path_changed=widget_callback,
-            initial_hit_count=initial_hits # 传递初始命中次数
-        )
-        parent.addWidget(drag_card)
-
-    # 模型类型
-    def add_widget_api(self, parent, config) -> None:
-
-        def update_widget(widget) -> None:
-            config = self.load_config()
-
-            widget.set_items(self.get_items(config))
-            widget.set_current_index(max(0, widget.find_text(self.find_name_by_tag(config, config.get("target_platform")))))
-
-        def init(widget) -> None:
-            # 注册事件，以确保配置文件被修改后，列表项目可以随之更新
-            self.show_event = lambda _, event: update_widget(widget)
-
-        def current_text_changed(widget, text: str) -> None:
-            config = self.load_config()
-            config["target_platform"] = self.find_tag_by_name(config, text)
-            self.save_config(config)
-
-        parent.addWidget(
-            ComboBoxCard(
-                self.tra("接口平台"),
-                self.tra("设置当前翻译项目所使用的接口的名称，注意，选择错误将不能进行翻译"),
-                [],
-                init = init,
-                current_text_changed = current_text_changed,
-            )
-        )
-
-
-# 详细设置
-class ProjectSettingsPage_B(QFrame, Base):
-
-    def __init__(self, text: str, window, support_project_types: list[str]) -> None:
-        super().__init__(window)
-        self.setObjectName(text.replace(" ", "-"))
-        self.support_project_types = support_project_types
-
-        # 默认配置
-        self.default = {
-            "translation_project": "AutoType",
+            "pre_line_counts": 0,
             "source_language": "auto",
             "target_language": "chinese_simplified",
-            "label_input_exclude_rule": "",
             "label_output_path": "./output",
             "auto_set_output_path": True,
             "keep_original_encoding": False,
@@ -210,62 +92,42 @@ class ProjectSettingsPage_B(QFrame, Base):
         self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
         # 添加控件
-        self.add_widget_02(self.container, config)
-        self.add_widget_03(self.container, config)
-        self.add_widget_04(self.container, config)
-        self.add_widget_exclude_rule(self.container, config)
-        self.add_widget_06(self.container, config)
-        self.add_widget_07(self.container, config)
-        self.add_widget_08(self.container, config)
 
+        self.add_widget_source_language(self.container, config)
+        self.add_widget_target_language(self.container, config)
+        self.container.addWidget(HorizontalSeparator())
+        self.add_widget_pre_lines(self.container, config)
+        self.container.addWidget(HorizontalSeparator())
+        self.add_widget_output_path(self.container, config)
+        self.add_widget_auto_set(self.container, config)
+        self.container.addWidget(HorizontalSeparator())
+        self.add_widget_encoding(self.container, config)
         # 填充
         self.container.addStretch(1)
 
 
-    # 项目类型
-    def add_widget_02(self, parent, config) -> None:
-        # 定义项目类型与值的配对列表（显示文本, 存储值）
-        translated_pairs = [(self.tra(project_type), project_type) for project_type in self.support_project_types]
-
+    # 参考上文行数
+    def add_widget_pre_lines(self, parent, config) -> None:
         def init(widget) -> None:
-            """初始化时根据存储的值设置当前选项"""
-            current_config = self.load_config()
-            current_value = current_config.get("translation_project", "AutoType")
-            
-            # 通过值查找对应的索引
-            index = next(
-                (i for i, (_, value) in enumerate(translated_pairs) if value == current_value),
-                0  # 默认选择第一个选项
-            )
-            widget.set_current_index(max(0, index))
+            widget.set_range(0, 9999999)
+            widget.set_value(config.get("pre_line_counts"))
 
-        def current_text_changed(widget, text: str) -> None:
-            """选项变化时存储对应的值"""
-            # 通过显示文本查找对应的值
-            value = next(
-                (value for display, value in translated_pairs if display == text),
-                "AutoType"  # 默认值
-            )
-            
+        def value_changed(widget, value: int) -> None:
             config = self.load_config()
-            config["translation_project"] = value
+            config["pre_line_counts"] = value
             self.save_config(config)
 
-        # 创建选项列表（使用翻译后的显示文本）
-        options = [display for display, value in translated_pairs]
-
         parent.addWidget(
-            ComboBoxCard(
-                self.tra("项目类型"),
-                self.tra("设置当前翻译项目所使用的原始文本的格式，注意，选择错误将不能进行翻译"),
-                options,
-                init=init,
-                current_text_changed=current_text_changed
+            SpinCard(
+                self.tra("参考上文行数"),
+                self.tra("行数不宜设置过大，建议10行以内 (不支持本地类接口)"),
+                init = init,
+                value_changed = value_changed,
             )
         )
 
     # 原文语言
-    def add_widget_03(self, parent, config) -> None:
+    def add_widget_source_language(self, parent, config) -> None:
         # 定义语言与值的配对列表（显示文本, 存储值）
         source_language_pairs = [
             (self.tra("自动检测"), "auto"),
@@ -321,7 +183,7 @@ class ProjectSettingsPage_B(QFrame, Base):
         )
 
     # 译文语言
-    def add_widget_04(self, parent, config) -> None:
+    def add_widget_target_language(self, parent, config) -> None:
         # 定义语言与值的配对列表（显示文本, 存储值）
         target_language_pairs = [
             (self.tra("简中"), "chinese_simplified"),
@@ -375,30 +237,8 @@ class ProjectSettingsPage_B(QFrame, Base):
             )
         )
 
-    # 输入的文件/目录排除规则
-    def add_widget_exclude_rule(self, parent, config) -> None:
-
-        def init(widget) -> None:
-            widget.set_text(config.get("label_input_exclude_rule"))
-            widget.set_fixed_width(256)
-            widget.set_placeholder_text(self.tra("*.log,aaa/*"))
-
-        def text_changed(widget, text: str) -> None:
-            config = self.load_config()
-            config["label_input_exclude_rule"] = text.strip()
-            self.save_config(config)
-
-        parent.addWidget(
-            LineEditCard(
-                self.tra("输入文件/目录排除规则"),
-                self.tra("*.log 表示排除所有结尾为 .log 的文件，aaa/* 表示排除输入文件夹下整个 aaa 目录，多个规则用英文逗号分隔"),
-                init=init,
-                text_changed=text_changed,
-            )
-        )
-
     # 输出文件夹
-    def add_widget_06(self, parent, config) -> None:
+    def add_widget_output_path(self, parent, config) -> None:
         def widget_init(widget):
             info_cont = self.tra("当前输出文件夹为") + f" {config.get("label_output_path")}"
             widget.set_description(info_cont)
@@ -446,7 +286,7 @@ class ProjectSettingsPage_B(QFrame, Base):
         )
 
     # 自动设置输出文件夹开关
-    def add_widget_07(self, parent, config) -> None:
+    def add_widget_auto_set(self, parent, config) -> None:
         def widget_init(widget) -> None:
             widget.set_checked(config.get("auto_set_output_path"))
 
@@ -464,8 +304,8 @@ class ProjectSettingsPage_B(QFrame, Base):
             )
         )
 
-    # 自动设置输出文件夹开关
-    def add_widget_08(self, parent, config) -> None:
+    # 自动编码统一
+    def add_widget_encoding(self, parent, config) -> None:
         def widget_init(widget) -> None:
             widget.set_checked(config.get("keep_original_encoding"))
 
@@ -481,5 +321,176 @@ class ProjectSettingsPage_B(QFrame, Base):
                          "关闭后将始终使用 utf-8 编码（无特殊情况保持关闭即可）"),
                 widget_init,
                 widget_callback,
+            )
+        )
+
+
+
+class TranslationAdvanceSettingsPage(QFrame, Base):
+
+    def __init__(self, text: str, window: FluentWindow) -> None:
+        super().__init__(window)
+        self.setObjectName(text.replace(" ", "-"))
+
+        # 默认配置
+        self.default = {
+            "few_shot_and_example_switch": True,
+            "auto_process_text_code_segment": False,
+            "response_conversion_toggle": False,
+            "opencc_preset": "s2t",
+            "response_check_switch": {
+                "return_to_original_text_check": True,
+                "residual_original_text_check": True,
+                "newline_character_count_check": True,
+            },
+        }
+
+        # 载入用户配置合并类默认配置，并重新保存配置
+        config = self.save_config(self.load_config_from_default())
+
+        # 设置主容器
+        self.vbox = QVBoxLayout(self)
+        self.vbox.setSpacing(8)
+        self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
+
+        # 添加控件
+        self.add_widget_few_shot_and_example(self.vbox, config, window)
+        self.vbox.addWidget(HorizontalSeparator())
+        self.add_auto_process_text_code_segment(self.vbox, config, window)
+        self.vbox.addWidget(HorizontalSeparator())
+        self.add_widget_opencc(self.vbox, config, window)
+        self.add_widget_opencc_preset(self.vbox, config, window)
+        self.vbox.addWidget(HorizontalSeparator())
+        self.add_widget_result_check(self.vbox, config, window)
+
+        # 填充
+        self.vbox.addStretch(1)
+
+    # 示例模块和预回复模块开关
+    def add_widget_few_shot_and_example(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+
+        def init(widget: SwitchButtonCard) -> None:
+            widget.set_checked(config.get("few_shot_and_example_switch"))
+
+        def checked_changed(widget: SwitchButtonCard, checked: bool) -> None:
+            config = self.load_config()
+            config["few_shot_and_example_switch"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("动态示例和预回复功能"),
+                self.tra("启用此功能后，将在构建整体的翻译提示词时，自动生成动态Few-shot和构建模型预回复内容，不支持本地接口"),
+                init = init,
+                checked_changed = checked_changed,
+            )
+        )
+
+    # 自动预处理
+    def add_auto_process_text_code_segment(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+        def widget_init(widget) -> None:
+            widget.set_checked(config.get("auto_process_text_code_segment"))
+
+        def widget_callback(widget, checked: bool) -> None:
+            config = self.load_config()
+            config["auto_process_text_code_segment"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("自动预处理文本"),
+                self.tra(
+                "启用此功能后，根据正则库与禁翻表，将在翻译前移除文本首尾的非翻译内容，占位文本中间的非翻译内容，并在翻译后还原"
+                ),
+                widget_init,
+                widget_callback,
+            )
+        )
+
+    # 自动简繁转换
+    def add_widget_opencc(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+        def widget_init(widget) -> None:
+            widget.set_checked(config.get("response_conversion_toggle"))
+
+        def widget_callback(widget, checked: bool) -> None:
+            config = self.load_config()
+            config["response_conversion_toggle"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("自动简繁转换"),
+                self.tra("启用此功能后，在翻译完成时将按照设置的字形映射规则进行简繁转换"),
+                widget_init,
+                widget_callback,
+            )
+        )
+
+    # 简繁转换预设规则
+    def add_widget_opencc_preset(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+        def init(widget) -> None:
+            widget.set_current_index(max(0, widget.find_text(config.get("opencc_preset"))))
+
+        def current_text_changed(widget, text: str) -> None:
+            config = self.load_config()
+            config["opencc_preset"] = text
+            self.save_config(config)
+
+        parent.addWidget(
+            ComboBoxCard(
+                self.tra("简繁转换预设规则"),
+                self.tra("进行简繁转换时的字形预设规则，常用的有：简转繁（s2t）、繁转简（t2s）"),
+                [
+                    "s2t",
+                    "s2tw",
+                    "s2hk",
+                    "s2twp",
+                    "t2s",
+                    "t2tw",
+                    "t2hk",
+                    "t2jp",
+                    "tw2s",
+                    "tw2t",
+                    "tw2sp",
+                    "hk2s",
+                    "hk2t",
+                    "jp2t",
+                ],
+                init = init,
+                current_text_changed = current_text_changed,
+            )
+        )
+
+    # 结果检查
+    def add_widget_result_check(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+        def on_toggled(checked: bool, key) -> None:
+            config = self.load_config()
+            config["response_check_switch"][key] = checked
+            self.save_config(config)
+
+        def widget_init(widget) -> None:
+
+            info_cont1 = self.tra("原文返回检查")
+            info_cont2 = self.tra("翻译残留检查")
+            info_cont3 = self.tra("换行符数检查")
+
+            pairs = [
+                (info_cont1, "return_to_original_text_check"),
+                (info_cont2, "residual_original_text_check"),
+                (info_cont3, "newline_character_count_check"),
+            ]
+
+            for v in pairs:
+                pill_push_button = PillPushButton(v[0])
+                pill_push_button.setContentsMargins(4, 0, 4, 0) # 左、上、右、下
+                pill_push_button.setChecked(config["response_check_switch"].get(v[1]))
+                pill_push_button.toggled.connect(lambda checked, key = v[1]: on_toggled(checked, key))
+                widget.add_widget(pill_push_button)
+
+        parent.addWidget(
+            FlowCard(
+                self.tra("翻译结果检查"),
+                self.tra("将在翻译结果中检查激活的规则（点亮按钮为激活）：如检测到对应情况，则视为任务执行失败"),
+                widget_init
             )
         )

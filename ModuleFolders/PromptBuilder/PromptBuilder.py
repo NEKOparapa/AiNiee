@@ -2,8 +2,8 @@ import re
 from types import SimpleNamespace
 
 from Base.Base import Base
-from ModuleFolders.Translator import TranslatorUtil
-from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.TaskExecutor import TranslatorUtil
+from ModuleFolders.TaskExecutor.TaskConfig import TaskConfig
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 
 class PromptBuilder(Base):
@@ -11,7 +11,7 @@ class PromptBuilder(Base):
         super().__init__()
 
     # 获取默认系统提示词(未处理的)，优先从内存中读取，如果没有，则从文件中读取
-    def get_system_default(config: TranslatorConfig, prompt_preset) -> str:
+    def get_system_default(config: TaskConfig, prompt_preset) -> str:
         if getattr(PromptBuilder, "common_system_zh", None) == None:
             with open("./Resource/Prompt/common_system_zh.txt", "r", encoding = "utf-8") as reader:
                 PromptBuilder.common_system_zh = reader.read().strip()
@@ -58,7 +58,7 @@ class PromptBuilder(Base):
         return result
 
     # 获取系统提示词(处理好的)
-    def build_system(config: TranslatorConfig, source_lang: str) -> str:
+    def build_system(config: TaskConfig, source_lang: str) -> str:
         # 获取默认系统提示词
         PromptBuilder.get_system_default(config, "")
 
@@ -91,7 +91,7 @@ class PromptBuilder(Base):
         return result.replace("{source_language}", source_language).replace("{target_language}", target_language).strip()
 
     # 构建翻译示例
-    def build_translation_sample(config: TranslatorConfig, input_dict: dict, source_lang: "Translator.SourceLang") -> tuple[str, str]:
+    def build_translation_sample(config: TaskConfig, input_dict: dict, source_lang: "Translator.SourceLang") -> tuple[str, str]:
         list1 = []
         list3 = []
         list2 = []
@@ -206,7 +206,7 @@ class PromptBuilder(Base):
         return source_str, target_str
 
     # 辅助函数，构建特定翻译示例
-    def get_default_translation_example(config: TranslatorConfig, input_dict: dict, source_lang: str) -> tuple[list[str], list[str]]:
+    def get_default_translation_example(config: TaskConfig, input_dict: dict, source_lang: str) -> tuple[list[str], list[str]]:
         # 内置的正则表达式字典
         source_list = []
         translated_list = []
@@ -355,7 +355,7 @@ class PromptBuilder(Base):
         return result  # 返回修改后的列表
 
     # 构建相似格式翻译示例
-    def build_adaptive_translation_sample(config: TranslatorConfig, input_dict: dict, conv_source_lang: str) -> tuple[list[str], list[str]]:
+    def build_adaptive_translation_sample(config: TaskConfig, input_dict: dict, conv_source_lang: str) -> tuple[list[str], list[str]]:
         # 输入字典示例
         # ex_dict = {
         #     "0": "こんにちは，こんにちは。こんにちは#include <iostream>",
@@ -454,7 +454,7 @@ class PromptBuilder(Base):
         )
 
     # 构建原文
-    def build_source_text(config: TranslatorConfig, source_text_dict: dict) -> str:
+    def build_source_text(config: TaskConfig, source_text_dict: dict) -> str:
         numbered_lines = []
         for index, line in enumerate(source_text_dict.values()):
             # 检查是否为多行文本
@@ -480,7 +480,7 @@ class PromptBuilder(Base):
         return source_text_str
 
     # 构造术语表
-    def build_glossary_prompt(config: TranslatorConfig, input_dict: dict) -> str:
+    def build_glossary_prompt(config: TaskConfig, input_dict: dict) -> str:
         # 将输入字典中的所有值转换为集合
         lines = set(line for line in input_dict.values())
 
@@ -531,7 +531,7 @@ class PromptBuilder(Base):
         return glossary_prompt
 
     # 构造禁翻表
-    def build_ntl_prompt(config: TranslatorConfig, source_text_dict) -> str:
+    def build_ntl_prompt(config: TaskConfig, source_text_dict) -> str:
 
         # 获取禁翻表内容
         exclusion_list_data = config.exclusion_list_data.copy()
@@ -583,7 +583,7 @@ class PromptBuilder(Base):
         return result
 
     # 构造角色设定
-    def build_characterization(config: TranslatorConfig, input_dict: dict) -> str:
+    def build_characterization(config: TaskConfig, input_dict: dict) -> str:
         # 将数据存储到中间字典中
         dictionary = {}
         for v in config.characterization_data:
@@ -667,7 +667,7 @@ class PromptBuilder(Base):
         return profile
 
     # 构造背景设定
-    def build_world_building(config: TranslatorConfig) -> str:
+    def build_world_building(config: TaskConfig) -> str:
         # 获取自定义内容
         world_building = config.world_building_content
 
@@ -684,7 +684,7 @@ class PromptBuilder(Base):
         return profile
 
     # 构造文风要求
-    def build_writing_style(config: TranslatorConfig) -> str:
+    def build_writing_style(config: TaskConfig) -> str:
         # 获取自定义内容
         writing_style = config.writing_style_content
 
@@ -701,7 +701,7 @@ class PromptBuilder(Base):
         return profile
 
     # 构建翻译示例
-    def build_translation_example(config: TranslatorConfig) -> str:
+    def build_translation_example(config: TaskConfig) -> str:
         data = config.translation_example_data
 
         # 数据校验
@@ -734,7 +734,7 @@ class PromptBuilder(Base):
         return translation_example
 
     # 携带原文上文
-    def build_pre_text(config: TranslatorConfig, input_list: list[str]) -> str:
+    def build_pre_text(config: TaskConfig, input_list: list[str]) -> str:
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "###上文内容\n"
             profile += "<previous>\n"
@@ -754,7 +754,7 @@ class PromptBuilder(Base):
         return profile
 
     # 构建用户示例前文
-    def build_userExamplePrefix(config: TranslatorConfig) -> str:
+    def build_userExamplePrefix(config: TaskConfig) -> str:
         # 根据中文开关构建
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "###这是你接下来的翻译任务，原文文本如下\n"
@@ -764,7 +764,7 @@ class PromptBuilder(Base):
         return profile
 
     # 构建模型示例前文
-    def build_modelExamplePrefix(config: TranslatorConfig) -> str:
+    def build_modelExamplePrefix(config: TaskConfig) -> str:
         # 根据中文开关构建
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             # 非cot的构建
@@ -777,7 +777,7 @@ class PromptBuilder(Base):
         return profile
 
     # 构建翻译前文:
-    def build_userQueryPrefix(config: TranslatorConfig) -> str:
+    def build_userQueryPrefix(config: TaskConfig) -> str:
         # 根据中文开关构建
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = " ###这是你接下来的翻译任务，原文文本如下\n"
@@ -786,7 +786,7 @@ class PromptBuilder(Base):
         return profile
 
     # 构建预输入回复的前文
-    def build_modelResponsePrefix(config: TranslatorConfig) -> str:
+    def build_modelResponsePrefix(config: TaskConfig) -> str:
         # 根据中文开关构建
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "我完全理解了翻译的要求与原则，我将遵循您的指示进行翻译，以下是对原文的翻译:"

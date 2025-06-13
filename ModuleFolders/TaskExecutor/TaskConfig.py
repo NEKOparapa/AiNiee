@@ -6,9 +6,10 @@ import urllib
 import rapidjson as json
 
 from Base.Base import Base
+from ModuleFolders.TaskExecutor.TaskType import TaskType
 
 # 接口请求器
-class TranslatorConfig(Base):
+class TaskConfig(Base):
 
     # 打印时的类型过滤器
     TYPE_FILTER = (int, str, bool, float, list, dict, tuple)
@@ -67,10 +68,13 @@ class TranslatorConfig(Base):
             setattr(self, key, value)
 
     # 准备翻译
-    def prepare_for_translation(self) -> None:
+    def prepare_for_translation(self,mode) -> None:
 
         # 获取目标平台
-        target_platform = self.target_platform
+        if mode == TaskType.TRANSLATION:
+            target_platform = self.api_settings["translate"]
+        elif mode == TaskType.POLISH:
+            target_platform = self.api_settings["polish"]
 
         # 获取模型类型
         self.model = self.platforms.get(target_platform).get("model")
@@ -110,10 +114,19 @@ class TranslatorConfig(Base):
             output_folder_name = "AiNieeOutput"
             self.label_output_path = os.path.join(parent_dir, output_folder_name)
 
-           # 保存新配置
-            config = self.load_config()
-            config["label_output_path"] = self.label_output_path
-            self.save_config(config)
+        # 润色文本输出路径
+        if self.polishing_auto_set_output_path == True:
+            abs_input_path = os.path.abspath(self.label_input_path)
+            parent_dir = os.path.dirname(abs_input_path)
+            output_folder_name = "PolishingOutput"
+            self.polishing_output_path = os.path.join(parent_dir, output_folder_name)
+
+        # 保存新配置
+        config = self.load_config()
+        config["label_output_path"] = self.label_output_path
+        config["polishing_output_path"] = self.polishing_output_path
+        self.save_config(config)
+
 
         # 计算实际线程数
         self.actual_thread_counts = self.thread_counts_setting(self.user_thread_counts,self.target_platform,self.rpm_limit)
@@ -179,23 +192,26 @@ class TranslatorConfig(Base):
     # 获取接口配置信息包
     def get_platform_configuration(self,platform_type):
 
-        if platform_type == "singleReq":
-            target_platform = self.target_platform
-            api_url = self.base_url
-            api_key = self.get_next_apikey()
-            api_format = self.platforms.get(target_platform).get("api_format")
-            model_name = self.model
-            region = self.platforms.get(target_platform).get("region",'')
-            access_key = self.platforms.get(target_platform).get("access_key",'')
-            secret_key = self.platforms.get(target_platform).get("secret_key",'')
-            request_timeout = self.request_timeout
-            temperature = self.platforms.get(target_platform).get("temperature")
-            top_p = self.platforms.get(target_platform).get("top_p")
-            presence_penalty = self.platforms.get(target_platform).get("presence_penalty")
-            frequency_penalty = self.platforms.get(target_platform).get("frequency_penalty")
-            extra_body = self.platforms.get(target_platform).get("extra_body",{})
-            think_switch = self.platforms.get(target_platform).get("think_switch")
-            think_depth = self.platforms.get(target_platform).get("think_depth")
+        if platform_type == "translationReq":
+            target_platform = self.api_settings["translate"]
+        elif platform_type == "polishingReq":
+            target_platform = self.api_settings["polish"]
+
+        api_url = self.base_url
+        api_key = self.get_next_apikey()
+        api_format = self.platforms.get(target_platform).get("api_format")
+        model_name = self.model
+        region = self.platforms.get(target_platform).get("region",'')
+        access_key = self.platforms.get(target_platform).get("access_key",'')
+        secret_key = self.platforms.get(target_platform).get("secret_key",'')
+        request_timeout = self.request_timeout
+        temperature = self.platforms.get(target_platform).get("temperature")
+        top_p = self.platforms.get(target_platform).get("top_p")
+        presence_penalty = self.platforms.get(target_platform).get("presence_penalty")
+        frequency_penalty = self.platforms.get(target_platform).get("frequency_penalty")
+        extra_body = self.platforms.get(target_platform).get("extra_body",{})
+        think_switch = self.platforms.get(target_platform).get("think_switch")
+        think_depth = self.platforms.get(target_platform).get("think_depth")
 
         params = {
             "target_platform": target_platform,

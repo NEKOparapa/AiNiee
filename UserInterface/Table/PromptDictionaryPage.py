@@ -4,7 +4,7 @@ from qfluentwidgets import (Action, FluentIcon, MessageBox, TableWidget, RoundMe
                             LineEdit, DropDownPushButton, ToolButton, TransparentPushButton, TransparentToolButton, BodyLabel)
 
 from PyQt5.QtCore import QEvent, Qt, QPoint, QTimer
-from PyQt5.QtWidgets import (QApplication, QFrame, QFileDialog, QHeaderView, QLayout, QVBoxLayout,
+from PyQt5.QtWidgets import ( QFrame, QFileDialog, QHeaderView, QLayout, QVBoxLayout,
                              QTableWidgetItem, QHBoxLayout, QWidget,QAbstractItemView)
 
 from Base.Base import Base
@@ -28,7 +28,7 @@ class PromptDictionaryPage(QFrame, Base):
         }
 
         # 订阅术语表翻译完成事件
-        self.subscribe(Base.EVENT.GLOSS_TRANSLATION_DONE, self.glossary_translation_done)
+        self.subscribe(Base.EVENT.GLOSS_TASK_DONE, self.glossary_translation_done)
         # 读取配置
         config = self.save_config(self.load_config_from_default())
 
@@ -581,10 +581,11 @@ class PromptDictionaryPage(QFrame, Base):
     # 简单翻译方法
     def glossary_translation(self) -> None:
         if Base.work_status == Base.STATUS.IDLE:
-            Base.work_status = Base.STATUS.GLOSS_TRANSLATION
+            Base.work_status = Base.STATUS.GLOSS_TASK
             config = self.load_config()
-            platform_tag = config.get(f"target_platform")
-            platform = config.get("platforms", {}).get(platform_tag)
+            api_settings = config.get("api_settings")
+            name = api_settings["translate"]
+            platform = config.get("platforms", {}).get(name)
 
             data = copy.deepcopy(platform)
             data["proxy_url"] = config.get("proxy_url")
@@ -597,7 +598,7 @@ class PromptDictionaryPage(QFrame, Base):
                     Base.work_status = Base.STATUS.IDLE
                     return
 
-            self.emit(Base.EVENT.GLOSS_TRANSLATION_START, data)
+            self.emit(Base.EVENT.GLOSS_TASK_START, data)
             self.info_toast(self.tra("提示"), self.tra("术语表翻译任务已开始..."))
         else:
             self.warning_toast("", self.tra("软件正在执行其他任务中，请稍后再试"))
