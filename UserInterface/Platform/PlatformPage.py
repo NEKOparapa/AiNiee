@@ -202,14 +202,15 @@ class PlatformPage(QFrame, Base):
                         }
         }
 
-        config = self.save_config(self.load_config_from_default())
-
-        self.window = window
-        self.load_preset()
+        self.window = window # 全局变量
+        self.load_preset() # 读取合并配置
 
         self.container = QVBoxLayout(self)
         self.container.setSpacing(15) # 增加间距以容纳新卡片
         self.container.setContentsMargins(24, 24, 24, 24)
+
+        # 读取合并配置
+        config = self.save_config(self.load_config_from_default())
 
         # 布局组件
         self.add_head_widget(self.container, config)
