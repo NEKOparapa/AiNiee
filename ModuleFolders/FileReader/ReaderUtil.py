@@ -432,6 +432,19 @@ def replace_tags_with_values(text):
     return TAG_STYLE_PATTERN.sub(replacer, text)
 
 
+# 处理标签，有条件地保留内容
+def tag_handler(match):
+    content: str = match.group(1).strip()
+    # 如果内容是纯数字，不保留
+    if content.isdigit():
+        return ' '
+    # 如果内容匹配特殊正则，不保留
+    if HAS_UNUSUAL_ENG_REGEX.match(content):
+        return ' '
+    # 其他情况保留内容
+    return content + ' '
+
+
 # 辅助函数，用于清理文本
 # 20250504改动：取消清理文本中的空白字符
 # 20250518改动：获取特殊标签中的内容
@@ -444,25 +457,14 @@ def clean_text(source_text):
     cleaned_text = JS_VAR_PATTERN.sub('', cleaned_text)
     # 提取、拼接tag属性值
     cleaned_text = replace_tags_with_values(cleaned_text)
+    # 提取xml标签带冒号格式的具体内容
+    cleaned_text = re.sub(r'<[a-zA-Z_]+:(.*?)>', tag_handler, cleaned_text)
     # 去除html标签
     cleaned_text = remove_html_tags(cleaned_text).strip()
     # 去除文本前后的转义换行符(\n)
     cleaned_text = re.sub(r'^(\\n)+', '', cleaned_text)  # 去除开头的\n
     cleaned_text = re.sub(r'(\\n)+$', '', cleaned_text)  # 去除结尾的\n
 
-    # 处理标签，有条件地保留内容
-    def tag_handler(match):
-        content: str = match.group(1).strip()
-        # 如果内容是纯数字，不保留
-        if content.isdigit():
-            return ' '
-        # 如果内容匹配特殊正则，不保留
-        if HAS_UNUSUAL_ENG_REGEX.match(content):
-            return ' '
-        # 其他情况保留内容
-        return content + ' '
-
-    cleaned_text = re.sub(r'<[a-zA-Z]+:(.*?)>', tag_handler, cleaned_text.strip())
     # 处理其他需要替换的模式
     cleaned_text = CLEAN_TEXT_PATTERN.sub(' ', cleaned_text)
     # 返回去除可能的多个连续空格后的字符串
