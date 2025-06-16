@@ -26,57 +26,57 @@ class LLMRequester(Base):
 
         # 发起请求
         if target_platform == "sakura":
-            skip, response_think, response_content, prompt_tokens, completion_tokens = SakuraRequester.request_sakura(
-                self,
+            sakura_requester = SakuraRequester()
+            skip, response_think, response_content, prompt_tokens, completion_tokens = sakura_requester.request_sakura(
                 messages,
                 system_prompt,
                 platform_config,
             )
         elif target_platform == "LocalLLM":
-            skip, response_think, response_content, prompt_tokens, completion_tokens = LocalLLMRequester.request_LocalLLM(
-                self,
+            local_llm_requester = LocalLLMRequester()
+            skip, response_think, response_content, prompt_tokens, completion_tokens = local_llm_requester.request_LocalLLM(
                 messages,
                 system_prompt,
                 platform_config,
             )
         elif target_platform == "cohere":
-            skip, response_think, response_content, prompt_tokens, completion_tokens = CohereRequester.request_cohere(
-                self,
+            cohere_requester = CohereRequester()
+            skip, response_think, response_content, prompt_tokens, completion_tokens = cohere_requester.request_cohere(
                 messages,
                 system_prompt,
                 platform_config,
             )
         elif target_platform == "google":
-            skip, response_think, response_content, prompt_tokens, completion_tokens = GoogleRequester.request_google(
-                self,
+            google_requester = GoogleRequester()
+            skip, response_think, response_content, prompt_tokens, completion_tokens = google_requester.request_google(
                 messages,
                 system_prompt,
                 platform_config,
             )
         elif target_platform == "anthropic" or (target_platform.startswith("custom_platform_") and api_format == "Anthropic"):
-            skip, response_think, response_content, prompt_tokens, completion_tokens = AnthropicRequester.request_anthropic(
-                self,
+            anthropic_requester = AnthropicRequester()
+            skip, response_think, response_content, prompt_tokens, completion_tokens = anthropic_requester.request_anthropic(
                 messages,
                 system_prompt,
                 platform_config,
             )
         elif target_platform == "amazonbedrock":
-            skip, response_think, response_content, prompt_tokens, completion_tokens = AmazonbedrockRequester.request_amazonbedrock(
-                self,
+            amazonbedrock_requester = AmazonbedrockRequester()
+            skip, response_think, response_content, prompt_tokens, completion_tokens = amazonbedrock_requester.request_amazonbedrock(
                 messages,
                 system_prompt,
                 platform_config,
             )
         elif target_platform == "dashscope":
-            skip, response_think, response_content, prompt_tokens, completion_tokens = DashscopeRequester.request_openai(
-                self,
+            dashscope_requester = DashscopeRequester()
+            skip, response_think, response_content, prompt_tokens, completion_tokens = dashscope_requester.request_openai(
                 messages,
                 system_prompt,
                 platform_config,
             )
         else:
-            skip, response_think, response_content, prompt_tokens, completion_tokens = OpenaiRequester.request_openai(
-                self,
+            openai_requester = OpenaiRequester()
+            skip, response_think, response_content, prompt_tokens, completion_tokens = openai_requester.request_openai(
                 messages,
                 system_prompt,
                 platform_config,
@@ -117,14 +117,12 @@ class LLMRequester(Base):
             if not any(api_url.endswith(suffix) for suffix in version_suffixes):
                 api_url += "/v1"
 
-
         # 结构化输出请求参数
         self.info("[接口参数]")
         self.print(f"  → 接口地址: {api_url}")
         self.print(f"  → 模型名称: {model_name}")
         self.print(f"  → 额外参数: {extra_body}")
         self.print(f"  → 接口密钥: {'*' * (len(api_key) - 4)}{api_key[-4:]}")  # 隐藏敏感信息
-
 
         # 网络代理设置
         proxy_url = user_config.get("proxy_url")
@@ -139,8 +137,6 @@ class LLMRequester(Base):
             os.environ["https_proxy"] = proxy_url
             self.info(f"[系统代理]  {proxy_url}")
 
-
-
         # 构建配置包
         platform_config = {
             "target_platform": platform_tag,
@@ -153,6 +149,5 @@ class LLMRequester(Base):
             "secret_key": secret_key,
             "extra_body": extra_body
         }
-
 
         return platform_config
