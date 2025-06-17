@@ -10,11 +10,9 @@ from rich.markup import escape
 from Base.Base import Base
 from Base.PluginManager import PluginManager
 from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
-from ModuleFolders.TaskExecutor.TaskConfig import TaskConfig
+from ModuleFolders.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.LLMRequester.LLMRequester import LLMRequester
-from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.PromptBuilder.PromptBuilderPolishing import PromptBuilderPolishing
-from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from ModuleFolders.ResponseExtractor.ResponseExtractor import ResponseExtractor
 from ModuleFolders.ResponseChecker.ResponseChecker import ResponseChecker
 from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
@@ -65,7 +63,8 @@ class PolisherTask(Base):
         self.row_count = len(self.source_text_dict)
         
         # 生成请求指令
-        self.messages, self.system_prompt, self.extra_log = self.generate_prompt(
+        self.messages, self.system_prompt, self.extra_log = PromptBuilderPolishing.generate_prompt(
+            self.config,
             self.source_text_dict,
             self.translation_text_dict,
             self.previous_text_list,
@@ -74,76 +73,6 @@ class PolisherTask(Base):
         # 预估 Token 消费
         self.request_tokens_consume = self.request_limiter.calculate_tokens(self.messages,self.system_prompt,)
 
-    # 生成信息结构 - 通用
-    def generate_prompt(self, source_text_dict: dict, translation_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
-        # 储存指令
-        messages = []
-        # 储存额外日志
-        extra_log = []
-
-        # 基础系统提示词
-        if self.config.polishing_prompt_selection["last_selected_id"]  == PromptBuilderEnum.REFINEMENT_COMMON:
-            system = PromptBuilderPolishing.build_system(self.config)
-        else:
-            system = self.config.polishing_prompt_selection["prompt_content"]  # 自定义提示词
-
-
-        # 如果开启术语表
-        if self.config.prompt_dictionary_switch == True:
-            glossary = PromptBuilderPolishing.build_glossary_prompt(self.config, source_text_dict)
-            if glossary != "":
-                system += glossary
-                extra_log.append(glossary)
-
-        # 如果开启禁翻表
-        if self.config.exclusion_list_switch == True:
-            ntl = PromptBuilderPolishing.build_ntl_prompt(self.config, source_text_dict)
-            if ntl != "":
-                system += ntl
-                extra_log.append(ntl)
-
-        # 如果启用润色风格功能
-        if self.config.polishing_style_switch == True:
-            writing_style = PromptBuilderPolishing.build_ntl_prompt(self.config)
-            if writing_style != "":
-                system += writing_style
-                extra_log.append(writing_style)
-
-
-        # 如果加上文，获取上文内容
-        previous = ""
-        if self.config.polishing_pre_line_counts and previous_text_list:
-            previous = PromptBuilderPolishing.build_pre_text(self.config, previous_text_list)
-            if previous != "":
-                extra_log.append(f"###上文内容\n{"\n".join(previous_text_list)}")
-
-
-        # 构建待翻译文本
-
-        if self.config.polishing_mode_selection == "source_text_polish":
-
-            source_text = PromptBuilder.build_source_text(self.config,source_text_dict)
-            pre_prompt = PromptBuilderPolishing.build_source_prefix(self.config) # 用户提问前置文本
-
-            source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text}\n</textarea>"
-
-        elif self.config.polishing_mode_selection == "translated_text_polish":
-            source_text = PromptBuilder.build_source_text(self.config,source_text_dict)
-            translation_text = PromptBuilder.build_source_text(self.config,translation_text_dict)
-            pre_prompt_A,pre_prompt_B = PromptBuilderPolishing.build_translated_prefix(self.config) # 用户提问前置文本
-
-            source_text_str = f"{previous}\n{pre_prompt_A}\n{source_text}\n{pre_prompt_B}<textarea>\n{translation_text}\n</textarea>"
-
-
-        # 构建用户信息
-        messages.append(
-            {
-                "role": "user",
-                "content": source_text_str,
-            }
-        )
-
-        return messages, system, extra_log
 
     # 启动任务
     def start(self) -> dict:

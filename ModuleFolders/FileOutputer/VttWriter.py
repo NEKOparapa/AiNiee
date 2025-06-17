@@ -26,7 +26,7 @@ class VttWriter(BaseTranslatedWriter):
             if "subtitle_number" in item.extra:
                 block.append(str(item.require_extra("subtitle_number")))
             block.append(item.require_extra("subtitle_time"))
-            block.append(item.translated_text)
+            block.append(item.final_text)
             output_lines.append("\n".join(block))
         translation_file_path.write_text(header + "\n\n\n".join(output_lines), encoding=pre_write_metadata.encoding)
 

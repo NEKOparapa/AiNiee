@@ -40,7 +40,7 @@ class SrtWriter(BaseBilingualWriter, BaseTranslatedWriter):
     ):
         output = []
         for item in cache_file.items:
-            if not item.source_text or not item.translated_text:
+            if not item.source_text or not item.final_text:
                 continue
             for block in yield_block(item):
                 output.append("\n".join(block).strip())
@@ -51,7 +51,7 @@ class SrtWriter(BaseBilingualWriter, BaseTranslatedWriter):
         block = [
             str(item.require_extra("subtitle_number")),
             item.require_extra("subtitle_time"),
-            item.translated_text.strip(),
+            item.final_text.strip(),
             "",
         ]
         return block

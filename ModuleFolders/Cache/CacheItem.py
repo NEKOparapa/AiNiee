@@ -20,7 +20,7 @@ class CacheItem(ThreadSafeCache, ExtraMixin):
     translation_status: int = 0
     model: str = ''
     source_text: str = ''
-    _translated_text: str = None
+    translated_text: str = None
     polished_text: str = None
     text_to_detect: str = None
     """处理后的待（语言）检测文本"""
@@ -29,34 +29,31 @@ class CacheItem(ThreadSafeCache, ExtraMixin):
     extra: dict[str, Any] = field(default_factory=dict)
     """额外属性，用于存储特定reader产生的原文片段的额外属性，共用属性请加到CacheItem中"""
 
+    # 这里的赋值操作会自动调用下面的setter方法，行为保持不变
     def __post_init__(self):
         if self.source_text is None:
             self.source_text = ""
-        # 这里的赋值操作会自动调用下面的setter方法，行为保持不变
-        if self._translated_text is None:
-            self.translated_text = self.source_text
+
+        if self.translated_text is None:
+            self.translated_text = ""
+
+        if self.polished_text is None:
+            self.polished_text = ""
+
+
+    @property
+    def final_text(self) -> str:
+        """
+        获取最终文本。
+        优先返回润色后的文本(polished_text)，如果不存在，则返回翻译后的文本(translated_text)。
+        """
+        return self.polished_text if self.polished_text else self.translated_text
+    # ================================================================
+    # ================================================================
 
     @property
     def token_count(self):
         return self.get_token_count(self.source_text)
-
-    @property
-    def translated_text(self) -> str:
-        """
-        获取翻译文本。
-        如果 `polished_text` 存在且有内容，则返回润色后的文本。
-        否则，返回原始的翻译文本。
-        """
-        if self.polished_text and self.polished_text.strip():
-            return self.polished_text
-        return self._translated_text
-
-    @translated_text.setter
-    def translated_text(self, value: str):
-        """
-        设置翻译文本，会更新内部的 `_translated_text` 字段。
-        """
-        self._translated_text = value
 
     @classmethod
     @cache

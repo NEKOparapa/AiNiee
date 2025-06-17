@@ -1,4 +1,4 @@
-from ModuleFolders.TaskExecutor.TaskConfig import TaskConfig
+from ModuleFolders.TaskConfig.TaskConfig import TaskConfig
 
 _AINIEE_CONFIG_INSTANCE: TaskConfig | None = None
 """Ainiee配置类单例实现"""

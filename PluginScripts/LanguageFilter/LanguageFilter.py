@@ -5,7 +5,7 @@ from ModuleFolders.Cache.CacheProject import CacheProject
 from ModuleFolders.TaskExecutor import TranslatorUtil
 from PluginScripts.PluginBase import PluginBase
 from ModuleFolders.Cache.CacheItem import TranslationStatus
-from ModuleFolders.TaskExecutor.TaskConfig import TaskConfig
+from ModuleFolders.TaskConfig.TaskConfig import TaskConfig
 
 
 class LanguageFilter(PluginBase):

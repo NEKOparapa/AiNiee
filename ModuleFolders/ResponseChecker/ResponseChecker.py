@@ -20,7 +20,7 @@ class ResponseChecker():
 
     def check_response_content(self, config, placeholder_order, response_str, response_dict, source_text_dict, source_lang):
 
-        source_language = TranslatorUtil.map_language_code_to_name(source_lang.new)
+        source_language = TranslatorUtil.map_language_code_to_name(source_lang)
         response_check_switch = config.response_check_switch
 
         # 基本检查

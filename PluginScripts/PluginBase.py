@@ -1,5 +1,5 @@
 from ModuleFolders.Cache.CacheProject import CacheProject
-from ModuleFolders.TaskExecutor.TaskConfig import TaskConfig
+from ModuleFolders.TaskConfig.TaskConfig import TaskConfig
 
 
 class Priority():

@@ -43,7 +43,7 @@ class TPPWriter(BaseTranslatedWriter):
         # 将数据写入工作表
         for item in cache_file.items:
             source_text = item.source_text or ""
-            translated_text = item.translated_text or ""
+            translated_text = item.final_text or ""
             row_index = item.get_extra("row_index", -1)
             translation_status = item.translation_status
 

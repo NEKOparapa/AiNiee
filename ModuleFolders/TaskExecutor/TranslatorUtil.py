@@ -133,3 +133,45 @@ def get_most_common_language(cache_proj: CacheProject) -> str:
     most_common_lang = max(language_counts.items(), key=lambda x: x[1])[0]
 
     return most_common_lang
+
+# 确定主语言，通过文件语言统计信息与配置信息计算
+def get_source_language_for_file(source_language,target_language, language_stats) -> str:
+    """
+    为文件确定适当的源语言
+    Args:
+        storage_path: 文件存储路径
+    Returns:
+        确定的源语言代码
+    """
+    # 获取配置文件中预置的源语言配置
+    config_s_lang = source_language
+    config_t_lang = target_language
+
+    # 如果源语言配置不是自动配置，则直接返回源语言配置，否则使用下面获取到的lang_code
+    if config_s_lang != 'auto':
+        return config_s_lang
+
+    # 获取文件的语言统计信息
+    language_stats = language_stats
+
+    # 如果没有语言统计信息，返回'un'
+    if not language_stats:
+        return 'un'
+
+    # 获取第一种语言
+    first_source_lang = language_stats[0][0]
+
+    # 将first_source_lang转换为与target_lang相同格式的语言名称，方便比较
+    first_source_lang_name = map_language_code_to_name(first_source_lang)
+
+    # 检查第一语言是否与目标语言一致
+    if first_source_lang_name == config_t_lang:
+        # 如果一致，尝试使用第二种语言
+        if len(language_stats) > 1:
+            return language_stats[1][0]  # 返回第二种语言
+        else:
+            # 没有第二种语言，返回'un'
+            return 'un'
+    else:
+        # 如果不一致，直接使用第一种语言
+        return first_source_lang

@@ -31,7 +31,7 @@ class LrcWriter(BaseTranslatedWriter):
             # 获取字幕时间轴
             subtitle_time = item.require_extra("subtitle_time")
             # 获取字幕文本内容
-            subtitle_text = item.translated_text
+            subtitle_text = item.final_text
 
             output_lines.append(f"[{subtitle_time}]{subtitle_text}\n")
 

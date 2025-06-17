@@ -1,7 +1,6 @@
 import time
 import threading
 import concurrent.futures
-from dataclasses import dataclass
 
 import opencc
 from tqdm import tqdm
@@ -10,24 +9,17 @@ from Base.Base import Base
 from ModuleFolders.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Cache.CacheManager import CacheManager
 from ModuleFolders.Cache.CacheProject import CacheProjectStatistics
-from ModuleFolders.TaskExecutor import TranslatorUtil
-from ModuleFolders.TaskExecutor.TaskType import TaskType
+from ModuleFolders.TaskConfig.TaskType import TaskType
 from ModuleFolders.TaskExecutor.TranslatorTask import TranslatorTask
 from ModuleFolders.TaskExecutor.PolisherTask import PolisherTask
-from ModuleFolders.TaskExecutor.TaskConfig import TaskConfig
+from ModuleFolders.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.PromptBuilder.PromptBuilderPolishing import PromptBuilderPolishing
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from ModuleFolders.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
 from ModuleFolders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
 from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
-from ModuleFolders.TaskExecutor.TranslatorUtil import get_most_common_language
-
-
-@dataclass
-class SourceLang:
-    new: str
-    most_common: str
+from ModuleFolders.TaskExecutor.TranslatorUtil import get_source_language_for_file
 
 
 # 翻译器
@@ -56,35 +48,44 @@ class TaskExecutor(Base):
 
     # 手动导出事件
     def task_manual_export(self, event: int, data: dict) -> None:
-        # 确保当前状态为 翻译中
-        if Base.work_status != Base.STATUS.TRANSLATING:
-            return None
+
+        self.print("")
+        self.info(f"正在读取数据，准备输出中 ...")
+        self.print("")
+
+        # 获取配置信息
+        config = self.load_config()
 
         # 触发手动导出插件事件
-        self.plugin_manager.broadcast_event("manual_export", self.config, self.cache_manager.project)
+        self.plugin_manager.broadcast_event("manual_export", config, self.cache_manager.project)
 
         # 如果开启了转换简繁开关功能，则进行文本转换
-        if self.config.response_conversion_toggle:
+        if config.response_conversion_toggle:
             self.print("")
-            self.info(f"已启动自动简繁转换功能，正在使用 {self.config.opencc_preset} 配置进行字形转换 ...")
+            self.info(f"已启动自动简繁转换功能，正在使用 {config.opencc_preset} 配置进行字形转换 ...")
             self.print("")
 
-            converter = opencc.OpenCC(self.config.opencc_preset)
+            converter = opencc.OpenCC(config.opencc_preset)
             cache_list = self.cache_manager.project.items_iter()
             for item in cache_list:
                 if item.translation_status == TranslationStatus.TRANSLATED:
                     item.translated_text = converter.convert(item.translated_text)
-
+                if item.translation_status == TranslationStatus.POLISHED:
+                    item.polished_text = converter.convert(item.polished_text)
             self.print("")
-            self.info(f"已启动自动简繁转换功能，正在使用 {self.config.opencc_preset} 配置进行字形转换 ...")
+            self.info(f"已启动自动简繁转换功能，正在使用 {config.opencc_preset} 配置进行字形转换 ...")
             self.print("")
 
         # 写入文件
         self.file_writer.output_translated_content(
             self.cache_manager.project,
-            self.config.label_output_path,
-            self.config.label_input_path,
+            config.label_output_path,
+            config.label_input_path,
         )
+
+        self.print("")
+        self.info(f"翻译结果已保存至 {config.label_output_path} 目录 ...")
+        self.print("")
 
     # 任务停止事件
     def task_stop(self, event: int, data: dict) -> None:
@@ -206,20 +207,16 @@ class TaskExecutor(Base):
                 TaskType.TRANSLATION
             )
 
-            # 计算项目中出现次数最多的语言
-            most_common_language = get_most_common_language(self.cache_manager.project)
-
             # 生成翻译任务合集列表
             tasks_list = []
             print("")
             self.info(f"正在生成翻译任务 ...")
             for chunk, previous_chunk, file_path in tqdm(zip(chunks, previous_chunks, file_paths),desc="生成翻译任务", total=len(chunks)):
-                # 计算该任务所处文件的主要源语言
-                new_source_lang = self.get_source_language_for_file(file_path)
-                # 组装新源语言的对象
-                source_lang = SourceLang(new=new_source_lang, most_common=most_common_language)
+                # 确定该任务的主语言
+                language_stats = self.cache_manager.project.get_file(file_path).language_stats # 获取该文件的语言检测数据
+                file_source_lang = get_source_language_for_file(self.config.source_language,self.config.target_language,language_stats)
 
-                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter, source_lang)  # 实例化
+                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter, file_source_lang)  # 实例化
                 task.set_items(chunk)  # 传入该任务待翻译原文
                 task.set_previous_items(previous_chunk)  # 传入该任务待翻译原文的上文
                 task.prepare(self.config.target_platform)  # 预先构建消息列表
@@ -285,6 +282,8 @@ class TaskExecutor(Base):
             for item in cache_list:
                 if item.translation_status == TranslationStatus.TRANSLATED:
                     item.translated_text = converter.convert(item.translated_text)
+                if item.translation_status == TranslationStatus.POLISHED:
+                    item.polished_text = converter.convert(item.polished_text)
 
         # 写入文件
         self.file_writer.output_translated_content(
@@ -394,9 +393,6 @@ class TaskExecutor(Base):
                     TaskType.POLISH
                 )
 
-            # 计算项目中出现次数最多的语言
-            most_common_language = get_most_common_language(self.cache_manager.project)
-
             # 生成润色任务合集列表
             tasks_list = []
             print("")
@@ -493,44 +489,3 @@ class TaskExecutor(Base):
         except Exception as e:
             self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
 
-
-    def get_source_language_for_file(self, storage_path: str) -> str:
-        """
-        为文件确定适当的源语言
-        Args:
-            storage_path: 文件存储路径
-        Returns:
-            确定的源语言代码
-        """
-        # 获取配置文件中预置的源语言配置
-        config_s_lang = self.config.source_language
-        config_t_lang = self.config.target_language
-
-        # 如果源语言配置不是自动配置，则直接返回源语言配置，否则使用下面获取到的lang_code
-        if config_s_lang != 'auto':
-            return config_s_lang
-
-        # 获取文件的语言统计信息
-        language_stats = self.cache_manager.project.get_file(storage_path).language_stats
-
-        # 如果没有语言统计信息，返回'un'
-        if not language_stats:
-            return 'un'
-
-        # 获取第一种语言
-        first_source_lang = language_stats[0][0]
-
-        # 将first_source_lang转换为与target_lang相同格式的语言名称，方便比较
-        first_source_lang_name = TranslatorUtil.map_language_code_to_name(first_source_lang)
-
-        # 检查第一语言是否与目标语言一致
-        if first_source_lang_name == config_t_lang:
-            # 如果一致，尝试使用第二种语言
-            if len(language_stats) > 1:
-                return language_stats[1][0]  # 返回第二种语言
-            else:
-                # 没有第二种语言，返回'un'
-                return 'un'
-        else:
-            # 如果不一致，直接使用第一种语言
-            return first_source_lang

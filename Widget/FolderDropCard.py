@@ -151,12 +151,13 @@ class DragDropArea(QWidget):
         if folder_path:
             self.update_path(folder_path)
 
-    def update_path(self, path: str):
+    def update_path(self, path: str, emit_signal: bool = True): 
         self.current_path = path
         display_path = path if len(path) < 50 else f"...{path[-47:]}"
         self.pathLabel.setText(f"当前路径: {display_path}")
         self.pathLabel.setToolTip(path)
-        self.folderDropped.emit(path)  # 发出路径变化信号
+        if emit_signal: # 只有在需要时才发射信号
+            self.folderDropped.emit(path)
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -227,7 +228,8 @@ class FolderDropCard(CardWidget):
             self.setPath(init)
 
     def setPath(self, path: str):
-        self.dragDropArea.update_path(path)
+        # 初始化设置路径时，不发射信号
+        self.dragDropArea.update_path(path, emit_signal=False)
 
     def getPath(self) -> str:
         return self.dragDropArea.current_path

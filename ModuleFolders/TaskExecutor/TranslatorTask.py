@@ -10,11 +10,9 @@ from rich.markup import escape
 from Base.Base import Base
 from Base.PluginManager import PluginManager
 from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
-from ModuleFolders.TaskExecutor import TaskExecutor
-from ModuleFolders.TaskExecutor.TaskConfig import TaskConfig
+from ModuleFolders.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.LLMRequester.LLMRequester import LLMRequester
 from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
-from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from ModuleFolders.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
 from ModuleFolders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
 from ModuleFolders.ResponseExtractor.ResponseExtractor import ResponseExtractor
@@ -26,7 +24,7 @@ from ModuleFolders.TextProcessor.TextProcessor import TextProcessor
 
 class TranslatorTask(Base):
 
-    def __init__(self, config: TaskConfig, plugin_manager: PluginManager, request_limiter: RequestLimiter, source_lang: "TaskExecutor.SourceLang") -> None:
+    def __init__(self, config: TaskConfig, plugin_manager: PluginManager, request_limiter: RequestLimiter, source_lang) -> None:
         super().__init__()
 
         self.config = config
@@ -79,212 +77,36 @@ class TranslatorTask(Base):
         self.source_text_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage = \
             self.text_processor.replace_all(
                 self.config,
-                self.source_lang.new, 
+                self.source_lang, 
                 self.source_text_dict
             )
         
         # 生成请求指令
         if target_platform == "sakura":
-            self.messages, self.system_prompt, self.extra_log = self.generate_prompt_sakura(
+            self.messages, self.system_prompt, self.extra_log = PromptBuilderSakura.generate_prompt_sakura(
+                self.config,
                 self.source_text_dict,
-                self.previous_text_list,
+                self.previous_text_list, 
+                self.source_lang, 
             )
         elif target_platform == "LocalLLM":
-            self.messages, self.system_prompt, self.extra_log = self.generate_prompt_LocalLLM(
+            self.messages, self.system_prompt, self.extra_log = PromptBuilderLocal.generate_prompt_LocalLLM(
+                self.config,
                 self.source_text_dict,
                 self.previous_text_list,
+                self.source_lang,
             )
         else:
-            self.messages, self.system_prompt, self.extra_log = self.generate_prompt(
+            self.messages, self.system_prompt, self.extra_log = PromptBuilder.generate_prompt(
+                self.config,
                 self.source_text_dict,
                 self.previous_text_list,
+                self.source_lang,
             )
 
         # 预估 Token 消费
         self.request_tokens_consume = self.request_limiter.calculate_tokens(self.messages,self.system_prompt,)
 
-    # 生成信息结构 - 通用
-    def generate_prompt(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
-        # 储存指令
-        messages = []
-        # 储存额外日志
-        extra_log = []
-
-        # 基础系统提示词
-        if self.config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK):
-            system = PromptBuilder.build_system(self.config, self.source_lang.new)
-        else:
-            system = self.config.translation_prompt_selection["prompt_content"]  # 自定义提示词
-
-
-        # 如果开启术语表
-        if self.config.prompt_dictionary_switch == True:
-            glossary = PromptBuilder.build_glossary_prompt(self.config, source_text_dict)
-            if glossary != "":
-                system += glossary
-                extra_log.append(glossary)
-
-        # 如果开启禁翻表
-        if self.config.exclusion_list_switch == True:
-            ntl = PromptBuilder.build_ntl_prompt(self.config, source_text_dict)
-            if ntl != "":
-                system += ntl
-                extra_log.append(ntl)
-
-
-        # 如果角色介绍开关打开
-        if self.config.characterization_switch == True:
-            characterization = PromptBuilder.build_characterization(self.config, source_text_dict)
-            if characterization != "":
-                system += characterization
-                extra_log.append(characterization)
-
-        # 如果启用自定义世界观设定功能
-        if self.config.world_building_switch == True:
-            world_building = PromptBuilder.build_world_building(self.config)
-            if world_building != "":
-                system += world_building
-                extra_log.append(world_building)
-
-        # 如果启用自定义行文措辞要求功能
-        if self.config.writing_style_switch == True:
-            writing_style = PromptBuilder.build_writing_style(self.config)
-            if writing_style != "":
-                system += writing_style
-                extra_log.append(writing_style)
-
-        # 如果启用翻译风格示例功能
-        if self.config.translation_example_switch == True:
-            translation_example = PromptBuilder.build_translation_example(self.config)
-            if translation_example != "":
-                system += translation_example
-                extra_log.append(translation_example)
-
-        # 构建动态few-shot
-        switch_A = self.config.few_shot_and_example_switch # 打开动态示例开关时
-        switch_B = self.config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.COMMON #仅在通用提示词
-        if switch_A and switch_B:
-
-            # 获取默认示例前置文本
-            pre_prompt_example = PromptBuilder.build_userExamplePrefix(self.config)
-            fol_prompt_example = PromptBuilder.build_modelExamplePrefix(self.config)
-
-            # 获取具体动态示例内容
-            original_exmaple, translation_example_content = PromptBuilder.build_translation_sample(self.config, source_text_dict, self.source_lang)
-            if original_exmaple and translation_example_content:
-                messages.append({
-                    "role": "user",
-                    "content": f"{pre_prompt_example}<textarea>\n{original_exmaple}\n</textarea>"
-                })
-                messages.append({
-                    "role": "assistant",
-                    "content": f"{fol_prompt_example}<textarea>\n{translation_example_content}\n</textarea>"
-                })
-                extra_log.append(f"原文示例已添加：\n{original_exmaple}")
-                extra_log.append(f"译文示例已添加：\n{translation_example_content}")
-
-        # 如果加上文，获取上文内容
-        previous = ""
-        if self.config.pre_line_counts and previous_text_list:
-            previous = PromptBuilder.build_pre_text(self.config, previous_text_list)
-            if previous != "":
-                extra_log.append(f"###上文内容\n{"\n".join(previous_text_list)}")
-
-
-        # 构建待翻译文本
-        source_text = PromptBuilder.build_source_text(self.config,source_text_dict)
-        pre_prompt = PromptBuilder.build_userQueryPrefix(self.config) # 用户提问前置文本
-        source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text}\n</textarea>"
-
-        # 构建用户信息
-        messages.append(
-            {
-                "role": "user",
-                "content": source_text_str,
-            }
-        )
-
-        # 构建预输入回复信息
-        switch_C = self.config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COT, PromptBuilderEnum.COMMON) 
-        if switch_A and switch_C:
-            fol_prompt = PromptBuilder.build_modelResponsePrefix(self.config)
-            messages.append({"role": "assistant", "content": fol_prompt})
-
-
-        return messages, system, extra_log
-
-    # 生成信息结构 - Sakura
-    def generate_prompt_sakura(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
-        # 储存指令
-        messages = []
-        # 储存额外日志
-        extra_log = []
-
-        system = PromptBuilderSakura.build_system(self.config, self.source_lang.new)
-
-
-        # 如果开启术语表
-        glossary = ""
-        if self.config.prompt_dictionary_switch == True:
-            glossary = PromptBuilderSakura.build_glossary(self.config, source_text_dict)
-            if glossary != "":
-                extra_log.append(glossary)
-
-        # 构建待翻译文本
-        source_text = PromptBuilder.build_source_text(self.config,source_text_dict)
-
-        # 构建主要提示词
-        if glossary == "":
-            user_prompt = "将下面的日文文本翻译成中文：\n" + source_text
-        else:
-            user_prompt = (
-                "根据以下术语表（可以为空）：\n" + glossary
-                + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：\n" + source_text
-            )
-
-        # 构建指令列表
-        messages.append(
-            {
-                "role": "user",
-                "content": user_prompt,
-            }
-        )
-
-        return messages, system, extra_log
-
-    # 生成信息结构 - LocalLLM
-    def generate_prompt_LocalLLM(self, source_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
-        # 储存指令
-        messages = []
-        # 储存额外日志
-        extra_log = []
-
-        # 基础提示词
-        system = PromptBuilderLocal.build_system(self.config, self.source_lang.new)
-
-        # 术语表
-        if self.config.prompt_dictionary_switch == True:
-            result = PromptBuilder.build_glossary_prompt(self.config, source_text_dict)
-            if result != "":
-                system = system + "\n" + result
-                extra_log.append(result)
-        
-        # 构建待翻译文本
-        source_text = PromptBuilder.build_source_text(self.config,source_text_dict)
-        pre_prompt = PromptBuilder.build_userQueryPrefix(self.config) # 用户提问前置文本
-        source_text_str = f"{pre_prompt}<textarea>\n{source_text}\n</textarea>"
-
-
-        # 构建用户提问信息
-        messages.append(
-            {
-                "role": "user",
-                "content": source_text_str,
-            }
-        )
-
-
-        return messages, system, extra_log
 
     # 启动任务
     def start(self) -> dict:

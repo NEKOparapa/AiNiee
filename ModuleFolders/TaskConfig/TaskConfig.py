@@ -6,7 +6,7 @@ import urllib
 import rapidjson as json
 
 from Base.Base import Base
-from ModuleFolders.TaskExecutor.TaskType import TaskType
+from ModuleFolders.TaskConfig.TaskType import TaskType
 
 # 接口请求器
 class TaskConfig(Base):
@@ -75,6 +75,8 @@ class TaskConfig(Base):
             target_platform = self.api_settings["translate"]
         elif mode == TaskType.POLISH:
             target_platform = self.api_settings["polish"]
+        elif mode == TaskType.FORMAT:
+            target_platform = self.api_settings["format"]
 
         # 获取模型类型
         self.model = self.platforms.get(target_platform).get("model")
@@ -196,6 +198,8 @@ class TaskConfig(Base):
             target_platform = self.api_settings["translate"]
         elif platform_type == "polishingReq":
             target_platform = self.api_settings["polish"]
+        elif platform_type == "formatReq":
+            target_platform = self.api_settings["format"]
 
         api_url = self.base_url
         api_key = self.get_next_apikey()

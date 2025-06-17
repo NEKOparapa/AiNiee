@@ -50,13 +50,13 @@ class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
 
         return (
             f"{item.source_text}\n"
-            f"{item.translated_text}{line_break}"
+            f"{item.final_text}{line_break}"
         )
 
     def _item_to_translated_line(self, item: CacheItem):
         line_break = "\n" * (item.require_extra("line_break") + 1)
 
-        return f"{item.translated_text}{line_break}"
+        return f"{item.final_text}{line_break}"
 
     @classmethod
     def get_project_type(self):

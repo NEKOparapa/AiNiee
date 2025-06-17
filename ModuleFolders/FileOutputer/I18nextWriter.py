@@ -57,7 +57,7 @@ class I18nextWriter(BaseTranslatedWriter):
             path: List[str] = item.require_extra("i18next_path")
 
             # 获取翻译后的文本
-            translated_text = item.translated_text  # 假设这个方法返回最终要写入的字符串
+            translated_text = item.final_text  # 假设这个方法返回最终要写入的字符串
 
             # 使用辅助函数将翻译文本按路径设置到 output_data 中
             self._set_value_by_path(output_data, path, translated_text)

@@ -40,7 +40,7 @@ class VntWriter(BaseTranslatedWriter):
         # 转换中间字典的格式为最终输出格式
         for item in cache_file.items:
             # 一次性获取翻译后的文本
-            translated_text_full = item.translated_text
+            translated_text_full = item.final_text
             text = None # 初始化text字典
 
             # --- 首先检查 'names' ---

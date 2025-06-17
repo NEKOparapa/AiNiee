@@ -197,8 +197,7 @@ class PlatformPage(QFrame, Base):
             "api_settings":{
                         "translate": None,
                         "polish": None,
-                        "typeset": None,
-                        "summarize": None
+                        "format": None
                         }
         }
 
@@ -543,8 +542,7 @@ class PlatformPage(QFrame, Base):
             settings_map = {
                 "translate": self.tra("翻译"),
                 "polish": self.tra("润色"),
-                "typeset": self.tra("排版"),
-                "summarize": self.tra("总结"),
+                "format": self.tra("排版"),
             }
             
             # 从配置中加载已保存的设置

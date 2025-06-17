@@ -36,7 +36,7 @@ class ParatranzWriter(BaseTranslatedWriter):
             line = {
                 "key": item.get_extra("key", ""),  # 假设每个 item 都有 key 字段
                 "original": item.source_text,
-                "translation": item.translated_text or "",
+                "translation": item.final_text or "",
                 "context": item.get_extra("context", "")  # 如果你有 context 字段，也包括它
             }
             # 根据翻译状态，选择存储到已翻译或未翻译的列表

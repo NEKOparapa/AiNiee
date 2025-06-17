@@ -36,7 +36,7 @@ class RenpyWriter(BaseTranslatedWriter):
                 continue
 
             original_line = lines[line_num]
-            new_trans = item.translated_text  # 新的翻译文本
+            new_trans = item.final_text  # 新的翻译文本
 
             # 转义双引号，双引号的前面没有反斜杠或者双引号，和后面没有双引号
             pattern = r'(?<![\\"])"(?![\\"])'

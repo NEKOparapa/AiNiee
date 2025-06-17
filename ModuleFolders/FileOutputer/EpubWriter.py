@@ -60,7 +60,7 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
             for item in translated_item_dict[item_id]:
                 if item.translation_status == TranslationStatus.TRANSLATED:
                     original_html = item.require_extra("original_html")
-                    translated_text = item.translated_text
+                    translated_text = item.final_text
                     new_html = translate_html_tag(original_html, translated_text)
                     html_content = html_content.replace(original_html, new_html, 1)
             translation_content[item_filename] = html_content

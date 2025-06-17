@@ -1,5 +1,4 @@
 import re
-import string
 from typing import Dict, List
 
 import rich
@@ -298,50 +297,3 @@ class ResponseExtractor:
             final_text = re.sub(r'\s*"?\n]$', '', processed_text)
             output_dict[key] = final_text
         return output_dict
-
-        """判断条目是否需要过滤"""
-        # 非空检查
-        if not original.strip() :
-            return True
-
-        # 过滤表头行
-        if original.lower() in ("markers", "标记符", "备注","原文", "source", "source"):
-            return True
-
-        # 过滤提取错行
-        if original and "|" in original:
-            return True
-
-        # 过滤提取错行
-        if info and "|" in info:
-            return True
-
-        # 过滤常见符号
-        if original.strip() in ("#","-","...","「","」","『","』","※","★","？","！","～","…","♥","♡","^^","『』","♪","･･･","ー","（ ）","!!","无","\\n"):
-            return True
-
-        # 过滤换行符或制表符
-        if original.strip() == '\n' or original.strip() == '\t' or original.strip() == '\r':
-            return True
-
-        # 过滤纯数字（匹配整数）
-        if re.fullmatch(r'^\d+$', original):
-            return True
-
-        # 过滤纯英文（匹配大小写字母组合）
-        if re.fullmatch(r'^[a-zA-Z]+$', original):
-            return True
-
-        # 过滤被方括号/中文括号包围的数字（如[32]、【57】）
-        if re.fullmatch(r'^[\[【]\d+[\]】]$', original):
-            return True
-
-        # 过滤占位符，像[P1]
-        if re.fullmatch(r'\[[a-zA-Z]\d+\]', original):
-            return True
-
-        # 过滤纯英文字母和数字的组合（如abc123）
-        if re.fullmatch(r'^[a-zA-Z0-9]+$', original):
-            return True
-
-        return False

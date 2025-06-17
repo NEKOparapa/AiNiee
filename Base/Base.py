@@ -35,6 +35,16 @@ class Event():
     GLOSS_TASK_START = 700                           # 术语表翻译 开始
     GLOSS_TASK_DONE = 701                            # 术语表翻译 完成
 
+    TABLE_TRANSLATE_START = 800                      # 表格翻译 开始
+    TABLE_TRANSLATE_DONE = 801                       # 表格翻译 完成
+    TABLE_POLISH_START = 810                      # 表格润色 开始
+    TABLE_POLISH_DONE = 811                      # 表格润色 完成    
+    TABLE_FORMAT_START = 820                      # 表格排版 开始
+    TABLE_FORMAT_DONE = 821                      # 表格排版 完成   
+
+    TABLE_UPDATE = 898                             # 表格更新
+    TABLE_FORMAT = 899                             # 表格重排
+
     APP_SHUT_DOWN = 1000                            # 应用关闭
 
 # 软件运行状态列表
@@ -45,7 +55,7 @@ class Status():
     STOPING = 4000                                  # 停止中
     API_TEST = 2000                                 # 接口测试中
     GLOSS_TASK = 5000                        # 术语表翻译中
-
+    TABLE_TASK = 5001                        # 表格任务中
 
 class Base():
 

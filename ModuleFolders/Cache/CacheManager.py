@@ -1,14 +1,15 @@
+from collections import defaultdict
 import os
 import threading
 import time
 from dataclasses import fields
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import msgspec
 import rapidjson as json
 
 from Base.Base import Base
-from ModuleFolders.TaskExecutor.TaskType import TaskType
+from ModuleFolders.TaskConfig.TaskType import TaskType
 from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Cache.CacheProject import (
@@ -274,3 +275,56 @@ class CacheManager(Base):
 
         # 返回结果列表
         return chunks, previous_chunks, file_paths 
+
+
+    # 获取文件层级结构
+    def get_file_hierarchy(self) -> Dict[str, List[str]]:
+        """
+        从缓存中读取文件列表，并按文件夹层级组织。
+        """
+        hierarchy = defaultdict(list)
+        if not self.project or not self.project.files:
+            return {}
+            
+        with self.file_lock:
+            for file_path in self.project.files.keys():
+                # os.path.split 将路径分割成 (目录, 文件名)
+                directory, filename = os.path.split(file_path)
+                # 如果文件在根目录，directory会是空字符串，用'.'代替
+                if not directory:
+                    directory = '.'
+                hierarchy[directory].append(filename)
+
+        # 对每个文件夹下的文件名进行排序
+        for dir_path in hierarchy:
+            hierarchy[dir_path].sort()
+            
+        return dict(hierarchy)
+
+    # 更新缓存中的特定文本项
+    def update_item_text(self, storage_path: str, text_index: int, field_name: str, new_text: str) -> None:
+        """
+        更新缓存中指定文件、指定索引的文本项的某个字段。
+        """
+        with self.file_lock:
+            cache_file = self.project.get_file(storage_path)
+            if not cache_file:
+                print(f"Error: 找不到文件 {storage_path}")
+                return
+            
+            item_to_update = cache_file.get_item(text_index)
+            
+            if field_name == 'translated_text':
+                item_to_update.translated_text = new_text
+                # 如果原文和译文不同，则标记为已翻译
+                if item_to_update.source_text != new_text:
+                        item_to_update.translation_status = TranslationStatus.TRANSLATED
+            elif field_name == 'polished_text':
+                item_to_update.polished_text = new_text
+                # 只要有润文，就标记为已润色
+                if new_text and new_text.strip():
+                    item_to_update.translation_status = TranslationStatus.POLISHED
+            else:
+                print(f"Error: 不支持更新字段 {field_name}")
+                return
+

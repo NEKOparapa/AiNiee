@@ -4,19 +4,34 @@ import threading
 
 from Base.Base import Base
 from ModuleFolders.LLMRequester.LLMRequester import LLMRequester
+from ModuleFolders.TaskConfig.TaskConfig import TaskConfig
+from ModuleFolders.TaskConfig.TaskType import TaskType
+from ModuleFolders.TaskExecutor.TranslatorUtil import get_source_language_for_file
+from ModuleFolders.ResponseExtractor.ResponseExtractor import ResponseExtractor
+from ModuleFolders.ResponseExtractor.FormatExtractor import FormatExtractor
+from ModuleFolders.ResponseChecker.ResponseChecker import ResponseChecker
+from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
+from ModuleFolders.PromptBuilder.PromptBuilderPolishing import PromptBuilderPolishing
+from ModuleFolders.PromptBuilder.PromptBuilderFormat import PromptBuilderFormat
 
-
-# 接口测试器(后面改造成通用请求器，用来承担UI触发的各种额外的请求任务)
+# 简易请求器
 class SimpleExecutor(Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+
         # 订阅接口测试开始事件
         self.subscribe(Base.EVENT.API_TEST_START, self.api_test_start)
-
         # 订阅术语表翻译开始事件
         self.subscribe(Base.EVENT.GLOSS_TASK_START, self.glossary_translation_start)
+       # 订阅表格翻译任务事件
+        self.subscribe(Base.EVENT.TABLE_TRANSLATE_START, self.handle_table_translation_start)
+       # 订阅表格润色任务事件
+        self.subscribe(Base.EVENT.TABLE_POLISH_START, self.handle_table_polish_start)
+       # 订阅表格派能任务事件
+        self.subscribe(Base.EVENT.TABLE_FORMAT_START, self.handle_table_format_start)
+
 
     # 响应接口测试开始事件
     def api_test_start(self, event: int, data: dict):
@@ -134,16 +149,14 @@ class SimpleExecutor(Base):
 
     # 术语表翻译
     def glossary_translation(self, event, data: dict):
+
         # 获取参数
         platform_tag = data.get("tag")
-        platform_name = data.get("name")
         api_url = data.get("api_url")
         api_key = data.get("api_key")
         api_format = data.get("api_format")
         model_name = data.get("model")
         auto_complete = data.get("auto_complete")
-        proxy_url = data.get("proxy_url")
-        proxy_enable = data.get("proxy_enable")
         extra_body = data.get("extra_body",{})
         region = data.get("region")
         access_key = data.get("access_key")
@@ -167,14 +180,6 @@ class SimpleExecutor(Base):
             if not any(api_url.endswith(suffix) for suffix in version_suffixes):
                 api_url += "/v1"
 
-        # 获取并设置网络代理
-        if proxy_enable == False or proxy_url == "":
-            os.environ.pop("http_proxy", None)
-            os.environ.pop("https_proxy", None)
-        else:
-            os.environ["http_proxy"] = proxy_url
-            os.environ["https_proxy"] = proxy_url
-            self.info(f"系统代理已启用，代理地址：{proxy_url}")
 
         # 解析并分割密钥字符串，并只取第一个密钥进行测试
         api_keys = re.sub(r"\s+","", api_key).split(",")
@@ -324,3 +329,319 @@ class SimpleExecutor(Base):
             "status": "success",
             "updated_data": prompt_dictionary_data
         })
+
+    # 响应表格翻译开始事件，并启动新线程
+    def handle_table_translation_start(self, event, data: dict):
+        thread = threading.Thread(target=self.process_table_translation, args=(data,), daemon=True)
+        thread.start()
+
+    # 表格文本的分批翻译
+    def process_table_translation(self, data: dict):
+        """处理表格文件的批量翻译任务"""
+        # 解包从UI传来的数据
+        file_path = data.get("file_path")
+        items_to_translate = data.get("items_to_translate")
+        language_stats = data.get("language_stats")
+
+        # 准备翻译配置
+        config = TaskConfig()
+        config.initialize()
+        config.prepare_for_translation(TaskType.TRANSLATION)
+        platform_config = config.get_platform_configuration("translationReq")
+        file_source_lang = get_source_language_for_file(config.source_language, config.target_language, language_stats)
+
+        # 翻译任务分割
+        MAX_LINES = 10  # 最大行数
+        LOG_WIDTH = 50  # 日志框的统一宽度
+        total_items = len(items_to_translate)
+        num_batches = (total_items + MAX_LINES - 1) // MAX_LINES
+
+        self.info(f" 开始处理表格翻译任务: {os.path.basename(file_path)}")
+        self.info(f"    总计 {total_items} 行文本, 将分为 {num_batches} 个批次处理。")
+
+        for i in range(num_batches):
+            start_index = i * MAX_LINES
+            end_index = start_index + MAX_LINES
+            batch_items = items_to_translate[start_index:end_index]
+            
+            batch_num = i + 1
+            log_header = f" 批次 {batch_num}/{num_batches} "
+            
+            # 构建0基的数字序号原文词典
+            source_text_dict = {str(idx): item['source_text'] for idx, item in enumerate(batch_items)}
+            # 构建还原用索引地图
+            index_map = [item['text_index'] for item in batch_items]
+
+            # 为当前批次任务构建提示词内容
+            messages, system_prompt, _ = PromptBuilder.generate_prompt(
+                config, source_text_dict, [], file_source_lang
+            )
+            
+            # 日志
+            print(f"\n╔{'═' * (LOG_WIDTH-2)}")
+            print(f"║{log_header.center(LOG_WIDTH-2)}")
+            print(f"╠{'═' * (LOG_WIDTH-2)}")
+            print(f"├─ 正在发送请求 (共 {len(batch_items)} 行)...")
+            
+            # 发送请求
+            requester = LLMRequester()
+            skip, _, response_content, _, _ = requester.sent_request(
+                messages, system_prompt, platform_config
+            )
+
+            # 检查请求是否失败
+            if skip:
+                print("├─ 请求失败，网络或API密钥错误。")
+                print(f"└─ ❌ 跳过此批次。")
+                continue
+
+            # 日志输出
+            print("├─ 收到回复，内容如下:")
+            for line in response_content.strip().split('\n'):
+                print(f"│  {line}")
+            print(f"├{'─' * (LOG_WIDTH-2)}") # 添加一个分隔线
+
+            # 提取和检查返回内容
+            print("├─ 正在解析和校验回复...")
+            response_dict = ResponseExtractor.text_extraction(self, source_text_dict, response_content)
+            check_result, error_content = ResponseChecker.check_polish_response_content(self, config, response_content, response_dict, source_text_dict)
+            
+            if not check_result:
+                print(f"├─ 内容校验失败: {error_content}")
+                print(f"└─ ❌ 跳过此批次。")
+                continue
+            
+            print(f"├─ 成功解析 {len(response_dict)} 条结果。")
+
+            # 将字符串序号的字典转换回原始 text_index 的字典-
+            restored_response_dict = {
+                index_map[int(temp_idx_str)]: text
+                for temp_idx_str, text in response_dict.items()
+            }
+
+            # 移除文本中的数字序号
+            updated_items_for_ui = ResponseExtractor.remove_numbered_prefix(self, restored_response_dict)
+
+            # 发送表格更新信号
+            self.emit(Base.EVENT.TABLE_UPDATE, {
+                "file_path": file_path,
+                "target_column_index": 2,
+                "updated_items": updated_items_for_ui
+            })
+            print(f"└─ ✅ 批次处理完成，已发送UI更新。")
+            print("")
+
+        # 更新软件状态
+        Base.work_status = Base.STATUS.IDLE 
+        self.info(f" 🐳 表格翻译任务已经全部完成")                            
+
+    # 响应表格润色事件
+    def handle_table_polish_start(self, event, data: dict):
+        thread = threading.Thread(target=self.process_table_polish, args=(data,), daemon=True)
+        thread.start()
+
+    # 表格文本的分批润色
+    def process_table_polish(self, data: dict):
+        """处理表格文件的批量翻译任务"""
+        # 解包从UI传来的数据
+        file_path = data.get("file_path")
+        items_to_polish = data.get("items_to_polish")
+
+        # 准备翻译配置
+        config = TaskConfig()
+        config.initialize()
+        config.prepare_for_translation(TaskType.POLISH)
+        platform_config = config.get_platform_configuration("polishingReq")
+        polishing_mode_selection = config.polishing_mode_selection
+
+        # 翻译任务分割
+        MAX_LINES = 10  # 最大行数
+        LOG_WIDTH = 50  # 日志框的统一宽度
+        total_items = len(items_to_polish)
+        num_batches = (total_items + MAX_LINES - 1) // MAX_LINES
+
+        self.info(f" 开始处理表格润色任务: {os.path.basename(file_path)}")
+        self.info(f"    总计 {total_items} 行文本, 将分为 {num_batches} 个批次处理。")
+
+        for i in range(num_batches):
+            start_index = i * MAX_LINES
+            end_index = start_index + MAX_LINES
+            batch_items = items_to_polish[start_index:end_index]
+            
+            batch_num = i + 1
+            log_header = f" 批次 {batch_num}/{num_batches} "
+            
+            # 构建0基的数字序号原文词典
+            source_text_dict = {str(idx): item['source_text'] for idx, item in enumerate(batch_items)}
+            # 译文词典
+            translation_text_dict = {str(idx): item['translation_text'] for idx, item in enumerate(batch_items)}
+            # 构建还原用索引地图
+            index_map = [item['text_index'] for item in batch_items]
+
+            # 生成提示词内容
+            messages, system_prompt, extra_log = PromptBuilderPolishing.generate_prompt(
+                config,
+                source_text_dict,
+                translation_text_dict,
+                [],
+            )
+            
+            # 日志
+            print(f"\n╔{'═' * (LOG_WIDTH-2)}")
+            print(f"║{log_header.center(LOG_WIDTH-2)}")
+            print(f"╠{'═' * (LOG_WIDTH-2)}")
+            print(f"├─ 正在发送请求 (共 {len(batch_items)} 行)...")
+            
+            # 发送请求
+            requester = LLMRequester()
+            skip, _, response_content, _, _ = requester.sent_request(
+                messages, system_prompt, platform_config
+            )
+
+            # 检查请求是否失败
+            if skip:
+                print("├─ 请求失败，网络或API密钥错误。")
+                print(f"└─ ❌ 跳过此批次。")
+                continue
+
+            # 日志输出
+            print("├─ 收到回复，内容如下:")
+            for line in response_content.strip().split('\n'):
+                print(f"│  {line}")
+            print(f"├{'─' * (LOG_WIDTH-2)}") # 添加一个分隔线
+
+
+            # 根据润色模式调整文本对象
+            if polishing_mode_selection == "source_text_polish":
+                text_dict = source_text_dict
+            elif polishing_mode_selection == "translated_text_polish":
+                text_dict = translation_text_dict
+
+            # 提取和检查返回内容
+            print("├─ 正在解析和校验回复...")
+            response_dict = ResponseExtractor.text_extraction(self, text_dict, response_content)
+            check_result, error_content = ResponseChecker.check_polish_response_content(self, config, response_content, response_dict, text_dict)
+            
+            if not check_result:
+                print(f"├─ 内容校验失败: {error_content}")
+                print(f"└─ ❌ 跳过此批次。")
+                continue
+            
+            print(f"├─ 成功解析 {len(response_dict)} 条结果。")
+
+            # 将字符串序号的字典转换回原始 text_index 的字典-
+            restored_response_dict = {
+                index_map[int(temp_idx_str)]: text
+                for temp_idx_str, text in response_dict.items()
+            }
+
+            # 移除文本中的数字序号
+            updated_items_for_ui = ResponseExtractor.remove_numbered_prefix(self, restored_response_dict)
+
+            # 发送表格更新信号
+            self.emit(Base.EVENT.TABLE_UPDATE, {
+                "file_path": file_path,
+                "target_column_index": 3,
+                "updated_items": updated_items_for_ui
+            })
+            print(f"└─ ✅ 批次处理完成，已发送UI更新。")
+            print("")
+
+        # 更新软件状态
+        Base.work_status = Base.STATUS.IDLE 
+        self.info(f" 🐳 表格润色任务已经全部完成")         
+
+
+    # 响应表格排版事件
+    def handle_table_format_start(self, event, data: dict):
+        thread = threading.Thread(target=self.process_table_format, args=(data,), daemon=True)
+        thread.start()
+
+    # 表格文本的分批排版
+    def process_table_format(self, data: dict):
+        """处理表格文件的批量排版任务"""
+        # 解包从UI传来的数据
+        file_path = data.get("file_path")
+        items_to_format = data.get("items_to_format")
+        selected_rows = data.get("selected_rows")
+
+        # 准备排版配置
+        config = TaskConfig()
+        config.initialize()
+        config.prepare_for_translation(TaskType.FORMAT)
+        platform_config = config.get_platform_configuration("formatReq")
+
+        # 排版任务分割
+        MAX_LINES = 10  # 最大行数
+        LOG_WIDTH = 50  # 日志框的统一宽度
+        total_items = len(items_to_format)
+        num_batches = (total_items + MAX_LINES - 1) // MAX_LINES
+
+        self.info(f" 开始处理表格排版任务: {os.path.basename(file_path)}")
+        self.info(f"    总计 {total_items} 行文本, 将分为 {num_batches} 个批次处理。")
+
+        for i in range(num_batches):
+            start_index = i * MAX_LINES
+            end_index = start_index + MAX_LINES
+            batch_items = items_to_format[start_index:end_index]
+            
+            batch_num = i + 1
+            log_header = f" 批次 {batch_num}/{num_batches} "
+            
+            # 构建0基的文本序号原文词典
+            source_text_dict = {str(idx): item['source_text'] for idx, item in enumerate(batch_items)}
+
+            # 生成提示词内容
+            messages, system_prompt, extra_log = PromptBuilderFormat.generate_prompt(
+                config,
+                source_text_dict,
+            )
+            
+            # 日志
+            print(f"\n╔{'═' * (LOG_WIDTH-2)}")
+            print(f"║{log_header.center(LOG_WIDTH-2)}")
+            print(f"╠{'═' * (LOG_WIDTH-2)}")
+            print(f"├─ 正在发送请求 (共 {len(batch_items)} 行)...")
+            
+            # 发送请求
+            requester = LLMRequester()
+            skip, _, response_content, _, _ = requester.sent_request(
+                messages, system_prompt, platform_config
+            )
+
+            # 检查请求是否失败
+            if skip:
+                print("├─ 请求失败，网络或API密钥错误。")
+                print(f"└─ ❌ 跳过此批次。")
+                continue
+
+            # 日志输出
+            print("├─ 收到回复，内容如下:")
+            for line in response_content.strip().split('\n'):
+                print(f"│  {line}")
+            print(f"├{'─' * (LOG_WIDTH-2)}") # 添加一个分隔线
+
+            # 提取和检查返回内容
+            print("├─ 正在解析和校验回复...")
+            response_dict = FormatExtractor.text_extraction(self, response_content)
+
+            if not response_dict:
+                print(f"├─ 内容提取失败")
+                print(f"└─ ❌ 跳过此批次。")
+                continue
+            
+            print(f"├─ 成功解析 {len(response_dict)} 条结果。")
+
+
+            # 发送表格更新信号
+            self.emit(Base.EVENT.TABLE_FORMAT, {
+                "file_path": file_path,
+                "updated_items": response_dict,
+                "selected_rows": selected_rows,
+            })
+            print(f"└─ ✅ 批次处理完成，已发送UI更新。")
+            print("")
+
+        # 更新软件状态
+        Base.work_status = Base.STATUS.IDLE 
+        self.info(f" 🐳 表格排版任务已经全部完成")    

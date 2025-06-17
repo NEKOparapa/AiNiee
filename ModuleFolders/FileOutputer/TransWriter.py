@@ -24,7 +24,7 @@ class TransWriter(BaseTranslatedWriter):
             file_category = item.get_extra("file_category", "")
             data_index = item.get_extra("data_index", "")
             tags = item.get_extra("tags", None)
-            new_translation = item.translated_text
+            new_translation = item.final_text
             name = item.get_extra("name", "")
 
             # 导航并更新，带有检查
@@ -35,19 +35,10 @@ class TransWriter(BaseTranslatedWriter):
             # 补充或者创建一样长度的tags列表，与文本列表长度一致
             tags_list =  self.align_lists(data_list, tags_list)
 
-            # 检查是否存在该名字字段，并提取
-            parameters_list = None # 先设为 None
-            if "parameters" in category_data:
-                parameters_list = category_data["parameters"]
-
             # 如果有人名信息
             if name:
                 # 分割人名与文本
                 name, new_translation = self.extract_strings(name, new_translation)
-
-                # 更新人名翻译
-                if parameters_list:
-                    parameters_list[data_index][0]["translation"] = name
 
             # 仅当翻译实际改变时才写入，译文文本在第二个元素
             if len(data_list[data_index]) > 1:  # 检查长度是否至少为2,保证有译文位置

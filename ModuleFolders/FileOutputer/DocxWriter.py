@@ -30,7 +30,7 @@ class DocxWriter(BaseTranslatedWriter):
                 # 在翻译结果中查找是否存在原文，存在则替换并右移开始下标
                 for content_index in range(start_index, len(items)):
                     if match.string == items[content_index].source_text:
-                        match.string = items[content_index].translated_text
+                        match.string = items[content_index].final_text
                         start_index = content_index + 1
                         break
         self.file_accessor.write_content(

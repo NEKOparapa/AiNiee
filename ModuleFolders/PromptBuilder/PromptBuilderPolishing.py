@@ -2,8 +2,9 @@ import re
 from types import SimpleNamespace
 
 from Base.Base import Base
-from ModuleFolders.TaskExecutor.TaskConfig import TaskConfig
-
+from ModuleFolders.TaskConfig.TaskConfig import TaskConfig
+from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
 class PromptBuilderPolishing(Base):
 
     def __init__(self) -> None:
@@ -186,3 +187,75 @@ class PromptBuilderPolishing(Base):
         profile_B = "###这是你接下来的润色任务，初译文本如下\n"
 
         return profile_A , profile_B
+
+
+    # 生成信息结构 - 通用
+    def generate_prompt(config, source_text_dict: dict, translation_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
+        # 储存指令
+        messages = []
+        # 储存额外日志
+        extra_log = []
+
+        # 基础系统提示词
+        if config.polishing_prompt_selection["last_selected_id"]  == PromptBuilderEnum.REFINEMENT_COMMON:
+            system = PromptBuilderPolishing.build_system(config)
+        else:
+            system = config.polishing_prompt_selection["prompt_content"]  # 自定义提示词
+
+
+        # 如果开启术语表
+        if config.prompt_dictionary_switch == True:
+            glossary = PromptBuilderPolishing.build_glossary_prompt(config, source_text_dict)
+            if glossary != "":
+                system += glossary
+                extra_log.append(glossary)
+
+        # 如果开启禁翻表
+        if config.exclusion_list_switch == True:
+            ntl = PromptBuilderPolishing.build_ntl_prompt(config, source_text_dict)
+            if ntl != "":
+                system += ntl
+                extra_log.append(ntl)
+
+        # 如果启用润色风格功能
+        if config.polishing_style_switch == True:
+            writing_style = PromptBuilderPolishing.build_ntl_prompt(config)
+            if writing_style != "":
+                system += writing_style
+                extra_log.append(writing_style)
+
+
+        # 如果加上文，获取上文内容
+        previous = ""
+        if config.polishing_pre_line_counts and previous_text_list:
+            previous = PromptBuilderPolishing.build_pre_text(config, previous_text_list)
+            if previous != "":
+                extra_log.append(f"###上文内容\n{"\n".join(previous_text_list)}")
+
+
+        # 构建待翻译文本
+
+        if config.polishing_mode_selection == "source_text_polish":
+
+            source_text = PromptBuilder.build_source_text(config,source_text_dict)
+            pre_prompt = PromptBuilderPolishing.build_source_prefix(config) # 用户提问前置文本
+
+            source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text}\n</textarea>"
+
+        elif config.polishing_mode_selection == "translated_text_polish":
+            source_text = PromptBuilder.build_source_text(config,source_text_dict)
+            translation_text = PromptBuilder.build_source_text(config,translation_text_dict)
+            pre_prompt_A,pre_prompt_B = PromptBuilderPolishing.build_translated_prefix(config) # 用户提问前置文本
+
+            source_text_str = f"{previous}\n{pre_prompt_A}\n{source_text}\n{pre_prompt_B}<textarea>\n{translation_text}\n</textarea>"
+
+
+        # 构建用户信息
+        messages.append(
+            {
+                "role": "user",
+                "content": source_text_str,
+            }
+        )
+
+        return messages, system, extra_log

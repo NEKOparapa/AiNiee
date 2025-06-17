@@ -2,7 +2,7 @@ import itertools
 import unicodedata
 
 from PluginScripts.PluginBase import PluginBase
-from ModuleFolders.TaskExecutor.TaskConfig import TaskConfig
+from ModuleFolders.TaskConfig.TaskConfig import TaskConfig
 
 class TextNormalizer(PluginBase):
 
