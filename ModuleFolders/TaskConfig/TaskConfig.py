@@ -131,7 +131,7 @@ class TaskConfig(Base):
 
 
         # 计算实际线程数
-        self.actual_thread_counts = self.thread_counts_setting(self.user_thread_counts,self.target_platform,self.rpm_limit)
+        self.actual_thread_counts = self.thread_counts_setting(self.user_thread_counts,target_platform,self.rpm_limit)
 
 
     # 自动计算实际请求线程数
