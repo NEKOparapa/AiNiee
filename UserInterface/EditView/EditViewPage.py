@@ -3,10 +3,10 @@ import os
 import threading
 import time
 from PyQt5.QtCore import QPoint, QVariant, Qt, QSize, pyqtSignal
-from PyQt5.QtWidgets import (QAbstractItemView, QFrame, QHeaderView, QTableWidgetItem, QTreeWidgetItem,
+from PyQt5.QtWidgets import (QAbstractItemView, QFrame, QHeaderView, QScrollArea, QTableWidgetItem, QTreeWidgetItem,
                              QWidget, QHBoxLayout, QVBoxLayout, 
                              QSplitter, QStackedWidget)
-from qfluentwidgets import (Action,  CaptionLabel, MessageBox, PrimarySplitPushButton, PushButton, RoundMenu,  ToggleToolButton, TransparentPushButton, TransparentToolButton,
+from qfluentwidgets import (Action, BodyLabel,  CaptionLabel, MessageBox, PrimarySplitPushButton, PushButton, RoundMenu, TitleLabel,  ToggleToolButton, TransparentPushButton, TransparentToolButton,
                             TreeWidget, TabBar, FluentIcon as FIF, CardWidget, Action, RoundMenu, TableWidget,
                             ProgressBar)
 
@@ -332,10 +332,139 @@ class PageCard(CardWidget):
         self.layout.addWidget(self.stacked_widget)
 
     def on_view_button_clicked(self):
-        """视图切换按钮的占位功能"""
-        MessageBox("视图切换", "视图切换按钮被点击", self).exec()
+        """
+        提取当前前台标签页的所有文本，生成新的视图标签页进行美观展示。
+        """
+        current_index = self.stacked_widget.currentIndex()
 
-# 标签页
+        # 处理没有标签页的情况
+        if current_index == -1:
+            MessageBox("提示", "当前没有打开的标签页。", self.window()).exec()
+            return
+
+        # 获取当前标签页和其数据表格
+        current_tab = self.stacked_widget.widget(current_index)
+
+        # 检查当前是否为原始数据表格页，而不是一个视图页
+        if not isinstance(current_tab, TabInterface):
+            MessageBox("提示", "请在原始数据表格标签页上执行此操作。", self.window()).exec()
+            return
+
+        table_page = current_tab.tableView
+        table = table_page.table
+
+        # 提取所有文本
+        all_text_data = []
+        for row in range(table.rowCount()):
+            row_num_item = table.item(row, BasicTablePage.COL_NUM)
+            source_item = table.item(row, BasicTablePage.COL_SOURCE)
+            trans_item = table.item(row, BasicTablePage.COL_TRANS)
+            polish_item = table.item(row, BasicTablePage.COL_POLISH)
+
+            all_text_data.append({
+                "row": row_num_item.text() if row_num_item else str(row + 1),
+                "source": source_item.text() if source_item else "",
+                "translation": trans_item.text() if trans_item else "",
+                "polish": polish_item.text() if polish_item else ""
+            })
+
+        # 生成新的视图标签页
+        original_tab_name = self.tab_bar.tabText(current_index)
+
+        view_tab_name = f"视图 - {original_tab_name}"
+        # 使用时间戳确保路由键的唯一性
+        view_route_key = f"view_{int(time.time())}"
+
+        # 检查是否已存在此文件的视图页，避免重复创建
+        for i in range(self.tab_bar.count()):
+            if self.tab_bar.tabText(i) == view_tab_name:
+                self.tab_bar.setCurrentIndex(i) # 如果存在，直接切换过去
+                return
+
+        # 创建新的视图页面实例
+        new_view_page = TextViewPage(all_text_data)
+        new_view_page.setObjectName(view_route_key) # 设置对象名以便追踪
+
+        # 添加新标签页并自动跳转
+        self.stacked_widget.addWidget(new_view_page)
+        self.tab_bar.addTab(routeKey=view_route_key, text=view_tab_name)
+
+        new_index = self.tab_bar.count() - 1
+        self.tab_bar.setCurrentIndex(new_index)
+        self.stacked_widget.setCurrentIndex(new_index)
+
+# 文本视图页
+class TextViewPage(QWidget):
+    def __init__(self, text_data: list, parent=None):
+        super().__init__(parent=parent)
+        self.setObjectName("TextViewPage")
+
+        # 主布局
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(10, 10, 10, 10)
+
+        # 滚动区域，以便内容超出时可以滚动
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.NoFrame)
+
+        # 滚动区域内的内容小部件
+        self.scroll_content_widget = QWidget()
+        self.scroll_layout = QVBoxLayout(self.scroll_content_widget)
+        self.scroll_layout.setContentsMargins(5, 5, 5, 5)
+        self.scroll_layout.setSpacing(10)
+
+        self._populate_data(text_data)
+
+        self.scroll_area.setWidget(self.scroll_content_widget)
+        self.main_layout.addWidget(self.scroll_area)
+
+    def _populate_data(self, text_data: list):
+        """用传入的文本数据填充视图"""
+        if not text_data:
+            self.scroll_layout.addWidget(BodyLabel("没有可供预览的文本。", self))
+            return
+
+        for i, row_data in enumerate(text_data):
+            # 为每一行数据创建一个卡片
+            card = CardWidget(self)
+            card_layout = QVBoxLayout(card)
+            card_layout.setSpacing(8)
+            card_layout.setContentsMargins(15, 10, 15, 10)
+
+            # 将原文作为标题
+            source_title = TitleLabel(f"原文 (第 {row_data['row']} 行)", self)
+            card_layout.addWidget(source_title)
+
+            source_content = BodyLabel(row_data['source'], self)
+            source_content.setWordWrap(True)
+            card_layout.addWidget(source_content)
+
+            card_layout.addSpacing(10)
+
+            # 添加译文（如果存在）
+            if row_data['translation']:
+                trans_title = BodyLabel("译文:", self)
+                card_layout.addWidget(trans_title)
+                trans_content = BodyLabel(row_data['translation'], self)
+                trans_content.setWordWrap(True)
+                card_layout.addWidget(trans_content)
+                card_layout.addSpacing(5)
+
+            # 添加润文（如果存在）
+            if row_data['polish']:
+                polish_title = BodyLabel("润文:", self)
+                card_layout.addWidget(polish_title)
+                polish_content = BodyLabel(row_data['polish'], self)
+                polish_content.setWordWrap(True)
+                card_layout.addWidget(polish_content)
+
+            self.scroll_layout.addWidget(card)
+
+        # 在末尾添加一个伸展项，将所有卡片推向顶部
+        self.scroll_layout.addStretch(1)
+
+# 标签页基类
 class TabInterface(QWidget):
     def __init__(self, text: str, file_path: str, file_items: list, cache_manager, parent=None):
         super().__init__(parent=parent)
@@ -348,7 +477,6 @@ class TabInterface(QWidget):
         
         # 使用文件路径作为唯一的对象名称，避免特殊字符问题
         self.setObjectName(file_path)
-
 
 # 基础表格页
 class BasicTablePage(Base,QWidget):
@@ -366,10 +494,6 @@ class BasicTablePage(Base,QWidget):
         self.file_path = file_path          # 当前表格对应的文件路径
         self.cache_manager = cache_manager  # 缓存管理器实例
         
-
-        # 订阅来自执行器的通用表格更新事件
-        self.subscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
-
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(5, 0, 0, 0)
         self.layout.setSpacing(0)
@@ -383,6 +507,10 @@ class BasicTablePage(Base,QWidget):
 
         # 连接单元格修改信号
         self.table.itemChanged.connect(self._on_item_changed)
+        # 订阅来自执行器的通用表格更新事件
+        self.subscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
+        # 订阅排版完成后的表格重建事件
+        self.subscribe(Base.EVENT.TABLE_FORMAT, self._on_format_and_rebuild_table) 
 
     # 表格属性
     def _init_table(self):
@@ -528,6 +656,43 @@ class BasicTablePage(Base,QWidget):
         self.table.resizeRowsToContents()
         self.table.blockSignals(False)
 
+    # 表格重编排方法
+    def _on_format_and_rebuild_table(self, event, data: dict):
+        """
+        当接收到TABLE_FORMAT事件时，使用新数据对缓存进行拼接操作并重建表格。
+        """
+        if data.get('file_path') != self.file_path:
+            return
+            
+        self.info(f"接收到文件 '{self.file_path}' 的排版更新，正在重建表格...")
+        
+        formatted_data = data.get('updated_items')
+        # 从事件中获取原始选中项的索引列表
+        selected_item_indices = data.get('selected_item_indices') 
+
+        if not formatted_data or selected_item_indices is None:
+            self.error("排版更新失败：未收到有效的文本数据或原始选中项索引。")
+            return
+
+        # 调用CacheManager进行精确的“切片和拼接”操作
+        updated_full_item_list = self.cache_manager.reformat_and_splice_cache(
+            file_path=self.file_path,
+            formatted_data=formatted_data,
+            selected_item_indices=selected_item_indices
+        )
+
+        if updated_full_item_list is None:
+            self.error("缓存拼接更新失败，表格更新中止。")
+            return
+            
+        # 使用返回的、完整的item列表，重绘整个表格
+        self._populate_real_data(updated_full_item_list)
+        
+        row_count_change = len(updated_full_item_list) - self.table.rowCount()
+        self.info_toast("排版完成", f"表格已成功更新，行数变化: {row_count_change:+}")
+
+
+
     # 获取所有被选行的索引
     def _get_selected_rows_indices(self):
         """获取所有被选中行的索引列表"""
@@ -624,21 +789,27 @@ class BasicTablePage(Base,QWidget):
             return
 
         items_to_format = []
+        selected_item_indices = [] # 用于存储选中项的text_index
         for row in selected_rows:
             text_index_item = self.table.item(row, self.COL_NUM)
             source_text_item = self.table.item(row, self.COL_SOURCE)
 
             if text_index_item and source_text_item:
+                text_index = text_index_item.data(Qt.UserRole)
                 items_to_format.append({
-                    "text_index": text_index_item.data(Qt.UserRole),
+                    "text_index": text_index,
                     "source_text": source_text_item.text(),
                 })
+                selected_item_indices.append(text_index)
+
+        if not items_to_format:
+            return
 
         # 发送事件到后端执行器
         self.emit(Base.EVENT.TABLE_FORMAT_START, {
             "file_path": self.file_path,
             "items_to_format": items_to_format,
-            "selected_rows": selected_rows,
+            "selected_item_indices": selected_item_indices, 
         })
         self.info_toast("提示", f"已提交 {len(items_to_format)} 行文本的排版任务。")
 
@@ -663,7 +834,6 @@ class BasicTablePage(Base,QWidget):
                 item.setText("")
             else:
                 self.table.setItem(row, self.COL_POLISH, QTableWidgetItem(""))
-
 
 # 主界面
 class EditViewPage(Base,QFrame):

@@ -563,7 +563,7 @@ class SimpleExecutor(Base):
         # 解包从UI传来的数据
         file_path = data.get("file_path")
         items_to_format = data.get("items_to_format")
-        selected_rows = data.get("selected_rows")
+        original_selected_indices = data.get("selected_item_indices")
 
         # 准备排版配置
         config = TaskConfig()
@@ -624,6 +624,11 @@ class SimpleExecutor(Base):
             # 提取和检查返回内容
             print("├─ 正在解析和校验回复...")
             response_dict = FormatExtractor.text_extraction(self, response_content)
+            """
+            response_dict: 一个字典，键是内容的行号（字符串形式），值是另一个字典，
+            包含 'text' (行文本) 和 'blank_lines_after' (该行后的空行数)。
+            例如: {'0': {'text': '第一行', 'blank_lines_after': 2}, ...}
+            """
 
             if not response_dict:
                 print(f"├─ 内容提取失败")
@@ -636,8 +641,8 @@ class SimpleExecutor(Base):
             # 发送表格更新信号
             self.emit(Base.EVENT.TABLE_FORMAT, {
                 "file_path": file_path,
-                "updated_items": response_dict,
-                "selected_rows": selected_rows,
+                "updated_items": response_dict,      
+                "selected_item_indices": original_selected_indices, 
             })
             print(f"└─ ✅ 批次处理完成，已发送UI更新。")
             print("")

@@ -328,3 +328,71 @@ class CacheManager(Base):
                 print(f"Error: 不支持更新字段 {field_name}")
                 return
 
+    # 缓存重编排方法
+    def reformat_and_splice_cache(self, file_path: str, formatted_data: dict, selected_item_indices: list[int]) -> list[CacheItem] | None:
+        """
+        根据格式化后的数据，对指定文件中的选中项进行“切片和拼接”操作。
+        此操作会移除旧的选中项，并在原位置插入新的项。
+
+        Args:
+            file_path (str): 要更新的文件路径。
+            formatted_data (dict): 从API返回的格式化数据。
+                                   格式: {'0': {'text': '...', 'blank_lines_after': ...}, ...}
+            selected_item_indices (list[int]): 原始被选中项的 text_index 列表。
+
+        Returns:
+            list[CacheItem] | None: 成功则返回代表整个文件的、更新后的完整CacheItem列表，否则返回None。
+        """
+        with self.file_lock:
+            cache_file = self.project.get_file(file_path)
+            if not cache_file:
+                self.error(f"在缓存中找不到文件: {file_path}")
+                return None
+            
+            original_items = cache_file.items
+            if not selected_item_indices or not original_items:
+                return original_items # 如果没有选中项或文件为空，则不进行任何操作
+
+            # 创建新的CacheItem
+            newly_created_items = []
+            language_stats = cache_file.language_stats
+            
+            # 为了保证text_index的全局唯一性，从当前所有item的最大index开始递增
+            max_text_index = 0
+            for item in self.project.items_iter():
+                if item.text_index > max_text_index:
+                    max_text_index = item.text_index
+
+            sorted_formatted_data = sorted(formatted_data.items(), key=lambda x: int(x[0]))
+            
+            for _, item_data in sorted_formatted_data:
+                max_text_index += 1
+                new_item = CacheItem(
+                    text_index=max_text_index,
+                    source_text=item_data.get('text', ''),
+                    translation_status=TranslationStatus.UNTRANSLATED,
+                    lang_code=language_stats[0] if language_stats else None,
+                )
+                new_item.set_extra('line_break', item_data.get('blank_lines_after', 0))
+                newly_created_items.append(new_item)
+
+            # 找到插入点和要替换的范围
+            selected_indices_set = set(selected_item_indices)
+            
+            # 找到选中范围在原列表中的起始和结束index
+            start_pos = next(i for i, item in enumerate(original_items) if item.text_index in selected_indices_set)
+            end_pos = next(i for i, item in reversed(list(enumerate(original_items))) if item.text_index in selected_indices_set)
+
+            # 构建最终的 item 列表
+            final_items = (
+                original_items[:start_pos] + 
+                newly_created_items + 
+                original_items[end_pos + 1:]
+            )
+
+            # 更新缓存
+            cache_file.items = final_items
+            if hasattr(cache_file, "items_index_dict"):
+                del cache_file.items_index_dict # 清除旧缓存，以便重新计算
+
+            return final_items
