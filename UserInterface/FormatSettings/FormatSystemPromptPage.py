@@ -5,7 +5,7 @@ from qfluentwidgets import CaptionLabel, CardWidget, FluentWindow, HorizontalSep
 
 
 from Base.Base import Base
-from ModuleFolders.PromptBuilder.PromptBuilderPolishing import PromptBuilderPolishing
+from ModuleFolders.PromptBuilder.PromptBuilderFormat import PromptBuilderFormat
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 
 # 提示词卡片
@@ -154,7 +154,7 @@ class AddEditPromptDialog(MessageBoxBase):
             return {"id": str(uuid.uuid4()), "name": name, "content": content, "type": "user"}
 
 # 主界面
-class PolishingSystemPromptPage(QFrame, Base):
+class FormatSystemPromptPage(QFrame, Base):
 
     def __init__(self, text: str, window: FluentWindow) -> None:
         super().__init__(window)
@@ -162,8 +162,8 @@ class PolishingSystemPromptPage(QFrame, Base):
 
         # 默认配置
         self.default = {
-            "polishing_prompt_selection":{"last_selected_id": PromptBuilderEnum.POLISH_COMMON,"prompt_content": ""},
-            "polishing_user_prompt_data": [],
+            "format_prompt_selection":{"last_selected_id": PromptBuilderEnum.FORMAT_COMMON,"prompt_content": ""},
+            "format_user_prompt_data": [],
         }
 
         # 载入并合并配置
@@ -174,8 +174,8 @@ class PolishingSystemPromptPage(QFrame, Base):
 
         # 获取用户配置
         self.default_prompt = self.get_default_prompt(config)
-        selected_prompt = config.get("polishing_prompt_selection",{})
-        self.user_prompts = config.get("polishing_user_prompt_data",[])
+        selected_prompt = config.get("format_prompt_selection",{})
+        self.user_prompts = config.get("format_user_prompt_data",[])
         self.all_prompts = self.default_prompt + self.user_prompts
         last_selected_id = selected_prompt.get("last_selected_id","")
 
@@ -287,8 +287,8 @@ class PolishingSystemPromptPage(QFrame, Base):
 
         # 获取系统预设提示词内容
         conmon_name = "通用"
-        common_id = PromptBuilderEnum.POLISH_COMMON
-        common_prompt_content = PromptBuilderPolishing.get_system_default(config)
+        common_id = PromptBuilderEnum.FORMAT_COMMON
+        common_prompt_content = PromptBuilderFormat.get_system_default(config)
 
         # 组装默认提示词列表
         default_prompt = [
@@ -306,13 +306,13 @@ class PolishingSystemPromptPage(QFrame, Base):
     def save_last_selection(self, prompt_id,prompt_content):
 
         config = self.load_config()
-        config["polishing_prompt_selection"] = {"last_selected_id": prompt_id,"prompt_content": prompt_content}
+        config["format_prompt_selection"] = {"last_selected_id": prompt_id,"prompt_content": prompt_content}
         self.save_config(config)
 
     # 保存新的用户提示词
     def save_user_prompts(self):
         config = self.load_config()
-        config["polishing_user_prompt_data"] = self.user_prompts
+        config["format_user_prompt_data"] = self.user_prompts
         self.save_config(config)
 
     # 清楚界面

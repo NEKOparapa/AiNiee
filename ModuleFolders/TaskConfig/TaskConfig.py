@@ -72,17 +72,17 @@ class TaskConfig(Base):
 
         # 获取目标平台
         if mode == TaskType.TRANSLATION:
-            target_platform = self.api_settings["translate"]
+            self.target_platform = self.api_settings["translate"]
         elif mode == TaskType.POLISH:
-            target_platform = self.api_settings["polish"]
+            self.target_platform = self.api_settings["polish"]
         elif mode == TaskType.FORMAT:
-            target_platform = self.api_settings["format"]
+            self.target_platform = self.api_settings["format"]
 
         # 获取模型类型
-        self.model = self.platforms.get(target_platform).get("model")
+        self.model = self.platforms.get(self.target_platform).get("model")
 
         # 分割密钥字符串
-        api_key = self.platforms.get(target_platform).get("api_key")
+        api_key = self.platforms.get(self.target_platform).get("api_key")
         if api_key == "":
             self.apikey_list = ["no_key_required"]
             self.apikey_index = 0
@@ -91,10 +91,10 @@ class TaskConfig(Base):
             self.apikey_index = 0
 
         # 获取接口地址并自动补全
-        self.base_url = self.platforms.get(target_platform).get("api_url")
-        auto_complete = self.platforms.get(target_platform).get("auto_complete")
+        self.base_url = self.platforms.get(self.target_platform).get("api_url")
+        auto_complete = self.platforms.get(self.target_platform).get("auto_complete")
 
-        if (target_platform == "sakura" or target_platform == "LocalLLM") and not self.base_url.endswith("/v1"):
+        if (self.target_platform == "sakura" or self.target_platform == "LocalLLM") and not self.base_url.endswith("/v1"):
             self.base_url += "/v1"
         elif auto_complete:
             version_suffixes = ["/v1", "/v2", "/v3", "/v4"]
@@ -102,8 +102,8 @@ class TaskConfig(Base):
                 self.base_url += "/v1"
 
         # 获取接口限额
-        self.rpm_limit = self.platforms.get(target_platform).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
-        self.tpm_limit = self.platforms.get(target_platform).get("tpm_limit", 10000000)    # 当取不到账号类型对应的预设值，则使用该值
+        self.rpm_limit = self.platforms.get(self.target_platform).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
+        self.tpm_limit = self.platforms.get(self.target_platform).get("tpm_limit", 10000000)    # 当取不到账号类型对应的预设值，则使用该值
 
         # 根据密钥数量给 RPM 和 TPM 限额翻倍
         self.rpm_limit = self.rpm_limit * len(self.apikey_list)
@@ -131,7 +131,7 @@ class TaskConfig(Base):
 
 
         # 计算实际线程数
-        self.actual_thread_counts = self.thread_counts_setting(self.user_thread_counts,target_platform,self.rpm_limit)
+        self.actual_thread_counts = self.thread_counts_setting(self.user_thread_counts,self.target_platform,self.rpm_limit)
 
 
     # 自动计算实际请求线程数

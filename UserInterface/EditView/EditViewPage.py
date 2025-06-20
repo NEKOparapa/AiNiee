@@ -608,9 +608,14 @@ class BasicTablePage(Base,QWidget):
             menu.addAction(Action(FIF.BRUSH, "润色文本", triggered=self._polish_text))
             menu.addAction(Action(FIF.BRUSH, "排序文本", triggered=self._format_text))
             menu.addSeparator()
+
+            ### 新增/修改开始 ###
+            # 添加“原文复制到译文”和“清空”等手动编辑操作
+            menu.addAction(Action(FIF.COPY, "禁止翻译", triggered=self._copy_source_to_translation))
             menu.addAction(Action(FIF.DELETE, "清空翻译", triggered=self._clear_translation))
             menu.addAction(Action(FIF.DELETE, "清空润色", triggered=self._clear_polishing))
             menu.addSeparator()
+            ### 新增/修改结束 ###
 
         # “行数”选项总是显示
         row_count = self.table.rowCount()
@@ -812,6 +817,31 @@ class BasicTablePage(Base,QWidget):
             "selected_item_indices": selected_item_indices, 
         })
         self.info_toast("提示", f"已提交 {len(items_to_format)} 行文本的排版任务。")
+
+    ### 新增开始 ###
+    # 复制原文到译文
+    def _copy_source_to_translation(self):
+        """将选中行的原文内容复制到译文行，表示无需翻译。"""
+        selected_rows = self._get_selected_rows_indices()
+        if not selected_rows:
+            return
+        
+        # 逐行设置，该操作会自动触发 itemChanged 信号，从而调用 _on_item_changed 更新缓存
+        for row in selected_rows:
+            source_item = self.table.item(row, self.COL_SOURCE)
+            if source_item:
+                source_text = source_item.text()
+                
+                # 更新译文列的单元格
+                trans_item = self.table.item(row, self.COL_TRANS)
+                if trans_item:
+                    trans_item.setText(source_text)
+                else:
+                    # 如果译文单元格不存在，则创建一个新的
+                    self.table.setItem(row, self.COL_TRANS, QTableWidgetItem(source_text))
+        
+        self.info_toast("操作完成", f"已将 {len(selected_rows)} 行的原文复制到译文。")
+    ### 新增结束 ###
 
     # 清空翻译
     def _clear_translation(self):

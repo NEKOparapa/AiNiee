@@ -38,6 +38,8 @@ from UserInterface.PolishingSettings.PolishingBasicSettingsPage import Polishing
 from UserInterface.PolishingSettings.PolishingSystemPromptPage import PolishingSystemPromptPage
 from UserInterface.PolishingSettings.PolishingStylePromptPage import PolishingStylePromptPage
 
+from UserInterface.FormatSettings.FormatSystemPromptPage import FormatSystemPromptPage
+
 from UserInterface.Table.TextReplaceAPage import TextReplaceAPage
 from UserInterface.Table.TextReplaceBPage import TextReplaceBPage
 from UserInterface.Table.PromptDictionaryPage import PromptDictionaryPage
@@ -326,6 +328,11 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.addSubInterface(self.polishing_system_prompt_page, FluentIcon.LABEL, self.tra("基础提示"), parent = self.polishing_prompt_navigation)
         self.polishing_style_prompt_page = PolishingStylePromptPage("polishing_style_prompt_page", self)
         self.addSubInterface(self.polishing_style_prompt_page, FluentIcon.PENCIL_INK, self.tra("润色风格"), parent = self.polishing_prompt_navigation)
+
+        # 排版提示词设置
+        self.format_system_prompt_page = FormatSystemPromptPage("format_system_prompt_page", self)
+        self.addSubInterface(self.format_system_prompt_page, FluentIcon.BOOK_SHELF, self.tra("排版提示词"), NavigationItemPosition.SCROLL)
+
     # 添加表格设置
     def add_table_pages(self, plugin_manager) -> None:
         self.prompt_dictionary_page = PromptDictionaryPage("prompt_dictionary_page", self)

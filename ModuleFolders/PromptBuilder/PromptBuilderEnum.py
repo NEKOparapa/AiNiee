@@ -7,6 +7,6 @@ class PromptBuilderEnum(Base):
     THINK = 300
     CUSTOM = 1000
 
-    REFINEMENT_COMMON = 10001
+    POLISH_COMMON = 10001
 
-    LAYOUT_CUSTOM = 20001
+    FORMAT_COMMON = 20001

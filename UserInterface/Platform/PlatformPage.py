@@ -8,13 +8,14 @@ from PyQt5.QtCore import QUrl, pyqtSignal, Qt, QMimeData
 from PyQt5.QtGui import QDesktopServices, QIcon, QDrag
 from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout
 
-from qfluentwidgets import Action, CaptionLabel, DropDownPushButton, PrimaryPushButton, InfoBar, InfoBarPosition, StrongBodyLabel
+from qfluentwidgets import Action, CaptionLabel, DropDownPushButton, HorizontalSeparator, PrimaryPushButton, InfoBar, InfoBarPosition, StrongBodyLabel
 from qfluentwidgets import RoundMenu
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import PushButton
 
 from Base.Base import Base
 from Widget.APITypeCard import APITypeCard
+from Widget.InterfaceDropZoneWidget import InterfaceDropZoneWidget
 from Widget.LineEditMessageBox import LineEditMessageBox
 from UserInterface.Platform.APIEditPage import APIEditPage
 from UserInterface.Platform.ArgsEditPage import ArgsEditPage
@@ -133,6 +134,7 @@ class APISettingDropArea(QFrame):
             self.api_name_label.setText("拖动一个接口到这里")
             self.current_api_tag = None
 
+
 class PlatformPage(QFrame, Base):
 
     # 自定义平台默认配置
@@ -215,6 +217,10 @@ class PlatformPage(QFrame, Base):
         self.add_head_widget(self.container, config)
         self.add_body_widget(self.container, config)
         self.add_foot_widget(self.container, config)
+        
+        # 添加分割线
+        self.container.addWidget(HorizontalSeparator())
+        
         self.add_interface_settings_widget(self.container, config)
 
         self.container.addStretch(1)
@@ -533,43 +539,46 @@ class PlatformPage(QFrame, Base):
         )
         parent.addWidget(self.flow_card)
 
-    # 添加底部-接口设置
+
     def add_interface_settings_widget(self, parent, config):
         self.drop_areas = {} # 用于存储所有拖放区域的引用
 
-        def init(widget):
-            # 创建四个拖放区域
-            settings_map = {
-                "translate": self.tra("翻译"),
-                "polish": self.tra("润色"),
-                "format": self.tra("排版"),
-            }
-            
-            # 从配置中加载已保存的设置
-            saved_settings = config.get("api_settings", {})
-            all_platforms = config.get("platforms", {})
-            
-            for key, name in settings_map.items():
-                drop_area = APISettingDropArea(key, name, self)
-                # 连接信号到槽函数
-                drop_area.apiDropped.connect(self.handle_api_drop)
-                widget.add_widget(drop_area)
-                self.drop_areas[key] = drop_area
 
-                # 初始化显示
-                api_tag = saved_settings.get(key)
-                if api_tag and api_tag in all_platforms:
-                    api_name = all_platforms[api_tag].get("name", "未知接口")
-                    drop_area.update_display(api_name, api_tag)
-
-        parent.addWidget(
-            APITypeCard(
-                self.tra("接口设置"),
-                self.tra("从上方拖动接口到指定功能区域，以设置不同任务所使用的接口"),
-                icon=FluentIcon.SETTING,
-                init=init
-            )
+        # 创建新的布局组件实例
+        self.interface_drop_zone = InterfaceDropZoneWidget(
+            self.tra("设置不同任务所使用的接口"),
+            self
         )
+        
+        # 创建并添加拖放区域到新组件中
+        settings_map = {
+            "translate": self.tra("翻译接口"),
+            "polish": self.tra("润色接口"),
+            "format": self.tra("排版接口"),
+        }
+        
+        # 从配置中加载已保存的设置
+        saved_settings = config.get("api_settings", {})
+        all_platforms = config.get("platforms", {})
+        
+        for key, name in settings_map.items():
+            drop_area = APISettingDropArea(key, name, self)
+            # 连接信号到槽函数
+            drop_area.apiDropped.connect(self.handle_api_drop)
+            
+            # 使用新组件的方法添加拖放区
+            self.interface_drop_zone.add_drop_area(drop_area)
+            self.drop_areas[key] = drop_area
+
+            # 初始化显示
+            api_tag = saved_settings.get(key)
+            if api_tag and api_tag in all_platforms:
+                api_name = all_platforms[api_tag].get("name", "未知接口")
+                drop_area.update_display(api_name, api_tag)
+        
+        # 将整个新组件添加到主布局
+        parent.addWidget(self.interface_drop_zone)
+
 
     # 处理拖放事件的槽函数
     def handle_api_drop(self, setting_key: str, api_tag: str):
