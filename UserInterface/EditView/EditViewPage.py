@@ -3,180 +3,21 @@ import os
 import threading
 import time
 from PyQt5.QtCore import QPoint, QVariant, Qt, QSize, pyqtSignal
-from PyQt5.QtWidgets import (QAbstractItemView, QFrame, QHeaderView, QScrollArea, QTableWidgetItem, QTreeWidgetItem,
+from PyQt5.QtWidgets import (QAbstractItemView, QFrame, QHeaderView, QTableWidgetItem, QTreeWidgetItem,
                              QWidget, QHBoxLayout, QVBoxLayout, 
                              QSplitter, QStackedWidget)
-from qfluentwidgets import (Action, BodyLabel,  CaptionLabel, MessageBox, MessageBoxBase, PrimarySplitPushButton, PushButton, RoundMenu, TitleLabel,  ToggleToolButton, TransparentPushButton, TransparentToolButton,
-                            TreeWidget, TabBar, FluentIcon as FIF, CardWidget, Action, RoundMenu, TableWidget,LineEdit, CheckBox, ComboBox, ProgressBar)
+from qfluentwidgets import (Action,  CaptionLabel, MessageBox, PrimarySplitPushButton, PushButton, RoundMenu,  ToggleToolButton, TransparentPushButton, TransparentToolButton,
+                            TreeWidget, TabBar, FluentIcon as FIF, CardWidget, Action, RoundMenu, TableWidget, ProgressBar)
 
 from Base.Base import Base
 
 from UserInterface.EditView.MonitoringPage import MonitoringPage
 from UserInterface.EditView.StartupPage import StartupPage
 from ModuleFolders.TaskConfig.TaskType import TaskType
+from UserInterface.EditView.SearchDialog import SearchDialog
+from UserInterface.EditView.SearchResultPage import SearchResultPage
+from UserInterface.EditView.TextViewPage import TextViewPage
 
-
-# 搜索对话框
-class SearchDialog(MessageBoxBase):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        
-        # 创建自定义视图
-        self.view = QWidget(self)
-        layout = QVBoxLayout(self.view)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(15)
-        
-        # 创建输入控件
-        self.query_edit = LineEdit(self)
-        self.query_edit.setPlaceholderText("输入搜索内容...")
-        
-        self.regex_checkbox = CheckBox("使用正则表达式", self)
-        
-        self.scope_combo = ComboBox(self)
-        self.scope_combo.addItems(["全文", "原文", "译文", "润文"])
-        
-        # 将控件添加到布局中
-        layout.addWidget(self.query_edit)
-        layout.addWidget(self.regex_checkbox)
-        layout.addWidget(self.scope_combo)
-        
-        # 将自定义视图添加到对话框中
-        self.viewLayout.addWidget(self.view)
-        
-        self.yesButton.setText("搜索")
-        self.cancelButton.setText("取消")
-        
-        # 存储搜索参数
-        self.search_scopes = {
-            "全文": "all",
-            "原文": "source_text",
-            "译文": "translated_text",
-            "润文": "polished_text"
-        }
-        self.search_query = ""
-        self.is_regex = False
-        self.search_scope = "all"
-
-    def accept(self):
-        """当用户点击"搜索"按钮时，收集数据"""
-        self.search_query = self.query_edit.text()
-        self.is_regex = self.regex_checkbox.isChecked()
-        selected_text = self.scope_combo.currentText()
-        self.search_scope = self.search_scopes.get(selected_text, "all")
-        
-        # 只有在输入了内容时才真正关闭对话框并返回肯定结果
-        if not self.search_query:
-            # 这里简单处理，允许空搜索，外部调用者可以检查 query 是否为空
-            pass
-        
-        super().accept()
-# 搜索结果页
-class SearchResultPage(QWidget):
-    # 定义列索引常量
-    COL_FILE = 0
-    COL_ROW = 1
-    COL_SOURCE = 2
-    COL_TRANS = 3
-    COL_POLISH = 4
-
-    def __init__(self, search_results: list, cache_manager, parent=None):
-        super().__init__(parent)
-        self.setObjectName('SearchResultPage')
-        
-        self.cache_manager = cache_manager
-        
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(5, 0, 0, 0)
-        self.layout.setSpacing(0)
-
-        self.table = TableWidget(self)
-        self._init_table()
-        self.layout.addWidget(self.table)
-        
-        self._populate_data(search_results)
-
-        self.table.itemChanged.connect(self._on_item_changed)
-
-    def _init_table(self):
-        self.headers = ["文件", "行", "原文", "译文", "润文"]
-        self.table.setColumnCount(len(self.headers))
-        self.table.setHorizontalHeaderLabels(self.headers)
-        self.table.verticalHeader().hide()
-        self.table.setAlternatingRowColors(True)
-        self.table.setWordWrap(True)
-        self.table.setBorderVisible(True)
-        self.table.setBorderRadius(8)
-        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        header = self.table.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.Interactive)
-        header.setStretchLastSection(True)
-        self.table.setColumnWidth(0, 150)
-        self.table.setColumnWidth(1, 55)
-        self.table.setColumnWidth(2, 300)
-        self.table.setColumnWidth(3, 300)
-
-    def _populate_data(self, search_results: list):
-        self.table.blockSignals(True)
-        self.table.setRowCount(len(search_results))
-
-        for row_idx, result_info in enumerate(search_results):
-            file_path, original_row_num, item = result_info
-
-            # 文件名 (不可编辑)
-            file_item = QTableWidgetItem(os.path.basename(file_path))
-            file_item.setFlags(file_item.flags() & ~Qt.ItemIsEditable)
-            self.table.setItem(row_idx, self.COL_FILE, file_item)
-
-            # 行号 (不可编辑)
-            row_num_item = QTableWidgetItem(str(original_row_num))
-            row_num_item.setTextAlignment(Qt.AlignCenter)
-            row_num_item.setFlags(row_num_item.flags() & ~Qt.ItemIsEditable)
-            # 在行号单元格中存储唯一标识符 (文件路径, 文本索引)
-            row_num_item.setData(Qt.UserRole, (file_path, item.text_index))
-            self.table.setItem(row_idx, self.COL_ROW, row_num_item)
-
-            # 原文 (不可编辑)
-            source_item = QTableWidgetItem(item.source_text)
-            source_item.setFlags(source_item.flags() & ~Qt.ItemIsEditable)
-            self.table.setItem(row_idx, self.COL_SOURCE, source_item)
-
-            # 译文、润文 (可编辑)
-            self.table.setItem(row_idx, self.COL_TRANS, QTableWidgetItem(item.translated_text))
-            self.table.setItem(row_idx, self.COL_POLISH, QTableWidgetItem(item.polished_text or ''))
-        
-        self.table.resizeRowsToContents()
-        self.table.blockSignals(False)
-
-    def _on_item_changed(self, item: QTableWidgetItem):
-        row = item.row()
-        col = item.column()
-
-        if col not in [self.COL_TRANS, self.COL_POLISH]:
-            return
-
-        # 从行号单元格获取原始数据引用
-        ref_item = self.table.item(row, self.COL_ROW)
-        if not ref_item:
-            return
-        
-        file_path, text_index = ref_item.data(Qt.UserRole)
-        new_text = item.text()
-
-        field_name = ''
-        if col == self.COL_TRANS:
-            field_name = 'translated_text'
-        elif col == self.COL_POLISH:
-            field_name = 'polished_text'
-        
-        # 调用 CacheManager 更新数据
-        self.cache_manager.update_item_text(
-            storage_path=file_path,
-            text_index=text_index,
-            field_name=field_name,
-            new_text=new_text
-        )
-        # 这里可以发一个全局信号通知其他打开的表格页也刷新，但目前根据现有代码，仅更新后端缓存
 
 # 底部命令栏
 class BottomCommandBar(Base,CardWidget):
@@ -572,77 +413,6 @@ class PageCard(CardWidget):
         self.tab_bar.setCurrentIndex(new_index)
         self.stacked_widget.setCurrentIndex(new_index)
 
-# 文本视图页
-class TextViewPage(QWidget):
-    def __init__(self, text_data: list, parent=None):
-        super().__init__(parent=parent)
-        self.setObjectName("TextViewPage")
-
-        # 主布局
-        self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(10, 10, 10, 10)
-
-        # 滚动区域，以便内容超出时可以滚动
-        self.scroll_area = QScrollArea(self)
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setFrameShape(QFrame.NoFrame)
-
-        # 滚动区域内的内容小部件
-        self.scroll_content_widget = QWidget()
-        self.scroll_layout = QVBoxLayout(self.scroll_content_widget)
-        self.scroll_layout.setContentsMargins(5, 5, 5, 5)
-        self.scroll_layout.setSpacing(10)
-
-        self._populate_data(text_data)
-
-        self.scroll_area.setWidget(self.scroll_content_widget)
-        self.main_layout.addWidget(self.scroll_area)
-
-    def _populate_data(self, text_data: list):
-        """用传入的文本数据填充视图"""
-        if not text_data:
-            self.scroll_layout.addWidget(BodyLabel("没有可供预览的文本。", self))
-            return
-
-        for i, row_data in enumerate(text_data):
-            # 为每一行数据创建一个卡片
-            card = CardWidget(self)
-            card_layout = QVBoxLayout(card)
-            card_layout.setSpacing(8)
-            card_layout.setContentsMargins(15, 10, 15, 10)
-
-            # 将原文作为标题
-            source_title = TitleLabel(f"原文 (第 {row_data['row']} 行)", self)
-            card_layout.addWidget(source_title)
-
-            source_content = BodyLabel(row_data['source'], self)
-            source_content.setWordWrap(True)
-            card_layout.addWidget(source_content)
-
-            card_layout.addSpacing(10)
-
-            # 添加译文（如果存在）
-            if row_data['translation']:
-                trans_title = BodyLabel("译文:", self)
-                card_layout.addWidget(trans_title)
-                trans_content = BodyLabel(row_data['translation'], self)
-                trans_content.setWordWrap(True)
-                card_layout.addWidget(trans_content)
-                card_layout.addSpacing(5)
-
-            # 添加润文（如果存在）
-            if row_data['polish']:
-                polish_title = BodyLabel("润文:", self)
-                card_layout.addWidget(polish_title)
-                polish_content = BodyLabel(row_data['polish'], self)
-                polish_content.setWordWrap(True)
-                card_layout.addWidget(polish_content)
-
-            self.scroll_layout.addWidget(card)
-
-        # 在末尾添加一个伸展项，将所有卡片推向顶部
-        self.scroll_layout.addStretch(1)
-
 # 标签页基类
 class TabInterface(QWidget):
     def __init__(self, text: str, file_path: str, file_items: list, cache_manager, parent=None):
@@ -997,7 +767,6 @@ class BasicTablePage(Base,QWidget):
         })
         self.info_toast("提示", f"已提交 {len(items_to_format)} 行文本的排版任务。")
 
-    ### 新增开始 ###
     # 复制原文到译文
     def _copy_source_to_translation(self):
         """将选中行的原文内容复制到译文行，表示无需翻译。"""
@@ -1020,7 +789,6 @@ class BasicTablePage(Base,QWidget):
                     self.table.setItem(row, self.COL_TRANS, QTableWidgetItem(source_text))
         
         self.info_toast("操作完成", f"已将 {len(selected_rows)} 行的原文复制到译文。")
-    ### 新增结束 ###
 
     # 清空翻译
     def _clear_translation(self):
@@ -1144,16 +912,25 @@ class EditViewPage(Base,QFrame):
         for i in range(self.page_card.tab_bar.count()):
             if self.page_card.tab_bar.tabText(i) == tab_name:
                 self.page_card.tab_bar.setCurrentIndex(i)
+                # 同时也要确保内容页面切换
+                self.page_card.stacked_widget.setCurrentIndex(i)
                 return
 
         # 创建新的搜索结果页面实例
         search_page = SearchResultPage(results, self.cache_manager)
         search_page.setObjectName(route_key)
 
-        # 添加新标签页并跳转
+        # 添加新标签页
         self.page_card.stacked_widget.addWidget(search_page)
         self.page_card.tab_bar.addTab(routeKey=route_key, text=tab_name)
-        self.page_card.tab_bar.setCurrentIndex(self.page_card.tab_bar.count() - 1)
+
+        # 获取新标签页的索引
+        new_index = self.page_card.tab_bar.count() - 1
+        
+        # 显式地同时设置 TabBar 和 StackedWidget 的当前索引
+        # 这样可以确保新标签页被激活并显示在前台
+        self.page_card.tab_bar.setCurrentIndex(new_index)
+        self.page_card.stacked_widget.setCurrentIndex(new_index)
 
     # 页面显示事件
     def showEvent(self, event) -> None:
