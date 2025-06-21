@@ -6,15 +6,177 @@ from PyQt5.QtCore import QPoint, QVariant, Qt, QSize, pyqtSignal
 from PyQt5.QtWidgets import (QAbstractItemView, QFrame, QHeaderView, QScrollArea, QTableWidgetItem, QTreeWidgetItem,
                              QWidget, QHBoxLayout, QVBoxLayout, 
                              QSplitter, QStackedWidget)
-from qfluentwidgets import (Action, BodyLabel,  CaptionLabel, MessageBox, PrimarySplitPushButton, PushButton, RoundMenu, TitleLabel,  ToggleToolButton, TransparentPushButton, TransparentToolButton,
-                            TreeWidget, TabBar, FluentIcon as FIF, CardWidget, Action, RoundMenu, TableWidget,
-                            ProgressBar)
+from qfluentwidgets import (Action, BodyLabel,  CaptionLabel, MessageBox, MessageBoxBase, PrimarySplitPushButton, PushButton, RoundMenu, TitleLabel,  ToggleToolButton, TransparentPushButton, TransparentToolButton,
+                            TreeWidget, TabBar, FluentIcon as FIF, CardWidget, Action, RoundMenu, TableWidget,LineEdit, CheckBox, ComboBox, ProgressBar)
 
 from Base.Base import Base
 
 from UserInterface.EditView.MonitoringPage import MonitoringPage
 from UserInterface.EditView.StartupPage import StartupPage
 from ModuleFolders.TaskConfig.TaskType import TaskType
+
+
+# 搜索对话框
+class SearchDialog(MessageBoxBase):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        # 创建自定义视图
+        self.view = QWidget(self)
+        layout = QVBoxLayout(self.view)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(15)
+        
+        # 创建输入控件
+        self.query_edit = LineEdit(self)
+        self.query_edit.setPlaceholderText("输入搜索内容...")
+        
+        self.regex_checkbox = CheckBox("使用正则表达式", self)
+        
+        self.scope_combo = ComboBox(self)
+        self.scope_combo.addItems(["全文", "原文", "译文", "润文"])
+        
+        # 将控件添加到布局中
+        layout.addWidget(self.query_edit)
+        layout.addWidget(self.regex_checkbox)
+        layout.addWidget(self.scope_combo)
+        
+        # 将自定义视图添加到对话框中
+        self.viewLayout.addWidget(self.view)
+        
+        self.yesButton.setText("搜索")
+        self.cancelButton.setText("取消")
+        
+        # 存储搜索参数
+        self.search_scopes = {
+            "全文": "all",
+            "原文": "source_text",
+            "译文": "translated_text",
+            "润文": "polished_text"
+        }
+        self.search_query = ""
+        self.is_regex = False
+        self.search_scope = "all"
+
+    def accept(self):
+        """当用户点击"搜索"按钮时，收集数据"""
+        self.search_query = self.query_edit.text()
+        self.is_regex = self.regex_checkbox.isChecked()
+        selected_text = self.scope_combo.currentText()
+        self.search_scope = self.search_scopes.get(selected_text, "all")
+        
+        # 只有在输入了内容时才真正关闭对话框并返回肯定结果
+        if not self.search_query:
+            # 这里简单处理，允许空搜索，外部调用者可以检查 query 是否为空
+            pass
+        
+        super().accept()
+# 搜索结果页
+class SearchResultPage(QWidget):
+    # 定义列索引常量
+    COL_FILE = 0
+    COL_ROW = 1
+    COL_SOURCE = 2
+    COL_TRANS = 3
+    COL_POLISH = 4
+
+    def __init__(self, search_results: list, cache_manager, parent=None):
+        super().__init__(parent)
+        self.setObjectName('SearchResultPage')
+        
+        self.cache_manager = cache_manager
+        
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(5, 0, 0, 0)
+        self.layout.setSpacing(0)
+
+        self.table = TableWidget(self)
+        self._init_table()
+        self.layout.addWidget(self.table)
+        
+        self._populate_data(search_results)
+
+        self.table.itemChanged.connect(self._on_item_changed)
+
+    def _init_table(self):
+        self.headers = ["文件", "行", "原文", "译文", "润文"]
+        self.table.setColumnCount(len(self.headers))
+        self.table.setHorizontalHeaderLabels(self.headers)
+        self.table.verticalHeader().hide()
+        self.table.setAlternatingRowColors(True)
+        self.table.setWordWrap(True)
+        self.table.setBorderVisible(True)
+        self.table.setBorderRadius(8)
+        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Interactive)
+        header.setStretchLastSection(True)
+        self.table.setColumnWidth(0, 150)
+        self.table.setColumnWidth(1, 55)
+        self.table.setColumnWidth(2, 300)
+        self.table.setColumnWidth(3, 300)
+
+    def _populate_data(self, search_results: list):
+        self.table.blockSignals(True)
+        self.table.setRowCount(len(search_results))
+
+        for row_idx, result_info in enumerate(search_results):
+            file_path, original_row_num, item = result_info
+
+            # 文件名 (不可编辑)
+            file_item = QTableWidgetItem(os.path.basename(file_path))
+            file_item.setFlags(file_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(row_idx, self.COL_FILE, file_item)
+
+            # 行号 (不可编辑)
+            row_num_item = QTableWidgetItem(str(original_row_num))
+            row_num_item.setTextAlignment(Qt.AlignCenter)
+            row_num_item.setFlags(row_num_item.flags() & ~Qt.ItemIsEditable)
+            # 在行号单元格中存储唯一标识符 (文件路径, 文本索引)
+            row_num_item.setData(Qt.UserRole, (file_path, item.text_index))
+            self.table.setItem(row_idx, self.COL_ROW, row_num_item)
+
+            # 原文 (不可编辑)
+            source_item = QTableWidgetItem(item.source_text)
+            source_item.setFlags(source_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(row_idx, self.COL_SOURCE, source_item)
+
+            # 译文、润文 (可编辑)
+            self.table.setItem(row_idx, self.COL_TRANS, QTableWidgetItem(item.translated_text))
+            self.table.setItem(row_idx, self.COL_POLISH, QTableWidgetItem(item.polished_text or ''))
+        
+        self.table.resizeRowsToContents()
+        self.table.blockSignals(False)
+
+    def _on_item_changed(self, item: QTableWidgetItem):
+        row = item.row()
+        col = item.column()
+
+        if col not in [self.COL_TRANS, self.COL_POLISH]:
+            return
+
+        # 从行号单元格获取原始数据引用
+        ref_item = self.table.item(row, self.COL_ROW)
+        if not ref_item:
+            return
+        
+        file_path, text_index = ref_item.data(Qt.UserRole)
+        new_text = item.text()
+
+        field_name = ''
+        if col == self.COL_TRANS:
+            field_name = 'translated_text'
+        elif col == self.COL_POLISH:
+            field_name = 'polished_text'
+        
+        # 调用 CacheManager 更新数据
+        self.cache_manager.update_item_text(
+            storage_path=file_path,
+            text_index=text_index,
+            field_name=field_name,
+            new_text=new_text
+        )
+        # 这里可以发一个全局信号通知其他打开的表格页也刷新，但目前根据现有代码，仅更新后端缓存
 
 # 底部命令栏
 class BottomCommandBar(Base,CardWidget):
@@ -216,6 +378,8 @@ class BottomCommandBar(Base,CardWidget):
 
 # 层级浏览器
 class NavigationCard(CardWidget):
+    searchRequested = pyqtSignal(dict)  # 信号，发送搜索参数字典
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
@@ -228,6 +392,8 @@ class NavigationCard(CardWidget):
         self.toolbar_layout.setSpacing(8)
         
         self.search_button = TransparentToolButton(FIF.SEARCH)
+        self.search_button.clicked.connect(self._open_search_dialog) # 连接点击事件
+
         self.toolbar_layout.addStretch(1)  
         self.toolbar_layout.addWidget(self.search_button)
         self.toolbar_layout.addStretch(1)  
@@ -237,6 +403,19 @@ class NavigationCard(CardWidget):
         self.tree.setHeaderHidden(True)
         self.layout.addWidget(self.tree)
 
+    # 搜索按钮事件
+    def _open_search_dialog(self):
+        dialog = SearchDialog(self.window())
+        if dialog.exec():
+            # 用户点击了“搜索”并输入了内容
+            params = {
+                "query": dialog.search_query,
+                "is_regex": dialog.is_regex,
+                "scope": dialog.search_scope
+            }
+            self.searchRequested.emit(params)
+
+    # 树状关系更新
     def update_tree(self, hierarchy: dict):
         """
         根据提供的文件层级字典更新树状视图
@@ -930,13 +1109,51 @@ class EditViewPage(Base,QFrame):
         #self.stacked_widget.setCurrentIndex(1)  # 默认显示启动页
         self.top_stacked_widget.setCurrentIndex(0)  # 默认显示启动页
 
+
         # 连接各种信号
+        self.nav_card.searchRequested.connect(self.perform_search) # 连接搜索按钮请求信号
         self.startup_page.folderSelected.connect(self.on_folder_selected) # 连接信号到界面切换和路径处理
         self.bottom_bar_main.back_btn.clicked.connect(self.on_back_button_clicked)  # 返回按钮绑定
         self.nav_card.tree.itemClicked.connect(self.on_tree_item_clicked)  # 树形项点击事件
         self.page_card.tab_bar.currentChanged.connect(self.on_tab_changed)  # 标签页切换事件
         self.page_card.tab_bar.tabCloseRequested.connect(self.on_tab_close_requested)  # 标签页关闭请求
         self.bottom_bar_main.arrowClicked.connect(self.toggle_page)  # 箭头按钮点击切换页面
+
+    # 执行搜索事件
+    def perform_search(self, params: dict):
+        """执行搜索并显示结果"""
+        query = params["query"]
+        scope = params["scope"]
+        is_regex = params["is_regex"]
+
+        self.info(f"正在搜索: '{query}' (范围: {scope}, 正则: {is_regex})")
+        
+        # 调用 CacheManager 执行搜索
+        results = self.cache_manager.search_items(query, scope, is_regex)
+
+        if not results:
+            MessageBox("未找到结果", f"未能找到与 '{query}' 匹配的内容。", self.window()).exec()
+            return
+        
+        # 创建搜索结果标签页
+        tab_name = f"搜索: {query[:20]}..."
+        # 使用时间戳确保路由键唯一
+        route_key = f"search_{int(time.time())}"
+
+        # 检查是否已存在完全相同的搜索结果页（简单检查名称）
+        for i in range(self.page_card.tab_bar.count()):
+            if self.page_card.tab_bar.tabText(i) == tab_name:
+                self.page_card.tab_bar.setCurrentIndex(i)
+                return
+
+        # 创建新的搜索结果页面实例
+        search_page = SearchResultPage(results, self.cache_manager)
+        search_page.setObjectName(route_key)
+
+        # 添加新标签页并跳转
+        self.page_card.stacked_widget.addWidget(search_page)
+        self.page_card.tab_bar.addTab(routeKey=route_key, text=tab_name)
+        self.page_card.tab_bar.setCurrentIndex(self.page_card.tab_bar.count() - 1)
 
     # 页面显示事件
     def showEvent(self, event) -> None:

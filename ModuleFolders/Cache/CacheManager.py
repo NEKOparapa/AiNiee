@@ -1,5 +1,6 @@
 from collections import defaultdict
 import os
+import re
 import threading
 import time
 from dataclasses import fields
@@ -396,3 +397,52 @@ class CacheManager(Base):
                 del cache_file.items_index_dict # 清除旧缓存，以便重新计算
 
             return final_items
+
+    # 缓存全搜索方法
+    def search_items(self, query: str, scope: str, is_regex: bool) -> list:
+        """
+        在整个项目中搜索条目。
+
+        Args:
+            query (str): 搜索查询字符串。
+            scope (str): 搜索范围 ('all', 'source_text', 'translated_text', 'polished_text')。
+            is_regex (bool): 是否使用正则表达式。
+
+        Returns:
+            list: 包含元组 (file_path, original_row_num, CacheItem) 的结果列表。
+        """
+        results = []
+        fields_to_check = []
+
+        if scope == 'all':
+            fields_to_check = ['source_text', 'translated_text', 'polished_text']
+        else:
+            fields_to_check = [scope]
+
+        try:
+            if is_regex:
+                # 预编译正则表达式以提高效率
+                regex = re.compile(query)
+                matcher = lambda text: regex.search(text)
+            else:
+                matcher = lambda text: query in text
+        except re.error as e:
+            # 正则表达式无效，可以发出一个错误信号或直接返回空
+            self.error(f"无效的正则表达式: {e}")
+            # 这里可以向UI发送一个错误提示
+            return []
+
+        with self.file_lock:
+            for file_path, cache_file in self.project.files.items():
+                for item_index, item in enumerate(cache_file.items):
+                    found = False
+                    for field_name in fields_to_check:
+                        text_to_check = getattr(item, field_name, None)
+                        if text_to_check and matcher(text_to_check):
+                            # (文件路径, 原始行号, 完整的CacheItem对象)
+                            results.append((file_path, item_index + 1, item))
+                            found = True
+                            break  # 找到一个匹配就跳出字段循环，避免重复添加
+                    if found:
+                        continue
+        return results
