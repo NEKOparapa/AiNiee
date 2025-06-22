@@ -18,7 +18,7 @@ from Base.Base import Base
 from UserInterface.BaseNavigationItem import BaseNavigationItem
 
 from UserInterface.VersionManager.VersionManager import VersionManager
-from UserInterface.AppSettingsPage import AppSettingsPage
+from UserInterface.Settings.AppSettingsPage import AppSettingsPage
 
 from UserInterface.Platform.PlatformPage import PlatformPage
 from UserInterface.EditView.EditViewPage import EditViewPage

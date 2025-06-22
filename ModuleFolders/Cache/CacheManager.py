@@ -86,7 +86,6 @@ class CacheManager(Base):
             time.sleep(self.SAVE_INTERVAL)
             if getattr(self, "save_to_file_require_flag", False):
                 self.save_to_file()
-                self.emit(Base.EVENT.CACHE_FILE_AUTO_SAVE, {})
                 self.save_to_file_require_flag = False
 
     # 请求保存缓存到文件

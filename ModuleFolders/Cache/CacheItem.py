@@ -45,9 +45,12 @@ class CacheItem(ThreadSafeCache, ExtraMixin):
     def final_text(self) -> str:
         """
         获取最终文本。
-        优先返回润色后的文本(polished_text)，如果不存在，则返回翻译后的文本(translated_text)。
+        按以下优先级返回：
+        1. 润色后的文本 (polished_text)
+        2. 翻译后的文本 (translated_text)
+        3. 原文 (source_text)
         """
-        return self.polished_text if self.polished_text else self.translated_text
+        return self.polished_text or self.translated_text or self.source_text
     
     @property
     def token_count(self):

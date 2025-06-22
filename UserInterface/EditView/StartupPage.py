@@ -1,11 +1,12 @@
-from PyQt5.QtWidgets import QHBoxLayout, QLayout, QVBoxLayout, QWidget
-from qfluentwidgets import PushButton, pyqtSignal
+from PyQt5.QtWidgets import  QLayout, QVBoxLayout, QWidget
+from qfluentwidgets import  pyqtSignal
 from qfluentwidgets.components.date_time.calendar_picker import FIF
 
 from Base.Base import Base
 from Widget.LineEditCard import LineEditCard
 from Widget.FolderDropCard import FolderDropCard
 from Widget.ComboBoxCard import ComboBoxCard
+from Widget.ActionCard import ActionCard
 
 # 开始页面
 class StartupPage(Base,QWidget):
@@ -37,27 +38,27 @@ class StartupPage(Base,QWidget):
         self.add_widget_projecttype(self.container, config)
         self.add_widget_folder_drop(self.container, config)
 
-        # 添加“继续”按钮
-        self.bottom_button_layout = QHBoxLayout()
-        self.continue_button = PushButton(FIF.CARE_RIGHT_SOLID, self.tra("继续项目"), self)
-        self.continue_button.setFixedWidth(120) # 可以根据需要调整宽度
-        self.continue_button.setFixedHeight(32)
-        self.continue_button.hide() # 初始隐藏
-        self.continue_button.clicked.connect(lambda: self.folder_path_changed("continue")) 
-        self.bottom_button_layout.addStretch(1) 
-        self.bottom_button_layout.addWidget(self.continue_button)
-        self.bottom_button_layout.addStretch(1) 
-        self.container.addLayout(self.bottom_button_layout) # 将按钮布局添加到主容器
+        # 添加“继续项目”入口
+        self.continue_card = ActionCard(
+            title=self.tra("继续项目"),
+            description=self.tra("加载上次的项目缓存并继续"),
+            button_text=self.tra("继续"),
+            icon=FIF.ROTATE,
+            parent=self
+        )
+        self.continue_card.hide()  # 初始隐藏
+        self.continue_card.clicked.connect(lambda: self.folder_path_changed("continue"))
+        self.container.addWidget(self.continue_card) #直接将卡片添加到主容器
 
         # 添加弹簧
         self.container.addStretch(1)
 
-    # 显示隐藏继续按钮
+    # 显示隐藏继续按钮入口
     def show_continue_button(self, show: bool) -> None:
         if show:
-            self.continue_button.show()
+            self.continue_card.show()
         else:
-            self.continue_button.hide()
+            self.continue_card.hide()
 
     # 文件/目录排除规则
     def add_widget_exclude_rule(self, parent, config) -> None:
@@ -210,5 +211,4 @@ class StartupPage(Base,QWidget):
 
         # 发出信号通知文件夹已选择
         self.folderSelected.emit(mode)
-
 

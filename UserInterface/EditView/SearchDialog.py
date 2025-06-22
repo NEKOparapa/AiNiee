@@ -11,6 +11,7 @@ class SearchDialog(MessageBoxBase):
         layout = QVBoxLayout(self.view)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(15)
+        self.view.setMinimumWidth(350) 
         
         # 创建输入控件
         self.query_edit = LineEdit(self)

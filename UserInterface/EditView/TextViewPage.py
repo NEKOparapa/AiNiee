@@ -1,7 +1,6 @@
-# UserInterface/EditView/components/text_view_page.py
-
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QScrollArea, QFrame)
-from qfluentwidgets import CardWidget, TitleLabel, BodyLabel
+from PyQt5.QtCore import Qt 
+from qfluentwidgets import CardWidget, BodyLabel, SingleDirectionScrollArea
 
 class TextViewPage(QWidget):
     def __init__(self, text_data: list, parent=None):
@@ -11,14 +10,15 @@ class TextViewPage(QWidget):
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(10, 10, 10, 10)
 
-        self.scroll_area = QScrollArea(self)
+        self.scroll_area = SingleDirectionScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QFrame.NoFrame)
+        self.scroll_area.setStyleSheet("background-color: transparent;")
 
         self.scroll_content_widget = QWidget()
         self.scroll_layout = QVBoxLayout(self.scroll_content_widget)
         self.scroll_layout.setContentsMargins(5, 5, 5, 5)
-        self.scroll_layout.setSpacing(10)
+        self.scroll_layout.setSpacing(10) 
 
         self._populate_data(text_data)
 
@@ -27,39 +27,37 @@ class TextViewPage(QWidget):
 
     def _populate_data(self, text_data: list):
         if not text_data:
-            self.scroll_layout.addWidget(BodyLabel("没有可供预览的文本。", self))
+            self.scroll_layout.addWidget(BodyLabel("No Text", self))
             return
 
         for i, row_data in enumerate(text_data):
             card = CardWidget(self)
             card_layout = QVBoxLayout(card)
-            card_layout.setSpacing(8)
+            
+            card_layout.setSpacing(2)  # 将间距从 8 减小到 2
             card_layout.setContentsMargins(15, 10, 15, 10)
 
-            source_title = TitleLabel(f"原文 (第 {row_data['row']} 行)", self)
-            card_layout.addWidget(source_title)
-
+            # 原文
             source_content = BodyLabel(row_data['source'], self)
             source_content.setWordWrap(True)
+            source_content.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
             card_layout.addWidget(source_content)
 
-            card_layout.addSpacing(10)
-
+            # 译文
             if row_data['translation']:
-                trans_title = BodyLabel("译文:", self)
-                card_layout.addWidget(trans_title)
                 trans_content = BodyLabel(row_data['translation'], self)
                 trans_content.setWordWrap(True)
+                trans_content.setAlignment(Qt.AlignLeft | Qt.AlignVCenter) # 确保左对齐
                 card_layout.addWidget(trans_content)
-                card_layout.addSpacing(5)
 
+            # 润文
             if row_data['polish']:
-                polish_title = BodyLabel("润文:", self)
-                card_layout.addWidget(polish_title)
                 polish_content = BodyLabel(row_data['polish'], self)
                 polish_content.setWordWrap(True)
+                polish_content.setAlignment(Qt.AlignLeft | Qt.AlignVCenter) # 确保左对齐
                 card_layout.addWidget(polish_content)
 
             self.scroll_layout.addWidget(card)
 
+        # 将所有卡片推到顶部，防止垂直居中
         self.scroll_layout.addStretch(1)

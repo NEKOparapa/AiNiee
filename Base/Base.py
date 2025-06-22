@@ -168,7 +168,7 @@ class Base():
         InfoBar.info(
             title = title,
             content = content,
-            parent = self,
+            parent = self.window(),
             duration = 2500,
             orient = Qt.Horizontal,
             position = InfoBarPosition.TOP,
@@ -180,7 +180,7 @@ class Base():
         InfoBar.error(
             title = title,
             content = content,
-            parent = self,
+            parent = self.window(),
             duration = 2500,
             orient = Qt.Horizontal,
             position = InfoBarPosition.TOP,
@@ -192,7 +192,7 @@ class Base():
         InfoBar.success(
             title = title,
             content = content,
-            parent = self,
+            parent = self.window(),
             duration = 2500,
             orient = Qt.Horizontal,
             position = InfoBarPosition.TOP,
@@ -204,7 +204,7 @@ class Base():
         InfoBar.warning(
             title = title,
             content = content,
-            parent = self,
+            parent = self.window(),
             duration = 2500,
             orient = Qt.Horizontal,
             position = InfoBarPosition.TOP,

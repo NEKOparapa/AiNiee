@@ -2,22 +2,23 @@ import json
 import os
 import threading
 import time
-from PyQt5.QtCore import QPoint, QVariant, Qt, QSize, pyqtSignal
-from PyQt5.QtWidgets import (QAbstractItemView, QFrame, QHeaderView, QTableWidgetItem, QTreeWidgetItem,
+from PyQt5.QtCore import QPoint, QTime, QVariant, Qt, QSize, pyqtSignal
+from PyQt5.QtWidgets import (QAbstractItemView, QFileDialog, QFrame, QHeaderView, QTableWidgetItem, QTreeWidgetItem,
                              QWidget, QHBoxLayout, QVBoxLayout, 
                              QSplitter, QStackedWidget)
 from qfluentwidgets import (Action,  CaptionLabel, MessageBox, PrimarySplitPushButton, PushButton, RoundMenu,  ToggleToolButton, TransparentPushButton, TransparentToolButton,
                             TreeWidget, TabBar, FluentIcon as FIF, CardWidget, Action, RoundMenu, TableWidget, ProgressBar)
+from qframelesswindow import QTimer
 
 from Base.Base import Base
-
 from UserInterface.EditView.MonitoringPage import MonitoringPage
 from UserInterface.EditView.StartupPage import StartupPage
 from ModuleFolders.TaskConfig.TaskType import TaskType
 from UserInterface.EditView.SearchDialog import SearchDialog
 from UserInterface.EditView.SearchResultPage import SearchResultPage
+from UserInterface.EditView.ScheduledDialogPage import ScheduledDialogPage
 from UserInterface.EditView.TextViewPage import TextViewPage
-
+from ModuleFolders.Cache.CacheProject import ProjectType
 
 # 底部命令栏
 class BottomCommandBar(Base,CardWidget):
@@ -30,8 +31,13 @@ class BottomCommandBar(Base,CardWidget):
         self.layout.setContentsMargins(8, 5, 8, 5)
         self.layout.setSpacing(12)
 
-        # 初始化当前模式
-        self.current_mode = TaskType.TRANSLATION  # 默认模式为翻译
+        # 初始化
+        self.current_mode = TaskType.TRANSLATION
+        self.scheduled_timer = None # 用于一次性定时任务
+        self.ui_update_timer = QTimer(self) # 用于任务进行中持续刷新UI
+        self.ui_update_timer.setInterval(1000) # 每秒触发一次
+        # 定时器刷新事件
+        self.ui_update_timer.timeout.connect(lambda: self.emit(Base.EVENT.TASK_UPDATE, {}))
 
         self.back_btn = PushButton(FIF.RETURN, "返回")
         self.back_btn.setIconSize(QSize(16, 16))
@@ -73,6 +79,7 @@ class BottomCommandBar(Base,CardWidget):
         self.continue_btn = TransparentPushButton(FIF.ROTATE, '继续')
         self.continue_btn.setEnabled(False)  # 初始不可用
         self.stop_btn = TransparentPushButton(FIF.CANCEL_MEDIUM, '停止')
+        self.stop_btn.setEnabled(False)  # 初始不可用
         self.schedule_btn = TransparentPushButton(FIF.DATE_TIME, '定时')
         self.export_btn = TransparentPushButton(FIF.SHARE, "导出")
         self.arrow_btn = ToggleToolButton()
@@ -95,16 +102,13 @@ class BottomCommandBar(Base,CardWidget):
         self.layout.addWidget(self.export_btn)
         self.layout.addWidget(self.arrow_btn)
 
-        self.arrow_btn.clicked.connect(self.on_arrow_clicked)
-
-        # 注册事件
-        self.subscribe(Base.EVENT.TASK_STOP_DONE, self.translation_stop_done)
-
         # 连接按钮
         self.start_btn.clicked.connect(self.command_play)
         self.stop_btn.clicked.connect(self.command_stop)
         self.continue_btn.clicked.connect(self.command_continue)
         self.export_btn.clicked.connect(self.command_export)
+        self.schedule_btn.clicked.connect(self.command_schedule) 
+        self.arrow_btn.clicked.connect(self.on_arrow_clicked)
 
         # 连接菜单项的点击事件
         self.translate_action.triggered.connect(
@@ -114,31 +118,43 @@ class BottomCommandBar(Base,CardWidget):
             lambda: self._on_mode_selected(TaskType.POLISH, self.polish_action)
         )
 
-        # 注册事件
-        self.subscribe(Base.EVENT.TASK_UPDATE, self.data_update) # 监听监控数据更新事件
+        # 订阅事件
+        self.subscribe(Base.EVENT.TASK_UPDATE, self.data_update)
+        self.subscribe(Base.EVENT.TASK_STOP_DONE, self.task_stop_done)
+        self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
 
-
-    # 处理模式选择的函数
+    # 任务模式切换
     def _on_mode_selected(self, mode: str, action: Action):
         self.current_mode = mode
         self.start_btn.setText(action.text())
         print(f"模式已切换为: {self.current_mode}")
 
-    # 导出已完成的内容
-    def command_export(self) -> None:
-        self.emit(Base.EVENT.TASK_MANUAL_EXPORT, {})
-        info_cont = self.tra("已根据当前的翻译数据在输出文件夹下生成翻译文件") + "  ... "
-        self.info_toast("Info", info_cont)
-
-    # 启用关闭继续翻译按钮
+    # 继续按钮的显示隐藏
     def enable_continue_button(self, enable: bool) -> None:
         self.continue_btn.setEnabled(enable)
 
-    # 监控页面展开信号
-    def on_arrow_clicked(self):
-        self.arrowClicked.emit()
+    # 应用关闭事件
+    def app_shut_down(self, event: int, data: dict) -> None:
+        # 确保应用关闭时所有定时器都停止
+        if self.scheduled_timer:
+            self.scheduled_timer.stop()
+        if self.ui_update_timer.isActive():
+            self.ui_update_timer.stop()
 
-    # 底部进度条更新事件
+    # 任务停止完成事件
+    def task_stop_done(self, event: int, data: dict) -> None:
+        """任务停止完成事件处理"""
+        # 关闭UI刷新器
+        if self.ui_update_timer.isActive():
+            self.ui_update_timer.stop()
+            self.info("UI刷新器已停止。")
+
+        self.start_btn.setEnabled(True)
+        self.stop_btn.setEnabled(False)
+        Base.work_status = Base.STATUS.IDLE
+        self.emit(Base.EVENT.TASK_CONTINUE_CHECK, {})
+
+    # 更新底部进度条
     def data_update(self, event: int, data: dict) -> None:
         # 检查是否包含进度信息
         if data.get("line") is not None and data.get("total_line") is not None:
@@ -156,66 +172,154 @@ class BottomCommandBar(Base,CardWidget):
             else:
                 # 如果总行数为0，则将进度条重置为0
                 self.progress_bar.setValue(0)
-
-    # 开始
+    # 开始按钮
     def command_play(self) -> None:
+        """开始新任务"""
+        self.cancel_scheduled_task() # 如果有定时任务，先取消
+
         if self.continue_btn.isEnabled():
-            info_cont1 = self.tra("将重置尚未完成的翻译任务，是否确认开始新的翻译任务") + "  ... ？"
+            info_cont1 = self.tra("将重置尚未完成的任务，是否确认开始新任务") + "  ... ？"
             message_box = MessageBox("Warning", info_cont1, self.window())
-            info_cont2 = self.tra("确认")
-            message_box.yesButton.setText(info_cont2)
-            info_cont3 = self.tra("取消")
-            message_box.cancelButton.setText(info_cont3)
+            message_box.yesButton.setText(self.tra("确认"))
+            message_box.cancelButton.setText(self.tra("取消"))
             if not message_box.exec():
                 return
 
         self.start_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
         self.continue_btn.setEnabled(False)
-
-        # 触发翻译开始事件
+        
         self.emit(Base.EVENT.TASK_START, {
             "continue_status": False,
-            "current_mode": self.current_mode  # 发送当前选择的模式
+            "current_mode": self.current_mode
         })
+        
+        # 开启UI刷新器
+        self.ui_update_timer.start()
+
+        if not self.arrow_btn.isChecked():
+            self.arrow_btn.setChecked(True)
+            self.arrowClicked.emit()
+
+    # 停止按钮
+    def command_stop(self) -> None:
+        """停止当前任务"""
+        self.cancel_scheduled_task() # 如果有定时任务，也一并取消
+
+        info_cont1 = self.tra("是否确定停止任务") + "  ... ？"
+        message_box = MessageBox("Warning", info_cont1, self.window())
+        message_box.yesButton.setText(self.tra("确认"))
+        message_box.cancelButton.setText(self.tra("取消"))
+
+        if message_box.exec():
+            self.info("正在停止任务 ... ")
+            self.emit(Base.EVENT.TASK_STOP, {})
+
+    # 继续按钮
+    def command_continue(self) -> None:
+        """继续未完成的任务"""
+        self.cancel_scheduled_task() # 如果有定时任务，先取消
+
+        self.start_btn.setEnabled(False)
+        self.stop_btn.setEnabled(True)
+        
+        self.emit(Base.EVENT.TASK_START, {
+            "continue_status": True,
+            "current_mode": self.current_mode
+        })
+        
+        # 开启UI刷新器
+        self.ui_update_timer.start()
+
+    # 导出按钮
+    def command_export(self) -> None:
+        selected_path = QFileDialog.getExistingDirectory(
+            self.window(), self.tra("选择导出目录"), "."
+        )
+        if selected_path:
+            self.emit(Base.EVENT.TASK_MANUAL_EXPORT, {"export_path": selected_path})
+
+    # 展开按钮
+    def on_arrow_clicked(self):
+        self.arrowClicked.emit()
+
+    # 定时按钮
+    def command_schedule(self) -> None:
+        """处理定时按钮点击事件"""
+        # 如果已经有定时任务，则取消
+        if self.scheduled_timer:
+            self.cancel_scheduled_task()
+            info_cont = self.tra("定时任务已取消") + "  ... "
+            self.info_toast("", info_cont)
+            return
+
+        # 创建定时对话框
+        dialog = ScheduledDialogPage(parent=self.window(), title=self.tra("定时任务"))
+        if dialog.exec_():
+            scheduled_time = dialog.get_scheduled_time()
+            current_time = QTime.currentTime()
+
+            current_msecs = current_time.msecsSinceStartOfDay()
+            scheduled_msecs = scheduled_time.msecsSinceStartOfDay()
+
+            msec_diff = scheduled_msecs - current_msecs
+            # 如果设定时间早于当前时间，则认为是明天
+            if msec_diff < 0:
+                msec_diff += 24 * 60 * 60 * 1000
+
+            # 检查时间间隔是否有效（例如，至少5秒）
+            if msec_diff < 5000:
+                warning_box = MessageBox(self.tra("无效时间"), self.tra("与当前时间间隔过短"), self.window())
+                warning_box.yesButton.setText(self.tra("知道了"))
+                warning_box.cancelButton.hide()
+                warning_box.exec()
+                return
+
+            # 创建定时器
+            self.scheduled_timer = QTimer(self)
+            self.scheduled_timer.setSingleShot(True)
+            self.scheduled_timer.timeout.connect(self.start_scheduled_task)
+            self.scheduled_timer.start(msec_diff)
+
+            # 更新按钮文本
+            time_str = scheduled_time.toString("HH:mm:ss")
+            self.schedule_btn.setText(f"{time_str}")
+
+            # 显示提示
+            info_cont = f" {time_str} " + self.tra("定时开始任务") + "  ... "
+            self.info_toast(self.tra("已设置定时任务，将在"), info_cont)
+
+    # 开始定时任务
+    def start_scheduled_task(self) -> None:
+        """定时器触发，开始任务"""
+        self.info("定时任务已开始 ...")
+        self.cancel_scheduled_task() # 清理定时器自身状态
+
+        # 启动任务
+        self.start_btn.setEnabled(False)
+        self.stop_btn.setEnabled(True)
+        self.continue_btn.setEnabled(False)
+        self.emit(Base.EVENT.TASK_START, {
+            "continue_status": False,
+            "current_mode": self.current_mode
+        })
+        
+        # 开启UI刷新器
+        self.ui_update_timer.start()
 
         # 自动展开监控页面
         if not self.arrow_btn.isChecked():
             self.arrow_btn.setChecked(True)
             self.arrowClicked.emit()
 
-    # 停止
-    def command_stop(self) -> None:
-        info_cont1 = self.tra("是否确定停止任务") + "  ... ？"
-        message_box = MessageBox("Warning", info_cont1, self.window())
-        info_cont2 = self.tra("确认")
-        message_box.yesButton.setText(info_cont2)
-        info_cont3 = self.tra("取消")
-        message_box.cancelButton.setText(info_cont3)
+    # 取消当前的定时任务
+    def cancel_scheduled_task(self):
+        """辅助方法：取消当前的定时任务"""
+        if self.scheduled_timer:
+            self.scheduled_timer.stop()
+            self.scheduled_timer = None
+        self.schedule_btn.setText(self.tra("定时"))
 
-        if message_box.exec():
-            info_cont4 = self.tra("正在停止翻译任务") + "  ... "
-            print(info_cont4)
-            self.stop_btn.setEnabled(False)
-            self.emit(Base.EVENT.TASK_STOP, {})
-
-    # 继续翻译
-    def command_continue(self) -> None:
-        self.start_btn.setEnabled(False)
-        self.stop_btn.setEnabled(True)
-
-        print(f"模式: {self.current_mode}")
-        self.emit(Base.EVENT.TASK_START, {
-            "continue_status": True,
-            "current_mode": self.current_mode # 发送当前选择的模式
-        })
-
-    # 翻译停止完成事件
-    def translation_stop_done(self, event: int, data: dict) -> None:
-        self.start_btn.setEnabled(True)
-        self.stop_btn.setEnabled(False)
-        Base.work_status = Base.STATUS.IDLE
-        self.emit(Base.EVENT.TASK_CONTINUE_CHECK, {})
 
 # 层级浏览器
 class NavigationCard(CardWidget):
@@ -419,7 +523,7 @@ class TabInterface(QWidget):
         super().__init__(parent=parent)
         self.vBoxLayout = QVBoxLayout(self)
         self.vBoxLayout.setContentsMargins(0, 0, 0, 0)
-        
+
         # 将参数传递给 BasicTablePage
         self.tableView = BasicTablePage(file_path, file_items, cache_manager, self)
         self.vBoxLayout.addWidget(self.tableView)
@@ -558,13 +662,11 @@ class BasicTablePage(Base,QWidget):
             menu.addAction(Action(FIF.BRUSH, "排序文本", triggered=self._format_text))
             menu.addSeparator()
 
-            ### 新增/修改开始 ###
             # 添加“原文复制到译文”和“清空”等手动编辑操作
             menu.addAction(Action(FIF.COPY, "禁止翻译", triggered=self._copy_source_to_translation))
             menu.addAction(Action(FIF.DELETE, "清空翻译", triggered=self._clear_translation))
             menu.addAction(Action(FIF.DELETE, "清空润色", triggered=self._clear_polishing))
             menu.addSeparator()
-            ### 新增/修改结束 ###
 
         # “行数”选项总是显示
         row_count = self.table.rowCount()
@@ -731,15 +833,31 @@ class BasicTablePage(Base,QWidget):
     # 排版文本
     def _format_text(self):
         """处理右键菜单的“排版文本”操作"""
+        # 限制条件1：文件类型必须是 .txt
+        cache_file = self.cache_manager.project.get_file(self.file_path)
+        if not cache_file or cache_file.file_project_type != ProjectType.TXT:
+            MessageBox("操作受限", "“排序文本”功能当前仅支持 TXT 类型的项目文件。", self.window()).exec()
+            return
+
+        # 获取选中行
         selected_rows = self._get_selected_rows_indices()
-        if not selected_rows:
+
+        # 限制条件2：选取行数不能少于2行
+        if len(selected_rows) < 2:
+            MessageBox("选择无效", "请至少选择 2 行来进行排序操作。", self.window()).exec()
+            return
+
+        # 限制条件3：行号必须连续
+        # selected_rows 列表已由 _get_selected_rows_indices 排序
+        if max(selected_rows) - min(selected_rows) + 1 != len(selected_rows):
+            MessageBox("选择无效", "请选择连续的行进行排序操作。", self.window()).exec()
             return
 
         # 修改软件状态
         if Base.work_status == Base.STATUS.IDLE:
             Base.work_status = Base.STATUS.TABLE_TASK
         else:
-            print("❌正在执行其他任务中！")
+            self.info_toast("任务繁忙", "正在执行其他任务中，请稍后再试。")
             return
 
         items_to_format = []
@@ -763,7 +881,7 @@ class BasicTablePage(Base,QWidget):
         self.emit(Base.EVENT.TABLE_FORMAT_START, {
             "file_path": self.file_path,
             "items_to_format": items_to_format,
-            "selected_item_indices": selected_item_indices, 
+            "selected_item_indices": selected_item_indices,
         })
         self.info_toast("提示", f"已提交 {len(items_to_format)} 行文本的排版任务。")
 
@@ -848,12 +966,16 @@ class EditViewPage(Base,QFrame):
         self.main_page = QWidget()
         self.main_page_layout = QVBoxLayout(self.main_page)
         self.splitter = QSplitter(Qt.Horizontal)  # 水平分割器
-        self.nav_card = NavigationCard()  # 导航卡片
+        self.nav_card = NavigationCard(window)  # 导航卡片
         self.page_card = PageCard()  # 页面卡片
         self.splitter.addWidget(self.nav_card)
         self.splitter.addWidget(self.page_card)
         self.splitter.setSizes([200, 800])  # 设置左右区域初始宽度
         self.main_page_layout.addWidget(self.splitter)
+
+        # 隐藏拖拽手柄，以免主题切换不和谐
+        self.splitter.setHandleWidth(0)
+        self.splitter.setStyleSheet("QSplitter::handle { width: 0px; }")
 
         # 监控页面设置
         self.monitoring_page = MonitoringPage()
@@ -863,7 +985,7 @@ class EditViewPage(Base,QFrame):
         self.stacked_widget.addWidget(self.monitoring_page)
 
         # 底部命令栏设置
-        self.bottom_bar_main = BottomCommandBar()
+        self.bottom_bar_main = BottomCommandBar(window)
 
         # 组装主界面
         self.main_interface_layout.addWidget(self.stacked_widget)
@@ -887,63 +1009,21 @@ class EditViewPage(Base,QFrame):
         self.page_card.tab_bar.tabCloseRequested.connect(self.on_tab_close_requested)  # 标签页关闭请求
         self.bottom_bar_main.arrowClicked.connect(self.toggle_page)  # 箭头按钮点击切换页面
 
-    # 执行搜索事件
-    def perform_search(self, params: dict):
-        """执行搜索并显示结果"""
-        query = params["query"]
-        scope = params["scope"]
-        is_regex = params["is_regex"]
-
-        self.info(f"正在搜索: '{query}' (范围: {scope}, 正则: {is_regex})")
-        
-        # 调用 CacheManager 执行搜索
-        results = self.cache_manager.search_items(query, scope, is_regex)
-
-        if not results:
-            MessageBox("未找到结果", f"未能找到与 '{query}' 匹配的内容。", self.window()).exec()
-            return
-        
-        # 创建搜索结果标签页
-        tab_name = f"搜索: {query[:20]}..."
-        # 使用时间戳确保路由键唯一
-        route_key = f"search_{int(time.time())}"
-
-        # 检查是否已存在完全相同的搜索结果页（简单检查名称）
-        for i in range(self.page_card.tab_bar.count()):
-            if self.page_card.tab_bar.tabText(i) == tab_name:
-                self.page_card.tab_bar.setCurrentIndex(i)
-                # 同时也要确保内容页面切换
-                self.page_card.stacked_widget.setCurrentIndex(i)
-                return
-
-        # 创建新的搜索结果页面实例
-        search_page = SearchResultPage(results, self.cache_manager)
-        search_page.setObjectName(route_key)
-
-        # 添加新标签页
-        self.page_card.stacked_widget.addWidget(search_page)
-        self.page_card.tab_bar.addTab(routeKey=route_key, text=tab_name)
-
-        # 获取新标签页的索引
-        new_index = self.page_card.tab_bar.count() - 1
-        
-        # 显式地同时设置 TabBar 和 StackedWidget 的当前索引
-        # 这样可以确保新标签页被激活并显示在前台
-        self.page_card.tab_bar.setCurrentIndex(new_index)
-        self.page_card.stacked_widget.setCurrentIndex(new_index)
+        # 订阅事件
+        self.subscribe(Base.EVENT.TASK_CONTINUE_CHECK, self.task_continue_check)
 
     # 页面显示事件
     def showEvent(self, event) -> None:
         super().showEvent(event)
         # 触发继续状态检测事件
-        self.translation_continue_check()
+        self.task_continue_check( event = None, data = None)
 
-    # 继续翻译状态检查事件
-    def translation_continue_check(self) -> None:
-        threading.Thread(target = self.translation_continue_check_target, daemon=True).start()
+    # 继续任务状态检查事件
+    def task_continue_check(self, event: int, data: dict) -> None:
+        threading.Thread(target = self.task_continue_check_target, daemon=True).start()
 
-    # 继续翻译状态检查
-    def translation_continue_check_target(self) -> None:
+    # 继续任务状态检查
+    def task_continue_check_target(self) -> None:
         time.sleep(0.5) # 等待页面切换效果
 
         self.continue_status = False # 默认为False
@@ -970,13 +1050,12 @@ class EditViewPage(Base,QFrame):
             else:
                 self.continue_status = True
 
-        # 根据翻译状态，更新界面
+        # 根据任务状态，更新界面
         if self.continue_status == True :
             # 启动页显示继续翻译按钮
             self.startup_page.show_continue_button(True)
             # 启用底部命令栏的继续按钮
             self.bottom_bar_main.enable_continue_button(True)
-            #self.top_stacked_widget.setCurrentIndex(1) # 切换到主界面
 
         else:
             self.startup_page.show_continue_button(False)
@@ -1069,3 +1148,48 @@ class EditViewPage(Base,QFrame):
             widget_to_remove.deleteLater()
         
         self.page_card.tab_bar.removeTab(index)
+
+    # 执行搜索事件
+    def perform_search(self, params: dict):
+        """执行搜索并显示结果"""
+        query = params["query"]
+        scope = params["scope"]
+        is_regex = params["is_regex"]
+
+        self.info(f"正在搜索: '{query}' (范围: {scope}, 正则: {is_regex})")
+        
+        # 调用 CacheManager 执行搜索
+        results = self.cache_manager.search_items(query, scope, is_regex)
+
+        if not results:
+            MessageBox("未找到结果", f"未能找到与 '{query}' 匹配的内容。", self.window()).exec()
+            return
+        
+        # 创建搜索结果标签页
+        tab_name = f"搜索: {query[:20]}..."
+        # 使用时间戳确保路由键唯一
+        route_key = f"search_{int(time.time())}"
+
+        # 检查是否已存在完全相同的搜索结果页（简单检查名称）
+        for i in range(self.page_card.tab_bar.count()):
+            if self.page_card.tab_bar.tabText(i) == tab_name:
+                self.page_card.tab_bar.setCurrentIndex(i)
+                # 同时也要确保内容页面切换
+                self.page_card.stacked_widget.setCurrentIndex(i)
+                return
+
+        # 创建新的搜索结果页面实例
+        search_page = SearchResultPage(results, self.cache_manager)
+        search_page.setObjectName(route_key)
+
+        # 添加新标签页
+        self.page_card.stacked_widget.addWidget(search_page)
+        self.page_card.tab_bar.addTab(routeKey=route_key, text=tab_name)
+
+        # 获取新标签页的索引
+        new_index = self.page_card.tab_bar.count() - 1
+        
+        # 显式地同时设置 TabBar 和 StackedWidget 的当前索引
+        # 这样可以确保新标签页被激活并显示在前台
+        self.page_card.tab_bar.setCurrentIndex(new_index)
+        self.page_card.stacked_widget.setCurrentIndex(new_index)

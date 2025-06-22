@@ -53,19 +53,22 @@ class TaskExecutor(Base):
         self.info(f"正在读取数据，准备输出中 ...")
         self.print("")
 
-        # 获取配置信息
+        # 获取配置信息，此时 config 是一个字典，后面需要使用get
         config = self.load_config()
+        
+        output_path = data.get("export_path", config.get("label_output_path"))
 
         # 触发手动导出插件事件
         self.plugin_manager.broadcast_event("manual_export", config, self.cache_manager.project)
 
         # 如果开启了转换简繁开关功能，则进行文本转换
-        if config.response_conversion_toggle:
-            self.print("")
-            self.info(f"已启动自动简繁转换功能，正在使用 {config.opencc_preset} 配置进行字形转换 ...")
+        if config.get("response_conversion_toggle"):  # 使用 .get()
             self.print("")
 
-            converter = opencc.OpenCC(config.opencc_preset)
+            self.info(f"已启动自动简繁转换功能，正在使用 {config.get('opencc_preset')} 配置进行字形转换 ...")
+            self.print("")
+
+            converter = opencc.OpenCC(config.get('opencc_preset'))
             cache_list = self.cache_manager.project.items_iter()
             for item in cache_list:
                 if item.translation_status == TranslationStatus.TRANSLATED:
@@ -73,18 +76,18 @@ class TaskExecutor(Base):
                 if item.translation_status == TranslationStatus.POLISHED:
                     item.polished_text = converter.convert(item.polished_text)
             self.print("")
-            self.info(f"已启动自动简繁转换功能，正在使用 {config.opencc_preset} 配置进行字形转换 ...")
+            self.info(f"简繁转换完成。")
             self.print("")
 
         # 写入文件
         self.file_writer.output_translated_content(
             self.cache_manager.project,
-            config.label_output_path,
-            config.label_input_path,
+            output_path,
+            config.get("label_input_path"), 
         )
 
         self.print("")
-        self.info(f"翻译结果已保存至 {config.label_output_path} 目录 ...")
+        self.info(f"翻译结果已成功保存至 {output_path} 目录。")
         self.print("")
 
     # 任务停止事件

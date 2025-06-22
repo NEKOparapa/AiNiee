@@ -1,4 +1,3 @@
-# 新的接口设置组件
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import CaptionLabel
@@ -13,17 +12,17 @@ class InterfaceDropZoneWidget(QFrame):
         super().__init__(parent)
         self.setObjectName("interface-drop-zone-widget")
 
-        # --- 主垂直布局 ---
+        # 主垂直布局
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(0, 8, 0, 8) # 上下留出一些边距
+        self.main_layout.setContentsMargins(17, 8, 17, 8) # 上下留出一些边距
         self.main_layout.setSpacing(15)
 
-        # --- 上方：居中的描述文本 ---
+        # 居中的描述文本
         self.description_label = CaptionLabel(description)
         self.description_label.setAlignment(Qt.AlignCenter)
         self.main_layout.addWidget(self.description_label)
 
-        # --- 下方：水平排列拖拽区域的容器 ---
+        # 水平排列拖拽区域的容器
         self.drop_areas_container = QFrame(self)
         self.drop_areas_hbox = QHBoxLayout(self.drop_areas_container)
         self.drop_areas_hbox.setContentsMargins(0, 0, 0, 0)
