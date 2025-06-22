@@ -1,23 +1,25 @@
+import logging
 from concurrent.futures import Executor, Future
 from concurrent.futures.thread import _WorkItem
 from pathlib import Path
 
 from babeldoc import progress_monitor
-from babeldoc.document_il.babeldoc_exception.BabelDOCException import (
-    ExtractTextError
-)
-from babeldoc.document_il.midend import il_translator
-from babeldoc.document_il.translator.translator import BaseTranslator
+from babeldoc.babeldoc_exception.BabelDOCException import ExtractTextError
 from babeldoc.docvision.doclayout import DocLayoutModel
 from babeldoc.docvision.table_detection.rapidocr import RapidOCRModel
-from babeldoc.high_level import TRANSLATE_STAGES, _do_translate_single
-from babeldoc.main import create_parser
-from babeldoc.progress_monitor import ProgressMonitor
-from babeldoc.translation_config import (
+from babeldoc.format.pdf.document_il.midend import il_translator
+from babeldoc.format.pdf.high_level import (
+    TRANSLATE_STAGES,
+    _do_translate_single
+)
+from babeldoc.format.pdf.translation_config import (
     TranslateResult,
     TranslationConfig,
     WatermarkOutputMode
 )
+from babeldoc.main import create_parser
+from babeldoc.progress_monitor import ProgressMonitor
+from babeldoc.translator.translator import BaseTranslator
 from rich.progress import (
     BarColumn,
     MofNCompleteColumn,
@@ -29,6 +31,16 @@ from rich.progress import (
 
 from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.FileOutputer.BaseWriter import OutputConfig
+
+
+class IgnoreStyleNoneFilter(logging.Filter):
+    def filter(self, record):
+        return record.getMessage().startswith("Style is None")
+
+
+# 屏蔽告警
+logger = logging.getLogger("babeldoc.format.pdf.document_il.midend.typesetting")
+logger.addFilter(IgnoreStyleNoneFilter())
 
 
 class PdfSourceVisitor(BaseTranslator):
