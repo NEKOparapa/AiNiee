@@ -98,13 +98,14 @@ class TaskExecutor(Base):
         def target() -> None:
             while True:
                 time.sleep(0.5)
-                if self.translating == False:
+                if Base.work_status == Base.STATUS.TASKSTOPPED:
                     self.print("")
                     self.info("翻译任务已停止 ...")
                     self.print("")
                     self.emit(Base.EVENT.TASK_STOP_DONE, {})
                     break
 
+        # 子线程循环检测停止状态
         threading.Thread(target = target).start()
 
     # 任务开始事件
@@ -135,11 +136,9 @@ class TaskExecutor(Base):
 
     # 翻译主流程
     def translation_start_target(self, continue_status: bool) -> None:
-        # 设置内部状态（用于判断翻译任务是否实际在执行）
-        self.translating = True
 
         # 设置翻译状态为正在翻译状态
-        Base.work_status = Base.STATUS.TRANSLATING
+        Base.work_status = Base.STATUS.TASKING
 
         # 读取配置文件，并保存到该类中
         self.config.initialize()
@@ -173,7 +172,7 @@ class TaskExecutor(Base):
             if Base.work_status == Base.STATUS.STOPING:
                 # 循环次数比实际最大轮次要多一轮，当触发停止翻译的事件时，最后都会从这里退出任务
                 # 执行到这里说明停止任意的任务已经执行完毕，可以重置内部状态了
-                self.translating = False
+                Base.work_status = Base.STATUS.TASKSTOPPED
                 return None
 
             # 获取 待翻译 状态的条目数量
@@ -299,7 +298,7 @@ class TaskExecutor(Base):
         self.print("")
 
         # 重置内部状态（正常完成翻译）
-        self.translating = False
+        Base.work_status = Base.STATUS.TASKSTOPPED
 
         # 触发翻译停止完成的事件
         self.emit(Base.EVENT.TASK_STOP_DONE, {})
@@ -310,11 +309,9 @@ class TaskExecutor(Base):
 
     # 润色主流程
     def polish_start_target(self, continue_status: bool) -> None:
-        # 设置内部状态（用于判断翻译任务是否实际在执行）
-        self.translating = True
 
         # 设置翻译状态为正在翻译状态
-        Base.work_status = Base.STATUS.TRANSLATING
+        Base.work_status = Base.STATUS.TASKING
 
         # 读取配置文件，并保存到该类中
         self.config.initialize()
@@ -348,7 +345,7 @@ class TaskExecutor(Base):
             if Base.work_status == Base.STATUS.STOPING:
                 # 循环次数比实际最大轮次要多一轮，当触发停止翻译的事件时，最后都会从这里退出任务
                 # 执行到这里说明停止任意的任务已经执行完毕，可以重置内部状态了
-                self.translating = False
+                Base.work_status = Base.STATUS.TASKSTOPPED
                 return None
 
             # 根据润色模式，获取可润色的条目数量
@@ -424,7 +421,7 @@ class TaskExecutor(Base):
 
             # 根据提示词规则打印基础指令
             system = ""
-            if self.config.polishing_prompt_selection["last_selected_id"] == PromptBuilderEnum.REFINEMENT_COMMON:
+            if self.config.polishing_prompt_selection["last_selected_id"] == PromptBuilderEnum.POLISH_COMMON:
                 system = PromptBuilderPolishing.build_system(self.config)
             else:
                 system = self.config.polishing_prompt_selection["prompt_content"]
@@ -456,7 +453,7 @@ class TaskExecutor(Base):
         self.print("")
 
         # 重置内部状态
-        self.translating = False
+        Base.work_status = Base.STATUS.TASKSTOPPED
 
         # 触发事件
         self.emit(Base.EVENT.TASK_STOP_DONE, {})     # 翻译停止完成的事件

@@ -154,7 +154,7 @@ class MonitoringPage(Base,QWidget):
 
     # 监控页面更新事件
     def data_update(self, event: int, data: dict) -> None:
-        if Base.work_status in (Base.STATUS.STOPING, Base.STATUS.TRANSLATING):
+        if Base.work_status in (Base.STATUS.STOPING, Base.STATUS.TASKING):
             self.update_time(event, data)
             self.update_line(event, data)
             self.update_token(event, data)
@@ -296,7 +296,7 @@ class MonitoringPage(Base,QWidget):
             self.ring.set_value(int(percent * 10000))
             info_cont = self.tra("停止中") + "\n" + f"{percent * 100:.2f}%"
             self.ring.set_format(info_cont)
-        elif Base.work_status == Base.STATUS.TRANSLATING:
+        elif Base.work_status == Base.STATUS.TASKING:
             percent = self.data.get("line", 0) / max(1, self.data.get("total_line", 0))
             self.ring.set_value(int(percent * 10000))
             info_cont = self.tra("任务中") + "\n" + f"{percent * 100:.2f}%"

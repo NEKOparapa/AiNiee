@@ -127,7 +127,12 @@ class BottomCommandBar(Base,CardWidget):
     def _on_mode_selected(self, mode: str, action: Action):
         self.current_mode = mode
         self.start_btn.setText(action.text())
-        print(f"模式已切换为: {self.current_mode}")
+        if self.current_mode == TaskType.TRANSLATION:
+            info_cont = ": " + self.tra("翻译模式")
+            self.info_toast(self.tra("模式已切换为"), info_cont)
+        elif self.current_mode == TaskType.POLISH:
+            info_cont = ": " + self.tra("润色模式")
+            self.info_toast(self.tra("模式已切换为"), info_cont)
 
     # 继续按钮的显示隐藏
     def enable_continue_button(self, enable: bool) -> None:
@@ -147,7 +152,6 @@ class BottomCommandBar(Base,CardWidget):
         # 关闭UI刷新器
         if self.ui_update_timer.isActive():
             self.ui_update_timer.stop()
-            self.info("UI刷新器已停止。")
 
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
@@ -221,6 +225,7 @@ class BottomCommandBar(Base,CardWidget):
         self.cancel_scheduled_task() # 如果有定时任务，先取消
 
         self.start_btn.setEnabled(False)
+        self.continue_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
         
         self.emit(Base.EVENT.TASK_START, {
