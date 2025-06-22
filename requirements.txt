@@ -66,3 +66,4 @@ tiktoken>=0.9.0
 python-levenshtein>=0.27.1
 rapidocr-onnxruntime>=1.4.4
 pyzstd
+rtree
