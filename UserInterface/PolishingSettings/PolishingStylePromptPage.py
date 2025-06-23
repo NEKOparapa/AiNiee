@@ -20,7 +20,7 @@ class PolishingStylePromptPage(QFrame, Base):
         self.default = {
             "polishing_style_switch": False,
             "polishing_style_content": (
-                "根据原文语境，可以适当调整，使表达更生动形象，提升译文的冲击力与张力"
+                "根据原文语境，可以适当调整，使表达更生动形象，提升冲击力与张力"
             ),
         }
 

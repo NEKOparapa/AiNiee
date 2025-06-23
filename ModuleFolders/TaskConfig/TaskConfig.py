@@ -116,8 +116,7 @@ class TaskConfig(Base):
             output_folder_name = "AiNieeOutput"
             self.label_output_path = os.path.join(parent_dir, output_folder_name)
 
-        # 润色文本输出路径
-        if self.polishing_auto_set_output_path == True:
+            # 润色文本输出路径
             abs_input_path = os.path.abspath(self.label_input_path)
             parent_dir = os.path.dirname(abs_input_path)
             output_folder_name = "PolishingOutput"
