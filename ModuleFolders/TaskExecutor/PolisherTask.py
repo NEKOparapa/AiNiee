@@ -17,7 +17,7 @@ from ModuleFolders.ResponseExtractor.ResponseExtractor import ResponseExtractor
 from ModuleFolders.ResponseChecker.ResponseChecker import ResponseChecker
 from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
 
-from ModuleFolders.TextProcessor.TextProcessor import TextProcessor
+from ModuleFolders.TextProcessor.PolishTextProcessor import PolishTextProcessor
 
 class PolisherTask(Base):
 
@@ -27,7 +27,7 @@ class PolisherTask(Base):
         self.config = config
         self.plugin_manager = plugin_manager
         self.request_limiter = request_limiter
-        self.text_processor = TextProcessor(self.config) # 文本处理器
+        self.text_processor = PolishTextProcessor(self.config) # 文本处理器
 
         # 提示词与信息内容存储
         self.messages = []
@@ -61,7 +61,18 @@ class PolisherTask(Base):
 
         # 生成文本行数信息
         self.row_count = len(self.source_text_dict)
-        
+
+        # 译前处理
+        self.source_text_dict = self.text_processor.replace_all(
+            self.config,
+            self.source_text_dict
+            )
+        if self.config.polishing_mode_selection == "translated_text_polish":
+            self.translation_text_dict = self.text_processor.replace_all(
+                self.config,
+                self.translation_text_dict
+                )
+
         # 生成请求指令
         self.messages, self.system_prompt, self.extra_log = PromptBuilderPolishing.generate_prompt(
             self.config,
@@ -170,6 +181,8 @@ class PolisherTask(Base):
         else:
             # 各种翻译后处理
             restore_response_dict = copy.copy(response_dict)
+            restore_response_dict = self.text_processor.restore_all(self.config, restore_response_dict)
+
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):

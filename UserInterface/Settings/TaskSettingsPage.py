@@ -1,11 +1,10 @@
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
+from qfluentwidgets import HorizontalSeparator
 
 from Base.Base import Base
 from Widget.SpinCard import SpinCard
-from Widget.Separator import Separator
 from Widget.ComboBoxCard import ComboBoxCard
-from Widget.SwitchButtonCard import SwitchButtonCard
 
 class TaskSettingsPage(QFrame, Base):
 
@@ -41,9 +40,9 @@ class TaskSettingsPage(QFrame, Base):
         self.add_widget_01(self.vbox, config)
         self.add_widget_02(self.vbox, config)
         self.add_widget_03(self.vbox, config)
-        self.vbox.addWidget(Separator())
+        self.vbox.addWidget(HorizontalSeparator())
         self.add_widget_04(self.vbox, config)
-        self.vbox.addWidget(Separator())
+        self.vbox.addWidget(HorizontalSeparator())
         self.add_widget_request_timeout(self.vbox, config)
         self.add_widget_06(self.vbox, config)
 

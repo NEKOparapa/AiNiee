@@ -1050,9 +1050,8 @@ class EditViewPage(Base,QFrame):
             total_line = data["total_line"] # 获取需翻译行数
             line = data["line"] # 获取已翻译行数
 
-            if total_line == line:
-                self.continue_status = False
-            else:
+            # 有数据则表示进行过任务,放宽读取范围
+            if total_line:
                 self.continue_status = True
 
         # 根据任务状态，更新界面

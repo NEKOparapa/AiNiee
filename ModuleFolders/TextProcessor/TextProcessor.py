@@ -3,10 +3,7 @@ import os
 import re
 from typing import List, Dict, Tuple, Any, Optional
 
-from Base.Base import Base
-
-
-class TextProcessor(Base):
+class TextProcessor():
     # 定义日语字符集的正则表达式
     JAPANESE_CHAR_SET_CONTENT = (
         r'\u3040-\u309F'
@@ -201,6 +198,16 @@ class TextProcessor(Base):
                 # 确保核心内容不为空
                 if not core_text.strip() and line.strip():
                     core_text, prefix, suffix = line, '', ''
+
+                # 检查前缀 (去除首尾空格后判断是否为数字)
+                if prefix.strip().isdigit():
+                    core_text = prefix + core_text  # 将前缀合并回核心文本
+                    prefix = ''                     # 清空前缀
+
+                # 检查后缀
+                if suffix.strip().isdigit():
+                    core_text = core_text + suffix 
+                    suffix = ''                    
 
                 processed_lines.append(core_text)
                 lines_info.append({'prefix': prefix, 'suffix': suffix, 'is_empty': False})

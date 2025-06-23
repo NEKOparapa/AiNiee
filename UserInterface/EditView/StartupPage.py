@@ -43,7 +43,7 @@ class StartupPage(Base,QWidget):
             title=self.tra("继续项目"),
             description=self.tra("加载上次的项目缓存并继续"),
             button_text=self.tra("继续"),
-            icon=FIF.ROTATE,
+            icon=FIF.RIGHT_ARROW,
             parent=self
         )
         self.continue_card.hide()  # 初始隐藏
