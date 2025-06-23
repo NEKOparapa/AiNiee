@@ -314,11 +314,21 @@ class CacheManager(Base):
             
             item_to_update = cache_file.get_item(text_index)
             
-            if field_name == 'translated_text':
+            # 修改原文
+            if field_name == 'source_text':
+                if new_text and new_text.strip():
+                    if item_to_update.source_text != new_text:
+                        item_to_update.source_text = new_text
+
+            # 修改译文
+            elif field_name == 'translated_text':
                 item_to_update.translated_text = new_text
                 # 如果原文和译文不同，则标记为已翻译
-                if item_to_update.source_text != new_text:
-                        item_to_update.translation_status = TranslationStatus.TRANSLATED
+                if new_text and new_text.strip():
+                    if item_to_update.source_text != new_text:
+                            item_to_update.translation_status = TranslationStatus.TRANSLATED
+
+            # 修改润文
             elif field_name == 'polished_text':
                 item_to_update.polished_text = new_text
                 # 只要有润文，就标记为已润色

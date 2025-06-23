@@ -8,6 +8,7 @@ from Widget.ComboBoxCard import ComboBoxCard
 from Widget.PushButtonCard import PushButtonCard
 from Widget.SwitchButtonCard import SwitchButtonCard
 from Widget.ComboBoxCard import ComboBoxCard
+from Widget.LineEditCard import LineEditCard
 
 class OutputSettingsPage(QFrame, Base):
 
@@ -20,6 +21,8 @@ class OutputSettingsPage(QFrame, Base):
             "label_output_path": "./output",
             "polishing_output_path": "./polish_output",
             "auto_set_output_path": True,
+            "output_filename_suffix": "_translated", 
+            "bilingual_text_order": "translation_first", 
             "response_conversion_toggle": False,
             "opencc_preset": "s2t",
             "keep_original_encoding": False,
@@ -37,6 +40,9 @@ class OutputSettingsPage(QFrame, Base):
         self.add_widget_translation_output_path(self.container, config)
         self.add_widget_polishing_output_path(self.container, config)
         self.add_widget_auto_set(self.container, config)
+        self.container.addWidget(HorizontalSeparator())
+        self.add_widget_filename_suffix(self.container, config)
+        self.add_widget_bilingual_text_order(self.container, config)
         self.container.addWidget(HorizontalSeparator())
         self.add_widget_encoding(self.container, config)
         self.container.addWidget(HorizontalSeparator())
@@ -231,5 +237,66 @@ class OutputSettingsPage(QFrame, Base):
                 ],
                 init = init,
                 current_text_changed = current_text_changed,
+            )
+        )
+
+    # 文件名后缀设置
+    def add_widget_filename_suffix(self, parent, config) -> None:
+        def init(widget) -> None:
+            widget.set_text(config.get("output_filename_suffix", "_translated"))
+            widget.set_placeholder_text(self.tra("例如: _translated"))
+
+        def text_changed(widget, text: str) -> None:
+            config = self.load_config()
+            config["output_filename_suffix"] = text.strip()
+            self.save_config(config)
+
+        parent.addWidget(
+            LineEditCard(
+                self.tra("文件名后缀"),
+                self.tra("设置输出文件的文件名后缀，例如: _translated"),
+                init=init,
+                text_changed=text_changed
+            )
+        )
+
+    # 双语文件文本顺序设置
+    def add_widget_bilingual_text_order(self, parent, config) -> None:
+        # 创建选项对列表 (显示文本, 存储值)
+        order_pairs = [
+            (self.tra("原文在上"), "source_first"),
+            (self.tra("译文在上"), "translation_first")
+        ]
+        
+        # 生成翻译后的选项列表
+        options = [display for display, _ in order_pairs]
+        
+        def init(widget) -> None:
+            current_value = config.get("bilingual_text_order", "original_first")
+            # 查找当前值对应的索引
+            index = next(
+                (i for i, (_, value) in enumerate(order_pairs) if value == current_value),
+                0  # 默认选择第一个选项
+            )
+            widget.set_current_index(max(0, index))
+
+        def current_text_changed(widget, text: str) -> None:
+            # 查找显示文本对应的存储值
+            value = next(
+                (value for display, value in order_pairs if display == text),
+                "original_first"  # 默认值
+            )
+            
+            config = self.load_config()
+            config["bilingual_text_order"] = value
+            self.save_config(config)
+
+        parent.addWidget(
+            ComboBoxCard(
+                self.tra("双语文件文本顺序"),
+                self.tra("设置双语文件中原文和译文的显示顺序"),
+                options,
+                init=init,
+                current_text_changed=current_text_changed
             )
         )

@@ -572,13 +572,13 @@ class BasicTablePage(Base,QWidget):
 
     # 表格属性
     def _init_table(self):
-
         self.headers = ["行", "原文", "译文", "润文"]
         self.table.setColumnCount(len(self.headers))
         self.table.setHorizontalHeaderLabels(self.headers)
         self.table.verticalHeader().hide()
         self.table.setAlternatingRowColors(True)
-        self.table.setWordWrap(True)
+        
+        self.table.setWordWrap(True) #启单元格内文本自动换行
         self.table.setBorderVisible(True)
         self.table.setBorderRadius(8)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -586,7 +586,11 @@ class BasicTablePage(Base,QWidget):
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Interactive)
         header.setStretchLastSection(True)
-        self.table.setColumnWidth(0, 55)
+
+        # 当用户拖动调整列宽时，自动重新计算并调整行高以适应内容（卡）
+        #header.sectionResized.connect(self.table.resizeRowsToContents)
+
+        self.table.setColumnWidth(0, 60)
         self.table.setColumnWidth(1, 400)
         self.table.setColumnWidth(2, 400)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -607,16 +611,17 @@ class BasicTablePage(Base,QWidget):
             num_item.setData(Qt.UserRole, item_data.text_index)
             self.table.setItem(row_idx, 0, num_item)
 
-            # 原文列 (不可编辑)
+            # 原文列
             source_item = QTableWidgetItem(item_data.source_text)
-            source_item.setFlags(source_item.flags() & ~Qt.ItemIsEditable)
+            # source_item.setFlags(source_item.flags() & ~Qt.ItemIsEditable) 
             self.table.setItem(row_idx, 1, source_item)
             
             # 译文、润文列 (可编辑)
             self.table.setItem(row_idx, 2, QTableWidgetItem(item_data.translated_text))
             self.table.setItem(row_idx, 3, QTableWidgetItem(item_data.polished_text or '')) # 确保 None 显示为空字符串
         
-        self.table.resizeRowsToContents()
+        # 填充完数据后，根据内容自动调整所有行的高度（卡）
+        #self.table.resizeRowsToContents() 
 
         # 恢复信号
         self.table.blockSignals(False)
@@ -626,8 +631,7 @@ class BasicTablePage(Base,QWidget):
         row = item.row()
         col = item.column()
 
-        # 只处理 "译文" 和 "润文" 列的修改
-        if col not in [self.COL_TRANS, self.COL_POLISH]:
+        if col not in [self.COL_SOURCE, self.COL_TRANS, self.COL_POLISH]: # <-- 修改
             return
             
         # 获取该行对应的 CacheItem 的唯一索引
@@ -644,6 +648,8 @@ class BasicTablePage(Base,QWidget):
             field_name = 'translated_text'
         elif col == self.COL_POLISH:
             field_name = 'polished_text'
+        elif col == self.COL_SOURCE:
+            field_name = 'source_text'
         
         # 调用 CacheManager 的方法来更新缓存
         self.cache_manager.update_item_text(
@@ -714,7 +720,8 @@ class BasicTablePage(Base,QWidget):
                 # 使用传入的 target_column_index 更新正确的列
                 self.table.setItem(row, target_column_index, QTableWidgetItem(new_text))
         
-        self.table.resizeRowsToContents()
+        # 更新后，自动调整行高
+        self.table.resizeRowsToContents() # <-- 重要
         self.table.blockSignals(False)
 
     # 表格重编排方法

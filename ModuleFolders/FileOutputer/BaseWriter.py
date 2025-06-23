@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import TypedDict
@@ -27,12 +27,17 @@ class TranslationOutputConfig:
     name_suffix: str = ""
     output_root: Path = None
 
+# 双语排序枚举
+class BilingualOrder(Enum):
+    SOURCE_FIRST = "source_first"
+    TRANSLATION_FIRST = "translation_first"
 
 @dataclass
 class OutputConfig:
     translated_config: TranslationOutputConfig = None
     bilingual_config: TranslationOutputConfig = None
     input_root: Path = None
+    bilingual_order: BilingualOrder = field(default=BilingualOrder.TRANSLATION_FIRST)  # 双语排序配置
 
     def __post_init__(self):
         if self.translated_config is None:

@@ -56,7 +56,8 @@ class TaskExecutor(Base):
         # 获取配置信息，此时 config 是一个字典，后面需要使用get
         config = self.load_config()
         
-        output_path = data.get("export_path", config.get("label_output_path"))
+        output_path = data.get("export_path")
+        inpput_path = config.get("label_input_path")
 
         # 触发手动导出插件事件
         self.plugin_manager.broadcast_event("manual_export", config, self.cache_manager.project)
@@ -79,11 +80,19 @@ class TaskExecutor(Base):
             self.info(f"简繁转换完成。")
             self.print("")
 
+        # 输出配置包
+        output_config = {
+             "translated_suffix": config.output_filename_suffix,
+             "bilingual_suffix": "_bilingual",
+             "bilingual_order": config.bilingual_text_order 
+        }
+
         # 写入文件
         self.file_writer.output_translated_content(
             self.cache_manager.project,
             output_path,
-            config.get("label_input_path"), 
+            inpput_path, 
+            output_config, 
         )
 
         self.print("")
@@ -287,11 +296,19 @@ class TaskExecutor(Base):
                 if item.translation_status == TranslationStatus.POLISHED:
                     item.polished_text = converter.convert(item.polished_text)
 
+        # 输出配置包
+        output_config = {
+             "translated_suffix": self.config.output_filename_suffix,
+             "bilingual_suffix": "_bilingual",
+             "bilingual_order": self.config.bilingual_text_order 
+        }
+
         # 写入文件
         self.file_writer.output_translated_content(
             self.cache_manager.project,
             self.config.label_output_path,
             self.config.label_input_path,
+            output_config,
         )
         self.print("")
         self.info(f"翻译结果已保存至 {self.config.label_output_path} 目录 ...")
@@ -442,11 +459,19 @@ class TaskExecutor(Base):
         # 等待可能存在的缓存文件写入请求处理完毕
         time.sleep(CacheManager.SAVE_INTERVAL)
 
+        # 输出配置包
+        output_config = {
+             "translated_suffix": self.config.output_filename_suffix,
+             "bilingual_suffix": "_bilingual",
+             "bilingual_order": self.config.bilingual_text_order 
+        }
+
         # 写入文件
         self.file_writer.output_translated_content(
             self.cache_manager.project,
             self.config.polishing_output_path,
             self.config.label_input_path,
+            output_config,
         )
         self.print("")
         self.info(f"润色结果已保存至 {self.config.polishing_output_path} 目录 ...")

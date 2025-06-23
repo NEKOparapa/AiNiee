@@ -206,13 +206,17 @@ class TextProcessor():
 
                 # 检查前缀 (去除首尾空格后判断是否为数字)
                 if prefix.strip().isdigit():
-                    core_text = prefix + core_text  # 将前缀合并回核心文本
-                    prefix = ''  # 清空前缀
+                    # 只保留前导空白作为前缀
+                    prefix_leading = prefix[:len(prefix) - len(prefix.lstrip())]
+                    core_text = prefix[len(prefix_leading):] + core_text  # 数字+紧邻空白都合并
+                    prefix = prefix_leading
 
                 # 检查后缀
                 if suffix.strip().isdigit():
-                    core_text = core_text + suffix
-                    suffix = ''
+                    # 只保留后尾空白作为后缀
+                    suffix_trailing = suffix[len(suffix.rstrip()):]
+                    core_text = core_text + suffix[:len(suffix) - len(suffix_trailing)]  # 数字+紧邻空白都合并
+                    suffix = suffix_trailing
 
                 non_empty_lines.append(core_text)
                 lines_info.append({'prefix': prefix, 'suffix': suffix, 'is_empty': False})
