@@ -19,6 +19,7 @@ requests
 httpx[http2]
 
 # Tools
+polib
 pandas
 rich
 tqdm

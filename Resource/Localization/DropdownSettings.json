@@ -78,6 +78,12 @@
       "English": "I18Next Data File",
       "日本語": "I18Nextデータファイル"
     },
+    "Po": {
+      "简中": "Po数据文件",
+      "繁中": "Po數據文件",
+      "English": "Po Data File",
+      "日本語": "Poデータファイル"
+    },
     "Paratranz": {
       "简中": "ParaTranz导出文件",
       "繁中": "ParaTranz導出檔案",

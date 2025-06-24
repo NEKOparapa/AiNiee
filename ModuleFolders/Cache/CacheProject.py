@@ -25,6 +25,7 @@ class ProjectType:
     VNT = "Vnt"
     VTT = "Vtt"
     I18NEXT = "I18next"
+    PO = "Po"
     BABELDOC_PDF = "BabeldocPdf"
 
 

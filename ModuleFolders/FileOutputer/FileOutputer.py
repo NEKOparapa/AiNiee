@@ -21,6 +21,7 @@ from ModuleFolders.FileOutputer.MdWriter import MdWriter
 from ModuleFolders.FileOutputer.RenpyWriter import RenpyWriter
 from ModuleFolders.FileOutputer.TransWriter import TransWriter
 from ModuleFolders.FileOutputer.I18nextWriter import I18nextWriter
+from ModuleFolders.FileOutputer.PoWriter import PoWriter
 from ModuleFolders.FileOutputer.BabeldocPdfWriter import BabeldocPdfWriter
 from PluginScripts.IOPlugins.CustomRegistry import CustomWriter
 
@@ -51,6 +52,7 @@ class FileOutputer:
         self.register_writer(RenpyWriter)
         self.register_writer(TransWriter)
         self.register_writer(I18nextWriter)
+        self.register_writer(PoWriter)
         self.register_writer(ParatranzWriter)
         self.register_writer(TPPWriter)
         self.register_writer(OfficeConversionDocWriter)
