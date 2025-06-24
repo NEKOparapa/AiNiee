@@ -165,12 +165,21 @@ class Base():
     def warning(self, msg: str) -> None:
         print(f"[[red]WARNING[/]] {msg}")
 
+    def get_parent_window(self):
+        """统一获取父窗口对象"""
+        if hasattr(self, 'window'):
+            if callable(self.window):
+                return self.window()
+            else:
+                return self.window
+        return None
+
     # Toast
     def info_toast(self, title: str, content: str) -> None:
         InfoBar.info(
             title = title,
             content = content,
-            parent = self.window(),
+            parent = self.get_parent_window(),
             duration = 2500,
             orient = Qt.Horizontal,
             position = InfoBarPosition.TOP,
@@ -182,7 +191,7 @@ class Base():
         InfoBar.error(
             title = title,
             content = content,
-            parent = self.window(),
+            parent = self.get_parent_window(),
             duration = 2500,
             orient = Qt.Horizontal,
             position = InfoBarPosition.TOP,
@@ -194,7 +203,7 @@ class Base():
         InfoBar.success(
             title = title,
             content = content,
-            parent = self.window(),
+            parent = self.get_parent_window(),
             duration = 2500,
             orient = Qt.Horizontal,
             position = InfoBarPosition.TOP,
@@ -206,7 +215,7 @@ class Base():
         InfoBar.warning(
             title = title,
             content = content,
-            parent = self.window(),
+            parent = self.get_parent_window(),
             duration = 2500,
             orient = Qt.Horizontal,
             position = InfoBarPosition.TOP,
