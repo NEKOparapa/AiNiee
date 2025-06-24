@@ -233,6 +233,11 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
             results.append((['symbols_only_again'], -1.0, -1.0))
             continue
 
+        # 再次检测是否匹配目标正则
+        if HAS_UNUSUAL_ENG_REGEX.match(no_symbols_text):
+            results.append((['un_again'], -1.0, -1.0))
+            continue
+
         lang_result = detector.detect(no_symbols_text).detections
         if not lang_result:
             results.append((['un'], -1.0, -1.0))
