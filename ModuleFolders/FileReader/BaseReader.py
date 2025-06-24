@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict
 
-from tqdm import tqdm
+from rich.progress import Progress, TextColumn, BarColumn, TaskProgressColumn, MofNCompleteColumn, TimeRemainingColumn
 
 from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import TranslationStatus
@@ -89,38 +89,73 @@ class BaseSourceReader(ABC):
         batch_size = 128
         items = file_data.items
         total_items = len(items)
-        num_batches = (total_items + batch_size - 1) // batch_size
+        _num_batches = (total_items + batch_size - 1) // batch_size
 
         # 保存需要使用cld2再次检查的文本
         # items_for_cld2 = []
-        # 使用tqdm显示批处理进度
-        progress_bar = tqdm(range(0, total_items, batch_size), total=num_batches,
-                            desc=f"正在进行mediapipe语言检测 ({file_data.file_name})", unit="批次")
-        for batch_start in progress_bar:
-            batch_end = min(batch_start + batch_size, total_items)
-            batch_items = items[batch_start:batch_end]
-            end_index = min(batch_start + batch_size, total_items)
+        # 使用Rich显示双层进度条
+        with Progress(
+                TextColumn("[bold blue]{task.description}"),
+                BarColumn(),
+                TaskProgressColumn(),
+                MofNCompleteColumn(),
+                "•",
+                TimeRemainingColumn(),
+                expand=True
+        ) as progress:
 
-            progress_bar.set_postfix_str(f"项目: {batch_start + 1}-{end_index}")
+            # 总体进度
+            main_task = progress.add_task(
+                f"MediaPipe语言检测中...\n目标文件 -> {file_data.file_name}\n",
+                total=total_items
+            )
 
-            # 批量检测语言
-            batch_results = detect_language_with_mediapipe(batch_items, batch_start, file_data)
-            # batch_results = detect_language_with_onnx(batch_items, batch_start, file_data)
-            # batch_results = detect_language_with_pycld2(batch_items, batch_start, file_data)
+            # 批次进度
+            # batch_task = progress.add_task(
+            #     "批次进度",
+            #     total=num_batches
+            # )
 
-            # 将检测结果保存回对应的item
-            for i, (mp_langs, mp_score, _) in enumerate(batch_results):
-                cur_item = items[batch_start + i]
+            processed_items = 0
 
-                # 初始化使用mediapipe结果（如果有效）
-                if mp_score > 0.0:
-                    # 创建除了主要语言外的其他语言列表
-                    other_langs = mp_langs[1:] if len(mp_langs) > 1 else []
+            for batch_idx, batch_start in enumerate(range(0, total_items, batch_size)):
+                batch_end = min(batch_start + batch_size, total_items)
+                batch_items = items[batch_start:batch_end]
+                # end_index = min(batch_start + batch_size, total_items)
 
-                    cur_item.lang_code = (mp_langs[0], mp_score, other_langs)
-                else:
-                    # 低于0分的直接标记为排除翻译
-                    cur_item.translation_status = TranslationStatus.EXCLUDED
+                # 更新批次描述
+                # progress.update(
+                #     batch_task,
+                #     description=f"批次 {batch_idx + 1}/{num_batches} - 项目: {batch_start + 1}-{end_index}",
+                #     advance=0
+                # )
+
+                # 批量检测语言
+                batch_results = detect_language_with_mediapipe(batch_items, batch_start, file_data)
+                # batch_results = detect_language_with_onnx(batch_items, batch_start, file_data)
+                # batch_results = detect_language_with_pycld2(batch_items, batch_start, file_data)
+
+                # 将检测结果保存回对应的item
+                for i, (mp_langs, mp_score, _) in enumerate(batch_results):
+                    cur_item = items[batch_start + i]
+
+                    # 初始化使用mediapipe结果（如果有效）
+                    if mp_score > 0.0:
+                        # 创建除了主要语言外的其他语言列表
+                        other_langs = mp_langs[1:] if len(mp_langs) > 1 else []
+
+                        cur_item.lang_code = (mp_langs[0], mp_score, other_langs)
+                    else:
+                        # 低于0分的直接标记为排除翻译
+                        cur_item.translation_status = TranslationStatus.EXCLUDED
+
+                    processed_items += 1
+
+                    # 更新主进度
+                    progress.update(main_task, completed=processed_items)
+
+                # 完成一个批次
+                # progress.update(batch_task, advance=1)
 
         return file_data
 
