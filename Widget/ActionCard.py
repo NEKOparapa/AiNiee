@@ -1,3 +1,4 @@
+###源码
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
 from qfluentwidgets import (CardWidget, StrongBodyLabel, CaptionLabel,
@@ -28,6 +29,11 @@ class ActionCard(CardWidget):
         self.vbox.addWidget(self.descriptionLabel)
         self.vbox.setSpacing(4)
 
+        # 中间的项目名标签
+        self.project_name_label = CaptionLabel("", self)
+        self.project_name_label.setObjectName('projectNameLabel')
+        self.project_name_label.hide() # 默认隐藏
+
         # 右侧按钮
         self.button = PushButton(icon, button_text, self) if icon else PushButton(button_text, self)
         self.button.setFixedWidth(120)
@@ -36,7 +42,23 @@ class ActionCard(CardWidget):
         # 组装布局
         self.hbox.addLayout(self.vbox)
         self.hbox.addStretch(1)
+        self.hbox.addWidget(self.project_name_label) # 将项目名标签放在中间
+        self.hbox.addStretch(1)
         self.hbox.addWidget(self.button)
 
         # 信号连接
         self.button.clicked.connect(self.clicked)
+
+    # 设置项目名并显示标签的方法
+    def set_project_name(self, name: str):
+        """设置项目名并显示标签"""
+        if name:
+            self.project_name_label.setText(f"项目: {name}")
+            self.project_name_label.show()
+        else:
+            self.project_name_label.hide()
+            
+    # 隐藏项目名标签的方法
+    def hide_project_name(self):
+        """隐藏项目名标签"""
+        self.project_name_label.hide()

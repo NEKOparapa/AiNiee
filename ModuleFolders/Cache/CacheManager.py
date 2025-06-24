@@ -73,7 +73,8 @@ class CacheManager(Base):
             # 写入项目整体翻译状态文件
             total_line = self.project.stats_data.total_line # 获取需翻译总行数
             line = self.project.stats_data.line # 获取已翻译行数
-            json_data = {"total_line": total_line, "line": line }
+            project_name = self.project.project_name # 获取项目名字
+            json_data = {"total_line": total_line, "line": line, "project_name": project_name }
 
             json_path = os.path.join(self.save_to_file_require_path, "cache", "ProjectStatistics.json")
             with open(json_path, "w", encoding="utf-8") as writer:

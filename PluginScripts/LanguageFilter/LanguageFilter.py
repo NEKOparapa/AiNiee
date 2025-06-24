@@ -81,7 +81,7 @@ class LanguageFilter(PluginBase):
         self.description = (
                 "语言过滤器，在翻译开始前，根据原文语言对文本中的无效条目进行过滤以节约 翻译时间 与 Token 消耗"
                 + "\n"
-                + "兼容性：支持全部语言；支持全部模型；支持全部文本格式；"
+                + "兼容性：支持全部语言；支持全部模型；支持全部文本格式；支持翻译润色流程；"
         )
 
         self.visibility = True  # 是否在插件设置中显示

@@ -19,7 +19,7 @@ class MToolOptimizer(PluginBase):
         self.description = (
             "MTool 优化器，优化翻译流程，提升翻译质量，至多可减少 40% 的 翻译时间 与 Token 消耗"
             + "\n" + "但可能会带来稳定性下降，翻译错行，翻译不通畅等问题，请酌情开启"
-            + "\n" + "兼容性：支持全部语言；支持全部模型；仅支持 MTool 文本；"
+            + "\n" + "兼容性：支持全部语言；支持全部模型；仅支持 MTool 文本；仅支持翻译流程；"
         )
 
         self.visibility = True          # 是否在插件设置中显示

@@ -177,4 +177,40 @@ class DirectoryReader:
         # 释放语言检测器
         ReaderUtil.close_lang_detector()
 
+        # 自动生成工程名字
+        self._generate_project_name(cache_project)
+
         return cache_project
+
+
+    # 自动生成工程名字方法
+    def _generate_project_name(self, cache_project: CacheProject):
+        """
+        根据读取的文件列表，自动生成工程名字。
+        """
+        # 配置的参数
+        CHARS_PER_FILENAME = 5
+        SEPARATOR = '&&'
+        MAX_FILES_FOR_NAME = 4
+
+        # 从字典中获取所有 CacheFile 对象，并转换为列表
+        files_list = list(cache_project.files.values())
+
+        if not files_list:
+            cache_project.project_name = "EmptyProject"
+            return
+
+        if len(files_list) == 1:
+            # 单个文件：直接使用文件名（不含扩展名）
+            # 使用列表索引 [0] 来访问第一个元素
+            file_path = Path(files_list[0].file_name)
+            cache_project.project_name = file_path.stem
+        else:
+            # 多个文件：组合文件名
+            name_parts = []
+            # 对列表进行切片
+            for cache_file in files_list[:MAX_FILES_FOR_NAME]:
+                file_stem = Path(cache_file.file_name).stem
+                name_parts.append(file_stem[:CHARS_PER_FILENAME])
+            
+            cache_project.project_name = SEPARATOR.join(name_parts)

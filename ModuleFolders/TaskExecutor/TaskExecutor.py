@@ -82,9 +82,9 @@ class TaskExecutor(Base):
 
         # 输出配置包
         output_config = {
-             "translated_suffix": config.output_filename_suffix,
-             "bilingual_suffix": "_bilingual",
-             "bilingual_order": config.bilingual_text_order 
+            "translated_suffix": config.get('output_filename_suffix'),
+            "bilingual_suffix": "_bilingual",
+            "bilingual_order": config.get('bilingual_text_order','translation_first') 
         }
 
         # 写入文件
@@ -482,6 +482,7 @@ class TaskExecutor(Base):
 
         # 触发事件
         self.emit(Base.EVENT.TASK_STOP_DONE, {})     # 翻译停止完成的事件
+        self.plugin_manager.broadcast_event("polish_completed", self.config, self.cache_manager.project)
         self.emit(Base.EVENT.TASK_COMPLETED, {})     # 翻译完成事件
 
 

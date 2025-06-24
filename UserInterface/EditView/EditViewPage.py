@@ -51,14 +51,14 @@ class BottomCommandBar(Base,CardWidget):
         top_row = QHBoxLayout()
         self.project_name = CaptionLabel('项目名字')
         self.project_name.setFixedWidth(200)
-        self.progress_status = CaptionLabel("0/0")
+        self.progress_status = CaptionLabel("NA")
         top_row.addWidget(self.project_name, alignment=Qt.AlignLeft)
         top_row.addStretch()
         top_row.addWidget(self.progress_status, alignment=Qt.AlignRight)
 
         self.progress_bar = ProgressBar()
         self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(45)
+        self.progress_bar.setValue(0)
         self.progress_bar.setMinimumWidth(400)
 
         project_layout.addStretch(1)
@@ -122,6 +122,10 @@ class BottomCommandBar(Base,CardWidget):
         self.subscribe(Base.EVENT.TASK_UPDATE, self.data_update)
         self.subscribe(Base.EVENT.TASK_STOP_DONE, self.task_stop_done)
         self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
+
+    # 更新项目名称标签的方法
+    def update_project_name(self, name: str):
+        self.project_name.setText(name)
 
     # 任务模式切换
     def _on_mode_selected(self, mode: str, action: Action):
@@ -670,7 +674,7 @@ class BasicTablePage(Base,QWidget):
             # 当有行被选中时，添加功能性操作
             menu.addAction(Action(FIF.EDIT, "翻译文本", triggered=self._translate_text))
             menu.addAction(Action(FIF.BRUSH, "润色文本", triggered=self._polish_text))
-            menu.addAction(Action(FIF.BRUSH, "排序文本", triggered=self._format_text))
+            menu.addAction(Action(FIF.BRUSH, "排版文本", triggered=self._format_text))
             menu.addSeparator()
 
             # 添加“原文复制到译文”和“清空”等手动编辑操作
@@ -1054,8 +1058,11 @@ class EditViewPage(Base,QFrame):
             # 获取小文件
             with open(json_file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            total_line = data["total_line"] # 获取需翻译行数
-            line = data["line"] # 获取已翻译行数
+            
+            # 获取数据
+            project_name = data.get("project_name") # 获取已项目名字
+            total_line = data.get("total_line") # 获取需翻译行数
+            line = data.get("line") # 获取已翻译行数
 
             # 有数据则表示进行过任务,放宽读取范围
             if total_line:
@@ -1065,22 +1072,36 @@ class EditViewPage(Base,QFrame):
         if self.continue_status == True :
             # 启动页显示继续翻译按钮
             self.startup_page.show_continue_button(True)
+            # 在 ActionCard 上显示项目名
+            self.startup_page.continue_card.set_project_name(project_name)
             # 启用底部命令栏的继续按钮
             self.bottom_bar_main.enable_continue_button(True)
 
         else:
             self.startup_page.show_continue_button(False)
+            # 隐藏 ActionCard 上的项目名
+            self.startup_page.continue_card.hide_project_name()
             self.bottom_bar_main.enable_continue_button(False)
 
     # 输入文件夹路径改变信号
-    def on_folder_selected(self, mode: str):
+    def on_folder_selected(self, project_name: str):
         # 从缓存器获取文件层级结构
         file_hierarchy = self.cache_manager.get_file_hierarchy()
         # 更新导航卡片的树状视图
         self.nav_card.update_tree(file_hierarchy)
 
+        # 新增：更新底部命令栏的项目名
+        self.bottom_bar_main.update_project_name(project_name)
+
         # 切换到主界面
         self.top_stacked_widget.setCurrentWidget(self.main_interface)
+
+    # 底部命令栏返回按钮事件
+    def on_back_button_clicked(self):
+
+        if Base.work_status == Base.STATUS.IDLE:
+            # 如果当前工作状态为空闲，则直接切换到启动页面
+            self.top_stacked_widget.setCurrentIndex(0)
 
     # 底部命令栏返回按钮事件
     def on_back_button_clicked(self):

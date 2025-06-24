@@ -13,7 +13,8 @@ from ModuleFolders.FileOutputer.BaseWriter import (
     BaseBilingualWriter,
     BaseTranslatedWriter,
     OutputConfig,
-    PreWriteMetadata
+    PreWriteMetadata,
+    BilingualOrder,
 )
 
 
@@ -48,7 +49,6 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
     ):
         content = self.file_accessor.read_content(source_file_path)
 
-        # groupby需要key有序，item_id本身有序，不需要重排
         translated_item_dict = {
             k: list(v)
             for k, v in groupby(cache_file.items, key=lambda x: x.require_extra("item_id"))
@@ -59,24 +59,20 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
                 translation_content[item_filename] = html_content
                 continue
             
-            # 创建一个副本进行操作，避免在迭代中修改
             modified_html_content = html_content
             for item in translated_item_dict[item_id]:
                 if item.translation_status == TranslationStatus.TRANSLATED:
                     original_html = item.require_extra("original_html")
                     translated_text = item.final_text
                     new_html = translate_html_tag(original_html, translated_text)
-                    # 在副本上执行替换
                     modified_html_content = modified_html_content.replace(original_html, new_html, 1)
             translation_content[item_filename] = modified_html_content
         self.file_accessor.write_content(
             translation_content, translation_file_path, source_file_path
         )
 
-
-    # 构建译文版本标签
+    # 译文版本
     def _rebuild_translated_tag(self, original_html, translated_text):
-
         soup = BeautifulSoup(original_html, 'html.parser')
         original_tag = soup.find()
         if not original_tag:
@@ -94,16 +90,14 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
         new_tag.string = processed_translated
         return str(new_tag)
 
-
-    # 构建双语版本标签
+    # 双语版本
     def _rebuild_bilingual_tag(self, original_html, translated_text):
-        # 样式配置常量
         ORIGINAL_STYLE = {
             'opacity': '0.8',
             'color': '#888',
             'font-size': '0.85em',
             'font-style': 'italic',
-            'margin-top': '0.2em',  # 增加一点上边距，视觉上分隔两行
+            'margin-top': '0.2em',
         }
 
         soup = BeautifulSoup(original_html, 'html.parser')
@@ -115,39 +109,44 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
             processed_trans = self._copy_leading_spaces(original_text_content, translated_text)
             style_str = '; '.join([f"{k}:{v}" for k, v in ORIGINAL_STYLE.items()])
             
-            # 返回两个并列的div标签
-            return f'<div>{processed_trans}</div>\n  <div style="{style_str}">{original_html}</div>'
+            trans_div = f'<div>{processed_trans}</div>'
+            orig_div = f'<div style="{style_str}">{original_html}</div>'
+
+            if self.output_config.bilingual_order == BilingualOrder.SOURCE_FIRSTT:
+                return f"{orig_div}\n  {trans_div}"
+            else:  # 默认为译文在前
+                return f"{trans_div}\n  {orig_div}"
 
         # 复制前导空格
         original_text = original_tag.get_text()
         processed_trans = self._copy_leading_spaces(original_text, translated_text)
 
-        # 创建译文标签
         # 使用原始标签名和属性
         trans_tag = soup.new_tag(original_tag.name, attrs=original_tag.attrs.copy())
         trans_tag.string = processed_trans
 
-        # 修改原文标签 
-        # 在解析出的原始标签上直接修改
-        # 移除id以避免HTML文档中id重复
+        # 修改原文标签样式
         original_tag.attrs.pop('id', None)
-        
+
         # 合并样式
         existing_style = original_tag.get('style', '')
+
         # 确保现有样式末尾有分号（如果存在）
         if existing_style and not existing_style.strip().endswith(';'):
             existing_style += '; '
-        
         new_style = '; '.join([f"{k}:{v}" for k, v in ORIGINAL_STYLE.items()])
         original_tag['style'] = existing_style + new_style
         
         # 组合并返回两个标签的字符串形式
-        return str(trans_tag) + "\n  " +  str(original_tag)
+        trans_html = str(trans_tag)
+        orig_html_styled = str(original_tag)
+        
+        if self.output_config.bilingual_order == BilingualOrder.SOURCE_FIRST:
+            return f"{orig_html_styled}\n  {trans_html}"
+        else:  # 默认为译文在前
+            return f"{trans_html}\n  {orig_html_styled}"
 
-    # 复制前导空格
     def _copy_leading_spaces(self, source_text, target_text):
-        """复制源文本的前导空格到目标文本"""
-        # 修改正则以同时匹配半角空格和全角空格（\u3000）
         leading_spaces = re.match(r'^[ \u3000]+', source_text)
         leading_spaces = leading_spaces.group(0) if leading_spaces else ''
         return leading_spaces + target_text.lstrip()

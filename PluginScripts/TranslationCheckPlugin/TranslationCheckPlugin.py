@@ -11,7 +11,7 @@ class TranslationCheckPlugin(PluginBase):
     def __init__(self):
         super().__init__()
         self.name = "TranslationCheckPlugin"
-        self.description = "翻译功能检查插件，用于翻译结果与功能运行评估，包括术语表、禁翻表、换行符和自动处理等。\n错误信息文件将输出到 output 文件夹。"
+        self.description = "翻译流程检查插件，用于翻译结果与功能运行评估，包括术语表、禁翻表、换行符和自动处理等。\n错误信息文件将输出到 output 文件夹。"
         self.visibility = True
         self.default_enable = False
         self.add_event("translation_completed", PluginBase.PRIORITY.LOWEST)

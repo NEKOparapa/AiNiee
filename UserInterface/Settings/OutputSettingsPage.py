@@ -43,7 +43,6 @@ class OutputSettingsPage(QFrame, Base):
         self.container.addWidget(HorizontalSeparator())
         self.add_widget_filename_suffix(self.container, config)
         self.add_widget_bilingual_text_order(self.container, config)
-        self.container.addWidget(HorizontalSeparator())
         self.add_widget_encoding(self.container, config)
         self.container.addWidget(HorizontalSeparator())
         self.add_widget_opencc(self.container, config)
@@ -294,7 +293,7 @@ class OutputSettingsPage(QFrame, Base):
         parent.addWidget(
             ComboBoxCard(
                 self.tra("双语文件文本顺序"),
-                self.tra("设置双语文件中原文和译文的显示顺序"),
+                self.tra("设置双语文件中原文和译文的显示顺序，仅支持txt与epub项目"),
                 options,
                 init=init,
                 current_text_changed=current_text_changed

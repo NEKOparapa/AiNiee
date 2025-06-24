@@ -208,7 +208,9 @@ class StartupPage(Base,QWidget):
         self.info(f"项目数据全部载入成功 ...")
         self.print("")
 
+        # 获取项目名字
+        project_name = self.cache_manager.project.project_name
 
-        # 发出信号通知文件夹已选择
-        self.folderSelected.emit(mode)
+        # 发出信号通知文件夹已选择，并附带项目名
+        self.folderSelected.emit(project_name)
 

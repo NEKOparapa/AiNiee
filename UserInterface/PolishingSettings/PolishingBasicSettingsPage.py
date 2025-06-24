@@ -86,7 +86,7 @@ class PolishingBasicSettingsPage(QFrame, Base):
 
         self.mode_combo_box = ComboBoxCard(
             self.tra("润色模式选择"),
-            self.tra("选择需要润色的文本范围，选择原文将润色原文，选择译文将润色翻译后的文本"),
+            self.tra("选择需要润色的文本范围，选择【原文】将只润色原文文本，选择【译文】将只润色译文文本"),
             options,
             init=init,
             current_text_changed=current_text_changed,

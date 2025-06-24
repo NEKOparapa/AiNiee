@@ -557,13 +557,19 @@ class SimpleExecutor(Base):
         thread = threading.Thread(target=self.process_table_format, args=(data,), daemon=True)
         thread.start()
 
-    # 表格文本的分批排版
+    # 表格文本的全量排版
     def process_table_format(self, data: dict):
-        """处理表格文件的批量排版任务"""
+        """处理表格文件的全量排版任务"""
+
         # 解包从UI传来的数据
         file_path = data.get("file_path")
         items_to_format = data.get("items_to_format")
         original_selected_indices = data.get("selected_item_indices")
+
+        if not items_to_format:
+            self.warning("排版任务中止：没有需要处理的文本。")
+            Base.work_status = Base.STATUS.IDLE
+            return
 
         # 准备排版配置
         config = TaskConfig()
@@ -571,82 +577,73 @@ class SimpleExecutor(Base):
         config.prepare_for_translation(TaskType.FORMAT)
         platform_config = config.get_platform_configuration("formatReq")
 
-        # 排版任务分割
-        MAX_LINES = 10  # 最大行数
-        LOG_WIDTH = 50  # 日志框的统一宽度
+        # 日志和准备工作
+        LOG_WIDTH = 60  # 日志框的统一宽度
         total_items = len(items_to_format)
-        num_batches = (total_items + MAX_LINES - 1) // MAX_LINES
+        
+        self.info(f"▶️ 开始处理表格排版任务: {os.path.basename(file_path)}")
+        self.info(f"   总计 {total_items} 行文本将一次性处理。")
+        
+        print(f"\n╔{'═' * (LOG_WIDTH-2)}")
+        print(f"║{'表格文本排版'.center(LOG_WIDTH-2)}")
+        print(f"╠{'═' * (LOG_WIDTH-2)}")
 
-        self.info(f" 开始处理表格排版任务: {os.path.basename(file_path)}")
-        self.info(f"    总计 {total_items} 行文本, 将分为 {num_batches} 个批次处理。")
+        # 构建完整的原文词典 (0-based str index)
+        source_text_dict = {str(idx): item['source_text'] for idx, item in enumerate(items_to_format)}
 
-        for i in range(num_batches):
-            start_index = i * MAX_LINES
-            end_index = start_index + MAX_LINES
-            batch_items = items_to_format[start_index:end_index]
-            
-            batch_num = i + 1
-            log_header = f" 批次 {batch_num}/{num_batches} "
-            
-            # 构建0基的文本序号原文词典
-            source_text_dict = {str(idx): item['source_text'] for idx, item in enumerate(batch_items)}
+        # 生成提示词
+        messages, system_prompt, _ = PromptBuilderFormat.generate_prompt(
+            config,
+            source_text_dict,
+        )
+        
+        # 发送单个、完整的请求
+        print(f"├─ 正在发送请求 (共 {len(source_text_dict)} 行)...")
+        requester = LLMRequester()
+        skip, _, response_content, _, _ = requester.sent_request(
+            messages, system_prompt, platform_config
+        )
 
-            # 生成提示词内容
-            messages, system_prompt, extra_log = PromptBuilderFormat.generate_prompt(
-                config,
-                source_text_dict,
-            )
-            
-            # 日志
-            print(f"\n╔{'═' * (LOG_WIDTH-2)}")
-            print(f"║{log_header.center(LOG_WIDTH-2)}")
-            print(f"╠{'═' * (LOG_WIDTH-2)}")
-            print(f"├─ 正在发送请求 (共 {len(batch_items)} 行)...")
-            
-            # 发送请求
-            requester = LLMRequester()
-            skip, _, response_content, _, _ = requester.sent_request(
-                messages, system_prompt, platform_config
-            )
+        # 处理请求失败的情况
+        if skip:
+            print("├─ ❌ 请求失败，可能是网络问题或API密钥错误。")
+            print(f"└{'═' * (LOG_WIDTH-2)}")
+            self.error("表格排版请求失败，任务已中止。")
+            Base.work_status = Base.STATUS.IDLE  # 任务失败，重置状态
+            return
 
-            # 检查请求是否失败
-            if skip:
-                print("├─ 请求失败，网络或API密钥错误。")
-                print(f"└─ ❌ 跳过此批次。")
-                continue
+        # 日志输出
+        print("├─ 收到回复，内容如下:")
+        for line in response_content.strip().split('\n'):
+            print(f"│  {line}")
+        print(f"├{'─' * (LOG_WIDTH-2)}") # 添加一个分隔线
 
-            # 日志输出
-            print("├─ 收到回复，内容如下:")
-            for line in response_content.strip().split('\n'):
-                print(f"│  {line}")
-            print(f"├{'─' * (LOG_WIDTH-2)}") # 添加一个分隔线
+        # 提取和检查返回内容
+        print("├─ 正在解析和校验回复...")
+        response_dict = FormatExtractor.text_extraction(self, response_content)
+        """
+        response_dict: 一个字典，键是内容的行号（字符串形式），值是另一个字典，
+        包含 'text' (行文本) 和 'blank_lines_after' (该行后的空行数)。
+        例如: {'0': {'text': '第一行', 'blank_lines_after': 2}, ...}
+        """
 
-            # 提取和检查返回内容
-            print("├─ 正在解析和校验回复...")
-            response_dict = FormatExtractor.text_extraction(self, response_content)
-            """
-            response_dict: 一个字典，键是内容的行号（字符串形式），值是另一个字典，
-            包含 'text' (行文本) 和 'blank_lines_after' (该行后的空行数)。
-            例如: {'0': {'text': '第一行', 'blank_lines_after': 2}, ...}
-            """
+        # 校验解析结果
+        if not response_dict:
+            print(f"└❌ 内容提取失败。\n")
+            self.error("表格排版解析失败，任务已中止。")
+            Base.work_status = Base.STATUS.IDLE # 任务失败，重置状态
+            return
+        
+        print(f"├─ ✅ 成功解析 {len(response_dict)} 条结果。")
 
-            if not response_dict:
-                print(f"├─ 内容提取失败")
-                print(f"└─ ❌ 跳过此批次。")
-                continue
-            
-            print(f"├─ 成功解析 {len(response_dict)} 条结果。")
+        # 发送单次表格更新信号
+        self.emit(Base.EVENT.TABLE_FORMAT, {
+            "file_path": file_path,
+            "updated_items": response_dict,      
+            "selected_item_indices": original_selected_indices, 
+        })
+        print(f"└ 🚀 已发送UI更新指令。\n")
 
-
-            # 发送表格更新信号
-            self.emit(Base.EVENT.TABLE_FORMAT, {
-                "file_path": file_path,
-                "updated_items": response_dict,      
-                "selected_item_indices": original_selected_indices, 
-            })
-            print(f"└─ ✅ 批次处理完成，已发送UI更新。")
-            print("")
-
-        # 更新软件状态
+        # 11. 任务完成，更新全局状态
         Base.work_status = Base.STATUS.IDLE 
-        self.info(f" 🐳 表格排版任务已经全部完成")    
+        self.info(f"🐳 表格排版任务已完成！")
