@@ -17,12 +17,34 @@ class LocalLLMRequester(Base):
             frequency_penalty = platform_config.get("frequency_penalty", 0)
             think_switch = platform_config.get("think_switch")
 
+            # 参数基础配置
+            base_params = {
+                "model": model_name,
+                "messages": messages,
+                "timeout": request_timeout
+            }
+
+            # 按需添加参数
+            if temperature != 1:
+                base_params.update({
+                    "temperature": temperature,
+                })
+
+            if top_p != 1:
+                base_params.update({
+                    "top_p": top_p,
+                })
+
+            if frequency_penalty != 0:
+                base_params.update({
+                    "frequency_penalty": frequency_penalty
+                })
 
             # 假如打开了思考开关
             if think_switch:
-                extra_body={"enable_thinking": True}
-            else:
-                extra_body={}
+                base_params.update({
+                    "extra_body": {"enable_thinking": "true"}
+                })
 
 
             # 插入系统消息
@@ -37,15 +59,7 @@ class LocalLLMRequester(Base):
             # 从工厂获取客户端
             client = LLMClientFactory().get_openai_client_local(platform_config)
 
-            response = client.chat.completions.create(
-                extra_body=extra_body,
-                model=model_name,
-                messages=messages,
-                top_p=top_p,
-                temperature=temperature,
-                frequency_penalty=frequency_penalty,
-                timeout=request_timeout,
-            )
+            response = client.chat.completions.create(**base_params)
 
             # 提取回复内容
             message = response.choices[0].message

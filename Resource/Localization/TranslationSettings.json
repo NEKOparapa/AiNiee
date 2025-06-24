@@ -1,0 +1,163 @@
+{
+  "PART_1": { 
+    "原文语言": {
+      "简中": "原文语言",
+      "繁中": "原文語言",
+      "English": "Source Language",
+      "日本語": "原文言語"
+    },
+    "设置当前项目所使用的原始文本的语言": {
+      "简中": "设置当前项目所使用的原始文本的语言",
+      "繁中": "設定當前專案使用的原始文字語言",
+      "English": "Set source text language for current project",
+      "日本語": "現在のプロジェクトで使用する原文の言語を設定"
+    },
+    "译文语言": {
+      "简中": "译文语言",
+      "繁中": "譯文語言",
+      "English": "Target Language",
+      "日本語": "訳文言語"
+    },
+    "设置当前项目所期望的译文文本的语言": {
+      "简中": "设置当前项目所期望的译文文本的语言",
+      "繁中": "設定當前專案所期望的譯文文字語言",
+      "English": "Set target text language for current project",
+      "日本語": "現在のプロジェクトで使用する訳文の言語を設定"
+    },
+    "动态示例和预回复功能": {
+      "简中": "动态示例和预回复功能",
+      "繁中": "動態範例與預回覆功能",
+      "English": "Dynamic Few-shot & Pre-reply",
+      "日本語": "動的Few-shotと事前返答機能"
+    },
+    "将在构建整体的翻译提示词时，自动生成动态Few-shot和构建模型预回复内容，不支持本地接口": {
+      "简中": "将在构建整体的翻译提示词时，自动生成动态Few-shot和构建模型预回复内容，不支持本地接口",
+      "繁中": "建構整體翻譯提示詞時，將自動產生動態Few-shot及模型預回覆內容，不支援本地介面",
+      "English": "Automatically generates dynamic Few-shot examples and model pre-replies when constructing translation prompts.\nNot supported for local APIs.",
+      "日本語": "翻訳プロンプト構築時に動的Few-shotと事前返答を自動生成\nローカルインターフェースには非対応"
+    },
+    "参考上文行数": {
+      "简中": "参考上文行数",
+      "繁中": "參考上文行數", 
+      "English": "Context Lines (lines above)", 
+      "日本語": "コンテキスト行数 (上文)" 
+    },
+    "行数不宜设置过大，建议10行以内 (不支持本地类接口)": {
+      "简中": "行数不宜设置过大，建议10行以内 (不支持本地类接口)",
+      "繁中": "行數不宜設定過大，建議 10 行以內 (不支援本地類介面)", 
+      "English": "Keep line count low, recommended ≤10 (Local APIs not supported)", 
+      "日本語": "行数は大きく設定しないでください。10行以内を推奨 (ローカルAPIは非対応)"
+    },
+    "自动预处理文本": {
+        "简中": "自动预处理文本",
+        "繁中": "自動預處理文本",
+        "English": "Automatic Text Preprocessing",
+        "日本語": "テキスト自動前処理"
+    },
+    "启用此功能后，根据正则库与禁翻表，将在翻译前移除文本首尾的非翻译内容，占位文本中间的非翻译内容，并在翻译后还原": {
+        "简中": "启用此功能后，根据正则库与禁翻表，将在翻译前移除文本首尾的非翻译内容，占位文本中间的非翻译内容，并在翻译后还原",
+        "繁中": "啟用此功能後，根據正規表示式庫與禁譯表，將在翻譯前移除文字首尾的非翻譯內容、佔位符中間的非翻譯內容，並在翻譯後復原",
+        "English": "When enabled, non-translatable content at text boundaries and within placeholders will be temporarily removed during translation based on regex library and exclusion list, then restored after translation",
+        "日本語": "有効化すると、正規表現ライブラリと翻訳禁止リストに基づき、翻訳前後でテキストの前後端およびプレースホルダ内の非翻訳コンテンツを一時削除・復元します"
+    },
+    "模型退化检查": {
+      "简中": "模型退化检查",
+      "繁中": "模型退化檢查",
+      "English": "Model Degradation Check",
+      "日本語": "モデル劣化チェック"
+    },
+    "原文返回检查": {
+      "简中": "原文返回检查",
+      "繁中": "原文返回檢查",
+      "English": "Original Text Check",
+      "日本語": "原文チェック"
+    },
+    "翻译残留检查": {
+      "简中": "翻译残留检查",
+      "繁中": "翻譯殘留檢查",
+      "English": "Translation Artifact Check",
+      "日本語": "翻訳アーティファクト チェック"
+    },
+    "换行符数检查": {
+      "简中": "换行符数检查",
+      "繁中": "換行符數檢查",
+      "English": "Newline Character Count Check",
+      "日本語": "改行文字数チェック"
+    },
+    "翻译结果检查": {
+      "简中": "翻译结果检查",
+      "繁中": "翻譯結果檢查",
+      "English": "Translation Result Check",
+      "日本語": "翻訳結果チェック"
+    },
+    "将在翻译结果中检查激活的规则（点亮按钮为激活）：如检测到对应情况，则视为任务执行失败": {
+      "简中": "将在翻译结果中检查激活的规则（点亮按钮为激活）：如检测到对应情况，则视为任务执行失败",
+      "繁中": "將在翻譯結果中檢查已啟用的規則（點亮的按鈕表示已啟用）：如偵測到符合規則的情況，則視為任務執行失敗。",
+      "English": "Checks enabled rules in translation results (lit buttons = enabled). Task fails if rules are triggered.",
+      "日本語": "翻訳結果で有効ルールをチェック (点灯ボタン＝有効)。ルール違反時タスク失敗。"
+    }
+  },
+
+  "PART_2": {
+    "自动检测": {
+      "简中": "自动检测",
+      "繁中": "自動檢測",
+      "English": "Auto-detect",
+      "日本語": "自動検出"
+    },
+    "简中": {
+      "简中": "简中",
+      "繁中": "簡中",
+      "English": "Simplified Chinese",
+      "日本語": "簡体中国語"
+    },
+    "繁中": {
+      "简中": "繁中",
+      "繁中": "繁中",
+      "English": "Traditional Chinese",
+      "日本語": "繁体中国語"
+    },
+    "日语": {
+      "简中": "日语",
+      "繁中": "日語",
+      "English": "Japanese",
+      "日本語": "日本語"
+    },
+    "英语": {
+      "简中": "英语",
+      "繁中": "英語",
+      "English": "English",
+      "日本語": "英語"
+    },
+    "韩语": {
+      "简中": "韩语",
+      "繁中": "韓語",
+      "English": "Korean",
+      "日本語": "韓国語"
+    },
+    "俄语": {
+      "简中": "俄语",
+      "繁中": "俄語",
+      "English": "Russian",
+      "日本語": "ロシア語"
+    },
+    "德语": {
+      "简中": "德语",
+      "繁中": "德語",
+      "English": "German",
+      "日本語": "ドイツ語"
+    },
+    "法语": {
+      "简中": "法语",
+      "繁中": "法語",
+      "English": "French",
+      "日本語": "フランス語"
+    },
+    "西班牙语": {
+      "简中": "西班牙语",
+      "繁中": "西班牙語",
+      "English": "Spanish",
+      "日本語": "スペイン語"
+    }
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "PART_1": {
+    "选择文件夹": {
+      "简中": "选择文件夹",
+      "繁中": "選擇資料夾",
+      "English": "Select Folder",
+      "日本語": "フォルダーを選択"
+    },
+    "当前输出文件夹为": {
+      "简中": "当前输出文件夹：",
+      "繁中": "目前輸出資料夾：",
+      "English": "Current Output Folder:",
+      "日本語": "現在の出力フォルダー："
+    },
+
+    "翻译输出文件夹": {
+      "简中": "翻译输出文件夹",
+      "繁中": "翻譯輸出資料夾",
+      "English": "Translation Output Folder",
+      "日本語": "翻訳出力フォルダ"
+    },
+    "润色输出文件夹": {
+      "简中": "润色输出文件夹",
+      "繁中": "潤飾輸出資料夾",
+      "English": "Polishing Output Folder",
+      "日本語": "推敲出力フォルダ"
+    },
+    "文件名后缀": {
+      "简中": "文件名后缀",
+      "繁中": "檔案名稱後綴",
+      "English": "Filename Suffix",
+      "日本語": "ファイル名接尾辞"
+    },
+    "设置输出文件的文件名后缀，例如: _translated": {
+      "简中": "设置输出文件的文件名后缀，例如: _translated",
+      "繁中": "設定輸出檔案的檔案名稱後綴，例如: _translated",
+      "English": "Set filename suffix for output files, e.g., _translated",
+      "日本語": "出力ファイルの接尾辞を設定（例: _translated）"
+    },
+    "双语文件文本顺序": {
+      "简中": "双语文件文本顺序",
+      "繁中": "雙語檔案文字順序",
+      "English": "Bilingual Text Order",
+      "日本語": "バイリンガル表示順序"
+    },
+    "设置双语文件中原文和译文的显示顺序，仅支持txt与epub项目": {
+      "简中": "设置双语文件中原文和译文的显示顺序，仅支持txt与epub项目",
+      "繁中": "設定雙語檔案中原文和譯文的顯示順序，僅支援txt與epub專案",
+      "English": "Set display order of source/translated text in bilingual files\n(Only for txt/epub projects)",
+      "日本語": "バイリンガルファイルの原文/訳文表示順序を設定\n(txtとepubプロジェクトのみ対応)"
+    },
+    "原文在上": {
+      "简中": "原文在上",
+      "繁中": "原文在上",
+      "English": "Source First",
+      "日本語": "原文を先に"
+    },
+    "译文在上": {
+      "简中": "译文在上",
+      "繁中": "譯文在上",
+      "English": "Translation First",
+      "日本語": "訳文を先に"
+    },
+    "自动设置输出文件夹": {
+      "简中": "自动设置输出文件夹",
+      "繁中": "自動設置輸出資料夾",
+      "English": "Automatically set output folder",
+      "日本語": "出力フォルダーを自動設定"
+    },
+    "启用此功能后，设置为输入文件夹的平级目录，比如输入文件夹为D:/Test/Input，输出文件夹将设置为D:/Test/AiNieeOutput": {
+      "简中": "启用此功能后，设置为输入文件夹的平级目录，\n比如输入文件夹为 D:/Test/Input，输出文件夹将设置为 D:/Test/AiNieeOutput",
+      "繁中": "啟用此功能後，設置為輸入資料夾的同層級目錄，\n例如輸入資料夾為 D:/Test/Input，輸出資料夾將設置為 D:/Test/AiNieeOutput",
+      "English": "When enabled, sets the output folder to a sibling directory of the input folder. \nE.g., if input is D:/Test/Input, output will be D:/Test/AiNieeOutput.",
+      "日本語": "この機能を有効にすると、出力フォルダーは入力フォルダーと同じ階層のディレクトリーに設定されます。\n例：入力フォルダーが「D:/Test/Input」の場合、出力フォルダーは「D:/Test/AiNieeOutput」になります。"
+    },
+    "保持输入输出文件编码一致": {
+      "简中": "文件编码保持一致",
+      "繁中": "檔案編碼保持一致",
+      "English": "Keep input and output file encoding consistent",
+      "日本語": "入出力ファイルのエンコーディングを一致させる"
+    },
+    "启用此功能后，输出译文文件的编码将保持为与输入原文文件的编码一致（若字符不兼容，仍会使用utf-8），关闭后将始终使用 utf-8 编码（无特殊情况保持关闭即可）": {
+      "简中": "启用此功能后，输出译文文件的编码将保持为与输入原文文件的编码一致（若字符不兼容，仍会使用utf-8），\n关闭后将始终使用 utf-8 编码（无特殊情况保持关闭即可）",
+      "繁中": "啟用此功能後，輸出譯文檔案的編碼將保持為與輸入原文檔案的編碼一致（若字元不相容，仍會使用 utf-8），\n關閉後將始終使用 utf-8 編碼（無特殊情況保持關閉即可）",
+      "English": "When enabled, the output translated file's encoding will match the input original file's encoding (falls back to UTF-8 if characters are incompatible). \nWhen disabled, UTF-8 encoding will always be used. (Leave disabled under normal circumstances)",
+      "日本語": "この機能を有効にすると、出力翻訳ファイルのエンコーディングは入力原文ファイルのエンコーディングと一致します（文字に互換性がない場合はutf-8を使用します）。\n無効にすると、常にutf-8エンコーディングを使用します。（通常はオフのままで問題ありません）"
+    },
+    "自动简繁转换": {
+      "简中": "自动简繁转换",
+      "繁中": "自動簡繁轉換",
+      "English": "Automatic Simplified/Traditional Conversion",
+      "日本語": "自動 簡体/繁体字 変換"
+    },
+    "启用此功能后，在翻译完成时将按照设置的字形映射规则进行简繁转换": {
+      "简中": "启用此功能后，在翻译完成时将按照设置的字形映射规则进行简繁转换",
+      "繁中": "啟用後，翻譯完成時將依照設定的字形映射規則進行簡繁轉換。",
+      "English": "Enabled: Applies set character map for Simplified/Traditional conversion post-translation.",
+      "日本語": "有効時：設定された字形マップに基づき、翻訳後に簡体/繁体字変換を適用。"
+    },
+    "简繁转换预设规则": {
+      "简中": "简繁转换预设规则",
+      "繁中": "簡繁轉換預設規則",
+      "English": "Simplified/Traditional Conversion Presets",
+      "日本語": "簡体/繁体字 変換プリセット"
+    },
+    "进行简繁转换时的字形预设规则，常用的有：简转繁（s2t）、繁转简（t2s）": {
+      "简中": "进行简繁转换时的字形预设规则，常用的有：简转繁（s2t）、繁转简（t2s）",
+      "繁中": "簡繁轉換字形預設規則，常用：簡轉繁（s2t）、繁轉簡（t2s）。",
+      "English": "Conversion presets for Simplified/Traditional Chinese. Common: s2t, t2s.",
+      "日本語": "簡体/繁体字変換の字形プリセット。例：簡→繁(s2t)、繁→簡(t2s)。"
+    }
+    
+  }
+}

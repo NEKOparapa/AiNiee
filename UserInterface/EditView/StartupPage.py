@@ -10,7 +10,7 @@ from Widget.ActionCard import ActionCard
 
 # 开始页面
 class StartupPage(Base,QWidget):
-    folderSelected = pyqtSignal(str)  # 定义信号，用于通知文件夹路径选择
+    folderSelected = pyqtSignal(str,str)  # 定义信号，用于通知文件夹路径选择
 
     def __init__(self, support_project_types=None, parent=None,cache_manager = None, file_reader = None):
         super().__init__(parent)
@@ -210,7 +210,8 @@ class StartupPage(Base,QWidget):
 
         # 获取项目名字
         project_name = self.cache_manager.project.project_name
+        project_mode = mode
 
         # 发出信号通知文件夹已选择，并附带项目名
-        self.folderSelected.emit(project_name)
+        self.folderSelected.emit(project_name,project_mode)
 

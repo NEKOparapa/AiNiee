@@ -45,18 +45,31 @@ class OpenaiRequester(Base):
                 "extra_body": extra_body,
                 "model": model_name,
                 "messages": messages,
-                "temperature": temperature,
-                "top_p": top_p,
                 "timeout": request_timeout,
                 "stream": False
             }
 
-            # 仅当至少一个 penalty 不为 0 时添加参数
-            if presence_penalty != 0 or frequency_penalty != 0:
+            # 按需添加参数
+            if temperature != 1:
+                base_params.update({
+                    "temperature": temperature,
+                })
+
+            if top_p != 1:
+                base_params.update({
+                    "top_p": top_p,
+                })
+
+            if presence_penalty != 0:
                 base_params.update({
                     "presence_penalty": presence_penalty,
+                })
+
+            if frequency_penalty != 0:
+                base_params.update({
                     "frequency_penalty": frequency_penalty
                 })
+
 
             # 开启思考开关时添加参数
             if think_switch:

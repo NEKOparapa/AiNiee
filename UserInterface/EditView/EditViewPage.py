@@ -2,12 +2,12 @@ import json
 import os
 import threading
 import time
-from PyQt5.QtCore import QPoint, QTime, QVariant, Qt, QSize, pyqtSignal
-from PyQt5.QtWidgets import (QAbstractItemView, QFileDialog, QFrame, QHeaderView, QTableWidgetItem, QTreeWidgetItem,
+from PyQt5.QtCore import QTime, QVariant, Qt, QSize, pyqtSignal
+from PyQt5.QtWidgets import ( QFileDialog, QFrame, QTreeWidgetItem,
                              QWidget, QHBoxLayout, QVBoxLayout, 
                              QSplitter, QStackedWidget)
 from qfluentwidgets import (Action,  CaptionLabel, MessageBox, PrimarySplitPushButton, PushButton, RoundMenu,  ToggleToolButton, TransparentPushButton, TransparentToolButton,
-                            TreeWidget, TabBar, FluentIcon as FIF, CardWidget, Action, RoundMenu, TableWidget, ProgressBar)
+                            TreeWidget, TabBar, FluentIcon as FIF, CardWidget, Action, RoundMenu, ProgressBar)
 from qframelesswindow import QTimer
 
 from Base.Base import Base
@@ -18,7 +18,7 @@ from UserInterface.EditView.SearchDialog import SearchDialog
 from UserInterface.EditView.SearchResultPage import SearchResultPage
 from UserInterface.EditView.ScheduledDialogPage import ScheduledDialogPage
 from UserInterface.EditView.TextViewPage import TextViewPage
-from ModuleFolders.Cache.CacheProject import ProjectType
+from UserInterface.EditView.BasicTablePage import BasicTablePage
 
 # 底部命令栏
 class BottomCommandBar(Base,CardWidget):
@@ -39,7 +39,7 @@ class BottomCommandBar(Base,CardWidget):
         # 定时器刷新事件
         self.ui_update_timer.timeout.connect(lambda: self.emit(Base.EVENT.TASK_UPDATE, {}))
 
-        self.back_btn = PushButton(FIF.RETURN, "返回")
+        self.back_btn = PushButton(FIF.RETURN, self.tra('返回'))
         self.back_btn.setIconSize(QSize(16, 16))
         self.back_btn.setFixedHeight(32)
 
@@ -49,7 +49,7 @@ class BottomCommandBar(Base,CardWidget):
         project_layout.setSpacing(8)
 
         top_row = QHBoxLayout()
-        self.project_name = CaptionLabel('项目名字')
+        self.project_name = CaptionLabel('project_name')
         self.project_name.setFixedWidth(200)
         self.progress_status = CaptionLabel("NA")
         top_row.addWidget(self.project_name, alignment=Qt.AlignLeft)
@@ -68,20 +68,20 @@ class BottomCommandBar(Base,CardWidget):
 
         # 创建翻译和润色的下拉菜单
         self.menu = RoundMenu(parent=self)
-        self.translate_action = Action(FIF.PLAY, '开始翻译')
-        self.polish_action = Action(FIF.ALBUM, '开始润色')
+        self.translate_action = Action(FIF.PLAY, self.tra('开始翻译'))
+        self.polish_action = Action(FIF.ALBUM, self.tra('开始润色'))
         self.menu.addAction(self.translate_action)
         self.menu.addAction(self.polish_action)
 
         # 初始按钮
-        self.start_btn = PrimarySplitPushButton(FIF.PLAY, '开始翻译')
+        self.start_btn = PrimarySplitPushButton(FIF.PLAY, self.tra('开始翻译'))
         self.start_btn.setFlyout(self.menu)
-        self.continue_btn = TransparentPushButton(FIF.ROTATE, '继续')
+        self.continue_btn = TransparentPushButton(FIF.ROTATE, self.tra('继续'))
         self.continue_btn.setEnabled(False)  # 初始不可用
-        self.stop_btn = TransparentPushButton(FIF.CANCEL_MEDIUM, '停止')
+        self.stop_btn = TransparentPushButton(FIF.CANCEL_MEDIUM, self.tra('停止'))
         self.stop_btn.setEnabled(False)  # 初始不可用
-        self.schedule_btn = TransparentPushButton(FIF.DATE_TIME, '定时')
-        self.export_btn = TransparentPushButton(FIF.SHARE, "导出")
+        self.schedule_btn = TransparentPushButton(FIF.DATE_TIME, self.tra('定时'))
+        self.export_btn = TransparentPushButton(FIF.SHARE, self.tra("导出"))
         self.arrow_btn = ToggleToolButton()
         self.arrow_btn.setIcon(FIF.UP)
         self.arrow_btn.setIconSize(QSize(16, 16))
@@ -186,7 +186,7 @@ class BottomCommandBar(Base,CardWidget):
         self.cancel_scheduled_task() # 如果有定时任务，先取消
 
         if self.continue_btn.isEnabled():
-            info_cont1 = self.tra("将重置尚未完成的任务，是否确认开始新任务") + "  ... ？"
+            info_cont1 = self.tra("将重置尚未完成的任务") + "  ... ？"
             message_box = MessageBox("Warning", info_cont1, self.window())
             message_box.yesButton.setText(self.tra("确认"))
             message_box.cancelButton.setText(self.tra("取消"))
@@ -279,7 +279,7 @@ class BottomCommandBar(Base,CardWidget):
             # 检查时间间隔是否有效（例如，至少5秒）
             if msec_diff < 5000:
                 warning_box = MessageBox(self.tra("无效时间"), self.tra("与当前时间间隔过短"), self.window())
-                warning_box.yesButton.setText(self.tra("知道了"))
+                warning_box.yesButton.setText(self.tra("确认"))
                 warning_box.cancelButton.hide()
                 warning_box.exec()
                 return
@@ -323,12 +323,11 @@ class BottomCommandBar(Base,CardWidget):
 
     # 取消当前的定时任务
     def cancel_scheduled_task(self):
-        """辅助方法：取消当前的定时任务"""
+        """取消当前的定时任务"""
         if self.scheduled_timer:
             self.scheduled_timer.stop()
             self.scheduled_timer = None
         self.schedule_btn.setText(self.tra("定时"))
-
 
 # 层级浏览器
 class NavigationCard(CardWidget):
@@ -420,7 +419,7 @@ class NavigationCard(CardWidget):
         self.tree.expandAll()
 
 # 标签栏
-class PageCard(CardWidget):
+class PageCard(Base,CardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
@@ -472,7 +471,7 @@ class PageCard(CardWidget):
 
         # 处理没有标签页的情况
         if current_index == -1:
-            MessageBox("提示", "当前没有打开的标签页。", self.window()).exec()
+            MessageBox(self.tra("提示"), self.tra("当前没有打开的标签页。"), self.window()).exec() # M
             return
 
         # 获取当前标签页和其数据表格
@@ -480,7 +479,7 @@ class PageCard(CardWidget):
 
         # 检查当前是否为原始数据表格页，而不是一个视图页
         if not isinstance(current_tab, TabInterface):
-            MessageBox("提示", "请在原始数据表格标签页上执行此操作。", self.window()).exec()
+            MessageBox(self.tra("提示"), self.tra("请在原始数据表格标签页上执行此操作。"), self.window()).exec() # M
             return
 
         table_page = current_tab.tableView
@@ -504,7 +503,7 @@ class PageCard(CardWidget):
         # 生成新的视图标签页
         original_tab_name = self.tab_bar.tabText(current_index)
 
-        view_tab_name = f"视图 - {original_tab_name}"
+        view_tab_name = f"View - {original_tab_name}"
         # 使用时间戳确保路由键的唯一性
         view_route_key = f"view_{int(time.time())}"
 
@@ -526,7 +525,7 @@ class PageCard(CardWidget):
         self.tab_bar.setCurrentIndex(new_index)
         self.stacked_widget.setCurrentIndex(new_index)
 
-# 标签页基类
+# 标签页
 class TabInterface(QWidget):
     def __init__(self, text: str, file_path: str, file_items: list, cache_manager, parent=None):
         super().__init__(parent=parent)
@@ -539,412 +538,6 @@ class TabInterface(QWidget):
         
         # 使用文件路径作为唯一的对象名称，避免特殊字符问题
         self.setObjectName(file_path)
-
-# 基础表格页
-class BasicTablePage(Base,QWidget):
-    # 定义列索引常量
-    COL_NUM = 0 # 行号
-    COL_SOURCE = 1 # 原文
-    COL_TRANS = 2 # 译文
-    COL_POLISH = 3 # 润文
-
-    # 修改构造函数
-    def __init__(self, file_path: str, file_items: list, cache_manager, parent=None):
-        super().__init__(parent)
-        self.setObjectName('BasicTablePage')
-        
-        self.file_path = file_path          # 当前表格对应的文件路径
-        self.cache_manager = cache_manager  # 缓存管理器实例
-        
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(5, 0, 0, 0)
-        self.layout.setSpacing(0)
-
-        self.table = TableWidget(self)
-        self._init_table()
-        self.layout.addWidget(self.table)
-        
-        # 使用真实数据填充表格
-        self._populate_real_data(file_items)
-
-        # 连接单元格修改信号
-        self.table.itemChanged.connect(self._on_item_changed)
-        # 订阅来自执行器的通用表格更新事件
-        self.subscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
-        # 订阅排版完成后的表格重建事件
-        self.subscribe(Base.EVENT.TABLE_FORMAT, self._on_format_and_rebuild_table) 
-
-    # 表格属性
-    def _init_table(self):
-        self.headers = ["行", "原文", "译文", "润文"]
-        self.table.setColumnCount(len(self.headers))
-        self.table.setHorizontalHeaderLabels(self.headers)
-        self.table.verticalHeader().hide()
-        self.table.setAlternatingRowColors(True)
-        
-        self.table.setWordWrap(True) #启单元格内文本自动换行
-        self.table.setBorderVisible(True)
-        self.table.setBorderRadius(8)
-        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        header = self.table.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.Interactive)
-        header.setStretchLastSection(True)
-
-        # 当用户拖动调整列宽时，自动重新计算并调整行高以适应内容（卡）
-        #header.sectionResized.connect(self.table.resizeRowsToContents)
-
-        self.table.setColumnWidth(0, 60)
-        self.table.setColumnWidth(1, 400)
-        self.table.setColumnWidth(2, 400)
-        self.table.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.table.customContextMenuRequested.connect(self._show_context_menu)
-
-    # 获取数据并填充表格
-    def _populate_real_data(self, items: list):
-        # 阻止信号触发，避免在填充数据时触发 _on_item_changed
-        self.table.blockSignals(True)
-        
-        self.table.setRowCount(len(items))
-        for row_idx, item_data in enumerate(items):
-            # 行号列 (第0列)
-            num_item = QTableWidgetItem(str(row_idx + 1))
-            num_item.setTextAlignment(Qt.AlignCenter)
-            num_item.setFlags(num_item.flags() & ~Qt.ItemIsEditable)
-            # 在行号单元格中存储 CacheItem 的唯一索引 (text_index)
-            num_item.setData(Qt.UserRole, item_data.text_index)
-            self.table.setItem(row_idx, 0, num_item)
-
-            # 原文列
-            source_item = QTableWidgetItem(item_data.source_text)
-            # source_item.setFlags(source_item.flags() & ~Qt.ItemIsEditable) 
-            self.table.setItem(row_idx, 1, source_item)
-            
-            # 译文、润文列 (可编辑)
-            self.table.setItem(row_idx, 2, QTableWidgetItem(item_data.translated_text))
-            self.table.setItem(row_idx, 3, QTableWidgetItem(item_data.polished_text or '')) # 确保 None 显示为空字符串
-        
-        # 填充完数据后，根据内容自动调整所有行的高度（卡）
-        #self.table.resizeRowsToContents() 
-
-        # 恢复信号
-        self.table.blockSignals(False)
-
-    # 监听用户编辑单元格
-    def _on_item_changed(self, item: QTableWidgetItem):
-        row = item.row()
-        col = item.column()
-
-        if col not in [self.COL_SOURCE, self.COL_TRANS, self.COL_POLISH]: # <-- 修改
-            return
-            
-        # 获取该行对应的 CacheItem 的唯一索引
-        text_index_item = self.table.item(row, 0)
-        if not text_index_item:
-            return 
-        text_index = text_index_item.data(Qt.UserRole)
-
-        new_text = item.text()
-        
-        # 根据列确定要更新的字段名
-        field_name = ''
-        if col == self.COL_TRANS:
-            field_name = 'translated_text'
-        elif col == self.COL_POLISH:
-            field_name = 'polished_text'
-        elif col == self.COL_SOURCE:
-            field_name = 'source_text'
-        
-        # 调用 CacheManager 的方法来更新缓存
-        self.cache_manager.update_item_text(
-            storage_path=self.file_path,
-            text_index=text_index,
-            field_name=field_name,
-            new_text=new_text
-        )
-
-    # 表格操作的右键菜单
-    def _show_context_menu(self, pos: QPoint):
-        menu = RoundMenu(parent=self)
-        
-        # 检查是否有行被选中
-        has_selection = bool(self.table.selectionModel().selectedRows())
-
-        if has_selection:
-            # 当有行被选中时，添加功能性操作
-            menu.addAction(Action(FIF.EDIT, "翻译文本", triggered=self._translate_text))
-            menu.addAction(Action(FIF.BRUSH, "润色文本", triggered=self._polish_text))
-            menu.addAction(Action(FIF.BRUSH, "排版文本", triggered=self._format_text))
-            menu.addSeparator()
-
-            # 添加“原文复制到译文”和“清空”等手动编辑操作
-            menu.addAction(Action(FIF.COPY, "禁止翻译", triggered=self._copy_source_to_translation))
-            menu.addAction(Action(FIF.DELETE, "清空翻译", triggered=self._clear_translation))
-            menu.addAction(Action(FIF.DELETE, "清空润色", triggered=self._clear_polishing))
-            menu.addSeparator()
-
-        # “行数”选项总是显示
-        row_count = self.table.rowCount()
-        row_count_action = Action(FIF.LEAF, f"行数: {row_count}")
-        row_count_action.setEnabled(False)  # 设置为不可点击，仅作信息展示
-        menu.addAction(row_count_action)
-
-        # 在鼠标光标位置显示菜单
-        global_pos = self.table.mapToGlobal(pos)
-        menu.exec(global_pos)
-
-    #  通用的表格更新函数。
-    def _on_table_update(self, event, data: dict):
-        """
-        根据事件传递的数据，更新指定文件的指定列。
-        """
-        # 检查此更新是否针对当前表格
-        if data.get('file_path') != self.file_path:
-            return
-
-        # 获取要更新的目标列索引和数据
-        target_column_index = data.get('target_column_index')
-        updated_items = data.get('updated_items', {}) # 格式: {text_index: new_text}
-
-        # 安全检查
-        if target_column_index is None or not updated_items:
-            self.warning(f"表格更新数据不完整，操作中止。")
-            return
-
-        self.table.blockSignals(True)
-        
-        index_to_row_map = {
-            self.table.item(row, self.COL_NUM).data(Qt.UserRole): row 
-            for row in range(self.table.rowCount()) if self.table.item(row, self.COL_NUM)
-        }
-
-        for text_index, new_text in updated_items.items():
-            if text_index in index_to_row_map:
-                row = index_to_row_map[text_index]
-                # 使用传入的 target_column_index 更新正确的列
-                self.table.setItem(row, target_column_index, QTableWidgetItem(new_text))
-        
-        # 更新后，自动调整行高
-        self.table.resizeRowsToContents() # <-- 重要
-        self.table.blockSignals(False)
-
-    # 表格重编排方法
-    def _on_format_and_rebuild_table(self, event, data: dict):
-        """
-        当接收到TABLE_FORMAT事件时，使用新数据对缓存进行拼接操作并重建表格。
-        """
-        if data.get('file_path') != self.file_path:
-            return
-            
-        self.info(f"接收到文件 '{self.file_path}' 的排版更新，正在重建表格...")
-        
-        formatted_data = data.get('updated_items')
-        # 从事件中获取原始选中项的索引列表
-        selected_item_indices = data.get('selected_item_indices') 
-
-        if not formatted_data or selected_item_indices is None:
-            self.error("排版更新失败：未收到有效的文本数据或原始选中项索引。")
-            return
-
-        # 调用CacheManager进行精确的“切片和拼接”操作
-        updated_full_item_list = self.cache_manager.reformat_and_splice_cache(
-            file_path=self.file_path,
-            formatted_data=formatted_data,
-            selected_item_indices=selected_item_indices
-        )
-
-        if updated_full_item_list is None:
-            self.error("缓存拼接更新失败，表格更新中止。")
-            return
-            
-        # 使用返回的、完整的item列表，重绘整个表格
-        self._populate_real_data(updated_full_item_list)
-        
-        row_count_change = len(updated_full_item_list) - self.table.rowCount()
-        self.info_toast("排版完成", f"表格已成功更新，行数变化: {row_count_change:+}")
-
-
-
-    # 获取所有被选行的索引
-    def _get_selected_rows_indices(self):
-        """获取所有被选中行的索引列表"""
-        return sorted(list(set(index.row() for index in self.table.selectedIndexes())))
-
-    # 翻译文本
-    def _translate_text(self):
-        """处理右键菜单的“翻译文本”操作"""
-        selected_rows = self._get_selected_rows_indices()
-        if not selected_rows:
-            return
-
-        # 修改软件状态
-        if Base.work_status == Base.STATUS.IDLE:
-            Base.work_status = Base.STATUS.TABLE_TASK
-        else:
-            print("❌正在执行其他任务中！")
-            return
-
-        items_to_translate = []
-        for row in selected_rows:
-            text_index_item = self.table.item(row, self.COL_NUM)
-            source_text_item = self.table.item(row, self.COL_SOURCE)
-
-            if text_index_item and source_text_item:
-                items_to_translate.append({
-                    "text_index": text_index_item.data(Qt.UserRole),
-                    "source_text": source_text_item.text()
-                })
-        
-        if not items_to_translate:
-            return
-        
-        # 获取该文件的语言统计数据，用于确定源语言
-        language_stats = self.cache_manager.project.get_file(self.file_path).language_stats
-
-        # 发送事件到后端执行器
-        self.emit(Base.EVENT.TABLE_TRANSLATE_START, {
-            "file_path": self.file_path,
-            "items_to_translate": items_to_translate,
-            "language_stats": language_stats,
-        })
-        self.info_toast("提示", f"已提交 {len(items_to_translate)} 行文本的翻译任务。")
-
-    # 润色文本
-    def _polish_text(self):
-        """处理右键菜单的“润色文本”操作"""
-        selected_rows = self._get_selected_rows_indices()
-        if not selected_rows:
-            return
-
-        # 修改软件状态
-        if Base.work_status == Base.STATUS.IDLE:
-            Base.work_status = Base.STATUS.TABLE_TASK
-        else:
-            print("❌正在执行其他任务中！")
-            return
-
-        items_to_polish = []
-        for row in selected_rows:
-            text_index_item = self.table.item(row, self.COL_NUM)
-            source_text_item = self.table.item(row, self.COL_SOURCE)
-            translation_text_item = self.table.item(row, self.COL_TRANS)
-
-            if text_index_item and source_text_item:
-                items_to_polish.append({
-                    "text_index": text_index_item.data(Qt.UserRole),
-                    "source_text": source_text_item.text(),
-                    "translation_text": translation_text_item.text()
-                })
-        
-        if not items_to_polish:
-            return
-
-        # 发送事件到后端执行器
-        self.emit(Base.EVENT.TABLE_POLISH_START, {
-            "file_path": self.file_path,
-            "items_to_polish": items_to_polish,
-        })
-        self.info_toast("提示", f"已提交 {len(items_to_polish)} 行文本的润色任务。")
-
-    # 排版文本
-    def _format_text(self):
-        """处理右键菜单的“排版文本”操作"""
-        # 限制条件1：文件类型必须是 .txt
-        cache_file = self.cache_manager.project.get_file(self.file_path)
-        if not cache_file or cache_file.file_project_type != ProjectType.TXT:
-            MessageBox("操作受限", "“排序文本”功能当前仅支持 TXT 类型的项目文件。", self.window()).exec()
-            return
-
-        # 获取选中行
-        selected_rows = self._get_selected_rows_indices()
-
-        # 限制条件2：选取行数不能少于2行
-        if len(selected_rows) < 2:
-            MessageBox("选择无效", "请至少选择 2 行来进行排序操作。", self.window()).exec()
-            return
-
-        # 限制条件3：行号必须连续
-        # selected_rows 列表已由 _get_selected_rows_indices 排序
-        if max(selected_rows) - min(selected_rows) + 1 != len(selected_rows):
-            MessageBox("选择无效", "请选择连续的行进行排序操作。", self.window()).exec()
-            return
-
-        # 修改软件状态
-        if Base.work_status == Base.STATUS.IDLE:
-            Base.work_status = Base.STATUS.TABLE_TASK
-        else:
-            self.info_toast("任务繁忙", "正在执行其他任务中，请稍后再试。")
-            return
-
-        items_to_format = []
-        selected_item_indices = [] # 用于存储选中项的text_index
-        for row in selected_rows:
-            text_index_item = self.table.item(row, self.COL_NUM)
-            source_text_item = self.table.item(row, self.COL_SOURCE)
-
-            if text_index_item and source_text_item:
-                text_index = text_index_item.data(Qt.UserRole)
-                items_to_format.append({
-                    "text_index": text_index,
-                    "source_text": source_text_item.text(),
-                })
-                selected_item_indices.append(text_index)
-
-        if not items_to_format:
-            return
-
-        # 发送事件到后端执行器
-        self.emit(Base.EVENT.TABLE_FORMAT_START, {
-            "file_path": self.file_path,
-            "items_to_format": items_to_format,
-            "selected_item_indices": selected_item_indices,
-        })
-        self.info_toast("提示", f"已提交 {len(items_to_format)} 行文本的排版任务。")
-
-    # 复制原文到译文
-    def _copy_source_to_translation(self):
-        """将选中行的原文内容复制到译文行，表示无需翻译。"""
-        selected_rows = self._get_selected_rows_indices()
-        if not selected_rows:
-            return
-        
-        # 逐行设置，该操作会自动触发 itemChanged 信号，从而调用 _on_item_changed 更新缓存
-        for row in selected_rows:
-            source_item = self.table.item(row, self.COL_SOURCE)
-            if source_item:
-                source_text = source_item.text()
-                
-                # 更新译文列的单元格
-                trans_item = self.table.item(row, self.COL_TRANS)
-                if trans_item:
-                    trans_item.setText(source_text)
-                else:
-                    # 如果译文单元格不存在，则创建一个新的
-                    self.table.setItem(row, self.COL_TRANS, QTableWidgetItem(source_text))
-        
-        self.info_toast("操作完成", f"已将 {len(selected_rows)} 行的原文复制到译文。")
-
-    # 清空翻译
-    def _clear_translation(self):
-        selected_rows = self._get_selected_rows_indices()
-        for row in selected_rows:
-            # 使用常量
-            item = self.table.item(row, self.COL_TRANS)
-            if item:
-                item.setText("")
-            else:
-                self.table.setItem(row, self.COL_TRANS, QTableWidgetItem(""))
-
-    # 清空润色
-    def _clear_polishing(self):
-        selected_rows = self._get_selected_rows_indices()
-        for row in selected_rows:
-            # 使用常量
-            item = self.table.item(row, self.COL_POLISH)
-            if item:
-                item.setText("")
-            else:
-                self.table.setItem(row, self.COL_POLISH, QTableWidgetItem(""))
 
 # 主界面
 class EditViewPage(Base,QFrame):
@@ -1074,34 +667,29 @@ class EditViewPage(Base,QFrame):
             self.startup_page.show_continue_button(True)
             # 在 ActionCard 上显示项目名
             self.startup_page.continue_card.set_project_name(project_name)
-            # 启用底部命令栏的继续按钮
-            self.bottom_bar_main.enable_continue_button(True)
 
         else:
             self.startup_page.show_continue_button(False)
-            # 隐藏 ActionCard 上的项目名
-            self.startup_page.continue_card.hide_project_name()
-            self.bottom_bar_main.enable_continue_button(False)
 
     # 输入文件夹路径改变信号
-    def on_folder_selected(self, project_name: str):
+    def on_folder_selected(self, project_name: str, project_mode: str):
         # 从缓存器获取文件层级结构
         file_hierarchy = self.cache_manager.get_file_hierarchy()
         # 更新导航卡片的树状视图
         self.nav_card.update_tree(file_hierarchy)
 
-        # 新增：更新底部命令栏的项目名
+        # 更新底部命令栏的项目名
         self.bottom_bar_main.update_project_name(project_name)
+
+        # 根据是否继续状态启用继续按钮
+        if project_mode == "new":
+            self.bottom_bar_main.enable_continue_button(False)
+        else:
+            # 启用底部命令栏的继续按钮
+            self.bottom_bar_main.enable_continue_button(True)
 
         # 切换到主界面
         self.top_stacked_widget.setCurrentWidget(self.main_interface)
-
-    # 底部命令栏返回按钮事件
-    def on_back_button_clicked(self):
-
-        if Base.work_status == Base.STATUS.IDLE:
-            # 如果当前工作状态为空闲，则直接切换到启动页面
-            self.top_stacked_widget.setCurrentIndex(0)
 
     # 底部命令栏返回按钮事件
     def on_back_button_clicked(self):
@@ -1142,7 +730,7 @@ class EditViewPage(Base,QFrame):
         # 从缓存中获取该文件的所有文本项
         cache_file = self.cache_manager.project.get_file(file_path)
         if not cache_file:
-            MessageBox("错误", f"无法从缓存中加载文件: {file_path}", self).exec()
+            MessageBox(self.tra("错误"), self.tra("无法从缓存中加载文件: {}").format(file_path), self).exec() # M
             return
         
         file_items = cache_file.items
@@ -1194,11 +782,11 @@ class EditViewPage(Base,QFrame):
         results = self.cache_manager.search_items(query, scope, is_regex)
 
         if not results:
-            MessageBox("未找到结果", f"未能找到与 '{query}' 匹配的内容。", self.window()).exec()
+            MessageBox(self.tra("未找到结果"), self.tra("未能找到与 '{}' 匹配的内容。").format(query), self.window()).exec() # M
             return
         
         # 创建搜索结果标签页
-        tab_name = f"搜索: {query[:20]}..."
+        tab_name = f"Search - {query[:20]}..."
         # 使用时间戳确保路由键唯一
         route_key = f"search_{int(time.time())}"
 

@@ -123,7 +123,7 @@ class TranslationSettingsPage(QFrame, Base):
         parent.addWidget(
             ComboBoxCard(
                 self.tra("原文语言"),
-                self.tra("设置当前翻译项目所使用的原始文本的语言，注意，选择错误将不能进行翻译"),
+                self.tra("设置当前项目所使用的原始文本的语言"),
                 options,
                 init=init,
                 current_text_changed=current_text_changed
@@ -178,7 +178,7 @@ class TranslationSettingsPage(QFrame, Base):
         parent.addWidget(
             ComboBoxCard(
                 self.tra("译文语言"),
-                self.tra("设置当前翻译项目所期望的译文文本的语言，注意，选择错误将不能进行翻译"),
+                self.tra("设置当前项目所期望的译文文本的语言"),
                 options,
                 init=init,
                 current_text_changed=current_text_changed
@@ -200,7 +200,7 @@ class TranslationSettingsPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 self.tra("动态示例和预回复功能"),
-                self.tra("启用此功能后，将在构建整体的翻译提示词时，自动生成动态Few-shot和构建模型预回复内容，不支持本地接口"),
+                self.tra("将在构建整体的翻译提示词时，自动生成动态Few-shot和构建模型预回复内容，不支持本地接口"),
                 init = init,
                 checked_changed = checked_changed,
             )

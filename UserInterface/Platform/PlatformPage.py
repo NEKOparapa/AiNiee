@@ -55,7 +55,7 @@ class DraggableAPIButton(DropDownPushButton):
 
 
 # 拖放按钮的目标区域类
-class APISettingDropArea(QFrame):
+class APISettingDropArea(QFrame, Base):
 
     apiDropped = pyqtSignal(str, str) # 信号，当有接口被拖放进来时发射
 
@@ -83,7 +83,7 @@ class APISettingDropArea(QFrame):
         
         self.title_label = StrongBodyLabel(text)
         
-        self.api_name_label = CaptionLabel("拖动一个接口到这里")
+        self.api_name_label = CaptionLabel(self.tra("拖动一个接口到这里"))
         self.api_name_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         
         self.layout.addWidget(self.title_label)
@@ -131,7 +131,7 @@ class APISettingDropArea(QFrame):
             self.api_name_label.setText(api_name)
             self.current_api_tag = api_tag
         else:
-            self.api_name_label.setText("拖动一个接口到这里")
+            self.api_name_label.setText(self.tra("拖动一个接口到这里"))
             self.current_api_tag = None
 
 
@@ -573,7 +573,7 @@ class PlatformPage(QFrame, Base):
             # 初始化显示
             api_tag = saved_settings.get(key)
             if api_tag and api_tag in all_platforms:
-                api_name = all_platforms[api_tag].get("name", "未知接口")
+                api_name = all_platforms[api_tag].get("name")
                 drop_area.update_display(api_name, api_tag)
         
         # 将整个新组件添加到主布局
@@ -586,7 +586,7 @@ class PlatformPage(QFrame, Base):
         
         # 检查接口是否存在
         if api_tag not in config["platforms"]:
-            self.error_toast("错误", f"接口 '{api_tag}' 不存在!")
+            print(f"接口 '{api_tag}' 不存在!")
             return
 
         # 更新配置
@@ -603,7 +603,7 @@ class PlatformPage(QFrame, Base):
         setting_name = self.drop_areas[setting_key].title_label.text()
         InfoBar.success(
             title=self.tra("设置成功"),
-            content=f"{setting_name} 已选用: {api_name}",
+            content=f"  {api_name}",
             duration=3000,
             parent=self.window,
             position=InfoBarPosition.TOP

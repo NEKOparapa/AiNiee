@@ -1,8 +1,9 @@
 
 from qfluentwidgets import LineEdit, CheckBox, ComboBox, MessageBoxBase
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
+from Base.Base import Base
 
-class SearchDialog(MessageBoxBase):
+class SearchDialog(Base,MessageBoxBase):
     def __init__(self, parent=None):
         super().__init__(parent)
         
@@ -15,12 +16,12 @@ class SearchDialog(MessageBoxBase):
         
         # 创建输入控件
         self.query_edit = LineEdit(self)
-        self.query_edit.setPlaceholderText("输入搜索内容...")
+        self.query_edit.setPlaceholderText(self.tra("输入搜索内容..."))
         
-        self.regex_checkbox = CheckBox("使用正则表达式", self)
+        self.regex_checkbox = CheckBox(self.tra("使用正则表达式"), self)
         
         self.scope_combo = ComboBox(self)
-        self.scope_combo.addItems(["全文", "原文", "译文", "润文"])
+        self.scope_combo.addItems([self.tra("全文"), self.tra("原文"), self.tra("译文"), self.tra("润文")])
         
         # 将控件添加到布局中
         layout.addWidget(self.query_edit)
@@ -30,15 +31,15 @@ class SearchDialog(MessageBoxBase):
         # 将自定义视图添加到对话框中
         self.viewLayout.addWidget(self.view)
         
-        self.yesButton.setText("搜索")
-        self.cancelButton.setText("取消")
+        self.yesButton.setText(self.tra("搜索"))
+        self.cancelButton.setText(self.tra("取消"))
         
         # 存储搜索参数
         self.search_scopes = {
-            "全文": "all",
-            "原文": "source_text",
-            "译文": "translated_text",
-            "润文": "polished_text"
+            self.tra("全文"): "all",
+            self.tra("原文"): "source_text",
+            self.tra("译文"): "translated_text",
+            self.tra("润文"): "polished_text"
         }
         self.search_query = ""
         self.is_regex = False

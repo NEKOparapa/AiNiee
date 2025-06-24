@@ -1,53 +1,84 @@
 {
   "PART_1": {
-    "提示词预设规则切换成功": {
-      "简中": "提示词预设规则切换成功",
-      "繁中": "提示詞預設規則切換成功",
-      "English": "Prompt preset rule switched successfully",
-      "日本語": "プロンプトプリセットルール切り替え成功"
+    "编辑": {
+      "简中": "编辑",
+      "繁中": "編輯",
+      "English": "Edit",
+      "日本語": "編集"
     },
-    "基础提示词预设": {
-      "简中": "基础提示词预设",
-      "繁中": "基礎提示詞預設",
-      "English": "Basic prompt presets",
-      "日本語": "基本プロンプトプリセット"
+    "删除": {
+      "简中": "删除",
+      "繁中": "刪除",
+      "English": "Delete",
+      "日本語": "削除"
     },
-    "通用：综合通用，花费最少，兼容各种模型，完美破限": {
-      "简中": "通用：综合通用，花费最少，兼容各种模型，完美破限",
-      "繁中": "通用：綜合通用，花費最少，相容各種模型，完美破限",
-      "English": "General: Universal compatibility, lowest cost, compatible with all models, perfect for breaking limits",
-      "日本語": "汎用：総合汎用、低コスト、各種モデル互換、制限突破に最適"
+    "系统预设": {
+      "简中": "系统预设",
+      "繁中": "系統預設",
+      "English": "System Preset",
+      "日本語": "システムプリセット"
     },
-    "思维链：融入翻译三步法，提升思考深度，极大增加输出内容，极大增加消耗，提升文学质量，适合普通模型，完美破限": {
-      "简中": "思维链：融入翻译三步法，提升思考深度，极大增加输出内容，极大增加消耗，提升文学质量，适合普通模型，完美破限",
-      "繁中": "思維鏈：融入翻譯三步法，提升思考深度，極大增加輸出內容，極大增加消耗，提升文學質量，適合普通模型，完美破限",
-      "English": "Chain of Thought: Incorporates 3-step translation method, enhances thinking depth, greatly increases output content, greatly increases consumption, improves literary quality, suitable for common models, perfect for breaking limits",
-      "日本語": "思考連鎖：翻訳三段階法を組み込み、思考深度を向上、出力内容を大幅増加、消費を大幅増加、文学的品質を向上、普通モデルに最適、制限突破に最適"
+    "保存": {
+      "简中": "保存",
+      "繁中": "儲存",
+      "English": "Save",
+      "日本語": "保存"
     },
-    "推理模型：为 DeepSeek-R1 等推理模型优化，释放推理模型的思考能力，获得最佳翻译质量": {
-      "简中": "推理模型：为 DeepSeek-R1 等推理模型优化，释放推理模型的思考能力，获得最佳翻译质量",
-      "繁中": "推理模型：為 DeepSeek-R1 等推理模型優化，釋放推理模型的思考能力，獲得最佳翻譯質量",
-      "English": "Reasoning Model: Optimized for reasoning models like DeepSeek-R1, unleash the reasoning ability of the model, achieve the best translation quality",
-      "日本語": "推論モデル：DeepSeek-R1などの推論モデルに最適化、推論モデルの思考能力を解放、最高の翻訳品質を実現"
+    "卡片名称:": {
+      "简中": "卡片名称:",
+      "繁中": "卡片名稱:",
+      "English": "Card Name:",
+      "日本語": "カード名:"
     },
-    "动态示例和预回复功能": {
-        "简中": "动态示例和预回复功能",
-        "繁中": "動態範例和預先回覆功能",
-        "English": "Dynamic Examples and Pre-Reply Feature",
-        "日本語": "動的サンプルと事前返信機能"
+    "提示词内容:": {
+      "简中": "提示词内容:",
+      "繁中": "提示詞內容:",
+      "English": "Prompt Content:",
+      "日本語": "プロンプト内容:"
     },
-    "启用此功能后，将在构建整体的翻译提示词时，自动生成动态Few-shot和构建模型预回复内容，不支持本地接口": {
-        "简中": "启用此功能后，将在构建整体的翻译提示词时，自动生成动态Few-shot和构建模型预回复内容，不支持本地接口",
-        "繁中": "啟用此功能後，在構建整體的翻譯提示詞時，將自動產生動態Few-shot和模型預先回覆內容，不支援本地接口",
-        "English": "When enabled, dynamic Few-shot examples and model pre-reply content will be automatically generated when constructing the overall translation prompt. Local APIs are not supported.",
-        "日本語": "この機能を有効にすると、翻訳プロンプト構築時に動的Few-shotとモデルの事前返信コンテンツが自動生成されます。ローカルインターフェースには非対応です"
+    "当前提示词": {
+      "简中": "当前提示词",
+      "繁中": "目前提示詞",
+      "English": "Current Prompt",
+      "日本語": "現在のプロンプト"
     },
-    "自定义提示词：将使用下面文本框填入的内容作为系统提示词，不支持本地接口": {
-      "简中": "自定义提示词：将使用下面文本框填入的内容作为系统提示词，不支持本地接口",
-      "繁中": "自訂提示詞：將使用下方填入的內容作為系統提示詞，不支援本地接口",
-      "English": "Custom Prompt: Will use the content entered below as the system prompt Local APIs are not supported.",
-      "日本語": "カスタムプロンプト：下記に入力された内容をシステムプロンプトとして使用。ローカルインターフェースには非対応です"
+    "名称：": {
+      "简中": "名称：",
+      "繁中": "名稱：",
+      "English": "Name:",
+      "日本語": "名称："
+    },
+    "提示词广场": {
+      "简中": "提示词广场",
+      "繁中": "提示詞廣場",
+      "English": "Prompt Plaza",
+      "日本語": "プロンプト広場"
+    },
+    "创建新提示词": {
+      "简中": "创建新提示词",
+      "繁中": "建立新提示詞",
+      "English": "Create New Prompt",
+      "日本語": "新規プロンプト作成"
+    },
+    "通用": {
+      "简中": "通用",
+      "繁中": "通用",
+      "English": "General",
+      "日本語": "一般"
+    },
+    "思维链": {
+      "简中": "思维链",
+      "繁中": "思維鏈",
+      "English": "Chain of Thought",
+      "日本語": "思考チェーン"
+    },
+    "推理模型": {
+      "简中": "推理模型",
+      "繁中": "推理模型",
+      "English": "Reasoning Model",
+      "日本語": "推論モデル"
     }
+
   },
   "PART_2": {
     "数据已保存": {
@@ -299,6 +330,18 @@
       "繁中": "啟用此功能後，將根據本頁中設定的內容構建翻譯風格要求，並補充到基礎提示詞中（不支援本地類模型）",
       "English": "When enabled, translation style requirement will be built based on the settings on this page and added to the basic prompt (local models are not supported)",
       "日本語": "この機能を有効にすると、このページの設定に基づいて翻訳スタイルの要求が構築され、基本プロンプトに追加されます（ローカルモデルはサポートされていません）"
+    },
+    "自定义润色风格": {
+      "简中": "自定义润色风格",
+      "繁中": "自訂潤飾風格",
+      "English": "Custom Polishing Style",
+      "日本語": "カスタム推敲スタイル"
+    },
+    "启用此功能后，将根据本页中设置的内容构建润色风格要求，并补充到基础提示词中": {
+      "简中": "启用此功能后，将根据本页中设置的内容构建润色风格要求，并补充到基础提示词中",
+      "繁中": "啟用此功能後，將根據本頁設定內容建構潤飾風格要求，並補充至基礎提示詞",
+      "English": "When enabled, builds polishing style requirements based on this page's settings and appends to basic prompts",
+      "日本語": "有効時、本ページの設定に基づき推敲スタイル要求を構築し、基本プロンプトに追加"
     },
     "自定义翻译示例": {
       "简中": "自定义翻译示例",

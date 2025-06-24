@@ -4,6 +4,8 @@ from PyQt5.QtGui import QPainter, QPen, QColor, QFont, QPainterPath
 from PyQt5.QtCore import QRect, Qt, pyqtSignal
 from qfluentwidgets import BodyLabel, CardWidget,  FluentIcon, PrimaryPushButton
 
+from Base.Base import Base
+
 class InfoBlockWidget(QWidget):
     def __init__(self, text, color=QColor("#E0E0E0"), parent=None):
         super().__init__(parent)
@@ -74,7 +76,7 @@ class InfoBlockWidget(QWidget):
         painter.setFont(self.default_font)
         painter.drawText(draw_rect, Qt.AlignCenter | Qt.TextWordWrap, self.text)
 
-class DragDropArea(QWidget):
+class DragDropArea(Base,QWidget):
     folderDropped = pyqtSignal(str)
 
     def __init__(self, parent=None):
@@ -95,16 +97,25 @@ class DragDropArea(QWidget):
         #info_layout.setHorizontalSpacing(15)
         #info_layout.setVerticalSpacing(15)
 
+        info_1 = self.tra("书籍")
+        info_2 = self.tra("文档")
+        info_3 = self.tra("字幕")
+        info_4 = self.tra("游戏挂载")
+        info_5 = self.tra("游戏内嵌")
+        info_6 = self.tra("数据文件")
+        info_7 = self.tra("复杂文档")
+        info_8 = self.tra("工程文件")
+
         # 简化信息块创建
         block_info = [
-            ("书籍\n Epub\n TXT", "#AED6F1"),
-            ("文档\n Docx\n MD", "#A9DFBF"),
-            ("字幕\n Srt\n Vtt\n Lrc", "#FAD7A0"),
-            ("游戏挂载\n Mtool", "#D8BFD8"),
-            ("游戏内嵌\n Renpy\n VNText \n SExtractor", "#AFEEEE"),
-            ("数据文件\n I18Next \n ParaTranz", "#F08080"),
-            ("特别文档\n PDF\n DOC", "#E6E6FA"),
-            ("工程文件\n .trans", "#FFFACD"),
+            (f"{info_1}\n Epub\n TXT", "#AED6F1"),
+            (f"{info_2}\n Docx\n MD", "#A9DFBF"),
+            (f"{info_3}\n Srt\n Vtt\n Lrc", "#FAD7A0"),
+            (f"{info_4}\n Mtool", "#D8BFD8"),
+            (f"{info_5}\n Renpy\n VNText \n SExtractor", "#AFEEEE"),
+            (f"{info_6}\n Po \n I18Next \n ParaTranz", "#F08080"),
+            (f"{info_7}\n PDF\n DOC", "#E6E6FA"),
+            (f"{info_8}\n .trans", "#FFFACD"),
         ]
 
         # 添加弹簧
@@ -118,9 +129,9 @@ class DragDropArea(QWidget):
 
         # 底部按钮区域
         bottom_layout = QHBoxLayout()
-        self.satr_button = PrimaryPushButton(FluentIcon.PLAY, "直接读取", self)
+        self.satr_button = PrimaryPushButton(FluentIcon.PLAY, self.tra("直接读取"), self)
         self.satr_button.clicked.connect(self._get_folder)
-        self.selectButton = PrimaryPushButton(FluentIcon.FOLDER_ADD, "拖拽/选择输入文件夹", self)
+        self.selectButton = PrimaryPushButton(FluentIcon.FOLDER_ADD, self.tra("拖拽/选择输入文件夹"), self)
         self.selectButton.clicked.connect(self._select_folder)
         bottom_layout.addStretch(1)
         bottom_layout.addWidget(self.satr_button)
@@ -147,14 +158,15 @@ class DragDropArea(QWidget):
             self.update_path(folder_path)
 
     def _select_folder(self):
-        folder_path = QFileDialog.getExistingDirectory(self, "选择文件夹")
+        folder_path = QFileDialog.getExistingDirectory(self, self.tra("选择文件夹"))
         if folder_path:
             self.update_path(folder_path)
 
     def update_path(self, path: str, emit_signal: bool = True): 
         self.current_path = path
         display_path = path if len(path) < 50 else f"...{path[-47:]}"
-        self.pathLabel.setText(f"当前路径: {display_path}")
+        info = self.tra("当前路径")
+        self.pathLabel.setText(f"{info}: {display_path}")
         self.pathLabel.setToolTip(path)
         if emit_signal: # 只有在需要时才发射信号
             self.folderDropped.emit(path)
@@ -204,7 +216,7 @@ class DragDropArea(QWidget):
                         self.update_path(os.path.dirname(path))
                         return
 
-class FolderDropCard(CardWidget):
+class FolderDropCard(Base,CardWidget):
     pathChanged = pyqtSignal(str)
 
     def __init__(self, init=None, path_changed=None, parent=None):
@@ -233,18 +245,3 @@ class FolderDropCard(CardWidget):
 
     def getPath(self) -> str:
         return self.dragDropArea.current_path
-
-if __name__ == '__main__':
-    import sys
-    from PyQt5.QtWidgets import QApplication, QMainWindow
-
-    app = QApplication(sys.argv)
-    window = QMainWindow()
-    window.setWindowTitle("拖放测试")
-    window.setGeometry(300, 300, 500, 400)
-    
-    game_drop_card = FolderDropCard()
-    window.setCentralWidget(game_drop_card)
-    
-    window.show()
-    sys.exit(app.exec_())

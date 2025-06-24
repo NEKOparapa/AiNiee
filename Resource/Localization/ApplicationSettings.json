@@ -89,6 +89,19 @@
       "繁中": "UI將以所選語言顯示 (重啟生效)",
       "English": "UI language will change (restart required)",
       "日本語": "UI言語が変更されます (再起動後に有効)"
+    },
+    "自动检查更新": {
+      "简中": "自动检查更新",
+      "繁中": "自動檢查更新",
+      "English": "Auto-check for Updates",
+      "日本語": "自動更新チェック"
+    },
+    "启用此功能后，应用将在启动时自动检查是否有新版本": {
+      "简中": "启用此功能后，应用将在启动时自动检查是否有新版本",
+      "繁中": "啟用此功能後，應用程式將在啟動時自動檢查新版本",
+      "English": "When enabled, app automatically checks for new versions on startup",
+      "日本語": "有効時、起動時に自動で新バージョンをチェックします"
     }
+
   }
 }

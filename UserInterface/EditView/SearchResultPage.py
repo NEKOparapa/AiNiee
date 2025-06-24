@@ -4,8 +4,9 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableWidgetItem, 
                              QAbstractItemView, QHeaderView)
 from qfluentwidgets import TableWidget
+from Base.Base import Base
 
-class SearchResultPage(QWidget):
+class SearchResultPage(Base,QWidget):
     # 定义列索引常量
     COL_FILE = 0
     COL_ROW = 1
@@ -32,7 +33,7 @@ class SearchResultPage(QWidget):
         self.table.itemChanged.connect(self._on_item_changed)
 
     def _init_table(self):
-        self.headers = ["文件", "行", "原文", "译文", "润文"]
+        self.headers = [self.tra("文件"), self.tra("行"), self.tra("原文"), self.tra("译文"), self.tra("润文")]
         self.table.setColumnCount(len(self.headers))
         self.table.setHorizontalHeaderLabels(self.headers)
         self.table.verticalHeader().hide()

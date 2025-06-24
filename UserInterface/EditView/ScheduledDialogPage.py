@@ -21,7 +21,7 @@ class ScheduledDialogPage(MessageBoxBase, Base):
         self.viewLayout.addWidget(self.title_label)
 
         # 添加说明标签
-        info_label = BodyLabel(self.tra("请设置开始任务的时间："))
+        info_label = BodyLabel(self.tra("请设置开始任务的时间"))
         self.viewLayout.addWidget(info_label)
 
         self.time_picker = TimePicker(self)

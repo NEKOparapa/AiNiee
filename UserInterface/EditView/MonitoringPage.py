@@ -48,19 +48,19 @@ class MonitoringPage(Base,QWidget):
 
     # 进度环
     def add_ring_card(self, parent: QLayout) -> None:
-        self.ring = ProgressRingCard(title="任务进度",
-                                    icon=FIF.PIE_SINGLE,
-                                    min_value=0,
-                                    max_value=10000,
-                                    ring_size=(140, 140),
-                                    text_visible=True)
+        self.ring = ProgressRingCard(title=self.tra("任务进度"),
+                    icon=FIF.PIE_SINGLE,
+                    min_value=0,
+                    max_value=10000,
+                    ring_size=(140, 140),
+                    text_visible=True)
         self.ring.setFixedSize(204, 204)
-        self.ring.set_format("无任务")
+        self.ring.set_format(self.tra("无任务"))
         parent.addWidget(self.ring)
 
     # 波形图
     def add_waveform_card(self, parent: QLayout) -> None:
-        self.waveform = WaveformCard("波形图",
+        self.waveform = WaveformCard(self.tra("波形图"),
                                     icon=FIF.MARKET
                                     )
         self.waveform.set_draw_grid(False)  # 关闭网格线
@@ -70,7 +70,7 @@ class MonitoringPage(Base,QWidget):
     # 累计时间
     def add_time_card(self, parent: QLayout) -> None:
         self.time = DashboardCard(
-                title="累计时间",
+                title=self.tra("累计时间"),
                 value="Time",
                 unit="",
                 icon=FIF.STOP_WATCH,
@@ -81,7 +81,7 @@ class MonitoringPage(Base,QWidget):
     # 剩余时间
     def add_remaining_time_card(self, parent: QLayout) -> None:
         self.remaining_time = DashboardCard(
-                title="剩余时间",
+                title=self.tra("剩余时间"),
                 value="Time",
                 unit="",
                 icon=FIF.FRIGID,
@@ -93,10 +93,10 @@ class MonitoringPage(Base,QWidget):
     def add_combined_line_card(self, parent: QLayout) -> None:
 
         self.combined_line_card = CombinedLineCard(
-            title="行数统计",
+            title=self.tra("行数统计"),
             icon=FIF.PRINT,
-            left_title="已完成",
-            right_title="剩余",
+            left_title=self.tra("已完成"),
+            right_title=self.tra("剩余"),
             initial_left_value="0",
             initial_left_unit="Line",
             initial_right_value="0",
@@ -110,7 +110,7 @@ class MonitoringPage(Base,QWidget):
     # 平均速度
     def add_speed_card(self, parent: QLayout) -> None:
         self.speed = DashboardCard(
-                title="平均速度",
+                title=self.tra("平均速度"),
                 value="T/S",
                 unit="",
                 icon=FIF.SPEED_HIGH,
@@ -121,7 +121,7 @@ class MonitoringPage(Base,QWidget):
     # 累计消耗
     def add_token_card(self, parent: QLayout) -> None:
         self.token = DashboardCard(
-                title="累计消耗",
+                title=self.tra("累计消耗"),
                 value="Token",
                 unit="",
                 icon=FIF.CALORIES,
@@ -132,7 +132,7 @@ class MonitoringPage(Base,QWidget):
     # 并行任务
     def add_task_card(self, parent: QLayout) -> None:
         self.task = DashboardCard(
-                title="实时任务数",
+                title=self.tra("实时任务数"),
                 value="0",
                 unit="",
                 icon=FIF.SCROLL,
@@ -143,7 +143,7 @@ class MonitoringPage(Base,QWidget):
     # 稳定性
     def add_stability_card(self, parent: QLayout) -> None:
         self.stability = DashboardCard(
-                title="任务稳定性",
+                title=self.tra("任务稳定性"),
                 value="%",
                 unit="",
                 icon=FIF.TRAIN,

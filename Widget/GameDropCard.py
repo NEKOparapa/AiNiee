@@ -484,25 +484,3 @@ class GameDropCard(CardWidget):
     def _handle_path_change(self, path: str):
         """内部处理函数，当中拖拽区域路径变化时，发射本控件的 pathChanged 信号"""
         self.pathChanged.emit(path) # 发射 pathChanged 信号，将路径传递出去
-
-# --- 主程序入口，用于测试 ---
-if __name__ == '__main__':
-    import sys
-    from PyQt5.QtWidgets import QApplication, QMainWindow
-
-    # 创建 Qt 应用程序实例
-    app = QApplication(sys.argv)
-    # 创建主窗口
-    window = QMainWindow()
-    window.setWindowTitle("Drag and Drop Test") # 设置窗口标题
-    window.setGeometry(300, 300, 500, 400) # 设置窗口位置和大小 (x, y, width, height)
-
-    # 创建 GameDropCard 实例
-    game_drop_card = GameDropCard()
-    # 将 GameDropCard 设置为主窗口的中心部件
-    window.setCentralWidget(game_drop_card)
-
-    # 显示主窗口
-    window.show()
-    # 启动 Qt 事件循环，等待用户交互
-    sys.exit(app.exec_())

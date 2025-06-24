@@ -193,7 +193,7 @@ class TaskSettingsPage(QFrame, Base):
         parent.addWidget(
             SpinCard(
                 self.tra("请求超时时间(s)"),
-                self.tra("任务发起请求时等待模型回复的最长时间，超时仍未收到回复，则会判断为任务失败"),
+                self.tra("单元任务发起请求时等待模型回复的最长时间，超时仍未收到回复，则会判断为任务失败"),
                 init = init,
                 value_changed = value_changed,
             )
@@ -213,7 +213,7 @@ class TaskSettingsPage(QFrame, Base):
         parent.addWidget(
             SpinCard(
                 self.tra("任务流程的最大轮次"),
-                self.tra("当完成一轮翻译后，如果还有未翻译的条目，将重新开始新的翻译流程，直到翻译完成或者达到最大轮次"),
+                self.tra("当完成一轮任务后，如果还有未翻译/润色的条目，将重新开始新的任务流程，直到翻译/润色完成或者达到最大轮次"),
                 init = init,
                 value_changed = value_changed,
             )

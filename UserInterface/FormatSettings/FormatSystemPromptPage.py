@@ -9,7 +9,7 @@ from ModuleFolders.PromptBuilder.PromptBuilderFormat import PromptBuilderFormat
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 
 # 提示词卡片
-class PromptCard(CardWidget):
+class PromptCard(Base,CardWidget):
     prompt_selected = pyqtSignal(dict) # 信号：提示词卡片被点击
     delete_requested = pyqtSignal(str) # 信号：请求删除提示词
     edit_requested = pyqtSignal(dict) # 信号：请求编辑提示词
@@ -48,19 +48,19 @@ class PromptCard(CardWidget):
             button_container = QHBoxLayout()
             button_container.addStretch(1)
 
-            edit_button = FluentPushButton("编辑")
+            edit_button = FluentPushButton(self.tra("编辑"))
             edit_button.clicked.connect(self.on_edit_requested)
             edit_button.setFocusPolicy(Qt.NoFocus)
             button_container.addWidget(edit_button)
 
-            delete_button = FluentPushButton("删除")
+            delete_button = FluentPushButton(self.tra("删除"))
             delete_button.clicked.connect(self.on_delete_requested)
             delete_button.setFocusPolicy(Qt.NoFocus)
             button_container.addWidget(delete_button)
             bottom_h_layout.addLayout(button_container)
         else:
             bottom_h_layout.addStretch(1)
-            system_tag = CaptionLabel("系统预设")
+            system_tag = CaptionLabel(self.tra("系统预设"))
             bottom_h_layout.addWidget(system_tag, alignment=Qt.AlignRight)
 
         main_v_layout.addLayout(bottom_h_layout)
@@ -104,15 +104,15 @@ class PromptCard(CardWidget):
             self.prompt_selected.emit(self.prompt_data)
 
 # 提示词编辑对话框
-class AddEditPromptDialog(MessageBoxBase):
+class AddEditPromptDialog(Base,MessageBoxBase):
     def __init__(self, prompt_data=None, parent=None):
         super().__init__(parent)
         self.prompt_data = prompt_data
         self.is_edit_mode = prompt_data is not None
         self.init_ui()
 
-        self.yesButton.setText('保存')
-        self.cancelButton.setText('取消')
+        self.yesButton.setText(self.tra('保存'))
+        self.cancelButton.setText(self.tra('取消'))
 
     def init_ui(self):
         container = QWidget(self)
@@ -124,12 +124,12 @@ class AddEditPromptDialog(MessageBoxBase):
         self.widget.setMinimumWidth(900)
         self.widget.setMinimumHeight(600)
 
-        name_label = StrongBodyLabel("卡片名称:", container)
+        name_label = StrongBodyLabel(self.tra("卡片名称:"), container)
         self.name_edit = LineEdit(container)
         if self.is_edit_mode:
             self.name_edit.setText(self.prompt_data["name"])
 
-        content_label = StrongBodyLabel("提示词内容:", container)
+        content_label = StrongBodyLabel(self.tra("提示词内容:"), container)
         self.content_edit = TextEdit(container)
 
         if self.is_edit_mode:
@@ -220,7 +220,7 @@ class FormatSystemPromptPage(QFrame, Base):
         pin_icon = IconWidget(FluentIcon.PIN, self.top_display_card)
         pin_icon.setFixedSize(18, 18)
         
-        title_label = StrongBodyLabel("当前提示词", self.top_display_card)
+        title_label = StrongBodyLabel(self.tra("当前提示词"), self.top_display_card)
 
         header_layout.addWidget(pin_icon)
         header_layout.addWidget(title_label)
@@ -232,7 +232,7 @@ class FormatSystemPromptPage(QFrame, Base):
 
         # 设置顶部卡片内容显示
         name_layout = QHBoxLayout()
-        name_label_title = StrongBodyLabel("名称：", self.top_display_card)
+        name_label_title = StrongBodyLabel(self.tra("名称："), self.top_display_card)
         self.selected_prompt_name_label = StrongBodyLabel("")
         name_layout.addWidget(name_label_title)
         name_layout.addWidget(self.selected_prompt_name_label)
@@ -257,10 +257,10 @@ class FormatSystemPromptPage(QFrame, Base):
         bottom_card_layout.setSpacing(12) # 统一间距风格
 
         header_layout = QHBoxLayout()
-        card_square_label = StrongBodyLabel("提示词广场")
+        card_square_label = StrongBodyLabel(self.tra("提示词广场"))
         header_layout.addWidget(card_square_label)
         header_layout.addStretch(1)
-        self.add_new_prompt_button =  PrimaryPushButton(FluentIcon.ADD, "创建新提示词", self)
+        self.add_new_prompt_button =  PrimaryPushButton(FluentIcon.ADD, self.tra("创建新提示词"), self)
         self.add_new_prompt_button.clicked.connect(self.open_add_prompt_dialog)
         header_layout.addWidget(self.add_new_prompt_button)
         bottom_card_layout.addLayout(header_layout)
@@ -281,12 +281,12 @@ class FormatSystemPromptPage(QFrame, Base):
 
         main_layout.addWidget(self.bottom_grid_card, 3)
         self.setLayout(main_layout)
-
+        
     # 获取系统提示词
     def get_default_prompt(self, config):
 
         # 获取系统预设提示词内容
-        conmon_name = "通用"
+        conmon_name = self.tra("通用")
         common_id = PromptBuilderEnum.FORMAT_COMMON
         common_prompt_content = PromptBuilderFormat.get_system_default(config)
 

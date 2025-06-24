@@ -1,0 +1,218 @@
+{
+"PART_1": { 
+    "书籍": {
+      "简中": "书籍",
+      "繁中": "書籍",
+      "English": "Books",
+      "日本語": "書籍"
+    },
+    "文档": {
+      "简中": "文档",
+      "繁中": "文件",
+      "English": "Documents",
+      "日本語": "ドキュメント"
+    },
+    "字幕": {
+      "简中": "字幕",
+      "繁中": "字幕",
+      "English": "Subtitles",
+      "日本語": "字幕"
+    },
+    "游戏挂载": {
+      "简中": "游戏挂载",
+      "繁中": "遊戲掛載",
+      "English": "Game Mounting",
+      "日本語": "ゲームマウント"
+    },
+    "游戏内嵌": {
+      "简中": "游戏内嵌",
+      "繁中": "遊戲內嵌",
+      "English": "Game Embedded",
+      "日本語": "ゲーム内蔵"
+    },
+    "数据文件": {
+      "简中": "数据文件",
+      "繁中": "資料檔案",
+      "English": "Data Files",
+      "日本語": "データファイル"
+    },
+    "复杂文档": {
+      "简中": "复杂文档",
+      "繁中": "複雜文件",
+      "English": "Complex Documents",
+      "日本語": "複雑文書"
+    },
+    "工程文件": {
+      "简中": "工程文件",
+      "繁中": "工程檔案",
+      "English": "Project Files",
+      "日本語": "プロジェクトファイル"
+    },
+    "当前路径": {
+      "简中": "当前路径",
+      "繁中": "當前路徑",
+      "English": "Current Path",
+      "日本語": "現在のパス"
+    },
+    "拖拽/选择输入文件夹": {
+      "简中": "拖拽/选择输入文件夹",
+      "繁中": "拖曳/選擇輸入資料夾",
+      "English": "Drag & Drop / Select Input Folder",
+      "日本語": "ドラッグ＆ドロップ/入力フォルダーを選択"
+    },
+    "直接读取": {
+      "简中": "直接读取",
+      "繁中": "直接讀取",
+      "English": "Direct Read",
+      "日本語": "ダイレクト読み取り"
+    }
+  },
+"PART_2": { 
+    "继续项目": {
+      "简中": "继续项目",
+      "繁中": "繼續專案",
+      "English": "Continue Project",
+      "日本語": "プロジェクトを続ける"
+    },
+    "加载上次的项目缓存并继续": {
+      "简中": "加载上次的项目缓存并继续",
+      "繁中": "載入上次的專案快取並繼續",
+      "English": "Load Last Project Cache & Continue",
+      "日本語": "前回のプロジェクトキャッシュを読み込み続行"
+    },
+    "文件/目录排除规则":{
+      "简中": "文件/目录排除规则",
+      "繁中": "檔案/目錄排除規則",
+      "English": "Input file/directory exclusion rules",
+      "日本語": "ファイル/ディレクトリ除外ルールを入力"
+    },
+    "*.log 表示排除所有结尾为 .log 的文件，aaa/* 表示排除输入文件夹下整个 aaa 目录，多个规则用英文逗号分隔":{
+      "简中": "*.log 表示排除所有结尾为 .log 的文件，aaa/* 表示排除输入文件夹下整个 aaa 目录，多个规则用英文逗号分隔",
+      "繁中": "*.log 表示排除所有結尾為 .log 的檔案，aaa/* 表示排除輸入資料夾下整個 aaa 目錄，多個規則用英文逗號分隔",
+      "English": "*.log means excluding all files ending with .log. aaa/* means excluding the entire aaa directory under the input folder.\n Multiple rules should be separated by English commas.",
+      "日本語": "*.log は .log で終わるすべてのファイルを除外し、aaa/* は入力フォルダ内の aaa ディレクトリ全体を除外します\n複数のルールは英語のカンマで区切ってください"
+    },
+    "项目类型": {
+      "简中": "项目类型",
+      "繁中": "專案類型",
+      "English": "Project Type",
+      "日本語": "プロジェクトタイプ"
+    },
+    "设置当前翻译项目所使用的原始文本的格式，注意，选择错误将不能进行翻译": {
+      "简中": "设置当前翻译项目所使用的原始文本的格式，注意，选择错误将不能进行翻译",
+      "繁中": "設定當前翻譯專案使用的原始文字格式，請注意：選擇錯誤將無法進行翻譯",
+      "English": "Set source text format for current translation project.\nWarning: Incorrect selection will prevent translation.",
+      "日本語": "現在の翻訳プロジェクトで使用する原文の形式を設定\n注意：誤った選択をすると翻訳できません"
+    }
+  },
+  "project_pairs": {
+    "Txt": {
+      "简中": "Txt小说文件",
+      "繁中": "Txt小說檔案",
+      "English": "Txt Novel File",
+      "日本語": "Txt小説ファイル"
+    },
+    "Epub": {
+      "简中": "Epub小说文件",
+      "繁中": "Epub小說檔案",
+      "English": "Epub Novel File",
+      "日本語": "Epub小説ファイル"
+    },
+    "Docx": {
+      "简中": "Docx文档文件",
+      "繁中": "Docx文件檔案",
+      "English": "Docx Document File",
+      "日本語": "Docxドキュメントファイル"
+    },
+    "Srt": {
+      "简中": "Srt字幕文件",
+      "繁中": "Srt字幕檔案",
+      "English": "SRT Subtitle File",
+      "日本語": "SRT字幕ファイル"
+    },
+    "Vtt": {
+      "简中": "Vtt字幕文件",
+      "繁中": "Vtt字幕檔案",
+      "English": "VTT Subtitle File",
+      "日本語": "VTT字幕ファイル"
+    },
+    "Lrc": {
+      "简中": "Lrc音声文件",
+      "繁中": "Lrc歌詞檔案",
+      "English": "LRC Lyrics File",
+      "日本語": "LRC歌詞ファイル"
+    },
+    "Md": {
+      "简中": "Md文档文件",
+      "繁中": "Md文件檔案",
+      "English": "Md Document File",
+      "日本語": "Mdドキュメントファイル"
+    },
+    "Tpp": {
+      "简中": "T++导出文件",
+      "繁中": "T++導出檔案",
+      "English": "T++ Export File",
+      "日本語": "T++エクスポートファイル"
+    },
+    "Trans": {
+      "简中": "Trans工程文件",
+      "繁中": "Trans工程檔案",
+      "English": "Trans Project Files",
+      "日本語": "Transプロジェクトファイル"
+    },
+    "Mtool": {
+      "简中": "Mtool导出文件",
+      "繁中": "Mtool導出檔案",
+      "English": "Mtool Export File",
+      "日本語": "Mtoolエクスポートファイル"
+    },
+    "Renpy": {
+      "简中": "Renpy导出文件",
+      "繁中": "Renpy導出檔案",
+      "English": "Renpy Export File",
+      "日本語": "Renpyエクスポートファイル"
+    },
+    "Vnt": {
+      "简中": "VNText导出文件",
+      "繁中": "VNText導出檔案",
+      "English": "VNText Export File",
+      "日本語": "VNTextエクスポートファイル"
+    },
+    "I18next": {
+      "简中": "I18Next数据文件",
+      "繁中": "I18Next數據文件",
+      "English": "I18Next Data File",
+      "日本語": "I18Nextデータファイル"
+    },
+    "Po": {
+      "简中": "Po数据文件",
+      "繁中": "Po數據文件",
+      "English": "Po Data File",
+      "日本語": "Poデータファイル"
+    },
+    "Paratranz": {
+      "简中": "ParaTranz导出文件",
+      "繁中": "ParaTranz導出檔案",
+      "English": "ParaTranz Export File",
+      "日本語": "ParaTranzエクスポートファイル"
+    },
+    "OfficeConversionDoc": {
+      "简中": "Doc文档文件 (需要Microsoft Office)",
+      "繁中": "Doc文件檔案 (需要Microsoft Office)",
+      "English": "Doc Document File (requires Microsoft Office)",
+      "日本語": "Docドキュメントファイル (Microsoft Officeが必要)"
+    },
+    "BabeldocPdf": {
+      "简中": "Pdf文档文件 (pdf2zh/BabelDOC)",
+      "繁中": "Pdf文件檔案 (pdf2zh/BabelDOC)",
+      "English": "Pdf Document File (pdf2zh/BabelDOC)",
+      "日本語": "Pdfドキュメントファイル (pdf2zh/BabelDOC)"
+    },
+    "AutoType": {
+      "简中": "自动识别文件类型",
+      "繁中": "自動識別檔案類型",
+      "English": "Automatically identify file types",
+      "日本語": "自動的にファイルタイプを識別する"
+    }
+  }
+}
