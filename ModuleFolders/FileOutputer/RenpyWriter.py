@@ -36,13 +36,10 @@ class RenpyWriter(BaseTranslatedWriter):
                 continue
 
             original_line = lines[line_num]
-            new_trans = item.final_text  # 新的翻译文本
+            new_trans = item.final_text # 最终文本
 
-            # 转义双引号，双引号的前面没有反斜杠或者双引号，和后面没有双引号
-            pattern = r'(?<![\\"])"(?![\\"])'
-            replacement = r'\\"' 
-            new_trans = re.sub(pattern, replacement,  new_trans)
-
+            # 只转义单个双引号
+            new_trans = self._escape_quotes_for_renpy(item.final_text)
 
             # 查找原始行中第一个和最后一个双引号的索引
             first_quote_index = original_line.find('"')
@@ -60,8 +57,36 @@ class RenpyWriter(BaseTranslatedWriter):
                 lines[line_num] = new_line
 
         # 将修改后的行写回到翻译文件路径
-        try:
-            translation_file_path.parent.mkdir(parents=True, exist_ok=True) # 确保目录存在
-            translation_file_path.write_text("".join(lines), encoding="utf-8")
-        except Exception as e:
-             print(f"写入翻译文件 {translation_file_path} 时出错: {e}")
+        translation_file_path.parent.mkdir(parents=True, exist_ok=True) # 确保目录存在
+        translation_file_path.write_text("".join(lines), encoding="utf-8")
+
+
+
+    def _escape_quotes_for_renpy(self, text: str) -> str:
+        """
+        - 保留已经转义的 `\"`。
+        - 保留空的双引号 `""`。
+        - 保留带空格的双引号 `" "`。
+        - 将所有其他 `"` 转义为 `\"`。
+        """
+        # 正则表达式匹配以下任意一种情况：
+        # 1. `\\\"`: 一个已经转义的双引号
+        # 2. `\"\"`: 两个连续的双引号
+        # 3. `\" \"`: 一个带空格的双引号
+        # 4. `\"`: 单个双引号
+        # re.sub 会从左到右匹配，所以 `\\"` 会优先于 `"` 被匹配。
+        pattern = r'\\\"|\"\"|\" \"|\"'
+
+        def replacer(match):
+            """定义替换逻辑"""
+            matched_text = match.group(0)
+            # 如果匹配到的是特殊情况，则原样返回，不进行任何修改
+            if matched_text in ('\\"', '""', '" "'):
+                return matched_text
+            # 否则，匹配到的是需要转义的单个双引号
+            elif matched_text == '"':
+                return '\\"'
+            # 理论上不会走到这里，但作为保障
+            return matched_text
+
+        return re.sub(pattern, replacer, text)
