@@ -1,5 +1,7 @@
 import os
 import spacy
+import sudachipy
+import sudachidict_core
 import threading
 from Base.Base import Base # 假设 Base 类提供了日志等基础功能
 
