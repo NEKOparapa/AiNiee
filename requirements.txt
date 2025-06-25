@@ -20,6 +20,8 @@ httpx[http2]
 
 # Tools
 spacy
+sudachipy
+sudachidict-core
 polib
 pandas
 rich
