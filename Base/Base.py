@@ -42,6 +42,9 @@ class Event():
     TABLE_FORMAT_START = 820                      # 表格排版 开始
     TABLE_FORMAT_DONE = 821                      # 表格排版 完成   
 
+    TERM_EXTRACTION_START = 830                  # 术语提取开始
+    TERM_EXTRACTION_DONE = 831                     
+
     TABLE_UPDATE = 898                             # 表格更新
     TABLE_FORMAT = 899                             # 表格重排
 

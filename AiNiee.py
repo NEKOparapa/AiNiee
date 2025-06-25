@@ -188,9 +188,5 @@ if __name__ == "__main__":
     # 隐藏启动页面
     splash.finish(app_fluent_window)
 
-
-    import spacy
-
-
     # 进入事件循环，等待用户操作
     sys.exit(app.exec_())

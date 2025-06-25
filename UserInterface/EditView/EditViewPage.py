@@ -19,6 +19,8 @@ from UserInterface.EditView.SearchResultPage import SearchResultPage
 from UserInterface.EditView.ScheduledDialogPage import ScheduledDialogPage
 from UserInterface.EditView.TextViewPage import TextViewPage
 from UserInterface.EditView.BasicTablePage import BasicTablePage
+from UserInterface.EditView.TermResultPage import TermResultPage
+from UserInterface.EditView.TermExtractionDialog import TermExtractionDialog
 
 # 底部命令栏
 class BottomCommandBar(Base,CardWidget):
@@ -332,6 +334,7 @@ class BottomCommandBar(Base,CardWidget):
 # 层级浏览器
 class NavigationCard(CardWidget):
     searchRequested = pyqtSignal(dict)  # 信号，发送搜索参数字典
+    termExtractionRequested = pyqtSignal(dict)  # 用于发送术语提取参数的信号
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -347,8 +350,13 @@ class NavigationCard(CardWidget):
         self.search_button = TransparentToolButton(FIF.SEARCH)
         self.search_button.clicked.connect(self._open_search_dialog) # 连接点击事件
 
+        # 术语提取按钮
+        self.term_extraction_button = TransparentToolButton(FIF.TAG) # 
+        self.term_extraction_button.clicked.connect(self._open_term_extraction_dialog)
+
         self.toolbar_layout.addStretch(1)  
         self.toolbar_layout.addWidget(self.search_button)
+        self.toolbar_layout.addWidget(self.term_extraction_button)
         self.toolbar_layout.addStretch(1)  
         self.layout.addWidget(self.toolbar)
         
@@ -367,6 +375,18 @@ class NavigationCard(CardWidget):
                 "scope": dialog.search_scope
             }
             self.searchRequested.emit(params)
+
+    # 按钮点击
+    def _open_term_extraction_dialog(self):
+        """打开术语提取设置对话框"""
+        dialog = TermExtractionDialog(self.window())
+        if dialog.exec():
+            # 用户点击了“开始提取”
+            params = {
+                "language": dialog.language,
+                "entity_types": dialog.selected_types
+            }
+            self.termExtractionRequested.emit(params)
 
     # 树状关系更新
     def update_tree(self, hierarchy: dict):
@@ -617,10 +637,13 @@ class EditViewPage(Base,QFrame):
         self.page_card.tab_bar.currentChanged.connect(self.on_tab_changed)  # 标签页切换事件
         self.page_card.tab_bar.tabCloseRequested.connect(self.on_tab_close_requested)  # 标签页关闭请求
         self.bottom_bar_main.arrowClicked.connect(self.toggle_page)  # 箭头按钮点击切换页面
+        self.nav_card.termExtractionRequested.connect(self.perform_term_extraction) # 开始术语提取信号
+
 
         # 订阅事件
         self.subscribe(Base.EVENT.TASK_CONTINUE_CHECK, self.task_continue_check)
-
+        self.subscribe(Base.EVENT.TERM_EXTRACTION_DONE, self._on_term_extraction_finished)
+        
     # 页面显示事件
     def showEvent(self, event) -> None:
         super().showEvent(event)
@@ -813,3 +836,47 @@ class EditViewPage(Base,QFrame):
         # 这样可以确保新标签页被激活并显示在前台
         self.page_card.tab_bar.setCurrentIndex(new_index)
         self.page_card.stacked_widget.setCurrentIndex(new_index)
+
+    # 执行提取术语事件
+    def perform_term_extraction(self, params: dict):
+        """
+        从缓存获取数据，并发起一个全局的术语提取事件。
+        """
+        self.info(f"收到术语提取请求，参数: {params}")
+        
+        self.info("正在从缓存中收集所有原文...")
+        all_items_to_process = self.cache_manager.get_all_source_items()
+        
+        self.info(f"数据收集完毕，共 {len(all_items_to_process)} 条。正在发送提取事件...")
+        
+        # 发送开始事件，将参数和数据传递给 SimpleExecutor
+        self.emit(Base.EVENT.TERM_EXTRACTION_START, {
+            "params": params,
+            "items_data": all_items_to_process
+        })
+
+    # 术语提取结束事件
+    def _on_term_extraction_finished(self, event: int, data: dict):
+        """
+        此槽函数在主线程中执行，用于接收 TERM_EXTRACTION_DONE 事件并安全地更新UI。
+        """
+        results = data.get("results", [])
+
+        if not results:
+            MessageBox(self.tr("未找到"), self.tr("未能提取到任何符合条件的术语。"), self.window()).exec()
+            return
+
+        # 创建并显示结果标签页 (这部分代码保持不变)
+        tab_name = self.tr("术语提取结果")
+        route_key = f"terms_{int(time.time())}"
+
+        result_page = TermResultPage(results)
+        result_page.setObjectName(route_key)
+        
+        self.page_card.stacked_widget.addWidget(result_page)
+        self.page_card.tab_bar.addTab(routeKey=route_key, text=tab_name)
+        
+        new_index = self.page_card.tab_bar.count() - 1
+        self.page_card.tab_bar.setCurrentIndex(new_index)
+        self.page_card.stacked_widget.setCurrentIndex(new_index)
+        self.info("术语提取完成，结果已显示。")

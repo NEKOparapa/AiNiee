@@ -25,9 +25,6 @@ class CacheManager(Base):
     def __init__(self) -> None:
         super().__init__()
 
-        # 默认值
-        self.project = CacheProject()
-
         # 线程锁
         self.file_lock = threading.Lock()
 
@@ -456,3 +453,24 @@ class CacheManager(Base):
                     if found:
                         continue
         return results
+
+    # 获取全部的原文与文件路径
+    def get_all_source_items(self) -> list:
+        """
+        获取项目中所有文件的所有原文文本项。
+        Returns:
+            list: 包含字典的列表，每个字典代表一个需要处理的条目。
+                  格式: [{"source_text": str, "file_path": str}, ...]
+        """
+        all_items_data = []
+        with self.file_lock:
+            for file_path, cache_file in self.project.files.items():
+                for item in cache_file.items:
+                    # 只添加包含有效原文的条目
+                    if item.source_text and item.source_text.strip():
+                        all_items_data.append({
+                            "source_text": item.source_text,
+                            "file_path": file_path
+                        })
+        return all_items_data
+

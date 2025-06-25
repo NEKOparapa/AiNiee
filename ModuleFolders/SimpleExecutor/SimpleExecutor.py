@@ -13,6 +13,7 @@ from ModuleFolders.ResponseChecker.ResponseChecker import ResponseChecker
 from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.PromptBuilder.PromptBuilderPolishing import PromptBuilderPolishing
 from ModuleFolders.PromptBuilder.PromptBuilderFormat import PromptBuilderFormat
+from ModuleFolders.NERProcessor.NERProcessor import NERProcessor
 
 # 简易请求器
 class SimpleExecutor(Base):
@@ -25,13 +26,14 @@ class SimpleExecutor(Base):
         self.subscribe(Base.EVENT.API_TEST_START, self.api_test_start)
         # 订阅术语表翻译开始事件
         self.subscribe(Base.EVENT.GLOSS_TASK_START, self.glossary_translation_start)
-       # 订阅表格翻译任务事件
+        # 订阅表格翻译任务事件
         self.subscribe(Base.EVENT.TABLE_TRANSLATE_START, self.handle_table_translation_start)
-       # 订阅表格润色任务事件
+        # 订阅表格润色任务事件
         self.subscribe(Base.EVENT.TABLE_POLISH_START, self.handle_table_polish_start)
-       # 订阅表格派能任务事件
+        # 订阅表格派能任务事件
         self.subscribe(Base.EVENT.TABLE_FORMAT_START, self.handle_table_format_start)
-
+        # 订阅术语提取任务事件
+        self.subscribe(Base.EVENT.TERM_EXTRACTION_START, self.handle_term_extraction_start)
 
     # 响应接口测试开始事件
     def api_test_start(self, event: int, data: dict):
@@ -647,3 +649,37 @@ class SimpleExecutor(Base):
         # 11. 任务完成，更新全局状态
         Base.work_status = Base.STATUS.IDLE 
         self.info(f"🐳 表格排版任务已完成！")
+
+    # 响应术语提取事件，并启动新线程
+    def handle_term_extraction_start(self, event, data: dict):
+        thread = threading.Thread(target=self.process_term_extraction, args=(data,), daemon=True)
+        thread.start()
+
+    # 术语提取处理方法
+    def process_term_extraction(self, data: dict):
+        """在后台线程中执行术语提取的核心逻辑"""
+        params = data.get("params", {})
+        items_data = data.get("items_data", [])
+
+        if not items_data:
+            self.warning("术语提取任务中止：没有需要处理的文本。")
+            self.emit(Base.EVENT.TERM_EXTRACTION_DONE, {"results": []})
+            return
+
+        self.info(f"开始处理术语提取任务... 参数: {params}")
+        self.info(f"共收到 {len(items_data)} 条待处理数据。")
+
+        # 实例化独立的处理器
+        processor = NERProcessor()
+        
+        # 调用处理器的方法，传入数据和参数
+        results = processor.extract_terms(
+            items_data=items_data,
+            language=params.get("language"),
+            entity_types=params.get("entity_types")
+        )
+        
+        self.info(f"术语提取完成，共找到 {len(results)} 个术语。")
+
+        # 工作完成后，发射完成事件将结果传回UI线程
+        self.emit(Base.EVENT.TERM_EXTRACTION_DONE, {"results": results})
