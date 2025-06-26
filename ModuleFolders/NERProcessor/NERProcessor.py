@@ -34,6 +34,8 @@ class NERProcessor(Base):
             
             # 定义模型的相对路径
             model_path = os.path.join('.', 'Resource', 'Models', 'NER', 'ja_core_news_sm')
+            model_path = os.path.join('.', 'Resource', 'Models', 'NER', 'ja_core_news_md')
+            #model_path = os.path.join('.', 'Resource', 'Models', 'NER', 'ja_core_news_lg')
 
             self.info(f"正在加载 spaCy 模型: {model_name}...")
             nlp = spacy.load(model_path)

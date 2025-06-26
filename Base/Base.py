@@ -45,6 +45,9 @@ class Event():
     TERM_EXTRACTION_START = 830                  # 术语提取开始
     TERM_EXTRACTION_DONE = 831                     
 
+    TERM_TRANSLATE_SAVE_START = 832              # 实体提取开始
+    TERM_TRANSLATE_SAVE_DONE = 833 
+
     TABLE_UPDATE = 898                             # 表格更新
     TABLE_FORMAT = 899                             # 表格重排
 
