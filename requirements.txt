@@ -19,9 +19,6 @@ requests
 httpx[http2]
 
 # Tools
-spacy
-sudachipy
-sudachidict-core
 polib
 pandas
 rich
@@ -33,6 +30,11 @@ protobuf==4.25.7
 language-data
 langcodes
 msgspec
+
+#NER
+spacy
+sudachipy
+sudachidict-small
 
 # mediapipe
 absl-py

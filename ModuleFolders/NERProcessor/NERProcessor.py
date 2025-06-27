@@ -1,7 +1,7 @@
 import os
 import spacy
 import sudachipy
-import sudachidict_core
+import sudachidict_small
 import threading
 from Base.Base import Base
 
@@ -34,14 +34,16 @@ class NERProcessor(Base):
                 return None
 
             self.info(f"正在加载 spaCy 模型: {model_name}...")
-            try:
-                nlp = spacy.load(model_path)
-                self.nlp_models[model_name] = nlp
-                self.info(f"模型 {model_name} 加载成功。")
-                return nlp
-            except Exception as e:
-                self.error(f"加载模型 {model_name}失败: {e}")
-                return None
+
+            # 只加载ner组件，禁用其他所有组件
+            nlp = spacy.load(
+                model_path,
+                exclude=["parser", "tagger", "lemmatizer", "attribute_ruler", "tok2vec"]
+            )
+            self.nlp_models[model_name] = nlp
+            self.info(f"模型 {model_name} 加载成功。")
+            return nlp
+
 
 
     def extract_terms(self, items_data: list, model_name: str, entity_types: list) -> list:
