@@ -1,0 +1,13 @@
+{
+  "moves":null,
+  "update_with_oracle_cut_size":100,
+  "multitasks":[
+
+  ],
+  "min_action_freq":30,
+  "learn_tokens":false,
+  "beam_width":1,
+  "beam_density":0.0,
+  "beam_update_prob":0.0,
+  "incorrect_spans_key":null
+}

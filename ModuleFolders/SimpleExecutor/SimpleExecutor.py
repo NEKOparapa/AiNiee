@@ -659,7 +659,6 @@ class SimpleExecutor(Base):
 
     # 术语提取处理方法
     def process_term_extraction(self, data: dict):
-        """在后台线程中执行术语提取的核心逻辑"""
         params = data.get("params", {})
         items_data = data.get("items_data", [])
 
@@ -674,10 +673,10 @@ class SimpleExecutor(Base):
         # 实例化独立的处理器
         processor = NERProcessor()
         
-        # 调用处理器的方法，传入数据和参数
+        # 调用处理器的方法，传入正确的参数
         results = processor.extract_terms(
             items_data=items_data,
-            language=params.get("language"),
+            model_name=params.get("model_name"), # 使用 model_name
             entity_types=params.get("entity_types")
         )
         

@@ -306,7 +306,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
     # 添加翻译设置
     def add_settings_pages(self, plugin_manager) -> None:
         self.TranslationSettings = TranslationSettingsPage("TranslationSettings", self)
-        self.addSubInterface(self.TranslationSettings, FluentIcon.LANGUAGE, self.tra("翻译设置"), NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.TranslationSettings, FluentIcon.EXPRESSIVE_INPUT_ENTRY, self.tra("翻译设置"), NavigationItemPosition.SCROLL)
 
         self.PolishingBasicSettingsPage = PolishingBasicSettingsPage("PolishingBasicSettingsPage", self)
         self.addSubInterface(self.PolishingBasicSettingsPage, FluentIcon.BRUSH, self.tra("润色设置"), NavigationItemPosition.SCROLL)
@@ -327,7 +327,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.addSubInterface(self.translation_example_prompt_page, FluentIcon.FIT_PAGE, self.tra("翻译示例"), parent = self.prompt_optimization_navigation_item)
 
         self.polishing_prompt_navigation = BaseNavigationItem("polishing_prompt_navigation", self)
-        self.addSubInterface(self.polishing_prompt_navigation, FluentIcon.MESSAGE, self.tra("润色提示词"), NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.polishing_prompt_navigation, FluentIcon.PALETTE, self.tra("润色提示词"), NavigationItemPosition.SCROLL)
         self.polishing_system_prompt_page = PolishingSystemPromptPage("polishing_system_prompt_page", self)
         self.addSubInterface(self.polishing_system_prompt_page, FluentIcon.LABEL, self.tra("基础提示"), parent = self.polishing_prompt_navigation)
         self.polishing_style_prompt_page = PolishingStylePromptPage("polishing_style_prompt_page", self)
@@ -335,7 +335,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
         # 排版提示词设置
         self.format_prompt_navigation = BaseNavigationItem("format_prompt_navigation", self)
-        self.addSubInterface(self.format_prompt_navigation, FluentIcon.TRANSPARENT, self.tra("排版提示词"), NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.format_prompt_navigation, FluentIcon.CLIPPING_TOOL, self.tra("排版提示词"), NavigationItemPosition.SCROLL)
         self.format_system_prompt_page = FormatSystemPromptPage("format_system_prompt_page", self)
         self.addSubInterface(self.format_system_prompt_page, FluentIcon.LABEL, self.tra("基础提示"), parent = self.format_prompt_navigation)
         self.format_reference_page = FormatReferencePage("format_reference_page", self)

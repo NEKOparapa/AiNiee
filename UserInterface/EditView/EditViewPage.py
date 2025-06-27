@@ -353,7 +353,7 @@ class NavigationCard(Base,CardWidget):
         self.search_button.clicked.connect(self._open_search_dialog) # 连接点击事件
 
         # 术语提取按钮
-        self.term_extraction_button = TransparentToolButton(FIF.EDUCATION)
+        self.term_extraction_button = TransparentToolButton(FIF.FILTER)
         self.term_extraction_button.setToolTip(self.tra("提取术语")) 
         self.term_extraction_button.clicked.connect(self._open_term_extraction_dialog)
 
@@ -386,7 +386,7 @@ class NavigationCard(Base,CardWidget):
         if dialog.exec():
             # 用户点击了“开始提取”
             params = {
-                "language": dialog.language,
+                "model_name": dialog.selected_model,
                 "entity_types": dialog.selected_types
             }
             self.termExtractionRequested.emit(params)
