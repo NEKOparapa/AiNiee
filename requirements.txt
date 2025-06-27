@@ -34,7 +34,7 @@ msgspec
 #NER
 spacy
 sudachipy
-sudachidict-small
+sudachidict-core
 
 # mediapipe
 absl-py

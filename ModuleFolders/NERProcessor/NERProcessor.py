@@ -1,7 +1,7 @@
 import os
 import spacy
 import sudachipy
-import sudachidict_small
+import sudachidict_core
 import threading
 from Base.Base import Base
 
