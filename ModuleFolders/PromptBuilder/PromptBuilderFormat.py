@@ -46,6 +46,19 @@ class PromptBuilderFormat(Base):
         
         return source_text_str
 
+    # 构造排版参考
+    def build_format_reference(config: TaskConfig) -> str:
+        # 获取自定义内容
+        format_reference = config.format_reference_content
+
+        profile = "\n###排版参考"
+
+        profile += f"\n{format_reference}\n"
+
+
+        return profile
+
+
     # 生成信息结构 - 通用
     def generate_prompt(config, source_text_dict: dict):
         # 储存指令
@@ -59,6 +72,13 @@ class PromptBuilderFormat(Base):
             system = PromptBuilderFormat.build_system(config)
         else:
             system = config.polishing_prompt_selection["prompt_content"]  # 自定义提示词
+
+        # 如果启用排版参考功能
+        if config.format_reference_switch == True:
+            format_reference = PromptBuilderFormat.build_format_reference(config)
+            if format_reference != "":
+                system += format_reference
+                extra_log.append(format_reference)
 
 
         # 待排序原文

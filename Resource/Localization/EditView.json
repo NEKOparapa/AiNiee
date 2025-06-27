@@ -194,11 +194,11 @@
       "English": "Submitted {} rows for polishing.",
       "日本語": "{} 行のテキストの推敲タスクを送信しました。"
     },
-    "“排版文本”功能当前仅支持 TXT 类型的项目文件。": {
-      "简中": "“排版文本”功能当前仅支持 TXT 类型的项目文件。",
-      "繁中": "「排版文本」功能當前僅支援 TXT 類型的項目檔案。",
-      "English": "The 'Format Text' feature currently only supports TXT project files.",
-      "日本語": "「テキストをフォーマット」機能は現在、TXTタイプのプロジェクトファイルのみをサポートしています。"
+    "“排版文本”功能当前仅支持 TXT MD 类型的项目文件。": {
+      "简中": "“排版文本”功能当前仅支持 TXT MD 类型的项目文件。",
+      "繁中": "「排版文本」功能當前僅支援 TXT MD 類型的項目檔案。",
+      "English": "The 'Format Text' feature currently only supports TXT MD project files.",
+      "日本語": "「テキストをフォーマット」機能は現在、TXT MDタイプのプロジェクトファイルのみをサポートしています。"
     },
     "请至少选择 2 行来进行排版操作。": {
       "简中": "请至少选择 2 行来进行排版操作。",
@@ -262,6 +262,12 @@
       "English": "Search",
       "日本語": "検索"
     },
+    "搜索替换": {
+      "简中": "搜索替换",
+      "繁中": "搜尋替換",
+      "English": "Search & Replace",
+      "日本語": "検索と置換"
+    },
     "取消": {
       "简中": "取消",
       "繁中": "取消",
@@ -273,6 +279,14 @@
       "繁中": "檔案",
       "English": "File",
       "日本語": "ファイル"
+    }
+  },
+  "Term_extraction": {
+    "提取术语": {
+      "简中": "提取术语",
+      "繁中": "提取術語",
+      "English": "Extract Terms",
+      "日本語": "用語抽出"
     }
   },
   "GeneralMessages": {

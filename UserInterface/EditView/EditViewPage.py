@@ -332,7 +332,7 @@ class BottomCommandBar(Base,CardWidget):
         self.schedule_btn.setText(self.tra("定时"))
 
 # 层级浏览器
-class NavigationCard(CardWidget):
+class NavigationCard(Base,CardWidget):
     searchRequested = pyqtSignal(dict)  # 信号，发送搜索参数字典
     termExtractionRequested = pyqtSignal(dict)  # 用于发送术语提取参数的信号
 
@@ -347,16 +347,19 @@ class NavigationCard(CardWidget):
         self.toolbar_layout.setContentsMargins(0, 0, 0, 0)
         self.toolbar_layout.setSpacing(8)
         
+        # 搜索按钮
         self.search_button = TransparentToolButton(FIF.SEARCH)
+        self.search_button.setToolTip(self.tra("搜索替换"))
         self.search_button.clicked.connect(self._open_search_dialog) # 连接点击事件
 
         # 术语提取按钮
-        self.term_extraction_button = TransparentToolButton(FIF.TAG) # 
+        self.term_extraction_button = TransparentToolButton(FIF.EDUCATION)
+        self.term_extraction_button.setToolTip(self.tra("提取术语")) 
         self.term_extraction_button.clicked.connect(self._open_term_extraction_dialog)
 
-        self.toolbar_layout.addStretch(1)  
+        self.toolbar_layout.addStretch(1)
+        self.toolbar_layout.addWidget(self.term_extraction_button)  
         self.toolbar_layout.addWidget(self.search_button)
-        self.toolbar_layout.addWidget(self.term_extraction_button)
         self.toolbar_layout.addStretch(1)  
         self.layout.addWidget(self.toolbar)
         

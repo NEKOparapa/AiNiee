@@ -1,7 +1,7 @@
 import uuid
-from PyQt5.QtWidgets import ( QWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QGridLayout, QFrame)
+from PyQt5.QtWidgets import ( QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QFrame)
 from PyQt5.QtCore import Qt,  pyqtSignal
-from qfluentwidgets import CaptionLabel, CardWidget, FluentWindow, HorizontalSeparator, IconWidget, LineEdit, MessageBoxBase, PrimaryPushButton, PushButton as FluentPushButton, StrongBodyLabel, TextEdit, FluentIcon
+from qfluentwidgets import CaptionLabel, CardWidget, FluentWindow, HorizontalSeparator, IconWidget, LineEdit, MessageBoxBase, PrimaryPushButton, PushButton as FluentPushButton, ScrollArea, StrongBodyLabel, TextEdit, FluentIcon
 
 
 from Base.Base import Base
@@ -34,7 +34,7 @@ class PromptCard(Base,CardWidget):
         name_label = StrongBodyLabel(self.prompt_data["name"])
         name_label.setWordWrap(True)
 
-        content_preview = CaptionLabel(self.prompt_data["content"][:80] + "...")
+        content_preview = CaptionLabel(self.prompt_data["content"][:130] + "...")
         content_preview.setWordWrap(True)
 
         main_v_layout.addWidget(name_label)
@@ -243,8 +243,8 @@ class PolishingSystemPromptPage(QFrame, Base):
         # 设置顶部卡片内容文本框
         self.selected_prompt_content_text = TextEdit()
         self.selected_prompt_content_text.setReadOnly(True)
-        self.selected_prompt_content_text.setMinimumHeight(100)
-        self.selected_prompt_content_text.setMaximumHeight(200)
+        self.selected_prompt_content_text.setMinimumHeight(200)
+        #self.selected_prompt_content_text.setMaximumHeight(200)
 
         top_card_layout.addWidget(self.selected_prompt_content_text)
         
@@ -266,7 +266,7 @@ class PolishingSystemPromptPage(QFrame, Base):
         header_layout.addWidget(self.add_new_prompt_button)
         bottom_card_layout.addLayout(header_layout)
 
-        self.scroll_area = QScrollArea()
+        self.scroll_area = ScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.scroll_area.setStyleSheet("background-color: transparent; border: none;")
