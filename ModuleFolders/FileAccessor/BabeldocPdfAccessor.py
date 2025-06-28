@@ -64,7 +64,7 @@ class TranslatedItemsTranslator(BaseTranslator):
     def __init__(self, items: list[CacheItem]):
         super().__init__('', '', True)
         self.source_texts = set(x.source_text for x in items)
-        self.translated_iter = ((x.source_text, x.translated_text) for x in items)
+        self.translated_iter = ((x.source_text, x.final_text) for x in items)
 
     def translate(self, text, *args, **kwargs):
         return self.do_translate(text)
