@@ -35,6 +35,7 @@ class AppSettingsPage(QWidget, Base):
             "scale_factor": "AUTO",
             "interface_language_setting": "简中",
             "auto_check_update": True,
+            "label_input_exclude_rule": "",
         }
 
         # 载入并保存默认配置
@@ -65,6 +66,7 @@ class AppSettingsPage(QWidget, Base):
         self.add_widget_debug_mode(self.vbox, config)
         self.add_widget_scale_factor(self.vbox, config)
         self.add_widget_interface_language_setting(self.vbox, config)
+        self.add_widget_exclude_rule(self.vbox, config)
 
         # 填充
         self.vbox.addStretch(1)
@@ -236,3 +238,23 @@ class AppSettingsPage(QWidget, Base):
         )
 
 
+    def add_widget_exclude_rule(self, parent, config) -> None:
+        """文件/目录排除规则"""
+        def init(widget) -> None:
+            widget.set_text(config.get("label_input_exclude_rule"))
+            widget.set_fixed_width(256)
+            widget.set_placeholder_text(self.tra("*.log,aaa/*"))
+
+        def text_changed(widget, text: str) -> None:
+            config = self.load_config()
+            config["label_input_exclude_rule"] = text.strip()
+            self.save_config(config)
+
+        parent.addWidget(
+            LineEditCard(
+                self.tra("文件/目录排除规则"),
+                self.tra("*.log 表示排除所有结尾为 .log 的文件，aaa/* 表示排除输入文件夹下整个 aaa 目录，多个规则用英文逗号分隔"),
+                init=init,
+                text_changed=text_changed,
+            )
+        )

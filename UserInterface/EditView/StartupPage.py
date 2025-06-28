@@ -28,7 +28,6 @@ class StartupPage(Base, QWidget):
 
         # 默认配置
         self.default = {
-            "label_input_exclude_rule": "",
             "translation_project": "AutoType",
             "label_input_path": "./input",
         }
@@ -42,7 +41,7 @@ class StartupPage(Base, QWidget):
         self.container.setContentsMargins(24, 24, 24, 24)
 
         # 添加组件
-        self.add_widget_exclude_rule(self.container, config)
+
         self.add_widget_projecttype(self.container, config)
         self.add_widget_folder_drop(self.container, config)
 
@@ -67,27 +66,6 @@ class StartupPage(Base, QWidget):
             self.continue_card.show()
         else:
             self.continue_card.hide()
-
-    def add_widget_exclude_rule(self, parent, config) -> None:
-        """文件/目录排除规则"""
-        def init(widget) -> None:
-            widget.set_text(config.get("label_input_exclude_rule"))
-            widget.set_fixed_width(256)
-            widget.set_placeholder_text(self.tra("*.log,aaa/*"))
-
-        def text_changed(widget, text: str) -> None:
-            config = self.load_config()
-            config["label_input_exclude_rule"] = text.strip()
-            self.save_config(config)
-
-        parent.addWidget(
-            LineEditCard(
-                self.tra("文件/目录排除规则"),
-                self.tra("*.log 表示排除所有结尾为 .log 的文件，aaa/* 表示排除输入文件夹下整个 aaa 目录，多个规则用英文逗号分隔"),
-                init=init,
-                text_changed=text_changed,
-            )
-        )
 
     def add_widget_projecttype(self, parent, config) -> None:
         """项目类型"""
