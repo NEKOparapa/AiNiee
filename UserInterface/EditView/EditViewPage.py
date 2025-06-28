@@ -866,11 +866,11 @@ class EditViewPage(Base,QFrame):
         results = data.get("results", [])
 
         if not results:
-            MessageBox(self.tr("未找到"), self.tr("未能提取到任何符合条件的术语。"), self.window()).exec()
+            MessageBox(self.tra("未找到"), self.tra("未能提取到任何符合条件的术语。"), self.window()).exec()
             return
 
         # 创建并显示结果标签页 (这部分代码保持不变)
-        tab_name = self.tr("术语提取结果")
+        tab_name = self.tra("术语提取结果")
         route_key = f"terms_{int(time.time())}"
 
         result_page = TermResultPage(results)

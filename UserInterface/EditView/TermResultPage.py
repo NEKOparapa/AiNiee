@@ -42,17 +42,17 @@ class TermResultPage(Base, QWidget):
         toolbar_layout = QHBoxLayout()
         toolbar_layout.setContentsMargins(0, 0, 0, 0)
         toolbar_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        self.translate_save_button = PrimaryPushButton(FluentIcon.LANGUAGE, self.tr("翻译后保存到术语表"), self)
+        self.translate_save_button = PrimaryPushButton(FluentIcon.LANGUAGE, self.tra("翻译后保存到术语表"), self)
         self.translate_save_button.clicked.connect(self._on_translate_and_save)
         toolbar_layout.addWidget(self.translate_save_button)
-        self.save_button = PrimaryPushButton(FluentIcon.DICTIONARY_ADD, self.tr("直接保存到术语表"), self)
+        self.save_button = PrimaryPushButton(FluentIcon.DICTIONARY_ADD, self.tra("直接保存到术语表"), self)
         self.save_button.clicked.connect(self._on_save_to_glossary)
         toolbar_layout.addWidget(self.save_button)
         self.layout.addLayout(toolbar_layout)
 
     def _init_table(self):
         """初始化表格样式和表头"""
-        self.headers = [self.tr("术语"), self.tr("类型"), self.tr("所在原文"), self.tr("来源文件")]
+        self.headers = [self.tra("术语"), self.tra("类型"), self.tra("所在原文"), self.tra("来源文件")]
         self.table.setColumnCount(len(self.headers))
         self.table.setHorizontalHeaderLabels(self.headers)
         self.table.verticalHeader().hide()
@@ -102,7 +102,7 @@ class TermResultPage(Base, QWidget):
         has_selection = bool(selected_rows)
 
         # 添加“删除行”选项
-        delete_action = Action(FluentIcon.DELETE, self.tr("删除选中行"))
+        delete_action = Action(FluentIcon.DELETE, self.tra("删除选中行"))
         delete_action.setEnabled(has_selection) # 仅在有选中行时启用
         delete_action.triggered.connect(self._delete_selected_rows)
         menu.addAction(delete_action)
@@ -111,7 +111,7 @@ class TermResultPage(Base, QWidget):
 
         # 添加“行数信息”选项
         row_count = self.table.rowCount()
-        row_count_action = Action(FluentIcon.INFO, self.tr("总行数: {}").format(row_count))
+        row_count_action = Action(FluentIcon.INFO, self.tra("总行数: {}").format(row_count))
         row_count_action.setEnabled(False)  # 仅作信息展示，不可点击
         menu.addAction(row_count_action)
 
@@ -130,8 +130,8 @@ class TermResultPage(Base, QWidget):
 
         # 弹出确认对话框
         confirm_msg = MessageBox(
-            self.tr("确认删除"),
-            self.tr("您确定要删除选中的 {} 行吗？此操作不可撤销。").format(len(rows_to_delete)),
+            self.tra("确认删除"),
+            self.tra("您确定要删除选中的 {} 行吗？此操作不可撤销。").format(len(rows_to_delete)),
             self.window()
         )
         if not confirm_msg.exec():
@@ -145,14 +145,14 @@ class TermResultPage(Base, QWidget):
             self.table.removeRow(row)
 
         self.success_toast(
-            self.tr("操作成功"),
-            self.tr("已成功删除 {} 行。").format(len(rows_to_delete))
+            self.tra("操作成功"),
+            self.tra("已成功删除 {} 行。").format(len(rows_to_delete))
         )
 
     def _on_save_to_glossary(self):
         """处理“直接保存到术语表”按钮点击事件"""
         if not self.extraction_results:
-            self.warning_toast(self.tr("提示"), self.tr("没有可保存的术语。"))
+            self.warning_toast(self.tra("提示"), self.tra("没有可保存的术语。"))
             return
         try:
             config = self.load_config()
@@ -173,8 +173,8 @@ class TermResultPage(Base, QWidget):
             config["prompt_dictionary_data"] = prompt_dictionary_data
             self.save_config(config)
             self.success_toast(
-                self.tr("保存成功"),
-                self.tr(f"已添加 {added_count} 个新术语到术语表。")
+                self.tra("保存成功"),
+                self.tra(f"已添加 {added_count} 个新术语到术语表。")
             )
         except Exception as e:
             self.error_toast(self.tr("保存失败"), str(e))
@@ -183,12 +183,12 @@ class TermResultPage(Base, QWidget):
     def _on_translate_and_save(self):
         """处理“翻译后保存到术语表”按钮点击事件"""
         if not self.extraction_results:
-            self.warning_toast(self.tr("提示"), self.tr("没有可处理的术语。"))
+            self.warning_toast(self.tra("提示"), self.tra("没有可处理的术语。"))
             return
         self.emit(Base.EVENT.TERM_TRANSLATE_SAVE_START, {
             "extraction_results": self.extraction_results
         })
         self.info_toast(
-            self.tr("任务已开始"),
-            self.tr("正在后台根据原文进行提取、翻译和保存，请稍后...")
+            self.tra("任务已开始"),
+            self.tra("正在后台根据原文进行提取、翻译和保存，请稍后...")
         )

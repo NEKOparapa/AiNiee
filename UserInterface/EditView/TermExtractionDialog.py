@@ -21,7 +21,7 @@ class TermExtractionDialog(Base, MessageBoxBase):
         top_layout.addWidget(StrongBodyLabel(self.tra("选择NER分词模型:")))
         top_layout.addStretch(1) # 添加伸缩，将按钮推到右侧
 
-        tutorial_url = "https://github.com" 
+        tutorial_url = "https://github.com/NEKOparapa/AiNiee/wiki/NER%E6%A8%A1%E5%9E%8B%E4%B8%8B%E8%BD%BD%E6%8C%87%E5%8D%97" 
         self.tutorialButton = HyperlinkButton(url=tutorial_url, text=self.tra("模型下载"), parent=self)
         top_layout.addWidget(self.tutorialButton)
         layout.addLayout(top_layout)
