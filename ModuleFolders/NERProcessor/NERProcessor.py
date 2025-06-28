@@ -103,4 +103,25 @@ class NERProcessor(Base):
                 seen.add(identifier)
         
         self.info(f"去重后得到 {len(unique_results)} 个独立术语。")
-        return unique_results
+
+        # 过滤器规则
+        self.info("正在根据规则过滤术语...")
+        filter_keywords = ('-', '…', '一','―','？', '©', '章　', 'ー', 'http', '！', '=', '"', '＋', '：', '『', 'ぃ', '～', '♦', '〇', 
+                           '└', "'", "/", "｢", "）", "（", "♥", "●", "!", "】", "【", "<", ">", "*", "〜", "EV", "♪", "^", "★", "※", ".",
+                            "|",
+                           )
+        
+        filtered_results = [
+            res for res in unique_results 
+            if not any(keyword in res["term"] for keyword in filter_keywords)
+        ]
+        
+        self.info(f"过滤后剩余 {len(filtered_results)} 个术语。")
+
+        # 按类型对结果进行排序
+        self.info("正在按类型对术语进行排序...")
+        # 使用 sorted 函数和 lambda 表达式按 'type' 键的值进行排序
+        sorted_results = sorted(filtered_results, key=lambda item: item['type'])
+
+        self.info(f"处理完成，最终返回 {len(sorted_results)} 个术语。")
+        return sorted_results

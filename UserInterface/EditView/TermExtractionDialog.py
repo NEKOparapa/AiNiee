@@ -1,6 +1,7 @@
 import os
-from qfluentwidgets import ComboBox, CheckBox, MessageBoxBase, StrongBodyLabel, InfoBar, InfoBarPosition
-from PyQt5.QtWidgets import QGroupBox, QWidget, QVBoxLayout, QGridLayout
+from qfluentwidgets import (ComboBox, CheckBox, MessageBoxBase, StrongBodyLabel, 
+                            InfoBar, InfoBarPosition, CaptionLabel, HyperlinkButton)
+from PyQt5.QtWidgets import QGroupBox, QWidget, QVBoxLayout, QGridLayout, QHBoxLayout
 from Base.Base import Base
 
 class TermExtractionDialog(Base, MessageBoxBase):
@@ -13,21 +14,34 @@ class TermExtractionDialog(Base, MessageBoxBase):
         layout = QVBoxLayout(self.view)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(15)
-        self.view.setMinimumWidth(350)
+        self.view.setMinimumWidth(400) # 稍微加宽以容纳新布局
 
-        # 动态扫描并加载模型
-        layout.addWidget(StrongBodyLabel(self.tra("选择NER分词模型:")))
+        # --- 顶部布局：标题和教程链接 ---
+        top_layout = QHBoxLayout()
+        top_layout.addWidget(StrongBodyLabel(self.tra("选择NER分词模型:")))
+        top_layout.addStretch(1) # 添加伸缩，将按钮推到右侧
+
+        tutorial_url = "https://github.com" 
+        self.tutorialButton = HyperlinkButton(url=tutorial_url, text=self.tra("模型下载"), parent=self)
+        top_layout.addWidget(self.tutorialButton)
+        layout.addLayout(top_layout)
+        
+        # --- 模型说明 ---
+        model_description = self.tra("注: ja开头-日语模型，en-英语模型，ko-韩语模型")
+        layout.addWidget(CaptionLabel(model_description, self))
+        
+        # --- 模型选择下拉框 ---
         self.model_combo = ComboBox(self)
         self.load_ner_models()
         layout.addWidget(self.model_combo)
 
-        # 实体类型选择
+        # --- 实体类型选择 ---
         self.entity_group = QGroupBox(self.tra("选择提取实体类型"))
         self.entity_layout = QGridLayout(self.entity_group)
         self.entity_layout.setSpacing(10)
 
-        # 预定义日语模型的实体类型
-        JAPANESE_TYPES = ["PERSON", "ORG", "GPE", "LOC", "DATE", "PRODUCT", "EVENT", "NORP", "MONEY", "TIME"]
+        # 预定义模型的实体类型可选范围
+        JAPANESE_TYPES = ["PERSON", "ORG", "GPE", "LOC", "PRODUCT", "EVENT"]
         self.entity_checkboxes = {}
 
         row, col = 0, 0
@@ -64,19 +78,13 @@ class TermExtractionDialog(Base, MessageBoxBase):
             self.yesButton.setEnabled(False)
             return
 
-        try:
-            models = [d.name for d in os.scandir(model_dir) if d.is_dir()]
-            if models:
-                self.model_combo.addItems(models)
-            else:
-                self.model_combo.addItem(self.tra("目录中无可用模型"))
-                self.model_combo.setEnabled(False)
-                self.yesButton.setEnabled(False)
-        except Exception as e:
-            self.error(f"扫描模型时出错: {e}")
+        models = [d.name for d in os.scandir(model_dir) if d.is_dir()]
+        if models:
+            self.model_combo.addItems(models)
+        else:
+            self.model_combo.addItem(self.tra("目录中无可用模型"))
             self.model_combo.setEnabled(False)
             self.yesButton.setEnabled(False)
-
 
     def accept(self):
         """点击“开始提取”时，收集配置数据"""
