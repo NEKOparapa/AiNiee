@@ -116,6 +116,7 @@
             "frequency_penalty": 0.0,
             "think_switch": false,
             "think_depth": "low",
+            "thinking_budget": -1,
             "auto_complete": false,
             "model_datas": [
                 "gemini-1.5-flash",
@@ -130,7 +131,9 @@
                 "rpm_limit",
                 "tpm_limit",
                 "temperature",
-                "top_p"
+                "top_p",
+                "think_switch",
+                "thinking_budget"
             ]
         },
         "openai": {
