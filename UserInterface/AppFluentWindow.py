@@ -238,8 +238,8 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.add_prompt_setting_pages(plugin_manager)
         self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
         self.add_table_pages(plugin_manager)
-        #self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
-        #self.add_stev_extraction_pages(plugin_manager, cache_manager, file_reader)
+        self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
+        self.add_stev_extraction_pages()
 
         # 设置默认页面
         self.switchTo(self.edit_view_page)
@@ -357,13 +357,13 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
 
     # 添加第五节
-    def add_stev_extraction_pages(self, plugin_manager, cache_manager, file_reader) -> None:
+    def add_stev_extraction_pages(self) -> None:
         pass
-        #self.stev_extraction_navigation_item = BaseNavigationItem("stev_extraction_navigation_item", self)
-        #self.addSubInterface(self.stev_extraction_navigation_item, FluentIcon.ZIP_FOLDER, self.tra("StevExtraction"), NavigationItemPosition.SCROLL)
-        #self.widget_export_source_text = Widget_export_source_text("widget_export_source_text", self, jtpp)
-        #self.addSubInterface(self.widget_export_source_text, FluentIcon.SHARE, self.tra("导出文本"), parent = self.stev_extraction_navigation_item)
-        #self.widget_import_translated_text = Widget_import_translated_text("widget_import_translated_text", self, jtpp)
-        #self.addSubInterface(self.widget_import_translated_text, FluentIcon.DOWNLOAD, self.tra("导入文本"), parent = self.stev_extraction_navigation_item)
-        #self.widget_update_text = Widget_update_text("widget_update_text", self, jtpp)
-        #self.addSubInterface(self.widget_update_text, FluentIcon.UPDATE, self.tra("导出增量文本"), parent = self.stev_extraction_navigation_item)
+        self.stev_extraction_navigation_item = BaseNavigationItem("stev_extraction_navigation_item", self)
+        self.addSubInterface(self.stev_extraction_navigation_item, FluentIcon.ZIP_FOLDER, self.tra("StevExtraction"), NavigationItemPosition.SCROLL)
+        self.widget_export_source_text = Widget_export_source_text("widget_export_source_text", self, jtpp)
+        self.addSubInterface(self.widget_export_source_text, FluentIcon.SHARE, self.tra("导出文本"), parent = self.stev_extraction_navigation_item)
+        self.widget_import_translated_text = Widget_import_translated_text("widget_import_translated_text", self, jtpp)
+        self.addSubInterface(self.widget_import_translated_text, FluentIcon.DOWNLOAD, self.tra("导入文本"), parent = self.stev_extraction_navigation_item)
+        self.widget_update_text = Widget_update_text("widget_update_text", self, jtpp)
+        self.addSubInterface(self.widget_update_text, FluentIcon.UPDATE, self.tra("导出增量文本"), parent = self.stev_extraction_navigation_item)
