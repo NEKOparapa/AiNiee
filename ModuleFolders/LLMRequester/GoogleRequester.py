@@ -1,5 +1,5 @@
 from google.genai import types
-from google.genai.types import Content, Part
+from google.genai.types import Content, HarmCategory, Part
 
 from Base.Base import Base
 from ModuleFolders.LLMRequester.LLMClientFactory import LLMClientFactory
@@ -42,15 +42,15 @@ class GoogleRequester(Base):
                 presence_penalty=presence_penalty,
                 frequency_penalty=frequency_penalty,
                 safety_settings=[
-                    types.SafetySetting(category=f'HARM_CATEGORY_{cat}', threshold='BLOCK_NONE')
-                    for cat in
-                    ["HARASSMENT", "HATE_SPEECH", "SEXUALLY_EXPLICIT", "DANGEROUS_CONTENT", "CIVIC_INTEGRITY"]
+                    types.SafetySetting(category=category, threshold='BLOCK_NONE')
+                    for category in HarmCategory
+                    if category not in [HarmCategory.HARM_CATEGORY_UNSPECIFIED, HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY]
                 ]
             )
 
             # 如果开启了思考模式，则添加思考配置
             if think_switch:
-                gen_config.thinking_config = types.GenerationConfigThinkingConfig(
+                gen_config.thinking_config = types.ThinkingConfig(
                     include_thoughts=True,
                     thinking_budget=thinking_budget
                 )
