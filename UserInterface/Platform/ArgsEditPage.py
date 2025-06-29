@@ -75,12 +75,16 @@ class ArgsEditPage(MessageBoxBase, Base):
         if "think_switch" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_think_switch(self.vbox, config)
 
-        # think_depth
-        if "think_depth" in config.get("platforms").get(self.key).get("key_in_settings") and self.key != "google":
+        # 获取接口格式以进行条件渲染
+        settings = config.get("platforms").get(self.key).get("key_in_settings")
+        api_format = config.get("platforms").get(self.key).get("api_format")
+
+        # think_depth - 仅在格式为 OpenAI 或 Anthropic 时显示
+        if "think_depth" in settings and api_format in ["OpenAI", "Anthropic"]:
             self.add_widget_think_depth(self.vbox, config)
 
-        # thinking_budget
-        if "thinking_budget" in config.get("platforms").get(self.key).get("key_in_settings"):
+        # thinking_budget - 仅在格式为 Google 时显示
+        if "thinking_budget" in settings and api_format == "Google":
             self.add_widget_thinking_budget(self.vbox, config, preset)
 
         # 填充
