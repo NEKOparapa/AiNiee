@@ -76,8 +76,12 @@ class ArgsEditPage(MessageBoxBase, Base):
             self.add_widget_think_switch(self.vbox, config)
 
         # think_depth
-        if "think_depth" in config.get("platforms").get(self.key).get("key_in_settings"):
+        if "think_depth" in config.get("platforms").get(self.key).get("key_in_settings") and self.key != "google":
             self.add_widget_think_depth(self.vbox, config)
+
+        # thinking_budget
+        if "thinking_budget" in config.get("platforms").get(self.key).get("key_in_settings"):
+            self.add_widget_thinking_budget(self.vbox, config, preset)
 
         # 填充
         self.vbox.addStretch(1)
@@ -137,7 +141,34 @@ class ArgsEditPage(MessageBoxBase, Base):
             )
         )
 
+    # 思维预算
+    def add_widget_thinking_budget(self, parent, config, preset):
+        def init(widget):
+            widget.set_range(-1, 32768)
+            value = config.get("platforms").get(self.key).get("thinking_budget", -1)
+            widget.set_text(str(value))
+            widget.set_value(value)
 
+        def value_changed(widget, value):
+            widget.set_text(str(value))
+            config = self.load_config()
+            config["platforms"][self.key]["thinking_budget"] = value
+            self.save_config(config)
+
+        if self.key in preset.get("platforms"):
+            default_value = preset.get("platforms").get(self.key).get("thinking_budget")
+        else:
+            default_value = -1
+
+        info_cont = self.tra("请谨慎设置，对于目标接口，此参数的默认值为") + f" {default_value} (-1代表自动)"
+        parent.addWidget(
+            SliderCard(
+                "thinking_budget",
+                info_cont,
+                init = init,
+                value_changed = value_changed,
+            )
+        )
 
     # 自定义Body
     def add_widget_extra_body(self, parent, config):

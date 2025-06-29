@@ -17,7 +17,7 @@ class GoogleRequester(Base):
             temperature = platform_config.get("temperature", 1.0)
             top_p = platform_config.get("top_p", 1.0)
             think_switch = platform_config.get("think_switch")
-            think_depth = platform_config.get("think_depth")
+            thinking_budget = platform_config.get("thinking_budget")
 
             # 重新处理openai格式的消息为google格式
             processed_messages = [
@@ -31,22 +31,31 @@ class GoogleRequester(Base):
             # 创建 Gemini Developer API 客户端（非 Vertex AI API）
             client = LLMClientFactory().get_google_client(platform_config)
 
+            # 构建基础配置
+            gen_config = types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                max_output_tokens=32768 if model_name.startswith("gemini-2.5") else 8192,
+                temperature=temperature,
+                top_p=top_p,
+                safety_settings=[
+                    types.SafetySetting(category=f'HARM_CATEGORY_{cat}', threshold='BLOCK_NONE')
+                    for cat in
+                    ["HARASSMENT", "HATE_SPEECH", "SEXUALLY_EXPLICIT", "DANGEROUS_CONTENT", "CIVIC_INTEGRITY"]
+                ]
+            )
+
+            # 如果开启了思考模式，则添加思考配置
+            if think_switch:
+                gen_config.thinking_config = types.GenerationConfigThinkingConfig(
+                    include_thoughts=True,
+                    thinking_budget=thinking_budget
+                )
 
             # 生成文本内容
             response = client.models.generate_content(
                 model=model_name,
                 contents=processed_messages,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    max_output_tokens=32768 if model_name.startswith("gemini-2.5") else 8192,
-                    temperature=temperature,
-                    top_p=top_p,
-                    safety_settings=[
-                        types.SafetySetting(category=f'HARM_CATEGORY_{cat}', threshold='BLOCK_NONE')
-                        for cat in
-                        ["HARASSMENT", "HATE_SPEECH", "SEXUALLY_EXPLICIT", "DANGEROUS_CONTENT", "CIVIC_INTEGRITY"]
-                    ]
-                ),
+                config=gen_config,
             )
 
             # 提取回复的文本内容
