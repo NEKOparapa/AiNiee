@@ -106,22 +106,42 @@ class NERProcessor(Base):
 
         # 过滤器规则
         self.info("正在根据规则过滤术语...")
+
+        # 规则 1: 过滤包含特定禁用关键字的术语
         filter_keywords = ('-', '…', '一','―','？', '©', '章　', 'ー', 'http', '！', '=', '"', '＋', '：', '『', 'ぃ', '～', '♦', '〇', 
                            '└', "'", "/", "｢", "）", "（", "♥", "●", "!", "】", "【", "<", ">", "*", "〜", "EV", "♪", "^", "★", "※", ".",
-                            "|",
+                            "|","ｰ","%","if","Lv","(","\\","]","[","◆",":","_","ｗｗｗ","、","ぁぁ","んえ","んんん",
                            )
-        
-        filtered_results = [
+        results_after_keywords = [
             res for res in unique_results 
             if not any(keyword in res["term"] for keyword in filter_keywords)
         ]
-        
-        self.info(f"过滤后剩余 {len(filtered_results)} 个术语。")
+        self.info(f"过滤关键字后剩余 {len(results_after_keywords)} 个术语。")
 
+        # 规则 2 & 3: 过滤纯数字和英文数字组合 (忽略内部空格)
+        final_filtered_results = []
+        for res in results_after_keywords:
+            term = res["term"]
+            # 创建一个用于检查的临时版本，移除所有半角和全角空格
+            term_for_check = term.replace(" ", "").replace("\u3000", "")
+
+            # 规则 2: 如果移除空格后是纯数字，则过滤
+            if term_for_check.isdigit():
+                continue
+
+            # 规则 3: 如果移除空格后是字母和数字的组合，则过滤
+            # 条件: (只包含字母和数字) 并且 (不全是字母)
+            if term_for_check.isalnum() and not term_for_check.isalpha():
+                continue
+            
+            # 如果通过所有检查，则保留该术语
+            final_filtered_results.append(res)
+        
+        self.info(f"过滤数字与字母数字组合后剩余 {len(final_filtered_results)} 个术语。")
+        
         # 按类型对结果进行排序
         self.info("正在按类型对术语进行排序...")
-        # 使用 sorted 函数和 lambda 表达式按 'type' 键的值进行排序
-        sorted_results = sorted(filtered_results, key=lambda item: item['type'])
+        sorted_results = sorted(final_filtered_results, key=lambda item: item['type'])
 
         self.info(f"处理完成，最终返回 {len(sorted_results)} 个术语。")
         return sorted_results
