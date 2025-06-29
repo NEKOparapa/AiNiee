@@ -46,7 +46,7 @@ class LLMRequester(Base):
                 system_prompt,
                 platform_config,
             )
-        elif target_platform == "google":
+        elif target_platform == "google" or (target_platform.startswith("custom_platform_") and api_format == "Google"):
             google_requester = GoogleRequester()
             skip, response_think, response_content, prompt_tokens, completion_tokens = google_requester.request_google(
                 messages,

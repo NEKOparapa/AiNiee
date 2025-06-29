@@ -166,6 +166,7 @@ class PlatformPage(QFrame, Base):
         "format_datas": [
             "OpenAI",
             "Anthropic",
+            "Google"
         ],
         "extra_body": {},
         "key_in_settings": [
@@ -182,7 +183,8 @@ class PlatformPage(QFrame, Base):
             "frequency_penalty",
             "extra_body",
             "think_switch",
-            "think_depth"
+            "think_depth",
+            "thinking_budget"
         ],
     }
 

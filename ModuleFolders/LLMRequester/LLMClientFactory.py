@@ -7,6 +7,7 @@ import anthropic
 import boto3
 import cohere
 from google import genai
+import json
 
 
 def create_httpx_client(
@@ -112,7 +113,10 @@ class LLMClientFactory:
     def get_google_client(self, config: Dict[str, Any]) -> genai.Client:
         """获取Google AI客户端"""
         api_key = config.get("api_key")
-        key = ("google", api_key)
+        api_url = config.get("api_url")
+        extra_body = config.get("extra_body", {})
+        extra_body_serialized = json.dumps(extra_body, sort_keys=True) if extra_body else None
+        key = ("google", api_key, api_url, extra_body_serialized)
         return self._get_cached_client(key, lambda: self._create_google_client(config))
 
     def _get_cached_client(self, key, factory_func):
@@ -163,4 +167,17 @@ class LLMClientFactory:
         )
 
     def _create_google_client(self, config):
-        return genai.Client(api_key=config.get("api_key"))
+        api_key = config.get("api_key")
+        api_url = config.get("api_url")
+        extra_body = config.get("extra_body")
+
+        http_options = {}
+        if api_url:
+            http_options["base_url"] = api_url
+        if extra_body:
+            http_options["extra_body"] = extra_body
+
+        if http_options:
+            return genai.Client(api_key=api_key, http_options=http_options)
+        else:
+            return genai.Client(api_key=api_key)
