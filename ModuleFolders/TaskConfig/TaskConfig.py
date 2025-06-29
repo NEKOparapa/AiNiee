@@ -8,6 +8,7 @@ import rapidjson as json
 from Base.Base import Base
 from ModuleFolders.TaskConfig.TaskType import TaskType
 
+
 # 接口请求器
 class TaskConfig(Base):
 
@@ -215,6 +216,7 @@ class TaskConfig(Base):
         extra_body = self.platforms.get(target_platform).get("extra_body",{})
         think_switch = self.platforms.get(target_platform).get("think_switch")
         think_depth = self.platforms.get(target_platform).get("think_depth")
+        thinking_budget = self.platforms.get(target_platform).get("thinking_budget", -1)
 
         params = {
             "target_platform": target_platform,
@@ -232,7 +234,8 @@ class TaskConfig(Base):
             "frequency_penalty": frequency_penalty,
             "extra_body": extra_body,
             "think_switch": think_switch,
-            "think_depth": think_depth
+            "think_depth": think_depth,
+            "thinking_budget": thinking_budget
         }
 
 
