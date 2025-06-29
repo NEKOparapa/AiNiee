@@ -77,7 +77,7 @@ class InfoBlockWidget(QWidget):
         painter.drawText(draw_rect, Qt.AlignCenter | Qt.TextWordWrap, self.text)
 
 class DragDropArea(Base,QWidget):
-    folderDropped = pyqtSignal(str)
+    pathDropped = pyqtSignal(str) # 文件路径改变信号
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -169,7 +169,7 @@ class DragDropArea(Base,QWidget):
         self.pathLabel.setText(f"{info}: {display_path}")
         self.pathLabel.setToolTip(path)
         if emit_signal: # 只有在需要时才发射信号
-            self.folderDropped.emit(path)
+            self.pathDropped.emit(path)
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -205,16 +205,34 @@ class DragDropArea(Base,QWidget):
         self.is_dragging = False
         self.update()
         
-        for url in event.mimeData().urls():
-            if url.isLocalFile():
-                path = url.toLocalFile()
-                if os.path.exists(path):
-                    if os.path.isdir(path):
-                        self.update_path(path)
-                        return
-                    elif os.path.isfile(path):
-                        self.update_path(os.path.dirname(path))
-                        return
+        if not event.mimeData().hasUrls():
+            return
+
+        # 获取所有有效本地路径
+        urls = event.mimeData().urls()
+        paths = [url.toLocalFile() for url in urls if url.isLocalFile() and os.path.exists(url.toLocalFile())]
+
+        if not paths:
+            return
+
+        # 根据路径数量进行判断
+        if len(paths) == 1:
+            # 拖入的是单个文件或文件夹
+            # 直接使用该路径
+            self.update_path(paths[0])
+        else:
+            # 拖入的是多个文件/文件夹
+            # 获取它们共同的父目录
+            # 注意：os.path.dirname对于文件夹（如'C:/Users'）会返回上一级（'C:/'）
+            # 所以先判断第一个元素是不是文件夹
+            first_path = paths[0]
+            if os.path.isdir(first_path):
+                 # 如果用户拖动多个项，其中第一个是文件夹，
+                 parent_dir = os.path.dirname(first_path)
+            else: # 是文件
+                 parent_dir = os.path.dirname(first_path)
+            
+            self.update_path(parent_dir)
 
 class FolderDropCard(Base,CardWidget):
     pathChanged = pyqtSignal(str)
@@ -231,7 +249,7 @@ class FolderDropCard(Base,CardWidget):
         layout.addWidget(self.dragDropArea)
         
         # 连接信号
-        self.dragDropArea.folderDropped.connect(self.pathChanged)
+        self.dragDropArea.pathDropped.connect(self.pathChanged)
         if path_changed:
             self.pathChanged.connect(path_changed)
         
