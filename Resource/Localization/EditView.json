@@ -298,9 +298,9 @@
       "English": "Note: 'ja' prefix for Japanese models, 'en' for English, 'ko' for Korean.",
       "日本語": "注: jaで始まるモデルは日本語、enは英語、koは韓国語です。"
     },
-    "选择提取实体类型": {
-      "简中": "选择提取实体类型",
-      "繁中": "選擇提取實體類型",
+    "选择提取术语类型": {
+      "简中": "选择提取术语类型",
+      "繁中": "選擇提取術語類型",
       "English": "Select Entity Types to Extract",
       "日本語": "抽出するエンティティタイプを選択"
     },

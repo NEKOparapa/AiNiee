@@ -36,7 +36,7 @@ class TermExtractionDialog(Base, MessageBoxBase):
         layout.addWidget(self.model_combo)
 
         # --- 实体类型选择 ---
-        self.entity_group = QGroupBox(self.tra("选择提取实体类型"))
+        self.entity_group = QGroupBox(self.tra("选择提取术语类型"))
         self.entity_layout = QGridLayout(self.entity_group)
         self.entity_layout.setSpacing(10)
 
