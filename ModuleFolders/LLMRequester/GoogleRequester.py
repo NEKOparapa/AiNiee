@@ -16,6 +16,8 @@ class GoogleRequester(Base):
             model_name = platform_config.get("model_name")
             temperature = platform_config.get("temperature", 1.0)
             top_p = platform_config.get("top_p", 1.0)
+            presence_penalty = platform_config.get("presence_penalty", 0.0)
+            frequency_penalty = platform_config.get("frequency_penalty", 0.0)
             think_switch = platform_config.get("think_switch")
             thinking_budget = platform_config.get("thinking_budget")
 
@@ -37,6 +39,8 @@ class GoogleRequester(Base):
                 max_output_tokens=32768 if model_name.startswith("gemini-2.5") else 8192,
                 temperature=temperature,
                 top_p=top_p,
+                presence_penalty=presence_penalty,
+                frequency_penalty=frequency_penalty,
                 safety_settings=[
                     types.SafetySetting(category=f'HARM_CATEGORY_{cat}', threshold='BLOCK_NONE')
                     for cat in
