@@ -82,10 +82,7 @@
             "think_depth": "low",
             "auto_complete": false,
             "model_datas": [
-                "command",
-                "command-r",
                 "command-r-plus",
-                "c4ai-aya-expanse-8b",
                 "c4ai-aya-expanse-32b"
             ],
             "key_in_settings": [
@@ -109,7 +106,7 @@
             "icon": "google",
             "rpm_limit": 15,
             "tpm_limit": 320000,
-            "model": "gemini-1.5-flash",
+            "model": "gemini-2.5-pro",
             "top_p": 0.95,
             "temperature": 1.0,
             "presence_penalty": 0.0,
@@ -119,11 +116,9 @@
             "thinking_budget": -1,
             "auto_complete": false,
             "model_datas": [
-                "gemini-1.5-flash",
-                "gemini-1.5-pro",
-                "gemini-2.0-flash-exp",
-                "gemini-2.0-flash-thinking-exp",
-                "gemini-2.5-pro-exp-03-25"
+                "gemma-3n-e2b-it",
+                "gemini-2.5-flash",
+                "gemini-2.5-pro"
             ],
             "key_in_settings": [
                 "api_key",
@@ -228,11 +223,9 @@
             "think_depth": "low",
             "auto_complete": false,
             "model_datas": [
-                "claude-3-haiku",
                 "claude-3-5-haiku",
-                "claude-3-sonnet",
-                "claude-3-5-sonnet",
-                "claude-3-opus"
+                "claude-sonnet-4",
+                "claude-opus-4"
             ],
             "key_in_settings": [
                 "api_key",
@@ -336,7 +329,7 @@
             "icon": "volcengine",
             "rpm_limit": 10000,
             "tpm_limit": 8000000,
-            "model": "doubao-1-5-pro-32k-250115",
+            "model": "doubao-seed-1-6-flash-250615",
             "top_p": 1.0,
             "temperature": 1.0,
             "presence_penalty": 0.0,
@@ -345,10 +338,10 @@
             "think_depth": "low",
             "auto_complete": false,
             "model_datas": [
-                "doubao-1-5-pro-32k-250115",
-                "doubao-1-5-thinking-pro-250415",
+                "doubao-seed-1-6-flash-250615",
+                "doubao-seed-1-6-250615",
                 "deepseek-v3-250324",
-                "deepseek-r1-250120"
+                "deepseek-r1-250528"
             ],
             "key_in_settings": [
                 "api_key",
@@ -419,7 +412,6 @@
                 "glm-4-flash",
                 "glm-4-flashx",
                 "glm-4-air",
-                "glm-4-0520",
                 "glm-4-plus"
             ],
             "key_in_settings": [
@@ -487,7 +479,8 @@
             "model_datas": [
                 "moonshot-v1-8k",
                 "moonshot-v1-32k",
-                "moonshot-v1-128k"
+                "moonshot-v1-128k",
+                "kimi-thinking-preview"
             ],
             "key_in_settings": [
                 "api_key",

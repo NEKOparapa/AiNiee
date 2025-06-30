@@ -354,6 +354,18 @@
       "繁中": "啟用此功能後，將根據本頁中設定的內容構建翻譯範例，並補充到基礎提示詞中（不支援本地類模型）",
       "English": "When enabled, translation example will be built based on the settings on this page and added to the basic prompt (local models are not supported)",
       "日本語": "この機能を有効にすると、このページの設定に基づいて翻訳例が構築され、基本プロンプトに追加されます（ローカルモデルはサポートされていません）"
+    },
+    "自定义排版参考": {
+    "简中": "自定义排版参考",
+    "繁中": "自定義排版參考",
+    "English": "Custom Composition Reference",
+    "日本語": "カスタム構図参考"
+    },
+    "启用此功能后，将根据本页中设置的内容构建排版参考提示，并补充到基础提示词中": {
+    "简中": "启用此功能后，将根据本页中设置的内容构建排版参考提示，并补充到基础提示词中",
+    "繁中": "啟用此功能後，將根據本頁中設定的內容建構排版參考提示，並補充到基礎提示詞中",
+    "English": "When enabled, a composition reference prompt will be built based on the settings on this page and added to the base prompt.",
+    "日本語": "この機能を有効にすると、このページの設定に基づいて構図参考プロンプトが作成され、ベースプロンプトに追加されます。"
     }
   }
 }

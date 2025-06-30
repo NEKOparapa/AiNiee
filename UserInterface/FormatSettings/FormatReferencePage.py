@@ -62,8 +62,8 @@ class FormatReferencePage(QFrame, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                self.tra("自定义背景设定"),
-                self.tra("启用此功能后，将根据本页中设置的内容构建背景设定提示，并补充到基础提示词中（不支持本地类模型）"),
+                self.tra("自定义排版参考"),
+                self.tra("启用此功能后，将根据本页中设置的内容构建排版参考提示，并补充到基础提示词中"),
                 widget_init,
                 widget_callback,
             )
