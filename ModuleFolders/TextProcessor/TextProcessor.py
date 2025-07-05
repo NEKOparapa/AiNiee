@@ -68,9 +68,10 @@ class TextProcessor():
     def _normalize_line_endings(self, text: str) -> Tuple[str, List[Tuple[int, str]]]:
         """
         统一换行符为 \n，并记录每个换行符的原始类型和位置
+        现在支持HTML换行标记：<br>, <br/>, <br />
         返回: (标准化后的文本, 换行符位置和类型列表)
         """
-        if not ('\r' in text or '\n' in text):
+        if not ('\r' in text or '\n' in text or '<br' in text.lower()):
             return text, []
 
         # 记录每个换行符的位置和类型
@@ -80,6 +81,19 @@ class TextProcessor():
         line_pos = 0  # 在标准化文本中的行位置
 
         while i < len(text):
+            # 检查HTML <br> 标记（不区分大小写）
+            if text[i:i + 3].lower() == '<br':
+                # 找到完整的br标记
+                br_end = text.find('>', i)
+                if br_end != -1:
+                    br_tag = text[i:br_end + 1]
+                    line_endings.append((line_pos, br_tag))
+                    normalized_text += '\n'
+                    i = br_end + 1
+                    line_pos += 1
+                    continue
+
+            # 检查传统换行符
             if i < len(text) - 1 and text[i:i + 2] == '\r\n':
                 # Windows 换行符
                 line_endings.append((line_pos, '\r\n'))
@@ -184,7 +198,7 @@ class TextProcessor():
 
         for line in lines:
             # 修改判断条件：检查空行或纯空白行
-            if (not line or not line.strip()) and len(lines) > 1:  # 空行或纯空白行处理
+            if not line or not line.strip():  # 空行或纯空白行处理
                 lines_info.append({
                     'prefix': '',
                     'suffix': '',
