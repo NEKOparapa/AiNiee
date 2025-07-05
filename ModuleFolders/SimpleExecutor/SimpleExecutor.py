@@ -154,19 +154,7 @@ class SimpleExecutor(Base):
     # 术语表翻译
     def glossary_translation(self, event, data: dict):
 
-        # 获取参数
-        platform_tag = data.get("tag")
-        api_url = data.get("api_url")
-        api_key = data.get("api_key")
-        api_format = data.get("api_format")
-        model_name = data.get("model")
-        auto_complete = data.get("auto_complete")
-        extra_body = data.get("extra_body",{})
-        region = data.get("region")
-        access_key = data.get("access_key")
-        secret_key = data.get("secret_key")
-        target_language = data.get("target_language")
-
+        # 获取表格数据
         prompt_dictionary_data = data.get("prompt_dictionary_data")
         if not prompt_dictionary_data:
             self.info("没有需要翻译的术语")
@@ -175,20 +163,6 @@ class SimpleExecutor(Base):
                 "updated_data": prompt_dictionary_data
             })
             return
-
-        # 自动补全API地址
-        if platform_tag == "sakura" and not api_url.endswith("/v1"):
-            api_url += "/v1"
-        elif auto_complete:
-            version_suffixes = ["/v1", "/v2", "/v3", "/v4"]
-            if not any(api_url.endswith(suffix) for suffix in version_suffixes):
-                api_url += "/v1"
-
-
-        # 解析并分割密钥字符串，并只取第一个密钥进行测试
-        api_keys = re.sub(r"\s+","", api_key).split(",")
-        api_key = api_keys[0]
-
 
         # 获取未翻译术语
         untranslated_items = [item for item in prompt_dictionary_data if not item.get("dst")]
@@ -199,6 +173,13 @@ class SimpleExecutor(Base):
                 "updated_data": prompt_dictionary_data
             })
             return
+
+        # 准备翻译配置
+        config = TaskConfig()
+        config.initialize()
+        config.prepare_for_translation(TaskType.TRANSLATION)
+        platform_config = config.get_platform_configuration("translationReq")
+        target_language = config.target_language
 
         # 分组处理（每组最多50个）
         group_size = 50
@@ -212,19 +193,6 @@ class SimpleExecutor(Base):
                 f"├ 分组数量: {total_groups}\n"
                 f"└ 每组上限: {group_size}术语")
         print("")
-
-        # 构建平台配置
-        platform_config = {
-            "target_platform": platform_tag,
-            "api_url": api_url,
-            "api_key": api_key,
-            "api_format": api_format,
-            "model_name": model_name,
-            "region": region,
-            "access_key": access_key,
-            "secret_key": secret_key,
-            "extra_body": extra_body
-        }
 
         # 分组翻译处理
         for group_idx in range(total_groups):
@@ -243,7 +211,7 @@ class SimpleExecutor(Base):
             system_prompt = (
                 f"Translate the source text from the glossary into {target_language} line by line, maintaining accuracy and naturalness, and output the translation wrapped in a textarea tag:\n"
                 "<textarea>\n"
-                f"1.{target_language}text\n"
+                f"1.{target_language} text\n"
                 "</textarea>\n"
             )
 
@@ -261,8 +229,6 @@ class SimpleExecutor(Base):
             print("")
             self.info(
                     f" 正在发送API请求...\n"
-                    f"│ 平台类型: {platform_tag}\n"
-                    f"│ 模型名称: {model_name}\n"
                     f"└ 目标语言: {target_language}")
             print("")
 

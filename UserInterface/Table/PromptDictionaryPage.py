@@ -582,15 +582,7 @@ class PromptDictionaryPage(QFrame, Base):
     def glossary_translation(self) -> None:
         if Base.work_status == Base.STATUS.IDLE:
             Base.work_status = Base.STATUS.GLOSS_TASK
-            config = self.load_config()
-            api_settings = config.get("api_settings")
-            name = api_settings["translate"]
-            platform = config.get("platforms", {}).get(name)
-
-            data = copy.deepcopy(platform)
-            data["proxy_url"] = config.get("proxy_url")
-            data["proxy_enable"] = config.get("proxy_enable")
-            data["target_language"] = config.get("target_language")
+            data = {}
             data["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
 
             if not any(item.get('src') and not item.get('dst') for item in data["prompt_dictionary_data"]):
