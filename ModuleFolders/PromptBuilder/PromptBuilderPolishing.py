@@ -219,7 +219,7 @@ class PromptBuilderPolishing(Base):
 
         # 如果启用润色风格功能
         if config.polishing_style_switch == True:
-            writing_style = PromptBuilderPolishing.build_ntl_prompt(config)
+            writing_style = PromptBuilderPolishing.build_writing_style(config)
             if writing_style != "":
                 system += writing_style
                 extra_log.append(writing_style)

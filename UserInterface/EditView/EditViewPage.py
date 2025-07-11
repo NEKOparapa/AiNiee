@@ -348,13 +348,13 @@ class NavigationCard(Base,CardWidget):
         self.toolbar_layout.setSpacing(8)
         
         # 搜索按钮
-        self.search_button = TransparentToolButton(FIF.SEARCH)
-        self.search_button.setToolTip(self.tra("搜索替换"))
+        self.search_button = TransparentPushButton(FIF.SEARCH,self.tra("搜索"))
+        #self.search_button.setToolTip(self.tra("搜索替换"))
         self.search_button.clicked.connect(self._open_search_dialog) # 连接点击事件
 
         # 术语提取按钮
-        self.term_extraction_button = TransparentToolButton(FIF.FILTER)
-        self.term_extraction_button.setToolTip(self.tra("提取术语")) 
+        self.term_extraction_button = TransparentPushButton(FIF.FILTER, self.tra("术语"))
+        #self.term_extraction_button.setToolTip(self.tra("提取术语")) 
         self.term_extraction_button.clicked.connect(self._open_term_extraction_dialog)
 
         self.toolbar_layout.addStretch(1)

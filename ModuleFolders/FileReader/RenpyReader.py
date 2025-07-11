@@ -17,7 +17,8 @@ class RenpyReader(BaseSourceReader):
     读取 rpy 文件并提取翻译条目，支持下面格式:
     1. old "..." / new "..."
     2. # tag "..." / tag "..."
-    3. # "..." / "..." 
+    3. # "..." / "..."
+    4. 支持 # tag "..." 和 tag "..." 中间存在 voice/video 等指令行。
     能处理文本中包含的双引号。
     """
     def __init__(self, input_config: InputConfig):
@@ -37,7 +38,8 @@ class RenpyReader(BaseSourceReader):
     # 用于检查行是否以翻译注释行格式开头的正则表达式
     COMMENT_TRANSLATION_START_PATTERN = re.compile(r"^\s*#\s*")
     # 用于检查行是否以翻译代码行格式开头的正则表达式（标签或仅引号）
-    CODE_TRANSLATION_START_PATTERN = re.compile(r"^\s*(?:[a-zA-Z][\w\s]*\s+)?\"")
+    # 这个模式是关键，用于识别一个有效的、可翻译的代码行
+    CODE_TRANSLATION_START_PATTERN = re.compile(r"^\s*(?:[a-zA-Z][\w\s@]*\s+)?\"")
 
     def _extract_quoted_robust(self, line: str) -> Optional[str]:
         """
@@ -54,18 +56,28 @@ class RenpyReader(BaseSourceReader):
         return line[first_quote_index + 1:last_quote_index]
 
     def _find_next_relevant_line(self, lines: List[str], start_index: int) -> Optional[Tuple[int, str]]:
-        """查找下一个非空、非元数据注释行的索引和内容。"""
+        """
+        【已修改】
+        从指定索引开始，查找下一个有效的 Ren'Py 代码翻译行。
+        一个有效的代码行是 'tag "..."' 或 '"..."' 的形式。
+        它会主动跳过空行、注释、以及不符合翻译格式的指令（如 'voice ...', 'video ...' 等）。
+        """
         for i in range(start_index, len(lines)):
             line = lines[i]
             stripped = line.strip()
-            # 跳过空行和文件路径注释
-            if not stripped or stripped.startswith("# game/") or stripped.startswith("# renpy/"):
-                continue
-            # 跳过 translate 块定义
+
+            # 如果遇到下一个翻译块的定义，停止搜索，因为已经超出了当前条目的范围
             if stripped.startswith("translate "):
-                continue
-            return i, line
-        return None
+                return None
+
+            # 检查该行是否是有效的代码翻译行（例如 `yo ""`）
+            # 如果是，则我们找到了目标，立即返回
+            if self.CODE_TRANSLATION_START_PATTERN.match(stripped):
+                return i, line
+
+            # 其他所有行（如空行、#注释、voice指令、video指令等）都会被自动忽略，循环继续
+        
+        return None # 如果直到文件末尾都没找到，返回 None
 
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
 
@@ -110,19 +122,26 @@ class RenpyReader(BaseSourceReader):
                          pass # 或者根据期望的行为附加 translated=None
                 i += 1 # 处理完 'old' 或 'old' 无效后，移至下一行
 
-            # --- 格式 2 & 3: 注释行后跟代码行 ---
+            # --- 格式 2 & 3: 注释行后跟代码行 (已支持 voice/video) ---
             elif self.COMMENT_TRANSLATION_START_PATTERN.match(stripped):
                 comment_line_num = i
                 comment_line = line
-                # 查找下一个相关的代码行
+                
+                # 查找下一个相关的代码行（现在可以跳过 voice/video 等指令）
                 next_line_info = self._find_next_relevant_line(lines, i + 1)
 
                 if next_line_info:
                     code_line_num, code_line = next_line_info
                     code_stripped = code_line.strip()
 
-                    # 从注释行提取源文本
-                    comment_source = self._extract_quoted_robust(comment_line)
+                    # 尝试从注释行提取源文本
+                    # 我们需要排除像 # game/... 这样的元数据行
+                    potential_source_line = comment_line.split('#', 1)[-1].lstrip()
+                    if not (potential_source_line.startswith("game/") or potential_source_line.startswith("renpy/")):
+                        comment_source = self._extract_quoted_robust(comment_line)
+                    else:
+                        comment_source = None # 这不是一个源文本注释行
+                    
                     # 从代码行提取潜在的翻译文本
                     code_text = self._extract_quoted_robust(code_line)
 
@@ -144,9 +163,7 @@ class RenpyReader(BaseSourceReader):
                                 format_type = "comment_tag"
 
                         # 情况 3: # "..." / "..." (匹配时不涉及标签)
-                        # 检查注释是否以 '# "' 开头（去除 # 后的空格后）
-                        # 并且代码行是否以 '"' 开头（去除前导空格后）。
-                        elif comment_line.split('#', 1)[-1].lstrip().startswith('"') and \
+                        elif potential_source_line.startswith('"') and \
                              code_stripped.startswith('"'):
                              format_type = "comment_no_tag"
 

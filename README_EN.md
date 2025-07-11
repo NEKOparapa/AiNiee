@@ -26,7 +26,7 @@
 *   **Optimized for Long Texts, Exceptional Quality**
     *   🎯 **Overcoming Limitations**: Employs techniques like streamlined translation formats, chain-of-thought translation, AI glossaries, and contextual awareness to ensure coherence and accuracy in long-text translations.
 
-    *   💎 **Quality Focus**: Supports prompt adjustments for basic instructions, character introductions, background settings, translation styles, etc. Features the [Gemini Translation](https://github.com/NEKOparapa/AiNiee/wiki/%E5%8F%8C%E5%AD%90%E6%98%9F%E7%BF%BB%E8%AF%91%E4%BB%8B%E7%BB%8D) capability to meet the needs of users with higher demands for translation quality.
+    *   💎 **Quality Focus**: Supports prompt adjustments for basic instructions, character introductions, background settings, translation styles, etc. Equipped with features such as one-click AI refinement, one-click AI formatting, and AI terminology extraction, it caters to users who demand higher translation quality.
 
 ---
 
