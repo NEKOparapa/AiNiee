@@ -42,11 +42,12 @@
   - 在线接口：需付费但性价比很高，无显卡要求，全语言支持，[接口设置说明 - DeepSeek](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartDeepSeek)
   - 在线接口：同上，如果Deepseek官网无法正常使用，可换该接口，[接口设置说明 - 火山引擎](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartHuo)
 
-* **第二步：项目设置**
+
+* **第二步：拖入文件夹**
   > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第二步.png">
   
-  - API接口平台：选择你第一步设置的接口名字<br>
   - 输入文件夹：将原文文件单独放置新的文件夹，并将该文件夹拖入框内。小说、字幕、文档可直接进行翻译，游戏需要文本提取工具进行配合。<br>
+
 
 * **第三步：开始翻译**
 
