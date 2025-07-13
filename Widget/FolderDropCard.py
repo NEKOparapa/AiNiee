@@ -226,7 +226,8 @@ class DragDropArea(Base,QWidget):
 
             # 如果是文件，获取其所在的父目录
             else:
-                path_to_use =  os.path.dirname(single_path)
+                path_to_use = single_path # 给单文件夹拖拽功能支持用
+                #path_to_use =  os.path.dirname(single_path)
 
             # 更新路径并发射信号
             self.update_path(path_to_use)
