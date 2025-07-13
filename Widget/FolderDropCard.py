@@ -218,13 +218,20 @@ class DragDropArea(Base,QWidget):
         # 根据路径数量进行判断
         if len(paths) == 1:
             # 拖入的是单个文件或文件夹
-            # 直接使用该路径
-            self.update_path(paths[0])
+            single_path = paths[0]
+
+            # 如果是文件夹，则直接使用文件路径
+            if os.path.isdir(single_path):
+                path_to_use = single_path
+
+            # 如果是文件，获取其所在的父目录
+            else:
+                path_to_use =  os.path.dirname(single_path)
+
+            # 更新路径并发射信号
+            self.update_path(path_to_use)
         else:
-            # 拖入的是多个文件/文件夹
-            # 获取它们共同的父目录
-            # 注意：os.path.dirname对于文件夹（如'C:/Users'）会返回上一级（'C:/'）
-            # 所以先判断第一个元素是不是文件夹
+            # 拖入的是多个文件/文件夹,获取它们共同的父目录
             first_path = paths[0]
             if os.path.isdir(first_path):
                  # 如果用户拖动多个项，其中第一个是文件夹，

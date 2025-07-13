@@ -18,11 +18,11 @@
       "English": "Polishing Scope",
       "日本語": "推敲範囲選択"
     },
-    "选择需要润色的文本范围，选择【原文】将只润色原文文本，选择【译文】将只润色译文文本": {
-      "简中": "选择需要润色的文本范围:\n选择【原文】将只润色原文文本:\n选择【译文】将只润色译文文本",
-      "繁中": "選擇需潤飾的文字範圍:\n選擇【原文】則僅潤飾原文文字:\n選擇【譯文】則僅潤飾譯文文字",
-      "English": "Select text range to polish:\n【Source】= polish source text only\n【Translation】= polish translated text only",
-      "日本語": "推敲対象範囲を選択:\n【原文】= 原文のみ推敲\n【訳文】= 訳文のみ推敲"
+    "选择需要润色的文本范围\n选择【原文】将润色原文文本，原文不需要翻译情况下使用\n选择【译文】将润色译文文本，在原文翻译完成后再使用": {
+      "简中": "选择需要润色的文本范围\n选择【原文】将润色原文文本（原文不需要翻译时使用）\n选择【译文】将润色译文文本（原文翻译完成后使用）",
+      "繁中": "選取需要潤飾的文本範圍\n選擇【原文】將潤飾原始文本（原始文本不需翻譯時使用）\n選擇【譯文】將潤飾譯文文本（原文翻譯完成後使用）",
+      "English": "Select text range to polish\nChoose [Source] to polish original text (use when no translation needed)\nChoose [Translation] to polish translated text (use after source is translated)",
+      "日本語": "編集範囲を選択\n【原文】選択時は原文をリライト（翻訳不要な場合に使用）\n【訳文】選択時は訳文をリライト（原文翻訳後に使用）"
     },
     "原文": {
       "简中": "原文",

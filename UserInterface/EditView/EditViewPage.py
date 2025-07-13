@@ -691,11 +691,15 @@ class EditViewPage(Base,QFrame):
         if self.continue_status == True :
             # 启动页显示继续翻译按钮
             self.startup_page.show_continue_button(True)
+            # 命令栏启用继续按钮
+            self.bottom_bar_main.enable_continue_button(True)
             # 在 ActionCard 上显示项目名
             self.startup_page.continue_card.set_project_name(project_name)
 
         else:
             self.startup_page.show_continue_button(False)
+            # 命令栏禁用继续按钮
+            self.bottom_bar_main.enable_continue_button(False)
 
     # 输入文件夹路径改变信号
     def on_folder_selected(self, project_name: str, project_mode: str):
