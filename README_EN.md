@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/NEKOparapa/AiNiee-chatgpt">
-    <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/logo.png" width=60% height=60%>
+    <img src="https://github.com/NEKOparapa/AiNiee-chatgpt/blob/main/Example%20image/logo.png" width=60% >
   </a>
 </div>
 
