@@ -51,9 +51,7 @@ class TPPWriter(BaseTranslatedWriter):
             # 如果文本是以 = 开始，则加一个空格
             # 因为 = 开头会被识别成 Excel 公式导致 T++ 导入时 卡住
             # 加入空格后，虽然还是不能直接导入 T++ ，但是可以手动复制粘贴
-            if translation_status != TranslationStatus.TRANSLATED:
-                ws.cell(row=row_index, column=1).value = re.sub(r"^=", " =", source_text)
-            else:
+            if item.translation_status == TranslationStatus.TRANSLATED or item.translation_status == TranslationStatus.POLISHED:
                 ws.cell(row=row_index, column=1).value = re.sub(r"^=", " =", source_text)
 
                 # 防止含有特殊字符而不符合Excel公式时，导致的写入译文错误
@@ -65,6 +63,9 @@ class TPPWriter(BaseTranslatedWriter):
                     escaped_string = escape(filtered_text)
                     ws.cell(row=row_index, column=2).value = escaped_string
 
+            else :
+                ws.cell(row=row_index, column=1).value = re.sub(r"^=", " =", source_text)
+                
         # 保存工作簿
         wb.save(translation_file_path)
 

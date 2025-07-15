@@ -23,7 +23,7 @@ class MToolWriter(BaseTranslatedWriter):
         output_dict = {}
         for item in cache_file.items:
             # 如果这个本已经翻译了，存放对应的文件中
-            if item.translation_status == TranslationStatus.TRANSLATED:
+            if item.translation_status == TranslationStatus.TRANSLATED or item.translation_status == TranslationStatus.POLISHED:
                 output_dict[item.source_text] = item.final_text
             # 如果这个文本没有翻译或者正在翻译
             # elif item.translation_status == TranslationStatus.UNTRANSLATED:

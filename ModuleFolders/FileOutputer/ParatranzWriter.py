@@ -40,7 +40,7 @@ class ParatranzWriter(BaseTranslatedWriter):
                 "context": item.get_extra("context", "")  # 如果你有 context 字段，也包括它
             }
             # 根据翻译状态，选择存储到已翻译或未翻译的列表
-            if item.translation_status == TranslationStatus.TRANSLATED:
+            if item.translation_status == TranslationStatus.TRANSLATED or item.translation_status == TranslationStatus.POLISHED:
                 output_list.append(line)
         json_content = json.dumps(output_list, ensure_ascii=False, indent=4)
         translation_file_path.write_text(json_content, encoding="utf-8")
