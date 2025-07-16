@@ -8,10 +8,7 @@ from babeldoc.babeldoc_exception.BabelDOCException import ExtractTextError
 from babeldoc.docvision.doclayout import DocLayoutModel
 from babeldoc.docvision.table_detection.rapidocr import RapidOCRModel
 from babeldoc.format.pdf.document_il.midend import il_translator
-from babeldoc.format.pdf.high_level import (
-    TRANSLATE_STAGES,
-    _do_translate_single
-)
+from babeldoc.format.pdf.high_level import TRANSLATE_STAGES, do_translate
 from babeldoc.format.pdf.translation_config import (
     TranslateResult,
     TranslationConfig,
@@ -33,14 +30,31 @@ from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.FileOutputer.BaseWriter import OutputConfig
 
 
+class FinishReading(Exception):
+    @classmethod
+    def raise_after_call(cls, func):
+        def warpper(*args, **kwargs):
+            func(*args, **kwargs)
+            raise FinishReading
+        return warpper
+
+
 class IgnoreStyleNoneFilter(logging.Filter):
     def filter(self, record):
         return record.getMessage().startswith("Style is None")
 
 
+class IgnoreFinishReadingException(logging.Filter):
+    def filter(self, record):
+        if record.exc_info:
+            exc_type = record.exc_info[0]
+            return exc_type and issubclass(exc_type, FinishReading)
+        return False
+
+
 # 屏蔽告警
-logger = logging.getLogger("babeldoc.format.pdf.document_il.midend.typesetting")
-logger.addFilter(IgnoreStyleNoneFilter())
+logging.getLogger("babeldoc.format.pdf.document_il.midend.typesetting").addFilter(IgnoreStyleNoneFilter())
+logging.getLogger("babeldoc.format.pdf.high_level").addFilter(IgnoreFinishReadingException())
 
 
 class PdfSourceVisitor(BaseTranslator):
@@ -78,15 +92,6 @@ class TranslatedItemsTranslator(BaseTranslator):
 
     def do_llm_translate(self, text, rate_limit_params: dict = None):
         raise NotImplementedError
-
-
-class FinishReading(Exception):
-    @classmethod
-    def raise_after_call(cls, func):
-        def warpper(*args, **kwargs):
-            func(*args, **kwargs)
-            raise FinishReading
-        return warpper
 
 
 class MainThreadExecutor(Executor):
@@ -185,7 +190,7 @@ class BabeldocPdfAccessor:
             ]
             with ProgressMonitor(new_stages) as pm, TranslationStage.create_progress() as pbar_manager:
                 pm.pbar_manager = pbar_manager
-                _do_translate_single(pm, babeldoc_translation_config)
+                do_translate(pm, babeldoc_translation_config)
         except ExtractTextError:
             print(f"`{source_file_path!s}` 不包含可复制的文本，可能是扫描件，不处理")
         except FinishReading:
@@ -215,7 +220,7 @@ class BabeldocPdfAccessor:
 
             with ProgressMonitor(TRANSLATE_STAGES) as pm, TranslationStage.create_progress() as pbar_manager:
                 pm.pbar_manager = pbar_manager
-                result = _do_translate_single(pm, babeldoc_translation_config)
+                result = do_translate(pm, babeldoc_translation_config)
         except ExtractTextError:
             print(f"`{source_file_path!s}` 不包含可复制的文本，可能是扫描件，不处理")
         finally:
