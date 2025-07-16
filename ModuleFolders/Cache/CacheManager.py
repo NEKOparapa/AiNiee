@@ -216,63 +216,60 @@ class CacheManager(Base):
     # 生成待翻译片段
     def generate_item_chunks(self, limit_type: str, limit_count: int, previous_line_count: int, task_mode) -> \
             Tuple[List[List[CacheItem]], List[List[CacheItem]], List[str]]:
-        chunks, previous_chunks, file_paths = [], [], []  # 添加 file_paths 初始化
+        chunks, previous_chunks, file_paths = [], [], []
 
-        # 遍历所有文件
         for file in self.project.files.values():
-
-            # 根据任务模式筛选条目
-            if task_mode == TaskType.TRANSLATION : # 选取未翻译条目
+            # 1. 筛选出当前任务需要的条目
+            if task_mode == TaskType.TRANSLATION:
                 items = [item for item in file.items if item.translation_status == TranslationStatus.UNTRANSLATED]
-            elif task_mode == TaskType.POLISH: # 选取已翻译条目
+            elif task_mode == TaskType.POLISH:
                 items = [item for item in file.items if item.translation_status == TranslationStatus.TRANSLATED]
+            else:
+                items = []
 
-            # 如果没有需要翻译的条目，则跳过
             if not items:
                 continue
 
             current_chunk, current_length = [], 0
+            # 2. 记录当前 chunk 在 `items` 这个筛选后列表中的起始索引
+            chunk_start_idx_in_filtered_list = 0 
 
-            # 遍历该文件的所有条目
-            for item in items:
-                # 计算当前条目的长度
+            # 3. 使用 enumerate 同时获取筛选后列表的索引 `i` 和条目 `item`
+            for i, item in enumerate(items):
                 item_length = item.get_token_count(item.source_text) if limit_type == "token" else 1
 
-                # 如果当前片段长度加上当前条目长度超过限制，则将当前片段添加到结果列表中，并重置当前片段
+                # 当一个新 chunk 开始时，记录它的起始索引 `i`
+                if not current_chunk:
+                    chunk_start_idx_in_filtered_list = i
+
+                # 如果当前 chunk 满了，提交它
                 if current_chunk and (current_length + item_length > limit_count):
-                    # 添加到原文片段列表
                     chunks.append(current_chunk)
-
-                    # 生成上文数据片段
+                    # 4. 使用记录的、相对于 `items` 列表的正确索引来获取上文
                     previous_chunks.append(
-                        self.generate_previous_chunks(items, previous_line_count, file.index_of(current_chunk[0].text_index))
+                        self.generate_previous_chunks(items, previous_line_count, chunk_start_idx_in_filtered_list)
                     )
+                    file_paths.append(file.storage_path)
 
-                    # 添加chunk对应的文件路径
-                    file_paths.append(file.storage_path)  # 添加文件路径记录
-
-                    # 重置片段暂存容器
+                    # 重置，为下一个 chunk 做准备
                     current_chunk, current_length = [], 0
+                    # 再次记录新 chunk 的起始索引
+                    chunk_start_idx_in_filtered_list = i
 
-                # 添加当前条目
+                # 添加当前条目到 chunk
                 current_chunk.append(item)
                 current_length += item_length
 
-            # 处理最后一个未添加到 chunks 的片段
+            # 处理循环结束后剩余的最后一个 chunk
             if current_chunk:
-                # 添加到原文片段列表
                 chunks.append(current_chunk)
-
-                # 生成上文数据片段
+                # 同样使用记录的正确索引
                 previous_chunks.append(
-                    self.generate_previous_chunks(items, previous_line_count, file.index_of(current_chunk[0].text_index))
+                    self.generate_previous_chunks(items, previous_line_count, chunk_start_idx_in_filtered_list)
                 )
+                file_paths.append(file.storage_path)
 
-                # 添加chunk对应的文件路径
-                file_paths.append(file.storage_path)  # 添加文件路径记录
-
-        # 返回结果列表
-        return chunks, previous_chunks, file_paths 
+        return chunks, previous_chunks, file_paths
 
 
     # 获取文件层级结构
