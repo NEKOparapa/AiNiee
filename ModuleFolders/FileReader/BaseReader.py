@@ -57,6 +57,8 @@ class BaseSourceReader(ABC):
         # 模板流程
         pre_read_metadata = self.pre_read_source(file_path)  # 读取文件之前的操作，可以放文件编码方法或其他
         file_data = self.on_read_source(file_path, pre_read_metadata)  # 读取单个文件中所有原文文本，由各个reader实现不同的专属的方法
+        if not file_data or not file_data.items: #判断文件为空
+            return None          
         file_data.encoding = pre_read_metadata.encoding  # 设置文件编码
         file_data.storage_path = file_path  # 临时设置一个路径
         post_file_data = self.post_read_source(file_data)  # 读取文件之后的操作，可以是语言检测等
