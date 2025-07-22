@@ -154,6 +154,29 @@ class TranslatorTask(Base):
                 "completion_tokens": 0,
             }
 
+        # 返空判断
+        if response_content is None:
+            error = "API请求错误，模型回复内容为空，将在下一轮次重试"
+            self.print(
+                self.generate_log_table(
+                    *self.generate_log_rows(
+                        error,
+                        task_start_time,
+                        prompt_tokens if prompt_tokens is not None else self.request_tokens_consume,
+                        0,
+                        [],  
+                        [], 
+                        []   
+                    )
+                )
+            )
+            return {
+                "check_result": False,
+                "row_count": 0,
+                "prompt_tokens": self.request_tokens_consume,
+                "completion_tokens": 0,
+            }         
+
         # 提取回复内容
         response_dict = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
 
