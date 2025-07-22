@@ -33,6 +33,18 @@ class CacheManager(Base):
         self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
 
     def start_interval_saving(self, event: int, data: dict):
+                # 如果是继续任务，则在开始前保存并重载缓存
+        if data.get("continue_status") is True:
+            config = self.load_config()
+            output_path = config.get("label_output_path", "./output")
+            if output_path and os.path.isdir(output_path):
+                # 强制保存当前内存中的缓存状态到磁盘，以包含编排表的修改
+                self.save_to_file_require_path = output_path 
+                self.save_to_file() 
+                
+                # 从磁盘重载缓存，确保后续任务基于最新的状态
+                self.load_from_file(output_path)
+        
         # 定时器
         self.save_to_file_stop_flag = False
         threading.Thread(target=self.save_to_file_tick, daemon=True).start()
@@ -318,20 +330,23 @@ class CacheManager(Base):
             # 修改译文
             elif field_name == 'translated_text':
                 item_to_update.translated_text = new_text
-                # 如果原文和译文不同，则标记为已翻译
-                if new_text and new_text.strip():
-                    if item_to_update.source_text != new_text:
-                            item_to_update.translation_status = TranslationStatus.TRANSLATED
+                # 如果译文被清空，状态应重置为未翻译，同时清空润文
+                if not new_text or not new_text.strip():
+                    item_to_update.translation_status = TranslationStatus.UNTRANSLATED
+                    item_to_update.polished_text = ""
+                # 如果有译文内容，则标记为已翻译
+                else:
+                    item_to_update.translation_status = TranslationStatus.TRANSLATED
 
             # 修改润文
             elif field_name == 'polished_text':
                 item_to_update.polished_text = new_text
-                # 只要有润文，就标记为已润色
-                if new_text and new_text.strip():
+                # 如果润文被清空，状态应回退到已翻译
+                if not new_text or not new_text.strip():
+                    item_to_update.translation_status = TranslationStatus.TRANSLATED
+                # 如果有润文内容，则标记为已润色
+                else:
                     item_to_update.translation_status = TranslationStatus.POLISHED
-            else:
-                print(f"Error: 不支持更新字段 {field_name}")
-                return
 
     # 缓存重编排方法
     def reformat_and_splice_cache(self, file_path: str, formatted_data: dict, selected_item_indices: list[int]) -> list[CacheItem] | None:
