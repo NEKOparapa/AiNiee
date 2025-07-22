@@ -64,6 +64,9 @@ class DirectoryReader:
 
                         # 读取单个文件的文本信息，并添加其他信息
                         cache_file = reader.read_source_file(file_path)
+                        #空文件跳过
+                        if not cache_file:
+                           continue
                         cache_file.storage_path = str(file_path.relative_to(source_directory))
                         cache_file.file_project_type = reader.get_file_project_type(file_path)
                         for item in cache_file.items:
