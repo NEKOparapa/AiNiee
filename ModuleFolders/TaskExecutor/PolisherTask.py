@@ -130,6 +130,29 @@ class PolisherTask(Base):
                 "completion_tokens": 0,
             }
 
+        # 返空判断
+        if response_content is None:
+            error = "API请求错误，模型回复内容为空，将在下一轮次重试"
+            self.print(
+                self.generate_log_table(
+                    *self.generate_log_rows(
+                        error,
+                        task_start_time,
+                        prompt_tokens if prompt_tokens is not None else self.request_tokens_consume,
+                        0,
+                        [],  
+                        [], 
+                        []   
+                    )
+                )
+            )
+            return {
+                "check_result": False,
+                "row_count": 0,
+                "prompt_tokens": self.request_tokens_consume,
+                "completion_tokens": 0,
+            }         
+
         # 根据润色模式调整文本对象
         if self.config.polishing_mode_selection == "source_text_polish":
             # 如果是源文本润色模式，则直接使用源文本字典
