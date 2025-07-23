@@ -39,6 +39,7 @@ class CacheManager(Base):
             output_path = config.get("label_output_path", "./output")
             if output_path and os.path.isdir(output_path):
                 # 强制保存当前内存中的缓存状态到磁盘，以包含编排表的修改
+               if hasattr(self, "project"): #判断内容是否变化                
                 self.save_to_file_require_path = output_path 
                 self.save_to_file() 
                 
