@@ -22,11 +22,14 @@ VARIOUS_LETTERS_RANGE = r'a-zA-Z\uFF21-\uFF3A\uFF41-\uFF5A'
 """标准字母与全角字母的范围"""
 HAS_UNUSUAL_ENG_REGEX = re.compile(
     "^(?:"
-    fr"(?=.*_)(?=.*[{VARIOUS_LETTERS_RANGE}\d])\S*|"
+    fr"(?=.*[_$])(?=.*[{VARIOUS_LETTERS_RANGE}\d])[{VARIOUS_LETTERS_RANGE}\d_$]+|"
+    fr"\[[{VARIOUS_LETTERS_RANGE}\d_$]+]|"
+    fr"\{{[{VARIOUS_LETTERS_RANGE}\d_$]+}}|"
     fr"(?=.*[{VARIOUS_LETTERS_RANGE}])(?=.*\d)[{VARIOUS_LETTERS_RANGE}\d]*|"
     "dummy"
     ")$"
 )
+"""20250723: fix #712"""
 """预编译正则 匹配包含 至少一个下划线和至少一个字母与数字且没有空白字符 或者 只由字母和数字组成且必须同时包含至少一个字母与数字 的字符串"""
 CLEAN_TEXT_PATTERN = re.compile(
     fr'\\{{1,2}}[{VARIOUS_LETTERS_RANGE}]{{1,2}}\[\d+]|'
