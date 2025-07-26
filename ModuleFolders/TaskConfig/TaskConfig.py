@@ -72,12 +72,17 @@ class TaskConfig(Base):
     def prepare_for_translation(self,mode) -> None:
 
         # 获取目标平台
+
         if mode == TaskType.TRANSLATION:
             self.target_platform = self.api_settings["translate"]
         elif mode == TaskType.POLISH:
             self.target_platform = self.api_settings["polish"]
         elif mode == TaskType.FORMAT:
             self.target_platform = self.api_settings["format"]
+
+        # 增加获取不到内容时的异常处理
+        if self.target_platform is None:
+            raise ValueError(f"当前配置文件中未设置 {mode} 的目标平台，请重新检查接口管理页面，是否设置了执行任务的接口。")
 
         # 获取模型类型
         self.model = self.platforms.get(self.target_platform).get("model")
