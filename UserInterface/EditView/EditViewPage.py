@@ -5,15 +5,17 @@ import time
 from PyQt5.QtCore import QTime, QVariant, Qt, QSize, pyqtSignal
 from PyQt5.QtWidgets import ( QFileDialog, QFrame, QTreeWidgetItem,
                              QWidget, QHBoxLayout, QVBoxLayout, 
-                             QSplitter, QStackedWidget)
+                             QSplitter, QStackedWidget, QGridLayout)
 from qfluentwidgets import (Action,  CaptionLabel, MessageBox, PrimarySplitPushButton, PushButton, RoundMenu,  ToggleToolButton, TransparentPushButton, TransparentToolButton,
                             TreeWidget, TabBar, FluentIcon as FIF, CardWidget, Action, RoundMenu, ProgressBar)
 from qframelesswindow import QTimer
 
 from Base.Base import Base
+from ModuleFolders.ResponseChecker.TranslationChecker import TranslationChecker, CheckResult
 from UserInterface.EditView.MonitoringPage import MonitoringPage
 from UserInterface.EditView.StartupPage import StartupPage
 from ModuleFolders.TaskConfig.TaskType import TaskType
+from UserInterface.EditView.LanguageCheckDialog import LanguageCheckDialog
 from UserInterface.EditView.SearchDialog import SearchDialog
 from UserInterface.EditView.SearchResultPage import SearchResultPage
 from UserInterface.EditView.ScheduledDialogPage import ScheduledDialogPage
@@ -335,6 +337,7 @@ class BottomCommandBar(Base,CardWidget):
 class NavigationCard(Base,CardWidget):
     searchRequested = pyqtSignal(dict)  # 信号，发送搜索参数字典
     termExtractionRequested = pyqtSignal(dict)  # 用于发送术语提取参数的信号
+    languageCheckRequested = pyqtSignal(str)    
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -343,7 +346,7 @@ class NavigationCard(Base,CardWidget):
         self.layout.setSpacing(8)
         
         self.toolbar = QWidget()
-        self.toolbar_layout = QHBoxLayout(self.toolbar)
+        self.toolbar_layout = QGridLayout(self.toolbar)
         self.toolbar_layout.setContentsMargins(0, 0, 0, 0)
         self.toolbar_layout.setSpacing(8)
         
@@ -357,10 +360,14 @@ class NavigationCard(Base,CardWidget):
         #self.term_extraction_button.setToolTip(self.tra("提取术语")) 
         self.term_extraction_button.clicked.connect(self._open_term_extraction_dialog)
 
-        self.toolbar_layout.addStretch(1)
-        self.toolbar_layout.addWidget(self.term_extraction_button)  
-        self.toolbar_layout.addWidget(self.search_button)
-        self.toolbar_layout.addStretch(1)  
+        # 语言检查按钮
+        self.check_button = TransparentPushButton(FIF.SEARCH, self.tra("检查"))
+        self.check_button.clicked.connect(self._open_language_check_dialog)
+
+        self.toolbar_layout.addWidget(self.term_extraction_button, 0, 0)
+        self.toolbar_layout.addWidget(self.search_button, 0, 1)
+        self.toolbar_layout.addWidget(self.check_button, 1, 0)
+        self.toolbar_layout.setColumnStretch(2, 1)
         self.layout.addWidget(self.toolbar)
         
         self.tree = TreeWidget(self)
@@ -378,6 +385,13 @@ class NavigationCard(Base,CardWidget):
                 "scope": dialog.search_scope
             }
             self.searchRequested.emit(params)
+
+    # 检查按钮事件
+    def _open_language_check_dialog(self):
+        dialog = LanguageCheckDialog(self.window())
+        if dialog.exec():
+            self.languageCheckRequested.emit(dialog.check_mode)
+            
 
     # 按钮点击
     def _open_term_extraction_dialog(self):
@@ -565,6 +579,8 @@ class TabInterface(QWidget):
 # 主界面
 class EditViewPage(Base,QFrame):
 
+    languageCheckFinished = pyqtSignal(tuple)    
+
     def __init__(self, text: str, window, plugin_manager, cache_manager, file_reader) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
@@ -634,6 +650,7 @@ class EditViewPage(Base,QFrame):
 
         # 连接各种信号
         self.nav_card.searchRequested.connect(self.perform_search) # 连接搜索按钮请求信号
+        self.nav_card.languageCheckRequested.connect(self.perform_language_check) # 连接语言检查请求信号
         self.startup_page.folderSelected.connect(self.on_folder_selected) # 连接信号到界面切换和路径处理
         self.bottom_bar_main.back_btn.clicked.connect(self.on_back_button_clicked)  # 返回按钮绑定
         self.nav_card.tree.itemClicked.connect(self.on_tree_item_clicked)  # 树形项点击事件
@@ -642,10 +659,13 @@ class EditViewPage(Base,QFrame):
         self.bottom_bar_main.arrowClicked.connect(self.toggle_page)  # 箭头按钮点击切换页面
         self.nav_card.termExtractionRequested.connect(self.perform_term_extraction) # 开始术语提取信号
 
+        self.languageCheckFinished.connect(self._on_language_check_finished) #连接检查完成信号到槽函数
+
 
         # 订阅事件
         self.subscribe(Base.EVENT.TASK_CONTINUE_CHECK, self.task_continue_check)
         self.subscribe(Base.EVENT.TERM_EXTRACTION_DONE, self._on_term_extraction_finished)
+              
         
     # 页面显示事件
     def showEvent(self, event) -> None:
@@ -849,6 +869,52 @@ class EditViewPage(Base,QFrame):
         # 这样可以确保新标签页被激活并显示在前台
         self.page_card.tab_bar.setCurrentIndex(new_index)
         self.page_card.stacked_widget.setCurrentIndex(new_index)
+
+
+    # 执行语言检查
+    def perform_language_check(self, mode: str):
+        """在一个单独的线程中执行语言检查"""
+        self.info("开始语言检查")
+        
+        # 使用线程避免UI冻结
+        thread = threading.Thread(target=self._language_check_worker, args=(mode,), daemon=True)
+        thread.start()
+
+    def _language_check_worker(self, mode: str):
+        """工作线程，执行实际的检查并发出信号"""
+        checker = TranslationChecker(self.cache_manager)
+        result_code, data = checker.check_language(mode)
+        self.languageCheckFinished.emit((result_code, data))
+
+    def _on_language_check_finished(self, result: tuple):
+        """接收检查结果并在主线程中显示消息框"""
+        result_code, data = result
+        
+        title = self.tra("检查结果")
+        msg_box = None
+
+        if result_code == CheckResult.ERROR_CACHE:
+            msg_box = MessageBox(title, self.tra("检查失败，请检查项目文件夹缓存是否正常"), self.window())
+        elif result_code == CheckResult.ERROR_NO_TRANSLATION:
+            msg_box = MessageBox(title, self.tra("检查失败，请先执行翻译流程"), self.window())
+        elif result_code == CheckResult.ERROR_NO_POLISH:
+            msg_box = MessageBox(title, self.tra("检查失败，请先执行润色流程"), self.window())
+        elif result_code == CheckResult.SUCCESS_REPORT:
+            msg_box = MessageBox(title, self.tra("检测完成，请查看控制台输出"), self.window())
+        elif result_code == CheckResult.SUCCESS_JUDGE_PASS:
+            lang = data.get("target_language", "N/A")
+            content = self.tra("检查通过：项目的所有文件均符合设定译文预期").format(lang)
+            msg_box = MessageBox(title, content, self.window())
+        elif result_code == CheckResult.SUCCESS_JUDGE_FAIL:
+            lang = data.get("target_language", "N/A")
+            content = self.tra("项目的所有文件译文语言占比不正常，请检查控制台输出").format(lang)
+            msg_box = MessageBox(title, content, self.window())
+        
+        if msg_box:
+            msg_box.yesButton.setText(self.tra("确认"))
+            msg_box.cancelButton.hide()
+            msg_box.exec()  
+
 
     # 执行提取术语事件
     def perform_term_extraction(self, params: dict):
