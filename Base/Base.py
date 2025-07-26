@@ -48,6 +48,8 @@ class Event():
     TERM_TRANSLATE_SAVE_START = 832              # 实体提取开始
     TERM_TRANSLATE_SAVE_DONE = 833 
 
+    TRANSLATION_CHECK_START = 840                # 语言检查开始    
+
     TABLE_UPDATE = 898                             # 表格更新
     TABLE_FORMAT = 899                             # 表格重排
 
