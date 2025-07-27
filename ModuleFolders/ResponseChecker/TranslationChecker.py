@@ -1,3 +1,4 @@
+import os
 import time
 from collections import defaultdict
 from typing import List, Dict, Any, Tuple
@@ -24,13 +25,12 @@ class TranslationChecker(Base):
     - 精准判断 (judge): 按块分析，精确定位语言比例异常的行
     - 宏观统计 (report): 对整个项目的文件进行语言统计，并报告
     """
-    TARGET_LANGUAGE_RATIO_THRESHOLD = 0.75  # [判断模式] 目标语言在块中的占比阈值
-    CHUNK_SIZE = 20                        # [判断模式] 每个检测块包含的行数
+    TARGET_LANGUAGE_RATIO_THRESHOLD = 0.75  # [精准判断] 目标语言在块中的占比阈值
+    CHUNK_SIZE = 20                         # [精准判断] 每个检测块包含的行数
 
     def __init__(self, cache_manager: CacheManager):
         super().__init__()
         self.cache_manager = cache_manager
-        self.config = self.load_config()
 
     def check_language(self, mode: str) -> Tuple[str, Dict]:
         """
@@ -41,6 +41,7 @@ class TranslationChecker(Base):
         - (默认/其他):     [宏观统计] 报告翻译文本的语言组成。
         """
         start_time = time.time()
+        config = self.load_config()  # 保证每次检查都获取最新的配置
 
         pre_check_result, pre_check_data = self._perform_pre_checks(mode)
         if pre_check_result is not None:
@@ -49,7 +50,8 @@ class TranslationChecker(Base):
         # 初始化检查参数
         is_judging = "judge" in mode
         check_target = "polished_text" if "polish" in mode else "translated_text"
-        target_language_name = self.config.get("target_language", "english")
+        flag_key = "language_mismatch_polish" if "polish" in mode else "language_mismatch_translation" #缓存标记
+        target_language_name = config.get("target_language", "english")
         target_language_code = TranslatorUtil.map_language_name_to_code(target_language_name)
         mode_text = self.tra("润色后文本") if "polish" in mode else self.tra("翻译后文本")
 
@@ -75,7 +77,7 @@ class TranslationChecker(Base):
             for cache_file in self.cache_manager.project.files.values():
                 if is_judging:
                     # [精准判断模式] 使用分块分析
-                    file_analysis_result = self._analyze_file_in_chunks(cache_file, check_target, target_language_code)
+                    file_analysis_result = self._analyze_file_in_chunks(cache_file, check_target, target_language_code, flag_key)
                     if file_analysis_result and file_analysis_result["problematic_chunks"]:
                         all_results.append(file_analysis_result)
                 else:
@@ -85,7 +87,28 @@ class TranslationChecker(Base):
                         all_results.append(analysis_result)
         finally:
             ReaderUtil.close_lang_detector()
-        self.info(self.tra("语言检查完成，耗时 {:.2f} 秒").format(time.time() - start_time))         
+        self.info(self.tra("语言检查完成，耗时 {:.2f} 秒").format(time.time() - start_time))
+
+        # 重载缓存
+        if is_judging and all_results:
+            self.info(self.tra("检测到语言不匹配项，正在将标记保存到磁盘..."))
+            try:
+                # 获取输出路径
+                output_path = config.get("label_output_path", "./output")
+
+                if output_path and os.path.isdir(output_path):
+                    # 强制保存当前内存中的缓存（包含新添加的标记）到磁盘
+                    self.cache_manager.require_save_to_file(output_path)
+                    self.cache_manager.save_to_file()
+                    
+                    # 从磁盘重载缓存，确保内存与磁盘状态同步
+                    self.cache_manager.load_from_file(output_path)
+                    
+                    self.info(self.tra("标记已成功保存并重载缓存。"))
+                else:
+                    self.warning(self.tra("无法保存标记：输出路径 '{}' 未配置或无效。").format(output_path))
+            except Exception as e:
+                self.error(self.tra("保存标记到缓存时发生错误: {}").format(e))                 
 
         # 生成报告
         self._print_report(all_results, is_judging, target_language_code, mode_text)
@@ -136,7 +159,7 @@ class TranslationChecker(Base):
         return ReaderUtil.detect_language_with_mediapipe(dummy_items, 0, None)
 
 
-    def _analyze_file_in_chunks(self, cache_file, check_target: str, target_language_code: str) -> Dict[str, Any] | None:
+    def _analyze_file_in_chunks(self, cache_file, check_target: str, target_language_code: str, flag_key: str) -> Dict[str, Any] | None:
         """
         [精准判断模式] 按块分析文件。如果块不符合要求，则进行行级分析。
         """
@@ -212,6 +235,19 @@ class TranslationChecker(Base):
                         "ratio": ratio,
                         "mismatched_lines": mismatched_lines
                     })
+
+                    for line_info in mismatched_lines:
+                        # 从行号获取在 cache_file.items中的索引
+                        item_index = line_info['original_line_num'] - 1
+                        item_to_flag = cache_file.items[item_index]
+                        
+                        # 确保 extra 字典存在
+                        if item_to_flag.extra is None:
+                            item_to_flag.extra = {}
+                        
+                        # 添加标记
+                        item_to_flag.extra[flag_key] = True
+                        self.debug(f"Flagged item at index {item_index} in file {cache_file.storage_path} with key '{flag_key}'")                    
         
         if not problematic_chunks:
             return None
