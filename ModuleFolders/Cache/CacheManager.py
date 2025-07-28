@@ -419,7 +419,7 @@ class CacheManager(Base):
             return final_items
 
     # 缓存全搜索方法
-    def search_items(self, query: str, scope: str, is_regex: bool) -> list:
+    def search_items(self, query: str, scope: str, is_regex: bool, search_flagged: bool) -> list:
         """
         在整个项目中搜索条目。
 
@@ -427,6 +427,7 @@ class CacheManager(Base):
             query (str): 搜索查询字符串。
             scope (str): 搜索范围 ('all', 'source_text', 'translated_text', 'polished_text')。
             is_regex (bool): 是否使用正则表达式。
+            search_flagged (bool): 是否仅搜索被标记的行。
 
         Returns:
             list: 包含元组 (file_path, original_row_num, CacheItem) 的结果列表。
@@ -455,6 +456,29 @@ class CacheManager(Base):
         with self.file_lock:
             for file_path, cache_file in self.project.files.items():
                 for item_index, item in enumerate(cache_file.items):
+                    # 如果要求搜索标记行，则先进行标记过滤
+                    if search_flagged:
+                        is_item_flagged = False
+                        if item.extra:
+                            if scope == 'translated_text':
+                                is_item_flagged = item.extra.get('language_mismatch_translation', False)
+                            elif scope == 'polished_text':
+                                is_item_flagged = item.extra.get('language_mismatch_polish', False)
+                            elif scope == 'all':
+                                is_item_flagged = (item.extra.get('language_mismatch_translation', False) or
+                                                   item.extra.get('language_mismatch_polish', False))
+                            # 对于 'source_text' 范围, is_item_flagged 保持 False, 自动跳过
+
+                        if not is_item_flagged:
+                            continue  # 如果不满足标记条件，则直接跳到下一个条目
+
+                    # 通过标记过滤后，再执行文本/正则搜索
+                    # 如果查询为空，则所有通过标记过滤的条目都匹配
+                    if not query.strip():
+                        # 仅在search_flagged为True时，空查询才有意义（即列出所有标记行）
+                        if search_flagged:
+                             results.append((file_path, item_index + 1, item))
+                        continue # 否则，空查询不匹配任何内容                    
                     found = False
                     for field_name in fields_to_check:
                         text_to_check = getattr(item, field_name, None)
