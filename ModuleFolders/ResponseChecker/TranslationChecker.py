@@ -31,6 +31,7 @@ class TranslationChecker(Base):
     def __init__(self, cache_manager: CacheManager):
         super().__init__()
         self.cache_manager = cache_manager
+        self.config = self.load_config()
 
     def check_language(self, mode: str) -> Tuple[str, Dict]:
         """
@@ -41,7 +42,6 @@ class TranslationChecker(Base):
         - (默认/其他):     [宏观统计] 报告翻译文本的语言组成。
         """
         start_time = time.time()
-        config = self.load_config()  # 保证每次检查都获取最新的配置
 
         pre_check_result, pre_check_data = self._perform_pre_checks(mode)
         if pre_check_result is not None:
@@ -51,7 +51,7 @@ class TranslationChecker(Base):
         is_judging = "judge" in mode
         check_target = "polished_text" if "polish" in mode else "translated_text"
         flag_key = "language_mismatch_polish" if "polish" in mode else "language_mismatch_translation" #缓存标记
-        target_language_name = config.get("target_language", "english")
+        target_language_name = self.config.get("target_language", "english")
         target_language_code = TranslatorUtil.map_language_name_to_code(target_language_name)
         mode_text = self.tra("润色后文本") if "polish" in mode else self.tra("翻译后文本")
 
@@ -89,26 +89,26 @@ class TranslationChecker(Base):
             ReaderUtil.close_lang_detector()
         self.info(self.tra("语言检查完成，耗时 {:.2f} 秒").format(time.time() - start_time))
 
-        # 重载缓存
+        # 如果在精准判断模式下发现了问题，则保存带有标记的缓存
         if is_judging and all_results:
             self.info(self.tra("检测到语言不匹配项，正在将标记保存到磁盘..."))
             try:
-                # 获取输出路径
-                output_path = config.get("label_output_path", "./output")
+                # 从配置中获取正确的输出路径。
+                config = self.load_config()
+                output_path = config.get("label_output_path")
 
                 if output_path and os.path.isdir(output_path):
-                    # 强制保存当前内存中的缓存（包含新添加的标记）到磁盘
-                    self.cache_manager.require_save_to_file(output_path)
-                    self.cache_manager.save_to_file()
+                    #为 CacheManager 设置必要的保存路径
+                    self.cache_manager.save_to_file_require_path = output_path
                     
-                    # 从磁盘重载缓存，确保内存与磁盘状态同步
-                    self.cache_manager.load_from_file(output_path)
+                    # 立即执行保存操作
+                    self.cache_manager.save_to_file() 
                     
-                    self.info(self.tra("标记已成功保存并重载缓存。"))
+                    self.info(self.tra("标记已成功保存到缓存文件。"))
                 else:
-                    self.warning(self.tra("无法保存标记：输出路径 '{}' 未配置或无效。").format(output_path))
+                    self.warning(self.tra("无法保存标记：输出路径 '{}' 未配置或无效").format(output_path))
             except Exception as e:
-                self.error(self.tra("保存标记到缓存时发生错误: {}").format(e))                 
+                self.error(self.tra("保存标记到缓存时发生错误: {}").format(e))             
 
         # 生成报告
         self._print_report(all_results, is_judging, target_language_code, mode_text)
