@@ -382,7 +382,8 @@ class NavigationCard(Base,CardWidget):
             params = {
                 "query": dialog.search_query,
                 "is_regex": dialog.is_regex,
-                "scope": dialog.search_scope
+                "scope": dialog.search_scope,
+                "search_flagged": dialog.is_flagged_search
             }
             self.searchRequested.emit(params)
 
@@ -825,11 +826,12 @@ class EditViewPage(Base,QFrame):
         query = params["query"]
         scope = params["scope"]
         is_regex = params["is_regex"]
+        search_flagged = params["search_flagged"]
 
-        self.info(f"正在搜索: '{query}' (范围: {scope}, 正则: {is_regex})")
+        self.info(f"正在搜索: '{query}' (范围: {scope}, 正则: {is_regex}, 标记行: {search_flagged})")
         
         # 调用 CacheManager 执行搜索
-        results = self.cache_manager.search_items(query, scope, is_regex)
+        results = self.cache_manager.search_items(query, scope, is_regex, search_flagged)
 
         if not results:
             MessageBox(self.tra("未找到结果"), self.tra("未能找到与 '{}' 匹配的内容。").format(query), self.window()).exec() # M

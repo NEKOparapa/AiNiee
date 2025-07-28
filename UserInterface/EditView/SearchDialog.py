@@ -17,7 +17,8 @@ class SearchDialog(Base,MessageBoxBase):
         # 创建输入控件
         self.query_edit = LineEdit(self)
         self.query_edit.setPlaceholderText(self.tra("输入搜索内容..."))
-        
+
+        self.flagged_line_checkbox = CheckBox(self.tra("标记行"), self)
         self.regex_checkbox = CheckBox(self.tra("使用正则表达式"), self)
         
         self.scope_combo = ComboBox(self)
@@ -25,6 +26,7 @@ class SearchDialog(Base,MessageBoxBase):
         
         # 将控件添加到布局中
         layout.addWidget(self.query_edit)
+        layout.addWidget(self.flagged_line_checkbox)
         layout.addWidget(self.regex_checkbox)
         layout.addWidget(self.scope_combo)
         
@@ -44,10 +46,12 @@ class SearchDialog(Base,MessageBoxBase):
         self.search_query = ""
         self.is_regex = False
         self.search_scope = "all"
+        self.is_flagged_search = False
 
     def accept(self):
         """当用户点击"搜索"按钮时，收集数据"""
         self.search_query = self.query_edit.text()
+        self.is_flagged_search = self.flagged_line_checkbox.isChecked()
         self.is_regex = self.regex_checkbox.isChecked()
         selected_text = self.scope_combo.currentText()
         self.search_scope = self.search_scopes.get(selected_text, "all")
