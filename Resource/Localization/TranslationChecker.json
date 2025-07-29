@@ -192,35 +192,35 @@
       "English": "Check passed: The translations in all project files meet the specified expectations.",
       "日本語": "チェック合格：プロジェクト内の全ファイルの翻訳が、設定された期待値を満たしています。"
     },
-    "项目的所有文件译文语言占比不正常，请检查控制台输出": {
-     "简中": "项目的所有文件译文语言占比不正常，请检查控制台输出",
-     "繁中": "專案的所有檔案譯文語言佔比不正常，請檢查控制台輸出",
-     "English": "Abnormal language distribution detected in project translations. Please check the console output.",
-     "日本語": "プロジェクト全ファイルの翻訳にて異常な言語比率が検出されました。コンソールの出力を確認してください"
+    "项目的所有文件译文语言占比不正常，请检查标记行和控制台输出": {
+      "简中": "项目的所有文件译文语言占比不正常，请检查标记行和控制台输出",
+      "繁中": "專案的所有檔案譯文語言佔比不正常，請檢查標記行和控制台輸出",
+      "English": "The language distribution of translations in the project is abnormal. Please check the token lines and console output",
+      "日本語": "プロジェクトの全ファイルにおける翻訳言語の比率が異常です。トークン行とコンソール出力を確認してください"
     },
-    "检测到语言不匹配项，正在将标记保存到磁盘...": {
-      "简中": "检测到语言不匹配项，正在将标记保存到磁盘...",
-      "繁中": "檢測到語言不匹配項，正在將標記保存到磁碟...",
-      "English": "Language mismatch detected, saving flags to disk...",
-      "日本語": "言語の不一致が検出されたため、フラグをディスクに保存しています..."
+    "标记已成功保存到缓存文件": {
+      "简中": "标记已成功保存到缓存文件",
+      "繁中": "標記已成功保存到快取檔案",
+      "English": "Tokens saved to cache file successfully",
+      "日本語": "トークンは正常にキャッシュファイルに保存されました"
     },
-    "标记已成功保存并重载缓存。": {
-      "简中": "标记已成功保存并重载缓存。",
-      "繁中": "標記已成功保存並重載快取。",
-      "English": "Flags have been saved and cache reloaded successfully.",
-      "日本語": "フラグは正常に保存され、キャッシュがリロードされました。"
-    },
-    "无法保存标记：输出路径 '{}' 未配置或无效。": {
-      "简中": "无法保存标记：输出路径 '{}' 未配置或无效。",
-      "繁中": "無法保存標記：輸出路徑 '{}' 未設定或無效。",
-      "English": "Failed to save flags: Output path '{}' is not configured or invalid.",
-      "日本語": "フラグを保存できません：出力パス '{}' が設定されていないか、無効です。"
+    "无法保存标记：输出路径 '{}' 未配置或无效": {
+      "简中": "无法保存标记：输出路径 '{}' 未配置或无效",
+      "繁中": "無法保存標記：輸出路徑 '{}' 未設定或無效",
+      "English": "Failed to save tokens: output path '{}' is not configured or invalid",
+      "日本語": "トークンの保存に失敗しました：出力パス '{}' が設定されていないか、無効です"
     },
     "保存标记到缓存时发生错误: {}": {
       "简中": "保存标记到缓存时发生错误: {}",
       "繁中": "保存標記到快取時發生錯誤: {}",
-      "English": "An error occurred while saving flags to cache: {}",
-      "日本語": "キャッシュへのフラグ保存中にエラーが発生しました: {}"
-    }        
+      "English": "Error while saving tokens to cache: {}",
+      "日本語": "トークンをキャッシュに保存中にエラーが発生しました: {}"
+    },
+    "检测到语言不匹配项，正在将标记保存到磁盘": {
+      "简中": "检测到语言不匹配项，正在将标记保存到磁盘",
+      "繁中": "偵測到語言不符項，正在將標記保存到磁碟",
+      "English": "Language mismatch detected, saving tokens to disk",
+      "日本語": "言語の不一致が検出されたため、トークンをディスクに保存しています"
+    }   
   }
 }

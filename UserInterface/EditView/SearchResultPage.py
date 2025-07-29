@@ -1,6 +1,7 @@
 import os
 import re 
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableWidgetItem, 
                              QAbstractItemView, QHeaderView, QHBoxLayout, QSpacerItem, QSizePolicy)
 
@@ -17,18 +18,20 @@ class SearchResultPage(Base, QWidget):
     COL_TRANS = 3  # 译文列
     COL_POLISH = 4 # 润文列
 
-    def __init__(self, search_results: list, cache_manager, parent=None):
+    def __init__(self, search_results: list, cache_manager, search_params: dict, parent=None):
         """搜索结果展示页面构造函数
         
         Args:
             search_results: 搜索结果列表，格式为[(文件路径, 行号, 文本项)]
             cache_manager: 缓存管理器实例，用于数据持久化
+            search_params: 包含 'query', 'is_regex', 'scope' 的字典
             parent: 父组件
         """
         super().__init__(parent)
         self.setObjectName('SearchResultPage')
         
         self.cache_manager = cache_manager  # 缓存管理器实例
+        self.search_params = search_params  # 存储搜索参数
         
         # 主布局
         self.layout = QVBoxLayout(self)
@@ -168,6 +171,9 @@ class SearchResultPage(Base, QWidget):
         """
         # 阻塞信号防止频繁触发itemChanged
         self.table.blockSignals(True)
+
+        # 定义高亮颜色
+        highlight_brush = QBrush(QColor(144, 238, 144, 100))
         
         # 设置表格行数
         self.table.setRowCount(len(search_results))
@@ -195,9 +201,18 @@ class SearchResultPage(Base, QWidget):
             self.table.setItem(row_idx, self.COL_SOURCE, source_item)
 
             # 译文项（可编辑）
-            self.table.setItem(row_idx, self.COL_TRANS, QTableWidgetItem(item.translated_text))
+            trans_item = QTableWidgetItem(item.translated_text)
+            self.table.setItem(row_idx, self.COL_TRANS, trans_item)
             # 润文项（可编辑）
-            self.table.setItem(row_idx, self.COL_POLISH, QTableWidgetItem(item.polished_text or ''))
+            polish_item = QTableWidgetItem(item.polished_text or '')
+            self.table.setItem(row_idx, self.COL_POLISH, polish_item)
+
+            # 检查并应用高亮
+            if item.extra:
+                if item.extra.get('language_mismatch_translation', False):
+                    trans_item.setBackground(highlight_brush)
+                if item.extra.get('language_mismatch_polish', False):
+                    polish_item.setBackground(highlight_brush)
         
         # 自动调整行高以适应内容
         self.table.resizeRowsToContents()
