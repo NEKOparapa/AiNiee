@@ -851,7 +851,7 @@ class EditViewPage(Base,QFrame):
                 return
 
         # 创建新的搜索结果页面实例
-        search_page = SearchResultPage(results, self.cache_manager)
+        search_page = SearchResultPage(results, self.cache_manager, params)
         search_page.setObjectName(route_key)
 
         # 添加新标签页
@@ -903,7 +903,7 @@ class EditViewPage(Base,QFrame):
             msg_box = MessageBox(title, content, self.window())
         elif result_code == CheckResult.SUCCESS_JUDGE_FAIL:
             lang = data.get("target_language", "N/A")
-            content = self.tra("项目的所有文件译文语言占比不正常，请检查控制台输出").format(lang)
+            content = self.tra("项目的所有文件译文语言占比不正常，请检查标记行和控制台输出").format(lang)
             msg_box = MessageBox(title, content, self.window())
         
         if msg_box:

@@ -1,4 +1,5 @@
 from PyQt5.QtCore import QPoint, Qt
+from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import (QAbstractItemView, QHeaderView, QTableWidgetItem,
                              QWidget, QVBoxLayout)
 from qfluentwidgets import (Action, FluentIcon as FIF, MessageBox, RoundMenu, TableWidget)
@@ -77,6 +78,8 @@ class BasicTablePage(Base,QWidget):
         # 在批量填充数据前，关闭 _on_item_changed 的处理逻辑
         self._item_changed_handler_enabled = False
         try:
+            # 定义高亮颜色：半透明浅绿色
+            highlight_brush = QBrush(QColor(144, 238, 144, 100))
             
             self.table.setRowCount(len(items))
             for row_idx, item_data in enumerate(items):
@@ -92,8 +95,20 @@ class BasicTablePage(Base,QWidget):
                 self.table.setItem(row_idx, 1, source_item)
                 
                 # 译文、润文列 (可编辑)
-                self.table.setItem(row_idx, 2, QTableWidgetItem(item_data.translated_text))
-                self.table.setItem(row_idx, 3, QTableWidgetItem(item_data.polished_text or ''))
+                trans_item = QTableWidgetItem(item_data.translated_text)
+                polish_item = QTableWidgetItem(item_data.polished_text or '')
+                self.table.setItem(row_idx, 2, trans_item)
+                self.table.setItem(row_idx, 3, polish_item)
+
+                # 检查是否存在 extra 字典以及对应的标记
+                if item_data.extra:
+                    # 如果翻译文本被标记，则高亮第2列（译文）
+                    if item_data.extra.get('language_mismatch_translation', False):
+                        trans_item.setBackground(highlight_brush)
+                    
+                    # 如果润色文本被标记，则高亮第3列（润文）
+                    if item_data.extra.get('language_mismatch_polish', False):
+                        polish_item.setBackground(highlight_brush)
 
         finally:
             # 无论是否发生异常，都确保在操作结束后重新打开开关
