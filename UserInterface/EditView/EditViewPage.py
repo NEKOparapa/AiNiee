@@ -679,6 +679,7 @@ class EditViewPage(Base,QFrame):
                 data = json.load(f)
             
             # 获取数据
+            is_continue =  True
             project_name = data.get("project_name") # 获取已项目名字
             total_line = data.get("total_line") # 获取需翻译行数
             line = data.get("line") # 获取已翻译行数
@@ -687,12 +688,17 @@ class EditViewPage(Base,QFrame):
             if total_line:
                 self.continue_status = True
 
+            # 如果完成了任务，则不显示继续按钮
+            if total_line and line >= total_line:
+                is_continue = False
+
         # 根据任务状态，更新界面
         if self.continue_status == True :
             # 启动页显示继续翻译按钮
             self.startup_page.show_continue_button(True)
             # 命令栏启用继续按钮
-            self.bottom_bar_main.enable_continue_button(True)
+            if is_continue:
+                self.bottom_bar_main.enable_continue_button(True)
             # 在 ActionCard 上显示项目名
             self.startup_page.continue_card.set_project_name(project_name)
 
