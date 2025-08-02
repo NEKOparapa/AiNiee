@@ -131,7 +131,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.move(desktop.width()//2 - self.width()//2, desktop.height()//2 - self.height()//2)
 
         # 设置侧边栏宽度
-        self.navigationInterface.setExpandWidth(216)
+        self.navigationInterface.setExpandWidth(226)
 
         # 侧边栏默认展开
         #self.navigationInterface.setMinimumExpandWidth(self.APP_WIDTH)
