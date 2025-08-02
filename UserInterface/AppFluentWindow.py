@@ -112,7 +112,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         setTheme(Theme.DARK if config.get("theme") == "dark" else Theme.LIGHT)
 
         # 设置窗口属性
-        self.resize(self.APP_WIDTH, self.APP_HEIGHT)
+        #self.resize(self.APP_WIDTH, self.APP_HEIGHT)
         self.setMinimumSize(self.APP_WIDTH, self.APP_HEIGHT)
         self.setWindowTitle(version)
         # 解决任务栏图标不显示问题
@@ -131,10 +131,10 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.move(desktop.width()//2 - self.width()//2, desktop.height()//2 - self.height()//2)
 
         # 设置侧边栏宽度
-        self.navigationInterface.setExpandWidth(256)
+        self.navigationInterface.setExpandWidth(216)
 
         # 侧边栏默认展开
-        self.navigationInterface.setMinimumExpandWidth(self.APP_WIDTH)
+        #self.navigationInterface.setMinimumExpandWidth(self.APP_WIDTH)
         self.navigationInterface.expand(useAni = False)
 
         # 隐藏返回按钮

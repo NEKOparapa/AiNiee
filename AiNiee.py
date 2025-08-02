@@ -95,23 +95,6 @@ if __name__ == "__main__":
     os.chdir(script_dir) # 确保工作目录在脚本所在目录
     sys.path.append(script_dir)
 
-    # 创建全局应用对象
-    app = QApplication(sys.argv)
-
-    display_banner()
-    print(f"[[green]INFO[/]] Current working directory is {script_dir}")
-
-    # 启动页面
-    logo_path = os.path.join(".", "Resource", "Logo", "Logo.png")
-    icon = QIcon(logo_path)  # 使用QIcon加载logo
-    pixmap = icon.pixmap(400, 200)  # 从QIcon获取指定大小的QPixmap
-    splash = QSplashScreen(pixmap, Qt.WindowStaysOnTopHint)
-    splash.setEnabled(False)  # 禁用用户交互，可能改善渲染
-
-    # 显示启动页面
-    splash.show()
-    update_splash_message(splash, "正在初始化...", app)  # 显示初始化消息
-
     # 加载配置文件
     config = load_config()
 
@@ -125,6 +108,34 @@ if __name__ == "__main__":
         os.environ["QT_SCALE_FACTOR"] = "1.50"
     elif scale_factor_str == "200%":
         os.environ["QT_SCALE_FACTOR"] = "2.00"
+
+    # 创建全局应用对象
+    app = QApplication(sys.argv)
+
+    display_banner()
+    print(f"[[green]INFO[/]] Current working directory is {script_dir}")
+
+    # 启动页面
+    logo_path = os.path.join(".", "Resource", "Logo", "Logo.png")
+    icon = QIcon(logo_path)  # 使用QIcon加载logo
+    pixmap = icon.pixmap(400, 200)  # 从QIcon获取指定大小的QPixmap
+    # 跟随缩放比例
+    if "QT_SCALE_FACTOR" in os.environ:
+        scale_factor = float(os.environ["QT_SCALE_FACTOR"])
+        pixmap = pixmap.scaled(
+            int(pixmap.width() * scale_factor),
+            int(pixmap.height() * scale_factor),
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation
+        )
+    splash = QSplashScreen(pixmap, Qt.WindowStaysOnTopHint)
+    splash.setEnabled(False)  # 禁用用户交互，可能改善渲染
+
+    # 显示启动页面
+    splash.show()
+    update_splash_message(splash, "正在初始化...", app)  # 显示初始化消息
+
+
 
     # 设置全局字体属性，解决狗牙问题
     font = QFont("Consolas")
