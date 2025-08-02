@@ -97,6 +97,7 @@
             ]
         },
         "google": {
+        "google": {
             "tag": "google",
             "group": "online",
             "name": "Google",
@@ -106,17 +107,18 @@
             "icon": "google",
             "rpm_limit": 15,
             "tpm_limit": 320000,
-            "model": "gemini-2.5-pro",
+            "model": "gemini-2.5-flash",
             "top_p": 0.95,
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
             "think_switch": false,
             "think_depth": "low",
-            "thinking_budget": -1,
             "auto_complete": false,
             "model_datas": [
-                "gemma-3n-e2b-it",
+                "gemini-2.0-flash",
+                "gemini-2.0-flash-exp",
+                "gemini-2.5-flash-lite",
                 "gemini-2.5-flash",
                 "gemini-2.5-pro"
             ],
