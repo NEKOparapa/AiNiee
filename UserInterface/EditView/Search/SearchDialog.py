@@ -18,7 +18,7 @@ class SearchDialog(Base,MessageBoxBase):
         self.query_edit = LineEdit(self)
         self.query_edit.setPlaceholderText(self.tra("输入搜索内容..."))
 
-        self.flagged_line_checkbox = CheckBox(self.tra("标记行"), self)
+        self.flagged_line_checkbox = CheckBox(self.tra("仅搜索被标记行"), self)
         self.regex_checkbox = CheckBox(self.tra("使用正则表达式"), self)
         
         self.scope_combo = ComboBox(self)

@@ -12,17 +12,17 @@ from qframelesswindow import QTimer
 
 from Base.Base import Base
 from ModuleFolders.ResponseChecker.TranslationChecker import TranslationChecker, CheckResult
-from UserInterface.EditView.MonitoringPage import MonitoringPage
-from UserInterface.EditView.StartupPage import StartupPage
+from UserInterface.EditView.Monitoring.MonitoringPage import MonitoringPage
+from UserInterface.EditView.Startup.StartupPage import StartupPage
 from ModuleFolders.TaskConfig.TaskType import TaskType
-from UserInterface.EditView.LanguageCheckDialog import LanguageCheckDialog
-from UserInterface.EditView.SearchDialog import SearchDialog
-from UserInterface.EditView.SearchResultPage import SearchResultPage
+from UserInterface.EditView.Check.LanguageCheckDialog import LanguageCheckDialog
+from UserInterface.EditView.Search.SearchDialog import SearchDialog
+from UserInterface.EditView.Search.SearchResultPage import SearchResultPage
 from UserInterface.EditView.ScheduledDialogPage import ScheduledDialogPage
 from UserInterface.EditView.TextViewPage import TextViewPage
 from UserInterface.EditView.BasicTablePage import BasicTablePage
-from UserInterface.EditView.TermResultPage import TermResultPage
-from UserInterface.EditView.TermExtractionDialog import TermExtractionDialog
+from UserInterface.EditView.Term.TermResultPage import TermResultPage
+from UserInterface.EditView.Term.TermExtractionDialog import TermExtractionDialog
 
 # 底部命令栏
 class BottomCommandBar(Base,CardWidget):
@@ -346,28 +346,27 @@ class NavigationCard(Base,CardWidget):
         self.layout.setSpacing(8)
         
         self.toolbar = QWidget()
-        self.toolbar_layout = QGridLayout(self.toolbar)
+        self.toolbar_layout = QHBoxLayout(self.toolbar)
         self.toolbar_layout.setContentsMargins(0, 0, 0, 0)
         self.toolbar_layout.setSpacing(8)
         
         # 搜索按钮
         self.search_button = TransparentPushButton(FIF.SEARCH,self.tra("搜索"))
-        #self.search_button.setToolTip(self.tra("搜索替换"))
         self.search_button.clicked.connect(self._open_search_dialog) # 连接点击事件
 
         # 术语提取按钮
         self.term_extraction_button = TransparentPushButton(FIF.FILTER, self.tra("术语"))
-        #self.term_extraction_button.setToolTip(self.tra("提取术语")) 
         self.term_extraction_button.clicked.connect(self._open_term_extraction_dialog)
 
         # 语言检查按钮
-        self.check_button = TransparentPushButton(FIF.SEARCH, self.tra("检查"))
+        self.check_button = TransparentPushButton(FIF.EDUCATION, self.tra("检查"))
         self.check_button.clicked.connect(self._open_language_check_dialog)
 
-        self.toolbar_layout.addWidget(self.term_extraction_button, 0, 0)
-        self.toolbar_layout.addWidget(self.search_button, 0, 1)
-        self.toolbar_layout.addWidget(self.check_button, 1, 0)
-        self.toolbar_layout.setColumnStretch(2, 1)
+        self.toolbar_layout.addStretch(1)  
+        self.toolbar_layout.addWidget(self.term_extraction_button)
+        self.toolbar_layout.addWidget(self.search_button)
+        self.toolbar_layout.addWidget(self.check_button)
+        self.toolbar_layout.addStretch(1) 
         self.layout.addWidget(self.toolbar)
         
         self.tree = TreeWidget(self)
