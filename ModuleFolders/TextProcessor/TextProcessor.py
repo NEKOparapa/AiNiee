@@ -621,14 +621,25 @@ class TextProcessor():
 
     # 处理数字序列
     def digital_sequence_preprocessing(self, text_dict: dict) -> dict:
+        """
+        遍历字典，仅当文本以 "数字." 格式开头时，将其替换为 "【数字】"。
+        例如: "1. 这是标题" -> "【1】这是标题"
+        """
         for k in text_dict:
-            # 将例如 "1." 替换为 "【1】"，只替换文本开头的第一个匹配项
+            # 使用新的正则表达式，它只匹配字符串开头的 "数字." 模式
+            # r'【\1】' 移除了原来的点号
             text_dict[k] = self.RE_DIGITAL_SEQ_PRE.sub(r'【\1】', text_dict[k], count=1)
         return text_dict
 
     # 还原数字序列
     def digital_sequence_recovery(self, text_dict: dict) -> dict:
+        """
+        遍历字典，仅当文本以 "【数字】" 格式开头时，将其还原为 "数字."。
+        例如: "【1】这是标题" -> "1. 这是标题"
+        """
         for k in text_dict:
+            # 使用新的正则表达式，它只匹配字符串开头的 "【数字】" 模式
+            # r'\1.' 将捕获到的数字后面加上点号
             text_dict[k] = self.RE_DIGITAL_SEQ_REC.sub(r'\1.', text_dict[k], count=1)
         return text_dict
 
