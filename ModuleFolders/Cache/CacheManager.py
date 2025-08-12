@@ -56,7 +56,8 @@ class CacheManager(Base):
 
     # 保存缓存到文件
     def save_to_file(self) -> None:
-        """保存缓存到文件，缓存结构：
+        """保存缓存到文件，采用原子写入方式防止竞态条件
+        缓存结构：
         {
             "project_id": "aaa",
             "project_type": "Type",
@@ -73,22 +74,38 @@ class CacheManager(Base):
             }
         }
         """
-        path = os.path.join(self.save_to_file_require_path, "cache", "AinieeCacheData.json")
+        cache_dir = os.path.join(self.save_to_file_require_path, "cache")
+        path = os.path.join(cache_dir, "AinieeCacheData.json")
+        # 定义临时文件路径，确保在同一文件系统下以支持原子性替换
+        tmp_path = path + f".{os.getpid()}.tmp"
+
         with self.file_lock:
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            content_bytes = msgspec.json.encode(self.project)
-            with open(path, "wb") as writer:
-                writer.write(content_bytes)
+            try:
+                os.makedirs(cache_dir, exist_ok=True)
+                content_bytes = msgspec.json.encode(self.project)
 
-            # 写入项目整体翻译状态文件
-            total_line = self.project.stats_data.total_line # 获取需翻译总行数
-            line = self.project.stats_data.line # 获取已翻译行数
-            project_name = self.project.project_name # 获取项目名字
-            json_data = {"total_line": total_line, "line": line, "project_name": project_name }
+                # 先将完整内容写入临时文件
+                with open(tmp_path, "wb") as writer:
+                    writer.write(content_bytes)
 
-            json_path = os.path.join(self.save_to_file_require_path, "cache", "ProjectStatistics.json")
-            with open(json_path, "w", encoding="utf-8") as writer:
-                json.dump(json_data, writer, ensure_ascii=False, indent=4)  # 直接写入 JSON 数据
+                # 使用原子操作替换旧文件。这能保证其他进程/线程
+                # 要么读到旧的完整文件，要么读到新的完整文件，绝不会读到一半。
+                os.replace(tmp_path, path)
+
+                # 写入项目整体翻译状态文件
+                total_line = self.project.stats_data.total_line # 获取需翻译总行数
+                line = self.project.stats_data.line # 获取已翻译行数
+                project_name = self.project.project_name # 获取项目名字
+                json_data = {"total_line": total_line, "line": line, "project_name": project_name}
+
+                json_path = os.path.join(cache_dir, "ProjectStatistics.json")
+                with open(json_path, "w", encoding="utf-8") as writer:
+                    json.dump(json_data, writer, ensure_ascii=False, indent=4)
+            finally:
+                # 确保临时文件在任何情况下（包括异常）都会被清理
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+
 
     # 保存缓存到文件的定时任务
     def save_to_file_tick(self) -> None:
@@ -245,7 +262,7 @@ class CacheManager(Base):
 
             current_chunk, current_length = [], 0
             # 2. 记录当前 chunk 在 `items` 这个筛选后列表中的起始索引
-            chunk_start_idx_in_filtered_list = 0 
+            chunk_start_idx_in_filtered_list = 0
 
             # 3. 使用 enumerate 同时获取筛选后列表的索引 `i` 和条目 `item`
             for i, item in enumerate(items):
@@ -406,8 +423,8 @@ class CacheManager(Base):
 
             # 构建最终的 item 列表
             final_items = (
-                original_items[:start_pos] + 
-                newly_created_items + 
+                original_items[:start_pos] +
+                newly_created_items +
                 original_items[end_pos + 1:]
             )
 
