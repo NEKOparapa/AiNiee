@@ -8,7 +8,9 @@ cmd = [
     "--onefile",  # Create a one-file bundled executable.
     "--noconfirm",  # Replace output directory (default: SPECPATH/dist/SPECNAME) without asking for confirmation
     "--hidden-import=babeldoc",
+    "--hidden-import=sklearn",
     "--collect-all=babeldoc",
+    "--collect-all=sklearn",
     # "--distpath=./dist/AiNiee" #指定输出目录
 ]
 
@@ -16,7 +18,6 @@ cmd = [
 # 由mediapipe导入，但不需要这些任务，会增加很多大小
 MODULES_TO_EXCLUDE = [
     "jaxlib",
-    "scipy",
 ]
 
 # 添加显式排除参数
