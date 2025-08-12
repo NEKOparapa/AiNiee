@@ -288,7 +288,8 @@ class ResponseExtractor:
             for i, line in enumerate(translation_lines):
 
                 # 去除数字序号 (只匹配 "1.", "1.2.," 等，并保留原文中的缩进空格)
-                temp_line = re.sub(r'^\s*\d+\.(\d+\.,)?', '', line)
+                #temp_line = re.sub(r'^\s*\d+\.(\d+\.,)?', '', line)
+                temp_line = re.sub(r'\d+\.(\d+\.,)?', '', line) #不限定开头的数字序号
                 cleaned_lines.append(temp_line)
 
             processed_text = '\n'.join(cleaned_lines)
