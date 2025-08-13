@@ -150,7 +150,6 @@ class BasicTablePage(Base,QWidget):
 
     # 表格操作的右键菜单
     def _show_context_menu(self, pos: QPoint):
-        # ... 此方法无需修改 ...
         menu = RoundMenu(parent=self)
         has_selection = bool(self.table.selectionModel().selectedRows())
         if has_selection:
@@ -170,7 +169,6 @@ class BasicTablePage(Base,QWidget):
         menu.exec(global_pos)
 
 
-    #  通用的表格更新函数。
     def _on_table_update(self, event, data: dict):
         """
         根据事件传递的数据，更新指定文件的指定列。
@@ -185,6 +183,16 @@ class BasicTablePage(Base,QWidget):
             self.warning(f"表格更新数据不完整，操作中止。")
             return
 
+        # 根据列索引确定要更新的字段名
+        field_name_map = {
+            self.COL_TRANS: 'translated_text',
+            self.COL_POLISH: 'polished_text'
+        }
+        field_name = field_name_map.get(target_column_index)
+        if not field_name:
+            self.warning(f"无效的目标列索引: {target_column_index}")
+            return
+
         # 在批量更新前关闭开关，操作结束后再打开
         self._item_changed_handler_enabled = False
         try:
@@ -196,7 +204,17 @@ class BasicTablePage(Base,QWidget):
             for text_index, new_text in updated_items.items():
                 if text_index in index_to_row_map:
                     row = index_to_row_map[text_index]
+                    
+                    # 更新UI表格
                     self.table.setItem(row, target_column_index, QTableWidgetItem(new_text))
+
+                    # 更新CacheManager中的数据模型
+                    self.cache_manager.update_item_text(
+                        storage_path=self.file_path,
+                        text_index=text_index,
+                        field_name=field_name,
+                        new_text=new_text
+                    )
             
             self.table.resizeRowsToContents()
         finally:
@@ -234,8 +252,6 @@ class BasicTablePage(Base,QWidget):
         
         row_count_change = len(updated_full_item_list) - self.table.rowCount()
         self.info_toast(self.tra("排版完成"), self.tra("表格已成功更新，行数变化: {:+}").format(row_count_change))
-
-    # --- 以下方法无需修改 ---
 
     def _get_selected_rows_indices(self):
         """获取所有被选中行的索引列表"""
