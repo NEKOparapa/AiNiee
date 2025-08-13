@@ -47,7 +47,8 @@ class RequestLimiter:
 
         # 检查是否超过模型最大输入限制
         if tokens >= self.max_tokens:
-            print("[Warning INFO] 该次任务的文本总tokens量已经超过最大输入限制(3w tokens)，请检查原文文件是否有问题")
+            print("[Warning INFO] 该次任务的文本总tokens量已经超过最大输入限制(3w tokens)，请检查原文文件是否有问题或者文本切分量设置过大！！！")
+            print("[Warning INFO] 该次任务将进行拆分处理，并进入下一轮任务中....")
             return False
         
         # 检查是否超过余量
