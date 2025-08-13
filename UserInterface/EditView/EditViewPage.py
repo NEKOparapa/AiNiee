@@ -348,10 +348,12 @@ class NavigationCard(Base,CardWidget):
         self.toolbar = QWidget()
         self.toolbar_layout = QHBoxLayout(self.toolbar)
         self.toolbar_layout.setContentsMargins(0, 0, 0, 0)
-        self.toolbar_layout.setSpacing(8)
+        self.toolbar_layout.setSpacing(0)
         
         # 搜索按钮
         self.search_button = TransparentPushButton(FIF.SEARCH,self.tra("搜索"))
+        # 设置合适的大小
+
         self.search_button.clicked.connect(self._open_search_dialog) # 连接点击事件
 
         # 术语提取按钮
@@ -362,11 +364,16 @@ class NavigationCard(Base,CardWidget):
         self.check_button = TransparentPushButton(FIF.EDUCATION, self.tra("检查"))
         self.check_button.clicked.connect(self._open_language_check_dialog)
 
-        self.toolbar_layout.addStretch(1)  
+        # 为三个按钮设置合适的固定宽度
+        button_width = 75
+        self.search_button.setFixedWidth(button_width)
+        self.term_extraction_button.setFixedWidth(button_width)
+        self.check_button.setFixedWidth(button_width)
+
+        # 添加按钮到工具栏布局
         self.toolbar_layout.addWidget(self.term_extraction_button)
         self.toolbar_layout.addWidget(self.search_button)
         self.toolbar_layout.addWidget(self.check_button)
-        self.toolbar_layout.addStretch(1) 
         self.layout.addWidget(self.toolbar)
         
         self.tree = TreeWidget(self)
@@ -618,7 +625,7 @@ class EditViewPage(Base,QFrame):
         self.page_card = PageCard()  # 页面卡片
         self.splitter.addWidget(self.nav_card)
         self.splitter.addWidget(self.page_card)
-        self.splitter.setSizes([200, 800])  # 设置左右区域初始宽度
+        self.splitter.setSizes([100, 900])  # 设置左右区域初始宽度
         self.main_page_layout.addWidget(self.splitter)
 
         # 隐藏拖拽手柄，以免主题切换不和谐
