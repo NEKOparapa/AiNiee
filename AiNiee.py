@@ -104,6 +104,8 @@ if __name__ == "__main__":
         os.environ["QT_SCALE_FACTOR"] = "0.50"
     elif scale_factor_str == "75%":
         os.environ["QT_SCALE_FACTOR"] = "0.75"
+    elif scale_factor_str == "125%":
+        os.environ["QT_SCALE_FACTOR"] = "1.25"
     elif scale_factor_str == "150%":
         os.environ["QT_SCALE_FACTOR"] = "1.50"
     elif scale_factor_str == "200%":

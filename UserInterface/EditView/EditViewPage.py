@@ -625,7 +625,8 @@ class EditViewPage(Base,QFrame):
         self.page_card = PageCard()  # 页面卡片
         self.splitter.addWidget(self.nav_card)
         self.splitter.addWidget(self.page_card)
-        self.splitter.setSizes([100, 900])  # 设置左右区域初始宽度
+        self.splitter.setStretchFactor(0, 1) # 左邊 nav_card 佔 1 份
+        self.splitter.setStretchFactor(1, 9) # 右邊 page_card 佔 9 份
         self.main_page_layout.addWidget(self.splitter)
 
         # 隐藏拖拽手柄，以免主题切换不和谐

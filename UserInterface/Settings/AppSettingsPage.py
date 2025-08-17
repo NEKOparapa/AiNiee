@@ -97,7 +97,6 @@ class AppSettingsPage(QWidget, Base):
 
         def init(widget) -> None:
             widget.set_text(config.get("proxy_url"))
-            widget.set_fixed_width(256)
             widget.set_placeholder_text(self.tra("请输入网络代理地址"))
 
             swicth_button = SwitchButton()
@@ -192,7 +191,7 @@ class AppSettingsPage(QWidget, Base):
             ComboBoxCard(
                 self.tra("全局缩放比例"),
                 self.tra("启用此功能后，应用界面将按照所选比例进行缩放（将在应用重启后生效）"),
-                ["AUTO", "50%", "75%", "150%", "200%"],
+                ["AUTO", "50%", "75%", "125%", "150%", "200%"],
                 init = init,
                 current_text_changed = current_text_changed,
             )
@@ -243,7 +242,6 @@ class AppSettingsPage(QWidget, Base):
         """文件/目录排除规则"""
         def init(widget) -> None:
             widget.set_text(config.get("label_input_exclude_rule"))
-            widget.set_fixed_width(256)
             widget.set_placeholder_text(self.tra("*.log,aaa/*"))
 
         def text_changed(widget, text: str) -> None:

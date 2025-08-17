@@ -100,8 +100,7 @@ class DragDropArea(Base,QWidget):
         info_1 = self.tra("书籍")
         info_2 = self.tra("文档")
         info_3 = self.tra("字幕")
-        info_4 = self.tra("游戏挂载")
-        info_5 = self.tra("游戏内嵌")
+        info_5 = self.tra("游戏")
         info_6 = self.tra("数据文件")
         info_7 = self.tra("复杂文档")
         info_8 = self.tra("工程文件")
@@ -111,8 +110,7 @@ class DragDropArea(Base,QWidget):
             (f"{info_1}\n Epub\n TXT", "#AED6F1"),
             (f"{info_2}\n Docx\n MD", "#A9DFBF"),
             (f"{info_3}\n Srt\n Vtt\n Lrc", "#FAD7A0"),
-            (f"{info_4}\n Mtool", "#D8BFD8"),
-            (f"{info_5}\n Renpy\n VNText \n SExtractor", "#AFEEEE"),
+            (f"{info_5}\n Renpy\n VNText \n RPGmaker", "#AFEEEE"),
             (f"{info_6}\n Po \n I18Next \n ParaTranz", "#F08080"),
             (f"{info_7}\n PDF\n DOC", "#E6E6FA"),
             (f"{info_8}\n .trans", "#FFFACD"),

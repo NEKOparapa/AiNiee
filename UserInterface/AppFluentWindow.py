@@ -112,8 +112,14 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         setTheme(Theme.DARK if config.get("theme") == "dark" else Theme.LIGHT)
 
         # 设置窗口属性
+        desktop = QApplication.desktop().availableGeometry()
+        initial_width = int(desktop.width() * 0.8)
+        initial_height = int(desktop.height() * 0.8)
+        self.resize(initial_width, initial_height)
+
+        # 设置窗口属性
         #self.resize(self.APP_WIDTH, self.APP_HEIGHT)
-        self.setMinimumSize(self.APP_WIDTH, self.APP_HEIGHT)
+        #self.setMinimumSize(self.APP_WIDTH, self.APP_HEIGHT)
         self.setWindowTitle(version)
         # 解决任务栏图标不显示问题
         self.setWindowIcon(QIcon(os.path.join(".", "Resource", "Logo", "Avatar.png")))
