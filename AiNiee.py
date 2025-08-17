@@ -171,7 +171,7 @@ if __name__ == "__main__":
     update_splash_message(splash, "正在加载核心组件... (50%)", app)
     from UserInterface.AppFluentWindow import AppFluentWindow
     app_fluent_window = AppFluentWindow(
-        version="AiNiee7.0.3",
+        version="AiNiee7.0.4 dev",
         plugin_manager=plugin_manager,
         cache_manager=cache_manager,
         file_reader =file_reader,
