@@ -4,7 +4,7 @@ openai
 boto3
 cohere
 anthropic
-google-genai==1.23.0
+google-genai
 tiktoken
 numpy
 openpyxl
