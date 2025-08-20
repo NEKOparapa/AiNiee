@@ -168,11 +168,7 @@ class TaskExecutor(Base):
             self.project_status_data.start_time = time.time() # 重置开始时间
             self.project_status_data.total_completion_tokens = 0 # 重置完成的token数量
 
-        # 重新同步计数器以反映缓存的当前真实状态
-            total_items = self.cache_manager.get_item_count()
-            untranslated_items = self.cache_manager.get_item_count_by_status(TranslationStatus.UNTRANSLATED)
-            self.project_status_data.total_line = total_items
-            self.project_status_data.line = total_items - untranslated_items            
+        # 重新同步计数器以反映缓存的当前真实状态（未考虑到被过滤条目）    
         
         # 更新监控面板信息
         self.emit(Base.EVENT.TASK_UPDATE, self.project_status_data.to_dict())
@@ -209,7 +205,7 @@ class TaskExecutor(Base):
 
             # 第一轮时且不是继续翻译时，记录总行数
             if current_round == 0 and continue_status == False:
-                self.project_status_data.total_line = self.cache_manager.get_item_count()
+                self.project_status_data.total_line = item_count_status_untranslated
 
             # 第二轮开始对半切分
             if current_round > 0:
@@ -353,13 +349,7 @@ class TaskExecutor(Base):
         else:
             self.project_status_data = self.cache_manager.project.stats_data
             self.project_status_data.start_time = time.time() # 重置开始时间
-            self.project_status_data.total_completion_tokens = 0 # 重置完成的token数量
-
-        # 重新同步计数器以反映缓存的当前真实状态
-            total_items = self.cache_manager.get_item_count()
-            polished_items = self.cache_manager.get_item_count_by_status(TranslationStatus.POLISHED)
-            self.project_status_data.total_line = total_items
-            self.project_status_data.line = polished_items                    
+            self.project_status_data.total_completion_tokens = 0 # 重置完成的token数量                  
 
         # 更新监控面板信息
         self.emit(Base.EVENT.TASK_UPDATE, self.project_status_data.to_dict())
@@ -397,9 +387,9 @@ class TaskExecutor(Base):
                 self.print("")
                 break
 
-            # 第一轮时且不是继续翻译时，记录总行数
+            # 第一轮时且不是继续润色时，记录总行数
             if current_round == 0 and continue_status == False:
-             self.project_status_data.total_line = self.cache_manager.get_item_count()
+             self.project_status_data.total_line = item_count_status_unpolishd
 
             # 第二轮开始对半切分
             if current_round > 0:

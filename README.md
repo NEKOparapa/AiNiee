@@ -78,17 +78,15 @@
       |工具名|介绍|项目类型|
       |:----:|:-----:|:-----:|
       |[Mtool](https://afdian.com/p/d42dd1e234aa11eba42452540025c377)|上手简单，推荐新人使用|Mtool导出文件|
+      |[Translator++](https://dreamsavior.net/download/)|上手复杂，功能强大，推荐大佬使用|T++导出文件或Trans工程文件|
       |[ParaTranzr](https://paratranz.cn/projects)|上手中等，功能强大，推荐大佬使用|ParaTranzr导出文件|
       |[RenPy SDK](https://www.renpy.org/latest.html)|上手中等，功能强大，推荐大佬使用|renpy导出文件|
-      |[Translator++](https://dreamsavior.net/download/)|上手中等，功能强大，推荐大佬使用|T++导出文件或Trans工程文件|
-      |[SExtractor](https://github.com/satan53x/SExtractor)|上手复杂，功能强大，推荐大佬使用|Mtool或者VNText导出文件|
 
  * **`🧰本地模型运行工具`**
 
       |工具名|说明|
       |:----:|:-----:|
       |[Sakura_Launcher_GUI](https://github.com/PiDanShouRouZhouXD/Sakura_Launcher_GUI)|Sakura模型的专属GUI启动器|
-      |[OneClickLLAMA](https://github.com/neavo/OneClickLLAMA) |一键运行 Qwen2.5 SakuraLLM 等本地 LLM 模型|
       |[LM Studio](https://lmstudio.ai/download) |一个本地部署大语言模型（LLM）平台，致力于简化LLM的使用和管理。|
       |[ollama](https://ollama.com/) |开源跨平台大模型工具 |
 

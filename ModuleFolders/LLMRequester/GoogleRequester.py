@@ -33,18 +33,23 @@ class GoogleRequester(Base):
             # 创建 Gemini Developer API 客户端（非 Vertex AI API）
             client = LLMClientFactory().get_google_client(platform_config)
 
+            # 定义适用于文本模型的安全类别
+            TEXT_HARM_CATEGORIES = [
+                HarmCategory.HARM_CATEGORY_HARASSMENT,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+            ]
+            
             # 构建基础配置
             gen_config = types.GenerateContentConfig(
                 system_instruction=system_prompt,
                 max_output_tokens=65536 if model_name.startswith("gemini-2.5") else 8192,
                 temperature=temperature,
                 top_p=top_p,
-                presence_penalty=presence_penalty,
-                frequency_penalty=frequency_penalty,
                 safety_settings=[
                     types.SafetySetting(category=category, threshold='BLOCK_NONE')
-                    for category in HarmCategory
-                    if category not in [HarmCategory.HARM_CATEGORY_UNSPECIFIED, HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY]
+                    for category in TEXT_HARM_CATEGORIES
                 ]
             )
 

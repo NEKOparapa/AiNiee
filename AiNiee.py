@@ -104,6 +104,8 @@ if __name__ == "__main__":
         os.environ["QT_SCALE_FACTOR"] = "0.50"
     elif scale_factor_str == "75%":
         os.environ["QT_SCALE_FACTOR"] = "0.75"
+    elif scale_factor_str == "125%":
+        os.environ["QT_SCALE_FACTOR"] = "1.25"
     elif scale_factor_str == "150%":
         os.environ["QT_SCALE_FACTOR"] = "1.50"
     elif scale_factor_str == "200%":
@@ -169,7 +171,7 @@ if __name__ == "__main__":
     update_splash_message(splash, "正在加载核心组件... (50%)", app)
     from UserInterface.AppFluentWindow import AppFluentWindow
     app_fluent_window = AppFluentWindow(
-        version="AiNiee7.0.2 dev",
+        version="AiNiee7.0.4 dev",
         plugin_manager=plugin_manager,
         cache_manager=cache_manager,
         file_reader =file_reader,
