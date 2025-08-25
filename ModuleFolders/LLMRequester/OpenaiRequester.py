@@ -33,10 +33,10 @@ class OpenaiRequester(Base):
             # 从工厂获取客户端
             client = LLMClientFactory().get_openai_client(platform_config)
 
-            # 针对ds-r模型的特殊处理，因为该模型不支持模型预输入回复
-            if model_name in {"deepseek-reasoner", "deepseek-r1", "DeepSeek-R1"}:
+            # 针对ds模型的特殊处理，因为该模型不支持模型预输入回复
+            if 'deepseek' in model_name.lower():
                 # 检查一下最后的消息是否用户消息，以免误删。(用户使用了推理模型卻不切换为推理模型提示词的情况)
-                if isinstance(messages[-1], dict) and messages[-1].get('role') != 'user':
+                if messages and isinstance(messages[-1], dict) and messages[-1].get('role') != 'user':
                     messages = messages[:-1]  # 移除最后一个元素
 
 
