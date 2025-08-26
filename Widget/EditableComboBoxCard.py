@@ -2,11 +2,16 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QVBoxLayout, QWidget
 from PyQt5.QtCore import pyqtSignal
 
-from qfluentwidgets import CardWidget, CaptionLabel, LineEdit, MessageBoxBase, PushButton, StrongBodyLabel, EditableComboBox, SubtitleLabel,FluentIcon, ToolButton
-
+from qfluentwidgets import (
+    CardWidget, CaptionLabel, LineEdit, MessageBoxBase, PushButton, StrongBodyLabel,
+    EditableComboBox, SubtitleLabel, FluentIcon, ToolButton, RoundMenu, Action,
+    TransparentDropDownToolButton
+)
 
 
 class EditableComboBoxCard(CardWidget):
+    # 当用户选择“从接口获取模型”时发出，交由上层页面处理网络请求
+    fetch_models_requested = pyqtSignal()
     items_changed = pyqtSignal(list)  # 添加一个信号，用于通知外部选项列表已更改
 
     def __init__(self, title: str, description: str, items: list[str], init = None, current_text_changed = None, current_index_changed = None):
@@ -37,9 +42,19 @@ class EditableComboBoxCard(CardWidget):
         self.set_items(items) # 使用 set_items 初始化，确保 _items 被正确设置
         self.container.addWidget(self.combo_box)
 
-        # 编辑按钮
-        self.edit_button = ToolButton(FluentIcon.EDIT, self)
-        self.edit_button.clicked.connect(self._show_edit_items_popup) # 连接按钮点击事件到弹出窗口函数
+        # 编辑/获取 按钮（带下拉菜单）
+        self.edit_button = TransparentDropDownToolButton(FluentIcon.EDIT, self)
+        menu = RoundMenu(parent=self)
+        # 1) 手动编辑列表
+        action_edit = Action(self.tra("编辑列表")) if hasattr(self, 'tra') else Action("编辑列表")
+        action_edit.triggered.connect(self._show_edit_items_popup)
+        menu.addAction(action_edit)
+        # 2) 从接口获取模型
+        action_fetch = Action(self.tra("从接口获取模型")) if hasattr(self, 'tra') else Action("从接口获取模型")
+        action_fetch.triggered.connect(self._emit_fetch_models_requested)
+        menu.addAction(action_fetch)
+
+        self.edit_button.setMenu(menu)
         self.container.addWidget(self.edit_button)
 
 
@@ -86,6 +101,10 @@ class EditableComboBoxCard(CardWidget):
             if new_items:
                 self.set_items(new_items)
                 self.items_changed.emit(new_items)
+
+    # 发出“从接口获取模型”的信号，由上层决定如何请求与展示
+    def _emit_fetch_models_requested(self):
+        self.fetch_models_requested.emit()
 
 
 
