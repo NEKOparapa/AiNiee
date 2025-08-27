@@ -466,7 +466,8 @@ def clean_text(source_text):
     # 提取、拼接tag属性值
     cleaned_text = replace_tags_with_values(cleaned_text)
     # 提取xml标签带冒号格式的具体内容
-    cleaned_text = re.sub(r'<[a-zA-Z_]+:(.*?)>', tag_handler, cleaned_text)
+    # 20250825fix: 修复XML标签名正则不支持非ASCII字符的问题
+    cleaned_text = re.sub(r'<[^:]+:(.*?)>', tag_handler, cleaned_text)
     # 去除html标签
     cleaned_text = remove_html_tags(cleaned_text).strip()
     # 去除文本前后的转义换行符(\n)
