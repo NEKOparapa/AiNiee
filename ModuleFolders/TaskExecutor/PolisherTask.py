@@ -131,7 +131,7 @@ class PolisherTask(Base):
             }
 
         # 返空判断
-if response_content is None or not response_content.strip():
+        if response_content is None or not response_content.strip():p():
             error = "API请求错误，模型回复内容为空，将在下一轮次重试"
             self.print(
                 self.generate_log_table(
