@@ -266,42 +266,49 @@ class ModelBrowserDialog(MessageBoxBase, Base):
 
     # 拉取模型（异步）
     def _fetch_models(self) -> None:
+        # 判断平台类型
+        if self.platform_key == "google":
+            self._thread = QThread(self)
+            self._worker = _GoogleModelFetchWorker(self.platform_config)
+            self._worker.moveToThread(self._thread)
+            self._thread.started.connect(self._worker.run)
+            self._worker.finished.connect(self._on_fetch_finished)
+            self._worker.failed.connect(self._on_fetch_failed)
+            self._worker.finished.connect(self._thread.quit)
+            self._worker.finished.connect(self._worker.deleteLater)
+            self._thread.finished.connect(self._thread.deleteLater)
+            self._thread.start()
+        else:
+            # OpenAI 兼容接口
+            base_url = self.platform_config.get("api_url", "").rstrip("/")
+            auto_complete = self.platform_config.get("auto_complete", False)
 
-    # 判断平台类型
-    if self.platform_key == "google":
-        self._thread = QThread(self)
-        self._worker = _GoogleModelFetchWorker(self.platform_config)
-    else:
-        # OpenAI 兼容接口         
-        base_url = self.platform_config.get("api_url", "").rstrip("/")
-        auto_complete = self.platform_config.get("auto_complete", False)
+            # 自动补全规则（参考 TranslatorConfig）
+            if self.platform_key == "sakura" and not base_url.endswith("/v1"):
+                base_url = base_url + "/v1"
+            elif auto_complete and not re.search(r"/v[1-9]$", base_url):
+                base_url = base_url + "/v1"
 
-        # 自动补全规则（参考 TranslatorConfig）
-        if self.platform_key == "sakura" and not base_url.endswith("/v1"):
-            base_url = base_url + "/v1"
-        elif auto_complete and not re.search(r"/v[1-9]$", base_url):
-            base_url = base_url + "/v1"
+            url = f"{base_url}/models"
 
-        url = f"{base_url}/models"
+            # 处理鉴权
+            headers = {}
+            api_keys = self.platform_config.get("api_key", "").replace(" ", "")
+            if api_keys:
+                headers["Authorization"] = f"Bearer {api_keys.split(',')[0]}"
 
-        # 处理鉴权
-        headers = {}
-        api_keys = self.platform_config.get("api_key", "").replace(" ", "")
-        if api_keys:
-            headers["Authorization"] = f"Bearer {api_keys.split(',')[0]}"
-
-        # 启动后台线程
-        self._thread = QThread(self)
-        self._worker = _ModelFetchWorker(url, headers)
-        self._worker.moveToThread(self._thread)
-        self._thread.started.connect(self._worker.run)
-        self._worker.finished.connect(self._on_fetch_finished)
-        self._worker.failed.connect(self._on_fetch_failed)
-        # 线程结束后清理
-        self._worker.finished.connect(self._thread.quit)
-        self._worker.finished.connect(self._worker.deleteLater)
-        self._thread.finished.connect(self._thread.deleteLater)
-        self._thread.start()
+            # 启动后台线程
+            self._thread = QThread(self)
+            self._worker = _ModelFetchWorker(url, headers)
+            self._worker.moveToThread(self._thread)
+            self._thread.started.connect(self._worker.run)
+            self._worker.finished.connect(self._on_fetch_finished)
+            self._worker.failed.connect(self._on_fetch_failed)
+            # 线程结束后清理
+            self._worker.finished.connect(self._thread.quit)
+            self._worker.finished.connect(self._worker.deleteLater)
+            self._thread.finished.connect(self._thread.deleteLater)
+            self._thread.start()
 
     # 覆写关闭/拒绝，确保停止后台线程并安全清理
     def reject(self) -> None:
@@ -492,4 +499,3 @@ class ModelBrowserDialog(MessageBoxBase, Base):
             if col >= cols:
                 col = 0
                 row += 1
-
