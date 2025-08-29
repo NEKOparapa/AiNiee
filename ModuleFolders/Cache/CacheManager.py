@@ -93,14 +93,18 @@ class CacheManager(Base):
                 os.replace(tmp_path, path)
 
                 # 写入项目整体翻译状态文件
-                total_line = self.project.stats_data.total_line # 获取需翻译总行数
-                line = self.project.stats_data.line # 获取已翻译行数
-                project_name = self.project.project_name # 获取项目名字
-                json_data = {"total_line": total_line, "line": line, "project_name": project_name}
+                if self.project and self.project.stats_data:
+                    total_line = self.project.stats_data.total_line # 获取需翻译总行数
+                    line = self.project.stats_data.line # 获取已翻译行数
+                    project_name = self.project.project_name # 获取项目名字
+                    json_data = {"total_line": total_line, "line": line, "project_name": project_name}
 
-                json_path = os.path.join(cache_dir, "ProjectStatistics.json")
-                with open(json_path, "w", encoding="utf-8") as writer:
-                    json.dump(json_data, writer, ensure_ascii=False, indent=4)
+                    json_path = os.path.join(cache_dir, "ProjectStatistics.json")
+                    with open(json_path, "w", encoding="utf-8") as writer:
+                        json.dump(json_data, writer, ensure_ascii=False, indent=4)
+                else:
+                    # 如果stats_data不存在，则调用 Base 类中的 warning 方法打印警告并跳过
+                    self.warning(f"CacheManager: self.project.stats_data is None. Skipping ProjectStatistics.json update.")
             finally:
                 # 确保临时文件在任何情况下（包括异常）都会被清理
                 if os.path.exists(tmp_path):
