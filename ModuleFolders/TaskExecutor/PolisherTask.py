@@ -131,7 +131,7 @@ class PolisherTask(Base):
             }
 
         # 返空判断
-        if response_content is None or not response_content.strip():p():
+        if response_content is None or not response_content.strip():
             error = "API请求错误，模型回复内容为空，将在下一轮次重试"
             self.print(
                 self.generate_log_table(
@@ -140,9 +140,9 @@ class PolisherTask(Base):
                         task_start_time,
                         prompt_tokens if prompt_tokens is not None else self.request_tokens_consume,
                         0,
-                        [],  
-                        [], 
-                        []   
+                        [],
+                        [],
+                        []
                     )
                 )
             )
@@ -151,7 +151,7 @@ class PolisherTask(Base):
                 "row_count": 0,
                 "prompt_tokens": self.request_tokens_consume,
                 "completion_tokens": 0,
-            }        
+            }
 
         # 根据润色模式调整文本对象
         if self.config.polishing_mode_selection == "source_text_polish":
@@ -275,7 +275,7 @@ class PolisherTask(Base):
             # 逐行对比，确保对齐
             for s_line, t_line in itertools.zip_longest(s_lines, t_lines, fillvalue=""):
                 pair += f"{s_line} [bright_blue]-->[/] {t_line}\n"
-        
+
         rows.append(pair.strip())
 
         return rows, error == ""
