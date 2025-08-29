@@ -12,6 +12,55 @@ from qfluentwidgets import (
 )
 
 from Base.Base import Base
+from ModuleFolders.LLMRequester.LLMClientFactory import LLMClientFactory
+
+class _GoogleModelFetchWorker(QObject):
+    """用于从 google-genai 获取模型的工作线程"""
+    finished = pyqtSignal(list)
+    failed = pyqtSignal(str)
+
+    def __init__(self, platform_config: dict):
+        super().__init__()
+        self.platform_config = platform_config
+        self._aborted = False
+
+    def cancel(self):
+        self._aborted = True
+
+    def run(self):
+        if self._aborted:
+            return
+        try:
+            # 使用 LLMClientFactory 获取 Google 客户端
+            client = LLMClientFactory().get_google_client(self.platform_config)
+
+            # 获取所有可用模型
+            all_models_iterator = client.models.list()
+
+            if self._aborted:
+                return
+
+            filtered_models = []
+            exclude_keywords = ["native-audio", "image", "tts", "live"]
+
+            # 遍历并按要求过滤模型
+            for model in all_models_iterator:
+                model_name = model.name
+
+                # 保留 gemini 和 gemma 模型
+                if 'gemini' in model_name or 'gemma' in model_name:
+                    # 排除特定类型的模型
+                    if not any(keyword in model_name for keyword in exclude_keywords):
+                        short_name = model_name.split('/')[-1]
+                        filtered_models.append(short_name)
+
+            if not self._aborted:
+                self.finished.emit(filtered_models)
+
+        except Exception as e:
+            if not self._aborted:
+                self.failed.emit(str(e))
+            return
 
 class _ModelFetchWorker(QObject):
     finished = pyqtSignal(list)
@@ -69,6 +118,7 @@ class ModelBrowserDialog(MessageBoxBase, Base):
     """
     统一的“获取模型”对话框：
     - 支持从 OpenAI 兼容接口 GET /v1/models 拉取全部模型
+    - 支持从 google-genai 原生接口拉取模型
     - 本地分页与搜索（适配几百条模型的展示）
     - 单/多选：按住 Ctrl/Shift 可多选；双击单条将立即确认
     """
@@ -216,6 +266,13 @@ class ModelBrowserDialog(MessageBoxBase, Base):
 
     # 拉取模型（异步）
     def _fetch_models(self) -> None:
+
+    # 判断平台类型
+    if self.platform_key == "google":
+        self._thread = QThread(self)
+        self._worker = _GoogleModelFetchWorker(self.platform_config)
+    else:
+        # OpenAI 兼容接口         
         base_url = self.platform_config.get("api_url", "").rstrip("/")
         auto_complete = self.platform_config.get("auto_complete", False)
 
