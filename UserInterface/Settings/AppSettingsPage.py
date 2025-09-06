@@ -277,10 +277,6 @@ class AppSettingsPage(QWidget, Base):
                 self.error_toast("", self.tra("配置文件不存在！"))
                 return
 
-            if len(profile) == 0 or "target_platform" not in profile:
-                self.error_toast("", self.tra("配置文件内容未通过校验！"))
-                return
-
             # 确认框
             message_box = MessageBox("Warning", self.tra("是否确认导入选中的配置文件，导入后应用将自动重启"), window)
             message_box.yesButton.setText(self.tra("确认"))
