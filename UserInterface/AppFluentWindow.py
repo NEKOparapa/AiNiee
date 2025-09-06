@@ -306,8 +306,6 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.addSubInterface(self.task_settings_page, FluentIcon.ZOOM, self.tra("任务设置"), NavigationItemPosition.SCROLL)
         self.output_settings_page = OutputSettingsPage("output_settings_page", self)
         self.addSubInterface(self.output_settings_page, FluentIcon.ALBUM, self.tra("输出设置"), NavigationItemPosition.SCROLL)
-        self.plugins_settings_page = PluginsSettingsPage("plugins_settings_page", self, plugin_manager)
-        self.addSubInterface(self.plugins_settings_page, FluentIcon.APPLICATION, self.tra("插件设置"), NavigationItemPosition.SCROLL)
 
     # 添加翻译设置
     def add_settings_pages(self, plugin_manager) -> None:
@@ -316,6 +314,9 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
         self.PolishingBasicSettingsPage = PolishingBasicSettingsPage("PolishingBasicSettingsPage", self)
         self.addSubInterface(self.PolishingBasicSettingsPage, FluentIcon.BRUSH, self.tra("润色设置"), NavigationItemPosition.SCROLL)
+
+        self.plugins_settings_page = PluginsSettingsPage("plugins_settings_page", self, plugin_manager)
+        self.addSubInterface(self.plugins_settings_page, FluentIcon.APPLICATION, self.tra("插件设置"), NavigationItemPosition.SCROLL)
 
     # 添加润色设置
     def add_prompt_setting_pages(self, plugin_manager) -> None:

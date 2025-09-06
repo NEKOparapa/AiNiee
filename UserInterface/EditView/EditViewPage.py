@@ -18,7 +18,7 @@ from ModuleFolders.TaskConfig.TaskType import TaskType
 from UserInterface.EditView.Check.LanguageCheckDialog import LanguageCheckDialog
 from UserInterface.EditView.Search.SearchDialog import SearchDialog
 from UserInterface.EditView.Search.SearchResultPage import SearchResultPage
-from UserInterface.EditView.ScheduledDialogPage import ScheduledDialogPage
+from UserInterface.EditView.Timer.ScheduledDialogPage import ScheduledDialogPage
 from UserInterface.EditView.TextViewPage import TextViewPage
 from UserInterface.EditView.BasicTablePage import BasicTablePage
 from UserInterface.EditView.Term.TermResultPage import TermResultPage

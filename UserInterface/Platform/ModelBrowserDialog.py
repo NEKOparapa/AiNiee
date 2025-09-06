@@ -181,7 +181,7 @@ class ModelBrowserDialog(MessageBoxBase, Base):
         # 注意：为了有留白，外层布局已有边距
         self.grid_parent.setStyleSheet(f"QWidget {{ background-color: {theme_hex}; border-radius: 8px; }}")
 
-        text_color = "#f1356d"  # 固定按钮文本色
+        text_color = "#202020"  # 固定按钮文本色
 
         # 胶囊按钮样式
         self._capsule_style = (
