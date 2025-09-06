@@ -1,4 +1,5 @@
 import copy
+import pandas
 import rapidjson as json
 from qfluentwidgets import (Action, FluentIcon, MessageBox, TableWidget, RoundMenu,
                             LineEdit, DropDownPushButton, ToolButton, TransparentToolButton, BodyLabel)
@@ -528,18 +529,43 @@ class ExclusionListPage(QFrame, Base):
             self.warning_toast("", self.tra("表格中没有数据可导出"))
             return
 
-        default_filename = self.tra("导出_禁翻表") + ".json"
-        path, _ = QFileDialog.getSaveFileName(self, self.tra("导出文件"), default_filename, "JSON 文件 (*.json)")
+        default_filename = self.tra("导出_术语表")
+
+        
+        file_filter = "JSON 文件 (*.json);;XLSX 文件 (*.xlsx)"
+        path, selected_filter = QFileDialog.getSaveFileName(
+            self, self.tra("导出文件"), default_filename, file_filter
+        )
 
         if not path:
             return
 
-        if path.lower().endswith(".json"):
-            with open(path, "w", encoding="utf-8") as writer:
-                writer.write(json.dumps(data, indent=4, ensure_ascii=False))
-        else:
-            self.error_toast(self.tra("导出失败"), self.tra("不支持的文件扩展名"))
-            return
+        # 根据选择的过滤器确保文件扩展名正确
+        if "(*.xlsx)" in selected_filter and not path.lower().endswith(".xlsx"):
+            path += ".xlsx"
+        elif "(*.json)" in selected_filter and not path.lower().endswith(".json"):
+            path += ".json"
 
-        self.success_toast("", self.tra("数据已导出到") + f": {path}")
+        try:
+            if path.lower().endswith(".json"):
+                with open(path, "w", encoding="utf-8") as writer:
+                    writer.write(json.dumps(data, indent=4, ensure_ascii=False))
+            elif path.lower().endswith(".xlsx"):
+                # 使用 pandas 将数据转换为 DataFrame
+                df = pandas.DataFrame(data)
+                # 使用 reindex 确保所有列都存在且顺序正确
+                df = df.reindex(columns=list(self.KEYS), fill_value="")
+                # 将列名重命名为用户友好的译文
+                df.columns = [self._get_translated_column_name(i) for i in range(len(self.KEYS))]
+                # 将 DataFrame 导出到 Excel 文件，不包含索引列
+                df.to_excel(path, index=False)
+            else:
+                self.error_toast(self.tra("导出失败"), self.tra("不支持的文件类型。请选择 .json 或 .xlsx"))
+                return
+
+            self.success_toast("", self.tra("数据已导出到") + f": {path}")
+
+        except Exception as e:
+            self.logger.error(f"Failed to export data to {path}: {e}", exc_info=True)
+            self.error_toast(self.tra("导出失败"), str(e))
 

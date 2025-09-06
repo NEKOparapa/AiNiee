@@ -128,7 +128,7 @@ class TableHelper():
         result = []
 
         sheet = openpyxl.load_workbook(path).active
-        for row in range(1, sheet.max_row + 1):
+        for row in range(2, sheet.max_row + 1): # 跳过标题行，从第二行开始
             # 读取每一行的数据
             data: list[str] = [
                 sheet.cell(row = row, column = col).value
