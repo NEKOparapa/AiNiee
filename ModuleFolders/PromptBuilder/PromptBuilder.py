@@ -89,6 +89,22 @@ class PromptBuilder(Base):
 
         return result.replace("{source_language}", source_language).replace("{target_language}", target_language).strip()
 
+    # 替换提示词文本中的源语言和目标语言占位符
+    def _replace_language_placeholders(prompt_text: str, config: TaskConfig, source_lang: str) -> str:
+        """
+        替换提示词文本中的源语言和目标语言占位符。
+        """
+        # 获取语言的显示名称（本地化和英文）
+        en_sl, source_language, en_tl, target_language = TranslatorUtil.get_language_display_names(source_lang, config.target_language)
+
+        # 如果目标语言不是中文，则统一使用英文名称以获得更好的LLM兼容性
+        if config.target_language not in ("chinese_simplified", "chinese_traditional"):
+            source_language = en_sl
+            target_language = en_tl
+        
+        # 执行替换并返回
+        return prompt_text.replace("{source_language}", source_language).replace("{target_language}", target_language)
+
     # 构建翻译示例
     def build_translation_sample(config: TaskConfig, input_dict: dict, source_lang) -> tuple[str, str]:
         list1 = []
@@ -736,7 +752,8 @@ class PromptBuilder(Base):
         if config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK):
             system = PromptBuilder.build_system(config, source_lang)
         else:
-            system = config.translation_prompt_selection["prompt_content"]  # 自定义提示词
+            custom_prompt = config.translation_prompt_selection["prompt_content"]
+            system = PromptBuilder._replace_language_placeholders(custom_prompt, config, source_lang)
 
 
         # 如果开启术语表
