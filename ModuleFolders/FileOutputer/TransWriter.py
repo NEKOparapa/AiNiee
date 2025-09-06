@@ -60,30 +60,47 @@ class TransWriter(BaseTranslatedWriter):
         if not isinstance(dialogue, str) or not isinstance(name, str):
             return name, dialogue
 
-        if dialogue.startswith("["):
-            # 计算原name中的"]"数量
-            count_in_name = name.count("]")
-            required_closing_brackets = count_in_name + 1  # 需要匹配的"]"总数
-            current_pos = 0
-            found_brackets = 0
-            end_pos = -1
+        # 仅当对话以"["开头时才处理
+        if not dialogue.startswith("["):
+            return name, dialogue
 
-            # 查找第 (count_in_name + 1) 个"]"
-            while found_brackets < required_closing_brackets:
-                next_pos = dialogue.find("]", current_pos)
-                if next_pos == -1:  # 没有足够的"]"，直接返回原值
-                    break
-                found_brackets += 1
-                end_pos = next_pos  # 更新最后一个"]"的位置
-                current_pos = next_pos + 1  # 继续往后搜索
+        end_pos = -1  # 初始化结束位置为-1（表示未找到）
 
-            # 如果找到足够数量的"]"，则分割字符串
-            if found_brackets == required_closing_brackets:
-                extracted_name = dialogue[1:end_pos]
-                remaining_dialogue = dialogue[end_pos + 1:].lstrip()
-                return (extracted_name, remaining_dialogue)
+        # 优先策略：尝试匹配与原name嵌套层级一致的"]"
+        # 这种策略可以正确处理 [[英雄]惊讶] 这样的情况
+        count_in_name = name.count("]")
+        required_closing_brackets = count_in_name + 1
+        
+        search_start_pos = 0
+        temp_end_pos = -1
+        found_brackets = 0
+        for _ in range(required_closing_brackets):
+            # 从上一个找到的位置之后开始搜索
+            pos = dialogue.find("]", search_start_pos)
+            if pos == -1:
+                # 如果找不到足够数量的"]"，说明优先策略失败
+                found_brackets = -1  # 标记为失败
+                break
+            temp_end_pos = pos
+            found_brackets += 1
+            search_start_pos = pos + 1
+        
+        # 如果优先策略成功，则使用其结果
+        if found_brackets == required_closing_brackets:
+            end_pos = temp_end_pos
 
-        # 其他情况直接返回原值
+        # 回退策略：如果优先策略失败 (end_pos 仍然是 -1)，则回退为查找第一个 "]"
+        if end_pos == -1:
+            end_pos = dialogue.find("]")
+
+        # 如果最终找到了一个有效的结束位置（无论是通过优先策略还是回退策略）
+        # end_pos > 0 确保了不是空名字，如 "[]text"
+        if end_pos > 0:
+            extracted_name = dialogue[1:end_pos]
+            remaining_dialogue = dialogue[end_pos + 1:].lstrip()
+            return extracted_name, remaining_dialogue
+
+        # 如果两种策略都失败了（例如，对话是"["但没有"]"），则返回原值
         return name, dialogue
 
 

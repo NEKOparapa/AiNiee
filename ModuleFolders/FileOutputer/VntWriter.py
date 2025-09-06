@@ -141,35 +141,51 @@ class VntWriter(BaseTranslatedWriter):
 
     # 处理 'name' 字段的情况
     def extract_strings(self, name, dialogue):
-        """
-        根据原始名称中的方括号数量，从对话文本中提取单个名称部分，
-        遵循原始实现逻辑。
-        """
-        if dialogue.startswith("["):
-            # 计算原始名称中 ']' 的数量
-            count_in_name = name.count("]")
-            required_closing_brackets = count_in_name + 1  # 需要找到这么多个 ']'
-            current_pos = 0
-            found_brackets = 0
-            end_pos = -1
+        # 验证数据类型
+        if not isinstance(dialogue, str) or not isinstance(name, str):
+            return name, dialogue
 
-            # 查找第 (count_in_name + 1) 个 ']' 的位置
-            while found_brackets < required_closing_brackets:
-                next_pos = dialogue.find("]", current_pos)
-                if next_pos == -1:  # 未找到足够的 ']'
-                    break
-                found_brackets += 1
-                end_pos = next_pos
-                current_pos = next_pos + 1 # 在此 ']' 之后继续搜索
+        # 仅当对话以"["开头时才处理
+        if not dialogue.startswith("["):
+            return name, dialogue
 
-            # 如果找到了足够数量的 ']'，则分割字符串
-            if found_brackets == required_closing_brackets:
-                # 内容从第一个 '[' 到第 N 个 ']'
-                extracted_name = dialogue[1:end_pos]
-                remaining_dialogue = dialogue[end_pos + 1:].lstrip()
-                return (extracted_name, remaining_dialogue)
+        end_pos = -1  # 初始化结束位置为-1（表示未找到）
 
-        # 回退：如果条件不满足，返回原始名称和完整对话
+        # 优先策略：尝试匹配与原name嵌套层级一致的"]"
+        # 这种策略可以正确处理 [[英雄]惊讶] 这样的情况
+        count_in_name = name.count("]")
+        required_closing_brackets = count_in_name + 1
+        
+        search_start_pos = 0
+        temp_end_pos = -1
+        found_brackets = 0
+        for _ in range(required_closing_brackets):
+            # 从上一个找到的位置之后开始搜索
+            pos = dialogue.find("]", search_start_pos)
+            if pos == -1:
+                # 如果找不到足够数量的"]"，说明优先策略失败
+                found_brackets = -1  # 标记为失败
+                break
+            temp_end_pos = pos
+            found_brackets += 1
+            search_start_pos = pos + 1
+        
+        # 如果优先策略成功，则使用其结果
+        if found_brackets == required_closing_brackets:
+            end_pos = temp_end_pos
+
+        # 回退策略：如果优先策略失败 (end_pos 仍然是 -1)，则回退为查找第一个 "]"
+        if end_pos == -1:
+            end_pos = dialogue.find("]")
+
+        # 如果最终找到了一个有效的结束位置（无论是通过优先策略还是回退策略）
+        # end_pos > 0 确保了不是空名字，如 "[]text"
+        if end_pos > 0:
+            extracted_name = dialogue[1:end_pos]
+            remaining_dialogue = dialogue[end_pos + 1:].lstrip()
+            return extracted_name, remaining_dialogue
+
+        # 如果两种策略都失败了（例如，对话是"["但没有"]"），则返回原值
         return name, dialogue
 
     @classmethod
