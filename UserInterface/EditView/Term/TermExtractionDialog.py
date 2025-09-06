@@ -112,7 +112,7 @@ class TermExtractionDialog(Base, MessageBoxBase):
         """
         扫描NER模型文件夹，并将模型名称加载到下拉框中
         """
-        model_dir = os.path.join('.', 'Resource', 'Models', 'NER')
+        model_dir = os.path.join('.', 'Resource', 'Models', 'ner')
         if not os.path.exists(model_dir):
             self.model_combo.addItem(self.tra("未找到模型目录"))
             self.model_combo.setEnabled(False)
