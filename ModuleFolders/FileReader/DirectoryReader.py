@@ -9,7 +9,6 @@ from ModuleFolders.FileReader import ReaderUtil
 from ModuleFolders.FileReader.BaseReader import BaseSourceReader
 from ModuleFolders.FileReader.ReaderUtil import make_final_detect_text
 
-
 class DirectoryReader:
     def __init__(self, create_reader: Callable[[], BaseSourceReader], exclude_rules: list[str]):
         self.create_reader = create_reader  # 工厂函数
@@ -25,19 +24,27 @@ class DirectoryReader:
     def is_exclude(self, file_path: Path, source_directory: Path):
         if any(fnmatch.fnmatch(file_path.name, rule) for rule in self.exclude_files):
             return True
-
-        rel_path_str = str(file_path.relative_to(source_directory))
-        if any(fnmatch.fnmatch(rel_path_str, pattern) for pattern in self.exclude_paths):
-            return True
+        
+        # 只有在 source_directory 有效时才计算相对路径
+        if source_directory and source_directory.is_dir():
+            try:
+                rel_path_str = str(file_path.relative_to(source_directory))
+                if any(fnmatch.fnmatch(rel_path_str, pattern) for pattern in self.exclude_paths):
+                    return True
+            except ValueError:
+                # 如果不在同一驱动器或路径下，会引发ValueError，此时认为不排除
+                pass
         return False
 
+    # 2025年9月8日增加单文件输入支持
     # 树状读取文件夹内同类型文件
-    def read_source_directory(self, source_directory: Path) -> CacheProject:
+    def read_source_directory(self, input_path: Path) -> CacheProject:
         """
-        树状读取文件夹内同类型文件，检测每个文件的编码，并在最后设置项目的默认编码。
+        读取文件夹或单个文件，检测每个文件的编码，并在最后设置项目的默认编码。
+        此函数现在支持单个文件路径和目录路径。
 
         Args:
-            source_directory: 源文件目录
+            input_path: 源文件或目录的路径
 
         Returns:
             CacheProject: 包含项目信息和文件内容
@@ -47,56 +54,81 @@ class DirectoryReader:
 
         # 语言统计：{file_path: {lang_code: (count, total_confidence)}}
         language_stats = defaultdict(lambda: defaultdict(lambda: [0, 0.0]))
-        # 每个文件的有效项目总数（排除symbols_only）
         file_valid_items_count = defaultdict(int)
-        # 按文件分组源文字
         source_texts = defaultdict(list[str])
 
+        # 根据路径类型确定要处理的文件列表和基础目录
+        files_to_process = []
+        base_directory = None
+
+        # 如果是目录，递归获取所有文件
+        if input_path.is_dir():
+            base_directory = input_path
+            for root, _, files in base_directory.walk():
+                for file in files:
+                    files_to_process.append(root / file)
+
+        # 如果是单个文件，直接处理该文件
+        elif input_path.is_file():
+            base_directory = input_path.parent
+            files_to_process.append(input_path)
+
+        # 如果路径不存在或不是文件/目录，则返回空项目
+        else:
+            print(f"Warning: Input path '{input_path}' does not exist or is not a file/directory.")
+            return cache_project
+        
+        # 创建reader实例
         with self.create_reader() as reader:
             self._update_exclude_rules(reader.exclude_rules)
             cache_project.project_type = reader.get_project_type()
 
-            for root, _, files in source_directory.walk():  # 递归遍历文件夹
-                for file in files:
-                    file_path = root / file
-                    # 检查是否被排除，以及是否是目标类型文件
-                    if not self.is_exclude(file_path, source_directory) and reader.can_read(file_path):
+            # 遍历预先生成的文件列表
+            for file_path in files_to_process:
+                # 检查是否被排除，以及是否是目标类型文件
+                if not self.is_exclude(file_path, base_directory) and reader.can_read(file_path):
+                    
+                    # 读取单个文件的文本信息，并添加其他信息
+                    cache_file = reader.read_source_file(file_path)
+                    #空文件跳过
+                    if not cache_file:
+                       continue
+                       
+                    # 使用 base_directory 计算相对路径
+                    cache_file.storage_path = str(file_path.relative_to(base_directory))
+                    cache_file.file_project_type = reader.get_file_project_type(file_path)
+                    for item in cache_file.items:
+                        item.text_index = text_index
+                        item.model = 'none'
+                        text_index += 1
 
-                        # 读取单个文件的文本信息，并添加其他信息
-                        cache_file = reader.read_source_file(file_path)
-                        #空文件跳过
-                        if not cache_file:
-                           continue
-                        cache_file.storage_path = str(file_path.relative_to(source_directory))
-                        cache_file.file_project_type = reader.get_file_project_type(file_path)
-                        for item in cache_file.items:
-                            item.text_index = text_index
-                            item.model = 'none'
-                            text_index += 1
+                        # 统计每行的语言信息
+                        lang_code = item.lang_code
 
-                            # 统计每行的语言信息
-                            lang_code = item.lang_code
-                            # 只统计检测到有效语言代码的item行
-                            if lang_code:
-                                lang_confidence = lang_code[1]
-                                # 更新语言统计：[计数, 累计置信度]
-                                stats = language_stats[cache_file.storage_path][lang_code[0]]
-                                stats[0] += 1  # 增加计数
-                                stats[1] += lang_confidence  # 累加置信度
-                                # 累计有效项目总数
-                                file_valid_items_count[cache_file.storage_path] += 1
+                        # 只统计检测到有效语言代码的item行
+                        if lang_code:
+                            lang_confidence = lang_code[1]
 
-                                # 添加行至后续使用
-                                final_detect_text = make_final_detect_text(item)
-                                if final_detect_text:
-                                    source_texts[cache_file.storage_path].append(final_detect_text)
+                            # 更新语言统计：[计数, 累计置信度]
+                            stats = language_stats[cache_file.storage_path][lang_code[0]]
+                            stats[0] += 1   # 增加计数
+                            stats[1] += lang_confidence   # 累加置信度
 
-                        # 补充缺失的字典项
-                        if not language_stats[cache_file.storage_path]:
-                            language_stats[cache_file.storage_path] = defaultdict(lambda: [0, 0.0])
+                            # 累计有效项目总数
+                            file_valid_items_count[cache_file.storage_path] += 1
 
-                        if cache_file.items:
-                            cache_project.add_file(cache_file)
+                            # 添加行至后续使用
+                            final_detect_text = make_final_detect_text(item)
+                            if final_detect_text:
+                                source_texts[cache_file.storage_path].append(final_detect_text)
+
+                    # 补充缺失的字典项
+                    if not language_stats[cache_file.storage_path]:
+                        language_stats[cache_file.storage_path] = defaultdict(lambda: [0, 0.0])
+
+                    if cache_file.items:
+                        cache_project.add_file(cache_file)
+
 
         # 处理语言统计结果
         language_counter = defaultdict(list)
@@ -206,14 +238,16 @@ class DirectoryReader:
         if len(files_list) == 1:
             # 单个文件：直接使用文件名（不含扩展名）
             # 使用列表索引 [0] 来访问第一个元素
-            file_path = Path(files_list[0].file_name)
+            # 当输入是单个文件时, storage_path 就是文件名
+            file_path = Path(files_list[0].storage_path)
             cache_project.project_name = file_path.stem
         else:
             # 多个文件：组合文件名
             name_parts = []
             # 对列表进行切片
             for cache_file in files_list[:MAX_FILES_FOR_NAME]:
-                file_stem = Path(cache_file.file_name).stem
+                # storage_path 是相对路径，需要从中获取文件名
+                file_stem = Path(cache_file.storage_path).stem
                 name_parts.append(file_stem[:CHARS_PER_FILENAME])
             
             cache_project.project_name = SEPARATOR.join(name_parts)
