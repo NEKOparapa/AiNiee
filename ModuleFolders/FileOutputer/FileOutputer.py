@@ -75,7 +75,14 @@ class FileOutputer:
             )
             # 绑定配置，使工厂变成无参
             writer_factory = partial(self.writer_factory_dict[project_type], **writer_iinit_params)
-            source_directory = Path(input_path)
+
+            # 正确处理输入路径是文件的情况
+            input_path_obj = Path(input_path)
+            if input_path_obj.is_file():
+                source_directory = input_path_obj.parent  # 获取文件所在目录
+            else:
+                source_directory = input_path_obj
+
             writer = DirectoryWriter(writer_factory)
             # 为防止双语输出路径被覆盖，这里不传translation_directory
             writer.write_translation_directory(cache_data, source_directory)

@@ -28,9 +28,18 @@ class DirectoryWriter:
     ):
         """translation_directory 用于覆盖配置"""
         with self.create_writer() as writer:
+            # 判断输入路径是目录还是文件
+            is_source_a_directory = source_directory.is_dir()
+            
             # 把翻译片段按文件名分组
             for storage_path, file_items in project.files.items():
-                source_file_path = source_directory / storage_path
+                # 根据输入路径的类型决定如何构造源文件路径
+                if is_source_a_directory:
+                    # 如果是目录，则拼接相对路径
+                    source_file_path = source_directory / storage_path
+                else:
+                    # 如果是文件，则输入路径本身就是源文件路径
+                    source_file_path = source_directory
                 for translation_mode in BaseTranslationWriter.TranslationMode:
                     if writer.can_write(translation_mode):
                         translation_config: TranslationOutputConfig = getattr(
