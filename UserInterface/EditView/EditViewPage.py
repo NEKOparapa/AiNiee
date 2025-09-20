@@ -701,10 +701,47 @@ class EditViewPage(Base,QFrame):
             json_file_path = os.path.join(cache_folder_path, "ProjectStatistics.json")
             if not os.path.isfile(json_file_path):
                 return False
-
-            # 获取小文件
-            with open(json_file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+            # 增强的JSON文件读取，防止并发访问和空文件问题
+            max_retries = 3
+            retry_delay = 0.1
+            
+            for attempt in range(max_retries):
+                try:
+                    # 检查文件大小，避免读取空文件
+                    if os.path.getsize(json_file_path) == 0:
+                        if attempt < max_retries - 1:
+                            time.sleep(retry_delay)
+                            continue
+                        else:
+                            print(f"[WARNING] ProjectStatistics.json文件为空，跳过继续检查")
+                            return False
+                    
+                    # 安全读取JSON文件
+                    with open(json_file_path, 'r', encoding='utf-8') as f:
+                        content = f.read().strip()
+                        if not content:
+                            if attempt < max_retries - 1:
+                                time.sleep(retry_delay)
+                                continue
+                            else:
+                                print(f"[WARNING] ProjectStatistics.json内容为空")
+                                return False
+                        
+                        data = json.loads(content)
+                        break  # 成功读取，退出重试循环
+                        
+                except (json.JSONDecodeError, OSError, IOError) as e:
+                    if attempt < max_retries - 1:
+                        print(f"[WARNING] 读取ProjectStatistics.json失败(尝试{attempt+1}/{max_retries}): {e}")
+                        time.sleep(retry_delay)
+                        retry_delay *= 2  # 指数退避
+                        continue
+                    else:
+                        print(f"[ERROR] 读取ProjectStatistics.json最终失败: {e}")
+                        return False
+                except Exception as e:
+                    print(f"[ERROR] 读取ProjectStatistics.json时发生未知错误: {e}")
+                    return False
             
             # 获取数据
             is_continue =  True
