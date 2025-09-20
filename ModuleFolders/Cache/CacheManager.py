@@ -100,8 +100,17 @@ class CacheManager(Base):
                     json_data = {"total_line": total_line, "line": line, "project_name": project_name}
 
                     json_path = os.path.join(cache_dir, "ProjectStatistics.json")
-                    with open(json_path, "w", encoding="utf-8") as writer:
-                        json.dump(json_data, writer, ensure_ascii=False, indent=4)
+                    json_tmp_path = json_path + f".{os.getpid()}.tmp"
+                    try:
+                        with open(json_tmp_path, "w", encoding="utf-8") as writer:
+                            json.dump(json_data, writer, ensure_ascii=False, indent=4)
+                        os.replace(json_tmp_path, json_path)
+                    finally:
+                        if os.path.exists(json_tmp_path):
+                            try:
+                                os.remove(json_tmp_path)
+                            except OSError:
+                                pass
                 else:
                     # 如果stats_data不存在，则调用 Base 类中的 warning 方法打印警告并跳过
                     self.warning(f"CacheManager: self.project.stats_data is None. Skipping ProjectStatistics.json update.")
