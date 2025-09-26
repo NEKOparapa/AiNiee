@@ -28,12 +28,31 @@ class TransWriter(BaseTranslatedWriter):
             name = item.get_extra("name", "")
 
             # 导航并更新，带有检查
-            category_data = trans_content["project"]["files"][file_category]
-            data_list = category_data["data"] # 要直接相关，而不是获取，才能修改到文件内容
-            tags_list = category_data["tags"]
+            if file_category not in trans_content["project"]["files"]:
+                print(f"[警告] 文件类别 '{file_category}' 在目标文件中不存在，跳过该项目。")
+                continue
             
+            category_data = trans_content["project"]["files"][file_category]
+            data_list = category_data["data"]
+            tags_list = category_data.get("tags") # 如果 "tags" 不存在，返回 None
+
+            # 检查 data_index 是否为有效整数且在 data_list 的范围内
+            if not isinstance(data_index, int) or not (0 <= data_index < len(data_list)):
+                print(f"[警告] 检测到无效或越界的 data_index ({data_index})，将跳过此项目。")
+                print(f"       文件类别: {file_category}, 列表长度: {len(data_list)}")
+                # 尝试输出上一个索引的文本
+                try:
+                    if data_index > 0:
+                        print(f"       上一个索引的文本: {data_list[data_index - 1]}")
+                except IndexError:
+                    pass  
+                
+                continue # 跳过当前循环，处理下一个 item
+
             # 补充或者创建一样长度的tags列表，与文本列表长度一致
-            tags_list =  self.align_lists(data_list, tags_list)
+            tags_list = self.align_lists(data_list, tags_list)
+            # 将更新后的 tags_list 写回 category_data，以防 align_lists 创建了新的列表
+            category_data["tags"] = tags_list
 
             # 如果有人名信息
             if name:
