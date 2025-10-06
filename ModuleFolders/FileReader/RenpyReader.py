@@ -18,8 +18,13 @@ class RenpyReader(BaseSourceReader):
     1. old "..." / new "..."
     2. # tag "..." / tag "..."
     3. # "..." / "..."
-    4. 支持 # tag "..." 和 tag "..." 中间存在 voice/video 等指令行。
-    能处理文本中包含的双引号。
+    4. # Character("...") "..." / Character("...") "..." (新支持)
+    5. # bri.c "..." / bri.c "..." (新支持带点的标签)
+    
+    核心特性：
+    - 能处理文本中包含的转义双引号。
+    - 严格验证注释行和代码行的标签必须完全一致。
+    - 支持在注释行和代码行之间存在 voice/video 等指令。
     """
     def __init__(self, input_config: InputConfig):
         super().__init__(input_config)
@@ -32,57 +37,57 @@ class RenpyReader(BaseSourceReader):
     def support_file(self):
         return "rpy"
 
-    # 用于查找潜在标签的正则表达式（字母、数字、下划线、空格，首字母后允许）
-    # 允许简单的标签如 'sy' 或复杂的标签如 'narrator happy', 'narrator @ happy'
-    TAG_PATTERN = re.compile(r"^\s*([a-zA-Z][\w\s@]*)\s+\"")
     # 用于检查行是否以翻译注释行格式开头的正则表达式
     COMMENT_TRANSLATION_START_PATTERN = re.compile(r"^\s*#\s*")
-    # 用于检查行是否以翻译代码行格式开头的正则表达式（标签或仅引号）
-    # 这个模式是关键，用于识别一个有效的、可翻译的代码行
-    CODE_TRANSLATION_START_PATTERN = re.compile(r"^\s*(?:[a-zA-Z][\w\s@]*\s+)?\"")
 
-    def _extract_quoted_robust(self, line: str) -> Optional[str]:
+    def _get_dialogue_parts(self, line: str) -> Optional[Tuple[str, str]]:
         """
-        提取一行中第一个和最后一个双引号之间的文本。
-        如果未找到引号或引号不匹配，则返回 None。
+        从一行中分离出标签（前缀）和引用的文本。
+        适用于所有 Ren'Py 对话格式，如:
+        - 'mc "Hello"' -> ('mc', 'Hello')
+        - '"Hello"' -> ('', 'Hello')
+        - 'Character("Weird guy") "Hi!"' -> ('Character("Weird guy")', 'Hi!')
+        
+        返回: (标签, 文本) 或在无效格式时返回 None。
         """
         first_quote_index = line.find('"')
         if first_quote_index == -1:
             return None
         last_quote_index = line.rfind('"')
+        
         # 确保第一个和最后一个引号是不同的字符
-        if last_quote_index == first_quote_index:
+        if last_quote_index <= first_quote_index:
             return None
-        return line[first_quote_index + 1:last_quote_index]
+
+        # 标签是第一个引号之前的所有内容，去除首尾空格
+        tag = line[:first_quote_index].strip()
+        # 文本是第一个和最后一个引号之间的内容
+        text = line[first_quote_index + 1:last_quote_index]
+        
+        return tag, text
 
     def _find_next_relevant_line(self, lines: List[str], start_index: int) -> Optional[Tuple[int, str]]:
         """
-        【已修改】
-        从指定索引开始，查找下一个有效的 Ren'Py 代码翻译行。
-        一个有效的代码行是 'tag "..."' 或 '"..."' 的形式。
-        它会主动跳过空行、注释、以及不符合翻译格式的指令（如 'voice ...', 'video ...' 等）。
+        从指定索引开始，查找下一个有效的 Ren'Py 代码对话行。
+        一个有效的代码行是任何可以通过 `_get_dialogue_parts` 成功解析的行。
+        它会主动跳过空行、非对话注释、以及不符合翻译格式的指令。
         """
         for i in range(start_index, len(lines)):
             line = lines[i]
             stripped = line.strip()
 
-            # 如果遇到下一个翻译块的定义，停止搜索，因为已经超出了当前条目的范围
+            # 如果遇到下一个翻译块的定义，停止搜索
             if stripped.startswith("translate "):
                 return None
 
-            # 检查该行是否是有效的代码翻译行（例如 `yo ""`）
-            # 如果是，则我们找到了目标，立即返回
-            if self.CODE_TRANSLATION_START_PATTERN.match(stripped):
+            # 尝试将该行解析为对话部分，如果成功，则为相关行
+            if self._get_dialogue_parts(stripped) is not None:
                 return i, line
 
-            # 其他所有行（如空行、#注释、voice指令、video指令等）都会被自动忽略，循环继续
-        
         return None # 如果直到文件末尾都没找到，返回 None
 
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
-
         lines = file_path.read_text(encoding=pre_read_metadata.encoding).splitlines()
-
         entries = []
         i = 0
         while i < len(lines):
@@ -91,106 +96,83 @@ class RenpyReader(BaseSourceReader):
 
             # --- 格式 1: old / new ---
             if stripped.startswith("old "):
-                source = self._extract_quoted_robust(line)
-                if source is not None:
-                    # 搜索对应的 'new' 行
+                parts = self._get_dialogue_parts(stripped)
+                if parts:
+                    source = parts[1]
                     found_new = False
                     for j in range(i + 1, len(lines)):
                         next_line = lines[j]
                         next_stripped = next_line.strip()
                         if next_stripped.startswith("new "):
-                            translated = self._extract_quoted_robust(next_line)
-                            if translated is not None:
+                            new_parts = self._get_dialogue_parts(next_stripped)
+                            if new_parts:
+                                translated = new_parts[1]
                                 entries.append({
                                     "source": source,
                                     "translated": translated,
-                                    "new_line_num": j, # 'new' 行的行号
+                                    "new_line_num": j,
                                     "format_type": "old_new",
                                     "tag": None
                                 })
-                                i = j # 主循环跳过已处理的 'new' 行
+                                i = j
                                 found_new = True
                                 break
-                        # 如果遇到另一个 'old' 或不同的结构，则停止搜索
-                        elif next_stripped.startswith("old ") or \
-                             self.COMMENT_TRANSLATION_START_PATTERN.match(next_stripped) or \
-                             self.CODE_TRANSLATION_START_PATTERN.match(next_stripped):
-                             break
+                        elif next_stripped.startswith("old ") or self.COMMENT_TRANSLATION_START_PATTERN.match(next_stripped) or self._get_dialogue_parts(next_stripped):
+                            break
                     if not found_new:
-                         # 如果需要，处理 'old' 没有匹配 'new' 的情况
-                         # print(f"警告: 'old' 行 {i+1} 在 {file_path} 中没有匹配的 'new' 行")
-                         pass # 或者根据期望的行为附加 translated=None
-                i += 1 # 处理完 'old' 或 'old' 无效后，移至下一行
+                        pass
+                i += 1
 
-            # --- 格式 2 & 3: 注释行后跟代码行 (已支持 voice/video) ---
+            # --- 格式 2, 3, 4, 5: 注释行后跟代码行 ---
             elif self.COMMENT_TRANSLATION_START_PATTERN.match(stripped):
-                comment_line_num = i
                 comment_line = line
                 
-                # 查找下一个相关的代码行（现在可以跳过 voice/video 等指令）
-                next_line_info = self._find_next_relevant_line(lines, i + 1)
+                # 从 '#' 后提取潜在的源对话行
+                potential_source_line = comment_line.split('#', 1)[-1].lstrip()
+                comment_parts = self._get_dialogue_parts(potential_source_line)
 
-                if next_line_info:
-                    code_line_num, code_line = next_line_info
-                    code_stripped = code_line.strip()
-
-                    # 尝试从注释行提取源文本
-                    # 我们需要排除像 # game/... 这样的元数据行
-                    potential_source_line = comment_line.split('#', 1)[-1].lstrip()
-                    if not (potential_source_line.startswith("game/") or potential_source_line.startswith("renpy/")):
-                        comment_source = self._extract_quoted_robust(comment_line)
-                    else:
-                        comment_source = None # 这不是一个源文本注释行
+                # 确保它不是元数据注释（如 # game/script.rpy:123）
+                is_meta_comment = potential_source_line.startswith("game/") or potential_source_line.startswith("renpy/")
+                
+                if comment_parts and not is_meta_comment:
+                    comment_tag, comment_source = comment_parts
                     
-                    # 从代码行提取潜在的翻译文本
-                    code_text = self._extract_quoted_robust(code_line)
-
-                    if comment_source is not None and code_text is not None:
-                        # 检查注释行上的标签（# 之后和 " 之前的部分）
-                        comment_tag_match = self.TAG_PATTERN.match(comment_line.split('#', 1)[-1])
-                        # 检查代码行上的标签
-                        code_tag_match = self.TAG_PATTERN.match(code_stripped)
-
-                        tag = None
-                        format_type = None
-
-                        # 情况 2: # tag "..." / tag "..."
-                        if comment_tag_match and code_tag_match:
-                            comment_tag = comment_tag_match.group(1).strip()
-                            code_tag = code_tag_match.group(1).strip()
+                    # 查找下一个相关的代码行
+                    next_line_info = self._find_next_relevant_line(lines, i + 1)
+                    
+                    if next_line_info:
+                        code_line_num, code_line = next_line_info
+                        code_parts = self._get_dialogue_parts(code_line.strip())
+                        
+                        if code_parts:
+                            code_tag, code_text = code_parts
+                            
+                            # 【核心验证】确保注释行和代码行的标签完全一致
                             if comment_tag == code_tag:
-                                tag = code_tag
-                                format_type = "comment_tag"
+                                entries.append({
+                                    "source": comment_source,
+                                    "translated": code_text,
+                                    "new_line_num": code_line_num,
+                                    "format_type": "comment_dialogue", # 统一格式类型
+                                    "tag": code_tag # 存储标签以供写入器使用
+                                })
+                                i = code_line_num + 1
+                                continue
 
-                        # 情况 3: # "..." / "..." (匹配时不涉及标签)
-                        elif potential_source_line.startswith('"') and \
-                             code_stripped.startswith('"'):
-                             format_type = "comment_no_tag"
-
-                        if format_type:
-                            entries.append({
-                                "source": comment_source, # 原文在注释中
-                                "translated": code_text, # 要翻译的文本在代码行中
-                                "new_line_num": code_line_num, # 需要修改的代码行的行号
-                                "format_type": format_type,
-                                "tag": tag # 如果存在则存储标签（格式 2）
-                            })
-                            i = code_line_num + 1 # 循环跳过已处理的代码行
-                            continue # 跳过默认的增量
-
-            # 如果没有模式匹配或处理，则默认增加
-            i += 1
+                # 如果不是有效的翻译对，则正常递增
+                i += 1
+            else:
+                # 如果没有模式匹配或处理，则默认增加
+                i += 1
 
         # 转换为 CacheItem 对象
         items = []
         for entry in entries:
-            # 对于注释格式，使用注释中的 source，否则使用 'old' 中的 source
-            source_text = entry["source"]
             extra = {
                 "new_line_num": entry["new_line_num"],
                 "format_type": entry["format_type"],
-                "tag": entry.get("tag"),  # 使用 .get() 以确保安全
+                "tag": entry.get("tag"),
             }
-            item = CacheItem(source_text=source_text, translated_text=entry["translated"], extra=extra)
+            item = CacheItem(source_text=entry["source"], translated_text=entry["translated"], extra=extra)
             items.append(item)
         return CacheFile(items=items)

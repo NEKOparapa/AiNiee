@@ -23,44 +23,47 @@ class RenpyWriter(BaseTranslatedWriter):
         pre_write_metadata: PreWriteMetadata,
         source_file_path: Path = None,
     ):
-        # 读取行，保留换行符
         lines = source_file_path.read_text(encoding="utf-8").splitlines(True)
-
-        # 按行号降序排序项目，以避免修改期间索引偏移问题
         new_items = sorted(cache_file.items, key=lambda x: x.require_extra("new_line_num"), reverse=True)
 
         for item in new_items:
-            line_num = item.require_extra("new_line_num")  # 这是要修改的行号（'new' 行或代码行）
+            line_num = item.require_extra("new_line_num")
             if line_num < 0 or line_num >= len(lines):
                 print(f"警告: 项目的行号 {line_num} 无效。正在跳过。")
                 continue
 
             original_line = lines[line_num]
-            new_trans = item.final_text # 最终文本
-
-            # 只转义单个双引号
             new_trans = self._escape_quotes_for_renpy(item.final_text)
+            
+            # 【增强逻辑】精确定位要替换的文本范围
+            tag = item.require_extra("tag")
+            
+            # 默认搜索起点为0
+            search_start_index = 0
+            if tag:
+                # 如果有标签，则从标签结束后开始搜索第一个引号，以处理 Character("...") "..." 格式
+                try:
+                    tag_start_index = original_line.find(tag)
+                    if tag_start_index != -1:
+                        search_start_index = tag_start_index + len(tag)
+                except Exception:
+                     # 如果tag是None或空字符串，find会出错或行为不确定
+                     pass
 
-            # 查找原始行中第一个和最后一个双引号的索引
-            first_quote_index = original_line.find('"')
+            first_quote_index = original_line.find('"', search_start_index)
             last_quote_index = original_line.rfind('"')
 
-            # 确保我们找到了不同的开始和结束引号
-            if first_quote_index != -1 and last_quote_index != -1 and first_quote_index < last_quote_index:
-                # 提取第一个引号之前的部分（包括缩进、标签等）
+            if first_quote_index != -1 and last_quote_index > first_quote_index:
                 prefix = original_line[:first_quote_index + 1]
-                # 提取最后一个引号之后的部分（包括尾随空格、注释等）
                 suffix = original_line[last_quote_index:]
-
-                # 通过仅替换引号内的内容来构造新行
                 new_line = f'{prefix}{new_trans}{suffix}'
                 lines[line_num] = new_line
+            else:
+                 print(f"警告: 无法在行 {line_num} 中为项目找到有效的引号对。原始内容:\n{original_line}")
 
-        # 将修改后的行写回到翻译文件路径
-        translation_file_path.parent.mkdir(parents=True, exist_ok=True) # 确保目录存在
+
+        translation_file_path.parent.mkdir(parents=True, exist_ok=True)
         translation_file_path.write_text("".join(lines), encoding="utf-8")
-
-
 
     def _escape_quotes_for_renpy(self, text: str) -> str:
         """
@@ -69,24 +72,14 @@ class RenpyWriter(BaseTranslatedWriter):
         - 保留带空格的双引号 `" "`。
         - 将所有其他 `"` 转义为 `\"`。
         """
-        # 正则表达式匹配以下任意一种情况：
-        # 1. `\\\"`: 一个已经转义的双引号
-        # 2. `\"\"`: 两个连续的双引号
-        # 3. `\" \"`: 一个带空格的双引号
-        # 4. `\"`: 单个双引号
-        # re.sub 会从左到右匹配，所以 `\\"` 会优先于 `"` 被匹配。
         pattern = r'\\\"|\"\"|\" \"|\"'
 
         def replacer(match):
-            """定义替换逻辑"""
             matched_text = match.group(0)
-            # 如果匹配到的是特殊情况，则原样返回，不进行任何修改
             if matched_text in ('\\"', '""', '" "'):
                 return matched_text
-            # 否则，匹配到的是需要转义的单个双引号
             elif matched_text == '"':
                 return '\\"'
-            # 理论上不会走到这里，但作为保障
             return matched_text
 
         return re.sub(pattern, replacer, text)
