@@ -1,6 +1,7 @@
 import os
 import re
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from Base.Base import Base
 from ModuleFolders.LLMRequester.LLMRequester import LLMRequester
@@ -658,11 +659,14 @@ class SimpleExecutor(Base):
         thread.start()
 
     def process_term_translate_and_save(self, data: dict):
-
+        """
+        使用线程池并发处理术语的上下文翻译和保存任务。
+        """
         # 提取数据
         extraction_results = data.get("extraction_results", [])
         if not extraction_results:
             self.warning("术语翻译任务中止：未收到任何提取结果。")
+            self.emit(Base.EVENT.TERM_TRANSLATE_SAVE_DONE, {"status": "no_result", "message": "未收到提取结果"})
             return
 
         self.info("▶️ 开始执行【基于上下文翻译并保存术语】任务...")
@@ -671,44 +675,40 @@ class SimpleExecutor(Base):
         unique_contexts = sorted(list(set(result['context'] for result in extraction_results)))
         if not unique_contexts:
             self.warning("术语翻译任务中止：没有有效的上下文原文。")
+            self.emit(Base.EVENT.TERM_TRANSLATE_SAVE_DONE, {"status": "no_result", "message": "没有有效的上下文"})
             return
 
         # 准备翻译配置
         config = TaskConfig()
         config.initialize()
         config.prepare_for_translation(TaskType.TRANSLATION)
-        platform_config = config.get_platform_configuration("translationReq")
         target_language = config.target_language
+        # 从配置中获取实际线程数
+        max_threads = config.actual_thread_counts
 
         # 将原文分批处理
         MAX_LINES = 20  # 每批最大原文行数
-        LOG_WIDTH = 50 # 日志框统一宽度
+        LOG_WIDTH = 50  # 日志框统一宽度
         total_items = len(unique_contexts)
         num_batches = (total_items + MAX_LINES - 1) // MAX_LINES
-        
+
         # 打印整体任务信息
         print(f"\n╔{'═' * (LOG_WIDTH-2)}")
         print(f"║{'基于上下文的术语翻译与保存'.center(LOG_WIDTH-2)}")
         print(f"╠{'═' * (LOG_WIDTH-2)}")
         print(f"├─ 独立上下文总数: {total_items}")
-        print(f"└─ 将分为 {num_batches} 个批次处理")
-        
-        all_parsed_terms = [] # 用于收集所有批次的结果
-        
-        for i in range(num_batches):
-            start_index = i * MAX_LINES
-            end_index = start_index + MAX_LINES
-            batch_contexts = unique_contexts[start_index:end_index]
-            batch_num = i + 1
-            
-            log_header = f" 批次 {batch_num}/{num_batches} "
+        print(f"├─ 将分为 {num_batches} 个批次处理")
+        print(f"└─ 使用线程池并发数: {max_threads}")
+
+        # 定义用于线程池的工作函数
+        def process_batch(batch_contexts, batch_num, total_batches):
+            """处理单个批次的请求、解析和返回结果"""
+            log_header = f" 批次 {batch_num}/{total_batches} "
             print(f"\n╔{'═' * (LOG_WIDTH-2)}")
             print(f"║{log_header.center(LOG_WIDTH-2)}")
             print(f"╠{'═' * (LOG_WIDTH-2)}")
-
+            
             user_content = "\n".join(batch_contexts)
-
-            # 要求模型将所有结果放入一个<textarea>标签中，每个术语占一行。
             system_prompt = f"""你是一位专业的术语提取与翻译专家。你的任务是分析用户提供的文本，遵循以下步骤：
 1.  **识别关键术语**：从文本中提取所有专有名词。术语类型包括但不限于：人名、地名、组织、物品、装备、技能、魔法、种族、生物等。
 2.  **翻译术语**：将每个识别出的术语准确翻译成“{target_language}”。
@@ -720,73 +720,87 @@ class SimpleExecutor(Base):
 ...|...|...
 </textarea>"""
             messages = [{"role": "user", "content": user_content}]
+
+            # 每次请求都获取一次配置，以确保能轮询API Key
+            platform_config = config.get_platform_configuration("translationReq")
             
             print(f"├─ 正在向AI发送请求 (共 {len(batch_contexts)} 行)...")
-
             requester = LLMRequester()
             skip, _, response_content, _, _ = requester.sent_request(
                 messages, system_prompt, platform_config
             )
 
             if skip or not response_content:
-                self.error(f"第 {batch_num} 批次请求失败或返回内容为空，跳过此批次。")
+                self.error(f"第 {batch_num} 批次请求失败或返回内容为空。")
                 print(f"└─ ❌ 请求失败或无回复，跳过此批次。")
-                print("")
-                continue
+                return [] # 返回空列表表示失败
 
-            print("├─ 收到回复，内容如下:")
-            for line in response_content.strip().split('\n'):
-                print(f"│  {line}")
-            print(f"├{'─' * (LOG_WIDTH-2)}")
-            print(f"├─ 正在解析...")
+            print("├─ 收到回复，正在解析...")
             
-            # 解析回复
             try:
-                # 使用 re.search 查找唯一的 <textarea> 块
                 match = re.search(r'<textarea>(.*?)</textarea>', response_content, re.DOTALL)
-                
                 if not match:
                     self.warning(f"第 {batch_num} 批次回复中未匹配到 <textarea> 块。")
                     print(f"└─ ⚠️ 回复中未找到有效术语块。")
-                    print("")
-                    continue
-                
-                # 获取标签内的所有内容，并按行分割
+                    return []
+
                 content_block = match.group(1).strip()
                 lines = content_block.split('\n')
                 
-                batch_parsed_count = 0
+                batch_parsed_terms = []
                 warnings_in_batch = False
 
                 for line in lines:
                     line = line.strip()
-                    if not line: # 跳过可能存在的空行
-                        continue
+                    if not line: continue
                     
                     parts = line.split('|')
                     if len(parts) == 3:
                         src, dst, info = [p.strip() for p in parts]
                         if src:
-                            all_parsed_terms.append({"src": src, "dst": dst, "info": info})
-                            batch_parsed_count += 1
+                            batch_parsed_terms.append({"src": src, "dst": dst, "info": info})
                     else:
                         self.warning(f"解析失败，批次 {batch_num} 中格式不符: {line}")
-                        print(f"│  └ 格式不符: {line}")
                         warnings_in_batch = True
-
-                print(f"├─ 本批次成功解析 {batch_parsed_count} 条术语。")
+                
+                print(f"├─ 本批次成功解析 {len(batch_parsed_terms)} 条术语。")
                 if warnings_in_batch:
                     print(f"└─ ⚠️ 批次处理完成，但有解析警告。")
                 else:
                     print(f"└─ ✅ 批次处理完成。")
-                print("")
-
+                
+                return batch_parsed_terms
             except Exception as e:
                 self.error(f"解析第 {batch_num} 批次响应时发生严重错误: {e}")
                 print(f"└─ ❌ 解析时发生严重错误，跳过此批次。")
-                print("")
-                continue
+                return []
 
+        all_parsed_terms = []
+        
+        # 使用线程池并发处理批次
+        with ThreadPoolExecutor(max_workers=max_threads) as executor:
+            # 提交所有任务
+            futures = []
+            for i in range(num_batches):
+                start_index = i * MAX_LINES
+                end_index = start_index + MAX_LINES
+                batch_contexts = unique_contexts[start_index:end_index]
+                # 提交任务到线程池
+                future = executor.submit(process_batch, batch_contexts, i + 1, num_batches)
+                futures.append(future)
+            
+            # 获取已完成任务的结果
+            for future in as_completed(futures):
+                try:
+                    # 获取工作函数的返回结果
+                    batch_results = future.result()
+                    if batch_results:
+                        all_parsed_terms.extend(batch_results)
+                except Exception as e:
+                    self.error(f"一个术语翻译批次在执行中遇到严重错误: {e}")
+        
+        # 后续处理逻辑保持不变
+        print("") # 在日志末尾添加一个空行，使格式更美观
         self.info("所有批次处理完成，正在将结果保存到术语表...")
         if not all_parsed_terms:
             self.warning("所有批次均未能解析出任何有效术语。任务结束。")
