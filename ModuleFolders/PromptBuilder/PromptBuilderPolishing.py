@@ -188,7 +188,6 @@ class PromptBuilderPolishing(Base):
 
         return profile_A , profile_B
 
-
     # 生成信息结构 - 通用
     def generate_prompt(config, source_text_dict: dict, translation_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
         # 储存指令
@@ -257,5 +256,10 @@ class PromptBuilderPolishing(Base):
                 "content": source_text_str,
             }
         )
+
+        # 构建预输入回复信息
+        switch_A = config.few_shot_and_example_switch # 打开动态示例开关时
+        if switch_A :
+            messages.append({"role": "assistant", "content": "我完全理解了你的要求与原则，我将遵循您的指示进行润色任务。"})
 
         return messages, system, extra_log
