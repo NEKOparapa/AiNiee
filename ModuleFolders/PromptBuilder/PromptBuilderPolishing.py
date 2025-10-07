@@ -260,6 +260,6 @@ class PromptBuilderPolishing(Base):
         # 构建预输入回复信息
         switch_A = config.few_shot_and_example_switch # 打开动态示例开关时
         if switch_A :
-            messages.append({"role": "assistant", "content": "我完全理解了你的要求与原则，我将遵循您的指示进行润色任务。"})
+            messages.append({"role": "assistant", "content": "我完全理解了你的要求，我将遵循您的指示进行润色任务。"})
 
         return messages, system, extra_log

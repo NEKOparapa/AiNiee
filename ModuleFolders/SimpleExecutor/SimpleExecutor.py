@@ -724,7 +724,7 @@ class SimpleExecutor(Base):
             # 每次请求都获取一次配置，以确保能轮询API Key
             platform_config = config.get_platform_configuration("translationReq")
             
-            print(f"├─ 正在向AI发送请求 (共 {len(batch_contexts)} 行)...")
+            print(f"├─ 正在向AI发送请求 (共 {len(batch_contexts)} 行)...\n")
             requester = LLMRequester()
             skip, _, response_content, _, _ = requester.sent_request(
                 messages, system_prompt, platform_config
