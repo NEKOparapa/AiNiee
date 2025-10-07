@@ -18,13 +18,9 @@ class RenpyReader(BaseSourceReader):
     1. old "..." / new "..."
     2. # tag "..." / tag "..."
     3. # "..." / "..."
-    4. # Character("...") "..." / Character("...") "..." (新支持)
-    5. # bri.c "..." / bri.c "..." (新支持带点的标签)
+    4. # Character("xxx") "..." / Character("xxx") "..."
+    5. # bri.c "..." / bri.c "..." 
     
-    核心特性：
-    - 能处理文本中包含的转义双引号。
-    - 严格验证注释行和代码行的标签必须完全一致。
-    - 支持在注释行和代码行之间存在 voice/video 等指令。
     """
     def __init__(self, input_config: InputConfig):
         super().__init__(input_config)
@@ -43,25 +39,32 @@ class RenpyReader(BaseSourceReader):
     def _get_dialogue_parts(self, line: str) -> Optional[Tuple[str, str]]:
         """
         从一行中分离出标签（前缀）和引用的文本。
-        适用于所有 Ren'Py 对话格式，如:
-        - 'mc "Hello"' -> ('mc', 'Hello')
-        - '"Hello"' -> ('', 'Hello')
-        - 'Character("Weird guy") "Hi!"' -> ('Character("Weird guy")', 'Hi!')
+        通过从后往前查找引号，可以准确处理 `Character("...") "..."` 这样的复杂标签。
         
         返回: (标签, 文本) 或在无效格式时返回 None。
         """
-        first_quote_index = line.find('"')
-        if first_quote_index == -1:
-            return None
+        # 1. 找到最后一个引号，这几乎总是对话的结束引号
         last_quote_index = line.rfind('"')
-        
-        # 确保第一个和最后一个引号是不同的字符
-        if last_quote_index <= first_quote_index:
+        if last_quote_index == -1:
             return None
 
-        # 标签是第一个引号之前的所有内容，去除首尾空格
+        # 2. 在最后一个引号之前的部分中，反向查找第一个引号，这一定是对话的开始引号
+        substring_before_last_quote = line[:last_quote_index]
+        first_quote_index = substring_before_last_quote.rfind('"')
+        
+        # 如果找不到开始的引号，或者引号对无效
+        if first_quote_index == -1:
+            # 处理只有引号没有标签的情况，例如 '"...'
+            if line.strip().startswith('"'):
+                 first_quote_index = line.find('"')
+                 if first_quote_index >= last_quote_index:
+                      return None
+            else:
+                 return None
+
+        # 标签是对话开始引号之前的所有内容
         tag = line[:first_quote_index].strip()
-        # 文本是第一个和最后一个引号之间的内容
+        # 文本是两个对话引号之间的内容
         text = line[first_quote_index + 1:last_quote_index]
         
         return tag, text

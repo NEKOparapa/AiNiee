@@ -35,13 +35,13 @@ class RenpyWriter(BaseTranslatedWriter):
             original_line = lines[line_num]
             new_trans = self._escape_quotes_for_renpy(item.final_text)
             
-            # 【增强逻辑】精确定位要替换的文本范围
+            # 精确定位要替换的文本范围
             tag = item.require_extra("tag")
             
             # 默认搜索起点为0
             search_start_index = 0
             if tag:
-                # 如果有标签，则从标签结束后开始搜索第一个引号，以处理 Character("...") "..." 格式
+                # 如果有标签，则从标签结束后开始搜索第一个引号，以处理 Character("xxx") "..." 格式
                 try:
                     tag_start_index = original_line.find(tag)
                     if tag_start_index != -1:
