@@ -1,13 +1,14 @@
+# .github/workflows/your-workflow-name.yml
+
 name: AiNiee Beta Build.
 on:
-  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
   push:
     branches:
       - main
 
-# Add permissions needed for release management
 permissions:
-  contents: write    # Required for creating/deleting releases, tags, and generating release notes
+  contents: write
 
 jobs:
   build:
@@ -15,13 +16,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        # Fetch depth 0 is needed for generate_release_notes to find previous tags/commits
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetches all history for all branches and tags
+          fetch-depth: 0
 
-
-      # 可以减少可执行文件体积
       - name: Install UPX
         shell: cmd
         run: |
@@ -40,15 +38,20 @@ jobs:
           python -m pip install --no-deps -r requirements_no_deps.txt
           python -m pip cache purge
 
-      - name: Build EXE
+      - name: Build EXE with PyInstaller (--onedir mode)
+        # 将原 Build EXE 步骤重命名，更清晰
         run: python .\Tools\pyinstall.py
 
-      - name: Pack Resource
+      - name: Prepare Release Package
+        # 将原 Pack Resource 步骤重命名并修改
         run: |
-          Copy-Item -Path "Resource" -Destination "dist\Resource" -Recurse -Force
-          Copy-Item -Path "StevExtraction" -Destination "dist\StevExtraction" -Recurse -Force
-          Copy-Item -Path "PluginScripts" -Destination "dist\PluginScripts" -Recurse -Force
-          Compress-Archive -Path "dist" -DestinationPath "AiNiee-Beta.zip"
+          # 将资源文件夹复制到 PyInstaller 生成的输出目录内部
+          Copy-Item -Path "Resource" -Destination "dist\AiNiee\Resource" -Recurse -Force
+          Copy-Item -Path "StevExtraction" -Destination "dist\AiNiee\StevExtraction" -Recurse -Force
+          Copy-Item -Path "PluginScripts" -Destination "dist\AiNiee\PluginScripts" -Recurse -Force
+          
+          # 压缩输出目录的内容，而不是目录本身，以创建干净的zip包
+          Compress-Archive -Path "dist\AiNiee\*" -DestinationPath "AiNiee-Beta.zip"
 
       - name: Delete release
         uses: dev-drprasad/delete-tag-and-release@v1.1 
