@@ -14,9 +14,10 @@ class TermResultPage(Base, QWidget):
     """
     # 定义列索引常量
     COL_TERM = 0
-    COL_TYPE = 1
-    COL_CONTEXT = 2
-    COL_FILE = 3
+    COL_COUNT = 1
+    COL_TYPE = 2
+    COL_CONTEXT = 3
+    COL_FILE = 4
 
     def __init__(self, extraction_results: list, parent=None):
         super().__init__(parent)
@@ -52,7 +53,7 @@ class TermResultPage(Base, QWidget):
 
     def _init_table(self):
         """初始化表格样式和表头"""
-        self.headers = [self.tra("术语"), self.tra("类型"), self.tra("所在原文"), self.tra("来源文件")]
+        self.headers = [self.tra("术语"), self.tra("出现次数"), self.tra("类型"), self.tra("所在原文"), self.tra("来源文件")]
         self.table.setColumnCount(len(self.headers))
         self.table.setHorizontalHeaderLabels(self.headers)
         self.table.verticalHeader().hide()
@@ -70,6 +71,7 @@ class TermResultPage(Base, QWidget):
         header.setSectionResizeMode(QHeaderView.Interactive)
         header.setStretchLastSection(True)
         self.table.setColumnWidth(self.COL_TERM, 180)
+        self.table.setColumnWidth(self.COL_COUNT, 80)
         self.table.setColumnWidth(self.COL_TYPE, 120)
         self.table.setColumnWidth(self.COL_CONTEXT, 400)
         self.table.setColumnWidth(self.COL_FILE, 180)
@@ -83,20 +85,25 @@ class TermResultPage(Base, QWidget):
         self.table.setRowCount(len(results))
         for row_idx, result in enumerate(results):
             term_item = QTableWidgetItem(result["term"])
-            type_item = QTableWidgetItem(result["type"])
+            type_text = self.tra(f"NER_TYPES.{result['type']}")
+            type_item = QTableWidgetItem(type_text)
             context_item = QTableWidgetItem(result["context"])
             file_item = QTableWidgetItem(os.path.basename(result["file_path"]))
+            count = result.get('count', 1)
+            count_item = QTableWidgetItem(str(count))
+            count_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(row_idx, self.COL_TERM, term_item)
+            self.table.setItem(row_idx, self.COL_COUNT, count_item)
             self.table.setItem(row_idx, self.COL_TYPE, type_item)
             self.table.setItem(row_idx, self.COL_CONTEXT, context_item)
             self.table.setItem(row_idx, self.COL_FILE, file_item)
         self.table.resizeRowsToContents()
-        
+
 
     def _show_context_menu(self, pos: QPoint):
         """当在表格上右键时，显示上下文菜单"""
         menu = RoundMenu(parent=self)
-        
+
         # 检查是否有行被选中
         selected_rows = self.table.selectionModel().selectedRows()
         has_selection = bool(selected_rows)
