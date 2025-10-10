@@ -68,10 +68,11 @@ class TermResultPage(Base, QWidget):
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
 
         header = self.table.horizontalHeader()
+        header.setSortIndicatorShown(False)
         header.setSectionResizeMode(QHeaderView.Interactive)
         header.setStretchLastSection(True)
         self.table.setColumnWidth(self.COL_TERM, 180)
-        self.table.setColumnWidth(self.COL_COUNT, 80)
+        self.table.setColumnWidth(self.COL_COUNT, 90)
         self.table.setColumnWidth(self.COL_TYPE, 120)
         self.table.setColumnWidth(self.COL_CONTEXT, 400)
         self.table.setColumnWidth(self.COL_FILE, 180)
@@ -82,15 +83,17 @@ class TermResultPage(Base, QWidget):
 
     def _populate_data(self, results: list):
         """用提取结果填充表格"""
+        self.table.setSortingEnabled(False)
         self.table.setRowCount(len(results))
         for row_idx, result in enumerate(results):
             term_item = QTableWidgetItem(result["term"])
-            type_text = self.tra(f"NER_TYPES.{result['type']}")
-            type_item = QTableWidgetItem(type_text)
+            type_item = QTableWidgetItem(result["type"])
             context_item = QTableWidgetItem(result["context"])
             file_item = QTableWidgetItem(os.path.basename(result["file_path"]))
             count = result.get('count', 1)
-            count_item = QTableWidgetItem(str(count))
+            count_item = QTableWidgetItem()
+            count_item.setData(Qt.DisplayRole, str(count))
+            count_item.setData(Qt.EditRole, count)
             count_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(row_idx, self.COL_TERM, term_item)
             self.table.setItem(row_idx, self.COL_COUNT, count_item)
@@ -98,6 +101,8 @@ class TermResultPage(Base, QWidget):
             self.table.setItem(row_idx, self.COL_CONTEXT, context_item)
             self.table.setItem(row_idx, self.COL_FILE, file_item)
         self.table.resizeRowsToContents()
+        self.table.setSortingEnabled(True)
+        self.table.sortByColumn(self.COL_COUNT, Qt.DescendingOrder)
 
 
     def _show_context_menu(self, pos: QPoint):
