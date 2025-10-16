@@ -92,7 +92,7 @@ class TermResultPage(Base, QWidget):
             file_item = QTableWidgetItem(os.path.basename(result["file_path"]))
             count = result.get('count', 1)
             count_item = QTableWidgetItem()
-            count_item.setData(Qt.DisplayRole, str(count))
+            count_item.setData(Qt.DisplayRole, count)
             count_item.setData(Qt.EditRole, count)
             count_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(row_idx, self.COL_TERM, term_item)
