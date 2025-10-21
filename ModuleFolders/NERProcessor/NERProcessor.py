@@ -8,7 +8,7 @@ from Base.Base import Base
 class NERProcessor(Base):
     # 将过滤器关键字提升为类常量，方便管理
 
-    FILTER_KEYWORDS = ('-', '…', '一','―','？', '©', '章　', 'ー', 'http', '！', '=', '"', '＋', '：', '『', 'ぃ', '～', '♦', '〇', 
+    FILTER_KEYWORDS = ('-', '…', '一','―','？', '©', '章　', 'ー', 'http', '！', '=', '"', '＋', '：', '『', 'ぃ', '～', '♦', '〇',
                     '└', "'", "/", "｢", "）", "（", "♥", "●", "!", "】", "【", "<", ">", "*", "〜", "EV", "♪", "^", "★", "※", ".",
                         "|","ｰ","%","if","Lv","(","\\","]","[","◆",":","_","ｗｗｗ","、","ぁぁ","んえ","んんん",
                     )
@@ -32,15 +32,15 @@ class NERProcessor(Base):
         with self.nlp_lock:
             if model_name in self.nlp_models:
                 return self.nlp_models[model_name]
-            
+
             model_path = os.path.join('.', 'Resource', 'Models', 'ner', model_name)
-            
+
             if not os.path.exists(model_path):
                 self.error(f"模型路径不存在: {model_path}")
                 return None
 
             self.info(f"正在加载 spaCy 模型: {model_name}...")
-            
+
             # 只加载ner组件，禁用其他所有组件
             nlp = spacy.load(
                 model_path,
@@ -56,16 +56,22 @@ class NERProcessor(Base):
         去重逻辑: 基于小写的术语文本和实体类型。
         """
         self.info(f"初步提取到 {len(results)} 个实体。正在去重...")
-        
-        unique_results = []
-        seen = set()
+
+        unique_items = {}
         for res in results:
             # 使用小写术语和类型作为唯一标识符
             identifier = (res["term"].lower(), res["type"])
-            if identifier not in seen:
-                unique_results.append(res)
-                seen.add(identifier)
-        
+            if identifier not in unique_items:
+            # 首次遇到，存入完整结果并初始化次数为1
+                unique_items[identifier] = res.copy() # 使用copy避免修改原始列表
+                unique_items[identifier]['count'] = 1
+            else:
+            # 已存在，次数加1
+                unique_items[identifier]['count'] += 1
+
+    # 从字典的值中构建最终列表
+        unique_results = list(unique_items.values())
+
         self.info(f"去重后得到 {len(unique_results)} 个独立术语。")
         return unique_results
 
@@ -77,7 +83,7 @@ class NERProcessor(Base):
 
         # 规则 1: 过滤包含特定禁用关键字的术语
         results_after_keywords = [
-            res for res in results 
+            res for res in results
             if not any(keyword in res["term"] for keyword in self.FILTER_KEYWORDS)
         ]
         self.info(f"过滤关键字后剩余 {len(results_after_keywords)} 个术语。")
@@ -97,10 +103,10 @@ class NERProcessor(Base):
             # 条件: (只包含字母和数字) 并且 (不全是字母)
             if term_for_check.isalnum() and not term_for_check.isalpha():
                 continue
-            
+
             # 如果通过所有检查，则保留该术语
             final_filtered_results.append(res)
-        
+
         self.info(f"过滤数字与字母数字组合后剩余 {len(final_filtered_results)} 个术语。")
         return final_filtered_results
 
@@ -129,15 +135,15 @@ class NERProcessor(Base):
 
         total_items = len(items_data)
         self.info(f"开始对 {total_items} 条原文进行实体识别...")
-        
+
         raw_results = []
         processed_count = 0
-        
+
         # 步骤 1: 从文本中提取原始实体
         for item_data in items_data:
             source_text = item_data.get("source_text")
             file_path = item_data.get("file_path")
-            
+
             if not source_text or not source_text.strip():
                 continue
 
@@ -157,10 +163,10 @@ class NERProcessor(Base):
 
         # 步骤 2: 对提取结果进行去重
         unique_results = self._deduplicate_results(raw_results)
-        
+
         # 步骤 3: 对去重后的结果进行过滤
         filtered_results = self._filter_results(unique_results)
-        
+
         # 步骤 4: 对过滤后的结果进行排序
         sorted_results = self._sort_results(filtered_results)
 
