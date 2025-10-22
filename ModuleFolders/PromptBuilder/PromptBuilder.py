@@ -119,12 +119,12 @@ class PromptBuilder(Base):
 
         # 检测原文语言是否能够构建动态示例
         if conv_source_lang not in ["japanese", "korean", "russian", "chinese_simplified", "chinese_traditional", "french",
-                                "german", "spanish", "english"]:
+                                "german", "spanish", "english", "indonesian"]:
             return "", ""
 
         # 获取自适应示例（无法构建english的）
         if conv_source_lang in ["japanese", "korean", "russian", "chinese_simplified", "chinese_traditional", "french",
-                                "german", "spanish"]:
+                                "german", "spanish", "indonesian"]:
             list2, list4 = PromptBuilder.build_adaptive_translation_sample(config, input_dict, conv_source_lang)
 
         # 将两个列表合并
@@ -144,6 +144,7 @@ class PromptBuilder(Base):
                     "spanish": "Texto de ejemplo",
                     "french": "Exemple de texte",
                     "german": "Beispieltext",
+                    "indonesian": "Contoh Teks",
                 }
             }
 
@@ -341,9 +342,13 @@ class PromptBuilder(Base):
                 r"[a-zA-ZÄÖÜäöüß]+",  # 德语特殊字符
                 re.UNICODE
             ),
+            "indonesian": re.compile( # 印尼语的正则表达式
+                r"[a-zA-ZÀ-ÿ]+",      # 使用一个通用的拉丁字母匹配模式
+                re.UNICODE
+            ),
         }
 
-        # 定义不同语言的翻译示例（新增三种语言）
+        # 定义不同语言的翻译示例
         text_all = {
             "japanese": "例示テキスト",
             "korean": "예시 텍스트",
@@ -354,6 +359,7 @@ class PromptBuilder(Base):
             "spanish": "Texto de ejemplo",
             "french": "Exemple de texte",
             "german": "Beispieltext",
+            "indonesian": "Contoh Teks",
         }
 
         # 根据输入选择正则表达式与翻译文本
