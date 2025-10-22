@@ -130,6 +130,12 @@
       "English": "VTT Subtitle File",
       "日本語": "VTT字幕ファイル"
     },
+    "Ass": {
+      "简中": "Ass字幕文件",
+      "繁中": "Ass字幕檔案",
+      "English": "ASS Subtitle File",
+      "日本語": "ASS字幕ファイル"
+    },
     "Lrc": {
       "简中": "Lrc音声文件",
       "繁中": "Lrc歌詞檔案",

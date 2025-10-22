@@ -22,7 +22,7 @@
 
 * **格式全能，覆盖广泛**
     * 🎮 **游戏翻译**：深度支持 Mtool, Renpy, Translator++, ParaTranzr, VNText, SExtractor 等游戏文本导出工具。
-    * 📚 **多样支持**：轻松处理 I18Next 数据、Epub/TXT 电子书、Srt/Vtt/Lrc 字幕、Word/PDF/MD 文档等。
+    * 📚 **多样支持**：轻松处理 I18Next/.trans/Po 数据、Epub/TXT 电子书、Srt/Ass/Vtt/Lrc 字幕、Word/PDF/MD 文档等。
 
 * **智能高效，省时省心**
     * 🚀 **一键操作**：一拖一点，自动识别文件与语言，无需设置。

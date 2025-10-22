@@ -15,6 +15,7 @@ from ModuleFolders.FileReader.VntReader import VntReader
 from ModuleFolders.FileReader.SrtReader import SrtReader
 from ModuleFolders.FileReader.VttReader import VttReader
 from ModuleFolders.FileReader.LrcReader import LrcReader
+from ModuleFolders.FileReader.AssReader import AssReader
 from ModuleFolders.FileReader.TxtReader import TxtReader
 from ModuleFolders.FileReader.EpubReader import EpubReader
 from ModuleFolders.FileReader.DocxReader import DocxReader
@@ -41,6 +42,7 @@ class FileReader():
         self.register_reader(SrtReader)
         self.register_reader(VttReader)
         self.register_reader(LrcReader)
+        self.register_reader(AssReader)
         self.register_reader(MdReader)
         self.register_reader(TPPReader)
         self.register_reader(TransReader)

@@ -24,7 +24,7 @@ from ModuleFolders.FileOutputer.I18nextWriter import I18nextWriter
 from ModuleFolders.FileOutputer.PoWriter import PoWriter
 from ModuleFolders.FileOutputer.BabeldocPdfWriter import BabeldocPdfWriter
 from PluginScripts.IOPlugins.CustomRegistry import CustomWriter
-
+from ModuleFolders.FileOutputer.AssWriter import AssWriter
 
 # 文件输出器
 class FileOutputer:
@@ -45,6 +45,7 @@ class FileOutputer:
         self.register_writer(VttWriter)
         self.register_writer(LrcWriter)
         self.register_writer(VntWriter)
+        self.register_writer(AssWriter)
         self.register_writer(TxtWriter)
         self.register_writer(MdWriter)
         self.register_writer(EpubWriter)

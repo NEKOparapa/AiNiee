@@ -19,6 +19,7 @@ class ProjectType:
     PARATRANZ = "Paratranz"
     RENPY = "Renpy"
     SRT = "Srt"
+    ASS = "Ass"
     TPP = "Tpp"
     TRANS = "Trans"
     TXT = "Txt"
