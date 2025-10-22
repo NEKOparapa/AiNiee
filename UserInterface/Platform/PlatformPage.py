@@ -189,40 +189,42 @@ class PlatformPage(QFrame, Base):
     }
 
     def __init__(self, text: str, window):
-        super().__init__(window)
-        self.setObjectName(text.replace(" ", "-"))
+            super().__init__(window)
+            self.setObjectName(text.replace(" ", "-"))
 
-        # 默认配置
-        self.default = {
-            "api_settings":{
-                        "translate": None,
-                        "polish": None,
-                        "format": None
-                        }
-        }
+            # 默认配置
+            self.default = {
+                "api_settings":{
+                            "translate": None,
+                            "polish": None
+                            }
+            }
 
-        self.window = window # 全局变量
-        self.load_preset() # 读取合并配置
+            self.window = window # 全局变量
+            self.load_preset() # 读取合并配置
 
-        self.container = QVBoxLayout(self)
-        self.container.setSpacing(15) # 增加间距以容纳新卡片
-        self.container.setContentsMargins(24, 24, 24, 24)
+            self.container = QVBoxLayout(self)
+            self.container.setSpacing(15) # 增加间距以容纳新卡片
+            self.container.setContentsMargins(24, 24, 24, 24)
 
-        # 读取合并配置
-        config = self.save_config(self.load_config_from_default())
+            # 读取合并配置
+            config = self.save_config(self.load_config_from_default())
 
-        # 布局组件
-        self.add_head_widget(self.container, config)
-        self.add_body_widget(self.container, config)
-        self.add_foot_widget(self.container, config)
-        
-        # 添加分割线
-        self.container.addWidget(HorizontalSeparator())
-        
-        self.add_interface_settings_widget(self.container, config)
+            # 布局组件
+            self.add_head_widget(self.container, config)
+            self.add_body_widget(self.container, config)
+            self.add_foot_widget(self.container, config)
+            
+            self.container.addStretch(1) 
 
-        self.container.addStretch(1)
-        self.subscribe(Base.EVENT.API_TEST_DONE, self.api_test_done)
+            # 添加分割线
+            self.container.addWidget(HorizontalSeparator())
+            
+            self.add_interface_settings_widget(self.container, config)
+
+            self.container.addStretch(1) 
+            
+            self.subscribe(Base.EVENT.API_TEST_DONE, self.api_test_done)
 
     # 从文件加载
     def load_file(self, path: str) -> dict:
@@ -552,7 +554,6 @@ class PlatformPage(QFrame, Base):
         settings_map = {
             "translate": self.tra("翻译接口"),
             "polish": self.tra("润色接口"),
-            "format": self.tra("排版接口"),
         }
         
         # 从配置中加载已保存的设置

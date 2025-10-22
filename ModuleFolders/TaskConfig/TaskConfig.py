@@ -77,8 +77,6 @@ class TaskConfig(Base):
             self.target_platform = self.api_settings["translate"]
         elif mode == TaskType.POLISH:
             self.target_platform = self.api_settings["polish"]
-        elif mode == TaskType.FORMAT:
-            self.target_platform = self.api_settings["format"]
 
         # 增加获取不到内容时的异常处理
         if self.target_platform is None:
@@ -203,8 +201,6 @@ class TaskConfig(Base):
             target_platform = self.api_settings["translate"]
         elif platform_type == "polishingReq":
             target_platform = self.api_settings["polish"]
-        elif platform_type == "formatReq":
-            target_platform = self.api_settings["format"]
 
         api_url = self.base_url
         api_key = self.get_next_apikey()
