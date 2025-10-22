@@ -50,8 +50,8 @@ jobs:
           Copy-Item -Path "StevExtraction" -Destination "dist\AiNiee\StevExtraction" -Recurse -Force
           Copy-Item -Path "PluginScripts" -Destination "dist\AiNiee\PluginScripts" -Recurse -Force
           
-          # 压缩输出目录的内容，而不是目录本身，以创建干净的zip包
-          Compress-Archive -Path "dist\AiNiee\*" -DestinationPath "AiNiee-Beta.zip"
+          # 压缩目录,包括dist文件夹，主要是因为updater.exe还没更新，以免自动更新功能出错
+          Compress-Archive -Path "dist" -DestinationPath "AiNiee-Beta.zip"
 
       - name: Delete release
         uses: dev-drprasad/delete-tag-and-release@v1.1 
