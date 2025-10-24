@@ -453,11 +453,15 @@ class TextProcessor():
 
     # 处理并占位文本中间内容
     def _replace_special_placeholders(self, target_platform: str, text_dict: Dict[str, str],
-                                      compiled_placeholder_patterns: List[re.Pattern]) -> \
+                                    compiled_placeholder_patterns: List[re.Pattern]) -> \
             Tuple[Dict[str, str], Dict[str, List[Dict[str, str]]]]:
         new_dict = {}
         placeholder_order: Dict[str, List[Dict[str, str]]] = {}
         global_match_count = 0
+        
+        # 预编译系统占位符检测正则
+        system_placeholder_pattern = re.compile(r'^\[P\d+\]$')
+        sakura_placeholder_pattern = re.compile(r'^↓+$')
 
         for key, original_text in text_dict.items():
             current_text = original_text
@@ -473,9 +477,20 @@ class TextProcessor():
                     if global_match_count >= 50:
                         return match_obj.group(0)
 
+                    original_match_val = match_obj.group(0)
+                    
+                    # 检查是否匹配到系统占位符，如果是则跳过
+                    if target_platform == "sakura":
+                        # Sakura 模式下，检查是否全是 ↓ 字符
+                        if sakura_placeholder_pattern.match(original_match_val):
+                            return original_match_val  # 保持原样，不进行占位
+                    else:
+                        # 默认模式下，检查是否是 [P数字] 格式
+                        if system_placeholder_pattern.match(original_match_val):
+                            return original_match_val  # 保持原样，不进行占位
+
                     global_match_count += 1
                     sakura_match_count += 1
-                    original_match_val = match_obj.group(0)
 
                     placeholder_val = f"[P{global_match_count}]"
                     if target_platform == "sakura":
