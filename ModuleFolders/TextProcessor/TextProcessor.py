@@ -142,9 +142,40 @@ class TextProcessor():
 
         return ''.join(result)
 
+    def _is_pure_english(self, text: str) -> bool:
+        """
+        判断文本是否为纯英文（仅包括英文字母和空格）
+        排除纯空白的情况
+        
+        Args:
+            text: 待检查的文本
+            
+        Returns:
+            bool: 如果是纯英文返回True，否则返回False
+        """
+        if not text or not text.strip():
+            return False
+        
+        # 只允许英文字母和空格
+        return all((char.isalpha() and char.isascii()) or char.isspace() for char in text)
+
     def _handle_special_characters(self, prefix: str, core_text: str, suffix: str) -> Tuple[str, str, str]:
-        """处理特殊字符边界"""
-        # 处理前缀
+        """
+        处理特殊字符边界
+        包括：
+        1. 括号等特殊字符的边界处理（移入核心文本）
+        2. 纯数字后缀的处理（移入核心文本）
+        3. 纯英文前后缀的还原（移入核心文本）
+        
+        Args:
+            prefix: 前缀字符串
+            core_text: 核心文本
+            suffix: 后缀字符串
+            
+        Returns:
+            处理后的 (prefix, core_text, suffix) 元组
+        """
+        # 处理前缀中的特殊字符
         if prefix:
             if prefix.endswith('['):
                 core_text = '[' + core_text
@@ -159,7 +190,7 @@ class TextProcessor():
                 core_text = '(' + core_text
                 prefix = prefix[:-1]
 
-        # 处理后缀
+        # 处理后缀中的特殊字符
         if suffix:
             if suffix.startswith(']'):
                 core_text = core_text + ']'
@@ -176,7 +207,18 @@ class TextProcessor():
 
         # 数字后缀处理
         if suffix and suffix.isdigit():
-            core_text, suffix = core_text + suffix, ""
+            core_text = core_text + suffix
+            suffix = ""
+
+        # 检查前缀是否为纯英文，如果是则还原到核心文本
+        if prefix and self._is_pure_english(prefix):
+            core_text = prefix + core_text
+            prefix = ""
+        
+        # 检查后缀是否为纯英文，如果是则还原到核心文本
+        if suffix and self._is_pure_english(suffix):
+            core_text = core_text + suffix
+            suffix = ""
 
         return prefix, core_text, suffix
 
