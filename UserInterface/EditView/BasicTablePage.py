@@ -47,8 +47,6 @@ class BasicTablePage(Base,QWidget):
         self.table.itemChanged.connect(self._on_item_changed)
         # 订阅来自执行器的通用表格更新事件
         self.subscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
-        # 订阅排版完成后的表格重建事件
-        self.subscribe(Base.EVENT.TABLE_FORMAT, self._on_format_and_rebuild_table) 
 
     # 表格属性
     def _init_table(self):
@@ -155,7 +153,6 @@ class BasicTablePage(Base,QWidget):
         if has_selection:
             menu.addAction(Action(FIF.EXPRESSIVE_INPUT_ENTRY, self.tra("翻译文本"), triggered=self._translate_text))
             menu.addAction(Action(FIF.BRUSH, self.tra("润色文本"), triggered=self._polish_text))
-            menu.addAction(Action(FIF.CLIPPING_TOOL, self.tra("排版文本"), triggered=self._format_text))
             menu.addSeparator()
             menu.addAction(Action(FIF.COPY, self.tra("禁止翻译"), triggered=self._copy_source_to_translation))
             menu.addAction(Action(FIF.DELETE, self.tra("清空翻译"), triggered=self._clear_translation))
@@ -219,39 +216,6 @@ class BasicTablePage(Base,QWidget):
             self.table.resizeRowsToContents()
         finally:
             self._item_changed_handler_enabled = True
-
-    # 表格重编排方法
-    def _on_format_and_rebuild_table(self, event, data: dict):
-        """
-        当接收到TABLE_FORMAT事件时，使用新数据对缓存进行拼接操作并重建表格。
-        """
-        if data.get('file_path') != self.file_path:
-            return
-            
-        self.info(f"接收到文件 '{self.file_path}' 的排版更新，正在重建表格...")
-        
-        formatted_data = data.get('updated_items')
-        selected_item_indices = data.get('selected_item_indices') 
-
-        if not formatted_data or selected_item_indices is None:
-            self.error("排版更新失败：未收到有效的文本数据或原始选中项索引。")
-            return
-
-        updated_full_item_list = self.cache_manager.reformat_and_splice_cache(
-            file_path=self.file_path,
-            formatted_data=formatted_data,
-            selected_item_indices=selected_item_indices
-        )
-
-        if updated_full_item_list is None:
-            self.error("缓存拼接更新失败，表格更新中止。")
-            return
-            
-        # 此方法调用 _populate_real_data，开关逻辑已在该方法中处理，所以这里无需额外操作
-        self._populate_real_data(updated_full_item_list)
-        
-        row_count_change = len(updated_full_item_list) - self.table.rowCount()
-        self.info_toast(self.tra("排版完成"), self.tra("表格已成功更新，行数变化: {:+}").format(row_count_change))
 
     def _get_selected_rows_indices(self):
         """获取所有被选中行的索引列表"""
@@ -323,49 +287,6 @@ class BasicTablePage(Base,QWidget):
             "items_to_polish": items_to_polish,
         })
         self.info_toast(self.tra("提示"), self.tra("已提交 {} 行文本的润色任务。").format(len(items_to_polish)))
-
-    def _format_text(self):
-        cache_file = self.cache_manager.project.get_file(self.file_path)
-        if not cache_file or cache_file.file_project_type not in (ProjectType.TXT, ProjectType.MD):
-            MessageBox(self.tra("操作受限"), self.tra("“排版文本”功能当前仅支持 TXT MD 类型的项目文件。"), self.window()).exec()
-            return
-
-        selected_rows = self._get_selected_rows_indices()
-        if len(selected_rows) < 2:
-            MessageBox(self.tra("选择无效"), self.tra("请至少选择 2 行来进行排版操作。"), self.window()).exec()
-            return
-        if max(selected_rows) - min(selected_rows) + 1 != len(selected_rows):
-            MessageBox(self.tra("选择无效"), self.tra("请选择连续的行进行排版操作。"), self.window()).exec()
-            return
-
-        if Base.work_status == Base.STATUS.IDLE:
-            Base.work_status = Base.STATUS.TABLE_TASK
-        else:
-            print("❌正在执行其他任务中！")
-            return
-
-        items_to_format = []
-        selected_item_indices = []
-        for row in selected_rows:
-            text_index_item = self.table.item(row, self.COL_NUM)
-            source_text_item = self.table.item(row, self.COL_SOURCE)
-            if text_index_item and source_text_item:
-                text_index = text_index_item.data(Qt.UserRole)
-                items_to_format.append({
-                    "text_index": text_index,
-                    "source_text": source_text_item.text(),
-                })
-                selected_item_indices.append(text_index)
-
-        if not items_to_format:
-            return
-
-        self.emit(Base.EVENT.TABLE_FORMAT_START, {
-            "file_path": self.file_path,
-            "items_to_format": items_to_format,
-            "selected_item_indices": selected_item_indices,
-        })
-        self.info_toast(self.tra("提示"), self.tra("已提交 {} 行文本的排版任务。").format(len(items_to_format)))
 
     def _copy_source_to_translation(self):
         """将选中行的原文内容复制到译文行，表示无需翻译。"""

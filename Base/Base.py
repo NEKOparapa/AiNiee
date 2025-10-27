@@ -39,8 +39,6 @@ class Event():
     TABLE_TRANSLATE_DONE = 801                       # 表格翻译 完成
     TABLE_POLISH_START = 810                      # 表格润色 开始
     TABLE_POLISH_DONE = 811                      # 表格润色 完成    
-    TABLE_FORMAT_START = 820                      # 表格排版 开始
-    TABLE_FORMAT_DONE = 821                      # 表格排版 完成   
 
     TERM_EXTRACTION_START = 830                  # 术语提取开始
     TERM_EXTRACTION_DONE = 831                     

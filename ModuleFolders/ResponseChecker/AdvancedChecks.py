@@ -305,3 +305,96 @@ def contains_specific_format_single_comma(text: str) -> bool:
         return True
     else:
         return False
+
+
+# 回复格式检查函数
+def check_reply_format(source_text_dict: dict, response_dict: dict) -> bool:
+    """
+    严格检查回复的格式是否与build_source_text方法构建的原文格式完全一致。
+    
+    格式要求：
+    - 单行文本：{序号}.{内容}
+      例如：1.こんにちは
+      
+    - 多行文本：{序号}.[
+                "{序号}.{倒序子序号}.,{内容}",
+                "{序号}.{倒序子序号-1}.,{内容}",
+                ...
+                ]
+      例如：1.[
+           "1.3.,第三行",
+           "1.2.,第二行", 
+           "1.1.,第一行"
+           ]
+    
+    Args:
+        source_text_dict (dict): 源文本字典。
+        response_dict (dict): 解析后的回复文本字典。
+    
+    Returns:
+        bool: 如果格式完全匹配则返回 True，否则返回 False。
+    """
+    for key, source_text in source_text_dict.items():
+        response_text = response_dict.get(key)
+        
+        # 如果对应的回复不存在，则格式错误
+        if response_text is None:
+            return False
+        
+        main_index = int(key) + 1  # 主序号（从1开始）
+        is_source_multiline = '\n' in source_text
+        
+        if is_source_multiline:
+            # === 多行文本格式严格检查 ===
+            source_lines = source_text.split('\n')
+            total_lines = len(source_lines)
+            
+            # 1. 必须以 "{主序号}.[" 开头
+            expected_prefix = f"{main_index}.["
+            if not response_text.strip().startswith(expected_prefix):
+                return False
+            
+            # 2. 必须以 "]" 结尾
+            if not response_text.strip().endswith(']'):
+                return False
+            
+            # 3. 检查所有子序号是否存在且为倒序
+            # 子序号格式："{主序号}.{子序号}.,"
+            # 子序号应该从 total_lines 倒数到 1
+            expected_sub_numbers = list(range(total_lines, 0, -1))
+            
+            for expected_sub_num in expected_sub_numbers:
+                expected_sub_format = f'"{main_index}.{expected_sub_num}.,'
+                if expected_sub_format not in response_text:
+                    return False
+            
+            # 4. 确保没有超出范围的子序号（防止AI添加多余的行）
+            # 检查是否存在 total_lines+1 的子序号
+            unexpected_sub_format = f'"{main_index}.{total_lines + 1}.,'
+            if unexpected_sub_format in response_text:
+                return False
+            
+            # 5. 检查子序号的数量是否正确
+            # 统计所有子序号的出现次数
+            sub_number_pattern = re.compile(rf'"{main_index}\.(\d+)\.,')
+            found_sub_numbers = sub_number_pattern.findall(response_text)
+            
+            if len(found_sub_numbers) != total_lines:
+                return False
+            
+            # 6. 验证子序号确实是倒序的（按出现顺序）
+            found_sub_numbers_int = [int(num) for num in found_sub_numbers]
+            if found_sub_numbers_int != expected_sub_numbers:
+                return False
+        
+        else:
+            # === 单行文本格式严格检查 ===
+            
+            # 必须以 "{主序号}." 开头
+            expected_prefix = f"{main_index}."
+            if not response_text.startswith(expected_prefix):
+                return False
+        
+    
+    # 所有行的格式检查都通过
+    return True

@@ -276,25 +276,59 @@ class ResponseExtractor:
 
     # 去除数字序号及括号
     def remove_numbered_prefix(self, translation_text_dict):
-
+        """
+        去除翻译文本中的数字序号前缀。
+        
+        处理两个步骤：
+        1. 去除各种变形序号（包括特殊前缀字符 + 数字序号 + 特殊后缀标点）
+        2. 循环去除开头剩余的简单数字序号
+        
+        Args:
+            translation_text_dict: 翻译文本字典
+            
+        Returns:
+            处理后的文本字典
+        """
         output_dict = {}
         for key, value in translation_text_dict.items():
 
             if not isinstance(value, str):
                 output_dict[key] = value
                 continue
+                
             translation_lines = value.split('\n')
             cleaned_lines = []
+            
             for i, line in enumerate(translation_lines):
-
-                # 去除数字序号 (只匹配 "1.", "1.2.," 等，并保留原文中的缩进空格)
-                temp_line = re.sub(r'^\s*\d+\.(\d+\.,)?', '', line)
-                #temp_line = re.sub(r'\d+\.(\d+\.,)?', '', line) #不限定开头的数字序号
+                temp_line = line
+                
+                # 第一步：去除各种变形序号
+                # 匹配模式：[可选空白][可选特殊前缀][数字序号][可选标点后缀][可选空白]
+                # - 特殊前缀：「『【……□ 等引号、省略号、方框等字符
+                # - 数字序号：支持 1. 或 1.2. 或 1.2.3. 等多级序号
+                # - 标点后缀：, ， 、等中英文标点
+                temp_line = re.sub(
+                    r'^\s*[「『【（\(……□\s]*\d+(\.\d+)*\.[,，、]?\s*',
+                    '',
+                    temp_line
+                )
+                
+                # 第二步：循环去除开头剩余的 数字. 格式
+                # 处理可能存在的嵌套或多余的数字序号
+                max_iterations = 2  # 设置最大迭代次数，防止意外无限循环
+                for iteration in range(max_iterations):
+                    new_line = re.sub(r'^\s*\d+\.\s*', '', temp_line)
+                    # 如果没有变化，说明已经清理完毕
+                    if new_line == temp_line:
+                        break
+                    temp_line = new_line
+                
                 cleaned_lines.append(temp_line)
 
             processed_text = '\n'.join(cleaned_lines)
 
-            # 移除尾部的 "/n]或者/n] (及其前面的空格)
+            # 移除尾部的 "/n] 或 /n] (及其前面的空格)
             final_text = re.sub(r'\s*"?\n]$', '', processed_text)
             output_dict[key] = final_text
+            
         return output_dict

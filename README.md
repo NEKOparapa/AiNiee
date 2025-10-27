@@ -22,7 +22,7 @@
 
 * **格式全能，覆盖广泛**
     * 🎮 **游戏翻译**：深度支持 Mtool, Renpy, Translator++, ParaTranzr, VNText, SExtractor 等游戏文本导出工具。
-    * 📚 **多样支持**：轻松处理 I18Next 数据、Epub/TXT 电子书、Srt/Vtt/Lrc 字幕、Word/PDF/MD 文档等。
+    * 📚 **多样支持**：轻松处理 I18Next/.trans/Po 数据、Epub/TXT 电子书、Srt/Ass/Vtt/Lrc 字幕、Word/PDF/MD 文档等。
 
 * **智能高效，省时省心**
     * 🚀 **一键操作**：一拖一点，自动识别文件与语言，无需设置。
@@ -32,7 +32,7 @@
     * 🎯 **突破局限**：采用轻盈翻译格式、思维链翻译、AI 术语表、上下文关联等技术，确保长文本翻译的连贯性与准确性。
     * 💎 **质量追求**：支持 基础提示、角色介绍、背景设定、翻译风格 等提示词调整，拥有 一键AI润色、一键AI排版、一键提取术语 等功能，满足对翻译质量有更高要求的用户。
 
-* ✨ **姊妹项目推荐**：[**ReaDreamAI**](https://github.com/NEKOparapa/ReaDreamAI) - AI阅读增强工具，一键为轻小说、同人作品生成高一致性的AI插图与视频。
+* ✨ **姊妹项目推荐**：[**ReaDreamAI**](https://github.com/NEKOparapa/ReaDreamAI) - 阅你所想，绘你所梦，从一个想法到一本完整的精彩小说。ReaDreamAI为你包办写作、插图与视频。
 
 ---
 

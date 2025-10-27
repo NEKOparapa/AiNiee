@@ -11,7 +11,8 @@ from ModuleFolders.ResponseChecker.AdvancedChecks import (
     check_multiline_text, 
     check_dicts_equal, 
     detecting_remaining_original_text, 
-    check_placeholders_exist
+    check_placeholders_exist,
+    check_reply_format
 )
 
 class ResponseChecker():
@@ -60,6 +61,11 @@ class ResponseChecker():
                 source_language,
             ):
                 return False, "【翻译残留】 - 译文中残留部分原文"
+
+        # 回复格式检查
+        if response_check_switch.get('reply_format_check', False):
+            if not check_reply_format(source_text_dict, response_dict):
+                return False, "【格式错误】 - 回复格式与原文格式不匹配（单行/多行）"
 
         # 占位符检查
         if not check_placeholders_exist(placeholder_order, response_dict):

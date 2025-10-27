@@ -17,7 +17,7 @@ class TaskSettingsPage(QFrame, Base):
             "lines_limit_switch": False,
             "tokens_limit_switch": True,
             "lines_limit": 10,
-            "tokens_limit": 512,
+            "tokens_limit": 1024,
             "user_thread_counts": 0,
             "request_timeout": 120,
             "round_limit": 10,

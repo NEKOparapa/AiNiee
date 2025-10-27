@@ -317,8 +317,25 @@ class SearchResultPage(Base, QWidget):
 
                 # 更新发生变化的单元格
                 if original_text != new_text:
+                    # 1. 更新UI
                     item.setText(new_text)
                     replacement_count += 1
+                    
+                    # 2. 获取元数据
+                    ref_item = self.table.item(row, self.COL_ROW)
+                    if ref_item:
+                        file_path, text_index = ref_item.data(Qt.UserRole)
+                        
+                        # 3. 确定修改的字段
+                        field_name = 'translated_text' if col == self.COL_TRANS else 'polished_text'
+                        
+                        # 4. 调用缓存管理器更新数据
+                        self.cache_manager.update_item_text(
+                            storage_path=file_path,
+                            text_index=text_index,
+                            field_name=field_name,
+                            new_text=new_text
+                        )
         
         # 恢复信号连接并更新UI
         self.table.blockSignals(False)
