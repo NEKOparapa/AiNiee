@@ -58,7 +58,7 @@ class TranslationChecker(Base):
         if not target_language_code:
             self.error(self.tra("检查失败：无法将目标语言名称 '{}' 转换为有效的语言代码。请检查您的配置。").format(target_language_name))
             return CheckResult.ERROR_INVALID_LANG, {"lang_name": target_language_name}
-        
+
         # 兼容繁中检测
         if target_language_code == 'zh-Hant':
             target_language_code = 'zh'
@@ -70,6 +70,26 @@ class TranslationChecker(Base):
         else:
             self.info(self.tra("模式: 宏观统计【将报告每个文件的整体语言组成】"))
         self.print("-" * 20)
+
+        #检查前查看是否有标记
+        self.info(self.tra("正在清除旧的语言检查标记..."))
+        ## 定义需要清除的标记键
+        flag_key_translation = "language_mismatch_translation"
+        flag_key_polish = "language_mismatch_polish"
+
+        #遍历所有 item
+        for item in self.cache_manager.project.items_iter():
+            if item.extra:
+                #安全的移除键
+                item.extra.pop(flag_key_translation, None)
+                item.extra.pop(flag_key_polish, None)
+
+                # 如果 extra 字典在移除标记后变为空，将其设为 None 以保持缓存干净
+                if not item.extra:
+                    item.extra = None
+        self.info(self.tra("旧标记已清除。现在开始新的检查..."))
+        self.print("-" * 20)
+
 
         # 执行分析
         all_results = []
@@ -100,21 +120,21 @@ class TranslationChecker(Base):
                 if output_path and os.path.isdir(output_path):
                     #为 CacheManager 设置必要的保存路径
                     self.cache_manager.save_to_file_require_path = output_path
-                    
+
                     # 立即执行保存操作
-                    self.cache_manager.save_to_file() 
-                    
+                    self.cache_manager.save_to_file()
+
                     self.info(self.tra("标记已成功保存到缓存文件。"))
                 else:
                     self.warning(self.tra("无法保存标记：输出路径 '{}' 未配置或无效").format(output_path))
             except Exception as e:
-                self.error(self.tra("保存标记到缓存时发生错误: {}").format(e))             
+                self.error(self.tra("保存标记到缓存时发生错误: {}").format(e))
 
         # 生成报告
         self._print_report(all_results, is_judging, target_language_code, mode_text)
         if all_results:
-             self.print("\n")        
-        
+             self.print("\n")
+
 
         # 返回结果码
         if is_judging:
@@ -148,7 +168,7 @@ class TranslationChecker(Base):
             else:
                 self.error(self.tra("检查失败，请先执行翻译流程"))
                 return CheckResult.ERROR_NO_TRANSLATION, {}
-            
+
         return None, {}
 
     def _run_detection(self, items_to_check: List[CacheItem], check_target: str) -> list:
@@ -190,23 +210,23 @@ class TranslationChecker(Base):
                 # 检查返回结果是否有效且不是特殊标记
                 if res and res[0] and res[0][0] not in ['no_text', 'symbols_only', 'un']:
                     result_tuple = res[0]
-                    
+
                     # 安全地获取语言代码
                     detected_lang = result_tuple[0]
-                    
+
                     # 安全获取置信度
                     if len(result_tuple) > 1:
                         raw_confidence = result_tuple[1]
                         if isinstance(raw_confidence, (tuple, list)) and raw_confidence:
                            confidence = raw_confidence[0]
-                        elif isinstance(raw_confidence, (int, float)): 
-                           confidence = raw_confidence         
-                        
-                    
+                        elif isinstance(raw_confidence, (int, float)):
+                           confidence = raw_confidence
+
+
                     lang_counts[detected_lang] += 1
-                
+
                 line_by_line_details.append({
-                    "original_line_num": original_idx + 1, 
+                    "original_line_num": original_idx + 1,
                     "detected_lang": detected_lang,
                     "confidence": confidence,
                     "text": text_content
@@ -223,10 +243,10 @@ class TranslationChecker(Base):
             # 如果比例低于阈值，使用已收集的行级信息生成报告
             if ratio < self.TARGET_LANGUAGE_RATIO_THRESHOLD:
                 mismatched_lines = [
-                    detail for detail in line_by_line_details 
+                    detail for detail in line_by_line_details
                     if detail["detected_lang"] != target_language_code
                 ]
-                
+
                 if mismatched_lines:
                     first_item_line_num = chunk_with_indices[0][0] + 1
                     last_item_line_num = chunk_with_indices[-1][0] + 1
@@ -240,15 +260,15 @@ class TranslationChecker(Base):
                         # 从行号获取在 cache_file.items中的索引
                         item_index = line_info['original_line_num'] - 1
                         item_to_flag = cache_file.items[item_index]
-                        
+
                         # 确保 extra 字典存在
                         if item_to_flag.extra is None:
                             item_to_flag.extra = {}
-                        
+
                         # 添加标记
                         item_to_flag.extra[flag_key] = True
-                        self.debug(f"Flagged item at index {item_index} in file {cache_file.storage_path} with key '{flag_key}'")                    
-        
+                        self.debug(f"Flagged item at index {item_index} in file {cache_file.storage_path} with key '{flag_key}'")
+
         if not problematic_chunks:
             return None
 
@@ -260,7 +280,7 @@ class TranslationChecker(Base):
     def _analyze_file_for_report(self, cache_file, check_target: str) -> Dict[str, Any] | None:
         """[宏观统计模式] 对单个文件进行整体语言统计。"""
         items_with_text = [
-            item for item in cache_file.items 
+            item for item in cache_file.items
             if getattr(item, check_target, "").strip()
         ]
         if not items_with_text:
@@ -274,7 +294,7 @@ class TranslationChecker(Base):
         for res in detection_results:
             if res[0] and res[0][0] not in ['no_text', 'symbols_only', 'un']:
                 lang_counts[res[0][0]] += 1
-        
+
         total_valid_lines = sum(lang_counts.values())
         if total_valid_lines == 0:
             return None
@@ -307,7 +327,7 @@ class TranslationChecker(Base):
             for res in results:
                 cache_file = res["file_info"]
                 self.info(self.tra("▼ 文件: {} (类型: {}, 编码: {})").format(cache_file.storage_path, cache_file.file_project_type, cache_file.encoding))
-                
+
                 for chunk in res["problematic_chunks"]:
                     self.warning(
                         self.tra("  └─ 问题区块: {} (目标语言占比: {:.2%})").format(chunk['chunk_range'], chunk['ratio'])
@@ -316,13 +336,13 @@ class TranslationChecker(Base):
                         text_preview = line_info['text'].strip().replace('\n', ' ')[:50]
                         self.error(
                             self.tra("    ├─ 行 {}: 检测为 [{}] (置信度: {:.2f}) -> \"{}...\"").format(
-                                line_info['original_line_num'], 
-                                line_info['detected_lang'], 
-                                line_info['confidence'], 
+                                line_info['original_line_num'],
+                                line_info['detected_lang'],
+                                line_info['confidence'],
                                 text_preview
                             )
                         )
-                self.print("") 
+                self.print("")
         else:
             # [宏观统计模式] 的概览报告
             self.info(self.tra("以下是各文件的 {} 语言组成统计报告:").format(mode_text))
