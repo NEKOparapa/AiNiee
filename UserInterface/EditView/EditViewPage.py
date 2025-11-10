@@ -492,8 +492,14 @@ class PageCard(Base,CardWidget):
         self.view_button.setIconSize(QSize(16, 16))
         self.view_button.clicked.connect(self.on_view_button_clicked)
 
+        # 创建保存按钮
+        self.save_button = TransparentToolButton(FIF.SAVE)
+        self.save_button.setIconSize(QSize(16, 16))
+        self.save_button.clicked.connect(self.on_save_button_clicked)
+
         # 将按钮添加到按钮容器布局
         button_layout.addWidget(self.view_button)
+        button_layout.addWidget(self.save_button)
 
 
         # 将 TabBar 和按钮容器添加到水平布局
@@ -506,6 +512,29 @@ class PageCard(Base,CardWidget):
         # 创建并添加 QStackedWidget
         self.stacked_widget = QStackedWidget(self)
         self.layout.addWidget(self.stacked_widget)
+
+    def on_save_button_clicked(self):
+        """
+        获取配置中的 label_output_path 并调用手动保存缓存事件。
+        不再生成最终翻译文件，只保存项目缓存。
+        """
+        config = self.load_config()
+        output_path = config.get("label_output_path")
+
+        # 检查路径是否存在，如果不存在则尝试创建
+        try:
+            cache_dir = os.path.join(output_path, "cache")
+            if not os.path.isdir(cache_dir):
+                os.makedirs(cache_dir, exist_ok=True)
+        except OSError as e:
+            self.error_toast(self.tra("路径错误"), self.tra("创建缓存目录失败: {}").format(e))
+            return
+        
+        # 发出新的手动保存缓存事件
+        self.emit(Base.EVENT.TASK_MANUAL_SAVE_CACHE, {"output_path": output_path})
+        
+        # 给予用户反馈
+        self.success_toast(self.tra("成功"), self.tra("项目缓存已保存到输出文件夹"))
 
     def on_view_button_clicked(self):
         """

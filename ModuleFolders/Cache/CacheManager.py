@@ -31,7 +31,8 @@ class CacheManager(Base):
         # 注册事件
         self.subscribe(Base.EVENT.TASK_START, self.start_interval_saving)
         self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
-
+        self.subscribe(Base.EVENT.TASK_MANUAL_SAVE_CACHE, self.on_manual_save_cache_requested)
+        
     def start_interval_saving(self, event: int, data: dict):
                 # 如果是继续任务，则在开始前保存并重载缓存
         if data.get("continue_status") is True:
@@ -53,6 +54,20 @@ class CacheManager(Base):
     # 应用关闭事件
     def app_shut_down(self, event: int, data: dict) -> None:
         self.save_to_file_stop_flag = True
+
+    # 手动保存缓存请求事件
+    def on_manual_save_cache_requested(self, event: int, data: dict) -> None:
+        """处理手动保存缓存的请求"""
+        output_path = data.get("output_path")
+        if output_path and hasattr(self, "project"):
+            # 设置保存路径并立即执行保存
+            self.save_to_file_require_path = output_path
+            self.save_to_file()
+            self.info("缓存文件已通过手动请求保存。")
+        elif not hasattr(self, "project"):
+             self.warning("手动保存缓存失败：项目数据尚未加载。")
+        else:
+            self.warning("手动保存缓存失败：未提供有效的 'output_path'。")
 
     # 保存缓存到文件
     def save_to_file(self) -> None:
