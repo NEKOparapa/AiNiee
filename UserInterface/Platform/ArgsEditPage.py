@@ -192,17 +192,20 @@ class ArgsEditPage(MessageBoxBase, Base):
                     config["platforms"][self.key]["extra_body"] = extra_body_dict
 
                 self.save_config(config)
-            except:
-                pass
+            except Exception as e:
+                # 建议添加错误提示，方便调试
+                print(f"[INFO] 接口保存 extra_body 参数失败: {e}")
 
         def init(widget):
             plain_text_edit = PlainTextEdit(self)
 
             extra_body = config.get("platforms").get(self.key).get("extra_body")
-            if not extra_body:
-                plain_text_edit.setPlainText("")
+            
+            # 只有当 extra_body 是非空字典时才显示内容
+            if isinstance(extra_body, dict) and extra_body:
+                plain_text_edit.setPlainText(json.dumps(extra_body, ensure_ascii=False, indent=2))
             else:
-                plain_text_edit.setPlainText(json.dumps(extra_body))
+                plain_text_edit.setPlainText("")
 
             info_cont = self.tra("请输入自定义Body")
             plain_text_edit.setPlaceholderText(info_cont)

@@ -51,7 +51,7 @@ class VntWriter(BaseTranslatedWriter):
                 updated_names, remaining_message = self.extract_multiple_names_from_text(
                     original_names, translated_text_full
                 )
-                text = {"names": original_names, "message": remaining_message}
+                text = {"names": updated_names, "message": remaining_message}
 
             # --- 如果 'names' 未被处理，则检查 'name' ---
             elif text is None and item.get_extra("name"):
@@ -62,7 +62,7 @@ class VntWriter(BaseTranslatedWriter):
                     updated_name, remaining_message = self.extract_strings(
                         original_name, translated_text_full
                     )
-                    text = {"name": original_name, "message": remaining_message}
+                    text = {"name": updated_name, "message": remaining_message}
                 else: # 处理 'name' 属性存在但为空的情况
                     text = {"message": translated_text_full}
 
