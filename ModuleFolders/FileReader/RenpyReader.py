@@ -11,7 +11,6 @@ from ModuleFolders.FileReader.BaseReader import (
     PreReadMetadata
 )
 
-
 class RenpyReader(BaseSourceReader):
     """
     读取 rpy 文件并提取翻译条目，支持下面格式:
@@ -19,8 +18,7 @@ class RenpyReader(BaseSourceReader):
     2. # tag "..." / tag "..."
     3. # "..." / "..."
     4. # Character("xxx") "..." / Character("xxx") "..."
-    5. # bri.c "..." / bri.c "..." 
-    
+    5. # bri.c "..." / bri.c "..."
     """
     def __init__(self, input_config: InputConfig):
         super().__init__(input_config)
@@ -36,31 +34,83 @@ class RenpyReader(BaseSourceReader):
     # 用于检查行是否以翻译注释行格式开头的正则表达式
     COMMENT_TRANSLATION_START_PATTERN = re.compile(r"^\s*#\s*")
 
+    # 检查指定位置的引号是否被转义。
+    def _is_escaped_quote(self, text: str, pos: int) -> bool:
+        """
+        检查指定位置的引号是否被转义。
+        通过计算引号前面连续反斜杠的数量来判断：
+        - 偶数个反斜杠（包括0）：引号未被转义
+        - 奇数个反斜杠：引号被转义
+        
+        """
+        if pos == 0:
+            return False
+        
+        backslash_count = 0
+        check_pos = pos - 1
+        
+        # 向前计算连续的反斜杠数量
+        while check_pos >= 0 and text[check_pos] == '\\':
+            backslash_count += 1
+            check_pos -= 1
+        
+        # 奇数个反斜杠表示引号被转义
+        return backslash_count % 2 == 1
+
+    # 从后往前查找最后一个未转义的双引号。
+    def _find_last_unescaped_quote(self, text: str, end: int = -1) -> int:
+        """
+        从后往前查找最后一个未转义的双引号。
+        
+        """
+        if end == -1:
+            end = len(text)
+        
+        pos = end - 1
+        while pos >= 0:
+            if text[pos] == '"' and not self._is_escaped_quote(text, pos):
+                return pos
+            pos -= 1
+        
+        return -1
+
+    # 从前往后查找第一个未转义的双引号。
+    def _find_first_unescaped_quote(self, text: str, start: int = 0) -> int:
+        """
+        从前往后查找第一个未转义的双引号。
+        """
+        pos = start
+        while pos < len(text):
+            if text[pos] == '"' and not self._is_escaped_quote(text, pos):
+                return pos
+            pos += 1
+        
+        return -1
+
+    # 从一行中分离出标签（前缀）和引用的文本。
     def _get_dialogue_parts(self, line: str) -> Optional[Tuple[str, str]]:
         """
         从一行中分离出标签（前缀）和引用的文本。
-        通过从后往前查找引号，可以准确处理 `Character("...") "..."` 这样的复杂标签。
+        通过从后往前查找未转义的引号，可以准确处理含有转义引号的文本。
         
-        返回: (标签, 文本) 或在无效格式时返回 None。
         """
-        # 1. 找到最后一个引号，这几乎总是对话的结束引号
-        last_quote_index = line.rfind('"')
+        # 1. 找到最后一个未转义的引号，这是对话的结束引号
+        last_quote_index = self._find_last_unescaped_quote(line)
         if last_quote_index == -1:
             return None
 
-        # 2. 在最后一个引号之前的部分中，反向查找第一个引号，这一定是对话的开始引号
-        substring_before_last_quote = line[:last_quote_index]
-        first_quote_index = substring_before_last_quote.rfind('"')
+        # 2. 在最后一个引号之前的部分中，反向查找第一个未转义的引号，这是对话的开始引号
+        first_quote_index = self._find_last_unescaped_quote(line, last_quote_index)
         
         # 如果找不到开始的引号，或者引号对无效
         if first_quote_index == -1:
             # 处理只有引号没有标签的情况，例如 '"...'
             if line.strip().startswith('"'):
-                 first_quote_index = line.find('"')
-                 if first_quote_index >= last_quote_index:
-                      return None
+                first_quote_index = self._find_first_unescaped_quote(line)
+                if first_quote_index >= last_quote_index:
+                    return None
             else:
-                 return None
+                return None
 
         # 标签是对话开始引号之前的所有内容
         tag = line[:first_quote_index].strip()
