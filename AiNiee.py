@@ -138,7 +138,8 @@ if __name__ == "__main__":
     display_banner()
     print(f"[[green]INFO[/]] Application Version: {app_version}") # 打印版本号
     print(f"[[green]INFO[/]] Current working directory is {script_dir}")
-    
+    print(f"[[green]INFO[/]] Starting AiNiee Application...")
+
     # 启动页面
     logo_path = os.path.join(".", "Resource", "Logo", "Logo.png")
     icon = QIcon(logo_path)  # 使用QIcon加载logo
