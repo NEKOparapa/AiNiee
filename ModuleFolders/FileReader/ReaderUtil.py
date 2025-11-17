@@ -491,7 +491,14 @@ def is_symbols_only(source_text: str):
 
 # 辅助函数，用于去除文字中的html标签
 def remove_html_tags(source_text):
-    soup = BeautifulSoup(source_text, 'html.parser')
+    if not source_text:
+        return ""
+
+    # 清理无效的 surrogate 字符（U+D800-U+DFFF）
+    # 这些字符在 UTF-8 中不能单独存在
+    cleaned_text = source_text.encode('utf-8', errors='ignore').decode('utf-8')
+
+    soup = BeautifulSoup(cleaned_text, 'html.parser')
     return soup.get_text()
 
 
