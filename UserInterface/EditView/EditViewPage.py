@@ -85,7 +85,7 @@ class BottomCommandBar(Base,CardWidget):
         self.stop_btn = TransparentPushButton(FIF.CANCEL_MEDIUM, self.tra('停止'))
         self.stop_btn.setEnabled(False)  # 初始不可用
         self.schedule_btn = TransparentPushButton(FIF.DATE_TIME, self.tra('定时'))
-        self.export_btn = TransparentPushButton(FIF.SHARE, self.tra("导出"))
+        self.export_btn = TransparentPushButton(FIF.SHARE, self.tra("导出结果"))
         self.arrow_btn = ToggleToolButton()
         self.arrow_btn.setIcon(FIF.UP)
         self.arrow_btn.setIconSize(QSize(16, 16))
@@ -534,7 +534,7 @@ class PageCard(Base,CardWidget):
         self.emit(Base.EVENT.TASK_MANUAL_SAVE_CACHE, {"output_path": output_path})
         
         # 给予用户反馈
-        self.success_toast(self.tra("成功"), self.tra("项目缓存已保存到输出文件夹"))
+        self.success_toast(self.tra("成功"), self.tra("项目缓存文件已保存到翻译输出文件夹"))
 
     def on_view_button_clicked(self):
         """
