@@ -68,6 +68,36 @@ class TaskConfig(Base):
         for key, value in config.items():
             setattr(self, key, value)
 
+    # API_URL 自动处理方法
+    def process_api_url(self, raw_url: str, target_platform: str, auto_complete: bool) -> str:
+        if not raw_url:
+            return ""
+
+        # 1. 基础清洗
+        url = raw_url.strip().rstrip('/')
+
+        # 2. 裁剪后缀
+        # 允许输入如: http://127.0.0.1:5000/v1/chat/completions -> 裁剪为 -> http://127.0.0.1:5000/v1
+        redundant_suffixes = ["/chat/completions", "/completions", "/chat"]
+        for suffix in redundant_suffixes:
+            if url.endswith(suffix):
+                url = url[:-len(suffix)]
+                url = url.rstrip('/') # 再次去除可能暴露出来的斜杠
+                break
+
+        # 3. 自动补全 /v1 逻辑
+        # 某些平台强制补全，或者配置开启了 auto_complete
+        should_auto_complete = (target_platform in ["sakura", "LocalLLM"]) or auto_complete
+
+        if should_auto_complete:
+            version_suffixes = ["/v1", "/v2", "/v3", "/v4", "/v5", "/v6"]
+            # 如果当前 URL 不以任何版本号结尾，则添加 /v1
+            if not any(url.endswith(suffix) for suffix in version_suffixes):
+                url += "/v1"
+
+        # 4. 返回处理后的 URL
+        return url
+
     # 准备翻译
     def prepare_for_translation(self,mode) -> None:
 
@@ -94,16 +124,11 @@ class TaskConfig(Base):
             self.apikey_list = re.sub(r"\s+","", api_key).split(",")
             self.apikey_index = 0
 
-        # 获取接口地址并自动补全
-        self.base_url = self.platforms.get(self.target_platform).get("api_url")
-        auto_complete = self.platforms.get(self.target_platform).get("auto_complete")
-
-        if (self.target_platform == "sakura" or self.target_platform == "LocalLLM") and not self.base_url.endswith("/v1"):
-            self.base_url += "/v1"
-        elif auto_complete:
-            version_suffixes = ["/v1", "/v2", "/v3", "/v4"]
-            if not any(self.base_url.endswith(suffix) for suffix in version_suffixes):
-                self.base_url += "/v1"
+        # 处理 API URL 和限额
+        raw_url = self.platforms.get(self.target_platform).get("api_url", "")
+        auto_complete_setting = self.platforms.get(self.target_platform).get("auto_complete", False)
+        
+        self.base_url = self.process_api_url(raw_url, self.target_platform, auto_complete_setting)
 
         # 获取接口限额
         self.rpm_limit = self.platforms.get(self.target_platform).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
@@ -242,6 +267,3 @@ class TaskConfig(Base):
 
 
         return params
-
-
-
