@@ -14,7 +14,7 @@ class TextLayoutRepairPlugin(PluginBase):
                             + "\n"
                             + "根据原文恢复译文中改变的标点符号和排版格式"
                             + "\n"
-                            + "仅支持翻译流程；"
+                            + "只适合日语;仅支持翻译流程"
                             )
 
         self.visibility = True  # 是否在插件设置中显示

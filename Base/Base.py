@@ -24,6 +24,7 @@ class Event():
     TASK_CONTINUE_CHECK = 240                # 继续翻译状态检查
     TASK_CONTINUE_CHECK_DONE = 241           # 继续翻译状态检查完成
     TASK_MANUAL_EXPORT = 250                 # 翻译结果手动导出
+    TASK_MANUAL_SAVE_CACHE = 251             # 手动保存缓存文件
     CACHE_FILE_AUTO_SAVE = 300                      # 缓存文件自动保存
 
 

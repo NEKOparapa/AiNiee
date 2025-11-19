@@ -121,30 +121,37 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
         original_text = original_tag.get_text()
         processed_trans = self._copy_leading_spaces(original_text, translated_text)
 
-        # 使用原始标签名和属性
+        # 1. 创建全新的译文标签
         trans_tag = soup.new_tag(original_tag.name, attrs=original_tag.attrs.copy())
         trans_tag.string = processed_trans
 
-        # 修改原文标签样式
-        original_tag.attrs.pop('id', None)
+        # 2. 创建一个全新的、带样式的原文标签，而不是在原始标签上就地修改。
+        #    这是为了避免 BeautifulSoup 的副作用导致原始标签内容丢失。
+        styled_attrs = original_tag.attrs.copy()
+        styled_attrs.pop('id', None) # 移除id以避免冲突
 
         # 合并样式
-        existing_style = original_tag.get('style', '')
-
-        # 确保现有样式末尾有分号（如果存在）
+        existing_style = styled_attrs.get('style', '')
         if existing_style and not existing_style.strip().endswith(';'):
             existing_style += '; '
         new_style = '; '.join([f"{k}:{v}" for k, v in ORIGINAL_STYLE.items()])
-        original_tag['style'] = existing_style + new_style
+        styled_attrs['style'] = existing_style + new_style
         
-        # 组合并返回两个标签的字符串形式
+        orig_styled_tag = soup.new_tag(original_tag.name, attrs=styled_attrs)
+        
+        # 3. 将原始标签的完整内容（包括文本和所有子标签）复制到新的带样式标签中。
+        if original_tag.contents:
+            orig_styled_tag.extend(list(original_tag.contents))
+        
+        # 4. 组合并返回两个新创建标签的字符串形式
         trans_html = str(trans_tag)
-        orig_html_styled = str(original_tag)
+        orig_html_styled = str(orig_styled_tag)
         
         if self.output_config.bilingual_order == BilingualOrder.SOURCE_FIRST:
             return f"{orig_html_styled}\n  {trans_html}"
         else:  # 默认为译文在前
             return f"{trans_html}\n  {orig_html_styled}"
+
 
     def _copy_leading_spaces(self, source_text, target_text):
         leading_spaces = re.match(r'^[ \u3000]+', source_text)

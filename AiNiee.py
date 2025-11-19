@@ -4,19 +4,19 @@
 #                       88" . "88
 #                       (| -_- |)
 #                       0\  =  /0
-#                     ___/`---"\___
-#                   ." \\|     |// ".
+#                     ___/`---'\___
+#                   .' \\|     |// '.
 #                  / \\|||  :  |||// \
 #                 / _||||| -:- |||||- \
 #                |   | \\\  -  /// |   |
-#                | \_|  ""\---/""  |_/ |
-#                \  .-\__  "-"  ___/-. /
-#              ___". ."  /--.--\  `. ."___
-#           ."" "<  `.___\_<|>_/___." >" "".
+#                | \_|  ''\---/''  |_/ |
+#                \  .-\__  '-'  ___/-. /
+#              ___'. .'  /--.--\  `. .'___
+#           ."" '<  `.___\_<|>_/___.' >' "".
 #          | | :  `- \`.;`\ _ /`;.`/ - ` : | |
 #          \  \ `_.   \_ __\ /__ _/   .-` /  /
-#      =====`-.____`.___ \_____/___.-`___.-"=====
-#                        `=---="
+#      =====`-.____`.___ \_____/___.-`___.-'=====
+#                        `=---='
 #
 #
 #      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -65,6 +65,24 @@ def load_config() -> dict:
             config = json.load(reader)
     return config
 
+# 载入版本信息函数
+def load_version() -> str:
+    """从 Resource/Version/version.json 加载版本信息"""
+    version_path = os.path.join(".", "Resource", "Version", "version.json")
+    default_version = "Unknown Version"
+    if os.path.exists(version_path):
+        try:
+            with open(version_path, "r", encoding="utf-8") as f:
+                version_data = json.load(f)
+                # 使用 .get() 方法安全地获取值，如果 "version" 键不存在，则返回默认值
+                return version_data.get("version", default_version)
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"[[red]ERROR[/]] 读取版本文件失败: {e}")
+            return default_version
+    else:
+        print(f"[[yellow]WARNING[/]] 版本文件 {version_path} 未找到, 将使用默认版本号。")
+        return default_version
+
 # 启动画面消息
 def update_splash_message(splash, message, app, font_size=10, font_weight=QFont.Bold):
     font = QFont("Microsoft YaHei")
@@ -97,6 +115,9 @@ if __name__ == "__main__":
 
     # 加载配置文件
     config = load_config()
+    
+    # 加载版本信息
+    app_version = load_version()
 
     # 设置全局缩放比例
     scale_factor_str = config.get("scale_factor", "")
@@ -115,7 +136,9 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     display_banner()
+    print(f"[[green]INFO[/]] Application Version: {app_version}") # 打印版本号
     print(f"[[green]INFO[/]] Current working directory is {script_dir}")
+    print(f"[[green]INFO[/]] Starting AiNiee Application...")
 
     # 启动页面
     logo_path = os.path.join(".", "Resource", "Logo", "Logo.png")
@@ -171,7 +194,7 @@ if __name__ == "__main__":
     update_splash_message(splash, "正在加载核心组件... (50%)", app)
     from UserInterface.AppFluentWindow import AppFluentWindow
     app_fluent_window = AppFluentWindow(
-        version="AiNiee7.0.7 dev",
+        version=app_version,
         plugin_manager=plugin_manager,
         cache_manager=cache_manager,
         file_reader =file_reader,
