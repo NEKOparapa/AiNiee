@@ -5,7 +5,7 @@ import time
 from PyQt5.QtCore import QTime, QVariant, Qt, QSize, pyqtSignal
 from PyQt5.QtWidgets import ( QFileDialog, QFrame, QTreeWidgetItem,
                              QWidget, QHBoxLayout, QVBoxLayout, 
-                             QSplitter, QStackedWidget, QGridLayout)
+                             QSplitter, QStackedWidget)
 from qfluentwidgets import (Action,  CaptionLabel, MessageBox, PrimarySplitPushButton, PushButton, RoundMenu,  ToggleToolButton, TransparentPushButton, TransparentToolButton,
                             TreeWidget, TabBar, FluentIcon as FIF, CardWidget, Action, RoundMenu, ProgressBar)
 from qframelesswindow import QTimer
@@ -19,10 +19,10 @@ from UserInterface.EditView.Check.LanguageCheckDialog import LanguageCheckDialog
 from UserInterface.EditView.Search.SearchDialog import SearchDialog
 from UserInterface.EditView.Search.SearchResultPage import SearchResultPage
 from UserInterface.EditView.Timer.ScheduledDialogPage import ScheduledDialogPage
-from UserInterface.EditView.TextViewPage import TextViewPage
 from UserInterface.EditView.BasicTablePage import BasicTablePage
 from UserInterface.EditView.Term.TermResultPage import TermResultPage
 from UserInterface.EditView.Term.TermExtractionDialog import TermExtractionDialog
+from UserInterface.EditView.Check.CheckResultPage import CheckResultPage 
 
 # 底部命令栏
 class BottomCommandBar(Base,CardWidget):
@@ -337,7 +337,7 @@ class BottomCommandBar(Base,CardWidget):
 class NavigationCard(Base,CardWidget):
     searchRequested = pyqtSignal(dict)  # 信号，发送搜索参数字典
     termExtractionRequested = pyqtSignal(dict)  # 用于发送术语提取参数的信号
-    languageCheckRequested = pyqtSignal(str)    
+    languageCheckRequested = pyqtSignal(dict)  # 用于发送语言检查参数的信号    
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -397,7 +397,8 @@ class NavigationCard(Base,CardWidget):
     def _open_language_check_dialog(self):
         dialog = LanguageCheckDialog(self.window())
         if dialog.exec():
-            self.languageCheckRequested.emit(dialog.check_mode)
+            # 发送对话框返回的完整参数字典
+            self.languageCheckRequested.emit(dialog.check_params)
             
 
     # 按钮点击
@@ -487,18 +488,12 @@ class PageCard(Base,CardWidget):
         button_layout.setContentsMargins(0, 0, 0, 0)
         button_layout.setSpacing(5)
 
-        # 创建视图切换按钮
-        self.view_button = TransparentToolButton(FIF.VIEW)
-        self.view_button.setIconSize(QSize(16, 16))
-        self.view_button.clicked.connect(self.on_view_button_clicked)
-
         # 创建保存按钮
         self.save_button = TransparentToolButton(FIF.SAVE)
         self.save_button.setIconSize(QSize(16, 16))
         self.save_button.clicked.connect(self.on_save_button_clicked)
 
         # 将按钮添加到按钮容器布局
-        button_layout.addWidget(self.view_button)
         button_layout.addWidget(self.save_button)
 
 
@@ -535,68 +530,6 @@ class PageCard(Base,CardWidget):
         
         # 给予用户反馈
         self.success_toast(self.tra("成功"), self.tra("项目缓存文件已保存到翻译输出文件夹"))
-
-    def on_view_button_clicked(self):
-        """
-        提取当前前台标签页的所有文本，生成新的视图标签页进行美观展示。
-        """
-        current_index = self.stacked_widget.currentIndex()
-
-        # 处理没有标签页的情况
-        if current_index == -1:
-            MessageBox(self.tra("提示"), self.tra("当前没有打开的标签页。"), self.window()).exec() # M
-            return
-
-        # 获取当前标签页和其数据表格
-        current_tab = self.stacked_widget.widget(current_index)
-
-        # 检查当前是否为原始数据表格页，而不是一个视图页
-        if not isinstance(current_tab, TabInterface):
-            MessageBox(self.tra("提示"), self.tra("请在原始数据表格标签页上执行此操作。"), self.window()).exec() # M
-            return
-
-        table_page = current_tab.tableView
-        table = table_page.table
-
-        # 提取所有文本
-        all_text_data = []
-        for row in range(table.rowCount()):
-            row_num_item = table.item(row, BasicTablePage.COL_NUM)
-            source_item = table.item(row, BasicTablePage.COL_SOURCE)
-            trans_item = table.item(row, BasicTablePage.COL_TRANS)
-            polish_item = table.item(row, BasicTablePage.COL_POLISH)
-
-            all_text_data.append({
-                "row": row_num_item.text() if row_num_item else str(row + 1),
-                "source": source_item.text() if source_item else "",
-                "translation": trans_item.text() if trans_item else "",
-                "polish": polish_item.text() if polish_item else ""
-            })
-
-        # 生成新的视图标签页
-        original_tab_name = self.tab_bar.tabText(current_index)
-
-        view_tab_name = f"View - {original_tab_name}"
-        # 使用时间戳确保路由键的唯一性
-        view_route_key = f"view_{int(time.time())}"
-
-        # 检查是否已存在此文件的视图页，避免重复创建
-        for i in range(self.tab_bar.count()):
-            if self.tab_bar.tabText(i) == view_tab_name:
-                self.tab_bar.setCurrentIndex(i) # 如果存在，直接切换过去
-                return
-
-        # 创建新的视图页面实例
-        new_view_page = TextViewPage(all_text_data)
-        new_view_page.setObjectName(view_route_key) # 设置对象名以便追踪
-
-        # 添加新标签页并自动跳转
-        self.stacked_widget.addWidget(new_view_page)
-        self.tab_bar.addTab(routeKey=view_route_key, text=view_tab_name)
-
-        new_index = self.tab_bar.count() - 1
-        self.tab_bar.setCurrentIndex(new_index)
-        self.stacked_widget.setCurrentIndex(new_index)
 
 # 标签页
 class TabInterface(QWidget):
@@ -687,7 +620,6 @@ class EditViewPage(Base,QFrame):
 
         # 连接各种信号
         self.nav_card.searchRequested.connect(self.perform_search) # 连接搜索按钮请求信号
-        self.nav_card.languageCheckRequested.connect(self.perform_language_check) # 连接语言检查请求信号
         self.startup_page.folderSelected.connect(self.on_folder_selected) # 连接信号到界面切换和路径处理
         self.bottom_bar_main.back_btn.clicked.connect(self.on_back_button_clicked)  # 返回按钮绑定
         self.nav_card.tree.itemClicked.connect(self.on_tree_item_clicked)  # 树形项点击事件
@@ -696,7 +628,8 @@ class EditViewPage(Base,QFrame):
         self.bottom_bar_main.arrowClicked.connect(self.toggle_page)  # 箭头按钮点击切换页面
         self.nav_card.termExtractionRequested.connect(self.perform_term_extraction) # 开始术语提取信号
 
-        self.languageCheckFinished.connect(self._on_language_check_finished) #连接检查完成信号到槽函数
+        self.nav_card.languageCheckRequested.connect(self.perform_language_check) # 连接语言检查请求信号
+        self.languageCheckFinished.connect(self._on_language_check_finished) # 语言检查完成信号
 
 
         # 订阅事件
@@ -947,24 +880,29 @@ class EditViewPage(Base,QFrame):
 
 
     # 执行语言检查
-    def perform_language_check(self, mode: str):
-        """在一个单独的线程中执行语言检查"""
-        self.info("开始语言检查")
-        
-        # 使用线程避免UI冻结
-        thread = threading.Thread(target=self._language_check_worker, args=(mode,), daemon=True)
+    def perform_language_check(self, params: dict):
+        """在一个单独的线程中执行检查流程"""
+        self.info("开始执行检查任务...")
+        # 启动线程
+        thread = threading.Thread(target=self._language_check_worker, args=(params,), daemon=True)
         thread.start()
 
-    def _language_check_worker(self, mode: str):
-        """工作线程，执行实际的检查并发出信号"""
+    def _language_check_worker(self, params: dict):
+        """工作线程"""
         checker = TranslationChecker(self.cache_manager)
-        result_code, data = checker.check_language(mode)
+        # 调用新的流程入口
+        result_code, data = checker.check_process(params)
         self.languageCheckFinished.emit((result_code, data))
 
     def _on_language_check_finished(self, result: tuple):
-        """接收检查结果并在主线程中显示消息框"""
+        """接收检查结果并在主线程中显示"""
         result_code, data = result
         
+        # 如果有规则错误，则显示错误表格
+        if result_code == CheckResult.HAS_RULE_ERRORS:
+            self._show_check_result_table(data)
+            return
+
         title = self.tra("检查结果")
         msg_box = None
 
@@ -990,6 +928,31 @@ class EditViewPage(Base,QFrame):
             msg_box.cancelButton.hide()
             msg_box.exec()  
 
+    # 表格显示方法
+    def _show_check_result_table(self, errors: list):
+        """创建并显示检查结果表格标签页"""
+        tab_name = self.tra("检查结果")
+        route_key = f"check_res_{int(time.time())}" # 唯一ID
+        
+        # 检查是否已存在同名页 
+        for i in range(self.page_card.tab_bar.count()):
+            if self.page_card.tab_bar.tabText(i) == tab_name:
+                self.page_card.tab_bar.setCurrentIndex(i)
+                self.page_card.stacked_widget.setCurrentIndex(i)
+                # 也可以选择在这里刷新该页面的数据，目前选择新建页
+                # return 
+        
+        result_page = CheckResultPage(errors, self.cache_manager)
+        result_page.setObjectName(route_key)
+        
+        self.page_card.stacked_widget.addWidget(result_page)
+        self.page_card.tab_bar.addTab(routeKey=route_key, text=tab_name)
+        
+        new_index = self.page_card.tab_bar.count() - 1
+        self.page_card.tab_bar.setCurrentIndex(new_index)
+        self.page_card.stacked_widget.setCurrentIndex(new_index)
+        
+        self.warning("检查完成，发现 {0} 个问题，请查看生成的表格。")
 
     # 执行提取术语事件
     def perform_term_extraction(self, params: dict):
