@@ -1,5 +1,7 @@
 import os
 import time
+import re
+import json
 from collections import defaultdict
 from typing import List, Dict, Any, Tuple
 
@@ -14,6 +16,7 @@ class CheckResult:
     SUCCESS_REPORT = "SUCCESS_REPORT"
     SUCCESS_JUDGE_PASS = "SUCCESS_JUDGE_PASS"
     SUCCESS_JUDGE_FAIL = "SUCCESS_JUDGE_FAIL"
+    HAS_RULE_ERRORS = "HAS_RULE_ERRORS"  # 存在需要列表展示的错误
     ERROR_CACHE = "ERROR_CACHE"
     ERROR_NO_TRANSLATION = "ERROR_NO_TRANSLATION"
     ERROR_NO_POLISH = "ERROR_NO_POLISH"
@@ -22,8 +25,6 @@ class CheckResult:
 class TranslationChecker(Base):
     """
     双模式语言检查。
-    - 精准判断 (judge): 按块分析，精确定位语言比例异常的行
-    - 宏观统计 (report): 对整个项目的文件进行语言统计，并报告
     """
     TARGET_LANGUAGE_RATIO_THRESHOLD = 0.75  # [精准判断] 目标语言在块中的占比阈值
     CHUNK_SIZE = 20                         # [精准判断] 每个检测块包含的行数
@@ -33,14 +34,71 @@ class TranslationChecker(Base):
         self.cache_manager = cache_manager
         self.config = self.load_config()
 
+    # --- 主检查流程 ---
+    def check_process(self, params: dict) -> Tuple[str, Any]:
+        """
+        主检查流程
+        """
+        target = params.get("target", "translate")
+        mode = params.get("mode", "report")
+        rules = params.get("rules", {})
+
+        # 1. 兼容逻辑
+        legacy_mode_str = f"{target}_{mode}" if target == "polish" else mode
+        if mode == "report" and target == "polish": legacy_mode_str = "polish"
+        
+        # 2. 执行原有的语言检测
+        # 这个函数跑完后，有问题的 CacheItem 已经被打上了 extra 标记
+        lang_result_code, lang_data = self.check_language(legacy_mode_str)
+
+        # 如果基础检查失败（如无缓存），直接返回
+        if lang_result_code.startswith("ERROR"):
+            return lang_result_code, lang_data
+
+        # 3. 执行规则检测
+        all_errors = self._check_rules(target, rules)
+
+        # 4. 从缓存中收集刚才被 check_language 标记的错误
+        # 只有在"精准判断"模式下，且语言检测发现问题时才收集
+        if "judge" in mode:
+            lang_errors = self._collect_lang_errors_from_cache(target)
+            if lang_errors:
+                all_errors.extend(lang_errors)
+
+        # 5. 如果收集到了任何错误（规则错误 或 语言标记错误），都强制返回 HAS_RULE_ERRORS
+        if all_errors:
+            return CheckResult.HAS_RULE_ERRORS, all_errors
+        
+        return lang_result_code, lang_data
+
+    def _collect_lang_errors_from_cache(self, target_type: str) -> List[Dict]:
+        """
+        辅助函数：遍历缓存，查找被 check_language 打上标记的项
+        """
+        errors = []
+        # 确定标记键和检查属性
+        flag_key = "language_mismatch_polish" if target_type == "polish" else "language_mismatch_translation"
+        check_attr = "polished_text" if target_type == "polish" else "translated_text"
+
+        for file_path, file_obj in self.cache_manager.project.files.items():
+            file_name = os.path.basename(file_path)
+            for item in file_obj.items:
+                # 检查 extra 字典是否存在且标记为 True
+                if item.extra and item.extra.get(flag_key) is True:
+                    text_content = getattr(item, check_attr, "")
+                    errors.append({
+                        "row_id": f"{file_name} : {item.text_index + 1}",
+                        "error_type": "语言比例异常", # 由于 check_language 没返回具体检测到的语言，只能显示通用错误
+                        "source": item.source_text,
+                        "check_text": text_content,
+                        "file_path": file_path,
+                        "text_index": item.text_index,
+                        "target_field": check_attr
+                    })
+        return errors
+
+    # --- 语言检查主流程 ---
     def check_language(self, mode: str) -> Tuple[str, Dict]:
-        """
-        根据指定模式执行语言检查。
-        - polish_judge:   [精准判断] 检测并判断润色文本。
-        - polish:         [宏观统计] 报告润色文本的语言组成。
-        - judge:          [精准判断] 检测并判断翻译文本。
-        - (默认/其他):     [宏观统计] 报告翻译文本的语言组成。
-        """
         start_time = time.time()
 
         pre_check_result, pre_check_data = self._perform_pre_checks(mode)
@@ -145,6 +203,161 @@ class TranslationChecker(Base):
         else:
             return CheckResult.SUCCESS_REPORT, {}
 
+    # --- 规则检查主流程 ---
+    def _check_rules(self, target_type: str, rules_config: dict) -> List[Dict]:
+        if not any(rules_config.values()):
+            return []
+
+        self.info("开始执行规则检查...")
+        errors_list = []
+
+        # 准备正则表达式模式
+        patterns = []
+        if rules_config.get("auto_process"):
+            patterns = self._prepare_regex_patterns(rules_config.get("exclusion", False))
+        
+        # 准备禁翻表数据
+        exclusion_data = self.config.get("exclusion_list_data", []) if rules_config.get("exclusion") else []
+        check_attr = "polished_text" if target_type == "polish" else "translated_text"
+        
+        # 准备术语表数据
+        term_data = []
+        if rules_config.get("terminology"):
+            term_data = self.config.get("prompt_dictionary_data", [])
+
+        for file_path, file_obj in self.cache_manager.project.files.items():
+            file_name = os.path.basename(file_path)
+            for item in file_obj.items:
+                text_content = getattr(item, check_attr, "")
+                # 跳过空文本或被排除的文本
+                if not text_content or not item.source_text or item.translation_status == TranslationStatus.EXCLUDED:
+                    continue
+                
+                current_errors = []
+
+                # 1. 禁翻表
+                if rules_config.get("exclusion") and exclusion_data:
+                    current_errors.extend(self._rule_check_exclusion(item.source_text, text_content, exclusion_data))
+                # 2. 术语表
+                if rules_config.get("terminology") and term_data:
+                    current_errors.extend(self._rule_check_terminology(item.source_text, text_content, term_data))
+                # 3. 自动处理
+                if rules_config.get("auto_process") and patterns:
+                    current_errors.extend(self._rule_check_auto_process(item.source_text, text_content, patterns))
+                # 4. 占位符
+                if rules_config.get("placeholder"):
+                    current_errors.extend(self._rule_check_placeholder(text_content))
+                # 5. 数字序号
+                if rules_config.get("number"):
+                    current_errors.extend(self._rule_check_number(text_content))
+                # 6. 示例复读
+                if rules_config.get("example"):
+                    current_errors.extend(self._rule_check_example(text_content))
+                # 7. 换行符
+                if rules_config.get("newline"):
+                    current_errors.extend(self._rule_check_newline(item.source_text, text_content))
+
+                # 收集结果
+                for err in current_errors:
+                    errors_list.append({
+                        "row_id": f"{file_name} : {item.text_index + 1}",
+                        "error_type": err,
+                        "source": item.source_text,
+                        "check_text": text_content,
+                        "file_path": file_path,
+                        "text_index": item.text_index,
+                        "target_field": check_attr
+                    })
+        
+        self.info(f"规则检查完成，发现 {len(errors_list)} 个问题。")
+        return errors_list
+
+    # --- 规则检查辅助方法 ---
+    def _rule_check_terminology(self, src, dst, data):
+        errs = []
+        for term in data:
+            if isinstance(term, dict):
+                src_term = term.get("src")
+                dst_term = term.get("dst")
+                # 确保 src_term 和 dst_term 都存在且非空
+                if src_term and dst_term:
+                    # 简单的包含检查
+                    if src_term in src:
+                        if dst_term not in dst:
+                            # 使用简短的错误描述以便在表格中显示
+                            err_msg = f"术语缺失: {dst_term}"
+                            if err_msg not in errs:
+                                errs.append(err_msg)
+        return errs
+    
+    def _prepare_regex_patterns(self, include_exclusion: bool):
+        patterns = []
+        regex_file = os.path.join(".", "Resource", "Regex", "check_regex.json")
+        if os.path.exists(regex_file):
+            try:
+                with open(regex_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    patterns.extend([i["regex"] for i in data if "regex" in i])
+            except: pass
+        
+        if include_exclusion:
+            ex_data = self.config.get("exclusion_list_data", [])
+            for item in ex_data:
+                if item.get("regex"): patterns.append(item["regex"])
+                elif item.get("markers"): patterns.append(re.escape(item["markers"]))
+        return patterns
+
+    def _rule_check_exclusion(self, src, dst, data):
+        errs = []
+        for item in data:
+            regex = item.get("regex")
+            markers = item.get("markers")
+            pat = regex if regex else (re.escape(markers) if markers else None)
+            if pat:
+                try:
+                    for match in re.finditer(pat, src):
+                        if match.group(0) not in dst:
+                            if "禁翻表错误" not in errs: errs.append("禁翻表错误")
+                            break 
+                except: continue
+        return errs
+
+    def _rule_check_auto_process(self, src, dst, patterns):
+        errs = []
+        _src = src.rstrip('\n')
+        _dst = dst.rstrip('\n')
+        for pat in patterns:
+            try:
+                for match in re.finditer(pat, _src):
+                    if match.group(0) not in _dst:
+                        if "自动处理错误" not in errs: errs.append("自动处理错误")
+                        break
+            except: continue
+        return errs
+
+    def _rule_check_placeholder(self, text):
+        if re.search(r'\[P\d+\]', text):
+            return ["占位符残留"]
+        return []
+
+    def _rule_check_number(self, text):
+        if re.search(r'\d+\.\d+\.', text):
+            return ["数字序号残留"]
+        return []
+
+    def _rule_check_example(self, text):
+        if re.search(r'示例文本[A-Z]-\d+', text):
+            return ["示例文本复读"]
+        return []
+
+    def _rule_check_newline(self, src, dst):
+        s_n = src.strip().count('\n') + src.strip().count('\\n')
+        d_n = dst.strip().count('\n') + dst.strip().count('\\n')
+        if s_n != d_n:
+            return ["换行符错误"]
+        return []
+
+    # 辅助方法
     def _perform_pre_checks(self, mode: str) -> Tuple[str | None, Dict]:
         """执行预检查，确保项目和缓存数据有效"""
         if not self.cache_manager.project or not self.cache_manager.project.files:

@@ -2,6 +2,8 @@ import os
 from PyQt5.QtCore import QUrl, QTimer, QThread, pyqtSignal
 from PyQt5.QtGui import QDesktopServices,QIcon
 from PyQt5.QtWidgets import QApplication
+import requests
+import threading
 
 from qfluentwidgets import Theme
 from qfluentwidgets import setTheme
@@ -83,6 +85,20 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
     def __init__(self, version: str, plugin_manager, cache_manager, file_reader) -> None:
         super().__init__()
+
+        # 启动后台线程发送日活统计，不阻塞 UI
+        def report_activity():
+            try:
+                # Vercel 域名
+                target_url = "https://ai-niee-vercel.vercel.app/api/track"
+                requests.get(target_url, timeout=5)
+            except Exception as e:
+                # 统计失败不应该影响程序运行，直接忽略
+                print(f"Activity report failed: {e}") if self.is_debug() else None
+
+        # 设置 daemon=True 确保主程序退出时线程也会自动关闭
+        threading.Thread(target=report_activity, daemon=True).start()
+
 
         # 默认配置
         self.default = {
