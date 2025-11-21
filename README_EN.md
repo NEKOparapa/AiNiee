@@ -5,6 +5,15 @@
 </div>
 
 
+<div align="center">
+  
+![GitHub stars](https://img.shields.io/github/stars/NEKOparapa/AiNiee?style=flat)  
+![GitHub all releases downloads](https://img.shields.io/github/downloads/NEKOparapa/AiNiee/total?style=flat&color=orange)  
+![Yesterday Activity](https://img.shields.io/endpoint?url=https://ai-niee-vercel.vercel.app/api/stats%3Ftype%3Dyesterday) 
+![Average Activity](https://img.shields.io/endpoint?url=https://ai-niee-vercel.vercel.app/api/stats%3Ftype%3Daverage)
+
+</div>
+
 ---
 
 

@@ -8,7 +8,7 @@ class CheckResultPage(Base, QWidget):
     def __init__(self, results: list, cache_manager=None, parent=None):
         super().__init__(parent)
         self.results = results
-        self.cache_manager = cache_manager  # 接收 cache_manager 以便更新数据
+        self.cache_manager = cache_manager
         self.setObjectName("CheckResultPage")
         
         self.layout = QVBoxLayout(self)
@@ -20,11 +20,10 @@ class CheckResultPage(Base, QWidget):
         self._init_table()
         self._populate_data()
 
-        # 连接表格内容改变信号，用于实时更新
+        # 连接表格内容改变信号
         self.table.itemChanged.connect(self._on_item_changed)
 
     def _init_table(self):
-        # 列定义: 行id，错误类型，原文，检测文本
         headers = [
             self.tra("行"),
             self.tra("错误"),
@@ -38,7 +37,7 @@ class CheckResultPage(Base, QWidget):
         self.table.setWordWrap(True)
         self.table.setBorderRadius(8)
         
-        # 设置选择模式，支持右键菜单
+        # 设置选择模式
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -49,21 +48,40 @@ class CheckResultPage(Base, QWidget):
         header.setSectionResizeMode(QHeaderView.Interactive)
         header.setStretchLastSection(True)
         
-        self.table.setColumnWidth(0, 150) # 行ID
-        self.table.setColumnWidth(1, 150) # 错误类型
-        self.table.setColumnWidth(2, 300) # 原文
+        # 允许点击表头排序，但不默认显示排序箭头
+        header.setSortIndicatorShown(False)
+
+        self.table.setColumnWidth(0, 150)
+        self.table.setColumnWidth(1, 150)
+        self.table.setColumnWidth(2, 300)
 
     def _populate_data(self):
-        self.table.blockSignals(True) # 暂停信号防止触发更新
+        self.table.blockSignals(True)
+        
+        self.table.setSortingEnabled(False) 
         self.table.setRowCount(len(self.results))
         
         for i, data in enumerate(self.results):
-            # 行ID
-            item_id = QTableWidgetItem(data.get("row_id", ""))
+            # 尝试将行号转为int，以便正确排序 (1, 2, 10 而不是 1, 10, 2)
+            row_id_raw = data.get("row_id", "")
+            item_id = QTableWidgetItem()
+            
+            # 设置显示的文本
+            item_id.setText(str(row_id_raw))
+            
+            # 尝试设置数值数据用于排序
+            try:
+                # 假设 row_id 是纯数字或可以转为数字
+                sort_val = int(row_id_raw)
+                item_id.setData(Qt.DisplayRole, sort_val) # 设置DisplayRole可以让TableWidget按数字排序
+            except (ValueError, TypeError):
+                # 如果转换失败（例如包含字母），就按默认字符串处理
+                pass
+                
             item_id.setTextAlignment(Qt.AlignCenter)
             item_id.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable) 
             
-            # 将元数据存储在第一列的 UserRole 中，供更新使用
+            # 存储元数据
             meta_data = {
                 "file_path": data.get("file_path"),
                 "text_index": data.get("text_index"),
@@ -83,21 +101,23 @@ class CheckResultPage(Base, QWidget):
             item_src.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
             self.table.setItem(i, 2, item_src)
             
-            # 检测文本 - 允许编辑
+            # 检测文本
             item_check = QTableWidgetItem(data.get("check_text", ""))
             item_check.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
             self.table.setItem(i, 3, item_check)
             
         self.table.resizeRowsToContents()
+        
+        # 填充完成后开启排序
+        self.table.setSortingEnabled(True)
+        
         self.table.blockSignals(False)
 
     def _on_item_changed(self, item: QTableWidgetItem):
-        """当用户编辑检测文本列时触发"""
-        if item.column() != 3: # 只处理检测文本列
+        if item.column() != 3:
             return
 
         row = item.row()
-        # 获取对应的元数据（存储在第0列）
         id_item = self.table.item(row, 0)
         meta_data = id_item.data(Qt.UserRole)
         
@@ -109,7 +129,6 @@ class CheckResultPage(Base, QWidget):
         text_index = meta_data["text_index"]
         target_field = meta_data["target_field"]
 
-        # 更新后端缓存
         if file_path and text_index is not None:
             self.cache_manager.update_item_text(
                 storage_path=file_path,
@@ -118,14 +137,11 @@ class CheckResultPage(Base, QWidget):
                 new_text=new_text
             )
             
-            # 同步更新内存中 results 列表的数据
             if "original_data_index" in meta_data:
                 self.results[meta_data["original_data_index"]]["check_text"] = new_text
 
     def _show_context_menu(self, pos: QPoint):
-        """显示右键菜单"""
         menu = RoundMenu(parent=self)
-        
         selected_rows = self.table.selectionModel().selectedRows()
         
         delete_action = Action(FluentIcon.DELETE, self.tra("删除选中行"), self)
@@ -136,12 +152,15 @@ class CheckResultPage(Base, QWidget):
         menu.exec(self.table.mapToGlobal(pos))
 
     def _delete_selected_rows(self):
-        """删除选中行"""
+        # 删除时需要先关闭排序，否则删除过程中索引可能会变动导致异常
+        current_sorting = self.table.isSortingEnabled()
+        self.table.setSortingEnabled(False)
+        
         selected_rows = sorted(set(index.row() for index in self.table.selectedIndexes()), reverse=True)
         
-        if not selected_rows:
-            return
-
-        # 从表格中移除行
-        for row in selected_rows:
-            self.table.removeRow(row)
+        if selected_rows:
+            for row in selected_rows:
+                self.table.removeRow(row)
+        
+        # 恢复排序状态
+        self.table.setSortingEnabled(current_sorting)
