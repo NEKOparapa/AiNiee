@@ -88,7 +88,7 @@ class TranslationChecker(Base):
                     text_content = getattr(item, check_attr, "")
                     errors.append({
                         "row_id": f"{file_name} : {item.text_index + 1}",
-                        "error_type": "语言比例异常", # 由于 check_language 没返回具体检测到的语言，只能显示通用错误
+                        "error_type": self.tra("语言比例异常"), # 由于 check_language 没返回具体检测到的语言，只能显示通用错误
                         "source": item.source_text,
                         "check_text": text_content,
                         "file_path": file_path,
@@ -208,7 +208,7 @@ class TranslationChecker(Base):
         if not any(rules_config.values()):
             return []
 
-        self.info("开始执行规则检查...")
+        self.info(self.tra("开始执行规则检查..."))
         errors_list = []
 
         # 准备正则表达式模式
@@ -269,7 +269,7 @@ class TranslationChecker(Base):
                         "target_field": check_attr
                     })
         
-        self.info(f"规则检查完成，发现 {len(errors_list)} 个问题。")
+        self.info(self.tra("规则检查完成，发现 {} 个问题。").format(len(errors_list)))
         return errors_list
 
     # --- 规则检查辅助方法 ---
@@ -285,7 +285,7 @@ class TranslationChecker(Base):
                     if src_term in src:
                         if dst_term not in dst:
                             # 使用简短的错误描述以便在表格中显示
-                            err_msg = f"术语缺失: {dst_term}"
+                            err_msg = self.tra("术语缺失: {}").format(dst_term)
                             if err_msg not in errs:
                                 errs.append(err_msg)
         return errs
@@ -317,7 +317,7 @@ class TranslationChecker(Base):
                 try:
                     for match in re.finditer(pat, src):
                         if match.group(0) not in dst:
-                            if "禁翻表错误" not in errs: errs.append("禁翻表错误")
+                            if self.tra("禁翻表错误") not in errs: errs.append(self.tra("禁翻表错误"))
                             break 
                 except: continue
         return errs
@@ -330,31 +330,31 @@ class TranslationChecker(Base):
             try:
                 for match in re.finditer(pat, _src):
                     if match.group(0) not in _dst:
-                        if "自动处理错误" not in errs: errs.append("自动处理错误")
+                        if self.tra("自动处理错误") not in errs: errs.append(self.tra("自动处理错误"))
                         break
             except: continue
         return errs
 
     def _rule_check_placeholder(self, text):
         if re.search(r'\[P\d+\]', text):
-            return ["占位符残留"]
+            return [self.tra("占位符残留")]
         return []
 
     def _rule_check_number(self, text):
         if re.search(r'\d+\.\d+\.', text):
-            return ["数字序号残留"]
+            return [self.tra("数字序号残留")]
         return []
 
     def _rule_check_example(self, text):
         if re.search(r'示例文本[A-Z]-\d+', text):
-            return ["示例文本复读"]
+            return [self.tra("示例文本复读")]
         return []
 
     def _rule_check_newline(self, src, dst):
         s_n = src.strip().count('\n') + src.strip().count('\\n')
         d_n = dst.strip().count('\n') + dst.strip().count('\\n')
         if s_n != d_n:
-            return ["换行符错误"]
+            return [self.tra("换行符错误")]
         return []
 
     # 辅助方法
