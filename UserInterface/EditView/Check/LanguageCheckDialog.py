@@ -157,7 +157,6 @@ class LanguageCheckDialog(Base, MessageBoxBase):
             "target": "polish" if is_polish else "translate",
             "mode": mode_code,
             "rules": {
-                # [新增] 传递术语表参数
                 "terminology": self.check_terminology.isChecked(),
                 "exclusion": self.check_exclusion.isChecked(),
                 "auto_process": self.check_auto_process.isChecked(),
