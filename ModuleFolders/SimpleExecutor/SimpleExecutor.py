@@ -204,16 +204,35 @@ class SimpleExecutor(Base):
                     f"└ 实际处理数量: {len(current_group)}术语")
             print("")
 
+            # 判断是否含有描述字段
+            has_info = any(item.get("info") for item in current_group)
+
             # 构造系统提示词
             system_prompt = (
+               "You are a glossary translation assistant.The user will send a glossary in this format:\n"
+                "1|Original text|Description\n"
+                "2|Original text|Description\n"
+                "3|Original text|Description\n"
+                f"Referring to the 'Description', only translate the 'Original text' into {target_language}. Strictly output the translation in the following format, wrapped in a <textarea> tag:\n"
+                "<textarea>\n"
+                "1.Translated text\n"
+                "2.Translated text\n"
+                "3.Translated text\n"
+                "</textarea>\n"
+            ) if has_info else (
                 f"Translate the source text from the glossary into {target_language} line by line, maintaining accuracy and naturalness, and output the translation wrapped in a textarea tag:\n"
                 "<textarea>\n"
                 f"1.{target_language} text\n"
                 "</textarea>\n"
             )
 
-            # 构造消息内容，按行排列，并添加序号
-            src_terms = [f"{idx+1}.{item['src']}" for idx, item in enumerate(current_group)]
+            # 构造消息内容
+            if has_info:
+                # 按 序号|原文|描述 的格式排列
+                src_terms = [f"{idx+1}|{item['src']}|{item['info']or''}" for idx, item in enumerate(current_group)]
+            else:
+                # 按行排列，并添加序号
+                src_terms = [f"{idx+1}.{item['src']}" for idx, item in enumerate(current_group)]
             src_terms_text = "\n".join(src_terms)
             messages = [
                 {
