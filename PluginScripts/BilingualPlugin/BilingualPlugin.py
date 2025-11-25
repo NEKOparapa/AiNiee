@@ -7,7 +7,7 @@ class BilingualPlugin(PluginBase):
     def __init__(self):
         super().__init__()
         self.name = "BilingualPlugin"
-        self.description = "双语对照插件"+ "\n"+ "最后输出的翻译内容会是【译文+换行符+原文】的双语组合，请谨慎开启。\nSRT、EPUB和TXT文件会默认输出译文与双语版本，请不要开启该插件" 
+        self.description = "双语对照插件"+ "\n"+ "最后输出的翻译内容会是【译文+换行符+原文】的双语组合，请谨慎开启。\nPDF、SRT、EPUB和TXT文件会默认输出译文与双语版本，请不要开启该插件" 
 
         self.visibility = True  # 是否在插件设置中显示
         self.default_enable = False  # 默认启用状态
