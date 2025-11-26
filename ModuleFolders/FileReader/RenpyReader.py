@@ -19,6 +19,7 @@ class RenpyReader(BaseSourceReader):
     3. # "..." / "..."
     4. # Character("xxx") "..." / Character("xxx") "..."
     5. # bri.c "..." / bri.c "..."
+    6. 支持中间夹杂 voice 语句的格式
     """
     def __init__(self, input_config: InputConfig):
         super().__init__(input_config)
@@ -170,13 +171,13 @@ class RenpyReader(BaseSourceReader):
                                 i = j
                                 found_new = True
                                 break
-                        elif next_stripped.startswith("old ") or self.COMMENT_TRANSLATION_START_PATTERN.match(next_stripped) or self._get_dialogue_parts(next_stripped):
+                        elif next_stripped.startswith("old ") or self.COMMENT_TRANSLATION_START_PATTERN.match(next_stripped):
                             break
                     if not found_new:
-                        pass
+                        pass # 没找到配对的 new
                 i += 1
 
-            # --- 格式 2, 3, 4, 5: 注释行后跟代码行 ---
+            # --- 格式 2, 3, 4, 5, 6: 注释行后跟代码行 (支持跳过 voice) ---
             elif self.COMMENT_TRANSLATION_START_PATTERN.match(stripped):
                 comment_line = line
                 
@@ -190,29 +191,55 @@ class RenpyReader(BaseSourceReader):
                 if comment_parts and not is_meta_comment:
                     comment_tag, comment_source = comment_parts
                     
-                    # 查找下一个相关的代码行
-                    next_line_info = self._find_next_relevant_line(lines, i + 1)
+                    # 如果注释本身是 voice 语句，通常不需要翻译，直接跳过
+                    if comment_tag == "voice":
+                        i += 1
+                        continue
                     
-                    if next_line_info:
+                    # 开始寻找对应的代码行
+                    search_index = i + 1
+                    found_match = False
+                    
+                    # 使用循环来处理可能存在的 voice 干扰行
+                    while search_index < len(lines):
+                        next_line_info = self._find_next_relevant_line(lines, search_index)
+                        
+                        if not next_line_info:
+                            # 没找到任何有效行，或者是新的 translate 块
+                            break
+                        
                         code_line_num, code_line = next_line_info
                         code_parts = self._get_dialogue_parts(code_line.strip())
                         
                         if code_parts:
                             code_tag, code_text = code_parts
                             
-                            # 【核心验证】确保注释行和代码行的标签完全一致
+                            # 如果找到的代码行是 voice，这只是配音指令，跳过它继续找下一行
+                            if code_tag == "voice":
+                                search_index = code_line_num + 1
+                                continue
+                            
+                            # 核心验证：标签一致
                             if comment_tag == code_tag:
                                 entries.append({
                                     "source": comment_source,
                                     "translated": code_text,
                                     "new_line_num": code_line_num,
-                                    "format_type": "comment_dialogue", # 统一格式类型
-                                    "tag": code_tag # 存储标签以供写入器使用
+                                    "format_type": "comment_dialogue",
+                                    "tag": code_tag
                                 })
                                 i = code_line_num + 1
-                                continue
+                                found_match = True
+                            
+                            # 无论是否匹配成功（只要不是 voice），都认为找到了“对应”的文本行，停止搜索
+                            break
+                        else:
+                            break
+                    
+                    if found_match:
+                        continue
 
-                # 如果不是有效的翻译对，则正常递增
+                # 如果没有匹配上，继续下一行
                 i += 1
             else:
                 # 如果没有模式匹配或处理，则默认增加
