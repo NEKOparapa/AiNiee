@@ -21,3 +21,6 @@ PluginScripts/IOPlugins/*
 .idea/
 # 构建文件
 *.spec
+.DS_Store
+bilingual_auto/
+downloads/
