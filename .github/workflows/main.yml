@@ -1,4 +1,4 @@
-# .github/workflows/your-workflow-name.yml
+# .github/workflows/main.yml
 
 name: AiNiee Beta Build.
 on:
