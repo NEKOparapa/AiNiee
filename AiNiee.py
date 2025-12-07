@@ -26,6 +26,15 @@
 
 import os
 import sys
+
+from ModuleFolders.TiktokenLoader import initialize_tiktoken
+
+try:
+    initialize_tiktoken()
+except Exception as e:
+    print(f"[ERROR] tiktoken 初始化失败: {e}")
+    print("[WARNING] Token 限制模式将不可用，请使用行数限制模式")
+
 import multiprocessing
 import warnings
 

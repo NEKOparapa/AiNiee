@@ -50,11 +50,11 @@ class RequestLimiter:
             print("[Warning INFO] 该次任务的文本总tokens量已经超过最大输入限制(3w tokens)，请检查原文文件是否有问题或者文本切分量设置过大！！！")
             print("[Warning INFO] 该次任务将进行拆分处理，并进入下一轮任务中....")
             return False
-        
+
         # 检查是否超过余量
         elif tokens >= self.remaining_tokens:
             return False
-        
+
         else:
             # print("[DEBUG] 数量足够，剩余tokens：", tokens,'\n' )
             return True
@@ -71,11 +71,7 @@ class RequestLimiter:
     # 计算消息列表内容的tokens的函数
     def num_tokens_from_messages(self, messages) -> int:
         """Return the number of tokens used by a list of messages."""
-        try:
-            encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-        except KeyError:
-            print("Warning: model not found. Using cl100k_base encoding.")
-            encoding = tiktoken.get_encoding("cl100k_base")
+        encoding = tiktoken.get_encoding("o200k_base")
 
         tokens_per_message = 3
         tokens_per_name = 1
@@ -95,18 +91,15 @@ class RequestLimiter:
     # 计算字符串内容的tokens的函数
     def num_tokens_from_str(self, text) -> int:
         """Return the number of tokens used by a list of messages."""
-        try:
-            encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-        except KeyError:
-            print("Warning: model not found. Using cl100k_base encoding.")
-            encoding = tiktoken.get_encoding("cl100k_base")
+        encoding = tiktoken.get_encoding("o200k_base")
+
         if isinstance(text, str):
             num_tokens = len(encoding.encode(text))
         else:
             num_tokens = 0
 
         return num_tokens
-    
+
     def calculate_tokens(self, message1, text1,):
         """
         根据输入的消息和文本，计算tokens消耗并返回。
