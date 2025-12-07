@@ -94,11 +94,11 @@ def initialize_tiktoken():
         required_encodings = {
             "o200k_base": {
                 "url": "https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken",
-                "size": 3813920,
+                "size": 3613922,
             },
             "cl100k_base": {
                 "url": "https://openaipublic.blob.core.windows.net/encodings/cl100k_base.tiktoken",
-                "size": 1781382,
+                "size": 1681126,
             }
         }
 
