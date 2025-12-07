@@ -1,8 +1,8 @@
 from google.genai import types
 from google.genai.types import Content, HarmCategory, Part
-
 from Base.Base import Base
 from ModuleFolders.LLMRequester.LLMClientFactory import LLMClientFactory
+from ModuleFolders.LLMRequester.ModelConfigHelper import ModelConfigHelper
 
 
 # 接口请求器
@@ -40,11 +40,11 @@ class GoogleRequester(Base):
                 HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
                 HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
             ]
-            
+
             # 构建基础配置
             gen_config = types.GenerateContentConfig(
                 system_instruction=system_prompt,
-                max_output_tokens=65536 if model_name.startswith("gemini-2.5") else 8192,
+                max_output_tokens=ModelConfigHelper.get_google_max_output_tokens(model_name),
                 temperature=temperature,
                 top_p=top_p,
                 safety_settings=[
@@ -92,7 +92,7 @@ class GoogleRequester(Base):
         except Exception as e:
             self.error(f"请求任务错误 ... {e}", e if self.is_debug() else None)
             return True, None, None, None, None
-        
+
         # 获取指令消耗
         try:
             prompt_tokens = int(response.usage_metadata.prompt_token_count)
