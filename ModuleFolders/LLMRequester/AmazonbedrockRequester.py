@@ -1,5 +1,5 @@
 from Base.Base import Base
-from ModuleFolders.LLMRequester.AnthropicRequester import is_claude3_model
+from ModuleFolders.LLMRequester.ModelConfigHelper import ModelConfigHelper
 from ModuleFolders.LLMRequester.LLMClientFactory import LLMClientFactory
 
 
@@ -34,7 +34,7 @@ class AmazonbedrockRequester(Base):
                 temperature=temperature,
                 top_p=top_p,
                 timeout=request_timeout,
-                max_tokens=4096 if is_claude3_model(model_name) else 8192,
+                max_tokens=ModelConfigHelper.get_claude_max_output_tokens(model_name),
             )
 
             # 提取回复的文本内容
