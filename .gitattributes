@@ -1,0 +1,4 @@
+# .gitattributes
+
+# tiktoken 编码文件：禁止换行符转换，视为二进制
+Resource/Models/tiktoken/* binary
