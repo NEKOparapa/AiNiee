@@ -40,7 +40,7 @@ def apply_patch(custom_cache_dir: str) -> None:
     # 保存原始的 __setitem__ 方法
     _ORIGINAL_SETITEM = os.environ.__setitem__
 
-    def protected_setitem(key: str, value: str) -> None:
+    def protected_setitem(self, key: str, value: str) -> None:
         """
         替换 os.environ 的 __setitem__ 方法
 
@@ -75,7 +75,7 @@ def apply_patch(custom_cache_dir: str) -> None:
                 del frame
 
         # 其他情况，使用原始方法正常设置
-        _ORIGINAL_SETITEM(key, value)
+        _ORIGINAL_SETITEM(self, key, value)
 
     # 替换 os.environ 的 __setitem__ 方法
     # 使用 type() 获取 os.environ 的类型，然后设置其方法
