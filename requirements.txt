@@ -9,7 +9,7 @@ tiktoken
 numpy
 openpyxl
 PyQt5
-PyQt-Fluent-Widgets[full]==1.10.0
+PyQt-Fluent-Widgets[full]==1.9.2
 opencc
 beautifulsoup4
 lxml
