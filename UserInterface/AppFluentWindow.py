@@ -156,6 +156,9 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         #self.navigationInterface.setMinimumExpandWidth(self.APP_WIDTH)
         self.navigationInterface.expand(useAni = False)
 
+        # 新增：启用优化的指示器动画（收起侧边栏时更流畅）
+        self.navigationInterface.setUpdateIndicatorPosOnCollapseFinished(True)
+
         # 隐藏返回按钮
         self.navigationInterface.panel.setReturnButtonVisible(False)
 
@@ -248,16 +251,28 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
     # 开始添加页面
     def add_pages(self, plugin_manager, cache_manager, file_reader) -> None:
+        # ===== 快速开始 =====
+        self.navigationInterface.addItemHeader(self.tra("快速开始"), NavigationItemPosition.SCROLL)
         self.add_project_pages(plugin_manager, cache_manager, file_reader)
-        self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
+
+        # ===== 任务配置 =====
+        self.navigationInterface.addItemHeader(self.tra("任务配置"), NavigationItemPosition.SCROLL)
         self.add_task_setting_pages(plugin_manager)
-        self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
+
+        # ===== 高级设置 =====
+        self.navigationInterface.addItemHeader(self.tra("高级设置"), NavigationItemPosition.SCROLL)
         self.add_settings_pages(plugin_manager)
-        self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
+
+        # ===== 提示词管理 =====
+        self.navigationInterface.addItemHeader(self.tra("提示词管理"), NavigationItemPosition.SCROLL)
         self.add_prompt_setting_pages(plugin_manager)
-        self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
+
+        # ===== 数据表格 =====
+        self.navigationInterface.addItemHeader(self.tra("数据表格"), NavigationItemPosition.SCROLL)
         self.add_table_pages(plugin_manager)
-        self.navigationInterface.addSeparator(NavigationItemPosition.SCROLL)
+
+        # ===== 工具箱 =====
+        self.navigationInterface.addItemHeader(self.tra("工具箱"), NavigationItemPosition.SCROLL)
         self.add_stev_extraction_pages()
 
         # 设置默认页面
@@ -265,44 +280,48 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
         # 主题切换按钮
         self.navigationInterface.addWidget(
-            routeKey = "theme_navigation_button",
-            widget = NavigationPushButton(
-                FluentIcon.CONSTRACT,
-                self.tra("主题切换"),
-                False
-            ),
-            onClick = self.toggle_theme,
-            position = NavigationItemPosition.BOTTOM
+            routeKey="theme_navigation_button",
+            widget=NavigationPushButton(FluentIcon.CONSTRACT, self.tra("主题切换"), False),
+            onClick=self.toggle_theme,
+            position=NavigationItemPosition.BOTTOM
         )
 
         # 更新按钮
-        self.update_button = NavigationPushButton(
-            FluentIcon.UPDATE,
-            self.tra("检查更新"),
-            False
-        )
+        self.update_button = NavigationPushButton(FluentIcon.UPDATE, self.tra("检查更新"), False)
         self.navigationInterface.addWidget(
-            routeKey = "update_navigation_button",
-            widget = self.update_button,
-            onClick = self.show_update_dialog,
-            position = NavigationItemPosition.BOTTOM
+            routeKey="update_navigation_button",
+            widget=self.update_button,
+            onClick=self.show_update_dialog,
+            position=NavigationItemPosition.BOTTOM
         )
 
         # 应用设置按钮
         self.app_settings_page = AppSettingsPage("app_settings_page", self)
-        self.addSubInterface(self.app_settings_page, FluentIcon.SETTING, self.tra("应用设置"), NavigationItemPosition.BOTTOM)
+        self.addSubInterface(
+            self.app_settings_page,
+            FluentIcon.SETTING,
+            self.tra("应用设置"),
+            NavigationItemPosition.BOTTOM
+        )
 
-        # 项目主页按钮
         Avatar_path = os.path.join(".", "Resource", "Logo", "Avatar.png")
+        # 项目主页按钮
         self.navigationInterface.addWidget(
             routeKey = "avatar_navigation_widget",
-            widget = NavigationAvatarWidget(
-                "NEKOparapa",
-                Avatar_path,
-            ),
+            widget = NavigationAvatarWidget("NEKOparapa", Avatar_path),
             onClick = self.open_project_page,
             position = NavigationItemPosition.BOTTOM
         )
+        # 项目主页按钮（新用户卡片样式）
+        # self.navigationInterface.addUserCard(
+        #     routeKey="user_card",
+        #     avatar=Avatar_path,
+        #     title="NEKOparapa",
+        #     subtitle="AiNiee - AI翻译工具",
+        #     onClick=self.open_project_page,
+        #     position=NavigationItemPosition.BOTTOM,
+        #     aboveMenuButton=False
+        # )
 
     # 添加快速开始
     def add_project_pages(self, plugin_manager, cache_manager, file_reader) -> None:
