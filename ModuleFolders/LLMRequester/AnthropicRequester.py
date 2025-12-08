@@ -1,10 +1,6 @@
 from Base.Base import Base
 from ModuleFolders.LLMRequester.LLMClientFactory import LLMClientFactory
-
-
-def is_claude3_model(model_name):
-    """判断是否为Claude 3系列模型"""
-    return any(variant in model_name for variant in ["3-haiku", "3-opus", "3-sonnet"])
+from ModuleFolders.LLMRequester.ModelConfigHelper import ModelConfigHelper
 
 
 # 接口请求器
@@ -22,8 +18,6 @@ class AnthropicRequester(Base):
             think_switch = platform_config.get("think_switch")
             think_depth = platform_config.get("think_depth")
 
-
-
             # 参数基础配置
             base_params = {
                 "model": model_name,
@@ -32,21 +26,17 @@ class AnthropicRequester(Base):
                 "temperature": temperature,
                 "top_p": top_p,
                 "timeout": request_timeout,
-                "max_tokens": 4096 if is_claude3_model(model_name) else 20000
+                "max_tokens": ModelConfigHelper.get_claude_max_output_tokens(model_name)
             }
-
 
             # 从工厂获取客户端
             client = LLMClientFactory().get_anthropic_client(platform_config)
-
             # 发送请求
             response = client.messages.create(**base_params)
-
 
             # 提取回复的文本内容
             response_think = ""
             response_content = response.content[0].text
-
         except Exception as e:
             self.error(f"请求任务错误 ... {e}", e if self.is_debug() else None)
             return True, None, None, None, None
