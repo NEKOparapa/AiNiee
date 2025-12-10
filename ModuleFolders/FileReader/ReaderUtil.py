@@ -139,52 +139,86 @@ def close_lang_detector():
 # 检测文件编码
 def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: float = 0.75) -> str:
     """
-    使用`charset_normalizer`与`chardet`检测文件编码
-
+    使用`charset_normalizer`与`chardet`检测文件编码，优先验证UTF-8
     Args:
         file_path: 要检测的文件路径
-        min_confidence: chardet检测编码的最低置信度阈值，低于此值将返回默认编码'utf-8'
-
+        min_confidence: 检测编码的最低置信度阈值（0-1范围），低于此值将返回默认编码'utf-8'
     Returns:
         str: 默认/检测失败时返回`utf-8`，否则返回检测到的编码
     """
-    # 确保file_path是Path对象
     if isinstance(file_path, str):
         file_path = pathlib.Path(file_path)
 
     try:
-        cn_result = charset_normalizer.from_path(file_path).best()
+        with open(file_path, 'rb') as f:
+            content_bytes = f.read()
 
-        # 如果`charset_normalizer`有检测到结果，直接使用结果
+        # 优先尝试UTF-8解码
+        try:
+            content_bytes.decode('utf-8')
+            return 'utf-8'
+        except UnicodeDecodeError:
+            pass
+
+        # 使用charset_normalizer检测
+        cn_results = charset_normalizer.from_bytes(content_bytes)
+        cn_result = cn_results.best()
+
         if cn_result:
             detected_encoding = cn_result.encoding
-            confidence = 1.0
-        else:
-            # 如果没有检测到结果，回退到使用`chardet`
-            # 读取文件内容
-            with open(file_path, 'rb') as f:
-                content_bytes = f.read()
 
-            # 文件是文本类型，使用chardet检测编码
-            detection_result = chardet.detect(content_bytes)
-            detected_encoding = detection_result['encoding']
-            confidence = detection_result['confidence']
+            # coherence和chaos都是0-1范围的小数
+            confidence = float(cn_result.coherence) if hasattr(cn_result, 'coherence') else 0.0
+            # 使用 is not None 判断，避免0.0被当作False
+            chaos_raw = float(cn_result.chaos) if hasattr(cn_result, 'chaos') else None
+            chaos_percent = (chaos_raw * 100.0) if chaos_raw is not None else 100.0
 
-            rich.print(
-                f"[[red]WARNING[/]] 文件 {file_path} 编码检测失败，回退到使用`chardet`检测: {detected_encoding} - {confidence}"
-            )
+            # 验证检测结果：尝试解码
+            try:
+                content_bytes.decode(detected_encoding)
+                # 检查置信度和混乱度（chaos < 30%表示质量可接受）
+                if confidence >= min_confidence and chaos_percent < 30.0:
+                    return detected_encoding
+                else:
+                    rich.print(
+                        f"[[yellow]WARNING[/]] charset_normalizer检测的编码 {detected_encoding} "
+                        f"置信度不足 (coherence: {confidence:.2%}, chaos: {chaos_percent:.2f}%)"
+                    )
+            except (UnicodeDecodeError, LookupError):
+                rich.print(
+                    f"[[yellow]WARNING[/]] charset_normalizer检测的编码 {detected_encoding} "
+                    f"无法正确解码文件 {file_path}"
+                )
 
-        # 如果没有检测到编码或置信度低于阈值，返回默认编码'utf-8'
-        if not detected_encoding or confidence < min_confidence:
-            rich.print(f"[[red]WARNING[/]] 文件 {file_path} 编码检测失败，默认使用`utf-8`编码")
-            return 'utf-8'
+        # 回退到chardet
+        detection_result = chardet.detect(content_bytes)
+        detected_encoding = detection_result['encoding']
+        confidence = detection_result['confidence']
 
-        return detected_encoding
+        if detected_encoding:
+            try:
+                content_bytes.decode(detected_encoding)
+                if confidence >= min_confidence:
+                    rich.print(
+                        f"[[yellow]INFO[/]] 文件 {file_path} 使用chardet检测: "
+                        f"{detected_encoding} (置信度: {confidence:.2%})"
+                    )
+                    return detected_encoding
+            except (UnicodeDecodeError, LookupError):
+                rich.print(
+                    f"[[yellow]WARNING[/]] chardet检测的编码 {detected_encoding} "
+                    f"无法正确解码文件 {file_path}"
+                )
+
+        rich.print(
+            f"[[yellow]WARNING[/]] 文件 {file_path} 编码检测失败或置信度不足，"
+            f"默认使用utf-8编码"
+        )
+        return 'utf-8'
 
     except Exception as e:
-        rich.print(f"[[red]ERROR[/]] 文件 {file_path} 检测过程出错: {str(e)}")
-        return 'utf-8'  # 出错时返回默认编码
-
+        rich.print(f"[[red]ERROR[/]] 文件 {file_path} 编码检测过程出错: {str(e)}")
+        return 'utf-8'
 
 # 检测文本语言
 def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _file_data: CacheFile | None) -> \
