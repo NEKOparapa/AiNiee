@@ -26,9 +26,6 @@ class TranslationChecker(Base):
     """
     双模式语言检查。
     """
-    TARGET_LANGUAGE_RATIO_THRESHOLD = 0.75  # [精准判断] 目标语言在块中的占比阈值
-    CHUNK_SIZE = 20                         # [精准判断] 每个检测块包含的行数
-
     def __init__(self, cache_manager: CacheManager):
         super().__init__()
         self.cache_manager = cache_manager
@@ -43,13 +40,26 @@ class TranslationChecker(Base):
         mode = params.get("mode", "report")
         rules = params.get("rules", {})
 
+        #  获取并校验动态参数
+        chunk_size = params.get("chunk_size", 20)
+        try:
+            chunk_size = int(chunk_size)
+            if chunk_size <= 0: chunk_size = 20
+        except: chunk_size = 20
+
+        threshold = params.get("threshold", 0.75)
+        try:
+            threshold = float(threshold)
+            if threshold <= 0: threshold = 0.75
+        except: threshold = 0.75
+
         # 1. 兼容逻辑
         legacy_mode_str = f"{target}_{mode}" if target == "polish" else mode
         if mode == "report" and target == "polish": legacy_mode_str = "polish"
-        
+
         # 2. 执行原有的语言检测
-        # 这个函数跑完后，有问题的 CacheItem 已经被打上了 extra 标记
-        lang_result_code, lang_data = self.check_language(legacy_mode_str)
+        #  传递动态参数
+        lang_result_code, lang_data = self.check_language(legacy_mode_str, chunk_size, threshold)
 
         # 如果基础检查失败（如无缓存），直接返回
         if lang_result_code.startswith("ERROR"):
@@ -68,7 +78,7 @@ class TranslationChecker(Base):
         # 5. 如果收集到了任何错误（规则错误 或 语言标记错误），都强制返回 HAS_RULE_ERRORS
         if all_errors:
             return CheckResult.HAS_RULE_ERRORS, all_errors
-        
+
         return lang_result_code, lang_data
 
     def _collect_lang_errors_from_cache(self, target_type: str) -> List[Dict]:
@@ -98,7 +108,7 @@ class TranslationChecker(Base):
         return errors
 
     # --- 语言检查主流程 ---
-    def check_language(self, mode: str) -> Tuple[str, Dict]:
+    def check_language(self, mode: str, chunk_size: int, threshold: float) -> Tuple[str, Dict]:
         start_time = time.time()
 
         pre_check_result, pre_check_data = self._perform_pre_checks(mode)
@@ -124,7 +134,8 @@ class TranslationChecker(Base):
         self.info(self.tra("开始检查项目的{}...").format(mode_text))
         if is_judging:
             self.info(self.tra("模式: 精准判断，目标语言: {} ({})").format(target_language_name, target_language_code))
-            self.info(self.tra("检测块大小: {}行, 块语言比例阈值: {:.0%}").format(self.CHUNK_SIZE, self.TARGET_LANGUAGE_RATIO_THRESHOLD))
+            #  使用传入的参数打印日志
+            self.info(self.tra("检测块大小: {}行, 块语言比例阈值: {:.0%}").format(chunk_size, threshold))
         else:
             self.info(self.tra("模式: 宏观统计【将报告每个文件的整体语言组成】"))
         self.print("-" * 20)
@@ -155,7 +166,7 @@ class TranslationChecker(Base):
             for cache_file in self.cache_manager.project.files.values():
                 if is_judging:
                     # [精准判断模式] 使用分块分析
-                    file_analysis_result = self._analyze_file_in_chunks(cache_file, check_target, target_language_code, flag_key)
+                    file_analysis_result = self._analyze_file_in_chunks(cache_file, check_target, target_language_code, flag_key, chunk_size, threshold)
                     if file_analysis_result and file_analysis_result["problematic_chunks"]:
                         all_results.append(file_analysis_result)
                 else:
@@ -189,7 +200,7 @@ class TranslationChecker(Base):
                 self.error(self.tra("保存标记到缓存时发生错误: {}").format(e))
 
         # 生成报告
-        self._print_report(all_results, is_judging, target_language_code, mode_text)
+        self._print_report(all_results, is_judging, target_language_code, mode_text, threshold)
         if all_results:
              self.print("\n")
 
@@ -215,11 +226,11 @@ class TranslationChecker(Base):
         patterns = []
         if rules_config.get("auto_process"):
             patterns = self._prepare_regex_patterns(rules_config.get("exclusion", False))
-        
+
         # 准备禁翻表数据
         exclusion_data = self.config.get("exclusion_list_data", []) if rules_config.get("exclusion") else []
         check_attr = "polished_text" if target_type == "polish" else "translated_text"
-        
+
         # 准备术语表数据
         term_data = []
         if rules_config.get("terminology"):
@@ -231,7 +242,7 @@ class TranslationChecker(Base):
                 # 0. 总是跳过被显式排除 (TranslationStatus.EXCLUDED) 的条目
                 if item.translation_status == TranslationStatus.EXCLUDED:
                     continue
-                
+
                 text_content = getattr(item, check_attr, "")
                 current_errors = []
 
@@ -244,7 +255,7 @@ class TranslationChecker(Base):
                     else: # polish
                         if not text_content:
                             is_untranslated = True
-                            
+
                     if is_untranslated:
                         errors_list.append({
                             "row_id": f"{file_name} : {item.text_index + 1}",
@@ -256,7 +267,7 @@ class TranslationChecker(Base):
                             "target_field": check_attr
                         })
                         # 如果已确定未翻译，通常内容为空或无意义，跳过后续的内容检查
-                        continue 
+                        continue
 
                 # 2. 跳过空文本 (如果内容为空且不是为了检查未翻译，则跳过后续正则检查)
                 if not text_content or not item.source_text:
@@ -295,7 +306,7 @@ class TranslationChecker(Base):
                         "text_index": item.text_index,
                         "target_field": check_attr
                     })
-        
+
         self.info(self.tra("规则检查完成，发现 {} 个问题。").format(len(errors_list)))
         return errors_list
 
@@ -316,7 +327,7 @@ class TranslationChecker(Base):
                             if err_msg not in errs:
                                 errs.append(err_msg)
         return errs
-    
+
     def _prepare_regex_patterns(self, include_exclusion: bool):
         patterns = []
         regex_file = os.path.join(".", "Resource", "Regex", "check_regex.json")
@@ -326,7 +337,7 @@ class TranslationChecker(Base):
                     data = json.load(f)
                     patterns.extend([i["regex"] for i in data if "regex" in i])
             except: pass
-        
+
         if include_exclusion:
             ex_data = self.config.get("exclusion_list_data", [])
             for item in ex_data:
@@ -345,7 +356,7 @@ class TranslationChecker(Base):
                     for match in re.finditer(pat, src):
                         if match.group(0) not in dst:
                             if self.tra("禁翻表错误") not in errs: errs.append(self.tra("禁翻表错误"))
-                            break 
+                            break
                 except: continue
         return errs
 
@@ -419,7 +430,7 @@ class TranslationChecker(Base):
         return ReaderUtil.detect_language_with_mediapipe(dummy_items, 0, None)
 
 
-    def _analyze_file_in_chunks(self, cache_file, check_target: str, target_language_code: str, flag_key: str) -> Dict[str, Any] | None:
+    def _analyze_file_in_chunks(self, cache_file, check_target: str, target_language_code: str, flag_key: str, chunk_size: int, threshold: float) -> Dict[str, Any] | None:
         """
         [精准判断模式] 按块分析文件。如果块不符合要求，则进行行级分析。
         """
@@ -431,8 +442,9 @@ class TranslationChecker(Base):
             return None
 
         problematic_chunks = []
-        for i in range(0, len(items_with_text_and_indices), self.CHUNK_SIZE):
-            chunk_with_indices = items_with_text_and_indices[i : i + self.CHUNK_SIZE]
+        #  使用传入的 chunk_size
+        for i in range(0, len(items_with_text_and_indices), chunk_size):
+            chunk_with_indices = items_with_text_and_indices[i : i + chunk_size]
             chunk_items = [item for idx, item in chunk_with_indices] # 提取 item 用于检测
 
             # 一次性获取当前块所有行的检测结果
@@ -481,7 +493,8 @@ class TranslationChecker(Base):
             ratio = target_lang_count / total_valid_lines
 
             # 如果比例低于阈值，使用已收集的行级信息生成报告
-            if ratio < self.TARGET_LANGUAGE_RATIO_THRESHOLD:
+            #  使用传入的 threshold
+            if ratio < threshold:
                 mismatched_lines = [
                     detail for detail in line_by_line_details
                     if detail["detected_lang"] != target_language_code
@@ -548,7 +561,7 @@ class TranslationChecker(Base):
             "stats_display": stats_display
         }
 
-    def _print_report(self, results: List[Dict], is_judging: bool, target_language_code: str, mode_text: str):
+    def _print_report(self, results: List[Dict], is_judging: bool, target_language_code: str, mode_text: str, threshold: float = 0.75):
         """根据模式打印不同风格的报告。"""
         if not results:
             if is_judging:
@@ -561,7 +574,7 @@ class TranslationChecker(Base):
         if is_judging:
             # [精准判断模式] 的详细报告
             self.warning(self.tra("检测到 {} 个文件的 {} 中存在语言比例异常的文本块.").format(len(results), mode_text))
-            self.warning(self.tra("目标语言 '{}' 占比低于 {:.0%} 的块将被列出.").format(target_language_code, self.TARGET_LANGUAGE_RATIO_THRESHOLD))
+            self.warning(self.tra("目标语言 '{}' 占比低于 {:.0%} 的块将被列出.").format(target_language_code, threshold))
             self.print("")
 
             for res in results:
