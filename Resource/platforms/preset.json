@@ -100,7 +100,7 @@
             "tag": "google",
             "group": "online",
             "name": "Google",
-            "api_url": "",
+            "api_url": "https://generativelanguage.googleapis.com/v1beta",
             "api_key": "",
             "api_format": "Google",
             "icon": "google",
@@ -115,11 +115,9 @@
             "think_depth": "low",
             "auto_complete": false,
             "model_datas": [
-                "gemini-2.0-flash",
-                "gemini-2.0-flash-exp",
-                "gemini-2.5-flash-lite",
                 "gemini-2.5-flash",
-                "gemini-2.5-pro"
+                "gemini-2.5-pro",
+                "gemini-3-pro"
             ],
             "key_in_settings": [
                 "api_key",
@@ -245,7 +243,7 @@
             "access_key": "",
             "secret_key": "",
             "api_key": "",
-            "api_url": "",
+            "api_url": "https://generativelanguage.googleapis.com",
             "api_format": "Amazon Bedrock",
             "icon": "amazonbedrock",
             "rpm_limit": 2000,
@@ -493,6 +491,55 @@
                 "temperature",
                 "presence_penalty",
                 "frequency_penalty"
+            ]
+        },
+        "custom": {
+            "tag": "custom",
+            "group": "custom",
+            "name": "自定义接口",
+            "api_url": "",
+            "api_key": "",
+            "api_format": "OpenAI",
+            "icon": "LocalLLM",
+            "rpm_limit": 4096,
+            "tpm_limit": 8000000,
+            "model": "gpt-4o",
+            "top_p": 1.0,
+            "temperature": 1.0,
+            "presence_penalty": 0.0,
+            "frequency_penalty": 0.0,
+            "think_switch": false,
+            "think_depth": "low",
+            "auto_complete": true,
+            "model_datas": [
+                "gpt-4o",
+                "gpt-4o-mini",
+                "gpt-4-turbo",
+                "claude-3-5-haiku",
+                "claude-3-5-sonnet"
+            ],
+            "format_datas": [
+                "OpenAI",
+                "Anthropic",
+                "Google"
+            ],
+            "extra_body": {},
+            "key_in_settings": [
+                "api_url",
+                "api_key",
+                "api_format",
+                "rpm_limit",
+                "tpm_limit",
+                "model",
+                "auto_complete",
+                "top_p",
+                "temperature",
+                "presence_penalty",
+                "frequency_penalty",
+                "extra_body",
+                "think_switch",
+                "think_depth",
+                "thinking_budget"
             ]
         }
     }
