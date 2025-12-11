@@ -50,8 +50,12 @@ class TranslationChecker(Base):
         threshold = params.get("threshold", 0.75)
         try:
             threshold = float(threshold)
-            if threshold <= 0: threshold = 0.75
-        except: threshold = 0.75
+            if threshold > 1.0:
+                threshold = threshold / 100.0
+            if not (0.0 < threshold <= 1.0):
+                threshold = 0.75
+        except:
+            threshold = 0.75
 
         # 1. 兼容逻辑
         legacy_mode_str = f"{target}_{mode}" if target == "polish" else mode
@@ -108,7 +112,7 @@ class TranslationChecker(Base):
         return errors
 
     # --- 语言检查主流程 ---
-    def check_language(self, mode: str, chunk_size: int, threshold: float) -> Tuple[str, Dict]:
+    def check_language(self, mode: str, chunk_size: int = 20, threshold: float = 0.75) -> Tuple[str, Dict]:
         start_time = time.time()
 
         pre_check_result, pre_check_data = self._perform_pre_checks(mode)
