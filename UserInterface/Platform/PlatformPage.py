@@ -3,15 +3,15 @@ import json
 import copy
 import random
 
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtWidgets import QFrame, QVBoxLayout, QWidget
 
 from qfluentwidgets import ( PrimaryPushButton, FluentIcon, SingleDirectionScrollArea
 )
 
 from Base.Base import Base
-from Widget.AddAPIDialog import AddAPIDialog
-from Widget.APIItemCard import APIItemCard
+from UserInterface.Platform.AddAPIDialog import AddAPIDialog
+from UserInterface.Platform.APIItemCard import APIItemCard
 from UserInterface.Platform.APIEditPage import APIEditPage
 from UserInterface.Platform.ArgsEditPage import ArgsEditPage
 from UserInterface.Platform.LimitEditPage import LimitEditPage
@@ -71,11 +71,14 @@ class PlatformPage(QFrame, Base):
         """创建悬浮的添加按钮"""
         self.floating_add_btn = PrimaryPushButton(self.tra("添加接口"), self)
         self.floating_add_btn.setIcon(FluentIcon.ADD_TO)
-        self.floating_add_btn.setFixedSize(180, 56)
-        # 更大字体和图标
+        self.floating_add_btn.setFixedSize(160, 56)
+        # 更大字体
         font = self.floating_add_btn.font()
         font.setPointSize(13)
         self.floating_add_btn.setFont(font)
+
+        # 更大的图标
+        self.floating_add_btn.setIconSize(QSize(20, 20))
 
         self.floating_add_btn.clicked.connect(self.on_add_api_clicked)
         
@@ -325,22 +328,26 @@ class PlatformPage(QFrame, Base):
         if "api_settings" not in config:
             config["api_settings"] = {"translate": None, "polish": None}
         
-        # 先清除该接口的旧状态
+        # 先清除该接口的所有旧状态
         for key in ["translate", "polish"]:
             if config["api_settings"].get(key) == api_tag:
                 config["api_settings"][key] = None
         
         # 设置新状态
         if activate_type in ["translate", "polish"]:
-            # 清除其他接口的相同状态
+            # 清除其他接口的相同状态（确保同一功能只有一个接口激活）
             old_tag = config["api_settings"].get(activate_type)
-            if old_tag and old_tag in self.api_cards:
+            if old_tag and old_tag != api_tag and old_tag in self.api_cards:
                 self.api_cards[old_tag].set_activate_status(None)
             
             config["api_settings"][activate_type] = api_tag
         
         self.save_config(config)
         
-        if activate_type:
-            type_name = self.tra("翻译接口") if activate_type == "translate" else self.tra("润色接口")
-            self.success_toast("", f"{self.tra('已设置为')}{type_name}")
+        # 显示提示信息
+        if activate_type == "translate":
+            self.success_toast("", self.tra("已激活为翻译接口"))
+        elif activate_type == "polish":
+            self.success_toast("", self.tra("已激活为润色接口"))
+        else:
+            self.info_toast("", self.tra("已取消激活"))
