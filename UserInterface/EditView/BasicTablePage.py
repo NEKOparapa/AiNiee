@@ -2,10 +2,9 @@ from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import (QAbstractItemView, QHeaderView, QTableWidgetItem,
                              QWidget, QVBoxLayout)
-from qfluentwidgets import (Action, FluentIcon as FIF, MessageBox, RoundMenu, TableWidget)
+from qfluentwidgets import (Action, FluentIcon as FIF, RoundMenu, TableWidget)
 
 from Base.Base import Base
-from ModuleFolders.Cache.CacheProject import ProjectType
 
 # 基础表格页
 class BasicTablePage(Base,QWidget):

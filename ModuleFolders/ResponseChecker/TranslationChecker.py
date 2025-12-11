@@ -228,32 +228,59 @@ class TranslationChecker(Base):
         for file_path, file_obj in self.cache_manager.project.files.items():
             file_name = os.path.basename(file_path)
             for item in file_obj.items:
-                text_content = getattr(item, check_attr, "")
-                # 跳过空文本或被排除的文本
-                if not text_content or not item.source_text or item.translation_status == TranslationStatus.EXCLUDED:
+                # 0. 总是跳过被显式排除 (TranslationStatus.EXCLUDED) 的条目
+                if item.translation_status == TranslationStatus.EXCLUDED:
                     continue
                 
+                text_content = getattr(item, check_attr, "")
                 current_errors = []
 
-                # 1. 禁翻表
+                # 1. 未翻译/漏翻检查
+                if rules_config.get("untranslated"):
+                    is_untranslated = False
+                    if target_type == "translate":
+                        if item.translation_status == TranslationStatus.UNTRANSLATED or not text_content:
+                            is_untranslated = True
+                    else: # polish
+                        if not text_content:
+                            is_untranslated = True
+                            
+                    if is_untranslated:
+                        errors_list.append({
+                            "row_id": f"{file_name} : {item.text_index + 1}",
+                            "error_type": self.tra("条目未翻译/内容为空"),
+                            "source": item.source_text,
+                            "check_text": text_content,
+                            "file_path": file_path,
+                            "text_index": item.text_index,
+                            "target_field": check_attr
+                        })
+                        # 如果已确定未翻译，通常内容为空或无意义，跳过后续的内容检查
+                        continue 
+
+                # 2. 跳过空文本 (如果内容为空且不是为了检查未翻译，则跳过后续正则检查)
+                if not text_content or not item.source_text:
+                    continue
+
+                # 3. 禁翻表
                 if rules_config.get("exclusion") and exclusion_data:
                     current_errors.extend(self._rule_check_exclusion(item.source_text, text_content, exclusion_data))
-                # 2. 术语表
+                # 4. 术语表
                 if rules_config.get("terminology") and term_data:
                     current_errors.extend(self._rule_check_terminology(item.source_text, text_content, term_data))
-                # 3. 自动处理
+                # 5. 自动处理
                 if rules_config.get("auto_process") and patterns:
                     current_errors.extend(self._rule_check_auto_process(item.source_text, text_content, patterns))
-                # 4. 占位符
+                # 6. 占位符
                 if rules_config.get("placeholder"):
                     current_errors.extend(self._rule_check_placeholder(text_content))
-                # 5. 数字序号
+                # 7. 数字序号
                 if rules_config.get("number"):
                     current_errors.extend(self._rule_check_number(text_content))
-                # 6. 示例复读
+                # 8. 示例复读
                 if rules_config.get("example"):
                     current_errors.extend(self._rule_check_example(text_content))
-                # 7. 换行符
+                # 9. 换行符
                 if rules_config.get("newline"):
                     current_errors.extend(self._rule_check_newline(item.source_text, text_content))
 

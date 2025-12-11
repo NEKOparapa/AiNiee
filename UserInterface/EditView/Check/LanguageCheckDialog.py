@@ -10,14 +10,15 @@ class LanguageCheckDialog(Base, MessageBoxBase):
         # 1. 定义默认配置
         self.default = {
             "check_target_polish": False, # False 表示检测译文，True 表示检测润文
-            "check_lang_mode_text": "judge", # "report" 或 "judge",juedge 为精准判断
+            "check_lang_mode_text": "judge", # "report" 或 "judge", judge 为精准判断
             "rule_check_exclusion": True,
             "rule_check_terminology": False,
             "rule_check_auto_process": True,
             "rule_check_placeholder": True,
             "rule_check_number": True,
             "rule_check_example": True,
-            "rule_check_newline": True
+            "rule_check_newline": True,
+            "rule_check_untranslated": True
         }
         
         self.config_data = self.save_config(self.load_config_from_default())
@@ -38,7 +39,7 @@ class LanguageCheckDialog(Base, MessageBoxBase):
         self.cancelButton.setText(self.tra("取消"))
 
     def _init_ui(self):
-        # ... (保持原有 settings_container 代码不变) ...
+
         self.settings_container = QWidget()
         self.settings_layout = QGridLayout(self.settings_container)
         self.settings_layout.setContentsMargins(0, 0, 0, 0)
@@ -63,7 +64,7 @@ class LanguageCheckDialog(Base, MessageBoxBase):
         # ================= 规则检查项 =================
         self.view_layout.addWidget(StrongBodyLabel(self.tra("规则检查项"), self))
         
-        # [新增] 术语表检查 CheckBox
+        self.check_untranslated = CheckBox(self.tra("未翻译项检查"), self)
         self.check_terminology = CheckBox(self.tra("术语表检查"), self)
         self.check_exclusion = CheckBox(self.tra("禁翻表检查"), self)
         self.check_auto_process = CheckBox(self.tra("自动处理检查"), self)
@@ -72,7 +73,8 @@ class LanguageCheckDialog(Base, MessageBoxBase):
         self.check_example = CheckBox(self.tra("示例文本复读"), self)
         self.check_newline = CheckBox(self.tra("换行符一致性"), self)
 
-        # [新增] 添加选项说明
+        # 添加选项说明
+        self._add_option(self.check_untranslated, self.tra("检查翻译状态为待翻译或译文为空的条目"))
         self._add_option(self.check_terminology, self.tra("检查译文中是否包含术语表中的预定义译法"))
         self._add_option(self.check_exclusion, self.tra("检查译文中是否正确保留禁翻内容"))
         self._add_option(self.check_auto_process, self.tra("检查默认处理规则是否被正确执行"))
@@ -105,7 +107,8 @@ class LanguageCheckDialog(Base, MessageBoxBase):
         else:
             self.mode_combo.setCurrentText(self.tra("宏观统计"))
 
-        # [新增] 恢复术语表状态
+        # 恢复复选框状态
+        self.check_untranslated.setChecked(config.get("rule_check_untranslated", True))
         self.check_terminology.setChecked(config.get("rule_check_terminology", True))
         self.check_exclusion.setChecked(config.get("rule_check_exclusion", True))
         self.check_auto_process.setChecked(config.get("rule_check_auto_process", True))
@@ -118,7 +121,8 @@ class LanguageCheckDialog(Base, MessageBoxBase):
         self.target_combo.currentIndexChanged.connect(self._on_setting_changed)
         self.mode_combo.currentTextChanged.connect(self._on_setting_changed)
         
-        # [新增] 连接信号
+        # 连接信号
+        self.check_untranslated.stateChanged.connect(self._on_setting_changed)
         self.check_terminology.stateChanged.connect(self._on_setting_changed)
         self.check_exclusion.stateChanged.connect(self._on_setting_changed)
         self.check_auto_process.stateChanged.connect(self._on_setting_changed)
@@ -137,7 +141,8 @@ class LanguageCheckDialog(Base, MessageBoxBase):
         else:
             config["check_lang_mode_text"] = "report"
         
-        # [新增] 保存术语表状态
+        # 保存复选框状态
+        config["rule_check_untranslated"] = self.check_untranslated.isChecked()
         config["rule_check_terminology"] = self.check_terminology.isChecked()
         config["rule_check_exclusion"] = self.check_exclusion.isChecked()
         config["rule_check_auto_process"] = self.check_auto_process.isChecked()
@@ -157,6 +162,7 @@ class LanguageCheckDialog(Base, MessageBoxBase):
             "target": "polish" if is_polish else "translate",
             "mode": mode_code,
             "rules": {
+                "untranslated": self.check_untranslated.isChecked(), # [新增]
                 "terminology": self.check_terminology.isChecked(),
                 "exclusion": self.check_exclusion.isChecked(),
                 "auto_process": self.check_auto_process.isChecked(),

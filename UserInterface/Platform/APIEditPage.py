@@ -45,6 +45,7 @@ class APIEditPage(MessageBoxBase, Base):
         self.vbox.setSpacing(8)
         self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
         self.scroller.setWidget(self.vbox_parent)
+        self.add_widget_name(self.vbox, config)
 
         # 接口地址
         if "api_url" in config.get("platforms").get(self.key).get("key_in_settings"):
@@ -58,15 +59,15 @@ class APIEditPage(MessageBoxBase, Base):
         if "api_key" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_key(self.vbox, config)
 
-        # 接口区域
+        # 接口区域 (AWS)
         if "region" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_region(self.vbox, config)
 
-        # 接口密钥
+        # Access Key (AWS)
         if "access_key" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_access_key(self.vbox, config)
 
-        # 接口密钥
+        # Secret Key (AWS)
         if "secret_key" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_secret_key(self.vbox, config)
 
@@ -80,6 +81,29 @@ class APIEditPage(MessageBoxBase, Base):
 
         # 填充
         self.vbox.addStretch(1)
+
+    # 接口名称编辑组件
+    def add_widget_name(self, parent, config):
+        def init(widget):
+            # 获取当前名称
+            name = config.get("platforms").get(self.key).get("name", "")
+            widget.set_text(name)
+            widget.set_fixed_width(256)
+            widget.set_placeholder_text(self.tra("请输入接口名称"))
+
+        def text_changed(widget, text: str):
+            config = self.load_config()
+            config["platforms"][self.key]["name"] = text.strip()
+            self.save_config(config)
+
+        parent.addWidget(
+            LineEditCard(
+                self.tra("接口名称"),
+                self.tra("自定义该接口在列表中的显示名称"),
+                init = init,
+                text_changed = text_changed,
+            )
+        )
 
     # 接口地址
     def add_widget_url(self, parent, config):
@@ -146,7 +170,7 @@ class APIEditPage(MessageBoxBase, Base):
         )
 
 
-     # 接口密钥
+     # AWS Access Key
     def add_widget_access_key(self, parent, config):
 
         def text_changed(widget):
@@ -169,7 +193,7 @@ class APIEditPage(MessageBoxBase, Base):
             )
         )
 
-     # 接口密钥
+     # AWS Secret Key
     def add_widget_secret_key(self, parent, config):
 
         def text_changed(widget):
@@ -199,8 +223,11 @@ class APIEditPage(MessageBoxBase, Base):
             platforms = config.get("platforms").get(self.key)
 
             # 如果默认区域列表中不存在该条目，则添加
-            items = platforms.get("region_datas")
-            if platforms.get("region") != "" and platforms.get("region") not in platforms.get("region_datas"):
+            items = platforms.get("region_datas", [])
+            # 兼容旧配置可能没有 region_datas 的情况
+            if items is None: items = []
+            
+            if platforms.get("region") != "" and platforms.get("region") not in items:
                 items.append(platforms.get("region"))
 
             widget.set_items(items)
@@ -213,10 +240,10 @@ class APIEditPage(MessageBoxBase, Base):
             config["platforms"][self.key]["region"] = text.strip()
             self.save_config(config)
 
-        def items_changed(widget, items: list[str]): # 处理 items_changed 信号的槽函数
+        def items_changed(widget, items: list[str]): 
             config = self.load_config()
-            config["platforms"][self.key]["region_datas"] = items # 更新 region_datas
-            self.save_config(config) # 保存配置
+            config["platforms"][self.key]["region_datas"] = items 
+            self.save_config(config) 
 
         card = EditableComboBoxCard(
             self.tra("区域(可编辑)"),
@@ -225,7 +252,7 @@ class APIEditPage(MessageBoxBase, Base):
             init = init,
             current_text_changed = current_text_changed,
         )
-        card.items_changed.connect(lambda items: items_changed(card, items)) # 连接信号
+        card.items_changed.connect(lambda items: items_changed(card, items)) 
         parent.addWidget(card)
 
 
@@ -273,10 +300,10 @@ class APIEditPage(MessageBoxBase, Base):
             config["platforms"][self.key]["model"] = text.strip()
             self.save_config(config)
 
-        def items_changed(widget, items: list[str]): # 处理 items_changed 信号的槽函数
+        def items_changed(widget, items: list[str]): 
             config = self.load_config()
-            config["platforms"][self.key]["model_datas"] = items # 更新 model_datas
-            self.save_config(config) # 保存配置
+            config["platforms"][self.key]["model_datas"] = items 
+            self.save_config(config) 
 
         card = EditableComboBoxCard(
             self.tra("模型名称(可编辑)"),
@@ -286,27 +313,25 @@ class APIEditPage(MessageBoxBase, Base):
             current_text_changed = current_text_changed,
         )
         self.model_card = card
-        card.items_changed.connect(lambda items: items_changed(card, items)) # 连接信号
-        # 新增：从接口获取模型
+        card.items_changed.connect(lambda items: items_changed(card, items)) 
+        
+        # 从接口获取模型
         card.fetch_models_requested.connect(lambda: self._open_model_fetch_dialog())
         parent.addWidget(card)
 
     # 打开获取模型页面
     def _open_model_fetch_dialog(self):
         from UserInterface.Platform.ModelBrowserDialog import ModelBrowserDialog
-        # self.debug(f"open_model_fetch_dialog: opening for platform={self.key}")
-
-        # 读取当前平台配置，传入对话框用于请求
+        
         config = self.load_config()
         platform = config.get("platforms").get(self.key)
         dialog = ModelBrowserDialog(self.window(), self.key, platform)
 
         def _on_models_confirmed(selected_models: list[str]):
-            # self.debug(f"model_fetch_confirmed: {selected_models}")
             if not selected_models:
                 self.warning_toast("", self.tra("未选择任何模型"))
                 return
-            # 将选择的模型加入到 model_datas 中（去重，并优先放前面）
+            
             config = self.load_config()
             platforms = config.get("platforms")
             model_datas = platforms[self.key].get("model_datas", [])
@@ -314,15 +339,12 @@ class APIEditPage(MessageBoxBase, Base):
                 if m not in model_datas:
                     model_datas.append(m)
             platforms[self.key]["model_datas"] = model_datas
-            # 如果只选择了一个，则设置为当前模型
+            
             if len(selected_models) == 1:
                 platforms[self.key]["model"] = selected_models[0]
-            # 保存配置
+            
             self.save_config(config)
-            # self.debug(f"model_datas after save: {platforms[self.key].get('model_datas')}")
-            self.debug(f"current model after save: {platforms[self.key].get('model')}")
-
-            # 刷新右侧下拉框的选项与当前选中项
+            
             try:
                 items = platforms[self.key].get("model_datas", [])
                 self.model_card.set_items(items)
@@ -332,15 +354,12 @@ class APIEditPage(MessageBoxBase, Base):
             except Exception as e:
                 self.debug(f"refresh combobox failed: {e}")
 
-            # 简单提示
             self.success_toast("", self.tra("已添加所选模型"))
 
-        # 同时支持信号回调和 exec_ 返回，避免任何时序丢失
         try:
             dialog.selectedConfirmed.connect(_on_models_confirmed)
         except Exception:
             pass
 
         if dialog.exec_():
-            # 再次兜底读取
             _on_models_confirmed(dialog.get_selected_models())

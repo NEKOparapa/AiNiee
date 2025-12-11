@@ -46,11 +46,11 @@ class EditableComboBoxCard(CardWidget):
         self.edit_button = TransparentDropDownToolButton(FluentIcon.EDIT, self)
         menu = RoundMenu(parent=self)
         # 1) 手动编辑列表
-        action_edit = Action(self.tra("编辑列表")) if hasattr(self, 'tra') else Action("编辑列表")
+        action_edit = Action(self.tra("编辑模型选项")) if hasattr(self, 'tra') else Action("编辑模型选项")
         action_edit.triggered.connect(self._show_edit_items_popup)
         menu.addAction(action_edit)
         # 2) 从接口获取模型
-        action_fetch = Action(self.tra("从接口获取模型")) if hasattr(self, 'tra') else Action("从接口获取模型")
+        action_fetch = Action(self.tra("获取模型列表")) if hasattr(self, 'tra') else Action("获取模型列表")
         action_fetch.triggered.connect(self._emit_fetch_models_requested)
         menu.addAction(action_fetch)
 
