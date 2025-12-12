@@ -436,8 +436,10 @@ class TranslationChecker(Base):
 
     def _analyze_file_in_chunks(self, cache_file, check_target: str, target_language_code: str, flag_key: str, chunk_size: int, threshold: float) -> Dict[str, Any] | None:
         """
-        [精准判断模式] 按块分析文件。如果块不符合要求，则进行行级分析。
+        [精准判断模式] 按块分析文件。
+        修改优化：使用硬编码的 BATCH_SIZE 进行快速检测，使用 chunk_size (UI参数) 进行逻辑窗口评估。
         """
+        # 1. 筛选出有效文本行 (保留原始索引)
         items_with_text_and_indices = [
             (idx, item) for idx, item in enumerate(cache_file.items)
             if getattr(item, check_target, "").strip()
@@ -445,40 +447,46 @@ class TranslationChecker(Base):
         if not items_with_text_and_indices:
             return None
 
+        # 2. 批量检测
+        # 硬编码较大的 Batch Size 确保检测速度
+        DETECTION_BATCH_SIZE = 128
+        all_detection_results = []
+        
+        # 提取纯 Item 列表用于检测
+        all_items_to_detect = [item for _, item in items_with_text_and_indices]
+
+        for i in range(0, len(all_items_to_detect), DETECTION_BATCH_SIZE):
+            batch_items = all_items_to_detect[i : i + DETECTION_BATCH_SIZE]
+            batch_results = self._run_detection(batch_items, check_target)
+            all_detection_results.extend(batch_results)
+
+        # 3. 评估
         problematic_chunks = []
-        #  使用传入的 chunk_size
+        
         for i in range(0, len(items_with_text_and_indices), chunk_size):
+            # 获取当前窗口的切片 (Item信息 和 预先计算好的检测结果)
             chunk_with_indices = items_with_text_and_indices[i : i + chunk_size]
-            chunk_items = [item for idx, item in chunk_with_indices] # 提取 item 用于检测
+            chunk_detection_results = all_detection_results[i : i + chunk_size]
 
-            # 一次性获取当前块所有行的检测结果
-            detection_results = self._run_detection(chunk_items, check_target)
-
-            # 一次循环处理，同时收集块统计和行级信息
+            # 统计当前窗口
             lang_counts = defaultdict(int)
             line_by_line_details = []
-            for (original_idx, item), res in zip(chunk_with_indices, detection_results):
-                # 使用安全的方式处理可能不完整的返回数据
+            
+            for (original_idx, item), res in zip(chunk_with_indices, chunk_detection_results):
                 detected_lang = "N/A"
                 confidence = 0.0
                 text_content = getattr(item, check_target, "")
 
-                # 检查返回结果是否有效且不是特殊标记
                 if res and res[0] and res[0][0] not in ['no_text', 'symbols_only', 'un']:
                     result_tuple = res[0]
-
-                    # 安全地获取语言代码
                     detected_lang = result_tuple[0]
-
-                    # 安全获取置信度
                     if len(result_tuple) > 1:
                         raw_confidence = result_tuple[1]
                         if isinstance(raw_confidence, (tuple, list)) and raw_confidence:
                            confidence = raw_confidence[0]
                         elif isinstance(raw_confidence, (int, float)):
                            confidence = raw_confidence
-
-
+                    
                     lang_counts[detected_lang] += 1
 
                 line_by_line_details.append({
@@ -492,12 +500,11 @@ class TranslationChecker(Base):
             if total_valid_lines == 0:
                 continue
 
-            # 计算块的比例
+            # 计算窗口的比例
             target_lang_count = lang_counts.get(target_language_code, 0)
             ratio = target_lang_count / total_valid_lines
 
-            # 如果比例低于阈值，使用已收集的行级信息生成报告
-            #  使用传入的 threshold
+            # 判定逻辑
             if ratio < threshold:
                 mismatched_lines = [
                     detail for detail in line_by_line_details
@@ -513,18 +520,13 @@ class TranslationChecker(Base):
                         "mismatched_lines": mismatched_lines
                     })
 
+                    # 打标记
                     for line_info in mismatched_lines:
-                        # 从行号获取在 cache_file.items中的索引
                         item_index = line_info['original_line_num'] - 1
                         item_to_flag = cache_file.items[item_index]
-
-                        # 确保 extra 字典存在
                         if item_to_flag.extra is None:
                             item_to_flag.extra = {}
-
-                        # 添加标记
                         item_to_flag.extra[flag_key] = True
-                        self.debug(f"Flagged item at index {item_index} in file {cache_file.storage_path} with key '{flag_key}'")
 
         if not problematic_chunks:
             return None
