@@ -11,7 +11,7 @@ from qfluentwidgets import (Action,  CaptionLabel, MessageBox, PrimarySplitPushB
 from qframelesswindow import QTimer
 
 from ModuleFolders.Base.Base import Base
-from ModuleFolders.Domain.ResponseChecker.TranslationChecker import TranslationChecker, CheckResult
+from ModuleFolders.Service.TranslationChecker.TranslationChecker import TranslationChecker, CheckResult
 from UserInterface.EditView.Monitoring.MonitoringPage import MonitoringPage
 from UserInterface.EditView.Startup.StartupPage import StartupPage
 from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
