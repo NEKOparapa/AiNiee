@@ -451,7 +451,7 @@ class TranslationChecker(Base):
         # 硬编码较大的 Batch Size 确保检测速度
         DETECTION_BATCH_SIZE = 128
         all_detection_results = []
-        
+
         # 提取纯 Item 列表用于检测
         all_items_to_detect = [item for _, item in items_with_text_and_indices]
 
@@ -460,18 +460,33 @@ class TranslationChecker(Base):
             batch_results = self._run_detection(batch_items, check_target)
             all_detection_results.extend(batch_results)
 
-        # 3. 评估
+        #返回行数检查
+        if len(all_detection_results) != len(items_with_text_and_indices):
+            self.error(self.tra("检测结果数量({})与文本行数({})不一致！").format(len(all_detection_results), len(items_with_text_and_indices)))
+            return None
+
+# 3. 评估
         problematic_chunks = []
-        
-        for i in range(0, len(items_with_text_and_indices), chunk_size):
+        total_items = len(items_with_text_and_indices)
+
+        for i in range(0, total_items, chunk_size):
+            # 如果剩余未处理的行数不足一个块(且不是第一块)则跳过
+            if i > 0 and (total_items - i) < chunk_size:
+                continue
+
+            # 计算结束索引：剩余不足的块，将合并到当前块处理
+            current_end = i + chunk_size
+            if current_end < total_items and (total_items - current_end) < chunk_size:
+                current_end = total_items
+
             # 获取当前窗口的切片 (Item信息 和 预先计算好的检测结果)
-            chunk_with_indices = items_with_text_and_indices[i : i + chunk_size]
-            chunk_detection_results = all_detection_results[i : i + chunk_size]
+            chunk_with_indices = items_with_text_and_indices[i : current_end]
+            chunk_detection_results = all_detection_results[i : current_end]
 
             # 统计当前窗口
             lang_counts = defaultdict(int)
             line_by_line_details = []
-            
+
             for (original_idx, item), res in zip(chunk_with_indices, chunk_detection_results):
                 detected_lang = "N/A"
                 confidence = 0.0
@@ -486,7 +501,7 @@ class TranslationChecker(Base):
                            confidence = raw_confidence[0]
                         elif isinstance(raw_confidence, (int, float)):
                            confidence = raw_confidence
-                    
+
                     lang_counts[detected_lang] += 1
 
                 line_by_line_details.append({
