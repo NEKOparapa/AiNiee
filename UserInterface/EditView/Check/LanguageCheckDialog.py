@@ -93,9 +93,6 @@ class LanguageCheckDialog(Base, MessageBoxBase):
 
         # ================= 规则检查项 =================
         self.view_layout.addWidget(StrongBodyLabel(self.tra("规则检查项"), self))
-
-        self.check_untranslated = CheckBox(self.tra("未翻译检查"), self)
-        
         self.check_untranslated = CheckBox(self.tra("未翻译检查"), self)
         self.check_terminology = CheckBox(self.tra("术语表检查"), self)
         self.check_exclusion = CheckBox(self.tra("禁翻表检查"), self)
