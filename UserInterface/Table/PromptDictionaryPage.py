@@ -8,10 +8,10 @@ from PyQt5.QtCore import QEvent, Qt, QPoint, QTimer
 from PyQt5.QtWidgets import ( QFrame, QFileDialog, QHeaderView, QLayout, QVBoxLayout,
                              QTableWidgetItem, QHBoxLayout, QWidget,QAbstractItemView)
 
-from Base.Base import Base
-from UserInterface.TableHelper.TableHelper import TableHelper
-from UserInterface.NameExtractor.NameExtractor import NameExtractor
-from Widget.SwitchButtonCard import SwitchButtonCard
+from ModuleFolders.Base.Base import Base
+from UserInterface.Table.TableHelper.TableHelper import TableHelper
+from ModuleFolders.Service.NameExtractor.NameExtractor import NameExtractor
+from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface import AppFluentWindow
 
 class PromptDictionaryPage(QFrame, Base):

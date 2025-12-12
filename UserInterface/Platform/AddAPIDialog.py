@@ -30,7 +30,7 @@ except ImportError:
     pass # 如果版本不同找不到该类，则跳过修复
 
 
-from Base.Base import Base
+from ModuleFolders.Base.Base import Base
 
 class AddAPIDialog(MessageBoxBase, Base):
     """添加新接口的简易对话框"""

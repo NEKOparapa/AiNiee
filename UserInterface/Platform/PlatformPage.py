@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QFrame, QVBoxLayout, QWidget
 from qfluentwidgets import ( PrimaryPushButton, FluentIcon, SingleDirectionScrollArea
 )
 
-from Base.Base import Base
+from ModuleFolders.Base.Base import Base
 from UserInterface.Platform.AddAPIDialog import AddAPIDialog
 from UserInterface.Platform.APIItemCard import APIItemCard
 from UserInterface.Platform.APIEditPage import APIEditPage

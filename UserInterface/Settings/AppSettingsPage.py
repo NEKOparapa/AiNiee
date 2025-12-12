@@ -15,11 +15,11 @@ from qfluentwidgets import MessageBox
 from qfluentwidgets import SwitchButton
 from qfluentwidgets import SingleDirectionScrollArea
 
-from Base.Base import Base
-from Widget.EmptyCard import EmptyCard
-from Widget.ComboBoxCard import ComboBoxCard
-from Widget.LineEditCard import LineEditCard
-from Widget.SwitchButtonCard import SwitchButtonCard
+from ModuleFolders.Base.Base import Base
+from UserInterface.Widget.EmptyCard import EmptyCard
+from UserInterface.Widget.ComboBoxCard import ComboBoxCard
+from UserInterface.Widget.LineEditCard import LineEditCard
+from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 
 class AppSettingsPage(QWidget, Base):
 

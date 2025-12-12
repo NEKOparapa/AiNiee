@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableWidgetItem,
 
 from qfluentwidgets import (TableWidget, PrimaryPushButton, LineEdit, StrongBodyLabel,
                             CheckBox)
-from Base.Base import Base
+from ModuleFolders.Base.Base import Base
 
 
 class SearchResultPage(Base, QWidget):

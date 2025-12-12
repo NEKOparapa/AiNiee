@@ -5,10 +5,10 @@ from itertools import zip_longest
 from tqdm import tqdm
 from rich import print
 
-from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
-from ModuleFolders.Cache.CacheProject import CacheProject, ProjectType
+from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem, TranslationStatus
+from ModuleFolders.Infrastructure.Cache.CacheProject import CacheProject, ProjectType
 from PluginScripts.PluginBase import PluginBase
-from ModuleFolders.TaskConfig.TaskConfig import TaskConfig
+from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 
 class MToolOptimizer(PluginBase):
 

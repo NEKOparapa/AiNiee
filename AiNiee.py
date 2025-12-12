@@ -27,7 +27,7 @@
 import os
 import sys
 
-from ModuleFolders.TiktokenLoader import initialize_tiktoken
+from ModuleFolders.Infrastructure.Tokener.TiktokenLoader import initialize_tiktoken
 
 try:
     initialize_tiktoken()
@@ -181,21 +181,21 @@ if __name__ == "__main__":
 
     # 创建全局插件管理器
     update_splash_message(splash, "正在加载插件管理器... (10%)", app) # 更新启动页消息
-    from Base.PluginManager import PluginManager
+    from ModuleFolders.Base.PluginManager import PluginManager
     plugin_manager = PluginManager()
     plugin_path = os.path.join(".", "PluginScripts")
     plugin_manager.load_plugins_from_directory(plugin_path)
 
     # 创建全局缓存器
     update_splash_message(splash, "正在加缓存器... (15%)", app)
-    from ModuleFolders.Cache.CacheManager import CacheManager
+    from ModuleFolders.Infrastructure.Cache.CacheManager import CacheManager
     cache_manager = CacheManager()
 
     # 创建全局文件读写器(高性能消耗)
     update_splash_message(splash, "正在加载文件读写器... (25%)", app) 
-    from ModuleFolders.FileReader.FileReader import FileReader
+    from ModuleFolders.Domain.FileReader.FileReader import FileReader
     file_reader = FileReader()
-    from ModuleFolders.FileOutputer.FileOutputer import FileOutputer
+    from ModuleFolders.Domain.FileOutputer.FileOutputer import FileOutputer
     file_writer = FileOutputer()
 
 
@@ -211,12 +211,12 @@ if __name__ == "__main__":
 
     # 创建简易执行器对象，并初始化订阅事件
     update_splash_message(splash, "正在加载简易执行器... (60%)", app)
-    from ModuleFolders.SimpleExecutor.SimpleExecutor import SimpleExecutor
+    from ModuleFolders.Service.SimpleExecutor.SimpleExecutor import SimpleExecutor
     simple_executor = SimpleExecutor()
 
     # 创建任务执行器，并初始化订阅事件(高性能消耗)
     update_splash_message(splash, "正在加载任务执行器... (75%)", app)
-    from ModuleFolders.TaskExecutor.TaskExecutor import TaskExecutor
+    from ModuleFolders.Service.TaskExecutor.TaskExecutor import TaskExecutor
     task_executor = TaskExecutor(
         plugin_manager=plugin_manager,
         cache_manager=cache_manager,

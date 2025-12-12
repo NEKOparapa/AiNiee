@@ -3,11 +3,11 @@ import time
 from PyQt5.QtWidgets import QLayout, QWidget, QVBoxLayout
 from qfluentwidgets import (FlowLayout,FluentIcon as FIF)
 
-from Base.Base import Base
-from Widget.DashboardCard import DashboardCard
-from Widget.WaveformCard import WaveformCard
-from Widget.ProgressRingCard import ProgressRingCard
-from Widget.CombinedLineCard import CombinedLineCard
+from ModuleFolders.Base.Base import Base
+from UserInterface.Widget.DashboardCard import DashboardCard
+from UserInterface.Widget.WaveformCard import WaveformCard
+from UserInterface.Widget.ProgressRingCard import ProgressRingCard
+from UserInterface.Widget.CombinedLineCard import CombinedLineCard
 
 # 监控页面
 class MonitoringPage(Base,QWidget):

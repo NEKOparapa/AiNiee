@@ -1,7 +1,7 @@
 
 from qfluentwidgets import LineEdit, CheckBox, ComboBox, MessageBoxBase
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
-from Base.Base import Base
+from ModuleFolders.Base.Base import Base
 
 class SearchDialog(Base,MessageBoxBase):
     def __init__(self, parent=None):

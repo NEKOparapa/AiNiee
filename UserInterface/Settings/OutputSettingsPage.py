@@ -3,12 +3,12 @@ from PyQt5.QtWidgets import QFileDialog, QFrame
 from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import FluentIcon, HorizontalSeparator
 
-from Base.Base import Base
-from Widget.ComboBoxCard import ComboBoxCard
-from Widget.PushButtonCard import PushButtonCard
-from Widget.SwitchButtonCard import SwitchButtonCard
-from Widget.ComboBoxCard import ComboBoxCard
-from Widget.LineEditCard import LineEditCard
+from ModuleFolders.Base.Base import Base
+from UserInterface.Widget.ComboBoxCard import ComboBoxCard
+from UserInterface.Widget.PushButtonCard import PushButtonCard
+from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
+from UserInterface.Widget.ComboBoxCard import ComboBoxCard
+from UserInterface.Widget.LineEditCard import LineEditCard
 
 class OutputSettingsPage(QFrame, Base):
 

@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (QAbstractItemView, QHeaderView, QTableWidgetItem,
                              QWidget, QVBoxLayout)
 from qfluentwidgets import (Action, FluentIcon as FIF, RoundMenu, TableWidget)
 
-from Base.Base import Base
+from ModuleFolders.Base.Base import Base
 
 # 基础表格页
 class BasicTablePage(Base,QWidget):

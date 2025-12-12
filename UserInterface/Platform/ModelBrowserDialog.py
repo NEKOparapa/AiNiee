@@ -11,8 +11,8 @@ from qfluentwidgets import (
     PillPushButton, SingleDirectionScrollArea, isDarkTheme, IndeterminateProgressRing,
 )
 
-from Base.Base import Base
-from ModuleFolders.LLMRequester.LLMClientFactory import LLMClientFactory
+from ModuleFolders.Base.Base import Base
+from ModuleFolders.Infrastructure.LLMRequester.LLMClientFactory import LLMClientFactory
 
 class _GoogleModelFetchWorker(QObject):
     """用于从 google-genai 获取模型的工作线程"""

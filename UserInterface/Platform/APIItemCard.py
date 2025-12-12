@@ -10,7 +10,7 @@ from qfluentwidgets import (
     IconWidget, PillPushButton, DropDownToolButton
 )
 
-from Base.Base import Base
+from ModuleFolders.Base.Base import Base
 
 class APIItemCard(CardWidget, Base):
     """接口卡片组件"""
@@ -52,7 +52,7 @@ class APIItemCard(CardWidget, Base):
         self.icon_widget.setFixedSize(40, 40)
         self.hbox.addWidget(self.icon_widget)
         
-        # 中间：名称和接口地址
+        # 中间：名称和接口地址+模型信息
         self.info_container = QFrame()
         self.info_layout = QVBoxLayout(self.info_container)
         self.info_layout.setContentsMargins(0, 0, 0, 0)
@@ -61,9 +61,18 @@ class APIItemCard(CardWidget, Base):
         self.name_label = StrongBodyLabel(self.api_data.get("name", ""))
         self.info_layout.addWidget(self.name_label)
         
+        # 拼接 URL 和 模型信息
         api_url = self.api_data.get("api_url", "")
         display_url = api_url if api_url else self.tra("无接口地址")
-        self.info_label = CaptionLabel(display_url)
+        
+        model_name = self.api_data.get("model", "")
+        if model_name:
+            display_text = f"URL: {display_url}  ||  Model:  {model_name}"
+        else:
+            display_text = display_url
+            
+        self.info_label = CaptionLabel(display_text)
+        
         self.info_label.setStyleSheet("color: #888;")
         self.info_layout.addWidget(self.info_label)
         
@@ -173,7 +182,14 @@ class APIItemCard(CardWidget, Base):
         
         api_url = api_data.get("api_url", "")
         display_url = api_url if api_url else self.tra("未设置接口地址")
-        self.info_label.setText(display_url)
+        
+        model_name = api_data.get("model", "")
+        if model_name:
+            display_text = f"URL: {display_url}  ||  Model:  {model_name}"
+        else:
+            display_text = display_url
+            
+        self.info_label.setText(display_text)
         
     def set_activate_status(self, status: str):
         """外部设置激活状态（不触发信号）"""

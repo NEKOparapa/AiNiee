@@ -6,15 +6,15 @@ from PyQt5.QtCore import QUrl
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
 
-from qfluentwidgets import HyperlinkLabel, PlainTextEdit
+from qfluentwidgets import PlainTextEdit
 from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 
-from Base.Base import Base
-from Widget.SliderCard import SliderCard
-from Widget.GroupCard import GroupCard
-from Widget.SwitchButtonCard import SwitchButtonCard
-from Widget.ComboBoxCard import ComboBoxCard
+from ModuleFolders.Base.Base import Base
+from UserInterface.Widget.SliderCard import SliderCard
+from UserInterface.Widget.GroupCard import GroupCard
+from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
+from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 
 class ArgsEditPage(MessageBoxBase, Base):
 

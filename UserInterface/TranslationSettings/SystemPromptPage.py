@@ -4,9 +4,9 @@ from PyQt5.QtCore import Qt,  pyqtSignal
 from qfluentwidgets import CaptionLabel, CardWidget, FluentWindow, HorizontalSeparator, IconWidget, LineEdit, MessageBoxBase, PrimaryPushButton, PushButton as FluentPushButton, ScrollArea, StrongBodyLabel, TextEdit, FluentIcon
 
 
-from Base.Base import Base
-from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
-from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from ModuleFolders.Base.Base import Base
+from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
+from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 
 # 提示词卡片
 class PromptCard(Base,CardWidget):

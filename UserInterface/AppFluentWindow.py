@@ -16,7 +16,7 @@ from qfluentwidgets import NavigationPushButton
 from qfluentwidgets import NavigationItemPosition
 from qfluentwidgets import NavigationAvatarWidget
 
-from Base.Base import Base
+from ModuleFolders.Base.Base import Base
 from UserInterface.BaseNavigationItem import BaseNavigationItem
 
 from UserInterface.VersionManager.VersionManager import VersionManager

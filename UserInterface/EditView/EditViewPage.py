@@ -10,11 +10,11 @@ from qfluentwidgets import (Action,  CaptionLabel, MessageBox, PrimarySplitPushB
                             TreeWidget, TabBar, FluentIcon as FIF, CardWidget, Action, RoundMenu, ProgressBar)
 from qframelesswindow import QTimer
 
-from Base.Base import Base
-from ModuleFolders.ResponseChecker.TranslationChecker import TranslationChecker, CheckResult
+from ModuleFolders.Base.Base import Base
+from ModuleFolders.Domain.ResponseChecker.TranslationChecker import TranslationChecker, CheckResult
 from UserInterface.EditView.Monitoring.MonitoringPage import MonitoringPage
 from UserInterface.EditView.Startup.StartupPage import StartupPage
-from ModuleFolders.TaskConfig.TaskType import TaskType
+from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
 from UserInterface.EditView.Check.LanguageCheckDialog import LanguageCheckDialog
 from UserInterface.EditView.Search.SearchDialog import SearchDialog
 from UserInterface.EditView.Search.SearchResultPage import SearchResultPage

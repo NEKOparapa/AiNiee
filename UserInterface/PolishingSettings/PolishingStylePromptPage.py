@@ -6,9 +6,9 @@ from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import PlainTextEdit
 
-from Base.Base import Base
-from Widget.CommandBarCard import CommandBarCard
-from Widget.SwitchButtonCard import SwitchButtonCard
+from ModuleFolders.Base.Base import Base
+from UserInterface.Widget.CommandBarCard import CommandBarCard
+from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 
 class PolishingStylePromptPage(QFrame, Base):
 

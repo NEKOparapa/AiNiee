@@ -3,12 +3,12 @@ from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import HorizontalSeparator, PillPushButton
 
-from Base.Base import Base
-from Widget.ComboBoxCard import ComboBoxCard
-from Widget.SwitchButtonCard import SwitchButtonCard
-from Widget.ComboBoxCard import ComboBoxCard
-from Widget.SpinCard import SpinCard
-from Widget.FlowCard import FlowCard
+from ModuleFolders.Base.Base import Base
+from UserInterface.Widget.ComboBoxCard import ComboBoxCard
+from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
+from UserInterface.Widget.ComboBoxCard import ComboBoxCard
+from UserInterface.Widget.SpinCard import SpinCard
+from UserInterface.Widget.FlowCard import FlowCard
 
 
 

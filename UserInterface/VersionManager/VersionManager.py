@@ -13,7 +13,7 @@ from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, Stron
                             CaptionLabel, PrimaryPushButton, PushButton, ProgressBar,
                             TransparentToolButton, HyperlinkButton, FluentIcon,
                             InfoBar, InfoBarPosition, SubtitleLabel, MessageBoxBase)
-from Base.Base import Base
+from ModuleFolders.Base.Base import Base
 
 class UpdaterSignals(QObject):
     progress_updated = pyqtSignal(int)

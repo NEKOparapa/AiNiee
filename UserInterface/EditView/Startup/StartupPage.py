@@ -3,11 +3,10 @@ from PyQt5.QtWidgets import QLayout, QVBoxLayout, QWidget
 from qfluentwidgets import pyqtSignal, StateToolTip
 from qfluentwidgets.components.date_time.calendar_picker import FIF
 
-from Base.Base import Base
-from Widget.LineEditCard import LineEditCard
-from Widget.FolderDropCard import FolderDropCard
-from Widget.ComboBoxCard import ComboBoxCard
-from Widget.ActionCard import ActionCard
+from ModuleFolders.Base.Base import Base
+from UserInterface.Widget.FolderDropCard import FolderDropCard
+from UserInterface.Widget.ComboBoxCard import ComboBoxCard
+from UserInterface.Widget.ActionCard import ActionCard
 
 class StartupPage(Base, QWidget):
     """开始页面"""

@@ -5,8 +5,8 @@ from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 
-from Base.Base import Base
-from Widget.SpinCard import SpinCard
+from ModuleFolders.Base.Base import Base
+from UserInterface.Widget.SpinCard import SpinCard
 
 class LimitEditPage(MessageBoxBase, Base):
 

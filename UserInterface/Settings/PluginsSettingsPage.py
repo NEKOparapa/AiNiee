@@ -5,8 +5,8 @@ from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import SingleDirectionScrollArea
 
-from Base.Base import Base
-from Widget.SwitchButtonCard import SwitchButtonCard
+from ModuleFolders.Base.Base import Base
+from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 
 class PluginsSettingsPage(QFrame, Base):
 

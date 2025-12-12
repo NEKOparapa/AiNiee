@@ -1,11 +1,11 @@
 from typing import TYPE_CHECKING, Any, Self
 
-from ModuleFolders.FileOutputer.BaseWriter import BaseTranslationWriter
-from ModuleFolders.FileReader.BaseReader import BaseSourceReader
+from ModuleFolders.Domain.FileOutputer.BaseWriter import BaseTranslationWriter
+from ModuleFolders.Domain.FileReader.BaseReader import BaseSourceReader
 
 if TYPE_CHECKING:
-    from ModuleFolders.FileOutputer.FileOutputer import FileOutputer
-    from ModuleFolders.FileReader.FileReader import FileReader
+    from ModuleFolders.Domain.FileOutputer.FileOutputer import FileOutputer
+    from ModuleFolders.Domain.FileReader.FileReader import FileReader
 
 
 class CustomWriter(BaseTranslationWriter):

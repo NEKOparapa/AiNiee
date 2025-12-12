@@ -6,10 +6,10 @@ from PyQt5.QtCore import QEvent, Qt, QPoint
 from PyQt5.QtWidgets import (QFrame, QFileDialog, QHeaderView, QLayout, QVBoxLayout,
                              QTableWidgetItem,QAbstractItemView)
 
-from Base.Base import Base
-from UserInterface.TableHelper.TableHelper import TableHelper
-from Widget.CommandBarCard import CommandBarCard
-from Widget.SwitchButtonCard import SwitchButtonCard
+from ModuleFolders.Base.Base import Base
+from UserInterface.Table.TableHelper.TableHelper import TableHelper
+from UserInterface.Widget.CommandBarCard import CommandBarCard
+from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface import AppFluentWindow
 
 class CharacterizationPromptPage(QFrame, Base):

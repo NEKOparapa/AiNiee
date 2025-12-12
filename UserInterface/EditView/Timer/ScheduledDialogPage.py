@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QTime
 from qfluentwidgets import BodyLabel, MessageBoxBase, TimePicker, StrongBodyLabel
 
-from Base.Base import Base
+from ModuleFolders.Base.Base import Base
 
 class ScheduledDialogPage(MessageBoxBase, Base):
     """

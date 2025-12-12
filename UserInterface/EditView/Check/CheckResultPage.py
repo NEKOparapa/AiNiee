@@ -3,7 +3,7 @@ from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableWidgetItem, 
                              QHeaderView, QAbstractItemView)
 from qfluentwidgets import TableWidget, RoundMenu, Action, FluentIcon
-from Base.Base import Base
+from ModuleFolders.Base.Base import Base
 
 class CheckResultPage(Base, QWidget):
     def __init__(self, results: list, cache_manager=None, parent=None):

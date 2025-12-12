@@ -6,12 +6,12 @@ from qfluentwidgets import PlainTextEdit
 from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 
-from Base.Base import Base
-from Widget.GroupCard import GroupCard
-from Widget.ComboBoxCard import ComboBoxCard
-from Widget.LineEditCard import LineEditCard
-from Widget.SwitchButtonCard import SwitchButtonCard
-from Widget.EditableComboBoxCard import EditableComboBoxCard
+from ModuleFolders.Base.Base import Base
+from UserInterface.Widget.GroupCard import GroupCard
+from UserInterface.Widget.ComboBoxCard import ComboBoxCard
+from UserInterface.Widget.LineEditCard import LineEditCard
+from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
+from UserInterface.Widget.EditableComboBoxCard import EditableComboBoxCard
 
 class APIEditPage(MessageBoxBase, Base):
 

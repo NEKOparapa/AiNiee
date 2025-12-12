@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableWidgetItem,
 
 from qfluentwidgets import (TableWidget, PrimaryPushButton, FluentIcon,
                               RoundMenu, Action, MessageBox)
-from Base.Base import Base
+from ModuleFolders.Base.Base import Base
 
 class TermResultPage(Base, QWidget):
     """

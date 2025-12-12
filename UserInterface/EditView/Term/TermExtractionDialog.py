@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QHBoxLayout
 from qfluentwidgets import (ComboBox, CheckBox, MessageBoxBase, StrongBodyLabel, 
                             InfoBar, InfoBarPosition, CaptionLabel, HyperlinkButton,
                             SubtitleLabel, BodyLabel)
-from Base.Base import Base
+from ModuleFolders.Base.Base import Base
 
 class TermExtractionDialog(Base, MessageBoxBase):
     """
