@@ -1,16 +1,19 @@
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QHBoxLayout
-from qfluentwidgets import CheckBox, ComboBox, MessageBoxBase, StrongBodyLabel, CaptionLabel
+from qfluentwidgets import CheckBox, ComboBox, MessageBoxBase, StrongBodyLabel, CaptionLabel, SpinBox, DoubleSpinBox
 from Base.Base import Base
 
 class LanguageCheckDialog(Base, MessageBoxBase):
     def __init__(self, parent=None):
         super().__init__(parent)
-        
+
         # 1. 定义默认配置
         self.default = {
             "check_target_polish": False, # False 表示检测译文，True 表示检测润文
             "check_lang_mode_text": "judge", # "report" 或 "judge", judge 为精准判断
+            "check_chunk_size": 20,          #  检测分块行数
+            "check_threshold_ratio": 0.75,   #  检测阈值占比
             "rule_check_exclusion": True,
             "rule_check_terminology": False,
             "rule_check_auto_process": True,
@@ -20,21 +23,21 @@ class LanguageCheckDialog(Base, MessageBoxBase):
             "rule_check_newline": True,
             "rule_check_untranslated": True
         }
-        
+
         self.config_data = self.save_config(self.load_config_from_default())
 
         self.view = QWidget(self)
         self.view_layout = QVBoxLayout(self.view)
         self.view_layout.setContentsMargins(0, 0, 0, 0)
         self.view_layout.setSpacing(20)
-        self.view.setMinimumWidth(600) 
+        self.view.setMinimumWidth(600)
 
         self._init_ui()
         self._restore_ui_state()
         self._connect_signals()
 
         self.viewLayout.addWidget(self.view)
-        
+
         self.yesButton.setText(self.tra("开始检查"))
         self.cancelButton.setText(self.tra("取消"))
 
@@ -46,24 +49,51 @@ class LanguageCheckDialog(Base, MessageBoxBase):
         self.settings_layout.setVerticalSpacing(15)
         self.settings_layout.setHorizontalSpacing(15)
 
+        # 检测对象
         self.target_label = StrongBodyLabel(self.tra("检测对象:"), self)
         self.target_combo = ComboBox(self)
         self.target_combo.addItems([self.tra("译文"), self.tra("润文")])
-        
+
+        # 语言检测模式
         self.mode_label = StrongBodyLabel(self.tra("语言检测:"), self)
         self.mode_combo = ComboBox(self)
         self.mode_combo.addItems([self.tra("宏观统计"), self.tra("精准判断")])
 
+        #  检测分块行数
+        self.chunk_label = StrongBodyLabel(self.tra("检测分块行数:"), self)
+        self.chunk_spin = SpinBox(self)
+        self.chunk_spin.setRange(1, 99)
+        self.chunk_spin.setFixedWidth(140) # 限制宽度适应两位数+按钮
+
+        #  检测阈值占比
+        self.threshold_label = StrongBodyLabel(self.tra("检测阈值:"), self)
+        self.threshold_spin = DoubleSpinBox(self)
+        self.threshold_spin.setRange(0.10, 1.00)
+        self.threshold_spin.setSingleStep(0.01)
+        self.threshold_spin.setDecimals(2)
+        self.threshold_spin.setFixedWidth(140) # 限制宽度适应三位数+按钮
+
+        # 布局添加
         self.settings_layout.addWidget(self.target_label, 0, 0)
         self.settings_layout.addWidget(self.target_combo, 0, 1)
         self.settings_layout.addWidget(self.mode_label, 1, 0)
         self.settings_layout.addWidget(self.mode_combo, 1, 1)
+        self.settings_layout.addWidget(self.chunk_label, 2, 0)
+        self.settings_layout.addWidget(self.chunk_spin, 2, 1)
+        self.settings_layout.addWidget(self.threshold_label, 3, 0)
+        self.settings_layout.addWidget(self.threshold_spin, 3, 1)
 
         self.view_layout.addWidget(self.settings_container)
 
+        #  说明文字
+        self.note_label = CaptionLabel(self.tra("检测分块行数与检测阈值只在精准判断中生效"), self)
+        self.note_label.setTextColor(QColor(120, 120, 120), QColor(160, 160, 160))
+        self.note_label.setAlignment(Qt.AlignCenter)
+        self.view_layout.addWidget(self.note_label)
+
         # ================= 规则检查项 =================
         self.view_layout.addWidget(StrongBodyLabel(self.tra("规则检查项"), self))
-        
+
         self.check_untranslated = CheckBox(self.tra("未翻译项检查"), self)
         self.check_terminology = CheckBox(self.tra("术语表检查"), self)
         self.check_exclusion = CheckBox(self.tra("禁翻表检查"), self)
@@ -97,15 +127,22 @@ class LanguageCheckDialog(Base, MessageBoxBase):
 
     def _restore_ui_state(self):
         config = self.config_data
-        
+
         is_polish = config.get("check_target_polish", False)
         self.target_combo.setCurrentIndex(1 if is_polish else 0)
-        
+
         mode_code = config.get("check_lang_mode_text", "report")
         if mode_code == "judge":
             self.mode_combo.setCurrentText(self.tra("精准判断"))
         else:
             self.mode_combo.setCurrentText(self.tra("宏观统计"))
+
+        #  恢复数值，若配置为0或不存在则使用默认值
+        chunk_val = config.get("check_chunk_size", 20)
+        self.chunk_spin.setValue(chunk_val if chunk_val > 0 else 20)
+
+        thresh_val = config.get("check_threshold_ratio", 0.75)
+        self.threshold_spin.setValue(thresh_val if thresh_val > 0 else 0.75)
 
         # 恢复复选框状态
         self.check_untranslated.setChecked(config.get("rule_check_untranslated", True))
@@ -120,7 +157,11 @@ class LanguageCheckDialog(Base, MessageBoxBase):
     def _connect_signals(self):
         self.target_combo.currentIndexChanged.connect(self._on_setting_changed)
         self.mode_combo.currentTextChanged.connect(self._on_setting_changed)
-        
+
+        #  连接数值变化信号
+        self.chunk_spin.valueChanged.connect(self._on_setting_changed)
+        self.threshold_spin.valueChanged.connect(self._on_setting_changed)
+
         # 连接信号
         self.check_untranslated.stateChanged.connect(self._on_setting_changed)
         self.check_terminology.stateChanged.connect(self._on_setting_changed)
@@ -133,14 +174,18 @@ class LanguageCheckDialog(Base, MessageBoxBase):
 
     def _on_setting_changed(self):
         config = self.load_config()
-        
+
         config["check_target_polish"] = (self.target_combo.currentIndex() == 1)
-        
+
         if self.mode_combo.currentText() == self.tra("精准判断"):
             config["check_lang_mode_text"] = "judge"
         else:
             config["check_lang_mode_text"] = "report"
-        
+
+        #  保存数值
+        config["check_chunk_size"] = self.chunk_spin.value()
+        config["check_threshold_ratio"] = self.threshold_spin.value()
+
         # 保存复选框状态
         config["rule_check_untranslated"] = self.check_untranslated.isChecked()
         config["rule_check_terminology"] = self.check_terminology.isChecked()
@@ -150,7 +195,7 @@ class LanguageCheckDialog(Base, MessageBoxBase):
         config["rule_check_number"] = self.check_number.isChecked()
         config["rule_check_example"] = self.check_example.isChecked()
         config["rule_check_newline"] = self.check_newline.isChecked()
-        
+
         self.save_config(config)
         self.config_data = config
 
@@ -161,8 +206,11 @@ class LanguageCheckDialog(Base, MessageBoxBase):
         self.check_params = {
             "target": "polish" if is_polish else "translate",
             "mode": mode_code,
+            #  传递参数
+            "chunk_size": self.chunk_spin.value(),
+            "threshold": self.threshold_spin.value(),
             "rules": {
-                "untranslated": self.check_untranslated.isChecked(), # [新增]
+                "untranslated": self.check_untranslated.isChecked(),
                 "terminology": self.check_terminology.isChecked(),
                 "exclusion": self.check_exclusion.isChecked(),
                 "auto_process": self.check_auto_process.isChecked(),
