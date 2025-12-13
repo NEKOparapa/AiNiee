@@ -21,6 +21,7 @@ from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.LineEditCard import LineEditCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 
+
 class AppSettingsPage(QWidget, Base):
 
     def __init__(self, text: str, window) -> None:
@@ -46,7 +47,7 @@ class AppSettingsPage(QWidget, Base):
         self.container.setContentsMargins(0, 0, 0, 0)
 
         # 设置滚动容器
-        self.scroller = SingleDirectionScrollArea(self, orient = Qt.Vertical)
+        self.scroller = SingleDirectionScrollArea(self, orient=Qt.Vertical)
         self.scroller.setWidgetResizable(True)
         self.scroller.setStyleSheet("QScrollArea { border: none; background: transparent; }")
         self.container.addWidget(self.scroller)
@@ -56,19 +57,20 @@ class AppSettingsPage(QWidget, Base):
         self.vbox_parent.setStyleSheet("QWidget { background: transparent; }")
         self.vbox = QVBoxLayout(self.vbox_parent)
         self.vbox.setSpacing(8)
-        self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
+        self.vbox.setContentsMargins(24, 24, 24, 24)  # 左、上、右、下
         self.scroller.setWidget(self.vbox_parent)
 
         # 添加控件
+        self.add_widget_exclude_rule(self.vbox, config)
         self.add_widget_proxy(self.vbox, config)
         self.add_widget_font_hinting(self.vbox, config)
-        self.add_widget_auto_check_update(self.vbox, config) # 使用子线程进行更新检查
         self.add_widget_debug_mode(self.vbox, config)
         self.add_widget_scale_factor(self.vbox, config)
         self.add_widget_interface_language_setting(self.vbox, config)
-        self.add_widget_exclude_rule(self.vbox, config)
+        self.add_widget_auto_check_update(self.vbox, config)
+        self.add_widget_check_update(self.vbox, config, window)
         self.add_widget_app_profile(self.vbox, config, window)
-
+        
         # 填充
         self.vbox.addStretch(1)
 
@@ -92,8 +94,8 @@ class AppSettingsPage(QWidget, Base):
             else:
                 os.environ["http_proxy"] = proxy_url
                 os.environ["https_proxy"] = proxy_url
-                info = self.tra("网络代理已启用，代理地址")
-                self.info(f"{info}：{proxy_url}")
+                info = self.tra("网络代理已启用,代理地址")
+                self.info(f"{info}:{proxy_url}")
 
         def init(widget) -> None:
             widget.set_text(config.get("proxy_url"))
@@ -116,8 +118,8 @@ class AppSettingsPage(QWidget, Base):
             else:
                 os.environ["http_proxy"] = proxy_url
                 os.environ["https_proxy"] = proxy_url
-                info = self.tra("网络代理已启用，代理地址")
-                self.info(f"{info}：{proxy_url}")
+                info = self.tra("网络代理已启用,代理地址")
+                self.info(f"{info}:{proxy_url}")
 
         def text_changed(widget, text: str) -> None:
             config = self.load_config()
@@ -127,9 +129,9 @@ class AppSettingsPage(QWidget, Base):
         parent.addWidget(
             LineEditCard(
                 self.tra("网络代理地址"),
-                self.tra("启用该功能后，将使用设置的代理地址向接口发送请求，例如 http://127.0.0.1:7890"),
-                init = init,
-                text_changed = text_changed,
+                self.tra("启用该功能后,将使用设置的代理地址向接口发送请求,例如 http://127.0.0.1:7890"),
+                init=init,
+                text_changed=text_changed,
             )
         )
 
@@ -146,9 +148,9 @@ class AppSettingsPage(QWidget, Base):
         parent.addWidget(
             SwitchButtonCard(
                 self.tra("应用字体优化"),
-                self.tra("启用此功能后，字体的边缘渲染将更加圆润（将在应用重启后生效）"),
-                init = init,
-                checked_changed = checked_changed,
+                self.tra("启用此功能后,字体的边缘渲染将更加圆润(将在应用重启后生效)"),
+                init=init,
+                checked_changed=checked_changed,
             )
         )
 
@@ -171,9 +173,9 @@ class AppSettingsPage(QWidget, Base):
         parent.addWidget(
             SwitchButtonCard(
                 self.tra("调试模式"),
-                self.tra("启用此功能后，应用将显示额外的调试信息"),
-                init = init,
-                checked_changed = checked_changed,
+                self.tra("启用此功能后,应用将显示额外的调试信息"),
+                init=init,
+                checked_changed=checked_changed,
             )
         )
 
@@ -190,13 +192,12 @@ class AppSettingsPage(QWidget, Base):
         parent.addWidget(
             ComboBoxCard(
                 self.tra("全局缩放比例"),
-                self.tra("启用此功能后，应用界面将按照所选比例进行缩放（将在应用重启后生效）"),
+                self.tra("启用此功能后,应用界面将按照所选比例进行缩放(将在应用重启后生效)"),
                 ["AUTO", "50%", "75%", "125%", "150%", "200%"],
-                init = init,
-                current_text_changed = current_text_changed,
+                init=init,
+                current_text_changed=current_text_changed,
             )
         )
-
 
     # 语言
     def add_widget_interface_language_setting(self, parent, config) -> None:
@@ -211,10 +212,10 @@ class AppSettingsPage(QWidget, Base):
         parent.addWidget(
             ComboBoxCard(
                 self.tra("界面语言设置"),
-                self.tra("应用界面将按照所选语言进行显示（将在应用重启后生效）"),
+                self.tra("应用界面将按照所选语言进行显示(将在应用重启后生效)"),
                 ["简中", "繁中", "English", "日本語"],
-                init = init,
-                current_text_changed = current_text_changed,
+                init=init,
+                current_text_changed=current_text_changed,
             )
         )
 
@@ -231,12 +232,47 @@ class AppSettingsPage(QWidget, Base):
         parent.addWidget(
             SwitchButtonCard(
                 self.tra("自动检查更新"),
-                self.tra("启用此功能后，应用将在启动时自动检查是否有新版本"),
-                init = init,
-                checked_changed = checked_changed,
+                self.tra("启用此功能后,应用将在启动时自动检查是否有新版本"),
+                init=init,
+                checked_changed=checked_changed,
             )
         )
 
+    # 手动检查更新
+    def add_widget_check_update(self, parent, config, window) -> None:
+        """手动检查更新按钮"""
+
+        def on_check_button_clicked(check_button) -> None:
+            """检查更新按钮点击事件"""
+            # 更新按钮文本,提示正在检查
+            original_text = check_button.text()
+            check_button.setText(self.tra("正在检查更新..."))
+            check_button.setEnabled(False)
+
+            # 显示更新对话框
+            window.show_update_dialog()
+
+            # 恢复按钮文本和状态
+            QTimer.singleShot(1000, lambda: (
+                check_button.setText(original_text),
+                check_button.setEnabled(True)
+            ))
+
+        def init(widget) -> None:
+            check_button = PushButton(self.tra("检查更新"), self)
+            check_button.setIcon(FluentIcon.UPDATE)
+            check_button.setContentsMargins(4, 0, 4, 0)
+            check_button.clicked.connect(lambda: on_check_button_clicked(check_button))
+
+            widget.add_widget(check_button)
+
+        parent.addWidget(
+            EmptyCard(
+                self.tra("检查更新"),
+                self.tra("点击按钮手动检查是否有新版本可用"),
+                init=init,
+            )
+        )
 
     def add_widget_exclude_rule(self, parent, config) -> None:
         """文件/目录排除规则"""
@@ -252,7 +288,7 @@ class AppSettingsPage(QWidget, Base):
         parent.addWidget(
             LineEditCard(
                 self.tra("文件/目录排除规则"),
-                self.tra("*.log 表示排除所有结尾为 .log 的文件，aaa/* 表示排除输入文件夹下整个 aaa 目录，多个规则用英文逗号分隔"),
+                self.tra("*.log 表示排除所有结尾为 .log 的文件,aaa/* 表示排除输入文件夹下整个 aaa 目录,多个规则用英文逗号分隔"),
                 init=init,
                 text_changed=text_changed,
             )
@@ -271,18 +307,18 @@ class AppSettingsPage(QWidget, Base):
             profile = {}
 
             if os.path.exists(path):
-                with open(path, "r", encoding = "utf-8") as reader:
+                with open(path, "r", encoding="utf-8") as reader:
                     profile = json.load(reader)
             else:
-                self.error_toast("", self.tra("配置文件不存在！"))
+                self.error_toast("", self.tra("配置文件不存在!"))
                 return
 
             # 确认框
-            message_box = MessageBox("Warning", self.tra("是否确认导入选中的配置文件，导入后应用将自动重启"), window)
+            message_box = MessageBox("Warning", self.tra("是否确认导入选中的配置文件,导入后应用将自动重启"), window)
             message_box.yesButton.setText(self.tra("确认"))
             message_box.cancelButton.setText(self.tra("取消"))
             if message_box.exec():
-                self.success_toast("", self.tra("配置文件导入成功，应用即将自动重启！"))
+                self.success_toast("", self.tra("配置文件导入成功,应用即将自动重启!"))
             else:
                 return
 
@@ -301,8 +337,8 @@ class AppSettingsPage(QWidget, Base):
             config = self.load_config()
             del config["platforms"]
 
-            with open(f"{path}/ainiee_profile.json", "w", encoding = "utf-8") as writer:
-                writer.write(json.dumps(config, indent = 4, ensure_ascii = False))
+            with open(f"{path}/ainiee_profile.json", "w", encoding="utf-8") as writer:
+                writer.write(json.dumps(config, indent=4, ensure_ascii=False))
 
             info_cont = self.tra("配置已导出为") + " \"ainiee_profile.json\" ..."
             self.success_toast("", info_cont)
@@ -315,6 +351,7 @@ class AppSettingsPage(QWidget, Base):
                 return
 
             import_profile_file(path)
+
         # 导出按钮点击事件
         def on_exprot_button_clicked() -> None:
             path = QFileDialog.getExistingDirectory(None, self.tra("选择文件夹"), "")
@@ -342,7 +379,7 @@ class AppSettingsPage(QWidget, Base):
         parent.addWidget(
             EmptyCard(
                 self.tra("应用配置切换"),
-                self.tra("可以将当前应用的除接口信息以外的所有设置导出为配置文件，以方便根据不同项目切换配置（导入配置后应用将自动重启）"),
-                init = init,
+                self.tra("可以将当前应用的除接口信息以外的所有设置导出为配置文件,以方便根据不同项目切换配置(导入配置后应用将自动重启)"),
+                init=init,
             )
         )
