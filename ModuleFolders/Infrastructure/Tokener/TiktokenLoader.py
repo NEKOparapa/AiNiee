@@ -76,7 +76,7 @@ def initialize_tiktoken():
 
         # 4. ⚠️ 应用 babeldoc 补丁，防止后续导入的包覆盖环境变量
         try:
-            from ModuleFolders.BabeldocPatch import apply_patch
+            from ModuleFolders.Infrastructure.Tokener.BabeldocPatch import apply_patch
             apply_patch(cache_dir)
         except ImportError:
             _print_warning("BabeldocPatch 模块未找到，可能无法防止环境变量被覆盖")
