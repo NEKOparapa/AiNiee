@@ -24,6 +24,16 @@
 #             赛博佛祖光耀照，程序运行永无忧。
 #             翻译之路顺畅通，字字珠玑无误漏。
 
+def display_banner():
+    print(" █████   ██  ███    ██  ██  ███████  ███████ ")
+    print("██   ██  ██  ████   ██  ██  ██       ██      ")
+    print("███████  ██  ██ ██  ██  ██  █████    █████   ")
+    print("██   ██  ██  ██  ██ ██  ██  ██       ██      ")
+    print("██   ██  ██  ██   ████  ██  ███████  ███████ ")
+    print("                                        ")
+    print("                                        ")
+display_banner()
+
 import os
 import sys
 
@@ -55,15 +65,6 @@ warnings.filterwarnings(
 )
 # 过滤pBeautiful Soup的警告信息
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
-
-def display_banner():
-    print(" █████   ██  ███    ██  ██  ███████  ███████ ")
-    print("██   ██  ██  ████   ██  ██  ██       ██      ")
-    print("███████  ██  ██ ██  ██  ██  █████    █████   ")
-    print("██   ██  ██  ██  ██ ██  ██  ██       ██      ")
-    print("██   ██  ██  ██   ████  ██  ███████  ███████ ")
-    print("                                        ")
-    print("                                        ")
 
 # 载入配置文件
 def load_config() -> dict:
@@ -144,7 +145,6 @@ if __name__ == "__main__":
     # 创建全局应用对象
     app = QApplication(sys.argv)
 
-    display_banner()
     print(f"[[green]INFO[/]] Application Version: {app_version}") # 打印版本号
     print(f"[[green]INFO[/]] Current working directory is {script_dir}")
     print(f"[[green]INFO[/]] Starting AiNiee Application...")
