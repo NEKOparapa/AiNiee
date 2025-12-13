@@ -43,45 +43,88 @@ class EpubReader(BaseSourceReader):
     ]
 
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
-
         items = []
-        for item_id, _, html_content in self.file_accessor.read_content(file_path):
-            for tag_type, pattern, forbidden_tags in self.TAG_PATTERNS_LIST:
-                # 使用 finditer 查找所有匹配项，可以迭代处理
-                for match in re.finditer(pattern, html_content, re.DOTALL):
-                    html_text_A = match.group(0)  # 完整匹配到的HTML标签
-
-                    # 针对同名嵌套标签内容的处理。正则提取时标签提前闭合，而造成的提取错误。只提取同名子标签的内容，放弃父级标签的内容
-                    html_text_B = self.extract_inner_html_from_incomplete_tag(html_text_A)
-
-                    # 处理多层嵌套标签的情况，找到存储文本内容的标签
-                    tag_type, html_text_C = self.extract_epub_content_refined(html_text_B)
-                    if not html_text_C: 
-                        continue
-
-                    # 提取纯文本，并处理嵌套标签
-                    soup = BeautifulSoup(html_text_C, 'html.parser')
-                    text_content = soup.get_text(strip=True)
-
-                    if not text_content:  # 检查一下是否提取到空文本内容
-                        continue
-
-                    if forbidden_tags:
-                        # 检查是否包含禁止的子标签
-                        forbidden_soup_elemnt = soup.find(forbidden_tags)
-                        if forbidden_soup_elemnt is not None:
-                            continue
-                        
-                    extra = {
-                        "original_html": html_text_C,
-                        "tag_type": tag_type,
-                        "item_id": item_id,
-                    }
-                    items.append(CacheItem(source_text=text_content, extra=extra))
+        for item_id, filename, content in self.file_accessor.read_content(file_path):
+            # 判断是否是 NCX 文件（目录文件）
+            if filename.endswith('.ncx'):
+                ncx_items = self._read_ncx_content(item_id, content)
+                items.extend(ncx_items)
+            else:
+                # XHTML 处理逻辑
+                xhtml_items = self._read_xhtml_content(item_id, content)
+                items.extend(xhtml_items)
         return CacheFile(items=items)
 
+    def _read_xhtml_content(self, item_id, html_content):
+        """从 XHTML 文件中提取文本内容"""
+        items = []
+        for tag_type, pattern, forbidden_tags in self.TAG_PATTERNS_LIST:
+            # 使用 finditer 查找所有匹配项，可以迭代处理
+            for match in re.finditer(pattern, html_content, re.DOTALL):
+                html_text_A = match.group(0)  # 完整匹配到的HTML标签
+
+                # 针对同名嵌套标签内容的处理。正则提取时标签提前闭合，而造成的提取错误。只提取同名子标签的内容，放弃父级标签的内容
+                html_text_B = self.extract_inner_html_from_incomplete_tag(html_text_A)
+
+                # 处理多层嵌套标签的情况，找到存储文本内容的标签
+                tag_type_refined, html_text_C = self.extract_epub_content_refined(html_text_B)
+                if not html_text_C: 
+                    continue
+
+                # 提取纯文本，并处理嵌套标签
+                soup = BeautifulSoup(html_text_C, 'html.parser')
+                text_content = soup.get_text(strip=True)
+
+                if not text_content:  # 检查一下是否提取到空文本内容
+                    continue
+
+                if forbidden_tags:
+                    # 检查是否包含禁止的子标签
+                    forbidden_soup_elemnt = soup.find(forbidden_tags)
+                    if forbidden_soup_elemnt is not None:
+                        continue
+                    
+                extra = {
+                    "original_html": html_text_C,
+                    "tag_type": tag_type_refined,
+                    "item_id": item_id,
+                }
+                items.append(CacheItem(source_text=text_content, extra=extra))
+        return items
+
+    def _read_ncx_content(self, item_id, ncx_content):
+        """从 NCX 文件（toc.ncx）中提取 text 标签的文本
+        
+        NCX 文件结构示例:
+        <navPoint id="navpoint1" playOrder="1">
+            <navLabel><text>Chapter 1</text></navLabel>
+            <content src="chapter1.xhtml"/>
+        </navPoint>
+        """
+        items = []
+        
+        # 匹配 <text>...</text> 标签（NCX 文件中的目录文本）
+        # 使用非贪婪匹配确保正确提取嵌套结构中的内容
+        text_pattern = r'<text\b[^>]*>(.*?)</text>'
+        
+        for match in re.finditer(text_pattern, ncx_content, re.DOTALL):
+            original_html = match.group(0)  # 完整的 <text>...</text>
+            text_content = match.group(1).strip()  # 标签内的文本内容
+            
+            if not text_content:
+                continue
+                
+            extra = {
+                "original_html": original_html,
+                "tag_type": "ncx_text",
+                "item_id": item_id,
+            }
+            items.append(CacheItem(source_text=text_content, extra=extra))
+        
+        return items
+
     # 提取最内层包含文本的标签及其内容（改进点：可以考虑保留部分标签的内容，比如span）
-    def extract_epub_content_refined(self,html_string: str) :
+    def extract_epub_content_refined(self, html_string: str):
         """
         从HTML字符串中提取最内层包含实际内容的标签及其原始字符串
         
@@ -170,7 +213,7 @@ class EpubReader(BaseSourceReader):
             return current_tag.name, str(current_tag)
         
     # 提取同名嵌套标签的完整子标签内容
-    def extract_inner_html_from_incomplete_tag(self,html_string: str) -> str:
+    def extract_inner_html_from_incomplete_tag(self, html_string: str) -> str:
         """
         识别残缺的非闭合标签内容，并自动提取第一个符合条件的同名子标签的原始内容。
         如果不是残缺标签，或者没有找到合适的子标签，则返回原内容。
