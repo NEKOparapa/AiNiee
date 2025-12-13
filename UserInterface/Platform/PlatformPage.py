@@ -23,6 +23,7 @@ class PlatformPage(QFrame, Base):
         self.setObjectName(text.replace(" ", "-"))
 
         self.default = {
+            "platforms": {},
             "api_settings": {
                 "translate": None,
                 "polish": None
@@ -274,7 +275,11 @@ class PlatformPage(QFrame, Base):
         # 确保选定的模型在模型列表中
         if data.get("model") and data.get("model") not in new_platform.get("model_datas", []):
             new_platform["model_datas"].append(data.get("model"))
-        
+
+        # 确保 platforms 键存在
+        if "platforms" not in config:
+            config["platforms"] = {}
+
         config["platforms"][tag] = new_platform
         self.save_config(config)
         
