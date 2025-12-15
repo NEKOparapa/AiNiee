@@ -24,17 +24,14 @@ class PlatformPage(QFrame, Base):
     GROUP_CONFIG = {
         "local": {
             "title_key": "本地接口",
-            "icon": FluentIcon.HOME,
             "order": 0
         },
         "online": {
             "title_key": "官方接口",
-            "icon": FluentIcon.GLOBE,
             "order": 1
         },
         "custom": {
             "title_key": "自定义接口",
-            "icon": FluentIcon.EDIT,
             "order": 2
         }
     }
@@ -373,7 +370,7 @@ class PlatformPage(QFrame, Base):
         cards_container.setStyleSheet("QFrame { background: transparent; }")
         
         # 开启排版动画
-        cards_layout = FlowLayout(cards_container, needAni=True)
+        cards_layout = FlowLayout(cards_container, needAni=False)
         cards_layout.setContentsMargins(0, 0, 0, 0)
         cards_layout.setVerticalSpacing(12)
         cards_layout.setHorizontalSpacing(12)
