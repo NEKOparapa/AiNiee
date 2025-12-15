@@ -2,7 +2,6 @@ import csv
 from pathlib import Path
 
 from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
-from ModuleFolders.Infrastructure.Cache.CacheProject import ProjectType
 from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
     OutputConfig,
@@ -15,48 +14,54 @@ class CsvWriter(BaseTranslatedWriter):
 
     @classmethod
     def get_project_type(cls):
-        return "CSV"
+        return "Csv"
 
     def on_write_translated(
         self, translation_file_path: Path, cache_file: CacheFile,
         pre_write_metadata: PreWriteMetadata,
         source_file_path: Path = None,
     ):
-        if not source_file_path or not source_file_path.exists():
-            print("Error: Source file not found for CSV reconstruction.")
+        # 1. 从 extra 中获取表头
+        header = cache_file.get_extra("header")
+        if not header:
+            print(f"Error: Header not found in cache for {translation_file_path.name}")
             return
 
-        # 1. 读取原始 CSV 数据到内存列表
-        original_data = []
-        source_encoding = cache_file.encoding or 'utf-8'
-        
-        try:
-            with open(source_file_path, 'r', encoding=source_encoding, newline='') as f:
-                reader = csv.reader(f)
-                original_data = list(reader)
-        except Exception as e:
-            print(f"Error reading source CSV: {e}")
-            return
+        # 2. 构建数据映射以便快速查找: (row, col) -> final_text
+        # 使用 final_text 确保获取的是 润色后 > 翻译后 > 原文
+        data_map = {
+            (item.get_extra("row"), item.get_extra("col")): item.final_text 
+            for item in cache_file.items
+        }
 
-        # 2. 将翻译填入对应位置
-        for item in cache_file.items:
-            row = item.get_extra("row")
-            col = item.get_extra("col")
-            translated_text = item.final_text
-            
-            if row is not None and col is not None and translated_text:
-                # 确保索引不越界（防止源文件在读取后被修改）
-                if row < len(original_data) and col < len(original_data[row]):
-                    original_data[row][col] = translated_text
+        # 3. 计算最大行数
+        # 如果没有 items (理论上 reader 会跳过，但为了安全)，最大行数设为0
+        max_row = 0
+        if data_map:
+            max_row = max(r for r, c in data_map.keys())
 
-        # 3. 写入新的 CSV 文件
+        # 列数由表头决定
+        num_cols = len(header)
+
+        # 4. 直接创建新文件并写入
         try:
-            # CSV输出通常建议用 utf-8-sig 以便 Excel 正确识别中文
+            # 强制使用 utf-8-sig 以便 Excel 正确识别中文，或者遵循 metadata
             write_encoding = 'utf-8-sig' if pre_write_metadata.encoding == 'utf-8' else pre_write_metadata.encoding
             
             with open(translation_file_path, 'w', encoding=write_encoding, newline='') as f:
                 writer = csv.writer(f)
-                writer.writerows(original_data)
                 
+                # 写入表头
+                writer.writerow(header)
+                
+                # 写入内容：从第1行开始重建数据（第0行是表头）
+                for r in range(1, max_row + 1):
+                    row_data = []
+                    for c in range(num_cols):
+                        # 获取翻译内容，如果源文件该处为空（reader跳过了），则填入空字符串
+                        text = data_map.get((r, c), "")
+                        row_data.append(text)
+                    writer.writerow(row_data)
+                    
         except Exception as e:
             print(f"Error writing translated CSV: {e}")

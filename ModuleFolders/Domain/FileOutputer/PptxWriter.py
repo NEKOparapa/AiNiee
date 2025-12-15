@@ -17,7 +17,7 @@ class PptxWriter(BaseTranslatedWriter):
 
     @classmethod
     def get_project_type(cls):
-        return "PPTX"
+        return "Pptx"
 
     def on_write_translated(
         self, translation_file_path: Path, cache_file: CacheFile,
