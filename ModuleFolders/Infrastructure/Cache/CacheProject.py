@@ -28,7 +28,8 @@ class ProjectType:
     I18NEXT = "I18next"
     PO = "Po"
     BABELDOC_PDF = "BabeldocPdf"
-
+    CSV = "Csv"
+    PPTX = "Pptx"
 
 @dataclass(repr=False)
 class CacheProjectStatistics(ThreadSafeCache):
