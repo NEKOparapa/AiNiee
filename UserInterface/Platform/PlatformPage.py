@@ -3,12 +3,12 @@ import json
 import copy
 import random
 
-from PyQt5.QtCore import Qt, QTimer, QSize
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QFrame, QVBoxLayout, QWidget, QHBoxLayout
 
 from qfluentwidgets import (
     PrimaryPushButton, FluentIcon, SingleDirectionScrollArea,
-    StrongBodyLabel, CardWidget, FlowLayout, SubtitleLabel, BodyLabel
+    StrongBodyLabel,  FlowLayout, SubtitleLabel, BodyLabel
 )
 
 from ModuleFolders.Base.Base import Base

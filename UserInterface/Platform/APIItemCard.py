@@ -96,11 +96,11 @@ class APIItemCard(CardWidget, Base):
         self.activate_btn.setFixedHeight(30)
         
         activate_menu = RoundMenu(parent=self)
-        action_translate = Action(FluentIcon.EDIT, self.tra("设为翻译接口"), self)
+        action_translate = Action(FluentIcon.EXPRESSIVE_INPUT_ENTRY, self.tra("设为翻译接口"), self)
         action_translate.triggered.connect(lambda: self._set_activate_status("translate"))
         activate_menu.addAction(action_translate)
         
-        action_polish = Action(FluentIcon.EDIT, self.tra("设为润色接口"), self)
+        action_polish = Action(FluentIcon.BRUSH, self.tra("设为润色接口"), self)
         action_polish.triggered.connect(lambda: self._set_activate_status("polish"))
         activate_menu.addAction(action_polish)
         
