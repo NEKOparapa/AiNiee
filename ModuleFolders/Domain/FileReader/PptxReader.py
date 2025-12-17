@@ -1,8 +1,6 @@
 from pathlib import Path
-try:
-    from pptx import Presentation
-except ImportError:
-    Presentation = None
+from pptx import Presentation
+
 
 from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
 from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem, TranslationStatus
