@@ -22,15 +22,15 @@
 
 * **格式全能，覆盖广泛**
     * 🎮 **游戏翻译**：深度支持 Mtool, Renpy, Translator++, ParaTranzr, VNText, SExtractor 等游戏文本导出工具。
-    * 📚 **多样支持**：轻松处理 I18Next/.trans/Po 数据、Epub/TXT 电子书、Srt/Ass/Vtt/Lrc 字幕、Word/PDF/MD 文档等。
+    * 📚 **多样支持**：轻松处理 I18Next/.trans/Po/CSV 数据、Epub/TXT 电子书、Srt/Ass/Vtt/Lrc 字幕、Word/PDF/MD/PPT 文档等。
 
 * **智能高效，省时省心**
     * 🚀 **一键操作**：一拖一点，自动识别文件与语言，无需设置。
     * ⏱️ **极速翻译**：喝杯可乐的工夫，就能拿到译文。
 
 * **长文优化，质量出众**
-    * 🎯 **突破局限**：采用轻盈翻译格式、思维链翻译、AI 术语表、上下文关联等技术，确保长文本翻译的连贯性与准确性。
-    * 💎 **质量追求**：支持 基础提示、角色介绍、背景设定、翻译风格 等提示词调整，拥有 一键AI润色、一键AI排版、一键提取术语 等功能，满足对翻译质量有更高要求的用户。
+    * 🎯 **突破局限**：采用轻盈翻译格式、思维链翻译、AI术语表、上下文关联等技术，确保长文本翻译的连贯性与准确性。
+    * 💎 **质量追求**：支持 基础提示、角色介绍、背景设定、翻译风格 等提示词调整，拥有 一键AI润色、一键提取术语 等功能，满足对翻译质量有更高要求的用户。
 
 * ✨ **姊妹项目推荐**：[**ReaDreamAI**](https://github.com/NEKOparapa/ReaDreamAI) - 阅你所想，绘你所梦，从一个想法到一本完整的精彩小说。ReaDreamAI为你包办写作、插图与视频。
 
@@ -41,8 +41,7 @@
 * **第一步：配置接口**
   > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第一步.png">
 
-  - 在线接口：需付费但性价比很高，无显卡要求，全语言支持，[接口设置说明 - DeepSeek](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartDeepSeek)
-  - 在线接口：同上，如果Deepseek官网无法正常使用，可换该接口，[接口设置说明 - 火山引擎](https://github.com/NEKOparapa/AiNiee/wiki/QuickStartHuo)
+  - 在线接口：需付费但性价比很高，无显卡要求，全语言支持，[接口设置说明 - DeepSeek](https://github.com/NEKOparapa/AiNiee/wiki/%E5%9C%A8%E7%BA%BF%E6%8E%A5%E5%8F%A3%E2%80%90Deepseek)
 
 
 * **第二步：拖入文件夹**
@@ -222,13 +221,10 @@
 ---
 
 ## 特别声明[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#特别声明)   
-AiNiee能够不断发展迭代至今，其关键功能框架均源于项目创立以来的持续个人研发、用户反馈建议以及大佬们PR的共同努力与创造。
-这是两年以来一个不断摸索、持续改进、共同构筑的过程，才形成了AiNiee如今相对成熟和完整的AI翻译体系。
-请大家在使用和学习之余，尊重开源精神，署名来源项目，并不忘了给项目点个star。
 
 该款AI翻译工具仅供个人合法用途,任何使用该工具进行直接或者间接非法盈利活动的行为,均不属于授权范围,也不受到任何支持和认可。
 
-* 关于开发者** @neavo **合作说明: 在AiNiee v5.2版本，2月初，已退出AiNiee的开发工作。我们对他在此期间(2024-09至2025-02)，特别是在V5版本的UI改良美化所付出的努力表示非常感谢。[详细说明](https://github.com/NEKOparapa/AiNiee/releases/tag/AiNiee6.2.3)
+* 关于开发者 @neavo 合作说明: 在AiNiee v5.2版本，已退出AiNiee的开发工作。我们对他在此期间(2024-09至2025-02)，特别是在V5版本的UI改良美化所付出的努力表示非常感谢。[详细说明](https://github.com/NEKOparapa/AiNiee/releases/tag/AiNiee6.2.3)
 
 * **`交♂交流群`**:  QQ交流群(主要活跃，答案：github)：8216248九零，备用TG群：https://t.me/+JVHbDSGo8SI2Njhl ,
 
