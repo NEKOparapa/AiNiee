@@ -1,40 +1,142 @@
 {
   "PART_1": {
-    "接口测试正在执行中，请稍后再试": {
-      "简中": "接口测试正在执行中，请稍后再试",
-      "繁中": "介面測試執行中，請稍後再試",
-      "English": "Interface test in progress, please wait...",
-      "日本語": "インターフェースのテストを実行中です。しばらくお待ちください。"
+    "暂无接口": {
+      "简中": "暂无接口",
+      "繁中": "暫無介面",
+      "English": "No Interfaces",
+      "日本語": "インターフェースなし"
     },
-    "接口测试结果：成功": {
-      "简中": "接口测试结果：成功",
-      "繁中": "介面測試結果：成功",
-      "English": "Interface test result: Success",
-      "日本語": "インターフェースのテスト結果：成功"
+    "点击右下角的「添加接口」按钮创建您的第一个接口": {
+      "简中": "点击右下角的「添加接口」按钮创建您的第一个接口",
+      "繁中": "點擊右下角的「新增介面」按鈕建立您的第一個介面",
+      "English": "Click the \"Add Interface\" button at the bottom right to create your first interface",
+      "日本語": "右下の「インターフェースを追加」ボタンをクリックして作成してください"
     },
-    "失败": {
-      "简中": "失败",
-      "繁中": "失敗",
-      "English": "Failed",
-      "日本語": "失敗"
+    "添加接口": {
+      "简中": "添加接口",
+      "繁中": "新增介面",
+      "English": "Add API",
+      "日本語": "追加"
     },
-    "教程": {
-      "简中": "教程",
-      "繁中": "教學",
-      "English": "Tutorial",
-      "日本語": "チュートリアル"
+    "接口不存在": {
+      "简中": "接口不存在",
+      "繁中": "介面不存在",
+      "English": "Interface does not exist",
+      "日本語": "インターフェースが存在しません"
     },
-    "请输入新的接口名称": {
-      "简中": "请输入新的接口名称",
-      "繁中": "請輸入新的介面名稱",
-      "English": "Enter new interface name",
-      "日本語": "新しいインターフェース名を入力してください"
+    "测试完成：成功": {
+      "简中": "测试完成：成功",
+      "繁中": "測試完成：成功",
+      "English": "Test completed: Success",
+      "日本語": "テスト完了：成功"
     },
-    "新增": {
-      "简中": "新增",
-      "繁中": "新增",
-      "English": "Add",
-      "日本語": "新規追加"
+    "测试成功": {
+      "简中": "测试成功",
+      "繁中": "測試成功",
+      "English": "Test Successful",
+      "日本語": "テスト成功"
+    },
+    "接口已删除": {
+      "简中": "接口已删除",
+      "繁中": "介面已刪除",
+      "English": "Interface Deleted",
+      "日本語": "インターフェースを削除しました"
+    },
+    "未找到选定的平台预设": {
+      "简中": "未找到选定的平台预设",
+      "繁中": "未找到選定的平台預設",
+      "English": "Selected platform preset not found",
+      "日本語": "選択されたプラットフォームのプリセットが見つかりません"
+    },
+    "接口添加成功": {
+      "简中": "接口添加成功",
+      "繁中": "介面新增成功",
+      "English": "Interface Added Successfully",
+      "日本語": "インターフェースの追加に成功しました"
+    },
+    "未设置": {
+      "简中": "未设置",
+      "繁中": "未設定",
+      "English": "Not Set",
+      "日本語": "未設定"
+    },
+    "暂未配置": {
+      "简中": "暂未配置",
+      "繁中": "暫未配置",
+      "English": "Not Configured",
+      "日本語": "未設定"
+    },
+    "拖拽接口到此处": {
+      "简中": "拖拽接口到此处",
+      "繁中": "拖拽介面到此處",
+      "English": "Drag interface here",
+      "日本語": "インターフェースをここにドラッグ"
+    },
+    "正在使用中": {
+      "简中": "正在使用中",
+      "繁中": "正在使用中",
+      "English": "In Use",
+      "日本語": "使用中"
+    },
+    "翻译接口": {
+      "简中": "翻译接口",
+      "繁中": "翻譯介面",
+      "English": "Translation Interface",
+      "日本語": "翻訳インターフェース"
+    },
+    "润色接口": {
+      "简中": "润色接口",
+      "繁中": "潤飾介面",
+      "English": "Polish Interface",
+      "日本語": "推敲インターフェース"
+    },
+    "调整限速": {
+      "简中": "调整限速",
+      "繁中": "調整限速",
+      "English": "Adjust Rate Limit",
+      "日本語": "レート制限を調整"
+    },
+    "调整参数": {
+      "简中": "调整参数",
+      "繁中": "調整參數",
+      "English": "Adjust Parameters",
+      "日本語": "パラメータを調整"
+    },
+    "翻译激活中": {
+      "简中": "翻译激活中",
+      "繁中": "翻譯啟動中",
+      "English": "Translation Active",
+      "日本語": "翻訳有効中"
+    },
+    "润色激活中": {
+      "简中": "润色激活中",
+      "繁中": "潤飾啟動中",
+      "English": "Polish Active",
+      "日本語": "推敲有効中"
+    },
+    "已设置": {
+      "简中": "已设置 ",
+      "繁中": "已設定 ",
+      "English": "Set ",
+      "日本語": "設定済み "
+    },
+    "翻译": {
+      "简中": "翻译",
+      "繁中": "翻譯",
+      "English": "Translation",
+      "日本語": "翻訳"
+    },
+    "润色": {
+      "简中": "润色",
+      "繁中": "潤飾",
+      "English": "Polish",
+      "日本語": "推敲"
+    },
+    "接口": {
+      "简中": "接口",
+      "繁中": "介面",
+      "English": "Interface",
+      "日本語": "インターフェース"
     }
   },
 
@@ -45,23 +147,17 @@
       "English": "Edit Interface",
       "日本語": "インターフェースを編集"
     },
-    "更名接口": {
-      "简中": "更名接口",
-      "繁中": "更名接口",
-      "English": "Rename Interface",
-      "日本語": "名前変更インターフェース"
+    "调整限速": {
+      "简中": "调整限速",
+      "繁中": "調整限速",
+      "English": "Adjust Rate Limit",
+      "日本語": "レート制限を調整"
     },
-    "编辑限速": {
-      "简中": "编辑限速",
-      "繁中": "編輯限速",
-      "English": "Edit Rate Limit",
-      "日本語": "レート制限を編集"
-    },
-    "编辑参数": {
-      "简中": "编辑参数",
-      "繁中": "編輯參數",
-      "English": "Edit Parameters",
-      "日本語": "パラメータを編集"
+    "调整参数": {
+      "简中": "调整参数",
+      "繁中": "調整參數",
+      "English": "Adjust Parameters",
+      "日本語": "パラメータを調整"
     },
     "测试接口": {
       "简中": "测试接口",
@@ -81,24 +177,23 @@
       "English": "Local Interface",
       "日本語": "ローカルインターフェース"
     },
-    "管理应用内置的本地大语言模型的接口": {
-      "简中": "管理应用内置的本地大语言模型的接口",
-      "繁中": "管理應用程式內建的本地大型語言模型的介面",
-      "English": "Manage local LLM interfaces",
-      "日本語": "ローカルLLMインターフェースを管理"
+    "本地部署的模型接口": {
+      "简中": "本地部署的模型接口",
+      "繁中": "本地部署的模型介面",
+      "English": "Locally Deployed Model Interface",
+      "日本語": "ローカルに展開されたモデルインターフェース"
     },
     "官方接口": {
       "简中": "官方接口",
       "繁中": "官方介面",
       "English": "Official Interface",
       "日本語": "公式インターフェース"
-    }
-    ,
-    "管理应用内置的主流大语言模型的官方接口": {
-      "简中": "管理应用内置的主流大语言模型的官方接口",
-      "繁中": "管理應用程式內建的主流大型語言模型的官方介面",
-      "English": "Manage official mainstream LLM interfaces",
-      "日本語": "公式主流LLMインターフェースを管理"
+    },
+    "官方平台提供的在线接口": {
+      "简中": "官方平台提供的在线接口",
+      "繁中": "官方平台提供的線上介面",
+      "English": "Official Platform Online Interface",
+      "日本語": "公式プラットフォーム提供のオンラインインターフェース"
     },
     "自定义接口": {
       "简中": "自定义接口",
@@ -106,11 +201,11 @@
       "English": "Custom Interface",
       "日本語": "カスタムインターフェース"
     },
-    "在此添加和管理任何符合 OpenAI 格式或者 Anthropic 格式的大语言模型的接口": {
-      "简中": "在此添加和管理任何符合 OpenAI 格式或者 Anthropic 格式的大语言模型的接口",
-      "繁中": "在此新增和管理任何符合 OpenAI 格式或 Anthropic 格式的大型語言模型的介面",
-      "English": "Add & manage OpenAI/Anthropic format LLM interfaces here",
-      "日本語": "OpenAI/Anthropic形式のLLMインターフェースをここに追加・管理"
+    "第三方或自定义配置的接口": {
+      "简中": "第三方或自定义配置的接口",
+      "繁中": "第三方或自訂配置的介面",
+      "English": "Third-party or Custom Configured Interface",
+      "日本語": "サードパーティまたはカスタム構成のインターフェース"
     }
   },
 
@@ -169,19 +264,6 @@
       "English": "Enter API key (comma-separated for multiple keys)",
       "日本語": "APIキーを入力（複数キーはカンマ区切り）"
     },
-    "账户类型": {
-      "简中": "账户类型",
-      "繁中": "帳戶類型",
-      "English": "Account Type",
-      "日本語": "アカウントタイプ"
-    }
-    ,
-    "请选择账户类型": {
-      "简中": "请选择账户类型",
-      "繁中": "請選擇帳戶類型",
-      "English": "Select account type",
-      "日本語": "アカウントタイプを選択してください"
-    },
     "请输入模型名称": {
       "简中": "请输入模型名称",
       "繁中": "請輸入模型名稱",
@@ -199,6 +281,18 @@
       "繁中": "請選擇或輸入要使用的模型名稱",
       "English": "Select or enter model name",
       "日本語": "モデル名を選択または入力"
+    },
+    "接口名称": {
+      "简中": "接口名称",
+      "繁中": "介面名稱",
+      "English": "Interface Name",
+      "日本語": "インターフェース名"
+    },
+    "模型名称": {
+      "简中": "模型名称",
+      "繁中": "模型名稱",
+      "English": "Model Name",
+      "日本語": "モデル名"
     }
   },
 
@@ -220,12 +314,6 @@
       "繁中": "請謹慎設定，對於目標介面，此參數的預設值為",
       "English": "Set with caution. Default value for this API is",
       "日本語": "注意して設定してください。このAPIのデフォルト値は"
-    },
-    "点击查看文档": {
-      "简中": "点击查看文档",
-      "繁中": "點擊查看文件",
-      "English": "View documentation",
-      "日本語": "ドキュメントを見る"
     }
   },
 
@@ -273,43 +361,210 @@
       "日本語": "思考深度"
     }
   },
-
-  "PART_6": {
-      "设置不同任务所使用的接口": {
-        "简中": "设置不同任务所使用的接口",
-        "繁中": "設定不同任務所使用的介面",
-        "English": "Set Interfaces for Different Tasks",
-        "日本語": "タスク別インターフェース設定"
-      },
-      "拖动一个接口到这里": {
-        "简中": "拖动一个接口到这里",
-        "繁中": "拖曳一個介面到這裡",
-        "English": "Drag an interface here",
-        "日本語": "インターフェースをここにドラッグ"
-      },
-      "翻译接口": {
-        "简中": "翻译接口",
-        "繁中": "翻譯介面",
-        "English": "Translation Interface",
-        "日本語": "翻訳インターフェース"
-      },
-      "润色接口": {
-        "简中": "润色接口",
-        "繁中": "潤飾介面",
-        "English": "Polishing Interface",
-        "日本語": "推敲インターフェース"
-      },
-      "排版接口": {
-        "简中": "排版接口",
-        "繁中": "排版介面",
-        "English": "Formatting Interface",
-        "日本語": "組版インターフェース"
-      },
-      "设置成功": {
-        "简中": "设置成功",
-        "繁中": "設定成功",
-        "English": "Successfully Set",
-        "日本語": "設定完了"
-      }
+  "PART_8": {
+    "添加新接口": {
+      "简中": "添加新接口",
+      "繁中": "新增新介面",
+      "English": "Add New Interface",
+      "日本語": "新しいインターフェースを追加"
+    },
+    "请输入接口名称，例如：我的GPT接口": {
+      "简中": "请输入接口名称，例如：我的GPT接口",
+      "繁中": "請輸入介面名稱，例如：我的GPT介面",
+      "English": "Enter interface name, e.g., My GPT",
+      "日本語": "インターフェース名を入力（例：My GPT）"
+    },
+    "接口平台": {
+      "简中": "接口平台",
+      "繁中": "介面平台",
+      "English": "Interface Platform",
+      "日本語": "プラットフォーム"
+    },
+    "请选择接口平台": {
+      "简中": "请选择接口平台",
+      "繁中": "請選擇介面平台",
+      "English": "Select Interface Platform",
+      "日本語": "プラットフォームを選択してください"
+    },
+    "请输入接口地址，例如：https://api.openai.com/v1": {
+      "简中": "请输入接口地址，例如：https://api.openai.com/v1",
+      "繁中": "請輸入介面位址，例如：https://api.openai.com/v1",
+      "English": "Enter API address, e.g., https://api.openai.com/v1",
+      "日本語": "APIアドレスを入力（例：https://api.openai.com/v1）"
+    },
+    "请输入接口密钥，例如：sk-xxxxxxxx，多个密钥之间请使用半角逗号（,）分隔": {
+      "简中": "请输入接口密钥，例如：sk-xxxxxxxx，多个密钥之间请使用半角逗号（,）分隔",
+      "繁中": "請輸入介面金鑰，例如：sk-xxxxxxxx，多個金鑰之間請使用半形逗號（,）分隔",
+      "English": "Enter API key (comma-separated for multiple keys)",
+      "日本語": "APIキーを入力（複数キーはカンマ区切り）"
+    },
+    "区域": {
+      "简中": "区域",
+      "繁中": "區域",
+      "English": "Region",
+      "日本語": "リージョン"
+    },
+    "请输入区域，例如：us-east-1": {
+      "简中": "请输入区域，例如：us-east-1",
+      "繁中": "請輸入區域，例如：us-east-1",
+      "English": "Enter region, e.g., us-east-1",
+      "日本語": "リージョンを入力（例：us-east-1）"
+    },
+    "请输入区域": {
+      "简中": "请输入区域",
+      "繁中": "請輸入區域",
+      "English": "Enter Region",
+      "日本語": "リージョンを入力"
+    },
+    "区域(可编辑)": {
+      "简中": "区域(可编辑)",
+      "繁中": "區域 (可編輯)",
+      "English": "Region (Editable)",
+      "日本語": "リージョン（編集可能）"
+    },
+    "请选择或者输入要使用的区域": {
+      "简中": "请选择或者输入要使用的区域",
+      "繁中": "請選擇或輸入要使用的區域",
+      "English": "Select or enter the region to use",
+      "日本語": "使用するリージョンを選択または入力"
+    },
+    "AWS Access Key": {
+      "简中": "AWS Access Key",
+      "繁中": "AWS Access Key",
+      "English": "AWS Access Key",
+      "日本語": "AWS Access Key"
+    },
+    "请输入 AWS Access Key ID": {
+      "简中": "请输入 AWS Access Key ID",
+      "繁中": "請輸入 AWS Access Key ID",
+      "English": "Enter AWS Access Key ID",
+      "日本語": "AWS Access Key IDを入力してください"
+    },
+    "请输入AWS Access Key": {
+      "简中": "请输入AWS Access Key",
+      "繁中": "請輸入AWS Access Key",
+      "English": "Enter AWS Access Key",
+      "日本語": "AWS Access Keyを入力してください"
+    },
+    "AWS Secret Key": {
+      "简中": "AWS Secret Key",
+      "繁中": "AWS Secret Key",
+      "English": "AWS Secret Key",
+      "日本語": "AWS Secret Key"
+    },
+    "请输入 AWS Secret Access Key": {
+      "简中": "请输入 AWS Secret Access Key",
+      "繁中": "請輸入 AWS Secret Access Key",
+      "English": "Enter AWS Secret Access Key",
+      "日本語": "AWS Secret Access Keyを入力してください"
+    },
+    "请输入AWS Secret Key": {
+      "简中": "请输入AWS Secret Key",
+      "繁中": "請輸入AWS Secret Key",
+      "English": "Enter AWS Secret Key",
+      "日本語": "AWS Secret Keyを入力してください"
+    },
+    "请输入 Access Key": {
+      "简中": "请输入 Access Key",
+      "繁中": "請輸入 Access Key",
+      "English": "Enter Access Key",
+      "日本語": "Access Keyを入力してください"
+    },
+    "请输入 Secret Key": {
+      "简中": "请输入 Secret Key",
+      "繁中": "請輸入 Secret Key",
+      "English": "Enter Secret Key",
+      "日本語": "Secret Keyを入力してください"
+    },
+    "请输入或选择模型名称": {
+      "简中": "请输入或选择模型名称",
+      "繁中": "請輸入或選擇模型名稱",
+      "English": "Enter or select model name",
+      "日本語": "モデル名を入力または選択"
+    },
+    "自动为接口地址添加 /v1 后缀": {
+      "简中": "自动为接口地址添加 /v1 后缀",
+      "繁中": "自動為介面位址新增 /v1 後綴",
+      "English": "Automatically append /v1 suffix to API URL",
+      "日本語": "APIアドレスに /v1 サフィックスを自動追加"
+    },
+    "本地模型": {
+      "简中": "本地模型",
+      "繁中": "本地模型",
+      "English": "Local Models",
+      "日本語": "ローカルモデル"
+    },
+    "其他": {
+      "简中": "其他",
+      "繁中": "其他",
+      "English": "Others",
+      "日本語": "その他"
+    },
+    "自定义该接口在列表中的显示名称": {
+      "简中": "自定义该接口在列表中的显示名称",
+      "繁中": "自訂該介面在列表中的顯示名稱",
+      "English": "Customize the display name of this interface in the list",
+      "日本語": "リスト内のこのインターフェースの表示名をカスタマイズ"
+    },
+    "获取模型": {
+      "简中": "获取模型",
+      "繁中": "獲取模型",
+      "English": "Fetch Models",
+      "日本語": "モデルを取得"
+    },
+    "搜索模型...": {
+      "简中": "搜索模型...",
+      "繁中": "搜尋模型...",
+      "English": "Search models...",
+      "日本語": "モデルを検索..."
+    },
+    "上一页": {
+      "简中": "上一页",
+      "繁中": "上一頁",
+      "English": "Previous",
+      "日本語": "前へ"
+    },
+    "下一页": {
+      "简中": "下一页",
+      "繁中": "下一頁",
+      "English": "Next",
+      "日本語": "次へ"
+    },
+    "正在获取模型...": {
+      "简中": "正在获取模型...",
+      "繁中": "正在獲取模型...",
+      "English": "Fetching models...",
+      "日本語": "モデルを取得中..."
+    },
+    "获取失败": {
+      "简中": "获取失败",
+      "繁中": "獲取失敗",
+      "English": "Fetch Failed",
+      "日本語": "取得失敗"
+    },
+    "获取成功": {
+      "简中": "获取成功",
+      "繁中": "獲取成功",
+      "English": "Fetch Success",
+      "日本語": "取得成功"
+    },
+    "没有返回任何模型": {
+      "简中": "没有返回任何模型",
+      "繁中": "沒有返回任何模型",
+      "English": "No models returned",
+      "日本語": "モデルが見つかりませんでした"
+    },
+    "未选择任何模型": {
+      "简中": "未选择任何模型",
+      "繁中": "未選擇任何模型",
+      "English": "No model selected",
+      "日本語": "モデルが選択されていません"
+    },
+    "已添加所选模型": {
+      "简中": "已添加所选模型",
+      "繁中": "已新增所選模型",
+      "English": "Selected model added",
+      "日本語": "選択したモデルを追加しました"
+    }
   }
 }

@@ -1,197 +1,101 @@
 import os
-
-from PyQt5.QtCore import Qt, pyqtSignal, QSize
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget
+from PyQt5.QtCore import Qt, pyqtSignal, QMimeData
+from PyQt5.QtGui import QDrag, QIcon
 
 from qfluentwidgets import (
-    CardWidget, CaptionLabel, StrongBodyLabel,
-    RoundMenu, Action, FluentIcon,
-    IconWidget, PillPushButton, DropDownToolButton
+    DropDownPushButton, RoundMenu, Action, FluentIcon
 )
 
 from ModuleFolders.Base.Base import Base
 
-class APIItemCard(CardWidget, Base):
-    """接口卡片组件"""
+class APIItemCard(DropDownPushButton, Base):
+    """
+    可拖拽的接口按钮组件
+    """
     
-    # 信号
+    # 静态缓存字典
+    _icon_cache = {} 
+    
+    # 信号定义
     testClicked = pyqtSignal(str)
-    activateChanged = pyqtSignal(str, str) 
     editClicked = pyqtSignal(str)
     editLimitClicked = pyqtSignal(str)
     editArgsClicked = pyqtSignal(str)
     deleteClicked = pyqtSignal(str)
-    
-    def __init__(self, api_tag: str, api_data: dict, activate_status: str = None, parent=None):
-        super().__init__(parent)
-        
+
+    def __init__(self, api_tag: str, api_data: dict, parent=None):
+        super().__init__(parent=parent)
         self.api_tag = api_tag
         self.api_data = api_data
-        self.activate_status = activate_status  # "translate", "polish", or None
         
-        self.setBorderRadius(8)
-        self.setFixedHeight(80)
+        # 1. 设置文本 (只显示接口名称)
+        name = api_data.get("name", "None")
+        self.setText(name) # 仅显示接口名称
         
-        self._build_ui()
-        self._update_activate_buttons()
+        # 2. 设置图标
+        self._setup_icon()
         
-    def _build_ui(self):
-        self.hbox = QHBoxLayout(self)
-        self.hbox.setContentsMargins(16, 12, 16, 12)
-        self.hbox.setSpacing(12)
+        # 3. 构建菜单
+        self._build_menu()
         
-        # 左侧：图标
-        icon_name = self.api_data.get("icon", "custom") + ".png"
-        icon_path = os.path.join(".", "Resource", "platforms", "Icon", icon_name)
+        # 4. 样式调整
+        self.setFixedWidth(180) # 根据文本长度调整宽度，可以适当缩小
         
-        if os.path.exists(icon_path):
-            self.icon_widget = IconWidget(QIcon(icon_path), self)
-        else:
-            self.icon_widget = IconWidget(FluentIcon.ROBOT, self)
-        self.icon_widget.setFixedSize(40, 40)
-        self.hbox.addWidget(self.icon_widget)
+    def _setup_icon(self):
+        icon_name = self.api_data.get("icon", "custom")
+        if icon_name not in self._icon_cache:
+            file_name = icon_name + ".png"
+            icon_path = os.path.join(".", "Resource", "platforms", "Icon", file_name)
+            if os.path.exists(icon_path):
+                self._icon_cache[icon_name] = QIcon(icon_path)
+            else:
+                self._icon_cache[icon_name] = FluentIcon.ROBOT
         
-        # 中间：名称和接口地址+模型信息
-        self.info_container = QFrame()
-        self.info_layout = QVBoxLayout(self.info_container)
-        self.info_layout.setContentsMargins(0, 0, 0, 0)
-        self.info_layout.setSpacing(4)
+        self.setIcon(self._icon_cache[icon_name])
+
+    def _build_menu(self):
+        menu = RoundMenu(parent=self)
         
-        self.name_label = StrongBodyLabel(self.api_data.get("name", ""))
-        self.info_layout.addWidget(self.name_label)
+        menu.addAction(Action(FluentIcon.SEND, self.tra("测试接口"), 
+                            triggered=lambda: self.testClicked.emit(self.api_tag)))
+        menu.addSeparator()
+        menu.addAction(Action(FluentIcon.EDIT, self.tra("编辑接口"), 
+                            triggered=lambda: self.editClicked.emit(self.api_tag)))
+        menu.addAction(Action(FluentIcon.SCROLL, self.tra("调整限速"), 
+                            triggered=lambda: self.editLimitClicked.emit(self.api_tag)))
+        menu.addAction(Action(FluentIcon.DEVELOPER_TOOLS, self.tra("调整参数"), 
+                            triggered=lambda: self.editArgsClicked.emit(self.api_tag)))
+        menu.addSeparator()
+        menu.addAction(Action(FluentIcon.DELETE, self.tra("删除接口"), 
+                            triggered=lambda: self.deleteClicked.emit(self.api_tag)))
         
-        # 拼接 URL 和 模型信息
-        api_url = self.api_data.get("api_url", "")
-        display_url = api_url if api_url else self.tra("无接口地址")
-        
-        model_name = self.api_data.get("model", "")
-        if model_name:
-            display_text = f"URL: {display_url}  ||  Model:  {model_name}"
-        else:
-            display_text = display_url
-            
-        self.info_label = CaptionLabel(display_text)
-        
-        self.info_label.setStyleSheet("color: #888;")
-        self.info_layout.addWidget(self.info_label)
-        
-        self.hbox.addWidget(self.info_container, 1)
-        
-        # 激活按钮区域
-        self.activate_container = QWidget()
-        self.activate_layout = QHBoxLayout(self.activate_container)
-        self.activate_layout.setContentsMargins(0, 0, 0, 0)
-        self.activate_layout.setSpacing(8)
-        
-        # 翻译激活按钮
-        self.translate_btn = PillPushButton(self.tra("翻译"))
-        self.translate_btn.setCheckable(True)
-        self.translate_btn.setFixedHeight(32)
-        self.translate_btn.setIcon(FluentIcon.EXPRESSIVE_INPUT_ENTRY)
-        self.translate_btn.setIconSize(QSize(14, 14))
-        self.translate_btn.setToolTip(self.tra("点击激活/取消翻译任务"))
-        self.translate_btn.clicked.connect(self._on_translate_clicked)
-        self.activate_layout.addWidget(self.translate_btn)
-        
-        # 润色激活按钮
-        self.polish_btn = PillPushButton(self.tra("润色"))
-        self.polish_btn.setCheckable(True)
-        self.polish_btn.setFixedHeight(32)
-        self.polish_btn.setIcon(FluentIcon.BRUSH)
-        self.polish_btn.setIconSize(QSize(14, 14))
-        self.polish_btn.setToolTip(self.tra("点击激活/取消润色任务"))
-        self.polish_btn.clicked.connect(self._on_polish_clicked)
-        self.activate_layout.addWidget(self.polish_btn)
-        
-        self.hbox.addWidget(self.activate_container)
-        
-        # 更多按钮
-        self.more_btn = DropDownToolButton()
-        self.more_btn.setIcon(FluentIcon.MORE)
-        
-        more_menu = RoundMenu(parent=self)
-        more_menu.addAction(Action(
-            FluentIcon.SEND, 
-            self.tra("测试接口"),
-            triggered=lambda: self.testClicked.emit(self.api_tag)
-        ))
-        more_menu.addSeparator()
-        more_menu.addAction(Action(
-            FluentIcon.EDIT, 
-            self.tra("编辑接口"),
-            triggered=lambda: self.editClicked.emit(self.api_tag)
-        ))
-        more_menu.addAction(Action(
-            FluentIcon.SCROLL, 
-            self.tra("编辑限速"),
-            triggered=lambda: self.editLimitClicked.emit(self.api_tag)
-        ))
-        more_menu.addAction(Action(
-            FluentIcon.DEVELOPER_TOOLS, 
-            self.tra("编辑参数"),
-            triggered=lambda: self.editArgsClicked.emit(self.api_tag)
-        ))
-        more_menu.addSeparator()
-        more_menu.addAction(Action(
-            FluentIcon.DELETE, 
-            self.tra("删除接口"),
-            triggered=lambda: self.deleteClicked.emit(self.api_tag)
-        ))
-        self.more_btn.setMenu(more_menu)
-        self.hbox.addWidget(self.more_btn)
-    
-    def _on_translate_clicked(self):
-        """处理翻译按钮点击"""
-        # 如果当前是翻译激活状态，则取消；否则激活翻译
-        if self.activate_status == "translate":
-            self._set_activate_status(None)
-        else:
-            self._set_activate_status("translate")
-    
-    def _on_polish_clicked(self):
-        """处理润色按钮点击"""
-        # 如果当前是润色激活状态，则取消；否则激活润色
-        if self.activate_status == "polish":
-            self._set_activate_status(None)
-        else:
-            self._set_activate_status("polish")
-        
-    def _set_activate_status(self, status: str):
-        """设置激活状态并发出信号"""
-        self.activate_status = status
-        self._update_activate_buttons()
-        self.activateChanged.emit(self.api_tag, status if status else "")
-        
-    def _update_activate_buttons(self):
-        """更新激活按钮的选中状态"""
-        # 阻止信号避免循环触发
-        self.translate_btn.blockSignals(True)
-        self.polish_btn.blockSignals(True)
-        
-        self.translate_btn.setChecked(self.activate_status == "translate")
-        self.polish_btn.setChecked(self.activate_status == "polish")
-        
-        self.translate_btn.blockSignals(False)
-        self.polish_btn.blockSignals(False)
-        
+        self.setMenu(menu)
+
     def update_info(self, api_data: dict):
-        """更新卡片信息"""
+        """更新显示信息"""
         self.api_data = api_data
-        self.name_label.setText(api_data.get("name", ""))
+        name = api_data.get("name", "None")
+        self.setText(name) # 仅显示接口名称
+
+    def mouseMoveEvent(self, e):
+        """实现拖拽逻辑"""
+        # 只有按住左键移动才触发拖拽
+        if e.buttons() != Qt.LeftButton:
+            return
+
+        # 只要移动了一点距离，就开始拖拽
+        drag = QDrag(self)
+        mime = QMimeData()
+        # 将 api_tag 作为传递的数据
+        mime.setText(self.api_tag)
+        drag.setMimeData(mime)
         
-        api_url = api_data.get("api_url", "")
-        display_url = api_url if api_url else self.tra("未设置接口地址")
+        # 设置拖拽时的视觉反馈（使用按钮的截图）
+        pixmap = self.grab()
+        drag.setPixmap(pixmap)
+        drag.setHotSpot(e.pos())
         
-        model_name = api_data.get("model", "")
-        if model_name:
-            display_text = f"URL: {display_url}  ||  Model:  {model_name}"
-        else:
-            display_text = display_url
-            
-        self.info_label.setText(display_text)
+        # 执行拖拽
+        drag.exec_(Qt.MoveAction)
         
-    def set_activate_status(self, status: str):
-        """外部设置激活状态（不触发信号）"""
-        self.activate_status = status
-        self._update_activate_buttons()
+        super().mouseMoveEvent(e)

@@ -108,7 +108,7 @@ class DragDropArea(Base,QWidget):
         # 简化信息块创建
         block_info = [
             (f"{info_1}\n Epub\n TXT", "#AED6F1"),
-            (f"{info_2}\n Docx\n MD", "#A9DFBF"),
+            (f"{info_2}\n Docx\n MD\n PPTX\n CSV", "#A9DFBF"),
             (f"{info_3}\n Srt\n Ass\n Vtt\n Lrc", "#FAD7A0"),
             (f"{info_5}\n Renpy\n VNText \n RPGmaker", "#AFEEEE"),
             (f"{info_6}\n Po \n I18Next \n ParaTranz", "#F08080"),

@@ -401,11 +401,15 @@ class TextProcessor():
         if pre_translation_switch:
             processed_text = self.replace_before_translation(processed_text)
 
-        # 空白换行，非日语文本前后缀处理（支持多行）
-        processed_text, affix_whitespace_storage = self.strip_and_record_affixes(processed_text, source_lang)
-
         # 自动预处理
         if auto_process_text_code_segment:
+
+            # 空白换行，非日语文本前后缀处理（支持多行）
+            processed_text, affix_whitespace_storage = self.strip_and_record_affixes(
+                processed_text,
+                source_lang
+            )
+
             # 自动处理前后缀
             processed_text, prefix_codes, suffix_codes = self._process_affixes(
                 processed_text,
@@ -447,7 +451,8 @@ class TextProcessor():
         restored = self.digital_sequence_recovery(restored)
 
         # 前后空白换行，非日语文本还原（支持多行）
-        restored = self.restore_affix_whitespace(affix_whitespace_storage, restored)
+        if auto_process_text_code_segment:
+            restored = self.restore_affix_whitespace(affix_whitespace_storage, restored)
 
         return restored
 

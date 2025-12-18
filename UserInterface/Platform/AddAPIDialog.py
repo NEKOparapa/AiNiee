@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QFrame
 
 from qfluentwidgets import (
     MessageBoxBase, LineEdit, StrongBodyLabel, CaptionLabel,
-    ComboBox, SwitchButton, FlowLayout, PillPushButton,SingleDirectionScrollArea, EditableComboBox,
+    ComboBox, SwitchButton, FlowLayout, PillPushButton, SingleDirectionScrollArea, EditableComboBox,
     PlainTextEdit
 )
 
@@ -186,12 +186,9 @@ class AddAPIDialog(MessageBoxBase, Base):
                          if v.get("group") == "local"}
         
         online_platforms = {k: v for k, v in self.preset_platforms.items() 
-                          if v.get("group") == "online" and k != "amazonbedrock"}
+                          if v.get("group") == "online"}
         
         other_platforms = {}
-        # 将 amazonbedrock 和 custom 归类到其他
-        if "amazonbedrock" in self.preset_platforms:
-             other_platforms["amazonbedrock"] = self.preset_platforms["amazonbedrock"]
         
         if "custom" in self.preset_platforms:
              other_platforms["custom"] = self.preset_platforms["custom"]
@@ -385,8 +382,9 @@ class AddAPIDialog(MessageBoxBase, Base):
         # 根据平台类型获取不同字段
         if self.selected_platform_tag == "amazonbedrock":
             region = self.region_edit.text().strip()
-            access_key = self.access_key_edit.toPlainText().strip()
-            secret_key = self.secret_key_edit.toPlainText().strip()
+            
+            access_key = self.access_key_edit.text().strip()
+            secret_key = self.secret_key_edit.text().strip()
             
             if not region:
                 self.warning_toast("", self.tra("请输入区域"))

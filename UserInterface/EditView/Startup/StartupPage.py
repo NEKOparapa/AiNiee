@@ -4,7 +4,7 @@ from qfluentwidgets import pyqtSignal, StateToolTip
 from qfluentwidgets.components.date_time.calendar_picker import FIF
 
 from ModuleFolders.Base.Base import Base
-from UserInterface.Widget.FolderDropCard import FolderDropCard
+from UserInterface.EditView.Startup.FolderDropCard import FolderDropCard
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.ActionCard import ActionCard
 

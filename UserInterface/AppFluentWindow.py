@@ -1,6 +1,6 @@
 import os
 from PyQt5.QtCore import QUrl, QTimer, QThread, pyqtSignal
-from PyQt5.QtGui import QDesktopServices,QIcon
+from PyQt5.QtGui import QDesktopServices, QIcon
 from PyQt5.QtWidgets import QApplication
 import requests
 import threading
@@ -52,7 +52,6 @@ from UserInterface.Extraction_Tool.Import_Translated_Text import Widget_import_t
 from UserInterface.Extraction_Tool.Export_Update_Text import Widget_update_text
 
 
-
 class UpdateCheckerThread(QThread):
     """自动检查更新线程"""
     update_available_signal = pyqtSignal(bool, str, bool)
@@ -76,12 +75,11 @@ class UpdateCheckerThread(QThread):
         self.update_available_signal.emit(has_update, latest_version, check_failed)
 
 
-class AppFluentWindow(FluentWindow, Base): #主窗口
+class AppFluentWindow(FluentWindow, Base):  # 主窗口
 
     APP_WIDTH = 1600
     APP_HEIGHT = 900
     THEME_COLOR = "#808b9d"
-
 
     def __init__(self, version: str, plugin_manager, cache_manager, file_reader) -> None:
         super().__init__()
@@ -99,7 +97,6 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         # 设置 daemon=True 确保主程序退出时线程也会自动关闭
         threading.Thread(target=report_activity, daemon=True).start()
 
-
         # 默认配置
         self.default = {
             "theme": "light",
@@ -109,10 +106,10 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         config = self.save_config(self.load_config_from_default())
 
         # 更换界面显示的语言
-        Base.multilingual_interface_dict = self.load_translations(Base.translation_json_file) # 读取多语言文本
-        current_language = config.get("interface_language_setting","简中") # 读取界面语言设置
+        Base.multilingual_interface_dict = self.load_translations(Base.translation_json_file)  # 读取多语言文本
+        current_language = config.get("interface_language_setting", "简中")  # 读取界面语言设置
         Base.current_interface_language = current_language  # 根据配置改变全局界面语言设定
-        self.info(f"Current Interface Language: {Base.current_interface_language}") # 打印当前语言，方便调试
+        self.info(f"Current Interface Language: {Base.current_interface_language}")  # 打印当前语言，方便调试
 
         # 打印日志
         if self.is_debug():
@@ -131,8 +128,8 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.resize(initial_width, initial_height)
 
         # 设置窗口属性
-        #self.resize(self.APP_WIDTH, self.APP_HEIGHT)
-        #self.setMinimumSize(self.APP_WIDTH, self.APP_HEIGHT)
+        # self.resize(self.APP_WIDTH, self.APP_HEIGHT)
+        # self.setMinimumSize(self.APP_WIDTH, self.APP_HEIGHT)
         self.setWindowTitle(version)
         # 解决任务栏图标不显示问题
         self.setWindowIcon(QIcon(os.path.join(".", "Resource", "Logo", "Avatar.png")))
@@ -147,14 +144,14 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
         # 设置启动位置
         desktop = QApplication.desktop().availableGeometry()
-        self.move(desktop.width()//2 - self.width()//2, desktop.height()//2 - self.height()//2)
+        self.move(desktop.width() // 2 - self.width() // 2, desktop.height() // 2 - self.height() // 2)
 
         # 设置侧边栏宽度
         self.navigationInterface.setExpandWidth(226)
 
         # 侧边栏默认展开
-        #self.navigationInterface.setMinimumExpandWidth(self.APP_WIDTH)
-        self.navigationInterface.expand(useAni = False)
+        # self.navigationInterface.setMinimumExpandWidth(self.APP_WIDTH)
+        self.navigationInterface.expand(useAni=False)
 
         # 新增：启用优化的指示器动画（收起侧边栏时更流畅）
         self.navigationInterface.setUpdateIndicatorPosOnCollapseFinished(True)
@@ -200,21 +197,8 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
 
     # 显示更新对话框
     def show_update_dialog(self) -> None:
-        # 更新按钮文本，提示正在检查
-        original_text = self.update_button.text()
-        self.update_button.setText(self.tra("正在检查更新..."))
-        self.update_button.setEnabled(False)
-
-        # 显示更新对话框
+        """显示更新对话框"""
         self.version_manager.show_update_dialog()
-
-        # 恢复按钮文本和状态
-        QTimer.singleShot(1000, lambda: self._restore_update_button(original_text))
-
-    # 恢复更新按钮状态
-    def _restore_update_button(self, original_text: str) -> None:
-        self.update_button.setText(original_text)
-        self.update_button.setEnabled(True)
 
     # 检查更新
     def check_for_updates(self) -> None:
@@ -286,15 +270,6 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
             position=NavigationItemPosition.BOTTOM
         )
 
-        # 更新按钮
-        self.update_button = NavigationPushButton(FluentIcon.UPDATE, self.tra("检查更新"), False)
-        self.navigationInterface.addWidget(
-            routeKey="update_navigation_button",
-            widget=self.update_button,
-            onClick=self.show_update_dialog,
-            position=NavigationItemPosition.BOTTOM
-        )
-
         # 应用设置按钮
         self.app_settings_page = AppSettingsPage("app_settings_page", self)
         self.addSubInterface(
@@ -307,21 +282,11 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         Avatar_path = os.path.join(".", "Resource", "Logo", "Avatar.png")
         # 项目主页按钮
         self.navigationInterface.addWidget(
-            routeKey = "avatar_navigation_widget",
-            widget = NavigationAvatarWidget("NEKOparapa", Avatar_path),
-            onClick = self.open_project_page,
-            position = NavigationItemPosition.BOTTOM
+            routeKey="avatar_navigation_widget",
+            widget=NavigationAvatarWidget("NEKOparapa", Avatar_path),
+            onClick=self.open_project_page,
+            position=NavigationItemPosition.BOTTOM
         )
-        # 项目主页按钮（新用户卡片样式）
-        # self.navigationInterface.addUserCard(
-        #     routeKey="user_card",
-        #     avatar=Avatar_path,
-        #     title="NEKOparapa",
-        #     subtitle="AiNiee - AI翻译工具",
-        #     onClick=self.open_project_page,
-        #     position=NavigationItemPosition.BOTTOM,
-        #     aboveMenuButton=False
-        # )
 
     # 添加快速开始
     def add_project_pages(self, plugin_manager, cache_manager, file_reader) -> None:
@@ -329,8 +294,7 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.addSubInterface(self.platform_page, FluentIcon.IOT, self.tra("接口管理"), NavigationItemPosition.SCROLL)
 
         self.edit_view_page = EditViewPage("edit_view_page", self, plugin_manager, cache_manager, file_reader)
-        self.addSubInterface(self.edit_view_page, FluentIcon.PLAY, self.tra("开始翻译"), NavigationItemPosition.SCROLL)  
-
+        self.addSubInterface(self.edit_view_page, FluentIcon.PLAY, self.tra("开始翻译"), NavigationItemPosition.SCROLL)
 
     # 添加项目设置
     def add_task_setting_pages(self, plugin_manager) -> None:
@@ -355,22 +319,22 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.prompt_optimization_navigation_item = BaseNavigationItem("prompt_optimization_navigation_item", self)
         self.addSubInterface(self.prompt_optimization_navigation_item, FluentIcon.BOOK_SHELF, self.tra("翻译提示词"), NavigationItemPosition.SCROLL)
         self.system_prompt_page = SystemPromptPage("system_prompt_page", self)
-        self.addSubInterface(self.system_prompt_page, FluentIcon.LABEL, self.tra("基础提示"), parent = self.prompt_optimization_navigation_item)
+        self.addSubInterface(self.system_prompt_page, FluentIcon.LABEL, self.tra("基础提示"), parent=self.prompt_optimization_navigation_item)
         self.characterization_prompt_page = CharacterizationPromptPage("characterization_prompt_page", self)
-        self.addSubInterface(self.characterization_prompt_page, FluentIcon.PEOPLE, self.tra("角色介绍"), parent = self.prompt_optimization_navigation_item)
+        self.addSubInterface(self.characterization_prompt_page, FluentIcon.PEOPLE, self.tra("角色介绍"), parent=self.prompt_optimization_navigation_item)
         self.world_building_prompt_page = WorldBuildingPromptPage("world_building_prompt_page", self)
-        self.addSubInterface(self.world_building_prompt_page, FluentIcon.QUICK_NOTE, self.tra("背景设定"), parent = self.prompt_optimization_navigation_item)
+        self.addSubInterface(self.world_building_prompt_page, FluentIcon.QUICK_NOTE, self.tra("背景设定"), parent=self.prompt_optimization_navigation_item)
         self.writing_style_prompt_page = WritingStylePromptPage("writing_style_prompt_page", self)
-        self.addSubInterface(self.writing_style_prompt_page, FluentIcon.PENCIL_INK, self.tra("翻译风格"), parent = self.prompt_optimization_navigation_item)
+        self.addSubInterface(self.writing_style_prompt_page, FluentIcon.PENCIL_INK, self.tra("翻译风格"), parent=self.prompt_optimization_navigation_item)
         self.translation_example_prompt_page = TranslationExamplePromptPage("translation_example_prompt_page", self)
-        self.addSubInterface(self.translation_example_prompt_page, FluentIcon.FIT_PAGE, self.tra("翻译示例"), parent = self.prompt_optimization_navigation_item)
+        self.addSubInterface(self.translation_example_prompt_page, FluentIcon.FIT_PAGE, self.tra("翻译示例"), parent=self.prompt_optimization_navigation_item)
 
         self.polishing_prompt_navigation = BaseNavigationItem("polishing_prompt_navigation", self)
         self.addSubInterface(self.polishing_prompt_navigation, FluentIcon.PALETTE, self.tra("润色提示词"), NavigationItemPosition.SCROLL)
         self.polishing_system_prompt_page = PolishingSystemPromptPage("polishing_system_prompt_page", self)
-        self.addSubInterface(self.polishing_system_prompt_page, FluentIcon.LABEL, self.tra("基础提示"), parent = self.polishing_prompt_navigation)
+        self.addSubInterface(self.polishing_system_prompt_page, FluentIcon.LABEL, self.tra("基础提示"), parent=self.polishing_prompt_navigation)
         self.polishing_style_prompt_page = PolishingStylePromptPage("polishing_style_prompt_page", self)
-        self.addSubInterface(self.polishing_style_prompt_page, FluentIcon.PENCIL_INK, self.tra("润色风格"), parent = self.polishing_prompt_navigation)
+        self.addSubInterface(self.polishing_style_prompt_page, FluentIcon.PENCIL_INK, self.tra("润色风格"), parent=self.polishing_prompt_navigation)
 
     # 添加表格设置
     def add_table_pages(self, plugin_manager) -> None:
@@ -381,20 +345,17 @@ class AppFluentWindow(FluentWindow, Base): #主窗口
         self.text_replace_navigation_item = BaseNavigationItem("text_replace_navigation_item", self)
         self.addSubInterface(self.text_replace_navigation_item, FluentIcon.FONT_SIZE, self.tra("文本替换"), NavigationItemPosition.SCROLL)
         self.text_replace_a_page = TextReplaceAPage("text_replace_a_page", self)
-        self.addSubInterface(self.text_replace_a_page, FluentIcon.SEARCH, self.tra("译前替换"), parent = self.text_replace_navigation_item)
+        self.addSubInterface(self.text_replace_a_page, FluentIcon.SEARCH, self.tra("译前替换"), parent=self.text_replace_navigation_item)
         self.text_replace_b_page = TextReplaceBPage("text_replace_b_page", self)
-        self.addSubInterface(self.text_replace_b_page, FluentIcon.SEARCH_MIRROR, self.tra("译后替换"), parent = self.text_replace_navigation_item)
-
-
+        self.addSubInterface(self.text_replace_b_page, FluentIcon.SEARCH_MIRROR, self.tra("译后替换"), parent=self.text_replace_navigation_item)
 
     # 添加第五节
     def add_stev_extraction_pages(self) -> None:
-        pass
         self.stev_extraction_navigation_item = BaseNavigationItem("stev_extraction_navigation_item", self)
         self.addSubInterface(self.stev_extraction_navigation_item, FluentIcon.ZIP_FOLDER, self.tra("StevExtraction"), NavigationItemPosition.SCROLL)
         self.widget_export_source_text = Widget_export_source_text("widget_export_source_text", self, jtpp)
-        self.addSubInterface(self.widget_export_source_text, FluentIcon.SHARE, self.tra("导出文本"), parent = self.stev_extraction_navigation_item)
+        self.addSubInterface(self.widget_export_source_text, FluentIcon.SHARE, self.tra("导出文本"), parent=self.stev_extraction_navigation_item)
         self.widget_import_translated_text = Widget_import_translated_text("widget_import_translated_text", self, jtpp)
-        self.addSubInterface(self.widget_import_translated_text, FluentIcon.DOWNLOAD, self.tra("导入文本"), parent = self.stev_extraction_navigation_item)
+        self.addSubInterface(self.widget_import_translated_text, FluentIcon.DOWNLOAD, self.tra("导入文本"), parent=self.stev_extraction_navigation_item)
         self.widget_update_text = Widget_update_text("widget_update_text", self, jtpp)
-        self.addSubInterface(self.widget_update_text, FluentIcon.UPDATE, self.tra("导出增量文本"), parent = self.stev_extraction_navigation_item)
+        self.addSubInterface(self.widget_update_text, FluentIcon.UPDATE, self.tra("导出增量文本"), parent=self.stev_extraction_navigation_item)

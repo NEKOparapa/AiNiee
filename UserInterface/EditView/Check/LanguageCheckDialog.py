@@ -30,7 +30,7 @@ class LanguageCheckDialog(Base, MessageBoxBase):
         self.view_layout = QVBoxLayout(self.view)
         self.view_layout.setContentsMargins(0, 0, 0, 0)
         self.view_layout.setSpacing(20)
-        self.view.setMinimumWidth(600)
+        self.view.setMinimumWidth(650)
 
         self._init_ui()
         self._restore_ui_state()
@@ -59,19 +59,19 @@ class LanguageCheckDialog(Base, MessageBoxBase):
         self.mode_combo = ComboBox(self)
         self.mode_combo.addItems([self.tra("宏观统计"), self.tra("精准判断")])
 
-        #  检测分块行数
+        # 检测分块行数
         self.chunk_label = StrongBodyLabel(self.tra("检测分块行数:"), self)
         self.chunk_spin = SpinBox(self)
         self.chunk_spin.setRange(1, 99)
-        self.chunk_spin.setFixedWidth(140) # 限制宽度适应两位数+按钮
+        self.chunk_spin.setFixedWidth(140)
 
-        #  检测阈值占比
+        # 检测阈值占比
         self.threshold_label = StrongBodyLabel(self.tra("检测阈值:"), self)
         self.threshold_spin = DoubleSpinBox(self)
         self.threshold_spin.setRange(0.10, 1.00)
         self.threshold_spin.setSingleStep(0.01)
         self.threshold_spin.setDecimals(2)
-        self.threshold_spin.setFixedWidth(140) # 限制宽度适应三位数+按钮
+        self.threshold_spin.setFixedWidth(140)
 
         # 布局添加
         self.settings_layout.addWidget(self.target_label, 0, 0)
@@ -85,7 +85,7 @@ class LanguageCheckDialog(Base, MessageBoxBase):
 
         self.view_layout.addWidget(self.settings_container)
 
-        #  说明文字
+        # 说明文字
         self.note_label = CaptionLabel(self.tra("检测分块行数与检测阈值只在精准判断中生效"), self)
         self.note_label.setTextColor(QColor(120, 120, 120), QColor(160, 160, 160))
         self.note_label.setAlignment(Qt.AlignCenter)
@@ -93,6 +93,8 @@ class LanguageCheckDialog(Base, MessageBoxBase):
 
         # ================= 规则检查项 =================
         self.view_layout.addWidget(StrongBodyLabel(self.tra("规则检查项"), self))
+
+        # 1. 初始化 CheckBox 对象
         self.check_untranslated = CheckBox(self.tra("未翻译检查"), self)
         self.check_terminology = CheckBox(self.tra("术语表检查"), self)
         self.check_exclusion = CheckBox(self.tra("禁翻表检查"), self)
@@ -102,27 +104,60 @@ class LanguageCheckDialog(Base, MessageBoxBase):
         self.check_example = CheckBox(self.tra("示例文本复读"), self)
         self.check_newline = CheckBox(self.tra("换行符一致性"), self)
 
-        # 添加选项说明
-        self._add_option(self.check_untranslated, self.tra("检查翻译状态为待翻译或译文为空的条目"))
-        self._add_option(self.check_terminology, self.tra("检查译文中是否包含术语表中的预定义译法"))
-        self._add_option(self.check_exclusion, self.tra("检查译文中是否正确保留禁翻内容"))
-        self._add_option(self.check_auto_process, self.tra("检查默认处理规则是否被正确执行"))
-        self._add_option(self.check_placeholder, self.tra("检查 [P0] 等占位标签是否残留在文本中"))
-        self._add_option(self.check_number, self.tra("检查行首数字编号 (1.) 是否残留"))
-        self._add_option(self.check_example, self.tra("检查是否存在由模型生成的无效内容"))
-        self._add_option(self.check_newline, self.tra("检查译文换行符数量是否与原文一致"))
+        # 2. 定义检查项列表 (组件, 说明文字)
+        rule_items = [
+            (self.check_untranslated, self.tra("检查翻译状态为待翻译或译文为空的条目")),
+            (self.check_terminology, self.tra("检查译文中是否包含术语表中的预定义译法")),
+            (self.check_exclusion, self.tra("检查译文中是否正确保留禁翻内容")),
+            (self.check_auto_process, self.tra("检查默认处理规则是否被正确执行")),
+            (self.check_placeholder, self.tra("检查 [P0] 等占位标签是否残留在文本中")),
+            (self.check_number, self.tra("检查行首数字编号 (1.) 是否残留")),
+            (self.check_example, self.tra("检查是否存在由模型生成的无效内容")),
+            (self.check_newline, self.tra("检查译文换行符数量是否与原文一致"))
+        ]
 
-    def _add_option(self, checkbox: CheckBox, description: str):
+        # 3. 创建网格容器
+        self.rules_container = QWidget()
+        self.rules_grid = QGridLayout(self.rules_container)
+        self.rules_grid.setContentsMargins(0, 0, 0, 0)
+        self.rules_grid.setHorizontalSpacing(20) # 列间距
+        self.rules_grid.setVerticalSpacing(16)   # 行间距
+
+        # 4. 循环添加到网格
+        for i, (checkbox, description) in enumerate(rule_items):
+            row = i // 2
+            col = i % 2
+            item_widget = self._create_rule_item(checkbox, description)
+            self.rules_grid.addWidget(item_widget, row, col)
+
+        self.view_layout.addWidget(self.rules_container)
+
+    def _create_rule_item(self, checkbox: CheckBox, description: str) -> QWidget:
+        """创建一个包含复选框和下方缩进说明文字的 Widget"""
         container = QWidget()
-        layout = QHBoxLayout(container)
+        # 使用垂直布局：上面是复选框，下面是说明
+        layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(15)
+        layout.setSpacing(4)
+        
+        # 添加复选框
         layout.addWidget(checkbox)
+        
+        # 添加说明文字
         desc_label = CaptionLabel(description, self)
         desc_label.setTextColor(QColor(120, 120, 120), QColor(160, 160, 160))
-        layout.addWidget(desc_label, 1)
-        self.view_layout.addWidget(container)
-        self.view_layout.addSpacing(5)
+        desc_label.setWordWrap(True) # 允许自动换行
+        
+        # 给说明文字做一个容器来设置缩进 (对齐复选框文字)
+        desc_container = QWidget()
+        desc_layout = QHBoxLayout(desc_container)
+        desc_layout.setContentsMargins(28, 0, 0, 0) # 左侧缩进约28px，避开复选框图标
+        desc_layout.setSpacing(0)
+        desc_layout.addWidget(desc_label)
+        
+        layout.addWidget(desc_container)
+        
+        return container
 
     def _restore_ui_state(self):
         config = self.config_data
@@ -175,7 +210,7 @@ class LanguageCheckDialog(Base, MessageBoxBase):
         config = self.load_config()
 
         config["check_target_polish"] = (self.target_combo.currentIndex() == 1)
-
+        
         if self.mode_combo.currentText() == self.tra("精准判断"):
             config["check_lang_mode_text"] = "judge"
         else:

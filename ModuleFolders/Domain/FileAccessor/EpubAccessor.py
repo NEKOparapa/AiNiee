@@ -23,12 +23,24 @@ class EpubAccessor:
             items = []
             opf_soup = BeautifulSoup(zipf.read(opf_file), "xml")
             files = {x.filename: x for x in zipf.infolist()}
+            
             for item in opf_soup.select("manifest item"):
-                # 检查是否是文本内容，且文件存在压缩包内
                 filename = posixpath.join(posixpath.dirname(opf_file), item["href"])
-                if item.get("media-type") == "application/xhtml+xml" and filename in files:
+                media_type = item.get("media-type")
+                
+                # 检查文件是否存在于压缩包内
+                if filename not in files:
+                    continue
+                
+                # XHTML 内容文件
+                if media_type == "application/xhtml+xml":
                     content = zipf.read(files[filename]).decode("utf-8")
                     items.append((item["id"], filename, content))
+                # NCX 目录文件（toc.ncx）
+                elif media_type == "application/x-dtbncx+xml":
+                    content = zipf.read(files[filename]).decode("utf-8")
+                    items.append((item["id"], filename, content))
+                    
             return items
 
     def write_content(
