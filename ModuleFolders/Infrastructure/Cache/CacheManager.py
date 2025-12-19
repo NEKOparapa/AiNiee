@@ -28,6 +28,8 @@ class CacheManager(Base):
         # 线程锁
         self.file_lock = threading.Lock()
 
+        self.project = None
+
         # 注册事件
         self.subscribe(Base.EVENT.TASK_START, self.start_interval_saving)
         self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
@@ -228,15 +230,22 @@ class CacheManager(Base):
     # 获取缓存内全部文本对数量
     def get_item_count(self) -> int:
         """获取总缓存项数量"""
+        if not hasattr(self, "project") or self.project is None:
+            return 0
         return self.project.count_items()
 
     # 获取某翻译状态的条目数量
     def get_item_count_by_status(self, status: int) -> int:
+        if not self.project:
+            return 0
         return self.project.count_items(status)
 
     # 检测是否存在需要翻译的条目
     def get_continue_status(self) -> bool:
         """检查是否存在可继续翻译的状态"""
+        if not self.project:
+            return False
+        
         has_translated = False
         has_untranslated = False
         for item in self.project.items_iter():

@@ -20,7 +20,8 @@ from UserInterface.Widget.EmptyCard import EmptyCard
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.LineEditCard import LineEditCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
-
+from UserInterface.Widget.LineEditCard import LineEditCard
+from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard 
 
 class AppSettingsPage(QWidget, Base):
 
@@ -37,6 +38,9 @@ class AppSettingsPage(QWidget, Base):
             "interface_language_setting": "简中",
             "auto_check_update": True,
             "label_input_exclude_rule": "",
+            "http_server_enable": False,
+            "http_listen_address": "127.0.0.1:3388",
+            "http_callback_url": "",
         }
 
         # 载入并保存默认配置
@@ -61,16 +65,16 @@ class AppSettingsPage(QWidget, Base):
         self.scroller.setWidget(self.vbox_parent)
 
         # 添加控件
-        self.add_widget_exclude_rule(self.vbox, config)
+        self.add_widget_app_profile(self.vbox, config, window)
         self.add_widget_proxy(self.vbox, config)
-        self.add_widget_font_hinting(self.vbox, config)
-        self.add_widget_debug_mode(self.vbox, config)
-        self.add_widget_scale_factor(self.vbox, config)
         self.add_widget_interface_language_setting(self.vbox, config)
         self.add_widget_auto_check_update(self.vbox, config)
         self.add_widget_check_update(self.vbox, config, window)
-        self.add_widget_app_profile(self.vbox, config, window)
-        
+        self.add_widget_font_hinting(self.vbox, config)
+        self.add_widget_debug_mode(self.vbox, config)
+        self.add_widget_scale_factor(self.vbox, config)
+        self.add_widget_exclude_rule(self.vbox, config)
+        self.add_widget_http_service(self.vbox, config) 
         # 填充
         self.vbox.addStretch(1)
 
@@ -132,6 +136,71 @@ class AppSettingsPage(QWidget, Base):
                 self.tra("启用该功能后,将使用设置的代理地址向接口发送请求,例如 http://127.0.0.1:7890"),
                 init=init,
                 text_changed=text_changed,
+            )
+        )
+
+
+    # 3. 新增生成 UI 的方法
+    def add_widget_http_service(self, parent, config) -> None:
+        """HTTP 服务设置"""
+        
+        # --- 开关 ---
+        def init_enable(widget) -> None:
+            widget.set_checked(config.get("http_server_enable", False))
+
+        def checked_changed_enable(widget, checked: bool) -> None:
+            config = self.load_config()
+            config["http_server_enable"] = checked
+            self.save_config(config)
+            if checked:
+                self.info_toast(self.tra("提示"), self.tra("请重启应用以启动 HTTP 服务"))
+            else:
+                self.info_toast(self.tra("提示"), self.tra("请重启应用以关闭 HTTP 服务"))
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("启用 HTTP 监听服务"),
+                self.tra("开启后可以通过 HTTP 请求控制翻译 (需重启生效)"),
+                init=init_enable,
+                checked_changed=checked_changed_enable,
+            )
+        )
+
+        # --- 监听地址 (合并) ---
+        def init_address(widget) -> None:
+            widget.set_text(config.get("http_listen_address", "127.0.0.1:3388"))
+            widget.set_placeholder_text("127.0.0.1:3388")
+
+        def text_changed_address(widget, text: str) -> None:
+            config = self.load_config()
+            config["http_listen_address"] = text.strip()
+            self.save_config(config)
+
+        parent.addWidget(
+            LineEditCard(
+                self.tra("监听地址与端口"),
+                self.tra("格式为 IP:端口，例如 127.0.0.1:3388 (仅本机) 或 0.0.0.0:3388 (局域网)"),
+                init=init_address,
+                text_changed=text_changed_address,
+            )
+        )
+
+        # --- 回调 URL ---
+        def init_callback(widget) -> None:
+            widget.set_text(config.get("http_callback_url", ""))
+            widget.set_placeholder_text("http://localhost:3000/webhook")
+
+        def text_changed_callback(widget, text: str) -> None:
+            config = self.load_config()
+            config["http_callback_url"] = text.strip()
+            self.save_config(config)
+
+        parent.addWidget(
+            LineEditCard(
+                self.tra("完成回调 URL"),
+                self.tra("翻译完成后，向该地址发送 POST 请求。留空则不启用。"),
+                init=init_callback,
+                text_changed=text_changed_callback,
             )
         )
 
