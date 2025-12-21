@@ -101,7 +101,7 @@ class PromptBuilder(Base):
         if config.target_language not in ("chinese_simplified", "chinese_traditional"):
             source_language = en_sl
             target_language = en_tl
-        
+
         # 执行替换并返回
         return prompt_text.replace("{source_language}", source_language).replace("{target_language}", target_language)
 
@@ -381,7 +381,7 @@ class PromptBuilder(Base):
 
         # 优化过滤逻辑
         def filter_func(items, text):
-            return [item for item in items 
+            return [item for item in items
                     if (not item.startswith(text)  # 排除纯示例开头的项
                         or not any(c.isdigit() for c in item[-3:]))  # 排除末尾3字符含数字的项
                     and len(item) <= 80]  #过滤不超过设定长度的项
@@ -419,7 +419,7 @@ class PromptBuilder(Base):
                 numbered_lines.append(f"{index + 1}.{line}")
 
         source_text_str = "\n".join(numbered_lines)
-        
+
         return source_text_str
 
     # 构造术语表
@@ -482,13 +482,13 @@ class PromptBuilder(Base):
 
         exclusion_dict = {}  # 用字典存储并自动去重
         texts = list(source_text_dict.values())
-        
+
         # 处理正则匹配
         for element in exclusion_list_data:
             regex = element.get("regex", "").strip()
             marker = element.get("markers", "").strip()
             info = element.get("info", "")
-            
+
             # 检查是否写正则，如果写了，只处理正则
             if regex:
                 # 避免错误正则，导致崩溃
@@ -500,16 +500,16 @@ class PromptBuilder(Base):
                         for match in pattern.finditer(text):
                             markers = match.group(0)
                             # 避免重复添加
-                            if markers not in exclusion_dict: 
+                            if markers not in exclusion_dict:
                                 exclusion_dict[markers] = info
                 except re.error:
                     pass
-            # 没写正则，只处理标记符        
+            # 没写正则，只处理标记符
             else:
                 found = any(marker in text for text in texts)
                 if found and marker not in exclusion_dict:  # 避免重复添加
                     exclusion_dict[marker] = info
-        
+
         # 检查内容是否为空
         if not exclusion_dict :
             return ""
@@ -522,7 +522,7 @@ class PromptBuilder(Base):
 
         for markers, info in exclusion_dict.items():
             result += f"\n{markers}|{info}" if info else f"\n{markers}|"
-        
+
         return result
 
     # 构造角色设定
@@ -535,9 +535,25 @@ class PromptBuilder(Base):
         # 筛选，如果该key在发送文本中，则存储进新字典中
         temp_dict = {}
         for key_a, value_a in dictionary.items():
+            # 确定匹配关键词：优先处理[Separator]手动分割，其次处理空格或点号自动分割
+            keywords = [key_a]
+            if "[Separator]" in key_a:
+                keywords = key_a.split("[Separator]")
+            elif " " in key_a or "." in key_a:
+                keywords = re.split(r'[ .]', key_a)
+                #清洗
+            keywords = [k.strip() for k in keywords if k.strip()]
+
+            # 遍历待翻译文本，只要任意关键词（非空）命中，即加入角色表
+            is_match = False
             for _, value_b in input_dict.items():
-                if key_a in value_b:
-                    temp_dict[key_a] = value_a
+                for keyword in keywords:
+                    if keyword and keyword in value_b:
+                        temp_dict[key_a] = value_a
+                        is_match = True
+                        break
+                if is_match:
+                    break
 
         # 如果没有含有字典内容
         if temp_dict == {}:
@@ -850,7 +866,7 @@ class PromptBuilder(Base):
         )
 
         # 构建预输入回复信息
-        switch_C = config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COT, PromptBuilderEnum.COMMON) 
+        switch_C = config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COT, PromptBuilderEnum.COMMON)
         if switch_A and switch_C:
             fol_prompt = PromptBuilder.build_modelResponsePrefix(config)
             messages.append({"role": "assistant", "content": fol_prompt})
