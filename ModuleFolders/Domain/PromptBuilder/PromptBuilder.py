@@ -562,7 +562,7 @@ class PromptBuilder(Base):
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "\n###角色介绍"
             for key, value in temp_dict.items():
-                original_name = value.get("original_name")
+                original_name = value.get("original_name", "").replace("[Separator]", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")
@@ -594,7 +594,7 @@ class PromptBuilder(Base):
         else:
             profile = "\n###Character Introduction"
             for key, value in temp_dict.items():
-                original_name = value.get("original_name")
+                original_name = value.get("original_name", "").replace("[Separator]", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")
