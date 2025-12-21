@@ -142,7 +142,7 @@ class CharacterizationPromptPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 self.tra("自定义角色介绍"),
-                self.tra("启用此功能后，将根据本页中设置的构建角色介绍，并补充到基础提示词中（不支持本地类模型）"),
+                self.tra("启用此功能后，将根据本页中设置的构建角色介绍，并补充到基础提示词中（不支持本地类模型）\n可使用分隔符[Separator]来分隔姓和名"),
                 init=init,
                 checked_changed=checked_changed,
             )
@@ -195,7 +195,7 @@ class CharacterizationPromptPage(QFrame, Base):
         """清除排序状态和表头的排序指示器。"""
         self._sort_column_index = -1
         self._sort_order = Qt.AscendingOrder
-        if hasattr(self, 'table'): 
+        if hasattr(self, 'table'):
             self.table.horizontalHeader().setSortIndicator(-1, Qt.AscendingOrder)
 
     # 排序逻辑处理函数
