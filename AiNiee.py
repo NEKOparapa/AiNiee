@@ -223,7 +223,12 @@ if __name__ == "__main__":
         file_reader=file_reader, 
         file_writer=file_writer
     )
-
+    # 创建 HTTP 监听服务
+    update_splash_message(splash, "正在加载 HTTP 服务... (85%)", app)
+    from ModuleFolders.Service.HttpService.HttpService import HttpService
+    http_service = HttpService()
+    http_service.set_dependencies(cache_manager, file_reader)
+    http_service.start()
 
     update_splash_message(splash, "启动完成，正在打开应用... (100%)", app)
 
