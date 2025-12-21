@@ -161,11 +161,11 @@
       "English": "Custom character introduction",
       "日本語": "カスタムキャラクター紹介"
     },
-    "启用此功能后，将根据本页中设置的构建角色介绍，并补充到基础提示词中（不支持本地类模型）": {
-      "简中": "启用此功能后，将根据本页中设置的构建角色介绍，并补充到基础提示词中（不支持本地类模型）",
-      "繁中": "啟用此功能後，將根據本頁中設定的構建角色介紹，並補充到基礎提示詞中（不支援本地類模型）",
-      "English": "When enabled, character introduction will be built based on the settings on this page and added to the basic prompt (local models are not supported)",
-      "日本語": "この機能を有効にすると、このページの設定に基づいてキャラクター紹介が構築され、基本プロンプトに追加されます（ローカルモデルはサポートされていません）"
+    "启用此功能后，将根据本页中设置的构建角色介绍，并补充到基础提示词中（不支持本地类模型）\n可使用分隔符[Separator]来分隔姓和名": {
+      "简中": "启用此功能后，将根据本页中设置的构建角色介绍，并补充到基础提示词中（不支持本地类模型）\n可使用分隔符[Separator]来分隔姓和名",
+      "繁中": "啟用此功能後，將根據本頁中設定的構建角色介紹，並補充到基礎提示詞中（不支援本地類模型）\n可使用分隔符[Separator]來分隔姓和名",
+      "English": "When enabled, a character introduction will be built based on the settings on this page and added to the basic prompt (local models are not supported).\nYou can use the delimiter [Separator] to separate the first and last name",
+      "日本語": "この機能を有効にすると、このページの設定に基づいてキャラクター紹介が構築され、基本プロンプトに追加されます（ローカルモデルはサポートされていません）。\n区切り文字[Separator]を使用して、姓と名を分けることができます"
     },
     "原名": {
       "简中": "原名",
