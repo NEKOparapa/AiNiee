@@ -50,6 +50,7 @@ from StevExtraction import jtpp
 from UserInterface.Extraction_Tool.Export_Source_Text import Widget_export_source_text
 from UserInterface.Extraction_Tool.Import_Translated_Text import Widget_import_translated_text
 from UserInterface.Extraction_Tool.Export_Update_Text import Widget_update_text
+from UserInterface.Extraction_Tool.MergeEbookPage import MergeEbookPage
 
 
 class UpdateCheckerThread(QThread):
@@ -359,3 +360,6 @@ class AppFluentWindow(FluentWindow, Base):  # 主窗口
         self.addSubInterface(self.widget_import_translated_text, FluentIcon.DOWNLOAD, self.tra("导入文本"), parent=self.stev_extraction_navigation_item)
         self.widget_update_text = Widget_update_text("widget_update_text", self, jtpp)
         self.addSubInterface(self.widget_update_text, FluentIcon.UPDATE, self.tra("导出增量文本"), parent=self.stev_extraction_navigation_item)
+
+        self.merge_ebook_page = MergeEbookPage("merge_ebook_page", self)
+        self.addSubInterface(self.merge_ebook_page, FluentIcon.LIBRARY, self.tra("批量电子书整合"), parent=self.stev_extraction_navigation_item)

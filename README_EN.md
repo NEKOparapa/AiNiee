@@ -26,7 +26,7 @@
 
 *   **All-in-One Format Support, Broad Coverage**
     *   🎮 **Game Translation**: In-depth support for game text export tools like Mtool, Renpy, Translator++, ParaTranzr, VNText, and SExtractor.
-    *   📚 **Diverse Support**: Effortlessly processes I18Next data, Epub/TXT e-books, Srt/Vtt/Lrc subtitles, Word/PDF/MD documents, and more.
+        * 📚 **Diverse Support**: Effortlessly processes I18Next data, Epub/Mobi/Azw3/Docx/TXT e-books, Srt/Ass/Vtt/Lrc subtitles, Word/PDF/MD/PPT documents, and more. Supports automatic conversion for non-Epub formats and back-conversion after translation.
 
 *   **Smart & Efficient, Saves Time & Effort**
     *   🚀 **One-Click Operation**: Simply drag and drop; automatically identifies files and languages, no setup required.

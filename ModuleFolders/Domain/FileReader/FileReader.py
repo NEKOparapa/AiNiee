@@ -18,6 +18,7 @@ from ModuleFolders.Domain.FileReader.LrcReader import LrcReader
 from ModuleFolders.Domain.FileReader.AssReader import AssReader
 from ModuleFolders.Domain.FileReader.TxtReader import TxtReader
 from ModuleFolders.Domain.FileReader.EpubReader import EpubReader
+from ModuleFolders.Domain.FileReader.UniversalEbookReader import UniversalEbookReader
 from ModuleFolders.Domain.FileReader.DocxReader import DocxReader
 from ModuleFolders.Domain.FileReader.CsvReader import CsvReader
 from ModuleFolders.Domain.FileReader.PptxReader import PptxReader
@@ -39,7 +40,7 @@ class FileReader():
     # 初始化时，注册所有内置支持的文件/项目类型。
     def _register_system_reader(self):
         self.register_reader(TxtReader)
-        self.register_reader(EpubReader)
+        self.register_reader(UniversalEbookReader) # 包含 EPUB, AZW3, MOBI 等
         self.register_reader(DocxReader)
         self.register_reader(SrtReader)
         self.register_reader(VttReader)
