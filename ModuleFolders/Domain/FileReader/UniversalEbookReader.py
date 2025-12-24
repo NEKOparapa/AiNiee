@@ -1,3 +1,12 @@
+# Module: Universal Ebook Reader & Converter
+# Description: Handles conversion of non-standard ebook formats (AZW3, MOBI, DOCX) to EPUB for processing.
+#
+# Note:
+# This module implements conversion logic adapted from:
+# https://github.com/ShadowLoveElysia/Bulk-Ebook-Merger-Converter
+# Integrated to provide seamless pre-processing for AiNiee.
+#
+# Author: ShadowLoveElysia
 import os
 import sys
 import subprocess
@@ -17,11 +26,6 @@ from ModuleFolders.Domain.FileReader.BaseReader import (
 from ModuleFolders.Domain.FileReader.EpubReader import EpubReader
 
 class UniversalEbookReader(BaseSourceReader):
-    """
-    通用电子书读取器。
-    它使用 '批量电子书整合.py' 将非标准格式 (AZW3, MOBI, DOCX, etc.) 转换为 EPUB，
-    并使用持久化缓存机制避免重复转换，确保翻译进度不丢失。
-    """
     
     SUPPORTED_EXTENSIONS = [
         '.azw3', '.mobi', '.docx', '.kepub', '.fb2', 
