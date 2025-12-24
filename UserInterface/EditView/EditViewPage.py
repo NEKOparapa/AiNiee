@@ -250,7 +250,28 @@ class BottomCommandBar(Base,CardWidget):
             self.window(), self.tra("选择导出目录"), "."
         )
         if selected_path:
-            self.emit(Base.EVENT.TASK_MANUAL_EXPORT, {"export_path": selected_path})
+            original_formats = set()
+            with self.cache_manager.project._lock:
+                files_dict = self.cache_manager.project.files
+                for file in files_dict.values():
+                    if "original_format" in file.extra:
+                        original_formats.add(file.extra["original_format"])
+            
+            convert_back_format = None
+            if original_formats:
+                fmt = list(original_formats)[0]
+                if fmt.lower() != '.epub':
+                    info_cont = self.tra("检测到原始文件格式为 {}，是否在导出后转换回该格式？").format(fmt)
+                    message_box = MessageBox(self.tra("导出选项"), info_cont, self.window())
+                    message_box.yesButton.setText(self.tra("是"))
+                    message_box.cancelButton.setText(self.tra("否"))
+                    if message_box.exec():
+                        convert_back_format = fmt
+
+            self.emit(Base.EVENT.TASK_MANUAL_EXPORT, {
+                "export_path": selected_path,
+                "convert_back_format": convert_back_format
+            })
 
     # 展开按钮
     def on_arrow_clicked(self):

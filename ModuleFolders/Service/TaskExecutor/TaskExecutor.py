@@ -1,6 +1,10 @@
+import os
+import sys
 import time
 import threading
 import concurrent.futures
+import subprocess
+from pathlib import Path
 
 import opencc
 from tqdm import tqdm
@@ -98,6 +102,46 @@ class TaskExecutor(Base):
         self.print("")
         self.info(f"翻译结果已成功保存至 {output_path} 目录。")
         self.print("")
+
+        convert_back_format = data.get("convert_back_format")
+        if convert_back_format:
+            self._convert_exported_files(output_path, convert_back_format)
+
+    def _convert_exported_files(self, output_path: str, target_format: str) -> None:
+        """将导出的 EPUB 转换回原格式"""
+        self.info(f"正在将导出的文件转换回 {target_format} 格式 ...")
+        
+        script_path = Path("批量电子书整合.py").resolve()
+        if not script_path.exists():
+            self.error(f"找不到转换脚本: {script_path}")
+            return
+
+        fmt = target_format.lower().lstrip('.')
+        output_dir = Path(output_path)
+        epub_files = list(output_dir.glob("*.epub"))
+        
+        if not epub_files:
+            return
+
+        for epub_file in epub_files:
+            self.info(f"正在转换 {epub_file.name} ...")
+            
+            cmd = [
+                sys.executable, str(script_path),
+                "-p", str(epub_file),
+                "-f", fmt,
+                "--auto-merge",
+                "--AiNiee"
+            ]
+            
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8')
+                if result.returncode == 0:
+                    self.info(f"文件 {epub_file.name} 已成功转换回 {fmt.upper()}。")
+                else:
+                    self.error(f"转换失败: {result.stderr}")
+            except Exception as e:
+                self.error(f"调用转换脚本时出错: {e}")
 
     # 任务停止事件
     def task_stop(self, event: int, data: dict) -> None:

@@ -97,6 +97,12 @@
       "繁中": "設定當前翻譯專案使用的原始文字格式，請注意：選擇錯誤將無法進行翻譯",
       "English": "Set source text format for current translation project.\nWarning: Incorrect selection will prevent translation.",
       "日本語": "現在の翻訳プロジェクトで使用する原文の形式を設定\n注意：誤った選択をすると翻訳できません"
+    },
+    "批量电子书整合": {
+      "简中": "批量电子书整合",
+      "繁中": "批量電子書整合",
+      "English": "Merge Ebooks",
+      "日本語": "電子書籍の一括統合"
     }
   },
   "project_pairs": {
@@ -107,10 +113,10 @@
       "日本語": "Txt小説ファイル"
     },
     "Epub": {
-      "简中": "Epub小说文件",
-      "繁中": "Epub小說檔案",
-      "English": "Epub Novel File",
-      "日本語": "Epub小説ファイル"
+      "简中": "Epub/Mobi/Azw3小说文件",
+      "繁中": "Epub/Mobi/Azw3小說檔案",
+      "English": "Epub/Mobi/Azw3 Novel File",
+      "日本語": "Epub/Mobi/Azw3小説ファイル"
     },
     "Docx": {
       "简中": "Docx文档文件",
