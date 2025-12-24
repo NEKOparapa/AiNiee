@@ -9,6 +9,16 @@
 # ]
 # ///
 
+# Module: Universal Ebook Reader & Converter
+# Description: Handles conversion of non-standard ebook formats (AZW3, MOBI, DOCX) to EPUB for processing.
+#
+# Note:
+# This module implements conversion logic adapted from:
+# https://github.com/ShadowLoveElysia/Bulk-Ebook-Merger-Converter
+# Integrated to provide seamless pre-processing for AiNiee.
+#
+# Author: ShadowLoveElysia
+
 import os
 import re
 import sys
