@@ -151,7 +151,7 @@ class PromptBuilder(Base):
             # 如果没有对应的示例语言，默认使用英文
             source_base_example = base_example["base"].get(conv_source_lang, "Sample Text")
             combined_list.append(source_base_example)
-            combined_list2.append(base_example["base"][config.target_language])
+            combined_list2.append(base_example["base"].get(config.target_language, "Sample Text"))
 
         # 限制示例总数量为3个，如果多了，则从最后往前开始削减
         if len(combined_list) > 3:
@@ -632,24 +632,24 @@ class PromptBuilder(Base):
                 speech_style = value.get("speech_style")
                 additional_info = value.get("additional_info")
 
-                profile += f"\n【{original_name}】"
+                profile += f"\n[{original_name}]"
                 if translated_name:
-                    profile += f"\n- Translated_name：{translated_name}"
+                    profile += f"\n- Translated_name: {translated_name}"
 
                 if gender:
-                    profile += f"\n- Gender：{gender}"
+                    profile += f"\n- Gender: {gender}"
 
                 if age:
-                    profile += f"\n- Age：{age}"
+                    profile += f"\n- Age: {age}"
 
                 if personality:
-                    profile += f"\n- Personality：{personality}"
+                    profile += f"\n- Personality: {personality}"
 
                 if speech_style:
-                    profile += f"\n- Speech_style：{speech_style}"
+                    profile += f"\n- Speech_style: {speech_style}"
 
                 if additional_info:
-                    profile += f"\n- Additional_info：{additional_info}"
+                    profile += f"\n- Additional_info: {additional_info}"
 
                 profile += "\n"
 
