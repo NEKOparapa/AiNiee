@@ -33,7 +33,7 @@ class CharacterizationPromptPage(QFrame, Base):
             "characterization_switch": False,
             "characterization_data": [
                 {
-                    "original_name": "遠坂凛",
+                    "original_name": "遠坂[Separator]凛",
                     "translated_name": "远坂凛",
                     "gender": "女",
                     "age": "少女",
