@@ -222,18 +222,22 @@ class TextProcessor():
 
         return prefix, core_text, suffix
 
-    def _process_multiline_text(self, text: str, source_lang: str) -> Tuple[str, Dict]:
-        """处理多行文本"""
-        # 统一换行符
+    def _process_multiline_text(self, text: str, use_ja_pattern: bool) -> Tuple[str, Dict]:
+        """
+        处理多行文本
+
+        Args:
+            text: 待处理文本
+            use_ja_pattern: 是否使用日语模式（提取非日语字符作为前后缀）
+        """
+        # 统一换行符 - 总是执行
         normalized_text, line_endings = self._normalize_line_endings(text)
 
         # 按行分割
         lines = normalized_text.split('\n')
 
-        # 选择正则模式
-        pattern = self.RE_WHITESPACE_AFFIX
-        if source_lang == 'ja' or source_lang == 'japanese':
-            pattern = self.RE_JA_AFFIX
+        # 选择正则模式：空白模式（默认）或日语模式
+        pattern = self.RE_JA_AFFIX if use_ja_pattern else self.RE_WHITESPACE_AFFIX
 
         non_empty_lines = []  # 只存储非空行，用于翻译
         lines_info = []
@@ -401,15 +405,16 @@ class TextProcessor():
         if pre_translation_switch:
             processed_text = self.replace_before_translation(processed_text)
 
-        # 自动预处理
+        # 空白、换行、空行处理 - 总是执行（通用需求）
+        # 非日语字符前后缀提取 - 仅当开关启用时生效
+        processed_text, affix_whitespace_storage = self.strip_and_record_affixes(
+            processed_text,
+            source_lang,
+            enable_non_ja_affix=auto_process_text_code_segment
+        )
+
+        # 代码段自动处理 - 根据开关决定
         if auto_process_text_code_segment:
-
-            # 空白换行，非日语文本前后缀处理（支持多行）
-            processed_text, affix_whitespace_storage = self.strip_and_record_affixes(
-                processed_text,
-                source_lang
-            )
-
             # 自动处理前后缀
             processed_text, prefix_codes, suffix_codes = self._process_affixes(
                 processed_text,
@@ -432,13 +437,14 @@ class TextProcessor():
     # 译后文本处理
     def restore_all(self, config, text_dict: Dict[str, str], prefix_codes: Dict, suffix_codes: Dict,
                     placeholder_order: Dict, affix_whitespace_storage: Dict) -> Dict[str, str]:
+
         restored = text_dict.copy()
 
         # 获取各个配置信息
         auto_process_text_code_segment = config.auto_process_text_code_segment
         post_translation_switch = config.post_translation_switch
 
-        # 自动处理还原
+        # 代码段自动还原 - 根据开关决定
         if auto_process_text_code_segment:
             restored = self._restore_special_placeholders(restored, placeholder_order)
             restored = self._restore_affixes(restored, prefix_codes, suffix_codes)
@@ -450,9 +456,8 @@ class TextProcessor():
         # 数字序号还原
         restored = self.digital_sequence_recovery(restored)
 
-        # 前后空白换行，非日语文本还原（支持多行）
-        if auto_process_text_code_segment:
-            restored = self.restore_affix_whitespace(affix_whitespace_storage, restored)
+        # 空白、换行还原 - 总是执行（与处理时保持一致）
+        restored = self.restore_affix_whitespace(affix_whitespace_storage, restored)
 
         return restored
 
@@ -706,8 +711,23 @@ class TextProcessor():
         return text_dict
 
     # 处理前后缀的空格与换行，以及非日语文本（支持多行）
-    def strip_and_record_affixes(self, text_dict: Dict[str, str], source_lang: str) -> \
-            Tuple[Dict[str, str], Dict[str, Dict]]:
+    def strip_and_record_affixes(self, text_dict: Dict[str, str], source_lang: str,
+                                 enable_non_ja_affix: bool) -> Tuple[Dict[str, str], Dict[str, Dict]]:
+        """
+        处理文本的空白、换行和可选的非日语前后缀
+
+        Args:
+            text_dict: 待处理的文本字典
+            source_lang: 源语言
+            enable_non_ja_affix: 是否启用非日语字符前后缀处理（仅对日语生效）
+
+        Returns:
+            处理后的文本字典和处理信息
+
+        说明：
+            - 空白、换行、空行处理：总是执行（通用需求）
+            - 非日语字符前后缀提取：根据 enable_non_ja_affix 参数决定
+        """
         processed_text_dict: Dict[str, str] = {}
         processing_info: Dict[str, Dict] = {}
 
@@ -718,8 +738,10 @@ class TextProcessor():
                 processing_info[key] = self._create_empty_info()
                 continue
 
-            # 统一使用多行处理
-            processed_text, info = self._process_multiline_text(original_text, source_lang)
+            # 根据配置决定是否使用日语模式
+            use_ja_pattern = enable_non_ja_affix and (source_lang == 'ja' or source_lang == 'japanese')
+            processed_text, info = self._process_multiline_text(original_text, use_ja_pattern)
+
             processed_text_dict[key] = processed_text
             processing_info[key] = info
 
