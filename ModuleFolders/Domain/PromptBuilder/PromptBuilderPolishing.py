@@ -60,15 +60,45 @@ class PromptBuilderPolishing(Base):
 
     # 构造术语表
     def build_glossary_prompt(config: TaskConfig, input_dict: dict) -> str:
-        # 将输入字典中的所有值转换为集合
-        lines = set(line for line in input_dict.values())
+        # 将输入字典中的所有值合并为一个字符串，方便正则全局匹配
+        full_text = "\n".join(input_dict.values())
 
-        # 筛选在输入词典中出现过的条目
+        # 筛选并处理匹配的条目
         result = []
+        seen_keys = set() # 用于去重 (匹配到的实际原文, 译文)
+
         for v in config.prompt_dictionary_data:
-            src_lower = v.get("src").lower() # 将术语表中的 src 转换为小写
-            if any(src_lower in line.lower() for line in lines): # 将原文行也转换为小写进行比较
-                result.append(v)
+            src = v.get("src", "")
+            if not src:
+                continue
+
+            try:
+                # 编译正则表达式，忽略大小写以保持与原逻辑一致的宽松匹配
+                pattern = re.compile(src, re.IGNORECASE)
+
+                # 查找所有匹配项 (set去重，处理同一词在文中多次出现的情况)
+                found_texts = set(m.group() for m in pattern.finditer(full_text))
+
+                # 如果正则匹配到了内容 (例如正则 (A|B) 匹配到了 A 和 B，这里会循环两次)
+                for match_text in found_texts:
+                    if not match_text: continue
+
+                    # 使用 (实际匹配文本, 译文) 作为唯一键进行去重
+                    key = (match_text, v.get("dst"))
+                    if key not in seen_keys:
+                        # 复制元数据，并将 src 替换为实际匹配到的原文文本
+                        new_entry = v.copy()
+                        new_entry["src"] = match_text
+                        result.append(new_entry)
+                        seen_keys.add(key)
+
+            except re.error:
+                # 如果正则编译失败（非合法正则），回退到普通字符串包含判断
+                if src.lower() in full_text.lower():
+                    key = (src, v.get("dst"))
+                    if key not in seen_keys:
+                        result.append(v)
+                        seen_keys.add(key)
 
         # 数据校验
         if len(result) == 0:
