@@ -137,7 +137,7 @@ class PromptDictionaryPage(QFrame, Base):
         parent.addWidget(
             SwitchButtonCard(
                 self.tra("术语表"),
-                self.tra("通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n△触发机制: 文本含有原名  ◯填写示例:  ダリヤ  |  达莉雅  |  女性的名字"),
+                self.tra("通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n△触发机制: 文本含有原名或者原名的正则匹配生效  ◯填写示例:  ダリヤ  |  达莉雅  |  女性的名字"),
                 init=init,
                 checked_changed=checked_changed,
             )

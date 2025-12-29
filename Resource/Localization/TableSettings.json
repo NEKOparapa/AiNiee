@@ -6,11 +6,11 @@
       "English": "Glossary",
       "日本語": "用語集"
     },
-    "通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n△触发机制: 文本含有原名  ◯填写示例:  ダリヤ  |  达莉雅  |  女性的名字": {
-      "简中": "通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n△触发机制: 文本含有原名  ◯填写示例:  ダリヤ  |  达莉雅  |  女性的名字",
-      "繁中": "透過建立術語表來引導模型翻譯，可實現統一翻譯、補充資訊等功能。\n△觸發機制：文本含有來源術語。  ◯範例：ダリヤ  |  達莉雅  |  女性的名字",
-      "English": "Use a glossary to guide model translation for consistent translations, supplementary info, etc.\n△Trigger: When the text contains the source term.  ◯Example: ダリヤ  |  Dahlia  |  Female name",
-      "日本語": "用語集を構築してモデル翻訳を誘導し、翻訳の統一や情報補足などを実現します。\n△トリガー：テキストに元の用語が含まれている場合。  ◯例： 达莉雅  |  ダリヤ  |  女性の名前"
+    "通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n△触发机制: 文本含有原名或者原名的正则匹配生效  ◯填写示例:  ダリヤ  |  达莉雅  |  女性的名字": {
+      "简中": "通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n△触发机制: 文本含有原名或者原名的正则匹配生效  ◯填写示例:  ダリヤ  |  达莉雅  |  女性的名字",
+      "繁中": "透過建立術語表來引導模型翻譯，可實現統一翻譯、補充資訊等功能。\n△觸發機制：文本含有來源術語或符合其正則表達式匹配。  ◯範例：ダリヤ  |  達莉雅  |  女性的名字",
+      "English": "Use a glossary to guide model translation for consistent translations, supplementary info, etc.\n△Trigger: Text contains the source term or matches its Regular Expression.  ◯Example: ダリヤ  |  Dahlia  |  Female name",
+      "日本語": "用語集を構築してモデル翻訳を誘導し、翻訳の統一や情報補足などを実現します。\n△トリガー：テキストに元の用語が含まれるか、正規表現に一致する場合。  ◯例： 达莉雅  |  ダリヤ  |  女性の名前"
     },
     "原文": {
       "简中": "原文",
@@ -53,7 +53,7 @@
       "繁中": "術語表內容為空",
       "English": "Glossary is Empty",
       "日本語": "用語集が空です"
-    },    
+    },
     "术语信息已提取": {
       "简中": "术语信息已提取",
       "繁中": "術語信息已提取",
