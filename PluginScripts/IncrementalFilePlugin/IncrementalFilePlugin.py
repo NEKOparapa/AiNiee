@@ -27,7 +27,7 @@ class IncrementalFilePlugin(PluginBase):
 
         cache_manager = CacheManager()
         cache_manager.load_from_file(config.label_output_path)
-        if not hasattr(cache_manager, "project"):
+        if not hasattr(cache_manager, "project") or cache_manager.project is None:
             return
         cache_files = cache_manager.project.files
 
