@@ -206,7 +206,7 @@ class TranslationChecker(Base):
         # 生成报告
         self._print_report(all_results, is_judging, target_language_code, mode_text, threshold)
         if all_results:
-             self.print("\n")
+            self.print("\n")
 
 
         # 返回结果码
@@ -235,10 +235,31 @@ class TranslationChecker(Base):
         exclusion_data = self.config.get("exclusion_list_data", []) if rules_config.get("exclusion") else []
         check_attr = "polished_text" if target_type == "polish" else "translated_text"
 
-        # 准备术语表数据
+        # 准备术语表数据 (预处理正则)
         term_data = []
         if rules_config.get("terminology"):
-            term_data = self.config.get("prompt_dictionary_data", [])
+            raw_term_data = self.config.get("prompt_dictionary_data", [])
+            for term in raw_term_data:
+                if isinstance(term, dict):
+                    src_term = term.get("src")
+                    dst_term = term.get("dst")
+                    if src_term and dst_term:
+                        try:
+                            # 尝试编译为正则
+                            pattern = re.compile(src_term, re.IGNORECASE)
+                            term_data.append({
+                                "type": "regex",
+                                "pattern": pattern,
+                                "src": src_term, # 保留原始字符串用于调试或显示
+                                "dst": dst_term
+                            })
+                        except re.error:
+                            # 编译失败则作为普通字符串处理，后续将使用忽略大小写包含检测
+                            term_data.append({
+                                "type": "string",
+                                "src": src_term,
+                                "dst": dst_term
+                            })
 
         for file_path, file_obj in self.cache_manager.project.files.items():
             file_name = os.path.basename(file_path)
@@ -315,21 +336,31 @@ class TranslationChecker(Base):
         return errors_list
 
     # --- 规则检查辅助方法 ---
-    def _rule_check_terminology(self, src, dst, data):
+    def _rule_check_terminology(self, src, dst, prepared_data):
+        """
+        检查术语一致性
+        prepared_data: 包含预编译正则或字符串信息的列表
+        """
         errs = []
-        for term in data:
-            if isinstance(term, dict):
-                src_term = term.get("src")
-                dst_term = term.get("dst")
-                # 确保 src_term 和 dst_term 都存在且非空
-                if src_term and dst_term:
-                    # 简单的包含检查
-                    if src_term in src:
-                        if dst_term not in dst:
-                            # 使用简短的错误描述以便在表格中显示
-                            err_msg = self.tra("术语缺失: {}").format(dst_term)
-                            if err_msg not in errs:
-                                errs.append(err_msg)
+        for term_item in prepared_data:
+            match_found = False
+
+            # 检测原文中是否存在该术语
+            if term_item["type"] == "regex":
+                if term_item["pattern"].search(src):
+                    match_found = True
+            else:
+                # 字符串模式：使用忽略大小写包含，与PromptBuilder回退逻辑保持一致
+                if term_item["src"].lower() in src.lower():
+                    match_found = True
+
+            # 如果原文中存在术语，则检查译文中是否包含对应的译名
+            if match_found:
+                dst_term = term_item["dst"]
+                if dst_term not in dst:
+                    err_msg = self.tra("术语缺失: {}").format(dst_term)
+                    if err_msg not in errs:
+                        errs.append(err_msg)
         return errs
 
     def _prepare_regex_patterns(self, include_exclusion: bool):
