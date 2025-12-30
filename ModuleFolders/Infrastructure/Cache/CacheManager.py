@@ -61,12 +61,12 @@ class CacheManager(Base):
     def on_manual_save_cache_requested(self, event: int, data: dict) -> None:
         """处理手动保存缓存的请求"""
         output_path = data.get("output_path")
-        if output_path and hasattr(self, "project"):
+        if output_path and hasattr(self, "project") and self.project != None:
             # 设置保存路径并立即执行保存
             self.save_to_file_require_path = output_path
             self.save_to_file()
             self.info("缓存文件已通过手动请求保存。")
-        elif not hasattr(self, "project"):
+        elif not hasattr(self, "project") or self.project is None:
              self.warning("手动保存缓存失败：项目数据尚未加载。")
         else:
             self.warning("手动保存缓存失败：未提供有效的 'output_path'。")

@@ -20,7 +20,6 @@ class SimpleExecutor(Base):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-
         # 订阅接口测试开始事件
         self.subscribe(Base.EVENT.API_TEST_START, self.api_test_start)
         # 订阅术语表翻译开始事件
@@ -333,93 +332,116 @@ class SimpleExecutor(Base):
         config = TaskConfig()
         config.initialize()
         config.prepare_for_translation(TaskType.TRANSLATION)
-        platform_config = config.get_platform_configuration("translationReq")
+        max_threads = config.actual_thread_counts # 获取并发线程数
+        
+        # 预计算源语言
         file_source_lang = get_source_language_for_file(config.source_language, config.target_language, language_stats)
 
         # 翻译任务分割
-        MAX_LINES = 20  # 最大行数
-        LOG_WIDTH = 50  # 日志框的统一宽度
+        MAX_LINES = 20  
         total_items = len(items_to_translate)
         num_batches = (total_items + MAX_LINES - 1) // MAX_LINES
 
         self.info(f" 开始处理表格翻译任务: {os.path.basename(file_path)}")
         self.info(f"    总计 {total_items} 行文本, 将分为 {num_batches} 个批次处理。")
+        self.info(f"    并发线程数: {max_threads} (结果将在任务完成后统一刷新)")
 
-        for i in range(num_batches):
-            start_index = i * MAX_LINES
-            end_index = start_index + MAX_LINES
-            batch_items = items_to_translate[start_index:end_index]
-            
-            batch_num = i + 1
-            log_header = f" 批次 {batch_num}/{num_batches} "
-            
-            # 构建0基的数字序号原文词典
+        # 用于汇总所有批次结果的字典
+        final_updated_items = {}
+        # 成功/失败计数
+        success_batches = 0
+        failed_batches = 0
+
+        # 定义单个批次的工作函数
+        def translate_worker(batch_idx, batch_items):
+            batch_num = batch_idx + 1
+            # 重新获取配置以支持Key轮询
+            current_platform_config = config.get_platform_configuration("translationReq")
+
+            # 构建字典和索引
             source_text_dict = {str(idx): item['source_text'] for idx, item in enumerate(batch_items)}
-            # 构建还原用索引地图
             index_map = [item['text_index'] for item in batch_items]
 
-            # 为当前批次任务构建提示词内容
+            # 构建提示词
             messages, system_prompt, _ = PromptBuilder.generate_prompt(
                 config, source_text_dict, [], file_source_lang
             )
             
-            # 日志
-            print(f"\n╔{'═' * (LOG_WIDTH-2)}")
-            print(f"║{log_header.center(LOG_WIDTH-2)}")
-            print(f"╠{'═' * (LOG_WIDTH-2)}")
-            print(f"├─ 正在发送请求 (共 {len(batch_items)} 行)...")
+            # 简单的进度日志
+            print(f" -> [批次 {batch_num}] 正在发送请求 ({len(batch_items)}行)...")
             
             # 发送请求
             requester = LLMRequester()
             skip, _, response_content, _, _ = requester.sent_request(
-                messages, system_prompt, platform_config
+                messages, system_prompt, current_platform_config
             )
 
-            # 检查请求是否失败
             if skip:
-                print("├─ 请求失败，网络或API密钥错误。")
-                print(f"└─ ❌ 跳过此批次。")
-                continue
+                print(f" <- [批次 {batch_num}] ❌ 请求失败")
+                return None
 
-            # 日志输出
-            print("├─ 收到回复，内容如下:")
-            for line in response_content.strip().split('\n'):
-                print(f"│  {line}")
-            print(f"├{'─' * (LOG_WIDTH-2)}") # 添加一个分隔线
-
-            # 提取和检查返回内容
-            print("├─ 正在解析和校验回复...")
+            # 解析和校验
             response_dict = ResponseExtractor.text_extraction(self, source_text_dict, response_content)
-            check_result, error_content = ResponseChecker.check_polish_response_content(self, config, response_content, response_dict, source_text_dict)
+            check_result, _ = ResponseChecker.check_polish_response_content(
+                self, config, response_content, response_dict, source_text_dict
+            )
             
             if not check_result:
-                print(f"├─ 内容校验失败: {error_content}")
-                print(f"└─ ❌ 跳过此批次。")
-                continue
+                print(f" <- [批次 {batch_num}] ❌ 校验不通过")
+                return None
             
-            print(f"├─ 成功解析 {len(response_dict)} 条结果。")
-
-            # 将字符串序号的字典转换回原始 text_index 的字典-
+            # 还原序号
             restored_response_dict = {
                 index_map[int(temp_idx_str)]: text
                 for temp_idx_str, text in response_dict.items()
             }
 
-            # 移除文本中的数字序号
-            updated_items_for_ui = ResponseExtractor.remove_numbered_prefix(self, restored_response_dict)
+            # 移除前缀并返回
+            updated_items = ResponseExtractor.remove_numbered_prefix(self, restored_response_dict)
+            print(f" <- [批次 {batch_num}] ✅ 完成 (解析出 {len(updated_items)} 条)")
+            return updated_items
 
-            # 发送表格更新信号
+        # 执行线程池
+        with ThreadPoolExecutor(max_workers=max_threads) as executor:
+            future_to_batch = {}
+            # 提交任务
+            for i in range(num_batches):
+                start_index = i * MAX_LINES
+                end_index = start_index + MAX_LINES
+                batch_items = items_to_translate[start_index:end_index]
+                
+                future = executor.submit(translate_worker, i, batch_items)
+                future_to_batch[future] = i
+
+            # 处理结果（此处仅收集，不更新UI）
+            for future in as_completed(future_to_batch):
+                try:
+                    result = future.result()
+                    if result:
+                        final_updated_items.update(result)
+                        success_batches += 1
+                    else:
+                        failed_batches += 1
+                except Exception as e:
+                    self.error(f"批次执行异常: {e}")
+                    failed_batches += 1
+
+        self.info(f" 所有批次处理完毕。成功: {success_batches}, 失败: {failed_batches}")
+        
+        # 任务全部完成后，统一发送一次UI更新事件
+        if final_updated_items:
+            self.info(f" 正在将 {len(final_updated_items)} 条翻译结果写入表格...")
             self.emit(Base.EVENT.TABLE_UPDATE, {
                 "file_path": file_path,
-                "target_column_index": 2,
-                "updated_items": updated_items_for_ui
+                "target_column_index": 2, # 翻译列
+                "updated_items": final_updated_items
             })
-            print(f"└─ ✅ 批次处理完成，已发送UI更新。")
-            print("")
+        else:
+            self.warning(" 未获得任何有效翻译结果，表格未更新。")
 
         # 更新软件状态
         Base.work_status = Base.STATUS.IDLE 
-        self.info(f" 🐳 表格翻译任务已经全部完成")                            
+        self.info(f" 🐳 表格翻译任务结束")                         
 
     # 响应表格润色事件
     def handle_table_polish_start(self, event, data: dict):
@@ -428,114 +450,119 @@ class SimpleExecutor(Base):
 
     # 表格文本的分批润色
     def process_table_polish(self, data: dict):
-        """处理表格文件的批量翻译任务"""
-        # 解包从UI传来的数据
+        """处理表格文件的批量润色任务"""
+        # 解包数据
         file_path = data.get("file_path")
         items_to_polish = data.get("items_to_polish")
 
-        # 准备翻译配置
+        # 准备配置
         config = TaskConfig()
         config.initialize()
         config.prepare_for_translation(TaskType.POLISH)
-        platform_config = config.get_platform_configuration("polishingReq")
         polishing_mode_selection = config.polishing_mode_selection
+        max_threads = config.actual_thread_counts
 
-        # 翻译任务分割
-        MAX_LINES = 20  # 最大行数
-        LOG_WIDTH = 50  # 日志框的统一宽度
+        # 任务分割
+        MAX_LINES = 20
         total_items = len(items_to_polish)
         num_batches = (total_items + MAX_LINES - 1) // MAX_LINES
 
         self.info(f" 开始处理表格润色任务: {os.path.basename(file_path)}")
         self.info(f"    总计 {total_items} 行文本, 将分为 {num_batches} 个批次处理。")
+        self.info(f"    并发线程数: {max_threads} (结果将在任务完成后统一刷新)")
 
-        for i in range(num_batches):
-            start_index = i * MAX_LINES
-            end_index = start_index + MAX_LINES
-            batch_items = items_to_polish[start_index:end_index]
+        # 结果汇总字典
+        final_updated_items = {}
+        success_batches = 0
+        failed_batches = 0
+
+        # 定义工作函数
+        def polish_worker(batch_idx, batch_items):
+            batch_num = batch_idx + 1
+            current_platform_config = config.get_platform_configuration("polishingReq")
             
-            batch_num = i + 1
-            log_header = f" 批次 {batch_num}/{num_batches} "
-            
-            # 构建0基的数字序号原文词典
             source_text_dict = {str(idx): item['source_text'] for idx, item in enumerate(batch_items)}
-            # 译文词典
             translation_text_dict = {str(idx): item['translation_text'] for idx, item in enumerate(batch_items)}
-            # 构建还原用索引地图
             index_map = [item['text_index'] for item in batch_items]
 
-            # 生成提示词内容
-            messages, system_prompt, extra_log = PromptBuilderPolishing.generate_prompt(
-                config,
-                source_text_dict,
-                translation_text_dict,
-                [],
+            messages, system_prompt, _ = PromptBuilderPolishing.generate_prompt(
+                config, source_text_dict, translation_text_dict, []
             )
             
-            # 日志
-            print(f"\n╔{'═' * (LOG_WIDTH-2)}")
-            print(f"║{log_header.center(LOG_WIDTH-2)}")
-            print(f"╠{'═' * (LOG_WIDTH-2)}")
-            print(f"├─ 正在发送请求 (共 {len(batch_items)} 行)...")
+            print(f" -> [批次 {batch_num}] 正在发送请求 ({len(batch_items)}行)...")
             
-            # 发送请求
             requester = LLMRequester()
             skip, _, response_content, _, _ = requester.sent_request(
-                messages, system_prompt, platform_config
+                messages, system_prompt, current_platform_config
             )
 
-            # 检查请求是否失败
             if skip:
-                print("├─ 请求失败，网络或API密钥错误。")
-                print(f"└─ ❌ 跳过此批次。")
-                continue
+                print(f" <- [批次 {batch_num}] ❌ 请求失败")
+                return None
 
-            # 日志输出
-            print("├─ 收到回复，内容如下:")
-            for line in response_content.strip().split('\n'):
-                print(f"│  {line}")
-            print(f"├{'─' * (LOG_WIDTH-2)}") # 添加一个分隔线
-
-
-            # 根据润色模式调整文本对象
+            # 确定校验基准
             if polishing_mode_selection == "source_text_polish":
                 text_dict = source_text_dict
-            elif polishing_mode_selection == "translated_text_polish":
+            else:
                 text_dict = translation_text_dict
 
-            # 提取和检查返回内容
-            print("├─ 正在解析和校验回复...")
+            # 解析校验
             response_dict = ResponseExtractor.text_extraction(self, text_dict, response_content)
-            check_result, error_content = ResponseChecker.check_polish_response_content(self, config, response_content, response_dict, text_dict)
+            check_result, _ = ResponseChecker.check_polish_response_content(
+                self, config, response_content, response_dict, text_dict
+            )
             
             if not check_result:
-                print(f"├─ 内容校验失败: {error_content}")
-                print(f"└─ ❌ 跳过此批次。")
-                continue
+                print(f" <- [批次 {batch_num}] ❌ 校验不通过")
+                return None
             
-            print(f"├─ 成功解析 {len(response_dict)} 条结果。")
-
-            # 将字符串序号的字典转换回原始 text_index 的字典-
+            # 还原和清理
             restored_response_dict = {
                 index_map[int(temp_idx_str)]: text
                 for temp_idx_str, text in response_dict.items()
             }
+            updated_items = ResponseExtractor.remove_numbered_prefix(self, restored_response_dict)
+            print(f" <- [批次 {batch_num}] ✅ 完成 (解析出 {len(updated_items)} 条)")
+            return updated_items
 
-            # 移除文本中的数字序号
-            updated_items_for_ui = ResponseExtractor.remove_numbered_prefix(self, restored_response_dict)
+        # 执行线程池
+        with ThreadPoolExecutor(max_workers=max_threads) as executor:
+            future_to_batch = {}
+            for i in range(num_batches):
+                start_index = i * MAX_LINES
+                end_index = start_index + MAX_LINES
+                batch_items = items_to_polish[start_index:end_index]
+                
+                future = executor.submit(polish_worker, i, batch_items)
+                future_to_batch[future] = i
+            
+            for future in as_completed(future_to_batch):
+                try:
+                    result = future.result()
+                    if result:
+                        final_updated_items.update(result)
+                        success_batches += 1
+                    else:
+                        failed_batches += 1
+                except Exception as e:
+                    self.error(f"批次执行异常: {e}")
+                    failed_batches += 1
 
-            # 发送表格更新信号
+        self.info(f" 所有批次处理完毕。成功: {success_batches}, 失败: {failed_batches}")
+
+        # 统一发送 UI 更新
+        if final_updated_items:
+            self.info(f" 正在将 {len(final_updated_items)} 条润色结果写入表格...")
             self.emit(Base.EVENT.TABLE_UPDATE, {
                 "file_path": file_path,
-                "target_column_index": 3,
-                "updated_items": updated_items_for_ui
+                "target_column_index": 3, # 润色列
+                "updated_items": final_updated_items
             })
-            print(f"└─ ✅ 批次处理完成，已发送UI更新。")
-            print("")
+        else:
+            self.warning(" 未获得任何有效润色结果，表格未更新。")
 
-        # 更新软件状态
         Base.work_status = Base.STATUS.IDLE 
-        self.info(f" 🐳 表格润色任务已经全部完成")         
+        self.info(f" 🐳 表格润色任务结束")     
 
     # 响应术语提取事件，并启动新线程
     def handle_term_extraction_start(self, event, data: dict):
