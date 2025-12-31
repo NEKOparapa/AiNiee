@@ -1,3 +1,5 @@
+import os
+
 from ModuleFolders.Infrastructure.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Infrastructure.Cache.CacheManager import CacheManager
 from ModuleFolders.Infrastructure.Cache.CacheProject import CacheProject
@@ -25,11 +27,16 @@ class IncrementalFilePlugin(PluginBase):
 
     def read_incremental_files(self, config, event_data: CacheProject):
 
-        cache_manager = CacheManager()
-        cache_manager.load_from_file(config.label_output_path)
-        if not hasattr(cache_manager, "project") or cache_manager.project is None:
+        cache_path = CacheManager.get_default_cache_path(config.label_output_path)
+        if not os.path.isfile(cache_path):
             return
-        cache_files = cache_manager.project.files
+        try:
+            project = CacheManager.read_from_file(cache_path)
+        except Exception:
+            return
+        if not project.files:
+            return
+        cache_files = project.files
 
         for file in event_data.files.values():
             if file.storage_path in cache_files:

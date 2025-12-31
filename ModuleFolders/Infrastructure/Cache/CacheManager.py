@@ -159,10 +159,15 @@ class CacheManager(Base):
     # 从缓存文件读取数据
     def load_from_file(self, output_path: str) -> None:
         """从文件加载数据"""
-        path = os.path.join(output_path, "cache", "AinieeCacheData.json")
+        path = self.get_default_cache_path(output_path)
         with self.file_lock:
             if os.path.isfile(path):
                 self.project = self.read_from_file(path)
+
+    @classmethod
+    def get_default_cache_path(cls, output_path: str) -> str:
+        """获取默认缓存文件路径"""
+        return os.path.join(output_path, "cache", "AinieeCacheData.json")
 
     @classmethod
     def read_from_file(cls, cache_path) -> CacheProject:
