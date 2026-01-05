@@ -1,8 +1,9 @@
 import os
+import json
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableWidgetItem,
                              QAbstractItemView, QHeaderView, QHBoxLayout,
-                             QSpacerItem, QSizePolicy)
+                             QSpacerItem, QSizePolicy, QFileDialog)
 
 from qfluentwidgets import (TableWidget, PrimaryPushButton, FluentIcon,
                               RoundMenu, Action, MessageBox)
@@ -43,12 +44,20 @@ class TermResultPage(Base, QWidget):
         toolbar_layout = QHBoxLayout()
         toolbar_layout.setContentsMargins(0, 0, 0, 0)
         toolbar_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+
+        # 导出术语提取数据按钮
+        self.export_button = PrimaryPushButton(FluentIcon.SAVE, self.tra("导出术语提取数据"), self)
+        self.export_button.clicked.connect(self._on_export_data)
+        toolbar_layout.addWidget(self.export_button)
+
         self.translate_save_button = PrimaryPushButton(FluentIcon.LANGUAGE, self.tra("翻译后保存到术语表"), self)
         self.translate_save_button.clicked.connect(self._on_translate_and_save)
         toolbar_layout.addWidget(self.translate_save_button)
+
         self.save_button = PrimaryPushButton(FluentIcon.DICTIONARY_ADD, self.tra("直接保存到术语表"), self)
         self.save_button.clicked.connect(self._on_save_to_glossary)
         toolbar_layout.addWidget(self.save_button)
+
         self.layout.addLayout(toolbar_layout)
 
     def _init_table(self):
@@ -160,6 +169,49 @@ class TermResultPage(Base, QWidget):
             self.tra("操作成功"),
             self.tra("已成功删除 {} 行。").format(len(rows_to_delete))
         )
+
+    def _on_export_data(self):
+        """处理“导出术语提取数据”按钮点击事件"""
+        if not self.extraction_results:
+            self.warning_toast(self.tra("提示"), self.tra("没有可导出的术语。"))
+            return
+
+        # 准备导出的数据，格式与术语表配置一致
+        export_data = []
+        for result in self.extraction_results:
+            export_data.append({
+                "src": result['term'],
+                "dst": "",  # 未翻译状态
+                "info": result['type']
+            })
+
+        # 默认文件名
+        default_filename = "术语提取数据_导出.json"
+        # 默认路径为当前运行目录
+        default_path = os.path.join(os.getcwd(), default_filename)
+
+        # 打开文件保存对话框
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tra("导出术语"),
+            default_path,
+            "JSON Files (*.json)"
+        )
+
+        if not file_path:
+            return  # 用户取消
+
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(export_data, f, ensure_ascii=False, indent=4)
+
+            self.success_toast(
+                self.tra("导出成功"),
+                self.tra("已成功导出 {} 条术语数据。").format(len(export_data))
+            )
+        except Exception as e:
+            self.error_toast(self.tra("导出失败"), str(e))
+            self.error(f"导出术语数据时发生错误: {e}")
 
     def _on_save_to_glossary(self):
         """处理“直接保存到术语表”按钮点击事件"""
