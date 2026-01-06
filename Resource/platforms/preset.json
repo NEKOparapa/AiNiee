@@ -112,12 +112,13 @@
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
             "think_switch": false,
-            "think_depth": "low",
+            "thinking_level": "high",
             "auto_complete": false,
             "model_datas": [
                 "gemini-2.5-flash",
                 "gemini-2.5-pro",
-                "gemini-3-pro"
+                "gemini-3-flash-preview",
+                "gemini-3-pro-preview"
             ],
             "key_in_settings": [
                 "api_key",
@@ -128,10 +129,12 @@
                 "top_p",
                 "think_switch",
                 "thinking_budget",
+                "thinking_level",
                 "presence_penalty",
                 "frequency_penalty"
             ]
         },
+
         "openai": {
             "tag": "openai",
             "group": "online",
@@ -510,6 +513,7 @@
             "frequency_penalty": 0.0,
             "think_switch": false,
             "think_depth": "low",
+            "thinking_level": "high",
             "auto_complete": true,
             "model_datas": [
                 "gpt-4o",
@@ -539,8 +543,10 @@
                 "extra_body",
                 "think_switch",
                 "think_depth",
-                "thinking_budget"
+                "thinking_budget",
+                "thinking_level"
             ]
         }
+
     }
 }
