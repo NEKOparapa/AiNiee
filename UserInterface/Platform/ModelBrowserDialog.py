@@ -266,8 +266,9 @@ class ModelBrowserDialog(MessageBoxBase, Base):
 
     # 拉取模型（异步）
     def _fetch_models(self) -> None:
-        # 判断平台类型
-        if self.platform_key == "google":
+        # 判断平台类型：google 官方接口或自定义接口使用 Google 格式时，使用原生 Google API
+        api_format = self.platform_config.get("api_format", "")
+        if self.platform_key == "google" or api_format == "Google":
             self._thread = QThread(self)
             self._worker = _GoogleModelFetchWorker(self.platform_config)
             self._worker.moveToThread(self._thread)
