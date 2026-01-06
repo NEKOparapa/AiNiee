@@ -324,14 +324,14 @@ class CharacterizationPromptPage(QFrame, Base):
             # 更新并保存
             # 合并现有数据（来自表格状态）+ 新的已过滤数据
             combined_data = current_data + new_data_filtered
-            config["prompt_dictionary_data"] = combined_data # 直接更新配置
+            config["characterization_data"] = combined_data # 直接更新配置
 
             # 在再次从表格保存配置*之前*更新表格
-            TableHelper.update_to_table(self.table, config["prompt_dictionary_data"], CharacterizationPromptPage.KEYS)
+            TableHelper.update_to_table(self.table, config["characterization_data"], CharacterizationPromptPage.KEYS)
             self.table.resizeRowsToContents() # 导入后调整行高
 
             # 现在将可能已修改的表格状态保存回配置
-            config["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
+            config["characterization_data"] = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
             self.save_config(config)
             self._reset_sort_indicator() # 导入后重置排序
             self.success_toast("", self.tra("数据已导入并更新") + f" ({len(new_data_filtered)} {self.tra('项')})...")
@@ -367,4 +367,3 @@ class CharacterizationPromptPage(QFrame, Base):
         parent.add_action(
             Action(FluentIcon.SHARE, self.tra("导出"), parent, triggered = triggered),
         )
-
