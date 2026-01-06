@@ -83,9 +83,18 @@ class ArgsEditPage(MessageBoxBase, Base):
         if "think_depth" in settings and api_format in ["OpenAI", "Anthropic"]:
             self.add_widget_think_depth(self.vbox, config)
 
-        # thinking_budget - 仅在格式为 Google 时显示
-        if "thinking_budget" in settings and api_format == "Google":
-            self.add_widget_thinking_budget(self.vbox, config, preset)
+        # Google 格式的思考参数配置 - 根据模型版本互斥显示
+        if api_format == "Google":
+            from ModuleFolders.Infrastructure.LLMRequester.ModelConfigHelper import ModelConfigHelper
+
+            model_name = config.get("platforms").get(self.key).get("model", "")
+
+            if ModelConfigHelper.is_gemini_3_or_newer(model_name):
+                # Gemini 3.x 使用 thinking_level
+                self.add_widget_thinking_level(self.vbox, config)
+            elif "thinking_budget" in settings:
+                # Gemini 2.5.x 及更早版本使用 thinking_budget
+                self.add_widget_thinking_budget(self.vbox, config, preset)
 
         # 填充
         self.vbox.addStretch(1)
@@ -171,6 +180,37 @@ class ArgsEditPage(MessageBoxBase, Base):
                 info_cont,
                 init = init,
                 value_changed = value_changed,
+            )
+        )
+
+    # 思考深度级别 (Gemini 3 专用)
+    def add_widget_thinking_level(self, parent, config):
+        from ModuleFolders.Infrastructure.LLMRequester.ModelConfigHelper import ModelConfigHelper
+
+        def init(widget):
+            platform = config.get("platforms").get(self.key)
+            model_name = platform.get("model", "")
+
+            # 根据模型类型设置可用选项
+            items = ModelConfigHelper.get_thinking_level_options(model_name)
+            widget.set_items(items)
+
+            current = platform.get("thinking_level", "high")
+            idx = widget.find_text(current)
+            widget.set_current_index(max(0, idx if idx >= 0 else len(items) - 1))
+
+        def current_text_changed(widget, text: str):
+            config = self.load_config()
+            config["platforms"][self.key]["thinking_level"] = text.strip()
+            self.save_config(config)
+
+        parent.addWidget(
+            ComboBoxCard(
+                self.tra("thinking_level"),
+                self.tra("思考深度级别 (Gemini 3 专用，Pro 仅支持 low/high)"),
+                [],
+                init=init,
+                current_text_changed=current_text_changed,
             )
         )
 

@@ -55,10 +55,13 @@ class GoogleRequester(Base):
 
             # 如果开启了思考模式，则添加思考配置
             if think_switch:
-                gen_config.thinking_config = types.ThinkingConfig(
-                    include_thoughts=True,
-                    thinking_budget=thinking_budget
-                )
+                # Gemini 3.x 使用 thinking_level 参数
+                if ModelConfigHelper.is_gemini_3_or_newer(model_name):
+                    thinking_level = platform_config.get("thinking_level", "high")
+                    gen_config.thinking_config = types.ThinkingConfig(include_thoughts=True, thinking_level=thinking_level)
+                else:
+                    # Gemini 2.5.x 及更早版本使用 thinking_budget 参数
+                    gen_config.thinking_config = types.ThinkingConfig(include_thoughts=True, thinking_budget=thinking_budget)
 
             # 生成文本内容
             response = client.models.generate_content(

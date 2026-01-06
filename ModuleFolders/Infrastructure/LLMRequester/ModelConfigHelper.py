@@ -74,6 +74,24 @@ class ModelConfigHelper:
         return 0.0
 
     @classmethod
+    def is_gemini_3_or_newer(cls, model_name: str) -> bool:
+        """检测是否为 Gemini 3.x 或更新版本"""
+        version = cls._extract_google_version(model_name)
+        return version >= 3.0
+
+    @classmethod
+    def get_thinking_level_options(cls, model_name: str) -> list[str]:
+        """获取模型支持的 thinking_level 选项
+
+        Gemini 3 Pro: low, high
+        Gemini 3 Flash: minimal, low, medium, high
+        """
+        if "flash" in model_name.lower():
+            return ["minimal", "low", "medium", "high"]
+        else:  # Pro 模型
+            return ["low", "high"]
+
+    @classmethod
     def get_claude_max_output_tokens(cls, model_name: str) -> int:
         """获取 Claude 模型的最大输出 token 限制"""
         # 优先检查已知模型
