@@ -529,7 +529,7 @@ class TextReplaceAPage(QFrame, Base):
             self.warning_toast("", self.tra("表格中没有数据可导出"))
             return
 
-        default_filename = self.tra("导出_术语表")
+        default_filename = self.tra("导出_译前替换")
 
         
         file_filter = "JSON 文件 (*.json);;XLSX 文件 (*.xlsx)"
