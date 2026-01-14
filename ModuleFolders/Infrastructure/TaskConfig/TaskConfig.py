@@ -69,14 +69,14 @@ class TaskConfig(Base):
             setattr(self, key, value)
 
     # API_URL 自动处理方法
-    def process_api_url(self, raw_url: str, target_platform: str, auto_complete: bool) -> str:
+    def process_api_url(self, raw_url: str, target_platform: str, auto_complete: bool, api_format: str = "") -> str:
         if not raw_url:
             return ""
 
         # 1. 基础清洗
         url = raw_url.strip().rstrip('/')
 
-        # 2. 裁剪后缀
+        # 2. 裁剪冗余后缀
         # 允许输入如: http://127.0.0.1:5000/v1/chat/completions -> 裁剪为 -> http://127.0.0.1:5000/v1
         redundant_suffixes = ["/chat/completions", "/completions", "/chat"]
         for suffix in redundant_suffixes:
@@ -85,12 +85,30 @@ class TaskConfig(Base):
                 url = url.rstrip('/') # 再次去除可能暴露出来的斜杠
                 break
 
-        # 3. 自动补全 /v1 逻辑
+        # 3. 判断是否为 Anthropic 格式（平台名称或接口格式）
+        is_anthropic = (
+                target_platform.lower() == "anthropic"
+                or api_format.lower() == "anthropic"
+        )
+
+        # 4. 版本号后缀列表
+        version_suffixes = ["/v1", "/v2", "/v3", "/v4", "/v5", "/v6"]
+
+        # 5. Anthropic 格式特殊处理
+        # Anthropic SDK 会自动拼接 /v1/messages，所以需要去掉用户输入的版本号
+        if is_anthropic and auto_complete:
+            for suffix in version_suffixes:
+                if url.endswith(suffix):
+                    url = url[:-len(suffix)]
+                    url = url.rstrip('/')
+                    break
+            # Anthropic 不需要补全 /v1，直接返回
+            return url
+
+        # 6. 非 Anthropic 的自动补全 /v1 逻辑
         # 某些平台强制补全，或者配置开启了 auto_complete
         should_auto_complete = (target_platform in ["sakura", "LocalLLM"]) or auto_complete
-
         if should_auto_complete:
-            version_suffixes = ["/v1", "/v2", "/v3", "/v4", "/v5", "/v6"]
             # 如果当前 URL 不以任何版本号结尾，则添加 /v1
             if not any(url.endswith(suffix) for suffix in version_suffixes):
                 url += "/v1"
@@ -127,8 +145,9 @@ class TaskConfig(Base):
         # 处理 API URL 和限额
         raw_url = self.platforms.get(self.target_platform).get("api_url", "")
         auto_complete_setting = self.platforms.get(self.target_platform).get("auto_complete", False)
+        api_format = self.platforms.get(self.target_platform).get("api_format", "")
         
-        self.base_url = self.process_api_url(raw_url, self.target_platform, auto_complete_setting)
+        self.base_url = self.process_api_url(raw_url, self.target_platform, auto_complete_setting, api_format)
 
         # 获取接口限额
         self.rpm_limit = self.platforms.get(self.target_platform).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值

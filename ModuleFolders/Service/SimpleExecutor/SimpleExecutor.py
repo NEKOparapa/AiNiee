@@ -43,23 +43,47 @@ class SimpleExecutor(Base):
         # 获取参数
         platform_tag = data.get("tag")
         platform_name = data.get("name")
-        api_url = data.get("api_url")
+        api_url = data.get("api_url", "")
         api_key = data.get("api_key")
-        api_format = data.get("api_format")
+        api_format = data.get("api_format", "")
         model_name = data.get("model")
         auto_complete = data.get("auto_complete")
-        extra_body = data.get("extra_body",{})
+        extra_body = data.get("extra_body", {})
         region = data.get("region")
         access_key = data.get("access_key")
         secret_key = data.get("secret_key")
 
-        # 自动补全API地址
-        if (platform_tag == "sakura" or platform_tag == "LocalLLM") and not api_url.endswith("/v1"):
-            api_url += "/v1"
-        elif auto_complete:
-            version_suffixes = ["/v1", "/v2", "/v3", "/v4"]
-            if not any(api_url.endswith(suffix) for suffix in version_suffixes):
-                api_url += "/v1"
+        # 处理 API 地址
+        if api_url:
+            # 基础清洗
+            api_url = api_url.strip().rstrip('/')
+
+            # 裁剪冗余后缀
+            redundant_suffixes = ["/chat/completions", "/completions", "/chat"]
+            for suffix in redundant_suffixes:
+                if api_url.endswith(suffix):
+                    api_url = api_url[:-len(suffix)].rstrip('/')
+                    break
+
+            # 判断是否为 Anthropic 格式
+            is_anthropic = (
+                    platform_tag == "anthropic"
+                    or api_format.lower() == "anthropic"
+            )
+
+            # 版本号后缀列表
+            version_suffixes = ["/v1", "/v2", "/v3", "/v4", "/v5", "/v6"]
+
+            # Anthropic 格式特殊处理：SDK 会自动拼接 /v1/messages，需要去掉用户输入的版本号
+            if is_anthropic and auto_complete:
+                for suffix in version_suffixes:
+                    if api_url.endswith(suffix):
+                        api_url = api_url[:-len(suffix)].rstrip('/')
+                        break
+            # 非 Anthropic 的自动补全 /v1 逻辑
+            elif (platform_tag in ["sakura", "LocalLLM"]) or auto_complete:
+                if not any(api_url.endswith(suffix) for suffix in version_suffixes):
+                    api_url += "/v1"
 
         # 测试结果
         failure = []
@@ -102,7 +126,12 @@ class SimpleExecutor(Base):
                 "region":  region,
                 "access_key":  access_key,
                 "secret_key": secret_key,
-                "extra_body": extra_body
+                "extra_body": extra_body,
+                "think_switch": data.get("think_switch"),
+                "think_depth": data.get("think_depth"),
+                "thinking_level": data.get("thinking_level"),
+                "temperature": data.get("temperature"),
+                "top_p": data.get("top_p")
             }
 
             #尝试请求

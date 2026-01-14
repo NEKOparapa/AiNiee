@@ -279,6 +279,40 @@ class ModelBrowserDialog(MessageBoxBase, Base):
             self._worker.finished.connect(self._worker.deleteLater)
             self._thread.finished.connect(self._thread.deleteLater)
             self._thread.start()
+        # Anthropic/Claude 平台
+        elif self.platform_key == "anthropic" or api_format == "Anthropic":
+            base_url = self.platform_config.get("api_url", "https://api.anthropic.com").rstrip("/")
+            auto_complete = self.platform_config.get("auto_complete", False)
+
+            # Anthropic 特殊的 URL 处理逻辑
+            if auto_complete:
+                # 如果开启自动补全，移除所有 /v* 后缀
+                base_url = re.sub(r'/v\d+$', '', base_url)
+            # 如果没开启自动补全，保持原样（不做任何修改）
+
+            # Anthropic 的标准端点始终是 /v1/models
+            url = f"{base_url}/v1/models"
+
+            # Anthropic 特殊请求头
+            headers = {
+                "anthropic-version": "2023-06-01"
+            }
+
+            api_keys = self.platform_config.get("api_key", "").replace(" ", "")
+            if api_keys:
+                headers["x-api-key"] = api_keys.split(',')[0]
+
+            # 使用现有的 _ModelFetchWorker
+            self._thread = QThread(self)
+            self._worker = _ModelFetchWorker(url, headers)
+            self._worker.moveToThread(self._thread)
+            self._thread.started.connect(self._worker.run)
+            self._worker.finished.connect(self._on_fetch_finished)
+            self._worker.failed.connect(self._on_fetch_failed)
+            self._worker.finished.connect(self._thread.quit)
+            self._worker.finished.connect(self._worker.deleteLater)
+            self._thread.finished.connect(self._thread.deleteLater)
+            self._thread.start()
         else:
             # OpenAI 兼容接口
             base_url = self.platform_config.get("api_url", "").rstrip("/")
