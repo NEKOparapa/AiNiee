@@ -40,14 +40,20 @@ class LLMRequester():
                 system_prompt,
                 platform_config,
             )
-        elif target_platform == "google" or (target_platform.startswith("custom_platform_") and api_format == "Google"):
+        elif target_platform == "google" or (
+            (target_platform.startswith("custom_platform_") or target_platform.startswith("custom_"))
+            and api_format == "Google"
+        ):
             google_requester = GoogleRequester()
             skip, response_think, response_content, prompt_tokens, completion_tokens = google_requester.request_google(
                 messages,
                 system_prompt,
                 platform_config,
             )
-        elif target_platform == "anthropic" or (target_platform.startswith("custom_platform_") and api_format == "Anthropic"):
+        elif target_platform == "anthropic" or (
+            (target_platform.startswith("custom_platform_") or target_platform.startswith("custom_"))
+            and api_format == "Anthropic"
+        ):
             anthropic_requester = AnthropicRequester()
             skip, response_think, response_content, prompt_tokens, completion_tokens = anthropic_requester.request_anthropic(
                 messages,
