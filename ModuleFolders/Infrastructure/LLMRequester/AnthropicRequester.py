@@ -11,7 +11,7 @@ class AnthropicRequester(Base):
     def _calculate_budget_tokens(self, think_depth: str, max_tokens: int) -> int:
         """
         根据思考深度档位计算 budget_tokens
-        参考比例：low ~20%, medium ~50%, high ~80%
+        参考比例：low ~10%, medium ~40%, high ~70%
         Anthropic 要求 budget_tokens 最小值为 1024
         """
         ratio_map = {
