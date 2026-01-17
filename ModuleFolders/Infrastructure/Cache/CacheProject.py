@@ -30,6 +30,7 @@ class ProjectType:
     BABELDOC_PDF = "BabeldocPdf"
     CSV = "Csv"
     PPTX = "Pptx"
+    XLSX = "Xlsx"
 
 @dataclass(repr=False)
 class CacheProjectStatistics(ThreadSafeCache):

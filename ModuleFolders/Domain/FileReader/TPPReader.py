@@ -24,6 +24,25 @@ class TPPReader(BaseSourceReader):
     def support_file(self):
         return "xlsx"
 
+    def can_read_by_content(self, file_path: Path) -> bool:
+        """检查文件内容是否符合 TPP 格式：第一行第一列是 'Original Text'，第二列是 'Initial'"""
+        try:
+            wb = openpyxl.load_workbook(file_path, read_only=True)
+            sheet = wb.active
+            
+            # 读取第一行第一列和第二列的值
+            cell_value1 = sheet.cell(row=1, column=1).value
+            cell_value2 = sheet.cell(row=1, column=2).value
+            
+            wb.close()
+            
+            # 判断是否为 TPP 格式
+            # 第一列应该是 "Original Text"，第二列应该是 "Initial"
+            return (isinstance(cell_value1, str) and cell_value1.strip() == "Original Text" and
+                    isinstance(cell_value2, str) and cell_value2.strip() == "Initial")
+        except Exception:
+            return False
+
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
         wb = openpyxl.load_workbook(file_path)
         sheet = wb.active

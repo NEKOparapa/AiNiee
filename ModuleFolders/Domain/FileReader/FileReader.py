@@ -21,6 +21,7 @@ from ModuleFolders.Domain.FileReader.EpubReader import EpubReader
 from ModuleFolders.Domain.FileReader.DocxReader import DocxReader
 from ModuleFolders.Domain.FileReader.CsvReader import CsvReader
 from ModuleFolders.Domain.FileReader.PptxReader import PptxReader
+from ModuleFolders.Domain.FileReader.XlsxReader import XlsxReader
 from ModuleFolders.Domain.FileReader.MdReader import MdReader
 from ModuleFolders.Domain.FileReader.RenpyReader import RenpyReader
 from ModuleFolders.Domain.FileReader.TransReader import TransReader
@@ -58,6 +59,7 @@ class FileReader():
         self.register_reader(BabeldocPdfReader)
         self.register_reader(CsvReader)
         self.register_reader(PptxReader)
+        self.register_reader(XlsxReader)
         
         # 注册插件式 Reader
         CustomReader.register_readers(self)

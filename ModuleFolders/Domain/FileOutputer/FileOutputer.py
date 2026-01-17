@@ -27,6 +27,7 @@ from PluginScripts.IOPlugins.CustomRegistry import CustomWriter
 from ModuleFolders.Domain.FileOutputer.AssWriter import AssWriter
 from ModuleFolders.Domain.FileOutputer.CsvWriter import CsvWriter
 from ModuleFolders.Domain.FileOutputer.PptxWriter import PptxWriter
+from ModuleFolders.Domain.FileOutputer.XlsxWriter import XlsxWriter
 
 # 文件输出器
 class FileOutputer:
@@ -62,6 +63,7 @@ class FileOutputer:
         self.register_writer(BabeldocPdfWriter)
         self.register_writer(CsvWriter)
         self.register_writer(PptxWriter)
+        self.register_writer(XlsxWriter)
 
         # 注册插件式 Writer
         CustomWriter.register_writers(self)

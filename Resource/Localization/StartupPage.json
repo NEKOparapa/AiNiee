@@ -202,6 +202,12 @@
       "English": "Po Data",
       "日本語": "Poデータ"
     },
+    "Xlsx": {
+      "简中": "Xlsx文档",
+      "繁中": "Xlsx文件",
+      "English": "Xlsx Document",
+      "日本語": "Xlsxドキュメント"
+    },
     "Paratranz": {
       "简中": "ParaTranz导出",
       "繁中": "ParaTranz導出",
@@ -221,10 +227,10 @@
       "日本語": "Pdfドキュメント (pdf2zh/BabelDOC)"
     },
     "AutoType": {
-      "简中": "自动识别文件类型",
-      "繁中": "自動識別檔案類型",
-      "English": "Automatically identify file types",
-      "日本語": "自動的にファイルタイプを識別する"
+      "简中": "自动识别",
+      "繁中": "自動識別",
+      "English": "Auto Detect",
+      "日本語": "自動検出"
     }
   },
   "PART_3": { 
