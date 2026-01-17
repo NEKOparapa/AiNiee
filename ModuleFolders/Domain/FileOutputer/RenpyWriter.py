@@ -10,6 +10,9 @@ from ModuleFolders.Domain.FileOutputer.BaseWriter import (
 )
 
 class RenpyWriter(BaseTranslatedWriter):
+    """
+    Ren'Py 翻译文件写入器。
+    """
     def __init__(self, output_config: OutputConfig):
         super().__init__(output_config)
 
@@ -23,14 +26,11 @@ class RenpyWriter(BaseTranslatedWriter):
         """
         if pos == 0:
             return False
-        
         backslash_count = 0
         check_pos = pos - 1
-        
         while check_pos >= 0 and text[check_pos] == '\\':
             backslash_count += 1
             check_pos -= 1
-        
         return backslash_count % 2 == 1
 
     def _find_first_unescaped_quote(self, text: str, start: int = 0) -> int:
@@ -54,6 +54,40 @@ class RenpyWriter(BaseTranslatedWriter):
                 return pos
             pos -= 1
         return -1
+    
+    def _escape_quotes_for_renpy(self, text: str) -> str:
+        """转义文本内的双引号，保留 \"、"" 和 " "。"""
+        pattern = r'\\\"|\"\"|\" \"|\"'
+        def replacer(match):
+            matched_text = match.group(0)
+            if matched_text in ('\\"', '""', '" "'):
+                return matched_text
+            elif matched_text == '"':
+                return '\\"'
+            return matched_text
+        return re.sub(pattern, replacer, text)
+
+    def _separate_name_and_text(self, text: str) -> tuple[str, str]:
+        """
+        从翻译文本分离 [Name] 和 Msg。
+        处理逻辑：
+        1. 必须以 [ 开头。
+        2. 找到第一个 ] 作为分隔。
+        3. 去除 Msg 开头可能由 AI 添加的一个空格。
+        """
+        if text.startswith("["):
+            end_pos = text.find("]")
+            # end_pos > 1 确保不是空名字 []
+            if end_pos > 1:
+                name = text[1:end_pos]
+                msg = text[end_pos+1:]
+                
+                # 优化：如果 AI 在 [Name] 和 Text 之间加了空格，去掉一个前导空格
+                if len(msg) > 0 and msg[0] == ' ':
+                    msg = msg[1:]
+                    
+                return name, msg
+        return None, text
 
     def on_write_translated(
         self, translation_file_path: Path, cache_file: CacheFile,
@@ -70,15 +104,33 @@ class RenpyWriter(BaseTranslatedWriter):
                 continue
 
             original_line = lines[line_num]
-            new_trans = self._escape_quotes_for_renpy(item.final_text)
+            full_translated_text = item.final_text
             
-            # 精确定位要替换的文本范围
+            # --- 1. 分离名字和内容 ---
+            
+            # 只有当 Reader 阶段明确提取了名字（original_name 不为 None），我们才去尝试分离
+            # 这可以防止把原文中自带的 [System]... 当作我们添加的 Tag 被切掉
+            original_name_extracted = item.get_extra("original_name")
+            
+            trans_name = None
+            trans_msg = full_translated_text
+
+            if original_name_extracted:
+                extracted_name, extracted_msg = self._separate_name_and_text(full_translated_text)
+                if extracted_name is not None:
+                    trans_name = extracted_name
+                    trans_msg = extracted_msg
+                else:
+                    # 分离失败（例如AI把括号删了），保留原文本，不做处理
+                    pass
+
+            # --- 2. 转义文本 ---
+            new_trans_msg = self._escape_quotes_for_renpy(trans_msg)
+            
+            # --- 3. 定位原始行结构 ---
             tag = item.require_extra("tag")
-            
-            # 默认搜索起点为0
             search_start_index = 0
             if tag:
-                # 如果有标签，则从标签结束后开始搜索第一个引号，以处理 Character("xxx") "..." 格式
                 try:
                     tag_start_index = original_line.find(tag)
                     if tag_start_index != -1:
@@ -86,36 +138,25 @@ class RenpyWriter(BaseTranslatedWriter):
                 except Exception:
                     pass
 
-            # 使用改进的查找方法，跳过转义的引号
             first_quote_index = self._find_first_unescaped_quote(original_line, search_start_index)
             last_quote_index = self._find_last_unescaped_quote(original_line)
 
             if first_quote_index != -1 and last_quote_index > first_quote_index:
-                prefix = original_line[:first_quote_index + 1]
-                suffix = original_line[last_quote_index:]
-                new_line = f'{prefix}{new_trans}{suffix}'
+                prefix_part = original_line[:first_quote_index + 1] # 含左引号
+                suffix_part = original_line[last_quote_index:]      # 含右引号及后缀
+                
+                # --- 4. 智能名字回填 ---
+                # 条件：
+                # A. 名字被标记为需要翻译 (Reader 中判断为字符串或 Character 函数)
+                # B. 我们成功提取到了新的翻译名字
+                # C. 我们知道原始名字是什么
+                if item.get_extra("name_is_translated") and trans_name and original_name_extracted:
+                    prefix_part = prefix_part.replace(original_name_extracted, trans_name)
+
+                new_line = f'{prefix_part}{new_trans_msg}{suffix_part}'
                 lines[line_num] = new_line
             else:
-                print(f"警告: 无法在行 {line_num} 中为项目找到有效的引号对。原始内容:\n{original_line}")
+                print(f"警告: 无法在行 {line_num} 中找到有效的引号对。原始内容:\n{original_line}")
 
         translation_file_path.parent.mkdir(parents=True, exist_ok=True)
         translation_file_path.write_text("".join(lines), encoding="utf-8")
-
-    def _escape_quotes_for_renpy(self, text: str) -> str:
-        """
-        - 保留已经转义的 `\"`。
-        - 保留空的双引号 `""`。
-        - 保留带空格的双引号 `" "`。
-        - 将所有其他 `"` 转义为 `\"`。
-        """
-        pattern = r'\\\"|\"\"|\" \"|\"'
-
-        def replacer(match):
-            matched_text = match.group(0)
-            if matched_text in ('\\"', '""', '" "'):
-                return matched_text
-            elif matched_text == '"':
-                return '\\"'
-            return matched_text
-
-        return re.sub(pattern, replacer, text)
