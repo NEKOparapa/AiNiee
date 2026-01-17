@@ -107,7 +107,8 @@ class TaskConfig(Base):
 
         # 6. 非 Anthropic 的自动补全 /v1 逻辑
         # 某些平台强制补全，或者配置开启了 auto_complete
-        should_auto_complete = (target_platform in ["sakura", "LocalLLM"]) or auto_complete
+        is_local_or_sakura = target_platform.startswith("sakura") or target_platform.startswith("LocalLLM")
+        should_auto_complete = is_local_or_sakura or auto_complete
         if should_auto_complete:
             # 如果当前 URL 不以任何版本号结尾，则添加 /v1
             if not any(url.endswith(suffix) for suffix in version_suffixes):
@@ -188,7 +189,7 @@ class TaskConfig(Base):
             actual_thread_counts = user_thread_counts
 
         # 如果是本地类接口，尝试访问slots数
-        elif target_platform in ("sakura","LocalLLM"):
+        elif target_platform.startswith("sakura") or target_platform.startswith("LocalLLM"):
             num = self.get_llama_cpp_slots_num(self.platforms.get(target_platform).get("api_url"))
             actual_thread_counts = num if num > 0 else 4
             self.info(f"根据 llama.cpp 接口信息，自动设置同时执行的翻译任务数量为 {actual_thread_counts} 个 ...")

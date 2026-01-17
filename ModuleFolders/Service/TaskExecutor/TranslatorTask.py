@@ -83,14 +83,14 @@ class TranslatorTask(Base):
             )
         
         # 生成请求指令
-        if target_platform == "sakura":
+        if target_platform.startswith("sakura"):  # sakura接口的标签都是sakura开头
             self.messages, self.system_prompt, self.extra_log = PromptBuilderSakura.generate_prompt_sakura(
                 self.config,
                 self.source_text_dict,
                 self.previous_text_list, 
                 self.source_lang, 
             )
-        elif target_platform == "LocalLLM":
+        elif target_platform.startswith("LocalLLM"): # localllm接口的标签都是LocalLLM开头
             self.messages, self.system_prompt, self.extra_log = PromptBuilderLocal.generate_prompt_LocalLLM(
                 self.config,
                 self.source_text_dict,
