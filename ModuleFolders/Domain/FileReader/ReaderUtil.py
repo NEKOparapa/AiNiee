@@ -20,6 +20,7 @@ _LANG_DETECTOR_INSTANCE: LanguageDetector | None = None
 
 VARIOUS_LETTERS_RANGE = r'a-zA-Z\uFF21-\uFF3A\uFF41-\uFF5A'
 """标准字母与全角字母的范围"""
+
 HAS_UNUSUAL_ENG_REGEX = re.compile(
     "^(?:"
     fr"(?=.*[_$])(?=.*[{VARIOUS_LETTERS_RANGE}\d])[{VARIOUS_LETTERS_RANGE}\d_$]+|"
@@ -31,6 +32,7 @@ HAS_UNUSUAL_ENG_REGEX = re.compile(
 )
 """20250723: fix #712"""
 """预编译正则 匹配包含 至少一个下划线和至少一个字母与数字且没有空白字符 或者 只由字母和数字组成且必须同时包含至少一个字母与数字 的字符串"""
+
 CLEAN_TEXT_PATTERN = re.compile(
     fr'\\{{1,2}}[{VARIOUS_LETTERS_RANGE}]{{1,2}}\[\d+]|'
     r'if\(.{0,16}[vs]\[\d+].{0,16}\)|'
@@ -39,18 +41,52 @@ CLEAN_TEXT_PATTERN = re.compile(
 )
 """修改后的预编译正则，移除了标签模式"""
 
+# 常见JS内置对象/函数名
+JS_BUILTIN_OBJECTS = (
+    'Math', 'Array', 'Object', 'String', 'Number', 'Boolean', 'Function',
+    'JSON', 'Date', 'Promise', 'RegExp', 'Symbol', 'BigInt',
+    'Error', 'TypeError', 'SyntaxError', 'ReferenceError', 'RangeError',
+    'URIError', 'EvalError',
+    'Map', 'Set', 'WeakMap', 'WeakSet',
+    'Proxy', 'Reflect',
+    'ArrayBuffer', 'DataView', 'Int8Array', 'Uint8Array', 'Int16Array',
+    'Uint16Array', 'Int32Array', 'Uint32Array', 'Float32Array', 'Float64Array',
+    'BigInt64Array', 'BigUint64Array', 'SharedArrayBuffer', 'Atomics',
+    'window', 'document', 'navigator', 'location', 'history', 'screen',
+    'localStorage', 'sessionStorage', 'console',
+    'Node', 'Element', 'HTMLElement', 'Event', 'EventTarget',
+    'NodeList', 'HTMLCollection',
+    'XMLHttpRequest', 'WebSocket', 'Worker', 'ServiceWorker',
+    'Request', 'Response', 'Headers', 'URL', 'URLSearchParams',
+    'FormData', 'Blob', 'File', 'FileReader', 'FileList',
+    'Intl',
+    'performance', 'crypto', 'TextEncoder', 'TextDecoder',
+    'MutationObserver', 'IntersectionObserver', 'ResizeObserver',
+    'Vue', 'React', 'Component', 'Vuex', 'Router',
+    'process', 'Buffer', 'module', 'exports', 'require', 'global',
+    '__dirname', '__filename',
+)
+
+JS_BUILTINS_PATTERN = '|'.join(re.escape(name) for name in JS_BUILTIN_OBJECTS)
+
 JS_VAR_PATTERN = re.compile(
-    r'\b[a-zA-Z_$][a-zA-Z0-9_$]*\.[a-zA-Z_$][a-zA-Z0-9_$]*'
+    rf'(?<![a-zA-Z0-9_$])(?:'  # 前面不能是标识符字符
+    rf'[a-z_$][a-z0-9_$]*'  # 全小写标识符（含$和_）
+    rf'|{JS_BUILTINS_PATTERN}'  # 或JS内置对象名
+    rf')(?:\.[a-z_$][a-z0-9_$]*)+'  # 属性部分也全小写
 )
 """预编译正则 匹配js变量模式"""
+
 TAG_STYLE_PATTERN = re.compile(
     r'\[([a-zA-Z]\w*)\s*(\s+\w+\s*=\s*(?:"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'|[^\s\]]+))*\s*]'
 )
 """预编译正则 匹配tag样式的文本内容 比如 [div] [div class="container"] [button onclick=handleClick] 等"""
+
 EXTRACT_TAG_ATTR_VALUE_PATTERN = re.compile(
     r'\w+\s*=\s*(["\'])((?:\\.|(?!\1).)*)\1'
 )
 """预编译正则 提取tag样式的属性值（带引号才提取） 比如 [div class="container"] 提取出container 等"""
+
 NON_LATIN_ISO_CODES = [
     'zh',  # 中文
     'ja',  # 日语
@@ -219,6 +255,7 @@ def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: fl
     except Exception as e:
         rich.print(f"[[red]ERROR[/]] 文件 {file_path} 编码检测过程出错: {str(e)}")
         return 'utf-8'
+
 
 # 检测文本语言
 def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _file_data: CacheFile | None) -> \
