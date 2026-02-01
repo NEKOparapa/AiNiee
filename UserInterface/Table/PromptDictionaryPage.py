@@ -634,7 +634,7 @@ class PromptDictionaryPage(QFrame, Base):
             error_msg = data.get("message", self.tra("未知错误"))
             self.error_toast(self.tra("术语表翻译失败"), error_msg + "...")
             return
-        elif status == "success":
+        elif status in ("success", "partial"):
             updated_data = data.get("updated_data")
             if not updated_data:
                 self.warning_toast(self.tra("完成"), self.tra("翻译完成，但没有数据被更新"))
@@ -662,4 +662,9 @@ class PromptDictionaryPage(QFrame, Base):
                 self.save_config(config)
                 self._reset_search()
                 self._reset_sort_indicator()
-                self.success_toast("", self.tra("术语表翻译成功并已更新") + "...")
+                if status == "success":
+                    self.success_toast("", self.tra("术语表翻译成功并已更新") + "...")
+                else:
+                    success_count = data.get("success_count", 0)
+                    total_count = data.get("total_count", 0)
+                    self.success_toast("", self.tra("部分术语翻译完成并已更新") + f" ({success_count}/{total_count})...")

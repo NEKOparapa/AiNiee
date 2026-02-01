@@ -1,3 +1,4 @@
+import copy
 import os
 import re
 import threading
@@ -203,12 +204,11 @@ class SimpleExecutor(Base):
         config = TaskConfig()
         config.initialize()
         config.prepare_for_translation(TaskType.TRANSLATION)
-        platform_config = config.get_platform_configuration("translationReq")
         target_language = config.target_language
+        max_threads = config.actual_thread_counts
 
         # 分组处理（每组最多50个）
         group_size = 50
-        translated_count = 0
         total_groups = (len(untranslated_items) + group_size - 1) // group_size
 
         # 输出整体进度信息
@@ -216,132 +216,113 @@ class SimpleExecutor(Base):
         self.info(f" 开始术语表循环翻译 \n"
                 f"├ 未翻译术语总数: {len(untranslated_items)}\n"
                 f"├ 分组数量: {total_groups}\n"
-                f"└ 每组上限: {group_size}术语")
+                f"├ 每组上限: {group_size}术语\n"
+                f"└ 并发线程数: {max_threads}")
         print("")
 
-        # 分组翻译处理
-        for group_idx in range(total_groups):
-            start_idx = group_idx * group_size
-            end_idx = start_idx + group_size
-            current_group = untranslated_items[start_idx:end_idx]
-            
-            # 组处理开始日志
-            print("")
-            self.info(f" 正在处理第 {group_idx+1}/{total_groups} 组 \n"
-                    f"├ 本组术语范围: {start_idx+1}-{min(end_idx, len(untranslated_items))}\n"
-                    f"└ 实际处理数量: {len(current_group)}术语")
-            print("")
-
-            # 判断是否含有描述字段
-            has_info = any(item.get("info") for item in current_group)
-
-            # 构造系统提示词
-            system_prompt = (
-               "You are a glossary translation assistant.The user will send a glossary in this format:\n"
-                "1|Original text|Description\n"
-                "2|Original text|Description\n"
-                "3|Original text|Description\n"
-                f"Referring to the 'Description', only translate the 'Original text' into {target_language}. Strictly output the translation in the following format, wrapped in a <textarea> tag:\n"
-                "<textarea>\n"
-                "1.Translated text\n"
-                "2.Translated text\n"
-                "3.Translated text\n"
-                "</textarea>\n"
-            ) if has_info else (
-                f"Translate the source text from the glossary into {target_language} line by line, maintaining accuracy and naturalness, and output the translation wrapped in a textarea tag:\n"
-                "<textarea>\n"
-                f"1.{target_language} text\n"
-                "</textarea>\n"
-            )
-
-            # 构造消息内容
-            if has_info:
-                # 按 序号|原文|描述 的格式排列
-                src_terms = [f"{idx+1}|{item['src']}|{item['info']or''}" for idx, item in enumerate(current_group)]
-            else:
-                # 按行排列，并添加序号
-                src_terms = [f"{idx+1}.{item['src']}" for idx, item in enumerate(current_group)]
-            src_terms_text = "\n".join(src_terms)
-            messages = [
-                {
-                    "role": "user",
-                    "content": src_terms_text
-                }
-            ]
-
-            # 请求发送日志
-            print("")
-            self.info(
-                    f" 正在发送API请求...\n"
-                    f"└ 目标语言: {target_language}")
-            print("")
-
-            # 发送翻译请求
-            requester = LLMRequester()
-            skip, _, response_content, _, _ = requester.sent_request(
-                messages,
-                system_prompt,
-                platform_config
-            )
-
-            # 如果请求失败，返回失败信息
-            if skip:
-                self.error(f"第 {group_idx+1}/{total_groups} 组翻译失败")
-                self.emit(Base.EVENT.GLOSS_TASK_DONE, {
-                    "status": "error",
-                    "message": f"第 {group_idx+1} 组翻译请求失败",
-                    "updated_data": None
-                })
-                return
-
-            # 如果请求成功，解析翻译结果
+        def translate_group(group_idx: int, current_group: list) -> tuple:
+            """处理单组翻译，成功返回 (group_idx, [(src, dst), ...])，失败返回 (group_idx, None)。"""
+            group_num = group_idx + 1
             try:
-                # 提取译文结果
+                platform_config = config.get_platform_configuration("translationReq")
+                has_info = any(item.get("info") for item in current_group)
+                system_prompt = (
+                    "You are a glossary translation assistant.The user will send a glossary in this format:\n"
+                    "1|Original text|Description\n"
+                    "2|Original text|Description\n"
+                    "3|Original text|Description\n"
+                    f"Referring to the 'Description', only translate the 'Original text' into {target_language}. Strictly output the translation in the following format, wrapped in a <textarea> tag:\n"
+                    "<textarea>\n"
+                    "1.Translated text\n"
+                    "2.Translated text\n"
+                    "3.Translated text\n"
+                    "</textarea>\n"
+                ) if has_info else (
+                    f"Translate the source text from the glossary into {target_language} line by line, maintaining accuracy and naturalness, and output the translation wrapped in a textarea tag:\n"
+                    "<textarea>\n"
+                    f"1.{target_language} text\n"
+                    "</textarea>\n"
+                )
+                if has_info:
+                    src_terms = [f"{idx+1}|{item['src']}|{item['info']or''}" for idx, item in enumerate(current_group)]
+                else:
+                    src_terms = [f"{idx+1}.{item['src']}" for idx, item in enumerate(current_group)]
+                src_terms_text = "\n".join(src_terms)
+                messages = [{"role": "user", "content": src_terms_text}]
+                requester = LLMRequester()
+                skip, _, response_content, _, _ = requester.sent_request(
+                    messages, system_prompt, platform_config
+                )
+                if skip:
+                    self.error(f"第 {group_num}/{total_groups} 组翻译请求失败")
+                    return (group_idx, None)
                 textarea_contents = re.findall(r'<textarea.*?>(.*?)</textarea>', response_content, re.DOTALL)
                 last_content = textarea_contents[-1]
-
-                # 分行
                 translated_terms = last_content.strip().split("\n")
-                
-                # 去除序号
                 translated_terms = [re.sub(r'^\d+\.', '', term).strip() for term in translated_terms]
-
-                # 检查翻译结果数量是否匹配
                 if len(translated_terms) != len(current_group):
-                    raise ValueError("翻译结果数量不匹配")
-                    
+                    self.error(f"第 {group_num}/{total_groups} 组翻译结果数量不匹配")
+                    return (group_idx, None)
+                pairs = [(item["src"], translated_terms[idx]) for idx, item in enumerate(current_group)]
+                return (group_idx, pairs)
             except Exception as e:
-                self.error(f"翻译结果解析失败: {str(e)}")
-                self.emit(Base.EVENT.GLOSS_TASK_DONE, {
-                    "status": "error",
-                    "message": f"第 {group_idx+1} 组结果解析失败",
-                    "updated_data": None
-                })
-                return
+                self.error(f"第 {group_num}/{total_groups} 组异常: {e}")
+                return (group_idx, None)
 
-            # 更新翻译结果
-            for idx, item in enumerate(current_group):
-                item["dst"] = translated_terms[idx]
-            translated_count += len(current_group)
+        successful_pairs = []
+        success_groups = 0
+        failed_groups = 0
 
-            # 进度更新日志
-            print("")
-            self.info(
-                    f"├ 本组完成数量: {len(current_group)}\n"
-                    f"├ 累计完成进度: {translated_count}/{len(untranslated_items)}\n"
-                    f"└ 进度百分比: {translated_count/len(untranslated_items):.0%}")
-            print("")
+        with ThreadPoolExecutor(max_workers=max_threads) as executor:
+            future_to_group = {}
+            for i in range(total_groups):
+                start_idx = i * group_size
+                end_idx = start_idx + group_size
+                current_group = untranslated_items[start_idx:end_idx]
+                future = executor.submit(translate_group, i, current_group)
+                future_to_group[future] = i
+            for future in as_completed(future_to_group):
+                try:
+                    group_idx, pairs = future.result()
+                    if pairs is not None:
+                        successful_pairs.extend(pairs)
+                        success_groups += 1
+                    else:
+                        failed_groups += 1
+                except Exception as e:
+                    self.error(f"术语表组执行异常: {e}")
+                    failed_groups += 1
 
-        # 全部完成
-        self.info(f" 术语表翻译全部完成 \n"
-                f"├ 总处理组数: {total_groups}\n"
-                f"├ 总翻译术语: {translated_count}\n"
-                f"└ 最终状态: {'成功' if translated_count == len(untranslated_items) else '失败'}")
-        
-        # 发送完成事件
+        self.info(f" 所有组处理完毕。成功: {success_groups}, 失败: {failed_groups}")
+
+        if not successful_pairs:
+            self.emit(Base.EVENT.GLOSS_TASK_DONE, {
+                "status": "error",
+                "message": "所有组翻译均未成功",
+                "updated_data": None
+            })
+            return
+
+        # 合并成功结果到完整数据
+        src_to_dst = dict(successful_pairs)
+        updated_data = copy.deepcopy(prompt_dictionary_data)
+        for item in updated_data:
+            if item.get("src") in src_to_dst and not item.get("dst"):
+                item["dst"] = src_to_dst[item["src"]]
+
+        if len(successful_pairs) == len(untranslated_items):
+            status = "success"
+        else:
+            status = "partial"
+
+        self.info(f" 术语表翻译完成 \n"
+                f"├ 成功术语: {len(successful_pairs)}/{len(untranslated_items)}\n"
+                f"└ 状态: {status}")
         self.emit(Base.EVENT.GLOSS_TASK_DONE, {
-            "status": "success",
-            "updated_data": prompt_dictionary_data
+            "status": status,
+            "updated_data": updated_data,
+            "success_count": len(successful_pairs),
+            "total_count": len(untranslated_items)
         })
 
     # 响应表格翻译开始事件，并启动新线程
