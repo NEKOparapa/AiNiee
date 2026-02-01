@@ -11,6 +11,7 @@ cmd = [
     "--hidden-import=sklearn",
     "--collect-all=babeldoc",
     "--collect-all=sklearn",
+    "--collect-all=rich", 
     # "--distpath=./dist/AiNiee" #指定输出目录
 ]
 
