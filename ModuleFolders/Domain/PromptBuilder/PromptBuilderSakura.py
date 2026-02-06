@@ -107,6 +107,28 @@ class PromptBuilderSakura(Base):
 
         return dict_lines_str
 
+    def build_source_text_sakura(config: TaskConfig, source_text_dict: dict) -> str:
+        """构建原文（Sakura 用）：多行按换行拆成「序号+行」平铺，便于本地模型处理。
+
+        构建后示例（source_text_dict 含单行与多行时）:
+        ---
+        1.单行内容
+        2.1.多行块第一行
+        2.2.多行块第二行
+        3.下一块单行
+        ---
+        """
+        numbered_lines = []
+        for index, line in enumerate(source_text_dict.values()):
+            if "\n" not in line:
+                numbered_lines.append(f"{index + 1}.{line}")
+            else:
+                lines = line.split("\n")
+                for sub_index, sub_line in enumerate(lines):
+                    sub_line = sub_line[:-1] if re.match(r'.*[^ ] $', sub_line) else sub_line
+                    numbered_lines.append(f"{index + 1}.{sub_index + 1}.{sub_line}")
+        return "\n".join(numbered_lines)
+
     # 生成信息结构 - Sakura
     def generate_prompt_sakura(config,  source_text_dict: dict, previous_text_list: list[str], source_lang) -> tuple[list[dict], str, list[str]]:
         # 储存指令
@@ -124,8 +146,8 @@ class PromptBuilderSakura(Base):
             if glossary != "":
                 extra_log.append(glossary)
 
-        # 构建待翻译文本
-        source_text = PromptBuilder.build_source_text(config,source_text_dict)
+        # 构建待翻译文本（序号+行平铺格式，便于本地模型处理换行）
+        source_text = PromptBuilderSakura.build_source_text_sakura(config, source_text_dict)
 
         # 构建主要提示词
         if glossary == "":
