@@ -36,11 +36,9 @@ class XlsxReader(BaseSourceReader):
             
             wb.close()
             
-            # 如果不是 TPP 格式（第一列不是 "Original Text" 或第二列不是 "Initial"），则认为是通用 xlsx 格式
-            is_tpp = (isinstance(cell_value1, str) and cell_value1.strip() == "Original Text" and
-                      isinstance(cell_value2, str) and cell_value2.strip() == "Initial")
-            
-            return not is_tpp
+            # 如果不是 TPP 格式（第一列不是 "Original Text" 或者"原文" 和 第二列不是 "Initial" 或者"译文" 同时满足 才算 TPP 格式），则认为是通用 xlsx 格式
+            return (isinstance(cell_value1, str) and (cell_value1.strip() == "Original Text" or cell_value1.strip() == "原文") and
+                    isinstance(cell_value2, str) and (cell_value2.strip() == "Initial" or cell_value2.strip() == "译文"))
         except Exception:
             return False
 

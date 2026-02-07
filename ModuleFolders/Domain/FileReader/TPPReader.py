@@ -37,9 +37,9 @@ class TPPReader(BaseSourceReader):
             wb.close()
             
             # 判断是否为 TPP 格式
-            # 第一列应该是 "Original Text"，第二列应该是 "Initial"
-            return (isinstance(cell_value1, str) and cell_value1.strip() == "Original Text" and
-                    isinstance(cell_value2, str) and cell_value2.strip() == "Initial")
+            # 第一列应该是 "Original Text"或者"原文"，第二列应该是 "Initial"或者"译文"
+            return (isinstance(cell_value1, str) and (cell_value1.strip() == "Original Text" or cell_value1.strip() == "原文") and
+                    isinstance(cell_value2, str) and (cell_value2.strip() == "Initial" or cell_value2.strip() == "译文"))
         except Exception:
             return False
 
