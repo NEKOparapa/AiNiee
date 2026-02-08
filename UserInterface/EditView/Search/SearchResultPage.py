@@ -1,12 +1,12 @@
 import os
-import re 
-from PyQt5.QtCore import Qt
+import re
+from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QBrush, QColor
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableWidgetItem, 
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableWidgetItem,
                              QAbstractItemView, QHeaderView, QHBoxLayout, QSpacerItem, QSizePolicy)
 
 from qfluentwidgets import (TableWidget, PrimaryPushButton, LineEdit, StrongBodyLabel,
-                            CheckBox)
+                            CheckBox, Action, FluentIcon as FIF, RoundMenu)
 from ModuleFolders.Base.Base import Base
 
 
@@ -29,9 +29,10 @@ class SearchResultPage(Base, QWidget):
         """
         super().__init__(parent)
         self.setObjectName('SearchResultPage')
-        
+
         self.cache_manager = cache_manager  # 缓存管理器实例
         self.search_params = search_params  # 存储搜索参数
+        self.search_results = list(search_results)  # 可变列表，用于删除项后刷新
         
         # 主布局
         self.layout = QVBoxLayout(self)
@@ -47,10 +48,12 @@ class SearchResultPage(Base, QWidget):
         self.layout.addWidget(self.table)
         
         # 填充表格数据
-        self._populate_data(search_results)
+        self._populate_data(self.search_results)
 
         # 连接表格内容变更信号
         self.table.itemChanged.connect(self._on_item_changed)
+        # 订阅表格更新事件（翻译/润色完成后刷新单元格）
+        self.subscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
 
     def _init_replace_panel(self):
         """初始化批量替换面板（包含查找/替换输入框、选项和操作按钮）"""
@@ -163,6 +166,10 @@ class SearchResultPage(Base, QWidget):
         self.table.setColumnWidth(2, 300)  # 原文列
         self.table.setColumnWidth(3, 300)  # 译文列
 
+        # 右键菜单
+        self.table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self._show_context_menu)
+
     def _populate_data(self, search_results: list):
         """将搜索结果填充到表格中
         
@@ -252,6 +259,128 @@ class SearchResultPage(Base, QWidget):
             field_name=field_name,
             new_text=new_text
         )
+
+    def _show_context_menu(self, pos: QPoint):
+        """显示表格右键菜单（翻译、润色、删除项等）"""
+        menu = RoundMenu(parent=self)
+        has_selection = bool(self.table.selectionModel().selectedRows())
+        if has_selection:
+            menu.addAction(Action(FIF.EXPRESSIVE_INPUT_ENTRY, self.tra("翻译文本"), triggered=self._translate_text))
+            menu.addSeparator()
+            menu.addAction(Action(FIF.DELETE, self.tra("删除项"), triggered=self._delete_selected_items))
+            menu.addSeparator()
+        row_count = self.table.rowCount()
+        row_count_action = Action(FIF.LEAF, self.tra("行数: {}").format(row_count))
+        row_count_action.setEnabled(False)
+        menu.addAction(row_count_action)
+        global_pos = self.table.mapToGlobal(pos)
+        menu.exec(global_pos)
+
+    def _get_selected_rows_indices(self):
+        """获取所有被选中行的索引列表"""
+        return sorted(list(set(index.row() for index in self.table.selectedIndexes())))
+
+    def _translate_text(self):
+        """右键菜单：翻译选中行。按文件分组，每个文件发一次翻译任务。"""
+        selected_rows = self._get_selected_rows_indices()
+        if not selected_rows:
+            return
+        if Base.work_status != Base.STATUS.IDLE:
+            self.info_toast(self.tra("提示"), self.tra("正在执行其他任务，请稍候。"))
+            return
+
+        # 按 file_path 分组
+        by_file = {}
+        for row in selected_rows:
+            ref_item = self.table.item(row, self.COL_ROW)
+            source_item = self.table.item(row, self.COL_SOURCE)
+            if not ref_item or not source_item:
+                continue
+            file_path, text_index = ref_item.data(Qt.UserRole)
+            if file_path not in by_file:
+                by_file[file_path] = []
+            by_file[file_path].append({
+                "text_index": text_index,
+                "source_text": source_item.text()
+            })
+
+        if not by_file:
+            return
+
+        Base.work_status = Base.STATUS.TABLE_TASK
+        total = 0
+        for file_path, items in by_file.items():
+            try:
+                language_stats = self.cache_manager.project.get_file(file_path).language_stats
+            except Exception:
+                language_stats = None
+            self.emit(Base.EVENT.TABLE_TRANSLATE_START, {
+                "file_path": file_path,
+                "items_to_translate": items,
+                "language_stats": language_stats,
+            })
+            total += len(items)
+        self.info_toast(self.tra("提示"), self.tra("已提交 {} 行文本的翻译任务。").format(total))
+
+    def _delete_selected_items(self):
+        """右键菜单：从当前搜索结果中移除选中的行（不删文件数据）。"""
+        selected_rows = self._get_selected_rows_indices()
+        if not selected_rows:
+            return
+        # 收集选中行的 (file_path, text_index)
+        to_remove = set()
+        for row in selected_rows:
+            ref_item = self.table.item(row, self.COL_ROW)
+            if ref_item:
+                file_path, text_index = ref_item.data(Qt.UserRole)
+                to_remove.add((file_path, text_index))
+        # 从 search_results 中剔除
+        self.search_results = [
+            r for r in self.search_results
+            if (r[0], r[2].text_index) not in to_remove
+        ]
+        self.table.blockSignals(True)
+        self._populate_data(self.search_results)
+        self.table.blockSignals(False)
+        self.success_toast(self.tra("操作完成"), self.tra("已从结果中移除 {} 项。").format(len(to_remove)))
+
+    def _on_table_update(self, event, data: dict):
+        """根据事件数据更新表格中对应文件的译文/润文列。事件中的列索引为 BasicTable 约定：2=译文，3=润文。"""
+        file_path = data.get('file_path')
+        target_column_index = data.get('target_column_index')
+        updated_items = data.get('updated_items', {})
+
+        if target_column_index is None or not updated_items:
+            return
+        # 事件使用 2=译文、3=润文；本页列为 COL_TRANS=3, COL_POLISH=4
+        col_map = {2: self.COL_TRANS, 3: self.COL_POLISH}
+        our_col = col_map.get(target_column_index)
+        if our_col is None:
+            return
+
+        field_name = 'translated_text' if our_col == self.COL_TRANS else 'polished_text'
+        for row in range(self.table.rowCount()):
+            ref_item = self.table.item(row, self.COL_ROW)
+            if not ref_item:
+                continue
+            r_path, text_index = ref_item.data(Qt.UserRole)
+            if r_path != file_path or text_index not in updated_items:
+                continue
+            new_text = updated_items[text_index]
+            self.table.blockSignals(True)
+            item = self.table.item(row, our_col)
+            if item:
+                item.setText(new_text)
+            else:
+                self.table.setItem(row, our_col, QTableWidgetItem(new_text))
+            self.table.blockSignals(False)
+            self.cache_manager.update_item_text(
+                storage_path=file_path,
+                text_index=text_index,
+                field_name=field_name,
+                new_text=new_text
+            )
+        self.table.resizeRowsToContents()
 
     def _on_replace_all_clicked(self):
         """执行全部替换操作
