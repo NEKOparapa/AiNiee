@@ -69,23 +69,29 @@ class RenpyWriter(BaseTranslatedWriter):
 
     def _separate_name_and_text(self, text: str) -> tuple[str, str]:
         """
-        从翻译文本分离 [Name] 和 Msg。
+        从翻译文本开头分离人名与正文，只处理开头的 [人名] 或 【人名】。
         处理逻辑：
-        1. 必须以 [ 开头。
-        2. 找到第一个 ] 作为分隔。
+        1. 必须以 [ 或 【 开头（仅匹配开头）。
+        2. 分别以 ] 或 】 作为对应结尾。
         3. 去除 Msg 开头可能由 AI 添加的一个空格。
         """
+        # 仅匹配开头的 [人名]
         if text.startswith("["):
             end_pos = text.find("]")
-            # end_pos > 1 确保不是空名字 []
-            if end_pos > 1:
+            if end_pos > 1:  # 排除空名字 []
                 name = text[1:end_pos]
-                msg = text[end_pos+1:]
-                
-                # 优化：如果 AI 在 [Name] 和 Text 之间加了空格，去掉一个前导空格
+                msg = text[end_pos + 1:]
                 if len(msg) > 0 and msg[0] == ' ':
                     msg = msg[1:]
-                    
+                return name, msg
+        # 仅匹配开头的 【人名】
+        if text.startswith("【"):
+            end_pos = text.find("】")
+            if end_pos > 1:  # 排除空名字 【】
+                name = text[1:end_pos]
+                msg = text[end_pos + 1:]
+                if len(msg) > 0 and msg[0] == ' ':
+                    msg = msg[1:]
                 return name, msg
         return None, text
 
