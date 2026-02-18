@@ -182,7 +182,9 @@ class TermResultPage(Base, QWidget):
             export_data.append({
                 "src": result['term'],
                 "dst": "",  # 未翻译状态
-                "info": result['type']
+                "info": result['type'],
+                "count": result.get('count', 1),
+                "context": result.get('context', "")
             })
 
         # 默认文件名
