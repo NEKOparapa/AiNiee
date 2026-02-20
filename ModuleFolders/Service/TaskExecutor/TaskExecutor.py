@@ -1,9 +1,44 @@
+import os
 import time
 import threading
 import concurrent.futures
 
 import opencc
+import shutil
+import tempfile
+import atexit
 from tqdm import tqdm
+
+
+# 缓存临时目录路径，避免重复创建
+_opencc_temp_dir = None
+
+def _create_opencc_converter(preset: str) -> opencc.OpenCC:
+    """创建 opencc 转换器，处理 Windows 下路径包含非 ASCII 字符导致 C 扩展失败的问题"""
+    global _opencc_temp_dir
+
+    try:
+        return opencc.OpenCC(preset)
+    except (RuntimeError, OSError) as e:
+        # 仅对路径相关错误进行 fallback，避免吞掉不相关的 bug
+        error_msg = str(e).lower()
+        if "not found" not in error_msg and "not accessible" not in error_msg:
+            raise
+
+        # opencc C 扩展不支持 Unicode 路径，将数据文件复制到纯 ASCII 临时目录重试
+        opencc_dir = os.path.dirname(opencc.__file__)
+        share_dir = os.path.join(opencc_dir, "clib", "share", "opencc")
+        if not os.path.isdir(share_dir):
+            raise
+
+        # 仅在首次 fallback 时创建临时目录并注册清理
+        if _opencc_temp_dir is None:
+            _opencc_temp_dir = tempfile.mkdtemp(prefix="opencc_")
+            shutil.copytree(share_dir, _opencc_temp_dir, dirs_exist_ok=True)
+            atexit.register(shutil.rmtree, _opencc_temp_dir, ignore_errors=True)
+
+        config_name = preset if preset.endswith(".json") else preset + ".json"
+        return opencc.OpenCC(os.path.join(_opencc_temp_dir, config_name))
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Infrastructure.Cache.CacheItem import TranslationStatus
@@ -69,7 +104,7 @@ class TaskExecutor(Base):
             self.info(f"已启动自动简繁转换功能，正在使用 {config.get('opencc_preset')} 配置进行字形转换 ...")
             self.print("")
 
-            converter = opencc.OpenCC(config.get('opencc_preset'))
+            converter = _create_opencc_converter(config.get('opencc_preset'))
             cache_list = self.cache_manager.project.items_iter()
             for item in cache_list:
                 if item.translation_status == TranslationStatus.TRANSLATED:
@@ -290,7 +325,7 @@ class TaskExecutor(Base):
             self.info(f"已启动自动简繁转换功能，正在使用 {self.config.opencc_preset} 配置进行字形转换 ...")
             self.print("")
 
-            converter = opencc.OpenCC(self.config.opencc_preset)
+            converter = _create_opencc_converter(self.config.opencc_preset)
             cache_list = self.cache_manager.project.items_iter()
             for item in cache_list:
                 if item.translation_status == TranslationStatus.TRANSLATED:
