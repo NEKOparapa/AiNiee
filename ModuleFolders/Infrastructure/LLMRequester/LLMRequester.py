@@ -18,15 +18,15 @@ class LLMRequester():
         target_platform = platform_config.get("target_platform")
         api_format = platform_config.get("api_format")
 
-        # 发起请求
-        if target_platform == "sakura":
+        # 发起请求（sakura/LocalLLM 用 startswith，兼容新增平台 key 如 sakura_123456、LocalLLM_456789）
+        if target_platform.startswith("sakura"):
             sakura_requester = SakuraRequester()
             skip, response_think, response_content, prompt_tokens, completion_tokens = sakura_requester.request_sakura(
                 messages,
                 system_prompt,
                 platform_config,
             )
-        elif target_platform == "LocalLLM":
+        elif target_platform.startswith("LocalLLM"):
             local_llm_requester = LocalLLMRequester()
             skip, response_think, response_content, prompt_tokens, completion_tokens = local_llm_requester.request_LocalLLM(
                 messages,
