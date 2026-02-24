@@ -80,7 +80,7 @@
       |:----:|:-----:|:-----:|
       |[Mtool](https://afdian.com/p/d42dd1e234aa11eba42452540025c377)|上手简单，推荐新人使用|Mtool导出文件|
       |[Translator++](https://dreamsavior.net/download/)|上手复杂，功能强大，推荐大佬使用|T++导出文件或Trans工程文件|
-      |[ParaTranzr](https://paratranz.cn/projects)|上手中等，功能强大，推荐大佬使用|ParaTranzr导出文件|
+      |[ParaTranz](https://paratranz.cn/projects)|上手中等，功能强大，推荐大佬使用|ParaTranz导出文件|
       |[RenPy SDK](https://www.renpy.org/latest.html)|上手中等，功能强大，推荐大佬使用|renpy导出文件|
 
  * **`🧰本地模型运行工具`**
