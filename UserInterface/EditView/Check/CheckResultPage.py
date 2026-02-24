@@ -27,6 +27,15 @@ class CheckResultPage(Base, QWidget):
         #订阅表格更新事件 (用于接收翻译完成后的回调)
         self.subscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
 
+    def closeEvent(self, event):
+        """窗口关闭时取消 TABLE_UPDATE 订阅，防止访问已销毁的表格控件。"""
+        try:
+            self.unsubscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
+        except Exception:
+            # 可能已经被其他逻辑取消订阅，忽略异常
+            pass
+        super().closeEvent(event)
+
     def _init_table(self):
         headers = [
             self.tra("行"),

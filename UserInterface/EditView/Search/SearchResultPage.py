@@ -18,6 +18,15 @@ class SearchResultPage(Base, QWidget):
     COL_TRANS = 3  # 译文列
     COL_POLISH = 4 # 润文列
 
+    def closeEvent(self, event):
+        """窗口关闭时取消事件订阅，避免在控件销毁后仍然收到表格更新事件。"""
+        try:
+            self.unsubscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
+        except Exception:
+            # 如果已被其他地方取消订阅则忽略异常
+            pass
+        super().closeEvent(event)
+
     def __init__(self, search_results: list, cache_manager, search_params: dict, parent=None):
         """搜索结果展示页面构造函数
         

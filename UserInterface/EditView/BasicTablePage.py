@@ -15,10 +15,13 @@ class BasicTablePage(Base,QWidget):
     COL_POLISH = 3 # 润文
 
     def closeEvent(self, event):
-        # 在窗口关闭时，执行清理工作
-        print("BasicTablePage is closing, unregistering from EventManager.")
-        
-        super().closeEvent(event) # 调用父类的 closeEvent
+        """在窗口关闭时取消事件订阅，避免在控件销毁后仍然收到表格更新事件。"""
+        try:
+            self.unsubscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
+        except Exception:
+            # 如果已经取消订阅则忽略异常
+            pass
+        super().closeEvent(event)  # 调用父类的 closeEvent
 
     # 修改构造函数
     def __init__(self, file_path: str, file_items: list, cache_manager, parent=None):
