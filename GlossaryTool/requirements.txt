@@ -1,0 +1,10 @@
+PyQt5
+PyQt-Fluent-Widgets[full]
+spacy
+python-docx
+ebooklib
+beautifulsoup4
+openpyxl
+pdfminer.six
+# sudachipy (Required for Japanese NER models)
+# sudachidict-core (Required for Japanese NER models)
