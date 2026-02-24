@@ -3,6 +3,7 @@ from pathlib import Path
 
 from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
 from ModuleFolders.Infrastructure.Cache.CacheProject import ProjectType
+from ModuleFolders.Infrastructure.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
     OutputConfig,
@@ -110,7 +111,12 @@ class RenpyWriter(BaseTranslatedWriter):
                 continue
 
             original_line = lines[line_num]
-            full_translated_text = item.final_text
+
+            # 如果翻译状态为 EXCLUDED(7)，强制使用原文；否则按默认优先级(润色>翻译>原文)
+            if getattr(item, "translation_status", None) == TranslationStatus.EXCLUDED:
+                full_translated_text = item.source_text
+            else:
+                full_translated_text = item.final_text
             
             # --- 1. 分离名字和内容 ---
             
