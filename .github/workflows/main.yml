@@ -49,12 +49,12 @@ jobs:
           Copy-Item -Path "Resource" -Destination "dist\AiNiee\Resource" -Recurse -Force
           Copy-Item -Path "StevExtraction" -Destination "dist\AiNiee\StevExtraction" -Recurse -Force
           Copy-Item -Path "PluginScripts" -Destination "dist\AiNiee\PluginScripts" -Recurse -Force
-          
-          # 压缩目录,包括dist文件夹，主要是因为updater.exe还没更新，以免自动更新功能出错
-          Compress-Archive -Path "dist" -DestinationPath "AiNiee-Beta.zip"
+
+          # 压缩 dist\AiNiee 目录，updater 会智能查找 AiNiee.exe 所在目录
+          Compress-Archive -Path "dist\AiNiee" -DestinationPath "AiNiee-Beta.zip"
 
       - name: Delete release
-        uses: dev-drprasad/delete-tag-and-release@v1.1 
+        uses: dev-drprasad/delete-tag-and-release@v1.1
         with:
           tag_name: Beta
           delete_release: true
@@ -66,9 +66,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: Beta
-          name: AiNiee-Beta 开发测试版本，由最新源码自动打包 
+          name: AiNiee-Beta 开发测试版本，由最新源码自动打包
           draft: false
           prerelease: true
-          generate_release_notes: true 
+          generate_release_notes: true
           files: AiNiee-Beta.zip
           token: ${{ secrets.AINIEE }}
