@@ -83,6 +83,26 @@ fn copy_directory(src: &Path, dst: &Path) -> Result<()> {
     Ok(())
 }
 
+/// 在解压目录中递归查找包含 AiNiee.exe 的目录
+fn find_ainiee_dir(dir: &Path) -> Option<PathBuf> {
+    // 检查当前目录是否直接包含 AiNiee.exe
+    if dir.join("AiNiee.exe").exists() {
+        return Some(dir.to_path_buf());
+    }
+    // 递归搜索子目录
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                if let Some(found) = find_ainiee_dir(&path) {
+                    return Some(found);
+                }
+            }
+        }
+    }
+    None
+}
+
 fn main() -> Result<()> {
     // 初始化日志
     SimpleLogger::new().init().unwrap();
@@ -118,8 +138,12 @@ fn main() -> Result<()> {
         // 解压文件
         extract_zip(&src, temp_dir.to_str().unwrap())?;
         
-        // 移动文件
-        let extracted_folder = temp_dir.join("dist");
+        // 智能查找包含 AiNiee.exe 的实际内容目录
+        // 支持多种zip结构: dist/AiNiee/..., AiNiee/..., 直接文件等
+        let extracted_folder = find_ainiee_dir(&temp_dir)
+            .ok_or_else(|| anyhow!("解压后未找到包含 AiNiee.exe 的目录"))?;
+        
+        info!("找到更新内容目录: {:?}", extracted_folder);
         copy_directory(&extracted_folder, &PathBuf::from(&dst))?;
         
        
