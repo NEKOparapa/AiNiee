@@ -3,11 +3,16 @@
 # 设置遇到错误立即停止
 set -e
 
-# 定义路径变量
-PROJECT_DIR="/Users/zhuhaogang/Desktop/AiNiee"
-APP_MACOS_DIR="$PROJECT_DIR/dist/AiNiee.app/Contents/MacOS"
+# --- 路径动态识别 (核心修改) ---
+# 获取脚本当前所在的绝对路径（即母文件夹 AiNiee 的路径）
+PROJECT_DIR=$(cd "$(dirname "$0")"; pwd)
+APP_NAME="AiNiee"
+DIST_DIR="$PROJECT_DIR/dist"
+APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
+APP_MACOS_DIR="$APP_BUNDLE/Contents/MacOS"
 
-echo "🚀 开始自动化打包 AiNiee (针对 M4 芯片与 Python 版本兼容优化)..."
+echo "🚀 开始自动化打包 $APP_NAME (M4 芯片相对路径优化版)..."
+echo "📍 当前母文件夹: $PROJECT_DIR"
 
 # 1. 进入项目目录
 cd "$PROJECT_DIR"
@@ -17,22 +22,26 @@ echo "🧹 [1/4] 正在清理旧的编译文件..."
 rm -rf build dist
 
 # 3. 执行 PyInstaller 打包
-echo "📦 [2/4] 正在执行 PyInstaller，请耐心等待 1-2 分钟..."
-python3 -m PyInstaller AiNiee.spec
+# 使用 python3 -m PyInstaller 确保调用的是 Python 3.12 环境
+echo "📦 [2/4] 正在执行 PyInstaller，请耐心等待..."
+python3 -m PyInstaller "$PROJECT_DIR/AiNiee.spec"
 
-# 4. 暴力物理补齐资源文件
+# 4. 暴力物理补齐资源文件 (使用动态识别的路径)
 echo "📂 [3/4] 正在强制复制资源文件夹到 .app 内部..."
-cp -R Resource "$APP_MACOS_DIR/"
-cp -R ModuleFolders "$APP_MACOS_DIR/"
-cp -R PluginScripts "$APP_MACOS_DIR/"
+# 确保目标文件夹存在
+mkdir -p "$APP_MACOS_DIR"
+
+cp -R "$PROJECT_DIR/Resource" "$APP_MACOS_DIR/"
+cp -R "$PROJECT_DIR/ModuleFolders" "$APP_MACOS_DIR/"
+cp -R "$PROJECT_DIR/PluginScripts" "$APP_MACOS_DIR/"
 
 # 5. 修复 M4 芯片的系统权限
 echo "🔐 [4/4] 正在修复 M4 架构的文件执行权限..."
-chmod -R 755 "$PROJECT_DIR/dist/AiNiee.app"
+chmod -R 755 "$APP_BUNDLE"
 
 echo "====================================="
-echo "✅ 打包与修复全部完成！大功告成！"
-echo "🎉 你的独立软件位置: $PROJECT_DIR/dist/AiNiee.app"
+echo "✅ 打包与修复全部完成！"
+echo "🎉 独立软件位置: $APP_BUNDLE"
 echo "====================================="
-echo "👉 测试运行请在终端直接复制并回车执行下面这行代码："
-echo "\"$APP_MACOS_DIR/AiNiee\""
+echo "👉 测试运行请执行："
+echo "\"$APP_MACOS_DIR/$APP_NAME\""
