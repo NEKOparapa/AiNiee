@@ -126,7 +126,7 @@ class DictMixin:
             raise ValueError(f"不能从定义 {type_} 加载数据 {data}")
 
     @classmethod
-    def from_dict[T: DictMixin](cls: type[T], data: dict[str, Any]) -> T:
+    def from_dict(cls, data: dict[str, Any]):
         # dacite 会覆盖__post_init__的属性，所以不用
         init_vars = {}
         for field_ in _get_fields(cls):
@@ -136,7 +136,7 @@ class DictMixin:
                 init_vars[field_name] = cls._from_define(field_type, data[field_name])
         return cls(**init_vars)
 
-    _repr: ClassVar[Repr] = Repr(maxdict=1, maxother=256)
+    _repr: ClassVar[Repr] = Repr()
 
     def __repr__(self) -> str:
         fields_str = []
