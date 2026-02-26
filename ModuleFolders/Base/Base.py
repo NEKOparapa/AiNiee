@@ -155,18 +155,20 @@ class Base():
         if e is None:
             print(f"[[yellow]DEBUG[/]] {msg}")
         else:
-            print(f"[[yellow]DEBUG[/]] {msg}\n{e}\n{("".join(traceback.format_exception(None, e, e.__traceback__))).strip()}")
+            print(f"[[yellow]DEBUG[/]] {msg}\n{e}\n{('').join(traceback.format_exception(None, e, e.__traceback__)).strip()}")
 
     # INFO
     def info(self, msg: str) -> None:
         print(f"[[green]INFO[/]] {msg}")
 
-    # ERROR
+# ERROR (注意：def 前面要有 4 个空格，因为它在 class 内部)
     def error(self, msg: str, e: Exception = None) -> None:
         if e is None:
+            # print 前面要有 12 个空格
             print(f"[[red]ERROR[/]] {msg}")
         else:
-            print(f"[[red]ERROR[/]] {msg}\n{e}\n{("".join(traceback.format_exception(None, e, e.__traceback__))).strip()}")
+            # else 前面要有 8 个空格
+            print(f"[[red]ERROR[/]] {msg}\n{e}\n{('').join(traceback.format_exception(None, e, e.__traceback__)).strip()}")
 
     # WARNING
     def warning(self, msg: str) -> None:
