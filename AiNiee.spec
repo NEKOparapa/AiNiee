@@ -30,7 +30,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['tkinter', 'PyQt6', 'PySide2', 'PySide6', 'unittest', 'IPython', 'jupyter', 'notebook', 'pytest'],
     noarchive=False,
     optimize=0,
 )
@@ -44,7 +44,7 @@ exe = EXE(
     name='AiNiee',
     debug=False,
     bootloader_ignore_signals=False,
-    strip=False,
+    strip=True,
     upx=True,
     console=True, 
     disable_windowed_traceback=False,
@@ -55,12 +55,12 @@ exe = EXE(
     icon=['Resource/logo.icns']
 )
 
-# [核心修改]：生成 coll 集合
+
 coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
-    strip=False,
+    strip=True,
     upx=True,
     upx_exclude=[],
     name='AiNiee',
