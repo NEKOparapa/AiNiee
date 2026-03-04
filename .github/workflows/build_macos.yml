@@ -48,10 +48,31 @@ jobs:
         chmod +x Resource/MacTool/build_mac.sh
         ./Resource/MacTool/build_mac.sh
 
-    - name: 5. 压制 DMG 镜像 
+    - name: 5. 准备使用文档并压制 DMG 镜像 
       run: |
+        echo "正在构建 DMG 暂存区..."
+        mkdir -p dmg_staging
+        
+        # 将刚刚打包好的 App 移动到暂存区
+        mv dist/AiNiee.app dmg_staging/
+        
+        # 动态生成「Mac使用说明」文档 
+        cat << 'EOF' > dmg_staging/🌟Mac运行说明.txt
+        【AiNiee for Mac 运行必读】
+
+        由于 AiNiee 会输出大量重要的处理进度和日志，请务必通过终端运行本程序，具体步骤如下：
+
+        1. 在当前窗口中，右键点击左侧的「AiNiee.app」图标。
+        2. 在弹出的菜单中，选择「显示包内容」(Show Package Contents)。
+        3. 依次进入 Contents -> MacOS 文件夹。
+        4. 找到里面名为「AiNiee」的黑色终端执行文件，双击运行。
+
+        此时系统会自动打开终端（Terminal）并启动 AiNiee，您可以在终端中查看完整的运行状态。
+        EOF
+
         echo "正在打包 DMG 镜像以保护文件签名和权限..."
-        hdiutil create -volname "AiNiee_macOS" -srcfolder dist/AiNiee.app -ov -format UDBZ AiNiee_macOS.dmg
+        # 将整个暂存区打包成 DMG（这样用户打开 DMG 就能同时看到 App 和说明文档）
+        hdiutil create -volname "AiNiee_macOS" -srcfolder dmg_staging -ov -format UDBZ AiNiee_macOS.dmg
 
     - name: 6. 上传最终产物给用户下载
       uses: actions/upload-artifact@v4
