@@ -45,8 +45,8 @@ jobs:
 
     - name: 4. 运行魔法脚本进行打包
       run: |
-        chmod +x build_mac.sh
-        ./build_mac.sh
+        chmod +x Resource/MacTool/build_mac.sh
+        ./Resource/MacTool/build_mac.sh
 
     - name: 5. 压制 DMG 镜像 
       run: |
