@@ -26,6 +26,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller mediapipe babeldoc
+        pip install --force-reinstall --no-binary chardet chardet
 
     - name: 3.5. [关键] 预热模型缓存 (解决离线卡死问题)
       run: |
