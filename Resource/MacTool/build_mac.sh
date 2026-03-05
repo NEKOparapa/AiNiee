@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# --- 路径动态识别 (经过专家修复) ---
+# --- 路径动态识别 ---
 # 1. 获取当前脚本所在的目录 (AiNiee/Resource/MacTool)
 SCRIPT_DIR=$(cd "$(dirname "$0")"; pwd)
 # 2. 向上退两级，精准定位真正的项目根目录 (AiNiee)
@@ -15,7 +15,7 @@ APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 echo "🚀 开始自动化打包 $APP_NAME (官方纯净版)..."
 echo "📂 经核查，项目根目录识别为: $PROJECT_ROOT"
 
-# [关键修复] 强制切回项目根目录！确保 .spec 文件内的相对依赖不会找错地方
+# 强制切回项目根目录！确保 .spec 文件内的相对依赖不会找错地方
 cd "$PROJECT_ROOT"
 
 echo "🧹 [1/4] 正在清理旧的编译缓存..."
