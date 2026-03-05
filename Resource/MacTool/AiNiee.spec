@@ -13,14 +13,23 @@ datas = [
     (os.path.join(project_root, 'PluginScripts'), 'PluginScripts'), 
 ]
 binaries = []
-hiddenimports = ['rich._unicode_data', 'tiktoken_ext.openai_public', 'mediapipe', 'babeldoc']
+hiddenimports = ['rich._unicode_data', 'tiktoken_ext.openai_public', 'mediapipe', 'babeldoc'] # 
 
 # 自动收集 rich 的所有依赖 
-hiddenimports += collect_submodules('rich')
-tmp_ret = collect_all('rich')
-datas += tmp_ret[0]
-binaries += tmp_ret[1]
-hiddenimports += tmp_ret[2]
+hiddenimports += collect_submodules('rich') # 
+tmp_ret = collect_all('rich') # 
+datas += tmp_ret[0] # 
+binaries += tmp_ret[1] # 
+hiddenimports += tmp_ret[2] # 
+
+#自动收集 chardet 的所有依赖
+# ---------------------------------------------------------
+hiddenimports += collect_submodules('chardet')
+tmp_ret_chardet = collect_all('chardet')
+datas += tmp_ret_chardet[0]
+binaries += tmp_ret_chardet[1]
+hiddenimports += tmp_ret_chardet[2]
+# ---------------------------------------------------------
 
 a = Analysis(
     # [关键修复] 入口文件绑定到绝对根路径
