@@ -137,8 +137,9 @@ class LLMClientFactory:
         # 展示需要到的配置项
         api_key = config.get("api_key")
         api_url = config.get("api_url")
-        key = ("openai", api_url, api_key)
-        return self._get_cached_client(key, lambda: self._create_openai_client(config, api_key, use_curl_cffi=True))
+        tls_switch = config.get("tls_switch", False)
+        key = ("openai", api_url, api_key, tls_switch)
+        return self._get_cached_client(key, lambda: self._create_openai_client(config, api_key, use_curl_cffi=tls_switch))
 
     def get_openai_client_local(self, config: Dict[str, Any]) -> OpenAI:
         """获取OpenAI客户端"""

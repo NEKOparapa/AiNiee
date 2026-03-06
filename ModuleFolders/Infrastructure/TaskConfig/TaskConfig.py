@@ -273,6 +273,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         think_depth = self.platforms.get(target_platform).get("think_depth")
         thinking_budget = self.platforms.get(target_platform).get("thinking_budget", -1)
         thinking_level = self.platforms.get(target_platform).get("thinking_level", "high")
+        tls_switch = self.platforms.get(target_platform).get("tls_switch", False)
 
         params = {
             "target_platform": target_platform,
@@ -289,6 +290,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
             "presence_penalty": presence_penalty,
             "frequency_penalty": frequency_penalty,
             "extra_body": extra_body,
+            "tls_switch": tls_switch,
             "think_switch": think_switch,
             "think_depth": think_depth,
             "thinking_budget": thinking_budget,

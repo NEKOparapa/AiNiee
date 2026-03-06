@@ -73,6 +73,11 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
         if "frequency_penalty" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_frequency_penalty(self.vbox, config, preset)
 
+        # tls_switch
+        api_format = config.get("platforms").get(self.key).get("api_format")
+        if "tls_switch" in config.get("platforms").get(self.key).get("key_in_settings") or api_format == "OpenAI":
+            self.add_widget_tls_switch(self.vbox, config)
+
         # think_switch
         if "think_switch" in config.get("platforms").get(self.key).get("key_in_settings"):
             self.add_widget_think_switch(self.vbox, config)
@@ -113,6 +118,25 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
 
         return result
 
+
+    # TLS指纹模拟开关
+    def add_widget_tls_switch(self, parent, config):
+        def init(widget):
+            widget.set_checked(config.get("platforms").get(self.key).get("tls_switch", False))
+
+        def checked_changed(widget, checked: bool):
+            config = self.load_config()
+            config["platforms"][self.key]["tls_switch"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("tls_switch"),
+                self.tra("开启后模拟浏览器指纹以绕过 TLS 检测，并自动应用系统代理"),
+                init = init,
+                checked_changed = checked_changed,
+            )
+        )
 
     # 思考开关
     def add_widget_think_switch(self, parent, config):

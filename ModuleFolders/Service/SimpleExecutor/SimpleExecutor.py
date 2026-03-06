@@ -114,6 +114,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
             self.info(f"接口地址 - {api_url}")
             self.info(f"接口密钥 - {'*'*(len(api_key)-8)}{api_key[-8:]}") # 隐藏敏感信息
             self.info(f"模型名称 - {model_name}")
+            self.info(f"tls_switch - {data.get('tls_switch', False)}")
             if extra_body:
                 self.info(f"额外参数 - {extra_body}")
             self.print(f"系统提示词 - {system_prompt}")
@@ -130,6 +131,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
                 "access_key":  access_key,
                 "secret_key": secret_key,
                 "extra_body": extra_body,
+                "tls_switch": data.get("tls_switch", False),
                 "think_switch": data.get("think_switch"),
                 "think_depth": data.get("think_depth"),
                 "thinking_level": data.get("thinking_level"),
