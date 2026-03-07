@@ -14,17 +14,23 @@ from curl_cffi import requests as curl_requests
 
 class CurlHTTPXTransport(httpx.BaseTransport):
     """
-    使用curl_cffi的HTTPX Transport，用于绕过JA3/TLS指纹检测
+    使用curl_cffi的HTTPX Transport，用于绕过JA3/TLS指纹检测，并支持流式响应
     """
     def __init__(self, impersonate="chrome136", timeout=300, **kwargs):
         self.impersonate = impersonate
         self.default_timeout = timeout
+        self.kwargs = kwargs
 
-        # 检测系统代理
-        if "proxies" not in kwargs:
-            kwargs["proxies"] = urllib.request.getproxies()
+        # 延迟初始化 session 以支持代理动态获取
+        self._session = None
 
-        self.session = curl_requests.Session(impersonate=impersonate, **kwargs)
+    @property
+    def session(self):
+        if self._session is None:
+            if "proxies" not in self.kwargs:
+                self.kwargs["proxies"] = urllib.request.getproxies()
+            self._session = curl_requests.Session(impersonate=self.impersonate, **self.kwargs)
+        return self._session
 
     def handle_request(self, request: httpx.Request) -> httpx.Response:
         # 处理超时
@@ -32,53 +38,60 @@ class CurlHTTPXTransport(httpx.BaseTransport):
         if 'timeout' in request.extensions:
             t = request.extensions['timeout']
             if isinstance(t, dict):
-                read_t = t.get('read')
-                if read_t is not None:
-                    timeout = read_t
+                timeout = t.get('read', timeout)
             elif isinstance(t, (int, float)):
                 timeout = t
 
-        content = request.read()
         try:
             # 过滤掉可能与impersonate冲突的header
             headers = dict(request.headers)
-            headers_to_remove = [
-                "user-agent",
-                "accept-encoding",
-                "connection",
-                "keep-alive",
-                "accept",
-                "cookie",
-                "content-length"
-            ]
+            headers_to_remove = ["user-agent", "accept-encoding", "connection", "keep-alive", "accept", "cookie", "content-length"]
             for key in headers_to_remove:
-                if key in headers:
-                    del headers[key]
-                # 处理大写开头header
-                capitalized_key = key.title()
-                if capitalized_key in headers:
-                    del headers[capitalized_key]
+                headers.pop(key, None)
+                headers.pop(key.title(), None)
 
+            # 发起请求，必须使用 stream=True 以支持流式解析
             response = self.session.request(
                 method=request.method,
                 url=str(request.url),
                 headers=headers,
-                data=content,
+                data=request.read(),
                 timeout=timeout,
-                allow_redirects=True
+                allow_redirects=True,
+                stream=True
             )
+
+            # 处理响应头：移除会导致 httpx 二次处理的编码头
+            response_headers = []
+            for k, v in response.headers.items():
+                if k.lower() not in ["content-encoding", "transfer-encoding", "content-length"]:
+                    response_headers.append((k, v))
 
             return httpx.Response(
                 status_code=response.status_code,
-                headers=response.headers,
-                content=response.content,
+                headers=response_headers,
+                stream=CurlStream(response),
                 extensions={"http_version": b"HTTP/2"}
             )
         except Exception as e:
             raise httpx.RequestError(f"CurlCffi Error: {str(e)}", request=request) from e
 
     def close(self):
-        self.session.close()
+        if self._session:
+            self._session.close()
+
+
+class CurlStream(httpx.SyncByteStream):
+    def __init__(self, curl_response):
+        self._response = curl_response
+
+    def __iter__(self):
+        for chunk in self._response.iter_content():
+            if chunk:
+                yield chunk
+
+    def close(self):
+        self._response.close()
 
 
 def create_curl_client(impersonate="chrome136", timeout=300):
