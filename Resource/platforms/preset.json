@@ -511,6 +511,7 @@
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
+            "tls_switch": false,
             "think_switch": false,
             "think_depth": "low",
             "thinking_level": "high",
