@@ -33,14 +33,14 @@ class LLMRequester():
                 system_prompt,
                 platform_config,
             )
-        elif target_platform == "cohere":
+        elif target_platform.startswith("cohere"):
             cohere_requester = CohereRequester()
             skip, response_think, response_content, prompt_tokens, completion_tokens = cohere_requester.request_cohere(
                 messages,
                 system_prompt,
                 platform_config,
             )
-        elif target_platform == "google" or (
+        elif target_platform.startswith("google") or (
             (target_platform.startswith("custom_platform_") or target_platform.startswith("custom_"))
             and api_format == "Google"
         ):
@@ -50,7 +50,7 @@ class LLMRequester():
                 system_prompt,
                 platform_config,
             )
-        elif target_platform == "anthropic" or (
+        elif target_platform.startswith("anthropic") or (
             (target_platform.startswith("custom_platform_") or target_platform.startswith("custom_"))
             and api_format == "Anthropic"
         ):
@@ -60,14 +60,14 @@ class LLMRequester():
                 system_prompt,
                 platform_config,
             )
-        elif target_platform == "amazonbedrock":
+        elif target_platform.startswith("amazonbedrock"):
             amazonbedrock_requester = AmazonbedrockRequester()
             skip, response_think, response_content, prompt_tokens, completion_tokens = amazonbedrock_requester.request_amazonbedrock(
                 messages,
                 system_prompt,
                 platform_config,
             )
-        elif target_platform == "dashscope":
+        elif target_platform.startswith("dashscope"):
             dashscope_requester = DashscopeRequester()
             skip, response_think, response_content, prompt_tokens, completion_tokens = dashscope_requester.request_openai(
                 messages,

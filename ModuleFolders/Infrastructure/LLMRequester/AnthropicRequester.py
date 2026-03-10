@@ -55,8 +55,6 @@ class AnthropicRequester(Base):
                 base_params["temperature"] = 1.0
             else:
                 base_params["temperature"] = temperature
-            # top_p参数设置
-            base_params["top_p"] = top_p
 
             # 从工厂获取客户端
             client = LLMClientFactory().get_anthropic_client(platform_config)
