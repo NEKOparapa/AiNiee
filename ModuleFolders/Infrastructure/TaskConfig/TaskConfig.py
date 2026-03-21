@@ -160,7 +160,7 @@ class TaskConfig(Base):
 
         # 如果开启自动设置输出文件夹功能，设置为输入文件夹的平级目录
         # 但如果当前路径已是对应基础目录的子文件夹（项目专属目录），则保留不覆盖
-        if self.auto_set_output_path == True:
+        if self.auto_set_output_path:
             abs_input_path = os.path.abspath(self.label_input_path)
             parent_dir = os.path.dirname(abs_input_path)
 
