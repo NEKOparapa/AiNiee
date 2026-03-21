@@ -793,7 +793,7 @@ class EditViewPage(Base,QFrame):
         widget_to_remove = self.page_card.stacked_widget.widget(index)
         if widget_to_remove:
             self.page_card.stacked_widget.removeWidget(widget_to_remove)
-            # Qt 会在稍后安全地删除 widget
+            widget_to_remove.close()  # 触发 closeEvent，使 widget 有机会注销事件订阅
             widget_to_remove.deleteLater()
         
         self.page_card.tab_bar.removeTab(index)
