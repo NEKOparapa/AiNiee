@@ -26,7 +26,7 @@ def _generate_project_subfolder_name(project_name: str) -> str:
 class StartupPage(Base, QWidget):
     """开始页面"""
     folderSelected = pyqtSignal(str, str)  # 信号：通知主界面文件夹已选好，切换页面
-    loadSuccess = pyqtSignal(str, str)     # 信号(子线程->主线程)：项目加载成功
+    loadSuccess = pyqtSignal(str, str, str) # 信号(子线程->主线程)：项目加载成功
     loadFailed = pyqtSignal(str)           # 信号(子线程->主线程)：项目加载失败
 
     def __init__(self, support_project_types=None, parent=None, cache_manager=None, file_reader=None):
@@ -192,7 +192,7 @@ class StartupPage(Base, QWidget):
                     abs_input = os.path.abspath(label_input_path)
                     base_output_path = os.path.join(os.path.dirname(abs_input), "AiNieeOutput")
                 else:
-                    base_output_path = config.get("label_output_path", "./output")
+                    base_output_path = label_output_path
 
                 subfolder = _generate_project_subfolder_name(CacheProject.project_name)
                 project_output_path = os.path.join(base_output_path, subfolder)
@@ -206,14 +206,15 @@ class StartupPage(Base, QWidget):
                 raise ValueError("项目数据为空，可能是项目类型或输入文件夹设置不正确。")
 
             project_name = self.cache_manager.project.project_name
-            self.loadSuccess.emit(project_name, mode)
+            final_output_path = config.get("label_output_path", label_output_path)
+            self.loadSuccess.emit(project_name, mode, final_output_path)
 
         except Exception as e:
             error_message = "翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ..."
             self.error(error_message, e)
             self.loadFailed.emit(error_message)
 
-    def _on_load_success(self, project_name: str, project_mode: str) -> None:
+    def _on_load_success(self, project_name: str, project_mode: str, output_path: str) -> None:
         """
         [主线程] 接收加载成功信号后的处理函数。
         """
@@ -229,9 +230,7 @@ class StartupPage(Base, QWidget):
         self._set_history_cards_enabled(True)
 
         # 更新项目历史
-        config = self.load_config()
-        output_path = config.get("label_output_path", "./output")
-        self._save_to_history(config, project_name, output_path)
+        self._save_to_history(self.load_config(), project_name, output_path)
         self._pending_output_path = None
 
         # 打印文件信息到控制台
@@ -271,23 +270,26 @@ class StartupPage(Base, QWidget):
         self.error_toast(self.tra("错误"), error_message)
 
     def _delete_history_entry(self, output_path: str, card) -> None:
-        """从历史记录中删除指定项目，移除 UI 卡片，并删除磁盘上的输出子目录"""
+        """从历史记录中删除指定项目，移除 UI 卡片，并在后台线程删除磁盘上的输出子目录"""
         config = self.load_config()
-        history = config.get("project_history", [])
-        history = [h for h in history if h.get("output_path") != output_path]
+        history = [h for h in config.get("project_history", []) if h.get("output_path") != output_path]
         config["project_history"] = history
         self.save_config(config)
 
-        # 删除磁盘上的输出目录
-        if output_path and os.path.isdir(output_path):
-            try:
-                shutil.rmtree(output_path)
-            except Exception as e:
-                self.error(f"删除输出目录失败: {output_path}", e)
+        if output_path:
+            threading.Thread(target=self._delete_directory_worker, args=(output_path,), daemon=True).start()
 
-        # 从 UI 中移除卡片
         self.history_container.removeWidget(card)
         card.deleteLater()
+
+    def _delete_directory_worker(self, output_path: str) -> None:
+        """[子线程] 删除磁盘上的输出目录"""
+        try:
+            shutil.rmtree(output_path)
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            self.error(f"删除输出目录失败: {output_path}", e)
 
     def _save_to_history(self, config: dict, project_name: str, output_path: str) -> None:
         """将项目记录写入 project_history，按 output_path 去重，最多保留 20 条"""
