@@ -548,7 +548,8 @@ class TabInterface(QWidget):
 # 主界面
 class EditViewPage(Base,QFrame):
 
-    languageCheckFinished = pyqtSignal(tuple)    
+    languageCheckFinished = pyqtSignal(tuple)
+    projectHistoryReady = pyqtSignal(object)  # 传递历史项目列表到主线程
 
     def __init__(self, text: str, window, plugin_manager, cache_manager, file_reader) -> None:
         super().__init__(window)
@@ -630,6 +631,7 @@ class EditViewPage(Base,QFrame):
 
         self.nav_card.languageCheckRequested.connect(self.perform_language_check) # 连接语言检查请求信号
         self.languageCheckFinished.connect(self._on_language_check_finished) # 语言检查完成信号
+        self.projectHistoryReady.connect(self._on_project_history_ready)     # 历史项目列表就绪信号
 
 
         # 订阅事件
@@ -649,90 +651,54 @@ class EditViewPage(Base,QFrame):
 
     # 继续任务状态检查
     def task_continue_check_target(self) -> None:
-        time.sleep(0.5) # 等待页面切换效果
+        time.sleep(0.5)  # 等待页面切换效果
 
-        self.continue_status = False # 默认为False
+        if Base.work_status != Base.STATUS.IDLE:
+            return
 
-        if Base.work_status == Base.STATUS.IDLE:
-            config = self.load_config()
-            cache_folder_path = os.path.join(config.get("label_output_path", "./output"), "cache") # 添加默认值
+        config = self.load_config()
+        history = config.get("project_history", [])
+        valid_entries = []
 
-            if not os.path.isdir(cache_folder_path):
-                return False
-
-            json_file_path = os.path.join(cache_folder_path, "ProjectStatistics.json")
+        for entry in history:
+            output_path = entry.get("output_path", "")
+            json_file_path = os.path.join(output_path, "cache", "ProjectStatistics.json")
             if not os.path.isfile(json_file_path):
-                return False
-            # 增强的JSON文件读取，防止并发访问和空文件问题
-            max_retries = 3
-            retry_delay = 0.1
-            
-            for attempt in range(max_retries):
-                try:
-                    # 检查文件大小，避免读取空文件
-                    if os.path.getsize(json_file_path) == 0:
-                        if attempt < max_retries - 1:
-                            time.sleep(retry_delay)
-                            continue
-                        else:
-                            print(f"[WARNING] ProjectStatistics.json文件为空，跳过继续检查")
-                            return False
-                    
-                    # 安全读取JSON文件
-                    with open(json_file_path, 'r', encoding='utf-8') as f:
-                        content = f.read().strip()
-                        if not content:
-                            if attempt < max_retries - 1:
-                                time.sleep(retry_delay)
-                                continue
-                            else:
-                                print(f"[WARNING] ProjectStatistics.json内容为空")
-                                return False
-                        
-                        data = json.loads(content)
-                        break  # 成功读取，退出重试循环
-                        
-                except (json.JSONDecodeError, OSError, IOError) as e:
-                    if attempt < max_retries - 1:
-                        print(f"[WARNING] 读取ProjectStatistics.json失败(尝试{attempt+1}/{max_retries}): {e}")
-                        time.sleep(retry_delay)
-                        retry_delay *= 2  # 指数退避
-                        continue
-                    else:
-                        print(f"[ERROR] 读取ProjectStatistics.json最终失败: {e}")
-                        return False
-                except Exception as e:
-                    print(f"[ERROR] 读取ProjectStatistics.json时发生未知错误: {e}")
-                    return False
-            
-            # 获取数据
-            is_continue =  True
-            project_name = data.get("project_name") # 获取已项目名字
-            total_line = data.get("total_line") # 获取需翻译行数
-            line = data.get("line") # 获取已翻译行数
+                continue
+            try:
+                if os.path.getsize(json_file_path) == 0:
+                    continue
+                with open(json_file_path, 'r', encoding='utf-8') as f:
+                    content = f.read().strip()
+                if not content:
+                    continue
+                data = json.loads(content)
+                total_line = data.get("total_line", 0)
+                line = data.get("line", 0)
+                if total_line > 0:
+                    valid_entries.append({
+                        **entry,
+                        "total_line": total_line,
+                        "line": line,
+                        "is_complete": line >= total_line,
+                    })
+            except Exception:
+                continue
 
-            # 有数据则表示进行过任务,放宽读取范围
-            if total_line:
-                self.continue_status = True
+        # 通过信号在主线程更新 UI
+        self.projectHistoryReady.emit(valid_entries)
 
-            # 如果完成了任务，则不显示继续按钮
-            if total_line and line >= total_line:
-                is_continue = False
+        # 命令栏继续按钮：当前 output_path 对应项目未完成则启用
+        current_output = config.get("label_output_path", "./output")
+        has_resumable = any(
+            e["output_path"] == current_output and not e["is_complete"]
+            for e in valid_entries
+        )
+        self.bottom_bar_main.enable_continue_button(has_resumable)
 
-        # 根据任务状态，更新界面
-        if self.continue_status == True :
-            # 启动页显示继续翻译按钮
-            self.startup_page.show_continue_button(True)
-            # 命令栏启用继续按钮
-            if is_continue:
-                self.bottom_bar_main.enable_continue_button(True)
-            # 在 ActionCard 上显示项目名
-            self.startup_page.continue_card.set_project_name(project_name)
-
-        else:
-            self.startup_page.show_continue_button(False)
-            # 命令栏禁用继续按钮
-            self.bottom_bar_main.enable_continue_button(False)
+    # 历史项目列表就绪，在主线程更新启动页
+    def _on_project_history_ready(self, entries: list) -> None:
+        self.startup_page.show_project_history(entries)
 
     # 输入文件夹路径改变信号
     def on_folder_selected(self, project_name: str, project_mode: str):
