@@ -196,7 +196,6 @@ class StartupPage(Base, QWidget):
 
                 subfolder = _generate_project_subfolder_name(CacheProject.project_name)
                 project_output_path = os.path.join(base_output_path, subfolder)
-                os.makedirs(project_output_path, exist_ok=True)
 
                 config["label_output_path"] = project_output_path
                 self.save_config(config)
