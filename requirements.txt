@@ -17,6 +17,7 @@ chardet
 PyYAML
 requests
 httpx[http2]
+curl_cffi
 
 # Tools
 python-pptx

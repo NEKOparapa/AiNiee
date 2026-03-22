@@ -354,6 +354,18 @@
       "English": "Thinking Mode Switch",
       "日本語": "思考モードスイッチ"
     },
+    "tls_switch": {
+      "简中": "tls_switch",
+      "繁中": "tls_switch",
+      "English": "tls_switch",
+      "日本語": "tls_switch"
+    },
+    "开启后模拟浏览器指纹以绕过 TLS 检测，并自动应用系统代理": {
+      "简中": "开启后模拟浏览器指纹以绕过 TLS 检测，并自动应用系统代理",
+      "繁中": "開啟後模擬瀏覽器指紋以繞過 TLS 檢測，並自動應用系統代理",
+      "English": "Simulate browser fingerprint to bypass TLS detection and auto-apply system proxy",
+      "日本語": "TLS検出を回避するためにブラウザのフィンガープリントをシミュレートし、システムプロキシを自動適用します"
+    },
     "思考深度": {
       "简中": "思考深度",
       "繁中": "思考深度",
