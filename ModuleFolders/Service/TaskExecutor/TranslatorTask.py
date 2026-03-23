@@ -9,7 +9,7 @@ from rich.markup import escape
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Log.Log import LogMixin
-from ModuleFolders.Base.PluginManager import PluginManager
+from ModuleFolders.Plugin.PluginManager import PluginManager
 from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Infrastructure.LLMRequester.LLMRequester import LLMRequester
