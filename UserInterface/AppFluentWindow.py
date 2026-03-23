@@ -17,6 +17,9 @@ from qfluentwidgets import NavigationItemPosition
 from qfluentwidgets import NavigationAvatarWidget
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
+from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.BaseNavigationItem import BaseNavigationItem
 
 from UserInterface.VersionManager.VersionManager import VersionManager
@@ -75,7 +78,7 @@ class UpdateCheckerThread(QThread):
         self.update_available_signal.emit(has_update, latest_version, check_failed)
 
 
-class AppFluentWindow(FluentWindow, Base):  # 主窗口
+class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  # 主窗口
 
     APP_WIDTH = 1600
     APP_HEIGHT = 900
@@ -106,10 +109,10 @@ class AppFluentWindow(FluentWindow, Base):  # 主窗口
         config = self.save_config(self.load_config_from_default())
 
         # 更换界面显示的语言
-        Base.multilingual_interface_dict = self.load_translations(Base.translation_json_file)  # 读取多语言文本
+        ConfigMixin.multilingual_interface_dict = self.load_translations(ConfigMixin.translation_json_file)  # 读取多语言文本
         current_language = config.get("interface_language_setting", "简中")  # 读取界面语言设置
-        Base.current_interface_language = current_language  # 根据配置改变全局界面语言设定
-        self.info(f"Current Interface Language: {Base.current_interface_language}")  # 打印当前语言，方便调试
+        ConfigMixin.current_interface_language = current_language  # 根据配置改变全局界面语言设定
+        self.info(f"Current Interface Language: {ConfigMixin.current_interface_language}")  # 打印当前语言，方便调试
 
         # 打印日志
         if self.is_debug():

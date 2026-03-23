@@ -13,6 +13,8 @@ from qfluentwidgets import (
 )
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.Platform.AddAPIDialog import AddAPIDialog
 from UserInterface.Platform.APIItemCard import APIItemCard
 from UserInterface.Platform.APIEditPage import APIEditPage
@@ -99,7 +101,7 @@ class APITypeCard(CardWidget):
 # 接收拖拽的区域组件
 # ==========================================
 
-class ApiDropZone(QFrame, Base):
+class ApiDropZone(QFrame, ConfigMixin, ToastMixin, Base):
     """
     支持拖拽放置的区域，用于设置 Translate 或 Polish 接口
     """
@@ -221,7 +223,7 @@ class ApiDropZone(QFrame, Base):
 # 底部设置卡片
 # ==========================================
 
-class BottomSettingCard(CardWidget, Base):
+class BottomSettingCard(CardWidget, ConfigMixin, ToastMixin, Base):
     """界面底部的操作区域"""
     addClicked = pyqtSignal()
 
@@ -257,7 +259,7 @@ class BottomSettingCard(CardWidget, Base):
 # 主页面类
 # ==========================================
 
-class PlatformPage(QFrame, Base):
+class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
 
     # 分组配置：添加图标和描述
     GROUP_CONFIG = {

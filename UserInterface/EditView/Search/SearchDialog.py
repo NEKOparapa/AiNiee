@@ -2,8 +2,9 @@
 from qfluentwidgets import LineEdit, CheckBox, ComboBox, MessageBoxBase
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
 
-class SearchDialog(Base,MessageBoxBase):
+class SearchDialog(ConfigMixin, Base, MessageBoxBase):
     def __init__(self, parent=None):
         super().__init__(parent)
         

@@ -10,8 +10,9 @@ from PyQt5.QtCore import QRectF, Qt, QPoint, QRect, QTimer, pyqtSignal
 from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, FlowLayout, FluentIcon, PrimaryPushButton
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
 
-class InfoBlockWidget(Base,QWidget):
+class InfoBlockWidget(ConfigMixin, Base, QWidget):
     """信息块组件 (圆角+折角+透明)"""
     def __init__(self, text, color=QColor("#E0E0E0"), parent=None):
         super().__init__(parent)
@@ -143,7 +144,7 @@ class InfoBlockWidget(Base,QWidget):
         # --- 结束绘制内容 ---
 
 
-class DragDropArea(Base,QWidget):
+class DragDropArea(ConfigMixin, Base, QWidget):
     """实现拖拽功能的区域，包含信息块、按钮、路径显示和命中计数"""
     folderDropped = pyqtSignal(str) # 当有文件夹被成功拖入或选择时发射此信号，传递文件夹路径
     # hitCountChanged = pyqtSignal(int) # (可选) 如果需要在命中时立即通知外部，可以添加此信号

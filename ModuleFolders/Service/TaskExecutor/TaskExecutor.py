@@ -41,6 +41,8 @@ def _create_opencc_converter(preset: str) -> opencc.OpenCC:
         return opencc.OpenCC(os.path.join(_opencc_temp_dir, config_name))
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Infrastructure.Cache.CacheManager import CacheManager
 from ModuleFolders.Infrastructure.Cache.CacheProject import CacheProjectStatistics
@@ -58,7 +60,7 @@ from ModuleFolders.Service.TaskExecutor.TranslatorUtil import get_source_languag
 
 
 # 翻译器
-class TaskExecutor(Base):
+class TaskExecutor(ConfigMixin, LogMixin, Base):
 
     def __init__(self, plugin_manager,cache_manager, file_reader, file_writer) -> None:
         super().__init__()

@@ -4,13 +4,14 @@ from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import FluentIcon, HorizontalSeparator
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.PushButtonCard import PushButtonCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.LineEditCard import LineEditCard
 
-class OutputSettingsPage(QFrame, Base):
+class OutputSettingsPage(QFrame, ConfigMixin, Base):
 
     def __init__(self, text: str, window) -> None:
         super().__init__(window)

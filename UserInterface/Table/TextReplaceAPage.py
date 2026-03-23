@@ -9,11 +9,14 @@ from PyQt5.QtWidgets import (QFrame, QFileDialog, QHeaderView, QLayout, QVBoxLay
                              QTableWidgetItem, QHBoxLayout, QWidget,QAbstractItemView)
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
+from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.Table.TableHelper.TableHelper import TableHelper
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface import AppFluentWindow
 
-class TextReplaceAPage(QFrame, Base):
+class TextReplaceAPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     KEYS = ("src", "dst", "regex",)
     COLUMN_NAMES = {0: "原文本",1: "目标文本",2: "正则",}

@@ -5,11 +5,12 @@ from qfluentwidgets import CaptionLabel, CardWidget, FluentWindow, HorizontalSep
 
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderPolishing import PromptBuilderPolishing
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 
 # 提示词卡片
-class PromptCard(Base,CardWidget):
+class PromptCard(ConfigMixin, Base, CardWidget):
     prompt_selected = pyqtSignal(dict) # 信号：提示词卡片被点击
     delete_requested = pyqtSignal(str) # 信号：请求删除提示词
     edit_requested = pyqtSignal(dict) # 信号：请求编辑提示词
@@ -104,7 +105,7 @@ class PromptCard(Base,CardWidget):
             self.prompt_selected.emit(self.prompt_data)
 
 # 提示词编辑对话框
-class AddEditPromptDialog(Base,MessageBoxBase):
+class AddEditPromptDialog(ConfigMixin, Base, MessageBoxBase):
     def __init__(self, prompt_data=None, parent=None):
         super().__init__(parent)
         self.prompt_data = prompt_data
@@ -155,7 +156,7 @@ class AddEditPromptDialog(Base,MessageBoxBase):
 
 
 # 主界面
-class PolishingSystemPromptPage(QFrame, Base):
+class PolishingSystemPromptPage(QFrame, ConfigMixin, Base):
 
     def __init__(self, text: str, window: FluentWindow) -> None:
         super().__init__(window)

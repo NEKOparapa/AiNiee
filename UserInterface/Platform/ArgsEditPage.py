@@ -11,12 +11,14 @@ from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.SliderCard import SliderCard
 from UserInterface.Widget.GroupCard import GroupCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 
-class ArgsEditPage(MessageBoxBase, Base):
+class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
 
     def __init__(self, window, key):
         super().__init__(window)

@@ -9,11 +9,14 @@ from PyQt5.QtWidgets import (QFrame, QFileDialog, QHeaderView, QLayout, QVBoxLay
                              QTableWidgetItem, QHBoxLayout, QWidget,QAbstractItemView)
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
+from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.Table.TableHelper.TableHelper import TableHelper
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface import AppFluentWindow
 
-class ExclusionListPage(QFrame, Base):
+class ExclusionListPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     KEYS = ("markers", "info", "regex",)
     COLUMN_NAMES = {0: "标记符",1: "备注",2: "正则",}

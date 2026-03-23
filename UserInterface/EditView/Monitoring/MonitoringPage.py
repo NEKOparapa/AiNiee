@@ -4,13 +4,14 @@ from PyQt5.QtWidgets import QLayout, QWidget, QVBoxLayout
 from qfluentwidgets import (FlowLayout,FluentIcon as FIF)
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
 from UserInterface.Widget.DashboardCard import DashboardCard
 from UserInterface.Widget.WaveformCard import WaveformCard
 from UserInterface.Widget.ProgressRingCard import ProgressRingCard
 from UserInterface.Widget.CombinedLineCard import CombinedLineCard
 
 # 监控页面
-class MonitoringPage(Base,QWidget):
+class MonitoringPage(ConfigMixin, Base, QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         # 设置主容器

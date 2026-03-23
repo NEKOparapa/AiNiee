@@ -6,9 +6,10 @@ from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import SingleDirectionScrollArea
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 
-class PluginsSettingsPage(QFrame, Base):
+class PluginsSettingsPage(QFrame, ConfigMixin, Base):
 
     def __init__(self, text: str, window, plugin_manager = None):
         super().__init__(window)

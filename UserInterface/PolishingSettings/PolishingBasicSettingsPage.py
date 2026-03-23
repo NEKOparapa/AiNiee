@@ -4,10 +4,11 @@ from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import HorizontalSeparator
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
 from UserInterface.Widget.SpinCard import SpinCard
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 
-class PolishingBasicSettingsPage(QFrame, Base):
+class PolishingBasicSettingsPage(QFrame, ConfigMixin, Base):
 
     def __init__(self, text: str, window) -> None:
         super().__init__(window)

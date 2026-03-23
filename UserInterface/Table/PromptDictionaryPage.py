@@ -9,12 +9,15 @@ from PyQt5.QtWidgets import ( QFrame, QFileDialog, QHeaderView, QLayout, QVBoxLa
                              QTableWidgetItem, QHBoxLayout, QWidget,QAbstractItemView)
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
+from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.Table.TableHelper.TableHelper import TableHelper
 from ModuleFolders.Service.NameExtractor.NameExtractor import NameExtractor
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface import AppFluentWindow
 
-class PromptDictionaryPage(QFrame, Base):
+class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     KEYS = ("src", "dst", "info",)
     COLUMN_NAMES = {0: "原文",1: "译文",2: "描述",}

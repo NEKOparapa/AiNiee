@@ -3,8 +3,9 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QHBoxLayout
 from qfluentwidgets import CheckBox, ComboBox, MessageBoxBase, StrongBodyLabel, CaptionLabel, SpinBox, DoubleSpinBox
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
 
-class LanguageCheckDialog(Base, MessageBoxBase):
+class LanguageCheckDialog(ConfigMixin, Base, MessageBoxBase):
     def __init__(self, parent=None):
         super().__init__(parent)
 

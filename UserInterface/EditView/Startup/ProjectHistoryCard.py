@@ -4,9 +4,10 @@ from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
 from qfluentwidgets import CardWidget, StrongBodyLabel, CaptionLabel, PushButton, TransparentToolButton, FluentIcon, pyqtSignal
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
 
 
-class ProjectHistoryCard(CardWidget, Base):
+class ProjectHistoryCard(CardWidget, ConfigMixin, Base):
     """历史项目卡片，显示项目名、路径、进度，并提供继续和删除按钮"""
     continue_clicked = pyqtSignal()
     delete_clicked = pyqtSignal()

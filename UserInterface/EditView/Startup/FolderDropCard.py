@@ -5,6 +5,7 @@ from PyQt5.QtCore import QRect, Qt, pyqtSignal
 from qfluentwidgets import BodyLabel, CardWidget,  FluentIcon, PrimaryPushButton
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
 
 class InfoBlockWidget(QWidget):
     def __init__(self, text, color=QColor("#E0E0E0"), parent=None):
@@ -76,7 +77,7 @@ class InfoBlockWidget(QWidget):
         painter.setFont(self.default_font)
         painter.drawText(draw_rect, Qt.AlignCenter | Qt.TextWordWrap, self.text)
 
-class DragDropArea(Base,QWidget):
+class DragDropArea(ConfigMixin, Base, QWidget):
     pathDropped = pyqtSignal(str) # 文件路径改变信号
 
     def __init__(self, parent=None):
@@ -240,7 +241,7 @@ class DragDropArea(Base,QWidget):
             
             self.update_path(parent_dir)
 
-class FolderDropCard(Base,CardWidget):
+class FolderDropCard(ConfigMixin, Base, CardWidget):
     pathChanged = pyqtSignal(str)
 
     def __init__(self, init=None, path_changed=None, parent=None):

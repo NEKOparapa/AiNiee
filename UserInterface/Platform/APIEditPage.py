@@ -7,13 +7,16 @@ from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
+from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.Widget.GroupCard import GroupCard
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.LineEditCard import LineEditCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.EditableComboBoxCard import EditableComboBoxCard
 
-class APIEditPage(MessageBoxBase, Base):
+class APIEditPage(MessageBoxBase, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def __init__(self, window, key):
         super().__init__(window)

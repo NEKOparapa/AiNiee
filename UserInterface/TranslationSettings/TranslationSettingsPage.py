@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import HorizontalSeparator, PillPushButton
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
@@ -12,7 +13,7 @@ from UserInterface.Widget.FlowCard import FlowCard
 
 
 
-class TranslationSettingsPage(QFrame, Base):
+class TranslationSettingsPage(QFrame, ConfigMixin, Base):
 
     def __init__(self, text: str, window) -> None:
         super().__init__(window)

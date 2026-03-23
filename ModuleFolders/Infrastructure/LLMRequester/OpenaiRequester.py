@@ -1,4 +1,5 @@
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.LLMRequester.LLMClientFactory import LLMClientFactory
 
 import json
@@ -6,7 +7,7 @@ from openai.types.chat import ChatCompletion
 
 
 # 接口请求器
-class OpenaiRequester(Base):
+class OpenaiRequester(LogMixin, Base):
     def __init__(self) -> None:
         pass
 

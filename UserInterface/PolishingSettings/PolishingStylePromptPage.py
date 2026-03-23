@@ -7,10 +7,12 @@ from qfluentwidgets import MessageBox
 from qfluentwidgets import PlainTextEdit
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.Widget.CommandBarCard import CommandBarCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 
-class PolishingStylePromptPage(QFrame, Base):
+class PolishingStylePromptPage(QFrame, ConfigMixin, ToastMixin, Base):
 
     def __init__(self, text: str, window):
         super().__init__(window)

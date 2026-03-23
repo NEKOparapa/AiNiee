@@ -4,8 +4,11 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableWidgetItem,
                              QHeaderView, QAbstractItemView)
 from qfluentwidgets import TableWidget, RoundMenu, Action, FluentIcon
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
+from UserInterface.Widget.Toast import ToastMixin
 
-class CheckResultPage(Base, QWidget):
+class CheckResultPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
     def __init__(self, results: list, cache_manager=None, parent=None):
         super().__init__(parent)
         self.results = results

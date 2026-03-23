@@ -5,6 +5,8 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.LLMRequester.LLMRequester import LLMRequester
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
@@ -16,7 +18,7 @@ from ModuleFolders.Domain.PromptBuilder.PromptBuilderPolishing import PromptBuil
 from ModuleFolders.Service.NERProcessor.NERProcessor import NERProcessor
 
 # 简易请求器
-class SimpleExecutor(Base):
+class SimpleExecutor(ConfigMixin, LogMixin, Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -1,9 +1,10 @@
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.LLMRequester.LLMClientFactory import LLMClientFactory
 
 
 # 接口请求器
-class LocalLLMRequester(Base):
+class LocalLLMRequester(LogMixin, Base):
     def __init__(self) -> None:
         pass
 

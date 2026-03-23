@@ -6,6 +6,8 @@ from collections import defaultdict
 from typing import List, Dict, Any, Tuple
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Infrastructure.Cache.CacheManager import CacheManager
 from ModuleFolders.Domain.FileReader import ReaderUtil
@@ -22,7 +24,7 @@ class CheckResult:
     ERROR_NO_POLISH = "ERROR_NO_POLISH"
     ERROR_INVALID_LANG = "ERROR_INVALID_LANG"
 
-class TranslationChecker(Base):
+class TranslationChecker(ConfigMixin, LogMixin, Base):
     """
     双模式语言检查。
     """

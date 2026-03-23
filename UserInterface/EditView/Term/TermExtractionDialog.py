@@ -5,8 +5,10 @@ from qfluentwidgets import (ComboBox, CheckBox, MessageBoxBase, StrongBodyLabel,
                             InfoBar, InfoBarPosition, CaptionLabel, HyperlinkButton,
                             SubtitleLabel, BodyLabel)
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
 
-class TermExtractionDialog(Base, MessageBoxBase):
+class TermExtractionDialog(ConfigMixin, LogMixin, Base, MessageBoxBase):
     """
     术语提取设置对话框。
     """

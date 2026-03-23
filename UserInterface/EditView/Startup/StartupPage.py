@@ -7,6 +7,9 @@ from PyQt5.QtWidgets import QLayout, QVBoxLayout, QWidget
 from qfluentwidgets import pyqtSignal, StateToolTip
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
+from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.EditView.Startup.FolderDropCard import FolderDropCard
 from UserInterface.EditView.Startup.ProjectHistoryCard import ProjectHistoryCard
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
@@ -23,7 +26,7 @@ def _generate_project_subfolder_name(project_name: str) -> str:
     return f"{sanitized}_{timestamp}"
 
 
-class StartupPage(Base, QWidget):
+class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
     """开始页面"""
     folderSelected = pyqtSignal(str, str)  # 信号：通知主界面文件夹已选好，切换页面
     loadSuccess = pyqtSignal(str, str, str) # 信号(子线程->主线程)：项目加载成功

@@ -16,6 +16,9 @@ from qfluentwidgets import SwitchButton
 from qfluentwidgets import SingleDirectionScrollArea
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
+from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.Widget.EmptyCard import EmptyCard
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.LineEditCard import LineEditCard
@@ -23,7 +26,7 @@ from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.LineEditCard import LineEditCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard 
 
-class AppSettingsPage(QWidget, Base):
+class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def __init__(self, text: str, window) -> None:
         super().__init__(window)

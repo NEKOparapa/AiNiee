@@ -14,6 +14,9 @@ from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, Stron
                             TransparentToolButton, HyperlinkButton, FluentIcon,
                             InfoBar, InfoBarPosition, SubtitleLabel, MessageBoxBase)
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
+from UserInterface.Widget.Toast import ToastMixin
 
 class UpdaterSignals(QObject):
     progress_updated = pyqtSignal(int)
@@ -37,7 +40,7 @@ class UpdateMessageBox(MessageBoxBase):
         self.buttonGroup.hide()
 
 
-class VersionManager(Base):
+class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
     # GitHub API URL for releases
     GITHUB_API_URL = "https://api.github.com/repos/NEKOparapa/AiNiee/releases/latest"
 

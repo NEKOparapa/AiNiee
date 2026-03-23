@@ -6,11 +6,13 @@ import urllib
 import rapidjson as json
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
 
 
 # 接口请求器
-class TaskConfig(Base):
+class TaskConfig(ConfigMixin, LogMixin, Base):
 
     # 打印时的类型过滤器
     TYPE_FILTER = (int, str, bool, float, list, dict, tuple)

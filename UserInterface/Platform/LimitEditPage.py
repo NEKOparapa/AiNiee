@@ -6,9 +6,10 @@ from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
 from UserInterface.Widget.SpinCard import SpinCard
 
-class LimitEditPage(MessageBoxBase, Base):
+class LimitEditPage(MessageBoxBase, ConfigMixin, Base):
 
     def __init__(self, window, key):
         super().__init__(window)

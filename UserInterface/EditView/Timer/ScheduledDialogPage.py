@@ -2,8 +2,9 @@ from PyQt5.QtCore import QTime
 from qfluentwidgets import BodyLabel, MessageBoxBase, TimePicker, StrongBodyLabel
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
 
-class ScheduledDialogPage(MessageBoxBase, Base):
+class ScheduledDialogPage(MessageBoxBase, ConfigMixin, Base):
     """
     定时开始任务对话框
     """

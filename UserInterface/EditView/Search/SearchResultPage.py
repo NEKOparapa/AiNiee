@@ -8,9 +8,11 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableWidgetItem,
 from qfluentwidgets import (TableWidget, PrimaryPushButton, LineEdit, StrongBodyLabel,
                             CheckBox, Action, FluentIcon as FIF, RoundMenu)
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from UserInterface.Widget.Toast import ToastMixin
 
 
-class SearchResultPage(Base, QWidget):
+class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
     # ===== 列索引常量 ===== #
     COL_FILE = 0   # 文件名列
     COL_ROW = 1    # 行号列

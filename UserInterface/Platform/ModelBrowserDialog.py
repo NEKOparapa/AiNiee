@@ -12,6 +12,9 @@ from qfluentwidgets import (
 )
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
+from UserInterface.Widget.Toast import ToastMixin
 from ModuleFolders.Infrastructure.LLMRequester.LLMClientFactory import LLMClientFactory
 
 class _GoogleModelFetchWorker(QObject):
@@ -114,7 +117,7 @@ class _ModelFetchWorker(QObject):
 
 
 
-class ModelBrowserDialog(MessageBoxBase, Base):
+class ModelBrowserDialog(MessageBoxBase, ConfigMixin, LogMixin, ToastMixin, Base):
     """
     统一的“获取模型”对话框：
     - 支持从 OpenAI 兼容接口 GET /v1/models 拉取全部模型

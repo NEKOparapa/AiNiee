@@ -8,6 +8,7 @@ from rich.table import Table
 from rich.markup import escape
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Base.PluginManager import PluginManager
 from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
@@ -23,7 +24,7 @@ from ModuleFolders.Infrastructure.Tokener.Tokener import Tokener
 from ModuleFolders.Domain.TextProcessor.TextProcessor import TextProcessor
 
 
-class TranslatorTask(Base):
+class TranslatorTask(LogMixin, Base):
 
     def __init__(self, config: TaskConfig, plugin_manager: PluginManager, request_limiter: RequestLimiter, source_lang) -> None:
         super().__init__()

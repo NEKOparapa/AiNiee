@@ -8,8 +8,11 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableWidgetItem,
 from qfluentwidgets import (TableWidget, PrimaryPushButton, FluentIcon,
                               RoundMenu, Action, MessageBox)
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
+from UserInterface.Widget.Toast import ToastMixin
 
-class TermResultPage(Base, QWidget):
+class TermResultPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
     """
     用于显示术语提取结果的页面。
     """

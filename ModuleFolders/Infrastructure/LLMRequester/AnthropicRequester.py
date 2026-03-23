@@ -1,10 +1,11 @@
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.LLMRequester.LLMClientFactory import LLMClientFactory
 from ModuleFolders.Infrastructure.LLMRequester.ModelConfigHelper import ModelConfigHelper
 
 
 # 接口请求器
-class AnthropicRequester(Base):
+class AnthropicRequester(LogMixin, Base):
     def __init__(self) -> None:
         pass
 

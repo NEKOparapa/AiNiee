@@ -1,9 +1,10 @@
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.LLMRequester.LLMClientFactory import LLMClientFactory
 
 
 # 因为各家思考模式的开关设置不同.............................
-class DashscopeRequester(Base):
+class DashscopeRequester(LogMixin, Base):
     def __init__(self) -> None:
         pass
 

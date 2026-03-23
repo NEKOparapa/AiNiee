@@ -31,8 +31,10 @@ except ImportError:
 
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from UserInterface.Widget.Toast import ToastMixin
 
-class AddAPIDialog(MessageBoxBase, Base):
+class AddAPIDialog(MessageBoxBase, ConfigMixin, ToastMixin, Base):
     """添加新接口的简易对话框"""
     
     def __init__(self, window, preset_platforms: dict, on_confirm=None):

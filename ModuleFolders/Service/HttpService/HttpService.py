@@ -7,6 +7,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
@@ -170,7 +172,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(response_data).encode('utf-8'))
 
 
-class HttpService(Base):
+class HttpService(ConfigMixin, LogMixin, Base):
     def __init__(self):
         super().__init__()
         self.httpd = None

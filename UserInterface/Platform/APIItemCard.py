@@ -7,8 +7,9 @@ from qfluentwidgets import (
 )
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
 
-class APIItemCard(DropDownPushButton, Base):
+class APIItemCard(DropDownPushButton, ConfigMixin, Base):
     """
     可拖拽的接口按钮组件
     """

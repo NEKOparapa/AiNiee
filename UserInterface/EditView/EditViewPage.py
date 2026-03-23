@@ -11,6 +11,9 @@ from qfluentwidgets import (Action,  CaptionLabel, MessageBox, PrimarySplitPushB
 from qframelesswindow import QTimer
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
+from UserInterface.Widget.Toast import ToastMixin
 from ModuleFolders.Service.TranslationChecker.TranslationChecker import TranslationChecker, CheckResult
 from UserInterface.EditView.Monitoring.MonitoringPage import MonitoringPage
 from UserInterface.EditView.Startup.StartupPage import StartupPage
@@ -25,7 +28,7 @@ from UserInterface.EditView.Term.TermExtractionDialog import TermExtractionDialo
 from UserInterface.EditView.Check.CheckResultPage import CheckResultPage 
 
 # 底部命令栏
-class BottomCommandBar(Base,CardWidget):
+class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     arrowClicked = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -334,7 +337,7 @@ class BottomCommandBar(Base,CardWidget):
         self.schedule_btn.setText(self.tra("定时"))
 
 # 层级浏览器
-class NavigationCard(Base,CardWidget):
+class NavigationCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     searchRequested = pyqtSignal(dict)  # 信号，发送搜索参数字典
     termExtractionRequested = pyqtSignal(dict)  # 用于发送术语提取参数的信号
     languageCheckRequested = pyqtSignal(dict)  # 用于发送语言检查参数的信号    
@@ -464,7 +467,7 @@ class NavigationCard(Base,CardWidget):
         self.tree.expandAll()
 
 # 标签栏
-class PageCard(Base,CardWidget):
+class PageCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
@@ -546,7 +549,7 @@ class TabInterface(QWidget):
         self.setObjectName(file_path)
 
 # 主界面
-class EditViewPage(Base,QFrame):
+class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
 
     languageCheckFinished = pyqtSignal(tuple)
     projectHistoryReady = pyqtSignal(object)  # 传递历史项目列表到主线程

@@ -5,9 +5,12 @@ from PyQt5.QtWidgets import (QAbstractItemView, QHeaderView, QTableWidgetItem,
 from qfluentwidgets import (Action, FluentIcon as FIF, RoundMenu, TableWidget)
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Log.Log import LogMixin
+from UserInterface.Widget.Toast import ToastMixin
 
 # 基础表格页
-class BasicTablePage(Base,QWidget):
+class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
     # 定义列索引常量
     COL_NUM = 0 # 行号
     COL_SOURCE = 1 # 原文

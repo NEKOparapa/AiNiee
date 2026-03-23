@@ -4,8 +4,9 @@ import sudachipy
 import sudachidict_core
 import threading
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Log.Log import LogMixin
 
-class NERProcessor(Base):
+class NERProcessor(LogMixin, Base):
     # 将过滤器关键字提升为类常量，方便管理
 
     FILTER_KEYWORDS = ('-', '…', '一','―','？', '©', '章　', 'ー', 'http', '！', '=', '"', '＋', '：', '『', 'ぃ', '～', '♦', '〇',
