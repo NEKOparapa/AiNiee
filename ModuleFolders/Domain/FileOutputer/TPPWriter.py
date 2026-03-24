@@ -4,9 +4,9 @@ from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.utils.escape import escape
 
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
-from ModuleFolders.Infrastructure.Cache.CacheItem import TranslationStatus
-from ModuleFolders.Infrastructure.Cache.CacheProject import ProjectType
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
+from ModuleFolders.Service.Cache.CacheProject import ProjectType
 from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
     OutputConfig,

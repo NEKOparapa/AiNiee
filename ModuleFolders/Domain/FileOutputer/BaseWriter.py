@@ -6,7 +6,7 @@ from typing import TypedDict
 
 import rich
 
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
 from ModuleFolders.Domain.FileOutputer import WriterUtil
 
 

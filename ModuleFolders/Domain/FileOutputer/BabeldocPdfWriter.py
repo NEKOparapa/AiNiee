@@ -1,8 +1,8 @@
 import shutil
 from pathlib import Path
 
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
-from ModuleFolders.Infrastructure.Cache.CacheProject import ProjectType
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheProject import ProjectType
 from ModuleFolders.Domain.FileAccessor.BabeldocPdfAccessor import BabeldocPdfAccessor
 from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     BaseBilingualWriter,

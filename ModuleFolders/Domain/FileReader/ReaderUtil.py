@@ -12,8 +12,8 @@ from bs4 import BeautifulSoup
 from mediapipe.tasks.python import text, BaseOptions
 from mediapipe.tasks.python.text import LanguageDetector
 
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
-from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheItem import CacheItem
 
 _LANG_DETECTOR_INSTANCE: LanguageDetector | None = None
 """语言检测器单例实现"""

@@ -1,8 +1,8 @@
 import re
 from typing import Iterator
 
-from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem, TranslationStatus
-from ModuleFolders.Infrastructure.Cache.CacheProject import CacheProject, ProjectType
+from ModuleFolders.Service.Cache.CacheItem import CacheItem, TranslationStatus
+from ModuleFolders.Service.Cache.CacheProject import CacheProject, ProjectType
 from ..PluginBase import PluginBase
 
 class SpecialTextFilter(PluginBase):

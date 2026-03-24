@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Optional
 
-from ModuleFolders.Infrastructure.Cache.BaseCache import ExtraMixin, ThreadSafeCache
+from ModuleFolders.Service.Cache.BaseCache import ExtraMixin, ThreadSafeCache
 
 # ============================================================
 # 条件导入 TiktokenLoader（在文件顶部）

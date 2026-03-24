@@ -1,5 +1,5 @@
-from ModuleFolders.Infrastructure.Cache.CacheItem import TranslationStatus
-from ModuleFolders.Infrastructure.Cache.CacheProject import CacheProject
+from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
+from ModuleFolders.Service.Cache.CacheProject import CacheProject
 from PluginScripts.PluginBase import PluginBase
 
 

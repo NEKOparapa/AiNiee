@@ -5,9 +5,9 @@ from typing import Callable
 
 from bs4 import BeautifulSoup
 
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
-from ModuleFolders.Infrastructure.Cache.CacheItem import TranslationStatus
-from ModuleFolders.Infrastructure.Cache.CacheProject import ProjectType
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
+from ModuleFolders.Service.Cache.CacheProject import ProjectType
 from ModuleFolders.Domain.FileAccessor.EpubAccessor import EpubAccessor
 from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     BaseBilingualWriter,

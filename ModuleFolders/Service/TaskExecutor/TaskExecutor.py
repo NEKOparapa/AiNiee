@@ -43,9 +43,9 @@ def _create_opencc_converter(preset: str) -> opencc.OpenCC:
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
-from ModuleFolders.Infrastructure.Cache.CacheItem import TranslationStatus
-from ModuleFolders.Infrastructure.Cache.CacheManager import CacheManager
-from ModuleFolders.Infrastructure.Cache.CacheProject import CacheProjectStatistics
+from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
+from ModuleFolders.Service.Cache.CacheManager import CacheManager
+from ModuleFolders.Service.Cache.CacheProject import CacheProjectStatistics
 from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
 from ModuleFolders.Service.TaskExecutor.TranslatorTask import TranslatorTask
 from ModuleFolders.Service.TaskExecutor.PolisherTask import PolisherTask

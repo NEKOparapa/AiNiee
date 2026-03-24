@@ -26,7 +26,7 @@ from rich.progress import (
     TimeRemainingColumn
 )
 
-from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem
+from ModuleFolders.Service.Cache.CacheItem import CacheItem
 from ModuleFolders.Domain.FileOutputer.BaseWriter import OutputConfig
 
 

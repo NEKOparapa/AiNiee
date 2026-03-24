@@ -2,8 +2,8 @@ import fnmatch
 from collections import defaultdict
 from pathlib import Path
 from typing import Callable
-from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem
-from ModuleFolders.Infrastructure.Cache.CacheProject import CacheProject
+from ModuleFolders.Service.Cache.CacheItem import CacheItem
+from ModuleFolders.Service.Cache.CacheProject import CacheProject
 from ModuleFolders.Domain.FileReader import ReaderUtil
 from ModuleFolders.Domain.FileReader.BaseReader import BaseSourceReader
 from ModuleFolders.Domain.FileReader.ReaderUtil import make_final_detect_text

@@ -1,8 +1,8 @@
 import platform
 from pathlib import Path
 
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
-from ModuleFolders.Infrastructure.Cache.CacheProject import ProjectType
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheProject import ProjectType
 from ModuleFolders.Domain.FileConverter.OfficeFileConverter import OfficeFileConverter
 from ModuleFolders.Domain.FileReader.BaseReader import (
     BaseSourceReader,

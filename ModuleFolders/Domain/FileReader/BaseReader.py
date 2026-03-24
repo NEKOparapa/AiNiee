@@ -5,8 +5,8 @@ from typing import TypedDict
 
 from rich.progress import Progress, TextColumn, BarColumn, TaskProgressColumn, MofNCompleteColumn, TimeRemainingColumn
 
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
-from ModuleFolders.Infrastructure.Cache.CacheItem import TranslationStatus
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Domain.FileReader.ReaderUtil import detect_file_encoding, detect_language_with_mediapipe
 
 

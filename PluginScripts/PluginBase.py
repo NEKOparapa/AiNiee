@@ -1,4 +1,4 @@
-from ModuleFolders.Infrastructure.Cache.CacheProject import CacheProject
+from ModuleFolders.Service.Cache.CacheProject import CacheProject
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 
 

@@ -4,8 +4,8 @@ import openpyxl  # 需安装库pip install openpyxl
 from openpyxl.utils.escape import escape
 import re
 
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
-from ModuleFolders.Infrastructure.Cache.CacheProject import ProjectType
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheProject import ProjectType
 from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
     OutputConfig,

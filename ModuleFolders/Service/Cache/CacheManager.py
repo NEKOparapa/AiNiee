@@ -13,9 +13,9 @@ from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
-from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem, TranslationStatus
-from ModuleFolders.Infrastructure.Cache.CacheProject import (
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheItem import CacheItem, TranslationStatus
+from ModuleFolders.Service.Cache.CacheProject import (
     CacheProject,
     CacheProjectStatistics
 )

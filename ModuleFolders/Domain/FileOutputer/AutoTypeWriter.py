@@ -2,8 +2,8 @@ from functools import partial
 from pathlib import Path
 from typing import Callable, Iterable, Type
 
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
-from ModuleFolders.Infrastructure.Cache.CacheProject import ProjectType
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheProject import ProjectType
 from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     BaseBilingualWriter,
     BaseTranslatedWriter,

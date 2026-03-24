@@ -2,9 +2,9 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
-from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem
-from ModuleFolders.Infrastructure.Cache.CacheProject import ProjectType
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheItem import CacheItem
+from ModuleFolders.Service.Cache.CacheProject import ProjectType
 from ModuleFolders.Domain.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,

@@ -1,6 +1,6 @@
 import langcodes
 
-from ModuleFolders.Infrastructure.Cache.CacheProject import CacheProject
+from ModuleFolders.Service.Cache.CacheProject import CacheProject
 
 pair_en = {
     "japanese": "Japanese",

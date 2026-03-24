@@ -4,9 +4,9 @@ from pathlib import Path
 from bs4 import BeautifulSoup, Tag, NavigableString
 
 
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
-from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem
-from ModuleFolders.Infrastructure.Cache.CacheProject import ProjectType
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheItem import CacheItem
+from ModuleFolders.Service.Cache.CacheProject import ProjectType
 from ModuleFolders.Domain.FileAccessor.EpubAccessor import EpubAccessor
 from ModuleFolders.Domain.FileReader.BaseReader import (
     BaseSourceReader,

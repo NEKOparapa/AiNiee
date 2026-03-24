@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 # 假定这些导入相对于项目结构是正确的
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
-from ModuleFolders.Infrastructure.Cache.CacheProject import ProjectType
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheProject import ProjectType
 from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
     OutputConfig,

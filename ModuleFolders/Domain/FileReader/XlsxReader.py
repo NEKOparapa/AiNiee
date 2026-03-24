@@ -2,9 +2,9 @@ from pathlib import Path
 
 import openpyxl  # 需安装库pip install openpyxl
 
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
-from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem, TranslationStatus
-from ModuleFolders.Infrastructure.Cache.CacheProject import ProjectType
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheItem import CacheItem, TranslationStatus
+from ModuleFolders.Service.Cache.CacheProject import ProjectType
 from ModuleFolders.Domain.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,

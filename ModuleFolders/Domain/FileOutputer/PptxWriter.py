@@ -2,7 +2,7 @@ from pathlib import Path
 from pptx import Presentation
 
 
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
 from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
     OutputConfig,

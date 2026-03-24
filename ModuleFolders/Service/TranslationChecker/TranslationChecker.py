@@ -8,8 +8,8 @@ from typing import List, Dict, Any, Tuple
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
-from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem, TranslationStatus
-from ModuleFolders.Infrastructure.Cache.CacheManager import CacheManager
+from ModuleFolders.Service.Cache.CacheItem import CacheItem, TranslationStatus
+from ModuleFolders.Service.Cache.CacheManager import CacheManager
 from ModuleFolders.Domain.FileReader import ReaderUtil
 from ModuleFolders.Service.TaskExecutor import TranslatorUtil
 

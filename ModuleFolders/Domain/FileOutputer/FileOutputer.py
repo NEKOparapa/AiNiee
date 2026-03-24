@@ -2,7 +2,7 @@ from functools import partial
 from pathlib import Path
 from typing import Type
 
-from ModuleFolders.Infrastructure.Cache.CacheProject import CacheProject
+from ModuleFolders.Service.Cache.CacheProject import CacheProject
 from ModuleFolders.Domain.FileOutputer.AutoTypeWriter import AutoTypeWriter
 from ModuleFolders.Domain.FileOutputer.BaseWriter import BaseTranslationWriter, OutputConfig, TranslationOutputConfig, WriterInitParams, BilingualOrder
 from ModuleFolders.Domain.FileOutputer.DirectoryWriter import DirectoryWriter

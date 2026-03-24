@@ -181,14 +181,14 @@ if __name__ == "__main__":
 
     # 创建全局插件管理器
     update_splash_message(splash, "正在加载插件管理器... (10%)", app) # 更新启动页消息
-    from ModuleFolders.Plugin.PluginManager import PluginManager
+    from ModuleFolders.Infrastructure.Plugin.PluginManager import PluginManager
     plugin_manager = PluginManager()
     plugin_path = os.path.join(".", "PluginScripts")
     plugin_manager.load_plugins_from_directory(plugin_path)
 
     # 创建全局缓存器
     update_splash_message(splash, "正在加缓存器... (15%)", app)
-    from ModuleFolders.Infrastructure.Cache.CacheManager import CacheManager
+    from ModuleFolders.Service.Cache.CacheManager import CacheManager
     cache_manager = CacheManager()
 
     # 创建全局文件读写器(高性能消耗)

@@ -1,10 +1,10 @@
 from tqdm import tqdm
 from rich import print
 
-from ModuleFolders.Infrastructure.Cache.CacheProject import CacheProject
+from ModuleFolders.Service.Cache.CacheProject import CacheProject
 from ModuleFolders.Service.TaskExecutor import TranslatorUtil
 from PluginScripts.PluginBase import PluginBase
-from ModuleFolders.Infrastructure.Cache.CacheItem import TranslationStatus
+from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 
 

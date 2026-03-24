@@ -3,7 +3,7 @@ from pathlib import Path
 from functools import partial
 from typing import Type
 
-from ModuleFolders.Infrastructure.Cache.CacheManager import CacheManager
+from ModuleFolders.Service.Cache.CacheManager import CacheManager
 from ModuleFolders.Domain.FileReader.AutoTypeReader import AutoTypeReader
 from ModuleFolders.Domain.FileReader.BaseReader import BaseSourceReader, InputConfig, ReaderInitParams
 from ModuleFolders.Domain.FileReader.DirectoryReader import DirectoryReader

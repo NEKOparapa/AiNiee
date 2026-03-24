@@ -1,8 +1,8 @@
 import csv
 from pathlib import Path
 
-from ModuleFolders.Infrastructure.Cache.CacheFile import CacheFile
-from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem, TranslationStatus
+from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Domain.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,

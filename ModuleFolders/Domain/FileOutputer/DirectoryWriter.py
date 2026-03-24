@@ -3,7 +3,7 @@ from typing import Callable
 
 import rich
 
-from ModuleFolders.Infrastructure.Cache.CacheProject import CacheProject
+from ModuleFolders.Service.Cache.CacheProject import CacheProject
 from ModuleFolders.Domain.FileOutputer import WriterUtil
 from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     BaseBilingualWriter,

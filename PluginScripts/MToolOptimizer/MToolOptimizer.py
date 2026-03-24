@@ -5,8 +5,8 @@ from itertools import zip_longest
 from tqdm import tqdm
 from rich import print
 
-from ModuleFolders.Infrastructure.Cache.CacheItem import CacheItem, TranslationStatus
-from ModuleFolders.Infrastructure.Cache.CacheProject import CacheProject, ProjectType
+from ModuleFolders.Service.Cache.CacheItem import CacheItem, TranslationStatus
+from ModuleFolders.Service.Cache.CacheProject import CacheProject, ProjectType
 from PluginScripts.PluginBase import PluginBase
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 
