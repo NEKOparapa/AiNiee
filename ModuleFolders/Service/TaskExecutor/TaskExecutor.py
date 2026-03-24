@@ -55,6 +55,7 @@ from ModuleFolders.Domain.PromptBuilder.PromptBuilderPolishing import PromptBuil
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
+from ModuleFolders.Infrastructure.LLMRequester.LLMClientFactory import LLMClientFactory
 from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Service.TaskExecutor.TranslatorUtil import get_source_language_for_file
 
@@ -72,6 +73,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         self.file_writer = file_writer
         self.config = TaskConfig()
         self.request_limiter = RequestLimiter()
+        self._executor_lock = threading.RLock()
+        self._active_executor = None
 
         # 注册事件
         self.subscribe(Base.EVENT.TASK_STOP, self.task_stop)
@@ -79,9 +82,32 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         self.subscribe(Base.EVENT.TASK_MANUAL_EXPORT, self.task_manual_export)
         self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
 
+    def _set_active_executor(self, executor: concurrent.futures.ThreadPoolExecutor) -> None:
+        with self._executor_lock:
+            self._active_executor = executor
+
+    def _clear_active_executor(self, executor: concurrent.futures.ThreadPoolExecutor) -> None:
+        with self._executor_lock:
+            if self._active_executor is executor:
+                self._active_executor = None
+
+    def _cancel_active_executor(self) -> None:
+        with self._executor_lock:
+            executor = self._active_executor
+
+        if executor is None:
+            return
+
+        try:
+            executor.shutdown(wait=False, cancel_futures=True)
+        except TypeError:
+            executor.shutdown(wait=False)
+
     # 应用关闭事件
     def app_shut_down(self, event: int, data: dict) -> None:
         Base.work_status = Base.STATUS.STOPING
+        self._cancel_active_executor()
+        LLMClientFactory().close_all_clients()
 
     # 手动导出事件
     def task_manual_export(self, event: int, data: dict) -> None:
@@ -140,6 +166,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
     def task_stop(self, event: int, data: dict) -> None:
         # 设置运行状态为停止中
         Base.work_status = Base.STATUS.STOPING
+        self._cancel_active_executor()
+        LLMClientFactory().close_all_clients()
 
         def target() -> None:
             while True:
@@ -309,10 +337,26 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             self.print("")
 
             # 开始执行翻译任务,构建异步线程池
-            with concurrent.futures.ThreadPoolExecutor(max_workers = self.config.actual_thread_counts, thread_name_prefix = "translator") as executor:
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers = self.config.actual_thread_counts, thread_name_prefix = "translator")
+            self._set_active_executor(executor)
+            try:
                 for task in tasks_list:
-                    future = executor.submit(task.start)
+                    if Base.work_status == Base.STATUS.STOPING:
+                        break
+
+                    try:
+                        future = executor.submit(task.start)
+                    except RuntimeError:
+                        if Base.work_status == Base.STATUS.STOPING:
+                            break
+                        raise
+
                     future.add_done_callback(self.task_done_callback)  # 为future对象添加一个回调函数，当任务完成时会被调用，更新数据
+            finally:
+                try:
+                    executor.shutdown(wait=True, cancel_futures=Base.work_status == Base.STATUS.STOPING)
+                finally:
+                    self._clear_active_executor(executor)
 
         # 等待可能存在的缓存文件写入请求处理完毕
         time.sleep(CacheManager.SAVE_INTERVAL)
@@ -490,10 +534,26 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             self.print("")
 
             # 开始执行润色务,构建异步线程池
-            with concurrent.futures.ThreadPoolExecutor(max_workers = self.config.actual_thread_counts, thread_name_prefix = "translator") as executor:
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers = self.config.actual_thread_counts, thread_name_prefix = "translator")
+            self._set_active_executor(executor)
+            try:
                 for task in tasks_list:
-                    future = executor.submit(task.start)
+                    if Base.work_status == Base.STATUS.STOPING:
+                        break
+
+                    try:
+                        future = executor.submit(task.start)
+                    except RuntimeError:
+                        if Base.work_status == Base.STATUS.STOPING:
+                            break
+                        raise
+
                     future.add_done_callback(self.task_done_callback)  # 为future对象添加一个回调函数，当任务完成时会被调用，更新数据
+            finally:
+                try:
+                    executor.shutdown(wait=True, cancel_futures=Base.work_status == Base.STATUS.STOPING)
+                finally:
+                    self._clear_active_executor(executor)
 
         # 等待可能存在的缓存文件写入请求处理完毕
         time.sleep(CacheManager.SAVE_INTERVAL)
@@ -551,6 +611,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
             # 触发翻译进度更新事件
             self.emit(Base.EVENT.TASK_UPDATE, stats_dict)
+        except concurrent.futures.CancelledError:
+            return
         except Exception as e:
             self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
 

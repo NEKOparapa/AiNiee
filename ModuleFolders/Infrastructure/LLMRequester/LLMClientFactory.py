@@ -219,6 +219,14 @@ class LLMClientFactory:
                     self._clients[key] = factory_func()
         return self._clients[key]
 
+    def close_all_clients(self) -> None:
+        with self._lock:
+            clients = list(self._clients.values())
+            self._clients.clear()
+
+        for client in clients:
+            self._safe_close_client(client)
+
     # 各种客户端创建函数
     def _create_openai_client(self, config, api_key, use_curl_cffi=False):
         if use_curl_cffi:
@@ -283,3 +291,43 @@ class LLMClientFactory:
             return genai.Client(api_key=api_key, http_options=http_options)
         else:
             return genai.Client(api_key=api_key)
+
+    def _safe_close_client(self, client: Any) -> None:
+        for target in self._iter_close_targets(client):
+            close_method = getattr(target, "close", None)
+            if callable(close_method):
+                try:
+                    close_method()
+                except Exception:
+                    pass
+
+    def _iter_close_targets(self, client: Any):
+        seen = set()
+        targets = [client]
+
+        google_http_client = self._resolve_attr_path(client, "_api_client._httpx_client")
+        if google_http_client is not None:
+            targets.append(google_http_client)
+
+        cohere_http_client = self._resolve_attr_path(client, "_client_wrapper.httpx_client.httpx_client")
+        if cohere_http_client is not None:
+            targets.append(cohere_http_client)
+
+        for target in targets:
+            if target is None:
+                continue
+
+            identity = id(target)
+            if identity in seen:
+                continue
+
+            seen.add(identity)
+            yield target
+
+    def _resolve_attr_path(self, obj: Any, attr_path: str) -> Any:
+        current = obj
+        for attr_name in attr_path.split("."):
+            current = getattr(current, attr_name, None)
+            if current is None:
+                return None
+        return current

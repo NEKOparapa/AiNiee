@@ -179,6 +179,8 @@ class OpenaiRequester(LogMixin, Base):
                     raise ValueError(f"无法解析响应内容，原始响应: {raw_text[:500]}")
 
         except Exception as e:
+            if Base.work_status == Base.STATUS.STOPING:
+                return True, None, None, None, None
             self.error(f"请求任务错误 ... {e}", e if self.is_debug() else None)
             return True, None, None, None, None
 

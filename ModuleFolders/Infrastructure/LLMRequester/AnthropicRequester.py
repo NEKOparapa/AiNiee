@@ -73,6 +73,8 @@ class AnthropicRequester(LogMixin, Base):
                         response_content = block.text
 
         except Exception as e:
+            if Base.work_status == Base.STATUS.STOPING:
+                return True, None, None, None, None
             self.error(f"请求任务错误 ... {e}", e if self.is_debug() else None)
             return True, None, None, None, None
 
