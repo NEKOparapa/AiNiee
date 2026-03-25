@@ -108,6 +108,30 @@ NON_LATIN_ISO_CODES = [
 """ISO 639-1非西文语言代码列表"""
 
 
+RELAXED_CLOSE_LANGUAGE_PAIR_RULES = {
+    # 印尼语与马来语词汇高度相近，MediaPipe 经常把两者同时排在前两名。
+    # 这里放宽 top1-top2 的惩罚，避免明明识别出 id/ms 却因为分差过小被降成未知语言。
+    frozenset(("id", "ms")): {
+        "second_prob_weight": 0.35,
+        "confidence_bonus": 0.15,
+        "confidence_cap": 0.92,
+    },
+}
+"""需要放宽置信度计算的近邻语言对"""
+
+
+def adjust_close_language_pair_confidence(first_lang: str, second_lang: str, raw_prob: float, second_prob: float,
+                                          default_prob: float) -> float:
+    """对容易混淆的近邻语言对放宽置信度计算。"""
+    rule = RELAXED_CLOSE_LANGUAGE_PAIR_RULES.get(frozenset((first_lang, second_lang)))
+    if not rule or first_lang == second_lang:
+        return default_prob
+
+    weighted_prob = raw_prob - second_prob * rule["second_prob_weight"]
+    bonus_prob = min(raw_prob + rule["confidence_bonus"], rule["confidence_cap"])
+    return max(default_prob, weighted_prob, bonus_prob)
+
+
 # 加载语言检测器(全局)
 def get_lang_detector():
     """获取语言检测器的全局单例实例"""
@@ -343,7 +367,15 @@ def detect_language_with_mediapipe(items: list[CacheItem], _start_index: int, _f
             # 如果有至少两个识别结果，则使用最高置信度减去第二个
             if len(lang_result) >= 2:
                 # 最终的mediapipe置信度
-                first_prob -= lang_result[1].probability
+                second_prob = lang_result[1].probability
+                first_prob -= second_prob
+                first_prob = adjust_close_language_pair_confidence(
+                    lang_result[0].language_code,
+                    lang_result[1].language_code,
+                    raw_prob,
+                    second_prob,
+                    first_prob,
+                )
 
             results.append((mediapipe_langs, first_prob, raw_prob))
 
