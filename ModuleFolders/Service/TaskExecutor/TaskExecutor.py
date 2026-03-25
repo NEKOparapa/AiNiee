@@ -188,18 +188,31 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         continue_status = data.get("continue_status")
         current_mode = data.get("current_mode")
 
+        def run_task_target(target_func, *args) -> None:
+            try:
+                target_func(*args)
+            except Exception as e:
+                self.print("")
+                self.error(f"任务启动失败或执行异常 ... {e}", e if self.is_debug() else None)
+                self.print("")
+
+                Base.work_status = Base.STATUS.TASKSTOPPED
+                self._cancel_active_executor()
+                LLMClientFactory().close_all_clients()
+                self.emit(Base.EVENT.TASK_STOP_DONE, {})
+
         # 翻译任务
         if current_mode == TaskType.TRANSLATION:
             threading.Thread(
-                target = self.translation_start_target,
-                args = (continue_status,),
+                target = run_task_target,
+                args = (self.translation_start_target, continue_status,),
             ).start()
         
         # 润色任务
         elif current_mode == TaskType.POLISH:
             threading.Thread(
-                target = self.polish_start_target,
-                args = (continue_status,),
+                target = run_task_target,
+                args = (self.polish_start_target, continue_status,),
             ).start()
 
         else:
@@ -615,4 +628,3 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             return
         except Exception as e:
             self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
-

@@ -205,6 +205,8 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     # 开始按钮
     def command_play(self) -> None:
         """开始新任务"""
+        if not self._has_valid_api_binding():
+            return
         if self.has_resumable_task:
             info_cont1 = self.tra("将重置尚未完成的任务") + "  ... ？"
             message_box = MessageBox("Warning", info_cont1, self.window())
@@ -272,6 +274,26 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     def on_arrow_clicked(self):
         self.arrowClicked.emit()
 
+    def _has_valid_api_binding(self) -> bool:
+        config = self.load_config()
+        api_settings = config.get("api_settings", {})
+        platforms = config.get("platforms", {})
+
+        target_type = "translate" if self.current_mode == TaskType.TRANSLATION else "polish"
+        target_name = self.tra("翻译") if target_type == "translate" else self.tra("润色")
+        selected_tag = api_settings.get(target_type)
+
+        if not selected_tag:
+            content = self.tra("未设置") + target_name + self.tra("接口，请先到接口管理页面绑定接口。")
+            self.error_toast(self.tra("错误"), content)
+            return False
+
+        if selected_tag not in platforms:
+            content = self.tra("当前") + target_name + self.tra("接口配置不存在，请重新到接口管理页面选择。")
+            self.error_toast(self.tra("错误"), content)
+            return False
+
+        return True
 # 层级浏览器
 class NavigationCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     searchRequested = pyqtSignal(dict)  # 信号，发送搜索参数字典
