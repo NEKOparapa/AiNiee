@@ -507,7 +507,6 @@ class PageCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.tab_bar = TabBar(self)
         self.tab_bar.setTabMaximumWidth(160)
         self.tab_bar.setTabShadowEnabled(False)
-        self.tab_bar.setTabSelectedBackgroundColor(Qt.white, Qt.lightGray)
         self.tab_bar.setScrollable(True)
 
         # 创建按钮容器
