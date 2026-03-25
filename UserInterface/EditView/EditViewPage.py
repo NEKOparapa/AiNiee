@@ -30,6 +30,8 @@ from UserInterface.EditView.Check.CheckResultPage import CheckResultPage
 # 底部命令栏
 class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     arrowClicked = pyqtSignal()
+    ACTION_CONTINUE = "continue"
+    ACTION_STOP = "stop"
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -40,6 +42,8 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
 
         # 初始化
         self.current_mode = TaskType.TRANSLATION
+        self.has_resumable_task = False
+        self.task_action_mode = None
         self.scheduled_timer = None # 用于一次性定时任务
         self.ui_update_timer = QTimer(self) # 用于任务进行中持续刷新UI
         self.ui_update_timer.setInterval(1000) # 每秒触发一次
@@ -83,10 +87,9 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         # 初始按钮
         self.start_btn = PrimarySplitPushButton(FIF.PLAY, self.tra('开始翻译'))
         self.start_btn.setFlyout(self.menu)
-        self.continue_btn = TransparentPushButton(FIF.ROTATE, self.tra('继续'))
-        self.continue_btn.setEnabled(False)  # 初始不可用
-        self.stop_btn = TransparentPushButton(FIF.CANCEL_MEDIUM, self.tra('停止'))
-        self.stop_btn.setEnabled(False)  # 初始不可用
+        self.task_action_btn = TransparentPushButton(FIF.ROTATE, self.tra('继续'))
+        self.task_action_btn.setFixedWidth(96)
+        self.task_action_btn.setEnabled(False)
         self.schedule_btn = TransparentPushButton(FIF.DATE_TIME, self.tra('定时'))
         self.export_btn = TransparentPushButton(FIF.SHARE, self.tra("导出结果"))
         self.arrow_btn = ToggleToolButton()
@@ -94,7 +97,7 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.arrow_btn.setIconSize(QSize(16, 16))
         self.arrow_btn.setFixedHeight(32)
 
-        for btn in [self.start_btn, self.continue_btn, self.arrow_btn]:
+        for btn in [self.start_btn, self.task_action_btn, self.arrow_btn]:
             btn.setIconSize(QSize(16, 16))
             btn.setFixedHeight(32)
 
@@ -103,16 +106,14 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.layout.addWidget(project_widget)
         self.layout.addStretch(1)
         self.layout.addWidget(self.start_btn)
-        self.layout.addWidget(self.continue_btn)
-        self.layout.addWidget(self.stop_btn)
+        self.layout.addWidget(self.task_action_btn)
         self.layout.addWidget(self.schedule_btn)
         self.layout.addWidget(self.export_btn)
         self.layout.addWidget(self.arrow_btn)
 
         # 连接按钮
         self.start_btn.clicked.connect(self.command_play)
-        self.stop_btn.clicked.connect(self.command_stop)
-        self.continue_btn.clicked.connect(self.command_continue)
+        self.task_action_btn.clicked.connect(self.command_task_action)
         self.export_btn.clicked.connect(self.command_export)
         self.schedule_btn.clicked.connect(self.command_schedule) 
         self.arrow_btn.clicked.connect(self.on_arrow_clicked)
@@ -145,9 +146,30 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
             info_cont = ": " + self.tra("润色模式")
             self.info_toast(self.tra("模式已切换为"), info_cont)
 
+    def update_task_action_button(self, mode: str | None) -> None:
+        self.task_action_mode = mode
+
+        if mode == self.ACTION_CONTINUE:
+            self.task_action_btn.setIcon(FIF.ROTATE)
+            self.task_action_btn.setText(self.tra("继续"))
+            self.task_action_btn.setEnabled(True)
+            return
+
+        if mode == self.ACTION_STOP:
+            self.task_action_btn.setIcon(FIF.CANCEL_MEDIUM)
+            self.task_action_btn.setText(self.tra("停止"))
+            self.task_action_btn.setEnabled(True)
+            return
+
+        self.task_action_btn.setIcon(FIF.ROTATE)
+        self.task_action_btn.setText(self.tra("继续"))
+        self.task_action_btn.setEnabled(False)
+
     # 继续按钮的显示隐藏
     def enable_continue_button(self, enable: bool) -> None:
-        self.continue_btn.setEnabled(enable)
+        self.has_resumable_task = enable
+        if self.task_action_mode != self.ACTION_STOP:
+            self.update_task_action_button(self.ACTION_CONTINUE if enable else None)
 
     # 应用关闭事件
     def app_shut_down(self, event: int, data: dict) -> None:
@@ -165,7 +187,7 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
             self.ui_update_timer.stop()
 
         self.start_btn.setEnabled(True)
-        self.stop_btn.setEnabled(False)
+        self.update_task_action_button(None)
         Base.work_status = Base.STATUS.IDLE
         self.emit(Base.EVENT.TASK_CONTINUE_CHECK, {})
 
@@ -192,7 +214,7 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         """开始新任务"""
         self.cancel_scheduled_task() # 如果有定时任务，先取消
 
-        if self.continue_btn.isEnabled():
+        if self.has_resumable_task:
             info_cont1 = self.tra("将重置尚未完成的任务") + "  ... ？"
             message_box = MessageBox("Warning", info_cont1, self.window())
             message_box.yesButton.setText(self.tra("确认"))
@@ -201,8 +223,7 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
                 return
 
         self.start_btn.setEnabled(False)
-        self.stop_btn.setEnabled(True)
-        self.continue_btn.setEnabled(False)
+        self.update_task_action_button(self.ACTION_STOP)
         
         self.emit(Base.EVENT.TASK_START, {
             "continue_status": False,
@@ -230,14 +251,19 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
             self.info("正在停止任务 ... ")
             self.emit(Base.EVENT.TASK_STOP, {})
 
+    def command_task_action(self) -> None:
+        if self.task_action_mode == self.ACTION_CONTINUE:
+            self.command_continue()
+        elif self.task_action_mode == self.ACTION_STOP:
+            self.command_stop()
+
     # 继续按钮
     def command_continue(self) -> None:
         """继续未完成的任务"""
         self.cancel_scheduled_task() # 如果有定时任务，先取消
 
         self.start_btn.setEnabled(False)
-        self.continue_btn.setEnabled(False)
-        self.stop_btn.setEnabled(True)
+        self.update_task_action_button(self.ACTION_STOP)
         
         self.emit(Base.EVENT.TASK_START, {
             "continue_status": True,
@@ -313,8 +339,7 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
 
         # 启动任务
         self.start_btn.setEnabled(False)
-        self.stop_btn.setEnabled(True)
-        self.continue_btn.setEnabled(False)
+        self.update_task_action_button(self.ACTION_STOP)
         self.emit(Base.EVENT.TASK_START, {
             "continue_status": False,
             "current_mode": self.current_mode
@@ -553,6 +578,7 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
 
     languageCheckFinished = pyqtSignal(tuple)
     projectHistoryReady = pyqtSignal(object)  # 传递历史项目列表到主线程
+    resumableStateChanged = pyqtSignal(bool)
 
     def __init__(self, text: str, window, plugin_manager, cache_manager, file_reader) -> None:
         super().__init__(window)
@@ -635,6 +661,7 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
         self.nav_card.languageCheckRequested.connect(self.perform_language_check) # 连接语言检查请求信号
         self.languageCheckFinished.connect(self._on_language_check_finished) # 语言检查完成信号
         self.projectHistoryReady.connect(self._on_project_history_ready)     # 历史项目列表就绪信号
+        self.resumableStateChanged.connect(self.bottom_bar_main.enable_continue_button)
 
 
         # 订阅事件
@@ -697,7 +724,7 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
             e["output_path"] == current_output and not e["is_complete"]
             for e in valid_entries
         )
-        self.bottom_bar_main.enable_continue_button(has_resumable)
+        self.resumableStateChanged.emit(has_resumable)
 
     # 历史项目列表就绪，在主线程更新启动页
     def _on_project_history_ready(self, entries: list) -> None:
