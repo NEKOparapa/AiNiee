@@ -2,7 +2,7 @@ import json
 import os
 import threading
 import time
-from PyQt5.QtCore import QTime, QVariant, Qt, QSize, pyqtSignal
+from PyQt5.QtCore import QVariant, Qt, QSize, pyqtSignal
 from PyQt5.QtWidgets import ( QFileDialog, QFrame, QTreeWidgetItem,
                              QWidget, QHBoxLayout, QVBoxLayout, 
                              QSplitter, QStackedWidget)
@@ -21,7 +21,6 @@ from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
 from UserInterface.EditView.Check.LanguageCheckDialog import LanguageCheckDialog
 from UserInterface.EditView.Search.SearchDialog import SearchDialog
 from UserInterface.EditView.Search.SearchResultPage import SearchResultPage
-from UserInterface.EditView.Timer.ScheduledDialogPage import ScheduledDialogPage
 from UserInterface.EditView.BasicTablePage import BasicTablePage
 from UserInterface.EditView.Term.TermResultPage import TermResultPage
 from UserInterface.EditView.Term.TermExtractionDialog import TermExtractionDialog
@@ -44,7 +43,6 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.current_mode = TaskType.TRANSLATION
         self.has_resumable_task = False
         self.task_action_mode = None
-        self.scheduled_timer = None # 用于一次性定时任务
         self.ui_update_timer = QTimer(self) # 用于任务进行中持续刷新UI
         self.ui_update_timer.setInterval(1000) # 每秒触发一次
         # 定时器刷新事件
@@ -90,7 +88,6 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.task_action_btn = TransparentPushButton(FIF.ROTATE, self.tra('继续'))
         self.task_action_btn.setFixedWidth(96)
         self.task_action_btn.setEnabled(False)
-        self.schedule_btn = TransparentPushButton(FIF.DATE_TIME, self.tra('定时'))
         self.export_btn = TransparentPushButton(FIF.SHARE, self.tra("导出结果"))
         self.arrow_btn = ToggleToolButton()
         self.arrow_btn.setIcon(FIF.UP)
@@ -107,7 +104,6 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.layout.addStretch(1)
         self.layout.addWidget(self.start_btn)
         self.layout.addWidget(self.task_action_btn)
-        self.layout.addWidget(self.schedule_btn)
         self.layout.addWidget(self.export_btn)
         self.layout.addWidget(self.arrow_btn)
 
@@ -115,7 +111,6 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.start_btn.clicked.connect(self.command_play)
         self.task_action_btn.clicked.connect(self.command_task_action)
         self.export_btn.clicked.connect(self.command_export)
-        self.schedule_btn.clicked.connect(self.command_schedule) 
         self.arrow_btn.clicked.connect(self.on_arrow_clicked)
 
         # 连接菜单项的点击事件
@@ -174,8 +169,6 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     # 应用关闭事件
     def app_shut_down(self, event: int, data: dict) -> None:
         # 确保应用关闭时所有定时器都停止
-        if self.scheduled_timer:
-            self.scheduled_timer.stop()
         if self.ui_update_timer.isActive():
             self.ui_update_timer.stop()
 
@@ -212,8 +205,6 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     # 开始按钮
     def command_play(self) -> None:
         """开始新任务"""
-        self.cancel_scheduled_task() # 如果有定时任务，先取消
-
         if self.has_resumable_task:
             info_cont1 = self.tra("将重置尚未完成的任务") + "  ... ？"
             message_box = MessageBox("Warning", info_cont1, self.window())
@@ -240,8 +231,6 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     # 停止按钮
     def command_stop(self) -> None:
         """停止当前任务"""
-        self.cancel_scheduled_task() # 如果有定时任务，也一并取消
-
         info_cont1 = self.tra("是否确定停止任务") + "  ... ？"
         message_box = MessageBox("Warning", info_cont1, self.window())
         message_box.yesButton.setText(self.tra("确认"))
@@ -260,8 +249,6 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     # 继续按钮
     def command_continue(self) -> None:
         """继续未完成的任务"""
-        self.cancel_scheduled_task() # 如果有定时任务，先取消
-
         self.start_btn.setEnabled(False)
         self.update_task_action_button(self.ACTION_STOP)
         
@@ -284,82 +271,6 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     # 展开按钮
     def on_arrow_clicked(self):
         self.arrowClicked.emit()
-
-    # 定时按钮
-    def command_schedule(self) -> None:
-        """处理定时按钮点击事件"""
-        # 如果已经有定时任务，则取消
-        if self.scheduled_timer:
-            self.cancel_scheduled_task()
-            info_cont = self.tra("定时任务已取消") + "  ... "
-            self.info_toast("", info_cont)
-            return
-
-        # 创建定时对话框
-        dialog = ScheduledDialogPage(parent=self.window(), title=self.tra("定时任务"))
-        if dialog.exec_():
-            scheduled_time = dialog.get_scheduled_time()
-            current_time = QTime.currentTime()
-
-            current_msecs = current_time.msecsSinceStartOfDay()
-            scheduled_msecs = scheduled_time.msecsSinceStartOfDay()
-
-            msec_diff = scheduled_msecs - current_msecs
-            # 如果设定时间早于当前时间，则认为是明天
-            if msec_diff < 0:
-                msec_diff += 24 * 60 * 60 * 1000
-
-            # 检查时间间隔是否有效（例如，至少5秒）
-            if msec_diff < 5000:
-                warning_box = MessageBox(self.tra("无效时间"), self.tra("与当前时间间隔过短"), self.window())
-                warning_box.yesButton.setText(self.tra("确认"))
-                warning_box.cancelButton.hide()
-                warning_box.exec()
-                return
-
-            # 创建定时器
-            self.scheduled_timer = QTimer(self)
-            self.scheduled_timer.setSingleShot(True)
-            self.scheduled_timer.timeout.connect(self.start_scheduled_task)
-            self.scheduled_timer.start(msec_diff)
-
-            # 更新按钮文本
-            time_str = scheduled_time.toString("HH:mm:ss")
-            self.schedule_btn.setText(f"{time_str}")
-
-            # 显示提示
-            info_cont = f" {time_str} " + self.tra("定时开始任务") + "  ... "
-            self.info_toast(self.tra("已设置定时任务，将在"), info_cont)
-
-    # 开始定时任务
-    def start_scheduled_task(self) -> None:
-        """定时器触发，开始任务"""
-        self.info("定时任务已开始 ...")
-        self.cancel_scheduled_task() # 清理定时器自身状态
-
-        # 启动任务
-        self.start_btn.setEnabled(False)
-        self.update_task_action_button(self.ACTION_STOP)
-        self.emit(Base.EVENT.TASK_START, {
-            "continue_status": False,
-            "current_mode": self.current_mode
-        })
-        
-        # 开启UI刷新器
-        self.ui_update_timer.start()
-
-        # 自动展开监控页面
-        if not self.arrow_btn.isChecked():
-            self.arrow_btn.setChecked(True)
-            self.arrowClicked.emit()
-
-    # 取消当前的定时任务
-    def cancel_scheduled_task(self):
-        """取消当前的定时任务"""
-        if self.scheduled_timer:
-            self.scheduled_timer.stop()
-            self.scheduled_timer = None
-        self.schedule_btn.setText(self.tra("定时"))
 
 # 层级浏览器
 class NavigationCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):

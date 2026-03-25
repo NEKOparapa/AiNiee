@@ -1,3 +1,5 @@
+import re
+
 import langcodes
 
 from ModuleFolders.Service.Cache.CacheProject import CacheProject
@@ -12,6 +14,9 @@ pair_en = {
     "french": "French",
     "german": "German",
     "spanish": "Spanish",
+    "indonesian": "Indonesian",
+    "vietnamese": "Vietnamese",
+    "thai": "Thai",
 }
 
 pair = {
@@ -24,7 +29,30 @@ pair = {
     "french": "法语",
     "german": "德语",
     "spanish": "西班牙语",
+    "indonesian": "印尼语",
+    "vietnamese": "越南语",
+    "thai": "泰语",
 }
+
+
+LANGUAGE_EXAMPLE_TEXTS = {
+    "japanese": "例示テキスト",
+    "korean": "예시 텍스트",
+    "russian": "Пример текста",
+    "chinese_simplified": "示例文本",
+    "chinese_traditional": "翻譯示例文本",
+    "english": "Sample Text",
+    "spanish": "Texto de ejemplo",
+    "french": "Exemple de texte",
+    "german": "Beispieltext",
+    "indonesian": "Contoh Teks",
+    "vietnamese": "Văn bản mẫu",
+    "thai": "ข้อความตัวอย่าง",
+}
+
+EXAMPLE_TEXT_PATTERN = re.compile(
+    rf"(?:{'|'.join(re.escape(text) for text in LANGUAGE_EXAMPLE_TEXTS.values())})[A-Z]-\d+"
+)
 
 
 def map_language_code_to_name(language_code: str) -> str:
@@ -40,8 +68,12 @@ def map_language_code_to_name(language_code: str) -> str:
         "es": "spanish",
         "fr": "french",
         "de": "german",
+        "id": "indonesian",
+        "in": "indonesian",
+        "vi": "vietnamese",
         "ko": "korean",
         "ru": "russian",
+        "th": "thai",
         "ja": "japanese"
     }
     return mapping.get(language_code, language_code)
@@ -56,8 +88,11 @@ def map_language_name_to_code(language_name: str) -> str:
         "spanish": "es",
         "french": "fr",
         "german": "de",
+        "indonesian": "id",
+        "vietnamese": "vi",
         "korean": "ko",
         "russian": "ru",
+        "thai": "th",
         "japanese": "ja"
     }
     return mapping.get(language_name, language_name)

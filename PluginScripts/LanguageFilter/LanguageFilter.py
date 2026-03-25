@@ -57,6 +57,9 @@ class LanguageFilter(PluginBase):
     LATIN_EXTENDED_B = ("\u0180", "\u024F")
     LATIN_SUPPLEMENTAL = ("\u00A0", "\u00FF")
 
+    # 泰语字符
+    THAI = ("\u0E00", "\u0E7F")
+
     # 拉丁标点符号
     LATIN_PUNCTUATION_BASIC_1 = ("\u0020", "\u002F")
     LATIN_PUNCTUATION_BASIC_2 = ("\u003A", "\u0040")
@@ -197,6 +200,10 @@ class LanguageFilter(PluginBase):
                 or LanguageFilter.CYRILLIC_OTHER[0] <= char <= LanguageFilter.CYRILLIC_OTHER[1]
         )
 
+    # 判断字符是否为泰语字符
+    def is_thai(self, char: str) -> bool:
+        return LanguageFilter.THAI[0] <= char <= LanguageFilter.THAI[1]
+
     # 判断字符是否为日文（含汉字）字符
     def is_japanese(self, char: str) -> bool:
         return (
@@ -225,6 +232,10 @@ class LanguageFilter(PluginBase):
     def has_any_russian(self, text: str) -> bool:
         return any(self.is_russian(char) for char in text)
 
+    # 检查字符串是否包含至少一个泰语字符
+    def has_any_thai(self, text: str) -> bool:
+        return any(self.is_thai(char) for char in text)
+
     # 检查字符串是否包含至少一个日文（含汉字）字符
     def has_any_japanese(self, text: str) -> bool:
         return any(self.is_japanese(char) for char in text)
@@ -243,10 +254,15 @@ class LanguageFilter(PluginBase):
             'es': self.has_any_latin,
             'fr': self.has_any_latin,
             'de': self.has_any_latin,
+            'id': self.has_any_latin,
+            'in': self.has_any_latin,
+            'vi': self.has_any_latin,
             # 韩语
             'ko': self.has_any_korean,
             # 俄语
             'ru': self.has_any_russian,
+            # 泰语
+            'th': self.has_any_thai,
             # 日语
             'ja': self.has_any_japanese
         }

@@ -118,13 +118,23 @@ class PromptBuilder(Base):
             #conv_source_lang = TranslatorUtil.map_language_code_to_name(source_lang.most_common)
 
         # 检测原文语言是否能够构建动态示例
-        if conv_source_lang not in ["japanese", "korean", "russian", "chinese_simplified", "chinese_traditional", "french",
-                                "german", "spanish", "english", "indonesian"]:
+        if conv_source_lang not in TranslatorUtil.LANGUAGE_EXAMPLE_TEXTS:
             return "", ""
 
         # 获取自适应示例（无法构建english的）
-        if conv_source_lang in ["japanese", "korean", "russian", "chinese_simplified", "chinese_traditional", "french",
-                                "german", "spanish", "indonesian"]:
+        if conv_source_lang in {
+            "japanese",
+            "korean",
+            "russian",
+            "chinese_simplified",
+            "chinese_traditional",
+            "french",
+            "german",
+            "spanish",
+            "indonesian",
+            "vietnamese",
+            "thai",
+        }:
             list2, list4 = PromptBuilder.build_adaptive_translation_sample(config, input_dict, conv_source_lang)
 
         # 将两个列表合并
@@ -133,25 +143,18 @@ class PromptBuilder(Base):
 
         # 如果前面都没能构成动态示例，则根据语言添加基础示例
         if not combined_list:
-            base_example = {
-                "base": {
-                    "japanese": "例示テキスト",
-                    "korean": "예시 텍스트",
-                    "russian": "Пример текста",
-                    "chinese_simplified": "示例文本",
-                    "chinese_traditional": "翻譯示例文本",
-                    "english": "Sample Text",
-                    "spanish": "Texto de ejemplo",
-                    "french": "Exemple de texte",
-                    "german": "Beispieltext",
-                    "indonesian": "Contoh Teks",
-                }
-            }
-
             # 如果没有对应的示例语言，默认使用英文
-            source_base_example = base_example["base"].get(conv_source_lang, "Sample Text")
+            source_base_example = TranslatorUtil.LANGUAGE_EXAMPLE_TEXTS.get(
+                conv_source_lang,
+                TranslatorUtil.LANGUAGE_EXAMPLE_TEXTS["english"],
+            )
             combined_list.append(source_base_example)
-            combined_list2.append(base_example["base"].get(config.target_language, "Sample Text"))
+            combined_list2.append(
+                TranslatorUtil.LANGUAGE_EXAMPLE_TEXTS.get(
+                    config.target_language,
+                    TranslatorUtil.LANGUAGE_EXAMPLE_TEXTS["english"],
+                )
+            )
 
         # 限制示例总数量为3个，如果多了，则从最后往前开始削减
         if len(combined_list) > 3:
@@ -346,26 +349,20 @@ class PromptBuilder(Base):
                 r"[a-zA-ZÀ-ÿ]+",      # 使用一个通用的拉丁字母匹配模式
                 re.UNICODE
             ),
+            "vietnamese": re.compile(
+                r"[a-zA-ZÀ-ỹĐđ]+",
+                re.UNICODE
+            ),
+            "thai": re.compile(r"[\u0E00-\u0E7F]+", re.UNICODE),
         }
 
         # 定义不同语言的翻译示例
-        text_all = {
-            "japanese": "例示テキスト",
-            "korean": "예시 텍스트",
-            "russian": "Пример текста",
-            "chinese_simplified": "示例文本",
-            "chinese_traditional": "翻譯示例文本",
-            "english": "Sample Text",
-            "spanish": "Texto de ejemplo",
-            "french": "Exemple de texte",
-            "german": "Beispieltext",
-            "indonesian": "Contoh Teks",
-        }
+        text_all = TranslatorUtil.LANGUAGE_EXAMPLE_TEXTS
 
         # 根据输入选择正则表达式与翻译文本
         pattern = patterns_all[conv_source_lang]
         source_text = text_all[conv_source_lang]
-        translated_text = text_all[config.target_language]
+        translated_text = text_all.get(config.target_language, text_all["english"])
 
         source_list, translated_list = [], []
         counter = 1  # 统一计数器保证编号同步

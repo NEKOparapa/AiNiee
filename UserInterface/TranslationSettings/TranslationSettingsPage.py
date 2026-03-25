@@ -90,6 +90,9 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
             (self.tra("简中"), "chinese_simplified"),
             (self.tra("繁中"), "chinese_traditional"),
             (self.tra("西班牙语"), "spanish"),
+            (self.tra("印尼语"), "indonesian"),
+            (self.tra("越南语"), "vietnamese"),
+            (self.tra("泰语"), "thai"),
         ]
 
         # 生成翻译后的配对列表
@@ -145,6 +148,9 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
             (self.tra("德语"), "german"),
             (self.tra("法语"), "french"),
             (self.tra("西班牙语"), "spanish"),
+            (self.tra("印尼语"), "indonesian"),
+            (self.tra("越南语"), "vietnamese"),
+            (self.tra("泰语"), "thai"),
         ]
 
         # 生成翻译后的配对列表
