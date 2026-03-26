@@ -100,7 +100,7 @@
             "tag": "google",
             "group": "online",
             "name": "Google",
-            "api_url": "https://generativelanguage.googleapis.com/v1beta",
+            "api_url": "https://generativelanguage.googleapis.com",
             "api_key": "",
             "api_format": "Google",
             "icon": "google",
