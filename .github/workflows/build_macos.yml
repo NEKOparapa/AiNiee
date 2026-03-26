@@ -1,0 +1,82 @@
+name: macOS Build # 工作流的名称
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "*" ] # 监听所有分支的推送
+  pull_request:
+    branches: [ "*" ]
+
+jobs:
+  build-macos:
+    runs-on: macos-latest 
+
+    steps:
+    - name: 1. 拉取最新源码
+      uses: actions/checkout@v4
+
+    - name: 2. 配置 Python 3.12 环境
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip' 
+
+    - name: 3. 安装依赖零件 
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller mediapipe babeldoc
+        pip install --force-reinstall --no-binary chardet chardet
+
+    - name: 3.5. [关键] 预热模型缓存 (解决离线卡死问题)
+      run: |
+        echo "正在云端预下载 tiktoken 编码器模型..."
+        # 强制触发 tiktoken 下载缓存，并指定缓存目录为软件资源内部
+        export TIKTOKEN_CACHE_DIR="$GITHUB_WORKSPACE/Resource/Models/tiktoken"
+        mkdir -p $TIKTOKEN_CACHE_DIR
+        python -c "
+        import tiktoken
+        try:
+            tiktoken.get_encoding('cl100k_base')
+            tiktoken.get_encoding('o200k_base')
+            print('✅ 离线模型拉取成功！')
+        except Exception as e:
+            print(f'⚠️ 模型拉取出现异常: {e}')
+        "
+
+    - name: 4. 运行魔法脚本进行打包
+      run: |
+        chmod +x Resource/MacTool/build_mac.sh
+        ./Resource/MacTool/build_mac.sh
+
+    - name: 5. 准备使用文档并压制 DMG 镜像 
+      run: |
+        echo "正在构建 DMG 暂存区..."
+        mkdir -p dmg_staging
+        
+        # 将刚刚打包好的 App 移动到暂存区
+        mv dist/AiNiee.app dmg_staging/
+        
+        # 动态生成「Mac使用说明」文档 
+        cat << 'EOF' > dmg_staging/🌟Mac运行说明.txt
+        【AiNiee for Mac 运行必读】
+
+        由于 AiNiee 会输出大量重要的处理进度和日志，请务必通过终端运行本程序，具体步骤如下：
+
+        1. 在当前窗口中，右键点击左侧的「AiNiee.app」图标。
+        2. 在弹出的菜单中，选择「显示包内容」(Show Package Contents)。
+        3. 依次进入 Contents -> MacOS 文件夹。
+        4. 找到里面名为「AiNiee」的黑色终端执行文件，双击运行。
+
+        此时系统会自动打开终端（Terminal）并启动 AiNiee，您可以在终端中查看完整的运行状态。
+        EOF
+
+        echo "正在打包 DMG 镜像以保护文件签名和权限..."
+        # 将整个暂存区打包成 DMG（这样用户打开 DMG 就能同时看到 App 和说明文档）
+        hdiutil create -volname "AiNiee_macOS" -srcfolder dmg_staging -ov -format UDBZ AiNiee_macOS.dmg
+
+    - name: 6. 上传最终产物给用户下载
+      uses: actions/upload-artifact@v4
+      with:
+        name: AiNiee-macOS-AppleSilicon
+        path: AiNiee_macOS.dmg
