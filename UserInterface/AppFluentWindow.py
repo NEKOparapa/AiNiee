@@ -49,11 +49,6 @@ from UserInterface.Table.TextReplaceBPage import TextReplaceBPage
 from UserInterface.Table.PromptDictionaryPage import PromptDictionaryPage
 from UserInterface.Table.ExclusionListPage import ExclusionListPage
 
-from StevExtraction import jtpp
-from UserInterface.Extraction_Tool.Export_Source_Text import Widget_export_source_text
-from UserInterface.Extraction_Tool.Import_Translated_Text import Widget_import_translated_text
-from UserInterface.Extraction_Tool.Export_Update_Text import Widget_update_text
-
 
 class UpdateCheckerThread(QThread):
     """自动检查更新线程"""
@@ -258,10 +253,6 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
         self.navigationInterface.addItemHeader(self.tra("数据表格"), NavigationItemPosition.SCROLL)
         self.add_table_pages(plugin_manager)
 
-        # ===== 工具箱 =====
-        self.navigationInterface.addItemHeader(self.tra("工具箱"), NavigationItemPosition.SCROLL)
-        self.add_stev_extraction_pages()
-
         # 设置默认页面
         self.switchTo(self.edit_view_page)
 
@@ -351,14 +342,3 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
         self.addSubInterface(self.text_replace_a_page, FluentIcon.SEARCH, self.tra("译前替换"), parent=self.text_replace_navigation_item)
         self.text_replace_b_page = TextReplaceBPage("text_replace_b_page", self)
         self.addSubInterface(self.text_replace_b_page, FluentIcon.SEARCH_MIRROR, self.tra("译后替换"), parent=self.text_replace_navigation_item)
-
-    # 添加第五节
-    def add_stev_extraction_pages(self) -> None:
-        self.stev_extraction_navigation_item = BaseNavigationItem("stev_extraction_navigation_item", self)
-        self.addSubInterface(self.stev_extraction_navigation_item, FluentIcon.ZIP_FOLDER, self.tra("StevExtraction"), NavigationItemPosition.SCROLL)
-        self.widget_export_source_text = Widget_export_source_text("widget_export_source_text", self, jtpp)
-        self.addSubInterface(self.widget_export_source_text, FluentIcon.SHARE, self.tra("导出文本"), parent=self.stev_extraction_navigation_item)
-        self.widget_import_translated_text = Widget_import_translated_text("widget_import_translated_text", self, jtpp)
-        self.addSubInterface(self.widget_import_translated_text, FluentIcon.DOWNLOAD, self.tra("导入文本"), parent=self.stev_extraction_navigation_item)
-        self.widget_update_text = Widget_update_text("widget_update_text", self, jtpp)
-        self.addSubInterface(self.widget_update_text, FluentIcon.UPDATE, self.tra("导出增量文本"), parent=self.stev_extraction_navigation_item)

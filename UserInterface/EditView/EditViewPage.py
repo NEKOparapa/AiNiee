@@ -22,8 +22,6 @@ from UserInterface.EditView.Check.LanguageCheckDialog import LanguageCheckDialog
 from UserInterface.EditView.Search.SearchDialog import SearchDialog
 from UserInterface.EditView.Search.SearchResultPage import SearchResultPage
 from UserInterface.EditView.BasicTablePage import BasicTablePage
-from UserInterface.EditView.Term.TermResultPage import TermResultPage
-from UserInterface.EditView.Term.TermExtractionDialog import TermExtractionDialog
 from UserInterface.EditView.Check.CheckResultPage import CheckResultPage 
 
 # 底部命令栏
@@ -297,7 +295,6 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
 # 层级浏览器
 class NavigationCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     searchRequested = pyqtSignal(dict)  # 信号，发送搜索参数字典
-    termExtractionRequested = pyqtSignal(dict)  # 用于发送术语提取参数的信号
     languageCheckRequested = pyqtSignal(dict)  # 用于发送语言检查参数的信号    
 
     def __init__(self, parent=None):
@@ -317,10 +314,6 @@ class NavigationCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
 
         self.search_button.clicked.connect(self._open_search_dialog) # 连接点击事件
 
-        # 术语提取按钮
-        self.term_extraction_button = TransparentPushButton(FIF.FILTER, self.tra("术语"))
-        self.term_extraction_button.clicked.connect(self._open_term_extraction_dialog)
-
         # 语言检查按钮
         self.check_button = TransparentPushButton(FIF.EDUCATION, self.tra("检查"))
         self.check_button.clicked.connect(self._open_language_check_dialog)
@@ -328,11 +321,9 @@ class NavigationCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         # 为三个按钮设置合适的固定宽度
         button_width = 75
         self.search_button.setFixedWidth(button_width)
-        self.term_extraction_button.setFixedWidth(button_width)
         self.check_button.setFixedWidth(button_width)
 
         # 添加按钮到工具栏布局
-        self.toolbar_layout.addWidget(self.term_extraction_button)
         self.toolbar_layout.addWidget(self.search_button)
         self.toolbar_layout.addWidget(self.check_button)
         self.layout.addWidget(self.toolbar)
@@ -360,19 +351,6 @@ class NavigationCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         if dialog.exec():
             # 发送对话框返回的完整参数字典
             self.languageCheckRequested.emit(dialog.check_params)
-            
-
-    # 按钮点击
-    def _open_term_extraction_dialog(self):
-        """打开术语提取设置对话框"""
-        dialog = TermExtractionDialog(self.window())
-        if dialog.exec():
-            # 用户点击了“开始提取”
-            params = {
-                "model_name": dialog.selected_model,
-                "entity_types": dialog.selected_types
-            }
-            self.termExtractionRequested.emit(params)
 
     # 树状关系更新
     def update_tree(self, hierarchy: dict):
@@ -588,7 +566,6 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
         self.page_card.tab_bar.currentChanged.connect(self.on_tab_changed)  # 标签页切换事件
         self.page_card.tab_bar.tabCloseRequested.connect(self.on_tab_close_requested)  # 标签页关闭请求
         self.bottom_bar_main.arrowClicked.connect(self.toggle_page)  # 箭头按钮点击切换页面
-        self.nav_card.termExtractionRequested.connect(self.perform_term_extraction) # 开始术语提取信号
 
         self.nav_card.languageCheckRequested.connect(self.perform_language_check) # 连接语言检查请求信号
         self.languageCheckFinished.connect(self._on_language_check_finished) # 语言检查完成信号
@@ -598,7 +575,6 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
 
         # 订阅事件
         self.subscribe(Base.EVENT.TASK_CONTINUE_CHECK, self.task_continue_check)
-        self.subscribe(Base.EVENT.TERM_EXTRACTION_DONE, self._on_term_extraction_finished)
               
         
     # 页面显示事件
@@ -882,46 +858,3 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
         
         self.warning("检查完成，发现 {0} 个问题，请查看生成的表格。")
 
-    # 执行提取术语事件
-    def perform_term_extraction(self, params: dict):
-        """
-        从缓存获取数据，并发起一个全局的术语提取事件。
-        """
-        self.info(f"收到术语提取请求，参数: {params}")
-        
-        self.info("正在从缓存中收集所有原文...")
-        all_items_to_process = self.cache_manager.get_all_source_items()
-        
-        self.info(f"数据收集完毕，共 {len(all_items_to_process)} 条。正在发送提取事件...")
-        
-        # 发送开始事件，将参数和数据传递给 SimpleExecutor
-        self.emit(Base.EVENT.TERM_EXTRACTION_START, {
-            "params": params,
-            "items_data": all_items_to_process
-        })
-
-    # 术语提取结束事件
-    def _on_term_extraction_finished(self, event: int, data: dict):
-        """
-        此槽函数在主线程中执行，用于接收 TERM_EXTRACTION_DONE 事件并安全地更新UI。
-        """
-        results = data.get("results", [])
-
-        if not results:
-            MessageBox(self.tra("未找到"), self.tra("未能提取到任何符合条件的术语。"), self.window()).exec()
-            return
-
-        # 创建并显示结果标签页 (这部分代码保持不变)
-        tab_name = self.tra("术语提取结果")
-        route_key = f"terms_{int(time.time())}"
-
-        result_page = TermResultPage(results)
-        result_page.setObjectName(route_key)
-        
-        self.page_card.stacked_widget.addWidget(result_page)
-        self.page_card.tab_bar.addTab(routeKey=route_key, text=tab_name)
-        
-        new_index = self.page_card.tab_bar.count() - 1
-        self.page_card.tab_bar.setCurrentIndex(new_index)
-        self.page_card.stacked_widget.setCurrentIndex(new_index)
-        self.info("术语提取完成，结果已显示。")
