@@ -31,12 +31,6 @@ class Event():
     TABLE_POLISH_START = 810                      # 表格润色 开始
     TABLE_POLISH_DONE = 811                      # 表格润色 完成    
 
-    TERM_EXTRACTION_START = 830                  # 术语提取开始
-    TERM_EXTRACTION_DONE = 831                     
-
-    TERM_TRANSLATE_SAVE_START = 832              # 实体提取开始
-    TERM_TRANSLATE_SAVE_DONE = 833 
-
     TRANSLATION_CHECK_START = 840                # 语言检查开始    
 
     TABLE_UPDATE = 898                             # 表格更新
