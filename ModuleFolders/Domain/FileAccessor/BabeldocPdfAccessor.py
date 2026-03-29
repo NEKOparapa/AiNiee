@@ -1,4 +1,6 @@
+import hashlib
 import logging
+import shutil
 from concurrent.futures import Executor, Future
 from concurrent.futures.thread import _WorkItem
 from pathlib import Path
@@ -145,6 +147,7 @@ class BabeldocPdfAccessor:
         self.tmp_directory = tmp_directory
         self.output_config = output_config
         self._result_cache: dict[(Path, int), TranslateResult] = {}
+        self._input_alias_cache: dict[Path, Path] = {}
         self._init_babeldoc_args()
 
     def _init_babeldoc_args(self):
@@ -167,8 +170,9 @@ class BabeldocPdfAccessor:
 
     def read_content(self, source_file_path: Path):
         visitor = PdfSourceVisitor()
+        prepared_source_file_path = self._prepare_babeldoc_input_file(source_file_path)
         babeldoc_translation_config = self._create_babeldoc_translation_config(
-            self.babeldoc_args, str(source_file_path), visitor
+            self.babeldoc_args, str(prepared_source_file_path), visitor
         )
 
         old_il_translate = il_translator.ILTranslator.translate
@@ -211,8 +215,9 @@ class BabeldocPdfAccessor:
             return result
 
         translator = TranslatedItemsTranslator(items)
+        prepared_source_file_path = self._prepare_babeldoc_input_file(source_file_path)
         babeldoc_translation_config = self._create_babeldoc_translation_config(
-            self.babeldoc_args, str(source_file_path), translator
+            self.babeldoc_args, str(prepared_source_file_path), translator
         )
         try:
             progress_monitor.TranslationStage = TranslationStage
@@ -230,6 +235,42 @@ class BabeldocPdfAccessor:
         self._result_cache.clear()
         self._result_cache[cache_id] = result
         return result
+
+    def _prepare_babeldoc_input_file(self, source_file_path: Path) -> Path:
+        source_file_path = source_file_path.resolve()
+        cached_path = self._input_alias_cache.get(source_file_path)
+        if cached_path and cached_path.exists():
+            return cached_path
+
+        alias_directory = self.tmp_directory / "input_alias"
+        alias_directory.mkdir(parents=True, exist_ok=True)
+
+        safe_stem = self._build_short_pdf_stem(source_file_path)
+        alias_path = alias_directory / f"{safe_stem}{source_file_path.suffix.lower() or '.pdf'}"
+
+        if alias_path.exists() or alias_path.is_symlink():
+            alias_path.unlink()
+
+        try:
+            alias_path.symlink_to(source_file_path)
+        except OSError:
+            shutil.copy2(source_file_path, alias_path)
+
+        self._input_alias_cache[source_file_path] = alias_path
+        return alias_path
+
+    @staticmethod
+    def _build_short_pdf_stem(source_file_path: Path) -> str:
+        sanitized_stem = ''.join(
+            ch if ch.isalnum() or ch in ('-', '_') else '_'
+            for ch in source_file_path.stem
+        ).strip('_')
+        if not sanitized_stem:
+            sanitized_stem = "pdf"
+
+        shortened_prefix = sanitized_stem[:32].rstrip('_')
+        digest = hashlib.sha1(str(source_file_path).encode("utf-8")).hexdigest()[:12]
+        return f"{shortened_prefix}_{digest}" if shortened_prefix else f"pdf_{digest}"
 
     @classmethod
     def _create_babeldoc_translation_config(cls, args, file, translator):
