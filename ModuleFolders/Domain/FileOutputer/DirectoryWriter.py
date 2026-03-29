@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 from typing import Callable
 
@@ -14,6 +15,8 @@ from ModuleFolders.Domain.FileOutputer.BaseWriter import (
 
 
 class DirectoryWriter:
+    MAX_FILENAME_BYTES = 240
+
     def __init__(self, create_writer: Callable[[], BaseTranslationWriter]):
         self.create_writer = create_writer
 
@@ -60,8 +63,35 @@ class DirectoryWriter:
 
     @classmethod
     def with_file_suffix(self, file_path: str, name_suffix: str) -> Path:
-        parts = file_path.rsplit(".", 1)
-        if len(parts) == 2:
-            return f"{parts[0]}{name_suffix}.{parts[1]}"
-        else:
-            return f"{parts[0]}{name_suffix}"
+        path = Path(file_path)
+        extension = path.suffix
+        stem = path.stem if extension else path.name
+        suffix_with_extension = f"{name_suffix}{extension}"
+        output_name = self._build_safe_output_name(stem, suffix_with_extension)
+        return path.with_name(output_name)
+
+    @classmethod
+    def _build_safe_output_name(self, stem: str, suffix_with_extension: str) -> str:
+        candidate = f"{stem}{suffix_with_extension}"
+        if len(candidate.encode("utf-8")) <= self.MAX_FILENAME_BYTES:
+            return candidate
+
+        digest = hashlib.sha1(stem.encode("utf-8")).hexdigest()[:10]
+        reserved_suffix = f"_{digest}{suffix_with_extension}"
+        available_bytes = max(16, self.MAX_FILENAME_BYTES - len(reserved_suffix.encode("utf-8")))
+        shortened_stem = self._truncate_utf8_bytes(stem, available_bytes).rstrip(" ._")
+        if not shortened_stem:
+            shortened_stem = "file"
+        return f"{shortened_stem}_{digest}{suffix_with_extension}"
+
+    @staticmethod
+    def _truncate_utf8_bytes(text: str, max_bytes: int) -> str:
+        current_bytes = 0
+        result_chars: list[str] = []
+        for ch in text:
+            ch_bytes = len(ch.encode("utf-8"))
+            if current_bytes + ch_bytes > max_bytes:
+                break
+            result_chars.append(ch)
+            current_bytes += ch_bytes
+        return "".join(result_chars)
