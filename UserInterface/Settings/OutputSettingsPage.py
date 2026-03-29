@@ -160,7 +160,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         parent.addWidget(
             SwitchButtonCard(
                 self.tra("自动设置输出文件夹"),
-                self.tra("启用此功能后，设置为输入文件夹的平级目录，每个项目将自动创建独立的子文件夹，比如输入文件夹为D:/Test/Input，输出文件夹将设置为D:/Test/AiNieeOutput/项目名_时间戳"),
+                self.tra("启用此功能后，设置为输入文件夹的平级目录，比如输入文件夹为D:/Test/Input，输出文件夹将设置为D:/Test/AiNieeOutput"),
                 widget_init,
                 widget_callback,
             )

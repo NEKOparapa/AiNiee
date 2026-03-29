@@ -161,24 +161,17 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         self.tpm_limit = self.tpm_limit * len(self.apikey_list)
 
         # 如果开启自动设置输出文件夹功能，设置为输入文件夹的平级目录
-        # 但如果当前路径已是对应基础目录的子文件夹（项目专属目录），则保留不覆盖
-        if self.auto_set_output_path:
+        if self.auto_set_output_path == True:
             abs_input_path = os.path.abspath(self.label_input_path)
             parent_dir = os.path.dirname(abs_input_path)
-
-            # 翻译输出路径
-            auto_base = os.path.join(parent_dir, "AiNieeOutput")
-            current_abs = os.path.abspath(self.label_output_path)
-            auto_base_abs = os.path.abspath(auto_base)
-            if not current_abs.startswith(auto_base_abs + os.sep):
-                self.label_output_path = auto_base
+            output_folder_name = "AiNieeOutput"
+            self.label_output_path = os.path.join(parent_dir, output_folder_name)
 
             # 润色文本输出路径
-            polish_base = os.path.join(parent_dir, "PolishingOutput")
-            current_polish_abs = os.path.abspath(self.polishing_output_path)
-            polish_base_abs = os.path.abspath(polish_base)
-            if not current_polish_abs.startswith(polish_base_abs + os.sep):
-                self.polishing_output_path = polish_base
+            abs_input_path = os.path.abspath(self.label_input_path)
+            parent_dir = os.path.dirname(abs_input_path)
+            output_folder_name = "PolishingOutput"
+            self.polishing_output_path = os.path.join(parent_dir, output_folder_name)
 
         # 保存新配置
         config = self.load_config()
