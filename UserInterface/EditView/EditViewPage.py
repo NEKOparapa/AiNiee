@@ -108,7 +108,7 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
         self.workflow_header = WorkflowHeaderBar(self.workflow_container)
         self.workflow_stacked_widget = QStackedWidget(self.workflow_container)
 
-        self.analysis_page = AnalysisPage(self.workflow_stacked_widget)
+        self.analysis_page = AnalysisPage(cache_manager, self.workflow_stacked_widget)
         self.translation_page = TranslationPage(self.workflow_stacked_widget)
         self.proofreading_page = ProofreadingPage(cache_manager, self.workflow_stacked_widget)
 
@@ -213,6 +213,7 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
 
         self.proofreading_page.clear_tabs()
         self.proofreading_page.update_tree(file_hierarchy)
+        self.analysis_page.refresh_from_project()
 
         if project_mode == "new":
             self.translation_page.enable_continue_button(False)

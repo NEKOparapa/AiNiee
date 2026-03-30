@@ -22,6 +22,7 @@ from ModuleFolders.Service.Cache.CacheProject import (
 
 
 class CacheManager(ConfigMixin, LogMixin, Base):
+    ANALYSIS_EXTRA_KEY = "analysis_v1"
     SAVE_INTERVAL = 8  # 缓存保存间隔（秒）
 
     def __init__(self) -> None:
@@ -502,4 +503,53 @@ class CacheManager(ConfigMixin, LogMixin, Base):
                             "file_path": file_path
                         })
         return all_items_data
+
+    # 生成分析用的文本片段
+    def generate_analysis_source_chunks(self, limit_type: str, limit_count: int) -> List[List[dict]]:
+        chunks = []
+        if not self.project:
+            return chunks
+
+        for file in self.project.files.values():
+            current_chunk, current_length = [], 0
+
+            for item in file.items:
+                if not item.source_text or not item.source_text.strip():
+                    continue
+
+                item_length = item.get_token_count(item.source_text) if limit_type == "token" else 1
+                if current_chunk and (current_length + item_length > limit_count):
+                    chunks.append(current_chunk)
+                    current_chunk, current_length = [], 0
+
+                current_chunk.append(
+                    {
+                        "text_index": item.text_index,
+                        "source_text": item.source_text,
+                    }
+                )
+                current_length += item_length
+
+            if current_chunk:
+                chunks.append(current_chunk)
+
+        return chunks
+
+    # 获取分析结果数据
+    def get_analysis_data(self) -> dict:
+        if not self.project:
+            return {}
+        return self.project.get_extra(self.ANALYSIS_EXTRA_KEY, {}) or {}
+
+    # 设置分析结果数据
+    def set_analysis_data(self, analysis_data: dict) -> None:
+        if not self.project:
+            return
+        self.project.set_extra(self.ANALYSIS_EXTRA_KEY, analysis_data or {})
+
+    # 清除分析结果数据
+    def clear_analysis_data(self) -> None:
+        if not self.project:
+            return
+        self.project.extra.pop(self.ANALYSIS_EXTRA_KEY, None)
 

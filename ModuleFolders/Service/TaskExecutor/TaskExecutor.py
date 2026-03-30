@@ -47,6 +47,7 @@ from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Service.Cache.CacheManager import CacheManager
 from ModuleFolders.Service.Cache.CacheProject import CacheProjectStatistics
 from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
+from ModuleFolders.Service.TaskExecutor.AnalysisTask import AnalysisTask
 from ModuleFolders.Service.TaskExecutor.TranslatorTask import TranslatorTask
 from ModuleFolders.Service.TaskExecutor.PolisherTask import PolisherTask
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
@@ -77,6 +78,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         self._active_executor = None
 
         # 注册事件
+        self.subscribe(Base.EVENT.ANALYSIS_TASK_START, self.analysis_task_start)
         self.subscribe(Base.EVENT.TASK_STOP, self.task_stop)
         self.subscribe(Base.EVENT.TASK_START, self.task_start)
         self.subscribe(Base.EVENT.TASK_MANUAL_EXPORT, self.task_manual_export)
@@ -108,6 +110,31 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         Base.work_status = Base.STATUS.STOPING
         self._cancel_active_executor()
         LLMClientFactory().close_all_clients()
+
+    def analysis_task_start(self, event: int, data: dict) -> None:
+        if Base.work_status != Base.STATUS.IDLE:
+            return
+        Base.work_status = Base.STATUS.ANALYSIS_TASK
+        threading.Thread(target=self.analysis_start_target, daemon=True).start()
+
+    def analysis_start_target(self) -> None:
+        try:
+            analysis_task = AnalysisTask(
+                self.cache_manager,
+                self._set_active_executor,
+                self._clear_active_executor,
+            )
+            analysis_task.run()
+        except Exception as error:
+            self.error(
+                f"分析任务执行失败: {error}",
+                error if self.is_debug() else None,
+            )
+            Base.work_status = Base.STATUS.IDLE
+            self.emit(
+                Base.EVENT.ANALYSIS_TASK_DONE,
+                {"status": "error", "analysis_data": None, "message": str(error)},
+            )
 
     # 手动导出事件
     def task_manual_export(self, event: int, data: dict) -> None:
@@ -172,9 +199,9 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         def target() -> None:
             while True:
                 time.sleep(0.5)
-                if Base.work_status == Base.STATUS.TASKSTOPPED:
+                if Base.work_status in (Base.STATUS.TASKSTOPPED, Base.STATUS.IDLE):
                     self.print("")
-                    self.info("翻译任务已停止 ...")
+                    self.info("任务已停止 ...")
                     self.print("")
                     self.emit(Base.EVENT.TASK_STOP_DONE, {})
                     break
