@@ -10,6 +10,9 @@ cmd = [
     "--hidden-import=babeldoc",
     "--hidden-import=sklearn",
     "--collect-all=babeldoc",
+    # chardet 7.x loads pipeline/__mypyc modules dynamically; collect the whole
+    # package so the packaged EXE does not crash on startup.
+    "--collect-all=chardet",
     "--collect-all=sklearn",
     "--collect-all=rich", 
     # "--distpath=./dist/AiNiee" #指定输出目录
