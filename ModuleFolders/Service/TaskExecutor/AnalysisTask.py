@@ -11,14 +11,22 @@ from ModuleFolders.Infrastructure.LLMRequester.LLMRequester import LLMRequester
 from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
+from ModuleFolders.Infrastructure.Tokener.Tokener import Tokener
 
 
 class AnalysisTask(ConfigMixin, LogMixin, Base):
+    """
+    数据流概览：
+    1. 先从 cache_manager 按 token 切出原文分块，每个分块仍然保留原文上下文。
+    2. 第一阶段对每个分块独立请求 AI，尽量多抽出 characters/terms/non_translate 候选。
+    3. 把第一阶段的 characters/terms 先按原始 source 去重收集，再按最长 source 优先把“被它包含的短 source”吸进同一组。
+    4. 第二阶段让 AI 在每个候选组内做一次裁决：这个 source 最终属于角色还是术语，以及保留什么译名和备注。
+    5. 主线程统一收口第二阶段结果；若某些组没返回，则用本地规则兜底。
+    6. non_translate 不走第二阶段，只在最后做去重和过滤，然后整体写回缓存并落盘。
+    """
     # 第一阶段按原文分块抽取候选；第二阶段按同一个 source 聚合后再让 AI 做合并判断。
-    VERSION = 2
     CHUNK_TOKEN_LIMIT = 10000
-    REDUCE_BATCH_GROUP_LIMIT = 40
-    REDUCE_BATCH_CHAR_LIMIT = 18000
+    REDUCE_BATCH_TOKEN_LIMIT = 10000
     COMMON_PUNCTUATION_CHARS = set(
         ".,!?;:'\"-_=+~`^…—、，。！？；：‘’“”()（）[]【】{}《》<>「」『』〈〉〔〕﹝﹞·•/\\|"
     )
@@ -32,8 +40,20 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         self.request_limiter = RequestLimiter()
         # 保存第二阶段的聚合输入，供最终阶段在 AI 没返回某些词时做程序兜底。
         self.grouped_stage_two_inputs = {}
+        # 保存第二阶段的 source 别名到主 source 的映射，防止 AI 返回被吸收的短 source。
+        self.grouped_stage_two_source_aliases = {}
 
     def run(self) -> None:
+        """
+        调度整个分析任务。
+
+        这里的几个关键中间结果分别是：
+        - chunks: 原文分块列表，是第一阶段的输入。
+        - first_stage_results: 每个分块各自抽出的候选结果列表。
+        - reduction_batches: 按“最长 source + 被其包含的短 source”聚合后的候选组批次，是第二阶段的输入。
+        - second_stage_results: 第二阶段对每个候选组做完裁决后的结果列表。
+        - final_data: 主线程统一合并后的最终标签数据。
+        """
         try:
             # 初始化分析任务，并复用翻译配置作为请求参数来源。
             Base.work_status = Base.STATUS.ANALYSIS_TASK
@@ -52,6 +72,8 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 Base.EVENT.ANALYSIS_TASK_UPDATE,
                 {"message": f"开始执行第一阶段分析任务，共 {len(chunks)} 个分块..."},
             )
+            # first_stage_results 的粒度是“每个 chunk 一份结果”。
+            # 这一步允许同一个 source 在不同 chunk 中重复出现，冲突留到第二阶段再消解。
             first_stage_results = []
             executor_stage1 = concurrent.futures.ThreadPoolExecutor(
                 max_workers=self.config.actual_thread_counts,
@@ -96,6 +118,8 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 {"message": f"开始执行第二阶段分析任务，共 {len(reduction_batches)} 个合并批次..."},
             )
 
+            # second_stage_results 的粒度是“每个 reduction batch 一份结果”。
+            # 此时 batch 内的数据已经不是原文 chunk，而是按最长 source 归并过的候选组。
             second_stage_results = []
             if reduction_batches:
                 executor_stage2 = concurrent.futures.ThreadPoolExecutor(
@@ -139,7 +163,6 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             final_data = self._finalize_results(first_stage_results, second_stage_results)
 
             analysis_data = {
-                "version": self.VERSION,
                 "status": "success",
                 "last_run_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "characters": final_data.get("characters", []),
@@ -165,6 +188,11 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
 
     def _run_first_stage(self, chunk: list) -> dict:
         try:
+            # 输入:
+            # - chunk: 一段按 token 切好的原文片段，里面每项通常带 source_text。
+            # 输出:
+            # - {"characters": [...], "terms": [...], "non_translate": [...]}
+            # 这里不负责跨 chunk 去重，只负责把候选尽量“捞全”。
             # 第一阶段只负责尽量抽取候选，不做跨分块冲突判断。
             source_text = "\n".join(item.get("source_text", "") for item in chunk)
             system_prompt = (
@@ -191,18 +219,33 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         return {"characters": [], "terms": [], "non_translate": []}
 
     def _prepare_reduction_batches(self, first_stage_results: list) -> list:
-        # 先把角色表、术语表按 source 聚成组。
-        # 同一个词在多个分块里抽出的候选会被放进同一组，供第二阶段统一判断。
-        grouped_inputs = {}
+        """
+        把第一阶段的分块级结果重排成第二阶段可消费的“同词候选组”。
+
+        输入是:
+        - first_stage_results: 多个 chunk 的抽取结果。
+
+        输出是:
+        - batches: 每个 batch 由多个 group 组成；
+          每个 group 结构为 {"source": "...", "merged_sources": [...], "candidates": [...]}，
+          其中 source 是最长的主 source，merged_sources 记录被并入该组的短 source，
+          candidates 则收集这些 source 在不同 chunk 中出现过的所有角色/术语候选。
+          batch 的切分方式参考 CacheManager：按 token 累加，超过上限就换批，
+          但每个 batch 至少会保留一个 group。
+        """
+        # 先把角色表、术语表按“原始 source 完全相同”聚成组。
+        # 这一步还不做长短 source 的吸收，只负责保留原始候选。
+        raw_grouped_inputs = {}
 
         for result in first_stage_results:
             for row in result.get("characters", []):
                 source = str(row.get("source", "")).strip()
                 if not source:
                     continue
-                grouped_inputs.setdefault(source, {"source": source, "candidates": []})
-                grouped_inputs[source]["candidates"].append(
+                raw_grouped_inputs.setdefault(source, {"source": source, "merged_sources": [source], "candidates": []})
+                raw_grouped_inputs[source]["candidates"].append(
                     {
+                        "candidate_source": source,
                         "type": "character",
                         "recommended_translation": str(row.get("recommended_translation", "")).strip(),
                         "gender": str(row.get("gender", "")).strip(),
@@ -215,9 +258,10 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 source = str(row.get("source", "")).strip()
                 if not source:
                     continue
-                grouped_inputs.setdefault(source, {"source": source, "candidates": []})
-                grouped_inputs[source]["candidates"].append(
+                raw_grouped_inputs.setdefault(source, {"source": source, "merged_sources": [source], "candidates": []})
+                raw_grouped_inputs[source]["candidates"].append(
                     {
+                        "candidate_source": source,
                         "type": "term",
                         "recommended_translation": str(row.get("recommended_translation", "")).strip(),
                         "gender": "",
@@ -226,27 +270,61 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                     }
                 )
 
-        self.grouped_stage_two_inputs = grouped_inputs
+        # 再按 source 长度倒序做一次归并：
+        # - 先处理最长的 source，把“被当前 source 包含”的更短 source 吸进当前组。
+        # - 一旦短 source 被吸收，就不再单独建组。
+        sorted_sources = sorted(raw_grouped_inputs.keys(), key=lambda source: (-len(source), source))
+        grouped_inputs = {}
+        source_aliases = {}
+        consumed_sources = set()
 
-        # 候选越多越优先送去第二阶段，优先消解冲突最明显的词。
+        for source in sorted_sources:
+            if source in consumed_sources:
+                continue
+
+            merged_group = {
+                "source": source,
+                "merged_sources": [source],
+                "candidates": list(raw_grouped_inputs[source].get("candidates", [])),
+            }
+            grouped_inputs[source] = merged_group
+            source_aliases[source] = source
+            consumed_sources.add(source)
+
+            for other_source in sorted_sources:
+                if other_source in consumed_sources:
+                    continue
+                if other_source == source:
+                    continue
+                if self._is_source_part_of(source, other_source):
+                    merged_group["merged_sources"].append(other_source)
+                    merged_group["candidates"].extend(raw_grouped_inputs[other_source].get("candidates", []))
+                    source_aliases[other_source] = source
+                    consumed_sources.add(other_source)
+
+        self.grouped_stage_two_inputs = grouped_inputs
+        self.grouped_stage_two_source_aliases = source_aliases
+
+        # 先按最长 source 排序，其次按候选量排序。
+        # 批次切分参考 CacheManager 的 token 模式：
+        # - 先计算每个 group 的 token 数；
+        # - 如果加入后会超过上限，就先提交当前 batch；
+        # - 即使单个 group 自身超过上限，也仍然单独成批，保证每批至少一个 group。
         grouped_items = list(grouped_inputs.values())
-        grouped_items.sort(key=lambda item: (-len(item["candidates"]), item["source"]))
+        grouped_items.sort(key=lambda item: (-len(item["source"]), -len(item["candidates"]), item["source"]))
 
         batches = []
         current_batch = []
-        current_chars = 0
+        current_tokens = 0
         for item in grouped_items:
-            item_chars = len(json.dumps(item, ensure_ascii=False))
-            if current_batch and (
-                len(current_batch) >= self.REDUCE_BATCH_GROUP_LIMIT
-                or current_chars + item_chars > self.REDUCE_BATCH_CHAR_LIMIT
-            ):
+            item_tokens = self._get_group_token_count(item)
+            if current_batch and (current_tokens + item_tokens > self.REDUCE_BATCH_TOKEN_LIMIT):
                 batches.append(current_batch)
                 current_batch = []
-                current_chars = 0
+                current_tokens = 0
 
             current_batch.append(item)
-            current_chars += item_chars
+            current_tokens += item_tokens
 
         if current_batch:
             batches.append(current_batch)
@@ -255,11 +333,17 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
 
     def _run_second_stage(self, batch: list) -> dict:
         try:
-            # 第二阶段输入是“同词候选组”，让 AI 在组内决定最终归类、译名、备注和分类。
+            # 输入:
+            # - batch: 若干个“主 source + 被其包含的短 source 候选组”。
+            # 输出:
+            # - 这个 batch 内每个主 source 的最终裁决结果，只能落到 characters 或 terms 之一。
+            # 第二阶段输入是“主 source 候选组”，让 AI 在组内决定最终归类、译名、备注和分类。
             system_prompt = (
                 "你是一个术语与角色合并专家。我会给你一批按 source 聚合后的候选数据。\n"
-                "每个 group 里的 candidates 都是同一个原文词在不同分块里被提取出的候选结果，候选可能来自角色表或术语表。\n"
-                "请你逐个 group 分析，最终每个 source 只能保留一条结果，并且只能出现在一个表里。\n"
+                "每个 group 的 source 是主 source，merged_sources 是被并入该组的相关短 source，candidates 里的 candidate_source 表示每条候选来自哪个 source。\n"
+                "同一个 group 里的候选可能来自完全相同的 source，也可能来自被主 source 包含的短 source。\n"
+                "请你逐个 group 分析，最终每个 group 只能保留一条结果，并且只能出现在一个表里。\n"
+                "最终输出时，source 必须使用该 group 的主 source，不要输出 candidate_source 或 merged_sources 里的短 source。\n"
                 "如果判断它更适合作为角色，请输出到 characters；如果更适合作为术语，请输出到 terms。\n"
                 "characters 字段必须包含 source, recommended_translation, gender, note。\n"
                 "terms 字段必须包含 source, recommended_translation, category_path, note。\n"
@@ -285,6 +369,14 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         return {"characters": [], "terms": []}
 
     def _finalize_results(self, first_stage_results: list, second_stage_results: list) -> dict:
+        """
+        在主线程做最终收口，保证不同批次之间不会互相覆盖。
+
+        合并顺序是：
+        1. 先信任第二阶段 AI 的正式裁决结果。
+        2. 再用 grouped_stage_two_inputs 对缺失的 source 做本地兜底。
+        3. 最后单独处理 non_translate 的去重与过滤。
+        """
         # 先吸收第二阶段 AI 的正式结果，并保证同一个 source 只落到一个表里。
         merged_characters = {}
         merged_terms = {}
@@ -292,7 +384,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
 
         for result in second_stage_results:
             for row in result.get("characters", []):
-                source = str(row.get("source", "")).strip()
+                source = self._canonicalize_group_source(row.get("source", ""))
                 if not source or source in assigned_sources:
                     continue
                 merged_characters[source] = {
@@ -304,7 +396,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 assigned_sources.add(source)
 
             for row in result.get("terms", []):
-                source = str(row.get("source", "")).strip()
+                source = self._canonicalize_group_source(row.get("source", ""))
                 if not source or source in assigned_sources:
                     continue
                 merged_terms[source] = {
@@ -320,6 +412,8 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             if source in assigned_sources:
                 continue
 
+            # 兜底时仍然沿用“同一个 source 只能归到一个表”的原则，
+            # 只是不用 AI，而改用一个很轻量的启发式分数做归类。
             character_candidates = []
             term_candidates = []
             for candidate in grouped_item.get("candidates", []):
@@ -390,6 +484,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 }
 
         # 禁翻表不走第二阶段 AI，只做程序去重和常见标点过滤。
+        # 原因是 non_translate 的目标更偏“去噪”和“合并重复 marker”，不需要角色/术语那种组内裁决。
         merged_non_translate = {}
         for result in first_stage_results:
             for row in result.get("non_translate", []):
@@ -437,3 +532,20 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             except json.JSONDecodeError:
                 pass
         return {"characters": [], "terms": [], "non_translate": []}
+
+    def _is_source_part_of(self, source: str, other_source: str) -> bool:
+        source = str(source).strip()
+        other_source = str(other_source).strip()
+        if not source or not other_source or source == other_source:
+            return False
+        return other_source in source
+
+    def _canonicalize_group_source(self, source: str) -> str:
+        source = str(source).strip()
+        if not source:
+            return ""
+        return self.grouped_stage_two_source_aliases.get(source, source)
+
+    def _get_group_token_count(self, group: dict) -> int:
+        group_json = json.dumps(group, ensure_ascii=False)
+        return Tokener().num_tokens_from_str(group_json)
