@@ -70,7 +70,7 @@ class WorkflowHeaderBar(ConfigMixin, CardWidget):
 
 
 class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
-    projectHistoryReady = pyqtSignal(object)
+    continueCardStateChanged = pyqtSignal(bool, str)
     resumableStateChanged = pyqtSignal(bool)
 
     ROUTE_ANALYSIS = "analysis"
@@ -136,7 +136,7 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
         self.workflow_header.saveRequested.connect(self.command_save_cache)
         self.workflow_header.exportRequested.connect(self.command_export)
         self.workflow_header.stepChanged.connect(self.switch_workflow_page)
-        self.projectHistoryReady.connect(self._on_project_history_ready)
+        self.continueCardStateChanged.connect(self._on_continue_card_state_changed)
         self.resumableStateChanged.connect(self.translation_page.enable_continue_button)
 
         self.subscribe(Base.EVENT.TASK_CONTINUE_CHECK, self.task_continue_check)
@@ -158,55 +158,70 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
 
     def task_continue_check_target(self) -> None:
         time.sleep(0.5)
-        if Base.work_status != Base.STATUS.IDLE:
-            return
+        continue_visible = False
+        continue_enabled = False
+        project_name = ""
 
-        config = self.load_config()
-        history = config.get("project_history", [])
-        valid_entries = []
+        if Base.work_status == Base.STATUS.IDLE:
+            config = self.load_config()
+            cache_folder_path = os.path.join(config.get("label_output_path", "./output"), "cache")
 
-        for entry in history:
-            output_path = entry.get("output_path", "")
-            json_file_path = os.path.join(output_path, "cache", "ProjectStatistics.json")
-            if not os.path.isfile(json_file_path):
-                continue
+            if os.path.isdir(cache_folder_path):
+                json_file_path = os.path.join(cache_folder_path, "ProjectStatistics.json")
 
-            try:
-                if os.path.getsize(json_file_path) == 0:
-                    continue
+                if os.path.isfile(json_file_path):
+                    max_retries = 3
+                    retry_delay = 0.1
 
-                with open(json_file_path, "r", encoding="utf-8") as file:
-                    content = file.read().strip()
+                    for attempt in range(max_retries):
+                        try:
+                            if os.path.getsize(json_file_path) == 0:
+                                if attempt < max_retries - 1:
+                                    time.sleep(retry_delay)
+                                    continue
+                                print("[WARNING] ProjectStatistics.json文件为空，跳过继续检查")
+                                break
 
-                if not content:
-                    continue
+                            with open(json_file_path, "r", encoding="utf-8") as file:
+                                content = file.read().strip()
 
-                data = json.loads(content)
-                total_line = data.get("total_line", 0)
-                line = data.get("line", 0)
-                if total_line > 0:
-                    valid_entries.append(
-                        {
-                            **entry,
-                            "total_line": total_line,
-                            "line": line,
-                            "is_complete": line >= total_line,
-                        }
-                    )
-            except Exception:
-                continue
+                            if not content:
+                                if attempt < max_retries - 1:
+                                    time.sleep(retry_delay)
+                                    continue
+                                print("[WARNING] ProjectStatistics.json内容为空")
+                                break
 
-        self.projectHistoryReady.emit(valid_entries)
+                            data = json.loads(content)
+                            total_line = data.get("total_line", 0)
+                            line = data.get("line", 0)
+                            project_name = data.get("project_name", "")
 
-        current_output = config.get("label_output_path", "./output")
-        has_resumable = any(
-            entry["output_path"] == current_output and not entry["is_complete"]
-            for entry in valid_entries
-        )
-        self.resumableStateChanged.emit(has_resumable)
+                            if total_line:
+                                continue_visible = True
+                                continue_enabled = line < total_line
 
-    def _on_project_history_ready(self, entries: list) -> None:
-        self.startup_page.show_project_history(entries)
+                            break
+                        except (json.JSONDecodeError, OSError, IOError) as e:
+                            if attempt < max_retries - 1:
+                                print(f"[WARNING] 读取ProjectStatistics.json失败(尝试{attempt + 1}/{max_retries}): {e}")
+                                time.sleep(retry_delay)
+                                retry_delay *= 2
+                                continue
+                            print(f"[ERROR] 读取ProjectStatistics.json最终失败: {e}")
+                        except Exception as e:
+                            print(f"[ERROR] 读取ProjectStatistics.json时发生未知错误: {e}")
+                            break
+
+        self.continueCardStateChanged.emit(continue_visible, project_name)
+        self.resumableStateChanged.emit(continue_enabled)
+
+    def _on_continue_card_state_changed(self, show: bool, project_name: str) -> None:
+        self.startup_page.show_continue_button(show)
+        if show:
+            self.startup_page.continue_card.set_project_name(project_name)
+        else:
+            self.startup_page.continue_card.hide_project_name()
 
     def on_folder_selected(self, project_name: str, project_mode: str) -> None:
         file_hierarchy = self.cache_manager.get_file_hierarchy()
