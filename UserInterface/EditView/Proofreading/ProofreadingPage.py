@@ -2,7 +2,7 @@ import os
 import threading
 import time
 
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QSplitter, QVBoxLayout, QWidget
 from qfluentwidgets import MessageBox
 
@@ -26,6 +26,7 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.setObjectName("ProofreadingPage")
 
         self.cache_manager = cache_manager
+        self._splitter_ratio_initialized = False
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -50,6 +51,24 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.page_card.tab_bar.currentChanged.connect(self.on_tab_changed)
         self.page_card.tab_bar.tabCloseRequested.connect(self.on_tab_close_requested)
         self.languageCheckFinished.connect(self._on_language_check_finished)
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if not self._splitter_ratio_initialized:
+            QTimer.singleShot(0, self._apply_initial_splitter_sizes)
+
+    def _apply_initial_splitter_sizes(self) -> None:
+        if self._splitter_ratio_initialized:
+            return
+
+        total_width = self.splitter.width() or self.width()
+        if total_width <= 0:
+            return
+
+        left_width = max(220, int(total_width * 0.15))
+        right_width = max(total_width - left_width, 1)
+        self.splitter.setSizes([left_width, right_width])
+        self._splitter_ratio_initialized = True
 
     def update_tree(self, hierarchy: dict) -> None:
         self.nav_card.update_tree(hierarchy)

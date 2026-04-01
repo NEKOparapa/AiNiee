@@ -30,28 +30,31 @@ class WorkflowHeaderBar(ConfigMixin, CardWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(72)
+        self.setFixedHeight(56)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setContentsMargins(16, 10, 16, 10)
         layout.setSpacing(12)
 
         self.back_button = TransparentPushButton(FIF.RETURN, self.tra("返回"), self)
-        self.save_button = TransparentPushButton(FIF.SAVE, self.tra("保存"), self)
+        self.save_button = TransparentPushButton(FIF.SAVE, self.tra("缓存"), self)
         self.export_button = TransparentPushButton(FIF.SHARE, self.tra("导出结果"), self)
         self.step_widget = SegmentedWidget(self)
-        self.step_widget.setFixedWidth(360)
+        self.step_widget.setFixedWidth(380)
+        step_height = 38
+        self.step_widget.setFixedHeight(step_height)
 
         for route_key, text in (
             ("analysis", self.tra("分析")),
             ("translation", self.tra("翻译")),
             ("proofreading", self.tra("校对")),
         ):
-            self.step_widget.addItem(
+            step_item = self.step_widget.addItem(
                 routeKey=route_key,
                 text=text,
                 onClick=lambda checked=False, key=route_key: self.stepChanged.emit(key),
             )
+            step_item.setFixedHeight(step_height)
 
         self.back_button.clicked.connect(self.backRequested.emit)
         self.save_button.clicked.connect(self.saveRequested.emit)

@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any, Callable
 import rapidjson as json
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QFrame,
@@ -98,6 +98,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.current_term_filter = None
         self.current_non_translate_filter = None
         self._updating_ui = False
+        self._splitter_ratio_initialized = False
 
         self.container = QVBoxLayout(self)
         self.container.setContentsMargins(0, 0, 0, 0)
@@ -112,6 +113,8 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
     def showEvent(self, event) -> None:
         super().showEvent(event)
         self.refresh_from_project()
+        if not self._splitter_ratio_initialized:
+            QTimer.singleShot(0, self._apply_initial_splitter_sizes)
 
     def refresh_from_project(self) -> None:
         self.analysis_data = self._clone_analysis_data(self.cache_manager.get_analysis_data())
@@ -128,7 +131,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         action_layout.setSpacing(10)
 
         self.start_button = PrimaryPushButton(FIF.PLAY, "开始分析", self.action_card)
-        self.stop_button = TransparentPushButton(FIF.CANCEL_MEDIUM, "停止任务", self.action_card)
+        self.stop_button = TransparentPushButton(FIF.CANCEL_MEDIUM, "停止", self.action_card)
 
         self.start_button.clicked.connect(self.start_analysis)
         self.stop_button.clicked.connect(self.stop_analysis)
@@ -148,11 +151,13 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _build_body(self) -> None:
         self.splitter = QSplitter(Qt.Horizontal, self)
-        self.splitter.setChildrenCollapsible(False)
         self.splitter.setHandleWidth(0)
         self.splitter.setStyleSheet("QSplitter::handle { width: 0px; }")
+        self.splitter.setCollapsible(0, True)
+        self.splitter.setCollapsible(1, False)
 
         self.nav_card = CardWidget(self)
+        self.nav_card.setMinimumWidth(0)
         nav_layout = QVBoxLayout(self.nav_card)
         nav_layout.setContentsMargins(10, 10, 10, 10)
         nav_layout.setSpacing(8)
@@ -163,25 +168,23 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.nav_toolbar_layout.setSpacing(0)
 
         self.apply_button = TransparentPushButton(FIF.SAVE, "保存", self.nav_toolbar)
-        self.clear_button = TransparentPushButton(FIF.DELETE, "删除", self.nav_toolbar)
 
         self.apply_button.clicked.connect(self.apply_to_config)
-        self.clear_button.clicked.connect(self.clear_analysis_result)
 
-        button_width = 96
+        button_width = 75
         self.apply_button.setFixedWidth(button_width)
-        self.clear_button.setFixedWidth(button_width)
 
         self.nav_toolbar_layout.addWidget(self.apply_button)
-        self.nav_toolbar_layout.addWidget(self.clear_button)
         nav_layout.addWidget(self.nav_toolbar)
 
         self.nav_tree = TreeWidget(self.nav_card)
+        self.nav_tree.setMinimumWidth(0)
         self.nav_tree.setHeaderHidden(True)
         self.nav_tree.itemClicked.connect(self.on_nav_item_clicked)
         nav_layout.addWidget(self.nav_tree)
 
         self.page_card = CardWidget(self)
+        self.page_card.setMinimumWidth(0)
         page_layout = QVBoxLayout(self.page_card)
         page_layout.setContentsMargins(0, 0, 0, 0)
         page_layout.setSpacing(0)
@@ -206,16 +209,35 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.splitter.setStretchFactor(1, 9)
         self.container.addWidget(self.splitter, 1)
 
+    def _apply_initial_splitter_sizes(self) -> None:
+        if self._splitter_ratio_initialized:
+            return
+
+        total_width = self.splitter.width() or self.width()
+        if total_width <= 0:
+            return
+
+        left_width = max(220, int(total_width * 0.15))
+        right_width = max(total_width - left_width, 1)
+        self.splitter.setSizes([left_width, right_width])
+        self._splitter_ratio_initialized = True
+
     def _build_characters_page(self) -> QWidget:
         page = QWidget(self)
         layout = QVBoxLayout(page)
-        layout.setContentsMargins(18, 18, 18, 18)
-        layout.setSpacing(10)
+        layout.setContentsMargins(5, 0, 0, 0)
+        layout.setSpacing(0)
 
         header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 4, 0, 6)
         self.characters_title_label = StrongBodyLabel("角色表", page)
         header_layout.addWidget(self.characters_title_label)
         header_layout.addStretch(1)
+        self.characters_clear_button = TransparentPushButton(FIF.DELETE, "清空", page)
+        self.characters_clear_button.clicked.connect(
+            lambda: self._clear_current_table(self.VIEW_CHARACTERS)
+        )
+        header_layout.addWidget(self.characters_clear_button)
         layout.addLayout(header_layout)
 
         self.characters_table = self._create_table(
@@ -236,13 +258,19 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
     def _build_terms_page(self) -> QWidget:
         page = QWidget(self)
         layout = QVBoxLayout(page)
-        layout.setContentsMargins(18, 18, 18, 18)
-        layout.setSpacing(10)
+        layout.setContentsMargins(5, 0, 0, 0)
+        layout.setSpacing(0)
 
         header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 4, 0, 6)
         self.terms_title_label = StrongBodyLabel("术语表", page)
         header_layout.addWidget(self.terms_title_label)
         header_layout.addStretch(1)
+        self.terms_clear_button = TransparentPushButton(FIF.DELETE, "清空", page)
+        self.terms_clear_button.clicked.connect(
+            lambda: self._clear_current_table(self.VIEW_TERMS)
+        )
+        header_layout.addWidget(self.terms_clear_button)
         layout.addLayout(header_layout)
 
         self.terms_table = self._create_table(
@@ -263,13 +291,19 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
     def _build_non_translate_page(self) -> QWidget:
         page = QWidget(self)
         layout = QVBoxLayout(page)
-        layout.setContentsMargins(18, 18, 18, 18)
-        layout.setSpacing(10)
+        layout.setContentsMargins(5, 0, 0, 0)
+        layout.setSpacing(0)
 
         header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 4, 0, 6)
         self.non_translate_title_label = StrongBodyLabel("禁翻表", page)
         header_layout.addWidget(self.non_translate_title_label)
         header_layout.addStretch(1)
+        self.non_translate_clear_button = TransparentPushButton(FIF.DELETE, "清空", page)
+        self.non_translate_clear_button.clicked.connect(
+            lambda: self._clear_current_table(self.VIEW_NON_TRANSLATE)
+        )
+        header_layout.addWidget(self.non_translate_clear_button)
         layout.addLayout(header_layout)
 
         self.non_translate_table = self._create_table(
@@ -352,16 +386,9 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             self._updating_ui = False
 
     def _populate_characters_table(self) -> None:
-        rows = self.analysis_data.get("characters", []) or []
-        if self.current_character_filter:
-            rows = [
-                row
-                for row in rows
-                if self._normalize_character_category(row.get("gender", "")) == self.current_character_filter
-            ]
-            self.characters_title_label.setText(f"角色表 / {self.current_character_filter}")
-        else:
-            self.characters_title_label.setText("角色表")
+        rows = self._get_visible_rows(self.VIEW_CHARACTERS)
+        self.characters_title_label.setText(self._get_current_view_title(self.VIEW_CHARACTERS))
+        self.characters_clear_button.setEnabled(bool(rows) and not self._is_analysis_running())
 
         self._fill_table(
             self.characters_table,
@@ -371,17 +398,9 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         )
 
     def _populate_terms_table(self) -> None:
-        rows = self.analysis_data.get("terms", []) or []
-        if self.current_term_filter:
-            rows = [
-                row
-                for row in rows
-                if self._normalize_term_category(row.get("category_path", self.TERM_OTHER))
-                == self.current_term_filter
-            ]
-            self.terms_title_label.setText(f"术语表 / {self.current_term_filter}")
-        else:
-            self.terms_title_label.setText("术语表")
+        rows = self._get_visible_rows(self.VIEW_TERMS)
+        self.terms_title_label.setText(self._get_current_view_title(self.VIEW_TERMS))
+        self.terms_clear_button.setEnabled(bool(rows) and not self._is_analysis_running())
 
         self._fill_table(
             self.terms_table,
@@ -391,21 +410,9 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         )
 
     def _populate_non_translate_table(self) -> None:
-        rows = self.analysis_data.get("non_translate", []) or []
-        if self.current_non_translate_filter:
-            rows = [
-                row
-                for row in rows
-                if self._normalize_non_translate_category(
-                    row.get("category", ""),
-                    marker=row.get("marker", ""),
-                    note=row.get("note", ""),
-                )
-                == self.current_non_translate_filter
-            ]
-            self.non_translate_title_label.setText(f"禁翻表 / {self.current_non_translate_filter}")
-        else:
-            self.non_translate_title_label.setText("禁翻表")
+        rows = self._get_visible_rows(self.VIEW_NON_TRANSLATE)
+        self.non_translate_title_label.setText(self._get_current_view_title(self.VIEW_NON_TRANSLATE))
+        self.non_translate_clear_button.setEnabled(bool(rows) and not self._is_analysis_running())
 
         self._fill_table(
             self.non_translate_table,
@@ -781,6 +788,46 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._persist_analysis_state(refresh_navigation=True)
         self._refresh_all_views()
 
+    def _clear_current_table(self, view_name: str) -> None:
+        if self._is_analysis_running():
+            self.warning_toast("提示", "分析任务执行中，暂时不能删除当前表内容。")
+            return
+        if not self.analysis_data:
+            self.info_toast("提示", "当前项目没有可删除的分析结果。")
+            return
+
+        visible_rows = self._get_visible_rows(view_name)
+        if not visible_rows:
+            self.info_toast("提示", "当前表格没有可删除的内容。")
+            return
+
+        message_box = MessageBox(
+            "确认",
+            f"确定要删除当前表格中的 {len(visible_rows)} 条内容吗？",
+            self.window(),
+        )
+        message_box.yesButton.setText("确认")
+        message_box.cancelButton.setText("取消")
+        if not message_box.exec():
+            return
+
+        key = self._get_analysis_key(view_name)
+        if not key:
+            return
+
+        visible_row_keys = {
+            self._get_row_key(view_name, row)
+            for row in visible_rows
+        }
+        self.analysis_data[key] = [
+            row
+            for row in self.analysis_data.get(key, []) or []
+            if self._get_row_key(view_name, row) not in visible_row_keys
+        ]
+        self._persist_analysis_state(refresh_navigation=True)
+        self._refresh_all_views()
+        self.success_toast("完成", f"已删除当前表格中的 {len(visible_rows)} 条内容。")
+
     def _persist_analysis_state(self, refresh_navigation: bool = False) -> None:
         if not self.cache_manager or not self.cache_manager.project:
             return
@@ -846,7 +893,15 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.start_button.setEnabled(has_project and not running)
         self.stop_button.setEnabled(running)
         self.apply_button.setEnabled(has_analysis and not running)
-        self.clear_button.setEnabled(has_analysis and not running)
+        self.characters_clear_button.setEnabled(
+            bool(self._get_visible_rows(self.VIEW_CHARACTERS)) and not running
+        )
+        self.terms_clear_button.setEnabled(
+            bool(self._get_visible_rows(self.VIEW_TERMS)) and not running
+        )
+        self.non_translate_clear_button.setEnabled(
+            bool(self._get_visible_rows(self.VIEW_NON_TRANSLATE)) and not running
+        )
 
     def _get_counts(self) -> dict:
         characters = self.analysis_data.get("characters", []) or []
@@ -875,6 +930,53 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             "term_categories": term_categories,
             "non_translate_categories": non_translate_categories,
         }
+
+    def _get_current_view_title(self, view_name: str) -> str:
+        filter_value = self._get_filter_for_view(view_name)
+        base_title = {
+            self.VIEW_CHARACTERS: "角色表",
+            self.VIEW_TERMS: "术语表",
+            self.VIEW_NON_TRANSLATE: "禁翻表",
+        }.get(view_name, "")
+        if filter_value:
+            return f"{base_title} / {filter_value}"
+        return base_title
+
+    def _get_visible_rows(self, view_name: str) -> list[dict]:
+        key = self._get_analysis_key(view_name)
+        if not key:
+            return []
+
+        rows = list(self.analysis_data.get(key, []) or [])
+        current_filter = self._get_filter_for_view(view_name)
+        if not current_filter:
+            return rows
+
+        if view_name == self.VIEW_CHARACTERS:
+            return [
+                row
+                for row in rows
+                if self._normalize_character_category(row.get("gender", "")) == current_filter
+            ]
+        if view_name == self.VIEW_TERMS:
+            return [
+                row
+                for row in rows
+                if self._normalize_term_category(row.get("category_path", self.TERM_OTHER))
+                == current_filter
+            ]
+        if view_name == self.VIEW_NON_TRANSLATE:
+            return [
+                row
+                for row in rows
+                if self._normalize_non_translate_category(
+                    row.get("category", ""),
+                    marker=row.get("marker", ""),
+                    note=row.get("note", ""),
+                )
+                == current_filter
+            ]
+        return rows
 
     def _join_non_empty(self, left: str, right: str, separator: str) -> str:
         parts = [part.strip() for part in (str(left), str(right)) if str(part).strip()]
