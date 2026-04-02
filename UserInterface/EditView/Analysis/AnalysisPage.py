@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any, Callable
 import rapidjson as json
 
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import QPoint, Qt, QTimer
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QFrame,
@@ -19,15 +19,16 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 from qfluentwidgets import (
+    Action,
     BodyLabel,
     CardWidget,
     FluentIcon as FIF,
     MessageBox,
     PrimaryPushButton,
+    RoundMenu,
     StrongBodyLabel,
     TableWidget,
     TransparentPushButton,
-    TransparentToolButton,
     TreeWidget,
 )
 
@@ -99,13 +100,14 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.current_non_translate_filter = None
         self._updating_ui = False
         self._splitter_ratio_initialized = False
+        self._table_width_ratio_initialized = set()
 
         self.container = QVBoxLayout(self)
         self.container.setContentsMargins(0, 0, 0, 0)
-        self.container.setSpacing(12)
+        self.container.setSpacing(0)
 
-        self._build_body()
         self._build_action_bar()
+        self._build_body()
 
         self.subscribe(Base.EVENT.ANALYSIS_TASK_UPDATE, self.on_analysis_task_update)
         self.subscribe(Base.EVENT.ANALYSIS_TASK_DONE, self.on_analysis_task_done)
@@ -115,6 +117,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.refresh_from_project()
         if not self._splitter_ratio_initialized:
             QTimer.singleShot(0, self._apply_initial_splitter_sizes)
+        QTimer.singleShot(0, lambda: self._apply_initial_table_widths(self.current_view))
 
     def refresh_from_project(self) -> None:
         self.analysis_data = self._clone_analysis_data(self.cache_manager.get_analysis_data())
@@ -140,12 +143,12 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.time_label = BodyLabel("最近分析: -", self.action_card)
         self.count_label = BodyLabel("命中数: 0", self.action_card)
 
-        action_layout.addWidget(self.start_button)
-        action_layout.addWidget(self.stop_button)
-        action_layout.addStretch(1)
         action_layout.addWidget(self.status_label)
         action_layout.addWidget(self.time_label)
         action_layout.addWidget(self.count_label)
+        action_layout.addStretch(1)
+        action_layout.addWidget(self.start_button)
+        action_layout.addWidget(self.stop_button)
 
         self.container.addWidget(self.action_card)
 
@@ -162,20 +165,9 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         nav_layout.setContentsMargins(10, 10, 10, 10)
         nav_layout.setSpacing(8)
 
-        self.nav_toolbar = QWidget(self.nav_card)
-        self.nav_toolbar_layout = QHBoxLayout(self.nav_toolbar)
-        self.nav_toolbar_layout.setContentsMargins(0, 0, 0, 0)
-        self.nav_toolbar_layout.setSpacing(0)
-
-        self.apply_button = TransparentPushButton(FIF.SAVE, "保存", self.nav_toolbar)
-
-        self.apply_button.clicked.connect(self.apply_to_config)
-
-        button_width = 75
-        self.apply_button.setFixedWidth(button_width)
-
-        self.nav_toolbar_layout.addWidget(self.apply_button)
-        nav_layout.addWidget(self.nav_toolbar)
+        self.nav_title_label = StrongBodyLabel("项目表格", self.nav_card)
+        self.nav_title_label.setAlignment(Qt.AlignCenter)
+        nav_layout.addWidget(self.nav_title_label)
 
         self.nav_tree = TreeWidget(self.nav_card)
         self.nav_tree.setMinimumWidth(0)
@@ -241,12 +233,12 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         layout.addLayout(header_layout)
 
         self.characters_table = self._create_table(
+            self.VIEW_CHARACTERS,
             [
                 "原文名",
                 "推荐译名",
                 "性别",
                 "备注",
-                "操作",
             ]
         )
         self.characters_table.itemChanged.connect(
@@ -274,12 +266,12 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         layout.addLayout(header_layout)
 
         self.terms_table = self._create_table(
+            self.VIEW_TERMS,
             [
                 "原文",
                 "推荐译名",
                 "分类属性",
                 "备注",
-                "操作",
             ]
         )
         self.terms_table.itemChanged.connect(
@@ -307,7 +299,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         layout.addLayout(header_layout)
 
         self.non_translate_table = self._create_table(
-            ["原文", "分类", "备注", "操作"]
+            self.VIEW_NON_TRANSLATE, ["原文", "分类", "备注"]
         )
         self.non_translate_table.itemChanged.connect(
             lambda item: self._on_table_item_changed(self.VIEW_NON_TRANSLATE, item)
@@ -315,7 +307,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         layout.addWidget(self.non_translate_table, 1)
         return page
 
-    def _create_table(self, headers: list[str]) -> TableWidget:
+    def _create_table(self, view_name: str, headers: list[str]) -> TableWidget:
         table = TableWidget(self)
         table.setColumnCount(len(headers))
         table.setHorizontalHeaderLabels(headers)
@@ -323,7 +315,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         table.setAlternatingRowColors(True)
         table.setWordWrap(True)
         table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        table.setSelectionMode(QAbstractItemView.SingleSelection)
+        table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         table.setEditTriggers(
             QAbstractItemView.DoubleClicked
             | QAbstractItemView.SelectedClicked
@@ -331,9 +323,95 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         )
         table.setBorderRadius(8)
         table.setBorderVisible(True)
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        table.horizontalHeader().setSectionResizeMode(len(headers) - 1, QHeaderView.ResizeToContents)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        table.horizontalHeader().setStretchLastSection(True)
+        table.setContextMenuPolicy(Qt.CustomContextMenu)
+        table.customContextMenuRequested.connect(
+            lambda pos, current_table=table, current_view=view_name: self._show_table_context_menu(
+                current_view, current_table, pos
+            )
+        )
         return table
+
+    def _show_table_context_menu(self, view_name: str, table: TableWidget, pos: QPoint) -> None:
+        item = table.itemAt(pos)
+        if item and not table.selectionModel().isRowSelected(item.row(), table.rootIndex()):
+            table.clearSelection()
+            table.selectRow(item.row())
+
+        menu = RoundMenu(parent=self)
+        selected_row_count = len(table.selectionModel().selectedRows()) if table.selectionModel() else 0
+
+        delete_action = Action(
+            FIF.DELETE,
+            "删除选中项",
+            triggered=lambda: self._delete_selected_rows(view_name, table),
+        )
+        delete_action.setEnabled(selected_row_count > 0 and not self._is_analysis_running())
+        menu.addAction(delete_action)
+        menu.addSeparator()
+
+        row_count_action = Action(FIF.LEAF, f"行数: {table.rowCount()}")
+        row_count_action.setEnabled(False)
+        menu.addAction(row_count_action)
+
+        menu.exec(table.mapToGlobal(pos))
+
+    def _apply_initial_table_widths(self, view_name: str) -> None:
+        if view_name in self._table_width_ratio_initialized:
+            return
+
+        table = self._get_table_for_view(view_name)
+        if not table:
+            return
+
+        ratios = self._get_initial_column_ratios(view_name)
+        if not ratios or len(ratios) != table.columnCount():
+            return
+
+        available_width = table.viewport().width() or table.width()
+        if available_width <= 0:
+            return
+
+        min_widths = self._get_initial_column_min_widths(view_name)
+        total_ratio = sum(ratios)
+        used_width = 0
+        last_column_index = table.columnCount() - 1
+
+        for index in range(last_column_index):
+            width = int(available_width * ratios[index] / total_ratio)
+            if index < len(min_widths):
+                width = max(min_widths[index], width)
+            table.setColumnWidth(index, width)
+            used_width += width
+
+        last_width = max(
+            min_widths[last_column_index] if last_column_index < len(min_widths) else 120,
+            available_width - used_width,
+        )
+        table.setColumnWidth(last_column_index, last_width)
+        self._table_width_ratio_initialized.add(view_name)
+
+    def _get_table_for_view(self, view_name: str) -> TableWidget | None:
+        return {
+            self.VIEW_CHARACTERS: self.characters_table,
+            self.VIEW_TERMS: self.terms_table,
+            self.VIEW_NON_TRANSLATE: self.non_translate_table,
+        }.get(view_name)
+
+    def _get_initial_column_ratios(self, view_name: str) -> tuple[int, ...]:
+        return {
+            self.VIEW_CHARACTERS: (18, 18, 7, 57),
+            self.VIEW_TERMS: (18, 18, 7, 57),
+            self.VIEW_NON_TRANSLATE: (18, 15, 67),
+        }.get(view_name, ())
+
+    def _get_initial_column_min_widths(self, view_name: str) -> tuple[int, ...]:
+        return {
+            self.VIEW_CHARACTERS: (180, 180, 100, 200),
+            self.VIEW_TERMS: (170, 170, 130, 220),
+            self.VIEW_NON_TRANSLATE: (180, 120, 260),
+        }.get(view_name, ())
 
     def _refresh_navigation(self) -> None:
         expanded_views = set()
@@ -439,19 +517,8 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 if not editable:
                     item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                 table.setItem(row_index, col_index, item)
-            table.setCellWidget(row_index, len(field_specs), self._build_delete_button(view_name, row_key))
         table.resizeRowsToContents()
         table.blockSignals(False)
-
-    def _build_delete_button(self, view_name: str, row_key: str) -> QWidget:
-        container = QWidget(self)
-        layout = QHBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setAlignment(Qt.AlignCenter)
-        button = TransparentToolButton(FIF.DELETE, container)
-        button.clicked.connect(lambda: self._delete_row(view_name, row_key))
-        layout.addWidget(button)
-        return container
 
     def on_nav_item_clicked(self, item, column) -> None:
         data = item.data(0, Qt.UserRole)
@@ -479,6 +546,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             self.VIEW_NON_TRANSLATE: self.non_translate_page,
         }
         self.content_stack.setCurrentWidget(mapping.get(view_name, self.characters_page))
+        QTimer.singleShot(0, lambda: self._apply_initial_table_widths(view_name))
 
     def _select_current_nav_item(self) -> None:
         target = (self.current_view, self._get_filter_for_view(self.current_view))
@@ -582,96 +650,6 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._update_action_buttons()
         self.success_toast("完成", "已清空当前项目的分析结果。")
 
-    def apply_to_config(self) -> None:
-        if not self.analysis_data:
-            self.warning_toast("提示", "当前没有可应用的分析结果。")
-            return
-
-        config = self.load_config()
-
-        char_data = list(config.get("characterization_data", []) or [])
-        existing_characters = {str(item.get("original_name", "")).strip() for item in char_data}
-        char_added = 0
-        char_skipped = 0
-        for row in self.analysis_data.get("characters", []):
-            source = str(row.get("source", "")).strip()
-            if not source or source in existing_characters:
-                char_skipped += 1
-                continue
-            char_data.append(
-                {
-                    "original_name": source,
-                    "translated_name": str(row.get("recommended_translation", "")),
-                    "gender": str(row.get("gender", "")),
-                    "age": "",
-                    "personality": "",
-                    "speech_style": "",
-                    "additional_info": str(row.get("note", "")),
-                }
-            )
-            existing_characters.add(source)
-            char_added += 1
-        config["characterization_data"] = char_data
-
-        term_data = list(config.get("prompt_dictionary_data", []) or [])
-        existing_terms = {str(item.get("src", "")).strip() for item in term_data}
-        term_added = 0
-        term_skipped = 0
-        for row in self.analysis_data.get("terms", []):
-            source = str(row.get("source", "")).strip()
-            if not source or source in existing_terms:
-                term_skipped += 1
-                continue
-            term_data.append(
-                {
-                    "src": source,
-                    "dst": str(row.get("recommended_translation", "")),
-                    "info": self._join_non_empty(
-                        str(row.get("category_path", "")),
-                        str(row.get("note", "")),
-                        " | ",
-                    ),
-                }
-            )
-            existing_terms.add(source)
-            term_added += 1
-        config["prompt_dictionary_data"] = term_data
-
-        non_translate_data = list(config.get("exclusion_list_data", []) or [])
-        existing_markers = {str(item.get("markers", "")).strip() for item in non_translate_data}
-        non_translate_added = 0
-        non_translate_skipped = 0
-        for row in self.analysis_data.get("non_translate", []):
-            marker = str(row.get("marker", "")).strip()
-            if not marker or marker in existing_markers:
-                non_translate_skipped += 1
-                continue
-            non_translate_data.append(
-                {
-                    "markers": marker,
-                    "info": self._join_non_empty(
-                        str(row.get("category", "")),
-                        str(row.get("note", "")),
-                        " | ",
-                    ),
-                    "regex": "",
-                }
-            )
-            existing_markers.add(marker)
-            non_translate_added += 1
-        config["exclusion_list_data"] = non_translate_data
-
-        self.save_config(config)
-        self.success_toast(
-            "完成",
-            (
-                f"已应用到配置。"
-                f"角色 +{char_added} / 跳过 {char_skipped}，"
-                f"术语 +{term_added} / 跳过 {term_skipped}，"
-                f"禁翻 +{non_translate_added} / 跳过 {non_translate_skipped}。"
-            ),
-        )
-
     def on_analysis_task_update(self, event: int, data: dict) -> None:
         message = str(data.get("message", "")).strip() or "分析中"
         self._update_status_labels(message)
@@ -773,20 +751,67 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             else:
                 self._populate_non_translate_table()
 
-    def _delete_row(self, view_name: str, row_key: str) -> None:
-        if not row_key:
-            return
-
+    def _delete_rows(self, view_name: str, row_keys: list[str]) -> int:
         key = self._get_analysis_key(view_name)
         if not key:
-            return
+            return 0
+
+        normalized_row_keys = {
+            self._normalize_row_key(row_key)
+            for row_key in row_keys
+            if self._normalize_row_key(row_key)
+        }
+        if not normalized_row_keys:
+            return 0
 
         rows = self.analysis_data.get(key, []) or []
+        original_count = len(rows)
         self.analysis_data[key] = [
-            row for row in rows if self._get_row_key(view_name, row) != self._normalize_row_key(row_key)
+            row for row in rows if self._get_row_key(view_name, row) not in normalized_row_keys
         ]
+        deleted_count = original_count - len(self.analysis_data[key])
+        if deleted_count <= 0:
+            return 0
+
         self._persist_analysis_state(refresh_navigation=True)
         self._refresh_all_views()
+        return deleted_count
+
+    def _get_selected_row_keys(self, table: TableWidget) -> list[str]:
+        if not table.selectionModel():
+            return []
+
+        row_keys = []
+        for model_index in table.selectionModel().selectedRows():
+            item = table.item(model_index.row(), 0)
+            row_key = self._normalize_row_key(item.data(Qt.UserRole) if item else "")
+            if row_key and row_key not in row_keys:
+                row_keys.append(row_key)
+        return row_keys
+
+    def _delete_selected_rows(self, view_name: str, table: TableWidget) -> None:
+        if self._is_analysis_running():
+            self.warning_toast("提示", "分析任务执行中，暂时不能删除当前表内容。")
+            return
+
+        row_keys = self._get_selected_row_keys(table)
+        if not row_keys:
+            self.info_toast("提示", "当前没有选中的内容。")
+            return
+
+        message_box = MessageBox(
+            "确认",
+            f"确定要删除当前选中的 {len(row_keys)} 条内容吗？",
+            self.window(),
+        )
+        message_box.yesButton.setText("确认")
+        message_box.cancelButton.setText("取消")
+        if not message_box.exec():
+            return
+
+        deleted_count = self._delete_rows(view_name, row_keys)
+        if deleted_count:
+            self.success_toast("完成", f"已删除 {deleted_count} 条内容。")
 
     def _clear_current_table(self, view_name: str) -> None:
         if self._is_analysis_running():
@@ -811,22 +836,13 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         if not message_box.exec():
             return
 
-        key = self._get_analysis_key(view_name)
-        if not key:
-            return
-
         visible_row_keys = {
             self._get_row_key(view_name, row)
             for row in visible_rows
         }
-        self.analysis_data[key] = [
-            row
-            for row in self.analysis_data.get(key, []) or []
-            if self._get_row_key(view_name, row) not in visible_row_keys
-        ]
-        self._persist_analysis_state(refresh_navigation=True)
-        self._refresh_all_views()
-        self.success_toast("完成", f"已删除当前表格中的 {len(visible_rows)} 条内容。")
+        deleted_count = self._delete_rows(view_name, list(visible_row_keys))
+        if deleted_count:
+            self.success_toast("完成", f"已删除当前表格中的 {deleted_count} 条内容。")
 
     def _persist_analysis_state(self, refresh_navigation: bool = False) -> None:
         if not self.cache_manager or not self.cache_manager.project:
@@ -886,13 +902,11 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _update_action_buttons(self, running: bool | None = None) -> None:
         has_project = bool(self.cache_manager and self.cache_manager.project)
-        has_analysis = bool(self.analysis_data)
         if running is None:
             running = self._is_analysis_running()
 
         self.start_button.setEnabled(has_project and not running)
         self.stop_button.setEnabled(running)
-        self.apply_button.setEnabled(has_analysis and not running)
         self.characters_clear_button.setEnabled(
             bool(self._get_visible_rows(self.VIEW_CHARACTERS)) and not running
         )
@@ -977,10 +991,6 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 == current_filter
             ]
         return rows
-
-    def _join_non_empty(self, left: str, right: str, separator: str) -> str:
-        parts = [part.strip() for part in (str(left), str(right)) if str(part).strip()]
-        return separator.join(parts)
 
     def _get_analysis_key(self, view_name: str) -> str | None:
         return {

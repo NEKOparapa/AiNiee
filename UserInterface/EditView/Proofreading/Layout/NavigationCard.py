@@ -1,26 +1,16 @@
 import os
 
-from PyQt5.QtCore import QVariant, Qt, pyqtSignal
+from PyQt5.QtCore import QVariant, Qt
 from PyQt5.QtWidgets import QHBoxLayout, QTreeWidgetItem, QVBoxLayout, QWidget
-from qfluentwidgets import (
-    CardWidget,
-    FluentIcon as FIF,
-    TransparentPushButton,
-    TreeWidget,
-)
+from qfluentwidgets import CardWidget, FluentIcon as FIF, TransparentPushButton, TreeWidget
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
-from UserInterface.EditView.Proofreading.Check.LanguageCheckDialog import LanguageCheckDialog
-from UserInterface.EditView.Proofreading.Search.SearchDialog import SearchDialog
 from UserInterface.Widget.Toast import ToastMixin
 
 
 class NavigationCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
-    searchRequested = pyqtSignal(dict)
-    languageCheckRequested = pyqtSignal(dict)
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
@@ -32,40 +22,17 @@ class NavigationCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.toolbar_layout.setContentsMargins(0, 0, 0, 0)
         self.toolbar_layout.setSpacing(0)
 
-        self.search_button = TransparentPushButton(FIF.SEARCH, self.tra("搜索"))
-        self.search_button.clicked.connect(self._open_search_dialog)
+        self.search_button = TransparentPushButton(FIF.SEARCH, self.tra("搜索"), self.toolbar)
+        self.search_button.setFixedWidth(75)
 
-        self.check_button = TransparentPushButton(FIF.EDUCATION, self.tra("检查"))
-        self.check_button.clicked.connect(self._open_language_check_dialog)
-
-        button_width = 75
-        self.search_button.setFixedWidth(button_width)
-        self.check_button.setFixedWidth(button_width)
-
+        self.toolbar_layout.addStretch(1)
         self.toolbar_layout.addWidget(self.search_button)
-        self.toolbar_layout.addWidget(self.check_button)
+        self.toolbar_layout.addStretch(1)
         self.layout.addWidget(self.toolbar)
 
         self.tree = TreeWidget(self)
         self.tree.setHeaderHidden(True)
         self.layout.addWidget(self.tree)
-
-    def _open_search_dialog(self) -> None:
-        dialog = SearchDialog(self.window())
-        if dialog.exec():
-            self.searchRequested.emit(
-                {
-                    "query": dialog.search_query,
-                    "is_regex": dialog.is_regex,
-                    "scope": dialog.search_scope,
-                    "search_flagged": dialog.is_flagged_search,
-                }
-            )
-
-    def _open_language_check_dialog(self) -> None:
-        dialog = LanguageCheckDialog(self.window())
-        if dialog.exec():
-            self.languageCheckRequested.emit(dialog.check_params)
 
     def update_tree(self, hierarchy: dict) -> None:
         self.tree.clear()

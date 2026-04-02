@@ -3,16 +3,18 @@ import threading
 import time
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QSplitter, QVBoxLayout, QWidget
-from qfluentwidgets import MessageBox
+from PyQt5.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
+from qfluentwidgets import CardWidget, FluentIcon as FIF, MessageBox, PrimaryPushButton
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Service.TranslationChecker.TranslationChecker import CheckResult, TranslationChecker
 from UserInterface.EditView.Proofreading.Check.CheckResultPage import CheckResultPage
+from UserInterface.EditView.Proofreading.Check.LanguageCheckDialog import LanguageCheckDialog
 from UserInterface.EditView.Proofreading.Layout.NavigationCard import NavigationCard
 from UserInterface.EditView.Proofreading.Layout.PageCard import PageCard
+from UserInterface.EditView.Proofreading.Search.SearchDialog import SearchDialog
 from UserInterface.EditView.Proofreading.Search.SearchResultPage import SearchResultPage
 from UserInterface.EditView.Proofreading.Table.TabInterface import TabInterface
 from UserInterface.Widget.Toast import ToastMixin
@@ -32,6 +34,16 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
+        self.command_card = CardWidget(self)
+        command_layout = QHBoxLayout(self.command_card)
+        command_layout.setContentsMargins(18, 14, 18, 14)
+        command_layout.setSpacing(10)
+
+        self.start_check_button = PrimaryPushButton(FIF.EDUCATION, self.tra("开始检查"), self.command_card)
+        self.start_check_button.clicked.connect(self._open_language_check_dialog)
+        command_layout.addStretch(1)
+        command_layout.addWidget(self.start_check_button)
+
         self.splitter = QSplitter(Qt.Horizontal, self)
         self.nav_card = NavigationCard(self)
         self.page_card = PageCard(self)
@@ -43,13 +55,13 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.splitter.setHandleWidth(0)
         self.splitter.setStyleSheet("QSplitter::handle { width: 0px; }")
 
-        layout.addWidget(self.splitter)
+        layout.addWidget(self.command_card)
+        layout.addWidget(self.splitter, 1)
 
-        self.nav_card.searchRequested.connect(self.perform_search)
-        self.nav_card.languageCheckRequested.connect(self.perform_language_check)
         self.nav_card.tree.itemClicked.connect(self.on_tree_item_clicked)
         self.page_card.tab_bar.currentChanged.connect(self.on_tab_changed)
         self.page_card.tab_bar.tabCloseRequested.connect(self.on_tab_close_requested)
+        self.nav_card.search_button.clicked.connect(self._open_search_dialog)
         self.languageCheckFinished.connect(self._on_language_check_finished)
 
     def showEvent(self, event) -> None:
@@ -124,6 +136,23 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             widget_to_remove.deleteLater()
 
         self.page_card.tab_bar.removeTab(index)
+
+    def _open_search_dialog(self) -> None:
+        dialog = SearchDialog(self.window())
+        if dialog.exec():
+            self.perform_search(
+                {
+                    "query": dialog.search_query,
+                    "is_regex": dialog.is_regex,
+                    "scope": dialog.search_scope,
+                    "search_flagged": dialog.is_flagged_search,
+                }
+            )
+
+    def _open_language_check_dialog(self) -> None:
+        dialog = LanguageCheckDialog(self.window())
+        if dialog.exec():
+            self.perform_language_check(dialog.check_params)
 
     def perform_search(self, params: dict) -> None:
         query = params["query"]
