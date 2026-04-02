@@ -146,6 +146,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         info_layout.setContentsMargins(0, 0, 0, 0)
         info_layout.setSpacing(4)
         self.action_title_label = StrongBodyLabel("分析结果", self.action_card)
+        self.action_title_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.status_label = BodyLabel("状态: 未分析", self.action_card)
         self.time_label = BodyLabel("最近分析: -", self.action_card)
         self.count_label = BodyLabel("命中数: 0", self.action_card)
@@ -159,9 +160,10 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         info_layout.addWidget(self.action_title_label)
         info_layout.addLayout(metrics_layout)
 
-        action_layout.addLayout(info_layout, 1)
         action_layout.addWidget(self.start_button)
         action_layout.addWidget(self.stop_button)
+        action_layout.addStretch(1)
+        action_layout.addLayout(info_layout)
 
     def _build_body(self) -> None:
         self.splitter = QSplitter(Qt.Horizontal, self)

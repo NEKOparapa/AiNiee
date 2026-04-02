@@ -2,7 +2,7 @@ import os
 
 from PyQt5.QtCore import QVariant, Qt
 from PyQt5.QtWidgets import QTreeWidgetItem, QVBoxLayout
-from qfluentwidgets import CardWidget, StrongBodyLabel, TreeWidget
+from qfluentwidgets import CardWidget, FluentIcon as FIF, StrongBodyLabel, TransparentPushButton, TreeWidget
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -23,7 +23,11 @@ class NavigationCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
 
         self.tree = TreeWidget(self)
         self.tree.setHeaderHidden(True)
-        self.layout.addWidget(self.tree)
+        self.layout.addWidget(self.tree, 1)
+
+        self.search_button = TransparentPushButton(FIF.SEARCH, self.tra("搜索"), self)
+        self.search_button.setFixedHeight(32)
+        self.layout.addWidget(self.search_button)
 
     def update_tree(self, hierarchy: dict) -> None:
         self.tree.clear()

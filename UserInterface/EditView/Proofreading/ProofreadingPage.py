@@ -11,7 +11,6 @@ from qfluentwidgets import (
     MessageBox,
     PrimaryPushButton,
     StrongBodyLabel,
-    TransparentPushButton,
 )
 
 from ModuleFolders.Base.Base import Base
@@ -53,21 +52,20 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         command_info_layout.setContentsMargins(0, 0, 0, 0)
         command_info_layout.setSpacing(4)
         self.command_title_label = StrongBodyLabel(self.tra("校对"), self.command_card)
+        self.command_title_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.command_summary_label = BodyLabel(self.tra("浏览文件、搜索文本并执行语言检测"), self.command_card)
+        self.command_summary_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         command_info_layout.addWidget(self.command_title_label)
         command_info_layout.addWidget(self.command_summary_label)
 
-        self.search_button = TransparentPushButton(FIF.SEARCH, self.tra("搜索"), self.command_card)
         self.start_check_button = PrimaryPushButton(FIF.EDUCATION, self.tra("开始检查"), self.command_card)
-        self.search_button.setFixedHeight(32)
         self.start_check_button.setFixedHeight(32)
-        self.search_button.setMinimumWidth(96)
         self.start_check_button.setMinimumWidth(108)
 
-        command_layout.addLayout(command_info_layout, 1)
-        command_layout.addWidget(self.search_button)
         self.start_check_button.clicked.connect(self._open_language_check_dialog)
         command_layout.addWidget(self.start_check_button)
+        command_layout.addStretch(1)
+        command_layout.addLayout(command_info_layout)
 
         self.splitter = QSplitter(Qt.Horizontal, self)
         self.nav_card = NavigationCard(self)
@@ -95,7 +93,7 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.nav_card.tree.itemClicked.connect(self.on_tree_item_clicked)
         self.page_card.tab_bar.currentChanged.connect(self.on_tab_changed)
         self.page_card.tab_bar.tabCloseRequested.connect(self.on_tab_close_requested)
-        self.search_button.clicked.connect(self._open_search_dialog)
+        self.nav_card.search_button.clicked.connect(self._open_search_dialog)
         self.languageCheckFinished.connect(self._on_language_check_finished)
         self._update_command_bar()
 
@@ -189,7 +187,7 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         else:
             self.command_summary_label.setText(self.tra("浏览文件、搜索文本并执行语言检测"))
 
-        self.search_button.setEnabled(has_project_files)
+        self.nav_card.search_button.setEnabled(has_project_files)
         self.start_check_button.setEnabled(has_project_files)
 
     def _open_search_dialog(self) -> None:
