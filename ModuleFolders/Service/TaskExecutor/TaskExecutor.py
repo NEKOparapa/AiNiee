@@ -488,11 +488,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 Base.work_status = Base.STATUS.TASKSTOPPED
                 return None
 
-            # 根据润色模式，获取可润色的条目数量
-            if self.config.polishing_mode_selection == "source_text_polish":
-                item_count_status_unpolishd = self.cache_manager.get_item_count_by_status(TranslationStatus.UNTRANSLATED)
-            elif self.config.polishing_mode_selection == "translated_text_polish":
-                item_count_status_unpolishd = self.cache_manager.get_item_count_by_status(TranslationStatus.TRANSLATED)
+            # 获取待润色的条目数量
+            item_count_status_unpolishd = self.cache_manager.get_item_count_by_status(TranslationStatus.TRANSLATED)
 
             # 判断是否需要继续润色
             if item_count_status_unpolishd == 0:
@@ -504,7 +501,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             # 达到最大任务轮次时
             if item_count_status_unpolishd > 0 and current_round == self.config.round_limit:
                 self.print("")
-                self.warning("已达到最大任务轮次，仍有部分文本未翻译，请检查结果 ...")
+                self.warning("已达到最大任务轮次，仍有部分文本未润色，请检查结果 ...")
                 self.print("")
                 break
 
@@ -518,20 +515,12 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 self.config.tokens_limit = max(1, int(self.config.tokens_limit / 2))
 
             # 生成缓存数据条目片段的合集列表
-            if self.config.polishing_mode_selection == "source_text_polish":
-                chunks, previous_chunks, file_paths = self.cache_manager.generate_item_chunks(
-                    "line" if self.config.tokens_limit_switch == False else "token",
-                    self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
-                    self.config.polishing_pre_line_counts,
-                    TaskType.TRANSLATION
-                )
-            elif self.config.polishing_mode_selection == "translated_text_polish":
-                chunks, previous_chunks, file_paths = self.cache_manager.generate_item_chunks(
-                    "line" if self.config.tokens_limit_switch == False else "token",
-                    self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
-                    self.config.polishing_pre_line_counts,
-                    TaskType.POLISH
-                )
+            chunks, previous_chunks, file_paths = self.cache_manager.generate_item_chunks(
+                "line" if self.config.tokens_limit_switch == False else "token",
+                self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
+                self.config.pre_line_counts,
+                TaskType.POLISH
+            )
 
             # 生成润色任务合集列表
             tasks_list = []
@@ -546,7 +535,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             self.info(f"已经生成全部润色任务 ...")
             self.print("")
 
-            # 输出开始翻译的日志
+            # 输出开始润色的日志
             self.print("")
             self.info(f"当前轮次 - {current_round + 1}")
             self.info(f"最大轮次 - {self.config.round_limit}")
@@ -574,7 +563,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             self.print("")
 
             # 开始执行润色务,构建异步线程池
-            executor = concurrent.futures.ThreadPoolExecutor(max_workers = self.config.actual_thread_counts, thread_name_prefix = "translator")
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers = self.config.actual_thread_counts, thread_name_prefix = "polisher")
             self._set_active_executor(executor)
             try:
                 for task in tasks_list:
@@ -608,12 +597,12 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 写入文件
         self.file_writer.output_translated_content(
             self.cache_manager.project,
-            self.config.polishing_output_path,
+            self.config.label_output_path,
             self.config.label_input_path,
             output_config,
         )
         self.print("")
-        self.info(f"润色结果已保存至 {self.config.polishing_output_path} 目录 ...")
+        self.info(f"润色结果已保存至 {self.config.label_output_path} 目录 ...")
         self.print("")
 
         # 重置内部状态

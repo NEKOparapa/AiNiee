@@ -1,314 +1,219 @@
 import re
-from types import SimpleNamespace
 
 from ModuleFolders.Base.Base import Base
-from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
-from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
+from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
+
+
 class PromptBuilderPolishing(Base):
 
     def __init__(self) -> None:
         super().__init__()
 
-    # 获取默认系统提示词，优先从内存中读取，如果没有，则从文件中读取
     def get_system_default(config: TaskConfig) -> str:
-        if getattr(PromptBuilderPolishing, "common_system_zh_s", None) == None:
-            with open("./Resource/Prompt/Polishing/common_system_zh_s.txt", "r", encoding = "utf-8") as reader:
-                PromptBuilderPolishing.common_system_zh_s = reader.read().strip()
-        if getattr(PromptBuilderPolishing, "common_system_zh_t", None) == None:
-            with open("./Resource/Prompt/Polishing/common_system_zh_t.txt", "r", encoding = "utf-8") as reader:
+        if getattr(PromptBuilderPolishing, "common_system_zh_t", None) is None:
+            with open("./Resource/Prompt/Polishing/common_system_zh_t.txt", "r", encoding="utf-8") as reader:
                 PromptBuilderPolishing.common_system_zh_t = reader.read().strip()
 
+        return PromptBuilderPolishing.common_system_zh_t
 
-        # 如果输入的是字典，则转换为命名空间
-        if isinstance(config, dict):
-            namespace = SimpleNamespace()
-            for key, value in config.items():
-                setattr(namespace, key, value)
-            config = namespace
-
-
-        # 构造结果
-        if config == None:
-            result = PromptBuilderPolishing.common_system_zh_t
-        elif  config.polishing_mode_selection == "source_text_polish":
-            result = PromptBuilderPolishing.common_system_zh_s
-        elif  config.polishing_mode_selection == "target_text_polish":
-            result = PromptBuilderPolishing.common_system_zh_t
-        else:
-            result = PromptBuilderPolishing.common_system_zh_t
-
-        return result
-
-    # 获取系统提示词
     def build_system(config: TaskConfig) -> str:
+        return PromptBuilderPolishing.get_system_default(config)
 
-        # 获取默认系统提示词
-        PromptBuilderPolishing.get_system_default(config)
-
-        # 构造结果
-        if config == None:
-            result = PromptBuilderPolishing.common_system_zh_t
-        elif  config.polishing_mode_selection == "source_text_polish":
-            result = PromptBuilderPolishing.common_system_zh_s
-        elif  config.polishing_mode_selection == "target_text_polish":
-            result = PromptBuilderPolishing.common_system_zh_t
-        else:
-            result = PromptBuilderPolishing.common_system_zh_t
-
-        return result
-
-    # 构造术语表
     def build_glossary_prompt(config: TaskConfig, input_dict: dict) -> str:
-        # 将输入字典中的所有值合并为一个字符串，方便正则全局匹配
         full_text = "\n".join(input_dict.values())
 
-        # 筛选并处理匹配的条目
         result = []
-        seen_keys = set() # 用于去重 (匹配到的实际原文, 译文)
+        seen_keys = set()
 
-        for v in config.prompt_dictionary_data:
-            src = v.get("src", "")
+        for item in config.prompt_dictionary_data:
+            src = item.get("src", "")
             if not src:
                 continue
 
             try:
-                # 编译正则表达式，忽略大小写以保持与原逻辑一致的宽松匹配
                 pattern = re.compile(src, re.IGNORECASE)
+                found_texts = {match.group() for match in pattern.finditer(full_text)}
 
-                # 查找所有匹配项 (set去重，处理同一词在文中多次出现的情况)
-                found_texts = set(m.group() for m in pattern.finditer(full_text))
-
-                # 如果正则匹配到了内容 (例如正则 (A|B) 匹配到了 A 和 B，这里会循环两次)
                 for match_text in found_texts:
-                    if not match_text: continue
+                    if not match_text:
+                        continue
 
-                    # 使用 (实际匹配文本, 译文) 作为唯一键进行去重
-                    key = (match_text, v.get("dst"))
-                    if key not in seen_keys:
-                        # 复制元数据，并将 src 替换为实际匹配到的原文文本
-                        new_entry = v.copy()
-                        new_entry["src"] = match_text
-                        result.append(new_entry)
-                        seen_keys.add(key)
+                    key = (match_text, item.get("dst"))
+                    if key in seen_keys:
+                        continue
+
+                    new_entry = item.copy()
+                    new_entry["src"] = match_text
+                    result.append(new_entry)
+                    seen_keys.add(key)
 
             except re.error:
-                # 如果正则编译失败（非合法正则），回退到普通字符串包含判断
                 if src.lower() in full_text.lower():
-                    key = (src, v.get("dst"))
+                    key = (src, item.get("dst"))
                     if key not in seen_keys:
-                        result.append(v)
+                        result.append(item)
                         seen_keys.add(key)
 
-        # 数据校验
-        if len(result) == 0:
+        if not result:
             return ""
 
-        # 避免空的默认内容
-        if len(result) == 1 and (result[0]["src"] == ""):
+        if len(result) == 1 and result[0]["src"] == "":
             return ""
-
-        # 初始化变量，以免出错
-        glossary_prompt_lines = []
 
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
-            # 添加开头
-            glossary_prompt_lines.append(
-                "\n###术语表"
-                + "\n" + "原文|译文|备注"
-            )
-
-            # 添加数据
-            for v in result:
-                glossary_prompt_lines.append(f"{v.get("src")}|{v.get("dst")}|{v.get("info") if v.get("info") != "" else " "}")
-
+            glossary_prompt_lines = [
+                "\n###术语表",
+                "原文|译文|备注",
+            ]
         else:
-            # 添加开头
-            glossary_prompt_lines.append(
-                "\n###Glossary"
-                + "\n" + "Original Text|Translation|Remarks"
-            )
+            glossary_prompt_lines = [
+                "\n###Glossary",
+                "Original Text|Translation|Remarks",
+            ]
 
-            # 添加数据
-            for v in result:
-                glossary_prompt_lines.append(f"{v.get("src")}|{v.get("dst")}|{v.get("info") if v.get("info") != "" else " "}")
+        for item in result:
+            info = item.get("info") if item.get("info") != "" else " "
+            glossary_prompt_lines.append(f"{item.get('src')}|{item.get('dst')}|{info}")
 
-        # 拼接成最终的字符串
-        glossary_prompt = "\n".join(glossary_prompt_lines)
+        return "\n".join(glossary_prompt_lines)
 
-        return glossary_prompt
-
-    # 构造禁翻表
-    def build_ntl_prompt(config: TaskConfig, source_text_dict) -> str:
-
-        # 获取禁翻表内容
+    def build_ntl_prompt(config: TaskConfig, source_text_dict: dict) -> str:
         exclusion_list_data = config.exclusion_list_data.copy()
 
-
-        exclusion_dict = {}  # 用字典存储并自动去重
+        exclusion_dict = {}
         texts = list(source_text_dict.values())
 
-        # 处理正则匹配
         for element in exclusion_list_data:
             regex = element.get("regex", "").strip()
             marker = element.get("markers", "").strip()
             info = element.get("info", "")
 
-            # 检查是否写正则，如果写了，只处理正则
             if regex:
-                # 避免错误正则，导致崩溃
                 try:
-                    # 编译正则表达式字符串为模式对象
                     pattern = re.compile(regex)
-                    # 寻找文本中所有符合正则的文本内容
                     for text in texts:
                         for match in pattern.finditer(text):
                             markers = match.group(0)
-                            # 避免重复添加
                             if markers not in exclusion_dict:
                                 exclusion_dict[markers] = info
                 except re.error:
                     pass
-            # 没写正则，只处理标记符
             else:
                 found = any(marker in text for text in texts)
-                if found and marker not in exclusion_dict:  # 避免重复添加
+                if found and marker not in exclusion_dict:
                     exclusion_dict[marker] = info
 
-        # 检查内容是否为空
-        if not exclusion_dict :
+        if not exclusion_dict:
             return ""
 
-        # 构建结果字符串
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
-            result = "\n###禁翻表，以下特殊标记符无需翻译"+ "\n特殊标记符|备注"
+            result = "\n###禁翻表，以下特殊标记符无需翻译\n特殊标记符|备注"
         else:
-            result = "\n###Non-Translation List,Leave the following marked content untranslated"+ "\nSpecial marker|Remarks"
+            result = "\n###Non-Translation List,Leave the following marked content untranslated\nSpecial marker|Remarks"
 
         for markers, info in exclusion_dict.items():
             result += f"\n{markers}|{info}" if info else f"\n{markers}|"
 
         return result
 
-
-    # 构造文风要求
-    def build_writing_style(config: TaskConfig) -> str:
-        # 获取自定义内容
-        writing_style = config.polishing_style_content
+    def build_polishing_example(config: TaskConfig) -> str:
+        data = getattr(config, "polishing_example_data", [])
+        if not data:
+            return ""
 
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
-            profile = "\n###润色风格"
-
-            profile += f"\n{writing_style}\n"
-
+            polishing_example = "\n###润色示例\n"
         else:
-            profile = "\n###Polishing Style"
+            polishing_example = "\n###Polishing Example\n"
 
-            profile += f"\n{writing_style}\n"
+        for index, pair in enumerate(data, start=1):
+            original = pair.get("src", "")
+            translated = pair.get("dst", "")
+            polished = pair.get("polished", "")
 
-        return profile
+            if index > 1:
+                polishing_example += "\n"
 
+            if config.target_language in ("chinese_simplified", "chinese_traditional"):
+                polishing_example += (
+                    f"  -原文{index}：{original}\n"
+                    f"  -初译{index}：{translated}\n"
+                    f"  -润文{index}：{polished}"
+                )
+            else:
+                polishing_example += (
+                    f"  -Original {index}: {original}\n"
+                    f"  -Draft Translation {index}: {translated}\n"
+                    f"  -Polished {index}: {polished}"
+                )
 
+        return polishing_example
 
-    # 携带原文上文
     def build_pre_text(config: TaskConfig, input_list: list[str]) -> str:
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "###上文内容\n"
         else:
             profile = "###Previous text\n"
 
-        # 使用列表推导式，转换为字符串列表
-        formatted_rows = [item for item in input_list]
-
-        # 使用换行符将列表元素连接成一个字符串
-        profile += f"{"\n".join(formatted_rows)}\n"
-
+        profile += "\n".join(input_list) + "\n"
         return profile
 
-    # 构建润色原文的前缀:
-    def build_source_prefix(config: TaskConfig) -> str:
+    def build_translated_prefix(config: TaskConfig) -> tuple[str, str]:
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
-            profile = " ###这是你接下来的润色任务，文本如下\n"
-        else:
-            profile = " ###This is your next polishing task, the text is as follows\n"
+            return " ###原文文本\n", "###这是你接下来的润色任务，初译文本如下\n"
 
-        return profile
+        return " ###Original text\n", "###This is your next polishing task, the draft translation is as follows\n"
 
-    # 构建润色译文的前缀:
-    def build_translated_prefix(config: TaskConfig) -> str:
-        if config.target_language in ("chinese_simplified", "chinese_traditional"):
-            profile_A = " ###原文文本\n"
-
-            profile_B = "###这是你接下来的润色任务，初译文本如下\n"
-        else:
-            profile_A = " ###Original text\n"
-
-            profile_B = "###This is your next polishing task, the draft translation is as follows\n"
-
-        return profile_A , profile_B
-
-    # 生成信息结构 - 通用
-    def generate_prompt(config, source_text_dict: dict, translation_text_dict: dict, previous_text_list: list[str]) -> tuple[list[dict], str, list[str]]:
-        # 储存指令
+    def generate_prompt(
+        config,
+        source_text_dict: dict,
+        translation_text_dict: dict,
+        previous_text_list: list[str],
+    ) -> tuple[list[dict], str, list[str]]:
         messages = []
-        # 储存额外日志
         extra_log = []
 
-        # 基础系统提示词
-        if config.polishing_prompt_selection["last_selected_id"]  == PromptBuilderEnum.POLISH_COMMON:
+        if config.polishing_prompt_selection["last_selected_id"] == PromptBuilderEnum.POLISH_COMMON:
             system = PromptBuilderPolishing.build_system(config)
         else:
-            system = config.polishing_prompt_selection["prompt_content"]  # 自定义提示词
+            system = config.polishing_prompt_selection["prompt_content"]
 
-
-        # 如果开启术语表
-        if config.prompt_dictionary_switch == True:
+        if config.prompt_dictionary_switch:
             glossary = PromptBuilderPolishing.build_glossary_prompt(config, source_text_dict)
-            if glossary != "":
+            if glossary:
                 system += glossary
                 extra_log.append(glossary)
 
-        # 如果开启禁翻表
-        if config.exclusion_list_switch == True:
+        if config.exclusion_list_switch:
             ntl = PromptBuilderPolishing.build_ntl_prompt(config, source_text_dict)
-            if ntl != "":
+            if ntl:
                 system += ntl
                 extra_log.append(ntl)
 
-        # 如果启用润色风格功能
-        if config.polishing_style_switch == True:
-            writing_style = PromptBuilderPolishing.build_writing_style(config)
-            if writing_style != "":
-                system += writing_style
-                extra_log.append(writing_style)
+        if getattr(config, "polishing_example_switch", False):
+            polishing_example = PromptBuilderPolishing.build_polishing_example(config)
+            if polishing_example:
+                system += polishing_example
+                extra_log.append(polishing_example)
 
-
-        # 如果加上文，获取上文内容
         previous = ""
-        if config.polishing_pre_line_counts and previous_text_list:
+        if getattr(config, "pre_line_counts", 0) and previous_text_list:
             previous = PromptBuilderPolishing.build_pre_text(config, previous_text_list)
-            if previous != "":
-                extra_log.append(f"###上文内容\n{"\n".join(previous_text_list)}")
+            if previous:
+                extra_log.append(f"###上文内容\n{'\n'.join(previous_text_list)}")
 
+        source_text = PromptBuilder.build_source_text(config, source_text_dict)
+        translation_text = PromptBuilder.build_source_text(config, translation_text_dict)
+        pre_prompt_a, pre_prompt_b = PromptBuilderPolishing.build_translated_prefix(config)
+        source_text_str = (
+            f"{previous}\n"
+            f"{pre_prompt_a}\n"
+            f"{source_text}\n"
+            f"{pre_prompt_b}<textarea>\n{translation_text}\n</textarea>"
+        )
 
-        # 构建待翻译文本
-
-        if config.polishing_mode_selection == "source_text_polish":
-
-            source_text = PromptBuilder.build_source_text(config,source_text_dict)
-            pre_prompt = PromptBuilderPolishing.build_source_prefix(config) # 用户提问前置文本
-
-            source_text_str = f"{previous}\n{pre_prompt}<textarea>\n{source_text}\n</textarea>"
-
-        elif config.polishing_mode_selection == "translated_text_polish":
-            source_text = PromptBuilder.build_source_text(config,source_text_dict)
-            translation_text = PromptBuilder.build_source_text(config,translation_text_dict)
-            pre_prompt_A,pre_prompt_B = PromptBuilderPolishing.build_translated_prefix(config) # 用户提问前置文本
-
-            source_text_str = f"{previous}\n{pre_prompt_A}\n{source_text}\n{pre_prompt_B}<textarea>\n{translation_text}\n</textarea>"
-
-
-        # 构建用户信息
         messages.append(
             {
                 "role": "user",
@@ -316,12 +221,20 @@ class PromptBuilderPolishing(Base):
             }
         )
 
-        # 构建预输入回复信息
-        switch_A = config.few_shot_and_example_switch # 打开动态示例开关时
-        if switch_A :
+        if config.few_shot_and_example_switch:
             if config.target_language in ("chinese_simplified", "chinese_traditional"):
-                messages.append({"role": "assistant", "content": "我完全理解了你的要求，我将遵循您的指示进行润色任务。"})
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": "我已完全理解你的要求，会按照指示执行润色任务。",
+                    }
+                )
             else:
-                messages.append({"role": "assistant", "content": "I have fully understood your requirements and will follow your instructions to perform the polishing task."})
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": "I have fully understood your requirements and will follow your instructions to perform the polishing task.",
+                    }
+                )
 
         return messages, system, extra_log

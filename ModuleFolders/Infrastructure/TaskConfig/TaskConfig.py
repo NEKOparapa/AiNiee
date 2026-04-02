@@ -167,16 +167,9 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
             output_folder_name = "AiNieeOutput"
             self.label_output_path = os.path.join(parent_dir, output_folder_name)
 
-            # 润色文本输出路径
-            abs_input_path = os.path.abspath(self.label_input_path)
-            parent_dir = os.path.dirname(abs_input_path)
-            output_folder_name = "PolishingOutput"
-            self.polishing_output_path = os.path.join(parent_dir, output_folder_name)
-
         # 保存新配置
         config = self.load_config()
         config["label_output_path"] = self.label_output_path
-        config["polishing_output_path"] = self.polishing_output_path
         self.save_config(config)
 
 

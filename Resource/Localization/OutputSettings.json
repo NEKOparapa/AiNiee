@@ -12,18 +12,11 @@
       "English": "Current Output Folder:",
       "日本語": "現在の出力フォルダー："
     },
-
     "翻译输出文件夹": {
       "简中": "翻译输出文件夹",
       "繁中": "翻譯輸出資料夾",
       "English": "Translation Output Folder",
       "日本語": "翻訳出力フォルダ"
-    },
-    "润色输出文件夹": {
-      "简中": "润色输出文件夹",
-      "繁中": "潤飾輸出資料夾",
-      "English": "Polishing Output Folder",
-      "日本語": "推敲出力フォルダ"
     },
     "文件名后缀": {
       "简中": "文件名后缀",
@@ -109,6 +102,5 @@
       "English": "Conversion presets for Simplified/Traditional Chinese. Common: s2t, t2s.",
       "日本語": "簡体/繁体字変換の字形プリセット。例：簡→繁(s2t)、繁→簡(t2s)。"
     }
-    
   }
 }

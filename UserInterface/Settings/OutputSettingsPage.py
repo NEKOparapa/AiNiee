@@ -20,7 +20,6 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         # 默认配置
         self.default = {
             "label_output_path": "./output",
-            "polishing_output_path": "./polish_output",
             "auto_set_output_path": True,
             "output_filename_suffix": "_translated", 
             "bilingual_text_order": "translation_first", 
@@ -39,7 +38,6 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
 
         # 添加控件
         self.add_widget_translation_output_path(self.container, config)
-        self.add_widget_polishing_output_path(self.container, config)
         self.add_widget_auto_set(self.container, config)
         self.container.addWidget(HorizontalSeparator())
         self.add_widget_filename_suffix(self.container, config)
@@ -92,54 +90,6 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         parent.addWidget(
             PushButtonCard(
                 self.tra("翻译输出文件夹"),
-                "",
-                widget_init,
-                widget_callback,
-                drop_callback,
-            )
-        )
-
-    # 润色输出文件夹
-    def add_widget_polishing_output_path(self, parent, config) -> None:
-        def widget_init(widget):
-            info_cont = self.tra("当前输出文件夹为") + f" {config.get("polishing_output_path")}"
-            widget.set_description(info_cont)
-            widget.set_text(self.tra("选择文件夹"))
-            widget.set_icon(FluentIcon.FOLDER_ADD)
-
-        def widget_callback(widget) -> None:
-            # 选择文件夹
-            path = QFileDialog.getExistingDirectory(None, "选择文件夹", "")
-            if path == None or path == "":
-                return
-
-            # 更新UI
-            info_cont = self.tra("当前输出文件夹为") + f" {path.strip()}"
-            widget.set_description(info_cont)
-
-            # 更新并保存配置
-            config = self.load_config()
-            config["polishing_output_path"] = path.strip()
-            self.save_config(config)
-
-        # 拖拽文件夹回调
-        def drop_callback(widget, dropped_text) -> None:
-            if not dropped_text:
-                return
-
-            # 更新UI
-            info_cont = self.tra("当前输出文件夹为") + f" {dropped_text.strip()}"
-            widget.set_description(info_cont)
-
-            # 更新并保存配置
-            config = self.load_config()
-            config["polishing_output_path"] = dropped_text.strip()
-            self.save_config(config)
-
-
-        parent.addWidget(
-            PushButtonCard(
-                self.tra("润色输出文件夹"),
                 "",
                 widget_init,
                 widget_callback,

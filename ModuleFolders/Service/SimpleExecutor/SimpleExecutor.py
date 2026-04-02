@@ -468,7 +468,6 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         config = TaskConfig()
         config.initialize()
         config.prepare_for_translation(TaskType.POLISH)
-        polishing_mode_selection = config.polishing_mode_selection
         max_threads = config.actual_thread_counts
 
         # 任务分割
@@ -510,10 +509,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
                 return None
 
             # 确定校验基准
-            if polishing_mode_selection == "source_text_polish":
-                text_dict = source_text_dict
-            else:
-                text_dict = translation_text_dict
+            text_dict = translation_text_dict
 
             # 解析校验
             response_dict = ResponseExtractor.text_extraction(self, text_dict, response_content)
