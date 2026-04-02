@@ -623,33 +623,6 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.stop_button.setEnabled(False)
         self.emit(Base.EVENT.TASK_STOP, {})
 
-    def clear_analysis_result(self) -> None:
-        if self._is_analysis_running():
-            self.warning_toast("提示", "分析任务执行中，暂时不能清空结果。")
-            return
-        if not self.analysis_data:
-            self.info_toast("提示", "当前项目没有可清空的分析结果。")
-            return
-
-        message_box = MessageBox(
-            "确认",
-            "确定要清空当前项目的分析结果吗？",
-            self.window(),
-        )
-        message_box.yesButton.setText("确认")
-        message_box.cancelButton.setText("取消")
-        if not message_box.exec():
-            return
-
-        self.analysis_data = {}
-        self.cache_manager.clear_analysis_data()
-        self._request_cache_save()
-        self._refresh_navigation()
-        self._refresh_all_views()
-        self._update_status_labels()
-        self._update_action_buttons()
-        self.success_toast("完成", "已清空当前项目的分析结果。")
-
     def on_analysis_task_update(self, event: int, data: dict) -> None:
         message = str(data.get("message", "")).strip() or "分析中"
         self._update_status_labels(message)
