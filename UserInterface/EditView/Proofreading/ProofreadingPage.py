@@ -4,7 +4,15 @@ import time
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
-from qfluentwidgets import CardWidget, FluentIcon as FIF, MessageBox, PrimaryPushButton
+from qfluentwidgets import (
+    BodyLabel,
+    CardWidget,
+    FluentIcon as FIF,
+    MessageBox,
+    PrimaryPushButton,
+    StrongBodyLabel,
+    TransparentPushButton,
+)
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -29,40 +37,67 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
 
         self.cache_manager = cache_manager
         self._splitter_ratio_initialized = False
+        self._project_file_count = 0
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        layout.setContentsMargins(0, 12, 0, 0)
+        layout.setSpacing(12)
 
         self.command_card = CardWidget(self)
+        self.command_card.setBorderRadius(12)
         command_layout = QHBoxLayout(self.command_card)
-        command_layout.setContentsMargins(18, 14, 18, 14)
-        command_layout.setSpacing(10)
+        command_layout.setContentsMargins(18, 12, 18, 12)
+        command_layout.setSpacing(16)
 
+        command_info_layout = QVBoxLayout()
+        command_info_layout.setContentsMargins(0, 0, 0, 0)
+        command_info_layout.setSpacing(4)
+        self.command_title_label = StrongBodyLabel(self.tra("校对"), self.command_card)
+        self.command_summary_label = BodyLabel(self.tra("浏览文件、搜索文本并执行语言检测"), self.command_card)
+        command_info_layout.addWidget(self.command_title_label)
+        command_info_layout.addWidget(self.command_summary_label)
+
+        self.search_button = TransparentPushButton(FIF.SEARCH, self.tra("搜索"), self.command_card)
         self.start_check_button = PrimaryPushButton(FIF.EDUCATION, self.tra("开始检查"), self.command_card)
+        self.search_button.setFixedHeight(32)
+        self.start_check_button.setFixedHeight(32)
+        self.search_button.setMinimumWidth(96)
+        self.start_check_button.setMinimumWidth(108)
+
+        command_layout.addLayout(command_info_layout, 1)
+        command_layout.addWidget(self.search_button)
         self.start_check_button.clicked.connect(self._open_language_check_dialog)
-        command_layout.addStretch(1)
         command_layout.addWidget(self.start_check_button)
 
         self.splitter = QSplitter(Qt.Horizontal, self)
         self.nav_card = NavigationCard(self)
+        self.right_panel = QWidget(self)
         self.page_card = PageCard(self)
+        self.nav_card.setBorderRadius(12)
+        self.page_card.setBorderRadius(12)
+        self.right_panel.setMinimumWidth(0)
+
+        right_layout = QVBoxLayout(self.right_panel)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(8)
+        right_layout.addWidget(self.command_card)
+        right_layout.addWidget(self.page_card, 1)
 
         self.splitter.addWidget(self.nav_card)
-        self.splitter.addWidget(self.page_card)
+        self.splitter.addWidget(self.right_panel)
         self.splitter.setStretchFactor(0, 1)
         self.splitter.setStretchFactor(1, 9)
-        self.splitter.setHandleWidth(0)
-        self.splitter.setStyleSheet("QSplitter::handle { width: 0px; }")
+        self.splitter.setHandleWidth(8)
+        self.splitter.setStyleSheet("QSplitter::handle { width: 8px; background: transparent; }")
 
-        layout.addWidget(self.command_card)
         layout.addWidget(self.splitter, 1)
 
         self.nav_card.tree.itemClicked.connect(self.on_tree_item_clicked)
         self.page_card.tab_bar.currentChanged.connect(self.on_tab_changed)
         self.page_card.tab_bar.tabCloseRequested.connect(self.on_tab_close_requested)
-        self.nav_card.search_button.clicked.connect(self._open_search_dialog)
+        self.search_button.clicked.connect(self._open_search_dialog)
         self.languageCheckFinished.connect(self._on_language_check_finished)
+        self._update_command_bar()
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
@@ -83,11 +118,14 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self._splitter_ratio_initialized = True
 
     def update_tree(self, hierarchy: dict) -> None:
+        self._project_file_count = sum(len(files or []) for files in (hierarchy or {}).values())
         self.nav_card.update_tree(hierarchy)
+        self._update_command_bar()
 
     def clear_tabs(self) -> None:
         while self.page_card.tab_bar.count() > 0:
             self.on_tab_close_requested(self.page_card.tab_bar.count() - 1)
+        self._update_command_bar()
 
     def on_tree_item_clicked(self, item, column) -> None:
         file_path = item.data(0, Qt.UserRole)
@@ -99,6 +137,7 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             if widget and widget.objectName() == file_path:
                 self.page_card.tab_bar.setCurrentIndex(index)
                 self.page_card.stacked_widget.setCurrentIndex(index)
+                self._update_command_bar()
                 return
 
         cache_file = self.cache_manager.project.get_file(file_path)
@@ -119,6 +158,7 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         new_index = self.page_card.tab_bar.count() - 1
         self.page_card.tab_bar.setCurrentIndex(new_index)
         self.page_card.stacked_widget.setCurrentWidget(new_tab)
+        self._update_command_bar()
 
     def on_tab_changed(self, index: int) -> None:
         if index < 0:
@@ -136,6 +176,21 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             widget_to_remove.deleteLater()
 
         self.page_card.tab_bar.removeTab(index)
+        self._update_command_bar()
+
+    def _update_command_bar(self) -> None:
+        open_tab_count = self.page_card.tab_bar.count()
+        has_project_files = self._project_file_count > 0
+
+        if has_project_files:
+            self.command_summary_label.setText(
+                self.tra("文件数: {} | 已打开标签: {}").format(self._project_file_count, open_tab_count)
+            )
+        else:
+            self.command_summary_label.setText(self.tra("浏览文件、搜索文本并执行语言检测"))
+
+        self.search_button.setEnabled(has_project_files)
+        self.start_check_button.setEnabled(has_project_files)
 
     def _open_search_dialog(self) -> None:
         dialog = SearchDialog(self.window())

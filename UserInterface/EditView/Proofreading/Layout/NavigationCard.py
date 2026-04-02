@@ -1,8 +1,8 @@
 import os
 
 from PyQt5.QtCore import QVariant, Qt
-from PyQt5.QtWidgets import QHBoxLayout, QTreeWidgetItem, QVBoxLayout, QWidget
-from qfluentwidgets import CardWidget, FluentIcon as FIF, TransparentPushButton, TreeWidget
+from PyQt5.QtWidgets import QTreeWidgetItem, QVBoxLayout
+from qfluentwidgets import CardWidget, StrongBodyLabel, TreeWidget
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -17,18 +17,9 @@ class NavigationCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.layout.setContentsMargins(10, 10, 10, 10)
         self.layout.setSpacing(8)
 
-        self.toolbar = QWidget(self)
-        self.toolbar_layout = QHBoxLayout(self.toolbar)
-        self.toolbar_layout.setContentsMargins(0, 0, 0, 0)
-        self.toolbar_layout.setSpacing(0)
-
-        self.search_button = TransparentPushButton(FIF.SEARCH, self.tra("搜索"), self.toolbar)
-        self.search_button.setFixedWidth(75)
-
-        self.toolbar_layout.addStretch(1)
-        self.toolbar_layout.addWidget(self.search_button)
-        self.toolbar_layout.addStretch(1)
-        self.layout.addWidget(self.toolbar)
+        self.title_label = StrongBodyLabel(self.tra("项目文件"), self)
+        self.title_label.setAlignment(Qt.AlignCenter)
+        self.layout.addWidget(self.title_label)
 
         self.tree = TreeWidget(self)
         self.tree.setHeaderHidden(True)
