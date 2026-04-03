@@ -101,6 +101,7 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             self.folder_path_changed("new")
 
         initial_path = config.get("label_input_path", "./input")
+        # 将 drag_card 保存为实例属性，以便后续禁用/启用
         self.drag_card = FolderDropCard(
             init=initial_path,
             path_changed=widget_callback,
@@ -118,7 +119,7 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             self.window(),
         )
         x = self.window().width() // 2 - self.stateTooltip.width() // 2
-        y = 32
+        y = 32  # 设置一个固定的顶部边距
         self.stateTooltip.move(x, y)
         self.stateTooltip.show()
 
@@ -164,7 +165,7 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             info = self.tra("项目加载成功！") + "🚀"
             self.stateTooltip.setContent(self.tra(info))
             self.stateTooltip.setState(True)
-            self.stateTooltip = None
+            self.stateTooltip = None  # 重置以便下次使用
 
         self.drag_card.setEnabled(True)
         self.continue_card.setEnabled(True)
@@ -192,7 +193,7 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             info = self.tra("加载失败...") + "😵"
             self.stateTooltip.setContent(self.tra(info))
             self.stateTooltip.setState(False)
-            self.stateTooltip = None
+            self.stateTooltip = None  # 重置以便下次使用
 
         self.drag_card.setEnabled(True)
         self.continue_card.setEnabled(True)
