@@ -15,6 +15,7 @@ from ModuleFolders.Domain.ResponseExtractor.ResponseExtractor import ResponseExt
 from ModuleFolders.Domain.ResponseChecker.ResponseChecker import ResponseChecker
 from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderPolishing import PromptBuilderPolishing
+from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 
 # 简易请求器
 class SimpleExecutor(ConfigMixin, LogMixin, Base):
@@ -443,6 +444,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
             self.emit(Base.EVENT.TABLE_UPDATE, {
                 "file_path": file_path,
                 "target_column_index": 2, # 翻译列
+                "translation_status": TranslationStatus.TRANSLATED,
                 "updated_items": final_updated_items
             })
         else:
@@ -560,7 +562,8 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
             self.info(f" 正在将 {len(final_updated_items)} 条润色结果写入表格...")
             self.emit(Base.EVENT.TABLE_UPDATE, {
                 "file_path": file_path,
-                "target_column_index": 3, # 润色列
+                "target_column_index": 2, # 译文列
+                "translation_status": TranslationStatus.POLISHED,
                 "updated_items": final_updated_items
             })
         else:

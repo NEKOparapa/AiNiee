@@ -269,8 +269,6 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             msg_box = MessageBox(title, self.tra("检查失败，请检查项目文件夹缓存是否正常"), self.window())
         elif result_code == CheckResult.ERROR_NO_TRANSLATION:
             msg_box = MessageBox(title, self.tra("检查失败，请先执行翻译流程"), self.window())
-        elif result_code == CheckResult.ERROR_NO_POLISH:
-            msg_box = MessageBox(title, self.tra("检查失败，请先执行润色流程"), self.window())
         elif result_code == CheckResult.SUCCESS_REPORT:
             msg_box = MessageBox(title, self.tra("检测完成，请查看控制台输出"), self.window())
         elif result_code == CheckResult.SUCCESS_JUDGE_PASS:

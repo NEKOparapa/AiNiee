@@ -36,7 +36,6 @@ class CacheItem(ThreadSafeCache, ExtraMixin):
     model: str = ''
     source_text: str = ''
     translated_text: str = None
-    polished_text: str = None
     text_to_detect: str = None
     """处理后的待（语言）检测文本"""
     lang_code: tuple[str, float, list[str]] | None = None
@@ -50,19 +49,16 @@ class CacheItem(ThreadSafeCache, ExtraMixin):
             self.source_text = ""
         if self.translated_text is None:
             self.translated_text = ""
-        if self.polished_text is None:
-            self.polished_text = ""
 
     @property
     def final_text(self) -> str:
         """
         获取最终文本。
         按以下优先级返回：
-        1. 润色后的文本 (polished_text)
-        2. 翻译后的文本 (translated_text)
-        3. 原文 (source_text)
+        1. 翻译/润色后的文本 (translated_text)
+        2. 原文 (source_text)
         """
-        return self.polished_text or self.translated_text or self.source_text
+        return self.translated_text or self.source_text
 
     @property
     def token_count(self) -> int:

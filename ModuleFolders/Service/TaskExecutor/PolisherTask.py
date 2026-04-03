@@ -154,7 +154,7 @@ class PolisherTask(LogMixin, Base):
             for item, response in zip(self.items, restore_response_dict.values()):
                 with item.atomic_scope():
                     item.model = self.config.model
-                    item.polished_text = response
+                    item.translated_text = response
                     item.translation_status = TranslationStatus.POLISHED
 
             self.print(

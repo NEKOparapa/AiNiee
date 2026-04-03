@@ -162,10 +162,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             converter = _create_opencc_converter(config.get('opencc_preset'))
             cache_list = self.cache_manager.project.items_iter()
             for item in cache_list:
-                if item.translation_status == TranslationStatus.TRANSLATED:
+                if item.translation_status in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
                     item.translated_text = converter.convert(item.translated_text)
-                if item.translation_status == TranslationStatus.POLISHED:
-                    item.polished_text = converter.convert(item.polished_text)
             self.print("")
             self.info(f"简繁转换完成。")
             self.print("")
@@ -414,10 +412,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             converter = _create_opencc_converter(self.config.opencc_preset)
             cache_list = self.cache_manager.project.items_iter()
             for item in cache_list:
-                if item.translation_status == TranslationStatus.TRANSLATED:
+                if item.translation_status in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
                     item.translated_text = converter.convert(item.translated_text)
-                if item.translation_status == TranslationStatus.POLISHED:
-                    item.polished_text = converter.convert(item.polished_text)
 
         # 输出配置包
         output_config = {
