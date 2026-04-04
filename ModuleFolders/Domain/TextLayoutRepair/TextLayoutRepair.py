@@ -1,45 +1,29 @@
 import re
 
-from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
-from ModuleFolders.Service.Cache.CacheProject import CacheProject
-
-from ..PluginBase import PluginBase
+from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 
 
-class TextLayoutRepairPlugin(PluginBase):
-    def __init__(self):
-        super().__init__()
-        self.name = "TextLayoutRepairPlugin"
-        self.description = ("文本排版修复插件"
-                            + "\n"
-                            + "根据原文恢复译文中改变的标点符号和排版格式"
-                            + "\n"
-                            + "只适合日语;仅支持翻译流程"
-                            )
+class TextLayoutRepair:
+    def repair_response_dict(self, config: TaskConfig, response_dict: dict[str, str]) -> dict[str, str]:
+        if self._is_enabled(config) == False:
+            return response_dict
 
-        self.visibility = True  # 是否在插件设置中显示
-        self.default_enable = False  # 默认启用状态
+        return response_dict.copy()
 
-        self.add_event("postprocess_text", PluginBase.PRIORITY.LOWEST)  # 添加感兴趣的事件和优先级
-        self.add_event("manual_export", PluginBase.PRIORITY.LOWEST)
+    def repair_text(self, config: TaskConfig, original_text: str, translated_text: str) -> str:
+        if self._is_enabled(config) == False:
+            return translated_text
 
-    def load(self):
-        pass
+        return self.fix_typography(original_text, translated_text)
 
-    def on_event(self, event_name, config, event_data: CacheProject):
-        if event_name in ("manual_export", "postprocess_text"):
-            self.process_dictionary_list(event_data)
+    def _is_enabled(self, config: TaskConfig) -> bool:
+        current_switch = getattr(config, "text_layout_repair_switch", None)
+        if current_switch is not None:
+            return current_switch
 
-    def process_dictionary_list(self, cache_list: CacheProject):
-        for entry in cache_list.items_iter():
-
-            source_text = entry.source_text
-            translated_text = entry.translated_text
-            translation_status = entry.translation_status
-
-            if translation_status == TranslationStatus.TRANSLATED:
-                entry.translated_text = self.fix_typography(source_text, translated_text)
-
+        plugins_enable = getattr(config, "plugins_enable", {})
+        plugins_enable = plugins_enable if isinstance(plugins_enable, dict) else {}
+        return plugins_enable.get("TextLayoutRepairPlugin", False)
 
 
     def fix_typography(self, original_text: str, translated_text: str) -> str:
@@ -72,7 +56,7 @@ class TextLayoutRepairPlugin(PluginBase):
 
         # 平常内容是:说话文本
         # 或者是:说话文本+其他文本
-        # 或者是:其他文本+说话文本       
+        # 或者是:其他文本+说话文本
         # 但有些内容是:说话文本+说话文本+说话文本
         # 也有些内容是:说话文本+其他文本+说话文本
         # 也有些内容是:其他文本+说话文本+其他文本
@@ -99,8 +83,8 @@ class TextLayoutRepairPlugin(PluginBase):
         boundary_punctuation_pairs = [
             ('「', '」', ['“', '‘', '"'], ['”', '’', '"']),
             ('『', '』', ['“', '‘', '"'], ['”', '’', '"']),
-            ('“', '”', ['‘','「', '"'], ['’','」', '"']),
-            ('‘', '’', ['“', '「','"'], ['”','」', '"']),
+            ('“', '”', ['‘', '「', '"'], ['’', '」', '"']),
+            ('‘', '’', ['“', '「', '"'], ['”', '」', '"']),
             # 可以添加更多首尾标点对，例如 ('(', ')', ['（'], ['）']) 等
         ]
 
@@ -142,7 +126,7 @@ class TextLayoutRepairPlugin(PluginBase):
         # 4. 条件判断：
         #    - 原文中「 和 」数量相等且大于0
         #    - 译文中 " 数量是偶数且大于0
-        #    - 原文中的对数 == 译文中的对数 
+        #    - 原文中的对数 == 译文中的对数
         if ((orig_start_count > 0 and orig_start_count == orig_end_count) and (trans_quote_count > 0 and trans_quote_count % 2 == 0) and (orig_start_count == trans_quote_count // 2)):
 
             # 5. 执行替换：从左到右，依次将 " 替换为 「 和 」
@@ -151,7 +135,7 @@ class TextLayoutRepairPlugin(PluginBase):
 
             open_quote = True # 标记下一个应该是开引号还是闭引号
             replacements_done = 0
-            
+
             # 确保找到的引号数量和预期一致
             if len(quote_indices) == trans_quote_count:
 
@@ -188,16 +172,16 @@ class TextLayoutRepairPlugin(PluginBase):
         # 将处理过的核心文本与原文的前后空白结合
         result = leading_whitespace + translated_stripped + trailing_whitespace
         return result
-    
+
 
     # 处理多行文本的双引号问题，有些AI会在多行文本时，将每一行当作一句话进行翻译，导致每一行都加上了双引号
-    def check_and_adjust_quotes(self,original, translation):
+    def check_and_adjust_quotes(self, original, translation):
         # 分割原文和译文为行
         original_lines = original.split("\n")
         translation_lines = translation.split("\n")
 
         # 检查行数一致
-        if  len(original_lines) !=len(translation_lines):
+        if  len(original_lines) != len(translation_lines):
             return original, translation
 
         modified_translation = []
@@ -225,3 +209,4 @@ class TextLayoutRepairPlugin(PluginBase):
         # 重建译文文本
         adjusted_translation = '\n'.join(modified_translation)
         return original, adjusted_translation
+

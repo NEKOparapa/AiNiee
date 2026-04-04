@@ -17,12 +17,20 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
+        config = self.load_config()
+        text_layout_repair_switch = config.get("text_layout_repair_switch")
+        if text_layout_repair_switch is None:
+            plugins_enable = config.get("plugins_enable")
+            plugins_enable = plugins_enable if isinstance(plugins_enable, dict) else {}
+            text_layout_repair_switch = plugins_enable.get("TextLayoutRepairPlugin", False)
+
         # 默认配置
         self.default = {
             "label_output_path": "./output",
             "auto_set_output_path": True,
-            "output_filename_suffix": "_translated", 
-            "bilingual_text_order": "translation_first", 
+            "output_filename_suffix": "_translated",
+            "bilingual_text_order": "translation_first",
+            "text_layout_repair_switch": text_layout_repair_switch,
             "response_conversion_toggle": False,
             "opencc_preset": "s2t",
             "keep_original_encoding": False,
@@ -44,6 +52,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         self.add_widget_bilingual_text_order(self.container, config)
         self.add_widget_encoding(self.container, config)
         self.container.addWidget(HorizontalSeparator())
+        self.add_widget_text_layout_repair(self.container, config)
         self.add_widget_opencc(self.container, config)
         self.add_widget_opencc_preset(self.container, config)
         # 填充
@@ -52,7 +61,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
     # 翻译输出文件夹
     def add_widget_translation_output_path(self, parent, config) -> None:
         def widget_init(widget):
-            info_cont = self.tra("当前输出文件夹为") + f" {config.get("label_output_path")}"
+            info_cont = self.tra("当前输出文件夹为") + f" {config.get('label_output_path')}"
             widget.set_description(info_cont)
             widget.set_text(self.tra("选择文件夹"))
             widget.set_icon(FluentIcon.FOLDER_ADD)
@@ -131,6 +140,25 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
                 self.tra("保持输入输出文件编码一致"),
                 self.tra("启用此功能后，输出译文文件的编码将保持为与输入原文文件的编码一致（若字符不兼容，仍会使用utf-8），"
                          "关闭后将始终使用 utf-8 编码（无特殊情况保持关闭即可）"),
+                widget_init,
+                widget_callback,
+            )
+        )
+
+    # 自动修复文本排版
+    def add_widget_text_layout_repair(self, parent, config) -> None:
+        def widget_init(widget) -> None:
+            widget.set_checked(config.get("text_layout_repair_switch"))
+
+        def widget_callback(widget, checked: bool) -> None:
+            config = self.load_config()
+            config["text_layout_repair_switch"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("自动修复文本排版"),
+                self.tra("启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和排版格式，仅对内置 TextLayoutRepair 生效，适合日语翻译流程。"),
                 widget_init,
                 widget_callback,
             )

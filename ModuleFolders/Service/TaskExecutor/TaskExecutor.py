@@ -151,9 +151,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         output_path = data.get("export_path")
         inpput_path = config.get("label_input_path")
 
-        # 触发手动导出插件事件
-        self.plugin_manager.broadcast_event("manual_export", config, self.cache_manager.project)
-
         # 如果开启了转换简繁开关功能，则进行文本转换
         if config.get("response_conversion_toggle"):  # 使用 .get()
             self.print("")
@@ -349,7 +346,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             self.info(f"原文语言 - {self.config.source_language}")
             self.info(f"译文语言 - {self.config.target_language}")
             self.print("")
-            self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get("name", "未知")}")
+            self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get('name', '未知')}")
             self.info(f"接口地址 - {self.config.base_url}")
             self.info(f"模型名称 - {self.config.model}")
             self.print("")
@@ -399,9 +396,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
         # 等待可能存在的缓存文件写入请求处理完毕
         time.sleep(CacheManager.SAVE_INTERVAL)
-
-        # 触发插件事件
-        self.plugin_manager.broadcast_event("postprocess_text", self.config, self.cache_manager.project)
 
         # 如果开启了转换简繁开关功能，则进行文本转换
         if self.config.response_conversion_toggle:
@@ -538,7 +532,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             self.info(f"最大轮次 - {self.config.round_limit}")
             self.info(f"项目类型 - {self.config.translation_project}")
             self.print("")
-            self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get("name", "未知")}")
+            self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get('name', '未知')}")
             self.info(f"接口地址 - {self.config.base_url}")
             self.info(f"模型名称 - {self.config.model}")
             self.print("")

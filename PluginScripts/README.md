@@ -82,7 +82,7 @@ class PluginBase:
    在 `on_event` 方法内部，根据事件名称执行相应的逻辑。
 
 ## 示例代码
-以下是一个简单的插件示例，它继承自 `PluginBase` 并监听了 `manual_export` 、 `preproces_text` 、 `postprocess_text` 事件：
+以下是一个简单的插件示例，它继承自 `PluginBase` 并监听了 `preproces_text` 、 `translation_completed` 、 `polish_completed` 事件：
 ```python
 from Plugin_Scripts.PluginBase import PluginBase
 
@@ -96,23 +96,30 @@ class ExamplePlugin(PluginBase):
         self.visibility = True          # 是否在插件设置中显示
         self.default_enable = False     # 默认启用状态
 
-        self.add_event("manual_export", PluginBase.PRIORITY.NORMAL)
         self.add_event("preproces_text", PluginBase.PRIORITY.NORMAL)
-        self.add_event("postprocess_text", PluginBase.PRIORITY.NORMAL)
+        self.add_event("translation_completed", PluginBase.PRIORITY.NORMAL)
+        self.add_event("polish_completed", PluginBase.PRIORITY.NORMAL)
 
     def on_event(self, event: str, config: TranslatorConfig, event_data: list[dict]) -> None:
         if event == "preproces_text":
             self.on_preproces_text(event, config, event_data)
 
-        if event in ("manual_export", "postprocess_text"):
-            self.on_postprocess_text(event, config, event_data)
+        if event == "translation_completed":
+            self.on_translation_completed(event, config, event_data)
+
+        if event == "polish_completed":
+            self.on_polish_completed(event, config, event_data)
 
     # 文本预处理事件
     def on_preproces_text(self, event: str, config: TranslatorConfig, event_data: list[dict]) -> None:
         pass
 
-    # 文本后处理事件
-    def on_postprocess_text(self, event: str, config: TranslatorConfig, event_data: list[dict]) -> None:
+    # 翻译完成事件
+    def on_translation_completed(self, event: str, config: TranslatorConfig, event_data: list[dict]) -> None:
+        pass
+
+    # 润色完成事件
+    def on_polish_completed(self, event: str, config: TranslatorConfig, event_data: list[dict]) -> None:
         pass
 ```
 
@@ -158,36 +165,6 @@ class ExamplePlugin(PluginBase):
     ```
 
 
-### 文本后处理事件：postprocess_text
-
-1. **触发位置**
-
-    翻译完成，翻译文件输出前。
-
-2. **传入参数**
-
-    | 参数名 | 类型 | 描述 |
-    | ------ | ---- | ---- |
-    | event_name | string | postprocess_text |
-    | config | TranslatorConfig | 全局类，包含了在整个应用范围内共享的的配置信息 |
-    | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
-
-
-### 手动导出事件：manual_export
-
-1. **触发位置**
-
-    用户使用“手动导出翻译文件功能”，在翻译文件导出前触发。
-
-2. **传入参数**
-
-    | 参数名 | 类型 | 描述 |
-    | ------ | ---- | ---- |
-    | event_name | string | manual_export |
-    | config | TranslatorConfig | 全局类，包含了在整个应用范围内共享的的配置信息 |
-    | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
-
-
 ### 翻译完成事件：translation_completed
 
 1. **触发位置**
@@ -199,6 +176,21 @@ class ExamplePlugin(PluginBase):
     | 参数名 | 类型 | 描述 |
     | ------ | ---- | ---- |
     | event_name | string | translation_completed |
+    | config | TranslatorConfig | 全局类，包含了在整个应用范围内共享的的配置信息 |
+    | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
+
+
+### 润色完成事件：polish_completed
+
+1. **触发位置**
+
+    润色完成，写出润色文件后，任务即将退出前。
+
+2. **传入参数**
+
+    | 参数名 | 类型 | 描述 |
+    | ------ | ---- | ---- |
+    | event_name | string | polish_completed |
     | config | TranslatorConfig | 全局类，包含了在整个应用范围内共享的的配置信息 |
     | event_data | list | 全局缓存文本数据，格式与导出的缓存文件一致 |
 
