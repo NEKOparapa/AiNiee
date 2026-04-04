@@ -26,6 +26,11 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
             plugins_enable = config.get("plugins_enable")
             plugins_enable = plugins_enable if isinstance(plugins_enable, dict) else {}
             text_symbol_repair_switch = plugins_enable.get("TextLayoutRepairPlugin", False)
+        translation_result_check_switch = config.get("translation_result_check_switch")
+        if translation_result_check_switch is None:
+            plugins_enable = config.get("plugins_enable")
+            plugins_enable = plugins_enable if isinstance(plugins_enable, dict) else {}
+            translation_result_check_switch = plugins_enable.get("TranslationCheckPlugin", False)
 
         # 默认配置
         self.default = {
@@ -33,6 +38,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
             "auto_set_output_path": True,
             "output_filename_suffix": "_translated",
             "bilingual_text_order": "translation_first",
+            "translation_result_check_switch": translation_result_check_switch,
             "text_symbol_repair_switch": text_symbol_repair_switch,
             "response_conversion_toggle": False,
             "opencc_preset": "s2t",
@@ -68,6 +74,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         self.add_widget_bilingual_text_order(self.vbox, config)
         self.add_widget_encoding(self.vbox, config)
         self.vbox.addWidget(HorizontalSeparator())
+        self.add_widget_translation_result_check(self.vbox, config)
         self.add_widget_text_symbol_repair(self.vbox, config)
         self.add_widget_opencc(self.vbox, config)
         self.add_widget_opencc_preset(self.vbox, config)
@@ -156,6 +163,25 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
                 self.tra("保持输入输出文件编码一致"),
                 self.tra("启用此功能后，输出译文文件的编码将保持为与输入原文文件的编码一致（若字符不兼容，仍会使用utf-8），"
                          "关闭后将始终使用 utf-8 编码（无特殊情况保持关闭即可）"),
+                widget_init,
+                widget_callback,
+            )
+        )
+
+    # 翻译结果检查
+    def add_widget_translation_result_check(self, parent, config) -> None:
+        def widget_init(widget) -> None:
+            widget.set_checked(config.get("translation_result_check_switch"))
+
+        def widget_callback(widget, checked: bool) -> None:
+            config = self.load_config()
+            config["translation_result_check_switch"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("翻译结果检查"),
+                self.tra("启用后，将在翻译任务完成并输出文件后执行翻译结果检查，输出检查总结，并在发现问题时生成 JSON 错误报告"),
                 widget_init,
                 widget_callback,
             )

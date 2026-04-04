@@ -5,23 +5,16 @@ import time
 
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Service.Cache.CacheProject import CacheProject
-from ..PluginBase import PluginBase
 
-class TranslationCheckPlugin(PluginBase):
-    def __init__(self):
-        super().__init__()
-        self.name = "TranslationCheckPlugin"
-        self.description = "翻译流程检查插件，用于翻译结果与功能运行评估，包括术语表、禁翻表、换行符和自动处理等。\n错误信息文件将输出到 output 文件夹。"
-        self.visibility = True
-        self.default_enable = False
-        self.add_event("translation_completed", PluginBase.PRIORITY.LOWEST)
+class TranslationResultCheck:
+    def is_enabled(self, config) -> bool:
+        current_switch = getattr(config, "translation_result_check_switch", None)
+        if current_switch is not None:
+            return current_switch
 
-    def load(self):
-        pass
-
-    def on_event(self, event_name, config, event_data: CacheProject):
-        if event_name == "translation_completed":
-            self.check_cache(config, event_data)
+        plugins_enable = getattr(config, "plugins_enable", {})
+        plugins_enable = plugins_enable if isinstance(plugins_enable, dict) else {}
+        return plugins_enable.get("TranslationCheckPlugin", False)
 
     def prepare_regex_patterns(self, exclusion_list_data):
         """准备所有需要使用的正则表达式模式"""
@@ -36,9 +29,9 @@ class TranslationCheckPlugin(PluginBase):
                     file_patterns = [item["regex"] for item in data if isinstance(item, dict) and "regex" in item]
                     patterns.extend(file_patterns)
             except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
-                print(f"[WARNING][TranslationCheckPlugin] 加载正则文件 '{regex_file_path}' 失败: {e}")
+                print(f"[WARNING][TranslationResultCheck] 加载正则文件 '{regex_file_path}' 失败: {e}")
         else:
-             print(f"[WARNING][TranslationCheckPlugin] 正则文件未找到: '{regex_file_path}'")
+             print(f"[WARNING][TranslationResultCheck] 正则文件未找到: '{regex_file_path}'")
 
 
         # 合并禁翻表数据
@@ -51,7 +44,7 @@ class TranslationCheckPlugin(PluginBase):
                             re.compile(regex) # 尝试编译，验证正则有效性
                             exclusion_patterns.append(regex)
                         except re.error as e:
-                            print(f"[WARNING][TranslationCheckPlugin] 禁翻表中的无效正则表达式: '{regex}', 错误: {e}")
+                            print(f"[WARNING][TranslationResultCheck] 禁翻表中的无效正则表达式: '{regex}', 错误: {e}")
                     elif markers := item.get("markers"): # 使用 markers 字段
                         exclusion_patterns.append(re.escape(markers)) # 转义 markers 并添加
             patterns.extend(exclusion_patterns)
@@ -138,7 +131,7 @@ class TranslationCheckPlugin(PluginBase):
             print("\n".join(project_report)) # 项目报告直接输出到控制台
             project_report_logged = True # 标记已输出
         else:
-            print("[WARNING][TranslationCheckPlugin] 项目报告条目缺少有效的 'start_time'。")
+            print("[WARNING][TranslationResultCheck] 项目报告条目缺少有效的 'start_time'。")
 
         # 再处理文本检查条目
         for file in cache_data.files.values():
@@ -263,12 +256,12 @@ class TranslationCheckPlugin(PluginBase):
             try:
                 with open(json_error_filepath, 'w', encoding='utf-8') as json_file:
                     json.dump(error_entries, json_file, indent=4, ensure_ascii=False) # 缩进和中文支持
-                print(f"[INFO][TranslationCheckPlugin] {len(error_entries)} 个错误条目的详细信息已保存到: {json_error_filepath}")
+                print(f"[INFO][TranslationResultCheck] {len(error_entries)} 个错误条目的详细信息已保存到: {json_error_filepath}")
             except IOError as e:
-                print(f"[ERROR][TranslationCheckPlugin] 无法写入错误日志文件 '{json_error_filepath}': {e}")
+                print(f"[ERROR][TranslationResultCheck] 无法写入错误日志文件 '{json_error_filepath}': {e}")
 
         elif total_error_count == 0 and any(cache_data.items_iter()):  # 上面遍历了所有items，所以只要items不为空就能确保有文本条目被检查过
-            print("[INFO][TranslationCheckPlugin] 所有已检查条目均无错误，未生成错误日志文件。")
+            print("[INFO][TranslationResultCheck] 所有已检查条目均无错误，未生成错误日志文件。")
         # 如果没有文本条目被检查，则不输出此信息
 
 
@@ -509,4 +502,3 @@ class TranslationCheckPlugin(PluginBase):
             error_msg = f"🔢[示例文本复读] 译文中出现示例文本复读问题，未能正确翻译（示例：{re.findall(pattern, translated_text)[0]}）"
             errors.append(error_msg)
         return errors
-

@@ -57,6 +57,7 @@ from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEn
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
 from ModuleFolders.Domain.TextFilter.TextFilter import TextFilter
+from ModuleFolders.Domain.TranslationResultCheck.TranslationResultCheck import TranslationResultCheck
 from ModuleFolders.Infrastructure.LLMRequester.LLMClientFactory import LLMClientFactory
 from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Service.TaskExecutor.TranslatorUtil import get_source_language_for_file
@@ -75,6 +76,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         self.file_writer = file_writer
         self.config = TaskConfig()
         self.text_filter = TextFilter()
+        self.translation_result_check = TranslationResultCheck()
         self.request_limiter = RequestLimiter()
         self._executor_lock = threading.RLock()
         self._active_executor = None
@@ -433,6 +435,10 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
         # 触发翻译停止完成的事件
         self.emit(Base.EVENT.TASK_STOP_DONE, {})
+
+        if self.translation_result_check.is_enabled(self.config):
+            self.translation_result_check.check_cache(self.config, self.cache_manager.project)
+
         self.plugin_manager.broadcast_event("translation_completed", self.config, self.cache_manager.project)
 
         # 触发翻译完成事件
