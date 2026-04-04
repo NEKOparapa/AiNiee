@@ -66,11 +66,10 @@ from ModuleFolders.Service.TaskExecutor.TranslatorUtil import get_source_languag
 # 翻译器
 class TaskExecutor(ConfigMixin, LogMixin, Base):
 
-    def __init__(self, plugin_manager,cache_manager, file_reader, file_writer) -> None:
+    def __init__(self, cache_manager, file_reader, file_writer) -> None:
         super().__init__()
 
         # 初始化
-        self.plugin_manager = plugin_manager
         self.cache_manager = cache_manager
         self.file_reader = file_reader
         self.file_writer = file_writer
@@ -439,7 +438,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         if self.translation_result_check.is_enabled(self.config):
             self.translation_result_check.check_cache(self.config, self.cache_manager.project)
 
-        self.plugin_manager.broadcast_event("translation_completed", self.config, self.cache_manager.project)
 
         # 触发翻译完成事件
         self.emit(Base.EVENT.TASK_COMPLETED, {})
@@ -524,7 +522,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             print("")
             self.info(f"正在生成润色任务 ...")
             for chunk, previous_chunk, file_path in tqdm(zip(chunks, previous_chunks, file_paths),desc="生成润色任务", total=len(chunks)):
-                task = PolisherTask(self.config, self.plugin_manager, self.request_limiter)  # 实例化
+                task = PolisherTask(self.config, self.request_limiter)  # 实例化
                 task.set_items(chunk)  # 传入该任务待润色文
                 task.set_previous_items(previous_chunk)  # 传入该任务待润色文的上文
                 task.prepare()  # 预先构建消息列表
@@ -607,7 +605,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
         # 触发事件
         self.emit(Base.EVENT.TASK_STOP_DONE, {})     # 翻译停止完成的事件
-        self.plugin_manager.broadcast_event("polish_completed", self.config, self.cache_manager.project)
         self.emit(Base.EVENT.TASK_COMPLETED, {})     # 翻译完成事件
 
 

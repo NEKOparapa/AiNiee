@@ -8,13 +8,7 @@ from ModuleFolders.Service.Cache.CacheProject import CacheProject
 
 class TranslationResultCheck:
     def is_enabled(self, config) -> bool:
-        current_switch = getattr(config, "translation_result_check_switch", None)
-        if current_switch is not None:
-            return current_switch
-
-        plugins_enable = getattr(config, "plugins_enable", {})
-        plugins_enable = plugins_enable if isinstance(plugins_enable, dict) else {}
-        return plugins_enable.get("TranslationCheckPlugin", False)
+        return bool(getattr(config, "translation_result_check_switch", False))
 
     def prepare_regex_patterns(self, exclusion_list_data):
         """准备所有需要使用的正则表达式模式"""

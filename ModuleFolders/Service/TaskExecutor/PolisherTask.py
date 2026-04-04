@@ -9,7 +9,6 @@ from rich.table import Table
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Log.Log import LogMixin
-from ModuleFolders.Infrastructure.Plugin.PluginManager import PluginManager
 from ModuleFolders.Service.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Infrastructure.LLMRequester.LLMRequester import LLMRequester
@@ -23,11 +22,10 @@ from ModuleFolders.Domain.TextProcessor.PolishTextProcessor import PolishTextPro
 
 class PolisherTask(LogMixin, Base):
 
-    def __init__(self, config: TaskConfig, plugin_manager: PluginManager, request_limiter: RequestLimiter) -> None:
+    def __init__(self, config: TaskConfig, request_limiter: RequestLimiter) -> None:
         super().__init__()
 
         self.config = config
-        self.plugin_manager = plugin_manager
         self.request_limiter = request_limiter
         self.text_processor = PolishTextProcessor(self.config)
 

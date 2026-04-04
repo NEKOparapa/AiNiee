@@ -29,7 +29,6 @@ from UserInterface.Platform.PlatformPage import PlatformPage
 from UserInterface.EditView.EditViewPage import EditViewPage
 
 from UserInterface.Settings.TaskSettingsPage import TaskSettingsPage
-from UserInterface.Settings.PluginsSettingsPage import PluginsSettingsPage
 from UserInterface.Settings.OutputSettingsPage import OutputSettingsPage
 
 from UserInterface.TranslationSettings.TranslationSettingsPage import TranslationSettingsPage
@@ -75,7 +74,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
     APP_HEIGHT = 900
     THEME_COLOR = "#808b9d"
 
-    def __init__(self, version: str, plugin_manager, cache_manager, file_reader) -> None:
+    def __init__(self, version: str, cache_manager, file_reader) -> None:
         super().__init__()
 
         # 启动后台线程发送日活统计，不阻塞 UI
@@ -154,7 +153,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
         self.navigationInterface.panel.setReturnButtonVisible(False)
 
         # 添加页面
-        self.add_pages(plugin_manager, cache_manager, file_reader)
+        self.add_pages(cache_manager, file_reader)
 
     # 窗口关闭函数
     def closeEvent(self, event) -> None:
@@ -228,26 +227,26 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
             )
 
     # 开始添加页面
-    def add_pages(self, plugin_manager, cache_manager, file_reader) -> None:
+    def add_pages(self, cache_manager, file_reader) -> None:
         # ===== 快速开始 =====
         self.navigationInterface.addItemHeader(self.tra("快速开始"), NavigationItemPosition.SCROLL)
-        self.add_project_pages(plugin_manager, cache_manager, file_reader)
+        self.add_project_pages(cache_manager, file_reader)
 
         # ===== 任务配置 =====
         self.navigationInterface.addItemHeader(self.tra("任务配置"), NavigationItemPosition.SCROLL)
-        self.add_task_setting_pages(plugin_manager)
+        self.add_task_setting_pages()
 
         # ===== 高级设置 =====
         self.navigationInterface.addItemHeader(self.tra("高级设置"), NavigationItemPosition.SCROLL)
-        self.add_settings_pages(plugin_manager)
+        self.add_settings_pages()
 
         # ===== 提示词管理 =====
         self.navigationInterface.addItemHeader(self.tra("提示词管理"), NavigationItemPosition.SCROLL)
-        self.add_prompt_setting_pages(plugin_manager)
+        self.add_prompt_setting_pages()
 
         # ===== 数据表格 =====
         self.navigationInterface.addItemHeader(self.tra("数据表格"), NavigationItemPosition.SCROLL)
-        self.add_table_pages(plugin_manager)
+        self.add_table_pages()
 
         # 设置默认页面
         self.switchTo(self.edit_view_page)
@@ -279,31 +278,28 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
         )
 
     # 添加快速开始
-    def add_project_pages(self, plugin_manager, cache_manager, file_reader) -> None:
+    def add_project_pages(self, cache_manager, file_reader) -> None:
         self.platform_page = PlatformPage("platform_page", self)
         self.addSubInterface(self.platform_page, FluentIcon.IOT, self.tra("接口管理"), NavigationItemPosition.SCROLL)
 
-        self.edit_view_page = EditViewPage("edit_view_page", self, plugin_manager, cache_manager, file_reader)
+        self.edit_view_page = EditViewPage("edit_view_page", self, cache_manager, file_reader)
         self.addSubInterface(self.edit_view_page, FluentIcon.PLAY, self.tra("开始翻译"), NavigationItemPosition.SCROLL)
 
     # 添加项目设置
-    def add_task_setting_pages(self, plugin_manager) -> None:
+    def add_task_setting_pages(self) -> None:
         self.task_settings_page = TaskSettingsPage("task_settings_page", self)
         self.addSubInterface(self.task_settings_page, FluentIcon.ZOOM, self.tra("任务设置"), NavigationItemPosition.SCROLL)
         self.output_settings_page = OutputSettingsPage("output_settings_page", self)
         self.addSubInterface(self.output_settings_page, FluentIcon.ALBUM, self.tra("输出设置"), NavigationItemPosition.SCROLL)
 
     # 添加翻译设置
-    def add_settings_pages(self, plugin_manager) -> None:
+    def add_settings_pages(self) -> None:
         self.TranslationSettings = TranslationSettingsPage("TranslationSettings", self)
         self.addSubInterface(self.TranslationSettings, FluentIcon.EXPRESSIVE_INPUT_ENTRY, self.tra("翻译设置"), NavigationItemPosition.SCROLL)
 
 
-        self.plugins_settings_page = PluginsSettingsPage("plugins_settings_page", self, plugin_manager)
-        self.addSubInterface(self.plugins_settings_page, FluentIcon.APPLICATION, self.tra("插件设置"), NavigationItemPosition.SCROLL)
-
     # 添加提示词设置
-    def add_prompt_setting_pages(self, plugin_manager) -> None:
+    def add_prompt_setting_pages(self) -> None:
         self.prompt_optimization_navigation_item = BaseNavigationItem("prompt_optimization_navigation_item", self)
         self.addSubInterface(self.prompt_optimization_navigation_item, FluentIcon.BOOK_SHELF, self.tra("翻译提示词"), NavigationItemPosition.SCROLL)
         self.system_prompt_page = SystemPromptPage("system_prompt_page", self)
@@ -319,7 +315,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
         self.addSubInterface(self.polishing_example_prompt_page, FluentIcon.FIT_PAGE, self.tra("润色示例"), parent=self.polishing_prompt_navigation)
 
     # 添加表格设置
-    def add_table_pages(self, plugin_manager) -> None:
+    def add_table_pages(self) -> None:
         self.prompt_dictionary_page = PromptDictionaryPage("prompt_dictionary_page", self)
         self.addSubInterface(self.prompt_dictionary_page, FluentIcon.DICTIONARY, self.tra("术语表"), NavigationItemPosition.SCROLL)
         self.exclusion_list_page = ExclusionListPage("exclusion_list_page", self)

@@ -17,15 +17,7 @@ class TextSymbolRepair:
         return self.repair_text_symbols(original_text, translated_text)
 
     def _is_enabled(self, config: TaskConfig) -> bool:
-        current_switch = getattr(config, 'text_symbol_repair_switch', None)
-        if current_switch is None:
-            current_switch = getattr(config, 'text_layout_repair_switch', None)
-        if current_switch is not None:
-            return current_switch
-
-        plugins_enable = getattr(config, "plugins_enable", {})
-        plugins_enable = plugins_enable if isinstance(plugins_enable, dict) else {}
-        return plugins_enable.get("TextLayoutRepairPlugin", False)
+        return bool(getattr(config, 'text_symbol_repair_switch', False))
 
 
     def repair_text_symbols(self, original_text: str, translated_text: str) -> str:
@@ -211,4 +203,3 @@ class TextSymbolRepair:
         # 重建译文文本
         adjusted_translation = '\n'.join(modified_translation)
         return original, adjusted_translation
-

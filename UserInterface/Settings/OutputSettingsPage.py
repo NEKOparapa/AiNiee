@@ -9,7 +9,6 @@ from ModuleFolders.Config.Config import ConfigMixin
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.PushButtonCard import PushButtonCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
-from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.LineEditCard import LineEditCard
 
 class OutputSettingsPage(QFrame, ConfigMixin, Base):
@@ -19,18 +18,8 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         self.setObjectName(text.replace(" ", "-"))
 
         config = self.load_config()
-        text_symbol_repair_switch = config.get("text_symbol_repair_switch")
-        if text_symbol_repair_switch is None:
-            text_symbol_repair_switch = config.get("text_layout_repair_switch")
-        if text_symbol_repair_switch is None:
-            plugins_enable = config.get("plugins_enable")
-            plugins_enable = plugins_enable if isinstance(plugins_enable, dict) else {}
-            text_symbol_repair_switch = plugins_enable.get("TextLayoutRepairPlugin", False)
-        translation_result_check_switch = config.get("translation_result_check_switch")
-        if translation_result_check_switch is None:
-            plugins_enable = config.get("plugins_enable")
-            plugins_enable = plugins_enable if isinstance(plugins_enable, dict) else {}
-            translation_result_check_switch = plugins_enable.get("TranslationCheckPlugin", False)
+        text_symbol_repair_switch = config.get("text_symbol_repair_switch", False)
+        translation_result_check_switch = config.get("translation_result_check_switch", False)
 
         # 默认配置
         self.default = {

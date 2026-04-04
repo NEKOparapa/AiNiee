@@ -80,14 +80,12 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
     ROUTE_TRANSLATION = "translation"
     ROUTE_PROOFREADING = "proofreading"
 
-    def __init__(self, text: str, window, plugin_manager, cache_manager, file_reader) -> None:
+    def __init__(self, text: str, window, cache_manager, file_reader) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
         self.cache_manager = cache_manager
         self.file_reader = file_reader
-        self.plugin_manager = plugin_manager
-
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
