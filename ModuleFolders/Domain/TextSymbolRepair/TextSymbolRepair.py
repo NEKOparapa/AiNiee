@@ -3,7 +3,7 @@ import re
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 
 
-class TextLayoutRepair:
+class TextSymbolRepair:
     def repair_response_dict(self, config: TaskConfig, response_dict: dict[str, str]) -> dict[str, str]:
         if self._is_enabled(config) == False:
             return response_dict
@@ -14,10 +14,12 @@ class TextLayoutRepair:
         if self._is_enabled(config) == False:
             return translated_text
 
-        return self.fix_typography(original_text, translated_text)
+        return self.repair_text_symbols(original_text, translated_text)
 
     def _is_enabled(self, config: TaskConfig) -> bool:
-        current_switch = getattr(config, "text_layout_repair_switch", None)
+        current_switch = getattr(config, 'text_symbol_repair_switch', None)
+        if current_switch is None:
+            current_switch = getattr(config, 'text_layout_repair_switch', None)
         if current_switch is not None:
             return current_switch
 
@@ -26,16 +28,16 @@ class TextLayoutRepair:
         return plugins_enable.get("TextLayoutRepairPlugin", False)
 
 
-    def fix_typography(self, original_text: str, translated_text: str) -> str:
+    def repair_text_symbols(self, original_text: str, translated_text: str) -> str:
         """
-        修复译文的排版，分阶段处理首尾和内部标点。
+        修复译文中的文本符号，分阶段处理首尾和内部标点。
 
         Args:
             original_text: 原始文本字符串。
             translated_text: 需要修复排版的译文文本字符串。
 
         Returns:
-            修复排版后的译文文本字符串。
+            修复文本符号后的译文文本字符串。
         """
         if not isinstance(original_text, str) or not isinstance(translated_text, str):
             return translated_text

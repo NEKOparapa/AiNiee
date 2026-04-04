@@ -1,7 +1,8 @@
-
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QFileDialog, QFrame
+from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
-from qfluentwidgets import FluentIcon, HorizontalSeparator
+from qfluentwidgets import FluentIcon, HorizontalSeparator, SingleDirectionScrollArea
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -18,11 +19,13 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         self.setObjectName(text.replace(" ", "-"))
 
         config = self.load_config()
-        text_layout_repair_switch = config.get("text_layout_repair_switch")
-        if text_layout_repair_switch is None:
+        text_symbol_repair_switch = config.get("text_symbol_repair_switch")
+        if text_symbol_repair_switch is None:
+            text_symbol_repair_switch = config.get("text_layout_repair_switch")
+        if text_symbol_repair_switch is None:
             plugins_enable = config.get("plugins_enable")
             plugins_enable = plugins_enable if isinstance(plugins_enable, dict) else {}
-            text_layout_repair_switch = plugins_enable.get("TextLayoutRepairPlugin", False)
+            text_symbol_repair_switch = plugins_enable.get("TextLayoutRepairPlugin", False)
 
         # 默认配置
         self.default = {
@@ -30,7 +33,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
             "auto_set_output_path": True,
             "output_filename_suffix": "_translated",
             "bilingual_text_order": "translation_first",
-            "text_layout_repair_switch": text_layout_repair_switch,
+            "text_symbol_repair_switch": text_symbol_repair_switch,
             "response_conversion_toggle": False,
             "opencc_preset": "s2t",
             "keep_original_encoding": False,
@@ -41,22 +44,35 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
 
         # 设置主容器
         self.container = QVBoxLayout(self)
-        self.container.setSpacing(8)
-        self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
+        self.container.setContentsMargins(0, 0, 0, 0)
+
+        # 设置滚动容器
+        self.scroller = SingleDirectionScrollArea(self, orient = Qt.Vertical)
+        self.scroller.setWidgetResizable(True)
+        self.scroller.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+        self.container.addWidget(self.scroller)
+
+        # 设置容器
+        self.vbox_parent = QWidget(self)
+        self.vbox_parent.setStyleSheet("QWidget { background: transparent; }")
+        self.vbox = QVBoxLayout(self.vbox_parent)
+        self.vbox.setSpacing(8)
+        self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
+        self.scroller.setWidget(self.vbox_parent)
 
         # 添加控件
-        self.add_widget_translation_output_path(self.container, config)
-        self.add_widget_auto_set(self.container, config)
-        self.container.addWidget(HorizontalSeparator())
-        self.add_widget_filename_suffix(self.container, config)
-        self.add_widget_bilingual_text_order(self.container, config)
-        self.add_widget_encoding(self.container, config)
-        self.container.addWidget(HorizontalSeparator())
-        self.add_widget_text_layout_repair(self.container, config)
-        self.add_widget_opencc(self.container, config)
-        self.add_widget_opencc_preset(self.container, config)
+        self.add_widget_translation_output_path(self.vbox, config)
+        self.add_widget_auto_set(self.vbox, config)
+        self.vbox.addWidget(HorizontalSeparator())
+        self.add_widget_filename_suffix(self.vbox, config)
+        self.add_widget_bilingual_text_order(self.vbox, config)
+        self.add_widget_encoding(self.vbox, config)
+        self.vbox.addWidget(HorizontalSeparator())
+        self.add_widget_text_symbol_repair(self.vbox, config)
+        self.add_widget_opencc(self.vbox, config)
+        self.add_widget_opencc_preset(self.vbox, config)
         # 填充
-        self.container.addStretch(1)
+        self.vbox.addStretch(1)
 
     # 翻译输出文件夹
     def add_widget_translation_output_path(self, parent, config) -> None:
@@ -145,20 +161,20 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
             )
         )
 
-    # 自动修复文本排版
-    def add_widget_text_layout_repair(self, parent, config) -> None:
+    # 自动修复标点符号
+    def add_widget_text_symbol_repair(self, parent, config) -> None:
         def widget_init(widget) -> None:
-            widget.set_checked(config.get("text_layout_repair_switch"))
+            widget.set_checked(config.get("text_symbol_repair_switch"))
 
         def widget_callback(widget, checked: bool) -> None:
             config = self.load_config()
-            config["text_layout_repair_switch"] = checked
+            config["text_symbol_repair_switch"] = checked
             self.save_config(config)
 
         parent.addWidget(
             SwitchButtonCard(
-                self.tra("自动修复文本排版"),
-                self.tra("启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和排版格式，仅对内置 TextLayoutRepair 生效，适合日语翻译流程。"),
+                self.tra("自动修复标点符号"),
+                self.tra("启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和文本符号，仅对内置 TextSymbolRepair 生效，适合日语翻译流程。"),
                 widget_init,
                 widget_callback,
             )
