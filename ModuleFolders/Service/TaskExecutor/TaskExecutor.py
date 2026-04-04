@@ -332,7 +332,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 language_stats = self.cache_manager.project.get_file(file_path).language_stats # 获取该文件的语言检测数据
                 file_source_lang = get_source_language_for_file(self.config.source_language,self.config.target_language,language_stats)
 
-                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter, file_source_lang)  # 实例化
+                task = TranslatorTask(self.config, self.request_limiter, file_source_lang)  # 实例化
                 task.set_items(chunk)  # 传入该任务待翻译原文
                 task.set_previous_items(previous_chunk)  # 传入该任务待翻译原文的上文
                 task.prepare(self.config.target_platform)  # 预先构建消息列表

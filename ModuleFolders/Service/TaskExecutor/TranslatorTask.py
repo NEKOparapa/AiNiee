@@ -9,7 +9,6 @@ from rich.markup import escape
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Log.Log import LogMixin
-from ModuleFolders.Infrastructure.Plugin.PluginManager import PluginManager
 from ModuleFolders.Service.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Infrastructure.LLMRequester.LLMRequester import LLMRequester
@@ -18,6 +17,7 @@ from ModuleFolders.Domain.PromptBuilder.PromptBuilderLocal import PromptBuilderL
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
 from ModuleFolders.Domain.ResponseExtractor.ResponseExtractor import ResponseExtractor
 from ModuleFolders.Domain.ResponseChecker.ResponseChecker import ResponseChecker
+from ModuleFolders.Domain.TextNormalizer.TextNormalizer import TextNormalizer
 from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Infrastructure.Tokener.Tokener import Tokener
 
@@ -26,12 +26,12 @@ from ModuleFolders.Domain.TextProcessor.TextProcessor import TextProcessor
 
 class TranslatorTask(LogMixin, Base):
 
-    def __init__(self, config: TaskConfig, plugin_manager: PluginManager, request_limiter: RequestLimiter, source_lang) -> None:
+    def __init__(self, config: TaskConfig, request_limiter: RequestLimiter, source_lang) -> None:
         super().__init__()
 
         self.config = config
-        self.plugin_manager = plugin_manager
         self.request_limiter = request_limiter
+        self.text_normalizer = TextNormalizer()
         self.text_processor = TextProcessor(self.config) # 文本处理器
 
         # 源语言对象
@@ -72,8 +72,8 @@ class TranslatorTask(LogMixin, Base):
         # 生成文本行数信息
         self.row_count = len(self.source_text_dict)
 
-        # 触发插件事件 - 文本正规化
-        self.plugin_manager.broadcast_event("normalize_text", self.config, self.source_text_dict)
+        # 文本规范化
+        self.source_text_dict = self.text_normalizer.normalize_text_dict(self.source_text_dict)
 
         # 各种替换步骤，译前替换，提取首尾与占位中间代码
         self.source_text_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage = \

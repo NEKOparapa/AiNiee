@@ -11,6 +11,18 @@ from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 
 class PluginsSettingsPage(QFrame, ConfigMixin, Base):
 
+    def _build_plugins_enable(self, current_plugins_enable: dict | None) -> dict:
+        current_plugins_enable = current_plugins_enable if isinstance(current_plugins_enable, dict) else {}
+
+        return {
+            plugin_name: (
+                current_plugins_enable[plugin_name]
+                if plugin_name in current_plugins_enable
+                else plugin.default_enable
+            )
+            for plugin_name, plugin in self.plugin_manager.get_plugins().items()
+        }
+
     def __init__(self, text: str, window, plugin_manager = None):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
@@ -25,6 +37,10 @@ class PluginsSettingsPage(QFrame, ConfigMixin, Base):
 
         # 插件管理器
         self.plugin_manager = plugin_manager
+
+        plugins = self.plugin_manager.get_plugins()
+        config["plugins_enable"] = self._build_plugins_enable(config.get("plugins_enable"))
+        plugins_enable = config["plugins_enable"]
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -44,32 +60,26 @@ class PluginsSettingsPage(QFrame, ConfigMixin, Base):
         self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
         self.scroller.setWidget(self.vbox_parent)
 
-        # 初始化，确保所有插件的启用状态都具有默认值
-        for k, v in self.plugin_manager.get_plugins().items():
-            enable = config.get("plugins_enable").get(k, None)
-
-            if enable == None:
-                config["plugins_enable"][k] = v.default_enable
-            else:
-                config["plugins_enable"][k] = enable
-
         # 更新插件启用状态
         self.save_config(config)
-        self.plugin_manager.update_plugins_enable(config.get("plugins_enable"))
+        self.plugin_manager.update_plugins_enable(plugins_enable)
 
         # 添加控件
-        for k, v in self.plugin_manager.get_plugins().items():
-            def widget_init(widget):
-                widget.plugin_name = k
-                widget.set_checked(config.get("plugins_enable").get(k))
+        for k, v in plugins.items():
+            def widget_init(widget, plugin_name = k):
+                widget.plugin_name = plugin_name
+                widget.set_checked(plugins_enable.get(plugin_name))
 
             def widget_callback(widget, checked: bool):
                 config = self.load_config()
-                config["plugins_enable"][widget.plugin_name] = checked
+                current_plugins_enable = config.get("plugins_enable")
+                current_plugins_enable = current_plugins_enable if isinstance(current_plugins_enable, dict) else {}
+                current_plugins_enable[widget.plugin_name] = checked
+                config["plugins_enable"] = self._build_plugins_enable(current_plugins_enable)
                 self.save_config(config)
 
                 # 同步更新 plugin_manager 里的插件启用状态
-                self.plugin_manager.update_plugins_enable(config.get("plugins_enable"))
+                self.plugin_manager.update_plugins_enable(config["plugins_enable"])
 
             self.vbox.addWidget(
                 SwitchButtonCard(
