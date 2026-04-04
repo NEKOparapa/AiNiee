@@ -3,12 +3,11 @@ from rich import print
 
 from ModuleFolders.Service.Cache.CacheProject import CacheProject
 from ModuleFolders.Service.TaskExecutor import TranslatorUtil
-from PluginScripts.PluginBase import PluginBase
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 
 
-class LanguageFilter(PluginBase):
+class LanguageFilter:
     # 平假名
     HIRAGANA = ("\u3040", "\u309F")
 
@@ -77,28 +76,8 @@ class LanguageFilter(PluginBase):
     CYRILLIC_SUPPLEMENTAL_EXTRA = ("\u2DE0", "\u2DFF")  # 其他扩展字符（例如：斯拉夫语言的一些符号）
     CYRILLIC_OTHER = ("\u0500", "\u050F")  # 其他字符区块（包括斯拉夫语系其他语言的字符，甚至一些特殊符号）
 
-    def __init__(self) -> None:
-        super().__init__()
-
-        self.name = "LanguageFilter"
-        self.description = (
-                "语言过滤器，在翻译开始前，根据原文语言对文本中的无效条目进行过滤以节约 翻译时间 与 Token 消耗"
-                + "\n"
-                + "兼容性：支持全部语言；支持全部模型；支持全部文本格式；支持翻译润色流程；"
-        )
-
-        self.visibility = True  # 是否在插件设置中显示
-        self.default_enable = True  # 默认启用状态
-
-        self.add_event("text_filter", PluginBase.PRIORITY.NORMAL)
-
-    def on_event(self, event: str, config: TaskConfig, data: CacheProject) -> None:
-
-        if event == "text_filter":
-            self.on_text_filter(event, config, data)
-
     # 文本后处理事件
-    def on_text_filter(self, event: str, config: TaskConfig, data: CacheProject) -> None:
+    def filter_text(self, config: TaskConfig, data: CacheProject) -> None:
         print("")
         print("[LanguageFilter] 开始执行预处理 ...")
 

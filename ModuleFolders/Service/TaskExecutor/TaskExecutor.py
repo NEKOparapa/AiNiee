@@ -56,6 +56,7 @@ from ModuleFolders.Domain.PromptBuilder.PromptBuilderPolishing import PromptBuil
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
+from ModuleFolders.Domain.TextFilter.TextFilter import TextFilter
 from ModuleFolders.Infrastructure.LLMRequester.LLMClientFactory import LLMClientFactory
 from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Service.TaskExecutor.TranslatorUtil import get_source_language_for_file
@@ -73,6 +74,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         self.file_reader = file_reader
         self.file_writer = file_writer
         self.config = TaskConfig()
+        self.text_filter = TextFilter()
         self.request_limiter = RequestLimiter()
         self._executor_lock = threading.RLock()
         self._active_executor = None
@@ -276,9 +278,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 更新监控面板信息
         self.emit(Base.EVENT.TASK_UPDATE, self.project_status_data.to_dict())
 
-        # 触发插件事件
-        self.plugin_manager.broadcast_event("text_filter", self.config, self.cache_manager.project)
-        self.plugin_manager.broadcast_event("preproces_text", self.config, self.cache_manager.project)
+        # 无效文本过滤
+        self.text_filter.filter_project(self.config, self.cache_manager.project)
 
         # 根据最大轮次循环
         for current_round in range(self.config.round_limit + 1):
@@ -471,8 +472,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 更新监控面板信息
         self.emit(Base.EVENT.TASK_UPDATE, self.project_status_data.to_dict())
 
-        # 触发插件事件
-        self.plugin_manager.broadcast_event("text_filter", self.config, self.cache_manager.project)
+        # 文本过滤
+        self.text_filter.filter_project(self.config, self.cache_manager.project)
 
 
         # 根据最大轮次循环

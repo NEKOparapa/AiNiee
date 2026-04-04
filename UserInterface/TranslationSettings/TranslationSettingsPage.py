@@ -23,6 +23,7 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
         self.default = {
             "source_language": "auto",
             "target_language": "chinese_simplified",
+            "language_filter_switch": True,
             "pre_line_counts": 0,
             "few_shot_and_example_switch": True,
             "auto_process_text_code_segment": False,
@@ -45,6 +46,7 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
         # 添加控件
         self.add_widget_source_language(self.container, config)
         self.add_widget_target_language(self.container, config)
+        self.add_widget_language_filter(self.container, config)
         self.container.addWidget(HorizontalSeparator())
         self.add_widget_pre_lines(self.container, config)
         self.add_auto_process_text_code_segment(self.container, config)
@@ -190,6 +192,26 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
                 options,
                 init=init,
                 current_text_changed=current_text_changed
+            )
+        )
+
+    # 非目标语言文本自动过滤
+    def add_widget_language_filter(self, parent, config) -> None:
+
+        def init(widget: SwitchButtonCard) -> None:
+            widget.set_checked(config.get("language_filter_switch", True))
+
+        def checked_changed(widget: SwitchButtonCard, checked: bool) -> None:
+            config = self.load_config()
+            config["language_filter_switch"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("非目标语言文本自动过滤"),
+                self.tra("启用后，将在翻译或润色前自动排除不属于当前目标语言处理范围的文本，仅控制内置 LanguageFilter 功能"),
+                init = init,
+                checked_changed = checked_changed,
             )
         )
 

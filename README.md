@@ -162,19 +162,6 @@
 </details>
 
 
-
-<details>
-<summary>
-  
-### 插件说明
-</summary>
-
-- [插件 - 语言过滤器](https://github.com/NEKOparapa/AiNiee/wiki/%E6%8F%92%E4%BB%B6%E2%80%90LanguageFilter)
-
-</details>
-
-
-
 <details>
 <summary> 
 

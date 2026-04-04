@@ -1,30 +1,8 @@
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Service.Cache.CacheProject import CacheProject
-from PluginScripts.PluginBase import PluginBase
 
 
-class GeneralTextFilter(PluginBase):
-    def __init__(self):
-        super().__init__()
-        self.name = "GeneralTextFilter"
-        self.description = "GeneralTextFilter"
-
-        self.visibility = False # 是否在插件设置中显示
-        self.default_enable = True # 默认启用状态
-
-        self.add_event('text_filter', PluginBase.PRIORITY.HIGH)
-
-    def load(self):
-        pass
-
-
-    def on_event(self, event_name, config, event_data: CacheProject):
-
-        # 文本预处理事件触发
-        if event_name == "text_filter":
-
-            self.filter_text(event_data)
-
+class GeneralTextFilter:
     # 忽视空值内容和将整数型，浮点型数字变换为字符型数字函数，且改变翻译状态为7,因为T++读取到整数型数字时，会报错，明明是自己导出来的...
     def filter_text(self, event_data: CacheProject):
         for entry in event_data.items_iter():
