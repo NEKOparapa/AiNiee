@@ -10,7 +10,6 @@ from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.LLMRequester.LLMRequester import LLMRequester
 from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
-from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
 from ModuleFolders.Infrastructure.Tokener.Tokener import Tokener
 
 
@@ -55,12 +54,12 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         - final_data: 主线程统一合并后的最终标签数据。
         """
         try:
-            # 初始化分析任务，并复用翻译配置作为请求参数来源。
+            # 初始化分析任务，并复用当前激活接口配置作为请求参数来源。
             Base.work_status = Base.STATUS.ANALYSIS_TASK
             self.emit(Base.EVENT.ANALYSIS_TASK_UPDATE, {"message": "正在初始化分析任务..."})
 
             self.config.initialize()
-            self.config.prepare_for_translation(TaskType.TRANSLATION)
+            self.config.prepare_for_active_platform()
             self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
 
             # 第一阶段输入仍然是按 token 切分的原文块。
@@ -209,7 +208,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             _, _, response_content, _, _ = requester.sent_request(
                 [{"role": "user", "content": source_text}],
                 system_prompt,
-                self.config.get_platform_configuration("translationReq"),
+                self.config.get_active_platform_configuration(),
             )
             if response_content:
                 return self._parse_json_from_response(response_content)
@@ -355,7 +354,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             _, _, response_content, _, _ = requester.sent_request(
                 [{"role": "user", "content": json.dumps(batch, ensure_ascii=False)}],
                 system_prompt,
-                self.config.get_platform_configuration("translationReq"),
+                self.config.get_active_platform_configuration(),
             )
             if response_content:
                 parsed = self._parse_json_from_response(response_content)

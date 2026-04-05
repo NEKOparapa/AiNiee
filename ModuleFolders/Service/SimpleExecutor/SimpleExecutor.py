@@ -9,7 +9,6 @@ from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.LLMRequester.LLMRequester import LLMRequester
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
-from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
 from ModuleFolders.Service.TaskExecutor.TranslatorUtil import get_source_language_for_file
 from ModuleFolders.Domain.ResponseExtractor.ResponseExtractor import ResponseExtractor
 from ModuleFolders.Domain.ResponseChecker.ResponseChecker import ResponseChecker
@@ -203,7 +202,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         # 准备翻译配置
         config = TaskConfig()
         config.initialize()
-        config.prepare_for_translation(TaskType.TRANSLATION)
+        config.prepare_for_active_platform()
         target_language = config.target_language
         max_threads = config.actual_thread_counts
 
@@ -224,7 +223,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
             """处理单组翻译，成功返回 (group_idx, [(src, dst), ...])，失败返回 (group_idx, None)。"""
             group_num = group_idx + 1
             try:
-                platform_config = config.get_platform_configuration("translationReq")
+                platform_config = config.get_active_platform_configuration()
                 has_info = any(item.get("info") for item in current_group)
                 system_prompt = (
                     "You are a glossary translation assistant.The user will send a glossary in this format:\n"
@@ -341,7 +340,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         # 准备翻译配置
         config = TaskConfig()
         config.initialize()
-        config.prepare_for_translation(TaskType.TRANSLATION)
+        config.prepare_for_active_platform()
         max_threads = config.actual_thread_counts # 获取并发线程数
         
         # 预计算源语言
@@ -366,7 +365,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         def translate_worker(batch_idx, batch_items):
             batch_num = batch_idx + 1
             # 重新获取配置以支持Key轮询
-            current_platform_config = config.get_platform_configuration("translationReq")
+            current_platform_config = config.get_active_platform_configuration()
 
             # 构建字典和索引
             source_text_dict = {str(idx): item['source_text'] for idx, item in enumerate(batch_items)}
@@ -469,7 +468,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         # 准备配置
         config = TaskConfig()
         config.initialize()
-        config.prepare_for_translation(TaskType.POLISH)
+        config.prepare_for_active_platform()
         max_threads = config.actual_thread_counts
 
         # 任务分割
@@ -489,7 +488,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         # 定义工作函数
         def polish_worker(batch_idx, batch_items):
             batch_num = batch_idx + 1
-            current_platform_config = config.get_platform_configuration("polishingReq")
+            current_platform_config = config.get_active_platform_configuration()
             
             source_text_dict = {str(idx): item['source_text'] for idx, item in enumerate(batch_items)}
             translation_text_dict = {str(idx): item['translation_text'] for idx, item in enumerate(batch_items)}

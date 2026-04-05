@@ -75,7 +75,7 @@ class PolisherTask(LogMixin, Base):
 
             time.sleep(1)
 
-        platform_config = self.config.get_platform_configuration("polishingReq")
+        platform_config = self.config.get_active_platform_configuration()
 
         requester = LLMRequester()
         skip, response_think, response_content, prompt_tokens, completion_tokens = requester.sent_request(

@@ -255,8 +255,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 读取配置文件，并保存到该类中
         self.config.initialize()
 
-        # 配置翻译平台信息
-        self.config.prepare_for_translation(TaskType.TRANSLATION)
+        # 配置当前激活接口信息
+        self.config.prepare_for_active_platform()
 
         # 配置请求限制器
         self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
@@ -451,8 +451,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 读取配置文件，并保存到该类中
         self.config.initialize()
 
-        # 配置翻译平台信息
-        self.config.prepare_for_translation(TaskType.POLISH)
+        # 配置当前激活接口信息
+        self.config.prepare_for_active_platform()
 
         # 配置请求限制器
         self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)

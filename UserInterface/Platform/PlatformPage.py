@@ -1,35 +1,37 @@
-import os
-import json
 import copy
+import json
+import os
 import random
 
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QFrame, QVBoxLayout, QWidget, QHBoxLayout
+from PyQt5.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget
 
 from qfluentwidgets import (
-    PrimaryPushButton, FluentIcon,
-    StrongBodyLabel, FlowLayout, SubtitleLabel, BodyLabel, HorizontalSeparator, VerticalSeparator,
-    CardWidget, IconWidget, themeColor, CaptionLabel
+    BodyLabel,
+    CaptionLabel,
+    CardWidget,
+    FlowLayout,
+    FluentIcon,
+    HorizontalSeparator,
+    IconWidget,
+    PrimaryPushButton,
+    StrongBodyLabel,
+    SubtitleLabel,
+    themeColor,
 )
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
-from UserInterface.Widget.Toast import ToastMixin
-from UserInterface.Platform.AddAPIDialog import AddAPIDialog
-from UserInterface.Platform.APIItemCard import APIItemCard
 from UserInterface.Platform.APIEditPage import APIEditPage
+from UserInterface.Platform.APIItemCard import APIItemCard
+from UserInterface.Platform.AddAPIDialog import AddAPIDialog
 from UserInterface.Platform.ArgsEditPage import ArgsEditPage
 from UserInterface.Platform.LimitEditPage import LimitEditPage
+from UserInterface.Widget.Toast import ToastMixin
 
-
-# ==========================================
-# 接口类型分组卡片
-# ==========================================
 
 class APITypeCard(CardWidget):
-    """
-    接口类型分组卡片，用于容纳同一类型的接口按钮
-    """
+    """按接口类型分组显示接口按钮"""
 
     def __init__(self, title: str, icon: FluentIcon, description: str = "", parent=None):
         super().__init__(parent)
@@ -38,19 +40,16 @@ class APITypeCard(CardWidget):
         self.vBoxLayout.setContentsMargins(20, 16, 20, 16)
         self.vBoxLayout.setSpacing(16)
 
-        # ===== 头部区域 =====
         self.headerWidget = QWidget()
         self.headerWidget.setMaximumWidth(1000)
         self.headerLayout = QHBoxLayout(self.headerWidget)
         self.headerLayout.setContentsMargins(0, 0, 0, 0)
         self.headerLayout.setSpacing(12)
 
-        # 图标
         self.iconWidget = IconWidget(icon, self)
         self.iconWidget.setFixedSize(28, 28)
         self.headerLayout.addWidget(self.iconWidget)
 
-        # 标题和描述
         self.titleContainer = QWidget()
         self.titleLayout = QVBoxLayout(self.titleContainer)
         self.titleLayout.setContentsMargins(0, 0, 0, 0)
@@ -67,12 +66,8 @@ class APITypeCard(CardWidget):
         self.headerLayout.addStretch(1)
 
         self.vBoxLayout.addWidget(self.headerWidget)
+        self.vBoxLayout.addWidget(HorizontalSeparator(self))
 
-        # ===== 分隔线 =====
-        self.line = HorizontalSeparator(self)
-        self.vBoxLayout.addWidget(self.line)
-
-        # ===== 内容区域 =====
         self.contentWidget = QWidget()
         self.flowLayout = FlowLayout(self.contentWidget, needAni=False)
         self.flowLayout.setContentsMargins(0, 4, 0, 0)
@@ -84,12 +79,10 @@ class APITypeCard(CardWidget):
         self._card_count = 0
 
     def addWidget(self, widget):
-        """添加接口按钮到卡片"""
         self.flowLayout.addWidget(widget)
         self._card_count += 1
 
     def removeWidget(self, widget):
-        """从卡片移除接口按钮"""
         self.flowLayout.removeWidget(widget)
         self._card_count = max(0, self._card_count - 1)
 
@@ -97,190 +90,72 @@ class APITypeCard(CardWidget):
         return self._card_count
 
 
-# ==========================================
-# 接收拖拽的区域组件
-# ==========================================
+class InterfaceHeaderCard(CardWidget, ConfigMixin):
+    """顶部接口管理栏"""
 
-class ApiDropZone(QFrame, ConfigMixin, ToastMixin, Base):
-    """
-    支持拖拽放置的区域，用于设置 Translate 或 Polish 接口
-    """
-    apiDropped = pyqtSignal(str)
-    clearClicked = pyqtSignal()
-
-    def __init__(self, title: str, icon: FluentIcon, parent=None):
-        super().__init__(parent)
-        self.setAcceptDrops(True)
-        self.setFixedHeight(60)
-        
-        self._current_api_name = None  # 用于记录当前设置的API名称，方便样式恢复
-        
-        self.h_layout = QHBoxLayout(self)
-        self.h_layout.setContentsMargins(20, 12, 24, 12)
-        self.h_layout.setSpacing(16)
-
-        # 1. 左侧图标
-        self.icon_widget = IconWidget(icon, self)
-        self.icon_widget.setFixedSize(32, 32)
-        self.h_layout.addWidget(self.icon_widget)
-
-        # 2. 左侧文本区域 (标题 + 状态说明)
-        self.text_container = QWidget()
-        self.v_text_layout = QVBoxLayout(self.text_container)
-        self.v_text_layout.setContentsMargins(0, 0, 0, 0)
-        self.v_text_layout.setSpacing(4)
-        self.v_text_layout.setAlignment(Qt.AlignVCenter)
-
-        # 标题
-        self.title_label = StrongBodyLabel(title, self)
-        self.v_text_layout.addWidget(self.title_label)
-
-        # 状态/辅助文字
-        self.status_label = CaptionLabel(self.tra("暂未配置"), self)
-        self.v_text_layout.addWidget(self.status_label)
-
-        self.h_layout.addWidget(self.text_container)
-
-        # 3. 中间弹簧
-        self.h_layout.addStretch(1)
-
-        # 4. 右侧 API 名称显示
-        self.api_name_label = StrongBodyLabel(self.tra("拖拽接口到此处"), self)
-        self.api_name_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.h_layout.addWidget(self.api_name_label)
-        
-        # 5. 右侧弹簧
-        self.h_layout.addStretch(1)
-
-        # 初始化样式
-        self._set_default_style()
-
-    def _set_default_style(self):
-        """设置未配置时的默认样式（虚线灰框）"""
-        self.setStyleSheet("""
-            ApiDropZone {
-                background-color: rgba(255, 255, 255, 0.05);
-                border: 2px dashed rgba(128, 128, 128, 0.3);
-                border-radius: 10px;
-            }
-            ApiDropZone:hover {
-                background-color: rgba(255, 255, 255, 0.08);
-                border: 2px dashed rgba(128, 128, 128, 0.6);
-            }
-        """)
-        self.status_label.setText(self.tra("暂未配置"))
-        self.status_label.setStyleSheet("color: rgba(128, 128, 128, 0.8);")
-
-    def _set_active_style(self):
-        """设置已配置时的样式（实线主题色框）"""
-        t_color = themeColor()
-        self.setStyleSheet(f"""
-            ApiDropZone {{
-                background-color: rgba(100, 180, 255, 0.08);
-                border: 2px solid {t_color.name()};
-                border-radius: 10px;
-            }}
-        """)
-        self.status_label.setText(self.tra("正在使用中"))
-        self.status_label.setStyleSheet(f"color: {t_color.name()};")
-
-    def dragEnterEvent(self, e):
-        if e.mimeData().hasText():
-            # 拖拽进入时的高亮样式
-            self.setStyleSheet("""
-                ApiDropZone {
-                    background-color: rgba(100, 180, 255, 0.15);
-                    border: 2px dashed rgba(100, 180, 255, 0.9);
-                    border-radius: 10px;
-                }
-            """)
-            e.accept()
-        else:
-            e.ignore()
-
-    def dragLeaveEvent(self, e):
-        # 拖拽离开时，恢复之前的状态
-        self.set_api_info(self._current_api_name)
-
-    def dropEvent(self, e):
-        tag = e.mimeData().text()
-        self.apiDropped.emit(tag)
-        e.accept()
-
-    def set_api_info(self, name: str):
-        """ 设置拖放区显示的接口名称并更新样式 """
-        self._current_api_name = name
-        
-        if name:
-            self.api_name_label.setText(name)
-            self._set_active_style()
-        else:
-            self.api_name_label.setText(self.tra("拖拽接口到此处"))
-            self._set_default_style()
-
-
-# ==========================================
-# 底部设置卡片
-# ==========================================
-
-class BottomSettingCard(CardWidget, ConfigMixin, ToastMixin, Base):
-    """界面底部的操作区域"""
     addClicked = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(100)
+
+        self.setFixedHeight(92)
 
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(20, 16, 20, 16)
         self.layout.setSpacing(16)
 
-        # 1. 翻译接口放置区
-        self.trans_zone = ApiDropZone(self.tra("翻译接口"), FluentIcon.EXPRESSIVE_INPUT_ENTRY, self)
-        self.layout.addWidget(self.trans_zone, 1)
+        self.titleLabel = SubtitleLabel(self.tra("接口管理"), self)
+        self.layout.addWidget(self.titleLabel)
+        self.layout.addStretch(1)
 
-        # 2. 润色接口放置区
-        self.polish_zone = ApiDropZone(self.tra("润色接口"), FluentIcon.BRUSH, self)
-        self.layout.addWidget(self.polish_zone, 1)
+        self.activeInfoWidget = QWidget(self)
+        self.activeInfoLayout = QVBoxLayout(self.activeInfoWidget)
+        self.activeInfoLayout.setContentsMargins(0, 0, 0, 0)
+        self.activeInfoLayout.setSpacing(2)
 
-        # 3. 分割线
-        line = VerticalSeparator(self)
-        self.layout.addWidget(line)
+        self.activeCaptionLabel = CaptionLabel(self.tra("当前激活接口"), self.activeInfoWidget)
+        self.activeNameLabel = StrongBodyLabel(self.tra("未设置"), self.activeInfoWidget)
+        self.activeInfoLayout.addWidget(self.activeCaptionLabel)
+        self.activeInfoLayout.addWidget(self.activeNameLabel)
 
-        # 4. 添加接口按钮
+        self.layout.addWidget(self.activeInfoWidget)
+
         self.add_btn = PrimaryPushButton(self.tra("添加接口"), self)
         self.add_btn.setIcon(FluentIcon.ADD)
-        self.add_btn.setFixedSize(130, 50)
-        self.add_btn.clicked.connect(self.addClicked.emit)
+        self.add_btn.clicked.connect(lambda checked=False: self.addClicked.emit())
         self.layout.addWidget(self.add_btn)
 
+        self.set_active_api(None)
 
-# ==========================================
-# 主页面类
-# ==========================================
+    def set_active_api(self, name: str | None):
+        if name:
+            self.activeNameLabel.setText(name)
+            self.activeNameLabel.setStyleSheet(f"color: {themeColor().name()};")
+        else:
+            self.activeNameLabel.setText(self.tra("未设置"))
+            self.activeNameLabel.setStyleSheet("color: rgba(128, 128, 128, 0.85);")
+
 
 class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
-
-    # 分组配置：添加图标和描述
     GROUP_CONFIG = {
         "local": {
             "title_key": "本地接口",
             "description": "本地部署的模型接口",
             "icon": FluentIcon.CONNECT,
-            "order": 0
+            "order": 0,
         },
         "online": {
             "title_key": "官方接口",
             "description": "官方平台提供的在线接口",
             "icon": FluentIcon.CLOUD,
-            "order": 1
+            "order": 1,
         },
         "custom": {
             "title_key": "自定义接口",
             "description": "第三方或自定义配置的接口",
             "icon": FluentIcon.ASTERISK,
-            "order": 2
-        }
+            "order": 2,
+        },
     }
 
     def __init__(self, text: str, window):
@@ -291,59 +166,44 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
             "platforms": {},
             "api_settings": {
                 "translate": None,
-                "polish": None
-            }
+                "polish": None,
+            },
         }
 
         self.window = window
         self.api_buttons = {}
         self.group_cards = {}
 
-        # 主布局
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(24, 0, 24, 20)
+        main_layout.setContentsMargins(24, 12, 24, 20)
         main_layout.setSpacing(12)
 
-        # 1. 上半部分：内容容器 (存放分组卡片和空状态提示)
+        self.header_card = InterfaceHeaderCard(self)
+        self.header_card.addClicked.connect(self.on_add_api_clicked)
+        main_layout.addWidget(self.header_card)
+
         self.content_container = QWidget()
         self.content_container.setStyleSheet("QWidget { background: transparent; }")
         self.container = QVBoxLayout(self.content_container)
         self.container.setSpacing(16)
-        self.container.setContentsMargins(4, 16, 4, 16)
-
+        self.container.setContentsMargins(4, 4, 4, 16)
         main_layout.addWidget(self.content_container, 1)
 
-        # 2. 底部部分：设置卡片
-        self.bottom_card = BottomSettingCard(self)
-        self.bottom_card.addClicked.connect(self.on_add_api_clicked)
-        self.bottom_card.trans_zone.apiDropped.connect(lambda t: self.on_api_dropped(t, "translate"))
-        self.bottom_card.polish_zone.apiDropped.connect(lambda t: self.on_api_dropped(t, "polish"))
-
-        main_layout.addWidget(self.bottom_card)
-
-        # 创建空状态提示组件（初始隐藏）
         self._create_empty_hint_widget()
 
-        # 加载配置
         config = self.save_config(self.load_config_from_default())
+        config = self._normalize_api_settings(config, persist=True)
 
-        # 创建分组卡片并填充接口
         self._create_group_cards()
         self._populate_api_cards(config)
-
-        # 初始化底部卡片状态
-        self._refresh_bottom_zones(config)
+        self._refresh_active_interface_ui(config)
 
         self.subscribe(Base.EVENT.API_TEST_DONE, self.api_test_done)
 
-        # 初始化完成后更新可见性
         self._update_visibility()
-
-        # 添加底部弹性空间，让卡片保持在顶部
         self.container.addStretch(1)
 
     def _create_empty_hint_widget(self):
-        """创建空状态提示组件"""
         self.empty_hint_widget = QWidget()
         self.empty_hint_widget.setStyleSheet("QWidget { background: transparent; }")
 
@@ -352,13 +212,13 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
         hint_layout.setSpacing(20)
         hint_layout.setAlignment(Qt.AlignCenter)
 
-        # 标题
         title_label = SubtitleLabel(self.tra("暂无接口"))
+        title_label.setContentsMargins(0, 0, 0, 0)
         title_label.setAlignment(Qt.AlignCenter)
         hint_layout.addWidget(title_label)
 
-        # 副标题
-        subtitle_label = BodyLabel(self.tra("点击底部的「添加接口」按钮创建您的第一个接口"))
+        subtitle_label = BodyLabel(self.tra("点击顶部的“添加接口”按钮创建您的第一个接口"))
+        subtitle_label.setWordWrap(True)
         subtitle_label.setAlignment(Qt.AlignCenter)
         hint_layout.addWidget(subtitle_label)
 
@@ -366,104 +226,90 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
         self.container.addWidget(self.empty_hint_widget)
 
     def _create_group_cards(self):
-        """创建所有分组卡片"""
         sorted_groups = sorted(
             self.GROUP_CONFIG.keys(),
-            key=lambda g: self.GROUP_CONFIG[g]["order"]
+            key=lambda group_name: self.GROUP_CONFIG[group_name]["order"],
         )
 
         for group_name in sorted_groups:
-            config = self.GROUP_CONFIG[group_name]
+            group_config = self.GROUP_CONFIG[group_name]
             card = APITypeCard(
-                title=self.tra(config["title_key"]),
-                icon=config["icon"],
-                description=self.tra(config.get("description", "")),
-                parent=self
+                title=self.tra(group_config["title_key"]),
+                icon=group_config["icon"],
+                description=self.tra(group_config["description"]),
+                parent=self,
             )
             self.group_cards[group_name] = card
             self.container.addWidget(card)
 
     def _populate_api_cards(self, config):
-        """填充接口按钮到对应的分组卡片"""
         platforms = config.get("platforms", {})
-
-        # 按分组整理
         grouped_platforms = {"local": [], "online": [], "custom": []}
+
         for tag, api_data in platforms.items():
             group = api_data.get("group", "custom")
             if group not in grouped_platforms:
                 group = "custom"
             grouped_platforms[group].append((tag, api_data))
 
-        # 按名称排序后添加到卡片
         for group_name, items in grouped_platforms.items():
-            items.sort(key=lambda x: x[1].get("name", ""))
+            items.sort(key=lambda item: item[1].get("name", ""))
             for tag, api_data in items:
                 self.add_api_card(tag, api_data)
 
     def _update_visibility(self):
-        """更新分组卡片和空状态提示的可见性"""
         total_cards = len(self.api_buttons)
 
-        # 更新每个分组卡片的可见性
-        for group_name, card in self.group_cards.items():
-            if card.get_card_count() > 0:
-                card.show()
-            else:
-                card.hide()
+        for card in self.group_cards.values():
+            card.setVisible(card.get_card_count() > 0)
 
-        # 更新空状态提示
-        if total_cards == 0:
-            self.empty_hint_widget.show()
-        else:
-            self.empty_hint_widget.hide()
+        self.empty_hint_widget.setVisible(total_cards == 0)
 
-    def _refresh_bottom_zones(self, config=None):
-        """根据配置刷新底部拖放区的显示"""
-        if config is None:
-            config = self.load_config()
-
-        api_settings = config.get("api_settings", {})
+    def _normalize_api_settings(self, config: dict, persist: bool = False) -> dict:
         platforms = config.get("platforms", {})
+        api_settings = config.setdefault("api_settings", {})
 
-        # 更新翻译区
-        trans_tag = api_settings.get("translate")
-        if trans_tag and trans_tag in platforms:
-            name = platforms[trans_tag].get("name", trans_tag)
-            self.bottom_card.trans_zone.set_api_info(name)
-        else:
-            self.bottom_card.trans_zone.set_api_info(None)
-
-        # 更新润色区
+        translate_tag = api_settings.get("translate")
         polish_tag = api_settings.get("polish")
-        if polish_tag and polish_tag in platforms:
-            name = platforms[polish_tag].get("name", polish_tag)
-            self.bottom_card.polish_zone.set_api_info(name)
-        else:
-            self.bottom_card.polish_zone.set_api_info(None)
 
-    def on_api_dropped(self, tag: str, target_type: str):
-        """处理拖拽释放事件"""
-        config = self.load_config()
-        if "api_settings" not in config:
-            config["api_settings"] = {}
+        active_tag = translate_tag if translate_tag in platforms else None
+        if active_tag is None and polish_tag in platforms:
+            active_tag = polish_tag
+
+        changed = (
+            api_settings.get("translate") != active_tag
+            or api_settings.get("polish") != active_tag
+        )
+
+        api_settings["translate"] = active_tag
+        api_settings["polish"] = active_tag
+
+        if persist and changed:
+            return self.save_config(config)
+
+        return config
+
+    def _get_active_api_tag(self, config: dict) -> str | None:
+        config = self._normalize_api_settings(config)
+        return config.get("api_settings", {}).get("translate")
+
+    def _refresh_active_interface_ui(self, config=None):
+        if config is None:
+            config = self._normalize_api_settings(self.load_config(), persist=True)
+        else:
+            config = self._normalize_api_settings(config)
 
         platforms = config.get("platforms", {})
-        if tag not in platforms:
-            return
+        active_tag = self._get_active_api_tag(config)
+        active_name = None
 
-        config["api_settings"][target_type] = tag
-        self.save_config(config)
+        if active_tag and active_tag in platforms:
+            active_name = platforms[active_tag].get("name", active_tag)
 
-        self._refresh_bottom_zones(config)
+        self.header_card.set_active_api(active_name)
 
-        action_name = "翻译" if target_type == "translate" else "润色"
-
-        # 拆分一下toast内容，方便翻译
-        api_name = platforms[tag].get('name', '')
-        info_name = self.tra(action_name)
-        info_text = self.tra("已设置") + info_name + self.tra("接口")+ ': '+ api_name 
-        self.success_toast("", info_text)
+        for tag, button in self.api_buttons.items():
+            button.set_active(tag == active_tag)
 
     def load_file(self, path: str) -> dict:
         result = {}
@@ -474,7 +320,7 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
 
     def api_test(self, tag: str):
         config = self.load_config()
-        platform = config.get("platforms").get(tag)
+        platform = config.get("platforms", {}).get(tag)
         if platform is None:
             self.warning_toast("", self.tra("接口不存在"))
             return
@@ -488,49 +334,63 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
     def api_test_done(self, event: int, data: dict):
         Base.work_status = Base.STATUS.IDLE
         if len(data.get("failure", [])) > 0:
-            info_cont = self.tra("测试完成：成功") + f" {len(data.get('success', []))} " + self.tra("失败") + f" {len(data.get('failure', []))}"
+            info_cont = (
+                self.tra("测试完成：成功")
+                + f" {len(data.get('success', []))} "
+                + self.tra("失败")
+                + f" {len(data.get('failure', []))}"
+            )
             self.error_toast("", info_cont)
         else:
-            info_cont = self.tra("测试成功")
-            self.success_toast("", info_cont)
+            self.success_toast("", self.tra("测试成功"))
 
-    def delete_platform(self, tag: str) -> None:
-        config = self.load_config()
-        if tag not in config.get("platforms", {}):
+    def activate_platform(self, tag: str):
+        config = self._normalize_api_settings(self.load_config())
+        platforms = config.get("platforms", {})
+        if tag not in platforms:
             return
 
-        # 检查是否正在被使用
-        api_settings = config.get("api_settings", {})
-        refresh_bottom = False
-        if api_settings.get("translate") == tag:
-            api_settings["translate"] = None
-            refresh_bottom = True
-        if api_settings.get("polish") == tag:
-            api_settings["polish"] = None
-            refresh_bottom = True
+        current_tag = self._get_active_api_tag(config)
+        if current_tag == tag:
+            self._refresh_active_interface_ui(config)
+            return
 
-        del config["platforms"][tag]
-        self.save_config(config)
+        api_settings = config.setdefault("api_settings", {})
+        api_settings["translate"] = tag
+        api_settings["polish"] = tag
+        config = self.save_config(config)
+
+        self._refresh_active_interface_ui(config)
+
+        api_name = platforms[tag].get("name", tag)
+        self.success_toast("", f"{self.tra('已激活接口')}: {api_name}")
+
+    def delete_platform(self, tag: str) -> None:
+        config = self._normalize_api_settings(self.load_config())
+        platforms = config.get("platforms", {})
+        if tag not in platforms:
+            return
+
+        api_settings = config.setdefault("api_settings", {})
+        if api_settings.get("translate") == tag or api_settings.get("polish") == tag:
+            api_settings["translate"] = None
+            api_settings["polish"] = None
+
+        del platforms[tag]
+        config = self.save_config(config)
 
         if tag in self.api_buttons:
-            btn = self.api_buttons.pop(tag)
-
-            # 获取该卡片所属的分组名称
-            group_name = btn.api_data.get("group", "custom")
+            button = self.api_buttons.pop(tag)
+            group_name = button.api_data.get("group", "custom")
             if group_name not in self.group_cards:
                 group_name = "custom"
 
-            # 从分组卡片中移除
-            if group_name in self.group_cards:
-                self.group_cards[group_name].removeWidget(btn)
+            self.group_cards[group_name].removeWidget(button)
+            button.deleteLater()
 
-            btn.deleteLater()
-            self.success_toast("", self.tra("接口已删除"))
-
-            self._update_visibility()
-
-            if refresh_bottom:
-                self._refresh_bottom_zones()
+        self.success_toast("", self.tra("接口已删除"))
+        self._refresh_active_interface_ui(config)
+        self._update_visibility()
 
     def show_api_edit_page(self, key: str):
         APIEditPage(self.window, key).exec()
@@ -544,13 +404,14 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
         self.refresh_card(key)
 
     def refresh_card(self, tag: str):
-        """刷新按钮和底部区域信息"""
-        if tag in self.api_buttons:
-            config = self.load_config()
-            api_data = config.get("platforms", {}).get(tag, {})
-            if api_data:
-                self.api_buttons[tag].update_info(api_data)
-                self._refresh_bottom_zones(config)
+        if tag not in self.api_buttons:
+            return
+
+        config = self._normalize_api_settings(self.load_config(), persist=True)
+        api_data = config.get("platforms", {}).get(tag)
+        if api_data:
+            self.api_buttons[tag].update_info(api_data)
+        self._refresh_active_interface_ui(config)
 
     def on_add_api_clicked(self):
         preset_data = self.load_file("./Resource/platforms/preset.json")
@@ -563,17 +424,17 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
         dialog.exec()
 
     def create_new_api(self, data: dict):
-        config = self.load_config()
+        config = self._normalize_api_settings(self.load_config())
         preset_data = self.load_file("./Resource/platforms/preset.json")
         preset_platforms = preset_data.get("platforms", {})
         platform_tag = data.get("platform_tag")
 
-        if platform_tag in preset_platforms:
-            preset = preset_platforms[platform_tag]
-            new_platform = copy.deepcopy(preset)
-        else:
+        if platform_tag not in preset_platforms:
             self.error_toast("", self.tra("未找到选定的平台预设"))
             return
+
+        preset = preset_platforms[platform_tag]
+        new_platform = copy.deepcopy(preset)
 
         tag = f"{platform_tag}_{random.randint(100000, 999999)}"
         new_platform["tag"] = tag
@@ -597,32 +458,28 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
         if data.get("model") and data.get("model") not in new_platform.get("model_datas", []):
             new_platform["model_datas"].append(data.get("model"))
 
-        if "platforms" not in config:
-            config["platforms"] = {}
-
-        config["platforms"][tag] = new_platform
+        config.setdefault("platforms", {})[tag] = new_platform
         self.save_config(config)
 
         self.add_api_card(tag, new_platform)
         self.success_toast("", self.tra("接口添加成功"))
+        self._refresh_active_interface_ui(config)
         self._update_visibility()
 
     def add_api_card(self, tag: str, api_data: dict):
-        """添加接口按钮到对应的分组卡片"""
-        btn = APIItemCard(tag, api_data, self)
+        button = APIItemCard(tag, api_data, self)
 
-        btn.testClicked.connect(self.api_test)
-        btn.editClicked.connect(self.show_api_edit_page)
-        btn.editLimitClicked.connect(self.show_limit_edit_page)
-        btn.editArgsClicked.connect(self.show_args_edit_page)
-        btn.deleteClicked.connect(self.delete_platform)
+        button.testClicked.connect(self.api_test)
+        button.activateClicked.connect(self.activate_platform)
+        button.editClicked.connect(self.show_api_edit_page)
+        button.editLimitClicked.connect(self.show_limit_edit_page)
+        button.editArgsClicked.connect(self.show_args_edit_page)
+        button.deleteClicked.connect(self.delete_platform)
 
-        self.api_buttons[tag] = btn
+        self.api_buttons[tag] = button
 
         group = api_data.get("group", "custom")
         if group not in self.group_cards:
             group = "custom"
 
-        # 添加到对应的分组卡片
-        if group in self.group_cards:
-            self.group_cards[group].addWidget(btn)
+        self.group_cards[group].addWidget(button)

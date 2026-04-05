@@ -35,7 +35,6 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.has_resumable_task = False
         self.task_action_mode = None
 
-        # Keep a lightweight refresh loop so monitoring cards can update elapsed time and live task count.
         self.ui_update_timer = QTimer(self)
         self.ui_update_timer.setInterval(1000)
         self.ui_update_timer.timeout.connect(lambda: self.emit(Base.EVENT.TASK_UPDATE, {}))
@@ -52,9 +51,9 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.task_action_btn.setFixedWidth(96)
         self.task_action_btn.setEnabled(False)
 
-        for btn in (self.start_btn, self.task_action_btn):
-            btn.setIconSize(QSize(16, 16))
-            btn.setFixedHeight(32)
+        for button in (self.start_btn, self.task_action_btn):
+            button.setIconSize(QSize(16, 16))
+            button.setFixedHeight(32)
 
         self.layout.addStretch(1)
         self.layout.addWidget(self.start_btn, 0, Qt.AlignCenter)
@@ -65,10 +64,10 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.task_action_btn.clicked.connect(self.command_task_action)
 
         self.translate_action.triggered.connect(
-            lambda: self._on_mode_selected(TaskType.TRANSLATION, self.translate_action)
+            lambda checked=False: self._on_mode_selected(TaskType.TRANSLATION, self.translate_action)
         )
         self.polish_action.triggered.connect(
-            lambda: self._on_mode_selected(TaskType.POLISH, self.polish_action)
+            lambda checked=False: self._on_mode_selected(TaskType.POLISH, self.polish_action)
         )
 
         self.subscribe(Base.EVENT.TASK_STOP_DONE, self.task_stop_done)
@@ -179,18 +178,19 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         api_settings = config.get("api_settings", {})
         platforms = config.get("platforms", {})
 
-        target_type = "translate" if self.current_mode == TaskType.TRANSLATION else "polish"
-        target_name = self.tra("翻译") if target_type == "translate" else self.tra("润色")
-        selected_tag = api_settings.get(target_type)
+        translate_tag = api_settings.get("translate")
+        polish_tag = api_settings.get("polish")
+
+        selected_tag = translate_tag if translate_tag in platforms else None
+        if selected_tag is None and polish_tag in platforms:
+            selected_tag = polish_tag
 
         if not selected_tag:
-            content = self.tra("未设置") + target_name + self.tra("接口，请先到接口管理页面绑定接口。")
-            self.error_toast(self.tra("错误"), content)
+            self.error_toast(self.tra("错误"), self.tra("未设置当前激活接口，请先到接口管理页面激活接口。"))
             return False
 
         if selected_tag not in platforms:
-            content = self.tra("当前") + target_name + self.tra("接口配置不存在，请重新到接口管理页面选择。")
-            self.error_toast(self.tra("错误"), content)
+            self.error_toast(self.tra("错误"), self.tra("当前激活接口配置不存在，请到接口管理页面重新选择。"))
             return False
 
         return True

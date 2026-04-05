@@ -139,7 +139,7 @@ class TranslatorTask(LogMixin, Base):
             time.sleep(1)
 
         # 获取接口配置信息包
-        platform_config = self.config.get_platform_configuration("translationReq")
+        platform_config = self.config.get_active_platform_configuration()
 
         # 发起请求
         requester = LLMRequester()
