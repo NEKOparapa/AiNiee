@@ -45,9 +45,9 @@ class WorkflowHeaderBar(ConfigMixin, CardWidget):
         self.step_widget.setFixedHeight(step_height)
 
         for route_key, text in (
-            ("analysis", self.tra("分析")),
+            ("analysis", self.tra("提取")),
             ("translation", self.tra("翻译")),
-            ("proofreading", self.tra("校对")),
+            ("proofreading", self.tra("校润")),
         ):
             step_item = self.step_widget.addItem(
                 routeKey=route_key,
