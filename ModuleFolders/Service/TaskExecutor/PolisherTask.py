@@ -127,8 +127,7 @@ class PolisherTask(LogMixin, Base):
 
         if response_think:
             self.extra_log.append("模型思考内容：\n" + response_think)
-        if self.is_debug():
-            self.extra_log.append("模型回复内容：\n" + response_content)
+        self.extra_log.append("模型回复内容：\n" + response_content)
 
         if check_result is False:
             error = f"润色文本未通过检查，将在下一轮次的润色中重新处理 - {error_content}"

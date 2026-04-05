@@ -179,7 +179,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             )
 
         except Exception as error:
-            self.error(f"分析任务执行失败: {error}", error if self.is_debug() else None)
+            self.error(f"分析任务执行失败: {error}", error)
             Base.work_status = Base.STATUS.IDLE
             self.emit(
                 Base.EVENT.ANALYSIS_TASK_DONE,

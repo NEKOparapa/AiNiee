@@ -173,10 +173,7 @@ if __name__ == "__main__":
 
     # 设置全局字体属性，解决狗牙问题
     font = QFont("Consolas")
-    if config.get("font_hinting", True):
-        font.setHintingPreference(QFont.PreferFullHinting)
-    else:
-        font.setHintingPreference(QFont.PreferNoHinting)
+    font.setHintingPreference(QFont.PreferFullHinting)
     app.setFont(font)
 
     # 创建全局缓存器

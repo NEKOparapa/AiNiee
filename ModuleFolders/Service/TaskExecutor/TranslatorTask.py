@@ -202,8 +202,7 @@ class TranslatorTask(LogMixin, Base):
         # 模型回复日志
         if response_think:
             self.extra_log.append("模型思考内容：\n" + response_think)
-        if self.is_debug():
-            self.extra_log.append("模型回复内容：\n" + response_content)
+        self.extra_log.append("模型回复内容：\n" + response_content)
 
         # 检查译文
         if check_result == False:

@@ -84,18 +84,6 @@
       "English": "Automatic Simplified/Traditional Conversion",
       "日本語": "自動 簡体/繁体字 変換"
     },
-    "自动修复标点符号": {
-      "简中": "自动修复标点符号",
-      "繁中": "自動修復標點符號",
-      "English": "Automatically Repair Punctuation",
-      "日本語": "句読点を自動修復"
-    },
-    "启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和文本符号，仅对内置 TextSymbolRepair 生效，适合日语翻译流程。": {
-      "简中": "启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和文本符号，仅对内置 TextSymbolRepair 生效，适合日语翻译流程。",
-      "繁中": "啟用後，將在翻譯任務中根據原文恢復譯文中改變的標點符號和文本符號，僅對內建 TextSymbolRepair 生效，適合日語翻譯流程。",
-      "English": "When enabled, the translation task restores punctuation and text symbol changes in translated text according to the source text. This switch only controls the built-in TextSymbolRepair and is intended for Japanese translation workflows.",
-      "日本語": "有効にすると、翻訳タスク中に原文をもとに訳文で変化した句読点やテキスト記号を復元します。このスイッチは内蔵 TextSymbolRepair のみを制御し、日本語翻訳ワークフロー向けです。"
-    },
     "启用此功能后，在翻译完成时将按照设置的字形映射规则进行简繁转换": {
       "简中": "启用此功能后，在翻译完成时将按照设置的字形映射规则进行简繁转换",
       "繁中": "啟用後，翻譯完成時將依照設定的字形映射規則進行簡繁轉換。",

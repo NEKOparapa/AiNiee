@@ -85,7 +85,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
                 requests.get(target_url, timeout=5)
             except Exception as e:
                 # 统计失败不应该影响程序运行，直接忽略
-                print(f"Activity report failed: {e}") if self.is_debug() else None
+                self.debug(f"Activity report failed: {e}")
 
         # 设置 daemon=True 确保主程序退出时线程也会自动关闭
         threading.Thread(target=report_activity, daemon=True).start()
@@ -105,9 +105,6 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
         self.info(f"Current Interface Language: {ConfigMixin.current_interface_language}")  # 打印当前语言，方便调试
 
         # 打印日志
-        if self.is_debug():
-            self.info("Debug mode is enabled ...")
-
         # 设置主题颜色
         setThemeColor(self.THEME_COLOR)
 

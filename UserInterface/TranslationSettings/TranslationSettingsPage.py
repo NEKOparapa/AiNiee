@@ -25,6 +25,7 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
             "pre_line_counts": 0,
             "few_shot_and_example_switch": True,
             "auto_process_text_code_segment": False,
+            "text_symbol_repair_switch": False,
             "response_check_switch": {
                 "return_to_original_text_check": True,
                 "residual_original_text_check": True,
@@ -46,6 +47,7 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
         self.container.addWidget(HorizontalSeparator())
         self.add_widget_pre_lines(self.container, config)
         self.add_auto_process_text_code_segment(self.container, config)
+        self.add_widget_text_symbol_repair(self.container, config)
         self.add_widget_few_shot_and_example(self.container, config)
         self.container.addWidget(HorizontalSeparator())
         self.add_widget_result_check(self.container, config)
@@ -137,6 +139,24 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
         )
 
     # 结果检查
+    def add_widget_text_symbol_repair(self, parent, config) -> None:
+        def widget_init(widget) -> None:
+            widget.set_checked(config.get("text_symbol_repair_switch"))
+
+        def widget_callback(widget, checked: bool) -> None:
+            config = self.load_config()
+            config["text_symbol_repair_switch"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("自动修复标点符号"),
+                self.tra("启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和文本符号，仅对内置 TextSymbolRepair 生效，适合日语翻译流程。"),
+                widget_init,
+                widget_callback,
+            )
+        )
+
     def add_widget_result_check(self, parent, config) -> None:
         def on_toggled(checked: bool, key) -> None:
             config = self.load_config()

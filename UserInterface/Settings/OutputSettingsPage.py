@@ -26,7 +26,6 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
             "output_filename_suffix": "_translated",
             "bilingual_text_order": "translation_first",
             "translation_result_check_switch": False,
-            "text_symbol_repair_switch": False,
             "response_conversion_toggle": False,
             "opencc_preset": "s2t",
             "keep_original_encoding": False,
@@ -62,7 +61,6 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         self.add_widget_encoding(self.vbox, config)
         self.vbox.addWidget(HorizontalSeparator())
         self.add_widget_translation_result_check(self.vbox, config)
-        self.add_widget_text_symbol_repair(self.vbox, config)
         self.add_widget_opencc(self.vbox, config)
         self.add_widget_opencc_preset(self.vbox, config)
         # 填充

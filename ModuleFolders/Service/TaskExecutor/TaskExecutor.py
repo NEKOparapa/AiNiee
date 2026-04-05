@@ -131,7 +131,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         except Exception as error:
             self.error(
                 f"分析任务执行失败: {error}",
-                error if self.is_debug() else None,
+                error,
             )
             Base.work_status = Base.STATUS.IDLE
             self.emit(
@@ -218,7 +218,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 target_func(*args)
             except Exception as e:
                 self.print("")
-                self.error(f"任务启动失败或执行异常 ... {e}", e if self.is_debug() else None)
+                self.error(f"任务启动失败或执行异常 ... {e}", e)
                 self.print("")
 
                 Base.work_status = Base.STATUS.TASKSTOPPED
@@ -637,4 +637,4 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         except concurrent.futures.CancelledError:
             return
         except Exception as e:
-            self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
+            self.error(f"翻译任务错误 ... {e}", e)
