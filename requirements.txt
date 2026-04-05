@@ -33,11 +33,6 @@ language-data
 langcodes
 msgspec
 
-#NER
-spacy
-sudachipy
-sudachidict-core
-
 # mediapipe
 absl-py
 attrs>=19.1.0

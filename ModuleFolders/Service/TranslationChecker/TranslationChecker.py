@@ -21,7 +21,6 @@ class CheckResult:
     HAS_RULE_ERRORS = "HAS_RULE_ERRORS"  # 存在需要列表展示的错误
     ERROR_CACHE = "ERROR_CACHE"
     ERROR_NO_TRANSLATION = "ERROR_NO_TRANSLATION"
-    ERROR_NO_POLISH = "ERROR_NO_POLISH"
     ERROR_INVALID_LANG = "ERROR_INVALID_LANG"
 
 class TranslationChecker(ConfigMixin, LogMixin, Base):
@@ -38,7 +37,6 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
         """
         主检查流程
         """
-        target = params.get("target", "translate")
         mode = params.get("mode", "report")
         rules = params.get("rules", {})
 
@@ -59,25 +57,18 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
         except:
             threshold = 0.75
 
-        # 1. 兼容逻辑
-        legacy_mode_str = f"{target}_{mode}" if target == "polish" else mode
-        if mode == "report" and target == "polish": legacy_mode_str = "polish"
-
-        # 2. 执行原有的语言检测
-        #  传递动态参数
-        lang_result_code, lang_data = self.check_language(legacy_mode_str, chunk_size, threshold)
+        lang_result_code, lang_data = self.check_language(mode, chunk_size, threshold)
 
         # 如果基础检查失败（如无缓存），直接返回
         if lang_result_code.startswith("ERROR"):
             return lang_result_code, lang_data
 
-        # 3. 执行规则检测
-        all_errors = self._check_rules(target, rules)
+        all_errors = self._check_rules(rules)
 
         # 4. 从缓存中收集刚才被 check_language 标记的错误
         # 只有在"精准判断"模式下，且语言检测发现问题时才收集
         if "judge" in mode:
-            lang_errors = self._collect_lang_errors_from_cache(target)
+            lang_errors = self._collect_lang_errors_from_cache()
             if lang_errors:
                 all_errors.extend(lang_errors)
 
@@ -87,14 +78,13 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
 
         return lang_result_code, lang_data
 
-    def _collect_lang_errors_from_cache(self, target_type: str) -> List[Dict]:
+    def _collect_lang_errors_from_cache(self) -> List[Dict]:
         """
         辅助函数：遍历缓存，查找被 check_language 打上标记的项
         """
         errors = []
-        # 确定标记键和检查属性
-        flag_key = "language_mismatch_polish" if target_type == "polish" else "language_mismatch_translation"
-        check_attr = "polished_text" if target_type == "polish" else "translated_text"
+        flag_key = "language_mismatch_translation"
+        check_attr = "translated_text"
 
         for file_path, file_obj in self.cache_manager.project.files.items():
             file_name = os.path.basename(file_path)
@@ -123,11 +113,11 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
 
         # 初始化检查参数
         is_judging = "judge" in mode
-        check_target = "polished_text" if "polish" in mode else "translated_text"
-        flag_key = "language_mismatch_polish" if "polish" in mode else "language_mismatch_translation" #缓存标记
+        check_target = "translated_text"
+        flag_key = "language_mismatch_translation"
         target_language_name = self.config.get("target_language", "english")
         target_language_code = TranslatorUtil.map_language_name_to_code(target_language_name)
-        mode_text = self.tra("润色后文本") if "polish" in mode else self.tra("翻译后文本")
+        mode_text = self.tra("翻译后文本")
 
         if not target_language_code:
             self.error(self.tra("检查失败：无法将目标语言名称 '{}' 转换为有效的语言代码。请检查您的配置。").format(target_language_name))
@@ -148,16 +138,11 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
 
         #检查前查看是否有标记
         self.info(self.tra("正在清除旧的语言检查标记..."))
-        ## 定义需要清除的标记键
-        flag_key_translation = "language_mismatch_translation"
-        flag_key_polish = "language_mismatch_polish"
-
         #遍历所有 item
         for item in self.cache_manager.project.items_iter():
             if item.extra:
-                #安全的移除键
-                item.extra.pop(flag_key_translation, None)
-                item.extra.pop(flag_key_polish, None)
+                item.extra.pop("language_mismatch_translation", None)
+                item.extra.pop("language_mismatch_polish", None)
 
                 # 如果 extra 字典在移除标记后变为空，将其设为 None 以保持缓存干净
                 if not item.extra:
@@ -221,7 +206,7 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
             return CheckResult.SUCCESS_REPORT, {}
 
     # --- 规则检查主流程 ---
-    def _check_rules(self, target_type: str, rules_config: dict) -> List[Dict]:
+    def _check_rules(self, rules_config: dict) -> List[Dict]:
         if not any(rules_config.values()):
             return []
 
@@ -235,7 +220,7 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
 
         # 准备禁翻表数据
         exclusion_data = self.config.get("exclusion_list_data", []) if rules_config.get("exclusion") else []
-        check_attr = "polished_text" if target_type == "polish" else "translated_text"
+        check_attr = "translated_text"
 
         # 准备术语表数据 (预处理正则)
         term_data = []
@@ -275,15 +260,7 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
 
                 # 1. 未翻译/漏翻检查
                 if rules_config.get("untranslated"):
-                    is_untranslated = False
-                    if target_type == "translate":
-                        if item.translation_status == TranslationStatus.UNTRANSLATED or not text_content:
-                            is_untranslated = True
-                    else: # polish
-                        if not text_content:
-                            is_untranslated = True
-
-                    if is_untranslated:
+                    if item.translation_status < TranslationStatus.TRANSLATED or not text_content:
                         errors_list.append({
                             "row_id": f"{file_name} : {item.text_index + 1}",
                             "error_type": self.tra("条目未翻译/内容为空"),
@@ -440,8 +417,8 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
             return CheckResult.ERROR_CACHE, {}
 
         has_content = False
-        check_target_attr = "polished_text" if "polish" in mode else "translated_text"
-        status_to_check = TranslationStatus.POLISHED if "polish" in mode else TranslationStatus.TRANSLATED
+        check_target_attr = "translated_text"
+        status_to_check = TranslationStatus.TRANSLATED
 
         # 检查是否存在至少一个需要被检查的有效文本项
         for item in self.cache_manager.project.items_iter():
@@ -450,12 +427,8 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
                 break
 
         if not has_content:
-            if "polish" in mode:
-                self.error(self.tra("检查失败，请先执行润色流程"))
-                return CheckResult.ERROR_NO_POLISH, {}
-            else:
-                self.error(self.tra("检查失败，请先执行翻译流程"))
-                return CheckResult.ERROR_NO_TRANSLATION, {}
+            self.error(self.tra("检查失败，请先执行翻译流程"))
+            return CheckResult.ERROR_NO_TRANSLATION, {}
 
         return None, {}
 

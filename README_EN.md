@@ -99,20 +99,6 @@
 
 
 
-
-<details>
-<summary>
-
-### Plugin Description
-</summary>
-
-- [Plugin - Language Filter](https://github.com/NEKOparapa/AiNiee/wiki/%E6%8F%92%E4%BB%B6%E2%80%90LanguageFilter)
-- [Plugin - Text Normalizer](https://github.com/NEKOparapa/AiNiee/wiki/%E6%8F%92%E4%BB%B6%E2%80%90TextNormalizer)
-
-</details>
-
-
-
 <details>
 <summary>
 
@@ -145,7 +131,6 @@
 </summary>
 
 
-* **`Develop Enhanced Plugins`**: Please follow the [Plugin Development Guide](https://github.com/NEKOparapa/AiNiee/blob/main/PluginScripts/README.md) to develop plugins with stronger functionality
 
 * **`Improve or Add Supported Files`**: Requires some programming ability to pull the source code and make improvements. Specific file reading code is in the ModuleFolders\FileReader and FileOutputer folders. [Reader-Writer System Development Guide](https://github.com/NEKOparapa/AiNiee/blob/main/ModuleFolders/FileAccessor/README.md). UI support is in UserInterface\Setting\ProjectSettingsPage.
 

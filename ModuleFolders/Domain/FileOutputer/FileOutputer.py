@@ -23,7 +23,6 @@ from ModuleFolders.Domain.FileOutputer.TransWriter import TransWriter
 from ModuleFolders.Domain.FileOutputer.I18nextWriter import I18nextWriter
 from ModuleFolders.Domain.FileOutputer.PoWriter import PoWriter
 from ModuleFolders.Domain.FileOutputer.BabeldocPdfWriter import BabeldocPdfWriter
-from PluginScripts.IOPlugins.CustomRegistry import CustomWriter
 from ModuleFolders.Domain.FileOutputer.AssWriter import AssWriter
 from ModuleFolders.Domain.FileOutputer.CsvWriter import CsvWriter
 from ModuleFolders.Domain.FileOutputer.PptxWriter import PptxWriter
@@ -64,9 +63,6 @@ class FileOutputer:
         self.register_writer(CsvWriter)
         self.register_writer(PptxWriter)
         self.register_writer(XlsxWriter)
-
-        # 注册插件式 Writer
-        CustomWriter.register_writers(self)
 
         # 由于values是引用，最先注册和最后注册都一样
         self.register_writer(AutoTypeWriter, writer_factories=self.writer_factory_dict.values())

@@ -151,8 +151,7 @@ class OpenaiRequester(LogMixin, Base):
                 response = raw_response.parse()
             except Exception as parse_error:
                 # parse报错（如text/json头但内容是SSE导致JSON解析失败），降级为SSE处理
-                if self.is_debug():
-                    self.debug(f"响应解析失败: {parse_error}，尝试作为SSE处理")
+                self.debug(f"响应解析失败: {parse_error}，尝试作为SSE处理")
                 response = None
 
             # 根据响应类型选择处理方式
@@ -162,8 +161,7 @@ class OpenaiRequester(LogMixin, Base):
                     response)
             else:
                 # 非标准响应，尝试作为SSE流式响应解析
-                if self.is_debug():
-                    self.debug(f"收到非标准响应，尝试作为SSE处理")
+                self.debug(f"收到非标准响应，尝试作为SSE处理")
 
                 raw_text = raw_response.text
                 response_think, response_content, prompt_tokens, completion_tokens = self._parse_sse_response(raw_text)
@@ -181,7 +179,7 @@ class OpenaiRequester(LogMixin, Base):
         except Exception as e:
             if Base.work_status == Base.STATUS.STOPING:
                 return True, None, None, None, None
-            self.error(f"请求任务错误 ... {e}", e if self.is_debug() else None)
+            self.error(f"请求任务错误 ... {e}", e)
             return True, None, None, None, None
 
         return False, response_think, response_content, prompt_tokens, completion_tokens

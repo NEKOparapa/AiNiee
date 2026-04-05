@@ -1,14 +1,14 @@
-
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QFileDialog, QFrame
+from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
-from qfluentwidgets import FluentIcon, HorizontalSeparator
+from qfluentwidgets import FluentIcon, HorizontalSeparator, SingleDirectionScrollArea
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.PushButtonCard import PushButtonCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
-from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.LineEditCard import LineEditCard
 
 class OutputSettingsPage(QFrame, ConfigMixin, Base):
@@ -17,13 +17,15 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
+        config = self.load_config()
+        
         # 默认配置
         self.default = {
             "label_output_path": "./output",
-            "polishing_output_path": "./polish_output",
             "auto_set_output_path": True,
-            "output_filename_suffix": "_translated", 
-            "bilingual_text_order": "translation_first", 
+            "output_filename_suffix": "_translated",
+            "bilingual_text_order": "translation_first",
+            "translation_result_check_switch": False,
             "response_conversion_toggle": False,
             "opencc_preset": "s2t",
             "keep_original_encoding": False,
@@ -34,27 +36,40 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
 
         # 设置主容器
         self.container = QVBoxLayout(self)
-        self.container.setSpacing(8)
-        self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
+        self.container.setContentsMargins(0, 0, 0, 0)
+
+        # 设置滚动容器
+        self.scroller = SingleDirectionScrollArea(self, orient = Qt.Vertical)
+        self.scroller.setWidgetResizable(True)
+        self.scroller.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+        self.container.addWidget(self.scroller)
+
+        # 设置容器
+        self.vbox_parent = QWidget(self)
+        self.vbox_parent.setStyleSheet("QWidget { background: transparent; }")
+        self.vbox = QVBoxLayout(self.vbox_parent)
+        self.vbox.setSpacing(8)
+        self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
+        self.scroller.setWidget(self.vbox_parent)
 
         # 添加控件
-        self.add_widget_translation_output_path(self.container, config)
-        self.add_widget_polishing_output_path(self.container, config)
-        self.add_widget_auto_set(self.container, config)
-        self.container.addWidget(HorizontalSeparator())
-        self.add_widget_filename_suffix(self.container, config)
-        self.add_widget_bilingual_text_order(self.container, config)
-        self.add_widget_encoding(self.container, config)
-        self.container.addWidget(HorizontalSeparator())
-        self.add_widget_opencc(self.container, config)
-        self.add_widget_opencc_preset(self.container, config)
+        self.add_widget_translation_output_path(self.vbox, config)
+        self.add_widget_auto_set(self.vbox, config)
+        self.vbox.addWidget(HorizontalSeparator())
+        self.add_widget_filename_suffix(self.vbox, config)
+        self.add_widget_bilingual_text_order(self.vbox, config)
+        self.add_widget_encoding(self.vbox, config)
+        self.vbox.addWidget(HorizontalSeparator())
+        self.add_widget_translation_result_check(self.vbox, config)
+        self.add_widget_opencc(self.vbox, config)
+        self.add_widget_opencc_preset(self.vbox, config)
         # 填充
-        self.container.addStretch(1)
+        self.vbox.addStretch(1)
 
     # 翻译输出文件夹
     def add_widget_translation_output_path(self, parent, config) -> None:
         def widget_init(widget):
-            info_cont = self.tra("当前输出文件夹为") + f" {config.get("label_output_path")}"
+            info_cont = self.tra("当前输出文件夹为") + f" {config.get('label_output_path')}"
             widget.set_description(info_cont)
             widget.set_text(self.tra("选择文件夹"))
             widget.set_icon(FluentIcon.FOLDER_ADD)
@@ -99,54 +114,6 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
             )
         )
 
-    # 润色输出文件夹
-    def add_widget_polishing_output_path(self, parent, config) -> None:
-        def widget_init(widget):
-            info_cont = self.tra("当前输出文件夹为") + f" {config.get("polishing_output_path")}"
-            widget.set_description(info_cont)
-            widget.set_text(self.tra("选择文件夹"))
-            widget.set_icon(FluentIcon.FOLDER_ADD)
-
-        def widget_callback(widget) -> None:
-            # 选择文件夹
-            path = QFileDialog.getExistingDirectory(None, "选择文件夹", "")
-            if path == None or path == "":
-                return
-
-            # 更新UI
-            info_cont = self.tra("当前输出文件夹为") + f" {path.strip()}"
-            widget.set_description(info_cont)
-
-            # 更新并保存配置
-            config = self.load_config()
-            config["polishing_output_path"] = path.strip()
-            self.save_config(config)
-
-        # 拖拽文件夹回调
-        def drop_callback(widget, dropped_text) -> None:
-            if not dropped_text:
-                return
-
-            # 更新UI
-            info_cont = self.tra("当前输出文件夹为") + f" {dropped_text.strip()}"
-            widget.set_description(info_cont)
-
-            # 更新并保存配置
-            config = self.load_config()
-            config["polishing_output_path"] = dropped_text.strip()
-            self.save_config(config)
-
-
-        parent.addWidget(
-            PushButtonCard(
-                self.tra("润色输出文件夹"),
-                "",
-                widget_init,
-                widget_callback,
-                drop_callback,
-            )
-        )
-
     # 自动设置输出文件夹开关
     def add_widget_auto_set(self, parent, config) -> None:
         def widget_init(widget) -> None:
@@ -181,6 +148,44 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
                 self.tra("保持输入输出文件编码一致"),
                 self.tra("启用此功能后，输出译文文件的编码将保持为与输入原文文件的编码一致（若字符不兼容，仍会使用utf-8），"
                          "关闭后将始终使用 utf-8 编码（无特殊情况保持关闭即可）"),
+                widget_init,
+                widget_callback,
+            )
+        )
+
+    # 翻译结果检查
+    def add_widget_translation_result_check(self, parent, config) -> None:
+        def widget_init(widget) -> None:
+            widget.set_checked(config.get("translation_result_check_switch"))
+
+        def widget_callback(widget, checked: bool) -> None:
+            config = self.load_config()
+            config["translation_result_check_switch"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("翻译结果检查"),
+                self.tra("启用后，将在翻译任务完成并输出文件后执行翻译结果检查，输出检查总结，并在发现问题时生成 JSON 错误报告"),
+                widget_init,
+                widget_callback,
+            )
+        )
+
+    # 自动修复标点符号
+    def add_widget_text_symbol_repair(self, parent, config) -> None:
+        def widget_init(widget) -> None:
+            widget.set_checked(config.get("text_symbol_repair_switch"))
+
+        def widget_callback(widget, checked: bool) -> None:
+            config = self.load_config()
+            config["text_symbol_repair_switch"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("自动修复标点符号"),
+                self.tra("启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和文本符号，仅对内置 TextSymbolRepair 生效，适合日语翻译流程。"),
                 widget_init,
                 widget_callback,
             )

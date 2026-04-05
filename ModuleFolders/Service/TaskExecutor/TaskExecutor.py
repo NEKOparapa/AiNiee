@@ -47,6 +47,7 @@ from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Service.Cache.CacheManager import CacheManager
 from ModuleFolders.Service.Cache.CacheProject import CacheProjectStatistics
 from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
+from ModuleFolders.Service.TaskExecutor.AnalysisTask import AnalysisTask
 from ModuleFolders.Service.TaskExecutor.TranslatorTask import TranslatorTask
 from ModuleFolders.Service.TaskExecutor.PolisherTask import PolisherTask
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
@@ -55,6 +56,8 @@ from ModuleFolders.Domain.PromptBuilder.PromptBuilderPolishing import PromptBuil
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
+from ModuleFolders.Domain.TextFilter.TextFilter import TextFilter
+from ModuleFolders.Domain.TranslationResultCheck.TranslationResultCheck import TranslationResultCheck
 from ModuleFolders.Infrastructure.LLMRequester.LLMClientFactory import LLMClientFactory
 from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Service.TaskExecutor.TranslatorUtil import get_source_language_for_file
@@ -63,20 +66,22 @@ from ModuleFolders.Service.TaskExecutor.TranslatorUtil import get_source_languag
 # 翻译器
 class TaskExecutor(ConfigMixin, LogMixin, Base):
 
-    def __init__(self, plugin_manager,cache_manager, file_reader, file_writer) -> None:
+    def __init__(self, cache_manager, file_reader, file_writer) -> None:
         super().__init__()
 
         # 初始化
-        self.plugin_manager = plugin_manager
         self.cache_manager = cache_manager
         self.file_reader = file_reader
         self.file_writer = file_writer
         self.config = TaskConfig()
+        self.text_filter = TextFilter()
+        self.translation_result_check = TranslationResultCheck()
         self.request_limiter = RequestLimiter()
         self._executor_lock = threading.RLock()
         self._active_executor = None
 
         # 注册事件
+        self.subscribe(Base.EVENT.ANALYSIS_TASK_START, self.analysis_task_start)
         self.subscribe(Base.EVENT.TASK_STOP, self.task_stop)
         self.subscribe(Base.EVENT.TASK_START, self.task_start)
         self.subscribe(Base.EVENT.TASK_MANUAL_EXPORT, self.task_manual_export)
@@ -109,6 +114,31 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         self._cancel_active_executor()
         LLMClientFactory().close_all_clients()
 
+    def analysis_task_start(self, event: int, data: dict) -> None:
+        if Base.work_status != Base.STATUS.IDLE:
+            return
+        Base.work_status = Base.STATUS.ANALYSIS_TASK
+        threading.Thread(target=self.analysis_start_target, daemon=True).start()
+
+    def analysis_start_target(self) -> None:
+        try:
+            analysis_task = AnalysisTask(
+                self.cache_manager,
+                self._set_active_executor,
+                self._clear_active_executor,
+            )
+            analysis_task.run()
+        except Exception as error:
+            self.error(
+                f"分析任务执行失败: {error}",
+                error,
+            )
+            Base.work_status = Base.STATUS.IDLE
+            self.emit(
+                Base.EVENT.ANALYSIS_TASK_DONE,
+                {"status": "error", "analysis_data": None, "message": str(error)},
+            )
+
     # 手动导出事件
     def task_manual_export(self, event: int, data: dict) -> None:
 
@@ -122,9 +152,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         output_path = data.get("export_path")
         inpput_path = config.get("label_input_path")
 
-        # 触发手动导出插件事件
-        self.plugin_manager.broadcast_event("manual_export", config, self.cache_manager.project)
-
         # 如果开启了转换简繁开关功能，则进行文本转换
         if config.get("response_conversion_toggle"):  # 使用 .get()
             self.print("")
@@ -135,10 +162,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             converter = _create_opencc_converter(config.get('opencc_preset'))
             cache_list = self.cache_manager.project.items_iter()
             for item in cache_list:
-                if item.translation_status == TranslationStatus.TRANSLATED:
+                if item.translation_status in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
                     item.translated_text = converter.convert(item.translated_text)
-                if item.translation_status == TranslationStatus.POLISHED:
-                    item.polished_text = converter.convert(item.polished_text)
             self.print("")
             self.info(f"简繁转换完成。")
             self.print("")
@@ -172,9 +197,9 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         def target() -> None:
             while True:
                 time.sleep(0.5)
-                if Base.work_status == Base.STATUS.TASKSTOPPED:
+                if Base.work_status in (Base.STATUS.TASKSTOPPED, Base.STATUS.IDLE):
                     self.print("")
-                    self.info("翻译任务已停止 ...")
+                    self.info("任务已停止 ...")
                     self.print("")
                     self.emit(Base.EVENT.TASK_STOP_DONE, {})
                     break
@@ -193,7 +218,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 target_func(*args)
             except Exception as e:
                 self.print("")
-                self.error(f"任务启动失败或执行异常 ... {e}", e if self.is_debug() else None)
+                self.error(f"任务启动失败或执行异常 ... {e}", e)
                 self.print("")
 
                 Base.work_status = Base.STATUS.TASKSTOPPED
@@ -230,8 +255,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 读取配置文件，并保存到该类中
         self.config.initialize()
 
-        # 配置翻译平台信息
-        self.config.prepare_for_translation(TaskType.TRANSLATION)
+        # 配置当前激活接口信息
+        self.config.prepare_for_active_platform()
 
         # 配置请求限制器
         self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
@@ -251,9 +276,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 更新监控面板信息
         self.emit(Base.EVENT.TASK_UPDATE, self.project_status_data.to_dict())
 
-        # 触发插件事件
-        self.plugin_manager.broadcast_event("text_filter", self.config, self.cache_manager.project)
-        self.plugin_manager.broadcast_event("preproces_text", self.config, self.cache_manager.project)
+        # 无效文本过滤
+        self.text_filter.filter_project(self.config, self.cache_manager.project)
 
         # 根据最大轮次循环
         for current_round in range(self.config.round_limit + 1):
@@ -307,7 +331,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 language_stats = self.cache_manager.project.get_file(file_path).language_stats # 获取该文件的语言检测数据
                 file_source_lang = get_source_language_for_file(self.config.source_language,self.config.target_language,language_stats)
 
-                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter, file_source_lang)  # 实例化
+                task = TranslatorTask(self.config, self.request_limiter, file_source_lang)  # 实例化
                 task.set_items(chunk)  # 传入该任务待翻译原文
                 task.set_previous_items(previous_chunk)  # 传入该任务待翻译原文的上文
                 task.prepare(self.config.target_platform)  # 预先构建消息列表
@@ -323,7 +347,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             self.info(f"原文语言 - {self.config.source_language}")
             self.info(f"译文语言 - {self.config.target_language}")
             self.print("")
-            self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get("name", "未知")}")
+            self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get('name', '未知')}")
             self.info(f"接口地址 - {self.config.base_url}")
             self.info(f"模型名称 - {self.config.model}")
             self.print("")
@@ -374,9 +398,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 等待可能存在的缓存文件写入请求处理完毕
         time.sleep(CacheManager.SAVE_INTERVAL)
 
-        # 触发插件事件
-        self.plugin_manager.broadcast_event("postprocess_text", self.config, self.cache_manager.project)
-
         # 如果开启了转换简繁开关功能，则进行文本转换
         if self.config.response_conversion_toggle:
 
@@ -387,10 +408,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             converter = _create_opencc_converter(self.config.opencc_preset)
             cache_list = self.cache_manager.project.items_iter()
             for item in cache_list:
-                if item.translation_status == TranslationStatus.TRANSLATED:
+                if item.translation_status in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
                     item.translated_text = converter.convert(item.translated_text)
-                if item.translation_status == TranslationStatus.POLISHED:
-                    item.polished_text = converter.convert(item.polished_text)
 
         # 输出配置包
         output_config = {
@@ -415,7 +434,10 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
         # 触发翻译停止完成的事件
         self.emit(Base.EVENT.TASK_STOP_DONE, {})
-        self.plugin_manager.broadcast_event("translation_completed", self.config, self.cache_manager.project)
+
+        if self.translation_result_check.is_enabled(self.config):
+            self.translation_result_check.check_cache(self.config, self.cache_manager.project)
+
 
         # 触发翻译完成事件
         self.emit(Base.EVENT.TASK_COMPLETED, {})
@@ -429,8 +451,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 读取配置文件，并保存到该类中
         self.config.initialize()
 
-        # 配置翻译平台信息
-        self.config.prepare_for_translation(TaskType.POLISH)
+        # 配置当前激活接口信息
+        self.config.prepare_for_active_platform()
 
         # 配置请求限制器
         self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
@@ -448,8 +470,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 更新监控面板信息
         self.emit(Base.EVENT.TASK_UPDATE, self.project_status_data.to_dict())
 
-        # 触发插件事件
-        self.plugin_manager.broadcast_event("text_filter", self.config, self.cache_manager.project)
+        # 文本过滤
+        self.text_filter.filter_project(self.config, self.cache_manager.project)
 
 
         # 根据最大轮次循环
@@ -461,11 +483,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 Base.work_status = Base.STATUS.TASKSTOPPED
                 return None
 
-            # 根据润色模式，获取可润色的条目数量
-            if self.config.polishing_mode_selection == "source_text_polish":
-                item_count_status_unpolishd = self.cache_manager.get_item_count_by_status(TranslationStatus.UNTRANSLATED)
-            elif self.config.polishing_mode_selection == "translated_text_polish":
-                item_count_status_unpolishd = self.cache_manager.get_item_count_by_status(TranslationStatus.TRANSLATED)
+            # 获取待润色的条目数量
+            item_count_status_unpolishd = self.cache_manager.get_item_count_by_status(TranslationStatus.TRANSLATED)
 
             # 判断是否需要继续润色
             if item_count_status_unpolishd == 0:
@@ -477,7 +496,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             # 达到最大任务轮次时
             if item_count_status_unpolishd > 0 and current_round == self.config.round_limit:
                 self.print("")
-                self.warning("已达到最大任务轮次，仍有部分文本未翻译，请检查结果 ...")
+                self.warning("已达到最大任务轮次，仍有部分文本未润色，请检查结果 ...")
                 self.print("")
                 break
 
@@ -491,27 +510,19 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 self.config.tokens_limit = max(1, int(self.config.tokens_limit / 2))
 
             # 生成缓存数据条目片段的合集列表
-            if self.config.polishing_mode_selection == "source_text_polish":
-                chunks, previous_chunks, file_paths = self.cache_manager.generate_item_chunks(
-                    "line" if self.config.tokens_limit_switch == False else "token",
-                    self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
-                    self.config.polishing_pre_line_counts,
-                    TaskType.TRANSLATION
-                )
-            elif self.config.polishing_mode_selection == "translated_text_polish":
-                chunks, previous_chunks, file_paths = self.cache_manager.generate_item_chunks(
-                    "line" if self.config.tokens_limit_switch == False else "token",
-                    self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
-                    self.config.polishing_pre_line_counts,
-                    TaskType.POLISH
-                )
+            chunks, previous_chunks, file_paths = self.cache_manager.generate_item_chunks(
+                "line" if self.config.tokens_limit_switch == False else "token",
+                self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
+                self.config.pre_line_counts,
+                TaskType.POLISH
+            )
 
             # 生成润色任务合集列表
             tasks_list = []
             print("")
             self.info(f"正在生成润色任务 ...")
             for chunk, previous_chunk, file_path in tqdm(zip(chunks, previous_chunks, file_paths),desc="生成润色任务", total=len(chunks)):
-                task = PolisherTask(self.config, self.plugin_manager, self.request_limiter)  # 实例化
+                task = PolisherTask(self.config, self.request_limiter)  # 实例化
                 task.set_items(chunk)  # 传入该任务待润色文
                 task.set_previous_items(previous_chunk)  # 传入该任务待润色文的上文
                 task.prepare()  # 预先构建消息列表
@@ -519,13 +530,13 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             self.info(f"已经生成全部润色任务 ...")
             self.print("")
 
-            # 输出开始翻译的日志
+            # 输出开始润色的日志
             self.print("")
             self.info(f"当前轮次 - {current_round + 1}")
             self.info(f"最大轮次 - {self.config.round_limit}")
             self.info(f"项目类型 - {self.config.translation_project}")
             self.print("")
-            self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get("name", "未知")}")
+            self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get('name', '未知')}")
             self.info(f"接口地址 - {self.config.base_url}")
             self.info(f"模型名称 - {self.config.model}")
             self.print("")
@@ -547,7 +558,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             self.print("")
 
             # 开始执行润色务,构建异步线程池
-            executor = concurrent.futures.ThreadPoolExecutor(max_workers = self.config.actual_thread_counts, thread_name_prefix = "translator")
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers = self.config.actual_thread_counts, thread_name_prefix = "polisher")
             self._set_active_executor(executor)
             try:
                 for task in tasks_list:
@@ -581,12 +592,12 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 写入文件
         self.file_writer.output_translated_content(
             self.cache_manager.project,
-            self.config.polishing_output_path,
+            self.config.label_output_path,
             self.config.label_input_path,
             output_config,
         )
         self.print("")
-        self.info(f"润色结果已保存至 {self.config.polishing_output_path} 目录 ...")
+        self.info(f"润色结果已保存至 {self.config.label_output_path} 目录 ...")
         self.print("")
 
         # 重置内部状态
@@ -594,7 +605,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
         # 触发事件
         self.emit(Base.EVENT.TASK_STOP_DONE, {})     # 翻译停止完成的事件
-        self.plugin_manager.broadcast_event("polish_completed", self.config, self.cache_manager.project)
         self.emit(Base.EVENT.TASK_COMPLETED, {})     # 翻译完成事件
 
 
@@ -627,4 +637,4 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         except concurrent.futures.CancelledError:
             return
         except Exception as e:
-            self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
+            self.error(f"翻译任务错误 ... {e}", e)

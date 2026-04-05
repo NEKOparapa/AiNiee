@@ -36,7 +36,6 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self.default = {
             "proxy_url": "",
             "proxy_enable": False,
-            "font_hinting": True,
             "scale_factor": "AUTO",
             "interface_language_setting": "简中",
             "auto_check_update": True,
@@ -73,8 +72,6 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self.add_widget_interface_language_setting(self.vbox, config)
         self.add_widget_auto_check_update(self.vbox, config)
         self.add_widget_check_update(self.vbox, config, window)
-        self.add_widget_font_hinting(self.vbox, config)
-        self.add_widget_debug_mode(self.vbox, config)
         self.add_widget_scale_factor(self.vbox, config)
         self.add_widget_exclude_rule(self.vbox, config)
         self.add_widget_http_service(self.vbox, config) 
@@ -204,50 +201,6 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
                 self.tra("翻译完成后，向该地址发送 POST 请求。留空则不启用。"),
                 init=init_callback,
                 text_changed=text_changed_callback,
-            )
-        )
-
-    # 应用字体优化
-    def add_widget_font_hinting(self, parent, config) -> None:
-        def init(widget) -> None:
-            widget.set_checked(config.get("font_hinting"))
-
-        def checked_changed(widget, checked: bool) -> None:
-            config = self.load_config()
-            config["font_hinting"] = checked
-            self.save_config(config)
-
-        parent.addWidget(
-            SwitchButtonCard(
-                self.tra("应用字体优化"),
-                self.tra("启用此功能后,字体的边缘渲染将更加圆润(将在应用重启后生效)"),
-                init=init,
-                checked_changed=checked_changed,
-            )
-        )
-
-    # 调整模式
-    def add_widget_debug_mode(self, parent, config) -> None:
-        def init(widget) -> None:
-            debug_path = os.path.join(".", "debug.txt")
-            widget.set_checked(os.path.isfile(debug_path))
-
-        def checked_changed(widget, checked: bool) -> None:
-            debug_path = os.path.join(".", "debug.txt")
-            if checked == True:
-                open(debug_path, "w").close()
-            else:
-                os.remove(debug_path) if os.path.isfile(debug_path) else None
-
-            # 重置调试模式检查状态
-            self.reset_debug()
-
-        parent.addWidget(
-            SwitchButtonCard(
-                self.tra("调试模式"),
-                self.tra("启用此功能后,应用将显示额外的调试信息"),
-                init=init,
-                checked_changed=checked_changed,
             )
         )
 

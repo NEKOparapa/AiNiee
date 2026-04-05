@@ -162,20 +162,6 @@
 </details>
 
 
-
-<details>
-<summary>
-  
-### 插件说明
-</summary>
-
-- [插件 - 语言过滤器](https://github.com/NEKOparapa/AiNiee/wiki/%E6%8F%92%E4%BB%B6%E2%80%90LanguageFilter)
-- [插件 - 文本规范器](https://github.com/NEKOparapa/AiNiee/wiki/%E6%8F%92%E4%BB%B6%E2%80%90TextNormalizer)
-
-</details>
-
-
-
 <details>
 <summary> 
 
@@ -207,7 +193,6 @@
 </summary>
 
 
-* **`开发增强插件`**: 请根据[插件编写指南](https://github.com/NEKOparapa/AiNiee/blob/main/PluginScripts/README.md)进行开发更强功能插件
 
 * **`改进或增加支持文件`**: 需要有一定的代码编程能力，拉取源码进行改进。文件具体读取代码在ModuleFolders\FileReader与FileOutputer文件夹中。[读写器系统编写指南](https://github.com/NEKOparapa/AiNiee/blob/main/ModuleFolders/FileAccessor/README.md)。UI支持在UserInterface\Setting的ProjectSettingsPage。
 

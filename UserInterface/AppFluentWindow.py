@@ -29,30 +29,20 @@ from UserInterface.Platform.PlatformPage import PlatformPage
 from UserInterface.EditView.EditViewPage import EditViewPage
 
 from UserInterface.Settings.TaskSettingsPage import TaskSettingsPage
-from UserInterface.Settings.PluginsSettingsPage import PluginsSettingsPage
 from UserInterface.Settings.OutputSettingsPage import OutputSettingsPage
 
 from UserInterface.TranslationSettings.TranslationSettingsPage import TranslationSettingsPage
-from UserInterface.PolishingSettings.PolishingBasicSettingsPage import PolishingBasicSettingsPage
 
 from UserInterface.TranslationSettings.SystemPromptPage import SystemPromptPage
-from UserInterface.TranslationSettings.WritingStylePromptPage import WritingStylePromptPage
-from UserInterface.TranslationSettings.WorldBuildingPromptPage import WorldBuildingPromptPage
-from UserInterface.TranslationSettings.CharacterizationPromptPage import CharacterizationPromptPage
 from UserInterface.TranslationSettings.TranslationExamplePromptPage import TranslationExamplePromptPage
 
 from UserInterface.PolishingSettings.PolishingSystemPromptPage import PolishingSystemPromptPage
-from UserInterface.PolishingSettings.PolishingStylePromptPage import PolishingStylePromptPage
+from UserInterface.PolishingSettings.PolishingExamplePromptPage import PolishingExamplePromptPage
 
 from UserInterface.Table.TextReplaceAPage import TextReplaceAPage
 from UserInterface.Table.TextReplaceBPage import TextReplaceBPage
 from UserInterface.Table.PromptDictionaryPage import PromptDictionaryPage
 from UserInterface.Table.ExclusionListPage import ExclusionListPage
-
-from StevExtraction import jtpp
-from UserInterface.Extraction_Tool.Export_Source_Text import Widget_export_source_text
-from UserInterface.Extraction_Tool.Import_Translated_Text import Widget_import_translated_text
-from UserInterface.Extraction_Tool.Export_Update_Text import Widget_update_text
 
 
 class UpdateCheckerThread(QThread):
@@ -84,7 +74,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
     APP_HEIGHT = 900
     THEME_COLOR = "#808b9d"
 
-    def __init__(self, version: str, plugin_manager, cache_manager, file_reader) -> None:
+    def __init__(self, version: str, cache_manager, file_reader) -> None:
         super().__init__()
 
         # 启动后台线程发送日活统计，不阻塞 UI
@@ -95,7 +85,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
                 requests.get(target_url, timeout=5)
             except Exception as e:
                 # 统计失败不应该影响程序运行，直接忽略
-                print(f"Activity report failed: {e}") if self.is_debug() else None
+                self.debug(f"Activity report failed: {e}")
 
         # 设置 daemon=True 确保主程序退出时线程也会自动关闭
         threading.Thread(target=report_activity, daemon=True).start()
@@ -115,9 +105,6 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
         self.info(f"Current Interface Language: {ConfigMixin.current_interface_language}")  # 打印当前语言，方便调试
 
         # 打印日志
-        if self.is_debug():
-            self.info("Debug mode is enabled ...")
-
         # 设置主题颜色
         setThemeColor(self.THEME_COLOR)
 
@@ -163,7 +150,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
         self.navigationInterface.panel.setReturnButtonVisible(False)
 
         # 添加页面
-        self.add_pages(plugin_manager, cache_manager, file_reader)
+        self.add_pages(cache_manager, file_reader)
 
     # 窗口关闭函数
     def closeEvent(self, event) -> None:
@@ -237,30 +224,26 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
             )
 
     # 开始添加页面
-    def add_pages(self, plugin_manager, cache_manager, file_reader) -> None:
+    def add_pages(self, cache_manager, file_reader) -> None:
         # ===== 快速开始 =====
         self.navigationInterface.addItemHeader(self.tra("快速开始"), NavigationItemPosition.SCROLL)
-        self.add_project_pages(plugin_manager, cache_manager, file_reader)
+        self.add_project_pages(cache_manager, file_reader)
 
         # ===== 任务配置 =====
         self.navigationInterface.addItemHeader(self.tra("任务配置"), NavigationItemPosition.SCROLL)
-        self.add_task_setting_pages(plugin_manager)
+        self.add_task_setting_pages()
 
         # ===== 高级设置 =====
         self.navigationInterface.addItemHeader(self.tra("高级设置"), NavigationItemPosition.SCROLL)
-        self.add_settings_pages(plugin_manager)
+        self.add_settings_pages()
 
         # ===== 提示词管理 =====
         self.navigationInterface.addItemHeader(self.tra("提示词管理"), NavigationItemPosition.SCROLL)
-        self.add_prompt_setting_pages(plugin_manager)
+        self.add_prompt_setting_pages()
 
         # ===== 数据表格 =====
         self.navigationInterface.addItemHeader(self.tra("数据表格"), NavigationItemPosition.SCROLL)
-        self.add_table_pages(plugin_manager)
-
-        # ===== 工具箱 =====
-        self.navigationInterface.addItemHeader(self.tra("工具箱"), NavigationItemPosition.SCROLL)
-        self.add_stev_extraction_pages()
+        self.add_table_pages()
 
         # 设置默认页面
         self.switchTo(self.edit_view_page)
@@ -292,43 +275,32 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
         )
 
     # 添加快速开始
-    def add_project_pages(self, plugin_manager, cache_manager, file_reader) -> None:
+    def add_project_pages(self, cache_manager, file_reader) -> None:
         self.platform_page = PlatformPage("platform_page", self)
         self.addSubInterface(self.platform_page, FluentIcon.IOT, self.tra("接口管理"), NavigationItemPosition.SCROLL)
 
-        self.edit_view_page = EditViewPage("edit_view_page", self, plugin_manager, cache_manager, file_reader)
+        self.edit_view_page = EditViewPage("edit_view_page", self, cache_manager, file_reader)
         self.addSubInterface(self.edit_view_page, FluentIcon.PLAY, self.tra("开始翻译"), NavigationItemPosition.SCROLL)
 
     # 添加项目设置
-    def add_task_setting_pages(self, plugin_manager) -> None:
+    def add_task_setting_pages(self) -> None:
         self.task_settings_page = TaskSettingsPage("task_settings_page", self)
         self.addSubInterface(self.task_settings_page, FluentIcon.ZOOM, self.tra("任务设置"), NavigationItemPosition.SCROLL)
         self.output_settings_page = OutputSettingsPage("output_settings_page", self)
         self.addSubInterface(self.output_settings_page, FluentIcon.ALBUM, self.tra("输出设置"), NavigationItemPosition.SCROLL)
 
     # 添加翻译设置
-    def add_settings_pages(self, plugin_manager) -> None:
+    def add_settings_pages(self) -> None:
         self.TranslationSettings = TranslationSettingsPage("TranslationSettings", self)
         self.addSubInterface(self.TranslationSettings, FluentIcon.EXPRESSIVE_INPUT_ENTRY, self.tra("翻译设置"), NavigationItemPosition.SCROLL)
 
-        self.PolishingBasicSettingsPage = PolishingBasicSettingsPage("PolishingBasicSettingsPage", self)
-        self.addSubInterface(self.PolishingBasicSettingsPage, FluentIcon.BRUSH, self.tra("润色设置"), NavigationItemPosition.SCROLL)
 
-        self.plugins_settings_page = PluginsSettingsPage("plugins_settings_page", self, plugin_manager)
-        self.addSubInterface(self.plugins_settings_page, FluentIcon.APPLICATION, self.tra("插件设置"), NavigationItemPosition.SCROLL)
-
-    # 添加润色设置
-    def add_prompt_setting_pages(self, plugin_manager) -> None:
+    # 添加提示词设置
+    def add_prompt_setting_pages(self) -> None:
         self.prompt_optimization_navigation_item = BaseNavigationItem("prompt_optimization_navigation_item", self)
         self.addSubInterface(self.prompt_optimization_navigation_item, FluentIcon.BOOK_SHELF, self.tra("翻译提示词"), NavigationItemPosition.SCROLL)
         self.system_prompt_page = SystemPromptPage("system_prompt_page", self)
         self.addSubInterface(self.system_prompt_page, FluentIcon.LABEL, self.tra("基础提示"), parent=self.prompt_optimization_navigation_item)
-        self.characterization_prompt_page = CharacterizationPromptPage("characterization_prompt_page", self)
-        self.addSubInterface(self.characterization_prompt_page, FluentIcon.PEOPLE, self.tra("角色介绍"), parent=self.prompt_optimization_navigation_item)
-        self.world_building_prompt_page = WorldBuildingPromptPage("world_building_prompt_page", self)
-        self.addSubInterface(self.world_building_prompt_page, FluentIcon.QUICK_NOTE, self.tra("背景设定"), parent=self.prompt_optimization_navigation_item)
-        self.writing_style_prompt_page = WritingStylePromptPage("writing_style_prompt_page", self)
-        self.addSubInterface(self.writing_style_prompt_page, FluentIcon.PENCIL_INK, self.tra("翻译风格"), parent=self.prompt_optimization_navigation_item)
         self.translation_example_prompt_page = TranslationExamplePromptPage("translation_example_prompt_page", self)
         self.addSubInterface(self.translation_example_prompt_page, FluentIcon.FIT_PAGE, self.tra("翻译示例"), parent=self.prompt_optimization_navigation_item)
 
@@ -336,11 +308,11 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
         self.addSubInterface(self.polishing_prompt_navigation, FluentIcon.PALETTE, self.tra("润色提示词"), NavigationItemPosition.SCROLL)
         self.polishing_system_prompt_page = PolishingSystemPromptPage("polishing_system_prompt_page", self)
         self.addSubInterface(self.polishing_system_prompt_page, FluentIcon.LABEL, self.tra("基础提示"), parent=self.polishing_prompt_navigation)
-        self.polishing_style_prompt_page = PolishingStylePromptPage("polishing_style_prompt_page", self)
-        self.addSubInterface(self.polishing_style_prompt_page, FluentIcon.PENCIL_INK, self.tra("润色风格"), parent=self.polishing_prompt_navigation)
+        self.polishing_example_prompt_page = PolishingExamplePromptPage("polishing_example_prompt_page", self)
+        self.addSubInterface(self.polishing_example_prompt_page, FluentIcon.FIT_PAGE, self.tra("润色示例"), parent=self.polishing_prompt_navigation)
 
     # 添加表格设置
-    def add_table_pages(self, plugin_manager) -> None:
+    def add_table_pages(self) -> None:
         self.prompt_dictionary_page = PromptDictionaryPage("prompt_dictionary_page", self)
         self.addSubInterface(self.prompt_dictionary_page, FluentIcon.DICTIONARY, self.tra("术语表"), NavigationItemPosition.SCROLL)
         self.exclusion_list_page = ExclusionListPage("exclusion_list_page", self)
@@ -351,14 +323,3 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
         self.addSubInterface(self.text_replace_a_page, FluentIcon.SEARCH, self.tra("译前替换"), parent=self.text_replace_navigation_item)
         self.text_replace_b_page = TextReplaceBPage("text_replace_b_page", self)
         self.addSubInterface(self.text_replace_b_page, FluentIcon.SEARCH_MIRROR, self.tra("译后替换"), parent=self.text_replace_navigation_item)
-
-    # 添加第五节
-    def add_stev_extraction_pages(self) -> None:
-        self.stev_extraction_navigation_item = BaseNavigationItem("stev_extraction_navigation_item", self)
-        self.addSubInterface(self.stev_extraction_navigation_item, FluentIcon.ZIP_FOLDER, self.tra("StevExtraction"), NavigationItemPosition.SCROLL)
-        self.widget_export_source_text = Widget_export_source_text("widget_export_source_text", self, jtpp)
-        self.addSubInterface(self.widget_export_source_text, FluentIcon.SHARE, self.tra("导出文本"), parent=self.stev_extraction_navigation_item)
-        self.widget_import_translated_text = Widget_import_translated_text("widget_import_translated_text", self, jtpp)
-        self.addSubInterface(self.widget_import_translated_text, FluentIcon.DOWNLOAD, self.tra("导入文本"), parent=self.stev_extraction_navigation_item)
-        self.widget_update_text = Widget_update_text("widget_update_text", self, jtpp)
-        self.addSubInterface(self.widget_update_text, FluentIcon.UPDATE, self.tra("导出增量文本"), parent=self.stev_extraction_navigation_item)

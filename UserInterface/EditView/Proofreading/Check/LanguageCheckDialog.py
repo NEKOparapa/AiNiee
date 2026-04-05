@@ -1,0 +1,211 @@
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QVBoxLayout, QWidget
+from qfluentwidgets import CaptionLabel, CheckBox, ComboBox, DoubleSpinBox, MessageBoxBase, SpinBox, StrongBodyLabel
+
+from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
+
+
+class LanguageCheckDialog(ConfigMixin, Base, MessageBoxBase):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.default = {
+            "check_lang_mode_text": "judge",
+            "check_chunk_size": 20,
+            "check_threshold_ratio": 0.75,
+            "rule_check_exclusion": True,
+            "rule_check_terminology": False,
+            "rule_check_auto_process": True,
+            "rule_check_placeholder": True,
+            "rule_check_number": True,
+            "rule_check_example": True,
+            "rule_check_newline": True,
+            "rule_check_untranslated": True,
+        }
+
+        self.config_data = self.save_config(self.load_config_from_default())
+
+        self.view = QWidget(self)
+        self.view_layout = QVBoxLayout(self.view)
+        self.view_layout.setContentsMargins(0, 0, 0, 0)
+        self.view_layout.setSpacing(20)
+        self.view.setMinimumWidth(650)
+
+        self._init_ui()
+        self._restore_ui_state()
+        self._connect_signals()
+
+        self.viewLayout.addWidget(self.view)
+        self.yesButton.setText(self.tra("开始检查"))
+        self.cancelButton.setText(self.tra("取消"))
+
+    def _init_ui(self):
+        self.settings_container = QWidget()
+        self.settings_layout = QGridLayout(self.settings_container)
+        self.settings_layout.setContentsMargins(0, 0, 0, 0)
+        self.settings_layout.setVerticalSpacing(15)
+        self.settings_layout.setHorizontalSpacing(15)
+
+        self.mode_label = StrongBodyLabel(self.tra("语言检测"), self)
+        self.mode_combo = ComboBox(self)
+        self.mode_combo.addItems([self.tra("宏观统计"), self.tra("精准判断")])
+
+        self.chunk_label = StrongBodyLabel(self.tra("检测分块行数"), self)
+        self.chunk_spin = SpinBox(self)
+        self.chunk_spin.setRange(1, 99)
+        self.chunk_spin.setFixedWidth(140)
+
+        self.threshold_label = StrongBodyLabel(self.tra("检测阈值"), self)
+        self.threshold_spin = DoubleSpinBox(self)
+        self.threshold_spin.setRange(0.10, 1.00)
+        self.threshold_spin.setSingleStep(0.01)
+        self.threshold_spin.setDecimals(2)
+        self.threshold_spin.setFixedWidth(140)
+
+        self.settings_layout.addWidget(self.mode_label, 0, 0)
+        self.settings_layout.addWidget(self.mode_combo, 0, 1)
+        self.settings_layout.addWidget(self.chunk_label, 1, 0)
+        self.settings_layout.addWidget(self.chunk_spin, 1, 1)
+        self.settings_layout.addWidget(self.threshold_label, 2, 0)
+        self.settings_layout.addWidget(self.threshold_spin, 2, 1)
+
+        self.view_layout.addWidget(self.settings_container)
+
+        self.note_label = CaptionLabel(self.tra("检测分块行数与检测阈值只在精准判断中生效"), self)
+        self.note_label.setTextColor(QColor(120, 120, 120), QColor(160, 160, 160))
+        self.note_label.setAlignment(Qt.AlignCenter)
+        self.view_layout.addWidget(self.note_label)
+
+        self.view_layout.addWidget(StrongBodyLabel(self.tra("规则检查项"), self))
+
+        self.check_untranslated = CheckBox(self.tra("未翻译检查"), self)
+        self.check_terminology = CheckBox(self.tra("术语表检查"), self)
+        self.check_exclusion = CheckBox(self.tra("禁翻表检查"), self)
+        self.check_auto_process = CheckBox(self.tra("自动处理检查"), self)
+        self.check_placeholder = CheckBox(self.tra("占位符残留"), self)
+        self.check_number = CheckBox(self.tra("数字序号残留"), self)
+        self.check_example = CheckBox(self.tra("示例文本复读"), self)
+        self.check_newline = CheckBox(self.tra("换行符一致性"), self)
+
+        rule_items = [
+            (self.check_untranslated, self.tra("检查翻译状态为未翻译或译文为空的条目")),
+            (self.check_terminology, self.tra("检查译文中是否包含术语表中的预定义译法")),
+            (self.check_exclusion, self.tra("检查译文中是否正确保留禁翻内容")),
+            (self.check_auto_process, self.tra("检查默认处理规则是否被正确执行")),
+            (self.check_placeholder, self.tra("检查 [P0] 等占位标签是否残留在文本中")),
+            (self.check_number, self.tra("检查行首数字编号 (1.) 是否残留")),
+            (self.check_example, self.tra("检查是否存在由模型生成的无效内容")),
+            (self.check_newline, self.tra("检查译文换行符数量是否与原文一致")),
+        ]
+
+        self.rules_container = QWidget()
+        self.rules_grid = QGridLayout(self.rules_container)
+        self.rules_grid.setContentsMargins(0, 0, 0, 0)
+        self.rules_grid.setHorizontalSpacing(20)
+        self.rules_grid.setVerticalSpacing(16)
+
+        for i, (checkbox, description) in enumerate(rule_items):
+            row = i // 2
+            col = i % 2
+            self.rules_grid.addWidget(self._create_rule_item(checkbox, description), row, col)
+
+        self.view_layout.addWidget(self.rules_container)
+
+    def _create_rule_item(self, checkbox: CheckBox, description: str) -> QWidget:
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        layout.addWidget(checkbox)
+
+        desc_label = CaptionLabel(description, self)
+        desc_label.setTextColor(QColor(120, 120, 120), QColor(160, 160, 160))
+        desc_label.setWordWrap(True)
+
+        desc_container = QWidget()
+        desc_layout = QHBoxLayout(desc_container)
+        desc_layout.setContentsMargins(28, 0, 0, 0)
+        desc_layout.setSpacing(0)
+        desc_layout.addWidget(desc_label)
+
+        layout.addWidget(desc_container)
+        return container
+
+    def _restore_ui_state(self):
+        config = self.config_data
+
+        mode_code = config.get("check_lang_mode_text", "report")
+        if mode_code == "judge":
+            self.mode_combo.setCurrentText(self.tra("精准判断"))
+        else:
+            self.mode_combo.setCurrentText(self.tra("宏观统计"))
+
+        chunk_val = config.get("check_chunk_size", 20)
+        self.chunk_spin.setValue(chunk_val if chunk_val > 0 else 20)
+
+        thresh_val = config.get("check_threshold_ratio", 0.75)
+        self.threshold_spin.setValue(thresh_val if thresh_val > 0 else 0.75)
+
+        self.check_untranslated.setChecked(config.get("rule_check_untranslated", True))
+        self.check_terminology.setChecked(config.get("rule_check_terminology", True))
+        self.check_exclusion.setChecked(config.get("rule_check_exclusion", True))
+        self.check_auto_process.setChecked(config.get("rule_check_auto_process", True))
+        self.check_placeholder.setChecked(config.get("rule_check_placeholder", True))
+        self.check_number.setChecked(config.get("rule_check_number", True))
+        self.check_example.setChecked(config.get("rule_check_example", True))
+        self.check_newline.setChecked(config.get("rule_check_newline", True))
+
+    def _connect_signals(self):
+        self.mode_combo.currentTextChanged.connect(self._on_setting_changed)
+        self.chunk_spin.valueChanged.connect(self._on_setting_changed)
+        self.threshold_spin.valueChanged.connect(self._on_setting_changed)
+        self.check_untranslated.stateChanged.connect(self._on_setting_changed)
+        self.check_terminology.stateChanged.connect(self._on_setting_changed)
+        self.check_exclusion.stateChanged.connect(self._on_setting_changed)
+        self.check_auto_process.stateChanged.connect(self._on_setting_changed)
+        self.check_placeholder.stateChanged.connect(self._on_setting_changed)
+        self.check_number.stateChanged.connect(self._on_setting_changed)
+        self.check_example.stateChanged.connect(self._on_setting_changed)
+        self.check_newline.stateChanged.connect(self._on_setting_changed)
+
+    def _on_setting_changed(self):
+        config = self.load_config()
+
+        if self.mode_combo.currentText() == self.tra("精准判断"):
+            config["check_lang_mode_text"] = "judge"
+        else:
+            config["check_lang_mode_text"] = "report"
+
+        config["check_chunk_size"] = self.chunk_spin.value()
+        config["check_threshold_ratio"] = self.threshold_spin.value()
+        config["rule_check_untranslated"] = self.check_untranslated.isChecked()
+        config["rule_check_terminology"] = self.check_terminology.isChecked()
+        config["rule_check_exclusion"] = self.check_exclusion.isChecked()
+        config["rule_check_auto_process"] = self.check_auto_process.isChecked()
+        config["rule_check_placeholder"] = self.check_placeholder.isChecked()
+        config["rule_check_number"] = self.check_number.isChecked()
+        config["rule_check_example"] = self.check_example.isChecked()
+        config["rule_check_newline"] = self.check_newline.isChecked()
+
+        self.save_config(config)
+        self.config_data = config
+
+    def accept(self):
+        self.check_params = {
+            "mode": self.config_data.get("check_lang_mode_text", "report"),
+            "chunk_size": self.chunk_spin.value(),
+            "threshold": self.threshold_spin.value(),
+            "rules": {
+                "untranslated": self.check_untranslated.isChecked(),
+                "terminology": self.check_terminology.isChecked(),
+                "exclusion": self.check_exclusion.isChecked(),
+                "auto_process": self.check_auto_process.isChecked(),
+                "placeholder": self.check_placeholder.isChecked(),
+                "number": self.check_number.isChecked(),
+                "example": self.check_example.isChecked(),
+                "newline": self.check_newline.isChecked(),
+            },
+        }
+        super().accept()

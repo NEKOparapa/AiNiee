@@ -78,7 +78,6 @@
       "English": "Reasoning Model",
       "日本語": "推論モデル"
     }
-
   },
   "PART_2": {
     "数据已保存": {
@@ -155,18 +154,6 @@
     }
   },
   "PART_3": {
-    "自定义角色介绍": {
-      "简中": "自定义角色介绍",
-      "繁中": "自訂角色介紹",
-      "English": "Custom character introduction",
-      "日本語": "カスタムキャラクター紹介"
-    },
-    "启用此功能后，将根据本页中设置的构建角色介绍，并补充到基础提示词中（不支持本地类模型）\n可使用分隔符[Separator]来分隔姓和名": {
-      "简中": "启用此功能后，将根据本页中设置的构建角色介绍，并补充到基础提示词中（不支持本地类模型）\n可使用分隔符[Separator]来分隔姓和名",
-      "繁中": "啟用此功能後，將根據本頁中設定的構建角色介紹，並補充到基礎提示詞中（不支援本地類模型）\n可使用分隔符[Separator]來分隔姓和名",
-      "English": "When enabled, a character introduction will be built based on the settings on this page and added to the basic prompt (local models are not supported).\nYou can use the delimiter [Separator] to separate the first and last name",
-      "日本語": "この機能を有効にすると、このページの設定に基づいてキャラクター紹介が構築され、基本プロンプトに追加されます（ローカルモデルはサポートされていません）。\n区切り文字[Separator]を使用して、姓と名を分けることができます"
-    },
     "原名": {
       "简中": "原名",
       "繁中": "原名",
@@ -227,17 +214,17 @@
       "English": "Import",
       "日本語": "インポート"
     },
-    "导出_角色介绍": {
-      "简中": "导出_角色介绍",
-      "繁中": "導出_角色介紹",
-      "English": "Export_Character Introduction",
-      "日本語": "エクスポート_キャラクター紹介"
-    },
     "导出_翻译示例": {
       "简中": "导出_翻译示例",
       "繁中": "導出_翻譯範例",
       "English": "Export_Translation Example",
       "日本語": "エクスポート_翻訳例"
+    },
+    "导出_润色示例": {
+      "简中": "导出_润色示例",
+      "繁中": "導出_潤飾範例",
+      "English": "Export_Polishing Example",
+      "日本語": "エクスポート_推敲例"
     },
     "数据已导出到应用根目录": {
       "简中": "数据已导出到应用根目录",
@@ -307,42 +294,6 @@
     }
   },
   "PART_4": {
-    "自定义背景设定": {
-      "简中": "自定义背景设定",
-      "繁中": "自訂背景設定",
-      "English": "Custom background setting",
-      "日本語": "カスタム背景設定"
-    },
-    "启用此功能后，将根据本页中设置的内容构建背景设定提示，并补充到基础提示词中（不支持本地类模型）": {
-      "简中": "启用此功能后，将根据本页中设置的内容构建背景设定提示，并补充到基础提示词中（不支持本地类模型）",
-      "繁中": "啟用此功能後，將根據本頁中設定的內容構建背景設定提示，並補充到基礎提示詞中（不支援本地類模型）",
-      "English": "When enabled, background setting prompt will be built based on the settings on this page and added to the basic prompt (local models are not supported)",
-      "日本語": "この機能を有効にすると、このページの設定に基づいて背景設定プロンプトが構築され、基本プロンプトに追加されます（ローカルモデルはサポートされていません）"
-    },
-    "自定义翻译风格": {
-      "简中": "自定义翻译风格",
-      "繁中": "自訂翻譯風格",
-      "English": "Custom translation style",
-      "日本語": "カスタム翻訳スタイル"
-    },
-    "启用此功能后，将根据本页中设置的内容构建翻译风格要求，并补充到基础提示词中（不支持本地类模型）": {
-      "简中": "启用此功能后，将根据本页中设置的内容构建翻译风格要求，并补充到基础提示词中（不支持本地类模型）",
-      "繁中": "啟用此功能後，將根據本頁中設定的內容構建翻譯風格要求，並補充到基礎提示詞中（不支援本地類模型）",
-      "English": "When enabled, translation style requirement will be built based on the settings on this page and added to the basic prompt (local models are not supported)",
-      "日本語": "この機能を有効にすると、このページの設定に基づいて翻訳スタイルの要求が構築され、基本プロンプトに追加されます（ローカルモデルはサポートされていません）"
-    },
-    "自定义润色风格": {
-      "简中": "自定义润色风格",
-      "繁中": "自訂潤飾風格",
-      "English": "Custom Polishing Style",
-      "日本語": "カスタム推敲スタイル"
-    },
-    "启用此功能后，将根据本页中设置的内容构建润色风格要求，并补充到基础提示词中": {
-      "简中": "启用此功能后，将根据本页中设置的内容构建润色风格要求，并补充到基础提示词中",
-      "繁中": "啟用此功能後，將根據本頁設定內容建構潤飾風格要求，並補充至基礎提示詞",
-      "English": "When enabled, builds polishing style requirements based on this page's settings and appends to basic prompts",
-      "日本語": "有効時、本ページの設定に基づき推敲スタイル要求を構築し、基本プロンプトに追加"
-    },
     "自定义翻译示例": {
       "简中": "自定义翻译示例",
       "繁中": "自訂翻譯範例",
@@ -354,6 +305,18 @@
       "繁中": "啟用此功能後，將根據本頁中設定的內容構建翻譯範例，並補充到基礎提示詞中（不支援本地類模型）",
       "English": "When enabled, translation example will be built based on the settings on this page and added to the basic prompt (local models are not supported)",
       "日本語": "この機能を有効にすると、このページの設定に基づいて翻訳例が構築され、基本プロンプトに追加されます（ローカルモデルはサポートされていません）"
+    },
+    "自定义润色示例": {
+      "简中": "自定义润色示例",
+      "繁中": "自訂潤飾範例",
+      "English": "Custom polishing example",
+      "日本語": "カスタム推敲例"
+    },
+    "启用此功能后，将根据本页中设置的内容构建润色示例，并补充到基础提示词中": {
+      "简中": "启用此功能后，将根据本页中设置的内容构建润色示例，并补充到基础提示词中",
+      "繁中": "啟用此功能後，將根據本頁中設定的內容構建潤飾範例，並補充到基礎提示詞中",
+      "English": "When enabled, polishing examples will be built from this page's settings and appended to the base prompt",
+      "日本語": "この機能を有効にすると、このページの設定内容に基づいて推敲例が構築され、基本プロンプトに追加されます"
     }
   }
 }

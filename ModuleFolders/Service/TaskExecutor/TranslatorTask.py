@@ -9,7 +9,6 @@ from rich.markup import escape
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Log.Log import LogMixin
-from ModuleFolders.Infrastructure.Plugin.PluginManager import PluginManager
 from ModuleFolders.Service.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Infrastructure.LLMRequester.LLMRequester import LLMRequester
@@ -18,6 +17,8 @@ from ModuleFolders.Domain.PromptBuilder.PromptBuilderLocal import PromptBuilderL
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
 from ModuleFolders.Domain.ResponseExtractor.ResponseExtractor import ResponseExtractor
 from ModuleFolders.Domain.ResponseChecker.ResponseChecker import ResponseChecker
+from ModuleFolders.Domain.TextNormalizer.TextNormalizer import TextNormalizer
+from ModuleFolders.Domain.TextSymbolRepair.TextSymbolRepair import TextSymbolRepair
 from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Infrastructure.Tokener.Tokener import Tokener
 
@@ -26,13 +27,14 @@ from ModuleFolders.Domain.TextProcessor.TextProcessor import TextProcessor
 
 class TranslatorTask(LogMixin, Base):
 
-    def __init__(self, config: TaskConfig, plugin_manager: PluginManager, request_limiter: RequestLimiter, source_lang) -> None:
+    def __init__(self, config: TaskConfig, request_limiter: RequestLimiter, source_lang) -> None:
         super().__init__()
 
         self.config = config
-        self.plugin_manager = plugin_manager
         self.request_limiter = request_limiter
+        self.text_normalizer = TextNormalizer()
         self.text_processor = TextProcessor(self.config) # 文本处理器
+        self.text_symbol_repair = TextSymbolRepair()
 
         # 源语言对象
         self.source_lang = source_lang
@@ -72,8 +74,8 @@ class TranslatorTask(LogMixin, Base):
         # 生成文本行数信息
         self.row_count = len(self.source_text_dict)
 
-        # 触发插件事件 - 文本正规化
-        self.plugin_manager.broadcast_event("normalize_text", self.config, self.source_text_dict)
+        # 文本规范化
+        self.source_text_dict = self.text_normalizer.normalize_text_dict(self.source_text_dict)
 
         # 各种替换步骤，译前替换，提取首尾与占位中间代码
         self.source_text_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage = \
@@ -137,7 +139,7 @@ class TranslatorTask(LogMixin, Base):
             time.sleep(1)
 
         # 获取接口配置信息包
-        platform_config = self.config.get_platform_configuration("translationReq")
+        platform_config = self.config.get_active_platform_configuration()
 
         # 发起请求
         requester = LLMRequester()
@@ -200,8 +202,7 @@ class TranslatorTask(LogMixin, Base):
         # 模型回复日志
         if response_think:
             self.extra_log.append("模型思考内容：\n" + response_think)
-        if self.is_debug():
-            self.extra_log.append("模型回复内容：\n" + response_content)
+        self.extra_log.append("模型回复内容：\n" + response_content)
 
         # 检查译文
         if check_result == False:
@@ -225,12 +226,13 @@ class TranslatorTask(LogMixin, Base):
             # 各种翻译后处理
             restore_response_dict = copy.copy(response_dict)
             restore_response_dict = self.text_processor.restore_all(self.config, restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage)
+            restore_response_dict = self.text_symbol_repair.repair_response_dict(self.config, restore_response_dict)
 
             # 更新译文结果到缓存数据中
             for item, response in zip(self.items, restore_response_dict.values()):
                 with item.atomic_scope():
                     item.model = self.config.model
-                    item.translated_text = response
+                    item.translated_text = self.text_symbol_repair.repair_text(self.config, item.source_text, response)
                     item.translation_status = TranslationStatus.TRANSLATED
 
 

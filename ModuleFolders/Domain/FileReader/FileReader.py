@@ -28,7 +28,6 @@ from ModuleFolders.Domain.FileReader.TransReader import TransReader
 from ModuleFolders.Domain.FileReader.I18nextReader import I18nextReader
 from ModuleFolders.Domain.FileReader.PoReader import PoReader
 from ModuleFolders.Domain.FileReader.BabeldocPdfReader import BabeldocPdfReader
-from PluginScripts.IOPlugins.CustomRegistry import CustomReader
 
 
 # 文件读取器(分发入口)
@@ -60,9 +59,6 @@ class FileReader():
         self.register_reader(CsvReader)
         self.register_reader(PptxReader)
         self.register_reader(XlsxReader)
-        
-        # 注册插件式 Reader
-        CustomReader.register_readers(self)
 
         # 检验是否有歧义
         AutoTypeReader.verify_reader_factories(self.reader_factory_dict.values())

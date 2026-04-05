@@ -25,17 +25,14 @@ class Event():
 
     GLOSS_TASK_START = 700                           # 术语表翻译 开始
     GLOSS_TASK_DONE = 701                            # 术语表翻译 完成
+    ANALYSIS_TASK_START = 720                        # 分析任务 开始
+    ANALYSIS_TASK_UPDATE = 721                       # 分析任务 更新
+    ANALYSIS_TASK_DONE = 722                         # 分析任务 完成
 
     TABLE_TRANSLATE_START = 800                      # 表格翻译 开始
     TABLE_TRANSLATE_DONE = 801                       # 表格翻译 完成
     TABLE_POLISH_START = 810                      # 表格润色 开始
     TABLE_POLISH_DONE = 811                      # 表格润色 完成    
-
-    TERM_EXTRACTION_START = 830                  # 术语提取开始
-    TERM_EXTRACTION_DONE = 831                     
-
-    TERM_TRANSLATE_SAVE_START = 832              # 实体提取开始
-    TERM_TRANSLATE_SAVE_DONE = 833 
 
     TRANSLATION_CHECK_START = 840                # 语言检查开始    
 
@@ -54,6 +51,7 @@ class Status():
     
     API_TEST = 2000                                 # 接口测试中
     GLOSS_TASK = 3000                               # 术语表翻译中
+    ANALYSIS_TASK = 3500                            # 分析任务中
     TABLE_TASK = 4001                               # 表格任务中
 
 class Base():

@@ -22,6 +22,7 @@ from ModuleFolders.Service.Cache.CacheProject import (
 
 
 class CacheManager(ConfigMixin, LogMixin, Base):
+    ANALYSIS_EXTRA_KEY = "analysis_v1"
     SAVE_INTERVAL = 8  # 缓存保存间隔（秒）
 
     def __init__(self) -> None:
@@ -219,6 +220,8 @@ class CacheManager(ConfigMixin, LogMixin, Base):
             for k, v in old_item.items():
                 if k == 'file_name':
                     continue
+                if k == 'polished_text':
+                    continue
                 if k not in new_item_fields:
                     if k in file_prop_keys:
                         files_props[storage_path][k] = v
@@ -392,23 +395,34 @@ class CacheManager(ConfigMixin, LogMixin, Base):
             # 修改译文
             elif field_name == 'translated_text':
                 item_to_update.translated_text = new_text
-                # 如果译文被清空，状态应重置为未翻译，同时清空润文
                 if not new_text or not new_text.strip():
                     item_to_update.translation_status = TranslationStatus.UNTRANSLATED
-                    item_to_update.polished_text = ""
-                # 如果有译文内容，则标记为已翻译
                 else:
                     item_to_update.translation_status = TranslationStatus.TRANSLATED
 
-            # 修改润文
-            elif field_name == 'polished_text':
-                item_to_update.polished_text = new_text
-                # 如果润文被清空，状态应回退到已翻译
-                if not new_text or not new_text.strip():
-                    item_to_update.translation_status = TranslationStatus.TRANSLATED
-                # 如果有润文内容，则标记为已润色
-                else:
-                    item_to_update.translation_status = TranslationStatus.POLISHED
+    def update_generated_translation(
+        self,
+        storage_path: str,
+        text_index: int,
+        new_text: str,
+        translation_status: int,
+    ) -> None:
+        """
+        更新任务生成的译文内容，并保留调用方指定的翻译状态。
+        """
+        with self.file_lock:
+            cache_file = self.project.get_file(storage_path)
+            if not cache_file:
+                print(f"Error: 找不到文件 {storage_path}")
+                return
+
+            item_to_update = cache_file.get_item(text_index)
+            item_to_update.translated_text = new_text
+
+            if not new_text or not new_text.strip():
+                item_to_update.translation_status = TranslationStatus.UNTRANSLATED
+            else:
+                item_to_update.translation_status = translation_status
 
     # 缓存全搜索方法
     def search_items(self, query: str, scope: str, is_regex: bool, search_flagged: bool) -> list:
@@ -417,7 +431,7 @@ class CacheManager(ConfigMixin, LogMixin, Base):
 
         Args:
             query (str): 搜索查询字符串。
-            scope (str): 搜索范围 ('all', 'source_text', 'translated_text', 'polished_text')。
+            scope (str): 搜索范围 ('all', 'source_text', 'translated_text')。
             is_regex (bool): 是否使用正则表达式。
             search_flagged (bool): 是否仅搜索被标记的行。
 
@@ -428,7 +442,7 @@ class CacheManager(ConfigMixin, LogMixin, Base):
         fields_to_check = []
 
         if scope == 'all':
-            fields_to_check = ['source_text', 'translated_text', 'polished_text']
+            fields_to_check = ['source_text', 'translated_text']
         else:
             fields_to_check = [scope]
 
@@ -454,11 +468,8 @@ class CacheManager(ConfigMixin, LogMixin, Base):
                         if item.extra:
                             if scope == 'translated_text':
                                 is_item_flagged = item.extra.get('language_mismatch_translation', False)
-                            elif scope == 'polished_text':
-                                is_item_flagged = item.extra.get('language_mismatch_polish', False)
                             elif scope == 'all':
-                                is_item_flagged = (item.extra.get('language_mismatch_translation', False) or
-                                                   item.extra.get('language_mismatch_polish', False))
+                                is_item_flagged = item.extra.get('language_mismatch_translation', False)
                             # 对于 'source_text' 范围, is_item_flagged 保持 False, 自动跳过
 
                         if not is_item_flagged:
@@ -502,4 +513,53 @@ class CacheManager(ConfigMixin, LogMixin, Base):
                             "file_path": file_path
                         })
         return all_items_data
+
+    # 生成分析用的文本片段
+    def generate_analysis_source_chunks(self, limit_type: str, limit_count: int) -> List[List[dict]]:
+        chunks = []
+        if not self.project:
+            return chunks
+
+        for file in self.project.files.values():
+            current_chunk, current_length = [], 0
+
+            for item in file.items:
+                if not item.source_text or not item.source_text.strip():
+                    continue
+
+                item_length = item.get_token_count(item.source_text) if limit_type == "token" else 1
+                if current_chunk and (current_length + item_length > limit_count):
+                    chunks.append(current_chunk)
+                    current_chunk, current_length = [], 0
+
+                current_chunk.append(
+                    {
+                        "text_index": item.text_index,
+                        "source_text": item.source_text,
+                    }
+                )
+                current_length += item_length
+
+            if current_chunk:
+                chunks.append(current_chunk)
+
+        return chunks
+
+    # 获取分析结果数据
+    def get_analysis_data(self) -> dict:
+        if not self.project:
+            return {}
+        return self.project.get_extra(self.ANALYSIS_EXTRA_KEY, {}) or {}
+
+    # 设置分析结果数据
+    def set_analysis_data(self, analysis_data: dict) -> None:
+        if not self.project:
+            return
+        self.project.set_extra(self.ANALYSIS_EXTRA_KEY, analysis_data or {})
+
+    # 清除分析结果数据
+    def clear_analysis_data(self) -> None:
+        if not self.project:
+            return
+        self.project.extra.pop(self.ANALYSIS_EXTRA_KEY, None)
 
