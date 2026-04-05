@@ -5,11 +5,12 @@ from qfluentwidgets import SingleDirectionScrollArea
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from UserInterface.EditView.Translation.BottomCommandBar import BottomCommandBar
+from UserInterface.EditView.Translation.LanguageSettingsCard import LanguageSettingsCard
 from UserInterface.EditView.Translation.MonitoringPage import MonitoringPage
 
 
 class TranslationPage(ConfigMixin, Base, QWidget):
-    FLOATING_BAR_MAX_WIDTH = 720
+    FLOATING_BAR_GAP = 12
     FLOATING_BAR_SIDE_MARGIN = 24
     FLOATING_BAR_BOTTOM_MARGIN = 20
     FLOATING_BAR_CONTENT_PADDING = 112
@@ -39,20 +40,30 @@ class TranslationPage(ConfigMixin, Base, QWidget):
         )
 
         self.bottom_bar = BottomCommandBar(self)
+        self.language_settings_card = LanguageSettingsCard(self)
         self.bottom_bar.raise_()
-        self._position_bottom_bar()
+        self.language_settings_card.raise_()
+        self._position_floating_cards()
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
-        self._position_bottom_bar()
+        self._position_floating_cards()
 
-    def _position_bottom_bar(self) -> None:
-        available_width = max(0, self.width() - self.FLOATING_BAR_SIDE_MARGIN * 2)
-        preferred_width = min(self.bottom_bar.sizeHint().width(), self.FLOATING_BAR_MAX_WIDTH)
-        bar_width = min(preferred_width, available_width)
-        x = max(self.FLOATING_BAR_SIDE_MARGIN, (self.width() - bar_width) // 2)
-        y = self.height() - self.bottom_bar.height() - self.FLOATING_BAR_BOTTOM_MARGIN
-        self.bottom_bar.setGeometry(x, max(0, y), bar_width, self.bottom_bar.height())
+    def _position_floating_cards(self) -> None:
+        bottom_bar_width = self.bottom_bar.sizeHint().width()
+        language_card_width = self.language_settings_card.sizeHint().width()
+        total_width = bottom_bar_width + self.FLOATING_BAR_GAP + language_card_width
+
+        x = max(self.FLOATING_BAR_SIDE_MARGIN, (self.width() - total_width) // 2)
+        y = self.height() - max(self.bottom_bar.height(), self.language_settings_card.height()) - self.FLOATING_BAR_BOTTOM_MARGIN
+
+        self.bottom_bar.setGeometry(x, max(0, y), bottom_bar_width, self.bottom_bar.height())
+        self.language_settings_card.setGeometry(
+            x + bottom_bar_width + self.FLOATING_BAR_GAP,
+            max(0, y),
+            language_card_width,
+            self.language_settings_card.height(),
+        )
 
     def enable_continue_button(self, enable: bool) -> None:
         self.bottom_bar.enable_continue_button(enable)

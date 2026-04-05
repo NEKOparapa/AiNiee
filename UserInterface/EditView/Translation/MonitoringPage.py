@@ -6,7 +6,6 @@ from qfluentwidgets import (FlowLayout,FluentIcon as FIF)
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from UserInterface.Widget.DashboardCard import DashboardCard
-from UserInterface.Widget.WaveformCard import WaveformCard
 from UserInterface.Widget.ProgressRingCard import ProgressRingCard
 from UserInterface.Widget.CombinedLineCard import CombinedLineCard
 
@@ -26,13 +25,12 @@ class MonitoringPage(ConfigMixin, Base, QWidget):
         self.head_hbox.setContentsMargins(0, 0, 0, 0)
 
         # 添加卡片控件
+        self.add_ring_card(self.head_hbox)
         self.add_combined_line_card(self.head_hbox)
         self.add_time_card(self.head_hbox)
         self.add_remaining_time_card(self.head_hbox)
         self.add_token_card(self.head_hbox)
         self.add_task_card(self.head_hbox)
-        self.add_ring_card(self.head_hbox)
-        self.add_waveform_card(self.head_hbox)
         self.add_speed_card(self.head_hbox)
         self.add_stability_card(self.head_hbox)
 
@@ -58,15 +56,6 @@ class MonitoringPage(ConfigMixin, Base, QWidget):
         self.ring.setFixedSize(204, 204)
         self.ring.set_format(self.tra("无任务"))
         parent.addWidget(self.ring)
-
-    # 波形图
-    def add_waveform_card(self, parent: QLayout) -> None:
-        self.waveform = WaveformCard(self.tra("波形图"),
-                                    icon=FIF.MARKET
-                                    )
-        self.waveform.set_draw_grid(False)  # 关闭网格线
-        self.waveform.setFixedSize(633, 204)
-        parent.addWidget(self.waveform)
 
     # 累计时间
     def add_time_card(self, parent: QLayout) -> None:
@@ -261,7 +250,6 @@ class MonitoringPage(ConfigMixin, Base, QWidget):
             self.token.set_value(f"{(token / 1000 / 1000):.2f}")
 
         speed = self.data.get("total_completion_tokens", 0) / max(1, time.time() - self.data.get("start_time", 0))
-        self.waveform.add_value(speed)
         if speed < 1000:
             self.speed.set_unit("T/S")
             self.speed.set_value(f"{speed:.2f}")

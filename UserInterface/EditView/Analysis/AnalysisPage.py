@@ -169,8 +169,6 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.splitter = QSplitter(Qt.Horizontal, self)
         self.splitter.setHandleWidth(8)
         self.splitter.setStyleSheet("QSplitter::handle { width: 8px; background: transparent; }")
-        self.splitter.setCollapsible(0, True)
-        self.splitter.setCollapsible(1, False)
 
         self.nav_card = CardWidget(self)
         self.nav_card.setMinimumWidth(0)
@@ -220,6 +218,8 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         self.splitter.addWidget(self.nav_card)
         self.splitter.addWidget(self.right_panel)
+        self.splitter.setCollapsible(0, True)
+        self.splitter.setCollapsible(1, False)
         self.splitter.setStretchFactor(0, 1)
         self.splitter.setStretchFactor(1, 9)
         self.container.addWidget(self.splitter, 1)

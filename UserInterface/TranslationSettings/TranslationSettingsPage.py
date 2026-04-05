@@ -5,9 +5,7 @@ from qfluentwidgets import HorizontalSeparator, PillPushButton
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
-from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
-from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.SpinCard import SpinCard
 from UserInterface.Widget.FlowCard import FlowCard
 
@@ -23,7 +21,7 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
         self.default = {
             "source_language": "auto",
             "target_language": "chinese_simplified",
-            "language_filter_switch": True,
+            "language_filter_switch": False,
             "pre_line_counts": 0,
             "few_shot_and_example_switch": True,
             "auto_process_text_code_segment": False,
@@ -44,8 +42,6 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
         self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
         # 添加控件
-        self.add_widget_source_language(self.container, config)
-        self.add_widget_target_language(self.container, config)
         self.add_widget_language_filter(self.container, config)
         self.container.addWidget(HorizontalSeparator())
         self.add_widget_pre_lines(self.container, config)
@@ -75,123 +71,6 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
                 self.tra("行数不宜设置过大，建议10行以内 (不支持本地类接口)"),
                 init = init,
                 value_changed = value_changed,
-            )
-        )
-
-    # 原文语言
-    def add_widget_source_language(self, parent, config) -> None:
-        # 定义语言与值的配对列表（显示文本, 存储值）
-        source_language_pairs = [
-            (self.tra("自动检测"), "auto"),
-            (self.tra("日语"), "japanese"),
-            (self.tra("英语"), "english"),
-            (self.tra("韩语"), "korean"),
-            (self.tra("俄语"), "russian"),
-            (self.tra("德语"), "german"),
-            (self.tra("法语"), "french"),
-            (self.tra("简中"), "chinese_simplified"),
-            (self.tra("繁中"), "chinese_traditional"),
-            (self.tra("西班牙语"), "spanish"),
-            (self.tra("印尼语"), "indonesian"),
-            (self.tra("越南语"), "vietnamese"),
-            (self.tra("泰语"), "thai"),
-        ]
-
-        # 生成翻译后的配对列表
-        translated_pairs = [(self.tra(display), value) for display, value in source_language_pairs]
-
-        def init(widget) -> None:
-            """初始化时根据存储的值设置当前选项"""
-            current_config = self.load_config()
-            current_value = current_config.get("source_language", "auto")
-
-            # 通过值查找对应的索引
-            index = next(
-                (i for i, (_, value) in enumerate(translated_pairs) if value == current_value),
-                0  # 默认选择第一个选项
-            )
-            widget.set_current_index(max(0, index))
-
-        def current_text_changed(widget, text: str) -> None:
-            """选项变化时存储对应的值"""
-            # 通过显示文本查找对应的值
-            value = next(
-                (value for display, value in translated_pairs if display == text),
-                "auto"  # 默认值
-            )
-            
-            config = self.load_config()
-            config["source_language"] = value
-            self.save_config(config)
-
-        # 创建选项列表（使用翻译后的显示文本）
-        options = [display for display, _ in translated_pairs]
-
-        parent.addWidget(
-            ComboBoxCard(
-                self.tra("原文语言"),
-                self.tra("设置当前项目所使用的原始文本的语言"),
-                options,
-                init=init,
-                current_text_changed=current_text_changed
-            )
-        )
-
-    # 译文语言
-    def add_widget_target_language(self, parent, config) -> None:
-        # 定义语言与值的配对列表（显示文本, 存储值）
-        target_language_pairs = [
-            (self.tra("简中"), "chinese_simplified"),
-            (self.tra("繁中"), "chinese_traditional"),
-            (self.tra("英语"), "english"),
-            (self.tra("日语"), "japanese"),
-            (self.tra("韩语"), "korean"),
-            (self.tra("俄语"), "russian"),
-            (self.tra("德语"), "german"),
-            (self.tra("法语"), "french"),
-            (self.tra("西班牙语"), "spanish"),
-            (self.tra("印尼语"), "indonesian"),
-            (self.tra("越南语"), "vietnamese"),
-            (self.tra("泰语"), "thai"),
-        ]
-
-        # 生成翻译后的配对列表
-        translated_pairs = [(self.tra(display), value) for display, value in target_language_pairs]
-
-        def init(widget) -> None:
-            """初始化时根据存储的值设置当前选项"""
-            current_config = self.load_config()
-            current_value = current_config.get("target_language", "chinese_simplified")
-
-            # 通过值查找对应的索引
-            index = next(
-                (i for i, (_, value) in enumerate(translated_pairs) if value == current_value),
-                0  # 默认选择第一个选项
-            )
-            widget.set_current_index(max(0, index))
-
-        def current_text_changed(widget, text: str) -> None:
-            """选项变化时存储对应的值"""
-            # 通过显示文本查找对应的值
-            value = next(
-                (value for display, value in translated_pairs if display == text),
-                "chinese_simplified"  # 默认值
-            )
-            
-            config = self.load_config()
-            config["target_language"] = value
-            self.save_config(config)
-
-        # 创建选项列表（使用翻译后的显示文本）
-        options = [display for display, _ in translated_pairs]
-
-        parent.addWidget(
-            ComboBoxCard(
-                self.tra("译文语言"),
-                self.tra("设置当前项目所期望的译文文本的语言"),
-                options,
-                init=init,
-                current_text_changed=current_text_changed
             )
         )
 

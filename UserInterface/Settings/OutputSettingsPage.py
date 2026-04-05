@@ -18,17 +18,15 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         self.setObjectName(text.replace(" ", "-"))
 
         config = self.load_config()
-        text_symbol_repair_switch = config.get("text_symbol_repair_switch", False)
-        translation_result_check_switch = config.get("translation_result_check_switch", False)
-
+        
         # 默认配置
         self.default = {
             "label_output_path": "./output",
             "auto_set_output_path": True,
             "output_filename_suffix": "_translated",
             "bilingual_text_order": "translation_first",
-            "translation_result_check_switch": translation_result_check_switch,
-            "text_symbol_repair_switch": text_symbol_repair_switch,
+            "translation_result_check_switch": False,
+            "text_symbol_repair_switch": False,
             "response_conversion_toggle": False,
             "opencc_preset": "s2t",
             "keep_original_encoding": False,
