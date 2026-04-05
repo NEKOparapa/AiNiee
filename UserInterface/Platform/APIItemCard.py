@@ -81,14 +81,6 @@ class APIItemCard(QWidget, ConfigMixin, Base):
     def _build_menu(self, button):
         menu = RoundMenu(parent=button)
 
-        menu.addAction(
-            Action(
-                FluentIcon.SEND,
-                self.tra("测试接口"),
-                triggered=lambda checked=False: self.testClicked.emit(self.api_tag),
-            )
-        )
-
         activate_action = Action(
             FluentIcon.ACCEPT_MEDIUM,
             self.tra("激活接口"),
@@ -97,6 +89,14 @@ class APIItemCard(QWidget, ConfigMixin, Base):
         self._activate_actions.append(activate_action)
         menu.addAction(activate_action)
         menu.addSeparator()
+
+        menu.addAction(
+            Action(
+                FluentIcon.SEND,
+                self.tra("测试接口"),
+                triggered=lambda checked=False: self.testClicked.emit(self.api_tag),
+            )
+        )
 
         menu.addAction(
             Action(

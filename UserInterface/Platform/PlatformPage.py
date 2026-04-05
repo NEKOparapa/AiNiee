@@ -17,6 +17,7 @@ from qfluentwidgets import (
     PrimaryPushButton,
     StrongBodyLabel,
     SubtitleLabel,
+    TitleLabel,
     themeColor,
 )
 
@@ -91,49 +92,99 @@ class APITypeCard(CardWidget):
 
 
 class InterfaceHeaderCard(CardWidget, ConfigMixin):
-    """顶部接口管理栏"""
+    """顶部接口管理栏 (极简现代版)"""
 
     addClicked = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setFixedHeight(92)
-
         self.layout = QHBoxLayout(self)
-        self.layout.setContentsMargins(20, 16, 20, 16)
+        self.layout.setContentsMargins(24, 20, 24, 20)
         self.layout.setSpacing(16)
+        self.layout.setAlignment(Qt.AlignVCenter)
 
-        self.titleLabel = SubtitleLabel(self.tra("接口管理"), self)
-        self.layout.addWidget(self.titleLabel)
+        # ====== 左侧：带图标组合的大标题 ======
+        self.titleLayout = QHBoxLayout()
+        self.titleLayout.setContentsMargins(0, 0, 0, 0)
+        self.titleLayout.setSpacing(12)
+        self.titleLayout.setAlignment(Qt.AlignVCenter)
+
+        # 增加一个图标，打破纯文本的死板，增强高级感
+        self.titleIcon = IconWidget(FluentIcon.IOT, self)
+        self.titleIcon.setFixedSize(26, 26)
+        self.titleLayout.addWidget(self.titleIcon)
+
+        # 极简的大标题
+        self.titleLabel = TitleLabel(self.tra("接口管理"), self)
+        self.titleLayout.addWidget(self.titleLabel)
+
+        self.layout.addLayout(self.titleLayout)
+
+        # 撑开中间空间
         self.layout.addStretch(1)
 
-        self.activeInfoWidget = QWidget(self)
-        self.activeInfoLayout = QVBoxLayout(self.activeInfoWidget)
-        self.activeInfoLayout.setContentsMargins(0, 0, 0, 0)
-        self.activeInfoLayout.setSpacing(2)
+        # ====== 右侧：状态药丸 (Pill Badge) ======
+        self.statusPill = QFrame(self)
+        self.statusPill.setObjectName("statusPill")
+        self.statusPillLayout = QHBoxLayout(self.statusPill)
+        self.statusPillLayout.setContentsMargins(14, 6, 16, 6)
+        self.statusPillLayout.setSpacing(8)
 
-        self.activeCaptionLabel = CaptionLabel(self.tra("当前激活接口"), self.activeInfoWidget)
-        self.activeNameLabel = StrongBodyLabel(self.tra("未设置"), self.activeInfoWidget)
-        self.activeInfoLayout.addWidget(self.activeCaptionLabel)
-        self.activeInfoLayout.addWidget(self.activeNameLabel)
+        self.statusIcon = IconWidget(FluentIcon.INFO, self)
+        self.statusIcon.setFixedSize(16, 16)
+        self.statusPillLayout.addWidget(self.statusIcon)
 
-        self.layout.addWidget(self.activeInfoWidget)
+        self.statusLabel = StrongBodyLabel(self.tra("未设置"), self)
+        self.statusPillLayout.addWidget(self.statusLabel)
 
+        self.layout.addWidget(self.statusPill)
+
+        # ====== 最右侧：添加操作按钮 ======
         self.add_btn = PrimaryPushButton(self.tra("添加接口"), self)
         self.add_btn.setIcon(FluentIcon.ADD)
+        self.add_btn.setMinimumWidth(120)
         self.add_btn.clicked.connect(lambda checked=False: self.addClicked.emit())
+        
+        self.layout.addSpacing(8)
         self.layout.addWidget(self.add_btn)
 
+        # 初始化状态样式
         self.set_active_api(None)
 
     def set_active_api(self, name: str | None):
+        """动态更新当前激活状态的药丸样式"""
+        tc = themeColor()
+        
         if name:
-            self.activeNameLabel.setText(name)
-            self.activeNameLabel.setStyleSheet(f"color: {themeColor().name()};")
+            self.statusLabel.setText(f"{self.tra('已激活')}: {name}")
+            self.statusIcon.setIcon(FluentIcon.ROBOT)
+            self.statusLabel.setStyleSheet(f"color: {tc.name()};")
+            
+            # 激活状态：半透明主题色背景与微高亮边框
+            bg_color = f"rgba({tc.red()}, {tc.green()}, {tc.blue()}, 0.1)"
+            border_color = f"rgba({tc.red()}, {tc.green()}, {tc.blue()}, 0.3)"
+            
+            self.statusPill.setStyleSheet(f"""
+                QFrame#statusPill {{
+                    background-color: {bg_color};
+                    border: 1px solid {border_color};
+                    border-radius: 16px; 
+                }}
+            """)
         else:
-            self.activeNameLabel.setText(self.tra("未设置"))
-            self.activeNameLabel.setStyleSheet("color: rgba(128, 128, 128, 0.85);")
+            self.statusLabel.setText(self.tra("未设置激活接口"))
+            self.statusIcon.setIcon(FluentIcon.INFO)
+            self.statusLabel.setStyleSheet("color: #808080;")
+            
+            # 未激活状态：低调的半透明灰色
+            self.statusPill.setStyleSheet("""
+                QFrame#statusPill {
+                    background-color: rgba(128, 128, 128, 0.08);
+                    border: 1px solid rgba(128, 128, 128, 0.15);
+                    border-radius: 16px;
+                }
+            """)
 
 
 class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
