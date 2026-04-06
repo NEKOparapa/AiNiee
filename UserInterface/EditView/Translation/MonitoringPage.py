@@ -32,6 +32,7 @@ class MonitoringPage(ConfigMixin, Base, QWidget):
         self.add_token_card(self.head_hbox)
         self.add_task_card(self.head_hbox)
         self.add_speed_card(self.head_hbox)
+        self.add_error_requests_card(self.head_hbox)
         self.add_stability_card(self.head_hbox)
 
         # 添加到主容器
@@ -129,6 +130,16 @@ class MonitoringPage(ConfigMixin, Base, QWidget):
             )
         self.task.setFixedSize(204, 204)
         parent.addWidget(self.task)
+
+    def add_error_requests_card(self, parent: QLayout) -> None:
+        self.error_requests_card = DashboardCard(
+                title=self.tra("失败请求数"),
+                value="0",
+                unit="",
+                icon=FIF.REMOVE_FROM,
+            )
+        self.error_requests_card.setFixedSize(204, 204)
+        parent.addWidget(self.error_requests_card)
 
     # 稳定性
     def add_stability_card(self, parent: QLayout) -> None:
@@ -269,6 +280,9 @@ class MonitoringPage(ConfigMixin, Base, QWidget):
         error_requests = self.data.get("error_requests", 0)  # 修正变量名错误
 
         # 计算稳定性百分比（成功率）
+        self.error_requests_card.set_unit("")
+        self.error_requests_card.set_value(f"{error_requests}")
+
         if total_requests == 0:
             stability_percent = 0.0
         else:
