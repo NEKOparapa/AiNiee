@@ -123,6 +123,48 @@ class EpubReader(BaseSourceReader):
         
         return items
 
+    def _extract_balanced_tag(self, html_string: str, tag_name: str, start_pos: int = 0):
+        """从 html_string 中提取完整的平衡标签，正确处理同名嵌套。
+
+        与非贪婪正则不同，此方法通过跟踪嵌套深度来找到正确的闭合标签。
+        例如对于 <span><span>text</span></span>，能正确匹配完整的外层标签，
+        而非在第一个 </span> 处截断。
+        """
+        open_pattern = re.compile(
+            r'<{0}(?![a-zA-Z0-9\-_])[^>]*>'.format(re.escape(tag_name)),
+            re.IGNORECASE
+        )
+        close_pattern = re.compile(
+            r'</{0}>'.format(re.escape(tag_name)),
+            re.IGNORECASE
+        )
+
+        open_match = open_pattern.search(html_string, start_pos)
+        if not open_match:
+            return None
+
+        tag_start = open_match.start()
+        depth = 1
+        search_pos = open_match.end()
+
+        while depth > 0 and search_pos < len(html_string):
+            next_open = open_pattern.search(html_string, search_pos)
+            next_close = close_pattern.search(html_string, search_pos)
+
+            if next_close is None:
+                return None  # 没有闭合标签，不平衡
+
+            if next_open is not None and next_open.start() < next_close.start():
+                depth += 1
+                search_pos = next_open.end()
+            else:
+                depth -= 1
+                search_pos = next_close.end()
+                if depth == 0:
+                    return html_string[tag_start:search_pos]
+
+        return None
+
     # 提取最内层包含文本的标签及其内容（改进点：可以考虑保留部分标签的内容，比如span）
     def extract_epub_content_refined(self, html_string: str):
         """
@@ -182,34 +224,17 @@ class EpubReader(BaseSourceReader):
         # 获取标签在原始字符串中的位置
         original_html = html_string.strip()
         tag_name = current_tag.name
-        
-        # 构建正则表达式匹配原始标签
-        # 匹配开始标签（包括所有属性）
-        start_tag_pattern = re.compile(
-            r'<{0}[^>]*>'.format(tag_name), 
-            re.IGNORECASE
-        )
-        
-        # 匹配整个标签（包括内容）
-        full_tag_pattern = re.compile(
-            r'<{0}[^>]*>.*?</{0}>'.format(tag_name), 
-            re.IGNORECASE | re.DOTALL
-        )
-        
-        # 在原始HTML中查找匹配
-        start_tag_match = start_tag_pattern.search(original_html)
-        if not start_tag_match:
-            return current_tag.name, str(current_tag)  # 回退到BeautifulSoup生成
-        
-        # 从匹配位置开始查找完整标签
-        remaining_html = original_html[start_tag_match.start():]
-        full_tag_match = full_tag_pattern.search(remaining_html)
-        
-        if full_tag_match:
-            original_tag = full_tag_match.group(0)
-            return tag_name, original_tag
+
+        # 如果最内层标签就是最外层标签（没有向下钻取），直接返回原始 HTML
+        if current_tag == top_tag:
+            return tag_name, original_html
+
+        # 否则，使用平衡标签提取找到正确的内层标签（正确处理同名嵌套）
+        balanced_tag = self._extract_balanced_tag(original_html, tag_name)
+        if balanced_tag:
+            return tag_name, balanced_tag
         else:
-            # 如果正则匹配失败，回退到BeautifulSoup生成
+            # 如果平衡提取失败，回退到BeautifulSoup生成
             return current_tag.name, str(current_tag)
         
     # 提取同名嵌套标签的完整子标签内容
@@ -251,20 +276,11 @@ class EpubReader(BaseSourceReader):
                 
             # 从第一个主开标签之后的内容中搜索子标签
             search_start_offset = first_actual_open_tag_match.end()
-            remaining_html = html_string[search_start_offset:]
 
-            # 构建正则表达式以查找第一个完整的、同名的子标签
-            inner_complete_tag_pattern = rf'(<{tag_name}(?![a-zA-Z0-9\-_])[^>]*>.*?</{tag_name}>)'
-            
-            match_inner_complete_tag = re.search(
-                inner_complete_tag_pattern,
-                remaining_html,
-                re.DOTALL | re.IGNORECASE  
-            )
-
-            if match_inner_complete_tag:
-                # 如果找到，返回该子标签的完整原始内容
-                return match_inner_complete_tag.group(1)
+            # 使用平衡标签提取找到第一个完整的同名子标签（正确处理多层嵌套）
+            balanced_inner = self._extract_balanced_tag(html_string, tag_name, search_start_offset)
+            if balanced_inner:
+                return balanced_inner
         
         # 如果标签不是残缺的，或者没有找到符合条件的子标签，则返回原内容
         return html_string
