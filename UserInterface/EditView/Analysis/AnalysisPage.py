@@ -1,11 +1,8 @@
-import concurrent.futures
-import re
-import time
-from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 import rapidjson as json
 
 from PyQt5.QtCore import QPoint, Qt, QTimer
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QFrame,
@@ -21,25 +18,25 @@ from PyQt5.QtWidgets import (
 from qfluentwidgets import (
     Action,
     BodyLabel,
+    CaptionLabel,
     CardWidget,
     FluentIcon as FIF,
     MessageBox,
     PrimaryPushButton,
+    ProgressBar,
     RoundMenu,
     StrongBodyLabel,
+    SubtitleLabel,
     TableWidget,
     TransparentPushButton,
     TreeWidget,
+    themeColor,
 )
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.Toast import ToastMixin
-from ModuleFolders.Infrastructure.LLMRequester.LLMRequester import LLMRequester
-from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
-from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
-from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLimiter
 
 
 class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
@@ -101,6 +98,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._updating_ui = False
         self._splitter_ratio_initialized = False
         self._table_width_ratio_initialized = set()
+        self.analysis_runtime_state = self._create_default_runtime_state()
 
         self.container = QVBoxLayout(self)
         self.container.setContentsMargins(0, 12, 0, 0)
@@ -122,48 +120,226 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
     def refresh_from_project(self) -> None:
         self.analysis_data = self._clone_analysis_data(self.cache_manager.get_analysis_data())
         self._sync_stats()
+        self._sync_runtime_state_from_context()
         self._refresh_navigation()
         self._refresh_all_views()
-        self._update_status_labels()
+        self._render_header()
         self._update_action_buttons()
 
     def _build_action_bar(self) -> None:
-        self.action_card = CardWidget(self)
-        self.action_card.setBorderRadius(12)
-        action_layout = QHBoxLayout(self.action_card)
-        action_layout.setContentsMargins(18, 12, 18, 12)
-        action_layout.setSpacing(16)
+        self.header_widget = QWidget(self)
+        header_layout = QHBoxLayout(self.header_widget)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(6)
 
-        self.start_button = PrimaryPushButton(FIF.PLAY, "开始分析", self.action_card)
-        self.stop_button = TransparentPushButton(FIF.CANCEL_MEDIUM, "停止", self.action_card)
-        self.start_button.setFixedHeight(32)
-        self.stop_button.setFixedHeight(32)
-
+        self.status_card = CardWidget(self.header_widget)
+        self.status_card.setBorderRadius(12)
+        self.status_card.setMinimumHeight(92)
+        status_layout = QVBoxLayout(self.status_card)
+        status_layout.setContentsMargins(12, 10, 12, 10)
+        status_layout.setSpacing(4)
+        status_card_title = StrongBodyLabel("操作", self.status_card)
+        self.start_button = PrimaryPushButton(FIF.PLAY, "开始分析", self.status_card)
+        self.stop_button = TransparentPushButton(FIF.CANCEL_MEDIUM, "停止", self.status_card)
+        self.start_button.setFixedHeight(28)
+        self.stop_button.setFixedHeight(28)
         self.start_button.clicked.connect(self.start_analysis)
         self.stop_button.clicked.connect(self.stop_analysis)
+        status_layout.addWidget(status_card_title)
+        status_layout.addStretch(1)
+        action_button_layout = QHBoxLayout()
+        action_button_layout.setContentsMargins(0, 0, 0, 0)
+        action_button_layout.setSpacing(4)
+        action_button_layout.addWidget(self.start_button)
+        action_button_layout.addWidget(self.stop_button)
+        status_layout.addLayout(action_button_layout)
+        status_layout.addStretch(1)
 
-        info_layout = QVBoxLayout()
-        info_layout.setContentsMargins(0, 0, 0, 0)
-        info_layout.setSpacing(4)
-        self.action_title_label = StrongBodyLabel("分析结果", self.action_card)
-        self.action_title_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.status_label = BodyLabel("状态: 未分析", self.action_card)
-        self.time_label = BodyLabel("最近分析: -", self.action_card)
-        self.count_label = BodyLabel("命中数: 0", self.action_card)
+        self.progress_card = CardWidget(self.header_widget)
+        self.progress_card.setBorderRadius(12)
+        self.progress_card.setMinimumHeight(92)
+        progress_layout = QVBoxLayout(self.progress_card)
+        progress_layout.setContentsMargins(12, 10, 12, 10)
+        progress_layout.setSpacing(4)
+
+        progress_title_layout = QHBoxLayout()
+        progress_title_layout.setContentsMargins(0, 0, 0, 0)
+        progress_title_layout.setSpacing(4)
+        progress_card_title = StrongBodyLabel("进度", self.progress_card)
+        self.progress_percent_label = StrongBodyLabel("0%", self.progress_card)
+        progress_title_layout.addWidget(progress_card_title)
+        progress_title_layout.addStretch(1)
+        progress_title_layout.addWidget(self.progress_percent_label)
+
+        self.progress_bar = ProgressBar(self.progress_card)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setFixedHeight(5)
+        self.phase_label = BodyLabel("待开始", self.progress_card)
+        self.progress_info_label = CaptionLabel("", self.progress_card)
+        self.progress_info_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
+        progress_info_layout = QHBoxLayout()
+        progress_info_layout.setContentsMargins(0, 0, 0, 0)
+        progress_info_layout.setSpacing(4)
+        progress_info_layout.addWidget(self.phase_label)
+        progress_info_layout.addStretch(1)
+        progress_info_layout.addWidget(self.progress_info_label, 0, Qt.AlignRight)
+
+        progress_layout.addLayout(progress_title_layout)
+        progress_layout.addStretch(1)
+        progress_layout.addWidget(self.progress_bar)
+        progress_layout.addLayout(progress_info_layout)
+        progress_layout.addStretch(1)
+
+        self.result_card = CardWidget(self.header_widget)
+        self.result_card.setBorderRadius(12)
+        self.result_card.setMinimumHeight(92)
+        result_layout = QVBoxLayout(self.result_card)
+        result_layout.setContentsMargins(12, 10, 12, 10)
+        result_layout.setSpacing(4)
+
+        result_card_title = StrongBodyLabel("结果", self.result_card)
         metrics_layout = QHBoxLayout()
         metrics_layout.setContentsMargins(0, 0, 0, 0)
-        metrics_layout.setSpacing(16)
-        metrics_layout.addWidget(self.status_label)
-        metrics_layout.addWidget(self.time_label)
-        metrics_layout.addWidget(self.count_label)
-        metrics_layout.addStretch(1)
-        info_layout.addWidget(self.action_title_label)
-        info_layout.addLayout(metrics_layout)
+        metrics_layout.setSpacing(2)
+        self.characters_metric_value = self._create_result_metric(
+            metrics_layout,
+            "角色",
+        )
+        self.terms_metric_value = self._create_result_metric(
+            metrics_layout,
+            "术语",
+        )
+        self.non_translate_metric_value = self._create_result_metric(
+            metrics_layout,
+            "禁翻",
+        )
 
-        action_layout.addWidget(self.start_button)
-        action_layout.addWidget(self.stop_button)
-        action_layout.addStretch(1)
-        action_layout.addLayout(info_layout)
+        result_layout.addWidget(result_card_title)
+        result_layout.addStretch(1)
+        result_layout.addLayout(metrics_layout)
+
+        header_layout.addWidget(self.status_card, 2)
+        header_layout.addWidget(self.progress_card, 5)
+        header_layout.addWidget(self.result_card, 4)
+
+    def _create_result_metric(self, parent_layout: QHBoxLayout, title: str) -> SubtitleLabel:
+        metric_widget = QWidget(self.result_card)
+        metric_layout = QVBoxLayout(metric_widget)
+        metric_layout.setContentsMargins(4, 0, 4, 0)
+        metric_layout.setSpacing(0)
+        metric_value = SubtitleLabel("0", metric_widget)
+        metric_value.setAlignment(Qt.AlignCenter)
+        metric_label = CaptionLabel(title, metric_widget)
+        metric_label.setAlignment(Qt.AlignCenter)
+        metric_label.setStyleSheet("color: #7A7A7A;")
+        metric_layout.addWidget(metric_value)
+        metric_layout.addWidget(metric_label)
+        parent_layout.addWidget(metric_widget, 1)
+        return metric_value
+
+    def _create_default_runtime_state(self) -> dict:
+        return {
+            "status_key": "idle",
+            "phase_key": "prepare",
+            "percent": 0,
+            "info_text": "",
+        }
+
+    def _apply_runtime_state(self, **kwargs) -> None:
+        for key, value in kwargs.items():
+            if key in self.analysis_runtime_state and value is not None:
+                self.analysis_runtime_state[key] = value
+
+    def _sync_runtime_state_from_context(self) -> None:
+        if self._is_analysis_running():
+            if self.analysis_runtime_state.get("status_key") == "stopping":
+                return
+            if self.analysis_runtime_state.get("status_key") != "running":
+                self.analysis_runtime_state = self._create_default_runtime_state()
+                self._apply_runtime_state(
+                    status_key="running",
+                    phase_key="prepare",
+                    info_text="分析中...",
+                )
+            return
+
+        status_key = str(self.analysis_data.get("status", "")).strip()
+        if status_key == "success":
+            self.analysis_runtime_state = self._create_default_runtime_state()
+            self._apply_runtime_state(
+                status_key="success",
+                phase_key="finalize",
+                percent=100,
+            )
+            return
+
+        if status_key == "partial":
+            self.analysis_runtime_state = self._create_default_runtime_state()
+            self._apply_runtime_state(
+                status_key="partial",
+                phase_key="finalize",
+                percent=100,
+            )
+            return
+
+        self.analysis_runtime_state = self._create_default_runtime_state()
+        if self.analysis_data:
+            self._apply_runtime_state(percent=100)
+
+    def _infer_phase_key_from_message(self, message: str) -> str:
+        text = str(message or "").strip()
+        if "第一阶段" in text:
+            return "stage1"
+        if "第二阶段" in text:
+            return "stage2"
+        if "整合" in text or "最终" in text:
+            return "finalize"
+        return "prepare"
+
+    def _get_status_color(self, status_key: str) -> QColor:
+        if status_key == "running":
+            return QColor(themeColor())
+        if status_key == "stopping":
+            return QColor("#D0891A")
+        if status_key == "success":
+            return QColor("#2A9D68")
+        if status_key in ("stopped", "partial"):
+            return QColor("#B7791F")
+        if status_key == "error":
+            return QColor("#D64545")
+        return QColor("#8A9099")
+
+    def _render_header(self) -> None:
+        state = self.analysis_runtime_state
+        status_key = str(state.get("status_key", "idle") or "idle")
+        phase_key = str(state.get("phase_key", "prepare") or "prepare")
+        info_text = str(state.get("info_text", "") or "")
+        percent = max(0, min(100, int(state.get("percent", 0) or 0)))
+
+        color = self._get_status_color(status_key)
+        phase_text = {
+            "prepare": "准备",
+            "stage1": "阶段 1",
+            "stage2": "阶段 2",
+            "finalize": "完成",
+        }.get(phase_key, "待开始")
+
+        self.progress_percent_label.setText(f"{percent}%")
+        self.progress_percent_label.setStyleSheet(f"color: {color.name()};")
+        self.progress_bar.setValue(percent)
+        self.progress_bar.setCustomBarColor(QColor(color).lighter(170).name(), color.name())
+        self.phase_label.setText(phase_text)
+        self.phase_label.setStyleSheet(f"color: {color.name()};")
+        progress_info = info_text if status_key in ("running", "stopping") else ""
+        self.progress_info_label.setText(progress_info)
+        self.progress_info_label.setStyleSheet("color: #7A7A7A;")
+
+        counts = self._get_counts()
+        self.characters_metric_value.setText(str(counts["characters"]))
+        self.terms_metric_value.setText(str(counts["terms"]))
+        self.non_translate_metric_value.setText(str(counts["non_translate"]))
 
     def _build_body(self) -> None:
         self.splitter = QSplitter(Qt.Horizontal, self)
@@ -213,7 +389,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             self.content_stack.addWidget(widget)
 
         page_layout.addWidget(self.content_stack)
-        right_layout.addWidget(self.action_card)
+        right_layout.addWidget(self.header_widget)
         right_layout.addWidget(self.page_card, 1)
 
         self.splitter.addWidget(self.nav_card)
@@ -246,7 +422,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.characters_table = self._create_table(
             self.VIEW_CHARACTERS,
             [
-                "原文名",
+                "原文键",
                 "推荐译名",
                 "性别",
                 "备注",
@@ -581,7 +757,13 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             if not message_box.exec():
                 return
 
-        self._update_status_labels("分析中")
+        self.analysis_runtime_state = self._create_default_runtime_state()
+        self._apply_runtime_state(
+            status_key="running",
+            phase_key="prepare",
+            info_text="正在准备...",
+        )
+        self._render_header()
         self._update_action_buttons(running=True)
         self.emit(Base.EVENT.ANALYSIS_TASK_START, {})
 
@@ -599,14 +781,38 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         if not message_box.exec():
             return
 
-        self._update_status_labels("正在停止")
+        self._apply_runtime_state(
+            status_key="stopping",
+            info_text="正在停止...",
+        )
+        self._render_header()
         self._update_action_buttons(running=True)
         self.stop_button.setEnabled(False)
         self.emit(Base.EVENT.TASK_STOP, {})
 
     def on_analysis_task_update(self, event: int, data: dict) -> None:
+        if self.analysis_runtime_state.get("status_key") == "stopping":
+            return
+
         message = str(data.get("message", "")).strip() or "分析中"
-        self._update_status_labels(message)
+        is_structured = any(
+            key in data for key in ("status", "phase", "percent", "detail")
+        )
+        if is_structured:
+            self._apply_runtime_state(
+                status_key=str(data.get("status", "running") or "running"),
+                phase_key=str(data.get("phase", "prepare") or "prepare"),
+                percent=int(data.get("percent", 0) or 0),
+                info_text=str(data.get("detail", "")).strip() or message,
+            )
+        else:
+            phase_key = self._infer_phase_key_from_message(message)
+            self._apply_runtime_state(
+                status_key="running",
+                phase_key=phase_key,
+                info_text=message,
+            )
+        self._render_header()
 
     def on_analysis_task_done(self, event: int, data: dict) -> None:
         status = str(data.get("status", "error"))
@@ -616,22 +822,39 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         if analysis_data:
             self.analysis_data = self._clone_analysis_data(analysis_data)
             self._sync_stats()
+            self.cache_manager.set_analysis_data(self._clone_analysis_data(self.analysis_data))
             self._refresh_navigation()
             self._refresh_all_views()
             self._request_cache_save()
 
         self._update_action_buttons()
         if status == "success":
-            self._update_status_labels("分析完成")
+            self._apply_runtime_state(
+                status_key="success",
+                phase_key="finalize",
+                percent=100,
+            )
+            self._render_header()
             self.success_toast("完成", message or "全文分析完成。")
         elif status == "partial":
-            self._update_status_labels("部分完成")
+            self._apply_runtime_state(
+                status_key="partial",
+                phase_key="finalize",
+                percent=100,
+            )
+            self._render_header()
             self.warning_toast("完成", message or "分析已完成，但存在失败的分块。")
         elif status == "stopped":
-            self._update_status_labels("已停止")
+            self._apply_runtime_state(
+                status_key="stopped",
+            )
+            self._render_header()
             self.info_toast("已停止", message or "分析任务已停止。")
         else:
-            self._update_status_labels("分析失败")
+            self._apply_runtime_state(
+                status_key="error",
+            )
+            self._render_header()
             self.error_toast("失败", message or "全文分析失败。")
 
     def _on_table_item_changed(self, view_name: str, item: QTableWidgetItem) -> None:
@@ -771,12 +994,17 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         if not self.cache_manager or not self.cache_manager.project:
             return
 
-        self._flush_pending_stats_only()
+        self._sync_stats()
         self.cache_manager.set_analysis_data(self._clone_analysis_data(self.analysis_data))
         self._request_cache_save()
         if refresh_navigation:
             self._refresh_navigation()
-        self._update_status_labels("已修改")
+        self._apply_runtime_state(
+            status_key="idle",
+            phase_key="finalize" if self.analysis_data else "prepare",
+            percent=100 if self.analysis_data else 0,
+        )
+        self._render_header()
         self._update_action_buttons()
 
     def _request_cache_save(self) -> None:
@@ -790,36 +1018,12 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         stats["character_count"] = len(self.analysis_data.get("characters", []) or [])
         stats["term_count"] = len(self.analysis_data.get("terms", []) or [])
         stats["non_translate_count"] = len(self.analysis_data.get("non_translate", []) or [])
+        stats["total_hits"] = (
+            stats["character_count"] + stats["term_count"] + stats["non_translate_count"]
+        )
         self.analysis_data["stats"] = stats
 
-    def _flush_pending_stats_only(self) -> None:
-        self._sync_stats()
 
-    def _update_status_labels(self, override_text: str | None = None) -> None:
-        if self._is_analysis_running():
-            rendered_status = override_text or "分析中"
-        elif override_text:
-            rendered_status = override_text
-        else:
-            status_key = str(self.analysis_data.get("status", "")).strip()
-            status_map = {
-                "success": "已完成",
-                "partial": "部分完成",
-                "stopped": "已停止",
-                "error": "失败",
-            }
-            rendered_status = status_map.get(
-                status_key,
-                "未分析" if not self.analysis_data else "就绪",
-            )
-
-        last_run_at = self.analysis_data.get("last_run_at", "-") if self.analysis_data else "-"
-        counts = self._get_counts()
-        total_hits = counts["characters"] + counts["terms"] + counts["non_translate"]
-
-        self.status_label.setText(f"状态: {rendered_status}")
-        self.time_label.setText(f"最近分析: {last_run_at}")
-        self.count_label.setText(f"命中数: {total_hits}")
 
     def _update_action_buttons(self, running: bool | None = None) -> None:
         has_project = bool(self.cache_manager and self.cache_manager.project)

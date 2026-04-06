@@ -42,6 +42,49 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         # 保存第二阶段的 source 别名到主 source 的映射，防止 AI 返回被吸收的短 source。
         self.grouped_stage_two_source_aliases = {}
 
+    def _calculate_progress_percent(self, phase: str, current: int = 0, total: int = 0) -> int:
+        current = max(0, int(current or 0))
+        total = max(0, int(total or 0))
+
+        if phase == "prepare":
+            return 0
+        if phase == "stage1":
+            if total <= 0:
+                return 60
+            return 10 + int((current / total) * 50)
+        if phase == "stage2":
+            if total <= 0:
+                return 90
+            return 60 + int((current / total) * 30)
+        if phase == "finalize":
+            if total <= 0:
+                return 90
+            return 90 + int((current / total) * 10)
+        return 0
+
+    def _emit_progress_update(
+        self,
+        phase: str,
+        phase_label: str,
+        current: int,
+        total: int,
+        message: str,
+        detail: str,
+    ) -> None:
+        self.emit(
+            Base.EVENT.ANALYSIS_TASK_UPDATE,
+            {
+                "status": "running",
+                "phase": phase,
+                "phase_label": phase_label,
+                "current": max(0, int(current or 0)),
+                "total": max(0, int(total or 0)),
+                "percent": self._calculate_progress_percent(phase, current, total),
+                "message": message,
+                "detail": detail,
+            },
+        )
+
     def run(self) -> None:
         """
         调度整个分析任务。
@@ -56,20 +99,38 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         try:
             # 初始化分析任务，并复用当前激活接口配置作为请求参数来源。
             Base.work_status = Base.STATUS.ANALYSIS_TASK
-            self.emit(Base.EVENT.ANALYSIS_TASK_UPDATE, {"message": "正在初始化分析任务..."})
+            self._emit_progress_update(
+                "prepare",
+                "准备中",
+                0,
+                0,
+                "正在初始化分析任务...",
+                "正在加载接口配置与限流设置。",
+            )
 
             self.config.initialize()
             self.config.prepare_for_active_platform()
             self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
 
             # 第一阶段输入仍然是按 token 切分的原文块。
-            self.emit(Base.EVENT.ANALYSIS_TASK_UPDATE, {"message": "正在生成分析用文本片段..."})
+            self._emit_progress_update(
+                "prepare",
+                "准备中",
+                0,
+                0,
+                "正在生成分析用文本片段...",
+                "正在按 token 切分项目原文。",
+            )
             chunks = self.cache_manager.generate_analysis_source_chunks("token", self.CHUNK_TOKEN_LIMIT)
 
             # 第一阶段：并发抽取角色、术语、禁翻候选。
-            self.emit(
-                Base.EVENT.ANALYSIS_TASK_UPDATE,
-                {"message": f"开始执行第一阶段分析任务，共 {len(chunks)} 个分块..."},
+            self._emit_progress_update(
+                "stage1",
+                "第一阶段",
+                0,
+                len(chunks),
+                f"开始执行第一阶段分析任务，共 {len(chunks)} 个分块...",
+                f"已完成 0 / {len(chunks)} 个分块。",
             )
             # first_stage_results 的粒度是“每个 chunk 一份结果”。
             # 这一步允许同一个 source 在不同 chunk 中重复出现，冲突留到第二阶段再消解。
@@ -87,12 +148,23 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                         break
                     futures_stage1.append(executor_stage1.submit(self._run_first_stage, chunk))
 
+                total_stage1 = len(futures_stage1)
+                completed_stage1 = 0
                 for future in concurrent.futures.as_completed(futures_stage1):
                     if Base.work_status == Base.STATUS.STOPING:
                         break
                     result = future.result()
                     if result:
                         first_stage_results.append(result)
+                    completed_stage1 += 1
+                    self._emit_progress_update(
+                        "stage1",
+                        "第一阶段",
+                        completed_stage1,
+                        total_stage1,
+                        "第一阶段分析中...",
+                        f"已完成 {completed_stage1} / {total_stage1} 个分块。",
+                    )
             finally:
                 try:
                     executor_stage1.shutdown(
@@ -112,9 +184,13 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
 
             # 第二阶段：先按 source 聚合候选，再交给 AI 在组内做归类和合并。
             reduction_batches = self._prepare_reduction_batches(first_stage_results)
-            self.emit(
-                Base.EVENT.ANALYSIS_TASK_UPDATE,
-                {"message": f"开始执行第二阶段分析任务，共 {len(reduction_batches)} 个合并批次..."},
+            self._emit_progress_update(
+                "stage2",
+                "第二阶段",
+                0,
+                len(reduction_batches),
+                f"开始执行第二阶段分析任务，共 {len(reduction_batches)} 个合并批次...",
+                f"已完成 0 / {len(reduction_batches)} 个合并批次。",
             )
 
             # second_stage_results 的粒度是“每个 reduction batch 一份结果”。
@@ -134,12 +210,23 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                             break
                         futures_stage2.append(executor_stage2.submit(self._run_second_stage, batch))
 
+                    total_stage2 = len(futures_stage2)
+                    completed_stage2 = 0
                     for future in concurrent.futures.as_completed(futures_stage2):
                         if Base.work_status == Base.STATUS.STOPING:
                             break
                         result = future.result()
                         if result:
                             second_stage_results.append(result)
+                        completed_stage2 += 1
+                        self._emit_progress_update(
+                            "stage2",
+                            "第二阶段",
+                            completed_stage2,
+                            total_stage2,
+                            "第二阶段分析中...",
+                            f"已完成 {completed_stage2} / {total_stage2} 个合并批次。",
+                        )
                 finally:
                     try:
                         executor_stage2.shutdown(
@@ -158,8 +245,23 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 return
 
             # 最终在主线程统一收口，避免不同批次的结果互相覆盖。
-            self.emit(Base.EVENT.ANALYSIS_TASK_UPDATE, {"message": "正在整合最终分析结果..."})
+            self._emit_progress_update(
+                "finalize",
+                "结果整合",
+                0,
+                1,
+                "正在整合最终分析结果...",
+                "正在整合角色、术语和禁翻结果。",
+            )
             final_data = self._finalize_results(first_stage_results, second_stage_results)
+            self._emit_progress_update(
+                "finalize",
+                "结果整合",
+                1,
+                1,
+                "分析结果已生成...",
+                "正在写回项目缓存。",
+            )
 
             analysis_data = {
                 "status": "success",
@@ -167,6 +269,16 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 "characters": final_data.get("characters", []),
                 "terms": final_data.get("terms", []),
                 "non_translate": final_data.get("non_translate", []),
+                "stats": {
+                    "character_count": len(final_data.get("characters", [])),
+                    "term_count": len(final_data.get("terms", [])),
+                    "non_translate_count": len(final_data.get("non_translate", [])),
+                    "total_hits": (
+                        len(final_data.get("characters", []))
+                        + len(final_data.get("terms", []))
+                        + len(final_data.get("non_translate", []))
+                    ),
+                },
             }
             self.cache_manager.set_analysis_data(analysis_data)
             self.cache_manager.require_save_to_file()
