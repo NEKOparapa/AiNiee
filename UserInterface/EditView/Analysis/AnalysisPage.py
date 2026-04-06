@@ -780,10 +780,8 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._update_action_buttons()
 
     def _request_cache_save(self) -> None:
-        config = self.load_config()
-        output_path = config.get("label_output_path", "")
-        if output_path:
-            self.emit(Base.EVENT.TASK_MANUAL_SAVE_CACHE, {"output_path": output_path})
+        if self.cache_manager and self.cache_manager.project:
+            self.emit(Base.EVENT.TASK_MANUAL_SAVE_CACHE, {})
 
     def _sync_stats(self) -> None:
         if not self.analysis_data:

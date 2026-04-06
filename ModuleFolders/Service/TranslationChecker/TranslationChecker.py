@@ -177,9 +177,8 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
                 config = self.load_config()
                 output_path = config.get("label_output_path")
 
-                if output_path and os.path.isdir(output_path):
+                if True:
                     #为 CacheManager 设置必要的保存路径
-                    self.cache_manager.save_to_file_require_path = output_path
 
                     # 立即执行保存操作
                     self.cache_manager.save_to_file()

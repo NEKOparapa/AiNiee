@@ -1,16 +1,9 @@
-import json
-import os
 import threading
 import time
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QFrame, QHBoxLayout, QStackedWidget, QVBoxLayout
-from qfluentwidgets import (
-    CardWidget,
-    FluentIcon as FIF,
-    SegmentedWidget,
-    TransparentPushButton,
-)
+from qfluentwidgets import CardWidget, FluentIcon as FIF, SegmentedWidget, TransparentPushButton
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -86,6 +79,7 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
 
         self.cache_manager = cache_manager
         self.file_reader = file_reader
+
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
@@ -164,65 +158,23 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
         project_name = ""
 
         if Base.work_status == Base.STATUS.IDLE:
-            config = self.load_config()
-            cache_folder_path = os.path.join(config.get("label_output_path", "./output"), "cache")
-
-            if os.path.isdir(cache_folder_path):
-                json_file_path = os.path.join(cache_folder_path, "ProjectStatistics.json")
-
-                if os.path.isfile(json_file_path):
-                    max_retries = 3
-                    retry_delay = 0.1
-
-                    for attempt in range(max_retries):
-                        try:
-                            if os.path.getsize(json_file_path) == 0:
-                                if attempt < max_retries - 1:
-                                    time.sleep(retry_delay)
-                                    continue
-                                print("[WARNING] ProjectStatistics.json文件为空，跳过继续检查")
-                                break
-
-                            with open(json_file_path, "r", encoding="utf-8") as file:
-                                content = file.read().strip()
-
-                            if not content:
-                                if attempt < max_retries - 1:
-                                    time.sleep(retry_delay)
-                                    continue
-                                print("[WARNING] ProjectStatistics.json内容为空")
-                                break
-
-                            data = json.loads(content)
-                            total_line = data.get("total_line", 0)
-                            line = data.get("line", 0)
-                            project_name = data.get("project_name", "")
-
-                            if total_line:
-                                continue_visible = True
-                                continue_enabled = line < total_line
-
-                            break
-                        except (json.JSONDecodeError, OSError, IOError) as e:
-                            if attempt < max_retries - 1:
-                                print(f"[WARNING] 读取ProjectStatistics.json失败(尝试{attempt + 1}/{max_retries}): {e}")
-                                time.sleep(retry_delay)
-                                retry_delay *= 2
-                                continue
-                            print(f"[ERROR] 读取ProjectStatistics.json最终失败: {e}")
-                        except Exception as e:
-                            print(f"[ERROR] 读取ProjectStatistics.json时发生未知错误: {e}")
-                            break
+            try:
+                histories = self.cache_manager.list_project_histories(limit=1, prune=True)
+                if histories:
+                    latest_history = histories[0]
+                    continue_visible = True
+                    project_name = latest_history.get("project_name", "")
+                    total_line = int(latest_history.get("total_line", 0) or 0)
+                    line = int(latest_history.get("line", 0) or 0)
+                    continue_enabled = total_line > 0 and line < total_line
+            except Exception as error:
+                print(f"[ERROR] 读取项目缓存历史失败: {error}")
 
         self.continueCardStateChanged.emit(continue_visible, project_name)
         self.resumableStateChanged.emit(continue_enabled)
 
     def _on_continue_card_state_changed(self, show: bool, project_name: str) -> None:
         self.startup_page.show_continue_button(show)
-        if show:
-            self.startup_page.continue_card.set_project_name(project_name)
-        else:
-            self.startup_page.continue_card.hide_project_name()
 
     def on_folder_selected(self, project_name: str, project_mode: str) -> None:
         file_hierarchy = self.cache_manager.get_file_hierarchy()
@@ -231,10 +183,8 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
         self.proofreading_page.update_tree(file_hierarchy)
         self.analysis_page.refresh_from_project()
 
-        if project_mode == "new":
-            self.translation_page.enable_continue_button(False)
-        else:
-            self.translation_page.enable_continue_button(True)
+        continue_enabled = project_mode != "new"
+        self.translation_page.enable_continue_button(continue_enabled)
 
         self.top_stacked_widget.setCurrentWidget(self.workflow_container)
         self.switch_workflow_page(self.ROUTE_ANALYSIS)
@@ -253,20 +203,9 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
             self.emit(Base.EVENT.TASK_MANUAL_EXPORT, {"export_path": selected_path})
 
     def command_save_cache(self) -> None:
-        config = self.load_config()
-        output_path = config.get("label_output_path")
-
-        if not output_path:
-            self.error_toast(self.tra("错误"), self.tra("当前没有可保存的项目输出路径。"))
+        if not self.cache_manager.project:
+            self.error_toast(self.tra("错误"), self.tra("当前没有可保存的项目缓存。"))
             return
 
-        try:
-            cache_dir = os.path.join(output_path, "cache")
-            if not os.path.isdir(cache_dir):
-                os.makedirs(cache_dir, exist_ok=True)
-        except OSError as e:
-            self.error_toast(self.tra("路径错误"), self.tra("创建缓存目录失败: {}").format(e))
-            return
-
-        self.emit(Base.EVENT.TASK_MANUAL_SAVE_CACHE, {"output_path": output_path})
-        self.success_toast(self.tra("成功"), self.tra("项目缓存文件已保存到翻译输出文件夹"))
+        self.emit(Base.EVENT.TASK_MANUAL_SAVE_CACHE, {})
+        self.success_toast(self.tra("成功"), self.tra("项目缓存文件已保存到项目缓存目录"))

@@ -630,7 +630,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 stats_dict = self.project_status_data.to_dict()
 
             # 请求保存缓存文件
-            self.cache_manager.require_save_to_file(self.config.label_output_path)
+            self.cache_manager.require_save_to_file()
 
             # 触发翻译进度更新事件
             self.emit(Base.EVENT.TASK_UPDATE, stats_dict)

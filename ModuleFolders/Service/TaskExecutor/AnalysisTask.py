@@ -169,7 +169,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 "non_translate": final_data.get("non_translate", []),
             }
             self.cache_manager.set_analysis_data(analysis_data)
-            self.cache_manager.require_save_to_file(self.config.label_output_path)
+            self.cache_manager.require_save_to_file()
 
             Base.work_status = Base.STATUS.IDLE
             self.emit(

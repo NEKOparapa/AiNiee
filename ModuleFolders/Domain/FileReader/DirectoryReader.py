@@ -1,5 +1,7 @@
 import fnmatch
+import uuid
 from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
 from typing import Callable
 from ModuleFolders.Service.Cache.CacheItem import CacheItem
@@ -47,6 +49,9 @@ class DirectoryReader:
             CacheProject: 包含项目信息和文件内容
         """
         cache_project = CacheProject()  # 项目头信息
+        cache_project.project_id = uuid.uuid4().hex
+        cache_project.project_create_time = datetime.now().isoformat(timespec="seconds")
+        cache_project.input_path = str(input_path)
         text_index = 1  # 文本索引
         # 语言统计：{file_path: {lang_code: (count, total_confidence)}}
         language_stats = defaultdict(lambda: defaultdict(lambda: [0, 0.0]))

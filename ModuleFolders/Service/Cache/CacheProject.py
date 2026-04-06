@@ -49,6 +49,8 @@ class CacheProject(ThreadSafeCache, ExtraMixin):
     project_id: str = ''
     project_type: str = ''
     project_name: str = ''
+    project_create_time: str = ''
+    input_path: str = ''
     stats_data: CacheProjectStatistics = None
     files: dict[str, CacheFile] = field(default_factory=dict)
     detected_encoding: str = "utf-8"

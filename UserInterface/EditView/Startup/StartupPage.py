@@ -1,30 +1,32 @@
 import threading
 
 from PyQt5.QtWidgets import QLayout, QVBoxLayout, QWidget
-from qfluentwidgets import FluentIcon as FIF, StateToolTip, pyqtSignal
+from qfluentwidgets import MessageBox, StateToolTip, pyqtSignal
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.EditView.Startup.FolderDropCard import FolderDropCard
-from UserInterface.Widget.ActionCard import ActionCard
+from UserInterface.EditView.Startup.ProjectHistoryCard import ProjectHistoryCard
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.Toast import ToastMixin
 
 
 class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
-    """开始页面"""
+    """启动页。"""
 
-    folderSelected = pyqtSignal(str, str)  # 信号：通知主界面文件夹已选好，切换页面
-    loadSuccess = pyqtSignal(str, str)  # 信号(子线程->主线程)：项目加载成功
-    loadFailed = pyqtSignal(str)  # 信号(子线程->主线程)：项目加载失败
+    folderSelected = pyqtSignal(str, str)
+    loadSuccess = pyqtSignal(str, str)
+    loadFailed = pyqtSignal(str)
 
     def __init__(self, support_project_types=None, parent=None, cache_manager=None, file_reader=None):
         super().__init__(parent)
         self.support_project_types = support_project_types
         self.cache_manager = cache_manager
         self.file_reader = file_reader
-        self.stateTooltip = None  # 用于显示状态提示
+        self.stateTooltip = None
+        self.latest_project_id = ""
+        self.history_cards = []
 
         self.loadSuccess.connect(self._on_load_success)
         self.loadFailed.connect(self._on_load_failed)
@@ -43,29 +45,22 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.add_widget_projecttype(self.container, config)
         self.add_widget_folder_drop(self.container, config)
 
-        self.continue_card = ActionCard(
-            title=self.tra("继续项目"),
-            description=self.tra("加载上次的项目缓存并继续"),
-            button_text=self.tra("继续"),
-            icon=FIF.RIGHT_ARROW,
-            parent=self,
-        )
-        self.continue_card.hide()
-        self.continue_card.clicked.connect(lambda: self.folder_path_changed("continue"))
-        self.container.addWidget(self.continue_card)
+        self.history_layout = QVBoxLayout()
+        self.history_layout.setContentsMargins(0, 0, 0, 0)
+        self.history_layout.setSpacing(8)
+        self.container.addLayout(self.history_layout)
 
         self.container.addStretch(1)
 
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self.refresh_project_histories()
+
     def show_continue_button(self, show: bool) -> None:
-        """显示或隐藏继续按钮入口"""
-        if show:
-            self.continue_card.show()
-        else:
-            self.continue_card.hide()
-            self.continue_card.hide_project_name()
+        # 启动页仅显示 ProjectHistoryCard 历史列表，不再显示额外继续卡片。
+        return
 
     def add_widget_projecttype(self, parent, config) -> None:
-        """项目类型"""
         translated_pairs = [(self.tra(project_type), project_type) for project_type in self.support_project_types]
 
         def init(widget) -> None:
@@ -84,7 +79,7 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         parent.addWidget(
             ComboBoxCard(
                 self.tra("项目类型"),
-                self.tra("设置当前翻译项目所使用的原始文本的格式，注意，选择错误将不能进行翻译"),
+                self.tra("设置当前翻译项目所使用的原始文本格式，注意，选择错误将不能进行翻译"),
                 options,
                 init=init,
                 current_text_changed=current_text_changed,
@@ -92,8 +87,6 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         )
 
     def add_widget_folder_drop(self, parent: QLayout, config: dict) -> None:
-        """输入文件夹"""
-
         def widget_callback(path: str) -> None:
             current_config = self.load_config()
             current_config["label_input_path"] = path.strip()
@@ -101,42 +94,100 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             self.folder_path_changed("new")
 
         initial_path = config.get("label_input_path", "./input")
-        # 将 drag_card 保存为实例属性，以便后续禁用/启用
         self.drag_card = FolderDropCard(
             init=initial_path,
             path_changed=widget_callback,
         )
         parent.addWidget(self.drag_card)
 
-    def folder_path_changed(self, mode: str) -> None:
-        """显示加载提示并在子线程中执行项目加载。"""
+    def refresh_project_histories(self) -> None:
+        histories = []
+        if self.cache_manager:
+            histories = self.cache_manager.list_project_histories(
+                limit=self.cache_manager.HISTORY_LIMIT,
+                prune=True,
+            )
+
+        self._clear_history_cards()
+        self.latest_project_id = histories[0].get("project_id", "") if histories else ""
+
+        for history in histories:
+            history_card = ProjectHistoryCard(history, self)
+            history_card.continue_clicked.connect(self._on_history_continue_requested)
+            history_card.delete_clicked.connect(self._on_history_delete_requested)
+            self.history_layout.addWidget(history_card)
+            self.history_cards.append(history_card)
+
+    def _clear_history_cards(self) -> None:
+        while self.history_layout.count():
+            item = self.history_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+        self.history_cards.clear()
+
+    def _on_history_continue_requested(self, project_id: str) -> None:
+        if project_id:
+            self.folder_path_changed("continue", project_id)
+
+    def _on_history_delete_requested(self, project_id: str) -> None:
+        if not project_id:
+            return
+
+        message_box = MessageBox(
+            self.tra("确认"),
+            self.tra("是否确认删除该项目缓存？删除后无法恢复。"),
+            self.window(),
+        )
+        message_box.yesButton.setText(self.tra("确认"))
+        message_box.cancelButton.setText(self.tra("取消"))
+        if not message_box.exec():
+            return
+
+        try:
+            deleted = self.cache_manager.delete_project_cache(project_id)
+            if deleted:
+                self.refresh_project_histories()
+                self.emit(Base.EVENT.TASK_CONTINUE_CHECK, {})
+                self.success_toast(self.tra("成功"), self.tra("项目缓存已删除"))
+        except Exception as error:
+            self.error("删除项目缓存失败", error)
+            self.error_toast(self.tra("错误"), self.tra("删除项目缓存失败"))
+
+    def _set_history_controls_enabled(self, enabled: bool) -> None:
+        self.drag_card.setEnabled(enabled)
+        for history_card in self.history_cards:
+            history_card.setEnabled(enabled)
+
+    def folder_path_changed(self, mode: str, project_id: str = "") -> None:
         if self.stateTooltip:
             self.stateTooltip.close()
 
         self.stateTooltip = StateToolTip(
             self.tra("正在加载项目..."),
-            self.tra("客官请耐心等待哦~~"),
+            self.tra("请耐心等待"),
             self.window(),
         )
         x = self.window().width() // 2 - self.stateTooltip.width() // 2
-        y = 32  # 设置一个固定的顶部边距
+        y = 32
         self.stateTooltip.move(x, y)
         self.stateTooltip.show()
 
-        self.drag_card.setEnabled(False)
-        self.continue_card.setEnabled(False)
+        self._set_history_controls_enabled(False)
 
-        loader_thread = threading.Thread(target=self._load_project_worker, args=(mode,), daemon=True)
+        loader_thread = threading.Thread(
+            target=self._load_project_worker,
+            args=(mode, project_id),
+            daemon=True,
+        )
         loader_thread.start()
 
-    def _load_project_worker(self, mode: str) -> None:
-        """子线程中执行实际的文件读取和缓存加载工作。"""
+    def _load_project_worker(self, mode: str, project_id: str = "") -> None:
         try:
             config = self.load_config()
             translation_project = config.get("translation_project", "AutoType")
             label_input_path = config.get("label_input_path", "./input")
             label_input_exclude_rule = config.get("label_input_exclude_rule", "")
-            label_output_path = config.get("label_output_path", "./output")
 
             if mode == "new":
                 cache_project = self.file_reader.read_files(
@@ -145,30 +196,37 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                     label_input_exclude_rule,
                 )
                 self.cache_manager.load_from_project(cache_project)
+                self.cache_manager.save_to_file()
+            elif project_id:
+                self.cache_manager.load_from_project_id(project_id)
             else:
-                self.cache_manager.load_from_file(label_output_path)
+                self.cache_manager.load_from_file()
+
+            if mode != "new" and self.cache_manager.project:
+                current_config = dict(config)
+                if self.cache_manager.project.input_path:
+                    current_config["label_input_path"] = self.cache_manager.project.input_path
+                if current_config != config:
+                    self.save_config(current_config)
 
             if self.cache_manager.get_item_count() == 0:
                 raise ValueError("项目数据为空，可能是项目类型或输入文件夹设置不正确。")
 
             project_name = self.cache_manager.project.project_name
             self.loadSuccess.emit(project_name, mode)
-
-        except Exception as e:
-            error_message = "翻译项目数据载入失败 ... 请检查是否正确设置项目类型与输入文件夹 ..."
-            self.error(error_message, e)
+        except Exception as error:
+            error_message = "翻译项目数据载入失败，请检查项目类型与输入文件夹设置。"
+            self.error(error_message, error)
             self.loadFailed.emit(error_message)
 
     def _on_load_success(self, project_name: str, project_mode: str) -> None:
-        """接收加载成功信号后的处理函数。"""
         if self.stateTooltip:
-            info = self.tra("项目加载成功！") + "🚀"
-            self.stateTooltip.setContent(self.tra(info))
+            self.stateTooltip.setContent(self.tra("项目加载成功"))
             self.stateTooltip.setState(True)
-            self.stateTooltip = None  # 重置以便下次使用
+            self.stateTooltip = None
 
-        self.drag_card.setEnabled(True)
-        self.continue_card.setEnabled(True)
+        self._set_history_controls_enabled(True)
+        self.refresh_project_histories()
 
         self.print("")
         self.info("项目数据全部载入成功 ...")
@@ -188,14 +246,11 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.folderSelected.emit(project_name, project_mode)
 
     def _on_load_failed(self, error_message: str) -> None:
-        """接收加载失败信号后的处理函数。"""
         if self.stateTooltip:
-            info = self.tra("加载失败...") + "😵"
-            self.stateTooltip.setContent(self.tra(info))
+            self.stateTooltip.setContent(self.tra("加载失败"))
             self.stateTooltip.setState(False)
-            self.stateTooltip = None  # 重置以便下次使用
+            self.stateTooltip = None
 
-        self.drag_card.setEnabled(True)
-        self.continue_card.setEnabled(True)
-
+        self._set_history_controls_enabled(True)
+        self.refresh_project_histories()
         self.error_toast(self.tra("错误"), error_message)
