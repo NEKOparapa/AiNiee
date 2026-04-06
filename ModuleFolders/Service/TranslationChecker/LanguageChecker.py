@@ -1,44 +1,35 @@
 import os
 import time
-import re
-import json
 from collections import defaultdict
 from typing import List, Dict, Any, Tuple
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
+from ModuleFolders.Domain.FileReader import ReaderUtil
 from ModuleFolders.Service.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Service.Cache.CacheManager import CacheManager
-from ModuleFolders.Domain.FileReader import ReaderUtil
 from ModuleFolders.Service.TaskExecutor import TranslatorUtil
+from ModuleFolders.Service.TranslationChecker.CheckResult import CheckResult
 
-# 定义结果码，便于UI判断
-class CheckResult:
-    SUCCESS_REPORT = "SUCCESS_REPORT"
-    SUCCESS_JUDGE_PASS = "SUCCESS_JUDGE_PASS"
-    SUCCESS_JUDGE_FAIL = "SUCCESS_JUDGE_FAIL"
-    HAS_RULE_ERRORS = "HAS_RULE_ERRORS"  # 存在需要列表展示的错误
-    ERROR_CACHE = "ERROR_CACHE"
-    ERROR_NO_TRANSLATION = "ERROR_NO_TRANSLATION"
-    ERROR_INVALID_LANG = "ERROR_INVALID_LANG"
 
-class TranslationChecker(ConfigMixin, LogMixin, Base):
+class LanguageChecker(ConfigMixin, LogMixin, Base):
     """
     双模式语言检查。
     """
+
     def __init__(self, cache_manager: CacheManager):
         super().__init__()
         self.cache_manager = cache_manager
         self.config = self.load_config()
+        self._last_results = []
+        self._last_target_language_name = self.config.get("target_language", "english")
 
-    # --- 主检查流程 ---
-    def check_process(self, params: dict) -> Tuple[str, Any]:
+    def run_check(self, params: dict) -> Tuple[str, Any]:
         """
-        主检查流程
+        语言检查入口，返回新的结果结构给UI使用
         """
         mode = params.get("mode", "report")
-        rules = params.get("rules", {})
 
         #  获取并校验动态参数
         chunk_size = params.get("chunk_size", 20)
@@ -59,24 +50,26 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
 
         lang_result_code, lang_data = self.check_language(mode, chunk_size, threshold)
 
-        # 如果基础检查失败（如无缓存），直接返回
         if lang_result_code.startswith("ERROR"):
             return lang_result_code, lang_data
 
-        all_errors = self._check_rules(rules)
+        issue_rows = []
+        report_rows = []
 
-        # 4. 从缓存中收集刚才被 check_language 标记的错误
-        # 只有在"精准判断"模式下，且语言检测发现问题时才收集
         if "judge" in mode:
-            lang_errors = self._collect_lang_errors_from_cache()
-            if lang_errors:
-                all_errors.extend(lang_errors)
+            issue_rows = self._collect_lang_errors_from_cache()
+            if not issue_rows and self._last_results:
+                issue_rows = self._build_language_issue_rows_from_results(self._last_results)
+        else:
+            report_rows = self._build_language_report_rows(self._last_results)
 
-        # 5. 如果收集到了任何错误（规则错误 或 语言标记错误），都强制返回 HAS_RULE_ERRORS
-        if all_errors:
-            return CheckResult.HAS_RULE_ERRORS, all_errors
-
-        return lang_result_code, lang_data
+        return CheckResult.SUCCESS_LANGUAGE_RESULT, {
+            "mode": mode,
+            "target_language": self._last_target_language_name,
+            "report_rows": report_rows,
+            "issue_rows": issue_rows,
+            "passed": not issue_rows if "judge" in mode else True,
+        }
 
     def _collect_lang_errors_from_cache(self) -> List[Dict]:
         """
@@ -103,9 +96,73 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
                     })
         return errors
 
+    def _build_language_issue_rows_from_results(self, results: List[Dict]) -> List[Dict]:
+        """
+        辅助函数：从本次检查结果中构建问题列表
+        """
+        errors = []
+        seen = set()
+        check_attr = "translated_text"
+
+        for result in results:
+            cache_file = result.get("file_info")
+            if cache_file is None:
+                continue
+
+            file_path = getattr(cache_file, "storage_path", "")
+            file_name = os.path.basename(file_path)
+
+            for chunk in result.get("problematic_chunks", []):
+                for line_info in chunk.get("mismatched_lines", []):
+                    item_index = line_info.get("original_line_num", 0) - 1
+                    if item_index < 0 or item_index >= len(cache_file.items):
+                        continue
+
+                    dedupe_key = (file_path, item_index)
+                    if dedupe_key in seen:
+                        continue
+                    seen.add(dedupe_key)
+
+                    item = cache_file.items[item_index]
+                    text_content = getattr(item, check_attr, "")
+                    errors.append({
+                        "row_id": f"{file_name} : {item.text_index + 1}",
+                        "error_type": self.tra("语言比例异常"),
+                        "source": item.source_text,
+                        "check_text": text_content,
+                        "file_path": file_path,
+                        "text_index": item.text_index,
+                        "target_field": check_attr
+                    })
+
+        return errors
+
+    def _build_language_report_rows(self, results: List[Dict]) -> List[Dict]:
+        """
+        辅助函数：从宏观统计结果中构建只读报告列表
+        """
+        report_rows = []
+
+        for result in results:
+            cache_file = result.get("file_info")
+            if cache_file is None:
+                continue
+
+            stats_display = result.get("stats_display", [])
+            formatted_stats = [f"{lang}: {confidence:.2%}" for lang, confidence in stats_display]
+            report_rows.append({
+                "file_path": getattr(cache_file, "storage_path", ""),
+                "file_type": getattr(cache_file, "file_project_type", ""),
+                "encoding": getattr(cache_file, "encoding", ""),
+                "stats_text": " / ".join(formatted_stats)
+            })
+
+        return report_rows
+
     # --- 语言检查主流程 ---
     def check_language(self, mode: str, chunk_size: int = 20, threshold: float = 0.75) -> Tuple[str, Dict]:
         start_time = time.time()
+        self._last_results = []
 
         pre_check_result, pre_check_data = self._perform_pre_checks(mode)
         if pre_check_result is not None:
@@ -118,6 +175,7 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
         target_language_name = self.config.get("target_language", "english")
         target_language_code = TranslatorUtil.map_language_name_to_code(target_language_name)
         mode_text = self.tra("翻译后文本")
+        self._last_target_language_name = target_language_name
 
         if not target_language_code:
             self.error(self.tra("检查失败：无法将目标语言名称 '{}' 转换为有效的语言代码。请检查您的配置。").format(target_language_name))
@@ -189,6 +247,8 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
             except Exception as e:
                 self.error(self.tra("保存标记到缓存时发生错误: {}").format(e))
 
+        self._last_results = all_results
+
         # 生成报告
         self._print_report(all_results, is_judging, target_language_code, mode_text, threshold)
         if all_results:
@@ -203,210 +263,6 @@ class TranslationChecker(ConfigMixin, LogMixin, Base):
                 return CheckResult.SUCCESS_JUDGE_FAIL, {"target_language": target_language_name}
         else:
             return CheckResult.SUCCESS_REPORT, {}
-
-    # --- 规则检查主流程 ---
-    def _check_rules(self, rules_config: dict) -> List[Dict]:
-        if not any(rules_config.values()):
-            return []
-
-        self.info(self.tra("开始执行规则检查..."))
-        errors_list = []
-
-        # 准备正则表达式模式
-        patterns = []
-        if rules_config.get("auto_process"):
-            patterns = self._prepare_regex_patterns(rules_config.get("exclusion", False))
-
-        # 准备禁翻表数据
-        exclusion_data = self.config.get("exclusion_list_data", []) if rules_config.get("exclusion") else []
-        check_attr = "translated_text"
-
-        # 准备术语表数据 (预处理正则)
-        term_data = []
-        if rules_config.get("terminology"):
-            raw_term_data = self.config.get("prompt_dictionary_data", [])
-            for term in raw_term_data:
-                if isinstance(term, dict):
-                    src_term = term.get("src")
-                    dst_term = term.get("dst")
-                    if src_term and dst_term:
-                        try:
-                            # 尝试编译为正则
-                            pattern = re.compile(src_term, re.IGNORECASE)
-                            term_data.append({
-                                "type": "regex",
-                                "pattern": pattern,
-                                "src": src_term, # 保留原始字符串用于调试或显示
-                                "dst": dst_term
-                            })
-                        except re.error:
-                            # 编译失败则作为普通字符串处理，后续将使用忽略大小写包含检测
-                            term_data.append({
-                                "type": "string",
-                                "src": src_term,
-                                "dst": dst_term
-                            })
-
-        for file_path, file_obj in self.cache_manager.project.files.items():
-            file_name = os.path.basename(file_path)
-            for item in file_obj.items:
-                # 0. 总是跳过被显式排除 (TranslationStatus.EXCLUDED) 的条目
-                if item.translation_status == TranslationStatus.EXCLUDED:
-                    continue
-
-                text_content = getattr(item, check_attr, "")
-                current_errors = []
-
-                # 1. 未翻译/漏翻检查
-                if rules_config.get("untranslated"):
-                    if item.translation_status < TranslationStatus.TRANSLATED or not text_content:
-                        errors_list.append({
-                            "row_id": f"{file_name} : {item.text_index + 1}",
-                            "error_type": self.tra("条目未翻译/内容为空"),
-                            "source": item.source_text,
-                            "check_text": text_content,
-                            "file_path": file_path,
-                            "text_index": item.text_index,
-                            "target_field": check_attr
-                        })
-                        # 如果已确定未翻译，通常内容为空或无意义，跳过后续的内容检查
-                        continue
-
-                # 2. 跳过空文本 (如果内容为空且不是为了检查未翻译，则跳过后续正则检查)
-                if not text_content or not item.source_text:
-                    continue
-
-                # 3. 禁翻表
-                if rules_config.get("exclusion") and exclusion_data:
-                    current_errors.extend(self._rule_check_exclusion(item.source_text, text_content, exclusion_data))
-                # 4. 术语表
-                if rules_config.get("terminology") and term_data:
-                    current_errors.extend(self._rule_check_terminology(item.source_text, text_content, term_data))
-                # 5. 自动处理
-                if rules_config.get("auto_process") and patterns:
-                    current_errors.extend(self._rule_check_auto_process(item.source_text, text_content, patterns))
-                # 6. 占位符
-                if rules_config.get("placeholder"):
-                    current_errors.extend(self._rule_check_placeholder(text_content))
-                # 7. 数字序号
-                if rules_config.get("number"):
-                    current_errors.extend(self._rule_check_number(text_content))
-                # 8. 示例复读
-                if rules_config.get("example"):
-                    current_errors.extend(self._rule_check_example(text_content))
-                # 9. 换行符
-                if rules_config.get("newline"):
-                    current_errors.extend(self._rule_check_newline(item.source_text, text_content))
-
-                # 收集结果
-                for err in current_errors:
-                    errors_list.append({
-                        "row_id": f"{file_name} : {item.text_index + 1}",
-                        "error_type": err,
-                        "source": item.source_text,
-                        "check_text": text_content,
-                        "file_path": file_path,
-                        "text_index": item.text_index,
-                        "target_field": check_attr
-                    })
-
-        self.info(self.tra("规则检查完成，发现 {} 个问题。").format(len(errors_list)))
-        return errors_list
-
-    # --- 规则检查辅助方法 ---
-    def _rule_check_terminology(self, src, dst, prepared_data):
-        """
-        检查术语一致性
-        prepared_data: 包含预编译正则或字符串信息的列表
-        """
-        errs = []
-        for term_item in prepared_data:
-            match_found = False
-
-            # 检测原文中是否存在该术语
-            if term_item["type"] == "regex":
-                if term_item["pattern"].search(src):
-                    match_found = True
-            else:
-                # 字符串模式：使用忽略大小写包含，与PromptBuilder回退逻辑保持一致
-                if term_item["src"].lower() in src.lower():
-                    match_found = True
-
-            # 如果原文中存在术语，则检查译文中是否包含对应的译名
-            if match_found:
-                dst_term = term_item["dst"]
-                if dst_term not in dst:
-                    err_msg = self.tra("术语缺失: {}").format(dst_term)
-                    if err_msg not in errs:
-                        errs.append(err_msg)
-        return errs
-
-    def _prepare_regex_patterns(self, include_exclusion: bool):
-        patterns = []
-        regex_file = os.path.join(".", "Resource", "Regex", "check_regex.json")
-        if os.path.exists(regex_file):
-            try:
-                with open(regex_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    patterns.extend([i["regex"] for i in data if "regex" in i])
-            except: pass
-
-        if include_exclusion:
-            ex_data = self.config.get("exclusion_list_data", [])
-            for item in ex_data:
-                if item.get("regex"): patterns.append(item["regex"])
-                elif item.get("markers"): patterns.append(re.escape(item["markers"]))
-        return patterns
-
-    def _rule_check_exclusion(self, src, dst, data):
-        errs = []
-        for item in data:
-            regex = item.get("regex")
-            markers = item.get("markers")
-            pat = regex if regex else (re.escape(markers) if markers else None)
-            if pat:
-                try:
-                    for match in re.finditer(pat, src):
-                        if match.group(0) not in dst:
-                            if self.tra("禁翻表错误") not in errs: errs.append(self.tra("禁翻表错误"))
-                            break
-                except: continue
-        return errs
-
-    def _rule_check_auto_process(self, src, dst, patterns):
-        errs = []
-        _src = src.rstrip('\n')
-        _dst = dst.rstrip('\n')
-        for pat in patterns:
-            try:
-                for match in re.finditer(pat, _src):
-                    if match.group(0) not in _dst:
-                        if self.tra("自动处理错误") not in errs: errs.append(self.tra("自动处理错误"))
-                        break
-            except: continue
-        return errs
-
-    def _rule_check_placeholder(self, text):
-        if re.search(r'\[P\d+\]', text):
-            return [self.tra("占位符残留")]
-        return []
-
-    def _rule_check_number(self, text):
-        if re.search(r'\d+\.\d+\.', text):
-            return [self.tra("数字序号残留")]
-        return []
-
-    def _rule_check_example(self, text):
-        if re.search(r'示例文本[A-Z]-\d+', text):
-            return [self.tra("示例文本复读")]
-        return []
-
-    def _rule_check_newline(self, src, dst):
-        s_n = src.strip().count('\n') + src.strip().count('\\n')
-        d_n = dst.strip().count('\n') + dst.strip().count('\\n')
-        if s_n != d_n:
-            return [self.tra("换行符错误")]
-        return []
 
     # 辅助方法
     def _perform_pre_checks(self, mode: str) -> Tuple[str | None, Dict]:

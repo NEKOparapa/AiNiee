@@ -11,12 +11,12 @@ from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 from UserInterface.Widget.Toast import ToastMixin
 
 
-class CheckResultPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
+class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
     def __init__(self, results: list, cache_manager=None, parent=None):
         super().__init__(parent)
         self.results = results
         self.cache_manager = cache_manager
-        self.setObjectName("CheckResultPage")
+        self.setObjectName("EditableIssueTablePage")
 
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(10, 10, 10, 10)
@@ -38,7 +38,7 @@ class CheckResultPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         super().closeEvent(event)
 
     def _init_table(self):
-        headers = [self.tra("行"), self.tra("错误"), self.tra("原文"), self.tra("检测文本")]
+        headers = [self.tra("行"), self.tra("错误"), self.tra("原文"), self.tra("译文")]
         self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
         self.table.verticalHeader().hide()
@@ -56,45 +56,40 @@ class CheckResultPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         header.setSortIndicatorShown(False)
 
         self.table.setColumnWidth(0, 150)
-        self.table.setColumnWidth(1, 150)
-        self.table.setColumnWidth(2, 300)
+        self.table.setColumnWidth(1, 170)
+        self.table.setColumnWidth(2, 320)
 
     def _populate_data(self):
         self.table.blockSignals(True)
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(self.results))
 
-        for i, data in enumerate(self.results):
-            row_id_raw = data.get("row_id", "")
-            item_id = QTableWidgetItem()
-            item_id.setText(str(row_id_raw))
-            try:
-                item_id.setData(Qt.DisplayRole, int(row_id_raw))
-            except (ValueError, TypeError):
-                pass
+        for row, data in enumerate(self.results):
+            row_id_item = QTableWidgetItem(str(data.get("row_id", "")))
+            row_id_item.setTextAlignment(Qt.AlignCenter)
+            row_id_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            row_id_item.setData(
+                Qt.UserRole,
+                {
+                    "file_path": data.get("file_path"),
+                    "text_index": data.get("text_index"),
+                    "target_field": data.get("target_field"),
+                    "original_data_index": row,
+                },
+            )
+            self.table.setItem(row, 0, row_id_item)
 
-            item_id.setTextAlignment(Qt.AlignCenter)
-            item_id.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            meta_data = {
-                "file_path": data.get("file_path"),
-                "text_index": data.get("text_index"),
-                "target_field": data.get("target_field"),
-                "original_data_index": i,
-            }
-            item_id.setData(Qt.UserRole, meta_data)
-            self.table.setItem(i, 0, item_id)
+            error_item = QTableWidgetItem(data.get("error_type", ""))
+            error_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            self.table.setItem(row, 1, error_item)
 
-            item_type = QTableWidgetItem(data.get("error_type", ""))
-            item_type.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            self.table.setItem(i, 1, item_type)
+            source_item = QTableWidgetItem(data.get("source", ""))
+            source_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            self.table.setItem(row, 2, source_item)
 
-            item_src = QTableWidgetItem(data.get("source", ""))
-            item_src.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
-            self.table.setItem(i, 2, item_src)
-
-            item_check = QTableWidgetItem(data.get("check_text", ""))
-            item_check.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
-            self.table.setItem(i, 3, item_check)
+            check_item = QTableWidgetItem(data.get("check_text", ""))
+            check_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
+            self.table.setItem(row, 3, check_item)
 
         self.table.resizeRowsToContents()
         self.table.setSortingEnabled(True)
@@ -112,21 +107,23 @@ class CheckResultPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         if not meta_data:
             return
 
+        file_path = meta_data.get("file_path")
+        text_index = meta_data.get("text_index")
+        target_field = meta_data.get("target_field")
+        if file_path is None or text_index is None or not target_field:
+            return
+
         new_text = item.text()
-        file_path = meta_data["file_path"]
-        text_index = meta_data["text_index"]
-        target_field = meta_data["target_field"]
+        self.cache_manager.update_item_text(
+            storage_path=file_path,
+            text_index=text_index,
+            field_name=target_field,
+            new_text=new_text,
+        )
 
-        if file_path and text_index is not None:
-            self.cache_manager.update_item_text(
-                storage_path=file_path,
-                text_index=text_index,
-                field_name=target_field,
-                new_text=new_text,
-            )
-
-            if "original_data_index" in meta_data:
-                self.results[meta_data["original_data_index"]]["check_text"] = new_text
+        original_index = meta_data.get("original_data_index")
+        if original_index is not None and 0 <= original_index < len(self.results):
+            self.results[original_index]["check_text"] = new_text
 
     def _on_table_update(self, event, data: dict):
         updated_file_path = data.get("file_path")
@@ -171,10 +168,13 @@ class CheckResultPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                     translation_status=translation_status,
                 )
 
-                if "original_data_index" in meta_data:
-                    self.results[meta_data["original_data_index"]]["check_text"] = new_text
+                original_index = meta_data.get("original_data_index")
+                if original_index is not None and 0 <= original_index < len(self.results):
+                    self.results[original_index]["check_text"] = new_text
         finally:
             self.table.blockSignals(False)
+
+        self.table.resizeRowsToContents()
 
     def _show_context_menu(self, pos: QPoint):
         menu = RoundMenu(parent=self)
@@ -195,21 +195,20 @@ class CheckResultPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         menu.exec(self.table.mapToGlobal(pos))
 
     def _translate_selected_rows(self):
-        if Base.work_status == Base.STATUS.IDLE:
-            Base.work_status = Base.STATUS.TABLE_TASK
-        else:
-            self.warning(self.tra("正在执行其他任务中！"))
-            return
-
-        selected_rows = sorted(list(set(index.row() for index in self.table.selectedIndexes())))
+        selected_rows = sorted({index.row() for index in self.table.selectedIndexes()})
         if not selected_rows:
             return
 
+        if Base.work_status != Base.STATUS.IDLE:
+            self.warning(self.tra("正在执行其他任务中！"))
+            return
+
         tasks_by_file = defaultdict(list)
+
         for row in selected_rows:
             id_item = self.table.item(row, 0)
-            src_item = self.table.item(row, 2)
-            if not id_item or not src_item:
+            source_item = self.table.item(row, 2)
+            if not id_item or not source_item:
                 continue
 
             meta_data = id_item.data(Qt.UserRole)
@@ -219,10 +218,14 @@ class CheckResultPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                 tasks_by_file[file_path].append(
                     {
                         "text_index": text_index,
-                        "source_text": src_item.text(),
+                        "source_text": source_item.text(),
                     }
                 )
 
+        if not tasks_by_file:
+            return
+
+        Base.work_status = Base.STATUS.TABLE_TASK
         count = 0
         for file_path, items_to_translate in tasks_by_file.items():
             if not items_to_translate:
@@ -247,7 +250,7 @@ class CheckResultPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         current_sorting = self.table.isSortingEnabled()
         self.table.setSortingEnabled(False)
 
-        selected_rows = sorted(set(index.row() for index in self.table.selectedIndexes()), reverse=True)
+        selected_rows = sorted({index.row() for index in self.table.selectedIndexes()}, reverse=True)
         for row in selected_rows:
             self.table.removeRow(row)
 
