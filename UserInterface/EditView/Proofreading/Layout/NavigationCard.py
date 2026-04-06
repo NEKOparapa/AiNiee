@@ -2,7 +2,7 @@ import os
 
 from PyQt5.QtCore import QVariant, Qt
 from PyQt5.QtWidgets import QTreeWidgetItem, QVBoxLayout
-from qfluentwidgets import CardWidget, FluentIcon as FIF, StrongBodyLabel, TransparentPushButton, TreeWidget
+from qfluentwidgets import CardWidget, FluentIcon as FIF, StrongBodyLabel, TransparentPushButton, TreeWidget, setFont
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -18,6 +18,7 @@ class NavigationCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.layout.setSpacing(8)
 
         self.title_label = StrongBodyLabel(self.tra("项目文件"), self)
+        setFont(self.title_label, 12)
         self.title_label.setAlignment(Qt.AlignCenter)
         self.layout.addWidget(self.title_label)
 

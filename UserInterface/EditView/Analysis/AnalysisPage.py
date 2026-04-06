@@ -30,6 +30,7 @@ from qfluentwidgets import (
     TableWidget,
     TransparentPushButton,
     TreeWidget,
+    setFont,
     themeColor,
 )
 
@@ -354,6 +355,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         nav_layout.setSpacing(8)
 
         self.nav_title_label = StrongBodyLabel("项目表格", self.nav_card)
+        setFont(self.nav_title_label, 12)
         self.nav_title_label.setAlignment(Qt.AlignCenter)
         nav_layout.addWidget(self.nav_title_label)
 

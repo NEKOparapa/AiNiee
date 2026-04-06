@@ -4,7 +4,7 @@ import time
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
-from qfluentwidgets import CardWidget, FluentIcon as FIF, MessageBox, PushButton, StrongBodyLabel
+from qfluentwidgets import CardWidget, FluentIcon as FIF, MessageBox, PushButton, StrongBodyLabel, setFont
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -63,6 +63,7 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         check_layout.setSpacing(10)
 
         check_title = StrongBodyLabel(self.tra("翻译检查"), self.check_card)
+        setFont(check_title, 12)
         check_title.setAlignment(Qt.AlignCenter)
         check_layout.addWidget(check_title)
 

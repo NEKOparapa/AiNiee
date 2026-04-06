@@ -241,8 +241,8 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):  #
         self.navigationInterface.addItemHeader(self.tra("提示词管理"), NavigationItemPosition.SCROLL)
         self.add_prompt_setting_pages()
 
-        # ===== 数据表格 =====
-        self.navigationInterface.addItemHeader(self.tra("数据表格"), NavigationItemPosition.SCROLL)
+        # ===== 公共表格 =====
+        self.navigationInterface.addItemHeader(self.tra("公共表格"), NavigationItemPosition.SCROLL)
         self.add_table_pages()
 
         # 设置默认页面
