@@ -63,17 +63,54 @@ class Base():
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.default = {}
-        self.event_manager_singleton = EventManager.get_singleton()
+        if not hasattr(self, "default"):
+            self.default = {}
+        self._ensure_event_subscription_state()
 
     # 触发事件
     def emit(self, event: int, data: dict) -> None:
-        EventManager.get_singleton().emit(event, data)
+        self._ensure_event_subscription_state()
+        self.event_manager_singleton.emit(event, data)
 
     # 订阅事件
     def subscribe(self, event: int, hanlder: callable) -> None:
-        EventManager.get_singleton().subscribe(event, hanlder)
+        self._ensure_event_subscription_state()
+        self.event_manager_singleton.subscribe(event, hanlder)
+        self._event_subscriptions.append((event, hanlder))
 
     # 取消订阅事件
     def unsubscribe(self, event: int, hanlder: callable) -> None:
-        EventManager.get_singleton().unsubscribe(event, hanlder)
+        self._ensure_event_subscription_state()
+        self.event_manager_singleton.unsubscribe(event, hanlder)
+        try:
+            self._event_subscriptions.remove((event, hanlder))
+        except ValueError:
+            pass
+
+    def _cleanup_event_subscriptions(self) -> None:
+        if not self._event_subscriptions:
+            return
+
+        for event, hanlder in list(self._event_subscriptions):
+            self.event_manager_singleton.unsubscribe(event, hanlder)
+
+        self._event_subscriptions.clear()
+
+    def _ensure_event_subscription_state(self) -> None:
+        if not hasattr(self, "event_manager_singleton"):
+            self.event_manager_singleton = EventManager.get_singleton()
+
+        if not hasattr(self, "_event_subscriptions"):
+            self._event_subscriptions = []
+
+        if not hasattr(self, "_destroyed_subscription_cleanup"):
+            self._destroyed_subscription_cleanup = None
+
+        if getattr(self, "_destroyed_subscription_connected", False):
+            return
+
+        destroyed_signal = getattr(self, "destroyed", None)
+        if hasattr(destroyed_signal, "connect"):
+            self._destroyed_subscription_cleanup = lambda *_: self._cleanup_event_subscriptions()
+            destroyed_signal.connect(self._destroyed_subscription_cleanup)
+            self._destroyed_subscription_connected = True
