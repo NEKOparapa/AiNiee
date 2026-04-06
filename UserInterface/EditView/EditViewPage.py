@@ -187,7 +187,7 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
         self.translation_page.enable_continue_button(continue_enabled)
 
         self.top_stacked_widget.setCurrentWidget(self.workflow_container)
-        self.switch_workflow_page(self.ROUTE_ANALYSIS)
+        self.switch_workflow_page(self.ROUTE_TRANSLATION)
 
     def on_back_button_clicked(self) -> None:
         if Base.work_status == Base.STATUS.IDLE:
