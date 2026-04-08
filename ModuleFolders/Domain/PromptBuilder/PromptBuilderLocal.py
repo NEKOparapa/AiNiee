@@ -140,7 +140,14 @@ class PromptBuilderLocal(Base):
 
         return glossary_prompt
 
-    # 生成信息结构 - LocalLLM
+    # 生成项目角色表 - LocalLLM
+    def build_project_characters_prompt(config: TaskConfig, source_text_dict: dict) -> str:
+        return PromptBuilder.build_project_characters_prompt(config, source_text_dict)
+
+    #  生成项目术语表 - LocalLLM
+    def build_project_terms_prompt(config: TaskConfig, source_text_dict: dict) -> str:
+        return PromptBuilder.build_project_terms_prompt(config, source_text_dict)
+
     def generate_prompt_LocalLLM(config,  source_text_dict: dict, previous_text_list: list[str], source_lang) -> tuple[list[dict], str, list[str]]:
         # 储存指令
         messages = []
@@ -156,6 +163,18 @@ class PromptBuilderLocal(Base):
             if result != "":
                 system = system + "\n" + result
                 extra_log.append(result)
+
+        # 项目角色表
+        project_characters = PromptBuilderLocal.build_project_characters_prompt(config, source_text_dict)
+        if project_characters != "":
+            system += project_characters
+            extra_log.append(project_characters)
+
+        # 项目术语表
+        project_terms = PromptBuilderLocal.build_project_terms_prompt(config, source_text_dict)
+        if project_terms != "":
+            system += project_terms
+            extra_log.append(project_terms)
 
         # 构建待翻译文本
         source_text = PromptBuilder.build_source_text(config,source_text_dict)

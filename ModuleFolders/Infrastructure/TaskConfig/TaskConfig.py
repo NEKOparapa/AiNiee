@@ -24,6 +24,9 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         self._api_key_lock = threading.Lock()
         self.apikey_index = 0
         self.apikey_list = []
+        self.project_characters_data = []
+        self.project_terms_data = []
+        self.project_non_translate_data = []
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.get_vars()})"
@@ -34,6 +37,62 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
             for key, value in vars(self).items()
             if isinstance(value, __class__.TYPE_FILTER)
         }
+
+    def _normalize_project_table_rows(
+        self,
+        rows,
+        key_field: str,
+        fields_to_keep: tuple[str, ...],
+    ) -> list[dict]:
+        normalized_rows = []
+
+        if not isinstance(rows, list):
+            return normalized_rows
+
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+
+            identity_value = str(row.get(key_field, "")).strip()
+            if not identity_value:
+                continue
+
+            normalized_row = {}
+            for field_name in fields_to_keep:
+                normalized_row[field_name] = str(row.get(field_name, "") or "").strip()
+
+            normalized_rows.append(normalized_row)
+
+        return normalized_rows
+
+    #  载入项目表数据（角色表、术语表、禁翻表）到内存，供 PromptBuilder 构建提示词时使用
+    def load_project_table_data(self, cache_manager) -> None:
+        self.project_characters_data = []
+        self.project_terms_data = []
+        self.project_non_translate_data = []
+
+        if cache_manager is None or not hasattr(cache_manager, "get_analysis_data"):
+            return
+
+        analysis_data = cache_manager.get_analysis_data() or {}
+        if not isinstance(analysis_data, dict):
+            return
+
+        self.project_characters_data = self._normalize_project_table_rows(
+            analysis_data.get("characters", []),
+            "source",
+            ("source", "recommended_translation", "gender", "note"),
+        )
+        self.project_terms_data = self._normalize_project_table_rows(
+            analysis_data.get("terms", []),
+            "source",
+            ("source", "recommended_translation", "category_path", "note"),
+        )
+        self.project_non_translate_data = self._normalize_project_table_rows(
+            analysis_data.get("non_translate", []),
+            "marker",
+            ("marker", "category", "note"),
+        )
 
     def get_next_apikey(self) -> str:
         """

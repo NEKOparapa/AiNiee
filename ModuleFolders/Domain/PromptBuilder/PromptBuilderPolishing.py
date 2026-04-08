@@ -166,6 +166,18 @@ class PromptBuilderPolishing(Base):
 
         return " ###Original text\n", "###This is your next polishing task, the draft translation is as follows\n"
 
+    # 生成项目角色表 - Polishing
+    def build_project_characters_prompt(config: TaskConfig, source_text_dict: dict) -> str:
+        return PromptBuilder.build_project_characters_prompt(config, source_text_dict)
+
+    #  生成项目术语表 - Polishing
+    def build_project_terms_prompt(config: TaskConfig, source_text_dict: dict) -> str:
+        return PromptBuilder.build_project_terms_prompt(config, source_text_dict)
+
+    # 生成项目禁翻表 - Polishing
+    def build_project_non_translate_prompt(config: TaskConfig, source_text_dict: dict) -> str:
+        return PromptBuilder.build_project_non_translate_prompt(config, source_text_dict)
+
     def generate_prompt(
         config,
         source_text_dict: dict,
@@ -175,22 +187,43 @@ class PromptBuilderPolishing(Base):
         messages = []
         extra_log = []
 
+        # 基础提示词
         if config.polishing_prompt_selection["last_selected_id"] == PromptBuilderEnum.POLISH_COMMON:
             system = PromptBuilderPolishing.build_system(config)
         else:
             system = config.polishing_prompt_selection["prompt_content"]
 
+        # 术语表
         if config.prompt_dictionary_switch:
             glossary = PromptBuilderPolishing.build_glossary_prompt(config, source_text_dict)
             if glossary:
                 system += glossary
                 extra_log.append(glossary)
 
+        # 禁翻表
         if config.exclusion_list_switch:
             ntl = PromptBuilderPolishing.build_ntl_prompt(config, source_text_dict)
             if ntl:
                 system += ntl
                 extra_log.append(ntl)
+
+        # 项目角色表
+        project_characters = PromptBuilderPolishing.build_project_characters_prompt(config, source_text_dict)
+        if project_characters:
+            system += project_characters
+            extra_log.append(project_characters)
+
+        # 项目术语表
+        project_terms = PromptBuilderPolishing.build_project_terms_prompt(config, source_text_dict)
+        if project_terms:
+            system += project_terms
+            extra_log.append(project_terms)
+
+        # 项目禁翻表
+        project_non_translate = PromptBuilderPolishing.build_project_non_translate_prompt(config, source_text_dict)
+        if project_non_translate:
+            system += project_non_translate
+            extra_log.append(project_non_translate)
 
         if getattr(config, "polishing_example_switch", False):
             polishing_example = PromptBuilderPolishing.build_polishing_example(config)

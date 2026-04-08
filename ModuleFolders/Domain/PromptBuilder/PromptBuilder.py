@@ -552,7 +552,152 @@ class PromptBuilder(Base):
 
         return result
 
-    # 构造角色设定
+    # 构造项目表（角色表、术语表、禁翻表）
+    def _match_project_table_rows(
+        rows: list[dict],
+        source_text_dict: dict,
+        key_field: str,
+        fields_to_keep: tuple[str, ...],
+    ) -> list[dict]:
+        full_text = "\n".join(source_text_dict.values()) if source_text_dict else ""
+        if not full_text:
+            return []
+
+        matched_rows = []
+        seen_keys = set()
+
+        for row in rows or []:
+            if not isinstance(row, dict):
+                continue
+
+            key_value = str(row.get(key_field, "") or "").strip()
+            if not key_value:
+                continue
+
+            normalized_row = {
+                field_name: str(row.get(field_name, "") or "").strip()
+                for field_name in fields_to_keep
+            }
+
+            try:
+                pattern = re.compile(key_value, re.IGNORECASE)
+                found_texts = set(match.group() for match in pattern.finditer(full_text))
+
+                for match_text in found_texts:
+                    if not match_text:
+                        continue
+
+                    current_row = normalized_row.copy()
+                    current_row[key_field] = match_text
+                    dedupe_key = tuple(current_row[field_name] for field_name in fields_to_keep)
+                    if dedupe_key in seen_keys:
+                        continue
+
+                    matched_rows.append(current_row)
+                    seen_keys.add(dedupe_key)
+
+            except re.error:
+                if key_value.lower() in full_text.lower():
+                    dedupe_key = tuple(normalized_row[field_name] for field_name in fields_to_keep)
+                    if dedupe_key in seen_keys:
+                        continue
+
+                    matched_rows.append(normalized_row)
+                    seen_keys.add(dedupe_key)
+
+        return matched_rows
+
+    def _build_project_table_prompt(
+        config: TaskConfig,
+        source_text_dict: dict,
+        rows: list[dict],
+        key_field: str,
+        fields: tuple[str, ...],
+        title_zh: str,
+        title_en: str,
+        header_zh: str,
+        header_en: str,
+    ) -> str:
+        """
+        构建通用项目表片段，最终会拼成 markdown 风格的表头加逐行数据。
+        示例（中文目标语言）:
+        ###角色表
+        原文|推荐译名|性别|备注
+        Alice|爱丽丝|女性|主角
+
+        示例（非中文目标语言）:
+        ###Character Table
+        Original Text|Recommended Translation|Gender|Remarks
+        Alice|爱丽丝|女性|主角
+        """
+        matched_rows = PromptBuilder._match_project_table_rows(
+            rows,
+            source_text_dict,
+            key_field,
+            fields,
+        )
+        normalized_rows = []
+        for row in matched_rows:
+            normalized_rows.append([
+                row.get(field, "") if row.get(field, "") else " "
+                for field in fields
+            ])
+
+        if not normalized_rows:
+            return ""
+
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
+            prompt_lines = [f"\n###{title_zh}", header_zh]
+        else:
+            prompt_lines = [f"\n###{title_en}", header_en]
+
+        for row in normalized_rows:
+            prompt_lines.append("|".join(row))
+
+        return "\n".join(prompt_lines)
+
+    # 构建角色表
+    def build_project_characters_prompt(config: TaskConfig, source_text_dict: dict) -> str:
+        return PromptBuilder._build_project_table_prompt(
+            config,
+            source_text_dict,
+            getattr(config, "project_characters_data", []),
+            "source",
+            ("source", "recommended_translation", "gender", "note"),
+            "角色表",
+            "Character Table",
+            "原文|推荐译名|性别|备注",
+            "Original Text|Recommended Translation|Gender|Remarks",
+        )
+
+    # 构建术语表
+    def build_project_terms_prompt(config: TaskConfig, source_text_dict: dict) -> str:
+        return PromptBuilder._build_project_table_prompt(
+            config,
+            source_text_dict,
+            getattr(config, "project_terms_data", []),
+            "source",
+            ("source", "recommended_translation", "category_path", "note"),
+            "术语表",
+            "Term Table",
+            "原文|推荐译名|分类|备注",
+            "Original Text|Recommended Translation|Category|Remarks",
+        )
+
+    # 构建禁翻表
+    def build_project_non_translate_prompt(config: TaskConfig, source_text_dict: dict) -> str:
+        return PromptBuilder._build_project_table_prompt(
+            config,
+            source_text_dict,
+            getattr(config, "project_non_translate_data", []),
+            "marker",
+            ("marker", "category", "note"),
+            "禁翻表",
+            "Non-Translation Table",
+            "原文|分类|备注",
+            "Original Text|Category|Remarks",
+        )
+
     def build_translation_example(config: TaskConfig) -> str:
         data = config.translation_example_data
 
@@ -685,8 +830,26 @@ class PromptBuilder(Base):
                 system += ntl
                 extra_log.append(ntl)
 
+        # 项目角色表
+        project_characters = PromptBuilder.build_project_characters_prompt(config, source_text_dict)
+        if project_characters != "":
+            system += project_characters
+            extra_log.append(project_characters)
 
-        # ??????????
+        # 项目术语表
+        project_terms = PromptBuilder.build_project_terms_prompt(config, source_text_dict)
+        if project_terms != "":
+            system += project_terms
+            extra_log.append(project_terms)
+
+        # 项目禁翻表
+        project_non_translate = PromptBuilder.build_project_non_translate_prompt(config, source_text_dict)
+        if project_non_translate != "":
+            system += project_non_translate
+            extra_log.append(project_non_translate)
+
+
+        # 如果开启翻译示例
         if config.translation_example_switch == True:
             translation_example = PromptBuilder.build_translation_example(config)
             if translation_example != "":

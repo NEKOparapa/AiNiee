@@ -257,6 +257,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
         # 配置当前激活接口信息
         self.config.prepare_for_active_platform()
+        self.config.load_project_table_data(self.cache_manager)
 
         # 配置请求限制器
         self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
@@ -453,6 +454,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
         # 配置当前激活接口信息
         self.config.prepare_for_active_platform()
+        self.config.load_project_table_data(self.cache_manager)
 
         # 配置请求限制器
         self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)

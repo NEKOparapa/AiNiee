@@ -107,6 +107,71 @@ class PromptBuilderSakura(Base):
 
         return dict_lines_str
 
+    # 构造项目表（角色表、术语表）
+    def _build_project_table_prompt(
+        source_text_dict: dict,
+        rows: list[dict],
+        key_field: str,
+        translation_field: str = "",
+        meta_fields: tuple[str, ...] = (),
+    ) -> str:
+        """
+        构建 Sakura 用的紧凑项目表片段，保持和原有术语表一致的纯行格式。
+        示例:
+        Alice->爱丽丝 #女性 主角
+        Academy->学院 #组织 学校
+        """
+        lines = []
+        fields_to_keep = (key_field, translation_field, *meta_fields) if translation_field else (key_field, *meta_fields)
+        matched_rows = PromptBuilder._match_project_table_rows(
+            rows,
+            source_text_dict,
+            key_field,
+            fields_to_keep,
+        )
+
+        for row in matched_rows:
+            meta_values = [
+                row.get(field_name, "")
+                for field_name in meta_fields
+                if row.get(field_name, "")
+            ]
+            meta_suffix = f" #{' '.join(meta_values)}" if meta_values else ""
+
+            if translation_field:
+                translation_value = str(row.get(translation_field, "") or "").strip()
+                key_value = str(row.get(key_field, "") or "").strip()
+                lines.append(f"{key_value}->{translation_value}{meta_suffix}")
+            else:
+                key_value = str(row.get(key_field, "") or "").strip()
+                lines.append(f"{key_value}{meta_suffix}")
+
+        if not lines:
+            return ""
+
+        return "\n".join(lines)
+
+    # 生成项目角色表 - Sakura
+    def build_project_characters_prompt(config: TaskConfig, source_text_dict: dict) -> str:
+        return PromptBuilderSakura._build_project_table_prompt(
+            source_text_dict,
+            getattr(config, "project_characters_data", []),
+            "source",
+            "recommended_translation",
+            ("gender", "note"),
+        )
+
+    # 生成项目术语表 - Sakura
+    def build_project_terms_prompt(config: TaskConfig, source_text_dict: dict) -> str:
+        return PromptBuilderSakura._build_project_table_prompt(
+            source_text_dict,
+            getattr(config, "project_terms_data", []),
+            "source",
+            "recommended_translation",
+            ("category_path", "note"),
+        )
+
+    # 构建原文（Sakura 用）：多行按换行拆成「序号+行」平铺，便于本地模型处理。
     def build_source_text_sakura(config: TaskConfig, source_text_dict: dict) -> str:
         """构建原文（Sakura 用）：多行按换行拆成「序号+行」平铺，便于本地模型处理。
 
@@ -146,15 +211,36 @@ class PromptBuilderSakura(Base):
             if glossary != "":
                 extra_log.append(glossary)
 
+        # 项目角色表
+        project_characters = PromptBuilderSakura.build_project_characters_prompt(config, source_text_dict)
+        if project_characters != "":
+            extra_log.append(project_characters)
+
+        # 项目术语表
+        project_terms = PromptBuilderSakura.build_project_terms_prompt(config, source_text_dict)
+        if project_terms != "":
+            extra_log.append(project_terms)
+
+
         # 构建待翻译文本（序号+行平铺格式，便于本地模型处理换行）
         source_text = PromptBuilderSakura.build_source_text_sakura(config, source_text_dict)
 
         # 构建主要提示词
-        if glossary == "":
+        context_blocks = []
+        if glossary != "":
+            context_blocks.append(glossary)
+        if project_characters != "":
+            context_blocks.append(project_characters)
+        if project_terms != "":
+            context_blocks.append(project_terms)
+
+        context_text = "\n".join(context_blocks)
+
+        if not context_text:
             user_prompt = "将下面的日文文本翻译成中文：\n" + source_text
         else:
             user_prompt = (
-                "根据以下术语表（可以为空）：\n" + glossary
+                "根据以下术语表（可以为空）：\n" + context_text
                 + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：\n" + source_text
             )
 
