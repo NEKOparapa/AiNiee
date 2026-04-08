@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget
-from qfluentwidgets import FluentIcon, MessageBox, PlainTextEdit, ToolButton
+from qfluentwidgets import FluentIcon, MessageBox, PlainTextEdit, StrongBodyLabel, ToolButton
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -56,6 +56,7 @@ class WorldBuildingPromptPage(QFrame, ConfigMixin, ToastMixin, Base):
         layout = QHBoxLayout(toolbar_widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
+        layout.addWidget(StrongBodyLabel(self.tra("背景内容"), self))
         layout.addStretch(1)
 
         save_button = ToolButton(FluentIcon.SAVE, self)

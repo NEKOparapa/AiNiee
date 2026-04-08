@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qfluentwidgets import Action, FluentIcon, MessageBox, RoundMenu, TableWidget, ToolButton
+from qfluentwidgets import Action, FluentIcon, MessageBox, RoundMenu, StrongBodyLabel, TableWidget, ToolButton
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -167,6 +167,7 @@ class TranslationExamplePromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Ba
         layout = QHBoxLayout(toolbar_widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
+        layout.addWidget(StrongBodyLabel(self.tra("翻译示例表"), self))
         layout.addStretch(1)
 
         save_button = ToolButton(FluentIcon.SAVE, self)
