@@ -118,6 +118,19 @@ class PromptBuilderPolishing(Base):
 
         return result
 
+    def build_writing_style(config: TaskConfig) -> str:
+        writing_style = getattr(config, "polishing_style_content", "")
+        if not writing_style:
+            return ""
+
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
+            profile = "\n###润色风格"
+        else:
+            profile = "\n###Polishing Style"
+
+        profile += f"\n{writing_style}\n"
+        return profile
+
     def build_polishing_example(config: TaskConfig) -> str:
         data = getattr(config, "polishing_example_data", [])
         if not data:
@@ -224,6 +237,12 @@ class PromptBuilderPolishing(Base):
         if project_non_translate:
             system += project_non_translate
             extra_log.append(project_non_translate)
+
+        if getattr(config, "polishing_style_switch", False):
+            writing_style = PromptBuilderPolishing.build_writing_style(config)
+            if writing_style:
+                system += writing_style
+                extra_log.append(writing_style)
 
         if getattr(config, "polishing_example_switch", False):
             polishing_example = PromptBuilderPolishing.build_polishing_example(config)
