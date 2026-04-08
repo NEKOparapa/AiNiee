@@ -159,7 +159,9 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
 
         if Base.work_status == Base.STATUS.IDLE:
             try:
-                histories = self.cache_manager.list_project_histories(limit=1, prune=True)
+                # Read-only check for the latest resumable project. Pruning here
+                # would silently delete older histories during normal UI refreshes.
+                histories = self.cache_manager.list_project_histories(limit=1, prune=False)
                 if histories:
                     latest_history = histories[0]
                     continue_visible = True

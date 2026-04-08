@@ -123,8 +123,13 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             item = self.history_layout.takeAt(0)
             widget = item.widget()
             if widget is not None:
+                widget.hide()
+                widget.setParent(None)
                 widget.deleteLater()
         self.history_cards.clear()
+        self.history_layout.invalidate()
+        self.history_layout.activate()
+        self.updateGeometry()
 
     def _on_history_continue_requested(self, project_id: str) -> None:
         if project_id:
