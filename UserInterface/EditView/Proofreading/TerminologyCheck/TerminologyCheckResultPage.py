@@ -14,8 +14,8 @@ class TerminologyCheckResultPage(ConfigMixin, Base, QWidget):
         self.setObjectName("TerminologyCheckResultPage")
 
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(10, 10, 10, 10)
-        self.layout.setSpacing(10)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
 
         content_widget = self._create_content_widget()
         self.layout.addWidget(content_widget, 1)

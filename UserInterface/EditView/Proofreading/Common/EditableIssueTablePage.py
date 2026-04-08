@@ -1,8 +1,9 @@
+import os
 from collections import defaultdict
 
 from PyQt5.QtCore import QPoint, Qt
-from PyQt5.QtWidgets import QAbstractItemView, QHeaderView, QTableWidgetItem, QVBoxLayout, QWidget
-from qfluentwidgets import Action, FluentIcon, RoundMenu
+from PyQt5.QtWidgets import QAbstractItemView, QHBoxLayout, QHeaderView, QTableWidgetItem, QVBoxLayout, QWidget
+from qfluentwidgets import Action, FluentIcon, PrimaryPushButton, RoundMenu, StrongBodyLabel
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -13,6 +14,12 @@ from UserInterface.Widget.Toast import ToastMixin
 
 
 class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
+    COL_FILE = 0
+    COL_ROW = 1
+    COL_ERROR = 2
+    COL_SOURCE = 3
+    COL_TRANS = 4
+
     def __init__(self, results: list, cache_manager=None, parent=None):
         super().__init__(parent)
         self.results = results
@@ -20,7 +27,10 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.setObjectName("EditableIssueTablePage")
 
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(10, 10, 10, 10)
+        self.layout.setContentsMargins(10, 0, 10, 8)
+        self.layout.setSpacing(6)
+
+        self._init_action_bar()
 
         self.table = AutoHeightTableWidget(self)
         self.layout.addWidget(self.table)
@@ -38,8 +48,31 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             pass
         super().closeEvent(event)
 
+    def _init_action_bar(self):
+        action_bar = QWidget(self)
+        action_layout = QHBoxLayout(action_bar)
+        action_layout.setContentsMargins(0, 0, 0, 4)
+        action_layout.setSpacing(8)
+
+        self.result_table_label = StrongBodyLabel(self.tra("检查结果表"), action_bar)
+        action_layout.addWidget(self.result_table_label)
+        action_layout.addStretch(1)
+
+        self.auto_proofread_button = PrimaryPushButton(self.tra("AI自动校对"), action_bar)
+        self.auto_proofread_button.setEnabled(bool(self.results))
+        self.auto_proofread_button.clicked.connect(self._proofread_all_rows)
+        action_layout.addWidget(self.auto_proofread_button)
+
+        self.layout.addWidget(action_bar)
+
     def _init_table(self):
-        headers = [self.tra("行"), self.tra("错误"), self.tra("原文"), self.tra("译文")]
+        headers = [
+            self.tra("文件"),
+            self.tra("行"),
+            self.tra("错误"),
+            self.tra("原文"),
+            self.tra("译文"),
+        ]
         self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
         self.table.verticalHeader().hide()
@@ -49,8 +82,8 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.table.setEditTriggers(QAbstractItemView.DoubleClicked | QAbstractItemView.EditKeyPressed)
-        self.table.setAutoHeightColumns((2, 3))
-        self.table.setMultilineEditColumns((3,))
+        self.table.setAutoHeightColumns((self.COL_SOURCE, self.COL_TRANS))
+        self.table.setMultilineEditColumns((self.COL_TRANS,))
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._show_context_menu)
 
@@ -59,9 +92,18 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         header.setStretchLastSection(True)
         header.setSortIndicatorShown(False)
 
-        self.table.setColumnWidth(0, 150)
-        self.table.setColumnWidth(1, 170)
-        self.table.setColumnWidth(2, 320)
+        self.table.setColumnWidth(self.COL_FILE, 180)
+        self.table.setColumnWidth(self.COL_ROW, 70)
+        self.table.setColumnWidth(self.COL_ERROR, 170)
+        self.table.setColumnWidth(self.COL_SOURCE, 320)
+
+    def _build_row_meta(self, data: dict, original_data_index: int) -> dict:
+        return {
+            "file_path": data.get("file_path"),
+            "text_index": data.get("text_index"),
+            "target_field": data.get("target_field"),
+            "original_data_index": original_data_index,
+        }
 
     def _populate_data(self):
         self.table.blockSignals(True)
@@ -69,45 +111,50 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.table.setRowCount(len(self.results))
 
         for row, data in enumerate(self.results):
-            row_id_item = QTableWidgetItem(str(data.get("row_id", "")))
-            row_id_item.setTextAlignment(Qt.AlignCenter)
-            row_id_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            row_id_item.setData(
-                Qt.UserRole,
-                {
-                    "file_path": data.get("file_path"),
-                    "text_index": data.get("text_index"),
-                    "target_field": data.get("target_field"),
-                    "original_data_index": row,
-                },
-            )
-            self.table.setItem(row, 0, row_id_item)
+            file_path = data.get("file_path", "")
+            text_index = data.get("text_index")
+            row_number = data.get("row_number", (text_index + 1) if text_index is not None else "")
+
+            file_item = QTableWidgetItem(os.path.basename(file_path) if file_path else "")
+            file_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            self.table.setItem(row, self.COL_FILE, file_item)
+
+            row_item = QTableWidgetItem(str(row_number))
+            row_item.setTextAlignment(Qt.AlignCenter)
+            row_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            row_item.setData(Qt.UserRole, self._build_row_meta(data, row))
+            self.table.setItem(row, self.COL_ROW, row_item)
 
             error_item = QTableWidgetItem(data.get("error_type", ""))
             error_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            self.table.setItem(row, 1, error_item)
+            self.table.setItem(row, self.COL_ERROR, error_item)
 
             source_item = QTableWidgetItem(data.get("source", ""))
             source_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            self.table.setItem(row, 2, source_item)
+            self.table.setItem(row, self.COL_SOURCE, source_item)
 
             check_item = QTableWidgetItem(data.get("check_text", ""))
             check_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
-            self.table.setItem(row, 3, check_item)
+            self.table.setItem(row, self.COL_TRANS, check_item)
 
         self.table.resizeRowsToContents()
         self.table.setSortingEnabled(True)
         self.table.blockSignals(False)
 
+    def _get_row_meta(self, row: int) -> dict | None:
+        row_item = self.table.item(row, self.COL_ROW)
+        if not row_item:
+            return None
+        return row_item.data(Qt.UserRole)
+
     def _on_item_changed(self, item: QTableWidgetItem):
-        if item.column() != 3:
+        if item.column() != self.COL_TRANS:
             return
 
-        id_item = self.table.item(item.row(), 0)
-        if not id_item or not self.cache_manager:
+        if not self.cache_manager:
             return
 
-        meta_data = id_item.data(Qt.UserRole)
+        meta_data = self._get_row_meta(item.row())
         if not meta_data:
             return
 
@@ -144,11 +191,7 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.table.blockSignals(True)
         try:
             for row in range(self.table.rowCount()):
-                id_item = self.table.item(row, 0)
-                if not id_item:
-                    continue
-
-                meta_data = id_item.data(Qt.UserRole)
+                meta_data = self._get_row_meta(row)
                 if not meta_data:
                     continue
 
@@ -162,7 +205,7 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                     continue
 
                 new_text = updated_items[text_index]
-                check_text_item = self.table.item(row, 3)
+                check_text_item = self.table.item(row, self.COL_TRANS)
                 if check_text_item:
                     check_text_item.setText(new_text)
 
@@ -199,6 +242,59 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
 
         menu.exec(self.table.mapToGlobal(pos))
 
+    def _proofread_all_rows(self):
+        if Base.work_status != Base.STATUS.IDLE:
+            self.warning(self.tra("正在执行其他任务中！"))
+            return
+
+        tasks_by_file = defaultdict(list)
+
+        for row in range(self.table.rowCount()):
+            meta_data = self._get_row_meta(row)
+            error_item = self.table.item(row, self.COL_ERROR)
+            source_item = self.table.item(row, self.COL_SOURCE)
+            check_item = self.table.item(row, self.COL_TRANS)
+            if not meta_data or not source_item:
+                continue
+
+            file_path = meta_data.get("file_path")
+            text_index = meta_data.get("text_index")
+            if not file_path or text_index is None:
+                continue
+
+            tasks_by_file[file_path].append(
+                {
+                    "text_index": text_index,
+                    "source_text": source_item.text(),
+                    "translation_text": check_item.text() if check_item else "",
+                    "error_type": error_item.text() if error_item else "",
+                }
+            )
+
+        if not tasks_by_file:
+            self.warning_toast(self.tra("提示"), self.tra("当前没有可执行 AI 校对的条目。"))
+            return
+
+        Base.work_status = Base.STATUS.TABLE_TASK
+        count = 0
+        for file_path, items_to_proofread in tasks_by_file.items():
+            if not items_to_proofread:
+                continue
+
+            self.emit(
+                Base.EVENT.TABLE_PROOFREAD_START,
+                {
+                    "file_path": file_path,
+                    "items_to_proofread": items_to_proofread,
+                },
+            )
+            count += len(items_to_proofread)
+
+        if count > 0:
+            self.info_toast(self.tra("提示"), self.tra("已提交 {} 个条目的 AI 自动校对任务。").format(count))
+        else:
+            Base.work_status = Base.STATUS.IDLE
+
     def _translate_selected_rows(self):
         selected_rows = sorted({index.row() for index in self.table.selectedIndexes()})
         if not selected_rows:
@@ -211,12 +307,11 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         tasks_by_file = defaultdict(list)
 
         for row in selected_rows:
-            id_item = self.table.item(row, 0)
-            source_item = self.table.item(row, 2)
-            if not id_item or not source_item:
+            meta_data = self._get_row_meta(row)
+            source_item = self.table.item(row, self.COL_SOURCE)
+            if not meta_data or not source_item:
                 continue
 
-            meta_data = id_item.data(Qt.UserRole)
             file_path = meta_data.get("file_path")
             text_index = meta_data.get("text_index")
             if file_path and text_index is not None:
