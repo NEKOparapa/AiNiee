@@ -79,6 +79,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                 self.table.setItem(row_idx, self.COL_NUM, num_item)
 
                 source_item = QTableWidgetItem(item_data.source_text)
+                source_item.setFlags(source_item.flags() & ~Qt.ItemIsEditable)
                 self.table.setItem(row_idx, self.COL_SOURCE, source_item)
 
                 trans_item = QTableWidgetItem(item_data.translated_text)
@@ -95,7 +96,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
 
         row = item.row()
         col = item.column()
-        if col not in [self.COL_SOURCE, self.COL_TRANS]:
+        if col != self.COL_TRANS:
             return
 
         text_index_item = self.table.item(row, self.COL_NUM)
@@ -105,11 +106,10 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         text_index = text_index_item.data(Qt.UserRole)
         new_text = item.text()
 
-        field_name = "source_text" if col == self.COL_SOURCE else "translated_text"
         self.cache_manager.update_item_text(
             storage_path=self.file_path,
             text_index=text_index,
-            field_name=field_name,
+            field_name="translated_text",
             new_text=new_text,
         )
 
