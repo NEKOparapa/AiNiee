@@ -24,8 +24,6 @@ from ModuleFolders.Log.Log import LogMixin
 from UserInterface.BaseNavigationItem import BaseNavigationItem
 from UserInterface.EditView.EditViewPage import EditViewPage
 from UserInterface.Platform.PlatformPage import PlatformPage
-from UserInterface.PromptSettings.PolishingSettings.PolishingExamplePromptPage import PolishingExamplePromptPage
-from UserInterface.PromptSettings.PolishingSettings.PolishingStylePromptPage import PolishingStylePromptPage
 from UserInterface.PromptSettings.PolishingSettings.PolishingSystemPromptPage import PolishingSystemPromptPage
 from UserInterface.Settings.AppSettingsPage import AppSettingsPage
 from UserInterface.Settings.OutputSettingsPage import OutputSettingsPage
@@ -290,10 +288,6 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         )
         self.polishing_system_prompt_page = PolishingSystemPromptPage("polishing_system_prompt_page", self)
         self.addSubInterface(self.polishing_system_prompt_page, FluentIcon.LABEL, self.tra("基础提示"), parent=self.polishing_prompt_navigation)
-        self.polishing_style_prompt_page = PolishingStylePromptPage("polishing_style_prompt_page", self)
-        self.addSubInterface(self.polishing_style_prompt_page, FluentIcon.PENCIL_INK, self.tra("润色风格"), parent=self.polishing_prompt_navigation)
-        self.polishing_example_prompt_page = PolishingExamplePromptPage("polishing_example_prompt_page", self)
-        self.addSubInterface(self.polishing_example_prompt_page, FluentIcon.FIT_PAGE, self.tra("润色示例"), parent=self.polishing_prompt_navigation)
 
     # 添加表格设置
     def add_table_pages(self) -> None:

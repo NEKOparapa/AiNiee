@@ -1,9 +1,8 @@
-from PyQt5.QtWidgets import QFrame, QVBoxLayout
-from qfluentwidgets import Action, FluentIcon, MessageBox, PlainTextEdit
+from PyQt5.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget
+from qfluentwidgets import FluentIcon, MessageBox, PlainTextEdit, ToolButton
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
-from UserInterface.Widget.CommandBarCard import CommandBarCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.Toast import ToastMixin
 
@@ -15,7 +14,7 @@ class WritingStylePromptPage(QFrame, ConfigMixin, ToastMixin, Base):
 
         self.default = {
             "writing_style_switch": False,
-            "writing_style_content": "根据原文语境，可以适当调整，使表达更生动形象，提升译文的冲击力与张力",
+            "writing_style_content": "根据原文语境，可以适当调整，使表达更生动形象，提升译文的冲击力与张力。",
         }
 
         config = self.save_config(self.load_config_from_default())
@@ -26,7 +25,6 @@ class WritingStylePromptPage(QFrame, ConfigMixin, ToastMixin, Base):
 
         self.add_widget_header(self.container, config)
         self.add_widget_body(self.container, config)
-        self.add_widget_footer(self.container, window)
 
     def add_widget_header(self, parent, config):
         def widget_init(widget):
@@ -47,38 +45,46 @@ class WritingStylePromptPage(QFrame, ConfigMixin, ToastMixin, Base):
         )
 
     def add_widget_body(self, parent, config):
+        parent.addWidget(self._create_action_toolbar())
+
         self.plain_text_edit = PlainTextEdit(self)
-        self.plain_text_edit.setPlainText(config.get("writing_style_content"))
+        self.plain_text_edit.setPlainText(config.get("writing_style_content", ""))
         parent.addWidget(self.plain_text_edit)
 
-    def add_widget_footer(self, parent, window):
-        self.command_bar_card = CommandBarCard()
-        parent.addWidget(self.command_bar_card)
-        self.add_command_bar_action_save(self.command_bar_card)
-        self.add_command_bar_action_reset(self.command_bar_card, window)
+    def _create_action_toolbar(self) -> QWidget:
+        toolbar_widget = QWidget(self)
+        layout = QHBoxLayout(toolbar_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        layout.addStretch(1)
 
-    def add_command_bar_action_save(self, parent):
-        def callback():
-            config = self.load_config()
-            config["writing_style_content"] = self.plain_text_edit.toPlainText().strip()
-            self.save_config(config)
-            self.success_toast("", self.tra("数据已保存") + " ...")
+        save_button = ToolButton(FluentIcon.SAVE, self)
+        save_button.setToolTip(self.tra("保存"))
+        save_button.clicked.connect(self.save_data)
+        layout.addWidget(save_button)
 
-        parent.add_action(Action(FluentIcon.SAVE, self.tra("保存"), parent, triggered=callback))
+        reset_button = ToolButton(FluentIcon.DELETE, self)
+        reset_button.setToolTip(self.tra("重置"))
+        reset_button.clicked.connect(self.reset_data)
+        layout.addWidget(reset_button)
 
-    def add_command_bar_action_reset(self, parent, window):
-        def callback():
-            message_box = MessageBox("Warning", self.tra("是否确认重置为默认数据") + " ... ？", window)
-            message_box.yesButton.setText(self.tra("确认"))
-            message_box.cancelButton.setText(self.tra("取消"))
-            if not message_box.exec():
-                return
+        return toolbar_widget
 
-            self.plain_text_edit.setPlainText("")
-            config = self.load_config()
-            config["writing_style_content"] = self.default.get("writing_style_content")
-            self.save_config(config)
-            self.plain_text_edit.setPlainText(config.get("writing_style_content"))
-            self.success_toast("", self.tra("数据已重置") + " ... ")
+    def save_data(self):
+        config = self.load_config()
+        config["writing_style_content"] = self.plain_text_edit.toPlainText().strip()
+        self.save_config(config)
+        self.success_toast("", self.tra("数据已保存") + " ...")
 
-        parent.add_action(Action(FluentIcon.DELETE, self.tra("重置"), parent, triggered=callback))
+    def reset_data(self):
+        message_box = MessageBox(self.tra("警告"), self.tra("是否确认重置为默认数据?") + " ... ？", self.window())
+        message_box.yesButton.setText(self.tra("确认"))
+        message_box.cancelButton.setText(self.tra("取消"))
+        if not message_box.exec():
+            return
+
+        config = self.load_config()
+        config["writing_style_content"] = self.default.get("writing_style_content", "")
+        self.save_config(config)
+        self.plain_text_edit.setPlainText(config.get("writing_style_content", ""))
+        self.success_toast("", self.tra("数据已重置") + " ... ")

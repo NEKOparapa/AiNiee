@@ -1,24 +1,32 @@
 import copy
-import rapidjson as json
-from qfluentwidgets import (Action, FluentIcon, MessageBox, TableWidget, RoundMenu)
 
-from PyQt5.QtCore import QEvent, Qt, QPoint
-from PyQt5.QtWidgets import (QFrame, QFileDialog, QHeaderView, QLayout, QVBoxLayout,
-                             QTableWidgetItem,QAbstractItemView)
+import rapidjson as json
+from PyQt5.QtCore import QEvent, QPoint, Qt
+from PyQt5.QtWidgets import (
+    QAbstractItemView,
+    QFileDialog,
+    QFrame,
+    QHeaderView,
+    QHBoxLayout,
+    QLayout,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+from qfluentwidgets import Action, FluentIcon, MessageBox, RoundMenu, TableWidget, ToolButton
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
-from UserInterface.Widget.Toast import ToastMixin
-from UserInterface.Table.TableHelper.TableHelper import TableHelper
-from UserInterface.Widget.CommandBarCard import CommandBarCard
-from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface import AppFluentWindow
+from UserInterface.Table.TableHelper.TableHelper import TableHelper
+from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
+from UserInterface.Widget.Toast import ToastMixin
+
 
 class TranslationExamplePromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
-
     KEYS = ("src", "dst")
-    COLUMN_NAMES = {0: "原文",1: "译文"}
+    COLUMN_NAMES = {0: "原文", 1: "译文"}
 
     def __init__(self, text: str, window: AppFluentWindow) -> None:
         super().__init__(parent=window)
@@ -29,36 +37,35 @@ class TranslationExamplePromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Ba
             "translation_example_data": [],
         }
 
-        # 读取配置
         config = self.save_config(self.load_config_from_default())
 
-        # 排序相关属性
-        self._sort_column_index = -1  # 记录当前排序的列索引，-1表示未排序
-        self._sort_order = Qt.AscendingOrder # 记录当前排序顺序
+        self._sort_column_index = -1
+        self._sort_order = Qt.AscendingOrder
 
         self.container = QVBoxLayout(self)
         self.container.setSpacing(8)
         self.container.setContentsMargins(24, 24, 24, 24)
 
-        self.add_widget_head(self.container, config, window)
-        self.add_widget_body(self.container, config, window)
-        self.add_widget_foot(self.container, config, window)
+        self.add_widget_head(self.container, config)
+        self.add_widget_body(self.container)
 
     def _get_translated_column_name(self, index: int) -> str:
-        return self.tra(self.COLUMN_NAMES.get(index, f"字段{index+1}"))
+        return self.tra(self.COLUMN_NAMES.get(index, f"字段{index + 1}"))
 
     def showEvent(self, event: QEvent) -> None:
         super().showEvent(event)
-        self.update_table() # 每次显示时更新，并确保搜索/排序状态重置
+        self.update_table()
 
     def update_table(self) -> None:
         config = self.load_config()
-        TableHelper.update_to_table(self.table, config["translation_example_data"], TranslationExamplePromptPage.KEYS)
-        self._reset_sort_indicator() # 重置排序指示器
+        TableHelper.update_to_table(
+            self.table,
+            config.get("translation_example_data", []),
+            TranslationExamplePromptPage.KEYS,
+        )
+        self._reset_sort_indicator()
 
-    # 右键菜单
     def show_table_context_menu(self, pos: QPoint):
-
         menu = RoundMenu(parent=self.table)
         has_selection = bool(self.table.selectionModel().selectedRows())
 
@@ -67,62 +74,49 @@ class TranslationExamplePromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Ba
             menu.addAction(Action(FluentIcon.REMOVE_FROM, self.tra("删除行"), triggered=self._handle_remove_selected_rows))
             menu.addSeparator()
 
-        # 行数统计
-        row_count = self.table.rowCount()
-        row_count_action = Action(FluentIcon.LEAF,f"{self.tra('全部行数')}: {row_count}")
-        row_count_action.setEnabled(False) # 使其不可点击，仅作为信息显示
+        row_count_action = Action(FluentIcon.LEAF, f"{self.tra('全部行数')}: {self.table.rowCount()}")
+        row_count_action.setEnabled(False)
         menu.addAction(row_count_action)
+        menu.exec_(self.table.mapToGlobal(pos), ani=True)
 
-        global_pos = self.table.mapToGlobal(pos)
-        menu.exec_(global_pos, ani=True)
-
-    # 处理删除选定行
     def _handle_remove_selected_rows(self) -> None:
-
         indices = self.table.selectionModel().selectedRows()
         if not indices:
             return
 
         rows_to_remove = sorted([index.row() for index in indices], reverse=True)
-
         self.table.setUpdatesEnabled(False)
         for row in rows_to_remove:
             self.table.removeRow(row)
         self.table.setUpdatesEnabled(True)
 
-        self._reset_sort_indicator() # 删除行后重置排序
+        self._reset_sort_indicator()
         self.success_toast("", self.tra("选取行已移除") + "...")
 
-    # 处理插入行
     def _handle_insert_row(self) -> None:
-
         selected_rows = {item.row() for item in self.table.selectedItems()}
-        insert_pos = self.table.rowCount() # 默认为末尾
+        insert_pos = self.table.rowCount()
         if selected_rows:
-             insert_pos = max(selected_rows) + 1
+            insert_pos = max(selected_rows) + 1
 
         self.table.insertRow(insert_pos)
-        # 滚动到新行
-        new_item = QTableWidgetItem("") # 创建一个虚拟项以滚动到该位置
-        self.table.setItem(insert_pos, 0, new_item) # 添加到第一列
+        new_item = QTableWidgetItem("")
+        self.table.setItem(insert_pos, 0, new_item)
         self.table.scrollToItem(new_item, QAbstractItemView.ScrollHint.PositionAtCenter)
-        self.table.selectRow(insert_pos) # 选择新行
-        self.table.editItem(self.table.item(insert_pos, 0)) # 开始编辑第一个单元格
+        self.table.selectRow(insert_pos)
+        self.table.editItem(self.table.item(insert_pos, 0))
 
-        self._reset_sort_indicator() # 重置排序指示器
+        self._reset_sort_indicator()
         self.success_toast("", self.tra("新行已插入") + "...")
 
-
-    # 添加头部部件
-    def add_widget_head(self, parent: QLayout, config: dict, window: AppFluentWindow) -> None:
-
+    def add_widget_head(self, parent: QLayout, config: dict) -> None:
         def init(widget: SwitchButtonCard) -> None:
             widget.set_checked(config.get("translation_example_switch"))
 
         def checked_changed(widget: SwitchButtonCard, checked: bool) -> None:
-            config = self.load_config()
-            config["translation_example_switch"] = checked
-            self.save_config(config)
+            current_config = self.load_config()
+            current_config["translation_example_switch"] = checked
+            self.save_config(current_config)
 
         parent.addWidget(
             SwitchButtonCard(
@@ -133,17 +127,11 @@ class TranslationExamplePromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Ba
             )
         )
 
-
-    # 添加主体部件
-    def add_widget_body(self, parent: QLayout, config: dict, window: AppFluentWindow) -> None:
+    def add_widget_body(self, parent: QLayout) -> None:
+        parent.addWidget(self._create_action_toolbar())
 
         def item_changed(item: QTableWidgetItem) -> None:
             item.setTextAlignment(Qt.AlignCenter)
-            # 编辑单元格后，不一定需要立即重排序或重置搜索
-            # self.search_input.clear()
-            # self._reset_sort_indicator()
-            # 后期可以添加自动保存，也可以不添加
-
 
         self.table = TableWidget(self)
         parent.addWidget(self.table)
@@ -155,202 +143,177 @@ class TranslationExamplePromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Ba
         self.table.verticalHeader().hide()
         self.table.setAlternatingRowColors(True)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.table.setEditTriggers(QAbstractItemView.DoubleClicked | QAbstractItemView.SelectedClicked | QAbstractItemView.EditKeyPressed)
+        self.table.setEditTriggers(
+            QAbstractItemView.DoubleClicked
+            | QAbstractItemView.SelectedClicked
+            | QAbstractItemView.EditKeyPressed
+        )
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
-
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.show_table_context_menu)
-
         self.table.itemChanged.connect(item_changed)
+        self.table.setHorizontalHeaderLabels(
+            [self._get_translated_column_name(i) for i in range(len(TranslationExamplePromptPage.KEYS))]
+        )
+        self.table.setSortingEnabled(False)
+        self.table.horizontalHeader().setSortIndicatorShown(True)
+        self.table.horizontalHeader().sectionClicked.connect(self._sort_table_by_column)
+        self.table.resizeRowsToContents()
+        self._reset_sort_indicator()
 
-        header_labels = [self._get_translated_column_name(i) for i in range(len(TranslationExamplePromptPage.KEYS))]
-        self.table.setHorizontalHeaderLabels(header_labels)
+    def _create_action_toolbar(self) -> QWidget:
+        toolbar_widget = QWidget(self)
+        layout = QHBoxLayout(toolbar_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        layout.addStretch(1)
 
-        # 启用排序和连接信号
-        self.table.setSortingEnabled(False) # 禁用内置排序
-        self.table.horizontalHeader().setSortIndicatorShown(True) # 显示排序指示器空间
-        self.table.horizontalHeader().sectionClicked.connect(self._sort_table_by_column) # 连接排序信号
+        save_button = ToolButton(FluentIcon.SAVE, self)
+        save_button.setToolTip(self.tra("保存"))
+        save_button.clicked.connect(self.save_data)
+        layout.addWidget(save_button)
 
-        self.table.resizeRowsToContents() # 调整行高
-        self._reset_sort_indicator() # 重置排序指示器
+        reset_button = ToolButton(FluentIcon.DELETE, self)
+        reset_button.setToolTip(self.tra("重置"))
+        reset_button.clicked.connect(self.reset_data)
+        layout.addWidget(reset_button)
 
-    # 重置排序指示器
+        import_button = ToolButton(FluentIcon.DOWNLOAD, self)
+        import_button.setToolTip(self.tra("导入"))
+        import_button.clicked.connect(self.import_data)
+        layout.addWidget(import_button)
+
+        export_button = ToolButton(FluentIcon.SHARE, self)
+        export_button.setToolTip(self.tra("导出"))
+        export_button.clicked.connect(self.export_data)
+        layout.addWidget(export_button)
+
+        return toolbar_widget
+
     def _reset_sort_indicator(self):
-        """清除排序状态和表头的排序指示器。"""
         self._sort_column_index = -1
         self._sort_order = Qt.AscendingOrder
-        if hasattr(self, 'table'): 
+        if hasattr(self, "table"):
             self.table.horizontalHeader().setSortIndicator(-1, Qt.AscendingOrder)
 
-    # 排序逻辑处理函数
-    def _sort_table_by_column(self, logicalIndex: int):
-        """当表头被点击时，按该列对表格数据进行排序。"""
-        # 1. 确定排序顺序
-        if self._sort_column_index == logicalIndex:
-            # 如果点击的是同一列，切换排序顺序
+    def _sort_table_by_column(self, logical_index: int):
+        if self._sort_column_index == logical_index:
             self._sort_order = Qt.DescendingOrder if self._sort_order == Qt.AscendingOrder else Qt.AscendingOrder
         else:
-            # 如果点击的是新列，重置为升序
-            self._sort_column_index = logicalIndex
+            self._sort_column_index = logical_index
             self._sort_order = Qt.AscendingOrder
 
-        # 2. 获取当前表格数据
         data = TableHelper.load_from_table(self.table, TranslationExamplePromptPage.KEYS)
 
-        # 3. 定义排序键函数
         try:
-            sort_key_name = TranslationExamplePromptPage.KEYS[logicalIndex]
+            sort_key_name = TranslationExamplePromptPage.KEYS[logical_index]
         except IndexError:
-            self.logger.warning(f"Invalid column index {logicalIndex} for sorting.")
-            return # 无效列索引，不排序
+            self.logger.warning(f"Invalid column index {logical_index} for sorting.")
+            return
 
-        def get_sort_key(item):
-            value = item.get(sort_key_name, "") # 获取值，默认为空字符串
-            if value is None: # 处理 None 值
-                value = ""
-            # 尝试将值转为小写字符串进行不区分大小写的文本排序
-            # 注意：如果列包含数字或需要特定类型排序，这里可能需要更复杂的逻辑
-            return str(value).lower()
+        data.sort(
+            key=lambda item: str(item.get(sort_key_name, "") or "").lower(),
+            reverse=(self._sort_order == Qt.DescendingOrder),
+        )
 
-        # 4. 排序数据
-        data.sort(key=get_sort_key, reverse=(self._sort_order == Qt.DescendingOrder))
-
-
-        # 5. 清空并重新填充表格
-        self.table.setUpdatesEnabled(False) # 优化性能
-        self.table.setRowCount(0) # 清空表格
+        self.table.setUpdatesEnabled(False)
+        self.table.setRowCount(0)
         TableHelper.update_to_table(self.table, data, TranslationExamplePromptPage.KEYS)
-        self.table.resizeRowsToContents() # 重新调整行高
+        self.table.resizeRowsToContents()
         self.table.setUpdatesEnabled(True)
-
-        # 6. 更新表头排序指示器
         self.table.horizontalHeader().setSortIndicator(self._sort_column_index, self._sort_order)
 
-        # 7. 重置搜索状态，因为行顺序已改变
-        self.info_toast("", self.tra("表格已按 '{}' {}排序").format(
-            self._get_translated_column_name(logicalIndex),
-            self.tra("升序") if self._sort_order == Qt.AscendingOrder else self.tra("降序")
-        ))
-
-
-    # 底部命令栏
-    def add_widget_foot(self, parent: QLayout, config: dict, window: AppFluentWindow) -> None:
-
-        self.command_bar_card = CommandBarCard()
-        parent.addWidget(self.command_bar_card)
-
-        self.add_command_bar_action_save(self.command_bar_card, config, window)
-        self.add_command_bar_action_reset(self.command_bar_card, config, window)
-        self.command_bar_card.add_separator()
-        self.add_command_bar_action_import(self.command_bar_card, config, window)
-        self.add_command_bar_action_export(self.command_bar_card, config, window)
-
-    # 保存
-    def add_command_bar_action_save(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
-
-        def triggered() -> None:
-            config = self.load_config()
-            config["translation_example_data"] = TableHelper.load_from_table(self.table, TranslationExamplePromptPage.KEYS)
-            self.save_config(config)
-            self.success_toast("", self.tra("数据已保存") + " ... ")
-
-        parent.add_action(
-            Action(FluentIcon.SAVE, self.tra("保存"), parent, triggered = triggered),
+        self.info_toast(
+            "",
+            self.tra("表格已按 '{}' {}排序").format(
+                self._get_translated_column_name(logical_index),
+                self.tra("升序") if self._sort_order == Qt.AscendingOrder else self.tra("降序"),
+            ),
         )
 
-    # 重置
-    def add_command_bar_action_reset(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
+    def save_data(self) -> None:
+        config = self.load_config()
+        config["translation_example_data"] = TableHelper.load_from_table(self.table, TranslationExamplePromptPage.KEYS)
+        self.save_config(config)
+        self.success_toast("", self.tra("数据已保存") + " ... ")
 
-        def triggered() -> None:
-            info_cont1 = self.tra("是否确认重置为默认数据") + " ... ？"
-            message_box = MessageBox(self.tra("警告"), info_cont1, self.window())
-            message_box.yesButton.setText(self.tra("确认"))
-            message_box.cancelButton.setText(self.tra("取消"))
+    def reset_data(self) -> None:
+        message_box = MessageBox(self.tra("警告"), self.tra("是否确认重置为默认数据?") + " ... ？", self.window())
+        message_box.yesButton.setText(self.tra("确认"))
+        message_box.cancelButton.setText(self.tra("取消"))
+        if not message_box.exec():
+            return
 
-            if not message_box.exec():
-                return
+        self.table.setRowCount(0)
+        config = self.load_config()
+        config["translation_example_data"] = copy.deepcopy(self.default.get("translation_example_data", []))
+        self.save_config(config)
+        TableHelper.update_to_table(
+            self.table,
+            config.get("translation_example_data", []),
+            TranslationExamplePromptPage.KEYS,
+        )
+        self.table.resizeRowsToContents()
+        self._reset_sort_indicator()
+        self.success_toast("", self.tra("数据已重置") + " ... ")
 
-            self.table.setRowCount(0)
-            config = self.load_config()
-            config["translation_example_data"] = copy.deepcopy(self.default.get("translation_example_data", []))
-            self.save_config(config)
-            TableHelper.update_to_table(self.table, config.get("translation_example_data"), TranslationExamplePromptPage.KEYS)
-            self.table.resizeRowsToContents()
-            self._reset_sort_indicator() # 重置后重置排序
-            self.success_toast("", self.tra("数据已重置") + " ... ")
+    def import_data(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tra("选择文件"),
+            "",
+            "json 文件 (*.json);;xlsx 文件 (*.xlsx)",
+        )
+        if not isinstance(path, str) or path == "":
+            return
 
-        parent.add_action(
-            Action(FluentIcon.DELETE, self.tra("重置"), parent, triggered = triggered),
+        data = TableHelper.load_from_file(path, TranslationExamplePromptPage.KEYS)
+        config = self.load_config()
+
+        current_data = TableHelper.load_from_table(self.table, TranslationExamplePromptPage.KEYS)
+        current_src_set = {item["src"] for item in current_data if item.get("src")}
+        new_data_filtered = [item for item in data if item.get("src") and item["src"] not in current_src_set]
+
+        if not new_data_filtered and data:
+            self.info_toast(self.tra("信息"), self.tra("导入的数据项均已存在于当前表格中"))
+            return
+        if not new_data_filtered and not data:
+            self.warning_toast(self.tra("警告"), self.tra("未从文件中加载到有效数据"))
+            return
+
+        combined_data = current_data + new_data_filtered
+        config["translation_example_data"] = combined_data
+        TableHelper.update_to_table(self.table, config["translation_example_data"], TranslationExamplePromptPage.KEYS)
+        self.table.resizeRowsToContents()
+
+        config["translation_example_data"] = TableHelper.load_from_table(self.table, TranslationExamplePromptPage.KEYS)
+        self.save_config(config)
+        self._reset_sort_indicator()
+        self.success_toast("", self.tra("数据已导入并更新") + f" ({len(new_data_filtered)} {self.tra('项')})...")
+
+    def export_data(self) -> None:
+        data = TableHelper.load_from_table(self.table, TranslationExamplePromptPage.KEYS)
+        if not data:
+            self.warning_toast("", self.tra("表格中没有数据可导出"))
+            return
+
+        default_filename = self.tra("导出_翻译示例") + ".json"
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tra("导出文件"),
+            default_filename,
+            "JSON 文件 (*.json)",
         )
 
+        if not path:
+            return
 
-    # 导入
-    def add_command_bar_action_import(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
+        if path.lower().endswith(".json"):
+            with open(path, "w", encoding="utf-8") as writer:
+                writer.write(json.dumps(data, indent=4, ensure_ascii=False))
+        else:
+            self.error_toast(self.tra("导出失败"), self.tra("不支持的文件扩展名"))
+            return
 
-        def triggered() -> None:
-            path, _ = QFileDialog.getOpenFileName(self, self.tra("选择文件"), "", "json 文件 (*.json);;xlsx 文件 (*.xlsx)")
-            if not isinstance(path, str) or path == "":
-                return
-            data = TableHelper.load_from_file(path, TranslationExamplePromptPage.KEYS)
-            config = self.load_config()
-
-            # 去重逻辑
-            current_data = TableHelper.load_from_table(self.table, TranslationExamplePromptPage.KEYS)
-            current_src_set = {item['src'] for item in current_data if item.get('src')} # 处理潜在的空 src
-            new_data_filtered = [item for item in data if item.get('src') and item['src'] not in current_src_set] # 确保导入的项目具有 src
-
-            if not new_data_filtered and data: # 如果所有导入的项目都已存在，则通知
-                self.info_toast(self.tra("信息"), self.tra("导入的数据项均已存在于当前表格中"))
-                return
-            elif not new_data_filtered and not data: # 如果文件为空或格式无效，则通知
-                self.warning_toast(self.tra("警告"), self.tra("未从文件中加载到有效数据"))
-                return
-
-            # 更新并保存
-            # 合并现有数据（来自表格状态）+ 新的已过滤数据
-            combined_data = current_data + new_data_filtered
-            config["prompt_dictionary_data"] = combined_data # 直接更新配置
-
-            # 在再次从表格保存配置*之前*更新表格
-            TableHelper.update_to_table(self.table, config["prompt_dictionary_data"], TranslationExamplePromptPage.KEYS)
-            self.table.resizeRowsToContents() # 导入后调整行高
-
-            # 现在将可能已修改的表格状态保存回配置
-            config["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, TranslationExamplePromptPage.KEYS)
-            self.save_config(config)
-            self._reset_sort_indicator() # 导入后重置排序
-            self.success_toast("", self.tra("数据已导入并更新") + f" ({len(new_data_filtered)} {self.tra('项')})...")
-
-        parent.add_action(
-            Action(FluentIcon.DOWNLOAD, self.tra("导入"), parent, triggered = triggered),
-        )
-
-    # 导出
-    def add_command_bar_action_export(self, parent: CommandBarCard, config: dict, window: AppFluentWindow) -> None:
-
-        def triggered() -> None:
-            data = TableHelper.load_from_table(self.table, TranslationExamplePromptPage.KEYS)
-            if not data:
-                self.warning_toast("", self.tra("表格中没有数据可导出"))
-                return
-
-            default_filename = self.tra("导出_翻译示例") + ".json"
-            path, _ = QFileDialog.getSaveFileName(self, self.tra("导出文件"), default_filename, "JSON 文件 (*.json)")
-
-            if not path:
-                return
-
-            if path.lower().endswith(".json"):
-                with open(path, "w", encoding="utf-8") as writer:
-                    writer.write(json.dumps(data, indent=4, ensure_ascii=False))
-            else:
-                self.error_toast(self.tra("导出失败"), self.tra("不支持的文件扩展名"))
-                return
-
-            self.success_toast("", self.tra("数据已导出到") + f": {path}")
-
-        parent.add_action(
-            Action(FluentIcon.SHARE, self.tra("导出"), parent, triggered = triggered),
-        )
-
+        self.success_toast("", self.tra("数据已导出到") + f": {path}")

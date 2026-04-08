@@ -7,7 +7,6 @@ from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 
 
 class PromptBuilderPolishing(Base):
-
     def __init__(self) -> None:
         super().__init__()
 
@@ -109,7 +108,7 @@ class PromptBuilderPolishing(Base):
             return ""
 
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
-            result = "\n###禁翻表，以下特殊标记符无需翻译\n特殊标记符|备注"
+            result = "\n###禁翻表，以下特殊标记符无须翻译\n特殊标记符|备注"
         else:
             result = "\n###Non-Translation List,Leave the following marked content untranslated\nSpecial marker|Remarks"
 
@@ -117,52 +116,6 @@ class PromptBuilderPolishing(Base):
             result += f"\n{markers}|{info}" if info else f"\n{markers}|"
 
         return result
-
-    def build_writing_style(config: TaskConfig) -> str:
-        writing_style = getattr(config, "polishing_style_content", "")
-        if not writing_style:
-            return ""
-
-        if config.target_language in ("chinese_simplified", "chinese_traditional"):
-            profile = "\n###润色风格"
-        else:
-            profile = "\n###Polishing Style"
-
-        profile += f"\n{writing_style}\n"
-        return profile
-
-    def build_polishing_example(config: TaskConfig) -> str:
-        data = getattr(config, "polishing_example_data", [])
-        if not data:
-            return ""
-
-        if config.target_language in ("chinese_simplified", "chinese_traditional"):
-            polishing_example = "\n###润色示例\n"
-        else:
-            polishing_example = "\n###Polishing Example\n"
-
-        for index, pair in enumerate(data, start=1):
-            original = pair.get("src", "")
-            translated = pair.get("dst", "")
-            polished = pair.get("polished", "")
-
-            if index > 1:
-                polishing_example += "\n"
-
-            if config.target_language in ("chinese_simplified", "chinese_traditional"):
-                polishing_example += (
-                    f"  -原文{index}：{original}\n"
-                    f"  -初译{index}：{translated}\n"
-                    f"  -润文{index}：{polished}"
-                )
-            else:
-                polishing_example += (
-                    f"  -Original {index}: {original}\n"
-                    f"  -Draft Translation {index}: {translated}\n"
-                    f"  -Polished {index}: {polished}"
-                )
-
-        return polishing_example
 
     def build_pre_text(config: TaskConfig, input_list: list[str]) -> str:
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
@@ -183,7 +136,7 @@ class PromptBuilderPolishing(Base):
     def build_project_characters_prompt(config: TaskConfig, source_text_dict: dict) -> str:
         return PromptBuilder.build_project_characters_prompt(config, source_text_dict)
 
-    #  生成项目术语表 - Polishing
+    # 生成项目术语表 - Polishing
     def build_project_terms_prompt(config: TaskConfig, source_text_dict: dict) -> str:
         return PromptBuilder.build_project_terms_prompt(config, source_text_dict)
 
@@ -237,18 +190,6 @@ class PromptBuilderPolishing(Base):
         if project_non_translate:
             system += project_non_translate
             extra_log.append(project_non_translate)
-
-        if getattr(config, "polishing_style_switch", False):
-            writing_style = PromptBuilderPolishing.build_writing_style(config)
-            if writing_style:
-                system += writing_style
-                extra_log.append(writing_style)
-
-        if getattr(config, "polishing_example_switch", False):
-            polishing_example = PromptBuilderPolishing.build_polishing_example(config)
-            if polishing_example:
-                system += polishing_example
-                extra_log.append(polishing_example)
 
         previous = ""
         if getattr(config, "pre_line_counts", 0) and previous_text_list:

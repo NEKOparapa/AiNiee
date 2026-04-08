@@ -7,17 +7,18 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QFrame,
     QHeaderView,
+    QHBoxLayout,
     QLayout,
     QTableWidgetItem,
     QVBoxLayout,
+    QWidget,
 )
-from qfluentwidgets import Action, FluentIcon, MessageBox, RoundMenu, TableWidget
+from qfluentwidgets import Action, FluentIcon, MessageBox, RoundMenu, TableWidget, ToolButton
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Table.TableHelper.TableHelper import TableHelper
-from UserInterface.Widget.CommandBarCard import CommandBarCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.Toast import ToastMixin
 
@@ -50,13 +51,13 @@ class CharacterizationPromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base
             "characterization_switch": False,
             "characterization_data": [
                 {
-                    "original_name": "遠坂[Separator]凛",
+                    "original_name": "远坂[Separator]凛",
                     "translated_name": "远坂凛",
                     "gender": "女",
                     "age": "少女",
                     "personality": "高傲，自满",
                     "speech_style": "大小姐，严厉",
-                    "additional_info": "在人前言谈举止高雅，对所有人都用敬语，但在熟人面前本性其实是个爱恶作剧和捉弄自己喜欢的人的小恶魔。",
+                    "additional_info": "在人前言谈举止高雅，对所有人都用敬语，但在熟人面前本性其实是一个爱恶作剧和捉弄自己喜欢的人的小恶魔。",
                 },
             ],
         }
@@ -72,7 +73,6 @@ class CharacterizationPromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base
 
         self.add_widget_head(self.container, config)
         self.add_widget_body(self.container)
-        self.add_widget_foot(self.container, window)
 
     def _get_translated_column_name(self, index: int) -> str:
         return self.tra(self.COLUMN_NAMES.get(index, f"字段{index + 1}"))
@@ -83,7 +83,11 @@ class CharacterizationPromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base
 
     def update_table(self) -> None:
         config = self.load_config()
-        TableHelper.update_to_table(self.table, config.get("characterization_data", []), CharacterizationPromptPage.KEYS)
+        TableHelper.update_to_table(
+            self.table,
+            config.get("characterization_data", []),
+            CharacterizationPromptPage.KEYS,
+        )
         self._reset_sort_indicator()
 
     def show_table_context_menu(self, pos: QPoint):
@@ -140,13 +144,17 @@ class CharacterizationPromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base
         parent.addWidget(
             SwitchButtonCard(
                 self.tra("自定义角色介绍"),
-                self.tra("启用此功能后，将根据本页中设置的构建角色介绍，并补充到基础提示词中（不支持本地类模型）\n可使用分隔符[Separator]来分隔姓和名"),
+                self.tra(
+                    "启用此功能后，将根据本页中设置的构建角色介绍，并补充到基础提示词中（不支持本地类模型）\n可使用分隔符[Separator]来分隔姓和名"
+                ),
                 init=init,
                 checked_changed=checked_changed,
             )
         )
 
     def add_widget_body(self, parent: QLayout) -> None:
+        parent.addWidget(self._create_action_toolbar())
+
         def item_changed(item: QTableWidgetItem) -> None:
             item.setTextAlignment(Qt.AlignCenter)
 
@@ -178,6 +186,35 @@ class CharacterizationPromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base
         self.table.horizontalHeader().sectionClicked.connect(self._sort_table_by_column)
         self.table.resizeRowsToContents()
         self._reset_sort_indicator()
+
+    def _create_action_toolbar(self) -> QWidget:
+        toolbar_widget = QWidget(self)
+        layout = QHBoxLayout(toolbar_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        layout.addStretch(1)
+
+        save_button = ToolButton(FluentIcon.SAVE, self)
+        save_button.setToolTip(self.tra("保存"))
+        save_button.clicked.connect(self.save_data)
+        layout.addWidget(save_button)
+
+        reset_button = ToolButton(FluentIcon.DELETE, self)
+        reset_button.setToolTip(self.tra("重置"))
+        reset_button.clicked.connect(self.reset_data)
+        layout.addWidget(reset_button)
+
+        import_button = ToolButton(FluentIcon.DOWNLOAD, self)
+        import_button.setToolTip(self.tra("导入"))
+        import_button.clicked.connect(self.import_data)
+        layout.addWidget(import_button)
+
+        export_button = ToolButton(FluentIcon.SHARE, self)
+        export_button.setToolTip(self.tra("导出"))
+        export_button.clicked.connect(self.export_data)
+        layout.addWidget(export_button)
+
+        return toolbar_widget
 
     def _reset_sort_indicator(self):
         self._sort_column_index = -1
@@ -219,97 +256,85 @@ class CharacterizationPromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base
             ),
         )
 
-    def add_widget_foot(self, parent: QLayout, window) -> None:
-        self.command_bar_card = CommandBarCard()
-        parent.addWidget(self.command_bar_card)
+    def save_data(self) -> None:
+        config = self.load_config()
+        config["characterization_data"] = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
+        self.save_config(config)
+        self.success_toast("", self.tra("数据已保存") + " ... ")
 
-        self.add_command_bar_action_save(self.command_bar_card)
-        self.add_command_bar_action_reset(self.command_bar_card, window)
-        self.command_bar_card.add_separator()
-        self.add_command_bar_action_import(self.command_bar_card)
-        self.add_command_bar_action_export(self.command_bar_card)
+    def reset_data(self) -> None:
+        message_box = MessageBox(self.tra("警告"), self.tra("是否确认重置为默认数据?") + " ... ？", self.window())
+        message_box.yesButton.setText(self.tra("确认"))
+        message_box.cancelButton.setText(self.tra("取消"))
+        if not message_box.exec():
+            return
 
-    def add_command_bar_action_save(self, parent: CommandBarCard) -> None:
-        def triggered() -> None:
-            config = self.load_config()
-            config["characterization_data"] = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
-            self.save_config(config)
-            self.success_toast("", self.tra("数据已保存") + " ... ")
+        self.table.setRowCount(0)
+        config = self.load_config()
+        config["characterization_data"] = copy.deepcopy(self.default.get("characterization_data", []))
+        self.save_config(config)
+        TableHelper.update_to_table(self.table, config.get("characterization_data"), CharacterizationPromptPage.KEYS)
+        self.table.resizeRowsToContents()
+        self._reset_sort_indicator()
+        self.success_toast("", self.tra("数据已重置") + " ... ")
 
-        parent.add_action(Action(FluentIcon.SAVE, self.tra("保存"), parent, triggered=triggered))
+    def import_data(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tra("选择文件"),
+            "",
+            "json 文件 (*.json);;xlsx 文件 (*.xlsx)",
+        )
+        if not isinstance(path, str) or path == "":
+            return
 
-    def add_command_bar_action_reset(self, parent: CommandBarCard, window) -> None:
-        def triggered() -> None:
-            message_box = MessageBox(self.tra("警告"), self.tra("是否确认重置为默认数据") + " ... ？", window)
-            message_box.yesButton.setText(self.tra("确认"))
-            message_box.cancelButton.setText(self.tra("取消"))
-            if not message_box.exec():
-                return
+        data = TableHelper.load_from_file(path, CharacterizationPromptPage.KEYS)
+        config = self.load_config()
+        current_data = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
+        current_src_set = {item["original_name"] for item in current_data if item.get("original_name")}
+        new_data_filtered = [
+            item
+            for item in data
+            if item.get("original_name") and item["original_name"] not in current_src_set
+        ]
 
-            self.table.setRowCount(0)
-            config = self.load_config()
-            config["characterization_data"] = copy.deepcopy(self.default.get("characterization_data", []))
-            self.save_config(config)
-            TableHelper.update_to_table(self.table, config.get("characterization_data"), CharacterizationPromptPage.KEYS)
-            self.table.resizeRowsToContents()
-            self._reset_sort_indicator()
-            self.success_toast("", self.tra("数据已重置") + " ... ")
+        if not new_data_filtered and data:
+            self.info_toast(self.tra("信息"), self.tra("导入的数据项均已存在于当前表格中"))
+            return
+        if not new_data_filtered and not data:
+            self.warning_toast(self.tra("警告"), self.tra("未从文件中加载到有效数据"))
+            return
 
-        parent.add_action(Action(FluentIcon.DELETE, self.tra("重置"), parent, triggered=triggered))
+        combined_data = current_data + new_data_filtered
+        config["characterization_data"] = combined_data
+        TableHelper.update_to_table(self.table, config["characterization_data"], CharacterizationPromptPage.KEYS)
+        self.table.resizeRowsToContents()
+        config["characterization_data"] = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
+        self.save_config(config)
+        self._reset_sort_indicator()
+        self.success_toast("", self.tra("数据已导入并更新") + f" ({len(new_data_filtered)} {self.tra('项')})...")
 
-    def add_command_bar_action_import(self, parent: CommandBarCard) -> None:
-        def triggered() -> None:
-            path, _ = QFileDialog.getOpenFileName(self, self.tra("选择文件"), "", "json 文件 (*.json);;xlsx 文件 (*.xlsx)")
-            if not isinstance(path, str) or path == "":
-                return
+    def export_data(self) -> None:
+        data = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
+        if not data:
+            self.warning_toast("", self.tra("表格中没有数据可导出"))
+            return
 
-            data = TableHelper.load_from_file(path, CharacterizationPromptPage.KEYS)
-            config = self.load_config()
-            current_data = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
-            current_src_set = {item["original_name"] for item in current_data if item.get("original_name")}
-            new_data_filtered = [
-                item
-                for item in data
-                if item.get("original_name") and item["original_name"] not in current_src_set
-            ]
+        default_filename = self.tra("导出_角色介绍") + ".json"
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tra("导出文件"),
+            default_filename,
+            "JSON 文件 (*.json)",
+        )
+        if not path:
+            return
 
-            if not new_data_filtered and data:
-                self.info_toast(self.tra("信息"), self.tra("导入的数据项均已存在于当前表格中"))
-                return
-            if not new_data_filtered and not data:
-                self.warning_toast(self.tra("警告"), self.tra("未从文件中加载到有效数据"))
-                return
+        if path.lower().endswith(".json"):
+            with open(path, "w", encoding="utf-8") as writer:
+                writer.write(json.dumps(data, indent=4, ensure_ascii=False))
+        else:
+            self.error_toast(self.tra("导出失败"), self.tra("不支持的文件扩展名"))
+            return
 
-            combined_data = current_data + new_data_filtered
-            config["characterization_data"] = combined_data
-            TableHelper.update_to_table(self.table, config["characterization_data"], CharacterizationPromptPage.KEYS)
-            self.table.resizeRowsToContents()
-            config["characterization_data"] = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
-            self.save_config(config)
-            self._reset_sort_indicator()
-            self.success_toast("", self.tra("数据已导入并更新") + f" ({len(new_data_filtered)} {self.tra('项')})...")
-
-        parent.add_action(Action(FluentIcon.DOWNLOAD, self.tra("导入"), parent, triggered=triggered))
-
-    def add_command_bar_action_export(self, parent: CommandBarCard) -> None:
-        def triggered() -> None:
-            data = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
-            if not data:
-                self.warning_toast("", self.tra("表格中没有数据可导出"))
-                return
-
-            default_filename = self.tra("导出_角色介绍") + ".json"
-            path, _ = QFileDialog.getSaveFileName(self, self.tra("导出文件"), default_filename, "JSON 文件 (*.json)")
-            if not path:
-                return
-
-            if path.lower().endswith(".json"):
-                with open(path, "w", encoding="utf-8") as writer:
-                    writer.write(json.dumps(data, indent=4, ensure_ascii=False))
-            else:
-                self.error_toast(self.tra("导出失败"), self.tra("不支持的文件扩展名"))
-                return
-
-            self.success_toast("", self.tra("数据已导出到") + f": {path}")
-
-        parent.add_action(Action(FluentIcon.SHARE, self.tra("导出"), parent, triggered=triggered))
+        self.success_toast("", self.tra("数据已导出到") + f": {path}")

@@ -238,12 +238,6 @@
       "English": "Export_Translation Example",
       "日本語": "エクスポート_翻訳例"
     },
-    "导出_润色示例": {
-      "简中": "导出_润色示例",
-      "繁中": "導出_潤飾範例",
-      "English": "Export_Polishing Example",
-      "日本語": "エクスポート_推敲例"
-    },
     "数据已导出到应用根目录": {
       "简中": "数据已导出到应用根目录",
       "繁中": "數據已導出到應用程式根目錄",
@@ -336,18 +330,6 @@
       "English": "When enabled, translation style requirement will be built based on the settings on this page and added to the basic prompt (local models are not supported)",
       "日本語": "この機能を有効にすると、このページの設定に基づいて翻訳スタイルの要求が構築され、基本プロンプトに追加されます（ローカルモデルはサポートされていません）"
     },
-    "自定义润色风格": {
-      "简中": "自定义润色风格",
-      "繁中": "自訂潤飾風格",
-      "English": "Custom Polishing Style",
-      "日本語": "カスタム推敲スタイル"
-    },
-    "启用此功能后，将根据本页中设置的内容构建润色风格要求，并补充到基础提示词中": {
-      "简中": "启用此功能后，将根据本页中设置的内容构建润色风格要求，并补充到基础提示词中",
-      "繁中": "啟用此功能後，將根據本頁設定內容建構潤飾風格要求，並補充至基礎提示詞",
-      "English": "When enabled, builds polishing style requirements based on this page's settings and appends to basic prompts",
-      "日本語": "有効時、本ページの設定に基づき推敲スタイル要求を構築し、基本プロンプトに追加"
-    },
     "自定义翻译示例": {
       "简中": "自定义翻译示例",
       "繁中": "自訂翻譯範例",
@@ -359,18 +341,6 @@
       "繁中": "啟用此功能後，將根據本頁中設定的內容構建翻譯範例，並補充到基礎提示詞中（不支援本地類模型）",
       "English": "When enabled, translation example will be built based on the settings on this page and added to the basic prompt (local models are not supported)",
       "日本語": "この機能を有効にすると、このページの設定に基づいて翻訳例が構築され、基本プロンプトに追加されます（ローカルモデルはサポートされていません）"
-    },
-    "自定义润色示例": {
-      "简中": "自定义润色示例",
-      "繁中": "自訂潤飾範例",
-      "English": "Custom polishing example",
-      "日本語": "カスタム推敲例"
-    },
-    "启用此功能后，将根据本页中设置的内容构建润色示例，并补充到基础提示词中": {
-      "简中": "启用此功能后，将根据本页中设置的内容构建润色示例，并补充到基础提示词中",
-      "繁中": "啟用此功能後，將根據本頁中設定的內容構建潤飾範例，並補充到基礎提示詞中",
-      "English": "When enabled, polishing examples will be built from this page's settings and appended to the base prompt",
-      "日本語": "この機能を有効にすると、このページの設定内容に基づいて推敲例が構築され、基本プロンプトに追加されます"
     }
   }
 }
