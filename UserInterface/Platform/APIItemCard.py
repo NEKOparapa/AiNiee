@@ -97,6 +97,7 @@ class APIItemCard(QWidget, ConfigMixin, Base):
                 triggered=lambda checked=False: self.testClicked.emit(self.api_tag),
             )
         )
+        menu.addSeparator()
 
         menu.addAction(
             Action(
