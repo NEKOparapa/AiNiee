@@ -159,7 +159,6 @@ class InterfaceHeaderCard(CardWidget, ConfigMixin):
         if name:
             self.statusLabel.setText(f"{self.tra('已激活')}: {name}")
             self.statusIcon.setIcon(FluentIcon.ROBOT)
-            self.statusLabel.setStyleSheet(f"color: {tc.name()};")
             
             # 激活状态：半透明主题色背景与微高亮边框
             bg_color = f"rgba({tc.red()}, {tc.green()}, {tc.blue()}, 0.1)"
@@ -175,7 +174,6 @@ class InterfaceHeaderCard(CardWidget, ConfigMixin):
         else:
             self.statusLabel.setText(self.tra("未设置激活接口"))
             self.statusIcon.setIcon(FluentIcon.INFO)
-            self.statusLabel.setStyleSheet("color: #808080;")
             
             # 未激活状态：低调的半透明灰色
             self.statusPill.setStyleSheet("""
@@ -259,19 +257,20 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
         self.empty_hint_widget.setStyleSheet("QWidget { background: transparent; }")
 
         hint_layout = QVBoxLayout(self.empty_hint_widget)
-        hint_layout.setContentsMargins(0, 60, 0, 60)
+        hint_layout.setContentsMargins(24, 60, 24, 60)
         hint_layout.setSpacing(20)
-        hint_layout.setAlignment(Qt.AlignCenter)
+        hint_layout.addStretch(1)
 
-        title_label = SubtitleLabel(self.tra("暂无接口"))
+        title_label = SubtitleLabel(self.tra("暂无接口"), self.empty_hint_widget)
         title_label.setContentsMargins(0, 0, 0, 0)
         title_label.setAlignment(Qt.AlignCenter)
         hint_layout.addWidget(title_label)
 
-        subtitle_label = BodyLabel(self.tra("点击顶部的“添加接口”按钮创建您的第一个接口"))
+        subtitle_label = BodyLabel(self.tra("点击顶部的“添加接口”按钮创建您的第一个接口"), self.empty_hint_widget)
         subtitle_label.setWordWrap(True)
         subtitle_label.setAlignment(Qt.AlignCenter)
         hint_layout.addWidget(subtitle_label)
+        hint_layout.addStretch(1)
 
         self.empty_hint_widget.hide()
         self.container.addWidget(self.empty_hint_widget)

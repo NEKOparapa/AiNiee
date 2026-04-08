@@ -99,6 +99,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._updating_ui = False
         self._splitter_ratio_initialized = False
         self._table_width_ratio_initialized = set()
+        self._temp_row_counter = 0
         self.analysis_runtime_state = self._create_default_runtime_state()
 
         self.container = QVBoxLayout(self)
@@ -375,8 +376,26 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.page_card.setMinimumWidth(0)
         self.page_card.setBorderRadius(12)
         page_layout = QVBoxLayout(self.page_card)
-        page_layout.setContentsMargins(0, 0, 0, 0)
-        page_layout.setSpacing(0)
+        page_layout.setContentsMargins(10, 10, 10, 10)
+        page_layout.setSpacing(8)
+
+        self.table_detail_widget = QWidget(self.page_card)
+        detail_layout = QHBoxLayout(self.table_detail_widget)
+        detail_layout.setContentsMargins(2, 0, 2, 0)
+        detail_layout.setSpacing(8)
+
+        self.table_detail_label = BodyLabel("角色表", self.table_detail_widget)
+        detail_layout.addWidget(self.table_detail_label)
+        detail_layout.addStretch(1)
+
+        self.save_public_table_button = TransparentPushButton("保存到公共表", self.table_detail_widget)
+        self.clear_current_table_button = TransparentPushButton("清空", self.table_detail_widget)
+        self.save_public_table_button.setFixedHeight(28)
+        self.clear_current_table_button.setFixedHeight(28)
+        self.save_public_table_button.clicked.connect(self._save_current_view_to_public_table)
+        self.clear_current_table_button.clicked.connect(self._clear_current_view_rows)
+        detail_layout.addWidget(self.save_public_table_button)
+        detail_layout.addWidget(self.clear_current_table_button)
 
         self.content_stack = QStackedWidget(self.page_card)
         self.characters_page = self._build_characters_page()
@@ -390,6 +409,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         ):
             self.content_stack.addWidget(widget)
 
+        page_layout.addWidget(self.table_detail_widget)
         page_layout.addWidget(self.content_stack)
         right_layout.addWidget(self.header_widget)
         right_layout.addWidget(self.page_card, 1)
@@ -506,13 +526,22 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         menu = RoundMenu(parent=self)
         selected_row_count = len(table.selectionModel().selectedRows()) if table.selectionModel() else 0
+        running = self._is_analysis_running()
+
+        insert_action = Action(
+            FIF.ADD_TO,
+            "插入新行",
+            triggered=lambda: self._insert_row(view_name, table),
+        )
+        insert_action.setEnabled(not running)
+        menu.addAction(insert_action)
 
         delete_action = Action(
             FIF.DELETE,
             "删除选中项",
             triggered=lambda: self._delete_selected_rows(view_name, table),
         )
-        delete_action.setEnabled(selected_row_count > 0 and not self._is_analysis_running())
+        delete_action.setEnabled(selected_row_count > 0 and not running)
         menu.addAction(delete_action)
         menu.addSeparator()
 
@@ -705,6 +734,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             self.VIEW_NON_TRANSLATE: self.non_translate_page,
         }
         self.content_stack.setCurrentWidget(mapping.get(view_name, self.characters_page))
+        self._refresh_table_detail_header()
         QTimer.singleShot(0, lambda: self._apply_initial_table_widths(view_name))
 
     def _select_current_nav_item(self) -> None:
@@ -904,15 +934,15 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         key_field = self._get_row_identity_field(view_name)
         if field_name == key_field:
-            current_key = self._get_row_key(view_name, target_row)
+            current_identity_value = self._normalize_row_key(target_row.get(key_field, ""))
             if not new_value:
-                new_value = current_key
+                new_value = current_identity_value
             else:
                 next_key = self._normalize_row_key(new_value)
                 existing_row = self._find_row_by_key(view_name, next_key)
-                if next_key != current_key and existing_row and existing_row is not target_row:
+                if existing_row and existing_row is not target_row:
                     self.warning_toast("提示", "原文键已存在，不能重复。")
-                    new_value = current_key
+                    new_value = current_identity_value
                 refresh_view = True
 
         if item.text() != new_value:
@@ -929,6 +959,229 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 self._populate_terms_table()
             else:
                 self._populate_non_translate_table()
+
+    def _insert_row(self, view_name: str, table: TableWidget) -> None:
+        if self._is_analysis_running():
+            self.warning_toast("提示", "分析任务执行中，暂时不能插入新行。")
+            return
+
+        key = self._get_analysis_key(view_name)
+        if not key:
+            return
+
+        rows = self.analysis_data.setdefault(key, [])
+        insert_index = self._get_insert_row_index(view_name, table)
+        new_row = self._create_empty_row(view_name)
+        new_row["_row_key"] = self._create_temp_row_key()
+        rows.insert(insert_index, new_row)
+
+        self._persist_analysis_state(refresh_navigation=True)
+        self._refresh_all_views()
+        self._focus_row_by_key(view_name, new_row["_row_key"])
+        self.success_toast("完成", "新行已插入。")
+
+    def _create_empty_row(self, view_name: str) -> dict:
+        current_filter = self._get_filter_for_view(view_name)
+        if view_name == self.VIEW_CHARACTERS:
+            return {
+                "source": "",
+                "recommended_translation": "",
+                "gender": self._normalize_character_category(current_filter or self.CHARACTER_OTHER),
+                "note": "",
+            }
+        if view_name == self.VIEW_TERMS:
+            return {
+                "source": "",
+                "recommended_translation": "",
+                "category_path": self._normalize_term_category(current_filter or self.TERM_OTHER),
+                "note": "",
+            }
+        return {
+            "marker": "",
+            "category": self._normalize_non_translate_category(current_filter or self.NON_TRANSLATE_OTHER),
+            "note": "",
+        }
+
+    def _get_insert_row_index(self, view_name: str, table: TableWidget) -> int:
+        key = self._get_analysis_key(view_name)
+        rows = self.analysis_data.get(key, []) or []
+        selected_row_keys = self._get_selected_row_keys(table)
+        if selected_row_keys:
+            anchor_row_key = selected_row_keys[-1]
+        else:
+            visible_rows = self._get_visible_rows(view_name)
+            anchor_row_key = self._get_row_key(view_name, visible_rows[-1]) if visible_rows else ""
+
+        if not anchor_row_key:
+            return len(rows)
+
+        for index, row in enumerate(rows):
+            if self._get_row_key(view_name, row) == anchor_row_key:
+                return index + 1
+
+        return len(rows)
+
+    def _create_temp_row_key(self) -> str:
+        self._temp_row_counter += 1
+        return f"__analysis_temp_row__{self._temp_row_counter}"
+
+    def _focus_row_by_key(self, view_name: str, row_key: str) -> None:
+        table = self._get_table_for_view(view_name)
+        normalized_row_key = self._normalize_row_key(row_key)
+        if not table or not normalized_row_key:
+            return
+
+        table.clearSelection()
+        for row_index in range(table.rowCount()):
+            item = table.item(row_index, 0)
+            current_row_key = self._normalize_row_key(item.data(Qt.UserRole) if item else "")
+            if current_row_key != normalized_row_key:
+                continue
+
+            table.setCurrentCell(row_index, 0)
+            table.selectRow(row_index)
+            if item:
+                table.scrollToItem(item, QAbstractItemView.ScrollHint.PositionAtCenter)
+                table.editItem(item)
+            return
+
+    def _save_current_view_to_public_table(self) -> None:
+        if self._is_analysis_running():
+            self.warning_toast("提示", "分析任务执行中，暂时不能保存到公共表。")
+            return
+        if not self.cache_manager or not self.cache_manager.project:
+            self.warning_toast("提示", "当前没有已加载的项目。")
+            return
+
+        public_rows = self._build_public_table_rows(self.current_view)
+        if not public_rows:
+            self.info_toast("提示", "当前显示内容中没有可保存的条目。")
+            return
+
+        config = self.load_config()
+        added_count = 0
+        if self.current_view == self.VIEW_NON_TRANSLATE:
+            current_rows = list(config.get("exclusion_list_data", []) or [])
+            existing_keys = {
+                self._normalize_row_key(item.get("markers"))
+                for item in current_rows
+                if self._normalize_row_key(item.get("markers"))
+            }
+            for row in public_rows:
+                row_key = self._normalize_row_key(row.get("markers"))
+                if not row_key or row_key in existing_keys:
+                    continue
+                current_rows.append(row)
+                existing_keys.add(row_key)
+                added_count += 1
+            config["exclusion_list_data"] = current_rows
+        else:
+            current_rows = list(config.get("prompt_dictionary_data", []) or [])
+            existing_keys = {
+                self._normalize_row_key(item.get("src"))
+                for item in current_rows
+                if self._normalize_row_key(item.get("src"))
+            }
+            for row in public_rows:
+                row_key = self._normalize_row_key(row.get("src"))
+                if not row_key or row_key in existing_keys:
+                    continue
+                current_rows.append(row)
+                existing_keys.add(row_key)
+                added_count += 1
+            config["prompt_dictionary_data"] = current_rows
+
+        if added_count <= 0:
+            self.info_toast("提示", "当前内容均已存在于公共表中。")
+            return
+
+        self.save_config(config)
+        self.success_toast("完成", f"已保存到公共表，新增 {added_count} 条内容。")
+
+    def _build_public_table_rows(self, view_name: str) -> list[dict]:
+        rows = []
+        for row in self._get_visible_rows(view_name):
+            if view_name == self.VIEW_CHARACTERS:
+                source = self._normalize_row_key(row.get("source"))
+                if not source:
+                    continue
+                rows.append(
+                    {
+                        "src": source,
+                        "dst": str(row.get("recommended_translation", "") or "").strip(),
+                        "info": self._join_public_info_parts(
+                            f"性别: {self._normalize_character_category(row.get('gender', self.CHARACTER_OTHER))}",
+                            f"备注: {str(row.get('note', '') or '').strip()}",
+                        ),
+                    }
+                )
+            elif view_name == self.VIEW_TERMS:
+                source = self._normalize_row_key(row.get("source"))
+                if not source:
+                    continue
+                rows.append(
+                    {
+                        "src": source,
+                        "dst": str(row.get("recommended_translation", "") or "").strip(),
+                        "info": self._join_public_info_parts(
+                            f"分类: {self._normalize_term_category(row.get('category_path', self.TERM_OTHER))}",
+                            f"备注: {str(row.get('note', '') or '').strip()}",
+                        ),
+                    }
+                )
+            else:
+                marker = self._normalize_row_key(row.get("marker"))
+                if not marker:
+                    continue
+                rows.append(
+                    {
+                        "markers": marker,
+                        "info": self._join_public_info_parts(
+                            f"分类: {self._normalize_non_translate_category(row.get('category', self.NON_TRANSLATE_OTHER), marker=marker, note=row.get('note', ''))}",
+                            f"备注: {str(row.get('note', '') or '').strip()}",
+                        ),
+                        "regex": "",
+                    }
+                )
+        return rows
+
+    def _join_public_info_parts(self, *parts: str) -> str:
+        return "；".join(part for part in parts if str(part).strip())
+
+    def _clear_current_view_rows(self) -> None:
+        if self._is_analysis_running():
+            self.warning_toast("提示", "分析任务执行中，暂时不能清空当前显示内容。")
+            return
+
+        row_keys = self._get_visible_row_keys(self.current_view)
+        if not row_keys:
+            self.info_toast("提示", "当前显示内容为空。")
+            return
+
+        detail_name = self._get_table_detail_display_text()
+        message_box = MessageBox(
+            "确认",
+            f"确定要清空当前显示的 {detail_name} 吗？\n共 {len(row_keys)} 条内容将被删除。",
+            self.window(),
+        )
+        message_box.yesButton.setText("确认")
+        message_box.cancelButton.setText("取消")
+        if not message_box.exec():
+            return
+
+        deleted_count = self._delete_rows(self.current_view, row_keys)
+        if deleted_count:
+            self._refresh_navigation()
+            self.nav_tree.viewport().update()
+            self.success_toast("完成", f"已清空当前显示的 {deleted_count} 条内容。")
+
+    def _get_visible_row_keys(self, view_name: str) -> list[str]:
+        row_keys = []
+        for row in self._get_visible_rows(view_name):
+            row_key = self._get_row_key(view_name, row)
+            if row_key and row_key not in row_keys:
+                row_keys.append(row_key)
+        return row_keys
 
     def _delete_rows(self, view_name: str, row_keys: list[str]) -> int:
         key = self._get_analysis_key(view_name)
@@ -1035,6 +1288,34 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.start_button.setEnabled(has_project and not running)
         self.stop_button.setEnabled(running)
 
+        self._refresh_table_detail_header()
+
+    def _refresh_table_detail_header(self) -> None:
+        if not hasattr(self, "table_detail_label"):
+            return
+
+        self.table_detail_label.setText(self._get_table_detail_display_text())
+
+        has_project = bool(self.cache_manager and self.cache_manager.project)
+        running = self._is_analysis_running()
+        has_visible_rows = bool(self._get_visible_rows(self.current_view))
+        self.save_public_table_button.setEnabled(has_project and not running)
+        self.clear_current_table_button.setEnabled(has_project and not running and has_visible_rows)
+
+    def _get_table_detail_display_text(self) -> str:
+        table_name = self._get_view_display_name(self.current_view)
+        current_filter = self._get_filter_for_view(self.current_view)
+        if current_filter:
+            return f"{table_name} / {current_filter}"
+        return table_name
+
+    def _get_view_display_name(self, view_name: str) -> str:
+        return {
+            self.VIEW_CHARACTERS: "角色表",
+            self.VIEW_TERMS: "术语表",
+            self.VIEW_NON_TRANSLATE: "禁翻表",
+        }.get(view_name, "角色表")
+
     def _get_counts(self) -> dict:
         characters = self.analysis_data.get("characters", []) or []
         character_categories = {category: 0 for category in self.CHARACTER_CATEGORIES}
@@ -1117,7 +1398,10 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         return str(value).strip()
 
     def _get_row_key(self, view_name: str, row: dict) -> str:
-        return self._normalize_row_key(row.get(self._get_row_identity_field(view_name), ""))
+        identity_value = self._normalize_row_key(row.get(self._get_row_identity_field(view_name), ""))
+        if identity_value:
+            return identity_value
+        return self._normalize_row_key(row.get("_row_key", ""))
 
     def _find_row_by_key(self, view_name: str, row_key: str) -> dict | None:
         key = self._get_analysis_key(view_name)
