@@ -1,12 +1,13 @@
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import QAbstractItemView, QHeaderView, QTableWidgetItem, QWidget, QVBoxLayout
-from qfluentwidgets import Action, FluentIcon as FIF, RoundMenu, TableWidget
+from qfluentwidgets import Action, FluentIcon as FIF, RoundMenu
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
+from UserInterface.Widget.AutoHeightTableWidget import AutoHeightTableWidget
 from UserInterface.Widget.Toast import ToastMixin
 
 
@@ -34,7 +35,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.layout.setContentsMargins(5, 0, 0, 0)
         self.layout.setSpacing(0)
 
-        self.table = TableWidget(self)
+        self.table = AutoHeightTableWidget(self)
         self._init_table()
         self.layout.addWidget(self.table)
 
@@ -54,6 +55,9 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.table.setBorderRadius(8)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.table.setEditTriggers(QAbstractItemView.DoubleClicked | QAbstractItemView.EditKeyPressed)
+        self.table.setAutoHeightColumns((self.COL_SOURCE, self.COL_TRANS))
+        self.table.setMultilineEditColumns((self.COL_TRANS,))
 
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Interactive)
@@ -87,6 +91,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
 
                 if item_data.extra and item_data.extra.get("language_mismatch_translation", False):
                     trans_item.setBackground(highlight_brush)
+            self.table.resizeRowsToContents()
         finally:
             self._item_changed_handler_enabled = True
 
@@ -112,6 +117,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             field_name="translated_text",
             new_text=new_text,
         )
+        self.table.resizeRowToContentsSafe(row)
 
     def _show_context_menu(self, pos: QPoint):
         menu = RoundMenu(parent=self)
@@ -167,7 +173,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                     translation_status=translation_status,
                 )
 
-            self.table.resizeRowsToContents()
+            self.table.scheduleResizeRowsToContents()
         finally:
             self._item_changed_handler_enabled = True
 

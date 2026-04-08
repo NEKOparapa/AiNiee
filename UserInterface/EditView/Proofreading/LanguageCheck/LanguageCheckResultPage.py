@@ -1,11 +1,11 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QAbstractItemView, QHeaderView, QTableWidgetItem, QVBoxLayout, QWidget
-from qfluentwidgets import TableWidget
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from UserInterface.EditView.Proofreading.Common.CheckStatusPage import CheckStatusPage
 from UserInterface.EditView.Proofreading.Common.EditableIssueTablePage import EditableIssueTablePage
+from UserInterface.Widget.AutoHeightTableWidget import AutoHeightTableWidget
 
 
 class LanguageReportTablePage(ConfigMixin, Base, QWidget):
@@ -17,7 +17,7 @@ class LanguageReportTablePage(ConfigMixin, Base, QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
 
-        self.table = TableWidget(self)
+        self.table = AutoHeightTableWidget(self)
         layout.addWidget(self.table)
 
         self._init_table()
@@ -33,6 +33,8 @@ class LanguageReportTablePage(ConfigMixin, Base, QWidget):
         self.table.setBorderRadius(8)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.NoSelection)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setAutoHeightColumns((0, 3))
 
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Interactive)

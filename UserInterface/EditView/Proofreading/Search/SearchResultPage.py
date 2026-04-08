@@ -21,12 +21,12 @@ from qfluentwidgets import (
     PrimaryPushButton,
     RoundMenu,
     StrongBodyLabel,
-    TableWidget,
 )
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
+from UserInterface.Widget.AutoHeightTableWidget import AutoHeightTableWidget
 from UserInterface.Widget.Toast import ToastMixin
 
 
@@ -57,7 +57,7 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
 
         self._init_replace_panel()
 
-        self.table = TableWidget(self)
+        self.table = AutoHeightTableWidget(self)
         self._init_table()
         self.layout.addWidget(self.table)
 
@@ -123,6 +123,9 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
         self.table.setWordWrap(True)
         self.table.setBorderRadius(8)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.table.setEditTriggers(QAbstractItemView.DoubleClicked | QAbstractItemView.EditKeyPressed)
+        self.table.setAutoHeightColumns((self.COL_SOURCE, self.COL_TRANS))
+        self.table.setMultilineEditColumns((self.COL_TRANS,))
 
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Interactive)
@@ -182,6 +185,7 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
             field_name="translated_text",
             new_text=item.text(),
         )
+        self.table.resizeRowToContentsSafe(item.row())
 
     def _show_context_menu(self, pos: QPoint):
         menu = RoundMenu(parent=self)
@@ -303,7 +307,7 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
         finally:
             self.table.blockSignals(False)
 
-        self.table.resizeRowsToContents()
+        self.table.scheduleResizeRowsToContents()
 
     def _on_replace_all_clicked(self):
         find_text = self.find_input.text()
@@ -361,7 +365,7 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
         finally:
             self.table.blockSignals(False)
 
-        self.table.resizeRowsToContents()
+        self.table.scheduleResizeRowsToContents()
         self.success_toast(self.tra("操作完成"), self.tra(f"共找到并替换了 {replacement_count} 处。"))
 
     def _perform_replace(self, text, find, replace, case_sensitive, whole_word, is_regex):

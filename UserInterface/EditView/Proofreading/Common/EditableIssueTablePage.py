@@ -2,12 +2,13 @@ from collections import defaultdict
 
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QAbstractItemView, QHeaderView, QTableWidgetItem, QVBoxLayout, QWidget
-from qfluentwidgets import Action, FluentIcon, RoundMenu, TableWidget
+from qfluentwidgets import Action, FluentIcon, RoundMenu
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
+from UserInterface.Widget.AutoHeightTableWidget import AutoHeightTableWidget
 from UserInterface.Widget.Toast import ToastMixin
 
 
@@ -21,7 +22,7 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(10, 10, 10, 10)
 
-        self.table = TableWidget(self)
+        self.table = AutoHeightTableWidget(self)
         self.layout.addWidget(self.table)
 
         self._init_table()
@@ -47,6 +48,9 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.table.setBorderRadius(8)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.table.setEditTriggers(QAbstractItemView.DoubleClicked | QAbstractItemView.EditKeyPressed)
+        self.table.setAutoHeightColumns((2, 3))
+        self.table.setMultilineEditColumns((3,))
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._show_context_menu)
 
@@ -120,6 +124,7 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             field_name=target_field,
             new_text=new_text,
         )
+        self.table.resizeRowToContentsSafe(item.row())
 
         original_index = meta_data.get("original_data_index")
         if original_index is not None and 0 <= original_index < len(self.results):
@@ -174,7 +179,7 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         finally:
             self.table.blockSignals(False)
 
-        self.table.resizeRowsToContents()
+        self.table.scheduleResizeRowsToContents()
 
     def _show_context_menu(self, pos: QPoint):
         menu = RoundMenu(parent=self)
