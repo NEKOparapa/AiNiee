@@ -50,6 +50,7 @@ from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
 from ModuleFolders.Service.TaskExecutor.AnalysisTask import AnalysisTask
 from ModuleFolders.Service.TaskExecutor.TranslatorTask import TranslatorTask
 from ModuleFolders.Service.TaskExecutor.PolisherTask import PolisherTask
+from ModuleFolders.Service.TaskExecutor.ProofreadTask import ProofreadTask
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderPolishing import PromptBuilderPolishing
@@ -82,6 +83,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
         # 注册事件
         self.subscribe(Base.EVENT.ANALYSIS_TASK_START, self.analysis_task_start)
+        self.subscribe(Base.EVENT.TABLE_PROOFREAD_START, self.table_proofread_start)
         self.subscribe(Base.EVENT.TASK_STOP, self.task_stop)
         self.subscribe(Base.EVENT.TASK_START, self.task_start)
         self.subscribe(Base.EVENT.TASK_MANUAL_EXPORT, self.task_manual_export)
@@ -120,6 +122,21 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         Base.work_status = Base.STATUS.ANALYSIS_TASK
         threading.Thread(target=self.analysis_start_target, daemon=True).start()
 
+    def table_proofread_start(self, event: int, data: dict) -> None:
+        if Base.work_status not in (Base.STATUS.IDLE, Base.STATUS.TABLE_TASK):
+            return
+
+        with self._executor_lock:
+            if self._active_executor is not None:
+                return
+
+        Base.work_status = Base.STATUS.TABLE_TASK
+        threading.Thread(
+            target=self.table_proofread_start_target,
+            args=(data,),
+            daemon=True,
+        ).start()
+
     def analysis_start_target(self) -> None:
         try:
             analysis_task = AnalysisTask(
@@ -138,6 +155,25 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 Base.EVENT.ANALYSIS_TASK_DONE,
                 {"status": "error", "analysis_data": None, "message": str(error)},
             )
+
+    # Table proofreading task event
+    def table_proofread_start_target(self, data: dict) -> None:
+        try:
+            proofread_task = ProofreadTask(
+                data,
+                self._set_active_executor,
+                self._clear_active_executor,
+            )
+            proofread_task.run()
+        except Exception as error:
+            self.error(
+                f"Table proofreading task failed: {error}",
+                error,
+            )
+            if Base.work_status == Base.STATUS.STOPING:
+                Base.work_status = Base.STATUS.TASKSTOPPED
+            else:
+                Base.work_status = Base.STATUS.IDLE
 
     # 手动导出事件
     def task_manual_export(self, event: int, data: dict) -> None:

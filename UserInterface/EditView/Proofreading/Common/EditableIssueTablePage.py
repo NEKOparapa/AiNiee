@@ -275,26 +275,29 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             self.warning_toast(self.tra("提示"), self.tra("当前没有可执行 AI 校对的条目。"))
             return
 
-        Base.work_status = Base.STATUS.TABLE_TASK
+        proofread_jobs = []
         count = 0
         for file_path, items_to_proofread in tasks_by_file.items():
             if not items_to_proofread:
                 continue
 
-            self.emit(
-                Base.EVENT.TABLE_PROOFREAD_START,
+            proofread_jobs.append(
                 {
                     "file_path": file_path,
                     "items_to_proofread": items_to_proofread,
-                },
+                }
             )
             count += len(items_to_proofread)
 
         if count > 0:
+            self.emit(
+                Base.EVENT.TABLE_PROOFREAD_START,
+                {
+                    "proofread_jobs": proofread_jobs,
+                },
+            )
             self.info_toast(self.tra("提示"), self.tra("已提交 {} 个条目的 AI 自动校对任务。").format(count))
-        else:
-            Base.work_status = Base.STATUS.IDLE
-
+    
     def _translate_selected_rows(self):
         selected_rows = sorted({index.row() for index in self.table.selectedIndexes()})
         if not selected_rows:
