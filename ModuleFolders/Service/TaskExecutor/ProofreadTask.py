@@ -3,16 +3,16 @@ import os
 from collections import defaultdict
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.LLMRequester.LLMRequester import LLMRequester
+from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
-from ModuleFolders.Domain.ResponseExtractor.ResponseExtractor import ResponseExtractor
-from ModuleFolders.Domain.ResponseChecker.ResponseChecker import ResponseChecker
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 
 
-class ProofreadTask(LogMixin, Base):
-    MAX_LINES = 20
+class ProofreadTask(ConfigMixin, LogMixin, Base):
+    MAX_REQUEST_ATTEMPTS = 2  # 单条数据最大重试次数
 
     def __init__(self, task_data: dict, set_active_executor, clear_active_executor) -> None:
         super().__init__()
@@ -20,32 +20,37 @@ class ProofreadTask(LogMixin, Base):
         self._set_active_executor = set_active_executor
         self._clear_active_executor = clear_active_executor
         self.config = TaskConfig()
-        self.response_checker = ResponseChecker()
+        self.request_limiter = RequestLimiter()
 
     def run(self) -> None:
         try:
+            # 1. 解析任务数据
             proofread_jobs = self._normalize_jobs(self.task_data)
             if not proofread_jobs:
                 self._finish()
                 return
 
+            # 2. 初始化配置和限速器
             self.config.initialize()
             self.config.prepare_for_active_platform()
+            self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
 
-            batches = self._build_batches(proofread_jobs)
-            if not batches:
+            # 3. 展平任务：将所有需要校对的行转为独立的单个任务 (1行 = 1请求)
+            single_tasks = self._flatten_jobs(proofread_jobs)
+            total_items = len(single_tasks)
+            if not total_items:
                 self._finish()
                 return
 
-            total_items = sum(len(job["items_to_proofread"]) for job in proofread_jobs)
-            self.info(f" Starting table AI proofreading task: {len(proofread_jobs)} file(s), {total_items} rows")
-            self.info(f"    Total batches: {len(batches)}")
-            self.info(f"    Concurrent workers: {self.config.actual_thread_counts} (UI will refresh after task completion)")
+            self.info(f" Starting table AI proofreading task: {len(proofread_jobs)} file(s), {total_items} rows in total.")
+            self.info(f"    Mode: Single line per request with Few-Shot and Retry mechanism.")
+            self.info(f"    Concurrent workers: {self.config.actual_thread_counts}")
 
             updates_by_file = defaultdict(dict)
-            success_batches = 0
-            failed_batches = 0
+            success_count = 0
+            failed_count = 0
 
+            # 4. 并发执行单行校对任务
             executor = concurrent.futures.ThreadPoolExecutor(
                 max_workers=self.config.actual_thread_counts,
                 thread_name_prefix="proofreader",
@@ -54,244 +59,248 @@ class ProofreadTask(LogMixin, Base):
 
             try:
                 futures = []
-                for batch in batches:
+                for idx, task_info in enumerate(single_tasks, start=1):
                     if Base.work_status == Base.STATUS.STOPING:
                         break
-
-                    try:
-                        futures.append(executor.submit(self._run_batch, batch))
-                    except RuntimeError:
-                        if Base.work_status == Base.STATUS.STOPING:
-                            break
-                        raise
+                    # 注入当前任务的进度索引信息，方便打印日志
+                    task_info["task_idx"] = idx
+                    task_info["total_tasks"] = total_items
+                    futures.append(executor.submit(self._run_single_item, task_info))
 
                 for future in concurrent.futures.as_completed(futures):
+                    if Base.work_status == Base.STATUS.STOPING:
+                        break
+                        
                     try:
                         result = future.result()
                     except concurrent.futures.CancelledError:
                         continue
                     except Exception as error:
-                        self.error(f"Proofreading batch execution error: {error}")
-                        failed_batches += 1
+                        self.error(f"Proofreading single item execution error: {error}")
+                        failed_count += 1
                         continue
 
                     if not result:
-                        failed_batches += 1
+                        failed_count += 1
                         continue
 
-                    success_batches += 1
-                    file_path = result.get("file_path")
-                    updated_items = result.get("updated_items", {})
-                    if file_path and updated_items:
-                        updates_by_file[file_path].update(updated_items)
+                    success_count += 1
+                    file_path = result["file_path"]
+                    text_index = result["text_index"]
+                    corrected_text = result["corrected_text"]
+                    
+                    updates_by_file[file_path][text_index] = corrected_text
+
             finally:
                 try:
                     executor.shutdown(wait=True, cancel_futures=Base.work_status == Base.STATUS.STOPING)
                 finally:
                     self._clear_active_executor(executor)
 
-            self.info(f" Proofreading batches completed. Success: {success_batches}, Failed: {failed_batches}")
+            self.info(f" Proofreading completed. Success: {success_count} rows, Failed: {failed_count} rows")
+            
+            # 5. 触发更新事件落盘
             self._emit_updates(updates_by_file)
             self._finish()
+            
         except Exception as error:
             self.error(f"Table proofreading task failed: {error}", error)
             Base.work_status = Base.STATUS.IDLE
             raise
 
     def _normalize_jobs(self, data: dict) -> list[dict]:
+        """标准化前端传来的数据结构"""
         proofread_jobs = data.get("proofread_jobs")
         if not isinstance(proofread_jobs, list):
             file_path = data.get("file_path")
             items_to_proofread = data.get("items_to_proofread")
             if file_path and isinstance(items_to_proofread, list):
-                proofread_jobs = [
-                    {
-                        "file_path": file_path,
-                        "items_to_proofread": items_to_proofread,
-                    }
-                ]
+                proofread_jobs = [{"file_path": file_path, "items_to_proofread": items_to_proofread}]
             else:
                 proofread_jobs = []
 
         normalized_jobs = []
         for job in proofread_jobs:
-            if not isinstance(job, dict):
-                continue
-
+            if not isinstance(job, dict): continue
             file_path = job.get("file_path")
             items_to_proofread = job.get("items_to_proofread")
-            if not file_path or not isinstance(items_to_proofread, list):
-                continue
+            if not file_path or not isinstance(items_to_proofread, list): continue
 
             normalized_items = []
             for item in items_to_proofread:
-                if not isinstance(item, dict):
-                    continue
-
+                if not isinstance(item, dict): continue
                 text_index = item.get("text_index")
                 source_text = item.get("source_text", "")
-                if text_index is None or source_text is None:
-                    continue
+                if text_index is None or source_text is None: continue
 
-                normalized_items.append(
-                    {
-                        "text_index": text_index,
-                        "source_text": str(source_text),
-                        "translation_text": str(item.get("translation_text", "") or ""),
-                        "error_type": str(item.get("error_type", "") or ""),
-                    }
-                )
+                normalized_items.append({
+                    "text_index": text_index,
+                    "source_text": str(source_text),
+                    "translation_text": str(item.get("translation_text", "") or ""),
+                    "error_type": str(item.get("error_type", "") or ""),
+                })
 
             if normalized_items:
-                normalized_jobs.append(
-                    {
-                        "file_path": file_path,
-                        "items_to_proofread": normalized_items,
-                    }
-                )
+                normalized_jobs.append({"file_path": file_path, "items_to_proofread": normalized_items})
 
         return normalized_jobs
 
-    def _build_batches(self, proofread_jobs: list[dict]) -> list[dict]:
-        batches = []
+    def _flatten_jobs(self, proofread_jobs: list[dict]) -> list[dict]:
+        """将多文件的批次结构展平为独立的单条任务列表"""
+        single_tasks = []
         for job in proofread_jobs:
             file_path = job["file_path"]
-            items_to_proofread = job["items_to_proofread"]
-            total_batches = (len(items_to_proofread) + self.MAX_LINES - 1) // self.MAX_LINES
+            for item in job["items_to_proofread"]:
+                single_tasks.append({
+                    "file_path": file_path,
+                    "item": item
+                })
+        return single_tasks
 
-            self.info(f" Preparing proofreading batches for {os.path.basename(file_path)}")
-            self.info(f"    Total rows: {len(items_to_proofread)}, batches: {total_batches}")
-
-            for batch_idx in range(total_batches):
-                start_index = batch_idx * self.MAX_LINES
-                end_index = start_index + self.MAX_LINES
-                batches.append(
-                    {
-                        "file_path": file_path,
-                        "batch_idx": batch_idx,
-                        "total_batches": total_batches,
-                        "items": items_to_proofread[start_index:end_index],
-                    }
-                )
-
-        return batches
-
-    def _run_batch(self, batch: dict) -> dict | None:
+    def _run_single_item(self, task_info: dict) -> dict | None:
+        """执行单条校对任务，带重试机制"""
         if Base.work_status == Base.STATUS.STOPING:
             return None
 
-        file_path = batch["file_path"]
-        batch_idx = batch["batch_idx"]
-        total_batches = batch["total_batches"]
-        batch_items = batch["items"]
-        batch_num = batch_idx + 1
-
+        file_path = task_info["file_path"]
+        item = task_info["item"]
+        task_idx = task_info["task_idx"]
+        total_tasks = task_info["total_tasks"]
+        
+        text_index = item["text_index"]
+        source_text = item["source_text"]
+        
         current_platform_config = self.config.get_active_platform_configuration()
-        source_text_dict = {str(idx): item["source_text"] for idx, item in enumerate(batch_items)}
-        index_map = [item["text_index"] for item in batch_items]
-        messages, system_prompt = self._build_table_proofread_prompt(batch_items)
+        messages, system_prompt = self._build_single_proofread_prompt(item)
+        file_basename = os.path.basename(file_path)
 
-        print(
-            f" -> [Proofread {os.path.basename(file_path)} {batch_num}/{total_batches}] "
-            f"sending request ({len(batch_items)} rows)..."
-        )
+        last_error = ""
+        # 重试流水线
+        for attempt in range(1, self.MAX_REQUEST_ATTEMPTS + 1):
+            if Base.work_status == Base.STATUS.STOPING:
+                return None
 
-        requester = LLMRequester()
-        skip, _, response_content, _, _ = requester.sent_request(
-            messages,
-            system_prompt,
-            current_platform_config,
-        )
+            try:
+                requester = LLMRequester()
+                skip, _, response_content, _, _ = requester.sent_request(
+                    messages,
+                    system_prompt,
+                    current_platform_config,
+                )
 
-        if skip:
-            print(f" <- [Proofread {os.path.basename(file_path)} {batch_num}/{total_batches}] request failed")
-            return None
+                if skip:
+                    last_error = "请求被跳过或接口返回错误"
+                    continue
 
-        response_dict = ResponseExtractor.text_extraction(self, source_text_dict, response_content)
-        check_result, _ = self.response_checker.check_polish_response_content(
-            self.config,
-            response_content,
-            response_dict,
-            source_text_dict,
-        )
+                response_content = str(response_content or "").strip()
+                
+                # 简单清洗，防止 AI 输出 Markdown 代码块包裹
+                if response_content.startswith("```"):
+                    response_content = "\n".join(response_content.split("\n")[1:])
+                if response_content.endswith("```"):
+                    response_content = "\n".join(response_content.split("\n")[:-1])
+                response_content = response_content.strip()
 
-        if not check_result:
-            print(f" <- [Proofread {os.path.basename(file_path)} {batch_num}/{total_batches}] validation failed")
-            return None
+                if not response_content:
+                    last_error = "模型返回内容为空"
+                    continue
 
-        restored_response_dict = {
-            index_map[int(temp_idx_str)]: text
-            for temp_idx_str, text in response_dict.items()
-        }
-        updated_items = ResponseExtractor.remove_numbered_prefix(self, restored_response_dict)
+                # 成功校对
+                print(f" <- [Proofread {file_basename} {task_idx}/{total_tasks}] Success.")
+                return {
+                    "file_path": file_path,
+                    "text_index": text_index,
+                    "corrected_text": response_content,
+                }
 
-        print(
-            f" <- [Proofread {os.path.basename(file_path)} {batch_num}/{total_batches}] "
-            f"completed ({len(updated_items)} rows)"
-        )
-        return {
-            "file_path": file_path,
-            "updated_items": updated_items,
-        }
+            except Exception as e:
+                last_error = str(e)
 
-    def _build_table_proofread_prompt(self, batch_items: list[dict]) -> tuple[list[dict], str]:
-        target_language = str(getattr(self.config, "target_language", "") or "").replace("_", " ")
+            # 打印重试日志
+            if attempt < self.MAX_REQUEST_ATTEMPTS:
+                print(f" [!] [Proofread {file_basename} {task_idx}/{total_tasks}] Attempt {attempt} failed, retrying... Error: {last_error}")
+            else:
+                print(f" [x] [Proofread {file_basename} {task_idx}/{total_tasks}] Failed after {self.MAX_REQUEST_ATTEMPTS} attempts. Error: {last_error}")
 
-        item_blocks = []
-        for index, item in enumerate(batch_items, start=1):
-            issue_type = item.get("error_type") or "Unspecified issue"
+        return None
+
+    def _build_single_proofread_prompt(self, item: dict) -> tuple[list[dict], str]:
+            """构建带有 Few-Shot 的单条 Prompt（全中文）"""
+            target_language = str(getattr(self.config, "target_language", "") or "").replace("_", " ")
+            lang_instruction = target_language if target_language else "当前译文所使用的语言"
+
+            issue_type = item.get("error_type") or "未指定具体问题"
             source_text = item.get("source_text", "")
             translation_text = item.get("translation_text", "")
-            translation_display = translation_text if translation_text else "[EMPTY]"
-            item_blocks.append(
-                f"{index}. Issue Type: {issue_type}\n"
-                f"Source Text:\n{source_text}\n"
-                f"Current Translation:\n{translation_display}"
+            translation_display = translation_text if translation_text else "[空]"
+
+            system_prompt = (
+                "你是一名专业的翻译校对员。"
+                "你将收到一个问题类型、原文和当前译文。你的唯一任务是输出校对修改后的最终译文。\n"
+                "【关键规则】\n"
+                "1. 只能输出校对后的译文文本，绝不要输出任何多余的文字。\n"
+                "2. 不要提供任何解释、道歉，也不要使用 markdown 代码块（如 ```）包裹内容。\n"
+                "3. 严格保留原文中的占位符、变量、标签、转义字符、换行符和特殊格式。\n"
+                "4. 如果当前译文为空、缺失或质量极其糟糕，请直接根据原文进行重新翻译。"
             )
 
-        system_prompt = (
-            "You are a professional translation proofreader. "
-            "You will receive an issue type, source text, and current translation for each item. "
-            "Output only the corrected final translation for each item without explanations."
-        )
-        item_blocks_text = "\n\n".join(item_blocks)
-        user_prompt = (
-            f"Target language: {target_language or 'keep the language used by the current translation'}\n"
-            "Please proofread each item below.\n"
-            "Requirements:\n"
-            "1. Output only the corrected translation. Do not explain and do not repeat the source text.\n"
-            "2. Preserve placeholders, variables, tags, escape sequences, line breaks, and special formatting.\n"
-            "3. If the current translation is empty, missing, or clearly does not satisfy the issue type, translate directly from the source text.\n"
-            "4. If the issue type mentions terminology, exclusion markers, line breaks, or placeholders, fix those issues first.\n"
-            "5. Keep the output order exactly the same as the input order.\n"
-            "Return the result strictly in this format:\n"
-            "<textarea>\n"
-            "1.Corrected translation\n"
-            "2.Corrected translation\n"
-            "</textarea>\n\n"
-            "Items to proofread:\n"
-            f"{item_blocks_text}"
-        )
+            # 引入 Few-Shot (少样本示例)，通过对话历史规训AI的输出格式
+            fake_user_1 = (
+                f"目标语言：{lang_instruction}\n"
+                f"问题类型：标签缺失\n"
+                f"原文：\nHello <b>World</b>\n"
+                f"当前译文：\n你好 World\n"
+                f"---\n请输出校对后的最终译文："
+            )
+            fake_assistant_1 = "你好 <b>World</b>"
 
-        return [{"role": "user", "content": user_prompt}], system_prompt
+            fake_user_2 = (
+                f"目标语言：{lang_instruction}\n"
+                f"问题类型：占位符不匹配\n"
+                f"原文：\nDamage: {{dmg_val}} points\n"
+                f"当前译文：\n伤害：{{damage}}点\n"
+                f"---\n请输出校对后的最终译文："
+            )
+            fake_assistant_2 = "伤害：{dmg_val}点"
+
+            # 真实请求
+            user_prompt = (
+                f"目标语言：{lang_instruction}\n"
+                f"问题类型：{issue_type}\n"
+                f"原文：\n{source_text}\n"
+                f"当前译文：\n{translation_display}\n"
+                f"---\n请输出校对后的最终译文："
+            )
+
+            messages = [
+                {"role": "user", "content": fake_user_1},
+                {"role": "assistant", "content": fake_assistant_1},
+                {"role": "user", "content": fake_user_2},
+                {"role": "assistant", "content": fake_assistant_2},
+                {"role": "user", "content": user_prompt},
+            ]
+
+            return messages, system_prompt
 
     def _emit_updates(self, updates_by_file: dict) -> None:
+        """向主线程/UI发射更新事件"""
         for file_path, updated_items in updates_by_file.items():
             if not updated_items:
                 continue
 
-            self.info(f" Writing {len(updated_items)} proofreading results back to the table...")
+            self.info(f" Writing {len(updated_items)} proofreading results back to {os.path.basename(file_path)}...")
             self.emit(
                 Base.EVENT.TABLE_UPDATE,
                 {
                     "file_path": file_path,
-                    "target_column_index": 2,
+                    "target_column_index": 2, # 通常2为翻译列
                     "translation_status": TranslationStatus.POLISHED,
                     "updated_items": dict(updated_items),
                 },
             )
 
     def _finish(self) -> None:
+        """收尾状态更新"""
         if Base.work_status == Base.STATUS.STOPING:
             Base.work_status = Base.STATUS.TASKSTOPPED
             self.info(" Table AI proofreading task stopped")

@@ -155,29 +155,64 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             return {"characters": [], "terms": [], "non_translate": []}
 
     def _build_first_stage_prompt(self, source_text: str) -> tuple[str, list[dict]]:
-        system_prompt = (
-            "你现在的唯一任务是根据输入文本提取角色、术语和不翻译项。\n"
-            "不要输出解释，不要输出多余文字，只保留创作分析所需的信息。\n"
-            "忠诚准确地辅助提取，不应随意删减或篡改，以保持信息完整。\n"
-            "输出必须是合法 JSON，并且严格遵守以下结构：\n"
-            "```json\n"
-            "{\n"
-            "  \"characters\": [{\"source\": \"原文\", \"recommended_translation\": \"译名\", \"gender\": \"男性|女性|其他\", \"note\": \"备注\"}],\n"
-            "  \"terms\": [{\"source\": \"原文\", \"recommended_translation\": \"译名\", \"category_path\": \"身份|物品|地名等\", \"note\": \"备注\"}],\n"
-            "  \"non_translate\": [{\"marker\": \"标识\", \"category\": \"变量|标记等\", \"note\": \"备注\"}]\n"
-            "}\n"
-            "```"
-        )
-        fake_user = "请分析以下文本并提取角色、术语和不翻译项：\n---\n露娜小姐：请去星门集合。\n欢迎，{player}\n播放 BGM\n---\n请输出提取结果。"
-        fake_assistant = "```json\n{\"characters\": [{\"source\": \"露娜小姐\", \"recommended_translation\": \"露娜小姐\", \"gender\": \"女性\", \"note\": \"\"}], \"terms\": [{\"source\": \"星门\", \"recommended_translation\": \"星门\", \"category_path\": \"地名\", \"note\": \"\"}], \"non_translate\": [{\"marker\": \"{player}\", \"category\": \"变量键名\", \"note\": \"\"}]}\n```"
-        user_prompt = f"请分析以下文本并提取角色、术语和不翻译项：\n---\n{source_text}\n---\n请输出提取结果。"
-        messages = [
-            {"role": "user", "content": fake_user},
-            {"role": "assistant", "content": fake_assistant},
-            {"role": "user", "content": user_prompt},
-            {"role": "assistant", "content": "我将忠实整理文本中的候选信息，并严格按要求输出结构化结果。\n```json\n"},
-        ]
-        return system_prompt, messages
+            """第一阶段：独立文本提取（优化版提示词）"""
+            system_prompt = (
+                "你是一个专业的游戏与本地化文本分析专家。你的唯一任务是从给定的文本中提取出：角色名、专有名词（术语）以及不需要翻译的代码/标记。\n"
+                "【严格执行以下规则】\n"
+                "1. 原样提取：提取的 `source` 必须与原文一字不差，绝对不要修改大小写或标点。\n"
+                "2. 拒绝脑补：只提取文本中实际出现的实体，不要联想或创造。\n"
+                "3. 宁缺毋滥：对于普通词汇（如“苹果”、“跑”、“明天”），不要提取。如果没有值得提取的内容，返回空列表。\n"
+                "4. 分类规范：\n"
+                "   - characters(角色): 文本中出现的具体人物、怪物、神明等名字。gender 填: 男性/女性/其他。\n"
+                "   - terms(术语): 地名、组织、物品名、技能名、独特概念等。category_path 填: 地名/物品/组织/技能/其他。\n"
+                "   - non_translate(不翻译项): 必须保留的机器代码，如 HTML标签(<b>)、占位符(%s)、变量({{name}})。category 填: 标签/变量/占位符/标记符/转义控制符/资源标识/数值公式/其他。\n"
+                "【输出格式】\n"
+                "必须输出合法的 JSON 代码块，严格遵守以下结构：\n"
+                "```json\n"
+                "{\n"
+                "  \"characters\": [{\"source\": \"原文\", \"recommended_translation\": \"推荐译名\", \"gender\": \"\", \"note\": \"\"}],\n"
+                "  \"terms\": [{\"source\": \"原文\", \"recommended_translation\": \"推荐译名\", \"category_path\": \"\", \"note\": \"\"}],\n"
+                "  \"non_translate\": [{\"marker\": \"代码或标记\", \"category\": \"\", \"note\": \"\"}]\n"
+                "}\n"
+                "```"
+            )
+            
+            # 优化 Few-Shot：包含更丰富的混合场景，注意 {{}} 是转义 Python 的 f-string 占位符
+            fake_user = (
+                "请分析以下文本并提取信息：\n"
+                "---\n"
+                "露娜小姐：请携带[圣剑]前往星门集合。\n"
+                "系统提示：欢迎回来，{{player_name}}！<br>请注意<color=red>HP</color>的变化。\n"
+                "---\n"
+                "请输出 JSON 提取结果。"
+            )
+            fake_assistant = (
+                "```json\n"
+                "{\n"
+                "  \"characters\": [\n"
+                "    {\"source\": \"露娜小姐\", \"recommended_translation\": \"露娜小姐\", \"gender\": \"女性\", \"note\": \"NPC称呼\"}\n"
+                "  ],\n"
+                "  \"terms\": [\n"
+                "    {\"source\": \"圣剑\", \"recommended_translation\": \"圣剑\", \"category_path\": \"物品\", \"note\": \"武器名称\"},\n"
+                "    {\"source\": \"星门\", \"recommended_translation\": \"星门\", \"category_path\": \"地名\", \"note\": \"地点\"}\n"
+                "  ],\n"
+                "  \"non_translate\": [\n"
+                "    {\"marker\": \"{{player_name}}\", \"category\": \"变量\", \"note\": \"玩家名变量\"},\n"
+                "    {\"marker\": \"<br>\", \"category\": \"标签\", \"note\": \"换行符\"},\n"
+                "    {\"marker\": \"<color=red>\", \"category\": \"标签\", \"note\": \"颜色富文本标签\"},\n"
+                "    {\"marker\": \"</color>\", \"category\": \"标签\", \"note\": \"颜色富文本标签闭合\"}\n"
+                "  ]\n"
+                "}\n"
+                "```"
+            )
+            
+            user_prompt = f"请分析以下文本并提取信息：\n---\n{source_text}\n---\n请输出 JSON 提取结果。"
+            messages = [
+                {"role": "user", "content": fake_user},
+                {"role": "assistant", "content": fake_assistant},
+                {"role": "user", "content": user_prompt},
+            ]
+            return system_prompt, messages
 
 
     # ========================================================================
@@ -265,27 +300,57 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         return batches
 
     def _build_second_stage_prompt(self, batch: list) -> tuple[str, list[dict]]:
+        """第二阶段：候选归并与 AI 裁决（优化版提示词）"""
         system_prompt = (
-            "你现在的唯一任务是对候选组进行归并裁决，判断每个 group 最终属于角色还是术语。\n"
-            "必须综合同一组中的全部候选，输出最合理的归类、译名与备注。\n"
-            "输出必须是合法 JSON，并且严格遵守以下结构：\n"
+            "你是一个本地化术语库规范化专家。你将收到一组经初步提取的“候选词组（Group）”。\n"
+            "有时候相同的词汇会被误判为不同的类型（如既被识别为角色，又被识别为术语）。\n"
+            "你的唯一任务是：综合判定每个 Group，裁决它最终属于“角色(characters)”还是“术语(terms)”，并提炼出一个最准确的结果。\n"
+            "【严格执行以下规则】\n"
+            "1. 唯一归属：同一个词不能既是角色又是术语，必须二选一。\n"
+            "2. 主键保留：输出的 `source` 必须严格使用传入的 `主source`，绝不能随意篡改。\n"
+            "3. 丢弃无价值词汇：如果某个 Group 里的词汇看起来是普通词语（如“今天”、“然后”），请直接忽略，不要输出它。\n"
+            "4. 信息整合：如果推荐译名或备注有多个参考，请合并为你认为最合理的版本。\n"
+            "【输出格式】\n"
+            "必须输出合法的 JSON 代码块，严格遵守以下结构：\n"
             "```json\n"
             "{\n"
-            "  \"characters\": [{\"source\": \"主source\", \"recommended_translation\": \"推荐译名\", \"gender\": \"男性|女性|其他\", \"note\": \"备注\"}],\n"
-            "  \"terms\": [{\"source\": \"主source\", \"recommended_translation\": \"推荐译名\", \"category_path\": \"身份|物品|组织|地名|其他\", \"note\": \"备注\"}]\n"
+            "  \"characters\": [{\"source\": \"主source\", \"recommended_translation\": \"推荐译名\", \"gender\": \"男性|女性|其他\", \"note\": \"整合后的备注\"}],\n"
+            "  \"terms\": [{\"source\": \"主source\", \"recommended_translation\": \"推荐译名\", \"category_path\": \"身份|物品|组织|地名|其他\", \"note\": \"整合后的备注\"}]\n"
             "}\n"
-            "```\n"
-            "注意：输出时 source 必须使用每个 group 的主 source！"
+            "```"
         )
-        fake_user = f"请分析候选组并完成裁决：\n---\n[{json.dumps({'source': '露娜小姐', 'candidates': [{'type': 'character'}]}, ensure_ascii=False)}]\n---\n输出结果。"
-        fake_assistant = "```json\n{\"characters\": [{\"source\": \"露娜小姐\", \"recommended_translation\": \"露娜小姐\", \"gender\": \"女性\", \"note\": \"\"}], \"terms\": []}\n```"
-        user_prompt = f"请分析以下候选组并完成合并裁决：\n---\n{json.dumps(batch, ensure_ascii=False)}\n---\n请输出合并结果。"
+        
+        # 优化 Few-Shot：展示如何解决类型冲突和合并备注
+        sample_group = [
+            {
+                "source": "亚瑟王",
+                "merged_sources": ["亚瑟王", "亚瑟"],
+                "candidates": [
+                    {"type": "character", "recommended_translation": "King Arthur", "gender": "男性", "note": "历史人物"},
+                    {"type": "term", "recommended_translation": "Arthur", "category_path": "称号", "note": "错误分类为术语"}
+                ]
+            }
+        ]
+        import rapidjson as json
+        
+        fake_user = f"请分析以下候选组并完成合并裁决：\n---\n{json.dumps(sample_group, ensure_ascii=False)}\n---\n请输出 JSON 合并结果。"
+        fake_assistant = (
+            "```json\n"
+            "{\n"
+            "  \"characters\": [\n"
+            "    {\"source\": \"亚瑟王\", \"recommended_translation\": \"King Arthur\", \"gender\": \"男性\", \"note\": \"历史人物\"}\n"
+            "  ],\n"
+            "  \"terms\": []\n"
+            "}\n"
+            "```"
+        )
+        
+        user_prompt = f"请分析以下候选组并完成合并裁决：\n---\n{json.dumps(batch, ensure_ascii=False)}\n---\n请输出 JSON 合并结果。"
         
         messages = [
             {"role": "user", "content": fake_user},
             {"role": "assistant", "content": fake_assistant},
             {"role": "user", "content": user_prompt},
-            {"role": "assistant", "content": "我将忠实整理每个候选组，并只保留最终裁决结果。\n```json\n"},
         ]
         return system_prompt, messages
 

@@ -67,20 +67,24 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         TERM_OTHER,
     )
 
+    # ==========================
+    # 更新：8 大不翻译项分类常量
+    # ==========================
+    NON_TRANSLATE_TAG = "标签"
+    NON_TRANSLATE_VARIABLE = "变量"
     NON_TRANSLATE_PLACEHOLDER = "占位符"
-    NON_TRANSLATE_MARKUP = "标记符"
-    NON_TRANSLATE_CODE = "调用代码"
-    NON_TRANSLATE_ESCAPE = "转义控制符"
-    NON_TRANSLATE_VARIABLE = "变量键名"
+    NON_TRANSLATE_MACRO = "特殊宏"
+    NON_TRANSLATE_ESCAPE = "转义符"
     NON_TRANSLATE_RESOURCE = "资源标识"
     NON_TRANSLATE_NUMERIC = "数值公式"
     NON_TRANSLATE_OTHER = "其他"
+    
     NON_TRANSLATE_CATEGORIES = (
-        NON_TRANSLATE_PLACEHOLDER,
-        NON_TRANSLATE_MARKUP,
-        NON_TRANSLATE_CODE,
-        NON_TRANSLATE_ESCAPE,
+        NON_TRANSLATE_TAG,
         NON_TRANSLATE_VARIABLE,
+        NON_TRANSLATE_PLACEHOLDER,
+        NON_TRANSLATE_MACRO,
+        NON_TRANSLATE_ESCAPE,
         NON_TRANSLATE_RESOURCE,
         NON_TRANSLATE_NUMERIC,
         NON_TRANSLATE_OTHER,
@@ -1460,21 +1464,24 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             return self.TERM_LOCATION
         return self.TERM_OTHER
 
+    # ==========================
+    # 不翻译项分类推导逻辑
+    # ==========================
     def _normalize_non_translate_category(self, value, marker="", note="") -> str:
         text = str(value or "").strip().lower()
         combined_hint = f"{text} {marker} {note}".lower()
         
-        if any(token in combined_hint for token in ["占位", "placeholder", "%s", "{0}", "%d", "{x}"]):
-            return self.NON_TRANSLATE_PLACEHOLDER
-        if any(token in combined_hint for token in ["标记", "markup", "标签", "<", ">", "color=", "size=", "<b>", "<i>"]):
-            return self.NON_TRANSLATE_MARKUP
-        if any(token in combined_hint for token in ["调用", "代码", "函数", "code", "func", "call", "()"]):
-            return self.NON_TRANSLATE_CODE
-        if any(token in combined_hint for token in ["转义", "换行", "escape", "\\n", "\\t", "\\r"]):
-            return self.NON_TRANSLATE_ESCAPE
-        if any(token in combined_hint for token in ["变量", "键名", "variable", "var", "key", "$", "@"]):
+        if any(token in combined_hint for token in ["标签", "tag", "html", "<", ">", "</"]):
+            return self.NON_TRANSLATE_TAG
+        if any(token in combined_hint for token in ["变量", "var", "{{", "}}", "$"]):
             return self.NON_TRANSLATE_VARIABLE
-        if any(token in combined_hint for token in ["资源", "路径", "标识", "resource", "asset", "path", ".png", ".wav", ".mp3", "assets/"]):
+        if any(token in combined_hint for token in ["占位", "placeholder", "%s", "%d", "{0}", "{1}"]):
+            return self.NON_TRANSLATE_PLACEHOLDER
+        if any(token in combined_hint for token in ["特殊宏", "宏", "macro", "icon", "[", "]", "【", "】"]):
+            return self.NON_TRANSLATE_MACRO
+        if any(token in combined_hint for token in ["转义", "escape", "\\n", "\\t", "\\r", "\\\""]):
+            return self.NON_TRANSLATE_ESCAPE
+        if any(token in combined_hint for token in ["资源", "路径", "标识", "res", "path", ".png", ".wav", ".mp3", "audio"]):
             return self.NON_TRANSLATE_RESOURCE
         if any(token in combined_hint for token in ["数值", "公式", "计算", "numeric", "math", "+", "-", "*", "/", "="]):
             return self.NON_TRANSLATE_NUMERIC
