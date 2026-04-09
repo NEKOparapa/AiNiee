@@ -78,6 +78,18 @@
       "English": "When enabled, the output translated file's encoding will match the input original file's encoding (falls back to UTF-8 if characters are incompatible). \nWhen disabled, UTF-8 encoding will always be used. (Leave disabled under normal circumstances)",
       "日本語": "この機能を有効にすると、出力翻訳ファイルのエンコーディングは入力原文ファイルのエンコーディングと一致します（文字に互換性がない場合はutf-8を使用します）。\n無効にすると、常にutf-8エンコーディングを使用します。（通常はオフのままで問題ありません）"
     },
+    "输出翻译检查结果": {
+      "简中": "输出翻译检查结果",
+      "繁中": "輸出翻譯檢查結果",
+      "English": "Output Translation Check Results",
+      "日本語": "翻訳チェック結果を出力"
+    },
+    "启用后，将在翻译任务完成并输出文件后执行翻译检查并输出总结，在发现问题时生成 JSON 错误报告": {
+      "简中": "启用后，将在翻译任务完成并输出文件后执行翻译检查并输出总结，在发现问题时生成 JSON 错误报告",
+      "繁中": "啟用後，將在翻譯任務完成並輸出檔案後執行翻譯檢查並輸出總結，發現問題時生成 JSON 錯誤報告",
+      "English": "When enabled, translation checks run after output files are written, a summary is printed, and a JSON error report is generated if issues are found.",
+      "日本語": "有効にすると、翻訳タスク完了後に出力ファイルを書き出したあと翻訳チェックと要約出力を実行し、問題が見つかった場合は JSON のエラーレポートを生成します。"
+    },
     "自动简繁转换": {
       "简中": "自动简繁转换",
       "繁中": "自動簡繁轉換",

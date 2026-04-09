@@ -43,11 +43,11 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
         self.container.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
 
         # 添加控件
-        self.add_widget_language_filter(self.container, config)
-        self.container.addWidget(HorizontalSeparator())
         self.add_widget_pre_lines(self.container, config)
+        self.container.addWidget(HorizontalSeparator())
         self.add_auto_process_text_code_segment(self.container, config)
         self.add_widget_text_symbol_repair(self.container, config)
+        self.add_widget_language_filter(self.container, config)
         self.add_widget_few_shot_and_example(self.container, config)
         self.container.addWidget(HorizontalSeparator())
         self.add_widget_result_check(self.container, config)
@@ -76,7 +76,7 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
             )
         )
 
-    # 非目标语言文本自动过滤
+    # 自动过滤其他语言文本
     def add_widget_language_filter(self, parent, config) -> None:
 
         def init(widget: SwitchButtonCard) -> None:
@@ -89,8 +89,8 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                self.tra("非目标语言文本自动过滤"),
-                self.tra("启用后，将在翻译或润色前自动排除不属于当前目标语言处理范围的文本，仅控制内置 LanguageFilter 功能"),
+                self.tra("自动过滤其他语言文本"),
+                self.tra("启用后，将在翻译前，自动过滤掉与设置的原文语言不一致的文本，不参与翻译"),
                 init = init,
                 checked_changed = checked_changed,
             )

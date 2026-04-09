@@ -56,8 +56,6 @@ class TranslationResultCheck:
             os.makedirs(output_path, exist_ok=True)
 
         # 获取配置项
-        prompt_dictionary_switch = config.prompt_dictionary_switch
-        prompt_dictionary_data = config.prompt_dictionary_data if prompt_dictionary_switch else [] # 仅在开关打开时获取
         exclusion_list_switch = config.exclusion_list_switch
         exclusion_list_data = config.exclusion_list_data if exclusion_list_switch else [] # 仅在开关打开时获取
         auto_process_text_code_segment = config.auto_process_text_code_segment
@@ -71,7 +69,6 @@ class TranslationResultCheck:
 
         total_error_count = 0 # 统计总错误数
         check_summary = {
-            "prompt_dictionary_errors": 0,
             "exclusion_list_errors": 0,
             "auto_process_errors": 0,
             "newline_errors": 0,
@@ -154,12 +151,6 @@ class TranslationResultCheck:
 
                 elif translation_status == 1: # 已翻译条目
                     # 各项检查，并将错误信息添加到 current_entry_errors
-                    # 术语表检查
-                    if prompt_dictionary_switch and prompt_dictionary_data:
-                        errors = self.check_prompt_dictionary(source_text, translated_text, prompt_dictionary_data)
-                        if errors:
-                            check_summary["prompt_dictionary_errors"] += len(errors)
-                            current_entry_errors.extend(errors)
                     # 禁翻表功能检查
                     if exclusion_list_switch and exclusion_list_data:
                         errors = self.check_exclusion_list(source_text, translated_text, exclusion_list_data)
@@ -217,8 +208,6 @@ class TranslationResultCheck:
             summary_messages = ["\n"+"=" * 60, "          ✨ 检查总结 ✨          ", "─" * 60]
             if total_error_count > 0:
                 summary_messages.append(f"          ❌ 共发现 {total_error_count} 个潜在问题 ❌")
-                if check_summary["prompt_dictionary_errors"] > 0:
-                    summary_messages.append(f"  - 📚 术语表检查: {check_summary['prompt_dictionary_errors']} 个错误 ⚠️")
                 if check_summary["exclusion_list_errors"] > 0:
                     summary_messages.append(f"  - 🚫 禁翻表检查: {check_summary['exclusion_list_errors']} 个错误 ⚠️")
                 if check_summary["auto_process_errors"] > 0:
@@ -333,24 +322,6 @@ class TranslationResultCheck:
         display_percent = max(0.0, display_percent)
 
         return f"{level_name} {level_desc} \n  🎉恭喜你，翻译速度超越全宇宙 {display_percent:.1f}% 的用户！！！"
-
-
-    def check_prompt_dictionary(self, source_text, translated_text, prompt_dictionary_data):
-        """检查术语表功能, 返回错误信息列表"""
-        errors = []
-        # prompt_dictionary_data 已在调用前检查过非空
-        for term in prompt_dictionary_data:
-           if isinstance(term, dict): # 确保 term 是字典
-                src_term = term.get("src")
-                dst_term = term.get("dst")
-                # 确保 src_term 和 dst_term 都存在且非空
-                if src_term and dst_term:
-                    # 简单的包含检查，可能需要更复杂的逻辑（如大小写、词形变化）
-                    if src_term in source_text:
-                        if dst_term not in translated_text:
-                            error_msg = f"📚[术语表错误] 原文含 '{src_term}'，译文未找到对应术语 '{dst_term}'"
-                            errors.append(error_msg)
-        return errors
 
 
     def check_exclusion_list(self, source_text, translated_text, exclusion_list_data):

@@ -153,7 +153,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
             )
         )
 
-    # 翻译结果检查
+    # 输出翻译检查结果
     def add_widget_translation_result_check(self, parent, config) -> None:
         def widget_init(widget) -> None:
             widget.set_checked(config.get("translation_result_check_switch"))
@@ -165,8 +165,8 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                self.tra("翻译结果检查"),
-                self.tra("启用后，将在翻译任务完成并输出文件后执行翻译结果检查，输出检查总结，并在发现问题时生成 JSON 错误报告"),
+                self.tra("输出翻译检查结果"),
+                self.tra("启用后，将在翻译任务完成并输出文件后执行翻译检查并输出总结，在发现问题时生成 JSON 错误报告"),
                 widget_init,
                 widget_callback,
             )
