@@ -16,6 +16,8 @@ from qfluentwidgets import (
     HorizontalPipsPager,
     PipsScrollButtonDisplayMode,
     RoundMenu,
+    StrongBodyLabel,
+    setFont,
 )
 
 from ModuleFolders.Base.Base import Base
@@ -103,9 +105,15 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.pager = HorizontalPipsPager(self.pager_container)
         self.pager.setNextButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
         self.pager.setPreviousButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
+        self.page_info_label = StrongBodyLabel("", self.pager_container)
+        setFont(self.page_info_label, 12)
+        self.page_info_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.page_info_label.setFixedHeight(14)
 
         pager_layout.addStretch(1)
         pager_layout.addWidget(self.pager)
+        pager_layout.addSpacing(12)
+        pager_layout.addWidget(self.page_info_label)
         pager_layout.addStretch(1)
 
     def _update_pager(self):
@@ -115,6 +123,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         if self._page_count > 0:
             self.pager.setCurrentIndex(min(self._current_page_index, self._page_count - 1))
 
+        self._update_page_info_label()
         self.pager_container.setVisible(self._page_count > 1)
 
     def _get_page_range(self, page_index: int):
@@ -166,12 +175,16 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             return
 
         self._current_page_index = page_index
+        self._update_page_info_label()
         self._populate_real_data(page_index)
 
     def _get_current_page_number(self):
         if self._page_count == 0:
             return 0
         return self._current_page_index + 1
+
+    def _update_page_info_label(self):
+        self.page_info_label.setText(f"{self._get_current_page_number()}/{max(1, self._page_count)}")
 
     def _sync_local_item(self, text_index: int, new_text: str, translation_status: int | None = None):
         item = self._items_by_text_index.get(text_index)
@@ -223,12 +236,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
 
         row_count_action = Action(
             FIF.LEAF,
-            self.tra("总行数: {}，当前页: {}/{}，本页: {}").format(
-                len(self._all_items),
-                self._get_current_page_number(),
-                self._page_count,
-                self.table.rowCount(),
-            ),
+            self.tra("总行数: {}").format(len(self._all_items)),
         )
         row_count_action.setEnabled(False)
         menu.addAction(row_count_action)
