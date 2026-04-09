@@ -459,152 +459,6 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         thread = threading.Thread(target=self.process_table_polish, args=(data,), daemon=True)
         thread.start()
 
-    def handle_table_proofread_start(self, event, data: dict):
-        thread = threading.Thread(target=self.process_table_proofread, args=(data,), daemon=True)
-        thread.start()
-
-    def process_table_proofread(self, data: dict):
-        """Handle fixed proofreading tasks triggered from issue result tables."""
-        file_path = data.get("file_path")
-        items_to_proofread = data.get("items_to_proofread") or []
-
-        if not file_path or not items_to_proofread:
-            Base.work_status = Base.STATUS.IDLE
-            return
-
-        config = TaskConfig()
-        config.initialize()
-        config.prepare_for_active_platform()
-        max_threads = config.actual_thread_counts
-
-        max_lines = 20
-        total_items = len(items_to_proofread)
-        num_batches = (total_items + max_lines - 1) // max_lines
-
-        self.info(f" Starting table AI proofreading task: {os.path.basename(file_path)}")
-        self.info(f"    Total rows: {total_items}, batches: {num_batches}")
-        self.info(f"    Concurrent workers: {max_threads} (UI will refresh after task completion)")
-
-        final_updated_items = {}
-        success_batches = 0
-        failed_batches = 0
-
-        def proofread_worker(batch_idx, batch_items):
-            batch_num = batch_idx + 1
-            current_platform_config = config.get_active_platform_configuration()
-
-            source_text_dict = {str(idx): item["source_text"] for idx, item in enumerate(batch_items)}
-            index_map = [item["text_index"] for item in batch_items]
-            messages, system_prompt = self._build_table_proofread_prompt(config, batch_items)
-
-            print(f" -> [Batch {batch_num}] sending proofreading request ({len(batch_items)} rows)...")
-
-            requester = LLMRequester()
-            skip, _, response_content, _, _ = requester.sent_request(
-                messages, system_prompt, current_platform_config
-            )
-
-            if skip:
-                print(f" <- [Batch {batch_num}] request failed")
-                return None
-
-            response_dict = ResponseExtractor.text_extraction(self, source_text_dict, response_content)
-            check_result, _ = ResponseChecker.check_polish_response_content(
-                self, config, response_content, response_dict, source_text_dict
-            )
-
-            if not check_result:
-                print(f" <- [Batch {batch_num}] validation failed")
-                return None
-
-            restored_response_dict = {
-                index_map[int(temp_idx_str)]: text
-                for temp_idx_str, text in response_dict.items()
-            }
-            updated_items = ResponseExtractor.remove_numbered_prefix(self, restored_response_dict)
-            print(f" <- [Batch {batch_num}] completed ({len(updated_items)} rows)")
-            return updated_items
-
-        with ThreadPoolExecutor(max_workers=max_threads) as executor:
-            future_to_batch = {}
-            for i in range(num_batches):
-                start_index = i * max_lines
-                end_index = start_index + max_lines
-                batch_items = items_to_proofread[start_index:end_index]
-
-                future = executor.submit(proofread_worker, i, batch_items)
-                future_to_batch[future] = i
-
-            for future in as_completed(future_to_batch):
-                try:
-                    result = future.result()
-                    if result:
-                        final_updated_items.update(result)
-                        success_batches += 1
-                    else:
-                        failed_batches += 1
-                except Exception as e:
-                    self.error(f"Batch execution error: {e}")
-                    failed_batches += 1
-
-        self.info(f" Proofreading batches completed. Success: {success_batches}, Failed: {failed_batches}")
-
-        if final_updated_items:
-            self.info(f" Writing {len(final_updated_items)} proofreading results back to the table...")
-            self.emit(Base.EVENT.TABLE_UPDATE, {
-                "file_path": file_path,
-                "target_column_index": 2,
-                "translation_status": TranslationStatus.POLISHED,
-                "updated_items": final_updated_items
-            })
-        else:
-            self.warning(" No valid proofreading results were returned, table not updated.")
-
-        Base.work_status = Base.STATUS.IDLE
-        self.info(" Table AI proofreading task finished")
-
-    def _build_table_proofread_prompt(self, config: TaskConfig, batch_items: list[dict]) -> tuple[list[dict], str]:
-        target_language = str(getattr(config, "target_language", "") or "").replace("_", " ")
-
-        item_blocks = []
-        for index, item in enumerate(batch_items, start=1):
-            issue_type = item.get("error_type") or "Unspecified issue"
-            source_text = item.get("source_text", "")
-            translation_text = item.get("translation_text", "")
-            translation_display = translation_text if translation_text else "[EMPTY]"
-            item_blocks.append(
-                f"{index}. Issue Type: {issue_type}\n"
-                f"Source Text:\n{source_text}\n"
-                f"Current Translation:\n{translation_display}"
-            )
-
-        system_prompt = (
-            "You are a professional translation proofreader. "
-            "You will receive an issue type, source text, and current translation for each item. "
-            "Output only the corrected final translation for each item without explanations."
-        )
-        item_blocks_text = "\n\n".join(item_blocks)
-        user_prompt = (
-            f"Target language: {target_language or 'keep the language used by the current translation'}\n"
-            "Please proofread each item below.\n"
-            "Requirements:\n"
-            "1. Output only the corrected translation. Do not explain and do not repeat the source text.\n"
-            "2. Preserve placeholders, variables, tags, escape sequences, line breaks, and special formatting.\n"
-            "3. If the current translation is empty, missing, or clearly does not satisfy the issue type, translate directly from the source text.\n"
-            "4. If the issue type mentions terminology, exclusion markers, line breaks, or placeholders, fix those issues first.\n"
-            "5. Keep the output order exactly the same as the input order.\n"
-            "Return the result strictly in this format:\n"
-            "<textarea>\n"
-            "1.Corrected translation\n"
-            "2.Corrected translation\n"
-            "</textarea>\n\n"
-            "Items to proofread:\n"
-            f"{item_blocks_text}"
-        )
-
-        return [{"role": "user", "content": user_prompt}], system_prompt
-
-
     # 表格文本的分批润色
     def process_table_polish(self, data: dict):
         """处理表格文件的批量润色任务"""
@@ -718,3 +572,151 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         Base.work_status = Base.STATUS.IDLE 
         self.info(f" 🐳 表格润色任务结束")     
 
+
+    # 响应表格校对事件
+    def handle_table_proofread_start(self, event, data: dict):
+        thread = threading.Thread(target=self.process_table_proofread, args=(data,), daemon=True)
+        thread.start()
+
+    # 处理表格校对任务
+    def process_table_proofread(self, data: dict):
+        """Handle fixed proofreading tasks triggered from issue result tables."""
+        file_path = data.get("file_path")
+        items_to_proofread = data.get("items_to_proofread") or []
+
+        if not file_path or not items_to_proofread:
+            Base.work_status = Base.STATUS.IDLE
+            return
+
+        config = TaskConfig()
+        config.initialize()
+        config.prepare_for_active_platform()
+        max_threads = config.actual_thread_counts
+
+        max_lines = 20
+        total_items = len(items_to_proofread)
+        num_batches = (total_items + max_lines - 1) // max_lines
+
+        self.info(f" Starting table AI proofreading task: {os.path.basename(file_path)}")
+        self.info(f"    Total rows: {total_items}, batches: {num_batches}")
+        self.info(f"    Concurrent workers: {max_threads} (UI will refresh after task completion)")
+
+        final_updated_items = {}
+        success_batches = 0
+        failed_batches = 0
+
+        def proofread_worker(batch_idx, batch_items):
+            batch_num = batch_idx + 1
+            current_platform_config = config.get_active_platform_configuration()
+
+            source_text_dict = {str(idx): item["source_text"] for idx, item in enumerate(batch_items)}
+            index_map = [item["text_index"] for item in batch_items]
+            messages, system_prompt = self._build_table_proofread_prompt(config, batch_items)
+
+            print(f" -> [Batch {batch_num}] sending proofreading request ({len(batch_items)} rows)...")
+
+            requester = LLMRequester()
+            skip, _, response_content, _, _ = requester.sent_request(
+                messages, system_prompt, current_platform_config
+            )
+
+            if skip:
+                print(f" <- [Batch {batch_num}] request failed")
+                return None
+
+            response_dict = ResponseExtractor.text_extraction(self, source_text_dict, response_content)
+            check_result, _ = ResponseChecker.check_polish_response_content(
+                self, config, response_content, response_dict, source_text_dict
+            )
+
+            if not check_result:
+                print(f" <- [Batch {batch_num}] validation failed")
+                return None
+
+            restored_response_dict = {
+                index_map[int(temp_idx_str)]: text
+                for temp_idx_str, text in response_dict.items()
+            }
+            updated_items = ResponseExtractor.remove_numbered_prefix(self, restored_response_dict)
+            print(f" <- [Batch {batch_num}] completed ({len(updated_items)} rows)")
+            return updated_items
+
+        with ThreadPoolExecutor(max_workers=max_threads) as executor:
+            future_to_batch = {}
+            for i in range(num_batches):
+                start_index = i * max_lines
+                end_index = start_index + max_lines
+                batch_items = items_to_proofread[start_index:end_index]
+
+                future = executor.submit(proofread_worker, i, batch_items)
+                future_to_batch[future] = i
+
+            for future in as_completed(future_to_batch):
+                try:
+                    result = future.result()
+                    if result:
+                        final_updated_items.update(result)
+                        success_batches += 1
+                    else:
+                        failed_batches += 1
+                except Exception as e:
+                    self.error(f"Batch execution error: {e}")
+                    failed_batches += 1
+
+        self.info(f" Proofreading batches completed. Success: {success_batches}, Failed: {failed_batches}")
+
+        if final_updated_items:
+            self.info(f" Writing {len(final_updated_items)} proofreading results back to the table...")
+            self.emit(Base.EVENT.TABLE_UPDATE, {
+                "file_path": file_path,
+                "target_column_index": 2,
+                "translation_status": TranslationStatus.POLISHED,
+                "updated_items": final_updated_items
+            })
+        else:
+            self.warning(" No valid proofreading results were returned, table not updated.")
+
+        Base.work_status = Base.STATUS.IDLE
+        self.info(" Table AI proofreading task finished")
+
+    # 构建表格校对提示词
+    def _build_table_proofread_prompt(self, config: TaskConfig, batch_items: list[dict]) -> tuple[list[dict], str]:
+        target_language = str(getattr(config, "target_language", "") or "").replace("_", " ")
+
+        item_blocks = []
+        for index, item in enumerate(batch_items, start=1):
+            issue_type = item.get("error_type") or "Unspecified issue"
+            source_text = item.get("source_text", "")
+            translation_text = item.get("translation_text", "")
+            translation_display = translation_text if translation_text else "[EMPTY]"
+            item_blocks.append(
+                f"{index}. Issue Type: {issue_type}\n"
+                f"Source Text:\n{source_text}\n"
+                f"Current Translation:\n{translation_display}"
+            )
+
+        system_prompt = (
+            "You are a professional translation proofreader. "
+            "You will receive an issue type, source text, and current translation for each item. "
+            "Output only the corrected final translation for each item without explanations."
+        )
+        item_blocks_text = "\n\n".join(item_blocks)
+        user_prompt = (
+            f"Target language: {target_language or 'keep the language used by the current translation'}\n"
+            "Please proofread each item below.\n"
+            "Requirements:\n"
+            "1. Output only the corrected translation. Do not explain and do not repeat the source text.\n"
+            "2. Preserve placeholders, variables, tags, escape sequences, line breaks, and special formatting.\n"
+            "3. If the current translation is empty, missing, or clearly does not satisfy the issue type, translate directly from the source text.\n"
+            "4. If the issue type mentions terminology, exclusion markers, line breaks, or placeholders, fix those issues first.\n"
+            "5. Keep the output order exactly the same as the input order.\n"
+            "Return the result strictly in this format:\n"
+            "<textarea>\n"
+            "1.Corrected translation\n"
+            "2.Corrected translation\n"
+            "</textarea>\n\n"
+            "Items to proofread:\n"
+            f"{item_blocks_text}"
+        )
+
+        return [{"role": "user", "content": user_prompt}], system_prompt
