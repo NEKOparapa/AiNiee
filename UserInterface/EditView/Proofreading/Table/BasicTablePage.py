@@ -1,7 +1,22 @@
+from math import ceil
+
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QBrush, QColor
-from PyQt5.QtWidgets import QAbstractItemView, QHeaderView, QTableWidgetItem, QWidget, QVBoxLayout
-from qfluentwidgets import Action, FluentIcon as FIF, RoundMenu
+from PyQt5.QtWidgets import (
+    QAbstractItemView,
+    QHeaderView,
+    QHBoxLayout,
+    QTableWidgetItem,
+    QWidget,
+    QVBoxLayout,
+)
+from qfluentwidgets import (
+    Action,
+    FluentIcon as FIF,
+    HorizontalPipsPager,
+    PipsScrollButtonDisplayMode,
+    RoundMenu,
+)
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -12,6 +27,7 @@ from UserInterface.Widget.Toast import ToastMixin
 
 
 class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
+    PAGE_SIZE = 3000
     COL_NUM = 0
     COL_SOURCE = 1
     COL_TRANS = 2
@@ -30,6 +46,10 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self._item_changed_handler_enabled = True
         self.file_path = file_path
         self.cache_manager = cache_manager
+        self._all_items = file_items or []
+        self._items_by_text_index = {item.text_index: item for item in self._all_items}
+        self._current_page_index = 0
+        self._page_count = ceil(len(self._all_items) / self.PAGE_SIZE) if self._all_items else 0
 
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(5, 0, 0, 0)
@@ -37,11 +57,16 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
 
         self.table = AutoHeightTableWidget(self)
         self._init_table()
-        self.layout.addWidget(self.table)
+        self.layout.addWidget(self.table, 1)
 
-        self._populate_real_data(file_items)
+        self._init_pager()
+        self.layout.addWidget(self.pager_container)
+
+        self._update_pager()
+        self._populate_real_data(self._current_page_index)
 
         self.table.itemChanged.connect(self._on_item_changed)
+        self.pager.currentIndexChanged.connect(self._on_page_changed)
         self.subscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
 
     def _init_table(self):
@@ -69,14 +94,51 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._show_context_menu)
 
-    def _populate_real_data(self, items: list):
+    def _init_pager(self):
+        self.pager_container = QWidget(self)
+        pager_layout = QHBoxLayout(self.pager_container)
+        pager_layout.setContentsMargins(0, 8, 0, 8)
+        pager_layout.setSpacing(0)
+
+        self.pager = HorizontalPipsPager(self.pager_container)
+        self.pager.setNextButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
+        self.pager.setPreviousButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
+
+        pager_layout.addStretch(1)
+        pager_layout.addWidget(self.pager)
+        pager_layout.addStretch(1)
+
+    def _update_pager(self):
+        visible_number = min(8, max(1, self._page_count))
+        self.pager.setVisibleNumber(visible_number)
+        self.pager.setPageNumber(self._page_count)
+        if self._page_count > 0:
+            self.pager.setCurrentIndex(min(self._current_page_index, self._page_count - 1))
+
+        self.pager_container.setVisible(self._page_count > 1)
+
+    def _get_page_range(self, page_index: int):
+        if page_index < 0 or self._page_count == 0:
+            return 0, 0
+
+        start = page_index * self.PAGE_SIZE
+        end = min(start + self.PAGE_SIZE, len(self._all_items))
+        return start, end
+
+    def _get_page_items(self, page_index: int):
+        start, end = self._get_page_range(page_index)
+        return self._all_items[start:end], start
+
+    def _populate_real_data(self, page_index: int):
+        page_items, start_index = self._get_page_items(page_index)
         self._item_changed_handler_enabled = False
         try:
             highlight_brush = QBrush(QColor(144, 238, 144, 100))
 
-            self.table.setRowCount(len(items))
-            for row_idx, item_data in enumerate(items):
-                num_item = QTableWidgetItem(str(row_idx + 1))
+            self.table.clearContents()
+            self.table.setRowCount(len(page_items))
+            for row_idx, item_data in enumerate(page_items):
+                num_item = QTableWidgetItem(str(start_index + row_idx + 1))
                 num_item.setTextAlignment(Qt.AlignCenter)
                 num_item.setFlags(num_item.flags() & ~Qt.ItemIsEditable)
                 num_item.setData(Qt.UserRole, item_data.text_index)
@@ -92,8 +154,37 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                 if item_data.extra and item_data.extra.get("language_mismatch_translation", False):
                     trans_item.setBackground(highlight_brush)
             self.table.resizeRowsToContents()
+            self.table.scheduleResizeRowsToContents()
         finally:
             self._item_changed_handler_enabled = True
+
+    def _on_page_changed(self, page_index: int):
+        if page_index == self._current_page_index:
+            return
+
+        if not 0 <= page_index < self._page_count:
+            return
+
+        self._current_page_index = page_index
+        self._populate_real_data(page_index)
+
+    def _get_current_page_number(self):
+        if self._page_count == 0:
+            return 0
+        return self._current_page_index + 1
+
+    def _sync_local_item(self, text_index: int, new_text: str, translation_status: int | None = None):
+        item = self._items_by_text_index.get(text_index)
+        if item is None:
+            return
+
+        item.translated_text = new_text
+        if not new_text or not new_text.strip():
+            item.translation_status = TranslationStatus.UNTRANSLATED
+        elif translation_status is not None:
+            item.translation_status = translation_status
+        else:
+            item.translation_status = TranslationStatus.TRANSLATED
 
     def _on_item_changed(self, item: QTableWidgetItem):
         if not self._item_changed_handler_enabled:
@@ -117,6 +208,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             field_name="translated_text",
             new_text=new_text,
         )
+        self._sync_local_item(text_index, new_text)
         self.table.resizeRowToContentsSafe(row)
 
     def _show_context_menu(self, pos: QPoint):
@@ -129,7 +221,15 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             menu.addAction(Action(FIF.DELETE, self.tra("清空翻译"), triggered=self._clear_translation))
             menu.addSeparator()
 
-        row_count_action = Action(FIF.LEAF, self.tra("行数: {}").format(self.table.rowCount()))
+        row_count_action = Action(
+            FIF.LEAF,
+            self.tra("总行数: {}，当前页: {}/{}，本页: {}").format(
+                len(self._all_items),
+                self._get_current_page_number(),
+                self._page_count,
+                self.table.rowCount(),
+            ),
+        )
         row_count_action.setEnabled(False)
         menu.addAction(row_count_action)
         menu.exec(self.table.mapToGlobal(pos))
@@ -146,6 +246,15 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             return
 
         translation_status = data.get("translation_status", TranslationStatus.TRANSLATED)
+
+        for text_index, new_text in updated_items.items():
+            self.cache_manager.update_generated_translation(
+                storage_path=self.file_path,
+                text_index=text_index,
+                new_text=new_text,
+                translation_status=translation_status,
+            )
+            self._sync_local_item(text_index, new_text, translation_status)
 
         self._item_changed_handler_enabled = False
         try:
@@ -165,13 +274,6 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                     item.setText(new_text)
                 else:
                     self.table.setItem(row, self.COL_TRANS, QTableWidgetItem(new_text))
-
-                self.cache_manager.update_generated_translation(
-                    storage_path=self.file_path,
-                    text_index=text_index,
-                    new_text=new_text,
-                    translation_status=translation_status,
-                )
 
             self.table.scheduleResizeRowsToContents()
         finally:
