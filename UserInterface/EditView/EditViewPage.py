@@ -104,7 +104,7 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
         self.workflow_stacked_widget = QStackedWidget(self.workflow_container)
 
         self.analysis_page = AnalysisPage(cache_manager, self.workflow_stacked_widget)
-        self.translation_page = TranslationPage(self.workflow_stacked_widget)
+        self.translation_page = TranslationPage(cache_manager, self.workflow_stacked_widget)
         self.proofreading_page = ProofreadingPage(cache_manager, self.workflow_stacked_widget)
 
         self.route_to_widget = {

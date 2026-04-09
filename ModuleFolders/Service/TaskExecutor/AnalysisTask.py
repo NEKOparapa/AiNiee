@@ -313,7 +313,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 "{\n"
                 "  \"characters\": [{\"source\": \"原文名字\", \"recommended_translation\": \"推荐译名\", \"gender\": \"性别(必须是: 男性、女性、其他 之一)\", \"note\": \"背景设定/备注\"}],\n"
                 "  \"terms\": [{\"source\": \"原文术语\", \"recommended_translation\": \"推荐译名\", \"category_path\": \"分类(必须是: 身份、物品、组织、地名、其他 之一)\", \"note\": \"背景设定/备注\"}],\n"
-                "  \"non_translate\": [{\"marker\": \"原文词或非文本\", \"category\": \"分类(必须是: 占位符、标记符、调用代码、转义控制符、变量键名、资源标识、数值公式、其他 之一)\", \"note\": \"原因/备注\"}]\n"
+                "  \"non_translate\": [{\"marker\": \"非文本内容\", \"category\": \"分类(必须是: 占位符、标记符、调用代码、转义控制符、变量键名、资源标识、数值公式、其他 之一)\", \"note\": \"原因/备注\"}]\n"
                 "}"
             )
             requester = LLMRequester()

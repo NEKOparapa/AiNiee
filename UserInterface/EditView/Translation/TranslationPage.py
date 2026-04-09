@@ -15,9 +15,10 @@ class TranslationPage(ConfigMixin, Base, QWidget):
     FLOATING_BAR_BOTTOM_MARGIN = 20
     FLOATING_BAR_CONTENT_PADDING = 112
 
-    def __init__(self, parent=None):
+    def __init__(self, cache_manager=None, parent=None):
         super().__init__(parent)
         self.setObjectName("TranslationPage")
+        self.cache_manager = cache_manager
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 12, 0, 0)
@@ -39,7 +40,7 @@ class TranslationPage(ConfigMixin, Base, QWidget):
             self.FLOATING_BAR_CONTENT_PADDING,
         )
 
-        self.bottom_bar = BottomCommandBar(self)
+        self.bottom_bar = BottomCommandBar(cache_manager, self)
         self.language_settings_card = LanguageSettingsCard(self)
         self.bottom_bar.raise_()
         self.language_settings_card.raise_()

@@ -22,8 +22,9 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     ACTION_CONTINUE = "continue"
     ACTION_STOP = "stop"
 
-    def __init__(self, parent=None):
+    def __init__(self, cache_manager=None, parent=None):
         super().__init__(parent)
+        self.cache_manager = cache_manager
         self.setFixedHeight(72)
         self.setBorderRadius(18)
 
@@ -121,6 +122,8 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     def command_play(self) -> None:
         if not self._has_valid_api_binding():
             return
+        if self.current_mode == TaskType.POLISH and not self._has_sufficient_translated_lines_for_polish():
+            return
 
         if self.has_resumable_task:
             content = self.tra("将重置尚未完成的任务") + "  ... ？"
@@ -191,6 +194,31 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
 
         if selected_tag not in platforms:
             self.error_toast(self.tra("错误"), self.tra("当前激活接口配置不存在，请到接口管理页面重新选择。"))
+            return False
+
+        return True
+
+    def _has_sufficient_translated_lines_for_polish(self) -> bool:
+        if not self.cache_manager or not self.cache_manager.project:
+            self.error("Polish pre-check failed: cache manager or current project is unavailable.")
+            self.error_toast(self.tra("错误"), self.tra("请先执行翻译流程"))
+            return False
+
+        project_id = getattr(self.cache_manager.project, "project_id", "")
+        stats_payload = self.cache_manager.read_project_statistics(project_id)
+        if not isinstance(stats_payload, dict):
+            self.error("Polish pre-check failed: ProjectStatistics.json is missing or invalid.")
+            self.error_toast(self.tra("错误"), self.tra("请先执行翻译流程"))
+            return False
+
+        try:
+            translated_line = int(stats_payload.get("line", 0) or 0)
+        except (TypeError, ValueError):
+            translated_line = 0
+
+        if translated_line <= 1:
+            self.error("Polish pre-check failed: translated line count is not greater than 1.")
+            self.error_toast(self.tra("错误"), self.tra("请先执行翻译流程"))
             return False
 
         return True

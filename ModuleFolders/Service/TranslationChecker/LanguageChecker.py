@@ -7,7 +7,7 @@ from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Domain.FileReader import ReaderUtil
-from ModuleFolders.Service.Cache.CacheItem import CacheItem, TranslationStatus
+from ModuleFolders.Service.Cache.CacheItem import CacheItem
 from ModuleFolders.Service.Cache.CacheManager import CacheManager
 from ModuleFolders.Service.TaskExecutor import TranslatorUtil
 from ModuleFolders.Service.TranslationChecker.CheckResult import CheckResult
@@ -266,23 +266,20 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
 
     # 辅助方法
     def _perform_pre_checks(self, mode: str) -> Tuple[str | None, Dict]:
-        """执行预检查，确保项目和缓存数据有效"""
+        """Run lightweight pre-checks before language detection."""
         if not self.cache_manager.project or not self.cache_manager.project.files:
-            self.error(self.tra("检查失败，请检查项目文件夹缓存是否正常"))
+            self.error("Language check pre-check failed: cache data is unavailable.")
             return CheckResult.ERROR_CACHE, {}
 
-        has_content = False
-        check_target_attr = "translated_text"
-        status_to_check = TranslationStatus.TRANSLATED
+        project_id = getattr(self.cache_manager.project, "project_id", "")
+        stats_payload = self.cache_manager.read_project_statistics(project_id)
+        if not isinstance(stats_payload, dict):
+            self.error("Language check pre-check failed: ProjectStatistics.json is missing or invalid.")
+            return CheckResult.ERROR_CACHE, {}
 
-        # 检查是否存在至少一个需要被检查的有效文本项
-        for item in self.cache_manager.project.items_iter():
-            if item.translation_status >= status_to_check and getattr(item, check_target_attr, "").strip():
-                has_content = True
-                break
-
-        if not has_content:
-            self.error(self.tra("检查失败，请先执行翻译流程"))
+        translated_line = CacheManager._parse_int(stats_payload.get("line", 0))
+        if translated_line <= 1:
+            self.error("Language check pre-check failed: translated line count is not greater than 1.")
             return CheckResult.ERROR_NO_TRANSLATION, {}
 
         return None, {}

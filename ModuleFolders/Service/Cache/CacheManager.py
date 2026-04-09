@@ -119,6 +119,13 @@ class CacheManager(ConfigMixin, LogMixin, Base):
 
     # 基础数据整理辅助方法
     @classmethod
+    def read_project_statistics(cls, project_id: str) -> dict | None:
+        """Read ProjectStatistics.json for the given project."""
+        if not project_id:
+            return None
+        return cls._read_statistics_payload(cls.get_project_statistics_path(project_id))
+
+    @classmethod
     def _get_now_iso(cls) -> str:
         return datetime.now().isoformat(timespec="seconds")
 
