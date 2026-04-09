@@ -245,7 +245,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
             )
         )
 
-    # 文件名后缀设置
+    # 输出文件名后缀设置
     def add_widget_filename_suffix(self, parent, config) -> None:
         def init(widget) -> None:
             widget.set_text(config.get("output_filename_suffix", "_translated"))
@@ -258,7 +258,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
 
         parent.addWidget(
             LineEditCard(
-                self.tra("文件名后缀"),
+                self.tra("输出文件名后缀"),
                 self.tra("设置输出文件的文件名后缀，例如: _translated"),
                 init=init,
                 text_changed=text_changed

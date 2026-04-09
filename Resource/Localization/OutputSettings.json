@@ -18,11 +18,11 @@
       "English": "Translation Output Folder",
       "日本語": "翻訳出力フォルダ"
     },
-    "文件名后缀": {
-      "简中": "文件名后缀",
-      "繁中": "檔案名稱後綴",
-      "English": "Filename Suffix",
-      "日本語": "ファイル名接尾辞"
+    "输出文件名后缀": {
+      "简中": "输出文件名后缀",
+      "繁中": "輸出檔案名稱後綴",
+      "English": "Output Filename Suffix",
+      "日本語": "出力ファイル名接尾辞"
     },
     "设置输出文件的文件名后缀，例如: _translated": {
       "简中": "设置输出文件的文件名后缀，例如: _translated",
