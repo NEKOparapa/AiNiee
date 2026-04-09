@@ -18,6 +18,7 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
     folderSelected = pyqtSignal(str, str)
     loadSuccess = pyqtSignal(str, str)
     loadFailed = pyqtSignal(str)
+    historiesLoaded = pyqtSignal(object, int)
 
     def __init__(self, support_project_types=None, parent=None, cache_manager=None, file_reader=None):
         super().__init__(parent)
@@ -27,9 +28,11 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.stateTooltip = None
         self.latest_project_id = ""
         self.history_cards = []
+        self.history_refresh_token = 0
 
         self.loadSuccess.connect(self._on_load_success)
         self.loadFailed.connect(self._on_load_failed)
+        self.historiesLoaded.connect(self._on_histories_loaded)
 
         self.default = {
             "translation_project": "AutoType",
@@ -101,12 +104,31 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         parent.addWidget(self.drag_card)
 
     def refresh_project_histories(self) -> None:
+        self.history_refresh_token += 1
+        refresh_token = self.history_refresh_token
+
+        threading.Thread(
+            target=self._refresh_project_histories_worker,
+            args=(refresh_token,),
+            daemon=True,
+        ).start()
+
+    def _refresh_project_histories_worker(self, refresh_token: int) -> None:
         histories = []
-        if self.cache_manager:
-            histories = self.cache_manager.list_project_histories(
-                limit=self.cache_manager.HISTORY_LIMIT,
-                prune=True,
-            )
+        try:
+            if self.cache_manager:
+                histories = self.cache_manager.list_project_histories(
+                    limit=self.cache_manager.HISTORY_LIMIT,
+                    prune=True,
+                )
+        except Exception as error:
+            self.error("读取项目缓存历史失败", error)
+
+        self.historiesLoaded.emit(histories, refresh_token)
+
+    def _on_histories_loaded(self, histories, refresh_token: int) -> None:
+        if refresh_token != self.history_refresh_token:
+            return
 
         self._clear_history_cards()
         self.latest_project_id = histories[0].get("project_id", "") if histories else ""
@@ -127,9 +149,6 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                 widget.setParent(None)
                 widget.deleteLater()
         self.history_cards.clear()
-        self.history_layout.invalidate()
-        self.history_layout.activate()
-        self.updateGeometry()
 
     def _on_history_continue_requested(self, project_id: str) -> None:
         if project_id:

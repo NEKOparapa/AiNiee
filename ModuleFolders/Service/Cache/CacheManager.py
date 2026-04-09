@@ -257,52 +257,34 @@ class CacheManager(ConfigMixin, LogMixin, Base):
             return None
 
     @classmethod
-    def _build_history_entry(cls, cache_dir: str) -> dict | None:
-        """从单个项目缓存目录构建历史项目摘要。"""
-        cache_path = os.path.join(cache_dir, cls.CACHE_FILENAME)
-        stats_path = os.path.join(cache_dir, cls.STATS_FILENAME)
-        if not os.path.isfile(cache_path):
-            return None
+    def _build_history_entry_from_stats(
+        cls,
+        cache_dir: str,
+        cache_path: str,
+        stats_path: str,
+        stats_payload: dict,
+    ) -> dict:
+        """Build a lightweight history entry from ProjectStatistics.json."""
+        dir_name = os.path.basename(cache_dir)
+        project_id = str(stats_payload.get("project_id", "") or dir_name).strip() or dir_name
+        project_name = str(stats_payload.get("project_name", "") or project_id).strip() or project_id
+        project_create_time = str(stats_payload.get("project_create_time", "")).strip() or cls._timestamp_to_iso(
+            os.path.getctime(cache_dir)
+        )
+        total_line = cls._parse_int(stats_payload.get("total_line", 0))
+        line = cls._parse_int(stats_payload.get("line", 0))
 
-        try:
-            project = cls.read_from_file(cache_path)
-            stats_payload = cls._read_statistics_payload(stats_path)
-            dir_name = os.path.basename(cache_dir)
-
-            # 统计文件缺失时回退到目录创建时间，保证历史列表仍可排序
-            fallback_create_time = (stats_payload or {}).get("project_create_time") or cls._timestamp_to_iso(
-                os.path.getctime(cache_dir)
-            )
-
-            project_changed = cls._ensure_project_metadata(
-                project,
-                fallback_project_id=dir_name,
-                fallback_create_time=fallback_create_time,
-            )
-
-            expected_stats_payload = cls._build_stats_payload(project, stats_payload)
-            stats_changed = stats_payload != expected_stats_payload
-
-            # 如果历史目录缺字段，则在扫描历史时顺手修复
-            if project_changed or stats_changed:
-                cls._write_project_cache_files(project)
-
-            total_line = expected_stats_payload["total_line"]
-            line = expected_stats_payload["line"]
-
-            return {
-                "project_id": expected_stats_payload["project_id"],
-                "project_name": expected_stats_payload["project_name"],
-                "project_create_time": expected_stats_payload["project_create_time"],
-                "total_line": total_line,
-                "line": line,
-                "is_complete": total_line > 0 and line >= total_line,
-                "cache_dir": cache_dir,
-                "cache_path": cache_path,
-                "stats_path": stats_path,
-            }
-        except Exception:
-            return None
+        return {
+            "project_id": project_id,
+            "project_name": project_name,
+            "project_create_time": project_create_time,
+            "total_line": total_line,
+            "line": line,
+            "is_complete": total_line > 0 and line >= total_line,
+            "cache_dir": cache_dir,
+            "cache_path": cache_path,
+            "stats_path": stats_path,
+        }
 
     @classmethod
     def list_project_histories(cls, limit: int = 0, prune: bool = False) -> list[dict]:
@@ -320,12 +302,28 @@ class CacheManager(ConfigMixin, LogMixin, Base):
             if not entry.is_dir():
                 continue
 
-            history = cls._build_history_entry(entry.path)
-            if history is None:
+            stats_path = os.path.join(entry.path, cls.STATS_FILENAME)
+            if not os.path.isfile(stats_path):
+                continue
+
+            cache_path = os.path.join(entry.path, cls.CACHE_FILENAME)
+            if not os.path.isfile(cache_path):
                 invalid_project_ids.append(entry.name)
                 continue
 
-            histories.append(history)
+            stats_payload = cls._read_statistics_payload(stats_path)
+            if not isinstance(stats_payload, dict):
+                invalid_project_ids.append(entry.name)
+                continue
+
+            histories.append(
+                cls._build_history_entry_from_stats(
+                    entry.path,
+                    cache_path,
+                    stats_path,
+                    stats_payload,
+                )
+            )
 
         for project_id in invalid_project_ids:
             cls.delete_project_cache(project_id)
