@@ -170,13 +170,12 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
             "success": success,
         })
 
-
-    # 响应术语表翻译开始事件
+    # 响应术语表的简单翻译开始事件
     def glossary_translation_start(self, event: int, data: dict):
         thread = threading.Thread(target = self.glossary_translation, args = (event, data))
         thread.start()
 
-    # 术语表翻译
+    # 术语表的简单翻译
     def glossary_translation(self, event, data: dict):
 
         # 获取表格数据
