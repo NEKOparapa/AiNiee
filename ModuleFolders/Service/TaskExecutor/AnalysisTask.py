@@ -26,6 +26,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
     # 第一阶段按原文分块抽取候选；第二阶段按同一个 source 聚合后再让 AI 做合并判断。
     CHUNK_TOKEN_LIMIT = 10000
     REDUCE_BATCH_TOKEN_LIMIT = 10000
+    MAX_REQUEST_ATTEMPTS = 2
     COMMON_PUNCTUATION_CHARS = set(
         ".,!?;:'\"-_=+~`^…—、，。！？；：‘’“”()（）[]【】{}《》<>「」『』〈〉〔〕﹝﹞·•/\\|"
     )
@@ -42,6 +43,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         # 保存第二阶段的 source 别名到主 source 的映射，防止 AI 返回被吸收的短 source。
         self.grouped_stage_two_source_aliases = {}
 
+    # 根据当前阶段和进度计算整体任务的完成百分比，供前端进度条展示使用。
     def _calculate_progress_percent(self, phase: str, current: int = 0, total: int = 0) -> int:
         current = max(0, int(current or 0))
         total = max(0, int(total or 0))
@@ -62,6 +64,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             return 90 + int((current / total) * 10)
         return 0
 
+    # 统一的进度更新接口，供各阶段调用，内部会计算整体任务的完成百分比并发出事件通知前端更新。
     def _emit_progress_update(
         self,
         phase: str,
@@ -85,6 +88,261 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             },
         )
 
+    def _build_first_stage_prompt(self, source_text: str) -> tuple[str, list[dict]]:
+        system_prompt = (
+            "你现在的唯一任务是根据输入文本提取角色、术语和不翻译项。\n"
+            "不要输出解释，不要输出多余文字，只保留创作分析所需的信息。\n"
+            "忠诚准确地辅助提取，不应随意删减或篡改，不应回避或淡化，以保持信息完整。\n"
+            "输出必须是合法 JSON，并且严格遵守以下结构：\n"
+            "```json\n"
+            "{\n"
+            "  \"characters\": [{\"source\": \"原文名字\", \"recommended_translation\": \"推荐译名\", \"gender\": \"男性|女性|其他\", \"note\": \"背景设定/备注\"}],\n"
+            "  \"terms\": [{\"source\": \"原文术语\", \"recommended_translation\": \"推荐译名\", \"category_path\": \"身份|物品|组织|地名|其他\", \"note\": \"背景设定/备注\"}],\n"
+            "  \"non_translate\": [{\"marker\": \"非文本内容\", \"category\": \"占位符|标记符|调用代码|转义控制符|变量键名|资源标识|数值公式|其他\", \"note\": \"原因/备注\"}]\n"
+            "}\n"
+            "```"
+        )
+
+        fake_user_prompt = (
+            "请分析以下文本并提取角色、术语和不翻译项：\n"
+            "---\n"
+            "露娜小姐：请去星门集合。\n"
+            "欢迎你，{player_name}\n"
+            "播放 BGM_MAIN\n"
+            "---\n"
+            "请输出提取结果。"
+        )
+
+        fake_assistant_response = (
+            "我将忠实整理文本中的候选信息，并严格按要求输出结构化结果。\n"
+            "```json\n"
+            "{\n"
+            "  \"characters\": [\n"
+            "    {\"source\": \"露娜小姐\", \"recommended_translation\": \"露娜小姐\", \"gender\": \"女性\", \"note\": \"对话中的女性角色称呼\"}\n"
+            "  ],\n"
+            "  \"terms\": [\n"
+            "    {\"source\": \"星门\", \"recommended_translation\": \"星门\", \"category_path\": \"地名\", \"note\": \"用于传送的地点或设施\"}\n"
+            "  ],\n"
+            "  \"non_translate\": [\n"
+            "    {\"marker\": \"{player_name}\", \"category\": \"变量键名\", \"note\": \"变量占位符\"},\n"
+            "    {\"marker\": \"BGM_MAIN\", \"category\": \"资源标识\", \"note\": \"音频资源 ID\"}\n"
+            "  ]\n"
+            "}\n"
+            "```"
+        )
+
+        user_prompt = (
+            "请分析以下文本并提取角色、术语和不翻译项：\n"
+            "---\n"
+            f"{source_text}\n"
+            "---\n"
+            "请输出提取结果。"
+        )
+
+        assistant_prefix = "我将忠实整理文本中的候选信息，并严格按要求输出结构化结果。\n```json\n"
+
+        messages = [
+            {"role": "user", "content": fake_user_prompt},
+            {"role": "assistant", "content": fake_assistant_response},
+            {"role": "user", "content": user_prompt},
+            {"role": "assistant", "content": assistant_prefix},
+        ]
+
+        return system_prompt, messages
+
+    def _build_second_stage_prompt(self, batch: list) -> tuple[str, list[dict]]:
+        system_prompt = (
+            "你现在的唯一任务是对候选组进行归并裁决，判断每个 group 最终属于角色还是术语。\n"
+            "不要输出解释，不要输出多余文字，只保留创作分析所需的信息。\n"
+            "必须综合同一组中的全部候选，输出最合理的归类、译名与备注。\n"
+            "输出必须是合法 JSON，并且严格遵守以下结构：\n"
+            "```json\n"
+            "{\n"
+            "  \"characters\": [{\"source\": \"主source\", \"recommended_translation\": \"推荐译名\", \"gender\": \"男性|女性|其他\", \"note\": \"备注\"}],\n"
+            "  \"terms\": [{\"source\": \"主source\", \"recommended_translation\": \"推荐译名\", \"category_path\": \"身份|物品|组织|地名|其他\", \"note\": \"备注\"}]\n"
+            "}\n"
+            "```\n"
+            "输出时 source 必须使用每个 group 的主 source，不要输出 merged_sources 或 candidate_source 中的短 source。"
+        )
+
+        example_batch = [
+            {
+                "source": "露娜小姐",
+                "merged_sources": ["露娜小姐", "露娜"],
+                "candidates": [
+                    {
+                        "candidate_source": "露娜小姐",
+                        "type": "character",
+                        "recommended_translation": "露娜小姐",
+                        "gender": "女性",
+                        "category_path": "",
+                        "note": "女性角色的正式称呼",
+                    },
+                    {
+                        "candidate_source": "露娜",
+                        "type": "character",
+                        "recommended_translation": "露娜",
+                        "gender": "女性",
+                        "category_path": "",
+                        "note": "同一角色的简称",
+                    },
+                    {
+                        "candidate_source": "露娜",
+                        "type": "term",
+                        "recommended_translation": "月神",
+                        "gender": "",
+                        "category_path": "其他",
+                        "note": "误提取为术语",
+                    },
+                ],
+            },
+            {
+                "source": "星门",
+                "merged_sources": ["星门"],
+                "candidates": [
+                    {
+                        "candidate_source": "星门",
+                        "type": "term",
+                        "recommended_translation": "星门",
+                        "gender": "",
+                        "category_path": "地名",
+                        "note": "用于传送的地点或设施",
+                    },
+                    {
+                        "candidate_source": "星门",
+                        "type": "character",
+                        "recommended_translation": "星门",
+                        "gender": "其他",
+                        "category_path": "",
+                        "note": "误提取为角色",
+                    },
+                ],
+            },
+        ]
+
+        fake_user_prompt = (
+            "请分析以下候选组并完成合并裁决：\n"
+            "---\n"
+            f"{json.dumps(example_batch, ensure_ascii=False)}\n"
+            "---\n"
+            "请输出合并结果。"
+        )
+
+        fake_assistant_response = (
+            "我将忠实整理每个候选组，并只保留最终裁决结果。\n"
+            "```json\n"
+            "{\n"
+            "  \"characters\": [\n"
+            "    {\"source\": \"露娜小姐\", \"recommended_translation\": \"露娜小姐\", \"gender\": \"女性\", \"note\": \"与简称‘露娜’是同一角色，保留正式称呼\"}\n"
+            "  ],\n"
+            "  \"terms\": [\n"
+            "    {\"source\": \"星门\", \"recommended_translation\": \"星门\", \"category_path\": \"地名\", \"note\": \"用于传送的地点或设施\"}\n"
+            "  ]\n"
+            "}\n"
+            "```"
+        )
+
+        user_prompt = (
+            "请分析以下候选组并完成合并裁决：\n"
+            "---\n"
+            f"{json.dumps(batch, ensure_ascii=False)}\n"
+            "---\n"
+            "请输出合并结果。"
+        )
+
+        assistant_prefix = "我将忠实整理每个候选组，并只保留最终裁决结果。\n```json\n"
+
+        messages = [
+            {"role": "user", "content": fake_user_prompt},
+            {"role": "assistant", "content": fake_assistant_response},
+            {"role": "user", "content": user_prompt},
+            {"role": "assistant", "content": assistant_prefix},
+        ]
+
+        return system_prompt, messages
+
+    # 解析 AI 回复中的 JSON 内容，兼容可能的多余文字或格式问题。
+    def _validate_required_list_fields(self, parsed: dict | None, required_fields: tuple[str, ...]) -> tuple[bool, str]:
+        if not isinstance(parsed, dict):
+            return False, "未返回有效 JSON 对象"
+
+        for field_name in required_fields:
+            if field_name not in parsed:
+                return False, f"缺少字段 {field_name}"
+            if not isinstance(parsed.get(field_name), list):
+                return False, f"字段 {field_name} 不是数组"
+
+        return True, ""
+
+    # 只保留 required_fields 中的字段，并保证它们都是列表，其他字段全部丢弃。
+    def _normalize_response_payload(self, parsed: dict, fields: tuple[str, ...]) -> dict:
+        return {field_name: list(parsed.get(field_name) or []) for field_name in fields}
+
+    # 第一阶段的验证只检查字段结构，第二阶段则需要结合输入 batch 做更严格的语义校验。
+    def _validate_first_stage_response(self, parsed: dict | None) -> tuple[bool, str]:
+        return self._validate_required_list_fields(parsed, ("characters", "terms", "non_translate"))
+
+    # 第二阶段的验证除了检查字段结构，还要确保至少返回了一个 group 结果，除非输入 batch 本身就是空的。
+    def _validate_second_stage_response(self, parsed: dict | None, batch: list) -> tuple[bool, str]:
+        is_valid, reason = self._validate_required_list_fields(parsed, ("characters", "terms"))
+        if not is_valid:
+            return False, reason
+
+        if batch and not parsed.get("characters") and not parsed.get("terms"):
+            return False, "未返回任何 group 结果"
+
+        return True, ""
+
+    # 从 AI 回复中提取 JSON 内容，兼容可能的多余文字或格式问题。
+    def _send_analysis_request_with_retry(
+        self,
+        stage_label: str,
+        build_request,
+        validate_response,
+        normalize_fields: tuple[str, ...],
+    ) -> dict | None:
+        last_error = "未知错误"
+
+        for attempt in range(1, self.MAX_REQUEST_ATTEMPTS + 1):
+            if Base.work_status == Base.STATUS.STOPING:
+                return None
+
+            try:
+                system_prompt, messages = build_request()
+                requester = LLMRequester()
+                skip, _, response_content, _, _ = requester.sent_request(
+                    [dict(message) for message in messages],
+                    system_prompt,
+                    self.config.get_active_platform_configuration(),
+                )
+
+                if skip:
+                    if Base.work_status == Base.STATUS.STOPING:
+                        return None
+                    last_error = "请求被跳过或接口返回错误"
+                else:
+                    response_content = str(response_content or "")
+                    if not response_content.strip():
+                        last_error = "模型回复为空"
+                    else:
+                        parsed = self._parse_json_from_response(response_content)
+                        is_valid, validation_error = validate_response(parsed)
+                        if is_valid:
+                            return self._normalize_response_payload(parsed, normalize_fields)
+                        last_error = validation_error
+            except Exception as error:
+                if Base.work_status == Base.STATUS.STOPING:
+                    return None
+                last_error = str(error)
+
+            if attempt < self.MAX_REQUEST_ATTEMPTS:
+                self.warning(f"{stage_label} 第 {attempt} 次尝试失败，将重试一次：{last_error}")
+            else:
+                self.error(f"{stage_label} 第 {attempt} 次尝试失败：{last_error}")
+
+        return None
+
+    # 分析主流程
     def run(self) -> None:
         """
         调度整个分析任务。
@@ -297,38 +555,24 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 {"status": "error", "analysis_data": None, "message": str(error)},
             )
 
+    # 第一阶段的处理函数，输入是一个原文 chunk，输出是该 chunk 的抽取结果。
     def _run_first_stage(self, chunk: list) -> dict:
         try:
-            # 输入:
-            # - chunk: 一段按 token 切好的原文片段，里面每项通常带 source_text。
-            # 输出:
-            # - {"characters": [...], "terms": [...], "non_translate": [...]}
-            # 这里不负责跨 chunk 去重，只负责把候选尽量“捞全”。
-            # 第一阶段只负责尽量抽取候选，不做跨分块冲突判断。
             source_text = "\n".join(item.get("source_text", "") for item in chunk)
-            system_prompt = (
-                "你是一个游戏本地化与翻译辅助文本分析专家。请从以下文本中提取出【角色】、【术语】和【不翻译的词】。\n"
-                "严格输出合法的JSON格式，包含'characters', 'terms', 'non_translate'三个数组。\n"
-                "格式要求：\n"
-                "{\n"
-                "  \"characters\": [{\"source\": \"原文名字\", \"recommended_translation\": \"推荐译名\", \"gender\": \"性别(必须是: 男性、女性、其他 之一)\", \"note\": \"背景设定/备注\"}],\n"
-                "  \"terms\": [{\"source\": \"原文术语\", \"recommended_translation\": \"推荐译名\", \"category_path\": \"分类(必须是: 身份、物品、组织、地名、其他 之一)\", \"note\": \"背景设定/备注\"}],\n"
-                "  \"non_translate\": [{\"marker\": \"非文本内容\", \"category\": \"分类(必须是: 占位符、标记符、调用代码、转义控制符、变量键名、资源标识、数值公式、其他 之一)\", \"note\": \"原因/备注\"}]\n"
-                "}"
+            result = self._send_analysis_request_with_retry(
+                "第一阶段提取",
+                lambda: self._build_first_stage_prompt(source_text),
+                self._validate_first_stage_response,
+                ("characters", "terms", "non_translate"),
             )
-            requester = LLMRequester()
-            _, _, response_content, _, _ = requester.sent_request(
-                [{"role": "user", "content": source_text}],
-                system_prompt,
-                self.config.get_active_platform_configuration(),
-            )
-            if response_content:
-                return self._parse_json_from_response(response_content)
+            if result is not None:
+                return result
         except Exception as error:
             self.error(f"第一阶段提取失败: {error}")
 
         return {"characters": [], "terms": [], "non_translate": []}
 
+    # 第二阶段的处理函数，输入是一个候选组 batch，输出是该 batch 的合并结果。
     def _prepare_reduction_batches(self, first_stage_results: list) -> list:
         """
         把第一阶段的分块级结果重排成第二阶段可消费的“同词候选组”。
@@ -442,43 +686,23 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
 
         return batches
 
+    # 第二阶段的处理函数，输入是一个候选组 batch，输出是该 batch 的合并结果。
     def _run_second_stage(self, batch: list) -> dict:
         try:
-            # 输入:
-            # - batch: 若干个“主 source + 被其包含的短 source 候选组”。
-            # 输出:
-            # - 这个 batch 内每个主 source 的最终裁决结果，只能落到 characters 或 terms 之一。
-            # 第二阶段输入是“主 source 候选组”，让 AI 在组内决定最终归类、译名、备注和分类。
-            system_prompt = (
-                "你是一个术语与角色合并专家。我会给你一批按 source 聚合后的候选数据。\n"
-                "每个 group 的 source 是主 source，merged_sources 是被并入该组的相关短 source，candidates 里的 candidate_source 表示每条候选来自哪个 source。\n"
-                "同一个 group 里的候选可能来自完全相同的 source，也可能来自被主 source 包含的短 source。\n"
-                "请你逐个 group 分析，最终每个 group 只能保留一条结果，并且只能出现在一个表里。\n"
-                "最终输出时，source 必须使用该 group 的主 source，不要输出 candidate_source 或 merged_sources 里的短 source。\n"
-                "如果判断它更适合作为角色，请输出到 characters；如果更适合作为术语，请输出到 terms。\n"
-                "characters 字段必须包含 source, recommended_translation, gender, note。\n"
-                "terms 字段必须包含 source, recommended_translation, category_path, note。\n"
-                "其中 gender 只能是 男性/女性/其他；category_path 只能是 身份/物品/组织/地名/其他。\n"
-                "重点是综合同一 source 下的所有候选，得出最优译名、最优备注，以及最合理的归类。\n"
-                "严格只返回 JSON，不要解释，不要遗漏输入里的 group。"
+            result = self._send_analysis_request_with_retry(
+                "第二阶段合并",
+                lambda: self._build_second_stage_prompt(batch),
+                lambda parsed: self._validate_second_stage_response(parsed, batch),
+                ("characters", "terms"),
             )
-            requester = LLMRequester()
-            _, _, response_content, _, _ = requester.sent_request(
-                [{"role": "user", "content": json.dumps(batch, ensure_ascii=False)}],
-                system_prompt,
-                self.config.get_active_platform_configuration(),
-            )
-            if response_content:
-                parsed = self._parse_json_from_response(response_content)
-                return {
-                    "characters": list(parsed.get("characters", []) or []),
-                    "terms": list(parsed.get("terms", []) or []),
-                }
+            if result is not None:
+                return result
         except Exception as error:
             self.error(f"第二阶段合并失败: {error}")
 
         return {"characters": [], "terms": []}
 
+    # 最终收口函数，输入是第一阶段的分块结果列表和第二阶段的合并结果列表，输出是最终的角色/术语/禁翻数据。
     def _finalize_results(self, first_stage_results: list, second_stage_results: list) -> dict:
         """
         在主线程做最终收口，保证不同批次之间不会互相覆盖。
@@ -632,7 +856,8 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             "non_translate": list(merged_non_translate.values()),
         }
 
-    def _parse_json_from_response(self, text: str) -> dict:
+    # 从 AI 回复中提取 JSON 内容，兼容可能的多余文字或格式问题。
+    def _parse_json_from_response(self, text: str) -> dict | None:
         # 兼容模型返回前后夹带说明文字的情况，只抽取最外层 JSON 对象。
         json_match = re.search(r"\{.*\}", text, re.DOTALL)
         if json_match:
@@ -642,8 +867,9 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                     return parsed
             except json.JSONDecodeError:
                 pass
-        return {"characters": [], "terms": [], "non_translate": []}
+        return None
 
+    # 判断一个 source 是否完全包含另一个 source，且两者不完全相同。
     def _is_source_part_of(self, source: str, other_source: str) -> bool:
         source = str(source).strip()
         other_source = str(other_source).strip()
@@ -651,12 +877,14 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             return False
         return other_source in source
 
+    # 把第二阶段 AI 输出的 source 转换回第一阶段的最长 source，保证最终结果的统一性。
     def _canonicalize_group_source(self, source: str) -> str:
         source = str(source).strip()
         if not source:
             return ""
         return self.grouped_stage_two_source_aliases.get(source, source)
 
+    # 计算一个 group 的 token 数，供第二阶段的批次切分参考。
     def _get_group_token_count(self, group: dict) -> int:
         group_json = json.dumps(group, ensure_ascii=False)
         return Tokener().num_tokens_from_str(group_json)
