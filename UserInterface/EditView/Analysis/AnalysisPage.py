@@ -58,12 +58,16 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
     TERM_ITEM = "物品"
     TERM_ORGANIZATION = "组织"
     TERM_LOCATION = "地名"
+    TERM_SKILL = "技能"
+    TERM_RACE = "种族"
     TERM_OTHER = "其他"
     TERM_CATEGORIES = (
         TERM_IDENTITY,
         TERM_ITEM,
         TERM_ORGANIZATION,
         TERM_LOCATION,
+        TERM_SKILL,
+        TERM_RACE,
         TERM_OTHER,
     )
 
@@ -132,6 +136,69 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._render_header()
         self._update_action_buttons()
 
+    def _normalize_category_text(self, value: Any) -> str:
+        return " ".join(str(value or "").strip().lower().split())
+
+    def _matches_category_alias(self, value: Any, canonical: str, *aliases: str) -> bool:
+        normalized_value = self._normalize_category_text(value)
+        if not normalized_value:
+            return False
+
+        candidates = {
+            self._normalize_category_text(canonical),
+            self._normalize_category_text(self.tra(canonical)),
+        }
+        candidates.update(self._normalize_category_text(alias) for alias in aliases if alias)
+        return normalized_value in candidates
+
+    def _contains_category_hint(self, value: Any, canonical: str, *aliases: str) -> bool:
+        normalized_value = self._normalize_category_text(value)
+        if not normalized_value:
+            return False
+
+        candidates = {
+            self._normalize_category_text(canonical),
+            self._normalize_category_text(self.tra(canonical)),
+        }
+        candidates.update(self._normalize_category_text(alias) for alias in aliases if alias)
+        return any(candidate and candidate in normalized_value for candidate in candidates)
+
+    def _get_view_display_name(self, view_name: str) -> str:
+        return {
+            self.VIEW_CHARACTERS: self.tra("角色表"),
+            self.VIEW_TERMS: self.tra("术语表"),
+            self.VIEW_NON_TRANSLATE: self.tra("禁翻表"),
+        }.get(view_name, self.tra("角色表"))
+
+    def _get_display_field_value(
+        self,
+        view_name: str,
+        field_name: str,
+        value: Any,
+        row: dict | None = None,
+    ) -> str:
+        if field_name == "gender":
+            return self.tra(self._normalize_character_category(value))
+        if field_name == "category_path":
+            return self.tra(self._normalize_term_category(value))
+        if field_name == "category":
+            marker = row.get("marker", "") if row else ""
+            note = row.get("note", "") if row else ""
+            return self.tra(
+                self._normalize_non_translate_category(value, marker=marker, note=note)
+            )
+        return "" if value is None else str(value)
+
+    def _get_display_filter_value(self, view_name: str, value: Any) -> str:
+        field_name = {
+            self.VIEW_CHARACTERS: "gender",
+            self.VIEW_TERMS: "category_path",
+            self.VIEW_NON_TRANSLATE: "category",
+        }.get(view_name)
+        if not field_name:
+            return "" if value is None else str(value)
+        return self._get_display_field_value(view_name, field_name, value)
+
     def _build_action_bar(self) -> None:
         self.header_widget = QWidget(self)
         header_layout = QHBoxLayout(self.header_widget)
@@ -144,9 +211,9 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         status_layout = QVBoxLayout(self.status_card)
         status_layout.setContentsMargins(12, 10, 12, 10)
         status_layout.setSpacing(4)
-        status_card_title = StrongBodyLabel("操作", self.status_card)
-        self.start_button = PrimaryPushButton(FIF.PLAY, "开始分析", self.status_card)
-        self.stop_button = TransparentPushButton(FIF.CANCEL_MEDIUM, "停止", self.status_card)
+        status_card_title = StrongBodyLabel(self.tra("操作"), self.status_card)
+        self.start_button = PrimaryPushButton(FIF.PLAY, self.tra("开始分析"), self.status_card)
+        self.stop_button = TransparentPushButton(FIF.CANCEL_MEDIUM, self.tra("停止"), self.status_card)
         self.start_button.setFixedHeight(28)
         self.stop_button.setFixedHeight(28)
         self.start_button.clicked.connect(self.start_analysis)
@@ -171,7 +238,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         progress_title_layout = QHBoxLayout()
         progress_title_layout.setContentsMargins(0, 0, 0, 0)
         progress_title_layout.setSpacing(4)
-        progress_card_title = StrongBodyLabel("进度", self.progress_card)
+        progress_card_title = StrongBodyLabel(self.tra("进度"), self.progress_card)
         self.progress_percent_label = StrongBodyLabel("0%", self.progress_card)
         progress_title_layout.addWidget(progress_card_title)
         progress_title_layout.addStretch(1)
@@ -181,7 +248,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
         self.progress_bar.setFixedHeight(5)
-        self.phase_label = BodyLabel("待开始", self.progress_card)
+        self.phase_label = BodyLabel(self.tra("待开始"), self.progress_card)
         self.progress_info_label = CaptionLabel("", self.progress_card)
         self.progress_info_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
@@ -205,7 +272,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         result_layout.setContentsMargins(12, 10, 12, 10)
         result_layout.setSpacing(4)
 
-        result_card_title = StrongBodyLabel("结果", self.result_card)
+        result_card_title = StrongBodyLabel(self.tra("结果"), self.result_card)
         metrics_layout = QHBoxLayout()
         metrics_layout.setContentsMargins(0, 0, 0, 0)
         metrics_layout.setSpacing(2)
@@ -237,7 +304,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         metric_layout.setSpacing(0)
         metric_value = SubtitleLabel("0", metric_widget)
         metric_value.setAlignment(Qt.AlignCenter)
-        metric_label = CaptionLabel(title, metric_widget)
+        metric_label = CaptionLabel(self.tra(title), metric_widget)
         metric_label.setAlignment(Qt.AlignCenter)
         metric_label.setStyleSheet("color: #7A7A7A;")
         metric_layout.addWidget(metric_value)
@@ -267,7 +334,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 self._apply_runtime_state(
                     status_key="running",
                     phase_key="prepare",
-                    info_text="分析中...",
+                    info_text=self.tra("分析中..."),
                 )
             return
 
@@ -295,13 +362,46 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             self._apply_runtime_state(percent=100)
 
     def _infer_phase_key_from_message(self, message: str) -> str:
-        text = str(message or "").strip()
-        if "第一阶段" in text:
-            return "stage1"
-        if "第二阶段" in text:
-            return "stage2"
-        if "整合" in text or "最终" in text:
-            return "finalize"
+        text = self._normalize_category_text(message)
+        if not text:
+            return "prepare"
+
+        phase_hints = (
+            (
+                "stage1",
+                (
+                    "第一阶段",
+                    "stage 1",
+                    self.tra("第一阶段"),
+                    self.tra("开始执行第一阶段分析任务..."),
+                    self.tra("第一阶段提取中..."),
+                ),
+            ),
+            (
+                "stage2",
+                (
+                    "第二阶段",
+                    "stage 2",
+                    self.tra("第二阶段"),
+                    self.tra("开始执行第二阶段分析任务..."),
+                    self.tra("第二阶段合并中..."),
+                ),
+            ),
+            (
+                "finalize",
+                (
+                    "结果整合",
+                    "最终",
+                    "finalize",
+                    self.tra("结果整合"),
+                    self.tra("正在整合最终分析结果..."),
+                    self.tra("分析结果已生成..."),
+                ),
+            ),
+        )
+        for phase_key, hints in phase_hints:
+            if any(self._normalize_category_text(hint) in text for hint in hints if hint):
+                return phase_key
         return "prepare"
 
     def _get_status_color(self, status_key: str) -> QColor:
@@ -326,11 +426,11 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         color = self._get_status_color(status_key)
         phase_text = {
-            "prepare": "准备",
-            "stage1": "阶段 1",
-            "stage2": "阶段 2",
-            "finalize": "完成",
-        }.get(phase_key, "待开始")
+            "prepare": self.tra("准备"),
+            "stage1": self.tra("阶段 1"),
+            "stage2": self.tra("阶段 2"),
+            "finalize": self.tra("完成"),
+        }.get(phase_key, self.tra("待开始"))
 
         self.progress_percent_label.setText(f"{percent}%")
         self.progress_percent_label.setStyleSheet(f"color: {color.name()};")
@@ -358,7 +458,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         nav_layout.setContentsMargins(10, 10, 10, 10)
         nav_layout.setSpacing(8)
 
-        self.nav_title_label = StrongBodyLabel("项目表格", self.nav_card)
+        self.nav_title_label = StrongBodyLabel(self.tra("项目表格"), self.nav_card)
         setFont(self.nav_title_label, 12)
         self.nav_title_label.setAlignment(Qt.AlignCenter)
         nav_layout.addWidget(self.nav_title_label)
@@ -387,12 +487,12 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         detail_layout.setContentsMargins(2, 0, 2, 0)
         detail_layout.setSpacing(8)
 
-        self.table_detail_label = BodyLabel("角色表", self.table_detail_widget)
+        self.table_detail_label = BodyLabel(self.tra("角色表"), self.table_detail_widget)
         detail_layout.addWidget(self.table_detail_label)
         detail_layout.addStretch(1)
 
-        self.save_public_table_button = TransparentPushButton("保存到公共表", self.table_detail_widget)
-        self.clear_current_table_button = TransparentPushButton("清空", self.table_detail_widget)
+        self.save_public_table_button = TransparentPushButton(self.tra("保存到公共表"), self.table_detail_widget)
+        self.clear_current_table_button = TransparentPushButton(self.tra("清空"), self.table_detail_widget)
         self.save_public_table_button.setFixedHeight(28)
         self.clear_current_table_button.setFixedHeight(28)
         self.save_public_table_button.clicked.connect(self._save_current_view_to_public_table)
@@ -447,10 +547,10 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.characters_table = self._create_table(
             self.VIEW_CHARACTERS,
             [
-                "原文键",
-                "推荐译名",
-                "性别",
-                "备注",
+                self.tra("原文键"),
+                self.tra("推荐译名"),
+                self.tra("性别"),
+                self.tra("备注"),
             ]
         )
         self.characters_table.itemChanged.connect(
@@ -468,10 +568,10 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.terms_table = self._create_table(
             self.VIEW_TERMS,
             [
-                "原文",
-                "推荐译名",
-                "分类属性",
-                "备注",
+                self.tra("原文"),
+                self.tra("推荐译名"),
+                self.tra("分类属性"),
+                self.tra("备注"),
             ]
         )
         self.terms_table.itemChanged.connect(
@@ -487,7 +587,8 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         layout.setSpacing(0)
 
         self.non_translate_table = self._create_table(
-            self.VIEW_NON_TRANSLATE, ["原文", "分类", "备注"]
+            self.VIEW_NON_TRANSLATE,
+            [self.tra("原文"), self.tra("分类"), self.tra("备注")],
         )
         self.non_translate_table.itemChanged.connect(
             lambda item: self._on_table_item_changed(self.VIEW_NON_TRANSLATE, item)
@@ -533,7 +634,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         insert_action = Action(
             FIF.ADD_TO,
-            "插入新行",
+            self.tra("插入新行"),
             triggered=lambda: self._insert_row(view_name, table),
         )
         insert_action.setEnabled(not running)
@@ -541,14 +642,14 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         delete_action = Action(
             FIF.DELETE,
-            "删除选中项",
+            self.tra("删除选中项"),
             triggered=lambda: self._delete_selected_rows(view_name, table),
         )
         delete_action.setEnabled(selected_row_count > 0 and not running)
         menu.addAction(delete_action)
         menu.addSeparator()
 
-        row_count_action = Action(FIF.LEAF, f"行数: {table.rowCount()}")
+        row_count_action = Action(FIF.LEAF, self.tra("行数: {0}").format(table.rowCount()))
         row_count_action.setEnabled(False)
         menu.addAction(row_count_action)
 
@@ -622,24 +723,24 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.nav_tree.clear()
         counts = self._get_counts()
 
-        characters_item = QTreeWidgetItem([f"角色表 ({counts['characters']})"])
+        characters_item = QTreeWidgetItem([f"{self._get_view_display_name(self.VIEW_CHARACTERS)} ({counts['characters']})"])
         characters_item.setData(0, Qt.UserRole, (self.VIEW_CHARACTERS, None))
         for category in self.CHARACTER_CATEGORIES:
-            child = QTreeWidgetItem([f"{category} ({counts['character_categories'].get(category, 0)})"])
+            child = QTreeWidgetItem([f"{self.tra(category)} ({counts['character_categories'].get(category, 0)})"])
             child.setData(0, Qt.UserRole, (self.VIEW_CHARACTERS, category))
             characters_item.addChild(child)
 
-        terms_item = QTreeWidgetItem([f"术语表 ({counts['terms']})"])
+        terms_item = QTreeWidgetItem([f"{self._get_view_display_name(self.VIEW_TERMS)} ({counts['terms']})"])
         terms_item.setData(0, Qt.UserRole, (self.VIEW_TERMS, None))
         for category in self.TERM_CATEGORIES:
-            child = QTreeWidgetItem([f"{category} ({counts['term_categories'].get(category, 0)})"])
+            child = QTreeWidgetItem([f"{self.tra(category)} ({counts['term_categories'].get(category, 0)})"])
             child.setData(0, Qt.UserRole, (self.VIEW_TERMS, category))
             terms_item.addChild(child)
 
-        non_translate_item = QTreeWidgetItem([f"禁翻表 ({counts['non_translate']})"])
+        non_translate_item = QTreeWidgetItem([f"{self._get_view_display_name(self.VIEW_NON_TRANSLATE)} ({counts['non_translate']})"])
         non_translate_item.setData(0, Qt.UserRole, (self.VIEW_NON_TRANSLATE, None))
         for category in self.NON_TRANSLATE_CATEGORIES:
-            child = QTreeWidgetItem([f"{category} ({counts['non_translate_categories'].get(category, 0)})"])
+            child = QTreeWidgetItem([f"{self.tra(category)} ({counts['non_translate_categories'].get(category, 0)})"])
             child.setData(0, Qt.UserRole, (self.VIEW_NON_TRANSLATE, category))
             non_translate_item.addChild(child)
 
@@ -703,7 +804,8 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             row_key = self._get_row_key(view_name, row)
             for col_index, (field_name, editable) in enumerate(field_specs):
                 value = row.get(field_name, "")
-                item = QTableWidgetItem("" if value is None else str(value))
+                display_value = self._get_display_field_value(view_name, field_name, value, row)
+                item = QTableWidgetItem(display_value)
                 item.setData(Qt.UserRole, row_key)
                 if not editable:
                     item.setFlags(item.flags() & ~Qt.ItemIsEditable)
@@ -775,20 +877,20 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def start_analysis(self) -> None:
         if Base.work_status != Base.STATUS.IDLE:
-            self.warning_toast("提示", "当前有其他任务正在执行，请稍后再试。")
+            self.warning_toast(self.tra("提示"), self.tra("当前有其他任务正在执行，请稍后再试。"))
             return
         if not self.cache_manager or not self.cache_manager.project:
-            self.warning_toast("提示", "当前没有已加载的项目。")
+            self.warning_toast(self.tra("提示"), self.tra("当前没有已加载的项目。"))
             return
 
         if self.analysis_data:
             message_box = MessageBox(
-                "确认",
-                "重新开始分析会覆盖当前项目中的分析结果，是否继续？",
+                self.tra("确认"),
+                self.tra("重新开始分析会覆盖当前项目中的分析结果，是否继续？"),
                 self.window(),
             )
-            message_box.yesButton.setText("确认")
-            message_box.cancelButton.setText("取消")
+            message_box.yesButton.setText(self.tra("确认"))
+            message_box.cancelButton.setText(self.tra("取消"))
             if not message_box.exec():
                 return
 
@@ -796,7 +898,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._apply_runtime_state(
             status_key="running",
             phase_key="prepare",
-            info_text="正在准备...",
+            info_text=self.tra("正在准备..."),
         )
         self._render_header()
         self._update_action_buttons(running=True)
@@ -807,18 +909,18 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             return
 
         message_box = MessageBox(
-            "确认",
-            "是否确定停止当前分析任务？",
+            self.tra("确认"),
+            self.tra("是否确定停止当前分析任务？"),
             self.window(),
         )
-        message_box.yesButton.setText("确认")
-        message_box.cancelButton.setText("取消")
+        message_box.yesButton.setText(self.tra("确认"))
+        message_box.cancelButton.setText(self.tra("取消"))
         if not message_box.exec():
             return
 
         self._apply_runtime_state(
             status_key="stopping",
-            info_text="正在停止...",
+            info_text=self.tra("正在停止..."),
         )
         self._render_header()
         self._update_action_buttons(running=True)
@@ -829,7 +931,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         if self.analysis_runtime_state.get("status_key") == "stopping":
             return
 
-        message = str(data.get("message", "")).strip() or "分析中"
+        message = str(data.get("message", "")).strip() or self.tra("分析中")
         is_structured = any(
             key in data for key in ("status", "phase", "percent", "detail")
         )
@@ -870,7 +972,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 percent=100,
             )
             self._render_header()
-            self.success_toast("完成", message or "全文分析完成。")
+            self.success_toast(self.tra("完成"), message or self.tra("全文分析完成。"))
         elif status == "partial":
             self._apply_runtime_state(
                 status_key="partial",
@@ -878,19 +980,19 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 percent=100,
             )
             self._render_header()
-            self.warning_toast("完成", message or "分析已完成，但存在失败的分块。")
+            self.warning_toast(self.tra("完成"), message or self.tra("分析已完成，但存在失败的分块。"))
         elif status == "stopped":
             self._apply_runtime_state(
                 status_key="stopped",
             )
             self._render_header()
-            self.info_toast("已停止", message or "分析任务已停止。")
+            self.info_toast(self.tra("已停止"), message or self.tra("分析任务已停止。"))
         else:
             self._apply_runtime_state(
                 status_key="error",
             )
             self._render_header()
-            self.error_toast("失败", message or "全文分析失败。")
+            self.error_toast(self.tra("失败"), message or self.tra("全文分析失败。"))
 
     def _on_table_item_changed(self, view_name: str, item: QTableWidgetItem) -> None:
         if self._updating_ui:
@@ -916,14 +1018,17 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             return
 
         new_value = item.text().strip()
+        display_value = new_value
         refresh_navigation = False
         refresh_view = False
         if view_name == self.VIEW_CHARACTERS and field_name == "gender":
             new_value = self._normalize_character_category(new_value)
+            display_value = self._get_display_field_value(view_name, field_name, new_value, target_row)
             refresh_navigation = True
             refresh_view = True
         elif view_name == self.VIEW_TERMS and field_name == "category_path":
             new_value = self._normalize_term_category(new_value)
+            display_value = self._get_display_field_value(view_name, field_name, new_value, target_row)
             refresh_navigation = True
             refresh_view = True
         elif view_name == self.VIEW_NON_TRANSLATE and field_name == "category":
@@ -932,6 +1037,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 marker=target_row.get("marker", ""),
                 note=target_row.get("note", ""),
             )
+            display_value = self._get_display_field_value(view_name, field_name, new_value, target_row)
             refresh_navigation = True
             refresh_view = True
 
@@ -944,13 +1050,14 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 next_key = self._normalize_row_key(new_value)
                 existing_row = self._find_row_by_key(view_name, next_key)
                 if existing_row and existing_row is not target_row:
-                    self.warning_toast("提示", "原文键已存在，不能重复。")
+                    self.warning_toast(self.tra("提示"), self.tra("原文键已存在，不能重复。"))
                     new_value = current_identity_value
+                    display_value = current_identity_value
                 refresh_view = True
 
-        if item.text() != new_value:
+        if item.text() != display_value:
             self._updating_ui = True
-            item.setText(new_value)
+            item.setText(display_value)
             self._updating_ui = False
 
         target_row[field_name] = new_value
@@ -965,7 +1072,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _insert_row(self, view_name: str, table: TableWidget) -> None:
         if self._is_analysis_running():
-            self.warning_toast("提示", "分析任务执行中，暂时不能插入新行。")
+            self.warning_toast(self.tra("提示"), self.tra("分析任务执行中，暂时不能插入新行。"))
             return
 
         key = self._get_analysis_key(view_name)
@@ -981,7 +1088,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._persist_analysis_state(refresh_navigation=True)
         self._refresh_all_views()
         self._focus_row_by_key(view_name, new_row["_row_key"])
-        self.success_toast("完成", "新行已插入。")
+        self.success_toast(self.tra("完成"), self.tra("新行已插入。"))
 
     def _create_empty_row(self, view_name: str) -> dict:
         current_filter = self._get_filter_for_view(view_name)
@@ -1050,15 +1157,15 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _save_current_view_to_public_table(self) -> None:
         if self._is_analysis_running():
-            self.warning_toast("提示", "分析任务执行中，暂时不能保存到公共表。")
+            self.warning_toast(self.tra("提示"), self.tra("分析任务执行中，暂时不能保存到公共表。"))
             return
         if not self.cache_manager or not self.cache_manager.project:
-            self.warning_toast("提示", "当前没有已加载的项目。")
+            self.warning_toast(self.tra("提示"), self.tra("当前没有已加载的项目。"))
             return
 
         public_rows = self._build_public_table_rows(self.current_view)
         if not public_rows:
-            self.info_toast("提示", "当前显示内容中没有可保存的条目。")
+            self.info_toast(self.tra("提示"), self.tra("当前显示内容中没有可保存的条目。"))
             return
 
         config = self.load_config()
@@ -1095,11 +1202,11 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             config["prompt_dictionary_data"] = current_rows
 
         if added_count <= 0:
-            self.info_toast("提示", "当前内容均已存在于公共表中。")
+            self.info_toast(self.tra("提示"), self.tra("当前内容均已存在于公共表中。"))
             return
 
         self.save_config(config)
-        self.success_toast("完成", f"已保存到公共表，新增 {added_count} 条内容。")
+        self.success_toast(self.tra("完成"), self.tra("已保存到公共表，新增 {0} 条内容。").format(added_count))
 
     def _build_public_table_rows(self, view_name: str) -> list[dict]:
         rows = []
@@ -1153,22 +1260,22 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _clear_current_view_rows(self) -> None:
         if self._is_analysis_running():
-            self.warning_toast("提示", "分析任务执行中，暂时不能清空当前显示内容。")
+            self.warning_toast(self.tra("提示"), self.tra("分析任务执行中，暂时不能清空当前显示内容。"))
             return
 
         row_keys = self._get_visible_row_keys(self.current_view)
         if not row_keys:
-            self.info_toast("提示", "当前显示内容为空。")
+            self.info_toast(self.tra("提示"), self.tra("当前显示内容为空。"))
             return
 
         detail_name = self._get_table_detail_display_text()
         message_box = MessageBox(
-            "确认",
-            f"确定要清空当前显示的 {detail_name} 吗？\n共 {len(row_keys)} 条内容将被删除。",
+            self.tra("确认"),
+            self.tra("确定要清空当前显示的 {0} 吗？\n共 {1} 条内容将被删除。").format(detail_name, len(row_keys)),
             self.window(),
         )
-        message_box.yesButton.setText("确认")
-        message_box.cancelButton.setText("取消")
+        message_box.yesButton.setText(self.tra("确认"))
+        message_box.cancelButton.setText(self.tra("取消"))
         if not message_box.exec():
             return
 
@@ -1176,7 +1283,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         if deleted_count:
             self._refresh_navigation()
             self.nav_tree.viewport().update()
-            self.success_toast("完成", f"已清空当前显示的 {deleted_count} 条内容。")
+            self.success_toast(self.tra("完成"), self.tra("已清空当前显示的 {0} 条内容。").format(deleted_count))
 
     def _get_visible_row_keys(self, view_name: str) -> list[str]:
         row_keys = []
@@ -1226,27 +1333,27 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _delete_selected_rows(self, view_name: str, table: TableWidget) -> None:
         if self._is_analysis_running():
-            self.warning_toast("提示", "分析任务执行中，暂时不能删除当前表内容。")
+            self.warning_toast(self.tra("提示"), self.tra("分析任务执行中，暂时不能删除当前表内容。"))
             return
 
         row_keys = self._get_selected_row_keys(table)
         if not row_keys:
-            self.info_toast("提示", "当前没有选中的内容。")
+            self.info_toast(self.tra("提示"), self.tra("当前没有选中的内容。"))
             return
 
         message_box = MessageBox(
-            "确认",
-            f"确定要删除当前选中的 {len(row_keys)} 条内容吗？",
+            self.tra("确认"),
+            self.tra("确定要删除当前选中的 {0} 条内容吗？").format(len(row_keys)),
             self.window(),
         )
-        message_box.yesButton.setText("确认")
-        message_box.cancelButton.setText("取消")
+        message_box.yesButton.setText(self.tra("确认"))
+        message_box.cancelButton.setText(self.tra("取消"))
         if not message_box.exec():
             return
 
         deleted_count = self._delete_rows(view_name, row_keys)
         if deleted_count:
-            self.success_toast("完成", f"已删除 {deleted_count} 条内容。")
+            self.success_toast(self.tra("完成"), self.tra("已删除 {0} 条内容。").format(deleted_count))
 
     def _persist_analysis_state(self, refresh_navigation: bool = False) -> None:
         if not self.cache_manager or not self.cache_manager.project:
@@ -1309,15 +1416,8 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         table_name = self._get_view_display_name(self.current_view)
         current_filter = self._get_filter_for_view(self.current_view)
         if current_filter:
-            return f"{table_name} / {current_filter}"
+            return f"{table_name} / {self._get_display_filter_value(self.current_view, current_filter)}"
         return table_name
-
-    def _get_view_display_name(self, view_name: str) -> str:
-        return {
-            self.VIEW_CHARACTERS: "角色表",
-            self.VIEW_TERMS: "术语表",
-            self.VIEW_NON_TRANSLATE: "禁翻表",
-        }.get(view_name, "角色表")
 
     def _get_counts(self) -> dict:
         characters = self.analysis_data.get("characters", []) or []
@@ -1444,45 +1544,46 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         }
 
     def _normalize_character_category(self, value) -> str:
-        text = str(value or "").strip().lower()
-        if any(token in text for token in ["男", "male", "m", "boy", "man"]):
+        if self._matches_category_alias(value, self.CHARACTER_MALE, "男", "male", "m", "boy", "man"):
             return self.CHARACTER_MALE
-        if any(token in text for token in ["女", "female", "f", "girl", "woman"]):
+        if self._matches_category_alias(value, self.CHARACTER_FEMALE, "女", "female", "f", "girl", "woman"):
             return self.CHARACTER_FEMALE
         return self.CHARACTER_OTHER
 
     def _normalize_term_category(self, value) -> str:
-        text = str(value or "").strip().lower()
-        if any(token in text for token in ["身份", "人物身份", "称谓", "头衔", "职业", "角色", "identity", "role", "title", "class"]):
+        if self._matches_category_alias(value, self.TERM_IDENTITY, "人物身份", "称谓", "头衔", "职业", "角色", "identity", "role", "title", "class"):
             return self.TERM_IDENTITY
-        if any(token in text for token in ["物品", "道具", "装备", "item", "artifact", "product", "weapon"]):
+        if self._matches_category_alias(value, self.TERM_ITEM, "道具", "装备", "item", "artifact", "product", "weapon"):
             return self.TERM_ITEM
-        if any(token in text for token in ["组织", "势力", "阵营", "团体", "organization", "org", "faction"]):
+        if self._matches_category_alias(value, self.TERM_ORGANIZATION, "势力", "阵营", "团体", "organization", "org", "faction"):
             return self.TERM_ORGANIZATION
-        if any(token in text for token in ["地名", "地点", "城市", "国家", "location", "place", "loc", "gpe"]):
+        if self._matches_category_alias(value, self.TERM_LOCATION, "地点", "城市", "国家", "location", "place", "loc", "gpe"):
             return self.TERM_LOCATION
+        if self._matches_category_alias(value, self.TERM_SKILL, "法术", "招式", "能力", "skill", "skills", "spell", "spells", "ability", "abilities"):
+            return self.TERM_SKILL
+        if self._matches_category_alias(value, self.TERM_RACE, "族群", "族类", "race", "races", "species", "tribe"):
+            return self.TERM_RACE
         return self.TERM_OTHER
 
     # ==========================
     # 不翻译项分类推导逻辑
     # ==========================
     def _normalize_non_translate_category(self, value, marker="", note="") -> str:
-        text = str(value or "").strip().lower()
-        combined_hint = f"{text} {marker} {note}".lower()
+        combined_hint = self._normalize_category_text(f"{value} {marker} {note}")
         
-        if any(token in combined_hint for token in ["标签", "tag", "html", "<", ">", "</"]):
+        if self._contains_category_hint(combined_hint, self.NON_TRANSLATE_TAG, "tag", "html", "<", ">", "</"):
             return self.NON_TRANSLATE_TAG
-        if any(token in combined_hint for token in ["变量", "var", "{{", "}}", "$"]):
+        if self._contains_category_hint(combined_hint, self.NON_TRANSLATE_VARIABLE, "var", "{{", "}}", "$"):
             return self.NON_TRANSLATE_VARIABLE
-        if any(token in combined_hint for token in ["占位", "placeholder", "%s", "%d", "{0}", "{1}"]):
+        if self._contains_category_hint(combined_hint, self.NON_TRANSLATE_PLACEHOLDER, "占位", "placeholder", "%s", "%d", "{0}", "{1}"):
             return self.NON_TRANSLATE_PLACEHOLDER
-        if any(token in combined_hint for token in ["特殊宏", "宏", "macro", "icon", "[", "]", "【", "】"]):
+        if self._contains_category_hint(combined_hint, self.NON_TRANSLATE_MACRO, "宏", "macro", "icon", "[", "]", "【", "】"):
             return self.NON_TRANSLATE_MACRO
-        if any(token in combined_hint for token in ["转义", "escape", "\\n", "\\t", "\\r", "\\\""]):
+        if self._contains_category_hint(combined_hint, self.NON_TRANSLATE_ESCAPE, "转义", "escape", "\\n", "\\t", "\\r", "\\\""):
             return self.NON_TRANSLATE_ESCAPE
-        if any(token in combined_hint for token in ["资源", "路径", "标识", "res", "path", ".png", ".wav", ".mp3", "audio"]):
+        if self._contains_category_hint(combined_hint, self.NON_TRANSLATE_RESOURCE, "路径", "标识", "res", "path", ".png", ".wav", ".mp3", "audio"):
             return self.NON_TRANSLATE_RESOURCE
-        if any(token in combined_hint for token in ["数值", "公式", "计算", "numeric", "math", "+", "-", "*", "/", "="]):
+        if self._contains_category_hint(combined_hint, self.NON_TRANSLATE_NUMERIC, "公式", "计算", "numeric", "math", "+", "-", "*", "/", "="):
             return self.NON_TRANSLATE_NUMERIC
             
         return self.NON_TRANSLATE_OTHER

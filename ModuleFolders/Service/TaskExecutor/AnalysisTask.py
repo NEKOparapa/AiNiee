@@ -49,17 +49,38 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         try:
             # --- [准备阶段] ---
             Base.work_status = Base.STATUS.ANALYSIS_TASK
-            self._emit_progress_update("prepare", "准备中", 0, 0, "正在初始化分析任务...", "加载配置与限流设置。")
+            self._emit_progress_update(
+                "prepare",
+                self.tra("准备中"),
+                0,
+                0,
+                self.tra("正在初始化分析任务..."),
+                self.tra("加载配置与限流设置。"),
+            )
             self.config.initialize()
             self.config.prepare_for_active_platform()
             self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
 
             # 生成分析用文本片段：按 token 切分，确保每个分块都在模型处理能力范围内，同时保持文本的完整性和上下文连贯。
-            self._emit_progress_update("prepare", "准备中", 0, 0, "正在生成分析用文本片段...", "按 token 切分项目原文。")
+            self._emit_progress_update(
+                "prepare",
+                self.tra("准备中"),
+                0,
+                0,
+                self.tra("正在生成分析用文本片段..."),
+                self.tra("按 token 切分项目原文。"),
+            )
             chunks = self.cache_manager.generate_analysis_source_chunks("token", self.CHUNK_TOKEN_LIMIT)
 
             # --- [第一阶段] ---
-            self._emit_progress_update("stage1", "第一阶段", 0, len(chunks), f"开始执行第一阶段分析任务...", f"共 {len(chunks)} 个分块。")
+            self._emit_progress_update(
+                "stage1",
+                self.tra("第一阶段"),
+                0,
+                len(chunks),
+                self.tra("开始执行第一阶段分析任务..."),
+                self.tra("共 {0} 个分块。").format(len(chunks)),
+            )
             first_stage_results = []
             executor_stage1 = concurrent.futures.ThreadPoolExecutor(max_workers=self.config.actual_thread_counts, thread_name_prefix="analysis_stage1")
             self._set_active_executor(executor_stage1)
@@ -68,7 +89,14 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 for i, future in enumerate(concurrent.futures.as_completed(futures_stage1), 1):
                     if Base.work_status == Base.STATUS.STOPING: break
                     if result := future.result(): first_stage_results.append(result)
-                    self._emit_progress_update("stage1", "第一阶段", i, len(chunks), "第一阶段提取中...", f"已完成 {i} / {len(chunks)} 个分块。")
+                    self._emit_progress_update(
+                        "stage1",
+                        self.tra("第一阶段"),
+                        i,
+                        len(chunks),
+                        self.tra("第一阶段提取中..."),
+                        self.tra("已完成 {0} / {1} 个分块。").format(i, len(chunks)),
+                    )
             finally:
                 executor_stage1.shutdown(wait=True, cancel_futures=Base.work_status == Base.STATUS.STOPING)
                 self._clear_active_executor(executor_stage1)
@@ -77,7 +105,14 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
 
             # --- [第二阶段] ---
             reduction_batches = self._prepare_reduction_batches(first_stage_results) # 准备第二阶段的批次：将第一阶段的结果按 source 聚合，短词挂靠长词，形成待裁决的候选组。
-            self._emit_progress_update("stage2", "第二阶段", 0, len(reduction_batches), f"开始执行第二阶段分析任务...", f"共 {len(reduction_batches)} 个合并批次。")
+            self._emit_progress_update(
+                "stage2",
+                self.tra("第二阶段"),
+                0,
+                len(reduction_batches),
+                self.tra("开始执行第二阶段分析任务..."),
+                self.tra("共 {0} 个合并批次。").format(len(reduction_batches)),
+            )
             second_stage_results = []
             if reduction_batches:
                 executor_stage2 = concurrent.futures.ThreadPoolExecutor(max_workers=self.config.actual_thread_counts, thread_name_prefix="analysis_stage2")
@@ -87,7 +122,14 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                     for i, future in enumerate(concurrent.futures.as_completed(futures_stage2), 1):
                         if Base.work_status == Base.STATUS.STOPING: break
                         if result := future.result(): second_stage_results.append(result)
-                        self._emit_progress_update("stage2", "第二阶段", i, len(reduction_batches), "第二阶段合并中...", f"已完成 {i} / {len(reduction_batches)} 个合并批次。")
+                        self._emit_progress_update(
+                            "stage2",
+                            self.tra("第二阶段"),
+                            i,
+                            len(reduction_batches),
+                            self.tra("第二阶段合并中..."),
+                            self.tra("已完成 {0} / {1} 个合并批次。").format(i, len(reduction_batches)),
+                        )
                 finally:
                     executor_stage2.shutdown(wait=True, cancel_futures=Base.work_status == Base.STATUS.STOPING)
                     self._clear_active_executor(executor_stage2)
@@ -95,9 +137,23 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             if Base.work_status == Base.STATUS.STOPING: return self._handle_stop()
 
             # --- [最终阶段] ---
-            self._emit_progress_update("finalize", "结果整合", 0, 1, "正在整合最终分析结果...", "执行本地兜底与禁翻清洗。")
+            self._emit_progress_update(
+                "finalize",
+                self.tra("结果整合"),
+                0,
+                1,
+                self.tra("正在整合最终分析结果..."),
+                self.tra("执行本地兜底与禁翻清洗。"),
+            )
             final_data = self._finalize_results(first_stage_results, second_stage_results)
-            self._emit_progress_update("finalize", "结果整合", 1, 1, "分析结果已生成...", "正在写回项目缓存。")
+            self._emit_progress_update(
+                "finalize",
+                self.tra("结果整合"),
+                1,
+                1,
+                self.tra("分析结果已生成..."),
+                self.tra("正在写回项目缓存。"),
+            )
 
             analysis_data = {
                 "status": "success",
@@ -116,7 +172,14 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             self.cache_manager.set_analysis_data(analysis_data)
             self.cache_manager.require_save_to_file()
             Base.work_status = Base.STATUS.IDLE
-            self.emit(Base.EVENT.ANALYSIS_TASK_DONE, {"status": "success", "analysis_data": analysis_data, "message": "全文分析完成。"})
+            self.emit(
+                Base.EVENT.ANALYSIS_TASK_DONE,
+                {
+                    "status": "success",
+                    "analysis_data": analysis_data,
+                    "message": self.tra("全文分析完成。"),
+                },
+            )
 
         except Exception as error:
             self.error(f"分析任务执行失败: {error}", error)
@@ -125,7 +188,14 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
 
     def _handle_stop(self) -> None:
         Base.work_status = Base.STATUS.TASKSTOPPED
-        self.emit(Base.EVENT.ANALYSIS_TASK_DONE, {"status": "stopped", "analysis_data": None, "message": "分析任务已停止"})
+        self.emit(
+            Base.EVENT.ANALYSIS_TASK_DONE,
+            {
+                "status": "stopped",
+                "analysis_data": None,
+                "message": self.tra("分析任务已停止。"),
+            },
+        )
 
 
     # ========================================================================
@@ -164,7 +234,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 "3. 宁缺毋滥：对于普通词汇（如“苹果”、“跑”、“明天”），不要提取。如果没有值得提取的内容，返回空列表。\n"
                 "4. 分类规范：\n"
                 "   - characters(角色): 文本中出现的具体人物、怪物、神明等名字。gender 填: 男性/女性/其他。\n"
-                "   - terms(术语): 地名、组织、物品名、技能名、独特概念等。category_path 填: 地名/物品/组织/技能/其他。\n"
+                "   - terms(术语): 身份称谓、地名、组织、物品名、技能名、种族名、独特概念等。category_path 填: 身份/物品/组织/地名/技能/种族/其他。\n"
                 "   - non_translate(不翻译项): 必须保留的机器代码，如 HTML标签(<b>)、占位符(%s)、变量({{name}})。category 填: 标签/变量/占位符/标记符/转义控制符/资源标识/数值公式/其他。\n"
                 "【输出格式】\n"
                 "必须输出合法的 JSON 代码块，严格遵守以下结构：\n"
@@ -182,6 +252,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 "请分析以下文本并提取信息：\n"
                 "---\n"
                 "露娜小姐：请携带[圣剑]前往星门集合。\n"
+                "精灵族战士即将施放月光斩。\n"
                 "系统提示：欢迎回来，{{player_name}}！<br>请注意<color=red>HP</color>的变化。\n"
                 "---\n"
                 "请输出 JSON 提取结果。"
@@ -194,7 +265,9 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 "  ],\n"
                 "  \"terms\": [\n"
                 "    {\"source\": \"圣剑\", \"recommended_translation\": \"圣剑\", \"category_path\": \"物品\", \"note\": \"武器名称\"},\n"
-                "    {\"source\": \"星门\", \"recommended_translation\": \"星门\", \"category_path\": \"地名\", \"note\": \"地点\"}\n"
+                "    {\"source\": \"星门\", \"recommended_translation\": \"星门\", \"category_path\": \"地名\", \"note\": \"地点\"},\n"
+                "    {\"source\": \"月光斩\", \"recommended_translation\": \"月光斩\", \"category_path\": \"技能\", \"note\": \"招式名称\"},\n"
+                "    {\"source\": \"精灵族\", \"recommended_translation\": \"精灵族\", \"category_path\": \"种族\", \"note\": \"种族名称\"}\n"
                 "  ],\n"
                 "  \"non_translate\": [\n"
                 "    {\"marker\": \"{{player_name}}\", \"category\": \"变量\", \"note\": \"玩家名变量\"},\n"
@@ -315,7 +388,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             "```json\n"
             "{\n"
             "  \"characters\": [{\"source\": \"主source\", \"recommended_translation\": \"推荐译名\", \"gender\": \"男性|女性|其他\", \"note\": \"整合后的备注\"}],\n"
-            "  \"terms\": [{\"source\": \"主source\", \"recommended_translation\": \"推荐译名\", \"category_path\": \"身份|物品|组织|地名|其他\", \"note\": \"整合后的备注\"}]\n"
+            "  \"terms\": [{\"source\": \"主source\", \"recommended_translation\": \"推荐译名\", \"category_path\": \"身份|物品|组织|地名|技能|种族|其他\", \"note\": \"整合后的备注\"}]\n"
             "}\n"
             "```"
         )
@@ -329,6 +402,20 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                     {"type": "character", "recommended_translation": "King Arthur", "gender": "男性", "note": "历史人物"},
                     {"type": "term", "recommended_translation": "Arthur", "category_path": "称号", "note": "错误分类为术语"}
                 ]
+            },
+            {
+                "source": "月光斩",
+                "merged_sources": ["月光斩"],
+                "candidates": [
+                    {"type": "term", "recommended_translation": "Moon Slash", "category_path": "技能", "note": "剑技名称"}
+                ]
+            },
+            {
+                "source": "精灵族",
+                "merged_sources": ["精灵族"],
+                "candidates": [
+                    {"type": "term", "recommended_translation": "Elves", "category_path": "种族", "note": "种族名称"}
+                ]
             }
         ]
         import rapidjson as json
@@ -340,7 +427,10 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             "  \"characters\": [\n"
             "    {\"source\": \"亚瑟王\", \"recommended_translation\": \"King Arthur\", \"gender\": \"男性\", \"note\": \"历史人物\"}\n"
             "  ],\n"
-            "  \"terms\": []\n"
+            "  \"terms\": [\n"
+            "    {\"source\": \"月光斩\", \"recommended_translation\": \"Moon Slash\", \"category_path\": \"技能\", \"note\": \"剑技名称\"},\n"
+            "    {\"source\": \"精灵族\", \"recommended_translation\": \"Elves\", \"category_path\": \"种族\", \"note\": \"种族名称\"}\n"
+            "  ]\n"
             "}\n"
             "```"
         )
