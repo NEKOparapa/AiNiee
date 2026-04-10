@@ -17,6 +17,27 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
         self.cache_manager = cache_manager
         self.config = self.load_config()
 
+    def _summarize_text(self, text: str, limit: int = 24) -> str:
+        normalized = re.sub(r'\s+', ' ', (text or "").strip())
+        if not normalized:
+            return "空"
+        if len(normalized) <= limit:
+            return normalized
+        return normalized[:limit] + "..."
+
+    def _build_rule_error(self, label: str, src_detail: str, dst_detail: str) -> str:
+        return "{}(原文: {}, 译文: {})".format(
+            label,
+            self._summarize_text(src_detail),
+            self._summarize_text(dst_detail),
+        )
+
+    def _build_missing_preserve_error(self, label: str, src_detail: str) -> str:
+        return "{}(原文存在{}，没有正确保留)".format(
+            label,
+            self._summarize_text(src_detail),
+        )
+
     def run_check(self, params: dict) -> Tuple[str, Any]:
         """
         规则检查入口，返回新的结果结构给UI使用
@@ -40,7 +61,7 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
         if not any(rules_config.values()):
             return []
 
-        self.info(self.tra("开始执行规则检查..."))
+        self.info("开始执行规则检查...")
         errors_list = []
 
         # 准备正则表达式模式
@@ -67,7 +88,7 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
                     if item.translation_status < TranslationStatus.TRANSLATED or not text_content:
                         errors_list.append({
                             "row_id": f"{file_name} : {item.text_index + 1}",
-                            "error_type": self.tra("条目未翻译/内容为空"),
+                            "error_type": self._build_rule_error("条目未翻译/内容为空", item.source_text, text_content),
                             "source": item.source_text,
                             "check_text": text_content,
                             "file_path": file_path,
@@ -89,13 +110,13 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
                     current_errors.extend(self._rule_check_auto_process(item.source_text, text_content, patterns))
                 # 5. 占位符
                 if rules_config.get("placeholder"):
-                    current_errors.extend(self._rule_check_placeholder(text_content))
+                    current_errors.extend(self._rule_check_placeholder(item.source_text, text_content))
                 # 6. 数字序号
                 if rules_config.get("number"):
-                    current_errors.extend(self._rule_check_number(text_content))
+                    current_errors.extend(self._rule_check_number(item.source_text, text_content))
                 # 7. 示例复读
                 if rules_config.get("example"):
-                    current_errors.extend(self._rule_check_example(text_content))
+                    current_errors.extend(self._rule_check_example(item.source_text, text_content))
                 # 8. 换行符
                 if rules_config.get("newline"):
                     current_errors.extend(self._rule_check_newline(item.source_text, text_content))
@@ -112,7 +133,7 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
                         "target_field": check_attr
                     })
 
-        self.info(self.tra("规则检查完成，发现 {} 个问题。").format(len(errors_list)))
+        self.info("规则检查完成，发现 {} 个问题。".format(len(errors_list)))
         return errors_list
 
     # --- 规则检查辅助方法 ---
@@ -143,7 +164,8 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
                 try:
                     for match in re.finditer(pat, src):
                         if match.group(0) not in dst:
-                            if self.tra("禁翻表错误") not in errs: errs.append(self.tra("禁翻表错误"))
+                            if not errs:
+                                errs.append(self._build_missing_preserve_error("禁翻表错误", match.group(0)))
                             break
                 except: continue
         return errs
@@ -156,38 +178,42 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
             try:
                 for match in re.finditer(pat, _src):
                     if match.group(0) not in _dst:
-                        if self.tra("自动处理错误") not in errs: errs.append(self.tra("自动处理错误"))
+                        if not errs:
+                            errs.append(self._build_missing_preserve_error("自动处理错误", match.group(0)))
                         break
             except: continue
         return errs
 
-    def _rule_check_placeholder(self, text):
-        if re.search(r'\[P\d+\]', text):
-            return [self.tra("占位符残留")]
+    def _rule_check_placeholder(self, src, dst):
+        match = re.search(r'\[P\d+\]', dst)
+        if match:
+            return ["占位符残留({})".format(self._summarize_text(match.group(0)))]
         return []
 
-    def _rule_check_number(self, text):
-        if re.search(r'\d+\.\d+\.', text):
-            return [self.tra("数字序号残留")]
+    def _rule_check_number(self, src, dst):
+        match = re.search(r'\d+\.\d+\.', dst)
+        if match:
+            return ["数字序号残留({})".format(self._summarize_text(match.group(0)))]
         return []
 
-    def _rule_check_example(self, text):
-        if re.search(r'示例文本[A-Z]-\d+', text):
-            return [self.tra("示例文本复读")]
+    def _rule_check_example(self, src, dst):
+        match = re.search(r'示例文本[A-Z]-\d+', dst)
+        if match:
+            return ["示例文本复读({})".format(self._summarize_text(match.group(0)))]
         return []
 
     def _rule_check_newline(self, src, dst):
         s_n = src.strip().count('\n') + src.strip().count('\\n')
         d_n = dst.strip().count('\n') + dst.strip().count('\\n')
         if s_n != d_n:
-            return [self.tra("换行符错误")]
+            return ["换行符错误(原文: {}个换行, 译文: {}个换行)".format(s_n, d_n)]
         return []
 
     # 辅助方法
     def _perform_pre_checks(self, mode: str) -> Tuple[str | None, Dict]:
         """执行预检查，确保项目和缓存数据有效"""
         if not self.cache_manager.project or not self.cache_manager.project.files:
-            self.error(self.tra("检查失败，请检查项目文件夹缓存是否正常"))
+            self.error("检查失败，请检查项目文件夹缓存是否正常")
             return CheckResult.ERROR_CACHE, {}
 
         has_content = False
@@ -201,7 +227,7 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
                 break
 
         if not has_content:
-            self.error(self.tra("检查失败，请先执行翻译流程"))
+            self.error("检查失败，请先执行翻译流程")
             return CheckResult.ERROR_NO_TRANSLATION, {}
 
         return None, {}

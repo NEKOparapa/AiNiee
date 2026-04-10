@@ -33,7 +33,7 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
 
     # --- 术语检查主流程 ---
     def _check_terminology(self) -> List[Dict]:
-        self.info(self.tra("开始执行术语检查..."))
+        self.info("开始执行术语检查...")
         errors_list = []
         check_attr = "translated_text"
 
@@ -87,7 +87,7 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
                         "target_field": check_attr
                     })
 
-        self.info(self.tra("术语检查完成，发现 {} 个问题。").format(len(errors_list)))
+        self.info("术语检查完成，发现 {} 个问题。".format(len(errors_list)))
         return errors_list
 
     # --- 术语检查辅助方法 ---
@@ -111,9 +111,10 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
 
             # 如果原文中存在术语，则检查译文中是否包含对应的译名
             if match_found:
+                src_term = term_item["src"]
                 dst_term = term_item["dst"]
                 if dst_term not in dst:
-                    err_msg = self.tra("术语缺失: {}").format(dst_term)
+                    err_msg = "术语缺失(原文: {}, 译文: {})".format(src_term, dst_term)
                     if err_msg not in errs:
                         errs.append(err_msg)
         return errs
@@ -122,7 +123,7 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
     def _perform_pre_checks(self, mode: str) -> Tuple[str | None, Dict]:
         """执行预检查，确保项目和缓存数据有效"""
         if not self.cache_manager.project or not self.cache_manager.project.files:
-            self.error(self.tra("检查失败，请检查项目文件夹缓存是否正常"))
+            self.error("检查失败，请检查项目文件夹缓存是否正常")
             return CheckResult.ERROR_CACHE, {}
 
         has_content = False
@@ -136,7 +137,7 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
                 break
 
         if not has_content:
-            self.error(self.tra("检查失败，请先执行翻译流程"))
+            self.error("检查失败，请先执行翻译流程")
             return CheckResult.ERROR_NO_TRANSLATION, {}
 
         return None, {}

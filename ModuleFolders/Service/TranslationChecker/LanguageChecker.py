@@ -24,6 +24,12 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
         self.config = self.load_config()
         self._last_results = []
         self._last_target_language_name = self.config.get("target_language", "english")
+        self._last_target_language_code = TranslatorUtil.map_language_name_to_code(self._last_target_language_name) or self._last_target_language_name
+
+    def _build_error_type(self, detected_lang: str | None, target_lang: str | None = None) -> str:
+        detected_lang = detected_lang or "unknown"
+        target_lang = target_lang or self._last_target_language_code or self._last_target_language_name or "unknown"
+        return "语言不匹配(检测: {}, 目标: {})".format(detected_lang, target_lang)
 
     def run_check(self, params: dict) -> Tuple[str, Any]:
         """
@@ -77,6 +83,8 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
         """
         errors = []
         flag_key = "language_mismatch_translation"
+        detected_lang_key = f"{flag_key}_detected_lang"
+        target_lang_key = f"{flag_key}_target_lang"
         check_attr = "translated_text"
 
         for file_path, file_obj in self.cache_manager.project.files.items():
@@ -85,9 +93,11 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
                 # 检查 extra 字典是否存在且标记为 True
                 if item.extra and item.extra.get(flag_key) is True:
                     text_content = getattr(item, check_attr, "")
+                    detected_lang = item.extra.get(detected_lang_key)
+                    target_lang = item.extra.get(target_lang_key)
                     errors.append({
                         "row_id": f"{file_name} : {item.text_index + 1}",
-                        "error_type": self.tra("语言比例异常"), # 由于 check_language 没返回具体检测到的语言，只能显示通用错误
+                        "error_type": self._build_error_type(detected_lang, target_lang),
                         "source": item.source_text,
                         "check_text": text_content,
                         "file_path": file_path,
@@ -125,9 +135,10 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
 
                     item = cache_file.items[item_index]
                     text_content = getattr(item, check_attr, "")
+                    detected_lang = line_info.get("detected_lang")
                     errors.append({
                         "row_id": f"{file_name} : {item.text_index + 1}",
-                        "error_type": self.tra("语言比例异常"),
+                        "error_type": self._build_error_type(detected_lang),
                         "source": item.source_text,
                         "check_text": text_content,
                         "file_path": file_path,
@@ -174,38 +185,41 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
         flag_key = "language_mismatch_translation"
         target_language_name = self.config.get("target_language", "english")
         target_language_code = TranslatorUtil.map_language_name_to_code(target_language_name)
-        mode_text = self.tra("翻译后文本")
+        mode_text = "翻译后文本"
         self._last_target_language_name = target_language_name
 
         if not target_language_code:
-            self.error(self.tra("检查失败：无法将目标语言名称 '{}' 转换为有效的语言代码。请检查您的配置。").format(target_language_name))
+            self.error("检查失败：无法将目标语言名称 '{}' 转换为有效的语言代码。请检查您的配置。".format(target_language_name))
             return CheckResult.ERROR_INVALID_LANG, {"lang_name": target_language_name}
 
         # 兼容繁中检测
         if target_language_code == 'zh-Hant':
             target_language_code = 'zh'
+        self._last_target_language_code = target_language_code
 
-        self.info(self.tra("开始检查项目的{}...").format(mode_text))
+        self.info("开始检查项目的{}...".format(mode_text))
         if is_judging:
-            self.info(self.tra("模式: 精准判断，目标语言: {} ({})").format(target_language_name, target_language_code))
+            self.info("模式: 精准判断，目标语言: {} ({})".format(target_language_name, target_language_code))
             #  使用传入的参数打印日志
-            self.info(self.tra("检测块大小: {}行, 块语言比例阈值: {:.0%}").format(chunk_size, threshold))
+            self.info("检测块大小: {}行, 块语言比例阈值: {:.0%}".format(chunk_size, threshold))
         else:
-            self.info(self.tra("模式: 宏观统计【将报告每个文件的整体语言组成】"))
+            self.info("模式: 宏观统计【将报告每个文件的整体语言组成】")
         self.print("-" * 20)
 
         #检查前查看是否有标记
-        self.info(self.tra("正在清除旧的语言检查标记..."))
+        self.info("正在清除旧的语言检查标记...")
         #遍历所有 item
         for item in self.cache_manager.project.items_iter():
             if item.extra:
                 item.extra.pop("language_mismatch_translation", None)
                 item.extra.pop("language_mismatch_polish", None)
+                item.extra.pop("language_mismatch_translation_detected_lang", None)
+                item.extra.pop("language_mismatch_translation_target_lang", None)
 
                 # 如果 extra 字典在移除标记后变为空，将其设为 None 以保持缓存干净
                 if not item.extra:
                     item.extra = None
-        self.info(self.tra("旧标记已清除。现在开始新的检查..."))
+        self.info("旧标记已清除。现在开始新的检查...")
         self.print("-" * 20)
 
 
@@ -225,11 +239,11 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
                         all_results.append(analysis_result)
         finally:
             ReaderUtil.close_lang_detector()
-        self.info(self.tra("语言检查完成，耗时 {:.2f} 秒").format(time.time() - start_time))
+        self.info("语言检查完成，耗时 {:.2f} 秒".format(time.time() - start_time))
 
         # 如果在精准判断模式下发现了问题，则保存带有标记的缓存
         if is_judging and all_results:
-            self.info(self.tra("检测到语言不匹配项，正在将标记保存到磁盘..."))
+            self.info("检测到语言不匹配项，正在将标记保存到磁盘...")
             try:
                 # 从配置中获取正确的输出路径。
                 config = self.load_config()
@@ -241,11 +255,11 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
                     # 立即执行保存操作
                     self.cache_manager.save_to_file()
 
-                    self.info(self.tra("标记已成功保存到缓存文件。"))
+                    self.info("标记已成功保存到缓存文件。")
                 else:
-                    self.warning(self.tra("无法保存标记：输出路径 '{}' 未配置或无效").format(output_path))
+                    self.warning("无法保存标记：输出路径 '{}' 未配置或无效".format(output_path))
             except Exception as e:
-                self.error(self.tra("保存标记到缓存时发生错误: {}").format(e))
+                self.error("保存标记到缓存时发生错误: {}".format(e))
 
         self._last_results = all_results
 
@@ -320,7 +334,7 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
 
         #返回行数检查
         if len(all_detection_results) != len(items_with_text_and_indices):
-            self.error(self.tra("检测结果数量({})与文本行数({})不一致！").format(len(all_detection_results), len(items_with_text_and_indices)))
+            self.error("检测结果数量({})与文本行数({})不一致！".format(len(all_detection_results), len(items_with_text_and_indices)))
             return None
 
 # 3. 评估
@@ -388,7 +402,7 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
                     first_item_line_num = chunk_with_indices[0][0] + 1
                     last_item_line_num = chunk_with_indices[-1][0] + 1
                     problematic_chunks.append({
-                        "chunk_range": self.tra("行 {}-{}").format(first_item_line_num, last_item_line_num),
+                        "chunk_range": "行 {}-{}".format(first_item_line_num, last_item_line_num),
                         "ratio": ratio,
                         "mismatched_lines": mismatched_lines
                     })
@@ -400,6 +414,8 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
                         if item_to_flag.extra is None:
                             item_to_flag.extra = {}
                         item_to_flag.extra[flag_key] = True
+                        item_to_flag.extra[f"{flag_key}_detected_lang"] = line_info["detected_lang"]
+                        item_to_flag.extra[f"{flag_key}_target_lang"] = target_language_code
 
         if not problematic_chunks:
             return None
@@ -444,30 +460,30 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
         """根据模式打印不同风格的报告。"""
         if not results:
             if is_judging:
-                self.info(self.tra("检查通过：项目的所有文件 {} 均符合预期.").format(mode_text))
+                self.info("检查通过：项目的所有文件 {} 均符合预期.".format(mode_text))
             else:
-                self.info(self.tra("未在项目的 {} 中找到可供分析的文本内容.").format(mode_text))
+                self.info("未在项目的 {} 中找到可供分析的文本内容.".format(mode_text))
             return
 
         # 根据模式选择报告格式
         if is_judging:
             # [精准判断模式] 的详细报告
-            self.warning(self.tra("检测到 {} 个文件的 {} 中存在语言比例异常的文本块.").format(len(results), mode_text))
-            self.warning(self.tra("目标语言 '{}' 占比低于 {:.0%} 的块将被列出.").format(target_language_code, threshold))
+            self.warning("检测到 {} 个文件的 {} 中存在语言比例异常的文本块.".format(len(results), mode_text))
+            self.warning("目标语言 '{}' 占比低于 {:.0%} 的块将被列出.".format(target_language_code, threshold))
             self.print("")
 
             for res in results:
                 cache_file = res["file_info"]
-                self.info(self.tra("▼ 文件: {} (类型: {}, 编码: {})").format(cache_file.storage_path, cache_file.file_project_type, cache_file.encoding))
+                self.info("▼ 文件: {} (类型: {}, 编码: {})".format(cache_file.storage_path, cache_file.file_project_type, cache_file.encoding))
 
                 for chunk in res["problematic_chunks"]:
                     self.warning(
-                        self.tra("  └─ 问题区块: {} (目标语言占比: {:.2%})").format(chunk['chunk_range'], chunk['ratio'])
+                        "  └─ 问题区块: {} (目标语言占比: {:.2%})".format(chunk['chunk_range'], chunk['ratio'])
                     )
                     for line_info in chunk['mismatched_lines']:
                         text_preview = line_info['text'].strip().replace('\n', ' ')[:50]
                         self.error(
-                            self.tra("    ├─ 行 {}: 检测为 [{}] (置信度: {:.2f}) -> \"{}...\"").format(
+                            "    ├─ 行 {}: 检测为 [{}] (置信度: {:.2f}) -> \"{}...\"".format(
                                 line_info['original_line_num'],
                                 line_info['detected_lang'],
                                 line_info['confidence'],
@@ -477,7 +493,7 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
                 self.print("")
         else:
             # [宏观统计模式] 的概览报告
-            self.info(self.tra("以下是各文件的 {} 语言组成统计报告:").format(mode_text))
+            self.info("以下是各文件的 {} 语言组成统计报告:".format(mode_text))
             self.print("-" * 20)
             for res in results:
                 self._print_report_mode_info(res["file_info"], res["stats_display"])
@@ -487,7 +503,7 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
         """[宏观统计模式] 打印单个文件的统计信息。"""
         formatted_stats = [(lang, f"{conf:.2%}") for lang, conf in stats_display]
 
-        self.info(self.tra("文件: {}").format(cache_file.storage_path))
-        self.info(self.tra("  ├─ 类型: {}").format(cache_file.file_project_type))
-        self.info(self.tra("  ├─ 编码: {}").format(cache_file.encoding))
-        self.info(self.tra("  └─ 语言统计: {}").format(formatted_stats))
+        self.info("文件: {}".format(cache_file.storage_path))
+        self.info("  ├─ 类型: {}".format(cache_file.file_project_type))
+        self.info("  ├─ 编码: {}".format(cache_file.encoding))
+        self.info("  └─ 语言统计: {}".format(formatted_stats))
