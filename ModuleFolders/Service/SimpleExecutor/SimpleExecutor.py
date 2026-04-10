@@ -335,6 +335,8 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         file_path = data.get("file_path")
         items_to_translate = data.get("items_to_translate")
         language_stats = data.get("language_stats")
+        update_event = data.get("update_event", Base.EVENT.TABLE_BASIC_UPDATE)
+        done_event = data.get("done_event")
 
         # 准备翻译配置
         config = TaskConfig()
@@ -439,7 +441,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         # 任务全部完成后，统一发送一次UI更新事件
         if final_updated_items:
             self.info(f" 正在将 {len(final_updated_items)} 条翻译结果写入表格...")
-            self.emit(Base.EVENT.TABLE_UPDATE, {
+            self.emit(update_event, {
                 "file_path": file_path,
                 "target_column_index": 2, # 翻译列
                 "translation_status": TranslationStatus.TRANSLATED,
@@ -449,6 +451,17 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
             self.warning(" 未获得任何有效翻译结果，表格未更新。")
 
         # 更新软件状态
+        if done_event is not None:
+            self.emit(done_event, {
+                "operation": "translate",
+                "status": "success" if final_updated_items else "empty",
+                "file_path": file_path,
+                "updated_item_count": len(final_updated_items),
+                "success_batches": success_batches,
+                "failed_batches": failed_batches,
+                "total_items": total_items,
+            })
+
         Base.work_status = Base.STATUS.IDLE 
         self.info(f" 🐳 表格翻译任务结束")                         
 
@@ -463,6 +476,8 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         # 解包数据
         file_path = data.get("file_path")
         items_to_polish = data.get("items_to_polish")
+        update_event = data.get("update_event", Base.EVENT.TABLE_BASIC_UPDATE)
+        done_event = data.get("done_event")
 
         # 准备配置
         config = TaskConfig()
@@ -558,7 +573,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         # 统一发送 UI 更新
         if final_updated_items:
             self.info(f" 正在将 {len(final_updated_items)} 条润色结果写入表格...")
-            self.emit(Base.EVENT.TABLE_UPDATE, {
+            self.emit(update_event, {
                 "file_path": file_path,
                 "target_column_index": 2, # 译文列
                 "translation_status": TranslationStatus.POLISHED,
@@ -566,6 +581,17 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
             })
         else:
             self.warning(" 未获得任何有效润色结果，表格未更新。")
+
+        if done_event is not None:
+            self.emit(done_event, {
+                "operation": "polish",
+                "status": "success" if final_updated_items else "empty",
+                "file_path": file_path,
+                "updated_item_count": len(final_updated_items),
+                "success_batches": success_batches,
+                "failed_batches": failed_batches,
+                "total_items": total_items,
+            })
 
         Base.work_status = Base.STATUS.IDLE 
         self.info(f" 🐳 表格润色任务结束")     

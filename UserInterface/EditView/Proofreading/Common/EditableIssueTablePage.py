@@ -20,10 +20,19 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
     COL_SOURCE = 3
     COL_TRANS = 4
 
-    def __init__(self, results: list, cache_manager=None, parent=None):
+    def __init__(
+        self,
+        results: list,
+        cache_manager=None,
+        parent=None,
+        update_event: int = Base.EVENT.TABLE_UPDATE,
+        done_event: int | None = None,
+    ):
         super().__init__(parent)
         self.results = results
         self.cache_manager = cache_manager
+        self.update_event = update_event
+        self.done_event = done_event
         self.setObjectName("EditableIssueTablePage")
 
         self.layout = QVBoxLayout(self)
@@ -39,13 +48,20 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self._populate_data()
 
         self.table.itemChanged.connect(self._on_item_changed)
-        self.subscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
+        self.subscribe(self.update_event, self._on_table_update)
+        if self.done_event is not None:
+            self.subscribe(self.done_event, self._on_task_done)
 
     def closeEvent(self, event):
         try:
-            self.unsubscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
+            self.unsubscribe(self.update_event, self._on_table_update)
         except Exception:
             pass
+        if self.done_event is not None:
+            try:
+                self.unsubscribe(self.done_event, self._on_task_done)
+            except Exception:
+                pass
         super().closeEvent(event)
 
     def _init_action_bar(self):
@@ -294,6 +310,8 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                 Base.EVENT.TABLE_PROOFREAD_START,
                 {
                     "proofread_jobs": proofread_jobs,
+                    "update_event": self.update_event,
+                    "done_event": self.done_event,
                 },
             )
             self.info_toast(self.tra("提示"), self.tra("AI 自动校对任务已开始，共处理 {} 个条目。").format(count))
@@ -342,12 +360,34 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                     "file_path": file_path,
                     "items_to_translate": items_to_translate,
                     "language_stats": language_stats,
+                    "update_event": self.update_event,
+                    "done_event": self.done_event,
                 },
             )
             count += len(items_to_translate)
 
         if count > 0:
             self.info_toast(self.tra("提示"), self.tra("已提交 {} 个条目的翻译任务。").format(count))
+
+    def _on_task_done(self, event, data: dict):
+        if not self.isVisible():
+            return
+
+        operation = data.get("operation")
+        status = data.get("status")
+        updated_item_count = data.get("updated_item_count", 0)
+        updated_file_count = data.get("updated_file_count", 0)
+
+        if operation == "proofread":
+            if status == "success":
+                self.success_toast(self.tra("完成"), self.tra("AI 自动校对完成，已更新 {} 个文件中的 {} 条内容。").format(updated_file_count, updated_item_count))
+            elif status == "empty":
+                self.warning_toast(self.tra("提示"), self.tra("AI 自动校对结束，但没有可回写的结果。"))
+        elif operation == "translate":
+            if status == "success":
+                self.success_toast(self.tra("完成"), self.tra("检查结果翻译完成，已更新 {} 条内容。").format(updated_item_count))
+            elif status == "empty":
+                self.warning_toast(self.tra("提示"), self.tra("检查结果翻译结束，但没有可回写的结果。"))
 
     def _delete_selected_rows(self):
         current_sorting = self.table.isSortingEnabled()

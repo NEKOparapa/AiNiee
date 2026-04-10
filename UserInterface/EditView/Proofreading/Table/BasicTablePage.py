@@ -33,10 +33,16 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
     COL_NUM = 0
     COL_SOURCE = 1
     COL_TRANS = 2
+    UPDATE_EVENT = Base.EVENT.TABLE_BASIC_UPDATE
+    DONE_EVENT = Base.EVENT.TABLE_BASIC_DONE
 
     def closeEvent(self, event):
         try:
-            self.unsubscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
+            self.unsubscribe(self.UPDATE_EVENT, self._on_table_update)
+        except Exception:
+            pass
+        try:
+            self.unsubscribe(self.DONE_EVENT, self._on_task_done)
         except Exception:
             pass
         super().closeEvent(event)
@@ -69,7 +75,8 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
 
         self.table.itemChanged.connect(self._on_item_changed)
         self.pager.currentIndexChanged.connect(self._on_page_changed)
-        self.subscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
+        self.subscribe(self.UPDATE_EVENT, self._on_table_update)
+        self.subscribe(self.DONE_EVENT, self._on_task_done)
 
     def _init_table(self):
         self.headers = [self.tra("行"), self.tra("原文"), self.tra("译文")]
@@ -287,6 +294,25 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         finally:
             self._item_changed_handler_enabled = True
 
+    def _on_task_done(self, event, data: dict):
+        if data.get("file_path") != self.file_path or not self.isVisible():
+            return
+
+        operation = data.get("operation")
+        status = data.get("status")
+        updated_item_count = data.get("updated_item_count", 0)
+
+        if operation == "translate":
+            if status == "success":
+                self.success_toast(self.tra("完成"), self.tra("表格翻译任务完成，已更新 {} 行。").format(updated_item_count))
+            elif status == "empty":
+                self.warning_toast(self.tra("提示"), self.tra("表格翻译任务结束，但没有可回写的结果。"))
+        elif operation == "polish":
+            if status == "success":
+                self.success_toast(self.tra("完成"), self.tra("表格润色任务完成，已更新 {} 行。").format(updated_item_count))
+            elif status == "empty":
+                self.warning_toast(self.tra("提示"), self.tra("表格润色任务结束，但没有可回写的结果。"))
+
     def _get_selected_rows_indices(self):
         return sorted(list(set(index.row() for index in self.table.selectedIndexes())))
 
@@ -299,6 +325,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             Base.work_status = Base.STATUS.TABLE_TASK
         else:
             print("❌正在执行其他任务中！")
+            self.warning_toast(self.tra("提示"), self.tra("正在执行其他任务中！"))
             return
 
         items_to_translate = []
@@ -323,6 +350,8 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                 "file_path": self.file_path,
                 "items_to_translate": items_to_translate,
                 "language_stats": language_stats,
+                "update_event": self.UPDATE_EVENT,
+                "done_event": self.DONE_EVENT,
             },
         )
         self.info_toast(self.tra("提示"), self.tra("已提交 {} 行文本的翻译任务。").format(len(items_to_translate)))
@@ -355,6 +384,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             Base.work_status = Base.STATUS.TABLE_TASK
         else:
             print("❌正在执行其他任务中！")
+            self.warning_toast(self.tra("提示"), self.tra("正在执行其他任务中！"))
             return
 
         self.emit(
@@ -362,6 +392,8 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             {
                 "file_path": self.file_path,
                 "items_to_polish": items_to_polish,
+                "update_event": self.UPDATE_EVENT,
+                "done_event": self.DONE_EVENT,
             },
         )
         self.info_toast(self.tra("提示"), self.tra("已提交 {} 行文本的润色任务。").format(len(items_to_polish)))

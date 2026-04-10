@@ -89,7 +89,13 @@ class LanguageCheckResultPage(ConfigMixin, Base, QWidget):
             return LanguageReportTablePage(report_rows, self)
 
         if issue_rows:
-            return EditableIssueTablePage(issue_rows, self.cache_manager, self)
+            return EditableIssueTablePage(
+                issue_rows,
+                self.cache_manager,
+                self,
+                update_event=Base.EVENT.TABLE_LANGUAGE_CHECK_UPDATE,
+                done_event=Base.EVENT.TABLE_LANGUAGE_CHECK_DONE,
+            )
 
         return CheckStatusPage(
             self.tra("未发现语言问题"),

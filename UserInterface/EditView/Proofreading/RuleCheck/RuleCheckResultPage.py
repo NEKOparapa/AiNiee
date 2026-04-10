@@ -25,7 +25,13 @@ class RuleCheckResultPage(ConfigMixin, Base, QWidget):
         issue_rows = self.result_data.get("issue_rows", [])
 
         if issue_rows:
-            return EditableIssueTablePage(issue_rows, self.cache_manager, self)
+            return EditableIssueTablePage(
+                issue_rows,
+                self.cache_manager,
+                self,
+                update_event=Base.EVENT.TABLE_RULE_CHECK_UPDATE,
+                done_event=Base.EVENT.TABLE_RULE_CHECK_DONE,
+            )
 
         if not enabled_rules:
             return CheckStatusPage(

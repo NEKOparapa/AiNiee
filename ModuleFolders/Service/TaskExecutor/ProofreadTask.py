@@ -114,6 +114,7 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
             
             # 5. 触发更新事件落盘
             self._emit_updates(updates_by_file)
+            self._emit_done_event(updates_by_file, success_count, failed_count)
             self._finish()
             
         except Exception as error:
@@ -308,6 +309,7 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
         """向主线程/UI发射更新事件"""
         updated_file_count = 0
         updated_item_count = 0
+        update_event = self.task_data.get("update_event", Base.EVENT.TABLE_UPDATE)
         for file_path, updated_items in updates_by_file.items():
             if not updated_items:
                 continue
@@ -315,7 +317,7 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
             updated_file_count += 1
             updated_item_count += len(updated_items)
             self.emit(
-                Base.EVENT.TABLE_UPDATE,
+                update_event,
                 {
                     "file_path": file_path,
                     "target_column_index": 2, # 通常2为翻译列
@@ -326,6 +328,35 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
 
         if updated_item_count > 0:
             self.info("校对结果已回写：共更新 {0} 个文件，{1} 条内容。".format(updated_file_count, updated_item_count))
+
+    def _emit_done_event(self, updates_by_file: dict, success_count: int, failed_count: int) -> None:
+        done_event = self.task_data.get("done_event")
+        if done_event is None:
+            return
+
+        updated_file_count = 0
+        updated_item_count = 0
+        file_paths = []
+        for file_path, updated_items in updates_by_file.items():
+            if not updated_items:
+                continue
+
+            updated_file_count += 1
+            updated_item_count += len(updated_items)
+            file_paths.append(file_path)
+
+        self.emit(
+            done_event,
+            {
+                "operation": "proofread",
+                "status": "success" if updated_item_count > 0 else "empty",
+                "updated_file_count": updated_file_count,
+                "updated_item_count": updated_item_count,
+                "success_count": success_count,
+                "failed_count": failed_count,
+                "file_paths": file_paths,
+            },
+        )
 
     def _finish(self) -> None:
         """收尾状态更新"""

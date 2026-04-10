@@ -35,10 +35,16 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
     COL_ROW = 1
     COL_SOURCE = 2
     COL_TRANS = 3
+    UPDATE_EVENT = Base.EVENT.TABLE_SEARCH_UPDATE
+    DONE_EVENT = Base.EVENT.TABLE_SEARCH_DONE
 
     def closeEvent(self, event):
         try:
-            self.unsubscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
+            self.unsubscribe(self.UPDATE_EVENT, self._on_table_update)
+        except Exception:
+            pass
+        try:
+            self.unsubscribe(self.DONE_EVENT, self._on_task_done)
         except Exception:
             pass
         super().closeEvent(event)
@@ -64,7 +70,8 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
         self._populate_data(self.search_results)
 
         self.table.itemChanged.connect(self._on_item_changed)
-        self.subscribe(Base.EVENT.TABLE_UPDATE, self._on_table_update)
+        self.subscribe(self.UPDATE_EVENT, self._on_table_update)
+        self.subscribe(self.DONE_EVENT, self._on_task_done)
 
     def _init_replace_panel(self):
         self.replace_panel = QWidget(self)
@@ -245,6 +252,8 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
                     "file_path": file_path,
                     "items_to_translate": items,
                     "language_stats": language_stats,
+                    "update_event": self.UPDATE_EVENT,
+                    "done_event": self.DONE_EVENT,
                 },
             )
             total += len(items)
@@ -308,6 +317,22 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
             self.table.blockSignals(False)
 
         self.table.scheduleResizeRowsToContents()
+
+    def _on_task_done(self, event, data: dict):
+        if not self.isVisible():
+            return
+
+        operation = data.get("operation")
+        status = data.get("status")
+        file_path = data.get("file_path", "")
+        updated_item_count = data.get("updated_item_count", 0)
+        file_name = os.path.basename(file_path) if file_path else self.tra("当前文件")
+
+        if operation == "translate":
+            if status == "success":
+                self.success_toast(self.tra("完成"), self.tra("搜索结果翻译完成，文件 '{}' 已更新 {} 行。").format(file_name, updated_item_count))
+            elif status == "empty":
+                self.warning_toast(self.tra("提示"), self.tra("搜索结果翻译结束，但文件 '{}' 没有可回写的结果。").format(file_name))
 
     def _on_replace_all_clicked(self):
         find_text = self.find_input.text()
