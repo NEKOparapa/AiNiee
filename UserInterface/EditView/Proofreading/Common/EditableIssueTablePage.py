@@ -108,10 +108,10 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         header.setStretchLastSection(True)
         header.setSortIndicatorShown(False)
 
-        self.table.setColumnWidth(self.COL_FILE, 180)
+        self.table.setColumnWidth(self.COL_FILE, 100)
         self.table.setColumnWidth(self.COL_ROW, 70)
-        self.table.setColumnWidth(self.COL_ERROR, 170)
-        self.table.setColumnWidth(self.COL_SOURCE, 320)
+        self.table.setColumnWidth(self.COL_ERROR, 130)
+        self.table.setColumnWidth(self.COL_SOURCE, 300)
 
     def _build_row_meta(self, data: dict, original_data_index: int) -> dict:
         return {
