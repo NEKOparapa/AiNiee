@@ -172,25 +172,6 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
             )
         )
 
-    # 自动修复标点符号
-    def add_widget_text_symbol_repair(self, parent, config) -> None:
-        def widget_init(widget) -> None:
-            widget.set_checked(config.get("text_symbol_repair_switch"))
-
-        def widget_callback(widget, checked: bool) -> None:
-            config = self.load_config()
-            config["text_symbol_repair_switch"] = checked
-            self.save_config(config)
-
-        parent.addWidget(
-            SwitchButtonCard(
-                self.tra("自动修复标点符号"),
-                self.tra("启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和文本符号，仅对内置 TextSymbolRepair 生效，适合日语翻译流程。"),
-                widget_init,
-                widget_callback,
-            )
-        )
-
     # 自动简繁转换
     def add_widget_opencc(self, parent, config) -> None:
         def widget_init(widget) -> None:
