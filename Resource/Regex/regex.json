@@ -204,6 +204,14 @@
     "description": "双换行符，跨平台换行符版本（兼容 \r\n\r\n 或 \n\n 等）"
   },
   {
+    "regex": "\\[p\\]\\{i\\}",
+    "description": "[p]{i} combo tag"
+  },
+  {
+    "regex": "\\{/i\\}",
+    "description": "closing i tag {/i}"
+  },
+  {
     "regex": "\\r",
     "description": "跨平台换行符版 \r，但是也会匹配到\r\n。放最后面，先双后单"
   }
