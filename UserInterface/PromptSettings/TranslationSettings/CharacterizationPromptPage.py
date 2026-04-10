@@ -145,7 +145,7 @@ class CharacterizationPromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base
             SwitchButtonCard(
                 self.tra("自定义角色介绍"),
                 self.tra(
-                    "启用此功能后，将根据本页中设置的构建角色介绍，并补充到基础提示词中（不支持本地类模型）\n可使用分隔符[Separator]来分隔姓和名"
+                    "启用此功能后，将根据本页中设置的内容构建角色介绍，并补充到基础提示词中\n可使用分隔符[Separator]来分隔姓和名"
                 ),
                 init=init,
                 checked_changed=checked_changed,

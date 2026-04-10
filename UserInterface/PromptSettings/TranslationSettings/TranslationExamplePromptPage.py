@@ -121,7 +121,7 @@ class TranslationExamplePromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Ba
         parent.addWidget(
             SwitchButtonCard(
                 self.tra("自定义翻译示例"),
-                self.tra("启用此功能后，将根据本页中设置的内容构建翻译示例，并补充到基础提示词中（不支持本地类模型）"),
+                self.tra("启用此功能后，将根据本页中设置的内容构建翻译示例，并补充到基础提示词中"),
                 init=init,
                 checked_changed=checked_changed,
             )
