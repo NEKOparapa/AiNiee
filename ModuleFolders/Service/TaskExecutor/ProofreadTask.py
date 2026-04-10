@@ -1,5 +1,4 @@
 import concurrent.futures
-import os
 from collections import defaultdict
 
 from ModuleFolders.Base.Base import Base
@@ -42,13 +41,21 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
                 self._finish()
                 return
 
-            self.info(f" Starting table AI proofreading task: {len(proofread_jobs)} file(s), {total_items} rows in total.")
-            self.info(f"    Mode: Single line per request with Few-Shot and Retry mechanism.")
-            self.info(f"    Concurrent workers: {self.config.actual_thread_counts}")
+            self.info("开始执行 AI 自动校对任务 ...")
+            self.info(
+                "校对配置：共 {0} 个文件，{1} 条内容，并发线程 {2}，单条最多重试 {3} 次。".format(
+                    len(proofread_jobs),
+                    total_items,
+                    self.config.actual_thread_counts,
+                    self.MAX_REQUEST_ATTEMPTS,
+                )
+            )
 
             updates_by_file = defaultdict(dict)
             success_count = 0
             failed_count = 0
+            processed_count = 0
+            progress_interval = self._get_progress_interval(total_items)
 
             # 4. 并发执行单行校对任务
             executor = concurrent.futures.ThreadPoolExecutor(
@@ -76,20 +83,26 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
                     except concurrent.futures.CancelledError:
                         continue
                     except Exception as error:
-                        self.error(f"Proofreading single item execution error: {error}")
+                        self.error(f"单条校对任务执行异常：{error}")
                         failed_count += 1
+                        processed_count += 1
+                        self._log_progress(processed_count, total_items, success_count, failed_count, progress_interval)
                         continue
 
                     if not result:
                         failed_count += 1
+                        processed_count += 1
+                        self._log_progress(processed_count, total_items, success_count, failed_count, progress_interval)
                         continue
 
                     success_count += 1
+                    processed_count += 1
                     file_path = result["file_path"]
                     text_index = result["text_index"]
                     corrected_text = result["corrected_text"]
                     
                     updates_by_file[file_path][text_index] = corrected_text
+                    self._log_progress(processed_count, total_items, success_count, failed_count, progress_interval)
 
             finally:
                 try:
@@ -97,14 +110,14 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
                 finally:
                     self._clear_active_executor(executor)
 
-            self.info(f" Proofreading completed. Success: {success_count} rows, Failed: {failed_count} rows")
+            self.info("AI 自动校对处理完成：成功 {0} 条，失败 {1} 条。".format(success_count, failed_count))
             
             # 5. 触发更新事件落盘
             self._emit_updates(updates_by_file)
             self._finish()
             
         except Exception as error:
-            self.error(f"Table proofreading task failed: {error}", error)
+            self.error(f"AI 自动校对任务执行失败：{error}", error)
             Base.work_status = Base.STATUS.IDLE
             raise
 
@@ -168,11 +181,9 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
         total_tasks = task_info["total_tasks"]
         
         text_index = item["text_index"]
-        source_text = item["source_text"]
         
         current_platform_config = self.config.get_active_platform_configuration()
         messages, system_prompt = self._build_single_proofread_prompt(item)
-        file_basename = os.path.basename(file_path)
 
         last_error = ""
         # 重试流水线
@@ -205,8 +216,6 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
                     last_error = "模型返回内容为空"
                     continue
 
-                # 成功校对
-                print(f" <- [Proofread {file_basename} {task_idx}/{total_tasks}] Success.")
                 return {
                     "file_path": file_path,
                     "text_index": text_index,
@@ -218,9 +227,22 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
 
             # 打印重试日志
             if attempt < self.MAX_REQUEST_ATTEMPTS:
-                print(f" [!] [Proofread {file_basename} {task_idx}/{total_tasks}] Attempt {attempt} failed, retrying... Error: {last_error}")
+                self.warning(
+                    "校对任务 {0}/{1} 第 {2} 次请求失败，准备重试。原因：{3}".format(
+                        task_idx,
+                        total_tasks,
+                        attempt,
+                        last_error,
+                    )
+                )
             else:
-                print(f" [x] [Proofread {file_basename} {task_idx}/{total_tasks}] Failed after {self.MAX_REQUEST_ATTEMPTS} attempts. Error: {last_error}")
+                self.error(
+                    "校对任务 {0}/{1} 失败，已达到最大重试次数。原因：{2}".format(
+                        task_idx,
+                        total_tasks,
+                        last_error,
+                    )
+                )
 
         return None
 
@@ -284,11 +306,14 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
 
     def _emit_updates(self, updates_by_file: dict) -> None:
         """向主线程/UI发射更新事件"""
+        updated_file_count = 0
+        updated_item_count = 0
         for file_path, updated_items in updates_by_file.items():
             if not updated_items:
                 continue
 
-            self.info(f" Writing {len(updated_items)} proofreading results back to {os.path.basename(file_path)}...")
+            updated_file_count += 1
+            updated_item_count += len(updated_items)
             self.emit(
                 Base.EVENT.TABLE_UPDATE,
                 {
@@ -299,11 +324,39 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
                 },
             )
 
+        if updated_item_count > 0:
+            self.info("校对结果已回写：共更新 {0} 个文件，{1} 条内容。".format(updated_file_count, updated_item_count))
+
     def _finish(self) -> None:
         """收尾状态更新"""
         if Base.work_status == Base.STATUS.STOPING:
             Base.work_status = Base.STATUS.TASKSTOPPED
-            self.info(" Table AI proofreading task stopped")
+            self.info("AI 自动校对任务已停止。")
         else:
             Base.work_status = Base.STATUS.IDLE
-            self.info(" Table AI proofreading task finished")
+            self.info("AI 自动校对任务已结束。")
+
+    def _get_progress_interval(self, total_items: int) -> int:
+        if total_items <= 10:
+            return 1
+        return max(5, total_items // 5)
+
+    def _log_progress(
+        self,
+        processed_count: int,
+        total_items: int,
+        success_count: int,
+        failed_count: int,
+        progress_interval: int,
+    ) -> None:
+        if processed_count != total_items and processed_count % progress_interval != 0:
+            return
+
+        self.info(
+            "校对进度：{0}/{1}，成功 {2} 条，失败 {3} 条。".format(
+                processed_count,
+                total_items,
+                success_count,
+                failed_count,
+            )
+        )

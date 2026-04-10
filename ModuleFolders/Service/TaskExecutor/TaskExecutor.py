@@ -167,7 +167,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             proofread_task.run()
         except Exception as error:
             self.error(
-                f"Table proofreading task failed: {error}",
+                f"AI 自动校对任务执行失败：{error}",
                 error,
             )
             if Base.work_status == Base.STATUS.STOPING:

@@ -244,7 +244,7 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
 
     def _proofread_all_rows(self):
         if Base.work_status != Base.STATUS.IDLE:
-            self.warning(self.tra("正在执行其他任务中！"))
+            self.warning_toast(self.tra("提示"), self.tra("当前有其他任务正在执行，请稍后再试。"))
             return
 
         tasks_by_file = defaultdict(list)
@@ -296,7 +296,7 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                     "proofread_jobs": proofread_jobs,
                 },
             )
-            self.info_toast(self.tra("提示"), self.tra("已提交 {} 个条目的 AI 自动校对任务。").format(count))
+            self.info_toast(self.tra("提示"), self.tra("AI 自动校对任务已开始，共处理 {} 个条目。").format(count))
     
     def _translate_selected_rows(self):
         selected_rows = sorted({index.row() for index in self.table.selectedIndexes()})
