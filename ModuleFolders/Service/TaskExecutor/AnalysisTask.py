@@ -49,6 +49,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         try:
             # --- [准备阶段] ---
             Base.work_status = Base.STATUS.ANALYSIS_TASK
+            self.info("开始执行文本分析任务 ...")
             self._emit_progress_update(
                 "prepare",
                 self.tra("准备中"),
@@ -60,6 +61,14 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             self.config.initialize()
             self.config.prepare_for_active_platform()
             self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
+            self.info(
+                "分析配置: 模型 - {0}, 并发线程 - {1}, RPM - {2}, TPM - {3}".format(
+                    self.config.model,
+                    self.config.actual_thread_counts,
+                    self.config.rpm_limit,
+                    self.config.tpm_limit,
+                )
+            )
 
             # 生成分析用文本片段：按 token 切分，确保每个分块都在模型处理能力范围内，同时保持文本的完整性和上下文连贯。
             self._emit_progress_update(
@@ -71,6 +80,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 self.tra("按 token 切分项目原文。"),
             )
             chunks = self.cache_manager.generate_analysis_source_chunks("token", self.CHUNK_TOKEN_LIMIT)
+            self.info(f"分析文本切分完成，共生成 {len(chunks)} 个分块。")
 
             # --- [第一阶段] ---
             self._emit_progress_update(
@@ -81,6 +91,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 self.tra("开始执行第一阶段分析任务..."),
                 self.tra("共 {0} 个分块。").format(len(chunks)),
             )
+            self.info(f"开始执行第一阶段提取，共 {len(chunks)} 个分块。")
             first_stage_results = []
             executor_stage1 = concurrent.futures.ThreadPoolExecutor(max_workers=self.config.actual_thread_counts, thread_name_prefix="analysis_stage1")
             self._set_active_executor(executor_stage1)
@@ -102,6 +113,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 self._clear_active_executor(executor_stage1)
 
             if Base.work_status == Base.STATUS.STOPING: return self._handle_stop()
+            self.info(f"第一阶段提取完成，成功收集 {len(first_stage_results)} 个分块结果。")
 
             # --- [第二阶段] ---
             reduction_batches = self._prepare_reduction_batches(first_stage_results) # 准备第二阶段的批次：将第一阶段的结果按 source 聚合，短词挂靠长词，形成待裁决的候选组。
@@ -113,6 +125,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 self.tra("开始执行第二阶段分析任务..."),
                 self.tra("共 {0} 个合并批次。").format(len(reduction_batches)),
             )
+            self.info(f"开始执行第二阶段合并，共 {len(reduction_batches)} 个批次。")
             second_stage_results = []
             if reduction_batches:
                 executor_stage2 = concurrent.futures.ThreadPoolExecutor(max_workers=self.config.actual_thread_counts, thread_name_prefix="analysis_stage2")
@@ -133,6 +146,9 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 finally:
                     executor_stage2.shutdown(wait=True, cancel_futures=Base.work_status == Base.STATUS.STOPING)
                     self._clear_active_executor(executor_stage2)
+                self.info(f"第二阶段合并完成，成功收集 {len(second_stage_results)} 个批次结果。")
+            else:
+                self.info("第二阶段没有可合并候选，已跳过 AI 裁决。")
 
             if Base.work_status == Base.STATUS.STOPING: return self._handle_stop()
 
@@ -145,6 +161,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 self.tra("正在整合最终分析结果..."),
                 self.tra("执行本地兜底与禁翻清洗。"),
             )
+            self.info("开始汇总最终分析结果并写回缓存 ...")
             final_data = self._finalize_results(first_stage_results, second_stage_results)
             self._emit_progress_update(
                 "finalize",
@@ -171,6 +188,14 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             
             self.cache_manager.set_analysis_data(analysis_data)
             self.cache_manager.require_save_to_file()
+            self.info(
+                "文本分析完成。角色 {0} 个，术语 {1} 个，非翻译项 {2} 个，总计 {3} 个。".format(
+                    analysis_data["stats"]["character_count"],
+                    analysis_data["stats"]["term_count"],
+                    analysis_data["stats"]["non_translate_count"],
+                    analysis_data["stats"]["total_hits"],
+                )
+            )
             Base.work_status = Base.STATUS.IDLE
             self.emit(
                 Base.EVENT.ANALYSIS_TASK_DONE,
@@ -188,6 +213,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
 
     def _handle_stop(self) -> None:
         Base.work_status = Base.STATUS.TASKSTOPPED
+        self.info("文本分析任务已停止。")
         self.emit(
             Base.EVENT.ANALYSIS_TASK_DONE,
             {
