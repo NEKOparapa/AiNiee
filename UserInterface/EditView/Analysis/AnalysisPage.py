@@ -335,7 +335,6 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.progress_percent_label.setText(f"{percent}%")
         self.progress_percent_label.setStyleSheet(f"color: {color.name()};")
         self.progress_bar.setValue(percent)
-        self.progress_bar.setCustomBarColor(QColor(color).lighter(170).name(), color.name())
         self.phase_label.setText(phase_text)
         self.phase_label.setStyleSheet(f"color: {color.name()};")
         progress_info = info_text if status_key in ("running", "stopping") else ""

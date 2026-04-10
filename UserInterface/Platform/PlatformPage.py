@@ -105,7 +105,8 @@ class InterfaceHeaderCard(CardWidget, ConfigMixin):
         self.layout.setAlignment(Qt.AlignVCenter)
 
         # ====== 左侧：带图标组合的大标题 ======
-        self.titleLayout = QHBoxLayout()
+        self.titleWidget = QWidget(self)
+        self.titleLayout = QHBoxLayout(self.titleWidget)
         self.titleLayout.setContentsMargins(0, 0, 0, 0)
         self.titleLayout.setSpacing(12)
         self.titleLayout.setAlignment(Qt.AlignVCenter)
@@ -119,12 +120,14 @@ class InterfaceHeaderCard(CardWidget, ConfigMixin):
         self.titleLabel = TitleLabel(self.tra("接口管理"), self)
         self.titleLayout.addWidget(self.titleLabel)
 
-        self.layout.addLayout(self.titleLayout)
+        self.leftSection = QWidget(self)
+        self.leftSectionLayout = QHBoxLayout(self.leftSection)
+        self.leftSectionLayout.setContentsMargins(0, 0, 0, 0)
+        self.leftSectionLayout.addWidget(self.titleWidget, 0, Qt.AlignLeft | Qt.AlignVCenter)
 
-        # 撑开中间空间
-        self.layout.addStretch(1)
+        # Center column is added below.
 
-        # ====== 右侧：状态药丸 (Pill Badge) ======
+        # ====== 中间：状态药丸 (Pill Badge) ======
         self.statusPill = QFrame(self)
         self.statusPill.setObjectName("statusPill")
         self.statusPillLayout = QHBoxLayout(self.statusPill)
@@ -138,7 +141,10 @@ class InterfaceHeaderCard(CardWidget, ConfigMixin):
         self.statusLabel = StrongBodyLabel(self.tra("未设置"), self)
         self.statusPillLayout.addWidget(self.statusLabel)
 
-        self.layout.addWidget(self.statusPill)
+        self.centerSection = QWidget(self)
+        self.centerSectionLayout = QHBoxLayout(self.centerSection)
+        self.centerSectionLayout.setContentsMargins(0, 0, 0, 0)
+        self.centerSectionLayout.addWidget(self.statusPill, 0, Qt.AlignCenter)
 
         # ====== 最右侧：添加操作按钮 ======
         self.add_btn = PrimaryPushButton(self.tra("添加接口"), self)
@@ -146,11 +152,25 @@ class InterfaceHeaderCard(CardWidget, ConfigMixin):
         self.add_btn.setMinimumWidth(120)
         self.add_btn.clicked.connect(lambda checked=False: self.addClicked.emit())
         
-        self.layout.addSpacing(8)
-        self.layout.addWidget(self.add_btn)
+        self.rightSection = QWidget(self)
+        self.rightSectionLayout = QHBoxLayout(self.rightSection)
+        self.rightSectionLayout.setContentsMargins(0, 0, 0, 0)
+        self.rightSectionLayout.addWidget(self.add_btn, 0, Qt.AlignRight | Qt.AlignVCenter)
+
+        self.layout.addWidget(self.leftSection)
+        self.layout.addWidget(self.centerSection, 1)
+        self.layout.addWidget(self.rightSection)
+
+        self._sync_header_side_widths()
 
         # 初始化状态样式
         self.set_active_api(None)
+
+    def _sync_header_side_widths(self):
+        """Keep left and right sections equal so the status pill stays centered."""
+        side_width = max(self.titleWidget.sizeHint().width(), self.add_btn.sizeHint().width())
+        self.leftSection.setFixedWidth(side_width)
+        self.rightSection.setFixedWidth(side_width)
 
     def set_active_api(self, name: str | None):
         """动态更新当前激活状态的药丸样式"""
