@@ -180,7 +180,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         if field_name == "gender":
             return self.tra(self._normalize_character_category(value))
         if field_name == "category_path":
-            return self.tra(self._normalize_term_category(value))
+            return self.tra(self._resolve_term_category(value))
         if field_name == "category":
             marker = row.get("marker", "") if row else ""
             note = row.get("note", "") if row else ""
@@ -711,6 +711,125 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             self.VIEW_NON_TRANSLATE: (180, 120, 260),
         }.get(view_name, ())
 
+    def _get_category_options_for_view(self, view_name: str) -> tuple[str, ...]:
+        return {
+            self.VIEW_CHARACTERS: self.CHARACTER_CATEGORIES,
+            self.VIEW_TERMS: self.TERM_CATEGORIES,
+            self.VIEW_NON_TRANSLATE: self.NON_TRANSLATE_CATEGORIES,
+        }.get(view_name, ())
+
+    def _allows_custom_categories_for_view(self, view_name: str) -> bool:
+        return view_name == self.VIEW_TERMS
+
+    def _get_category_count_key_for_view(self, view_name: str) -> str | None:
+        return {
+            self.VIEW_CHARACTERS: "character_categories",
+            self.VIEW_TERMS: "term_categories",
+            self.VIEW_NON_TRANSLATE: "non_translate_categories",
+        }.get(view_name)
+
+    def _get_total_count_for_view(self, counts: dict, view_name: str) -> int:
+        total_key = self._get_analysis_key(view_name)
+        return int(counts.get(total_key or "", 0) or 0)
+
+    def _get_category_for_row(self, view_name: str, row: dict) -> str:
+        if view_name == self.VIEW_CHARACTERS:
+            return self._normalize_character_category(row.get("gender", self.CHARACTER_OTHER))
+        if view_name == self.VIEW_TERMS:
+            return self._resolve_term_category(row.get("category_path", self.TERM_OTHER))
+        if view_name == self.VIEW_NON_TRANSLATE:
+            return self._normalize_non_translate_category(
+                row.get("category", self.NON_TRANSLATE_OTHER),
+                marker=row.get("marker", ""),
+                note=row.get("note", ""),
+            )
+        return ""
+
+    def _build_category_counts(self, view_name: str, rows: list[dict]) -> dict[str, int]:
+        counts = {category: 0 for category in self._get_category_options_for_view(view_name)}
+        for row in rows:
+            category = self._get_category_for_row(view_name, row)
+            if category not in counts and self._allows_custom_categories_for_view(view_name) and category:
+                counts[category] = 0
+            if category in counts:
+                counts[category] += 1
+        return counts
+
+    def _get_navigation_categories_for_view(
+        self,
+        view_name: str,
+        category_counts: dict[str, int],
+        empty_state: bool,
+    ) -> list[str]:
+        default_categories = list(self._get_category_options_for_view(view_name))
+        if empty_state:
+            return default_categories
+
+        categories = [
+            category for category in default_categories if int(category_counts.get(category, 0) or 0) > 0
+        ]
+        if self._allows_custom_categories_for_view(view_name):
+            categories.extend(
+                category
+                for category in category_counts.keys()
+                if category not in default_categories and int(category_counts.get(category, 0) or 0) > 0
+            )
+        return categories
+
+    def _is_navigation_empty_state(self, counts: dict) -> bool:
+        return (
+            self._get_total_count_for_view(counts, self.VIEW_CHARACTERS)
+            + self._get_total_count_for_view(counts, self.VIEW_TERMS)
+            + self._get_total_count_for_view(counts, self.VIEW_NON_TRANSLATE)
+            == 0
+        )
+
+    def _build_navigation_model(self) -> list[dict[str, Any]]:
+        counts = self._get_counts()
+        empty_state = self._is_navigation_empty_state(counts)
+        navigation_model = []
+
+        for view_name in (self.VIEW_CHARACTERS, self.VIEW_TERMS, self.VIEW_NON_TRANSLATE):
+            category_count_key = self._get_category_count_key_for_view(view_name)
+            category_counts = dict(counts.get(category_count_key or "", {}) or {})
+            categories = self._get_navigation_categories_for_view(
+                view_name, category_counts, empty_state
+            )
+
+            navigation_model.append(
+                {
+                    "view_name": view_name,
+                    "title": self._get_view_display_name(view_name),
+                    "count": self._get_total_count_for_view(counts, view_name),
+                    "categories": [
+                        {
+                            "name": category,
+                            "count": int(category_counts.get(category, 0) or 0),
+                        }
+                        for category in categories
+                    ],
+                }
+            )
+
+        return navigation_model
+
+    def _set_filter_for_view(self, view_name: str, filter_value) -> None:
+        if view_name == self.VIEW_CHARACTERS:
+            self.current_character_filter = filter_value
+        elif view_name == self.VIEW_TERMS:
+            self.current_term_filter = filter_value
+        elif view_name == self.VIEW_NON_TRANSLATE:
+            self.current_non_translate_filter = filter_value
+
+    def _field_affects_category_grouping(self, view_name: str, field_name: str) -> bool:
+        if view_name == self.VIEW_CHARACTERS:
+            return field_name == "gender"
+        if view_name == self.VIEW_TERMS:
+            return field_name == "category_path"
+        if view_name == self.VIEW_NON_TRANSLATE:
+            return field_name in {"category", "marker", "note"}
+        return False
+
     def _refresh_navigation(self) -> None:
         expanded_views = set()
         root = self.nav_tree.invisibleRootItem()
@@ -721,30 +840,13 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 expanded_views.add(data[0])
 
         self.nav_tree.clear()
-        counts = self._get_counts()
-
-        characters_item = QTreeWidgetItem([f"{self._get_view_display_name(self.VIEW_CHARACTERS)} ({counts['characters']})"])
-        characters_item.setData(0, Qt.UserRole, (self.VIEW_CHARACTERS, None))
-        for category in self.CHARACTER_CATEGORIES:
-            child = QTreeWidgetItem([f"{self.tra(category)} ({counts['character_categories'].get(category, 0)})"])
-            child.setData(0, Qt.UserRole, (self.VIEW_CHARACTERS, category))
-            characters_item.addChild(child)
-
-        terms_item = QTreeWidgetItem([f"{self._get_view_display_name(self.VIEW_TERMS)} ({counts['terms']})"])
-        terms_item.setData(0, Qt.UserRole, (self.VIEW_TERMS, None))
-        for category in self.TERM_CATEGORIES:
-            child = QTreeWidgetItem([f"{self.tra(category)} ({counts['term_categories'].get(category, 0)})"])
-            child.setData(0, Qt.UserRole, (self.VIEW_TERMS, category))
-            terms_item.addChild(child)
-
-        non_translate_item = QTreeWidgetItem([f"{self._get_view_display_name(self.VIEW_NON_TRANSLATE)} ({counts['non_translate']})"])
-        non_translate_item.setData(0, Qt.UserRole, (self.VIEW_NON_TRANSLATE, None))
-        for category in self.NON_TRANSLATE_CATEGORIES:
-            child = QTreeWidgetItem([f"{self.tra(category)} ({counts['non_translate_categories'].get(category, 0)})"])
-            child.setData(0, Qt.UserRole, (self.VIEW_NON_TRANSLATE, category))
-            non_translate_item.addChild(child)
-
-        for item in (characters_item, terms_item, non_translate_item):
+        for section in self._build_navigation_model():
+            item = QTreeWidgetItem([f"{section['title']} ({section['count']})"])
+            item.setData(0, Qt.UserRole, (section["view_name"], None))
+            for category in section["categories"]:
+                child = QTreeWidgetItem([f"{self.tra(category['name'])} ({category['count']})"])
+                child.setData(0, Qt.UserRole, (section["view_name"], category["name"]))
+                item.addChild(child)
             self.nav_tree.addTopLevelItem(item)
             data = item.data(0, Qt.UserRole)
             if data and data[0] in expanded_views:
@@ -820,14 +922,12 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         view_name, filter_value = data
         self.current_view = view_name
+        self._set_filter_for_view(view_name, filter_value)
         if view_name == self.VIEW_CHARACTERS:
-            self.current_character_filter = filter_value
             self._populate_characters_table()
         elif view_name == self.VIEW_TERMS:
-            self.current_term_filter = filter_value
             self._populate_terms_table()
         else:
-            self.current_non_translate_filter = filter_value
             self._populate_non_translate_table()
 
         self._switch_content_view(view_name)
@@ -863,6 +963,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                     return
 
         if fallback_item is not None:
+            self._set_filter_for_view(self.current_view, None)
             self.nav_tree.setCurrentItem(fallback_item)
         self._switch_content_view(self.current_view)
 
@@ -1019,18 +1120,14 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         new_value = item.text().strip()
         display_value = new_value
-        refresh_navigation = False
-        refresh_view = False
+        refresh_navigation = self._field_affects_category_grouping(view_name, field_name)
+        refresh_view = refresh_navigation
         if view_name == self.VIEW_CHARACTERS and field_name == "gender":
             new_value = self._normalize_character_category(new_value)
             display_value = self._get_display_field_value(view_name, field_name, new_value, target_row)
-            refresh_navigation = True
-            refresh_view = True
         elif view_name == self.VIEW_TERMS and field_name == "category_path":
-            new_value = self._normalize_term_category(new_value)
+            new_value = self._resolve_term_category(new_value)
             display_value = self._get_display_field_value(view_name, field_name, new_value, target_row)
-            refresh_navigation = True
-            refresh_view = True
         elif view_name == self.VIEW_NON_TRANSLATE and field_name == "category":
             new_value = self._normalize_non_translate_category(
                 new_value,
@@ -1038,8 +1135,6 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 note=target_row.get("note", ""),
             )
             display_value = self._get_display_field_value(view_name, field_name, new_value, target_row)
-            refresh_navigation = True
-            refresh_view = True
 
         key_field = self._get_row_identity_field(view_name)
         if field_name == key_field:
@@ -1103,7 +1198,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             return {
                 "source": "",
                 "recommended_translation": "",
-                "category_path": self._normalize_term_category(current_filter or self.TERM_OTHER),
+                "category_path": self._resolve_term_category(current_filter or self.TERM_OTHER),
                 "note": "",
             }
         return {
@@ -1234,7 +1329,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                         "src": source,
                         "dst": str(row.get("recommended_translation", "") or "").strip(),
                         "info": self._join_public_info_parts(
-                            f"分类: {self._normalize_term_category(row.get('category_path', self.TERM_OTHER))}",
+                            f"分类: {self._resolve_term_category(row.get('category_path', self.TERM_OTHER))}",
                             f"备注: {str(row.get('note', '') or '').strip()}",
                         ),
                     }
@@ -1421,30 +1516,18 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _get_counts(self) -> dict:
         characters = self.analysis_data.get("characters", []) or []
-        character_categories = {category: 0 for category in self.CHARACTER_CATEGORIES}
-        for row in characters:
-            category = self._normalize_character_category(row.get("gender", self.CHARACTER_OTHER))
-            character_categories[category] += 1
-
         terms = self.analysis_data.get("terms", []) or []
-        term_categories = {category: 0 for category in self.TERM_CATEGORIES}
-        for row in terms:
-            category = self._normalize_term_category(row.get("category_path", self.TERM_OTHER))
-            term_categories[category] += 1
-
         non_translates = self.analysis_data.get("non_translate", []) or []
-        non_translate_categories = {category: 0 for category in self.NON_TRANSLATE_CATEGORIES}
-        for row in non_translates:
-            category = self._normalize_non_translate_category(row.get("category", self.NON_TRANSLATE_OTHER))
-            non_translate_categories[category] += 1
 
         return {
             "characters": len(characters),
             "terms": len(terms),
             "non_translate": len(non_translates),
-            "character_categories": character_categories,
-            "term_categories": term_categories,
-            "non_translate_categories": non_translate_categories,
+            "character_categories": self._build_category_counts(self.VIEW_CHARACTERS, characters),
+            "term_categories": self._build_category_counts(self.VIEW_TERMS, terms),
+            "non_translate_categories": self._build_category_counts(
+                self.VIEW_NON_TRANSLATE, non_translates
+            ),
         }
 
     def _get_visible_rows(self, view_name: str) -> list[dict]:
@@ -1457,31 +1540,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         if not current_filter:
             return rows
 
-        if view_name == self.VIEW_CHARACTERS:
-            return [
-                row
-                for row in rows
-                if self._normalize_character_category(row.get("gender", "")) == current_filter
-            ]
-        if view_name == self.VIEW_TERMS:
-            return [
-                row
-                for row in rows
-                if self._normalize_term_category(row.get("category_path", self.TERM_OTHER))
-                == current_filter
-            ]
-        if view_name == self.VIEW_NON_TRANSLATE:
-            return [
-                row
-                for row in rows
-                if self._normalize_non_translate_category(
-                    row.get("category", ""),
-                    marker=row.get("marker", ""),
-                    note=row.get("note", ""),
-                )
-                == current_filter
-            ]
-        return rows
+        return [row for row in rows if self._get_category_for_row(view_name, row) == current_filter]
 
     def _get_analysis_key(self, view_name: str) -> str | None:
         return {
@@ -1549,6 +1608,18 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         if self._matches_category_alias(value, self.CHARACTER_FEMALE, "女", "female", "f", "girl", "woman"):
             return self.CHARACTER_FEMALE
         return self.CHARACTER_OTHER
+
+    def _resolve_term_category(self, value) -> str:
+        raw_value = " ".join(str(value or "").strip().split())
+        if not raw_value:
+            return self.TERM_OTHER
+
+        normalized_value = self._normalize_term_category(raw_value)
+        if normalized_value != self.TERM_OTHER:
+            return normalized_value
+        if self._matches_category_alias(raw_value, self.TERM_OTHER, "other"):
+            return self.TERM_OTHER
+        return raw_value
 
     def _normalize_term_category(self, value) -> str:
         if self._matches_category_alias(value, self.TERM_IDENTITY, "人物身份", "称谓", "头衔", "职业", "角色", "identity", "role", "title", "class"):
