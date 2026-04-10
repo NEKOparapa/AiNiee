@@ -63,39 +63,6 @@
                 "think_switch"
             ]
         },
-        "cohere": {
-            "tag": "cohere",
-            "group": "online",
-            "name": "Cohere",
-            "api_url": "https://api.cohere.com",
-            "api_key": "",
-            "api_format": "Cohere",
-            "icon": "cohere",
-            "rpm_limit": 10,
-            "tpm_limit": 9999999,
-            "model": "command-r-plus",
-            "top_p": 0.95,
-            "temperature": 1.0,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
-            "think_switch": false,
-            "think_depth": "low",
-            "auto_complete": false,
-            "model_datas": [
-                "command-r-plus",
-                "c4ai-aya-expanse-32b"
-            ],
-            "key_in_settings": [
-                "api_key",
-                "model",
-                "rpm_limit",
-                "tpm_limit",
-                "temperature",
-                "top_p",
-                "presence_penalty",
-                "frequency_penalty"
-            ]
-        },
         "google": {
             "tag": "google",
             "group": "online",
@@ -134,7 +101,6 @@
                 "frequency_penalty"
             ]
         },
-
         "openai": {
             "tag": "openai",
             "group": "online",
@@ -428,74 +394,6 @@
                 "frequency_penalty"
             ]
         },
-        "yi": {
-            "tag": "yi",
-            "group": "online",
-            "name": "零一万物",
-            "api_url": "https://api.lingyiwanwu.com/v1",
-            "api_key": "",
-            "api_format": "OpenAI",
-            "icon": "yi",
-            "rpm_limit": 10,
-            "tpm_limit": 120000,
-            "model": "yi-lightning",
-            "top_p": 1.0,
-            "temperature": 1.0,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
-            "think_switch": false,
-            "think_depth": "low",
-            "auto_complete": false,
-            "model_datas": [
-                "yi-lightning",
-                "yi-large"
-            ],
-            "key_in_settings": [
-                "api_key",
-                "model",
-                "rpm_limit",
-                "tpm_limit",
-                "top_p",
-                "temperature",
-                "presence_penalty",
-                "frequency_penalty"
-            ]
-        },
-        "moonshot": {
-            "tag": "moonshot",
-            "group": "online",
-            "name": "月之暗面",
-            "api_url": "https://api.moonshot.cn/v1",
-            "api_key": "",
-            "api_format": "OpenAI",
-            "icon": "moonshot",
-            "rpm_limit": 3,
-            "tpm_limit": 32000,
-            "model": "moonshot-v1-8k",
-            "top_p": 1.0,
-            "temperature": 1.0,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
-            "think_switch": false,
-            "think_depth": "low",
-            "auto_complete": false,
-            "model_datas": [
-                "moonshot-v1-8k",
-                "moonshot-v1-32k",
-                "moonshot-v1-128k",
-                "kimi-thinking-preview"
-            ],
-            "key_in_settings": [
-                "api_key",
-                "model",
-                "rpm_limit",
-                "tpm_limit",
-                "top_p",
-                "temperature",
-                "presence_penalty",
-                "frequency_penalty"
-            ]
-        },
         "custom": {
             "tag": "custom",
             "group": "custom",
@@ -548,6 +446,5 @@
                 "thinking_level"
             ]
         }
-
     }
 }
