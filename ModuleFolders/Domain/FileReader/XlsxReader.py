@@ -1,15 +1,17 @@
 from pathlib import Path
 
-import openpyxl  # 需安装库pip install openpyxl
+import openpyxl
 
 from ModuleFolders.Service.Cache.CacheFile import CacheFile
 from ModuleFolders.Service.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Service.Cache.CacheProject import ProjectType
+from ModuleFolders.Domain.FileAccessor.WolfXlsxAccessor import WolfXlsxAccessor
 from ModuleFolders.Domain.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    PreReadMetadata
+    PreReadMetadata,
 )
+from ModuleFolders.Domain.FileReader.TPPReader import TPPReader
 
 
 class XlsxReader(BaseSourceReader):
@@ -25,20 +27,22 @@ class XlsxReader(BaseSourceReader):
         return "xlsx"
 
     def can_read_by_content(self, file_path: Path) -> bool:
-        """检查文件内容是否为通用 xlsx 格式（不是 TPP 格式）"""
         try:
             wb = openpyxl.load_workbook(file_path, read_only=True)
-            sheet = wb.active
-            
-            # 读取第一行第一列和第二列的值
-            cell_value1 = sheet.cell(row=1, column=1).value
-            cell_value2 = sheet.cell(row=1, column=2).value
-            
-            wb.close()
-            
-            # 如果不是 TPP 格式（第一列不是 "Original Text" 或者"原文" 和 第二列不是 "Initial" 或者"译文" 同时满足 才算 TPP 格式），则认为是通用 xlsx 格式
-            return (isinstance(cell_value1, str) and (cell_value1.strip() == "Original Text" or cell_value1.strip() == "原文") and
-                    isinstance(cell_value2, str) and (cell_value2.strip() == "Initial" or cell_value2.strip() == "译文"))
+            try:
+                sheet = wb.active
+                header = [
+                    "" if value is None else str(value)
+                    for value in next(sheet.iter_rows(min_row=1, max_row=1, values_only=True), ())
+                ]
+                first_header = header[0] if len(header) > 0 else ""
+                second_header = header[1] if len(header) > 1 else ""
+                return (
+                    not TPPReader.is_tpp_header(first_header, second_header)
+                    and not WolfXlsxAccessor.is_wolf_header(header)
+                )
+            finally:
+                wb.close()
         except Exception:
             return False
 
@@ -47,45 +51,38 @@ class XlsxReader(BaseSourceReader):
         sheet = wb.active
         items = []
         header = []
-        
+
         try:
-            # 1. 读取第一行作为表头
             if sheet.max_row > 0:
                 for col in range(1, sheet.max_column + 1):
                     cell_value = sheet.cell(row=1, column=col).value
                     header.append(str(cell_value) if cell_value is not None else "")
-            
-            # 如果表头为空，返回 None
+
             if not header:
                 return None
-            
-            # 2. 按列顺序读取剩余内容（从第二行开始）
+
             for row in range(2, sheet.max_row + 1):
                 for col in range(1, sheet.max_column + 1):
                     cell_value = sheet.cell(row=row, column=col).value
-                    
-                    # 忽略空单元格，只记录有内容的
                     if cell_value is not None and str(cell_value).strip():
                         item = CacheItem(
                             source_text=str(cell_value),
                             translation_status=TranslationStatus.UNTRANSLATED,
                             extra={
-                                "row": row - 2,  # 从0开始计数（表头不算）
-                                "col": col - 1   # 从0开始计数
-                            }
+                                "row": row - 2,
+                                "col": col - 1,
+                            },
                         )
                         items.append(item)
-                        
+
         except Exception as e:
             print(f"Error reading XLSX {file_path}: {e}")
             return None
-        
+
         finally:
             wb.close()
-        
-        # 3. 如果除了表头没有内容则跳过该文件
+
         if not items:
             return None
-        
-        # 4. 将表头保存到 filecache 的 extra 中
+
         return CacheFile(items=items, extra={"header": header})

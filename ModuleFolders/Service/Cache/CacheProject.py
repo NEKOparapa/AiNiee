@@ -31,6 +31,7 @@ class ProjectType:
     CSV = "Csv"
     PPTX = "Pptx"
     XLSX = "Xlsx"
+    WOLF_XLSX = "WolfXlsx"
 
 @dataclass(repr=False)
 class CacheProjectStatistics(ThreadSafeCache):

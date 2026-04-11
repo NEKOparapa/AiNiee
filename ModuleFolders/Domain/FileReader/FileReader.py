@@ -11,6 +11,7 @@ from ModuleFolders.Domain.FileReader.MToolReader import MToolReader
 from ModuleFolders.Domain.FileReader.OfficeConversionReader import OfficeConversionDocReader
 from ModuleFolders.Domain.FileReader.ParatranzReader import ParatranzReader
 from ModuleFolders.Domain.FileReader.TPPReader import TPPReader
+from ModuleFolders.Domain.FileReader.WolfXlsxReader import WolfXlsxReader
 from ModuleFolders.Domain.FileReader.VntReader import VntReader
 from ModuleFolders.Domain.FileReader.SrtReader import SrtReader
 from ModuleFolders.Domain.FileReader.VttReader import VttReader
@@ -47,6 +48,7 @@ class FileReader():
         self.register_reader(AssReader)
         self.register_reader(MdReader)
         self.register_reader(TPPReader)
+        self.register_reader(WolfXlsxReader)
         self.register_reader(TransReader)
         self.register_reader(MToolReader)
         self.register_reader(RenpyReader)

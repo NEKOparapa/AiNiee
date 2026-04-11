@@ -10,6 +10,7 @@ from ModuleFolders.Domain.FileOutputer.MToolWriter import MToolWriter
 from ModuleFolders.Domain.FileOutputer.OfficeConversionWriter import OfficeConversionDocWriter
 from ModuleFolders.Domain.FileOutputer.ParatranzWriter import ParatranzWriter
 from ModuleFolders.Domain.FileOutputer.TPPWriter import TPPWriter
+from ModuleFolders.Domain.FileOutputer.WolfXlsxWriter import WolfXlsxWriter
 from ModuleFolders.Domain.FileOutputer.VntWriter import VntWriter
 from ModuleFolders.Domain.FileOutputer.SrtWriter import SrtWriter
 from ModuleFolders.Domain.FileOutputer.VttWriter import VttWriter
@@ -58,6 +59,7 @@ class FileOutputer:
         self.register_writer(PoWriter)
         self.register_writer(ParatranzWriter)
         self.register_writer(TPPWriter)
+        self.register_writer(WolfXlsxWriter)
         self.register_writer(OfficeConversionDocWriter)
         self.register_writer(BabeldocPdfWriter)
         self.register_writer(CsvWriter)
