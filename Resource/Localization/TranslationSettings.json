@@ -9,7 +9,7 @@
     "设置当前项目所使用的原始文本的语言": {
       "简中": "设置当前项目所使用的原始文本的语言",
       "繁中": "設定當前專案使用的原始文字語言",
-      "English": "Set source text language for current project",
+      "English": "Source language for this project",
       "日本語": "現在のプロジェクトで使用する原文の言語を設定"
     },
     "译文语言": {
@@ -21,7 +21,7 @@
     "设置当前项目所期望的译文文本的语言": {
       "简中": "设置当前项目所期望的译文文本的语言",
       "繁中": "設定當前專案所期望的譯文文字語言",
-      "English": "Set target text language for current project",
+      "English": "Target language for this project",
       "日本語": "現在のプロジェクトで使用する訳文の言語を設定"
     },
     "自动过滤其他语言文本": {
@@ -33,7 +33,7 @@
     "启用后，将在翻译前，自动过滤掉与设置的原文语言不一致的文本，不参与翻译": {
       "简中": "启用后，将在翻译前，自动过滤掉与设置的原文语言不一致的文本，不参与翻译",
       "繁中": "啟用後，將在翻譯前自動過濾掉與設定的原文語言不一致的文本，不參與翻譯",
-      "English": "When enabled, text that does not match the configured source language is automatically filtered out before translation and will not be translated.",
+      "English": "Before translation, filters out text that doesn't match the source language.\nFiltered text will not be translated.",
       "日本語": "有効にすると、設定された原文言語と一致しないテキストは翻訳前に自動で除外され、翻訳対象になりません。"
     },
     "动态示例和预回复功能": {
@@ -45,7 +45,7 @@
     "将在构建整体的翻译提示词时，自动生成动态Few-shot和构建模型预回复内容，不支持本地接口": {
       "简中": "将在构建整体的翻译提示词时，自动生成动态Few-shot和构建模型预回复内容，不支持本地接口",
       "繁中": "建構整體翻譯提示詞時，將自動產生動態Few-shot及模型預回覆內容，不支援本地介面",
-      "English": "Automatically generates dynamic Few-shot examples and model pre-replies when constructing translation prompts.\nNot supported for local APIs.",
+      "English": "Builds dynamic few-shot examples and pre-replies for prompts.\nNot available for local APIs.",
       "日本語": "翻訳プロンプト構築時に動的Few-shotと事前返答を自動生成\nローカルインターフェースには非対応"
     },
     "参考上文行数": {
@@ -57,7 +57,7 @@
     "行数不宜设置过大，建议10行以内 (不支持本地类接口)": {
       "简中": "行数不宜设置过大，建议10行以内 (不支持本地类接口)",
       "繁中": "行數不宜設定過大，建議 10 行以內 (不支援本地類介面)", 
-      "English": "Keep line count low, recommended ≤10 (Local APIs not supported)", 
+      "English": "Keep this low.\nRecommended: 10 lines or fewer.\nLocal APIs are not supported.", 
       "日本語": "行数は大きく設定しないでください。10行以内を推奨 (ローカルAPIは非対応)"
     },
     "自动预处理文本": {
@@ -69,7 +69,7 @@
     "启用此功能后，根据正则库与禁翻表，将在翻译前移除文本首尾的非翻译内容，占位文本中间的非翻译内容，并在翻译后还原": {
         "简中": "启用此功能后，根据正则库与禁翻表，将在翻译前移除文本首尾的非翻译内容，占位文本中间的非翻译内容，并在翻译后还原",
         "繁中": "啟用此功能後，根據正規表示式庫與禁譯表，將在翻譯前移除文字首尾的非翻譯內容、佔位符中間的非翻譯內容，並在翻譯後復原",
-        "English": "When enabled, non-translatable content at text boundaries and within placeholders will be temporarily removed during translation based on regex library and exclusion list, then restored after translation",
+        "English": "Removes non-translatable text before translation\nbased on regex rules and the exclusion list,\nthen restores it after translation.",
         "日本語": "有効化すると、正規表現ライブラリと翻訳禁止リストに基づき、翻訳前後でテキストの前後端およびプレースホルダ内の非翻訳コンテンツを一時削除・復元します"
     },
     "自动修复标点符号": {
@@ -81,7 +81,7 @@
     "启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和文本符号，适合日语翻译流程。": {
       "简中": "启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和文本符号，适合日语翻译流程。",
       "繁中": "啟用後，將在翻譯任務中根據原文恢復譯文中改變的標點符號和文本符號，適合日語翻譯流程。",
-      "English": "When enabled, the translation task restores punctuation and text symbol changes in translated text according to the source text and is intended for Japanese translation workflows.",
+      "English": "Restores punctuation and symbols to match the source text.\nBest for Japanese translation workflows.",
       "日本語": "有効にすると、翻訳タスク中に原文をもとに訳文で変化した句読点やテキスト記号を復元します。日本語翻訳ワークフロー向けです。"
     },
     "模型退化检查": {
@@ -123,7 +123,7 @@
     "将在翻译结果中检查激活的规则（点亮按钮为激活）：如检测到对应情况，则视为任务执行失败": {
       "简中": "将在翻译结果中检查激活的规则（点亮按钮为激活）：如检测到对应情况，则视为任务执行失败",
       "繁中": "將在翻譯結果中檢查已啟用的規則（點亮的按鈕表示已啟用）：如偵測到符合規則的情況，則視為任務執行失敗。",
-      "English": "Checks enabled rules in translation results (lit buttons = enabled). Task fails if rules are triggered.",
+      "English": "Checks only the enabled rules in translation results.\nIf any rule is triggered, the task fails.",
       "日本語": "翻訳結果で有効ルールをチェック (点灯ボタン＝有効)。ルール違反時タスク失敗。"
     }
   },

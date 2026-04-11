@@ -339,7 +339,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
                 return
 
             # 确认框
-            message_box = MessageBox("Warning", self.tra("是否确认导入选中的配置文件,导入后应用将自动重启"), window)
+            message_box = MessageBox(self.tra("警告"), self.tra("是否确认导入选中的配置文件,导入后应用将自动重启"), window)
             message_box.yesButton.setText(self.tra("确认"))
             message_box.cancelButton.setText(self.tra("取消"))
             if message_box.exec():
@@ -368,7 +368,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
         # 导入按钮点击事件
         def on_improt_button_clicked() -> None:
-            path, _ = QFileDialog.getOpenFileName(None, self.tra("选择文件"), "", "json files (*.json)")
+            path, _ = QFileDialog.getOpenFileName(None, self.tra("选择文件"), "", self.tra("JSON 配置文件 (*.json)"))
 
             if path == None or path == "":
                 return

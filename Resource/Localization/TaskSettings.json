@@ -57,7 +57,7 @@
     "合理设置可以极大的增加翻译速度，请设置为本地模型的 np 值或者参考在线接口的官方文档，设置为 0 为自动模式": {
       "简中": "合理设置可以极大的增加翻译速度，请设置为本地模型的 np 值或者参考在线接口的官方文档，设置为 0 为自动模式",
       "繁中": "合理設定可大幅提升任務速度，請設定為本地模型的 np 值或參考線上介面官方文件，設為 0 為自動模式",
-      "English": "Optimal setting greatly improves speed. Set to local model's np value or consult API docs. 0 = auto mode",
+      "English": "Set this to your local model's np value\nor your API limit.\n0 = auto mode",
       "日本語": "適切な設定で速度向上。ローカルモデルのnp値に設定かAPI文書参照。0で自動モード"
     },
     "请求超时时间(s)": {
@@ -81,7 +81,7 @@
     "当完成一轮任务后，如果还有未翻译/润色的条目，将重新开始新的任务流程，直到翻译/润色完成或者达到最大轮次": {
       "简中": "当完成一轮任务后，如果还有未翻译/润色的条目，将重新开始新的任务流程，直到翻译/润色完成或者达到最大轮次",
       "繁中": "完成一輪任務後若有未翻譯/潤飾項目，將重新啟動任務流程，直到翻譯/潤飾完成或達最大輪次",
-      "English": "Restarts process for untranslated/unpolished items until completion or max rounds reached",
+      "English": "If untranslated or unpolished items remain,\nstart another round until done or the max is reached",
       "日本語": "未翻訳・未推敲項目がある場合、完了または最大ラウンドまで処理を再開"
     }
     

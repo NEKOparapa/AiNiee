@@ -169,7 +169,7 @@
     "启用此功能后，将根据本页中设置的内容构建角色介绍，并补充到基础提示词中\n可使用分隔符[Separator]来分隔姓和名": {
       "简中": "启用此功能后，将根据本页中设置的内容构建角色介绍，并补充到基础提示词中\n可使用分隔符[Separator]来分隔姓和名",
       "繁中": "啟用此功能後，將根據本頁中設定的內容構建角色介紹，並補充到基礎提示詞中\n可使用分隔符[Separator]來分隔姓和名",
-      "English": "When enabled, a character introduction will be built based on the settings on this page and added to the basic prompt.\nYou can use the delimiter [Separator] to separate the first and last name",
+      "English": "Build character notes from this page\nand add them to the basic prompt.\nUse [Separator] between first and last name.",
       "日本語": "この機能を有効にすると、このページの設定内容に基づいてキャラクター紹介が構築され、基本プロンプトに追加されます。\n区切り文字[Separator]を使用して、姓と名を分けることができます"
     },
     "原名": {
@@ -321,7 +321,7 @@
     "启用此功能后，将根据本页中设置的内容构建背景设定提示，并补充到基础提示词中": {
       "简中": "启用此功能后，将根据本页中设置的内容构建背景设定提示，并补充到基础提示词中",
       "繁中": "啟用此功能後，將根據本頁中設定的內容構建背景設定提示，並補充到基礎提示詞中",
-      "English": "When enabled, a background setting prompt will be built based on the settings on this page and added to the basic prompt",
+      "English": "Build background notes from this page\nand add them to the basic prompt",
       "日本語": "この機能を有効にすると、このページの設定内容に基づいて背景設定プロンプトが構築され、基本プロンプトに追加されます"
     },
     "自定义翻译风格": {
@@ -333,7 +333,7 @@
     "启用此功能后，将根据本页中设置的内容构建翻译风格要求，并补充到基础提示词中": {
       "简中": "启用此功能后，将根据本页中设置的内容构建翻译风格要求，并补充到基础提示词中",
       "繁中": "啟用此功能後，將根據本頁中設定的內容構建翻譯風格要求，並補充到基礎提示詞中",
-      "English": "When enabled, translation style requirements will be built based on the settings on this page and added to the basic prompt",
+      "English": "Build translation style notes from this page\nand add them to the basic prompt",
       "日本語": "この機能を有効にすると、このページの設定内容に基づいて翻訳スタイルの要求が構築され、基本プロンプトに追加されます"
     },
     "自定义翻译示例": {
@@ -345,7 +345,7 @@
     "启用此功能后，将根据本页中设置的内容构建翻译示例，并补充到基础提示词中": {
       "简中": "启用此功能后，将根据本页中设置的内容构建翻译示例，并补充到基础提示词中",
       "繁中": "啟用此功能後，將根據本頁中設定的內容構建翻譯示例，並補充到基礎提示詞中",
-      "English": "When enabled, translation examples will be built based on the settings on this page and added to the basic prompt",
+      "English": "Build translation examples from this page\nand add them to the basic prompt",
       "日本語": "この機能を有効にすると、このページの設定内容に基づいて翻訳例が構築され、基本プロンプトに追加されます"
     }
   }

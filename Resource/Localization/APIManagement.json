@@ -249,7 +249,7 @@
     "将自动为你填写接口地址，例如 https://api.deepseek.com -> https://api.deepseek.com/v1": {
       "简中": "将自动为你填写接口地址，例如 https://api.deepseek.com -> https://api.deepseek.com/v1",
       "繁中": "將自動為您填寫介面位址，例如 https://api.deepseek.com -> https://api.deepseek.com/v1",
-      "English": "Auto-fill API address (e.g., https://api.deepseek.com -> https://api.deepseek.com/v1)",
+      "English": "Auto-fill the API address.\nExample: https://api.deepseek.com -> https://api.deepseek.com/v1",
       "日本語": "APIアドレスを自動入力 (例：https://api.deepseek.com -> https://api.deepseek.com/v1)"
     },
     "接口密钥": {
@@ -363,7 +363,7 @@
     "开启后模拟浏览器指纹以绕过 TLS 检测，并自动应用系统代理": {
       "简中": "开启后模拟浏览器指纹以绕过 TLS 检测，并自动应用系统代理",
       "繁中": "開啟後模擬瀏覽器指紋以繞過 TLS 檢測，並自動應用系統代理",
-      "English": "Simulate browser fingerprint to bypass TLS detection and auto-apply system proxy",
+      "English": "Simulate a browser fingerprint for TLS checks.\nAlso applies the system proxy automatically.",
       "日本語": "TLS検出を回避するためにブラウザのフィンガープリントをシミュレートし、システムプロキシを自動適用します"
     },
     "思考深度": {
@@ -577,6 +577,18 @@
       "繁中": "已新增所選模型",
       "English": "Selected model added",
       "日本語": "選択したモデルを追加しました"
+    },
+    "已激活": {
+      "简中": "已激活",
+      "繁中": "已激活",
+      "English": "Active",
+      "日本語": "有効"
+    },
+    "已激活接口": {
+      "简中": "已激活接口",
+      "繁中": "已激活介面",
+      "English": "Active API",
+      "日本語": "有効なAPI"
     }
   }
 }

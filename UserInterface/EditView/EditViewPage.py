@@ -30,7 +30,7 @@ class WorkflowHeaderBar(ConfigMixin, CardWidget):
         layout.setSpacing(12)
 
         self.back_button = TransparentPushButton(FIF.RETURN, self.tra("返回"), self)
-        self.save_button = TransparentPushButton(FIF.SAVE, self.tra("缓存"), self)
+        self.save_button = TransparentPushButton(FIF.SAVE, self.tra("保存"), self)
         self.export_button = TransparentPushButton(FIF.SHARE, self.tra("导出结果"), self)
         self.step_widget = SegmentedWidget(self)
         self.step_widget.setFixedWidth(380)
