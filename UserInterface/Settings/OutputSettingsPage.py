@@ -53,14 +53,14 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         self.scroller.setWidget(self.vbox_parent)
 
         # 添加控件
+        self.add_widget_filename_suffix(self.vbox, config)
         self.add_widget_translation_output_path(self.vbox, config)
         self.add_widget_auto_set(self.vbox, config)
         self.vbox.addWidget(HorizontalSeparator())
-        self.add_widget_filename_suffix(self.vbox, config)
         self.add_widget_bilingual_text_order(self.vbox, config)
+        self.add_widget_translation_result_check(self.vbox, config)
         self.add_widget_encoding(self.vbox, config)
         self.vbox.addWidget(HorizontalSeparator())
-        self.add_widget_translation_result_check(self.vbox, config)
         self.add_widget_opencc(self.vbox, config)
         self.add_widget_opencc_preset(self.vbox, config)
         # 填充
