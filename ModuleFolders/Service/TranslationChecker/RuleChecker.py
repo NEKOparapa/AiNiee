@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -18,7 +18,7 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
         self.config = self.load_config()
 
     def _summarize_text(self, text: str, limit: int = 24) -> str:
-        normalized = re.sub(r'\s+', ' ', (text or "").strip())
+        normalized = re.sub(r"\s+", " ", (text or "").strip())
         if not normalized:
             return "空"
         if len(normalized) <= limit:
@@ -38,9 +38,71 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
             self._summarize_text(src_detail),
         )
 
+    def _normalize_identity(self, value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value).strip()
+
+    def _get_project_analysis_data(self) -> Dict[str, Any]:
+        if not self.cache_manager or not hasattr(self.cache_manager, "get_analysis_data"):
+            return {}
+
+        analysis_data = self.cache_manager.get_analysis_data() or {}
+        return analysis_data if isinstance(analysis_data, dict) else {}
+
+    def _collect_merged_exclusion_data(self) -> List[Dict[str, str]]:
+        merged_rows: List[Dict[str, str]] = []
+        seen_markers = set()
+        analysis_data = self._get_project_analysis_data()
+
+        project_rows = analysis_data.get("non_translate", [])
+        if isinstance(project_rows, list):
+            for row in project_rows:
+                if not isinstance(row, dict):
+                    continue
+
+                marker = self._normalize_identity(row.get("marker"))
+                if not marker or marker in seen_markers:
+                    continue
+
+                merged_rows.append({
+                    "markers": marker,
+                    "info": self._normalize_identity(row.get("note")),
+                    "regex": "",
+                })
+                seen_markers.add(marker)
+
+        public_rows = self.config.get("exclusion_list_data", [])
+        if isinstance(public_rows, list):
+            for row in public_rows:
+                if not isinstance(row, dict):
+                    continue
+
+                regex = self._normalize_identity(row.get("regex"))
+                marker = self._normalize_identity(row.get("markers"))
+                if regex:
+                    merged_rows.append({
+                        "markers": marker,
+                        "info": self._normalize_identity(row.get("info")),
+                        "regex": regex,
+                    })
+                    continue
+
+                if not marker or marker in seen_markers:
+                    continue
+
+                merged_rows.append({
+                    "markers": marker,
+                    "info": self._normalize_identity(row.get("info")),
+                    "regex": "",
+                })
+                seen_markers.add(marker)
+
+        return merged_rows
+
     def run_check(self, params: dict) -> Tuple[str, Any]:
         """
-        规则检查入口，返回新的结果结构给UI使用
+        规则检查入口，返回新的结果结构给 UI 使用
         """
         pre_check_result, pre_check_data = self._perform_pre_checks("rule")
         if pre_check_result is not None:
@@ -63,27 +125,27 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
 
         self.info("开始执行规则检查...")
         errors_list = []
+        exclusion_data = self._collect_merged_exclusion_data() if rules_config.get("exclusion") else []
 
-        # 准备正则表达式模式
         patterns = []
         if rules_config.get("auto_process"):
-            patterns = self._prepare_regex_patterns(rules_config.get("exclusion", False))
+            patterns = self._prepare_regex_patterns(
+                rules_config.get("exclusion", False),
+                exclusion_data if rules_config.get("exclusion") else None,
+            )
 
-        # 准备禁翻表数据
-        exclusion_data = self.config.get("exclusion_list_data", []) if rules_config.get("exclusion") else []
         check_attr = "translated_text"
 
         for file_path, file_obj in self.cache_manager.project.files.items():
             file_name = os.path.basename(file_path)
             for item in file_obj.items:
-                # 0. 总是跳过被显式排除 (TranslationStatus.EXCLUDED) 的条目
+                # 始终跳过显式排除项
                 if item.translation_status == TranslationStatus.EXCLUDED:
                     continue
 
                 text_content = getattr(item, check_attr, "")
                 current_errors = []
 
-                # 1. 未翻译/漏翻检查
                 if rules_config.get("untranslated"):
                     if item.translation_status < TranslationStatus.TRANSLATED or not text_content:
                         errors_list.append({
@@ -93,35 +155,26 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
                             "check_text": text_content,
                             "file_path": file_path,
                             "text_index": item.text_index,
-                            "target_field": check_attr
+                            "target_field": check_attr,
                         })
-                        # 如果已确定未翻译，通常内容为空或无意义，跳过后续的内容检查
                         continue
 
-                # 2. 跳过空文本 (如果内容为空且不是为了检查未翻译，则跳过后续正则检查)
                 if not text_content or not item.source_text:
                     continue
 
-                # 3. 禁翻表
                 if rules_config.get("exclusion") and exclusion_data:
                     current_errors.extend(self._rule_check_exclusion(item.source_text, text_content, exclusion_data))
-                # 4. 自动处理
                 if rules_config.get("auto_process") and patterns:
                     current_errors.extend(self._rule_check_auto_process(item.source_text, text_content, patterns))
-                # 5. 占位符
                 if rules_config.get("placeholder"):
                     current_errors.extend(self._rule_check_placeholder(item.source_text, text_content))
-                # 6. 数字序号
                 if rules_config.get("number"):
                     current_errors.extend(self._rule_check_number(item.source_text, text_content))
-                # 7. 示例复读
                 if rules_config.get("example"):
                     current_errors.extend(self._rule_check_example(item.source_text, text_content))
-                # 8. 换行符
                 if rules_config.get("newline"):
                     current_errors.extend(self._rule_check_newline(item.source_text, text_content))
 
-                # 收集结果
                 for err in current_errors:
                     errors_list.append({
                         "row_id": f"{file_name} : {item.text_index + 1}",
@@ -130,28 +183,33 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
                         "check_text": text_content,
                         "file_path": file_path,
                         "text_index": item.text_index,
-                        "target_field": check_attr
+                        "target_field": check_attr,
                     })
 
         self.info("规则检查完成，发现 {} 个问题。".format(len(errors_list)))
         return errors_list
 
     # --- 规则检查辅助方法 ---
-    def _prepare_regex_patterns(self, include_exclusion: bool):
+    def _prepare_regex_patterns(self, include_exclusion: bool, exclusion_data: List[Dict] | None = None):
         patterns = []
         regex_file = os.path.join(".", "Resource", "Regex", "check_regex.json")
         if os.path.exists(regex_file):
             try:
-                with open(regex_file, 'r', encoding='utf-8') as f:
+                with open(regex_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    patterns.extend([i["regex"] for i in data if "regex" in i])
-            except: pass
+                    patterns.extend([item["regex"] for item in data if isinstance(item, dict) and "regex" in item])
+            except Exception:
+                pass
 
         if include_exclusion:
-            ex_data = self.config.get("exclusion_list_data", [])
+            ex_data = exclusion_data if exclusion_data is not None else self._collect_merged_exclusion_data()
             for item in ex_data:
-                if item.get("regex"): patterns.append(item["regex"])
-                elif item.get("markers"): patterns.append(re.escape(item["markers"]))
+                regex = self._normalize_identity(item.get("regex"))
+                markers = self._normalize_identity(item.get("markers"))
+                if regex:
+                    patterns.append(regex)
+                elif markers:
+                    patterns.append(re.escape(markers))
         return patterns
 
     def _rule_check_exclusion(self, src, dst, data):
@@ -160,51 +218,55 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
             regex = item.get("regex")
             markers = item.get("markers")
             pat = regex if regex else (re.escape(markers) if markers else None)
-            if pat:
-                try:
-                    for match in re.finditer(pat, src):
-                        if match.group(0) not in dst:
-                            if not errs:
-                                errs.append(self._build_missing_preserve_error("禁翻表错误", match.group(0)))
-                            break
-                except: continue
+            if not pat:
+                continue
+
+            try:
+                for match in re.finditer(pat, src):
+                    if match.group(0) not in dst:
+                        if not errs:
+                            errs.append(self._build_missing_preserve_error("禁翻表错误", match.group(0)))
+                        break
+            except Exception:
+                continue
         return errs
 
     def _rule_check_auto_process(self, src, dst, patterns):
         errs = []
-        _src = src.rstrip('\n')
-        _dst = dst.rstrip('\n')
+        normalized_src = src.rstrip("\n")
+        normalized_dst = dst.rstrip("\n")
         for pat in patterns:
             try:
-                for match in re.finditer(pat, _src):
-                    if match.group(0) not in _dst:
+                for match in re.finditer(pat, normalized_src):
+                    if match.group(0) not in normalized_dst:
                         if not errs:
                             errs.append(self._build_missing_preserve_error("自动处理错误", match.group(0)))
                         break
-            except: continue
+            except Exception:
+                continue
         return errs
 
     def _rule_check_placeholder(self, src, dst):
-        match = re.search(r'\[P\d+\]', dst)
+        match = re.search(r"\[P\d+\]", dst)
         if match:
             return ["占位符残留({})".format(self._summarize_text(match.group(0)))]
         return []
 
     def _rule_check_number(self, src, dst):
-        match = re.search(r'\d+\.\d+\.', dst)
+        match = re.search(r"\d+\.\d+\.", dst)
         if match:
             return ["数字序号残留({})".format(self._summarize_text(match.group(0)))]
         return []
 
     def _rule_check_example(self, src, dst):
-        match = re.search(r'示例文本[A-Z]-\d+', dst)
+        match = re.search(r"示例文本[A-Z]-\d+", dst)
         if match:
             return ["示例文本复读({})".format(self._summarize_text(match.group(0)))]
         return []
 
     def _rule_check_newline(self, src, dst):
-        s_n = src.strip().count('\n') + src.strip().count('\\n')
-        d_n = dst.strip().count('\n') + dst.strip().count('\\n')
+        s_n = src.strip().count("\n") + src.strip().count("\\n")
+        d_n = dst.strip().count("\n") + dst.strip().count("\\n")
         if s_n != d_n:
             return ["换行符错误(原文: {}个换行, 译文: {}个换行)".format(s_n, d_n)]
         return []
@@ -220,7 +282,6 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
         check_target_attr = "translated_text"
         status_to_check = TranslationStatus.TRANSLATED
 
-        # 检查是否存在至少一个需要被检查的有效文本项
         for item in self.cache_manager.project.items_iter():
             if item.translation_status >= status_to_check and getattr(item, check_target_attr, "").strip():
                 has_content = True

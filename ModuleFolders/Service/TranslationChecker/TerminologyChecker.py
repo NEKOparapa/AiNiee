@@ -1,6 +1,6 @@
 import os
 import re
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -18,7 +18,7 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
 
     def run_check(self, params: dict | None = None) -> Tuple[str, Any]:
         """
-        术语检查入口，返回新的结果结构给UI使用
+        术语检查入口，返回新的结果结构给 UI 使用
         """
         pre_check_result, pre_check_data = self._perform_pre_checks("terminology")
         if pre_check_result is not None:
@@ -31,41 +31,89 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
             "passed": not issue_rows,
         }
 
+    def _normalize_identity(self, value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value).strip()
+
+    def _get_project_analysis_data(self) -> Dict[str, Any]:
+        if not self.cache_manager or not hasattr(self.cache_manager, "get_analysis_data"):
+            return {}
+
+        analysis_data = self.cache_manager.get_analysis_data() or {}
+        return analysis_data if isinstance(analysis_data, dict) else {}
+
+    def _collect_merged_term_rows(self) -> List[Dict[str, str]]:
+        merged_rows: List[Dict[str, str]] = []
+        seen_sources = set()
+        analysis_data = self._get_project_analysis_data()
+
+        row_sources = (
+            (analysis_data.get("characters", []), "source", "recommended_translation"),
+            (analysis_data.get("terms", []), "source", "recommended_translation"),
+            (self.config.get("prompt_dictionary_data", []), "src", "dst"),
+        )
+
+        for rows, source_field, target_field in row_sources:
+            if not isinstance(rows, list):
+                continue
+
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+
+                src_term = self._normalize_identity(row.get(source_field))
+                dst_term = self._normalize_identity(row.get(target_field))
+                if not src_term or not dst_term or src_term in seen_sources:
+                    continue
+
+                merged_rows.append({
+                    "src": src_term,
+                    "dst": dst_term,
+                })
+                seen_sources.add(src_term)
+
+        return merged_rows
+
+    def _prepare_term_data(self, term_rows: List[Dict[str, str]]) -> List[Dict[str, Any]]:
+        term_data = []
+
+        for term in term_rows:
+            src_term = term.get("src")
+            dst_term = term.get("dst")
+            if not src_term or not dst_term:
+                continue
+
+            try:
+                pattern = re.compile(src_term, re.IGNORECASE)
+                term_data.append({
+                    "type": "regex",
+                    "pattern": pattern,
+                    "src": src_term,
+                    "dst": dst_term,
+                })
+            except re.error:
+                term_data.append({
+                    "type": "string",
+                    "src": src_term,
+                    "dst": dst_term,
+                })
+
+        return term_data
+
     # --- 术语检查主流程 ---
     def _check_terminology(self) -> List[Dict]:
         self.info("开始执行术语检查...")
         errors_list = []
         check_attr = "translated_text"
 
-        # 准备术语表数据 (预处理正则)
-        term_data = []
-        raw_term_data = self.config.get("prompt_dictionary_data", [])
-        for term in raw_term_data:
-            if isinstance(term, dict):
-                src_term = term.get("src")
-                dst_term = term.get("dst")
-                if src_term and dst_term:
-                    try:
-                        # 尝试编译为正则
-                        pattern = re.compile(src_term, re.IGNORECASE)
-                        term_data.append({
-                            "type": "regex",
-                            "pattern": pattern,
-                            "src": src_term, # 保留原始字符串用于调试或显示
-                            "dst": dst_term
-                        })
-                    except re.error:
-                        # 编译失败则作为普通字符串处理，后续将使用忽略大小写包含检测
-                        term_data.append({
-                            "type": "string",
-                            "src": src_term,
-                            "dst": dst_term
-                        })
+        term_rows = self._collect_merged_term_rows()
+        term_data = self._prepare_term_data(term_rows)
 
         for file_path, file_obj in self.cache_manager.project.files.items():
             file_name = os.path.basename(file_path)
             for item in file_obj.items:
-                # 总是跳过被显式排除 (TranslationStatus.EXCLUDED) 的条目
+                # 始终跳过显式排除项
                 if item.translation_status == TranslationStatus.EXCLUDED:
                     continue
 
@@ -84,7 +132,7 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
                         "check_text": text_content,
                         "file_path": file_path,
                         "text_index": item.text_index,
-                        "target_field": check_attr
+                        "target_field": check_attr,
                     })
 
         self.info("术语检查完成，发现 {} 个问题。".format(len(errors_list)))
@@ -100,16 +148,13 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
         for term_item in prepared_data:
             match_found = False
 
-            # 检测原文中是否存在该术语
             if term_item["type"] == "regex":
                 if term_item["pattern"].search(src):
                     match_found = True
             else:
-                # 字符串模式：使用忽略大小写包含，与PromptBuilder回退逻辑保持一致
                 if term_item["src"].lower() in src.lower():
                     match_found = True
 
-            # 如果原文中存在术语，则检查译文中是否包含对应的译名
             if match_found:
                 src_term = term_item["src"]
                 dst_term = term_item["dst"]
@@ -130,7 +175,6 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
         check_target_attr = "translated_text"
         status_to_check = TranslationStatus.TRANSLATED
 
-        # 检查是否存在至少一个需要被检查的有效文本项
         for item in self.cache_manager.project.items_iter():
             if item.translation_status >= status_to_check and getattr(item, check_target_attr, "").strip():
                 has_content = True
