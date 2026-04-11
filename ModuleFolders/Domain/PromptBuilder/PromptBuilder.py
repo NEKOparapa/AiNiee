@@ -29,6 +29,12 @@ class PromptBuilder(Base):
         if getattr(PromptBuilder, "think_system_en", None) == None:
             with open("./Resource/Prompt/Translate/think_system_en.txt", "r", encoding = "utf-8") as reader:
                 PromptBuilder.think_system_en = reader.read().strip()
+        if getattr(PromptBuilder, "local_system_zh", None) == None:
+            with open("./Resource/Prompt/Translate/local_system_zh.txt", "r", encoding = "utf-8") as reader:
+                PromptBuilder.local_system_zh = reader.read().strip()
+        if getattr(PromptBuilder, "local_system_en", None) == None:
+            with open("./Resource/Prompt/Translate/local_system_en.txt", "r", encoding = "utf-8") as reader:
+                PromptBuilder.local_system_en = reader.read().strip()
 
 
         # 如果输入的是字典，则转换为命名空间
@@ -51,6 +57,10 @@ class PromptBuilder(Base):
             result = PromptBuilder.think_system_zh
         elif prompt_preset == PromptBuilderEnum.THINK and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.think_system_en
+        elif prompt_preset == PromptBuilderEnum.LOCAL and config.target_language in ("chinese_simplified", "chinese_traditional"):
+            result = PromptBuilder.local_system_zh
+        elif prompt_preset == PromptBuilderEnum.LOCAL and config.target_language not in ("chinese_simplified", "chinese_traditional"):
+            result = PromptBuilder.local_system_en
         else:
             result = PromptBuilder.common_system_zh
 
@@ -83,6 +93,12 @@ class PromptBuilder(Base):
             result = PromptBuilder.think_system_zh
         elif config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.THINK and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.think_system_en
+            source_language = en_sl
+            target_language = en_tl
+        elif config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.LOCAL and config.target_language in ("chinese_simplified", "chinese_traditional"):
+            result = PromptBuilder.local_system_zh
+        elif config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.LOCAL and config.target_language not in ("chinese_simplified", "chinese_traditional"):
+            result = PromptBuilder.local_system_en
             source_language = en_sl
             target_language = en_tl
 
@@ -919,7 +935,7 @@ class PromptBuilder(Base):
         extra_log = []
 
         # 基础系统提示词
-        if config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK):
+        if config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK, PromptBuilderEnum.LOCAL):
             system = PromptBuilder.build_system(config, source_lang)
         else:
             custom_prompt = config.translation_prompt_selection["prompt_content"]

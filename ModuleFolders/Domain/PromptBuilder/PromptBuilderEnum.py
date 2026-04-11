@@ -5,6 +5,7 @@ class PromptBuilderEnum(Base):
     COMMON = 100
     COT = 200
     THINK = 300
+    LOCAL = 400
     CUSTOM = 1000
 
     POLISH_COMMON = 10001

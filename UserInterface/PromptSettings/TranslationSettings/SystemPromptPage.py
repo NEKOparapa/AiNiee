@@ -300,6 +300,10 @@ class SystemPromptPage(QFrame, ConfigMixin, Base):
         think_id = PromptBuilderEnum.THINK
         think_prompt_content = PromptBuilder.get_system_default(config,PromptBuilderEnum.THINK)
 
+        local_name = self.tra("本地模型")
+        local_id = PromptBuilderEnum.LOCAL
+        local_prompt_content = PromptBuilder.get_system_default(config,PromptBuilderEnum.LOCAL)
+
         # 组装默认提示词列表
         default_prompt = [
             {
@@ -318,6 +322,12 @@ class SystemPromptPage(QFrame, ConfigMixin, Base):
                 "id": think_id,
                 "name": think_name,
                 "content": think_prompt_content,
+                "type": "system"
+            },
+            {
+                "id": local_id,
+                "name": local_name,
+                "content": local_prompt_content,
                 "type": "system"
             }
         ]

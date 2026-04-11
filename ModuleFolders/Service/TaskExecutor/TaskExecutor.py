@@ -398,7 +398,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 system = PromptBuilderLocal.build_system(self.config, s_lang)
             elif self.config.target_platform.startswith("sakura"):  # 需要放在前面，以免提示词预设的分支覆盖
                 system = PromptBuilderSakura.build_system(self.config, s_lang)
-            elif self.config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK):
+            elif self.config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK, PromptBuilderEnum.LOCAL):
                 system = PromptBuilder.build_system(self.config, s_lang)
             else:
                 system = self.config.translation_prompt_selection["prompt_content"]
