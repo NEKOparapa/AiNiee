@@ -68,6 +68,14 @@
     "description": "显示文本后不需要等待 \\^"
   },
   {
+    "regex": "\\{i\\}",
+    "description": "{i} combo tag"
+  },
+  {
+    "regex": "\\{/i\\}",
+    "description": "closing i tag {/i}"
+  },
+  {
     "regex": "\\\\<br>",
     "description": "换行符 \\<br>"
   },
