@@ -350,8 +350,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             # 保存配置文件
             config = self.load_config()
             for k, v in profile.items():
-                if k != "platforms":
-                    config[k] = v
+                config[k] = v
             self.save_config(config)
 
             # 重启应用
@@ -360,7 +359,6 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         # 导出配置文件
         def export_profile_file(path) -> None:
             config = self.load_config()
-            del config["platforms"]
 
             with open(f"{path}/ainiee_profile.json", "w", encoding="utf-8") as writer:
                 writer.write(json.dumps(config, indent=4, ensure_ascii=False))
@@ -404,7 +402,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         parent.addWidget(
             EmptyCard(
                 self.tra("应用配置切换"),
-                self.tra("可以将当前应用的除接口信息以外的所有设置导出为配置文件,以方便根据不同项目切换配置(导入配置后应用将自动重启)"),
+                self.tra("可以将当前应用的所有设置导出为配置文件,以方便根据不同项目切换配置(导入配置后应用将自动重启)"),
                 init=init,
             )
         )
