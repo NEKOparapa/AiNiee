@@ -147,7 +147,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         self.extraction_card = SwitchButtonCard(
             self.tra("自动术语提取"),
-            self.tra("跟随翻译过程自动提取原文中的专有名词并加入术语表（需要同时开启术语表功能）"),
+            self.tra("跟随翻译过程自动提取原文中的专有名词并加入术语表（需要同时开启术语表功能，注意：Sakura及本地模型下无效）"),
             init=init_extraction,
             checked_changed=extraction_checked_changed,
         )

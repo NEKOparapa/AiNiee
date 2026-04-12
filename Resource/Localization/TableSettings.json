@@ -168,11 +168,11 @@
       "English": "Auto Term Extraction",
       "日本語": "用語自動抽出"
     },
-    "跟随翻译过程自动提取原文中的专有名词并加入术语表（需要同时开启术语表功能）": {
-      "简中": "跟随翻译过程自动提取原文中的专有名词并加入术语表（需要同时开启术语表功能）",
-      "繁中": "跟隨翻譯過程自動提取原文中的專有名詞並加入術語表（需要同時開啟術語表功能）",
-      "English": "Automatically extract proper nouns from the source text during translation and add them to the glossary (requires the Glossary feature to be enabled).",
-      "日本語": "翻訳中に原文から固有名詞を自動的に抽出し、用語集に追加します（用語集機能を有効にする必要があります）。"
+    "跟随翻译过程自动提取原文中的专有名词并加入术语表（需要同时开启术语表功能，注意：Sakura及本地模型下无效）": {
+      "简中": "跟随翻译过程自动提取原文中的专有名词并加入术语表（需要同时开启术语表功能，注意：Sakura及本地模型下无效）",
+      "繁中": "跟隨翻譯過程自動提取原文中的專有名詞並加入術語表（需要同時開啟術語表功能，注意：Sakura及本地模型下無效）",
+      "English": "Automatically extract proper nouns from the source text during translation and add them to the glossary (requires the Glossary feature to be enabled. Note: Inactive for Sakura and local models).",
+      "日本語": "翻訳中に原文から固有名詞を自動的に抽出し、用語集に追加します（用語集機能を有効にする必要があります。注意：Sakuraおよびローカルモデルでは無効）。"
     },
     "自动术语提取新增": {
       "简中": "自动术语提取新增",
