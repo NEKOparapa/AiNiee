@@ -189,26 +189,71 @@ class TranslatorTask(LogMixin, Base):
         if getattr(self.config, "auto_term_extraction_switch", False) and getattr(self.config, "prompt_dictionary_switch", False):
             try:
                 import rapidjson as json
-                # 正则查找 <terms> 标签
-                terms_match = re.search(r'<terms>\s*(.*?)\s*</terms>', response_content, re.DOTALL)
+                # 只处理追加在回复末尾、且独占一段的 sidecar <terms> 标签
+                terms_match = re.search(r'(?:^|\r?\n)\s*<terms>\s*(.*?)\s*</terms>\s*$', response_content, re.DOTALL)
                 if terms_match:
                     terms_json_str = terms_match.group(1).strip()
                     # 尝试清理可能存在的 markdown json 代码块包裹
-                    terms_json_str = re.sub(r'^```[a-zA-Z]*\n', '', terms_json_str)
-                    terms_json_str = re.sub(r'\n```$', '', terms_json_str).strip()
+                    terms_json_str = re.sub(r'^```[a-zA-Z]*\r?\n', '', terms_json_str)
+                    terms_json_str = re.sub(r'\r?\n```$', '', terms_json_str).strip()
 
+                    sidecar_terms_valid = False
                     try:
                         parsed_terms = json.loads(terms_json_str)
                         if isinstance(parsed_terms, list):
-                            valid_terms = [item for item in parsed_terms if isinstance(item, dict) and item.get("src")]
+                            sidecar_terms_valid = True
+                            valid_terms = []
+                            for item in parsed_terms:
+                                if not isinstance(item, dict):
+                                    continue
+
+                                src = item.get("src")
+                                if not isinstance(src, str):
+                                    continue
+
+                                src = src.strip()
+                                if not src:
+                                    continue
+
+                                dst = item.get("dst", "")
+                                if dst is None:
+                                    dst = ""
+                                elif not isinstance(dst, str):
+                                    dst = str(dst)
+                                else:
+                                    dst = dst.strip()
+
+                                info = item.get("info", "")
+                                if info is None:
+                                    info = ""
+                                elif not isinstance(info, str):
+                                    info = str(info)
+                                else:
+                                    info = info.strip()
+
+                                valid_terms.append({
+                                    "src": src,
+                                    "dst": dst,
+                                    "info": info,
+                                })
 
                             if valid_terms:
                                 # 合并到内存术语表（按 src 去重）
                                 if not hasattr(self.config, 'prompt_dictionary_data') or self.config.prompt_dictionary_data is None:
                                     self.config.prompt_dictionary_data = []
 
-                                existing_srcs = {item.get("src") for item in self.config.prompt_dictionary_data if item.get("src")}
-                                new_unique_terms = [item for item in valid_terms if item.get("src") not in existing_srcs]
+                                existing_srcs = {
+                                    item.get("src")
+                                    for item in self.config.prompt_dictionary_data
+                                    if isinstance(item.get("src"), str) and item.get("src").strip()
+                                }
+                                new_unique_terms = []
+                                for item in valid_terms:
+                                    src = item["src"]
+                                    if src in existing_srcs:
+                                        continue
+                                    new_unique_terms.append(item)
+                                    existing_srcs.add(src)
 
                                 if new_unique_terms:
                                     self.config.prompt_dictionary_data.extend(new_unique_terms)
@@ -218,11 +263,14 @@ class TranslatorTask(LogMixin, Base):
                                         "total_count": len(self.config.prompt_dictionary_data)
                                     })
                                     self.extra_log.append(f"自动提取捕捉到 {len(new_unique_terms)} 个新术语")
+                        else:
+                            self.warning("边翻边提: terms JSON 不是数组，保留原始响应内容")
                     except Exception as json_e:
                         self.warning(f"边翻边提: 解析 terms JSON 失败: {json_e}")
 
-                    # 将 <terms> 标签及其中内容从回复中移除，避免干扰普通译文提取器的运作
-                    response_content = response_content[:terms_match.start()] + response_content[terms_match.end():]
+                    if sidecar_terms_valid:
+                        # 仅在确认 sidecar 数据有效后才移除，避免误删正文中的合法 <terms> 内容
+                        response_content = response_content[:terms_match.start()] + response_content[terms_match.end():]
             except Exception as e:
                 self.warning(f"边翻边提过程发生异常 (不影响主翻译): {e}")
         # ======== 伴随提取结束 ========
