@@ -933,28 +933,37 @@ class PromptBuilder(Base):
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             instruction = (
                 "\n\n### 附加任务：术语提取\n"
-                "请在完成上述翻译之后，提取原文文本中可能出现的核心角色名、专有名词和关键术语。\n"
-                "使用如下的 JSON 数组格式将结果追加在最后，并且必须使用 <terms> 和 </terms> 标签包裹你的 JSON。\n"
+                "请在完成翻译后，仔细审查原文，提取其中**高度关键且唯一**的核心角色名、重要地名、专有名词或特定游戏/故事术语。\n"
+                "**严格遵循以下过滤原则（不符合则不提取）：**\n"
+                "1. **查重原则**：严禁提取已出现在上方“###术语表”、“###角色表”或项目表中的词条（即便它们在文中出现）。\n"
+                "2. **去噪原则**：严禁提取人称代词、常用动词、通用形容词或任何简单的日常词汇（如：回复、战斗、走、红色等）。\n"
+                "3. **价值原则**：仅提取对维持上下文一致性具有高度价值的新名词。\n"
+                "使用如下的 JSON 数组格式将结果追加在最后，必须使用 <terms> 标签包裹：\n"
                 "<terms>\n"
                 "[\n"
                 "  {\"src\": \"原文名\", \"dst\": \"中译名\", \"info\": \"简要说明（如角色名/地名/术语分类等）\"}\n"
                 "]\n"
                 "</terms>\n"
-                "如果没有任何值得提取的新文本，请直接不输出 <terms> 标签即可。"
+                "如果没有任何符合上述标准的新术语，请保持沉默，**严禁**输出 <terms> 标签。"
             )
         else:
             instruction = (
                 "\n\n### Additional Task: Term Extraction\n"
-                "After completing the translation above, please extract the core character names, proper nouns, and key terms from the source text.\n"
-                "Append the results at the very end in a JSON array format, which MUST be strictly wrapped in <terms> and </terms> tags.\n"
+                "After completing the translation, carefully review the source text and extract ONLY **highly critical and unique** core character names, significant locations, proper nouns, or story-specific jargon.\n"
+                "**Strictly follow these filtering rules:**\n"
+                "1. **Deduplication**: DO NOT extract any terms already listed in the '### Glossary', '### Character Table', or other project tables above.\n"
+                "2. **Denoising**: DO NOT extract common pronouns, basic verbs, generic adjectives, or everyday vocabulary (e.g., reply, fight, go, red, etc.).\n"
+                "3. **Value**: Only extract new nouns that are highly valuable for maintaining consistency across the context.\n"
+                "Append the results at the very end in a JSON array format, strictly wrapped in <terms> tags:\n"
                 "<terms>\n"
                 "[\n"
                 "  {\"src\": \"Original Name\", \"dst\": \"Translated Name\", \"info\": \"Brief description (e.g., character/place/term category)\"}\n"
                 "]\n"
                 "</terms>\n"
-                "If there is nothing new worth extracting, simply do not output the <terms> tag."
+                "If no high-value new terms are found that meet these criteria, stay silent and DO NOT output the <terms> tag."
             )
         return instruction
+
 
 
     # 生成信息结构 - 通用
