@@ -188,7 +188,9 @@ class TranslatorTask(LogMixin, Base):
         pending_sidecar_terms = []
 
         # ======== 伴随翻译的术语提取 (Sidecar Extraction) ========
-        if getattr(self.config, "auto_term_extraction_switch", False) and getattr(self.config, "prompt_dictionary_switch", False):
+        # 仅对非 Sakura 和 非 LocalLLM 平台执行边翻边提解析，因为这两种平台并未组装伴随提取的提示词
+        is_sidecar_enabled_platform = not self.config.target_platform.startswith("sakura") and not self.config.target_platform.startswith("LocalLLM")
+        if getattr(self.config, "auto_term_extraction_switch", False) and getattr(self.config, "prompt_dictionary_switch", False) and is_sidecar_enabled_platform:
             try:
                 import rapidjson as json
                 # 只处理追加在回复末尾、且独占一段的 sidecar <terms> 标签
