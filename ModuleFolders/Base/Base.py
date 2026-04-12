@@ -25,6 +25,7 @@ class Event:
 
     GLOSS_TASK_START = 700                          # 术语表翻译开始
     GLOSS_TASK_DONE = 701                           # 术语表翻译完成
+    AUTO_GLOSSARY_UPDATE = 710                      # 自动术语提取结果更新
 
     ANALYSIS_TASK_START = 720                       # 分析任务开始
     ANALYSIS_TASK_UPDATE = 721                      # 分析任务更新

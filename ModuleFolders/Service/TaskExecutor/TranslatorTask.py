@@ -119,6 +119,10 @@ class TranslatorTask(LogMixin, Base):
 
     # 单请求翻译任务
     def unit_translation_task(self) -> dict:
+        # ====== 懒加载提示词 (Lazy Prepare) ======
+        # 将消息列表构建推迟到任务即将发送前，使得其它线程刚刚抓取回来的新术语能被立即装载到本次提示词中
+        self.prepare(self.config.target_platform)
+
         # 任务开始的时间
         task_start_time = time.time()
 
@@ -180,6 +184,48 @@ class TranslatorTask(LogMixin, Base):
                 "prompt_tokens": self.request_tokens_consume,
                 "completion_tokens": 0,
             }         
+
+        # ======== 伴随翻译的术语提取 (Sidecar Extraction) ========
+        if getattr(self.config, "auto_term_extraction_switch", False) and getattr(self.config, "prompt_dictionary_switch", False):
+            try:
+                import rapidjson as json
+                # 正则查找 <terms> 标签
+                terms_match = re.search(r'<terms>\s*(.*?)\s*</terms>', response_content, re.DOTALL)
+                if terms_match:
+                    terms_json_str = terms_match.group(1).strip()
+                    # 尝试清理可能存在的 markdown json 代码块包裹
+                    terms_json_str = re.sub(r'^```[a-zA-Z]*\n', '', terms_json_str)
+                    terms_json_str = re.sub(r'\n```$', '', terms_json_str).strip()
+
+                    try:
+                        parsed_terms = json.loads(terms_json_str)
+                        if isinstance(parsed_terms, list):
+                            valid_terms = [item for item in parsed_terms if isinstance(item, dict) and item.get("src")]
+
+                            if valid_terms:
+                                # 合并到内存术语表（按 src 去重）
+                                if not hasattr(self.config, 'prompt_dictionary_data') or self.config.prompt_dictionary_data is None:
+                                    self.config.prompt_dictionary_data = []
+
+                                existing_srcs = {item.get("src") for item in self.config.prompt_dictionary_data if item.get("src")}
+                                new_unique_terms = [item for item in valid_terms if item.get("src") not in existing_srcs]
+
+                                if new_unique_terms:
+                                    self.config.prompt_dictionary_data.extend(new_unique_terms)
+                                    # 通知 UI 更新
+                                    self.emit(Base.EVENT.AUTO_GLOSSARY_UPDATE, {
+                                        "new_terms": new_unique_terms,
+                                        "total_count": len(self.config.prompt_dictionary_data)
+                                    })
+                                    self.extra_log.append(f"自动提取捕捉到 {len(new_unique_terms)} 个新术语")
+                    except Exception as json_e:
+                        self.warning(f"边翻边提: 解析 terms JSON 失败: {json_e}")
+
+                    # 将 <terms> 标签及其中内容从回复中移除，避免干扰普通译文提取器的运作
+                    response_content = response_content[:terms_match.start()] + response_content[terms_match.end():]
+            except Exception as e:
+                self.warning(f"边翻边提过程发生异常 (不影响主翻译): {e}")
+        # ======== 伴随提取结束 ========
 
         # 提取回复内容
         response_dict = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)

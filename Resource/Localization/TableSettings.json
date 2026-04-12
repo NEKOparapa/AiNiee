@@ -161,9 +161,26 @@
       "繁中": "翻譯完成，但沒有資料被更新",
       "English": "Translation completed but no data was updated",
       "日本語": "翻訳は完了しましたが、データは更新されませんでした"
+    },
+    "自动术语提取": {
+      "简中": "自动术语提取",
+      "繁中": "自動術語提取",
+      "English": "Auto Term Extraction",
+      "日本語": "用語自動抽出"
+    },
+    "跟随翻译过程自动提取原文中的专有名词并加入术语表（需要同时开启术语表功能）": {
+      "简中": "跟随翻译过程自动提取原文中的专有名词并加入术语表（需要同时开启术语表功能）",
+      "繁中": "跟隨翻譯過程自動提取原文中的專有名詞並加入術語表（需要同時開啟術語表功能）",
+      "English": "Automatically extract proper nouns from the source text during translation and add them to the glossary (requires the Glossary feature to be enabled).",
+      "日本語": "翻訳中に原文から固有名詞を自動的に抽出し、用語集に追加します（用語集機能を有効にする必要があります）。"
+    },
+    "自动术语提取新增": {
+      "简中": "自动术语提取新增",
+      "繁中": "自動術語提取新增",
+      "English": "Auto Term Extraction Added",
+      "日本語": "用語自動抽出 追加"
     }
   },
-
   "PART_2": {
     "禁翻表": {
       "简中": "禁翻表",
@@ -202,7 +219,6 @@
       "日本語": "禁翻リストをエクスポート"
     }
   },
-
   "PART_3": {
     "译前替换": {
       "简中": "译前替换",

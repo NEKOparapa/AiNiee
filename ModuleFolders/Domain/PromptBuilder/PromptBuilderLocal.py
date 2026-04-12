@@ -506,6 +506,11 @@ class PromptBuilderLocal(Base):
             translation_example = PromptBuilderLocal.build_translation_example_prompt(config)
             system = PromptBuilderLocal._append_system_section(system, extra_log, translation_example)
 
+        # 挂载：边翻边提取术语指令
+        if getattr(config, "auto_term_extraction_switch", False) and getattr(config, "prompt_dictionary_switch", False):
+            term_extraction_ins = PromptBuilder.build_term_extraction_instruction(config)
+            system = PromptBuilderLocal._append_system_section(system, extra_log, term_extraction_ins, prepend_newline=True)
+
         source_text = PromptBuilderLocal.build_source_text(config, source_text_dict)
         pre_prompt = PromptBuilderLocal.build_userQueryPrefix(config)
         source_text_str = f"{pre_prompt}<textarea>\n{source_text}\n</textarea>"

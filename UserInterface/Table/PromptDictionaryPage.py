@@ -28,11 +28,14 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         self.default = {
             "prompt_dictionary_switch": False,
+            "auto_term_extraction_switch": False,
             "prompt_dictionary_data": [],
         }
 
         # 订阅术语表翻译完成事件
         self.subscribe(Base.EVENT.GLOSS_TASK_DONE, self.glossary_translation_done)
+        # 订阅自动术语提取更新事件
+        self.subscribe(Base.EVENT.AUTO_GLOSSARY_UPDATE, self.auto_glossary_update)
         # 读取配置
         config = self.save_config(self.load_config_from_default())
 
@@ -129,22 +132,51 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     # 添加头部布局内容
     def add_widget_head(self, parent: QLayout, config: dict, window: AppFluentWindow) -> None:
+        
+        # 先定义自动提取开关，以便上面可以引用它
+        def init_extraction(widget: SwitchButtonCard) -> None:
+            widget.set_checked(config.get("auto_term_extraction_switch", False))
+            # 初始状态基于术语表是否开启
+            widget.setEnabled(config.get("prompt_dictionary_switch", False))
+
+        def extraction_checked_changed(widget: SwitchButtonCard, checked: bool) -> None:
+            # 当开关自身被点击时
+            config = self.load_config()
+            config["auto_term_extraction_switch"] = checked
+            self.save_config(config)
+
+        self.extraction_card = SwitchButtonCard(
+            self.tra("自动术语提取"),
+            self.tra("跟随翻译过程自动提取原文中的专有名词并加入术语表（需要同时开启术语表功能）"),
+            init=init_extraction,
+            checked_changed=extraction_checked_changed,
+        )
+
+        # 术语表的主开关
         def init(widget: SwitchButtonCard) -> None:
             widget.set_checked(config.get("prompt_dictionary_switch"))
 
         def checked_changed(widget: SwitchButtonCard, checked: bool) -> None:
             config = self.load_config()
             config["prompt_dictionary_switch"] = checked
+            
+            # 如果主开关关了，附带功能的开关也要变成关并且置灰
+            self.extraction_card.setEnabled(checked)
+            if not checked:
+                self.extraction_card.set_checked(False)
+                config["auto_term_extraction_switch"] = False
+                
             self.save_config(config)
 
-        parent.addWidget(
-            SwitchButtonCard(
-                self.tra("术语表"),
-                self.tra("通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n△触发机制: 文本含有原名或者原名的正则匹配生效  ◯填写示例:  ダリヤ  |  达莉雅  |  女性的名字"),
-                init=init,
-                checked_changed=checked_changed,
-            )
+        glossary_card = SwitchButtonCard(
+            self.tra("术语表"),
+            self.tra("通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n△触发机制: 文本含有原名或者原名的正则匹配生效  ◯填写示例:  ダリヤ  |  达莉雅  |  女性的名字"),
+            init=init,
+            checked_changed=checked_changed,
         )
+        
+        parent.addWidget(glossary_card)
+        parent.addWidget(self.extraction_card)
 
     # 添加主题布局内容
     def add_widget_body(self, parent: QLayout, config: dict, window: AppFluentWindow) -> None:
@@ -624,6 +656,38 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             self.info_toast(self.tra("提示"), self.tra("术语表翻译任务已开始..."))
         else:
             self.warning_toast("", self.tra("软件正在执行其他任务中，请稍后再试"))
+
+    # 自动术语提取更新订阅方法
+    def auto_glossary_update(self, event: int, data: dict):
+        new_terms = data.get("new_terms", [])
+        if not new_terms:
+            return
+
+        # 加载当前表格数据
+        current_data = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
+
+        # 按 src 去重跳过已有项
+        current_src_set = {item['src'] for item in current_data if item.get('src')}
+        filtered_terms = [term for term in new_terms if term.get('src') and term['src'] not in current_src_set]
+
+        if not filtered_terms:
+            return
+
+        # 合并新术语到表格
+        combined_data = current_data + filtered_terms
+
+        self.table.setUpdatesEnabled(False)
+        TableHelper.update_to_table(self.table, combined_data, PromptDictionaryPage.KEYS)
+        self.table.resizeRowsToContents()
+        self.table.setUpdatesEnabled(True)
+
+        # 保存到配置文件
+        config = self.load_config()
+        config["prompt_dictionary_data"] = combined_data
+        self.save_config(config)
+        self._reset_search()
+        self._reset_sort_indicator()
+        self.info_toast("", self.tra("自动术语提取新增") + f" (+{len(filtered_terms)} {self.tra('项')})...")
 
     # 简单翻译完成订阅方法
     def glossary_translation_done(self, event: int, data: dict):

@@ -234,6 +234,12 @@ class PromptBuilderSakura(Base):
         if project_terms != "":
             context_blocks.append(project_terms)
 
+        # 挂载：边翻边提取术语指令
+        if getattr(config, "auto_term_extraction_switch", False) and getattr(config, "prompt_dictionary_switch", False):
+            from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
+            term_extraction_ins = PromptBuilder.build_term_extraction_instruction(config)
+            context_blocks.append(term_extraction_ins)
+
         context_text = "\n".join(context_blocks)
 
         if not context_text:

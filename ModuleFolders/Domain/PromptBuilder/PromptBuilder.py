@@ -927,6 +927,36 @@ class PromptBuilder(Base):
         return the_profile
 
 
+    # 构建术语提取指示任务
+    @staticmethod
+    def build_term_extraction_instruction(config) -> str:
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
+            instruction = (
+                "\n\n### 附加任务：术语提取\n"
+                "请在完成上述翻译之后，提取原文文本中可能出现的核心角色名、专有名词和关键术语。\n"
+                "使用如下的 JSON 数组格式将结果追加在最后，并且必须使用 <terms> 和 </terms> 标签包裹你的 JSON。\n"
+                "<terms>\n"
+                "[\n"
+                "  {\"src\": \"原文名\", \"dst\": \"中译名\", \"info\": \"简要说明（如角色名/地名/术语分类等）\"}\n"
+                "]\n"
+                "</terms>\n"
+                "如果没有任何值得提取的新文本，请直接不输出 <terms> 标签即可。"
+            )
+        else:
+            instruction = (
+                "\n\n### Additional Task: Term Extraction\n"
+                "After completing the translation above, please extract the core character names, proper nouns, and key terms from the source text.\n"
+                "Append the results at the very end in a JSON array format, which MUST be strictly wrapped in <terms> and </terms> tags.\n"
+                "<terms>\n"
+                "[\n"
+                "  {\"src\": \"Original Name\", \"dst\": \"Translated Name\", \"info\": \"Brief description (e.g., character/place/term category)\"}\n"
+                "]\n"
+                "</terms>\n"
+                "If there is nothing new worth extracting, simply do not output the <terms> tag."
+            )
+        return instruction
+
+
     # 生成信息结构 - 通用
     def generate_prompt(config, source_text_dict: dict, previous_text_list: list[str], source_lang) -> tuple[list[dict], str, list[str]]:
         # 储存指令
@@ -999,6 +1029,12 @@ class PromptBuilder(Base):
             if translation_example != "":
                 system += translation_example
                 extra_log.append(translation_example)
+
+        # 挂载：边翻边提取术语指令
+        if getattr(config, "auto_term_extraction_switch", False) and getattr(config, "prompt_dictionary_switch", False):
+            term_extraction_ins = PromptBuilder.build_term_extraction_instruction(config)
+            system += term_extraction_ins
+            extra_log.append(term_extraction_ins)
 
         # 构建动态few-shot
         switch_A = config.few_shot_and_example_switch # 打开动态示例开关时
