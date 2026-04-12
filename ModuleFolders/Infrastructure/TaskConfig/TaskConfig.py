@@ -38,6 +38,67 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
             if isinstance(value, __class__.TYPE_FILTER)
         }
 
+    def merge_prompt_dictionary_terms(self, terms: list[dict]) -> tuple[list[dict], int]:
+        if not isinstance(terms, list) or not terms:
+            current_terms = getattr(self, "prompt_dictionary_data", []) or []
+            return [], len(current_terms) if isinstance(current_terms, list) else 0
+
+        with self._config_lock:
+            current_terms = getattr(self, "prompt_dictionary_data", None)
+            if not isinstance(current_terms, list):
+                current_terms = []
+                self.prompt_dictionary_data = current_terms
+
+            existing_srcs = {
+                item.get("src").strip()
+                for item in current_terms
+                if isinstance(item, dict)
+                and isinstance(item.get("src"), str)
+                and item.get("src").strip()
+            }
+
+            new_unique_terms = []
+            for item in terms:
+                if not isinstance(item, dict):
+                    continue
+
+                src = item.get("src")
+                if not isinstance(src, str):
+                    continue
+
+                src = src.strip()
+                if not src or src in existing_srcs:
+                    continue
+
+                dst = item.get("dst", "")
+                if dst is None:
+                    dst = ""
+                elif not isinstance(dst, str):
+                    dst = str(dst)
+                else:
+                    dst = dst.strip()
+
+                info = item.get("info", "")
+                if info is None:
+                    info = ""
+                elif not isinstance(info, str):
+                    info = str(info)
+                else:
+                    info = info.strip()
+
+                normalized_item = {
+                    "src": src,
+                    "dst": dst,
+                    "info": info,
+                }
+                new_unique_terms.append(normalized_item)
+                existing_srcs.add(src)
+
+            if new_unique_terms:
+                current_terms.extend(new_unique_terms)
+
+            return new_unique_terms, len(current_terms)
+
     def _normalize_project_table_rows(
         self,
         rows,

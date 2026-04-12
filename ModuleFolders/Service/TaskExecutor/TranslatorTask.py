@@ -185,6 +185,8 @@ class TranslatorTask(LogMixin, Base):
                 "completion_tokens": 0,
             }         
 
+        pending_sidecar_terms = []
+
         # ======== 伴随翻译的术语提取 (Sidecar Extraction) ========
         if getattr(self.config, "auto_term_extraction_switch", False) and getattr(self.config, "prompt_dictionary_switch", False):
             try:
@@ -237,32 +239,7 @@ class TranslatorTask(LogMixin, Base):
                                     "info": info,
                                 })
 
-                            if valid_terms:
-                                # 合并到内存术语表（按 src 去重）
-                                if not hasattr(self.config, 'prompt_dictionary_data') or self.config.prompt_dictionary_data is None:
-                                    self.config.prompt_dictionary_data = []
-
-                                existing_srcs = {
-                                    item.get("src")
-                                    for item in self.config.prompt_dictionary_data
-                                    if isinstance(item.get("src"), str) and item.get("src").strip()
-                                }
-                                new_unique_terms = []
-                                for item in valid_terms:
-                                    src = item["src"]
-                                    if src in existing_srcs:
-                                        continue
-                                    new_unique_terms.append(item)
-                                    existing_srcs.add(src)
-
-                                if new_unique_terms:
-                                    self.config.prompt_dictionary_data.extend(new_unique_terms)
-                                    # 通知 UI 更新
-                                    self.emit(Base.EVENT.AUTO_GLOSSARY_UPDATE, {
-                                        "new_terms": new_unique_terms,
-                                        "total_count": len(self.config.prompt_dictionary_data)
-                                    })
-                                    self.extra_log.append(f"自动提取捕捉到 {len(new_unique_terms)} 个新术语")
+                            pending_sidecar_terms = valid_terms
                         else:
                             self.warning("边翻边提: terms JSON 不是数组，保留原始响应内容")
                     except Exception as json_e:
@@ -328,6 +305,15 @@ class TranslatorTask(LogMixin, Base):
                     item.model = self.config.model
                     item.translated_text = self.text_symbol_repair.repair_text(self.config, item.source_text, response)
                     item.translation_status = TranslationStatus.TRANSLATED
+
+            if pending_sidecar_terms:
+                new_unique_terms, total_count = self.config.merge_prompt_dictionary_terms(pending_sidecar_terms)
+                if new_unique_terms:
+                    self.emit(Base.EVENT.AUTO_GLOSSARY_UPDATE, {
+                        "new_terms": new_unique_terms,
+                        "total_count": total_count
+                    })
+                    self.extra_log.append(f"自动提取捕捉到 {len(new_unique_terms)} 个新术语")
 
 
             # 打印任务结果
