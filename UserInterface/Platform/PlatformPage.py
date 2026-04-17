@@ -3,7 +3,7 @@ import json
 import os
 import random
 
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget
 
 from qfluentwidgets import (
@@ -18,11 +18,13 @@ from qfluentwidgets import (
     StrongBodyLabel,
     SubtitleLabel,
     TitleLabel,
+    TransparentToolButton,
     themeColor,
 )
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from UserInterface.Platform.APIBindingDialog import APIBindingDialog
 from UserInterface.Platform.APIEditPage import APIEditPage
 from UserInterface.Platform.APIItemCard import APIItemCard
 from UserInterface.Platform.AddAPIDialog import AddAPIDialog
@@ -32,8 +34,6 @@ from UserInterface.Widget.Toast import ToastMixin
 
 
 class APITypeCard(CardWidget):
-    """按接口类型分组显示接口按钮"""
-
     def __init__(self, title: str, icon: FluentIcon, description: str = "", parent=None):
         super().__init__(parent)
 
@@ -92,9 +92,8 @@ class APITypeCard(CardWidget):
 
 
 class InterfaceHeaderCard(CardWidget, ConfigMixin):
-    """顶部接口管理栏 (极简现代版)"""
-
     addClicked = pyqtSignal()
+    bindingsClicked = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -104,19 +103,16 @@ class InterfaceHeaderCard(CardWidget, ConfigMixin):
         self.layout.setSpacing(16)
         self.layout.setAlignment(Qt.AlignVCenter)
 
-        # ====== 左侧：带图标组合的大标题 ======
         self.titleWidget = QWidget(self)
         self.titleLayout = QHBoxLayout(self.titleWidget)
         self.titleLayout.setContentsMargins(0, 0, 0, 0)
         self.titleLayout.setSpacing(12)
         self.titleLayout.setAlignment(Qt.AlignVCenter)
 
-        # 增加一个图标，打破纯文本的死板，增强高级感
         self.titleIcon = IconWidget(FluentIcon.IOT, self)
         self.titleIcon.setFixedSize(26, 26)
         self.titleLayout.addWidget(self.titleIcon)
 
-        # 极简的大标题
         self.titleLabel = TitleLabel(self.tra("接口管理"), self)
         self.titleLayout.addWidget(self.titleLabel)
 
@@ -125,9 +121,6 @@ class InterfaceHeaderCard(CardWidget, ConfigMixin):
         self.leftSectionLayout.setContentsMargins(0, 0, 0, 0)
         self.leftSectionLayout.addWidget(self.titleWidget, 0, Qt.AlignLeft | Qt.AlignVCenter)
 
-        # Center column is added below.
-
-        # ====== 中间：状态药丸 (Pill Badge) ======
         self.statusPill = QFrame(self)
         self.statusPill.setObjectName("statusPill")
         self.statusPillLayout = QHBoxLayout(self.statusPill)
@@ -146,15 +139,22 @@ class InterfaceHeaderCard(CardWidget, ConfigMixin):
         self.centerSectionLayout.setContentsMargins(0, 0, 0, 0)
         self.centerSectionLayout.addWidget(self.statusPill, 0, Qt.AlignCenter)
 
-        # ====== 最右侧：添加操作按钮 ======
+        self.bindings_btn = TransparentToolButton(FluentIcon.DEVELOPER_TOOLS, self)
+        self.bindings_btn.setIconSize(QSize(16, 16))
+        self.bindings_btn.setFixedSize(36, 36)
+        self.bindings_btn.setToolTip(self.tra("功能接口绑定"))
+        self.bindings_btn.clicked.connect(lambda checked=False: self.bindingsClicked.emit())
+
         self.add_btn = PrimaryPushButton(self.tra("添加接口"), self)
         self.add_btn.setIcon(FluentIcon.ADD)
         self.add_btn.setMinimumWidth(120)
         self.add_btn.clicked.connect(lambda checked=False: self.addClicked.emit())
-        
+
         self.rightSection = QWidget(self)
         self.rightSectionLayout = QHBoxLayout(self.rightSection)
         self.rightSectionLayout.setContentsMargins(0, 0, 0, 0)
+        self.rightSectionLayout.setSpacing(8)
+        self.rightSectionLayout.addWidget(self.bindings_btn, 0, Qt.AlignRight | Qt.AlignVCenter)
         self.rightSectionLayout.addWidget(self.add_btn, 0, Qt.AlignRight | Qt.AlignVCenter)
 
         self.layout.addWidget(self.leftSection)
@@ -162,47 +162,44 @@ class InterfaceHeaderCard(CardWidget, ConfigMixin):
         self.layout.addWidget(self.rightSection)
 
         self._sync_header_side_widths()
-
-        # 初始化状态样式
         self.set_active_api(None)
 
     def _sync_header_side_widths(self):
-        """Keep left and right sections equal so the status pill stays centered."""
-        side_width = max(self.titleWidget.sizeHint().width(), self.add_btn.sizeHint().width())
+        side_width = max(self.titleWidget.sizeHint().width(), self.rightSection.sizeHint().width())
         self.leftSection.setFixedWidth(side_width)
         self.rightSection.setFixedWidth(side_width)
 
     def set_active_api(self, name: str | None):
-        """动态更新当前激活状态的药丸样式"""
         tc = themeColor()
-        
+
         if name:
             self.statusLabel.setText(f"{self.tra('已激活')}: {name}")
             self.statusIcon.setIcon(FluentIcon.ROBOT)
-            
-            # 激活状态：半透明主题色背景与微高亮边框
+
             bg_color = f"rgba({tc.red()}, {tc.green()}, {tc.blue()}, 0.1)"
             border_color = f"rgba({tc.red()}, {tc.green()}, {tc.blue()}, 0.3)"
-            
-            self.statusPill.setStyleSheet(f"""
+
+            self.statusPill.setStyleSheet(
+                f"""
                 QFrame#statusPill {{
                     background-color: {bg_color};
                     border: 1px solid {border_color};
-                    border-radius: 16px; 
+                    border-radius: 16px;
                 }}
-            """)
+                """
+            )
         else:
             self.statusLabel.setText(self.tra("未设置激活接口"))
             self.statusIcon.setIcon(FluentIcon.INFO)
-            
-            # 未激活状态：低调的半透明灰色
-            self.statusPill.setStyleSheet("""
+            self.statusPill.setStyleSheet(
+                """
                 QFrame#statusPill {
                     background-color: rgba(128, 128, 128, 0.08);
                     border: 1px solid rgba(128, 128, 128, 0.15);
                     border-radius: 16px;
                 }
-            """)
+                """
+            )
 
 
 class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
@@ -234,6 +231,8 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
         self.default = {
             "platforms": {},
             "api_settings": {
+                "active": None,
+                "extract": None,
                 "translate": None,
                 "polish": None,
             },
@@ -249,6 +248,7 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
 
         self.header_card = InterfaceHeaderCard(self)
         self.header_card.addClicked.connect(self.on_add_api_clicked)
+        self.header_card.bindingsClicked.connect(self.on_edit_bindings_clicked)
         main_layout.addWidget(self.header_card)
 
         self.content_container = QWidget()
@@ -335,33 +335,46 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
 
         self.empty_hint_widget.setVisible(total_cards == 0)
 
+    def _is_valid_api_tag(self, tag, platforms: dict) -> bool:
+        return bool(tag) and tag in platforms
+
     def _normalize_api_settings(self, config: dict, persist: bool = False) -> dict:
-        platforms = config.get("platforms", {})
+        platforms = config.get("platforms", {}) or {}
         api_settings = config.setdefault("api_settings", {})
+        original_api_settings = dict(api_settings)
 
-        translate_tag = api_settings.get("translate")
-        polish_tag = api_settings.get("polish")
+        active_tag = api_settings.get("active")
+        if not self._is_valid_api_tag(active_tag, platforms):
+            fallback_translate = api_settings.get("translate")
+            fallback_polish = api_settings.get("polish")
+            active_tag = fallback_translate if self._is_valid_api_tag(fallback_translate, platforms) else None
+            if active_tag is None and self._is_valid_api_tag(fallback_polish, platforms):
+                active_tag = fallback_polish
 
-        active_tag = translate_tag if translate_tag in platforms else None
-        if active_tag is None and polish_tag in platforms:
-            active_tag = polish_tag
+        api_settings["active"] = active_tag
 
-        changed = (
-            api_settings.get("translate") != active_tag
-            or api_settings.get("polish") != active_tag
-        )
+        for role in ("extract", "translate", "polish"):
+            role_tag = api_settings.get(role)
+            if not self._is_valid_api_tag(role_tag, platforms):
+                role_tag = active_tag
+            api_settings[role] = role_tag
 
-        api_settings["translate"] = active_tag
-        api_settings["polish"] = active_tag
-
-        if persist and changed:
+        if persist and original_api_settings != api_settings:
             return self.save_config(config)
 
         return config
 
     def _get_active_api_tag(self, config: dict) -> str | None:
         config = self._normalize_api_settings(config)
-        return config.get("api_settings", {}).get("translate")
+        return config.get("api_settings", {}).get("active")
+
+    def _get_platform_options(self, config: dict) -> list[tuple[str, str]]:
+        platforms = config.get("platforms", {})
+        items = []
+        for tag, api_data in platforms.items():
+            items.append((tag, api_data.get("name", tag)))
+        items.sort(key=lambda item: item[1])
+        return items
 
     def _refresh_active_interface_ui(self, config=None):
         if config is None:
@@ -426,9 +439,8 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
             return
 
         api_settings = config.setdefault("api_settings", {})
-        api_settings["translate"] = tag
-        api_settings["polish"] = tag
-        config = self.save_config(config)
+        api_settings["active"] = tag
+        config = self._normalize_api_settings(config, persist=True)
 
         self._refresh_active_interface_ui(config)
 
@@ -442,12 +454,12 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
             return
 
         api_settings = config.setdefault("api_settings", {})
-        if api_settings.get("translate") == tag or api_settings.get("polish") == tag:
-            api_settings["translate"] = None
-            api_settings["polish"] = None
+        for role in ("active", "extract", "translate", "polish"):
+            if api_settings.get(role) == tag:
+                api_settings[role] = None
 
         del platforms[tag]
-        config = self.save_config(config)
+        config = self._normalize_api_settings(config, persist=True)
 
         if tag in self.api_buttons:
             button = self.api_buttons.pop(tag)
@@ -493,6 +505,29 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
         dialog = AddAPIDialog(self.window, preset_platforms, on_confirm=on_confirm)
         dialog.exec()
 
+    def on_edit_bindings_clicked(self):
+        config = self._normalize_api_settings(self.load_config(), persist=True)
+        platform_options = self._get_platform_options(config)
+        if not platform_options:
+            self.warning_toast("", self.tra("请先添加接口"))
+            return
+
+        dialog = APIBindingDialog(
+            self.window,
+            platform_options,
+            config.get("api_settings", {}),
+        )
+        if not dialog.exec():
+            return
+
+        api_settings = config.setdefault("api_settings", {})
+        for role, tag in dialog.get_bindings().items():
+            api_settings[role] = tag
+
+        config = self._normalize_api_settings(config, persist=True)
+        self._refresh_active_interface_ui(config)
+        self.success_toast("", self.tra("功能接口绑定已更新"))
+
     def create_new_api(self, data: dict):
         config = self._normalize_api_settings(self.load_config())
         preset_data = self.load_file("./Resource/platforms/preset.json")
@@ -529,7 +564,7 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
             new_platform["model_datas"].append(data.get("model"))
 
         config.setdefault("platforms", {})[tag] = new_platform
-        self.save_config(config)
+        config = self._normalize_api_settings(config, persist=True)
 
         self.add_api_card(tag, new_platform)
         self.success_toast("", self.tra("接口添加成功"))

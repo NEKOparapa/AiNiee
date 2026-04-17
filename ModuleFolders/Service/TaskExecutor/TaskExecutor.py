@@ -289,10 +289,10 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         Base.work_status = Base.STATUS.TASKING
 
         # 读取配置文件，并保存到该类中
-        self.config.initialize()
+        self.config.initialize("translate")
 
         # 配置当前激活接口信息
-        self.config.prepare_for_active_platform()
+        self.config.prepare_for_active_platform("translate")
         self.config.load_project_table_data(self.cache_manager)
 
         # 配置请求限制器
@@ -486,10 +486,10 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         Base.work_status = Base.STATUS.TASKING
 
         # 读取配置文件，并保存到该类中
-        self.config.initialize()
+        self.config.initialize("polish")
 
         # 配置当前激活接口信息
-        self.config.prepare_for_active_platform()
+        self.config.prepare_for_active_platform("polish")
         self.config.load_project_table_data(self.cache_manager)
 
         # 配置请求限制器

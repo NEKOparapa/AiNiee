@@ -58,8 +58,8 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 self.tra("正在初始化分析任务..."),
                 self.tra("加载配置与限流设置。"),
             )
-            self.config.initialize()
-            self.config.prepare_for_active_platform()
+            self.config.initialize("extract")
+            self.config.prepare_for_active_platform("extract")
             self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
             self.info(
                 "分析配置: 模型 - {0}, 并发线程 - {1}, RPM - {2}, TPM - {3}".format(

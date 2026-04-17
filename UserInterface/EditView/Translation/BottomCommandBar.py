@@ -13,6 +13,7 @@ from qframelesswindow import QTimer
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.Toast import ToastMixin
@@ -126,7 +127,7 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
             return
 
         if self.has_resumable_task:
-            content = self.tra("将重置尚未完成的任务") + "  ... ？"
+            content = self.tra("将重置尚未完成的任务") + " ..."
             message_box = MessageBox("Warning", content, self.window())
             message_box.yesButton.setText(self.tra("确认"))
             message_box.cancelButton.setText(self.tra("取消"))
@@ -147,7 +148,7 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.ui_update_timer.start()
 
     def command_stop(self) -> None:
-        content = self.tra("是否确定停止任务") + "  ... ？"
+        content = self.tra("是否确定停止任务") + " ..."
         message_box = MessageBox("Warning", content, self.window())
         message_box.yesButton.setText(self.tra("确认"))
         message_box.cancelButton.setText(self.tra("取消"))
@@ -177,23 +178,20 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.ui_update_timer.start()
 
     def _has_valid_api_binding(self) -> bool:
-        config = self.load_config()
-        api_settings = config.get("api_settings", {})
-        platforms = config.get("platforms", {})
+        interface_role = "translate" if self.current_mode == TaskType.TRANSLATION else "polish"
+        interface_name = self.tra("翻译接口") if interface_role == "translate" else self.tra("润色接口")
 
-        translate_tag = api_settings.get("translate")
-        polish_tag = api_settings.get("polish")
-
-        selected_tag = translate_tag if translate_tag in platforms else None
-        if selected_tag is None and polish_tag in platforms:
-            selected_tag = polish_tag
+        task_config = TaskConfig()
+        task_config.initialize(interface_role)
+        selected_tag = task_config.get_active_platform_tag(interface_role)
+        platforms = getattr(task_config, "platforms", {}) or {}
 
         if not selected_tag:
-            self.error_toast(self.tra("错误"), self.tra("未设置当前激活接口，请先到接口管理页面激活接口。"))
+            self.error_toast(self.tra("错误"), f"{interface_name}{self.tra('未设置，请先到接口管理页面进行绑定或激活')}")
             return False
 
         if selected_tag not in platforms:
-            self.error_toast(self.tra("错误"), self.tra("当前激活接口配置不存在，请到接口管理页面重新选择。"))
+            self.error_toast(self.tra("错误"), f"{interface_name}{self.tra('配置不存在，请到接口管理页面重新选择。')}")
             return False
 
         return True

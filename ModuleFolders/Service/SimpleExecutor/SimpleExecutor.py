@@ -200,8 +200,8 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
 
         # 准备翻译配置
         config = TaskConfig()
-        config.initialize()
-        config.prepare_for_active_platform()
+        config.initialize("translate")
+        config.prepare_for_active_platform("translate")
         target_language = config.target_language
         max_threads = config.actual_thread_counts
 
@@ -340,8 +340,8 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
 
         # 准备翻译配置
         config = TaskConfig()
-        config.initialize()
-        config.prepare_for_active_platform()
+        config.initialize("translate")
+        config.prepare_for_active_platform("translate")
         max_threads = config.actual_thread_counts # 获取并发线程数
         
         # 预计算源语言
@@ -481,8 +481,8 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
 
         # 准备配置
         config = TaskConfig()
-        config.initialize()
-        config.prepare_for_active_platform()
+        config.initialize("polish")
+        config.prepare_for_active_platform("polish")
         max_threads = config.actual_thread_counts
 
         # 任务分割
