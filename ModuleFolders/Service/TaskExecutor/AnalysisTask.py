@@ -11,6 +11,7 @@ from ModuleFolders.Infrastructure.LLMRequester.LLMRequester import LLMRequester
 from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Infrastructure.Tokener.Tokener import Tokener
+from ModuleFolders.Service.TaskExecutor import TranslatorUtil
 
 
 class AnalysisTask(ConfigMixin, LogMixin, Base):
@@ -250,6 +251,15 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             self.error(f"第一阶段提取失败: {error}")
             return {"characters": [], "terms": [], "non_translate": []}
 
+    def _get_recommended_translation_language_requirement(self) -> str:
+        """构建 recommended_translation 的目标语言约束说明。"""
+        target_language = str(getattr(self.config, "target_language", "") or "").strip()
+        display_name = TranslatorUtil.pair.get(target_language, "")
+        if display_name:
+            return f"`recommended_translation` 必须写成{display_name}。"
+
+        return "`recommended_translation` 必须跟随当前译文语言设置。"
+
     def _build_first_stage_prompt(self, source_text: str) -> tuple[str, list[dict]]:
             """第一阶段：独立文本提取（优化版提示词）"""
             system_prompt = (
@@ -275,7 +285,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             
             # 优化 Few-Shot：包含更丰富的混合场景，注意 {{}} 是转义 Python 的 f-string 占位符
             fake_user = (
-                "请分析以下文本并提取信息：\n"
+                "请分析以下文本并提取信息，`recommended_translation` 必须写成简体中文。\n"
                 "---\n"
                 "露娜小姐：请携带[圣剑]前往星门集合。\n"
                 "精灵族战士即将施放月光斩。\n"
@@ -305,7 +315,12 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 "```"
             )
             
-            user_prompt = f"请分析以下文本并提取信息：\n---\n{source_text}\n---\n请输出 JSON 提取结果。"
+            language_requirement = self._get_recommended_translation_language_requirement()
+            user_prompt = (
+                f"请分析以下文本并提取信息，{language_requirement}\n"
+                f"---\n{source_text}\n---\n"
+                "请输出 JSON 提取结果。"
+            )
             messages = [
                 {"role": "user", "content": fake_user},
                 {"role": "assistant", "content": fake_assistant},
@@ -446,7 +461,11 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         ]
         import rapidjson as json
         
-        fake_user = f"请分析以下候选组并完成合并裁决：\n---\n{json.dumps(sample_group, ensure_ascii=False)}\n---\n请输出 JSON 合并结果。"
+        fake_user = (
+            "请分析以下候选组并完成合并裁决，`recommended_translation` 必须写成简体中文。\n"
+            f"---\n{json.dumps(sample_group, ensure_ascii=False)}\n---\n"
+            "请输出 JSON 合并结果。"
+        )
         fake_assistant = (
             "```json\n"
             "{\n"
@@ -460,8 +479,12 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             "}\n"
             "```"
         )
-        
-        user_prompt = f"请分析以下候选组并完成合并裁决：\n---\n{json.dumps(batch, ensure_ascii=False)}\n---\n请输出 JSON 合并结果。"
+        language_requirement = self._get_recommended_translation_language_requirement()
+        user_prompt = (
+            f"请分析以下候选组并完成合并裁决，{language_requirement}\n"
+            f"---\n{json.dumps(batch, ensure_ascii=False)}\n---\n"
+            "请输出 JSON 合并结果。"
+        )
         
         messages = [
             {"role": "user", "content": fake_user},
