@@ -54,7 +54,7 @@ class WorldBuildingPromptPage(QFrame, ConfigMixin, ToastMixin, Base):
     def _create_action_toolbar(self) -> QWidget:
         toolbar_widget = QWidget(self)
         layout = QHBoxLayout(toolbar_widget)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(4, 0, 0, 0)
         layout.setSpacing(8)
         layout.addWidget(StrongBodyLabel(self.tra("背景内容"), self))
         layout.addStretch(1)
