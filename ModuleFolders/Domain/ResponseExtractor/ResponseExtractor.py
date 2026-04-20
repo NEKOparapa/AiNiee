@@ -277,17 +277,18 @@ class ResponseExtractor:
     # 去除数字序号及括号
     def remove_numbered_prefix(self, translation_text_dict):
         """
-        去除翻译文本中的数字序号前缀。
-        
-        处理两个步骤：
-        1. 去除各种变形序号（包括特殊前缀字符 + 数字序号 + 特殊后缀标点）
-        2. 循环去除开头剩余的简单数字序号
-        
-        Args:
-            translation_text_dict: 翻译文本字典
-            
-        Returns:
-            处理后的文本字典
+        仅去除提取流程为了对齐条目而附加的外层响应序号前缀。
+
+        这里处理的是“运输层编号”，不是译文正文的一部分。
+        例如：
+        - "1.3.,Text" -> "Text"
+        - "1.3.,2. Text" -> "2. Text"
+
+        上面的 "1.3.," 是提取阶段附加的定位前缀，用于把模型回复映射回原始条目；
+        而后面的 "2. " 很可能是译文本身就存在的真实列表编号，必须原样保留。
+
+        因此这里只能移除最外层的响应前缀，不能再额外做第二轮
+        `^\d+\.\s*` 之类的兜底清理，否则会把正文里的真实编号误删。
         """
         output_dict = {}
         for key, value in translation_text_dict.items():
@@ -299,35 +300,29 @@ class ResponseExtractor:
             translation_lines = value.split('\n')
             cleaned_lines = []
             
-            for i, line in enumerate(translation_lines):
-                temp_line = line
-                
-                # 第一步：去除各种变形序号
-                # 匹配模式：[可选空白][可选特殊前缀][数字序号][可选标点后缀][可选空白]
-                # - 特殊前缀：「『【……□ 等引号、省略号、方框等字符
-                # - 数字序号：支持 1. 或 1.2. 或 1.2.3. 等多级序号
-                # - 标点后缀：, ， 、等中英文标点
-                temp_line = re.sub(
-                    r'^\s*[「『【（\(……□\s]*\d+(\.\d+)*\.[,，、]?\s*',
-                    '',
-                    temp_line
+            for line in translation_lines:
+                # 这里只清理提取流程附加的外层运输前缀，不继续删除后续数字编号。
+                # 正则匹配的内容包括：
+                # 1. 行首空白
+                # 2. 可选的特殊前缀符号，如 「『【（……□
+                # 3. 一段或多段数字序号，如 1. / 1.3. / 1.3.5.
+                # 4. 序号后可能跟随的分隔标点，如 , ， 、
+                # 5. 分隔标点后的空白
+                # 这样 "1.3.,2. Text" 会被清理成 "2. Text"，
+                # 但不会继续把真实正文编号 "2. " 再删掉。
+                cleaned_lines.append(
+                    re.sub(
+                        r'^\s*[「『【（\(……□\s]*\d+(\.\d+)*\.[,，、]?\s*',
+                        '',
+                        line,
+                    )
                 )
-                
-                # 第二步：循环去除开头剩余的 数字. 格式
-                # 处理可能存在的嵌套或多余的数字序号
-                max_iterations = 2  # 设置最大迭代次数，防止意外无限循环
-                for iteration in range(max_iterations):
-                    new_line = re.sub(r'^\s*\d+\.\s*', '', temp_line)
-                    # 如果没有变化，说明已经清理完毕
-                    if new_line == temp_line:
-                        break
-                    temp_line = new_line
-                
-                cleaned_lines.append(temp_line)
 
             processed_text = '\n'.join(cleaned_lines)
 
-            # 移除尾部的 "/n] 或 /n] (及其前面的空格)
+            # 兼容部分模型把列表块结尾的换行和右方括号一并带回来的情况，
+            # 例如末尾残留 '"\n]' 或 '\n]'。这里只清理这类尾部噪音，
+            # 不参与正文编号判断，也不影响中间内容。
             final_text = re.sub(r'\s*"?\n]$', '', processed_text)
             output_dict[key] = final_text
             
