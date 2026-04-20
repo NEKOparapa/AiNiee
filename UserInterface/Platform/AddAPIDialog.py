@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QFrame
 from qfluentwidgets import (
     MessageBoxBase, LineEdit, StrongBodyLabel, CaptionLabel,
     ComboBox, SwitchButton, FlowLayout, PillPushButton, SingleDirectionScrollArea, EditableComboBox,
-    PlainTextEdit
+    PlainTextEdit, SmoothMode
 )
 
 # Fix Bug: 修复 qfluentwidgets 滚动条事件处理崩溃问题 ---
@@ -62,11 +62,14 @@ class AddAPIDialog(MessageBoxBase, ConfigMixin, ToastMixin, Base):
         
         # 滚动区域
         self.scroll_area = SingleDirectionScrollArea(orient=Qt.Vertical)
+        # 弹窗内控件较多，关闭平滑滚动可减少滚动动画带来的连续重绘。
+        self.scroll_area.setSmoothMode(SmoothMode.NO_SMOOTH)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setStyleSheet("QScrollArea { border: none; background: transparent; }")
         
         scroll_widget = QWidget()
-        scroll_widget.setStyleSheet("QWidget { background: transparent; }")
+        scroll_widget.setObjectName("addApiScrollWidget")
+        scroll_widget.setStyleSheet("#addApiScrollWidget { background: transparent; }")
         self.scroll_layout = QVBoxLayout(scroll_widget)
         self.scroll_layout.setContentsMargins(0, 8, 12, 8)
         self.scroll_layout.setSpacing(12)
