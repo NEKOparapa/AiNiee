@@ -139,6 +139,9 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
     def _normalize_category_text(self, value: Any) -> str:
         return " ".join(str(value or "").strip().lower().split())
 
+    def _compact_category_value(self, value: Any) -> str:
+        return " ".join(str(value or "").strip().split())
+
     def _matches_category_alias(self, value: Any, canonical: str, *aliases: str) -> bool:
         normalized_value = self._normalize_category_text(value)
         if not normalized_value:
@@ -178,15 +181,11 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         row: dict | None = None,
     ) -> str:
         if field_name == "gender":
-            return self.tra(self._normalize_character_category(value))
+            return self._get_character_category_value(value)
         if field_name == "category_path":
-            return self.tra(self._resolve_term_category(value))
+            return self._get_term_category_value(value)
         if field_name == "category":
-            marker = row.get("marker", "") if row else ""
-            note = row.get("note", "") if row else ""
-            return self.tra(
-                self._normalize_non_translate_category(value, marker=marker, note=note)
-            )
+            return self._get_non_translate_category_value(value)
         return "" if value is None else str(value)
 
     def _get_display_filter_value(self, view_name: str, value: Any) -> str:
@@ -719,7 +718,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         }.get(view_name, ())
 
     def _allows_custom_categories_for_view(self, view_name: str) -> bool:
-        return view_name == self.VIEW_TERMS
+        return view_name in (self.VIEW_CHARACTERS, self.VIEW_TERMS, self.VIEW_NON_TRANSLATE)
 
     def _get_category_count_key_for_view(self, view_name: str) -> str | None:
         return {
@@ -734,14 +733,13 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _get_category_for_row(self, view_name: str, row: dict) -> str:
         if view_name == self.VIEW_CHARACTERS:
-            return self._normalize_character_category(row.get("gender", self.CHARACTER_OTHER))
+            return self._get_character_category_value(row.get("gender"), fallback=self.CHARACTER_OTHER)
         if view_name == self.VIEW_TERMS:
-            return self._resolve_term_category(row.get("category_path", self.TERM_OTHER))
+            return self._get_term_category_value(row.get("category_path"), fallback="Other")
         if view_name == self.VIEW_NON_TRANSLATE:
-            return self._normalize_non_translate_category(
-                row.get("category", self.NON_TRANSLATE_OTHER),
-                marker=row.get("marker", ""),
-                note=row.get("note", ""),
+            return self._get_non_translate_category_value(
+                row.get("category"),
+                fallback="Other",
             )
         return ""
 
@@ -844,7 +842,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             item = QTreeWidgetItem([f"{section['title']} ({section['count']})"])
             item.setData(0, Qt.UserRole, (section["view_name"], None))
             for category in section["categories"]:
-                child = QTreeWidgetItem([f"{self.tra(category['name'])} ({category['count']})"])
+                child = QTreeWidgetItem([f"{category['name']} ({category['count']})"])
                 child.setData(0, Qt.UserRole, (section["view_name"], category["name"]))
                 item.addChild(child)
             self.nav_tree.addTopLevelItem(item)
@@ -1123,16 +1121,15 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         refresh_navigation = self._field_affects_category_grouping(view_name, field_name)
         refresh_view = refresh_navigation
         if view_name == self.VIEW_CHARACTERS and field_name == "gender":
-            new_value = self._normalize_character_category(new_value)
+            new_value = self._get_character_category_value(new_value, fallback=self.CHARACTER_OTHER)
             display_value = self._get_display_field_value(view_name, field_name, new_value, target_row)
         elif view_name == self.VIEW_TERMS and field_name == "category_path":
-            new_value = self._resolve_term_category(new_value)
+            new_value = self._get_term_category_value(new_value, fallback="Other")
             display_value = self._get_display_field_value(view_name, field_name, new_value, target_row)
         elif view_name == self.VIEW_NON_TRANSLATE and field_name == "category":
-            new_value = self._normalize_non_translate_category(
+            new_value = self._get_non_translate_category_value(
                 new_value,
-                marker=target_row.get("marker", ""),
-                note=target_row.get("note", ""),
+                fallback="Other",
             )
             display_value = self._get_display_field_value(view_name, field_name, new_value, target_row)
 
@@ -1191,19 +1188,19 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             return {
                 "source": "",
                 "recommended_translation": "",
-                "gender": self._normalize_character_category(current_filter or self.CHARACTER_OTHER),
+                "gender": self._get_character_category_value(current_filter, fallback=self.CHARACTER_OTHER),
                 "note": "",
             }
         if view_name == self.VIEW_TERMS:
             return {
                 "source": "",
                 "recommended_translation": "",
-                "category_path": self._resolve_term_category(current_filter or self.TERM_OTHER),
+                "category_path": self._get_term_category_value(current_filter, fallback="Other"),
                 "note": "",
             }
         return {
             "marker": "",
-            "category": self._normalize_non_translate_category(current_filter or self.NON_TRANSLATE_OTHER),
+            "category": self._get_non_translate_category_value(current_filter, fallback="Other"),
             "note": "",
         }
 
@@ -1315,7 +1312,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                         "src": source,
                         "dst": str(row.get("recommended_translation", "") or "").strip(),
                         "info": self._join_public_info_parts(
-                            f"性别: {self._normalize_character_category(row.get('gender', self.CHARACTER_OTHER))}",
+                            f"性别: {self._get_character_category_value(row.get('gender'), fallback=self.CHARACTER_OTHER)}",
                             f"备注: {str(row.get('note', '') or '').strip()}",
                         ),
                     }
@@ -1329,7 +1326,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                         "src": source,
                         "dst": str(row.get("recommended_translation", "") or "").strip(),
                         "info": self._join_public_info_parts(
-                            f"分类: {self._resolve_term_category(row.get('category_path', self.TERM_OTHER))}",
+                            f"分类: {self._get_term_category_value(row.get('category_path'), fallback='Other')}",
                             f"备注: {str(row.get('note', '') or '').strip()}",
                         ),
                     }
@@ -1342,7 +1339,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                     {
                         "markers": marker,
                         "info": self._join_public_info_parts(
-                            f"分类: {self._normalize_non_translate_category(row.get('category', self.NON_TRANSLATE_OTHER), marker=marker, note=row.get('note', ''))}",
+                            f"分类: {self._get_non_translate_category_value(row.get('category'), fallback='Other')}",
                             f"备注: {str(row.get('note', '') or '').strip()}",
                         ),
                         "regex": "",
@@ -1602,15 +1599,11 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             "stats": dict(data.get("stats", {}) or {}),
         }
 
-    def _normalize_character_category(self, value) -> str:
-        if self._matches_category_alias(value, self.CHARACTER_MALE, "男", "male", "m", "boy", "man"):
-            return self.CHARACTER_MALE
-        if self._matches_category_alias(value, self.CHARACTER_FEMALE, "女", "female", "f", "girl", "woman"):
-            return self.CHARACTER_FEMALE
-        return self.CHARACTER_OTHER
+    def _get_character_category_value(self, value: Any, fallback: str = CHARACTER_OTHER) -> str:
+        return self._compact_category_value(value) or fallback
 
     def _resolve_term_category(self, value) -> str:
-        raw_value = " ".join(str(value or "").strip().split())
+        raw_value = self._compact_category_value(value)
         if not raw_value:
             return self.TERM_OTHER
 
@@ -1636,6 +1629,9 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             return self.TERM_RACE
         return self.TERM_OTHER
 
+    def _get_term_category_value(self, value: Any, fallback: str = "Other") -> str:
+        return self._compact_category_value(value) or fallback
+
     # ==========================
     # 不翻译项分类推导逻辑
     # ==========================
@@ -1658,6 +1654,13 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             return self.NON_TRANSLATE_NUMERIC
             
         return self.NON_TRANSLATE_OTHER
+
+    def _get_non_translate_category_value(
+        self,
+        value: Any,
+        fallback: str = "Other",
+    ) -> str:
+        return self._compact_category_value(value) or fallback
 
     def _is_analysis_running(self) -> bool:
         return Base.work_status in (Base.STATUS.ANALYSIS_TASK, Base.STATUS.STOPING)

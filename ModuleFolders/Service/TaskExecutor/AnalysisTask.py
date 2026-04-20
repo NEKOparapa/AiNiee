@@ -256,9 +256,9 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         target_language = str(getattr(self.config, "target_language", "") or "").strip()
         display_name = TranslatorUtil.pair.get(target_language, "")
         if display_name:
-            return f"`recommended_translation` 必须写成{display_name}。"
+            return f"角色与术语的译名/分类/备注，不翻译项的分类/备注都必须写成{display_name}。"
 
-        return "`recommended_translation` 必须跟随当前译文语言设置。"
+        return "角色与术语的译名/分类/备注，不翻译项的分类/备注都必须跟随当前译文语言设置。"
 
     def _build_first_stage_prompt(self, source_text: str) -> tuple[str, list[dict]]:
             """第一阶段：独立文本提取（优化版提示词）"""
@@ -269,9 +269,9 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 "2. 拒绝脑补：只提取文本中实际出现的实体，不要联想或创造。\n"
                 "3. 宁缺毋滥：对于普通词汇（如“苹果”、“跑”、“明天”），不要提取。如果没有值得提取的内容，返回空列表。\n"
                 "4. 分类规范：\n"
-                "   - characters(角色): 文本中出现的具体人物、怪物、神明等名字。gender 填: 男性/女性/其他。\n"
-                "   - terms(术语): 身份称谓、地名、组织、物品名、技能名、种族名、独特概念等。category_path 填: 身份/物品/组织/地名/技能/种族/其他。\n"
-                "   - non_translate(不翻译项): 必须保留的机器代码，如 HTML标签(<b>)、占位符(%s)、变量({{name}})。category 填: 标签/变量/占位符/标记符/转义控制符/资源标识/数值公式/其他。\n"
+                "   - characters(角色): 文本中出现的具体人物、怪物、神明等名字。gender 建议分类: 男性/女性/其他。\n"
+                "   - terms(术语): 身份称谓、地名、组织、物品名、技能名、种族名、独特概念等。category_path 建议分类: 身份/物品/组织/地名/技能/种族/其他。\n"
+                "   - non_translate(不翻译项): 必须保留的机器代码，如 HTML标签(<b>)、占位符(%s)、变量({{name}})。category 建议分类: 标签/变量/占位符/标记符/转义控制符/资源标识/数值公式/其他。\n"
                 "【输出格式】\n"
                 "必须输出合法的 JSON 代码块，严格遵守以下结构：\n"
                 "```json\n"
@@ -285,7 +285,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             
             # 优化 Few-Shot：包含更丰富的混合场景，注意 {{}} 是转义 Python 的 f-string 占位符
             fake_user = (
-                "请分析以下文本并提取信息，`recommended_translation` 必须写成简体中文。\n"
+                "请分析以下文本并提取信息，角色与术语的译名/分类/备注，不翻译项的分类/备注都必须写成简体中文。\n"
                 "---\n"
                 "露娜小姐：请携带[圣剑]前往星门集合。\n"
                 "精灵族战士即将施放月光斩。\n"
@@ -428,8 +428,8 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             "必须输出合法的 JSON 代码块，严格遵守以下结构：\n"
             "```json\n"
             "{\n"
-            "  \"characters\": [{\"source\": \"主source\", \"recommended_translation\": \"推荐译名\", \"gender\": \"男性|女性|其他\", \"note\": \"整合后的备注\"}],\n"
-            "  \"terms\": [{\"source\": \"主source\", \"recommended_translation\": \"推荐译名\", \"category_path\": \"身份|物品|组织|地名|技能|种族|其他\", \"note\": \"整合后的备注\"}]\n"
+            "  \"characters\": [{\"source\": \"主source\", \"recommended_translation\": \"推荐译名\", \"gender\": \"分类属性\", \"note\": \"整合后的备注\"}],\n"
+            "  \"terms\": [{\"source\": \"主source\", \"recommended_translation\": \"推荐译名\", \"category_path\": \"分类属性\", \"note\": \"整合后的备注\"}]\n"
             "}\n"
             "```"
         )
