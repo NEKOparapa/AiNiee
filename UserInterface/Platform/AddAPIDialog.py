@@ -95,18 +95,38 @@ class AddAPIDialog(MessageBoxBase, ConfigMixin, ToastMixin, Base):
         page = QWidget(self.widget)
         layout = QVBoxLayout(page)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(16)
 
-        self._add_section_label(self.tra("接口名称"), layout)
-
+        # --- 接口名称区域 ---
+        name_layout = QVBoxLayout()
+        name_layout.setSpacing(8)
+        self._add_section_label(self.tra("接口名称"), name_layout)
         self.name_edit = LineEdit(page)
         self.name_edit.setPlaceholderText(self.tra("请输入接口名称，例如：我的 GPT 接口"))
         self.name_edit.setClearButtonEnabled(True)
-        layout.addWidget(self.name_edit)
+        name_layout.addWidget(self.name_edit)
+        layout.addLayout(name_layout)
 
-        self._add_section_label(self.tra("接口平台"), layout)
-        self._init_platform_buttons(layout)
-        layout.addStretch(1)
+        # --- 接口平台头部 ---
+        self._add_section_label(self.tra("选择接口平台"), layout)
+
+        # --- 接口平台列表 (带滚动条) ---
+        self.platform_scroll = SingleDirectionScrollArea(orient=Qt.Vertical)
+        self.platform_scroll.setSmoothMode(SmoothMode.NO_SMOOTH)
+        self.platform_scroll.setWidgetResizable(True)
+        self.platform_scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+
+        scroll_widget = QWidget()
+        scroll_widget.setStyleSheet("background: transparent;")
+        self.platform_layout = QVBoxLayout(scroll_widget)
+        self.platform_layout.setContentsMargins(0, 0, 12, 8)
+        self.platform_layout.setSpacing(16)  # 分组之间的间距
+
+        self._init_platform_buttons(self.platform_layout)
+        self.platform_layout.addStretch(1)
+
+        self.platform_scroll.setWidget(scroll_widget)
+        layout.addWidget(self.platform_scroll, 1)
 
         return page
 
@@ -202,6 +222,7 @@ class AddAPIDialog(MessageBoxBase, ConfigMixin, ToastMixin, Base):
         return page
 
     def _add_section_label(self, text: str, layout: QVBoxLayout):
+        """通用添加标签方法"""
         label = StrongBodyLabel(text)
         layout.addWidget(label)
         return label
@@ -229,78 +250,65 @@ class AddAPIDialog(MessageBoxBase, ConfigMixin, ToastMixin, Base):
         self.secret_key_label.setVisible(visible)
         self.secret_key_edit.setVisible(visible)
 
+    def _create_platform_group(self, title: str, platforms: dict, layout: QVBoxLayout):
+        """创建卡片式的平台分组"""
+        if not platforms:
+            return
+
+        # 卡片容器 (使用半透明边框，自适应亮/暗色模式)
+        group_container = QFrame()
+        group_container.setStyleSheet("""
+            QFrame {
+                border: 1px solid rgba(128, 128, 128, 0.2);
+                border-radius: 8px;
+                background-color: transparent;
+            }
+        """)
+        group_layout = QVBoxLayout(group_container)
+        group_layout.setContentsMargins(16, 12, 16, 16)
+        group_layout.setSpacing(12)
+
+        # 分组标题
+        title_label = CaptionLabel(title)
+        title_label.setStyleSheet("color: #888; font-weight: bold; border: none;")
+        group_layout.addWidget(title_label)
+
+        # 按钮流式布局 (关闭 needAni 动画)
+        flow_widget = QWidget()
+        flow_widget.setStyleSheet("border: none;")
+        flow_layout = FlowLayout(flow_widget, needAni=False)
+        flow_layout.setContentsMargins(0, 0, 0, 0)
+        flow_layout.setHorizontalSpacing(10)
+        flow_layout.setVerticalSpacing(10)
+
+        for tag, platform in platforms.items():
+            btn = PillPushButton(platform.get("name", tag))
+            btn.setCheckable(True)
+            btn.setMinimumSize(90, 32) # 增加按钮触摸面积
+            btn.clicked.connect(lambda checked, t=tag: self._on_platform_selected(t))
+            self.platform_buttons[tag] = btn
+            flow_layout.addWidget(btn)
+
+        group_layout.addWidget(flow_widget)
+        layout.addWidget(group_container)
+
     def _init_platform_buttons(self, layout: QVBoxLayout):
-        """初始化平台选择按钮"""
+            """初始化平台选择按钮（采用分组卡片式设计）"""
+            local_platforms = {k: v for k, v in self.preset_platforms.items() if v.get("group") == "local"}
+            online_platforms = {k: v for k, v in self.preset_platforms.items() if v.get("group") == "online"}
+            other_platforms = {}
+            if "custom" in self.preset_platforms:
+                other_platforms["custom"] = self.preset_platforms["custom"]
 
-        local_platforms = {k: v for k, v in self.preset_platforms.items() if v.get("group") == "local"}
-        online_platforms = {k: v for k, v in self.preset_platforms.items() if v.get("group") == "online"}
+            # 动态拼接 Emoji 与翻译后的文本，确保多语言匹配正常
+            local_title = f"💻 {self.tra('本地模型')}"
+            online_title = f"☁️ {self.tra('官方接口')}"
+            other_title = f"⚙️ {self.tra('其他')}"
 
-        other_platforms = {}
-        if "custom" in self.preset_platforms:
-            other_platforms["custom"] = self.preset_platforms["custom"]
-
-        if local_platforms:
-            local_label = CaptionLabel(self.tra("本地模型"))
-            local_label.setStyleSheet("color: #666; margin-top: 4px; font-weight: 500;")
-            layout.addWidget(local_label)
-
-            local_container = QFrame()
-            local_flow_layout = FlowLayout(local_container, needAni=False)
-            local_flow_layout.setContentsMargins(0, 4, 0, 8)
-            local_flow_layout.setHorizontalSpacing(8)
-            local_flow_layout.setVerticalSpacing(8)
-
-            for tag, platform in local_platforms.items():
-                btn = PillPushButton(platform.get("name", tag))
-                btn.setCheckable(True)
-                btn.setMinimumWidth(80)
-                btn.clicked.connect(lambda checked, t=tag: self._on_platform_selected(t))
-                self.platform_buttons[tag] = btn
-                local_flow_layout.addWidget(btn)
-
-            layout.addWidget(local_container)
-
-        if online_platforms:
-            online_label = CaptionLabel(self.tra("官方接口"))
-            online_label.setStyleSheet("color: #666; margin-top: 4px; font-weight: 500;")
-            layout.addWidget(online_label)
-
-            online_container = QFrame()
-            online_flow_layout = FlowLayout(online_container, needAni=False)
-            online_flow_layout.setContentsMargins(0, 4, 0, 8)
-            online_flow_layout.setHorizontalSpacing(8)
-            online_flow_layout.setVerticalSpacing(8)
-
-            for tag, platform in online_platforms.items():
-                btn = PillPushButton(platform.get("name", tag))
-                btn.setCheckable(True)
-                btn.setMinimumWidth(80)
-                btn.clicked.connect(lambda checked, t=tag: self._on_platform_selected(t))
-                self.platform_buttons[tag] = btn
-                online_flow_layout.addWidget(btn)
-
-            layout.addWidget(online_container)
-
-        if other_platforms:
-            others_label = CaptionLabel(self.tra("其他"))
-            others_label.setStyleSheet("color: #666; margin-top: 4px; font-weight: 500;")
-            layout.addWidget(others_label)
-
-            others_container = QFrame()
-            others_flow_layout = FlowLayout(others_container, needAni=False)
-            others_flow_layout.setContentsMargins(0, 4, 0, 8)
-            others_flow_layout.setHorizontalSpacing(8)
-            others_flow_layout.setVerticalSpacing(8)
-
-            for tag, platform in other_platforms.items():
-                btn = PillPushButton(platform.get("name", tag))
-                btn.setCheckable(True)
-                btn.setMinimumWidth(80)
-                btn.clicked.connect(lambda checked, t=tag: self._on_platform_selected(t))
-                self.platform_buttons[tag] = btn
-                others_flow_layout.addWidget(btn)
-
-            layout.addWidget(others_container)
+            # 分区创建卡片
+            self._create_platform_group(local_title, local_platforms, layout)
+            self._create_platform_group(online_title, online_platforms, layout)
+            self._create_platform_group(other_title, other_platforms, layout)
 
     def _on_platform_selected(self, tag: str):
         """处理平台选择，根据配置文件填充默认数据"""
