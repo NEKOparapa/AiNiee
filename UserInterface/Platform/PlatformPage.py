@@ -401,6 +401,9 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
                 result = json.load(reader)
         return result
 
+    def _has_platform_in_disk(self, tag: str) -> bool:
+        return tag in self.load_config().get("platforms", {})
+
     def api_test(self, tag: str):
         config = self.load_config()
         platform = config.get("platforms", {}).get(tag)
@@ -459,7 +462,9 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
                 api_settings[role] = None
 
         del platforms[tag]
-        config = self._normalize_api_settings(config, persist=True)
+        config = self._normalize_api_settings(config)
+        # Structural changes to `platforms` must always be persisted explicitly.
+        config = self.save_config(config)
 
         if tag in self.api_buttons:
             button = self.api_buttons.pop(tag)
@@ -475,13 +480,22 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
         self._update_visibility()
 
     def show_api_edit_page(self, key: str):
+        if not self._has_platform_in_disk(key):
+            self.warning_toast("", self.tra("接口不存在"))
+            return
         APIEditPage(self.window, key).exec()
         self.refresh_card(key)
 
     def show_args_edit_page(self, key: str):
+        if not self._has_platform_in_disk(key):
+            self.warning_toast("", self.tra("接口不存在"))
+            return
         ArgsEditPage(self.window, key).exec()
 
     def show_limit_edit_page(self, key: str):
+        if not self._has_platform_in_disk(key):
+            self.warning_toast("", self.tra("接口不存在"))
+            return
         LimitEditPage(self.window, key).exec()
         self.refresh_card(key)
 
@@ -564,7 +578,9 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
             new_platform["model_datas"].append(data.get("model"))
 
         config.setdefault("platforms", {})[tag] = new_platform
-        config = self._normalize_api_settings(config, persist=True)
+        config = self._normalize_api_settings(config)
+        # Structural changes to `platforms` must always be persisted explicitly.
+        config = self.save_config(config)
 
         self.add_api_card(tag, new_platform)
         self.success_toast("", self.tra("接口添加成功"))
