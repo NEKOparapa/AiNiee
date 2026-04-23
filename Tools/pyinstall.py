@@ -15,6 +15,7 @@ cmd = [
     "--collect-all=chardet",
     "--collect-all=sklearn",
     "--collect-all=rich", 
+    "--collect-all=bitstring", 
     # "--distpath=./dist/AiNiee" #指定输出目录
 ]
 
