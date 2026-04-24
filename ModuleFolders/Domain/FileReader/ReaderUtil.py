@@ -236,8 +236,18 @@ def detect_file_encoding(file_path: Union[str, pathlib.Path], min_confidence: fl
             # 验证检测结果：尝试解码
             try:
                 content_bytes.decode(detected_encoding)
-                # 检查置信度和混乱度（chaos < 30%表示质量可接受）
-                if confidence >= min_confidence and chaos_percent < 30.0:
+                # chaos 是 charset_normalizer 设计上的主判据，衡量解码乱码率，越低越好
+                # coherence 衡量文本是否像某种自然语言，但对 CJK 等非拉丁文字天然偏低
+                # 库自身的 chaos 默认阈值为 0.2(20%)，此处与其对齐；coherence 仅作辅助判断
+                if chaos_percent < 5.0:
+                    # 近乎零乱码：多字节编码(如 GBK/GB18030)能满足此条件本身就是强信号
+                    # coherence 不作要求，因为 CJK 文字的字母频率统计天然偏低
+                    return detected_encoding
+                elif chaos_percent < 20.0 and confidence > 0.08:
+                    # 低乱码且有基本语言特征，与库默认阈值对齐
+                    return detected_encoding
+                elif chaos_percent < 30.0 and confidence >= min_confidence:
+                    # 中等乱码，严格要求 coherence 才接受，保留原有逻辑作为兜底
                     return detected_encoding
                 else:
                     rich.print(
