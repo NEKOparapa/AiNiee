@@ -85,6 +85,24 @@ class PlatformPathsTest(unittest.TestCase):
             self.assertTrue((working_root / "Resource").exists())
             self.assertEqual((working_root / "Resource").resolve(), resource_dir.resolve())
 
+    def test_macos_working_directory_repairs_stale_resource_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp, patch("platform.system", return_value="Darwin"):
+            resource_dir = Path(tmp) / "BundledResource"
+            user_dir = Path(tmp) / "UserData"
+            stale_resource_dir = Path(tmp) / "RemovedWorktree" / "Resource"
+            resource_dir.mkdir()
+            user_dir.mkdir()
+            (user_dir / "Resource").symlink_to(stale_resource_dir, target_is_directory=True)
+            os.environ["AINIEE_RESOURCE_DIR"] = str(resource_dir)
+            os.environ["AINIEE_USER_DATA_DIR"] = str(user_dir)
+            paths = self._module()
+
+            working_root = paths.prepare_working_directory()
+
+            self.assertEqual(working_root, user_dir.resolve())
+            self.assertTrue((working_root / "Resource").is_symlink())
+            self.assertEqual((working_root / "Resource").resolve(), resource_dir.resolve())
+
 
 if __name__ == "__main__":
     unittest.main()
