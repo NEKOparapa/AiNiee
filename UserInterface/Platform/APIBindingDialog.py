@@ -10,6 +10,7 @@ class APIBindingDialog(MessageBoxBase, ConfigMixin):
         ("extract", "提取接口", "分析流程使用的接口平台"),
         ("translate", "翻译接口", "翻译流程使用的接口平台"),
         ("polish", "润色接口", "润色流程使用的接口平台"),
+        ("proofread", "校对接口", "自动校对流程使用的接口平台"),
     )
 
     def __init__(self, window, platform_options: list[tuple[str, str]], api_settings: dict):
@@ -19,7 +20,7 @@ class APIBindingDialog(MessageBoxBase, ConfigMixin):
         self.api_settings = dict(api_settings or {})
         self.combo_boxes = {}
 
-        self.widget.setMinimumSize(520, 340)
+        self.widget.setMinimumSize(520, 420)
         self.yesButton.setText(self.tra("保存"))
         self.cancelButton.setText(self.tra("取消"))
         self.yesButton.setEnabled(bool(self.platform_options))
@@ -35,7 +36,7 @@ class APIBindingDialog(MessageBoxBase, ConfigMixin):
         self.viewLayout.addWidget(title)
 
         description = CaptionLabel(
-            self.tra("分别为提取、翻译和润色流程选择接口平台。未单独设置时默认回落到当前激活接口。")
+            self.tra("分别为提取、翻译、润色和校对流程选择接口平台。")
         )
         description.setWordWrap(True)
         self.viewLayout.addWidget(description)

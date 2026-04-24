@@ -234,6 +234,7 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
                 "extract": None,
                 "translate": None,
                 "polish": None,
+                "proofread": None,
             },
         }
 
@@ -352,7 +353,7 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
 
         api_settings["active"] = active_tag
 
-        for role in ("extract", "translate", "polish"):
+        for role in ("extract", "translate", "polish", "proofread"):
             role_tag = api_settings.get(role)
             if not self._is_valid_api_tag(role_tag, platforms):
                 role_tag = active_tag
@@ -456,7 +457,7 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
             return
 
         api_settings = config.setdefault("api_settings", {})
-        for role in ("active", "extract", "translate", "polish"):
+        for role in ("active", "extract", "translate", "polish", "proofread"):
             if api_settings.get(role) == tag:
                 api_settings[role] = None
 

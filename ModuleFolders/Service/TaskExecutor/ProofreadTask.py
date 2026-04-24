@@ -30,8 +30,8 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
                 return
 
             # 2. 初始化配置和限速器
-            self.config.initialize()
-            self.config.prepare_for_active_platform()
+            self.config.initialize("proofread")
+            self.config.prepare_for_active_platform("proofread")
             self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
 
             # 3. 展平任务：将所有需要校对的行转为独立的单个任务 (1行 = 1请求)
@@ -183,7 +183,7 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
         
         text_index = item["text_index"]
         
-        current_platform_config = self.config.get_active_platform_configuration()
+        current_platform_config = self.config.get_active_platform_configuration("proofread")
         messages, system_prompt = self._build_single_proofread_prompt(item)
 
         last_error = ""

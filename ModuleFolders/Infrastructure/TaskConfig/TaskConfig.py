@@ -15,7 +15,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
     # 打印时的类型过滤器
     TYPE_FILTER = (int, str, bool, float, list, dict, tuple)
     # 支持按不同功能角色绑定接口，未命中时统一回退到 active
-    SUPPORTED_INTERFACE_ROLES = {"active", "extract", "translate", "polish"}
+    SUPPORTED_INTERFACE_ROLES = {"active", "extract", "translate", "polish", "proofread"}
 
     def __init__(self) -> None:
         super().__init__()
@@ -124,7 +124,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
 
         api_settings["active"] = active_tag
 
-        for role in ("extract", "translate", "polish"):
+        for role in ("extract", "translate", "polish", "proofread"):
             role_tag = api_settings.get(role)
             if not self._is_valid_platform_tag(role_tag, platforms):
                 role_tag = active_tag

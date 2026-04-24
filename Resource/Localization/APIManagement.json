@@ -90,6 +90,24 @@
       "English": "Polish Interface",
       "日本語": "推敲インターフェース"
     },
+    "校对接口": {
+      "简中": "校对接口",
+      "繁中": "校對介面",
+      "English": "Proofread Interface",
+      "日本語": "校正インターフェース"
+    },
+    "自动校对流程使用的接口平台": {
+      "简中": "自动校对流程使用的接口平台",
+      "繁中": "自動校對流程使用的介面平台",
+      "English": "Interface platform used for automatic proofreading flow",
+      "日本語": "自動校正フローで使用されるインターフェースプラットフォーム"
+    },
+    "分别为提取、翻译、润色和校对流程选择接口平台。": {
+      "简中": "分别为提取、翻译、润色和校对流程选择接口平台。",
+      "繁中": "分別為提取、翻譯、潤飾和校對流程選擇介面平台。",
+      "English": "Choose interface platforms for extraction, translation, polishing, and proofreading.",
+      "日本語": "抽出、翻訳、推敲、校正フローのインターフェースを選択します。"
+    },
     "调整参数": {
       "简中": "调整参数",
       "繁中": "調整參數",
