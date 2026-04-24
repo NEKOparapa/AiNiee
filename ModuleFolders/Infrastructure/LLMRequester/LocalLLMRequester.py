@@ -14,8 +14,6 @@ class LocalLLMRequester(LogMixin, Base):
             model_name = platform_config.get("model_name")
             request_timeout = platform_config.get("request_timeout", 60)
             temperature = platform_config.get("temperature", 1.0)
-            top_p = platform_config.get("top_p", 1.0)
-            frequency_penalty = platform_config.get("frequency_penalty", 0)
             think_switch = platform_config.get("think_switch")
 
             # 参数基础配置
@@ -29,16 +27,6 @@ class LocalLLMRequester(LogMixin, Base):
             if temperature != 1:
                 base_params.update({
                     "temperature": temperature,
-                })
-
-            if top_p != 1:
-                base_params.update({
-                    "top_p": top_p,
-                })
-
-            if frequency_penalty != 0:
-                base_params.update({
-                    "frequency_penalty": frequency_penalty
                 })
 
             # 假如打开了思考开关

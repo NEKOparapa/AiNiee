@@ -29,7 +29,6 @@ from UserInterface.Platform.APIEditPage import APIEditPage
 from UserInterface.Platform.APIItemCard import APIItemCard
 from UserInterface.Platform.AddAPIDialog import AddAPIDialog
 from UserInterface.Platform.ArgsEditPage import ArgsEditPage
-from UserInterface.Platform.LimitEditPage import LimitEditPage
 from UserInterface.Widget.Toast import ToastMixin
 
 
@@ -492,13 +491,6 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
             return
         ArgsEditPage(self.window, key).exec()
 
-    def show_limit_edit_page(self, key: str):
-        if not self._has_platform_in_disk(key):
-            self.warning_toast("", self.tra("接口不存在"))
-            return
-        LimitEditPage(self.window, key).exec()
-        self.refresh_card(key)
-
     def refresh_card(self, tag: str):
         if tag not in self.api_buttons:
             return
@@ -593,7 +585,6 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
         button.testClicked.connect(self.api_test)
         button.activateClicked.connect(self.activate_platform)
         button.editClicked.connect(self.show_api_edit_page)
-        button.editLimitClicked.connect(self.show_limit_edit_page)
         button.editArgsClicked.connect(self.show_args_edit_page)
         button.deleteClicked.connect(self.delete_platform)
 

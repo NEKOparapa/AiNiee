@@ -23,7 +23,6 @@ class AmazonbedrockRequester(LogMixin, Base):
             model_name:str = platform_config.get("model_name")
             request_timeout = platform_config.get("request_timeout", 60)
             temperature = platform_config.get("temperature", 1.0)
-            top_p = platform_config.get("top_p", 1.0)
 
             # 从工厂获取客户端
             client = LLMClientFactory().get_anthropic_bedrock(platform_config)
@@ -33,7 +32,6 @@ class AmazonbedrockRequester(LogMixin, Base):
                 system=system_prompt,
                 messages=messages,
                 temperature=temperature,
-                top_p=top_p,
                 timeout=request_timeout,
                 max_tokens=ModelConfigHelper.get_claude_max_output_tokens(model_name),
             )
@@ -66,7 +64,6 @@ class AmazonbedrockRequester(LogMixin, Base):
             model_name = platform_config.get("model_name")
             _request_timeout = platform_config.get("request_timeout")
             temperature = platform_config.get("temperature")
-            top_p = platform_config.get("top_p")
 
             # 从工厂获取客户端
             client = LLMClientFactory().get_boto3_bedrock(platform_config)
@@ -83,7 +80,7 @@ class AmazonbedrockRequester(LogMixin, Base):
                 modelId=model_name,
                 system=[{"text": system_prompt}],
                 messages=new_messages,
-                inferenceConfig={"maxTokens": 4096, "temperature": temperature, "topP": top_p},
+                inferenceConfig={"maxTokens": 4096, "temperature": temperature},
             )
 
             # 提取回复的文本内容

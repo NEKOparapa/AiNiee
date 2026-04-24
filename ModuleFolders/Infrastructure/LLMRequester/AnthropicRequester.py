@@ -31,7 +31,6 @@ class AnthropicRequester(LogMixin, Base):
             model_name = platform_config.get("model_name")
             request_timeout = platform_config.get("request_timeout", 60)
             temperature = platform_config.get("temperature", 1.0)
-            top_p = platform_config.get("top_p", 0.95)
             think_switch = platform_config.get("think_switch")
             think_depth = platform_config.get("think_depth")
 

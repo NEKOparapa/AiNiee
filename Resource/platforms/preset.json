@@ -11,10 +11,7 @@
             "rpm_limit": 2000,
             "tpm_limit": 100000000,
             "model": "Sakura-v1.0",
-            "top_p": 0.3,
             "temperature": 0.1,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
             "think_switch": false,
             "think_depth": "low",
             "auto_complete": false,
@@ -26,9 +23,7 @@
                 "model",
                 "rpm_limit",
                 "tpm_limit",
-                "top_p",
-                "temperature",
-                "frequency_penalty"
+                "temperature"
             ]
         },
         "LocalLLM": {
@@ -42,10 +37,7 @@
             "rpm_limit": 2000,
             "tpm_limit": 100000000,
             "model": "Qwen2.5-7B",
-            "top_p": 1.0,
             "temperature": 1.0,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
             "think_switch": false,
             "think_depth": "low",
             "auto_complete": false,
@@ -57,9 +49,7 @@
                 "model",
                 "rpm_limit",
                 "tpm_limit",
-                "top_p",
                 "temperature",
-                "frequency_penalty",
                 "think_switch"
             ]
         },
@@ -74,10 +64,7 @@
             "rpm_limit": 15,
             "tpm_limit": 320000,
             "model": "gemini-2.5-flash",
-            "top_p": 0.95,
             "temperature": 1.0,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
             "think_switch": false,
             "thinking_level": "high",
             "auto_complete": false,
@@ -93,12 +80,9 @@
                 "rpm_limit",
                 "tpm_limit",
                 "temperature",
-                "top_p",
                 "think_switch",
                 "thinking_budget",
-                "thinking_level",
-                "presence_penalty",
-                "frequency_penalty"
+                "thinking_level"
             ]
         },
         "openai": {
@@ -112,10 +96,7 @@
             "rpm_limit": 3500,
             "tpm_limit": 600000,
             "model": "gpt-3.5-turbo",
-            "top_p": 1.0,
             "temperature": 1.0,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
             "think_switch": false,
             "think_depth": "low",
             "auto_complete": false,
@@ -131,10 +112,7 @@
                 "model",
                 "rpm_limit",
                 "tpm_limit",
-                "top_p",
                 "temperature",
-                "presence_penalty",
-                "frequency_penalty",
                 "think_switch",
                 "think_depth"
             ]
@@ -150,10 +128,7 @@
             "rpm_limit": 4096,
             "tpm_limit": 10000000,
             "model": "deepseek-v4-flash",
-            "top_p": 1.0,
             "temperature": 1.3,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
             "think_switch": false,
             "think_depth": "high",
             "auto_complete": false,
@@ -166,10 +141,7 @@
                 "model",
                 "rpm_limit",
                 "tpm_limit",
-                "top_p",
                 "temperature",
-                "presence_penalty",
-                "frequency_penalty",
                 "think_switch",
                 "think_depth"
             ]
@@ -185,10 +157,7 @@
             "rpm_limit": 2000,
             "tpm_limit": 100000000,
             "model": "claude-3-haiku",
-            "top_p": 0.95,
             "temperature": 1.0,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
             "think_switch": false,
             "think_depth": "low",
             "auto_complete": false,
@@ -202,8 +171,7 @@
                 "model",
                 "rpm_limit",
                 "tpm_limit",
-                "temperature",
-                "top_p"
+                "temperature"
             ]
         },
         "amazonbedrock": {
@@ -220,10 +188,7 @@
             "rpm_limit": 2000,
             "tpm_limit": 100000000,
             "model": "claude-3-haiku",
-            "top_p": 0.95,
             "temperature": 1.0,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
             "think_switch": false,
             "think_depth": "low",
             "auto_complete": false,
@@ -251,8 +216,7 @@
                 "model",
                 "rpm_limit",
                 "tpm_limit",
-                "temperature",
-                "top_p"
+                "temperature"
             ]
         },
         "xai": {
@@ -266,10 +230,7 @@
             "rpm_limit": 600,
             "tpm_limit": 1000000,
             "model": "grok-3-fast-beta",
-            "top_p": 1.0,
             "temperature": 1.0,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
             "think_switch": false,
             "think_depth": "low",
             "auto_complete": false,
@@ -283,7 +244,6 @@
                 "model",
                 "rpm_limit",
                 "tpm_limit",
-                "top_p",
                 "temperature",
                 "think_switch",
                 "think_depth"
@@ -300,10 +260,7 @@
             "rpm_limit": 10000,
             "tpm_limit": 8000000,
             "model": "doubao-seed-1-6-flash-250615",
-            "top_p": 1.0,
             "temperature": 1.0,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
             "think_switch": false,
             "think_depth": "low",
             "auto_complete": false,
@@ -318,10 +275,7 @@
                 "model",
                 "rpm_limit",
                 "tpm_limit",
-                "top_p",
-                "temperature",
-                "presence_penalty",
-                "frequency_penalty"
+                "temperature"
             ]
         },
         "dashscope": {
@@ -335,10 +289,7 @@
             "rpm_limit": 150,
             "tpm_limit": 1500000,
             "model": "qwen-turbo",
-            "top_p": 1.0,
             "temperature": 1.0,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
             "think_switch": false,
             "think_depth": "low",
             "auto_complete": false,
@@ -353,10 +304,7 @@
                 "model",
                 "rpm_limit",
                 "tpm_limit",
-                "top_p",
                 "temperature",
-                "presence_penalty",
-                "frequency_penalty",
                 "think_switch"
             ]
         },
@@ -371,10 +319,7 @@
             "rpm_limit": 30,
             "tpm_limit": 100000,
             "model": "glm-4-flash",
-            "top_p": 1.0,
             "temperature": 1.0,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
             "think_switch": false,
             "think_depth": "low",
             "auto_complete": false,
@@ -390,10 +335,7 @@
                 "model",
                 "rpm_limit",
                 "tpm_limit",
-                "top_p",
-                "temperature",
-                "presence_penalty",
-                "frequency_penalty"
+                "temperature"
             ]
         },
         "custom": {
@@ -407,10 +349,7 @@
             "rpm_limit": 4096,
             "tpm_limit": 8000000,
             "model": "gpt-4o",
-            "top_p": 1.0,
             "temperature": 1.0,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
             "tls_switch": false,
             "think_switch": false,
             "think_depth": "low",
@@ -437,10 +376,7 @@
                 "tpm_limit",
                 "model",
                 "auto_complete",
-                "top_p",
                 "temperature",
-                "presence_penalty",
-                "frequency_penalty",
                 "extra_body",
                 "think_switch",
                 "think_depth",

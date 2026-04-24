@@ -131,7 +131,6 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
                 "think_depth": data.get("think_depth"),
                 "thinking_level": data.get("thinking_level"),
                 "temperature": data.get("temperature"),
-                "top_p": data.get("top_p")
             }
 
             #尝试请求

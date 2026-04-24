@@ -2,7 +2,6 @@
 pyinstaller
 openai
 boto3
-cohere
 anthropic
 google-genai
 tiktoken

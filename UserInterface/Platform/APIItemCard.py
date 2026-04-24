@@ -26,7 +26,6 @@ class APIItemCard(QWidget, ConfigMixin, Base):
     testClicked = pyqtSignal(str)
     activateClicked = pyqtSignal(str)
     editClicked = pyqtSignal(str)
-    editLimitClicked = pyqtSignal(str)
     editArgsClicked = pyqtSignal(str)
     deleteClicked = pyqtSignal(str)
 
@@ -104,13 +103,6 @@ class APIItemCard(QWidget, ConfigMixin, Base):
                 FluentIcon.EDIT,
                 self.tra("编辑接口"),
                 triggered=lambda checked=False: self.editClicked.emit(self.api_tag),
-            )
-        )
-        menu.addAction(
-            Action(
-                FluentIcon.SCROLL,
-                self.tra("调整限速"),
-                triggered=lambda checked=False: self.editLimitClicked.emit(self.api_tag),
             )
         )
         menu.addAction(

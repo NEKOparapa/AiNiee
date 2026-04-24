@@ -1,11 +1,9 @@
 from ModuleFolders.Infrastructure.LLMRequester.SakuraRequester import SakuraRequester
 from ModuleFolders.Infrastructure.LLMRequester.LocalLLMRequester import LocalLLMRequester
-from ModuleFolders.Infrastructure.LLMRequester.CohereRequester import CohereRequester
 from ModuleFolders.Infrastructure.LLMRequester.GoogleRequester import GoogleRequester
 from ModuleFolders.Infrastructure.LLMRequester.AnthropicRequester import AnthropicRequester
 from ModuleFolders.Infrastructure.LLMRequester.AmazonbedrockRequester import AmazonbedrockRequester
 from ModuleFolders.Infrastructure.LLMRequester.OpenaiRequester import OpenaiRequester
-from ModuleFolders.Infrastructure.LLMRequester.DashscopeRequester import DashscopeRequester
 
 # 接口请求器
 class LLMRequester():
@@ -33,13 +31,6 @@ class LLMRequester():
                 system_prompt,
                 platform_config,
             )
-        elif target_platform.startswith("cohere"):
-            cohere_requester = CohereRequester()
-            skip, response_think, response_content, prompt_tokens, completion_tokens = cohere_requester.request_cohere(
-                messages,
-                system_prompt,
-                platform_config,
-            )
         elif target_platform.startswith("google") or (
             (target_platform.startswith("custom_platform_") or target_platform.startswith("custom_"))
             and api_format == "Google"
@@ -63,13 +54,6 @@ class LLMRequester():
         elif target_platform.startswith("amazonbedrock"):
             amazonbedrock_requester = AmazonbedrockRequester()
             skip, response_think, response_content, prompt_tokens, completion_tokens = amazonbedrock_requester.request_amazonbedrock(
-                messages,
-                system_prompt,
-                platform_config,
-            )
-        elif target_platform.startswith("dashscope"):
-            dashscope_requester = DashscopeRequester()
-            skip, response_think, response_content, prompt_tokens, completion_tokens = dashscope_requester.request_openai(
                 messages,
                 system_prompt,
                 platform_config,

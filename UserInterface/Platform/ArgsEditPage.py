@@ -17,6 +17,7 @@ from UserInterface.Widget.SliderCard import SliderCard
 from UserInterface.Widget.GroupCard import GroupCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
+from UserInterface.Widget.SpinCard import SpinCard
 
 class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
 
@@ -34,6 +35,7 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
         # 载入配置文件
         config = self.load_config()
         preset = self.load_file("./Resource/platforms/preset.json")
+        settings = config.get("platforms").get(self.key).get("key_in_settings")
 
         # 设置主布局
         self.viewLayout.setContentsMargins(0, 0, 0, 0)
@@ -54,36 +56,31 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
 
 
         # extra_body
-        if "extra_body" in config.get("platforms").get(self.key).get("key_in_settings"):
+        if "extra_body" in settings:
             self.add_widget_extra_body(self.vbox, config)
 
-        # top_p
-        if "top_p" in config.get("platforms").get(self.key).get("key_in_settings"):
-            self.add_widget_top_p(self.vbox, config, preset)
+        # rpm_limit
+        if "rpm_limit" in settings:
+            self.add_widget_rpm(self.vbox, config)
+
+        # tpm_limit
+        if "tpm_limit" in settings:
+            self.add_widget_tpm(self.vbox, config)
 
         # temperature
-        if "temperature" in config.get("platforms").get(self.key).get("key_in_settings"):
+        if "temperature" in settings:
             self.add_widget_temperature(self.vbox, config, preset)
-
-        # presence_penalty
-        if "presence_penalty" in config.get("platforms").get(self.key).get("key_in_settings"):
-            self.add_widget_presence_penalty(self.vbox, config, preset)
-
-        # frequency_penalty
-        if "frequency_penalty" in config.get("platforms").get(self.key).get("key_in_settings"):
-            self.add_widget_frequency_penalty(self.vbox, config, preset)
 
         # tls_switch
         api_format = config.get("platforms").get(self.key).get("api_format")
-        if "tls_switch" in config.get("platforms").get(self.key).get("key_in_settings") or api_format == "OpenAI":
+        if "tls_switch" in settings or api_format == "OpenAI":
             self.add_widget_tls_switch(self.vbox, config)
 
         # think_switch
-        if "think_switch" in config.get("platforms").get(self.key).get("key_in_settings"):
+        if "think_switch" in settings:
             self.add_widget_think_switch(self.vbox, config)
 
         # 获取接口格式以进行条件渲染
-        settings = config.get("platforms").get(self.key).get("key_in_settings")
         api_format = config.get("platforms").get(self.key).get("api_format")
 
         # think_depth - 仅在格式为 OpenAI 或 Anthropic 时显示
@@ -286,30 +283,41 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
             )
         )
 
-    # top_p
-    def add_widget_top_p(self, parent, config, preset):
+    # 每分钟请求数
+    def add_widget_rpm(self, parent, config):
         def init(widget):
-            widget.set_range(0, 100)
-            widget.set_text(f"{config.get("platforms").get(self.key).get("top_p"):.2f}")
-            widget.set_value(int(config.get("platforms").get(self.key).get("top_p") * 100))
+            widget.set_range(0, 9999999)
+            widget.set_value(config.get("platforms").get(self.key).get("rpm_limit", 4096))
 
-        def value_changed(widget, value):
-            widget.set_text(f"{(value / 100):.2f}")
-
+        def value_changed(widget, value: str):
             config = self.load_config()
-            config["platforms"][self.key]["top_p"] = value / 100
+            config["platforms"][self.key]["rpm_limit"] = value
             self.save_config(config)
 
-        if self.key in preset.get("platforms"):
-            default_value = preset.get("platforms").get(self.key).get("top_p")
-        else:
-            default_value = preset.get("platforms").get("openai").get("top_p")
-
-        info_cont = self.tra("请谨慎设置，对于目标接口，此参数的默认值为") + f" {default_value}"
         parent.addWidget(
-            SliderCard(
-                "top_p",
-                info_cont,
+            SpinCard(
+                self.tra("每分钟请求数"),
+                self.tra("RPM，即每个密钥在一分钟内能响应的请求的最大数量"),
+                init = init,
+                value_changed = value_changed,
+            )
+        )
+
+    # 每分钟 Token 数
+    def add_widget_tpm(self, parent, config):
+        def init(widget):
+            widget.set_range(0, 9999999)
+            widget.set_value(config.get("platforms").get(self.key).get("tpm_limit", 4096000))
+
+        def value_changed(widget, value: str):
+            config = self.load_config()
+            config["platforms"][self.key]["tpm_limit"] = value
+            self.save_config(config)
+
+        parent.addWidget(
+            SpinCard(
+                self.tra("每分钟 Token 数"),
+                self.tra("TPM，即每个密钥在一分钟内能生成的 Token 的最大数量"),
                 init = init,
                 value_changed = value_changed,
             )
@@ -344,60 +352,3 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
             )
         )
 
-    # presence_penalty
-    def add_widget_presence_penalty(self, parent, config, preset):
-        def init(widget):
-            widget.set_range(-200, 200)
-            widget.set_text(f"{config.get("platforms").get(self.key).get("presence_penalty"):.2f}")
-            widget.set_value(int(config.get("platforms").get(self.key).get("presence_penalty") * 100))
-
-        def value_changed(widget, value):
-            widget.set_text(f"{(value / 100):.2f}")
-
-            config = self.load_config()
-            config["platforms"][self.key]["presence_penalty"] = value / 100
-            self.save_config(config)
-
-        if self.key in preset.get("platforms"):
-            default_value = preset.get("platforms").get(self.key).get("presence_penalty")
-        else:
-            default_value = preset.get("platforms").get("openai").get("presence_penalty")
-
-        info_cont = self.tra("请谨慎设置，对于目标接口，此参数的默认值为") + f" {default_value}"
-        parent.addWidget(
-            SliderCard(
-                "presence_penalty",
-                info_cont,
-                init = init,
-                value_changed = value_changed,
-            )
-        )
-
-    # frequency_penalty
-    def add_widget_frequency_penalty(self, parent, config, preset):
-        def init(widget):
-            widget.set_range(-200, 200)
-            widget.set_text(f"{config.get("platforms").get(self.key).get("frequency_penalty"):.2f}")
-            widget.set_value(int(config.get("platforms").get(self.key).get("frequency_penalty") * 100))
-
-        def value_changed(widget, value):
-            widget.set_text(f"{(value / 100):.2f}")
-
-            config = self.load_config()
-            config["platforms"][self.key]["frequency_penalty"] = value / 100
-            self.save_config(config)
-
-        if self.key in preset.get("platforms"):
-            default_value = preset.get("platforms").get(self.key).get("frequency_penalty")
-        else:
-            default_value = preset.get("platforms").get("openai").get("frequency_penalty")
-
-        info_cont = self.tra("请谨慎设置，对于目标接口，此参数的默认值为") + f" {default_value}"
-        parent.addWidget(
-            SliderCard(
-                "frequency_penalty",
-                info_cont,
-                init = init,
-                value_changed = value_changed,
-            )
-        )

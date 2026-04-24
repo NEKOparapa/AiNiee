@@ -6,7 +6,6 @@ import httpx
 from openai import OpenAI
 import anthropic
 import boto3
-import cohere
 from google import genai
 import json
 from curl_cffi import requests as curl_requests
@@ -195,13 +194,6 @@ class LLMClientFactory:
         key = ("boto3_bedrock", region, access_key, secret_key)
         return self._get_cached_client(key, lambda: self._create_boto3_bedrock(config))
 
-    def get_cohere_client(self, config: Dict[str, Any]) -> cohere.ClientV2:
-        """获取Cohere客户端"""
-        api_key = config.get("api_key")
-        api_url = config.get("api_url")
-        key = ("cohere", api_url, api_key)
-        return self._get_cached_client(key, lambda: self._create_cohere_client(config))
-
     def get_google_client(self, config: Dict[str, Any]) -> genai.Client:
         """获取Google AI客户端"""
         api_key = config.get("api_key")
@@ -268,14 +260,6 @@ class LLMClientFactory:
             aws_secret_access_key=config.get("secret_key")
         )
 
-    def _create_cohere_client(self, config):
-        return cohere.ClientV2(
-            base_url=config.get("api_url"),
-            api_key=config.get("api_key"),
-            timeout=config.get("request_timeout", 60),
-            httpx_client=create_httpx_client()
-        )
-
     def _create_google_client(self, config):
         api_key = config.get("api_key")
         api_url = config.get("api_url")
@@ -308,10 +292,6 @@ class LLMClientFactory:
         google_http_client = self._resolve_attr_path(client, "_api_client._httpx_client")
         if google_http_client is not None:
             targets.append(google_http_client)
-
-        cohere_http_client = self._resolve_attr_path(client, "_client_wrapper.httpx_client.httpx_client")
-        if cohere_http_client is not None:
-            targets.append(cohere_http_client)
 
         for target in targets:
             if target is None:

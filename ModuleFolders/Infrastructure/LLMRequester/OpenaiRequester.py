@@ -168,9 +168,6 @@ class OpenaiRequester(LogMixin, Base):
             model_name = platform_config.get("model_name")
             request_timeout = platform_config.get("request_timeout", 60)
             temperature = platform_config.get("temperature", 1.0)
-            top_p = platform_config.get("top_p", 1.0)
-            presence_penalty = platform_config.get("presence_penalty", 0)
-            frequency_penalty = platform_config.get("frequency_penalty", 0)
             extra_body = platform_config.get("extra_body", {})
 
             # 插入系统消息
@@ -203,12 +200,6 @@ class OpenaiRequester(LogMixin, Base):
             # 按需添加参数
             if temperature != 1:
                 base_params["temperature"] = temperature
-            if top_p != 1:
-                base_params["top_p"] = top_p
-            if presence_penalty != 0:
-                base_params["presence_penalty"] = presence_penalty
-            if frequency_penalty != 0:
-                base_params["frequency_penalty"] = frequency_penalty
 
             # 根据平台规则注入思考参数
             base_params = self.apply_platform_thinking_params(base_params, platform_config)
