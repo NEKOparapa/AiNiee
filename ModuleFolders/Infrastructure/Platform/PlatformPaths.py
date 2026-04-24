@@ -123,8 +123,11 @@ def ensure_user_dirs() -> None:
 
 
 def _link_directory(link_path: Path, target_path: Path) -> None:
-    if link_path.is_symlink() and link_path.resolve() == target_path.resolve():
-        return
+    target_path = target_path.resolve()
+    if link_path.is_symlink():
+        if link_path.resolve(strict=False) == target_path:
+            return
+        link_path.unlink()
     if link_path.exists():
         return
     link_path.symlink_to(target_path, target_is_directory=True)
