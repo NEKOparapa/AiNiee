@@ -105,10 +105,8 @@ def sign_app_bundle() -> None:
     subprocess.run(cmd, check=True)
 
 
-def main() -> None:
-    os.chdir(ROOT)
-    icon_path = build_icns()
-    cmd = [
+def pyinstaller_command(icon_path: Path) -> list[str]:
+    return [
         "./AiNiee.py",
         f"--name={APP_NAME}",
         "--windowed",
@@ -121,16 +119,23 @@ def main() -> None:
         "--add-data=StevExtraction:StevExtraction",
         "--hidden-import=babeldoc",
         "--hidden-import=sklearn",
+        "--hidden-import=mediapipe.tasks.c",
         "--collect-all=babeldoc",
         "--collect-all=chardet",
         "--collect-all=sklearn",
         "--collect-all=rich",
         "--collect-all=bitstring",
+        "--collect-all=mediapipe.tasks.c",
         "--exclude-module=jaxlib",
         "--exclude-module=win32com",
         "--exclude-module=pythoncom",
     ]
-    PyInstaller.__main__.run(cmd)
+
+
+def main() -> None:
+    os.chdir(ROOT)
+    icon_path = build_icns()
+    PyInstaller.__main__.run(pyinstaller_command(icon_path))
     patch_info_plist()
     sign_app_bundle()
 
