@@ -6,9 +6,9 @@ from pathlib import Path
 
 
 APP_NAME = "AiNiee"
-MACOS_APP_NAME = "AiNiee_MacOS"
+MACOS_APP_NAME = "AiNiee"
 UPSTREAM_RELEASE_API_URL = "https://api.github.com/repos/NEKOparapa/AiNiee/releases/latest"
-MACOS_RELEASE_API_URL = "https://api.github.com/repos/beautifulrem/AiNiee_MacOS/releases/latest"
+MACOS_RELEASE_API_URL = UPSTREAM_RELEASE_API_URL
 
 
 def is_macos() -> bool:

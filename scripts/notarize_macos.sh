@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_PATH="${APP_PATH:-dist/AiNiee_MacOS.app}"
-DMG_PATH="${DMG_PATH:-dist/AiNiee_MacOS-arm64.dmg}"
+APP_PATH="${APP_PATH:-dist/AiNiee.app}"
+DMG_PATH="${DMG_PATH:-dist/AiNiee-arm64.dmg}"
 ENTITLEMENTS="${ENTITLEMENTS:-Packaging/macOS/entitlements.plist}"
 
 : "${CODESIGN_IDENTITY:?CODESIGN_IDENTITY is required}"

@@ -167,11 +167,11 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         self.macos_menu_bar = menu_bar
 
         app_menu = menu_bar.addMenu(app_menu_title())
-        about_action = QAction(self.tra("关于 AiNiee MacOS"), self)
+        about_action = QAction(self.tra("关于 AiNiee"), self)
         about_action.setMenuRole(QAction.AboutRole)
         about_action.triggered.connect(
             lambda: MessageBox(
-                self.tra("关于 AiNiee MacOS"),
+                self.tra("关于 AiNiee"),
                 about_message(self.windowTitle(), self.tra),
                 self,
             ).exec()
@@ -266,7 +266,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         avatar_path = str(resource_path("Logo", "Avatar.png"))
         self.navigationInterface.addWidget(
             routeKey="avatar_navigation_widget",
-            widget=NavigationAvatarWidget("AiNiee MacOS" if is_macos() else "NEKOparapa", avatar_path),
+            widget=NavigationAvatarWidget("NEKOparapa", avatar_path),
             onClick=self.open_project_page,
             position=NavigationItemPosition.BOTTOM,
         )

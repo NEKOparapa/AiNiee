@@ -13,7 +13,7 @@ from ModuleFolders.Infrastructure.Platform.PlatformPaths import (
 )
 
 
-MACOS_PROJECT_URL = "https://github.com/beautifulrem/AiNiee_MacOS"
+MACOS_PROJECT_URL = "https://github.com/NEKOparapa/AiNiee"
 
 
 def command_shortcut(key: str) -> str:
@@ -27,21 +27,21 @@ def semantic_version(raw_version: str) -> str:
 
 
 def configure_application_metadata(app, version: str) -> None:
-    app.setApplicationName("AiNiee MacOS" if is_macos() else "AiNiee")
+    app.setApplicationName("AiNiee")
     app.setApplicationVersion(semantic_version(version))
-    app.setOrganizationName("beautifulrem")
-    app.setOrganizationDomain("github.com/beautifulrem")
+    app.setOrganizationName("NEKOparapa")
+    app.setOrganizationDomain("github.com/NEKOparapa")
     if hasattr(app, "setApplicationDisplayName"):
-        app.setApplicationDisplayName("AiNiee MacOS" if is_macos() else "AiNiee")
+        app.setApplicationDisplayName("AiNiee")
 
 
 def about_message(version: str, tra: Callable[[str], str] = lambda text: text) -> str:
     return "\n".join(
         [
-            tra("AiNiee MacOS"),
+            tra("AiNiee"),
             version,
             "",
-            tra("面向 macOS 优化的 AiNiee 版本"),
+            tra("AiNiee macOS 支持"),
             f"GitHub: {MACOS_PROJECT_URL}",
             f"{tra('配置目录')}: {config_path()}",
         ]
@@ -98,4 +98,4 @@ def auto_output_path_description(tra: Callable[[str], str] = lambda text: text) 
 
 
 def app_menu_title() -> str:
-    return "AiNiee MacOS" if is_macos() else MACOS_APP_NAME
+    return MACOS_APP_NAME
