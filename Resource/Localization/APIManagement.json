@@ -285,23 +285,35 @@
   },
 
   "PART_4": {
-    "请输入自定义Body": {
-      "简中": "请输入自定义Body",
-      "繁中": "請輸入自訂Body",
-      "English": "Enter custom Body",
-      "日本語": "カスタムBodyを入力してください"
+    "自定义请求体": {
+      "简中": "自定义请求体",
+      "繁中": "自訂請求體",
+      "English": "Custom Request Body",
+      "日本語": "カスタムリクエストボディ"
     },
-    "请输入自定义Body，例如 {\"provider\": {\"order\": [\"DeepInfra\", \"Together\"], \"allow_fallbacks\": false}}": {
-      "简中": "请输入自定义Body，例如 {\"provider\": {\"order\": [\"DeepInfra\", \"Together\"], \"allow_fallbacks\": false}}",
-      "繁中": "請輸入自訂Body，例如 {\"provider\": {\"order\": [\"DeepInfra\", \"Together\"], \"allow_fallbacks\": false}}",
-      "English": "Enter custom Body (e.g., {\"provider\": ...})",
-      "日本語": "カスタムBodyを入力（例：{\"provider\": ...}）"
+    "请输入extra_body额外请求参数 JSON": {
+      "简中": "请输入extra_body额外请求参数 JSON",
+      "繁中": "請輸入extra_body額外請求參數 JSON",
+      "English": "Enter extra_body additional request parameters as JSON",
+      "日本語": "extra_body 追加リクエストパラメータ JSON を入力してください"
     },
-    "请谨慎设置，对于目标接口，此参数的默认值为": {
-      "简中": "请谨慎设置，对于目标接口，此参数的默认值为",
-      "繁中": "請謹慎設定，對於目標介面，此參數的預設值為",
-      "English": "Set with caution. Default value for this API is",
-      "日本語": "注意して設定してください。このAPIのデフォルト値は"
+    "填写会合并到请求体的额外 JSON 参数，适合高级接口选项": {
+      "简中": "填写会合并到请求体的额外 JSON 参数，适合高级接口选项",
+      "繁中": "填寫後會合併到請求體的額外 JSON 參數，適合進階介面選項",
+      "English": "Extra JSON parameters merged into the request body for advanced API options",
+      "日本語": "リクエストボディにマージする追加 JSON パラメータです。高度な API オプション向けです"
+    },
+    "控制回复随机性，值越高输出越发散；默认值为": {
+      "简中": "控制回复随机性，值越高输出越发散；默认值为",
+      "繁中": "控制回覆隨機性，數值越高輸出越發散；預設值為",
+      "English": "Controls response randomness. Higher values make output more varied. Default is",
+      "日本語": "応答のランダム性を制御します。値が高いほど出力が多様になります。デフォルト値は"
+    },
+    "Gemini 2.5 等模型的思考 Token 预算，-1 表示自动；默认值为": {
+      "简中": "Gemini 2.5 等模型的思考 Token 预算，-1 表示自动；默认值为",
+      "繁中": "Gemini 2.5 等模型的思考 Token 預算，-1 表示自動；預設值為",
+      "English": "Thinking token budget for models like Gemini 2.5. -1 means automatic. Default is",
+      "日本語": "Gemini 2.5 などのモデルの思考 Token 予算です。-1 は自動を意味します。デフォルト値は"
     }
   },
 
@@ -312,11 +324,11 @@
       "English": "Requests Per Minute (RPM)",
       "日本語": "1分あたりのリクエスト数 (RPM)"
     },
-    "RPM，即每个密钥在一分钟内能响应的请求的最大数量": {
-      "简中": "RPM，即每个密钥在一分钟内能响应的请求的最大数量",
-      "繁中": "RPM，即每個金鑰在一分鐘內能回應的請求的最大數量",
-      "English": "RPM (Max requests per key per minute)",
-      "日本語": "RPM (キーあたりの最大リクエスト数/分)"
+    "限制每个密钥每分钟最多发送的请求数量，0 表示不限制": {
+      "简中": "限制每个密钥每分钟最多发送的请求数量，0 表示不限制",
+      "繁中": "限制每個金鑰每分鐘最多送出的請求數量，0 表示不限制",
+      "English": "Limits the maximum requests per key per minute. 0 means unlimited.",
+      "日本語": "キーごとの1分あたり最大リクエスト数を制限します。0 は無制限です。"
     },
     "每分钟 Token 数": {
       "简中": "每分钟 Token 数",
@@ -324,11 +336,11 @@
       "English": "Tokens Per Minute (TPM)",
       "日本語": "1分あたりのトークン数 (TPM)"
     },
-    "TPM，即每个密钥在一分钟内能生成的 Token 的最大数量": {
-      "简中": "TPM，即每个密钥在一分钟内能生成的 Token 的最大数量",
-      "繁中": "TPM，即每個金鑰在一分鐘內能產生的 Token 的最大數量",
-      "English": "TPM (Max tokens per key per minute)",
-      "日本語": "TPM (キーあたりの最大トークン数/分)"
+    "限制每个密钥每分钟最多使用的 Token 数量，0 表示不限制": {
+      "简中": "限制每个密钥每分钟最多使用的 Token 数量，0 表示不限制",
+      "繁中": "限制每個金鑰每分鐘最多使用的 Token 數量，0 表示不限制",
+      "English": "Limits the maximum tokens used per key per minute. 0 means unlimited.",
+      "日本語": "キーごとの1分あたり最大使用 Token 数を制限します。0 は無制限です。"
     },
     "关闭": {
       "简中": "关闭",
@@ -336,29 +348,65 @@
       "English": "Off",
       "日本語": "オフ"
     },
-    "思考模式开关": {
-      "简中": "思考模式开关",
-      "繁中": "思考模式開關",
-      "English": "Thinking Mode Switch",
-      "日本語": "思考モードスイッチ"
+    "温度": {
+      "简中": "温度",
+      "繁中": "溫度",
+      "English": "Temperature",
+      "日本語": "温度"
     },
-    "tls_switch": {
-      "简中": "tls_switch",
-      "繁中": "tls_switch",
-      "English": "tls_switch",
-      "日本語": "tls_switch"
+    "TLS 指纹模拟": {
+      "简中": "TLS 指纹模拟",
+      "繁中": "TLS 指紋模擬",
+      "English": "TLS Fingerprint Simulation",
+      "日本語": "TLS フィンガープリント模擬"
     },
-    "开启后模拟浏览器指纹以绕过 TLS 检测，并自动应用系统代理": {
-      "简中": "开启后模拟浏览器指纹以绕过 TLS 检测，并自动应用系统代理",
-      "繁中": "開啟後模擬瀏覽器指紋以繞過 TLS 檢測，並自動應用系統代理",
-      "English": "Simulate a browser fingerprint for TLS checks.\nAlso applies the system proxy automatically.",
-      "日本語": "TLS検出を回避するためにブラウザのフィンガープリントをシミュレートし、システムプロキシを自動適用します"
+    "开启后使用浏览器 TLS 指纹请求 OpenAI 兼容接口，并自动应用系统代理": {
+      "简中": "开启后使用浏览器 TLS 指纹请求 OpenAI 兼容接口，并自动应用系统代理",
+      "繁中": "開啟後使用瀏覽器 TLS 指紋請求 OpenAI 相容介面，並自動套用系統代理",
+      "English": "Uses a browser TLS fingerprint for OpenAI-compatible requests and applies the system proxy automatically.",
+      "日本語": "OpenAI 互換リクエストにブラウザ TLS フィンガープリントを使用し、システムプロキシを自動適用します。"
     },
-    "思考深度": {
-      "简中": "思考深度",
-      "繁中": "思考深度",
-      "English": "Thinking Depth",
-      "日本語": "思考深度"
+    "思考模式": {
+      "简中": "思考模式",
+      "繁中": "思考模式",
+      "English": "Thinking Mode",
+      "日本語": "思考モード"
+    },
+    "开启后按当前平台规则附加模型思考参数，不支持的模型会保持默认请求": {
+      "简中": "开启后按当前平台规则附加模型思考参数，不支持的模型会保持默认请求",
+      "繁中": "開啟後會依目前平台規則附加模型思考參數，不支援的模型會保持預設請求",
+      "English": "Adds model thinking parameters according to the current platform. Unsupported models keep the default request.",
+      "日本語": "現在のプラットフォーム規則に従って思考パラメータを追加します。未対応モデルは既定のリクエストを維持します。"
+    },
+    "思考强度": {
+      "简中": "思考强度",
+      "繁中": "思考強度",
+      "English": "Thinking Intensity",
+      "日本語": "思考強度"
+    },
+    "调整模型的思考强度等级": {
+      "简中": "调整模型的思考强度等级",
+      "繁中": "調整模型的思考強度等級",
+      "English": "Adjust the thinking intensity level of the model",
+      "日本語": "モデルの思考強度レベルを調整します。"
+    },
+    "思考预算": {
+      "简中": "思考预算",
+      "繁中": "思考預算",
+      "English": "Thinking Budget",
+      "日本語": "思考予算"
+    },
+    "思考级别": {
+      "简中": "思考级别",
+      "繁中": "思考級別",
+      "English": "Thinking Level",
+      "日本語": "思考レベル"
+    },
+    "Gemini 3 专用，Pro 模型仅支持 low 和 high": {
+      "简中": "Gemini 3 专用，Pro 模型仅支持 low 和 high",
+      "繁中": "Gemini 3 專用，Pro 模型僅支援 low 和 high",
+      "English": "Gemini 3 only. Pro models only support low and high.",
+      "日本語": "Gemini 3 専用です。Pro モデルは low と high のみ対応します。"
     }
   },
   "PART_8": {

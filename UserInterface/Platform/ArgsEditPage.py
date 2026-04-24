@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import PlainTextEdit
 from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
+from qfluentwidgets import SmoothMode
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -42,13 +43,16 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
 
         # 设置滚动器
         self.scroller = SingleDirectionScrollArea(self, orient = Qt.Vertical)
+        # 弹窗内设置项较多，关闭平滑滚动可减少滚动动画带来的连续重绘。
+        self.scroller.setSmoothMode(SmoothMode.NO_SMOOTH)
         self.scroller.setWidgetResizable(True)
         self.scroller.setStyleSheet("QScrollArea { border: none; background: transparent; }")
         self.viewLayout.addWidget(self.scroller)
 
         # 设置滚动控件
         self.vbox_parent = QWidget(self)
-        self.vbox_parent.setStyleSheet("QWidget { background: transparent; }")
+        self.vbox_parent.setObjectName("argsEditScrollWidget")
+        self.vbox_parent.setStyleSheet("#argsEditScrollWidget { background: transparent; }")
         self.vbox = QVBoxLayout(self.vbox_parent)
         self.vbox.setSpacing(8)
         self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
@@ -70,11 +74,6 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
         # temperature
         if "temperature" in settings:
             self.add_widget_temperature(self.vbox, config, preset)
-
-        # tls_switch
-        api_format = config.get("platforms").get(self.key).get("api_format")
-        if "tls_switch" in settings or api_format == "OpenAI":
-            self.add_widget_tls_switch(self.vbox, config)
 
         # think_switch
         if "think_switch" in settings:
@@ -99,6 +98,10 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
             elif "thinking_budget" in settings:
                 # Gemini 2.5.x 及更早版本使用 thinking_budget
                 self.add_widget_thinking_budget(self.vbox, config, preset)
+        # tls_switch
+        api_format = config.get("platforms").get(self.key).get("api_format")
+        if "tls_switch" in settings or api_format == "OpenAI":
+            self.add_widget_tls_switch(self.vbox, config)
 
         # 填充
         self.vbox.addStretch(1)
@@ -128,8 +131,8 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                self.tra("tls_switch"),
-                self.tra("开启后模拟浏览器指纹以绕过 TLS 检测，并自动应用系统代理"),
+                self.tra("TLS 指纹模拟"),
+                self.tra("开启后使用浏览器 TLS 指纹请求 OpenAI 兼容接口，并自动应用系统代理"),
                 init = init,
                 checked_changed = checked_changed,
             )
@@ -147,8 +150,8 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
 
         parent.addWidget(
             SwitchButtonCard(
-                self.tra("think_switch"),
-                self.tra("思考模式开关"),
+                self.tra("思考模式"),
+                self.tra("开启后按当前平台规则附加模型思考参数，不支持的模型会保持默认请求"),
                 init = init,
                 checked_changed = checked_changed,
             )
@@ -169,8 +172,8 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
 
         parent.addWidget(
             ComboBoxCard(
-                self.tra("think_depth"),
-                self.tra("思考深度"),
+                self.tra("思考强度"),
+                self.tra("调整模型的思考强度等级"),
                 [],
                 init = init,
                 current_text_changed = current_text_changed,
@@ -196,10 +199,10 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
         else:
             default_value = -1
 
-        info_cont = self.tra("请谨慎设置，对于目标接口，此参数的默认值为") + f" {default_value} (-1代表自动)"
+        info_cont = self.tra("Gemini 2.5 等模型的思考 Token 预算，-1 表示自动；默认值为") + f" {default_value}"
         parent.addWidget(
             SliderCard(
-                "thinking_budget",
+                self.tra("思考预算"),
                 info_cont,
                 init = init,
                 value_changed = value_changed,
@@ -229,8 +232,8 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
 
         parent.addWidget(
             ComboBoxCard(
-                self.tra("thinking_level"),
-                self.tra("思考深度级别 (Gemini 3 专用，Pro 仅支持 low/high)"),
+                self.tra("思考级别"),
+                self.tra("Gemini 3 专用，Pro 模型仅支持 low 和 high"),
                 [],
                 init=init,
                 current_text_changed=current_text_changed,
@@ -270,15 +273,15 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
             else:
                 plain_text_edit.setPlainText("")
 
-            info_cont = self.tra("请输入自定义Body")
+            info_cont = self.tra("请输入extra_body额外请求参数 JSON")
             plain_text_edit.setPlaceholderText(info_cont)
             plain_text_edit.textChanged.connect(lambda: text_changed(plain_text_edit))
             widget.addWidget(plain_text_edit)
 
         parent.addWidget(
             GroupCard(
-                "extra_body",
-                self.tra("请输入自定义Body，例如 {\"provider\": {\"order\": [\"DeepInfra\", \"Together\"], \"allow_fallbacks\": false}}"),
+                self.tra("自定义请求体"),
+                self.tra("填写会合并到请求体的额外 JSON 参数，适合高级接口选项"),
                 init = init,
             )
         )
@@ -297,7 +300,7 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
         parent.addWidget(
             SpinCard(
                 self.tra("每分钟请求数"),
-                self.tra("RPM，即每个密钥在一分钟内能响应的请求的最大数量"),
+                self.tra("限制每个密钥每分钟最多发送的请求数量，0 表示不限制"),
                 init = init,
                 value_changed = value_changed,
             )
@@ -317,7 +320,7 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
         parent.addWidget(
             SpinCard(
                 self.tra("每分钟 Token 数"),
-                self.tra("TPM，即每个密钥在一分钟内能生成的 Token 的最大数量"),
+                self.tra("限制每个密钥每分钟最多使用的 Token 数量，0 表示不限制"),
                 init = init,
                 value_changed = value_changed,
             )
@@ -342,10 +345,10 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
         else:
             default_value = preset.get("platforms").get("openai").get("temperature")
 
-        info_cont = self.tra("请谨慎设置，对于目标接口，此参数的默认值为") + f" {default_value}"
+        info_cont = self.tra("控制回复随机性，值越高输出越发散；默认值为") + f" {default_value}"
         parent.addWidget(
             SliderCard(
-                "temperature",
+                self.tra("温度"),
                 info_cont,
                 init = init,
                 value_changed = value_changed,
