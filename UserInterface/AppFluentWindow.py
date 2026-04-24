@@ -4,7 +4,7 @@ import threading
 import requests
 from PyQt5.QtCore import QThread, QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices, QIcon
-from PyQt5.QtWidgets import QAction, QApplication
+from PyQt5.QtWidgets import QAction, QApplication, QMenuBar
 from qfluentwidgets import (
     FluentIcon,
     FluentWindow,
@@ -161,11 +161,13 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         if not is_macos():
             return
 
-        menu_bar = self.menuBar()
+        menu_bar = QMenuBar(self)
         menu_bar.setNativeMenuBar(True)
+        self.macos_menu_bar = menu_bar
 
         app_menu = menu_bar.addMenu("AiNiee MacOS")
         about_action = QAction(self.tra("关于 AiNiee MacOS"), self)
+        about_action.setMenuRole(QAction.AboutRole)
         about_action.triggered.connect(
             lambda: MessageBox(
                 self.tra("关于 AiNiee MacOS"),
@@ -175,10 +177,12 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         )
 
         preferences_action = QAction(self.tra("偏好设置..."), self)
+        preferences_action.setMenuRole(QAction.PreferencesRole)
         preferences_action.setShortcut("Ctrl+,")
         preferences_action.triggered.connect(lambda: self.switchTo(self.app_settings_page))
 
         quit_action = QAction(self.tra("退出 AiNiee"), self)
+        quit_action.setMenuRole(QAction.QuitRole)
         quit_action.setShortcut("Ctrl+Q")
         quit_action.triggered.connect(self.close)
 
