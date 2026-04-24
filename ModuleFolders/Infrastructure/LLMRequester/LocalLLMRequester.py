@@ -32,7 +32,7 @@ class LocalLLMRequester(LogMixin, Base):
             # 假如打开了思考开关
             if think_switch:
                 base_params.update({
-                    "extra_body": {"enable_thinking": "true"}
+                    "extra_body": {"enable_thinking": True}
                 })
 
 

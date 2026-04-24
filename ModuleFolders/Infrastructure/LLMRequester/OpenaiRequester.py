@@ -53,8 +53,7 @@ class OpenaiRequester(LogMixin, Base):
 
         # 如果是xAI 平台----
         if target_platform.startswith("xai") or "api.x.ai" in api_url:
-            # xAI 的思考参数放在 extra_body.thinking 中，且 low/medium/high/xhigh 分别映射为 1/2/3/4
-            extra_body["thinking"] = {"type": "enabled"}
+            # xAI Chat Completions 当前不使用 extra_body.thinking 这种参数形状
             return params
 
         # 如果是火山方舟平台----
