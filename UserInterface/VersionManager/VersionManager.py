@@ -75,20 +75,18 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         else:
             return "0.0.0"
 
+    def _get_release_version(self, tag_name: str) -> str:
+        match = re.search(r"\d+(?:\.\d+)+", tag_name)
+        return match.group(0) if match else "0.0.0"
+
     def check_for_updates(self):
         """检查是否需要更新"""
+        self.check_error = None
         try:
             response = requests.get(self.GITHUB_API_URL, timeout=10)
             if response.status_code == 200:
                 data = response.json()
-                # 从 tag_name 中提取版本号，格式为 "AiNiee6.2.3"
-                tag_name = data["tag_name"]
-                import re
-                version_match = re.search(r'AiNiee([\d\.]+)', tag_name)
-                if version_match:
-                    self.latest_version = version_match.group(1)  # 提取数字部分，如 "6.2.3"
-                else:
-                    self.latest_version = tag_name.lstrip("v")  # 兼容其他格式
+                self.latest_version = self._get_release_version(data["tag_name"])
 
                 self.latest_version_url = data["html_url"]
 
@@ -97,6 +95,10 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                     return True, self.latest_version
                 else:
                     return False, self.current_version
+            elif response.status_code == 404 and is_macos():
+                self.latest_version = self.current_version
+                self.latest_version_url = "https://github.com/beautifulrem/AiNiee_MacOS/releases"
+                return False, self.current_version
             else:
                 self.error(f"Failed to check for updates: {response.status_code}")
 
