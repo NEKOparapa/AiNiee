@@ -195,7 +195,7 @@ class PromptBuilderPolishing(Base):
         if getattr(config, "pre_line_counts", 0) and previous_text_list:
             previous = PromptBuilderPolishing.build_pre_text(config, previous_text_list)
             if previous:
-                extra_log.append(f"###上文内容\n{'\n'.join(previous_text_list)}")
+                extra_log.append("###上文内容\n" + "\n".join(previous_text_list))
 
         source_text = PromptBuilder.build_source_text(config, source_text_dict)
         translation_text = PromptBuilder.build_source_text(config, translation_text_dict)
