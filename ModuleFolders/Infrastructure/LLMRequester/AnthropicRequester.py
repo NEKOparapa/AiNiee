@@ -19,6 +19,7 @@ class AnthropicRequester(LogMixin, Base):
             "low": 0.1,
             "medium": 0.4,
             "high": 0.7,
+            "xhigh": 0.9,
         }
         ratio = ratio_map.get(think_depth, 0.5)  # 默认 medium
         budget = int(max_tokens * ratio)

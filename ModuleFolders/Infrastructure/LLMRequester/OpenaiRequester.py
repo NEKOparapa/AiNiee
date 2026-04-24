@@ -2,6 +2,7 @@ from ModuleFolders.Base.Base import Base
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.LLMRequester.LLMClientFactory import LLMClientFactory
 
+import copy
 import json
 from openai.types.chat import ChatCompletion
 
@@ -10,6 +11,78 @@ from openai.types.chat import ChatCompletion
 class OpenaiRequester(LogMixin, Base):
     def __init__(self) -> None:
         pass
+
+    # 根据 OpenAI 兼容平台的差异，按需添加各自支持的思考参数
+    def apply_platform_thinking_params(self, base_params: dict, platform_config: dict) -> dict:
+        params = copy.deepcopy(base_params)
+
+        # 未开启思考开关时不做任何平台判断，避免给普通模型传入不支持的参数
+        if not platform_config.get("think_switch"):
+            return params
+
+        target_platform = str(platform_config.get("target_platform") or "").lower()
+        api_url = str(platform_config.get("api_url") or "").lower()
+        model_name = str(platform_config.get("model_name") or params.get("model") or "")
+        model_name_lower = model_name.lower()
+        think_depth = platform_config.get("think_depth") or "medium"
+
+        # extra_body 中可能已有用户自定义参数，这里复制后再合并平台专用字段
+        raw_extra_body = params.get("extra_body", {})
+        extra_body = copy.deepcopy(raw_extra_body) if isinstance(raw_extra_body, dict) else {}
+        params["extra_body"] = extra_body
+
+        # OpenAI 官方推理模型使用顶层 reasoning_effort，普通模型不传该字段
+        if target_platform.startswith("openai") or "api.openai.com" in api_url:
+            if model_name_lower.startswith(("o1", "o3", "o4", "gpt-5")):
+                params["reasoning_effort"] = think_depth
+            return params
+
+        # DeepSeek 使用顶层 reasoning_effort；low/medium/high 统一映射为 high，xhigh 映射为 max
+        if target_platform.startswith("deepseek") or "api.deepseek.com" in api_url:
+            deepseek_effort = "max" if think_depth == "xhigh" else "high"
+            params["reasoning_effort"] = deepseek_effort
+            extra_body["thinking"] = {"type": "enabled"}
+            return params
+
+        # xAI 的推理模型会自动推理，显式传 reasoning_effort 反而可能报错
+        if target_platform.startswith("xai") or "api.x.ai" in api_url:
+            return params
+
+        # 火山方舟的思考参数放在 extra_body.thinking 中
+        if (
+            target_platform.startswith("volcengine")
+            or "volces.com" in api_url
+            or "volcengine" in api_url
+        ):
+            if "doubao" in model_name_lower or "deepseek" in model_name_lower:
+                extra_body["thinking"] = {"type": "enabled"}
+            return params
+
+        # 智谱 GLM 新系列支持 extra_body.thinking，旧模型保持默认参数
+        if target_platform.startswith("zhipu") or "bigmodel.cn" in api_url:
+            if model_name_lower.startswith(("glm-4.5", "glm-4.6", "glm-4.7", "glm-5")):
+                extra_body["thinking"] = {"type": "enabled"}
+            return params
+
+        # 阿里百炼兼容模式使用 enable_thinking，并可选传入 thinking_budget
+        if (
+            target_platform.startswith("dashscope")
+            or "dashscope.aliyuncs.com" in api_url
+            or "bailian" in api_url
+            or ("aliyuncs.com" in api_url and "compatible-mode" in api_url)
+        ):
+            extra_body["enable_thinking"] = True
+            try:
+                thinking_budget = int(platform_config.get("thinking_budget"))
+            except (TypeError, ValueError):
+                thinking_budget = None
+            if thinking_budget is not None and thinking_budget >= 0:
+                extra_body["thinking_budget"] = thinking_budget
+            return params
+
+        # 其他 OpenAI 兼容路由使用通用思考参数，兼容原有的 reasoning_effort 行为
+        params["reasoning_effort"] = think_depth
+        return params
 
     # 手动解析SSE流式响应，合并为完整的ChatCompletion结果
     def _parse_sse_response(self, raw_text: str) -> tuple[str, str, int, int]:
@@ -99,8 +172,6 @@ class OpenaiRequester(LogMixin, Base):
             presence_penalty = platform_config.get("presence_penalty", 0)
             frequency_penalty = platform_config.get("frequency_penalty", 0)
             extra_body = platform_config.get("extra_body", {})
-            think_switch = platform_config.get("think_switch")
-            think_depth = platform_config.get("think_depth")
 
             # 插入系统消息
             if system_prompt:
@@ -139,9 +210,8 @@ class OpenaiRequester(LogMixin, Base):
             if frequency_penalty != 0:
                 base_params["frequency_penalty"] = frequency_penalty
 
-            # 开启思考开关时添加参数
-            if think_switch:
-                base_params["reasoning_effort"] = think_depth
+            # 根据平台规则注入思考参数
+            base_params = self.apply_platform_thinking_params(base_params, platform_config)
 
             # 使用with_raw_response获取原始响应，以便处理中转站强制返回流式响应的情况
             raw_response = client.chat.completions.with_raw_response.create(**base_params)

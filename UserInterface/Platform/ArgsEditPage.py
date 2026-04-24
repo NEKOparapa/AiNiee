@@ -162,7 +162,7 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
         def init(widget):
             platform = config.get("platforms").get(self.key)
 
-            widget.set_items(["low","medium","high"])
+            widget.set_items(["low","medium","high","xhigh"])
             widget.set_current_index(max(0, widget.find_text(platform.get("think_depth"))))
 
         def current_text_changed(widget, text: str):
