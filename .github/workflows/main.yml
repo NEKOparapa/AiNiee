@@ -35,6 +35,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install --upgrade setuptools
           python -m pip install -r requirements.txt
+          python -m pip install --no-deps -r requirements_no_deps.txt
           python -m pip cache purge
 
       - name: Build EXE with PyInstaller (--onedir mode)

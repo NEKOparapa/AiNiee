@@ -36,7 +36,7 @@ class PlatformPathsTest(unittest.TestCase):
 
             self.assertEqual(
                 paths.config_path(),
-                Path(home_dir) / "Library" / "Application Support" / "AiNiee_MacOS" / "config.json",
+                Path(home_dir) / "Library" / "Application Support" / "AiNiee" / "config.json",
             )
 
     def test_resource_root_can_be_overridden_for_packaged_app(self):

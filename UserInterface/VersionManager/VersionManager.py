@@ -97,7 +97,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                     return False, self.current_version
             elif response.status_code == 404 and is_macos():
                 self.latest_version = self.current_version
-                self.latest_version_url = "https://github.com/beautifulrem/AiNiee_MacOS/releases"
+                self.latest_version_url = "https://github.com/NEKOparapa/AiNiee/releases"
                 return False, self.current_version
             else:
                 self.error(f"Failed to check for updates: {response.status_code}")

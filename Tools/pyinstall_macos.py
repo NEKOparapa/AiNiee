@@ -10,8 +10,8 @@ import PyInstaller.__main__
 
 
 ROOT = Path(__file__).resolve().parents[1]
-APP_NAME = "AiNiee_MacOS"
-BUNDLE_ID = "com.beautifulrem.AiNieeMacOS"
+APP_NAME = "AiNiee"
+BUNDLE_ID = "com.nekoparapa.AiNiee"
 
 
 def app_version() -> str:
@@ -75,14 +75,14 @@ def patch_info_plist() -> None:
         plist = plistlib.load(reader)
     plist.update(
         {
-            "CFBundleDisplayName": "AiNiee MacOS",
-            "CFBundleName": "AiNiee MacOS",
+            "CFBundleDisplayName": "AiNiee",
+            "CFBundleName": "AiNiee",
             "CFBundleIdentifier": BUNDLE_ID,
             "CFBundleShortVersionString": app_version(),
             "CFBundleVersion": app_version(),
             "LSMinimumSystemVersion": "13.0",
             "NSHighResolutionCapable": True,
-            "NSHumanReadableCopyright": "Copyright © beautifulrem. All rights reserved.",
+            "NSHumanReadableCopyright": "Copyright © AiNiee contributors. All rights reserved.",
         }
     )
     with plist_path.open("wb") as writer:

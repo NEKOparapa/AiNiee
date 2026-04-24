@@ -45,8 +45,8 @@ class PackagedRuntimeRegressionTest(unittest.TestCase):
 
             def json(self):
                 return {
-                    "tag_name": "AiNiee_MacOS-v7.2.2",
-                    "html_url": "https://github.com/beautifulrem/AiNiee_MacOS/releases/tag/AiNiee_MacOS-v7.2.2",
+                    "tag_name": "v7.2.2",
+                    "html_url": "https://github.com/NEKOparapa/AiNiee/releases/tag/v7.2.2",
                     "assets": [],
                 }
 

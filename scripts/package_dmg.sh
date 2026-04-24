@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_PATH="${1:-dist/AiNiee_MacOS.app}"
-DMG_PATH="${2:-dist/AiNiee_MacOS-arm64.dmg}"
-VOLUME_NAME="${VOLUME_NAME:-AiNiee MacOS}"
+APP_PATH="${1:-dist/AiNiee.app}"
+DMG_PATH="${2:-dist/AiNiee-arm64.dmg}"
+VOLUME_NAME="${VOLUME_NAME:-AiNiee}"
 
 if [[ ! -d "$APP_PATH" ]]; then
   echo "App bundle not found: $APP_PATH" >&2
