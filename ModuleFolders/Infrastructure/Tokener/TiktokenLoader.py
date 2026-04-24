@@ -3,6 +3,7 @@ import sys
 import time
 import shutil
 import hashlib
+from pathlib import Path
 from typing import Optional
 
 try:
@@ -15,6 +16,23 @@ except ImportError:
 # 全局单例
 _TIKTOKEN_INITIALIZED = False
 _TIKTOKEN_CACHE_DIR = None
+
+
+def _default_cache_dir() -> str:
+    override = os.environ.get("AINIEE_TIKTOKEN_CACHE_DIR")
+    if override:
+        return str(Path(override).expanduser().resolve())
+
+    try:
+        from ModuleFolders.Infrastructure.Platform.PlatformPaths import cache_root, is_macos
+
+        if is_macos():
+            return str(cache_root() / "tiktoken")
+    except Exception:
+        pass
+
+    script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+    return os.path.join(script_dir, "Resource", "Models", "tiktoken")
 
 
 def _print_info(msg: str):
@@ -64,8 +82,7 @@ def initialize_tiktoken():
 
     try:
         # 1. 确定缓存目录
-        script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-        cache_dir = os.path.join(script_dir, "Resource", "Models", "tiktoken")
+        cache_dir = _default_cache_dir()
 
         # 2. 创建目录（如果不存在）
         os.makedirs(cache_dir, exist_ok=True)
