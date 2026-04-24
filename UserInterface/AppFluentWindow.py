@@ -24,6 +24,7 @@ from ModuleFolders.Infrastructure.Platform.PlatformPaths import is_macos, resour
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.BaseNavigationItem import BaseNavigationItem
 from UserInterface.EditView.EditViewPage import EditViewPage
+from UserInterface.Native.MacOSUI import MACOS_PROJECT_URL, about_message, app_menu_title, command_shortcut
 from UserInterface.Platform.PlatformPage import PlatformPage
 from UserInterface.PromptSettings.PolishingSettings.PolishingSystemPromptPage import PolishingSystemPromptPage
 from UserInterface.Settings.AppSettingsPage import AppSettingsPage
@@ -153,7 +154,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
     # 打开项目主页
     def open_project_page(self) -> None:
         if is_macos():
-            QDesktopServices.openUrl(QUrl("https://github.com/beautifulrem/AiNiee_MacOS"))
+            QDesktopServices.openUrl(QUrl(MACOS_PROJECT_URL))
         else:
             QDesktopServices.openUrl(QUrl("https://github.com/NEKOparapa/AiNiee"))
 
@@ -165,25 +166,25 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         menu_bar.setNativeMenuBar(True)
         self.macos_menu_bar = menu_bar
 
-        app_menu = menu_bar.addMenu("AiNiee MacOS")
+        app_menu = menu_bar.addMenu(app_menu_title())
         about_action = QAction(self.tra("关于 AiNiee MacOS"), self)
         about_action.setMenuRole(QAction.AboutRole)
         about_action.triggered.connect(
             lambda: MessageBox(
                 self.tra("关于 AiNiee MacOS"),
-                self.tra("AiNiee MacOS") + "\n" + self.windowTitle(),
+                about_message(self.windowTitle(), self.tra),
                 self,
             ).exec()
         )
 
         preferences_action = QAction(self.tra("偏好设置..."), self)
         preferences_action.setMenuRole(QAction.PreferencesRole)
-        preferences_action.setShortcut("Ctrl+,")
+        preferences_action.setShortcut(command_shortcut(","))
         preferences_action.triggered.connect(lambda: self.switchTo(self.app_settings_page))
 
         quit_action = QAction(self.tra("退出 AiNiee"), self)
         quit_action.setMenuRole(QAction.QuitRole)
-        quit_action.setShortcut("Ctrl+Q")
+        quit_action.setShortcut(command_shortcut("Q"))
         quit_action.triggered.connect(self.close)
 
         app_menu.addAction(about_action)
