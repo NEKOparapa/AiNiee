@@ -38,24 +38,22 @@ def build_icns() -> Path:
     ]
     for size, filename in icon_specs:
         subprocess.run(
-            ["sips", "-z", str(size), str(size), str(source_png), "--out", str(iconset / filename)],
+            [
+                "sips",
+                "-s",
+                "format",
+                "png",
+                "-z",
+                str(size),
+                str(size),
+                str(source_png),
+                "--out",
+                str(iconset / filename),
+            ],
             check=True,
         )
     subprocess.run(["iconutil", "-c", "icns", str(iconset), "-o", str(output_icns)], check=True)
     return output_icns
-
-
-def add_hidden_imports_from_requirements(cmd: list[str], path: Path) -> None:
-    if not path.exists():
-        return
-
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        package = raw_line.strip()
-        if not package or package.startswith("#") or package.startswith("-r "):
-            continue
-        if any(token in package for token in ("[", "=", "<", ">", "~", ";")):
-            continue
-        cmd.append("--hidden-import=" + package)
 
 
 def patch_info_plist() -> None:
@@ -76,6 +74,22 @@ def patch_info_plist() -> None:
     )
     with plist_path.open("wb") as writer:
         plistlib.dump(plist, writer)
+
+
+def sign_app_bundle() -> None:
+    app_path = ROOT / "dist" / f"{APP_NAME}.app"
+    if sys.platform != "darwin" or not app_path.exists() or not shutil.which("codesign"):
+        return
+
+    identity = os.environ.get("MACOS_CODESIGN_IDENTITY", "-")
+    cmd = ["codesign", "--force", "--deep", "--sign", identity]
+    entitlements = ROOT / "Packaging" / "macOS" / "entitlements.plist"
+    if entitlements.exists():
+        cmd.extend(["--entitlements", str(entitlements)])
+    if identity != "-":
+        cmd.extend(["--options", "runtime"])
+    cmd.append(str(app_path))
+    subprocess.run(cmd, check=True)
 
 
 def main() -> None:
@@ -103,9 +117,9 @@ def main() -> None:
         "--exclude-module=win32com",
         "--exclude-module=pythoncom",
     ]
-    add_hidden_imports_from_requirements(cmd, ROOT / "requirements.txt")
     PyInstaller.__main__.run(cmd)
     patch_info_plist()
+    sign_app_bundle()
 
 
 if __name__ == "__main__":
