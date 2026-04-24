@@ -497,7 +497,8 @@ class PromptBuilder(Base):
 
             # 添加数据
             for v in result:
-                glossary_prompt_lines.append(f"{v.get("src")}|{v.get("dst")}|{v.get("info") if v.get("info") != "" else " "}")
+                info = v.get("info") if v.get("info") != "" else " "
+                glossary_prompt_lines.append(f"{v.get('src')}|{v.get('dst')}|{info}")
 
         else:
             # 添加开头
@@ -508,7 +509,8 @@ class PromptBuilder(Base):
 
             # 添加数据
             for v in result:
-                glossary_prompt_lines.append(f"{v.get("src")}|{v.get("dst")}|{v.get("info") if v.get("info") != "" else " "}")
+                info = v.get("info") if v.get("info") != "" else " "
+                glossary_prompt_lines.append(f"{v.get('src')}|{v.get('dst')}|{info}")
 
 
         # 拼接成最终的字符串
@@ -870,7 +872,7 @@ class PromptBuilder(Base):
         formatted_rows = [item for item in input_list]
 
         # 使用换行符将列表元素连接成一个字符串
-        profile += f"{"\n".join(formatted_rows)}\n"
+        profile += "\n".join(formatted_rows) + "\n"
 
         profile += "</previous>\n"
 
@@ -1028,7 +1030,7 @@ class PromptBuilder(Base):
         if config.pre_line_counts and previous_text_list:
             previous = PromptBuilder.build_pre_text(config, previous_text_list)
             if previous != "":
-                extra_log.append(f"###上文内容\n{"\n".join(previous_text_list)}")
+                extra_log.append("###上文内容\n" + "\n".join(previous_text_list))
 
 
         # 构建待翻译文本
@@ -1052,4 +1054,3 @@ class PromptBuilder(Base):
 
 
         return messages, system, extra_log
-

@@ -6,7 +6,9 @@ import signal
 import threading
 import requests
 from PyQt5.QtCore import pyqtSignal, QObject, Qt
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QGridLayout, QWidget)
+from PyQt5.QtCore import QUrl
 
 
 from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, StrongBodyLabel,
@@ -15,6 +17,7 @@ from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, Stron
                             InfoBar, InfoBarPosition, SubtitleLabel, MessageBoxBase)
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import downloads_dir, is_macos, release_api_url, resource_path
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.Toast import ToastMixin
 
@@ -42,7 +45,7 @@ class UpdateMessageBox(MessageBoxBase):
 
 class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
     # GitHub API URL for releases
-    GITHUB_API_URL = "https://api.github.com/repos/NEKOparapa/AiNiee/releases/latest"
+    GITHUB_API_URL = release_api_url()
 
     def __init__(self, main_window=None, version = "0.0.0"):
         super().__init__()
@@ -97,7 +100,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             else:
                 self.error(f"Failed to check for updates: {response.status_code}")
 
-                self.check_error = f"{self.tra("HTTP错误")}: {response.status_code}"
+                self.check_error = f"{self.tra('HTTP错误')}: {response.status_code}"
                 return False, self.current_version
         except Exception as e:
             self.error(f"Error checking for updates: {e}")
@@ -437,9 +440,10 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                 data = response.json()
                 download_url = None
 
-                # 查找.zip扩展名的资产
+                expected_suffix = ".dmg" if is_macos() else ".zip"
+                # 查找当前平台的更新资产
                 for asset in data["assets"]:
-                    if asset["name"].endswith(".zip"):
+                    if asset["name"].endswith(expected_suffix):
                         download_url = asset["browser_download_url"]
                         break
 
@@ -502,12 +506,14 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         """下载更新文件，支持断点续传"""
         try:
             # 如果目录不存在，则创建
-            os.makedirs("downloads", exist_ok=True)
+            download_root = downloads_dir()
+            download_root.mkdir(parents=True, exist_ok=True)
 
             # 完成的文件名和临时文件名
-            local_filename = os.path.join("downloads", "AiNiee-update.zip")
-            temp_filename = os.path.join("downloads", "AiNiee-update.zip.temp")
-            download_info_file = os.path.join("downloads", "download_info.json")
+            update_suffix = ".dmg" if is_macos() else ".zip"
+            local_filename = str(download_root / f"AiNiee-update{update_suffix}")
+            temp_filename = str(download_root / f"AiNiee-update{update_suffix}.temp")
+            download_info_file = str(download_root / "download_info.json")
 
             # 检查是否已经存在完成的文件
             if os.path.exists(local_filename):
@@ -694,7 +700,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
         # 读取下载信息文件，获取URL
         try:
-            download_info_file = os.path.join("downloads", "download_info.json")
+            download_info_file = str(downloads_dir() / "download_info.json")
             if os.path.exists(download_info_file):
                 with open(download_info_file, 'r') as f:
                     download_info = json.load(f)
@@ -740,7 +746,16 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
 
             import subprocess
-            updater_path = os.path.join(current_dir, "Resource", "Updater", "updater.exe")
+            if is_macos():
+                if os.path.exists(update_file):
+                    subprocess.Popen(["open", update_file])
+                    return
+
+                if self.latest_version_url:
+                    QDesktopServices.openUrl(QUrl(self.latest_version_url))
+                    return
+
+            updater_path = str(resource_path("Updater", "updater.exe"))
 
             if os.path.exists(updater_path):
                 # 使用PowerShell启动更新器

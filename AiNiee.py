@@ -38,12 +38,15 @@ import os
 import sys
 
 from ModuleFolders.Infrastructure.Tokener.TiktokenLoader import initialize_tiktoken
-
-try:
-    initialize_tiktoken()
-except Exception as e:
-    print(f"[ERROR] tiktoken 初始化失败: {e}")
-    print("[WARNING] Token 限制模式将不可用，请使用行数限制模式")
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import (
+    config_path,
+    executable_root,
+    migrate_config_if_needed,
+    monospace_font_family,
+    prepare_working_directory,
+    resource_path,
+    ui_font_family,
+)
 
 import multiprocessing
 import warnings
@@ -69,16 +72,17 @@ warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 # 载入配置文件
 def load_config() -> dict:
     config = {}
-    config_path = os.path.join(".", "Resource", "config.json")
-    if os.path.exists(config_path):
-        with open(config_path, "r", encoding="utf-8") as reader:
+    migrate_config_if_needed()
+    path = config_path()
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as reader:
             config = json.load(reader)
     return config
 
 # 载入版本信息函数
 def load_version() -> str:
     """从 Resource/Version/version.json 加载版本信息"""
-    version_path = os.path.join(".", "Resource", "Version", "version.json")
+    version_path = resource_path("Version", "version.json")
     default_version = "Unknown Version"
     if os.path.exists(version_path):
         try:
@@ -95,7 +99,7 @@ def load_version() -> str:
 
 # 启动画面消息
 def update_splash_message(splash, message, app, font_size=10, font_weight=QFont.Bold):
-    font = QFont("Microsoft YaHei")
+    font = QFont(ui_font_family())
     font.setPointSize(font_size)
     font.setWeight(font_weight)
     
@@ -109,6 +113,15 @@ def update_splash_message(splash, message, app, font_size=10, font_weight=QFont.
     
     app.processEvents()
 
+
+def prepare_runtime_environment() -> str:
+    working_root = prepare_working_directory()
+    os.chdir(working_root)
+    for path in (working_root, executable_root()):
+        if str(path) not in sys.path:
+            sys.path.append(str(path))
+    return str(working_root)
+
 if __name__ == "__main__":
     # 开启子进程支持
     multiprocessing.freeze_support()
@@ -119,9 +132,13 @@ if __name__ == "__main__":
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     # 设置工作目录
-    script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    os.chdir(script_dir) # 确保工作目录在脚本所在目录
-    sys.path.append(script_dir)
+    script_dir = prepare_runtime_environment()
+
+    try:
+        initialize_tiktoken()
+    except Exception as e:
+        print(f"[ERROR] tiktoken 初始化失败: {e}")
+        print("[WARNING] Token 限制模式将不可用，请使用行数限制模式")
 
     # 加载配置文件
     config = load_config()
@@ -150,7 +167,7 @@ if __name__ == "__main__":
     print(f"[[green]INFO[/]] Starting AiNiee Application...")
 
     # 启动页面
-    logo_path = os.path.join(".", "Resource", "Logo", "Logo.png")
+    logo_path = str(resource_path("Logo", "Logo.png"))
     icon = QIcon(logo_path)  # 使用QIcon加载logo
     pixmap = icon.pixmap(400, 200)  # 从QIcon获取指定大小的QPixmap
     # 跟随缩放比例
@@ -172,7 +189,7 @@ if __name__ == "__main__":
 
 
     # 设置全局字体属性，解决狗牙问题
-    font = QFont("Consolas")
+    font = QFont(monospace_font_family())
     font.setHintingPreference(QFont.PreferFullHinting)
     app.setFont(font)
 

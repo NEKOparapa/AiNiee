@@ -330,7 +330,7 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
     def add_widget_temperature(self, parent, config, preset):
         def init(widget):
             widget.set_range(0, 200)
-            widget.set_text(f"{config.get("platforms").get(self.key).get("temperature"):.2f}")
+            widget.set_text(f"{config.get('platforms').get(self.key).get('temperature'):.2f}")
             widget.set_value(int(config.get("platforms").get(self.key).get("temperature") * 100))
 
         def value_changed(widget, value):
@@ -354,4 +354,3 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
                 value_changed = value_changed,
             )
         )
-
