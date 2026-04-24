@@ -16,10 +16,6 @@ class OpenaiRequester(LogMixin, Base):
     def apply_platform_thinking_params(self, base_params: dict, platform_config: dict) -> dict:
         params = copy.deepcopy(base_params)
 
-        # 未开启思考开关时不做任何平台判断，避免给普通模型传入不支持的参数
-        if not platform_config.get("think_switch"):
-            return params
-
         target_platform = str(platform_config.get("target_platform") or "").lower()
         api_url = str(platform_config.get("api_url") or "").lower()
         model_name = str(platform_config.get("model_name") or params.get("model") or "")
@@ -31,46 +27,64 @@ class OpenaiRequester(LogMixin, Base):
         extra_body = copy.deepcopy(raw_extra_body) if isinstance(raw_extra_body, dict) else {}
         params["extra_body"] = extra_body
 
-        # OpenAI 官方推理模型使用顶层 reasoning_effort，普通模型不传该字段
+        # 判断是否打开了思考开关，没打开就不传任何思考相关参数
+        if not platform_config.get("think_switch"):
+            # 针对deepseek的特殊处理，思考开关关闭时也要传一个字段告诉它关闭思考，否则它会默认开启
+            if target_platform.startswith("deepseek") or "api.deepseek.com" in api_url:
+                extra_body["thinking"] = {"type": "disabled"}
+            
+            # 其他平台不传任何思考参数
+            return params
+
+        # 如果是OpenAI 平台----
         if target_platform.startswith("openai") or "api.openai.com" in api_url:
+            # 推理模型使用顶层 reasoning_effort，普通模型不传该字段
             if model_name_lower.startswith(("o1", "o3", "o4", "gpt-5")):
                 params["reasoning_effort"] = think_depth
             return params
 
-        # DeepSeek 使用顶层 reasoning_effort；low/medium/high 统一映射为 high，xhigh 映射为 max
+        # 如果是DeepSeek 平台----
         if target_platform.startswith("deepseek") or "api.deepseek.com" in api_url:
+            # 使用顶层 reasoning_effort；low/medium/high 统一映射为 high，xhigh 映射为 max
             deepseek_effort = "max" if think_depth == "xhigh" else "high"
             params["reasoning_effort"] = deepseek_effort
             extra_body["thinking"] = {"type": "enabled"}
             return params
 
-        # xAI 的推理模型会自动推理，显式传 reasoning_effort 反而可能报错
+        # 如果是xAI 平台----
         if target_platform.startswith("xai") or "api.x.ai" in api_url:
+            # xAI 的思考参数放在 extra_body.thinking 中，且 low/medium/high/xhigh 分别映射为 1/2/3/4
+            extra_body["thinking"] = {"type": "enabled"}
             return params
 
-        # 火山方舟的思考参数放在 extra_body.thinking 中
+        # 如果是火山方舟平台----
         if (
             target_platform.startswith("volcengine")
             or "volces.com" in api_url
             or "volcengine" in api_url
         ):
+            # 思考参数放在 extra_body.thinking 中
             if "doubao" in model_name_lower or "deepseek" in model_name_lower:
                 extra_body["thinking"] = {"type": "enabled"}
             return params
 
-        # 智谱 GLM 新系列支持 extra_body.thinking，旧模型保持默认参数
+        # 如果是智谱平台---- 
         if target_platform.startswith("zhipu") or "bigmodel.cn" in api_url:
+
+            # GLM 新系列支持 extra_body.thinking，旧模型保持默认参数
             if model_name_lower.startswith(("glm-4.5", "glm-4.6", "glm-4.7", "glm-5")):
                 extra_body["thinking"] = {"type": "enabled"}
             return params
 
-        # 阿里百炼兼容模式使用 enable_thinking，并可选传入 thinking_budget
+        # 如果是阿里百炼平台----
         if (
             target_platform.startswith("dashscope")
             or "dashscope.aliyuncs.com" in api_url
             or "bailian" in api_url
             or ("aliyuncs.com" in api_url and "compatible-mode" in api_url)
         ):
+            
+            # 兼容模式使用 enable_thinking，并可选传入 thinking_budget
             extra_body["enable_thinking"] = True
             try:
                 thinking_budget = int(platform_config.get("thinking_budget"))
@@ -80,8 +94,10 @@ class OpenaiRequester(LogMixin, Base):
                 extra_body["thinking_budget"] = thinking_budget
             return params
 
-        # 其他 OpenAI 兼容路由使用通用思考参数，兼容原有的 reasoning_effort 行为
+        # 如果是其他平台----
         params["reasoning_effort"] = think_depth
+
+        # 返回最终参数，包含原有参数和根据平台规则添加的思考相关参数
         return params
 
     # 手动解析SSE流式响应，合并为完整的ChatCompletion结果

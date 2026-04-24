@@ -129,7 +129,7 @@
             "tpm_limit": 10000000,
             "model": "deepseek-v4-flash",
             "temperature": 1.3,
-            "think_switch": false,
+            "think_switch": true,
             "think_depth": "high",
             "auto_complete": false,
             "model_datas": [
