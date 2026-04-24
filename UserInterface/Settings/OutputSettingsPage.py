@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QFileDialog, QFrame
+from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import FluentIcon, HorizontalSeparator, SingleDirectionScrollArea
@@ -10,6 +10,7 @@ from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.PushButtonCard import PushButtonCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.LineEditCard import LineEditCard
+from UserInterface.Native.MacOSUI import auto_output_path_description, choose_output_folder_title, get_existing_directory
 
 class OutputSettingsPage(QFrame, ConfigMixin, Base):
 
@@ -76,7 +77,12 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
 
         def widget_callback(widget) -> None:
             # 选择文件夹
-            path = QFileDialog.getExistingDirectory(None, "选择文件夹", "")
+            current_config = self.load_config()
+            path = get_existing_directory(
+                self.window(),
+                choose_output_folder_title(self.tra),
+                current_config.get("label_output_path", ""),
+            )
             if path == None or path == "":
                 return
 
@@ -127,7 +133,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         parent.addWidget(
             SwitchButtonCard(
                 self.tra("自动设置输出文件夹"),
-                self.tra("启用此功能后，设置为输入文件夹的平级目录，比如输入文件夹为D:/Test/Input，输出文件夹将设置为D:/Test/AiNieeOutput"),
+                auto_output_path_description(self.tra),
                 widget_init,
                 widget_callback,
             )

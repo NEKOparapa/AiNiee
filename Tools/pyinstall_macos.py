@@ -1,5 +1,6 @@
 import os
 import plistlib
+import re
 import shutil
 import subprocess
 import sys
@@ -11,6 +12,15 @@ import PyInstaller.__main__
 ROOT = Path(__file__).resolve().parents[1]
 APP_NAME = "AiNiee_MacOS"
 BUNDLE_ID = "com.beautifulrem.AiNieeMacOS"
+
+
+def app_version() -> str:
+    version_file = ROOT / "Resource" / "Version" / "version.json"
+    if not version_file.exists():
+        return "0.0.0"
+
+    match = re.search(r"\d+(?:\.\d+){1,3}", version_file.read_text(encoding="utf-8"))
+    return match.group(0) if match else "0.0.0"
 
 
 def build_icns() -> Path:
@@ -68,8 +78,11 @@ def patch_info_plist() -> None:
             "CFBundleDisplayName": "AiNiee MacOS",
             "CFBundleName": "AiNiee MacOS",
             "CFBundleIdentifier": BUNDLE_ID,
+            "CFBundleShortVersionString": app_version(),
+            "CFBundleVersion": app_version(),
             "LSMinimumSystemVersion": "13.0",
             "NSHighResolutionCapable": True,
+            "NSHumanReadableCopyright": "Copyright © beautifulrem. All rights reserved.",
         }
     )
     with plist_path.open("wb") as writer:

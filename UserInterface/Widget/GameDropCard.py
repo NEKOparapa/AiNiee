@@ -1,7 +1,7 @@
 import os
 import random
 from PyQt5.QtWidgets import (
- QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QSizePolicy
+ QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy
 )
 
 from PyQt5.QtGui import QPainter, QPen, QColor, QBrush, QFont, QPainterPath
@@ -11,6 +11,8 @@ from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, FlowLayout, Flue
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import monospace_font_family, ui_font_family
+from UserInterface.Native.MacOSUI import choose_input_folder_title, get_existing_directory, input_folder_button_text
 
 class InfoBlockWidget(ConfigMixin, Base, QWidget):
     """信息块组件 (圆角+折角+透明)"""
@@ -27,13 +29,10 @@ class InfoBlockWidget(ConfigMixin, Base, QWidget):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed) # 水平扩展，垂直固定
 
         # 设置中心文本显示字体
-        self.default_font = QFont("Microsoft YaHei", 10)
-        if QFont(self.default_font).family() != "Microsoft YaHei":
-             self.default_font = QFont() # Use system default
-             self.default_font.setPointSize(10)
+        self.default_font = QFont(ui_font_family(), 10)
 
         # 为准心创建一个稍大、等宽的字体
-        self.reticle_font = QFont("Courier New", 14) # 使用等宽字体 Courier New, 大小 14
+        self.reticle_font = QFont(monospace_font_family(), 14)
         self.reticle_font.setBold(True) # 加粗更明显
 
     def set_display_mode(self, mode):
@@ -207,7 +206,7 @@ class DragDropArea(ConfigMixin, Base, QWidget):
         self.NoneLabel2 = CaptionLabel(f"       ", self)
         self.NoneLabel2.setAlignment(Qt.AlignVCenter) # 垂直居中        
 
-        info = self.tra("拖拽/选择输入文件夹")
+        info = input_folder_button_text(self.tra)
         self.selectButton = PrimaryPushButton(FluentIcon.FOLDER_ADD,info,self) # 创建主操作按钮
         self.selectButton.clicked.connect(self._select_folder) # 连接按钮点击事件到选择文件夹方法
 
@@ -252,8 +251,8 @@ class DragDropArea(ConfigMixin, Base, QWidget):
 
     def _select_folder(self):
         """处理点击选择文件夹按钮的事件"""
-        info = self.tra("选择文件夹")
-        folder_path = QFileDialog.getExistingDirectory(self, info)
+        info = choose_input_folder_title(self.tra)
+        folder_path = get_existing_directory(self, info, self.current_path)
         if folder_path:
             self.update_path(folder_path)
             button_center_global = self.selectButton.mapToGlobal(self.selectButton.rect().center())

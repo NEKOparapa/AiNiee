@@ -4,7 +4,6 @@ import rapidjson as json
 from PyQt5.QtCore import QEvent, QPoint, Qt
 from PyQt5.QtWidgets import (
     QAbstractItemView,
-    QFileDialog,
     QFrame,
     QHeaderView,
     QHBoxLayout,
@@ -19,6 +18,7 @@ from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface import AppFluentWindow
+from UserInterface.Native.MacOSUI import get_open_file_name, get_save_file_name
 from UserInterface.Table.TableHelper.TableHelper import TableHelper
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.Toast import ToastMixin
@@ -260,7 +260,7 @@ class TranslationExamplePromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Ba
         self.success_toast("", self.tra("数据已重置") + " ... ")
 
     def import_data(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
+        path, _ = get_open_file_name(
             self,
             self.tra("选择文件"),
             "",
@@ -300,7 +300,7 @@ class TranslationExamplePromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Ba
             return
 
         default_filename = self.tra("导出_翻译示例") + ".json"
-        path, _ = QFileDialog.getSaveFileName(
+        path, _ = get_save_file_name(
             self,
             self.tra("导出文件"),
             default_filename,

@@ -47,6 +47,7 @@ from ModuleFolders.Infrastructure.Platform.PlatformPaths import (
     resource_path,
     ui_font_family,
 )
+from UserInterface.Native.MacOSUI import configure_application_metadata
 
 import multiprocessing
 import warnings
@@ -161,6 +162,7 @@ if __name__ == "__main__":
 
     # 创建全局应用对象
     app = QApplication(sys.argv)
+    configure_application_metadata(app, app_version)
 
     print(f"[[green]INFO[/]] Application Version: {app_version}") # 打印版本号
     print(f"[[green]INFO[/]] Current working directory is {script_dir}")
