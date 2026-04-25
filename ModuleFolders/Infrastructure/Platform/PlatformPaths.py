@@ -58,6 +58,39 @@ def resource_path(*parts: str) -> Path:
     return resource_root().joinpath(*parts)
 
 
+def stev_extraction_root() -> Path:
+    override = os.environ.get("AINIEE_STEV_EXTRACTION_DIR")
+    if override:
+        return Path(override).expanduser().resolve()
+
+    candidates = []
+    if hasattr(sys, "_MEIPASS"):
+        candidates.append(Path(sys._MEIPASS) / "StevExtraction")
+
+    app_contents = executable_root().parent
+    candidates.extend(
+        [
+            app_contents / "Resources" / "StevExtraction",
+            executable_root() / "StevExtraction",
+            repo_root() / "StevExtraction",
+        ]
+    )
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    return candidates[0]
+
+
+def stev_extraction_path(*parts: str) -> Path:
+    return stev_extraction_root().joinpath(*parts)
+
+
+def stev_extraction_config_path() -> Path:
+    return stev_extraction_path("config.yaml")
+
+
 def release_api_url() -> str:
     if is_macos():
         return MACOS_RELEASE_API_URL
