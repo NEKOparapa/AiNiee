@@ -2,6 +2,22 @@ name: AiNiee macOS Build
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Publish DMG assets to a GitHub Release"
+        required: false
+        default: false
+        type: boolean
+      release_tag:
+        description: "Release tag"
+        required: false
+        default: "v7.2.0-Mac"
+        type: string
+      release_name:
+        description: "Release name"
+        required: false
+        default: "AiNiee 7.2.0 Mac"
+        type: string
   pull_request:
     branches:
       - main
@@ -82,3 +98,42 @@ jobs:
           path: |
             dist/AiNiee-macOS-${{ matrix.arch }}.dmg
             dist/AiNiee-macOS-${{ matrix.arch }}.dmg.sha256
+
+  release-macos:
+    name: Publish macOS Release
+    needs: build-macos
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_release == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Validate release inputs
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          RELEASE_NAME: ${{ inputs.release_name }}
+        run: |
+          if [[ -z "$RELEASE_TAG" || -z "$RELEASE_NAME" ]]; then
+            echo "release_tag and release_name are required when publish_release is true." >&2
+            exit 1
+          fi
+
+      - name: Download DMG artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: AiNiee-macOS-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: ${{ inputs.release_name }}
+          draft: false
+          prerelease: true
+          generate_release_notes: true
+          files: |
+            release-assets/*.dmg
+            release-assets/*.dmg.sha256
+          token: ${{ secrets.AINIEE || github.token }}
