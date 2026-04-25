@@ -1,10 +1,24 @@
 import os
+import sys
 import traceback
 import logging
+from pathlib import Path
+
+
+def _ensure_import_paths() -> None:
+    current_dir = Path(__file__).resolve().parent
+    repo_root = current_dir.parent
+    for path in (repo_root, current_dir):
+        path_text = str(path)
+        if path_text not in sys.path:
+            sys.path.insert(0, path_text)
+
+
+_ensure_import_paths()
 
 from jtpp import Jr_Tpp, version
 from ModuleFolders.Infrastructure.Platform.PlatformPaths import stev_extraction_config_path
-from ruamel.yaml import YAML
+import yaml
 
 
 class MainApp:
@@ -34,9 +48,8 @@ class MainApp:
         """读取配置文件 config.yaml."""
         config_path = stev_extraction_config_path()
         try:
-            yaml = YAML(typ="safe")
             with open(config_path, "r", encoding="utf8") as f:
-                config = yaml.load(f)
+                config = yaml.safe_load(f)
 
             # 规范化路径
             for key in [

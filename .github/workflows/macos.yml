@@ -131,7 +131,7 @@ jobs:
           tag_name: ${{ inputs.release_tag }}
           name: ${{ inputs.release_name }}
           draft: false
-          prerelease: true
+          prerelease: false
           generate_release_notes: true
           files: |
             release-assets/*.dmg
