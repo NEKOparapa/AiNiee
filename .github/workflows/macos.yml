@@ -9,9 +9,9 @@ on:
         default: false
         type: boolean
       release_tag:
-        description: "Release tag"
+        description: "Release tag, use auto to derive from version.json"
         required: false
-        default: "v7.2.1-Mac"
+        default: "auto"
         type: string
       release_name:
         description: "Release name"
@@ -108,15 +108,43 @@ jobs:
       contents: write
 
     steps:
-      - name: Validate release inputs
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve release inputs
+        id: release_metadata
         env:
           RELEASE_TAG: ${{ inputs.release_tag }}
           RELEASE_NAME: ${{ inputs.release_name }}
         run: |
-          if [[ -z "$RELEASE_TAG" || -z "$RELEASE_NAME" ]]; then
-            echo "release_tag and release_name are required when publish_release is true." >&2
-            exit 1
-          fi
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          import os
+          import re
+          import sys
+
+          release_tag = os.environ["RELEASE_TAG"].strip()
+          release_name = os.environ["RELEASE_NAME"].strip()
+
+          if not release_tag or release_tag.lower() == "auto":
+              with open("Resource/Version/version.json", encoding="utf-8") as f:
+                  version_data = json.load(f)
+
+              version_text = version_data.get("version") or version_data.get("Version") or ""
+              match = re.search(r"\d+(?:\.\d+)+", version_text)
+              if not match:
+                  print("Unable to derive release_tag from Resource/Version/version.json.", file=sys.stderr)
+                  sys.exit(1)
+
+              release_tag = f"v{match.group(0)}-Mac"
+
+          if not release_name:
+              print("release_name is required when publish_release is true.", file=sys.stderr)
+              sys.exit(1)
+
+          print(f"release_tag={release_tag}")
+          print(f"release_name={release_name}")
+          PY
 
       - name: Download DMG artifacts
         uses: actions/download-artifact@v4
@@ -128,8 +156,8 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.release_tag }}
-          name: ${{ inputs.release_name }}
+          tag_name: ${{ steps.release_metadata.outputs.release_tag }}
+          name: ${{ steps.release_metadata.outputs.release_name }}
           draft: false
           prerelease: false
           generate_release_notes: true
