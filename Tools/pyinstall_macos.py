@@ -1,3 +1,4 @@
+import argparse
 import os
 import plistlib
 import re
@@ -12,6 +13,22 @@ import PyInstaller.__main__
 ROOT = Path(__file__).resolve().parents[1]
 APP_NAME = "AiNiee"
 BUNDLE_ID = "com.nekoparapa.AiNiee"
+VALID_TARGET_ARCHES = {"arm64", "x86_64"}
+
+
+def target_arch(explicit_arch: str | None = None) -> str:
+    arch = explicit_arch or os.environ.get("AINIEE_MACOS_ARCH") or "arm64"
+    normalized_arch = arch.strip().lower()
+    aliases = {
+        "aarch64": "arm64",
+        "amd64": "x86_64",
+        "x64": "x86_64",
+    }
+    normalized_arch = aliases.get(normalized_arch, normalized_arch)
+    if normalized_arch not in VALID_TARGET_ARCHES:
+        supported = ", ".join(sorted(VALID_TARGET_ARCHES))
+        raise ValueError(f"Unsupported macOS target architecture: {arch}. Supported: {supported}")
+    return normalized_arch
 
 
 def app_version() -> str:
@@ -105,14 +122,15 @@ def sign_app_bundle() -> None:
     subprocess.run(cmd, check=True)
 
 
-def pyinstaller_command(icon_path: Path) -> list[str]:
+def pyinstaller_command(icon_path: Path, arch: str | None = None) -> list[str]:
+    macos_arch = target_arch(arch)
     return [
         "./AiNiee.py",
         f"--name={APP_NAME}",
         "--windowed",
         "--clean",
         "--noconfirm",
-        "--target-arch=arm64",
+        f"--target-arch={macos_arch}",
         f"--osx-bundle-identifier={BUNDLE_ID}",
         f"--icon={icon_path}",
         "--add-data=Resource:Resource",
@@ -133,9 +151,18 @@ def pyinstaller_command(icon_path: Path) -> list[str]:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Build the AiNiee macOS app bundle.")
+    parser.add_argument(
+        "--target-arch",
+        choices=sorted(VALID_TARGET_ARCHES),
+        default=None,
+        help="PyInstaller target architecture. Defaults to AINIEE_MACOS_ARCH or arm64.",
+    )
+    args = parser.parse_args()
+
     os.chdir(ROOT)
     icon_path = build_icns()
-    PyInstaller.__main__.run(pyinstaller_command(icon_path))
+    PyInstaller.__main__.run(pyinstaller_command(icon_path, args.target_arch))
     patch_info_plist()
     sign_app_bundle()
 

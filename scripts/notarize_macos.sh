@@ -2,7 +2,20 @@
 set -euo pipefail
 
 APP_PATH="${APP_PATH:-dist/AiNiee.app}"
-DMG_PATH="${DMG_PATH:-dist/AiNiee-arm64.dmg}"
+ARCH="${AINIEE_MACOS_ARCH:-$(uname -m)}"
+case "$ARCH" in
+  arm64|aarch64)
+    ARCH="arm64"
+    ;;
+  x86_64|amd64|x64)
+    ARCH="x86_64"
+    ;;
+  *)
+    echo "Unsupported macOS architecture: $ARCH" >&2
+    exit 1
+    ;;
+esac
+DMG_PATH="${DMG_PATH:-dist/AiNiee-macOS-${ARCH}.dmg}"
 ENTITLEMENTS="${ENTITLEMENTS:-Packaging/macOS/entitlements.plist}"
 
 : "${CODESIGN_IDENTITY:?CODESIGN_IDENTITY is required}"

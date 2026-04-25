@@ -1,21 +1,6 @@
 import os
 import PyInstaller.__main__
 
-def add_hidden_imports_from_requirements(path):
-    if not os.path.exists(path):
-        print(f"[INFO] Optional requirements file not found: {path}")
-        return
-
-    with open(path, "r", encoding="utf-8") as reader:
-        for line in reader:
-            package = line.strip()
-            if not package or package.startswith("#"):
-                continue
-            if any(token in package for token in ("[", "=", "<", ">", "~", ";")):
-                continue
-            cmd.append("--hidden-import=" + package)
-
-
 cmd = [
     "./AiNiee.py",
     "--icon=./Resource/Logo/Avatar.png",  # FILE.ico: apply the icon to a Windows executable.
@@ -45,7 +30,15 @@ for module_name in MODULES_TO_EXCLUDE:
     cmd.append(f"--exclude-module={module_name}")
     print(f"[INFO] Explicitly excluding module: {module_name}")
 
-add_hidden_imports_from_requirements("./requirements.txt")
-add_hidden_imports_from_requirements("./requirements_no_deps.txt")
+if os.path.exists("./requirements.txt"):
+    with open("./requirements.txt", "r", encoding="utf-8") as reader:
+        for line in reader:
+            if "#" not in line:
+                cmd.append("--hidden-import=" + line.strip())
 
-PyInstaller.__main__.run(cmd)
+    with open("./requirements_no_deps.txt", "r", encoding="utf-8") as reader:
+        for line in reader:
+            if "#" not in line:
+                cmd.append("--hidden-import=" + line.strip())
+
+    PyInstaller.__main__.run(cmd)
