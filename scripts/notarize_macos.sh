@@ -23,6 +23,7 @@ ENTITLEMENTS="${ENTITLEMENTS:-Packaging/macOS/entitlements.plist}"
 : "${APPLE_TEAM_ID:?APPLE_TEAM_ID is required}"
 : "${APPLE_APP_SPECIFIC_PASSWORD:?APPLE_APP_SPECIFIC_PASSWORD is required}"
 
+# 先对 .app 做 hardened runtime 签名，再打包 DMG 并提交公证。
 codesign \
   --force \
   --deep \

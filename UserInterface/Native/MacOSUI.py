@@ -7,7 +7,7 @@ MACOS_PROJECT_URL = "https://github.com/NEKOparapa/AiNiee"
 
 
 def command_shortcut(key: str) -> str:
-    """Return a shortcut string that Qt renders as Command on macOS."""
+    """Qt 会在 macOS 上把 Ctrl 显示成 Command。"""
     return f"Ctrl+{key}"
 
 

@@ -9,6 +9,7 @@ def _dialog_start_directory(directory: str | Path | None = "") -> str:
     if directory:
         return str(Path(directory).expanduser())
     if is_macos():
+        # macOS 沙盒/权限提示对初始目录敏感，默认从用户数据目录进入。
         ensure_user_dirs()
         return str(user_data_root())
     return ""

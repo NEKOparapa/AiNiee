@@ -9,6 +9,7 @@ def _dialog_start_directory(directory: str | Path | None = "") -> str:
     if directory:
         return str(Path(directory).expanduser())
     if is_macos():
+        # 旧提取工具保持独立 provider，避免直接依赖主界面的文件选择实现。
         ensure_user_dirs()
         return str(user_data_root())
     return ""

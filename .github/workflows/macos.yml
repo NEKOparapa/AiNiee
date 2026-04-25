@@ -33,6 +33,7 @@ jobs:
     name: Build macOS (${{ matrix.arch }})
     strategy:
       fail-fast: false
+      # 分别在 Apple Silicon 和 Intel runner 上构建，避免跨架构产物混用。
       matrix:
         include:
           - arch: arm64
@@ -102,6 +103,7 @@ jobs:
   release-macos:
     name: Publish macOS Release
     needs: build-macos
+    # push/PR 只验证构建；只有手动运行且显式开启时才发布 Release。
     if: github.event_name == 'workflow_dispatch' && inputs.publish_release == true
     runs-on: ubuntu-latest
     permissions:
@@ -126,6 +128,7 @@ jobs:
           release_tag = os.environ["RELEASE_TAG"].strip()
           release_name = os.environ["RELEASE_NAME"].strip()
 
+          # auto 模式跟随 Resource/Version/version.json，避免每次上游改版本都改 workflow。
           if not release_tag or release_tag.lower() == "auto":
               with open("Resource/Version/version.json", encoding="utf-8") as f:
                   version_data = json.load(f)
