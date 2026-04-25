@@ -111,7 +111,7 @@ def sign_app_bundle() -> None:
     if sys.platform != "darwin" or not app_path.exists() or not shutil.which("codesign"):
         return
 
-    identity = os.environ.get("MACOS_CODESIGN_IDENTITY", "-")
+    identity = os.environ.get("CODESIGN_IDENTITY") or os.environ.get("MACOS_CODESIGN_IDENTITY", "-")
     cmd = ["codesign", "--force", "--deep", "--sign", identity]
     entitlements = ROOT / "Packaging" / "macOS" / "entitlements.plist"
     if entitlements.exists():

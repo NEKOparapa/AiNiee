@@ -127,6 +127,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
                 # 比较版本
                 if self._compare_versions(self.latest_version, self.current_version) > 0:
+                    if self._find_download_url(data.get("assets", [])) is None:
+                        return False, self.current_version
                     return True, self.latest_version
                 else:
                     return False, self.current_version
