@@ -11,12 +11,12 @@ on:
       release_tag:
         description: "Release tag"
         required: false
-        default: "v7.2.0-Mac"
+        default: "Mac"
         type: string
       release_name:
         description: "Release name"
         required: false
-        default: "AiNiee 7.2.0 Mac"
+        default: "Mac Release"
         type: string
   pull_request:
     branches:
