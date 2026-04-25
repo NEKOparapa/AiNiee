@@ -38,6 +38,7 @@ import os
 import sys
 
 from ModuleFolders.Infrastructure.Tokener.TiktokenLoader import initialize_tiktoken
+from ModuleFolders.Infrastructure.Platform.AppMetadata import configure_application_metadata
 from ModuleFolders.Infrastructure.Platform.PlatformPaths import (
     config_path,
     executable_root,
@@ -47,7 +48,6 @@ from ModuleFolders.Infrastructure.Platform.PlatformPaths import (
     resource_path,
     ui_font_family,
 )
-from UserInterface.Native.MacOSUI import configure_application_metadata
 
 import multiprocessing
 import warnings

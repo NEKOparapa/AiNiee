@@ -1,4 +1,3 @@
-import re
 from pathlib import Path
 from typing import Callable
 
@@ -19,20 +18,6 @@ MACOS_PROJECT_URL = "https://github.com/NEKOparapa/AiNiee"
 def command_shortcut(key: str) -> str:
     """Return a shortcut string that Qt renders as Command on macOS."""
     return f"Ctrl+{key}"
-
-
-def semantic_version(raw_version: str) -> str:
-    match = re.search(r"\d+(?:\.\d+){1,3}", raw_version)
-    return match.group(0) if match else "0.0.0"
-
-
-def configure_application_metadata(app, version: str) -> None:
-    app.setApplicationName("AiNiee")
-    app.setApplicationVersion(semantic_version(version))
-    app.setOrganizationName("NEKOparapa")
-    app.setOrganizationDomain("github.com/NEKOparapa")
-    if hasattr(app, "setApplicationDisplayName"):
-        app.setApplicationDisplayName("AiNiee")
 
 
 def about_message(version: str, tra: Callable[[str], str] = lambda text: text) -> str:
