@@ -15,7 +15,7 @@ from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.Table.TableHelper.TableHelper import TableHelper
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface import AppFluentWindow
-from UserInterface.Native.MacOSUI import get_open_file_name, get_save_file_name
+from UserInterface.Native.FileDialogProvider import get_open_file_name, get_save_file_name
 
 class TextReplaceAPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
@@ -572,4 +572,3 @@ class TextReplaceAPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         except Exception as e:
             self.logger.error(f"Failed to export data to {path}: {e}", exc_info=True)
             self.error_toast(self.tra("导出失败"), str(e))
-

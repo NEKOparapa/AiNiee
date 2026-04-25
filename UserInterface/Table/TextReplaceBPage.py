@@ -15,7 +15,7 @@ from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.Table.TableHelper.TableHelper import TableHelper
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface import AppFluentWindow
-from UserInterface.Native.MacOSUI import get_open_file_name, get_save_file_name
+from UserInterface.Native.FileDialogProvider import get_open_file_name, get_save_file_name
 
 class TextReplaceBPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 

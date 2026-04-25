@@ -12,7 +12,7 @@ from UserInterface.EditView.Analysis.AnalysisPage import AnalysisPage
 from UserInterface.EditView.Proofreading.ProofreadingPage import ProofreadingPage
 from UserInterface.EditView.Startup.StartupPage import StartupPage
 from UserInterface.EditView.Translation.TranslationPage import TranslationPage
-from UserInterface.Native.MacOSUI import get_existing_directory
+from UserInterface.Native.FileDialogProvider import get_existing_directory
 from UserInterface.Widget.Toast import ToastMixin
 
 

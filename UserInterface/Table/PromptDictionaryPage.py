@@ -16,7 +16,7 @@ from UserInterface.Table.TableHelper.TableHelper import TableHelper
 from ModuleFolders.Service.NameExtractor.NameExtractor import NameExtractor
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface import AppFluentWindow
-from UserInterface.Native.MacOSUI import get_existing_directory, get_open_file_name, get_save_file_name
+from UserInterface.Native.FileDialogProvider import get_existing_directory, get_open_file_name, get_save_file_name
 
 class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 

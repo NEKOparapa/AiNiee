@@ -7,7 +7,7 @@ from qfluentwidgets import BodyLabel, CardWidget,  FluentIcon, PrimaryPushButton
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Infrastructure.Platform.PlatformPaths import ui_font_family
-from UserInterface.Native.MacOSUI import choose_input_folder_title, get_existing_directory, input_folder_button_text
+from UserInterface.Native.FileDialogProvider import get_existing_directory
 
 class InfoBlockWidget(QWidget):
     def __init__(self, text, color=QColor("#E0E0E0"), parent=None):
@@ -129,7 +129,7 @@ class DragDropArea(ConfigMixin, Base, QWidget):
         bottom_layout = QHBoxLayout()
         self.satr_button = PrimaryPushButton(FluentIcon.PLAY, self.tra("直接读取"), self)
         self.satr_button.clicked.connect(self._get_folder)
-        self.selectButton = PrimaryPushButton(FluentIcon.FOLDER_ADD, input_folder_button_text(self.tra), self)
+        self.selectButton = PrimaryPushButton(FluentIcon.FOLDER_ADD, self.tra("拖拽/选择输入文件夹"), self)
         self.selectButton.clicked.connect(self._select_folder)
         bottom_layout.addStretch(1)
         bottom_layout.addWidget(self.satr_button)
@@ -156,7 +156,7 @@ class DragDropArea(ConfigMixin, Base, QWidget):
             self.update_path(folder_path)
 
     def _select_folder(self):
-        folder_path = get_existing_directory(self, choose_input_folder_title(self.tra), self.current_path)
+        folder_path = get_existing_directory(self, self.tra("选择文件夹"))
         if folder_path:
             self.update_path(folder_path)
 
