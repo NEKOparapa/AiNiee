@@ -1,4 +1,0 @@
--r requirements.txt
-
-# Optional macOS integration helpers. Core app remains PyQt-based.
-pyobjc-framework-Cocoa>=10.0; sys_platform == "darwin"

@@ -29,6 +29,10 @@ def executable_root() -> Path:
     return repo_root()
 
 
+def writable_root() -> Path:
+    return executable_root()
+
+
 def resource_root() -> Path:
     override = os.environ.get("AINIEE_RESOURCE_DIR")
     if override:
@@ -130,7 +134,7 @@ def cache_root() -> Path:
 
     if is_macos():
         return Path.home() / "Library" / "Caches" / MACOS_APP_NAME
-    return repo_root() / "ProjectCache"
+    return writable_root() / "ProjectCache"
 
 
 def project_cache_root() -> Path:
@@ -140,7 +144,7 @@ def project_cache_root() -> Path:
 
     if is_macos():
         return user_data_root() / "ProjectCache"
-    return repo_root() / "ProjectCache"
+    return writable_root() / "ProjectCache"
 
 
 def tiktoken_cache_dir() -> Path:
@@ -160,13 +164,13 @@ def downloads_dir() -> Path:
 
     if is_macos():
         return user_data_root() / "downloads"
-    return repo_root() / "downloads"
+    return writable_root() / "downloads"
 
 
 def config_path() -> Path:
     if is_macos():
         return user_data_root() / "config.json"
-    return resource_path("config.json")
+    return writable_root() / "Resource" / "config.json"
 
 
 def platform_preset_path() -> Path:

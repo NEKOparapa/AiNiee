@@ -11,7 +11,7 @@ on:
       release_tag:
         description: "Release tag"
         required: false
-        default: "Mac"
+        default: "v7.2.1-Mac"
         type: string
       release_name:
         description: "Release name"
@@ -61,7 +61,7 @@ jobs:
       - name: Install requirements
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install -r requirements-macos.txt
+          python -m pip install -r requirements.txt
           python -m pip install --no-deps -r requirements_no_deps.txt
           python -m pip cache purge
 
@@ -71,7 +71,7 @@ jobs:
           security create-keychain -p "$RUNNER_TEMP" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "$RUNNER_TEMP" build.keychain
-          echo "$MACOS_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          echo "$MACOS_CERTIFICATE_P12" | base64 -d > "$RUNNER_TEMP/certificate.p12"
           security import "$RUNNER_TEMP/certificate.p12" -k build.keychain -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "$RUNNER_TEMP" build.keychain
 

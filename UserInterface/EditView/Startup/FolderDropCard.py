@@ -6,7 +6,6 @@ from qfluentwidgets import BodyLabel, CardWidget,  FluentIcon, PrimaryPushButton
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import ui_font_family
 from UserInterface.Native.FileDialogProvider import get_existing_directory
 
 class InfoBlockWidget(QWidget):
@@ -19,7 +18,10 @@ class InfoBlockWidget(QWidget):
         self.alpha_level = 170
         self.setMinimumSize(95, 120)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.default_font = QFont(ui_font_family(), 9)
+        self.default_font = QFont("Microsoft YaHei", 9)
+        if QFont(self.default_font).family() != "Microsoft YaHei":
+             self.default_font = QFont() # Use system default
+             self.default_font.setPointSize(9)
 
 
     def paintEvent(self, event):
