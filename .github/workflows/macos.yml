@@ -164,4 +164,4 @@ jobs:
           files: |
             release-assets/*.dmg
             release-assets/*.dmg.sha256
-          token: ${{ secrets.AINIEE || github.token }}
+          token: ${{ secrets.AINIEE }}

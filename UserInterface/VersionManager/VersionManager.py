@@ -54,6 +54,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         self.current_version = self._get_current_version(version)
         self.latest_version = None
         self.latest_version_url = None
+        self.latest_download_url = None
         self.download_thread = None
         self.update_dialog = None
         self.signals = UpdaterSignals()
@@ -114,22 +115,76 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                 return asset["browser_download_url"]
         return None
 
+    def _release_list_api_url(self) -> str:
+        latest_suffix = "/latest"
+        if self.GITHUB_API_URL.endswith(latest_suffix):
+            return self.GITHUB_API_URL[: -len(latest_suffix)]
+        return self.GITHUB_API_URL
+
+    def _select_compatible_update_release(self, releases: list[dict]):
+        selected_release = None
+        selected_version = self.current_version
+        selected_download_url = None
+
+        for release in releases:
+            if release.get("draft") or release.get("prerelease"):
+                continue
+
+            release_version = self._get_release_version(str(release.get("tag_name", "")))
+            if self._compare_versions(release_version, self.current_version) <= 0:
+                continue
+
+            download_url = self._find_download_url(release.get("assets", []))
+            if download_url is None:
+                continue
+
+            if selected_release is None or self._compare_versions(release_version, selected_version) > 0:
+                selected_release = release
+                selected_version = release_version
+                selected_download_url = download_url
+
+        return selected_release, selected_version, selected_download_url
+
+    def _find_compatible_update_release(self):
+        response = requests.get(self._release_list_api_url(), timeout=10)
+        if response.status_code != 200:
+            return None, self.current_version, None, response.status_code
+
+        release, version, download_url = self._select_compatible_update_release(response.json())
+        return release, version, download_url, None
+
+    def _remember_update_release(self, release: dict, version: str, download_url: str) -> None:
+        self.latest_version = version
+        self.latest_version_url = release.get("html_url")
+        self.latest_download_url = download_url
+
     def check_for_updates(self):
         """检查是否需要更新"""
         self.check_error = None
+        self.latest_download_url = None
         try:
             response = requests.get(self.GITHUB_API_URL, timeout=10)
             if response.status_code == 200:
                 data = response.json()
+                release, release_version, download_url = self._select_compatible_update_release([data])
+                if release is not None:
+                    self._remember_update_release(release, release_version, download_url)
+                    return True, release_version
+
                 self.latest_version = self._get_release_version(data["tag_name"])
 
                 self.latest_version_url = data["html_url"]
 
-                # 比较版本
                 if self._compare_versions(self.latest_version, self.current_version) > 0:
-                    if self._find_download_url(data.get("assets", [])) is None:
+                    release, release_version, download_url, error_status = self._find_compatible_update_release()
+                    if error_status is not None:
+                        self.check_error = f"{self.tra('HTTP错误')}: {error_status}"
                         return False, self.current_version
-                    return True, self.latest_version
+                    if release is not None:
+                        self._remember_update_release(release, release_version, download_url)
+                        return True, release_version
+
+                    return False, self.current_version
                 else:
                     return False, self.current_version
             elif response.status_code == 404 and is_macos():
@@ -472,22 +527,23 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
     def _get_download_url_in_background(self):
         """在后台线程中获取下载URL"""
         try:
-            response = requests.get(self.GITHUB_API_URL, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                download_url = self._find_download_url(data["assets"])
+            download_url = self.latest_download_url
+            if not download_url:
+                release, release_version, download_url, error_status = self._find_compatible_update_release()
+                if error_status is not None:
+                    self.signals.connection_error.emit(error_status)
+                    return
 
+                if release is not None and download_url:
+                    self._remember_update_release(release, release_version, download_url)
 
-                # 改用信号更新Ui
-                if download_url:
-                    # 发送找到下载URL的信号
-                    self.signals.download_url_found.emit(download_url)
-                else:
-                    # 发送未找到下载URL的信号
-                    self.signals.download_url_not_found.emit()
+            # 改用信号更新Ui
+            if download_url:
+                # 发送找到下载URL的信号
+                self.signals.download_url_found.emit(download_url)
             else:
-                # 发送连接错误信号
-                self.signals.connection_error.emit(response.status_code)
+                # 发送未找到下载URL的信号
+                self.signals.download_url_not_found.emit()
         except Exception as e:
             self.error(f"Error starting update: {e}")
             # 发送一般错误信号
