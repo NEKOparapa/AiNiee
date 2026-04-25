@@ -1,4 +1,5 @@
 import os
+import platform
 import re
 import sys
 import json
@@ -79,6 +80,40 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         match = re.search(r"\d+(?:\.\d+)+", tag_name)
         return match.group(0) if match else "0.0.0"
 
+    def _update_file_suffix(self) -> str:
+        return ".dmg" if is_macos() else ".zip"
+
+    def _download_paths(self):
+        download_root = downloads_dir()
+        update_suffix = self._update_file_suffix()
+        return (
+            download_root / f"AiNiee-update{update_suffix}",
+            download_root / f"AiNiee-update{update_suffix}.temp",
+            download_root / "download_info.json",
+        )
+
+    def _macos_arch(self) -> str:
+        arch = os.environ.get("AINIEE_MACOS_ARCH") or platform.machine()
+        normalized_arch = arch.strip().lower()
+        aliases = {
+            "aarch64": "arm64",
+            "amd64": "x86_64",
+            "x64": "x86_64",
+        }
+        return aliases.get(normalized_arch, normalized_arch)
+
+    def _expected_update_asset_suffix(self) -> str:
+        if is_macos():
+            return f"-{self._macos_arch()}.dmg"
+        return ".zip"
+
+    def _find_download_url(self, assets: list[dict]) -> str | None:
+        expected_suffix = self._expected_update_asset_suffix()
+        for asset in assets:
+            if asset["name"].endswith(expected_suffix):
+                return asset["browser_download_url"]
+        return None
+
     def check_for_updates(self):
         """检查是否需要更新"""
         self.check_error = None
@@ -136,8 +171,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             return
 
         # 检查是否有已下载完成的更新文件
-        local_filename = os.path.join("downloads", "AiNiee-update.zip")
-        download_info_file = os.path.join("downloads", "download_info.json")
+        local_filename, temp_filename, download_info_file = self._download_paths()
 
         if os.path.exists(local_filename) and os.path.exists(download_info_file):
             try:
@@ -156,13 +190,12 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
                     if msg_box.exec():
                         # 运行更新器
-                        self._run_updater(local_filename)
+                        self._run_updater(str(local_filename))
                     return
             except Exception as e:
                 self.error(f"Error checking downloaded update: {e}")
 
         # 检查是否有未完成的下载
-        temp_filename = os.path.join("downloads", "AiNiee-update.zip.temp")
         if os.path.exists(temp_filename) and os.path.exists(download_info_file):
             try:
                 with open(download_info_file, 'r') as f:
@@ -440,14 +473,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             response = requests.get(self.GITHUB_API_URL, timeout=10)
             if response.status_code == 200:
                 data = response.json()
-                download_url = None
+                download_url = self._find_download_url(data["assets"])
 
-                expected_suffix = ".dmg" if is_macos() else ".zip"
-                # 查找当前平台的更新资产
-                for asset in data["assets"]:
-                    if asset["name"].endswith(expected_suffix):
-                        download_url = asset["browser_download_url"]
-                        break
 
                 # 改用信号更新Ui
                 if download_url:
