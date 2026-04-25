@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Service.TaskExecutor import TranslatorUtil
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import prompt_path
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 class PromptBuilder(Base):
@@ -12,28 +13,28 @@ class PromptBuilder(Base):
     # 获取默认系统提示词(未处理的)，优先从内存中读取，如果没有，则从文件中读取
     def get_system_default(config: TaskConfig, prompt_preset) -> str:
         if getattr(PromptBuilder, "common_system_zh", None) == None:
-            with open("./Resource/Prompt/Translate/common_system_zh.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "common_system_zh.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.common_system_zh = reader.read().strip()
         if getattr(PromptBuilder, "common_system_en", None) == None:
-            with open("./Resource/Prompt/Translate/common_system_en.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "common_system_en.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.common_system_en = reader.read().strip()
         if getattr(PromptBuilder, "cot_system_zh", None) == None:
-            with open("./Resource/Prompt/Translate/cot_system_zh.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "cot_system_zh.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.cot_system_zh = reader.read().strip()
         if getattr(PromptBuilder, "cot_system_en", None) == None:
-            with open("./Resource/Prompt/Translate/cot_system_en.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "cot_system_en.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.cot_system_en = reader.read().strip()
         if getattr(PromptBuilder, "think_system_zh", None) == None:
-            with open("./Resource/Prompt/Translate/think_system_zh.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "think_system_zh.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.think_system_zh = reader.read().strip()
         if getattr(PromptBuilder, "think_system_en", None) == None:
-            with open("./Resource/Prompt/Translate/think_system_en.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "think_system_en.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.think_system_en = reader.read().strip()
         if getattr(PromptBuilder, "local_system_zh", None) == None:
-            with open("./Resource/Prompt/Translate/local_system_zh.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "local_system_zh.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.local_system_zh = reader.read().strip()
         if getattr(PromptBuilder, "local_system_en", None) == None:
-            with open("./Resource/Prompt/Translate/local_system_en.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "local_system_en.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.local_system_en = reader.read().strip()
 
 
@@ -1052,4 +1053,3 @@ class PromptBuilder(Base):
 
 
         return messages, system, extra_log
-

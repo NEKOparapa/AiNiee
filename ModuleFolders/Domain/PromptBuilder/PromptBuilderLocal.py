@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import prompt_path
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Service.TaskExecutor import TranslatorUtil
 
@@ -15,20 +16,20 @@ class PromptBuilderLocal(Base):
     # 系统预设提示词文件映射
     SYSTEM_PROMPT_FILES = {
         PromptBuilderEnum.COMMON: {
-            "zh": "./Resource/Prompt/Translate/common_system_zh.txt",
-            "en": "./Resource/Prompt/Translate/common_system_en.txt",
+            "zh": ("Translate", "common_system_zh.txt"),
+            "en": ("Translate", "common_system_en.txt"),
         },
         PromptBuilderEnum.COT: {
-            "zh": "./Resource/Prompt/Translate/cot_system_zh.txt",
-            "en": "./Resource/Prompt/Translate/cot_system_en.txt",
+            "zh": ("Translate", "cot_system_zh.txt"),
+            "en": ("Translate", "cot_system_en.txt"),
         },
         PromptBuilderEnum.THINK: {
-            "zh": "./Resource/Prompt/Translate/think_system_zh.txt",
-            "en": "./Resource/Prompt/Translate/think_system_en.txt",
+            "zh": ("Translate", "think_system_zh.txt"),
+            "en": ("Translate", "think_system_en.txt"),
         },
         PromptBuilderEnum.LOCAL: {
-            "zh": "./Resource/Prompt/Translate/local_system_zh.txt",
-            "en": "./Resource/Prompt/Translate/local_system_en.txt",
+            "zh": ("Translate", "local_system_zh.txt"),
+            "en": ("Translate", "local_system_en.txt"),
         },
     }
 
@@ -62,8 +63,8 @@ class PromptBuilderLocal(Base):
         cache = {}
         for preset_id, language_paths in PromptBuilderLocal.SYSTEM_PROMPT_FILES.items():
             cache[preset_id] = {}
-            for language_key, path in language_paths.items():
-                with open(path, "r", encoding="utf-8") as reader:
+            for language_key, path_parts in language_paths.items():
+                with open(prompt_path(*path_parts), "r", encoding="utf-8") as reader:
                     cache[preset_id][language_key] = reader.read().strip()
 
         PromptBuilderLocal._system_prompt_cache = cache

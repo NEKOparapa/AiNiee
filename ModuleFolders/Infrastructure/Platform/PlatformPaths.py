@@ -100,6 +100,26 @@ def cache_root() -> Path:
     return repo_root() / "ProjectCache"
 
 
+def project_cache_root() -> Path:
+    override = os.environ.get("AINIEE_PROJECT_CACHE_DIR")
+    if override:
+        return Path(override).expanduser().resolve()
+
+    if is_macos():
+        return user_data_root() / "ProjectCache"
+    return repo_root() / "ProjectCache"
+
+
+def tiktoken_cache_dir() -> Path:
+    override = os.environ.get("AINIEE_TIKTOKEN_CACHE_DIR")
+    if override:
+        return Path(override).expanduser().resolve()
+
+    if is_macos():
+        return cache_root() / "tiktoken"
+    return resource_path("Models", "tiktoken")
+
+
 def downloads_dir() -> Path:
     override = os.environ.get("AINIEE_DOWNLOADS_DIR")
     if override:
@@ -116,21 +136,31 @@ def config_path() -> Path:
     return resource_path("config.json")
 
 
+def platform_preset_path() -> Path:
+    return resource_path("platforms", "preset.json")
+
+
+def platform_icon_path(file_name: str) -> Path:
+    return resource_path("platforms", "Icon", file_name)
+
+
+def prompt_path(*parts: str) -> Path:
+    return resource_path("Prompt", *parts)
+
+
+def regex_path(file_name: str) -> Path:
+    return resource_path("Regex", file_name)
+
+
+def check_regex_path() -> Path:
+    return regex_path("check_regex.json")
+
+
 def ensure_user_dirs() -> None:
     user_data_root().mkdir(parents=True, exist_ok=True)
     cache_root().mkdir(parents=True, exist_ok=True)
+    project_cache_root().mkdir(parents=True, exist_ok=True)
     downloads_dir().mkdir(parents=True, exist_ok=True)
-
-
-def _link_directory(link_path: Path, target_path: Path) -> None:
-    target_path = target_path.resolve()
-    if link_path.is_symlink():
-        if link_path.resolve(strict=False) == target_path:
-            return
-        link_path.unlink()
-    if link_path.exists():
-        return
-    link_path.symlink_to(target_path, target_is_directory=True)
 
 
 def prepare_working_directory() -> Path:
@@ -138,9 +168,10 @@ def prepare_working_directory() -> Path:
         return executable_root()
 
     ensure_user_dirs()
-    working_root = user_data_root()
-    _link_directory(working_root / "Resource", resource_root())
-    return working_root
+    resource_link = user_data_root() / "Resource"
+    if resource_link.is_symlink():
+        resource_link.unlink()
+    return user_data_root()
 
 
 def migrate_config_if_needed() -> bool:
