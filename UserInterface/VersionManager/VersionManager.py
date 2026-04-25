@@ -122,6 +122,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         return self.GITHUB_API_URL
 
     def _select_compatible_update_release(self, releases: list[dict]):
+        # GitHub latest 可能是 macOS-only，更新提示必须先筛出当前平台可用资产。
         selected_release = None
         selected_version = self.current_version
         selected_download_url = None
@@ -154,6 +155,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         return release, version, download_url, None
 
     def _remember_update_release(self, release: dict, version: str, download_url: str) -> None:
+        # 检查阶段选中的资产直接给下载阶段复用，避免再次命中不兼容的 latest。
         self.latest_version = version
         self.latest_version_url = release.get("html_url")
         self.latest_download_url = download_url

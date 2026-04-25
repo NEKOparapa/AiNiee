@@ -24,6 +24,7 @@ def repo_root() -> Path:
 
 
 def executable_root() -> Path:
+    # 打包后以可执行文件所在目录为准，避免把临时解压目录当成可写目录。
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
     return repo_root()
@@ -38,6 +39,7 @@ def resource_root() -> Path:
     if override:
         return Path(override).expanduser().resolve()
 
+    # 兼容 PyInstaller onefile、.app/Contents/Resources 和源码运行三种布局。
     candidates = []
     if hasattr(sys, "_MEIPASS"):
         candidates.append(Path(sys._MEIPASS) / "Resource")
@@ -67,6 +69,7 @@ def stev_extraction_root() -> Path:
     if override:
         return Path(override).expanduser().resolve()
 
+    # StevExtraction 可以随主程序打包，也要保留从源码目录独立运行的能力。
     candidates = []
     if hasattr(sys, "_MEIPASS"):
         candidates.append(Path(sys._MEIPASS) / "StevExtraction")
@@ -118,6 +121,7 @@ def user_data_root() -> Path:
     if override:
         return Path(override).expanduser().resolve()
 
+    # macOS 遵循用户 Library 目录，避免把配置写回只读的 .app 包内。
     if is_macos():
         return Path.home() / "Library" / "Application Support" / MACOS_APP_NAME
     if is_windows():
@@ -152,6 +156,7 @@ def tiktoken_cache_dir() -> Path:
     if override:
         return Path(override).expanduser().resolve()
 
+    # tiktoken 运行缓存需要可写；打包内置文件由 TiktokenLoader 复制过来。
     if is_macos():
         return cache_root() / "tiktoken"
     return resource_path("Models", "tiktoken")
@@ -208,6 +213,7 @@ def prepare_working_directory() -> Path:
     if not is_macos():
         return executable_root()
 
+    # 旧代码仍有少量相对路径假设，macOS 入口统一切到用户数据目录兜底。
     ensure_user_dirs()
     resource_link = user_data_root() / "Resource"
     if resource_link.is_symlink():
@@ -219,6 +225,7 @@ def migrate_config_if_needed() -> bool:
     if not is_macos():
         return False
 
+    # 首次启动时把默认配置迁移到用户目录，之后只读取用户自己的配置。
     destination = config_path()
     if destination.exists():
         return False

@@ -27,6 +27,7 @@ fi
 detach_existing_volume() {
   local volume_path="/Volumes/${VOLUME_NAME}"
   if [[ -d "$volume_path" ]]; then
+    # GitHub runner 偶尔会残留同名挂载点，先强制卸载再重试打包。
     hdiutil detach "$volume_path" -force >/dev/null 2>&1 || true
   fi
 }
@@ -45,6 +46,7 @@ ln -s /Applications "$STAGING_DIR/Applications"
 
 detach_existing_volume
 rm -f "$DMG_PATH"
+# hdiutil 在残留挂载或资源忙时可能第一次失败，清理后再重试一次。
 if ! hdiutil create \
     -volname "$VOLUME_NAME" \
     -srcfolder "$STAGING_DIR" \

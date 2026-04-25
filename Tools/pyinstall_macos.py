@@ -17,6 +17,7 @@ VALID_TARGET_ARCHES = {"arm64", "x86_64"}
 
 
 def target_arch(explicit_arch: str | None = None) -> str:
+    # CI 和本地命令可能使用不同架构名，统一成 PyInstaller 支持的值。
     arch = explicit_arch or os.environ.get("AINIEE_MACOS_ARCH") or "arm64"
     normalized_arch = arch.strip().lower()
     aliases = {
@@ -47,6 +48,7 @@ def build_icns() -> Path:
         return output_icns
 
     if sys.platform != "darwin" or not shutil.which("sips") or not shutil.which("iconutil"):
+        # 非 macOS 环境无法生成 icns，保留 png 便于测试命令构造。
         return source_png
 
     iconset = ROOT / "build" / "macos" / "AiNiee.iconset"
@@ -111,6 +113,7 @@ def sign_app_bundle() -> None:
     if sys.platform != "darwin" or not app_path.exists() or not shutil.which("codesign"):
         return
 
+    # 没有证书时使用 ad-hoc 签名；有证书时启用 hardened runtime 以便公证。
     identity = os.environ.get("CODESIGN_IDENTITY") or os.environ.get("MACOS_CODESIGN_IDENTITY", "-")
     cmd = ["codesign", "--force", "--deep", "--sign", identity]
     entitlements = ROOT / "Packaging" / "macOS" / "entitlements.plist"
@@ -133,6 +136,7 @@ def pyinstaller_command(icon_path: Path, arch: str | None = None) -> list[str]:
         f"--target-arch={macos_arch}",
         f"--osx-bundle-identifier={BUNDLE_ID}",
         f"--icon={icon_path}",
+        # 资源随 app 打入包内，运行期再通过 PlatformPaths 定位。
         "--add-data=Resource:Resource",
         "--add-data=StevExtraction:StevExtraction",
         "--hidden-import=babeldoc",

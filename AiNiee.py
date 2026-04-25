@@ -116,6 +116,7 @@ def update_splash_message(splash, message, app, font_size=10, font_weight=QFont.
 
 
 def prepare_runtime_environment() -> str:
+    # macOS 打包后资源和用户数据分离，这里只做入口层的工作目录准备。
     working_root = prepare_working_directory()
     os.chdir(working_root)
     for path in (working_root, executable_root()):
