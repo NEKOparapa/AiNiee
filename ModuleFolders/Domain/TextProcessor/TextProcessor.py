@@ -1,7 +1,8 @@
 import json
-import os
 import re
 from typing import List, Dict, Tuple, Any, Optional
+
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import regex_path
 
 class TextProcessor():
     # 定义日语字符集的正则表达式
@@ -17,7 +18,7 @@ class TextProcessor():
     )
 
     # 正则库路径
-    DEFAULT_REGEX_DIR = os.path.join(".", "Resource", "Regex", "regex.json")
+    DEFAULT_REGEX_DIR = regex_path("regex.json")
 
     # 数字序号与空白内容正则
     RE_DIGITAL_SEQ_PRE_STR = r'^(\d+)\.'

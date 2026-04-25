@@ -1,10 +1,10 @@
 import os
-import sys
 import time
 import shutil
 import hashlib
-from pathlib import Path
 from typing import Optional
+
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import tiktoken_cache_dir
 
 try:
     import rich
@@ -19,20 +19,7 @@ _TIKTOKEN_CACHE_DIR = None
 
 
 def _default_cache_dir() -> str:
-    override = os.environ.get("AINIEE_TIKTOKEN_CACHE_DIR")
-    if override:
-        return str(Path(override).expanduser().resolve())
-
-    try:
-        from ModuleFolders.Infrastructure.Platform.PlatformPaths import cache_root, is_macos
-
-        if is_macos():
-            return str(cache_root() / "tiktoken")
-    except Exception:
-        pass
-
-    script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    return os.path.join(script_dir, "Resource", "Models", "tiktoken")
+    return str(tiktoken_cache_dir())
 
 
 def _print_info(msg: str):

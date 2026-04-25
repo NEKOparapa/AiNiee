@@ -3,6 +3,7 @@ import re
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import prompt_path
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 
 
@@ -12,7 +13,7 @@ class PromptBuilderPolishing(Base):
 
     def get_system_default(config: TaskConfig) -> str:
         if getattr(PromptBuilderPolishing, "common_system_zh_t", None) is None:
-            with open("./Resource/Prompt/Polishing/common_system_zh_t.txt", "r", encoding="utf-8") as reader:
+            with open(prompt_path("Polishing", "common_system_zh_t.txt"), "r", encoding="utf-8") as reader:
                 PromptBuilderPolishing.common_system_zh_t = reader.read().strip()
 
         return PromptBuilderPolishing.common_system_zh_t

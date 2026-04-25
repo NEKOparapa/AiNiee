@@ -3,6 +3,7 @@ import os
 import re
 import time
 
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import check_regex_path
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Service.Cache.CacheProject import CacheProject
 
@@ -13,7 +14,7 @@ class TranslationResultCheck:
     def prepare_regex_patterns(self, exclusion_list_data):
         """准备所有需要使用的正则表达式模式"""
         patterns = []
-        regex_file_path = os.path.join(".", "Resource", "Regex", "check_regex.json") # 修正路径拼接
+        regex_file_path = check_regex_path()
 
         # 从正则库加载基础正则
         if os.path.exists(regex_file_path):
