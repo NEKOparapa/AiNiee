@@ -443,7 +443,8 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
 
         api_settings = config.setdefault("api_settings", {})
         api_settings["active"] = tag
-        config = self._normalize_api_settings(config, persist=True)
+        config = self._normalize_api_settings(config)
+        config = self.save_config(config)
 
         self._refresh_active_interface_ui(config)
 
@@ -531,7 +532,8 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
         for role, tag in dialog.get_bindings().items():
             api_settings[role] = tag
 
-        config = self._normalize_api_settings(config, persist=True)
+        config = self._normalize_api_settings(config)
+        config = self.save_config(config)
         self._refresh_active_interface_ui(config)
         self.success_toast("", self.tra("功能接口绑定已更新"))
 
