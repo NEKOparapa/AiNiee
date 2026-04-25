@@ -18,7 +18,7 @@ from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface import AppFluentWindow
-from UserInterface.Native.MacOSUI import get_open_file_name, get_save_file_name
+from UserInterface.Native.FileDialogProvider import get_open_file_name, get_save_file_name
 from UserInterface.Table.TableHelper.TableHelper import TableHelper
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.Toast import ToastMixin

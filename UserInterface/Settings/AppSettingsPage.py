@@ -24,7 +24,7 @@ from UserInterface.Widget.LineEditCard import LineEditCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.LineEditCard import LineEditCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard 
-from UserInterface.Native.MacOSUI import get_existing_directory, get_open_file_name
+from UserInterface.Native.FileDialogProvider import get_existing_directory, get_open_file_name
 
 class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
@@ -368,7 +368,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
         # 导入按钮点击事件
         def on_improt_button_clicked() -> None:
-            path, _ = get_open_file_name(self.window(), self.tra("选择配置文件"), "", self.tra("JSON 配置文件 (*.json)"))
+            path, _ = get_open_file_name(None, self.tra("选择文件"), "", self.tra("JSON 配置文件 (*.json)"))
 
             if path == None or path == "":
                 return
@@ -377,7 +377,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
         # 导出按钮点击事件
         def on_exprot_button_clicked() -> None:
-            path = get_existing_directory(self.window(), self.tra("选择配置导出文件夹"), "")
+            path = get_existing_directory(None, self.tra("选择文件夹"), "")
 
             if path == None or path == "":
                 return
