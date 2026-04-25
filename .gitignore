@@ -25,3 +25,4 @@ PluginScripts/IOPlugins/*
 .DS_Store
 bilingual_auto/
 downloads/
+tests/
