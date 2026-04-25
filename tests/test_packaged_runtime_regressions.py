@@ -62,7 +62,10 @@ class PackagedRuntimeRegressionTest(unittest.TestCase):
         from Tools import pyinstall_macos
 
         cmd = pyinstall_macos.pyinstaller_command(Path("/tmp/icon.icns"))
+        intel_cmd = pyinstall_macos.pyinstaller_command(Path("/tmp/icon.icns"), "x86_64")
 
+        self.assertIn("--target-arch=arm64", cmd)
+        self.assertIn("--target-arch=x86_64", intel_cmd)
         self.assertIn("--hidden-import=mediapipe.tasks.c", cmd)
         self.assertIn("--collect-all=mediapipe.tasks.c", cmd)
 

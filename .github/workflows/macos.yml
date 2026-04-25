@@ -10,9 +10,19 @@ permissions:
   contents: read
 
 jobs:
-  build-macos-arm64:
-    runs-on: macos-14
+  build-macos:
+    name: Build macOS (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runs_on: macos-15
+          - arch: x86_64
+            runs_on: macos-15-intel
+    runs-on: ${{ matrix.runs_on }}
     env:
+      AINIEE_MACOS_ARCH: ${{ matrix.arch }}
       MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
       MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
       CODESIGN_IDENTITY: ${{ secrets.CODESIGN_IDENTITY }}
@@ -32,7 +42,8 @@ jobs:
       - name: Install requirements
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install -r requirements-macos-arm64.txt
+          python -m pip install -r requirements-macos.txt
+          python -m pip install --no-deps -r requirements_no_deps.txt
           python -m pip cache purge
 
       - name: Import signing certificate
@@ -46,7 +57,7 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "$RUNNER_TEMP" build.keychain
 
       - name: Build app bundle
-        run: python Tools/pyinstall_macos.py
+        run: python Tools/pyinstall_macos.py --target-arch "$AINIEE_MACOS_ARCH"
 
       - name: Package DMG
         run: |
@@ -56,8 +67,15 @@ jobs:
             bash scripts/package_dmg.sh
           fi
 
+      - name: Generate SHA256
+        run: |
+          DMG_PATH="dist/AiNiee-macOS-${AINIEE_MACOS_ARCH}.dmg"
+          shasum -a 256 "$DMG_PATH" > "${DMG_PATH}.sha256"
+
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AiNiee_MacOS-arm64
-          path: dist/AiNiee_MacOS-arm64.dmg
+          name: AiNiee-macOS-${{ matrix.arch }}
+          path: |
+            dist/AiNiee-macOS-${{ matrix.arch }}.dmg
+            dist/AiNiee-macOS-${{ matrix.arch }}.dmg.sha256
