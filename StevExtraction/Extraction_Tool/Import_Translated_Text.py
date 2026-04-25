@@ -1,11 +1,11 @@
-import os
 import yaml
 
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import stev_extraction_config_path
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QGroupBox
-from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
+from StevExtraction.Extraction_Tool.FileDialogProvider import get_existing_directory
 
 from qfluentwidgets import SpinBox
 from qfluentwidgets import LineEdit
@@ -214,7 +214,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
 
     # 选择输入文件夹按钮绑定函数
     def Select_game_folder(self):
-        label_input_path = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        label_input_path = get_existing_directory(None, 'Select Directory', '')
         if label_input_path:
             self.label_input_path.setText(label_input_path)
             print('[INFO] 已选择原游戏文件夹: ',label_input_path)
@@ -224,7 +224,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
 
     # 选择工程文件夹按钮绑定函数
     def Select_data_folder(self):
-        Data_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        Data_Folder = get_existing_directory(None, 'Select Directory', '')
         if Data_Folder:
             self.label_data_path.setText(Data_Folder)
             print('[INFO] 已选择工程数据文件夹: ',Data_Folder)
@@ -234,7 +234,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
 
     # 选择译文文件夹按钮绑定函数
     def Select_translation_folder(self):
-        translation_folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        translation_folder = get_existing_directory(None, 'Select Directory', '')
         if translation_folder:
             self.label_translation_folder.setText(translation_folder)
             print('[INFO] 已选择译文文件夹:' ,translation_folder)
@@ -244,7 +244,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
 
     # 选择存储文件夹按钮绑定函数
     def Select_save_folder(self):
-        save_folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
+        save_folder = get_existing_directory(None, 'Select Directory', '')
         if save_folder:
             self.label_output_folder.setText(save_folder)
             print('[INFO] 已选择注入后存储文件夹:' ,save_folder)
@@ -257,7 +257,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         print('[INFO] 开始注入译文到游戏文件中,请耐心等待！！！')
 
         #读取配置文件
-        config_path = os.path.join(".", "StevExtraction", "config.yaml") 
+        config_path = stev_extraction_config_path()
 
         with open(config_path, 'r', encoding='utf-8') as file:
             config = yaml.safe_load(file)

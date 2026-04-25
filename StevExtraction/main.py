@@ -3,6 +3,7 @@ import traceback
 import logging
 
 from jtpp import Jr_Tpp, version
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import stev_extraction_config_path
 from ruamel.yaml import YAML
 
 
@@ -31,7 +32,7 @@ class MainApp:
 
     def read_config(self):
         """读取配置文件 config.yaml."""
-        config_path = "config.yaml"
+        config_path = stev_extraction_config_path()
         try:
             yaml = YAML(typ="safe")
             with open(config_path, "r", encoding="utf8") as f:
