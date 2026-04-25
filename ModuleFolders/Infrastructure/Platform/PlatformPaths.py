@@ -157,6 +157,10 @@ def tiktoken_cache_dir() -> Path:
     return resource_path("Models", "tiktoken")
 
 
+def bundled_tiktoken_cache_dir() -> Path:
+    return resource_path("Models", "tiktoken")
+
+
 def downloads_dir() -> Path:
     override = os.environ.get("AINIEE_DOWNLOADS_DIR")
     if override:
