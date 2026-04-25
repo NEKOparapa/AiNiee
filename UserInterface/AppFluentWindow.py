@@ -24,7 +24,7 @@ from ModuleFolders.Infrastructure.Platform.PlatformPaths import is_macos, resour
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.BaseNavigationItem import BaseNavigationItem
 from UserInterface.EditView.EditViewPage import EditViewPage
-from UserInterface.Native.MacOSUI import MACOS_PROJECT_URL, about_message, app_menu_title, command_shortcut
+from UserInterface.Native.MacOSUI import about_message, app_menu_title, command_shortcut
 from UserInterface.Platform.PlatformPage import PlatformPage
 from UserInterface.PromptSettings.PolishingSettings.PolishingSystemPromptPage import PolishingSystemPromptPage
 from UserInterface.Settings.AppSettingsPage import AppSettingsPage
@@ -153,10 +153,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
 
     # 打开项目主页
     def open_project_page(self) -> None:
-        if is_macos():
-            QDesktopServices.openUrl(QUrl(MACOS_PROJECT_URL))
-        else:
-            QDesktopServices.openUrl(QUrl("https://github.com/NEKOparapa/AiNiee"))
+        QDesktopServices.openUrl(QUrl("https://github.com/NEKOparapa/AiNiee"))
 
     def install_macos_menu(self) -> None:
         if not is_macos():

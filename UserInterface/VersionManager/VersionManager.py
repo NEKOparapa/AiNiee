@@ -778,6 +778,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             if is_macos():
                 if os.path.exists(update_file):
                     subprocess.Popen(["open", update_file])
+                    os.kill(os.getpid(), signal.SIGTERM)
                     return
 
                 if self.latest_version_url:

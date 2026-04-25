@@ -11,7 +11,6 @@ from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, FlowLayout, Flue
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import monospace_font_family, ui_font_family
 from UserInterface.Native.FileDialogProvider import get_existing_directory
 
 class InfoBlockWidget(ConfigMixin, Base, QWidget):
@@ -29,10 +28,13 @@ class InfoBlockWidget(ConfigMixin, Base, QWidget):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed) # 水平扩展，垂直固定
 
         # 设置中心文本显示字体
-        self.default_font = QFont(ui_font_family(), 10)
+        self.default_font = QFont("Microsoft YaHei", 10)
+        if QFont(self.default_font).family() != "Microsoft YaHei":
+             self.default_font = QFont() # Use system default
+             self.default_font.setPointSize(10)
 
         # 为准心创建一个稍大、等宽的字体
-        self.reticle_font = QFont(monospace_font_family(), 14)
+        self.reticle_font = QFont("Courier New", 14) # 使用等宽字体 Courier New, 大小 14
         self.reticle_font.setBold(True) # 加粗更明显
 
     def set_display_mode(self, mode):
