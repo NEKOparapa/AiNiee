@@ -2,7 +2,7 @@ import re
 from types import SimpleNamespace
 
 from ModuleFolders.Base.Base import Base
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import prompt_path
+from ModuleFolders.Config.FilePathConfig import prompt_path
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
 

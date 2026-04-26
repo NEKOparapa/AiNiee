@@ -20,7 +20,8 @@ from qfluentwidgets import (
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import is_macos, resource_path
+from ModuleFolders.Config.FilePathConfig import resource_path
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import is_macos
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.BaseNavigationItem import BaseNavigationItem
 from UserInterface.EditView.EditViewPage import EditViewPage

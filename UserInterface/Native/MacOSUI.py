@@ -1,6 +1,6 @@
 from typing import Callable
 
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import MACOS_APP_NAME, config_path
+from ModuleFolders.Config.FilePathConfig import MACOS_APP_NAME, config_path
 
 
 MACOS_PROJECT_URL = "https://github.com/NEKOparapa/AiNiee"

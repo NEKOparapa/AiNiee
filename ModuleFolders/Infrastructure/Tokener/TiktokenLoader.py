@@ -5,7 +5,7 @@ import hashlib
 from pathlib import Path
 from typing import Optional
 
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import bundled_tiktoken_cache_dir, tiktoken_cache_dir
+from ModuleFolders.Config.FilePathConfig import bundled_tiktoken_cache_dir, tiktoken_cache_dir
 
 try:
     import rich

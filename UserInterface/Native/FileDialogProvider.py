@@ -2,7 +2,9 @@ from pathlib import Path
 
 from PyQt5.QtWidgets import QFileDialog
 
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import ensure_user_dirs, is_macos, user_data_root
+from ModuleFolders.Config.FilePathConfig import user_data_root
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import is_macos
+from ModuleFolders.Infrastructure.Platform.RuntimeSetup import ensure_user_dirs
 
 
 def _dialog_start_directory(directory: str | Path | None = "") -> str:

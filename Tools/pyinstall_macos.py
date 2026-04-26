@@ -136,7 +136,7 @@ def pyinstaller_command(icon_path: Path, arch: str | None = None) -> list[str]:
         f"--target-arch={macos_arch}",
         f"--osx-bundle-identifier={BUNDLE_ID}",
         f"--icon={icon_path}",
-        # 资源随 app 打入包内，运行期再通过 PlatformPaths 定位。
+        # 资源随 app 打入包内，运行期再通过 FilePathConfig 定位。
         "--add-data=Resource:Resource",
         "--hidden-import=babeldoc",
         "--hidden-import=sklearn",

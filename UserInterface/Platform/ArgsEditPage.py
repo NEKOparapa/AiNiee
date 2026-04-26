@@ -13,7 +13,7 @@ from qfluentwidgets import SmoothMode
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import platform_preset_path
+from ModuleFolders.Config.FilePathConfig import platform_preset_path
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.SliderCard import SliderCard
 from UserInterface.Widget.GroupCard import GroupCard
