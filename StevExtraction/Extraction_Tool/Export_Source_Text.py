@@ -3,9 +3,9 @@ import yaml
 from ModuleFolders.Infrastructure.Platform.PlatformPaths import stev_extraction_config_path
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QGroupBox
+from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
-from StevExtraction.Extraction_Tool.FileDialogProvider import get_existing_directory
 
 from qfluentwidgets import CheckBox
 from qfluentwidgets import FluentIcon
@@ -193,7 +193,7 @@ class Widget_export_source_text(QFrame):#  提取子界面
 
     # 选择输入文件夹按钮绑定函数
     def Select_project_folder(self):
-        label_input_path = get_existing_directory(None, 'Select Directory', '')
+        label_input_path = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
         if label_input_path:
             self.label_input_path.setText(label_input_path)
             print('[INFO] 已选择游戏根目录文件夹: ',label_input_path)
@@ -204,7 +204,7 @@ class Widget_export_source_text(QFrame):#  提取子界面
 
     # 选择原文文件夹按钮绑定函数
     def Select_output_folder(self):
-        label_output_path = get_existing_directory(None, 'Select Directory', '')
+        label_output_path = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
         if label_output_path:
             self.label_output_path.setText(label_output_path)
             print('[INFO] 已选择原文存储文件夹:' ,label_output_path)
@@ -215,7 +215,7 @@ class Widget_export_source_text(QFrame):#  提取子界面
 
     # 选择工程文件夹按钮绑定函数
     def Select_data_folder(self):
-        data_Folder = get_existing_directory(None, 'Select Directory', '')
+        data_Folder = QFileDialog.getExistingDirectory(None, 'Select Directory', '')      #调用QFileDialog类里的函数来选择文件目录
         if data_Folder:
             self.label_data_path.setText(data_Folder)
             print('[INFO] 已选择工程存储文件夹:' ,data_Folder)
