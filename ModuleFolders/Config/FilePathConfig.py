@@ -9,16 +9,11 @@ import sys
 from pathlib import Path
 
 
-APP_NAME = "AiNiee"
 MACOS_APP_NAME = "AiNiee"
 
 
 def _is_macos() -> bool:
     return platform.system() == "Darwin"
-
-
-def _is_windows() -> bool:
-    return platform.system() == "Windows"
 
 
 # 源码运行时的仓库根目录。
@@ -79,11 +74,7 @@ def user_data_root() -> Path:
 
     if _is_macos():
         return Path.home() / "Library" / "Application Support" / MACOS_APP_NAME
-    if _is_windows():
-        base = os.environ.get("APPDATA")
-        if base:
-            return Path(base) / APP_NAME
-    return repo_root()
+    return writable_root()
 
 
 # 应用运行缓存目录。
