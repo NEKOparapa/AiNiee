@@ -159,7 +159,8 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         if not is_macos():
             return
 
-        menu_bar = QMenuBar(self)
+        # FluentWindow 不是 QMainWindow，macOS 原生菜单栏用独立 QMenuBar 挂到系统菜单。
+        menu_bar = QMenuBar(None)
         menu_bar.setNativeMenuBar(True)
         self.macos_menu_bar = menu_bar
 

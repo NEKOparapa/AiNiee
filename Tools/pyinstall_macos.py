@@ -138,7 +138,6 @@ def pyinstaller_command(icon_path: Path, arch: str | None = None) -> list[str]:
         f"--icon={icon_path}",
         # 资源随 app 打入包内，运行期再通过 PlatformPaths 定位。
         "--add-data=Resource:Resource",
-        "--add-data=StevExtraction:StevExtraction",
         "--hidden-import=babeldoc",
         "--hidden-import=sklearn",
         "--hidden-import=mediapipe.tasks.c",

@@ -1,6 +1,6 @@
+import os
 import yaml
 
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import stev_extraction_config_path
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QGroupBox
 from PyQt5.QtWidgets import QFileDialog
@@ -257,7 +257,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         print('[INFO] 开始注入译文到游戏文件中,请耐心等待！！！')
 
         #读取配置文件
-        config_path = stev_extraction_config_path()
+        config_path = os.path.join(".", "StevExtraction", "config.yaml")
 
         with open(config_path, 'r', encoding='utf-8') as file:
             config = yaml.safe_load(file)
