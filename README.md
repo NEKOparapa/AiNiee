@@ -32,7 +32,9 @@
     * 🎯 **突破局限**：采用轻盈翻译格式、思维链翻译、AI术语表、上下文关联等技术，确保长文本翻译的连贯性与准确性。
     * 💎 **质量追求**：支持 基础提示、角色介绍、背景设定、翻译风格 等提示词调整，拥有 一键AI润色、一键提取术语 等功能，满足对翻译质量有更高要求的用户。
 
-* ✨ **姊妹项目推荐**：[**ReaDreamAI**](https://github.com/NEKOparapa/ReaDreamAI) - 阅你所想，绘你所梦，从一个想法到一本完整的精彩小说。ReaDreamAI为你包办写作、插图与视频。
+* ✨ **姊妹项目推荐**
+    * [**ReaDreamAI**](https://github.com/NEKOparapa/ReaDreamAI)（作者：NEKOparapa） - 阅你所想，绘你所梦，从一个想法到一本完整的精彩小说。ReaDreamAI为你包办写作、插图与视频。
+    * [**AiNiee-Next**](https://github.com/ShadowLoveElysia/AiNiee-Next)（作者：ShadowLoveElysia） - 针对 AiNiee 核心逻辑进行工程化重构的命令行版本，引入 uv 与运行时稳定性优化，适合长时间挂机、服务器部署及自动化工作流。
 
 ---
 
