@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Tuple
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import check_regex_path
+from ModuleFolders.Config.FilePathConfig import check_regex_path
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Service.Cache.CacheManager import CacheManager
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus

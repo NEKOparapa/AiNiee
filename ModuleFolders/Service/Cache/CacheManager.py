@@ -15,7 +15,7 @@ import rapidjson as json
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import project_cache_root
+from ModuleFolders.Config.FilePathConfig import project_cache_root
 from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Service.Cache.CacheFile import CacheFile

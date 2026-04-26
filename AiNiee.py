@@ -39,15 +39,16 @@ import sys
 
 from ModuleFolders.Infrastructure.Tokener.TiktokenLoader import initialize_tiktoken
 from ModuleFolders.Infrastructure.Platform.AppMetadata import configure_application_metadata
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import (
+from ModuleFolders.Config.FilePathConfig import (
     config_path,
     executable_root,
-    migrate_config_if_needed,
-    monospace_font_family,
-    prepare_working_directory,
     resource_path,
+)
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import (
+    monospace_font_family,
     ui_font_family,
 )
+from ModuleFolders.Infrastructure.Platform.RuntimeSetup import migrate_config_if_needed, prepare_working_directory
 
 import multiprocessing
 import warnings

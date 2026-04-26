@@ -2,7 +2,7 @@ import json
 import re
 from typing import List, Dict, Tuple, Any, Optional
 
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import regex_path
+from ModuleFolders.Config.FilePathConfig import regex_path
 
 class TextProcessor():
     # 定义日语字符集的正则表达式

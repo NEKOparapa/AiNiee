@@ -5,11 +5,11 @@ import traceback
 import rapidjson as json
 from rich import print
 
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import (
+from ModuleFolders.Config.FilePathConfig import (
     config_path,
-    migrate_config_if_needed,
     resource_path,
 )
+from ModuleFolders.Infrastructure.Platform.RuntimeSetup import migrate_config_if_needed
 
 
 class ConfigMixin:

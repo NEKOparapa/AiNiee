@@ -18,7 +18,8 @@ from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, Stron
                             InfoBar, InfoBarPosition, SubtitleLabel, MessageBoxBase)
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import downloads_dir, is_macos, release_api_url, resource_path
+from ModuleFolders.Config.FilePathConfig import downloads_dir, resource_path
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import is_macos, release_api_url
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.Toast import ToastMixin
 

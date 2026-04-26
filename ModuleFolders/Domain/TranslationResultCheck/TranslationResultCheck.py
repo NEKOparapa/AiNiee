@@ -3,7 +3,7 @@ import os
 import re
 import time
 
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import check_regex_path
+from ModuleFolders.Config.FilePathConfig import check_regex_path
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Service.Cache.CacheProject import CacheProject
 

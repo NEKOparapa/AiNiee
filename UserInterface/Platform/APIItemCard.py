@@ -12,7 +12,7 @@ from qfluentwidgets import (
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import platform_icon_path
+from ModuleFolders.Config.FilePathConfig import platform_icon_path
 
 
 class APIItemCard(QWidget, ConfigMixin, Base):
