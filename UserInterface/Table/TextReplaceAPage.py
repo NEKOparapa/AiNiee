@@ -3,7 +3,6 @@ import pandas
 import rapidjson as json
 from qfluentwidgets import (Action, FluentIcon, MessageBox, TableWidget, RoundMenu,
                             LineEdit, DropDownPushButton, ToolButton, TransparentToolButton, BodyLabel)
-
 from PyQt5.QtCore import QEvent, Qt, QPoint, QTimer
 from PyQt5.QtWidgets import (QFrame, QHeaderView, QLayout, QVBoxLayout,
                              QTableWidgetItem, QHBoxLayout, QWidget,QAbstractItemView)
