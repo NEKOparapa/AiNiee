@@ -721,12 +721,14 @@ class PromptBuilder(Base):
             dictionary[item.get("original_name", "")] = item
 
         temp_dict = {}
+        #空格和圆点发送时显示
+        DOT_SEPARATORS = r".．・·･∙⋅‧⸱﹒。｡"
         for key_a, value_a in dictionary.items():
             keywords = [key_a]
             if "[Separator]" in key_a:
                 keywords = key_a.split("[Separator]")
-            elif " " in key_a or "." in key_a:
-                keywords = re.split(r"[ .]", key_a)
+            elif " " in key_a or re.search(f"[{DOT_SEPARATORS}]", key_a):
+                keywords = re.split(f"[ {DOT_SEPARATORS}]+", key_a)
 
             keywords = [keyword.strip() for keyword in keywords if keyword.strip()]
 
