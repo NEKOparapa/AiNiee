@@ -724,11 +724,8 @@ class PromptBuilder(Base):
         #空格和圆点发送时显示
         DOT_SEPARATORS = r".．・·･∙⋅‧⸱﹒。｡"
         for key_a, value_a in dictionary.items():
-            keywords = [key_a]
-            if "[Separator]" in key_a:
-                keywords = key_a.split("[Separator]")
-            elif " " in key_a or re.search(f"[{DOT_SEPARATORS}]", key_a):
-                keywords = re.split(f"[ {DOT_SEPARATORS}]+", key_a)
+            processed_key = key_a.replace("[Separator]", " ")
+            keywords = re.split(f"[ {DOT_SEPARATORS}]+", processed_key)
 
             keywords = [keyword.strip() for keyword in keywords if keyword.strip()]
 
