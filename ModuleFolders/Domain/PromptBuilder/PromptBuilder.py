@@ -721,22 +721,42 @@ class PromptBuilder(Base):
             dictionary[item.get("original_name", "")] = item
 
         temp_dict = {}
+        full_text = "\n".join(input_dict.values())
         #空格和圆点发送时显示
         DOT_SEPARATORS = r".．・·･∙⋅‧⸱﹒。｡"
         for key_a, value_a in dictionary.items():
-            processed_key = key_a.replace("[Separator]", " ")
-            keywords = re.split(f"[ {DOT_SEPARATORS}]+", processed_key)
+            keywords = [key_a]
+            if "[Separator]" in key_a:
+                keywords = key_a.split("[Separator]")
+            elif " " in key_a or re.search(f"[{DOT_SEPARATORS}]", key_a):
+                keywords = re.split(f"[ {DOT_SEPARATORS}]+", key_a)
 
             keywords = [keyword.strip() for keyword in keywords if keyword.strip()]
 
-            is_match = False
-            for value_b in input_dict.values():
-                for keyword in keywords:
-                    if keyword and keyword in value_b:
-                        temp_dict[key_a] = value_a
-                        is_match = True
-                        break
-                if is_match:
+            for keyword in keywords:
+                if not keyword:
+                    continue
+
+                # 无视大小写查找匹配部分
+                match = re.search(re.escape(keyword), full_text, re.IGNORECASE)
+                if match:
+                    actual_text = match.group()
+
+                    # 复制配置，避免污染全局数据
+                    new_value = value_a.copy()
+                    orig_name = new_value.get("original_name", "")
+
+                    # 将原名中的对应部分替换为文本里实际的大小写
+                    new_value["original_name"] = re.sub(
+                        re.escape(keyword),
+                        lambda _: actual_text,
+                        orig_name,
+                        count=1,
+                        flags=re.IGNORECASE
+                    )
+
+                    # 存入临时字典，基于 key_a 去重，防止该角色的多个关键词匹配导致重复添加
+                    temp_dict[key_a] = new_value
                     break
 
         if temp_dict == {}:
