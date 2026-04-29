@@ -311,24 +311,15 @@ class PromptBuilderLocal(Base):
             dictionary[item.get("original_name", "")] = item
 
         temp_dict = {}
+        full_text = "\n".join(source_text_dict.values())
         for original_key, value in dictionary.items():
-            keywords = [original_key]
-            if "[Separator]" in original_key:
-                keywords = original_key.split("[Separator]")
-            elif " " in original_key or "." in original_key:
-                keywords = re.split(r"[ .]", original_key)
+            matched_name = PromptBuilder._match_characterization_original_name(original_key, full_text)
+            if not matched_name:
+                continue
 
-            keywords = [keyword.strip() for keyword in keywords if keyword.strip()]
-
-            is_match = False
-            for source_text in source_text_dict.values():
-                for keyword in keywords:
-                    if keyword and keyword in source_text:
-                        temp_dict[original_key] = value
-                        is_match = True
-                        break
-                if is_match:
-                    break
+            new_value = value.copy()
+            new_value["original_name"] = matched_name
+            temp_dict[original_key] = new_value
 
         if temp_dict == {}:
             return ""
@@ -336,7 +327,7 @@ class PromptBuilderLocal(Base):
         if PromptBuilderLocal._is_chinese_target(config):
             profile = "\n###角色介绍"
             for value in temp_dict.values():
-                original_name = value.get("original_name", "").replace("[Separator]", "")
+                original_name = value.get("original_name", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")
@@ -361,7 +352,7 @@ class PromptBuilderLocal(Base):
         else:
             profile = "\n###Character Introduction"
             for value in temp_dict.values():
-                original_name = value.get("original_name", "").replace("[Separator]", "")
+                original_name = value.get("original_name", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")
@@ -518,3 +509,4 @@ class PromptBuilderLocal(Base):
         )
 
         return messages, system, extra_log
+        

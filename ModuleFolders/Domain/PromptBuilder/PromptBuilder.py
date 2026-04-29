@@ -714,6 +714,80 @@ class PromptBuilder(Base):
             "Original Text|Category|Remarks",
         )
 
+    # 圆点系列，匹配时与空格按同类处理
+    CHARACTERIZATION_DOT_SEPARATORS = r".．・·･∙⋅‧⸱﹒。｡"
+
+    # 原名拆分为可匹配的关键词
+    def _split_characterization_name(original_name: str) -> list[str]:
+        if not original_name:
+            return []
+
+        if "[Separator]" in original_name:
+            parts = original_name.split("[Separator]")
+        elif " " in original_name or re.search(f"[{PromptBuilder.CHARACTERIZATION_DOT_SEPARATORS}]", original_name):
+            parts = re.split(f"[ {PromptBuilder.CHARACTERIZATION_DOT_SEPARATORS}]+", original_name)
+        else:
+            parts = [original_name]
+
+        return [part.strip() for part in parts if part.strip()]
+
+    # 优先匹配全名，避免只命中姓或名时漏掉另一半
+    def _build_characterization_full_name_pattern(original_name: str, keywords: list[str]) -> str:
+        if not keywords:
+            return ""
+
+        if len(keywords) == 1:
+            return re.escape(keywords[0])
+
+        if "[Separator]" in original_name:
+            separator_pattern = f"[ {PromptBuilder.CHARACTERIZATION_DOT_SEPARATORS}]*"
+        else:
+            separator_pattern = f"[ {PromptBuilder.CHARACTERIZATION_DOT_SEPARATORS}]+"
+
+        return separator_pattern.join(re.escape(keyword) for keyword in keywords)
+
+    # [Separator] 命中全名后，需要去掉文本里的可见分隔符再回填原名
+    def _normalize_characterization_full_match(original_name: str, matched_text: str) -> str:
+        if "[Separator]" not in original_name:
+            return matched_text
+
+        parts = re.split(f"[ {PromptBuilder.CHARACTERIZATION_DOT_SEPARATORS}]+", matched_text)
+        return "".join(part for part in parts if part)
+
+    # 尝试整名匹配；失败后按关键词匹配，并保留文本里的实际大小写
+    def _match_characterization_original_name(original_name: str, full_text: str) -> str | None:
+        keywords = PromptBuilder._split_characterization_name(original_name)
+        if not keywords or not full_text:
+            return None
+
+        full_name_pattern = PromptBuilder._build_characterization_full_name_pattern(original_name, keywords)
+        if full_name_pattern:
+            full_match = re.search(full_name_pattern, full_text, re.IGNORECASE)
+            if full_match:
+                return PromptBuilder._normalize_characterization_full_match(original_name, full_match.group())
+
+        display_name = original_name.replace("[Separator]", "")
+        is_matched = False
+        for keyword in keywords:
+            match = re.search(re.escape(keyword), full_text, re.IGNORECASE)
+            if not match:
+                continue
+
+            is_matched = True
+            actual_text = match.group()
+            display_name = re.sub(
+                re.escape(keyword),
+                lambda _: actual_text,
+                display_name,
+                count=1,
+                flags=re.IGNORECASE,
+            )
+
+        if is_matched:
+            return display_name
+
+        return None
+
     # 构造角色设定
     def build_characterization(config: TaskConfig, input_dict: dict) -> str:
         dictionary = {}
@@ -722,42 +796,15 @@ class PromptBuilder(Base):
 
         temp_dict = {}
         full_text = "\n".join(input_dict.values())
-        #空格和圆点发送时显示
-        DOT_SEPARATORS = r".．・·･∙⋅‧⸱﹒。｡"
         for key_a, value_a in dictionary.items():
-            keywords = [key_a]
-            if "[Separator]" in key_a:
-                keywords = key_a.split("[Separator]")
-            elif " " in key_a or re.search(f"[{DOT_SEPARATORS}]", key_a):
-                keywords = re.split(f"[ {DOT_SEPARATORS}]+", key_a)
+            matched_name = PromptBuilder._match_characterization_original_name(key_a, full_text)
+            if not matched_name:
+                continue
 
-            keywords = [keyword.strip() for keyword in keywords if keyword.strip()]
-
-            for keyword in keywords:
-                if not keyword:
-                    continue
-
-                # 无视大小写查找匹配部分
-                match = re.search(re.escape(keyword), full_text, re.IGNORECASE)
-                if match:
-                    actual_text = match.group()
-
-                    # 复制配置，避免污染全局数据
-                    new_value = value_a.copy()
-                    orig_name = new_value.get("original_name", "")
-
-                    # 将原名中的对应部分替换为文本里实际的大小写
-                    new_value["original_name"] = re.sub(
-                        re.escape(keyword),
-                        lambda _: actual_text,
-                        orig_name,
-                        count=1,
-                        flags=re.IGNORECASE
-                    )
-
-                    # 存入临时字典，基于 key_a 去重，防止该角色的多个关键词匹配导致重复添加
-                    temp_dict[key_a] = new_value
-                    break
+            # 复制配置后写入命中的原名，避免污染配置，同时按 key_a 去重
+            new_value = value_a.copy()
+            new_value["original_name"] = matched_name
+            temp_dict[key_a] = new_value
 
         if temp_dict == {}:
             return ""
@@ -765,7 +812,7 @@ class PromptBuilder(Base):
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "\n###角色介绍"
             for value in temp_dict.values():
-                original_name = value.get("original_name", "").replace("[Separator]", "")
+                original_name = value.get("original_name", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")
@@ -790,7 +837,7 @@ class PromptBuilder(Base):
         else:
             profile = "\n###Character Introduction"
             for value in temp_dict.values():
-                original_name = value.get("original_name", "").replace("[Separator]", "")
+                original_name = value.get("original_name", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")
