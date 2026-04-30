@@ -23,6 +23,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     KEYS = ("src", "dst", "info",)
     COLUMN_NAMES = {0: "原文",1: "译文",2: "描述",}
+    # 只在正则编译失败时标红，保存本身不拦截。
     INVALID_ROW_BRUSH = QBrush(QColor(255, 0, 0, 96))
 
     def __init__(self, text: str, window: AppFluentWindow) -> None:
@@ -465,9 +466,20 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._update_search_ui() # 更新标签和按钮状态
 
     def _load_table_rows(self) -> list[dict]:
+        # 表格只展示三列；内部有效性由保存/刷新时重新计算。
         return GlossaryHelper.normalize_rows(
             TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
         )
+
+    def _get_translatable_rows(self, rows: list[dict] | None = None) -> list[dict]:
+        normalized_rows = GlossaryHelper.normalize_rows(
+            self._load_table_rows() if rows is None else rows
+        )
+        # 无效正则不送入简单翻译，避免失败项污染批量任务。
+        return [
+            row for row in normalized_rows
+            if row.get("src") and not row.get("dst") and GlossaryHelper.is_row_valid(row)
+        ]
 
     def _update_table_rows(self, rows: list[dict] | None) -> None:
         normalized_rows = GlossaryHelper.normalize_rows(rows)
@@ -488,6 +500,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         for row_index in range(self.table.rowCount()):
             first_item = self.table.item(row_index, 0)
             src = first_item.text().strip() if isinstance(first_item, QTableWidgetItem) else ""
+            # is_valid 不展示在表格中，通过原文列回查对应状态。
             is_invalid = bool(src) and not validity_by_src.get(src, True)
             self._set_row_highlight(row_index, is_invalid)
 
@@ -504,6 +517,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         config = self.load_config()
         config["prompt_dictionary_data"] = self._load_table_rows()
         self.save_config(config)
+        # 立即重绘一次，让刚输入的非法正则马上变红。
         self._update_table_rows(config["prompt_dictionary_data"])
         self.success_toast("", self.tra("数据已保存") + " ... ")
 
@@ -548,6 +562,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         # 更新并保存
         # 合并现有数据（来自表格状态）+ 新的已过滤数据
+        # 导入数据不信任外部状态，统一按当前 src 重新编译。
         combined_data = GlossaryHelper.normalize_rows(current_data + new_data_filtered)
         config["prompt_dictionary_data"] = combined_data # 直接更新配置
 
@@ -563,6 +578,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     # 导出方法
     def export_data(self) -> None:
+        # 导出只保留用户可编辑列，is_valid 属于本地运行状态。
         data = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
         if not data:
             self.warning_toast("", self.tra("表格中没有数据可导出"))
@@ -630,6 +646,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 self.info_toast(self.tra("信息"), self.tra("均已存在于术语表中"))
                 return
 
+            # 角色提取结果同样按术语表规则补齐有效性状态。
             combined_data = GlossaryHelper.normalize_rows(current_data + new_data_filtered)
             config["prompt_dictionary_data"] = combined_data
 
@@ -649,10 +666,12 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
     def glossary_translation(self) -> None:
         if Base.work_status == Base.STATUS.IDLE:
             Base.work_status = Base.STATUS.GLOSS_TASK
+            glossary_rows = self._load_table_rows()
+            translatable_rows = self._get_translatable_rows(glossary_rows)
             data = {}
-            data["prompt_dictionary_data"] = self._load_table_rows()
+            data["prompt_dictionary_data"] = glossary_rows
 
-            if not any(item.get('src') and not item.get('dst') for item in data["prompt_dictionary_data"]):
+            if not translatable_rows:
                     self.info_toast(self.tra("提示"), self.tra("没有需要翻译的术语"))
                     Base.work_status = Base.STATUS.IDLE
                     return

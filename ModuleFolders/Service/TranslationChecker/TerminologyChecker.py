@@ -49,6 +49,7 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
         seen_sources = set()
         analysis_data = self._get_project_analysis_data()
 
+        # 项目分析术语保持旧格式；公共术语表额外携带正则有效性。
         row_sources = (
             (analysis_data.get("characters", []), "source", "recommended_translation", "project"),
             (analysis_data.get("terms", []), "source", "recommended_translation", "project"),
@@ -63,6 +64,7 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
                 if not isinstance(row, dict):
                     continue
 
+                # 无效公共术语只在 UI 标红，不参与一致性检查。
                 if row_type == "glossary" and not GlossaryHelper.is_row_valid(row):
                     continue
 
@@ -90,6 +92,7 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
             if not src_term or not dst_term:
                 continue
 
+            # 公共术语复用术语表匹配规则：正则沿用 regex 默认大小写，普通词忽略大小写。
             if term.get("row_type") == "glossary":
                 pattern = GlossaryHelper.build_search_pattern(
                     src_term,

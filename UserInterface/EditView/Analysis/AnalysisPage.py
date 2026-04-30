@@ -1292,6 +1292,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 current_rows.append(row)
                 existing_keys.add(row_key)
                 added_count += 1
+            # 写入公共术语表时补齐 is_valid，导出仍只保留用户可编辑列。
             config["prompt_dictionary_data"] = GlossaryHelper.normalize_rows(current_rows)
 
         if added_count <= 0:

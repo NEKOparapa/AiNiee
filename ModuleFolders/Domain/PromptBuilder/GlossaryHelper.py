@@ -17,6 +17,7 @@ class GlossaryHelper:
 
     @staticmethod
     def _parse_source_text(source_text: str):
+        # 使用 regex 解析树区分纯字面量和真实正则
         return regex._regex_core._parse_pattern(
             regex._regex_core.Source(source_text),
             regex._regex_core.Info(),
@@ -24,6 +25,7 @@ class GlossaryHelper:
 
     @classmethod
     def _extract_literal_text(cls, node) -> str | None:
+        # 只有完整还原为连续字符时，才视为普通术语。
         if isinstance(node, regex._regex_core.Sequence):
             literal_parts = []
             for item in node.items:
@@ -99,6 +101,7 @@ class GlossaryHelper:
 
     @classmethod
     def normalize_row(cls, row: dict) -> dict:
+        # 持久化校验结果，UI 与任务流程复用同一份有效性判断。
         normalized_row = dict(row) if isinstance(row, dict) else {}
         normalized_row["src"] = cls._normalize_text(normalized_row.get("src", ""))
         normalized_row["dst"] = cls._normalize_text(normalized_row.get("dst", ""))
@@ -134,6 +137,7 @@ class GlossaryHelper:
             return None
 
         try:
+            # 正则保持 regex 默认大小写规则；普通术语继续忽略大小写。
             if cls.is_regex_pattern(source_text):
                 return cls._compile_source_text(source_text)
 
@@ -178,6 +182,7 @@ class GlossaryHelper:
                 seen_texts.add(match_text)
 
             for match_text in found_texts:
+                # 提示词使用实际命中的文本，保留原文大小写。
                 dedupe_key = (match_text, row.get("dst", ""))
                 if dedupe_key in seen_keys:
                     continue
