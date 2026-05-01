@@ -32,7 +32,9 @@
     * 🎯 **突破局限**：采用轻盈翻译格式、思维链翻译、AI术语表、上下文关联等技术，确保长文本翻译的连贯性与准确性。
     * 💎 **质量追求**：支持 基础提示、角色介绍、背景设定、翻译风格 等提示词调整，拥有 一键AI润色、一键提取术语 等功能，满足对翻译质量有更高要求的用户。
 
-* ✨ **姊妹项目推荐**：[**ReaDreamAI**](https://github.com/NEKOparapa/ReaDreamAI) - 阅你所想，绘你所梦，从一个想法到一本完整的精彩小说。ReaDreamAI为你包办写作、插图与视频。
+* ✨ **姊妹项目推荐**
+    * [**ReaDreamAI**](https://github.com/NEKOparapa/ReaDreamAI)（作者：NEKOparapa） - 阅你所想，绘你所梦，从一个想法到一本完整的精彩小说。ReaDreamAI为你包办写作、插图与视频。
+    * [**AiNiee-Next**](https://github.com/ShadowLoveElysia/AiNiee-Next)（作者：ShadowLoveElysia） - 针对 AiNiee 核心逻辑进行工程化重构的命令行版本，引入 uv 与运行时稳定性优化，适合长时间挂机、服务器部署及自动化工作流。
 
 ---
 
@@ -113,7 +115,7 @@
 
  * **`🎫游戏翻译图文教程`**
 
-      |视频链接|说明|
+      |文章链接|说明|
       |:----:|:-----:|
       |[Mtool教程](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Mtool) |适合新人，懒人翻译RPG,RenPY,Krkr等游戏，进行外挂式翻译|
       |[Translator++教程](https://github.com/NEKOparapa/AiNiee/wiki/%E6%B8%B8%E6%88%8F%E7%BF%BB%E8%AF%91%E2%80%90Translator--%EF%BC%88%E5%B7%A5%E7%A8%8B%E6%96%87%E4%BB%B6%E7%89%88%EF%BC%89)|适合翻译RPG,RenPY,Krkr等等游戏，进行内嵌式翻译|
@@ -162,20 +164,6 @@
 </details>
 
 
-
-<details>
-<summary>
-  
-### 插件说明
-</summary>
-
-- [插件 - 语言过滤器](https://github.com/NEKOparapa/AiNiee/wiki/%E6%8F%92%E4%BB%B6%E2%80%90LanguageFilter)
-- [插件 - 文本规范器](https://github.com/NEKOparapa/AiNiee/wiki/%E6%8F%92%E4%BB%B6%E2%80%90TextNormalizer)
-
-</details>
-
-
-
 <details>
 <summary> 
 
@@ -207,9 +195,8 @@
 </summary>
 
 
-* **`开发增强插件`**: 请根据[插件编写指南](https://github.com/NEKOparapa/AiNiee/blob/main/PluginScripts/README.md)进行开发更强功能插件
 
-* **`改进或增加支持文件`**: 需要有一定的代码编程能力，拉取源码进行改进。文件具体读取代码在ModuleFolders\FileReader与FileOutputer文件夹中。[读写器系统编写指南](https://github.com/NEKOparapa/AiNiee/blob/main/ModuleFolders/FileAccessor/README.md)。UI支持在UserInterface\Setting的ProjectSettingsPage。
+* **`改进或增加支持文件`**: 需要有一定的代码编程能力，拉取源码进行改进。文件具体读取代码在ModuleFolders\FileReader与FileOutputer文件夹中。[读写器系统编写指南](https://github.com/NEKOparapa/AiNiee/blob/main/ModuleFolders/Domain/FileAccessor/README.md)。UI支持在UserInterface\Setting的ProjectSettingsPage。
 
 * **`完善正则库`**: 正则库的完备将极大帮助游戏内嵌工作的进行，并利好下一次游戏翻译工作和造福其他翻译用户，正则库在[Resource\Regex](https://github.com/NEKOparapa/AiNiee/blob/main/Resource/Regex/regex.json)文件夹中
 

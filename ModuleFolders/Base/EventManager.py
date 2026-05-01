@@ -28,8 +28,14 @@ class EventManager(QObject):
     # 处理事件
     def process_event(self, event: int, data: dict):
         if event in self.event_callbacks:
-            for hanlder in self.event_callbacks[event]:
-                hanlder(event, data)
+            for hanlder in list(self.event_callbacks[event]):
+                try:
+                    hanlder(event, data)
+                except RuntimeError as error:
+                    if self._is_deleted_qobject_error(error):
+                        self.unsubscribe(event, hanlder)
+                        continue
+                    raise
 
     # 触发事件
     def emit(self, event: int, data: dict):
@@ -43,5 +49,17 @@ class EventManager(QObject):
 
     # 取消订阅事件
     def unsubscribe(self, event: int, hanlder: callable):
-        if event in self.event_callbacks:
-            self.event_callbacks[event].remove(hanlder)
+        if event not in self.event_callbacks:
+            return
+
+        callbacks = self.event_callbacks[event]
+        if hanlder in callbacks:
+            callbacks.remove(hanlder)
+
+        if not callbacks:
+            self.event_callbacks.pop(event, None)
+
+    @staticmethod
+    def _is_deleted_qobject_error(error: RuntimeError) -> bool:
+        message = str(error)
+        return "wrapped C/C++ object" in message and "has been deleted" in message

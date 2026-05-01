@@ -1,61 +1,72 @@
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
-from qfluentwidgets import CardWidget, StrongBodyLabel, CaptionLabel, PushButton, TransparentToolButton, FluentIcon, pyqtSignal
+from qfluentwidgets import CaptionLabel, CardWidget, FluentIcon, PushButton, StrongBodyLabel, TransparentToolButton
 
-from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 
 
-class ProjectHistoryCard(CardWidget, ConfigMixin, Base):
-    """历史项目卡片，显示项目名、路径、进度，并提供继续和删除按钮"""
-    continue_clicked = pyqtSignal()
-    delete_clicked = pyqtSignal()
+class ProjectHistoryCard(ConfigMixin, CardWidget):
+    """历史项目卡片。"""
+
+    continue_clicked = pyqtSignal(str)
+    delete_clicked = pyqtSignal(str)
 
     def __init__(self, entry: dict, parent=None):
         super().__init__(parent)
+        self.entry = dict(entry or {})
+        self.project_id = str(self.entry.get("project_id", "")).strip()
+
         self.setBorderRadius(4)
 
-        hbox = QHBoxLayout(self)
-        hbox.setContentsMargins(16, 12, 16, 12)
-        hbox.setSpacing(12)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(12)
 
-        # 左侧：项目名 + 路径
-        vbox = QVBoxLayout()
-        vbox.setSpacing(2)
+        text_layout = QVBoxLayout()
+        text_layout.setContentsMargins(0, 0, 0, 0)
+        text_layout.setSpacing(2)
 
-        name_label = StrongBodyLabel(entry.get("project_name", ""), self)
-        vbox.addWidget(name_label)
+        title_label = StrongBodyLabel(self.entry.get("project_name", self.project_id), self)
+        meta_label = CaptionLabel(self._build_meta_text(), self)
+        meta_label.setTextColor(QColor(96, 96, 96), QColor(160, 160, 160))
 
-        path_label = CaptionLabel(entry.get("output_path", ""), self)
-        path_label.setTextColor(QColor(96, 96, 96), QColor(160, 160, 160))
-        vbox.addWidget(path_label)
+        text_layout.addWidget(title_label)
+        text_layout.addWidget(meta_label)
 
-        # 进度标签
-        total = entry.get("total_line", 0)
-        done = entry.get("line", 0)
-        is_complete = entry.get("is_complete", False)
-        if total > 0:
-            pct = int(done / total * 100)
-            status_text = self.tra("已完成") if is_complete else f"{pct}%  ({done}/{total})"
-        else:
-            status_text = ""
-        progress_label = CaptionLabel(status_text, self)
+        self.continue_btn = PushButton(self.tra("继续"), self)
+        self.continue_btn.setFixedSize(96, 32)
+        self.continue_btn.clicked.connect(lambda: self.continue_clicked.emit(self.project_id))
+
+        self.delete_btn = TransparentToolButton(FluentIcon.DELETE, self)
+        self.delete_btn.setIconSize(QSize(16, 16))
+        self.delete_btn.clicked.connect(lambda: self.delete_clicked.emit(self.project_id))
+
+        progress_label = CaptionLabel(self._build_progress_text(), self)
+        progress_label.setAlignment(Qt.AlignCenter)
         progress_label.setTextColor(QColor(96, 96, 96), QColor(160, 160, 160))
 
-        # 右侧：继续按钮 + 删除按钮
-        btn = PushButton(self.tra("继续"), self)
-        btn.setFixedSize(100, 32)
-        btn.clicked.connect(lambda: self.continue_clicked.emit())
+        layout.addLayout(text_layout)
+        layout.addStretch(1)
+        layout.addWidget(progress_label, 0, Qt.AlignVCenter)
+        layout.addStretch(1)
+        layout.addWidget(self.continue_btn)
+        layout.addWidget(self.delete_btn)
 
-        delete_btn = TransparentToolButton(FluentIcon.DELETE, self)
-        delete_btn.setIconSize(QSize(16, 16))
-        delete_btn.setFixedSize(32, 32)
-        delete_btn.clicked.connect(lambda: self.delete_clicked.emit())
+    def _build_meta_text(self) -> str:
+        create_time = self.entry.get("project_create_time", "")
+        if create_time:
+            return f"{self.tra('创建时间')}: {create_time}"
+        return self.project_id
 
-        hbox.addLayout(vbox)
-        hbox.addStretch(1)
-        hbox.addWidget(progress_label)
-        hbox.addSpacing(16)
-        hbox.addWidget(btn)
-        hbox.addWidget(delete_btn)
+    def _build_progress_text(self) -> str:
+        total_line = int(self.entry.get("total_line", 0) or 0)
+        line = int(self.entry.get("line", 0) or 0)
+        if total_line <= 0:
+            return self.tra("进度: 未开始")
+
+        percent = min(100, int(line / total_line * 100))
+        if self.entry.get("is_complete"):
+            return f"{self.tra('进度')}: {self.tra('已完成')} ({line}/{total_line})"
+
+        return f"{self.tra('进度')}: {percent}% ({line}/{total_line})"

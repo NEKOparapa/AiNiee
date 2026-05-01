@@ -36,7 +36,6 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self.default = {
             "proxy_url": "",
             "proxy_enable": False,
-            "font_hinting": True,
             "scale_factor": "AUTO",
             "interface_language_setting": "简中",
             "auto_check_update": True,
@@ -73,8 +72,6 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self.add_widget_interface_language_setting(self.vbox, config)
         self.add_widget_auto_check_update(self.vbox, config)
         self.add_widget_check_update(self.vbox, config, window)
-        self.add_widget_font_hinting(self.vbox, config)
-        self.add_widget_debug_mode(self.vbox, config)
         self.add_widget_scale_factor(self.vbox, config)
         self.add_widget_exclude_rule(self.vbox, config)
         self.add_widget_http_service(self.vbox, config) 
@@ -204,50 +201,6 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
                 self.tra("翻译完成后，向该地址发送 POST 请求。留空则不启用。"),
                 init=init_callback,
                 text_changed=text_changed_callback,
-            )
-        )
-
-    # 应用字体优化
-    def add_widget_font_hinting(self, parent, config) -> None:
-        def init(widget) -> None:
-            widget.set_checked(config.get("font_hinting"))
-
-        def checked_changed(widget, checked: bool) -> None:
-            config = self.load_config()
-            config["font_hinting"] = checked
-            self.save_config(config)
-
-        parent.addWidget(
-            SwitchButtonCard(
-                self.tra("应用字体优化"),
-                self.tra("启用此功能后,字体的边缘渲染将更加圆润(将在应用重启后生效)"),
-                init=init,
-                checked_changed=checked_changed,
-            )
-        )
-
-    # 调整模式
-    def add_widget_debug_mode(self, parent, config) -> None:
-        def init(widget) -> None:
-            debug_path = os.path.join(".", "debug.txt")
-            widget.set_checked(os.path.isfile(debug_path))
-
-        def checked_changed(widget, checked: bool) -> None:
-            debug_path = os.path.join(".", "debug.txt")
-            if checked == True:
-                open(debug_path, "w").close()
-            else:
-                os.remove(debug_path) if os.path.isfile(debug_path) else None
-
-            # 重置调试模式检查状态
-            self.reset_debug()
-
-        parent.addWidget(
-            SwitchButtonCard(
-                self.tra("调试模式"),
-                self.tra("启用此功能后,应用将显示额外的调试信息"),
-                init=init,
-                checked_changed=checked_changed,
             )
         )
 
@@ -386,7 +339,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
                 return
 
             # 确认框
-            message_box = MessageBox("Warning", self.tra("是否确认导入选中的配置文件,导入后应用将自动重启"), window)
+            message_box = MessageBox(self.tra("警告"), self.tra("是否确认导入选中的配置文件,导入后应用将自动重启"), window)
             message_box.yesButton.setText(self.tra("确认"))
             message_box.cancelButton.setText(self.tra("取消"))
             if message_box.exec():
@@ -397,8 +350,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             # 保存配置文件
             config = self.load_config()
             for k, v in profile.items():
-                if k != "platforms":
-                    config[k] = v
+                config[k] = v
             self.save_config(config)
 
             # 重启应用
@@ -407,7 +359,6 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         # 导出配置文件
         def export_profile_file(path) -> None:
             config = self.load_config()
-            del config["platforms"]
 
             with open(f"{path}/ainiee_profile.json", "w", encoding="utf-8") as writer:
                 writer.write(json.dumps(config, indent=4, ensure_ascii=False))
@@ -417,7 +368,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
         # 导入按钮点击事件
         def on_improt_button_clicked() -> None:
-            path, _ = QFileDialog.getOpenFileName(None, self.tra("选择文件"), "", "json files (*.json)")
+            path, _ = QFileDialog.getOpenFileName(None, self.tra("选择文件"), "", self.tra("JSON 配置文件 (*.json)"))
 
             if path == None or path == "":
                 return
@@ -451,7 +402,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         parent.addWidget(
             EmptyCard(
                 self.tra("应用配置切换"),
-                self.tra("可以将当前应用的除接口信息以外的所有设置导出为配置文件,以方便根据不同项目切换配置(导入配置后应用将自动重启)"),
+                self.tra("可以将当前应用的所有设置导出为配置文件,以方便根据不同项目切换配置(导入配置后应用将自动重启)"),
                 init=init,
             )
         )

@@ -95,20 +95,27 @@ class _ModelFetchWorker(QObject):
             return
 
         models = []
+        exclude_keywords = ["image"]  # 添加过滤规则项
+
+        # 内部统一添加与过滤方法
+        def _add_model(mid):
+            if not mid:
+                return
+            model_name = str(mid)
+            # 排除名称中包含屏蔽关键字的模型
+            if not any(keyword in model_name.lower() for keyword in exclude_keywords):
+                models.append(model_name)
+
         try:
             if isinstance(data, dict) and isinstance(data.get("data"), list):
                 for item in data.get("data", []):
-                    mid = item.get("id") or item.get("model")
-                    if mid:
-                        models.append(str(mid))
+                    _add_model(item.get("id") or item.get("model"))
             elif isinstance(data, list):
                 for item in data:
                     if isinstance(item, str):
-                        models.append(item)
+                        _add_model(item)
                     elif isinstance(item, dict):
-                        mid = item.get("id") or item.get("model")
-                        if mid:
-                            models.append(str(mid))
+                        _add_model(item.get("id") or item.get("model"))
         except Exception:
             pass
 

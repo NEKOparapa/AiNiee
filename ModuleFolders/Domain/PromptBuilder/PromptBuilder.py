@@ -29,6 +29,12 @@ class PromptBuilder(Base):
         if getattr(PromptBuilder, "think_system_en", None) == None:
             with open("./Resource/Prompt/Translate/think_system_en.txt", "r", encoding = "utf-8") as reader:
                 PromptBuilder.think_system_en = reader.read().strip()
+        if getattr(PromptBuilder, "local_system_zh", None) == None:
+            with open("./Resource/Prompt/Translate/local_system_zh.txt", "r", encoding = "utf-8") as reader:
+                PromptBuilder.local_system_zh = reader.read().strip()
+        if getattr(PromptBuilder, "local_system_en", None) == None:
+            with open("./Resource/Prompt/Translate/local_system_en.txt", "r", encoding = "utf-8") as reader:
+                PromptBuilder.local_system_en = reader.read().strip()
 
 
         # 如果输入的是字典，则转换为命名空间
@@ -51,6 +57,10 @@ class PromptBuilder(Base):
             result = PromptBuilder.think_system_zh
         elif prompt_preset == PromptBuilderEnum.THINK and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.think_system_en
+        elif prompt_preset == PromptBuilderEnum.LOCAL and config.target_language in ("chinese_simplified", "chinese_traditional"):
+            result = PromptBuilder.local_system_zh
+        elif prompt_preset == PromptBuilderEnum.LOCAL and config.target_language not in ("chinese_simplified", "chinese_traditional"):
+            result = PromptBuilder.local_system_en
         else:
             result = PromptBuilder.common_system_zh
 
@@ -83,6 +93,12 @@ class PromptBuilder(Base):
             result = PromptBuilder.think_system_zh
         elif config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.THINK and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.think_system_en
+            source_language = en_sl
+            target_language = en_tl
+        elif config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.LOCAL and config.target_language in ("chinese_simplified", "chinese_traditional"):
+            result = PromptBuilder.local_system_zh
+        elif config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.LOCAL and config.target_language not in ("chinese_simplified", "chinese_traditional"):
+            result = PromptBuilder.local_system_en
             source_language = en_sl
             target_language = en_tl
 
@@ -552,28 +568,170 @@ class PromptBuilder(Base):
 
         return result
 
+    # 构造项目表（角色表、术语表、禁翻表）
+    def _match_project_table_rows(
+        rows: list[dict],
+        source_text_dict: dict,
+        key_field: str,
+        fields_to_keep: tuple[str, ...],
+    ) -> list[dict]:
+        full_text = "\n".join(source_text_dict.values()) if source_text_dict else ""
+        if not full_text:
+            return []
+
+        matched_rows = []
+        seen_keys = set()
+
+        for row in rows or []:
+            if not isinstance(row, dict):
+                continue
+
+            key_value = str(row.get(key_field, "") or "").strip()
+            if not key_value:
+                continue
+
+            normalized_row = {
+                field_name: str(row.get(field_name, "") or "").strip()
+                for field_name in fields_to_keep
+            }
+
+            try:
+                pattern = re.compile(key_value, re.IGNORECASE)
+                found_texts = set(match.group() for match in pattern.finditer(full_text))
+
+                for match_text in found_texts:
+                    if not match_text:
+                        continue
+
+                    current_row = normalized_row.copy()
+                    current_row[key_field] = match_text
+                    dedupe_key = tuple(current_row[field_name] for field_name in fields_to_keep)
+                    if dedupe_key in seen_keys:
+                        continue
+
+                    matched_rows.append(current_row)
+                    seen_keys.add(dedupe_key)
+
+            except re.error:
+                if key_value.lower() in full_text.lower():
+                    dedupe_key = tuple(normalized_row[field_name] for field_name in fields_to_keep)
+                    if dedupe_key in seen_keys:
+                        continue
+
+                    matched_rows.append(normalized_row)
+                    seen_keys.add(dedupe_key)
+
+        return matched_rows
+
+    def _build_project_table_prompt(
+        config: TaskConfig,
+        source_text_dict: dict,
+        rows: list[dict],
+        key_field: str,
+        fields: tuple[str, ...],
+        title_zh: str,
+        title_en: str,
+        header_zh: str,
+        header_en: str,
+    ) -> str:
+        """
+        构建通用项目表片段，最终会拼成 markdown 风格的表头加逐行数据。
+        示例（中文目标语言）:
+        ###角色表
+        原文|推荐译名|性别|备注
+        Alice|爱丽丝|女性|主角
+
+        示例（非中文目标语言）:
+        ###Character Table
+        Original Text|Recommended Translation|Gender|Remarks
+        Alice|爱丽丝|女性|主角
+        """
+        matched_rows = PromptBuilder._match_project_table_rows(
+            rows,
+            source_text_dict,
+            key_field,
+            fields,
+        )
+        normalized_rows = []
+        for row in matched_rows:
+            normalized_rows.append([
+                row.get(field, "") if row.get(field, "") else " "
+                for field in fields
+            ])
+
+        if not normalized_rows:
+            return ""
+
+        if config.target_language in ("chinese_simplified", "chinese_traditional"):
+            prompt_lines = [f"\n###{title_zh}", header_zh]
+        else:
+            prompt_lines = [f"\n###{title_en}", header_en]
+
+        for row in normalized_rows:
+            prompt_lines.append("|".join(row))
+
+        return "\n".join(prompt_lines)
+
+    # 构建角色表
+    def build_project_characters_prompt(config: TaskConfig, source_text_dict: dict) -> str:
+        return PromptBuilder._build_project_table_prompt(
+            config,
+            source_text_dict,
+            getattr(config, "project_characters_data", []),
+            "source",
+            ("source", "recommended_translation", "gender", "note"),
+            "角色表",
+            "Character Table",
+            "原文|推荐译名|性别|备注",
+            "Original Text|Recommended Translation|Gender|Remarks",
+        )
+
+    # 构建术语表
+    def build_project_terms_prompt(config: TaskConfig, source_text_dict: dict) -> str:
+        return PromptBuilder._build_project_table_prompt(
+            config,
+            source_text_dict,
+            getattr(config, "project_terms_data", []),
+            "source",
+            ("source", "recommended_translation", "category_path", "note"),
+            "术语表",
+            "Term Table",
+            "原文|推荐译名|分类|备注",
+            "Original Text|Recommended Translation|Category|Remarks",
+        )
+
+    # 构建禁翻表
+    def build_project_non_translate_prompt(config: TaskConfig, source_text_dict: dict) -> str:
+        return PromptBuilder._build_project_table_prompt(
+            config,
+            source_text_dict,
+            getattr(config, "project_non_translate_data", []),
+            "marker",
+            ("marker", "category", "note"),
+            "禁翻表",
+            "Non-Translation Table",
+            "原文|分类|备注",
+            "Original Text|Category|Remarks",
+        )
+
     # 构造角色设定
     def build_characterization(config: TaskConfig, input_dict: dict) -> str:
-        # 将数据存储到中间字典中
         dictionary = {}
-        for v in config.characterization_data:
-            dictionary[v.get("original_name", "")] = v
+        for item in getattr(config, "characterization_data", []):
+            dictionary[item.get("original_name", "")] = item
 
-        # 筛选，如果该key在发送文本中，则存储进新字典中
         temp_dict = {}
         for key_a, value_a in dictionary.items():
-            # 确定匹配关键词：优先处理[Separator]手动分割，其次处理空格或点号自动分割
             keywords = [key_a]
             if "[Separator]" in key_a:
                 keywords = key_a.split("[Separator]")
             elif " " in key_a or "." in key_a:
-                keywords = re.split(r'[ .]', key_a)
-                #清洗
-            keywords = [k.strip() for k in keywords if k.strip()]
+                keywords = re.split(r"[ .]", key_a)
 
-            # 遍历待翻译文本，只要任意关键词（非空）命中，即加入角色表
+            keywords = [keyword.strip() for keyword in keywords if keyword.strip()]
+
             is_match = False
-            for _, value_b in input_dict.items():
+            for value_b in input_dict.values():
                 for keyword in keywords:
                     if keyword and keyword in value_b:
                         temp_dict[key_a] = value_a
@@ -582,13 +740,12 @@ class PromptBuilder(Base):
                 if is_match:
                     break
 
-        # 如果没有含有字典内容
         if temp_dict == {}:
             return ""
 
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "\n###角色介绍"
-            for key, value in temp_dict.items():
+            for value in temp_dict.values():
                 original_name = value.get("original_name", "").replace("[Separator]", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
@@ -600,27 +757,20 @@ class PromptBuilder(Base):
                 profile += f"\n【{original_name}】"
                 if translated_name:
                     profile += f"\n- 译名：{translated_name}"
-
                 if gender:
                     profile += f"\n- 性别：{gender}"
-
                 if age:
                     profile += f"\n- 年龄：{age}"
-
                 if personality:
                     profile += f"\n- 性格：{personality}"
-
                 if speech_style:
                     profile += f"\n- 说话方式：{speech_style}"
-
                 if additional_info:
                     profile += f"\n- 补充信息：{additional_info}"
-
                 profile += "\n"
-
         else:
             profile = "\n###Character Introduction"
-            for key, value in temp_dict.items():
+            for value in temp_dict.values():
                 original_name = value.get("original_name", "").replace("[Separator]", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
@@ -632,61 +782,48 @@ class PromptBuilder(Base):
                 profile += f"\n[{original_name}]"
                 if translated_name:
                     profile += f"\n- Translated_name: {translated_name}"
-
                 if gender:
                     profile += f"\n- Gender: {gender}"
-
                 if age:
                     profile += f"\n- Age: {age}"
-
                 if personality:
                     profile += f"\n- Personality: {personality}"
-
                 if speech_style:
                     profile += f"\n- Speech_style: {speech_style}"
-
                 if additional_info:
                     profile += f"\n- Additional_info: {additional_info}"
-
                 profile += "\n"
 
         return profile
 
     # 构造背景设定
     def build_world_building(config: TaskConfig) -> str:
-        # 获取自定义内容
-        world_building = config.world_building_content
+        world_building = getattr(config, "world_building_content", "")
+        if not world_building:
+            return ""
 
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "\n###背景设定"
-
-            profile += f"\n{world_building}\n"
-
         else:
             profile = "\n###Background Setting"
 
-            profile += f"\n{world_building}\n"
-
+        profile += f"\n{world_building}\n"
         return profile
 
     # 构造文风要求
     def build_writing_style(config: TaskConfig) -> str:
-        # 获取自定义内容
-        writing_style = config.writing_style_content
+        writing_style = getattr(config, "writing_style_content", "")
+        if not writing_style:
+            return ""
 
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "\n###翻译风格"
-
-            profile += f"\n{writing_style}\n"
-
         else:
             profile = "\n###Writing Style"
 
-            profile += f"\n{writing_style}\n"
-
+        profile += f"\n{writing_style}\n"
         return profile
 
-    # 构建翻译示例
     def build_translation_example(config: TaskConfig) -> str:
         data = config.translation_example_data
 
@@ -798,7 +935,7 @@ class PromptBuilder(Base):
         extra_log = []
 
         # 基础系统提示词
-        if config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK):
+        if config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK, PromptBuilderEnum.LOCAL):
             system = PromptBuilder.build_system(config, source_lang)
         else:
             custom_prompt = config.translation_prompt_selection["prompt_content"]
@@ -819,29 +956,44 @@ class PromptBuilder(Base):
                 system += ntl
                 extra_log.append(ntl)
 
+        # 项目角色表
+        project_characters = PromptBuilder.build_project_characters_prompt(config, source_text_dict)
+        if project_characters != "":
+            system += project_characters
+            extra_log.append(project_characters)
 
-        # 如果角色介绍开关打开
-        if config.characterization_switch == True:
+        # 项目术语表
+        project_terms = PromptBuilder.build_project_terms_prompt(config, source_text_dict)
+        if project_terms != "":
+            system += project_terms
+            extra_log.append(project_terms)
+
+        # 项目禁翻表
+        project_non_translate = PromptBuilder.build_project_non_translate_prompt(config, source_text_dict)
+        if project_non_translate != "":
+            system += project_non_translate
+            extra_log.append(project_non_translate)
+
+
+        # 如果开启翻译示例
+        if getattr(config, "characterization_switch", False):
             characterization = PromptBuilder.build_characterization(config, source_text_dict)
             if characterization != "":
                 system += characterization
                 extra_log.append(characterization)
 
-        # 如果启用自定义世界观设定功能
-        if config.world_building_switch == True:
+        if getattr(config, "world_building_switch", False):
             world_building = PromptBuilder.build_world_building(config)
             if world_building != "":
                 system += world_building
                 extra_log.append(world_building)
 
-        # 如果启用自定义行文措辞要求功能
-        if config.writing_style_switch == True:
+        if getattr(config, "writing_style_switch", False):
             writing_style = PromptBuilder.build_writing_style(config)
             if writing_style != "":
                 system += writing_style
                 extra_log.append(writing_style)
 
-        # 如果启用翻译风格示例功能
         if config.translation_example_switch == True:
             translation_example = PromptBuilder.build_translation_example(config)
             if translation_example != "":

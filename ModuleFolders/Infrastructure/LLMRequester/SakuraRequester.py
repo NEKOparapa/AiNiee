@@ -14,8 +14,6 @@ class SakuraRequester(LogMixin, Base):
             model_name = platform_config.get("model_name")
             request_timeout = platform_config.get("request_timeout", 60)
             temperature = platform_config.get("temperature", 0.1)
-            top_p = platform_config.get("top_p", 0.3)
-            frequency_penalty = platform_config.get("frequency_penalty", 0)
 
             # 插入系统消息
             if system_prompt:
@@ -32,9 +30,8 @@ class SakuraRequester(LogMixin, Base):
             response = client.chat.completions.create(
                 model=model_name,
                 messages=messages,
-                top_p=top_p,
+                top_p=0.3,
                 temperature=temperature,
-                frequency_penalty=frequency_penalty,
                 timeout=request_timeout,
                 max_tokens=512,
                 extra_query={
@@ -49,7 +46,7 @@ class SakuraRequester(LogMixin, Base):
         except Exception as e:
             if Base.work_status == Base.STATUS.STOPING:
                 return True, None, None, None, None
-            self.error(f"请求任务错误 ... {e}", e if self.is_debug() else None)
+            self.error(f"请求任务错误 ... {e}", e)
             return True, None, None, None, None
 
         # 获取指令消耗

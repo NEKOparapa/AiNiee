@@ -14,8 +14,6 @@ class LocalLLMRequester(LogMixin, Base):
             model_name = platform_config.get("model_name")
             request_timeout = platform_config.get("request_timeout", 60)
             temperature = platform_config.get("temperature", 1.0)
-            top_p = platform_config.get("top_p", 1.0)
-            frequency_penalty = platform_config.get("frequency_penalty", 0)
             think_switch = platform_config.get("think_switch")
 
             # 参数基础配置
@@ -31,20 +29,10 @@ class LocalLLMRequester(LogMixin, Base):
                     "temperature": temperature,
                 })
 
-            if top_p != 1:
-                base_params.update({
-                    "top_p": top_p,
-                })
-
-            if frequency_penalty != 0:
-                base_params.update({
-                    "frequency_penalty": frequency_penalty
-                })
-
             # 假如打开了思考开关
             if think_switch:
                 base_params.update({
-                    "extra_body": {"enable_thinking": "true"}
+                    "extra_body": {"enable_thinking": True}
                 })
 
 
@@ -82,7 +70,7 @@ class LocalLLMRequester(LogMixin, Base):
         except Exception as e:
             if Base.work_status == Base.STATUS.STOPING:
                 return True, None, None, None, None
-            self.error(f"请求任务错误 ... {e}", e if self.is_debug() else None)
+            self.error(f"请求任务错误 ... {e}", e)
             return True, None, None, None, None
 
         # 获取指令消耗

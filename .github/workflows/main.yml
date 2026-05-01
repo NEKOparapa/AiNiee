@@ -47,8 +47,6 @@ jobs:
         run: |
           # 将资源文件夹复制到 PyInstaller 生成的输出目录内部
           Copy-Item -Path "Resource" -Destination "dist\AiNiee\Resource" -Recurse -Force
-          Copy-Item -Path "StevExtraction" -Destination "dist\AiNiee\StevExtraction" -Recurse -Force
-          Copy-Item -Path "PluginScripts" -Destination "dist\AiNiee\PluginScripts" -Recurse -Force
 
           # 压缩 dist\AiNiee 目录，updater 会智能查找 AiNiee.exe 所在目录
           Compress-Archive -Path "dist\AiNiee" -DestinationPath "AiNiee-Beta.zip"

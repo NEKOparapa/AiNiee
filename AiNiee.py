@@ -173,18 +173,8 @@ if __name__ == "__main__":
 
     # 设置全局字体属性，解决狗牙问题
     font = QFont("Consolas")
-    if config.get("font_hinting", True):
-        font.setHintingPreference(QFont.PreferFullHinting)
-    else:
-        font.setHintingPreference(QFont.PreferNoHinting)
+    font.setHintingPreference(QFont.PreferFullHinting)
     app.setFont(font)
-
-    # 创建全局插件管理器
-    update_splash_message(splash, "正在加载插件管理器... (10%)", app) # 更新启动页消息
-    from ModuleFolders.Infrastructure.Plugin.PluginManager import PluginManager
-    plugin_manager = PluginManager()
-    plugin_path = os.path.join(".", "PluginScripts")
-    plugin_manager.load_plugins_from_directory(plugin_path)
 
     # 创建全局缓存器
     update_splash_message(splash, "正在加缓存器... (15%)", app)
@@ -204,7 +194,6 @@ if __name__ == "__main__":
     from UserInterface.AppFluentWindow import AppFluentWindow
     app_fluent_window = AppFluentWindow(
         version=app_version,
-        plugin_manager=plugin_manager,
         cache_manager=cache_manager,
         file_reader =file_reader,
     )
@@ -218,7 +207,6 @@ if __name__ == "__main__":
     update_splash_message(splash, "正在加载任务执行器... (75%)", app)
     from ModuleFolders.Service.TaskExecutor.TaskExecutor import TaskExecutor
     task_executor = TaskExecutor(
-        plugin_manager=plugin_manager,
         cache_manager=cache_manager,
         file_reader=file_reader, 
         file_writer=file_writer

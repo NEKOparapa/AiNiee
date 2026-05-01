@@ -11,6 +11,7 @@ from ModuleFolders.Domain.FileReader.MToolReader import MToolReader
 from ModuleFolders.Domain.FileReader.OfficeConversionReader import OfficeConversionDocReader
 from ModuleFolders.Domain.FileReader.ParatranzReader import ParatranzReader
 from ModuleFolders.Domain.FileReader.TPPReader import TPPReader
+from ModuleFolders.Domain.FileReader.WolfXlsxReader import WolfXlsxReader
 from ModuleFolders.Domain.FileReader.VntReader import VntReader
 from ModuleFolders.Domain.FileReader.SrtReader import SrtReader
 from ModuleFolders.Domain.FileReader.VttReader import VttReader
@@ -28,7 +29,6 @@ from ModuleFolders.Domain.FileReader.TransReader import TransReader
 from ModuleFolders.Domain.FileReader.I18nextReader import I18nextReader
 from ModuleFolders.Domain.FileReader.PoReader import PoReader
 from ModuleFolders.Domain.FileReader.BabeldocPdfReader import BabeldocPdfReader
-from PluginScripts.IOPlugins.CustomRegistry import CustomReader
 
 
 # 文件读取器(分发入口)
@@ -48,6 +48,7 @@ class FileReader():
         self.register_reader(AssReader)
         self.register_reader(MdReader)
         self.register_reader(TPPReader)
+        self.register_reader(WolfXlsxReader)
         self.register_reader(TransReader)
         self.register_reader(MToolReader)
         self.register_reader(RenpyReader)
@@ -60,9 +61,6 @@ class FileReader():
         self.register_reader(CsvReader)
         self.register_reader(PptxReader)
         self.register_reader(XlsxReader)
-        
-        # 注册插件式 Reader
-        CustomReader.register_readers(self)
 
         # 检验是否有歧义
         AutoTypeReader.verify_reader_factories(self.reader_factory_dict.values())

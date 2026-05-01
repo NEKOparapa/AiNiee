@@ -12,24 +12,17 @@
       "English": "Current Output Folder:",
       "日本語": "現在の出力フォルダー："
     },
-
     "翻译输出文件夹": {
       "简中": "翻译输出文件夹",
       "繁中": "翻譯輸出資料夾",
       "English": "Translation Output Folder",
       "日本語": "翻訳出力フォルダ"
     },
-    "润色输出文件夹": {
-      "简中": "润色输出文件夹",
-      "繁中": "潤飾輸出資料夾",
-      "English": "Polishing Output Folder",
-      "日本語": "推敲出力フォルダ"
-    },
-    "文件名后缀": {
-      "简中": "文件名后缀",
-      "繁中": "檔案名稱後綴",
-      "English": "Filename Suffix",
-      "日本語": "ファイル名接尾辞"
+    "输出文件名后缀": {
+      "简中": "输出文件名后缀",
+      "繁中": "輸出檔案名稱後綴",
+      "English": "Output Filename Suffix",
+      "日本語": "出力ファイル名接尾辞"
     },
     "设置输出文件的文件名后缀，例如: _translated": {
       "简中": "设置输出文件的文件名后缀，例如: _translated",
@@ -70,7 +63,7 @@
     "启用此功能后，设置为输入文件夹的平级目录，比如输入文件夹为D:/Test/Input，输出文件夹将设置为D:/Test/AiNieeOutput": {
       "简中": "启用此功能后，设置为输入文件夹的平级目录，\n比如输入文件夹为 D:/Test/Input，输出文件夹将设置为 D:/Test/AiNieeOutput",
       "繁中": "啟用此功能後，設置為輸入資料夾的同層級目錄，\n例如輸入資料夾為 D:/Test/Input，輸出資料夾將設置為 D:/Test/AiNieeOutput",
-      "English": "When enabled, sets the output folder to a sibling directory of the input folder. \nE.g., if input is D:/Test/Input, output will be D:/Test/AiNieeOutput.",
+      "English": "Creates the output folder next to the input folder.\nExample: D:/Test/Input -> D:/Test/AiNieeOutput.",
       "日本語": "この機能を有効にすると、出力フォルダーは入力フォルダーと同じ階層のディレクトリーに設定されます。\n例：入力フォルダーが「D:/Test/Input」の場合、出力フォルダーは「D:/Test/AiNieeOutput」になります。"
     },
     "保持输入输出文件编码一致": {
@@ -82,8 +75,20 @@
     "启用此功能后，输出译文文件的编码将保持为与输入原文文件的编码一致（若字符不兼容，仍会使用utf-8），关闭后将始终使用 utf-8 编码（无特殊情况保持关闭即可）": {
       "简中": "启用此功能后，输出译文文件的编码将保持为与输入原文文件的编码一致（若字符不兼容，仍会使用utf-8），\n关闭后将始终使用 utf-8 编码（无特殊情况保持关闭即可）",
       "繁中": "啟用此功能後，輸出譯文檔案的編碼將保持為與輸入原文檔案的編碼一致（若字元不相容，仍會使用 utf-8），\n關閉後將始終使用 utf-8 編碼（無特殊情況保持關閉即可）",
-      "English": "When enabled, the output translated file's encoding will match the input original file's encoding (falls back to UTF-8 if characters are incompatible). \nWhen disabled, UTF-8 encoding will always be used. (Leave disabled under normal circumstances)",
+      "English": "Match the output file encoding to the source file.\nFalls back to UTF-8 if needed.\nIf disabled, always use UTF-8.",
       "日本語": "この機能を有効にすると、出力翻訳ファイルのエンコーディングは入力原文ファイルのエンコーディングと一致します（文字に互換性がない場合はutf-8を使用します）。\n無効にすると、常にutf-8エンコーディングを使用します。（通常はオフのままで問題ありません）"
+    },
+    "输出翻译检查结果": {
+      "简中": "输出翻译检查结果",
+      "繁中": "輸出翻譯檢查結果",
+      "English": "Output Translation Check Results",
+      "日本語": "翻訳チェック結果を出力"
+    },
+    "启用后，将在翻译任务完成并输出文件后执行翻译检查并输出总结，在发现问题时生成 JSON 错误报告": {
+      "简中": "启用后，将在翻译任务完成并输出文件后执行翻译检查并输出总结，在发现问题时生成 JSON 错误报告",
+      "繁中": "啟用後，將在翻譯任務完成並輸出檔案後執行翻譯檢查並輸出總結，發現問題時生成 JSON 錯誤報告",
+      "English": "Run translation checks after export.\nPrint a summary and create a JSON report if issues are found.",
+      "日本語": "有効にすると、翻訳タスク完了後に出力ファイルを書き出したあと翻訳チェックと要約出力を実行し、問題が見つかった場合は JSON のエラーレポートを生成します。"
     },
     "自动简繁转换": {
       "简中": "自动简繁转换",
@@ -109,6 +114,5 @@
       "English": "Conversion presets for Simplified/Traditional Chinese. Common: s2t, t2s.",
       "日本語": "簡体/繁体字変換の字形プリセット。例：簡→繁(s2t)、繁→簡(t2s)。"
     }
-    
   }
 }
