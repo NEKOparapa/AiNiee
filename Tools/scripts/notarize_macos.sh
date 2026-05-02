@@ -16,7 +16,7 @@ case "$ARCH" in
     ;;
 esac
 DMG_PATH="${DMG_PATH:-dist/AiNiee-macOS-${ARCH}.dmg}"
-ENTITLEMENTS="${ENTITLEMENTS:-Packaging/macOS/entitlements.plist}"
+ENTITLEMENTS="${ENTITLEMENTS:-Tools/Packaging/macOS/entitlements.plist}"
 
 : "${CODESIGN_IDENTITY:?CODESIGN_IDENTITY is required}"
 : "${APPLE_ID:?APPLE_ID is required}"
@@ -32,7 +32,7 @@ codesign \
   --sign "$CODESIGN_IDENTITY" \
   "$APP_PATH"
 
-scripts/package_dmg.sh "$APP_PATH" "$DMG_PATH"
+Tools/scripts/package_dmg.sh "$APP_PATH" "$DMG_PATH"
 
 xcrun notarytool submit "$DMG_PATH" \
   --apple-id "$APPLE_ID" \
