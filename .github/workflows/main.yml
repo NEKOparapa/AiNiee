@@ -131,6 +131,9 @@ jobs:
       GH_TOKEN: ${{ secrets.AINIEE }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Download release assets
         uses: actions/download-artifact@v4
         with:
