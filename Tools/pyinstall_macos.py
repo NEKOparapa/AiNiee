@@ -1,5 +1,6 @@
 import argparse
 import os
+import platform
 import plistlib
 import re
 import shutil
@@ -18,7 +19,7 @@ VALID_TARGET_ARCHES = {"arm64", "x86_64"}
 
 def target_arch(explicit_arch: str | None = None) -> str:
     # CI 和本地命令可能使用不同架构名，统一成 PyInstaller 支持的值。
-    arch = explicit_arch or os.environ.get("AINIEE_MACOS_ARCH") or "arm64"
+    arch = explicit_arch or os.environ.get("AINIEE_MACOS_ARCH") or platform.machine()
     normalized_arch = arch.strip().lower()
     aliases = {
         "aarch64": "arm64",
