@@ -77,6 +77,10 @@ def user_data_root() -> Path:
     return writable_root()
 
 
+def _has_user_data_override() -> bool:
+    return bool(os.environ.get("AINIEE_USER_DATA_DIR"))
+
+
 # 应用运行缓存目录。
 def cache_root() -> Path:
     override = os.environ.get("AINIEE_CACHE_DIR")
@@ -94,9 +98,12 @@ def project_cache_root() -> Path:
     if override:
         return Path(override).expanduser().resolve()
 
-    if _is_macos():
+    if os.environ.get("AINIEE_CACHE_DIR"):
+        return cache_root()
+
+    if _is_macos() or _has_user_data_override():
         return user_data_root() / "ProjectCache"
-    return writable_root() / "ProjectCache"
+    return cache_root()
 
 
 # tiktoken 实际使用的缓存目录。
@@ -121,14 +128,14 @@ def downloads_dir() -> Path:
     if override:
         return Path(override).expanduser().resolve()
 
-    if _is_macos():
+    if _is_macos() or _has_user_data_override():
         return user_data_root() / "downloads"
     return writable_root() / "downloads"
 
 
 # 主配置文件。
 def config_path() -> Path:
-    if _is_macos():
+    if _is_macos() or _has_user_data_override():
         return user_data_root() / "config.json"
     return writable_root() / "Resource" / "config.json"
 

@@ -116,7 +116,7 @@ def sign_app_bundle() -> None:
     # 没有证书时使用 ad-hoc 签名；有证书时启用 hardened runtime 以便公证。
     identity = os.environ.get("CODESIGN_IDENTITY") or os.environ.get("MACOS_CODESIGN_IDENTITY", "-")
     cmd = ["codesign", "--force", "--deep", "--sign", identity]
-    entitlements = ROOT / "Packaging" / "macOS" / "entitlements.plist"
+    entitlements = ROOT / "Tools" / "Packaging" / "macOS" / "entitlements.plist"
     if entitlements.exists():
         cmd.extend(["--entitlements", str(entitlements)])
     if identity != "-":

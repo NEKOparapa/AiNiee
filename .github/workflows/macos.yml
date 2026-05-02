@@ -87,9 +87,9 @@ jobs:
       - name: Package DMG
         run: |
           if [[ -n "$CODESIGN_IDENTITY" && -n "$APPLE_ID" && -n "$APPLE_TEAM_ID" && -n "$APPLE_APP_SPECIFIC_PASSWORD" ]]; then
-            bash scripts/notarize_macos.sh
+            bash Tools/scripts/notarize_macos.sh
           else
-            bash scripts/package_dmg.sh
+            bash Tools/scripts/package_dmg.sh
           fi
 
       - name: Generate SHA256
