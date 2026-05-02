@@ -79,7 +79,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             return "0.0.0"
 
     def _get_release_version(self, tag_name: str) -> str:
-        match = re.search(r"\d+(?:\.\d+)+", tag_name)
+        match = re.search(r"\d+(?:\.\d+)*", tag_name)
         return match.group(0) if match else "0.0.0"
 
     def _update_file_suffix(self) -> str:
@@ -148,12 +148,25 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         return selected_release, selected_version, selected_download_url
 
     def _find_compatible_update_release(self):
-        response = requests.get(self._release_list_api_url(), timeout=10)
-        if response.status_code != 200:
-            return None, self.current_version, None, response.status_code
+        page = 1
+        while True:
+            response = requests.get(
+                self._release_list_api_url(),
+                params={"per_page": 100, "page": page},
+                timeout=10,
+            )
+            if response.status_code != 200:
+                return None, self.current_version, None, response.status_code
 
-        release, version, download_url = self._select_compatible_update_release(response.json())
-        return release, version, download_url, None
+            releases = response.json()
+            release, version, download_url = self._select_compatible_update_release(releases)
+            if release is not None:
+                return release, version, download_url, None
+
+            if not releases or len(releases) < 100:
+                return None, self.current_version, None, None
+
+            page += 1
 
     def _remember_update_release(self, release: dict, version: str, download_url: str) -> None:
         # 检查阶段选中的资产直接给下载阶段复用，避免再次命中不兼容的 latest。
