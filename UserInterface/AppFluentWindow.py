@@ -4,7 +4,7 @@ import threading
 import requests
 from PyQt5.QtCore import QThread, QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices, QIcon
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QAction, QApplication, QMenuBar
 from qfluentwidgets import (
     FluentIcon,
     FluentWindow,
@@ -20,9 +20,12 @@ from qfluentwidgets import (
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.FilePathConfig import resource_path
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import is_macos
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.BaseNavigationItem import BaseNavigationItem
 from UserInterface.EditView.EditViewPage import EditViewPage
+from UserInterface.Native.MacOSUI import about_message, app_menu_title, command_shortcut
 from UserInterface.Platform.PlatformPage import PlatformPage
 from UserInterface.PromptSettings.PolishingSettings.PolishingSystemPromptPage import PolishingSystemPromptPage
 from UserInterface.Settings.AppSettingsPage import AppSettingsPage
@@ -101,7 +104,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         initial_height = int(desktop.height() * 0.8)
         self.resize(initial_width, initial_height)
         self.setWindowTitle(version)
-        self.setWindowIcon(QIcon(os.path.join(".", "Resource", "Logo", "Avatar.png")))
+        self.setWindowIcon(QIcon(str(resource_path("Logo", "Avatar.png"))))
         self.titleBar.iconLabel.hide()
 
         # 初始化版本管理器，并在应用加载完成后异步检查更新
@@ -120,6 +123,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
 
         # 添加页面
         self.add_pages(cache_manager, file_reader)
+        self.install_macos_menu()
 
     # 窗口关闭函数
     def closeEvent(self, event) -> None:
@@ -151,6 +155,42 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
     # 打开项目主页
     def open_project_page(self) -> None:
         QDesktopServices.openUrl(QUrl("https://github.com/NEKOparapa/AiNiee"))
+
+    def install_macos_menu(self) -> None:
+        if not is_macos():
+            return
+
+        # FluentWindow 不是 QMainWindow，macOS 原生菜单栏用独立 QMenuBar 挂到系统菜单。
+        menu_bar = QMenuBar(None)
+        menu_bar.setNativeMenuBar(True)
+        self.macos_menu_bar = menu_bar
+
+        app_menu = menu_bar.addMenu(app_menu_title())
+        about_action = QAction(self.tra("关于 AiNiee"), self)
+        about_action.setMenuRole(QAction.AboutRole)
+        about_action.triggered.connect(
+            lambda: MessageBox(
+                self.tra("关于 AiNiee"),
+                about_message(self.windowTitle(), self.tra),
+                self,
+            ).exec()
+        )
+
+        preferences_action = QAction(self.tra("偏好设置..."), self)
+        preferences_action.setMenuRole(QAction.PreferencesRole)
+        preferences_action.setShortcut(command_shortcut(","))
+        preferences_action.triggered.connect(lambda: self.switchTo(self.app_settings_page))
+
+        quit_action = QAction(self.tra("退出 AiNiee"), self)
+        quit_action.setMenuRole(QAction.QuitRole)
+        quit_action.setShortcut(command_shortcut("Q"))
+        quit_action.triggered.connect(self.close)
+
+        app_menu.addAction(about_action)
+        app_menu.addSeparator()
+        app_menu.addAction(preferences_action)
+        app_menu.addSeparator()
+        app_menu.addAction(quit_action)
 
     # 显示更新对话框
     def show_update_dialog(self) -> None:
@@ -222,7 +262,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         )
 
         # 项目主页按钮
-        avatar_path = os.path.join(".", "Resource", "Logo", "Avatar.png")
+        avatar_path = str(resource_path("Logo", "Avatar.png"))
         self.navigationInterface.addWidget(
             routeKey="avatar_navigation_widget",
             widget=NavigationAvatarWidget("NEKOparapa", avatar_path),

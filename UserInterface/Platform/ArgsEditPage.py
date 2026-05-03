@@ -13,6 +13,7 @@ from qfluentwidgets import SmoothMode
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.FilePathConfig import platform_preset_path
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.SliderCard import SliderCard
 from UserInterface.Widget.GroupCard import GroupCard
@@ -35,7 +36,7 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
 
         # 载入配置文件
         config = self.load_config()
-        preset = self.load_file("./Resource/platforms/preset.json")
+        preset = self.load_file(platform_preset_path())
         settings = config.get("platforms").get(self.key).get("key_in_settings")
 
         # 设置主布局
@@ -354,4 +355,3 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
                 value_changed = value_changed,
             )
         )
-

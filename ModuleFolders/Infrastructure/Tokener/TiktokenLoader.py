@@ -1,9 +1,11 @@
 import os
-import sys
 import time
 import shutil
 import hashlib
+from pathlib import Path
 from typing import Optional
+
+from ModuleFolders.Config.FilePathConfig import bundled_tiktoken_cache_dir, tiktoken_cache_dir
 
 try:
     import rich
@@ -15,6 +17,32 @@ except ImportError:
 # 全局单例
 _TIKTOKEN_INITIALIZED = False
 _TIKTOKEN_CACHE_DIR = None
+
+
+def _default_cache_dir() -> str:
+    return str(tiktoken_cache_dir())
+
+
+def _seed_cache_from_bundled_files(cache_dir: str, required_encodings: dict) -> None:
+    bundled_dir = bundled_tiktoken_cache_dir()
+    target_dir = Path(cache_dir)
+
+    if not bundled_dir.exists() or bundled_dir.resolve() == target_dir.resolve():
+        return
+
+    copied_files = []
+    for name, info in required_encodings.items():
+        cache_key = hashlib.sha1(info["url"].encode()).hexdigest()
+        source_file = bundled_dir / cache_key
+        target_file = target_dir / cache_key
+        if target_file.exists() or not source_file.exists():
+            continue
+
+        shutil.copy2(source_file, target_file)
+        copied_files.append(name)
+
+    if copied_files:
+        _print_info(f"已从内置资源复制 tiktoken 编码文件: {', '.join(copied_files)}")
 
 
 def _print_info(msg: str):
@@ -45,7 +73,7 @@ def initialize_tiktoken():
     """
     初始化 tiktoken 编码器缓存目录（全局单例）
 
-    设置 tiktoken 的缓存目录为 Resource/Models/tiktoken，
+    设置 tiktoken 的缓存目录，并从打包资源预置编码文件，
     避免依赖网络下载和系统临时目录。
 
     Returns:
@@ -64,33 +92,12 @@ def initialize_tiktoken():
 
     try:
         # 1. 确定缓存目录
-        script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-        cache_dir = os.path.join(script_dir, "Resource", "Models", "tiktoken")
+        cache_dir = _default_cache_dir()
 
         # 2. 创建目录（如果不存在）
         os.makedirs(cache_dir, exist_ok=True)
 
-        # 3. 设置环境变量（必须在导入 tiktoken 前设置）
-        os.environ['TIKTOKEN_CACHE_DIR'] = cache_dir
-        _TIKTOKEN_CACHE_DIR = cache_dir
-
-        # 4. ⚠️ 应用 babeldoc 补丁，防止后续导入的包覆盖环境变量
-        try:
-            from ModuleFolders.Infrastructure.Tokener.BabeldocPatch import apply_patch
-            apply_patch(cache_dir)
-        except ImportError:
-            _print_warning("BabeldocPatch 模块未找到，可能无法防止环境变量被覆盖")
-
-        # 5. 验证目录可写
-        test_file = os.path.join(cache_dir, ".test_write")
-        try:
-            with open(test_file, 'w') as f:
-                f.write("test")
-            os.remove(test_file)
-        except Exception as e:
-            raise RuntimeError(f"缓存目录不可写: {cache_dir}") from e
-
-        # 6. 检查必需的编码文件是否存在
+        # 3. 检查必需的编码文件是否存在
         required_encodings = {
             "o200k_base": {
                 "url": "https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken",
@@ -101,6 +108,29 @@ def initialize_tiktoken():
                 "size": 1681126,
             }
         }
+
+        # 4. 从打包资源预置 macOS 用户缓存，避免首次使用依赖网络下载
+        _seed_cache_from_bundled_files(cache_dir, required_encodings)
+
+        # 5. 设置环境变量（必须在导入 tiktoken 前设置）
+        os.environ['TIKTOKEN_CACHE_DIR'] = cache_dir
+        _TIKTOKEN_CACHE_DIR = cache_dir
+
+        # 6. ⚠️ 应用 babeldoc 补丁，防止后续导入的包覆盖环境变量
+        try:
+            from ModuleFolders.Infrastructure.Tokener.BabeldocPatch import apply_patch
+            apply_patch(cache_dir)
+        except ImportError:
+            _print_warning("BabeldocPatch 模块未找到，可能无法防止环境变量被覆盖")
+
+        # 7. 验证目录可写
+        test_file = os.path.join(cache_dir, ".test_write")
+        try:
+            with open(test_file, 'w') as f:
+                f.write("test")
+            os.remove(test_file)
+        except Exception as e:
+            raise RuntimeError(f"缓存目录不可写: {cache_dir}") from e
 
         missing_files = []
         for name, info in required_encodings.items():

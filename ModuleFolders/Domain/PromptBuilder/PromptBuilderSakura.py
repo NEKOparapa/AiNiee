@@ -2,6 +2,7 @@ import re
 from types import SimpleNamespace
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Config.FilePathConfig import prompt_path
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
 
@@ -13,7 +14,7 @@ class PromptBuilderSakura(Base):
     # 获取默认系统提示词，优先从内存中读取，如果没有，则从文件中读取
     def get_system_default(config: TaskConfig) -> str:
         if getattr(PromptBuilderSakura, "sakura_system_zh", None) == None:
-            with open("./Resource/Prompt/Sakura/sakura_system_zh.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Sakura", "sakura_system_zh.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilderSakura.sakura_system_zh = reader.read().strip()
 
 

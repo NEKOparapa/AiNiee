@@ -5,7 +5,7 @@ from qfluentwidgets import (Action, FluentIcon, MessageBox, TableWidget, RoundMe
                             LineEdit, DropDownPushButton, ToolButton, TransparentToolButton, BodyLabel)
 
 from PyQt5.QtCore import QEvent, Qt, QPoint, QTimer
-from PyQt5.QtWidgets import (QFrame, QFileDialog, QHeaderView, QLayout, QVBoxLayout,
+from PyQt5.QtWidgets import (QFrame, QHeaderView, QLayout, QVBoxLayout,
                              QTableWidgetItem, QHBoxLayout, QWidget,QAbstractItemView)
 
 from ModuleFolders.Base.Base import Base
@@ -15,6 +15,7 @@ from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.Table.TableHelper.TableHelper import TableHelper
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface import AppFluentWindow
+from UserInterface.Native.FileDialogProvider import get_open_file_name, get_save_file_name
 
 class ExclusionListPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
@@ -491,7 +492,7 @@ class ExclusionListPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     # 导入方法
     def import_data(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, self.tra("选择文件"), "", "json 文件 (*.json);;xlsx 文件 (*.xlsx)")
+        path, _ = get_open_file_name(self, self.tra("选择文件"), "", "json 文件 (*.json);;xlsx 文件 (*.xlsx)")
         if not isinstance(path, str) or path == "":
             return
         data = TableHelper.load_from_file(path, ExclusionListPage.KEYS)
@@ -536,7 +537,7 @@ class ExclusionListPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         
         file_filter = "JSON 文件 (*.json);;XLSX 文件 (*.xlsx)"
-        path, selected_filter = QFileDialog.getSaveFileName(
+        path, selected_filter = get_save_file_name(
             self, self.tra("导出文件"), default_filename, file_filter
         )
 
@@ -571,4 +572,3 @@ class ExclusionListPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         except Exception as e:
             self.logger.error(f"Failed to export data to {path}: {e}", exc_info=True)
             self.error_toast(self.tra("导出失败"), str(e))
-

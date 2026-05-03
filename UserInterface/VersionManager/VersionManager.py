@@ -1,4 +1,5 @@
 import os
+import platform
 import re
 import sys
 import json
@@ -6,7 +7,9 @@ import signal
 import threading
 import requests
 from PyQt5.QtCore import pyqtSignal, QObject, Qt
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QGridLayout, QWidget)
+from PyQt5.QtCore import QUrl
 
 
 from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, StrongBodyLabel,
@@ -15,6 +18,8 @@ from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, Stron
                             InfoBar, InfoBarPosition, SubtitleLabel, MessageBoxBase)
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.FilePathConfig import downloads_dir, resource_path
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import is_macos, release_api_url
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.Toast import ToastMixin
 
@@ -42,7 +47,7 @@ class UpdateMessageBox(MessageBoxBase):
 
 class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
     # GitHub API URL for releases
-    GITHUB_API_URL = "https://api.github.com/repos/NEKOparapa/AiNiee/releases/latest"
+    GITHUB_API_URL = release_api_url()
 
     def __init__(self, main_window=None, version = "0.0.0"):
         super().__init__()
@@ -50,6 +55,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         self.current_version = self._get_current_version(version)
         self.latest_version = None
         self.latest_version_url = None
+        self.latest_download_url = None
         self.download_thread = None
         self.update_dialog = None
         self.signals = UpdaterSignals()
@@ -72,32 +78,139 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         else:
             return "0.0.0"
 
+    def _get_release_version(self, tag_name: str) -> str:
+        match = re.search(r"\d+(?:\.\d+)*", tag_name)
+        return match.group(0) if match else "0.0.0"
+
+    def _update_file_suffix(self) -> str:
+        return ".dmg" if is_macos() else ".zip"
+
+    def _download_paths(self):
+        download_root = downloads_dir()
+        update_suffix = self._update_file_suffix()
+        return (
+            download_root / f"AiNiee-update{update_suffix}",
+            download_root / f"AiNiee-update{update_suffix}.temp",
+            download_root / "download_info.json",
+        )
+
+    def _macos_arch(self) -> str:
+        arch = os.environ.get("AINIEE_MACOS_ARCH") or platform.machine()
+        normalized_arch = arch.strip().lower()
+        aliases = {
+            "aarch64": "arm64",
+            "amd64": "x86_64",
+            "x64": "x86_64",
+        }
+        return aliases.get(normalized_arch, normalized_arch)
+
+    def _expected_update_asset_suffix(self) -> str:
+        if is_macos():
+            return f"-{self._macos_arch()}.dmg"
+        return ".zip"
+
+    def _find_download_url(self, assets: list[dict]) -> str | None:
+        expected_suffix = self._expected_update_asset_suffix()
+        for asset in assets:
+            if asset["name"].endswith(expected_suffix):
+                return asset["browser_download_url"]
+        return None
+
+    def _release_list_api_url(self) -> str:
+        latest_suffix = "/latest"
+        if self.GITHUB_API_URL.endswith(latest_suffix):
+            return self.GITHUB_API_URL[: -len(latest_suffix)]
+        return self.GITHUB_API_URL
+
+    def _select_compatible_update_release(self, releases: list[dict]):
+        # GitHub latest 可能是 macOS-only，更新提示必须先筛出当前平台可用资产。
+        selected_release = None
+        selected_version = self.current_version
+        selected_download_url = None
+
+        for release in releases:
+            if release.get("draft") or release.get("prerelease"):
+                continue
+
+            release_version = self._get_release_version(str(release.get("tag_name", "")))
+            if self._compare_versions(release_version, self.current_version) <= 0:
+                continue
+
+            download_url = self._find_download_url(release.get("assets", []))
+            if download_url is None:
+                continue
+
+            if selected_release is None or self._compare_versions(release_version, selected_version) > 0:
+                selected_release = release
+                selected_version = release_version
+                selected_download_url = download_url
+
+        return selected_release, selected_version, selected_download_url
+
+    def _find_compatible_update_release(self):
+        page = 1
+        while True:
+            response = requests.get(
+                self._release_list_api_url(),
+                params={"per_page": 100, "page": page},
+                timeout=10,
+            )
+            if response.status_code != 200:
+                return None, self.current_version, None, response.status_code
+
+            releases = response.json()
+            release, version, download_url = self._select_compatible_update_release(releases)
+            if release is not None:
+                return release, version, download_url, None
+
+            if not releases or len(releases) < 100:
+                return None, self.current_version, None, None
+
+            page += 1
+
+    def _remember_update_release(self, release: dict, version: str, download_url: str) -> None:
+        # 检查阶段选中的资产直接给下载阶段复用，避免再次命中不兼容的 latest。
+        self.latest_version = version
+        self.latest_version_url = release.get("html_url")
+        self.latest_download_url = download_url
+
     def check_for_updates(self):
         """检查是否需要更新"""
+        self.check_error = None
+        self.latest_download_url = None
         try:
             response = requests.get(self.GITHUB_API_URL, timeout=10)
             if response.status_code == 200:
                 data = response.json()
-                # 从 tag_name 中提取版本号，格式为 "AiNiee6.2.3"
-                tag_name = data["tag_name"]
-                import re
-                version_match = re.search(r'AiNiee([\d\.]+)', tag_name)
-                if version_match:
-                    self.latest_version = version_match.group(1)  # 提取数字部分，如 "6.2.3"
-                else:
-                    self.latest_version = tag_name.lstrip("v")  # 兼容其他格式
+                release, release_version, download_url = self._select_compatible_update_release([data])
+                if release is not None:
+                    self._remember_update_release(release, release_version, download_url)
+                    return True, release_version
+
+                self.latest_version = self._get_release_version(data["tag_name"])
 
                 self.latest_version_url = data["html_url"]
 
-                # 比较版本
                 if self._compare_versions(self.latest_version, self.current_version) > 0:
-                    return True, self.latest_version
+                    release, release_version, download_url, error_status = self._find_compatible_update_release()
+                    if error_status is not None:
+                        self.check_error = f"{self.tra('HTTP错误')}: {error_status}"
+                        return False, self.current_version
+                    if release is not None:
+                        self._remember_update_release(release, release_version, download_url)
+                        return True, release_version
+
+                    return False, self.current_version
                 else:
                     return False, self.current_version
+            elif response.status_code == 404 and is_macos():
+                self.latest_version = self.current_version
+                self.latest_version_url = "https://github.com/NEKOparapa/AiNiee/releases"
+                return False, self.current_version
             else:
                 self.error(f"Failed to check for updates: {response.status_code}")
 
-                self.check_error = f"{self.tra("HTTP错误")}: {response.status_code}"
+                self.check_error = f"{self.tra('HTTP错误')}: {response.status_code}"
                 return False, self.current_version
         except Exception as e:
             self.error(f"Error checking for updates: {e}")
@@ -131,8 +244,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             return
 
         # 检查是否有已下载完成的更新文件
-        local_filename = os.path.join("downloads", "AiNiee-update.zip")
-        download_info_file = os.path.join("downloads", "download_info.json")
+        local_filename, temp_filename, download_info_file = self._download_paths()
 
         if os.path.exists(local_filename) and os.path.exists(download_info_file):
             try:
@@ -151,13 +263,12 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
                     if msg_box.exec():
                         # 运行更新器
-                        self._run_updater(local_filename)
+                        self._run_updater(str(local_filename))
                     return
             except Exception as e:
                 self.error(f"Error checking downloaded update: {e}")
 
         # 检查是否有未完成的下载
-        temp_filename = os.path.join("downloads", "AiNiee-update.zip.temp")
         if os.path.exists(temp_filename) and os.path.exists(download_info_file):
             try:
                 with open(download_info_file, 'r') as f:
@@ -432,27 +543,23 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
     def _get_download_url_in_background(self):
         """在后台线程中获取下载URL"""
         try:
-            response = requests.get(self.GITHUB_API_URL, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                download_url = None
+            download_url = self.latest_download_url
+            if not download_url:
+                release, release_version, download_url, error_status = self._find_compatible_update_release()
+                if error_status is not None:
+                    self.signals.connection_error.emit(error_status)
+                    return
 
-                # 查找.zip扩展名的资产
-                for asset in data["assets"]:
-                    if asset["name"].endswith(".zip"):
-                        download_url = asset["browser_download_url"]
-                        break
+                if release is not None and download_url:
+                    self._remember_update_release(release, release_version, download_url)
 
-                # 改用信号更新Ui
-                if download_url:
-                    # 发送找到下载URL的信号
-                    self.signals.download_url_found.emit(download_url)
-                else:
-                    # 发送未找到下载URL的信号
-                    self.signals.download_url_not_found.emit()
+            # 改用信号更新Ui
+            if download_url:
+                # 发送找到下载URL的信号
+                self.signals.download_url_found.emit(download_url)
             else:
-                # 发送连接错误信号
-                self.signals.connection_error.emit(response.status_code)
+                # 发送未找到下载URL的信号
+                self.signals.download_url_not_found.emit()
         except Exception as e:
             self.error(f"Error starting update: {e}")
             # 发送一般错误信号
@@ -502,12 +609,14 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         """下载更新文件，支持断点续传"""
         try:
             # 如果目录不存在，则创建
-            os.makedirs("downloads", exist_ok=True)
+            download_root = downloads_dir()
+            download_root.mkdir(parents=True, exist_ok=True)
 
             # 完成的文件名和临时文件名
-            local_filename = os.path.join("downloads", "AiNiee-update.zip")
-            temp_filename = os.path.join("downloads", "AiNiee-update.zip.temp")
-            download_info_file = os.path.join("downloads", "download_info.json")
+            update_suffix = ".dmg" if is_macos() else ".zip"
+            local_filename = str(download_root / f"AiNiee-update{update_suffix}")
+            temp_filename = str(download_root / f"AiNiee-update{update_suffix}.temp")
+            download_info_file = str(download_root / "download_info.json")
 
             # 检查是否已经存在完成的文件
             if os.path.exists(local_filename):
@@ -694,7 +803,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
         # 读取下载信息文件，获取URL
         try:
-            download_info_file = os.path.join("downloads", "download_info.json")
+            download_info_file = str(downloads_dir() / "download_info.json")
             if os.path.exists(download_info_file):
                 with open(download_info_file, 'r') as f:
                     download_info = json.load(f)
@@ -740,7 +849,17 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
 
             import subprocess
-            updater_path = os.path.join(current_dir, "Resource", "Updater", "updater.exe")
+            if is_macos():
+                if os.path.exists(update_file):
+                    subprocess.Popen(["open", update_file])
+                    os.kill(os.getpid(), signal.SIGTERM)
+                    return
+
+                if self.latest_version_url:
+                    QDesktopServices.openUrl(QUrl(self.latest_version_url))
+                    return
+
+            updater_path = str(resource_path("Updater", "updater.exe"))
 
             if os.path.exists(updater_path):
                 # 使用PowerShell启动更新器

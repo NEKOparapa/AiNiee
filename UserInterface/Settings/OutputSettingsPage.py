@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QFileDialog, QFrame
+from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import FluentIcon, HorizontalSeparator, SingleDirectionScrollArea
@@ -10,6 +10,7 @@ from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.PushButtonCard import PushButtonCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.LineEditCard import LineEditCard
+from UserInterface.Native.FileDialogProvider import get_existing_directory
 
 class OutputSettingsPage(QFrame, ConfigMixin, Base):
 
@@ -76,7 +77,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
 
         def widget_callback(widget) -> None:
             # 选择文件夹
-            path = QFileDialog.getExistingDirectory(None, "选择文件夹", "")
+            path = get_existing_directory(None, "选择文件夹", "")
             if path == None or path == "":
                 return
 

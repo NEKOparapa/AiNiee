@@ -24,6 +24,7 @@ from qfluentwidgets import (
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.FilePathConfig import platform_preset_path
 from UserInterface.Platform.APIBindingDialog import APIBindingDialog
 from UserInterface.Platform.APIEditPage import APIEditPage
 from UserInterface.Platform.APIItemCard import APIItemCard
@@ -504,7 +505,7 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
         self._refresh_active_interface_ui(config)
 
     def on_add_api_clicked(self):
-        preset_data = self.load_file("./Resource/platforms/preset.json")
+        preset_data = self.load_file(platform_preset_path())
         preset_platforms = preset_data.get("platforms", {})
 
         def on_confirm(data):
@@ -539,7 +540,7 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
 
     def create_new_api(self, data: dict):
         config = self._normalize_api_settings(self.load_config())
-        preset_data = self.load_file("./Resource/platforms/preset.json")
+        preset_data = self.load_file(platform_preset_path())
         preset_platforms = preset_data.get("platforms", {})
         platform_tag = data.get("platform_tag")
 

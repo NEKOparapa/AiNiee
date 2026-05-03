@@ -51,22 +51,112 @@ jobs:
           # 压缩 dist\AiNiee 目录，updater 会智能查找 AiNiee.exe 所在目录
           Compress-Archive -Path "dist\AiNiee" -DestinationPath "AiNiee-Beta.zip"
 
-      - name: Delete release
-        uses: dev-drprasad/delete-tag-and-release@v1.1
+      - name: Upload Windows package
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: Beta
-          delete_release: true
-          github_token: ${{ secrets.AINIEE }}
-        continue-on-error: true
+          name: AiNiee-Beta-Windows
+          path: AiNiee-Beta.zip
 
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v2
+  build-macos:
+    name: Build macOS (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      # 分别在 Apple Silicon 和 Intel runner 上构建，避免跨架构产物混用。
+      matrix:
+        include:
+          - arch: arm64
+            runs_on: macos-15
+          - arch: x86_64
+            runs_on: macos-15-intel
+    runs-on: ${{ matrix.runs_on }}
+    env:
+      AINIEE_MACOS_ARCH: ${{ matrix.arch }}
+      MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      CODESIGN_IDENTITY: ${{ secrets.CODESIGN_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          tag_name: Beta
-          name: AiNiee-Beta 开发测试版本，由最新源码自动打包
-          draft: false
-          prerelease: true
-          generate_release_notes: true
-          files: AiNiee-Beta.zip
-          token: ${{ secrets.AINIEE }}
+          python-version: "3.12"
+
+      - name: Install requirements
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements.txt
+          python -m pip install --no-deps -r requirements_no_deps.txt
+          python -m pip cache purge
+
+      - name: Import signing certificate
+        if: env.MACOS_CERTIFICATE_P12 != ''
+        run: |
+          security create-keychain -p "$RUNNER_TEMP" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$RUNNER_TEMP" build.keychain
+          echo "$MACOS_CERTIFICATE_P12" | base64 -d > "$RUNNER_TEMP/certificate.p12"
+          security import "$RUNNER_TEMP/certificate.p12" -k build.keychain -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$RUNNER_TEMP" build.keychain
+
+      - name: Build app bundle
+        run: python Tools/pyinstall_macos.py --target-arch "$AINIEE_MACOS_ARCH"
+
+      - name: Package DMG
+        run: |
+          if [[ -n "$CODESIGN_IDENTITY" && -n "$APPLE_ID" && -n "$APPLE_TEAM_ID" && -n "$APPLE_APP_SPECIFIC_PASSWORD" ]]; then
+            bash Tools/scripts/notarize_macos.sh
+          else
+            bash Tools/scripts/package_dmg.sh
+          fi
+
+      - name: Upload macOS package
+        uses: actions/upload-artifact@v4
+        with:
+          name: AiNiee-macOS-${{ matrix.arch }}
+          path: dist/AiNiee-macOS-${{ matrix.arch }}.dmg
+
+  release:
+    name: Publish Beta Release
+    needs:
+      - build
+      - build-macos
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.AINIEE }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Recreate Beta release
+        run: |
+          set -euo pipefail
+
+          # 同 tag 的正式 release 和 draft 都先清掉，避免 action 命中重复 draft 后发布失败。
+          gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate --jq '.[] | select(.tag_name == "Beta") | .id' |
+          while read -r release_id; do
+            if [[ -n "$release_id" ]]; then
+              gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/${release_id}"
+            fi
+          done
+
+          gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/Beta" >/dev/null 2>&1 || true
+
+          gh release create Beta release-assets/* \
+            --title "AiNiee-Beta 开发测试版本，由最新源码自动打包" \
+            --notes "AiNiee-Beta 开发测试版本，由最新源码自动打包" \
+            --generate-notes \
+            --prerelease \
+            --target "$GITHUB_SHA"

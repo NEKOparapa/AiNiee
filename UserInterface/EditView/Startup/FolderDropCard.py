@@ -1,11 +1,12 @@
 import os
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy
 from PyQt5.QtGui import QPainter, QPen, QColor, QFont, QPainterPath
 from PyQt5.QtCore import QRect, Qt, pyqtSignal
 from qfluentwidgets import BodyLabel, CardWidget,  FluentIcon, PrimaryPushButton
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from UserInterface.Native.FileDialogProvider import get_existing_directory
 
 class InfoBlockWidget(QWidget):
     def __init__(self, text, color=QColor("#E0E0E0"), parent=None):
@@ -157,7 +158,7 @@ class DragDropArea(ConfigMixin, Base, QWidget):
             self.update_path(folder_path)
 
     def _select_folder(self):
-        folder_path = QFileDialog.getExistingDirectory(self, self.tra("选择文件夹"))
+        folder_path = get_existing_directory(self, self.tra("选择文件夹"))
         if folder_path:
             self.update_path(folder_path)
 

@@ -5,14 +5,20 @@ import traceback
 import rapidjson as json
 from rich import print
 
+from ModuleFolders.Config.FilePathConfig import (
+    config_path,
+    resource_path,
+)
+from ModuleFolders.Infrastructure.Platform.RuntimeSetup import migrate_config_if_needed
+
 
 class ConfigMixin:
-    CONFIG_PATH = os.path.join(".", "Resource", "config.json")
+    CONFIG_PATH = config_path()
     CONFIG_FILE_LOCK = threading.Lock()
 
     multilingual_interface_dict = {}
     current_interface_language = "简中"
-    translation_json_file = os.path.join(".", "Resource", "Localization")
+    translation_json_file = resource_path("Localization")
 
     @classmethod
     def tra(cls, text):
@@ -52,6 +58,8 @@ class ConfigMixin:
         config = {}
 
         with ConfigMixin.CONFIG_FILE_LOCK:
+            migrate_config_if_needed()
+            ConfigMixin.CONFIG_PATH = config_path()
             if os.path.exists(ConfigMixin.CONFIG_PATH):
                 with open(ConfigMixin.CONFIG_PATH, "r", encoding="utf-8") as reader:
                     config = json.load(reader)
@@ -64,6 +72,8 @@ class ConfigMixin:
         old = {}
 
         with ConfigMixin.CONFIG_FILE_LOCK:
+            migrate_config_if_needed()
+            ConfigMixin.CONFIG_PATH = config_path()
             if os.path.exists(ConfigMixin.CONFIG_PATH):
                 with open(ConfigMixin.CONFIG_PATH, "r", encoding="utf-8") as reader:
                     old = json.load(reader)
@@ -75,6 +85,7 @@ class ConfigMixin:
             old[key] = value
 
         with ConfigMixin.CONFIG_FILE_LOCK:
+            os.makedirs(os.path.dirname(ConfigMixin.CONFIG_PATH), exist_ok=True)
             with open(ConfigMixin.CONFIG_PATH, "w", encoding="utf-8") as writer:
                 writer.write(json.dumps(old, indent=4, ensure_ascii=False))
 

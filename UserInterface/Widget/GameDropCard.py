@@ -1,7 +1,7 @@
 import os
 import random
 from PyQt5.QtWidgets import (
- QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QSizePolicy
+ QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy
 )
 
 from PyQt5.QtGui import QPainter, QPen, QColor, QBrush, QFont, QPainterPath
@@ -11,6 +11,7 @@ from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, FlowLayout, Flue
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from UserInterface.Native.FileDialogProvider import get_existing_directory
 
 class InfoBlockWidget(ConfigMixin, Base, QWidget):
     """信息块组件 (圆角+折角+透明)"""
@@ -253,7 +254,7 @@ class DragDropArea(ConfigMixin, Base, QWidget):
     def _select_folder(self):
         """处理点击选择文件夹按钮的事件"""
         info = self.tra("选择文件夹")
-        folder_path = QFileDialog.getExistingDirectory(self, info)
+        folder_path = get_existing_directory(self, info)
         if folder_path:
             self.update_path(folder_path)
             button_center_global = self.selectButton.mapToGlobal(self.selectButton.rect().center())

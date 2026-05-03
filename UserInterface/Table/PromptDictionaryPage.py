@@ -5,7 +5,7 @@ from qfluentwidgets import (Action, FluentIcon, MessageBox, TableWidget, RoundMe
                             LineEdit, DropDownPushButton, ToolButton, TransparentPushButton, TransparentToolButton, BodyLabel)
 
 from PyQt5.QtCore import QEvent, Qt, QPoint, QTimer
-from PyQt5.QtWidgets import ( QFrame, QFileDialog, QHeaderView, QLayout, QVBoxLayout,
+from PyQt5.QtWidgets import ( QFrame, QHeaderView, QLayout, QVBoxLayout,
                              QTableWidgetItem, QHBoxLayout, QWidget,QAbstractItemView)
 
 from ModuleFolders.Base.Base import Base
@@ -16,6 +16,7 @@ from UserInterface.Table.TableHelper.TableHelper import TableHelper
 from ModuleFolders.Service.NameExtractor.NameExtractor import NameExtractor
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface import AppFluentWindow
+from UserInterface.Native.FileDialogProvider import get_existing_directory, get_open_file_name, get_save_file_name
 
 class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
@@ -489,7 +490,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     # 导入方法
     def import_data(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, self.tra("选择文件"), "", "json 文件 (*.json);;xlsx 文件 (*.xlsx)")
+        path, _ = get_open_file_name(self, self.tra("选择文件"), "", "json 文件 (*.json);;xlsx 文件 (*.xlsx)")
         if not isinstance(path, str) or path == "":
             return
         data = TableHelper.load_from_file(path, PromptDictionaryPage.KEYS)
@@ -534,7 +535,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         
         file_filter = "JSON 文件 (*.json);;XLSX 文件 (*.xlsx)"
-        path, selected_filter = QFileDialog.getSaveFileName(
+        path, selected_filter = get_save_file_name(
             self, self.tra("导出文件"), default_filename, file_filter
         )
 
@@ -573,7 +574,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     # 角色提取方法
     def name_extractor(self) -> None:
-        path = QFileDialog.getExistingDirectory(self, self.tra("选择文件夹"), "")
+        path = get_existing_directory(self, self.tra("选择文件夹"), "")
         if not path:
             return
 
