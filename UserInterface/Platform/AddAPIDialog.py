@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
 
 from qfluentwidgets import (
     CaptionLabel,
@@ -57,10 +57,38 @@ class AddAPIDialog(MessageBoxBase, ConfigMixin, ToastMixin, Base):
         self.current_page = self.PAGE_BASIC
         self.platform_buttons = {}
 
-        self.widget.setMinimumSize(680, 750)
+        self._set_adaptive_size()
 
         self._build_ui()
         self._set_page(self.PAGE_BASIC)
+
+    def _set_adaptive_size(self) -> None:
+        dialog_width = 680
+        target_height = 750
+        min_height = 560
+        vertical_margin = 48
+
+        available_heights = []
+        parent = self.parentWidget()
+        if parent is not None and parent.height() > 0:
+            available_heights.append(parent.height())
+
+        screen = None
+        if parent is not None:
+            try:
+                screen = parent.screen()
+            except AttributeError:
+                screen = None
+
+        if screen is None:
+            screen = QApplication.primaryScreen()
+
+        if screen is not None:
+            available_heights.append(screen.availableGeometry().height())
+
+        available_height = min(available_heights) if available_heights else target_height + vertical_margin
+        dialog_height = min(target_height, max(min_height, available_height - vertical_margin))
+        self.widget.setFixedSize(dialog_width, dialog_height)
 
     def _build_ui(self):
         self.viewLayout.setContentsMargins(24, 24, 24, 24)
