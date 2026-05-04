@@ -1,0 +1,195 @@
+import regex
+import regex._regex_core
+
+
+class GlossaryHelper:
+    VALID_KEY = "is_valid"
+
+    @staticmethod
+    def _normalize_text(value) -> str:
+        if value is None:
+            return ""
+        return str(value).strip()
+
+    @staticmethod
+    def _compile_source_text(source_text: str):
+        return regex.compile(source_text)
+
+    @staticmethod
+    def _parse_source_text(source_text: str):
+        # 使用 regex 解析树区分纯字面量和真实正则
+        return regex._regex_core._parse_pattern(
+            regex._regex_core.Source(source_text),
+            regex._regex_core.Info(),
+        )
+
+    @classmethod
+    def _extract_literal_text(cls, node) -> str | None:
+        # 只有完整还原为连续字符时，才视为普通术语
+        if isinstance(node, regex._regex_core.Sequence):
+            literal_parts = []
+            for item in node.items:
+                literal_text = cls._extract_literal_text(item)
+                if literal_text is None:
+                    return None
+
+                literal_parts.append(literal_text)
+
+            return "".join(literal_parts)
+
+        if isinstance(node, regex._regex_core.Character):
+            if not node.positive or node.case_flags or node.zerowidth:
+                return None
+
+            try:
+                return chr(node.value)
+            except (TypeError, ValueError):
+                return None
+
+        return None
+
+    @classmethod
+    def _get_literal_text(cls, source_text: str) -> str | None:
+        source_text = cls._normalize_text(source_text)
+        if not source_text:
+            return ""
+
+        try:
+            parsed_pattern = cls._parse_source_text(source_text)
+        except Exception:
+            return None
+
+        return cls._extract_literal_text(parsed_pattern)
+
+    @classmethod
+    def is_regex_pattern(cls, source_text: str) -> bool:
+        source_text = cls._normalize_text(source_text)
+        if not source_text:
+            return False
+
+        if not cls.validate_source_text(source_text):
+            return False
+
+        literal_text = cls._get_literal_text(source_text)
+        if literal_text is None:
+            return True
+
+        return literal_text != source_text
+
+    @classmethod
+    def validate_source_text(cls, source_text: str) -> bool:
+        source_text = cls._normalize_text(source_text)
+        if not source_text:
+            return True
+
+        try:
+            cls._compile_source_text(source_text)
+            return True
+        except regex.error:
+            return False
+
+    @classmethod
+    def is_row_valid(cls, row: dict) -> bool:
+        if not isinstance(row, dict):
+            return False
+
+        stored = row.get(cls.VALID_KEY)
+        if isinstance(stored, bool):
+            return stored
+
+        return cls.validate_source_text(row.get("src", ""))
+
+    @classmethod
+    def normalize_row(cls, row: dict) -> dict:
+        # 持久化校验结果，UI 与任务流程复用同一份有效性判断
+        normalized_row = dict(row) if isinstance(row, dict) else {}
+        normalized_row["src"] = cls._normalize_text(normalized_row.get("src", ""))
+        normalized_row["dst"] = cls._normalize_text(normalized_row.get("dst", ""))
+        normalized_row["info"] = cls._normalize_text(normalized_row.get("info", ""))
+        normalized_row[cls.VALID_KEY] = cls.validate_source_text(normalized_row.get("src", ""))
+        return normalized_row
+
+    @classmethod
+    def normalize_rows(cls, rows: list[dict] | None) -> list[dict]:
+        normalized_rows = []
+
+        if not isinstance(rows, list):
+            return normalized_rows
+
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+
+            normalized_rows.append(cls.normalize_row(row))
+
+        return normalized_rows
+
+    @classmethod
+    def build_search_pattern(cls, source_text: str, is_valid: bool | None = None):
+        source_text = cls._normalize_text(source_text)
+        if not source_text:
+            return None
+
+        if is_valid is None:
+            is_valid = cls.validate_source_text(source_text)
+
+        if not is_valid:
+            return None
+
+        try:
+            # 正则保持 regex 默认大小写规则；普通术语继续忽略大小写
+            if cls.is_regex_pattern(source_text):
+                return cls._compile_source_text(source_text)
+
+            return regex.compile(regex.escape(source_text), regex.IGNORECASE)
+        except regex.error:
+            return None
+
+    @classmethod
+    def source_matches_text(cls, source_text: str, full_text: str, is_valid: bool | None = None) -> bool:
+        pattern = cls.build_search_pattern(source_text, is_valid)
+        if pattern is None:
+            return False
+
+        return bool(pattern.search(full_text or ""))
+
+    @classmethod
+    def collect_matched_rows(cls, rows: list[dict] | None, input_dict: dict | None) -> list[dict]:
+        full_text = "\n".join(input_dict.values()) if isinstance(input_dict, dict) else ""
+        if not full_text:
+            return []
+
+        matched_rows = []
+        seen_keys = set()
+
+        for row in cls.normalize_rows(rows):
+            src = row.get("src", "")
+            if not src or not row.get(cls.VALID_KEY, True):
+                continue
+
+            pattern = cls.build_search_pattern(src, row.get(cls.VALID_KEY))
+            if pattern is None:
+                continue
+
+            found_texts = []
+            seen_texts = set()
+            for match in pattern.finditer(full_text):
+                match_text = match.group(0)
+                if not match_text or match_text in seen_texts:
+                    continue
+
+                found_texts.append(match_text)
+                seen_texts.add(match_text)
+
+            for match_text in found_texts:
+                # 提示词使用实际命中的文本，保留原文大小写
+                dedupe_key = (match_text, row.get("dst", ""))
+                if dedupe_key in seen_keys:
+                    continue
+
+                new_row = row.copy()
+                new_row["src"] = match_text
+                matched_rows.append(new_row)
+                seen_keys.add(dedupe_key)
+
+        return matched_rows

@@ -5,11 +5,13 @@ from qfluentwidgets import (Action, FluentIcon, MessageBox, TableWidget, RoundMe
                             LineEdit, DropDownPushButton, ToolButton, TransparentPushButton, TransparentToolButton, BodyLabel)
 
 from PyQt5.QtCore import QEvent, Qt, QPoint, QTimer
+from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import ( QFrame, QHeaderView, QLayout, QVBoxLayout,
                              QTableWidgetItem, QHBoxLayout, QWidget,QAbstractItemView)
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.Table.TableHelper.TableHelper import TableHelper
@@ -22,6 +24,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     KEYS = ("src", "dst", "info",)
     COLUMN_NAMES = {0: "原文",1: "译文",2: "描述",}
+    INVALID_ROW_BRUSH = QBrush(QColor(255, 0, 0, 96))
 
     def __init__(self, text: str, window: AppFluentWindow) -> None:
         super().__init__(parent=window)
@@ -72,7 +75,8 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
     # 更新表格内容及状态
     def update_table(self) -> None:
         config = self.load_config()
-        TableHelper.update_to_table(self.table, config["prompt_dictionary_data"], PromptDictionaryPage.KEYS)
+        rows = GlossaryHelper.normalize_rows(config.get("prompt_dictionary_data", []))
+        self._update_table_rows(rows)
         self._reset_search()
         self._reset_sort_indicator()
 
@@ -194,7 +198,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             self._sort_column_index = logicalIndex
             self._sort_order = Qt.AscendingOrder
 
-        data = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
+        data = self._load_table_rows()
         try:
             sort_key_name = PromptDictionaryPage.KEYS[logicalIndex]
         except IndexError:
@@ -210,9 +214,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         data.sort(key=get_sort_key, reverse=(self._sort_order == Qt.DescendingOrder))
 
         self.table.setUpdatesEnabled(False)
-        self.table.setRowCount(0)
-        TableHelper.update_to_table(self.table, data, PromptDictionaryPage.KEYS)
-        self.table.resizeRowsToContents()
+        self._update_table_rows(data)
         self.table.setUpdatesEnabled(True)
         self.table.horizontalHeader().setSortIndicator(self._sort_column_index, self._sort_order)
         self._reset_search()
@@ -461,11 +463,56 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         self._update_search_ui() # 更新标签和按钮状态
 
+    def _load_table_rows(self) -> list[dict]:
+        return GlossaryHelper.normalize_rows(
+            TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
+        )
+
+    def _get_translatable_rows(self, rows: list[dict] | None = None) -> list[dict]:
+        normalized_rows = GlossaryHelper.normalize_rows(
+            self._load_table_rows() if rows is None else rows
+        )
+        return [
+            row for row in normalized_rows
+            if row.get("src") and not row.get("dst") and GlossaryHelper.is_row_valid(row)
+        ]
+
+    def _update_table_rows(self, rows: list[dict] | None) -> None:
+        normalized_rows = GlossaryHelper.normalize_rows(rows)
+        self.table.setRowCount(0)
+        TableHelper.update_to_table(self.table, normalized_rows, PromptDictionaryPage.KEYS)
+        self.table.resizeRowsToContents()
+        self._refresh_invalid_row_highlight(normalized_rows)
+
+    def _refresh_invalid_row_highlight(self, rows: list[dict] | None) -> None:
+        validity_by_src = {}
+        for row in rows or []:
+            src = str(row.get("src", "") or "").strip()
+            if not src:
+                continue
+
+            validity_by_src[src] = bool(row.get(GlossaryHelper.VALID_KEY, True))
+
+        for row_index in range(self.table.rowCount()):
+            first_item = self.table.item(row_index, 0)
+            src = first_item.text().strip() if isinstance(first_item, QTableWidgetItem) else ""
+            is_invalid = bool(src) and not validity_by_src.get(src, True)
+            self._set_row_highlight(row_index, is_invalid)
+
+    def _set_row_highlight(self, row_index: int, highlighted: bool) -> None:
+        for column_index in range(self.table.columnCount()):
+            item = self.table.item(row_index, column_index)
+            if not isinstance(item, QTableWidgetItem):
+                continue
+
+            item.setBackground(self.INVALID_ROW_BRUSH if highlighted else QBrush())
+
     # 保存方法
     def save_data(self) -> None:
         config = self.load_config()
-        config["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
+        config["prompt_dictionary_data"] = self._load_table_rows()
         self.save_config(config)
+        self._update_table_rows(config["prompt_dictionary_data"])
         self.success_toast("", self.tra("数据已保存") + " ... ")
 
     # 重置方法
@@ -482,8 +529,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         config = self.load_config()
         config["prompt_dictionary_data"] = copy.deepcopy(self.default.get("prompt_dictionary_data", []))
         self.save_config(config)
-        TableHelper.update_to_table(self.table, config.get("prompt_dictionary_data"), PromptDictionaryPage.KEYS)
-        self.table.resizeRowsToContents()
+        self._update_table_rows(config.get("prompt_dictionary_data"))
         self._reset_search() # 重置后重置搜索
         self._reset_sort_indicator() # 重置后重置排序
         self.success_toast("", self.tra("数据已重置") + " ... ")
@@ -510,15 +556,14 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         # 更新并保存
         # 合并现有数据（来自表格状态）+ 新的已过滤数据
-        combined_data = current_data + new_data_filtered
+        combined_data = GlossaryHelper.normalize_rows(current_data + new_data_filtered)
         config["prompt_dictionary_data"] = combined_data # 直接更新配置
 
         # 在再次从表格保存配置*之前*更新表格
-        TableHelper.update_to_table(self.table, config["prompt_dictionary_data"], PromptDictionaryPage.KEYS)
-        self.table.resizeRowsToContents() # 导入后调整行高
+        self._update_table_rows(config["prompt_dictionary_data"])
 
         # 现在将可能已修改的表格状态保存回配置
-        config["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
+        config["prompt_dictionary_data"] = self._load_table_rows()
         self.save_config(config)
         self._reset_search() # 导入后重置搜索
         self._reset_sort_indicator() # 导入后重置排序
@@ -593,13 +638,12 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 self.info_toast(self.tra("信息"), self.tra("均已存在于术语表中"))
                 return
 
-            combined_data = current_data + new_data_filtered
+            combined_data = GlossaryHelper.normalize_rows(current_data + new_data_filtered)
             config["prompt_dictionary_data"] = combined_data
 
-            TableHelper.update_to_table(self.table, config["prompt_dictionary_data"], PromptDictionaryPage.KEYS)
-            self.table.resizeRowsToContents()
+            self._update_table_rows(config["prompt_dictionary_data"])
 
-            config["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
+            config["prompt_dictionary_data"] = self._load_table_rows()
             self.save_config(config)
             self._reset_search()
             self._reset_sort_indicator()
@@ -613,10 +657,12 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
     def glossary_translation(self) -> None:
         if Base.work_status == Base.STATUS.IDLE:
             Base.work_status = Base.STATUS.GLOSS_TASK
+            glossary_rows = self._load_table_rows()
+            translatable_rows = self._get_translatable_rows(glossary_rows)
             data = {}
-            data["prompt_dictionary_data"] = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
+            data["prompt_dictionary_data"] = glossary_rows
 
-            if not any(item.get('src') and not item.get('dst') for item in data["prompt_dictionary_data"]):
+            if not translatable_rows:
                     self.info_toast(self.tra("提示"), self.tra("没有需要翻译的术语"))
                     Base.work_status = Base.STATUS.IDLE
                     return
@@ -644,7 +690,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 self.warning_toast(self.tra("完成"), self.tra("翻译完成，但没有数据被更新"))
                 return
 
-            prompt_dictionary_data_table = TableHelper.load_from_table(self.table, PromptDictionaryPage.KEYS)
+            prompt_dictionary_data_table = self._load_table_rows()
             updated_map = {item['src']: item['dst'] for item in updated_data if item.get('src') and item.get('dst')}
 
             something_updated = False
@@ -656,9 +702,9 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                     something_updated = True
 
             if something_updated:
+                prompt_dictionary_data_table = GlossaryHelper.normalize_rows(prompt_dictionary_data_table)
                 self.table.setUpdatesEnabled(False)
-                TableHelper.update_to_table(self.table, prompt_dictionary_data_table, PromptDictionaryPage.KEYS)
-                self.table.resizeRowsToContents()
+                self._update_table_rows(prompt_dictionary_data_table)
                 self.table.setUpdatesEnabled(True)
 
                 config = self.load_config()
