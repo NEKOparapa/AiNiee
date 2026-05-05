@@ -36,6 +36,7 @@ from qfluentwidgets import (
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.Toast import ToastMixin
 
@@ -1291,7 +1292,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 current_rows.append(row)
                 existing_keys.add(row_key)
                 added_count += 1
-            config["prompt_dictionary_data"] = current_rows
+            config["prompt_dictionary_data"] = GlossaryHelper.normalize_rows(current_rows)
 
         if added_count <= 0:
             self.info_toast(self.tra("提示"), self.tra("当前内容均已存在于公共表中。"))

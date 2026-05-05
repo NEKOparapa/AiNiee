@@ -2,6 +2,7 @@ import re
 from types import SimpleNamespace
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
 from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from ModuleFolders.Config.FilePathConfig import prompt_path
@@ -135,38 +136,10 @@ class PromptBuilderLocal(Base):
 
     # 构造术语表
     def build_glossary_prompt(config: TaskConfig, input_dict: dict) -> str:
-        full_text = "\n".join(input_dict.values())
-        result = []
-        seen_keys = set()
-
-        for item in getattr(config, "prompt_dictionary_data", []):
-            src = item.get("src", "")
-            if not src:
-                continue
-
-            try:
-                pattern = re.compile(src, re.IGNORECASE)
-                found_texts = set(match.group() for match in pattern.finditer(full_text))
-                for match_text in found_texts:
-                    if not match_text:
-                        continue
-
-                    key = (match_text, item.get("dst"))
-                    if key in seen_keys:
-                        continue
-
-                    new_entry = item.copy()
-                    new_entry["src"] = match_text
-                    result.append(new_entry)
-                    seen_keys.add(key)
-            except re.error:
-                if src.lower() in full_text.lower():
-                    key = (src, item.get("dst"))
-                    if key in seen_keys:
-                        continue
-
-                    result.append(item)
-                    seen_keys.add(key)
+        result = GlossaryHelper.collect_matched_rows(
+            getattr(config, "prompt_dictionary_data", []),
+            input_dict,
+        )
 
         if not result:
             return ""
@@ -312,24 +285,15 @@ class PromptBuilderLocal(Base):
             dictionary[item.get("original_name", "")] = item
 
         temp_dict = {}
+        full_text = "\n".join(source_text_dict.values())
         for original_key, value in dictionary.items():
-            keywords = [original_key]
-            if "[Separator]" in original_key:
-                keywords = original_key.split("[Separator]")
-            elif " " in original_key or "." in original_key:
-                keywords = re.split(r"[ .]", original_key)
+            matched_name = PromptBuilder._match_characterization_original_name(original_key, full_text)
+            if not matched_name:
+                continue
 
-            keywords = [keyword.strip() for keyword in keywords if keyword.strip()]
-
-            is_match = False
-            for source_text in source_text_dict.values():
-                for keyword in keywords:
-                    if keyword and keyword in source_text:
-                        temp_dict[original_key] = value
-                        is_match = True
-                        break
-                if is_match:
-                    break
+            new_value = value.copy()
+            new_value["original_name"] = matched_name
+            temp_dict[original_key] = new_value
 
         if temp_dict == {}:
             return ""
@@ -337,7 +301,7 @@ class PromptBuilderLocal(Base):
         if PromptBuilderLocal._is_chinese_target(config):
             profile = "\n###角色介绍"
             for value in temp_dict.values():
-                original_name = value.get("original_name", "").replace("[Separator]", "")
+                original_name = value.get("original_name", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")
@@ -362,7 +326,7 @@ class PromptBuilderLocal(Base):
         else:
             profile = "\n###Character Introduction"
             for value in temp_dict.values():
-                original_name = value.get("original_name", "").replace("[Separator]", "")
+                original_name = value.get("original_name", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")

@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Tuple
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Service.Cache.CacheManager import CacheManager
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
@@ -43,23 +44,25 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
         analysis_data = self.cache_manager.get_analysis_data() or {}
         return analysis_data if isinstance(analysis_data, dict) else {}
 
-    def _collect_merged_term_rows(self) -> List[Dict[str, str]]:
-        merged_rows: List[Dict[str, str]] = []
+    def _collect_merged_term_rows(self) -> List[Dict[str, Any]]:
+        merged_rows: List[Dict[str, Any]] = []
         seen_sources = set()
         analysis_data = self._get_project_analysis_data()
 
         row_sources = (
-            (analysis_data.get("characters", []), "source", "recommended_translation"),
-            (analysis_data.get("terms", []), "source", "recommended_translation"),
-            (self.config.get("prompt_dictionary_data", []), "src", "dst"),
+            (analysis_data.get("characters", []), "source", "recommended_translation", "project"),
+            (analysis_data.get("terms", []), "source", "recommended_translation", "project"),
+            (GlossaryHelper.normalize_rows(self.config.get("prompt_dictionary_data", [])), "src", "dst", "glossary"),
         )
 
-        for rows, source_field, target_field in row_sources:
+        for rows, source_field, target_field, row_type in row_sources:
             if not isinstance(rows, list):
                 continue
 
             for row in rows:
                 if not isinstance(row, dict):
+                    continue
+                if row_type == "glossary" and not GlossaryHelper.is_row_valid(row):
                     continue
 
                 src_term = self._normalize_identity(row.get(source_field))
@@ -70,12 +73,14 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
                 merged_rows.append({
                     "src": src_term,
                     "dst": dst_term,
+                    "row_type": row_type,
+                    GlossaryHelper.VALID_KEY: row.get(GlossaryHelper.VALID_KEY, True),
                 })
                 seen_sources.add(src_term)
 
         return merged_rows
 
-    def _prepare_term_data(self, term_rows: List[Dict[str, str]]) -> List[Dict[str, Any]]:
+    def _prepare_term_data(self, term_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         term_data = []
 
         for term in term_rows:
@@ -84,10 +89,26 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
             if not src_term or not dst_term:
                 continue
 
+            if term.get("row_type") == "glossary":
+                pattern = GlossaryHelper.build_search_pattern(
+                    src_term,
+                    term.get(GlossaryHelper.VALID_KEY),
+                )
+                if pattern is None:
+                    continue
+
+                term_data.append({
+                    "type": "pattern",
+                    "pattern": pattern,
+                    "src": src_term,
+                    "dst": dst_term,
+                })
+                continue
+
             try:
                 pattern = re.compile(src_term, re.IGNORECASE)
                 term_data.append({
-                    "type": "regex",
+                    "type": "pattern",
                     "pattern": pattern,
                     "src": src_term,
                     "dst": dst_term,
@@ -148,7 +169,7 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
         for term_item in prepared_data:
             match_found = False
 
-            if term_item["type"] == "regex":
+            if term_item["type"] == "pattern":
                 if term_item["pattern"].search(src):
                     match_found = True
             else:

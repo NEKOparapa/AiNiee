@@ -2,6 +2,7 @@ import re
 from types import SimpleNamespace
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
 from ModuleFolders.Service.TaskExecutor import TranslatorUtil
 from ModuleFolders.Config.FilePathConfig import prompt_path
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
@@ -438,45 +439,10 @@ class PromptBuilder(Base):
 
     # 构造术语表
     def build_glossary_prompt(config: TaskConfig, input_dict: dict) -> str:
-        # 将输入字典中的所有值合并为一个字符串，方便正则全局匹配
-        full_text = "\n".join(input_dict.values())
-
-        # 筛选并处理匹配的条目
-        result = []
-        seen_keys = set() # 用于去重 (匹配到的实际原文, 译文)
-
-        for v in config.prompt_dictionary_data:
-            src = v.get("src", "")
-            if not src:
-                continue
-
-            try:
-                # 编译正则表达式，忽略大小写以保持与原逻辑一致的宽松匹配
-                pattern = re.compile(src, re.IGNORECASE)
-
-                # 查找所有匹配项 (set去重，处理同一词在文中多次出现的情况)
-                found_texts = set(m.group() for m in pattern.finditer(full_text))
-
-                # 如果正则匹配到了内容 (例如正则 (A|B) 匹配到了 A 和 B，这里会循环两次)
-                for match_text in found_texts:
-                    if not match_text: continue
-
-                    # 使用 (实际匹配文本, 译文) 作为唯一键进行去重
-                    key = (match_text, v.get("dst"))
-                    if key not in seen_keys:
-                        # 复制元数据，并将 src 替换为实际匹配到的原文文本
-                        new_entry = v.copy()
-                        new_entry["src"] = match_text
-                        result.append(new_entry)
-                        seen_keys.add(key)
-
-            except re.error:
-                # 如果正则编译失败（非合法正则），回退到普通字符串包含判断
-                if src.lower() in full_text.lower():
-                    key = (src, v.get("dst"))
-                    if key not in seen_keys:
-                        result.append(v)
-                        seen_keys.add(key)
+        result = GlossaryHelper.collect_matched_rows(
+            getattr(config, "prompt_dictionary_data", []),
+            input_dict,
+        )
 
         # 数据校验
         if len(result) == 0:
@@ -715,6 +681,80 @@ class PromptBuilder(Base):
             "Original Text|Category|Remarks",
         )
 
+    # 圆点系列，匹配时与空格按同类处理
+    CHARACTERIZATION_DOT_SEPARATORS = r".．・·･∙⋅‧⸱﹒。｡"
+
+    # 原名拆分为可匹配的关键词
+    def _split_characterization_name(original_name: str) -> list[str]:
+        if not original_name:
+            return []
+
+        if "[Separator]" in original_name:
+            parts = original_name.split("[Separator]")
+        elif " " in original_name or re.search(f"[{PromptBuilder.CHARACTERIZATION_DOT_SEPARATORS}]", original_name):
+            parts = re.split(f"[ {PromptBuilder.CHARACTERIZATION_DOT_SEPARATORS}]+", original_name)
+        else:
+            parts = [original_name]
+
+        return [part.strip() for part in parts if part.strip()]
+
+    # 优先匹配全名
+    def _build_characterization_full_name_pattern(original_name: str, keywords: list[str]) -> str:
+        if not keywords:
+            return ""
+
+        if len(keywords) == 1:
+            return re.escape(keywords[0])
+
+        if "[Separator]" in original_name:
+            separator_pattern = f"[ {PromptBuilder.CHARACTERIZATION_DOT_SEPARATORS}]*"
+        else:
+            separator_pattern = f"[ {PromptBuilder.CHARACTERIZATION_DOT_SEPARATORS}]+"
+
+        return separator_pattern.join(re.escape(keyword) for keyword in keywords)
+
+     # [Separator] 命中全名后，需要去掉文本里的可见分隔符再回填原名
+    def _normalize_characterization_full_match(original_name: str, matched_text: str) -> str:
+        if "[Separator]" not in original_name:
+            return matched_text
+
+        parts = re.split(f"[ {PromptBuilder.CHARACTERIZATION_DOT_SEPARATORS}]+", matched_text)
+        return "".join(part for part in parts if part)
+
+    # 尝试整名匹配；失败后按关键词匹配，并保留文本里的实际大小写
+    def _match_characterization_original_name(original_name: str, full_text: str) -> str | None:
+        keywords = PromptBuilder._split_characterization_name(original_name)
+        if not keywords or not full_text:
+            return None
+
+        full_name_pattern = PromptBuilder._build_characterization_full_name_pattern(original_name, keywords)
+        if full_name_pattern:
+            full_match = re.search(full_name_pattern, full_text, re.IGNORECASE)
+            if full_match:
+                return PromptBuilder._normalize_characterization_full_match(original_name, full_match.group())
+
+        display_name = original_name.replace("[Separator]", "")
+        is_matched = False
+        for keyword in keywords:
+            match = re.search(re.escape(keyword), full_text, re.IGNORECASE)
+            if not match:
+                continue
+
+            is_matched = True
+            actual_text = match.group()
+            display_name = re.sub(
+                re.escape(keyword),
+                lambda _: actual_text,
+                display_name,
+                count=1,
+                flags=re.IGNORECASE,
+            )
+
+        if is_matched:
+            return display_name
+
+        return None
+
     # 构造角色设定
     def build_characterization(config: TaskConfig, input_dict: dict) -> str:
         dictionary = {}
@@ -722,24 +762,15 @@ class PromptBuilder(Base):
             dictionary[item.get("original_name", "")] = item
 
         temp_dict = {}
+        full_text = "\n".join(input_dict.values())
         for key_a, value_a in dictionary.items():
-            keywords = [key_a]
-            if "[Separator]" in key_a:
-                keywords = key_a.split("[Separator]")
-            elif " " in key_a or "." in key_a:
-                keywords = re.split(r"[ .]", key_a)
+            matched_name = PromptBuilder._match_characterization_original_name(key_a, full_text)
+            if not matched_name:
+                continue
 
-            keywords = [keyword.strip() for keyword in keywords if keyword.strip()]
-
-            is_match = False
-            for value_b in input_dict.values():
-                for keyword in keywords:
-                    if keyword and keyword in value_b:
-                        temp_dict[key_a] = value_a
-                        is_match = True
-                        break
-                if is_match:
-                    break
+            new_value = value_a.copy()
+            new_value["original_name"] = matched_name
+            temp_dict[key_a] = new_value
 
         if temp_dict == {}:
             return ""
@@ -747,7 +778,7 @@ class PromptBuilder(Base):
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "\n###角色介绍"
             for value in temp_dict.values():
-                original_name = value.get("original_name", "").replace("[Separator]", "")
+                original_name = value.get("original_name", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")
@@ -772,7 +803,7 @@ class PromptBuilder(Base):
         else:
             profile = "\n###Character Introduction"
             for value in temp_dict.values():
-                original_name = value.get("original_name", "").replace("[Separator]", "")
+                original_name = value.get("original_name", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")
