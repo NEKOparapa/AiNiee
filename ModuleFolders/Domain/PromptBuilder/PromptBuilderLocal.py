@@ -7,6 +7,7 @@ from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEn
 from ModuleFolders.Config.FilePathConfig import prompt_path
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Service.TaskExecutor import TranslatorUtil
+from ModuleFolders.Domain.PromptBuilder.CharacterHelper import CharacterHelper
 
 
 class PromptBuilderLocal(Base):
@@ -307,37 +308,28 @@ class PromptBuilderLocal(Base):
 
     # 生成角色介绍 - LocalLLM
     def build_characterization_prompt(config: TaskConfig, source_text_dict: dict) -> str:
-        dictionary = {}
-        for item in getattr(config, "characterization_data", []):
-            dictionary[item.get("original_name", "")] = item
+        matched_rows = []
+        full_text = "\n".join(source_text_dict.values())
+        
+        # 使用 CharacterHelper 匹配角色
+        for item in CharacterHelper.normalize_rows(getattr(config, "characterization_data", [])):
+            matched_name = CharacterHelper.match_original_name(
+                item.get("original_name", ""), 
+                full_text,
+                item.get(CharacterHelper.VALID_KEY, True)
+            )
+            if matched_name:
+                new_item = item.copy()
+                new_item["original_name"] = matched_name
+                matched_rows.append(new_item)
 
-        temp_dict = {}
-        for original_key, value in dictionary.items():
-            keywords = [original_key]
-            if "[Separator]" in original_key:
-                keywords = original_key.split("[Separator]")
-            elif " " in original_key or "." in original_key:
-                keywords = re.split(r"[ .]", original_key)
-
-            keywords = [keyword.strip() for keyword in keywords if keyword.strip()]
-
-            is_match = False
-            for source_text in source_text_dict.values():
-                for keyword in keywords:
-                    if keyword and keyword in source_text:
-                        temp_dict[original_key] = value
-                        is_match = True
-                        break
-                if is_match:
-                    break
-
-        if temp_dict == {}:
+        if not matched_rows:
             return ""
 
         if PromptBuilderLocal._is_chinese_target(config):
             profile = "\n###角色介绍"
-            for value in temp_dict.values():
-                original_name = value.get("original_name", "").replace("[Separator]", "")
+            for value in matched_rows:
+                original_name = value.get("original_name", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")
@@ -361,8 +353,8 @@ class PromptBuilderLocal(Base):
                 profile += "\n"
         else:
             profile = "\n###Character Introduction"
-            for value in temp_dict.values():
-                original_name = value.get("original_name", "").replace("[Separator]", "")
+            for value in matched_rows:
+                original_name = value.get("original_name", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")

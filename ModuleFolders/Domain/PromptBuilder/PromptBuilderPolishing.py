@@ -3,6 +3,7 @@ import re
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from ModuleFolders.Domain.PromptBuilder.CharacterHelper import CharacterHelper
 from ModuleFolders.Config.FilePathConfig import prompt_path
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 
@@ -191,6 +192,13 @@ class PromptBuilderPolishing(Base):
         if project_non_translate:
             system += project_non_translate
             extra_log.append(project_non_translate)
+
+        # 角色介绍
+        if getattr(config, "characterization_switch", False):
+            characterization = PromptBuilder.build_characterization(config, source_text_dict)
+            if characterization:
+                system += characterization
+                extra_log.append(characterization)
 
         previous = ""
         if getattr(config, "pre_line_counts", 0) and previous_text_list:

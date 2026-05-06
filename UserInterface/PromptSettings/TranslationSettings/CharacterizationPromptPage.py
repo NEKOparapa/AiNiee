@@ -2,6 +2,7 @@ import copy
 
 import rapidjson as json
 from PyQt5.QtCore import QEvent, QPoint, Qt
+from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QFrame,
@@ -16,6 +17,7 @@ from qfluentwidgets import Action, FluentIcon, MessageBox, RoundMenu, StrongBody
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Domain.PromptBuilder.CharacterHelper import CharacterHelper
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Native.FileDialogProvider import get_open_file_name, get_save_file_name
 from UserInterface.Table.TableHelper.TableHelper import TableHelper
@@ -42,6 +44,8 @@ class CharacterizationPromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base
         5: "说话风格",
         6: "补充信息",
     }
+    # 只在匹配逻辑不合法时标红，保存本身不拦截。
+    INVALID_ROW_BRUSH = QBrush(QColor(255, 0, 0, 96))
 
     def __init__(self, text: str, window) -> None:
         super().__init__(parent=window)
@@ -83,12 +87,38 @@ class CharacterizationPromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base
 
     def update_table(self) -> None:
         config = self.load_config()
-        TableHelper.update_to_table(
-            self.table,
-            config.get("characterization_data", []),
-            CharacterizationPromptPage.KEYS,
-        )
+        normalized_rows = CharacterHelper.normalize_rows(config.get("characterization_data", []))
+        self._update_table_rows(normalized_rows)
         self._reset_sort_indicator()
+
+    def _update_table_rows(self, rows: list[dict] | None) -> None:
+        self.table.setRowCount(0)
+        TableHelper.update_to_table(self.table, rows, CharacterizationPromptPage.KEYS)
+        self.table.resizeRowsToContents()
+        self._refresh_invalid_row_highlight(rows)
+
+    def _refresh_invalid_row_highlight(self, rows: list[dict] | None) -> None:
+        validity_by_name = {}
+        for row in rows or []:
+            name = str(row.get("original_name", "") or "").strip()
+            if not name:
+                continue
+
+            validity_by_name[name] = bool(row.get(CharacterHelper.VALID_KEY, True))
+
+        for row_index in range(self.table.rowCount()):
+            first_item = self.table.item(row_index, 0)
+            name = first_item.text().strip() if isinstance(first_item, QTableWidgetItem) else ""
+            is_invalid = bool(name) and not validity_by_name.get(name, True)
+            self._set_row_highlight(row_index, is_invalid)
+
+    def _set_row_highlight(self, row_index: int, highlighted: bool) -> None:
+        for column_index in range(self.table.columnCount()):
+            item = self.table.item(row_index, column_index)
+            if not isinstance(item, QTableWidgetItem):
+                continue
+
+            item.setBackground(self.INVALID_ROW_BRUSH if highlighted else QBrush())
 
     def show_table_context_menu(self, pos: QPoint):
         menu = RoundMenu(parent=self.table)
@@ -259,8 +289,12 @@ class CharacterizationPromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base
 
     def save_data(self) -> None:
         config = self.load_config()
-        config["characterization_data"] = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
+        rows = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
+        normalized_rows = CharacterHelper.normalize_rows(rows)
+        config["characterization_data"] = normalized_rows
         self.save_config(config)
+        # 立即重绘一次，让非法条目变红
+        self._update_table_rows(normalized_rows)
         self.success_toast("", self.tra("数据已保存") + " ... ")
 
     def reset_data(self) -> None:
@@ -274,9 +308,7 @@ class CharacterizationPromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base
         config = self.load_config()
         config["characterization_data"] = copy.deepcopy(self.default.get("characterization_data", []))
         self.save_config(config)
-        TableHelper.update_to_table(self.table, config.get("characterization_data"), CharacterizationPromptPage.KEYS)
-        self.table.resizeRowsToContents()
-        self._reset_sort_indicator()
+        self.update_table()
         self.success_toast("", self.tra("数据已重置") + " ... ")
 
     def import_data(self) -> None:
@@ -306,11 +338,9 @@ class CharacterizationPromptPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base
             self.warning_toast(self.tra("警告"), self.tra("未从文件中加载到有效数据"))
             return
 
-        combined_data = current_data + new_data_filtered
+        combined_data = CharacterHelper.normalize_rows(current_data + new_data_filtered)
         config["characterization_data"] = combined_data
-        TableHelper.update_to_table(self.table, config["characterization_data"], CharacterizationPromptPage.KEYS)
-        self.table.resizeRowsToContents()
-        config["characterization_data"] = TableHelper.load_from_table(self.table, CharacterizationPromptPage.KEYS)
+        self._update_table_rows(config["characterization_data"])
         self.save_config(config)
         self._reset_sort_indicator()
         self.success_toast("", self.tra("数据已导入并更新") + f" ({len(new_data_filtered)} {self.tra('项')})...")
