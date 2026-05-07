@@ -1,6 +1,7 @@
 import re
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
 from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from ModuleFolders.Domain.PromptBuilder.CharacterHelper import CharacterHelper
@@ -23,39 +24,11 @@ class PromptBuilderPolishing(Base):
         return PromptBuilderPolishing.get_system_default(config)
 
     def build_glossary_prompt(config: TaskConfig, input_dict: dict) -> str:
-        full_text = "\n".join(input_dict.values())
-
-        result = []
-        seen_keys = set()
-
-        for item in config.prompt_dictionary_data:
-            src = item.get("src", "")
-            if not src:
-                continue
-
-            try:
-                pattern = re.compile(src, re.IGNORECASE)
-                found_texts = {match.group() for match in pattern.finditer(full_text)}
-
-                for match_text in found_texts:
-                    if not match_text:
-                        continue
-
-                    key = (match_text, item.get("dst"))
-                    if key in seen_keys:
-                        continue
-
-                    new_entry = item.copy()
-                    new_entry["src"] = match_text
-                    result.append(new_entry)
-                    seen_keys.add(key)
-
-            except re.error:
-                if src.lower() in full_text.lower():
-                    key = (src, item.get("dst"))
-                    if key not in seen_keys:
-                        result.append(item)
-                        seen_keys.add(key)
+        result = GlossaryHelper.collect_matched_rows(
+            getattr(config, "prompt_dictionary_data", []),
+            input_dict,
+            include_invalid=False,
+        )
 
         if not result:
             return ""
