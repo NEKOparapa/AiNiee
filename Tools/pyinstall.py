@@ -30,15 +30,20 @@ for module_name in MODULES_TO_EXCLUDE:
     cmd.append(f"--exclude-module={module_name}")
     print(f"[INFO] Explicitly excluding module: {module_name}")
 
-if os.path.exists("./requirements.txt"):
-    with open("./requirements.txt", "r", encoding="utf-8") as reader:
-        for line in reader:
-            if "#" not in line:
-                cmd.append("--hidden-import=" + line.strip())
+def _hidden_imports_from(path):
+    with open(path, "r", encoding="utf-8") as reader:
+        for raw in reader:
+            if "#" in raw:
+                continue
+            line = raw.split(";")[0].strip()
+            if line:
+                yield line
 
-    with open("./requirements_no_deps.txt", "r", encoding="utf-8") as reader:
-        for line in reader:
-            if "#" not in line:
-                cmd.append("--hidden-import=" + line.strip())
+
+if os.path.exists("./requirements.txt"):
+    for pkg in _hidden_imports_from("./requirements.txt"):
+        cmd.append("--hidden-import=" + pkg)
+    for pkg in _hidden_imports_from("./requirements_no_deps.txt"):
+        cmd.append("--hidden-import=" + pkg)
 
     PyInstaller.__main__.run(cmd)

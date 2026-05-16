@@ -96,6 +96,18 @@
       "English": "Scales the UI to the selected size.\nTakes effect after restart.",
       "日本語": "選択した倍率で UI を拡大縮小します。\n再起動後に有効になります。"
     },
+    "主题色": {
+      "简中": "主题色",
+      "繁中": "主題色",
+      "English": "Accent Color",
+      "日本語": "アクセントカラー"
+    },
+    "设置应用强调色，立即生效；部分自定义组件需重新打开后应用": {
+      "简中": "设置应用强调色，立即生效；部分自定义组件需重新打开后应用",
+      "繁中": "設定應用強調色，立即生效；部分自訂元件需重新開啟後套用",
+      "English": "Sets the application accent color. Applied immediately; some custom widgets update after reopening.",
+      "日本語": "アプリのアクセントカラーを設定します。即時反映され、一部のカスタムコンポーネントは再表示後に適用されます。"
+    },
     "自动检查更新": {
       "简中": "自动检查更新",
       "繁中": "自動檢查更新",

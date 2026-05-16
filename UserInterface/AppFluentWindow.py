@@ -12,8 +12,9 @@ from qfluentwidgets import (
     NavigationAvatarWidget,
     NavigationItemPosition,
     NavigationPushButton,
+    SystemThemeListener,
     Theme,
-    isDarkTheme,
+    qconfig,
     setTheme,
     setThemeColor,
 )
@@ -83,7 +84,8 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
 
         # 默认配置
         self.default = {
-            "theme": "light",
+            "theme": "auto",
+            "accent_color": self.THEME_COLOR,
         }
 
         # 载入并保存默认配置
@@ -95,8 +97,13 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         self.info(f"Current Interface Language: {ConfigMixin.current_interface_language}")
 
         # 设置主题颜色与主题
-        setThemeColor(self.THEME_COLOR)
-        setTheme(Theme.DARK if config.get("theme") == "dark" else Theme.LIGHT)
+        self._theme_mode = config.get("theme", "auto")
+        setThemeColor(config.get("accent_color", self.THEME_COLOR))
+        setTheme(self._theme_for_mode(self._theme_mode))
+
+        self.systemThemeListener = SystemThemeListener(self)
+        self.systemThemeListener.systemThemeChanged.connect(self._on_system_theme_changed)
+        self.systemThemeListener.start()
 
         # 设置窗口属性
         desktop = QApplication.desktop().availableGeometry()
@@ -135,22 +142,51 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         if message_box.exec():
             self.emit(Base.EVENT.APP_SHUT_DOWN, {})
             self.info(self.tra("主窗口已关闭，稍后应用将自动退出") + " ... ")
+            if hasattr(self, "systemThemeListener"):
+                self.systemThemeListener.terminate()
+                self.systemThemeListener.deleteLater()
             event.accept()
         else:
             event.ignore()
 
+    def _on_system_theme_changed(self) -> None:
+        if self._theme_mode == "auto":
+            qconfig.themeChanged.emit(qconfig.theme)
+
     # 切换主题
+    _THEME_CYCLE = {"auto": "light", "light": "dark", "dark": "auto"}
+
     def toggle_theme(self) -> None:
-        config = self.load_config()
+        next_mode = self._THEME_CYCLE.get(self._theme_mode, "auto")
+        self._theme_mode = next_mode
 
-        if not isDarkTheme():
-            setTheme(Theme.DARK)
-            config["theme"] = "dark"
-        else:
-            setTheme(Theme.LIGHT)
-            config["theme"] = "light"
+        setTheme(self._theme_for_mode(next_mode))
+        self._update_theme_button(next_mode)
+        self.save_config({"theme": next_mode})
+        self.info_toast(self.tra("主题切换"), self._toast_for_mode(next_mode))
 
-        self.save_config(config)
+    @staticmethod
+    def _theme_for_mode(mode: str) -> Theme:
+        return {"light": Theme.LIGHT, "dark": Theme.DARK, "auto": Theme.AUTO}.get(mode, Theme.LIGHT)
+
+    @staticmethod
+    def _icon_for_mode(mode: str):
+        return {
+            "light": FluentIcon.BRIGHTNESS,
+            "auto": FluentIcon.CONSTRACT,
+            "dark": FluentIcon.QUIET_HOURS,
+        }.get(mode, FluentIcon.CONSTRACT)
+
+    def _toast_for_mode(self, mode: str) -> str:
+        return {
+            "light": self.tra("已切换至浅色主题"),
+            "dark": self.tra("已切换至深色主题"),
+            "auto": self.tra("已切换至跟随系统"),
+        }.get(mode, "")
+
+    def _update_theme_button(self, mode: str) -> None:
+        if hasattr(self, "theme_nav_button"):
+            self.theme_nav_button.setIcon(self._icon_for_mode(mode))
 
     # 打开项目主页
     def open_project_page(self) -> None:
@@ -245,9 +281,12 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         self.switchTo(self.edit_view_page)
 
         # 主题切换按钮
+        self.theme_nav_button = NavigationPushButton(
+            self._icon_for_mode(self._theme_mode), self.tra("主题切换"), False
+        )
         self.navigationInterface.addWidget(
             routeKey="theme_navigation_button",
-            widget=NavigationPushButton(FluentIcon.CONSTRACT, self.tra("主题切换"), False),
+            widget=self.theme_nav_button,
             onClick=self.toggle_theme,
             position=NavigationItemPosition.BOTTOM,
         )

@@ -8,13 +8,15 @@ import httpx
 
 from qfluentwidgets import (
     MessageBoxBase, LineEdit, PushButton, StrongBodyLabel, FluentIcon,
-    PillPushButton, SingleDirectionScrollArea, isDarkTheme, IndeterminateProgressRing,
+    PillPushButton, SingleDirectionScrollArea, IndeterminateProgressRing,
+    qconfig,
 )
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.Toast import ToastMixin
+from UserInterface.Widget.ThemePalette import current_palette
 from ModuleFolders.Infrastructure.LLMRequester.LLMClientFactory import LLMClientFactory
 
 class _GoogleModelFetchWorker(QObject):
@@ -159,57 +161,8 @@ class ModelBrowserDialog(MessageBoxBase, ConfigMixin, LogMixin, ToastMixin, Base
         # 构建界面
         self._build_ui()
 
-        # 轻度样式优化
-        self.setStyleSheet("""
-        QListWidget { background: transparent; border: 1px solid rgba(255,255,255,0.08); }
-        QListWidget::item { padding: 6px 10px; }
-        QListWidget::item:selected { background: rgba(98, 160, 234, 0.18); border: none; }
-        QLabel { color: palette(window-text); }
-        """)
-
-        # 异步/同步拉取数据（这里用同步 httpx，数据量一般可接受）
-        # 容器背景使用主题色；按钮与主题色形成明暗对比，文本固定为 #f1356d
-        theme_hex = None
-        # 根据主题构造对比用的明暗色（覆盖在主题背景上）
-        if isDarkTheme():
-            theme_hex = "#2b2b2b"
-            btn_bg = "#dddddd"
-            btn_border = "rgba(255,255,255,0.28)"
-            btn_hover = "rgba(255,255,255,0.22)"
-            btn_checked = "rgba(255,255,255,0.30)"
-        else:
-            theme_hex = "#ffffff"
-            btn_bg = "rgba(0,0,0,0.06)"
-            btn_border = "rgba(0,0,0,0.18)"
-            btn_hover = "rgba(0,0,0,0.10)"
-            btn_checked = "rgba(0,0,0,0.16)"
-
-
-
-        # 设置模型区域背景为主题色
-        # 放在 grid_parent 上，使视觉上“模型展示区域”整体统一
-        # 注意：为了有留白，外层布局已有边距
-        self.grid_parent.setStyleSheet(f"QWidget {{ background-color: {theme_hex}; border-radius: 8px; }}")
-
-        text_color = "#202020"  # 固定按钮文本色
-
-        # 胶囊按钮样式
-        self._capsule_style = (
-            "QPushButton {"
-            " border-radius: 18px; padding: 8px 14px;"
-            f" border: 1px solid {btn_border};"
-            f" background-color: {btn_bg};"
-            f" color: {text_color};"
-            "}"
-            "QPushButton:hover {"
-            f" background-color: {btn_hover};"
-            "}"
-            "QPushButton:checked {"
-            f" background-color: {btn_checked};"
-            f" border: 1px solid {btn_border};"
-            f" color: {text_color};"
-            "}"
-        )
+        self._apply_theme_styles()
+        qconfig.themeChanged.connect(self._apply_theme_styles)
 
         self._begin_loading_state()
         self._fetch_models()
@@ -227,6 +180,44 @@ class ModelBrowserDialog(MessageBoxBase, ConfigMixin, LogMixin, ToastMixin, Base
         if hasattr(self, "_confirmed_models"):
             return list(self._confirmed_models)
         return list(self._selected)
+
+    def _apply_theme_styles(self, *_args) -> None:
+        palette = current_palette()
+        self.setStyleSheet(
+            "QListWidget { background: transparent;"
+            f" border: 1px solid {palette['list_border']}; }}"
+            " QListWidget::item { padding: 6px 10px; }"
+            f" QListWidget::item:selected {{ background: {palette['list_selected_bg']}; border: none; }}"
+            " QLabel { color: palette(window-text); }"
+        )
+        self.grid_parent.setStyleSheet(
+            f"QWidget {{ background-color: {palette['surface']}; border-radius: 8px; }}"
+        )
+        self._capsule_style = (
+            "QPushButton {"
+            " border-radius: 18px; padding: 8px 14px;"
+            f" border: 1px solid {palette['button_border']};"
+            f" background-color: {palette['button_bg']};"
+            f" color: {palette['text_on_button']};"
+            "}"
+            "QPushButton:hover {"
+            f" background-color: {palette['button_hover']};"
+            "}"
+            "QPushButton:checked {"
+            f" background-color: {palette['button_checked']};"
+            f" border: 1px solid {palette['button_border']};"
+            f" color: {palette['text_on_button']};"
+            "}"
+        )
+        if hasattr(self, "grid_layout") and self.grid_layout.count() > 0:
+            self._refresh_list()
+
+    def closeEvent(self, event):
+        try:
+            qconfig.themeChanged.disconnect(self._apply_theme_styles)
+        except (TypeError, RuntimeError):
+            pass
+        super().closeEvent(event)
 
     # UI
     def _build_ui(self) -> None:

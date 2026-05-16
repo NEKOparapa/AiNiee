@@ -9,6 +9,7 @@ numpy
 openpyxl
 PyQt5
 PyQt-Fluent-Widgets[full]~=1.10.0
+pyobjc-framework-Cocoa; sys_platform == "darwin"
 opencc
 beautifulsoup4
 lxml

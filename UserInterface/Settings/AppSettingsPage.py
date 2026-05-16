@@ -5,14 +5,17 @@ import subprocess
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
 
+from qfluentwidgets import ColorPickerButton
 from qfluentwidgets import PushButton
 from qfluentwidgets import FluentIcon
 from qfluentwidgets import MessageBox
 from qfluentwidgets import SwitchButton
 from qfluentwidgets import SingleDirectionScrollArea
+from qfluentwidgets import setThemeColor
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -73,8 +76,9 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self.add_widget_auto_check_update(self.vbox, config)
         self.add_widget_check_update(self.vbox, config, window)
         self.add_widget_scale_factor(self.vbox, config)
+        self.add_widget_accent_color(self.vbox, config)
         self.add_widget_exclude_rule(self.vbox, config)
-        self.add_widget_http_service(self.vbox, config) 
+        self.add_widget_http_service(self.vbox, config)
         # 填充
         self.vbox.addStretch(1)
 
@@ -221,6 +225,29 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
                 ["AUTO", "50%", "75%", "125%", "150%", "200%"],
                 init=init,
                 current_text_changed=current_text_changed,
+            )
+        )
+
+    # 主题色
+    def add_widget_accent_color(self, parent, config) -> None:
+        def on_color_changed(color: QColor) -> None:
+            hex_value = color.name()
+            cfg = self.load_config()
+            cfg["accent_color"] = hex_value
+            self.save_config(cfg)
+            setThemeColor(color)
+
+        def init(widget) -> None:
+            initial = QColor(config.get("accent_color", "#808b9d"))
+            picker = ColorPickerButton(initial, self.tra("主题色"), self, enableAlpha=False)
+            picker.colorChanged.connect(on_color_changed)
+            widget.add_widget(picker)
+
+        parent.addWidget(
+            EmptyCard(
+                self.tra("主题色"),
+                self.tra("设置应用强调色，立即生效；部分自定义组件需重新打开后应用"),
+                init=init,
             )
         )
 
