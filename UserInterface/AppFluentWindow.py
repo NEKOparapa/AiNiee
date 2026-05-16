@@ -1,6 +1,7 @@
 import os
 import threading
 
+import darkdetect
 import requests
 from PyQt5.QtCore import QThread, QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices, QIcon
@@ -14,7 +15,6 @@ from qfluentwidgets import (
     NavigationPushButton,
     SystemThemeListener,
     Theme,
-    qconfig,
     setTheme,
     setThemeColor,
 )
@@ -151,7 +151,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _on_system_theme_changed(self) -> None:
         if self._theme_mode == "auto":
-            qconfig.themeChanged.emit(qconfig.theme)
+            setTheme(self._theme_for_mode("auto"))
 
     # 切换主题
     _THEME_CYCLE = {"auto": "light", "light": "dark", "dark": "auto"}
@@ -167,7 +167,9 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
 
     @staticmethod
     def _theme_for_mode(mode: str) -> Theme:
-        return {"light": Theme.LIGHT, "dark": Theme.DARK, "auto": Theme.AUTO}.get(mode, Theme.LIGHT)
+        if mode == "auto":
+            return Theme.DARK if darkdetect.theme() == "Dark" else Theme.LIGHT
+        return Theme.DARK if mode == "dark" else Theme.LIGHT
 
     @staticmethod
     def _icon_for_mode(mode: str):
