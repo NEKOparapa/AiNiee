@@ -230,6 +230,8 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
     # 主题色
     def add_widget_accent_color(self, parent, config) -> None:
+        DEFAULT_ACCENT = "#808b9d"
+
         def on_color_changed(color: QColor) -> None:
             hex_value = color.name()
             cfg = self.load_config()
@@ -238,10 +240,21 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             setThemeColor(color)
 
         def init(widget) -> None:
-            initial = QColor(config.get("accent_color", "#808b9d"))
+            initial = QColor(config.get("accent_color", DEFAULT_ACCENT))
             picker = ColorPickerButton(initial, self.tra("主题色"), self, enableAlpha=False)
             picker.colorChanged.connect(on_color_changed)
+
+            def reset_to_default():
+                default = QColor(DEFAULT_ACCENT)
+                picker.setColor(default)
+                on_color_changed(default)
+
+            reset_button = PushButton(self.tra("恢复默认"), self)
+            reset_button.clicked.connect(reset_to_default)
+
             widget.add_widget(picker)
+            widget.add_spacing(8)
+            widget.add_widget(reset_button)
 
         parent.addWidget(
             EmptyCard(

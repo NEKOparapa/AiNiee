@@ -108,6 +108,12 @@
       "English": "Sets the application accent color. Applied immediately; some custom widgets update after reopening.",
       "日本語": "アプリのアクセントカラーを設定します。即時反映され、一部のカスタムコンポーネントは再表示後に適用されます。"
     },
+    "恢复默认": {
+      "简中": "恢复默认",
+      "繁中": "恢復預設",
+      "English": "Reset",
+      "日本語": "既定にリセット"
+    },
     "自动检查更新": {
       "简中": "自动检查更新",
       "繁中": "自動檢查更新",
