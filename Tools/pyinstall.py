@@ -14,8 +14,9 @@ cmd = [
     # package so the packaged EXE does not crash on startup.
     "--collect-all=chardet",
     "--collect-all=sklearn",
-    "--collect-all=rich", 
-    "--collect-all=bitstring", 
+    "--collect-all=rich",
+    "--collect-all=bitstring",
+    "--collect-all=darkdetect",
     # "--distpath=./dist/AiNiee" #指定输出目录
 ]
 

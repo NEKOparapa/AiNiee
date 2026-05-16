@@ -212,6 +212,12 @@ class ModelBrowserDialog(MessageBoxBase, ConfigMixin, LogMixin, ToastMixin, Base
         if hasattr(self, "grid_layout") and self.grid_layout.count() > 0:
             self._refresh_list()
 
+    def _disconnect_theme(self) -> None:
+        try:
+            qconfig.themeChanged.disconnect(self._apply_theme_styles)
+        except (TypeError, RuntimeError):
+            pass
+
     # UI
     def _build_ui(self) -> None:
         self.viewLayout.setContentsMargins(16, 16, 16, 16)
@@ -341,6 +347,7 @@ class ModelBrowserDialog(MessageBoxBase, ConfigMixin, LogMixin, ToastMixin, Base
 
     # 覆写关闭/拒绝，确保停止后台线程并安全清理
     def reject(self) -> None:
+        self._disconnect_theme()
         # 先隐藏，减少重绘竞争
         try:
             self.hide()
@@ -358,6 +365,7 @@ class ModelBrowserDialog(MessageBoxBase, ConfigMixin, LogMixin, ToastMixin, Base
         super().reject()
 
     def accept(self) -> None:
+        self._disconnect_theme()
         # 确认前先打上关闭标志并停止后台线程，避免竞态重绘
         self._closing = True
         # 在任何隐藏/清理动作前，先拍一份快照并发信号，保证上层拿得到
@@ -383,10 +391,7 @@ class ModelBrowserDialog(MessageBoxBase, ConfigMixin, LogMixin, ToastMixin, Base
         return
 
     def closeEvent(self, event):
-        try:
-            qconfig.themeChanged.disconnect(self._apply_theme_styles)
-        except (TypeError, RuntimeError):
-            pass
+        self._disconnect_theme()
         try:
             if hasattr(self, "_worker") and self._worker:
                 self._worker.cancel()
