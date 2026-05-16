@@ -18,6 +18,7 @@ from qfluentwidgets import (
     setTheme,
     setThemeColor,
 )
+from qfluentwidgets.common.style_sheet import updateStyleSheet
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -152,6 +153,8 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
     def _on_system_theme_changed(self) -> None:
         if self._theme_mode == "auto":
             qconfig.themeChanged.emit(qconfig.theme)
+            updateStyleSheet()
+            qconfig.themeChangedFinished.emit()
 
     # 切换主题
     _THEME_CYCLE = {"auto": "light", "light": "dark", "dark": "auto"}
