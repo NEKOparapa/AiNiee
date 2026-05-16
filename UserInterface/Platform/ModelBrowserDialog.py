@@ -212,13 +212,6 @@ class ModelBrowserDialog(MessageBoxBase, ConfigMixin, LogMixin, ToastMixin, Base
         if hasattr(self, "grid_layout") and self.grid_layout.count() > 0:
             self._refresh_list()
 
-    def closeEvent(self, event):
-        try:
-            qconfig.themeChanged.disconnect(self._apply_theme_styles)
-        except (TypeError, RuntimeError):
-            pass
-        super().closeEvent(event)
-
     # UI
     def _build_ui(self) -> None:
         self.viewLayout.setContentsMargins(16, 16, 16, 16)
@@ -390,6 +383,10 @@ class ModelBrowserDialog(MessageBoxBase, ConfigMixin, LogMixin, ToastMixin, Base
         return
 
     def closeEvent(self, event):
+        try:
+            qconfig.themeChanged.disconnect(self._apply_theme_styles)
+        except (TypeError, RuntimeError):
+            pass
         try:
             if hasattr(self, "_worker") and self._worker:
                 self._worker.cancel()
