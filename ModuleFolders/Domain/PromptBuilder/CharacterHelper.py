@@ -7,12 +7,20 @@ class CharacterHelper:
     SEPARATOR_TOKEN = "[Separator]"
     DOT_SEPARATORS = r".．・·･∙⋅‧⸱﹒。｡"
     SPACE_SEPARATOR = " "
-    
+    SPACE_SEPARATORS = " \t\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"
+    ZERO_WIDTH_CHARS = "\u200b\u200c\u200d\u2060\ufeff"
+
     @staticmethod
     def _normalize_text(value) -> str:
         if value is None:
             return ""
-        return str(value).strip()
+        zero_width_translation = str.maketrans("", "", CharacterHelper.ZERO_WIDTH_CHARS)
+        return str(value).translate(zero_width_translation).strip()
+
+    @classmethod
+    def _normalize_name(cls, value) -> str:
+        name = cls._normalize_text(value)
+        return re.sub(f"[{re.escape(cls.SPACE_SEPARATORS)}]+", cls.SPACE_SEPARATOR, name)
 
     @staticmethod
     def _parse_source_text(source_text: str):
@@ -76,7 +84,7 @@ class CharacterHelper:
             return cls.SEPARATOR_TOKEN, len(cls.SEPARATOR_TOKEN)
 
         char = name[start]
-        if char == cls.SPACE_SEPARATOR or char in cls.DOT_SEPARATORS:
+        if char in cls.SPACE_SEPARATORS or char in cls.DOT_SEPARATORS:
             return char, 1
 
         return None
@@ -98,6 +106,17 @@ class CharacterHelper:
             index += 1
 
         return False
+
+    @classmethod
+    def _has_edge_separator(cls, name: str) -> bool:
+        if not name:
+            return False
+
+        if cls._match_separator_at(name, 0):
+            return True
+
+        parts, _ = cls._parse_name(name)
+        return bool(parts and not parts[-1])
 
     @classmethod
     def _parse_name(cls, original_name: str) -> tuple[list[str], list[str]]:
@@ -124,13 +143,17 @@ class CharacterHelper:
     @classmethod
     def _match_separator_pattern(cls, allow_empty: bool) -> str:
         token_pattern = re.escape(cls.SEPARATOR_TOKEN)
-        char_pattern = f"[ {re.escape(cls.DOT_SEPARATORS)}]"
+        char_pattern = f"[{re.escape(cls.SPACE_SEPARATORS + cls.DOT_SEPARATORS)}]"
         separator_pattern = f"(?:{token_pattern}|{char_pattern})"
         return f"{separator_pattern}?" if allow_empty else separator_pattern
 
     @classmethod
     def _display_separator(cls, separator: str) -> str:
-        return "" if separator == cls.SEPARATOR_TOKEN else separator
+        if separator == cls.SEPARATOR_TOKEN:
+            return ""
+        if separator in cls.SPACE_SEPARATORS:
+            return cls.SPACE_SEPARATOR
+        return separator
 
     @classmethod
     def _build_display_name(cls, original_name: str, matched_parts: list[str] | None = None) -> str:
@@ -149,8 +172,7 @@ class CharacterHelper:
     @classmethod
     def _build_full_name_match_pattern(cls, original_name: str) -> str:
         parts, separators = cls._parse_name(original_name)
-        parts = [part for part in parts if part]
-        if not parts:
+        if not parts or any(not part for part in parts):
             return ""
 
         pattern = f"({re.escape(parts[0])})"
@@ -165,16 +187,20 @@ class CharacterHelper:
 
     @classmethod
     def validate_name(cls, name: str) -> bool:
-        name = cls._normalize_text(name)
+        name = cls._normalize_name(name)
         if not name:
             return True
+
+        if cls._has_edge_separator(name):
+            return False
 
         if cls._has_consecutive_separators(name):
             return False
             
         # 允许的分隔符暂时替换为普通字符，以避免被误判为正则
         test_name = name.replace(cls.SEPARATOR_TOKEN, "X")
-        test_name = test_name.replace(cls.SPACE_SEPARATOR, "X")
+        for space in cls.SPACE_SEPARATORS:
+            test_name = test_name.replace(space, "X")
         for dot in cls.DOT_SEPARATORS:
             test_name = test_name.replace(dot, "X")
             
@@ -188,7 +214,7 @@ class CharacterHelper:
     def normalize_row(cls, row: dict) -> dict:
         # 持久化校验结果，UI 与任务流程复用同一份有效性判断。
         normalized_row = dict(row) if isinstance(row, dict) else {}
-        name = cls._normalize_text(normalized_row.get("original_name", ""))
+        name = cls._normalize_name(normalized_row.get("original_name", ""))
         normalized_row["original_name"] = name
         # 补充其它的字段，确保一致性
         for key in ["translated_name", "gender", "age", "personality", "speech_style", "additional_info"]:
@@ -222,7 +248,8 @@ class CharacterHelper:
             return ""
 
         parts, separators = cls._parse_name(original_name)
-        parts = [part for part in parts if part]
+        if not parts or any(not part for part in parts):
+            return ""
 
         if len(parts) == 1:
             return re.escape(parts[0])
