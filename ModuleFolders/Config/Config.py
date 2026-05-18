@@ -63,6 +63,17 @@ class ConfigMixin:
             if os.path.exists(ConfigMixin.CONFIG_PATH):
                 with open(ConfigMixin.CONFIG_PATH, "r", encoding="utf-8") as reader:
                     config = json.load(reader)
+
+                # 旧版 DeepSeek 配置临时兼容块。
+                # 当旧版内置配置不再需要自动修复时，可直接删除此块。
+                platforms = config.get("platforms")
+                deepseek_platform = platforms.get("deepseek") if isinstance(platforms, dict) else None
+                if isinstance(deepseek_platform, dict) and deepseek_platform.get("tag") == "deepseek":
+                    if deepseek_platform.get("think_switch") is False and deepseek_platform.get("think_depth") == "low":
+                        deepseek_platform["think_switch"] = True
+                        deepseek_platform["think_depth"] = "high"
+                        with open(ConfigMixin.CONFIG_PATH, "w", encoding="utf-8") as writer:
+                            writer.write(json.dumps(config, indent=4, ensure_ascii=False))
             else:
                 print("[[red]WARNING[/]] Config file does not exist ...")
 
