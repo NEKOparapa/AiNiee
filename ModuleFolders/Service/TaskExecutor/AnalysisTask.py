@@ -7,6 +7,7 @@ import rapidjson as json
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
+from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.Infrastructure.LLMRequester.LLMRequester import LLMRequester
 from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
@@ -252,6 +253,9 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
 
     def _get_recommended_translation_language_requirement(self) -> str:
         """构建 recommended_translation 的目标语言约束说明。"""
+        if getattr(self.config, "analysis_align_translation_style_switch", False):
+            return "角色与术语的译名/分类/备注，不翻译项的分类/备注，请严格遵循 system 提示中“当前翻译流程使用的风格与规则约束”一节里的命名规则（包括是否保留原文、术语表译名、军衔/职位写法等），不要套用单一目标语言的兜底要求。"
+
         target_language = str(getattr(self.config, "target_language", "") or "").strip()
         display_name = TranslatorUtil.pair.get(target_language, "")
         if display_name:
@@ -281,10 +285,25 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 "}\n"
                 "```"
             )
-            
+
+            if getattr(self.config, "analysis_align_translation_style_switch", False):
+                addendum = PromptBuilder.build_translation_style_addendum(
+                    self.config,
+                    {"chunk": source_text},
+                    getattr(self.config, "source_language", "") or "",
+                )
+                if addendum:
+                    system_prompt += addendum
+
             # 优化 Few-Shot：包含更丰富的混合场景，注意 {{}} 是转义 Python 的 f-string 占位符
+            # 当对齐翻译风格开关开启时，去掉硬编码的“都必须写成简体中文”，避免与 system 中的译名规则冲突
+            fake_user_lang_clause = (
+                "（下例仅用于演示 JSON 输出结构，译名风格请以 system 中的规则为准）"
+                if getattr(self.config, "analysis_align_translation_style_switch", False)
+                else "角色与术语的译名/分类/备注，不翻译项的分类/备注都必须写成简体中文。"
+            )
             fake_user = (
-                "请分析以下文本并提取信息，角色与术语的译名/分类/备注，不翻译项的分类/备注都必须写成简体中文。\n"
+                f"请分析以下文本并提取信息，{fake_user_lang_clause}\n"
                 "---\n"
                 "露娜小姐：请携带[圣剑]前往星门集合。\n"
                 "精灵族战士即将施放月光斩。\n"
@@ -432,7 +451,19 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             "}\n"
             "```"
         )
-        
+
+        if getattr(self.config, "analysis_align_translation_style_switch", False):
+            stage_two_corpus = "\n".join(
+                str(g.get("source", "") or "") for g in batch if isinstance(g, dict)
+            )
+            addendum = PromptBuilder.build_translation_style_addendum(
+                self.config,
+                {"chunk": stage_two_corpus},
+                getattr(self.config, "source_language", "") or "",
+            )
+            if addendum:
+                system_prompt += addendum
+
         # 优化 Few-Shot：展示如何解决类型冲突和合并备注
         sample_group = [
             {
@@ -459,9 +490,14 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             }
         ]
         import rapidjson as json
-        
+
+        fake_user_lang_clause = (
+            "（下例仅用于演示 JSON 输出结构，译名风格请以 system 中的规则为准）"
+            if getattr(self.config, "analysis_align_translation_style_switch", False)
+            else "`recommended_translation` 必须写成简体中文。"
+        )
         fake_user = (
-            "请分析以下候选组并完成合并裁决，`recommended_translation` 必须写成简体中文。\n"
+            f"请分析以下候选组并完成合并裁决，{fake_user_lang_clause}\n"
             f"---\n{json.dumps(sample_group, ensure_ascii=False)}\n---\n"
             "请输出 JSON 合并结果。"
         )

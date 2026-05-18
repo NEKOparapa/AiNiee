@@ -38,6 +38,7 @@ from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
 from ModuleFolders.Log.Log import LogMixin
+from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.Toast import ToastMixin
 
 
@@ -297,6 +298,22 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         header_layout.addWidget(self.progress_card, 5)
         header_layout.addWidget(self.result_card, 4)
 
+    def _build_align_translation_style_card(self) -> SwitchButtonCard:
+        def init(widget: SwitchButtonCard) -> None:
+            widget.set_checked(self.load_config().get("analysis_align_translation_style_switch", False))
+
+        def checked_changed(widget: SwitchButtonCard, checked: bool) -> None:
+            current_config = self.load_config()
+            current_config["analysis_align_translation_style_switch"] = checked
+            self.save_config(current_config)
+
+        return SwitchButtonCard(
+            self.tra("对齐当前翻译风格"),
+            self.tra("开启后，提取出的角色/术语译名将遵循当前翻译流程使用的自定义提示词、术语表、写作风格等规则，避免与正式翻译时的命名策略冲突。"),
+            init=init,
+            checked_changed=checked_changed,
+        )
+
     def _create_result_metric(self, parent_layout: QHBoxLayout, title: str) -> SubtitleLabel:
         metric_widget = QWidget(self.result_card)
         metric_layout = QVBoxLayout(metric_widget)
@@ -475,6 +492,8 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(8)
 
+        self.align_translation_style_card = self._build_align_translation_style_card()
+
         self.page_card = CardWidget(self)
         self.page_card.setMinimumWidth(0)
         self.page_card.setBorderRadius(12)
@@ -514,6 +533,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         page_layout.addWidget(self.table_detail_widget)
         page_layout.addWidget(self.content_stack)
+        right_layout.addWidget(self.align_translation_style_card)
         right_layout.addWidget(self.header_widget)
         right_layout.addWidget(self.page_card, 1)
 
