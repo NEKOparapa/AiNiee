@@ -61,13 +61,12 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             )
             self.config.initialize("extract")
             self.config.prepare_for_active_platform("extract")
-            self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
+            self.request_limiter.set_limit(self.config.rpm_limit)
             self.info(
-                "分析配置: 模型 - {0}, 并发线程 - {1}, RPM - {2}, TPM - {3}".format(
+                "分析配置: 模型 - {0}, 并发线程 - {1}, RPM - {2}".format(
                     self.config.model,
                     self.config.actual_thread_counts,
                     self.config.rpm_limit,
-                    self.config.tpm_limit,
                 )
             )
 

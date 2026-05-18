@@ -7,7 +7,6 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
-from PyQt5.QtWidgets import QFileDialog
 
 from qfluentwidgets import PushButton
 from qfluentwidgets import FluentIcon
@@ -25,6 +24,7 @@ from UserInterface.Widget.LineEditCard import LineEditCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.LineEditCard import LineEditCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard 
+from UserInterface.Native.FileDialogProvider import get_existing_directory, get_open_file_name
 
 class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
@@ -368,7 +368,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
         # 导入按钮点击事件
         def on_improt_button_clicked() -> None:
-            path, _ = QFileDialog.getOpenFileName(None, self.tra("选择文件"), "", self.tra("JSON 配置文件 (*.json)"))
+            path, _ = get_open_file_name(None, self.tra("选择文件"), "", self.tra("JSON 配置文件 (*.json)"))
 
             if path == None or path == "":
                 return
@@ -377,7 +377,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
         # 导出按钮点击事件
         def on_exprot_button_clicked() -> None:
-            path = QFileDialog.getExistingDirectory(None, self.tra("选择文件夹"), "")
+            path = get_existing_directory(None, self.tra("选择文件夹"), "")
 
             if path == None or path == "":
                 return

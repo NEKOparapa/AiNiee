@@ -296,7 +296,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         self.config.load_project_table_data(self.cache_manager)
 
         # 配置请求限制器
-        self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
+        self.request_limiter.set_limit(self.config.rpm_limit)
 
         # 初开始翻译时，生成监控数据
         if continue_status == False:
@@ -389,7 +389,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             self.info(f"模型名称 - {self.config.model}")
             self.print("")
             self.info(f"RPM 限额 - {self.config.rpm_limit}")
-            self.info(f"TPM 限额 - {self.config.tpm_limit}")
 
             # 根据提示词规则打印基础指令
             system = ""
@@ -493,7 +492,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         self.config.load_project_table_data(self.cache_manager)
 
         # 配置请求限制器
-        self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
+        self.request_limiter.set_limit(self.config.rpm_limit)
 
         # 初开始任务时，生成监控数据
         if continue_status == False:
@@ -579,7 +578,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             self.info(f"模型名称 - {self.config.model}")
             self.print("")
             self.info(f"RPM 限额 - {self.config.rpm_limit}")
-            self.info(f"TPM 限额 - {self.config.tpm_limit}")
 
             # 根据提示词规则打印基础指令
             system = ""

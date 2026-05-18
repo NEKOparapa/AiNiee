@@ -1,5 +1,3 @@
-import os
-
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QStackedLayout, QWidget
@@ -14,6 +12,7 @@ from qfluentwidgets import (
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.FilePathConfig import platform_icon_path
 
 
 class APIItemCard(QWidget, ConfigMixin, Base):
@@ -69,9 +68,9 @@ class APIItemCard(QWidget, ConfigMixin, Base):
         icon_name = self.api_data.get("icon", "custom")
         if icon_name not in self._icon_cache:
             file_name = icon_name + ".png"
-            icon_path = os.path.join(".", "Resource", "platforms", "Icon", file_name)
-            if os.path.exists(icon_path):
-                self._icon_cache[icon_name] = QIcon(icon_path)
+            icon_path = platform_icon_path(file_name)
+            if icon_path.exists():
+                self._icon_cache[icon_name] = QIcon(str(icon_path))
             else:
                 self._icon_cache[icon_name] = FluentIcon.ROBOT
 

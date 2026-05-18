@@ -15,6 +15,7 @@ import rapidjson as json
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.FilePathConfig import project_cache_root
 from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Service.Cache.CacheFile import CacheFile
@@ -27,7 +28,6 @@ class CacheManager(ConfigMixin, LogMixin, Base):
 
     ANALYSIS_EXTRA_KEY = "analysis_v1"
     SAVE_INTERVAL = 8  # 缓存保存间隔（秒）
-    CACHE_ROOT_NAME = "ProjectCache"
     CACHE_FILENAME = "AinieeCacheData.json"
     STATS_FILENAME = "ProjectStatistics.json"
     HISTORY_LIMIT = 3
@@ -74,8 +74,8 @@ class CacheManager(ConfigMixin, LogMixin, Base):
     # 获取缓存目录相关路径
     @classmethod
     def get_project_cache_root(cls) -> str:
-        """获取程序根目录下的 ProjectCache 根目录。"""
-        return os.path.abspath(os.path.join(".", cls.CACHE_ROOT_NAME))
+        """获取项目缓存根目录。"""
+        return str(project_cache_root())
 
     @classmethod
     def get_project_cache_dir(cls, project_id: str) -> str:

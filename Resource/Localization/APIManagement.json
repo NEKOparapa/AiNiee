@@ -342,23 +342,11 @@
       "English": "Requests Per Minute (RPM)",
       "日本語": "1分あたりのリクエスト数 (RPM)"
     },
-    "限制每个密钥每分钟最多发送的请求数量，0 表示不限制": {
-      "简中": "限制每个密钥每分钟最多发送的请求数量，0 表示不限制",
-      "繁中": "限制每個金鑰每分鐘最多送出的請求數量，0 表示不限制",
-      "English": "Limits the maximum requests per key per minute. 0 means unlimited.",
-      "日本語": "キーごとの1分あたり最大リクエスト数を制限します。0 は無制限です。"
-    },
-    "每分钟 Token 数": {
-      "简中": "每分钟 Token 数",
-      "繁中": "每分鐘 Token 數",
-      "English": "Tokens Per Minute (TPM)",
-      "日本語": "1分あたりのトークン数 (TPM)"
-    },
-    "限制每个密钥每分钟最多使用的 Token 数量，0 表示不限制": {
-      "简中": "限制每个密钥每分钟最多使用的 Token 数量，0 表示不限制",
-      "繁中": "限制每個金鑰每分鐘最多使用的 Token 數量，0 表示不限制",
-      "English": "Limits the maximum tokens used per key per minute. 0 means unlimited.",
-      "日本語": "キーごとの1分あたり最大使用 Token 数を制限します。0 は無制限です。"
+    "限制该接口每分钟最多发送的请求数量（RPM）": {
+      "简中": "限制该接口每分钟最多发送的请求数量（RPM）",
+      "繁中": "限制該介面每分鐘最多送出的請求數量（RPM）",
+      "English": "Limits the maximum requests per minute (RPM) for this interface.",
+      "日本語": "このインターフェースの1分あたり最大リクエスト数（RPM）を制限します。"
     },
     "关闭": {
       "简中": "关闭",

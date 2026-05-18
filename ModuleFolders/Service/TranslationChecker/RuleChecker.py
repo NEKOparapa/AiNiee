@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Tuple
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.FilePathConfig import check_regex_path
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Service.Cache.CacheManager import CacheManager
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
@@ -192,7 +193,7 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
     # --- 规则检查辅助方法 ---
     def _prepare_regex_patterns(self, include_exclusion: bool, exclusion_data: List[Dict] | None = None):
         patterns = []
-        regex_file = os.path.join(".", "Resource", "Regex", "check_regex.json")
+        regex_file = check_regex_path()
         if os.path.exists(regex_file):
             try:
                 with open(regex_file, "r", encoding="utf-8") as f:

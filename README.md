@@ -213,7 +213,7 @@
 
 * 关于开发者 @neavo 合作说明: 在AiNiee v5.2版本，已退出AiNiee的开发工作。我们对他在此期间(2024-09至2025-02)，特别是在V5版本的UI改良美化所付出的努力表示非常感谢。[详细说明](https://github.com/NEKOparapa/AiNiee/releases/tag/AiNiee6.2.3)
 
-* **`交♂交流群`**:  QQ交流群(主要活跃，答案：github)：8216248九零，备用TG群：https://t.me/+JVHbDSGo8SI2Njhl ,
+* **`交♂交流群`**:  Q群(技术交流)：7296101五零，Q群(聊天吹水)：8216248九零，入群答案：github。备用TG群：https://t.me/+JVHbDSGo8SI2Njhl ,
 
 ---
 

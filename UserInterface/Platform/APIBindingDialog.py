@@ -6,6 +6,7 @@ from ModuleFolders.Config.Config import ConfigMixin
 
 
 class APIBindingDialog(MessageBoxBase, ConfigMixin):
+    FOLLOW_ACTIVE_OPTION = (None, "激活接口")
     ROLE_ITEMS = (
         ("extract", "提取接口", "分析流程使用的接口平台"),
         ("translate", "翻译接口", "翻译流程使用的接口平台"),
@@ -17,6 +18,10 @@ class APIBindingDialog(MessageBoxBase, ConfigMixin):
         super().__init__(window)
 
         self.platform_options = list(platform_options or [])
+        self.binding_options = [
+            (self.FOLLOW_ACTIVE_OPTION[0], self.tra(self.FOLLOW_ACTIVE_OPTION[1])),
+            *self.platform_options,
+        ]
         self.api_settings = dict(api_settings or {})
         self.combo_boxes = {}
 
@@ -61,8 +66,8 @@ class APIBindingDialog(MessageBoxBase, ConfigMixin):
 
             combo_box = ComboBox(row)
             combo_box.setMinimumWidth(200)
-            for _, platform_name in self.platform_options:
-                combo_box.addItem(platform_name)
+            for _, option_name in self.binding_options:
+                combo_box.addItem(option_name)
             combo_box.setCurrentIndex(self._find_current_index(role_key))
 
             layout.addWidget(combo_box)
@@ -75,18 +80,11 @@ class APIBindingDialog(MessageBoxBase, ConfigMixin):
         if role_tag in valid_tags:
             return role_tag
 
-        active_tag = self.api_settings.get("active")
-        if active_tag in valid_tags:
-            return active_tag
-
-        if self.platform_options:
-            return self.platform_options[0][0]
-
         return None
 
     def _find_current_index(self, role_key: str) -> int:
         current_tag = self._resolve_current_tag(role_key)
-        for index, (tag, _) in enumerate(self.platform_options):
+        for index, (tag, _) in enumerate(self.binding_options):
             if tag == current_tag:
                 return index
         return 0
@@ -95,5 +93,5 @@ class APIBindingDialog(MessageBoxBase, ConfigMixin):
         bindings = {}
         for role_key, combo_box in self.combo_boxes.items():
             index = combo_box.currentIndex()
-            bindings[role_key] = self.platform_options[index][0] if 0 <= index < len(self.platform_options) else None
+            bindings[role_key] = self.binding_options[index][0] if 0 <= index < len(self.binding_options) else None
         return bindings

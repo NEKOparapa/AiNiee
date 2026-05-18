@@ -16,6 +16,8 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
     TYPE_FILTER = (int, str, bool, float, list, dict, tuple)
     # 支持按不同功能角色绑定接口，未命中时统一回退到 active
     SUPPORTED_INTERFACE_ROLES = {"active", "extract", "translate", "polish", "proofread"}
+    API_ROLE_KEYS = ("extract", "translate", "polish", "proofread")
+    API_SETTINGS_MIGRATION_KEY = "_active_follow_migration_done"
 
     def __init__(self) -> None:
         super().__init__()
@@ -116,19 +118,25 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
 
         active_tag = api_settings.get("active")
         if not self._is_valid_platform_tag(active_tag, platforms):
-            fallback_translate = api_settings.get("translate")
-            fallback_polish = api_settings.get("polish")
-            active_tag = fallback_translate if self._is_valid_platform_tag(fallback_translate, platforms) else None
-            if active_tag is None and self._is_valid_platform_tag(fallback_polish, platforms):
-                active_tag = fallback_polish
+            active_tag = None
+            for role in self.API_ROLE_KEYS:
+                role_tag = api_settings.get(role)
+                if self._is_valid_platform_tag(role_tag, platforms):
+                    active_tag = role_tag
+                    break
 
         api_settings["active"] = active_tag
 
-        for role in ("extract", "translate", "polish", "proofread"):
+        if not api_settings.get(self.API_SETTINGS_MIGRATION_KEY):
+            if active_tag is not None and all(api_settings.get(role) == active_tag for role in self.API_ROLE_KEYS):
+                for role in self.API_ROLE_KEYS:
+                    api_settings[role] = None
+            api_settings[self.API_SETTINGS_MIGRATION_KEY] = True
+
+        for role in self.API_ROLE_KEYS:
             role_tag = api_settings.get(role)
             if not self._is_valid_platform_tag(role_tag, platforms):
-                role_tag = active_tag
-            api_settings[role] = role_tag
+                api_settings[role] = None
 
         if persist and original_api_settings != api_settings:
             return self.save_config(config)
@@ -281,11 +289,9 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
 
         # 获取接口限额
         self.rpm_limit = platform_data.get("rpm_limit", 4096)
-        self.tpm_limit = platform_data.get("tpm_limit", 10000000)
 
-        # 根据密钥数量给 RPM 和 TPM 限额翻倍
+        # 根据密钥数量给 RPM 限额翻倍
         self.rpm_limit = self.rpm_limit * len(self.apikey_list)
-        self.tpm_limit = self.tpm_limit * len(self.apikey_list)
 
         # 如果开启自动设置输出文件夹功能，设置为输入文件夹的平级目录
         if self.auto_set_output_path is True:

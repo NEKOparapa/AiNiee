@@ -2,9 +2,13 @@ import re
 from types import SimpleNamespace
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
 from ModuleFolders.Service.TaskExecutor import TranslatorUtil
+from ModuleFolders.Config.FilePathConfig import prompt_path
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from ModuleFolders.Domain.PromptBuilder.CharacterHelper import CharacterHelper
+
 class PromptBuilder(Base):
     def __init__(self) -> None:
         super().__init__()
@@ -12,28 +16,28 @@ class PromptBuilder(Base):
     # 获取默认系统提示词(未处理的)，优先从内存中读取，如果没有，则从文件中读取
     def get_system_default(config: TaskConfig, prompt_preset) -> str:
         if getattr(PromptBuilder, "common_system_zh", None) == None:
-            with open("./Resource/Prompt/Translate/common_system_zh.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "common_system_zh.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.common_system_zh = reader.read().strip()
         if getattr(PromptBuilder, "common_system_en", None) == None:
-            with open("./Resource/Prompt/Translate/common_system_en.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "common_system_en.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.common_system_en = reader.read().strip()
         if getattr(PromptBuilder, "cot_system_zh", None) == None:
-            with open("./Resource/Prompt/Translate/cot_system_zh.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "cot_system_zh.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.cot_system_zh = reader.read().strip()
         if getattr(PromptBuilder, "cot_system_en", None) == None:
-            with open("./Resource/Prompt/Translate/cot_system_en.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "cot_system_en.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.cot_system_en = reader.read().strip()
         if getattr(PromptBuilder, "think_system_zh", None) == None:
-            with open("./Resource/Prompt/Translate/think_system_zh.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "think_system_zh.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.think_system_zh = reader.read().strip()
         if getattr(PromptBuilder, "think_system_en", None) == None:
-            with open("./Resource/Prompt/Translate/think_system_en.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "think_system_en.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.think_system_en = reader.read().strip()
         if getattr(PromptBuilder, "local_system_zh", None) == None:
-            with open("./Resource/Prompt/Translate/local_system_zh.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "local_system_zh.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.local_system_zh = reader.read().strip()
         if getattr(PromptBuilder, "local_system_en", None) == None:
-            with open("./Resource/Prompt/Translate/local_system_en.txt", "r", encoding = "utf-8") as reader:
+            with open(prompt_path("Translate", "local_system_en.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.local_system_en = reader.read().strip()
 
 
@@ -437,45 +441,11 @@ class PromptBuilder(Base):
 
     # 构造术语表
     def build_glossary_prompt(config: TaskConfig, input_dict: dict) -> str:
-        # 将输入字典中的所有值合并为一个字符串，方便正则全局匹配
-        full_text = "\n".join(input_dict.values())
-
-        # 筛选并处理匹配的条目
-        result = []
-        seen_keys = set() # 用于去重 (匹配到的实际原文, 译文)
-
-        for v in config.prompt_dictionary_data:
-            src = v.get("src", "")
-            if not src:
-                continue
-
-            try:
-                # 编译正则表达式，忽略大小写以保持与原逻辑一致的宽松匹配
-                pattern = re.compile(src, re.IGNORECASE)
-
-                # 查找所有匹配项 (set去重，处理同一词在文中多次出现的情况)
-                found_texts = set(m.group() for m in pattern.finditer(full_text))
-
-                # 如果正则匹配到了内容 (例如正则 (A|B) 匹配到了 A 和 B，这里会循环两次)
-                for match_text in found_texts:
-                    if not match_text: continue
-
-                    # 使用 (实际匹配文本, 译文) 作为唯一键进行去重
-                    key = (match_text, v.get("dst"))
-                    if key not in seen_keys:
-                        # 复制元数据，并将 src 替换为实际匹配到的原文文本
-                        new_entry = v.copy()
-                        new_entry["src"] = match_text
-                        result.append(new_entry)
-                        seen_keys.add(key)
-
-            except re.error:
-                # 如果正则编译失败（非合法正则），回退到普通字符串包含判断
-                if src.lower() in full_text.lower():
-                    key = (src, v.get("dst"))
-                    if key not in seen_keys:
-                        result.append(v)
-                        seen_keys.add(key)
+        result = GlossaryHelper.collect_matched_rows(
+            getattr(config, "prompt_dictionary_data", []),
+            input_dict,
+            include_invalid=False,
+        )
 
         # 数据校验
         if len(result) == 0:
@@ -716,37 +686,28 @@ class PromptBuilder(Base):
 
     # 构造角色设定
     def build_characterization(config: TaskConfig, input_dict: dict) -> str:
-        dictionary = {}
-        for item in getattr(config, "characterization_data", []):
-            dictionary[item.get("original_name", "")] = item
+        matched_rows = []
+        full_text = "\n".join(input_dict.values())
+        
+        # 使用 CharacterHelper 匹配角色
+        for item in CharacterHelper.normalize_rows(getattr(config, "characterization_data", [])):
+            matched_name = CharacterHelper.match_original_name(
+                item.get("original_name", ""), 
+                full_text,
+                item.get(CharacterHelper.VALID_KEY, True)
+            )
+            if matched_name:
+                new_item = item.copy()
+                new_item["original_name"] = matched_name
+                matched_rows.append(new_item)
 
-        temp_dict = {}
-        for key_a, value_a in dictionary.items():
-            keywords = [key_a]
-            if "[Separator]" in key_a:
-                keywords = key_a.split("[Separator]")
-            elif " " in key_a or "." in key_a:
-                keywords = re.split(r"[ .]", key_a)
-
-            keywords = [keyword.strip() for keyword in keywords if keyword.strip()]
-
-            is_match = False
-            for value_b in input_dict.values():
-                for keyword in keywords:
-                    if keyword and keyword in value_b:
-                        temp_dict[key_a] = value_a
-                        is_match = True
-                        break
-                if is_match:
-                    break
-
-        if temp_dict == {}:
+        if not matched_rows:
             return ""
 
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             profile = "\n###角色介绍"
-            for value in temp_dict.values():
-                original_name = value.get("original_name", "").replace("[Separator]", "")
+            for value in matched_rows:
+                original_name = value.get("original_name", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")
@@ -770,8 +731,8 @@ class PromptBuilder(Base):
                 profile += "\n"
         else:
             profile = "\n###Character Introduction"
-            for value in temp_dict.values():
-                original_name = value.get("original_name", "").replace("[Separator]", "")
+            for value in matched_rows:
+                original_name = value.get("original_name", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")
@@ -1052,4 +1013,3 @@ class PromptBuilder(Base):
 
 
         return messages, system, extra_log
-

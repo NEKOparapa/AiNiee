@@ -257,7 +257,7 @@ class Widget_import_translated_text(QFrame):#  导入子界面
         print('[INFO] 开始注入译文到游戏文件中,请耐心等待！！！')
 
         #读取配置文件
-        config_path = os.path.join(".", "StevExtraction", "config.yaml") 
+        config_path = os.path.join(".", "StevExtraction", "config.yaml")
 
         with open(config_path, 'r', encoding='utf-8') as file:
             config = yaml.safe_load(file)

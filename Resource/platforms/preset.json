@@ -9,7 +9,6 @@
             "api_format": "OpenAI",
             "icon": "sakura",
             "rpm_limit": 2000,
-            "tpm_limit": 100000000,
             "model": "Sakura-v1.0",
             "temperature": 0.1,
             "think_switch": false,
@@ -22,7 +21,6 @@
                 "api_url",
                 "model",
                 "rpm_limit",
-                "tpm_limit",
                 "temperature"
             ]
         },
@@ -35,7 +33,6 @@
             "api_format": "OpenAI",
             "icon": "LocalLLM",
             "rpm_limit": 2000,
-            "tpm_limit": 100000000,
             "model": "Qwen2.5-7B",
             "temperature": 1.0,
             "think_switch": false,
@@ -48,7 +45,6 @@
                 "api_url",
                 "model",
                 "rpm_limit",
-                "tpm_limit",
                 "temperature",
                 "think_switch"
             ]
@@ -62,7 +58,6 @@
             "api_format": "Google",
             "icon": "google",
             "rpm_limit": 15,
-            "tpm_limit": 320000,
             "model": "gemini-2.5-flash",
             "temperature": 1.0,
             "think_switch": false,
@@ -78,7 +73,6 @@
                 "api_key",
                 "model",
                 "rpm_limit",
-                "tpm_limit",
                 "temperature",
                 "think_switch",
                 "thinking_budget",
@@ -94,7 +88,6 @@
             "api_format": "OpenAI",
             "icon": "openai",
             "rpm_limit": 3500,
-            "tpm_limit": 600000,
             "model": "gpt-3.5-turbo",
             "temperature": 1.0,
             "think_switch": false,
@@ -111,7 +104,6 @@
                 "api_key",
                 "model",
                 "rpm_limit",
-                "tpm_limit",
                 "temperature",
                 "think_switch",
                 "think_depth"
@@ -126,7 +118,6 @@
             "api_format": "OpenAI",
             "icon": "deepseek",
             "rpm_limit": 4096,
-            "tpm_limit": 10000000,
             "model": "deepseek-v4-flash",
             "temperature": 1.3,
             "think_switch": true,
@@ -140,7 +131,6 @@
                 "api_key",
                 "model",
                 "rpm_limit",
-                "tpm_limit",
                 "temperature",
                 "think_switch",
                 "think_depth"
@@ -155,7 +145,6 @@
             "api_format": "Anthropic",
             "icon": "anthropic",
             "rpm_limit": 2000,
-            "tpm_limit": 100000000,
             "model": "claude-3-haiku",
             "temperature": 1.0,
             "think_switch": false,
@@ -170,7 +159,6 @@
                 "api_key",
                 "model",
                 "rpm_limit",
-                "tpm_limit",
                 "temperature"
             ]
         },
@@ -186,7 +174,6 @@
             "api_format": "Amazon Bedrock",
             "icon": "amazonbedrock",
             "rpm_limit": 2000,
-            "tpm_limit": 100000000,
             "model": "claude-3-haiku",
             "temperature": 1.0,
             "think_switch": false,
@@ -215,7 +202,6 @@
                 "secret_key",
                 "model",
                 "rpm_limit",
-                "tpm_limit",
                 "temperature"
             ]
         },
@@ -228,7 +214,6 @@
             "api_format": "OpenAI",
             "icon": "xai",
             "rpm_limit": 600,
-            "tpm_limit": 1000000,
             "model": "grok-3-fast-beta",
             "temperature": 1.0,
             "think_switch": false,
@@ -243,7 +228,6 @@
                 "api_key",
                 "model",
                 "rpm_limit",
-                "tpm_limit",
                 "temperature",
                 "think_switch",
                 "think_depth"
@@ -258,7 +242,6 @@
             "api_format": "OpenAI",
             "icon": "volcengine",
             "rpm_limit": 10000,
-            "tpm_limit": 8000000,
             "model": "doubao-seed-1-6-flash-250615",
             "temperature": 1.0,
             "think_switch": false,
@@ -274,7 +257,6 @@
                 "api_key",
                 "model",
                 "rpm_limit",
-                "tpm_limit",
                 "temperature"
             ]
         },
@@ -287,7 +269,6 @@
             "api_format": "OpenAI",
             "icon": "dashscope",
             "rpm_limit": 150,
-            "tpm_limit": 1500000,
             "model": "qwen-turbo",
             "temperature": 1.0,
             "think_switch": false,
@@ -303,7 +284,6 @@
                 "api_key",
                 "model",
                 "rpm_limit",
-                "tpm_limit",
                 "temperature",
                 "think_switch"
             ]
@@ -317,7 +297,6 @@
             "api_format": "OpenAI",
             "icon": "zhipu",
             "rpm_limit": 30,
-            "tpm_limit": 100000,
             "model": "glm-4-flash",
             "temperature": 1.0,
             "think_switch": false,
@@ -334,7 +313,6 @@
                 "api_key",
                 "model",
                 "rpm_limit",
-                "tpm_limit",
                 "temperature"
             ]
         },
@@ -347,7 +325,6 @@
             "api_format": "OpenAI",
             "icon": "custom",
             "rpm_limit": 4096,
-            "tpm_limit": 8000000,
             "model": "gpt-4o",
             "temperature": 1.0,
             "tls_switch": false,
@@ -373,7 +350,6 @@
                 "api_key",
                 "api_format",
                 "rpm_limit",
-                "tpm_limit",
                 "model",
                 "auto_complete",
                 "temperature",

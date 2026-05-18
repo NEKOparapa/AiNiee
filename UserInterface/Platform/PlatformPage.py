@@ -24,6 +24,7 @@ from qfluentwidgets import (
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.FilePathConfig import platform_preset_path
 from UserInterface.Platform.APIBindingDialog import APIBindingDialog
 from UserInterface.Platform.APIEditPage import APIEditPage
 from UserInterface.Platform.APIItemCard import APIItemCard
@@ -202,6 +203,9 @@ class InterfaceHeaderCard(CardWidget, ConfigMixin):
 
 
 class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
+    API_ROLE_KEYS = ("extract", "translate", "polish", "proofread")
+    API_SETTINGS_MIGRATION_KEY = "_active_follow_migration_done"
+
     GROUP_CONFIG = {
         "local": {
             "title_key": "本地接口",
@@ -345,19 +349,25 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
 
         active_tag = api_settings.get("active")
         if not self._is_valid_api_tag(active_tag, platforms):
-            fallback_translate = api_settings.get("translate")
-            fallback_polish = api_settings.get("polish")
-            active_tag = fallback_translate if self._is_valid_api_tag(fallback_translate, platforms) else None
-            if active_tag is None and self._is_valid_api_tag(fallback_polish, platforms):
-                active_tag = fallback_polish
+            active_tag = None
+            for role in self.API_ROLE_KEYS:
+                role_tag = api_settings.get(role)
+                if self._is_valid_api_tag(role_tag, platforms):
+                    active_tag = role_tag
+                    break
 
         api_settings["active"] = active_tag
 
-        for role in ("extract", "translate", "polish", "proofread"):
+        if not api_settings.get(self.API_SETTINGS_MIGRATION_KEY):
+            if active_tag is not None and all(api_settings.get(role) == active_tag for role in self.API_ROLE_KEYS):
+                for role in self.API_ROLE_KEYS:
+                    api_settings[role] = None
+            api_settings[self.API_SETTINGS_MIGRATION_KEY] = True
+
+        for role in self.API_ROLE_KEYS:
             role_tag = api_settings.get(role)
             if not self._is_valid_api_tag(role_tag, platforms):
-                role_tag = active_tag
-            api_settings[role] = role_tag
+                api_settings[role] = None
 
         if persist and original_api_settings != api_settings:
             return self.save_config(config)
@@ -504,7 +514,7 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
         self._refresh_active_interface_ui(config)
 
     def on_add_api_clicked(self):
-        preset_data = self.load_file("./Resource/platforms/preset.json")
+        preset_data = self.load_file(platform_preset_path())
         preset_platforms = preset_data.get("platforms", {})
 
         def on_confirm(data):
@@ -539,7 +549,7 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
 
     def create_new_api(self, data: dict):
         config = self._normalize_api_settings(self.load_config())
-        preset_data = self.load_file("./Resource/platforms/preset.json")
+        preset_data = self.load_file(platform_preset_path())
         preset_platforms = preset_data.get("platforms", {})
         platform_tag = data.get("platform_tag")
 

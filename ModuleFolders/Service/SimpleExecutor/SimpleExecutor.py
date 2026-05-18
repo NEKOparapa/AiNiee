@@ -14,6 +14,7 @@ from ModuleFolders.Domain.ResponseExtractor.ResponseExtractor import ResponseExt
 from ModuleFolders.Domain.ResponseChecker.ResponseChecker import ResponseChecker
 from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderPolishing import PromptBuilderPolishing
+from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 
 # 简易请求器
@@ -187,8 +188,11 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
             })
             return
 
-        # 获取未翻译术语
-        untranslated_items = [item for item in prompt_dictionary_data if not item.get("dst")]
+        # 获取未翻译术语，错误项只保留在表格，不进入翻译任务。
+        untranslated_items = [
+            item for item in prompt_dictionary_data
+            if not item.get("dst") and GlossaryHelper.is_row_valid(item)
+        ]
         if not untranslated_items:
             self.info("没有需要翻译的术语")
             self.emit(Base.EVENT.GLOSS_TASK_DONE, {

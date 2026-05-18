@@ -131,7 +131,7 @@ class TranslatorTask(LogMixin, Base):
             if time.time() - task_start_time >= self.config.request_timeout:
                 return {}
 
-            # 检查 RPM 和 TPM 限制，如果符合条件，则继续
+            # 检查 RPM 和单次 token 上限，如果符合条件，则继续
             if self.request_limiter.check_limiter(self.request_tokens_consume):
                 break
 

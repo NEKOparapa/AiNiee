@@ -94,7 +94,69 @@ curl -X POST http://127.0.0.1:3388/api/translate \
 }
 ```
 
-### 2. 任务完成回调、
+### 2. 查询任务状态与翻译进度
+
+**接口地址：** `GET /api/status`
+
+**功能说明：**
+- 查询当前任务运行状态与翻译进度
+- 保留原有 `status`、`app_status`、`work_status_code` 字段
+- 只读取当前内存中的任务统计，不会触发加载项目或启动任务
+- 未加载项目或未开始任务时也会返回成功响应，方便外部程序轮询
+
+**请求示例：**
+
+```bash
+curl http://127.0.0.1:3388/api/status
+```
+
+**响应示例：**
+
+成功（200）：
+```json
+{
+  "status": "success",
+  "app_status": "TASKING",
+  "work_status_code": 1001,
+  "has_project": true,
+  "project_id": "project-id",
+  "project_name": "project-name",
+  "progress": {
+    "total_line": 100,
+    "line": 35,
+    "remaining_line": 65,
+    "percent": 35.0,
+    "is_complete": false,
+    "total_requests": 12,
+    "error_requests": 0,
+    "token": 12345,
+    "total_completion_tokens": 6789,
+    "elapsed_seconds": 42
+  }
+}
+```
+
+**字段说明：**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| app_status | string | 当前应用状态：`IDLE`、`TASKING`、`STOPPING`、`STOPPED` |
+| work_status_code | integer | 内部运行状态码 |
+| has_project | boolean | 当前是否已有项目数据 |
+| project_id | string | 当前项目 ID |
+| project_name | string | 当前项目名称 |
+| progress.total_line | integer | 本次任务总行数 |
+| progress.line | integer | 已完成行数 |
+| progress.remaining_line | integer | 剩余行数 |
+| progress.percent | number | 完成百分比，范围 0 到 100 |
+| progress.is_complete | boolean | 是否已达到完成行数 |
+| progress.total_requests | integer | 已完成请求数 |
+| progress.error_requests | integer | 失败请求数 |
+| progress.token | integer | 累计消耗 Token 数 |
+| progress.total_completion_tokens | integer | 累计完成 Token 数 |
+| progress.elapsed_seconds | integer | 已运行秒数 |
+
+### 3. 任务完成回调、
 
 **回调请求体示例：**
 
@@ -137,14 +199,19 @@ print(f"启动结果: {result}")
 print(f"输入路径: {result.get('input_folder')}")
 print(f"输出路径: {result.get('output_folder')}")
 
-# 示例2：轮询状态直到完成
+# 示例2：轮询进度直到完成
 while True:
     time.sleep(5)
     status_response = requests.get(f"{BASE_URL}/api/status")
     status_data = status_response.json()
-    print(f"任务状态: {status_data['app_status']}")
+    progress = status_data["progress"]
+    print(
+        f"任务状态: {status_data['app_status']}, "
+        f"进度: {progress['percent']}% "
+        f"({progress['line']}/{progress['total_line']})"
+    )
     
-    if status_data['app_status'] in ['IDLE', 'STOPPED']:
+    if progress["is_complete"] or status_data["app_status"] in ["IDLE", "STOPPED"]:
         print("任务已完成")
         break
 ```

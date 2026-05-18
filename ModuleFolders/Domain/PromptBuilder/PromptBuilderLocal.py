@@ -2,10 +2,13 @@ import re
 from types import SimpleNamespace
 
 from ModuleFolders.Base.Base import Base
+from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
 from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+from ModuleFolders.Config.FilePathConfig import prompt_path
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Service.TaskExecutor import TranslatorUtil
+from ModuleFolders.Domain.PromptBuilder.CharacterHelper import CharacterHelper
 
 
 class PromptBuilderLocal(Base):
@@ -15,20 +18,20 @@ class PromptBuilderLocal(Base):
     # 系统预设提示词文件映射
     SYSTEM_PROMPT_FILES = {
         PromptBuilderEnum.COMMON: {
-            "zh": "./Resource/Prompt/Translate/common_system_zh.txt",
-            "en": "./Resource/Prompt/Translate/common_system_en.txt",
+            "zh": ("Translate", "common_system_zh.txt"),
+            "en": ("Translate", "common_system_en.txt"),
         },
         PromptBuilderEnum.COT: {
-            "zh": "./Resource/Prompt/Translate/cot_system_zh.txt",
-            "en": "./Resource/Prompt/Translate/cot_system_en.txt",
+            "zh": ("Translate", "cot_system_zh.txt"),
+            "en": ("Translate", "cot_system_en.txt"),
         },
         PromptBuilderEnum.THINK: {
-            "zh": "./Resource/Prompt/Translate/think_system_zh.txt",
-            "en": "./Resource/Prompt/Translate/think_system_en.txt",
+            "zh": ("Translate", "think_system_zh.txt"),
+            "en": ("Translate", "think_system_en.txt"),
         },
         PromptBuilderEnum.LOCAL: {
-            "zh": "./Resource/Prompt/Translate/local_system_zh.txt",
-            "en": "./Resource/Prompt/Translate/local_system_en.txt",
+            "zh": ("Translate", "local_system_zh.txt"),
+            "en": ("Translate", "local_system_en.txt"),
         },
     }
 
@@ -62,8 +65,8 @@ class PromptBuilderLocal(Base):
         cache = {}
         for preset_id, language_paths in PromptBuilderLocal.SYSTEM_PROMPT_FILES.items():
             cache[preset_id] = {}
-            for language_key, path in language_paths.items():
-                with open(path, "r", encoding="utf-8") as reader:
+            for language_key, path_parts in language_paths.items():
+                with open(prompt_path(*path_parts), "r", encoding="utf-8") as reader:
                     cache[preset_id][language_key] = reader.read().strip()
 
         PromptBuilderLocal._system_prompt_cache = cache
@@ -134,38 +137,11 @@ class PromptBuilderLocal(Base):
 
     # 构造术语表
     def build_glossary_prompt(config: TaskConfig, input_dict: dict) -> str:
-        full_text = "\n".join(input_dict.values())
-        result = []
-        seen_keys = set()
-
-        for item in getattr(config, "prompt_dictionary_data", []):
-            src = item.get("src", "")
-            if not src:
-                continue
-
-            try:
-                pattern = re.compile(src, re.IGNORECASE)
-                found_texts = set(match.group() for match in pattern.finditer(full_text))
-                for match_text in found_texts:
-                    if not match_text:
-                        continue
-
-                    key = (match_text, item.get("dst"))
-                    if key in seen_keys:
-                        continue
-
-                    new_entry = item.copy()
-                    new_entry["src"] = match_text
-                    result.append(new_entry)
-                    seen_keys.add(key)
-            except re.error:
-                if src.lower() in full_text.lower():
-                    key = (src, item.get("dst"))
-                    if key in seen_keys:
-                        continue
-
-                    result.append(item)
-                    seen_keys.add(key)
+        result = GlossaryHelper.collect_matched_rows(
+            getattr(config, "prompt_dictionary_data", []),
+            input_dict,
+            include_invalid=False,
+        )
 
         if not result:
             return ""
@@ -306,37 +282,28 @@ class PromptBuilderLocal(Base):
 
     # 生成角色介绍 - LocalLLM
     def build_characterization_prompt(config: TaskConfig, source_text_dict: dict) -> str:
-        dictionary = {}
-        for item in getattr(config, "characterization_data", []):
-            dictionary[item.get("original_name", "")] = item
+        matched_rows = []
+        full_text = "\n".join(source_text_dict.values())
+        
+        # 使用 CharacterHelper 匹配角色
+        for item in CharacterHelper.normalize_rows(getattr(config, "characterization_data", [])):
+            matched_name = CharacterHelper.match_original_name(
+                item.get("original_name", ""), 
+                full_text,
+                item.get(CharacterHelper.VALID_KEY, True)
+            )
+            if matched_name:
+                new_item = item.copy()
+                new_item["original_name"] = matched_name
+                matched_rows.append(new_item)
 
-        temp_dict = {}
-        for original_key, value in dictionary.items():
-            keywords = [original_key]
-            if "[Separator]" in original_key:
-                keywords = original_key.split("[Separator]")
-            elif " " in original_key or "." in original_key:
-                keywords = re.split(r"[ .]", original_key)
-
-            keywords = [keyword.strip() for keyword in keywords if keyword.strip()]
-
-            is_match = False
-            for source_text in source_text_dict.values():
-                for keyword in keywords:
-                    if keyword and keyword in source_text:
-                        temp_dict[original_key] = value
-                        is_match = True
-                        break
-                if is_match:
-                    break
-
-        if temp_dict == {}:
+        if not matched_rows:
             return ""
 
         if PromptBuilderLocal._is_chinese_target(config):
             profile = "\n###角色介绍"
-            for value in temp_dict.values():
-                original_name = value.get("original_name", "").replace("[Separator]", "")
+            for value in matched_rows:
+                original_name = value.get("original_name", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")
@@ -360,8 +327,8 @@ class PromptBuilderLocal(Base):
                 profile += "\n"
         else:
             profile = "\n###Character Introduction"
-            for value in temp_dict.values():
-                original_name = value.get("original_name", "").replace("[Separator]", "")
+            for value in matched_rows:
+                original_name = value.get("original_name", "")
                 translated_name = value.get("translated_name")
                 gender = value.get("gender")
                 age = value.get("age")

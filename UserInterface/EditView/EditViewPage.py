@@ -2,7 +2,7 @@ import threading
 import time
 
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QFileDialog, QFrame, QHBoxLayout, QStackedWidget, QVBoxLayout
+from PyQt5.QtWidgets import QFrame, QHBoxLayout, QStackedWidget, QVBoxLayout
 from qfluentwidgets import CardWidget, FluentIcon as FIF, SegmentedWidget, TransparentPushButton
 
 from ModuleFolders.Base.Base import Base
@@ -12,6 +12,7 @@ from UserInterface.EditView.Analysis.AnalysisPage import AnalysisPage
 from UserInterface.EditView.Proofreading.ProofreadingPage import ProofreadingPage
 from UserInterface.EditView.Startup.StartupPage import StartupPage
 from UserInterface.EditView.Translation.TranslationPage import TranslationPage
+from UserInterface.Native.FileDialogProvider import get_existing_directory
 from UserInterface.Widget.Toast import ToastMixin
 
 
@@ -196,7 +197,7 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
             self.top_stacked_widget.setCurrentWidget(self.startup_page)
 
     def command_export(self) -> None:
-        selected_path = QFileDialog.getExistingDirectory(
+        selected_path = get_existing_directory(
             self.window(),
             self.tra("选择导出目录"),
             ".",

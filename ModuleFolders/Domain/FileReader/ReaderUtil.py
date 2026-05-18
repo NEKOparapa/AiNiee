@@ -1,7 +1,6 @@
 import os
 import pathlib
 import re
-import sys
 import time
 from typing import Union
 
@@ -12,6 +11,7 @@ from bs4 import BeautifulSoup
 from mediapipe.tasks.python import text, BaseOptions
 from mediapipe.tasks.python.text import LanguageDetector
 
+from ModuleFolders.Config.FilePathConfig import resource_path
 from ModuleFolders.Service.Cache.CacheFile import CacheFile
 from ModuleFolders.Service.Cache.CacheItem import CacheItem
 
@@ -120,6 +120,10 @@ RELAXED_CLOSE_LANGUAGE_PAIR_RULES = {
 """需要放宽置信度计算的近邻语言对"""
 
 
+def language_detector_model_path() -> pathlib.Path:
+    return resource_path("Models", "mediapipe", "language_detector.tflite").resolve()
+
+
 def adjust_close_language_pair_confidence(first_lang: str, second_lang: str, raw_prob: float, second_prob: float,
                                           default_prob: float) -> float:
     """对容易混淆的近邻语言对放宽置信度计算。"""
@@ -141,9 +145,7 @@ def get_lang_detector():
         # Record start time
         start_time = time.time()
 
-        # 设置模型目录
-        script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-        model_path = os.path.join(script_dir, "Resource", "Models", "mediapipe", "language_detector.tflite")
+        model_path = language_detector_model_path()
 
         if not os.path.exists(model_path):
             rich.print(f"[[red]ERROR[/]] 模型文件不存在于: {model_path}")

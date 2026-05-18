@@ -32,7 +32,7 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
             # 2. 初始化配置和限速器
             self.config.initialize("proofread")
             self.config.prepare_for_active_platform("proofread")
-            self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
+            self.request_limiter.set_limit(self.config.rpm_limit)
 
             # 3. 展平任务：将所有需要校对的行转为独立的单个任务 (1行 = 1请求)
             single_tasks = self._flatten_jobs(proofread_jobs)
