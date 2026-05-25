@@ -284,8 +284,9 @@ def register_all(mcp, backend: AiNieeBackend, store: ConfigStore) -> dict[str, A
 
     @tool
     def ainiee_cache_replace(rules: list[dict], dry_run: bool = True) -> dict:
-        """Universal find/replace over the live cache (any text). Each rule:
-        {find, replace, regex?, source_requires?, source_excludes?, skip_if_followed_by?}.
+        """Universal find/replace over the live cache. Each rule:
+        {find, replace, regex?, scope?, source_requires?, source_excludes?, skip_if_followed_by?}.
+        scope: which field to rewrite - translated_text (default) | source_text | all.
         source_requires (str or list): only replace when the item's SOURCE matches (any of) these.
         source_excludes (str or list): skip the item when its SOURCE matches (any of) these.
         skip_if_followed_by: skip an occurrence when followed by one of these strings.

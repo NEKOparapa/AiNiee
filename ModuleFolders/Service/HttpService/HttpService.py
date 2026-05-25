@@ -562,14 +562,27 @@ class HttpService(ConfigMixin, LogMixin, Base):
         if skip:
             neg = "|".join(re.escape(s) for s in skip)
             pattern = f"(?:{pattern})(?!{neg})"
+        scope = rule.get("scope", "translated_text") or "translated_text"
+        if scope not in ("all", "source_text", "translated_text"):
+            raise ValueError("scope 必须为 all/source_text/translated_text")
         return {
             "regex": re.compile(pattern),
             "replace": rule.get("replace", ""),
             "is_regex_replace": is_regex,
+            # which field(s) to rewrite: translated_text (default) / source_text / all.
+            "scope": scope,
             # source_requires: at least one must match (OR). source_excludes: skip if any matches.
             "source_requires": self._compile_source_guards(rule.get("source_requires")),
             "source_excludes": self._compile_source_guards(rule.get("source_excludes")),
         }
+
+    @staticmethod
+    def _apply_replace(cr, text):
+        """Apply one compiled rule to a single field's text."""
+        if cr["is_regex_replace"]:
+            return cr["regex"].sub(cr["replace"], text)
+        replacement = cr["replace"]
+        return cr["regex"].sub(lambda m, r=replacement: r, text)
 
     def _h_cache_replace(self, params, ip):
         guard = self._require_project() or self._require_idle_or_stopped()
@@ -584,6 +597,8 @@ class HttpService(ConfigMixin, LogMixin, Base):
             compiled = [c for c in (self._compile_replace_rule(r) for r in rules) if c]
         except re.error as e:
             return ({"status": "error", "message": f"正则表达式错误: {e}"}, 400)
+        except ValueError as e:
+            return ({"status": "error", "message": str(e)}, 400)
         if not compiled:
             return ({"status": "error", "message": "没有有效规则（每条规则需包含非空 find）"}, 400)
 
@@ -594,30 +609,31 @@ class HttpService(ConfigMixin, LogMixin, Base):
 
         for storage_path, cache_file in self.cache_manager.project.files.items():
             for item in cache_file.items:
-                original = item.translated_text or ""
-                if not original:
-                    continue
-                text = original
-                src = item.source_text or ""
+                orig_src = item.source_text or ""
+                orig_tr = item.translated_text or ""
+                new_src, new_tr = orig_src, orig_tr
                 for cr in compiled:
-                    if cr["source_requires"] and not any(p.search(src) for p in cr["source_requires"]):
+                    # source guards always test the original source, independent of rule order.
+                    if cr["source_requires"] and not any(p.search(orig_src) for p in cr["source_requires"]):
                         continue
-                    if cr["source_excludes"] and any(p.search(src) for p in cr["source_excludes"]):
+                    if cr["source_excludes"] and any(p.search(orig_src) for p in cr["source_excludes"]):
                         continue
-                    if cr["is_regex_replace"]:
-                        text = cr["regex"].sub(cr["replace"], text)
-                    else:
-                        replacement = cr["replace"]
-                        text = cr["regex"].sub(lambda m, r=replacement: r, text)
-                if text != original:
-                    match_count += 1
-                    if len(preview) < PREVIEW_CAP:
-                        preview.append({"storage_path": storage_path, "text_index": item.text_index,
-                                        "before": original, "after": text})
-                    if not dry_run:
-                        self.cache_manager.update_item_text(
-                            storage_path, item.text_index, "translated_text", text)
-                        applied += 1
+                    if cr["scope"] in ("translated_text", "all"):
+                        new_tr = self._apply_replace(cr, new_tr)
+                    if cr["scope"] in ("source_text", "all"):
+                        new_src = self._apply_replace(cr, new_src)
+                # one change record per rewritten field
+                for field, before, after in (("translated_text", orig_tr, new_tr),
+                                             ("source_text", orig_src, new_src)):
+                    if after != before:
+                        match_count += 1
+                        if len(preview) < PREVIEW_CAP:
+                            preview.append({"storage_path": storage_path, "text_index": item.text_index,
+                                            "field": field, "before": before, "after": after})
+                        if not dry_run:
+                            self.cache_manager.update_item_text(
+                                storage_path, item.text_index, field, after)
+                            applied += 1
 
         if not dry_run and applied:
             self.cache_manager.save_to_file()

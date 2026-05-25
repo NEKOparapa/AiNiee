@@ -347,6 +347,39 @@ def test_cache_replace_source_requires_list_or():
     assert cm.project.get_file("a.txt")._by_index[2].translated_text == "玛瓦里船"     # matches neither
 
 
+def test_cache_replace_scope_source_text():
+    Base.work_status = Base.STATUS.IDLE
+    items = [FakeItem(1, "The Mavari ship", "玛瓦里飞船", 1)]
+    svc, cm, emitted = make_service(items=items)
+    rules = [{"find": "Mavari", "replace": "Arden", "scope": "source_text"}]
+    body, code = svc._h_cache_replace({"rules": rules, "dry_run": False}, "ip")
+    assert code == 200 and body["applied"] == 1
+    it = cm.project.get_file("a.txt")._by_index[1]
+    assert it.source_text == "The Arden ship"   # source rewritten
+    assert it.translated_text == "玛瓦里飞船"     # translated left untouched
+    assert body["changed_preview"][0]["field"] == "source_text"
+
+
+def test_cache_replace_scope_all_hits_both_fields():
+    Base.work_status = Base.STATUS.IDLE
+    items = [FakeItem(1, "warp core", "warp 核心", 1)]
+    svc, cm, emitted = make_service(items=items)
+    rules = [{"find": "warp", "replace": "flux", "scope": "all"}]
+    body, code = svc._h_cache_replace({"rules": rules, "dry_run": False}, "ip")
+    assert code == 200 and body["applied"] == 2   # both fields written
+    it = cm.project.get_file("a.txt")._by_index[1]
+    assert it.source_text == "flux core"
+    assert it.translated_text == "flux 核心"
+
+
+def test_cache_replace_invalid_scope_400():
+    Base.work_status = Base.STATUS.IDLE
+    svc, cm, emitted = make_service()
+    rules = [{"find": "x", "replace": "y", "scope": "bogus"}]
+    body, code = svc._h_cache_replace({"rules": rules, "dry_run": False}, "ip")
+    assert code == 400
+
+
 def test_export_and_cache_save_guards():
     Base.work_status = Base.STATUS.IDLE
     svc, cm, emitted = make_service()
