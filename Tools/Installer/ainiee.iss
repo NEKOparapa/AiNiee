@@ -33,7 +33,10 @@ ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
 UninstallDisplayIcon={app}\{#MyAppExeName}
 UninstallDisplayName={#MyAppName}
-AppMutex=AiNieeInstallerMutex
+; AppMutex 必须与 ModuleFolders/Infrastructure/Platform/SingleInstance.APP_MUTEX_NAME 一致
+AppMutex=AiNieeAppMutex
+CloseApplications=yes
+RestartApplications=no
 
 [Languages]
 Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
