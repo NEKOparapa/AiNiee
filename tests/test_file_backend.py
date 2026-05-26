@@ -59,6 +59,48 @@ class TestSensitiveFilter:
         f.filter(rec)
         assert rec.getMessage() == original
 
+    def test_redacts_unprefixed_key_via_context(self):
+        """I2: DeepSeek/Moonshot 等无规范前缀的 key 通过上下文 key= 兜底。"""
+        from ModuleFolders.Log.FileBackend import SensitiveFilter, REDACTED
+        f = SensitiveFilter()
+        rec = _make_record("config: api_key=randomToken1234567890abcdef ready")
+        f.filter(rec)
+        assert REDACTED in rec.getMessage()
+        assert "randomToken1234567890abcdef" not in rec.getMessage()
+
+    def test_redacts_apikey_with_dash_and_quoted_value(self):
+        from ModuleFolders.Log.FileBackend import SensitiveFilter, REDACTED
+        f = SensitiveFilter()
+        rec = _make_record('api-key: "aBcDeFgHiJkLmNoPqRsT1234"')
+        f.filter(rec)
+        assert REDACTED in rec.getMessage()
+        assert "aBcDeFgHiJkLmNoPqRsT1234" not in rec.getMessage()
+
+    def test_redacts_secret_field(self):
+        from ModuleFolders.Log.FileBackend import SensitiveFilter, REDACTED
+        f = SensitiveFilter()
+        rec = _make_record("payload {secret=zxywvutsrqponmlkjihgfedcba}")
+        f.filter(rec)
+        assert REDACTED in rec.getMessage()
+        assert "zxywvutsrqponmlkjihgfedcba" not in rec.getMessage()
+
+    def test_does_not_match_short_value(self):
+        """阈值下不动，避免把 \"api_key=null\" 这类正常消息误伤。"""
+        from ModuleFolders.Log.FileBackend import SensitiveFilter
+        f = SensitiveFilter()
+        rec = _make_record("api_key=null in config")
+        before = rec.getMessage()
+        f.filter(rec)
+        assert rec.getMessage() == before
+
+    def test_does_not_match_plain_english_prose(self):
+        from ModuleFolders.Log.FileBackend import SensitiveFilter
+        f = SensitiveFilter()
+        rec = _make_record("the api_key field is required for authentication")
+        before = rec.getMessage()
+        f.filter(rec)
+        assert rec.getMessage() == before
+
     def test_filter_returns_true_to_keep_record(self):
         from ModuleFolders.Log.FileBackend import SensitiveFilter
         assert SensitiveFilter().filter(_make_record("x")) is True

@@ -1,4 +1,13 @@
-"""日志落盘：根 logger 上挂 RotatingFileHandler，并做敏感信息脱敏与 rich 标记剥离。"""
+"""日志落盘：根 logger 上挂 RotatingFileHandler，并做敏感信息脱敏与 rich 标记剥离。
+
+脱敏说明：覆盖两类来源——
+1. 已知前缀的主流 provider key：OpenAI / Anthropic / Google / Bearer / OAuth
+2. 上下文兜底：消息中出现 api_key / token / secret / authorization 等字段
+   后接 16+ 字符的值时整体脱敏
+
+无规范前缀且未带上下文字段的私有/自托管 provider key（如直接打印裸 token）
+仍可能漏。涉及敏感数据的代码应该自己 mask 后再调日志，不要依赖此处兜底。
+"""
 
 import logging
 import logging.handlers
@@ -28,6 +37,14 @@ _API_KEY_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"Bearer\s+[A-Za-z0-9._\-]{20,}", re.IGNORECASE),
 )
 
+# 上下文兜底：字段名 + 16+ 字符的不透明值。捕获组 (1) 是字段名，(2) 是值。
+_CONTEXT_KEY_PATTERN = re.compile(
+    r"(api[_\-]?key|apikey|secret|token|authorization)"
+    r"\s*[:=]\s*"
+    r"['\"]?([A-Za-z0-9._\-+/=]{16,})['\"]?",
+    re.IGNORECASE,
+)
+
 _NOISY_THIRD_PARTY = ("urllib3", "httpcore", "httpx", "PIL", "matplotlib", "asyncio")
 
 _INSTALLED = False
@@ -38,6 +55,7 @@ class SensitiveFilter(logging.Filter):
     def _redact(text: str) -> str:
         for pat in _API_KEY_PATTERNS:
             text = pat.sub(REDACTED, text)
+        text = _CONTEXT_KEY_PATTERN.sub(lambda m: f"{m.group(1)}={REDACTED}", text)
         return text
 
     def filter(self, record: logging.LogRecord) -> bool:
