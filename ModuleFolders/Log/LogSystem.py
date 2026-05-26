@@ -71,8 +71,8 @@ def _strip_markup(text: str) -> str:
 
 # === 脱敏 ===
 _API_KEY_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"sk-ant-[A-Za-z0-9_\-]{20,}"),
-    re.compile(r"sk-[A-Za-z0-9]{20,}"),
+    # 覆盖 OpenAI (sk-, sk-proj-, sk-svcacct-) + Anthropic (sk-ant-) 全部 sk- 系列
+    re.compile(r"sk-[A-Za-z0-9_\-]{20,}"),
     re.compile(r"AIza[0-9A-Za-z_\-]{30,}"),
     re.compile(r"ya29\.[0-9A-Za-z._\-]+"),
     re.compile(r"Bearer\s+[A-Za-z0-9._\-]{20,}", re.IGNORECASE),
