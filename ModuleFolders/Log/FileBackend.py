@@ -133,8 +133,9 @@ def init_file_logging() -> Path:
     handler.addFilter(SensitiveFilter())
     handler.set_name(HANDLER_NAME)
 
-    if root.level == logging.WARNING or root.level == logging.NOTSET:
-        root.setLevel(logging.INFO)
+    # 保证 root 至少能透出 INFO，但不踩用户已经设定的更细等级（DEBUG）
+    current = root.level if root.level != logging.NOTSET else logging.INFO
+    root.setLevel(min(current, logging.INFO))
     root.addHandler(handler)
 
     for noisy in _NOISY_THIRD_PARTY:

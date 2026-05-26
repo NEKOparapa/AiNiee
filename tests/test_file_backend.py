@@ -242,6 +242,23 @@ class TestInitFileLogging:
                     h.close()
             fb._INSTALLED = False
 
+    def test_raises_root_level_when_set_above_info(self, tmp_log_dir):
+        """S6: 若 root 被设到 ERROR/CRITICAL，init 必须降到 INFO 才有日志可见。"""
+        import importlib
+        import ModuleFolders.Log.FileBackend as fb
+        logging.getLogger().setLevel(logging.ERROR)
+        importlib.reload(fb)
+        fb.init_file_logging()
+        try:
+            assert logging.getLogger().level == logging.INFO
+        finally:
+            logging.getLogger().setLevel(logging.WARNING)
+            for h in list(logging.getLogger().handlers):
+                if getattr(h, "name", "") == fb.HANDLER_NAME:
+                    logging.getLogger().removeHandler(h)
+                    h.close()
+            fb._INSTALLED = False
+
     def test_writes_log_lines_to_file(self, tmp_log_dir):
         from ModuleFolders.Log.FileBackend import init_file_logging
         path = init_file_logging()
