@@ -50,8 +50,8 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.menu.addAction(self.polish_action)
 
         self.reset_menu = RoundMenu(parent=self)
-        self.reset_translation_action = Action(FIF.PLAY, self.tra("重置翻译"))
-        self.reset_polish_action = Action(FIF.ALBUM, self.tra("重置润色"))
+        self.reset_translation_action = Action(FIF.DELETE, self.tra("重置翻译"))
+        self.reset_polish_action = Action(FIF.DELETE, self.tra("重置润色"))
         self.reset_menu.addAction(self.reset_translation_action)
         self.reset_menu.addAction(self.reset_polish_action)
 
