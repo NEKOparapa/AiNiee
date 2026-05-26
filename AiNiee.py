@@ -50,6 +50,7 @@ from ModuleFolders.Infrastructure.Platform.PlatformPaths import (
     ui_font_family,
 )
 from ModuleFolders.Infrastructure.Platform.RuntimeSetup import migrate_config_if_needed, prepare_working_directory
+from ModuleFolders.Log.CrashHook import install_crash_hooks
 from ModuleFolders.Log.FileBackend import init_file_logging
 
 import multiprocessing
@@ -145,6 +146,7 @@ if __name__ == "__main__":
 
     # 初始化日志落盘（路径取自 user_log_dir()）
     log_path = init_file_logging()
+    install_crash_hooks()
     _log.info(f"Log file: {log_path}")
 
     try:
