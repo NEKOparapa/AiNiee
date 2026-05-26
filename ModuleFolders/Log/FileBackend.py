@@ -117,6 +117,12 @@ def init_file_logging() -> Path:
     root = logging.getLogger()
     for existing in root.handlers:
         if getattr(existing, "name", "") == HANDLER_NAME:
+            # Bootstrap 已经挂上同名 handler，复用文件描述符，只升级 formatter + filter
+            existing.setFormatter(
+                _PlainFormatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+            )
+            if not any(isinstance(f, SensitiveFilter) for f in existing.filters):
+                existing.addFilter(SensitiveFilter())
             _INSTALLED = True
             return log_path
 

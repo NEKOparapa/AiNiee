@@ -58,7 +58,12 @@ def install_crash_hooks() -> None:
     if _INSTALLED:
         return
     _ensure_std_streams()
-    _original_excepthook = sys.excepthook
+    # 若 sys.excepthook 是 Bootstrap.install 装的兜底 hook，不要链上去
+    # （它跟我们做同样的 CRITICAL 写盘，链上会双重落盘）
+    captured = sys.excepthook
+    if getattr(captured, "_is_bootstrap", False):
+        captured = sys.__excepthook__
+    _original_excepthook = captured
     sys.excepthook = _excepthook
     _original_thread_excepthook = threading.excepthook
     threading.excepthook = _thread_excepthook

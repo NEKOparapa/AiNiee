@@ -24,6 +24,10 @@
 #             赛博佛祖光耀照，程序运行永无忧。
 #             翻译之路顺畅通，字字珠玑无误漏。
 
+# 启动期日志兜底：必须在任何第三方 import 之前，覆盖 ImportError / Qt 初始化失败 / segfault
+from ModuleFolders.Log.Bootstrap import install as _install_log_bootstrap
+_install_log_bootstrap()
+
 def display_banner():
     print(" █████   ██  ███    ██  ██  ███████  ███████ ")
     print("██   ██  ██  ████   ██  ██  ██       ██      ")
