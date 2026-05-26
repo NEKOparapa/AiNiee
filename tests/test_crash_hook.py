@@ -33,6 +33,18 @@ class TestEnsureStdStreams:
         _ensure_std_streams()
         assert sys.stderr is sentinel
 
+    def test_replacement_does_not_accumulate_writes(self, monkeypatch):
+        """S3: 兜底 stream 不应是 StringIO（会无界增长），应是真 sink。"""
+        from ModuleFolders.Log.CrashHook import _ensure_std_streams
+        monkeypatch.setattr(sys, "stdout", None)
+        _ensure_std_streams()
+        assert not isinstance(sys.stdout, io.StringIO)
+        # write 大量内容不应该被某处缓冲；如果是 devnull，写完就丢
+        for _ in range(1000):
+            sys.stdout.write("x" * 1024)
+        sys.stdout.flush()
+        assert not hasattr(sys.stdout, "getvalue")
+
 
 class TestInstallCrashHooks:
     def test_replaces_sys_excepthook(self, clean_crash_hooks):

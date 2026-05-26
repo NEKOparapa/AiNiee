@@ -3,8 +3,8 @@
 install_crash_hooks() 应在 init_file_logging() 之后调用。
 """
 
-import io
 import logging
+import os
 import sys
 import threading
 
@@ -14,13 +14,19 @@ CRASH_LOGGER_NAME = "AiNiee.crash"
 _INSTALLED = False
 _original_excepthook = None
 _original_thread_excepthook = None
+_DEVNULL = None
 
 
 def _ensure_std_streams() -> None:
+    global _DEVNULL
+    if sys.stdout is not None and sys.stderr is not None:
+        return
+    if _DEVNULL is None:
+        _DEVNULL = open(os.devnull, "w")
     if sys.stdout is None:
-        sys.stdout = io.StringIO()
+        sys.stdout = _DEVNULL
     if sys.stderr is None:
-        sys.stderr = io.StringIO()
+        sys.stderr = _DEVNULL
 
 
 def _excepthook(exc_type, exc_value, exc_tb) -> None:
