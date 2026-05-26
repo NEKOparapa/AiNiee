@@ -8,6 +8,7 @@ from ModuleFolders.Config.FilePathConfig import (
     project_cache_root,
     resource_path,
     user_data_root,
+    user_log_dir,
 )
 from ModuleFolders.Infrastructure.Platform.PlatformPaths import is_macos
 
@@ -17,6 +18,7 @@ def ensure_user_dirs() -> None:
     cache_root().mkdir(parents=True, exist_ok=True)
     project_cache_root().mkdir(parents=True, exist_ok=True)
     downloads_dir().mkdir(parents=True, exist_ok=True)
+    user_log_dir().mkdir(parents=True, exist_ok=True)
 
 
 def prepare_working_directory():

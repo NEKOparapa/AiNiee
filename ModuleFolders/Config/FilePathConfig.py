@@ -122,6 +122,17 @@ def bundled_tiktoken_cache_dir() -> Path:
     return resource_path("Models", "tiktoken")
 
 
+# 用户日志目录。
+def user_log_dir() -> Path:
+    override = os.environ.get("AINIEE_LOG_DIR")
+    if override:
+        return Path(override).expanduser().resolve()
+
+    if _is_macos():
+        return Path.home() / "Library" / "Logs" / MACOS_APP_NAME
+    return writable_root() / "Logs"
+
+
 # 更新包下载目录。
 def downloads_dir() -> Path:
     override = os.environ.get("AINIEE_DOWNLOADS_DIR")
