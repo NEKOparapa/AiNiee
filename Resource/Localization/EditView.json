@@ -920,6 +920,12 @@
       "English": "Delete Selection",
       "日本語": "選択項目を削除"
     },
+    "移动到公共表": {
+      "简中": "移动到公共表",
+      "繁中": "移動到公共表",
+      "English": "Move to Public Table",
+      "日本語": "共有表に移動"
+    },
     "行数: {0}": {
       "简中": "行数: {0}",
       "繁中": "行數: {0}",
@@ -1016,6 +1022,12 @@
       "English": "Cannot save to the public table while analysis is running.",
       "日本語": "分析タスク実行中は共有表に保存できません。"
     },
+    "分析任务执行中，暂时不能移动到公共表。": {
+      "简中": "分析任务执行中，暂时不能移动到公共表。",
+      "繁中": "分析任務執行中，暫時不能移動到公共表。",
+      "English": "Cannot move to the public table while analysis is running.",
+      "日本語": "分析タスク実行中は共有表に移動できません。"
+    },
     "当前显示内容中没有可保存的条目。": {
       "简中": "当前显示内容中没有可保存的条目。",
       "繁中": "當前顯示內容中沒有可儲存的條目。",
@@ -1033,6 +1045,30 @@
       "繁中": "已儲存到公共表，新增 {0} 條內容。",
       "English": "Saved to the public table. Added {0} entries.",
       "日本語": "共有表に保存しました。{0} 件の内容を追加しました。"
+    },
+    "当前选中内容中没有可移动到公共表的条目。": {
+      "简中": "当前选中内容中没有可移动到公共表的条目。",
+      "繁中": "當前選中內容中沒有可移動到公共表的條目。",
+      "English": "The current selection has no entries that can be moved to the public table.",
+      "日本語": "現在の選択内容には共有表へ移動できる項目がありません。"
+    },
+    "确定要将当前选中的 {0} 条可移动内容移动到公共表吗？\n移动后这些内容将从提取结果中移除。": {
+      "简中": "确定要将当前选中的 {0} 条可移动内容移动到公共表吗？\n移动后这些内容将从提取结果中移除。",
+      "繁中": "確定要將當前選中的 {0} 條可移動內容移動到公共表嗎？\n移動後這些內容將從提取結果中移除。",
+      "English": "Move the currently selected {0} movable entries to the public table?\nAfter moving, these entries will be removed from the extraction results.",
+      "日本語": "現在選択中の移動可能な {0} 件を共有表に移動しますか？\n移動後、これらの内容は抽出結果から削除されます。"
+    },
+    "保存公共表失败，未移动选中内容。": {
+      "简中": "保存公共表失败，未移动选中内容。",
+      "繁中": "儲存公共表失敗，未移動選中內容。",
+      "English": "Failed to save the public table. The selected entries were not moved.",
+      "日本語": "共有表の保存に失敗しました。選択した内容は移動されませんでした。"
+    },
+    "已移动到公共表，新增 {0} 条，移除 {1} 条。": {
+      "简中": "已移动到公共表，新增 {0} 条，移除 {1} 条。",
+      "繁中": "已移動到公共表，新增 {0} 條，移除 {1} 條。",
+      "English": "Moved to the public table. Added {0} entries and removed {1} entries.",
+      "日本語": "共有表に移動しました。{0} 件を追加し、{1} 件を削除しました。"
     },
     "分析任务执行中，暂时不能清空当前显示内容。": {
       "简中": "分析任务执行中，暂时不能清空当前显示内容。",
