@@ -6,6 +6,7 @@
 """
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -35,14 +36,20 @@ def _resolve_iscc() -> Path:
     )
 
 
+_SEMVER_RE = re.compile(r"\d+\.\d+\.\d+(?:\.\d+)?")
+
+
+def _parse_version_string(raw: str) -> str:
+    """从带装饰的版本串里取出 Inno Setup 能吃的 X.Y.Z(.W) 形式。"""
+    match = _SEMVER_RE.search(raw)
+    return match.group(0) if match else "0.0.0"
+
+
 def _read_version() -> str:
     if not VERSION_FILE.exists():
         return "0.0.0"
     raw = json.loads(VERSION_FILE.read_text(encoding="utf-8")).get("version", "0.0.0")
-    for token in raw.split():
-        if any(c.isdigit() for c in token):
-            return token
-    return "0.0.0"
+    return _parse_version_string(raw)
 
 
 def main() -> int:
