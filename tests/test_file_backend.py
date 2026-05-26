@@ -195,6 +195,25 @@ class TestInitFileLogging:
         assert "sk-abc" not in content
         assert "***REDACTED***" in content
 
+    def test_redacts_keys_in_exception_traceback(self, tmp_log_dir):
+        """C1: 异常 message 里出现的 key 必须被脱敏，否则 LLM SDK 错误就是泄漏点。"""
+        from ModuleFolders.Log.FileBackend import init_file_logging
+        path = init_file_logging()
+        try:
+            raise RuntimeError(
+                "Authorization: Bearer sk-abcdefghijklmnopqrstuvwxyz1234567890"
+            )
+        except RuntimeError:
+            logging.getLogger("e2e.fb").error("request failed", exc_info=True)
+        for h in logging.getLogger().handlers:
+            h.flush()
+        content = path.read_text()
+        assert "sk-abc" not in content
+        assert "Bearer sk-" not in content
+        assert "***REDACTED***" in content
+        assert "RuntimeError" in content
+        assert "Traceback" in content
+
     def test_rich_markup_does_not_reach_file(self, tmp_log_dir):
         from ModuleFolders.Log.FileBackend import init_file_logging
         path = init_file_logging()

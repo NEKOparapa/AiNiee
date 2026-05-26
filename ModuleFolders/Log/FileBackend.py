@@ -32,17 +32,26 @@ _INSTALLED = False
 
 
 class SensitiveFilter(logging.Filter):
+    @staticmethod
+    def _redact(text: str) -> str:
+        for pat in _API_KEY_PATTERNS:
+            text = pat.sub(REDACTED, text)
+        return text
+
     def filter(self, record: logging.LogRecord) -> bool:
         try:
             msg = record.getMessage()
         except Exception:
             return True
-        redacted = msg
-        for pat in _API_KEY_PATTERNS:
-            redacted = pat.sub(REDACTED, redacted)
+        redacted = self._redact(msg)
         if redacted != msg:
             record.msg = redacted
             record.args = ()
+        if record.exc_info:
+            # 预格式化并脱敏 traceback，写入 record.exc_text。
+            # Formatter 见 exc_text 已存在就不会再调 formatException，避免重渲泄漏。
+            exc_text = logging.Formatter().formatException(record.exc_info)
+            record.exc_text = self._redact(exc_text)
         return True
 
 
