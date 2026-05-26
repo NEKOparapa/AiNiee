@@ -24,9 +24,9 @@
 #             赛博佛祖光耀照，程序运行永无忧。
 #             翻译之路顺畅通，字字珠玑无误漏。
 
-# 启动期日志兜底：必须在任何第三方 import 之前，覆盖 ImportError / Qt 初始化失败 / segfault
-from ModuleFolders.Log.Bootstrap import install as _install_log_bootstrap
-_install_log_bootstrap()
+# 日志系统：必须在任何第三方 import 之前装好，覆盖 ImportError / Qt 初始化失败 / segfault
+from ModuleFolders.Log.LogSystem import install as _install_log_system
+_log_path = _install_log_system()
 
 def display_banner():
     print(" █████   ██  ███    ██  ██  ███████  ███████ ")
@@ -55,8 +55,6 @@ from ModuleFolders.Infrastructure.Platform.PlatformPaths import (
 )
 from ModuleFolders.Infrastructure.Platform.RuntimeSetup import migrate_config_if_needed, prepare_working_directory
 from ModuleFolders.Infrastructure.Platform.SingleInstance import acquire_app_mutex
-from ModuleFolders.Log.CrashHook import install_crash_hooks
-from ModuleFolders.Log.FileBackend import init_file_logging
 
 import multiprocessing
 import warnings
@@ -149,11 +147,9 @@ if __name__ == "__main__":
     # 设置工作目录
     script_dir = prepare_runtime_environment()
 
-    # 初始化日志落盘（路径取自 user_log_dir()）
-    log_path = init_file_logging()
-    install_crash_hooks()
+    # 日志系统已在模块顶部装好；这里只做 mutex 与日志路径记录
     acquire_app_mutex()
-    _log.info(f"Log file: {log_path}")
+    _log.info(f"Log file: {_log_path}")
 
     try:
         initialize_tiktoken()
