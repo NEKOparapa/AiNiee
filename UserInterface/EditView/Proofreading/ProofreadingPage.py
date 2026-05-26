@@ -3,7 +3,7 @@ import threading
 import time
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QSplitter, QVBoxLayout, QWidget
 from qfluentwidgets import CardWidget, FluentIcon as FIF, MessageBox, PushButton, StrongBodyLabel, setFont
 
 from ModuleFolders.Base.Base import Base
@@ -23,6 +23,7 @@ from UserInterface.EditView.Proofreading.Search.SearchDialog import SearchDialog
 from UserInterface.EditView.Proofreading.Search.SearchResultPage import SearchResultPage
 from UserInterface.EditView.Proofreading.Table.TabInterface import TabInterface
 from UserInterface.EditView.Proofreading.TerminologyCheck.TerminologyCheckResultPage import TerminologyCheckResultPage
+from UserInterface.Widget.TerminologyMatchSettingsDialog import TerminologyMatchSettingsDialog
 from UserInterface.Widget.Toast import ToastMixin
 
 
@@ -104,7 +105,7 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.page_card.tab_bar.tabCloseRequested.connect(self.on_tab_close_requested)
         self.nav_card.search_button.clicked.connect(self._open_search_dialog)
         self.language_check_button.clicked.connect(self._open_language_check_dialog)
-        self.terminology_check_button.clicked.connect(self._start_terminology_check)
+        self.terminology_check_button.clicked.connect(self._open_terminology_check_dialog)
         self.rule_check_button.clicked.connect(self._open_rule_check_dialog)
         self.languageCheckFinished.connect(self._on_language_check_finished)
         self.terminologyCheckFinished.connect(self._on_terminology_check_finished)
@@ -215,8 +216,10 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         if dialog.exec():
             self.perform_rule_check(dialog.check_params)
 
-    def _start_terminology_check(self) -> None:
-        self.perform_terminology_check({})
+    def _open_terminology_check_dialog(self) -> None:
+        dialog = TerminologyMatchSettingsDialog(self.window(), start_check=True)
+        if dialog.exec():
+            self.perform_terminology_check(dialog.check_params)
 
     def perform_search(self, params: dict) -> None:
         query = params["query"]

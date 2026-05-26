@@ -9,7 +9,7 @@ from qfluentwidgets import StrongBodyLabel
 
 class SwitchButtonCard(CardWidget):
 
-    def __init__(self, title: str, description: str, init = None, checked_changed = None):
+    def __init__(self, title: str, description: str, init = None, checked_changed = None, action_widget = None):
         super().__init__(None)
 
         # 设置容器
@@ -30,6 +30,9 @@ class SwitchButtonCard(CardWidget):
 
         # 填充
         self.container.addStretch(1)
+
+        if action_widget is not None:
+            self.container.addWidget(action_widget)
 
         # 添加控件
         self.switch_button = SwitchButton()
