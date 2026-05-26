@@ -115,6 +115,31 @@ class TestCleanupOldLogs:
         _cleanup_old_logs(tmp_path, retention_days=30)
         assert other.exists()
 
+    def test_does_not_match_log_name_prefix(self, tmp_path):
+        """I1: 文件名以 'ainiee.log' 开头但不是真正的轮转日志，不能误删。"""
+        from ModuleFolders.Log.FileBackend import _cleanup_old_logs
+        not_a_log = tmp_path / "ainiee.log.bak.txt"
+        weird_name = tmp_path / "ainiee.logorama"
+        for f in (not_a_log, weird_name):
+            f.write_text("user data")
+            old_time = time.time() - 100 * 86400
+            os.utime(f, (old_time, old_time))
+        _cleanup_old_logs(tmp_path, retention_days=30)
+        assert not_a_log.exists()
+        assert weird_name.exists()
+
+    def test_removes_rotated_numbered_logs(self, tmp_path):
+        """正向回归：ainiee.log.1 / .5 这种真正的 RotatingFileHandler 产物必须被清。"""
+        from ModuleFolders.Log.FileBackend import _cleanup_old_logs, LOG_FILENAME
+        old_time = time.time() - 100 * 86400
+        for suffix in ("", ".1", ".5"):
+            f = tmp_path / f"{LOG_FILENAME}{suffix}"
+            f.write_text("x")
+            os.utime(f, (old_time, old_time))
+        _cleanup_old_logs(tmp_path, retention_days=30)
+        for suffix in ("", ".1", ".5"):
+            assert not (tmp_path / f"{LOG_FILENAME}{suffix}").exists()
+
     def test_silently_skips_missing_directory(self, tmp_path):
         from ModuleFolders.Log.FileBackend import _cleanup_old_logs
         missing = tmp_path / "does-not-exist"

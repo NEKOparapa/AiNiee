@@ -18,6 +18,8 @@ RETENTION_DAYS = 30
 HANDLER_NAME = "ainiee_file"
 REDACTED = "***REDACTED***"
 
+_LOG_FILE_RE = re.compile(r"^ainiee\.log(\.\d+)?$")
+
 _API_KEY_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"sk-ant-[A-Za-z0-9_\-]{20,}"),
     re.compile(r"sk-[A-Za-z0-9]{20,}"),
@@ -77,7 +79,9 @@ def _cleanup_old_logs(directory: Path, retention_days: int) -> None:
     if not directory.exists():
         return
     cutoff = time.time() - retention_days * 86400
-    for path in directory.glob(f"{LOG_FILENAME}*"):
+    for path in directory.iterdir():
+        if not _LOG_FILE_RE.match(path.name):
+            continue
         try:
             if path.is_file() and path.stat().st_mtime < cutoff:
                 path.unlink()
