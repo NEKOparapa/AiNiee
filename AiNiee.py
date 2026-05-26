@@ -34,6 +34,7 @@ def display_banner():
     print("                                        ")
 display_banner()
 
+import logging
 import os
 import sys
 
@@ -49,6 +50,7 @@ from ModuleFolders.Infrastructure.Platform.PlatformPaths import (
     ui_font_family,
 )
 from ModuleFolders.Infrastructure.Platform.RuntimeSetup import migrate_config_if_needed, prepare_working_directory
+from ModuleFolders.Log.FileBackend import init_file_logging
 
 import multiprocessing
 import warnings
@@ -56,6 +58,8 @@ import warnings
 import rapidjson as json
 from bs4 import MarkupResemblesLocatorWarning
 from rich import print
+
+_log = logging.getLogger("AiNiee.bootstrap")
 from PyQt5.QtGui import QFont, QIcon, QColor
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QSplashScreen
@@ -94,9 +98,11 @@ def load_version() -> str:
                 return version_data.get("version", default_version)
         except (json.JSONDecodeError, IOError) as e:
             print(f"[[red]ERROR[/]] 读取版本文件失败: {e}")
+            _log.error("读取版本文件失败", exc_info=e)
             return default_version
     else:
         print(f"[[yellow]WARNING[/]] 版本文件 {version_path} 未找到, 将使用默认版本号。")
+        _log.warning(f"版本文件 {version_path} 未找到, 将使用默认版本号")
         return default_version
 
 # 启动画面消息
@@ -137,11 +143,17 @@ if __name__ == "__main__":
     # 设置工作目录
     script_dir = prepare_runtime_environment()
 
+    # 初始化日志落盘（路径取自 user_log_dir()）
+    log_path = init_file_logging()
+    _log.info(f"Log file: {log_path}")
+
     try:
         initialize_tiktoken()
     except Exception as e:
         print(f"[ERROR] tiktoken 初始化失败: {e}")
+        _log.error("tiktoken 初始化失败", exc_info=e)
         print("[WARNING] Token 限制模式将不可用，请使用行数限制模式")
+        _log.warning("Token 限制模式将不可用，请使用行数限制模式")
 
     # 加载配置文件
     config = load_config()
@@ -169,6 +181,9 @@ if __name__ == "__main__":
     print(f"[[green]INFO[/]] Application Version: {app_version}") # 打印版本号
     print(f"[[green]INFO[/]] Current working directory is {script_dir}")
     print(f"[[green]INFO[/]] Starting AiNiee Application...")
+    _log.info(f"Application Version: {app_version}")
+    _log.info(f"Current working directory is {script_dir}")
+    _log.info("Starting AiNiee Application...")
 
     # 启动页面
     logo_path = str(resource_path("Logo", "Logo.png"))
