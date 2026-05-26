@@ -1,3 +1,4 @@
+import atexit
 import faulthandler
 import logging
 import logging.handlers
@@ -7,11 +8,12 @@ import sys
 import threading
 import time
 from pathlib import Path
+from typing import Optional
 
 from ModuleFolders.Config.FilePathConfig import user_log_dir
 
 
-__all__ = ("install", "SensitiveFilter")
+__all__ = ("install",)
 
 
 HANDLER_NAME = "ainiee_file"
@@ -23,15 +25,18 @@ BACKUP_COUNT = 5
 RETENTION_DAYS = 30
 REDACTED = "***REDACTED***"
 
-_NOISY_THIRD_PARTY = ("urllib3", "httpcore", "httpx", "PIL", "matplotlib", "asyncio")
+_NOISY_THIRD_PARTY = (
+    "urllib3", "httpcore", "httpx", "PIL", "matplotlib", "asyncio",
+    "openai", "anthropic", "google_genai", "google", "boto3", "botocore",
+)
 _LOG_FILE_RE = re.compile(r"^ainiee\.log(\.\d+)?$")
 _TAG_RE = re.compile(r"\[/?[a-zA-Z][^\]]*\]")
 
-_API_KEY_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"sk-[A-Za-z0-9_\-]{20,}"),
-    re.compile(r"AIza[0-9A-Za-z_\-]{30,}"),
-    re.compile(r"ya29\.[0-9A-Za-z._\-]+"),
-    re.compile(r"Bearer\s+[A-Za-z0-9._\-]{20,}", re.IGNORECASE),
+_API_KEY_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"sk-[A-Za-z0-9_\-]{20,}"), REDACTED),
+    (re.compile(r"AIza[0-9A-Za-z_\-]{30,}"), REDACTED),
+    (re.compile(r"ya29\.[0-9A-Za-z._\-]+"), REDACTED),
+    (re.compile(r"(Bearer\s+)[A-Za-z0-9._\-]{20,}", re.IGNORECASE), r"\1" + REDACTED),
 )
 
 _CONTEXT_KEY_PATTERN = re.compile(
@@ -40,6 +45,8 @@ _CONTEXT_KEY_PATTERN = re.compile(
     r"['\"]?([A-Za-z0-9._\-+/=]{16,})['\"]?",
     re.IGNORECASE,
 )
+
+_EXC_FORMATTER = logging.Formatter()
 
 
 def _cleanup_old_logs(directory: Path, retention_days: int) -> None:
@@ -65,8 +72,8 @@ def _strip_markup(text: str) -> str:
 
 
 def _redact(text: str) -> str:
-    for pat in _API_KEY_PATTERNS:
-        text = pat.sub(REDACTED, text)
+    for pat, repl in _API_KEY_PATTERNS:
+        text = pat.sub(repl, text)
     return _CONTEXT_KEY_PATTERN.sub(lambda m: f"{m.group(1)}={REDACTED}", text)
 
 
@@ -81,7 +88,7 @@ class SensitiveFilter(logging.Filter):
             record.msg = redacted
             record.args = ()
         if record.exc_info:
-            exc_text = logging.Formatter().formatException(record.exc_info)
+            exc_text = _EXC_FORMATTER.formatException(record.exc_info)
             record.exc_text = _redact(exc_text)
         return True
 
@@ -157,6 +164,16 @@ def _install_crash_hooks() -> None:
 _fault_log_handle = None
 
 
+def _close_fault_log() -> None:
+    global _fault_log_handle
+    if _fault_log_handle is not None:
+        try:
+            _fault_log_handle.close()
+        except Exception:
+            pass
+        _fault_log_handle = None
+
+
 def _enable_faulthandler(log_dir: Path) -> None:
     global _fault_log_handle
     if _fault_log_handle is not None:
@@ -164,20 +181,37 @@ def _enable_faulthandler(log_dir: Path) -> None:
     try:
         _fault_log_handle = open(log_dir / FAULT_LOG_FILENAME, "a", buffering=1)
         faulthandler.enable(file=_fault_log_handle)
+        atexit.register(_close_fault_log)
     except Exception:
         _fault_log_handle = None
+
+
+def _apply_env_level(root: logging.Logger, handler: Optional[logging.Handler]) -> None:
+    level_str = os.environ.get("AINIEE_LOG_LEVEL")
+    if not level_str:
+        return
+    level = getattr(logging, level_str.upper(), None)
+    if not isinstance(level, int):
+        return
+    root.setLevel(level)
+    if handler is not None:
+        handler.setLevel(level)
 
 
 _INSTALLED = False
 
 
-def install() -> Path:
+def install() -> Optional[Path]:
+    """挂载/确认日志系统。可重入。
+
+    返回日志文件路径；若用户日志目录不可写则返回 None。
+    """
     global _INSTALLED
     try:
         log_dir = user_log_dir()
         log_dir.mkdir(parents=True, exist_ok=True)
     except Exception:
-        return Path(os.devnull)
+        return None
     log_path = log_dir / LOG_FILENAME
 
     root = logging.getLogger()
@@ -216,6 +250,7 @@ def install() -> Path:
 
     _install_crash_hooks()
     _enable_faulthandler(log_dir)
+    _apply_env_level(root, handler)
 
     if not _INSTALLED:
         _cleanup_old_logs(log_dir, RETENTION_DAYS)

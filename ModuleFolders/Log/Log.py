@@ -12,7 +12,8 @@ class LogMixin:
         return "".join(traceback.format_exception(None, error, error.__traceback__)).strip()
 
     def _logger(self) -> logging.Logger:
-        return logging.getLogger(type(self).__module__)
+        cls = type(self)
+        return logging.getLogger(f"{cls.__module__}.{cls.__name__}")
 
     def print(self, msg: str) -> None:
         print(msg)
