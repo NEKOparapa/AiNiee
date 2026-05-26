@@ -17,6 +17,7 @@ from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.Table.TableHelper.TableHelper import TableHelper
 from ModuleFolders.Service.NameExtractor.NameExtractor import NameExtractor
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
+from UserInterface.Widget.TerminologyMatchSettingsDialog import TerminologyMatchSettingsDialog
 from UserInterface import AppFluentWindow
 from UserInterface.Native.FileDialogProvider import get_existing_directory, get_open_file_name, get_save_file_name
 
@@ -34,6 +35,8 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.default = {
             "prompt_dictionary_switch": False,
             "prompt_dictionary_data": [],
+            "prompt_dictionary_match_case_sensitive": False,
+            "prompt_dictionary_match_whole_word": False,
         }
 
         # 订阅术语表翻译完成事件
@@ -143,14 +146,22 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             config["prompt_dictionary_switch"] = checked
             self.save_config(config)
 
+        settings_button = TransparentToolButton(FluentIcon.SETTING, self)
+        settings_button.setToolTip(self.tra("原文匹配方式"))
+        settings_button.clicked.connect(self._open_match_settings_dialog)
+
         parent.addWidget(
             SwitchButtonCard(
                 self.tra("术语表"),
                 self.tra("通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n△触发机制: 文本含有原名或者原名的正则匹配生效  ◯填写示例:  ダリヤ  |  达莉雅  |  女性的名字"),
                 init=init,
                 checked_changed=checked_changed,
+                action_widget=settings_button,
             )
         )
+
+    def _open_match_settings_dialog(self) -> None:
+        TerminologyMatchSettingsDialog(self.window()).exec()
 
     # 添加主题布局内容
     def add_widget_body(self, parent: QLayout, config: dict, window: AppFluentWindow) -> None:

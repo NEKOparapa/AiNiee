@@ -1,5 +1,4 @@
 import os
-import re
 from typing import Any, Dict, List, Tuple
 
 from ModuleFolders.Base.Base import Base
@@ -25,7 +24,7 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
         if pre_check_result is not None:
             return pre_check_result, pre_check_data
 
-        issue_rows = self._check_terminology()
+        issue_rows = self._check_terminology(params or {})
 
         return CheckResult.SUCCESS_TERMINOLOGY_RESULT, {
             "issue_rows": issue_rows,
@@ -43,6 +42,21 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
 
         analysis_data = self.cache_manager.get_analysis_data() or {}
         return analysis_data if isinstance(analysis_data, dict) else {}
+
+    def _get_match_options(self, params: dict | None = None) -> Dict[str, bool]:
+        match_options = {
+            "case_sensitive": bool(self.config.get("prompt_dictionary_match_case_sensitive", False)),
+            "whole_word": bool(self.config.get("prompt_dictionary_match_whole_word", False)),
+        }
+        if not isinstance(params, dict):
+            return match_options
+
+        if "case_sensitive" in params:
+            match_options["case_sensitive"] = bool(params.get("case_sensitive"))
+        if "whole_word" in params:
+            match_options["whole_word"] = bool(params.get("whole_word"))
+
+        return match_options
 
     def _collect_merged_term_rows(self) -> List[Dict[str, str]]:
         merged_rows: List[Dict[str, str]] = []
@@ -81,8 +95,13 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
 
         return merged_rows
 
-    def _prepare_term_data(self, term_rows: List[Dict[str, str]]) -> List[Dict[str, Any]]:
+    def _prepare_term_data(
+        self,
+        term_rows: List[Dict[str, str]],
+        match_options: Dict[str, bool] | None = None,
+    ) -> List[Dict[str, Any]]:
         term_data = []
+        match_options = match_options or {}
 
         for term in term_rows:
             src_term = term.get("src")
@@ -91,9 +110,11 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
                 continue
 
             if term.get("row_type") == "glossary":
+                source_state = term.get(GlossaryHelper.VALID_KEY)
                 pattern = GlossaryHelper.build_search_pattern(
                     src_term,
-                    term.get(GlossaryHelper.VALID_KEY),
+                    source_state,
+                    **({} if source_state == GlossaryHelper.STATE_REGEX else match_options),
                 )
                 if pattern is None:
                     continue
@@ -106,31 +127,31 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
                 })
                 continue
 
-            try:
-                pattern = re.compile(src_term, re.IGNORECASE)
-                term_data.append({
-                    "type": "pattern",
-                    "pattern": pattern,
-                    "src": src_term,
-                    "dst": dst_term,
-                })
-            except re.error:
-                term_data.append({
-                    "type": "string",
-                    "src": src_term,
-                    "dst": dst_term,
-                })
+            pattern = GlossaryHelper.build_search_pattern(
+                src_term,
+                GlossaryHelper.STATE_VALID,
+                **match_options,
+            )
+            if pattern is None:
+                continue
+
+            term_data.append({
+                "type": "pattern",
+                "pattern": pattern,
+                "src": src_term,
+                "dst": dst_term,
+            })
 
         return term_data
 
     # --- 术语检查主流程 ---
-    def _check_terminology(self) -> List[Dict]:
+    def _check_terminology(self, params: dict | None = None) -> List[Dict]:
         self.info("开始执行术语检查...")
         errors_list = []
         check_attr = "translated_text"
 
         term_rows = self._collect_merged_term_rows()
-        term_data = self._prepare_term_data(term_rows)
+        term_data = self._prepare_term_data(term_rows, self._get_match_options(params))
 
         for file_path, file_obj in self.cache_manager.project.files.items():
             file_name = os.path.basename(file_path)
@@ -170,12 +191,8 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
         for term_item in prepared_data:
             match_found = False
 
-            if term_item["type"] == "pattern":
-                if term_item["pattern"].search(src):
-                    match_found = True
-            else:
-                if term_item["src"].lower() in src.lower():
-                    match_found = True
+            if term_item["pattern"].search(src):
+                match_found = True
 
             if match_found:
                 src_term = term_item["src"]

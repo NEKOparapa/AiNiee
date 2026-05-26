@@ -141,6 +141,8 @@ class PromptBuilderLocal(Base):
             getattr(config, "prompt_dictionary_data", []),
             input_dict,
             include_invalid=False,
+            case_sensitive=bool(getattr(config, "prompt_dictionary_match_case_sensitive", False)),
+            whole_word=bool(getattr(config, "prompt_dictionary_match_whole_word", False)),
         )
 
         if not result:

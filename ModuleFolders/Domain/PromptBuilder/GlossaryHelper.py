@@ -158,7 +158,13 @@ class GlossaryHelper:
         return normalized_rows
 
     @classmethod
-    def build_search_pattern(cls, source_text: str, source_state: str | None = None):
+    def build_search_pattern(
+        cls,
+        source_text: str,
+        source_state: str | None = None,
+        case_sensitive: bool = False,
+        whole_word: bool = False,
+    ):
         source_text = cls._normalize_text(source_text)
         if not source_text:
             return None
@@ -173,13 +179,30 @@ class GlossaryHelper:
             if source_state == cls.STATE_REGEX:
                 return cls._compile_source_text(source_text)
 
-            return regex.compile(regex.escape(source_text), regex.IGNORECASE)
+            pattern_text = regex.escape(source_text)
+            if whole_word:
+                pattern_text = rf"(?<!\w){pattern_text}(?!\w)"
+
+            flags = 0 if case_sensitive else regex.IGNORECASE
+            return regex.compile(pattern_text, flags)
         except regex.error:
             return None
 
     @classmethod
-    def source_matches_text(cls, source_text: str, full_text: str, source_state: str | None = None) -> bool:
-        pattern = cls.build_search_pattern(source_text, source_state)
+    def source_matches_text(
+        cls,
+        source_text: str,
+        full_text: str,
+        source_state: str | None = None,
+        case_sensitive: bool = False,
+        whole_word: bool = False,
+    ) -> bool:
+        pattern = cls.build_search_pattern(
+            source_text,
+            source_state,
+            case_sensitive=case_sensitive,
+            whole_word=whole_word,
+        )
         if pattern is None:
             return False
 
@@ -191,6 +214,8 @@ class GlossaryHelper:
         rows: list[dict] | None,
         input_dict: dict | None,
         include_invalid: bool = False,
+        case_sensitive: bool = False,
+        whole_word: bool = False,
     ) -> list[dict]:
         full_text = "\n".join(input_dict.values()) if isinstance(input_dict, dict) else ""
         if not full_text:
@@ -209,7 +234,13 @@ class GlossaryHelper:
                 if not include_invalid:
                     continue
 
-                if src.lower() in full_text.lower():
+                if cls.source_matches_text(
+                    src,
+                    full_text,
+                    cls.STATE_VALID,
+                    case_sensitive=case_sensitive,
+                    whole_word=whole_word,
+                ):
                     dedupe_key = (src, row.get("dst", ""))
                     if dedupe_key in seen_keys:
                         continue
@@ -218,7 +249,12 @@ class GlossaryHelper:
                     seen_keys.add(dedupe_key)
                 continue
 
-            pattern = cls.build_search_pattern(src, src_state)
+            pattern = cls.build_search_pattern(
+                src,
+                src_state,
+                case_sensitive=case_sensitive,
+                whole_word=whole_word,
+            )
             if pattern is None:
                 continue
 

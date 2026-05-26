@@ -20,8 +20,10 @@ from qfluentwidgets import (
     BodyLabel,
     CaptionLabel,
     CardWidget,
+    ComboBox,
     FluentIcon as FIF,
     MessageBox,
+    MessageBoxBase,
     PrimaryPushButton,
     ProgressBar,
     RoundMenu,
@@ -39,6 +41,49 @@ from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.Toast import ToastMixin
+
+
+class AnalysisCategorySelectDialog(MessageBoxBase):
+    def __init__(
+        self,
+        parent,
+        title: str,
+        description: str,
+        categories: list[str],
+        default_category: str,
+        translate,
+    ) -> None:
+        super().__init__(parent)
+        self._categories = list(categories)
+        self._display_categories = [translate(category) for category in self._categories]
+
+        self.yesButton.setText(translate("确认"))
+        self.cancelButton.setText(translate("取消"))
+        self.viewLayout.setContentsMargins(16, 16, 16, 16)
+        self.viewLayout.setSpacing(10)
+
+        self.title_label = StrongBodyLabel(title, self)
+        self.description_label = BodyLabel(description, self)
+        self.category_combo = ComboBox(self)
+        self.category_combo.addItems(self._display_categories)
+        self.category_combo.setFixedWidth(260)
+
+        if default_category in self._categories:
+            self.category_combo.setCurrentIndex(self._categories.index(default_category))
+
+        self.viewLayout.addWidget(self.title_label)
+        self.viewLayout.addWidget(self.description_label)
+        self.viewLayout.addWidget(self.category_combo)
+
+    def selected_category(self) -> str:
+        if not self._categories:
+            return ""
+
+        index = self.category_combo.currentIndex()
+        if index < 0 or index >= len(self._categories):
+            return self._categories[0]
+
+        return self._categories[index]
 
 
 class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
@@ -639,6 +684,33 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         )
         insert_action.setEnabled(not running)
         menu.addAction(insert_action)
+
+        move_action = Action(
+            FIF.SHARE,
+            self.tra("移动到公共表"),
+            triggered=lambda: self._move_selected_rows_to_public_table(view_name, table),
+        )
+        move_action.setEnabled(selected_row_count > 0 and not running)
+        menu.addAction(move_action)
+
+        target_view_name = self._get_cross_table_target_view(view_name)
+        if target_view_name:
+            cross_table_action_text = (
+                self.tra("移动到角色表")
+                if target_view_name == self.VIEW_CHARACTERS
+                else self.tra("移动到术语表")
+            )
+            cross_table_action = Action(
+                FIF.RIGHT_ARROW,
+                cross_table_action_text,
+                triggered=lambda: self._move_selected_rows_to_analysis_table(
+                    view_name,
+                    target_view_name,
+                    table,
+                ),
+            )
+            cross_table_action.setEnabled(selected_row_count > 0 and not running)
+            menu.addAction(cross_table_action)
 
         delete_action = Action(
             FIF.DELETE,
@@ -1262,8 +1334,66 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             return
 
         config = self.load_config()
+        added_count = self._append_public_table_rows(config, self.current_view, public_rows)
+
+        if added_count <= 0:
+            self.info_toast(self.tra("提示"), self.tra("当前内容均已存在于公共表中。"))
+            return
+
+        self.save_config(config)
+        self.success_toast(self.tra("完成"), self.tra("已保存到公共表，新增 {0} 条内容。").format(added_count))
+
+    def _build_public_table_rows(self, view_name: str, source_rows: list[dict] | None = None) -> list[dict]:
+        rows = []
+        target_rows = source_rows if source_rows is not None else self._get_visible_rows(view_name)
+        for row in target_rows:
+            public_row = self._build_public_table_row(view_name, row)
+            if public_row:
+                rows.append(public_row)
+        return rows
+
+    def _build_public_table_row(self, view_name: str, row: dict) -> dict | None:
+        if view_name == self.VIEW_CHARACTERS:
+            source = self._normalize_row_key(row.get("source"))
+            if not source:
+                return None
+            return {
+                "src": source,
+                "dst": str(row.get("recommended_translation", "") or "").strip(),
+                "info": self._join_public_info_parts(
+                    f"性别: {self._get_character_category_value(row.get('gender'), fallback=self.CHARACTER_OTHER)}",
+                    f"备注: {str(row.get('note', '') or '').strip()}",
+                ),
+            }
+
+        if view_name == self.VIEW_TERMS:
+            source = self._normalize_row_key(row.get("source"))
+            if not source:
+                return None
+            return {
+                "src": source,
+                "dst": str(row.get("recommended_translation", "") or "").strip(),
+                "info": self._join_public_info_parts(
+                    f"分类: {self._get_term_category_value(row.get('category_path'), fallback='Other')}",
+                    f"备注: {str(row.get('note', '') or '').strip()}",
+                ),
+            }
+
+        marker = self._normalize_row_key(row.get("marker"))
+        if not marker:
+            return None
+        return {
+            "markers": marker,
+            "info": self._join_public_info_parts(
+                f"分类: {self._get_non_translate_category_value(row.get('category'), fallback='Other')}",
+                f"备注: {str(row.get('note', '') or '').strip()}",
+            ),
+            "regex": "",
+        }
+
+    def _append_public_table_rows(self, config: dict, view_name: str, public_rows: list[dict]) -> int:
         added_count = 0
-        if self.current_view == self.VIEW_NON_TRANSLATE:
+        if view_name == self.VIEW_NON_TRANSLATE:
             current_rows = list(config.get("exclusion_list_data", []) or [])
             existing_keys = {
                 self._normalize_row_key(item.get("markers"))
@@ -1278,75 +1408,23 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 existing_keys.add(row_key)
                 added_count += 1
             config["exclusion_list_data"] = current_rows
-        else:
-            current_rows = list(config.get("prompt_dictionary_data", []) or [])
-            existing_keys = {
-                self._normalize_row_key(item.get("src"))
-                for item in current_rows
-                if self._normalize_row_key(item.get("src"))
-            }
-            for row in public_rows:
-                row_key = self._normalize_row_key(row.get("src"))
-                if not row_key or row_key in existing_keys:
-                    continue
-                current_rows.append(row)
-                existing_keys.add(row_key)
-                added_count += 1
-            config["prompt_dictionary_data"] = GlossaryHelper.normalize_rows(current_rows)
+            return added_count
 
-        if added_count <= 0:
-            self.info_toast(self.tra("提示"), self.tra("当前内容均已存在于公共表中。"))
-            return
-
-        self.save_config(config)
-        self.success_toast(self.tra("完成"), self.tra("已保存到公共表，新增 {0} 条内容。").format(added_count))
-
-    def _build_public_table_rows(self, view_name: str) -> list[dict]:
-        rows = []
-        for row in self._get_visible_rows(view_name):
-            if view_name == self.VIEW_CHARACTERS:
-                source = self._normalize_row_key(row.get("source"))
-                if not source:
-                    continue
-                rows.append(
-                    {
-                        "src": source,
-                        "dst": str(row.get("recommended_translation", "") or "").strip(),
-                        "info": self._join_public_info_parts(
-                            f"性别: {self._get_character_category_value(row.get('gender'), fallback=self.CHARACTER_OTHER)}",
-                            f"备注: {str(row.get('note', '') or '').strip()}",
-                        ),
-                    }
-                )
-            elif view_name == self.VIEW_TERMS:
-                source = self._normalize_row_key(row.get("source"))
-                if not source:
-                    continue
-                rows.append(
-                    {
-                        "src": source,
-                        "dst": str(row.get("recommended_translation", "") or "").strip(),
-                        "info": self._join_public_info_parts(
-                            f"分类: {self._get_term_category_value(row.get('category_path'), fallback='Other')}",
-                            f"备注: {str(row.get('note', '') or '').strip()}",
-                        ),
-                    }
-                )
-            else:
-                marker = self._normalize_row_key(row.get("marker"))
-                if not marker:
-                    continue
-                rows.append(
-                    {
-                        "markers": marker,
-                        "info": self._join_public_info_parts(
-                            f"分类: {self._get_non_translate_category_value(row.get('category'), fallback='Other')}",
-                            f"备注: {str(row.get('note', '') or '').strip()}",
-                        ),
-                        "regex": "",
-                    }
-                )
-        return rows
+        current_rows = list(config.get("prompt_dictionary_data", []) or [])
+        existing_keys = {
+            self._normalize_row_key(item.get("src"))
+            for item in current_rows
+            if self._normalize_row_key(item.get("src"))
+        }
+        for row in public_rows:
+            row_key = self._normalize_row_key(row.get("src"))
+            if not row_key or row_key in existing_keys:
+                continue
+            current_rows.append(row)
+            existing_keys.add(row_key)
+            added_count += 1
+        config["prompt_dictionary_data"] = GlossaryHelper.normalize_rows(current_rows)
+        return added_count
 
     def _join_public_info_parts(self, *parts: str) -> str:
         return "；".join(part for part in parts if str(part).strip())
@@ -1423,6 +1501,245 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             if row_key and row_key not in row_keys:
                 row_keys.append(row_key)
         return row_keys
+
+    def _get_cross_table_target_view(self, view_name: str) -> str | None:
+        if view_name == self.VIEW_CHARACTERS:
+            return self.VIEW_TERMS
+        if view_name == self.VIEW_TERMS:
+            return self.VIEW_CHARACTERS
+        return None
+
+    def _get_default_move_category(self, target_view_name: str) -> str:
+        if target_view_name == self.VIEW_CHARACTERS:
+            return self.CHARACTER_OTHER
+        if target_view_name == self.VIEW_TERMS:
+            return self.TERM_OTHER
+        return ""
+
+    def _get_move_category_options(self, target_view_name: str) -> list[str]:
+        options = list(self._get_category_options_for_view(target_view_name))
+        for row in self.analysis_data.get(self._get_analysis_key(target_view_name) or "", []) or []:
+            category = self._get_category_for_row(target_view_name, row)
+            if category and category not in options:
+                options.append(category)
+        return options
+
+    def _select_move_target_category(self, target_view_name: str) -> str | None:
+        categories = self._get_move_category_options(target_view_name)
+        if not categories:
+            return None
+
+        dialog = AnalysisCategorySelectDialog(
+            self.window(),
+            self.tra("选择目标分类"),
+            self.tra("请选择移动到{0}后的分类。").format(self._get_view_display_name(target_view_name)),
+            categories,
+            self._get_default_move_category(target_view_name),
+            self.tra,
+        )
+        if not dialog.exec():
+            return None
+
+        return dialog.selected_category()
+
+    def _find_row_index_by_key(self, view_name: str, rows: list[dict], row_key: str) -> int:
+        normalized_row_key = self._normalize_row_key(row_key)
+        if not normalized_row_key:
+            return -1
+
+        for index, row in enumerate(rows):
+            if self._get_row_key(view_name, row) == normalized_row_key:
+                return index
+        return -1
+
+    def _build_cross_table_note(self, source_view_name: str, row: dict) -> str:
+        note = str(row.get("note", "") or "").strip()
+        source_category = self._get_category_for_row(source_view_name, row)
+        if not source_category:
+            return note
+
+        return self._join_public_info_parts(note, f"{self.tra('原分类')}: {source_category}")
+
+    def _build_cross_table_row(
+        self,
+        source_view_name: str,
+        target_view_name: str,
+        row: dict,
+        target_category: str,
+    ) -> dict | None:
+        source = self._normalize_row_key(row.get("source"))
+        if not source:
+            return None
+
+        converted_row = {
+            "source": source,
+            "recommended_translation": str(row.get("recommended_translation", "") or "").strip(),
+            "note": self._build_cross_table_note(source_view_name, row),
+        }
+        if target_view_name == self.VIEW_CHARACTERS:
+            converted_row["gender"] = self._get_character_category_value(target_category, fallback=self.CHARACTER_OTHER)
+            return converted_row
+
+        if target_view_name == self.VIEW_TERMS:
+            converted_row["category_path"] = self._get_term_category_value(target_category, fallback=self.TERM_OTHER)
+            return converted_row
+
+        return None
+
+    def _move_selected_rows_to_analysis_table(
+        self,
+        source_view_name: str,
+        target_view_name: str,
+        table: TableWidget,
+    ) -> None:
+        if self._is_analysis_running():
+            self.warning_toast(self.tra("提示"), self.tra("分析任务执行中，暂时不能移动到其他表。"))
+            return
+        if not self.cache_manager or not self.cache_manager.project:
+            self.warning_toast(self.tra("提示"), self.tra("当前没有已加载的项目。"))
+            return
+
+        row_keys = self._get_selected_row_keys(table)
+        if not row_keys:
+            self.info_toast(self.tra("提示"), self.tra("当前没有选中的内容。"))
+            return
+
+        movable_rows = []
+        movable_row_key_set = set()
+        for row_key in row_keys:
+            row = self._find_row_by_key(source_view_name, row_key)
+            if not row or not self._normalize_row_key(row.get("source")):
+                continue
+
+            current_row_key = self._get_row_key(source_view_name, row)
+            if current_row_key and current_row_key not in movable_row_key_set:
+                movable_row_key_set.add(current_row_key)
+                movable_rows.append((current_row_key, row))
+
+        if not movable_rows:
+            self.info_toast(
+                self.tra("提示"),
+                self.tra("当前选中内容中没有可移动到{0}的条目。").format(
+                    self._get_view_display_name(target_view_name)
+                ),
+            )
+            return
+
+        target_category = self._select_move_target_category(target_view_name)
+        if target_category is None:
+            return
+
+        target_key = self._get_analysis_key(target_view_name)
+        if not target_key:
+            return
+
+        target_rows = list(self.analysis_data.get(target_key, []) or [])
+        moved_row_keys = []
+        overwritten_count = 0
+        for row_key, row in movable_rows:
+            converted_row = self._build_cross_table_row(
+                source_view_name,
+                target_view_name,
+                row,
+                target_category,
+            )
+            if not converted_row:
+                continue
+
+            target_row_key = self._get_row_key(target_view_name, converted_row)
+            target_index = self._find_row_index_by_key(target_view_name, target_rows, target_row_key)
+            if target_index >= 0:
+                target_rows[target_index] = converted_row
+                overwritten_count += 1
+            else:
+                target_rows.append(converted_row)
+
+            moved_row_keys.append(row_key)
+
+        if not moved_row_keys:
+            self.info_toast(
+                self.tra("提示"),
+                self.tra("当前选中内容中没有可移动到{0}的条目。").format(
+                    self._get_view_display_name(target_view_name)
+                ),
+            )
+            return
+
+        self.analysis_data[target_key] = target_rows
+        deleted_count = self._delete_rows(source_view_name, moved_row_keys)
+        if deleted_count:
+            self.success_toast(
+                self.tra("完成"),
+                self.tra("已移动 {0} 条到{1}，覆盖 {2} 条。").format(
+                    deleted_count,
+                    self._get_view_display_name(target_view_name),
+                    overwritten_count,
+                ),
+            )
+
+    def _move_selected_rows_to_public_table(self, view_name: str, table: TableWidget) -> None:
+        if self._is_analysis_running():
+            self.warning_toast(self.tra("提示"), self.tra("分析任务执行中，暂时不能移动到公共表。"))
+            return
+        if not self.cache_manager or not self.cache_manager.project:
+            self.warning_toast(self.tra("提示"), self.tra("当前没有已加载的项目。"))
+            return
+
+        row_keys = self._get_selected_row_keys(table)
+        if not row_keys:
+            self.info_toast(self.tra("提示"), self.tra("当前没有选中的内容。"))
+            return
+
+        movable_row_keys = []
+        public_rows = []
+        for row_key in row_keys:
+            row = self._find_row_by_key(view_name, row_key)
+            if not row:
+                continue
+
+            public_row = self._build_public_table_row(view_name, row)
+            if not public_row:
+                continue
+
+            current_row_key = self._get_row_key(view_name, row)
+            if current_row_key and current_row_key not in movable_row_keys:
+                movable_row_keys.append(current_row_key)
+                public_rows.append(public_row)
+
+        if not movable_row_keys:
+            self.info_toast(self.tra("提示"), self.tra("当前选中内容中没有可移动到公共表的条目。"))
+            return
+
+        message_box = MessageBox(
+            self.tra("确认"),
+            self.tra("确定要将当前选中的 {0} 条可移动内容移动到公共表吗？\n移动后这些内容将从提取结果中移除。").format(
+                len(movable_row_keys)
+            ),
+            self.window(),
+        )
+        message_box.yesButton.setText(self.tra("确认"))
+        message_box.cancelButton.setText(self.tra("取消"))
+        if not message_box.exec():
+            return
+
+        config = self.load_config()
+        added_count = self._append_public_table_rows(config, view_name, public_rows)
+        if added_count > 0:
+            try:
+                self.save_config(config)
+            except Exception as error:
+                self.error_toast(
+                    self.tra("失败"),
+                    f"{self.tra('保存公共表失败，未移动选中内容。')}\n{error}",
+                )
+                return
+
+        deleted_count = self._delete_rows(view_name, movable_row_keys)
+        if deleted_count:
+            self.success_toast(
+                self.tra("完成"),
+                self.tra("已移动到公共表，新增 {0} 条，移除 {1} 条。").format(added_count, deleted_count),
+            )
 
     def _delete_selected_rows(self, view_name: str, table: TableWidget) -> None:
         if self._is_analysis_running():

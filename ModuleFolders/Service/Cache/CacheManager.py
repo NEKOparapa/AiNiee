@@ -523,6 +523,40 @@ class CacheManager(ConfigMixin, LogMixin, Base):
                 return True
         return has_translated and has_untranslated
 
+    def reset_project_status(self, task_mode: int) -> int:
+        """批量回退项目翻译/润色状态，并保存缓存。"""
+        changed_count = self._reset_project_status_in_memory(task_mode)
+        if changed_count > 0:
+            self.save_to_file()
+        return changed_count
+
+    def _reset_project_status_in_memory(self, task_mode: int) -> int:
+        if not self.project:
+            return 0
+
+        changed_count = 0
+        with self.file_lock:
+            for file in self.project.files.values():
+                for item in file.items:
+                    with item.atomic_scope():
+                        if task_mode == TaskType.TRANSLATION:
+                            if item.translation_status not in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
+                                continue
+                            item.translation_status = TranslationStatus.UNTRANSLATED
+                        elif task_mode == TaskType.POLISH:
+                            if item.translation_status != TranslationStatus.POLISHED:
+                                continue
+                            item.translation_status = TranslationStatus.TRANSLATED
+                        else:
+                            return changed_count
+
+                        changed_count += 1
+
+            if changed_count > 0:
+                self.project.stats_data = CacheProjectStatistics()
+
+        return changed_count
+
     # 任务分片生成
     def generate_previous_chunks(
         self,

@@ -33,8 +33,10 @@ class TransWriter(BaseTranslatedWriter):
                 continue
             
             category_data = trans_content["project"]["files"][file_category]
-            data_list = category_data["data"]
-            tags_list = category_data.get("tags") # 如果 "tags" 不存在，返回 None
+            data_list = category_data.get("data")
+            if not isinstance(data_list, list):
+                print(f"[警告] 文件类别 '{file_category}' 的 data 字段无效或不存在，跳过该项目。")
+                continue
 
             # 检查 data_index 是否为有效整数且在 data_list 的范围内
             if not isinstance(data_index, int) or not (0 <= data_index < len(data_list)):
@@ -49,6 +51,12 @@ class TransWriter(BaseTranslatedWriter):
                 
                 continue # 跳过当前循环，处理下一个 item
 
+            row = data_list[data_index]
+            if not isinstance(row, list):
+                print(f"[警告] 文件类别 '{file_category}' 索引 {data_index} 处的数据不是列表，跳过该项目。")
+                continue
+
+            tags_list = category_data.get("tags") # 如果 "tags" 不存在，返回 None
             # 补充或者创建一样长度的tags列表，与文本列表长度一致
             tags_list = self.align_lists(data_list, tags_list)
             # 将更新后的 tags_list 写回 category_data，以防 align_lists 创建了新的列表
@@ -60,12 +68,12 @@ class TransWriter(BaseTranslatedWriter):
                 name, new_translation = self.extract_strings(name, new_translation)
 
             # 仅当翻译实际改变时才写入，译文文本在第二个元素
-            if len(data_list[data_index]) > 1:  # 检查长度是否至少为2,保证有译文位置
-                if data_list[data_index][1] != new_translation:
-                    data_list[data_index][1] = new_translation
+            if len(row) > 1:  # 检查长度是否至少为2,保证有译文位置
+                if row[1] != new_translation:
+                    row[1] = new_translation
             else:
                 # 处理列表只有一个元素或没有元素的情况
-                data_list[data_index].append(new_translation)
+                row.append(new_translation)
 
             # 写回颜色标签
             tags_list[data_index] = tags
