@@ -1,10 +1,3 @@
-"""调用 Inno Setup Compiler 打包 AiNiee Windows 安装程序。
-
-前置条件：
-  1. dist\\AiNiee\\ 已由 Tools/pyinstall.py 生成
-  2. Inno Setup 6 已安装（CI: choco install innosetup -y）
-"""
-
 import json
 import re
 import shutil
@@ -23,6 +16,8 @@ ISCC_CANDIDATES = (
     Path(r"C:\Program Files\Inno Setup 6\ISCC.exe"),
 )
 
+_SEMVER_RE = re.compile(r"\d+\.\d+\.\d+(?:\.\d+)?")
+
 
 def _resolve_iscc() -> Path:
     found = shutil.which("ISCC.exe") or shutil.which("ISCC")
@@ -36,11 +31,7 @@ def _resolve_iscc() -> Path:
     )
 
 
-_SEMVER_RE = re.compile(r"\d+\.\d+\.\d+(?:\.\d+)?")
-
-
 def _parse_version_string(raw: str) -> str:
-    """从带装饰的版本串里取出 Inno Setup 能吃的 X.Y.Z(.W) 形式。"""
     match = _SEMVER_RE.search(raw)
     return match.group(0) if match else "0.0.0"
 

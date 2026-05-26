@@ -1,16 +1,3 @@
-"""统一日志系统。
-
-单点入口 install()，AiNiee.py 顶最早期调用一次即可：
-- 在用户日志目录挂 RotatingFileHandler（5MB×5，启动时清理 30 天以上旧文件）
-- rich 标记剥离（rich 缺失时回落到正则）
-- 常见 API key 形态 + 上下文兜底脱敏（同时覆盖 record.msg 与 exc_info）
-- sys.excepthook + threading.excepthook 落盘未捕获异常
-- faulthandler 写单独文件抓 C 层崩溃
-- stdout/stderr 为 None 时回填 devnull（PyInstaller --windowed 兜底）
-
-仅依赖 stdlib + 可选 rich；任何失败 swallow，不阻碍启动。
-"""
-
 import faulthandler
 import logging
 import logging.handlers
@@ -37,10 +24,22 @@ RETENTION_DAYS = 30
 REDACTED = "***REDACTED***"
 
 _NOISY_THIRD_PARTY = ("urllib3", "httpcore", "httpx", "PIL", "matplotlib", "asyncio")
-
-
-# === 旧日志清理 ===
 _LOG_FILE_RE = re.compile(r"^ainiee\.log(\.\d+)?$")
+_TAG_RE = re.compile(r"\[/?[a-zA-Z][^\]]*\]")
+
+_API_KEY_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"sk-[A-Za-z0-9_\-]{20,}"),
+    re.compile(r"AIza[0-9A-Za-z_\-]{30,}"),
+    re.compile(r"ya29\.[0-9A-Za-z._\-]+"),
+    re.compile(r"Bearer\s+[A-Za-z0-9._\-]{20,}", re.IGNORECASE),
+)
+
+_CONTEXT_KEY_PATTERN = re.compile(
+    r"(api[_\-]?key|apikey|secret|token|authorization)"
+    r"\s*[:=]\s*"
+    r"['\"]?([A-Za-z0-9._\-+/=]{16,})['\"]?",
+    re.IGNORECASE,
+)
 
 
 def _cleanup_old_logs(directory: Path, retention_days: int) -> None:
@@ -57,33 +56,12 @@ def _cleanup_old_logs(directory: Path, retention_days: int) -> None:
             pass
 
 
-# === rich 标记剥离（rich 可选） ===
-_TAG_RE = re.compile(r"\[/?[a-zA-Z][^\]]*\]")
-
-
 def _strip_markup(text: str) -> str:
     try:
         from rich.text import Text
         return Text.from_markup(text).plain
     except Exception:
         return _TAG_RE.sub("", text).replace("[[", "[")
-
-
-# === 脱敏 ===
-_API_KEY_PATTERNS: tuple[re.Pattern[str], ...] = (
-    # 覆盖 OpenAI (sk-, sk-proj-, sk-svcacct-) + Anthropic (sk-ant-) 全部 sk- 系列
-    re.compile(r"sk-[A-Za-z0-9_\-]{20,}"),
-    re.compile(r"AIza[0-9A-Za-z_\-]{30,}"),
-    re.compile(r"ya29\.[0-9A-Za-z._\-]+"),
-    re.compile(r"Bearer\s+[A-Za-z0-9._\-]{20,}", re.IGNORECASE),
-)
-
-_CONTEXT_KEY_PATTERN = re.compile(
-    r"(api[_\-]?key|apikey|secret|token|authorization)"
-    r"\s*[:=]\s*"
-    r"['\"]?([A-Za-z0-9._\-+/=]{16,})['\"]?",
-    re.IGNORECASE,
-)
 
 
 def _redact(text: str) -> str:
@@ -122,7 +100,6 @@ class _PlainFormatter(logging.Formatter):
             record.args = original_args
 
 
-# === 崩溃捕获 ===
 _DEVNULL = None
 
 
@@ -177,7 +154,6 @@ def _install_crash_hooks() -> None:
     threading.excepthook = _thread_excepthook
 
 
-# === faulthandler ===
 _fault_log_handle = None
 
 
@@ -192,12 +168,10 @@ def _enable_faulthandler(log_dir: Path) -> None:
         _fault_log_handle = None
 
 
-# === 单点入口 ===
 _INSTALLED = False
 
 
 def install() -> Path:
-    """挂载/确认日志系统。可重入；失败 swallow。返回日志文件路径。"""
     global _INSTALLED
     try:
         log_dir = user_log_dir()

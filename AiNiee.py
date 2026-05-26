@@ -24,7 +24,6 @@
 #             赛博佛祖光耀照，程序运行永无忧。
 #             翻译之路顺畅通，字字珠玑无误漏。
 
-# 日志系统：必须在任何第三方 import 之前装好，覆盖 ImportError / Qt 初始化失败 / segfault
 from ModuleFolders.Log.LogSystem import install as _install_log_system
 _log_path = _install_log_system()
 
@@ -147,7 +146,6 @@ if __name__ == "__main__":
     # 设置工作目录
     script_dir = prepare_runtime_environment()
 
-    # 日志系统已在模块顶部装好；这里只做 mutex 与日志路径记录
     acquire_app_mutex()
     _log.info(f"Log file: {_log_path}")
 

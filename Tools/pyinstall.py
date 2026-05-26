@@ -5,7 +5,7 @@ cmd = [
     "./AiNiee.py",
     "--icon=./Resource/Logo/Avatar.png",  # FILE.ico: apply the icon to a Windows executable.
     "--clean",  # Clean PyInstaller cache and remove temporary files before building.
-    "--windowed",  # 隐藏外置控制台窗口，崩溃错误改由 FileBackend 写入用户日志目录
+    "--windowed",  # Hide console window on Windows; logs go to user_log_dir.
     #"--onefile",  # Create a one-file bundled executable.
     "--noconfirm",  # Replace output directory (default: SPECPATH/dist/SPECNAME) without asking for confirmation
     "--hidden-import=babeldoc",

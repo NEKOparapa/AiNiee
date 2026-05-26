@@ -1,7 +1,4 @@
-; Inno Setup 脚本：AiNiee Windows 安装包
-; 编译：iscc ainiee.iss [/DMyAppVersion=7.2.3]
-; 前置：dist\AiNiee\ 已由 Tools/pyinstall.py 生成
-; 安装至 %LOCALAPPDATA%\Programs\AiNiee，无需管理员权限
+; 编译: iscc ainiee.iss /DMyAppVersion=X.Y.Z
 
 #define MyAppName "AiNiee"
 #ifndef MyAppVersion
