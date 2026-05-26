@@ -5,7 +5,9 @@ import subprocess
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
 
@@ -19,6 +21,7 @@ from qfluentwidgets import setThemeColor
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.FilePathConfig import user_log_dir
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.Widget.EmptyCard import EmptyCard
@@ -75,6 +78,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self.add_widget_interface_language_setting(self.vbox, config)
         self.add_widget_auto_check_update(self.vbox, config)
         self.add_widget_check_update(self.vbox, config, window)
+        self.add_widget_open_log_dir(self.vbox, config)
         self.add_widget_scale_factor(self.vbox, config)
         self.add_widget_accent_color(self.vbox, config)
         self.add_widget_exclude_rule(self.vbox, config)
@@ -335,6 +339,28 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             EmptyCard(
                 self.tra("检查更新"),
                 self.tra("点击按钮手动检查是否有新版本可用"),
+                init=init,
+            )
+        )
+
+    # 打开日志目录
+    def add_widget_open_log_dir(self, parent, config) -> None:
+        def on_clicked() -> None:
+            log_dir = user_log_dir()
+            log_dir.mkdir(parents=True, exist_ok=True)
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(log_dir)))
+
+        def init(widget) -> None:
+            open_button = PushButton(self.tra("打开日志目录"), self)
+            open_button.setIcon(FluentIcon.FOLDER)
+            open_button.setContentsMargins(4, 0, 4, 0)
+            open_button.clicked.connect(on_clicked)
+            widget.add_widget(open_button)
+
+        parent.addWidget(
+            EmptyCard(
+                self.tra("打开日志目录"),
+                self.tra("点击按钮打开日志文件夹，用于排查问题或提交反馈"),
                 init=init,
             )
         )
