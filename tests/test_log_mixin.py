@@ -120,3 +120,18 @@ class TestLoggerNaming:
             pass
 
         assert Demo()._logger().name == Demo.__module__
+
+
+class TestPublicSurface:
+    def test_star_import_only_exposes_log_mixin(self):
+        """S7: 模块顶部 `from rich import print` 会 shadow builtin；
+        通过 __all__ 限定 star import 不污染调用方"""
+        import ModuleFolders.Log.Log as mod
+        assert hasattr(mod, "__all__")
+        assert mod.__all__ == ("LogMixin",) or mod.__all__ == ["LogMixin"]
+        # 模拟 from ... import *
+        exported = {name: getattr(mod, name) for name in mod.__all__}
+        assert "print" not in exported
+        assert "traceback" not in exported
+        assert "logging" not in exported
+        assert "LogMixin" in exported

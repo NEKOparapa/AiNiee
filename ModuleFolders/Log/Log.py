@@ -3,6 +3,8 @@ import traceback
 
 from rich import print
 
+__all__ = ("LogMixin",)
+
 
 class LogMixin:
     @staticmethod
