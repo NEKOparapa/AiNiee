@@ -25,6 +25,11 @@ jobs:
         run: |
           choco install upx -y
 
+      - name: Install Inno Setup
+        shell: cmd
+        run: |
+          choco install innosetup -y --no-progress
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -56,6 +61,15 @@ jobs:
         with:
           name: AiNiee-Beta-Windows
           path: AiNiee-Beta.zip
+
+      - name: Build Windows installer
+        run: python .\Tools\build_installer_windows.py
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: AiNiee-Setup-Windows
+          path: AiNiee-Setup-*.exe
 
   build-macos:
     name: Build macOS (${{ matrix.arch }})
