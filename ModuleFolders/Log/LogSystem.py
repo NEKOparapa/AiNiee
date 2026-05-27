@@ -142,6 +142,9 @@ class _GUIHandler(logging.Handler):
         super().__init__()
         self._subscribers: list = []
         self._replay: deque = deque(maxlen=_REPLAY_BUFFER_SIZE)
+        # 防递归 dispatch：cb 内若再调 logging.* 会触发同一 handler 的 emit，
+        # 不加守卫会无限递归直到 RecursionError
+        self._dispatching = threading.local()
 
     def subscribe(self, cb) -> None:
         # 锁内：原子地决定回放与挂订阅，避免 emit 在两者之间塞入 record 而新 cb 漏收
@@ -170,12 +173,20 @@ class _GUIHandler(logging.Handler):
             level = record.levelname
             with self.lock:
                 self._replay.append((line, level))
+                # 同一线程已在 dispatch 里：只进 replay 不再分发，避免 cb 内
+                # 调 logging.* 触发的无限递归
+                if getattr(self._dispatching, "depth", 0) > 0:
+                    return
                 subscribers = list(self._subscribers)
-            for cb in subscribers:
-                try:
-                    cb(line, level)
-                except Exception:
-                    pass
+            self._dispatching.depth = getattr(self._dispatching, "depth", 0) + 1
+            try:
+                for cb in subscribers:
+                    try:
+                        cb(line, level)
+                    except Exception:
+                        pass
+            finally:
+                self._dispatching.depth -= 1
         except Exception:
             self.handleError(record)
 
@@ -211,7 +222,11 @@ class _BroadcastStream:
                 if line:
                     lines_to_log.append(line)
         for line in lines_to_log:
-            self._logger.log(self._level, line)
+            # 终结期 handler 可能已 tear down，吞掉避免阻塞写路径
+            try:
+                self._logger.log(self._level, line)
+            except Exception:
+                pass
         return len(text)
 
     def flush(self):
@@ -229,7 +244,11 @@ class _BroadcastStream:
                 pending = self._buffer
                 self._buffer = ""
         if pending:
-            self._logger.log(self._level, pending)
+            # atexit / Python 终结期 handler 可能已被关闭，吞掉避免污染退出流程
+            try:
+                self._logger.log(self._level, pending)
+            except Exception:
+                pass
 
     def isatty(self):
         try:
