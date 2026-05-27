@@ -380,6 +380,9 @@ def install() -> Optional[Path]:
     if not isinstance(sys.stderr, _BroadcastStream):
         sys.stderr = _BroadcastStream(sys.stderr, "AiNiee.stderr", logging.WARNING)
 
+    # warnings.warn 走 py.warnings logger 而非 stderr，分类更清楚也便于按级别过滤
+    logging.captureWarnings(True)
+
     if not _INSTALLED:
         _cleanup_old_logs(log_dir, RETENTION_DAYS)
         _INSTALLED = True
