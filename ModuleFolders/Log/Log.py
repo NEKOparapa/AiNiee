@@ -11,11 +11,16 @@ __all__ = ("LogMixin",)
 
 def _rich_print(*args, **kwargs):
     """rich.print 包裹：进 print 前 depth+1，退出 -1。_BroadcastStream 看 depth>0 跳 logger.log。
-    用计数器而非布尔，正确处理嵌套 rich.print 场景（避免内层 finally 提早清零外层标记）。"""
+    用计数器而非布尔，正确处理嵌套 rich.print 场景（避免内层 finally 提早清零外层标记）。
+    rich.print 抛异常（终端 detach、format 出错 等）也吞掉，保证后续 self._logger().xxx
+    仍能跑到——否则刚好在出问题时 file/GUI 日志一起丢。"""
     flag = _log_system._in_log_mixin
     flag.depth = getattr(flag, "depth", 0) + 1
     try:
-        print(*args, **kwargs)
+        try:
+            print(*args, **kwargs)
+        except Exception:
+            pass
     finally:
         flag.depth -= 1
 
