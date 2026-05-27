@@ -142,7 +142,7 @@ jobs:
       - build-macos
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.AINIEE }}
 
     steps:
       - name: Checkout repository
