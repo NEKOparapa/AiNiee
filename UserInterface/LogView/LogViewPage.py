@@ -1,10 +1,10 @@
 from collections import deque
 
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QTextCursor
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit
+from PyQt5.QtGui import QColor, QTextCursor, QTextDocument
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit
 
-from qfluentwidgets import isDarkTheme, PushButton, FluentIcon
+from qfluentwidgets import isDarkTheme, PushButton, FluentIcon, ComboBox, LineEdit
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -27,6 +27,9 @@ _LIGHT_COLORS = {
     "WARNING": "#996600",
 }
 
+_FILTER_LEVELS = ("ALL", "INFO", "WARNING", "ERROR", "CRITICAL")
+_HIGHLIGHT_BG = QColor("#f1c40f")
+
 
 class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
     line_received = pyqtSignal(str, str)
@@ -37,10 +40,31 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
         self._buffer: deque = deque(maxlen=_MAX_LINES)
         self._auto_scroll = True
+        self._filter_level = "ALL"
+        self._search_text = ""
 
         self.container = QVBoxLayout(self)
-        self.container.setContentsMargins(0, 0, 0, 0)
+        self.container.setContentsMargins(8, 8, 8, 8)
+        self.container.setSpacing(6)
 
+        # 顶部 toolbar：等级过滤 + 搜索
+        toolbar = QHBoxLayout()
+        toolbar.setSpacing(8)
+        self.level_combo = ComboBox(self)
+        for lv in _FILTER_LEVELS:
+            self.level_combo.addItem(lv)
+        self.level_combo.currentTextChanged.connect(self._on_filter_changed)
+        toolbar.addWidget(self.level_combo)
+
+        self.search_edit = LineEdit(self)
+        self.search_edit.setPlaceholderText("搜索...")
+        self.search_edit.setClearButtonEnabled(True)
+        self.search_edit.textChanged.connect(self._on_search_changed)
+        toolbar.addWidget(self.search_edit, stretch=1)
+
+        self.container.addLayout(toolbar)
+
+        # 主体：等宽只读 QTextEdit
         self.text_edit = QTextEdit(self)
         self.text_edit.setReadOnly(True)
         font = self.text_edit.font()
@@ -48,7 +72,7 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self.text_edit.setFont(font)
         self.container.addWidget(self.text_edit)
 
-        # 浮动"回到底部"按钮，用户手动向上滚后才显示
+        # 浮动"回到底部"按钮
         self.scroll_btn = PushButton(self.text_edit)
         self.scroll_btn.setText("回到底部")
         self.scroll_btn.setIcon(FluentIcon.DOWN)
@@ -74,10 +98,16 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _append_line(self, line: str, level: str) -> None:
         self._buffer.append((line, level))
+        if not self._matches_filter(level):
+            return
         self._render_line(line, level)
         self._trim_view()
+        self._reapply_highlight()
         if self._auto_scroll:
             self._scroll_to_bottom()
+
+    def _matches_filter(self, level: str) -> bool:
+        return self._filter_level == "ALL" or level == self._filter_level
 
     def _render_line(self, line: str, level: str) -> None:
         palette = _DARK_COLORS if isDarkTheme() else _LIGHT_COLORS
@@ -100,6 +130,42 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             cursor.select(QTextCursor.BlockUnderCursor)
             cursor.removeSelectedText()
             cursor.deleteChar()
+
+    def _rerender_view(self) -> None:
+        self.text_edit.clear()
+        for line, level in self._buffer:
+            if self._matches_filter(level):
+                self._render_line(line, level)
+        self._trim_view()
+        self._reapply_highlight()
+        if self._auto_scroll:
+            self._scroll_to_bottom()
+
+    def _on_filter_changed(self, text: str) -> None:
+        self._filter_level = text
+        self._rerender_view()
+
+    def _on_search_changed(self, text: str) -> None:
+        self._search_text = text
+        self._reapply_highlight()
+
+    def _reapply_highlight(self) -> None:
+        if not self._search_text:
+            self.text_edit.setExtraSelections([])
+            return
+        selections = []
+        doc = self.text_edit.document()
+        cursor = QTextCursor(doc)
+        flags = QTextDocument.FindFlags()  # case-insensitive 默认
+        while True:
+            cursor = doc.find(self._search_text, cursor, flags)
+            if cursor.isNull():
+                break
+            sel = QTextEdit.ExtraSelection()
+            sel.cursor = cursor
+            sel.format.setBackground(_HIGHLIGHT_BG)
+            selections.append(sel)
+        self.text_edit.setExtraSelections(selections)
 
     def _on_scroll(self, value: int) -> None:
         scroll = self.text_edit.verticalScrollBar()
