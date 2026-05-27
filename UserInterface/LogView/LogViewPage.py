@@ -58,7 +58,7 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         toolbar.addWidget(self.level_combo)
 
         self.search_edit = LineEdit(self)
-        self.search_edit.setPlaceholderText("搜索...")
+        self.search_edit.setPlaceholderText(self.tra("搜索..."))
         self.search_edit.setClearButtonEnabled(True)
         self.search_edit.textChanged.connect(self._on_search_changed)
         toolbar.addWidget(self.search_edit, stretch=1)
@@ -91,7 +91,7 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
         # 浮动"回到底部"按钮
         self.scroll_btn = PushButton(self.text_edit)
-        self.scroll_btn.setText("回到底部")
+        self.scroll_btn.setText(self.tra("回到底部"))
         self.scroll_btn.setIcon(FluentIcon.DOWN)
         self.scroll_btn.clicked.connect(self._scroll_to_bottom)
         self.scroll_btn.hide()
