@@ -68,5 +68,5 @@ class LogMixin:
 
     def warning(self, msg) -> None:
         safe = redact(msg)
-        _rich_print(f"[[red]WARNING[/]] {safe}")
+        _rich_print(f"[[yellow]WARNING[/]] {safe}")
         self._logger().warning(safe if isinstance(safe, str) else self._safe_str(safe))
