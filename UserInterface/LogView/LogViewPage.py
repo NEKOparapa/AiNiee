@@ -99,7 +99,23 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self.text_edit.verticalScrollBar().valueChanged.connect(self._on_scroll)
 
         self.line_received.connect(self._append_line, Qt.QueuedConnection)
-        get_gui_handler().subscribe(self._on_log_line)
+        self._gui_handler = get_gui_handler()
+        self._gui_handler.subscribe(self._on_log_line)
+        # 防止 page 销毁后 cb 仍发 signal 到 dead QObject
+        self.destroyed.connect(self._unsubscribe_on_destroy)
+
+    def _unsubscribe_on_destroy(self, *_args) -> None:
+        try:
+            self._gui_handler.unsubscribe(self._on_log_line)
+        except Exception:
+            pass
+
+    def closeEvent(self, event):
+        try:
+            self._gui_handler.unsubscribe(self._on_log_line)
+        except Exception:
+            pass
+        super().closeEvent(event)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

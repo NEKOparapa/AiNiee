@@ -54,9 +54,15 @@ _CONTEXT_KEY_PATTERN = re.compile(
 
 _EXC_FORMATTER = logging.Formatter()
 
-# 线程局部标记：LogMixin 调 rich.print 前置位，让 _BroadcastStream 看到时
-# 跳过 logger.log（因为 LogMixin 自己已经走过 self._logger() 一遍，重复路径会双写）
+# 线程局部嵌套深度：LogMixin 调 rich.print 前 +1，退出 -1。
+# _BroadcastStream 看到 depth > 0 就跳过 logger.log，避免 LogMixin 双写。
+# 用 counter 而非 bool 以正确处理 reentrant 调用（嵌套 rich.print 时内层 finally
+# 不会过早清零外层的标记）。
 _in_log_mixin = threading.local()
+
+
+def _in_log_mixin_active() -> bool:
+    return getattr(_in_log_mixin, "depth", 0) > 0
 
 
 def _cleanup_old_logs(directory: Path, retention_days: int) -> None:
@@ -191,7 +197,7 @@ class _BroadcastStream:
             self._original.write(text)
         except Exception:
             pass
-        if getattr(_in_log_mixin, "active", False):
+        if _in_log_mixin_active():
             return len(text)
         lines_to_log = []
         with self._lock:
@@ -241,12 +247,23 @@ def get_gui_handler() -> "_GUIHandler":
 _DEVNULL = None
 
 
+def _close_devnull() -> None:
+    global _DEVNULL
+    if _DEVNULL is not None:
+        try:
+            _DEVNULL.close()
+        except Exception:
+            pass
+        _DEVNULL = None
+
+
 def _ensure_std_streams() -> None:
     global _DEVNULL
     if sys.stdout is not None and sys.stderr is not None:
         return
     if _DEVNULL is None:
         _DEVNULL = open(os.devnull, "w")
+        atexit.register(_close_devnull)
     if sys.stdout is None:
         sys.stdout = _DEVNULL
     if sys.stderr is None:

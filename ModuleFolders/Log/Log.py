@@ -10,14 +10,14 @@ __all__ = ("LogMixin",)
 
 
 def _rich_print(*args, **kwargs):
-    """rich.print 包裹：进 print 时置 thread-local 标记，让 _BroadcastStream
-    跳过 logger 转发，避免本类调用既走 print 桥又走 self._logger() 的双写。
-    通过模块属性动态读 _in_log_mixin，兼容测试 reload 场景。"""
-    _log_system._in_log_mixin.active = True
+    """rich.print 包裹：进 print 前 depth+1，退出 -1。_BroadcastStream 看 depth>0 跳 logger.log。
+    用计数器而非布尔，正确处理嵌套 rich.print 场景（避免内层 finally 提早清零外层标记）。"""
+    flag = _log_system._in_log_mixin
+    flag.depth = getattr(flag, "depth", 0) + 1
     try:
         print(*args, **kwargs)
     finally:
-        _log_system._in_log_mixin.active = False
+        flag.depth -= 1
 
 
 class LogMixin:
