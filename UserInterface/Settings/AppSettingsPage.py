@@ -346,9 +346,14 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
     # 打开日志目录
     def add_widget_open_log_dir(self, parent, config) -> None:
         def on_clicked() -> None:
-            log_dir = user_log_dir()
-            log_dir.mkdir(parents=True, exist_ok=True)
-            QDesktopServices.openUrl(QUrl.fromLocalFile(str(log_dir)))
+            try:
+                log_dir = user_log_dir()
+                log_dir.mkdir(parents=True, exist_ok=True)
+                opened = QDesktopServices.openUrl(QUrl.fromLocalFile(str(log_dir)))
+                if not opened:
+                    self.error_toast("", self.tra("无法打开日志目录"))
+            except OSError as e:
+                self.error_toast("", self.tra("无法打开日志目录") + f": {e}")
 
         def init(widget) -> None:
             open_button = PushButton(self.tra("打开日志目录"), self)

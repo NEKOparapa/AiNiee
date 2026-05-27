@@ -32,7 +32,7 @@ REDACTED = "***REDACTED***"
 
 _NOISY_THIRD_PARTY = (
     "urllib3", "httpcore", "httpx", "PIL", "matplotlib", "asyncio",
-    "openai", "anthropic", "google_genai", "google", "boto3", "botocore",
+    "openai", "anthropic", "google", "boto3", "botocore",
 )
 _LOG_FILE_RE = re.compile(r"^ainiee\.log(\.\d+)?$")
 _TAG_RE = re.compile(r"\[/?[a-zA-Z][^\]]*\]")
@@ -77,8 +77,10 @@ def _strip_markup(text: str) -> str:
     return _TAG_RE.sub("", text).replace("[[", "[")
 
 
-def redact(text: str) -> str:
-    """脱敏文本中常见的 API key / token / 上下文敏感字段。供 LogMixin 终端输出前调用。"""
+def redact(text):
+    """脱敏文本中常见的 API key / token / 上下文敏感字段。非 str 入参原样返回。"""
+    if not isinstance(text, str):
+        return text
     for pat, repl in _API_KEY_PATTERNS:
         text = pat.sub(repl, text)
     return _CONTEXT_KEY_PATTERN.sub(lambda m: f"{m.group(1)}={REDACTED}", text)
@@ -203,6 +205,10 @@ def _apply_env_level(root: logging.Logger, handler: Optional[logging.Handler]) -
     root.setLevel(level)
     if handler is not None:
         handler.setLevel(level)
+    # 同步取消 noisy 第三方 logger 的 WARNING 强制限制，方便排查 SDK 问题
+    if level < logging.WARNING:
+        for noisy in _NOISY_THIRD_PARTY:
+            logging.getLogger(noisy).setLevel(level)
 
 
 _INSTALLED = False
@@ -211,13 +217,14 @@ _INSTALLED = False
 def install() -> Optional[Path]:
     """挂载/确认日志系统。可重入。
 
-    返回日志文件路径；若用户日志目录不可写则返回 None。
+    返回日志文件路径；若用户日志目录不可写、或文件 handler 创建失败则返回 None。
     """
     global _INSTALLED
     try:
         log_dir = user_log_dir()
         log_dir.mkdir(parents=True, exist_ok=True)
-    except Exception:
+    except Exception as e:
+        sys.stderr.write(f"[ainiee] log dir not writable, file logging disabled: {e}\n")
         return None
     log_path = log_dir / LOG_FILENAME
 
@@ -237,7 +244,8 @@ def install() -> Optional[Path]:
             )
             handler.set_name(HANDLER_NAME)
             root.addHandler(handler)
-        except Exception:
+        except Exception as e:
+            sys.stderr.write(f"[ainiee] file handler creation failed, file logging disabled: {e}\n")
             handler = None
 
     if handler is not None:
@@ -266,4 +274,4 @@ def install() -> Optional[Path]:
         _cleanup_old_logs(log_dir, RETENTION_DAYS)
         _INSTALLED = True
 
-    return log_path
+    return log_path if handler is not None else None
