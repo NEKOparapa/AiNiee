@@ -37,8 +37,8 @@ _NOISY_THIRD_PARTY = (
 )
 _LOG_FILE_RE = re.compile(r"^ainiee\.log(\.\d+)?$")
 _TAG_RE = re.compile(r"\[/?[a-zA-Z][^\]]*\]")
-# 终端 ANSI SGR 与 CSI 序列；rich.print 在 TTY 下渲染后留下的颜色码
-_ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+# 终端 ANSI 转义：CSI（SGR/光标 等）+ OSC（窗口标题、OSC 8 超链接等，BEL 或 ST 结束）
+_ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\].*?(?:\x07|\x1b\\)", re.DOTALL)
 
 _API_KEY_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"sk-[A-Za-z0-9_\-]{20,}"), REDACTED),
@@ -82,14 +82,14 @@ def _cleanup_old_logs(directory: Path, retention_days: int) -> None:
 
 
 def _strip_markup(text: str) -> str:
+    # 先剥 ANSI：rich.Text.from_markup 会吞掉 BEL 等控制字符，破坏 OSC 终结符匹配
+    text = _ANSI_RE.sub("", text)
     if _RichText is not None:
         try:
-            text = _RichText.from_markup(text).plain
+            return _RichText.from_markup(text).plain
         except Exception:
-            text = _TAG_RE.sub("", text).replace("[[", "[")
-    else:
-        text = _TAG_RE.sub("", text).replace("[[", "[")
-    return _ANSI_RE.sub("", text)
+            pass
+    return _TAG_RE.sub("", text).replace("[[", "[")
 
 
 def redact(text):
@@ -220,7 +220,9 @@ class _BroadcastStream:
         except Exception:
             pass
         # 把 buffer 里没换行的尾巴也喂给 logger，避免 crash 前最后一行（如
-        # tqdm 进度条、不带 \n 的诊断输出）只留在终端、不落 file
+        # tqdm 进度条、不带 \n 的诊断输出）只留在终端、不落 file。
+        # 不需要 _in_log_mixin_active() 守卫——write() 在 LogMixin 上下文里 early-return
+        # 不会进 buffer，所以这里能取到的 pending 必然来自非 LogMixin 路径，不会双写
         pending = ""
         with self._lock:
             if self._buffer:
