@@ -54,6 +54,10 @@ _CONTEXT_KEY_PATTERN = re.compile(
 
 _EXC_FORMATTER = logging.Formatter()
 
+# 线程局部标记：LogMixin 调 rich.print 前置位，让 _BroadcastStream 看到时
+# 跳过 logger.log（因为 LogMixin 自己已经走过 self._logger() 一遍，重复路径会双写）
+_in_log_mixin = threading.local()
+
 
 def _cleanup_old_logs(directory: Path, retention_days: int) -> None:
     if not directory.exists():
@@ -121,7 +125,8 @@ _REPLAY_BUFFER_SIZE = 5000
 
 
 class _GUIHandler(logging.Handler):
-    """通知订阅者每条记录的格式化字符串与等级名；同时缓冲 5000 行供后来订阅者回放。"""
+    """通知订阅者每条记录的格式化字符串与等级名；同时缓冲 5000 行供后来订阅者回放。
+    所有共享态用继承的 self.lock 保护，应对 worker 线程并发 emit + 主线程 subscribe。"""
 
     def __init__(self) -> None:
         super().__init__()
@@ -129,28 +134,34 @@ class _GUIHandler(logging.Handler):
         self._replay: deque = deque(maxlen=_REPLAY_BUFFER_SIZE)
 
     def subscribe(self, cb) -> None:
-        if cb in self._subscribers:
-            return
-        # 回放历史给新订阅者（晚开页的用户也能看到 banner / 启动期日志）
-        for line, level in list(self._replay):
+        # 锁内：原子地决定回放与挂订阅，避免 emit 在两者之间塞入 record 而新 cb 漏收
+        with self.lock:
+            if cb in self._subscribers:
+                return
+            history = list(self._replay)
+            self._subscribers.append(cb)
+        # 锁外回放，cb 可能耗时或重入 logging
+        for line, level in history:
             try:
                 cb(line, level)
             except Exception:
                 pass
-        self._subscribers.append(cb)
 
     def unsubscribe(self, cb) -> None:
-        try:
-            self._subscribers.remove(cb)
-        except ValueError:
-            pass
+        with self.lock:
+            try:
+                self._subscribers.remove(cb)
+            except ValueError:
+                pass
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
             line = self.format(record)
             level = record.levelname
-            self._replay.append((line, level))
-            for cb in list(self._subscribers):
+            with self.lock:
+                self._replay.append((line, level))
+                subscribers = list(self._subscribers)
+            for cb in subscribers:
                 try:
                     cb(line, level)
                 except Exception:
@@ -160,13 +171,18 @@ class _GUIHandler(logging.Handler):
 
 
 class _BroadcastStream:
-    """包裹 sys.stdout/stderr：原写入照常 + 按行 flush 到 logger（再到 root → file + gui）。"""
+    """包裹 sys.stdout/stderr：原写入照常 + 按行 flush 到 logger（再到 root → file + gui）。
+
+    _buffer 跨线程共享，用 self._lock 保护读写避免撕裂。
+    若调用方是 LogMixin（_in_log_mixin.active），跳过 logger.log 以避免双写。
+    """
 
     def __init__(self, original, logger_name: str, level: int) -> None:
         self._original = original
         self._logger = logging.getLogger(logger_name)
         self._level = level
         self._buffer = ""
+        self._lock = threading.Lock()
 
     def write(self, text):
         if not text:
@@ -175,11 +191,17 @@ class _BroadcastStream:
             self._original.write(text)
         except Exception:
             pass
-        self._buffer += text
-        while "\n" in self._buffer:
-            line, self._buffer = self._buffer.split("\n", 1)
-            if line:
-                self._logger.log(self._level, line)
+        if getattr(_in_log_mixin, "active", False):
+            return len(text)
+        lines_to_log = []
+        with self._lock:
+            self._buffer += text
+            while "\n" in self._buffer:
+                line, self._buffer = self._buffer.split("\n", 1)
+                if line:
+                    lines_to_log.append(line)
+        for line in lines_to_log:
+            self._logger.log(self._level, line)
         return len(text)
 
     def flush(self):
@@ -320,6 +342,9 @@ def install() -> Optional[Path]:
     返回日志文件路径；若用户日志目录不可写、或文件 handler 创建失败则返回 None。
     """
     global _INSTALLED
+    # 早期就保证 stderr 非 None（PyInstaller --windowed 下 stderr 是 None），
+    # 否则下面的失败分支 sys.stderr.write 会抛 AttributeError 把 install 整个崩
+    _ensure_std_streams()
     try:
         log_dir = user_log_dir()
         log_dir.mkdir(parents=True, exist_ok=True)
