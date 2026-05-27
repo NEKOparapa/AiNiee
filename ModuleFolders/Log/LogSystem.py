@@ -7,6 +7,7 @@ import re
 import sys
 import threading
 import time
+from collections import deque
 from pathlib import Path
 from typing import Optional
 
@@ -116,16 +117,27 @@ class _PlainFormatter(logging.Formatter):
             record.args = original_args
 
 
+_REPLAY_BUFFER_SIZE = 5000
+
+
 class _GUIHandler(logging.Handler):
-    """通知所有订阅者每条记录的格式化字符串与等级名。subscriber 异常 swallow。"""
+    """通知订阅者每条记录的格式化字符串与等级名；同时缓冲 5000 行供后来订阅者回放。"""
 
     def __init__(self) -> None:
         super().__init__()
         self._subscribers: list = []
+        self._replay: deque = deque(maxlen=_REPLAY_BUFFER_SIZE)
 
     def subscribe(self, cb) -> None:
-        if cb not in self._subscribers:
-            self._subscribers.append(cb)
+        if cb in self._subscribers:
+            return
+        # 回放历史给新订阅者（晚开页的用户也能看到 banner / 启动期日志）
+        for line, level in list(self._replay):
+            try:
+                cb(line, level)
+            except Exception:
+                pass
+        self._subscribers.append(cb)
 
     def unsubscribe(self, cb) -> None:
         try:
@@ -137,6 +149,7 @@ class _GUIHandler(logging.Handler):
         try:
             line = self.format(record)
             level = record.levelname
+            self._replay.append((line, level))
             for cb in list(self._subscribers):
                 try:
                     cb(line, level)
@@ -144,6 +157,45 @@ class _GUIHandler(logging.Handler):
                     pass
         except Exception:
             self.handleError(record)
+
+
+class _BroadcastStream:
+    """包裹 sys.stdout/stderr：原写入照常 + 按行 flush 到 logger（再到 root → file + gui）。"""
+
+    def __init__(self, original, logger_name: str, level: int) -> None:
+        self._original = original
+        self._logger = logging.getLogger(logger_name)
+        self._level = level
+        self._buffer = ""
+
+    def write(self, text):
+        if not text:
+            return 0
+        try:
+            self._original.write(text)
+        except Exception:
+            pass
+        self._buffer += text
+        while "\n" in self._buffer:
+            line, self._buffer = self._buffer.split("\n", 1)
+            if line:
+                self._logger.log(self._level, line)
+        return len(text)
+
+    def flush(self):
+        try:
+            self._original.flush()
+        except Exception:
+            pass
+
+    def isatty(self):
+        try:
+            return self._original.isatty()
+        except Exception:
+            return False
+
+    def __getattr__(self, name):
+        return getattr(self._original, name)
 
 
 _gui_handler: Optional["_GUIHandler"] = None
@@ -317,6 +369,16 @@ def install() -> Optional[Path]:
     _install_crash_hooks()
     _enable_faulthandler(log_dir)
     _apply_env_level(root, handler)
+
+    # GUI handler eager 创建并挂 root，确保启动期 record（含 banner、tiktoken
+    # 等通过 _BroadcastStream 转发来的 stdout）都进 replay buffer
+    get_gui_handler()
+
+    # 把 stdout/stderr 桥到 logger，让裸 print 也出现在 GUI 与 file
+    if not isinstance(sys.stdout, _BroadcastStream):
+        sys.stdout = _BroadcastStream(sys.stdout, "AiNiee.stdout", logging.INFO)
+    if not isinstance(sys.stderr, _BroadcastStream):
+        sys.stderr = _BroadcastStream(sys.stderr, "AiNiee.stderr", logging.WARNING)
 
     if not _INSTALLED:
         _cleanup_old_logs(log_dir, RETENTION_DAYS)
