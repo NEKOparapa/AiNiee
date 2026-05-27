@@ -60,9 +60,16 @@ import warnings
 
 import rapidjson as json
 from bs4 import MarkupResemblesLocatorWarning
-from rich import print
 
-_log = logging.getLogger("AiNiee.bootstrap")
+from ModuleFolders.Log.Log import LogMixin
+
+
+class _BootstrapLogger(LogMixin):
+    def _logger(self):
+        return logging.getLogger("AiNiee.bootstrap")
+
+
+_log = _BootstrapLogger()
 from PyQt5.QtGui import QFont, QIcon, QColor
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QSplashScreen
@@ -100,11 +107,9 @@ def load_version() -> str:
                 # 使用 .get() 方法安全地获取值，如果 "version" 键不存在，则返回默认值
                 return version_data.get("version", default_version)
         except (json.JSONDecodeError, IOError) as e:
-            print(f"[[red]ERROR[/]] 读取版本文件失败: {e}")
-            _log.error("读取版本文件失败", exc_info=e)
+            _log.error("读取版本文件失败", error=e)
             return default_version
     else:
-        print(f"[[yellow]WARNING[/]] 版本文件 {version_path} 未找到, 将使用默认版本号。")
         _log.warning(f"版本文件 {version_path} 未找到, 将使用默认版本号")
         return default_version
 
@@ -156,9 +161,7 @@ if __name__ == "__main__":
     try:
         initialize_tiktoken()
     except Exception as e:
-        print(f"[ERROR] tiktoken 初始化失败: {e}")
-        _log.error("tiktoken 初始化失败", exc_info=e)
-        print("[WARNING] Token 限制模式将不可用，请使用行数限制模式")
+        _log.error("tiktoken 初始化失败", error=e)
         _log.warning("Token 限制模式将不可用，请使用行数限制模式")
 
     # 加载配置文件
@@ -184,9 +187,6 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     configure_application_metadata(app, app_version)
 
-    print(f"[[green]INFO[/]] Application Version: {app_version}") # 打印版本号
-    print(f"[[green]INFO[/]] Current working directory is {script_dir}")
-    print(f"[[green]INFO[/]] Starting AiNiee Application...")
     _log.info(f"Application Version: {app_version}")
     _log.info(f"Current working directory is {script_dir}")
     _log.info("Starting AiNiee Application...")
