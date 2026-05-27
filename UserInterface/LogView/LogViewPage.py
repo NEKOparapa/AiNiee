@@ -1,13 +1,14 @@
 from collections import deque
 
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QColor, QTextCursor, QTextDocument
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit
+from PyQt5.QtCore import Qt, QUrl, pyqtSignal
+from PyQt5.QtGui import QColor, QDesktopServices, QTextCursor, QTextDocument
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTextEdit
 
 from qfluentwidgets import isDarkTheme, PushButton, FluentIcon, ComboBox, LineEdit
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.FilePathConfig import user_log_dir
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Log.LogSystem import get_gui_handler
 from UserInterface.Widget.Toast import ToastMixin
@@ -62,11 +63,27 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self.search_edit.textChanged.connect(self._on_search_changed)
         toolbar.addWidget(self.search_edit, stretch=1)
 
+        self.copy_btn = PushButton(self.tra("复制全部"), self)
+        self.copy_btn.setIcon(FluentIcon.COPY)
+        self.copy_btn.clicked.connect(self._on_copy_all)
+        toolbar.addWidget(self.copy_btn)
+
+        self.clear_btn = PushButton(self.tra("清空"), self)
+        self.clear_btn.setIcon(FluentIcon.DELETE)
+        self.clear_btn.clicked.connect(self._on_clear)
+        toolbar.addWidget(self.clear_btn)
+
+        self.open_dir_btn = PushButton(self.tra("打开日志目录"), self)
+        self.open_dir_btn.setIcon(FluentIcon.FOLDER)
+        self.open_dir_btn.clicked.connect(self._on_open_dir)
+        toolbar.addWidget(self.open_dir_btn)
+
         self.container.addLayout(toolbar)
 
         # 主体：等宽只读 QTextEdit
         self.text_edit = QTextEdit(self)
         self.text_edit.setReadOnly(True)
+        self.text_edit.setPlaceholderText(self.tra("等待日志..."))
         font = self.text_edit.font()
         font.setFamily("Menlo, Consolas, monospace")
         self.text_edit.setFont(font)
@@ -178,3 +195,23 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         scroll.setValue(scroll.maximum())
         self._auto_scroll = True
         self.scroll_btn.hide()
+
+    def _on_copy_all(self) -> None:
+        QApplication.clipboard().setText(self.text_edit.toPlainText())
+        self.success_toast("", self.tra("已复制到剪贴板"))
+
+    def _on_clear(self) -> None:
+        self._buffer.clear()
+        self.text_edit.clear()
+        self.scroll_btn.hide()
+        self._auto_scroll = True
+
+    def _on_open_dir(self) -> None:
+        try:
+            log_dir = user_log_dir()
+            log_dir.mkdir(parents=True, exist_ok=True)
+            opened = QDesktopServices.openUrl(QUrl.fromLocalFile(str(log_dir)))
+            if not opened:
+                self.error_toast("", self.tra("无法打开日志目录"))
+        except OSError as e:
+            self.error_toast("", self.tra("无法打开日志目录") + f": {e}")
