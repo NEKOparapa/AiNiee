@@ -36,7 +36,9 @@ CloseApplications=yes
 RestartApplications=no
 
 [Languages]
-Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+; ChineseSimplified 是 Inno Setup Unofficial 语言集（Chocolatey innosetup 包默认不带），
+; bundle 到 repo 内用相对路径，CI/本地都能构建
+Name: "chinesesimplified"; MessagesFile: "Languages\ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
