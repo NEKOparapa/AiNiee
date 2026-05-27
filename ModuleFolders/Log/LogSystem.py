@@ -12,8 +12,13 @@ from typing import Optional
 
 from ModuleFolders.Config.FilePathConfig import user_log_dir
 
+try:
+    from rich.text import Text as _RichText
+except Exception:
+    _RichText = None
 
-__all__ = ("install",)
+
+__all__ = ("install", "redact")
 
 
 HANDLER_NAME = "ainiee_file"
@@ -64,14 +69,16 @@ def _cleanup_old_logs(directory: Path, retention_days: int) -> None:
 
 
 def _strip_markup(text: str) -> str:
-    try:
-        from rich.text import Text
-        return Text.from_markup(text).plain
-    except Exception:
-        return _TAG_RE.sub("", text).replace("[[", "[")
+    if _RichText is not None:
+        try:
+            return _RichText.from_markup(text).plain
+        except Exception:
+            pass
+    return _TAG_RE.sub("", text).replace("[[", "[")
 
 
-def _redact(text: str) -> str:
+def redact(text: str) -> str:
+    """脱敏文本中常见的 API key / token / 上下文敏感字段。供 LogMixin 终端输出前调用。"""
     for pat, repl in _API_KEY_PATTERNS:
         text = pat.sub(repl, text)
     return _CONTEXT_KEY_PATTERN.sub(lambda m: f"{m.group(1)}={REDACTED}", text)
@@ -83,13 +90,13 @@ class SensitiveFilter(logging.Filter):
             msg = record.getMessage()
         except Exception:
             return True
-        redacted = _redact(msg)
+        redacted = redact(msg)
         if redacted != msg:
             record.msg = redacted
             record.args = ()
         if record.exc_info:
             exc_text = _EXC_FORMATTER.formatException(record.exc_info)
-            record.exc_text = _redact(exc_text)
+            record.exc_text = redact(exc_text)
         return True
 
 
@@ -237,6 +244,9 @@ def install() -> Optional[Path]:
         handler.setFormatter(
             _PlainFormatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
         )
+        # 挂在 handler 上而非 root：子 logger 的 propagate 路径只触发祖先的
+        # handler filter，不触发 logger filter。mutation 跨 handler 是 by design——
+        # 我们希望后续添加的任何 handler 也自动得到脱敏保护
         if not any(isinstance(f, SensitiveFilter) for f in handler.filters):
             handler.addFilter(SensitiveFilter())
 

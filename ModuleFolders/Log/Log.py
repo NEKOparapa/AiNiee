@@ -3,6 +3,8 @@ import traceback
 
 from rich import print
 
+from ModuleFolders.Log.LogSystem import redact
+
 __all__ = ("LogMixin",)
 
 
@@ -16,29 +18,36 @@ class LogMixin:
         return logging.getLogger(f"{cls.__module__}.{cls.__name__}")
 
     def print(self, msg: str) -> None:
-        print(msg)
-        self._logger().info(msg)
+        safe = redact(msg)
+        print(safe)
+        self._logger().info(safe)
 
     def debug(self, msg: str, error: Exception = None) -> None:
+        safe = redact(msg)
         if error is None:
-            print(f"[[yellow]DEBUG[/]] {msg}")
-            self._logger().debug(msg)
+            print(f"[[yellow]DEBUG[/]] {safe}")
+            self._logger().debug(safe)
         else:
-            print(f"[[yellow]DEBUG[/]] {msg}\n{error}\n{self._format_exception(error)}")
-            self._logger().debug(msg, exc_info=error)
+            safe_tb = redact(self._format_exception(error))
+            print(f"[[yellow]DEBUG[/]] {safe}\n{redact(str(error))}\n{safe_tb}")
+            self._logger().debug(safe, exc_info=error)
 
     def info(self, msg: str) -> None:
-        print(f"[[green]INFO[/]] {msg}")
-        self._logger().info(msg)
+        safe = redact(msg)
+        print(f"[[green]INFO[/]] {safe}")
+        self._logger().info(safe)
 
     def error(self, msg: str, error: Exception = None) -> None:
+        safe = redact(msg)
         if error is None:
-            print(f"[[red]ERROR[/]] {msg}")
-            self._logger().error(msg)
+            print(f"[[red]ERROR[/]] {safe}")
+            self._logger().error(safe)
         else:
-            print(f"[[red]ERROR[/]] {msg}\n{error}\n{self._format_exception(error)}")
-            self._logger().error(msg, exc_info=error)
+            safe_tb = redact(self._format_exception(error))
+            print(f"[[red]ERROR[/]] {safe}\n{redact(str(error))}\n{safe_tb}")
+            self._logger().error(safe, exc_info=error)
 
     def warning(self, msg: str) -> None:
-        print(f"[[red]WARNING[/]] {msg}")
-        self._logger().warning(msg)
+        safe = redact(msg)
+        print(f"[[red]WARNING[/]] {safe}")
+        self._logger().warning(safe)
