@@ -30,6 +30,7 @@ from UserInterface.EditView.EditViewPage import EditViewPage
 from UserInterface.Native.MacOSUI import about_message, app_menu_title, command_shortcut
 from UserInterface.Platform.PlatformPage import PlatformPage
 from UserInterface.PromptSettings.PolishingSettings.PolishingSystemPromptPage import PolishingSystemPromptPage
+from UserInterface.LogView.LogViewPage import LogViewPage
 from UserInterface.Settings.AppSettingsPage import AppSettingsPage
 from UserInterface.Settings.OutputSettingsPage import OutputSettingsPage
 from UserInterface.Settings.TaskSettingsPage import TaskSettingsPage
@@ -292,6 +293,15 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             widget=self.theme_nav_button,
             onClick=self.toggle_theme,
             position=NavigationItemPosition.BOTTOM,
+        )
+
+        # 运行日志按钮（在应用设置上方）
+        self.log_view_page = LogViewPage("log_view_page", self)
+        self.addSubInterface(
+            self.log_view_page,
+            FluentIcon.COMMAND_PROMPT,
+            self.tra("运行日志"),
+            NavigationItemPosition.BOTTOM,
         )
 
         # 应用设置按钮

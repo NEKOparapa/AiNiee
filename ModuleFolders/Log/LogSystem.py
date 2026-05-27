@@ -18,7 +18,7 @@ except Exception:
     _RichText = None
 
 
-__all__ = ("install", "redact")
+__all__ = ("install", "redact", "get_gui_handler")
 
 
 HANDLER_NAME = "ainiee_file"
@@ -114,6 +114,54 @@ class _PlainFormatter(logging.Formatter):
         finally:
             record.msg = original_msg
             record.args = original_args
+
+
+class _GUIHandler(logging.Handler):
+    """通知所有订阅者每条记录的格式化字符串与等级名。subscriber 异常 swallow。"""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._subscribers: list = []
+
+    def subscribe(self, cb) -> None:
+        if cb not in self._subscribers:
+            self._subscribers.append(cb)
+
+    def unsubscribe(self, cb) -> None:
+        try:
+            self._subscribers.remove(cb)
+        except ValueError:
+            pass
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            line = self.format(record)
+            level = record.levelname
+            for cb in list(self._subscribers):
+                try:
+                    cb(line, level)
+                except Exception:
+                    pass
+        except Exception:
+            self.handleError(record)
+
+
+_gui_handler: Optional["_GUIHandler"] = None
+
+
+def get_gui_handler() -> "_GUIHandler":
+    """懒单例 GUI handler；首次调用时挂到 root logger，配同款 formatter 与 SensitiveFilter。"""
+    global _gui_handler
+    if _gui_handler is not None:
+        return _gui_handler
+    handler = _GUIHandler()
+    handler.setFormatter(
+        _PlainFormatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+    )
+    handler.addFilter(SensitiveFilter())
+    logging.getLogger().addHandler(handler)
+    _gui_handler = handler
+    return _gui_handler
 
 
 _DEVNULL = None
