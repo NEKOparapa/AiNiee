@@ -123,15 +123,31 @@ def _seed_default_config() -> bool:
         return False
 
 
+def _looks_like_pending_legacy_config() -> bool:
+    """exe 旁还有 config.json 且同时有用户痕迹 → 上次 migrate 可能 transient 失败，
+    跳过 seed 保留下次启动重试的窗口。否则 seed 把 bundled 拷到 dst 后，下次
+    _move_if_unique 看到 dst 已存在永久 refuse，用户配置永远 stranded。
+    """
+    if not (is_macos() or is_windows()):
+        return False
+    legacy_at_exe = (executable_root() / "Resource" / "config.json").exists()
+    if not legacy_at_exe:
+        return False
+    return _has_files(project_cache_root()) or _has_files(downloads_dir())
+
+
 def migrate_config_if_needed() -> bool:
     """启动时确保 config 就位 + 把 exe 旁老数据搬到标准位置。
 
     分两步：
     1. legacy 用户数据每次都尝试搬（_move_if_unique idempotent），避免某次失败
        因为下次 config 已存在被永远跳过
-    2. 没 config 时从 bundled 复制一份默认（COPY，不 MOVE），保留 install 内模板
+    2. 没 config 时从 bundled 复制一份默认（COPY，不 MOVE），保留 install 内模板。
+       若检测到 stranded 状态（exe 旁 config 还在 + 有用户痕迹）则跳过 seed
     """
     migrated = _migrate_legacy_user_data()
+    if _looks_like_pending_legacy_config():
+        return migrated
     if _seed_default_config():
         migrated = True
     return migrated
