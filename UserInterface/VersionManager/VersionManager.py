@@ -243,9 +243,16 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             self.error("Main window reference is not set")
             return
 
-        # 检查是否有已下载完成的更新文件
         local_filename, temp_filename, download_info_file = self._download_paths()
 
+        # 清理已安装过的残留文件（download_info 已被 _run_updater 删除）
+        if os.path.exists(local_filename) and not os.path.exists(download_info_file):
+            try:
+                os.remove(str(local_filename))
+            except OSError:
+                pass
+
+        # 检查是否有已下载完成的更新文件
         if os.path.exists(local_filename) and os.path.exists(download_info_file):
             try:
                 with open(download_info_file, 'r') as f:
@@ -618,6 +625,13 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             temp_filename = str(download_root / f"AiNiee-update{update_suffix}.temp")
             download_info_file = str(download_root / "download_info.json")
 
+            # 清理已安装过的残留文件（download_info 已被 _run_updater 删除）
+            if os.path.exists(local_filename) and not os.path.exists(download_info_file):
+                try:
+                    os.remove(local_filename)
+                except OSError:
+                    pass
+
             # 检查是否已经存在完成的文件
             if os.path.exists(local_filename):
                 self.info(f"Found completed download file: {local_filename}")
@@ -852,6 +866,11 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             if is_macos():
                 if os.path.exists(update_file):
                     subprocess.Popen(["open", update_file])
+                    _, _, download_info_file = self._download_paths()
+                    try:
+                        os.remove(str(download_info_file))
+                    except OSError:
+                        pass
                     os.kill(os.getpid(), signal.SIGTERM)
                     return
 
@@ -862,17 +881,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             updater_path = str(resource_path("Updater", "updater.exe"))
 
             if os.path.exists(updater_path):
-                # 使用PowerShell启动更新器
-                powershell_command = f'Start-Process -FilePath "{updater_path}" -ArgumentList "{update_file}", "{current_dir}" -WindowStyle Normal'
-
-                # 启动PowerShell并执行命令
-                subprocess.Popen([
-                    "powershell.exe",
-                    "-Command",
-                    powershell_command
-                ],
-                shell=True,
-                creationflags=subprocess.CREATE_NO_WINDOW)
+                subprocess.Popen([updater_path, update_file, current_dir])
 
                 # 退出当前程序
                 os.kill(os.getpid(), signal.SIGTERM)

@@ -38,7 +38,7 @@ _NOISY_THIRD_PARTY = (
 _LOG_FILE_RE = re.compile(r"^ainiee\.log(\.\d+)?$")
 _TAG_RE = re.compile(r"\[/?[a-zA-Z][^\]]*\]")
 # 终端 ANSI 转义：CSI（SGR/光标 等）+ OSC（窗口标题、OSC 8 超链接等，BEL 或 ST 结束）
-_ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\].*?(?:\x07|\x1b\\)", re.DOTALL)
+_ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x07\x1b]{0,1024}(?:\x07|\x1b\\)")
 
 _API_KEY_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"sk-[A-Za-z0-9_\-]{20,}"), REDACTED),
@@ -49,8 +49,9 @@ _API_KEY_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 
 _CONTEXT_KEY_PATTERN = re.compile(
     r"(api[_\-]?key|apikey|secret|token|authorization)"
-    r"\s*[:=]\s*"
-    r"['\"]?([A-Za-z0-9._\-+/=]{16,})['\"]?",
+    r"(['\"]?\s*[:=]\s*['\"]?)"
+    r"[A-Za-z0-9._\-+/=]{16,}"
+    r"(['\"]?)",
     re.IGNORECASE,
 )
 
@@ -98,7 +99,7 @@ def redact(text):
         return text
     for pat, repl in _API_KEY_PATTERNS:
         text = pat.sub(repl, text)
-    return _CONTEXT_KEY_PATTERN.sub(lambda m: f"{m.group(1)}={REDACTED}", text)
+    return _CONTEXT_KEY_PATTERN.sub(lambda m: f"{m.group(1)}{m.group(2)}{REDACTED}{m.group(3)}", text)
 
 
 class SensitiveFilter(logging.Filter):

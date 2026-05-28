@@ -1,10 +1,10 @@
 from collections import deque
 
-from PyQt5.QtCore import Qt, QUrl, pyqtSignal
+from PyQt5.QtCore import Qt, QUrl, QTimer, pyqtSignal
 from PyQt5.QtGui import QColor, QDesktopServices, QTextCursor, QTextDocument
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTextEdit
 
-from qfluentwidgets import isDarkTheme, PushButton, FluentIcon, ComboBox, LineEdit
+from qfluentwidgets import isDarkTheme, PushButton, FluentIcon, ComboBox, LineEdit, qconfig
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -98,10 +98,18 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
         self.text_edit.verticalScrollBar().valueChanged.connect(self._on_scroll)
 
+        self._highlight_timer = QTimer(self)
+        self._highlight_timer.setSingleShot(True)
+        self._highlight_timer.setInterval(200)
+        self._highlight_timer.timeout.connect(self._reapply_highlight)
+
         self.line_received.connect(self._append_line, Qt.QueuedConnection)
         self._gui_handler = get_gui_handler()
         self._gui_handler.subscribe(self._on_log_line)
-        # 防止 page 销毁后 cb 仍发 signal 到 dead QObject
+        try:
+            qconfig.themeChanged.connect(self._rerender_view)
+        except RuntimeError:
+            pass
         self.destroyed.connect(self._unsubscribe_on_destroy)
 
     def _unsubscribe_on_destroy(self, *_args) -> None:
@@ -135,17 +143,23 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             return
         self._render_line(line, level)
         self._trim_view()
-        self._reapply_highlight()
+        if self._search_text:
+            self._highlight_timer.start()
         if self._auto_scroll:
             self._scroll_to_bottom()
 
     def _matches_filter(self, level: str) -> bool:
-        return self._filter_level == "ALL" or level == self._filter_level
+        if self._filter_level == "ALL":
+            return True
+        try:
+            return _FILTER_LEVELS.index(level) >= _FILTER_LEVELS.index(self._filter_level)
+        except ValueError:
+            return True
 
     def _render_line(self, line: str, level: str) -> None:
         palette = _DARK_COLORS if isDarkTheme() else _LIGHT_COLORS
         color = palette.get(level)
-        safe = line.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        safe = line.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
         if color:
             html = f'<span style="color:{color};">{safe}</span>'
         else:

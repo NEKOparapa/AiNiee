@@ -48,12 +48,9 @@ jobs:
         run: python .\Tools\pyinstall.py
 
       - name: Prepare Release Package
-        # 将原 Pack Resource 步骤重命名并修改
         run: |
-          # 将资源文件夹复制到 PyInstaller 生成的输出目录内部
-          Copy-Item -Path "Resource" -Destination "dist\AiNiee\Resource" -Recurse -Force
-
-          # 压缩 dist\AiNiee 目录，updater 会智能查找 AiNiee.exe 所在目录
+          # PyInstaller --add-data 已将 Resource 打入 dist\AiNiee\_internal\Resource，
+          # 压缩整个输出目录，updater 会智能查找 AiNiee.exe 所在目录
           Compress-Archive -Path "dist\AiNiee" -DestinationPath "AiNiee-Beta.zip"
 
       - name: Upload Windows package
