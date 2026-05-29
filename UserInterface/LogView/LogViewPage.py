@@ -29,6 +29,7 @@ _LIGHT_COLORS = {
 }
 
 _FILTER_LEVELS = ("ALL", "INFO", "WARNING", "ERROR", "CRITICAL")
+_LEVEL_ORDER = {"DEBUG": 0, "INFO": 1, "WARNING": 2, "ERROR": 3, "CRITICAL": 4}
 _HIGHLIGHT_BG = QColor("#f1c40f")
 
 
@@ -151,10 +152,8 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
     def _matches_filter(self, level: str) -> bool:
         if self._filter_level == "ALL":
             return True
-        try:
-            return _FILTER_LEVELS.index(level) >= _FILTER_LEVELS.index(self._filter_level)
-        except ValueError:
-            return True
+        threshold = _LEVEL_ORDER.get(self._filter_level, 0)
+        return _LEVEL_ORDER.get(level, threshold) >= threshold
 
     def _render_line(self, line: str, level: str) -> None:
         palette = _DARK_COLORS if isDarkTheme() else _LIGHT_COLORS

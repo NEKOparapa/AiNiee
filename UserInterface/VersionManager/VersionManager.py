@@ -19,7 +19,7 @@ from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, Stron
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Config.FilePathConfig import downloads_dir, resource_path
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import is_macos, release_api_url
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import is_macos, is_windows, release_api_url
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.Toast import ToastMixin
 
@@ -248,7 +248,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         # 清理已安装过的残留文件（download_info 已被 _run_updater 删除）
         if os.path.exists(local_filename) and not os.path.exists(download_info_file):
             try:
-                os.remove(str(local_filename))
+                os.remove(local_filename)
             except OSError:
                 pass
 
@@ -881,7 +881,13 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             updater_path = str(resource_path("Updater", "updater.exe"))
 
             if os.path.exists(updater_path):
-                subprocess.Popen([updater_path, update_file, current_dir])
+                if is_windows():
+                    subprocess.Popen(
+                        [updater_path, update_file, current_dir],
+                        creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+                    )
+                else:
+                    subprocess.Popen([updater_path, update_file, current_dir])
 
                 # 退出当前程序
                 os.kill(os.getpid(), signal.SIGTERM)

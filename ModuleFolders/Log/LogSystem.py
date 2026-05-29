@@ -29,6 +29,7 @@ CRASH_LOGGER_NAME = "AiNiee.crash"
 MAX_BYTES = 5 * 1024 * 1024
 BACKUP_COUNT = 5
 RETENTION_DAYS = 30
+FAULT_MAX_BYTES = 1 * 1024 * 1024
 REDACTED = "***REDACTED***"
 
 _NOISY_THIRD_PARTY = (
@@ -48,7 +49,7 @@ _API_KEY_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 
 _CONTEXT_KEY_PATTERN = re.compile(
-    r"(api[_\-]?key|apikey|secret|token|authorization)"
+    r"(api[_\-]?key|apikey|access[_\-]?key|secret|token|authorization|password|passwd|pwd)"
     r"(['\"]?\s*[:=]\s*['\"]?)"
     r"[A-Za-z0-9._\-+/=]{16,}"
     r"(['\"]?)",
@@ -123,8 +124,11 @@ class _PlainFormatter(logging.Formatter):
         original_msg = record.msg
         original_args = record.args
         try:
-            text = record.getMessage()
-            record.msg = _strip_markup(text)
+            plain = getattr(record, "_ainiee_plain", None)
+            if plain is None:
+                plain = _strip_markup(record.getMessage())
+                record._ainiee_plain = plain
+            record.msg = plain
             record.args = ()
             return super().format(record)
         finally:
@@ -362,7 +366,13 @@ def _enable_faulthandler(log_dir: Path) -> None:
     if _fault_log_handle is not None:
         return
     try:
-        _fault_log_handle = open(log_dir / FAULT_LOG_FILENAME, "a", buffering=1)
+        fault_path = log_dir / FAULT_LOG_FILENAME
+        try:
+            if fault_path.stat().st_size > FAULT_MAX_BYTES:
+                fault_path.unlink()
+        except OSError:
+            pass
+        _fault_log_handle = open(fault_path, "a", buffering=1)
         faulthandler.enable(file=_fault_log_handle)
         atexit.register(_close_fault_log)
     except Exception:
