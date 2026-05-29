@@ -15,7 +15,7 @@ case "$ARCH" in
     exit 1
     ;;
 esac
-DMG_PATH="${2:-dist/AiNiee-macOS-${ARCH}.dmg}"
+DMG_PATH="${2:-dist/AiNiee-Beta-macOS-${ARCH}.dmg}"
 VOLUME_NAME="${VOLUME_NAME:-AiNiee}"
 TMP_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
 

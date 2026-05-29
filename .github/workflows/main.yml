@@ -65,8 +65,8 @@ jobs:
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: AiNiee-Setup-Windows
-          path: AiNiee-Setup-*.exe
+          name: AiNiee-Beta-Setup-Windows
+          path: AiNiee-Beta-Setup.exe
 
   build-macos:
     name: Build macOS (${{ matrix.arch }})
@@ -129,8 +129,8 @@ jobs:
       - name: Upload macOS package
         uses: actions/upload-artifact@v4
         with:
-          name: AiNiee-macOS-${{ matrix.arch }}
-          path: dist/AiNiee-macOS-${{ matrix.arch }}.dmg
+          name: AiNiee-Beta-macOS-${{ matrix.arch }}
+          path: dist/AiNiee-Beta-macOS-${{ matrix.arch }}.dmg
 
   release:
     name: Publish Beta Release
