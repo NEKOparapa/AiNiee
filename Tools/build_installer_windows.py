@@ -40,7 +40,7 @@ def _read_version() -> str:
     if not VERSION_FILE.exists():
         return "0.0.0"
     raw = json.loads(VERSION_FILE.read_text(encoding="utf-8")).get("version", "0.0.0")
-    return _parse_version_string(raw)
+    return _parse_version_string(str(raw))
 
 
 def main() -> int:

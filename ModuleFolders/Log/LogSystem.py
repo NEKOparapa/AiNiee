@@ -49,9 +49,9 @@ _API_KEY_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 
 _CONTEXT_KEY_PATTERN = re.compile(
-    r"(api[_\-]?key|apikey|access[_\-]?key|secret|token|authorization|password|passwd|pwd)"
+    r"(api[_\-]?key|apikey|access[_\-]?key|secret[_\-]?access[_\-]?key|secret[_\-]?key|secret|token|authorization|password|passwd|pwd)"
     r"(['\"]?\s*[:=]\s*['\"]?)"
-    r"[A-Za-z0-9._\-+/=]{16,}"
+    r"[^'\"\s,;&\])}]+"
     r"(['\"]?)",
     re.IGNORECASE,
 )

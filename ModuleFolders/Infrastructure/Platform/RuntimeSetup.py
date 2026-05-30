@@ -37,14 +37,6 @@ def prepare_working_directory():
     return user_data_root()
 
 
-def _has_files(path) -> bool:
-    """目录存在且非空。ensure_user_dirs 创出的空目录不算"用户痕迹"。"""
-    try:
-        return path.is_dir() and any(path.iterdir())
-    except OSError:
-        return False
-
-
 def _move_if_unique(src, dst) -> bool:
     """src 存在 → 搬到 dst。
 
@@ -78,8 +70,9 @@ def _move_if_unique(src, dst) -> bool:
 def _migrate_legacy_user_data() -> bool:
     """把老版本留在 exe 旁的 user data 搬到标准位置。idempotent，每次启动可安全调用。
 
-    config.json 不在 legacy_pairs：bundled 默认走 _seed_default_config 复制保留模板；
-    若 exe 旁同时存在 ProjectCache/downloads 等用户痕迹，那个 config 才按用户配置搬走。
+    exe 旁的 Resource/config.json 是老版本写的用户配置（打包产物不在 exe 旁放 config），
+    无条件搬到标准位置——只配置过 API key、没产生 ProjectCache/downloads 痕迹的用户
+    升级后也不会丢配置。_move_if_unique 不覆盖标准位置已存在的 config，幂等安全。
     """
     if not (is_macos() or is_windows()):
         return False
@@ -98,12 +91,10 @@ def _migrate_legacy_user_data() -> bool:
         legacy_logs = exe_dir / "Logs"
         if _move_if_unique(legacy_logs, user_log_dir() / "legacy"):
             migrated = True
-    # exe 旁有"用户痕迹"（非空 ProjectCache/downloads）时，把 exe 旁 config 当用户配置搬走。
-    # 用 _has_files 而非 .exists()——ensure_user_dirs 先建出的空目录不算痕迹
-    if migrated or _has_files(project_cache_root()) or _has_files(downloads_dir()):
-        legacy_config = exe_dir / "Resource" / "config.json"
-        if _move_if_unique(legacy_config, config_path()):
-            migrated = True
+    # exe 旁的 config.json 只要存在就是用户配置，无条件搬到标准位置（见函数 docstring）。
+    legacy_config = exe_dir / "Resource" / "config.json"
+    if _move_if_unique(legacy_config, config_path()):
+        migrated = True
     return migrated
 
 
@@ -124,16 +115,13 @@ def _seed_default_config() -> bool:
 
 
 def _looks_like_pending_legacy_config() -> bool:
-    """exe 旁还有 config.json 且同时有用户痕迹 → 上次 migrate 可能 transient 失败，
-    跳过 seed 保留下次启动重试的窗口。否则 seed 把 bundled 拷到 dst 后，下次
-    _move_if_unique 看到 dst 已存在永久 refuse，用户配置永远 stranded。
+    """exe 旁还有 config.json → 用户配置还没搬到标准位置（首次升级，或上次 migrate
+    transient 失败）。跳过 seed 保留下次启动重试搬迁的窗口。否则 seed 把 bundled 拷到
+    dst 后，下次 _move_if_unique 看到 dst 已存在永久 refuse，用户配置永远 stranded。
     """
     if not (is_macos() or is_windows()):
         return False
-    legacy_at_exe = (executable_root() / "Resource" / "config.json").exists()
-    if not legacy_at_exe:
-        return False
-    return _has_files(project_cache_root()) or _has_files(downloads_dir())
+    return (executable_root() / "Resource" / "config.json").exists()
 
 
 def migrate_config_if_needed() -> bool:

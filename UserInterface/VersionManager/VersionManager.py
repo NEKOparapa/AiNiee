@@ -889,6 +889,12 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                 else:
                     subprocess.Popen([updater_path, update_file, current_dir])
 
+                _, _, download_info_file = self._download_paths()
+                try:
+                    os.remove(str(download_info_file))
+                except OSError:
+                    pass
+
                 # 退出当前程序
                 os.kill(os.getpid(), signal.SIGTERM)
 
