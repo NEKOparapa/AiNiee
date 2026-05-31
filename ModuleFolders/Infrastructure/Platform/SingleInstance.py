@@ -27,6 +27,8 @@ def acquire_app_mutex() -> bool:
         kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
         kernel32.CreateMutexW.argtypes = [wintypes.LPVOID, wintypes.BOOL, wintypes.LPCWSTR]
         kernel32.CreateMutexW.restype = wintypes.HANDLE
+        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel32.CloseHandle.restype = wintypes.BOOL
         handle = kernel32.CreateMutexW(None, False, APP_MUTEX_NAME)
         last_err = ctypes.get_last_error()
         if not handle:

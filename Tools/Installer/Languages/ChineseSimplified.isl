@@ -15,7 +15,7 @@
 ;
 
 [LangOptions]
-; The following three entries are very important. Be sure to read and 
+; The following three entries are very important. Be sure to read and
 ; understand the '[LangOptions] section' topic in the help file.
 LanguageName=简体中文
 ; If Language Name display incorrect, uncomment next line

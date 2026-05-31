@@ -151,7 +151,7 @@ if __name__ == "__main__":
     # 设置工作目录
     script_dir = prepare_runtime_environment()
 
-    if not acquire_app_mutex() and not os.environ.get("AINIEE_ALLOW_MULTI_INSTANCE"):
+    if not acquire_app_mutex() and os.environ.get("AINIEE_ALLOW_MULTI_INSTANCE") != "1":
         _log.warning("AiNiee 已在运行，本次启动退出（设 AINIEE_ALLOW_MULTI_INSTANCE=1 可绕过）")
         sys.exit(0)
 
