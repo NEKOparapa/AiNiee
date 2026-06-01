@@ -173,6 +173,7 @@ def main() -> None:
     args = parser.parse_args()
 
     os.chdir(ROOT)
+    sys.path.insert(0, str(ROOT))
     icon_path = build_icns()
     PyInstaller.__main__.run(pyinstaller_command(icon_path, args.target_arch))
     patch_info_plist()
