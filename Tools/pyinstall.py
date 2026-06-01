@@ -1,4 +1,5 @@
 import os
+import sys
 import PyInstaller.__main__
 
 cmd = [
@@ -17,6 +18,10 @@ cmd = [
     "--collect-all=rich",
     "--collect-all=bitstring",
     "--collect-all=darkdetect",
+    # FileReader/FileOutputer use importlib-based lazy loading; collect their
+    # submodules so packaged builds can load formats at runtime.
+    "--collect-submodules=ModuleFolders.Domain.FileReader",
+    "--collect-submodules=ModuleFolders.Domain.FileOutputer",
     # "--distpath=./dist/AiNiee" #指定输出目录
 ]
 
@@ -47,4 +52,5 @@ if os.path.exists("./requirements.txt"):
     for pkg in _hidden_imports_from("./requirements_no_deps.txt"):
         cmd.append("--hidden-import=" + pkg)
 
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     PyInstaller.__main__.run(cmd)
