@@ -19,6 +19,10 @@ cmd = [
     "--collect-all=rich",
     "--collect-all=bitstring",
     "--collect-all=darkdetect",
+    # FileReader/FileOutputer use importlib-based lazy loading; collect their
+    # submodules so packaged builds can load formats at runtime.
+    "--collect-submodules=ModuleFolders.Domain.FileReader",
+    "--collect-submodules=ModuleFolders.Domain.FileOutputer",
     # "--distpath=./dist/AiNiee" #指定输出目录
 ]
 
