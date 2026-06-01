@@ -77,6 +77,17 @@ class ConfigMixin:
             else:
                 print("[[red]WARNING[/]] Config file does not exist ...")
 
+        if config:
+            from ModuleFolders.Config.FilePathConfig import (
+                default_input_dir,
+                default_output_dir,
+                resolve_user_dir,
+            )
+            if "label_input_path" in config:
+                config["label_input_path"] = resolve_user_dir(config["label_input_path"], default_input_dir())
+            if "label_output_path" in config:
+                config["label_output_path"] = resolve_user_dir(config["label_output_path"], default_output_dir())
+
         return config
 
     def save_config(self, new: dict) -> dict:

@@ -5,6 +5,7 @@ from qfluentwidgets import MessageBox, StateToolTip, pyqtSignal
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.FilePathConfig import default_input_dir
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.EditView.Startup.FolderDropCard import FolderDropCard
 from UserInterface.EditView.Startup.ProjectHistoryCard import ProjectHistoryCard
@@ -36,7 +37,7 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
 
         self.default = {
             "translation_project": "AutoType",
-            "label_input_path": "./input",
+            "label_input_path": str(default_input_dir()),
         }
 
         config = self.save_config(self.load_config_from_default())
@@ -96,7 +97,7 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             self.save_config(current_config)
             self.folder_path_changed("new")
 
-        initial_path = config.get("label_input_path", "./input")
+        initial_path = config.get("label_input_path", str(default_input_dir()))
         self.drag_card = FolderDropCard(
             init=initial_path,
             path_changed=widget_callback,
@@ -210,7 +211,7 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         try:
             config = self.load_config()
             translation_project = config.get("translation_project", "AutoType")
-            label_input_path = config.get("label_input_path", "./input")
+            label_input_path = config.get("label_input_path", str(default_input_dir()))
             label_input_exclude_rule = config.get("label_input_exclude_rule", "")
 
             if mode == "new":

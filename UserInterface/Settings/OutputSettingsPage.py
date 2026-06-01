@@ -6,6 +6,7 @@ from qfluentwidgets import FluentIcon, HorizontalSeparator, SingleDirectionScrol
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.FilePathConfig import default_output_dir
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.PushButtonCard import PushButtonCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
@@ -22,7 +23,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         
         # 默认配置
         self.default = {
-            "label_output_path": "./output",
+            "label_output_path": str(default_output_dir()),
             "auto_set_output_path": True,
             "output_filename_suffix": "_translated",
             "bilingual_text_order": "translation_first",

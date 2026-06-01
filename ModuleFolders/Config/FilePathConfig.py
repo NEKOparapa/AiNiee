@@ -175,6 +175,32 @@ def config_path() -> Path:
     return writable_root() / "Resource" / "config.json"
 
 
+# 用户可见的默认输入/输出目录（绝对路径，跨平台）。
+def documents_root() -> Path:
+    override = os.environ.get("AINIEE_DOCUMENTS_DIR")
+    if override:
+        return Path(override).expanduser().resolve()
+    return Path.home() / "Documents"
+
+
+def default_input_dir() -> Path:
+    return documents_root() / "AiNiee" / "input"
+
+
+def default_output_dir() -> Path:
+    return documents_root() / "AiNiee" / "output"
+
+
+# 把存储的路径解析成绝对路径：空或相对值回落到可见的默认目录。
+def resolve_user_dir(value: str, fallback: Path) -> str:
+    text = (value or "").strip()
+    if text:
+        candidate = Path(text).expanduser()
+        if candidate.is_absolute():
+            return str(candidate)
+    return str(fallback)
+
+
 # 接口预设文件。
 def platform_preset_path() -> Path:
     return resource_path("platforms", "preset.json")

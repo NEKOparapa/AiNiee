@@ -8,6 +8,7 @@ from socketserver import ThreadingMixIn
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.FilePathConfig import default_input_dir
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
 
@@ -263,7 +264,7 @@ class HttpService(ConfigMixin, LogMixin, Base):
         try:
             config = self.load_config()
             translation_project = config.get("translation_project", "AutoType")
-            label_input_path = config.get("label_input_path", "./input")
+            label_input_path = config.get("label_input_path", str(default_input_dir()))
             label_input_exclude_rule = config.get("label_input_exclude_rule", "")
 
             self.info(f"开始加载项目文件...")
