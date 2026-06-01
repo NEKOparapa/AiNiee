@@ -152,6 +152,10 @@ def pyinstaller_command(icon_path: Path, arch: str | None = None) -> list[str]:
         "--collect-all=objc",
         "--collect-all=Foundation",
         "--collect-all=AppKit",
+        # FileReader/FileOutputer use importlib-based lazy loading; collect
+        # their submodules so packaged builds can load formats at runtime.
+        "--collect-submodules=ModuleFolders.Domain.FileReader",
+        "--collect-submodules=ModuleFolders.Domain.FileOutputer",
         "--exclude-module=jaxlib",
         "--exclude-module=win32com",
         "--exclude-module=pythoncom",
