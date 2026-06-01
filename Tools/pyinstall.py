@@ -1,4 +1,5 @@
 import os
+import sys
 import PyInstaller.__main__
 
 cmd = [
@@ -51,4 +52,5 @@ if os.path.exists("./requirements.txt"):
     for pkg in _hidden_imports_from("./requirements_no_deps.txt"):
         cmd.append("--hidden-import=" + pkg)
 
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     PyInstaller.__main__.run(cmd)
