@@ -47,7 +47,7 @@ def _win_local_app_data() -> Path:
     return Path.home() / "AppData" / "Local"
 
 
-# 便携模式：Windows zip 解压目录里放了 portable.txt 时，所有用户数据放回 exe 旁。
+# 便携模式：有 portable.txt（Windows zip）或设了 AINIEE_PORTABLE=1 时，所有用户数据放回程序/仓库旁。
 _PORTABLE_WRITABLE_CACHE = None
 
 
@@ -75,13 +75,19 @@ def _portable_writable() -> bool:
     return _PORTABLE_WRITABLE_CACHE
 
 
+def _portable_requested() -> bool:
+    if os.environ.get("AINIEE_PORTABLE") == "1":
+        return True
+    return _portable_marker_present()
+
+
 def _portable_mode() -> bool:
-    return _portable_marker_present() and _portable_writable()
+    return _portable_requested() and _portable_writable()
 
 
-# 想便携但解压目录不可写 → 已回落标准位置，启动期据此弹一次提示。
+# 想便携但目录不可写 → 已回落标准位置，启动期据此弹一次提示。
 def portable_fallback_active() -> bool:
-    return _portable_marker_present() and not _portable_writable()
+    return _portable_requested() and not _portable_writable()
 
 
 # 随程序打包的 Resource 目录。
@@ -122,7 +128,7 @@ def user_data_root() -> Path:
     if override:
         return Path(override).expanduser().resolve()
 
-    if _is_macos():
+    if _is_macos() and not _portable_mode():
         return Path.home() / "Library" / "Application Support" / MACOS_APP_NAME
     if _is_windows() and not _portable_mode():
         return _win_local_app_data() / WIN_APP_NAME
@@ -146,7 +152,7 @@ def cache_root() -> Path:
     if override:
         return Path(override).expanduser().resolve()
 
-    if _is_macos():
+    if _is_macos() and not _portable_mode():
         return Path.home() / "Library" / "Caches" / MACOS_APP_NAME
     if _is_windows() and not _portable_mode():
         return _win_local_app_data() / WIN_APP_NAME / "Cache"
@@ -189,7 +195,7 @@ def user_log_dir() -> Path:
     if override:
         return Path(override).expanduser().resolve()
 
-    if _is_macos():
+    if _is_macos() and not _portable_mode():
         return Path.home() / "Library" / "Logs" / MACOS_APP_NAME
     if _is_windows() and not _portable_mode():
         return _win_local_app_data() / WIN_APP_NAME / "Logs"
