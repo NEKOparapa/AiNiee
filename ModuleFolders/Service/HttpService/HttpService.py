@@ -55,7 +55,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             return hmac.compare_digest(provided.encode("utf-8"), token.encode("utf-8"))
         if not _is_loopback(self.client_address[0]):
             return False
-        return _host_only(self.headers.get("Host", "")) in ("", "127.0.0.1", "localhost", "::1")
+        return _host_only(self.headers.get("Host", "")) in ("127.0.0.1", "localhost", "::1")
 
     def _reject_unauthorized(self):
         self.send_response(401)

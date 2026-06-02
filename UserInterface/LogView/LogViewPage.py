@@ -15,6 +15,7 @@ from UserInterface.Widget.Toast import ToastMixin
 
 
 _MAX_LINES = 5000
+_MAX_HIGHLIGHTS = 500
 
 _DARK_COLORS = {
     "CRITICAL": "#e06c75",
@@ -106,7 +107,7 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
         self.line_received.connect(self._append_line, Qt.QueuedConnection)
         self._gui_handler = get_gui_handler()
-        self._gui_handler.subscribe(self._on_log_line)
+        self._gui_handler.subscribe(self._on_log_line, batch_cb=self._append_batch)
         try:
             qconfig.themeChanged.connect(self._rerender_view)
         except RuntimeError:
@@ -149,6 +150,21 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         if self._auto_scroll:
             self._scroll_to_bottom()
 
+    def _append_batch(self, history) -> None:
+        self.text_edit.setUpdatesEnabled(False)
+        try:
+            for line, level in history:
+                self._buffer.append((line, level))
+                if self._matches_filter(level):
+                    self._render_line(line, level)
+            self._trim_view()
+        finally:
+            self.text_edit.setUpdatesEnabled(True)
+        if self._search_text:
+            self._highlight_timer.start()
+        if self._auto_scroll:
+            self._scroll_to_bottom()
+
     def _matches_filter(self, level: str) -> bool:
         if self._filter_level == "ALL":
             return True
@@ -170,6 +186,8 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         excess = doc.blockCount() - _MAX_LINES
         if excess <= 0:
             return
+        if self._search_text:
+            self.text_edit.setExtraSelections([])
         cursor = QTextCursor(doc)
         cursor.movePosition(QTextCursor.Start)
         cursor.movePosition(QTextCursor.NextBlock, QTextCursor.KeepAnchor, excess)
@@ -191,7 +209,7 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _on_search_changed(self, text: str) -> None:
         self._search_text = text
-        self._reapply_highlight()
+        self._highlight_timer.start()
 
     def _reapply_highlight(self) -> None:
         if not self._search_text:
@@ -201,7 +219,7 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         doc = self.text_edit.document()
         cursor = QTextCursor(doc)
         flags = QTextDocument.FindFlags()  # case-insensitive 默认
-        while True:
+        while len(selections) < _MAX_HIGHLIGHTS:
             cursor = doc.find(self._search_text, cursor, flags)
             if cursor.isNull():
                 break

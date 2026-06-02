@@ -151,7 +151,7 @@ class _GUIHandler(logging.Handler):
         # 不加守卫会无限递归直到 RecursionError
         self._dispatching = threading.local()
 
-    def subscribe(self, cb) -> None:
+    def subscribe(self, cb, batch_cb=None) -> None:
         # 锁内：原子地决定回放与挂订阅，避免 emit 在两者之间塞入 record 而新 cb 漏收
         with self.lock:
             if cb in self._subscribers:
@@ -159,6 +159,12 @@ class _GUIHandler(logging.Handler):
             history = list(self._replay)
             self._subscribers.append(cb)
         # 锁外回放，cb 可能耗时或重入 logging
+        if batch_cb is not None:
+            try:
+                batch_cb(history)
+            except Exception:
+                pass
+            return
         for line, level in history:
             try:
                 cb(line, level)
@@ -196,6 +202,14 @@ class _GUIHandler(logging.Handler):
             self.handleError(record)
 
 
+def _emergency_stderr(text: str) -> None:
+    try:
+        if sys.__stderr__ is not None:
+            sys.__stderr__.write(text + "\n")
+    except Exception:
+        pass
+
+
 class _BroadcastStream:
     """包裹 sys.stdout/stderr：原写入照常 + 按行 flush 到 logger（再到 root → file + gui）。
 
@@ -231,7 +245,7 @@ class _BroadcastStream:
             try:
                 self._logger.log(self._level, line)
             except Exception:
-                pass
+                _emergency_stderr(line)
         return len(text)
 
     def flush(self):
@@ -253,7 +267,7 @@ class _BroadcastStream:
             try:
                 self._logger.log(self._level, pending)
             except Exception:
-                pass
+                _emergency_stderr(pending)
 
     def isatty(self):
         try:
@@ -313,13 +327,24 @@ _original_excepthook = None
 _original_thread_excepthook = None
 
 
+def _crash_fallback(exc_type, exc_value, exc_tb) -> None:
+    try:
+        import traceback
+        fallback = user_log_dir() / "crash_fallback.log"
+        fallback.parent.mkdir(parents=True, exist_ok=True)
+        with open(fallback, "a", encoding="utf-8") as f:
+            traceback.print_exception(exc_type, exc_value, exc_tb, file=f)
+    except Exception:
+        _emergency_stderr("crash logging failed")
+
+
 def _excepthook(exc_type, exc_value, exc_tb) -> None:
     try:
         logging.getLogger(CRASH_LOGGER_NAME).critical(
             "Uncaught exception", exc_info=(exc_type, exc_value, exc_tb)
         )
     except Exception:
-        pass
+        _crash_fallback(exc_type, exc_value, exc_tb)
     if _original_excepthook is not None:
         _original_excepthook(exc_type, exc_value, exc_tb)
 
@@ -332,7 +357,7 @@ def _thread_excepthook(args) -> None:
             exc_info=(args.exc_type, args.exc_value, args.exc_traceback),
         )
     except Exception:
-        pass
+        _crash_fallback(args.exc_type, args.exc_value, args.exc_traceback)
     if _original_thread_excepthook is not None:
         _original_thread_excepthook(args)
 

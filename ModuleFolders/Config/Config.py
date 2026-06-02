@@ -106,8 +106,11 @@ class ConfigMixin:
             ConfigMixin.CONFIG_PATH = config_path()
             old = {}
             if os.path.exists(ConfigMixin.CONFIG_PATH):
-                with open(ConfigMixin.CONFIG_PATH, "r", encoding="utf-8") as reader:
-                    old = json.load(reader)
+                try:
+                    with open(ConfigMixin.CONFIG_PATH, "r", encoding="utf-8") as reader:
+                        old = json.load(reader)
+                except (json.JSONDecodeError, OSError):
+                    old = {}
 
             if old == new:
                 return old

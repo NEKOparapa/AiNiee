@@ -48,11 +48,16 @@ def _hidden_imports_from(path):
                 yield line
 
 
-if os.path.exists("./requirements.txt"):
-    for pkg in _hidden_imports_from("./requirements.txt"):
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(ROOT)
+_req = os.path.join(ROOT, "requirements.txt")
+if os.path.exists(_req):
+    for pkg in _hidden_imports_from(_req):
         cmd.append("--hidden-import=" + pkg)
-    for pkg in _hidden_imports_from("./requirements_no_deps.txt"):
-        cmd.append("--hidden-import=" + pkg)
+    _req_nodeps = os.path.join(ROOT, "requirements_no_deps.txt")
+    if os.path.exists(_req_nodeps):
+        for pkg in _hidden_imports_from(_req_nodeps):
+            cmd.append("--hidden-import=" + pkg)
 
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    PyInstaller.__main__.run(cmd)
+sys.path.insert(0, ROOT)
+PyInstaller.__main__.run(cmd)
