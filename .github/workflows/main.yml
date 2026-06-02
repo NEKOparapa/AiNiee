@@ -52,14 +52,14 @@ jobs:
           # PyInstaller --add-data 已将 Resource 打入 dist\AiNiee\_internal\Resource，
           # 压缩整个输出目录，updater 会智能查找 AiNiee.exe 所在目录
           Set-Content -Path "dist\AiNiee\portable.txt" -Value "便携模式：删除此文件可改用系统目录。"
-          Compress-Archive -Path "dist\AiNiee" -DestinationPath "AiNiee-Beta.zip"
+          Compress-Archive -Path "dist\AiNiee" -DestinationPath "AiNiee-Beta-Windows-Portable.zip"
           Remove-Item "dist\AiNiee\portable.txt" -Force
 
       - name: Upload Windows package
         uses: actions/upload-artifact@v4
         with:
-          name: AiNiee-Beta-Windows
-          path: AiNiee-Beta.zip
+          name: AiNiee-Beta-Windows-Portable
+          path: AiNiee-Beta-Windows-Portable.zip
 
       - name: Build Windows installer
         run: python .\Tools\build_installer_windows.py
@@ -67,8 +67,8 @@ jobs:
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: AiNiee-Beta-Setup-Windows
-          path: AiNiee-Beta-Setup.exe
+          name: AiNiee-Beta-Windows-Setup
+          path: AiNiee-Beta-Windows-Setup.exe
 
   build-macos:
     name: Build macOS (${{ matrix.arch }})
