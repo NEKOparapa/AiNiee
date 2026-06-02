@@ -1,5 +1,6 @@
 import threading
 import json
+import hmac
 import urllib.request
 import urllib.error
 import time
@@ -23,10 +24,35 @@ class RequestHandler(BaseHTTPRequestHandler):
         # 屏蔽默认的控制台日志，避免刷屏
         pass
 
+    def _authorized(self) -> bool:
+        config = self.server.service_instance.load_config()
+        token = str(config.get("http_auth_token", "")).strip()
+        if token:
+            provided = self.headers.get("X-Auth-Token", "").strip()
+            if not provided:
+                auth = self.headers.get("Authorization", "")
+                if auth[:7].lower() == "bearer ":
+                    provided = auth[7:].strip()
+            return hmac.compare_digest(provided, token)
+        if self.client_address[0] not in ("127.0.0.1", "::1"):
+            return False
+        host = self.headers.get("Host", "").rsplit(":", 1)[0].strip("[]").lower()
+        return host in ("", "127.0.0.1", "localhost", "::1")
+
+    def _reject_unauthorized(self):
+        self.send_response(401)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps({"status": "error", "message": "Unauthorized"}).encode('utf-8'))
+
     def do_POST(self):
         """处理 POST 请求（支持传参）"""
         service = self.server.service_instance
-        
+
+        if not self._authorized():
+            self._reject_unauthorized()
+            return
+
         response_data = {"status": "error", "message": "Unknown command"}
         status_code = 404
         path = self.path.lower()
@@ -110,7 +136,11 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         """处理 GET 请求（保持向后兼容）"""
         service = self.server.service_instance
-        
+
+        if not self._authorized():
+            self._reject_unauthorized()
+            return
+
         response_data = {"status": "error", "message": "Unknown command"}
         status_code = 404
         path = self.path.lower()

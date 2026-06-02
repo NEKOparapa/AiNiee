@@ -645,7 +645,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                 return
 
             # 获取文件大小信息
-            file_size_response = requests.head(url, allow_redirects=True)
+            file_size_response = requests.head(url, allow_redirects=True, timeout=(10, 30))
             total_size = int(file_size_response.headers.get('content-length', 0))
 
             # 记录下载信息
@@ -684,7 +684,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             # 开始下载
             mode = 'ab' if downloaded > 0 else 'wb'
 
-            with requests.get(url, stream=True, headers=headers) as r:
+            with requests.get(url, stream=True, headers=headers, timeout=(10, 60)) as r:
                 r.raise_for_status()
                 block_size = 8192
 

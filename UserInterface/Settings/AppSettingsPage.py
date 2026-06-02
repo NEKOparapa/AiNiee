@@ -48,6 +48,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             "label_input_exclude_rule": "",
             "http_server_enable": False,
             "http_listen_address": "127.0.0.1:3388",
+            "http_auth_token": "",
             "http_callback_url": "",
         }
 
@@ -190,6 +191,25 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
                 self.tra("格式为 IP:端口，例如 127.0.0.1:3388 (仅本机) 或 0.0.0.0:3388 (局域网)"),
                 init=init_address,
                 text_changed=text_changed_address,
+            )
+        )
+
+        # --- 访问 Token ---
+        def init_token(widget) -> None:
+            widget.set_text(config.get("http_auth_token", ""))
+            widget.set_placeholder_text(self.tra("未设置仅本机可用"))
+
+        def text_changed_token(widget, text: str) -> None:
+            config = self.load_config()
+            config["http_auth_token"] = text.strip()
+            self.save_config(config)
+
+        parent.addWidget(
+            LineEditCard(
+                self.tra("访问 Token"),
+                self.tra("设置后所有请求须带 X-Auth-Token 头；未设置时仅允许 127.0.0.1 本机访问（绑定 0.0.0.0 对外时务必设置）"),
+                init=init_token,
+                text_changed=text_changed_token,
             )
         )
 
