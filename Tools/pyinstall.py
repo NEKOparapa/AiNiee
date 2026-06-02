@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import PyInstaller.__main__
 
@@ -44,6 +45,7 @@ def _hidden_imports_from(path):
             if "#" in raw:
                 continue
             line = raw.split(";")[0].strip()
+            line = re.split(r"[<>=!~\[ ]", line, maxsplit=1)[0].strip()
             if line:
                 yield line
 
@@ -51,13 +53,14 @@ def _hidden_imports_from(path):
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
 _req = os.path.join(ROOT, "requirements.txt")
-if os.path.exists(_req):
-    for pkg in _hidden_imports_from(_req):
+if not os.path.exists(_req):
+    raise SystemExit(f"requirements.txt not found at {_req}; refusing to build an incomplete EXE")
+for pkg in _hidden_imports_from(_req):
+    cmd.append("--hidden-import=" + pkg)
+_req_nodeps = os.path.join(ROOT, "requirements_no_deps.txt")
+if os.path.exists(_req_nodeps):
+    for pkg in _hidden_imports_from(_req_nodeps):
         cmd.append("--hidden-import=" + pkg)
-    _req_nodeps = os.path.join(ROOT, "requirements_no_deps.txt")
-    if os.path.exists(_req_nodeps):
-        for pkg in _hidden_imports_from(_req_nodeps):
-            cmd.append("--hidden-import=" + pkg)
 
 sys.path.insert(0, ROOT)
 PyInstaller.__main__.run(cmd)

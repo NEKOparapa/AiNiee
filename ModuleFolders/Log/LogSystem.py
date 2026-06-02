@@ -328,14 +328,15 @@ _original_thread_excepthook = None
 
 
 def _crash_fallback(exc_type, exc_value, exc_tb) -> None:
+    import traceback
+    text = redact("".join(traceback.format_exception(exc_type, exc_value, exc_tb)))
     try:
-        import traceback
         fallback = user_log_dir() / "crash_fallback.log"
         fallback.parent.mkdir(parents=True, exist_ok=True)
         with open(fallback, "a", encoding="utf-8") as f:
-            traceback.print_exception(exc_type, exc_value, exc_tb, file=f)
+            f.write(text)
     except Exception:
-        _emergency_stderr("crash logging failed")
+        _emergency_stderr(text)
 
 
 def _excepthook(exc_type, exc_value, exc_tb) -> None:

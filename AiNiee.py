@@ -91,8 +91,15 @@ def load_config() -> dict:
     migrate_config_if_needed()
     path = config_path()
     if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as reader:
-            config = json.load(reader)
+        try:
+            with open(path, "r", encoding="utf-8") as reader:
+                config = json.load(reader)
+        except (json.JSONDecodeError, OSError):
+            try:
+                os.replace(path, f"{path}.corrupt")
+            except OSError:
+                pass
+            config = {}
     return config
 
 # 载入版本信息函数
