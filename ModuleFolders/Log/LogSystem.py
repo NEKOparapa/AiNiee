@@ -56,6 +56,11 @@ _CONTEXT_KEY_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+_AUTH_VALUE_PATTERN = re.compile(
+    r"((?:proxy-)?authorization)(['\"]?\s*[:=]\s*)\S[^\r\n]*",
+    re.IGNORECASE,
+)
+
 _EXC_FORMATTER = logging.Formatter()
 
 # 线程局部嵌套深度：LogMixin 调 rich.print 前 +1，退出 -1。
@@ -100,6 +105,7 @@ def redact(text):
         return text
     for pat, repl in _API_KEY_PATTERNS:
         text = pat.sub(repl, text)
+    text = _AUTH_VALUE_PATTERN.sub(lambda m: f"{m.group(1)}{m.group(2)}{REDACTED}", text)
     return _CONTEXT_KEY_PATTERN.sub(lambda m: f"{m.group(1)}{m.group(2)}{REDACTED}{m.group(3)}", text)
 
 
