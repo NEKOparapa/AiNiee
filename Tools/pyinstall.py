@@ -42,9 +42,9 @@ for module_name in MODULES_TO_EXCLUDE:
 def _hidden_imports_from(path):
     with open(path, "r", encoding="utf-8") as reader:
         for raw in reader:
-            if "#" in raw:
+            line = raw.split("#", 1)[0].split(";")[0].strip()
+            if not line or line.startswith("-") or "://" in line:
                 continue
-            line = raw.split(";")[0].strip()
             line = re.split(r"[<>=!~\[ ]", line, maxsplit=1)[0].strip()
             if line:
                 yield line

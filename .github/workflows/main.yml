@@ -157,6 +157,12 @@ jobs:
         run: |
           set -euo pipefail
 
+          shopt -s nullglob
+          assets=(release-assets/*)
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "No release assets downloaded; refusing to recreate Beta release"; exit 1
+          fi
+
           # 同 tag 的正式 release 和 draft 都先清掉，避免 action 命中重复 draft 后发布失败。
           gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate --jq '.[] | select(.tag_name == "Beta") | .id' |
           while read -r release_id; do
@@ -167,7 +173,7 @@ jobs:
 
           gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/Beta" >/dev/null 2>&1 || true
 
-          gh release create Beta release-assets/* \
+          gh release create Beta "${assets[@]}" \
             --title "AiNiee-Beta 开发测试版本，由最新源码自动打包" \
             --notes "AiNiee-Beta 开发测试版本，由最新源码自动打包" \
             --generate-notes \

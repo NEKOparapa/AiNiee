@@ -137,6 +137,7 @@ class _PlainFormatter(logging.Formatter):
 
 
 _REPLAY_BUFFER_SIZE = 5000
+_MAX_LINE_WIDTH = 16384
 
 
 class _GUIHandler(logging.Handler):
@@ -181,6 +182,8 @@ class _GUIHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         try:
             line = self.format(record)
+            if len(line) > _MAX_LINE_WIDTH:
+                line = line[:_MAX_LINE_WIDTH] + " …(truncated)"
             level = record.levelname
             with self.lock:
                 self._replay.append((line, level))
@@ -205,7 +208,7 @@ class _GUIHandler(logging.Handler):
 def _emergency_stderr(text: str) -> None:
     try:
         if sys.__stderr__ is not None:
-            sys.__stderr__.write(text + "\n")
+            sys.__stderr__.write(redact(text) + "\n")
     except Exception:
         pass
 
@@ -329,14 +332,23 @@ _original_thread_excepthook = None
 
 def _crash_fallback(exc_type, exc_value, exc_tb) -> None:
     import traceback
-    text = redact("".join(traceback.format_exception(exc_type, exc_value, exc_tb)))
+    import tempfile
+    try:
+        text = redact("".join(traceback.format_exception(exc_type, exc_value, exc_tb))[:65536])
+    except Exception:
+        text = "AiNiee crash (traceback formatting failed)"
+    _emergency_stderr(text)
     try:
         fallback = user_log_dir() / "crash_fallback.log"
         fallback.parent.mkdir(parents=True, exist_ok=True)
         with open(fallback, "a", encoding="utf-8") as f:
-            f.write(text)
+            f.write(text + "\n")
     except Exception:
-        _emergency_stderr(text)
+        try:
+            with open(os.path.join(tempfile.gettempdir(), "ainiee_crash_fallback.log"), "a", encoding="utf-8") as f:
+                f.write(text + "\n")
+        except Exception:
+            pass
 
 
 def _excepthook(exc_type, exc_value, exc_tb) -> None:
