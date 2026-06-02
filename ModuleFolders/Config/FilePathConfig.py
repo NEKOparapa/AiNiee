@@ -234,6 +234,12 @@ def default_output_dir() -> Path:
     return documents_root() / "AiNiee" / "output"
 
 
+# 自动输出目录：输入文件夹的平级 AiNieeOutput。
+def auto_output_dir(input_path: str) -> str:
+    parent = os.path.dirname(os.path.abspath(input_path))
+    return os.path.join(parent, "AiNieeOutput")
+
+
 # 把存储的路径解析成绝对路径：空或相对值回落到可见的默认目录。
 def resolve_user_dir(value: str, fallback: Path) -> str:
     text = (value or "").strip()
