@@ -264,7 +264,10 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                 with open(download_info_file, 'r') as f:
                     download_info = json.load(f)
 
-                if download_info.get("status") == "completed":
+                cached_version = download_info.get("version")
+                is_completed = download_info.get("status") == "completed"
+                is_newer = bool(cached_version) and self._compare_versions(cached_version, self.current_version) > 0
+                if is_completed and is_newer:
                     # 已有下载完成的更新文件，直接提示安装
                     msg_box = MessageBox(
                         self.tra("安装更新"),
@@ -278,6 +281,12 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                         # 运行更新器
                         self._run_updater(str(local_filename))
                     return
+                if is_completed and not is_newer:
+                    try:
+                        os.remove(local_filename)
+                        os.remove(download_info_file)
+                    except OSError:
+                        pass
             except Exception as e:
                 self.error(f"Error checking downloaded update: {e}")
 
@@ -640,9 +649,21 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
             # 检查是否已经存在完成的文件
             if os.path.exists(local_filename):
-                self.info(f"Found completed download file: {local_filename}")
-                self.signals.download_completed.emit(local_filename)
-                return
+                cached_url = None
+                if os.path.exists(download_info_file):
+                    try:
+                        with open(download_info_file, 'r') as f:
+                            cached_url = json.load(f).get("url")
+                    except Exception:
+                        cached_url = None
+                if cached_url == url:
+                    self.info(f"Found completed download file: {local_filename}")
+                    self.signals.download_completed.emit(local_filename)
+                    return
+                try:
+                    os.remove(local_filename)
+                except OSError:
+                    pass
 
             # 获取文件大小信息
             file_size_response = requests.head(url, allow_redirects=True, timeout=(10, 30))
@@ -651,6 +672,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             # 记录下载信息
             download_info = {
                 "url": url,
+                "version": self.latest_version,
                 "total_size": total_size,
                 "downloaded": 0,
                 "status": "downloading"
@@ -660,15 +682,16 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             downloaded = 0
             headers = {}
 
-            if os.path.exists(temp_filename) and os.path.exists(download_info_file):
+            if total_size > 0 and os.path.exists(temp_filename) and os.path.exists(download_info_file):
                 try:
                     with open(download_info_file, 'r') as f:
                         saved_info = json.load(f)
 
                     # 验证URL是否相同
                     if saved_info.get("url") == url:
-                        downloaded = os.path.getsize(temp_filename)
-                        if downloaded < total_size:
+                        existing = os.path.getsize(temp_filename)
+                        if 0 < existing < total_size:
+                            downloaded = existing
                             # 设置Range头部进行续传
                             headers['Range'] = f'bytes={downloaded}-'
                             self.info(f"Resuming download from {downloaded} bytes")

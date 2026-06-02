@@ -91,25 +91,25 @@ class ConfigMixin:
         return config
 
     def save_config(self, new: dict) -> dict:
-        old = {}
-
         with ConfigMixin.CONFIG_FILE_LOCK:
             migrate_config_if_needed()
             ConfigMixin.CONFIG_PATH = config_path()
+            old = {}
             if os.path.exists(ConfigMixin.CONFIG_PATH):
                 with open(ConfigMixin.CONFIG_PATH, "r", encoding="utf-8") as reader:
                     old = json.load(reader)
 
-        if old == new:
-            return old
+            if old == new:
+                return old
 
-        for key, value in new.items():
-            old[key] = value
+            for key, value in new.items():
+                old[key] = value
 
-        with ConfigMixin.CONFIG_FILE_LOCK:
             os.makedirs(os.path.dirname(ConfigMixin.CONFIG_PATH), exist_ok=True)
-            with open(ConfigMixin.CONFIG_PATH, "w", encoding="utf-8") as writer:
+            tmp_path = f"{ConfigMixin.CONFIG_PATH}.tmp"
+            with open(tmp_path, "w", encoding="utf-8") as writer:
                 writer.write(json.dumps(old, indent=4, ensure_ascii=False))
+            os.replace(tmp_path, ConfigMixin.CONFIG_PATH)
 
         return old
 
