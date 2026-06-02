@@ -265,6 +265,23 @@ if __name__ == "__main__":
     # 显示全局窗口
     app_fluent_window.show()
 
+    from ModuleFolders.Config.FilePathConfig import portable_fallback_active
+    if portable_fallback_active():
+        from qfluentwidgets import InfoBar, InfoBarPosition
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(
+            800,
+            lambda: InfoBar.warning(
+                title="便携模式",
+                content="当前文件夹不可写，已改用系统目录保存数据。建议把程序解压到可写位置（文档 / 桌面 / U盘）。",
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=-1,
+                parent=app_fluent_window,
+            ),
+        )
+
     # 隐藏启动页面
     splash.finish(app_fluent_window)
 

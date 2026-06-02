@@ -47,6 +47,43 @@ def _win_local_app_data() -> Path:
     return Path.home() / "AppData" / "Local"
 
 
+# 便携模式：Windows zip 解压目录里放了 portable.txt 时，所有用户数据放回 exe 旁。
+_PORTABLE_WRITABLE_CACHE = None
+
+
+def _portable_marker_present() -> bool:
+    if not (getattr(sys, "frozen", False) and _is_windows()):
+        return False
+    return (executable_root() / "portable.txt").exists()
+
+
+def _probe_writable(directory: Path) -> bool:
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+        probe = directory / ".ainiee_write_test"
+        probe.write_text("", encoding="utf-8")
+        probe.unlink()
+        return True
+    except OSError:
+        return False
+
+
+def _portable_writable() -> bool:
+    global _PORTABLE_WRITABLE_CACHE
+    if _PORTABLE_WRITABLE_CACHE is None:
+        _PORTABLE_WRITABLE_CACHE = _probe_writable(executable_root())
+    return _PORTABLE_WRITABLE_CACHE
+
+
+def _portable_mode() -> bool:
+    return _portable_marker_present() and _portable_writable()
+
+
+# 想便携但解压目录不可写 → 已回落标准位置，启动期据此弹一次提示。
+def portable_fallback_active() -> bool:
+    return _portable_marker_present() and not _portable_writable()
+
+
 # 随程序打包的 Resource 目录。
 def resource_root() -> Path:
     override = os.environ.get("AINIEE_RESOURCE_DIR")
@@ -87,7 +124,7 @@ def user_data_root() -> Path:
 
     if _is_macos():
         return Path.home() / "Library" / "Application Support" / MACOS_APP_NAME
-    if _is_windows():
+    if _is_windows() and not _portable_mode():
         return _win_local_app_data() / WIN_APP_NAME
     return writable_root()
 
@@ -98,7 +135,9 @@ def _has_user_data_override() -> bool:
 
 # 是否走平台标准用户目录（而不是 exe 旁边）。
 def _uses_standard_user_dir() -> bool:
-    return _is_macos() or _is_windows() or _has_user_data_override()
+    if _has_user_data_override():
+        return True
+    return (_is_macos() or _is_windows()) and not _portable_mode()
 
 
 # 应用运行缓存目录。
@@ -109,7 +148,7 @@ def cache_root() -> Path:
 
     if _is_macos():
         return Path.home() / "Library" / "Caches" / MACOS_APP_NAME
-    if _is_windows():
+    if _is_windows() and not _portable_mode():
         return _win_local_app_data() / WIN_APP_NAME / "Cache"
     return writable_root() / "ProjectCache"
 
@@ -152,7 +191,7 @@ def user_log_dir() -> Path:
 
     if _is_macos():
         return Path.home() / "Library" / "Logs" / MACOS_APP_NAME
-    if _is_windows():
+    if _is_windows() and not _portable_mode():
         return _win_local_app_data() / WIN_APP_NAME / "Logs"
     return writable_root() / "Logs"
 
@@ -184,10 +223,14 @@ def documents_root() -> Path:
 
 
 def default_input_dir() -> Path:
+    if _portable_mode():
+        return executable_root() / "input"
     return documents_root() / "AiNiee" / "input"
 
 
 def default_output_dir() -> Path:
+    if _portable_mode():
+        return executable_root() / "output"
     return documents_root() / "AiNiee" / "output"
 
 

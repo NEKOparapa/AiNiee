@@ -2,6 +2,7 @@ import logging
 import shutil
 
 from ModuleFolders.Config.FilePathConfig import (
+    _portable_mode,
     cache_root,
     config_path,
     downloads_dir,
@@ -133,6 +134,8 @@ def migrate_config_if_needed() -> bool:
     2. 没 config 时从 bundled 复制一份默认（COPY，不 MOVE），保留 install 内模板。
        若检测到 stranded 状态（exe 旁 config 还在 + 有用户痕迹）则跳过 seed
     """
+    if _portable_mode():
+        return _seed_default_config()
     migrated = _migrate_legacy_user_data()
     if _looks_like_pending_legacy_config():
         return migrated

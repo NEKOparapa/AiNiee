@@ -51,7 +51,9 @@ jobs:
         run: |
           # PyInstaller --add-data 已将 Resource 打入 dist\AiNiee\_internal\Resource，
           # 压缩整个输出目录，updater 会智能查找 AiNiee.exe 所在目录
+          Set-Content -Path "dist\AiNiee\portable.txt" -Value "便携模式：删除此文件可改用系统目录。"
           Compress-Archive -Path "dist\AiNiee" -DestinationPath "AiNiee-Beta.zip"
+          Remove-Item "dist\AiNiee\portable.txt" -Force
 
       - name: Upload Windows package
         uses: actions/upload-artifact@v4
