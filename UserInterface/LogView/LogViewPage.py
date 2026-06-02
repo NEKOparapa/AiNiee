@@ -172,10 +172,8 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             return
         cursor = QTextCursor(doc)
         cursor.movePosition(QTextCursor.Start)
-        for _ in range(excess):
-            cursor.select(QTextCursor.BlockUnderCursor)
-            cursor.removeSelectedText()
-            cursor.deleteChar()
+        cursor.movePosition(QTextCursor.NextBlock, QTextCursor.KeepAnchor, excess)
+        cursor.removeSelectedText()
 
     def _rerender_view(self) -> None:
         self.text_edit.clear()

@@ -900,7 +900,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                     return
                 log_path = str(downloads_dir() / "AiNiee-installer-update.log")
                 subprocess.Popen(
-                    [update_file, "/VERYSILENT", "/NORESTART", "/FORCECLOSEAPPLICATIONS", f"/LOG={log_path}"],
+                    [update_file, "/VERYSILENT", "/NORESTART", "/FORCECLOSEAPPLICATIONS", "/RELAUNCH=1", f"/LOG={log_path}"],
                     creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
                 )
                 _, _, download_info_file = self._download_paths()
