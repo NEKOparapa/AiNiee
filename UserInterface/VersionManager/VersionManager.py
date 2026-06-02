@@ -230,15 +230,14 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         v2_parts = [int(x) for x in version2.split(".")]
 
         # 填充版本号，使得版本号的位数相同
-        while len(v1_parts) < 3:
-            v1_parts.append(0)
-        while len(v2_parts) < 3:
-            v2_parts.append(0)
+        n = max(len(v1_parts), len(v2_parts))
+        v1_parts += [0] * (n - len(v1_parts))
+        v2_parts += [0] * (n - len(v2_parts))
 
-        for i in range(3):
-            if v1_parts[i] > v2_parts[i]:
+        for a, b in zip(v1_parts, v2_parts):
+            if a > b:
                 return 1
-            elif v1_parts[i] < v2_parts[i]:
+            elif a < b:
                 return -1
 
         return 0
@@ -267,7 +266,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                 cached_version = download_info.get("version")
                 is_completed = download_info.get("status") == "completed"
                 is_newer = bool(cached_version) and self._compare_versions(cached_version, self.current_version) > 0
-                if is_completed and is_newer:
+                url_matches = bool(self.latest_download_url) and download_info.get("url") == self.latest_download_url
+                if is_completed and is_newer and url_matches:
                     # 已有下载完成的更新文件，直接提示安装
                     msg_box = MessageBox(
                         self.tra("安装更新"),

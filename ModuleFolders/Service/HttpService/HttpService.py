@@ -13,6 +13,25 @@ from ModuleFolders.Config.FilePathConfig import default_input_dir
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
 
+def _is_loopback(addr: str) -> bool:
+    a = (addr or "").strip().lower()
+    if a.startswith("::ffff:"):
+        a = a[7:]
+    return a in ("127.0.0.1", "::1", "localhost") or a.startswith("127.")
+
+
+def _host_only(host_header: str) -> str:
+    h = (host_header or "").strip().lower()
+    if not h:
+        return ""
+    if h[0] == "[":
+        end = h.find("]")
+        return h[1:end] if end > 0 else h.strip("[]")
+    if h.count(":") == 1:
+        return h.rsplit(":", 1)[0]
+    return h
+
+
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     """支持多线程处理的 HTTP Server"""
     daemon_threads = True
@@ -33,11 +52,10 @@ class RequestHandler(BaseHTTPRequestHandler):
                 auth = self.headers.get("Authorization", "")
                 if auth[:7].lower() == "bearer ":
                     provided = auth[7:].strip()
-            return hmac.compare_digest(provided, token)
-        if self.client_address[0] not in ("127.0.0.1", "::1"):
+            return hmac.compare_digest(provided.encode("utf-8"), token.encode("utf-8"))
+        if not _is_loopback(self.client_address[0]):
             return False
-        host = self.headers.get("Host", "").rsplit(":", 1)[0].strip("[]").lower()
-        return host in ("", "127.0.0.1", "localhost", "::1")
+        return _host_only(self.headers.get("Host", "")) in ("", "127.0.0.1", "localhost", "::1")
 
     def _reject_unauthorized(self):
         self.send_response(401)
@@ -337,13 +355,17 @@ class HttpService(ConfigMixin, LogMixin, Base):
         address_config = config.get("http_listen_address", "127.0.0.1:3388")
         
         try:
-            if ":" in address_config:
-                host, port_str = address_config.split(":")
+            addr = address_config.strip()
+            if addr.startswith("["):
+                host, _, rest = addr[1:].partition("]")
+                port = int(rest.lstrip(":"))
+            elif addr.count(":") == 1:
+                host, port_str = addr.split(":")
                 port = int(port_str)
             else:
                 # 如果用户只填了端口，默认监听 127.0.0.1
                 host = "127.0.0.1"
-                port = int(address_config)
+                port = int(addr)
         except ValueError:
             self.error(f"HTTP 监听地址格式错误: {address_config}。请使用 'IP:PORT' 格式 (如 127.0.0.1:3388)")
             return

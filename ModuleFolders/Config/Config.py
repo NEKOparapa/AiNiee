@@ -61,8 +61,16 @@ class ConfigMixin:
             migrate_config_if_needed()
             ConfigMixin.CONFIG_PATH = config_path()
             if os.path.exists(ConfigMixin.CONFIG_PATH):
-                with open(ConfigMixin.CONFIG_PATH, "r", encoding="utf-8") as reader:
-                    config = json.load(reader)
+                try:
+                    with open(ConfigMixin.CONFIG_PATH, "r", encoding="utf-8") as reader:
+                        config = json.load(reader)
+                except (json.JSONDecodeError, OSError) as error:
+                    print(f"[[red]WARNING[/]] Config unreadable, using defaults: {error}")
+                    try:
+                        os.replace(ConfigMixin.CONFIG_PATH, f"{ConfigMixin.CONFIG_PATH}.corrupt")
+                    except OSError:
+                        pass
+                    config = {}
 
                 # 旧版 DeepSeek 配置临时兼容块。
                 # 当旧版内置配置不再需要自动修复时，可直接删除此块。
@@ -72,8 +80,10 @@ class ConfigMixin:
                     if deepseek_platform.get("think_switch") is False and deepseek_platform.get("think_depth") == "low":
                         deepseek_platform["think_switch"] = True
                         deepseek_platform["think_depth"] = "high"
-                        with open(ConfigMixin.CONFIG_PATH, "w", encoding="utf-8") as writer:
+                        tmp_path = f"{ConfigMixin.CONFIG_PATH}.tmp"
+                        with open(tmp_path, "w", encoding="utf-8") as writer:
                             writer.write(json.dumps(config, indent=4, ensure_ascii=False))
+                        os.replace(tmp_path, ConfigMixin.CONFIG_PATH)
             else:
                 print("[[red]WARNING[/]] Config file does not exist ...")
 
