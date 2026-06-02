@@ -96,11 +96,11 @@ def portable_fallback_active() -> bool:
     return _portable_requested() and not _portable_writable()
 
 
-# 打包后的 Windows 安装版（无 portable.txt 标记）。
+# 打包后的 Windows 安装版（安装器在 {app} 写入 installed.flag）。
 def is_windows_installer_build() -> bool:
     if not (_is_windows() and getattr(sys, "frozen", False)):
         return False
-    return not _portable_marker_present()
+    return (executable_root() / "installed.flag").exists()
 
 
 # 随程序打包的 Resource 目录。
