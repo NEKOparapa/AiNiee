@@ -18,7 +18,7 @@ from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, Stron
                             InfoBar, InfoBarPosition, SubtitleLabel, MessageBoxBase)
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
-from ModuleFolders.Config.FilePathConfig import downloads_dir, resource_path
+from ModuleFolders.Config.FilePathConfig import downloads_dir, resource_path, is_windows_installer_build
 from ModuleFolders.Infrastructure.Platform.PlatformPaths import is_macos, is_windows, release_api_url
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.Toast import ToastMixin
@@ -83,7 +83,11 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         return match.group(0) if match else "0.0.0"
 
     def _update_file_suffix(self) -> str:
-        return ".dmg" if is_macos() else ".zip"
+        if is_macos():
+            return ".dmg"
+        if is_windows_installer_build():
+            return ".exe"
+        return ".zip"
 
     def _download_paths(self):
         download_root = downloads_dir()
@@ -107,6 +111,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
     def _expected_update_asset_suffix(self) -> str:
         if is_macos():
             return f"-{self._macos_arch()}.dmg"
+        if is_windows_installer_build():
+            return "-Windows-Setup.exe"
         return ".zip"
 
     def _find_download_url(self, assets: list[dict]) -> str | None:
@@ -620,10 +626,10 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             download_root.mkdir(parents=True, exist_ok=True)
 
             # 完成的文件名和临时文件名
-            update_suffix = ".dmg" if is_macos() else ".zip"
-            local_filename = str(download_root / f"AiNiee-update{update_suffix}")
-            temp_filename = str(download_root / f"AiNiee-update{update_suffix}.temp")
-            download_info_file = str(download_root / "download_info.json")
+            local_path, temp_path, info_path = self._download_paths()
+            local_filename = str(local_path)
+            temp_filename = str(temp_path)
+            download_info_file = str(info_path)
 
             # 清理已安装过的残留文件（download_info 已被 _run_updater 删除）
             if os.path.exists(local_filename) and not os.path.exists(download_info_file):
@@ -877,6 +883,33 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                 if self.latest_version_url:
                     QDesktopServices.openUrl(QUrl(self.latest_version_url))
                     return
+
+            if is_windows() and update_file.lower().endswith(".exe"):
+                if not os.path.exists(update_file):
+                    self.error(f"Installer not found: {update_file}")
+                    if self.main_window:
+                        InfoBar.error(
+                            title=self.tra("更新错误"),
+                            content=self.tra("找不到安装包，请手动下载安装最新版本"),
+                            orient=Qt.Horizontal,
+                            isClosable=True,
+                            position=InfoBarPosition.TOP,
+                            duration=3000,
+                            parent=self.main_window,
+                        )
+                    return
+                log_path = str(downloads_dir() / "AiNiee-installer-update.log")
+                subprocess.Popen(
+                    [update_file, "/VERYSILENT", "/NORESTART", "/FORCECLOSEAPPLICATIONS", f"/LOG={log_path}"],
+                    creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+                )
+                _, _, download_info_file = self._download_paths()
+                try:
+                    os.remove(str(download_info_file))
+                except OSError:
+                    pass
+                os.kill(os.getpid(), signal.SIGTERM)
+                return
 
             updater_path = str(resource_path("Updater", "updater.exe"))
 

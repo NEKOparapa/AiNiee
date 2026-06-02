@@ -96,6 +96,13 @@ def portable_fallback_active() -> bool:
     return _portable_requested() and not _portable_writable()
 
 
+# 打包后的 Windows 安装版（无 portable.txt 标记）。
+def is_windows_installer_build() -> bool:
+    if not (_is_windows() and getattr(sys, "frozen", False)):
+        return False
+    return not _portable_marker_present()
+
+
 # 随程序打包的 Resource 目录。
 def resource_root() -> Path:
     override = os.environ.get("AINIEE_RESOURCE_DIR")
