@@ -47,7 +47,8 @@ def _win_local_app_data() -> Path:
     return Path.home() / "AppData" / "Local"
 
 
-# 便携模式：有 portable.txt（Windows zip）或设了 AINIEE_PORTABLE=1 时，所有用户数据放回程序/仓库旁。
+# 便携模式：源码运行默认开启；打包版需 portable.txt（Windows zip）或 AINIEE_PORTABLE=1。
+# 数据全部放在程序/仓库旁；可用 AINIEE_PORTABLE=0 强制关闭。
 _PORTABLE_WRITABLE_CACHE = None
 
 
@@ -76,7 +77,12 @@ def _portable_writable() -> bool:
 
 
 def _portable_requested() -> bool:
-    if os.environ.get("AINIEE_PORTABLE") == "1":
+    flag = os.environ.get("AINIEE_PORTABLE")
+    if flag == "1":
+        return True
+    if flag == "0":
+        return False
+    if not getattr(sys, "frozen", False):
         return True
     return _portable_marker_present()
 
