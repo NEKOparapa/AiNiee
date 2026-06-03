@@ -8,7 +8,7 @@ import threading
 import requests
 from PyQt5.QtCore import pyqtSignal, QObject, Qt
 from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QGridLayout, QWidget)
+from PyQt5.QtWidgets import (QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QWidget)
 from PyQt5.QtCore import QUrl
 
 
@@ -906,7 +906,12 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
 
     def _exit_for_update(self) -> None:
-        # 退出前刷新关闭日志处理器，确保更新流程日志落盘、文件句柄释放
+        # 优雅退出：同步跑 APP_SHUT_DOWN 处理器（关 HTTP/停缓存保存/停任务）+ 刷日志，再强制退出兜底
+        try:
+            self.emit(Base.EVENT.APP_SHUT_DOWN, {})
+            QApplication.processEvents()
+        except Exception:
+            pass
         try:
             import logging
             logging.shutdown()
