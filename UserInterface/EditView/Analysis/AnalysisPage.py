@@ -154,6 +154,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._splitter_ratio_initialized = False
         self._table_width_ratio_initialized = set()
         self._temp_row_counter = 0
+        self._sort_states = {}
         self.analysis_runtime_state = self._create_default_runtime_state()
 
         self.container = QVBoxLayout(self)
@@ -669,13 +670,93 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         table.setBorderVisible(True)
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         table.horizontalHeader().setStretchLastSection(True)
+        table.setSortingEnabled(False)
+        table.horizontalHeader().setSortIndicatorShown(True)
+        table.horizontalHeader().sectionClicked.connect(
+            lambda column, current_view=view_name: self._sort_table_by_column(current_view, column)
+        )
         table.setContextMenuPolicy(Qt.CustomContextMenu)
         table.customContextMenuRequested.connect(
             lambda pos, current_table=table, current_view=view_name: self._show_table_context_menu(
                 current_view, current_table, pos
             )
         )
+        self._get_sort_state(view_name)
+        table.horizontalHeader().setSortIndicator(-1, Qt.AscendingOrder)
         return table
+
+    def _get_sort_state(self, view_name: str) -> dict:
+        return self._sort_states.setdefault(
+            view_name,
+            {"column": -1, "order": Qt.AscendingOrder},
+        )
+
+    def _reset_sort_indicator(self, view_name: str) -> None:
+        state = self._get_sort_state(view_name)
+        state["column"] = -1
+        state["order"] = Qt.AscendingOrder
+        table = self._get_table_for_view(view_name)
+        if table:
+            table.horizontalHeader().setSortIndicator(-1, Qt.AscendingOrder)
+
+    def _get_table_field_specs(self, view_name: str) -> list[tuple[str, bool]]:
+        if view_name == self.VIEW_CHARACTERS:
+            return [
+                ("source", True),
+                ("recommended_translation", True),
+                ("gender", True),
+                ("occurrence_count", False),
+                ("note", True),
+            ]
+        if view_name == self.VIEW_TERMS:
+            return [
+                ("source", True),
+                ("recommended_translation", True),
+                ("category_path", True),
+                ("occurrence_count", False),
+                ("note", True),
+            ]
+        if view_name == self.VIEW_NON_TRANSLATE:
+            return [
+                ("marker", True),
+                ("category", True),
+                ("occurrence_count", False),
+                ("note", True),
+            ]
+        return []
+
+    def _sort_table_by_column(self, view_name: str, column: int) -> None:
+        field_specs = self._get_table_field_specs(view_name)
+        if column < 0 or column >= len(field_specs):
+            self.warning(f"Invalid column index {column} for analysis table sorting.")
+            return
+
+        state = self._get_sort_state(view_name)
+        if state["column"] == column:
+            state["order"] = (
+                Qt.DescendingOrder
+                if state["order"] == Qt.AscendingOrder
+                else Qt.AscendingOrder
+            )
+        else:
+            state["column"] = column
+            state["order"] = Qt.AscendingOrder
+
+        if view_name == self.VIEW_CHARACTERS:
+            self._populate_characters_table()
+        elif view_name == self.VIEW_TERMS:
+            self._populate_terms_table()
+        else:
+            self._populate_non_translate_table()
+
+        table = self._get_table_for_view(view_name)
+        if table:
+            table.horizontalHeader().setSortIndicator(state["column"], state["order"])
+
+        self.info_toast("", self.tra("表格已按 '{}' {}排序").format(
+            table.horizontalHeaderItem(column).text() if table and table.horizontalHeaderItem(column) else "",
+            self.tra("升序") if state["order"] == Qt.AscendingOrder else self.tra("降序"),
+        ))
 
     def _show_table_context_menu(self, view_name: str, table: TableWidget, pos: QPoint) -> None:
         item = table.itemAt(pos)
@@ -774,9 +855,9 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _get_table_for_view(self, view_name: str) -> TableWidget | None:
         return {
-            self.VIEW_CHARACTERS: self.characters_table,
-            self.VIEW_TERMS: self.terms_table,
-            self.VIEW_NON_TRANSLATE: self.non_translate_table,
+            self.VIEW_CHARACTERS: getattr(self, "characters_table", None),
+            self.VIEW_TERMS: getattr(self, "terms_table", None),
+            self.VIEW_NON_TRANSLATE: getattr(self, "non_translate_table", None),
         }.get(view_name)
 
     def _get_initial_column_ratios(self, view_name: str) -> tuple[int, ...]:
@@ -950,13 +1031,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._fill_table(
             self.characters_table,
             rows,
-            [
-                ("source", True),
-                ("recommended_translation", True),
-                ("gender", True),
-                ("occurrence_count", False),
-                ("note", True),
-            ],
+            self._get_table_field_specs(self.VIEW_CHARACTERS),
             self.VIEW_CHARACTERS,
         )
 
@@ -966,13 +1041,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._fill_table(
             self.terms_table,
             rows,
-            [
-                ("source", True),
-                ("recommended_translation", True),
-                ("category_path", True),
-                ("occurrence_count", False),
-                ("note", True),
-            ],
+            self._get_table_field_specs(self.VIEW_TERMS),
             self.VIEW_TERMS,
         )
 
@@ -982,7 +1051,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._fill_table(
             self.non_translate_table,
             rows,
-            [("marker", True), ("category", True), ("occurrence_count", False), ("note", True)],
+            self._get_table_field_specs(self.VIEW_NON_TRANSLATE),
             self.VIEW_NON_TRANSLATE,
         )
 
@@ -1007,6 +1076,37 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 table.setItem(row_index, col_index, item)
         table.resizeRowsToContents()
         table.blockSignals(False)
+        self._apply_sort_indicator(view_name)
+
+    def _apply_sort_indicator(self, view_name: str) -> None:
+        table = self._get_table_for_view(view_name)
+        if not table:
+            return
+
+        state = self._get_sort_state(view_name)
+        table.horizontalHeader().setSortIndicator(state["column"], state["order"])
+
+    def _get_sort_value(self, view_name: str, row: dict, field_name: str):
+        if field_name == "occurrence_count":
+            return self._get_occurrence_count_value(row.get(field_name))
+
+        value = row.get(field_name, "")
+        display_value = self._get_display_field_value(view_name, field_name, value, row)
+        return str(display_value or "").lower()
+
+    def _apply_sort_to_rows(self, view_name: str, rows: list[dict]) -> list[dict]:
+        state = self._get_sort_state(view_name)
+        column = int(state.get("column", -1))
+        field_specs = self._get_table_field_specs(view_name)
+        if column < 0 or column >= len(field_specs):
+            return rows
+
+        field_name = field_specs[column][0]
+        return sorted(
+            rows,
+            key=lambda row: self._get_sort_value(view_name, row, field_name),
+            reverse=state.get("order") == Qt.DescendingOrder,
+        )
 
     def on_nav_item_clicked(self, item, column) -> None:
         data = item.data(0, Qt.UserRole)
@@ -1879,9 +1979,12 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         rows = list(self.analysis_data.get(key, []) or [])
         current_filter = self._get_filter_for_view(view_name)
         if not current_filter:
-            return rows
+            return self._apply_sort_to_rows(view_name, rows)
 
-        return [row for row in rows if self._get_category_for_row(view_name, row) == current_filter]
+        return self._apply_sort_to_rows(
+            view_name,
+            [row for row in rows if self._get_category_for_row(view_name, row) == current_filter],
+        )
 
     def _get_analysis_key(self, view_name: str) -> str | None:
         return {
