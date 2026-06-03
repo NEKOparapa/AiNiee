@@ -1,6 +1,7 @@
+import threading
 from collections import deque
 
-from PyQt5.QtCore import Qt, QUrl, QTimer, pyqtSignal
+from PyQt5.QtCore import QUrl, QTimer
 from PyQt5.QtGui import QColor, QDesktopServices, QTextCursor, QTextDocument
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTextEdit
 
@@ -35,13 +36,14 @@ _HIGHLIGHT_BG = QColor("#f1c40f")
 
 
 class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
-    line_received = pyqtSignal(str, str)
 
     def __init__(self, text: str, window) -> None:
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
         self._buffer: deque = deque(maxlen=_MAX_LINES)
+        self._pending: deque = deque(maxlen=_MAX_LINES)
+        self._pending_lock = threading.Lock()
         self._auto_scroll = True
         self._filter_level = "ALL"
         self._search_text = ""
@@ -105,7 +107,12 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self._highlight_timer.setInterval(200)
         self._highlight_timer.timeout.connect(self._reapply_highlight)
 
-        self.line_received.connect(self._append_line, Qt.QueuedConnection)
+        # 合并渲染：worker 线程把日志塞进缓冲，由 GUI 线程定时器批量取，避免高并发洪水灌满事件队列
+        self._drain_timer = QTimer(self)
+        self._drain_timer.setInterval(100)
+        self._drain_timer.timeout.connect(self._drain_pending)
+        self._drain_timer.start()
+
         self._gui_handler = get_gui_handler()
         self._gui_handler.subscribe(self._on_log_line, batch_cb=self._append_batch)
         try:
@@ -127,6 +134,10 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             self._highlight_timer.stop()
         except (RuntimeError, AttributeError):
             pass
+        try:
+            self._drain_timer.stop()
+        except (RuntimeError, AttributeError):
+            pass
 
     def closeEvent(self, event):
         try:
@@ -145,18 +156,20 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         btn.move(x, y)
 
     def _on_log_line(self, line: str, level: str) -> None:
-        self.line_received.emit(line, level)
+        # 可能在 worker 线程被调用：只入缓冲，渲染交给 GUI 线程的 _drain_timer
+        with self._pending_lock:
+            self._pending.append((line, level))
 
-    def _append_line(self, line: str, level: str) -> None:
-        self._buffer.append((line, level))
-        if not self._matches_filter(level):
+    def _drain_pending(self) -> None:
+        with self._pending_lock:
+            if not self._pending:
+                return
+            batch = list(self._pending)
+            self._pending.clear()
+        try:
+            self._append_batch(batch)
+        except RuntimeError:
             return
-        self._render_line(line, level)
-        self._trim_view()
-        if self._search_text:
-            self._highlight_timer.start()
-        if self._auto_scroll:
-            self._scroll_to_bottom()
 
     def _append_batch(self, history) -> None:
         self.text_edit.setUpdatesEnabled(False)

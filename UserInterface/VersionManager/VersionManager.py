@@ -905,6 +905,15 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                 self.main_window.warning_toast(self.tra("下载取消"), self.tra("正在取消下载，请稍候..."))
 
 
+    def _exit_for_update(self) -> None:
+        # 退出前刷新关闭日志处理器，确保更新流程日志落盘、文件句柄释放
+        try:
+            import logging
+            logging.shutdown()
+        except Exception:
+            pass
+        os.kill(os.getpid(), signal.SIGTERM)
+
     def _run_updater(self, update_file):
         """Run the updater executable"""
         try:
@@ -921,7 +930,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                         os.remove(str(download_info_file))
                     except OSError:
                         pass
-                    os.kill(os.getpid(), signal.SIGTERM)
+                    self._exit_for_update()
                     return
 
                 if self.latest_version_url:
@@ -952,7 +961,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                     os.remove(str(download_info_file))
                 except OSError:
                     pass
-                os.kill(os.getpid(), signal.SIGTERM)
+                self._exit_for_update()
                 return
 
             updater_path = str(resource_path("Updater", "updater.exe"))
@@ -973,7 +982,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                     pass
 
                 # 退出当前程序
-                os.kill(os.getpid(), signal.SIGTERM)
+                self._exit_for_update()
 
             else:
                 self.error(f"Updater not found: {updater_path}")
