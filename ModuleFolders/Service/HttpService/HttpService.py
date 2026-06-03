@@ -58,6 +58,9 @@ class RequestHandler(BaseHTTPRequestHandler):
         return _host_only(self.headers.get("Host", "")) in ("127.0.0.1", "localhost", "::1")
 
     def _reject_unauthorized(self):
+        service = getattr(self.server, "service_instance", None)
+        if service is not None:
+            service.warning(f"HTTP 鉴权失败，已拒绝 (Client: {self.client_address[0]})")
         self.send_response(401)
         self.send_header('Content-type', 'application/json')
         self.end_headers()

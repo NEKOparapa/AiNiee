@@ -61,6 +61,14 @@ _AUTH_VALUE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+_URL_CRED_PATTERN = re.compile(r"([a-z][a-z0-9+.\-]*://)[^/\s@]+@", re.IGNORECASE)
+
+_QUOTED_SECRET_PATTERN = re.compile(
+    r"(api[_\-]?key|apikey|access[_\-]?key|secret[_\-]?access[_\-]?key|secret[_\-]?key|secret|token|authorization|password|passwd|pwd)"
+    r"(\s*[:=]\s*)(['\"])[^'\"]*\3",
+    re.IGNORECASE,
+)
+
 _EXC_FORMATTER = logging.Formatter()
 
 # 线程局部嵌套深度：LogMixin 调 rich.print 前 +1，退出 -1。
@@ -106,6 +114,8 @@ def redact(text):
     for pat, repl in _API_KEY_PATTERNS:
         text = pat.sub(repl, text)
     text = _AUTH_VALUE_PATTERN.sub(lambda m: f"{m.group(1)}{m.group(2)}{REDACTED}", text)
+    text = _URL_CRED_PATTERN.sub(lambda m: f"{m.group(1)}{REDACTED}@", text)
+    text = _QUOTED_SECRET_PATTERN.sub(lambda m: f"{m.group(1)}{m.group(2)}{m.group(3)}{REDACTED}{m.group(3)}", text)
     return _CONTEXT_KEY_PATTERN.sub(lambda m: f"{m.group(1)}{m.group(2)}{REDACTED}{m.group(3)}", text)
 
 

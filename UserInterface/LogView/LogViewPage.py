@@ -119,6 +119,14 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             self._gui_handler.unsubscribe(self._on_log_line)
         except Exception:
             pass
+        try:
+            qconfig.themeChanged.disconnect(self._rerender_view)
+        except (TypeError, RuntimeError):
+            pass
+        try:
+            self._highlight_timer.stop()
+        except (RuntimeError, AttributeError):
+            pass
 
     def closeEvent(self, event):
         try:
@@ -194,14 +202,17 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         cursor.removeSelectedText()
 
     def _rerender_view(self) -> None:
-        self.text_edit.clear()
-        for line, level in self._buffer:
-            if self._matches_filter(level):
-                self._render_line(line, level)
-        self._trim_view()
-        self._reapply_highlight()
-        if self._auto_scroll:
-            self._scroll_to_bottom()
+        try:
+            self.text_edit.clear()
+            for line, level in self._buffer:
+                if self._matches_filter(level):
+                    self._render_line(line, level)
+            self._trim_view()
+            self._reapply_highlight()
+            if self._auto_scroll:
+                self._scroll_to_bottom()
+        except RuntimeError:
+            return
 
     def _on_filter_changed(self, text: str) -> None:
         self._filter_level = text
@@ -212,22 +223,25 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self._highlight_timer.start()
 
     def _reapply_highlight(self) -> None:
-        if not self._search_text:
-            self.text_edit.setExtraSelections([])
+        try:
+            if not self._search_text:
+                self.text_edit.setExtraSelections([])
+                return
+            selections = []
+            doc = self.text_edit.document()
+            cursor = QTextCursor(doc)
+            flags = QTextDocument.FindFlags()  # case-insensitive 默认
+            while len(selections) < _MAX_HIGHLIGHTS:
+                cursor = doc.find(self._search_text, cursor, flags)
+                if cursor.isNull():
+                    break
+                sel = QTextEdit.ExtraSelection()
+                sel.cursor = cursor
+                sel.format.setBackground(_HIGHLIGHT_BG)
+                selections.append(sel)
+            self.text_edit.setExtraSelections(selections)
+        except RuntimeError:
             return
-        selections = []
-        doc = self.text_edit.document()
-        cursor = QTextCursor(doc)
-        flags = QTextDocument.FindFlags()  # case-insensitive 默认
-        while len(selections) < _MAX_HIGHLIGHTS:
-            cursor = doc.find(self._search_text, cursor, flags)
-            if cursor.isNull():
-                break
-            sel = QTextEdit.ExtraSelection()
-            sel.cursor = cursor
-            sel.format.setBackground(_HIGHLIGHT_BG)
-            selections.append(sel)
-        self.text_edit.setExtraSelections(selections)
 
     def _on_scroll(self, value: int) -> None:
         scroll = self.text_edit.verticalScrollBar()

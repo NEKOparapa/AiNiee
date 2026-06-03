@@ -529,6 +529,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _start_download_with_url(self, url):
         """使用指定URL开始下载"""
+        if self.download_thread and self.download_thread.is_alive():
+            return
         # 重置标志
         self._cancel_download = False
         self._pause_download = False
@@ -704,11 +706,13 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             with open(download_info_file, 'w') as f:
                 json.dump(download_info, f)
 
-            # 开始下载
-            mode = 'ab' if downloaded > 0 else 'wb'
-
             with requests.get(url, stream=True, headers=headers, timeout=(10, 60)) as r:
                 r.raise_for_status()
+                # 续传须回 206；若回 200（忽略 Range 返回整包）则从头重写，避免整包追加到半包损坏
+                if downloaded > 0 and r.status_code != 206:
+                    downloaded = 0
+                    download_info["downloaded"] = 0
+                mode = 'ab' if downloaded > 0 else 'wb'
                 block_size = 8192
 
                 with open(temp_filename, mode) as f:
@@ -745,6 +749,15 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                                 progress = int(downloaded * 100 / total_size)
                                 self.signals.progress_updated.emit(progress)
 
+            # 完整性校验：声明了大小则必须完全收齐，否则视为损坏，清理中间文件并失败
+            if total_size > 0 and downloaded != total_size:
+                for _p in (temp_filename, download_info_file):
+                    try:
+                        os.remove(_p)
+                    except OSError:
+                        pass
+                raise ValueError(self.tra("下载不完整") + f": {downloaded}/{total_size}")
+
             # 下载完成，将临时文件重命名为正式文件
             download_info["status"] = "completed"
             with open(download_info_file, 'w') as info_file:
@@ -764,6 +777,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _update_progress(self, progress):
         """更新进度条和百分比标签"""
+        if self.update_dialog is None:
+            return
         if self.progress_bar and self.percentage_label:
             self.progress_bar.setValue(progress)
             self.percentage_label.setText(f"{progress}%")
@@ -775,6 +790,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         # 先关闭更新对话框，避免UI阻塞
         if self.update_dialog:
             self.update_dialog.accept()
+            self.update_dialog = None
 
         # 然后显示确认对话框
         msg_box = MessageBox(
@@ -800,6 +816,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _download_failed(self, error_msg):
         """Handle download failure or pause"""
+        if self.update_dialog is None:
+            return
         # 检查是否是暂停状态
         if error_msg == self.tra("下载已暂停"):
             # 暂停状态，显示继续按钮
@@ -854,6 +872,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                 # 获取URL并重新开始下载
                 url = download_info.get("url")
                 if url:
+                    if self.download_thread and self.download_thread.is_alive():
+                        return
                     # 启动下载线程
                     self.download_thread = threading.Thread(
                         target=self._download_update,
@@ -875,6 +895,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         # 无论下载线程是否正在运行，都先关闭对话框
         if self.update_dialog:
             self.update_dialog.reject()
+            self.update_dialog = None
 
         # 如果下载线程正在运行，设置取消标志
         if self.download_thread and self.download_thread.is_alive():
