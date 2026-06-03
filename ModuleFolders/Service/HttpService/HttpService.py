@@ -436,8 +436,12 @@ class HttpService(ConfigMixin, LogMixin, Base):
         """关闭服务"""
         if self.httpd:
             self.info("正在关闭 HTTP 服务...")
-            try:
-                self.httpd.shutdown()
-                self.httpd.server_close()
-            except:
-                pass
+            httpd = self.httpd
+            # shutdown() 会阻塞到 serve_forever 退出（请求在途时可能数秒），丢到守护线程避免卡住调用方
+            def _close():
+                try:
+                    httpd.shutdown()
+                    httpd.server_close()
+                except Exception:
+                    pass
+            threading.Thread(target=_close, daemon=True).start()

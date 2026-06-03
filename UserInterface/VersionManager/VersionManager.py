@@ -8,7 +8,7 @@ import threading
 import requests
 from PyQt5.QtCore import pyqtSignal, QObject, Qt
 from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtWidgets import (QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QWidget)
+from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QGridLayout, QWidget)
 from PyQt5.QtCore import QUrl
 
 
@@ -595,6 +595,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _show_download_error(self, error_msg):
         """显示下载错误"""
+        if self.update_dialog is None:
+            return
         self.status_label.setText(self.tra("更新失败"))
         self.update_button.setEnabled(True)
         self.pause_button.setVisible(False)
@@ -613,6 +615,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _show_connection_error(self, status_code):
         """显示连接错误"""
+        if self.update_dialog is None:
+            return
         self.status_label.setText(self.tra("获取下载链接失败"))
         self.update_button.setEnabled(True)
         self.pause_button.setVisible(False)
@@ -651,14 +655,16 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
             # 检查是否已经存在完成的文件
             if os.path.exists(local_filename):
-                cached_url = None
+                cached_info = {}
                 if os.path.exists(download_info_file):
                     try:
                         with open(download_info_file, 'r') as f:
-                            cached_url = json.load(f).get("url")
+                            cached_info = json.load(f)
                     except Exception:
-                        cached_url = None
-                if cached_url == url:
+                        cached_info = {}
+                cached_size = cached_info.get("total_size", 0)
+                size_ok = cached_size <= 0 or os.path.getsize(local_filename) == cached_size
+                if cached_info.get("url") == url and cached_info.get("status") == "completed" and size_ok:
                     self.info(f"Found completed download file: {local_filename}")
                     self.signals.download_completed.emit(local_filename)
                     return
@@ -712,6 +718,15 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                 if downloaded > 0 and r.status_code != 206:
                     downloaded = 0
                     download_info["downloaded"] = 0
+                # HEAD 未给大小时从 GET 响应补全，确保完整性校验可用
+                if total_size <= 0:
+                    cl = r.headers.get('content-length')
+                    if cl is not None:
+                        try:
+                            total_size = downloaded + int(cl)
+                            download_info["total_size"] = total_size
+                        except ValueError:
+                            pass
                 mode = 'ab' if downloaded > 0 else 'wb'
                 block_size = 8192
 
@@ -757,6 +772,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                     except OSError:
                         pass
                 raise ValueError(self.tra("下载不完整") + f": {downloaded}/{total_size}")
+            if total_size <= 0:
+                self.warning(f"更新包大小未知，无法校验完整性（已下载 {downloaded} 字节）")
 
             # 下载完成，将临时文件重命名为正式文件
             download_info["status"] = "completed"
@@ -857,6 +874,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
     def _resume_update(self):
         """Resume the update download"""
         self._pause_download = False
+        self._cancel_download = False
         self.resume_button.setVisible(False)
         self.pause_button.setVisible(True)
         self.pause_button.setEnabled(True)
@@ -906,10 +924,15 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
 
     def _exit_for_update(self) -> None:
-        # 优雅退出：同步跑 APP_SHUT_DOWN 处理器（关 HTTP/停缓存保存/停任务）+ 刷日志，再强制退出兜底
+        # 优雅退出：直接逐个调 APP_SHUT_DOWN 处理器（不经事件队列，避免 processEvents 重入其它信号/阻塞），各自兜底；再刷日志，最后强制退出
         try:
-            self.emit(Base.EVENT.APP_SHUT_DOWN, {})
-            QApplication.processEvents()
+            from ModuleFolders.Base.EventManager import EventManager
+            handlers = list(EventManager.get_singleton().event_callbacks.get(Base.EVENT.APP_SHUT_DOWN, []))
+            for handler in handlers:
+                try:
+                    handler(Base.EVENT.APP_SHUT_DOWN, {})
+                except Exception:
+                    pass
         except Exception:
             pass
         try:

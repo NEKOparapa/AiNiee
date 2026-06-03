@@ -168,7 +168,7 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             self._pending.clear()
         try:
             self._append_batch(batch)
-        except RuntimeError:
+        except Exception:
             return
 
     def _append_batch(self, history) -> None:

@@ -61,7 +61,7 @@ _AUTH_VALUE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-_URL_CRED_PATTERN = re.compile(r"([a-z][a-z0-9+.\-]*://)[^/\s@]+@", re.IGNORECASE)
+_URL_CRED_PATTERN = re.compile(r"([a-z][a-z0-9+.\-]{0,15}://)[^/\s@]+@", re.IGNORECASE)
 
 _QUOTED_SECRET_PATTERN = re.compile(
     r"(api[_\-]?key|apikey|access[_\-]?key|secret[_\-]?access[_\-]?key|secret[_\-]?key|secret|token|authorization|password|passwd|pwd)"
