@@ -57,7 +57,7 @@ _CONTEXT_KEY_PATTERN = re.compile(
 )
 
 _AUTH_VALUE_PATTERN = re.compile(
-    r"((?:proxy-)?authorization)(['\"]?\s*[:=]\s*)\S[^\r\n]*",
+    r"((?:proxy-)?authorization)(['\"]?\s*[:=]\s*)\S[^\r\n,;&}\])'\"]*",
     re.IGNORECASE,
 )
 

@@ -96,11 +96,25 @@ def portable_fallback_active() -> bool:
     return _portable_requested() and not _portable_writable()
 
 
-# 打包后的 Windows 安装版（安装器在 {app} 写入 installed.flag）。
+# 安装器默认目录 %LOCALAPPDATA%\Programs\AiNiee（对应 ainiee.iss 的 DefaultDirName）。
+def _under_installer_default_dir() -> bool:
+    try:
+        default = os.path.normcase(str((_win_local_app_data() / "Programs" / WIN_APP_NAME).resolve()))
+        root = os.path.normcase(str(executable_root().resolve()))
+    except OSError:
+        return False
+    return root == default or root.startswith(default + os.sep)
+
+
+# 打包后的 Windows 安装版：有 installed.flag，或位于安装器默认目录且无 portable.txt。
 def is_windows_installer_build() -> bool:
     if not (_is_windows() and getattr(sys, "frozen", False)):
         return False
-    return (executable_root() / "installed.flag").exists()
+    if (executable_root() / "installed.flag").exists():
+        return True
+    if _portable_marker_present():
+        return False
+    return _under_installer_default_dir()
 
 
 # 随程序打包的 Resource 目录。
