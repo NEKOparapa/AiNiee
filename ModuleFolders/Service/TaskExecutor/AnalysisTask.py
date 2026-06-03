@@ -497,6 +497,18 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
     # 4. 最终阶段：整合兜底与落盘 (分)
     # ========================================================================
 
+    def _get_candidate_occurrence_count(self, source: str, candidate_type: str) -> int:
+        source = str(source or "").strip()
+        candidate_type = str(candidate_type or "").strip()
+        grouped_item = self.grouped_stage_two_inputs.get(source) or {}
+        occurrence_count = sum(
+            1
+            for candidate in grouped_item.get("candidates", []) or []
+            if candidate.get("type") == candidate_type
+            and str(candidate.get("candidate_source", "")).strip() == source
+        )
+        return max(1, occurrence_count)
+
     def _finalize_results(self, first_stage_results: list, second_stage_results: list) -> dict:
         """主线程收口：采纳 AI 裁决结果 -> 启发式兜底缺失项 -> 清洗禁翻项"""
         merged_characters, merged_terms, assigned_sources = {}, {}, set()
@@ -510,6 +522,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 merged_characters[source] = {
                     "source": source, "recommended_translation": str(row.get("recommended_translation", "")).strip(),
                     "gender": str(row.get("gender", "")).strip() or "其他", "note": str(row.get("note", "")).strip(),
+                    "occurrence_count": self._get_candidate_occurrence_count(source, "character"),
                 }
                 assigned_sources.add(source)
 
@@ -520,6 +533,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 merged_terms[source] = {
                     "source": source, "recommended_translation": str(row.get("recommended_translation", "")).strip(),
                     "category_path": str(row.get("category_path", "")).strip() or "其他", "note": str(row.get("note", "")).strip(),
+                    "occurrence_count": self._get_candidate_occurrence_count(source, "term"),
                 }
                 assigned_sources.add(source)
 
@@ -547,10 +561,16 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
 
             if prefer_term:
                 cat = next((str(c.get("category_path", "")).strip() for c in all_cands if str(c.get("category_path", "")).strip() not in ["", "其他"]), "其他")
-                merged_terms[source] = {"source": source, "recommended_translation": trans, "category_path": cat, "note": " | ".join(notes)}
+                merged_terms[source] = {
+                    "source": source, "recommended_translation": trans, "category_path": cat, "note": " | ".join(notes),
+                    "occurrence_count": self._get_candidate_occurrence_count(source, "term"),
+                }
             else:
                 gen = next((str(c.get("gender", "")).strip() for c in all_cands if str(c.get("gender", "")).strip() not in ["", "其他"]), "其他")
-                merged_characters[source] = {"source": source, "recommended_translation": trans, "gender": gen, "note": " | ".join(notes)}
+                merged_characters[source] = {
+                    "source": source, "recommended_translation": trans, "gender": gen, "note": " | ".join(notes),
+                    "occurrence_count": self._get_candidate_occurrence_count(source, "character"),
+                }
 
         # 3. 第一阶段禁翻项的清洗合并 (不走第二阶段 AI)
         merged_non_translate = {}
@@ -561,7 +581,11 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                     continue
 
                 cat, note = str(row.get("category", "")).strip(), str(row.get("note", "")).strip()
-                existing = merged_non_translate.setdefault(marker, {"marker": marker, "category": cat, "note": note})
+                existing = merged_non_translate.setdefault(
+                    marker,
+                    {"marker": marker, "category": cat, "note": note, "occurrence_count": 0},
+                )
+                existing["occurrence_count"] = int(existing.get("occurrence_count", 0) or 0) + 1
                 
                 if (not existing["category"] or existing["category"] == "其他") and cat and cat != "其他": existing["category"] = cat
                 if not existing["note"] and note: existing["note"] = note

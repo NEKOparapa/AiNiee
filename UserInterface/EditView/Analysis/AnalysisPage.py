@@ -232,7 +232,15 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             return self._get_term_category_value(value)
         if field_name == "category":
             return self._get_non_translate_category_value(value)
+        if field_name == "occurrence_count":
+            return str(self._get_occurrence_count_value(value))
         return "" if value is None else str(value)
+
+    def _get_occurrence_count_value(self, value: Any) -> int:
+        try:
+            return max(1, int(value))
+        except (TypeError, ValueError):
+            return 1
 
     def _get_display_filter_value(self, view_name: str, value: Any) -> str:
         field_name = {
@@ -595,6 +603,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 self.tra("原文键"),
                 self.tra("推荐译名"),
                 self.tra("性别"),
+                self.tra("次数"),
                 self.tra("备注"),
             ]
         )
@@ -616,6 +625,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 self.tra("原文"),
                 self.tra("推荐译名"),
                 self.tra("分类属性"),
+                self.tra("次数"),
                 self.tra("备注"),
             ]
         )
@@ -633,7 +643,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         self.non_translate_table = self._create_table(
             self.VIEW_NON_TRANSLATE,
-            [self.tra("原文"), self.tra("分类"), self.tra("备注")],
+            [self.tra("原文"), self.tra("分类"), self.tra("次数"), self.tra("备注")],
         )
         self.non_translate_table.itemChanged.connect(
             lambda item: self._on_table_item_changed(self.VIEW_NON_TRANSLATE, item)
@@ -771,16 +781,16 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _get_initial_column_ratios(self, view_name: str) -> tuple[int, ...]:
         return {
-            self.VIEW_CHARACTERS: (18, 18, 7, 57),
-            self.VIEW_TERMS: (18, 18, 7, 57),
-            self.VIEW_NON_TRANSLATE: (18, 15, 67),
+            self.VIEW_CHARACTERS: (18, 18, 7, 8, 49),
+            self.VIEW_TERMS: (18, 18, 9, 8, 47),
+            self.VIEW_NON_TRANSLATE: (18, 15, 8, 59),
         }.get(view_name, ())
 
     def _get_initial_column_min_widths(self, view_name: str) -> tuple[int, ...]:
         return {
-            self.VIEW_CHARACTERS: (180, 180, 100, 200),
-            self.VIEW_TERMS: (170, 170, 130, 220),
-            self.VIEW_NON_TRANSLATE: (180, 120, 260),
+            self.VIEW_CHARACTERS: (160, 160, 90, 90, 220),
+            self.VIEW_TERMS: (160, 160, 120, 90, 220),
+            self.VIEW_NON_TRANSLATE: (170, 120, 90, 240),
         }.get(view_name, ())
 
     def _get_category_options_for_view(self, view_name: str) -> tuple[str, ...]:
@@ -940,7 +950,13 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._fill_table(
             self.characters_table,
             rows,
-            [("source", True), ("recommended_translation", True), ("gender", True), ("note", True)],
+            [
+                ("source", True),
+                ("recommended_translation", True),
+                ("gender", True),
+                ("occurrence_count", False),
+                ("note", True),
+            ],
             self.VIEW_CHARACTERS,
         )
 
@@ -950,7 +966,13 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._fill_table(
             self.terms_table,
             rows,
-            [("source", True), ("recommended_translation", True), ("category_path", True), ("note", True)],
+            [
+                ("source", True),
+                ("recommended_translation", True),
+                ("category_path", True),
+                ("occurrence_count", False),
+                ("note", True),
+            ],
             self.VIEW_TERMS,
         )
 
@@ -960,7 +982,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._fill_table(
             self.non_translate_table,
             rows,
-            [("marker", True), ("category", True), ("note", True)],
+            [("marker", True), ("category", True), ("occurrence_count", False), ("note", True)],
             self.VIEW_NON_TRANSLATE,
         )
 
@@ -1175,11 +1197,11 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             return
 
         if view_name == self.VIEW_CHARACTERS:
-            field_map = {0: "source", 1: "recommended_translation", 2: "gender", 3: "note"}
+            field_map = {0: "source", 1: "recommended_translation", 2: "gender", 4: "note"}
         elif view_name == self.VIEW_TERMS:
-            field_map = {0: "source", 1: "recommended_translation", 2: "category_path", 3: "note"}
+            field_map = {0: "source", 1: "recommended_translation", 2: "category_path", 4: "note"}
         else:
-            field_map = {0: "marker", 1: "category", 2: "note"}
+            field_map = {0: "marker", 1: "category", 3: "note"}
 
         target_row = self._find_row_by_key(view_name, row_key)
         if not target_row:
@@ -1262,6 +1284,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 "source": "",
                 "recommended_translation": "",
                 "gender": self._get_character_category_value(current_filter, fallback=self.CHARACTER_OTHER),
+                "occurrence_count": 1,
                 "note": "",
             }
         if view_name == self.VIEW_TERMS:
@@ -1269,11 +1292,13 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 "source": "",
                 "recommended_translation": "",
                 "category_path": self._get_term_category_value(current_filter, fallback="Other"),
+                "occurrence_count": 1,
                 "note": "",
             }
         return {
             "marker": "",
             "category": self._get_non_translate_category_value(current_filter, fallback="Other"),
+            "occurrence_count": 1,
             "note": "",
         }
 
@@ -1574,6 +1599,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         converted_row = {
             "source": source,
             "recommended_translation": str(row.get("recommended_translation", "") or "").strip(),
+            "occurrence_count": self._get_occurrence_count_value(row.get("occurrence_count")),
             "note": self._build_cross_table_note(source_view_name, row),
         }
         if target_view_name == self.VIEW_CHARACTERS:
@@ -1903,19 +1929,26 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             "status": data.get("status", ""),
             "last_run_at": data.get("last_run_at", ""),
             "characters": [
-                {k: v for k, v in dict(row).items() if k not in {"id", "_type_"}}
+                self._clone_analysis_row(row)
                 for row in data.get("characters", []) or []
             ],
             "terms": [
-                {k: v for k, v in dict(row).items() if k not in {"id", "_type_"}}
+                self._clone_analysis_row(row)
                 for row in data.get("terms", []) or []
             ],
             "non_translate": [
-                {k: v for k, v in dict(row).items() if k not in {"id", "_type_"}}
+                self._clone_analysis_row(row)
                 for row in data.get("non_translate", []) or []
             ],
             "stats": dict(data.get("stats", {}) or {}),
         }
+
+    def _clone_analysis_row(self, row: dict) -> dict:
+        cloned_row = {k: v for k, v in dict(row).items() if k not in {"id", "_type_"}}
+        cloned_row["occurrence_count"] = self._get_occurrence_count_value(
+            cloned_row.get("occurrence_count")
+        )
+        return cloned_row
 
     def _get_character_category_value(self, value: Any, fallback: str = CHARACTER_OTHER) -> str:
         return self._compact_category_value(value) or fallback
