@@ -245,6 +245,10 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
     # 任务开始事件
     def task_start(self, event: int, data: dict) -> None:
+        # 防止并发 TASK_START（如多个 HTTP /api/translate 请求）重复启动同一项目
+        if Base.work_status not in (Base.STATUS.IDLE, Base.STATUS.TASKSTOPPED):
+            return
+
         # 获取配置信息
         continue_status = data.get("continue_status")
         current_mode = data.get("current_mode")
@@ -264,13 +268,15 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
         # 翻译任务
         if current_mode == TaskType.TRANSLATION:
+            Base.work_status = Base.STATUS.TASKING
             threading.Thread(
                 target = run_task_target,
                 args = (self.translation_start_target, continue_status,),
             ).start()
-        
+
         # 润色任务
         elif current_mode == TaskType.POLISH:
+            Base.work_status = Base.STATUS.TASKING
             threading.Thread(
                 target = run_task_target,
                 args = (self.polish_start_target, continue_status,),

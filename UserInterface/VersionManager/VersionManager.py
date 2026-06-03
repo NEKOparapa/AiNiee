@@ -663,7 +663,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                     except Exception:
                         cached_info = {}
                 cached_size = cached_info.get("total_size", 0)
-                size_ok = cached_size <= 0 or os.path.getsize(local_filename) == cached_size
+                size_ok = cached_size > 0 and os.path.getsize(local_filename) == cached_size
                 if cached_info.get("url") == url and cached_info.get("status") == "completed" and size_ok:
                     self.info(f"Found completed download file: {local_filename}")
                     self.signals.download_completed.emit(local_filename)
@@ -773,7 +773,12 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                         pass
                 raise ValueError(self.tra("下载不完整") + f": {downloaded}/{total_size}")
             if total_size <= 0:
-                self.warning(f"更新包大小未知，无法校验完整性（已下载 {downloaded} 字节）")
+                for _p in (temp_filename, download_info_file):
+                    try:
+                        os.remove(_p)
+                    except OSError:
+                        pass
+                raise ValueError(self.tra("无法确认更新包大小，已中止以保证完整性"))
 
             # 下载完成，将临时文件重命名为正式文件
             download_info["status"] = "completed"
@@ -873,6 +878,9 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _resume_update(self):
         """Resume the update download"""
+        # 旧下载线程还在收尾时直接返回，避免清标志/改 UI 后却因 is_alive 早退而卡在“恢复中”
+        if self.download_thread and self.download_thread.is_alive():
+            return
         self._pause_download = False
         self._cancel_download = False
         self.resume_button.setVisible(False)
@@ -890,8 +898,6 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                 # 获取URL并重新开始下载
                 url = download_info.get("url")
                 if url:
-                    if self.download_thread and self.download_thread.is_alive():
-                        return
                     # 启动下载线程
                     self.download_thread = threading.Thread(
                         target=self._download_update,
