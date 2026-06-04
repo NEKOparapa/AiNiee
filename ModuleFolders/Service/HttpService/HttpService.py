@@ -195,10 +195,14 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         # 2. 停止任务
         elif path == '/api/stop':
-            service.info(f"收到 HTTP 指令: 停止任务 (Client: {self.client_address[0]})")
-            service.emit(Base.EVENT.TASK_STOP, {})
-            response_data = {"status": "success", "message": "Stop signal sent"}
-            status_code = 200
+            if Base.work_status in (Base.STATUS.TASKING, Base.STATUS.STOPING, Base.STATUS.ANALYSIS_TASK, Base.STATUS.TABLE_TASK, Base.STATUS.GLOSS_TASK):
+                service.info(f"收到 HTTP 指令: 停止任务 (Client: {self.client_address[0]})")
+                service.emit(Base.EVENT.TASK_STOP, {})
+                response_data = {"status": "success", "message": "Stop signal sent"}
+                status_code = 200
+            else:
+                response_data = {"status": "error", "message": "No task running"}
+                status_code = 409
             
         # 3. 获取状态
         elif path == '/api/status':
@@ -245,7 +249,9 @@ class HttpService(ConfigMixin, LogMixin, Base):
             return "STOPPING"
         if Base.work_status == Base.STATUS.TASKSTOPPED:
             return "STOPPED"
-        return "IDLE"
+        if Base.work_status == Base.STATUS.IDLE:
+            return "IDLE"
+        return "BUSY"
 
     @staticmethod
     def _parse_int(value) -> int:

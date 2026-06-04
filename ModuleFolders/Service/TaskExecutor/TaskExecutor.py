@@ -231,17 +231,17 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         LLMClientFactory().close_all_clients()
 
         def target() -> None:
-            while True:
+            for _ in range(600):
                 time.sleep(0.5)
                 if Base.work_status in (Base.STATUS.TASKSTOPPED, Base.STATUS.IDLE):
                     self.print("")
                     self.info("任务已停止 ...")
                     self.print("")
                     self.emit(Base.EVENT.TASK_STOP_DONE, {})
-                    break
+                    return
 
         # 子线程循环检测停止状态
-        threading.Thread(target = target).start()
+        threading.Thread(target = target, daemon=True).start()
 
     # 任务开始事件
     def task_start(self, event: int, data: dict) -> None:

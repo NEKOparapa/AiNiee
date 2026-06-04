@@ -929,6 +929,14 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             # 显示取消提示
             if self.main_window:
                 self.main_window.warning_toast(self.tra("下载取消"), self.tra("正在取消下载，请稍候..."))
+        else:
+            # 线程已退出（如暂停后取消）：清理残留临时文件与信息文件，真正丢弃这次下载
+            _, temp_path, info_path = self._download_paths()
+            for p in (temp_path, info_path):
+                try:
+                    os.remove(str(p))
+                except OSError:
+                    pass
 
 
     def _exit_for_update(self) -> None:
