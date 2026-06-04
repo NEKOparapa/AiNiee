@@ -195,7 +195,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         # 2. 停止任务
         elif path == '/api/stop':
-            if Base.work_status in (Base.STATUS.TASKING, Base.STATUS.STOPING, Base.STATUS.ANALYSIS_TASK, Base.STATUS.TABLE_TASK, Base.STATUS.GLOSS_TASK):
+            if Base.work_status in (Base.STATUS.TASKING, Base.STATUS.STOPING, Base.STATUS.ANALYSIS_TASK, Base.STATUS.TABLE_TASK):
                 service.info(f"收到 HTTP 指令: 停止任务 (Client: {self.client_address[0]})")
                 service.emit(Base.EVENT.TASK_STOP, {})
                 response_data = {"status": "success", "message": "Stop signal sent"}

@@ -231,7 +231,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         LLMClientFactory().close_all_clients()
 
         def target() -> None:
-            for _ in range(600):
+            while True:
                 time.sleep(0.5)
                 if Base.work_status in (Base.STATUS.TASKSTOPPED, Base.STATUS.IDLE):
                     self.print("")
