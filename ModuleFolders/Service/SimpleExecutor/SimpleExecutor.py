@@ -161,7 +161,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         self.print("")
         self.info(f"接口测试结果：共测试 {len(api_keys)} 个接口，成功 {len(success)} 个，失败 {len(failure)} 个 ...")
         if len(failure) >0:
-            self.error(f"失败的接口密钥 - {", ".join(failure)}")
+            self.error(f"失败的接口密钥 - {', '.join('***' + k[-4:] for k in failure)}")
         self.print("")
 
         # 发送完成事件

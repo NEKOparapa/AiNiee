@@ -44,6 +44,10 @@ class RequestHandler(BaseHTTPRequestHandler):
         pass
 
     def _authorized(self) -> bool:
+        # CSRF 防护：浏览器跨站请求（img/fetch 等）会带 Sec-Fetch-Site: cross-site/same-site，
+        # 直接拒绝；脚本/curl 等非浏览器调用方不带此头，不受影响
+        if self.headers.get("Sec-Fetch-Site", "") in ("cross-site", "same-site"):
+            return False
         config = self.server.service_instance.load_config()
         token = str(config.get("http_auth_token", "")).strip()
         if token:
