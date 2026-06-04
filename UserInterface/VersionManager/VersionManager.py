@@ -266,7 +266,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                 cached_version = download_info.get("version")
                 is_completed = download_info.get("status") == "completed"
                 is_newer = bool(cached_version) and self._compare_versions(cached_version, self.current_version) > 0
-                url_matches = bool(self.latest_download_url) and download_info.get("url") == self.latest_download_url
+                url_matches = (not self.latest_download_url) or (download_info.get("url") == self.latest_download_url)
                 cached_size = download_info.get("total_size", 0)
                 size_ok = cached_size > 0 and os.path.getsize(local_filename) == cached_size
                 if is_completed and is_newer and url_matches and size_ok:
