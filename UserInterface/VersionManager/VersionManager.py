@@ -1000,10 +1000,16 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                         )
                     return
                 log_path = str(downloads_dir() / "AiNiee-installer-update.log")
-                subprocess.Popen(
-                    [update_file, "/VERYSILENT", "/NORESTART", "/FORCECLOSEAPPLICATIONS", "/RELAUNCH=1", f"/LOG={log_path}"],
-                    creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
-                )
+                from ModuleFolders.Infrastructure.Platform.SingleInstance import acquire_app_mutex, release_app_mutex
+                release_app_mutex()
+                try:
+                    subprocess.Popen(
+                        [update_file, "/VERYSILENT", "/NORESTART", "/FORCECLOSEAPPLICATIONS", "/RELAUNCH=1", f"/LOG={log_path}"],
+                        creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+                    )
+                except Exception:
+                    acquire_app_mutex()
+                    raise
                 _, _, download_info_file = self._download_paths()
                 try:
                     os.remove(str(download_info_file))

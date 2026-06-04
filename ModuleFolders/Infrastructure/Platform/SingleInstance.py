@@ -44,3 +44,18 @@ def acquire_app_mutex() -> bool:
     except Exception:
         _handle = None
         return True
+
+
+def release_app_mutex() -> None:
+    """关闭本进程持有的命名 mutex 句柄；非 Windows 或未持有时为 no-op。"""
+    global _handle
+    if not _handle:
+        return
+    try:
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel32.CloseHandle.restype = wintypes.BOOL
+        kernel32.CloseHandle(_handle)
+    except Exception:
+        pass
+    _handle = None

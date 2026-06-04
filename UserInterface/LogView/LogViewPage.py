@@ -273,6 +273,8 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self.success_toast("", self.tra("已复制到剪贴板"))
 
     def _on_clear(self) -> None:
+        with self._pending_lock:
+            self._pending.clear()
         self._buffer.clear()
         self.text_edit.clear()
         self.scroll_btn.hide()
