@@ -531,6 +531,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _start_download_with_url(self, url):
         """使用指定URL开始下载"""
+        if getattr(self, "_update_cancelled", False):
+            return
         if self.download_thread and self.download_thread.is_alive():
             return
         # 重置标志
@@ -557,6 +559,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _start_update(self):
         """开始更新进程"""
+        self._update_cancelled = False
         self.progress_bar.setVisible(True)
         self.percentage_label.setVisible(True)
         self.percentage_label.setText("0%")
@@ -918,6 +921,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _cancel_update(self):
         """Cancel the update process"""
+        self._update_cancelled = True
         # 无论下载线程是否正在运行，都先关闭对话框
         if self.update_dialog:
             self.update_dialog.reject()
