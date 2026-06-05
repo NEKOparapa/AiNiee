@@ -105,13 +105,16 @@ class RequestHandler(BaseHTTPRequestHandler):
                     # 如果提供了自定义路径，先更新配置
                     if input_folder or output_folder:
                         config = service.load_config()
-                        if input_folder:
-                            config["label_input_path"] = input_folder
-                            service.info(f"使用自定义输入路径: {input_folder}")
-                        if output_folder:
-                            config["label_output_path"] = output_folder
-                            service.info(f"使用自定义输出路径: {output_folder}")
-                        service.save_config(config)
+                        if config:
+                            if input_folder:
+                                config["label_input_path"] = input_folder
+                                service.info(f"使用自定义输入路径: {input_folder}")
+                            if output_folder:
+                                config["label_output_path"] = output_folder
+                                service.info(f"使用自定义输出路径: {output_folder}")
+                            service.save_config(config)
+                        else:
+                            service.warning("配置不可用，忽略自定义路径覆盖")
                     
                     # 检查项目是否已加载
                     if not service.check_project_loaded():
@@ -199,11 +202,14 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         # 2. 停止任务
         elif path == '/api/stop':
-            if Base.work_status in (Base.STATUS.TASKING, Base.STATUS.STOPING, Base.STATUS.ANALYSIS_TASK, Base.STATUS.TABLE_TASK):
+            if Base.work_status in (Base.STATUS.TASKING, Base.STATUS.STOPING, Base.STATUS.ANALYSIS_TASK):
                 service.info(f"收到 HTTP 指令: 停止任务 (Client: {self.client_address[0]})")
                 service.emit(Base.EVENT.TASK_STOP, {})
                 response_data = {"status": "success", "message": "Stop signal sent"}
                 status_code = 200
+            elif Base.work_status in (Base.STATUS.GLOSS_TASK, Base.STATUS.API_TEST, Base.STATUS.TABLE_TASK):
+                response_data = {"status": "error", "message": "Current task cannot be stopped"}
+                status_code = 409
             else:
                 response_data = {"status": "error", "message": "No task running"}
                 status_code = 409

@@ -373,6 +373,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _update_dialog_after_check(self, has_update, latest_version, check_failed, error_message):
         """更新检查完成后更新对话框内容"""
+        if self.update_dialog is None:
+            return
         # 移除加载状态卡片
         for i in range(self.update_dialog.viewLayout.count()):
             widget = self.update_dialog.viewLayout.itemAt(i).widget()
@@ -1040,7 +1042,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
             else:
                 self.error(f"Updater not found: {updater_path}")
-                self.status_label.setText(self.tra("更新程序未找到"))
+                if hasattr(self, "status_label"):
+                    self.status_label.setText(self.tra("更新程序未找到"))
                 # 显示错误提示
                 if self.main_window:
                     InfoBar.error(
@@ -1054,7 +1057,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                     )
         except Exception as e:
             self.error(f"Failed to run updater: {e}")
-            self.status_label.setText(f"{self.tra('启动更新程序失败')}: {str(e)}")
+            if hasattr(self, "status_label"):
+                self.status_label.setText(f"{self.tra('启动更新程序失败')}: {str(e)}")
             # 显示错误提示
             if self.main_window:
                 InfoBar.error(

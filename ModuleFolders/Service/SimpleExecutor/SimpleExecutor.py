@@ -108,7 +108,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
             self.info("正在进行接口测试 ...")
             self.info(f"接口名称 - {platform_name}")
             self.info(f"接口地址 - {api_url}")
-            self.info(f"接口密钥 - {'*'*(len(api_key)-8)}{api_key[-8:]}") # 隐藏敏感信息
+            self.info(f"接口密钥 - {'***' + api_key[-4:]}") # 隐藏敏感信息
             self.info(f"模型名称 - {model_name}")
             self.info(f"tls_switch - {data.get('tls_switch', False)}")
             if extra_body:
