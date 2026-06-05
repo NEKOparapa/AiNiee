@@ -111,6 +111,8 @@ class ConfigMixin:
                 try:
                     with open(ConfigMixin.CONFIG_PATH, "r", encoding="utf-8") as reader:
                         old = json.load(reader)
+                    if not isinstance(old, dict):
+                        old = {}
                 except (json.JSONDecodeError, OSError):
                     old = {}
 

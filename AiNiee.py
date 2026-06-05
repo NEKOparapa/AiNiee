@@ -94,7 +94,9 @@ def load_config() -> dict:
         try:
             with open(path, "r", encoding="utf-8") as reader:
                 config = json.load(reader)
-        except (json.JSONDecodeError, OSError):
+            if not isinstance(config, dict):
+                raise ValueError("config root is not a JSON object")
+        except (json.JSONDecodeError, OSError, ValueError):
             try:
                 os.replace(path, f"{path}.corrupt")
             except OSError:

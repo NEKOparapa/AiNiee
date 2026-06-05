@@ -341,6 +341,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                 )
 
         if not items_to_translate:
+            Base.work_status = Base.STATUS.IDLE
             return
 
         language_stats = self.cache_manager.project.get_file(self.file_path).language_stats
