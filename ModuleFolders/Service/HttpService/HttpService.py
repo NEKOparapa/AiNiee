@@ -80,7 +80,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         response_data = {"status": "error", "message": "Unknown command"}
         status_code = 404
-        path = self.path.lower()
+        path = self.path.split("?", 1)[0].lower()
 
         # 1. 开始翻译（支持可选参数）
         if path == '/api/translate':
@@ -171,7 +171,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         response_data = {"status": "error", "message": "Unknown command"}
         status_code = 404
-        path = self.path.lower()
+        path = self.path.split("?", 1)[0].lower()
 
         # 1. 开始翻译（使用配置文件中的路径）
         if path == '/api/translate':

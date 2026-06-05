@@ -311,6 +311,9 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 继续翻译时加载存储的监控数据
         else:
             self.project_status_data = self.cache_manager.project.stats_data
+            if self.project_status_data is None:
+                self.project_status_data = CacheProjectStatistics()
+                self.cache_manager.project.stats_data = self.project_status_data
             self.project_status_data.start_time = time.time() # 重置开始时间
             self.project_status_data.total_completion_tokens = 0 # 重置完成的token数量
 
@@ -507,6 +510,9 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 继续翻译时加载存储的监控数据
         else:
             self.project_status_data = self.cache_manager.project.stats_data
+            if self.project_status_data is None:
+                self.project_status_data = CacheProjectStatistics()
+                self.cache_manager.project.stats_data = self.project_status_data
             self.project_status_data.start_time = time.time() # 重置开始时间
             self.project_status_data.total_completion_tokens = 0 # 重置完成的token数量                  
 

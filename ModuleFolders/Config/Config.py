@@ -64,7 +64,9 @@ class ConfigMixin:
                 try:
                     with open(ConfigMixin.CONFIG_PATH, "r", encoding="utf-8") as reader:
                         config = json.load(reader)
-                except (json.JSONDecodeError, OSError) as error:
+                    if not isinstance(config, dict):
+                        raise ValueError("config root is not a JSON object")
+                except (json.JSONDecodeError, OSError, ValueError) as error:
                     print(f"[[red]WARNING[/]] Config unreadable, using defaults: {error}")
                     try:
                         os.replace(ConfigMixin.CONFIG_PATH, f"{ConfigMixin.CONFIG_PATH}.corrupt")

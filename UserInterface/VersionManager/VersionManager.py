@@ -226,8 +226,11 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _compare_versions(self, version1, version2):
         """比较版本号"""
-        v1_parts = [int(x) for x in version1.split(".")]
-        v2_parts = [int(x) for x in version2.split(".")]
+        try:
+            v1_parts = [int(x) for x in version1.split(".")]
+            v2_parts = [int(x) for x in version2.split(".")]
+        except (ValueError, AttributeError):
+            return 0
 
         # 填充版本号，使得版本号的位数相同
         n = max(len(v1_parts), len(v2_parts))
