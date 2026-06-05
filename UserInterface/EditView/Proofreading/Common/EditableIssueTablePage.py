@@ -306,6 +306,7 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             count += len(items_to_proofread)
 
         if count > 0:
+            Base.work_status = Base.STATUS.TABLE_TASK
             self.emit(
                 Base.EVENT.TABLE_PROOFREAD_START,
                 {
