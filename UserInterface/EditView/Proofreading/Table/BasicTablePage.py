@@ -344,7 +344,8 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             Base.work_status = Base.STATUS.IDLE
             return
 
-        language_stats = self.cache_manager.project.get_file(self.file_path).language_stats
+        file_obj = self.cache_manager.project.get_file(self.file_path)
+        language_stats = file_obj.language_stats if file_obj else None
         self.emit(
             Base.EVENT.TABLE_TRANSLATE_START,
             {
