@@ -378,6 +378,11 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         """更新检查完成后更新对话框内容"""
         if self.update_dialog is None:
             return
+        try:
+            self.update_dialog.viewLayout.count()
+        except RuntimeError:
+            self.update_dialog = None
+            return
         # 移除加载状态卡片
         for i in range(self.update_dialog.viewLayout.count()):
             widget = self.update_dialog.viewLayout.itemAt(i).widget()
@@ -537,6 +542,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
     def _start_download_with_url(self, url):
         """使用指定URL开始下载"""
         if getattr(self, "_update_cancelled", False):
+            return
+        if self.update_dialog is None:
             return
         if self.download_thread and self.download_thread.is_alive():
             return
