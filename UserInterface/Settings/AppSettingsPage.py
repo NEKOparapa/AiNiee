@@ -28,8 +28,6 @@ from UserInterface.Widget.EmptyCard import EmptyCard
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.LineEditCard import LineEditCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
-from UserInterface.Widget.LineEditCard import LineEditCard
-from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard 
 from UserInterface.Native.FileDialogProvider import get_existing_directory, get_open_file_name
 
 class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
