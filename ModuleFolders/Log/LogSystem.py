@@ -299,6 +299,7 @@ class _BroadcastStream:
 
 
 _gui_handler: Optional["_GUIHandler"] = None
+_gui_handler_lock = threading.Lock()
 
 
 def get_gui_handler() -> "_GUIHandler":
@@ -306,14 +307,17 @@ def get_gui_handler() -> "_GUIHandler":
     global _gui_handler
     if _gui_handler is not None:
         return _gui_handler
-    handler = _GUIHandler()
-    handler.setFormatter(
-        _PlainFormatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-    )
-    handler.addFilter(SensitiveFilter())
-    logging.getLogger().addHandler(handler)
-    _gui_handler = handler
-    return _gui_handler
+    with _gui_handler_lock:
+        if _gui_handler is not None:
+            return _gui_handler
+        handler = _GUIHandler()
+        handler.setFormatter(
+            _PlainFormatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+        )
+        handler.addFilter(SensitiveFilter())
+        logging.getLogger().addHandler(handler)
+        _gui_handler = handler
+        return _gui_handler
 
 
 _DEVNULL = None
