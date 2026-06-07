@@ -226,11 +226,16 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _compare_versions(self, version1, version2):
         """比较版本号"""
+        result = self._try_compare_versions(version1, version2)
+        return result if result is not None else 0
+
+    def _try_compare_versions(self, version1, version2):
+        """比较版本号，无法解析时返回 None"""
         try:
             v1_parts = [int(x) for x in version1.split(".")]
             v2_parts = [int(x) for x in version2.split(".")]
         except (ValueError, AttributeError):
-            return 0
+            return None
 
         # 填充版本号，使得版本号的位数相同
         n = max(len(v1_parts), len(v2_parts))
@@ -268,7 +273,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
                 cached_version = download_info.get("version")
                 is_completed = download_info.get("status") == "completed"
-                is_newer = bool(cached_version) and self._compare_versions(cached_version, self.current_version) > 0
+                cached_version_cmp = self._try_compare_versions(cached_version, self.current_version)
+                is_newer = cached_version_cmp is None or cached_version_cmp > 0
                 url_matches = (not self.latest_download_url) or (download_info.get("url") == self.latest_download_url)
                 cached_size = download_info.get("total_size", 0)
                 size_ok = cached_size > 0 and os.path.getsize(local_filename) == cached_size
@@ -286,7 +292,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                         # 运行更新器
                         self._run_updater(str(local_filename))
                     return
-                if is_completed and not is_newer:
+                if is_completed and cached_version_cmp is not None and cached_version_cmp <= 0:
                     try:
                         os.remove(local_filename)
                         os.remove(download_info_file)
