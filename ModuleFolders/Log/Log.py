@@ -2,6 +2,7 @@ import logging
 import traceback
 
 from rich import print
+from rich.markup import escape
 
 from ModuleFolders.Log import LogSystem as _log_system
 from ModuleFolders.Log.LogSystem import redact
@@ -25,6 +26,17 @@ def _rich_print(*args, **kwargs):
         flag.depth -= 1
 
 
+def _safe_str(value) -> str:
+    try:
+        return str(value)
+    except Exception:
+        return f"<unprintable {type(value).__name__}>"
+
+
+def _console_text(value) -> str:
+    return escape(_safe_str(value))
+
+
 class LogMixin:
     @staticmethod
     def _format_exception(error: Exception) -> str:
@@ -36,42 +48,47 @@ class LogMixin:
 
     @staticmethod
     def _safe_str(value) -> str:
-        try:
-            return str(value)
-        except Exception:
-            return f"<unprintable {type(value).__name__}>"
+        return _safe_str(value)
 
     def print(self, msg) -> None:
         safe = redact(msg)
-        _rich_print(safe)
+        _rich_print(_console_text(safe))
         self._logger().info(safe if isinstance(safe, str) else self._safe_str(safe))
 
     def debug(self, msg, error: Exception = None) -> None:
         safe = redact(msg)
         if error is None:
-            _rich_print(f"[[yellow]DEBUG[/]] {safe}")
+            _rich_print(f"[[yellow]DEBUG[/]] {_console_text(safe)}")
             self._logger().debug(safe if isinstance(safe, str) else self._safe_str(safe))
         else:
             safe_tb = redact(self._format_exception(error))
-            _rich_print(f"[[yellow]DEBUG[/]] {safe}\n{redact(self._safe_str(error))}\n{safe_tb}")
+            _rich_print(
+                f"[[yellow]DEBUG[/]] {_console_text(safe)}\n"
+                f"{_console_text(redact(self._safe_str(error)))}\n"
+                f"{_console_text(safe_tb)}"
+            )
             self._logger().debug(safe if isinstance(safe, str) else self._safe_str(safe), exc_info=error)
 
     def info(self, msg) -> None:
         safe = redact(msg)
-        _rich_print(f"[[green]INFO[/]] {safe}")
+        _rich_print(f"[[green]INFO[/]] {_console_text(safe)}")
         self._logger().info(safe if isinstance(safe, str) else self._safe_str(safe))
 
     def error(self, msg, error: Exception = None) -> None:
         safe = redact(msg)
         if error is None:
-            _rich_print(f"[[red]ERROR[/]] {safe}")
+            _rich_print(f"[[red]ERROR[/]] {_console_text(safe)}")
             self._logger().error(safe if isinstance(safe, str) else self._safe_str(safe))
         else:
             safe_tb = redact(self._format_exception(error))
-            _rich_print(f"[[red]ERROR[/]] {safe}\n{redact(self._safe_str(error))}\n{safe_tb}")
+            _rich_print(
+                f"[[red]ERROR[/]] {_console_text(safe)}\n"
+                f"{_console_text(redact(self._safe_str(error)))}\n"
+                f"{_console_text(safe_tb)}"
+            )
             self._logger().error(safe if isinstance(safe, str) else self._safe_str(safe), exc_info=error)
 
     def warning(self, msg) -> None:
         safe = redact(msg)
-        _rich_print(f"[[yellow]WARNING[/]] {safe}")
+        _rich_print(f"[[yellow]WARNING[/]] {_console_text(safe)}")
         self._logger().warning(safe if isinstance(safe, str) else self._safe_str(safe))

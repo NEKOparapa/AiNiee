@@ -13,12 +13,6 @@ from typing import Optional
 
 from ModuleFolders.Config.FilePathConfig import user_log_dir
 
-try:
-    from rich.text import Text as _RichText
-except Exception:
-    _RichText = None
-
-
 __all__ = ("install", "redact", "get_gui_handler")
 
 
@@ -37,7 +31,6 @@ _NOISY_THIRD_PARTY = (
     "openai", "anthropic", "google", "boto3", "botocore",
 )
 _LOG_FILE_RE = re.compile(r"^ainiee\.log(\.\d+)?$")
-_TAG_RE = re.compile(r"\[/?[a-zA-Z][^\]]*\]")
 # 终端 ANSI 转义：CSI（SGR/光标 等）+ OSC（窗口标题、OSC 8 超链接等，BEL 或 ST 结束）
 _ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x07\x1b]{0,1024}(?:\x07|\x1b\\)")
 
@@ -97,14 +90,7 @@ def _cleanup_old_logs(directory: Path, retention_days: int) -> None:
 
 
 def _strip_markup(text: str) -> str:
-    # 先剥 ANSI：rich.Text.from_markup 会吞掉 BEL 等控制字符，破坏 OSC 终结符匹配
-    text = _ANSI_RE.sub("", text)
-    if _RichText is not None:
-        try:
-            return _RichText.from_markup(text).plain
-        except Exception:
-            pass
-    return _TAG_RE.sub("", text).replace("[[", "[")
+    return _ANSI_RE.sub("", text)
 
 
 def redact(text):
