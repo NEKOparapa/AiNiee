@@ -349,7 +349,6 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
             try:
                 flags = 0 if is_case_sensitive else re.IGNORECASE
                 re.compile(find_text, flags)
-                re.sub(find_text, replace_text, "", flags=flags)
             except re.error as error:
                 self.error_toast(self.tra("替换失败"), self.tra(f"无效的正则表达式：{error}"))
                 return
@@ -402,8 +401,8 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
         flags = 0 if case_sensitive else re.IGNORECASE
         if whole_word:
             pattern = r"\b" + re.escape(find) + r"\b"
-            return re.sub(pattern, lambda m: replace, text, flags=flags)
+            return re.sub(pattern, replace, text, flags=flags)
 
         if case_sensitive:
             return text.replace(find, replace)
-        return re.sub(re.escape(find), lambda m: replace, text, flags=flags)
+        return re.sub(re.escape(find), replace, text, flags=flags)

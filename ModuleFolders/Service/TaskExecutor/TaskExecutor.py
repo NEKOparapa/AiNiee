@@ -238,17 +238,13 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                     self.info("任务已停止 ...")
                     self.print("")
                     self.emit(Base.EVENT.TASK_STOP_DONE, {})
-                    return
+                    break
 
         # 子线程循环检测停止状态
-        threading.Thread(target = target, daemon=True).start()
+        threading.Thread(target = target).start()
 
     # 任务开始事件
     def task_start(self, event: int, data: dict) -> None:
-        # 防止并发 TASK_START（如多个 HTTP /api/translate 请求）重复启动同一项目
-        if Base.work_status not in (Base.STATUS.IDLE, Base.STATUS.TASKSTOPPED):
-            return
-
         # 获取配置信息
         continue_status = data.get("continue_status")
         current_mode = data.get("current_mode")
@@ -268,15 +264,13 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
         # 翻译任务
         if current_mode == TaskType.TRANSLATION:
-            Base.work_status = Base.STATUS.TASKING
             threading.Thread(
                 target = run_task_target,
                 args = (self.translation_start_target, continue_status,),
             ).start()
-
+        
         # 润色任务
         elif current_mode == TaskType.POLISH:
-            Base.work_status = Base.STATUS.TASKING
             threading.Thread(
                 target = run_task_target,
                 args = (self.polish_start_target, continue_status,),
@@ -311,9 +305,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 继续翻译时加载存储的监控数据
         else:
             self.project_status_data = self.cache_manager.project.stats_data
-            if self.project_status_data is None:
-                self.project_status_data = CacheProjectStatistics()
-                self.cache_manager.project.stats_data = self.project_status_data
             self.project_status_data.start_time = time.time() # 重置开始时间
             self.project_status_data.total_completion_tokens = 0 # 重置完成的token数量
 
@@ -510,9 +501,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 继续翻译时加载存储的监控数据
         else:
             self.project_status_data = self.cache_manager.project.stats_data
-            if self.project_status_data is None:
-                self.project_status_data = CacheProjectStatistics()
-                self.cache_manager.project.stats_data = self.project_status_data
             self.project_status_data.start_time = time.time() # 重置开始时间
             self.project_status_data.total_completion_tokens = 0 # 重置完成的token数量                  
 

@@ -1,6 +1,5 @@
 import threading
 import json
-import hmac
 import urllib.request
 import urllib.error
 import time
@@ -9,28 +8,8 @@ from socketserver import ThreadingMixIn
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
-from ModuleFolders.Config.FilePathConfig import default_input_dir
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Infrastructure.TaskConfig.TaskType import TaskType
-
-def _is_loopback(addr: str) -> bool:
-    a = (addr or "").strip().lower()
-    if a.startswith("::ffff:"):
-        a = a[7:]
-    return a in ("127.0.0.1", "::1", "localhost") or a.startswith("127.")
-
-
-def _host_only(host_header: str) -> str:
-    h = (host_header or "").strip().lower()
-    if not h:
-        return ""
-    if h[0] == "[":
-        end = h.find("]")
-        return h[1:end] if end > 0 else h.strip("[]")
-    if h.count(":") == 1:
-        return h.rsplit(":", 1)[0]
-    return h
-
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     """支持多线程处理的 HTTP Server"""
@@ -43,45 +22,13 @@ class RequestHandler(BaseHTTPRequestHandler):
         # 屏蔽默认的控制台日志，避免刷屏
         pass
 
-    def _authorized(self) -> bool:
-        config = self.server.service_instance.load_config()
-        token = str(config.get("http_auth_token", "")).strip()
-        if token:
-            provided = self.headers.get("X-Auth-Token", "").strip()
-            if not provided:
-                auth = self.headers.get("Authorization", "")
-                if auth[:7].lower() == "bearer ":
-                    provided = auth[7:].strip()
-            return hmac.compare_digest(provided.encode("utf-8"), token.encode("utf-8"))
-        # CSRF 防护：未设置 Token 时，浏览器跨站请求（img/fetch 等）会带
-        # Sec-Fetch-Site: cross-site/same-site，直接拒绝；脚本/curl 等非浏览器
-        # 调用方不带此头，不受影响
-        if self.headers.get("Sec-Fetch-Site", "") in ("cross-site", "same-site"):
-            return False
-        if not _is_loopback(self.client_address[0]):
-            return False
-        return _host_only(self.headers.get("Host", "")) in ("127.0.0.1", "localhost", "::1")
-
-    def _reject_unauthorized(self):
-        service = getattr(self.server, "service_instance", None)
-        if service is not None:
-            service.warning(f"HTTP 鉴权失败，已拒绝 (Client: {self.client_address[0]})")
-        self.send_response(401)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-        self.wfile.write(json.dumps({"status": "error", "message": "Unauthorized"}).encode('utf-8'))
-
     def do_POST(self):
         """处理 POST 请求（支持传参）"""
         service = self.server.service_instance
-
-        if not self._authorized():
-            self._reject_unauthorized()
-            return
-
+        
         response_data = {"status": "error", "message": "Unknown command"}
         status_code = 404
-        path = self.path.split("?", 1)[0].lower()
+        path = self.path.lower()
 
         # 1. 开始翻译（支持可选参数）
         if path == '/api/translate':
@@ -106,16 +53,13 @@ class RequestHandler(BaseHTTPRequestHandler):
                     # 如果提供了自定义路径，先更新配置
                     if input_folder or output_folder:
                         config = service.load_config()
-                        if config:
-                            if input_folder:
-                                config["label_input_path"] = input_folder
-                                service.info(f"使用自定义输入路径: {input_folder}")
-                            if output_folder:
-                                config["label_output_path"] = output_folder
-                                service.info(f"使用自定义输出路径: {output_folder}")
-                            service.save_config(config)
-                        else:
-                            service.warning("配置不可用，忽略自定义路径覆盖")
+                        if input_folder:
+                            config["label_input_path"] = input_folder
+                            service.info(f"使用自定义输入路径: {input_folder}")
+                        if output_folder:
+                            config["label_output_path"] = output_folder
+                            service.info(f"使用自定义输出路径: {output_folder}")
+                        service.save_config(config)
                     
                     # 检查项目是否已加载
                     if not service.check_project_loaded():
@@ -165,14 +109,10 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         """处理 GET 请求（保持向后兼容）"""
         service = self.server.service_instance
-
-        if not self._authorized():
-            self._reject_unauthorized()
-            return
-
+        
         response_data = {"status": "error", "message": "Unknown command"}
         status_code = 404
-        path = self.path.split("?", 1)[0].lower()
+        path = self.path.lower()
 
         # 1. 开始翻译（使用配置文件中的路径）
         if path == '/api/translate':
@@ -203,17 +143,10 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         # 2. 停止任务
         elif path == '/api/stop':
-            if Base.work_status in (Base.STATUS.TASKING, Base.STATUS.STOPING, Base.STATUS.ANALYSIS_TASK):
-                service.info(f"收到 HTTP 指令: 停止任务 (Client: {self.client_address[0]})")
-                service.emit(Base.EVENT.TASK_STOP, {})
-                response_data = {"status": "success", "message": "Stop signal sent"}
-                status_code = 200
-            elif Base.work_status in (Base.STATUS.GLOSS_TASK, Base.STATUS.API_TEST, Base.STATUS.TABLE_TASK):
-                response_data = {"status": "error", "message": "Current task cannot be stopped"}
-                status_code = 409
-            else:
-                response_data = {"status": "error", "message": "No task running"}
-                status_code = 409
+            service.info(f"收到 HTTP 指令: 停止任务 (Client: {self.client_address[0]})")
+            service.emit(Base.EVENT.TASK_STOP, {})
+            response_data = {"status": "success", "message": "Stop signal sent"}
+            status_code = 200
             
         # 3. 获取状态
         elif path == '/api/status':
@@ -260,9 +193,7 @@ class HttpService(ConfigMixin, LogMixin, Base):
             return "STOPPING"
         if Base.work_status == Base.STATUS.TASKSTOPPED:
             return "STOPPED"
-        if Base.work_status == Base.STATUS.IDLE:
-            return "IDLE"
-        return "BUSY"
+        return "IDLE"
 
     @staticmethod
     def _parse_int(value) -> int:
@@ -332,7 +263,7 @@ class HttpService(ConfigMixin, LogMixin, Base):
         try:
             config = self.load_config()
             translation_project = config.get("translation_project", "AutoType")
-            label_input_path = config.get("label_input_path", str(default_input_dir()))
+            label_input_path = config.get("label_input_path", "./input")
             label_input_exclude_rule = config.get("label_input_exclude_rule", "")
 
             self.info(f"开始加载项目文件...")
@@ -375,17 +306,13 @@ class HttpService(ConfigMixin, LogMixin, Base):
         address_config = config.get("http_listen_address", "127.0.0.1:3388")
         
         try:
-            addr = address_config.strip()
-            if addr.startswith("["):
-                host, _, rest = addr[1:].partition("]")
-                port = int(rest.lstrip(":"))
-            elif addr.count(":") == 1:
-                host, port_str = addr.split(":")
+            if ":" in address_config:
+                host, port_str = address_config.split(":")
                 port = int(port_str)
             else:
                 # 如果用户只填了端口，默认监听 127.0.0.1
                 host = "127.0.0.1"
-                port = int(addr)
+                port = int(address_config)
         except ValueError:
             self.error(f"HTTP 监听地址格式错误: {address_config}。请使用 'IP:PORT' 格式 (如 127.0.0.1:3388)")
             return
@@ -453,12 +380,8 @@ class HttpService(ConfigMixin, LogMixin, Base):
         """关闭服务"""
         if self.httpd:
             self.info("正在关闭 HTTP 服务...")
-            httpd = self.httpd
-            # shutdown() 会阻塞到 serve_forever 退出（请求在途时可能数秒），丢到守护线程避免卡住调用方
-            def _close():
-                try:
-                    httpd.shutdown()
-                    httpd.server_close()
-                except Exception:
-                    pass
-            threading.Thread(target=_close, daemon=True).start()
+            try:
+                self.httpd.shutdown()
+                self.httpd.server_close()
+            except:
+                pass

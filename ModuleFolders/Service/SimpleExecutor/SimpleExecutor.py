@@ -34,13 +34,8 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
 
     # 响应接口测试开始事件
     def api_test_start(self, event: int, data: dict):
-        def run():
-            try:
-                self.api_test(event, data)
-            except Exception as e:
-                self.error(f"接口测试异常: {e}")
-                self.emit(Base.EVENT.API_TEST_DONE, {"failure": ["error"], "success": []})
-        threading.Thread(target = run).start()
+        thread = threading.Thread(target = self.api_test, args = (event, data))
+        thread.start()
 
     # 接口测试
     def api_test(self, event, data: dict):
@@ -48,7 +43,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         platform_tag = data.get("tag")
         platform_name = data.get("name")
         api_url = data.get("api_url", "")
-        api_key = data.get("api_key") or ""
+        api_key = data.get("api_key")
         api_format = data.get("api_format", "")
         model_name = data.get("model")
         auto_complete = data.get("auto_complete")
@@ -113,7 +108,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
             self.info("正在进行接口测试 ...")
             self.info(f"接口名称 - {platform_name}")
             self.info(f"接口地址 - {api_url}")
-            self.info(f"接口密钥 - {'***' + api_key[-4:]}") # 隐藏敏感信息
+            self.info(f"接口密钥 - {'*'*(len(api_key)-8)}{api_key[-8:]}") # 隐藏敏感信息
             self.info(f"模型名称 - {model_name}")
             self.info(f"tls_switch - {data.get('tls_switch', False)}")
             if extra_body:
@@ -166,7 +161,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         self.print("")
         self.info(f"接口测试结果：共测试 {len(api_keys)} 个接口，成功 {len(success)} 个，失败 {len(failure)} 个 ...")
         if len(failure) >0:
-            self.error(f"失败的接口密钥 - {', '.join('***' + k[-4:] for k in failure)}")
+            self.error(f"失败的接口密钥 - {", ".join(failure)}")
         self.print("")
 
         # 发送完成事件
@@ -177,13 +172,8 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
 
     # 响应术语表的简单翻译开始事件
     def glossary_translation_start(self, event: int, data: dict):
-        def run():
-            try:
-                self.glossary_translation(event, data)
-            except Exception as e:
-                self.error(f"术语表翻译异常: {e}")
-                self.emit(Base.EVENT.GLOSS_TASK_DONE, {"status": "error", "message": str(e)})
-        threading.Thread(target = run).start()
+        thread = threading.Thread(target = self.glossary_translation, args = (event, data))
+        thread.start()
 
     # 术语表的简单翻译
     def glossary_translation(self, event, data: dict):
@@ -338,13 +328,8 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
 
     # 响应表格翻译开始事件，并启动新线程
     def handle_table_translation_start(self, event, data: dict):
-        def run():
-            try:
-                self.process_table_translation(data)
-            except Exception as e:
-                self.error(f"表格翻译任务异常: {e}")
-                Base.work_status = Base.STATUS.IDLE
-        threading.Thread(target=run, daemon=True).start()
+        thread = threading.Thread(target=self.process_table_translation, args=(data,), daemon=True)
+        thread.start()
 
     # 表格文本的分批翻译
     def process_table_translation(self, data: dict):
@@ -485,13 +470,8 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
 
     # 响应表格润色事件
     def handle_table_polish_start(self, event, data: dict):
-        def run():
-            try:
-                self.process_table_polish(data)
-            except Exception as e:
-                self.error(f"表格润色任务异常: {e}")
-                Base.work_status = Base.STATUS.IDLE
-        threading.Thread(target=run, daemon=True).start()
+        thread = threading.Thread(target=self.process_table_polish, args=(data,), daemon=True)
+        thread.start()
 
     # 表格文本的分批润色
     def process_table_polish(self, data: dict):
