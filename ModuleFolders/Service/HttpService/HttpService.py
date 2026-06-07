@@ -44,10 +44,6 @@ class RequestHandler(BaseHTTPRequestHandler):
         pass
 
     def _authorized(self) -> bool:
-        # CSRF 防护：浏览器跨站请求（img/fetch 等）会带 Sec-Fetch-Site: cross-site/same-site，
-        # 直接拒绝；脚本/curl 等非浏览器调用方不带此头，不受影响
-        if self.headers.get("Sec-Fetch-Site", "") in ("cross-site", "same-site"):
-            return False
         config = self.server.service_instance.load_config()
         token = str(config.get("http_auth_token", "")).strip()
         if token:
@@ -57,6 +53,11 @@ class RequestHandler(BaseHTTPRequestHandler):
                 if auth[:7].lower() == "bearer ":
                     provided = auth[7:].strip()
             return hmac.compare_digest(provided.encode("utf-8"), token.encode("utf-8"))
+        # CSRF 防护：未设置 Token 时，浏览器跨站请求（img/fetch 等）会带
+        # Sec-Fetch-Site: cross-site/same-site，直接拒绝；脚本/curl 等非浏览器
+        # 调用方不带此头，不受影响
+        if self.headers.get("Sec-Fetch-Site", "") in ("cross-site", "same-site"):
+            return False
         if not _is_loopback(self.client_address[0]):
             return False
         return _host_only(self.headers.get("Host", "")) in ("127.0.0.1", "localhost", "::1")
