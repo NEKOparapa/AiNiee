@@ -212,12 +212,18 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         }
 
         # 写入文件
-        self.file_writer.output_translated_content(
-            self.cache_manager.project,
-            output_path,
-            inpput_path, 
-            output_config, 
-        )
+        try:
+            self.file_writer.output_translated_content(
+                self.cache_manager.project,
+                output_path,
+                inpput_path,
+                output_config,
+            )
+        except Exception as error:
+            self.print("")
+            self.error(f"导出失败：{error}", error)
+            self.print("")
+            return
 
         self.print("")
         self.info(f"翻译结果已成功保存至 {output_path} 目录。")
