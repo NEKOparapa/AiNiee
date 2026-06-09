@@ -19,6 +19,14 @@ class TransWriter(BaseTranslatedWriter):
         pre_write_metadata: PreWriteMetadata,
         source_file_path: Path = None,
     ):
+        if source_file_path is None or not source_file_path.is_file():
+            storage_path = cache_file.storage_path or translation_file_path.name
+            raise FileNotFoundError(
+                "Trans 项目导出需要读取原始 .trans 文件，但当前源文件不存在："
+                f"{source_file_path}。请确认输入路径仍指向原始文件或包含 "
+                f"{storage_path} 的原始目录。"
+            )
+
         trans_content = json.loads(source_file_path.read_text(encoding="utf-8"))
         for item in cache_file.items:
             file_category = item.get_extra("file_category", "")
