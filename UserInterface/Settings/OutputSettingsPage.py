@@ -27,6 +27,8 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
             "output_filename_suffix": "_translated",
             "bilingual_text_order": "translation_first",
             "translation_result_check_switch": False,
+            "response_conversion_toggle": False,
+            "opencc_preset": "s2t",
             "keep_original_encoding": False,
         }
 
@@ -59,6 +61,9 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         self.add_widget_bilingual_text_order(self.vbox, config)
         self.add_widget_translation_result_check(self.vbox, config)
         self.add_widget_encoding(self.vbox, config)
+        self.vbox.addWidget(HorizontalSeparator())
+        self.add_widget_opencc(self.vbox, config)
+        self.add_widget_opencc_preset(self.vbox, config)
         # 填充
         self.vbox.addStretch(1)
 
@@ -165,6 +170,60 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
                 self.tra("启用后，将在翻译任务完成并输出文件后执行翻译检查并输出总结，在发现问题时生成 JSON 错误报告"),
                 widget_init,
                 widget_callback,
+            )
+        )
+
+    # 自动简繁转换
+    def add_widget_opencc(self, parent, config) -> None:
+        def widget_init(widget) -> None:
+            widget.set_checked(config.get("response_conversion_toggle"))
+
+        def widget_callback(widget, checked: bool) -> None:
+            config = self.load_config()
+            config["response_conversion_toggle"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("自动简繁转换"),
+                self.tra("启用此功能后，在翻译完成时将按照设置的字形映射规则进行简繁转换"),
+                widget_init,
+                widget_callback,
+            )
+        )
+
+    # 简繁转换预设规则
+    def add_widget_opencc_preset(self, parent, config) -> None:
+        def init(widget) -> None:
+            widget.set_current_index(max(0, widget.find_text(config.get("opencc_preset"))))
+
+        def current_text_changed(widget, text: str) -> None:
+            config = self.load_config()
+            config["opencc_preset"] = text
+            self.save_config(config)
+
+        parent.addWidget(
+            ComboBoxCard(
+                self.tra("简繁转换预设规则"),
+                self.tra("进行简繁转换时的字形预设规则，常用的有：简转繁（s2t）、繁转简（t2s）"),
+                [
+                    "s2t",
+                    "s2tw",
+                    "s2hk",
+                    "s2twp",
+                    "t2s",
+                    "t2tw",
+                    "t2hk",
+                    "t2jp",
+                    "tw2s",
+                    "tw2t",
+                    "tw2sp",
+                    "hk2s",
+                    "hk2t",
+                    "jp2t",
+                ],
+                init = init,
+                current_text_changed = current_text_changed,
             )
         )
 
