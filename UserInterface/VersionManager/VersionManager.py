@@ -832,6 +832,9 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _download_completed(self, filename):
         """Handle download completion"""
+        # 取消时下载线程可能已越过标志检查正常收尾并发出完成信号，此时不再弹安装确认
+        if getattr(self, "_update_cancelled", False):
+            return
         # 先关闭更新对话框，避免UI阻塞
         if self.update_dialog:
             self.update_dialog.accept()

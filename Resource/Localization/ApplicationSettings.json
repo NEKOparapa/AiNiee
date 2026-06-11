@@ -204,24 +204,6 @@
       "English": "Format: IP:port.\nExample: 127.0.0.1:3388 (local only)\nor 0.0.0.0:3388 (LAN).",
       "日本語": "形式: IP:ポート\n例: 127.0.0.1:3388 (ローカルのみ)\nまたは 0.0.0.0:3388 (LAN)。"
     },
-    "访问 Token": {
-      "简中": "访问 Token",
-      "繁中": "存取 Token",
-      "English": "Access Token",
-      "日本語": "アクセストークン"
-    },
-    "设置后所有请求须带 X-Auth-Token 头；未设置时仅允许 127.0.0.1 本机访问（绑定 0.0.0.0 对外时务必设置）": {
-      "简中": "设置后所有请求须带 X-Auth-Token 头；未设置时仅允许 127.0.0.1 本机访问（绑定 0.0.0.0 对外时务必设置）",
-      "繁中": "設定後所有請求須帶 X-Auth-Token 標頭；未設定時僅允許 127.0.0.1 本機存取（綁定 0.0.0.0 對外時務必設定）",
-      "English": "When set, every request must include an X-Auth-Token header.\nWhen empty, only 127.0.0.1 (local) is allowed — set it when binding 0.0.0.0 for LAN.",
-      "日本語": "設定するとすべてのリクエストに X-Auth-Token ヘッダーが必要です。\n未設定の場合は 127.0.0.1（ローカル）のみ許可されます。"
-    },
-    "未设置仅本机可用": {
-      "简中": "未设置仅本机可用",
-      "繁中": "未設定僅本機可用",
-      "English": "Empty = local only",
-      "日本語": "未設定の場合はローカルのみ"
-    },
     "完成回调 URL": {
       "简中": "完成回调 URL",
       "繁中": "完成回呼 URL",

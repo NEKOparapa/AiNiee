@@ -259,13 +259,14 @@ def auto_output_dir(input_path: str) -> str:
     return os.path.join(parent, "AiNieeOutput")
 
 
-# 把存储的路径解析成绝对路径：空或相对值回落到可见的默认目录。
-def resolve_user_dir(value: str, fallback: Path) -> str:
-    text = (value or "").strip()
-    if text:
-        candidate = Path(text).expanduser()
-        if candidate.is_absolute():
-            return str(candidate)
+# 把存储的路径解析成绝对路径：非字符串、空或相对值回落到可见的默认目录。
+def resolve_user_dir(value, fallback: Path) -> str:
+    if isinstance(value, str):
+        text = value.strip()
+        if text:
+            candidate = Path(text).expanduser()
+            if candidate.is_absolute():
+                return str(candidate)
     return str(fallback)
 
 
