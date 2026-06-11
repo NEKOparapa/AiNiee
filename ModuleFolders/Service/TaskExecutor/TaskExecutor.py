@@ -110,6 +110,29 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         except TypeError:
             executor.shutdown(wait=False)
 
+    def _convert_translated_text_with_opencc(self, preset: str | None) -> bool:
+        preset = preset or "s2t"
+        self.print("")
+        self.info(f"已启动自动简繁转换功能，正在使用 {preset} 配置进行字形转换 ...")
+        self.print("")
+
+        try:
+            converter = _create_opencc_converter(preset)
+            cache_list = self.cache_manager.project.items_iter()
+            for item in cache_list:
+                if item.translation_status in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
+                    item.translated_text = converter.convert(item.translated_text)
+        except Exception as error:
+            self.print("")
+            self.error(f"简繁转换失败，已取消本次输出：{error}", error)
+            self.print("")
+            return False
+
+        self.print("")
+        self.info("简繁转换完成。")
+        self.print("")
+        return True
+
     # 应用关闭事件
     def app_shut_down(self, event: int, data: dict) -> None:
         Base.work_status = Base.STATUS.STOPING
@@ -190,19 +213,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
         # 如果开启了转换简繁开关功能，则进行文本转换
         if config.get("response_conversion_toggle"):  # 使用 .get()
-            self.print("")
-
-            self.info(f"已启动自动简繁转换功能，正在使用 {config.get('opencc_preset')} 配置进行字形转换 ...")
-            self.print("")
-
-            converter = _create_opencc_converter(config.get('opencc_preset'))
-            cache_list = self.cache_manager.project.items_iter()
-            for item in cache_list:
-                if item.translation_status in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
-                    item.translated_text = converter.convert(item.translated_text)
-            self.print("")
-            self.info(f"简繁转换完成。")
-            self.print("")
+            if not self._convert_translated_text_with_opencc(config.get("opencc_preset")):
+                return
 
         # 输出配置包
         output_config = {
@@ -442,16 +454,10 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
         # 如果开启了转换简繁开关功能，则进行文本转换
         if self.config.response_conversion_toggle:
-
-            self.print("")
-            self.info(f"已启动自动简繁转换功能，正在使用 {self.config.opencc_preset} 配置进行字形转换 ...")
-            self.print("")
-
-            converter = _create_opencc_converter(self.config.opencc_preset)
-            cache_list = self.cache_manager.project.items_iter()
-            for item in cache_list:
-                if item.translation_status in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
-                    item.translated_text = converter.convert(item.translated_text)
+            if not self._convert_translated_text_with_opencc(self.config.opencc_preset):
+                Base.work_status = Base.STATUS.TASKSTOPPED
+                self.emit(Base.EVENT.TASK_STOP_DONE, {})
+                return
 
         # 输出配置包
         output_config = {
