@@ -28,6 +28,7 @@ from UserInterface.Widget.EmptyCard import EmptyCard
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.LineEditCard import LineEditCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
+from UserInterface.Widget.SegmentedControl import SegmentedControl
 from UserInterface.Native.FileDialogProvider import get_existing_directory, get_open_file_name
 
 class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
@@ -77,6 +78,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self.add_widget_auto_check_update(self.vbox, config)
         self.add_widget_check_update(self.vbox, config, window)
         self.add_widget_open_log_dir(self.vbox, config)
+        self.add_widget_theme(self.vbox, config, window)
         self.add_widget_scale_factor(self.vbox, config)
         self.add_widget_accent_color(self.vbox, config)
         self.add_widget_exclude_rule(self.vbox, config)
@@ -211,6 +213,35 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         )
 
     # 全局缩放比例
+    # 主题（跟随系统 / 浅色 / 深色，连体分段控件）
+    def add_widget_theme(self, parent, config, window) -> None:
+        theme_items = [
+            ("auto", self.tra("跟随系统")),
+            ("light", self.tra("浅色")),
+            ("dark", self.tra("深色")),
+        ]
+
+        def init(widget) -> None:
+            current = config.get("theme", "auto")
+            if current not in ("auto", "light", "dark"):
+                current = "auto"
+
+            segmented = SegmentedControl(widget)
+            for mode, text in theme_items:
+                segmented.add_item(mode, text)
+            segmented.set_current_key(current)
+            if hasattr(window, "apply_theme_mode"):
+                segmented.currentChanged.connect(window.apply_theme_mode)
+            widget.add_widget(segmented)
+
+        parent.addWidget(
+            EmptyCard(
+                self.tra("主题"),
+                self.tra("选择浅色、深色，或跟随系统外观自动切换"),
+                init=init,
+            )
+        )
+
     def add_widget_scale_factor(self, parent, config) -> None:
         def init(widget) -> None:
             widget.set_current_index(max(0, widget.find_text(config.get("scale_factor"))))
