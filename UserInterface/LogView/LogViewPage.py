@@ -161,10 +161,10 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         y = self.text_edit.height() - btn.height() - margin
         btn.move(x, y)
 
-    def _on_log_line(self, line: str, level: str, style: str = "") -> None:
+    def _on_log_line(self, line: str, level: str, style: str = "", rows=None) -> None:
         # 可能在 worker 线程被调用：只入缓冲，渲染交给 GUI 线程的 _drain_timer
         with self._pending_lock:
-            self._pending.append((line, level, style))
+            self._pending.append((line, level, style, rows))
 
     def _drain_pending(self) -> None:
         with self._pending_lock:
@@ -181,10 +181,10 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self.text_edit.setUpdatesEnabled(False)
         try:
             for item in history:
-                line, level, style = self._unpack_log_item(item)
-                self._buffer.append((line, level, style))
+                line, level, style, rows = self._unpack_log_item(item)
+                self._buffer.append((line, level, style, rows))
                 if self._matches_filter(level):
-                    self._render_line(line, level, style)
+                    self._render_line(line, level, style, rows)
             self._trim_view()
         finally:
             self.text_edit.setUpdatesEnabled(True)
@@ -200,13 +200,17 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         return _LEVEL_ORDER.get(level, threshold) >= threshold
 
     @staticmethod
-    def _unpack_log_item(item) -> tuple[str, str, str]:
-        if len(item) >= 3:
-            line, level, style = item[:3]
+    def _unpack_log_item(item) -> tuple[str, str, str, object]:
+        if len(item) >= 4:
+            line, level, style, rows = item[:4]
+        elif len(item) == 3:
+            line, level, style = item
+            rows = None
         else:
             line, level = item
             style = ""
-        return line, level, style
+            rows = None
+        return line, level, style, rows
 
     @staticmethod
     def _escape_html(text: str) -> str:
@@ -231,7 +235,48 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             return f'<span style="color:{color}; white-space:pre;">{safe}</span>'
         return f'<span style="white-space:pre;">{safe}</span>'
 
-    def _render_line(self, line: str, level: str, style: str = "") -> None:
+    def _style_inline_text(self, text: str) -> str:
+        palette = _DARK_COLORS if isDarkTheme() else _LIGHT_COLORS
+        safe = self._escape_html(text)
+        return safe.replace("--&gt;", f'<font color="{palette["ARROW"]}">--&gt;</font>')
+
+    def _table_border_color(self, style: str) -> str:
+        palette = _DARK_COLORS if isDarkTheme() else _LIGHT_COLORS
+        if style == "error":
+            return palette["ERROR"]
+        if style == "success":
+            return palette["SUCCESS"]
+        return palette["WARNING"]
+
+    def _render_table(self, rows, style: str) -> None:
+        border_color = self._table_border_color(style)
+        table_rows = []
+        for row in rows:
+            if not isinstance(row, (list, tuple)):
+                row = [row]
+            cells = []
+            for cell in row:
+                text = cell if isinstance(cell, str) else str(cell)
+                lines = [self._style_inline_text(part) for part in text.split("\n")]
+                cells.append(
+                    '<td style="border:1px solid {0}; padding:6px; vertical-align:top;">{1}</td>'.format(
+                        border_color,
+                        "<br>".join(lines),
+                    )
+                )
+            table_rows.append("<tr>" + "".join(cells) + "</tr>")
+        html = (
+            '<table border="1" cellspacing="0" cellpadding="6" width="100%" '
+            f'style="border-color:{border_color};">'
+            + "".join(table_rows)
+            + "</table>"
+        )
+        self.text_edit.append(html)
+
+    def _render_line(self, line: str, level: str, style: str = "", rows=None) -> None:
+        if rows:
+            self._render_table(rows, style)
+            return
         html = "<br>".join(self._style_line(raw_line, level, style) for raw_line in line.split("\n"))
         self.text_edit.append(html)
 
@@ -251,9 +296,9 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         try:
             self.text_edit.clear()
             for item in self._buffer:
-                line, level, style = self._unpack_log_item(item)
+                line, level, style, rows = self._unpack_log_item(item)
                 if self._matches_filter(level):
-                    self._render_line(line, level, style)
+                    self._render_line(line, level, style, rows)
             self._trim_view()
             self._reapply_highlight()
             if self._auto_scroll:

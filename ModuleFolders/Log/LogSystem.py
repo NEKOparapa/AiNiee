@@ -118,6 +118,13 @@ class SensitiveFilter(logging.Filter):
         gui_text = getattr(record, "ainiee_gui_text", None)
         if isinstance(gui_text, str):
             record.ainiee_gui_text = redact(gui_text)
+        gui_rows = getattr(record, "ainiee_gui_rows", None)
+        if isinstance(gui_rows, list):
+            record.ainiee_gui_rows = [
+                [redact(cell) if isinstance(cell, str) else cell for cell in row]
+                if isinstance(row, list) else row
+                for row in gui_rows
+            ]
         if record.exc_info:
             exc_text = _EXC_FORMATTER.formatException(record.exc_info)
             record.exc_text = redact(exc_text)
@@ -179,11 +186,14 @@ class _GUIHandler(logging.Handler):
         self._dispatching = threading.local()
 
     @staticmethod
-    def _notify(cb, line: str, level: str, style: str) -> None:
+    def _notify(cb, line: str, level: str, style: str, rows=None) -> None:
         try:
-            cb(line, level, style)
+            cb(line, level, style, rows)
         except TypeError:
-            cb(line, level)
+            try:
+                cb(line, level, style)
+            except TypeError:
+                cb(line, level)
 
     def subscribe(self, cb, batch_cb=None) -> None:
         # 锁内：原子地决定回放与挂订阅，避免 emit 在两者之间塞入 record 而新 cb 漏收
@@ -200,13 +210,17 @@ class _GUIHandler(logging.Handler):
                 pass
             return
         for item in history:
-            if len(item) == 3:
+            if len(item) >= 4:
+                line, level, style, rows = item[:4]
+            elif len(item) == 3:
                 line, level, style = item
+                rows = None
             else:
                 line, level = item
                 style = ""
+                rows = None
             try:
-                self._notify(cb, line, level, style)
+                self._notify(cb, line, level, style, rows)
             except Exception:
                 pass
 
@@ -226,8 +240,11 @@ class _GUIHandler(logging.Handler):
             style = getattr(record, "ainiee_gui_style", "")
             if not isinstance(style, str):
                 style = ""
+            rows = getattr(record, "ainiee_gui_rows", None)
+            if not isinstance(rows, list):
+                rows = None
             with self.lock:
-                self._replay.append((line, level, style))
+                self._replay.append((line, level, style, rows))
                 # 同一线程已在 dispatch 里：只进 replay 不再分发，避免 cb 内
                 # 调 logging.* 触发的无限递归
                 if getattr(self._dispatching, "depth", 0) > 0:
@@ -237,7 +254,7 @@ class _GUIHandler(logging.Handler):
             try:
                 for cb in subscribers:
                     try:
-                        self._notify(cb, line, level, style)
+                        self._notify(cb, line, level, style, rows)
                     except Exception:
                         pass
             finally:
