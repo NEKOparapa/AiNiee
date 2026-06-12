@@ -85,6 +85,7 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self._auto_scroll = True
         self._filter_level = "ALL"
         self._search_text = ""
+        self._rerender_pending = False
 
         self.container = QVBoxLayout(self)
         self.container.setContentsMargins(8, 8, 8, 8)
@@ -157,7 +158,8 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self._gui_handler = get_gui_handler()
         self._gui_handler.subscribe(self._on_log_line, batch_cb=self._append_batch)
         try:
-            qconfig.themeChanged.connect(self._rerender_view)
+            qconfig.themeChanged.connect(self._schedule_rerender_view)
+            qconfig.themeChangedFinished.connect(self._schedule_rerender_view)
         except RuntimeError:
             pass
         self.destroyed.connect(self._unsubscribe_on_destroy)
@@ -168,7 +170,11 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         except Exception:
             pass
         try:
-            qconfig.themeChanged.disconnect(self._rerender_view)
+            qconfig.themeChanged.disconnect(self._schedule_rerender_view)
+        except (TypeError, RuntimeError):
+            pass
+        try:
+            qconfig.themeChangedFinished.disconnect(self._schedule_rerender_view)
         except (TypeError, RuntimeError):
             pass
         try:
@@ -412,7 +418,14 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         cursor.movePosition(QTextCursor.NextBlock, QTextCursor.KeepAnchor, excess)
         cursor.removeSelectedText()
 
+    def _schedule_rerender_view(self, *_args) -> None:
+        if self._rerender_pending:
+            return
+        self._rerender_pending = True
+        QTimer.singleShot(0, self._rerender_view)
+
     def _rerender_view(self) -> None:
+        self._rerender_pending = False
         try:
             self.text_edit.clear()
             for item in self._buffer:
