@@ -89,6 +89,30 @@
       "繁中": "啟用後，將在翻譯任務完成並輸出檔案後執行翻譯檢查並輸出總結，發現問題時生成 JSON 錯誤報告",
       "English": "Run translation checks after export.\nPrint a summary and create a JSON report if issues are found.",
       "日本語": "有効にすると、翻訳タスク完了後に出力ファイルを書き出したあと翻訳チェックと要約出力を実行し、問題が見つかった場合は JSON のエラーレポートを生成します。"
+    },
+    "自动简繁转换": {
+      "简中": "自动简繁转换",
+      "繁中": "自動簡繁轉換",
+      "English": "Automatic Simplified/Traditional Conversion",
+      "日本語": "自動 簡体/繁体字 変換"
+    },
+    "启用此功能后，在翻译完成时将按照设置的字形映射规则进行简繁转换": {
+      "简中": "启用此功能后，在翻译完成时将按照设置的字形映射规则进行简繁转换",
+      "繁中": "啟用後，翻譯完成時將依照設定的字形映射規則進行簡繁轉換。",
+      "English": "Enabled: Applies set character map for Simplified/Traditional conversion post-translation.",
+      "日本語": "有効時：設定された字形マップに基づき、翻訳後に簡体/繁体字変換を適用。"
+    },
+    "简繁转换预设规则": {
+      "简中": "简繁转换预设规则",
+      "繁中": "簡繁轉換預設規則",
+      "English": "Simplified/Traditional Conversion Presets",
+      "日本語": "簡体/繁体字 変換プリセット"
+    },
+    "进行简繁转换时的字形预设规则，常用的有：简转繁（s2t）、繁转简（t2s）": {
+      "简中": "进行简繁转换时的字形预设规则，常用的有：简转繁（s2t）、繁转简（t2s）",
+      "繁中": "簡繁轉換字形預設規則，常用：簡轉繁（s2t）、繁轉簡（t2s）。",
+      "English": "Conversion presets for Simplified/Traditional Chinese. Common: s2t, t2s.",
+      "日本語": "簡体/繁体字変換の字形プリセット。例：簡→繁(s2t)、繁→簡(t2s)。"
     }
   }
 }

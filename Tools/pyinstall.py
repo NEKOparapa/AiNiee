@@ -21,6 +21,7 @@ cmd = [
     "--collect-all=rich",
     "--collect-all=bitstring",
     "--collect-all=darkdetect",
+    "--collect-all=opencc",
     # FileReader/FileOutputer use importlib-based lazy loading; collect their
     # submodules so packaged builds can load formats at runtime.
     "--collect-submodules=ModuleFolders.Domain.FileReader",

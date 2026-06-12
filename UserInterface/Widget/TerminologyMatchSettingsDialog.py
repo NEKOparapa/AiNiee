@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QVBoxLayout, QWidget
-from qfluentwidgets import CheckBox, MessageBoxBase, StrongBodyLabel
+from qfluentwidgets import CaptionLabel, CheckBox, MessageBoxBase, StrongBodyLabel
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -33,9 +33,16 @@ class TerminologyMatchSettingsDialog(ConfigMixin, Base, MessageBoxBase):
     def _init_ui(self) -> None:
         self.view_layout.addWidget(StrongBodyLabel(self.tra("原文匹配方式"), self))
 
+        self.match_options_note_label = CaptionLabel(
+            self.tra("建议仅在翻译英文文本时设置这两个开关，其他语言可能出现术语漏匹配。"),
+            self,
+        )
+        self.match_options_note_label.setWordWrap(True)
+
         self.case_sensitive_checkbox = CheckBox(self.tra("大小写敏感"), self)
         self.whole_word_checkbox = CheckBox(self.tra("全词匹配"), self)
 
+        self.view_layout.addWidget(self.match_options_note_label)
         self.view_layout.addWidget(self.case_sensitive_checkbox)
         self.view_layout.addWidget(self.whole_word_checkbox)
 
