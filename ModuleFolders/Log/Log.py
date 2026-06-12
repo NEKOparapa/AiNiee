@@ -147,6 +147,12 @@ def _log_extra(gui_text: str, gui_style: str = "", gui_rows=None) -> dict:
     }
 
 
+def _with_gui_prefix(prefix: str, gui_text: str) -> str:
+    if not gui_text:
+        return prefix
+    return f"{prefix} {gui_text}"
+
+
 class LogMixin:
     @staticmethod
     def _format_exception(error: Exception) -> str:
@@ -167,6 +173,7 @@ class LogMixin:
 
     def debug(self, msg, error: Exception = None) -> None:
         console_value, text, gui_text, gui_style, gui_rows = _prepare_message(msg)
+        gui_text = _with_gui_prefix("[DEBUG]", gui_text)
         if error is None:
             _rich_print(f"[[yellow]DEBUG[/]] {console_value}")
             self._logger().debug(text, extra=_log_extra(gui_text, gui_style, gui_rows))
@@ -181,11 +188,13 @@ class LogMixin:
 
     def info(self, msg) -> None:
         console_value, text, gui_text, gui_style, gui_rows = _prepare_message(msg)
+        gui_text = _with_gui_prefix("[INFO]", gui_text)
         _rich_print(f"[[green]INFO[/]] {console_value}")
         self._logger().info(text, extra=_log_extra(gui_text, gui_style, gui_rows))
 
     def error(self, msg, error: Exception = None) -> None:
         console_value, text, gui_text, gui_style, gui_rows = _prepare_message(msg)
+        gui_text = _with_gui_prefix("[ERROR]", gui_text)
         if error is None:
             _rich_print(f"[[red]ERROR[/]] {console_value}")
             self._logger().error(text, extra=_log_extra(gui_text, gui_style, gui_rows))
@@ -200,5 +209,6 @@ class LogMixin:
 
     def warning(self, msg) -> None:
         console_value, text, gui_text, gui_style, gui_rows = _prepare_message(msg)
+        gui_text = _with_gui_prefix("[WARNING]", gui_text)
         _rich_print(f"[[yellow]WARNING[/]] {console_value}")
         self._logger().warning(text, extra=_log_extra(gui_text, gui_style, gui_rows))

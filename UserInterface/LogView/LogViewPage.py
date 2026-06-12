@@ -1,3 +1,4 @@
+import re
 import threading
 from collections import deque
 
@@ -20,24 +21,44 @@ _MAX_LINES = 5000
 _MAX_HIGHLIGHTS = 500
 
 _DARK_COLORS = {
-    "CRITICAL": "#e06c75",
-    "ERROR": "#e06c75",
-    "WARNING": "#e5c07b",
-    "ARROW": "#61afef",
-    "SUCCESS": "#98c379",
+    "INFO": "#7ee787",
+    "DEBUG": "#a5d6ff",
+    "CRITICAL": "#ff7b72",
+    "ERROR": "#ff7b72",
+    "WARNING": "#d29922",
+    "ARROW": "#79c0ff",
+    "SUCCESS": "#3fb950",
+    "PATH": "#d2a8ff",
+    "URL": "#56d4dd",
+    "NUMBER": "#7ee787",
+    "TIP": "#e3b341",
 }
 
 _LIGHT_COLORS = {
-    "CRITICAL": "#c0392b",
-    "ERROR": "#c0392b",
-    "WARNING": "#996600",
-    "ARROW": "#0067c0",
-    "SUCCESS": "#188038",
+    "INFO": "#116329",
+    "DEBUG": "#0969da",
+    "CRITICAL": "#cf222e",
+    "ERROR": "#cf222e",
+    "WARNING": "#9a6700",
+    "ARROW": "#0969da",
+    "SUCCESS": "#1a7f37",
+    "PATH": "#8250df",
+    "URL": "#0a7ea4",
+    "NUMBER": "#1a7f37",
+    "TIP": "#9a6700",
 }
 
 _FILTER_LEVELS = ("ALL", "INFO", "WARNING", "ERROR", "CRITICAL")
 _LEVEL_ORDER = {"DEBUG": 0, "INFO": 1, "WARNING": 2, "ERROR": 3, "CRITICAL": 4}
 _HIGHLIGHT_BG = QColor("#f1c40f")
+_INLINE_TOKEN_RE = re.compile(
+    r"https?://[^\s<>()]+"
+    r"|/(?:[^\s<>()]+/?)+"
+    r"|\[(?:INFO|DEBUG|WARNING|ERROR|CRITICAL)\]"
+    r"|Tips:"
+    r"|-->"
+    r"|\b\d+(?:\.\d+)+(?:\s*(?:ms|dev))?\b"
+)
 
 
 class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
@@ -221,24 +242,57 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         stripped = text.strip()
         return bool(stripped) and set(stripped) == {"-"}
 
+    @staticmethod
+    def _inline_token_key(token: str) -> str:
+        if token.startswith("[") and token.endswith("]"):
+            return token[1:-1]
+        if token.startswith("http://") or token.startswith("https://"):
+            return "URL"
+        if token.startswith("/"):
+            return "PATH"
+        if token == "-->":
+            return "ARROW"
+        if token == "Tips:":
+            return "TIP"
+        return "NUMBER"
+
+    def _highlight_inline(self, text: str) -> str:
+        palette = _DARK_COLORS if isDarkTheme() else _LIGHT_COLORS
+        parts = []
+        pos = 0
+        for match in _INLINE_TOKEN_RE.finditer(text):
+            if match.start() > pos:
+                parts.append(self._escape_html(text[pos:match.start()]))
+            token = match.group(0)
+            color = palette.get(self._inline_token_key(token))
+            safe = self._escape_html(token)
+            if color:
+                parts.append(f'<span style="color:{color}; font-weight:600;">{safe}</span>')
+            else:
+                parts.append(safe)
+            pos = match.end()
+        if pos < len(text):
+            parts.append(self._escape_html(text[pos:]))
+        return "".join(parts)
+
     def _style_line(self, raw_line: str, level: str, style: str) -> str:
         palette = _DARK_COLORS if isDarkTheme() else _LIGHT_COLORS
-        color = palette.get(level)
+        color = palette.get(level) if level in ("WARNING", "ERROR", "CRITICAL") else None
+        has_level_prefix = raw_line.startswith(("[INFO]", "[DEBUG]", "[WARNING]", "[ERROR]", "[CRITICAL]"))
+        if has_level_prefix:
+            color = None
         if self._is_separator_line(raw_line):
             if style == "error":
                 color = palette["ERROR"]
             elif style == "success":
                 color = palette["SUCCESS"]
-        safe = self._escape_html(raw_line)
-        safe = safe.replace("--&gt;", f'<span style="color:{palette["ARROW"]};">--&gt;</span>')
+        safe = self._highlight_inline(raw_line)
         if color:
             return f'<span style="color:{color}; white-space:pre;">{safe}</span>'
         return f'<span style="white-space:pre;">{safe}</span>'
 
     def _style_inline_text(self, text: str) -> str:
-        palette = _DARK_COLORS if isDarkTheme() else _LIGHT_COLORS
-        safe = self._escape_html(text)
-        return safe.replace("--&gt;", f'<font color="{palette["ARROW"]}">--&gt;</font>')
+        return self._highlight_inline(text)
 
     def _table_border_color(self, style: str) -> str:
         palette = _DARK_COLORS if isDarkTheme() else _LIGHT_COLORS
