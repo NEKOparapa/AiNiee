@@ -3,7 +3,7 @@ import threading
 from collections import deque
 
 from PyQt5.QtCore import QUrl, QTimer, Qt
-from PyQt5.QtGui import QColor, QDesktopServices, QTextCursor, QTextDocument, QTextOption
+from PyQt5.QtGui import QColor, QDesktopServices, QPalette, QTextCursor, QTextDocument, QTextOption
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTextEdit
 
 from qfluentwidgets import isDarkTheme, PushButton, FluentIcon, ComboBox, LineEdit, qconfig
@@ -21,6 +21,9 @@ _MAX_LINES = 5000
 _MAX_HIGHLIGHTS = 500
 
 _DARK_COLORS = {
+    "SURFACE": "#11161d",
+    "TEXT": "#d7dde5",
+    "BORDER": "#2f3642",
     "INFO": "#9fb3c8",
     "DEBUG": "#8a9bb0",
     "CRITICAL": "#e58a84",
@@ -35,9 +38,14 @@ _DARK_COLORS = {
     "PROGRESS": "#7ea7d8",
     "PROGRESS_BG": "#313844",
     "MUTED": "#9aa6b2",
+    "SELECTION_BG": "#314763",
+    "SELECTION_TEXT": "#f4f7fb",
 }
 
 _LIGHT_COLORS = {
+    "SURFACE": "#fbfcfe",
+    "TEXT": "#24292f",
+    "BORDER": "#d0d7de",
     "INFO": "#38556b",
     "DEBUG": "#596a7a",
     "CRITICAL": "#a33b34",
@@ -52,6 +60,8 @@ _LIGHT_COLORS = {
     "PROGRESS": "#416f9f",
     "PROGRESS_BG": "#d9dee6",
     "MUTED": "#667280",
+    "SELECTION_BG": "#bfd7f5",
+    "SELECTION_TEXT": "#1f2328",
 }
 
 _FILTER_LEVELS = ("ALL", "INFO", "WARNING", "ERROR", "CRITICAL")
@@ -133,6 +143,7 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         font = self.text_edit.font()
         font.setFamily(monospace_font_family())
         self.text_edit.setFont(font)
+        self._apply_text_edit_theme()
         self.container.addWidget(self.text_edit)
 
         # 浮动"回到底部"按钮
@@ -307,9 +318,8 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             elif style == "success":
                 color = palette["SUCCESS"]
         safe = self._highlight_inline(raw_line)
-        if color:
-            return f'<span style="color:{color}; white-space:pre;">{safe}</span>'
-        return f'<span style="white-space:pre;">{safe}</span>'
+        color = color or palette["TEXT"]
+        return f'<span style="color:{color}; white-space:pre;">{safe}</span>'
 
     def _style_inline_text(self, text: str) -> str:
         return self._highlight_inline(text)
@@ -323,6 +333,7 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         return palette["WARNING"]
 
     def _render_table(self, rows, style: str) -> None:
+        palette = _DARK_COLORS if isDarkTheme() else _LIGHT_COLORS
         border_color = self._table_border_color(style)
         table_rows = []
         for row in rows:
@@ -333,8 +344,9 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
                 text = cell if isinstance(cell, str) else str(cell)
                 lines = [self._style_inline_text(part) for part in text.split("\n")]
                 cells.append(
-                    '<td style="border:1px solid {0}; padding:6px; vertical-align:top;">{1}</td>'.format(
+                    '<td style="border:1px solid {0}; color:{1}; padding:6px; vertical-align:top;">{2}</td>'.format(
                         border_color,
+                        palette["TEXT"],
                         "<br>".join(lines),
                     )
                 )
@@ -380,7 +392,7 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             '<table border="0" cellspacing="0" cellpadding="0" width="100%">'
             "<tr>"
             '<td style="white-space:normal;">'
-            '<span style="font-weight:600;">{label}</span> '
+            '<span style="color:{text}; font-weight:600;">{label}</span> '
             '<span style="color:{muted};">{detail}</span>'
             "</td>"
             "</tr>"
@@ -391,6 +403,7 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         ).format(
             label=self._escape_html(label),
             bar=bar_html,
+            text=palette["TEXT"],
             muted=palette["MUTED"],
             detail=self._escape_html(detail_text),
         )
@@ -424,9 +437,39 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self._rerender_pending = True
         QTimer.singleShot(0, self._rerender_view)
 
+    def _apply_text_edit_theme(self) -> None:
+        palette = _DARK_COLORS if isDarkTheme() else _LIGHT_COLORS
+        widget_palette = self.text_edit.palette()
+        widget_palette.setColor(QPalette.Base, QColor(palette["SURFACE"]))
+        widget_palette.setColor(QPalette.Text, QColor(palette["TEXT"]))
+        self.text_edit.setPalette(widget_palette)
+        self.text_edit.document().setDefaultStyleSheet(
+            f"body {{ background-color: {palette['SURFACE']}; color: {palette['TEXT']}; }}"
+        )
+        self.text_edit.setStyleSheet(
+            "QTextEdit {"
+            f" background-color: {palette['SURFACE']};"
+            f" color: {palette['TEXT']};"
+            f" border: 1px solid {palette['BORDER']};"
+            " border-radius: 2px;"
+            " padding: 6px;"
+            "}"
+            "QTextEdit:focus {"
+            f" border: 1px solid {palette['BORDER']};"
+            "}"
+            "QTextEdit QScrollBar {"
+            " background: transparent;"
+            "}"
+            "QTextEdit {"
+            f" selection-background-color: {palette['SELECTION_BG']};"
+            f" selection-color: {palette['SELECTION_TEXT']};"
+            "}"
+        )
+
     def _rerender_view(self) -> None:
         self._rerender_pending = False
         try:
+            self._apply_text_edit_theme()
             self.text_edit.clear()
             for item in self._buffer:
                 line, level, style, rows = self._unpack_log_item(item)
