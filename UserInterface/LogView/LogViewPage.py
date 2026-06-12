@@ -2,8 +2,8 @@ import re
 import threading
 from collections import deque
 
-from PyQt5.QtCore import QUrl, QTimer
-from PyQt5.QtGui import QColor, QDesktopServices, QTextCursor, QTextDocument
+from PyQt5.QtCore import QUrl, QTimer, Qt
+from PyQt5.QtGui import QColor, QDesktopServices, QTextCursor, QTextDocument, QTextOption
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTextEdit
 
 from qfluentwidgets import isDarkTheme, PushButton, FluentIcon, ComboBox, LineEdit, qconfig
@@ -32,6 +32,9 @@ _DARK_COLORS = {
     "URL": "#56d4dd",
     "NUMBER": "#7ee787",
     "TIP": "#e3b341",
+    "PROGRESS": "#58a6ff",
+    "PROGRESS_BG": "#30363d",
+    "MUTED": "#8b949e",
 }
 
 _LIGHT_COLORS = {
@@ -46,6 +49,9 @@ _LIGHT_COLORS = {
     "URL": "#0a7ea4",
     "NUMBER": "#1a7f37",
     "TIP": "#9a6700",
+    "PROGRESS": "#0969da",
+    "PROGRESS_BG": "#d0d7de",
+    "MUTED": "#57606a",
 }
 
 _FILTER_LEVELS = ("ALL", "INFO", "WARNING", "ERROR", "CRITICAL")
@@ -58,6 +64,12 @@ _INLINE_TOKEN_RE = re.compile(
     r"|Tips:"
     r"|-->"
     r"|\b\d+(?:\.\d+)+(?:\s*(?:ms|dev))?\b"
+)
+_TQDM_PROGRESS_RE = re.compile(
+    r"^\s*(?P<label>.+?):\s*(?P<percent>\d{1,3})%\|(?P<bar>[^|]*)\|\s*(?P<detail>.*)$"
+)
+_RICH_PROGRESS_RE = re.compile(
+    r"^\s*(?P<label>.*?)\s+━+\s+(?P<percent>\d{1,3})%\s+(?P<detail>.*)$"
 )
 
 
@@ -113,7 +125,9 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         # 主体：等宽只读 QTextEdit
         self.text_edit = QTextEdit(self)
         self.text_edit.setReadOnly(True)
-        self.text_edit.setLineWrapMode(QTextEdit.NoWrap)
+        self.text_edit.setLineWrapMode(QTextEdit.WidgetWidth)
+        self.text_edit.setWordWrapMode(QTextOption.WrapAnywhere)
+        self.text_edit.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.text_edit.setPlaceholderText(self.tra("等待日志..."))
         font = self.text_edit.font()
         font.setFamily(monospace_font_family())
@@ -327,9 +341,61 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         )
         self.text_edit.append(html)
 
+    def _match_progress(self, line: str):
+        text = line.replace("\r", "").strip()
+        match = _TQDM_PROGRESS_RE.match(text) or _RICH_PROGRESS_RE.match(text)
+        if not match:
+            return None
+        percent = min(max(int(match.group("percent")), 0), 100)
+        label = match.group("label").strip()
+        detail = match.group("detail").strip()
+        return label, percent, detail
+
+    def _render_progress(self, line: str) -> bool:
+        progress = self._match_progress(line)
+        if progress is None:
+            return False
+        label, percent, detail = progress
+        palette = _DARK_COLORS if isDarkTheme() else _LIGHT_COLORS
+        filled = percent
+        empty = 100 - percent
+        detail_text = f"{percent}%"
+        if detail:
+            detail_text += f"  {detail}"
+        bar_cells = []
+        if filled:
+            bar_cells.append(f'<td width="{filled}%" bgcolor="{palette["PROGRESS"]}">&nbsp;</td>')
+        if empty:
+            bar_cells.append(f'<td width="{empty}%" bgcolor="{palette["PROGRESS_BG"]}">&nbsp;</td>')
+        bar_html = '<table border="0" cellspacing="0" cellpadding="0" width="100%"><tr>{}</tr></table>'.format(
+            "".join(bar_cells)
+        )
+        html = (
+            '<table border="0" cellspacing="0" cellpadding="0" width="100%">'
+            "<tr>"
+            '<td style="white-space:normal;">'
+            '<span style="font-weight:600;">{label}</span> '
+            '<span style="color:{muted};">{detail}</span>'
+            "</td>"
+            "</tr>"
+            "<tr>"
+            "<td>{bar}</td>"
+            "</tr>"
+            "</table>"
+        ).format(
+            label=self._escape_html(label),
+            bar=bar_html,
+            muted=palette["MUTED"],
+            detail=self._escape_html(detail_text),
+        )
+        self.text_edit.append(html)
+        return True
+
     def _render_line(self, line: str, level: str, style: str = "", rows=None) -> None:
         if rows:
             self._render_table(rows, style)
+            return
+        if "\n" not in line and self._render_progress(line):
             return
         html = "<br>".join(self._style_line(raw_line, level, style) for raw_line in line.split("\n"))
         self.text_edit.append(html)
