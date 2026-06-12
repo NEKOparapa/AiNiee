@@ -24,6 +24,18 @@
       "English": "Extract",
       "日本語": "抽出"
     },
+    "对齐当前翻译风格": {
+      "简中": "对齐当前翻译风格",
+      "繁中": "對齊當前翻譯風格",
+      "English": "Align with current translation style",
+      "日本語": "現在の翻訳スタイルに合わせる"
+    },
+    "开启后，提取出的角色/术语译名将遵循当前翻译流程使用的自定义提示词、术语表、写作风格等规则，避免与正式翻译时的命名策略冲突。": {
+      "简中": "开启后，提取出的角色/术语译名将遵循当前翻译流程使用的自定义提示词、术语表、写作风格等规则，避免与正式翻译时的命名策略冲突。",
+      "繁中": "開啟後，提取出的角色/術語譯名將遵循當前翻譯流程使用的自訂提示詞、術語表、寫作風格等規則，避免與正式翻譯時的命名策略衝突。",
+      "English": "When enabled, recommended translations for extracted characters and terms follow the same custom prompt, glossary, writing style and other rules used by the translation pipeline, keeping naming consistent with actual translation output.",
+      "日本語": "有効にすると、抽出されたキャラクター/用語の推奨訳名が翻訳フローで使用中のカスタムプロンプト、用語集、文体ルールなどに従い、本翻訳時の命名方針との不整合を防ぎます。"
+    },
     "校润": {
       "简中": "校润",
       "繁中": "校潤",
