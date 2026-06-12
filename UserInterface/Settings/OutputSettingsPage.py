@@ -6,6 +6,7 @@ from qfluentwidgets import FluentIcon, HorizontalSeparator, SingleDirectionScrol
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.FilePathConfig import auto_output_dir, default_output_dir
 from UserInterface.Widget.ComboBoxCard import ComboBoxCard
 from UserInterface.Widget.PushButtonCard import PushButtonCard
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
@@ -22,7 +23,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         
         # 默认配置
         self.default = {
-            "label_output_path": "./output",
+            "label_output_path": str(default_output_dir()),
             "auto_set_output_path": True,
             "output_filename_suffix": "_translated",
             "bilingual_text_order": "translation_first",
@@ -67,10 +68,27 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         # 填充
         self.vbox.addStretch(1)
 
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self._refresh_output_display()
+
+    def _resolve_output_display(self, config) -> str:
+        if config.get("auto_set_output_path") and (config.get("label_input_path") or "").strip():
+            return auto_output_dir(config["label_input_path"])
+        return config.get("label_output_path", "")
+
+    def _refresh_output_display(self) -> None:
+        card = getattr(self, "_output_card", None)
+        if card is None:
+            return
+        cfg = self.load_config()
+        card.set_description(self.tra("当前输出文件夹为") + f" {self._resolve_output_display(cfg)}")
+
     # 翻译输出文件夹
     def add_widget_translation_output_path(self, parent, config) -> None:
         def widget_init(widget):
-            info_cont = self.tra("当前输出文件夹为") + f" {config.get('label_output_path')}"
+            self._output_card = widget
+            info_cont = self.tra("当前输出文件夹为") + f" {self._resolve_output_display(config)}"
             widget.set_description(info_cont)
             widget.set_text(self.tra("选择文件夹"))
             widget.set_icon(FluentIcon.FOLDER_ADD)
@@ -124,6 +142,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
             config = self.load_config()
             config["auto_set_output_path"] = checked
             self.save_config(config)
+            self._refresh_output_display()
 
         parent.addWidget(
             SwitchButtonCard(

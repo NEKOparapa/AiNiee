@@ -18,8 +18,8 @@ from qfluentwidgets import (MessageBox, CardWidget, TitleLabel, BodyLabel, Stron
                             InfoBar, InfoBarPosition, SubtitleLabel, MessageBoxBase)
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
-from ModuleFolders.Config.FilePathConfig import downloads_dir, resource_path
-from ModuleFolders.Infrastructure.Platform.PlatformPaths import is_macos, release_api_url
+from ModuleFolders.Config.FilePathConfig import downloads_dir, resource_path, is_windows_installer_build
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import is_macos, is_windows, release_api_url
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.Toast import ToastMixin
 
@@ -83,7 +83,11 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
         return match.group(0) if match else "0.0.0"
 
     def _update_file_suffix(self) -> str:
-        return ".dmg" if is_macos() else ".zip"
+        if is_macos():
+            return ".dmg"
+        if is_windows_installer_build():
+            return ".exe"
+        return ".zip"
 
     def _download_paths(self):
         download_root = downloads_dir()
@@ -107,6 +111,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
     def _expected_update_asset_suffix(self) -> str:
         if is_macos():
             return f"-{self._macos_arch()}.dmg"
+        if is_windows_installer_build():
+            return "-Windows-Setup.exe"
         return ".zip"
 
     def _find_download_url(self, assets: list[dict]) -> str | None:
@@ -220,19 +226,26 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _compare_versions(self, version1, version2):
         """比较版本号"""
-        v1_parts = [int(x) for x in version1.split(".")]
-        v2_parts = [int(x) for x in version2.split(".")]
+        result = self._try_compare_versions(version1, version2)
+        return result if result is not None else 0
+
+    def _try_compare_versions(self, version1, version2):
+        """比较版本号，无法解析时返回 None"""
+        try:
+            v1_parts = [int(x) for x in version1.split(".")]
+            v2_parts = [int(x) for x in version2.split(".")]
+        except (ValueError, AttributeError):
+            return None
 
         # 填充版本号，使得版本号的位数相同
-        while len(v1_parts) < 3:
-            v1_parts.append(0)
-        while len(v2_parts) < 3:
-            v2_parts.append(0)
+        n = max(len(v1_parts), len(v2_parts))
+        v1_parts += [0] * (n - len(v1_parts))
+        v2_parts += [0] * (n - len(v2_parts))
 
-        for i in range(3):
-            if v1_parts[i] > v2_parts[i]:
+        for a, b in zip(v1_parts, v2_parts):
+            if a > b:
                 return 1
-            elif v1_parts[i] < v2_parts[i]:
+            elif a < b:
                 return -1
 
         return 0
@@ -243,15 +256,29 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             self.error("Main window reference is not set")
             return
 
-        # 检查是否有已下载完成的更新文件
         local_filename, temp_filename, download_info_file = self._download_paths()
 
+        # 清理已安装过的残留文件（download_info 已被 _run_updater 删除）
+        if os.path.exists(local_filename) and not os.path.exists(download_info_file):
+            try:
+                os.remove(local_filename)
+            except OSError:
+                pass
+
+        # 检查是否有已下载完成的更新文件
         if os.path.exists(local_filename) and os.path.exists(download_info_file):
             try:
                 with open(download_info_file, 'r') as f:
                     download_info = json.load(f)
 
-                if download_info.get("status") == "completed":
+                cached_version = download_info.get("version")
+                is_completed = download_info.get("status") == "completed"
+                cached_version_cmp = self._try_compare_versions(cached_version, self.current_version)
+                is_newer = cached_version_cmp is None or cached_version_cmp > 0
+                url_matches = (not self.latest_download_url) or (download_info.get("url") == self.latest_download_url)
+                cached_size = download_info.get("total_size", 0)
+                size_ok = cached_size > 0 and os.path.getsize(local_filename) == cached_size
+                if is_completed and is_newer and url_matches and size_ok:
                     # 已有下载完成的更新文件，直接提示安装
                     msg_box = MessageBox(
                         self.tra("安装更新"),
@@ -265,6 +292,12 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                         # 运行更新器
                         self._run_updater(str(local_filename))
                     return
+                if is_completed and cached_version_cmp is not None and cached_version_cmp <= 0:
+                    try:
+                        os.remove(local_filename)
+                        os.remove(download_info_file)
+                    except OSError:
+                        pass
             except Exception as e:
                 self.error(f"Error checking downloaded update: {e}")
 
@@ -349,6 +382,13 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _update_dialog_after_check(self, has_update, latest_version, check_failed, error_message):
         """更新检查完成后更新对话框内容"""
+        if self.update_dialog is None:
+            return
+        try:
+            self.update_dialog.viewLayout.count()
+        except RuntimeError:
+            self.update_dialog = None
+            return
         # 移除加载状态卡片
         for i in range(self.update_dialog.viewLayout.count()):
             widget = self.update_dialog.viewLayout.itemAt(i).widget()
@@ -507,6 +547,12 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _start_download_with_url(self, url):
         """使用指定URL开始下载"""
+        if getattr(self, "_update_cancelled", False):
+            return
+        if self.update_dialog is None:
+            return
+        if self.download_thread and self.download_thread.is_alive():
+            return
         # 重置标志
         self._cancel_download = False
         self._pause_download = False
@@ -531,6 +577,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _start_update(self):
         """开始更新进程"""
+        self._update_cancelled = False
         self.progress_bar.setVisible(True)
         self.percentage_label.setVisible(True)
         self.percentage_label.setText("0%")
@@ -571,6 +618,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _show_download_error(self, error_msg):
         """显示下载错误"""
+        if self.update_dialog is None:
+            return
         self.status_label.setText(self.tra("更新失败"))
         self.update_button.setEnabled(True)
         self.pause_button.setVisible(False)
@@ -589,6 +638,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _show_connection_error(self, status_code):
         """显示连接错误"""
+        if self.update_dialog is None:
+            return
         self.status_label.setText(self.tra("获取下载链接失败"))
         self.update_button.setEnabled(True)
         self.pause_button.setVisible(False)
@@ -613,24 +664,46 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             download_root.mkdir(parents=True, exist_ok=True)
 
             # 完成的文件名和临时文件名
-            update_suffix = ".dmg" if is_macos() else ".zip"
-            local_filename = str(download_root / f"AiNiee-update{update_suffix}")
-            temp_filename = str(download_root / f"AiNiee-update{update_suffix}.temp")
-            download_info_file = str(download_root / "download_info.json")
+            local_path, temp_path, info_path = self._download_paths()
+            local_filename = str(local_path)
+            temp_filename = str(temp_path)
+            download_info_file = str(info_path)
+
+            # 清理已安装过的残留文件（download_info 已被 _run_updater 删除）
+            if os.path.exists(local_filename) and not os.path.exists(download_info_file):
+                try:
+                    os.remove(local_filename)
+                except OSError:
+                    pass
 
             # 检查是否已经存在完成的文件
             if os.path.exists(local_filename):
-                self.info(f"Found completed download file: {local_filename}")
-                self.signals.download_completed.emit(local_filename)
-                return
+                cached_info = {}
+                if os.path.exists(download_info_file):
+                    try:
+                        with open(download_info_file, 'r') as f:
+                            cached_info = json.load(f)
+                    except Exception:
+                        cached_info = {}
+                cached_size = cached_info.get("total_size", 0)
+                size_ok = cached_size > 0 and os.path.getsize(local_filename) == cached_size
+                if cached_info.get("url") == url and cached_info.get("status") == "completed" and size_ok:
+                    self.info(f"Found completed download file: {local_filename}")
+                    self.signals.download_completed.emit(local_filename)
+                    return
+                try:
+                    os.remove(local_filename)
+                except OSError:
+                    pass
 
             # 获取文件大小信息
-            file_size_response = requests.head(url, allow_redirects=True)
+            file_size_response = requests.head(url, allow_redirects=True, timeout=(10, 30))
             total_size = int(file_size_response.headers.get('content-length', 0))
 
             # 记录下载信息
             download_info = {
                 "url": url,
+                "version": self.latest_version,
                 "total_size": total_size,
                 "downloaded": 0,
                 "status": "downloading"
@@ -640,15 +713,16 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             downloaded = 0
             headers = {}
 
-            if os.path.exists(temp_filename) and os.path.exists(download_info_file):
+            if total_size > 0 and os.path.exists(temp_filename) and os.path.exists(download_info_file):
                 try:
                     with open(download_info_file, 'r') as f:
                         saved_info = json.load(f)
 
                     # 验证URL是否相同
                     if saved_info.get("url") == url:
-                        downloaded = os.path.getsize(temp_filename)
-                        if downloaded < total_size:
+                        existing = os.path.getsize(temp_filename)
+                        if 0 < existing < total_size:
+                            downloaded = existing
                             # 设置Range头部进行续传
                             headers['Range'] = f'bytes={downloaded}-'
                             self.info(f"Resuming download from {downloaded} bytes")
@@ -661,11 +735,22 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             with open(download_info_file, 'w') as f:
                 json.dump(download_info, f)
 
-            # 开始下载
-            mode = 'ab' if downloaded > 0 else 'wb'
-
-            with requests.get(url, stream=True, headers=headers) as r:
+            with requests.get(url, stream=True, headers=headers, timeout=(10, 60)) as r:
                 r.raise_for_status()
+                # 续传须回 206；若回 200（忽略 Range 返回整包）则从头重写，避免整包追加到半包损坏
+                if downloaded > 0 and r.status_code != 206:
+                    downloaded = 0
+                    download_info["downloaded"] = 0
+                # HEAD 未给大小时从 GET 响应补全，确保完整性校验可用
+                if total_size <= 0:
+                    cl = r.headers.get('content-length')
+                    if cl is not None:
+                        try:
+                            total_size = downloaded + int(cl)
+                            download_info["total_size"] = total_size
+                        except ValueError:
+                            pass
+                mode = 'ab' if downloaded > 0 else 'wb'
                 block_size = 8192
 
                 with open(temp_filename, mode) as f:
@@ -702,6 +787,22 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                                 progress = int(downloaded * 100 / total_size)
                                 self.signals.progress_updated.emit(progress)
 
+            # 完整性校验：声明了大小则必须完全收齐，否则视为损坏，清理中间文件并失败
+            if total_size > 0 and downloaded != total_size:
+                for _p in (temp_filename, download_info_file):
+                    try:
+                        os.remove(_p)
+                    except OSError:
+                        pass
+                raise ValueError(self.tra("下载不完整") + f": {downloaded}/{total_size}")
+            if total_size <= 0:
+                for _p in (temp_filename, download_info_file):
+                    try:
+                        os.remove(_p)
+                    except OSError:
+                        pass
+                raise ValueError(self.tra("无法确认更新包大小，已中止以保证完整性"))
+
             # 下载完成，将临时文件重命名为正式文件
             download_info["status"] = "completed"
             with open(download_info_file, 'w') as info_file:
@@ -721,6 +822,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _update_progress(self, progress):
         """更新进度条和百分比标签"""
+        if self.update_dialog is None:
+            return
         if self.progress_bar and self.percentage_label:
             self.progress_bar.setValue(progress)
             self.percentage_label.setText(f"{progress}%")
@@ -729,9 +832,13 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _download_completed(self, filename):
         """Handle download completion"""
+        # 取消时下载线程可能已越过标志检查正常收尾并发出完成信号，此时不再弹安装确认
+        if getattr(self, "_update_cancelled", False):
+            return
         # 先关闭更新对话框，避免UI阻塞
         if self.update_dialog:
             self.update_dialog.accept()
+            self.update_dialog = None
 
         # 然后显示确认对话框
         msg_box = MessageBox(
@@ -757,6 +864,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _download_failed(self, error_msg):
         """Handle download failure or pause"""
+        if self.update_dialog is None:
+            return
         # 检查是否是暂停状态
         if error_msg == self.tra("下载已暂停"):
             # 暂停状态，显示继续按钮
@@ -795,7 +904,11 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _resume_update(self):
         """Resume the update download"""
+        # 旧下载线程还在收尾时直接返回，避免清标志/改 UI 后却因 is_alive 早退而卡在“恢复中”
+        if self.download_thread and self.download_thread.is_alive():
+            return
         self._pause_download = False
+        self._cancel_download = False
         self.resume_button.setVisible(False)
         self.pause_button.setVisible(True)
         self.pause_button.setEnabled(True)
@@ -829,9 +942,11 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _cancel_update(self):
         """Cancel the update process"""
+        self._update_cancelled = True
         # 无论下载线程是否正在运行，都先关闭对话框
         if self.update_dialog:
             self.update_dialog.reject()
+            self.update_dialog = None
 
         # 如果下载线程正在运行，设置取消标志
         if self.download_thread and self.download_thread.is_alive():
@@ -839,7 +954,34 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             # 显示取消提示
             if self.main_window:
                 self.main_window.warning_toast(self.tra("下载取消"), self.tra("正在取消下载，请稍候..."))
+        else:
+            # 线程已退出（如暂停后取消）：清理残留临时文件与信息文件，真正丢弃这次下载
+            _, temp_path, info_path = self._download_paths()
+            for p in (temp_path, info_path):
+                try:
+                    os.remove(str(p))
+                except OSError:
+                    pass
 
+
+    def _exit_for_update(self) -> None:
+        # 优雅退出：直接逐个调 APP_SHUT_DOWN 处理器（不经事件队列，避免 processEvents 重入其它信号/阻塞），各自兜底；再刷日志，最后强制退出
+        try:
+            from ModuleFolders.Base.EventManager import EventManager
+            handlers = list(EventManager.get_singleton().event_callbacks.get(Base.EVENT.APP_SHUT_DOWN, []))
+            for handler in handlers:
+                try:
+                    handler(Base.EVENT.APP_SHUT_DOWN, {})
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        try:
+            import logging
+            logging.shutdown()
+        except Exception:
+            pass
+        os.kill(os.getpid(), signal.SIGTERM)
 
     def _run_updater(self, update_file):
         """Run the updater executable"""
@@ -852,34 +994,75 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             if is_macos():
                 if os.path.exists(update_file):
                     subprocess.Popen(["open", update_file])
-                    os.kill(os.getpid(), signal.SIGTERM)
+                    _, _, download_info_file = self._download_paths()
+                    try:
+                        os.remove(str(download_info_file))
+                    except OSError:
+                        pass
+                    self._exit_for_update()
                     return
 
                 if self.latest_version_url:
                     QDesktopServices.openUrl(QUrl(self.latest_version_url))
                     return
 
+            if is_windows() and update_file.lower().endswith(".exe"):
+                if not os.path.exists(update_file):
+                    self.error(f"Installer not found: {update_file}")
+                    if self.main_window:
+                        InfoBar.error(
+                            title=self.tra("更新错误"),
+                            content=self.tra("找不到安装包，请手动下载安装最新版本"),
+                            orient=Qt.Horizontal,
+                            isClosable=True,
+                            position=InfoBarPosition.TOP,
+                            duration=3000,
+                            parent=self.main_window,
+                        )
+                    return
+                log_path = str(downloads_dir() / "AiNiee-installer-update.log")
+                from ModuleFolders.Infrastructure.Platform.SingleInstance import acquire_app_mutex, release_app_mutex
+                release_app_mutex()
+                try:
+                    subprocess.Popen(
+                        [update_file, "/VERYSILENT", "/NORESTART", "/FORCECLOSEAPPLICATIONS", "/RELAUNCH=1", f"/LOG={log_path}"],
+                        creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+                    )
+                except Exception:
+                    acquire_app_mutex()
+                    raise
+                _, _, download_info_file = self._download_paths()
+                try:
+                    os.remove(str(download_info_file))
+                except OSError:
+                    pass
+                self._exit_for_update()
+                return
+
             updater_path = str(resource_path("Updater", "updater.exe"))
 
             if os.path.exists(updater_path):
-                # 使用PowerShell启动更新器
-                powershell_command = f'Start-Process -FilePath "{updater_path}" -ArgumentList "{update_file}", "{current_dir}" -WindowStyle Normal'
+                if is_windows():
+                    subprocess.Popen(
+                        [updater_path, update_file, current_dir],
+                        creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+                    )
+                else:
+                    subprocess.Popen([updater_path, update_file, current_dir])
 
-                # 启动PowerShell并执行命令
-                subprocess.Popen([
-                    "powershell.exe",
-                    "-Command",
-                    powershell_command
-                ],
-                shell=True,
-                creationflags=subprocess.CREATE_NO_WINDOW)
+                _, _, download_info_file = self._download_paths()
+                try:
+                    os.remove(str(download_info_file))
+                except OSError:
+                    pass
 
                 # 退出当前程序
-                os.kill(os.getpid(), signal.SIGTERM)
+                self._exit_for_update()
 
             else:
                 self.error(f"Updater not found: {updater_path}")
-                self.status_label.setText(self.tra("更新程序未找到"))
+                if hasattr(self, "status_label"):
+                    self.status_label.setText(self.tra("更新程序未找到"))
                 # 显示错误提示
                 if self.main_window:
                     InfoBar.error(
@@ -893,7 +1076,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                     )
         except Exception as e:
             self.error(f"Failed to run updater: {e}")
-            self.status_label.setText(f"{self.tra('启动更新程序失败')}: {str(e)}")
+            if hasattr(self, "status_label"):
+                self.status_label.setText(f"{self.tra('启动更新程序失败')}: {str(e)}")
             # 显示错误提示
             if self.main_window:
                 InfoBar.error(

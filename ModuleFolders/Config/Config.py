@@ -61,8 +61,18 @@ class ConfigMixin:
             migrate_config_if_needed()
             ConfigMixin.CONFIG_PATH = config_path()
             if os.path.exists(ConfigMixin.CONFIG_PATH):
-                with open(ConfigMixin.CONFIG_PATH, "r", encoding="utf-8") as reader:
-                    config = json.load(reader)
+                try:
+                    with open(ConfigMixin.CONFIG_PATH, "r", encoding="utf-8") as reader:
+                        config = json.load(reader)
+                    if not isinstance(config, dict):
+                        raise ValueError("config root is not a JSON object")
+                except (json.JSONDecodeError, OSError, ValueError) as error:
+                    print(f"[[red]WARNING[/]] Config unreadable, using defaults: {error}")
+                    try:
+                        os.replace(ConfigMixin.CONFIG_PATH, f"{ConfigMixin.CONFIG_PATH}.corrupt")
+                    except OSError:
+                        pass
+                    config = {}
 
                 # 旧版 DeepSeek 配置临时兼容块。
                 # 当旧版内置配置不再需要自动修复时，可直接删除此块。
@@ -72,33 +82,51 @@ class ConfigMixin:
                     if deepseek_platform.get("think_switch") is False and deepseek_platform.get("think_depth") == "low":
                         deepseek_platform["think_switch"] = True
                         deepseek_platform["think_depth"] = "high"
-                        with open(ConfigMixin.CONFIG_PATH, "w", encoding="utf-8") as writer:
+                        tmp_path = f"{ConfigMixin.CONFIG_PATH}.tmp"
+                        with open(tmp_path, "w", encoding="utf-8") as writer:
                             writer.write(json.dumps(config, indent=4, ensure_ascii=False))
+                        os.replace(tmp_path, ConfigMixin.CONFIG_PATH)
             else:
                 print("[[red]WARNING[/]] Config file does not exist ...")
+
+        if config:
+            from ModuleFolders.Config.FilePathConfig import (
+                default_input_dir,
+                default_output_dir,
+                resolve_user_dir,
+            )
+            if "label_input_path" in config:
+                config["label_input_path"] = resolve_user_dir(config["label_input_path"], default_input_dir())
+            if "label_output_path" in config:
+                config["label_output_path"] = resolve_user_dir(config["label_output_path"], default_output_dir())
 
         return config
 
     def save_config(self, new: dict) -> dict:
-        old = {}
-
         with ConfigMixin.CONFIG_FILE_LOCK:
             migrate_config_if_needed()
             ConfigMixin.CONFIG_PATH = config_path()
+            old = {}
             if os.path.exists(ConfigMixin.CONFIG_PATH):
-                with open(ConfigMixin.CONFIG_PATH, "r", encoding="utf-8") as reader:
-                    old = json.load(reader)
+                try:
+                    with open(ConfigMixin.CONFIG_PATH, "r", encoding="utf-8") as reader:
+                        old = json.load(reader)
+                    if not isinstance(old, dict):
+                        old = {}
+                except (json.JSONDecodeError, OSError):
+                    old = {}
 
-        if old == new:
-            return old
+            if old == new:
+                return old
 
-        for key, value in new.items():
-            old[key] = value
+            for key, value in new.items():
+                old[key] = value
 
-        with ConfigMixin.CONFIG_FILE_LOCK:
             os.makedirs(os.path.dirname(ConfigMixin.CONFIG_PATH), exist_ok=True)
-            with open(ConfigMixin.CONFIG_PATH, "w", encoding="utf-8") as writer:
+            tmp_path = f"{ConfigMixin.CONFIG_PATH}.tmp"
+            with open(tmp_path, "w", encoding="utf-8") as writer:
                 writer.write(json.dumps(old, indent=4, ensure_ascii=False))
+            os.replace(tmp_path, ConfigMixin.CONFIG_PATH)
 
         return old
 

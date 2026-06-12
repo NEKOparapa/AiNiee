@@ -24,6 +24,9 @@
 #             赛博佛祖光耀照，程序运行永无忧。
 #             翻译之路顺畅通，字字珠玑无误漏。
 
+from ModuleFolders.Log.LogSystem import install as _install_log_system
+_log_path = _install_log_system()
+
 def display_banner():
     print(" █████   ██  ███    ██  ██  ███████  ███████ ")
     print("██   ██  ██  ████   ██  ██  ██       ██      ")
@@ -34,6 +37,7 @@ def display_banner():
     print("                                        ")
 display_banner()
 
+import logging
 import os
 import sys
 
@@ -49,13 +53,23 @@ from ModuleFolders.Infrastructure.Platform.PlatformPaths import (
     ui_font_family,
 )
 from ModuleFolders.Infrastructure.Platform.RuntimeSetup import migrate_config_if_needed, prepare_working_directory
+from ModuleFolders.Infrastructure.Platform.SingleInstance import acquire_app_mutex
 
 import multiprocessing
 import warnings
 
 import rapidjson as json
 from bs4 import MarkupResemblesLocatorWarning
-from rich import print
+
+from ModuleFolders.Log.Log import LogMixin
+
+
+class _BootstrapLogger(LogMixin):
+    def _logger(self):
+        return logging.getLogger("AiNiee.bootstrap")
+
+
+_log = _BootstrapLogger()
 from PyQt5.QtGui import QFont, QIcon, QColor
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QSplashScreen
@@ -77,8 +91,17 @@ def load_config() -> dict:
     migrate_config_if_needed()
     path = config_path()
     if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as reader:
-            config = json.load(reader)
+        try:
+            with open(path, "r", encoding="utf-8") as reader:
+                config = json.load(reader)
+            if not isinstance(config, dict):
+                raise ValueError("config root is not a JSON object")
+        except (json.JSONDecodeError, OSError, ValueError):
+            try:
+                os.replace(path, f"{path}.corrupt")
+            except OSError:
+                pass
+            config = {}
     return config
 
 # 载入版本信息函数
@@ -93,10 +116,10 @@ def load_version() -> str:
                 # 使用 .get() 方法安全地获取值，如果 "version" 键不存在，则返回默认值
                 return version_data.get("version", default_version)
         except (json.JSONDecodeError, IOError) as e:
-            print(f"[[red]ERROR[/]] 读取版本文件失败: {e}")
+            _log.error("读取版本文件失败", error=e)
             return default_version
     else:
-        print(f"[[yellow]WARNING[/]] 版本文件 {version_path} 未找到, 将使用默认版本号。")
+        _log.warning(f"版本文件 {version_path} 未找到, 将使用默认版本号")
         return default_version
 
 # 启动画面消息
@@ -137,11 +160,18 @@ if __name__ == "__main__":
     # 设置工作目录
     script_dir = prepare_runtime_environment()
 
+    if not acquire_app_mutex() and os.environ.get("AINIEE_ALLOW_MULTI_INSTANCE") != "1":
+        _log.warning("AiNiee 已在运行，本次启动退出（设 AINIEE_ALLOW_MULTI_INSTANCE=1 可绕过）")
+        sys.exit(0)
+
+    if _log_path is not None:
+        _log.info(f"Log file: {_log_path}")
+
     try:
         initialize_tiktoken()
     except Exception as e:
-        print(f"[ERROR] tiktoken 初始化失败: {e}")
-        print("[WARNING] Token 限制模式将不可用，请使用行数限制模式")
+        _log.error("tiktoken 初始化失败", error=e)
+        _log.warning("Token 限制模式将不可用，请使用行数限制模式")
 
     # 加载配置文件
     config = load_config()
@@ -166,9 +196,9 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     configure_application_metadata(app, app_version)
 
-    print(f"[[green]INFO[/]] Application Version: {app_version}") # 打印版本号
-    print(f"[[green]INFO[/]] Current working directory is {script_dir}")
-    print(f"[[green]INFO[/]] Starting AiNiee Application...")
+    _log.info(f"Application Version: {app_version}")
+    _log.info(f"Current working directory is {script_dir}")
+    _log.info("Starting AiNiee Application...")
 
     # 启动页面
     logo_path = str(resource_path("Logo", "Logo.png"))
@@ -243,6 +273,23 @@ if __name__ == "__main__":
 
     # 显示全局窗口
     app_fluent_window.show()
+
+    from ModuleFolders.Config.FilePathConfig import portable_fallback_active
+    if portable_fallback_active():
+        from qfluentwidgets import InfoBar, InfoBarPosition
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(
+            800,
+            lambda: InfoBar.warning(
+                title="便携模式",
+                content="当前文件夹不可写，已改用系统目录保存数据。建议把程序解压到可写位置（文档 / 桌面 / U盘）。",
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=-1,
+                parent=app_fluent_window,
+            ),
+        )
 
     # 隐藏启动页面
     splash.finish(app_fluent_window)

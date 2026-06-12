@@ -8,6 +8,7 @@
 /*input*
 /*output*
 /ProjectCache/
+/Logs/
 /Resource/config.json
 .venv
 dist/

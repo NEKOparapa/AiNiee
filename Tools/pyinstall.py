@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import PyInstaller.__main__
 
@@ -6,8 +7,10 @@ cmd = [
     "./AiNiee.py",
     "--icon=./Resource/Logo/Avatar.png",  # FILE.ico: apply the icon to a Windows executable.
     "--clean",  # Clean PyInstaller cache and remove temporary files before building.
+    "--windowed",  # Hide console window on Windows; logs go to user_log_dir.
     #"--onefile",  # Create a one-file bundled executable.
     "--noconfirm",  # Replace output directory (default: SPECPATH/dist/SPECNAME) without asking for confirmation
+    "--add-data=Resource:Resource",
     "--hidden-import=babeldoc",
     "--hidden-import=sklearn",
     "--collect-all=babeldoc",
@@ -40,18 +43,25 @@ for module_name in MODULES_TO_EXCLUDE:
 def _hidden_imports_from(path):
     with open(path, "r", encoding="utf-8") as reader:
         for raw in reader:
-            if "#" in raw:
+            line = raw.split("#", 1)[0].split(";")[0].strip()
+            if not line or line.startswith("-") or "://" in line:
                 continue
-            line = raw.split(";")[0].strip()
+            line = re.split(r"[<>=!~\[ ]", line, maxsplit=1)[0].strip()
             if line:
                 yield line
 
 
-if os.path.exists("./requirements.txt"):
-    for pkg in _hidden_imports_from("./requirements.txt"):
-        cmd.append("--hidden-import=" + pkg)
-    for pkg in _hidden_imports_from("./requirements_no_deps.txt"):
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(ROOT)
+_req = os.path.join(ROOT, "requirements.txt")
+if not os.path.exists(_req):
+    raise SystemExit(f"requirements.txt not found at {_req}; refusing to build an incomplete EXE")
+for pkg in _hidden_imports_from(_req):
+    cmd.append("--hidden-import=" + pkg)
+_req_nodeps = os.path.join(ROOT, "requirements_no_deps.txt")
+if os.path.exists(_req_nodeps):
+    for pkg in _hidden_imports_from(_req_nodeps):
         cmd.append("--hidden-import=" + pkg)
 
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    PyInstaller.__main__.run(cmd)
+sys.path.insert(0, ROOT)
+PyInstaller.__main__.run(cmd)

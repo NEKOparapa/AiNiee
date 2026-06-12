@@ -1,4 +1,3 @@
-import os
 import threading
 
 import requests
@@ -11,7 +10,6 @@ from qfluentwidgets import (
     MessageBox,
     NavigationAvatarWidget,
     NavigationItemPosition,
-    NavigationPushButton,
     SystemThemeListener,
     Theme,
     qconfig,
@@ -30,6 +28,7 @@ from UserInterface.EditView.EditViewPage import EditViewPage
 from UserInterface.Native.MacOSUI import about_message, app_menu_title, command_shortcut
 from UserInterface.Platform.PlatformPage import PlatformPage
 from UserInterface.PromptSettings.PolishingSettings.PolishingSystemPromptPage import PolishingSystemPromptPage
+from UserInterface.LogView.LogViewPage import LogViewPage
 from UserInterface.Settings.AppSettingsPage import AppSettingsPage
 from UserInterface.Settings.OutputSettingsPage import OutputSettingsPage
 from UserInterface.Settings.TaskSettingsPage import TaskSettingsPage
@@ -156,29 +155,18 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             updateStyleSheet()
             qconfig.themeChangedFinished.emit()
 
-    # 切换主题
-    _THEME_CYCLE = {"auto": "light", "light": "dark", "dark": "auto"}
-
-    def toggle_theme(self) -> None:
-        next_mode = self._THEME_CYCLE.get(self._theme_mode, "auto")
-        self._theme_mode = next_mode
-
-        setTheme(self._theme_for_mode(next_mode))
-        self._update_theme_button(next_mode)
-        self.save_config({"theme": next_mode})
-        self.info_toast(self.tra("主题切换"), self._toast_for_mode(next_mode))
+    # 应用主题模式（auto/light/dark），由应用设置页的主题下拉调用
+    def apply_theme_mode(self, mode: str) -> None:
+        if mode == self._theme_mode:
+            return
+        self._theme_mode = mode
+        setTheme(self._theme_for_mode(mode))
+        self.save_config({"theme": mode})
+        self.info_toast(self.tra("主题切换"), self._toast_for_mode(mode))
 
     @staticmethod
     def _theme_for_mode(mode: str) -> Theme:
         return {"light": Theme.LIGHT, "dark": Theme.DARK, "auto": Theme.AUTO}.get(mode, Theme.LIGHT)
-
-    @staticmethod
-    def _icon_for_mode(mode: str):
-        return {
-            "light": FluentIcon.BRIGHTNESS,
-            "auto": FluentIcon.CONSTRACT,
-            "dark": FluentIcon.QUIET_HOURS,
-        }.get(mode, FluentIcon.CONSTRACT)
 
     def _toast_for_mode(self, mode: str) -> str:
         return {
@@ -186,10 +174,6 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             "dark": self.tra("已切换至深色主题"),
             "auto": self.tra("已切换至跟随系统"),
         }.get(mode, "")
-
-    def _update_theme_button(self, mode: str) -> None:
-        if hasattr(self, "theme_nav_button"):
-            self.theme_nav_button.setIcon(self._icon_for_mode(mode))
 
     # 打开项目主页
     def open_project_page(self) -> None:
@@ -283,15 +267,13 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         # 设置默认页面
         self.switchTo(self.edit_view_page)
 
-        # 主题切换按钮
-        self.theme_nav_button = NavigationPushButton(
-            self._icon_for_mode(self._theme_mode), self.tra("主题切换"), False
-        )
-        self.navigationInterface.addWidget(
-            routeKey="theme_navigation_button",
-            widget=self.theme_nav_button,
-            onClick=self.toggle_theme,
-            position=NavigationItemPosition.BOTTOM,
+        # 运行日志按钮（在应用设置上方）
+        self.log_view_page = LogViewPage("log_view_page", self)
+        self.addSubInterface(
+            self.log_view_page,
+            FluentIcon.COMMAND_PROMPT,
+            self.tra("运行日志"),
+            NavigationItemPosition.BOTTOM,
         )
 
         # 应用设置按钮
