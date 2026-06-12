@@ -10,6 +10,7 @@ from qfluentwidgets import isDarkTheme, PushButton, FluentIcon, ComboBox, LineEd
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Config.FilePathConfig import user_log_dir
+from ModuleFolders.Infrastructure.Platform.PlatformPaths import monospace_font_family
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Log.LogSystem import get_gui_handler
 from UserInterface.Widget.Toast import ToastMixin
@@ -87,9 +88,10 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         # 主体：等宽只读 QTextEdit
         self.text_edit = QTextEdit(self)
         self.text_edit.setReadOnly(True)
+        self.text_edit.setLineWrapMode(QTextEdit.NoWrap)
         self.text_edit.setPlaceholderText(self.tra("等待日志..."))
         font = self.text_edit.font()
-        font.setFamily("Menlo, Consolas, monospace")
+        font.setFamily(monospace_font_family())
         self.text_edit.setFont(font)
         self.container.addWidget(self.text_edit)
 
@@ -197,9 +199,9 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         color = palette.get(level)
         safe = line.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
         if color:
-            html = f'<span style="color:{color};">{safe}</span>'
+            html = f'<span style="color:{color}; white-space:pre;">{safe}</span>'
         else:
-            html = safe
+            html = f'<span style="white-space:pre;">{safe}</span>'
         self.text_edit.append(html)
 
     def _trim_view(self) -> None:

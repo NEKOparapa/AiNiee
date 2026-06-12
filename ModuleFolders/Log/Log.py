@@ -12,6 +12,9 @@ from ModuleFolders.Log.LogSystem import redact
 __all__ = ("LogMixin",)
 
 
+_RICH_LOG_WIDTH = 100
+
+
 def _rich_print(*args, **kwargs):
     """rich.print 包裹：进 print 前 depth+1，退出 -1。_BroadcastStream 看 depth>0 跳 logger.log。
     用计数器而非布尔，正确处理嵌套 rich.print 场景（避免内层 finally 提早清零外层标记）。
@@ -45,7 +48,7 @@ def _render_rich(value) -> str:
         file=buffer,
         force_terminal=False,
         color_system=None,
-        width=120,
+        width=_RICH_LOG_WIDTH,
     )
     console.print(value)
     return buffer.getvalue().rstrip()
