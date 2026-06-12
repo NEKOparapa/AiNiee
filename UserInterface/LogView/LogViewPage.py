@@ -19,6 +19,7 @@ from UserInterface.Widget.Toast import ToastMixin
 
 _MAX_LINES = 5000
 _MAX_HIGHLIGHTS = 500
+_PROGRESS_BAR_SIZE = 6
 
 _DARK_COLORS = {
     "SURFACE": "#11161d",
@@ -35,8 +36,8 @@ _DARK_COLORS = {
     "URL": "#8fc9d0",
     "NUMBER": "#91b7a4",
     "TIP": "#d1b06a",
-    "PROGRESS": "#7ea7d8",
-    "PROGRESS_BG": "#313844",
+    "PROGRESS": "#7fa3cc",
+    "PROGRESS_BG": "#2b333e",
     "MUTED": "#9aa6b2",
     "SCROLLBAR_TRACK": "rgba(255, 255, 255, 0)",
     "SCROLLBAR_THUMB": "#3f4856",
@@ -60,8 +61,8 @@ _LIGHT_COLORS = {
     "URL": "#2c7480",
     "NUMBER": "#3f7465",
     "TIP": "#7a5a12",
-    "PROGRESS": "#416f9f",
-    "PROGRESS_BG": "#d9dee6",
+    "PROGRESS": "#527da3",
+    "PROGRESS_BG": "#e1e6ed",
     "MUTED": "#667280",
     "SCROLLBAR_TRACK": "rgba(255, 255, 255, 0)",
     "SCROLLBAR_THUMB": "#c7ced8",
@@ -388,9 +389,21 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             detail_text += f"  {detail}"
         bar_cells = []
         if filled:
-            bar_cells.append(f'<td width="{filled}%" bgcolor="{palette["PROGRESS"]}">&nbsp;</td>')
+            bar_cells.append(
+                '<td width="{0}%" bgcolor="{1}" style="font-size:{2}px; line-height:{2}px;">&nbsp;</td>'.format(
+                    filled,
+                    palette["PROGRESS"],
+                    _PROGRESS_BAR_SIZE,
+                )
+            )
         if empty:
-            bar_cells.append(f'<td width="{empty}%" bgcolor="{palette["PROGRESS_BG"]}">&nbsp;</td>')
+            bar_cells.append(
+                '<td width="{0}%" bgcolor="{1}" style="font-size:{2}px; line-height:{2}px;">&nbsp;</td>'.format(
+                    empty,
+                    palette["PROGRESS_BG"],
+                    _PROGRESS_BAR_SIZE,
+                )
+            )
         bar_html = '<table border="0" cellspacing="0" cellpadding="0" width="100%"><tr>{}</tr></table>'.format(
             "".join(bar_cells)
         )
@@ -403,12 +416,13 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             "</td>"
             "</tr>"
             "<tr>"
-            "<td>{bar}</td>"
+            '<td style="font-size:{bar_size}px; line-height:{bar_size}px;">{bar}</td>'
             "</tr>"
             "</table>"
         ).format(
             label=self._escape_html(label),
             bar=bar_html,
+            bar_size=_PROGRESS_BAR_SIZE,
             text=palette["TEXT"],
             muted=palette["MUTED"],
             detail=self._escape_html(detail_text),
