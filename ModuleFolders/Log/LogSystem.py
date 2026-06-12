@@ -138,6 +138,11 @@ class _PlainFormatter(logging.Formatter):
             record.args = original_args
 
 
+class _ConsoleFormatter(_PlainFormatter):
+    def __init__(self) -> None:
+        super().__init__("%(message)s")
+
+
 _REPLAY_BUFFER_SIZE = 5000
 _MAX_LINE_WIDTH = 16384
 
@@ -289,7 +294,7 @@ _gui_handler_lock = threading.Lock()
 
 
 def get_gui_handler() -> "_GUIHandler":
-    """懒单例 GUI handler；首次调用时挂到 root logger，配同款 formatter 与 SensitiveFilter。"""
+    """懒单例 GUI handler；首次调用时挂到 root logger，使用面向用户的简洁 formatter。"""
     global _gui_handler
     if _gui_handler is not None:
         return _gui_handler
@@ -297,9 +302,7 @@ def get_gui_handler() -> "_GUIHandler":
         if _gui_handler is not None:
             return _gui_handler
         handler = _GUIHandler()
-        handler.setFormatter(
-            _PlainFormatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-        )
+        handler.setFormatter(_ConsoleFormatter())
         handler.addFilter(SensitiveFilter())
         logging.getLogger().addHandler(handler)
         _gui_handler = handler

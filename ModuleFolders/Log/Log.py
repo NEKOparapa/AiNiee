@@ -1,7 +1,9 @@
 import logging
 import traceback
+from io import StringIO
 
 from rich import print
+from rich.console import Console
 from rich.markup import escape
 
 from ModuleFolders.Log import LogSystem as _log_system
@@ -33,8 +35,40 @@ def _safe_str(value) -> str:
         return f"<unprintable {type(value).__name__}>"
 
 
+def _is_rich_renderable(value) -> bool:
+    return hasattr(value, "__rich_console__") or hasattr(value, "__rich__")
+
+
+def _render_rich(value) -> str:
+    buffer = StringIO()
+    console = Console(
+        file=buffer,
+        force_terminal=False,
+        color_system=None,
+        width=120,
+    )
+    console.print(value)
+    return buffer.getvalue().rstrip()
+
+
 def _console_text(value) -> str:
     return escape(_safe_str(value))
+
+
+def _log_text(value) -> str:
+    if isinstance(value, str):
+        return value
+    if _is_rich_renderable(value):
+        try:
+            return _render_rich(value)
+        except Exception:
+            return _safe_str(value)
+    return _safe_str(value)
+
+
+def _prepare_message(value):
+    text = redact(_log_text(value))
+    return _console_text(text), text
 
 
 class LogMixin:
@@ -51,44 +85,44 @@ class LogMixin:
         return _safe_str(value)
 
     def print(self, msg) -> None:
-        safe = redact(msg)
-        _rich_print(_console_text(safe))
-        self._logger().info(safe if isinstance(safe, str) else self._safe_str(safe))
+        console_value, text = _prepare_message(msg)
+        _rich_print(console_value)
+        self._logger().info(text)
 
     def debug(self, msg, error: Exception = None) -> None:
-        safe = redact(msg)
+        console_value, text = _prepare_message(msg)
         if error is None:
-            _rich_print(f"[[yellow]DEBUG[/]] {_console_text(safe)}")
-            self._logger().debug(safe if isinstance(safe, str) else self._safe_str(safe))
+            _rich_print(f"[[yellow]DEBUG[/]] {console_value}")
+            self._logger().debug(text)
         else:
             safe_tb = redact(self._format_exception(error))
             _rich_print(
-                f"[[yellow]DEBUG[/]] {_console_text(safe)}\n"
+                f"[[yellow]DEBUG[/]] {console_value}\n"
                 f"{_console_text(redact(self._safe_str(error)))}\n"
                 f"{_console_text(safe_tb)}"
             )
-            self._logger().debug(safe if isinstance(safe, str) else self._safe_str(safe), exc_info=error)
+            self._logger().debug(text, exc_info=error)
 
     def info(self, msg) -> None:
-        safe = redact(msg)
-        _rich_print(f"[[green]INFO[/]] {_console_text(safe)}")
-        self._logger().info(safe if isinstance(safe, str) else self._safe_str(safe))
+        console_value, text = _prepare_message(msg)
+        _rich_print(f"[[green]INFO[/]] {console_value}")
+        self._logger().info(text)
 
     def error(self, msg, error: Exception = None) -> None:
-        safe = redact(msg)
+        console_value, text = _prepare_message(msg)
         if error is None:
-            _rich_print(f"[[red]ERROR[/]] {_console_text(safe)}")
-            self._logger().error(safe if isinstance(safe, str) else self._safe_str(safe))
+            _rich_print(f"[[red]ERROR[/]] {console_value}")
+            self._logger().error(text)
         else:
             safe_tb = redact(self._format_exception(error))
             _rich_print(
-                f"[[red]ERROR[/]] {_console_text(safe)}\n"
+                f"[[red]ERROR[/]] {console_value}\n"
                 f"{_console_text(redact(self._safe_str(error)))}\n"
                 f"{_console_text(safe_tb)}"
             )
-            self._logger().error(safe if isinstance(safe, str) else self._safe_str(safe), exc_info=error)
+            self._logger().error(text, exc_info=error)
 
     def warning(self, msg) -> None:
-        safe = redact(msg)
-        _rich_print(f"[[yellow]WARNING[/]] {_console_text(safe)}")
-        self._logger().warning(safe if isinstance(safe, str) else self._safe_str(safe))
+        console_value, text = _prepare_message(msg)
+        _rich_print(f"[[yellow]WARNING[/]] {console_value}")
+        self._logger().warning(text)
