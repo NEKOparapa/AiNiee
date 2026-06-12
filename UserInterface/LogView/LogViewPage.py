@@ -23,12 +23,16 @@ _DARK_COLORS = {
     "CRITICAL": "#e06c75",
     "ERROR": "#e06c75",
     "WARNING": "#e5c07b",
+    "ARROW": "#61afef",
+    "SUCCESS": "#98c379",
 }
 
 _LIGHT_COLORS = {
     "CRITICAL": "#c0392b",
     "ERROR": "#c0392b",
     "WARNING": "#996600",
+    "ARROW": "#0067c0",
+    "SUCCESS": "#188038",
 }
 
 _FILTER_LEVELS = ("ALL", "INFO", "WARNING", "ERROR", "CRITICAL")
@@ -157,10 +161,10 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         y = self.text_edit.height() - btn.height() - margin
         btn.move(x, y)
 
-    def _on_log_line(self, line: str, level: str) -> None:
+    def _on_log_line(self, line: str, level: str, style: str = "") -> None:
         # 可能在 worker 线程被调用：只入缓冲，渲染交给 GUI 线程的 _drain_timer
         with self._pending_lock:
-            self._pending.append((line, level))
+            self._pending.append((line, level, style))
 
     def _drain_pending(self) -> None:
         with self._pending_lock:
@@ -176,10 +180,11 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
     def _append_batch(self, history) -> None:
         self.text_edit.setUpdatesEnabled(False)
         try:
-            for line, level in history:
-                self._buffer.append((line, level))
+            for item in history:
+                line, level, style = self._unpack_log_item(item)
+                self._buffer.append((line, level, style))
                 if self._matches_filter(level):
-                    self._render_line(line, level)
+                    self._render_line(line, level, style)
             self._trim_view()
         finally:
             self.text_edit.setUpdatesEnabled(True)
@@ -194,14 +199,40 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         threshold = _LEVEL_ORDER.get(self._filter_level, 0)
         return _LEVEL_ORDER.get(level, threshold) >= threshold
 
-    def _render_line(self, line: str, level: str) -> None:
+    @staticmethod
+    def _unpack_log_item(item) -> tuple[str, str, str]:
+        if len(item) >= 3:
+            line, level, style = item[:3]
+        else:
+            line, level = item
+            style = ""
+        return line, level, style
+
+    @staticmethod
+    def _escape_html(text: str) -> str:
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    @staticmethod
+    def _is_separator_line(text: str) -> bool:
+        stripped = text.strip()
+        return bool(stripped) and set(stripped) == {"-"}
+
+    def _style_line(self, raw_line: str, level: str, style: str) -> str:
         palette = _DARK_COLORS if isDarkTheme() else _LIGHT_COLORS
         color = palette.get(level)
-        safe = line.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
+        if self._is_separator_line(raw_line):
+            if style == "error":
+                color = palette["ERROR"]
+            elif style == "success":
+                color = palette["SUCCESS"]
+        safe = self._escape_html(raw_line)
+        safe = safe.replace("--&gt;", f'<span style="color:{palette["ARROW"]};">--&gt;</span>')
         if color:
-            html = f'<span style="color:{color}; white-space:pre;">{safe}</span>'
-        else:
-            html = f'<span style="white-space:pre;">{safe}</span>'
+            return f'<span style="color:{color}; white-space:pre;">{safe}</span>'
+        return f'<span style="white-space:pre;">{safe}</span>'
+
+    def _render_line(self, line: str, level: str, style: str = "") -> None:
+        html = "<br>".join(self._style_line(raw_line, level, style) for raw_line in line.split("\n"))
         self.text_edit.append(html)
 
     def _trim_view(self) -> None:
@@ -219,9 +250,10 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
     def _rerender_view(self) -> None:
         try:
             self.text_edit.clear()
-            for line, level in self._buffer:
+            for item in self._buffer:
+                line, level, style = self._unpack_log_item(item)
                 if self._matches_filter(level):
-                    self._render_line(line, level)
+                    self._render_line(line, level, style)
             self._trim_view()
             self._reapply_highlight()
             if self._auto_scroll:

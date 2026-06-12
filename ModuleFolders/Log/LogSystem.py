@@ -178,6 +178,13 @@ class _GUIHandler(logging.Handler):
         # 不加守卫会无限递归直到 RecursionError
         self._dispatching = threading.local()
 
+    @staticmethod
+    def _notify(cb, line: str, level: str, style: str) -> None:
+        try:
+            cb(line, level, style)
+        except TypeError:
+            cb(line, level)
+
     def subscribe(self, cb, batch_cb=None) -> None:
         # 锁内：原子地决定回放与挂订阅，避免 emit 在两者之间塞入 record 而新 cb 漏收
         with self.lock:
@@ -192,9 +199,14 @@ class _GUIHandler(logging.Handler):
             except Exception:
                 pass
             return
-        for line, level in history:
+        for item in history:
+            if len(item) == 3:
+                line, level, style = item
+            else:
+                line, level = item
+                style = ""
             try:
-                cb(line, level)
+                self._notify(cb, line, level, style)
             except Exception:
                 pass
 
@@ -211,8 +223,11 @@ class _GUIHandler(logging.Handler):
             if len(line) > _MAX_LINE_WIDTH:
                 line = line[:_MAX_LINE_WIDTH] + " …(truncated)"
             level = record.levelname
+            style = getattr(record, "ainiee_gui_style", "")
+            if not isinstance(style, str):
+                style = ""
             with self.lock:
-                self._replay.append((line, level))
+                self._replay.append((line, level, style))
                 # 同一线程已在 dispatch 里：只进 replay 不再分发，避免 cb 内
                 # 调 logging.* 触发的无限递归
                 if getattr(self._dispatching, "depth", 0) > 0:
@@ -222,7 +237,7 @@ class _GUIHandler(logging.Handler):
             try:
                 for cb in subscribers:
                     try:
-                        cb(line, level)
+                        self._notify(cb, line, level, style)
                     except Exception:
                         pass
             finally:

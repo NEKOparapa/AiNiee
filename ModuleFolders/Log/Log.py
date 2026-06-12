@@ -93,14 +93,24 @@ def _gui_text_from_rich(text: str) -> str:
     return "\n".join(lines)
 
 
+def _gui_style_from_rich(value) -> str:
+    border_style = getattr(value, "border_style", "")
+    if border_style == "red":
+        return "error"
+    if border_style == "green":
+        return "success"
+    return ""
+
+
 def _prepare_message(value):
     text = redact(_log_text(value))
     gui_text = _gui_text_from_rich(text) if _is_rich_renderable(value) else text
-    return _console_text(text), text, gui_text
+    gui_style = _gui_style_from_rich(value) if _is_rich_renderable(value) else ""
+    return _console_text(text), text, gui_text, gui_style
 
 
-def _log_extra(gui_text: str) -> dict:
-    return {"ainiee_gui_text": gui_text}
+def _log_extra(gui_text: str, gui_style: str = "") -> dict:
+    return {"ainiee_gui_text": gui_text, "ainiee_gui_style": gui_style}
 
 
 class LogMixin:
@@ -117,15 +127,15 @@ class LogMixin:
         return _safe_str(value)
 
     def print(self, msg) -> None:
-        console_value, text, gui_text = _prepare_message(msg)
+        console_value, text, gui_text, gui_style = _prepare_message(msg)
         _rich_print(console_value, soft_wrap=True)
-        self._logger().info(text, extra=_log_extra(gui_text))
+        self._logger().info(text, extra=_log_extra(gui_text, gui_style))
 
     def debug(self, msg, error: Exception = None) -> None:
-        console_value, text, gui_text = _prepare_message(msg)
+        console_value, text, gui_text, gui_style = _prepare_message(msg)
         if error is None:
             _rich_print(f"[[yellow]DEBUG[/]] {console_value}")
-            self._logger().debug(text, extra=_log_extra(gui_text))
+            self._logger().debug(text, extra=_log_extra(gui_text, gui_style))
         else:
             safe_tb = redact(self._format_exception(error))
             _rich_print(
@@ -133,18 +143,18 @@ class LogMixin:
                 f"{_console_text(redact(self._safe_str(error)))}\n"
                 f"{_console_text(safe_tb)}"
             )
-            self._logger().debug(text, exc_info=error, extra=_log_extra(gui_text))
+            self._logger().debug(text, exc_info=error, extra=_log_extra(gui_text, gui_style))
 
     def info(self, msg) -> None:
-        console_value, text, gui_text = _prepare_message(msg)
+        console_value, text, gui_text, gui_style = _prepare_message(msg)
         _rich_print(f"[[green]INFO[/]] {console_value}")
-        self._logger().info(text, extra=_log_extra(gui_text))
+        self._logger().info(text, extra=_log_extra(gui_text, gui_style))
 
     def error(self, msg, error: Exception = None) -> None:
-        console_value, text, gui_text = _prepare_message(msg)
+        console_value, text, gui_text, gui_style = _prepare_message(msg)
         if error is None:
             _rich_print(f"[[red]ERROR[/]] {console_value}")
-            self._logger().error(text, extra=_log_extra(gui_text))
+            self._logger().error(text, extra=_log_extra(gui_text, gui_style))
         else:
             safe_tb = redact(self._format_exception(error))
             _rich_print(
@@ -152,9 +162,9 @@ class LogMixin:
                 f"{_console_text(redact(self._safe_str(error)))}\n"
                 f"{_console_text(safe_tb)}"
             )
-            self._logger().error(text, exc_info=error, extra=_log_extra(gui_text))
+            self._logger().error(text, exc_info=error, extra=_log_extra(gui_text, gui_style))
 
     def warning(self, msg) -> None:
-        console_value, text, gui_text = _prepare_message(msg)
+        console_value, text, gui_text, gui_style = _prepare_message(msg)
         _rich_print(f"[[yellow]WARNING[/]] {console_value}")
-        self._logger().warning(text, extra=_log_extra(gui_text))
+        self._logger().warning(text, extra=_log_extra(gui_text, gui_style))
