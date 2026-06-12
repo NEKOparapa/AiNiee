@@ -103,6 +103,8 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self._filter_level = "ALL"
         self._search_text = ""
         self._rerender_pending = False
+        self._last_progress_key = ""
+        self._progress_detail_lines: dict[str, set[str]] = {}
 
         self.container = QVBoxLayout(self)
         self.container.setContentsMargins(8, 8, 8, 8)
@@ -237,20 +239,89 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             return
 
     def _append_batch(self, history) -> None:
+        new_items = []
+        should_rerender = False
+        for item in history:
+            result, stored_item = self._store_log_item(item)
+            if result == "replaced":
+                should_rerender = True
+            elif result == "appended" and stored_item is not None:
+                new_items.append(stored_item)
         self.text_edit.setUpdatesEnabled(False)
         try:
-            for item in history:
-                line, level, style, rows = self._unpack_log_item(item)
-                self._buffer.append((line, level, style, rows))
-                if self._matches_filter(level):
-                    self._render_line(line, level, style, rows)
-            self._trim_view()
+            if should_rerender:
+                self._rerender_view()
+            else:
+                for item in new_items:
+                    line, level, style, rows = self._unpack_log_item(item)
+                    if self._matches_filter(level):
+                        self._render_line(line, level, style, rows)
+            if not should_rerender:
+                self._trim_view()
         finally:
             self.text_edit.setUpdatesEnabled(True)
         if self._search_text:
             self._highlight_timer.start()
         if self._auto_scroll:
             self._scroll_to_bottom()
+
+    def _store_log_item(self, item) -> tuple[str, tuple[str, str, str, object] | None]:
+        line, level, style, rows = self._unpack_log_item(item)
+        if rows:
+            stored_item = (line, level, style, rows)
+            self._buffer.append(stored_item)
+            self._last_progress_key = ""
+            return "appended", stored_item
+        line = line.replace("\r", "").rstrip()
+        if not line.strip():
+            return "skipped", None
+        stored_item = (line, level, style, rows)
+        progress = self._match_progress(line) if "\n" not in line else None
+        if progress is not None:
+            label, percent, _detail = progress
+            replace_index = self._find_progress_index(label, percent)
+            self._last_progress_key = label
+            if replace_index is not None:
+                self._buffer[replace_index] = stored_item
+                return "replaced", stored_item
+            self._progress_detail_lines[label] = set()
+            self._buffer.append(stored_item)
+            return "appended", stored_item
+        if self._last_progress_key and self._is_progress_detail_line(line):
+            detail_key = self._normalize_progress_detail(line)
+            seen = self._progress_detail_lines.setdefault(self._last_progress_key, set())
+            if detail_key in seen:
+                return "skipped", None
+            seen.add(detail_key)
+            self._buffer.append(stored_item)
+            return "appended", stored_item
+        self._last_progress_key = ""
+        self._buffer.append(stored_item)
+        return "appended", stored_item
+
+    def _find_progress_index(self, label: str, percent: int) -> int | None:
+        for index in range(len(self._buffer) - 1, -1, -1):
+            line, _level, _style, rows = self._unpack_log_item(self._buffer[index])
+            if rows or "\n" in line:
+                continue
+            progress = self._match_progress(line)
+            if progress is None:
+                continue
+            existing_label, existing_percent, _detail = progress
+            if existing_label != label:
+                continue
+            if existing_percent < 100 or percent >= 100:
+                return index
+            return None
+        return None
+
+    @staticmethod
+    def _normalize_progress_detail(line: str) -> str:
+        return re.sub(r"\s+", " ", line.strip())
+
+    @staticmethod
+    def _is_progress_detail_line(line: str) -> bool:
+        return line.strip().startswith("目标文件 ->")
 
     def _matches_filter(self, level: str) -> bool:
         if self._filter_level == "ALL":
@@ -576,6 +647,8 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         with self._pending_lock:
             self._pending.clear()
         self._buffer.clear()
+        self._last_progress_key = ""
+        self._progress_detail_lines.clear()
         self.text_edit.clear()
         self.scroll_btn.hide()
         self._auto_scroll = True
