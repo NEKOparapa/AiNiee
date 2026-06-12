@@ -38,6 +38,9 @@ _DARK_COLORS = {
     "PROGRESS": "#7ea7d8",
     "PROGRESS_BG": "#313844",
     "MUTED": "#9aa6b2",
+    "SCROLLBAR_TRACK": "rgba(255, 255, 255, 0)",
+    "SCROLLBAR_THUMB": "#3f4856",
+    "SCROLLBAR_THUMB_HOVER": "#566273",
     "SELECTION_BG": "#314763",
     "SELECTION_TEXT": "#f4f7fb",
 }
@@ -60,6 +63,9 @@ _LIGHT_COLORS = {
     "PROGRESS": "#416f9f",
     "PROGRESS_BG": "#d9dee6",
     "MUTED": "#667280",
+    "SCROLLBAR_TRACK": "rgba(255, 255, 255, 0)",
+    "SCROLLBAR_THUMB": "#c7ced8",
+    "SCROLLBAR_THUMB_HOVER": "#aeb8c6",
     "SELECTION_BG": "#bfd7f5",
     "SELECTION_TEXT": "#1f2328",
 }
@@ -458,6 +464,31 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             f" border: 1px solid {palette['BORDER']};"
             "}"
             "QTextEdit QScrollBar {"
+            f" background: {palette['SCROLLBAR_TRACK']};"
+            "}"
+            "QTextEdit QScrollBar:vertical {"
+            f" background: {palette['SCROLLBAR_TRACK']};"
+            " border: none;"
+            " width: 10px;"
+            " margin: 4px 2px 4px 2px;"
+            "}"
+            "QTextEdit QScrollBar::handle:vertical {"
+            f" background: {palette['SCROLLBAR_THUMB']};"
+            " border: none;"
+            " border-radius: 3px;"
+            " min-height: 36px;"
+            "}"
+            "QTextEdit QScrollBar::handle:vertical:hover {"
+            f" background: {palette['SCROLLBAR_THUMB_HOVER']};"
+            "}"
+            "QTextEdit QScrollBar::add-line:vertical,"
+            "QTextEdit QScrollBar::sub-line:vertical {"
+            " border: none;"
+            " background: transparent;"
+            " height: 0px;"
+            "}"
+            "QTextEdit QScrollBar::add-page:vertical,"
+            "QTextEdit QScrollBar::sub-page:vertical {"
             " background: transparent;"
             "}"
             "QTextEdit {"
