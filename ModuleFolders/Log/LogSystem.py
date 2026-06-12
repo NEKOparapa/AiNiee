@@ -115,6 +115,9 @@ class SensitiveFilter(logging.Filter):
         if redacted != msg:
             record.msg = redacted
             record.args = ()
+        gui_text = getattr(record, "ainiee_gui_text", None)
+        if isinstance(gui_text, str):
+            record.ainiee_gui_text = redact(gui_text)
         if record.exc_info:
             exc_text = _EXC_FORMATTER.formatException(record.exc_info)
             record.exc_text = redact(exc_text)
@@ -138,9 +141,25 @@ class _PlainFormatter(logging.Formatter):
             record.args = original_args
 
 
-class _ConsoleFormatter(_PlainFormatter):
+class _ConsoleFormatter(logging.Formatter):
     def __init__(self) -> None:
         super().__init__("%(message)s")
+
+    def format(self, record: logging.LogRecord) -> str:
+        original_msg = record.msg
+        original_args = record.args
+        try:
+            gui_text = getattr(record, "ainiee_gui_text", None)
+            if isinstance(gui_text, str):
+                plain = _strip_markup(gui_text)
+            else:
+                plain = _strip_markup(record.getMessage())
+            record.msg = plain
+            record.args = ()
+            return super().format(record)
+        finally:
+            record.msg = original_msg
+            record.args = original_args
 
 
 _REPLAY_BUFFER_SIZE = 5000

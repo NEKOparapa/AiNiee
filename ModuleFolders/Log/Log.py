@@ -1,4 +1,5 @@
 import logging
+import re
 import traceback
 from io import StringIO
 
@@ -13,6 +14,7 @@ __all__ = ("LogMixin",)
 
 
 _RICH_LOG_WIDTH = 100
+_TABLE_BORDER_RE = re.compile(r"^\s*\+[-+]+\s*$")
 
 
 def _rich_print(*args, **kwargs):
@@ -69,9 +71,36 @@ def _log_text(value) -> str:
     return _safe_str(value)
 
 
+def _gui_text_from_rich(text: str) -> str:
+    """把终端表格转成 GUI 友好的文本块，避免 Qt 中 CJK 字宽导致右边框错位。"""
+    lines = []
+    previous_separator = False
+    for line in text.splitlines():
+        line = line.rstrip()
+        if not line.strip():
+            continue
+        if _TABLE_BORDER_RE.match(line):
+            if not previous_separator:
+                lines.append("-" * min(len(line.strip()), _RICH_LOG_WIDTH))
+            previous_separator = True
+            continue
+        previous_separator = False
+        if line.startswith("|"):
+            line = line[1:]
+            if line.rstrip().endswith("|"):
+                line = line.rstrip()[:-1]
+        lines.append(line.strip())
+    return "\n".join(lines)
+
+
 def _prepare_message(value):
     text = redact(_log_text(value))
-    return _console_text(text), text
+    gui_text = _gui_text_from_rich(text) if _is_rich_renderable(value) else text
+    return _console_text(text), text, gui_text
+
+
+def _log_extra(gui_text: str) -> dict:
+    return {"ainiee_gui_text": gui_text}
 
 
 class LogMixin:
@@ -88,15 +117,15 @@ class LogMixin:
         return _safe_str(value)
 
     def print(self, msg) -> None:
-        console_value, text = _prepare_message(msg)
-        _rich_print(console_value)
-        self._logger().info(text)
+        console_value, text, gui_text = _prepare_message(msg)
+        _rich_print(console_value, soft_wrap=True)
+        self._logger().info(text, extra=_log_extra(gui_text))
 
     def debug(self, msg, error: Exception = None) -> None:
-        console_value, text = _prepare_message(msg)
+        console_value, text, gui_text = _prepare_message(msg)
         if error is None:
             _rich_print(f"[[yellow]DEBUG[/]] {console_value}")
-            self._logger().debug(text)
+            self._logger().debug(text, extra=_log_extra(gui_text))
         else:
             safe_tb = redact(self._format_exception(error))
             _rich_print(
@@ -104,18 +133,18 @@ class LogMixin:
                 f"{_console_text(redact(self._safe_str(error)))}\n"
                 f"{_console_text(safe_tb)}"
             )
-            self._logger().debug(text, exc_info=error)
+            self._logger().debug(text, exc_info=error, extra=_log_extra(gui_text))
 
     def info(self, msg) -> None:
-        console_value, text = _prepare_message(msg)
+        console_value, text, gui_text = _prepare_message(msg)
         _rich_print(f"[[green]INFO[/]] {console_value}")
-        self._logger().info(text)
+        self._logger().info(text, extra=_log_extra(gui_text))
 
     def error(self, msg, error: Exception = None) -> None:
-        console_value, text = _prepare_message(msg)
+        console_value, text, gui_text = _prepare_message(msg)
         if error is None:
             _rich_print(f"[[red]ERROR[/]] {console_value}")
-            self._logger().error(text)
+            self._logger().error(text, extra=_log_extra(gui_text))
         else:
             safe_tb = redact(self._format_exception(error))
             _rich_print(
@@ -123,9 +152,9 @@ class LogMixin:
                 f"{_console_text(redact(self._safe_str(error)))}\n"
                 f"{_console_text(safe_tb)}"
             )
-            self._logger().error(text, exc_info=error)
+            self._logger().error(text, exc_info=error, extra=_log_extra(gui_text))
 
     def warning(self, msg) -> None:
-        console_value, text = _prepare_message(msg)
+        console_value, text, gui_text = _prepare_message(msg)
         _rich_print(f"[[yellow]WARNING[/]] {console_value}")
-        self._logger().warning(text)
+        self._logger().warning(text, extra=_log_extra(gui_text))
