@@ -87,7 +87,13 @@ class TranslatedItemsTranslator(BaseTranslator):
         if text in self.source_texts:
             for source_text, translated_text in self.translated_iter:
                 if text == source_text:
-                    return translated_text
+                    if not translated_text:
+                        return text
+                    # 剥离可能因缓存混用或模型脑补带入的 Word 格式保护标签
+                    import re
+                    clean_text = re.sub(r'<t id="\d+">', '', translated_text)
+                    clean_text = clean_text.replace('</t>', '')
+                    return clean_text
         return text
 
     def do_llm_translate(self, text, rate_limit_params: dict = None):
