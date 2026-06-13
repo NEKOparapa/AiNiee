@@ -57,6 +57,14 @@ logging.getLogger("babeldoc.format.pdf.document_il.midend.typesetting").addFilte
 logging.getLogger("babeldoc.format.pdf.high_level").addFilter(IgnoreFinishReadingException())
 
 
+# Monkey patch babeldoc to bypass InputFileGeneratedByBabelDOCError
+try:
+    import babeldoc.format.pdf.high_level
+    babeldoc.format.pdf.high_level.check_metadata = lambda doc: None
+except Exception:
+    pass
+
+
 class PdfSourceVisitor(BaseTranslator):
     def __init__(self):
         super().__init__('', '', True)
