@@ -1,5 +1,6 @@
 import os
 import sys
+sys.setrecursionlimit(5000)
 import PyInstaller.__main__
 
 cmd = [
@@ -8,6 +9,7 @@ cmd = [
     "--clean",  # Clean PyInstaller cache and remove temporary files before building.
     #"--onefile",  # Create a one-file bundled executable.
     "--noconfirm",  # Replace output directory (default: SPECPATH/dist/SPECNAME) without asking for confirmation
+    "--add-data=Resource;Resource",  # Bundle Resource static files (prompts, presets, icons, etc.)
     "--hidden-import=babeldoc",
     "--hidden-import=sklearn",
     "--collect-all=babeldoc",
@@ -27,9 +29,14 @@ cmd = [
 ]
 
 # 需要排除的软件包
-# 由mediapipe导入，但不需要这些任务，会增加很多大小
+# 由mediapipe等导入，但主逻辑不需要，会极大地增加包体积
 MODULES_TO_EXCLUDE = [
     "jaxlib",
+    "torch",
+    "torchvision",
+    "tensorboard",
+    "triton",
+    "notebook",
 ]
 
 # 添加显式排除参数

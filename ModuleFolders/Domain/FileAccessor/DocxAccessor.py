@@ -41,8 +41,27 @@ class DocxAccessor:
     def _is_empty_string(self, ele: PageElement):
         return isinstance(ele, NavigableString) and ele.strip() == ""
 
-    def _merge_adjacent_same_style_run(self, paragraph: Tag):
+    def _get_key_style(self, run: Tag):
+        rpr = run.find('w:rPr')
+        style = {
+            'bold': False,
+            'italic': False,
+            'underline': False,
+            'vertAlign': None
+        }
+        if rpr:
+            if rpr.find('w:b') or rpr.find('w:bCs'):
+                style['bold'] = True
+            if rpr.find('w:i') or rpr.find('w:iCs'):
+                style['italic'] = True
+            if rpr.find('w:u'):
+                style['underline'] = True
+            vert = rpr.find('w:vertAlign')
+            if vert:
+                style['vertAlign'] = vert.get('w:val')
+        return style
 
+    def _merge_adjacent_same_style_run(self, paragraph: Tag):
         # 排除掉语法检测和空字符串
         child_nodes = [
             ele for ele in paragraph.children
@@ -67,27 +86,28 @@ class DocxAccessor:
                 continue
 
             # 如果是run节点，尝试合并后续相同格式的run
-            merged_run = current
             j = i + 1
             while j < n:
                 next_node = child_nodes[j]
 
                 # 遇到其他类型节点，停止合并
-                if not self._is_tag_of(current, "r"):
+                if not self._is_tag_of(next_node, "r"):
+                    break
+
+                next_t = next_node.find("w:t")
+                if not next_t or next_t.string is None:
                     break
 
                 # 格式相同则合并文本内容
-                if self._get_style(merged_run) == self._get_style(next_node):
-                    current_t = merged_run.find("w:t")
-                    next_t = next_node.find("w:t")
-                    if next_t:
-                        if next_t.get("xml:space") == "preserve":
-                            current_t["xml:space"] = "preserve"
-                        current_t.string += next_t.get_text()
+                if self._get_key_style(current) == self._get_key_style(next_node):
+                    current_t = current.find("w:t")
+                    if next_t.get("xml:space") == "preserve":
+                        current_t["xml:space"] = "preserve"
+                    current_t.string = (current_t.string or "") + (next_t.string or "")
                     j += 1
                 else:
                     break
-            new_children.append(merged_run)
+            new_children.append(current)
             i = j  # 跳过已处理的节点
 
         # 用重构后的子节点列表替换原始内容

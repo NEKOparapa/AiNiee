@@ -3,7 +3,10 @@ from pathlib import Path
 
 from ModuleFolders.Service.Cache.CacheFile import CacheFile
 from ModuleFolders.Service.Cache.CacheProject import ProjectType
-from ModuleFolders.Domain.FileAccessor.BabeldocPdfAccessor import BabeldocPdfAccessor
+try:
+    from ModuleFolders.Domain.FileAccessor.BabeldocPdfAccessor import BabeldocPdfAccessor
+except ImportError:
+    BabeldocPdfAccessor = None
 from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     BaseBilingualWriter,
     BaseTranslatedWriter,
@@ -17,6 +20,11 @@ class BabeldocPdfWriter(BaseBilingualWriter, BaseTranslatedWriter):
         super().__init__(output_config)
         self.tmp_directory = tmp_directory
         
+        if BabeldocPdfAccessor is None:
+            self.file_accessor = None
+            self.abs_tmp_directory = None
+            return
+
         # 获取输入根路径
         root_path = output_config.input_root
         # 如果输入路径存在且是文件（即用户选择了单文件进行处理），则使用其父目录
@@ -28,7 +36,7 @@ class BabeldocPdfWriter(BaseBilingualWriter, BaseTranslatedWriter):
         self.file_accessor = BabeldocPdfAccessor(self.abs_tmp_directory, output_config)
 
     def __exit__(self, exc_type, exc, exc_tb):
-        if self.abs_tmp_directory.exists():
+        if getattr(self, 'abs_tmp_directory', None) and self.abs_tmp_directory.exists():
             shutil.rmtree(self.abs_tmp_directory)
 
     def on_write_translated(
@@ -57,6 +65,8 @@ class BabeldocPdfWriter(BaseBilingualWriter, BaseTranslatedWriter):
         source_file_path: Path,
         babeldoc_output_attr: str,
     ):
+        if self.file_accessor is None:
+            raise RuntimeError("未安装 PDF 翻译依赖 (BabelDOC)，无法导出 PDF。请在命令行运行 `pip install BabelDOC` 安装后再试。")
         result = self.file_accessor.write_content(source_file_path, cache_file.items)
         babeldoc_path_str = getattr(result, babeldoc_output_attr)
         if babeldoc_path_str and (babeldoc_path := Path(babeldoc_path_str)).exists():

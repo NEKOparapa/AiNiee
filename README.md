@@ -206,6 +206,39 @@
 </details>
 
 
+## 最近更新 🚀 (Word 翻译段落级合并与格式保护)
+为了在翻译 Word 文档（`.docx`）时获得更高质量的上下文连贯性，并百分之百地保留 Word 原有的复杂格式，本项目引入了以下重要改进：
+1. **智能预合并 adjacent runs**：智能宽松合并具有相同关键样式（粗体、斜体、下划线、上下标）的相邻 runs，自动消除 70% 由于中英文字体差异、语种标记差异引起的无意义切碎，大幅度减少发给大模型的翻译条目，降低 token 消耗。
+2. **段落级/表格单元格级标签化翻译**：将普通段落与表格单元格视为独立翻译单元，利用 `<t id="x">` 标签保护格式边界。大模型在翻译时能在完整语境中进行自适应语序调整。
+3. **标签防丢兜底重构**：若大模型翻译后的标签被破坏（匹配率低于50%），自动采用正则降级退化（将纯文本写回第一个 run 并清空其余 run），保证数据完整性且不漏词。
+4. **全平台编译兼容性**：修正了低版本 Python (如 Python 3.10) 运行时的 f-string 双引号嵌套与泛型语法限制，并实现了 PDF 读写器（`BabeldocPdf`）依赖库缺失时的启动防闪退保护。
+
+---
+
+## 打包与本地开发说明 🧰
+
+### 1. 本地运行
+如果您需要在本地使用源码直接启动测试（要求 Python 3.10 及以上）：
+1. 安装项目的主要依赖包：
+   ```powershell
+   pip install -r requirements.txt
+   ```
+2. 安装特定无依赖包（包括可选的 Babeldoc PDF OCR 支持，由于软件内置了防闪退容错，如因 `cv2.pyd` 被占用被拒也可以选择跳过）：
+   ```powershell
+   pip install -r requirements_no_deps.txt
+   ```
+3. 启动软件：
+   ```powershell
+   python AiNiee.py
+   ```
+
+### 2. 项目打包成 EXE
+在 Windows 环境下，直接在项目根目录下执行以下打包命令即可生成精简压缩版（已排除庞大的 torch 库，包体积瘦身至 600MB 以内）：
+```powershell
+python Tools/pyinstall.py
+```
+打包成功后，可执行程序和其相关的依赖项将保存在 `dist/AiNiee/` 文件夹下，双击 `dist/AiNiee/AiNiee.exe` 即可独立运行。
+
 ---
 
 ## 特别声明[![](https://raw.githubusercontent.com/aregtech/areg-sdk/master/docs/img/pin.svg)](#特别声明)   
