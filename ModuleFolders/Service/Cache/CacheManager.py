@@ -633,9 +633,14 @@ class CacheManager(ConfigMixin, LogMixin, Base):
                 item.translation_status = TranslationStatus.UNTRANSLATED
 
             if item.translation_status in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
+                item.clear_manually_reset()
                 if not item.translated_text.strip():
                     item.translation_status = TranslationStatus.UNTRANSLATED
-            elif item.translation_status == TranslationStatus.UNTRANSLATED and item.translated_text.strip():
+            elif (
+                item.translation_status == TranslationStatus.UNTRANSLATED
+                and item.translated_text.strip()
+                and not item.is_manually_reset()
+            ):
                 item.translation_status = TranslationStatus.TRANSLATED
 
             if item.translation_status in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
@@ -776,10 +781,12 @@ class CacheManager(ConfigMixin, LogMixin, Base):
                             if item.translation_status not in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
                                 continue
                             item.translation_status = TranslationStatus.UNTRANSLATED
+                            item.mark_manually_reset()
                         elif task_mode == TaskType.POLISH:
                             if item.translation_status != TranslationStatus.POLISHED:
                                 continue
                             item.translation_status = TranslationStatus.TRANSLATED
+                            item.clear_manually_reset()
                         else:
                             return changed_count
 
@@ -1055,8 +1062,10 @@ class CacheManager(ConfigMixin, LogMixin, Base):
                 item_to_update.translated_text = new_text
                 if not new_text or not new_text.strip():
                     item_to_update.translation_status = TranslationStatus.UNTRANSLATED
+                    item_to_update.mark_manually_reset()
                 else:
                     item_to_update.translation_status = TranslationStatus.TRANSLATED
+                    item_to_update.clear_manually_reset()
 
     def update_generated_translation(
         self,
@@ -1076,8 +1085,10 @@ class CacheManager(ConfigMixin, LogMixin, Base):
             item_to_update.translated_text = new_text
             if not new_text or not new_text.strip():
                 item_to_update.translation_status = TranslationStatus.UNTRANSLATED
+                item_to_update.mark_manually_reset()
             else:
                 item_to_update.translation_status = translation_status
+                item_to_update.clear_manually_reset()
 
     def search_items(self, query: str, scope: str, is_regex: bool, search_flagged: bool) -> list:
         """在整个项目缓存中搜索条目。"""
