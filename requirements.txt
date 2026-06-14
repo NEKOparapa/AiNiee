@@ -7,7 +7,8 @@ google-genai
 tiktoken
 numpy
 openpyxl
-PyQt5
+PyQt5==5.15.11
+PyQt5-Qt5==5.15.2
 PyQt-Fluent-Widgets[full]~=1.10.0
 pyobjc-framework-Cocoa; sys_platform == "darwin"
 opencc

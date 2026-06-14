@@ -64,6 +64,26 @@ from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLi
 from ModuleFolders.Service.TaskExecutor.TranslatorUtil import get_source_language_for_file
 
 
+def _safe_int(value, default=0):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _retry_limit_for_round(initial_limit, current_round, min_limit):
+    current_limit = max(1, _safe_int(initial_limit, 1))
+    min_limit = max(1, _safe_int(min_limit, 1))
+    current_round = max(0, _safe_int(current_round, 0))
+
+    for _ in range(current_round):
+        if current_limit <= min_limit:
+            return current_limit
+        current_limit = max(min_limit, int(current_limit / 2))
+
+    return current_limit
+
+
 # 翻译器
 class TaskExecutor(ConfigMixin, LogMixin, Base):
 
@@ -132,6 +152,55 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         self.info("简繁转换完成。")
         self.print("")
         return True
+
+    def _get_split_limit_type(self) -> str:
+        return "line" if getattr(self.config, "lines_limit_switch", False) else "token"
+
+    def _get_retry_split_min_limit(self, limit_type: str) -> int:
+        if limit_type == "token":
+            return max(1, _safe_int(getattr(self.config, "retry_split_min_tokens", 100), 100))
+        return max(1, _safe_int(getattr(self.config, "retry_split_min_lines", 15), 15))
+
+    def _get_round_split_limit(self, limit_type: str, current_round: int) -> int:
+        if limit_type == "token":
+            base_limit = getattr(self.config, "tokens_limit", 1024)
+        else:
+            base_limit = getattr(self.config, "lines_limit", 20)
+
+        return _retry_limit_for_round(
+            base_limit,
+            current_round,
+            self._get_retry_split_min_limit(limit_type),
+        )
+
+    def _get_split_optimization_params(self, limit_type: str) -> tuple[int, str]:
+        if not getattr(self.config, "split_optimization_enable", False):
+            return 0, "off"
+
+        if limit_type == "token":
+            extra_units = _safe_int(getattr(self.config, "chunk_soft_limit_extra_tokens", 100), 100)
+        else:
+            extra_units = _safe_int(getattr(self.config, "chunk_soft_limit_extra_lines", 15), 15)
+
+        mode = str(getattr(self.config, "split_optimization_mode", "dynamic") or "dynamic").strip().lower()
+        if mode not in {"dynamic", "tail"}:
+            mode = "dynamic"
+
+        return max(0, extra_units), mode
+
+    def _generate_item_chunks_for_round(self, current_round: int, task_mode: int):
+        limit_type = self._get_split_limit_type()
+        limit_count = self._get_round_split_limit(limit_type, current_round)
+        extra_units, split_optimization_mode = self._get_split_optimization_params(limit_type)
+
+        return self.cache_manager.generate_item_chunks(
+            limit_type,
+            limit_count,
+            self.config.pre_line_counts,
+            task_mode,
+            extra_units,
+            split_optimization_mode,
+        )
 
     # 应用关闭事件
     def app_shut_down(self, event: int, data: dict) -> None:
@@ -364,17 +433,10 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             if current_round == 0 and continue_status == False:
                 self.project_status_data.total_line = item_count_status_untranslated
 
-            # 第二轮开始对半切分
-            if current_round > 0:
-                self.config.lines_limit = max(1, int(self.config.lines_limit / 2))
-                self.config.tokens_limit = max(1, int(self.config.tokens_limit / 2))
-
             # 生成缓存数据条目片段的合集列表，原文列表与上文列表一一对应
-            chunks, previous_chunks, file_paths = self.cache_manager.generate_item_chunks(
-                "line" if self.config.tokens_limit_switch == False else "token",
-                self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
-                self.config.pre_line_counts,
-                TaskType.TRANSLATION
+            chunks, previous_chunks, file_paths = self._generate_item_chunks_for_round(
+                current_round,
+                TaskType.TRANSLATION,
             )
 
             # 生成翻译任务合集列表
@@ -450,7 +512,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                     self._clear_active_executor(executor)
 
         # 等待可能存在的缓存文件写入请求处理完毕
-        time.sleep(CacheManager.SAVE_INTERVAL)
+        self.cache_manager.flush_pending_save()
 
         # 如果开启了转换简繁开关功能，则进行文本转换
         if self.config.response_conversion_toggle:
@@ -553,17 +615,10 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             if current_round == 0 and continue_status == False:
              self.project_status_data.total_line = item_count_status_unpolishd
 
-            # 第二轮开始对半切分
-            if current_round > 0:
-                self.config.lines_limit = max(1, int(self.config.lines_limit / 2))
-                self.config.tokens_limit = max(1, int(self.config.tokens_limit / 2))
-
             # 生成缓存数据条目片段的合集列表
-            chunks, previous_chunks, file_paths = self.cache_manager.generate_item_chunks(
-                "line" if self.config.tokens_limit_switch == False else "token",
-                self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
-                self.config.pre_line_counts,
-                TaskType.POLISH
+            chunks, previous_chunks, file_paths = self._generate_item_chunks_for_round(
+                current_round,
+                TaskType.POLISH,
             )
 
             # 生成润色任务合集列表
@@ -628,7 +683,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                     self._clear_active_executor(executor)
 
         # 等待可能存在的缓存文件写入请求处理完毕
-        time.sleep(CacheManager.SAVE_INTERVAL)
+        self.cache_manager.flush_pending_save()
 
         # 输出配置包
         output_config = {
