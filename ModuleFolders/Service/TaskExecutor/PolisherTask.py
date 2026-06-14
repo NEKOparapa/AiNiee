@@ -153,6 +153,7 @@ class PolisherTask(LogMixin, Base):
                     item.model = self.config.model
                     item.translated_text = response
                     item.translation_status = TranslationStatus.POLISHED
+                    item.clear_manually_reset()
 
             self.print(
                 self.generate_log_table(

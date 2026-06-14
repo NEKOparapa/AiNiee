@@ -234,6 +234,7 @@ class TranslatorTask(LogMixin, Base):
                     item.model = self.config.model
                     item.translated_text = self.text_symbol_repair.repair_text(self.config, item.source_text, response)
                     item.translation_status = TranslationStatus.TRANSLATED
+                    item.clear_manually_reset()
 
 
             # 打印任务结果

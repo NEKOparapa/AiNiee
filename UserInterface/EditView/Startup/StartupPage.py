@@ -214,13 +214,24 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             label_input_exclude_rule = config.get("label_input_exclude_rule", "")
 
             if mode == "new":
-                cache_project = self.file_reader.read_files(
+                cache_reused = self.cache_manager.load_matching_project_cache(
                     translation_project,
                     label_input_path,
-                    label_input_exclude_rule,
                 )
-                self.cache_manager.load_from_project(cache_project)
-                self.cache_manager.save_to_file()
+                if cache_reused:
+                    mode = "continue"
+                else:
+                    cache_project = self.file_reader.read_files(
+                        translation_project,
+                        label_input_path,
+                        label_input_exclude_rule,
+                    )
+                    self.cache_manager.prepare_new_project_cache(
+                        cache_project,
+                        translation_project,
+                        label_input_path,
+                    )
+                    self.cache_manager.save_to_file()
             elif project_id:
                 self.cache_manager.load_from_project_id(project_id)
             else:
