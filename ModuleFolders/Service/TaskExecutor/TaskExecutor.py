@@ -640,12 +640,12 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 写入文件
         self.file_writer.output_translated_content(
             self.cache_manager.project,
-            self.config.label_output_path,
+            self.config.label_polish_output_path,
             self.config.label_input_path,
             output_config,
         )
         self.print("")
-        self.info(f"润色结果已保存至 {self.config.label_output_path} 目录 ...")
+        self.info(f"润色结果已保存至 {self.config.label_polish_output_path} 目录 ...")
         self.print("")
 
         # 重置内部状态

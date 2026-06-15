@@ -18,6 +18,12 @@
       "English": "Translation Output Folder",
       "日本語": "翻訳出力フォルダ"
     },
+    "润色输出文件夹": {
+      "简中": "润色输出文件夹",
+      "繁中": "潤色輸出資料夾",
+      "English": "Polishing Output Folder",
+      "日本語": "校正出力フォルダー"
+    },
     "输出文件名后缀": {
       "简中": "输出文件名后缀",
       "繁中": "輸出檔案名稱後綴",
@@ -61,10 +67,10 @@
       "日本語": "出力フォルダーを自動設定"
     },
     "启用此功能后，设置为输入文件夹的平级目录，比如输入文件夹为D:/Test/Input，输出文件夹将设置为D:/Test/AiNieeOutput": {
-      "简中": "启用此功能后，设置为输入文件夹的平级目录，\n比如输入文件夹为 D:/Test/Input，输出文件夹将设置为 D:/Test/AiNieeOutput",
-      "繁中": "啟用此功能後，設置為輸入資料夾的同層級目錄，\n例如輸入資料夾為 D:/Test/Input，輸出資料夾將設置為 D:/Test/AiNieeOutput",
-      "English": "Creates the output folder next to the input folder.\nExample: D:/Test/Input -> D:/Test/AiNieeOutput.",
-      "日本語": "この機能を有効にすると、出力フォルダーは入力フォルダーと同じ階層のディレクトリーに設定されます。\n例：入力フォルダーが「D:/Test/Input」の場合、出力フォルダーは「D:/Test/AiNieeOutput」になります。"
+      "简中": "启用此功能后，翻译和润色输出文件夹会设置为输入文件夹的平级目录。\n比如输入文件夹为 D:/Test/Input，翻译输出文件夹将设置为 D:/Test/AiNieeOutput，润色输出文件夹将设置为 D:/Test/AiNieePolishOutput",
+      "繁中": "啟用此功能後，翻譯和潤色輸出資料夾會設置為輸入資料夾的同層級目錄。\n例如輸入資料夾為 D:/Test/Input，翻譯輸出資料夾將設置為 D:/Test/AiNieeOutput，潤色輸出資料夾將設置為 D:/Test/AiNieePolishOutput",
+      "English": "Creates the translation and polishing output folders next to the input folder.\nExample: D:/Test/Input -> D:/Test/AiNieeOutput and D:/Test/AiNieePolishOutput.",
+      "日本語": "この機能を有効にすると、翻訳と校正の出力フォルダーは入力フォルダーと同じ階層に設定されます。\n例：入力フォルダーが D:/Test/Input の場合、翻訳出力フォルダーは D:/Test/AiNieeOutput、校正出力フォルダーは D:/Test/AiNieePolishOutput になります。"
     },
     "保持输入输出文件编码一致": {
       "简中": "文件编码保持一致",

@@ -23,6 +23,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         # 默认配置
         self.default = {
             "label_output_path": "./output",
+            "label_polish_output_path": "./polish_output",
             "auto_set_output_path": True,
             "output_filename_suffix": "_translated",
             "bilingual_text_order": "translation_first",
@@ -56,6 +57,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         # 添加控件
         self.add_widget_filename_suffix(self.vbox, config)
         self.add_widget_translation_output_path(self.vbox, config)
+        self.add_widget_polish_output_path(self.vbox, config)
         self.add_widget_auto_set(self.vbox, config)
         self.vbox.addWidget(HorizontalSeparator())
         self.add_widget_bilingual_text_order(self.vbox, config)
@@ -69,8 +71,16 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
 
     # 翻译输出文件夹
     def add_widget_translation_output_path(self, parent, config) -> None:
+        self.add_widget_output_path(parent, config, "label_output_path", self.tra("翻译输出文件夹"))
+
+    # 润色输出文件夹
+    def add_widget_polish_output_path(self, parent, config) -> None:
+        self.add_widget_output_path(parent, config, "label_polish_output_path", self.tra("润色输出文件夹"))
+
+    # 输出文件夹
+    def add_widget_output_path(self, parent, config, config_key: str, title: str) -> None:
         def widget_init(widget):
-            info_cont = self.tra("当前输出文件夹为") + f" {config.get('label_output_path')}"
+            info_cont = self.tra("当前输出文件夹为") + f" {config.get(config_key)}"
             widget.set_description(info_cont)
             widget.set_text(self.tra("选择文件夹"))
             widget.set_icon(FluentIcon.FOLDER_ADD)
@@ -87,7 +97,7 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
 
             # 更新并保存配置
             config = self.load_config()
-            config["label_output_path"] = path.strip()
+            config[config_key] = path.strip()
             self.save_config(config)
 
         # 拖拽文件夹回调
@@ -101,13 +111,13 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
 
             # 更新并保存配置
             config = self.load_config()
-            config["label_output_path"] = dropped_text.strip()
+            config[config_key] = dropped_text.strip()
             self.save_config(config)
 
 
         parent.addWidget(
             PushButtonCard(
-                self.tra("翻译输出文件夹"),
+                title,
                 "",
                 widget_init,
                 widget_callback,
