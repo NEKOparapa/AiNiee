@@ -1,5 +1,6 @@
 import os
 import sys
+import glob
 import PyInstaller.__main__
 
 cmd = [
@@ -37,6 +38,20 @@ for module_name in MODULES_TO_EXCLUDE:
     cmd.append(f"--exclude-module={module_name}")
     print(f"[INFO] Explicitly excluding module: {module_name}")
 
+
+def _exclude_opencc_binaries_from_upx():
+    try:
+        import opencc
+    except Exception as error:
+        print(f"[WARNING] Failed to locate OpenCC for UPX exclusion: {error}")
+        return
+
+    opencc_clib_dir = os.path.join(os.path.dirname(opencc.__file__), "clib")
+    for pattern in ("*.pyd", "*.dll"):
+        for path in glob.glob(os.path.join(opencc_clib_dir, pattern)):
+            cmd.append("--upx-exclude=" + os.path.basename(path))
+            print(f"[INFO] Excluding OpenCC binary from UPX: {os.path.basename(path)}")
+
 def _hidden_imports_from(path):
     with open(path, "r", encoding="utf-8") as reader:
         for raw in reader:
@@ -52,6 +67,8 @@ if os.path.exists("./requirements.txt"):
         cmd.append("--hidden-import=" + pkg)
     for pkg in _hidden_imports_from("./requirements_no_deps.txt"):
         cmd.append("--hidden-import=" + pkg)
+
+    _exclude_opencc_binaries_from_upx()
 
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     PyInstaller.__main__.run(cmd)
