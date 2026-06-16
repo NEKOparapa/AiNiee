@@ -38,6 +38,8 @@ class CacheManager(ConfigMixin, LogMixin, Base):
 
         # 线程锁：保护 project 的读写以及缓存落盘过程
         self.file_lock = threading.Lock()
+        self._save_thread_lock = threading.Lock()
+        self._save_thread = None
         self.project = None
         self.save_to_file_stop_flag = False
         self.save_to_file_require_flag = False
@@ -56,11 +58,19 @@ class CacheManager(ConfigMixin, LogMixin, Base):
                 self.load_from_project_id(current_project_id)
 
         self.save_to_file_stop_flag = False
-        threading.Thread(target=self.save_to_file_tick, daemon=True).start()
+        with self._save_thread_lock:
+            if self._save_thread is None or not self._save_thread.is_alive():
+                self._save_thread = threading.Thread(
+                    target=self.save_to_file_tick,
+                    daemon=True,
+                    name="cache-save-tick",
+                )
+                self._save_thread.start()
 
     def app_shut_down(self, event: int, data: dict) -> None:
         """应用关闭时通知保存线程停止。"""
         self.save_to_file_stop_flag = True
+        self.flush_pending_save()
 
     def on_manual_save_cache_requested(self, event: int, data: dict) -> None:
         """处理手动保存缓存请求。"""
@@ -142,6 +152,120 @@ class CacheManager(ConfigMixin, LogMixin, Base):
         except (TypeError, ValueError):
             return 0
 
+    @staticmethod
+    def _normalize_input_path(input_path: str) -> str:
+        if not input_path:
+            return ""
+        try:
+            return str(Path(input_path).expanduser().resolve())
+        except (OSError, RuntimeError):
+            return os.path.abspath(os.path.expanduser(str(input_path)))
+
+    @classmethod
+    def _build_input_fingerprint(cls, input_path: str) -> dict:
+        normalized_input_path = cls._normalize_input_path(input_path)
+        if not normalized_input_path:
+            return {}
+
+        root_path = Path(normalized_input_path)
+        if not root_path.exists():
+            return {}
+
+        base_dir = root_path if root_path.is_dir() else root_path.parent
+        if root_path.is_dir():
+            paths = [path for path in root_path.rglob("*") if path.is_file()]
+        else:
+            paths = [root_path]
+
+        files = []
+        for file_path in sorted(paths, key=lambda item: str(item)):
+            try:
+                stat = file_path.stat()
+                try:
+                    relative_path = str(file_path.relative_to(base_dir))
+                except ValueError:
+                    relative_path = str(file_path)
+                files.append(
+                    {
+                        "path": relative_path.replace("\\", "/"),
+                        "size": stat.st_size,
+                        "mtime_ns": stat.st_mtime_ns,
+                    }
+                )
+            except OSError:
+                continue
+
+        return {
+            "input_path": normalized_input_path,
+            "files": files,
+        }
+
+    @classmethod
+    def _get_project_cache_metadata(cls, project: CacheProject) -> dict:
+        extra = getattr(project, "extra", None)
+        if not isinstance(extra, dict):
+            return {}
+
+        metadata = extra.get("cache_metadata")
+        if isinstance(metadata, dict):
+            return metadata
+
+        return {}
+
+    @classmethod
+    def _set_project_cache_metadata(
+        cls,
+        project: CacheProject,
+        translation_project: str = "",
+        input_path: str = "",
+    ) -> None:
+        if project is None:
+            return
+
+        if not isinstance(getattr(project, "extra", None), dict):
+            project.extra = {}
+
+        normalized_input_path = cls._normalize_input_path(input_path or getattr(project, "input_path", ""))
+        metadata = dict(cls._get_project_cache_metadata(project))
+        metadata["translation_project"] = translation_project or getattr(project, "project_type", "")
+        metadata["input_path"] = normalized_input_path
+        metadata["input_fingerprint"] = cls._build_input_fingerprint(normalized_input_path)
+        project.extra["cache_metadata"] = metadata
+
+        if normalized_input_path:
+            project.input_path = normalized_input_path
+
+    @classmethod
+    def _project_matches_source(
+        cls,
+        project: CacheProject,
+        translation_project: str,
+        input_path: str,
+    ) -> bool:
+        if project is None:
+            return False
+
+        normalized_input_path = cls._normalize_input_path(input_path)
+        if not normalized_input_path:
+            return False
+
+        metadata = cls._get_project_cache_metadata(project)
+        cached_input_path = cls._normalize_input_path(
+            metadata.get("input_path") or getattr(project, "input_path", "")
+        )
+        if cached_input_path != normalized_input_path:
+            return False
+
+        cached_translation_project = metadata.get("translation_project") or getattr(project, "project_type", "")
+        if translation_project and cached_translation_project and cached_translation_project != translation_project:
+            return False
+
+        cached_fingerprint = metadata.get("input_fingerprint")
+        if isinstance(cached_fingerprint, dict) and cached_fingerprint:
+            return cached_fingerprint == cls._build_input_fingerprint(normalized_input_path)
+
+        return False
+
     @classmethod
     def _normalize_progress(
         cls,
@@ -176,10 +300,13 @@ class CacheManager(ConfigMixin, LogMixin, Base):
     ) -> dict:
         """构建写入 ProjectStatistics.json 的内容。"""
         total_line, line, _ = cls._normalize_progress(project, stats_payload)
+        metadata = cls._get_project_cache_metadata(project)
         return {
             "project_id": project.project_id,
             "project_name": project.project_name,
             "project_create_time": project.project_create_time,
+            "translation_project": metadata.get("translation_project") or project.project_type,
+            "input_path": metadata.get("input_path") or project.input_path,
             "total_line": total_line,
             "line": line,
         }
@@ -278,6 +405,8 @@ class CacheManager(ConfigMixin, LogMixin, Base):
         project_create_time = str(stats_payload.get("project_create_time", "")).strip() or cls._timestamp_to_iso(
             os.path.getctime(cache_dir)
         )
+        translation_project = str(stats_payload.get("translation_project", "") or "").strip()
+        input_path = str(stats_payload.get("input_path", "") or "").strip()
         total_line = cls._parse_int(stats_payload.get("total_line", 0))
         line = cls._parse_int(stats_payload.get("line", 0))
 
@@ -285,6 +414,8 @@ class CacheManager(ConfigMixin, LogMixin, Base):
             "project_id": project_id,
             "project_name": project_name,
             "project_create_time": project_create_time,
+            "translation_project": translation_project,
+            "input_path": input_path,
             "total_line": total_line,
             "line": line,
             "is_complete": total_line > 0 and line >= total_line,
@@ -400,9 +531,17 @@ class CacheManager(ConfigMixin, LogMixin, Base):
         """请求保存缓存。output_path 参数仅保留兼容。"""
         self.save_to_file_require_flag = True
 
+    def flush_pending_save(self) -> None:
+        """立即处理挂起的缓存保存请求。"""
+        if not getattr(self, "save_to_file_require_flag", False):
+            return
+        self.save_to_file()
+        self.save_to_file_require_flag = False
+
     def load_from_project(self, data: CacheProject):
         """直接从内存中的 CacheProject 对象加载项目。"""
         self._ensure_project_metadata(data)
+        self._normalize_project_state(data)
         self.project = data
 
     def load_from_project_id(self, project_id: str) -> None:
@@ -411,6 +550,7 @@ class CacheManager(ConfigMixin, LogMixin, Base):
         with self.file_lock:
             if os.path.isfile(path):
                 self.project = self.read_from_file(path)
+                self._normalize_project_state(self.project)
             else:
                 self.project = None
 
@@ -420,8 +560,106 @@ class CacheManager(ConfigMixin, LogMixin, Base):
         with self.file_lock:
             if os.path.isfile(path):
                 self.project = self.read_from_file(path)
+                self._normalize_project_state(self.project)
             else:
                 self.project = None
+
+    def load_matching_project_cache(self, translation_project: str, input_path: str) -> bool:
+        """加载与当前输入路径和项目类型匹配的项目缓存。"""
+        histories = self.list_project_histories(limit=0, prune=False)
+        for history in histories:
+            project_id = history.get("project_id", "")
+            cache_path = history.get("cache_path", "")
+            if not project_id or not cache_path or not os.path.isfile(cache_path):
+                continue
+
+            try:
+                project = self.read_from_file(cache_path)
+                self._normalize_project_state(project)
+            except Exception as error:
+                self.warning(f"读取项目缓存失败，已跳过: {project_id} - {error}")
+                continue
+
+            if not self._project_matches_source(project, translation_project, input_path):
+                continue
+
+            with self.file_lock:
+                self.project = project
+            return True
+
+        return False
+
+    def prepare_new_project_cache(
+        self,
+        project: CacheProject,
+        translation_project: str,
+        input_path: str,
+    ) -> None:
+        """补齐新读取项目的缓存元数据并载入内存。"""
+        self._ensure_project_metadata(project)
+        self._set_project_cache_metadata(project, translation_project, input_path)
+        self._normalize_project_state(project)
+        self.project = project
+
+    @classmethod
+    def _normalize_project_state(cls, project: CacheProject | None) -> None:
+        if project is None:
+            return
+
+        cls._ensure_project_metadata(project)
+        if project.stats_data is None:
+            project.stats_data = CacheProjectStatistics()
+
+        valid_statuses = {
+            TranslationStatus.UNTRANSLATED,
+            TranslationStatus.TRANSLATED,
+            TranslationStatus.POLISHED,
+            TranslationStatus.EXCLUDED,
+        }
+
+        completed_count = 0
+        for item in project.items_iter():
+            if item.source_text is None:
+                item.source_text = ""
+            elif not isinstance(item.source_text, str):
+                item.source_text = str(item.source_text)
+
+            if item.translated_text is None:
+                item.translated_text = ""
+            elif not isinstance(item.translated_text, str):
+                item.translated_text = str(item.translated_text)
+
+            if item.translation_status not in valid_statuses:
+                item.translation_status = TranslationStatus.UNTRANSLATED
+
+            if item.translation_status in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
+                item.clear_manually_reset()
+                if not item.translated_text.strip():
+                    item.translation_status = TranslationStatus.UNTRANSLATED
+            elif (
+                item.translation_status == TranslationStatus.UNTRANSLATED
+                and item.translated_text.strip()
+                and not item.is_manually_reset()
+            ):
+                item.translation_status = TranslationStatus.TRANSLATED
+
+            if item.translation_status in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
+                completed_count += 1
+
+        total_count = project.count_items()
+        stats = project.stats_data
+        stats.total_line = max(cls._parse_int(getattr(stats, "total_line", 0)), total_count)
+        stats.line = min(max(cls._parse_int(getattr(stats, "line", 0)), completed_count), stats.total_line)
+        stats.token = max(cls._parse_int(getattr(stats, "token", 0)), 0)
+        stats.total_completion_tokens = max(
+            cls._parse_int(getattr(stats, "total_completion_tokens", 0)),
+            0,
+        )
+        stats.error_requests = max(cls._parse_int(getattr(stats, "error_requests", 0)), 0)
+        stats.total_requests = max(
+            cls._parse_int(getattr(stats, "total_requests", 0)),
+            stats.error_requests,
+        )
 
     @classmethod
     def read_from_file(cls, cache_path) -> CacheProject:
@@ -543,10 +781,12 @@ class CacheManager(ConfigMixin, LogMixin, Base):
                             if item.translation_status not in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
                                 continue
                             item.translation_status = TranslationStatus.UNTRANSLATED
+                            item.mark_manually_reset()
                         elif task_mode == TaskType.POLISH:
                             if item.translation_status != TranslationStatus.POLISHED:
                                 continue
                             item.translation_status = TranslationStatus.TRANSLATED
+                            item.clear_manually_reset()
                         else:
                             return changed_count
 
@@ -575,12 +815,174 @@ class CacheManager(ConfigMixin, LogMixin, Base):
 
         return all_items[from_idx:to_idx]
 
+    def _get_item_unit_count(self, item: CacheItem, limit_type: str) -> int:
+        if limit_type == "token":
+            return max(0, item.get_token_count(item.source_text))
+        return 1
+
+    def _get_chunk_unit_count(self, chunk: List[CacheItem], limit_type: str) -> int:
+        if limit_type == "token":
+            return sum(self._get_item_unit_count(item, limit_type) for item in chunk)
+        return len(chunk)
+
+    def _split_items_by_limit(
+        self,
+        items: List[CacheItem],
+        limit_type: str,
+        limit_count: int,
+    ) -> List[List[CacheItem]]:
+        try:
+            limit_count = max(1, int(limit_count))
+        except (TypeError, ValueError):
+            limit_count = 1
+
+        chunks = []
+        current_chunk, current_length = [], 0
+
+        for item in items:
+            item_length = self._get_item_unit_count(item, limit_type)
+            if current_chunk and current_length + item_length > limit_count:
+                chunks.append(current_chunk)
+                current_chunk, current_length = [], 0
+
+            current_chunk.append(item)
+            current_length += item_length
+
+        if current_chunk:
+            chunks.append(current_chunk)
+
+        return chunks
+
+    def _split_prefix_by_min_units(
+        self,
+        items: List[CacheItem],
+        limit_type: str,
+        min_units: int,
+    ) -> tuple[List[CacheItem], List[CacheItem]]:
+        prefix = []
+        prefix_units = 0
+
+        for index, item in enumerate(items):
+            prefix.append(item)
+            prefix_units += self._get_item_unit_count(item, limit_type)
+            if prefix_units >= min_units:
+                return prefix, items[index + 1:]
+
+        return prefix, []
+
+    def _merge_small_tail_chunks(
+        self,
+        chunks: List[List[CacheItem]],
+        limit_type: str,
+        limit_count: int,
+        extra_units: int,
+    ) -> List[List[CacheItem]]:
+        try:
+            limit_count = int(limit_count)
+            extra_units = int(extra_units)
+        except (TypeError, ValueError):
+            return chunks
+
+        if len(chunks) < 2 or limit_count <= 0 or extra_units <= 0:
+            return chunks
+
+        tail_chunk = chunks[-1]
+        tail_units = self._get_chunk_unit_count(tail_chunk, limit_type)
+        if tail_units == 0 or tail_units > extra_units:
+            return chunks
+
+        previous_chunk = chunks[-2]
+        combined_units = (
+            self._get_chunk_unit_count(previous_chunk, limit_type)
+            + tail_units
+        )
+        if combined_units % limit_count == 0:
+            split_chunks = self._split_items_by_limit(
+                previous_chunk + tail_chunk,
+                limit_type,
+                limit_count,
+            )
+            return chunks[:-2] + split_chunks
+
+        if combined_units > limit_count + extra_units:
+            return chunks
+
+        return chunks[:-2] + [previous_chunk + tail_chunk]
+
+    def _optimize_chunks_near_tail(
+        self,
+        chunks: List[List[CacheItem]],
+        limit_type: str,
+        limit_count: int,
+        extra_units: int,
+        mode: str,
+    ) -> List[List[CacheItem]]:
+        try:
+            limit_count = int(limit_count)
+            extra_units = int(extra_units)
+        except (TypeError, ValueError):
+            return chunks
+
+        if len(chunks) < 2 or limit_count <= 0 or extra_units <= 0:
+            return chunks
+
+        mode = str(mode or "off").strip().lower()
+        if mode not in {"dynamic", "tail"}:
+            return chunks
+
+        tail_chunk = chunks[-1]
+        tail_units = self._get_chunk_unit_count(tail_chunk, limit_type)
+        if tail_units == 0:
+            return chunks
+
+        soft_limit = limit_count + extra_units
+
+        if mode == "tail":
+            overflow = tail_units - extra_units
+            if overflow <= 0:
+                return chunks
+
+            previous_chunk = chunks[-2]
+            moved_items, remaining_tail = self._split_prefix_by_min_units(
+                tail_chunk,
+                limit_type,
+                overflow,
+            )
+            if not moved_items or not remaining_tail:
+                return chunks
+
+            previous_units = self._get_chunk_unit_count(previous_chunk, limit_type)
+            moved_units = self._get_chunk_unit_count(moved_items, limit_type)
+            if previous_units + moved_units > soft_limit:
+                return chunks
+
+            return chunks[:-2] + [previous_chunk + moved_items, remaining_tail]
+
+        total_units = sum(self._get_chunk_unit_count(chunk, limit_type) for chunk in chunks)
+        target_chunk_count = len(chunks) - 1
+        if target_chunk_count <= 0 or total_units > target_chunk_count * soft_limit:
+            return chunks
+
+        target_limit = max(1, min(soft_limit, (total_units + target_chunk_count - 1) // target_chunk_count))
+        flat_items = [item for chunk in chunks for item in chunk]
+        optimized_chunks = self._split_items_by_limit(flat_items, limit_type, target_limit)
+
+        if len(optimized_chunks) > target_chunk_count:
+            optimized_chunks = self._split_items_by_limit(flat_items, limit_type, soft_limit)
+
+        if len(optimized_chunks) >= len(chunks):
+            return chunks
+
+        return optimized_chunks
+
     def generate_item_chunks(
         self,
         limit_type: str,
         limit_count: int,
         previous_line_count: int,
         task_mode,
+        chunk_soft_limit_extra_units: int = 0,
+        split_optimization_mode: str = "off",
     ) -> Tuple[List[List[CacheItem]], List[List[CacheItem]], List[str]]:
         """按任务类型和限制条件生成待处理片段。"""
         chunks, previous_chunks, file_paths = [], [], []
@@ -597,32 +999,27 @@ class CacheManager(ConfigMixin, LogMixin, Base):
             if not items:
                 continue
 
-            current_chunk, current_length = [], 0
-            chunk_start_idx_in_filtered_list = 0
+            file_chunks = self._split_items_by_limit(items, limit_type, limit_count)
+            file_chunks = self._optimize_chunks_near_tail(
+                file_chunks,
+                limit_type,
+                limit_count,
+                chunk_soft_limit_extra_units,
+                split_optimization_mode,
+            )
+            file_chunks = self._merge_small_tail_chunks(
+                file_chunks,
+                limit_type,
+                limit_count,
+                chunk_soft_limit_extra_units,
+            )
 
-            for i, item in enumerate(items):
-                item_length = item.get_token_count(item.source_text) if limit_type == "token" else 1
-
-                # 新 chunk 开始时，记录它在筛选后列表中的起始索引
-                if not current_chunk:
-                    chunk_start_idx_in_filtered_list = i
-
-                if current_chunk and (current_length + item_length > limit_count):
-                    chunks.append(current_chunk)
-                    previous_chunks.append(
-                        self.generate_previous_chunks(items, previous_line_count, chunk_start_idx_in_filtered_list)
-                    )
-                    file_paths.append(file.storage_path)
-                    current_chunk, current_length = [], 0
-                    chunk_start_idx_in_filtered_list = i
-
-                current_chunk.append(item)
-                current_length += item_length
-
-            if current_chunk:
+            for current_chunk in file_chunks:
                 chunks.append(current_chunk)
+                first_item_in_chunk = current_chunk[0]
+                real_idx = file.index_of(first_item_in_chunk.text_index)
                 previous_chunks.append(
-                    self.generate_previous_chunks(items, previous_line_count, chunk_start_idx_in_filtered_list)
+                    self.generate_previous_chunks(file.items, previous_line_count, real_idx)
                 )
                 file_paths.append(file.storage_path)
 
@@ -665,8 +1062,10 @@ class CacheManager(ConfigMixin, LogMixin, Base):
                 item_to_update.translated_text = new_text
                 if not new_text or not new_text.strip():
                     item_to_update.translation_status = TranslationStatus.UNTRANSLATED
+                    item_to_update.mark_manually_reset()
                 else:
                     item_to_update.translation_status = TranslationStatus.TRANSLATED
+                    item_to_update.clear_manually_reset()
 
     def update_generated_translation(
         self,
@@ -686,8 +1085,10 @@ class CacheManager(ConfigMixin, LogMixin, Base):
             item_to_update.translated_text = new_text
             if not new_text or not new_text.strip():
                 item_to_update.translation_status = TranslationStatus.UNTRANSLATED
+                item_to_update.mark_manually_reset()
             else:
                 item_to_update.translation_status = translation_status
+                item_to_update.clear_manually_reset()
 
     def search_items(self, query: str, scope: str, is_regex: bool, search_flagged: bool) -> list:
         """在整个项目缓存中搜索条目。"""

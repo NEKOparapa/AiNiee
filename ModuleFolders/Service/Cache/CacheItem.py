@@ -25,6 +25,8 @@ class TranslationStatus:
 
 @dataclass(repr=False)
 class CacheItem(ThreadSafeCache, ExtraMixin):
+    MANUALLY_RESET_EXTRA_KEY: ClassVar[str] = "manually_reset"
+
     # 类级别的 tiktoken 编码器缓存（全局单例）
     _encoding: ClassVar[Optional[Any]] = None
     _encoding_failed: ClassVar[bool] = False
@@ -222,7 +224,21 @@ class CacheItem(ThreadSafeCache, ExtraMixin):
         Returns:
             dict: 额外属性字典
         """
+        if self.extra is None:
+            self.extra = {}
         return self.extra
+
+    def is_manually_reset(self) -> bool:
+        return self.get_extra(self.MANUALLY_RESET_EXTRA_KEY, False) is True
+
+    def mark_manually_reset(self) -> None:
+        self.set_extra(self.MANUALLY_RESET_EXTRA_KEY, True)
+
+    def clear_manually_reset(self) -> None:
+        if not self.extra:
+            return
+
+        self.extra.pop(self.MANUALLY_RESET_EXTRA_KEY, None)
 
     def __repr__(self) -> str:
         """自定义字符串表示（用于调试）"""

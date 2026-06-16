@@ -18,6 +18,18 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
     SUPPORTED_INTERFACE_ROLES = {"active", "extract", "translate", "polish", "proofread"}
     API_ROLE_KEYS = ("extract", "translate", "polish", "proofread")
     API_SETTINGS_MIGRATION_KEY = "_active_follow_migration_done"
+    TASK_SPLIT_DEFAULTS = {
+        "lines_limit_switch": False,
+        "tokens_limit_switch": True,
+        "lines_limit": 20,
+        "tokens_limit": 1024,
+        "split_optimization_enable": True,
+        "chunk_soft_limit_extra_lines": 15,
+        "chunk_soft_limit_extra_tokens": 100,
+        "split_optimization_mode": "dynamic",
+        "retry_split_min_lines": 15,
+        "retry_split_min_tokens": 100,
+    }
 
     def __init__(self) -> None:
         super().__init__()
@@ -143,6 +155,37 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
 
         return config
 
+    # 补齐任务切分优化配置，兼容 CLI 版本曾经使用的字段名
+    def _normalize_split_optimization_settings(self, config: dict, persist: bool = False) -> dict:
+        original_config = dict(config)
+
+        legacy_mode = str(config.get("line_split_optimization_mode", "") or "").strip().lower()
+        if "split_optimization_mode" not in config and legacy_mode in {"dynamic", "tail"}:
+            config["split_optimization_mode"] = legacy_mode
+
+        if "split_optimization_enable" not in config and legacy_mode in {"dynamic", "tail"}:
+            config["split_optimization_enable"] = True
+
+        legacy_extra_units = config.get("chunk_soft_limit_extra_units")
+        if "chunk_soft_limit_extra_lines" not in config and legacy_extra_units is not None:
+            config["chunk_soft_limit_extra_lines"] = legacy_extra_units
+
+        legacy_retry_units = config.get("retry_split_min_units")
+        if "retry_split_min_lines" not in config and legacy_retry_units is not None:
+            config["retry_split_min_lines"] = legacy_retry_units
+
+        for key, value in self.TASK_SPLIT_DEFAULTS.items():
+            config.setdefault(key, value)
+
+        mode = str(config.get("split_optimization_mode", "dynamic") or "dynamic").strip().lower()
+        config["split_optimization_mode"] = mode if mode in {"dynamic", "tail"} else "dynamic"
+        config["split_optimization_enable"] = bool(config.get("split_optimization_enable", False))
+
+        if persist and original_config != config:
+            return self.save_config(config)
+
+        return config
+
     # 根据功能角色解析目标接口：优先取角色绑定，取不到则回退到 active
     def resolve_platform_tag_for_role(self, interface_role: str | None = None) -> str | None:
         role = self._normalize_interface_role(interface_role or getattr(self, "interface_role", "active"))
@@ -191,6 +234,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         self.apikey_list = []
 
         config = self._normalize_api_settings(self.load_config(), persist=True)
+        config = self._normalize_split_optimization_settings(config, persist=True)
 
         # 将字典中的每一项赋值到类中的同名属性
         for key, value in config.items():

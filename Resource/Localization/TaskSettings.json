@@ -48,6 +48,84 @@
       "English": "Tokens per Task",
       "日本語": "タスクあたりのトークン数"
     },
+    "启用尾巴分割优化": {
+      "简中": "启用尾巴分割优化",
+      "繁中": "啟用尾端分割最佳化",
+      "English": "Enable Tail Split Optimization",
+      "日本語": "末尾分割最適化を有効化"
+    },
+    "开启后将按所选模式优化任务末尾过短分片，行数模式与 Token 模式都会生效": {
+      "简中": "开启后将按所选模式优化任务末尾过短分片，行数模式与 Token 模式都会生效",
+      "繁中": "啟用後會依所選模式最佳化任務末尾過短分片，行數模式與 Token 模式都會生效",
+      "English": "Optimize short tail chunks with the selected mode for both Line and Token modes",
+      "日本語": "選択したモードで短い末尾チャンクを最適化し、行数モードとトークンモードの両方に適用します"
+    },
+    "动态分割模式": {
+      "简中": "动态分割模式",
+      "繁中": "動態分割模式",
+      "English": "Dynamic Split Mode",
+      "日本語": "動的分割モード"
+    },
+    "尾巴分割模式": {
+      "简中": "尾巴分割模式",
+      "繁中": "尾端分割模式",
+      "English": "Tail Split Mode",
+      "日本語": "末尾分割モード"
+    },
+    "动态分割会尽量消除末尾小分片，尾巴分割会让最终尾巴落入软上限范围": {
+      "简中": "动态分割会尽量消除末尾小分片，尾巴分割会让最终尾巴落入软上限范围",
+      "繁中": "動態分割會盡量消除末尾小分片，尾端分割會讓最終尾端落入軟上限範圍",
+      "English": "Dynamic mode tries to remove short tail chunks; tail mode keeps the final tail within the soft limit",
+      "日本語": "動的分割は短い末尾チャンクの解消を優先し、末尾分割は最後の末尾をソフト上限内に収めます"
+    },
+    "小尾巴软上限(行)": {
+      "简中": "小尾巴软上限(行)",
+      "繁中": "小尾端軟上限(行)",
+      "English": "Tail Soft Limit (Lines)",
+      "日本語": "末尾ソフト上限(行)"
+    },
+    "行数模式下，允许末尾小分片合并到上一任务的额外行数": {
+      "简中": "行数模式下，允许末尾小分片合并到上一任务的额外行数",
+      "繁中": "行數模式下，允許末尾小分片合併到上一任務的額外行數",
+      "English": "Extra lines allowed when merging a short tail chunk into the previous task in Line mode",
+      "日本語": "行数モードで短い末尾チャンクを前のタスクへ結合するときに許可する追加行数"
+    },
+    "小尾巴软上限(Token)": {
+      "简中": "小尾巴软上限(Token)",
+      "繁中": "小尾端軟上限(Token)",
+      "English": "Tail Soft Limit (Tokens)",
+      "日本語": "末尾ソフト上限(トークン)"
+    },
+    "Token 模式下，允许末尾小分片合并到上一任务的额外 Token 数": {
+      "简中": "Token 模式下，允许末尾小分片合并到上一任务的额外 Token 数",
+      "繁中": "Token 模式下，允許末尾小分片合併到上一任務的額外 Token 數",
+      "English": "Extra tokens allowed when merging a short tail chunk into the previous task in Token mode",
+      "日本語": "トークンモードで短い末尾チャンクを前のタスクへ結合するときに許可する追加トークン数"
+    },
+    "重试最小切分(行)": {
+      "简中": "重试最小切分(行)",
+      "繁中": "重試最小切分(行)",
+      "English": "Retry Minimum Split (Lines)",
+      "日本語": "再試行時の最小分割(行)"
+    },
+    "行数模式下，多轮重试自动缩小分片时不会低于该行数": {
+      "简中": "行数模式下，多轮重试自动缩小分片时不会低于该行数",
+      "繁中": "行數模式下，多輪重試自動縮小分片時不會低於此行數",
+      "English": "In Line mode, retry rounds will not shrink chunks below this line count",
+      "日本語": "行数モードでは、再試行ラウンドでこの行数未満には分割しません"
+    },
+    "重试最小切分(Token)": {
+      "简中": "重试最小切分(Token)",
+      "繁中": "重試最小切分(Token)",
+      "English": "Retry Minimum Split (Tokens)",
+      "日本語": "再試行時の最小分割(トークン)"
+    },
+    "Token 模式下，多轮重试自动缩小分片时不会低于该 Token 数": {
+      "简中": "Token 模式下，多轮重试自动缩小分片时不会低于该 Token 数",
+      "繁中": "Token 模式下，多輪重試自動縮小分片時不會低於此 Token 數",
+      "English": "In Token mode, retry rounds will not shrink chunks below this token count",
+      "日本語": "トークンモードでは、再試行ラウンドでこのトークン数未満には分割しません"
+    },
     "并发任务数": {
       "简中": "并发任务数",
       "繁中": "並行任務數",
