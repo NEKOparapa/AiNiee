@@ -15,7 +15,8 @@ from ModuleFolders.Domain.FileReader.BaseReader import (
 
 
 class BabeldocPdfReader(BaseSourceReader):
-    def __init__(self, input_config: InputConfig, tmp_directory='babeldoc_cache'):
+    def __init__(self, input_config: InputConfig, tmp_directory='babeldoc_cache',
+                 source_lang: str = "zh", target_lang: str = "en"):
         super().__init__(input_config)
         self.tmp_directory = tmp_directory
         
@@ -31,7 +32,7 @@ class BabeldocPdfReader(BaseSourceReader):
             
         abs_tmp_directory = root_path / self.tmp_directory
 
-        self.file_accessor = BabeldocPdfAccessor(abs_tmp_directory, None)
+        self.file_accessor = BabeldocPdfAccessor(abs_tmp_directory, None, source_lang, target_lang)
 
     @classmethod
     def get_project_type(self):

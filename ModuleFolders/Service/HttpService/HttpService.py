@@ -274,7 +274,8 @@ class HttpService(ConfigMixin, LogMixin, Base):
             CacheProject = self.file_reader.read_files(
                 translation_project,
                 label_input_path,
-                label_input_exclude_rule
+                label_input_exclude_rule,
+                config
             )
             self.cache_manager.load_from_project(CacheProject)
 

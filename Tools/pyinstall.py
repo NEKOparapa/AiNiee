@@ -25,7 +25,7 @@ cmd = [
     # submodules so packaged builds can load formats at runtime.
     "--collect-submodules=ModuleFolders.Domain.FileReader",
     "--collect-submodules=ModuleFolders.Domain.FileOutputer",
-    "--distpath=./dist_pdf",  # 指定输出目录为 dist_pdf
+    # "--distpath=./dist/AiNiee" #指定输出目录
 ]
 
 # 需要排除的软件包

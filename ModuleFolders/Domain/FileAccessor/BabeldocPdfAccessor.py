@@ -57,14 +57,6 @@ logging.getLogger("babeldoc.format.pdf.document_il.midend.typesetting").addFilte
 logging.getLogger("babeldoc.format.pdf.high_level").addFilter(IgnoreFinishReadingException())
 
 
-# Monkey patch babeldoc to bypass InputFileGeneratedByBabelDOCError
-try:
-    import babeldoc.format.pdf.high_level
-    babeldoc.format.pdf.high_level.check_metadata = lambda doc: None
-except Exception:
-    pass
-
-
 class PdfSourceVisitor(BaseTranslator):
     def __init__(self):
         super().__init__('', '', True)
@@ -85,23 +77,21 @@ class PdfSourceVisitor(BaseTranslator):
 class TranslatedItemsTranslator(BaseTranslator):
     def __init__(self, items: list[CacheItem]):
         super().__init__('', '', True)
-        self.source_texts = set(x.source_text for x in items)
-        self.translated_iter = ((x.source_text, x.final_text) for x in items)
+        self.translation_map = {x.source_text: x.final_text for x in items}
 
     def translate(self, text, *args, **kwargs):
         return self.do_translate(text)
 
     def do_translate(self, text, rate_limit_params: dict = None):
-        if text in self.source_texts:
-            for source_text, translated_text in self.translated_iter:
-                if text == source_text:
-                    if not translated_text:
-                        return text
-                    # 剥离可能因缓存混用或模型脑补带入的 Word 格式保护标签
-                    import re
-                    clean_text = re.sub(r'<t id="\d+">', '', translated_text)
-                    clean_text = clean_text.replace('</t>', '')
-                    return clean_text
+        if text in self.translation_map:
+            translated_text = self.translation_map[text]
+            if not translated_text:
+                return text
+            # 剥离可能因缓存混用或模型脑补带入的 Word 格式保护标签
+            import re
+            clean_text = re.sub(r'<t id="\d+">', '', translated_text)
+            clean_text = clean_text.replace('</t>', '')
+            return clean_text
         return text
 
     def do_llm_translate(self, text, rate_limit_params: dict = None):
@@ -155,9 +145,17 @@ class TranslationStage:
 
 
 class BabeldocPdfAccessor:
-    def __init__(self, tmp_directory: Path, output_config: OutputConfig | None) -> None:
+    def __init__(
+        self,
+        tmp_directory: Path,
+        output_config: OutputConfig | None,
+        source_lang: str = "zh",
+        target_lang: str = "en",
+    ) -> None:
         self.tmp_directory = tmp_directory
         self.output_config = output_config
+        self.source_lang = source_lang
+        self.target_lang = target_lang
         self._result_cache: dict[(Path, int), TranslateResult] = {}
         self._init_babeldoc_args()
 
@@ -167,6 +165,11 @@ class BabeldocPdfAccessor:
             "--no-watermark", "--ignore-cache", "--skip-scanned-detection",
             "--working-dir", str(self.tmp_directory / "babeldoc_working"),
             "--output", str(self.tmp_directory),
+            # 正确设置源/目标语言（影响 babeldoc 内部字体选择、语言过滤等逻辑）
+            "--lang-in", self.source_lang,
+            "--lang-out", self.target_lang,
+            # 将最小文本长度设为 1，防止"目录"、"申办方："等短中文词被过滤而漏译
+            "--min-text-length", "1",
         ]
         if self.output_config:
             if not self.output_config.translated_config.enabled:
@@ -189,14 +192,30 @@ class BabeldocPdfAccessor:
         old_il_stage_name = il_translator.ILTranslator.stage_name
         new_il_stage_name = "Read Paragraphs"
 
+        import pickle
+        import hashlib
+
+        def new_translate(*args, **kwargs):
+            try:
+                doc_il = args[1] if len(args) > 1 else kwargs.get("document")
+                if doc_il:
+                    file_key = hashlib.md5(str(source_file_path).encode("utf-8")).hexdigest()
+                    snapshot_file = self.tmp_directory / f"{file_key}.ir.pkl"
+                    self.tmp_directory.mkdir(parents=True, exist_ok=True)
+                    with open(snapshot_file, "wb") as f:
+                        pickle.dump(doc_il, f)
+            except Exception as e:
+                logging.getLogger("BabeldocPdfAccessor").error(f"保存 PDF 中间表示快照失败: {e}")
+
+            old_il_translate(*args, **kwargs)
+            raise FinishReading
+
         try:
             progress_monitor.TranslationStage = TranslationStage
             il_translator.ILTranslator.stage_name = new_il_stage_name
             il_translator.PriorityThreadPoolExecutor = MainThreadExecutor
 
-            # 提取完原文就可以终止了，不需要后面的写入
-            new_il_translate = FinishReading.raise_after_call(old_il_translate)
-            il_translator.ILTranslator.translate = new_il_translate
+            il_translator.ILTranslator.translate = new_translate
 
             new_stages = [
                 (new_il_stage_name, *stage[1:]) if stage[0] == old_il_stage_name else stage
@@ -224,6 +243,38 @@ class BabeldocPdfAccessor:
         if result is not None:
             return result
 
+        import hashlib
+        import pickle
+
+        file_key = hashlib.md5(str(source_file_path).encode("utf-8")).hexdigest()
+        snapshot_file = self.tmp_directory / f"{file_key}.ir.pkl"
+        
+        loaded_doc_il = None
+        if snapshot_file.exists():
+            try:
+                with open(snapshot_file, "rb") as f:
+                    loaded_doc_il = pickle.load(f)
+            except Exception as e:
+                logging.getLogger("BabeldocPdfAccessor").error(f"加载 PDF 中间表示快照失败，将退回重新解析: {e}")
+
+        # 导入原本的方法，用于之后还原
+        from babeldoc.format.pdf.new_parser import native_parse
+        from babeldoc.format.pdf.document_il.midend.detect_scanned_file import DetectScannedFile
+        from babeldoc.format.pdf.document_il.midend.layout_parser import LayoutParser
+        from babeldoc.format.pdf.document_il.midend.table_parser import TableParser
+        from babeldoc.format.pdf.document_il.midend.paragraph_finder import ParagraphFinder
+        from babeldoc.format.pdf.document_il.midend.styles_and_formulas import StylesAndFormulas
+        from babeldoc.format.pdf.document_il.midend.automatic_term_extractor import AutomaticTermExtractor
+
+        old_native_parse = native_parse.parse_prepared_pdf_with_new_parser_to_legacy_ir
+        old_detect_process = DetectScannedFile.process
+        old_layout_process = LayoutParser.process
+        old_table_process = TableParser.process
+        old_para_process = ParagraphFinder.process
+        old_style_process = StylesAndFormulas.process
+        old_term_process = AutomaticTermExtractor.procress
+
+        patch_applied = False
         translator = TranslatedItemsTranslator(items)
         babeldoc_translation_config = self._create_babeldoc_translation_config(
             self.babeldoc_args, str(source_file_path), translator
@@ -231,6 +282,21 @@ class BabeldocPdfAccessor:
         try:
             progress_monitor.TranslationStage = TranslationStage
             il_translator.PriorityThreadPoolExecutor = MainThreadExecutor
+
+            if loaded_doc_il:
+                # 劫持解析，直接返回已载入的中间表示树
+                native_parse.parse_prepared_pdf_with_new_parser_to_legacy_ir = lambda *args, **kwargs: loaded_doc_il
+                
+                # 劫持前置处理步骤为“空操作”
+                DetectScannedFile.process = lambda *args, **kwargs: None
+                LayoutParser.process = lambda self, docs, *args, **kwargs: docs
+                # babeldoc对于未包含中文的文本，如果在表格中，则不进行分块输出。
+                # 为了确保全部字符均能输出，劫持表格内容分析，禁用之。这有可能导致排版略有异常。
+                # TableParser.process = lambda self, docs, *args, **kwargs: docs
+                ParagraphFinder.process = lambda *args, **kwargs: None
+                StylesAndFormulas.process = lambda *args, **kwargs: None
+                AutomaticTermExtractor.procress = lambda *args, **kwargs: None
+                patch_applied = True
 
             with ProgressMonitor(TRANSLATE_STAGES) as pm, TranslationStage.create_progress() as pbar_manager:
                 pm.pbar_manager = pbar_manager
@@ -240,6 +306,15 @@ class BabeldocPdfAccessor:
         finally:
             il_translator.PriorityThreadPoolExecutor = self._OldExecutor
             progress_monitor.TranslationStage = self._OldTranslationStage
+            # 还原 Hook 的全局方法
+            if patch_applied:
+                native_parse.parse_prepared_pdf_with_new_parser_to_legacy_ir = old_native_parse
+                DetectScannedFile.process = old_detect_process
+                LayoutParser.process = old_layout_process
+                TableParser.process = old_table_process
+                ParagraphFinder.process = old_para_process
+                StylesAndFormulas.process = old_style_process
+                AutomaticTermExtractor.procress = old_term_process
 
         self._result_cache.clear()
         self._result_cache[cache_id] = result

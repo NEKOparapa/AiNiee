@@ -1,0 +1,1487 @@
+{
+  "AiNiee.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "8ed9fd723ebad3cc9acce3b443d300da",
+    "semantic_hash": "8ed9fd723ebad3cc9acce3b443d300da"
+  },
+  "ModuleFolders/Base/Base.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "64e97329d83bfd0abd73df1af69295be",
+    "semantic_hash": "64e97329d83bfd0abd73df1af69295be"
+  },
+  "ModuleFolders/Base/EventManager.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "61c9ad5e03614c1a6ed9a1567e86d818",
+    "semantic_hash": "61c9ad5e03614c1a6ed9a1567e86d818"
+  },
+  "ModuleFolders/Config/Config.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "dae0d5276a7c88e6a2f10a692a9c3b86",
+    "semantic_hash": "dae0d5276a7c88e6a2f10a692a9c3b86"
+  },
+  "ModuleFolders/Config/FilePathConfig.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "df0ff9fe1ef94320c22ac2e9117bcafd",
+    "semantic_hash": "df0ff9fe1ef94320c22ac2e9117bcafd"
+  },
+  "ModuleFolders/Domain/FileAccessor/BabeldocPdfAccessor.py": {
+    "mtime": 1781789151.3854685,
+    "ast_hash": "31c4be391dd12921729ee348b8378c9b",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/FileAccessor/DocxAccessor.py": {
+    "mtime": 1781325212.4154005,
+    "ast_hash": "d05dec3fe7a6f53229047282c2d0303e",
+    "semantic_hash": "d05dec3fe7a6f53229047282c2d0303e"
+  },
+  "ModuleFolders/Domain/FileAccessor/EpubAccessor.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "0ea0e8630f7dc551773ca5d20b604a92",
+    "semantic_hash": "0ea0e8630f7dc551773ca5d20b604a92"
+  },
+  "ModuleFolders/Domain/FileAccessor/WolfXlsxAccessor.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "bb8dd39191a7c04a9e19f3e91fa9e26c",
+    "semantic_hash": "bb8dd39191a7c04a9e19f3e91fa9e26c"
+  },
+  "ModuleFolders/Domain/FileAccessor/ZipUtil.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "90fdd62680017e5725a4aeb630f7906e",
+    "semantic_hash": "90fdd62680017e5725a4aeb630f7906e"
+  },
+  "ModuleFolders/Domain/FileConverter/BaseConverter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "12ad853263c67ada73cff64daff88fcb",
+    "semantic_hash": "12ad853263c67ada73cff64daff88fcb"
+  },
+  "ModuleFolders/Domain/FileConverter/OfficeFileConverter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "e04fbb953d1a9cb14f765f1257055b4d",
+    "semantic_hash": "e04fbb953d1a9cb14f765f1257055b4d"
+  },
+  "ModuleFolders/Domain/FileOutputer/AssWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "a2c1511ebfe410d0caaf5b5c89c379d0",
+    "semantic_hash": "a2c1511ebfe410d0caaf5b5c89c379d0"
+  },
+  "ModuleFolders/Domain/FileOutputer/AutoTypeWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "60eb80438b8bc1379d20db31f8fa1c5d",
+    "semantic_hash": "60eb80438b8bc1379d20db31f8fa1c5d"
+  },
+  "ModuleFolders/Domain/FileOutputer/BabeldocPdfWriter.py": {
+    "mtime": 1781787571.9352753,
+    "ast_hash": "df096291cdacda64a2da0e9b5031bd80",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/FileOutputer/BaseWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "30995e27aa36cc9eca8dcf1eadd41f2c",
+    "semantic_hash": "30995e27aa36cc9eca8dcf1eadd41f2c"
+  },
+  "ModuleFolders/Domain/FileOutputer/CsvWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "1cd0edca9644db9d2589909f5ac18b37",
+    "semantic_hash": "1cd0edca9644db9d2589909f5ac18b37"
+  },
+  "ModuleFolders/Domain/FileOutputer/DirectoryWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "567993cde5fd82ff9588f41be083bed7",
+    "semantic_hash": "567993cde5fd82ff9588f41be083bed7"
+  },
+  "ModuleFolders/Domain/FileOutputer/DocxWriter.py": {
+    "mtime": 1781325218.1261244,
+    "ast_hash": "10586bdc3e7935bbe9b3e0c84e2837a0",
+    "semantic_hash": "10586bdc3e7935bbe9b3e0c84e2837a0"
+  },
+  "ModuleFolders/Domain/FileOutputer/EpubWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "f4f49fdef686e5d5f12c1ae7c48060b9",
+    "semantic_hash": "f4f49fdef686e5d5f12c1ae7c48060b9"
+  },
+  "ModuleFolders/Domain/FileOutputer/FileOutputer.py": {
+    "mtime": 1781787604.9562469,
+    "ast_hash": "159b26b6bb9f41e6559b50a562d56e36",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/FileOutputer/I18nextWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "92fd69faae6b8668b7072f339f7a62ff",
+    "semantic_hash": "92fd69faae6b8668b7072f339f7a62ff"
+  },
+  "ModuleFolders/Domain/FileOutputer/LrcWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "1ea1ce220aea7aaa5799c6a83567be91",
+    "semantic_hash": "1ea1ce220aea7aaa5799c6a83567be91"
+  },
+  "ModuleFolders/Domain/FileOutputer/MToolWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "a363bddf2648002a1e893b965f07dd10",
+    "semantic_hash": "a363bddf2648002a1e893b965f07dd10"
+  },
+  "ModuleFolders/Domain/FileOutputer/MdWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "393f61488fb2d1172d761d5b7eb25de8",
+    "semantic_hash": "393f61488fb2d1172d761d5b7eb25de8"
+  },
+  "ModuleFolders/Domain/FileOutputer/OfficeConversionWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "f01a24062972f3e6a290196cc61a3594",
+    "semantic_hash": "f01a24062972f3e6a290196cc61a3594"
+  },
+  "ModuleFolders/Domain/FileOutputer/ParatranzWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "be53c09bc778fde5b9705efe1dfa8cd1",
+    "semantic_hash": "be53c09bc778fde5b9705efe1dfa8cd1"
+  },
+  "ModuleFolders/Domain/FileOutputer/PoWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "f8a7da53f46096ac24f65d380cf013fb",
+    "semantic_hash": "f8a7da53f46096ac24f65d380cf013fb"
+  },
+  "ModuleFolders/Domain/FileOutputer/PptxWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "59be70b09902a40fbe98cd4f0d176b2b",
+    "semantic_hash": "59be70b09902a40fbe98cd4f0d176b2b"
+  },
+  "ModuleFolders/Domain/FileOutputer/RenpyWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "3e39e10f8f81b2e08af1007e15e31f92",
+    "semantic_hash": "3e39e10f8f81b2e08af1007e15e31f92"
+  },
+  "ModuleFolders/Domain/FileOutputer/SrtWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "5fa814f7ea3059ffeb3d501b048ca526",
+    "semantic_hash": "5fa814f7ea3059ffeb3d501b048ca526"
+  },
+  "ModuleFolders/Domain/FileOutputer/TPPWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "49e7b1ab6f412c7dbadfeb8216ce0457",
+    "semantic_hash": "49e7b1ab6f412c7dbadfeb8216ce0457"
+  },
+  "ModuleFolders/Domain/FileOutputer/TransWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "7973b923630b6f7d7e9e39d5bf28c71c",
+    "semantic_hash": "7973b923630b6f7d7e9e39d5bf28c71c"
+  },
+  "ModuleFolders/Domain/FileOutputer/TxtWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "e79ff43717a72bf714ad2dc34a72acbe",
+    "semantic_hash": "e79ff43717a72bf714ad2dc34a72acbe"
+  },
+  "ModuleFolders/Domain/FileOutputer/VntWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "af8d7c88507738f56a08ebfa85e1c67a",
+    "semantic_hash": "af8d7c88507738f56a08ebfa85e1c67a"
+  },
+  "ModuleFolders/Domain/FileOutputer/VttWriter.py": {
+    "mtime": 1781327059.3428135,
+    "ast_hash": "76ab32430489ce569366ae1761a7e45b",
+    "semantic_hash": "76ab32430489ce569366ae1761a7e45b"
+  },
+  "ModuleFolders/Domain/FileOutputer/WolfXlsxWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "b473709bc638ffded9eaffc69e04d720",
+    "semantic_hash": "b473709bc638ffded9eaffc69e04d720"
+  },
+  "ModuleFolders/Domain/FileOutputer/WriterUtil.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "3732f9fff3aae1c04da43f05b3e96b63",
+    "semantic_hash": "3732f9fff3aae1c04da43f05b3e96b63"
+  },
+  "ModuleFolders/Domain/FileOutputer/XlsxWriter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "2364724bea65e5391337e80fb98cc0b6",
+    "semantic_hash": "2364724bea65e5391337e80fb98cc0b6"
+  },
+  "ModuleFolders/Domain/FileReader/AssReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "dd3c5ddac81aecc4957dea57dfbd080d",
+    "semantic_hash": "dd3c5ddac81aecc4957dea57dfbd080d"
+  },
+  "ModuleFolders/Domain/FileReader/AutoTypeReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "c591973e4af5b54363568f7c04b5d905",
+    "semantic_hash": "c591973e4af5b54363568f7c04b5d905"
+  },
+  "ModuleFolders/Domain/FileReader/BabeldocPdfReader.py": {
+    "mtime": 1781787558.1233149,
+    "ast_hash": "75bc71dc9c7b4dd54881e86ac964c9d5",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/FileReader/BaseReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "3430622c701d9607fcbd7db7ccd51968",
+    "semantic_hash": "3430622c701d9607fcbd7db7ccd51968"
+  },
+  "ModuleFolders/Domain/FileReader/CsvReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "bd136c71da8f2be174f3c9cb735e5698",
+    "semantic_hash": "bd136c71da8f2be174f3c9cb735e5698"
+  },
+  "ModuleFolders/Domain/FileReader/DirectoryReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "1f132a1ba5030c0a6b5d188075a9f4a2",
+    "semantic_hash": "1f132a1ba5030c0a6b5d188075a9f4a2"
+  },
+  "ModuleFolders/Domain/FileReader/DocxReader.py": {
+    "mtime": 1781325215.175674,
+    "ast_hash": "9a61f7ae59a4960c1d67f269fc3b8eb7",
+    "semantic_hash": "9a61f7ae59a4960c1d67f269fc3b8eb7"
+  },
+  "ModuleFolders/Domain/FileReader/EpubReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "e68a4215974b153281eab6f1a0730754",
+    "semantic_hash": "e68a4215974b153281eab6f1a0730754"
+  },
+  "ModuleFolders/Domain/FileReader/FileReader.py": {
+    "mtime": 1781787673.9599109,
+    "ast_hash": "dbec0be59b947e9c6b0a5b39480112da",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/FileReader/I18nextReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "b0c46e86b7f157057b6b326a9d37cb72",
+    "semantic_hash": "b0c46e86b7f157057b6b326a9d37cb72"
+  },
+  "ModuleFolders/Domain/FileReader/LrcReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "f6df514767dd082053473119643e097c",
+    "semantic_hash": "f6df514767dd082053473119643e097c"
+  },
+  "ModuleFolders/Domain/FileReader/MToolReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "963e847cd988e8d9b3130087c82d901e",
+    "semantic_hash": "963e847cd988e8d9b3130087c82d901e"
+  },
+  "ModuleFolders/Domain/FileReader/MdReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "6e20bb9ba671d0f7d2b64bbf12c5e716",
+    "semantic_hash": "6e20bb9ba671d0f7d2b64bbf12c5e716"
+  },
+  "ModuleFolders/Domain/FileReader/OfficeConversionReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "472523b5340012e0ebe9c48c0ea09183",
+    "semantic_hash": "472523b5340012e0ebe9c48c0ea09183"
+  },
+  "ModuleFolders/Domain/FileReader/ParatranzReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "ffd1aa37964738d4e356a239ebe3ad6f",
+    "semantic_hash": "ffd1aa37964738d4e356a239ebe3ad6f"
+  },
+  "ModuleFolders/Domain/FileReader/PoReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "7e0ad27d5107b98803fa0772f767b0c4",
+    "semantic_hash": "7e0ad27d5107b98803fa0772f767b0c4"
+  },
+  "ModuleFolders/Domain/FileReader/PptxReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "a0db57fdb08628957cd7823e89ccdba9",
+    "semantic_hash": "a0db57fdb08628957cd7823e89ccdba9"
+  },
+  "ModuleFolders/Domain/FileReader/ReaderUtil.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "72da51119cfb1b64363a86c1ae292259",
+    "semantic_hash": "72da51119cfb1b64363a86c1ae292259"
+  },
+  "ModuleFolders/Domain/FileReader/RenpyReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "8f763bedf6b3c008fb95c6890926fe46",
+    "semantic_hash": "8f763bedf6b3c008fb95c6890926fe46"
+  },
+  "ModuleFolders/Domain/FileReader/SrtReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "220cd3d33668d6076eb97a86e515244c",
+    "semantic_hash": "220cd3d33668d6076eb97a86e515244c"
+  },
+  "ModuleFolders/Domain/FileReader/TPPReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "e29eb4b45508894229685d89bb66cf1c",
+    "semantic_hash": "e29eb4b45508894229685d89bb66cf1c"
+  },
+  "ModuleFolders/Domain/FileReader/TransReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "6a5a86d599b71d6d022a20a15e5bf4f2",
+    "semantic_hash": "6a5a86d599b71d6d022a20a15e5bf4f2"
+  },
+  "ModuleFolders/Domain/FileReader/TxtReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "17ac80fe60678d2fe3992108b61a1b82",
+    "semantic_hash": "17ac80fe60678d2fe3992108b61a1b82"
+  },
+  "ModuleFolders/Domain/FileReader/VntReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "957a30dea747bb568305307d9630307b",
+    "semantic_hash": "957a30dea747bb568305307d9630307b"
+  },
+  "ModuleFolders/Domain/FileReader/VttReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "36a5a1206307723c62d1d7c6a0ceb32a",
+    "semantic_hash": "36a5a1206307723c62d1d7c6a0ceb32a"
+  },
+  "ModuleFolders/Domain/FileReader/WolfXlsxReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "cd3c8c2193d127ea0e1aac43f8347349",
+    "semantic_hash": "cd3c8c2193d127ea0e1aac43f8347349"
+  },
+  "ModuleFolders/Domain/FileReader/XlsxReader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "efef87b45de12e99b8e7bb5b848be894",
+    "semantic_hash": "efef87b45de12e99b8e7bb5b848be894"
+  },
+  "ModuleFolders/Domain/FileReader/unused/LanguageDetectorONNX.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "545fa7d741184e9f69c2bab90a6a4b7c",
+    "semantic_hash": "545fa7d741184e9f69c2bab90a6a4b7c"
+  },
+  "ModuleFolders/Domain/PromptBuilder/CharacterHelper.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "f20f6a9bc337b9f5284aabf5a569383f",
+    "semantic_hash": "f20f6a9bc337b9f5284aabf5a569383f"
+  },
+  "ModuleFolders/Domain/PromptBuilder/GlossaryHelper.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "02bb7509c21412cbafab9773d241c57f",
+    "semantic_hash": "02bb7509c21412cbafab9773d241c57f"
+  },
+  "ModuleFolders/Domain/PromptBuilder/PromptBuilder.py": {
+    "mtime": 1781327040.5881405,
+    "ast_hash": "558c24dc20a754b5161dcfbb9e028fc1",
+    "semantic_hash": "558c24dc20a754b5161dcfbb9e028fc1"
+  },
+  "ModuleFolders/Domain/PromptBuilder/PromptBuilderEnum.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "fcd583dc48b0ec1ad82e350109e35b02",
+    "semantic_hash": "fcd583dc48b0ec1ad82e350109e35b02"
+  },
+  "ModuleFolders/Domain/PromptBuilder/PromptBuilderLocal.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "b9b762902917cc904efff27120df9d20",
+    "semantic_hash": "b9b762902917cc904efff27120df9d20"
+  },
+  "ModuleFolders/Domain/PromptBuilder/PromptBuilderPolishing.py": {
+    "mtime": 1781326973.2993703,
+    "ast_hash": "5c5d085dd6703e65845caed760a80271",
+    "semantic_hash": "5c5d085dd6703e65845caed760a80271"
+  },
+  "ModuleFolders/Domain/PromptBuilder/PromptBuilderSakura.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "42929df2a50bf938efefd43a04564f7b",
+    "semantic_hash": "42929df2a50bf938efefd43a04564f7b"
+  },
+  "ModuleFolders/Domain/ResponseChecker/AdvancedChecks.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "711b845a288ecf923bc59fab747f7f22",
+    "semantic_hash": "711b845a288ecf923bc59fab747f7f22"
+  },
+  "ModuleFolders/Domain/ResponseChecker/BaseChecks.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "1a5a07d97ee699f26eaa0015a4bbb152",
+    "semantic_hash": "1a5a07d97ee699f26eaa0015a4bbb152"
+  },
+  "ModuleFolders/Domain/ResponseChecker/ResponseChecker.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "7a6300d241b964886f143cbbf2b47fc5",
+    "semantic_hash": "7a6300d241b964886f143cbbf2b47fc5"
+  },
+  "ModuleFolders/Domain/ResponseExtractor/ResponseExtractor.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "82234f70de63fddbdcffbeeb68bf9e07",
+    "semantic_hash": "82234f70de63fddbdcffbeeb68bf9e07"
+  },
+  "ModuleFolders/Domain/TextFilter/GeneralTextFilter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "a70ebb7736a953556cebe90dd090940c",
+    "semantic_hash": "a70ebb7736a953556cebe90dd090940c"
+  },
+  "ModuleFolders/Domain/TextFilter/LanguageFilter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "3f0c43780617c8fb7c6f0457e2d7f714",
+    "semantic_hash": "3f0c43780617c8fb7c6f0457e2d7f714"
+  },
+  "ModuleFolders/Domain/TextFilter/SpecialTextFilter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "00e685a19acf5ac97e11d59e1cb23d60",
+    "semantic_hash": "00e685a19acf5ac97e11d59e1cb23d60"
+  },
+  "ModuleFolders/Domain/TextFilter/TextFilter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "ac20b6410e300d64d202071744d1c4b5",
+    "semantic_hash": "ac20b6410e300d64d202071744d1c4b5"
+  },
+  "ModuleFolders/Domain/TextNormalizer/TextNormalizer.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "e7364e67b585eee16d0c6403cdd7ed78",
+    "semantic_hash": "e7364e67b585eee16d0c6403cdd7ed78"
+  },
+  "ModuleFolders/Domain/TextProcessor/PolishTextProcessor.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "146c4a8455fc7265f0c4d435f1eec063",
+    "semantic_hash": "146c4a8455fc7265f0c4d435f1eec063"
+  },
+  "ModuleFolders/Domain/TextProcessor/TextProcessor.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "85da3139851b79b1cdc8dfbe67cc13ae",
+    "semantic_hash": "85da3139851b79b1cdc8dfbe67cc13ae"
+  },
+  "ModuleFolders/Domain/TextSymbolRepair/TextSymbolRepair.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "4eb222ffaae0d7dd323cc32ba883c4c5",
+    "semantic_hash": "4eb222ffaae0d7dd323cc32ba883c4c5"
+  },
+  "ModuleFolders/Domain/TranslationResultCheck/TranslationResultCheck.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "ce9e4d1f3755f8f6ab80a9073a6f145c",
+    "semantic_hash": "ce9e4d1f3755f8f6ab80a9073a6f145c"
+  },
+  "ModuleFolders/Infrastructure/LLMRequester/AmazonbedrockRequester.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "1ec3aed88fd5efcc581c1707d71284ac",
+    "semantic_hash": "1ec3aed88fd5efcc581c1707d71284ac"
+  },
+  "ModuleFolders/Infrastructure/LLMRequester/AnthropicRequester.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "0ede88a3825bc4c9d20a50b44e6b1ebf",
+    "semantic_hash": "0ede88a3825bc4c9d20a50b44e6b1ebf"
+  },
+  "ModuleFolders/Infrastructure/LLMRequester/GoogleRequester.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "09ae892a71dc5a2fc395121d8cfafa37",
+    "semantic_hash": "09ae892a71dc5a2fc395121d8cfafa37"
+  },
+  "ModuleFolders/Infrastructure/LLMRequester/LLMClientFactory.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "f437cac7db5a0110807df0bc14a2a568",
+    "semantic_hash": "f437cac7db5a0110807df0bc14a2a568"
+  },
+  "ModuleFolders/Infrastructure/LLMRequester/LLMRequester.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "ff1e72eda0a6709d82d402e248bc03a8",
+    "semantic_hash": "ff1e72eda0a6709d82d402e248bc03a8"
+  },
+  "ModuleFolders/Infrastructure/LLMRequester/LocalLLMRequester.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "6e8f75024a815a4b40779720d956f9b7",
+    "semantic_hash": "6e8f75024a815a4b40779720d956f9b7"
+  },
+  "ModuleFolders/Infrastructure/LLMRequester/ModelConfigHelper.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "be55f0e29b74463d39489f61280a73ea",
+    "semantic_hash": "be55f0e29b74463d39489f61280a73ea"
+  },
+  "ModuleFolders/Infrastructure/LLMRequester/OpenaiRequester.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "1644984b85763b427fb0f4ccc5af78bd",
+    "semantic_hash": "1644984b85763b427fb0f4ccc5af78bd"
+  },
+  "ModuleFolders/Infrastructure/LLMRequester/SakuraRequester.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "2da85bb9d6a2e4636b2342fe10d2191c",
+    "semantic_hash": "2da85bb9d6a2e4636b2342fe10d2191c"
+  },
+  "ModuleFolders/Infrastructure/Platform/AppMetadata.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "2325fb3e1b4bf41735c324f92e143f9d",
+    "semantic_hash": "2325fb3e1b4bf41735c324f92e143f9d"
+  },
+  "ModuleFolders/Infrastructure/Platform/PlatformPaths.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "5e3331a4f9b973271d5bf878e83fc938",
+    "semantic_hash": "5e3331a4f9b973271d5bf878e83fc938"
+  },
+  "ModuleFolders/Infrastructure/Platform/RuntimeSetup.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "1536eb72e658b2c6f2ef740b55523742",
+    "semantic_hash": "1536eb72e658b2c6f2ef740b55523742"
+  },
+  "ModuleFolders/Infrastructure/Platform/__init__.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "2362d3463e12f64d614b5151763eae03",
+    "semantic_hash": "2362d3463e12f64d614b5151763eae03"
+  },
+  "ModuleFolders/Infrastructure/RequestLimiter/RequestLimiter.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "48567d5ddc28f0d9e8b8c9f48e1a6d88",
+    "semantic_hash": "48567d5ddc28f0d9e8b8c9f48e1a6d88"
+  },
+  "ModuleFolders/Infrastructure/TaskConfig/TaskConfig.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "58bfc31763c58c973a4aa1ff6b3419cd",
+    "semantic_hash": "58bfc31763c58c973a4aa1ff6b3419cd"
+  },
+  "ModuleFolders/Infrastructure/TaskConfig/TaskType.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "757b83f758b8e66c629e4f44c238024b",
+    "semantic_hash": "757b83f758b8e66c629e4f44c238024b"
+  },
+  "ModuleFolders/Infrastructure/Tokener/BabeldocPatch.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "dc7b1986134875bf48c6fd48632235d8",
+    "semantic_hash": "dc7b1986134875bf48c6fd48632235d8"
+  },
+  "ModuleFolders/Infrastructure/Tokener/TiktokenLoader.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "68b699f84d884b0d0e2e7c86195a95ff",
+    "semantic_hash": "68b699f84d884b0d0e2e7c86195a95ff"
+  },
+  "ModuleFolders/Infrastructure/Tokener/Tokener.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "1f49c50d69af0c35e9459ce5a494ad59",
+    "semantic_hash": "1f49c50d69af0c35e9459ce5a494ad59"
+  },
+  "ModuleFolders/Log/Log.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "0b7c9ab295812df6f5bbe4c0c4615fab",
+    "semantic_hash": "0b7c9ab295812df6f5bbe4c0c4615fab"
+  },
+  "ModuleFolders/Service/Cache/BaseCache.py": {
+    "mtime": 1781326437.107995,
+    "ast_hash": "877994032e0ea78885d6fc8b4057111a",
+    "semantic_hash": "877994032e0ea78885d6fc8b4057111a"
+  },
+  "ModuleFolders/Service/Cache/CacheFile.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "52170d070bf58c313612e59633945856",
+    "semantic_hash": "52170d070bf58c313612e59633945856"
+  },
+  "ModuleFolders/Service/Cache/CacheItem.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "357e21f931bcd3f7affaf7cc70c05a6d",
+    "semantic_hash": "357e21f931bcd3f7affaf7cc70c05a6d"
+  },
+  "ModuleFolders/Service/Cache/CacheManager.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "f118b5b130186315799d6407e32f2c73",
+    "semantic_hash": "f118b5b130186315799d6407e32f2c73"
+  },
+  "ModuleFolders/Service/Cache/CacheProject.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "781ad1a26f2ac83d665f5580c7e4c584",
+    "semantic_hash": "781ad1a26f2ac83d665f5580c7e4c584"
+  },
+  "ModuleFolders/Service/HttpService/HttpService.py": {
+    "mtime": 1781787691.7958117,
+    "ast_hash": "d017f5c4a98dbd8e3c0e739d19ae0804",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Service/NameExtractor/NameExtractor.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "5b52a19a60191d5626f5e30edd0f38dd",
+    "semantic_hash": "5b52a19a60191d5626f5e30edd0f38dd"
+  },
+  "ModuleFolders/Service/SimpleExecutor/SimpleExecutor.py": {
+    "mtime": 1781327062.944692,
+    "ast_hash": "e8140ced6aade625d9023c1024ab2431",
+    "semantic_hash": "e8140ced6aade625d9023c1024ab2431"
+  },
+  "ModuleFolders/Service/TaskExecutor/AnalysisTask.py": {
+    "mtime": 1781782738.739697,
+    "ast_hash": "85c1c508afc0e1fe62e33316802b9d72",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Service/TaskExecutor/PolisherTask.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "e4e08c40cba35dbc4227b04798cbfd9f",
+    "semantic_hash": "e4e08c40cba35dbc4227b04798cbfd9f"
+  },
+  "ModuleFolders/Service/TaskExecutor/ProofreadTask.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "731f12ebe773fc2f5792f68630ee928d",
+    "semantic_hash": "731f12ebe773fc2f5792f68630ee928d"
+  },
+  "ModuleFolders/Service/TaskExecutor/TaskExecutor.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "87afc69729b90f4721c56087275f8ec8",
+    "semantic_hash": "87afc69729b90f4721c56087275f8ec8"
+  },
+  "ModuleFolders/Service/TaskExecutor/TranslatorTask.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "ca2ce6f257862d022890cab09f4e03c0",
+    "semantic_hash": "ca2ce6f257862d022890cab09f4e03c0"
+  },
+  "ModuleFolders/Service/TaskExecutor/TranslatorUtil.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "d83fbe7a4cd9ef52915928635e2d681d",
+    "semantic_hash": "d83fbe7a4cd9ef52915928635e2d681d"
+  },
+  "ModuleFolders/Service/TranslationChecker/CheckResult.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "a9f147f6e858335f039865b4fe67727f",
+    "semantic_hash": "a9f147f6e858335f039865b4fe67727f"
+  },
+  "ModuleFolders/Service/TranslationChecker/LanguageChecker.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "4d574c62a1c74c697e59c0d46d3bd942",
+    "semantic_hash": "4d574c62a1c74c697e59c0d46d3bd942"
+  },
+  "ModuleFolders/Service/TranslationChecker/RuleChecker.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "5252b67f23acf4f00e207b146fe628ef",
+    "semantic_hash": "5252b67f23acf4f00e207b146fe628ef"
+  },
+  "ModuleFolders/Service/TranslationChecker/TerminologyChecker.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "3472def8dfcfe6f833135a3841ce1951",
+    "semantic_hash": "3472def8dfcfe6f833135a3841ce1951"
+  },
+  "OldPlugin/IOPlugins/CustomRegistry.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "7c2093af0628e64e1e5e936ec843bd13",
+    "semantic_hash": "7c2093af0628e64e1e5e936ec843bd13"
+  },
+  "OldPlugin/IncrementalFilePlugin/IncrementalFilePlugin.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "a70c99308d017557cc9eee36ec01a3d9",
+    "semantic_hash": "a70c99308d017557cc9eee36ec01a3d9"
+  },
+  "OldPlugin/MToolOptimizer/MToolOptimizer.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "eab52860508f657dfb33bdf4804ef36d",
+    "semantic_hash": "eab52860508f657dfb33bdf4804ef36d"
+  },
+  "Resource/Localization/APIManagement.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "5396342c4108d8dfcac28dcafa17cb60",
+    "semantic_hash": "5396342c4108d8dfcac28dcafa17cb60"
+  },
+  "Resource/Localization/AppFluentWindow.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "4223d8ae24a7d8479816dc0f8c048a27",
+    "semantic_hash": "4223d8ae24a7d8479816dc0f8c048a27"
+  },
+  "Resource/Localization/ApplicationSettings.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "660ed0233cef5830dd8ea08e69df795e",
+    "semantic_hash": "660ed0233cef5830dd8ea08e69df795e"
+  },
+  "Resource/Localization/BasicTablePage.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "374b8506a3464f6dea010cde82a09391",
+    "semantic_hash": "374b8506a3464f6dea010cde82a09391"
+  },
+  "Resource/Localization/EditView.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "475d1f4f1e51ad0ec2cbb549a51ce69d",
+    "semantic_hash": "475d1f4f1e51ad0ec2cbb549a51ce69d"
+  },
+  "Resource/Localization/MonitoringPage.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "ec42e645a3cafa9975aa07121a5f97f7",
+    "semantic_hash": "ec42e645a3cafa9975aa07121a5f97f7"
+  },
+  "Resource/Localization/OutputSettings.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "7f7ba25f78553ecff8bb092f2589f277",
+    "semantic_hash": "7f7ba25f78553ecff8bb092f2589f277"
+  },
+  "Resource/Localization/PromptSettings.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "15d217339fdad68de5c8d2fb3360d121",
+    "semantic_hash": "15d217339fdad68de5c8d2fb3360d121"
+  },
+  "Resource/Localization/ProofreadingCheck.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "07e772f124fc76a5f833d8f02fd7160e",
+    "semantic_hash": "07e772f124fc76a5f833d8f02fd7160e"
+  },
+  "Resource/Localization/StartupPage.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "59e891b1836985d8e877808fe3cf28ad",
+    "semantic_hash": "59e891b1836985d8e877808fe3cf28ad"
+  },
+  "Resource/Localization/TableSettings.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "34322b6d55abc3039fc46552db07aff2",
+    "semantic_hash": "34322b6d55abc3039fc46552db07aff2"
+  },
+  "Resource/Localization/TaskSettings.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "10d6f3800b078df2f5d99bcaf79e7f30",
+    "semantic_hash": "10d6f3800b078df2f5d99bcaf79e7f30"
+  },
+  "Resource/Localization/TranslationChecker.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "88f3b863487171cbf1395c6b8edcc1c1",
+    "semantic_hash": "88f3b863487171cbf1395c6b8edcc1c1"
+  },
+  "Resource/Localization/TranslationSettings.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "8be3170168a4d3b08d5761c8f0356fba",
+    "semantic_hash": "8be3170168a4d3b08d5761c8f0356fba"
+  },
+  "Resource/Localization/VersionManager.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "abeb40a0aa2eb35e5de97fbfc92689e8",
+    "semantic_hash": "abeb40a0aa2eb35e5de97fbfc92689e8"
+  },
+  "Resource/Models/ner/ja_core_news_md/accuracy.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "6f4c3a519af1d263161201d2a0253c0e",
+    "semantic_hash": "6f4c3a519af1d263161201d2a0253c0e"
+  },
+  "Resource/Models/ner/ja_core_news_md/meta.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "0003ef826b2120ef60e30b48bec4ac41",
+    "semantic_hash": "0003ef826b2120ef60e30b48bec4ac41"
+  },
+  "Resource/Models/ner/ja_core_news_md/vocab/strings.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "07e5cc3503dc7368a4ba4b1888127de7",
+    "semantic_hash": "07e5cc3503dc7368a4ba4b1888127de7"
+  },
+  "Resource/Regex/check_regex.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "3adbf162bb8108e15553a68e1e8fc864",
+    "semantic_hash": "3adbf162bb8108e15553a68e1e8fc864"
+  },
+  "Resource/Regex/regex.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "d2d28779ce10c7277ce61f9b4737dc1c",
+    "semantic_hash": "d2d28779ce10c7277ce61f9b4737dc1c"
+  },
+  "Resource/Version/version.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "ff052f5840a472689a26a908d4e09ac3",
+    "semantic_hash": "ff052f5840a472689a26a908d4e09ac3"
+  },
+  "Resource/config.json": {
+    "mtime": 1781782767.391966,
+    "ast_hash": "bac4c9118f528d4b199939bb7c287197",
+    "semantic_hash": ""
+  },
+  "Resource/platforms/preset.json": {
+    "mtime": 1781247449.0,
+    "ast_hash": "914ee05e1f0f0d6e31c0e0ca2040aecd",
+    "semantic_hash": "914ee05e1f0f0d6e31c0e0ca2040aecd"
+  },
+  "StevExtraction/Extraction_Tool/Export_Source_Text.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "6e2ba8dfe9c034ffb43c45cef5520832",
+    "semantic_hash": "6e2ba8dfe9c034ffb43c45cef5520832"
+  },
+  "StevExtraction/Extraction_Tool/Export_Update_Text.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "578a0655db59c9decc9ec8b6573d4e6a",
+    "semantic_hash": "578a0655db59c9decc9ec8b6573d4e6a"
+  },
+  "StevExtraction/Extraction_Tool/Import_Translated_Text.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "a82c5756e92f334324b75c688815355c",
+    "semantic_hash": "a82c5756e92f334324b75c688815355c"
+  },
+  "StevExtraction/jtpp.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "d38c1aa00a93ff8e4fbfa182c7d3b723",
+    "semantic_hash": "d38c1aa00a93ff8e4fbfa182c7d3b723"
+  },
+  "StevExtraction/main.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "29c60bbfc4cc6a1a5ee343c169a137c0",
+    "semantic_hash": "29c60bbfc4cc6a1a5ee343c169a137c0"
+  },
+  "StevExtraction/scratchpad.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "6171c684728ce4d5c6ed5644b25880bf",
+    "semantic_hash": "6171c684728ce4d5c6ed5644b25880bf"
+  },
+  "StevExtraction/\u81ea\u52a8\u6362\u884c.js": {
+    "mtime": 1781247449.0,
+    "ast_hash": "3d99a1d49d440d4182f598ef05345f8c",
+    "semantic_hash": "3d99a1d49d440d4182f598ef05345f8c"
+  },
+  "Tools/pyinstall.py": {
+    "mtime": 1781329808.8462074,
+    "ast_hash": "b96b848a2a2e31b22a098c26a8bcf544",
+    "semantic_hash": "b96b848a2a2e31b22a098c26a8bcf544"
+  },
+  "Tools/pyinstall_macos.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "8953b7c7353c055ec3b90d067398bf07",
+    "semantic_hash": "8953b7c7353c055ec3b90d067398bf07"
+  },
+  "Tools/rust_updater/src/main.rs": {
+    "mtime": 1781247449.0,
+    "ast_hash": "c2d98d252f39b2d8dd5b7e754bbcb43d",
+    "semantic_hash": "c2d98d252f39b2d8dd5b7e754bbcb43d"
+  },
+  "Tools/scripts/notarize_macos.sh": {
+    "mtime": 1781247449.0,
+    "ast_hash": "6c8f51998d5395f40cc89f6df9744ca5",
+    "semantic_hash": "6c8f51998d5395f40cc89f6df9744ca5"
+  },
+  "Tools/scripts/package_dmg.sh": {
+    "mtime": 1781247449.0,
+    "ast_hash": "4780dd5f2d78446d376c5ab591069e75",
+    "semantic_hash": "4780dd5f2d78446d376c5ab591069e75"
+  },
+  "UserInterface/AppFluentWindow.py": {
+    "mtime": 1781773534.3426073,
+    "ast_hash": "dc6babf6425625604a86d35717ce44ad",
+    "semantic_hash": ""
+  },
+  "UserInterface/BaseNavigationItem.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "78ba1c74ad11458038457199d8c28d2a",
+    "semantic_hash": "78ba1c74ad11458038457199d8c28d2a"
+  },
+  "UserInterface/EditView/Analysis/AnalysisPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "e59572eb9d4f0bf00d2483290d81d322",
+    "semantic_hash": "e59572eb9d4f0bf00d2483290d81d322"
+  },
+  "UserInterface/EditView/EditViewPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "33f8f59d1c8558a1773f00ce0f6a5a8f",
+    "semantic_hash": "33f8f59d1c8558a1773f00ce0f6a5a8f"
+  },
+  "UserInterface/EditView/Proofreading/Common/CheckStatusPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "e83edaa086779cc25dad8c7384f3bc8e",
+    "semantic_hash": "e83edaa086779cc25dad8c7384f3bc8e"
+  },
+  "UserInterface/EditView/Proofreading/Common/EditableIssueTablePage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "11e6c219011bac1e148b65d014a614c9",
+    "semantic_hash": "11e6c219011bac1e148b65d014a614c9"
+  },
+  "UserInterface/EditView/Proofreading/LanguageCheck/LanguageCheckDialog.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "036fd4e287390b8193138f5acff7e509",
+    "semantic_hash": "036fd4e287390b8193138f5acff7e509"
+  },
+  "UserInterface/EditView/Proofreading/LanguageCheck/LanguageCheckResultPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "10e3a28131b0439995c3bffd82db9fad",
+    "semantic_hash": "10e3a28131b0439995c3bffd82db9fad"
+  },
+  "UserInterface/EditView/Proofreading/Layout/NavigationCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "d2d1a7bd2512444dde3b67d2cc625468",
+    "semantic_hash": "d2d1a7bd2512444dde3b67d2cc625468"
+  },
+  "UserInterface/EditView/Proofreading/Layout/PageCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "1519388c9500a21ff19a90cb343c7667",
+    "semantic_hash": "1519388c9500a21ff19a90cb343c7667"
+  },
+  "UserInterface/EditView/Proofreading/ProofreadingPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "25f4eacc84c3200e371b21aef006a742",
+    "semantic_hash": "25f4eacc84c3200e371b21aef006a742"
+  },
+  "UserInterface/EditView/Proofreading/RuleCheck/RuleCheckDialog.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "389376438787a0eb0c2baf1a3888bbfe",
+    "semantic_hash": "389376438787a0eb0c2baf1a3888bbfe"
+  },
+  "UserInterface/EditView/Proofreading/RuleCheck/RuleCheckResultPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "55cbb1abdb8a9e9fd82f6f35a32da3e6",
+    "semantic_hash": "55cbb1abdb8a9e9fd82f6f35a32da3e6"
+  },
+  "UserInterface/EditView/Proofreading/Search/SearchDialog.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "9d582b0f81296543dc7e0458511769bf",
+    "semantic_hash": "9d582b0f81296543dc7e0458511769bf"
+  },
+  "UserInterface/EditView/Proofreading/Search/SearchResultPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "2ca70301a093fc89bde2d580a341b105",
+    "semantic_hash": "2ca70301a093fc89bde2d580a341b105"
+  },
+  "UserInterface/EditView/Proofreading/Table/BasicTablePage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "802c4bf9c20fda6588e840defcae6ea1",
+    "semantic_hash": "802c4bf9c20fda6588e840defcae6ea1"
+  },
+  "UserInterface/EditView/Proofreading/Table/TabInterface.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "5fea582113eeb4f6b8f71eb38626736e",
+    "semantic_hash": "5fea582113eeb4f6b8f71eb38626736e"
+  },
+  "UserInterface/EditView/Proofreading/TerminologyCheck/TerminologyCheckResultPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "5748e614ee7fc334a346183c81c83e44",
+    "semantic_hash": "5748e614ee7fc334a346183c81c83e44"
+  },
+  "UserInterface/EditView/Startup/FolderDropCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "79be1cb6d6abf0355a2eba26ae6e544f",
+    "semantic_hash": "79be1cb6d6abf0355a2eba26ae6e544f"
+  },
+  "UserInterface/EditView/Startup/ProjectHistoryCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "1dba0086638eb0c81bc92e4718239a61",
+    "semantic_hash": "1dba0086638eb0c81bc92e4718239a61"
+  },
+  "UserInterface/EditView/Startup/StartupPage.py": {
+    "mtime": 1781787684.7151556,
+    "ast_hash": "b27ca4b6e6058f136303d206aff296f5",
+    "semantic_hash": ""
+  },
+  "UserInterface/EditView/Translation/BottomCommandBar.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "f5ea97e63d35f255e62ef40404a1193c",
+    "semantic_hash": "f5ea97e63d35f255e62ef40404a1193c"
+  },
+  "UserInterface/EditView/Translation/LanguageSettingsCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "8f09349cb0e421128b619701143b3eea",
+    "semantic_hash": "8f09349cb0e421128b619701143b3eea"
+  },
+  "UserInterface/EditView/Translation/MonitoringPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "0d1d7dad9b5969e34a3cd95b1e21f289",
+    "semantic_hash": "0d1d7dad9b5969e34a3cd95b1e21f289"
+  },
+  "UserInterface/EditView/Translation/TranslationPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "1605ff121c86b60bcfefe7353cf6a6f2",
+    "semantic_hash": "1605ff121c86b60bcfefe7353cf6a6f2"
+  },
+  "UserInterface/Native/FileDialogProvider.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "0b19dc7c87a55bcb58b14ee3f4563487",
+    "semantic_hash": "0b19dc7c87a55bcb58b14ee3f4563487"
+  },
+  "UserInterface/Native/MacOSUI.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "cecd7939b29c387a4af404997cedcb33",
+    "semantic_hash": "cecd7939b29c387a4af404997cedcb33"
+  },
+  "UserInterface/Native/__init__.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "f3020208c605fb5f9fbe02c428223080",
+    "semantic_hash": "f3020208c605fb5f9fbe02c428223080"
+  },
+  "UserInterface/Platform/APIBindingDialog.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "eb72ad9bc58f424794e0a33bc86c17a5",
+    "semantic_hash": "eb72ad9bc58f424794e0a33bc86c17a5"
+  },
+  "UserInterface/Platform/APIEditPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "57e48aa8f75bac7f996c58bd9defee17",
+    "semantic_hash": "57e48aa8f75bac7f996c58bd9defee17"
+  },
+  "UserInterface/Platform/APIItemCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "58a2daca000fd8d750049c929b426fe9",
+    "semantic_hash": "58a2daca000fd8d750049c929b426fe9"
+  },
+  "UserInterface/Platform/AddAPIDialog.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "8e36382ed8ad1ff9a8feec0aa3b1825d",
+    "semantic_hash": "8e36382ed8ad1ff9a8feec0aa3b1825d"
+  },
+  "UserInterface/Platform/ArgsEditPage.py": {
+    "mtime": 1781326934.7070553,
+    "ast_hash": "9cc57381c827a74103936c4c69172e36",
+    "semantic_hash": "9cc57381c827a74103936c4c69172e36"
+  },
+  "UserInterface/Platform/ModelBrowserDialog.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "d96c14a7feb31d34ffde0b768a042601",
+    "semantic_hash": "d96c14a7feb31d34ffde0b768a042601"
+  },
+  "UserInterface/Platform/PlatformPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "36cf17696e511394c565625f4e50be74",
+    "semantic_hash": "36cf17696e511394c565625f4e50be74"
+  },
+  "UserInterface/PromptSettings/PolishingSettings/PolishingSystemPromptPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "afa81d79dc4a98a3a4a786b37296556f",
+    "semantic_hash": "afa81d79dc4a98a3a4a786b37296556f"
+  },
+  "UserInterface/PromptSettings/TranslationSettings/CharacterizationPromptPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "c09079b7778461b78215a6b04b275600",
+    "semantic_hash": "c09079b7778461b78215a6b04b275600"
+  },
+  "UserInterface/PromptSettings/TranslationSettings/SystemPromptPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "bdab98582455e92d0ae18b8c9799471d",
+    "semantic_hash": "bdab98582455e92d0ae18b8c9799471d"
+  },
+  "UserInterface/PromptSettings/TranslationSettings/TranslationExamplePromptPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "9e9f49f663093310f45dd6b6f1735ae8",
+    "semantic_hash": "9e9f49f663093310f45dd6b6f1735ae8"
+  },
+  "UserInterface/PromptSettings/TranslationSettings/TranslationSettingsPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "5a3b62eb1784ec329aa5fad52283afa7",
+    "semantic_hash": "5a3b62eb1784ec329aa5fad52283afa7"
+  },
+  "UserInterface/PromptSettings/TranslationSettings/WorldBuildingPromptPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "3be11ed121f3033a9514a25c96374b09",
+    "semantic_hash": "3be11ed121f3033a9514a25c96374b09"
+  },
+  "UserInterface/PromptSettings/TranslationSettings/WritingStylePromptPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "1f4113c9c050811f95f559501cfcc0a9",
+    "semantic_hash": "1f4113c9c050811f95f559501cfcc0a9"
+  },
+  "UserInterface/Settings/AppSettingsPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "1844093cf513e3da0e1bfa65028cfd98",
+    "semantic_hash": "1844093cf513e3da0e1bfa65028cfd98"
+  },
+  "UserInterface/Settings/OutputSettingsPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "c559951e2153dec691bebda4e5e35b92",
+    "semantic_hash": "c559951e2153dec691bebda4e5e35b92"
+  },
+  "UserInterface/Settings/TaskSettingsPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "de55e30c294efd571a4f5b0da3a49a16",
+    "semantic_hash": "de55e30c294efd571a4f5b0da3a49a16"
+  },
+  "UserInterface/Table/ExclusionListPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "73098460c0910684f161a9cb0d1cd888",
+    "semantic_hash": "73098460c0910684f161a9cb0d1cd888"
+  },
+  "UserInterface/Table/PromptDictionaryPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "eff28ed8fca7c58117197397052abb1f",
+    "semantic_hash": "eff28ed8fca7c58117197397052abb1f"
+  },
+  "UserInterface/Table/TableHelper/TableHelper.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "c8edace48fea0193e83a2618917a1106",
+    "semantic_hash": "c8edace48fea0193e83a2618917a1106"
+  },
+  "UserInterface/Table/TextReplaceAPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "bad5261bb20406df8884b668d2fd015b",
+    "semantic_hash": "bad5261bb20406df8884b668d2fd015b"
+  },
+  "UserInterface/Table/TextReplaceBPage.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "042c324c8b5f4c22722e795f7dc4ec93",
+    "semantic_hash": "042c324c8b5f4c22722e795f7dc4ec93"
+  },
+  "UserInterface/VersionManager/VersionManager.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "4548e99fb6ab0581e2802fec3be4415a",
+    "semantic_hash": "4548e99fb6ab0581e2802fec3be4415a"
+  },
+  "UserInterface/Widget/ActionCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "5b21c49cb01e3d20d77f6892b6d7115a",
+    "semantic_hash": "5b21c49cb01e3d20d77f6892b6d7115a"
+  },
+  "UserInterface/Widget/AutoHeightTableWidget.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "a44f524167e7f7eb8ad527ea545c715b",
+    "semantic_hash": "a44f524167e7f7eb8ad527ea545c715b"
+  },
+  "UserInterface/Widget/CombinedLineCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "7ddc37e61dac33eaa60a3c7bc93e1692",
+    "semantic_hash": "7ddc37e61dac33eaa60a3c7bc93e1692"
+  },
+  "UserInterface/Widget/ComboBoxCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "2bd9dd7c8cb116993e705eff21f406e8",
+    "semantic_hash": "2bd9dd7c8cb116993e705eff21f406e8"
+  },
+  "UserInterface/Widget/CommandBarCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "3808671fbf31b5031563631f8c0b7419",
+    "semantic_hash": "3808671fbf31b5031563631f8c0b7419"
+  },
+  "UserInterface/Widget/DashboardCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "4cb5cb596dae17d502bc9146480b955e",
+    "semantic_hash": "4cb5cb596dae17d502bc9146480b955e"
+  },
+  "UserInterface/Widget/EditableComboBoxCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "d37cd4ae073524f6a3ac2b22f6f895a6",
+    "semantic_hash": "d37cd4ae073524f6a3ac2b22f6f895a6"
+  },
+  "UserInterface/Widget/EmptyCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "4bd9cf891d6a24ee5a74859a02437120",
+    "semantic_hash": "4bd9cf891d6a24ee5a74859a02437120"
+  },
+  "UserInterface/Widget/FlowCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "cb5cd673bb2105e7a83ffcdb35f7ff0f",
+    "semantic_hash": "cb5cd673bb2105e7a83ffcdb35f7ff0f"
+  },
+  "UserInterface/Widget/GameDropCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "7b60e3b934ea74509d3083e5d3230507",
+    "semantic_hash": "7b60e3b934ea74509d3083e5d3230507"
+  },
+  "UserInterface/Widget/GroupCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "aaea4713af0182b133077e2a592657bc",
+    "semantic_hash": "aaea4713af0182b133077e2a592657bc"
+  },
+  "UserInterface/Widget/InterfaceDropZoneWidget.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "eadf5dbc63c4e3eb09b6cafcc4852e77",
+    "semantic_hash": "eadf5dbc63c4e3eb09b6cafcc4852e77"
+  },
+  "UserInterface/Widget/LineEditCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "19af422b5b88570a22599bf561bd9019",
+    "semantic_hash": "19af422b5b88570a22599bf561bd9019"
+  },
+  "UserInterface/Widget/LineEditMessageBox.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "bd57cb1808f5f0723abfca0024a1c764",
+    "semantic_hash": "bd57cb1808f5f0723abfca0024a1c764"
+  },
+  "UserInterface/Widget/PlainTextEditCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "21afa28097983b41ce3876f35c146d71",
+    "semantic_hash": "21afa28097983b41ce3876f35c146d71"
+  },
+  "UserInterface/Widget/ProgressRingCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "610137cc6a048fd17535ffddf960513a",
+    "semantic_hash": "610137cc6a048fd17535ffddf960513a"
+  },
+  "UserInterface/Widget/PushButtonCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "f50979097fbd0421a2d6a3372e9209be",
+    "semantic_hash": "f50979097fbd0421a2d6a3372e9209be"
+  },
+  "UserInterface/Widget/SliderCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "519af64dcd9c382f8ed625e77554cac8",
+    "semantic_hash": "519af64dcd9c382f8ed625e77554cac8"
+  },
+  "UserInterface/Widget/SpinCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "579f93231c88dcea089ea916801296d9",
+    "semantic_hash": "579f93231c88dcea089ea916801296d9"
+  },
+  "UserInterface/Widget/SwitchButtonCard.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "ed5ead67038d7a4a5e980f645259fbcb",
+    "semantic_hash": "ed5ead67038d7a4a5e980f645259fbcb"
+  },
+  "UserInterface/Widget/TerminologyMatchSettingsDialog.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "c3b3d9900a913dbe5c8eb1c51302b542",
+    "semantic_hash": "c3b3d9900a913dbe5c8eb1c51302b542"
+  },
+  "UserInterface/Widget/ThemePalette.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "7fb5111e7ce9665f17a4e3bcad216915",
+    "semantic_hash": "7fb5111e7ce9665f17a4e3bcad216915"
+  },
+  "UserInterface/Widget/Toast.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "1ff2e177bd2678e8fde4c907fe8942e1",
+    "semantic_hash": "1ff2e177bd2678e8fde4c907fe8942e1"
+  },
+  "UserInterface/Widget/VerticalSeparator.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "0deb545fefee8da4acc0672715592602",
+    "semantic_hash": "0deb545fefee8da4acc0672715592602"
+  },
+  "hyperscan.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "4be9967935f13dc18efb4b27ee3c7b97",
+    "semantic_hash": "4be9967935f13dc18efb4b27ee3c7b97"
+  },
+  "prototype_test/comparison.json": {
+    "mtime": 1781321642.942206,
+    "ast_hash": "4b60b032d2dec27a9f0c63d92b56f616",
+    "semantic_hash": "4b60b032d2dec27a9f0c63d92b56f616"
+  },
+  "prototype_test/extraction_result.json": {
+    "mtime": 1781320263.9469504,
+    "ast_hash": "bec77c39300c15ecc3f85b8913ad6d99",
+    "semantic_hash": "bec77c39300c15ecc3f85b8913ad6d99"
+  },
+  "prototype_test/prototype_full.py": {
+    "mtime": 1781321629.7674155,
+    "ast_hash": "446e6090c2e3c62d65d09583e392a487",
+    "semantic_hash": "446e6090c2e3c62d65d09583e392a487"
+  },
+  "prototype_test/prototype_reader.py": {
+    "mtime": 1781320237.8758776,
+    "ast_hash": "4846c1da2061bcb35d94ed2b24d11151",
+    "semantic_hash": "4846c1da2061bcb35d94ed2b24d11151"
+  },
+  "skimage/metrics.py": {
+    "mtime": 1781247449.0,
+    "ast_hash": "1b73618236cc8c1de45230b18d02a302",
+    "semantic_hash": "1b73618236cc8c1de45230b18d02a302"
+  },
+  "ModuleFolders/Base/__init__.py": {
+    "mtime": 1781778302.419357,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Config/__init__.py": {
+    "mtime": 1781778302.421355,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/FileAccessor/__init__.py": {
+    "mtime": 1781778302.423355,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/FileConverter/__init__.py": {
+    "mtime": 1781778302.4243546,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/FileOutputer/__init__.py": {
+    "mtime": 1781778302.4253542,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/FileReader/__init__.py": {
+    "mtime": 1781778302.4273553,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/PromptBuilder/__init__.py": {
+    "mtime": 1781778302.4303646,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/ResponseChecker/__init__.py": {
+    "mtime": 1781778302.4313552,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/ResponseExtractor/__init__.py": {
+    "mtime": 1781778302.4323547,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/TextFilter/__init__.py": {
+    "mtime": 1781778302.4333546,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/TextNormalizer/__init__.py": {
+    "mtime": 1781778302.4343543,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/TextProcessor/__init__.py": {
+    "mtime": 1781778302.4363554,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/TextSymbolRepair/__init__.py": {
+    "mtime": 1781778302.4373786,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/TranslationResultCheck/__init__.py": {
+    "mtime": 1781778302.43839,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Domain/__init__.py": {
+    "mtime": 1781778302.4223547,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Infrastructure/LLMRequester/__init__.py": {
+    "mtime": 1781778302.4403553,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Infrastructure/RequestLimiter/__init__.py": {
+    "mtime": 1781778302.4413548,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Infrastructure/TaskConfig/__init__.py": {
+    "mtime": 1781778302.4423544,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Infrastructure/Tokener/__init__.py": {
+    "mtime": 1781778302.444391,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Infrastructure/__init__.py": {
+    "mtime": 1781778302.4393766,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Log/__init__.py": {
+    "mtime": 1781778302.4453568,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Service/Cache/__init__.py": {
+    "mtime": 1781778302.4473557,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Service/HttpService/__init__.py": {
+    "mtime": 1781778302.4483552,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Service/NameExtractor/__init__.py": {
+    "mtime": 1781778302.4503548,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Service/SimpleExecutor/__init__.py": {
+    "mtime": 1781778302.4513543,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Service/TaskExecutor/__init__.py": {
+    "mtime": 1781778302.4523556,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Service/TranslationChecker/__init__.py": {
+    "mtime": 1781778302.4543564,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/Service/__init__.py": {
+    "mtime": 1781778302.446354,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "ModuleFolders/__init__.py": {
+    "mtime": 1781778302.418374,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/EditView/Analysis/__init__.py": {
+    "mtime": 1781778302.456359,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/EditView/Proofreading/Common/__init__.py": {
+    "mtime": 1781778302.4583561,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/EditView/Proofreading/LanguageCheck/__init__.py": {
+    "mtime": 1781778302.460358,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/EditView/Proofreading/Layout/__init__.py": {
+    "mtime": 1781778302.4613554,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/EditView/Proofreading/RuleCheck/__init__.py": {
+    "mtime": 1781778302.4633536,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/EditView/Proofreading/Search/__init__.py": {
+    "mtime": 1781778302.464354,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/EditView/Proofreading/Table/__init__.py": {
+    "mtime": 1781778302.4663537,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/EditView/Proofreading/TerminologyCheck/__init__.py": {
+    "mtime": 1781778302.4673543,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/EditView/Proofreading/__init__.py": {
+    "mtime": 1781778302.457357,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/EditView/Startup/__init__.py": {
+    "mtime": 1781778302.4693532,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/EditView/Translation/__init__.py": {
+    "mtime": 1781778302.4703536,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/EditView/__init__.py": {
+    "mtime": 1781778302.456359,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/Platform/__init__.py": {
+    "mtime": 1781778302.4713545,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/PromptSettings/ExtractionSettings/ExtractionSystemPromptPage.py": {
+    "mtime": 1781782761.971347,
+    "ast_hash": "e207a6e4edebafa929b14b8e9d713919",
+    "semantic_hash": ""
+  },
+  "UserInterface/PromptSettings/ExtractionSettings/__init__.py": {
+    "mtime": 1781778302.4733534,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/PromptSettings/PolishingSettings/__init__.py": {
+    "mtime": 1781778302.4743538,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/PromptSettings/TranslationSettings/__init__.py": {
+    "mtime": 1781778302.4753747,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/PromptSettings/__init__.py": {
+    "mtime": 1781778302.4723537,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/Settings/__init__.py": {
+    "mtime": 1781778302.4773562,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/Table/TableHelper/__init__.py": {
+    "mtime": 1781778302.4793544,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/Table/__init__.py": {
+    "mtime": 1781778302.4783566,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/VersionManager/__init__.py": {
+    "mtime": 1781778302.4813547,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/Widget/__init__.py": {
+    "mtime": 1781778302.4823549,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  },
+  "UserInterface/__init__.py": {
+    "mtime": 1781778302.4553552,
+    "ast_hash": "ab915751ea32d4457108a7b43b6af6fe",
+    "semantic_hash": ""
+  }
+}

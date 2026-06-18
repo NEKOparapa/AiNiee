@@ -1,0 +1,34 @@
+# Ignore documentation and media to skip LLM semantic extraction
+*.md
+*.txt
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.ico
+*.svg
+*.webp
+*.mp3
+*.mp4
+*.wav
+*.avi
+*.mov
+*.yaml
+*.yml
+*.rst
+
+# Ignore common build, package and environment folders
+node_modules/
+dist/
+build/
+.git/
+.venv/
+venv/
+graphify-out/
+.github/
+
+# Ignore compiled/distributable folders
+dist_pdf/
+AiNiee-latest/

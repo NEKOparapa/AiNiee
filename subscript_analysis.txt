@@ -1,0 +1,48 @@
+﻿?? 5 ???
+
+=== ?? 1 ===
+  Run 0: 'EC'
+  Run 1: '50' [vertAlign=subscript]
+  Run 2: ' ?? 10 ?M?'
+
+=== ?? 2 ===
+  Run 0: '?????????'
+  Run 1: '[1,2]' [vertAlign=superscript]
+  Run 2: '?'
+
+=== ?? 3 ===
+  Run 0: 'H'
+  Run 1: '2' [vertAlign=subscript]
+  Run 2: 'O ? CO'
+  Run 3: '2' [vertAlign=subscript]
+
+=== ?? 4 ===
+  Run 0: 'x'
+  Run 1: '2' [vertAlign=superscript]
+  Run 2: ' + y'
+  Run 3: '2' [vertAlign=superscript]
+  Run 4: ' = z'
+  Run 5: '2' [vertAlign=superscript]
+
+=== EC50?????XML?? ===
+<w:p>
+ <w:r>
+  <w:t>
+   EC
+  </w:t>
+ </w:r>
+ <w:r>
+  <w:rPr>
+   <w:vertAlign w:val="subscript"/>
+  </w:rPr>
+  <w:t>
+   50
+  </w:t>
+ </w:r>
+ <w:r>
+  <w:t xml:space="preserve">
+   ?? 10 ?M?
+  </w:t>
+ </w:r>
+</w:p>
+

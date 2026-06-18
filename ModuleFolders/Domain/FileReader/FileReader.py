@@ -146,19 +146,25 @@ class FileReader():
             init_kwargs_factory=ikfn,
         )
 
-    def _get_reader_init_params(self, project_type, label_input_path):
+    def _get_reader_init_params(self, project_type, label_input_path, config: dict = None):
         # 这些类型在 BaseReader 中定义，BaseReader 又会顺带 import mediapipe 等，
         # 因此推迟到 read_files 真正调用时才 import。
         from ModuleFolders.Domain.FileReader.BaseReader import InputConfig, ReaderInitParams
 
         input_config = InputConfig(Path(label_input_path))
         if project_type == ProjectType.AUTO_TYPE:
-            reader_init_params_factory = partial(self._get_reader_init_params, label_input_path=label_input_path)
+            reader_init_params_factory = partial(self._get_reader_init_params, label_input_path=label_input_path, config=config)
             return ReaderInitParams(input_config=input_config, reader_init_params_factory=reader_init_params_factory)
+        if project_type == ProjectType.BABELDOC_PDF and config:
+            # 从翻译配置中读取语言并映射为 babeldoc 语言代码
+            from ModuleFolders.Service.TaskExecutor.TranslatorUtil import map_language_name_to_code
+            source_lang = map_language_name_to_code(config.get("source_language", "chinese_simplified"))
+            target_lang = map_language_name_to_code(config.get("target_language", "english"))
+            return ReaderInitParams(input_config=input_config, source_lang=source_lang, target_lang=target_lang)
         return ReaderInitParams(input_config=input_config)
 
     # 根据文件类型读取文件，并返回缓存对象
-    def read_files(self, translation_project, label_input_path, exclude_rule_str):
+    def read_files(self, translation_project, label_input_path, exclude_rule_str, config: dict = None):
         # 检查传入的项目类型是否已经被注册。
         if translation_project in self.reader_factory_dict:
             from ModuleFolders.Domain.FileReader.DirectoryReader import DirectoryReader
@@ -167,7 +173,7 @@ class FileReader():
             base_factory = entry.resolve_factory()  # 触发该 Reader 的真正 import
 
             # 获取初始化参数
-            reader_init_params = self._get_reader_init_params(translation_project, label_input_path)
+            reader_init_params = self._get_reader_init_params(translation_project, label_input_path, config)
             # 绑定配置，使工厂变成无参
             reader_factory = partial(base_factory, **reader_init_params)
             # 创建对象，接收配置好、无参数的 reader_factory

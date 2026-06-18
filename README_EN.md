@@ -35,7 +35,7 @@
 *   **Optimized for Long Texts, Exceptional Quality**
     *   🎯 **Overcoming Limitations**: Employs techniques like streamlined translation formats, chain-of-thought translation, AI glossaries, and contextual awareness to ensure coherence and accuracy in long-text translations.
 
-    *   💎 **Quality Focus**: Supports prompt adjustments for basic instructions, character introductions, background settings, translation styles, etc. Equipped with features such as one-click AI refinement, one-click AI formatting, and AI terminology extraction, it caters to users who demand higher translation quality.
+    *   💎 **Quality Focus**: Supports prompt adjustments for basic instructions, character introductions, background settings, translation styles, extraction prompts, etc. Equipped with features such as one-click AI refinement, one-click AI formatting, and AI terminology extraction, it caters to users who demand higher translation quality.
 
 ---
 

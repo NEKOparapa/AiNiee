@@ -16,7 +16,8 @@ from ModuleFolders.Domain.FileOutputer.BaseWriter import (
 
 
 class BabeldocPdfWriter(BaseBilingualWriter, BaseTranslatedWriter):
-    def __init__(self, output_config: OutputConfig, tmp_directory='babeldoc_cache'):
+    def __init__(self, output_config: OutputConfig, tmp_directory='babeldoc_cache',
+                 source_lang: str = "zh", target_lang: str = "en"):
         super().__init__(output_config)
         self.tmp_directory = tmp_directory
         
@@ -33,7 +34,7 @@ class BabeldocPdfWriter(BaseBilingualWriter, BaseTranslatedWriter):
             
         self.abs_tmp_directory = root_path / self.tmp_directory
         
-        self.file_accessor = BabeldocPdfAccessor(self.abs_tmp_directory, output_config)
+        self.file_accessor = BabeldocPdfAccessor(self.abs_tmp_directory, output_config, source_lang, target_lang)
 
     def __exit__(self, exc_type, exc, exc_tb):
         if getattr(self, 'abs_tmp_directory', None) and self.abs_tmp_directory.exists():

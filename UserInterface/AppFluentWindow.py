@@ -30,6 +30,7 @@ from UserInterface.EditView.EditViewPage import EditViewPage
 from UserInterface.Native.MacOSUI import about_message, app_menu_title, command_shortcut
 from UserInterface.Platform.PlatformPage import PlatformPage
 from UserInterface.PromptSettings.PolishingSettings.PolishingSystemPromptPage import PolishingSystemPromptPage
+from UserInterface.PromptSettings.ExtractionSettings.ExtractionSystemPromptPage import ExtractionSystemPromptPage
 from UserInterface.Settings.AppSettingsPage import AppSettingsPage
 from UserInterface.Settings.OutputSettingsPage import OutputSettingsPage
 from UserInterface.Settings.TaskSettingsPage import TaskSettingsPage
@@ -370,6 +371,17 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         )
         self.polishing_system_prompt_page = PolishingSystemPromptPage("polishing_system_prompt_page", self)
         self.addSubInterface(self.polishing_system_prompt_page, FluentIcon.LABEL, self.tra("基础提示"), parent=self.polishing_prompt_navigation)
+
+        # 提取提示词
+        self.extraction_prompt_navigation = BaseNavigationItem("extraction_prompt_navigation", self)
+        self.addSubInterface(
+            self.extraction_prompt_navigation,
+            FluentIcon.TILES,
+            self.tra("提取提示词"),
+            NavigationItemPosition.SCROLL,
+        )
+        self.extraction_system_prompt_page = ExtractionSystemPromptPage("extraction_system_prompt_page", self)
+        self.addSubInterface(self.extraction_system_prompt_page, FluentIcon.LABEL, self.tra("基础提示"), parent=self.extraction_prompt_navigation)
 
     # 添加表格设置
     def add_table_pages(self) -> None:

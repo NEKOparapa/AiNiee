@@ -65,10 +65,9 @@ class DirectoryReader:
         # 如果是目录，递归获取所有文件
         if input_path.is_dir():
             base_directory = input_path
-            import os
-            for root, _, files in os.walk(str(base_directory)):
+            for root, _, files in base_directory.walk():
                 for file in files:
-                    files_to_process.append(Path(root) / file)
+                    files_to_process.append(root / file)
         # 如果是单个文件，直接处理该文件
         elif input_path.is_file():
             base_directory = input_path.parent

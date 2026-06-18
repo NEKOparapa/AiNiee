@@ -261,34 +261,72 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
 
     def _build_first_stage_prompt(self, source_text: str) -> tuple[str, list[dict]]:
             """第一阶段：独立文本提取（优化版提示词）"""
-            system_prompt = (
-                "你是一个专业的游戏与本地化文本分析专家。你的唯一任务是从给定的文本中提取出：角色名、专有名词（术语）以及不需要翻译的代码/标记。\n"
-                "【严格执行以下规则】\n"
-                "1. 原样提取：提取的 `source` 必须与原文一字不差，绝对不要修改大小写或标点。\n"
-                "2. 拒绝脑补：只提取文本中实际出现的实体，不要联想或创造。\n"
-                "3. 宁缺毋滥：对于普通词汇（如“苹果”、“跑”、“明天”），不要提取。如果没有值得提取的内容，返回空列表。\n"
-                "4. 分类规范：\n"
-                "   - characters(角色): 文本中出现的具体人物、怪物、神明等名字。gender 建议分类: 男性/女性/其他。\n"
-                "   - terms(术语): 身份称谓、地名、组织、物品名、技能名、种族名、独特概念等。category_path 建议分类: 身份/物品/组织/地名/技能/种族/其他。\n"
-                "   - non_translate(不翻译项): 必须保留的机器代码，如 HTML标签(<b>)、占位符(%s)、变量({{name}})。category 建议分类: 标签/变量/占位符/标记符/转义控制符/资源标识/数值公式/其他。\n"
-                "【输出格式】\n"
-                "必须输出合法的 JSON 代码块，严格遵守以下结构：\n"
-                "```json\n"
-                "{\n"
-                "  \"characters\": [{\"source\": \"原文\", \"recommended_translation\": \"推荐译名\", \"gender\": \"\", \"note\": \"\"}],\n"
-                "  \"terms\": [{\"source\": \"原文\", \"recommended_translation\": \"推荐译名\", \"category_path\": \"\", \"note\": \"\"}],\n"
-                "  \"non_translate\": [{\"marker\": \"代码或标记\", \"category\": \"\", \"note\": \"\"}]\n"
-                "}\n"
-                "```"
-            )
+            
+            # 从全局配置动态加载第一阶段提取提示词
+            extraction_prompt_selection = getattr(self.config, "extraction_prompt_selection", {}) or {}
+            last_selected_id = extraction_prompt_selection.get("last_selected_id", "")
+            
+            if last_selected_id == "extraction_game":
+                # 通用游戏小说预设模式
+                system_prompt = (
+                    "你是一个专业的游戏与本地化文本分析专家。你的唯一任务是从给定的文本中提取出：角色名、专有名词（术语）以及不需要翻译的代码/标记。\n"
+                    "【严格执行以下规则】\n"
+                    "1. 原样提取：提取的 `source` 必须与原文一字不差，绝对不要修改大小写或标点。\n"
+                    "2. 拒绝脑补：只提取文本中实际出现的实体，不要联想或创造。\n"
+                    "3. 宁缺毋滥：对于普通词汇（如“苹果”、“跑”、“明天”），不要提取。如果没有值得提取的内容，返回空列表。\n"
+                    "4. 分类规范：\n"
+                    "   - characters(角色): 文本中出现的具体人物、怪物、神明等名字。gender 建议分类: 男性/女性/其他。\n"
+                    "   - terms(术语): 身份称谓、地名、组织、物品名、技能名、种族名、独特概念、游戏机制、特殊动词/形容词、概念性短语等。category_path 建议分类: 身份/物品/组织/地名/技能/种族/游戏机制/特殊属性/动作/其他。\n"
+                    "   - non_translate(不翻译项): 必须保留的机器代码，如 HTML标签(<b>)、占位符(%s)、变量({{name}})。category 建议分类: 标签/变量/占位符/标记符/转义控制符/资源标识/数值公式/其他。\n"
+                    "【输出格式】\n"
+                    "必须输出合法的 JSON 代码块，严格遵守以下结构：\n"
+                    "```json\n"
+                    "{\n"
+                    "  \"characters\": [{\"source\": \"原文\", \"recommended_translation\": \"推荐译名\", \"gender\": \"\", \"note\": \"\"}],\n"
+                    "  \"terms\": [{\"source\": \"原文\", \"recommended_translation\": \"推荐译名\", \"category_path\": \"\", \"note\": \"\"}],\n"
+                    "  \"non_translate\": [{\"marker\": \"代码或标记\", \"category\": \"\", \"note\": \"\"}]\n"
+                    "}\n"
+                    "```"
+                )
+            elif last_selected_id == "extraction_academic" or not extraction_prompt_selection.get("prompt_content"):
+                # 科技学术文献预设模式 (默认)
+                system_prompt = (
+                    "你是一个专业的科技文献与学术文本分析专家。你的唯一任务是从给定的文本中提取出：研究人员/科学家名字、学术专有名词（术语）以及不需要翻译的代码/标记/公式。\n"
+                    "【严格执行以下规则】\n"
+                    "1. 原样提取：提取的 `source` 必须与原文一字不差，绝对不要修改大小写或标点。\n"
+                    "2. 拒绝脑补：只提取文本中实际出现的实体，不要联想或创造。\n"
+                    "3. 尽可能多提：请尽量提取出所有对保持专业翻译一致性、双语对齐有帮助的专业术语、行业词汇、高频词及特定名词，宁多勿漏。\n"
+                    "4. 分类规范：\n"
+                    "   - characters(角色): 文本中出现的重要人物姓名（如科学家、研究人员、历史人物等）。gender 属性可填男性/女性，如果不适用或不明确则留空。\n"
+                    "   - terms(术语): 学术名词、核心概念、技术指标、算法/模型名、物理/化学/生物实体、专业缩写、学术机构等。category_path 建议分类: 算法/模型/核心概念/学术名词/机构/专业缩写/化学物质/物理量/其他。\n"
+                    "   - non_translate(不翻译项): 必须保留的机器代码，如 HTML标签(<b>)、占位符(%s)、变量({{name}})。category 建议分类: 标签/变量/占位符/标记符/转义控制符/资源标识/数值公式/其他。\n" # 注意，这里是 HTML标签(<b>) 占位符之类的，或者用我上面的也可以
+                    # 等等，为减少对非翻译提取的干扰，我写学术版本的 non_translate 最好和上面我定义的保持一致：
+                    # "   - non_translate(不翻译项): 必须保留的机器代码、Latex控制符、占位符、变量名或独立数学公式（如 $L_{loss}$）。category 建议分类: 数学公式/代码/变量/标签/占位符/控制符/其他。\n"
+                    # 对，刚才 ReplacementContent 里面我就是写了：
+                    # "   - non_translate(不翻译项): 必须保留的机器代码、Latex控制符、占位符、变量名或独立数学公式（如 $L_{loss}$）。category 建议分类: 数学公式/代码/变量/标签/占位符/控制符/其他。\n"
+                    # 我们就这么写。
+                    "   - non_translate(不翻译项): 必须保留的机器代码、Latex控制符、占位符、变量名或独立数学公式（如 $L_{loss}$）。category 建议分类: 数学公式/代码/变量/标签/占位符/控制符/其他。\n"
+                    "【输出格式】\n"
+                    "必须输出合法的 JSON 代码块，严格遵守以下结构：\n"
+                    "```json\n"
+                    "{\n"
+                    "  \"characters\": [{\"source\": \"原文\", \"recommended_translation\": \"推荐译名\", \"gender\": \"\", \"note\": \"\"}],\n"
+                    "  \"terms\": [{\"source\": \"原文\", \"recommended_translation\": \"推荐译名\", \"category_path\": \"\", \"note\": \"\"}],\n"
+                    "  \"non_translate\": [{\"marker\": \"代码或标记\", \"category\": \"\", \"note\": \"\"}]\n"
+                    "}\n"
+                    "```"
+                )
+            else:
+                # 用户自定义卡片模式
+                system_prompt = extraction_prompt_selection.get("prompt_content", "")
             
             # 优化 Few-Shot：包含更丰富的混合场景，注意 {{}} 是转义 Python 的 f-string 占位符
             fake_user = (
                 "请分析以下文本并提取信息，角色与术语的译名/分类/备注，不翻译项的分类/备注都必须写成简体中文。\n"
                 "---\n"
-                "露娜小姐：请携带[圣剑]前往星门集合。\n"
-                "精灵族战士即将施放月光斩。\n"
-                "系统提示：欢迎回来，{{player_name}}！<br>请注意<color=red>HP</color>的变化。\n"
+                "爱因斯坦（Einstein）在普林斯顿高等研究院提出了广义相对论。\n"
+                "神经网络的训练过程中，我们常用 Adam 优化器来加速梯度下降。\n"
+                "系统在运行 `train.py` 时，注意监控损失函数值 $L_{loss}$，并通过 `<tensorboard>` 可视化。\n"
                 "---\n"
                 "请输出 JSON 提取结果。"
             )
@@ -296,19 +334,20 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 "```json\n"
                 "{\n"
                 "  \"characters\": [\n"
-                "    {\"source\": \"露娜小姐\", \"recommended_translation\": \"露娜小姐\", \"gender\": \"女性\", \"note\": \"NPC称呼\"}\n"
+                "    {\"source\": \"爱因斯坦\", \"recommended_translation\": \"爱因斯坦\", \"gender\": \"男性\", \"note\": \"著名物理学家\"},\n"
+                "    {\"source\": \"Einstein\", \"recommended_translation\": \"爱因斯坦\", \"gender\": \"\", \"note\": \"人物英文原名\"}\n"
                 "  ],\n"
                 "  \"terms\": [\n"
-                "    {\"source\": \"圣剑\", \"recommended_translation\": \"圣剑\", \"category_path\": \"物品\", \"note\": \"武器名称\"},\n"
-                "    {\"source\": \"星门\", \"recommended_translation\": \"星门\", \"category_path\": \"地名\", \"note\": \"地点\"},\n"
-                "    {\"source\": \"月光斩\", \"recommended_translation\": \"月光斩\", \"category_path\": \"技能\", \"note\": \"招式名称\"},\n"
-                "    {\"source\": \"精灵族\", \"recommended_translation\": \"精灵族\", \"category_path\": \"种族\", \"note\": \"种族名称\"}\n"
+                "    {\"source\": \"普林斯顿高等研究院\", \"recommended_translation\": \"普林斯顿高等研究院\", \"category_path\": \"机构\", \"note\": \"学术研究机构\"},\n"
+                "    {\"source\": \"广义相对论\", \"recommended_translation\": \"广义相对论\", \"category_path\": \"核心概念\", \"note\": \"物理学理论\"},\n"
+                "    {\"source\": \"神经网络\", \"recommended_translation\": \"神经网络\", \"category_path\": \"学术名词\", \"note\": \"计算模型\"},\n"
+                "    {\"source\": \"Adam\", \"recommended_translation\": \"Adam\", \"category_path\": \"算法\", \"note\": \"优化算法\"},\n"
+                "    {\"source\": \"梯度下降\", \"recommended_translation\": \"梯度下降\", \"category_path\": \"核心概念\", \"note\": \"优化方法\"}\n"
                 "  ],\n"
                 "  \"non_translate\": [\n"
-                "    {\"marker\": \"{{player_name}}\", \"category\": \"变量\", \"note\": \"玩家名变量\"},\n"
-                "    {\"marker\": \"<br>\", \"category\": \"标签\", \"note\": \"换行符\"},\n"
-                "    {\"marker\": \"<color=red>\", \"category\": \"标签\", \"note\": \"颜色富文本标签\"},\n"
-                "    {\"marker\": \"</color>\", \"category\": \"标签\", \"note\": \"颜色富文本标签闭合\"}\n"
+                "    {\"marker\": \"`train.py`\", \"category\": \"代码\", \"note\": \"Python脚本文件名\"},\n"
+                "    {\"marker\": \"$L_{loss}$\", \"category\": \"数学公式\", \"note\": \"损失函数公式\"},\n"
+                "    {\"marker\": \"<tensorboard>\", \"category\": \"标签\", \"note\": \"可视化工具富文本/自定义标签\"}\n"
                 "  ]\n"
                 "}\n"
                 "```"
@@ -415,13 +454,13 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
     def _build_second_stage_prompt(self, batch: list) -> tuple[str, list[dict]]:
         """第二阶段：候选归并与 AI 裁决（优化版提示词）"""
         system_prompt = (
-            "你是一个本地化术语库规范化专家。你将收到一组经初步提取的“候选词组（Group）”。\n"
-            "有时候相同的词汇会被误判为不同的类型（如既被识别为角色，又被识别为术语）。\n"
-            "你的唯一任务是：综合判定每个 Group，裁决它最终属于“角色(characters)”还是“术语(terms)”，并提炼出一个最准确的结果。\n"
+            "你是一个学术术语与科技文献翻译规范化专家。你将收到一组经初步提取的“候选词组（Group）”。\n"
+            "有时候相同的词汇会被误判为不同的类型（如既被识别为科学家/人物，又被识别为学术术语）。\n"
+            "你的唯一任务是：综合判定每个 Group，裁决它最终属于“人物(characters)”还是“学术术语(terms)”，并提炼出一个最准确的结果。\n"
             "【严格执行以下规则】\n"
-            "1. 唯一归属：同一个词不能既是角色又是术语，必须二选一。\n"
+            "1. 唯一归属：同一个词不能既是人物又是术语，必须二选一。\n"
             "2. 主键保留：输出的 `source` 必须严格使用传入的 `主source`，绝不能随意篡改。\n"
-            "3. 丢弃无价值词汇：如果某个 Group 里的词汇看起来是普通词语（如“今天”、“然后”），请直接忽略，不要输出它。\n"
+            "3. 尽可能保留：请尽量保留所有对本地化翻译一致性有用的候选词。仅在遇到完全无翻译价值的极度普通词汇（如“今天”、“然后”、“因此”）时，才允许忽略。\n"
             "4. 信息整合：如果推荐译名或备注有多个参考，请合并为你认为最合理的版本。\n"
             "【输出格式】\n"
             "必须输出合法的 JSON 代码块，严格遵守以下结构：\n"
@@ -436,25 +475,25 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         # 优化 Few-Shot：展示如何解决类型冲突和合并备注
         sample_group = [
             {
-                "source": "亚瑟王",
-                "merged_sources": ["亚瑟王", "亚瑟"],
+                "source": "爱因斯坦",
+                "merged_sources": ["爱因斯坦", "Einstein"],
                 "candidates": [
-                    {"type": "character", "recommended_translation": "King Arthur", "gender": "男性", "note": "历史人物"},
-                    {"type": "term", "recommended_translation": "Arthur", "category_path": "称号", "note": "错误分类为术语"}
+                    {"type": "character", "recommended_translation": "Albert Einstein", "gender": "男性", "note": "著名物理学家"},
+                    {"type": "term", "recommended_translation": "Einstein", "category_path": "学术名词", "note": "错误分类为术语"}
                 ]
             },
             {
-                "source": "月光斩",
-                "merged_sources": ["月光斩"],
+                "source": "梯度下降",
+                "merged_sources": ["梯度下降"],
                 "candidates": [
-                    {"type": "term", "recommended_translation": "Moon Slash", "category_path": "技能", "note": "剑技名称"}
+                    {"type": "term", "recommended_translation": "Gradient Descent", "category_path": "核心概念", "note": "数学优化方法"}
                 ]
             },
             {
-                "source": "精灵族",
-                "merged_sources": ["精灵族"],
+                "source": "神经网络",
+                "merged_sources": ["神经网络"],
                 "candidates": [
-                    {"type": "term", "recommended_translation": "Elves", "category_path": "种族", "note": "种族名称"}
+                    {"type": "term", "recommended_translation": "Neural Network", "category_path": "学术名词", "note": "计算模型"}
                 ]
             }
         ]
@@ -469,11 +508,11 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             "```json\n"
             "{\n"
             "  \"characters\": [\n"
-            "    {\"source\": \"亚瑟王\", \"recommended_translation\": \"King Arthur\", \"gender\": \"男性\", \"note\": \"历史人物\"}\n"
+            "    {\"source\": \"爱因斯坦\", \"recommended_translation\": \"Albert Einstein\", \"gender\": \"男性\", \"note\": \"著名物理学家\"}\n"
             "  ],\n"
             "  \"terms\": [\n"
-            "    {\"source\": \"月光斩\", \"recommended_translation\": \"Moon Slash\", \"category_path\": \"技能\", \"note\": \"剑技名称\"},\n"
-            "    {\"source\": \"精灵族\", \"recommended_translation\": \"Elves\", \"category_path\": \"种族\", \"note\": \"种族名称\"}\n"
+            "    {\"source\": \"梯度下降\", \"recommended_translation\": \"Gradient Descent\", \"category_path\": \"核心概念\", \"note\": \"数学优化方法\"},\n"
+            "    {\"source\": \"神经网络\", \"recommended_translation\": \"Neural Network\", \"category_path\": \"学术名词\", \"note\": \"计算模型\"}\n"
             "  ]\n"
             "}\n"
             "```"

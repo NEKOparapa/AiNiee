@@ -175,6 +175,12 @@ class FileOutputer:
             )
             # 实际writer默认的输出目录、文件名后缀等配置会被AutoTypeWriter的覆盖
             return WriterInitParams(output_config=output_config, writer_init_params_factory=writer_init_params_factory)
+        if project_type == ProjectType.BABELDOC_PDF:
+            # 从翻译配置中读取语言并映射为 babeldoc 语言代码
+            from ModuleFolders.Service.TaskExecutor.TranslatorUtil import map_language_name_to_code
+            source_lang = map_language_name_to_code(config.get("source_language", "chinese_simplified"))
+            target_lang = map_language_name_to_code(config.get("target_language", "english"))
+            return WriterInitParams(output_config=output_config, source_lang=source_lang, target_lang=target_lang)
         return WriterInitParams(output_config=output_config)
 
     def _get_writer_default_config(self, project_type, output_path: Path, input_path: Path, config: dict):

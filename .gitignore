@@ -25,4 +25,5 @@ PluginScripts/IOPlugins/*
 .DS_Store
 bilingual_auto/
 downloads/
-dist_pdf/
+dist_pdf/  
+ 

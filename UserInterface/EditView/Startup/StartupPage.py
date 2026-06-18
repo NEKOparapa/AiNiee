@@ -218,6 +218,7 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                     translation_project,
                     label_input_path,
                     label_input_exclude_rule,
+                    config,
                 )
                 self.cache_manager.load_from_project(cache_project)
                 self.cache_manager.save_to_file()
