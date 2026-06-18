@@ -973,6 +973,8 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 }
             )
 
+
+
         return navigation_model
 
     def _set_filter_for_view(self, view_name: str, filter_value) -> None:

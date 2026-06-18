@@ -12,6 +12,7 @@ from UserInterface.EditView.Analysis.AnalysisPage import AnalysisPage
 from UserInterface.EditView.Proofreading.ProofreadingPage import ProofreadingPage
 from UserInterface.EditView.Startup.StartupPage import StartupPage
 from UserInterface.EditView.Translation.TranslationPage import TranslationPage
+from UserInterface.EditView.Analysis.ComparativeView import ComparativeViewWidget
 from UserInterface.Native.FileDialogProvider import get_existing_directory
 from UserInterface.Widget.Toast import ToastMixin
 
@@ -34,7 +35,7 @@ class WorkflowHeaderBar(ConfigMixin, CardWidget):
         self.save_button = TransparentPushButton(FIF.SAVE, self.tra("保存"), self)
         self.export_button = TransparentPushButton(FIF.SHARE, self.tra("导出结果"), self)
         self.step_widget = SegmentedWidget(self)
-        self.step_widget.setFixedWidth(380)
+        self.step_widget.setFixedWidth(500)
         step_height = 38
         self.step_widget.setFixedHeight(step_height)
 
@@ -42,6 +43,7 @@ class WorkflowHeaderBar(ConfigMixin, CardWidget):
             ("analysis", self.tra("提取")),
             ("translation", self.tra("翻译")),
             ("proofreading", self.tra("校润")),
+            ("comparative", self.tra("双语比对")),
         ):
             step_item = self.step_widget.addItem(
                 routeKey=route_key,
@@ -73,6 +75,7 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
     ROUTE_ANALYSIS = "analysis"
     ROUTE_TRANSLATION = "translation"
     ROUTE_PROOFREADING = "proofreading"
+    ROUTE_COMPARATIVE = "comparative"
 
     def __init__(self, text: str, window, cache_manager, file_reader) -> None:
         super().__init__(window)
@@ -107,11 +110,13 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
         self.analysis_page = AnalysisPage(cache_manager, self.workflow_stacked_widget)
         self.translation_page = TranslationPage(cache_manager, self.workflow_stacked_widget)
         self.proofreading_page = ProofreadingPage(cache_manager, self.workflow_stacked_widget)
+        self.comparative_page = ComparativeViewWidget(cache_manager, self.workflow_stacked_widget)
 
         self.route_to_widget = {
             self.ROUTE_ANALYSIS: self.analysis_page,
             self.ROUTE_TRANSLATION: self.translation_page,
             self.ROUTE_PROOFREADING: self.proofreading_page,
+            self.ROUTE_COMPARATIVE: self.comparative_page,
         }
 
         for widget in self.route_to_widget.values():
