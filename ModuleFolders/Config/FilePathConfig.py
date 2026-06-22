@@ -256,10 +256,22 @@ def default_output_dir() -> Path:
     return documents_root() / "AiNiee" / "output"
 
 
+def default_polish_output_dir() -> Path:
+    if _portable_mode():
+        return executable_root() / "polish_output"
+    return documents_root() / "AiNiee" / "polish_output"
+
+
 # 自动输出目录：输入文件夹的平级 AiNieeOutput。
 def auto_output_dir(input_path: str) -> str:
     parent = os.path.dirname(os.path.abspath(input_path))
     return os.path.join(parent, "AiNieeOutput")
+
+
+# 自动润色输出目录：输入文件夹的平级 AiNieePolishOutput。
+def auto_polish_output_dir(input_path: str) -> str:
+    parent = os.path.dirname(os.path.abspath(input_path))
+    return os.path.join(parent, "AiNieePolishOutput")
 
 
 # 把存储的路径解析成绝对路径：非字符串、空或相对值回落到可见的默认目录。

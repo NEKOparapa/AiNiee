@@ -17,28 +17,53 @@ def _create_opencc_converter(preset: str) -> opencc.OpenCC:
     """创建 opencc 转换器，处理 Windows 下路径包含非 ASCII 字符导致 C 扩展失败的问题"""
     global _opencc_temp_dir
 
-    try:
-        return opencc.OpenCC(preset)
-    except (RuntimeError, OSError) as e:
-        # 仅对路径相关错误进行 fallback，避免吞掉不相关的 bug
-        error_msg = str(e).lower()
-        if "not found" not in error_msg and "not accessible" not in error_msg:
-            raise
+    use_temp_dir = os.name == "nt"
+    if not use_temp_dir:
+        try:
+            return opencc.OpenCC(preset)
+        except (RuntimeError, OSError) as e:
+            # 仅对路径相关错误进行 fallback，避免吞掉不相关的 bug
+            error_msg = str(e).lower()
+            if "not found" not in error_msg and "not accessible" not in error_msg:
+                raise
+            use_temp_dir = True
 
-        # opencc C 扩展不支持 Unicode 路径，将数据文件复制到纯 ASCII 临时目录重试
+    if use_temp_dir and _opencc_temp_dir is None:
         opencc_dir = os.path.dirname(opencc.__file__)
         share_dir = os.path.join(opencc_dir, "clib", "share", "opencc")
-        if not os.path.isdir(share_dir):
+        candidate_roots = [tempfile.gettempdir()]
+        if os.name == "nt":
+            candidate_roots.append(os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Temp"))
+
+        temp_dir = None
+        last_error = None
+        for root in candidate_roots:
+            try:
+                os.makedirs(root, exist_ok=True)
+                candidate_dir = tempfile.mkdtemp(prefix="opencc_", dir=root)
+                try:
+                    candidate_dir.encode("ascii")
+                except UnicodeEncodeError:
+                    shutil.rmtree(candidate_dir, ignore_errors=True)
+                    continue
+                temp_dir = candidate_dir
+                break
+            except OSError as error:
+                last_error = error
+
+        if temp_dir is None:
+            raise RuntimeError("无法创建纯 ASCII 路径的 OpenCC 临时目录") from last_error
+
+        try:
+            shutil.copytree(share_dir, temp_dir, dirs_exist_ok=True)
+        except Exception:
+            shutil.rmtree(temp_dir, ignore_errors=True)
             raise
+        _opencc_temp_dir = temp_dir
+        atexit.register(shutil.rmtree, _opencc_temp_dir, ignore_errors=True)
 
-        # 仅在首次 fallback 时创建临时目录并注册清理
-        if _opencc_temp_dir is None:
-            _opencc_temp_dir = tempfile.mkdtemp(prefix="opencc_")
-            shutil.copytree(share_dir, _opencc_temp_dir, dirs_exist_ok=True)
-            atexit.register(shutil.rmtree, _opencc_temp_dir, ignore_errors=True)
-
-        config_name = preset if preset.endswith(".json") else preset + ".json"
-        return opencc.OpenCC(os.path.join(_opencc_temp_dir, config_name))
+    config_name = preset if preset.endswith(".json") else preset + ".json"
+    return opencc.OpenCC(os.path.join(_opencc_temp_dir, config_name))
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -640,12 +665,12 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         # 写入文件
         self.file_writer.output_translated_content(
             self.cache_manager.project,
-            self.config.label_output_path,
+            self.config.label_polish_output_path,
             self.config.label_input_path,
             output_config,
         )
         self.print("")
-        self.info(f"润色结果已保存至 {self.config.label_output_path} 目录 ...")
+        self.info(f"润色结果已保存至 {self.config.label_polish_output_path} 目录 ...")
         self.print("")
 
         # 重置内部状态

@@ -93,12 +93,18 @@ class ConfigMixin:
             from ModuleFolders.Config.FilePathConfig import (
                 default_input_dir,
                 default_output_dir,
+                default_polish_output_dir,
                 resolve_user_dir,
             )
             if "label_input_path" in config:
                 config["label_input_path"] = resolve_user_dir(config["label_input_path"], default_input_dir())
             if "label_output_path" in config:
                 config["label_output_path"] = resolve_user_dir(config["label_output_path"], default_output_dir())
+            if "label_polish_output_path" in config:
+                config["label_polish_output_path"] = resolve_user_dir(
+                    config["label_polish_output_path"],
+                    default_polish_output_dir(),
+                )
 
         return config
 
